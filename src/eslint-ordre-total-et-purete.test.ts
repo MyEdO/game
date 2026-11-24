@@ -44,7 +44,7 @@ import {
  *     suite de la zone, celui de `fermeParLaSurvie` (INSTRUMENTS, #3058) et de `fermeParLeProjet` (#4903 H3), depuis des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
  *     l'index du dossier : la matrice prouve le CÂBLAGE (zone, cible, type ou valeur), l'oracle prouve la table ;
  *  4. PAQUETS, JOKER — chaque zone × chaque paquet de l'hôte web rend le verdict de `paquetFerme` ; un motif de glob
- *     dont le dossier de zone est un joker est refusé hors de `racine` ;
+ *     dont un joker peut atteindre une zone fermée au fichier est refusé, un projet depuis `racine` compris ;
  *  5. JSX, HORS ZONE — chaque zone qui survit refuse le JSX et tout module de code hors des zones, hors des modules
  *     que l'`outillage` d'un de ses scripts déclare pour ce script seul ; une zone qui ne survit pas, une donnée passent ;
  *  6. RÉEXPORTATION, SUITE JOUÉE, QUARANTAINE — chaque forme refusée l'est, chaque forme voisine passe ; chaque
@@ -611,7 +611,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(obtenus).toEqual(['murs/zone', 'murs/zone', 'passe', 'passe', 'murs/zone', 'murs/zone', 'murs/zone', 'murs/zone']);
   });
 
-  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises ; un projet lit ses ouvertures, pas un affichage', () => {
+  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises, ni par un motif joker qui peut l’atteindre ; un projet lit ses ouvertures et ses propres jokers, pas un affichage', () => {
     const obtenus = verdicts([
       { filePath: 'hotes/zz-inconnu/a.ts', code: 'export const a = 1;\n' },
       { filePath: 'hotes/zz-a.ts', code: 'export const a = 1;\n' },
@@ -630,6 +630,10 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       { filePath: 'projets/roguelite/src/zz-e.ts', code: "import { rollD100 } from '../../../src/engine/dice';\nexport const e = rollD100;\n" },
       { filePath: 'projets/roguelite/src/zz-g.ts', code: "import { pont } from '../../../hotes/godot/pont/pont';\nexport const g = pont;\n" },
       { filePath: 'projets/roguelite/src/zz-n.ts', code: "import { X } from '../../../src/noyau/combatFlow';\nexport const n = X;\n" },
+      ...['../projets/*/x.ts', '../projets/**/*.ts', '../*/roguelite/**/*.ts', '../projets/{roguelite,zz}/x.ts', '../projets/roguelit?/x.ts', '../projets/[r]oguelite/x.ts']
+        .map((motif, i) => ({ filePath: `src/zz-joker-${i}.test.ts`, code: `export const g = import.meta.glob('${motif}');\n` })),
+      { filePath: 'hotes/godot/zz-joker.ts', code: "export const g = import.meta.glob('../../projets/*/x.ts');\n" },
+      { filePath: 'projets/roguelite/src/zz-joker.ts', code: "export const g = import.meta.glob('../**/*.ts');\n" },
     ], ['murs/zone', REGLE, INSTR]);
     expect(obtenus).toEqual([
       'murs/zone', 'murs/zone', 'murs/zone',
@@ -637,6 +641,8 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       'passe',
       REGLE, INSTR, INSTR, REGLE, INSTR, REGLE,
       'passe', REGLE, 'passe',
+      INSTR, INSTR, INSTR, INSTR, INSTR, INSTR,
+      REGLE, 'passe',
     ]);
   });
 });

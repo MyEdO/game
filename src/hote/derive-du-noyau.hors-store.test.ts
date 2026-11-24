@@ -2,9 +2,10 @@
  * LES HÔTES DÉRIVENT DU NOYAU (#2898 lot D, #2928). laurent, 2026-10-21 13:06Z : « Ce qui est vital pour moi c est que si
  * je modifie le moteur, je n ai pas à toucher ni au mcp, ni à l hôte, sauf si je dois inventer des nouveaux tools ». Garde
  * de classe : aucun id d'une chaîne (`idsDe`, `nommes` : un verbe à toute place, une fenêtre après le `@` d'un id de geste) du code d'un hôte du noyau (le dossier de chaque zone de `HOTES_DU_NOYAU`, bâtie sur les droits d'un hôte ou d'un
- * projet, `scripts/guards/lib/couches.mjs`, TypeScript et GDScript, hors tests et cibles générées) ne nomme un verbe de la partie
- * (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du noyau, le verbe d'une
- * offre compris (`OffreEnVue.geste`). Et aucun script GDScript ne calcule une règle
+ * projet, `scripts/guards/lib/couches.mjs`, hors d'une zone dont la ligne ouvre le noyau hors de sa porte : `derivantes`,
+ * `ouvertures` de `ligneDeProjet` ; #4931, #4938, #4870), TypeScript et GDScript, hors tests et cibles générées) ne nomme
+ * un verbe de la partie (`VERBES`, lus du type du noyau) ni une clé de fenêtre (`CLES_DE_FENETRE`) ; un hôte les lit du
+ * noyau, le verbe d'une offre compris (`OffreEnVue.geste`). Et aucun script GDScript ne calcule une règle
  * (`calculsDeRegle`, #2928) : il lit la vue ; l'arithmétique de la mise
  * en page vit dans un seul module, que sa structure désigne (`estMiseEnPage`).
  */
@@ -13,7 +14,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
-import { HOTES_DU_NOYAU, dossierDe } from '../../scripts/guards/lib/couches.mjs';
+import { COUCHES, HOTES_DU_NOYAU, dossierDe, ligneDeProjet } from '../../scripts/guards/lib/couches.mjs';
 import { calculsDeRegle, estMiseEnPage } from '../../scripts/guards/lib/gdscriptSansRegle.mjs';
 import { lexemesGdscript } from '../../scripts/guards/lib/gdscript.mjs';
 import { GENERATORS, estCiblePure } from '../../scripts/docs/build-all.mjs';
@@ -22,8 +23,13 @@ import { CLES_DE_FENETRE } from '../noyau/index';
 
 const RACINE = new URL('../../', import.meta.url);
 
-/** Les dossiers des hôtes que l'arbre porte. */
-const DOSSIERS = HOTES_DU_NOYAU.map(dossierDe).filter((d) => existsSync(new URL(d, RACINE)));
+/** Les hôtes de `zones` qui dérivent du noyau selon la table `couches` : ceux dont la ligne n'ouvre pas le noyau hors de
+ *  sa porte (`ouvertures`). */
+const derivantes = (zones: readonly string[], couches: Readonly<Record<string, { ouvertures?: Readonly<Record<string, number>> }>>): string[] =>
+  zones.filter((z) => couches[z].ouvertures?.noyau === undefined);
+
+/** Les dossiers des hôtes jugés que l'arbre porte. */
+const DOSSIERS = derivantes(HOTES_DU_NOYAU, COUCHES).map(dossierDe).filter((d) => existsSync(new URL(d, RACINE)));
 
 /** Les fichiers de code des hôtes, relatifs à la racine du dépôt : TypeScript ou GDScript, ni test, ni table de test, ni
  *  cible générée, ni cible de design (`hotes/godot/cibles/`, #4411 : des maquettes qui écrivent leurs gestes en donnée,
@@ -94,6 +100,11 @@ describe('l’hôte ne nomme aucun verbe ni aucune fenêtre en dur', () => {
       { mot: verbe, ligne: 1 }, { mot: verbe, ligne: 2 }, { mot: verbe, ligne: 3 }, { mot: cle, ligne: 3 }, { mot: cle, ligne: 4 },
     ]);
     expect(nommes(idsDesChainesGdscript(`# "${autre}"\nvar x := "${verbe}"\nvar y := "${cle}"\nvar z := "le ${autre} du jour"`))).toEqual([{ mot: verbe, ligne: 2 }]);
+  });
+
+  it('témoin : un hôte dont la ligne ouvre le noyau hors de sa porte est hors de portée ; un projet sans cette ouverture et un hôte y sont', () => {
+    const table = { ouvert: ligneDeProjet('projets/ouvert', { noyau: 1 }), ferme: ligneDeProjet('projets/ferme', { engine: 1 }), hote: COUCHES.hote };
+    expect(derivantes(['ouvert', 'ferme', 'hote'], table)).toEqual(['ferme', 'hote']);
   });
 
   it('aucun fichier de code d’un hôte', () => {

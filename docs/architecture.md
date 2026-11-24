@@ -121,10 +121,17 @@ déclare les seules zones du dépôt.
 | racine de `src/` | tests transverses et leur préparation | toutes les zones, hors des projets |
 
 - **Un projet est fermé** (#4903 H3) : aucune autre zone ne l'importe, ni en exécution ni en type, ni par
-  `importe: '*'`, ni en production (`fermeture`, `ouvertes`) ni dans une suite (`murs/tests-survivants`), par la
-  nature de la zone (`fermeParLeProjet` : son dossier est sous `projets/`). Sa ligne se construit
+  `importe: '*'`, ni en production (`fermeture`, `ouvertes`) ni dans une suite (`murs/tests-survivants`), ni par
+  un motif joker d'`import.meta.glob` qui peut l'atteindre (`dossierJoker`, `couchesLint.mjs`), ni en transit par
+  un module hors des zones (`scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`), par la nature de la zone
+  (`fermeParLeProjet` : son dossier est sous `projets/`). Sa ligne se construit
   (`ligneDeProjet`) : les droits d'un projet, plus ses `ouvertures`, chacune nommée par son ticket ; ouvrir une
   zone l'importe et retire sa porte. Le banc refuse une ligne qui nomme un autre projet et une ouverture morte.
+- **Un hôte du noyau ne nomme aucun verbe** (`src/hote/derive-du-noyau.hors-store.test.ts`) : la garde juge
+  chaque zone de `HOTES_DU_NOYAU`, projets compris, sauf celle dont la ligne ouvre le noyau hors de sa porte
+  (`ouvertures.noyau`, posée par `ligneDeProjet`) : une zone qui lit encore le noyau hors de sa porte ne dérive pas
+  encore de lui. Le roguelite y entre quand son ouverture du noyau se résorbe (#4931), après les vues des gestes
+  hors combat (#4938) et le lecteur de la dépense de PX (#4870).
 
 - **Le noyau ne lit de l'hôte que ce que l'hôte lui fournit** (mur `murs/sans-hote`) : la graine du RNG de
   bataille, la cadence, les règles maison, l'appel différé (`programmer`, `src/noyau/plateforme.ts`), le héros
