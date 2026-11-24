@@ -14,11 +14,13 @@ import { versDisque } from '../grammaire/prose';
 import lieuxServicesJson from '../../lieux-services.json';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
 import loupEtSaumureProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
-type Projet = typeof loupEtSaumureProjet;
+type Entite = Record<string, unknown>;
+type Projet = Omit<typeof paquetDeTest, 'scenes'> & { scenes: (Omit<(typeof paquetDeTest.scenes)[number], 'entities'> & { entities: Entite[] })[] };
 
-const RANG_SCENE = loupEtSaumureProjet.scenes.findIndex((s) => s.id === 'ls-quai-salzenmund');
-const RANG_MARCHAND = loupEtSaumureProjet.scenes[RANG_SCENE].entities.findIndex((e) => e.id === 'armurier');
+const RANG_SCENE = 0;
+const RANG_MARCHAND = paquetDeTest.scenes[RANG_SCENE].entities.length;
 const RANG_FORGERON = lieuxServicesJson.findIndex((s) => s.id === 'forgeron');
 
 const messages = (schema: z.ZodType, doc: unknown): string => {
@@ -27,9 +29,12 @@ const messages = (schema: z.ZodType, doc: unknown): string => {
   return r.success ? '' : r.error.issues.map((i) => `${i.path.join('.')} ${i.message}`).join('\n');
 };
 
-/** Le projet Loup et saumure, retouché par `retouche` sur une copie. */
+/** Le paquet de test, un marchand ajouté à sa première scène et deux services à son premier lieu, retouché par
+ *  `retouche` sur une copie. */
 const projet = (retouche: (copie: Projet) => void): Projet => {
-  const copie = structuredClone(loupEtSaumureProjet);
+  const copie: Projet = structuredClone(paquetDeTest);
+  copie.scenes[RANG_SCENE].entities.push({ id: 'marchand-de-test', kind: 'personnage', pos: { x: 3, y: 3 }, label: 'Marchand de test', merchant: { archetype: { id: 'armurier' } }, creature: { id: 'humain' } });
+  Object.assign(copie.worldMap.places[0], { services: ['auberge', 'forgeron'].map((id) => ({ id, kind: { id } })) });
   retouche(copie);
   return copie;
 };
@@ -48,21 +53,22 @@ const PORTEURS = [
   {
     porteur: 'worldMap.places[].services[].kind', schema: projetSchema, chemin: 'worldMap.places.0.services.1.kind',
     connue: 'guilde', etrangere: 'armurier', catalogue: 'services de lieu',
-    avec: (v: unknown) => projet((c) => Object.assign(c.worldMap.places[0].services[1], { kind: v })),
+    avec: (v: unknown) => projet((c) => Object.assign((c.worldMap.places[0] as unknown as { services: object[] }).services[1], { kind: v })),
   },
 ];
 
 describe('#2968 L17 — archétype de marchand et service de lieu désignés par `ref(type)`', () => {
-  it('les documents réels parsent, et leurs références sont des slots au parse de mesure', () => {
+  it('les documents livrés parsent', () => {
     expect(schemaServices.safeParse(lieuxServicesJson).success).toBe(true);
-    const compte = (lu: unknown, type: string) => {
-      const doc = versDisque(lu);
-      expect(projetSchema.safeParse(doc).success).toBe(true);
-      return mesureDuParse(projetSchema, doc).reperes.filter((r) => r.type === type).length;
-    };
-    expect(compte(areneProjet, 'merchant')).toBe(4);
-    expect(compte(loupEtSaumureProjet, 'merchant')).toBe(3);
-    expect(compte(loupEtSaumureProjet, 'serviceDeLieu')).toBe(6 + 8);
+    for (const lu of [areneProjet, loupEtSaumureProjet]) expect(projetSchema.safeParse(versDisque(lu)).success).toBe(true);
+  });
+
+  it('chaque référence est un slot au parse de mesure, à son path', () => {
+    const doc = versDisque(projet(() => {}));
+    expect(projetSchema.safeParse(doc).success).toBe(true);
+    const paths = (type: string) => mesureDuParse(projetSchema, doc).reperes.filter((r) => r.type === type).map((r) => r.path.join('.'));
+    expect(paths('merchant')).toEqual([`scenes.${RANG_SCENE}.entities.${RANG_MARCHAND}.merchant.archetype.id`]);
+    expect(paths('serviceDeLieu')).toEqual(['worldMap.places.0.services.0.kind.id', 'worldMap.places.0.services.1.kind.id']);
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ schema, avec, connue }) => {

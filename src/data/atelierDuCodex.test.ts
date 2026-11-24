@@ -14,7 +14,7 @@ import { versDisque } from './schemas/grammaire/prose';
 import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
 import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
-import diligence from '../scenes/diligence/diligence-projet.json';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 import { ancetreDuDe, champDEnTete, datasetArray, datasetObject, deDeLaTable, entreesDuDataset, resetData, setDataset, type DatasetKey } from './overrides';
 import { CATEGORY_DATASET_DERIVE } from './schemas/exposition-derivee';
 import { effectTableDie, findEffectTableById } from './effectTables';
@@ -511,11 +511,11 @@ describe('designations et supprimerEntree — ce qui désigne une entrée, et so
   });
 
   it('un paquet passé compte : sa référence le désigne, dite sous son fichier', () => {
-    const repere = reperesDuParse(projetSchema, versDisque(diligence)).find((r) => r.type === 'creature' && !r.parCle)!;
-    const id = auChemin(diligence, repere.path) as string;
-    const paquet = { fichier: 'diligence-projet.json', projet: diligence };
-    expect(designations('creatures', id, [paquet]).filter((d) => d.startsWith('diligence-projet.json › ')).length).toBeGreaterThan(0);
-    expect(designations('creatures', id, []).filter((d) => d.startsWith('diligence-projet.json › '))).toEqual([]);
+    const repere = reperesDuParse(projetSchema, versDisque(paquetDeTest)).find((r) => r.type === 'creature' && !r.parCle)!;
+    const id = auChemin(paquetDeTest, repere.path) as string;
+    const paquet = { fichier: 'paquet-de-test.json', projet: paquetDeTest };
+    expect(designations('creatures', id, [paquet]).filter((d) => d.startsWith('paquet-de-test.json › ')).length).toBeGreaterThan(0);
+    expect(designations('creatures', id, []).filter((d) => d.startsWith('paquet-de-test.json › '))).toEqual([]);
   });
 
   it('supprimer une entrée désignée est refusé sans rien retirer', () => {

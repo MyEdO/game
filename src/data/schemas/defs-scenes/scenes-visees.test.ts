@@ -14,11 +14,13 @@ import areneProjet from '../../../scenes/arene/arene-projet.json';
 import bargeDuSelProjet from '../../../scenes/barge-du-sel/barge-du-sel-projet.json';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 import loupEtSaumureProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
-type Projet = typeof loupEtSaumureProjet;
+type Projet = typeof paquetDeTest;
 
-const RANG_SCENE_DU_DECLENCHEUR = loupEtSaumureProjet.scenes.findIndex((s) => s.id === 'ls-quai-salzenmund');
-const RANG_DECLENCHEUR = loupEtSaumureProjet.scenes[RANG_SCENE_DU_DECLENCHEUR].triggers.findIndex((t) => t.id === 'ls-retour-epilogue');
+/** Rangs, dans le projet de test, de la scène qui porte le déclencheur de transition et de ce déclencheur. */
+const RANG_SCENE_DU_DECLENCHEUR = 0;
+const RANG_DECLENCHEUR = 0;
 
 const messages = (projet: unknown): string[] => {
   const r = projetSchema.safeParse(projet);
@@ -26,9 +28,14 @@ const messages = (projet: unknown): string[] => {
   return r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} ${i.message}`);
 };
 
-/** Le projet Loup et saumure, retouché par `retouche` sur une copie. */
+/** Le paquet de test, son premier lieu doté d'un point d'intérêt, sa route d'une embuscade et sa première scène d'un
+ *  déclencheur de transition, chacun visant `scene-de-test-b` ; retouché par `retouche` sur une copie. */
 const projet = (retouche: (copie: Projet) => void): Projet => {
-  const copie = structuredClone(loupEtSaumureProjet);
+  const copie: Projet = structuredClone(paquetDeTest);
+  const vers = () => ({ id: 'scene-de-test-b' });
+  Object.assign(copie.worldMap.places[0], { poi: [{ id: 'poi-de-test', label: 'Point de test', pos: { x: 20, y: 40 }, sceneId: vers() }] });
+  Object.assign(copie.worldMap.routes[0], { ambush: { scene: vers(), encounter: 'rencontre-de-test' } });
+  copie.scenes[RANG_SCENE_DU_DECLENCHEUR].triggers = [{ id: 'transition-de-test', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'transition', scene: vers() } }] } }] as never[];
   retouche(copie);
   return copie;
 };
@@ -40,19 +47,15 @@ const PORTEURS = [
   },
   {
     porteur: 'worldMap.places[].poi[].sceneId', chemin: 'worldMap.places.0.poi.0.sceneId',
-    avec: (v: unknown) => projet((c) => {
-      const lieu: { poi: unknown[] } = c.worldMap.places[0];
-      const { service: _service, ...poi } = c.worldMap.places[0].poi[0];
-      lieu.poi[0] = { ...poi, label: 'Auberge', sceneId: v };
-    }),
+    avec: (v: unknown) => projet((c) => Object.assign((c.worldMap.places[0] as unknown as { poi: object[] }).poi[0], { sceneId: v })),
   },
   {
     porteur: 'worldMap.routes[].ambush.scene', chemin: 'worldMap.routes.0.ambush.scene',
-    avec: (v: unknown) => projet((c) => Object.assign(c.worldMap.routes[0].ambush, { scene: v })),
+    avec: (v: unknown) => projet((c) => Object.assign((c.worldMap.routes[0] as unknown as { ambush: object }).ambush, { scene: v })),
   },
   {
     porteur: 'scenes[].triggers[].flow › transition.scene', chemin: `scenes.${RANG_SCENE_DU_DECLENCHEUR}.triggers.${RANG_DECLENCHEUR}.flow.etapes.0.effet.scene`,
-    avec: (v: unknown) => projet((c) => Object.assign(c.scenes[RANG_SCENE_DU_DECLENCHEUR].triggers[RANG_DECLENCHEUR].flow.etapes[0].effet, { scene: v })),
+    avec: (v: unknown) => projet((c) => Object.assign((c.scenes[RANG_SCENE_DU_DECLENCHEUR].triggers[RANG_DECLENCHEUR] as { flow: { etapes: { effet: object }[] } }).flow.etapes[0].effet, { scene: v })),
   },
   {
     porteur: 'worldMap.routes[].perils[].effects › transition.scene', chemin: 'worldMap.routes.0.perils.0.effects.0.scene',
@@ -61,20 +64,19 @@ const PORTEURS = [
 ];
 
 describe('#2968 L14 — scènes visées désignées par `ref(portee)`', () => {
-  it('les projets réels parsent, et leurs scènes visées sont des slots `local:scenes` au parse de mesure', () => {
-    const compte = (lu: unknown) => {
-      const doc = versDisque(lu);
-      expect(projetSchema.safeParse(doc).success).toBe(true);
-      return mesureDuParse(projetSchema, doc).reperes.filter((r) => r.type === 'local:scenes').length;
-    };
-    expect(compte(areneProjet)).toBe(4 + 4 + 13 + 13);
-    expect(compte(bargeDuSelProjet)).toBe(2 + 1);
-    expect(compte(diligenceProjet)).toBe(4);
-    expect(compte(loupEtSaumureProjet)).toBe(2 + 2 + 1);
+  it('les projets livrés parsent', () => {
+    for (const lu of [areneProjet, bargeDuSelProjet, diligenceProjet, loupEtSaumureProjet]) expect(projetSchema.safeParse(versDisque(lu)).success).toBe(true);
+  });
+
+  it('chaque scène visée est un slot `local:scenes` au parse de mesure, à son path', () => {
+    const complet = projet((c) => Object.assign(c.worldMap.routes[0], { perils: [{ label: 'Dérive', chancePct: 10, effects: [{ type: 'transition', scene: { id: 'scene-de-test-a' } }] }] }));
+    expect(projetSchema.safeParse(complet).success).toBe(true);
+    const reperes = mesureDuParse(projetSchema, complet).reperes.filter((r) => r.type === 'local:scenes').map((r) => r.path.join('.')).sort();
+    expect(reperes).toEqual([...PORTEURS.map((p) => `${p.chemin}.id`), 'worldMap.places.1.scene.id'].sort());
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ avec }) => {
-    expect(projetSchema.safeParse(avec({ id: 'ls-quai-erengrad' })).success).toBe(true);
+    expect(projetSchema.safeParse(avec({ id: 'scene-de-test-b' })).success).toBe(true);
   });
 
   it.each(PORTEURS)('$porteur : une référence inconnue est refusée à son path, sa collection et son id nommés', ({ avec, chemin }) => {
@@ -84,19 +86,19 @@ describe('#2968 L14 — scènes visées désignées par `ref(portee)`', () => {
   });
 
   it.each(PORTEURS)('$porteur : une référence écrite en id nu est refusée', ({ avec }) => {
-    expect(projetSchema.safeParse(avec('ls-quai-erengrad')).success).toBe(false);
+    expect(projetSchema.safeParse(avec('scene-de-test-b')).success).toBe(false);
   });
 
   it.each(PORTEURS)('$porteur : la scène d’un AUTRE projet est refusée', ({ avec }) => {
-    expect(messages(avec({ id: 'arene-hub' })).join(' ')).toContain('« arene-hub » est absent du catalogue des scènes du projet');
+    expect(messages(avec({ id: 'scene-d-un-autre-projet' })).join(' ')).toContain('« scene-d-un-autre-projet » est absent du catalogue des scènes du projet');
   });
 
   it('la portée est LOCALE : une scène retirée du projet n’est plus désignable', () => {
-    const sansErengrad = projet((c) => {
-      c.scenes = c.scenes.filter((s) => s.id !== 'ls-quai-erengrad');
+    const sansSceneB = projet((c) => {
+      c.scenes = c.scenes.filter((s) => s.id !== 'scene-de-test-b');
     });
-    expect(messages(sansErengrad)).toContain(
-      'worldMap.places.1.scene.id « ls-quai-erengrad » est absent du catalogue des scènes du projet (collection « scenes » du document).',
+    expect(messages(sansSceneB)).toContain(
+      'worldMap.places.1.scene.id « scene-de-test-b » est absent du catalogue des scènes du projet (collection « scenes » du document).',
     );
   });
 
