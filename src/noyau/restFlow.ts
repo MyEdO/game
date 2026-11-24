@@ -29,8 +29,7 @@ import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
 import { reposDeScene } from './monde/scene';
-import { partyAssisted, peutTenter } from '../engine/skills';
-import { HEAL_SKILL } from '../engine/healing';
+import { partyAssisted } from '../engine/skills';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, constatSansRecuperation, type RestRoll } from '../engine/rest';
@@ -206,8 +205,6 @@ export function sleepParty(
   const entries: NightEntry[] = [];
   const journal: string[] = [];
 
-  // Soins prolongés (LDB 09) : présence d'un soignant valide (Guérison) → −1 jour/jour par maladie.
-  const caredFor = get().party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   // La nuit passe — chaque journée de repos se termine à l'AUBE, UNE NUIT À LA FOIS : n nuits dormies
   // sont n RÉVEILS (`lastNightDay` posé à chaque aube atteinte, avant l'entretien de cette journée-là),
   // donc n émissions d'`onWake`. Un séjour de 7 nuits qui n'aurait sauté qu'à l'aube finale ne
@@ -224,7 +221,7 @@ export function sleepParty(
     // par la porte, comme dans la nuit interactive : ce chemin les résout d'office (`runCascadeImmediate`
     // — branche I du seam), il ne les roule pas lui-même et ne saute aucune fenêtre qui existerait.
     const deferred: DeferredUpkeepTest[] = [];
-    const entretien = runDailyUpkeep(get, set, { caredFor, fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
+    const entretien = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
     const idsDuGroupe = new Set(get().party.map((h) => h.id));
     for (const { actorId, text } of entretien) {
       entries.push({
@@ -409,7 +406,6 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
  * avant et après le repos.
  */
 export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fedDaily?: boolean; extraContagion?: ContagionSpec[] } = {}): { steps: BuiltCascadeStep[]; log: string[]; slept: { from: number; to: number } } {
-  let party = get().party;
   const log: string[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
@@ -422,19 +418,18 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
   // étape influençable (sinon il serait pré-résolu dans le journal AVANT que le joueur n'agisse).
-  const caredFor = party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   const deferred: DeferredUpkeepTest[] = [];
   // `runDailyUpkeep` journalise DÉJÀ ses propres lignes (upkeep.ts, source unique anti-double-comptage,
   // #216) : on les garde dans `log` (retourné pour le bilan/la modale de cascade) SANS les re-journaliser
   // plus bas — `upkeepCount` marque la frontière entre ce qui est déjà écrit et le reste de cette fonction.
-  const upkeep = runDailyUpkeep(get, set, { caredFor, fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
+  const upkeep = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
   log.push(...upkeep.map(({ text }) => text));
   const upkeepCount = upkeep.length;
-  // `party` RAFRAÎCHI : `runDailyUpkeep` a pu débiter les gages (`tickCampaignVesselWeek` → clone
+  // `party` lu APRÈS l'entretien : `runDailyUpkeep` a pu débiter les gages (`tickCampaignVesselWeek` → clone
   // `withBourseMoney` du/des héros ponctionnés) — toute la suite (mutations eager de récupération/
   // cauchemars, `expireOnRespite`) doit opérer sur ces réfs à jour, pas sur celles PÉRIMÉES
   // d'avant l'entretien (sinon perdues au `set({party:[...get().party]})` de clôture, l.551).
-  party = get().party;
+  const party = get().party;
 
   const steps: BuiltCascadeStep[] = [];
   // MARCHE FORCÉE de la journée de voyage (LDB 51 l.195) : un jet par héros — la chaîne ouvre la cascade.
