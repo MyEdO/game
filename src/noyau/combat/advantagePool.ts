@@ -166,8 +166,7 @@ export function avantageDuCoup(
 }
 
 /** L'Avantage de l'attaquant du coup de `pa` est différé : Maniement de deux armes. LDB 10 l.767-773. */
-export const avantageDiffere = (pa: Pick<PendingAttack, 'dualMode' | 'dualSecond'>, attaquant: Pick<Combatant, 'kind'>): boolean =>
-  (!!pa.dualMode && attaquant.kind === 'heros') || !!pa.dualSecond;
+export const avantageDiffere = (pa: Pick<PendingAttack, 'dualMode' | 'dualSecond'>): boolean => !!pa.dualMode || !!pa.dualSecond;
 
 /** Un dé reste-t-il à tirer avant l'après-coup du coup `res` : une Blessure critique au compte, le Critique de
  *  l'attaquant qui perd le Test opposé, le double défensif d'une Parade. LDB 13 l.183 ; LDB 14 l.3 ; LDB 62 l.278. */

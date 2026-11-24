@@ -110,7 +110,7 @@ export function fenetreDeDefense(s: Jeu): FenetreDeDefense | null {
   const grapple = pd.suite.mode === 'pilotee' ? pd.suite.pa.grapple : pd.suite.coup.grapple;
   const auJet = res && coupAApplique(res, grapple, defenseur);
   const coup = auJet ? issueAuJet(defenseur, auJet, pd.weapon, attaquant) : null;
-  const differe = pd.suite.mode === 'pilotee' ? avantageDiffere(pd.suite.pa, attaquant) : !!pd.suite.coup.deferAttackerAdvantage;
+  const differe = pd.suite.mode === 'pilotee' ? avantageDiffere(pd.suite.pa) : !!pd.suite.coup.deferAttackerAdvantage;
   const faits = res ? faitsAuJet(s, res, pd.weapon, attaquant, defenseur, grapple, differe) : [];
   const ligne = res ? null : ligneDu(pd.mode);
   return {

@@ -71,7 +71,7 @@ import {
   commitPlacedZone,
   overcastTargetCandidates,
   ciblesDuBalayage,
-  dualStrikeTargets,
+  ciblesDeLaDoubleFrappe,
   castZoneSpell,
   castSpell,
   spellSightOf,
@@ -541,11 +541,11 @@ function dualAffordance(get: Get, _active: Combatant, target: Combatant): HoverT
   const ds = s.pendingDualStrike!;
   const atk = inBattleId(battle, ds.attackerId);
   const off = atk?.weapons.find((w) => w.uid === ds.offWeaponUid);
-  if (!atk || !off || !dualStrikeTargets(s.scene, battle, atk, off).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!atk || !off || !ciblesDeLaDoubleFrappe(s).some((c) => c.id === target.id)) return { kind: 'none' };
   // 2ᵉ frappe = une frappe : le réticule porte la valeur et la Difficulté de SON jet — celui de la main
   // SECONDAIRE (`LDB 14 l.181`, pénalité comprise), pas celui de l'arme principale déjà résolue.
   const p = previewAttack(get, atk, target, undefined, { weaponUid: off.uid });
-  return { kind: 'ok', line: 'solid', title: 'Deux armes', skill: attackTestLabel(atk, off, 'melee'), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
+  return { kind: 'ok', line: 'solid', title: 'Deux armes', skill: attackTestLabel(atk, off, p.kind), base: p.base, mod: p.target - p.base, dmg: p.dmg, ...(difficultyOf(p) ? { difficulty: difficultyOf(p)! } : {}) };
 }
 
 // ───────────────────────────────────────────────────────────────────────────
@@ -838,14 +838,7 @@ const CLEAVE_MODE = {
 } satisfies TargetingMode;
 const DUAL_MODE = {
   id: 'deuxArmes', label: 'Des deux armes', consigne: 'consigne.deuxArmes', affordance: dualAffordance, anneauCandidats: 'hostile',
-  candidates: (get) => {
-    const s = get();
-    const battle = s.battle;
-    const ds = s.pendingDualStrike;
-    const atk = battle && ds && inBattleId(battle, ds.attackerId);
-    const off = atk && ds && atk.weapons.find((w) => w.uid === ds.offWeaponUid);
-    return battle && atk && off ? dualStrikeTargets(s.scene, battle, atk, off) : [];
-  },
+  candidates: (get) => ciblesDeLaDoubleFrappe(get()),
   commitCombatant: (get, _set, _active, id) => { get().frapperDeLaSecondeArme(id); },
 } satisfies TargetingMode;
 const TELEPORT_MODE = {

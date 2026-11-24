@@ -15,8 +15,9 @@ import { sceneMetresPerTile } from './monde/scene';
 import { inBattleId } from './monde/combatants';
 import {
   attackWeaponOf, victimeDuCoup, crowdEligible, previewAttack, previewDefense, distanceDeLAttaque,
-  surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock, tireSansEquipe, faitsAuJet,
+  surfacedDefensePending, heldGroundStanceBlock, intoCrowdStanceBlock, tireSansEquipe, faitsAuJet, paireDesDeuxArmes,
 } from './combatFlow';
+import { tenuParUnHumain } from './sieges';
 import { defenseDodgeMods } from './mount';
 import { bouclierDuBinomeEnJeu } from './combat/surnombre';
 import { avantageDiffere } from './combat/advantagePool';
@@ -41,7 +42,6 @@ import { peutEtreEmpoigne } from '../engine/grapple';
 import { itemCapability } from '../engine/capabilities';
 import { objetSourceDeLArme } from '../engine/weaponLoad';
 import { retraitsDits } from '../engine/weaponDamage';
-import { attackModesFor } from '../engine/combatFeatures/dispatch';
 import { qualityRefLabel, testSkillLabel } from '../data';
 import { atoutsOptionnelsDe } from '../engine/atoutsOptionnels';
 import { t } from '../i18n';
@@ -171,12 +171,10 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const auJet = res && coupAApplique(res, pa.grapple, victime);
   const coup = auJet ? issueAuJet(victime, auJet, arme, attaquant) : null;
   // AA 10 l.169, l.171
-  const faits = res && !(pa.siege && pa.center) ? faitsAuJet(s, res, arme, attaquant, victime, pa.grapple, avantageDiffere(pa, attaquant)) : [];
+  const faits = res && !(pa.siege && pa.center) ? faitsAuJet(s, res, arme, attaquant, victime, pa.grapple, avantageDiffere(pa)) : [];
   const heros = attaquant.kind === 'heros';
   // LDB 10 l.767-773
-  const deuxArmesPossibles = !res && armeTenue && heros && attackModesFor(attaquant).includes('dual-wield')
-    && attaquant.weapons.some((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)
-    && attaquant.weapons.some((w) => w.hand === 'secondaire' && w.type === 'melee' && (w.hands ?? 1) === 1)
+  const deuxArmesPossibles = !res && armeTenue && tenuParUnHumain(s, attaquant.id) && !!paireDesDeuxArmes(get, attaquant)
     && !pa.cleave && !pa.dualSecond;
   // LDB 14 l.106
   const auContact = !res && tir ? crowdEligible(s.scene, battle, attaquant, cible) : [];
