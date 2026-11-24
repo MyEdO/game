@@ -15,7 +15,7 @@ const sommet = (carriere: string) => Math.max(...levelsForCareer(carriere).map((
  *  sommet (`progression`). */
 const desalignees = (c: Parameters<typeof progression>[0]) => {
   const p = progression({ ...c, careerLevel: sommet(c.career ?? '') });
-  return [...p.caracs.map((k) => [k.id, k.augmentations] as const), ...p.competences.map((k) => [`${k.ref.id}:${k.ref.spec ?? ''}`, k.augmentations] as const)].filter(([, n]) => n % 5);
+  return [...p.caracs.map((k) => [k.id, k.points] as const), ...p.competences.map((k) => [`${k.ref.id}:${k.ref.spec ?? ''}`, k.points] as const)].filter(([, n]) => n % 5);
 };
 
 describe('les Augmentations de création au pas de 5', () => {

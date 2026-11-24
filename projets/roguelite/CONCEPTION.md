@@ -64,8 +64,12 @@ l'utilisateur ».
   Elles ne mêlent que les trois matières, cuir souple, mailles et plates (« pourquoi tu propose le cuir bouillie
   absolument ? Ce n est pas du métal, ce n est pas du cuir souple, il n a rien pour lui », 2026-11-23).
   La forge ouvre ce qu'elle vend par Disponibilité ; une recrue part avec la dotation du livre ; le meilleur s'achète.
-- **Progression** : présentation « à la 5e » (pas de +5, plan conseillé en un clic, Compétences utiles seules) ;
-  une identité de carrière se juge sur ses quatre niveaux.
+- **Progression** : au modèle de progression du héros (4e ou 5e), prix et validation du niveau par le noyau ; pas de
+  +5 points (cinq Augmentations en 4e, une en 5e), plan conseillé en un clic, Compétences utiles seules ; une identité
+  de carrière se juge sur ses quatre niveaux. Le plan conseillé est une valeur d'adaptation du roguelite (2026-11-24) :
+  le premier Talent de combat du niveau si aucun n'est acquis, puis, à tour de rôle et par pas de +5, les
+  Caractéristiques de carrière, les Compétences utiles, puis les plus avancées, jusqu'à ce que le noyau valide le
+  niveau ; en 4e, chaque cible s'arrête aux points exigés et huit Compétences seulement sont prises.
 - **Roster** : chaque palier du relais apporte un groupe complet ; le lanceur est une carrière de Collège tirée, le
   dieu d'un prêtre est tiré, et la carte du héros les affiche.
 - **Salles** : rien d'automatique ; le joueur choisit l'action et le héros qui la tente, qui en subit l'échec.

@@ -321,9 +321,13 @@ sur une arène générée.
   Classe de MyEdO/game#2689 (`cloturer` sous la modale du nœud `test`), commentée le 2026-11-23. L'hôte rend un refus
   (`IssueDEpreuve.refus`), sans contourner l'horloge.
 
-- **Manque — le noyau n'a pas d'édition 5e** (CRB 045 l.15, l.27, l.33-52, l.60 ; 048 l.43-45) : coûts des
-  Augmentations, Talents à 100 PX, cases 10/12/14. La salle d'armes présente « à la 5e » (pas de +5, plan conseillé)
-  et envoie au noyau des Augmentations de +1 au prix de `advanceCost` (4e).
+- **Manque — l'état du passage de niveau n'est pas dans la vue d'avancement (MyEdO/game#4943).** Le noyau joue les
+  deux modèles (LDB 07 l.124 ; CRB 045 l.15, l.58 ; CRB 048 l.45) et `buildAdvancementView`
+  (`src/noyau/monde/advancement.ts:140`) en rend `completed`, mais pas ce que le niveau exige ni où le héros en est :
+  cases cochées au niveau sur leur seuil (5e), points exigés de chaque Caractéristique et de huit Compétences (4e). La
+  salle d'armes le lit du moteur par une seule fonction, `exigenceDuNiveau` (`projets/roguelite/src/noyau/carriere.ts` :
+  `modeleDe(c).passage`, `careerCompletionAdvances`, `casesDuNiveau`). Idée : que la vue porte l'exigence du passage
+  et son état ; la fonction de l'hôte se supprime alors.
 
 ## Corruption et maladies
 
