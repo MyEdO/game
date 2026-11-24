@@ -19,18 +19,21 @@ import { casesAtteignables, projeter as projeterLaPartie } from '../../src/hote/
 import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
 import { fermerLaTable, partie, verbe } from './hote.testkit';
 import { t } from '../../src/i18n';
+import { catalogueDeLaPartie } from '../../src/hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {
-  const r = rejouer(nouvelEntete(scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['debutDuRound'] }, ...gestes]);
+  const r = rejouer(CATALOGUE, nouvelEntete(CATALOGUE, scenario, { graine: 7 }), [{ type: 'fenetreValider', args: ['debutDuRound'] }, ...gestes]);
   enPartie(r, faire);
 }
 
 /** La partie committée `nom`, rejouée jusqu'à sa ligne `lignes` (toutes par défaut) ; fermée après `faire`. */
 function aLaFixture(nom: string, faire: (r: PartieRejouee) => void, lignes?: number) {
   const texte = readFileSync(join(fileURLToPath(new URL('.', import.meta.url)), nom), 'utf8');
-  const { entete, gestes } = lireLeFichier(lignes === undefined ? texte : `${texte.split('\n').slice(0, lignes).join('\n')}\n`);
-  enPartie(rejouer(entete, gestes), faire);
+  const { entete, gestes } = lireLeFichier(CATALOGUE, lignes === undefined ? texte : `${texte.split('\n').slice(0, lignes).join('\n')}\n`);
+  enPartie(rejouer(CATALOGUE, entete, gestes), faire);
 }
 
 function enPartie(r: PartieRejouee, faire: (r: PartieRejouee) => void) {
@@ -141,7 +144,7 @@ describe('le champ et l’exploration se lisent', () => {
     }, { type: 'armerLIntention', args: ['course'] });
   });
   it('`carte` en exploration liste les entités et les PNJ de la scène', { timeout: 120_000 }, () => {
-    const r = rejouer(nouvelEntete('fenetre-ecuries', { graine: 7 }), []);
+    const r = rejouer(CATALOGUE, nouvelEntete(CATALOGUE, 'fenetre-ecuries', { graine: 7 }), []);
     enPartie(r, () => {
       const p = projeter(r.partie.etat(), 0, r.journal.length);
       expect(rendreLaCarte(r.partie.etat(), p).join('\n')).toMatch(/homme-de-main · personnage · Homme de main · \(6,1\)/);
@@ -181,7 +184,7 @@ describe('le journal', () => {
 
 describe('projection des positions', () => {
   it('un combattant porte sa case et sa couche, que l’hôte texte écrit hors du sol', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const base = partie.etat();
       const [sol, etage] = base.battle!.combatants;

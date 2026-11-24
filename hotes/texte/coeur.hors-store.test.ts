@@ -13,6 +13,9 @@ import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from './partieTexte';
 import { nouvelEntete } from '../../src/hote/partieDeTest';
 import { fermerLaTable, partie, table, verbe } from './hote.testkit';
 import type { GesteDeLAgent } from './serveur';
+import { catalogueDeLaPartie } from '../../src/hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 /** Un fichier de partie committé à côté de ce test. */
 const DOSSIER = fileURLToPath(new URL('.', import.meta.url));
@@ -22,7 +25,7 @@ afterEach(fermerLaTable);
 
 describe('le rejeu reprend les jetons', () => {
   it('ceux du lancement, avant la ligne 1 : le tick de la cadence auto programmé au lancement est repris', () => {
-    const r = rejouer(nouvelEntete('dome', { graine: 7, cadence: 'auto' }), []);
+    const r = rejouer(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7, cadence: 'auto' }), []);
     try {
       expect(r.reprises[0], 'aucun jeton du lancement n’a été repris avant la ligne 1').toBeGreaterThan(0);
     } finally {
@@ -97,9 +100,9 @@ describe('la partie et son fichier', () => {
     expect(t.lire('vue').texte, 'la mémoire a divergé du fichier : la vue garde le refus').toBe(avant);
   });
   it('deux rejeux d’un fichier dans un même processus rendent la même empreinte (les séquences d’ids repartent de zéro)', () => {
-    const { entete, gestes } = lireLeFichier(fixture('combat-dome.jsonl'));
+    const { entete, gestes } = lireLeFichier(CATALOGUE, fixture('combat-dome.jsonl'));
     const empreintes = [0, 1, 2].map(() => {
-      const r = rejouer(entete, gestes);
+      const r = rejouer(CATALOGUE, entete, gestes);
       try {
         return empreinte(r.partie.etat());
       } finally {
@@ -125,7 +128,7 @@ describe('la partie et son fichier', () => {
 
 describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
   it('un effet écrit EN PLACE (un combattant muté, sans nouvel objet d’état) compte : l’empreinte se prend avant l’appel', { timeout: 120_000 }, () => {
-    const r = rejouer(nouvelEntete('dome', { graine: 7 }), [{ type: 'fenetreValider', args: ['debutDuRound'] }]);
+    const r = rejouer(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), [{ type: 'fenetreValider', args: ['debutDuRound'] }]);
     const vraie = r.partie;
     try {
       r.partie = { ...vraie, envoyer: () => { vraie.etat().battle!.combatants[0].advantage += 1; return { issue: 'appliquee', evenements: [], journal: [] }; } };
@@ -153,8 +156,8 @@ describe('un geste sans effet se refuse (`regle`) et ne s’écrit pas', () => {
     expect(t.lire('vue').texte).not.toMatch(/aperçu/);
   });
   it('la cascade de `c3`, nettoyée de ses gestes morts, se rejoue sans un seul geste sans effet', { timeout: 240_000 }, () => {
-    const r = lireLeFichier(fixture('defaite-dome.jsonl'));
-    const rejouee = rejouer(r.entete, r.gestes);
+    const r = lireLeFichier(CATALOGUE, fixture('defaite-dome.jsonl'));
+    const rejouee = rejouer(CATALOGUE, r.entete, r.gestes);
     try {
       expect(rejouee.partie.etat().battle?.over, 'témoin : la partie va jusqu’à la défaite').toBe('defaite');
     } finally {
