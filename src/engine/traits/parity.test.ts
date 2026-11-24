@@ -122,6 +122,8 @@ const DISPATCH = new Set<string>([
   // LDB 85 l.104) — même canal passive que Dressé (Guerre) +10 CC. DISPATCH.
   'Dressé (Guerre)', 'Dressé (Dompté)', 'Dressé (Garde)', 'Dressé (Divertir)',
   'Corruption mentale', 'Démoniaque', 'Élite', 'Endurant', 'Éthéré', 'Fabriqué', 'Foulée', 'Furtif',
+  // Bestiaire non officiel, forme d'`ethere` : fiche `user-arbitrage-contenu-fan-sans-code-neuf`.
+  'Immunité (Attaques Ordinaires)',
   'Grand', 'Immunité', 'Infravision', 'Insensible à la douleur', 'Instable', 'Intelligent', 'Magique',
   'Meneur', 'Mutation', 'Nerveux', 'Nuée', 'Parasité', 'Perturbant', 'Protection', 'Rage', 'Rapide',
   // Rampant (MSRC 15) : capability `noRun` (donnée) → `runMultiplier`=0 (budget de Course nul), la Marche

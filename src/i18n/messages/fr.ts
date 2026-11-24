@@ -112,7 +112,7 @@ export const fr = {
   'touche.echangeNeutre': "Échange neutre : ni {attaquant} ni {cible} ne prend l'avantage.",
   'touche.manque': '{attaquant} manque {cible}.',
   'touche.horsDePortee': '{attaquant} : cible hors de portée.',
-  'touche.ethere': '{attaquant} touche {cible}… mais le coup passe au travers (Éthéré — seules les attaques magiques la blessent).',
+  'touche.ethere': '{attaquant} touche {cible}… mais le coup passe au travers (seules les attaques magiques la blessent).',
   // La ligne du Contre-sort (`counterspellOutcomeFrom`, `engine/magic.ts`). LDB 46 l.156.
   'contreSort.trace': 'Contre-sort de {name}',
   'contreSort.dissipe': 'le Sort est DISSIPÉ',
