@@ -1,11 +1,24 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { ouvrirLeDuel } from '../combatDeTest.testkit';
+import { heroDuDuel, ouvrirLeDuel } from '../combatDeTest.testkit';
+import { COUR, courDeFerme } from '../../scenes/fixtures/plans.testkit';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { distanceDeContact, footprintN, footprintTiles } from '../monde/footprint';
-import { areteOcculteEntre, isWalkable, porteEnJeu, setDoorOpen, setStructureDown, wallBetween, wallOnSight, type Scene, type WallSeg } from '../monde/scene';
+import {
+  areteOcculteEntre,
+  edgeOf,
+  isWalkable,
+  porteEnJeu,
+  setDoorOpen,
+  setStructureDown,
+  wallBetween,
+  wallOnSight,
+  type Scene,
+  type WallSeg,
+} from '../monde/scene';
 import { lineOfSightCover } from '../monde/lineOfSight';
+import { aretesA } from '../monde/wallIndex';
 import { attackEnv, attackPlan } from '../combatFlow';
 import { cliquerSurLeCombattant } from '../combatOrParty';
 import { effectifAuContactParmi } from '../combat/surnombre';
@@ -18,7 +31,7 @@ import type { Combatant, Weapon } from '../../engine/types';
 
 /**
  * #4105 : deux combattants qu'une arête pleine sépare ne sont pas au contact. LDB 13 l.94 ; LDB 13 l.114.
- * Scènes réelles chargées par le jeu, combattants posés par `placeCombatant`.
+ * Scènes des scénarios `embuscade-fluviale` et `fenetre-ecuries`, plan `courDeFerme` ; combattants posés par `placeCombatant`.
  */
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -26,6 +39,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 const contact = (A: Combatant, B: Combatant) => distanceDeContact(banc.getState().scene, A, B);
 const duel = (scenarioId: string, encId: string, tiers?: 'heros' | 'ennemi') =>
   ouvrirLeDuel(banc, testScenarios.find((s) => s.id === scenarioId)!.construire(idsDeTest), encId, tiers);
+const duelALaCour = () => ouvrirLeDuel(banc, { scene: courDeFerme(), party: [heroDuDuel()] }, COUR.rencontre);
 
 type Case = { x: number; y: number };
 /** Les deux cases que sépare l'arête cardinale `w` de l'étage 0 (`edgeOf`), ou null. */
@@ -52,15 +66,6 @@ function areteCherchee(s: Scene, garde: (w: WallSeg, a: Case, b: Case) => boolea
 function contournementsOccultants(s: Scene, a: Case, b: Case): number {
   const par1 = { x: b.x, y: a.y }, par2 = { x: a.x, y: b.y };
   return Number(occulte(s, a, par1) || occulte(s, par1, b)) + Number(occulte(s, a, par2) || occulte(s, par2, b));
-}
-
-/** La première paire de cases praticables en diagonale, au bord d'une arête de `s`, dont `n` contournements sont occultés. */
-function diagonaleCherchee(s: Scene, n: 1 | 2): { a: Case; b: Case } | undefined {
-  for (const w of s.walls ?? []) for (const a of casesDe(w) ?? []) for (const [dx, dy] of [[1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-    const b = { x: a.x + dx, y: a.y + dy };
-    if (praticable(s, a) && praticable(s, b) && contournementsOccultants(s, a, b) === n) return { a, b };
-  }
-  return undefined;
 }
 
 describe('#4105 — la coque de la barge d’embuscade-fluviale', () => {
@@ -149,61 +154,62 @@ describe('#4105 — une porte de fenetre-ecuries', () => {
   });
 });
 
-describe('#4105 — coins et arêtes que la vue traverse (ecuries-clayonnage)', () => {
+describe('#4105 — coins et arêtes que la vue traverse (courDeFerme)', () => {
   it('diagonale au bout d’un mur (un contournement occulté) : contact ; coin plein (les deux occultés) : aucun', () => {
-    const { H, E, poser } = duel('ecuries-clayonnage', 'enc-clayonnage');
+    const { H, E, poser } = duelALaCour();
     const s = banc.getState().scene!;
-    const bout = diagonaleCherchee(s, 1);
-    const coin = diagonaleCherchee(s, 2);
-    expect(bout, 'ecuries-clayonnage ne porte plus de diagonale praticable dont un seul contournement est occulté').toBeDefined();
-    expect(coin, 'ecuries-clayonnage ne porte plus de diagonale praticable dont les deux contournements sont occultés').toBeDefined();
-    poser(H, { ...bout!.a, z: 0 });
-    poser(E, { ...bout!.b, z: 0 });
+    const bout = { a: COUR.auBoutDuMur, b: COUR.sousLaCroisee };
+    const coin = { a: COUR.angleDehors, b: COUR.angleDedans };
+    expect([bout, coin].map(({ a, b }) => [praticable(s, a) && praticable(s, b), contournementsOccultants(s, a, b)])).toEqual([[true, 1], [true, 2]]);
+    poser(H, bout.a);
+    poser(E, bout.b);
     expect(contact(H, E)).toBe(1);
-    poser(H, { ...coin!.a, z: 0 });
-    poser(E, { ...coin!.b, z: 0 });
+    poser(H, coin.a);
+    poser(E, coin.b);
     expect(contact(H, E)).toBe(Infinity);
   });
 
   it('croisée ouverte et clôture en clayonnage, qui barrent le pas sans occulter : contact inchangé', () => {
-    const { H, E, poser } = duel('ecuries-clayonnage', 'enc-clayonnage');
+    const { H, E, poser } = duelALaCour();
     const s = banc.getState().scene!;
-    const sansOcculter = (a: Case, b: Case) => barre(s, a, b) && !occulte(s, a, b);
-    const croisee = areteCherchee(s, (w, a, b) => !!w.window && !w.shuttered && sansOcculter(a, b));
-    const cloture = areteCherchee(s, (w, a, b) => w.structure === 'cloture-en-clayonnage' && sansOcculter(a, b));
-    expect(croisee, 'ecuries-clayonnage ne porte plus de croisée ouverte qui barre le pas sans occulter entre deux cases praticables').toBeDefined();
-    expect(cloture, 'ecuries-clayonnage ne porte plus de clôture en clayonnage qui barre le pas sans occulter entre deux cases praticables').toBeDefined();
-    for (const { a, b } of [croisee!, cloture!]) {
-      poser(H, { ...a, z: 0 });
-      poser(E, { ...b, z: 0 });
+    const croisee = { a: COUR.devantLaCroisee, b: COUR.sousLaCroisee };
+    const cloture = { a: COUR.box, b: COUR.allee };
+    const arete = ({ a, b }: { a: Case; b: Case }) => { const e = edgeOf(a.x, a.y, b.x, b.y)!; return aretesA(s, e.x, e.y, e.side, 0); };
+    expect(arete(croisee).some((w) => w.window && !w.shuttered), 'une croisée ouverte').toBe(true);
+    expect(arete(cloture).map((w) => w.structure)).toContain('cloture-en-clayonnage');
+    for (const { a, b } of [croisee, cloture]) {
+      expect([praticable(s, a), praticable(s, b), barre(s, a, b), occulte(s, a, b)], `${a.x},${a.y} ~ ${b.x},${b.y}`).toEqual([true, true, true, false]);
+      poser(H, a);
+      poser(E, b);
       expect(contact(H, E), `${a.x},${a.y} ~ ${b.x},${b.y}`).toBe(1);
     }
   });
 
   it('une structure de siège est au contact des deux côtés de son arête', () => {
-    const { H, poser } = duel('ecuries-clayonnage', 'enc-clayonnage');
+    const { H, poser } = duelALaCour();
     const s = banc.getState().scene!;
-    const mur = banc.getState().battle!.combatants.find((c) => isStructure(c) && c.pos
-      && wallBetween(s, c.pos.x, c.pos.y, c.pos.x, c.pos.y - 1, 0) && isWalkable(s, c.pos.x, c.pos.y, 0) && isWalkable(s, c.pos.x, c.pos.y - 1, 0))!;
-    expect(mur, 'une structure d’arête nord entre deux cases praticables').toBeTruthy();
-    poser(H, { x: mur.pos!.x, y: mur.pos!.y, z: 0 });
+    const { x, y } = COUR.angleDedans;
+    const mur = banc.getState().battle!.combatants.find((c) => isStructure(c) && c.pos?.x === x && c.pos.y === y && wallBetween(s, x, y, x, y - 1, 0))!;
+    expect(mur, 'la structure de l’arête nord de l’angle de la cabane').toBeTruthy();
+    expect([isWalkable(s, x, y, 0), isWalkable(s, x, y - 1, 0)]).toEqual([true, true]);
+    poser(H, { x, y, z: 0 });
     expect(contact(H, mur)).toBeLessThanOrEqual(1);
-    poser(H, { x: mur.pos!.x, y: mur.pos!.y - 1, z: 0 });
+    poser(H, { x, y: y - 1, z: 0 });
     expect(contact(H, mur)).toBeLessThanOrEqual(1);
   });
 });
 
 /** #4105 lot 3 : décision de Clément du 2026-11-13 (commentaire 6861489526), « Non, pas de coup ». Herse posée sur
- *  l'arête (12,3,N) d'ecuries-clayonnage, entre (12,2) et (12,3). LDB 13 l.114 ; AA 10 l.42. */
+ *  l'arête libre de `courDeFerme`, entre `COUR.enHaut` et `COUR.enBas`. LDB 13 l.114 ; AA 10 l.42. */
 describe('#4105 lot 3 — la herse baissée sépare pour le corps à corps', () => {
-  const HAUT = { x: 12, y: 2, z: 0 }, BAS = { x: 12, y: 3, z: 0 };
+  const HAUT = COUR.enHaut, BAS = COUR.enBas;
   const ARC = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 48, reload: 0, qualities: [], uid: 'arc', loaded: true } as unknown as Weapon;
   /** Le duel, la herse posée sur l'arête (porte fermée par défaut : baissée), H en haut et E en bas. */
   const herse = (patch: Partial<WallSeg> = {}) => {
-    const d = duel('ecuries-clayonnage', 'enc-clayonnage');
+    const d = duelALaCour();
     const s = banc.getState().scene!;
-    expect(barre(s, HAUT, BAS), 'l’arête (12,3,N) est libre avant la herse').toBe(false);
-    banc.setState({ scene: { ...s, walls: [...s.walls!, { x: 12, y: 3, side: 'N', structure: 'herse', door: true, closed: true, ...patch }] } });
+    expect(barre(s, HAUT, BAS), 'l’arête est libre avant la herse').toBe(false);
+    banc.setState({ scene: { ...s, walls: [...s.walls!, { x: BAS.x, y: BAS.y, side: 'N', structure: 'herse', door: true, closed: true, ...patch }] } });
     d.poser(d.H, HAUT);
     d.poser(d.E, BAS);
     return d;
@@ -236,15 +242,15 @@ describe('#4105 lot 3 — la herse baissée sépare pour le corps à corps', () 
 
   it('levée (porte ouverte) puis abattue : le contact revient', () => {
     const { H, E } = herse();
-    banc.setState({ scene: setDoorOpen(banc.getState().scene!, 12, 3, 'N', 0, true) });
+    banc.setState({ scene: setDoorOpen(banc.getState().scene!, BAS.x, BAS.y, 'N', 0, true) });
     expect(contact(H, E)).toBe(1);
-    banc.setState({ scene: setStructureDown(setDoorOpen(banc.getState().scene!, 12, 3, 'N', 0, false), 12, 3, 'N', 0, true) });
+    banc.setState({ scene: setStructureDown(setDoorOpen(banc.getState().scene!, BAS.x, BAS.y, 'N', 0, false), BAS.x, BAS.y, 'N', 0, true) });
     expect(contact(H, E)).toBe(1);
   });
 
   it('en diagonale au coin de la herse, un contournement libre : le contact tient', () => {
     const { H, E, poser } = herse();
-    poser(H, { x: 11, y: 2, z: 0 });
+    poser(H, { x: HAUT.x - 1, y: HAUT.y, z: 0 });
     expect(contact(H, E)).toBe(1);
   });
 });
