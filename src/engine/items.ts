@@ -94,6 +94,7 @@ import { armourPhysiqueAt, sourceDuTraitA, userLePADuTrait } from './armourBypas
 import { removeGrantedTrait, sameInstance } from './grantedTraits';
 import { removeActiveEffects } from './conditions';
 import { faitDObjet, type FaitDObjet } from './faits';
+import { cocherLaDotation } from './casesDeCarriere';
 import type { InventaireDAuteur } from '../data/schemas/defs-scenes/scene';
 
 /** Fiche d'un objet déjà né pour les règles qui la consultent à l'usage. #2967 */
@@ -1400,17 +1401,23 @@ export function autoStowNewItem(c: Combatant, it: ItemInstance): void {
 }
 
 /**
- * Ajoute une COPIE de l'instance `it` à l'inventaire PERSONNEL d'un héros, la range (`autoStowNewItem`) et
- * re-dérive son équipement actif. Retourne un NOUVEAU combattant (cloné). SOURCE UNIQUE du « donner un objet
- * à un héros » : l'appelant crée l'instance UNE fois (`itemFromTrappingById`, `itemFromGive`), et la même
- * s'écrit sur chaque copie de l'acteur (`ecrireActeur`, #2312).
+ * SOURCE UNIQUE du « donner un objet à un combattant » : `it` rejoint son inventaire PERSONNEL, rangé
+ * (`autoStowNewItem`), son équipement actif re-dérivé, et la case de carrière d'une dotation du niveau suivant
+ * cochée (`cocherLaDotation`). Mute `c` ; l'appelant crée l'instance UNE fois (`itemFromTrappingById`,
+ * `itemFromGive`). CRB 018 l.25
  */
+export function recevoirLObjet(c: Combatant, it: ItemInstance): void {
+  c.items = [...(c.items ?? []), it];
+  autoStowNewItem(c, it);
+  recomputeLoadout(c);
+  cocherLaDotation(c, it.trappingId);
+}
+
+/** `recevoirLObjet` sur un CLONE du héros et une COPIE de `it` : la même instance s'écrit sur chaque copie de l'acteur
+ *  (`ecrireActeur`, #2312). */
 export function avecObjet(hero: Combatant, it: ItemInstance): Combatant {
   const clone: Combatant = structuredClone(hero);
-  const recu = structuredClone(it);
-  clone.items = [...(clone.items ?? []), recu];
-  autoStowNewItem(clone, recu);
-  recomputeLoadout(clone);
+  recevoirLObjet(clone, structuredClone(it));
   return clone;
 }
 

@@ -19,6 +19,8 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/activeFlags.ts', "Drapeaux d'effet actif : consommation, relance gratuite"],
   ['src/engine/activities.ts', 'Activités hors combat : contexte, issues, bandes de résultat'],
   ['src/engine/advancement.ts', 'Avancement de personnage : Points d\'Expérience, changement de Carrière'],
+  ['src/engine/modeleDeProgression.ts', 'Avancement de personnage : Points d\'Expérience, changement de Carrière'],
+  ['src/engine/casesDeCarriere.ts', 'Avancement de personnage : Points d\'Expérience, changement de Carrière'],
   ['src/engine/advantage.ts', 'Avantage de combat'],
   ['src/engine/advantagePool.ts', "Réserves d'Avantage par camp (bataille de masse)"],
   ['src/engine/appraisal.ts', "Expertise, évaluation d'objets"],

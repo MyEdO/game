@@ -5,7 +5,7 @@ import { pushStep } from './cascade';
 import { peutTenter, refusNePeutTenter } from '../engine/skills';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { PlayerText } from '../i18n/playerText';
-import { contexteDeNaissanceDObjet, itemFromTrappingById, recomputeLoadout, autoStowNewItem } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromTrappingById, recevoirLObjet } from '../engine/items';
 import { toBrass, fromBrass, formatMoney, PA_PER_CO } from '../engine/money';
 import { payFromGroup, payWithAllocation, soloPayer, distributeCredit, refusDeGesteSurLeGroupe, totalDesBourses } from './bourseFlow';
 import { currentPort, encLibreNominale, refusAQuai } from './portFlow';
@@ -590,9 +590,7 @@ export const TABLES = {
         const it = itemFromTrappingById('carte-marine', get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero));
         if (it) {
           it.price = { gold: Math.max(0, step.result.sl), silver: 0, brass: 0 };
-          hero.items = [...(hero.items ?? []), it];
-          autoStowNewItem(hero, it); // #204 : rangement par défaut
-          recomputeLoadout(hero);
+          recevoirLObjet(hero, it);
         }
         // MDG 15
         j.push(t('sact.chartOk', { name: nomDe(hero), gold: Math.max(0, step.result.sl) }));

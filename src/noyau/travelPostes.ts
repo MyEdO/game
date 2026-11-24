@@ -56,7 +56,7 @@ import { weatherTestMods } from '../engine/weatherTestMod'; // #341
 import { hasCoat, partyHasTent, applyExposureFailure, exposureFailureRank, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
-import { contexteDeNaissanceDObjet, itemFromGive, autoStowNewItem } from '../engine/items';
+import { contexteDeNaissanceDObjet, itemFromGive, recevoirLObjet } from '../engine/items';
 import { effectiveSkillCharKey } from '../engine/skills';
 import type { Difficulty, Combatant } from '../engine/types';
 import type { ModLine } from '../engine/combat';
@@ -463,8 +463,7 @@ export const TABLES = {
       for (const heroId of bilan.rations) {
         const h = party.find((x) => x.id === heroId)!;
         const ration = itemFromGive({ trappingId: 'ration' }, get().forgerUnId, undefined, undefined, contexteDeNaissanceDObjet(h));
-        h.items = [...(h.items ?? []), ration];
-        autoStowNewItem(h, ration); // #204 : rangement par défaut
+        recevoirLObjet(h, ration);
       }
       // ACHEVÉ : progression FIGÉE à la cible, `buildStageSteps` n'ouvre plus de jet (F1).
       if (bilan.carte) set({ travelPlan: { ...get().travelPlan!, extendedProgress: bilan.carte.done ? bilan.carte.cible : bilan.carte.total } });

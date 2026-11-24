@@ -89,7 +89,7 @@ import {
   weaponItem,
   activeLoadout,
   damageString,
-  autoStowNewItem,
+  recevoirLObjet,
   lacherLArme,
   laisserTomber,
   armeNaturelleAccordee,
@@ -1860,11 +1860,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       }
       case 'giveTrapping': {
         const n = Math.max(1, (o.count ?? 1) + slBonus(ctx.sl, o.perSL));
-        target.items = target.items ?? [];
         for (let i = 0; i < n; i++) {
-          const it = itemFromGive({ ...o, trappingId: o.objet?.id }, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target));
-          target.items.push(it);
-          autoStowNewItem(target, it); // #204 : rangement par défaut
+          recevoirLObjet(target, itemFromGive({ ...o, trappingId: o.objet?.id }, ctx.idNeuf, source, ctx.resolveTrapping, contexteDeNaissanceDObjet(target)));
         }
         lines.push(t('op.objetDonne', { name: nomDe(target), count: n > 1 ? `${n}× ` : '', item: giveTrappingLabel(o, ctx.resolveTrapping), src: nomDeSource(ctx) }));
         break;

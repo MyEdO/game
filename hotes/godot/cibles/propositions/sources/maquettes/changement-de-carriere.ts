@@ -1,6 +1,6 @@
 /**
  * Le changement de carrière (#4411), au gabarit de la fiche (`../../heros.md`, section
- * `progression-changement-de-carriere`) : LDB 07 l.118-148 ; `validateCareerChange`, `src/engine/advancement.ts:185-205`
+ * `progression-changement-de-carriere`) : LDB 07 l.118-148 ; `validateCareerChange`, `src/engine/advancement.ts:230-253`
  * (le refus de la station hors d'atteinte est son texte) ; saut de niveau, règle optionnelle `progression-saut-de-niveau`
  * (`src/data/reglesOptionnelles.json:818` ; LDB 07 l.140, l.148).
  */

@@ -4084,6 +4084,7 @@ export const fr = {
   'pf.advanceBought': '{name} : {what} +1 (−{cost} PX{hors}).',
   'pf.fragOutOfCareer': ', hors carrière',
   'pf.skillNotAcquirable': '{name} : « {what} » hors carrière, non acquérable.',
+  'pf.advancedSkillOutOfCareer': '{name} : « {what} », Compétence avancée hors carrière — par l’Entraînement seulement.',
   'pf.unknownSlot': '{name} : emplacement de carrière inconnu.',
   'pf.designateRefused': '{name} : désignation refusée ({reason}).',
   'pf.designated': "{name} : « {label} » devient le choix de carrière de l'emplacement (0 PX).",
@@ -4434,6 +4435,8 @@ export const fr = {
   'adv.levelNotCompleted': 'niveau actuel non complété',
   'adv.jumpNeedsGm': 'activez « Sauts de Niveau de Carrière » dans les règles optionnelles',
   'adv.newCareerFirstLevel': 'nouvelle carrière : 1er niveau uniquement',
+  'adv.tableEpuisee': 'au-delà de la table des coûts d’Augmentation',
+  'adv.descenteFermee': 'redescendre dans sa carrière n’est pas permis',
 
   // Refus de la porte du projet (`noyau/persistance/refusDeLaPorte.ts`) : les fautes après la première, COMPTÉES.
   'projet.refus.autresFautes': '(et {n} autre{s} à corriger)',

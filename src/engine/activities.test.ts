@@ -27,6 +27,9 @@ function seq(values: number[]): RNG {
   return desEnSuite(values, { ensuite: 1 });
 }
 
+/** Héros au modèle de progression par défaut (`'4e'`). */
+const heros4e = () => createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H4', seed: 1 });
+
 describe('craftTarget — Artisanat (LDB 23 l.68-85)', () => {
   it('gammes de prix : Bronze 5 / Argent 10 / Or 15 DR', () => {
     expect(craftTarget('bronze', 'commune', 0, 0).dr).toBe(5);
@@ -49,11 +52,11 @@ describe('craftTarget — Artisanat (LDB 23 l.68-85)', () => {
 
 describe('apprenticeshipTutorCost — « 2D10 pistoles d’argent par 100PX » (LDB 23 l.72)', () => {
   it('un Talent à 100 PX : un seul 2d10 en pa', () => {
-    const m = apprenticeshipTutorCost(100, seq([4, 6])); // 10 pa
+    const m = apprenticeshipTutorCost(heros4e(), 100, seq([4, 6])); // 10 pa
     expect(toBrass(m)).toBe(10 * 12);
   });
   it('un Talent à 300 PX : trois tranches de 2d10', () => {
-    const m = apprenticeshipTutorCost(300, seq([1, 2, 3, 4, 5, 6])); // 3+7+11 = 21 pa
+    const m = apprenticeshipTutorCost(heros4e(), 300, seq([1, 2, 3, 4, 5, 6])); // 3+7+11 = 21 pa
     expect(toBrass(m)).toBe(21 * 12);
   });
 });
@@ -197,8 +200,8 @@ describe('learnableTalents — « un Talent en dehors de votre Carrière » (ch.
     const deja = lt.find((x) => hero.talents.some((t) => talentConcrete(t) === x.label && t.times === 1));
     expect(deja, 'prémisse : un Talent acquis une fois à la création reste apprenable').toBeDefined();
     expect(deja!.xpCost).toBe(200);
-    expect(fresh.tutorMinBrass).toBe(tutorCostRange(fresh.xpCost).minBrass);
-    expect(tutorCostRange(250)).toEqual({ minBrass: 3 * 2 * 12, maxBrass: 3 * 20 * 12 }); // 3 tranches
+    expect(fresh.tutorMinBrass).toBe(tutorCostRange(hero, fresh.xpCost).minBrass);
+    expect(tutorCostRange(hero, 250)).toEqual({ minBrass: 3 * 2 * 12, maxBrass: 3 * 20 * 12 }); // 3 tranches
   });
   it('learnOptionOf : l’option d’UN Talent égale celle de la liste, apprenable ou non', () => {
     const liste = learnableTalents(hero);
@@ -444,14 +447,14 @@ describe('activityAvailableAt — gate géographique `where` (ACE = « à Altdor
 
 describe('entrainementTutorCost — « PX + 1D10 sous de cuivre » (LDB 23 l.132-136)', () => {
   it('Compétence de Base / Caractéristique : 1d10 sc simple', () => {
-    expect(toBrass(entrainementTutorCost(false, seq([7])))).toBe(7);
+    expect(toBrass(entrainementTutorCost(heros4e(), { advanced: false, xpCost: 50 }, seq([7])))).toBe(7);
   });
   it('Compétence Avancée : le tutorat est DOUBLÉ (l.135)', () => {
-    expect(toBrass(entrainementTutorCost(true, seq([7])))).toBe(14);
+    expect(toBrass(entrainementTutorCost(heros4e(), { advanced: true, xpCost: 50 }, seq([7])))).toBe(14);
   });
   it('fourchette affichée AVANT engagement : [1,10] sc / [2,20] sc si Avancée', () => {
-    expect(entrainementTutorRange(false)).toEqual({ minBrass: 1, maxBrass: 10 });
-    expect(entrainementTutorRange(true)).toEqual({ minBrass: 2, maxBrass: 20 });
+    expect(entrainementTutorRange(heros4e(), { advanced: false, xpCost: 50 })).toEqual({ minBrass: 1, maxBrass: 10 });
+    expect(entrainementTutorRange(heros4e(), { advanced: true, xpCost: 50 })).toEqual({ minBrass: 2, maxBrass: 20 });
   });
 });
 

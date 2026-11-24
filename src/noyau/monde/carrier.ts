@@ -11,6 +11,7 @@ import type { Jeu } from '../etat';
 import { t } from '../../i18n';
 import { armementDuPorteurVariable, porteurAvecArmementEffectif, recomputeLoadout } from '../../engine/items';
 import { BOURSE_TRAPPING_ID } from '../../engine/bourse';
+import { cocherLaDotation } from '../../engine/casesDeCarriere';
 import { fromBrass, toBrass } from '../../engine/money';
 import { ecrireActeur } from './combatants';
 
@@ -80,7 +81,8 @@ export function avecLeLot(items: readonly ItemInstance[], lot: readonly ItemInst
 }
 
 /** Le patch d'état qui réécrit les objets de chaque porteur de `ecritures` (son id, puis ce qu'il porte ensuite) : une
- *  possession dans `possessions` ; sinon un combattant par `ecrireActeur`, ses armes re-dérivées (`recomputeLoadout`). */
+ *  possession dans `possessions` ; sinon un combattant par `ecrireActeur`, ses armes re-dérivées (`recomputeLoadout`) et
+ *  la dotation de carrière de chaque objet reçu cochée (`cocherLaDotation`). */
 export function ecrireLesPorteurs(
   s: Pick<Jeu, 'party' | 'battle' | 'possessions'>,
   ecritures: Readonly<Record<string, (items: ItemInstance[]) => ItemInstance[]>>,
@@ -90,8 +92,10 @@ export function ecrireLesPorteurs(
   const patch: Partial<Pick<Jeu, 'party' | 'battle' | 'possessions'>> = acteurs.length
     ? ecrireActeur(s, acteurs, (h) => {
       const c: Combatant = structuredClone(h);
+      const avant = new Set((c.items ?? []).map((i) => i.uid));
       c.items = ecritures[h.id](c.items ?? []);
       recomputeLoadout(c);
+      for (const it of c.items) if (!avant.has(it.uid)) cocherLaDotation(c, it.trappingId);
       return c;
     })
     : {};

@@ -1275,6 +1275,10 @@ export interface MentionDuPorteur {
   nombre: number;
 }
 
+/** Cases d'un niveau de carrière : Augmentations et Talents de carrière achetés, ids des dotations du niveau suivant
+ *  acquises. CRB 018 l.21-25 */
+export interface CasesDuNiveau { achats: number; dotations: string[] }
+
 export interface Combatant {
   id: string;
   /** L'id de l'entrée de roster du héros, quand son `id` n'en est pas un (un héros de save ou de scénario édité au
@@ -1680,9 +1684,14 @@ export interface Combatant {
   // Avancement par Points d'Expérience (héros uniquement, LDB Carrières)
   /** PX disponibles à dépenser. */
   xp?: number;
-  /** Augmentations de Caractéristique DÉJÀ achetées par caractéristique (≠ valeur courante :
-   *  sert au coût de la prochaine Augmentation, qui dépend du nombre déjà acheté, l.69). */
+  /** POINTS d'Augmentation de Caractéristique déjà ajoutés à la valeur, par caractéristique (≠ valeur courante) ; le
+   *  nombre d'Augmentations achetées s'en dérive par le pas du modèle (`modeleDe`), qui chiffre la prochaine. LDB 07
+   *  l.45 ; CRB 045 l.15 */
   charAdvances?: Partial<Record<CharKey, number>>;
+  /** Modèle de progression (`MODELES_DE_PROGRESSION`, `engine/modeleDeProgression.ts`) ; absent = `'4e'`. */
+  progression?: '5e';
+  /** Cases de carrière cochées, par carrière puis niveau ; jamais remises à zéro. CRB 018 l.19-27 */
+  casesDeCarriere?: Record<string, Record<number, CasesDuNiveau>>;
   /** Niveau de Carrière courant (défaut 1) — détermine le schéma in-carrière pour le coût. */
   careerLevel?: number;
   /** Désignations des emplacements « (Au choix) » des carrières (LDB 09 l.38 : la Spécialisation

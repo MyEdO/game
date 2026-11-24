@@ -2,7 +2,7 @@
  * La dépense d'expérience (#4411), au gabarit de la fiche (`../../heros.md`, section `progression-depense-d-experience`) :
  * coûts LDB 07 l.51-56, hors carrière l.91, Talent l.105, achèvement l.124-131, niveau suivant l.137, autre carrière
  * l.118 et l.144 ; emplacement « (Au choix) » LDB 09 l.38 ; Sorts LDB 10 l.680-696, l.714-722, composant LDB 46
- * l.107-113. Vue `src/noyau/monde/advancement.ts:138-320`, `src/engine/grimoire.ts:176-193`.
+ * l.107-113. Vue `src/noyau/monde/advancement.ts:143-317`, `src/engine/grimoire.ts:176-193`.
  */
 import type { Carac, CompetenceAAugmenter, DepenseDExperience, Ecran, IdentiteQuiProgresse } from './maquette.ts';
 
