@@ -74,6 +74,15 @@ describe('premiers tirages gardés', () => {
     expect(validateStep(troisJets, 'career')).toMatch(/au plus 1 dotation/);
   });
 
+  it('règle carrieres-crb : la Carrière du CRB prise à la place de la jumelle tirée garde le gain du jet (CRB 013 l.9-11)', () => {
+    setRule('carrieres-crb', true);
+    const d = withCareer(tire(GARDE), 'garde-5e');
+    expect(gainDeCarriere(d)).toEqual({ dotations: 2 });
+    expect(ohFickleFate(rollDraftChars(d))).toBe(1);
+    expect(gainDeCarriere(withCareer(d, 'soldat-5e'))).toEqual({});
+    resetRule('carrieres-crb');
+  });
+
   it('Oh Fickle Fate : +1 Destin quand espèce, carrière et caractéristiques gardent leur premier tirage, méthode A seule (CRB 016 l.69 ; CRB 014 l.5)', () => {
     const d = rollDraftChars(tire(GARDE));
     expect(ohFickleFate(d)).toBe(1);
