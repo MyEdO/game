@@ -76,6 +76,7 @@ import {
   ciblesDeLaDoubleFrappe,
   resolveDualSecond,
   paireDesDeuxArmes,
+  seuleLaSecondeMainGatee,
   overcastTargetCandidates,
   overcastReset,
   drainerLesGratuites,
@@ -165,7 +166,7 @@ import {
 import { combatConditionCtx } from './combat/flowEval';
 import type { MovementBlockReason } from './combatFlow';
 import { t } from '../i18n';
-import { backstabWeapon, attackHandGate, issueAuJet, coupAApplique, sommeDesModificateursDR } from '../engine/combat';
+import { backstabWeapon, issueAuJet, coupAApplique, sommeDesModificateursDR } from '../engine/combat';
 import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeReachRank } from '../engine/engagement';
 import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
@@ -777,11 +778,8 @@ function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boo
   const off = attacker.weapons.find((w) => w.uid === ds.offWeaponUid);
   if (!off) { set({ pendingDualStrike: null }); return; }
   if (!ciblesDeLaDoubleFrappe(get()).some((t) => t.id === targetId)) return;
-  // Main ensanglantée (AA 07 l.117) : « des deux armes » est UNE Action impliquant les DEUX mains → UN SEUL Test
-  // avant l'Action. La main directrice est testée à la déclaration (`openAttackCascade`) ; si SEULE la 2nde est
-  // gatée (la main directrice a déjà consommé le Test le cas échéant), la 2ᵉ frappe joue le Test ICI. Échec →
-  // l'objet de la 2nde main glisse (`disarm`), la 2ᵉ frappe est renoncée. `testPasse` : Test déjà PASSÉ (reprise).
-  if (!testPasse && attackHandGate(attacker, off.uid) && !attackHandGate(attacker)) {
+  // AA 07 l.117 : la main directrice est testée à la déclaration (`openAttackCascade`).
+  if (!testPasse && off.uid && seuleLaSecondeMainGatee(attacker, off.uid)) {
     poserLeTestDeMain(set, attacker, 'secondaire', { attackerId: attacker.id, targetId, location: null, result: null, weaponUid: off.uid, dualSecond: true }, 'Des deux armes', 'action/attaquer');
     return;
   }
@@ -3071,7 +3069,6 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const victim = target && victimeDuCoup(battle, target, pa);
       const wasChain = !!pa.cleave; // cette attaque faisait-elle partie d'un balayage en cours ?
       const restitutionDeChaine = wasChain ? get().pendingCleave?.restitution : undefined;
-      const dualBefore = get().pendingDualStrike; // données de la 1ʳᵉ frappe (présentes quand on confirme la 2ᵉ)
       set({ pendingAttack: null });
       // Arme RÉELLEMENT employée (arme naturelle d'une manœuvre de trait comprise) : primitive
       // PARTAGÉE avec la modale d'attaque (#1026) — deux résolutions divergentes rendraient deux
@@ -3131,7 +3128,6 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // mesurée ICI parce qu'elle exclut le balayage que ce site déclare ci-dessous.
         const fumbled = attackerFumbled(lance, weapon, attacker);
         const off = isDualMain ? paireDesDeuxArmes(get, attacker)?.secondaire : undefined;
-        const mainRoll = lance.attackerDetail?.roll;
         const coupPrincipal = attacker.kind === 'heros' && !wasChain && !isDualSecond && !pa.freeKind;
         // Frénésie (LDB 21 l.33), `grantFreeAttack{available}` : la suite rend l'Action (`restitution`) ;
         // plafond /Round via `freeAttacksThisTurn['arme']`.
@@ -3143,11 +3139,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
           attacker.dualStrikeDefensePenalty = dualStrikeDefensePenalty(attacker);
           set({ battle: { ...get().battle! } });
         }
-        // 2ᵉ frappe, Avantage du Maniement de deux armes (LDB 10 l.773), gagné au jet (LDB 13 l.123). `dualBefore` n'existe que si la 1ʳᵉ a touché ; `lance.hit` = la 2ᵉ touche.
-        if (isDualSecond) {
-          if (dualBefore && lance.hit) { campGain(get, attacker); attacker.gainedAdvThisRound = true; }
-          set({ pendingDualStrike: null, battle: { ...get().battle! } });
-        }
+        if (isDualSecond) set({ pendingDualStrike: null, battle: { ...get().battle! } });
         // Attaque gratuite de mêlée : compteur dû dès la déclaration, plafond `plafondParTour`. LDB 85 l.237
         if (pa.freeKind) {
           attacker.freeAttacksThisTurn = { ...attacker.freeAttacksThisTurn, [pa.freeKind]: (attacker.freeAttacksThisTurn?.[pa.freeKind] ?? 0) + 1 };
@@ -3184,7 +3176,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
           // de deux armes n'en ouvrent AUCUN (`aucun`) — sans déclaration, la queue partagée tomberait dans
           // le balayage de la machine (LDB 85 l.362), que ce site écarte. Manœuvre gratuite : LDB 14 l.9.
           enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'heros', wasChain } : { mode: 'aucun' },
-          ...(isDualMain && off?.uid && mainRoll != null ? { dualMain: { offWeaponUid: off.uid, mainRoll } } : {}),
+          ...(isDualMain && off?.uid ? { dualMain: { offWeaponUid: off.uid, par: 'fenetre' as const } } : {}),
+          ...(isDualSecond ? { secondeFrappe: true as const } : {}),
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
           ...(pa.riposte != null ? { riposte: pa.riposte } : {}),
         };

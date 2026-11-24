@@ -1,7 +1,8 @@
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
+import { setCadence, CADENCE_DEFAULT } from '../engine/cadence';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialFields } from './stateFields';
-import { resolveDualSecond, applyAttackResult, advanceTurn } from './combatFlow';
+import { resolveDualSecond, applyAttackResult, advanceTurn, runEnemyAI } from './combatFlow';
 import { rollMeleeDefender, type AttackResult } from '../engine/combat';
 import { reverseRoll } from '../engine/tests';
 import { isOutOfAction } from '../engine/conditions';
@@ -499,5 +500,165 @@ describe('Maniement de deux armes au tir (LDB 10 l.767-773 ; LDB 14 l.138)', () 
     g().frapperDeLaSecondeArme('f2');
     expect(g().pendingAttack).toMatchObject({ targetId: 'f2', victimId: 'a' });
     expect(g().pendingAttack?.result?.hit).toBe(true);
+  });
+});
+
+describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138 ; AA 07 l.117)', () => {
+  const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance =>
+    ({ ...itemFromTrappingById(id, idsDeTest)!, uid, equipped: true, ...over });
+  const g = () => banc.getState();
+  const vivant = (id: string) => g().battle!.combatants.find((c) => c.id === id)!;
+
+  /** `porteur` au Talent tient `main` et `secondaire` (armes de tir chargées) ; les adversaires `cibles`, posés où
+   *  la fixture le dit ; c'est le tour du porteur. */
+  function arene(porteur: Combatant, main: ItemInstance, secondaire: ItemInstance, cibles: Combatant[], seed: number, munitions: ItemInstance[] = []) {
+    seedBattleRng(seed);
+    porteur.talents = [{ talentId: 'maniement-de-deux-armes', times: 1 }] as Combatant['talents'];
+    porteur.characteristics = { ...CHARS(95), 'capacite-de-tir': 95 } as Combatant['characteristics'];
+    porteur.items = [main, secondaire, ...munitions];
+    porteur.loadouts = [{ id: 'lo', main: main.uid, secondaire: secondaire.uid }];
+    porteur.activeLoadoutId = 'lo';
+    recomputeLoadout(porteur);
+    for (const w of porteur.weapons) if (w.type === 'distance') loadWeapon(findTrappingById, porteur, w);
+    const tous = [porteur, ...cibles];
+    banc.setState({
+      mode: 'battle', scene: { ...emptyScene('scene-test', 40, 12), weather: 'clair' }, gameTime: 0,
+      party: tous.filter((c) => c.kind === 'heros'),
+      battle: { combatants: tous, order: tous.map((c) => c.id), baseOrder: tous.map((c) => c.id), turn: 0, round: 1, log: [],
+        action: null, acted: false, movementUsed: 0, movedPreAction: false, loadoutSwapped: false, reachable: new Map(), over: null } as any,
+    });
+  }
+  const ennemiAuTalent = (): Combatant => { const e = mkFoe('e', 5); e.pos = { x: 5, y: 5 }; return e; };
+  const herosAuto = (id: string, pos: { x: number; y: number }): Combatant => mkHero({ id, pos, aiControlled: true, weapons: [W(`${id}-m`, 'main')] });
+  const aLaMain = (id: string) => g().battle!.order[g().battle!.turn] === id;
+  /** Poursuit le tour du porteur, étape par étape, jusqu'à ce qu'il rende la main ou qu'une fenêtre de défense la
+   *  tienne. */
+  const poursuivre = (id: string) => {
+    for (let i = 0; i < 100 && aLaMain(id) && !g().pendingDefense; i++) {
+      if (g().pendingCascade) draineCascade(g, 1);
+      else if (!banc.jusquA((s) => !!s.pendingCascade || s.battle!.order[s.battle!.turn] !== id, 50)) break;
+    }
+  };
+  const jouerLeTour = (id: string) => { runEnemyAI(g, banc.setState, id); poursuivre(id); };
+  const charges = (id: string) => { const c = vivant(id); return c.weapons.filter((w) => w.type === 'distance').map((w) => weaponLoaded(c, w)); };
+
+  const deuxPistolets = () => [objet('pistolet', 'p1'), objet('pistolet', 'p2')] as const;
+  const coupsPortes = (id: string) => g().battle!.log.filter((l) => l.actorId === id && /touche|manque|rate son attaque/.test(l.text));
+
+  it('ennemi à deux pistolets contre des héros non surfacés : deux tirs, les deux pistolets déchargés, −10 aux défenses, +1 Avantage quand les deux touchent', () => {
+    arene(ennemiAuTalent(), ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 1);
+    jouerLeTour('e');
+    const e = vivant('e');
+    expect(aLaMain('e'), 'le tour de la machine a repris jusqu’au bout').toBe(false);
+    expect(g().pendingDualStrike, 'la machine ne tient aucune fenêtre').toBeNull();
+    expect(charges('e')).toEqual([false, false]);
+    expect(e.dualStrikeDefensePenalty).toBe(-10);
+    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(e.advantage).toBe(1);
+  });
+
+  it('la 2e frappe manque : aucun Avantage (LDB 10 l.773)', () => {
+    arene(ennemiAuTalent(), ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 5);
+    jouerLeTour('e');
+    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, false]);
+    expect(charges('e')).toEqual([false, false]);
+    expect(vivant('e').advantage).toBe(0);
+  });
+
+  it('la 1re frappe manque : pas de 2e frappe, le pistolet secondaire reste chargé, −10 aux défenses quand même', () => {
+    arene(ennemiAuTalent(), ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 36);
+    jouerLeTour('e');
+    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([false]);
+    expect(charges('e')).toEqual([false, true]);
+    expect(vivant('e').dualStrikeDefensePenalty).toBe(-10);
+    expect(aLaMain('e')).toBe(false);
+  });
+
+
+  it('défenseur héros surfacé : la fenêtre de la 2e frappe s’ouvre au jet figé, puis le tour de la machine reprend', () => {
+    arene(ennemiAuTalent(), ...deuxPistolets(), [mkHero({ pos: { x: 6, y: 5 }, wounds: blessuresDeBase(40) })], 1);
+    jouerLeTour('e');
+    const premiere = g().pendingDefense!;
+    expect(premiere.suite).toMatchObject({ mode: 'machine', coup: { dualMain: { offWeaponUid: 'p2', par: 'machine' } } });
+    const jet = premiere.atk!.roll;
+    g().jetLancer('defense');
+    g().jetImposerLeResultat('defense', 100);
+    g().jetValider('defense');
+    poursuivre('e');
+    const seconde = g().pendingDefense!;
+    expect(seconde.defenderId).toBe('h');
+    expect(seconde.suite).toMatchObject({ mode: 'machine', coup: { secondeFrappe: true } });
+    expect(seconde.atk!.roll, 'LDB 10 l.773 : le jet de la 1re frappe, inversé').toBe(reverseRoll(jet));
+    g().jetLancer('defense');
+    g().jetImposerLeResultat('defense', 100);
+    g().jetValider('defense');
+    poursuivre('e');
+    expect(g().pendingDefense).toBeNull();
+    expect(charges('e')).toEqual([false, false]);
+    expect(vivant('e').advantage, 'les deux frappes ont touché').toBe(1);
+    expect(aLaMain('e'), 'le tour de la machine a repris jusqu’au bout').toBe(false);
+  });
+
+  it('épée et pistolet : la mêlée, puis le tir de la main secondaire', () => {
+    arene(ennemiAuTalent(), objet('arme-simple', 'e1'), objet('pistolet', 'p2'), [herosAuto('h1', { x: 6, y: 5 }), herosAuto('h2', { x: 5, y: 8 })], 2);
+    jouerLeTour('e');
+    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(charges('e'), 'le pistolet secondaire a tiré').toEqual([false]);
+    expect(vivant('e').dualStrikeDefensePenalty).toBe(-10);
+    expect(vivant('e').advantage).toBe(1);
+  });
+
+  it('gratuites « à la touche » de la 1re frappe jouées après la 2e, même quand elle suspend sur un défenseur surfacé (LDB 10 l.72)', () => {
+    for (const surface of [false, true]) {
+      const h = surface ? mkHero({ pos: { x: 6, y: 5 }, wounds: blessuresDeBase(40) }) : herosAuto('h', { x: 6, y: 5 });
+      h.wounds = blessuresDeBase(40);
+      arene(ennemiAuTalent(), objet('arme-simple', 'e1'), objet('dague', 'd2'), [h], 2);
+      const e = vivant('e');
+      e.talents = [...e.talents!, { talentId: 'assaut-feroce', times: 1 }] as Combatant['talents'];
+      e.advantage = 3;
+      jouerLeTour('e');
+      for (let i = 0; i < 5 && g().pendingDefense; i++) {
+        g().jetLancer('defense');
+        g().jetImposerLeResultat('defense', 100);
+        g().jetValider('defense');
+        poursuivre('e');
+      }
+      expect(coupsPortes('e').map((l) => /touche/.test(l.text)), surface ? 'surfacé' : 'non surfacé').toEqual([true, true, true]);
+      expect(aLaMain('e')).toBe(false);
+    }
+  });
+
+  it('cible Sonnée : +1 Avantage avant chacune des deux frappes de mêlée (LDB 16 l.125)', () => {
+    const h = herosAuto('h', { x: 6, y: 5 });
+    h.wounds = blessuresDeBase(40);
+    h.conditions = [{ id: 'sonne', stacks: 1 } as any];
+    arene(ennemiAuTalent(), objet('arme-simple', 'e1'), objet('dague', 'd2'), [h], 2);
+    jouerLeTour('e');
+    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(vivant('e').advantage, 'Sonnée ×2, les deux touchent ×1').toBe(3);
+  });
+
+  it('Main ensanglantée de la seule main secondaire : Test à la 2e frappe, Échec → l’arme glisse et la 2e frappe est renoncée (AA 07 l.117)', () => {
+    const e = ennemiAuTalent();
+    e.handGates = ['secondaire'];
+    arene(e, ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 2);
+    vivant('e').characteristics.dexterite = 0;
+    jouerLeTour('e');
+    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true]);
+    expect(vivant('e').loadouts![0].secondaire).toBeUndefined();
+    expect(aLaMain('e')).toBe(false);
+  });
+
+  it('héros en Auto-combat : la machine joue la 2e frappe, aucune fenêtre ouverte, deux munitions décomptées', () => {
+    setCadence('auto');
+    onTestFinished(() => setCadence(CADENCE_DEFAULT));
+    const f1 = mkFoe('f1', 5); f1.pos = { x: 5, y: 8 };
+    const f2 = mkFoe('f2', 6); f2.pos = { x: 6, y: 8 };
+    arene(mkHero({ pos: { x: 5, y: 5 } }), ...deuxPistolets(), [f1, f2], 1, [objet('balle-et-poudre', 'bp', { equipped: false, qty: 5 })]);
+    jouerLeTour('h');
+    expect(g().pendingDualStrike).toBeNull();
+    expect(coupsPortes('h').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(charges('h')).toEqual([false, false]);
+    expect(vivant('h').items!.find((i) => i.uid === 'bp')?.qty).toBe(3);
   });
 });

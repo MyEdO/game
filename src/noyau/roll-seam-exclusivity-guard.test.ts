@@ -1594,6 +1594,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
       'src/noyau/combatFlow.ts aiCreatureFreeAttacks',
       'src/noyau/combatFlow.ts autoCleave',
       'src/noyau/combatFlow.ts drainerLesGratuites',
+      'src/noyau/combatFlow.ts frapperDeLaSecondeParLaMachine',
       'src/noyau/combatFlow.ts jouerLApresCoup',
       'src/noyau/combatFlow.ts jouerLaFrappePassive',
       'src/noyau/combatFlow.ts jouerLaSuiteDuCoup',
