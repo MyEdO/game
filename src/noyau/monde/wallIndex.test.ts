@@ -1,16 +1,16 @@
 /**
  * L'INDEX D'ARÊTES — contrat, identité, et le TRAVAIL ÉVITÉ qui justifie son existence.
  *
- * Le compte joue sur La Diligence (la carte la plus murée des campagnes livrées) : c'est là que le
- * profil CPU d'un tour d'IA montrait 61 % du temps propre dans le balayage `scene.walls` d'une
- * arête. Le contrat est DÉRIVÉ (chaque arête portant un mur est confrontée au balayage naïf, jamais
- * une poignée de cas cueillis) et il porte sur TOUTES les scènes livrées — scénarios du registre
- * généré et scènes des campagnes intégrées —, parce qu'aucune garde d'unicité d'arête n'existe :
- * le schéma (`defs-scenes/scene.ts`, `walls` = tableau) l'autorise, et l'authoring littéral,
- * `asciiMap` et les migrations ne passent pas par le dédoublonnage de `setEdgeWall`. Deux faits
- * MESURÉS y répondent : aucune arête ne porte plus d'un segment, et `aretesA` rend exactement le
- * balayage naïf — c'est ce qui rend `aretesA(...)[0]` (PREMIER) équivalent au DERNIER segment que
- * l'ancien `byEdge` de `roofs.closureAppearance` retenait.
+ * Le compte joue sur le relais à étage (`relaisCouvert`), une carte CONSTRUITE murée aux deux niveaux,
+ * portes et croisées comprises : sur une carte murée, le profil CPU d'un tour d'IA montrait 61 % du
+ * temps propre dans le balayage `scene.walls` d'une arête. Le contrat est DÉRIVÉ (chaque arête
+ * portant un mur est confrontée au balayage naïf, jamais une poignée de cas cueillis) et il porte
+ * sur TOUTES les scènes livrées — scénarios du registre généré et scènes des campagnes intégrées —,
+ * parce qu'aucune garde d'unicité d'arête n'existe : le schéma (`defs-scenes/scene.ts`, `walls` =
+ * tableau) l'autorise, et l'authoring littéral, `asciiMap` et les migrations ne passent pas par le
+ * dédoublonnage de `setEdgeWall`. Deux faits MESURÉS y répondent : aucune arête ne porte plus d'un
+ * segment, et `aretesA` rend exactement le balayage naïf — c'est ce qui rend `aretesA(...)[0]`
+ * (PREMIER) équivalent au DERNIER segment que l'ancien `byEdge` de `roofs.closureAppearance` retenait.
  *
  * Ce que l'index promet n'est pas une DURÉE — une durée mesure l'ordonnanceur de la machine qui
  * joue le test — mais un TRAVAIL : après construction, plus une seule lecture de `scene.walls`. Le
@@ -25,11 +25,12 @@ import {
   areteOcculteEntre, areteOcculte, edgeOf, structureAt, doorAt, climbAt, porteEnJeu, setDoorRevealed,
   type Scene, type WallSeg, type WallSide,
 } from './scene';
-import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { scenario as fenetreEcuries } from '../../scenes/test-scenarios/23-fenetre-ecuries';
+import { relaisCouvert } from '../../scenes/fixtures/volumes.testkit';
 
-const carte: Scene = paquetDuJeu(diligenceCampaign).scenes[0];
+const carte: Scene = relaisCouvert();
 const murs = (): readonly WallSeg[] => carte.walls ?? [];
 
 /** Le balayage NAÏF que l'index remplace — l'étalon du contrat, écrit ici une fois. */
@@ -49,8 +50,10 @@ const plancherScenes = (): number =>
   testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + c.paquet.scenes.length, 0);
 
 describe('wallIndex — contrat', () => {
-  it('La Diligence porte bien des murs (sans quoi le banc ne mesure rien)', () => {
-    expect(murs().length).toBeGreaterThan(100);
+  it('le relais porte des murs aux deux niveaux, des portes et des croisées (sans quoi le banc ne mesure rien)', () => {
+    expect(new Set(murs().map((w) => w.z ?? 0))).toEqual(new Set([0, 1]));
+    expect(murs().some((w) => w.door)).toBe(true);
+    expect(murs().some((w) => w.window)).toBe(true);
   });
 
   it('`aretesA` rend EXACTEMENT le balayage naïf, sur TOUTES les arêtes portées', () => {
@@ -74,7 +77,7 @@ describe('wallIndex — contrat', () => {
           expect(aretesA(carte, x, y, side, 0)).toEqual([]);
           nues++;
         }
-    expect(nues).toBeGreaterThan(100);
+    expect(nues).toBe(carte.dimensions.w * carte.dimensions.h * 2 - [...portees].filter((k) => k.endsWith(',0')).length);
   });
 
   it('les trois accesseurs de `scene.ts` rendent le même segment que le balayage naïf filtré', () => {
@@ -106,7 +109,7 @@ describe('wallIndex — TOUTES les scènes livrées', () => {
     expect(fautes).toEqual([]);
     expect(scannees).toBe(plancherScenes());
     expect(scannees).toBeGreaterThan(testScenarios.length); // les campagnes ont bien été balayées
-    expect(mursScannes).toBeGreaterThan(murs().length); // au moins La Diligence, et d'autres cartes
+    expect(mursScannes).toBeGreaterThan(murs().length); // les scènes livrées portent plus de murs que la fixture seule
   });
 
   it('`aretesA` ≡ balayage naïf sur CHAQUE arête portée de CHAQUE scène livrée', () => {
