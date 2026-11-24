@@ -23,7 +23,7 @@ import { indexParId } from '../data/versionDataset';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { acteDeDeverrouillageSchema, type GatingDeStatut } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
-import { emettreDans, type Applique, type FaitApplique, type FaitDEtat } from './faits';
+import { constaterDans, emettreDans, type Applique, type FaitDEtat } from './faits';
 import { campOf } from './relations';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -226,7 +226,7 @@ function poserEtat(c: Combatant, id: string, value: number, pose: PoseDEtat, dur
     else if ('untilTime' in duree && existing.untilTime != null) existing.untilTime = Math.max(existing.untilTime, duree.untilTime);
   } else {
     c.conditions.push({
-      id, value, ...duree,
+      id, value: etatNonCumulable(id) ? Math.min(1, value) : value, ...duree,
       ...(escapeStrength != null ? { escapeStrength } : {}),
       ...(escapeThreshold != null ? { escapeThreshold } : {}),
       ...(entangleOnFail ? { entangleOnFail } : {}),
@@ -1120,15 +1120,15 @@ export function inDeathCondition(c: Combatant): boolean {
   return hasCondition(c, COND.inconscient) && c.wounds.current <= 0 && (c.criticalWounds ?? 0) > be;
 }
 
-/** À 0 PB : gagne l'État À Terre (LDB 18 l.15) ; porteur d'Hémorragique, l'Inconscient (LDB 16 l.105),
- *  sauf en variante Aux Armes, qui le soumet à un Test (AA 07 l.5, hook `aa-bleed-unconscious`).
- *  Un objet inanimé (Structure, coque, affût) ne tombe jamais À Terre : AA 10 l.114, MDG 13 l.656. */
-export function applyZeroWounds(c: Combatant): FaitDEtat[] {
-  if (isInanimate(c)) return [];
-  return faitsDesPoses(c, [COND.aTerre, COND.inconscient], () => {
+/** États posés à 0 PB, émis avec leur ligne dans `a` : LDB 18 l.15 ; LDB 16 l.105 ; AA 07 l.5 (hook
+ *  `aa-bleed-unconscious`) ; AA 10 l.114 ; MDG 13 l.656. */
+export function applyZeroWounds(c: Combatant, a: Applique): void {
+  if (isInanimate(c)) return;
+  const faits = faitsDesPoses(c, [COND.aTerre, COND.inconscient], () => {
     if (c.wounds.current <= 0 && !hasCondition(c, COND.aTerre)) addCondition(c, COND.aTerre);
     if (c.wounds.current <= 0 && stacks(c, COND.hemorragique) > 0 && rule('combat-aa-blessures') !== 'aa') poserInconscientDeSaignement(c);
   });
+  for (const f of faits) emettreDans(a, c, f);
 }
 
 /** Les faits d'État que `poser` a produits sur `c`, pour les États `ids` : la variation de leurs pions, sans ligne. */
@@ -1160,30 +1160,21 @@ export function poserInconscientDeSaignement(c: Combatant): void {
   addCondition(c, COND.inconscient, 1, undefined, undefined, undefined, undefined, VERROU_DU_SAIGNEMENT);
 }
 
-/** Une perte de Blessures : les PB réellement perdus, et les faits de ses conséquences. */
-export interface PerteDeBlessures {
-  perdues: number;
-  faits: FaitApplique[];
-}
-
 /**
- * Perte de Blessures CENTRALISÉE avec ses conséquences RAW — à utiliser partout où l'on retire des PB
- * (hors flux d'attaque principal, qui gère déjà l'Avantage et la nuance Critique pour l'À Terre) :
- * LDB 14 l.219 (inerte en mode « Avantage de groupe ») ; LDB 18 l.15, sauf déjà Inconscient/mort.
- * Rend les PB réellement perdus et les faits de l'Avantage perdu et des États posés, sans ligne.
+ * Perte de Blessures, hors flux d'attaque principal : LDB 14 l.219 ; AA 11 l.44 ; LDB 18 l.15. Rend les PB
+ * réellement perdus ; le fait d'Avantage est constaté dans `a`, les États posés à 0 PB y sont émis (`applyZeroWounds`).
  */
-export function loseWounds(c: Combatant, amount: number): PerteDeBlessures {
-  if (amount <= 0 || c.wounds.current <= 0) return { perdues: 0, faits: [] };
+export function loseWounds(c: Combatant, amount: number, a: Applique): number {
+  if (amount <= 0 || c.wounds.current <= 0) return 0;
   const perdues = Math.min(amount, c.wounds.current);
   c.wounds.current -= perdues;
-  const faits: FaitApplique[] = [];
   const avantage = c.advantage ?? 0;
   if (!groupAdvantage()) {
     c.advantage = 0; // LDB 14 l.219
-    if (avantage > 0) faits.push({ genre: 'avantage', cible: c.id, camp: campOf(c), valeur: -avantage, total: 0 });
+    if (avantage > 0) constaterDans(a, { genre: 'avantage', cible: c.id, camp: campOf(c), valeur: -avantage, total: 0 });
   }
-  if (c.wounds.current <= 0 && !c.dead && !hasCondition(c, COND.inconscient)) faits.push(...applyZeroWounds(c));
-  return { perdues, faits };
+  if (c.wounds.current <= 0 && !c.dead) applyZeroWounds(c, a);
+  return perdues;
 }
 
 /** Upkeep de mort en fin de Round : LDB 18 l.15 ; MDG 13 l.656, l.674. Retourne le journal. */

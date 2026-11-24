@@ -138,7 +138,7 @@ describe('(ii) le dé POSÉ remplace le tirage — `OpsCtx.des` lu par l’op `f
     const parLaBrique = marin('brique');
     const des = new Map([[cleDeDe(0, 'hauteur'), 6], [cleDeDe(0, 'degats'), 9]]);
     applyOps(parLOp, opsDeChute(), { idNeuf: idsDeTest, rng: makeRNG(1), hull: coque(), des });
-    applyFall(parLaBrique, 6, 9);
+    applyFall(parLaBrique, 6, 9, { lignes: [], faits: [] });
     expect(parLOp.wounds.current).toBe(parLaBrique.wounds.current);
     expect(hasCondition(parLOp, 'a-terre')).toBe(hasCondition(parLaBrique, 'a-terre'));
   });
@@ -293,6 +293,9 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     banc.getState().jetValider('cascade');
     expect(200 - par('h1').wounds.current).toBe(3 * 4 + 8 - BE);
     expect(hasCondition(par('h1'), 'a-terre'), 'perte (17) > BE (3), LDB 15 l.84').toBe(true);
+    const lu = JSON.stringify(banc.getState().journal);
+    expect(lu.indexOf('h1 reçoit 1 État À Terre.'), `la ligne d’À Terre suit la ligne de chute : ${lu}`).toBeGreaterThan(lu.indexOf('h1 — chute de 4 m : 17 Blessure(s).'));
+    expect(lu.indexOf('h1 — chute de 4 m : 17 Blessure(s).'), lu).toBeGreaterThanOrEqual(0);
   });
 
   it('l’étape est FIXABLE par le siège du tombant', () => {

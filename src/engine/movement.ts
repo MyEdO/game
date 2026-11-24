@@ -3,7 +3,8 @@
  */
 import { RNG } from './dice';
 import { effectiveChar } from './characteristics';
-import { loseWounds, addCondition } from './conditions';
+import { loseWounds, addCondition, faitsDesPoses } from './conditions';
+import { emettreDans, type Applique } from './faits';
 import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { rollTest, cibleMesuree, type CibleMesuree, type JetDeTest, type TestResult } from './tests';
@@ -194,11 +195,13 @@ export function fallFromTest(t: TestResult, metres: number): IssueDeChute {
  * Le 1d10 entre PAR PARAMÈTRE (#1508) : c'est un dé du jeu comme un autre, il tombe à la porte des jets
  * (étape à dé nu, affichable/posable), et `applyFall` en est le seul LECTEUR. Ce qui vit ici est la
  * formule, pas le tirage.
+ *
+ * Ses faits et leurs lignes sont émis dans `a`.
  */
-export function applyFall(c: Combatant, metres: number, d10Chute: number): void {
+export function applyFall(c: Combatant, metres: number, d10Chute: number, a: Applique): void {
   const m = Math.max(0, metres);
   const be = Math.floor(effectiveChar(c, 'endurance') / 10);
   const lost = Math.max(0, 3 * m + d10Chute - be);
-  loseWounds(c, lost);
-  if (lost > be) addCondition(c, 'a-terre');
+  loseWounds(c, lost, a);
+  if (lost > be) for (const f of faitsDesPoses(c, ['a-terre'], () => addCondition(c, 'a-terre'))) emettreDans(a, c, f);
 }

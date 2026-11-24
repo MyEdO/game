@@ -81,7 +81,7 @@ describe('Coque — à 0 PB reste en jeu, ne sort que coulée (ni figurant, ni I
   it('à 0 PB → toujours en jeu, sans État À Terre ni Inconscient ni horloge de LDB 18 l.15', () => {
     const s = hull();
     s.wounds.current = 0;
-    applyZeroWounds(s);
+    applyZeroWounds(s, { lignes: [], faits: [] });
     expect(hasCondition(s, COND.aTerre)).toBe(false);
     expect(isOutOfAction(s)).toBe(false);
     tickDeath(s);

@@ -23,7 +23,8 @@ import { battleRng } from './battleRng';
 import { d10 } from '../engine/dice';
 import { applyOps } from '../engine/ops';
 import { extendedTestStep } from '../engine/tests';
-import { addCondition, loseWounds, releaseConditionLocks } from '../engine/conditions';
+import { addCondition, faitsDesPoses, loseWounds, releaseConditionLocks } from '../engine/conditions';
+import { emettreDans, type Applique } from '../engine/faits';
 import { isHealable } from '../engine/healing';
 import { removeSurgicalTrauma, recoverDisabledLimb } from '../engine/trauma';
 import { toMoney } from '../engine/money';
@@ -107,8 +108,12 @@ function appliquerLaPasse(get: Get, set: Set): void {
   const recovery = sg.kind === 'reeducation';
   const verb = recovery ? t('medic.verbRecovery') : t('medic.verbSurgery');
   const harm = recovery ? 0 : battleRng().int(1, 10);
-  if (!recovery) { loseWounds(patient, harm); addCondition(patient, 'hemorragique'); } // dégâts d'une passe de Chirurgie (LDB 10 l.184)
-  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: nomDe(patient), dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })];
+  const consequences: Applique = { lignes: [], faits: [] };
+  if (!recovery) { // LDB 10 l.184
+    loseWounds(patient, harm, consequences);
+    for (const f of faitsDesPoses(patient, ['hemorragique'], () => addCondition(patient, 'hemorragique'))) emettreDans(consequences, patient, f);
+  }
+  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: nomDe(patient), dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) }), ...consequences.lignes];
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
     log.push(t('medic.patientSinks', { patient: nomDe(patient) }));
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });

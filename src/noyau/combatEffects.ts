@@ -32,7 +32,7 @@ import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, tirerLaTable,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
-import { nomDeSource, type FaitApplique } from '../engine/faits';
+import { nomDeSource, type Applique as LignesEtFaits, type FaitApplique } from '../engine/faits';
 import { rule } from '../engine/policy';
 import { resoudreLeChoixDuTrait } from '../engine/traitOctroye';
 import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
@@ -153,7 +153,7 @@ import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, o
 import { type BuiltCascadeStep } from './stepBrand';
 import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
-import { loseWounds, hasCondition, inDeathCondition } from '../engine/conditions';
+import { loseWounds, inDeathCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
 import {
   acteursEnJeu,
@@ -2029,7 +2029,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           lines.push(...r.log);
           damage += r.damage;
         }
-        if (damage > 0) loseWounds(c, damage);
+        const consequences: LignesEtFaits = { lignes: [], faits: [] };
+        loseWounds(c, damage, consequences);
+        lines.push(...consequences.lignes);
       }
       if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
     },
@@ -2051,7 +2053,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           lines.push(...r.log);
           damage += r.damage;
         }
-        if (damage > 0) loseWounds(c, damage);
+        const consequences: LignesEtFaits = { lignes: [], faits: [] };
+        loseWounds(c, damage, consequences);
+        lines.push(...consequences.lignes);
       }
       if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
     },
@@ -2674,19 +2678,13 @@ export const TABLES = {
       // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
       if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
       const avant = hero.wounds.current;
-      const dejaATerre = hasCondition(hero, 'a-terre');
-      applyFall(hero, metres, step.de.result.total);
+      const chute: LignesEtFaits = { lignes: [], faits: [] };
+      applyFall(hero, metres, step.de.result.total, chute);
       // Ce que LA CHUTE a coûté, lu IMMÉDIATEMENT après elle : la ligne dit sa propre conséquence, pas le
       // solde de tout ce qui suivra (la suite confiée à l'étape est rejouée par le goulot, plus tard).
       const perte = avant - hero.wounds.current;
-      const aTerre = !dejaATerre && hasCondition(hero, 'a-terre');
       set(touchActors(get()));
-      return { consequences: freeCons([t('eff.chuteDeLaCible', {
-        name: nomDe(hero),
-        m: metres,
-        lost: perte,
-        aterre: aTerre ? t('eff.fragATerre') : '',
-      })]) };
+      return { consequences: freeCons([t('eff.chuteDeLaCible', { name: nomDe(hero), m: metres, lost: perte }), ...chute.lignes]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   clotures: {

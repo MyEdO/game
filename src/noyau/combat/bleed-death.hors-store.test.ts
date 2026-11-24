@@ -57,7 +57,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
   function saigneInconscient(c: Combatant, n: number) {
     c.wounds = { ...c.wounds, current: 3 };
     addCondition(c, COND.hemorragique, n);
-    loseWounds(c, 10);
+    loseWounds(c, 10, { lignes: [], faits: [] });
     expect(hasCondition(c, COND.inconscient), 'Inconscient posé par la règle, pas par la fixture').toBe(true);
   }
 

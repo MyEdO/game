@@ -1010,12 +1010,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   const sortie: Applique = { lignes: lines, faits: [] };
   // LA seule émission d'un fait de la classe (#4574) : le fait et sa ligne, ensemble.
   const emettre = (cible: Combatant, f: FaitAvecLigne) => emettreDans(sortie, cible, f, ctx.label);
-  // Une perte de Blessures et les faits de ses conséquences (`loseWounds`), que le journal ne dit pas.
+  // Une perte de Blessures (`loseWounds`) : sa ligne, puis celles de ses États. LDB 16 l.105
   const perdre = (cible: Combatant, n: number, mitigation?: Extract<FaitAvecLigne, { genre: 'blessures' }>['mitigation']): number => {
-    const perte = loseWounds(cible, n);
-    if (perte.perdues > 0) emettre(cible, { genre: 'blessures', ...sur(cible), valeur: -perte.perdues, ...(mitigation ? { mitigation } : {}) }); // LDB 16 l.105
-    for (const f of perte.faits) constaterDans(sortie, f);
-    return perte.perdues;
+    const consequences: Applique = { lignes: [], faits: [] };
+    const perdues = loseWounds(cible, n, consequences);
+    if (perdues > 0) emettre(cible, { genre: 'blessures', ...sur(cible), valeur: -perdues, ...(mitigation ? { mitigation } : {}) });
+    absorber(consequences);
+    return perdues;
   };
   const sur = (cible: Combatant) => ({ cible: cible.id, camp: campOf(cible) });
   // Ce qu'une application imbriquée ou un socle d'États a dit : ses lignes ET ses faits.
@@ -2035,18 +2036,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           : formuleDuCtx(hauteur, ref, ctx);
         const d10Chute = de('degats');
         const avant = target.wounds.current;
-        // Les États que la chute POSE se lisent par DIFFÉRENCE — la ligne ne nomme aucun État : c'est
-        // `applyFall` (LDB 15 l.84) qui décide, et ce qu'il pose se dit tel quel.
-        const etatsAvant = new Set((target.conditions ?? []).map((c) => c.id));
-        applyFall(target, metres, d10Chute);
-        const poses = (target.conditions ?? []).filter((c) => !etatsAvant.has(c.id)).map((c) => conditionLabel(c.id));
-        lines.push(t('op.chute', {
-          name: nomDe(target),
-          table,
-          m: metres,
-          n: avant - target.wounds.current,
-          etats: poses.length ? ` (${poses.join(', ')})` : '',
-        }));
+        // La ligne de chute, puis celles des États que `applyFall` pose (LDB 15 l.84).
+        const chute: Applique = { lignes: [], faits: [] };
+        applyFall(target, metres, d10Chute, chute);
+        lines.push(t('op.chute', { name: nomDe(target), table, m: metres, n: avant - target.wounds.current }));
+        absorber(chute);
         break;
       }
       case 'zone': {
