@@ -614,6 +614,7 @@ import {
   applyEffects,
   gearFromEffects,
   drainPendingLog,
+  enfilerAuJournal,
   ouvrirChute,
   cloturer,
   comptePasDifferes,
@@ -3578,7 +3579,8 @@ function appliquerLaTouche(
     const lancee = laisserTomber(attacker, weapon, get().forgerUnId);
     if (lancee && !itemCapability(lancee, 'detruitAuLancer')) lacherAuSol(get, set, lancee, land);
   }
-  log.push(...evLines(critLog, 'critique', attacker.id, target.id));
+  // Les lignes des flux que le coup a déclenchés (Test d'un Critique, ses États) suivent la ligne qui les porte (#4911).
+  log.push(...evLines(critLog, 'critique', attacker.id, target.id), ...drainPendingLog(get, set));
   // Nerveux, bruits forts : LDB 85 l.249 ; #4345
   if (battle && weapon.type === 'distance' && armeAPoudre(weapon)) {
     for (const c of battle.combatants) {
@@ -3607,12 +3609,9 @@ function appliquerLaTouche(
   // Interruption de Focalisation (LDB 46 l.144) : Dégâts subis pendant qu'on focalise
   // → Test de la fiche `interruption-de-focalisation`.
   if (res.hit && res.woundsLost) log.push(...evLines(checkFocusInterruption(get, set, target), 'detail', target.id));
-  if (isOutOfAction(target) && !isStructure(target)) log.push(ev('mort', tr('cf.horsDeCombat', { name: nomDe(target) }), target.id)); // structure → ligne d'Effondrement (collapseStructure), pas « hors de combat »
   // Salve (Aux Armes p.126) : un héros qui tire une arme à Salve gardant des tirs (chambered > 0) ne
   // consomme PAS son Action — il peut tirer encore ce tour (chaque tir suivant à −10 cumulatif).
   const salvoContinues = attacker.kind === 'heros' && weapon.type === 'distance' && hasQuality(weapon, 'salve') && (loadRegister(attacker, weapon).chambered ?? 0) > 0;
-  // Lignes de journal différées par un hook profond (ex. `onGainCondition` ennemi/auto déclenché plus
-  // haut dans cette résolution) → foldées dans le MÊME `log` réécrit, avant que ce `set` ne le clobbere.
   // Effet déclenché « après résolution de l'attaque » (touche OU raté) — dispatcher générique via le bus.
   // Point d'émission = fin de résolution d'attaque (LDB 14, Test de combat résolu). Inerte sans donnée.
   emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
@@ -3622,7 +3621,11 @@ function appliquerLaTouche(
   // non-porteur. Cadence-aware (`set` → héros : le FM de palier 2 en cascade, comme onGainCondition ; PNJ inline).
   if (res.attackerDetail && !res.attackerDetail.success) log.push(...evLines(fireOwnTestFailed(get, attacker, { sl: res.attackerDetail.sl, set, rng: battleRng() }), 'etat', attacker.id));
   if (res.defenderDetail && !res.defenderDetail.success) log.push(...evLines(fireOwnTestFailed(get, target, { sl: res.defenderDetail.sl, set, rng: battleRng() }), 'etat', target.id));
+  // Lignes différées par un hook profond déclenché depuis le premier drain → foldées dans le MÊME `log` réécrit,
+  // avant que ce `set` ne le clobbere.
   log.push(...drainPendingLog(get, set));
+  // « Hors de combat » clôt le journal du coup, après les conséquences drainées (#4911) ; une structure a sa ligne d'Effondrement (`collapseStructure`).
+  if (isOutOfAction(target) && !isStructure(target)) log.push(ev('mort', tr('cf.horsDeCombat', { name: nomDe(target) }), target.id));
   journaliserLeCoup(get, set, battle, log, !salvoContinues);
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
@@ -3779,7 +3782,7 @@ export function applyFocusInterruption(get: Get, set: SetFn, focuser: Combatant)
   focuser.focus = undefined;
   const compUsed = useSpellComponent(focuser, focusedSpellId, lines); // un composant couvre aussi la Focalisation (incantation en cours)
   lines.push(...applyMiscast(get, set, focuser, 'mineure', { componentDowngrade: compUsed, domainId: findSpellById(focusedSpellId)?.domainId?.id }));
-  set({ pendingLogQueue: [...get().pendingLogQueue, ...lines.map((line) => ({ line, cid: focuser.id }))] });
+  enfilerAuJournal(get, set, lines, focuser.id);
 }
 
 /** Une Maladresse de l'attaquant dans un résultat d'attaque ? (jet propre raté + double, LDB 14 l.19 ;
@@ -4563,7 +4566,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const bg = get().battle;
   if (!gt.success) {
     const { lignes, tient } = glisseDeLaMain(get, set, attacker, gHand);
-    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeRatee', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lignes.map((l) => `  ↳ ${l}`), 'information', attacker.id)] } });
+    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeRatee', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lignes, 'detail', attacker.id)] } });
     return tient;
   }
   if (bg) set({ battle: { ...bg, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeReussie', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id)] } });
@@ -8611,7 +8614,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
       if (c.swarm || isOutOfAction(c) || !(c.engagedWith ?? []).some((id) => swarms.some((s) => s.id === id))) continue;
       const consequences: LignesEtFaits = { lignes: [], faits: [] };
       loseWounds(c, 1, consequences);
-      // Mode `ligne` : chaque fait d'État a sa ligne, au même rang (`emettreDans`).
+      // Les faits d'État de `consequences` sont ceux qui portent une ligne (`emettreDans`), au même rang.
       consequences.faits.filter((f): f is FaitDEtat => f.genre === 'etat').forEach((f, i) => battle.log.push(evDEtat(f.id, consequences.lignes[i], c.id)));
     }
   decayEngagement(battle.combatants);

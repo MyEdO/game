@@ -1823,7 +1823,7 @@ export const fr = {
   'eff.navirePossede': 'Le groupe prend possession du navire : {name}.',
   'eff.souffleDeZone': 'Souffle de zone : {lines}.',
   // Ce QU'UN tombant encaisse, dit à la résolution de son dé de chute (applier `chuteDe`, #1508) —
-  // même forme que la ligne de l'op `fall`, l'État posé étant lu par différence.
+  // même forme que la ligne de l'op `fall`.
   'eff.chuteDeLaCible': '{name} — chute de {m} m : {lost} Blessure(s).',
   // L'Effet d'auteur ANNONCE la chute ; ce que chacun encaisse se dit à la résolution de SON dé
   // (étape à dé nu ouverte par `ouvrirChute`, #1508).

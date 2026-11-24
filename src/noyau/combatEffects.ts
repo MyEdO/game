@@ -174,7 +174,7 @@ import { humanizeFlowSentence } from './codex/humanize';
 import { ajouterLaPossession } from './possessionsFlow';
 import { possessionLabel, type Possession, type PossessionInput } from '../engine/possession';
 import { effectiveTalents } from '../engine/talentEffects';
-import { ev, journaliser } from './combatLog';
+import { ev, journaliser, type CombatEvent } from './combatLog';
 import { tenuParUnHumain } from './sieges';
 import { t } from '../i18n';
 import { stepPrecision, stepDetail } from './rollSeam';
@@ -235,11 +235,17 @@ export function pushReveal(
  *  les lignes poussées par un hook profond — `onGainCondition` ennemi/auto — seraient sinon clobberées).
  *  Clôt la file (set) et RENVOIE les événements pour que l'appelant les FOLDE dans le MÊME `log` réécrit
  *  (bon ordre, zéro double `set` sur `battle`). File vide → no-op (tableau vide, pas de `set`). */
-export function drainPendingLog(get: Get, set: SetFn): import('./combatLog').CombatEvent[] {
+export function drainPendingLog(get: Get, set: SetFn): CombatEvent[] {
   const q = get().pendingLogQueue;
   if (!q.length) return [];
   set({ pendingLogQueue: [] });
-  return q.map((e) => ev('etat', e.line, e.cid));
+  return q.map((e) => ev('detail', e.line, e.cid));
+}
+
+/** Pousse les lignes d'un émetteur profond dans la file différée : SEUL écrivain de `pendingLogQueue`, que
+ *  `drainPendingLog` vide. */
+export function enfilerAuJournal(get: Get, set: SetFn, lines: string[], cid: string): void {
+  if (lines.length) set({ pendingLogQueue: [...get().pendingLogQueue, ...lines.map((line) => ({ line, cid }))] });
 }
 
 /** Pousse une ÉTAPE de séquence de combat déjà MINTÉE (`BuiltCascadeStep` — un constructeur de la

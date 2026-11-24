@@ -37,7 +37,7 @@ import { featureLevel } from '../engine/combatFeatures/dispatch';
 import { degatsDeLEtatIgnores } from '../engine/traits/dispatch';
 import type { CombatFeature } from '../engine/combatFeatures/types';
 import { isOutOfAction, combatTestPenalty, pionsRetirables } from '../engine/conditions';
-import { surfaceOf } from './rollSeam';
+import { stepPrecision, surfaceOf } from './rollSeam';
 import { porteurParId } from './monde/combatants';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { isEngagedWith, isEngaged, resteEngageAuRoundSuivant } from '../engine/engagement';
@@ -386,7 +386,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const rng = ctx.rng;
   const res = rollTest({ porteur: c.id, teste: designeGaranti(ft, skillLabel) }, base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.reussite : flow.echec;
-  const lines = [traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel), difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
+  const lines = [traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel, stepPrecision), difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes
   // abdominales, MSRC 16 l.152). La garde de RÉ-ENTRANCE de `fireOwnTestFailed` empêche un sous-Test résolu
   // ICI pendant le traitement (FM de palier 2) de ré-émettre. `get` absent (appelant sans store) ⇒ inerte.
@@ -555,7 +555,7 @@ export function applyTriggeredEffects(
         continue;
       }
       // Op IMPURE (`zone`…) : le walker de COMBAT la résout par son crochet, le chemin pur l'avalerait. Son journal
-      // part dans la file différée (`queueLines`), drainée par l'émetteur.
+      // part dans la file différée (`enfilerAuJournal`), drainée par l'émetteur.
       if (ctx.set && flowHasImpureOp(eff.flow)) {
         runCombatFlow({ get, set: ctx.set, target: t, caster: actor, label: nomDeSource(flowCtx), opsCtx: flowCtx }, eff.flow);
         continue;

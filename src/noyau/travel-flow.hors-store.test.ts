@@ -1298,7 +1298,7 @@ describe('Rester aux aguets, de l’Étape au combat (#4154)', () => {
     draineCascade(get, 40, poser(21));
     get().fenetreFermer('recitDeVoyage');
     expect(get().battle).not.toBeNull();
-    expect(get().battle!.log.map((e) => e.text)).toContainEqual(expect.stringMatching(/Hilda \(Discrétion\).*Brigand \(Perception \(Surprise\)\)/));
+    expect(get().battle!.log.map((e) => e.text)).toContainEqual(expect.stringMatching(/Hilda \(Discrétion\).*Brigand \(Perception — Surprise\) /));
   });
 
   it('après la halte, la réussite de l’Étape précédente ne couvre plus le groupe', () => {

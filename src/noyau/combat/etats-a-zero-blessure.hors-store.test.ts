@@ -18,7 +18,8 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
 
 /** #4911 — tout État posé à 0 Blessure a sa ligne, une fois, après la perte et avant « hors de combat » ;
- *  une prose qui dit déjà l'État le garde seule. LDB 18 l.15 ; LDB 16 l.105 ; LDB 14 l.219. */
+ *  l'État que la prose de son producteur dit déjà (l'Hémorragie d'une passe de Chirurgie) n'a pas de ligne de plus.
+ *  LDB 18 l.15 ; LDB 16 l.105 ; LDB 14 l.219 ; LDB 10 l.184. */
 
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
 const GRIFFES = { label: 'Griffes', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as unknown as Weapon;
@@ -118,5 +119,25 @@ describe('#4911 — les États posés à 0 Blessure ont leur ligne', () => {
     applyOups(banc.getState, banc.setState, h, GRIFFES, { roll: 5, kind: 'selfWound', label: 'Blessé' });
     expect(h.wounds.current).toBe(14);
     expect(h.advantage).toBe(0);
+  });
+});
+
+describe('#4911 — la passe de Chirurgie dit son Hémorragique par sa prose, une fois (LDB 10 l.184)', () => {
+  it('patient à 1 PB porteur d’1 Hémorragique : la passe le met à 0, Hémorragique nommé une fois, À Terre et Inconscient une fois chacun', () => {
+    const docteur = combattant({ id: 'doc', label: 'Doc', kind: 'heros', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] } as Partial<Combatant>);
+    const patient = combattant({ id: 'p', label: 'Patient', kind: 'heros', pos: { x: 1, y: 0 }, wounds: blessuresDeBase(12, 1), conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as Partial<Combatant>);
+    banc.setState({ mode: 'exploration', battle: null, party: [docteur, patient], pendingHeal: null, pendingSurgery: null, medic: null, journal: [] });
+    banc.getState().ouvrirLeMedecin('p');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
+    banc.getState().jetLancer('soins');
+    banc.getState().jetLancer('chirurgie');
+    banc.getState().jetValider('chirurgie');
+    expect(banc.getState().party.find((c) => c.id === 'p')!.conditions.find((c) => c.id === 'hemorragique')?.value, 'la passe pose son Hémorragique').toBe(2);
+    expect(banc.getState().journal).toEqual([
+      'Doc opère Patient — passe : DR +7 (total 7/7), 6 PB + 1 Hémorragie.',
+      'Patient reçoit 1 État À Terre.',
+      'Patient reçoit 1 État Inconscient.',
+      'Patient sombre sur la table — l\'opération est interrompue (stabilisez-le d\'abord).',
+    ]);
   });
 });

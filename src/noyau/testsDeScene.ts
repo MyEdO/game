@@ -119,9 +119,7 @@ export const TABLES = {
      *  abdominales → Sonné/À Terre par paliers de DR, MSRC 16 l.152), donc il attend le dé comme le reste. */
     testRateDeLActeur: (get, set, c) => {
       const fired = fireOwnTestFailed(get, c.actorId, { sl: c.sl, rng: battleRng(), set });
-      const extra = drainPendingLog(get, set);
-      if (get().battle) journaliser(get, set, fired, 'etat', { actorId: c.actorId, extra });
-      else journaliser(get, set, [...fired, ...extra.map((e) => e.text)], 'etat');
+      journaliser(get, set, fired, 'etat', { actorId: c.actorId, extra: drainPendingLog(get, set) });
       set(touchActors(get()));
     },
   },
