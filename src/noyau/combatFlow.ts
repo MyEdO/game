@@ -367,6 +367,7 @@ import {
   endommagerLArmeTenue,
   weaponIdentity,
   ganteletRetient,
+  lierLaRetenue,
   isOffHandEligible,
 } from '../engine/items';
 import { crochetDuSol, lacherAuSol, lacherLeBouclierDuBinome } from './objetsAuSol';
@@ -2472,6 +2473,7 @@ export function applyCriticalToTarget(
   // Effets DÉTAILLÉS pour la modale enrichie : chaque trauma (Amputation, Fracture…) AVEC son explication
   // RAW (note) — « à quoi ça correspond » (#critique). Localisation FR, et pas de « (Jambe droite) (jambeD) ».
   const details: { text: string; note?: string }[] = [];
+  const portees = target.traumas?.length ?? 0;
   if (crit.traumas.length) {
     target.traumas = avecSequelles(target.traumas, crit.traumas);
     for (const t of crit.traumas) {
@@ -2495,7 +2497,9 @@ export function applyCriticalToTarget(
     // réel). `location` : main affectée par l'op `disarm` (#153, convention DROITIER `brasD`→main/`brasG`→off).
     // Effet immédiat (PB ignorant BE+PA + États) — langue GameOp. Toute ligne va au journal ; la modale porte les
     // faits, et ne reprend que les lignes qui n'en lisent aucun (`lignesHorsDesFaits`).
+    const avant = [...(target.activeEffects ?? [])];
     const applique = appliquerLesOpsDuCritique(target, crit.ops, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, ...crochetDuSol(get, set) });
+    lierLaRetenue(target, avant, { sequelles: (target.traumas ?? []).slice(portees).map((t) => t.uid) });
     for (const l of applique.lignes) log.push(`  ↳ ${l}`);
     for (const l of lignesHorsDesFaits(applique, (id) => nomDe(id === target.id ? target : garanti(porteurParId(get(), id), id, "cible d'un fait de Blessure critique")))) {
       revealLines.push(`  ↳ ${l}`);
@@ -4534,7 +4538,9 @@ export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, tit
  *  AA 07 l.117 ; AA 08 l.236 ; ADE II 02 l.695 */
 export function glisseDeLaMain(get: Get, set: SetFn, attacker: Combatant, hand: Main): { lignes: string[]; tient: boolean } {
   const tenues = attacker.weapons.flatMap((w) => (w.uid ? [w.uid] : []));
+  const avant = [...(attacker.activeEffects ?? [])];
   const { lignes } = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: hand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
+  lierLaRetenue(attacker, avant, { mainGatee: hand });
   return { lignes, tient: tenues.every((uid) => isWeaponActive(attacker, uid)) };
 }
 
