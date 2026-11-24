@@ -335,4 +335,3 @@ describe('#4860 — les champs de rencontre se lisent sur la file après le repo
     expect(g().pendingCorruption?.heroId).toBe(H[1].id);
   });
 });
-

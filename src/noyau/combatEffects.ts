@@ -155,7 +155,17 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition, inDeathCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { acteursEnJeu, actorIn, apresLeReport, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
+import {
+  acteursEnJeu,
+  actorIn,
+  apresLeReport,
+  coqueParId,
+  ecrireActeur,
+  inBattleId,
+  meneurDeboutDuMonde,
+  meneurDuMonde,
+  rencontreEngagee,
+} from './monde/combatants';
 import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
 import type { Referent } from '../engine/formule';
 import { marinsDuRole } from '../engine/shipCritical';
