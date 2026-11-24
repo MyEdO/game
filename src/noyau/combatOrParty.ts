@@ -2,9 +2,8 @@
  * Base commune des actions JOUEUR qui valent EN COMBAT comme HORS COMBAT (soin, incantation,
  * Focalisation… et les futures actions hors combat). Le seul écart entre les deux contextes est
  * « dans quel ensemble vit l'acteur » : la file de combat (`battle.combatants`) ou le groupe (`party`).
- * On l'INFÈRE de `battle != null` plutôt que de stocker un drapeau par modale — une modale `pending*`
- * gèle toute autre action, donc le contexte ne peut pas changer pendant un flux (pas de combat qui
- * démarre/finit modale ouverte). Un seul point de vérité → moins de divergence entre actions.
+ * On l'INFÈRE de l'état (`acteursEnJeu`) plutôt que de stocker un drapeau par modale : le groupe fait foi hors combat
+ * et après le report de fin de rencontre (#4860). Un seul point de vérité → moins de divergence entre actions.
  *
  * Patron d'une nouvelle action combat-ou-hors-combat :
  *   - ouverture : garder `if (battle) …` seulement si l'action est hors-combat-only ;
@@ -22,17 +21,17 @@ import type { Get, PatchDeFlux } from './flowTypes';
 import { currentTargetingMode, type OptionsDuClic } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
-import { inBattleId } from './monde/combatants';
+import { apresLeReport, inBattleId } from './monde/combatants';
 import { combatantAtTile } from './monde/combatGeometry';
 import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
 import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 
-/** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie l'ensemble que lit le jeu
- *  (`actorIn`) — la file de combat (`battle.combatants`) en combat, sinon le groupe et la série d'attaques subies,
- *  l'hôte de ses combattants (`combattantsDeLaSerie`). */
+/** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie les ensembles que lit le jeu
+ *  (`acteursEnJeu`) — la file de combat (`battle.combatants`) en combat, et le groupe après le report
+ *  (`apresLeReport`, #4860) ; hors combat le groupe et la série d'attaques subies, l'hôte de ses combattants. */
 export function touchActors(state: Jeu): PatchDeFlux {
-  if (state.battle) return { battle: { ...state.battle, combatants: [...state.battle.combatants] } };
+  if (state.battle) return { battle: { ...state.battle, combatants: [...state.battle.combatants] }, ...(apresLeReport(state) ? { party: [...state.party] } : {}) };
   return { party: [...state.party], ...(state.serieSubie ? { serieSubie: { ...state.serieSubie } } : {}) };
 }
 

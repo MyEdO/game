@@ -31,7 +31,7 @@ import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { isRation } from '../engine/provisions';
 import { addCondition } from '../engine/conditions';
-import { itemFromTrappingById } from '../engine/items';
+import { itemFromTrappingById, itemLabel } from '../engine/items';
 import { resetRule, setRule } from '../engine/policy';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { ouvrirDialogue } from '../noyau/dialogue';
@@ -491,5 +491,30 @@ describe('l’interlude à l’écran (`Projection.interlude`, #4574)', () => {
     banc.actions.fenetreChoisir('interlude', 'activite', 'learn', id);
     const talents = learnableTalents(banc.getState().party[0]);
     expect(choixDuHeros(banc.getState(), id)('talent'), 'chaque Talent et ses PX').toEqual(talents.map((o) => article(o.label, t('ecran.px', { px: o.xpCost }))));
+  });
+});
+
+describe('la fiche à l’écran compose ses données (`fiche.porteur`, `fiche.objet`, #4574)', () => {
+  it('la bourse et l’argent d’une possession en monnaie, le contenant par son nom', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const etat = partie.etat();
+      const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
+      let n = 0;
+      const fab = () => `ecran-fiche-${++n}`;
+      const bourse = { ...itemFromTrappingById('bourse', fab)!, money: { gold: 1, silver: 2, brass: 3 } };
+      const besace = itemFromTrappingById('besace', fab)!;
+      const dague = { ...itemFromTrappingById('dague', fab)!, inside: besace.uid };
+      for (const c of [heros, ...etat.party.filter((h) => h.id === heros.id)]) c.items = [bourse, besace, dague];
+      const zones = (objet: string) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), { fiche: { porteur: heros.id, objet } }, SANS_ROSTER);
+      const enMonnaie = formatMoney({ gold: 1, silver: 2, brass: 3 });
+      const z = zones(bourse.uid);
+      expect(z['fiche.porteur'][0].elements.find((e) => e.id === 'bourse'), 'la bourse du héros').toMatchObject({ libelle: t('ecran.bourse'), valeur: enMonnaie });
+      expect(z['fiche.objet'][0].elements.find((e) => e.id === 'argent'), 'l’argent de la Bourse').toMatchObject({ libelle: enMonnaie });
+      expect(zones(dague.uid)['fiche.objet'][0].elements.find((e) => e.id === 'contenant'), 'le contenant de la dague')
+        .toMatchObject({ libelle: t('ecran.objet.contenant', { contenant: itemLabel(besace) }) });
+    } finally {
+      partie.fermer();
+    }
   });
 });

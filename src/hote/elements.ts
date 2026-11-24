@@ -73,9 +73,9 @@ export interface Entite { type: 'entite'; id: string; ton: Ton; nom: string; ele
 /** Un verbe de la partie et ses arguments. */
 export interface Appel { type: string; args: unknown[] }
 
-/** La fiche qu'un hôte montre, en statbloc : le combattant qu'elle décrit (`porteurParId` : un héros du groupe, ou
- *  tout combattant en combat), par son id, et la possession qu'il a choisie (`objet`, l'`uid` qui la désigne,
- *  `PossessionDeLaFiche`). Un état de l'hôte, jamais de la partie. */
+/** La fiche qu'un hôte montre, en statbloc : le porteur qu'elle décrit (`ficheDuPorteur`), par son id, et la
+ *  possession qu'il a choisie (`objet`, l'`uid` de l'instance qui la désigne, `PossessionDeLaFiche`). Un état de
+ *  l'hôte, jamais de la partie. */
 export interface FicheOuverte { porteur: string; objet?: string }
 
 /** La création d'un héros qu'un hôte tient : son brouillon et la page ouverte. Un état de l'hôte, jamais de la partie. */

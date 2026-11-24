@@ -403,10 +403,11 @@ function reprendreHorsBatailleApresLeDestin(get: Get, set: Set): void {
   if (get().serieSubie) jouerFlowEntier(poursuivreLaSerie(get, set));
 }
 
-/** La bataille reprend après le Destin : la limite de Round pour une mort lente, le tour adverse sinon. */
+/** La bataille reprend après le Destin : la limite de Round pour une mort lente ; sinon l'issue, que le Destin différait
+ *  (`checkBattleOver`, #4860), puis le tour adverse (`resumeEnemyTurn`). */
 function reprendreApresLeDestin(get: Get, set: Set, source: FateSaveSource): void {
   if (source === 'slow') resolveRoundBoundary(get, set);
-  else resumeEnemyTurn(get, set);
+  else if (!checkBattleOver(get, set)) resumeEnemyTurn(get, set);
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —
@@ -2119,7 +2120,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
       journaliser(get, set, [t('cs.fateDodge', { name: nomDe(hero) })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
-      if (get().battle) resumeEnemyTurn(get, set);
+      if (get().battle) reprendreApresLeDestin(get, set, p.source);
       else reprendreHorsBatailleApresLeDestin(get, set);
     },
     survivre: () => {

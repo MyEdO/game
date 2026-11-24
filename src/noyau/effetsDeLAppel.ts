@@ -39,7 +39,7 @@ import { t as tr } from '../i18n';
 import type { ChargeDAttaque, ChargeDeZone, ChargesDuBus } from './bus';
 import { sourceDuTon, type SourceDeLumiere } from './lumiereDeLaScene';
 import type { Jeu } from './etat';
-import { porteurParId } from './monde/combatants';
+import { inBattleId, porteurParId } from './monde/combatants';
 import { musiqueDeLaSelection, type MusiqueDeLaPartie } from './musiqueDeLaPartie';
 import { marquesDesEtats, type MarqueDEtat } from './marquesDesEtats';
 import { hauteurDe, sceneMetresPerTile } from './monde/scene';
@@ -47,7 +47,6 @@ import { meteoSurLesBandes, type MeteoDuRegard } from './monde/meteo';
 import { FLAME_LIFT_M } from './monde/vision';
 import { discTiles, type BattleZone } from './monde/zones';
 import { campOf } from '../engine/relations';
-import { inBattleId } from './monde/combatants';
 import { caseDeZoneEnVue, caseEnVue, corpsEnVue, porteurEnVue } from './visionDuGroupe';
 import type { Evenement } from './partie';
 
@@ -380,11 +379,14 @@ function effetDeLAttaque(a: Exclude<ChargeDAttaque, { kind: 'creature' }>, dista
   return coup(rendu, rendu.couleur, issue, a.from, a.to, distanceM, pare ? renduDeLArme(a.parryWeapon!) : null, flottants);
 }
 
+/** La case du porteur `id` sur le plateau : sa copie de la file de combat, après le report compris (#4860). */
+const caseDuPorteur = (etat: Jeu, id: string) => (inBattleId(etat.battle, id) ?? porteurParId(etat, id))?.pos;
+
 /** Les mètres qui séparent les combattants `de` et `vers` de `etat` sur le plateau de sa scène, `null` quand l'un n'y est
  *  pas posé. */
 function distanceDesCombattants(etat: Jeu, de: string, vers: string): number | null {
-  const a = porteurParId(etat, de)?.pos;
-  const b = porteurParId(etat, vers)?.pos;
+  const a = caseDuPorteur(etat, de);
+  const b = caseDuPorteur(etat, vers);
   return a && b ? Math.hypot(b.x - a.x, b.y - a.y) * sceneMetresPerTile(etat.scene) : null;
 }
 
@@ -420,7 +422,7 @@ function effetsEmis(etat: Jeu, evenements: readonly Evenement[]): EffetEmis[] {
       return distanceM === null ? [] : [effetDeLAttaque(e.payload, distanceM)];
     }
     if (e.evt === 'anim_aoe') {
-      const auteur = porteurParId(etat, e.payload.de)?.pos;
+      const auteur = caseDuPorteur(etat, e.payload.de);
       if (!auteur) return [];
       const { rendu, couleur } = renduDeLaZone(e.payload);
       const distanceM = Math.hypot(e.payload.centre.x - auteur.x, e.payload.centre.y - auteur.y) * sceneMetresPerTile(etat.scene);

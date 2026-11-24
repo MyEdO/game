@@ -3805,6 +3805,11 @@ function alliesAtRange(resolveTrapping: TrappingResolver, scene: Scene | null, b
 export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boolean {
   const battle = get().battle;
   if (!battle || battle.over) return false;
+  // LDB 17 l.29-32 ; #4860
+  if (get().pendingFateSave) {
+    set({ battle: { ...battle, tirsRapidesSuspendus: faits } });
+    return true;
+  }
   if (faits.length && checkBattleOver(get, set)) return false;
   const tirRapideTimes = (c: Combatant) => effectiveTalents(c).find((tl) => tl.talentId === 'tir-rapide')?.times ?? 1;
   const shooters = battle.combatants
@@ -3839,6 +3844,16 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
   }
   ouvrirLeRound(get, set);
   return false;
+}
+
+/** La boucle des Tirs rapides que le Destin suspendait reprend à ses tireurs déjà passés (`runPreemptShots`), une fois
+ *  le combat débloqué ; rend `true` quand elle reprend. LDB 11 l.97-103 ; LDB 17 l.29-32 */
+function reprendreLesTirsRapides(get: Get, set: SetFn): boolean {
+  const { tirsRapidesSuspendus: faits, ...battle } = get().battle!;
+  if (!faits) return false;
+  set({ battle });
+  jouerFlowEntier(runPreemptShots(get, set, faits) ? OPS_DIFFEREES : undefined);
+  return true;
 }
 
 /**
@@ -7930,8 +7945,8 @@ export function releaseSeatsOfCombatants<S extends Scene | null>(
 
 /** Fin de combat : réécrit l'état persistant de chaque héros (Blessures, critiques, mort, États
  *  persistants) vers `party`. Idempotent ; les champs non persistants du membre party sont conservés.
- *  Les JETS HÉROS de fin de combat (maladie/Corruption) sont résolus AVANT (cascade `openCombatEndCascade`
- *  ou inline) — ici, on ne fait QUE le writeback (les marqueurs ont déjà été consommés). */
+ *  Après ce report (`battle.over`, `apresLeReport`), `party` fait seul foi : toute recherche d'un héros rend sa copie
+ *  du groupe et toute écriture la touche (`acteursEnJeu`), fenêtres de fin encore ouvertes comprises. #4860 */
 export function finalizeBattle(get: Get, set: SetFn): void {
   const { battle, party } = get();
   if (!battle) return;
@@ -8063,6 +8078,8 @@ function resolveFirstBlood(target: Combatant, vc: VictoryCondition | undefined, 
 
 export function checkBattleOver(get: Get, set: SetFn): boolean {
   if (!get().battle || get().battle!.over) return true;
+  // LDB 17 l.29-32 ; #4860 : un Destin en suspens peut retourner l'issue, le report attend son choix.
+  if (get().pendingFateSave) return true;
   // Structure EFFONDRÉE (AA 10 l.127) : BRÈCHE et retrait, APRÈS le `set` de clôture de toute résolution.
   for (const s of get().battle!.combatants.filter((c) => c.effondree)) collapseStructure(get, set, s);
   const battle = get().battle;
@@ -8150,8 +8167,6 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
     return true;
   }
   if (!heroesAlive) {
-    // Défaite : tous les héros hors d'action → les Tests de fin de combat se résolvent inline (aucun héros
-    // interactif → pas de cascade), puis writeback. Pas d'écran de victoire à gater.
     openCombatEndCascade(get, set);
     finalizeBattle(get, set);
     set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('information', tr('cf.defaite'))] } });
@@ -8169,7 +8184,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
 export function finishVictory(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
-  finalizeBattle(get, set); // writeback AVANT onVictory (qui ajoute XP/butin au groupe)
+  finalizeBattle(get, set);
   set({ battle: { ...get().battle!, over: 'victoire', log: [...get().battle!.log, ev('information', tr('cf.victoire'))] } });
   bus.emit(EVT.BATTLE_OVER, { victory: true }); // gong audio + hooks futurs
   // Capture des récompenses pour l'écran de victoire : on mesure ce que onVictory octroie (XP/or/butin)
@@ -8213,15 +8228,15 @@ export function finishVictory(get: Get, set: SetFn): void {
   }]);
 }
 
-/** Continuation à la FERMETURE de la cascade de fin de combat (`combatEndBoundary`) : l'écran de victoire
- *  suit les Tests de fin de combat influencés. Re-dérive l'issue depuis l'état COURANT (une damnation par
- *  mutation a pu tuer un héros) : ennemis tous hors d'action → victoire ; sinon (héros tombé) → défaite. */
+/** Continuation à la FERMETURE de la cascade de fin de combat (`combatEndBoundary`) : re-dérive l'issue depuis l'état
+ *  COURANT — un héros encore en action → victoire ; sinon → défaite. Les fenêtres de fin encore ouvertes (seuil de Corruption,
+ *  renoncement, mutation) se résolvent après ce report, sur `party` (#4860). */
 export function finishCombatEnd(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
   const heroesAlive = battle.combatants.some((c) => c.kind === 'heros' && !isOutOfAction(c));
   if (heroesAlive) { finishVictory(get, set); return; }
-  // Cas-limite : la mutation/damnation a achevé le dernier héros pendant la cascade → défaite.
+  // Aucun héros en action à la fermeture de la cascade → défaite.
   finalizeBattle(get, set);
   set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('information', tr('cf.defaite'))] } });
 }
@@ -8312,7 +8327,7 @@ function effacerLesTelegraphes(get: Get, set: SetFn, auteurId: string): void {
  *  parqué. Le tour d'un acteur que l'IA ne pilote pas ne finit jamais ici : il reste au joueur. No-op si le combat
  *  est terminé. */
 export function resumeEnemyTurn(get: Get, set: SetFn): void {
-  if (!detientLAutoriteDuJeu(get()) || combatAdvanceBlocked(get())) return;
+  if (!detientLAutoriteDuJeu(get()) || combatAdvanceBlocked(get()) || reprendreLesTirsRapides(get, set)) return;
   const active = activeCombatant(get().battle!);
   if (!active || !aiDriven(get(), active) || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
 }
@@ -8323,7 +8338,7 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
   // `resumeSuspendedAI` ne surveillait historiquement PAS `pendingCast` → `{ cast: false }` (iso A1).
-  if (!detientLAutoriteDuJeu(s) || combatAdvanceBlocked(s, { cast: false })) return;
+  if (!detientLAutoriteDuJeu(s) || combatAdvanceBlocked(s, { cast: false }) || reprendreLesTirsRapides(get, set)) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
   if (!active || servirLaFrappePilotee(get, set, battle, active) || !aiDriven(s, active)) return;

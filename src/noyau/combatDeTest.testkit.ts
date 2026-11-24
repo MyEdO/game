@@ -7,6 +7,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { createHero } from '../engine/character';
 import type { Combatant, Weapon } from '../engine/types';
+import type { CastResult } from '../engine/magic';
 import type { EtatDeJeu } from './etat';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Scene } from './monde/scene';
@@ -65,6 +66,16 @@ export function heroFaceAUnEnnemi(p: ProprietaireDuDuel, scene: Scene): { H: Com
 }
 
 export const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
+
+/** Sort à Dégâts hors Projectile : 3 Blessures, BE et PA ignorées. */
+export const SORT_A_DEGATS = {
+  id: 'sort-a-degats-test', label: 'Sort à Dégâts', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: 1, duration: null, desc: '',
+  source: { book: 'LDB', page: 0 },
+  effects: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', ignoreTB: true, ignoreAP: true, amount: 3 }] } }] },
+} as never;
+
+/** L'Incantation critique (LDB 46 l.30). */
+export const INCANTATION_CRITIQUE: CastResult = { cast: true, roll: 22, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' };
 
 /** Le combat `encId` du scénario `contenu` (sa scène et son groupe, que le test construit : le noyau n'importe pas les
  *  scénarios) ouvert chez `p`, réduit à un héros H, un ennemi E et, sur demande, un second héros ou un second ennemi T,

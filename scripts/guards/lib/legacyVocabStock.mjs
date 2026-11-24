@@ -546,13 +546,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/codex/registry.ts",
-    motif: "désormais",
-    ancre: "// PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "scripts/arene/zones1-7.mjs",
     motif: "désormais",
     ancre: "// empreinte 3×3 : (24,4) chevaucherait les « Chapeaux moirés » (26,4), désormais bloquants",
