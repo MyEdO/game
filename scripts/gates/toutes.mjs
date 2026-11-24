@@ -558,6 +558,23 @@ export const ECRIT_LU = {
       'copies sont effacées. Les journaux vont sous `dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit. ' +
       'LIT ce que lit `godot:sonde` et écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
   },
+  'roguelite:construire': {
+    ecrit: ['dist/roguelite/'],
+    lit: [...DOSSIERS_DES_ZONES, 'tsconfig.json', 'package.json'],
+    raison:
+      'esbuild (projets/roguelite/construire.mjs, #4929) empaquette la façade du noyau du roguelite et son interface, ' +
+      'qui tirent les zones du dépôt, et recopie la page et ses feuilles sous dist/roguelite/, que git ignore ; ' +
+      'sa seule gate lectrice, `roguelite:recette`, le suit dans le job `godot-recette` de ci.yml, donc dans la même lane',
+  },
+  'roguelite:recette': {
+    ecrit: [],
+    lit: [...DOSSIERS_DES_ZONES, 'dist/roguelite/', 'tsconfig.json', 'package.json'],
+    raison:
+      'Le lot (projets/roguelite/recette/lot.mjs, #4929) tire la partie fixe (`partie-fixe.ts`, par tsx, qui lit les ' +
+      'zones) puis joue chaque recette dans son processus : Chrome par Playwright, un contexte neuf par page, son ' +
+      'profil sous os.tmpdir(), la construction de dist/roguelite/ servie par interception (`route`). La partie fixe et ' +
+      'les captures vont sous dist/roguelite-recette/, que git ignore et qu’aucune gate ne lit',
+  },
   'personnage-3d:tests': {
     ecrit: [],
     ecritFerme: {

@@ -1,30 +1,21 @@
 // Le rejeu d'une mêlée nombreuse (peaux-vertes, Animosité, un chamane) joué en entier à ×4, puis « Échap » : aucune
 // erreur de page, l'ordre garde les héros à terre, Échap mène à l'issue avant de fermer. Captures en cours de combat,
 // un héros à terre si possible, à 1280 × 720 et 1920 × 1080.
-// Usage : node projets/roguelite/recette/rejeu.mjs <dossier-des-captures> [url] <partie-fixe.json>
-import { readFileSync } from 'node:fs';
-import { chromium, BASE, CAPTURES } from './commun.mjs';
+// Usage : node projets/roguelite/recette/rejeu.mjs <dossier-des-captures> <partie-fixe.json>
+import { CAPTURES, erreurs, lancer, page, recharger, surLaPartieFixe } from './commun.mjs';
 
-const sauvegarde = readFileSync(process.argv[4], 'utf8');
-const b = await chromium.launch();
-const erreurs = [];
+const fixe = surLaPartieFixe();
+const b = await lancer();
 const echecs = [];
 const constater = (ok, quoi) => { console.log(ok ? '✓' : '✗', quoi); if (!ok) echecs.push(quoi); };
 for (const [l, h] of [[1280, 720], [1920, 1080]]) {
-  const p = await (await b.newContext({ viewport: { width: l, height: h } })).newPage();
-  p.on('pageerror', (e) => erreurs.push(e.message));
-  await p.goto(`${BASE}/recette.html`);
-  await p.evaluate((s) => localStorage.setItem('grisefosse-v1', s), sauvegarde);
-  await p.reload(); await p.waitForSelector('.enseigne');
+  let p = await page(b, [l, h], fixe);
   for (const a of ['ouvrir-depart', 'preparer', 'partir']) await p.evaluate((x) => document.querySelector(`[data-a="${x}"]`).click(), a);
-  await p.evaluate(() => {
-    const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
+  p = await recharger(p, (e) => {
     const s = e.expedition.salles[e.expedition.index];
     s.type = 'combat';
     s.ennemis = ['orc', 'orc', 'gobelin', 'gobelin', 'gobelin', 'chamane-gobelin-des-forets'];
-    localStorage.setItem('grisefosse-v1', JSON.stringify(e));
-  });
-  await p.reload(); await p.waitForSelector('[data-a="avancer"]');
+  }, '[data-a="avancer"]');
   await p.click('[data-a="avancer"]');
   await p.waitForSelector('#combat:not([hidden])');
   await p.click('[data-v="4"]'); await p.click('[data-v="4"]');
@@ -40,11 +31,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
   await p.context().close();
 }
 // Échap avant la fin : l'issue d'abord.
-const p = await (await b.newContext({ viewport: { width: 1366, height: 768 } })).newPage();
-p.on('pageerror', (e) => erreurs.push(e.message));
-await p.goto(`${BASE}/recette.html`);
-await p.evaluate((s) => localStorage.setItem('grisefosse-v1', s), sauvegarde);
-await p.reload(); await p.waitForSelector('.enseigne');
+const p = await page(b, [1366, 768], fixe);
 for (const a of ['ouvrir-depart', 'preparer', 'partir', 'avancer']) await p.evaluate((x) => document.querySelector(`[data-a="${x}"]`).click(), a);
 if (await p.isVisible('#combat')) {
   await p.keyboard.press('Escape');

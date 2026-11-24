@@ -23,12 +23,12 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 9. La forge améliore les armes : qualités d'artisanat que le noyau joue, puis Magique, à un palier élevé.
 10. Équilibrage : les hardes, le Minotaure, Guerrier du Chaos + Troll (0 sur 6 au balayage) ; l'économie sur une campagne entière (piste 7) ; le soin de l'hospice gratuit au palier 3.
 11. Genre des noms tirés.
-12. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v34 publiée le 2026-11-24 : le chien du Ratier en combat). Publication : `node projets/roguelite/construire.mjs`, puis la page `projets/roguelite/dist/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un compte sans droit d'écriture sur l'artefact publie un artefact neuf au lieu de le remplacer.
+12. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v34 publiée le 2026-11-24 : le chien du Ratier en combat). Publication : `npm run roguelite:construire`, puis la page `dist/roguelite/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un compte sans droit d'écriture sur l'artefact publie un artefact neuf au lieu de le remplacer.
 
 ## Reprendre ce chantier depuis un autre compte
 
 - La branche `chantier/busy-pasteur-mpnok2` et sa PR MyEdO/game#4767 portent tout le roguelite. La PR reste en brouillon, sans fusion dans `main` (choix « Garder en brouillon » de l'utilisateur, carte de décision du 2026-11-24) ; ce fichier est l'état du travail, les arbitrages de l'utilisateur sont dans `CONCEPTION.md` et sur les tickets, cités et datés.
-- Recette navigateur : `python3 -m http.server <port> --directory projets/roguelite/dist`, puis `node projets/roguelite/recette/partie.mjs <dossier> http://127.0.0.1:<port>/` ; tests : `node scripts/lancer-local.mjs vitest --cwd roguelite -- vitest run src/jeu src/noyau src/ui` ; `npx tsc -p roguelite`.
+- Recette navigateur : `npm run roguelite:construire`, puis `npm run roguelite:recette` (le lot), ou `node projets/roguelite/recette/partie.mjs <dossier>` ; tests : `npm run roguelite:tests` ; typecheck : `npm run typecheck:fast`.
 - Le roguelite ne modifie jamais `src/` : un manque du noyau va dans `RETOURS.md`, puis en ticket et chantier `chantier/<N>` (TDD, juge, PR).
 - Avant de prendre un ticket du noyau : lire ses champs `Statut` / `Tenu par` (skill `se-coordonner-entre-comptes`).
 

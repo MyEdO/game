@@ -1,34 +1,71 @@
-// La recette de l'interface : le jeu construit (`node projets/roguelite/construire.mjs`), servi par un serveur statique sur
-// `projets/roguelite/dist` (par défaut http://localhost:8765). Chaque script reçoit en argument le dossier des captures.
-// Usage : node projets/roguelite/recette/<script>.mjs <dossier-des-captures> [url-de-base]
-import { createRequire } from 'node:module';
+// La recette de l'interface : le jeu construit (`npm run roguelite:construire`, sous `SORTIE`), servi à chaque contexte
+// du navigateur par l'interception de ses requêtes (`BrowserContext.route`), sans serveur ni port. Le stockage de la
+// page se pose et se lit par l'état du contexte (`newContext({ storageState })`, `storageState()`) : un contexte neuf
+// est un stockage vide. Chaque script reçoit en premier argument le dossier des captures.
+// Usage : npm run roguelite:recette, ou node projets/roguelite/recette/<script>.mjs <dossier-des-captures> [...]
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import { chromium } from 'playwright';
+import { SORTIE } from '../construire.mjs';
 
-// Playwright est installé hors du dépôt : on le charge par la résolution de Node, comme l'environnement le documente.
-const charger = createRequire(import.meta.url);
-const { chromium, devices } = charger('playwright');
-
-const BASE = process.argv[3] ?? 'http://localhost:8765';
+/** L'origine sous laquelle la page se charge, servie par `route`. */
+const BASE = 'http://roguelite.recette';
 const CAPTURES = process.argv[2] ?? '.';
+/** La clé de la sauvegarde de la partie (`src/jeu/sauvegarde.ts`). */
+const SAUVEGARDE = 'grisefosse-v1';
+/** Les erreurs de page de toutes les pages du script. */
+const erreurs = [];
 
-/** Une page neuve à la taille `[largeur, hauteur]` (ou un appareil nommé), sur une partie neuve que `regler` ajuste
- *  avant le rechargement (or, bâtiments, PX…), avec `argument`. Les erreurs de page s'accumulent dans `erreurs`. */
-async function ouvrir(navigateur, taille, regler, erreurs, argument) {
-  const contexte = typeof taille === 'string' ? await navigateur.newContext({ ...devices[taille] }) : await navigateur.newContext({ viewport: { width: taille[0], height: taille[1] } });
+/** Le navigateur de la recette : le Chrome installé sur la machine (celui du runner en CI). */
+const lancer = () => chromium.launch({ channel: 'chrome' });
+
+/** Le stockage local de la page `p`, entrée par entrée (`{ clé: valeur }`). */
+async function stockage(p) {
+  const { origins } = await p.context().storageState();
+  return Object.fromEntries((origins.find((o) => o.origin === BASE)?.localStorage ?? []).map(({ name, value }) => [name, value]));
+}
+
+/** La sauvegarde de la partie de la page `p`, lue. */
+const sauvegarde = async (p) => JSON.parse((await stockage(p))[SAUVEGARDE]);
+
+/** Le stockage d'une page sur la partie fixe (`partie-fixe.ts`, fichier du second argument), que `regler` modifie en
+ *  place ou remplace. */
+function surLaPartieFixe(regler = () => {}) {
+  const e = JSON.parse(readFileSync(process.argv[3], 'utf8'));
+  return { [SAUVEGARDE]: JSON.stringify(regler(e) ?? e) };
+}
+
+/** Une page de la recette dans un contexte neuf, à la vue `[largeur, hauteur]`, sur le stockage `entrees`
+ *  (`{ clé: valeur }`, vide par défaut : une partie neuve), prête quand `attendre` paraît. */
+async function page(navigateur, [width, height], entrees = {}, attendre = '.enseigne') {
+  const contexte = await navigateur.newContext({
+    viewport: { width, height },
+    storageState: { cookies: [], origins: [{ origin: BASE, localStorage: Object.entries(entrees).map(([name, value]) => ({ name, value })) }] },
+  });
+  await contexte.route(`${BASE}/**`, (r) => {
+    const fichier = join(SORTIE, new URL(r.request().url()).pathname);
+    return existsSync(fichier) ? r.fulfill({ path: fichier }) : r.fulfill({ status: 404 });
+  });
   const p = await contexte.newPage();
   p.on('pageerror', (e) => erreurs.push(e.message));
   await p.goto(`${BASE}/recette.html`);
-  await p.evaluate(() => localStorage.clear());
-  await p.reload();
-  await p.waitForSelector('.enseigne');
-  if (regler) {
-    await p.evaluate(regler, argument);
-    await p.reload();
-    await p.waitForSelector('.enseigne');
-  }
+  await p.waitForSelector(attendre);
   return p;
+}
+
+/** La page `p` rechargée dans un contexte neuf sur son stockage, sa sauvegarde passée par `regler(e, argument)`, qui la
+ *  modifie en place ou en rend une autre ; l'ancien contexte est fermé. */
+async function recharger(p, regler, attendre = '.enseigne', argument) {
+  const entrees = await stockage(p);
+  const e = JSON.parse(entrees[SAUVEGARDE]);
+  const regle = regler(e, argument) ?? e;
+  const navigateur = p.context().browser();
+  const { width, height } = p.viewportSize();
+  await p.context().close();
+  return page(navigateur, [width, height], { ...entrees, [SAUVEGARDE]: JSON.stringify(regle) }, attendre);
 }
 
 /** Clique un bouton par son geste (`data-a`) et son id, sans viser une enseigne du panorama ni un groupe SVG. */
 const geste = (p, a, id) => p.evaluate(([x, i]) => document.querySelector(`button[data-a="${x}"]${i ? `[data-id="${i}"]` : ''}`).click(), [a, id]);
 
-export { chromium, BASE, CAPTURES, ouvrir, geste };
+export { CAPTURES, erreurs, geste, lancer, page, recharger, sauvegarde, surLaPartieFixe };

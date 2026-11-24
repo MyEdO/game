@@ -1,24 +1,18 @@
 // Le parcours du néophyte (`CONCEPTION.md`), étape par étape, sur des états forcés dans la sauvegarde fixe : une
 // capture par étape et par taille d'écran (`parcours-<étape>-<largeur>.png`), et les repères qui se vérifient au DOM
 // (pastille, refus et identité au survol, mort et victoire finale).
-// Usage : node projets/roguelite/recette/parcours.mjs <dossier-des-captures> [url] <partie-fixe.json>
-import { readFileSync } from 'node:fs';
-import { chromium, BASE, CAPTURES } from './commun.mjs';
+// Usage : node projets/roguelite/recette/parcours.mjs <dossier-des-captures> <partie-fixe.json>
+import { CAPTURES, erreurs, lancer, page, recharger, surLaPartieFixe } from './commun.mjs';
 
-const fixe = JSON.parse(readFileSync(process.argv[4], 'utf8'));
-const b = await chromium.launch();
-const erreurs = [];
+const b = await lancer();
 const echecs = [];
 const constater = (ok, quoi) => { console.log(ok ? '✓' : '✗', quoi); if (!ok) echecs.push(quoi); };
 const clic = (p, sel) => p.evaluate((s) => document.querySelector(s).click(), sel);
 
 /** Une page sur la sauvegarde fixe que `regler` transforme (un objet JSON en entrée et en sortie, côté Node). */
 async function partie(l, h, regler = (e) => e) {
-  const p = await (await b.newContext({ viewport: { width: l, height: h } })).newPage();
-  p.on('pageerror', (e) => erreurs.push(e.message));
-  await p.goto(`${BASE}/recette.html`);
-  await p.evaluate((s) => localStorage.setItem('grisefosse-v1', s), JSON.stringify(regler(structuredClone(fixe))));
-  await p.reload(); await p.waitForSelector('.enseigne'); await p.evaluate(() => document.fonts.ready);
+  const p = await page(b, [l, h], surLaPartieFixe(regler));
+  await p.evaluate(() => document.fonts.ready);
   return p;
 }
 const image = async (p, etape, l) => { await p.waitForTimeout(250); await p.screenshot({ path: `${CAPTURES}/parcours-${etape}-${l}.png` }); };
@@ -26,9 +20,7 @@ const image = async (p, etape, l) => { await p.waitForTimeout(250); await p.scre
 for (const [l, h] of [[1280, 720], [1920, 1080]]) {
   // 1. Premier lancement : une partie neuve.
   {
-    const p = await (await b.newContext({ viewport: { width: l, height: h } })).newPage();
-    p.on('pageerror', (e) => erreurs.push(e.message));
-    await p.goto(`${BASE}/recette.html`); await p.evaluate(() => localStorage.clear()); await p.reload(); await p.waitForSelector('.enseigne');
+    const p = await page(b, [l, h]);
     if (l === 1280) constater((await p.textContent('.recit-lieu .but')).includes('Autel du Chaos'), '1 : le but est nommé au panneau Partir');
     await image(p, '1-lancement', l);
     await p.context().close();
@@ -65,17 +57,14 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
   }
   // 9. La mort : sans Destin, à 1 Blessure, face au maître triplé.
   {
-    const p = await partie(l, h);
+    let p = await partie(l, h);
     for (const a of ['ouvrir-depart', 'preparer', 'partir']) await clic(p, `[data-a="${a}"]`);
-    await p.evaluate(() => {
-      const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
+    p = await recharger(p, (e) => {
       e.expedition.index = e.expedition.salles.length - 1;
       const s = e.expedition.salles[e.expedition.index];
       s.ennemis = [...s.ennemis, ...s.ennemis, ...s.ennemis];
       for (const x of e.roster) { x.c.wounds.current = 1; x.c.fate = 0; }
-      localStorage.setItem('grisefosse-v1', JSON.stringify(e));
-    });
-    await p.reload(); await p.waitForSelector('[data-a="avancer"]');
+    }, '[data-a="avancer"]');
     await clic(p, '[data-a="avancer"]');
     if (await p.isVisible('#combat')) { await p.click('[data-v="0"]'); await p.click('#combat-fin'); }
     await image(p, '9-carton', l);

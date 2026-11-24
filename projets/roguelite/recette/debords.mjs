@@ -1,28 +1,25 @@
 // Chaque écran, à trois tailles : aucun cadre qui doit tenir (cartouche, socle, note, frise, tête, corps et pied
 // d'un service, bande des Caractéristiques) ne rogne son contenu, et aucun
 // bouton ni son libellé ne sort de l'écran. Les cadres de liste de la fiche défilent, c'est voulu.
-import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
+// Usage : node projets/roguelite/recette/debords.mjs <dossier-des-captures> <partie-fixe.json> [taille]
+import { CAPTURES, erreurs, geste, lancer, page, recharger, surLaPartieFixe } from './commun.mjs';
 
-/** La taille de l'interface éprouvée (`petite`, `moyenne`, `grande`), quatrième argument ; `moyenne` par défaut. */
+/** La taille de l'interface éprouvée (`petite`, `moyenne`, `grande`), troisième argument ; `moyenne` par défaut. */
 const TAILLE = process.argv[4] ?? 'moyenne';
+/** Le rang du lanceur dans la compagnie de la partie fixe : le pyromancien. */
+const LANCEUR = 2;
 
 // À la taille `grande` (vue de 720 de haut), l'étal d'une forge agrandie défile : ses offres ne tiennent pas toutes.
 const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .tete-service, .corps-service, .porteur, ${TAILLE === 'grande' ? '' : '.etal, '}.corps-service .colonne, .pied-service, .bande > .fond`;
 
 (async () => {
-  const b = await chromium.launch();
-  const erreurs = [];
+  const b = await lancer();
   let defauts = 0;
   for (const taille of [[1280, 720], [1366, 768], [1920, 1080]]) {
-    const p = await ouvrir(b, taille, (t) => {
-      localStorage.setItem('grisefosse-taille', t);
-      const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
-      e.or = 900; e.trophees = 5;
-      for (const k of Object.keys(e.batiments)) e.batiments[k] = 1;
-      for (const h of e.roster) { h.c.xp = 400; h.c.wounds.current = 1; }
-      e.roster[3].c.xp = 3000;
-      localStorage.setItem('grisefosse-v1', JSON.stringify(e));
-    }, erreurs, TAILLE);
+    let p = await page(b, taille, { 'grisefosse-taille': TAILLE, ...surLaPartieFixe((e) => {
+      for (const h of e.roster) h.c.wounds.current = 1;
+      e.roster[LANCEUR].c.xp = 3000;
+    }) });
     const relever = async (ecran) => {
       const rognes = await p.$$eval(DOIVENT_TENIR, (fs) => fs.filter((f) => f.scrollHeight > f.clientHeight + 2 || f.scrollWidth > f.clientWidth + 2).map((f) => f.closest('.cadre')?.className.replace('cadre bois pan ', '') ?? f.className));
       if (rognes.length) { defauts++; console.log(`${taille.join('x')} ${ecran} : rogne → ${rognes.join(', ')}`); }
@@ -40,7 +37,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
       await geste(p, 'fermer-panneau');
     }
     // Le lanceur passé au niveau 2 : ses Compétences et les sorts de sa voie tiennent à la salle d'armes.
-    await geste(p, 'batiment', 'salle'); await p.click('.socle-compagnie .carte-heros >> nth=3');
+    await geste(p, 'batiment', 'salle'); await p.click(`.socle-compagnie .carte-heros >> nth=${LANCEUR}`);
     for (let n = 0; n < 80 && await p.$('.salle [data-a="niveau"]:disabled'); n++) {
       const augmentation = await p.$('.salle :is(.c.carr, .achat):not(.faite) [data-a="pas"]:not(:disabled)');
       if (!augmentation) break;
@@ -53,7 +50,10 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
     await geste(p, 'batiment', 'cartographe'); await p.click('[data-a="preparer"]'); await relever('départ');
     await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
     for (const o of ['progression', 'talents', 'sorts', 'equipement']) { const t = await p.$(`[data-a="onglet"][data-k="${o}"]`); if (t) await t.click(); await relever(`fiche ${o}`); }
-    await p.click('.croix-ecran'); await geste(p, 'attendre'); await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]'); await p.click('[data-a="partir"]'); await relever('expédition');
+    await p.click('.croix-ecran');
+    // Une compagnie à 1 Blessure ne part pas (`compagnieEpuisee`) : l'expédition s'éprouve sur la compagnie guérie.
+    p = await recharger(p, (e) => { for (const h of e.roster) h.c.wounds.current = h.c.wounds.max; });
+    await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]'); await p.click('[data-a="partir"]'); await relever('expédition');
     await p.click('[data-a="avancer"]');
     if (await p.isVisible('#combat')) { await p.waitForTimeout(800); await relever('rejeu'); await p.click('[data-v="0"]'); await relever('issue'); await p.click('#combat-fin'); }
     if (await p.$('.carton')) await relever('carton');

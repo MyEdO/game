@@ -1,15 +1,18 @@
 // Une partie de bout en bout : bâtir, équiper, progresser, approvisionner, loger et renvoyer au relais, partir,
 // franchir les salles en utilisant les sacs, rentrer. Chaque geste doit être visible, cliquable, et son effet constaté.
-import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
+// Usage : node projets/roguelite/recette/partie.mjs <dossier-des-captures> <partie-fixe.json>
+import { CAPTURES, erreurs, geste, lancer, page, recharger, sauvegarde, surLaPartieFixe } from './commun.mjs';
+
+/** Les bâtiments d'une partie neuve (`nouvellePartie`) : la partie bâtit depuis le premier palier. */
+const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batiments[k] = 0; };
 
 (async () => {
-  const b = await chromium.launch();
-  const erreurs = [];
+  const b = await lancer();
   const echecs = [];
   const constater = (ok, quoi) => { if (!ok) echecs.push(quoi); console.log(`${ok ? '✓' : '✗'} ${quoi}`); };
   // En expédition, sur une partie neuve : la Chronique s'ouvre sur la salle, sans le rail du hameau, et se ferme
   // (croix, Échap) en rendant la salle.
-  const q = await ouvrir(b, [1366, 768], null, erreurs);
+  const q = await page(b, [1366, 768], surLaPartieFixe(SANS_BATIMENT));
   await geste(q, 'ouvrir-depart'); await q.click('[data-a="preparer"]'); await q.click('[data-a="partir"]');
   for (const fermer of [() => q.click('[data-a="fermer-panneau"]'), () => q.keyboard.press('Escape')]) {
     await q.click('[data-a="chronique"]');
@@ -20,14 +23,13 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
     await fermer();
     constater(await q.isVisible('[data-a="avancer"]') && !(await q.$('.chronique')), 'la Chronique fermée rend la salle');
   }
-  await q.close();
-  const p = await ouvrir(b, [1366, 768], () => {
-    const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
+  await q.context().close();
+  let p = await page(b, [1366, 768], surLaPartieFixe((e) => {
+    SANS_BATIMENT(e);
     e.or = 900; e.trophees = 4;
     for (const h of e.roster) h.c.xp = 600;
     e.roster[3].c.wounds.current = 2;
-    localStorage.setItem('grisefosse-v1', JSON.stringify(e));
-  }, erreurs);
+  }));
   const or = async () => Number((await p.textContent('.ressources .etiquette')).replace(/\D/g, ''));
   // Au socle qui demande qui tente : chaque carte ouverte dit sa Compétence, sa cible et ses chances, une seule marque au moins les meilleures.
   const chancesAuSocle = async () => ({
@@ -38,18 +40,16 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
 
   // L'hospice au palier 1, un héros aux plaies à panser : le refus se dit avant le clic ; au clic, le refus comme le soin
   // joué se lisent en toast par-dessus le panneau.
-  const plaies = (or) => {
-    const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
+  const plaies = (e, or) => {
     e.or = or; e.batiments.temple = 1;
     e.roster[0].c.traumas = [
       { uid: 't1', label: 'Déchirure musculaire (Mineure)', location: 'brasG', kind: 'dechirure', severity: 'mineur', recoveryDays: 23, recoveryTotal: 25 },
       { uid: 't2', label: 'Fracture (Mineure)', location: 'jambeD', kind: 'fracture', severity: 'mineur', recoveryDays: 37, recoveryTotal: 40 },
     ];
-    localStorage.setItem('grisefosse-v1', JSON.stringify(e));
   };
   for (const bourse of [6, 20]) {
-    const h = await ouvrir(b, [1829, 1029], plaies, erreurs, bourse);
-    await geste(h, 'batiment', 'temple'); await geste(h, 'client', await h.evaluate(() => JSON.parse(localStorage.getItem('grisefosse-v1')).roster[0].c.id));
+    const h = await page(b, [1829, 1029], surLaPartieFixe((e) => plaies(e, bourse)));
+    await geste(h, 'batiment', 'temple'); await geste(h, 'client', (await sauvegarde(h)).roster[0].c.id);
     const panser = '[data-a="hospice"][data-k="panser"]';
     if (bourse === 6) {
       const ferme = await h.$eval(panser, (x) => [x.disabled, x.dataset.bulle, x.textContent.trim()]);
@@ -63,7 +63,7 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
       const dessus = document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2);
       return !t.hidden && !!dessus && t.contains(dessus) && !!document.querySelector('.page-service') ? t.textContent : null;
     });
-    const attendu = bourse === 6 ? 'Il faut 20 CO.' : await h.evaluate(() => JSON.parse(localStorage.getItem('grisefosse-v1')).journal[0]);
+    const attendu = bourse === 6 ? 'Il faut 20 CO.' : (await sauvegarde(h)).journal[0];
     constater(dit === attendu, `${bourse === 6 ? 'le refus' : 'le soin joué'} se lit en toast par-dessus le panneau (${dit})`);
     await h.context().close();
   }
@@ -96,7 +96,7 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
 
   await p.click('.croix-ecran');
-  const blesse = await p.evaluate(() => JSON.parse(localStorage.getItem('grisefosse-v1')).roster[3].c.id);
+  const blesse = (await sauvegarde(p)).roster[3].c.id;
   await geste(p, 'batiment', 'relais'); await geste(p, 'client', blesse);
   const orAvantChambre = await or();
   await p.click('[data-a="chambre"]');
@@ -131,14 +131,11 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
   await p.click('[data-a="partir"]');
   constater(await p.isVisible('[data-a="avancer"]'), 'l’expédition commence');
   // Un camp et une rencontre après la première salle, et un blessé à y soigner.
-  await p.evaluate(() => {
-    const e = JSON.parse(localStorage.getItem('grisefosse-v1'));
+  p = await recharger(p, (e) => {
     e.expedition.salles.splice(1, 0, { type: 'camp', ennemis: [], faite: false }, { type: 'rencontre', ennemis: [], faite: false });
     const blesse = e.roster.find((h) => h.carriere === 'soldat');
     blesse.c.wounds.current = 2;
-    localStorage.setItem('grisefosse-v1', JSON.stringify(e));
-  });
-  await p.reload(); await p.waitForSelector('[data-a="avancer"]');
+  }, '[data-a="avancer"]');
 
   let salles = 0;
   let aVuUnCarton = false;
@@ -168,13 +165,12 @@ import { chromium, CAPTURES, ouvrir, geste } from './commun.mjs';
       const k = await p.$('.carton [data-a="action"][data-k="fouiller"]') ? 'fouiller' : await p.$('.carton [data-a="action"][data-k="intimider"]') ? 'intimider' : 'reposer';
       if (k === 'intimider') {
         // Rejouée sur une autre graine tant qu'elle réussit : raté, le Test se raconte avant le combat qu'il déclenche.
-        const avantLeTest = await p.evaluate(() => localStorage.getItem('grisefosse-v1'));
+        const avantLeTest = await sauvegarde(p);
         for (let essai = 1; essai <= 12; essai++) {
           await p.click('.carton [data-a="action"][data-k="intimider"]');
           await p.click('.socle-compagnie .carte-heros:not([disabled])');
           if (await p.$('.carton [data-a="avancer"]')) break;
-          await p.evaluate(([brut, n]) => { const e = JSON.parse(brut); e.graine += n; localStorage.setItem('grisefosse-v1', JSON.stringify(e)); }, [avantLeTest, essai]);
-          await p.reload(); await p.waitForSelector('.carton [data-a="action"][data-k="intimider"]');
+          p = await recharger(p, () => ({ ...avantLeTest, graine: avantLeTest.graine + essai }), '.carton [data-a="action"][data-k="intimider"]');
         }
         constater(!(await p.isVisible('#combat')) && (await p.textContent('.carton .issue')).includes('Raté') && !(await p.$('.carton [data-a="fermer"]')),
           'l’intimidation ratée se raconte d’abord, sans combat ni « Continuer » : le carton n’offre que « Combattre »');

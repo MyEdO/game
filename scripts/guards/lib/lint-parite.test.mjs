@@ -343,6 +343,9 @@ test('murs/stockage-web : le stockage web nommé sous src/ est refusé, quel que
     ['src/state/parite-sw.test.ts','(globalThis as { localStorage?: Storage }).localStorage = fake; sessionStorage.clear();',null],
     ['src/gameIso/parite-sw.bench.ts','localStorage.clear();',null],
     ['scripts/parite-sw.mjs','window.localStorage.clear();',null],
+    ['projets/roguelite/recette/parite-sw-etat.mjs','export const s = origine.localStorage;',null],
+    ['projets/roguelite/recette/parite-sw-global.mjs','localStorage.clear();',GLOBAL],
+    ['projets/roguelite/src/parite-sw-projet.ts','export const s = window.localStorage;',PROPRIETE],
   ]
   const resultats=lintFixtures(cas.map(([filePath,code])=>({filePath,code})))
   for(let i=0;i<cas.length;i++) {

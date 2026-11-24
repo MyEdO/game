@@ -34,9 +34,9 @@ l'utilisateur ».
 - **Fable coûte cher** (« mais arrete, Fable coute chere ! », 2026-11-23) : Fable ne reçoit que du dessin, sur un écran,
   avec un brief qui part de l'écran existant ; aucune correction, aucun retour en arrière ni plomberie ne lui va.
 - **Preuves d'un lot du roguelite** (« L'art de perdre un temps monstrueux sur des agents qui ont 5min de cache »,
-  2026-11-23) : vitest ciblé (`node scripts/lancer-local.mjs vitest --cwd roguelite -- vitest run <fichiers>`),
-  `node projets/roguelite/construire.mjs`, `tsc -p roguelite` par `lancer-local`, et les recettes concernées. Jamais
-  `test:perimetre` ni `docs:check`, qui ne jouent aucun test du roguelite et attendent un verrou partagé.
+  2026-11-23) : vitest ciblé (`npm test -- <fichiers>`, toute la suite du roguelite par `npm run roguelite:tests`),
+  `npm run roguelite:construire`, `npm run typecheck:fast`, et les recettes concernées (`npm run roguelite:recette`
+  pour le lot).
 - **Le catalogue du roguelite** (« tu dois avoir le controle sur ce que le roguelite propose, que ce soit dans les
   sorts, les compétences, les talents, les carrières, l'équipement, etc ... Et tout ça maintenu dans un document et/ou
   un fichier au format de ton choix », 2026-11-23) : tout ce que le jeu offre (carrières et leurs voies, sorts,
@@ -262,21 +262,22 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
 
 ## Le code
 
-- `src/noyau/` : la façade du noyau WFRP, seule entrée (`index.ts`) compilée à part (`dist/noyau.js`) ; un module par
+- `src/noyau/` : la façade du noyau WFRP, seule entrée (`index.ts`) compilée à part (`dist/roguelite/noyau.js`) ; un module par
   domaine (héros, partie, combat, hameau, soins, équipement, carrière). Aucune règle n'y est réécrite.
 - `src/jeu/` : la boucle de jeu, seule entrée (`index.ts`) ; valeurs d'adaptation (`valeurs.ts`, tous les nombres du
   roguelite), état, village, soins, carrières, boutiques, expédition, sauvegarde ; `outils.ts` reste interne.
 - `src/ui/` : l'interface ; le gabarit (`ecran.ts`), les pièces du kit (`pieces.ts`), les survols (`bulles.ts`), les
   lieux, les services, la fiche, le rejeu. `main.ts` ne tient que l'état de l'interface et le routage des gestes.
   Chaque module a sa feuille à côté de lui (`fiche.css` pour `fiche.ts`…) ; `base.css` remet le kit dans le flux.
-  Le build les recolle dans l'ordre de la cascade (`FEUILLES` de `construire.mjs`) en `dist/jeu.css`.
+  Le build les recolle dans l'ordre de la cascade (`FEUILLES` de `construire.mjs`) en `dist/roguelite/jeu.css`.
 - `src/hameau.ts`, `src/cour.ts`, `src/figures.ts`, `src/kit.ts` : les dessins (panorama, cour de combat, figurines,
   pictogrammes et cadres du kit).
 
 ## La recette
 
-Les scripts de `recette/` se jouent contre le jeu construit (`node projets/roguelite/construire.mjs`, puis un serveur
-statique sur `projets/roguelite/dist`) :
+Les scripts de `recette/` se jouent contre le jeu construit (`npm run roguelite:construire`, sous `dist/roguelite/` à la
+racine du dépôt), servi à chaque contexte du navigateur par interception, sans serveur ; `npm run roguelite:recette`
+joue le lot (`lot.mjs` : `parcours`, `partie`, `debords`, `rejeu`, `socle`), que la CI joue en file :
 
 - `partie.mjs` : une partie de bout en bout (bâtir, équiper, progresser, partir, quatre salles, rentrer) ;
 - `debords.mjs` : chaque écran, à trois tailles d'écran et pour une taille d'interface donnée (`petite`, `moyenne`,

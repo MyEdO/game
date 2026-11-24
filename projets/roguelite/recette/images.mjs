@@ -1,20 +1,13 @@
 // L'image de chaque écran sur une partie fixe, écrite dans un dossier : deux séries, avant et après une refonte du
 // style, doivent être identiques au pixel près (`cmp` des fichiers).
-// Usage : node projets/roguelite/recette/images.mjs <dossier> <url> <partie-fixe.json> [largeur×hauteur, 1366×768 par défaut]
-import { mkdirSync, readFileSync } from 'node:fs';
-import { chromium, BASE, CAPTURES } from './commun.mjs';
+// Usage : node projets/roguelite/recette/images.mjs <dossier> <partie-fixe.json> [largeur×hauteur, 1366×768 par défaut]
+import { mkdirSync } from 'node:fs';
+import { CAPTURES, erreurs, lancer, page, surLaPartieFixe } from './commun.mjs';
 
-const sauvegarde = readFileSync(process.argv[4], 'utf8');
 mkdirSync(CAPTURES, { recursive: true });
-const [largeur, hauteur] = (process.argv[5] ?? '1366×768').split('×').map(Number);
-const b = await chromium.launch();
-const p = await (await b.newContext({ viewport: { width: largeur, height: hauteur } })).newPage();
-const erreurs = [];
-p.on('pageerror', (e) => erreurs.push(e.message));
-await p.goto(`${BASE}/recette.html`);
-await p.evaluate((s) => localStorage.setItem('grisefosse-v1', s), sauvegarde);
-await p.reload();
-await p.waitForSelector('.enseigne');
+const [largeur, hauteur] = (process.argv[4] ?? '1366×768').split('×').map(Number);
+const b = await lancer();
+const p = await page(b, [largeur, hauteur], surLaPartieFixe());
 await p.waitForTimeout(400);
 const image = async (nom) => { await p.mouse.move(0, 0); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(300); await p.screenshot({ path: `${CAPTURES}/${nom}.png`, animations: 'disabled' }); };
 const geste = (a, id) => p.evaluate(([x, i]) => document.querySelector(`button[data-a="${x}"]${i ? `[data-id="${i}"]` : ''}`).click(), [a, id]);
