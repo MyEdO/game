@@ -208,9 +208,9 @@ const DISPATCH = new Set<string>([
   'Entêté',
 ]);
 
-/** Livres dont les Traits propres entrent au catalogue par leur texte, sans mécanique, jusqu'au ticket qui la leur
- *  donne : fiche `user-arbitrage-bestiaire-non-officiel`. */
-const SANS_MECANIQUE_JUSQU_AU_TICKET: Readonly<Record<string, string>> = { 'bestiaire-non-officiel': '#4917' };
+/** Livres non officiels dont les Traits propres sont au catalogue par leur seul texte : fiche
+ *  `user-arbitrage-bestiaire-non-officiel` (#4917). */
+const LIVRES_SANS_MECANIQUE: ReadonlySet<string> = new Set(['bestiaire-non-officiel']);
 
 /** Entrée BRUTE de `traits.json` — lue au fichier (le registre `TRAITS` est dérivé, il ne rend pas
  *  les champs de mécanique tels quels). */
@@ -244,7 +244,7 @@ describe('parité — registre des Traits dérivé de traits.json', () => {
 
   it('chaque trait de traits.json est couvert par un sous-système identifié (dispatch / ailleurs / journal)', () => {
     const uncovered = allTraits()
-      .filter((t) => !(t.source.book in SANS_MECANIQUE_JUSQU_AU_TICKET && !mechanicFieldsOf(t).length))
+      .filter((t) => !(LIVRES_SANS_MECANIQUE.has(t.source.book) && !mechanicFieldsOf(t).length))
       .map((t) => t.label)
       .filter((l) => !DISPATCH.has(l) && !COUVERT_AILLEURS.has(l) && !JOURNAL_MJ.has(l));
     expect(uncovered).toEqual([]);
