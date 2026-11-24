@@ -76142,7 +76142,8 @@
     ],
     "optionals": [
       {
-        "id": "maladie"
+        "id": "maladie",
+        "arg": "infection-du-sang"
       },
       {
         "id": "taille",
@@ -76209,7 +76210,8 @@
     ],
     "optionals": [
       {
-        "id": "maladie"
+        "id": "maladie",
+        "arg": "infection-du-sang"
       },
       {
         "id": "taille",
@@ -76618,7 +76620,8 @@
       },
       {
         "id": "souffle",
-        "value": 8
+        "value": 8,
+        "arg": "vapeur"
       },
       {
         "id": "immunite-psychologique"
@@ -80248,7 +80251,8 @@
     "traits": [
       {
         "id": "souffle",
-        "value": 15
+        "value": 15,
+        "arg": "pestilence"
       },
       {
         "id": "corruption",
@@ -80973,7 +80977,14 @@
         "id": "arme",
         "value": 9,
         "arg": "Dents à mâcher",
-        "natural": true
+        "natural": true,
+        "profilDArme": {
+          "qualites": [
+            {
+              "id": "taille"
+            }
+          ]
+        }
       },
       {
         "id": "dents-a-macher"
@@ -81638,7 +81649,8 @@
       },
       {
         "id": "souffle",
-        "value": 9
+        "value": 9,
+        "arg": "vapeur"
       },
       {
         "id": "immunite",
@@ -83003,7 +83015,8 @@
       },
       {
         "id": "souffle",
-        "value": 10
+        "value": 10,
+        "arg": "pestilence"
       },
       {
         "id": "vol",

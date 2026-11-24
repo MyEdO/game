@@ -163,5 +163,32 @@
     "rendu": {
       "id": "souffle-de-cauchemars"
     }
+  },
+  {
+    "id": "vapeur",
+    "type": "breath-types",
+    "label": "Vapeur",
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 6
+    },
+    "ignoreAP": true,
+    "etat": "aveugle",
+    "rendu": {
+      "id": "souffle-de-fumee"
+    }
+  },
+  {
+    "id": "pestilence",
+    "type": "breath-types",
+    "label": "Pestilence",
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 6
+    },
+    "ignoreAP": true,
+    "rendu": {
+      "id": "souffle-empoisonne"
+    }
   }
 ]
