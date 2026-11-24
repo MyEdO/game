@@ -16,7 +16,7 @@ function coupsSurUnAllie(issue: IssueDuCombat): Coup[] {
 
 describe('le rejeu d’un coup porté sur son propre camp', () => {
   it('un tir dévié dans la mêlée : le rejeu annonce la touche et la ligne du noyau, qui en dit la cause (LDB 14 l.116)', () => {
-    const issue = jouerLeCombat(groupe(), ['gobelin'], 2);
+    const issue = jouerLeCombat(groupe(), ['gobelin'], 4);
     const [coup] = coupsSurUnAllie(issue);
     expect(coup).toMatchObject({ genre: 'distance', touche: true });
     expect(coup.ligne).toContain(t('cf.touchePerdueEnMelee', { name: 'Hans' }));

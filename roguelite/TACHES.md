@@ -12,7 +12,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 ## Ensuite, dans l'ordre
 
-1. Le compagnon en rencontre (MyEdO/game#4804) : lot B2 en file de fusion (MyEdO/game#4908, le chien du Ratier membre du groupe, à son propre tour). Une fois fusionné : rejouer le roguelite (le Ratier combat avec son chien ; le rejeu montre son pion), puis le lot C : Blessures des bêtes gardées et soignées.
+1. Le compagnon en rencontre (MyEdO/game#4804) : lot B2 fusionné (MyEdO/game#4908), le chien du Ratier combat à son propre tour et le rejeu montre son pion, son portrait dans l'ordre et sa carte. Reste le lot C : Blessures des bêtes gardées et soignées.
 2. Le mage en combat automatique (MyEdO/game#4838 fusionnée) : remesurer le taux de lancer des sorts de voie par niveau, avec et sans `magie-vdm-incantation` ; rouvrir Arme et Armure aethyriques et Explosion si l'IA les lance. Lot 2 de MyEdO/game#865 : Interruption volontaire (VDM 02 l.139), évacuation sûre (l.141), Maladresse de Focalisation (l.149).
 3. Choisir hors combat qui monte sa monture : le roguelite le propose avant la rencontre (gestes `monterLaBete`, `quitterLaSelle` du noyau, lot B1).
 4. Débords connus : la forge et l'Hospice à la taille d'interface « grande ». Libellés de refus encore doubles : `ui/services.ts` (`manqueAuPalier`), `ui/fiche.ts:43`.
@@ -23,7 +23,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 9. La forge améliore les armes : qualités d'artisanat que le noyau joue, puis Magique, à un palier élevé.
 10. Équilibrage : les hardes, le Minotaure, Guerrier du Chaos + Troll (0 sur 6 au balayage) ; l'économie sur une campagne entière (piste 7) ; le soin de l'hospice gratuit au palier 3.
 11. Genre des noms tirés.
-12. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v33 publiée le 2026-11-24 : combats par `jouerLaRencontre`, épreuves sur `TEST_JETE`). Publication : `node roguelite/construire.mjs`, puis la page `roguelite/dist/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un compte sans droit d'écriture sur l'artefact publie un artefact neuf au lieu de le remplacer.
+12. Après chaque lot visible : jouer une partie complète à 1829×1029, puis publier l'artefact https://claude.ai/artifact/Efuaun1JUhbSpMpZEiAtLK (v34 publiée le 2026-11-24 : le chien du Ratier en combat). Publication : `node roguelite/construire.mjs`, puis la page `roguelite/dist/index.html` avec `jeu.js`, `jeu.css`, `kit.css` et `noyau.js` en fichiers joints. Un compte sans droit d'écriture sur l'artefact publie un artefact neuf au lieu de le remplacer.
 
 ## Reprendre ce chantier depuis un autre compte
 
