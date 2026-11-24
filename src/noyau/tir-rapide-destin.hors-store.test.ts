@@ -101,6 +101,37 @@ describe('#4860 — le Destin ouvert par un Tir rapide de l’IA suspend la bouc
       expect([perteDuMouvement, b.movementUsed > 0], 'le Round s’ouvre une fois : son dû pris, jamais remis à zéro').toEqual([1, true]);
     });
   }
+
+  for (const mode of ['local', 'hote'] as const) for (const tireurs of [2, 1] as const) {
+    it(`${mode}, ${tireurs} tireur(s), séquence du coup close avant le Destin : la boucle reprend au choix, le Round s’ouvre une fois`, () => {
+      tirRapideSurUnHerosADestin(mode, tireurs);
+      expect(g().pendingDefense, 'chemin : E1 tire le premier sur H1').toMatchObject({ attackerId: 'e1', defenderId: 'h1' });
+      defenseRatee(Array(60).fill(100));
+      expect(avanceEtapeCascade(g)).toBe('deviation');
+      for (let n = 0; g().pendingCascade && n < 5; n++) avanceEtapeCascade(g);
+      expect(g().pendingCascade, 'chemin : la séquence du coup close').toBeNull();
+      expect(g().pendingFateSave, 'chemin : le Destin encore ouvert').toMatchObject({ heroId: 'h1', source: 'hit' });
+      expect(g().battle!.tirsRapidesSuspendus, 'chemin : la boucle parquée sous le Destin').toEqual(['e1']);
+      expect(tirsDe('e2'), 'la boucle attend le Destin').toBe(0);
+      g().fenetreChoisir('destin', 'issue', 'survivre');
+      if (tireurs === 2) {
+        expect(g().pendingDefense, 'la boucle reprend : E2 tire sur H2').toMatchObject({ attackerId: 'e2', defenderId: 'h2' });
+        defenseRatee(Array(60).fill(50));
+        draineCascade(g);
+      }
+      expect(g().pendingDefense).toBeNull();
+      expect(g().pendingFateSave).toBeNull();
+      expect([tirsDe('e1'), tirsDe('e2')], 'chaque tireur, une fois').toEqual([1, tireurs === 2 ? 1 : 0]);
+      const b = g().battle!;
+      expect(b.over).toBeNull();
+      expect(b.round).toBe(2);
+      expect(b.tirsRapidesSuspendus).toBeUndefined();
+      expect(b.turn, 'le tour quitte E1').toBe(1);
+      expect(activeCombatant(b)?.id, 'le Round ouvert sur le premier combattant en action').toBe('h2');
+      const perteDuMouvement = b.log.filter((l) => l.actorId === 'h2' && l.text === t('cf.perdLeMouvement', { name: nomEnVue(g(), 'h2')! })).length;
+      expect([perteDuMouvement, b.movementUsed > 0], 'le Round s’ouvre une fois : son dû pris, jamais remis à zéro').toEqual([1, true]);
+    });
+  }
 });
 
 /** Le duel à deux héros, le tour à H (tenu par le joueur). */
