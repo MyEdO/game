@@ -4,7 +4,6 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { parseQualityInstance } from '../data/refFormatLivre';
 import { resetFields } from './stateFields';
 import { acheterAuPanier } from './marchand.testkit';
 import type { BattleState } from './etat';
@@ -280,7 +279,7 @@ describe('Boucle de jeu (store)', () => {
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
-  // ── Phase C2a — qualité d'outil sur les Tests HORS COMBAT (Pratique/Peu Fiable/Bâclé) ──
+  // ── Outil d'un Test hors combat : Pratique, Bâclé, Peu Fiable (LDB 60 l.22, l.50, l.58) ──
   it('Effect.test : outil résolu par trappingId (id catalogue) vers pendingTest.itemUid', () => {
     const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 55, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
     const hero = combattantDeTest(blessuresSurLeProfil({
@@ -330,56 +329,22 @@ describe('Boucle de jeu (store)', () => {
     expect(typeof banc.getState().pendingTest!.isDouble).toBe('boolean');
   });
 
-  // jetValider('test') avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
-  function mkToolTest(quality: string, over: Partial<import('../noyau/pendings').PendingTest>): Combatant {
+  it('jetValider@test : un Test raté suit sa branche d’échec', () => {
     const hero = combattantDeTest({
       id: 'h1', label: 'Lest', kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
-      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 't1', label: 'Outil', kind: 'melee', qualities: quality ? [parseQualityInstance(quality)!] : [], enc: 0, equipped: false }],
+      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
     });
     banc.setState({
       party: [hero], flags: {}, journal: [],
       pendingTest: {
         sujet: TESTE_DE_TEST, actorId: 'h1', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 1, target: 50, roll: 48, success: false, sl: 0, isDouble: false, itemUid: 't1',
+        requireSL: 1, target: 50, roll: 48, success: false, sl: 0, isDouble: false,
         onSuccess: flowFromEffects([{ type: 'setFlag', flag: 'reussi', value: true }]),
         onFailure: flowFromEffects([{ type: 'setFlag', flag: 'rate', value: true }]),
-        ...over,
       },
     });
-    return hero;
-  }
-
-  it('jetValider@test : Pratique (+1 DR) repêche un échec qui n’a manqué que le seuil requireSL', () => {
-    mkToolTest('Pratique', {}); // roll 48 ≤ 50, sl 0 < requireSL 1 → +1 DR ⇒ sl 1 ≥ 1
-    banc.getState().jetValider('test');
-    expect(banc.getState().flags['reussi']).toBe(true);
-  });
-
-  it('jetValider@test : Pratique ne transforme PAS un d100 raté (roll > cible) en réussite', () => {
-    mkToolTest('Pratique', { roll: 60, sl: -1, requireSL: 0 }); // roll 60 > 50 → raté au dé
-    banc.getState().jetValider('test');
-    expect(banc.getState().flags['rate']).toBe(true);
-  });
-
-  it('jetValider@test : Peu Fiable (−1 DR) ne repêche pas (échec aggravé)', () => {
-    mkToolTest('Peu Fiable', {}); // sl 0 −1 = −1 < requireSL 1 → reste raté
-    banc.getState().jetValider('test');
-    expect(banc.getState().flags['rate']).toBe(true);
-  });
-
-  it('jetValider@test : outil Bâclé qui Maladresse (échec + double) se brise', () => {
-    mkToolTest('Bâclé', { roll: 55, sl: -1, requireSL: 0, isDouble: true });
-    banc.getState().jetValider('test');
-    const item = banc.getState().party[0].items!.find((i) => i.uid === 't1')!;
-    expect(item.destroyed).toBe(true);
-    expect(banc.getState().journal.some((l) => l.includes('se brise'))).toBe(true);
-  });
-
-  it('jetValider@test : sans outil, l’issue est inchangée (branche échec)', () => {
-    mkToolTest('', { itemUid: undefined });
     banc.getState().jetValider('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });

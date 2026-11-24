@@ -143,6 +143,7 @@ import {
   type AttackResult,
   type SubstitutionJetee,
 } from '../engine/combat';
+import { lignesDuTestRateALObjet } from '../engine/qualities/dispatch';
 import {
   clampTarget,
   rollTest,
@@ -856,19 +857,50 @@ const roll3Die = <Slot extends PendingBase & { result?: { roll: number; target: 
   teste,
 } as NonNullable<RollFlowSpec<P, Slot>['die']>);
 
-/** Jet APLATI au niveau du pending (4 champs), qui teste `teste`. */
-const flatDie = <P extends PendingBase & { roll?: number | null; target?: number; clamped?: number }>(teste: (p: P) => CeQueTeste) => ({
-  read: (p: P) => (p.roll != null ? pick4({ roll: p.roll, target: p.target, clamped: p.clamped }) : null),
-  write: (_s: Jeu, _p: P, _a: Combatant | undefined, _g: Get, tr: TestResult) => (jetPose(tr) as unknown as Partial<P>),
-  teste: (_s: Jeu, p: P) => teste(p),
-});
-
 /** Le DR d'un Test de compétence franchit-il le seuil EXIGÉ (`PendingTest.requireSL`, authoré) ?
- *  Le DR mesure l'efficacité, il ne décide pas de l'issue (LDB 12 l.92-94/l.104-112 : un succès peut
- *  porter DR 0, un échec DR −1) — sans seuil authoré (0), un DR négatif ne défait pas le d100 réussi.
- *  SOURCE UNIQUE du gate de DR du flux `test` : résolution, Chance, inversion ET acquittement
- *  (`store.jetValider('test')`, ajustement d'outil Pratique/Peu Fiable). */
-export const meetsRequiredSL = (requireSL: number, sl: number): boolean => (requireSL > 0 ? sl >= requireSL : true);
+ *  LDB 12 l.92-94/l.104-112. SOURCE UNIQUE du gate de DR du flux `test` (`issueApresLOutil`). */
+const meetsRequiredSL = (requireSL: number, sl: number): boolean => (requireSL > 0 ? sl >= requireSL : true);
+
+/** Issue du Test de scène `p` depuis son DR d'avant l'outil `slAvantOutil` et la réussite de son d100 `d100Reussi` : les
+ *  lignes de l'outil du porteur (`p.itemUid`, `lignesDuTestRateALObjet`, LDB 60 l.22, l.58) au Test raté au seuil, puis le
+ *  seuil `requireSL`. SOURCE UNIQUE de l'issue d'un dé (`issueDuDeDuTest`) et de la Chance. */
+function issueApresLOutil(p: PendingTest, actor: Combatant | undefined, d100Reussi: boolean, slAvantOutil: number): Pick<PendingTest, 'sl' | 'success' | 'modsDR'> {
+  const outil = p.itemUid ? actor?.items?.find((i) => i.uid === p.itemUid) : undefined;
+  const lignes = lignesDuTestRateALObjet(outil, d100Reussi && meetsRequiredSL(p.requireSL, slAvantOutil));
+  const sl = slAvantOutil + sommeDesModificateursDR(lignes);
+  return { sl, success: d100Reussi && meetsRequiredSL(p.requireSL, sl), modsDR: lignes.length ? lignes : undefined };
+}
+
+/** DR d'avant l'outil d'un dé `d` du Test de scène `p` : +DR de réussite (`drDeReussiteDuTest`, LDB 10) sur un d100
+ *  réussi, Capricieux (MSRC 15 l.149-159). */
+const slAvantLOutil = (s: Jeu, p: PendingTest, actor: Combatant | undefined, d: { sl: number; success: boolean }): number =>
+  d.sl + (d.success && actor ? drDeReussiteDuTest(s, actor, p.sujet ?? {}) : 0) + (p.capriciousDR ?? 0);
+
+/** Issue EFFECTIVE d'un dé `d` du Test de scène `p` (évalué contre `p.target`) — SOURCE UNIQUE du jet naturel, du dé
+ *  imposé et de l'inversion : DR d'avant l'outil (`slAvantLOutil`), puis l'outil et le seuil (`issueApresLOutil`). */
+function issueDuDeDuTest(s: Jeu, p: PendingTest, actor: Combatant | undefined, d: { roll: number; sl: number; success: boolean; isDouble?: boolean }) {
+  return { roll: d.roll, ...issueApresLOutil(p, actor, d.success, slAvantLOutil(s, p, actor, d)), ...(d.isDouble != null ? { isDouble: d.isDouble } : {}) };
+}
+
+/** Issue d'une réussite FORCÉE (LDB 17 l.68) du Test de scène `p` sur le dé `d` (son évaluation naturelle contre
+ *  `p.target`) — SOURCE UNIQUE du dé par défaut de la Résilience et du dé qu'on choisit après elle : DR d'avant l'outil
+ *  du d100 réussi (`slAvantLOutil`), au moins le seuil `requireSL` et 1. */
+function issueForceeDuTest(s: Jeu, p: PendingTest, actor: Combatant | undefined, d: { roll: number; sl: number; isDouble: boolean }) {
+  return { roll: d.roll, sl: Math.max(slAvantLOutil(s, p, actor, { sl: d.sl, success: true }), p.requireSL, 1), success: true, modsDR: undefined, isDouble: d.isDouble };
+}
+
+/** Jet APLATI sur le pending du Test de scène, qui teste son sujet : le dé imposé s'écrit par son issue effective
+ *  (`issueDuDeDuTest`), le dé choisi après la Résilience par son issue forcée (`issueForceeDuTest`). */
+const deDuTest = {
+  read: (p: PendingTest) => (p.roll != null ? pick4({ roll: p.roll, target: p.target, clamped: p.clamped }) : null),
+  write: (s: Jeu, p: PendingTest, actor: Combatant | undefined, _g: Get, tr: TestResult): Partial<PendingTest> => {
+    const pose = jetPose(tr);
+    return { ...pose, ...issueDuDeDuTest(s, p, actor, { ...pose, isDouble: tr.isDouble }) };
+  },
+  resilience: (s: Jeu, p: PendingTest, actor: Combatant | undefined, _g: Get, tr: TestResult): Partial<PendingTest> =>
+    ({ ...jetPose(tr), ...issueForceeDuTest(s, p, actor, evaluateTest(tr.roll, p.target)) }),
+  teste: (_s: Jeu, p: PendingTest) => designeGaranti(p.sujet ?? {}, p.actorId),
+};
 
 /** Le refus du jet du tombant `pid` (`null` s'il se joue maintenant) : pas avant que chaque tombant ait déclaré
  *  (`phaseDeChute`), ni pour qui saute sans Test. */
@@ -2513,7 +2545,7 @@ export const FLOWS = paresseux({
   test: () => makeRollFlow<PendingTest>({
     key: 'pendingTest',
     annulation: (p) => (p.cancellable ? null : 'nonOffert'),
-    die: flatDie<PendingTest>((p) => designeGaranti(p.sujet ?? {}, p.actorId)),
+    die: deDuTest,
     rolled: (p) => p.roll != null,
     actor: (s, p) => actorIn(s, p.actorId),
     touch: touchActors,
@@ -2521,39 +2553,31 @@ export const FLOWS = paresseux({
     issue: (p, s) => describeTest(p, nomDeLActeur(s, p.actorId)),
     caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
-      const tDR = actor ? drDeReussiteDuTest(_s, actor, p.sujet ?? {}) : 0;
-      // Capricieux (MSRC 15 l.149-159) : delta de DR de la table de l'interlocuteur, tiré à
-      // l'ouverture du Test (`openSkillTest`) et appliqué ICI, au DR du Test RÉSOLU.
-      const capDR = p.capriciousDR ?? 0;
       const jet: JetDeTest = { porteur: p.actorId, teste: designeGaranti(p.sujet ?? {}, p.actorId) };
-      // Le gate de DR exigé est la SOURCE UNIQUE `meetsRequiredSL` (également Chance et inversion).
       if (forced) {
         if (p.success) return null; // rien à forcer si déjà réussi
         // RAW LDB 17 l.68 « vous choisissez le résultat » : sans enjeu de double sur un Test de
         // compétence, le choix rationnel = LE MEILLEUR dé (`bestForcedRoll`, policy-aware) → DR MAXIMUM
         // (les talents à bonus de DR s'ajoutent comme sur un jet naturel, le seuil `requireSL` reste garanti).
         const die = bestForcedRoll(p.target);
-        const f = forcedTR(jet, die, p.target, Math.max(evaluateTest(die, p.target).sl + tDR + capDR, p.requireSL, 1));
-        return { roll: f.roll, success: f.success, sl: f.sl, forcee: true };
+        const issue = issueForceeDuTest(_s, p, actor, evaluateTest(die, p.target));
+        const f = forcedTR(jet, die, p.target, issue.sl);
+        return { ...issue, roll: f.roll, sl: f.sl, forcee: true };
       }
-      const res = rollTest(jet, p.skillValue, p.difficulty, battleRng());
-      const sl = res.sl + (res.success ? tDR : 0) + capDR;
-      return { roll: res.roll, sl, isDouble: res.isDouble, success: res.success && meetsRequiredSL(p.requireSL, sl) };
+      return issueDuDeDuTest(_s, p, actor, rollTest(jet, p.skillValue, p.difficulty, battleRng()));
     },
     outcome: (p) => rollOutcome(p.roll, p.target, p.sl), // d100 propre réussi (LDB 12 l.11)
-    bonus: { derive: (_s, p) => ({ sl: p.sl + 1, success: p.roll != null && evaluateTest(p.roll, p.target).success && meetsRequiredSL(p.requireSL, p.sl + 1) }) },
+    bonus: { derive: (_s, p, actor) => issueApresLOutil(p, actor, p.roll != null && evaluateTest(p.roll, p.target).success, p.sl - sommeDesModificateursDR(p.modsDR) + 1) },
     // Inversion de Test (LDB 23 l.209/218 « vous POUVEZ inverser » ; LDB 10 — Talents Sociable/
     // Studieux/Lecture rapide/Pharmacologie/Chat de gouttière/Noctambule/Pansement de fortune, MÊME
     // formule « vous pouvez ») : CHOIX du joueur (#558), offert par la rangée d'influence — jamais
     // automatique. `applyReverse` (engine/reverseToken.ts) tente le Talent (gratuit, illimité) PUIS le
-    // jeton d'Activité (consommé) ; le dé renversé s'évalue comme le jet naturel de `resolve` (+DR de
-    // réussite, Capricieux, DR exigé).
+    // jeton d'Activité (consommé) ; le dé renversé s'évalue comme le jet naturel (`issueDuDeDuTest`).
     reverse: {
       skillOf: (_s, p) => ({ ...p.sujet, ...(p.contexte ? { contexte: p.contexte } : {}) }),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
-        const sl = tr.sl + (tr.success ? drDeReussiteDuTest(s, actor, p.sujet ?? {}) : 0) + (p.capriciousDR ?? 0);
-        const issue = { roll: tr.roll, sl, success: tr.success && meetsRequiredSL(p.requireSL, sl) };
+        const issue = issueDuDeDuTest(s, p, actor, { roll: tr.roll, sl: tr.sl, success: tr.success });
         return { patch: issue, issue };
       },
     },
