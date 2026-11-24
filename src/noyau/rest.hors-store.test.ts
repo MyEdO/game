@@ -103,12 +103,19 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
     expect(stacks(c, 'extenue')).toBe(1);
   });
 
-  it('maladie : les soins d’un soignant raccourcissent la durée (−1 j/jour en plus, LDB 09-Compétences)', () => {
+  it('maladie : les soins d’un soignant raccourcissent la durée (LDB 09 l.265)', () => {
     const cared = hero({ wounds: blessuresDeBase(12), diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
     const alone = hero({ wounds: blessuresDeBase(12), diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
     dailyDiseaseUpkeep(cared, deFixe(10), () => {}, true);  // soigné : tick naturel −1 + soins −1
     dailyDiseaseUpkeep(alone, deFixe(10), () => {}, false); // seul : tick naturel −1
     expect(cared.diseases![0].minutesLeft).toBe(alone.diseases![0].minutesLeft - MINUTES_PER_DAY);
+  });
+
+  it('maladie : le jour où elle se déclare, sa Durée n’a pas couru et les soins ne l’abrègent pas (LDB 09 l.265)', () => {
+    const c = hero({ wounds: blessuresDeBase(12), diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 1, duration: 6 })!] });
+    dailyDiseaseUpkeep(c, deFixe(10), () => {}, true);
+    expect(c.diseases![0].phase).toBe('active');
+    expect(c.diseases![0].minutesLeft).toBe(6 * MINUTES_PER_DAY);
   });
 
   it('munition Empaleuse logée bloque la récupération naturelle (LDB 62 l.250, plafonné SOURCE UNIQUE `applyHealWounds`)', () => {
