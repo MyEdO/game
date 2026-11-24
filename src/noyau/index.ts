@@ -119,7 +119,7 @@ export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
 export { distanceDeCombat } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
-export { effectiveTalents } from '../engine/talentEffects';
+export { effectiveTalents, reservesPropres } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY } from './combatAuto';
 export { conversationEnVue, libelleDuTestAnnonce, type ConversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';

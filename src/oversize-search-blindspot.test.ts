@@ -37,6 +37,7 @@ const INDEX_SECTION_RE = /^##\s+.*seuil d'outillage/;
 
 /** Fichiers `src/data/**` au-dessus du seuil, gelés (chemins relatifs à la racine, séparateur `/`). */
 const FROZEN_SRC_DATA = [
+  'src/data/careerLevels.json',
   'src/data/creatures.json',
   'src/data/spells.json',
 ];

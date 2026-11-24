@@ -68,6 +68,7 @@ import { FORMULES_DES_MARCHES, devisDeLAchat, type FenetreDuMarche } from './car
 import { bulkCarriers } from './carriers';
 import { carrierFreeEnc, findCargoById } from '../engine/cargo';
 import { entreesDuLieu, refusDEntrerAuPoint } from './lieuFlow';
+import { resilienceDe } from '../engine/talentEffects';
 import {
   VERBE_DE_CHOIX, declarationDuChoixNomme, estAxeDe, estFenetreAChoix, type AxeDe, type AxeDuChoix, type CorpsDesChoix, type FenetreAChoix, type OuvertsDuChoix,
 } from './choixDesFenetres';
@@ -283,7 +284,7 @@ export const OUVERTS_DU_CHOIX = {
     }),
   },
   // LDB 17 l.67
-  renier: { renier: reglage('renier', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => (renier && (corruptionTarget(s, s.pendingRenounce?.heroId)?.resilience ?? 0) <= 0 ? libelleDeLaFermeture('sansResilience') : null))) },
+  renier: { renier: reglage('renier', 'renier', ouiNon((s) => !!s.pendingRenounce, (s, renier) => { const renieur = corruptionTarget(s, s.pendingRenounce?.heroId); return renier && (!renieur || resilienceDe(renieur) <= 0) ? libelleDeLaFermeture('sansResilience') : null; })) },
   cibleDeMonture: {
     cible: reglage('cibleDeMonture', 'cible', (s) => {
       const nom = DESIGNATIONS.IdDuCoupleMonte.nom(s);

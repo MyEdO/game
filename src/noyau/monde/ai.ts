@@ -56,6 +56,7 @@ import { isBestial, isTerritorial, isMindless, isStupid, degatsDeLEtatIgnores } 
 import { creatureAttacks } from '../../engine/creatureAttacks';
 import { ciblesAPulsion, isFrenzied, sourceCombattant, vise } from '../../engine/psychology';
 import { castInfoIsPrayer, prayerForActionBy } from '../../engine/magic';
+import { determinationDe } from '../../engine/talentEffects';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
 // Diagnostic dev : capture le CLASSEMENT des candidats (l'« intention ») du DERNIER appel à
@@ -815,7 +816,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // (b) agir a de la valeur (un adversaire est Engagé / au contact / atteignable en mêlée ce tour / en vue).
   // Sinon, fuir/se cacher reste meilleur → null. DÉTERMINISTE (aucun RNG) ; ne touche QUE la Détermination.
   const planProactiveSpend = (): EnemyAction | null => {
-    const resolve = enemy.resolve ?? 0;
+    const resolve = determinationDe(enemy);
     if (resolve <= 0) return null;
     const clearable = restrictingConditions(enemy).find((rc) => rc.stacks <= resolve);
     if (!clearable) return null;

@@ -2,7 +2,7 @@
  * Modèles de progression par PX : le héros porte sa clé (`Combatant.progression`, absent = `'4e'`), choisie par clé
  * comme `bodyShape` choisit sa table de localisation (`hitLocationByShape`) ; chaque modèle porte en DONNÉE ce qui
  * diverge, chaque lecteur garde un seul corps. LDB 07 ; LDB 23 l.66-72, l.132-136 ; CRB 018 l.19-27, l.67-73 ;
- * CRB 045 ; CRB 048 l.45, l.72, l.214-226
+ * CRB 045 ; CRB 048 l.45, l.72, l.214-226 ; CRB 116 l.36
  */
 import type { Combatant } from './types';
 
@@ -17,6 +17,18 @@ export type PassageDeNiveau =
 /** Prix du tuteur d'Entraînement avant le doublement d'une Compétence avancée : un tirage en sous de cuivre, ou le coût
  *  en PX de l'Augmentation en sous de cuivre. */
 export type TuteurDEntrainement = { type: 'tirage'; des: number; faces: number } | { type: 'coutEnPx' };
+
+/** Champs du héros qui portent ses réserves (CRB 116 l.36). */
+export interface ChampsDesReserves {
+  /** Champ lu pour la Résilience. */
+  resilience: 'resilience' | 'fate';
+  /** Champ de la Détermination : lu, dépensé, regagné, et réserve que gonfle un `attrMod{resolve}`. */
+  determination: 'resolve' | 'fortune';
+  /** Champ de la base de la Fortune maximale. */
+  baseDeLaFortune: 'fate' | 'fortuneDeBase';
+  /** Champ que diminue la perte permanente d'un Point de Résilience. */
+  perteDeResilience: 'resilience' | 'fortuneDeBase';
+}
 
 export interface ModeleDeProgression {
   /** Points ajoutés à la valeur par Augmentation. */
@@ -38,6 +50,7 @@ export interface ModeleDeProgression {
   /** Apprentissage d'un Talent hors carrière : Test, Talent absent seul, tuteur `des`d`faces` pistoles d'argent par
    *  tranche de `parTranche` PX du Talent (`null` : un seul tirage). */
   apprentissage: { test: boolean; premierNiveauSeul: boolean; tuteur: { des: number; faces: number; parTranche: number | null } };
+  reserves: ChampsDesReserves;
 }
 
 export const MODELES_DE_PROGRESSION: Readonly<Record<CleDeProgression, ModeleDeProgression>> = {
@@ -51,6 +64,7 @@ export const MODELES_DE_PROGRESSION: Readonly<Record<CleDeProgression, ModeleDeP
     reglesOptionnelles: true, // LDB 07 l.89, l.140
     entrainement: { tuteur: { type: 'tirage', des: 1, faces: 10 }, avancee: 2 }, // LDB 23 l.136
     apprentissage: { test: true, premierNiveauSeul: false, tuteur: { des: 2, faces: 10, parTranche: 100 } }, // LDB 23 l.66-72
+    reserves: { resilience: 'resilience', determination: 'resolve', baseDeLaFortune: 'fate', perteDeResilience: 'resilience' }, // LDB 17 l.9-81
   },
   '5e': {
     pas: 5, // CRB 045 l.15
@@ -62,6 +76,7 @@ export const MODELES_DE_PROGRESSION: Readonly<Record<CleDeProgression, ModeleDeP
     reglesOptionnelles: false,
     entrainement: { tuteur: { type: 'coutEnPx' }, avancee: 2 }, // CRB 048 l.216
     apprentissage: { test: false, premierNiveauSeul: true, tuteur: { des: 4, faces: 10, parTranche: null } }, // CRB 048 l.224-226
+    reserves: { resilience: 'fate', determination: 'fortune', baseDeLaFortune: 'fortuneDeBase', perteDeResilience: 'fortuneDeBase' }, // CRB 116 l.36 ; CRB 025 l.15
   },
 };
 

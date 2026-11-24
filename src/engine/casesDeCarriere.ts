@@ -37,15 +37,23 @@ function couvre(ref: TrappingRef | BrancheDeDotation | ObjetDeCatalogue | Dotati
   return 'id' in ref && ref.id === id;
 }
 
+/** Les dotations du niveau SUIVANT de la carrière courante de `hero`. */
+const dotationsDuNiveauSuivant = (hero: Combatant): readonly TrappingRef[] =>
+  levelsForCareer(hero.career ?? '').find((l) => l.level === (hero.careerLevel ?? 1) + 1)?.trappings ?? [];
+
 /** Coche, une seule fois par dotation, la case de la dotation du niveau SUIVANT de la carrière courante qui couvre
- *  l'objet ou la possession `id` (`couvre`) ; la clé d'une dotation est son id, ou son rang `#i` pour un choix ou un
- *  joker. Rend vrai si une case est cochée. Mute `hero`. CRB 018 l.25 */
+ *  l'objet ou la possession `id` (`couvre`). Rend vrai si une case est cochée. Mute `hero`. CRB 018 l.25 */
 export function cocherLaDotation(hero: Combatant, id: string | undefined): boolean {
   if (!id) return false;
-  const suivant = levelsForCareer(hero.career ?? '').find((l) => l.level === (hero.careerLevel ?? 1) + 1);
-  const i = suivant?.trappings.findIndex((r) => couvre(r, id)) ?? -1;
-  if (!suivant || i < 0) return false;
-  const ref = suivant.trappings[i];
+  return cocherLaDotationDeRang(hero, dotationsDuNiveauSuivant(hero).findIndex((r) => couvre(r, id)));
+}
+
+/** Coche, une seule fois, la case de la dotation de rang `i` du niveau SUIVANT de la carrière courante ; la clé d'une
+ *  dotation est son id, ou son rang `#i` pour un choix ou un joker. Rend vrai si une case est cochée. Mute `hero`.
+ *  CRB 013 l.15 ; CRB 018 l.25 */
+export function cocherLaDotationDeRang(hero: Combatant, i: number): boolean {
+  const ref = dotationsDuNiveauSuivant(hero)[i];
+  if (!ref) return false;
   const cle = 'id' in ref ? ref.id : `#${i}`;
   const cases = casesCourantes(hero);
   if (!cases || cases.dotations.includes(cle)) return false;

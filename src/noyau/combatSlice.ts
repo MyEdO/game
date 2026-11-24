@@ -344,6 +344,7 @@ import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { actionsAuthorees } from './monde/usable';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { testDuCavalier } from '../engine/movement';
+import { determinationDe, poserLaDetermination } from '../engine/talentEffects';
 
 /** Un flux DIFFÉRÉ tient la main (modale de jet/révélation, ciblage par carte : Frappe Mortelle,
  *  2ᵉ frappe, Surincantation +Cible, pose de zone) :
@@ -655,13 +656,13 @@ function depenseDeDetermination(c: Combatant, option: OptionDeDetermination, eta
   switch (option) {
     case 'immuniserALaPsychologie': return spendResolveForPsychImmunity(c);
     case 'ignorerLesCritiques':
-      c.resolve = (c.resolve ?? 0) - 1;
+      poserLaDetermination(c, determinationDe(c) - 1);
       poseDeterminationCanceller(c, { scale: 'rounds', left: 1 }, 'Détermination (Critique)');
       return t('cs.determinationCrit', { name: nomDe(c) });
     case 'retirerUnEtat': {
       const { retire, soigne } = retireEtatParDetermination(c, garanti(etat, c.id, 'État retiré par Détermination'), now);
       if (!retire) return null;
-      c.resolve = (c.resolve ?? 0) - 1;
+      poserLaDetermination(c, determinationDe(c) - 1);
       return t('cs.determinationRemove', { name: nomDe(c), cond: conditionLabel(etat!), extra: soigne > 0 ? t('cs.fragGettingUp') : '' });
     }
     default: return option satisfies never;

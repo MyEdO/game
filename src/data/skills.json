@@ -469,6 +469,15 @@
           "page": 398
         },
         "pool": false
+      },
+      {
+        "id": "faucon",
+        "label": "Faucon",
+        "source": {
+          "book": "core-rulebook-5e",
+          "page": 67,
+          "note": "CRB 018 l.1457"
+        }
       }
     ],
     "desc": "Dressage représente votre compréhension d'un type particulier d'animal, et votre capacité à l'entraîner. Une utilisation réussie de cette Compétence vous permet d'identifier les capacités Dressé possédées par un animal appartenant à votre Spécialisation (voir page 118). La Compétence Dressage permet aussi d'entreprendre l'Activité Dressage entre deux aventures (voir page 197).\n\nEn combat, un Test opposé de Dressage/Force Mentale réussi vous permet d'intimider un seul animal appartenant à votre Spécialisation ; vous instillez la peur chez l'animal ciblé jusqu'à la fin de votre prochain tour (voir page 190). Quand vous insufflez de la peur de cette façon, vous pouvez par la suite utiliser votre Compétence Dressage au lieu de Corps à corps quand vous vous défendez contre votre cible ; avec l'accord du MJ, vous pouvez aussi utiliser Dressage pour attaquer votre cible, en donnant des instructions spécifiques.",
@@ -1799,6 +1808,15 @@
           "note": "MDG 14 l.321"
         },
         "pool": false
+      },
+      {
+        "id": "rats",
+        "label": "Rats",
+        "source": {
+          "book": "core-rulebook-5e",
+          "page": 86,
+          "note": "CRB 018 l.2595"
+        }
       }
     ],
     "desc": "Posséder une Compétence Savoir signifie que vous avez officiellement étudié, ou avez appris d'une façon ou d'une autre, une branche de connaissances avancées. Vous possédez des données approfondies dans une spécialisation et n'avez donc pas besoin d'effectuer de Test pour que le MJ vous donne les éléments d'information utiles. Si vous recherchez des informations spécifiques moins connues, vous aurez besoin d'effectuer un Test de Savoir, modifié selon la nature obscure de l'information, où les DR indiqueront de combien de détails vous vous souvenez.\n\nEn combat, un Test de Savoir réussi peut éventuellement vous accorder +1 Avantage (avec l'accord de votre MJ). Par exemple, Savoir (Géologie) peut vous donner un Avantage si vous combattez dans une caverne, ou Savoir (Ingénierie) peut vous aider si vous combattez un ennemi armé d'un appareil mécanique complexe. Vous pouvez continuer à renforcer votre Avantage lors des tours ultérieurs, à condition que les circonstances le permettent (déterminé par le MJ) et que vous ne soyez pas interrompu ; de cette façon, vous pouvez gagner un maximum d'Avantages, égal à votre Bonus d'Intelligence.",
@@ -1941,8 +1959,7 @@
         "source": {
           "book": "guide-frenchy",
           "page": 139
-        },
-        "pool": false
+        }
       }
     ],
     "desc": "Vous avez été formé à utiliser des marques clandestines intelligibles pour les membres d'un groupe sélectionné. Les raisons pour lesquelles quelqu'un peut vouloir délivrer un message secret sont nombreuses : les vagabonds peuvent indiquer quels propriétaires sont susceptibles d'offrir la charité, les voleurs peuvent vouloir indiquer des failles, ou des cibles potentielles, alors que les guetteurs peuvent vouloir alerter les autres sur l'emplacement proche d'un monstre dangereux.\n\nCette Compétence ne nécessite généralement pas de Test – vous pouvez déchiffrer n'importe quels signes appropriés que vous pouvez voir si vous possédez cette Compétence. Mais si les signes ont été modifiés, effacés, ou si vous êtes pressé par le temps, un Test sera probablement nécessaire. La plupart des messages sont très simples, et ne comptent pas plus de trois mots.",

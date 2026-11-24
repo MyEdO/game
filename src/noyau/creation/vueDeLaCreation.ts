@@ -6,25 +6,28 @@
  * qu'un geste tant que le joueur ne l'a pas fait ; son résultat ne se dit qu'après.
  */
 import {
-  apercuDuHeros, careerCharKeys, careerSkillEntries, carrieresOffertes, careerTalentOptions, careerXp, careerXpDuProchainJet, charRolls, charsXp, choixDesYeux,
-  charsXpDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftPorteur, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
+  apercuDuHeros, careerCharKeys, careerSkillEntries, carrieresOffertes, careerTalentOptions, gainDeCarriere, gainDuProchainJet, charRolls, gainDesCaracteristiques, choixDesYeux,
+  gainDeLaMethode, coastalSwapAvailable, draftChars, draftLevel, draftSpecies, draftPorteur, draftWealth, newDraft, pettySpellQuota, probeHero, repartition,
+  dotationsDuBrouillon, dotationsDuNiveauSuivantOffertes, especesOffertes, gainDEspece, languesDEspece, ohFickleFate, pasDuCompteur, plafondDeLaCompetence,
+  withDotationDuNiveauSuivant,
   rerollDraftChars, rerollDraftTalent, rollDraftCareer, rollDraftChars, rollDraftDetails, rollDraftName, rollDraftSpecies, rollDraftStar,
   rollDraftTalents, rollDraftWealth, skillsSubDone, skillsSubMessage, speciesSkillPick, speciesSkillRefs, speciesSkillTier,
-  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomTables, speciesTalentRandomDrawn, speciesXp, starXp, stepIds, tirerLaVariante,
+  speciesTalentChoiceEntries, speciesTalentFixedEntries, speciesTalentRandomTables, speciesTalentRandomDrawn, starXp, stepIds, tirerLaVariante,
   valeurDuCompteur, bornesDuCompteur, validateStep, withAssignment, withCareer, withCareerSkillSpec, withCareerTalent, withCharMode,
   withCoastalSwap, withCompteur, withCouleurDesYeux, withEvenCareerSkillAdvances, withIgnoreRestrictions, withPettySpellToggled,
   withRandomTalentSpec, withSexe, withSpecies, withSpeciesSkillDefaults, withSpeciesSkillSpec, withSpeciesSkillTier, withSpeciesTalentChoice,
   withStar, withTrappingChoice, xpTotal,
-  type CharMode, type Compteur, type CreatorDraft, type SkillsSub, type StepId,
+  type Compteur, type CreatorDraft, type SkillsSub, type StepId,
 } from './brouillon';
+import { procedureDe, type CharMode, type Gain } from './procedure';
 import {
   advancementLabel, careerLabelFor, charAbr, classes, libelleDeCouleur,
-  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, species, specLabel, starDie, stars, tableDeCarrieres, tableDeTalents, varianteDe,
+  findBookById, findCareerById, findSpellById, findStarById, findTalentById, libelleDeClasse, offreDuJet, refLabel, specLabel, starDie, stars, tableDeCarrieres, tableDeTalents, varianteDe,
   trappingRefLabel, type AdvancementRef, type SpeciesData,
 } from '../../data';
 import { CHAR_KEYS, CHAR_LABELS, type CharKey } from '../../engine/types';
-import { MAX_ADV_PER_SKILL, cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
-import { randomSpeciesTable, speciesAllowed, XP_CAREER_FIRST, XP_SPECIES_ACCEPTED, XP_STAR_ROLLED } from '../../engine/creation';
+import { cleDOption, libreDEspece, poolDuJoker } from '../../engine/character';
+import { randomSpeciesTable, XP_STAR_ROLLED } from '../../engine/creation';
 import { refKey, talentMaxReached } from '../../engine/careerSlots';
 import { effectiveChar } from '../../engine/characteristics';
 import { formatMoney } from '../../engine/money';
@@ -32,7 +35,6 @@ import { formatDice, hashSeed } from '../../engine/dice';
 import {
   atoutChoisi,
   brancheChoisie,
-  dotationsDuHeros,
   emplacementsDeDotation,
   estEmplacementRacine,
   idChoisi,
@@ -56,6 +58,7 @@ const GESTES_DU_BROUILLON = {
   tirerLaCarriere: (d: CreatorDraft) => rollDraftCareer(d),
   tirerLaVariante: (d: CreatorDraft, jet: number) => tirerLaVariante(d, jet),
   carriere: (d: CreatorDraft, id: string) => withCareer(d, id),
+  dotationDuNiveauSuivant: (d: CreatorDraft, rang: number) => withDotationDuNiveauSuivant(d, rang),
   restrictions: (d: CreatorDraft, ignorees: boolean) => withIgnoreRestrictions(d, ignorees),
   cotiers: (d: CreatorDraft, cotiers: boolean) => withCoastalSwap(d, cotiers),
   methode: (d: CreatorDraft, mode: CharMode) => withCharMode(d, mode),
@@ -108,8 +111,8 @@ const SOUS_ECRANS: Partial<Record<StepId, readonly PageDeCreation[]>> = {
   skills: (['race', 'career', 'talents'] as const satisfies readonly SkillsSub[]).map((s) => `skills.${s}` as const),
 };
 
-/** Les pages de l'assistant, dans l'ordre de ses étapes (`stepIds`). */
-export const pagesDeCreation = (): PageDeCreation[] => stepIds().flatMap((id): readonly PageDeCreation[] => SOUS_ECRANS[id] ?? [id as PageDeCreation]);
+/** Les pages de l'assistant du brouillon `d`, dans l'ordre de ses étapes (`stepIds`). */
+export const pagesDeCreation = (d: Pick<CreatorDraft, 'procedure'>): PageDeCreation[] => stepIds(d).flatMap((id): readonly PageDeCreation[] => SOUS_ECRANS[id] ?? [id as PageDeCreation]);
 
 const sousEcran = (p: PageDeCreation): SkillsSub | null => (p.startsWith('skills.') ? (p.slice('skills.'.length) as SkillsSub) : null);
 
@@ -138,14 +141,33 @@ const choix = (id: string, libelle: string, options: OptionDeCreation[]): Rubriq
 const option = (libelle: string, g: GesteDuBrouillon, choisie: boolean, refus: string | null = null): OptionDeCreation => ({ libelle, geste: g, choisie, refus });
 const valeur = (id: string, libelle: string, v: string | null, detail: string | null = null): RubriqueDeCreation => ({ genre: 'valeur', id, libelle, valeur: v, detail });
 
-/** Les PX de création que la page vaut, quand elle en vaut. */
-const px = (n: number): RubriqueDeCreation[] => (n > 0 ? [valeur('px', t('crea.vue.px'), t('crea.vue.gainDePx', { px: n }))] : []);
+/** Le gain `g` dit en mots, chaque part non nulle ; `null` sans aucune. */
+function libelleDuGain(g: Gain): string | null {
+  const parts = [
+    ...(g.px ? [t('crea.vue.gainDePx', { px: g.px })] : []),
+    ...(g.fortune ? [t('crea.vue.gainDeFortune', { n: g.fortune })] : []),
+    ...(g.dotations ? [t('crea.vue.gainDeDotations', { n: g.dotations })] : []),
+    ...(g.bonusDeCarriere ? [t('crea.vue.gainDeBonusDeCarriere', { n: g.bonusDeCarriere })] : []),
+  ];
+  return parts.length ? listeEt(parts) : null;
+}
+/** Le gain `g` que la page vaut : une valeur par part non nulle. */
+const gains = (g: Gain): RubriqueDeCreation[] => [
+  ...(g.px ? [valeur('px', t('crea.vue.px'), t('crea.vue.gainDePx', { px: g.px }))] : []),
+  ...(g.fortune ? [valeur('fortune', t('crea.vue.fortune'), t('crea.vue.gainDeFortune', { n: g.fortune }))] : []),
+  ...(g.dotations ? [valeur('dotations', t('crea.vue.dotations'), t('crea.vue.gainDeDotations', { n: g.dotations }))] : []),
+  ...(g.bonusDeCarriere ? [valeur('bonusDeCarriere', t('crea.vue.bonusDeCarriere'), t('crea.vue.gainDeBonusDeCarriere', { n: g.bonusDeCarriere }))] : []),
+];
+/** Le libellé d'un geste de tirage, son gain entre parenthèses quand il en a un. */
+const avecGain = (cle: 'crea.vue.tirerEspece' | 'crea.vue.tirerCarriere' | 'crea.vue.deuxJetsDePlus', die: string | null, g: Gain): string =>
+  t(cle, { die: die ?? '', gain: libelleDuGain(g) ?? '' });
 
-/** Les races d'espèces jouables (`speciesAllowed`), groupées par `refChar`, dans l'ordre de la donnée, celles d'un livre de
- *  cœur (`coeur`) d'abord ; chacune ses espèces, sa première la canonique, dont la `family` se lit (LDB 04 l.91). */
-export function famillesDEspeces(): { race: SpeciesData['refChar']; famille: string; especes: SpeciesData[] }[] {
+/** Les races des espèces que le brouillon `d` offre (`especesOffertes`), groupées par `refChar`, dans l'ordre de la
+ *  donnée, celles d'un livre de cœur (`coeur`) d'abord ; chacune ses espèces, sa première la canonique, dont la `family`
+ *  se lit (LDB 04 l.91). */
+export function famillesDEspeces(d: Pick<CreatorDraft, 'procedure'>): { race: SpeciesData['refChar']; famille: string; especes: SpeciesData[] }[] {
   const familles: { race: SpeciesData['refChar']; famille: string; especes: SpeciesData[] }[] = [];
-  for (const s of species.filter(speciesAllowed)) {
+  for (const s of especesOffertes(d)) {
     const f = familles.find((x) => x.race === s.refChar);
     if (f) f.especes.push(s);
     else familles.push({ race: s.refChar, famille: s.family, especes: [s] });
@@ -159,17 +181,18 @@ const libelleDeCarriere = (d: CreatorDraft, id: string): string => careerLabelFo
 /** 1) La race (LDB 04 l.87-101) : le tirage, puis la famille et sa lignée. */
 function pageDeLEspece(d: CreatorDraft): RubriqueDeCreation[] {
   const sp = draftSpecies(d);
-  const familles = famillesDEspeces();
+  const offertes = especesOffertes(d);
+  const familles = famillesDEspeces(d);
   const famille = sp && familles.find((f) => f.race === sp.refChar);
-  const die = formatDice(randomSpeciesTable().die);
+  const die = formatDice(randomSpeciesTable(offertes).die);
   return [
     d.speciesRoll
-      ? jet('tirage', t('crea.vue.tirageEspece', { die }), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => species.find((s) => s.id === id)!.label)))
-      : gesteDe('tirage', t('crea.vue.tirerEspece', { die, px: XP_SPECIES_ACCEPTED }), geste('tirerLEspece')),
+      ? jet('tirage', t('crea.vue.tirageEspece', { die }), String(d.speciesRoll.roll), listeEt(d.speciesRoll.ids.map((id) => offertes.find((s) => s.id === id)!.label)))
+      : gesteDe('tirage', avecGain('crea.vue.tirerEspece', die, procedureDe(d).especeAcceptee), geste('tirerLEspece')),
     choix('famille', t('crea.vue.race'), familles.map((f) => option(f.famille, geste('espece', sp && f === famille ? sp.id : f.especes[0].id), f === famille))),
     ...(famille && famille.especes.length > 1 ? [choix('lignee', t('crea.vue.lignee'), famille.especes.map((s) => option(s.variant ?? s.label, geste('espece', s.id), s === sp)))] : []),
     ...(sp ? [valeur('espece', sp.label, null, sp.desc ?? null)] : []),
-    ...px(speciesXp(d)),
+    ...gains(gainDEspece(d)),
   ];
 }
 
@@ -182,19 +205,20 @@ function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
   const classe = carriere?.class.id;
   const sp = draftSpecies(d);
   const tirees = sp ? [...new Set(d.careerRolls.flatMap((r) => offreDuJet(sp, r)))] : [];
-  const relance = careerXpDuProchainJet(d);
+  const relance = gainDuProchainJet(d);
+  const quotaDeDotations = gainDeCarriere(d).dotations ?? 0;
   const die = sp ? formatDice(tableDeCarrieres(sp.refCareer, d.coastalSwap).die) : null;
   return [
     ...(!die ? [] : d.careerRolls.length
       ? [
           jet('tirage', t('crea.vue.tirageCarriere', { die }), d.careerRolls.map((r) => (r.second ? t('crea.vue.jetEtSecondLancer', { jet: r.roll, second: r.second.roll }) : String(r.roll))).join(t('crea.vue.separateur'))),
-          gesteDe('relance', relance ? t('crea.vue.deuxJetsDePlus', { px: relance }) : t('crea.vue.relancerCarriere'), geste('tirerLaCarriere')),
+          gesteDe('relance', libelleDuGain(relance) ? avecGain('crea.vue.deuxJetsDePlus', die, relance) : t('crea.vue.relancerCarriere'), geste('tirerLaCarriere')),
           ...d.careerRolls.flatMap((r, i) => (sp && !r.second && varianteDe(r.id, sp)
             ? [gesteDe(`variante/${i}`, t('crea.vue.secondLancer', { carriere: libelleDeCarriere(d, r.id) }), geste('tirerLaVariante', i))]
             : [])),
           choix('tirees', t('crea.vue.tirees'), tirees.map((id) => option(libelleDeCarriere(d, id), geste('carriere', id), id === d.careerId))),
         ]
-      : [gesteDe('tirage', t('crea.vue.tirerCarriere', { die, px: XP_CAREER_FIRST }), geste('tirerLaCarriere'))]),
+      : [gesteDe('tirage', avecGain('crea.vue.tirerCarriere', die, procedureDe(d).carriere.premier), geste('tirerLaCarriere'))]),
     choix('classe', t('crea.vue.classe'), classes.flatMap((cl) => {
       const premiere = offertes.find((c) => c.class.id === cl.id);
       return premiere ? [option(libelleDeClasse(cl.id), geste('carriere', cl.id === classe ? d.careerId : premiere.id), cl.id === classe)] : [];
@@ -203,7 +227,13 @@ function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
     gesteDe('restrictions', t('crea.vue.restrictions'), geste('restrictions', !d.ignoreRestrictions), null, d.ignoreRestrictions),
     ...(coastalSwapAvailable(d) ? [gesteDe('cotiers', t('crea.vue.cotiers'), geste('cotiers', !d.coastalSwap), d.careerRolls.length ? t('crea.vue.cotiersAvantLeJet') : null, d.coastalSwap)] : []),
     ...(carriere ? [valeur('carriereChoisie', libelleDeCarriere(d, carriere.id), null, findCareerById(carriere.id)?.desc ?? null)] : []),
-    ...px(careerXp(d)),
+    ...(quotaDeDotations
+      ? [choix('dotationsDuNiveauSuivant', t('crea.vue.dotationsDuNiveauSuivant', { n: quotaDeDotations }), dotationsDuNiveauSuivantOffertes(d).map((ref, i) => {
+          const retenue = d.dotationsDuNiveauSuivant.includes(i);
+          return option(trappingRefLabel(ref), geste('dotationDuNiveauSuivant', i), retenue, !retenue && d.dotationsDuNiveauSuivant.length >= quotaDeDotations ? t('crea.vue.rienAREpartir') : null);
+        }))]
+      : []),
+    ...gains(gainDeCarriere(d)),
   ];
 }
 
@@ -212,8 +242,9 @@ function pageDeLaCarriere(d: CreatorDraft): RubriqueDeCreation[] {
 function compteur(d: CreatorDraft, c: Compteur, id: string, libelle: string): RubriqueDeCreation {
   const { min, max } = bornesDuCompteur(d, c);
   const courante = valeurDuCompteur(d, c);
-  const plafond = c.genre === 'points' ? max : c.genre === 'competence' ? MAX_ADV_PER_SKILL : repartition(d, c.genre).quota;
-  return choix(id, libelle, Array.from({ length: plafond - min + 1 }, (_, i) => min + i).map((v) =>
+  const plafond = c.genre === 'points' ? max : c.genre === 'competence' ? plafondDeLaCompetence(d, c.cle) : repartition(d, c.genre).quota;
+  const pas = pasDuCompteur(d, c);
+  return choix(id, libelle, Array.from({ length: Math.floor((plafond - min) / pas) + 1 }, (_, i) => min + i * pas).map((v) =>
     option(String(v), geste('compteur', c, v), v === courante, v > max && v > courante ? t('crea.vue.rienAREpartir') : null)));
 }
 
@@ -231,8 +262,8 @@ function pageDesCaracteristiques(d: CreatorDraft): RubriqueDeCreation[] {
   };
   return [
     choix('methode', t('crea.vue.methode'), METHODES.map((m) => {
-      const gain = charsXpDeLaMethode(d, m);
-      return option(gain ? t('crea.vue.methodeEtPx', { methode: t(`crea.vue.methode.${m}`), px: gain }) : t(`crea.vue.methode.${m}`), geste('methode', m), d.charMode === m);
+      const gain = libelleDuGain(gainDeLaMethode(d, m));
+      return option(gain ? t('crea.vue.methodeEtPx', { methode: t(`crea.vue.methode.${m}`), gain }) : t(`crea.vue.methode.${m}`), geste('methode', m), d.charMode === m);
     })),
     ...(d.charMode === 'repartition' ? []
       : [d.charsRolled ? gesteDe('tirage', t('crea.vue.relancerCaracteristiques'), geste('relancerLesCaracteristiques')) : gesteDe('tirage', t('crea.vue.tirerCaracteristiques'), geste('tirerLesCaracteristiques'))]),
@@ -241,7 +272,7 @@ function pageDesCaracteristiques(d: CreatorDraft): RubriqueDeCreation[] {
     ...(repartition(d, 'destin').quota
       ? [compteur(d, { genre: 'destin', k: 'fate' }, 'destin', t('ecran.destin')), compteur(d, { genre: 'destin', k: 'resilience' }, 'resilience', t('ecran.fiche.resilience'))]
       : []),
-    ...px(charsXp(d)),
+    ...gains(gainDesCaracteristiques(d)),
   ];
 }
 
@@ -254,16 +285,21 @@ function pageDuSigne(d: CreatorDraft): RubriqueDeCreation[] {
       : jet('tirage', t('crea.vue.tirageSigne', { die: formatDice(starDie()) }), String(d.starRollValue), findStarById(d.starRoll)?.label ?? null),
     choix('signe', t('crea.vue.signe'), stars.map((s) => option(s.label, geste('signe', s.id), s.id === d.star))),
     ...(signe ? [valeur('signeChoisi', signe.label, null, signe.desc ?? null)] : []),
-    ...px(starXp(d)),
+    ...gains({ px: starXp(d) }),
   ];
 }
 
 const PALIERS = [0, 3, 5] as const;
 
-/** 4a) Les Compétences de race (LDB 05 l.484) : 3 à +5 et 3 à +3, chacune à son palier, la spécialisation d'un joker. */
+/** 4a) Les Compétences de race (LDB 05 l.484 ; CRB 008 l.55-59) : les langues courantes, puis chaque Compétence de la liste
+ *  à un palier que la procédure ouvre, la spécialisation d'un joker. */
 function pageDesCompetencesDeRace(d: CreatorDraft): RubriqueDeCreation[] {
   const sp = draftSpecies(d)!;
+  const quotas = procedureDe(d).competencesDEspece;
+  const paliers = PALIERS.filter((p) => p === 0 || (p === 5 ? quotas.plus5 : quotas.plus3) > 0);
+  const langues = languesDEspece(d);
   return [
+    ...langues.refs.map((r, i) => valeur(`langue/${i}`, refLabel('skills', r), t('crea.vue.langueCourante', { n: langues.points }))),
     gesteDe('defaut', t('crea.vue.competencesDEspece'), geste('competencesDEspece')),
     ...speciesSkillRefs(d).flatMap((ref, i) => {
       const retenue = speciesSkillPick(d, ref);
@@ -271,7 +307,7 @@ function pageDesCompetencesDeRace(d: CreatorDraft): RubriqueDeCreation[] {
       const nom = retenue?.spec ? refLabel('skills', retenue) : advancementLabel('skills', ref);
       const autres = [...d.speciesPlus5, ...d.speciesPlus3].filter((r) => r !== retenue);
       return [
-        choix(`palier/${i}`, nom, PALIERS.map((p) => option(p ? `+${p}` : '0', geste('palier', ref, p), p === palier, p !== palier && withSpeciesSkillTier(d, ref, p) === d ? t('crea.vue.rienAREpartir') : null))),
+        choix(`palier/${i}`, nom, paliers.map((p) => option(p ? `+${p}` : '0', geste('palier', ref, p), p === palier, p !== palier && withSpeciesSkillTier(d, ref, p) === d ? t('crea.vue.rienAREpartir') : null))),
         ...(ref.choix != null && retenue
           ? [choix(`specialite/${i}`, t('crea.vue.specialite', { nom: refLabel('skills', { id: ref.id }) }),
               poolDuJoker('skill', ref).filter(libreDEspece(sp, ref, autres)).map((s) => option(specLabel('skills', ref.id, s), geste('specialiteDEspece', ref, s), retenue.spec === s)))]
@@ -373,7 +409,7 @@ function pageDesPossessions(d: CreatorDraft): RubriqueDeCreation[] {
     d.wealthRoll
       ? jet('bourse', t('crea.vue.bourse'), formatMoney(bourse.montant), bourse.faces.join(t('crea.vue.separateur')))
       : gesteDe('bourse', t('crea.vue.tirerBourse'), geste('tirerLaBourse')),
-    ...(draftLevel(d) ? emplacementsDeDotation(dotationsDuHeros(d.careerId)).filter(estEmplacementRacine).flatMap((e) => dotation(d, e)) : []),
+    ...(draftLevel(d) ? emplacementsDeDotation(dotationsDuBrouillon(d)).filter(estEmplacementRacine).flatMap((e) => dotation(d, e)) : []),
   ];
 }
 
@@ -428,6 +464,7 @@ function pageDeLaPresentation(d: CreatorDraft): RubriqueDeCreation[] {
     valeur('espece', draftSpecies(d)!.label, null),
     valeur('carriere', libelleDeCarriere(d, d.careerId), null),
     valeur('px', t('crea.vue.px'), String(xpTotal(d))),
+    ...(ohFickleFate(d) ? [valeur('ohFickleFate', t('crea.vue.ohFickleFate'), t('crea.vue.gainDeDestin', { n: ohFickleFate(d) }))] : []),
     ...CHAR_KEYS.map((k) => valeur(`carac/${k}`, charAbr(k), String(effectiveChar(h, k)), CHAR_LABELS[k])),
   ];
 }

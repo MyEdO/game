@@ -62,7 +62,15 @@ import {
   designateSlot,
   acquerirTalent,
 } from '../engine/careerSlots';
-import { applyTalentAcquisition, fortuneMax, resolveMax, competenceEnCarriere, talentEnCarriere } from '../engine/talentEffects';
+import {
+  applyTalentAcquisition,
+  competenceEnCarriere,
+  talentEnCarriere,
+  determinationDe,
+  maximaDesReserves,
+  poserLaDetermination,
+  reporterLaHausseDesMaxima,
+} from '../engine/talentEffects';
 import { heroSessionXp, regainDetermination } from '../engine/session';
 import { skillCharacteristicById } from '../engine/character';
 import { nextProsthesisTier, grantProsthesisTier } from '../engine/trauma';
@@ -537,8 +545,7 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefD
       msg = manque;
       return h;
     }
-    const fortuneBefore = fortuneMax(clone);
-    const resolveBefore = resolveMax(clone);
+    const maximaAvant = maximaDesReserves(clone);
     const r = engineBuyTalent(clone, talentId, spec); // spec = identité PERSISTÉE (id si migré), jamais re-dérivée du libellé
     if (!r.ok) {
       msg = t('pf.refused', { name: nomDe(clone), what: talentLabel, reason: r.reason ?? '' });
@@ -551,8 +558,7 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefD
     cocherUnAchat(clone); // CRB 045 l.62
     // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + Chance et Détermination.
     applyTalentAcquisition(clone, talentId, spec);
-    clone.fortune = (clone.fortune ?? 0) + (fortuneMax(clone) - fortuneBefore); // Chanceux
-    clone.resolve = (clone.resolve ?? 0) + (resolveMax(clone) - resolveBefore); // Obstiné
+    reporterLaHausseDesMaxima(clone, maximaAvant);
     msg = t('pf.talentBought', { name: nomDe(clone), label: talentLabel, cost: r.cost });
     // Magie mineure (LDB 10 l.714) : BFM sorts inclus au Talent — à choisir (0 PX, Avancement).
     if (castingKindOf(talentId) === 'mineure') {
@@ -738,9 +744,9 @@ export function terminerLaSeance(get: Get, set: Set): void {
     const siennes: string[] = [];
     if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: nomDe(clone), xp })); }
     if (f.motivation) {
-      const before = clone.resolve ?? 0;
-      clone.resolve = regainDetermination(clone, 1);
-      if (clone.resolve > before) siennes.push(t('pf.motivationResolve', { name: nomDe(clone) }));
+      const before = determinationDe(clone);
+      poserLaDetermination(clone, regainDetermination(clone, 1));
+      if (determinationDe(clone) > before) siennes.push(t('pf.motivationResolve', { name: nomDe(clone) }));
     }
     lines.set(h.id, siennes);
     return clone;

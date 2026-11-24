@@ -84,7 +84,7 @@ export interface ZonesDeLaCreation {
 export function zonesDeLaCreation(etat: Pick<Partie, 'battle' | 'party' | 'net' | 'possessions'>, c: CreationOuverte | null): ZonesDeLaCreation {
   const creer = bouton('creation', t('ecran.creation.creer'), c ? null : { geste: 'ouvrir', args: [] }, c ? null : refusDUnNouveauHeros(etat), c !== null);
   if (!c) return { 'groupe.gestes': [creer], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [] };
-  const pages = pagesDeCreation();
+  const pages = pagesDeCreation(c.brouillon);
   const rang = pages.indexOf(c.page);
   const precedente = pages[rang - 1];
   const suivante = pages[rang + 1];

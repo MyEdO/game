@@ -28,7 +28,7 @@ const messages = (schema: z.ZodType, doc: unknown): string => {
 
 const PORTEURS = [
   { porteur: 'careerLevels.json › career', schema: schemaNiveaux, doc: careerLevelsJson, cle: 'career', connue: 'agitateur', catalogue: 'carrières' },
-  { porteur: 'careers.json › class', schema: schemaCarrieres, doc: careersJson, cle: 'class', connue: 'roublards', catalogue: 'classes de carrière' },
+  { porteur: 'careers.json › class', schema: schemaCarrieres, doc: versDisque(careersJson), cle: 'class', connue: 'roublards', catalogue: 'classes de carrière' },
   { porteur: 'pregens.json › species', schema: schemaPretires, doc: versDisque(pregensJson), cle: 'species', connue: 'nains', catalogue: 'espèces' },
 ];
 

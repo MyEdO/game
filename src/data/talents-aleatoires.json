@@ -174,5 +174,223 @@
         "max": 100
       }
     ]
+  },
+  {
+    "id": "talents-aleatoires-crb",
+    "type": "talents-aleatoires",
+    "label": "Tableau des Talents aléatoires (5e)",
+    "die": {
+      "n": 1,
+      "sides": 100
+    },
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 23,
+      "note": "Random Talents, CRB 006 l.31-54"
+    },
+    "entries": [
+      {
+        "id": "sens-aiguise",
+        "spec": "vue",
+        "min": 1,
+        "max": 2
+      },
+      {
+        "id": "ambidextre",
+        "min": 3,
+        "max": 5
+      },
+      {
+        "id": "artiste",
+        "min": 6,
+        "max": 7
+      },
+      {
+        "id": "attirant",
+        "min": 8,
+        "max": 10
+      },
+      {
+        "id": "suborneur",
+        "min": 11,
+        "max": 12
+      },
+      {
+        "id": "tricheur",
+        "min": 13,
+        "max": 15
+      },
+      {
+        "id": "souplesse-feline",
+        "min": 16,
+        "max": 17
+      },
+      {
+        "id": "imperturbable",
+        "min": 18,
+        "max": 20
+      },
+      {
+        "id": "contorsionniste",
+        "min": 21,
+        "max": 22
+      },
+      {
+        "id": "fuite",
+        "min": 23,
+        "max": 25
+      },
+      {
+        "id": "sociable",
+        "min": 26,
+        "max": 27
+      },
+      {
+        "id": "machoires-d-acier",
+        "min": 28,
+        "max": 30
+      },
+      {
+        "id": "reflexes-foudroyants",
+        "min": 31,
+        "max": 32
+      },
+      {
+        "id": "linguistique",
+        "min": 33,
+        "max": 35
+      },
+      {
+        "id": "tireur-de-precision",
+        "min": 36,
+        "max": 37
+      },
+      {
+        "id": "imitation",
+        "min": 38,
+        "max": 40
+      },
+      {
+        "id": "vision-nocturne",
+        "min": 41,
+        "max": 42
+      },
+      {
+        "id": "doigts-de-fee",
+        "min": 43,
+        "max": 45
+      },
+      {
+        "id": "noblesse",
+        "min": 46,
+        "max": 47
+      },
+      {
+        "id": "flairer-les-ennuis",
+        "min": 48,
+        "max": 50
+      },
+      {
+        "id": "sens-de-l-orientation",
+        "min": 51,
+        "max": 52
+      },
+      {
+        "id": "oreille-absolue",
+        "min": 53,
+        "max": 55
+      },
+      {
+        "id": "ame-pure",
+        "min": 56,
+        "max": 57
+      },
+      {
+        "id": "lire-ecrire",
+        "min": 58,
+        "max": 60
+      },
+      {
+        "id": "resistance",
+        "spec": "poison",
+        "min": 61,
+        "max": 62
+      },
+      {
+        "id": "nomade",
+        "min": 63,
+        "max": 65
+      },
+      {
+        "id": "perspicace",
+        "min": 66,
+        "max": 67
+      },
+      {
+        "id": "pied-marin",
+        "min": 68,
+        "max": 70
+      },
+      {
+        "id": "vivacite",
+        "min": 71,
+        "max": 72
+      },
+      {
+        "id": "brouet",
+        "min": 73,
+        "max": 75
+      },
+      {
+        "id": "infatigable",
+        "min": 76,
+        "max": 77
+      },
+      {
+        "id": "costaud",
+        "min": 78,
+        "max": 80
+      },
+      {
+        "id": "affable",
+        "min": 81,
+        "max": 82
+      },
+      {
+        "id": "doue-en-calcul",
+        "min": 83,
+        "max": 85
+      },
+      {
+        "id": "cooperatif",
+        "min": 86,
+        "max": 87
+      },
+      {
+        "id": "bricoleur",
+        "min": 88,
+        "max": 90
+      },
+      {
+        "id": "rat-d-egout",
+        "min": 91,
+        "max": 92
+      },
+      {
+        "id": "tres-resistant",
+        "min": 93,
+        "max": 95
+      },
+      {
+        "id": "tres-fort",
+        "min": 96,
+        "max": 97
+      },
+      {
+        "id": "guerrier-ne",
+        "min": 98,
+        "max": 100
+      }
+    ]
   }
 ]

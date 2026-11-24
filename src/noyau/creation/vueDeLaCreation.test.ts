@@ -56,7 +56,7 @@ describe('la création en pages', () => {
 
   it('aucun dé ne parle avant son geste : chaque tirage est un geste, son jet dit après', () => {
     const d = withCareer(withSpecies(brouillonDeLaPartie(7, 0), 'humains-reiklander'), 'soldat');
-    for (const p of pagesDeCreation()) expect(rubriquesDeLaPage(d, p).filter((r) => r.genre === 'jet'), p).toEqual([]);
+    for (const p of pagesDeCreation(d)) expect(rubriquesDeLaPage(d, p).filter((r) => r.genre === 'jet'), p).toEqual([]);
     const tirage = rubrique(rubriquesDeLaPage(d, 'chars'), 'tirage');
     expect(rubriquesDeLaPage(d, 'chars').filter((r) => r.id.startsWith('carac/')).map((r) => r.genre === 'valeur' && r.valeur), 'les Caractéristiques se taisent avant les dés').toEqual(Array(10).fill(null));
     const tiree = apresLeGeste(d, (tirage as Extract<RubriqueDeCreation, { genre: 'geste' }>).geste);

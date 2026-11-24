@@ -11,16 +11,18 @@ quand l'épique #4903 est soldée.
 - **Demande** (laurent, 2026-11-24, verbatims à l'épique #4903) : mettre le noyau à l'épreuve par de nombreux
   mini-jeux et des outils (le créateur de PNJ) ; réorganiser le dépôt pour les outils propres à chaque projet, les
   parties communes, leurs workflows et leurs tests ; résorber la duplication des assets, sachant qu'un kit uniforme
-  existe sans être validé. Précisé le même jour : le jeu suivant serait « un jeu type total War/mount and blade ou
-  on dirige un groupe d homme voir une armée et des terres/vassaux. Le monde serait autonome sans nous et ça
-  reprendrais les règles du commerce/bataille navale, combat de masse et autres. Le tout en utilisant l affichage du
-  roguelite 2D avec les pions (à opposer à l hôte texte et Godot) » ; « Ça sera surement sur une map en tour par
-  tour comme total War/might and magic ». Puis : « Faut intégrer aussi l atelier des pnjs. Surtout que j aurai envie
-  de pouvoir lancer des rencontres et le système de combat de l hôte 2D est capable de le faire » ; « C est un énorme
-  défaut du jeu de ne pas accepter le bestiaire fan de fonctionner » ; « Pas grave pour le moment si les traits
-  manquant ne font rien. On peut faire ça plus tard » ; « Ce que je veux c est qu on puise lancer des combats depuis
-  l atelier comme on le fait depuis le rogueligt et comme pour tous autres jeux qui viendront » ; « Dans projet je
-  ne vois pas le … projet sur Godot » ; « Y a pas de jeu principal et secondaire, juste des jeux ».
+  existe sans être validé. Précisé le même jour : le jeu suivant serait « un jeu type total War/mount and blade ou on
+  dirige un groupe d homme voir une armée et des terres/vassaux. Le monde serait autonome sans nous et ça reprendrais
+  les règles du commerce/bataille navale, combat de masse et autres. Le tout en utilisant l affichage du roguelite 2D
+  avec les pions (à opposer à l hôte texte et Godot) » ; « Ça sera surement sur une map en tour par tour comme total
+  War/might and magic ». Puis : « Faut intégrer aussi l atelier des pnjs. Surtout que j aurai envie de pouvoir lancer
+  des rencontres et le système de combat de l hôte 2D est capable de le faire » ; « C est un énorme défaut du jeu de
+  ne pas accepter le bestiaire fan de fonctionner » ; « Pas grave pour le moment si les traits manquant ne font rien.
+  On peut faire ça plus tard » ; « Ce que je veux c est qu on puise lancer des combats depuis l atelier comme on le
+  fait depuis le rogueligt et comme pour tous autres jeux qui viendront » ; « Dans projet je ne vois pas le … projet
+  sur Godot » ; « Y a pas de jeu principal et secondaire, juste des jeux » ; « Je m ai déjà dit mais je le redis, le
+  noyau ne doit jamais dépendre du data driven et des données editables. Surtout que maintenant on sépare bien le jeu
+  de rôle du noyau. Qu il gère ses propres fichiers de campagne a lui pour ses fichiers et tests ».
 - **But réel** : qu'ajouter un projet coûte peu, ne crée pas de dette, et *éprouve* le noyau. Un projet qui
   contourne la porte du noyau ne l'éprouve pas : il en lit les internes, et le manque qu'il aurait dû révéler reste
   invisible.
@@ -44,8 +46,12 @@ quand l'épique #4903 est soldée.
   bureau en plus, par le même hôte (fiche `user-doctrine-web-d-abord-bureau-en-plus`) ; le roguelite range ses
   manques du noyau sous #4899 (`.claude/rules/roguelite.md`, PR #4900) ; le roguelite entre dans `main` après son
   rangement (§ 12) ; le guide fan entre dans la base commune comme bestiaire d'auteur cité par page (#3656, fiche
-  `user-arbitrage-bestiaire-frenchy`) ; le *Bestiaire non officiel* devient un livre de la base commune, ses traits entrant
-  d'abord sans mécanique (§ 12) ; aucun jeu n'est principal, le jeu de rôle est un projet (§ 12).
+  `user-arbitrage-bestiaire-frenchy`) ; le *Bestiaire non officiel* devient un livre de la base commune, ses traits
+  entrant d'abord sans mécanique (§ 12) ; aucun jeu n'est principal, le jeu de rôle est un projet (§ 12) ; un test se
+  joue sur des fixtures construites pour lui, jamais sur une donnée éditable ni sur une scène livrée (fiches
+  `user-arbitrage-tests-jamais-sur-donnee-data-driven` et
+  `user-arbitrage-tests-sur-scenes-dediees-jamais-sur-scenes-utilisees`), et le noyau ne dépend d'aucune donnée
+  éditable d'un jeu (redit le 2026-11-24, § 12).
 - **Irréversible** : aucun dans ce plan, qui passe par branche, PR et file de fusion. Deux gestes de L10 sortent du
   projet : republier l'artefact de l'atelier, qui a des utilisateurs hors du dépôt, attend l'accord de
   l'utilisateur ; le sort de leurs PNJ gardés au format v1 est tranché (§ 12).
@@ -254,7 +260,8 @@ quand l'épique #4903 est soldée.
   contenu d'aucun jeu : les scénarios de test et leurs fixtures, que jouent les affichages `godot` et `texte`. Le
   commun ne porte le contenu d'aucun jeu : les campagnes et leur registre passent au jeu de rôle (L13). Les 6
   scénarios bâtis sur une campagne (§ 2.8) sont du jeu de rôle et le suivent ; il les remet à ses affichages, le
-  texte compris (H3). Un projet n'ouvre pas `scenes`.
+  texte compris (H3). Le noyau ne dépend d'aucune donnée éditable d'un jeu : ses suites jouent leurs propres scènes,
+  scénarios et campagnes de test, et chaque jeu tient les siens (§ 12). Un projet n'ouvre pas `scenes`.
 - **H5. Godot est un affichage, à projet Godot unique** : il dessine le jeu de rôle et tout projet qui le déclare.
   Les écrans d'un projet affiché par Godot restent dans l'unique projet Godot, avec sa scène d'entrée, son préréglage
   d'export et son entrée au lot de recettes ; il partage sans machinerie le pont, le thème, les composants
@@ -463,7 +470,7 @@ validation ; ce plan n'y ajoute rien.
 | L10 | L'Atelier des PNJ rangé sous `projets/atelier-pnj/`, depuis la branche de #3633, puis fusionné (§ 12) : sa ligne de `COUCHES` aux droits d'un projet, ses ouvertures déclarées et ticketées sous son épique de retours ; sa page en TypeScript, qui lit la donnée et la fiche par la porte ; ses règles recopiées retirées, chacune comparée d'abord à celle du commun, un écart se tranchant au `Source/` ; ses PNJ et rencontres dans la forme du noyau, avec leur enveloppe (§ 9.2) ; le convertisseur daté des PNJ v1 de ses utilisateurs, à part de l'atelier (§ 12) ; ses `entrees/` cèdent au commun : les doublons du *Guide fan v4.5* (`pnj-guide.json`, `ajouts-guide.json`) au bestiaire commun, ce qui manque au catalogue à #3740 ou à un ticket (« Secousse Tellurique », les 3 traits propres du guide), le *Bestiaire non officiel* par L12, ses modèles de carrière, profils de héros et rôles de bête restant des aides de création de l'atelier, qui produisent une fiche ordinaire (§ 12) ; sa construction en un fichier par l'outil commun ; ses scripts `atelier-pnj:*`, sa suite, ses tests DOM et ses gates ; `.claude/rules/atelier-pnj.md` ; la republication de l'artefact, sur accord de l'utilisateur. #4217, livré sur sa branche, se solde à la fusion | L1, L4, L6, L12, les manques du schéma (§ 9.2) | lint, typecheck, suite et construction vertes en course de file ; la construction ne lit aucun fichier sous `src/` : la donnée vient par import de la porte ou d'une ouverture déclarée ; pour un échantillon de PNJ du bestiaire et de carrière, la page montre la fiche que rend `ficheDuCombattant` ; la taille du fichier construit, mesurée, tient sous la limite d'une page d'artefact claude.ai (16 Mo ; `src/data` pèse 7,0 Mo en 134 fichiers JSON) |
 | L11 | Lancer une rencontre de l'atelier par la capacité commune de combat (H7, § 9.2) : l'atelier compose ses deux camps et lance | L5, L10 ; L8 s'y fait s'il n'est pas fait | une rencontre de l'atelier (PNJ de carrière, statbloc, créature du *Bestiaire non officiel*, deux camps, sans héros) se joue jusqu'à son issue et se rejoue dans `pions`, en test du projet ; l'atelier n'a aucun code de combat |
 | L12 | Le *Bestiaire non officiel* livre de la base commune (§ 9.2, § 12), par `docs/ajouter-un-livre-source.md` et le skill `integrer-des-pnj` : le livre à `books.json`, sans `dir` ni `pdf`, au modèle de `guide-frenchy`, à `docs/sources-vf.md` et à `AGENTS.md` (§ Sources VF), `docs/ajouter-un-livre-source.md` gagnant le cas d'un livre sans extraction ; ses 107 profils au bestiaire par une migration datée depuis les `entrees/` de l'atelier ; ses 36 traits au catalogue par leur texte verbatim, sans mécanique ; le ticket de leur mécanique, hors de l'épique (§ 13), ouvert avec leur liste ; la fiche `user-arbitrage-bestiaire-non-officiel`, qui porte les verbatims du § 12 | — | chaque profil passe `validateScene` posé en scène ; chaque trait est au catalogue, sa page citée ; une rencontre contre une créature du livre se joue jusqu'à son issue ; `docs:check`, typecheck complet, suite |
-| L13 | Le jeu de rôle rangé sous `projets/jeu-de-role/` (§ 2.8, § 12) : sa ligne de `COUCHES` aux droits d'un projet ; la machinerie du registre passée au noyau, derrière sa porte ; les ouvertures qui restent, mesurées au lot, déclarées et ticketées ; ses campagnes, leur registre et leurs suites quittent `src/scenes/`, qui ne garde que les scénarios de test et leurs fixtures ; les 6 scénarios bâtis sur une campagne, `src/hote/groupe.ts`, les racines et schémas de documents de `src/data/schemas`, `PROJETS_LIVRES`, `RACINES_PROSE`, `RACINES_PAR_DEFAUT`, `servir.mjs`, `recette.mjs`, les recettes et les suites du pont, et les suites du commun qui prennent un paquet pour fixture (§ 2.8) : chaque suite qui éprouve le contenu d'une campagne passe au projet, et chaque suite qui éprouve une mécanique du noyau prend une fixture de `scenes` ; ses générateurs (`scripts/arene/`, `scripts/barge-du-sel/`, `scripts/loup-et-saumure/`, `scripts/campagne/`) et ses dossiers de chapitre (`docs/dossiers/`) le rejoignent ; son point d'entrée remet au pont de Godot la liste de ses paquets et de ses scénarios, et `construire.mjs` bâtit le bundle depuis l'entrée que le projet déclare (H3, H5) ; ses scripts `jeu-de-role:*` et ses gates ; `.claude/rules/jeu-de-role.md` ; `AGENTS.md` (« Ce qu'est ce projet », § Architecture), `docs/architecture.md`, `.claude/rules/scenes-et-editeur.md` et les skills qui citent ces chemins décrivent un dépôt de jeux autour d'un noyau, sans jeu principal | L1 | lint, typecheck, suite et construction Godot vertes en course de file ; ni `src/` ni `hotes/` n'importent un fichier de `projets/` ; chaque campagne se lance par le pont (`pont/campagne.hors-store.test.ts`), et les parcours `campagne` et `editeur` du lot de recettes Godot passent ; le texte joue les scénarios communs et ceux que le jeu de rôle lui remet |
+| L13 | Le jeu de rôle rangé sous `projets/jeu-de-role/` (§ 2.8, § 12) : sa ligne de `COUCHES` aux droits d'un projet ; la machinerie du registre passée au noyau, derrière sa porte ; les ouvertures qui restent, mesurées au lot, déclarées et ticketées ; ses campagnes, leur registre et leurs suites quittent `src/scenes/`, qui ne garde que les scénarios de test et leurs fixtures ; les 6 scénarios bâtis sur une campagne, `src/hote/groupe.ts`, les racines et schémas de documents de `src/data/schemas`, `PROJETS_LIVRES`, `RACINES_PROSE`, `RACINES_PAR_DEFAUT`, `servir.mjs`, `recette.mjs`, les recettes et les suites du pont, et les suites du commun qui prennent un paquet pour fixture (§ 2.8) : chaque suite qui éprouve le contenu d'une campagne passe au projet, chaque suite du commun qui éprouve une mécanique sur un paquet se réécrit sur une scène ou une campagne de test construite pour elle sous `src/scenes/` (fiches `user-arbitrage-tests-sur-scenes-dediees-jamais-sur-scenes-utilisees` et `user-arbitrage-tests-jamais-sur-donnee-data-driven`), et les gardes génériques jouées sur les paquets livrés passent à la suite du projet ; la fiche `user-arbitrage-tests-jamais-sur-donnee-data-driven` porte le verbatim du 2026-11-24 ; ses générateurs (`scripts/arene/`, `scripts/barge-du-sel/`, `scripts/loup-et-saumure/`, `scripts/campagne/`) et ses dossiers de chapitre (`docs/dossiers/`) le rejoignent ; son point d'entrée remet au pont de Godot la liste de ses paquets et de ses scénarios, et `construire.mjs` bâtit le bundle depuis l'entrée que le projet déclare (H3, H5) ; ses scripts `jeu-de-role:*` et ses gates ; `.claude/rules/jeu-de-role.md` ; `AGENTS.md` (« Ce qu'est ce projet », § Architecture), `docs/architecture.md`, `.claude/rules/scenes-et-editeur.md` et les skills qui citent ces chemins décrivent un dépôt de jeux autour d'un noyau, sans jeu principal | L1 | lint, typecheck, suite et construction Godot vertes en course de file ; ni `src/` ni `hotes/` n'importent un fichier de `projets/`, et aucune de leurs suites ne lit un paquet du jeu de rôle ; chaque campagne se lance par le pont (`pont/campagne.hors-store.test.ts`), et les parcours `campagne` et `editeur` du lot de recettes Godot passent ; le texte joue les scénarios communs et ceux que le jeu de rôle lui remet |
 
 L2 se fait sur la branche du roguelite avec le fil qui tient #4767, par courrier ; L10 part de la branche de #3633,
 avec le fil qui la tient, par courrier ; L5, L6, L8, L11, L12 et L13 suivent sur `main`, L12 dès maintenant. Les lots qui touchent `COUCHES`, les
@@ -545,6 +552,15 @@ est un affichage, et le commun ne porte le contenu d'aucun jeu. « L'arène » d
 en L5. La campagne « L’Arène » est un paquet du registre ; le scénario de test qui la lance (`arene`), comme les cinq
 bâtis sur la Diligence, ne sert que le jeu de rôle et le suit, par la règle de la carte (« ce qui ne sert qu'au jeu
 de rôle »).
+
+Redit ensuite, en fil, après une question sur les campagnes qu'on modifie ou qu'on crée : « Je m ai déjà dit mais je
+le redis, le noyau ne doit jamais dépendre du data driven et des données editables. Surtout que maintenant on sépare
+bien le jeu de rôle du noyau. Qu il gère ses propres fichiers de campagne a lui pour ses fichiers et tests ». C'est
+la règle des fiches `user-arbitrage-tests-jamais-sur-donnee-data-driven` (2026-11-10) et
+`user-arbitrage-tests-sur-scenes-dediees-jamais-sur-scenes-utilisees` (2026-09-07), appliquée au noyau entier : il ne
+lit aucune donnée éditable d'un jeu, ses suites jouent leurs propres scènes, scénarios et campagnes de test, et le
+jeu de rôle tient ses campagnes et les suites qui les éprouvent (L13). Créer ou modifier une campagne ne touche donc
+jamais le noyau, et ne peut faire rougir aucune de ses suites.
 
 Carte de décision du 2026-11-24, question « Convertir les PNJ déjà gardés par les utilisateurs de l'atelier au
 nouveau format ? » ; laurent a choisi « Convertir une fois », dont la conséquence affichée était : « Un convertisseur

@@ -61,9 +61,10 @@
           "files": [
             "species.json",
             "especes-aleatoires.json",
-            "mutation-nature.json"
+            "mutation-nature.json",
+            "especesCrb.json"
           ],
-          "desc": "Espèces jouables + variantes régionales · Tableau des Races aléatoires (d100) · Tableau corps ou esprit de la mutation, par race (d100)"
+          "desc": "Espèces jouables + variantes régionales · Tableau des Races aléatoires (d100) · Tableau corps ou esprit de la mutation, par race (d100) · Création du livre de base 5e par espèce du CRB"
         },
         {
           "files": [
