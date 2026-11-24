@@ -334,6 +334,7 @@ import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../eng
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
 import { actorIn, auContactDeLaSerie, choisitSaMontureHorsCombat, ecrireActeur, inBattleId, porteurParId, possessionEnJeu } from './monde/combatants';
+import { ecrireLesBlessuresDeLaBete } from '../engine/possession';
 import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
@@ -8058,19 +8059,17 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   // Réconciliation de la scène : tout combattant ISSU d'une entité de scène (identité unifiée,
   // Combatant.id === SceneEntity.id) et hors d'action quitte la scène. Victoire → les ennemis sont tous
   // hors d'action = retirés ; défaite → ennemis vivants = conservés ; les héros du groupe ne sont jamais
-  // des entités de scène (jamais touchés). Hook futur : fuite hors-carte, morts persistants.
+  // des entités de scène (jamais touchés).
   const scene = get().scene;
   if (scene) {
     const entIds = new Set(scene.entities.map((e) => e.id));
     const fallen = battle.combatants.filter((c) => entIds.has(c.id) && isOutOfAction(c)).map((c) => c.id);
     if (fallen.length) removeEntities(get, set, fallen);
   }
-  // Possession en pièce (bête montée/de bât, #618 SOCLE POSSESSIONS) — convention `Combatant.id ===
-  // Possession.uid` (`pos-N`), kind-agnostique (bête/serviteur/véhicule/navire portent tous `wounds?`).
-  // Morte → `destroyed:true` (items/cargo restent CO-LOCALISÉS sur la Possession, jamais évaporés —
-  // même patron que la bête abandonnée en voyage, `travelFlow.ts` : `{ ...p, destroyed: true }`) ;
-  // sinon blessée → `wounds.current` écrit, clampé à SON max (pas celui, potentiellement différent,
-  // du combattant de pièce).
+  // Possession en pièce (#618 SOCLE POSSESSIONS) — convention `Combatant.id === Possession.uid` (`pos-N`).
+  // Morte → `destroyed:true` (items/cargo restent CO-LOCALISÉS sur la Possession, comme la bête abandonnée en
+  // voyage, `travelFlow.ts`) ; une bête vivante garde ses Blessures courantes (`ecrireLesBlessuresDeLaBete`) ;
+  // une autre possession qui porte `wounds` l'écrit, clampé à SON max.
   const possessions = get().possessions;
   if (possessions.length) {
     let changed = false;
@@ -8078,6 +8077,11 @@ export function finalizeBattle(get: Get, set: SetFn): void {
       const c = inBattleId(battle, p.uid);
       if (!c) return p;
       if (c.dead) { changed = true; return { ...p, destroyed: true }; }
+      if (p.nature === 'bete') {
+        const suivante = ecrireLesBlessuresDeLaBete(p, c);
+        if (suivante !== p) changed = true;
+        return suivante;
+      }
       if ('wounds' in p && p.wounds) {
         const current = Math.max(0, Math.min(c.wounds.current, p.wounds.max));
         if (current !== p.wounds.current) { changed = true; return { ...p, wounds: { ...p.wounds, current } }; }

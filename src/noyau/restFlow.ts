@@ -28,6 +28,8 @@ import { nomDe } from '../engine/nom';
 import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
+import { betesHorsRencontre } from './monde/combatants';
+import { touchActors } from './combatOrParty';
 import { reposDeScene } from './monde/scene';
 import { partyAssisted } from '../engine/skills';
 import { designeGaranti } from './ligneDeJet';
@@ -247,9 +249,9 @@ export function sleepParty(
     }
   }
 
-  // Récupération + cauchemars, héros par héros (jets structurés pour le bilan).
-  const party = get().party;
-  for (const h of party) {
+  // Récupération + cauchemars, héros par héros puis bête par bête (jets structurés pour le bilan). LDB 18 l.296 ; #4804
+  const dormeurs = [...get().party, ...betesHorsRencontre(get())];
+  for (const h of dormeurs) {
     if (h.dead) continue;
     const jets: RestRoll[] = [];
     const notes: string[] = [];
@@ -271,7 +273,7 @@ export function sleepParty(
   }
 
   const title = n > 1 ? t('rf.titleDays', { n }) : t('rf.titleNight');
-  set({ party: [...get().party] });
+  set(touchActors(get()));
   get().ecrireAuJournal([title, ...journal]);
   bus.emit(EVT.SCENE_DIRTY);
   return entries;
@@ -479,7 +481,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
 
   // Récupération + cauchemars : un jet = une étape ; sans jet (PB plein/affamé/instable) → eager, et la nuit dit
   // pourquoi un dormeur ne récupère pas (`constatSansRecuperation`).
-  for (const h of party) {
+  for (const h of [...party, ...betesHorsRencontre(get())]) {
     if (h.dead) continue;
     if (needsRecoveryRoll(h)) {
       // Récupération = « Test de Résistance Accessible (+20) » (`LDB 18 l.296`) : valeur de la porte.

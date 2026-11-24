@@ -5,7 +5,7 @@
  * avec exactement les sémantiques du héros (equipped/inside/contenants). Tronc commun minimal + union
  * discriminée par `nature` (§4.1 « pas de God-object » — arbitrage user 2026-07-19).
  */
-import type { ItemInstance, Characteristics, NavalTraitRef } from './types';
+import type { Combatant, ItemInstance, Characteristics, NavalTraitRef } from './types';
 import type { CargoLot } from './cargo';
 import { cargoTotalEnc } from './cargo';
 import { itemsEncumbrance } from './items';
@@ -67,7 +67,7 @@ export type Possession = PossessionCommon &
         ref: LivingRef;
         charsRolled?: Characteristics; // LDB 77 l.108 — tiré UNE fois, seedé sur l'UID, FIGÉ
         appearanceSeed?: string;
-        wounds?: { current: number; max: number }; // max re-dérivé à chaque projection (clamp)
+        blessures?: number; // Blessures courantes, absentes = au maximum du profil (`projeterLaBete`) ; #4804
         mountInjury?: MountInjury; // EDOC 07 Incidents de Monte
         sansCavalier?: true; // LDB 85 l.112, #4804
         learnedTraits?: string[]; // dresse-* appris (LDB 23 → LDB 85)
@@ -151,6 +151,18 @@ export function possessionRideable(p: Possession): boolean {
 export function profilDeLaBete(p: Possession & { nature: 'bete' }): { traits: TraitsDesignes; size: SizeCategory; creatureId?: string } {
   const innate = 'id' in p.ref ? (findCreatureById(p.ref.id)?.traits ?? []) : (p.ref.custom.traits ?? []);
   return { traits: [...innate, ...(p.learnedTraits ?? []).map((id) => ({ id }))], size: livingSize(p.ref), creatureId: 'id' in p.ref ? p.ref.id : undefined };
+}
+
+/** La bête `p` après qu'a fini `c`, sa projection (`projeterLaBete`) : ses Blessures courantes, absentes au maximum
+ *  du profil. Rend `p` inchangée quand rien ne bouge. #4804 */
+export function ecrireLesBlessuresDeLaBete(p: Possession & { nature: 'bete' }, c: Pick<Combatant, 'wounds'>): Possession & { nature: 'bete' } {
+  const blessures = c.wounds.current;
+  if (blessures >= c.wounds.max) {
+    if (p.blessures === undefined) return p;
+    const { blessures: _pleine, ...reste } = p;
+    return reste;
+  }
+  return blessures === p.blessures ? p : { ...p, blessures };
 }
 
 /** Libellé affiché : `label` d'instance (« Marguerite ») sinon le libellé du catalogue de sa nature
