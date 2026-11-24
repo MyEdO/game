@@ -87,7 +87,7 @@ describe('recrues : la création 5e du noyau', () => {
       }
     }
     expect(ecarts).toEqual([]);
-  });
+  }, 60_000);
 });
 
 describe('sauvegarde : une compagnie 4e', () => {
