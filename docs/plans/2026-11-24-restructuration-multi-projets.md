@@ -116,10 +116,13 @@ quand l'épique #4903 est soldée.
 - Ses données propres (`entrees/`, 441 Ko) : les 290 profils du *Guide fan v4.5* (`pnj-guide.json`, 307 Ko)
   correspondent, par libellé et page, aux 288 profils `guide-frenchy` du bestiaire du jeu (#3656), sous d'autres
   ids ; deux d'entre eux (`guide-128-artisan`, `guide-129-maistre-artisan`) réimpriment les pages 80 et 81. Les
-  3 traits qu'il ajoute manquent au jeu : règles maison du guide, que l'arbitrage du 2026-11-08 laissait dehors. De ses 62 sorts, 29 ont leur libellé au catalogue ; 32 des autres sont
+  3 traits qu'il ajoute manquent au jeu : la migration de #3656 les a écartés (fiche
+  `user-arbitrage-bestiaire-frenchy`, « How to apply »), sans verbatim, alors que la décision du 2026-11-06 les
+  admettait dans l'atelier. De ses 62 sorts, 29 ont leur libellé au catalogue ; 32 des autres sont
   listés à #3740, et « Secousse Tellurique » (p.254) n'est suivie nulle part. Le *Bestiaire non officiel* y apporte
   107 créatures, 36 traits, 12 modèles de carrière, 3 profils de héros et 2 rôles de bête, absents du jeu ; ce
-  livre n'est pas encore une source du jeu (`AGENTS.md`, § Sources VF), et aucune extraction n'en est au dépôt.
+  livre n'est pas encore une source du jeu (`AGENTS.md`, § Sources VF), et aucune extraction VF n'en est au dépôt ; sa VO
+  (*Unofficial Bestiary 2.0*) y est extraite, hors des sources du jeu.
   68 de ses créatures n'ont que des Traits du catalogue.
 - Une rencontre y est une étiquette (`renc`) qui range des PNJ gardés dans le `localStorage` ; rien ne la joue.
 - Sa feuille est propre (26 propriétés personnalisées, dont 21 couleurs) ; ses polices viennent de Google Fonts.
@@ -219,13 +222,13 @@ quand l'épique #4903 est soldée.
   couvrent les racines `hotes/` et `projets/` en bloc (`RACINES_DE_LA_SUITE`, `tsconfig.json`), sans configuration
   par projet. Les fichiers JSON qui ne peuvent pas lire la table restent confrontés à elle par
   `src/racines-des-zones-json-guard.test.ts`.
-- **H7. Lancer un combat est une capacité commune.** Un projet décrit ses deux camps dans la forme du schéma (les
-  entités et la définition que rend `buildEncounter` : créatures, PNJ de carrière, statblocs, camp et pilotage) et
+- **H7. Lancer un combat est une capacité commune.** Un projet décrit ses deux camps dans la forme du schéma
+  `BuiltEncounter` (`SceneEntity[]` et `EncounterDef` : créatures, PNJ de carrière, statblocs, camp et pilotage) et
   son terrain ; `src/hote` pose l'arène par la couture du noyau que L5 tire de `scenes/test-scenarios/_shared`, joue
   le combat jusqu'à son issue par `jouerLaRencontre` en cadence `auto`, et en rend l'issue et le relevé pas à pas ;
   l'affichage `pions` le rejoue. Le roguelite, l'atelier, le jeu de stratégie et tout jeu à venir lancent leurs
   combats par elle : aucun projet ne recode un combat ni ne pose son arène à part. Elle naît en L8 du combat du
-  roguelite (§ 2.3). C'est le premier cas d'une règle générale (H3, H4) : toute action du jeu vit au noyau et tout
+  roguelite (§ 2.3), dans son deuxième consommateur. C'est le premier cas d'une règle générale (H3, H4) : toute action du jeu vit au noyau et tout
   affichage est commun, à la portée de tout projet ; seul ce qui ne sert qu'à un projet reste dans son dossier, et
   passe au commun dès qu'un deuxième en a besoin.
 
@@ -382,19 +385,20 @@ validation ; ce plan n'y ajoute rien.
   spawn) et la création façon PJ (des `carrieres` ne s'attachent qu'à un corps du bestiaire, et un statbloc perd le
   parcours). Ce sont des manques du schéma, tickets de l'épique de l'atelier, à solder avant L10 : sinon l'atelier
   garderait une seconde forme du PNJ.
-- **Le *Bestiaire non officiel*** devient un livre du jeu (L12), au modèle du guide fan (#3656 : une migration
-  datée depuis les `entrees/` de l'atelier, chaque entrée citée par page) : ses 107 profils au bestiaire, ses 36
-  traits au catalogue par leur texte, ses modèles de carrière, profils de héros et rôles de bête en règles du
-  noyau. Les 3 traits du guide fan suivent par le même geste : la classe est « le contenu d'un bestiaire fan admis
-  qui ne fonctionne pas ». Ces 39 traits entrent sans mécanique : ils ne font rien en jeu jusqu'à L13, qui la leur
-  donne (décision du § 12). La prose entre verbatim : sans extraction au dépôt, L12 la vérifie au livre.
-- **Lancer une rencontre** : l'atelier compose les deux camps et lance par la capacité commune de combat (H7),
-  comme le roguelite et tout jeu à venir : le noyau la joue jusqu'à son issue, l'affichage `pions` la rejoue pas à
-  pas. Sans héros, l'issue se lit pour le camp allié, et l'état des survivants dans la bataille (§ 2.3).
-- **Ce qui ne se lance pas** : le noyau ne joue que ce qu'il connaît. Un PNJ qui porte un contenu absent du
-  catalogue (un sort du guide hors catalogue, #3740) se montre et s'imprime, mais la rencontre qui le contient est
-  refusée au lancement, avec la liste de ce qui lui manque. Un trait sans mécanique ne bloque rien : il est au
-  catalogue et ne fait rien jusqu'à L13.
+- **Le *Bestiaire non officiel*** devient un livre du jeu (L12), au modèle du guide fan (#3656 : une migration datée
+  depuis les `entrees/` de l'atelier, chaque entrée citée par page) : ses 107 profils au bestiaire, ses 36 traits au
+  catalogue par leur texte, ses modèles de carrière, profils de héros et rôles de bête en règles du noyau. Ses 36
+  traits entrent sans mécanique : ils ne font rien en jeu jusqu'au ticket qui la leur donne (§ 12, § 13). La prose
+  entre verbatim depuis les `entrees/` de l'atelier, comme pour #3656 : le dépôt n'a du livre que la VO, hors des
+  sources. Les 3 traits propres du guide fan n'en sont pas : ses profils jouent déjà en combat, et ces traits vont à
+  un ticket par L10.
+- **Lancer une rencontre** : l'atelier compose les deux camps et lance par la capacité commune de combat (H7), comme
+  le roguelite et tout jeu à venir : le noyau la joue jusqu'à son issue, l'affichage `pions` la rejoue pas à pas.
+  Sans héros, l'issue se lit pour le camp allié, et l'état des survivants dans la bataille (§ 2.3).
+- **La frontière est le convertisseur des PNJ v1** (L10) : un sort hors catalogue (#3740) y est nommé et retiré du
+  PNJ converti, et tout PNJ de l'atelier se lance. Les 33 sorts du guide hors catalogue ne se choisissent dans
+  l'atelier qu'une fois entrés par #3740. Un trait sans mécanique ne bloque rien : il est au catalogue et ne fait
+  rien en jeu.
 - **Ce qu'il éprouve du noyau** : le PNJ de carrière, la création, la fiche, la troupe, le nom, la bourse, les sorts
   d'un lanceur, puis le combat entier par ses rencontres. Les manques de la porte et du schéma mesurés aux § 2.3 et
   ci-dessus sont les premiers tickets de son épique de retours.
@@ -410,16 +414,15 @@ validation ; ce plan n'y ajoute rien.
 | L5 | La porte suffit aux projets : chaque ouverture du roguelite, puis de l'atelier, se résorbe par une couture de la porte ou de `src/hote`, ou par le déplacement de sa logique ; l'arène de `scenes/test-scenarios/_shared` devient une couture du noyau | L2 (roguelite), L10 (atelier) | la ligne de chaque projet égale les droits d'un projet |
 | L6 | Outils web communs : construction par `vite` (fin d'`esbuild` transitif) ; un harnais, Playwright au navigateur épinglé, que rejoignent la recette du roguelite et `scripts/maquettes/page.mjs`, `scripts/recette/lib.mjs` le rejoignant ou disant au lot pourquoi CDP reste ; une comparaison, `ecart` (fin de `comparer.py`) | L2 | deux passes de la recette d'images du roguelite à la même tête, sur le navigateur épinglé, mesurées par `ecart` : si l'écart n'est pas nul, la tolérance devient un paramètre d'`ecart` ; la référence d'images se pose ensuite sur ce navigateur |
 | L7 | Kit d'interface web et polices communs (§ 8.1) | #4585 validé, L6 | comparaison au pixel des maquettes à 0 ; images du roguelite identiques à sa référence du L6 ; plus aucune copie du kit hors de sa source |
-| L8 | Le combat commun et l'affichage `pions` (H7, § 8.2) : le combat du roguelite devient la capacité commune de `src/hote`, qui prend deux camps dans la forme du schéma, pose l'arène par la couture de L5, joue le combat jusqu'à son issue et en rend le relevé ; son rejeu, ses figures et sa cour deviennent `hotes/pions/` ; le roguelite lance ses combats par elle | L5, L6 | un test lance un combat de deux camps (créature, PNJ de carrière, statbloc, sans héros) jusqu'à son issue ; le roguelite joue ses combats par la capacité commune, ses images de recette identiques à sa référence du L6 ; aucun vocabulaire d'apparence en chaînes littérales dans l'API de `pions` |
+| L8 | Le combat commun et l'affichage `pions` (H7, § 8.2) : le combat du roguelite devient la capacité commune de `src/hote`, qui prend deux camps dans la forme `BuiltEncounter`, pose l'arène par la couture de L5, joue le combat jusqu'à son issue et en rend le relevé ; la porte expose le type de la rencontre, et un PNJ de carrière y entre comme entité posée, avec ses `carrieres` ; son rejeu, ses figures et sa cour deviennent `hotes/pions/` ; le roguelite lance ses combats par elle | L5 (roguelite), L6 ; il se fait dans son deuxième consommateur, le premier venu : L11 ou le premier lot du jeu de stratégie | un test lance un combat de deux camps (créature, PNJ de carrière, statbloc, sans héros) jusqu'à son issue ; le roguelite joue ses combats par la capacité commune, ses images de recette identiques à sa référence du L6 ; aucun vocabulaire d'apparence en chaînes littérales dans l'API de `pions` |
 | L9 | Créer un projet : le geste outillé (§ 7) | L2, L4, premier projet neuf | ce projet naît par lui |
-| L10 | L'Atelier des PNJ rangé sous `projets/atelier-pnj/`, depuis la branche de #3633, puis fusionné (§ 12) : sa ligne de `COUCHES` aux droits d'un projet, ses ouvertures déclarées et ticketées sous son épique de retours ; sa page en TypeScript, qui lit la donnée et la fiche par la porte ; ses règles recopiées retirées, chacune comparée d'abord à celle du commun, un écart se tranchant au `Source/` ; ses PNJ et rencontres dans la forme du noyau, avec leur enveloppe (§ 9.2) ; le convertisseur daté des PNJ v1 de ses utilisateurs, à part de l'atelier (§ 12) ; ses `entrees/` cèdent au commun : les doublons du *Guide fan v4.5* (`pnj-guide.json`, `ajouts-guide.json`) au bestiaire du jeu, ce qui manque au catalogue à #3740 ou à un ticket (« Secousse Tellurique »), le *Bestiaire non officiel* par L12 ; sa construction en un fichier par l'outil commun ; ses scripts `atelier-pnj:*`, sa suite, ses tests DOM et ses gates ; `.claude/rules/atelier-pnj.md` ; la republication de l'artefact, sur accord de l'utilisateur. #4217, livré sur sa branche, se solde à la fusion | L1, L4, L6, L12, les manques du schéma (§ 9.2) | lint, typecheck, suite et construction vertes en course de file ; la construction ne lit aucun fichier sous `src/` : la donnée vient par import de la porte ou d'une ouverture déclarée ; pour un échantillon de PNJ du bestiaire et de carrière, la page montre la fiche que rend `ficheDuCombattant` ; la taille du fichier construit, mesurée, tient sous la limite d'une page d'artefact claude.ai (16 Mo ; `src/data` pèse 7,0 Mo en 134 fichiers JSON) |
-| L11 | Lancer une rencontre de l'atelier par la capacité commune de combat (H7, § 9.2) : l'atelier compose ses deux camps et lance ; une rencontre qui porte un contenu hors catalogue est refusée par son manque | L8, L10 | une rencontre de l'atelier (PNJ de carrière, statbloc, créature du *Bestiaire non officiel*, deux camps, sans héros) se joue jusqu'à son issue et se rejoue dans `pions`, en test du projet ; l'atelier n'a aucun code de combat ; une rencontre qui contient un sort hors catalogue est refusée, son manque nommé |
-| L12 | Le *Bestiaire non officiel* livre du jeu (§ 9.2, § 12), par `docs/ajouter-un-livre-source.md` et le skill `integrer-des-pnj` : le livre à `books.json`, `docs/sources-vf.md` et `AGENTS.md` ; ses 107 profils au bestiaire par une migration datée depuis les `entrees/` de l'atelier ; ses 36 traits, et les 3 du guide fan, au catalogue par leur texte verbatim, sans mécanique, leur liste au ticket de L13 ; ses modèles de carrière, profils de héros et rôles de bête en règles du noyau ; la fiche `user-arbitrage-bestiaire-frenchy` mise à jour | — | chaque profil passe `validateScene` posé en scène ; chaque trait est au catalogue, sa page citée ; une rencontre contre une créature du livre se joue jusqu'à son issue ; `docs:check`, typecheck complet, suite |
-| L13 | La mécanique des 39 traits des bestiaires fan (§ 12), par le skill `ajouter-une-mecanique`, un sous-lot par famille de mécaniques | L12, quand l'utilisateur le demande | chaque trait a son test de mécanique ; la liste du ticket est vide |
+| L10 | L'Atelier des PNJ rangé sous `projets/atelier-pnj/`, depuis la branche de #3633, puis fusionné (§ 12) : sa ligne de `COUCHES` aux droits d'un projet, ses ouvertures déclarées et ticketées sous son épique de retours ; sa page en TypeScript, qui lit la donnée et la fiche par la porte ; ses règles recopiées retirées, chacune comparée d'abord à celle du commun, un écart se tranchant au `Source/` ; ses PNJ et rencontres dans la forme du noyau, avec leur enveloppe (§ 9.2) ; le convertisseur daté des PNJ v1 de ses utilisateurs, à part de l'atelier (§ 12) ; ses `entrees/` cèdent au commun : les doublons du *Guide fan v4.5* (`pnj-guide.json`, `ajouts-guide.json`) au bestiaire du jeu, ce qui manque au catalogue à #3740 ou à un ticket (« Secousse Tellurique », les 3 traits propres du guide), le *Bestiaire non officiel* par L12 ; sa construction en un fichier par l'outil commun ; ses scripts `atelier-pnj:*`, sa suite, ses tests DOM et ses gates ; `.claude/rules/atelier-pnj.md` ; la republication de l'artefact, sur accord de l'utilisateur. #4217, livré sur sa branche, se solde à la fusion | L1, L4, L6, L12, les manques du schéma (§ 9.2) | lint, typecheck, suite et construction vertes en course de file ; la construction ne lit aucun fichier sous `src/` : la donnée vient par import de la porte ou d'une ouverture déclarée ; pour un échantillon de PNJ du bestiaire et de carrière, la page montre la fiche que rend `ficheDuCombattant` ; la taille du fichier construit, mesurée, tient sous la limite d'une page d'artefact claude.ai (16 Mo ; `src/data` pèse 7,0 Mo en 134 fichiers JSON) |
+| L11 | Lancer une rencontre de l'atelier par la capacité commune de combat (H7, § 9.2) : l'atelier compose ses deux camps et lance | L5, L10 ; L8 s'y fait s'il n'est pas fait | une rencontre de l'atelier (PNJ de carrière, statbloc, créature du *Bestiaire non officiel*, deux camps, sans héros) se joue jusqu'à son issue et se rejoue dans `pions`, en test du projet ; l'atelier n'a aucun code de combat |
+| L12 | Le *Bestiaire non officiel* livre du jeu (§ 9.2, § 12), par `docs/ajouter-un-livre-source.md` et le skill `integrer-des-pnj` : le livre à `books.json`, sans `dir` ni `pdf`, au modèle de `guide-frenchy`, à `docs/sources-vf.md` et à `AGENTS.md` (§ Sources VF), `docs/ajouter-un-livre-source.md` gagnant le cas d'un livre sans extraction ; ses 107 profils au bestiaire par une migration datée depuis les `entrees/` de l'atelier ; ses 36 traits au catalogue par leur texte verbatim, sans mécanique ; le ticket de leur mécanique, hors de l'épique (§ 13), ouvert avec leur liste ; ses modèles de carrière, profils de héros et rôles de bête en règles du noyau ; la fiche `user-arbitrage-bestiaire-non-officiel`, qui porte les verbatims du § 12 | — | chaque profil passe `validateScene` posé en scène ; chaque trait est au catalogue, sa page citée ; pour chaque modèle, profil de héros et rôle de bête, la fiche d'un PNJ qui l'applique égale celle que la page v1 imprime ; une rencontre contre une créature du livre se joue jusqu'à son issue ; `docs:check`, typecheck complet, suite |
 
 L2 se fait sur la branche du roguelite avec le fil qui tient #4767, par courrier ; L10 part de la branche de #3633,
-avec le fil qui la tient, par courrier ; L5, L6, L8, L11, L12 et L13 suivent sur `main`, L12 dès maintenant. Les lots qui touchent `COUCHES`, les
-murs ou le classement de la CI (L1, L2, L3, L4, L10) se font juger par une instance neuve : ils touchent un socle.
+avec le fil qui la tient, par courrier ; L5, L6, L8, L11 et L12 suivent sur `main`, L12 dès maintenant. Les lots qui touchent `COUCHES`, les
+murs ou le classement de la CI (L1, L2, L3, L4, L8, L10) se font juger par une instance neuve : ils touchent un socle.
 
 ## 11. Pistes évaluées et écartées
 
@@ -456,20 +459,20 @@ ticketées, que L5 résorbe.
 Demande du même jour, en fil : « Faut intégrer aussi l atelier des pnjs. Surtout que j aurai envie de pouvoir lancer
 des rencontres et le système de combat de l hôte 2D est capable de le faire ». Elle se lit comme la décision sur le
 roguelite : l'atelier entre dans `main`, sous `projets/atelier-pnj/`, après son rangement (L10), puis lance ses
-rencontres par l'affichage `pions` (L11). Elle lève le statut « hors du jeu » de la PR brouillon #3633 (solde de
+rencontres par la capacité commune de combat (H7), rejouées par `pions` (L11). Elle lève le statut « hors du jeu » de la PR brouillon #3633 (solde de
 #3628, `.claude/soldes/3628.md`).
 Demande du même jour, en fil, en réponse au refus au lancement des créatures du *Bestiaire non officiel* : « C est
 un énorme défaut du jeu de ne pas accepter le bestiaire fan de fonctionner ». Lue ainsi : le *Bestiaire non
 officiel*, que la décision de Clément du 2026-11-06 (citée au `LISEZMOI.md` de l'atelier) admettait dans l'atelier,
-devient un livre du jeu, au modèle du guide fan, traits et modèles compris (L12). Les
-3 traits propres du guide fan, que l'arbitrage du 2026-11-08 (fiche `user-arbitrage-bestiaire-frenchy`) laissait
-dehors avec ses règles maison, suivent : c'est le même défaut. Les autres règles maison du guide (Armure doublée)
-ne sont pas du contenu de bestiaire et restent dehors.
+devient un livre du jeu, au modèle du guide fan, traits et modèles compris (L12). Les 3 traits propres du
+guide fan n'entrent pas dans cette lecture : ses profils jouent déjà en combat, et ces traits, écartés par la
+migration de #3656 sans verbatim, vont à un ticket (L10).
 
 Précisé ensuite, en fil : « Pas grave pour le moment si les traits manquant ne font rien. On peut faire ça plus
-tard ». Les 39 traits des bestiaires fan entrent donc sans mécanique (L12) et la reçoivent en L13, quand
-l'utilisateur le demande. C'est un écart daté à la règle 7 d'`AGENTS.md` (« une règle présente dans la source est
-IMPLÉMENTÉE, jamais reportée »), limité à ces traits et tenu ouvert par le ticket de L13.
+tard ». Les 36 traits du *Bestiaire non officiel* entrent donc sans mécanique (L12) et la reçoivent par un
+ticket hors de l'épique, que L12 ouvre et qui attend l'utilisateur (§ 13). C'est un écart daté à la règle 7
+d'`AGENTS.md` (« une règle présente dans la source est IMPLÉMENTÉE, jamais reportée »), limité à ces traits et
+tenu ouvert par ce ticket.
 
 Précisé ensuite, en fil : « Ce que je veux c est qu on puise lancer des combats depuis l atelier comme on le fait
 depuis le rogueligt et comme pour tous autres jeux qui viendront ». Lancer un combat est donc une capacité commune
@@ -493,3 +496,6 @@ et annonce sa date de retrait avec la republication de l'artefact.
   structure accepte les trois affichages.
 - Le contenu des tickets du noyau relevés par le roguelite (#4899) et par l'atelier (son épique de retours, ouverte
   en L10).
+- La mécanique des 36 traits du *Bestiaire non officiel* : un ticket hors de l'épique, que L12 ouvre, lié à #4903 et
+  marqué « attend l'utilisateur », qui porte leur liste et l'écart daté à la règle 7 (§ 12) ; il se fait par le skill
+  `ajouter-une-mecanique`, un sous-lot par famille de mécaniques.
