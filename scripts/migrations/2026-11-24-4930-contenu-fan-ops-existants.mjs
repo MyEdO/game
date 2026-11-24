@@ -18,8 +18,10 @@
  *       (CRB 039 l.37-39 ; LDB 20 l.74-76).
  *
  * ENTRÉES : écrites — `src/data/traits.json`, `src/data/breath-types.json`, `src/data/creatures.json`.
- * FAIL-FAST — avant toute écriture, sortie 1 : document hors `serializeDataset`, cible absente, cible qui porte déjà
- * une autre mécanique.
+ * FORME D'AVANT SEULE (`scripts/migrations/lib/formeDAvant.mjs`) : un champ n'est posé que s'il est absent ; une
+ * cible absente, déjà à la forme d'après ou révisée depuis passe sans faute. Un Souffle n'entre au registre que
+ * si une créature reçoit son type dans ce même jeu.
+ * FAIL-FAST — avant toute écriture, sortie 1 : document hors `serializeDataset`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -65,39 +67,28 @@ function charger(rel) {
   docs.set(rel, { doc, avant: texte });
   return doc;
 }
-const memeForme = (a, b) => JSON.stringify(a) === JSON.stringify(b);
 
 const traits = charger('traits.json');
 for (const [id, mecanique] of Object.entries(MECANIQUE_DES_TRAITS)) {
   const t = traits.find((x) => x.id === id);
-  if (!t) { fautes.push(`traits.json : ${id} absent`); continue; }
-  for (const [champ, valeur] of Object.entries(mecanique)) {
-    if (t[champ] === undefined) t[champ] = valeur;
-    else if (!memeForme(t[champ], valeur)) fautes.push(`traits.json : ${id}.${champ} porte déjà une autre mécanique`);
-  }
-}
-
-const souffles = charger('breath-types.json');
-for (const s of SOUFFLES) {
-  const deja = souffles.find((x) => x.id === s.id);
-  if (!deja) souffles.push(s);
-  else if (!memeForme(deja, s)) fautes.push(`breath-types.json : ${s.id} existe sous une autre forme`);
+  for (const [champ, valeur] of Object.entries(mecanique)) if (t && t[champ] === undefined) t[champ] = valeur;
 }
 
 const creatures = charger('creatures.json');
+const typesPoses = new Set();
 for (const [cle, arg] of Object.entries(ARGS)) {
   const [creature, trait] = cle.split(':');
-  const poses = (c) => [...(c?.traits ?? []), ...(c?.optionals ?? [])].filter((x) => x.id === trait);
-  const instances = poses(creatures.find((c) => c.id === creature));
-  if (instances.length !== 1) { fautes.push(`creatures.json : ${cle}, ${instances.length} instance(s) au lieu d'une`); continue; }
-  const [x] = instances;
-  if (x.arg === undefined) x.arg = arg;
-  else if (x.arg !== arg) fautes.push(`creatures.json : ${cle} porte déjà l'arg « ${x.arg} »`);
+  const c = creatures.find((x) => x.id === creature);
+  const instances = [...(c?.traits ?? []), ...(c?.optionals ?? [])].filter((x) => x.id === trait);
+  if (instances.length !== 1 || instances[0].arg !== undefined) continue;
+  instances[0].arg = arg;
+  typesPoses.add(arg);
 }
 const arme = creatures.find((c) => c.id === DENTS.creature)?.traits?.find((x) => x.id === 'arme' && x.arg === DENTS.arg);
-if (!arme) fautes.push(`creatures.json : ${DENTS.creature}, arme « ${DENTS.arg} » absente`);
-else if (arme.profilDArme === undefined) arme.profilDArme = DENTS.profilDArme;
-else if (!memeForme(arme.profilDArme, DENTS.profilDArme)) fautes.push(`creatures.json : ${DENTS.creature}, « ${DENTS.arg} » porte déjà un autre profil`);
+if (arme && arme.profilDArme === undefined) arme.profilDArme = DENTS.profilDArme;
+
+const souffles = charger('breath-types.json');
+for (const s of SOUFFLES) if (typesPoses.has(s.id) && !souffles.some((x) => x.id === s.id)) souffles.push(s);
 
 if (fautes.length) {
   console.error(`#4930 — rien n'est écrit :\n  ${fautes.join('\n  ')}`);
