@@ -1,7 +1,8 @@
 import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { buildFloors } from './floors';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../../scenes/campaign';
+import { allBuiltinCampaigns } from '../../../scenes/campaign';
+import { paquetDuJeu } from '../../campagneLivree';
 import { testScenarios } from '../../../scenes/test-scenarios';
 import { tileAt, type Scene } from '../scene';
 import { terrainMatiere, terrainSolidHeightM } from '../terrain';

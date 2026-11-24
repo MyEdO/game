@@ -5,7 +5,8 @@ import {
 } from './aretes';
 import { EYE_H } from './iso';
 import type { Pt } from './path';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../scenes/campaign';
+import { allBuiltinCampaigns } from '../../scenes/campaign';
+import { paquetDuJeu } from '../campagneLivree';
 import { emptyScene, setDoorOpen, setDoorRevealed, setStructureDown, setTileCollapsed, type Scene, type WallSeg } from './scene';
 import { edgeKey } from './facades';
 import { volumeDuMonde } from './volume/volume';

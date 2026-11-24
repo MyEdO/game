@@ -4,7 +4,8 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { allBuiltinCampaigns, type BuiltinCampaign } from './campaign';
+import { allBuiltinCampaigns } from './campaign';
+import { type BuiltinCampaign } from '../noyau/index';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 
 export const campagnesLivrees: ReadonlyArray<readonly [string, BuiltinCampaign, string]> = listerProjetsLivres().map((rel) => {

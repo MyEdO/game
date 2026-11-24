@@ -22,7 +22,8 @@ import {
   type RetraitDuMonde,
   type Scene,
 } from '../../../src/noyau/index';
-import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../../../src/scenes/campaign';
+import { allBuiltinCampaigns, diligenceCampaign } from '../../../src/scenes/campaign';
+import { paquetDuJeu } from '../../../src/noyau/index';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';

@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { diligenceCampaign } from '../campaign';
+import { paquetDuJeu } from '../../noyau/index';
 import type { Characteristics, Combatant } from '../../engine/types';
 import { travelSpeed, travelPlanCalc } from '../../engine/travel';
 import { baseHoursPerDay } from '../../noyau/travelFlow';

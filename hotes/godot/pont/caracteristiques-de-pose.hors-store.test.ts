@@ -12,7 +12,8 @@ import { presetDuNarratif } from '../../../src/noyau/monde/resolveursDuNarratif'
 import { emptyScene, type SceneEntity } from '../../../src/noyau/monde/scene';
 import { ficheDEntite } from '../../../src/noyau/monde/sceneNpc';
 import { parseProject } from '../../../src/noyau/worldMap';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
+import { paquetDuJeu } from '../../../src/noyau/index';
 
 type Edition = { vue: { zones: Record<string, Element[]> }; depot?: { texte: string } };
 
