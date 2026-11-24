@@ -300,9 +300,20 @@ const pageDuJardin = ({ e }: Lecture): Page => ({
 
 const pageDeLaChronique = ({ e }: Lecture): Page => ({ classe: 'annales', corps: `<ol class="chronique">${e.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` });
 
-/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son sac, et ce que l'hospice lui vend. */
+/** Le rang et la consigne de combat du héros `h`, chacun en plaques, l'actuel armé, ce qu'il fait au survol. */
+function auCombat(h: J.Heros): string {
+  const id = `data-id="${h.c.id}"`;
+  const rang = J.rangDe(h);
+  const consigne = J.consigneDe(h);
+  const rangs = (Object.keys(J.RANGS) as J.Rang[]).map((r) => plaque(esc(J.RANGS[r].nom), `data-a="rang" ${id} data-k="${r}"`, { taille: 'petite', armee: r === rang, titre: esc(J.RANGS[r].bulle) }));
+  const consignes = J.CONSIGNES.map((c) => plaque(esc(c.nom), `data-a="consigne" ${id} data-k="${c.doctrine ?? ''}"`, { taille: 'petite', armee: c === consigne, titre: esc(c.bulle) }));
+  return `<div class="au-combat"><div class="choix-au-combat"><span class="rub">Au combat</span>${rangs.join('')}</div><div class="choix-au-combat">${consignes.join('')}</div></div>`;
+}
+
+/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son rang et sa consigne au combat, son sac,
+ *  et ce que l'hospice lui vend. */
 function pageDuDepart({ e, choix }: Lecture): Page {
-  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}
+  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}${auCombat(h)}
     <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div>${provisions(e, h)}</section>`);
   const libres = Array.from({ length: Math.max(0, J.TAILLE_DU_GROUPE - groupe.length) }, () => `<section class="carte-service emporte libre"><span class="portrait-vide"></span><span class="place-libre">Place libre</span><span class="sous-titre">un héros du socle</span></section>`);
   return {
