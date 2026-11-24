@@ -101,15 +101,17 @@ export function purgeClockEffects(get: Get, set: Set): LigneDEntretien[] {
 }
 
 /** Dissipations d'horloge PRODUITES par la couture du temps (`avancerLHorloge`) et pas encore
- *  reprises dans un bilan d'entretien — drainées par `runDailyUpkeep`. */
-const dissipationsDHorloge: LigneDEntretien[] = [];
+ *  reprises dans un bilan d'entretien, par état (`Get`, #4862) — drainées par `runDailyUpkeep`. */
+const dissipationsDHorloge = new WeakMap<Get, LigneDEntretien[]>();
 
 /** Purge d'horloge tirée par la COUTURE UNIQUE de l'avance du temps : tout chemin qui la signale
  *  (`avancerLHorloge`, écrivain unique de `gameTime` : avancerLeTemps, repos, voyages terrestre, fluvial et en
  *  mer, chantier naval) dissipe ce qui est échu, y compris ceux qui n'appellent PAS `runDailyUpkeep` (le voyage terrestre et la journée de
  *  mer diffèrent l'entretien à la cascade de nuit). Les lignes attendent le prochain bilan. */
 export function purgeSurAvanceDHorloge(get: Get, set: Set, minutes: number): void {
-  dissipationsDHorloge.push(
+  const enAttente = dissipationsDHorloge.get(get) ?? [];
+  dissipationsDHorloge.set(get, enAttente);
+  enAttente.push(
     ...purgeClockEffects(get, set),
     ...lignesDEntretien(jeterLesVivresPourris(get, set)),
     ...lignesDEntretien(avancerLEquipage(get, set, minutes)),
@@ -202,7 +204,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { caredFor?: boolean; f
   // Celles déjà dissipées par la COUTURE du temps depuis le dernier entretien (voyage terrestre,
   // journée de mer : ces chemins avancent l'horloge sans entretien) y sont REPRISES, sans quoi elles
   // ne vivraient que dans le journal.
-  const purged = [...dissipationsDHorloge.splice(0), ...purgeClockEffects(get, set)];
+  const purged = [...(dissipationsDHorloge.get(get)?.splice(0) ?? []), ...purgeClockEffects(get, set)];
   const today = dayIndex(get().gameTime);
   const last = get().lastUpkeepDay;
   if (today <= last) return [];
