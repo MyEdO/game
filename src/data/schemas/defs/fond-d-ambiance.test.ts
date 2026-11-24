@@ -8,9 +8,9 @@ import type { z } from 'zod';
 import { schema as schemaServices } from './lieux-services';
 import { landMarketProfileSchema, mapPlaceSchema } from '../defs-scenes/worldmap';
 import lieuxServicesJson from '../../lieux-services.json';
-import loupEtSaumureJson from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
-const PLACE = loupEtSaumureJson.worldMap.places[0];
+const PLACE = paquetDeTest.worldMap.places[0];
 const MARCHE = { richesse: 3, produits: [] };
 
 const messages = (schema: z.ZodType, doc: unknown): string => {

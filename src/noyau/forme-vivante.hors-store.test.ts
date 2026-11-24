@@ -9,7 +9,6 @@ import { parseProject, parseSceneDeProjet, projetVersDepot, ProjetRefuse, emptyW
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './monde/scene';
 import { flowFromEffects } from './monde/flow';
-import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { emptyNarratif } from './monde/campaignNarratif';
 import type { DescRef } from '../data/schemas/grammaire/valeurs';
 
@@ -117,17 +116,15 @@ describe('parseProject — forme vivante', () => {
 });
 
 describe('P5 — un preset ADAPTÉ dont le profil ADRESSE sa description est refusé', () => {
-  it('Diligence, Gustav : `source` → `adapteDe` sous un profil adressé, refusé au chemin `…adapteDe`', () => {
-    const doc = structuredClone(lireProjetLivre('diligence/diligence-projet.json')) as { narratif: { presetsPnj: Record<string, unknown>[] } };
-    const i = doc.narratif.presetsPnj.findIndex((x) => x.id === 'edo-gustav-fondleburger');
-    const p = doc.narratif.presetsPnj[i];
-    expect((p.profil as { descRef?: unknown }).descRef).toBeDefined();
-    p.adapteDe = p.source;
-    delete p.source;
-    const r = refus(() => parseProject(doc));
+  it('`source` → `adapteDe` sous un profil adressé, refusé au chemin `…adapteDe`', () => {
+    const preset = { id: 'pnj-adresse', base: { id: 'humain' }, source: ADAPTE, profil: { label: 'PNJ adressé', ...MATERIALISE } };
+    const avec = (p: object) => ({ ...projet(scene(MATERIALISE)), narratif: { ...emptyNarratif(), presetsPnj: [p] } });
+    expect(parseProject(avec(preset)).narratif.presetsPnj).toHaveLength(1);
+    const { source, ...sansSource } = preset;
+    const r = refus(() => parseProject(avec({ ...sansSource, adapteDe: source })));
     expect(r.cause).toBe('schema');
     expect(r.fautes.map((f) => ({ chemin: f.chemin, message: f.message }))).toEqual([
-      { chemin: ['narratif', 'presetsPnj', i, 'adapteDe'], message: 'texte adapté, alors que la description de « profil » est la copie adressée du livre.' },
+      { chemin: ['narratif', 'presetsPnj', 0, 'adapteDe'], message: 'texte adapté, alors que la description de « profil » est la copie adressée du livre.' },
     ]);
   });
 });
