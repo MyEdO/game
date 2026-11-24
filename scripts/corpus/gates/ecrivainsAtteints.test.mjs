@@ -853,6 +853,8 @@ const ATTENDU = {
     // #4338 : la construction, l'import et le cache restent sous `import.meta.main` ; le test n'importe que les fonctions
     // pures.
     "scripts/personnage-3d/integrer.mjs",
+    // #4338 : le banc de la borne écrit sous un `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally.
+    "scripts/personnage-3d/integrer.test.mjs",
   ],
   // #2586 : la garde des balayages non résolus dérive par `balayagesNonResolus` de `perimetre.mjs` (mémos sous un
   // `mkdtempSync` d'os.tmpdir()), qui lance ses fichiers par `memoire.mjs` (émissions et diagnostic sous un

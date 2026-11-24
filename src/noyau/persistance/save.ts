@@ -7,8 +7,7 @@
  * de champs tenue à la main. Les règles maison (`engine/policy`, hors état) voyagent à part dans `rules`.
  *
  * FORMAT (#2404, `.claude/memory/user-arbitrage-saves-reset-pas-migration.md`, #3041) : l'écriture prend
- * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`). La lecture admet les empreintes
- * des transitions #4649, #4574, #4674, #4435, #4530, #4804 et #865 ainsi que la forme précédant les références de création (#3917). Une save
+ * `FORMAT_SAVE`, dérivé du type `SaveGame` (`scripts/gen-formats.mjs`) ; la lecture n'admet que lui. Une save
  * qui nomme une règle, un État ou la Cible d'un Trait psychologique hors du registre courant se charge
  * élaguée de ces ids (`elaguerSave`, #1463 LD.1).
  */
@@ -24,11 +23,9 @@ import { bornerLesRegistresDuBord } from '../shipCrew';
 import { opsDeRetourDEquipage } from '../navireOps';
 import { pruneSeatAssignments } from '../monde/seating';
 import { rencontreEngagee } from '../monde/combatants';
-import { reposerPaquetDeCampagne } from '../monde/registreDesScenes';
+import { narratifDuPaquet } from '../monde/registreDesScenes';
 import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage';
 import { FORMAT_SAVE } from './formats.generated';
-import { formatAvantLesReglesDeChirurgieEtFrenesie } from './formatsDesRegles';
-import { formatAvantLesReferences, formatDeLaCouleurUnique, migrerLaSaveAvantLesDeuxCouleurs, migrerLaSaveAvantLesReferences } from './referencesDeCreation';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
 import { EVT } from '../bus';
@@ -57,7 +54,7 @@ export interface SaveGame extends SaveMeta {
 const HORS_SAVE = {
   cadenceHote: 'cadence de table reçue dans la session coop',
   // #767 · #766
-  campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`reposerPaquetDeCampagne`, registreDesScenes.ts)',
+  campaignNarratif: 'couche runtime de projet, re-dérivée de `campaignDoc` (`narratifDuPaquet`, registreDesScenes.ts)',
 } as const satisfies Partial<Record<keyof EtatDeJeu, string>>;
 
 /** Le `data` d'une save : `EtatDeJeu` moins `HORS_SAVE`. */
@@ -112,69 +109,11 @@ export function unpackHouseRules(data: Record<string, unknown>): { game: Record<
   return { game, rules: rules as Record<string, RuleValue> | undefined };
 }
 
-/** #4649 */
-const TRANSITION_DES_FORMES_D_APPARENCE: Readonly<{ avant: string; apres: string }> = {
-  avant: 'e5b0e479130fc5d7',
-  apres: '173a6a2589cee962',
-};
-/** #4574 : la présence facultative du DR propre de l'incantation laisse les anciennes données valides. */
-const TRANSITION_DU_DR_PROPRE = {
-  avant: TRANSITION_DES_FORMES_D_APPARENCE.apres,
-  apres: '6567d83e466bf816',
-};
-
-/** #4644 */
-const TRANSITION_DES_ECHEANCES_DE_TAVERNE = {
-  avant: 'efb77d9c287718df',
-  apres: 'f642d26deb938799',
-};
-/** #4435 */
-const TRANSITION_DE_L_AMARRAGE = {
-  avant: '3bdb6fe66470f1fe',
-  apres: '8f9224af02d1831d',
-};
-/** #4530 : une save sans meneur désigné se lit à l'élection (`meneurChoisi` à `null`, `etatInitialDuJeu`). */
-const TRANSITION_DU_MENEUR_CHOISI = {
-  avant: '71dc897adac81733',
-  apres: 'e5850d7c5e152ce4',
-};
-/** #4804 : l'absence de `sansCavalier` laisse les anciennes données valides. */
-const TRANSITION_DU_CAVALIER = {
-  avant: 'e5850d7c5e152ce4',
-  apres: '996aa25cd3e782c4',
-};
-/** #865 : `pendingCast` perd `focused`, que la réserve de Focalisation du lanceur (`focus`) porte déjà. */
-const TRANSITION_DE_LA_RESERVE_DE_FOCALISATION = {
-  avant: TRANSITION_DU_CAVALIER.apres,
-  apres: '8d8700ecc4bfb8b0',
-};
-const FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION = FORMAT_SAVE === TRANSITION_DE_LA_RESERVE_DE_FOCALISATION.apres
-  ? TRANSITION_DE_LA_RESERVE_DE_FOCALISATION.avant : FORMAT_SAVE;
-const FORMAT_AVANT_LE_CAVALIER = FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION === TRANSITION_DU_CAVALIER.apres
-  ? TRANSITION_DU_CAVALIER.avant : FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION;
-const FORMAT_AVANT_LE_MENEUR_CHOISI = FORMAT_AVANT_LE_CAVALIER === TRANSITION_DU_MENEUR_CHOISI.apres
-  ? TRANSITION_DU_MENEUR_CHOISI.avant : FORMAT_AVANT_LE_CAVALIER;
-const FORMAT_AVANT_L_AMARRAGE = FORMAT_AVANT_LE_MENEUR_CHOISI === TRANSITION_DE_L_AMARRAGE.apres
-  ? TRANSITION_DE_L_AMARRAGE.avant : FORMAT_AVANT_LE_MENEUR_CHOISI;
-const FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE = formatAvantLesReglesDeChirurgieEtFrenesie('save', FORMAT_AVANT_L_AMARRAGE);
-const FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE = FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE === TRANSITION_DES_ECHEANCES_DE_TAVERNE.apres
-  ? TRANSITION_DES_ECHEANCES_DE_TAVERNE.avant : FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE;
-const FORMAT_A_UNE_COULEUR = formatDeLaCouleurUnique('save', FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE);
-const FORMAT_AVANT_LE_DR_PROPRE = FORMAT_A_UNE_COULEUR === TRANSITION_DU_DR_PROPRE.apres
-  ? TRANSITION_DU_DR_PROPRE.avant : FORMAT_A_UNE_COULEUR;
-const FORMAT_DE_REFERENCE = FORMAT_AVANT_LE_DR_PROPRE === TRANSITION_DES_FORMES_D_APPARENCE.apres
-  ? TRANSITION_DES_FORMES_D_APPARENCE.avant : FORMAT_AVANT_LE_DR_PROPRE;
-
 /** Validation de l'enveloppe de sauvegarde à la lecture. */
 function isValidSave(s: unknown): s is SaveGame {
   if (!s || typeof s !== 'object') return false;
   const { version, savedAt, data } = s as SaveGame;
-  return (version === FORMAT_SAVE || version === FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION || version === FORMAT_AVANT_LE_CAVALIER
-      || version === FORMAT_AVANT_LE_MENEUR_CHOISI || version === FORMAT_AVANT_L_AMARRAGE
-      || version === FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
-      || version === FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE || version === FORMAT_A_UNE_COULEUR
-      || version === FORMAT_AVANT_LE_DR_PROPRE || version === FORMAT_DE_REFERENCE
-      || formatAvantLesReferences('save', version, FORMAT_DE_REFERENCE))
+  return version === FORMAT_SAVE
     && typeof savedAt === 'string'
     && !!data && typeof data === 'object';
 }
@@ -200,17 +139,6 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
   }
   if (!isValidSave(parsed)) return 'autreFormat';
   if (scenesRefusees(parsed.data)) return 'sceneInvalide';
-  if (parsed.version !== FORMAT_SAVE) {
-    if (formatAvantLesReferences('save', parsed.version, FORMAT_DE_REFERENCE)) {
-      migrerLaSaveAvantLesReferences(parsed.data);
-    } else if (parsed.version !== FORMAT_AVANT_LA_RESERVE_DE_FOCALISATION && parsed.version !== FORMAT_AVANT_LE_CAVALIER
-        && parsed.version !== FORMAT_AVANT_LE_MENEUR_CHOISI && parsed.version !== FORMAT_AVANT_L_AMARRAGE
-        && parsed.version !== FORMAT_AVANT_LES_REGLES_DE_CHIRURGIE_ET_FRENESIE
-        && parsed.version !== FORMAT_AVANT_LES_ECHEANCES_DE_TAVERNE) {
-      migrerLaSaveAvantLesDeuxCouleurs(parsed.data);
-    }
-    parsed.version = FORMAT_SAVE;
-  }
   return parsed;
 }
 
@@ -255,8 +183,8 @@ export interface SaveChargee {
  * Charge `lue` (au `FORMAT_SAVE`, `lireSave`) : élaguée (#1463 LD.1), posée sur l'état initial du jeu, écran
  * campagne. La session réseau est celle de l'hôte qui charge, jamais celle figée dans la save : `initialNet()`.
  * L'assise de la scène est élaguée de ce que CE groupe ne porte plus (`pruneSeatAssignments`) ; une scène sans assise
- * n'en gagne pas le champ. Le paquet de campagne ré-enregistre ses scènes et re-dérive `HORS_SAVE`
- * (`reposerPaquetDeCampagne`).
+ * n'en gagne pas le champ. Le paquet de campagne re-dérive `HORS_SAVE` (`narratifDuPaquet`) ; ses scènes s'enregistrent
+ * à l'ouverture de la partie sur l'état chargé (`ouvrirLeProprietaire`).
  */
 export function chargerLaSave(lue: SaveGame): SaveChargee {
   const { save, retraits } = elaguerSave(lue);
@@ -278,7 +206,7 @@ export function chargerLaSave(lue: SaveGame): SaveChargee {
     pendingCouncil: conseil,
     screen: 'campaign',
     net: initialNet(),
-    ...reposerPaquetDeCampagne(data.campaignDoc),
+    ...narratifDuPaquet(data.campaignDoc),
   };
   return { etat, regles: save.rules, retraits: rienDElague(retraits) ? null : retraits };
 }

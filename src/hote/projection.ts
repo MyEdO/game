@@ -36,12 +36,24 @@ import {
   porteurEnVue,
   voyageEnVue,
   carteEnVue,
+  recitEnVue,
+  reposEnVue,
+  marchandEnVue,
+  interludeEnVue,
+  marcheEnVue,
+  conversationEnVue,
   toDate,
   dayPhase,
   type CarteEnVue,
   type DayPhaseId,
   type ImperialDate,
   type VoyageEnVue,
+  type RecitEnVue,
+  type ReposEnVue,
+  type MarchandEnVue,
+  type InterludeEnVue,
+  type MarcheEnVue,
+  type ConversationEnVue,
   type Combatant,
   type ConsequenceEnVue,
   type EtatDeLaBarre,
@@ -146,8 +158,9 @@ export interface EtapeProjetee {
 }
 
 /** La projection : ce que la vue montre, et rien de plus. Les listes `cibles`, `offres`, `voisins`, `gestes` et
- *  `entites` sont bornées (`BornesDeLaProjection`), le reste compté ; `jets`, `exploration.heros`, `voyage` et `carte`
- *  ne le sont pas, la donnée de la fenêtre, du groupe ou de la carte les borne. */
+ *  `entites` sont bornées (`BornesDeLaProjection`), le reste compté ; `jets`, `exploration.heros`, `voyage`, `carte`,
+ *  `recit`, `repos`, `marchand`, `marche`, `interlude` et `conversation` ne le sont pas, la donnée de la fenêtre, du
+ *  groupe, de la carte, du trajet, de l'échoppe, du marché, de l'interlude ou du dialogue les borne. */
 export interface Projection {
   pas: number;
   ecran: Jeu['screen'];
@@ -158,6 +171,18 @@ export interface Projection {
   voyage: VoyageEnVue | null;
   /** La carte du monde qui tient la main (`carteEnVue`), `null` sans elle. */
   carte: CarteEnVue | null;
+  /** Le récit du trajet qui tient la main (`recitEnVue`), `null` sans lui. */
+  recit: RecitEnVue | null;
+  /** La nuit à régler (`reposEnVue`), `null` hors du repos. */
+  repos: ReposEnVue | null;
+  /** L'échoppe qui tient la main (`marchandEnVue`), `null` sans elle. */
+  marchand: MarchandEnVue | null;
+  /** Le marché de cargaison qui tient la main (`marcheEnVue`), `null` sans lui. */
+  marche: MarcheEnVue | null;
+  /** L'interlude qui tient la main (`interludeEnVue`), `null` sans lui. */
+  interlude: InterludeEnVue | null;
+  /** La conversation en cours (`conversationEnVue`), `null` hors dialogue. */
+  conversation: ConversationEnVue | null;
   /** La fenêtre qui tient la main, en combat comme hors combat, ses gestes (un verbe, et le flux d'un verbe de jet),
    *  ceux qui sont fermés maintenant avec leur raison, par l'identité du geste (`cleDuGeste`, `fermeturesDeLaFenetre`),
    *  et l'id que ses gestes désignent (`pid`, `argumentsPosesDuGeste`) ; pour la cascade, son étape courante
@@ -376,6 +401,12 @@ export function projeter(etat: Jeu, pas: number, journal: number, bornes: Bornes
     temps: { date: toDate(etat.gameTime), moment: { id: moment.id, nom: moment.label } },
     voyage: voyageEnVue(etat),
     carte: carteEnVue(etat),
+    recit: recitEnVue(etat),
+    repos: reposEnVue(etat),
+    marchand: marchandEnVue(etat),
+    marche: marcheEnVue(etat),
+    interlude: interludeEnVue(etat),
+    conversation: conversationEnVue(etat),
     fenetre: fenetreProjetee ? { cle: fenetreProjetee.cle, proprietaire: proprietaireDeLaFenetre(etat, fenetreProjetee.proprietaire), gestes: fenetreProjetee.gestes, fermes: fermesDe(etat, fenetreProjetee), pid: fenetreProjetee.pid ?? null, ...etapeDe(etat, fenetreProjetee) } : null,
     jets,
     combat: b

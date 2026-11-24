@@ -71,8 +71,8 @@ export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   territorial: z.boolean().optional(),
   /** LDB 14 l.182 */
   skittishMount: z.boolean().optional(),
-  /** LDB 85 l.112 */
-  refuseLeCavalier: z.boolean().optional(),
+  /** LDB 85 l.112 ; AA 09 l.23 */
+  monture: z.boolean().optional(),
   /** ADE II 8 l.296 */
   structResistant: z.boolean().optional(),
   /** ADE II 8 l.300 */
@@ -132,7 +132,7 @@ export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   rage: { label: 'Rage' },
   territorial: { label: 'Territorial' },
   skittishMount: { label: 'Monture craintive' },
-  refuseLeCavalier: { label: 'Refuse un cavalier' },
+  monture: { label: 'Accepte un cavalier' },
   structResistant: { label: 'Structure résistante' },
   structImpenetrable: { label: 'Structure impénétrable' },
   fly: { label: 'Vol' },

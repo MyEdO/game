@@ -1,52 +1,41 @@
 /**
- * LE RÉCIT DE VOYAGE EN VUE (#3328) — ce qu'un hôte montre du récit d'un trajet (`travelRecap`) : son issue (arrivée,
- * interruption, arrêt, embuscade en attente), la route faite, puis à l'arrivée la durée du voyage, sinon chaque journée
- * et ce qui s'y est passé, et ce qui permet de repartir. Lecteur PUR, lu par les hôtes du noyau (`hote/ecran.ts`).
+ * LE RÉCIT DE VOYAGE EN VUE (#3328, #4574) — ce qu'un hôte montre du récit d'un trajet (`travelRecap`), en données :
+ * son issue (arrivée, interruption, arrêt, embuscade en attente), ses lieux et sa route, son mode, sa distance et ce
+ * qui en reste, la durée du voyage arrivé et chaque journée du segment (`journeeEnVue`). Lecteur PUR, lu par la
+ * projection des hôtes (`hote/projection.ts`).
  */
 import type { Jeu } from './etat';
-import { clockLabel } from '../engine/duration';
-import { distanceDeRoute, libelleDeDistance, travelModeLabels } from '../engine/travel';
-import { elision, t } from '../i18n';
+import { distanceDeRoute, type Distance } from '../engine/travel';
 import { fenetreDuJeu } from './combatAuto';
+import { modeEnVue, type ModeEnVue } from './carteEnVue';
+import { journeeEnVue, type JourneeEnVue } from './voyageEnVue';
+import { nomDuLieu } from './worldMap';
 
-/** Une journée de route : sa longueur et sa durée dites, et ce qui s'y est passé. */
-export interface JourneeEnVue { libelle: string; lignes: string[] }
-
-/** Le récit en vue : son issue, son titre, la route faite, la durée du voyage arrivé, les journées d'un voyage qui
- *  n'est pas arrivé, et ce qui permet d'en repartir. */
+/** Le récit en vue : son issue ; `depart`, `arrivee` et `route` par leur id, `de` et `vers` les noms des deux lieux ;
+ *  `distance` du trajet et `reste`, la distance exacte qui reste (`null` à l'arrivée), en km (`runTravelDays`) ;
+ *  `dureeMin`, la durée du voyage arrivé en minutes de jeu (`null` hors d'une arrivée) ; `journees`, chaque journée du
+ *  segment. */
 export interface RecitEnVue {
   issue: 'arrivee' | 'interruption' | 'arret' | 'embuscade';
-  titre: string;
-  route: string;
-  duree: string | null;
+  depart: string; arrivee: string; route: string; de: string; vers: string;
+  mode: ModeEnVue;
+  distance: Distance; reste: Distance | null; dureeMin: number | null;
   journees: JourneeEnVue[];
-  suite: string | null;
 }
-
-const TITRE = { arrivee: 'trm.titreArrivee', interruption: 'trm.titreInterrompu', arret: 'trm.titreArret', embuscade: 'trm.titreEmbuscade' } as const;
-const SUITE = { arrivee: null, interruption: 'trm.piedInterrompu', arret: 'trm.piedSurcharge', embuscade: 'trm.piedEmbuscade' } as const;
 
 /** Le récit du trajet que le groupe vient de faire, quand il tient la main (`fenetreDuJeu`) ; `null` sinon. PUR. */
 export function recitEnVue(s: Jeu): RecitEnVue | null {
   const r = s.travelRecap;
   if (!r || fenetreDuJeu(s)?.cle !== 'recitDeVoyage') return null;
-  const mer = r.mode === 'mer';
-  const issue = r.then ? 'embuscade' : r.status === 'arrived' ? 'arrivee' : r.status === 'interrupted' ? 'interruption' : 'arret';
-  const reste = Math.max(0, Math.round(r.km - r.kmDone));
-  const route = [
-    t('trm.route', { de: elision('de', r.fromLabel), depart: r.fromLabel, vers: r.toLabel, distance: libelleDeDistance(distanceDeRoute(r.km, mer)), mode: travelModeLabels()[r.mode].toLowerCase() }),
-    ...(r.status === 'arrived' ? [] : [reste > 0 ? t('trm.restants', { distance: libelleDeDistance(distanceDeRoute(reste, mer)) }) : t('trm.auxPortes', { lieu: r.toLabel })]),
-  ].join(t('ecran.separateur'));
-  const duree = r.status === 'arrived' && r.dureeMin ? clockLabel(r.dureeMin, { exact: true }) : undefined;
+  const nom = (id: string) => nomDuLieu(s.worldMap, id);
+  const arrive = r.status === 'arrived';
   return {
-    issue,
-    titre: t(TITRE[issue], { lieu: r.toLabel }),
-    route,
-    duree: duree ? t('trm.dureeVoyage', { duree }) : null,
-    journees: r.status === 'arrived' ? [] : r.days.map((d, i) => ({
-      libelle: t('trm.jour', { n: i + 1, distance: libelleDeDistance(distanceDeRoute(d.kmTo - d.kmFrom, mer)), heures: Math.round(d.hours) }),
-      lignes: d.lines.map((l) => l.text),
-    })),
-    suite: SUITE[issue] && t(SUITE[issue]),
+    issue: r.then ? 'embuscade' : arrive ? 'arrivee' : r.status === 'interrupted' ? 'interruption' : 'arret',
+    depart: r.depart, arrivee: r.arrivee, route: r.route, de: nom(r.depart), vers: nom(r.arrivee),
+    mode: modeEnVue(r.mode),
+    distance: distanceDeRoute(r.km, false),
+    reste: arrive ? null : distanceDeRoute(Math.max(0, r.km - r.kmDone), false),
+    dureeMin: r.dureeMin ?? null,
+    journees: r.days.map(journeeEnVue),
   };
 }

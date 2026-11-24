@@ -10628,6 +10628,13 @@
      },
      "creature": {
       "id": "cheval"
+     },
+     "combat": {
+      "optionals": [
+       {
+        "id": "dresse-monture"
+       }
+      ]
      }
     },
     {
@@ -10639,6 +10646,13 @@
      },
      "creature": {
       "id": "cheval"
+     },
+     "combat": {
+      "optionals": [
+       {
+        "id": "dresse-monture"
+       }
+      ]
      }
     },
     {
@@ -10661,6 +10675,13 @@
      },
      "creature": {
       "id": "cheval"
+     },
+     "combat": {
+      "optionals": [
+       {
+        "id": "dresse-monture"
+       }
+      ]
      }
     },
     {

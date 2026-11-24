@@ -87,6 +87,8 @@ const champs = {
     }), { price: { label: "prix" }, availability: { label: "disponibilité" } }).optional(),
     /** Facette EMBAUCHE (mercenaires, MDG 14 l.293-302). */
     embauche: baremeDEmbaucheSchema.optional(),
+    /** LDB 85 l.112 */
+    competenceDuCavalier: refOuSpec('skill').optional(),
 };
 
 const doc = document(
@@ -128,6 +130,10 @@ const doc = document(
     corruption: { label: 'Points de Corruption', hint: 'Points de Corruption imprimés par le profil (LDB 19)' },
     purchase: { label: 'Facette Achat', hint: 'Prix et Disponibilité à l’achat (montures)' },
     embauche: { label: 'Facette Embauche', hint: 'Coût quotidien et hebdomadaire de ce profil embauché comme mercenaire' },
+    competenceDuCavalier: {
+      label: 'Compétence exigée du cavalier',
+      hint: 'Monture belliqueuse : elle n’accepte qu’un cavalier qui possède cette Compétence',
+    },
   },
   {
     codex: { keys: ['creatures'] },

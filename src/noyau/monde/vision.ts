@@ -20,6 +20,7 @@ import { ancreDuDecor } from './footprint';
 import { piedDuDecor } from './poseDuDecor';
 import { Pt } from './path';
 import { chebyshev } from '../../engine/grid';
+import { isHeld } from '../../engine/weaponLoad';
 import { effectiveTalents, type PorteurDeTalents } from '../../engine/talentEffects';
 import { findLightLevelById, findTraitById, findPropById } from '../../data';
 import { rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
@@ -212,7 +213,7 @@ function foyerDe(scene: SceneDuVolume, ent: SceneEntity, prop: PropData | undefi
 
 /** Source de lumière PORTÉE par un combattant/groupe : le plus grand rayon parmi ses émetteurs, émis depuis
  *  `pos`. PUR. Deux canaux UNIFIÉS (op `light`) : (1) un OBJET portant un `passive` `op:'light'`, GATÉ sur
- *  le port — équipé (`it.equipped`) ou tenu dans le loadout actif (`c.weapons`) ; un objet RANGÉ dans le sac
+ *  le port (`isHeld`) — porté (`it.equipped`) ou tenu dans le loadout actif (`c.weapons`) ; un objet RANGÉ dans le sac
  *  n'éclaire pas (RAW : on s'éclaire avec une lanterne en main, pas au fond du sac). (2) un SORT actif
  *  (`ActiveEffect.light`, ex. Lumière) pendant sa durée. */
 export function combatantLights(c: {
@@ -228,8 +229,7 @@ export function combatantLights(c: {
   let rM = 0;
   let tone: string | undefined;
   for (const it of c.items ?? []) {
-    const held = !!it.equipped || (c.weapons ?? []).some((w) => w.uid === it.uid);
-    if (!held) continue;
+    if (!isHeld(c, it)) continue;
     for (const op of it.passive ?? []) {
       if (op.op === 'light' && op.radiusM > rM) { rM = op.radiusM; tone = op.tone?.id; }
     }

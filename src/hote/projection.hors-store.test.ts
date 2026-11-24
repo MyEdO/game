@@ -12,7 +12,14 @@ import { ouvrirLeBanc } from '../noyau/banc.testkit';
 import { applyEffects } from '../noyau/combatEffects';
 import { imposerLesD100 } from '../noyau/battleRng.testkit';
 import { voyageEnVue } from '../noyau/voyageEnVue';
+import { recitEnVue } from '../noyau/recitEnVue';
+import { reposEnVue } from '../noyau/reposEnVue';
+import { conversationEnVue, ouvrirDialogue } from '../noyau/dialogue';
+import type { Dialogue } from '../noyau/monde/scene';
+import { fixtureText } from '../i18n/fixtureText';
 import { carteEnVue } from '../noyau/carteEnVue';
+import { interludeEnVue } from '../noyau/interludeEnVue';
+import { bancDeLInterlude } from '../noyau/interlude.testkit';
 import { dayPhase, toDate } from '../engine/clock';
 import { scenario as fluvial } from '../scenes/test-scenarios/15-commerce-fluvial';
 
@@ -160,6 +167,35 @@ describe('projection du temps, du voyage et de la carte', () => {
     expect(vue.voyage).not.toBeNull();
     expect(vue.voyage).toEqual(voyageEnVue(banc.getState()));
     expect(vue.carte).toBeNull();
+    expect(vue.recit, 'en route, aucun récit').toBeNull();
+    expect(vue.repos, 'en route, aucune nuit à régler').toBeNull();
+    expect([vue.marchand, vue.marche, vue.conversation, vue.interlude], 'en route, ni échoppe, ni marché, ni conversation, ni interlude').toEqual([null, null, null, null]);
+  });
+
+  it('la conversation en cours : la conversation du lecteur, en données, sans fenêtre qui tienne la main', () => {
+    const { banc } = surLaCarte(8 * 60);
+    const dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Bien le bonjour.', choices: [{ id: 'r1', label: 'Bonjour' }] }] } as Dialogue;
+    banc.setState({ dialogue: ouvrirDialogue(banc.getState(), dialogue) });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.fenetre).toBeNull();
+    expect(vue.conversation).toMatchObject({ orateur: null, replique: 'Bien le bonjour.', reponses: [{ id: 'r1', label: 'Bonjour' }] });
+    expect(vue.conversation).toEqual(conversationEnVue(banc.getState()));
+  });
+
+  it('la nuit à régler : le repos du lecteur, en données', () => {
+    const { banc } = surLaCarte(20 * 60);
+    banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { camp: true } });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.repos).toMatchObject({ lieu: { nom: 'Ici' }, toit: 'campement', nuits: 1 });
+    expect(vue.repos).toEqual(reposEnVue(banc.getState()));
+  });
+
+  it('le récit d’un trajet qui tient la main : le récit du lecteur, en données', () => {
+    const { banc, route } = surLaCarte(8 * 60);
+    banc.setState({ travelRecap: { depart: route.a.id, arrivee: route.b.id, route: route.id, mode: 'pied', status: 'interrupted', km: route.km, kmDone: 3.5, days: [] } });
+    const vue = projeter(banc.getState(), 0, 0, bornes);
+    expect(vue.recit).toMatchObject({ issue: 'interruption', depart: route.a.id, route: route.id, reste: { valeur: route.km - 3.5, unite: 'km' } });
+    expect(vue.recit).toEqual(recitEnVue(banc.getState()));
   });
 
   it('la carte ouverte : la carte du lecteur, et aucun voyage', () => {
@@ -169,5 +205,14 @@ describe('projection du temps, du voyage et de la carte', () => {
     expect(vue.carte).not.toBeNull();
     expect(vue.carte).toEqual(carteEnVue(banc.getState()));
     expect(vue.voyage).toBeNull();
+  });
+});
+
+describe('projection de l’interlude', () => {
+  it('l’interlude ouvert : l’interlude du lecteur, en données', () => {
+    const { banc, id } = bancDeLInterlude();
+    const vue = projeter(banc.getState(), 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 });
+    expect(vue.interlude).toMatchObject({ semaines: 1, heros: [{ id }] });
+    expect(vue.interlude).toEqual(interludeEnVue(banc.getState()));
   });
 });

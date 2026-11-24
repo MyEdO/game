@@ -29,8 +29,7 @@ import type { RollBreakdown } from '../engine/combat';
 import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
 import { reposDeScene } from './monde/scene';
-import { partyAssisted, peutTenter } from '../engine/skills';
-import { HEAL_SKILL } from '../engine/healing';
+import { partyAssisted } from '../engine/skills';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, constatSansRecuperation, type RestRoll } from '../engine/rest';
@@ -69,6 +68,9 @@ import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbs
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
+import { jouerLEntretienDesRoundsEcoules } from './outOfCombatUpkeep';
+import { confierLaSuite, OPS_DIFFEREES } from './combatEffects';
+import { checkPartyWiped } from './partyWipe';
 import { continueTravelAfterNight } from './travelFlow';
 import { activeExposureSeverity } from './combatFlow';
 import { bus, EVT } from './bus';
@@ -101,35 +103,35 @@ export function placesOfKind(kind: RestKind): RestPlaces {
   return kind === 'auberge' ? { auberge: true, camp: true } : kind === 'maison' ? { maison: true, camp: true } : { camp: true };
 }
 
+/** Où le groupe passe la nuit : un lieu nommé (scène, établissement, navire), ou la route d'une halte de voyage par les
+ *  ids de ses deux extrémités. */
+export type LieuDuRepos = { nom: PlayerText } | { route: { de: string; vers: string } };
+
 /** Le lieu de la scène COURANTE, pour une nuit qui s'y passe (bouton de Repos, hôtellerie de ville,
  *  effet `rest`, attente de l'aube au départ). */
-export function sceneLieu(get: Get): PlayerText {
-  return dataLabel(garanti(get().scene, undefined, 'scène de la nuit').label);
+export function sceneLieu(get: Get): LieuDuRepos {
+  return { nom: dataLabel(garanti(get().scene, undefined, 'scène de la nuit').label) };
 }
 
-/** Le lieu d'une halte de nuit SUR LA ROUTE du voyage (terre et fleuve), nommée par ses deux extrémités —
- *  la forme de l'en-tête de l'écran de voyage (`VoyageScreen`). */
-export function routeLieu(worldMap: WorldMap, plan: { fromPlaceId: string; toPlaceId: string }): PlayerText {
-  const from = libelleOuAbsence(placeById(worldMap, plan.fromPlaceId), 'lieu', plan.fromPlaceId);
-  const to = libelleOuAbsence(placeById(worldMap, plan.toPlaceId), 'lieu', plan.toPlaceId);
-  return t('rf.lieuRoute', { from, to });
+/** Le lieu d'une halte de nuit SUR LA ROUTE du voyage (terre et fleuve) : ses deux extrémités. */
+export function routeLieu(plan: { fromPlaceId: string; toPlaceId: string }): LieuDuRepos {
+  return { route: { de: plan.fromPlaceId, vers: plan.toPlaceId } };
 }
 
 /** Entrée du PROCÈS-VERBAL (bilan multi-jets, réutilisable : jour de mer #232, chronique de voyage…).
- *  Une ligne = un jet de ROUTINE déjà résolu (témoin), rendu en LECTURE SEULE par `MultiRollList` — la
- *  nuit de repos (#347) n'en tisse plus : chaque jet de nuit est une ÉTAPE de cascade influençable
- *  (`noyau/cascade.ts`), pas une ligne de PV recalculée après coup. */
+ *  Une ligne = un jet de ROUTINE déjà résolu (témoin), en LECTURE SEULE ; un jet de nuit de repos est une ÉTAPE de
+ *  cascade influençable (`noyau/cascade.ts`, #347). */
 export interface NightEntry {
   id?: string;
   actorId?: string;
   icon?: IconId;
   label: string;
-  /** Jet affiché en RollLine (base + mods = cible · d100 · DR). */
+  /** Le jet (base + mods = cible · d100 · DR). */
   d?: RollBreakdown;
   /** Issue / note en clair (« +7 PB », « jour 4/6 »). */
   text?: string;
   /** RUBRIQUE de la ligne : les lignes consécutives d'une MÊME rubrique (les contributeurs d'un même
-   *  Test d'équipage) se rendent sous UNE bande titrée (`Band`) au lieu de répéter l'en-tête. */
+   *  Test d'équipage) se lisent sous UNE rubrique, sans répéter l'en-tête. */
   group?: string;
   /** Vocabulaire PARTAGÉ (#349) — `RecapTone`, `noyau/recapLine.ts` (même trio que `RecapLine.tone`). */
   tone?: RecapTone;
@@ -140,7 +142,7 @@ export interface NightEntry {
   rerolled?: boolean;
   /** ENJEU du jet consigné (#1117 L1b) — la RÉFÉRENCE de donnée, jamais un texte : l'entrée de PV
    *  porte ce que l'ÉTAPE mettait en jeu (`CascadeStep.stake`, recopié à l'émission). Rendu UNE fois
-   *  par rubrique (`group`) par `MultiRollList` — l'enjeu est celui de l'étape, pas de chaque ligne. */
+   *  par rubrique (`group`) — l'enjeu est celui de l'étape, pas de chaque ligne. */
   stake?: StakeRef;
 }
 
@@ -148,9 +150,9 @@ export interface PendingRest extends PendingBase {
   places: RestPlaces;
   /** Les offres d'auberge de la nuit, résolues à l'ouverture (`ouvrirLeRepos`) ; aucune hors d'une auberge. */
   offres: readonly OffreDuRepos[];
-  /** OÙ le groupe passe la nuit, nommé par l'APPELANT d'`ouvrirLeRepos` (relais ou bivouac de la route,
-   *  bord du bateau, scène courante) — seul lieu du titre de la modale. */
-  lieu: PlayerText;
+  /** OÙ le groupe passe la nuit, dit par l'APPELANT d'`ouvrirLeRepos` (route de la halte, navire, scène courante,
+   *  établissement). */
+  lieu: LieuDuRepos;
   /** Qualité de la chambre et du repas (`QUALITE_DU_REPOS`). */
   quality: QualiteDeRepos;
   days: number;
@@ -170,7 +172,7 @@ import type { Get, Set } from './flowTypes';
 import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { listeEt, t, type MsgKey } from '../i18n';
-import { lieuDuGroupe, placeById, offresDeLAubergeDeScene, type OffreDuRepos, type WorldMap } from './worldMap';
+import { lieuDuGroupe, offresDeLAubergeDeScene, type OffreDuRepos } from './worldMap';
 import { hebergementsDuLieu, refuserLeServiceFerme } from './lieuFlow';
 import { refuserGeste } from './refusVisible';
 import { garanti } from '../lib/garanti';
@@ -190,9 +192,6 @@ const SKILL_CALME = (): string => refLabel('skills', { id: 'calme' });
 /**
  * LE moteur de nuit (sans modale) : avance l'horloge à l'aube (× days), entretien #T3, récupération
  * + cauchemars, contagion. Renvoie le bilan structuré ; écrit aussi le journal.
- * NB : on n'avance PAS l'horloge minute par minute (avancerLeTemps rejouerait l'entretien de Round —
- * hémorragie/poison/feu tueraient le dormeur ; LDB 16 l.105 : le repos suppose des États stabilisés,
- * restRecovery refuse d'ailleurs un héros Hémorragique/En flammes/Empoisonné).
  */
 export function sleepParty(
   get: Get,
@@ -206,8 +205,6 @@ export function sleepParty(
   const entries: NightEntry[] = [];
   const journal: string[] = [];
 
-  // Soins prolongés (LDB 09) : présence d'un soignant valide (Guérison) → −1 jour/jour par maladie.
-  const caredFor = get().party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   // La nuit passe — chaque journée de repos se termine à l'AUBE, UNE NUIT À LA FOIS : n nuits dormies
   // sont n RÉVEILS (`lastNightDay` posé à chaque aube atteinte, avant l'entretien de cette journée-là),
   // donc n émissions d'`onWake`. Un séjour de 7 nuits qui n'aurait sauté qu'à l'aube finale ne
@@ -224,7 +221,7 @@ export function sleepParty(
     // par la porte, comme dans la nuit interactive : ce chemin les résout d'office (`runCascadeImmediate`
     // — branche I du seam), il ne les roule pas lui-même et ne saute aucune fenêtre qui existerait.
     const deferred: DeferredUpkeepTest[] = [];
-    const entretien = runDailyUpkeep(get, set, { caredFor, fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
+    const entretien = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
     const idsDuGroupe = new Set(get().party.map((h) => h.id));
     for (const { actorId, text } of entretien) {
       entries.push({
@@ -409,7 +406,6 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
  * avant et après le repos.
  */
 export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fedDaily?: boolean; extraContagion?: ContagionSpec[] } = {}): { steps: BuiltCascadeStep[]; log: string[]; slept: { from: number; to: number } } {
-  let party = get().party;
   const log: string[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
@@ -422,19 +418,18 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Entretien quotidien (#T3) — la partie SANS jet est eager (rations consommées, jours décomptés) ;
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
   // étape influençable (sinon il serait pré-résolu dans le journal AVANT que le joueur n'agisse).
-  const caredFor = party.some((h) => peutTenter(h, { skill: { id: HEAL_SKILL } }));
   const deferred: DeferredUpkeepTest[] = [];
   // `runDailyUpkeep` journalise DÉJÀ ses propres lignes (upkeep.ts, source unique anti-double-comptage,
   // #216) : on les garde dans `log` (retourné pour le bilan/la modale de cascade) SANS les re-journaliser
   // plus bas — `upkeepCount` marque la frontière entre ce qui est déjà écrit et le reste de cette fonction.
-  const upkeep = runDailyUpkeep(get, set, { caredFor, fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
+  const upkeep = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
   log.push(...upkeep.map(({ text }) => text));
   const upkeepCount = upkeep.length;
-  // `party` RAFRAÎCHI : `runDailyUpkeep` a pu débiter les gages (`tickCampaignVesselWeek` → clone
+  // `party` lu APRÈS l'entretien : `runDailyUpkeep` a pu débiter les gages (`tickCampaignVesselWeek` → clone
   // `withBourseMoney` du/des héros ponctionnés) — toute la suite (mutations eager de récupération/
   // cauchemars, `expireOnRespite`) doit opérer sur ces réfs à jour, pas sur celles PÉRIMÉES
   // d'avant l'entretien (sinon perdues au `set({party:[...get().party]})` de clôture, l.551).
-  party = get().party;
+  const party = get().party;
 
   const steps: BuiltCascadeStep[] = [];
   // MARCHE FORCÉE de la journée de voyage (LDB 51 l.195) : un jet par héros — la chaîne ouvre la cascade.
@@ -592,9 +587,12 @@ export function chambresDuRepos(p: PendingRest, party: Combatant[]): ChambreDuRe
   return [...parId.values()].sort((a, b) => OFFRES_DE_CHAMBRE.indexOf(a.offre) - OFFRES_DE_CHAMBRE.indexOf(b.offre) || a.numero - b.numero);
 }
 
-/** Un couchage que la nuit offre au dormeur `pid` (`undefined` : hors de toute rangée) : son id, son libellé, et sa
- *  raison de fermeture (`refus`) ou `null`. */
-export interface CouchageDeLaNuit { id: RestLodging; libelle: string; refus: string | null }
+/** Une chambre offerte au dormeur : son offre, son numéro, ses lits, ceux qui y dorment, et si elle est pleine sans lui. */
+interface ChambreOfferte { offre: OffreDeChambre; numero: number; lits: number; occupants: string[]; pleine: boolean }
+
+/** Un couchage que la nuit offre au dormeur `pid` (`undefined` : hors de toute rangée) : son id, son libellé, sa
+ *  chambre (`null` hors chambre) et sa raison de fermeture (`refus`) ou `null`. */
+export interface CouchageDeLaNuit { id: RestLodging; libelle: string; chambre: ChambreOfferte | null; refus: string | null }
 
 /** Les chambres que la nuit offre au dormeur `pid` : une chambre prise, fermée s'il n'y dort pas et que ses lits sont
  *  tous occupés, ou la chambre neuve d'une offre de la nuit (numéro libre suivant). PUR. */
@@ -606,12 +604,16 @@ function chambresOffertes(p: PendingRest, party: Combatant[], pid?: string): Cou
     const chambre = t(LIBELLES_DE_CHAMBRE[c.offre].prise, { n: c.numero, lits });
     const autres = c.occupants.filter((o) => o !== pid).map(nom);
     const pleine = c.occupants.length >= lits && !c.occupants.includes(pid ?? '');
-    return { id: c.id, libelle: autres.length ? t('rf.chambreAvec', { chambre, noms: listeEt(autres) }) : chambre, refus: pleine ? t('rf.chambrePleine') : null };
+    return {
+      id: c.id, libelle: autres.length ? t('rf.chambreAvec', { chambre, noms: listeEt(autres) }) : chambre,
+      chambre: { offre: c.offre, numero: c.numero, lits, occupants: c.occupants, pleine }, refus: pleine ? t('rf.chambrePleine') : null,
+    };
   });
   const neuves = OFFRES_DE_CHAMBRE.filter((offre) => offreDuRepos(p, offre)).map((offre) => {
     let numero = 1;
     while (prises.some((c) => c.id === idDeChambre(offre, numero))) numero++;
-    return { id: idDeChambre(offre, numero), libelle: t(LIBELLES_DE_CHAMBRE[offre].neuve, { lits: CHAMBRES[offre].lits }), refus: null };
+    const lits = CHAMBRES[offre].lits;
+    return { id: idDeChambre(offre, numero), libelle: t(LIBELLES_DE_CHAMBRE[offre].neuve, { lits }), chambre: { offre, numero, lits, occupants: [], pleine: false }, refus: null };
   });
   return [...ouvertes, ...neuves];
 }
@@ -621,7 +623,7 @@ function chambresOffertes(p: PendingRest, party: Combatant[], pid?: string): Cou
 export function couchagesDeLaNuit(p: PendingRest, party: Combatant[], pid?: string): CouchageDeLaNuit[] {
   return [
     ...chambresOffertes(p, party, pid),
-    ...lodgingOptions(p).map((id) => ({ id, libelle: garanti(libelleDuLitteral(id, 'couchage'), id, 'couchage sans chambre'), refus: null })),
+    ...lodgingOptions(p).map((id) => ({ id, libelle: garanti(libelleDuLitteral(id, 'couchage'), id, 'couchage sans chambre'), chambre: null, refus: null })),
   ];
 }
 
@@ -695,9 +697,9 @@ export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: QualiteD
   return { places, quality: zone?.quality ?? sc.rest?.quality ?? 'normale' };
 }
 
-/** Options d'`ouvrirLeRepos` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = son nom). */
+/** Options d'`ouvrirLeRepos` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = où). */
 export interface OpenRestOpts {
-  lieu: PlayerText;
+  lieu: LieuDuRepos;
   places?: RestPlaces;
   quality?: QualiteDeRepos;
   /** Les offres d'auberge de la nuit, celles de l'établissement résolues par `placeServices` ; absentes : celles d'une
@@ -719,8 +721,8 @@ export function reposDuLieu(get: Get, hebergementId?: string): OpenRestOpts | nu
   if (ici) {
     const etablissement = hebergementsDuLieu(s).find((svc) => svc.id === hebergementId);
     if (!etablissement) return null;
-    const lieu = etablissement.nommeParLAuteur ? dataLabel(etablissement.label) : libelleOuAbsence(ici, 'lieu', ici.id);
-    return { ...etablissement.rest, lieu };
+    const nom = etablissement.nommeParLAuteur ? dataLabel(etablissement.label) : libelleOuAbsence(ici, 'lieu', ici.id);
+    return { ...etablissement.rest, lieu: { nom } };
   }
   const scene = restPlacesHere(s);
   return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
@@ -740,7 +742,7 @@ export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
     perHero[h.id] = { lodging: chambres[h.id] ?? lodgingOptions(nuit)[0], food: foodOptions(nuit, h)[0] };
   }
   // CHRONIQUE de voyage (#333) : une halte de voyage porte le jour FINALISÉ — on l'accumule sur le plan
-  // (même `set` que la modale) pour que l'écran-hub (`VoyageScreen`) en tienne le journal (une carte par
+  // (même `set` que la nuit à régler) pour que le trajet en vue (`voyageEnVue`) en tienne le journal (une journée par
   // jour passé), source unique (STRUCTURE `TravelRecapDay`, jamais une chaîne recomposée). No-op hors halte.
   const logPatch = opts.travelDay && st.travelPlan
     ? { travelPlan: { ...st.travelPlan, log: [...(st.travelPlan.log ?? []), opts.travelDay] } }
@@ -822,7 +824,7 @@ function dormir(get: Get, set: Set): void {
   //    nuit N+1 lit l'état MUTÉ par la nuit N — compteurs de faim/soif, jours de maladie…) : chaque
   //    nuit est reconstruite APRÈS que la précédente ait été validée, chaînée par `dispatchCascadeDone`
   //    (`combatSlice.ts`, `done.restNights`) — une nuit UNIQUE est le cas `days=1` de la même primitive.
-  //    Le report de voyage du jour a déjà été lu en phase RÉGLAGES (RestModal).
+  //    Le report de voyage du jour a déjà été lu en phase RÉGLAGES (`voyageEnVue`).
   set({ pendingRest: null });
   openRestNight(get, set, p, p.days, extraContagion);
 }
@@ -841,10 +843,8 @@ export function toitDeLaNuit(p: PendingRest, party: Combatant[]): ToitDeLaNuit {
     : 'campement';
 }
 
-/** Titre de la nuit, d'après son toit (`toitDeLaNuit`). */
-export function nightTitle(p: PendingRest, party: Combatant[]): string {
-  return t(({ auberge: 'rf.nightInn', maison: 'rf.nightHome', bord: 'rf.nightAboard', campement: 'rf.nightCamp' } as const)[toitDeLaNuit(p, party)]);
-}
+/** Le titre de la nuit, par son toit (`toitDeLaNuit`). */
+export const TITRE_DE_LA_NUIT = { auberge: 'rf.nightInn', maison: 'rf.nightHome', bord: 'rf.nightAboard', campement: 'rf.nightCamp' } as const satisfies Record<ToitDeLaNuit, MsgKey>;
 
 /** Ouvre (ou enchaîne) UNE nuit de repos (#347) : reconstruit `buildNightCascade` pour CETTE nuit et
  *  l'ouvre en cascade influençable, en portant `nightsLeft` (nuits ENCORE à enchaîner après celle-ci)
@@ -852,7 +852,15 @@ export function nightTitle(p: PendingRest, party: Combatant[]): string {
  *  la nuit suivante. `extraContagion` (repas de la qualité à risque) ne s'applique qu'à la nuit d'ARRIVÉE (repas
  *  du soir posé une fois en amont par `dormir`).
  */
-export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = []): void {
+export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = [], apresLesRounds?: true): void {
+  // Les Rounds de la nuit, joués avant elle : LDB 16 l.105.
+  if (!apresLesRounds) {
+    const minutes = aubeApresNuits(get().gameTime, 1) - get().gameTime;
+    if (jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+      confierLaSuite(set, [{ verbe: 'reprendreLaNuit', p, nightsLeft, extraContagion }]);
+      return;
+    }
+  }
   const { steps, log } = buildNightCascade(get, set, p, { extraContagion });
   const remaining = nightsLeft - 1;
   // La halte de voyage (travelHalt) reprend la route à la clôture — SEULEMENT sur la DERNIÈRE nuit du
@@ -861,9 +869,11 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
   const isLast = remaining <= 0;
   if (steps.length) {
     startCascade(get, set, {
-      title: nightTitle(p, get().party), icon: 'temps/nuit', purpose: isLast && p.travelHalt ? 'travel' : 'night',
+      title: t(TITRE_DE_LA_NUIT[toitDeLaNuit(p, get().party)]), icon: 'temps/nuit', purpose: isLast && p.travelHalt ? 'travel' : 'night',
       travelHalt: isLast ? p.travelHalt : undefined, steps, log, restNights: { p, nightsLeft: remaining },
     });
+  } else if (checkPartyWiped(get, set)) {
+    return;
   } else if (remaining > 0) {
     // `buildNightCascade` a DÉJÀ journalisé le titre + tout ce qui suit l'entretien (#216) — rien à
     // influencer cette nuit-ci (PB pleins, pas de campement) → enchaîne directement la suivante.
@@ -913,6 +923,9 @@ export const GENRES_D_ETAPE = [
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
+  clotures: {
+    reprendreLaNuit: (get, set, { p, nightsLeft, extraContagion }) => openRestNight(get, set, p, nightsLeft, extraContagion, true),
+  },
   appliers: {
     ...tableTotale(EXPOSURE_BAND_KINDS, () => appliquerLExposition),
     recuperation: bandeDeNuit((_get, _set, _band, row, hero) => {

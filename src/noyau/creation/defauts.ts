@@ -36,14 +36,12 @@ import {
   attendSaSpec,
   probeHero,
   CAREER_CHAR_ADVANCES,
-  SPECIES_SKILLS_PLUS5,
-  SPECIES_SKILLS_PLUS3,
 } from './brouillon';
 import { species, levelsForCareer } from '../../data';
 import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import type { CharKey } from '../../engine/types';
 import { talentMaxReached } from '../../engine/careerSlots';
-import { CAREER_SKILL_ADVANCES, designer, libreDEspece } from '../../engine/character';
+import { CAREER_SKILL_ADVANCES, SPECIES_SKILLS_PLUS3, SPECIES_SKILLS_PLUS5, designer, libreDEspece } from '../../engine/character';
 
 function fillSpecies(d: CreatorDraft): CreatorDraft {
   if (draftSpecies(d)) return d;

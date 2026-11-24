@@ -3,8 +3,9 @@
  * tenu par le propriétaire du jeu (`proprietaireDuJeu.ts`) : l'état et les actions du
  * noyau, le branchement, une plateforme dont l'appel différé rend un jeton que l'hôte rejoue par `reprendre`,
  * et les entrées de D8. Chaque appel rend son issue, les événements du bus émis pendant lui, les appels
- * différés qu'il a programmés, et les lignes de journal qu'il a écrites. Un seul propriétaire par contexte JS (`branchement.ts`) : une partie ne cohabite ni
- * avec le store ni avec une autre partie ouverte.
+ * différés qu'il a programmés, et les lignes de journal qu'il a écrites. Plusieurs parties s'ouvrent dans un même
+ * contexte JS, une seule branchée (`branchement.ts`, #4862) : chaque entrée d'une partie la branche d'abord
+ * (`ProprietaireDuJeu.brancher`), et la partie suspendue garde son état, ses jetons en vol et ses singletons.
  */
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Combatant } from '../engine/types';
@@ -68,6 +69,7 @@ export interface ResultatDeLAppel {
 }
 
 export interface Partie {
+  /** L'état de la partie, branchée d'abord tant qu'elle est ouverte. */
   etat: Get;
   reprojeterLArmement: () => void;
   /** Relance les automates de la partie à la cadence choisie par son hôte. */
@@ -109,6 +111,9 @@ function ajoutees<T>(vu: readonly T[], courant: readonly T[]): T[] {
   return [...courant];
 }
 
+/** Le propriétaire de la partie dont un appel est en cours : aucune autre partie ne se branche pendant lui (#4862). */
+let enAppel: ProprietaireDuJeu | null = null;
+
 /** Les verbes de jet qui lancent les dés : un hôte qui les envoie joue leur son (`EVT.DICE_ROLL`). */
 const LANCERS_DU_JOUEUR = new Set<RollVerb | null>(['lancer', 'relancer']);
 
@@ -135,13 +140,26 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     vuAuCombat = [...combat];
   };
   proprietaire.abonner(capter);
-  const desabonnements = [
-    bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte, heure: get().gameTime })),
-    ...Object.values(EVT).flatMap((evt) => (evt === EVT.LIGNE_AU_JOURNAL ? [] : [bus.on(evt, (payload) => tampon.push({ type: 'emis', evt, payload } as Evenement))])),
-  ];
+  proprietaire.ecouterBranche(() => {
+    const desabonnements = [
+      bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte, heure: get().gameTime })),
+      ...Object.values(EVT).flatMap((evt) => (evt === EVT.LIGNE_AU_JOURNAL ? [] : [bus.on(evt, (payload) => tampon.push({ type: 'emis', evt, payload } as Evenement))])),
+    ];
+    return () => { for (const desabonner of desabonnements) desabonner(); };
+  });
 
   const ouvertePour = (geste: string): void => {
     if (!ouverte) throw new Error(`[noyau] partie fermée : \`${geste}\` après \`fermer\``);
+  };
+  /** Branche la partie, ce qui lève pendant l'appel d'une autre partie. */
+  const brancher = (): void => {
+    if (enAppel && enAppel !== proprietaire) throw new Error('[noyau] une partie ne se branche pas pendant l’appel d’une autre');
+    proprietaire.brancher();
+  };
+  /** Branche la partie ouverte avant le geste `geste`. */
+  const brancheePour = (geste: string): void => {
+    ouvertePour(geste);
+    brancher();
   };
   /** Les États que porte chaque combattant du combat et du groupe, par id. */
   const etatsPortes = (): Map<string, Set<string>> =>
@@ -153,9 +171,11 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     [...etatsPortes()].flatMap(([porteur, etats]) => [...etats].filter((etat) => !avant.get(porteur)?.has(etat)).map((etat): Evenement => ({ type: 'etatGagne', porteur, etat })));
   /** Un appel qui lève ne retire que les événements et les lignes venus après son entrée. */
   const appeler = (geste: string, jouer: () => IssueDeLAppel): ResultatDeLAppel => {
-    ouvertePour(geste);
+    brancheePour(geste);
     avant = etatsPortes();
     const [emisAvant, ecritesAvant] = [tampon.length, lignes.length];
+    const englobant = enAppel;
+    enAppel = proprietaire;
     try {
       const issue = jouer();
       capter();
@@ -165,6 +185,8 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
       tampon.splice(emisAvant);
       lignes.splice(ecritesAvant);
       throw erreur;
+    } finally {
+      enAppel = englobant;
     }
   };
   /** Pose l'instantané `instantane`, puis écrit aux lignes de l'appel ce qu'il apporte depuis `dernierRecu`. */
@@ -187,9 +209,12 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   };
 
   return {
-    etat: get,
+    etat: () => {
+      if (ouverte) brancher();
+      return get();
+    },
     reprojeterLArmement: () => {
-      ouvertePour('reprojeterLArmement');
+      brancheePour('reprojeterLArmement');
       set(patchDeLArmement(get()) ?? {});
     },
     reprendreLaCadence: () => appeler('reprendreLaCadence', () => {
@@ -234,7 +259,6 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     fermer: () => {
       ouvertePour('fermer');
       ouverte = false;
-      for (const desabonner of desabonnements) desabonner();
       proprietaire.fermer();
       tampon.length = 0;
       lignes.length = 0;

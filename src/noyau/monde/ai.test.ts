@@ -228,3 +228,24 @@ describe("IA — départ où l'empreinte ne tient pas (`walkReachableFrom`)", ()
     });
   }
 });
+
+describe('IA — chaque arme de tir tenue a sa charge (#4835)', () => {
+  // LDB 62 l.335 ; LDB 14 l.78
+  const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'];
+  const pistolet = (uid: string, hand: 'main' | 'secondaire', loaded: boolean): Weapon =>
+    ({ label: 'Pistolet', uid, hand, hands: 1, type: 'distance', damage: { plusBF: false, flat: 8 }, range: 20, reload: 1, loaded, qualities: [] });
+  const tireur = (principal: boolean, secondaire: boolean) => mk('e', 'ennemi', { x: 5, y: 5 }, {
+    characteristics: CHARS, weapons: [pistolet('p1', 'main', principal), pistolet('p2', 'secondaire', secondaire)],
+  });
+  const cible = () => mk('h', 'heros', { x: 5, y: 8 }, { characteristics: CHARS });
+
+  it('principal vide, secondaire chargé → tire avec le secondaire', () => {
+    expect(chooseEnemyAction(input(tireur(false, true), [cible()]))).toEqual({ kind: 'tir', targetId: 'h', weaponUid: 'p2' });
+  });
+  it('les deux chargés → tire avec le principal, sans pénalité de main secondaire', () => {
+    expect(chooseEnemyAction(input(tireur(true, true), [cible()]))).toEqual({ kind: 'tir', targetId: 'h', weaponUid: 'p1' });
+  });
+  it('les deux vides → recharge', () => {
+    expect(chooseEnemyAction(input(tireur(false, false), [cible()]))).toEqual({ kind: 'rechargement' });
+  });
+});

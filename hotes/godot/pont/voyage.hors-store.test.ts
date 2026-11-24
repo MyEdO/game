@@ -71,6 +71,10 @@ describe('le voyage par le pont', () => {
     expect((corps['recit/route'] as Ligne).texte, 'la route faite').toBe('Parti de Weiler pour Steinbruck · 30 km, à pied');
     expect((corps['recit/duree'] as Ligne).texte, 'la durée du voyage').toMatch(/^Voyage de .+\.$/);
     expect(Object.keys(corps).some((id) => id.startsWith('recit/jour/')), 'l’arrivée ne redit pas les journées').toBe(false);
+    expect(suite.vue.projection.recit, 'la projection porte le récit en données').toMatchObject({
+      issue: 'arrivee', de: 'Weiler', vers: 'Steinbruck', mode: { id: 'pied' }, distance: { valeur: 30, unite: 'km' }, reste: null, dureeMin: expect.any(Number),
+    });
+    expect(suite.vue.projection.recit!.journees.length, 'les journées du segment, publiées à l’arrivée').toBeGreaterThan(0);
   });
 
   it('arriver au lieu : son écran tient la main, ses services et ses trajets ; « Explorer » entre dans sa scène, d’où il se rouvre', () => {

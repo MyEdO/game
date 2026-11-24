@@ -542,7 +542,7 @@ export function continueRiverDayAfterExposure(get: Get, set: Set): void {
   fin.recap.lines.push(...toRecapLines(get().journal.slice(fin.journalMark)));
   // MDG 03 l.71
   const places = { ...placesOfKind(route.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
-  ouvrirLeRepos(get, set, { places, lieu: routeLieu(worldMap, plan), travelHalt: true, travelDay: fin.recap });
+  ouvrirLeRepos(get, set, { places, lieu: routeLieu(plan), travelHalt: true, travelDay: fin.recap });
 }
 
 /**

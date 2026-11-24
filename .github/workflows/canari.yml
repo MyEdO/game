@@ -220,6 +220,14 @@ jobs:
         run: |
           npm run godot:sonde
           npm run personnage-3d:tests
+      # Les portes des presets touchés (#4814) jouées de bout en bout sur un élément publié remonté tel quel, celui du
+      # preset le moins cher : le témoin et la mesure montent les mêmes octets, aucun écart neuf n'est attendu.
+      - id: personnage-3d-portes
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        run: |
+          node hotes/godot/asset/recuperer-modeles.mjs
+          npm run personnage-3d:portes -- --local humanoide--tete--orc=hotes/godot/projet/modeles/humanoide--tete--orc.glb
       # Filet des écrivains par nature (`docs:build` et génération contrôlée par la suite), comme `ci.yml`.
       - name: Arbre inchangé
         id: arbre-inchange
@@ -281,6 +289,7 @@ jobs:
             godot-recettes-natives=${{ steps.godot-recettes-natives.outcome }}
             python-3d=${{ steps.python-3d.outcome }}
             personnage-3d-tout=${{ steps.personnage-3d-tout.outcome }}
+            personnage-3d-portes=${{ steps.personnage-3d-portes.outcome }}
             arbre-inchange=${{ steps.arbre-inchange.outcome }}
             audit-stock=${{ steps.audit-stock.outcome }}
             fermetures=${{ steps.fermetures.outcome }}

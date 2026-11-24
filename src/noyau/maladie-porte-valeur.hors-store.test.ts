@@ -9,7 +9,7 @@
  * de la nuit, comme en jeu — jamais `deferredUpkeepSteps` appelé seul) :
  *  (i)   le Test de cycle du VER DE CARIE (MSRC 16 l.90 : « Test d'Endurance Accessible (+20) chaque
  *        jour ») est une ÉTAPE influençable dont la valeur est celle de la porte — Endurance NUE,
- *        États comptés (LDB 16 l.125 : « pénalité de -10 à tous les Tests ») ;
+ *        États comptés (LDB 16 l.90) et passif du ver (MSRC 16 l.86) ;
  *  (ii)  le `dailyTest` de la PNEUMONIE (EDOC 08 l.104 : « Test de Résistance Intermédiaire (+0) »)
  *        teste la COMPÉTENCE Résistance, pas l'Endurance — la donnée le NOMME, la porte le calcule ;
  *  (iii) le sommeil MULTI-JOURS (`sleepParty` — clôture d'interlude, triche de recette) monte les MÊMES
@@ -17,7 +17,7 @@
  *  (iv)  la branche `fail` s'applique sur un résultat INJECTÉ (jamais un dé tiré par le test).
  *
  * La cible d'un de ces Tests EST celle de la porte : Niveau de Compétence (ou Caractéristique) NU +
- * composantes NOMMÉES, États compris (`LDB 16 l.125` : « une pénalité de -10 à tous les Tests »). Les
+ * composantes NOMMÉES, États compris (`LDB 16 l.90` : « une pénalité de -10 à tous vos Tests »). Les
  * écarts que les tests ci-dessous mesurent sont donc mesurés, jamais recopiés (#1685).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -63,7 +63,7 @@ function rendMalade(id: string, maladie: string, jours = 0): Combatant {
 
 /** La nuit du joueur : auberge → « Dormir ». Rend les étapes de la cascade ouverte. */
 function dort(): CascadeStep[] {
-  banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
+  banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { auberge: true } });
   banc.getState().fenetreValider('repos');
   return banc.getState().pendingCascade?.participants ?? [];
 }
@@ -83,19 +83,20 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
   it('ver de carie (MSRC 16 l.90) : étape influençable, cible = `testValue` d’ENDURANCE, États comptés', () => {
     // J+7 : la cadence du ver (`afterDays: 7`) démarre — le Test tombe alors chaque jour.
     const h = rendMalade('h1', 'vers-de-carie', 8);
-    addCondition(h, 'sonne', 2); // LDB 16 l.125 : −10 par État à TOUS les Tests
+    addCondition(h, 'extenue', 2); // LDB 16 l.90
     banc.setState((s) => ({ party: [...s.party] }));
+    // Valeurs du soir : LDB 18 l.296.
+    const nue = skillBaseValue(h, { characteristic: 'endurance' });
+    const jetee = testValue(h, { characteristic: 'endurance' });
 
     const steps = dort();
     const tick = steps.find((s) => s.kind === 'maladie-test-quotidien' && (s.meta as { symptomId?: string })?.symptomId === 'vers-de-carie');
     expect(tick, 'le Test de cycle du ver est une ÉTAPE de la nuit (pas un jet du moteur)').toBeTruthy();
 
     const r = rangee(tick!, 'h1');
-    const nue = skillBaseValue(h, { characteristic: 'endurance' });
-    const jetee = testValue(h, { characteristic: 'endurance' });
     // Le témoin qui rend le test PROBANT : sans pénalité, base et valeur jetée seraient égales. Deux
-    // sources pèsent ici, et la porte les compte TOUTES DEUX — les 2 États Sonné (−20, LDB 16 l.125) et
-    // le passif du ver lui-même (−10 « à tous les Tests », MSRC 16 l.86).
+    // sources pèsent ici, et la porte les compte TOUTES DEUX : les 2 États Exténué (LDB 16 l.90) et
+    // le passif du ver lui-même (MSRC 16 l.86).
     expect(jetee, 'États + passif du ver doivent séparer la nue de la valeur jetée').toBe(nue - 30);
     expect(r.base, 'base = Endurance NUE (l’Endurance est ce que le nœud NOMME)').toBe(nue);
     expect(r.target, 'cible = valeur de la porte + Accessible (+20)')
@@ -108,8 +109,6 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
 
   it('pneumonie (EDOC 08 l.104) : le `dailyTest` teste la COMPÉTENCE Résistance, valeur de la porte', () => {
     const h = rendMalade('h1', 'pneumonie', 0);
-    addCondition(h, 'sonne', 1);
-    banc.setState((s) => ({ party: [...s.party] }));
 
     const steps = dort();
     const tick = steps.find((s) => s.kind === 'maladie-test-quotidien' && (s.meta as { symptomId?: string })?.symptomId === 'fievre');
@@ -206,7 +205,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // Un second héros valide : la défaite (`checkPartyWiped`) ne peut pas être ce qui interrompt.
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans' })] }));
     rendMalade('h1', 'pneumonie', 0);
-    banc.getState().offrirLeRepos({ lieu: fixtureText('Ici'), places: { auberge: true } });
+    banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { auberge: true } });
     banc.getState().fenetreValider('repos');
     const vivant = banc.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();

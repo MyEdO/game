@@ -274,7 +274,7 @@ export const AMORCE_TEST = ['rollTest', 'd100'];
  * `roll-seam-exclusivity-guard.test.ts`, « AMORCE COMPLÈTE ».
  * @type {readonly string[]}
  */
-export const AMORCE_DES = ['rollTest', 'd100', 'd10', 'roll', 'rollDice', 'tirer', 'tirerSigne', 'deMonde'];
+export const AMORCE_DES = ['rollTest', 'd100', 'd10', 'roll', 'rollDice', 'tirer', 'tirerUn', 'tirerSigne', 'deMonde'];
 
 /** PRÉ-FILTRE lexical de la garde sœur — strictement plus large que son critère AST (un appel
  *  `nom(` cite `nom` ; un `rng.int(` cite `int`). @type {RegExp} */

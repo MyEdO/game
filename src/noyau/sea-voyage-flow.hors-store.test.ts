@@ -7,7 +7,7 @@ import {
   buildSeaPlan, portRepairVessel, installerLAmelioration, runSeaDay, continueSeaDayAfterCascade,
   resolvePortArrival, damageVesselHull, healVesselHull,
   buildOverspeedSteps, engineerOf, etapeDEquipage, entrerDansLeTourbillon, applyVesselCritical, type SeaVoyageState,
-  millesDeCroisiere, mDeCroisiere,
+  millesDeCroisiere, mDeCroisiere, SEA_BOARD_EVENT_TABLE,
 } from './seaVoyageFlow';
 import type { ShipCriticalResolved } from '../engine/shipCritical';
 import { seedBattleRng, battleRng } from './battleRng';
@@ -76,7 +76,7 @@ import { desEnSuite } from '../engine/dice.testkit';
 import { ligneDe } from '../engine/modLine.testkit';
 import { RULE_REF } from '../engine/ruleRefs';
 import { refDeRegle } from '../engine/reglesChiffrees';
-import { blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
 /** Le réseau où le siège 1, assis à la table (`siegesDeLaTable`), tient le rôle MJ. */
 const mjAuSiege1 = (net: NetState): NetState => poserLeSiegeMJ({ ...net, seatNames: { ...net.seatNames, 1: 'MJ' } }, 1);
@@ -2226,6 +2226,8 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     const equipage = { label: t('crew.lEquipage'), diseases: [verole] };
     avancerLesMaladies(equipage, MINUTES_PER_DAY - (heuresAvantSymptomes * 60 || 121), rng);
     set({
+      // Personne ne soigne à bord : LDB 09 l.265.
+      party: get().party.map((h) => ({ ...h, skills: (h.skills ?? []).filter((s) => s.id !== 'guerison') })),
       vessel: { ...get().vessel!, manann: { score: 1000, applied: [] }, porteurDeLEquipage: { diseases: equipage.diseases } },
     });
     const avant = get().gameTime;
@@ -2383,31 +2385,30 @@ function evenementDeBordTire(max = 40): CascadeStep {
 describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couvert avant #383)', () => {
   beforeEach(freshState);
 
-  it('un événement de bord FORCÉ (couture réelle `forcedEventId` + `runSeaDay`) pousse un `RecapEvent` {title,text} VERBATIM (source `sea-events.json`, sans tirage — recette #332)', () => {
+  it('un événement de bord FORCÉ (`forcedEventId` + `runSeaDay`) : sa source, son titre et son texte VERBATIM (`sea-events.json`), le dé de sa table, sans jet', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'calme-plat' } } });
     runSeaDay(get, set);
-    const events = voyageEnVue(get())!.evenements;
-    expect(events).toHaveLength(1);
     const def = seaBoardEventById('calme-plat')!;
-    expect(events[0]).toEqual({ title: def.label, text: def.desc, roll: undefined }); // forcé → pas de tirage (recapLine.ts)
+    expect(voyageEnVue(get())!.evenements).toEqual([{
+      source: { table: SEA_BOARD_EVENT_TABLE, id: 'calme-plat' }, title: def.label, text: def.desc, de: { n: 1, sides: 100 },
+    }]);
   });
 
-  /** CONTRAT (#1426) : l'événement de bord n'est plus résolu inline — c'est une ÉTAPE À TABLE du canal
-   *  de cascade (`mer-evenement-de-bord`, dé de MONDE). Le `RecapEvent` naît donc quand l'étape est DRAINÉE,
-   *  pas à l'appel de `runSeaDay` : le test joue la journée comme un joueur (pilote partagé). */
-  it('un tirage NATUREL (non forcé, `daysToEvent` échu) : l’étape à TABLE drainée capture le d100 dans le `RecapEvent` — label+texte SOURCÉS (`BOARD_EVENTS`, pas de copie en dur)', () => {
+  /** CONTRAT (#1426) : l'événement de bord est une ÉTAPE À TABLE du canal de cascade (`mer-evenement-de-bord`, dé de
+   *  MONDE) ; le `RecapEvent` naît quand l'étape est DRAINÉE. L'Humeur de Manann décale le dé (MDG 15 l.85). */
+  it('un événement de bord TIRÉ sous l’Humeur de Manann : sa source (table, rangée), le dé naturel et le dé effectif, le dé de sa table', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0], { cadence: 'jourParJour' })!;
-    set({ vessel: { ...get().vessel!, daysToEvent: 1 }, travelPlan: plan });
+    set({ vessel: { ...get().vessel!, daysToEvent: 1, manann: { score: -10, applied: [] } }, travelPlan: plan });
+    imposerLesD100(70);
     runSeaDay(get, set);
     const etape = evenementDeBordTire();
     expect(etape.worldOwner, 'dé de MONDE : aucun acteur ne le porte').toBe(true);
-    const events = voyageEnVue(get())!.evenements;
-    expect(events, 'servi à l’hôte par le champ du trajet pendant le jour').toHaveLength(1);
-    const ev = events[0];
-    expect(typeof ev.roll).toBe('number'); // tirage capturé (chemin non forcé)
-    const def = BOARD_EVENTS.find((e) => e.label === ev.title && e.desc === ev.text);
-    expect(def).toBeTruthy(); // titre + texte VERBATIM d'une entrée RÉELLE de sea-events.json
+    const def = seaBoardEventById('navigation-ordinaire')!;
+    expect(voyageEnVue(get())!.evenements, 'servi à l’hôte par le champ du trajet pendant le jour').toEqual([{
+      source: { table: SEA_BOARD_EVENT_TABLE, id: 'navigation-ordinaire' }, title: def.label, text: def.desc,
+      jet: { naturel: 70, effectif: 60 }, de: { n: 1, sides: 100 },
+    }]);
   });
 
   it('un événement dû ne fixe pas le prochain délai du navire acquis en cours de journée', () => {
@@ -2489,8 +2490,9 @@ describe('Clôture du jour de mer — le récap porte les events, `travelPlan.ev
   it('`continueSeaDayAfterCascade` : le `TravelRecapDay` (`travelPlan.log`) porte les events du jour ; le trajet n’en sert plus (pas de fuite au lendemain)', () => {
     const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
     const def = seaBoardEventById('calme-plat')!;
-    const carried: RecapEvent = { title: def.label, text: def.desc, roll: 21 };
+    const carried: RecapEvent = { source: { table: SEA_BOARD_EVENT_TABLE, id: 'calme-plat' }, title: def.label, text: def.desc, jet: { naturel: 21, effectif: 21 } };
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, milesToday: 5 } } });
+    const meteoDuJour = get().travelPlan!.sea!.weather;
     noteEvent(get, set, carried);
     continueSeaDayAfterCascade(get, set);
     draineCascade(get); // les Tests de l'entretien-survie se jouent dans LEUR fenêtre (#1479), la clôture suit
@@ -2498,6 +2500,12 @@ describe('Clôture du jour de mer — le récap porte les events, `travelPlan.ev
     expect(log).toHaveLength(1);
     expect(log[0].events).toEqual([carried]); // la carte du jour porte l'événement
     expect(voyageEnVue(get())!.evenements).toEqual([]); // vidé — pas de fuite au jour suivant
+    const [journee] = voyageEnVue(get())!.journees;
+    expect([journee.depuis, journee.jusqua], 'le jour clos, en milles exacts').toEqual([0, 5]);
+    expect(journee.mer, 'le jour de mer en données : sa météo par axe, le vent, le cap, le bord').toEqual({
+      meteo: meteoDuJour, windFrom: expect.any(String), heading: expect.any(String), hullDelta: expect.any(Number),
+      morale: expect.any(Number), manann: expect.any(Number), waterLitres: log[0].sea!.waterLitres, daysLeft: expect.any(Number),
+    });
   });
 });
 
@@ -2730,14 +2738,16 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     expect(get().vessel!.porteurDeLEquipage!.regimeDeBord!.joursDeSoupe, 'le mois de soupe repart à zéro après le Test').toBe(0);
   });
 
-  it('Scorbut d’un Personnage : sa Durée ne décompte qu’au jour où il mange du frais, le repas écrit avant le pas de maladie (MDG 14 l.232)', () => {
-    const [aLAuberge, enMer] = get().party;
+  it('Scorbut d’un Personnage : sa Durée ne décompte, soins compris, qu’au jour où il mange du frais, le repas écrit avant le pas de maladie (MDG 14 l.232)', () => {
+    const [aLAuberge, enMer, soignant] = get().party;
     for (const h of [aLAuberge, enMer]) h.diseases = [contractDisease('scorbut', makeRNG(2))!];
+    soignant.skills = [...(soignant.skills ?? []).filter((s) => s.id !== 'guerison'), { id: 'guerison', advances: 10, characteristic: 'intelligence' }];
     const avant = aLAuberge.diseases![0].minutesLeft;
     feedFromMeal(aLAuberge);
     enMer.items = [...(enMer.items ?? []), itemFromTrappingById(BISCUITS, idsDeTest)!];
     get().avancerLeTemps(MINUTES_PER_DAY);
-    expect(aLAuberge.diseases![0].minutesLeft).toBe(avant - MINUTES_PER_DAY);
+    // LDB 09 l.265 ; MDG 14 l.232
+    expect(aLAuberge.diseases![0].minutesLeft).toBe(avant - 2 * MINUTES_PER_DAY);
     expect(enMer.diseases![0].minutesLeft).toBe(avant);
   });
 
@@ -4652,7 +4662,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
         const releve = {
           rang, etape, slot: etapeAuSlot(), pile: pile(), curseur: jour!.cursor,
           lignes: get().journal.filter((l) => l.startsWith(ligneDeLEvenement)),
-          events: (get().travelPlan!.evenements ?? []).map((e) => ({ title: e.title, roll: e.roll })),
+          events: (get().travelPlan!.evenements ?? []).map((e) => ({ title: e.title, jet: e.jet })),
           forcedEventId: get().travelPlan!.sea!.forcedEventId,
           tirages: [battleRng().int(1, 1000), battleRng().int(1, 1000), battleRng().int(1, 1000)],
         };
@@ -4677,8 +4687,8 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       // Les trois différences, aucun dé n'étant tombé.
       expect([nomme.etape.table, nomme.etape.stake], `pas de rangée de table ni d’enjeu de tirage (${cadence})`).toEqual([undefined, undefined]);
       expect(naturel.etape.stake).toBeDefined();
-      expect(naturel.events, `le dé au procès-verbal du tiré (${cadence})`).toEqual([{ title: seaBoardEventById(EV)!.label, roll: expect.any(Number) }]);
-      expect(nomme.events, `pas de dé au procès-verbal du nommé (${cadence})`).toEqual([{ title: seaBoardEventById(EV)!.label, roll: undefined }]);
+      expect(naturel.events, `le dé au procès-verbal du tiré (${cadence})`).toEqual([{ title: seaBoardEventById(EV)!.label, jet: { naturel: expect.any(Number), effectif: expect.any(Number) } }]);
+      expect(nomme.events, `pas de dé au procès-verbal du nommé (${cadence})`).toEqual([{ title: seaBoardEventById(EV)!.label, jet: undefined }]);
       expect(nomme.tirages.slice(1), `un tirage du générateur de moins (${cadence})`).toEqual(naturel.tirages.slice(0, 2));
     }
   });
@@ -5047,6 +5057,8 @@ describe('l’événement de bord tombe le jour où son compteur arrive à zéro
 
   it.each(Array.from({ length: 10 }, (_, k) => k + 1))('traversée commandée, compteur posé à %i au départ : l’événement tombe ce jour-là, aucun avant', (compteur) => {
     set({ gameTime: 160 * 1440 + 8 * 60, lastUpkeepDay: 160 } as never); // été : le froid ne coupe pas la traversée avant N = 10
+    // Le groupe tient dix jours sans vivres : LDB 18 l.15, l.342.
+    set({ party: get().party.map((h) => blessuresSurLeProfil({ ...h, wounds: blessuresDeBase(40) })) });
     appareiller(1, compteur, 'commande');
     traverser(compteur);
     expect(joursDEvenement()).toEqual([compteur]);

@@ -398,7 +398,26 @@ s'allonge. Une pièce lit le filet au repos par `Base.filet(nom)` (`tissu.Filet`
 rayon du filet (`Filet.point`) et la pondère aux os de ses deux brins voisins (`Filet.poids`), fondue du corps au filet
 sous ses racines (`Filet.part`). Elle ne dépasse pas le brin de bord d'un filet ouvert, au-delà duquel rien ne la
 porte, et déclare le filet dans `chaines`. Aucun réglage de pli ni d'évasement par pièce : la forme au repos et le
-mouvement viennent du filet. Une doublure reprend les colonnes et les poids de la nappe
+mouvement viennent du filet. Une manche ample ne se pondère pas d'un bloc à l'avant-bras : sa poche se pose sur la
+chaîne `manche` de la base (`MANCHES` de `base/filets.py`, drapé `base/pendant.py`), par avant-bras un os de tour qui
+garde le dessous du bras vers le bas, un os de tube qui n'en prend qu'une portion, et six brins de trois os (coude,
+milieu, poignet ; avant, arrière), enfants du tour, qui pendent d'aplomb et s'écartent du corps, de la tête, du sol et
+du bâton tenu à deux mains (clips `hampe`). D'une image à la suivante, chaque os garde sa direction, revient vers
+l'aplomb d'une part (`pendant.RETOUR`), puis sort de ce qu'il rencontre : il ne rentre dans aucun obstacle et reste du
+côté où il était ; un clip en boucle se joue une fois avant de se cuire, et se referme ; un clip d'hampe se drape à
+`filets.BALAYAGE` instants par image, pour que le fût ne traverse aucun brin entre deux instants du calcul ; ses pistes
+n'en gardent qu'une clé par image, que l'hôte interpole. La direction de
+chaque os se lisse ensuite sur ses images voisines (`filets.LISSAGE`), et l'os qui tend vers elle pend hors des
+obstacles de son image à un jeu moindre (`filets.JEU_LISSE_M`) : le lissage rogne le jeu, jamais l'obstacle. Deux brins
+voisins ne s'écartent pas de plus de `tente.ETIREMENT_MAX` fois leur écart au repos.
+Une pièce la lit par `Base.manche(c)` (`tissu.Manche`) : l'anneau du tube suit l'os de tube (`Manche.dessus`), la poche
+pend d'aplomb sous lui (`Manche.pendre`), pondérée aux brins voisins de sa station et de sa face (`Manche.poids`), et
+la pièce déclare `manche` dans `chaines`. Le dernier anneau lié au bras se tient à 10 cm au moins du premier anneau de
+l'avant-bras (robe du Sorcier : 10,0 cm ; bure : 10,8 cm), et l'anneau où le pan passe aux brins à 6 cm au moins de
+l'anneau qui suit encore le tube, pour un pan de 26 cm (robe du Sorcier : 6,3 cm ; à 4,8 cm, `arete-etiree` de 3,77
+bras tombant sous `carrure_plus`), à 10 cm pour un pan de 42 cm (bure : 10,0 cm ; à 6,3 cm, `arete-etiree` de 3,95) :
+plus près, les arêtes qui les joignent s'étirent au-delà de la porte, coude plié ou bras tombant.
+Une doublure reprend les colonnes et les poids de la nappe
 qu'elle double, sans lissage propre, sinon elle la traverse. Une traversée peut n'apparaître qu'à une silhouette :
 la porte est la matrice des cinq passes, jamais la passe neutre seule.
 
@@ -415,7 +434,10 @@ de l'appelant), au repos et à chaque instant rendu ou échantillonné, et posen
 la garde `rigideRange` de l'évaluateur le mesure alors contre ce qui est porté (`objet-dans-un-vetement`), hors de la
 pièce qui offre sa case, au repos sous les facteurs et silhouettes de la passe : la profondeur où il s'enfonce derrière
 un vêtement qu'il traverse, quelle que soit la longueur qui ressort devant ; tout entier derrière, comme sous une cape,
-il ne le traverse pas. Une pose isolée se demande à
+il ne le traverse pas. La pose rangée de chaque rigide de la tenue, par silhouette déclarée, se lit par
+`npm run godot:evaluer -- --tenue <preset> [--local <id>=<glb>]... --base <base.glb> --manifeste <base.manifeste.json> --clips A_TPose --poses-rangees` :
+une pièce locale se compare à la publiée, et `BASCULE` signale celle dont la pose saute (#4806) ; toute retouche d'un rigide
+rangé s'y contrôle avant la porte. Une pose isolée se demande à
 `node hotes/godot/asset/posesDesRanges.mjs`, dont l'entrée porte aussi `facteurs`. Un élément que le preset porte plusieurs fois (quatre parchemins) se donne autant de fois :
 chaque GLB monte à son tour la ligne suivante du preset, et une ligne sans GLB se dit sur la sortie d'erreur (#4351).
 
@@ -561,14 +583,20 @@ et c'est ainsi que la traversée des couches se mesure : évaluer la tenue (têt
 pièce seule. Depuis la racine du dépôt, `node hotes/godot/asset/recuperer-modeles.mjs` dépose les GLB
 publiés du checkout sous `hotes/godot/projet/modeles/`. Le dossier du rapport doit déjà exister :
 
+La tenue d'un preset ne s'écrit pas à la main : `--tenue <preset>` (qui vaut `--preset <preset>`) la met en tête des GLB,
+dans l'ordre où le jeu la monte, prise au dossier du manifeste de base ; `--local <id>=<glb>` (répétable, syntaxe de
+`element/construire.py --local`) y substitue une pièce locale, une pièce que le preset ne monte pas venant après la tenue ;
+d'autres GLB se donnent encore en positionnels, après elle.
+
 ```sh
+npm run godot:evaluer -- --tenue gladiateur --local humanoide--rigide--grande_hache=/atelier/hache/humanoide--rigide--grande_hache/humanoide--rigide--grande_hache.glb --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --clips A_TPose,Idle_Loop
 npm run godot:evaluer -- /atelier/robe/humanoide--vetement--robe/humanoide--vetement--robe.glb <tête.glb> --base <base.glb> --manifeste hotes/godot/projet/modeles/humanoide.manifeste.json --json /atelier/mesures/neutre.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --facteurs sl=1,legs=1,arms=1,head=1,st=1 --json /atelier/mesures/gabarit.json
 npm run godot:evaluer -- <mêmes GLB> --base <base.glb> --manifeste <base.manifeste.json> --porte --json /atelier/mesures/porte.json > /atelier/mesures/porte.txt
 ```
 
-La deuxième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
-gabarit/surcharge requise. La troisième est la porte d'un élément : le corps neutre puis chaque silhouette
+La troisième ligne montre la syntaxe des facteurs ; les remplacer par chaque ligne de
+gabarit/surcharge requise. La quatrième est la porte d'un élément : le corps neutre puis chaque silhouette
 déclarée de la base seule à 1, une passe par processus, en parallèle sur les cœurs (tenue complète du Sorcier :
 moins de 4 min, contre 30 en série) ; chaque passe s'ouvre par `PASSE <nom> : code <n>` et écrit son rapport
 (`porte.neutre.json`, `porte.feminin.json`…). Après une retouche, `--porte --temoin /atelier/mesures/porte.json` relit
@@ -577,11 +605,23 @@ rejoue par `--silhouettes nom=poids`, et `--clips` borne un essai aux clips faut
 Ne pas valider une matrice entière avec le seul cas neutre.
 `--temoin <rapport.json>`, le rapport `--json` d'un run antérieur (la tenue publiée), ne liste que les écarts neufs : la
 retouche se juge sur eux. Le témoin se mesure sur les mêmes `<glb>` dans le même ordre, les éléments neufs à la fin : le
-libellé `élément k` d'un mesh est sa position.
+libellé `élément k` d'un mesh est sa position ; `--tenue` avec les mêmes `--local` le garantit.
+La retouche d'un élément se mesure à sa portée : `--portee <id>[,<id>…]` (sous `--tenue`, sans `--plafonds`) ne mesure
+que ce qui nomme un mesh de ces éléments ou des couches que la pile leur fait retenir, et ne rend que ces écarts ; le
+témoin se prend sous la même portée, sur la tenue publiée, puis la retouche se relit par `--local` et `--temoin` (#4814).
+Avant de republier un outil commun (`scripts/personnage-3d/`, l'évaluateur, la pile) ou un lot, jouer
+`npm run personnage-3d:portes -- [--local <id>=<glb>]...` : il retrouve les éléments dont l'empreinte change sur la
+branche (et les GLB locaux d'une reconstruction), les presets dont la tenue les monte, et joue, une porte à la fois, la
+porte de chacun sous leur portée contre le témoin de sa tenue publiée sur `main` ; seuls les écarts neufs sortent. Le
+témoin se filtre par la portée de la mesure : une couche qui suit l'élément retouché sans suivre le publié sort ses
+écarts préexistants comme neufs.
+Les triangles de chaque mesh s'impriment en tête de chaque rapport ; ceux de chaque GLB bâti, à chaque ligne de
+`npm run personnage-3d:integrer`.
 La porte mesure la tenue telle que le montage la pose : elle résout d'abord la pile des couches (section 3), et son
 rapport en donne le bilan (`mesures.pile` : points retenus, suiveurs, reculés, triangles masqués).
 La porte nomme trois écarts de couches. `couche-traversee` : en clip, une couche passe devant la surface de celle qui
-la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui.
+la couvre ; un triangle de la couverture qui se couche seul en pose ne fait rien passer devant lui, et n'est couvert
+que ce dont le dehors traverse la couverture : la paume nue au bord d'un bandage ne l'est pas.
 `couche-percee-au-repos` : au repos neutre, une arête d'une couche traverse l'endroit de celle qui la couvre et en
 sort devant un triangle qui lui fait face ; sortir par le chant d'une pièce épaisse, comme la joue au-delà d'une
 barbe, n'est pas la percer. `membre-dans-un-vetement` : en clip, un membre du corps passe à travers un vêtement d'une zone ni la sienne ni voisine, comme la main à travers la
@@ -644,9 +684,12 @@ puis restaurer le réglage de revue. Changer la lumière ne corrige pas la forme
 Pour chaque signe identitaire : vignette recadrée identiquement source/GLB, poses et clips utiles,
 un **juge neuf rend un verdict OK/KO par signe**, avec preuve. Gros plans mains et jupes aux images clés ;
 lineup face, trois-quarts, profil et dos, taille de jeu et gros plan, à côté de l'illustration : `rendu.py` monte la tenue
-(`--input <base.glb> --element <a.glb> --element <b.glb>`, un `--element` par GLB), la colore au `--preset` et y range ses rigides comme le jeu, la pose au `--clip`, et sa `planche.png` porte
+d'un preset (`--input <base.glb> --tenue <preset> [--local <id>=<glb>]...`, comme l'évaluateur ; ou un `--element` par GLB
+avec `--preset`), la colore et y range ses rigides comme le jeu, masque les zones couvertes de la base et des éléments comme
+le jeu, la cadre entière, rigides compris, la pose au `--clip`, et sa `planche.png` porte
 `--illustration` à gauche ; `--cadre x,y,z,étendue` (mètres, repère de `bounds` de `render-report.json`) en fait des gros
-plans. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
+plans. Un rigide se rend seul par `rendu.py --input <rigide.glb> --preset <preset> [--illustration …] [--cadre …]` :
+dressé, de face, de profil et de dos. Aucun rendu ne se montre à l'utilisateur sans l'illustration à côté. Recette au visionneur par contrôles réels, deux faces et transitions,
 retraits/remises de toutes les interfaces nommées. Une zone cachée reste NON VÉRIFIÉ.
 
 Présenter ensuite les preuves à l’utilisateur ; consigner sa réponse **verbatim et datée** au ticket

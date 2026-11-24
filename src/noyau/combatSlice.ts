@@ -74,6 +74,7 @@ import {
   ciblesDuBalayage,
   ciblesDeLaDoubleFrappe,
   resolveDualSecond,
+  paireDesDeuxArmes,
   overcastTargetCandidates,
   overcastReset,
   drainerLesGratuites,
@@ -196,7 +197,7 @@ import { canPushback } from '../engine/qualities/dispatch';
 import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { consommableDe } from '../engine/consumables';
-import { refusDeConsommer, runConsumable } from './consumableFlow';
+import { consignerLaDose, refusDeConsommer, runConsumable } from './consumableFlow';
 import { effectiveMovement } from '../engine/encumbrance';
 import {
   isOutOfAction,
@@ -401,10 +402,11 @@ function reprendreHorsBatailleApresLeDestin(get: Get, set: Set): void {
   if (get().serieSubie) jouerFlowEntier(poursuivreLaSerie(get, set));
 }
 
-/** La bataille reprend après le Destin : la limite de Round pour une mort lente, le tour adverse sinon. */
+/** La bataille reprend après le Destin : la limite de Round pour une mort lente ; sinon l'issue, que le Destin différait
+ *  (`checkBattleOver`, #4860), puis le tour adverse (`resumeEnemyTurn`). */
 function reprendreApresLeDestin(get: Get, set: Set, source: FateSaveSource): void {
   if (source === 'slow') resolveRoundBoundary(get, set);
-  else resumeEnemyTurn(get, set);
+  else if (!checkBattleOver(get, set)) resumeEnemyTurn(get, set);
 }
 
 /** OUVERTURE partagée d'un Test d'équipage MULTI (MDG 14) : contributeurs par rôle (`crewTestContributors` —
@@ -783,8 +785,8 @@ function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boo
     return;
   }
   // 2ᵉ frappe : jet IMPOSÉ + pénalité main 2nde + nouveau jet de défense (LDB 10 l.767-773).
-  const res = resolveDualSecond(get, attacker, target, off, ds.jet);
-  poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, dualSecond: true, weaponUid: off.uid });
+  const { res, victim } = resolveDualSecond(get, attacker, target, off, ds.jet);
+  poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, victimId: victim?.id, dualSecond: true, weaponUid: off.uid });
 }
 
 export function createCombatSlice(get: Get, set: Set) {
@@ -1955,6 +1957,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!flow) return void refuserGesteDuSiege(get, set, t('cs.objetNonConsommable', { item: it.label }));
       if (refuseSi(get, set, (s) => refusDeConsommer(s, porteur, it, flow))) return;
       porteur.items = (porteur.items ?? []).filter((i) => i.uid !== uid);
+      consignerLaDose(get(), porteur, it);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));
       journaliser(get, set, [t('cs.useConsumable', { name: nomDe(porteur), item: it.label })], 'objet', { actorId: porteur.id });
@@ -2116,7 +2119,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
       journaliser(get, set, [t('cs.fateDodge', { name: nomDe(hero) })], 'information', { actorId: hero.id });
       if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
-      if (get().battle) resumeEnemyTurn(get, set);
+      if (get().battle) reprendreApresLeDestin(get, set, p.source);
       else reprendreHorsBatailleApresLeDestin(get, set);
     },
     survivre: () => {
@@ -2258,10 +2261,11 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
       deuxArmes: (on) => {
         const pa = get().pendingAttack;
         if (!pa) return;
-        // Mode « des deux armes » : l'attaque-Action utilise la MAIN DIRECTRICE (la 2ᵉ frappe suit, off-hand).
+        // LDB 10 l.767-773 : l'Action frappe de la main principale, la 2ᵉ frappe suit.
         const a = inBattleId(get().battle, pa.attackerId);
-        const mainUid = a?.weapons.find((w) => w.hand === 'main' && w.type === 'melee' && (w.hands ?? 1) === 1)?.uid;
-        const weaponUid = on ? (mainUid ?? pa.weaponUid) : pa.weaponUid;
+        const paire = a && paireDesDeuxArmes(get, a);
+        if (on && !paire) return;
+        const weaponUid = paire && on ? paire.principale.uid : pa.weaponUid;
         set({ pendingAttack: { ...pa, dualMode: on, weaponUid, atoutChoisi: weaponUid === pa.weaponUid ? pa.atoutChoisi : undefined } });
       },
       sansLaCorde: attaque('harpoonRopeCut'),
@@ -3118,12 +3122,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
           return;
         }
         const prevActed = battle.acted; // restitution de la Frénésie (LDB 21 l.33)
-        const isDualMain = !!pa.dualMode && !pa.dualSecond && attacker.kind === 'heros'; // main directrice d'un dual
+        const isDualMain = !!pa.dualMode && !pa.dualSecond; // main directrice d'un dual
         const isDualSecond = !!pa.dualSecond; // 2ᵉ frappe (off-hand)
         // Maladresse de l'attaquant (LDB 14 l.19) : ÉCRITE par le temps `oupsAttaquant` de l'après-coup ;
         // mesurée ICI parce qu'elle exclut le balayage que ce site déclare ci-dessous.
         const fumbled = attackerFumbled(lance, weapon, attacker);
-        const off = attacker.weapons.find((w) => w.hand === 'secondaire' && w.type === 'melee' && (w.hands ?? 1) === 1);
+        const off = isDualMain ? paireDesDeuxArmes(get, attacker)?.secondaire : undefined;
         const mainRoll = lance.attackerDetail?.roll;
         const coupPrincipal = attacker.kind === 'heros' && !wasChain && !isDualSecond && !pa.freeKind;
         // Frénésie (LDB 21 l.33), `grantFreeAttack{available}` : la suite rend l'Action (`restitution`) ;
@@ -3167,7 +3171,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // Maniement de deux armes : l'Avantage des deux frappes est différé. `pa.grapple` = Empoignade
         // (LDB 14 l.159) : pose l'Empoignade au lieu des Dégâts.
         const suite: SuiteDeCoup = {
-          deferAttackerAdvantage: avantageDiffere(pa, attacker),
+          deferAttackerAdvantage: avantageDiffere(pa),
           grapple: pa.grapple,
           ...(pa.freeKind || frenesie ? { restitution: { prevActed } } : restitutionDeChaine ? { restitution: restitutionDeChaine } : {}),
           ...(pa.freeKind ? { manoeuvre: { kind: pa.freeKind } } : {}),

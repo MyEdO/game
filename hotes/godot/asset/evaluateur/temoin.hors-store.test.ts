@@ -1,7 +1,7 @@
-// L'identité d'un écart entre deux évaluations (#4338).
+// L'identité d'un écart entre deux évaluations (#4338), et sa portée (#4814).
 import { describe, expect, it } from 'vitest';
 import type { Ecart } from './ecart.ts';
-import { identiteDEcart } from './temoin.ts';
+import { deLaPortee, identiteDEcart } from './temoin.ts';
 
 const TRAVERSEE: Ecart = {
   garde: 'traversee', code: 'couche-traversee', mesh: 'élément 3/pourpoint-avant_bras_g#0', clip: 'Chest_Open', t: 0.58, valeur: -0.0087, seuil: -0.005,
@@ -38,5 +38,17 @@ describe('identiteDEcart', () => {
     for (const autre of [{ code: 'couche-percee-au-repos' }, { mesh: 'élément 5/pourpoint-avant_bras_g#0' }, { clip: 'Walk_Loop' }, { clip: undefined }]) {
       expect(identiteDEcart({ ...TRAVERSEE, ...autre })).not.toBe(identiteDEcart(TRAVERSEE));
     }
+  });
+});
+
+describe('deLaPortee', () => {
+  it('garde l’écart dont le mesh ou un libellé cité au détail est de la portée', () => {
+    expect(deLaPortee(TRAVERSEE, new Set(['élément 3/pourpoint-avant_bras_g#0']))).toBe(true);
+    expect(deLaPortee(TRAVERSEE, new Set(['élément 2/chemise-avant_bras_g#0']))).toBe(true);
+  });
+
+  it('écarte l’écart qui ne nomme aucun mesh de la portée, ni un libellé voisin', () => {
+    expect(deLaPortee(TRAVERSEE, new Set(['élément 2/chemise-avant_bras_g#1', 'élément 12/pourpoint-avant_bras_g#0']))).toBe(false);
+    expect(deLaPortee(AMPLITUDE, new Set(['élément 3/pourpoint-avant_bras_g#0']))).toBe(false);
   });
 });

@@ -1,6 +1,6 @@
 /**
  * L'ÉVÉNEMENT RACONTÉ DU JOUR en cours d'un trajet, quel que soit le milieu (#4005) : son seul lieu est
- * `TravelPlan.evenements`, son seul écrivain `noteEvent`, son seul chemin vers l'hôte `voyageEnVue`, et
+ * `TravelPlan.evenements`, son seul écrivain `noteEvent`, sa mise en vue `evenementEnVue` (`voyageEnVue.ts`), et
  * chaque sortie de jour le range dans le `TravelRecapDay` clos par `rangerLesEvenements`. Feuille par la
  * valeur (imports de types seuls) : la mer (`seaVoyageFlow.ts`) et la terre (`travelPostes.ts`,
  * `travelFlow.ts`) l'importent sans cycle.

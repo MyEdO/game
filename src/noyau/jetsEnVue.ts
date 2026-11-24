@@ -440,12 +440,10 @@ function opposeBinaire(
   return vue(flux, lignes, oppose, undefined, 'oppose');
 }
 
-const pool = (s: Jeu): readonly Combatant[] => s.battle?.combatants ?? s.party;
-
 /** La cible qu'annonce, avant le jet, le lecteur de ligne que le résolveur jette (`ligneDuTestNomme`, `ligneDeFrenesie`)
  *  sur l'acteur `id` ; `null` sans lui. */
 function cibleDuLecteur(s: Jeu, id: string, lire: (c: Combatant) => { target: number }): number | null {
-  const c = pool(s).find((x) => x.id === id);
+  const c = actorIn(s, id);
   return c ? lire(c).target : null;
 }
 
@@ -477,8 +475,8 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
   attaque: (s) => {
     const pa = s.pendingAttack;
     if (!pa) return null;
-    const attaquant = pool(s).find((c) => c.id === pa.attackerId);
-    const cible = pool(s).find((c) => c.id === pa.targetId);
+    const attaquant = actorIn(s, pa.attackerId);
+    const cible = actorIn(s, pa.targetId);
     const arme = s.battle && attaquant && cible ? attackWeaponOf(objetDuNarratif(s.campaignNarratif), s.scene, s.battle, attaquant, cible, pa) : pa.weapon;
     const referenceAttaque = referenceDeLAttaque(attaquant, arme);
     if (pa.result) {
@@ -502,8 +500,8 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
   defense: (s) => {
     const pd = s.pendingDefense;
     if (!pd) return null;
-    const attaquant = pool(s).find((c) => c.id === pd.attackerId);
-    const defenseur = pool(s).find((c) => c.id === pd.defenderId);
+    const attaquant = actorIn(s, pd.attackerId);
+    const defenseur = actorIn(s, pd.defenderId);
     const referenceAttaque = referenceDeLAttaque(attaquant, pd.weapon);
     const test = defenseur && defenseTestOf(defenseur, pd.result?.defenderDetail?.mode ?? pd.mode,
       pd.result?.parryWeapon ?? parryWeaponOf(defenseur, pd), pd.substituteSkillId);
@@ -630,7 +628,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
   battement: (s) => s.pendingBattement && vue('battement', [ligneFixe(s.pendingBattement.attackerId, 'corps-a-corps', s.pendingBattement.result)]),
   manoeuvre: (s) => {
     const pm = s.pendingManeuver;
-    const a = pm && pool(s).find((c) => c.id === pm.attackerId);
+    const a = pm && actorIn(s, pm.attackerId);
     return pm && a ? vue('manoeuvre', [ligne(pm.attackerId, libelleDeManoeuvre(a, pm.attaque), pm.result)]) : null;
   },
   course: (s) => {

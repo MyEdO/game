@@ -181,7 +181,7 @@ export function rawCombatTestBase(c: Combatant, sujet: SujetContextualise, sense
 
 /** Le personnage possède-t-il la compétence `skillId` (et, si `spec` fourni, cette spécialisation —
  *  ex. Projectiles (Poudre noire)) ? Par id STABLE. Sert aux modulateurs (ex. `easierIf`). */
-export function actorHasSkill(c: Combatant, ref: RefDesignee): boolean {
+export function actorHasSkill(c: Pick<Combatant, 'skills'>, ref: RefDesignee): boolean {
   return c.skills.some((s) => refCouvre(ref, s));
 }
 

@@ -496,7 +496,7 @@ export const estAdresseDeProse = (noeud: unknown): boolean => produitDe(noeud)?.
 /**
  * ENTRÉE DE CATALOGUE DE SPÉCIALISATION (`SpecEntry`, `src/data/index.ts`) — ce qu'une def de
  * Compétence/Talent énumère sous `specs[]` : l'id STABLE manipulé par la logique, son `label` FR
- * d'affichage, l'attestation de l'entrée quand elle vient d'un autre folio (`source`/`alsoIn`), et
+ * d'affichage, l'attestation de l'entrée quand elle vient d'un autre folio (`source`/`alsoIn`) ou l'arbitrage `maison` d'une entrée qu'aucun livre ne nomme, et
  * `pool: false` pour une entrée VALIDE mais non PROPOSÉE d'office (`LDB 09 l.40`). SOURCE UNIQUE :
  * `specsSchema` la compose — c'est le catalogue que `specRef`/`refOuSpec` confrontent
  * (`grammaire/ref.ts`, espace `<fichier>#[<id>].specs` de l'INDEX DES IDS).
@@ -507,7 +507,8 @@ const specEntrySchema = nommerChamps(z.strictObject({
   source: sourceRefSchema.optional(),
   alsoIn: z.array(secondarySourceRefSchema).optional(),
   pool: z.literal(false).optional(),
-}), { id: { label: "identifiant" }, label: { label: "libellé" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, pool: { label: "réserve" } });
+  maison: maisonSchema.optional(),
+}), { id: { label: "identifiant" }, label: { label: "libellé" }, source: { label: "source" }, alsoIn: { label: "autres sources" }, pool: { label: "réserve" }, maison: { label: "arbitrage maison" } });
 
 /**
  * CATALOGUE DE SPÉCIALISATIONS d'une entrée (`specs[]`) : un ESPACE DE NOMS, clé `id`, désigné par
@@ -1370,6 +1371,13 @@ export const consumableDurationSchema = nommerChamps(z.strictObject({
   hours: formulaSchema.optional(),
   days: formulaSchema.optional(),
 }), { minutes: { label: 'Minutes' }, hours: { label: 'Heures' }, days: { label: 'Jours' } });
+
+/** `PeriodeDeDose` (`src/engine/consumables.ts`). LDB 72 l.22-30 ; #4839 */
+export const periodeDeDoseSchema = enumNomme({
+  rencontre: 'Une par rencontre',
+  jour: 'Une par jour',
+  blessureCritique: 'Une par Blessure Critique',
+});
 
 /** `FormuleSansTirage` (`src/engine/ops.ts`, #2817) — quantité LUE AVANT tout jet (portée, cibles, zone
  *  d'un Sort, bonus de DR, modificateur de Test affiché) : la grammaire de `formulaSchema` sans ses

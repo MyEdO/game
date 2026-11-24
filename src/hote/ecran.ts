@@ -29,13 +29,12 @@ import {
   formatJourImperial,
   jourImperial,
   libelleDeDistance,
-  marchandEnVue,
-  marcheEnVue,
+  clockLabel,
   VERBE_DE_CHOIX,
   type AxeDuChoix,
   type FenetreAChoix,
   conditionLabel,
-  conversationEnVue,
+  libelleDuTestAnnonce,
   difficultyText,
   documentEnVue,
   lieuEnVue,
@@ -50,18 +49,19 @@ import {
   enTeteDuPorteur,
   ficheDuPorteur,
   gestesDeLObjet,
-  interludeEnVue,
+  libelleDuDepot,
   porteurParId,
   locationLabel,
-  recitEnVue,
   refLabel,
-  reposEnVue,
+  TITRE_DE_LA_NUIT,
   toneOf,
   nomEnVue,
   porteurEnVue,
   type CombatEvent,
   type FaitApplique,
   type Equipe,
+  type Money,
+  type CoutDeLaValeur,
   type EntreeDeLaFiche,
   type IconId,
   type IdDeCouche,
@@ -84,7 +84,7 @@ import {
   ordreDuRoundSuivant,
   type Renvoyable,
 } from '../noyau/index';
-import { estUneCle, pluriel, t } from '../i18n';
+import { elision, estUneCle, pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
@@ -220,15 +220,15 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    */
   'exploration.gestes': Bouton[];
   /**
-   * la conversation en cours, `conversationEnVue`, surface du noyau, quand aucune fenêtre ne la suspend : le nom de son
+   * la conversation en cours, `Projection.conversation`, quand aucune fenêtre ne la suspend : le nom de son
    * interlocuteur.
    */
   'dialogue.orateur': Ligne[];
   /** la réplique du nœud. */
   'dialogue.replique': Ligne[];
   /**
-   * chaque réponse visible en bouton qui la choisit, ce qu'elle annonce (son Test, son coût) avant son libellé, refusée
-   * avec sa raison.
+   * chaque réponse visible en bouton qui la choisit : son Test annoncé, son libellé puis son coût, refusée avec sa
+   * raison.
    */
   'dialogue.reponses': Bouton[];
   /**
@@ -430,7 +430,7 @@ const elementsDuJet = (etat: Jeu, j: JetEnVue, i: number): Element[] => [
 ];
 
 /** Ce que la fenêtre dit d'un héros du groupe, porté par sa carte (`herosDuGroupe`) plutôt que par son corps : en
- *  route (`Projection.voyage`), chaque jet qu'il jette, sans redire son nom ; à la halte (`reposEnVue`), son couchage et sa
+ *  route (`Projection.voyage`), chaque jet qu'il jette, sans redire son nom ; à la halte (`Projection.repos`), son couchage et sa
  *  pitance, en listes comme tout choix d'une carte, et ce qui l'attend cette nuit en puces d'alerte. `restants` : les
  *  jets de la fenêtre (`jetsEnVue`) qu'aucune carte ne porte. */
 function surLesCartes(etat: Jeu, p: Projection): { restants: Element[]; parHeros: Map<string, Element[]> } {
@@ -438,9 +438,9 @@ function surLesCartes(etat: Jeu, p: Projection): { restants: Element[]; parHeros
   const jets = vues.flatMap((j, i) => elementsDuJet(etat, j, i));
   const parHeros = new Map<string, Element[]>();
   const poser = (h: string, e: Element) => parHeros.set(h, [...(parHeros.get(h) ?? []), e]);
-  for (const d of reposEnVue(etat)?.dormeurs ?? []) {
+  for (const d of p.repos?.dormeurs ?? []) {
     [choixDuDormeur('couchage', d.couchage), choixDuDormeur('pitance', d.pitance)].forEach((c) => poser(d.id, { ...c, type: 'liste' }));
-    d.alertes.forEach((a, i) => poser(d.id, puce(`alerte/${i}`, a, null, null, 'alerte')));
+    d.alertes.forEach((a, i) => poser(d.id, puce(`alerte/${i}`, texteDeLAlerte(a), null, null, 'alerte')));
   }
   if (!p.voyage) return { restants: jets, parHeros };
   const qui = new Map<string, string | null>(vues.flatMap((j, i) => j.lignes.map((l, k) => [`jets/${i}/${k}`, l.qui] as const)));
@@ -476,13 +476,13 @@ function corpsDeLaFenetre(etat: Jeu, p: Projection, jetsRestants: Element[]): El
     ...patientDuSoin(etat),
     ...trajetsDeLaCarte(p),
     ...ecranDuLieu(etat, p),
-    ...echoppe(etat),
-    ...marche(etat),
-    ...voyage(etat, p),
-    ...recitDuVoyage(etat),
-    ...herosDeLInterlude(etat),
+    ...echoppe(p),
+    ...marche(p),
+    ...voyage(p),
+    ...recitDuVoyage(p),
+    ...herosDeLInterlude(p),
     ...champDeBataille(etat),
-    ...nuitDuRepos(etat, p, cle),
+    ...nuitDuRepos(p, cle),
     ...jetsRestants,
     ...(defenseVisible && defense?.issue ? [ligne('defense/issue', defense.issue.ligne)] : []),
     ...revelationDeLEtape(etat),
@@ -497,7 +497,7 @@ function corpsDeLaFenetre(etat: Jeu, p: Projection, jetsRestants: Element[]): El
  *  route, fermé avec sa raison. Le même élément part du lieu (`ecranDuLieu`) et de la carte (`trajetsDeLaCarte`). */
 const departDuTrajet = (tr: TrajetEnVue): Choix => ({
   type: 'choix', id: tr.route, ton: 'neutre', focus: false, refus: null, libelle: libelleDeDistance(tr.distance),
-  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode, m.jours === null ? m.libelle : t('ecran.carte.mode', { mode: m.libelle, jours: m.jours }), m.geste, m.refus)),
+  valeurs: tr.modes.map((m) => boutonDeGeste(m.mode.id, m.jours === null ? m.mode.nom : t('ecran.carte.mode', { mode: m.mode.nom, jours: m.jours }), m.geste, m.refus)),
 });
 
 /** Le plan de la carte en élément : chaque lieu à sa place, celui du groupe en `alerte`, chaque route qui part d'ici
@@ -565,13 +565,17 @@ const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libel
 /** Un choix de valeurs en boutons, en liste au-delà de `CHOIX_EN_BOUTONS`. */
 const typeDuChoix = (n: number): Choix['type'] => (n > CHOIX_EN_BOUTONS ? 'liste' : 'choix');
 
-/** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
- *  l'Événement de sa période en puces, puis chaque choix de l'Activité qu'il compose, la sienne pressée et chacune
- *  fermée avec sa raison, et le bouton qui la pratique ; ses Activités jouées par leur verbe, un bouton sans cible, un
- *  choix de ses cibles sinon, fermée avec sa raison ; son dépôt ; puis les dépôts en banque, chacun le bouton de son
- *  retrait. */
-function herosDeLInterlude(etat: Jeu): Element[] {
-  const itl = interludeEnVue(etat);
+/** Un nom dit avec ce qu'il coûte (`null` : rien), en PX ou en prix. */
+const avecCout = (nom: string, cout: CoutDeLaValeur | null): string =>
+  (cout === null ? nom : t('ecran.aCout', { nom, prix: 'px' in cout ? t('ecran.px', { px: cout.px }) : formatMoney(cout.prix) }));
+
+/** L'interlude ouvert (`Projection.interlude`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
+ *  l'Événement de sa période en puces, puis chaque choix de l'Activité qu'il compose, chaque valeur dite avec son coût,
+ *  la sienne pressée et chacune fermée avec sa raison, et le bouton qui la pratique ; ses Activités jouées par leur
+ *  verbe, un bouton sans cible, un choix de ses cibles sinon, chacune dite avec son prix et fermée avec sa raison ; son
+ *  dépôt, chaque genre nommé ; puis les dépôts en banque (`libelleDuDepot`), chacun le bouton de son retrait. */
+function herosDeLInterlude(p: Projection): Element[] {
+  const itl = p.interlude;
   if (!itl) return [];
   return [
     ligne('repit/semaines', t('ecran.repit.semaines', { semaines: itl.semaines, s: pluriel(itl.semaines) })),
@@ -580,23 +584,23 @@ function herosDeLInterlude(etat: Jeu): Element[] {
       elements: [
         puce('restantes', t('ecran.repit.restantes', { restantes: h.restantes, recues: h.recues }), null),
         puce('px', t('ecran.repit.px'), String(h.px)),
-        puce('bourse', t('ecran.repit.bourse'), h.bourse),
-        ...(h.evenement ? [puce('evenement', h.evenement, null)] : []),
+        puce('bourse', t('ecran.repit.bourse'), formatMoney(h.bourse)),
+        ...(h.evenement ? [puce('evenement', h.evenement.nom, null)] : []),
         ...h.composition.map((c): Choix => ({
           type: typeDuChoix(c.valeurs.length), id: c.axe, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
-          valeurs: c.valeurs.map((v, i) => boutonDeGeste(`${c.axe}/${i}`, v.libelle, v.geste, v.refus, v.choisie)),
+          valeurs: c.valeurs.map((v, i) => boutonDeGeste(`${c.axe}/${i}`, avecCout(v.libelle, v.cout), v.geste, v.refus, v.choisie)),
         })),
         ...(h.pratiquer ? [boutonDuNoyau('pratiquer', h.pratiquer)] : []),
         ...h.activites.map((a): Bouton | Choix => (a.cible
-          ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
+          ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDeGeste(`${a.id}/${i}`, avecCout(g.libelle, g.cout), g.geste, g.refus)) }
           : boutonDuNoyau(a.id, a.gestes[0]))),
         formulaireDuNoyau(`depot/${h.id}`, t('ecran.repit.depot'), h.depot, h.depot.refus ? [] : [
-          saisieDeValeurs('genre', t('ecran.repit.genre'), h.depot.genres),
+          saisieDeValeurs('genre', t('ecran.repit.genre'), h.depot.genres.map((g) => ({ ...g, libelle: t(`interlude.genre.${g.valeur}`) }))),
           { type: 'saisieNombre', id: 'montant', ton: 'neutre', nom: 'montant', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
         ]),
       ],
     })),
-    ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDuNoyau(String(i), d)) } satisfies Entite] : []),
+    ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDeGeste(String(i), libelleDuDepot(d), d.geste, d.refus)) } satisfies Entite] : []),
   ];
 }
 
@@ -644,73 +648,116 @@ function champDeBataille(etat: Jeu): Element[] {
   ];
 }
 
-type Repos = NonNullable<ReturnType<typeof reposEnVue>>;
+type Repos = NonNullable<Projection['repos']>;
+
+/** Ce qui attend un dormeur cette nuit, en texte. */
+function texteDeLAlerte(a: Repos['dormeurs'][number]['alertes'][number]): string {
+  switch (a.genre) {
+    case 'refusDeRecuperation': return t(`rest.refus.${a.motif}`);
+    case 'ventreVide': return t('rf.ventreVide');
+    case 'expositions': return t('rf.expositions', { n: a.n });
+  }
+}
+
+/** La nuit en tête de la scène : le titre de son toit, son lieu (une route : ses deux extrémités), ses nuits et sa
+ *  qualité hors de la normale. */
+function momentDuRepos(r: Repos): string {
+  const lieu = 'nom' in r.lieu ? r.lieu.nom : t('rf.lieuRoute', { from: r.lieu.route.deNom, to: r.lieu.route.versNom });
+  return [`${t(TITRE_DE_LA_NUIT[r.toit])} — ${lieu}`, ...(r.nuits > 1 ? [t('rf.nuits', { n: r.nuits })] : []), ...(r.qualite === 'normale' ? [] : [t(`rf.qualite.${r.qualite}`)])].join(' · ');
+}
+
+/** Le temps de la nuit en texte : le Plein air qui en dispense, sinon le mauvais temps et la tente qui en abrite, en
+ *  alerte ; rien par temps clément. */
+function tempsDuRepos(nuit: Repos['temps']): { texte: string; alerte: boolean } | null {
+  if (nuit.pleinAir) return { texte: t('rf.pleinAirDispense'), alerte: false };
+  if (nuit.severite === 'clement') return null;
+  return { texte: [t(nuit.severite === 'extreme' ? 'rf.tempsDeChien' : 'rf.mauvaisTemps'), ...(nuit.abrite ? [t('rf.tenteAbrite')] : [])].join(' — '), alerte: true };
+}
 
 /** Un réglage d'un dormeur en choix : chaque valeur que le lieu lui offre, la sienne pressée, chacune fermée par sa raison. */
-const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['couchage']): Choix => ({
+const choixDuDormeur = (id: string, c: Repos['dormeurs'][number]['pitance']): Choix => ({
   type: 'choix', id, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
   valeurs: c.valeurs.map((v, i): Bouton => ({ type: 'bouton', id: String(i), libelle: v.libelle, jeu: { type: v.geste.verbe, args: v.geste.args }, presse: v.choisie, focus: false, detail: null, touche: null, refus: v.refus })),
 });
 
-/** La nuit à régler (`reposEnVue`) : la tête de sa scène (`scene` : le paysage de la halte, le temps sous le ciel de
+/** La nuit à régler (`Projection.repos`) : la tête de sa scène (`scene` : le paysage de la halte, le temps sous le ciel de
  *  nuit, la nuit et son lieu), le temps qu'il fait (en alerte quand il expose), puis la note, en alerte quand les bourses ne la couvrent
  *  pas ; la nuit de chaque dormeur est sur sa carte (`surLesCartes`). */
-function nuitDuRepos(etat: Jeu, p: Projection, cle: string): Element[] {
-  const r = reposEnVue(etat);
+function nuitDuRepos(p: Projection, cle: string): Element[] {
+  const r = p.repos;
   if (!r) return [];
+  const temps = tempsDuRepos(r.temps);
   return [
-    ...scene(p.temps, paysageDeLaHalte(r.toit, p.voyage), { ciel: 'arche-nuit', moment: r.nuit, meteo: null, jourDeRoute: null }),
-    ...(r.temps ? [ligne(`${cle}/temps`, r.temps.texte, r.temps.alerte ? 'alerte' : 'neutre')] : []),
-    ...(r.note ? [ligne(`${cle}/note`, r.note.texte, r.note.couverte ? 'neutre' : 'alerte')] : []),
+    ...scene(p.temps, paysageDeLaHalte(r.toit, p.voyage), { ciel: 'arche-nuit', moment: momentDuRepos(r), meteo: null, jourDeRoute: null }),
+    ...(temps ? [ligne(`${cle}/temps`, temps.texte, temps.alerte ? 'alerte' : 'neutre')] : []),
+    ...(r.note ? [ligne(`${cle}/note`, t('rf.note', { cout: formatMoney(r.note.cout), bourse: formatMoney(r.note.bourse) }), r.note.couverte ? 'neutre' : 'alerte')] : []),
   ];
 }
+
+type Recit = NonNullable<Projection['recit']>;
 
 /** Le ton de chaque issue d'un récit de voyage. */
-const TON_DU_RECIT = { arrivee: 'reussite', interruption: 'alerte', arret: 'alerte', embuscade: 'echec' } as const satisfies Record<NonNullable<ReturnType<typeof recitEnVue>>['issue'], Ton>;
+const TON_DU_RECIT = { arrivee: 'reussite', interruption: 'alerte', arret: 'alerte', embuscade: 'echec' } as const satisfies Record<Recit['issue'], Ton>;
+const TITRE_DU_RECIT = { arrivee: 'trm.titreArrivee', interruption: 'trm.titreInterrompu', arret: 'trm.titreArret', embuscade: 'trm.titreEmbuscade' } as const satisfies Record<Recit['issue'], string>;
+const SUITE_DU_RECIT = { arrivee: null, interruption: 'trm.piedInterrompu', arret: 'trm.piedSurcharge', embuscade: 'trm.piedEmbuscade' } as const satisfies Record<Recit['issue'], string | null>;
 
-/** Le récit du trajet que le groupe vient de faire (`recitEnVue`) : son issue au ton de l'issue, la route faite, puis la
- *  durée du voyage arrivé, ou chaque journée en entité avec ce qui s'y est passé, et ce qui permet de repartir. */
-function recitDuVoyage(etat: Jeu): Element[] {
-  const r = recitEnVue(etat);
+/** La route d'un récit : d'où, vers où, sa longueur et son mode, puis hors d'une arrivée ce qui reste, ou les portes
+ *  de l'arrivée quand il en reste moins d'une unité. */
+function routeDuRecit(r: Recit): string {
+  const route = t('trm.route', { de: elision('de', r.de), depart: r.de, vers: r.vers, distance: libelleDeDistance(r.distance), mode: r.mode.nom.toLowerCase() });
+  const reste = r.reste && (Math.round(r.reste.valeur) > 0 ? t('trm.restants', { distance: libelleDeDistance(r.reste) }) : t('trm.auxPortes', { lieu: r.vers }));
+  return [route, ...(reste ? [reste] : [])].join(t('ecran.separateur'));
+}
+
+/** Le récit du trajet que le groupe vient de faire (`Projection.recit`) : son issue au ton de l'issue, la route faite,
+ *  puis la durée du voyage arrivé, ou chaque journée en entité (sa longueur, ses heures de route, ses lignes à leur
+ *  ton), et ce qui permet de repartir. */
+function recitDuVoyage(p: Projection): Element[] {
+  const r = p.recit;
   if (!r) return [];
+  const duree = r.dureeMin ? clockLabel(r.dureeMin, { exact: true }) : undefined;
+  const suite = SUITE_DU_RECIT[r.issue];
   return [
-    ligne('recit/issue', r.titre, TON_DU_RECIT[r.issue]),
-    ligne('recit/route', r.route),
-    ...(r.duree ? [ligne('recit/duree', r.duree)] : []),
-    ...r.journees.map((j, i): Entite => ({ type: 'entite', id: `recit/jour/${i}`, ton: 'neutre', nom: j.libelle, elements: j.lignes.map((l, k) => ligne(String(k), l)) })),
-    ...(r.suite ? [ligne('recit/suite', r.suite)] : []),
+    ligne('recit/issue', t(TITRE_DU_RECIT[r.issue], { lieu: r.vers }), TON_DU_RECIT[r.issue]),
+    ligne('recit/route', routeDuRecit(r)),
+    ...(duree ? [ligne('recit/duree', t('trm.dureeVoyage', { duree }))] : []),
+    ...(r.issue === 'arrivee' ? [] : r.journees.map((j, i): Entite => ({
+      type: 'entite', id: `recit/jour/${i}`, ton: 'neutre',
+      nom: t('trm.jour', { n: i + 1, distance: libelleDeDistance({ valeur: j.jusqua - j.depuis, unite: r.distance.unite }), heures: Math.round(j.heures) }),
+      elements: j.lignes.map((l, k) => ligne(String(k), l.text, l.tone ?? 'neutre')),
+    }))),
+    ...(suite ? [ligne('recit/suite', t(suite))] : []),
   ];
 }
 
-/** L'échoppe ouverte (`marchandEnVue`) : la bourse du groupe ; chaque famille de l'étal en entité, chaque article en
+/** L'échoppe ouverte (`Projection.marchand`) : la bourse du groupe ; chaque famille de l'étal en entité, chaque article en
  *  bouton qui en met une unité au panier, son prix au libellé, pressé quand le panier en tient ; le panier, chaque ligne
  *  en bouton qui en ôte une unité, et le paiement de son total ; chaque héros et ses possessions, chacune en bouton qui la
  *  met au lot ou l'en retire, son gain au libellé ; puis la vente du lot. */
-function echoppe(etat: Jeu): Element[] {
-  const m = marchandEnVue(etat);
+function echoppe(p: Projection): Element[] {
+  const m = p.marchand;
   if (!m) return [];
-  const avecPrix = (nom: string, prix: string | null) => (prix === null ? nom : t('ecran.echoppe.article', { nom, prix }));
   return [
-    puce('bourse', t('ecran.bourse'), m.bourse),
+    puce('bourse', t('ecran.bourse'), formatMoney(m.bourse)),
     ...m.etal.map((f): Entite => ({
       type: 'entite', id: `etal/${f.id}`, ton: 'neutre', nom: f.nom,
       elements: f.articles.map((a) => {
         const nom = a.recoursDeGuilde ? t('mf.guildeArticleARechercher', { article: a.nom }) : a.nom;
-        return boutonDeGeste(a.id, avecPrix(nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0);
+        return boutonDeGeste(a.id, avecCout(nom, a.prix && { prix: a.prix }), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0);
       }),
     })),
     {
       type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.echoppe.panier'),
       elements: [
-        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecPrix(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal), l.oter, null)),
-        boutonDeGeste('payer', t('ecran.echoppe.payer', { total: m.panier.total }), m.panier.payer.geste, m.panier.payer.refus),
+        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecCout(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal && { prix: l.sousTotal }), l.oter, null)),
+        boutonDeGeste('payer', t('ecran.echoppe.payer', { total: formatMoney(m.panier.total) }), m.panier.payer.geste, m.panier.payer.refus),
       ],
     },
     ...m.vente.heros.map((h): Entite => ({
       type: 'entite', id: `vente/${h.id}`, ton: 'neutre', nom: h.nom,
-      elements: h.possessions.map((p) => boutonDeGeste(p.uid, avecPrix(p.nom, p.gain), p.basculer, p.refus, p.auLot)),
+      elements: h.possessions.map((o) => boutonDeGeste(o.uid, avecCout(o.nom, { prix: o.gain }), o.basculer, o.refus, o.auLot)),
     })),
-    boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: m.vente.total }), m.vente.vendre.geste, m.vente.vendre.refus),
+    boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: formatMoney(m.vente.total) }), m.vente.vendre.geste, m.vente.vendre.refus),
   ];
 }
 
@@ -753,7 +800,7 @@ const avantDuPaysage = (voie: Voyage['voie'], t: Teinte, meteo: Voyage['meteo'] 
 type Equipage = 'pied' | 'monture' | 'attelage' | 'barge' | 'navire';
 
 /** L'équipage du trajet : le navire en mer, la barge au fleuve ; sur la route, les marcheurs, les cavaliers ou l'attelage. */
-const equipage = (v: Voyage): Equipage => (v.voie === 'maritime' ? 'navire' : v.voie === 'fluvial' ? 'barge' : v.mode === 'pied' ? 'pied' : v.mode === 'monture' ? 'monture' : 'attelage');
+const equipage = (v: Voyage): Equipage => (v.voie === 'maritime' ? 'navire' : v.voie === 'fluvial' ? 'barge' : v.mode.id === 'pied' ? 'pied' : v.mode.id === 'monture' ? 'monture' : 'attelage');
 
 /** L'objet du temps d'une scène : `ciel`, la couche du ciel de son arche ; `moment`, ce qui se dit du moment ; `meteo`,
  *  le pictogramme de la météo du jour (`null` : sans) ; `jourDeRoute`, le jour du trajet (`null` : hors d'un trajet). */
@@ -786,7 +833,7 @@ function paysageDuVoyage(v: Voyage, moment: DayPhaseId): IdDeCouche[] {
 
 /** Le paysage d'une halte : la nuit sur son relief, le toit de la nuit (le feu du campement, les fenêtres d'un logis,
  *  le bord et ses lanternes sur l'eau du trajet `v`, la mer hors d'un trajet), puis ce qui ferme le paysage. */
-function paysageDeLaHalte(toit: NonNullable<ReturnType<typeof reposEnVue>>['toit'], v: Voyage | null): IdDeCouche[] {
+function paysageDeLaHalte(toit: Repos['toit'], v: Voyage | null): IdDeCouche[] {
   const voie = toit === 'bord' ? (v?.voie === 'fluvial' ? 'fluvial' : 'maritime') : 'terrestre';
   const bord = voie === 'fluvial' ? 'barge' : 'navire';
   const halte: IdDeCouche[] = toit === 'bord' ? [`equipage-${bord}`, `lanterne-${bord}`] : [toit === 'campement' ? 'halte-feu' : 'halte-toit'];
@@ -799,7 +846,7 @@ function paysageDeLaHalte(toit: NonNullable<ReturnType<typeof reposEnVue>>['toit
 function friseDuVoyage(v: Voyage): Plan {
   const point = (id: string, nom: string, km: number, ton: Ton, elements: Element[] = []): Plan['points'][number] => ({ type: 'point', id, nom, x: v.km > 0 ? km / v.km : 1, y: 0, ton, elements });
   const nuit: Icone = { type: 'icone', id: 'nuit', icone: 'voyage/nuit-passee' };
-  const faits = [point('depart', v.de, 0, 'neutre'), ...v.nuits.map((n, i) => point(`nuit/${i}`, '', n, 'neutre', [nuit])), point('ici', '', v.fait, 'reussite')];
+  const faits = [point('depart', v.de, 0, 'neutre'), ...v.journees.map((j, i) => point(`nuit/${i}`, '', j.jusqua, 'neutre', [nuit])), point('ici', '', v.fait, 'reussite')];
   const points = [...faits, point('arrivee', v.vers, v.km, 'neutre')];
   return { type: 'plan', id: 'voyage/frise', points, traits: points.slice(1).map((p, i) => ({ id: p.id, de: points[i].id, vers: p.id, ton: i < faits.length - 1 ? 'alerte' : 'neutre' })) };
 }
@@ -828,14 +875,14 @@ function carteDuVoyage(v: Voyage): Plan {
  *  (`scene` : son paysage, le ciel du moment, le jour de route, la météo et le moment du jour, un jour de route par
  *  nuit passée en route) ; puis le titre de sa carte et sa carte (`carteDuVoyage`), la distance qui reste avant l'arrivée dans son unité,
  *  le choix de sa cadence, celle qu'il joue pressée, et sa frise (`friseDuVoyage`). */
-function voyage(etat: Jeu, p: Projection): Element[] {
+function voyage(p: Projection): Element[] {
   const v = p.voyage;
   if (!v) return [];
   const m = p.temps.moment;
   const moment = v.meteo ? t('ecran.voyage.moment', { moment: m.nom, meteo: v.meteo.nom.toLocaleLowerCase('fr') }) : m.nom;
-  const temps: Temps = { ciel: `arche-${m.id}`, moment, meteo: v.meteo && ICONE_DE_LA_METEO[v.meteo.id], jourDeRoute: v.nuits.length + 1 };
+  const temps: Temps = { ciel: `arche-${m.id}`, moment, meteo: v.meteo && ICONE_DE_LA_METEO[v.meteo.id], jourDeRoute: v.journees.length + 1 };
   return [
-    ...(reposEnVue(etat) ? [] : scene(p.temps, paysageDuVoyage(v, m.id), temps)),
+    ...(p.repos ? [] : scene(p.temps, paysageDuVoyage(v, m.id), temps)),
     ligne('voyage/titre', t('ecran.voyage.titre', { arrivee: v.vers })),
     carteDuVoyage(v),
     puce('voyage/reste', t(`distance.${v.unite}`), String(Math.round(v.km - v.fait))),
@@ -847,26 +894,26 @@ function voyage(etat: Jeu, p: Projection): Element[] {
   ];
 }
 
-/** Le marché de cargaison ouvert (`marcheEnVue`) : la bourse, chaque offre en entité, son Enc disponible, son prix
+/** Le marché de cargaison ouvert (`Projection.marche`) : la bourse, chaque offre en entité, son Enc disponible, son prix
  *  par Enc, la qualité de son vin ou son évaluation, puis le bouton qui en compose l'achat, pressé quand il se compose,
  *  et son estimation (le porteur, l'Enc et la conclusion de l'achat en composition sont des réglages de la fenêtre) ;
  *  chaque lot des porteurs du groupe en entité, son porteur et son Enc, son prix de base, sa vente, son bradage, puis
  *  son transfert vers un porteur co-localisé. */
-function marche(etat: Jeu): Element[] {
-  const m = marcheEnVue(etat);
+function marche(p: Projection): Element[] {
+  const m = p.marche;
   if (!m) return [];
   const enc = (n: number) => t('ecran.marche.enc', { enc: n });
-  const parEnc = (prix: string) => puce('prix', t('ecran.marche.prix'), t('ecran.marche.parEnc', { prix }));
+  const parEnc = (prix: Money) => puce('prix', t('ecran.marche.prix'), t('ecran.marche.parEnc', { prix: formatMoney(prix) }));
   return [
-    puce('bourse', t('ecran.bourse'), m.bourse),
+    puce('bourse', t('ecran.bourse'), formatMoney(m.bourse)),
     ...m.offres.map((o): Entite => ({
       type: 'entite', id: `offre/${o.id}`, ton: 'neutre', nom: o.nom,
       elements: [
         puce('dispo', t('ecran.marche.dispo'), enc(o.dispo)),
-        parEnc(o.prix),
-        ...(o.qualite ? [{ ...puce('qualite', t('ecran.marche.qualite'), o.qualite.fiable ? o.qualite.texte : t('ecran.marche.incertaine', { qualite: o.qualite.texte })), ton: o.qualite.fiable ? 'neutre' : 'alerte' } satisfies Puce] : []),
+        parEnc(o.prixParEnc),
+        ...(o.qualite ? [{ ...puce('qualite', t('ecran.marche.qualite'), o.qualite.fiable ? o.qualite.nom : t('ecran.marche.incertaine', { qualite: o.qualite.nom })), ton: o.qualite.fiable ? 'neutre' : 'alerte' } satisfies Puce] : []),
         ...(o.evaluer ? [boutonDuNoyau('evaluer', { ...o.evaluer, libelle: t('ecran.marche.evaluer') })] : []),
-        puce('estimation', t('ecran.marche.estimation'), o.acheter.estimation),
+        puce('estimation', t('ecran.marche.estimation'), formatMoney(o.acheter.estimation)),
         boutonDeGeste('acheter', t('ecran.marche.acheter'), o.acheter.geste, o.acheter.refus, o.acheter.compose),
       ],
     })),
@@ -874,7 +921,7 @@ function marche(etat: Jeu): Element[] {
       type: 'entite', id: `lot/${l.uid}`, ton: 'neutre', nom: l.nom,
       elements: [
         puce('porteur', c.nom, enc(l.enc)),
-        parEnc(l.prix),
+        parEnc(l.prixParEnc),
         boutonDuNoyau('vendre', { ...l.vendre, libelle: t('ecran.marche.vendre') }),
         boutonDuNoyau('brader', { ...l.brader, libelle: t('ecran.marche.brader') }),
         formulaireDuNoyau('deplacer', t('ecran.marche.deplacer'), { geste: { verbe: l.deplacer.geste.verbe, args: [l.uid] }, refus: l.deplacer.refus }, l.deplacer.refus ? [] : [
@@ -1414,7 +1461,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
       type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, detail: null, touche: null, refus: g.refus ?? null,
     })),
-    ...zonesDuDialogue(etat, fenetre !== null),
+    ...zonesDuDialogue(p, fenetre !== null),
     'journal.titre': c ? [{ type: 'entite', id: 'journal', ton: 'neutre', nom: t('ecran.journal'), elements: [{ type: 'icone', id: 'icone', icone: 'navigation/carnet' }] }] : [],
     'groupe.heros': c ? [] : herosDuGroupe(etat, fiche, gestesSurLesCartes, jetsSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
@@ -1423,16 +1470,16 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
   };
 }
 
-/** Les zones de la conversation en cours (`conversationEnVue`), quand aucune fenêtre ne la suspend : son
- *  interlocuteur, sa réplique, et chaque réponse visible en bouton qui la choisit, ce qu'elle annonce (son Test, son
- *  coût) avant son libellé, refusée avec sa raison. */
-function zonesDuDialogue(etat: Jeu, fenetreOuverte: boolean): Pick<ZonesDeLEcran, 'dialogue.orateur' | 'dialogue.replique' | 'dialogue.reponses'> {
-  const v = fenetreOuverte ? null : conversationEnVue(etat);
+/** Les zones de la conversation en cours (`Projection.conversation`), quand aucune fenêtre ne la suspend : son
+ *  interlocuteur, sa réplique, et chaque réponse visible en bouton qui la choisit : son Test annoncé
+ *  (`libelleDuTestAnnonce`), son libellé, puis son coût, refusée avec sa raison. */
+function zonesDuDialogue(p: Projection, fenetreOuverte: boolean): Pick<ZonesDeLEcran, 'dialogue.orateur' | 'dialogue.replique' | 'dialogue.reponses'> {
+  const v = fenetreOuverte ? null : p.conversation;
   return {
-    'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur)] : [],
+    'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur.nom)] : [],
     'dialogue.replique': v?.replique ? [ligne('replique', v.replique)] : [],
     'dialogue.reponses': (v?.reponses ?? []).map((r): Bouton => ({
-      type: 'bouton', id: `reponse/${r.id}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
+      type: 'bouton', id: `reponse/${r.id}`, libelle: [r.test && libelleDuTestAnnonce(r.test), r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
       jeu: { type: r.geste.verbe, args: r.geste.args }, presse: false, focus: false, detail: null, touche: null, refus: r.refus ?? null,
     })),
   };

@@ -131,14 +131,14 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
   it('héros assoiffé : pas de récupération', () => {
     const a = blesse();
     a.thirst = { days: 1, tests: 0, failures: 0 } as never;
-    expect(refusDeRecuperation(a)).toBe('privé de vivres ou d’eau (pas de récupération)');
+    expect(refusDeRecuperation(a)).toBe('prive');
     expect(needsRecoveryRoll(a)).toBe(false);
   });
 
   it('Hémorragique : à stabiliser', () => {
     const a = blesse();
     addCondition(a, 'hemorragique', 1);
-    expect(refusDeRecuperation(a)).toBe('à stabiliser (pas de repos réparateur)');
+    expect(refusDeRecuperation(a)).toBe('instable');
   });
 
   it('Empoisonné : bloque le soin à 0 Blessure, pas au-dessus', () => {
@@ -146,7 +146,7 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
     addCondition(a, 'empoisonne', 1);
     expect(refusDeRecuperation(a)).toBeNull();
     a.wounds = { ...a.wounds, current: 0 };
-    expect(refusDeRecuperation(a)).toBe('empoisonné à 0 Blessure (aucune Blessure soignée)');
+    expect(refusDeRecuperation(a)).toBe('empoisonne');
   });
 
   it('Empoisonné à 0 Blessure : la nuit ne soigne aucune Blessure, mais l’Exténué se dissipe', () => {
@@ -161,7 +161,7 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
 });
 
 describe('nuit — la validation du repos (`refusDeLaValidationNommee`, LDB 66)', () => {
-  const ouvrir = (places: Record<string, boolean>) => get().offrirLeRepos({ lieu: fixtureText('Ici'), places } as never);
+  const ouvrir = (places: Record<string, boolean>) => get().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places } as never);
 
   it('solo, nuit gratuite : « Dormir » ouvre la nuit d’un appel', () => {
     banc.setState({ party: heros(1) });

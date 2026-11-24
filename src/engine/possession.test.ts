@@ -305,29 +305,47 @@ describe('randomizeChars (engine/statblock) — tirage LDB 77 l.108, seedé sur 
   });
 });
 
-describe('accepteUnCavalier — LDB 85 l.112, Taille du cavalier ≤ Taille de la monture (arbitrage du 2026-11-23, #4804)', () => {
-  const cavalier = (speciesId: string) => createHero({ idNeuf: idsDeTest, speciesId, careerId: 'ratier', label: speciesId, seed: 1 });
-  const monture = (id: string) => profilDeLaBete({ uid: `pos-${id}`, ownerId: 'h', nature: 'bete', ref: { id }, location: { kind: 'avec-le-groupe' }, items: [] });
+describe('accepteUnCavalier — LDB 85 l.112 ; AA 09 l.23 ; arbitrages du 2026-11-23 (Taille #4804, Dressé (Monture) #4816)', () => {
+  const cavalier = (speciesId: string, chevaucher?: { spec: string; advances: number }) => {
+    const h = createHero({ idNeuf: idsDeTest, speciesId, careerId: 'ratier', label: speciesId, seed: 1 });
+    return chevaucher ? { ...h, skills: [...h.skills, { id: 'chevaucher', spec: chevaucher.spec, characteristic: 'agilite' as const, advances: chevaucher.advances }] } : h;
+  };
+  const monture = (id: string, learnedTraits?: string[]) =>
+    profilDeLaBete({ uid: `pos-${id}`, ownerId: 'h', nature: 'bete', ref: { id }, location: { kind: 'avec-le-groupe' }, items: [], learnedTraits });
 
-  it('le chien (Taille Petite) refuse un humain', () => {
-    expect(accepteUnCavalier(monture('chien'), cavalier('humains-reiklander'))).toBe(false);
+  it('une bête sans Dressé (Monture) refuse tout cavalier ; inné, appris ou facultatif retenu, elle l’accepte', () => {
+    expect(accepteUnCavalier(monture('cheval'), cavalier('humains-reiklander'))).toBe(false);
+    expect(accepteUnCavalier(monture('cheval', ['dresse-monture']), cavalier('humains-reiklander'))).toBe(true);
+    expect(accepteUnCavalier(monture('cheval-de-monte'), cavalier('humains-reiklander'))).toBe(true);
+    expect(accepteUnCavalier(monture('chien'), cavalier('halflings'))).toBe(false);
+    expect(accepteUnCavalier(monture('chien', ['dresse-monture']), cavalier('halflings'))).toBe(true);
   });
-  it('le poney et la mule (Moyens, LDB 85 l.344) acceptent un humain (EDOC 07 l.29)', () => {
+  it('la Taille du cavalier est au plus celle de la monture', () => {
+    expect(accepteUnCavalier(monture('chien', ['dresse-monture']), cavalier('humains-reiklander'))).toBe(false);
     expect(accepteUnCavalier(monture('poney'), cavalier('humains-reiklander'))).toBe(true);
     expect(accepteUnCavalier(monture('mule'), cavalier('humains-reiklander'))).toBe(true);
-  });
-  it('le poney et le blaireau refusent un ogre', () => {
     expect(accepteUnCavalier(monture('poney'), cavalier('ogres'))).toBe(false);
-    expect(accepteUnCavalier(monture('blaireau'), cavalier('ogres'))).toBe(false);
+    expect(accepteUnCavalier(monture('cheval-de-monte'), cavalier('ogres'))).toBe(true);
   });
-  it('le cheval (Taille Grande) accepte un humain et un ogre', () => {
-    expect(accepteUnCavalier(monture('cheval'), cavalier('humains-reiklander'))).toBe(true);
-    expect(accepteUnCavalier(monture('cheval'), cavalier('ogres'))).toBe(true);
+  it('le griffon dressé exige Chevaucher (Griffon) du cavalier, pas une autre Spécialisation', () => {
+    const griffon = monture('griffon', ['dresse-monture']);
+    expect(accepteUnCavalier(griffon, cavalier('humains-reiklander'))).toBe(false);
+    expect(accepteUnCavalier(griffon, cavalier('humains-reiklander', { spec: 'cheval', advances: 10 }))).toBe(false);
+    expect(accepteUnCavalier(griffon, cavalier('humains-reiklander', { spec: 'griffon', advances: 5 }))).toBe(true);
   });
-  it('le chien accepte un halfling (Petit ≤ Petit)', () => {
-    expect(accepteUnCavalier(monture('chien'), cavalier('halflings'))).toBe(true);
+  it('le blaireau (Dressé (Monture) inné) exige Chevaucher (Blaireau) du halfling', () => {
+    expect(accepteUnCavalier(monture('blaireau'), cavalier('halflings'))).toBe(false);
+    expect(accepteUnCavalier(monture('blaireau'), cavalier('halflings', { spec: 'blaireau', advances: 5 }))).toBe(true);
   });
-  it('une bête possédée Belliqueuse refuse un cavalier plus petit qu’elle', () => {
-    expect(accepteUnCavalier(monture('grand-sanglier-ombrageux'), cavalier('humains-reiklander'))).toBe(false);
+  it.each([
+    ['hyppogriffe', 'griffon', 'cheval'],
+    ['loup-blanc', 'grand-loup', 'loup'],
+    ['carnosaure', 'carnosaure', 'griffon'],
+    ['cornu', 'cornu', 'cheval'],
+  ])('%s dressé exige Chevaucher (%s), arbitrage #4842 du 2026-11-23', (id, exigee, autre) => {
+    const bete = monture(id, ['dresse-monture']);
+    expect(accepteUnCavalier(bete, cavalier('humains-reiklander'))).toBe(false);
+    expect(accepteUnCavalier(bete, cavalier('humains-reiklander', { spec: autre, advances: 10 }))).toBe(false);
+    expect(accepteUnCavalier(bete, cavalier('humains-reiklander', { spec: exigee, advances: 5 }))).toBe(true);
   });
 });

@@ -54,7 +54,7 @@ const PARENTS = new Map([['manche', 'bras'], ['avant_bras', 'bras'], ['bras', 'e
 const retournee = (m: MaillageDePile): MaillageDePile => ({ ...m, indices: m.indices.map((_, i, t) => t[i - (i % 3) + [0, 2, 1][i % 3]]) });
 /** La pile de `pieces`, de la plus intérieure à la plus extérieure, sur la peau de positions `peaux`. */
 const empiler = (pieces: readonly PieceDePile[], osDeChaine: readonly string[] = [], peaux: readonly Float32Array[] = []) =>
-  resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set(osDeChaine) }, peaux);
+  resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set(osDeChaine) }, peaux).bilan;
 
 describe('resoudreLaPile', () => {
   it('un point couvert reprend les poids de sa couverture, et son triangle ne se dessine plus', () => {
@@ -191,6 +191,15 @@ describe('resoudreLaPile', () => {
     empiler([piece(peau), piece(chemise), piece(pourpoint)]);
     expect(poidsSur(chemise, sommetEn(chemise, 0), 'epaule')).toBe(1);
     expect(poidsSur(peau, sommetEn(peau, 0), 'avant_bras')).toBeCloseTo(1, 6);
+  });
+
+  it('dit, par pièce, les couvertures qui en retiennent un point, dans l’ordre de leur résolution ; une qui flotte n’en est pas (#4814)', () => {
+    const pieces = [piece(nappe(0, 'bras', 0.1)), piece(nappe(SERRAGE_M / 2, 'epaule', 0.15)), piece(nappe(SERRAGE_M, 'avant_bras'))];
+    const [peau, chemise, pourpoint] = pieces;
+    const { retenues } = resoudreLaPile(pieces, (e, f) => pieces.indexOf(e) > pieces.indexOf(f), { parents: PARENTS, osDeChaine: new Set() }, []);
+    expect(retenues).toEqual(new Map([[peau, [pourpoint, chemise]], [chemise, []], [pourpoint, []]]));
+    const jambe = [piece(nappe(0, 'jambe', 0.1)), piece(nappe(SERRAGE_M, 'jupe_1'))];
+    expect(resoudreLaPile(jambe, (e, f) => jambe.indexOf(e) > jambe.indexOf(f), { parents: PARENTS, osDeChaine: new Set(['jupe_1']) }, []).retenues.get(jambe[0])).toEqual([]);
   });
 
   it('réduit à quatre os, un point perd sur chacun le poids de l’os écarté : deux points qui n’écartent pas le même gardent des poids voisins', () => {

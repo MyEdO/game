@@ -27,6 +27,19 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { lancerLeScenario } from '../noyau/lancementDeScenario';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios/index';
+import { createHero } from '../engine/character';
+import { withBourseMoney } from '../engine/bourse';
+import { isRation } from '../engine/provisions';
+import { addCondition } from '../engine/conditions';
+import { itemFromTrappingById } from '../engine/items';
+import { resetRule, setRule } from '../engine/policy';
+import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
+import { ouvrirDialogue } from '../noyau/dialogue';
+import type { Dialogue } from '../noyau/monde/scene';
+import { bancDeLInterlude } from '../noyau/interlude.testkit';
+import { craftCatalog, learnableTalents, orderCatalog } from '../engine/activities';
+import { formatMoney, fromBrass } from '../engine/money';
+import type { Choix } from './elements';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -333,5 +346,150 @@ describe('l’établissement fermé à l’écran du lieu (`fenetre.corps`, #427
     expect(club.elements.filter((e): e is Bouton => e.type === 'bouton').map((b) => [b.id, b.refus])).toEqual([
       ['dormir', 'Réservé aux membres.'], ['informations', 'Réservé aux membres.'],
     ]);
+  });
+});
+
+describe('le récit du voyage à l’écran (`Projection.recit`, #4574)', () => {
+  const recit = (travelRecap: Jeu['travelRecap']) => {
+    const banc = ouvrirLeBanc();
+    banc.setState({
+      scene: emptyScene('bourg', 2, 2), mode: 'exploration', battle: null, travelRecap,
+      worldMap: {
+        id: 'carte', label: 'Carte',
+        places: [
+          { id: 'pa', label: 'Altdorf', pos: { x: 0, y: 0 }, scene: { id: 'bourg' } },
+          { id: 'pb', label: 'Bourg B', pos: { x: 10, y: 0 }, scene: { id: 'bourg' } },
+        ],
+        routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km: 30, modes: ['pied'] }],
+      },
+    });
+    const etat = banc.getState();
+    const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER)['fenetre.corps'];
+    return corps.filter((e) => e.id.startsWith('recit/')).map((e) => e.type === 'entite'
+      ? [e.id, e.nom, e.elements.map((l) => (l.type === 'ligne' ? [l.texte, l.ton] : l.type))]
+      : [e.id, ...(e.type === 'ligne' ? [e.texte, e.ton] : [e.type])]);
+  };
+  const base = { depart: 'pa', arrivee: 'pb', route: 'r1', mode: 'pied' } as const;
+  const jour = { kmFrom: 0, kmTo: 11.7, hours: 5.6, lines: [{ text: 'Une ornière casse l’allure.', tone: 'echec' as const }, { text: 'La route est calme.' }] };
+
+  it('arrivée : le titre, la route élidée, la durée exacte du voyage, sans les journées ni la suite', () => {
+    expect(recit({ ...base, status: 'arrived', km: 30, kmDone: 30, days: [jour], dureeMin: 160 })).toEqual([
+      ['recit/issue', 'Arrivée à Bourg B', 'reussite'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 30 km, à pied', 'neutre'],
+      ['recit/duree', 'Voyage de 2 h 40 min.', 'neutre'],
+    ]);
+  });
+
+  it('interruption à moins d’un demi-km : aux portes de l’arrivée, chaque journée et ses lignes à leur ton, la suite', () => {
+    expect(recit({ ...base, status: 'interrupted', km: 12, kmDone: 11.7, days: [jour] })).toEqual([
+      ['recit/issue', 'Voyage interrompu !', 'alerte'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 12 km, à pied · aux portes de Bourg B', 'neutre'],
+      ['recit/jour/0', 'Jour 1 — 12 km en 6 h de route', [['Une ornière casse l’allure.', 'echec'], ['La route est calme.', 'neutre']]],
+      ['recit/suite', 'Le voyage pourra reprendre depuis la carte du monde.', 'neutre'],
+    ]);
+  });
+
+  it('arrêt : ce qui reste, arrondi, et la surcharge', () => {
+    expect(recit({ ...base, status: 'stalled', km: 30, kmDone: 12.5, days: [] })).toEqual([
+      ['recit/issue', "Le convoi s'arrête", 'alerte'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 30 km, à pied · 18 km restants', 'neutre'],
+      ['recit/suite', 'Le groupe est trop chargé pour avancer — allégez les sacs, puis reprenez depuis la carte.', 'neutre'],
+    ]);
+  });
+
+  it('embuscade : le titre, ce qui reste, la journée, et il faut faire face', () => {
+    const then = { kind: 'ambush', scene: 'bourg', encounter: 'enc', noSurprise: true } as const;
+    expect(recit({ ...base, status: 'interrupted', km: 24, kmDone: 11.7, days: [jour], then })).toEqual([
+      ['recit/issue', 'Embuscade en chemin !', 'echec'],
+      ['recit/route', 'Parti d’Altdorf pour Bourg B · 24 km, à pied · 12 km restants', 'neutre'],
+      ['recit/jour/0', 'Jour 1 — 12 km en 6 h de route', [['Une ornière casse l’allure.', 'echec'], ['La route est calme.', 'neutre']]],
+      ['recit/suite', 'Impossible de poursuivre : il faut faire face. Le voyage pourra reprendre ensuite depuis la carte.', 'neutre'],
+    ]);
+  });
+});
+
+describe('la nuit à régler à l’écran (`Projection.repos`, #4574)', () => {
+  /** La nuit d'Anna au campement (sauf `places`), sous le temps `weather`, et ce que l'écran en dit : la tête de la
+   *  scène, le temps, la note, et les alertes de sa carte. */
+  const nuit = (o: { places?: Record<string, boolean>; weather?: string; tente?: boolean; days?: number; quality?: QualiteDeRepos; hemorragique?: boolean; rien?: boolean }) => {
+    const anna = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Anna', seed: 11 }), { gold: 0, silver: 2, brass: 0 }, idsDeTest);
+    anna.items = [...(anna.items ?? []).filter((i) => !isRation(i)), ...(o.tente ? [itemFromTrappingById('tente', idsDeTest)!] : [])];
+    if (o.hemorragique) addCondition(anna, 'hemorragique', 1);
+    if (o.tente) setRule('exposition-tente-annule', true);
+    try {
+      const banc = ouvrirLeBanc({ graine: 7, etat: { party: [anna], ...(o.weather ? { scene: { ...emptyScene('s', 4, 4), weather: o.weather } } : {}) } as Partial<Jeu> });
+      banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Le relais') }, places: o.places ?? { camp: true }, ...(o.days ? { days: o.days } : {}), ...(o.quality ? { quality: o.quality } : {}) });
+      if (o.rien) banc.actions.fenetreChoisir('repos', 'pitance', 'rien', anna.id);
+      const etat = banc.getState();
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+      const carte = zones['groupe.heros'].find((h) => h.id === `heros/${anna.id}`)!;
+      return {
+        corps: zones['fenetre.corps'].filter((e) => /^(scene\/moment|repos\/)/.test(e.id)).map((e) => [e.id, 'texte' in e ? e.texte : null, 'ton' in e ? e.ton : null]),
+        alertes: carte.elements.filter((e) => e.id.startsWith('alerte/')).map((e) => ('libelle' in e ? e.libelle : null)),
+      };
+    } finally {
+      resetRule('exposition-tente-annule');
+    }
+  };
+
+  it('la tempête au campement : le temps de chien en alerte, puis ce qui attend la dormeuse, dans l’ordre', () => {
+    expect(nuit({ weather: 'tempete', hemorragique: true, rien: true })).toEqual({
+      corps: [['scene/moment', 'Campement — Le relais', 'neutre'], ['repos/temps', 'Temps de chien', 'alerte']],
+      alertes: ['à stabiliser (pas de repos réparateur)', 'Ventre vide', 'Exposition ×4'],
+    });
+  });
+
+  it('la pluie sous la tente : le mauvais temps, et la tente qui abritera le camp', () => {
+    expect(nuit({ weather: 'pluie', tente: true })).toEqual({
+      corps: [['scene/moment', 'Campement — Le relais', 'neutre'], ['repos/temps', 'Mauvais temps — la tente abritera le camp', 'alerte']],
+      alertes: ['Ventre vide'],
+    });
+  });
+
+  it('trois nuits chez soi, de piètre qualité : la tête de la scène les dit', () => {
+    expect(nuit({ places: { maison: true }, days: 3, quality: 'pietre' })).toEqual({ corps: [['scene/moment', 'Nuit chez soi — Le relais · 3 nuits · piètre', 'neutre']], alertes: [] });
+  });
+});
+
+describe('la conversation à l’écran (`Projection.conversation`, #4574)', () => {
+  it('chaque réponse en bouton : son Test annoncé, son libellé, puis son coût ; l’orateur par son nom', () => {
+    const gustav = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gustav', seed: 11 }), { gold: 0, silver: 0, brass: 0 }, idsDeTest);
+    const scene = { ...emptyScene('s', 4, 4), entities: [{ id: 'aubergiste', kind: 'personnage', creature: { id: 'humain' }, label: 'Isolde', pos: { x: 1, y: 1 } }] } as Jeu['scene'];
+    const banc = ouvrirLeBanc({ graine: 7, etat: { party: [gustav], scene } as Partial<Jeu> });
+    const sonder = { kind: 'test', test: { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Quelque chose cloche' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } };
+    const dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Une chambre ?', choices: [
+      { id: 'sonder', label: 'La sonder', flow: sonder },
+      { id: 'chambre', label: 'Prendre une chambre', cost: { silver: 5 } },
+      { id: 'partir', label: 'Partir' },
+    ] }] } as unknown as Dialogue;
+    banc.setState({ dialogue: ouvrirDialogue(banc.getState(), dialogue, 'aubergiste') });
+    const etat = banc.getState();
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    expect(zones['dialogue.orateur'].map((l) => l.texte)).toEqual(['Isolde']);
+    expect(zones['dialogue.reponses'].map((b) => [b.id, b.libelle, b.refus])).toEqual([
+      ['reponse/sonder', '[Intuition — Difficile (−20)] La sonder', null],
+      ['reponse/chambre', 'Prendre une chambre 5/–', 'Pas assez d’argent pour cette option.'],
+      ['reponse/partir', 'Partir', null],
+    ]);
+  });
+});
+
+describe('l’interlude à l’écran (`Projection.interlude`, #4574)', () => {
+  /** Le héros de l'interlude à l'écran, chacun de ses choix par son libellé. */
+  const choixDuHeros = (etat: Jeu, id: string) => {
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const heros = zones['fenetre.corps'].find((e): e is Entite => e.id === `repit/${id}`)!;
+    return (id: string) => heros.elements.find((e): e is Choix => e.id === id)!.valeurs.map((v) => v.libelle);
+  };
+
+  it('chaque valeur dite avec son coût, en PX ou en prix, par le même composeur que l’échoppe', () => {
+    const { banc, id } = bancDeLInterlude();
+    const article = (nom: string, prix: string) => t('ecran.aCout', { nom, prix });
+    expect(choixDuHeros(banc.getState(), id)('order'), 'chaque Commande et son prix').toEqual(orderCatalog().map((o) => article(o.label, formatMoney(fromBrass(o.priceBrass)))));
+    banc.actions.fenetreChoisir('interlude', 'activite', 'craft', id);
+    expect(choixDuHeros(banc.getState(), id)('ouvrage'), 'chaque ouvrage et ses matériaux').toEqual(craftCatalog().map((o) => article(o.label, formatMoney(fromBrass(o.materialsBrass)))));
+    banc.actions.fenetreChoisir('interlude', 'activite', 'learn', id);
+    const talents = learnableTalents(banc.getState().party[0]);
+    expect(choixDuHeros(banc.getState(), id)('talent'), 'chaque Talent et ses PX').toEqual(talents.map((o) => article(o.label, t('ecran.px', { px: o.xpCost }))));
   });
 });

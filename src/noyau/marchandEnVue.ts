@@ -1,15 +1,15 @@
 /**
- * L'ÉCHOPPE EN VUE (#3534) — ce qu'un hôte montre de l'échoppe qui tient la main : la bourse du groupe ; l'étal rangé
+ * L'ÉCHOPPE EN VUE (#3534, #4574) — ce qu'un hôte montre de l'échoppe qui tient la main : la bourse du groupe ; l'étal rangé
  * par famille (`merchantFamilies`), chaque article à son prix (`prixDeLigne`), sa quantité en stock et son ajout au
  * panier ou recours de Guilde (`lignesDAchat`) ; le panier (`devisDuPanier`), chaque ligne ôtée d'une unité, son total
  * et le paiement (`marchand.payer`) ; les possessions de chaque héros à vendre, leur gain (`sellGain`) et leur refus
- * (`sellRefusal`), puis le lot (`devisDeVente`), son total et la vente (`marchand.vendre`). Lecteur PUR, lu par les hôtes du
- * noyau (`hote/ecran.ts`).
+ * (`sellRefusal`), puis le lot (`devisDeVente`), son total et la vente (`marchand.vendre`). Prix en `Money`, ids du
+ * marchand et des objets. Lecteur PUR, lu par la projection des hôtes (`hote/projection.ts`).
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau, GesteFermable } from './actionsDuNoyau';
 import { AVAILABILITIES } from '../engine/types';
-import { formatMoney } from '../engine/money';
+import type { Money } from '../engine/money';
 import { isShieldTrapping } from '../engine/items';
 import { findTrappingById, merchantFamilies } from '../data/index';
 import {
@@ -30,29 +30,31 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { nomEnVue } from './visionDuGroupe';
 import type { PlayerText } from '../i18n/playerText';
 
-/** Un article de l'étal : son nom, sa quantité en stock, son prix dit (`null` : sans prix), ce que le panier en tient,
- *  et son ajout au panier. */
-export interface ArticleEnVue { id: string; nom: string; stock: number; prix: string | null; auPanier: number; recoursDeGuilde: boolean; ajouter: GesteFermable }
+/** Un article de l'étal : son nom, sa quantité en stock, son prix unitaire (`null` : sans prix), ce que le panier en
+ *  tient, et son ajout au panier. */
+export interface ArticleEnVue { id: string; nom: string; stock: number; prix: Money | null; auPanier: number; recoursDeGuilde: boolean; ajouter: GesteFermable }
 
 /** Une famille de l'étal et ses articles, du plus courant au plus rare puis par nom. */
 export interface FamilleEnVue { id: string; nom: string; articles: ArticleEnVue[] }
 
-/** Une ligne du panier : l'article, sa quantité, son sous-total dit, et le geste qui en ôte une unité. */
-export interface LigneDuPanierEnVue { id: string; nom: string; qty: number; sousTotal: string | null; oter: GesteDuNoyau }
+/** Une ligne du panier : l'article, sa quantité, son prix unitaire et son sous-total (`null` : sans prix), et le geste
+ *  qui en ôte une unité. */
+export interface LigneDuPanierEnVue { id: string; nom: string; qty: number; unitaire: Money | null; sousTotal: Money | null; oter: GesteDuNoyau }
 
-/** Une possession d'un héros, vendable à l'échoppe : son gain dit, ce qui l'empêche de se vendre, si elle est au lot, et
- *  le geste qui l'y met ou l'en retire. */
-export interface PossessionAVendre { uid: string; nom: string; gain: string; refus: string | null; auLot: boolean; basculer: GesteDuNoyau }
+/** Une possession d'un héros, vendable à l'échoppe : son uid, l'id du trapping dont elle dérive (`null` : objet custom),
+ *  son gain, ce qui l'empêche de se vendre, si elle est au lot, et le geste qui l'y met ou l'en retire. */
+export interface PossessionAVendre { uid: string; objet: string | null; nom: string; gain: Money; refus: string | null; auLot: boolean; basculer: GesteDuNoyau }
 
 /** Les possessions d'un héros. */
 export interface HerosVendeur { id: string; nom: PlayerText; possessions: PossessionAVendre[] }
 
-/** L'échoppe ouverte. */
+/** L'échoppe ouverte : l'id d'entité du marchand, la bourse du groupe, l'étal, le panier et la vente. */
 export interface MarchandEnVue {
-  bourse: string;
+  marchand: string;
+  bourse: Money;
   etal: FamilleEnVue[];
-  panier: { lignes: LigneDuPanierEnVue[]; total: string; payer: GesteFermable };
-  vente: { heros: HerosVendeur[]; total: string; vendre: GesteFermable };
+  panier: { lignes: LigneDuPanierEnVue[]; total: Money; payer: GesteFermable };
+  vente: { heros: HerosVendeur[]; total: Money; vendre: GesteFermable };
 }
 
 /** Le choix `axe` de l'échoppe à la valeur `valeur`. */
@@ -89,7 +91,7 @@ function etalDe(s: Jeu, m: MerchantState): FamilleEnVue[] {
     id: l.id,
     nom: l.nom,
     stock: l.qty,
-    prix: l.prix ? formatMoney(l.prix) : null,
+    prix: l.prix,
     auPanier: l.auPanier,
     recoursDeGuilde: !!l.demandeALaGuilde,
     ajouter: { geste: choix('ajouterAuPanier', l.id), refus: l.refus },
@@ -109,22 +111,23 @@ export function marchandEnVue(s: Jeu): MarchandEnVue | null {
   const vente = devisDeVente(m, s.party, resolveTrapping);
   const auLot = new Set((m.sellCart ?? []).map((c) => c.uid));
   return {
-    bourse: formatMoney(totalDesBourses(s.party)),
+    marchand: m.entityId,
+    bourse: totalDesBourses(s.party),
     etal: etalDe(s, m),
     panier: {
-      lignes: devis.lignes.map((l) => ({ id: l.id, nom: catalogEntryOf(l.id)?.label ?? l.id, qty: l.qty, sousTotal: l.sousTotal ? formatMoney(l.sousTotal) : null, oter: choix('oterDuPanier', l.id) })),
-      total: formatMoney(devis.total),
+      lignes: devis.lignes.map((l) => ({ id: l.id, nom: catalogEntryOf(l.id)?.label ?? l.id, qty: l.qty, unitaire: l.unitaire, sousTotal: l.sousTotal, oter: choix('oterDuPanier', l.id) })),
+      total: devis.total,
       payer: { geste: choix('payer', true), refus: devis.refus },
     },
     vente: {
       heros: s.party.map((h) => ({
         id: h.id, nom: garanti(nomEnVue(s, h.id), h.id, 'héros vendeur'),
         possessions: (h.items ?? []).map((it) => ({
-          uid: it.uid, nom: it.label, gain: formatMoney(sellGain(it, m, resolveTrapping)), refus: sellRefusal(it, resolveTrapping), auLot: auLot.has(it.uid),
+          uid: it.uid, objet: it.trappingId ?? null, nom: it.label, gain: sellGain(it, m, resolveTrapping), refus: sellRefusal(it, resolveTrapping), auLot: auLot.has(it.uid),
           basculer: choix(auLot.has(it.uid) ? 'retirerDeLaVente' : 'ajouterALaVente', it.uid),
         })),
       })),
-      total: formatMoney(vente.total),
+      total: vente.total,
       vendre: { geste: choix('vendre', true), refus: vente.refus },
     },
   };

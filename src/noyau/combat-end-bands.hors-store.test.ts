@@ -211,7 +211,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     expect(g().pendingCorruption?.heroId, 'le premier seuil ouvre SA fenêtre').toBe(H[0].id);
     expect(g().pendingCorruption?.kind).toBe('seuil');
     expect(g().corruptionQueue.map((q) => q.heroId), 'le second ATTEND — il n’est pas résolu en silence').toEqual([H[1].id]);
-    expect(porteurs[1].mutations ?? [], 'aucune mutation posée sans que son Test soit joué').toHaveLength(0);
+    expect(g().party.find((h) => h.id === H[1].id)!.mutations ?? [], 'aucune mutation posée sans que son Test soit joué').toHaveLength(0);
 
     // Le premier acquitte (réussite : Corruption contenue) → la fenêtre passe au second.
     banc.setState({ pendingCorruption: { ...g().pendingCorruption!, roll: 1, target: 40, sl: 4, success: true } } as never);
@@ -246,9 +246,11 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     expect(g().pendingCorruption?.heroId, 'la décision rendue, le seuil en file reçoit SA fenêtre').toBe(H[1].id);
     expect(g().pendingCorruption?.kind).toBe('seuil');
     expect(g().corruptionQueue).toEqual([]);
-    expect(porteurs[0].resilience, '1 Point de Résilience dépensé').toBe(1);
-    expect(porteurs[0].mutations ?? [], 'refusée').toHaveLength(0);
-    expect(porteurs[1].mutations ?? [], 'et le second n’a toujours rien subi sans son Test').toHaveLength(0);
+    // Après le report (`battle.over`), la décision s'écrit sur `party` (#4860).
+    const [premier, second] = H.map((h) => g().party.find((x) => x.id === h.id)!);
+    expect(premier.resilience, '1 Point de Résilience dépensé').toBe(1);
+    expect(premier.mutations ?? [], 'refusée').toHaveLength(0);
+    expect(second.mutations ?? [], 'et le second n’a toujours rien subi sans son Test').toHaveLength(0);
   });
 });
 

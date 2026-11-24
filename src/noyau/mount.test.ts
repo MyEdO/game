@@ -25,7 +25,7 @@ const rampartScene = (w: number, h: number): Scene =>
 
 describe('mount — combat monté (LDB 14 l.175-187)', () => {
   it('canMount : cavalier à pied adjacent à une monture libre (et pas sinon)', () => {
-    const horse = mk('h', 5, 5, 'grande'); // 2×2 (5..6 × 5..6)
+    const horse = { ...mk('h', 5, 5, 'grande'), traits: [{ id: 'dresse-monture' }] }; // 2×2 (5..6 × 5..6)
     const knight = mk('k', 7, 6); // colle au bord est
     expect(canMount(flatScene(12, 12), knight, horse)).toBe(true);
     const far = mk('f', 10, 10);
@@ -89,18 +89,33 @@ describe('mount — combat monté (LDB 14 l.175-187)', () => {
   });
 });
 
-describe('canMount — la monture accepte le cavalier (`accepteUnCavalier`, LDB 85 l.112)', () => {
-  it('un orque n’enfourche pas un grand sanglier ombrageux Belliqueux sans Dressé (Monture), même `mountable`', () => {
+describe('canMount — la monture accepte le cavalier (`accepteUnCavalier`, LDB 85 l.112 ; #4816)', () => {
+  const sanglierDresse = (ref: string) => {
+    const sanglier = spawnEnemy({ ref }, 'sanglier', { x: 5, y: 5 }, { learnedTraits: ['dresse-monture'] });
+    sanglier.mountable = true;
+    return sanglier;
+  };
+  const orque = (ref: string, chevaucherSanglier: boolean) => {
+    const o = spawnEnemy({ ref }, 'orque', { x: 6, y: 5 });
+    return chevaucherSanglier ? { ...o, skills: [...o.skills, { id: 'chevaucher', spec: 'sanglier', characteristic: 'agilite' as const, advances: 5 }] } : o;
+  };
+
+  it('un orque n’enfourche pas un sanglier d’orc sans Dressé (Monture), même `mountable` et avec Chevaucher (Sanglier)', () => {
     const sanglier = spawnEnemy({ ref: 'grand-sanglier-ombrageux' }, 'sanglier', { x: 5, y: 5 });
     sanglier.mountable = true;
-    const orque = spawnEnemy({ ref: 'guerrier-orc' }, 'orque', { x: 7, y: 5 });
-    expect(canMount(flatScene(12, 12), orque, sanglier)).toBe(false);
+    expect(canMount(flatScene(12, 12), orque('guerrier-orc', true), sanglier)).toBe(false);
   });
 
-  it('il l’enfourche si le sanglier a appris Dressé (Monture)', () => {
-    const sanglier = spawnEnemy({ ref: 'grand-sanglier-ombrageux' }, 'sanglier', { x: 5, y: 5 }, { learnedTraits: ['dresse-monture'] });
-    sanglier.mountable = true;
-    const orque = spawnEnemy({ ref: 'guerrier-orc' }, 'orque', { x: 7, y: 5 });
-    expect(canMount(flatScene(12, 12), orque, sanglier)).toBe(true);
+  it('le sanglier d’orc dressé exige Chevaucher (Sanglier) de l’orque', () => {
+    for (const ref of ['grand-sanglier-ombrageux', 'sanglier']) {
+      expect(canMount(flatScene(12, 12), orque('guerrier-orc', false), sanglierDresse(ref)), ref).toBe(false);
+      expect(canMount(flatScene(12, 12), orque('guerrier-orc', true), sanglierDresse(ref)), ref).toBe(true);
+    }
+  });
+
+  it('une Compétence listée au profil sans Augmentation calculée compte (`spawn.ts`, valeur = Caractéristique)', () => {
+    const o = spawnEnemy({ ref: 'guerrier-orc' }, 'orque', { x: 6, y: 5 });
+    const listee = { ...o, skills: [...o.skills, { id: 'chevaucher', spec: 'sanglier', characteristic: 'agilite' as const, advances: 0 }] };
+    expect(canMount(flatScene(12, 12), listee, sanglierDresse('grand-sanglier-ombrageux'))).toBe(true);
   });
 });

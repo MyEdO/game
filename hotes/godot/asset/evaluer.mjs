@@ -4,7 +4,7 @@
 //   npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>]
 //     [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1]
 //     [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte]
-//     [--preset <id>]
+//     [--preset <id> | --tenue <id> [--local <id>=<glb>]... [--portee <id>[,<id>…]]] [--poses-rangees]
 // Avec `--base`, chaque `<glb>` est un élément monté sur cette base, ensemble (une tenue), sa couche et ses zones lues
 // dans le manifeste d'élément voisin (`<id>.element.json` d'un dossier de production, `<id>.manifeste.json` d'un import) :
 // la traversée des couches se mesure (#3743) ; seul un élément dont la forme `cle.apparence` est celle d'une arme (un
@@ -27,15 +27,27 @@
 // porté ; un élément que le preset porte plusieurs fois se donne autant de fois, chaque `<glb>` montant à son tour la
 // ligne suivante du preset. Sous `--preset`, chaque passe pose aussi les formes de la tête que le jeu pose au preset, une
 // forme que `--silhouettes` nomme gardant le poids qu'il lui donne (`silhouettesSousLePreset`).
+// `--tenue <id>` vaut `--preset <id>` et met en tête des `<glb>` la tenue que le jeu monte pour ce preset, dans l'ordre de
+// ses lignes (`tenueDesGlb`, `posesDesRanges.mjs`, #4338), au dossier du manifeste de base ; chaque `--local <id>=<glb>`
+// y remplace l'élément publié `<id>` par ce GLB local, à côté de son manifeste, ou s'ajoute après la tenue si le preset ne
+// le monte pas. `--poses-rangees` n'évalue rien : sous le corps neutre puis chaque silhouette déclarée seule à 1, à
+// l'instant 0 de l'unique clip de `--clips`, il imprime la pose de chaque mesh rangé des `<glb>` (`posesALInstant`) et,
+// avec `--local`, celle du même mesh dans la tenue publiée, leur écart, et `BASCULE` au-delà de `BASCULE` (#4806) ; code 1
+// s'il y en a une. `--portee <id>[,<id>…]` (#4814), sous `--tenue` et sans `--plafonds`, nomme des éléments des `<glb>`
+// par leur id (le nom du GLB) : les gardes ne mesurent que ce qui nomme un mesh de ces éléments ou des couches que la
+// pile leur fait retenir, de proche en proche (`EntreeDEvaluation.portee`), le rapport ne garde que ces écarts et liste
+// ces meshes (`portee`), et le témoin se filtre de même (`deLaPortee`, `evaluateur/temoin.ts`) : la passe d'une retouche
+// d'élément, contre le témoin pris sous la même portée.
 import { spawn } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
 import { availableParallelism } from 'node:os'
+import { basename } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { coeurs, memoireDisponibleMo } from '../../../scripts/test/partition.mjs'
 import { estObjet } from '../../../src/lib/objet.mjs'
 import { chargerEvaluateur } from './charger.mjs'
-import { manifesteVoisin, posesDesRanges, silhouettesSousLePreset } from './posesDesRanges.mjs'
+import { lireLocales, manifesteVoisin, porteeDuPreset, posesALInstant, posesDesRanges, silhouettesSousLePreset, tenueDesGlb } from './posesDesRanges.mjs'
 
 const FACTEURS = ['sl', 'legs', 'arms', 'head', 'st']
 /** Ce qu'une passe de `--porte` tient hors de son tas, en Mo : ses tableaux de sommets et l'éditeur Godot de ses poses
@@ -64,6 +76,29 @@ function lirePlafonds(chemin, silhouettes = {}) {
   return table[noms[0] ?? 'neutre'] ?? {}
 }
 
+/** Le déplacement, en mètres, et le tour, en degrés, au-delà desquels la pose rangée d'un rigide local bascule loin de
+ *  celle du rigide publié sous `--poses-rangees` (#4806). */
+const BASCULE = { metres: 0.05, degres: 15 }
+
+/** L'origine `(x, y, z)` d'une pose de 16 nombres colonne par colonne (`posesALInstant`). */
+const origine = (pose) => `(${pose.slice(12, 15).map((v) => v.toFixed(3)).join(', ')})`
+
+/** L'écart des poses `a` et `b` (16 nombres colonne par colonne) : la distance de leurs origines, en mètres, et l'angle
+ *  de la rotation de l'une à l'autre, en degrés, leurs axes ramenés à l'unité. */
+function ecartDePoses(a, b) {
+  const axe = (m, k) => { const v = m.slice(4 * k, 4 * k + 3); const n = Math.hypot(...v); return v.map((x) => x / n) }
+  const trace = [0, 1, 2].reduce((somme, k) => somme + axe(a, k).reduce((d, x, i) => d + x * axe(b, k)[i], 0), 0)
+  return { metres: Math.hypot(...[12, 13, 14].map((i) => a[i] - b[i])), degres: (Math.acos(Math.min(1, Math.max(-1, (trace - 1) / 2))) * 180) / Math.PI }
+}
+
+/** Les rangs, dans les `<glb>` `glbs`, des éléments dont `--portee` nomme l'id (le nom du GLB) ; refuse un id absent. */
+function lirePortee(texte, glbs) {
+  const ids = glbs.map((g) => basename(g, '.glb'))
+  const absents = texte.split(',').filter((id) => !ids.includes(id))
+  if (absents.length) throw new Error(`--portee : ${absents.join(', ')} absent(s) de la tenue ; ids : ${[...new Set(ids)].join(', ')}`)
+  return ids.flatMap((id, k) => (texte.split(',').includes(id) ? [k] : []))
+}
+
 /** Les écarts du rapport `--json` `chemin` d'une évaluation, refusé s'il n'en porte pas. */
 function lireTemoin(chemin) {
   const rapport = JSON.parse(readFileSync(chemin, 'utf8'))
@@ -71,7 +106,7 @@ function lireTemoin(chemin) {
   return rapport.ecarts
 }
 
-let values, positionals, facteurs, silhouettes, plafonds, temoin
+let values, positionals, facteurs, silhouettes, plafonds, temoin, ajoutes, portee
 try {
   const argumentsLus = parseArgs({
     allowPositionals: true,
@@ -88,6 +123,10 @@ try {
       plafonds: { type: 'string' },
       temoin: { type: 'string' },
       preset: { type: 'string' },
+      tenue: { type: 'string' },
+      local: { type: 'string', multiple: true },
+      'poses-rangees': { type: 'boolean' },
+      portee: { type: 'string' },
     },
   })
   values = argumentsLus.values
@@ -104,7 +143,17 @@ try {
   plafonds = values.plafonds === undefined ? undefined : lirePlafonds(values.plafonds, silhouettes)
   if (values.temoin !== undefined && values['etats-gabarit']) throw new Error('--temoin : --etats-gabarit incompatible')
   temoin = values.temoin === undefined || values.porte ? undefined : lireTemoin(values.temoin)
-  if (values.preset !== undefined && !(values.base && values.manifeste)) throw new Error('--preset : --base et --manifeste requis')
+  if (values.tenue !== undefined && values.preset !== undefined) throw new Error('--tenue : implique --preset, à ne pas donner')
+  if (values.local !== undefined && values.tenue === undefined) throw new Error('--local : --tenue requis')
+  if (values.portee !== undefined && (values.tenue === undefined || values.plafonds !== undefined)) throw new Error('--portee : --tenue requis, --plafonds incompatible')
+  values.preset ??= values.tenue
+  if (values.preset !== undefined && !(values.base && values.manifeste)) throw new Error(`${values.tenue === undefined ? '--preset' : '--tenue'} : --base et --manifeste requis`)
+  if (values['poses-rangees'] && (values.preset === undefined || values.porte || values['etats-gabarit'] || silhouettes !== undefined || values.clips?.split(',').length !== 1)) {
+    throw new Error('--poses-rangees : --tenue ou --preset requis, un seul clip par --clips, --porte, --etats-gabarit et --silhouettes incompatibles')
+  }
+  ajoutes = positionals
+  if (values.tenue !== undefined) positionals = [...await tenueDesGlb({ manifeste: values.manifeste, portee: await porteeDuPreset(values.tenue), locales: lireLocales(values.local) }), ...ajoutes]
+  portee = values.portee === undefined ? undefined : lirePortee(values.portee, positionals)
 } catch (erreur) {
   console.error(erreur.message)
   process.exit(2)
@@ -112,7 +161,7 @@ try {
 const sansManifeste = values.base ? positionals.filter((g) => !manifesteVoisin(g)) : []
 if (values.base ? positionals.length === 0 || sansManifeste.length : positionals.length !== 1) {
   if (sansManifeste.length) console.error(`sans manifeste d’élément voisin (<id>.element.json ou <id>.manifeste.json) : ${sansManifeste.join(', ')}`)
-  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte] [--preset <id>]')
+  console.error('usage : npm run godot:evaluer -- <glb>... [--base <glb>] [--manifeste <json>] [--facteurs sl=1,legs=1,arms=1,head=1,st=1] [--silhouettes feminin=1,corpulence=1] [--pas 0.0416] [--clips a,b] [--plafonds <json>] [--json <sortie>] [--temoin <rapport.json>] [--etats-gabarit] [--porte] [--preset <id> | --tenue <id> [--local <id>=<glb>]... [--portee <id>[,<id>…]]] [--poses-rangees]')
   console.error('  sans --manifeste : ni gabarit ni prise, et seule la racine a une position animée')
   process.exit(2)
 }
@@ -162,6 +211,33 @@ if (values.porte) {
   await sortir(resultats.some((r) => r.code !== 0) ? 1 : 0)
 }
 
+if (values['poses-rangees']) {
+  const { silhouettes: declarees = [] } = JSON.parse(readFileSync(values.manifeste, 'utf8'))
+  const locales = values.tenue === undefined ? {} : lireLocales(values.local)
+  const publiees = Object.keys(locales).length ? [...await tenueDesGlb({ manifeste: values.manifeste, portee: await porteeDuPreset(values.tenue) }), ...ajoutes] : null
+  const instant = { base: values.base, manifeste: values.manifeste, preset: values.preset, clip: values.clips.split(',')[0], t: 0, ...(facteurs ? { facteurs } : {}) }
+  let bascules = 0
+  for (const [passe, poids] of [['neutre', {}], ...declarees.map((nom) => [nom, { [nom]: 1 }])]) {
+    const poser = async (elements) => {
+      const { elements: poses, sans } = await posesALInstant({ ...instant, elements, silhouettes: poids })
+      if (sans.length) console.error(`${passe} : ligne(s) montée(s) par le jeu sans <glb> répété : ${sans.join(', ')}`)
+      return new Map(poses.flatMap((e) => (e ? Object.entries(e.meshes).map(([mesh, pose]) => [`${mesh} (${e.ligne})`, pose]) : [])))
+    }
+    const ici = await poser(positionals)
+    const publie = publiees && await poser(publiees)
+    for (const mesh of new Set([...ici.keys(), ...(publie?.keys() ?? [])])) {
+      const pose = ici.get(mesh) ?? null
+      const reference = publie?.get(mesh) ?? null
+      const ecart = pose && reference ? ecartDePoses(pose, reference) : null
+      const bascule = publie !== null && (ecart === null ? (pose === null) !== (reference === null) : ecart.metres > BASCULE.metres || ecart.degres > BASCULE.degres)
+      if (bascule) bascules++
+      console.log(`${passe} ${mesh} : ${pose ? `origine ${origine(pose)} m` : 'non rangé'}${publie ? ` ; publiée ${reference ? `${origine(reference)} m` : 'non rangée'}${ecart ? `, écart ${ecart.metres.toFixed(3)} m, ${ecart.degres.toFixed(1)}°` : ''}${bascule ? ' BASCULE' : ''}` : ''}`)
+    }
+  }
+  if (publiees) console.log(`${bascules} pose(s) rangée(s) qui basculent (au-delà de ${BASCULE.metres} m ou ${BASCULE.degres}° de la publiée)`)
+  await sortir(bascules ? 1 : 0)
+}
+
 const { evaluer } = await chargerEvaluateur()
 const couche = (glb) => {
   const { couche, couvre = [], categorie } = JSON.parse(readFileSync(manifesteVoisin(glb), 'utf8'))
@@ -195,6 +271,7 @@ const entree = {
   ...(values.clips ? { clips: values.clips.split(',').filter(Boolean) } : {}),
   ...(plafonds === undefined ? {} : { plafondsDesMembres: plafonds }),
   ...(values.preset === undefined ? {} : { ranger: ranger(values.preset) }),
+  ...(portee === undefined ? {} : { portee }),
 }
 
 function afficherFiche(fiche) {
@@ -249,10 +326,12 @@ try {
     afficherFiche(fiche)
     await sortir(fiche.ecarts.length ? 1 : 0)
   }
-  const { identiteDEcart } = await chargerEvaluateur('temoin.ts')
-  const connus = new Set(temoin.map(identiteDEcart))
+  const { deLaPortee, identiteDEcart } = await chargerEvaluateur('temoin.ts')
+  const libelles = fiche.portee && new Set(fiche.portee)
+  const temoinDeLaPortee = libelles ? temoin.filter((e) => deLaPortee(e, libelles)) : temoin
+  const connus = new Set(temoinDeLaPortee.map(identiteDEcart))
   const neufs = fiche.ecarts.filter((e) => !connus.has(identiteDEcart(e)))
-  console.log(`témoin ${temoin.length} écart(s), mesure ${fiche.ecarts.length}, neufs ${neufs.length}`)
+  console.log(`témoin ${temoinDeLaPortee.length} écart(s), mesure ${fiche.ecarts.length}, neufs ${neufs.length}`)
   for (const e of neufs) console.log(ligneDEcart(e))
   await sortir(neufs.length ? 1 : 0)
 } catch (erreur) {
