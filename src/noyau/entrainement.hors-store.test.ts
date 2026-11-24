@@ -11,7 +11,7 @@ import { makeRNG, roll as rollDice } from '../engine/dice';
 import { toBrass, fromBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse, debitBourse } from './bourseFlow';
 import { bourseOf } from '../engine/bourse';
-import { advanceCost } from '../engine/advancement';
+import { coutDeLAugmentation, type Chiffrage } from '../engine/advancement';
 import { cleDEntrainement, entrainementOptions, type EntrainementOption } from '../engine/activities';
 import { testScene } from '../scenes/test-fixture';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
@@ -56,6 +56,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const xpBefore = hero().xp!;
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     const leftBefore = st(heroId).left;
+    const attendu = coutDeLAugmentation(hero(), { kind: 'competence', competence: { id: opt.id, spec: opt.spec } }, false);
     // Re-seed juste avant l'action : le tirage du tuteur est le PREMIER jet consommé depuis là.
     banc.getState().ensemencerLeTirage(42);
     const expectedTutor = rollDice(1, 10, makeRNG(42));
@@ -64,7 +65,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
-    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'competence', false));
+    expect(attendu).toEqual<Chiffrage>({ ok: true, cout: opt.xpCost });
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - expectedTutor);
     expect(st(heroId).left).toBe(leftBefore - 1);
   });
@@ -75,6 +76,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const opt = pickSkill(true);
     const xpBefore = hero().xp!;
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
+    const attendu = coutDeLAugmentation(hero(), { kind: 'competence', competence: { id: opt.id, spec: opt.spec } }, false);
     banc.getState().ensemencerLeTirage(42);
     const expectedTutor = rollDice(1, 10, makeRNG(42)) * 2;
     pratiquer(banc.getState, heroId, 'entrainement', { entrainement: cleDEntrainement(opt) });
@@ -82,7 +84,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const owned = h.skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec));
     expect(owned?.advances).toBe(opt.advances + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
-    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'competence', false)); // même coût PX que la Base
+    expect(attendu).toEqual<Chiffrage>({ ok: true, cout: opt.xpCost }); // même coût PX que la Base
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - expectedTutor);
   });
 
@@ -92,6 +94,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const opt = pickChar();
     const charKey = opt.id as import('../engine/types').CharKey;
     const charBefore = hero().characteristics[charKey];
+    const attendu = coutDeLAugmentation(hero(), { kind: 'caracteristique', char: charKey }, false);
     const xpBefore = hero().xp!;
     const moneyBefore = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().ensemencerLeTirage(7);
@@ -100,7 +103,7 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     const h = hero();
     expect(h.characteristics[charKey]).toBe(charBefore + 1);
     expect(h.xp).toBe(xpBefore - opt.xpCost);
-    expect(opt.xpCost).toBe(advanceCost(opt.advances, 'caracteristique', false));
+    expect(attendu).toEqual<Chiffrage>({ ok: true, cout: opt.xpCost });
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(moneyBefore - expectedTutor);
   });
 

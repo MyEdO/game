@@ -40,7 +40,7 @@
     { "cle": "psychologie", "titre": "Psychologie", "ticket": "#1825" },
     { "cle": "etats", "titre": "États", "ticket": "#1825" },
     { "cle": "corruption", "titre": "Corruption & Mutations", "ticket": "#1825" },
-    { "cle": "avancement", "titre": "Avancement (Points d'Expérience)", "ticket": "#1825" },
+    { "cle": "avancement", "titre": "Avancement (Points d'Expérience)" },
     { "cle": "activites", "titre": "Activités & Événements (Entre deux aventures)", "ticket": "#1825" },
     { "cle": "religion", "titre": "Religion (Prières, Bénédictions, Miracles)", "ticket": "#1825" },
     { "cle": "magie", "titre": "Magie (règles)", "ticket": "#1825" },

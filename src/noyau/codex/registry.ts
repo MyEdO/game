@@ -1215,7 +1215,7 @@ const CODEX_SPECS = {
     },
   },
   advancementCosts: {
-    label: 'codex.fiche.coutDesAugmentations', group: 'tables', cluster: 'codex.fiche.creationDePersonnage', sourceRef: 'LDB 07',
+    label: 'codex.fiche.coutDesAugmentations', group: 'tables', cluster: 'codex.fiche.creationDePersonnage', sourceRef: 'LDB 07, CRB 045',
     build: () => datasetArray('advancementCosts').map((b) => depuisEnveloppe(b, {
       sub: tr('codex.fiche.augmentationsDejaAchetees'),
       meta: facts(fact(tr('codex.fiche.coutCaracteristique'), b.coutCarac), fact(tr('codex.fiche.coutCompetence'), b.coutCompetence)),

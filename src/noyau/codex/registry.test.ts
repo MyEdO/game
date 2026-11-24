@@ -548,9 +548,10 @@ describe('Codex registry — LOT 1 #422 (famille RÈGLES LDB : Coût des Augment
     }
   });
 
-  it('le Coût des Augmentations (LDB 07) porte 15 bandes avec leur coût Caractéristique/Compétence', () => {
+  it('le Coût des Augmentations porte les 15 bandes du LDB 07 et les 15 du CRB 045 l.33-52, avec leur coût Caractéristique/Compétence', () => {
     const items = categoryByKey('advancementCosts')!.items;
-    expect(items).toHaveLength(15);
+    expect(items.filter((i) => i.id.startsWith('adv-'))).toHaveLength(15);
+    expect(items.filter((i) => i.id.startsWith('adv5e-'))).toHaveLength(15);
     const first = items.find((i) => i.id === 'adv-0-5')!;
     expect(first.meta?.find((f) => f.label === 'Coût — Caractéristique')?.value).toBe('25');
     expect(first.meta?.find((f) => f.label === 'Coût — Compétence')?.value).toBe('10');

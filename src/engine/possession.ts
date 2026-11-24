@@ -171,6 +171,22 @@ export function possessionLabel(p: Possession): string {
   }
 }
 
+/** L'id de catalogue d'une possession (créature, véhicule, immeuble, engin), `undefined` pour un statbloc custom. PUR. */
+export function idDuCatalogue(p: PossessionInput): string | undefined {
+  switch (p.nature) {
+    case 'bete':
+    case 'serviteur':
+      return 'id' in p.ref ? p.ref.id : undefined;
+    case 'vehicule':
+    case 'navire':
+      return p.vehicleId;
+    case 'immeuble':
+      return p.buildingId;
+    case 'engin':
+      return p.trappingId;
+  }
+}
+
 /** Taille effective d'un VIVANT (bête/serviteur) — la Taille de son profil (`tailleDuProfil`, `size`
  *  explicite d'un statbloc custom compris, comme au spawn) ; défaut Moyenne (LDB 85, standard implicite des espèces sans Trait). */
 function livingSize(ref: LivingRef): SizeCategory {

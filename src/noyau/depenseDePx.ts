@@ -5,7 +5,8 @@
 import { mentorBlocks, validateCareerChange, type CareerChangeContext } from '../engine/advancement';
 import { rule } from '../engine/policy';
 import { talentMaxReached, arcaneDomainGate } from '../engine/careerSlots';
-import { findTalentById, refLabel, findCareerById, levelsForCareer } from '../data/index';
+import { findTalentById, refLabel, findCareerById, levelsForCareer, byId } from '../data/index';
+import { modeleDe } from '../engine/modeleDeProgression';
 import { t } from '../i18n';
 import type { Jeu } from './etat';
 import { refusDepensePx } from './verrousDeFiche';
@@ -13,10 +14,23 @@ import type { Combatant } from '../engine/types';
 import { nomDe } from '../engine/nom';
 
 
-/** Une Augmentation hors carrière exige-t-elle un mentor absent (règle `progression-mentor`, flag de
- *  partie `mentor`) ? Verdict UNIQUE de l'achat et de la vue d'avancement. LDB 07 l.89 */
-export function mentorRequis(s: Pick<Jeu, 'flags'>, inCareer: boolean): boolean {
-  return mentorBlocks(inCareer, rule('progression-mentor') === true, !!s.flags['mentor']);
+/** La règle optionnelle de progression `id` vaut-elle pour `hero` : active, et applicable à son modèle
+ *  (`ModeleDeProgression.reglesOptionnelles`) ? LDB 07 l.89, l.140 */
+export function regleDeProgression(hero: Combatant, id: 'progression-mentor' | 'progression-saut-de-niveau'): boolean {
+  return rule(id) === true && modeleDe(hero).reglesOptionnelles;
+}
+
+/** Une Augmentation hors carrière de `hero` exige-t-elle un mentor absent (règle `progression-mentor`, flag de partie
+ *  `mentor`) ? Verdict UNIQUE de l'achat et de la vue d'avancement. LDB 07 l.89 */
+export function mentorRequis(s: Pick<Jeu, 'flags'>, hero: Combatant, inCareer: boolean): boolean {
+  return mentorBlocks(inCareer, regleDeProgression(hero, 'progression-mentor'), !!s.flags['mentor']);
+}
+
+/** Refus d'augmenter par les PX la Compétence `skillId` hors carrière quand le modèle de `hero` ferme les Compétences
+ *  avancées hors carrière, ou `null`. Verdict UNIQUE de l'achat et de la vue d'avancement. CRB 018 l.69 */
+export function refusDeCompetenceHorsCarriere(hero: Combatant, skillId: string, what: string, inCareer: boolean): string | null {
+  const fermee = !inCareer && !modeleDe(hero).horsCarriere.competencesAvancees && byId('skill', skillId)?.acces === 'avancee';
+  return fermee ? t('pf.advancedSkillOutOfCareer', { name: nomDe(hero), what }) : null;
 }
 
 /** Libellé d'affichage d'une Compétence/Talent concret : nom, et spécialisation entre parenthèses. */
@@ -41,14 +55,14 @@ export function refusDePx(hero: Combatant, cost: number): string | null {
   return (hero.xp ?? 0) < cost ? t('pf.notEnoughXp', { name: nomDe(hero), cost }) : null;
 }
 
-/** Contexte d'un changement de Carrière de `hero` vers (`newCareer`, `newLevel`) : complétion du niveau
- *  courant (fournie par l'appelant), même Classe, niveau cible existant, Saut de Niveau (règle). LDB 07 l.137-148 */
+/** Contexte d'un changement de Carrière de `hero` vers (`newCareer`, `newLevel`) : niveau courant validé (fourni par
+ *  l'appelant), même Classe, niveau cible existant, Saut de Niveau (`regleDeProgression`). LDB 07 l.137-148 */
 export function contexteDeChangement(hero: Combatant, newCareer: string, newLevel: number, completed: boolean): CareerChangeContext {
   return {
     completed,
     sameClass: findCareerById(hero.career ?? '')?.class.id === findCareerById(newCareer)?.class.id,
     targetLevelExists: levelsForCareer(newCareer).some((l) => l.level === newLevel),
-    gmJump: rule('progression-saut-de-niveau') === true,
+    gmJump: regleDeProgression(hero, 'progression-saut-de-niveau'),
   };
 }
 

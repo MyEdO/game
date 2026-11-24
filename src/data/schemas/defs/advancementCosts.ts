@@ -1,8 +1,9 @@
 /**
- * Schéma de `advancementCosts.json` — Tableau de Coût des Augmentations (LDB 07 l.51-70),
- * consommé par `src/engine/advancement.ts` (`ADVANCE_COST_TABLE`, `datasetDe`, qui ignore `id`/`label`). Une bande =
- * nombre d'Augmentations DÉJÀ achetées, `max` borne haute INCLUSIVE ; la DERNIÈRE bande porte `max: null`
- * (« et au-delà », JSON n'a pas d'Infinity — cf. commentaire du consommateur). `id`/`label` = identité
+ * Schéma de `advancementCosts.json` — Tableaux de Coût des Augmentations, un par modèle de progression
+ * (`progression` absent : LDB 07 l.51-70 ; `'5e'` : CRB 045 l.33-52), consommés par `src/engine/advancement.ts`
+ * (`datasetDe`, qui ignore `id`/`label`). Une bande = nombre d'Augmentations DÉJÀ achetées, `max` borne haute
+ * INCLUSIVE ; la DERNIÈRE bande du LDB porte `max: null` (« et au-delà », JSON n'a pas d'Infinity), celle du CRB
+ * est fermée (sa table s'arrête à +75). `id`/`label` = identité
  * STABLE de la bande (fourchette d'Augmentations déjà achetées), ajoutée pour l'exposition Codex (#422).
  * Les deux colonnes portent le nom de ce qu'elles sont — des COÛTS EN PX (#1548 L2, DESIGN v2 §S2 :
  * les noms de concept `skill`/`char` sont réservés à leur type).
@@ -19,6 +20,7 @@ const doc = document(
   famille,
   {
     ...plageOuverteSchema.shape,
+    progression: z.literal('5e').optional(),
     coutCarac: z.number(),
     coutCompetence: z.number(),
   },
@@ -31,6 +33,7 @@ const doc = document(
       label: 'Borne haute de la bande',
       hint: 'Nombre d’Augmentations déjà achetées à ne pas dépasser ; null sur la dernière bande (« et au-delà »)',
     },
+    progression: { label: 'Modèle de progression', hint: '5e : table du CRB ; absent : table du LDB' },
     coutCarac: { label: 'Coût (Caractéristique)', hint: 'Coût en PX de la prochaine Augmentation de Caractéristique' },
     coutCompetence: { label: 'Coût (Compétence)', hint: 'Coût en PX de la prochaine Augmentation de Compétence' },
   },
@@ -48,7 +51,7 @@ const doc = document(
       entree.superRefine((v, ctx) => {
         const b = v as { min?: number; max?: number | null; label?: string };
         if (typeof b.min !== 'number') return;
-        const attendu = b.max === null ? `${b.min}+` : `${b.min}–${b.max}`;
+        const attendu = b.max === null ? `${b.min}+` : b.max === b.min ? `${b.min}` : `${b.min}–${b.max}`;
         if (b.label !== attendu) {
           ctx.addIssue({
             code: 'custom',
@@ -63,8 +66,11 @@ const doc = document(
     // `validateDataset`/`schemaForFile`).
     affinerDataset: (dataset) =>
       dataset.superRefine((v, ctx) => {
-        const bandes = (v as { id?: string; min?: number; max?: number | null }[]) ?? [];
-        const ecarts = ecartsDeCouverture(bandes, 0, 'ouverte', (b) => `la bande « ${b.id} »`);
+        const bandes = (v as { id?: string; min?: number; max?: number | null; progression?: '5e' }[]) ?? [];
+        const ecarts = [
+          ...ecartsDeCouverture(bandes.filter((b) => b.progression === undefined), 0, 'ouverte', (b) => `la bande « ${b.id} »`),
+          ...ecartsDeCouverture(bandes.filter((b) => b.progression === '5e'), 0, 14, (b) => `la bande « ${b.id} »`),
+        ];
         if (ecarts.length) {
           ctx.addIssue({
             code: 'custom',

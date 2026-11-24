@@ -246,7 +246,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
       expect(lignesDuJournal(refuse)).toEqual([hors.refus]);
       expect(dans.refus, 'témoin : la Caractéristique de carrière reste offerte').toBeNull();
       partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, dans.key] });
-      expect(partie.etat().party[0].xp).toBe(5000 - dans.nextCost);
+      expect(partie.etat().party[0].xp).toBe(5000 - dans.nextCost!);
     }, { ...ENTREES, reglesMaison: { 'progression-mentor': true } });
   });
 
@@ -255,7 +255,7 @@ describe('buildAdvancementView — chaque achat porte le refus que son geste ren
     avecPartie({ ...etatInitialDuJeu(), party: [heros], flags: {} }, (partie) => {
       const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
       const c = vue.chars.find((x) => x.inCareer)!;
-      expect(c.refus).toBe(t('pf.notEnoughXp', { name: nomDe(heros), cost: c.nextCost }));
+      expect(c.refus).toBe(t('pf.notEnoughXp', { name: nomDe(heros), cost: c.nextCost! }));
       expect(vue.refusPx(0)).toBeNull();
       const appel = partie.envoyer({ type: 'acheterLaCaracteristique', args: [heros.id, c.key] });
       expect(partie.etat().party[0].charAdvances?.[c.key] ?? 0, 'le geste a acheté ce que la vue refusait').toBe(heros.charAdvances?.[c.key] ?? 0);

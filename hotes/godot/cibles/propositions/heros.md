@@ -117,14 +117,14 @@ rangées 2 et 3 ; `corps` (352) et `pied` (53), la liste et son compte. Une plac
 ## progression-depense-d-experience
 - Gabarit de la fiche : PX en jeton, exigences du niveau cochées, bande de profil pressable (cases de carrière en
   laiton, les autres en fer), Compétences et Talents de la carrière avec leur prix. Coûts LDB 07 l.51-56, hors
-  carrière doublé l.91, Talent l.105, achèvement l.124-131 ; vue `src/noyau/monde/advancement.ts:138-320`.
-- Niveau non achevé : « Niveau suivant » fermé (LDB 07 l.137 ; `src/engine/advancement.ts:197-200`), « Autre
+  carrière doublé l.91, Talent l.105, achèvement l.124-131 ; vue `src/noyau/monde/advancement.ts:143-317`.
+- Niveau non achevé : « Niveau suivant » fermé (LDB 07 l.137 ; `src/engine/advancement.ts:243-246`), « Autre
   carrière 200 PX » (l.118, l.144). Panneau fermé par la croix.
 - Changement voulu de l'image : le panneau de droite porte les onglets « Talents | Sorts » à la place du ruban « Talents ».
 - État `creneaux` (`progression-depense-d-experience-creneaux`) : niveau 2, l'emplacement « (Au choix) » pressé déplie
   ses spécialisations en pastilles ; la retenue en laiton ; « Désigner » la retient sans rien acheter
   (`designerLeCreneau(heroId, slotKey, option)`), la plaque de prix l'achète (LDB 09 l.38 ;
-  `src/noyau/monde/advancement.ts:187-240`).
+  `src/noyau/monde/advancement.ts:196-249`).
 - État `sorts` (`-sorts`) : onglet « Sorts » ; un Sort à apprendre montre son prix (`acheterLeSort(heroId, spellId)` :
   mineure 50 PX par tranche de Bonus de FM, Arcanes 100 PX par tranche de Bonus d'Int, LDB 10 l.680-696, l.714-722 ;
   `src/engine/grimoire.ts:176-193`) ; un Sort connu offre son composant (`acheterLaComposante(heroId, spellId)`, payé de
@@ -138,10 +138,10 @@ rangées 2 et 3 ; `corps` (352) et `pied` (53), la liste et son compte. Une plac
 ## progression-changement-de-carriere
 - Niveau 2 achevé : le chemin des quatre niveaux en stations, le niveau inférieur et le suivant pressables à
   100 PX, le niveau 4 hors d'atteinte (LDB 07 l.137) ; la page du niveau suivant (« Devenir Maîtresse Sorcière
-  100 PX ») ; une autre carrière par Classe avec son prix (LDB 07 l.144 ; `src/engine/advancement.ts:185-205`).
+  100 PX ») ; une autre carrière par Classe avec son prix (LDB 07 l.144 ; `src/engine/advancement.ts:230-253`).
   Panneau fermé par la croix.
 - Changement voulu de l'image : la station 4, hors d'atteinte, dit au survol « saut de niveau impossible (option MJ
-  requise) » (texte du noyau, `src/engine/advancement.ts:185-205`).
+  requise) » (texte du noyau, `src/engine/advancement.ts:230-253`).
 - État `saut` (`progression-changement-de-carriere-saut`) : règle optionnelle `progression-saut-de-niveau` active
   (`src/data/reglesOptionnelles.json:818` ; LDB 07 l.140, l.148) : toute station se presse, la page est celle du
   niveau visé, « Autre carrière » offre le choix du niveau d'arrivée (`changerDeCarriere(heroId, newCareer, newLevel)`).

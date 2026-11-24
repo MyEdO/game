@@ -29,7 +29,9 @@ import { stageWeatherRows } from './travelFlow';
 import { mutationTableIdFor } from './corruptionFlow';
 import { setDataset, datasetArray, setObjectDataset, datasetObject, type ObjectDatasetKey } from '../data/overrides';
 import { marchandisesDe, findCargoById, rollSeasonalCargo, cargoBasePrice, type CargoDef } from '../engine/cargo';
-import { advanceCost } from '../engine/advancement';
+import { coutDeLAugmentation } from '../engine/advancement';
+import { createHero } from '../engine/character';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { shipSizeOfLength } from '../engine/shipBuild';
 import {
   tickRiverWind, riverWindEffect, navBaseDifficulty, tackDifficulty, driftPctOfSpeed, navPenaltyMods,
@@ -260,10 +262,13 @@ describe('#1692 — les vues DÉRIVÉES d’un dataset suivent son édition', ()
     }
   });
 
-  it('un Coût d’Augmentation ÉDITÉ : `advanceCost` lit la NOUVELLE bande', () => {
-    expect(advanceCost(0, 'caracteristique')).toBe(25);
+  it('un Coût d’Augmentation ÉDITÉ : `coutDeLAugmentation` lit la NOUVELLE bande', () => {
+    const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    const cible = { kind: 'caracteristique', char: 'agilite' } as const;
+    h.charAdvances = { ...h.charAdvances, agilite: 0 };
+    expect(coutDeLAugmentation(h, cible)).toEqual({ ok: true, cout: 25 });
     setDataset('advancementCosts', datasetArray('advancementCosts').map((b, i) => (i === 0 ? { ...b, coutCarac: 99 } : b)));
-    expect(advanceCost(0, 'caracteristique')).toBe(99);
+    expect(coutDeLAugmentation(h, cible)).toEqual({ ok: true, cout: 99 });
   });
 
   it('une bande de longueur de coque ÉDITÉE : `shipSizeOfLength` lit la NOUVELLE colonne « Taille »', () => {

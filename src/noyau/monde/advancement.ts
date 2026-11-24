@@ -1,41 +1,41 @@
 /**
  * Vue d'avancement (couche store/UI) — agrège le héros + `careerLevels.json` en une structure
- * prête à rendre. PURE et testée : pas d'état, pas d'effet de bord. Les coûts et la détection
- * in-carrière viennent du moteur (`engine/advancement.ts` + `engine/careerSlots.ts`, verbatim
- * LDB 07/09/10) ; ici on ne fait que router les listes des Niveaux de Carrière.
- *
- * Disponibilité (LDB 07) : Caractéristiques et Compétences CUMULATIVES sur les niveaux ≤
- * courant (l.43/76), Talents du niveau courant uniquement (l.103). Les emplacements
- * « (Au choix) » suivent le modèle de désignation de careerSlots (identité (id, spec)).
+ * prête à rendre. PURE et testée : pas d'état, pas d'effet de bord. Les coûts, la portée des Talents et la
+ * détection in-carrière viennent du moteur (`engine/advancement.ts`, `engine/careerSlots.ts`, modèle du héros) ;
+ * ici on ne fait que router les listes des Niveaux de Carrière. LDB 07 l.43, l.76, l.103 ; CRB 045 l.58
  */
 import { libelleDuStatut } from '../../engine/money';
 import { Combatant, CharKey, CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import {
-  advanceCost,
-  talentCost,
-  isCareerLevelComplete,
-  careerChangeCost,
+  coutDeLAugmentation,
+  coutDeLaPremiereAugmentation,
+  coutDuTalent,
+  niveauValide,
+  coutDuChangement,
   inCareerChar,
+  talentSlotsAchetables,
   validateCareerChange,
+  type CibleDAugmentation,
 } from '../../engine/advancement';
 import {
   skillSlots,
-  talentSlots,
   availableChars,
   designationsFor,
   prisParLesAutres,
   refKey,
   parseRefKey,
-  talentAcquisitions,
   talentMaxReached,
   wildcardSpecs,
 } from '../../engine/careerSlots';
+import { modeleDe } from '../../engine/modeleDeProgression';
 import { competenceEnCarriere, talentsAjoutesALaCarriere, baseWithTalents } from '../../engine/talentEffects';
-import { rule } from '../../engine/policy';
 import { levelsForCareer, byId, findCareerById, refLabel, specLabel, displayLabelForSex } from '../../data';
 import { memeSpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import { t } from '../../i18n';
-import { mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement } from '../depenseDePx';
+import {
+  mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDeCompetenceHorsCarriere,
+  regleDeProgression,
+} from '../depenseDePx';
 import { refusDepensePx } from '../verrousDeFiche';
 import type { Jeu } from '../etat';
 import { nomDe } from '../../engine/nom';
@@ -46,8 +46,9 @@ export interface CharAdvanceRow {
   value: number;
   advances: number;
   inCareer: boolean;
-  nextCost: number;
-  /** Refus de l'achat (combat, mentor requis, PX insuffisants) — le même que rend `acheterLaCaracteristique`. */
+  /** Coût de la prochaine Augmentation ; `null` au-delà de la table du modèle. */
+  nextCost: number | null;
+  /** Refus de l'achat (combat, mentor requis, table épuisée, PX insuffisants) — le même que rend `acheterLaCaracteristique`. */
   refus: string | null;
 }
 export interface SkillAdvanceRow {
@@ -60,8 +61,10 @@ export interface SkillAdvanceRow {
   /** Le héros possède-t-il déjà la Compétence (sinon : acquérable à 0 si in-carrière). */
   known: boolean;
   inCareer: boolean;
-  nextCost: number;
-  /** Refus de l'achat (combat, mentor requis, PX insuffisants) — le même que rend `acheterLaCompetence`. */
+  /** Coût de la prochaine Augmentation ; `null` au-delà de la table du modèle. */
+  nextCost: number | null;
+  /** Refus de l'achat (combat, mentor requis, Compétence avancée fermée hors carrière, table épuisée, PX insuffisants)
+   *  — le même que rend `acheterLaCompetence`. */
   refus: string | null;
 }
 /** Emplacement de Compétence « (Au choix) » non désigné : à apprendre/désigner via un choix de spec. */
@@ -124,7 +127,7 @@ export interface AdvancementView {
   skillSlotsOpen: SkillSlotRow[];
   talents: TalentSlotRow[];
   targets: CareerTarget[];
-  /** Coût d'un changement vers une carrière donnée (id, sélecteur) : +100 hors Classe (LDB 07 l.144). */
+  /** Coût d'un changement vers une carrière donnée (id, sélecteur), Classe comprise. LDB 07 l.144 ; CRB 048 l.72 */
   changeCostFor: (careerId: string) => number;
   /** Refus du changement vers le niveau 1 d'une carrière donnée (sélecteur) — celui que rend `changerDeCarriere`. */
   refusChangementVers: (careerId: string) => string | null;
@@ -141,10 +144,18 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
   const xp = hero.xp ?? 0;
   const refus = refusDepensePx(s);
   const refusPx = (cost: number): string | null => refus ?? refusDePx(hero, cost);
-  /** Refus d'une Augmentation : combat, puis mentor, puis PX — l'ordre de l'achat. */
-  const refusDAugmentation = (inCareer: boolean, what: string, cost: number): string | null =>
+  /** Prochaine Augmentation de `cible` : son coût, et son refus — combat, puis mentor, puis Compétence avancée fermée,
+   *  puis table épuisée, puis PX — l'ordre de l'achat. */
+  const augmentation = (cible: CibleDAugmentation, inCareer: boolean, what: string, discount = 0) => {
+    const c = coutDeLAugmentation(hero, cible, inCareer, discount);
+    const fermee = cible.kind === 'competence' ? refusDeCompetenceHorsCarriere(hero, cible.competence.id, what, inCareer) : null;
     // LDB 07 l.89
-    refus ?? (mentorRequis(s, inCareer) ? t('pf.charNeedsMentor', { name: nomDe(hero), what }) : refusPx(cost));
+    const refusDeLAugmentation = refus
+      ?? (mentorRequis(s, hero, inCareer) ? t('pf.charNeedsMentor', { name: nomDe(hero), what }) : null)
+      ?? fermee
+      ?? (c.ok ? refusPx(c.cout) : t('pf.refused', { name: nomDe(hero), what, reason: c.raison }));
+    return { nextCost: c.ok ? c.cout : null, refus: refusDeLAugmentation };
+  };
   /** Refus d'acquérir un Talent : combat, puis Maxi et Domaine (`refusDAcquerirLeTalent`), puis PX. */
   const refusDeTalent = (id: string, spec: string | undefined, cost: number): string | null =>
     refus ?? refusDAcquerirLeTalent(hero, id, spec) ?? refusPx(cost);
@@ -153,15 +164,14 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
   const levels = levelsForCareer(career);
   const cur = levels.find((l) => l.level === careerLevel);
   const sSlots = skillSlots(levels, careerLevel); // cumul niveaux ≤ courant (LDB 07 l.76)
-  const tSlots = talentSlots(levels, careerLevel); // niveau courant seul (l.103)
+  const tSlots = talentSlotsAchetables(hero, levels, careerLevel);
   const careerChars = availableChars(levels, careerLevel); // cumul (l.43)
   const designations = designationsFor(hero, career);
 
   const chars: CharAdvanceRow[] = CHAR_KEYS.map((key) => {
     const advances = hero.charAdvances?.[key] ?? 0;
     const inCareer = inCareerChar(careerChars, key);
-    const nextCost = advanceCost(advances, 'caracteristique', inCareer);
-    return { key, label: CHAR_LABELS[key], value: baseWithTalents(hero, key), advances, inCareer, nextCost, refus: refusDAugmentation(inCareer, CHAR_LABELS[key], nextCost) };
+    return { key, label: CHAR_LABELS[key], value: baseWithTalents(hero, key), advances, inCareer, ...augmentation({ kind: 'caracteristique', char: key }, inCareer, CHAR_LABELS[key]) };
   });
 
   // Compétences connues — identité : la référence, chaque Spécialisation étant une Compétence
@@ -171,16 +181,15 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     const sName = byId('skill', s.id)?.label ?? s.id; // AFFICHAGE seulement
     const { statut, remise: discount } = competenceEnCarriere(hero, sSlots, designations, s.id, s.spec);
     const inCareer = statut != null;
-    const nextCost = advanceCost(s.advances, 'competence', inCareer, discount);
+    const skill = { id: s.id, ...(s.spec ? { spec: s.spec } : {}) };
     return {
-      skill: { id: s.id, ...(s.spec ? { spec: s.spec } : {}) },
+      skill,
       label: sName,
       characteristic: s.characteristic,
       advances: s.advances,
       known: true,
       inCareer,
-      nextCost,
-      refus: refusDAugmentation(inCareer, libelleAvecSpec(sName, s.spec), nextCost),
+      ...augmentation({ kind: 'competence', competence: skill }, inCareer, libelleAvecSpec(sName, s.spec), discount),
     };
   });
   // Entrées EXPLICITES de carrière pas encore connues → acquérables à advances 0.
@@ -192,11 +201,12 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     if (knows(o.optionId, o.spec)) continue;
     if (skills.some((r) => !r.known && r.skill.id === o.optionId && memeSpecialisation(r.skill.spec, o.spec))) continue;
     const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
-    const nextCost = advanceCost(0, 'competence', true);
-    skills.push({ skill: { id: o.optionId, ...(o.spec ? { spec: o.spec } : {}) }, label: o.label, characteristic, advances: 0, known: false, inCareer: true, nextCost, refus: refusPx(nextCost) });
+    const skill = { id: o.optionId, ...(o.spec ? { spec: o.spec } : {}) };
+    skills.push({ skill, label: o.label, characteristic, advances: 0, known: false, inCareer: true, ...augmentation({ kind: 'competence', competence: skill }, true, o.label) });
   }
   // Emplacements de Compétence « (Au choix) » non désignés → choix de spec (désigner/apprendre).
   const skillSlotsOpen: SkillSlotRow[] = [];
+  const premiere = coutDeLaPremiereAugmentation(hero);
   for (const slot of sSlots) {
     if (!slot.needsChoice || designations[slot.key]) continue;
     const o = slot.options[0];
@@ -208,13 +218,13 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
         spec,
         display: specLabel('skills', o.optionId!, spec),
         ownedAdvances: hero.skills.find((s) => s.id === o.optionId && (s.spec ?? '') === spec)?.advances ?? 0,
-        refus: refusPx(advanceCost(0, 'competence', true)),
+        refus: refusPx(premiere),
       }));
     const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
-    skillSlotsOpen.push({ slotKey: slot.key, entry: slot.entry, group: o.label, groupId: o.optionId, characteristic, options, nextCost: advanceCost(0, 'competence', true) });
+    skillSlotsOpen.push({ slotKey: slot.key, entry: slot.entry, group: o.label, groupId: o.optionId, characteristic, options, nextCost: premiere });
   }
 
-  // Talents : un rang par EMPLACEMENT du niveau courant (LDB 07 l.103).
+  // Talents : un rang par EMPLACEMENT achetable (`talentSlotsAchetables`).
   const talents: TalentSlotRow[] = tSlots.map((slot) => {
     let ref: { id: string; spec?: string } | null;
     if (slot.needsChoice) {
@@ -228,7 +238,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
       // Match de l'entité possédée par id+spec — le libellé (`refLabel`) reste l'AFFICHAGE seul.
       const label = refLabel('talents', ref);
       const times = hero.talents.find((t) => t.talentId === ref!.id && memeSpecialisation(t.spec, ref!.spec))?.times ?? 0;
-      const nextCost = talentCost(talentAcquisitions(hero, ref.id, ref.spec));
+      const nextCost = coutDuTalent(hero, ref.id, ref.spec);
       return { slotKey: slot.key, entry: slot.entry, talentId: ref.id, spec: ref.spec, label, times, nextCost, maxReached: talentMaxReached(hero, ref.id, ref.spec), refus: refusDeTalent(ref.id, ref.spec, nextCost) };
     }
     // Slot à choix non désigné : proposer les options concrètes que son niveau ne tient pas.
@@ -239,7 +249,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
       for (const spec of pool) {
         const rk = refKey(o.optionId, spec);
         if (prisParLesAutres(slot, [...sSlots, ...tSlots], designations).has(rk)) continue;
-        const nextCost = talentCost(talentAcquisitions(hero, o.optionId, spec));
+        const nextCost = coutDuTalent(hero, o.optionId, spec);
         options.push({
           refKey: rk,
           display: refLabel('talents', { id: o.optionId, spec }),
@@ -252,7 +262,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     }
     return {
       slotKey: slot.key, entry: slot.entry, times: 0, options,
-      nextCost: options.length ? Math.min(...options.map((o) => o.nextCost)) : talentCost(0),
+      nextCost: options.length ? Math.min(...options.map((o) => o.nextCost)) : modeleDe(hero).coutDuTalent.base,
       maxReached: options.length > 0 && options.every((o) => o.maxReached),
       refus,
     };
@@ -264,18 +274,17 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
     if (talents.some((r) => (r.talentId === add.id && memeSpecialisation(r.spec, add.spec)) || r.options?.some((o) => o.refKey === rk))) continue;
     const label = refLabel('talents', add);
     const times = hero.talents.find((t) => t.talentId === add.id && memeSpecialisation(t.spec, add.spec))?.times ?? 0;
-    const nextCost = talentCost(talentAcquisitions(hero, add.id, add.spec));
+    const nextCost = coutDuTalent(hero, add.id, add.spec);
     talents.push({ slotKey: `add:${rk}`, entry: label, talentId: add.id, spec: add.spec, label, times, nextCost, maxReached: talentMaxReached(hero, add.id, add.spec), refus: refusDeTalent(add.id, add.spec, nextCost) });
   }
 
   const completed = cur
-    ? isCareerLevelComplete(hero, careerLevel, { skillSlots: sSlots, talentSlots: tSlots, careerChars, designations })
+    ? niveauValide(hero, careerLevel, { skillSlots: sSlots, talentSlots: tSlots, careerChars, designations })
     : false;
-  const changeCost = careerChangeCost(completed);
+  const changeCost = coutDuChangement(hero, completed);
 
-  // Cibles de progression (LDB 07 l.137) : Niveau suivant (exige la complétion) + Niveaux inférieurs.
-  // Avec l'option MJ « Sauts de Niveau » (l.140), les Niveaux supérieurs non-adjacents apparaissent aussi.
-  const gmJump = rule('progression-saut-de-niveau') === true;
+  // Cibles de progression : Niveau suivant, Niveaux inférieurs, sauts sur règle optionnelle. LDB 07 l.137, l.140
+  const gmJump = regleDeProgression(hero, 'progression-saut-de-niveau');
   const targets: CareerTarget[] = [];
   for (const l of levels) {
     if (l.level === careerLevel) continue;
@@ -285,8 +294,7 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
   }
 
   const curClass = findCareerById(career)?.class.id;
-  const changeCostFor = (careerId: string) =>
-    changeCost + (findCareerById(careerId)?.class.id === curClass ? 0 : 100); // LDB 07 l.144
+  const changeCostFor = (careerId: string) => coutDuChangement(hero, completed, findCareerById(careerId)?.class.id === curClass);
 
   return {
     xp,

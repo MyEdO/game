@@ -67,7 +67,7 @@ import { sizeFromTalents } from './size';
 import { traitsDuPorteur } from './statEntry';
 import { indiceSurLeProfil } from './formule';
 import { memeSpecialisation } from '../data/schemas/grammaire/ref';
-import { careerCompletionAdvances, slotRef, tientUnTalentDuNiveau } from './advancement';
+import { CAREER_SKILLS_ADVANCED, careerCompletionAdvances, slotRef, tientUnTalentDuNiveau } from './advancement';
 import type { FabriqueDId } from './fabriqueDId';
 import { blessuresPosees } from './characteristics';
 
@@ -90,9 +90,6 @@ export function augmenterLaCompetence(skills: SkillInstance[], { id, spec }: Ref
 export const CAREER_SKILL_ADVANCES = 40;
 /** « sans dépasser plus de 10 Points alloués à une seule Compétence à ce stade » (LDB 05 l.535). */
 export const MAX_ADV_PER_SKILL = 10;
-/** « vos huit Compétences de départ » (LDB 05 l.535) ; « seules huit doivent être améliorées » d'un
- *  Niveau à dix Compétences (AA 02 l.134 ; VDM 03 l.37). */
-export const CAREER_SKILLS_ADVANCED = 8;
 /** « Vous pouvez sélectionner 3 Compétences auxquelles ajouter 5 Augmentations à chacune » (LDB 05 l.484). */
 export const SPECIES_SKILLS_PLUS5 = 3;
 /** « …et 3 Compétences auxquelles ajouter 3 Augmentations à chacune » (LDB 05 l.484). */

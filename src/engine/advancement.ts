@@ -1,52 +1,90 @@
 /**
- * Avancement par Points d'Expérience (PX) — Livre de base, « Carrières » (LDB 07) l.35-109.
- *
- * Les Augmentations s'achètent UNE PAR UNE : le coût de la prochaine dépend du nombre déjà
- * acheté pour cette Caractéristique / Compétence (LDB 07 l.45/78). Toutes les valeurs sont copiées
- * VERBATIM du Tableau de Coût des Augmentations (LDB 07 l.51-70) — aucune invention.
+ * Avancement par Points d'Expérience (PX), chiffré par le modèle de progression du héros (`modeleDe`).
+ * LDB 07 l.35-109 ; CRB 045 ; CRB 048 l.45, l.72
  */
 import { Combatant, CharKey } from './types';
-import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions } from './careerSlots';
+import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions, talentSlots, talentSlotsUpTo, type EmplacementsDuNiveau } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import type * as advancementCostsDef from '../data/schemas/defs/advancementCosts';
 import { datasetDe } from '../data/datasets';
-import { findTableEntry, tableOuverte } from './tables';
+import { findTableEntryIndex, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
 import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { cleDeProgression, modeleDe, type CleDeProgression } from './modeleDeProgression';
+import { casesDuNiveau, cocherUnAchat } from './casesDeCarriere';
 
-/**
- * Détection « in-carrière » (LDB 07 l.91) : une Augmentation est au coût standard si la
- * Caractéristique / Compétence / Talent est DISPONIBLE pour le héros — Caractéristiques et
- * Compétences des niveaux ≤ courant (LDB 07 l.41-43/76), Talents du niveau courant seul (LDB 07 l.103) ; sinon
- * le coût est doublé (Caractéristiques/Compétences) ou interdit (Talents, LDB 07 l.93).
- * Les Compétences/Talents passent par les EMPLACEMENTS de `careerSlots.ts` (spécialisations) ;
- * les Caractéristiques, sans spec, par `inCareerChar`. Libellés longs → clé via CHAR_LABELS.
- */
+/** La Caractéristique `char` est-elle de la carrière (`careerChars`, cumul des niveaux ≤ courant) ? LDB 07 l.41-43,
+ *  l.91 ; CRB 018 l.43 */
 export function inCareerChar(careerChars: CharKey[], char: CharKey): boolean {
   return careerChars.includes(char);
 }
 
-const ADVANCE_COST_TABLE = datasetDe<typeof advancementCostsDef>(advancementCostsJson);
+/** « vos huit Compétences de départ » (LDB 05 l.535) ; « seules huit doivent être améliorées » d'un
+ *  Niveau à dix Compétences (AA 02 l.134 ; VDM 03 l.37). LDB 07 l.124 */
+export const CAREER_SKILLS_ADVANCED = 8;
 
-/** La table telle que `findTableEntry` la lit : la borne OUVERTE de la dernière bande devient son
- *  infini. Aucun plafond n'est écrit en donnée — c'est le lookup qui ouvre, pas la source, et il est
- *  le tronc commun des tables ouvertes (`tableOuverte`, `./tables`). */
-const advanceCostLookup = memoParVersion('advancementCosts', () => tableOuverte(ADVANCE_COST_TABLE));
+const BANDES_DE_COUT = datasetDe<typeof advancementCostsDef>(advancementCostsJson);
 
-/** Coût en PX de la PROCHAINE Augmentation (la N+1ᵉ), `advancesAlready` = N déjà achetées.
- *  Hors carrière, le coût est DOUBLÉ (LDB 07 l.91). `discount` : « 5 PX de moins par
- *  Augmentation » des talents Maître artisan / Oreille absolue / etc. (LDB 10) quand la
- *  Compétence ajoutée est déjà incluse dans la Carrière — appliqué in-carrière seulement. */
-export function advanceCost(advancesAlready: number, kind: 'caracteristique' | 'competence', inCareer = true, discount = 0): number {
-  const band = findTableEntry(advanceCostLookup(), advancesAlready);
-  const base = kind === 'caracteristique' ? band.coutCarac : band.coutCompetence;
-  return inCareer ? Math.max(1, base - discount) : base * 2;
+/** Les tables de coût par modèle, telles que `findTableEntryIndex` les lit : la borne OUVERTE d'une dernière bande devient son infini
+ *  (`tableOuverte`). Une table fermée n'a aucune bande au-delà de sa dernière. */
+const tablesDeCout = memoParVersion('advancementCosts', () => {
+  const tables: Record<CleDeProgression, ReturnType<typeof tableOuverte<(typeof BANDES_DE_COUT)[number]>>> = { '4e': [], '5e': [] };
+  for (const b of tableOuverte(BANDES_DE_COUT)) tables[b.progression ?? '4e'].push(b);
+  return tables;
+});
+
+/** Ce qu'une Augmentation augmente : une Caractéristique, ou une Compétence par sa référence (LDB 09 l.44). */
+export type CibleDAugmentation = { kind: 'caracteristique'; char: CharKey } | { kind: 'competence'; competence: RefDesignee };
+
+/** Points déjà ajoutés à la valeur de `cible` (0 pour une Compétence inconnue). */
+function pointsDe(hero: Combatant, cible: CibleDAugmentation): number {
+  if (cible.kind === 'caracteristique') return hero.charAdvances?.[cible.char] ?? 0;
+  const { id, spec } = cible.competence;
+  return hero.skills.find((s) => s.id === id && memeSpecialisation(s.spec, spec))?.advances ?? 0;
 }
 
-/** Coût en PX de la prochaine Augmentation de Talent : LDB 07 l.105, l.156. */
-export function talentCost(timesAlready: number): number {
-  return 100 * (timesAlready + 1);
+/** Nombre d'Augmentations déjà achetées pour `cible` : ses points divisés par le pas du modèle. LDB 07 l.45, l.78 ;
+ *  CRB 045 l.15, l.25 */
+export function augmentationsAchetees(hero: Combatant, cible: CibleDAugmentation): number {
+  return Math.floor(pointsDe(hero, cible) / modeleDe(hero).pas);
+}
+
+/** Le prix de la prochaine Augmentation, ou la raison qui la ferme. */
+export type Chiffrage = { ok: true; cout: number } | { ok: false; raison: string };
+
+/** SEUL chiffrage public de la PROCHAINE Augmentation de `cible` pour `hero`, sur la table de son modèle. Hors carrière,
+ *  le coût est multiplié par le coefficient du modèle ; `discount` : remise de Talent en carrière (LDB 10). Au-delà
+ *  d'une table fermée, l'Augmentation est refusée. LDB 07 l.51-70, l.91 ; CRB 045 l.33-52 ; CRB 018 l.69 */
+export function coutDeLAugmentation(hero: Combatant, cible: CibleDAugmentation, inCareer = true, discount = 0): Chiffrage {
+  const m = modeleDe(hero);
+  const deja = augmentationsAchetees(hero, cible);
+  const table = tablesDeCout()[cleDeProgression(hero)];
+  const i = findTableEntryIndex(table, deja);
+  if (i < 0) return { ok: false, raison: t('adv.tableEpuisee') };
+  const bande = table[i];
+  const base = cible.kind === 'caracteristique' ? bande.coutCarac : bande.coutCompetence;
+  return { ok: true, cout: inCareer ? Math.max(1, base - discount) : base * m.horsCarriere.coefficient };
+}
+
+/** Coût en PX de la 1re Augmentation, en carrière, d'une Compétence que `hero` ne connaît pas encore. */
+export function coutDeLaPremiereAugmentation(hero: Combatant): number {
+  return tablesDeCout()[cleDeProgression(hero)][0].coutCompetence;
+}
+
+/** Coût en PX de la prochaine prise du Talent (`talentId`, `spec`) par `hero` (`talentAcquisitions`). LDB 07 l.105,
+ *  l.156 ; CRB 045 l.60 */
+export function coutDuTalent(hero: Combatant, talentId: string, spec?: string): number {
+  const { base, parPrise } = modeleDe(hero).coutDuTalent;
+  return base + parPrise * talentAcquisitions(hero, talentId, spec);
+}
+
+const PORTEE_DES_TALENTS = { niveau: talentSlots, cumul: talentSlotsUpTo } as const;
+
+/** Les emplacements de Talents de carrière que `hero` peut acheter au niveau `level` de `levels`. LDB 07 l.103 ;
+ *  CRB 045 l.58 */
+export function talentSlotsAchetables(hero: Combatant, levels: readonly EmplacementsDuNiveau[], level: number): CareerSlot[] {
+  return PORTEE_DES_TALENTS[modeleDe(hero).porteeDesTalents](levels, level);
 }
 
 export interface AdvanceResult {
@@ -55,37 +93,40 @@ export interface AdvanceResult {
   reason?: string;
 }
 
-/** Achète UNE Augmentation de Caractéristique (+1 à la valeur, +1 au compteur d'Augmentations) si
- *  les PX suffisent. Mute le héros. `inCareer` false → coût doublé (hors carrière). */
-export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true): AdvanceResult {
-  const already = hero.charAdvances?.[char] ?? 0;
-  const cost = advanceCost(already, 'caracteristique', inCareer);
+/** Paie et applique UNE Augmentation de `cible` si elle est chiffrée et les PX suffisent : `pas` points ajoutés à la
+ *  valeur et au compteur, case cochée en carrière. Mute le héros. LDB 07 l.47, l.80 ; CRB 045 l.15, l.27, l.54 */
+function acheterLAugmentation(hero: Combatant, cible: CibleDAugmentation, inCareer: boolean, discount: number, ajouter: (pas: number) => void): AdvanceResult {
+  const c = coutDeLAugmentation(hero, cible, inCareer, discount);
+  if (!c.ok) return { ok: false, cost: 0, reason: c.raison };
+  const cost = c.cout;
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   hero.xp = (hero.xp ?? 0) - cost;
-  hero.charAdvances = { ...(hero.charAdvances ?? {}), [char]: already + 1 };
-  hero.characteristics[char] += 1; // chaque Augmentation ajoute +1 (LDB 07 l.47)
+  ajouter(modeleDe(hero).pas);
+  if (inCareer) cocherUnAchat(hero);
   return { ok: true, cost };
 }
 
-/** Achète UNE Augmentation pour une Compétence DÉJÀ connue — identité : la référence, chaque
- *  Spécialisation étant une Compétence distincte (LDB 09 l.44). */
+/** Achète UNE Augmentation de Caractéristique. Mute le héros. */
+export function buyCharAdvance(hero: Combatant, char: CharKey, inCareer = true): AdvanceResult {
+  return acheterLAugmentation(hero, { kind: 'caracteristique', char }, inCareer, 0, (pas) => {
+    hero.charAdvances = { ...(hero.charAdvances ?? {}), [char]: (hero.charAdvances?.[char] ?? 0) + pas };
+    hero.characteristics[char] += pas;
+  });
+}
+
+/** Achète UNE Augmentation pour une Compétence DÉJÀ connue — identité : la référence. LDB 09 l.44 */
 export function buySkillAdvance(hero: Combatant, ref: RefDesignee, inCareer = true, discount = 0): AdvanceResult {
   const skill = hero.skills.find((s) => s.id === ref.id && memeSpecialisation(s.spec, ref.spec));
   if (!skill) return { ok: false, cost: 0, reason: t('adv.unknownSkill') };
-  const cost = advanceCost(skill.advances, 'competence', inCareer, discount);
-  if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
-  hero.xp = (hero.xp ?? 0) - cost;
-  skill.advances += 1; // chaque Augmentation ajoute +1 au niveau de Compétence (LDB 07 l.80)
-  return { ok: true, cost };
+  return acheterLAugmentation(hero, { kind: 'competence', competence: ref }, inCareer, discount, (pas) => {
+    skill.advances += pas;
+  });
 }
 
-/** Achète UNE Augmentation de Talent (le crée à `times` 1 s'il est absent, sinon +1) si les PX
- *  suffisent. Identité STABLE par `talentId` + `spec` (déjà résolus par l'appelant ; jamais un
- *  libellé). Les Talents hors carrière ne sont pas achetables (LDB 07 l.93) et le Maxi doit être respecté
- *  (LDB 10 l.18) : le hors-carrière est vérifié par l'appelant, le Maxi par `acquerirTalent`. Coût : LDB 07
- *  l.105, l.156, `talentAcquisitions`. */
+/** Achète UNE prise du Talent (`talentId`, `spec`), identité stable résolue par l'appelant, si les PX suffisent ; le
+ *  hors-carrière est jugé par l'appelant, le Maxi par `acquerirTalent`. LDB 07 l.93, l.105 ; LDB 10 l.18 */
 export function buyTalent(hero: Combatant, talentId: string, spec?: string): AdvanceResult {
-  const cost = talentCost(talentAcquisitions(hero, talentId, spec));
+  const cost = coutDuTalent(hero, talentId, spec);
   if ((hero.xp ?? 0) < cost) return { ok: false, cost, reason: t('adv.notEnoughXp') };
   if (!acquerirTalent(hero, { id: talentId, spec })) return { ok: false, cost, reason: t('adv.talentMax') };
   hero.xp = (hero.xp ?? 0) - cost;
@@ -94,8 +135,7 @@ export function buyTalent(hero: Combatant, talentId: string, spec?: string): Adv
 
 // ── Changer de Carrière (LDB 07 l.111-140) ──
 
-/** Nombre d'Augmentations requis pour COMPLÉTER un Niveau de Carrière (LDB 07 l.126-131 :
- *  Niveau 1→5, 2→10, 3→15, 4→20). Le LDB de base ne tabule que jusqu'au Niveau 4. */
+/** Nombre d'Augmentations requis pour COMPLÉTER le Niveau de Carrière `level`. LDB 07 l.126-131 */
 export function careerCompletionAdvances(level: number): number {
   return 5 * level;
 }
@@ -113,14 +153,8 @@ export function slotRef(slot: CareerSlot, designations: Record<string, string>):
   return key ? parseRefKey(key) : null;
 }
 
-/**
- * Un Niveau de Carrière est complété si (LDB 07 l.124) : toutes les CARACTÉRISTIQUES DE LA CARRIÈRE
- * disponibles (cumul des niveaux ≤ courant, LDB 07 l.41-43) ont ≥ req Augmentations, AU MOINS 8 des
- * Compétences disponibles (cumul, LDB 07 l.76) ont ≥ req Augmentations, et le héros possède au moins
- * 1 Talent du Niveau COURANT. Un emplacement « (Au choix) » compte via sa spec DÉSIGNÉE
- * (un slot non désigné n'est pas tenu) — chaque libellé concret ne valide qu'un slot, garanti
- * par l'unicité des désignations (cf. careerSlots.designateSlot).
- */
+/** Le Niveau de Carrière `level` est-il complété : Caractéristiques de carrière disponibles, `CAREER_SKILLS_ADVANCED`
+ *  Compétences disponibles (un emplacement « (Au choix) » par sa spec désignée) et un Talent du Niveau. LDB 07 l.124 */
 export function isCareerLevelComplete(
   hero: Combatant,
   level: number,
@@ -146,7 +180,7 @@ export function isCareerLevelComplete(
     const adv = hero.skills.find((s) => s.id === ref.id && memeSpecialisation(s.spec, ref.spec))?.advances ?? 0;
     if (adv >= req) held += 1;
   }
-  if (held < 8) return false;
+  if (held < CAREER_SKILLS_ADVANCED) return false;
 
   return tientUnTalentDuNiveau(hero, opts.talentSlots, opts.designations);
 }
@@ -160,66 +194,67 @@ export function tientUnTalentDuNiveau(hero: Pick<Combatant, 'talents'>, talentSl
   });
 }
 
-/** Coût en PX d'un changement de Carrière : 100 si le Niveau actuel est COMPLÉTÉ, 200 sinon (LDB 07 l.118). */
-export function careerChangeCost(completed: boolean): number {
-  return completed ? 100 : 200;
+/** Options de `isCareerLevelComplete` : emplacements, Caractéristiques de carrière et désignations du héros. */
+export type ContexteDeCompletion = Parameters<typeof isCareerLevelComplete>[2];
+
+/** Le niveau `level` de la carrière courante de `hero` est-il validé pour passer au suivant, selon le critère de son
+ *  modèle (`PassageDeNiveau`) ? LDB 07 l.124 ; CRB 048 l.45 */
+export function niveauValide(hero: Combatant, level: number, opts: ContexteDeCompletion): boolean {
+  const passage = modeleDe(hero).passage;
+  switch (passage.type) {
+    case 'completion': return isCareerLevelComplete(hero, level, opts);
+    case 'cases': return level <= passage.seuils.length && casesDuNiveau(hero, hero.career ?? '', level) >= passage.seuils[level - 1];
+  }
+}
+
+/** Coût en PX d'un changement de Carrière de `hero`, niveau courant validé ou non (`completed`), vers une carrière de
+ *  la même Classe ou non. LDB 07 l.118, l.144 ; CRB 048 l.72 */
+export function coutDuChangement(hero: Combatant, completed: boolean, sameClass = true): number {
+  const c = modeleDe(hero).changement;
+  return (completed ? c.complete : c.incomplet) + (sameClass ? 0 : c.autreClasse);
 }
 
 export interface CareerChangeContext {
-  /** Le Niveau de Carrière COURANT est-il complété (cf. isCareerLevelComplete) ? */
+  /** Le Niveau de Carrière COURANT est-il validé (`niveauValide`) ? */
   completed: boolean;
   /** La Carrière cible est-elle de la MÊME Classe que l'actuelle (LDB 07 l.144 : sinon +100 PX) ? */
   sameClass: boolean;
   /** Le Niveau cible existe-t-il dans les données de la Carrière cible ? */
   targetLevelExists: boolean;
-  /** Option MJ (LDB 07 l.140 + l.148, « Avec l'accord du MJ ») : autoriser un SAUT de Niveau (même
-   *  Carrière, Niveau supérieur non-adjacent) ET l'accès au MÊME Niveau d'une autre Carrière de la
-   *  Classe. Piloté par la règle optionnelle `progression-saut-de-niveau` côté state ; false = RAW strict. */
+  /** Règle optionnelle `progression-saut-de-niveau` applicable au héros (`regleDeProgression`). LDB 07 l.140, l.148 */
   gmJump?: boolean;
 }
 
-/**
- * Valide et chiffre un changement de Carrière (LDB 07 l.135-148) :
- *  - même Carrière : Niveau SUIVANT (exige la complétion, l.137) ou n'importe quel Niveau INFÉRIEUR
- *    (l.137) ; un SAUT vers un Niveau supérieur non-adjacent n'est permis qu'avec l'accord du MJ
- *    (l.140, `gmJump`) ;
- *  - autre Carrière : 1er Niveau (l.144 ; +100 PX si la Classe diffère) OU, avec l'accord du MJ et le
- *    Niveau courant complété, le MÊME Niveau d'une autre Carrière de la MÊME Classe (l.148, `gmJump`).
- *  Coût de base : 100 PX si complété, 200 sinon (l.118).
- */
+/** Valide et chiffre un changement de Carrière de `hero` vers (`newCareer`, `newLevel`) : même Carrière, Niveau
+ *  suivant validé (coût du passage), Niveau inférieur si le modèle l'ouvre, saut sur règle optionnelle ; autre
+ *  Carrière, 1er Niveau, ou le même Niveau de la Classe sur règle optionnelle. LDB 07 l.118, l.135-148 ; CRB 048 l.45,
+ *  l.72 */
 export function validateCareerChange(
   hero: Combatant,
   newCareer: string,
   newLevel: number,
   ctx: CareerChangeContext,
 ): { ok: boolean; cost: number; reason?: string } {
-  const base = careerChangeCost(ctx.completed);
+  const m = modeleDe(hero);
+  const base = coutDuChangement(hero, ctx.completed);
   if (!ctx.targetLevelExists) return { ok: false, cost: base, reason: t('adv.unknownLevel') };
   const cur = hero.careerLevel ?? 1;
   if (newCareer === (hero.career ?? '')) {
     if (newLevel === cur) return { ok: false, cost: base, reason: t('adv.sameLevel') };
-    if (newLevel < cur) return { ok: true, cost: base };
+    if (newLevel < cur) return m.changement.descente ? { ok: true, cost: base } : { ok: false, cost: base, reason: t('adv.descenteFermee') };
     if (newLevel === cur + 1) {
-      if (!ctx.completed) return { ok: false, cost: base, reason: t('adv.levelNotCompleted') };
-      return { ok: true, cost: base };
+      if (!ctx.completed) return { ok: false, cost: m.passage.cout, reason: t('adv.levelNotCompleted') };
+      return { ok: true, cost: m.passage.cout };
     }
-    // Niveau supérieur non-adjacent : saut réservé au MJ (l.140), coût 100/200 comme un changement normal.
     if (ctx.gmJump) return { ok: true, cost: base };
     return { ok: false, cost: base, reason: t('adv.jumpNeedsGm') };
   }
-  if (newLevel === 1) return { ok: true, cost: base + (ctx.sameClass ? 0 : 100) };
-  // MÊME Niveau d'une autre Carrière de la Classe (l.148) : exige l'accord du MJ, la complétion et la
-  // même Classe ; coût 100 PX (base complété).
+  if (newLevel === 1) return { ok: true, cost: coutDuChangement(hero, ctx.completed, ctx.sameClass) };
   if (ctx.gmJump && ctx.sameClass && ctx.completed && newLevel === cur) return { ok: true, cost: base };
   return { ok: false, cost: base, reason: t('adv.newCareerFirstLevel') };
 }
 
-/**
- * Mentor requis (LDB 07 l.89 : « le MJ peut exiger que vous trouviez un mentor qui puisse vous
- * enseigner cette formation inhabituelle ») : une Augmentation HORS carrière (dont le coût est déjà
- * DOUBLÉ) est BLOQUÉE tant qu'aucun mentor n'est disponible, quand la règle optionnelle est active.
- * `policyOn` = règle `progression-mentor` ; `hasMentor` = flag de groupe/scène. Renvoie vrai = bloqué.
- */
+/** Une Augmentation hors carrière est-elle bloquée faute de mentor, la règle `progression-mentor` active ? LDB 07 l.89 */
 export function mentorBlocks(inCareer: boolean, policyOn: boolean, hasMentor: boolean): boolean {
   return !inCareer && policyOn && !hasMentor;
 }
