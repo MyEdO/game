@@ -19,6 +19,7 @@ import {
   texteDuTalent,
   type CharKey,
   type EtapeDuPlan,
+  type Exigence,
 } from '../noyau';
 import { picto, plaque } from '../kit';
 import { CADRES, CADRES_DE_L_HOTE, ecran } from './ecran';
@@ -38,13 +39,16 @@ const CARACS_A_BONUS: ReadonlySet<CharKey> = new Set(['force', 'endurance', 'for
 const coche = (fait: boolean) => (fait ? `<i class="trou plein">${picto('coche', 14, 2.4)}</i>` : '<i class="trou"></i>');
 const exige = (fait: boolean, texte: string, compte = '') => `<div class="exige">${coche(fait)}<span>${texte}</span>${compte ? `<span class="cpt chiffres">${compte}</span>` : ''}</div>`;
 
-/** La marque des Augmentations, la même pour Caractéristiques et Compétences : un cran par pas de +5 que le niveau
- *  exige, chacun rempli à sa part. */
-const marqueDesAugmentations = (augmentations: number, requis: number) =>
-  `<span class="crans" role="img" aria-label="+${augmentations} sur +${requis}">${Array.from({ length: requis / PAS }, (_, i) => {
-    const part = Math.max(0, Math.min(PAS, augmentations - i * PAS)) / PAS;
+/** Les points d'une Caractéristique ou d'une Compétence de carrière tiennent-ils l'exigence `completion` du niveau ? */
+const tient = (points: number, x: Exigence | null): boolean => x?.type === 'completion' && points >= x.points;
+
+/** La marque des points, la même pour Caractéristiques et Compétences : sous l'exigence `completion`, un cran par pas
+ *  de +5 qu'elle exige, chacun rempli à sa part ; sinon, les points. */
+const marqueDesPoints = (points: number, x: Exigence | null) => (x?.type !== 'completion' ? `<span class="points chiffres">+${points}</span>`
+  : `<span class="crans" role="img" aria-label="+${points} sur +${x.points}">${Array.from({ length: x.points / PAS }, (_, i) => {
+    const part = Math.max(0, Math.min(PAS, points - i * PAS)) / PAS;
     return part >= 1 ? '<i class="plein"></i>' : part > 0 ? `<i style="--part:${part * 100}%"></i>` : '<i></i>';
-  }).join('')}</span>`;
+  }).join('')}</span>`);
 
 /** Le geste d'un pas (« +gain · prix ») : ce qu'il achète (`J.pasDe`), et en aperçu ce qu'il change en combat, lu par le
  *  noyau (`J.effetDuPas`). */
@@ -61,8 +65,8 @@ function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
       ...(bouge(effet.blessures) ? [`Blessures ${effet.blessures.avant} → ${effet.blessures.apres}`] : []),
     ];
   const cibleAttrs = cible.genre === 'carac' ? `data-g="carac" data-k="${cible.id}"` : `data-g="competence" data-k="${cible.ref.id}"${cible.ref.spec ? ` data-s="${esc(cible.ref.spec)}"` : ''}`;
-  const apercu = apercuDe({ nom: `${nom} +${pas.fois}`, nature: `${pas.fois} Augmentation${pas.fois > 1 ? 's' : ''} · ${pas.prix} PX`, texte: lignes.join('\n') || 'Aucun Test de combat ne change.' });
-  return achat({ verbe: `+${pas.fois}`, prix: pas.prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="pas" data-id="${h.c.id}" ${cibleAttrs}${apercu}`, taille: 'petite' });
+  const apercu = apercuDe({ nom: `${nom} +${pas.points}`, nature: `${pas.fois} Augmentation${pas.fois > 1 ? 's' : ''} · ${pas.prix} PX`, texte: lignes.join('\n') || 'Aucun Test de combat ne change.' });
+  return achat({ verbe: `+${pas.points}`, prix: pas.prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="pas" data-id="${h.c.id}" ${cibleAttrs}${apercu}`, taille: 'petite' });
 }
 
 // ─── Ce qui s'achète en PX ──────────────────────────────────────────────────────────────────────────────────
@@ -71,19 +75,34 @@ function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
 const bourseDePX = (h: J.Heros, o: Offres) =>
   `<div class="bourse-px"><div class="px laiton"><div class="chiffres">${h.c.xp ?? 0}</div></div><div><b>PX à dépenser</b>${glose(`${esc(J.nomDeCarriere(h.carriere))} · niveau ${o.niveau} : ${esc(o.titre)}`)}</div></div>`;
 
-/** Le niveau suivant : ce qu'il exige, où le héros en est, et son geste. LDB 07 l.124-131 */
+/** L'exigence du niveau selon le passage du modèle du héros (`Exigence`) : ses lignes, et ce qui manque encore.
+ *  LDB 07 l.124-131 ; CRB 048 l.45 */
+function exigencesDuNiveau(o: Offres): { lignes: string; manque: string[] } {
+  const x = o.exigence;
+  if (!x) return { lignes: '', manque: [] };
+  if (x.type === 'cases') {
+    const reste = x.seuil - x.cases;
+    return { lignes: exige(o.complet, 'Cases de carrière cochées à ce niveau', `${x.cases} / ${x.seuil}`), manque: o.complet ? [] : [`${reste} case${reste > 1 ? 's' : ''} de carrière`] };
+  }
+  const caracsAFaire = o.caracs.filter((k) => !tient(k.points, x)).map((k) => libelleDeCarac(k.id).abr);
+  const caracsFaites = o.caracs.length - caracsAFaire.length;
+  const compsFaites = Math.min(x.competences, o.competences.filter((k) => tient(k.points, x)).length);
+  return {
+    lignes: `${exige(caracsFaites >= o.caracs.length, `${o.caracs.map((k) => esc(libelleDeCarac(k.id).abr)).join(', ')} : +${x.points} chacune`, `${caracsFaites} / ${o.caracs.length}`)}
+      ${exige(compsFaites >= x.competences, `${x.competences} Compétences à +${x.points}`, `${compsFaites} / ${x.competences}`)}
+      ${exige(o.talentAcquis, 'Un Talent de ce niveau')}`,
+    manque: [caracsAFaire.length ? `${caracsAFaire.join(', ')} à +${x.points}` : '', compsFaites < x.competences ? `${x.competences - compsFaites} Compétence${x.competences - compsFaites > 1 ? 's' : ''} à +${x.points}` : '', o.talentAcquis ? '' : 'un Talent'].filter(Boolean),
+  };
+}
+
+/** Le niveau suivant : ce qu'il exige (`exigencesDuNiveau`), où le héros en est, et son geste, ouvert par `complet`. */
 function niveauSuivant(e: J.Etat, h: J.Heros, o: Offres): string {
   const suivant = o.suivant;
   if (!suivant) return glose('Sommet de la carrière.');
-  const caracsAFaire = o.caracs.filter((k) => k.augmentations < o.requis).map((k) => libelleDeCarac(k.id).abr);
-  const caracsFaites = o.caracs.length - caracsAFaire.length;
-  const compsFaites = Math.min(8, o.competences.filter((k) => k.augmentations >= o.requis).length);
-  const manque = [caracsAFaire.length ? `${caracsAFaire.join(', ')} à +${o.requis}` : '', compsFaites < 8 ? `${8 - compsFaites} Compétence${compsFaites < 7 ? 's' : ''} à +${o.requis}` : '', o.talentAcquis ? '' : 'un Talent'].filter(Boolean);
-  const refus = suivant.niveau > J.niveauMaximal(e) ? 'La salle d’armes n’enseigne pas encore ce niveau : agrandissez-la.' : manque.length ? `Il manque : ${manque.join(' ; ')}.` : null;
+  const { lignes, manque } = exigencesDuNiveau(o);
+  const refus = suivant.niveau > J.niveauMaximal(e) ? 'La salle d’armes n’enseigne pas encore ce niveau : agrandissez-la.' : o.complet ? null : manque.length ? `Il manque : ${manque.join(' ; ')}.` : 'Le noyau ne valide pas encore ce niveau.';
   return `<div class="rub">Niveau ${suivant.niveau} · ${esc(suivant.titre)}</div><div class="exigences">
-      ${exige(caracsFaites >= o.caracs.length, `${o.caracs.map((k) => esc(libelleDeCarac(k.id).abr)).join(', ')} : +${o.requis} chacune`, `${caracsFaites} / ${o.caracs.length}`)}
-      ${exige(compsFaites >= 8, `Huit Compétences à +${o.requis}`, `${compsFaites} / 8`)}
-      ${exige(o.talentAcquis, 'Un Talent de ce niveau')}</div>
+      ${lignes}</div>
     ${achat({ verbe: `Passer ${suivant.titre}`, prix: suivant.cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="niveau" data-id="${h.c.id}"`, refus })}`;
 }
 
@@ -93,7 +112,7 @@ function planConseille(h: J.Heros): string {
   const { etapes, total } = J.planVersLeNiveau(h);
   if (!etapes.length) return '';
   const xp = h.c.xp ?? 0;
-  const ligne = (x: EtapeDuPlan) => `${x.genre === 'carac' ? libelleDeCarac(x.id).abr : x.label}${x.genre === 'carac' || x.genre === 'competence' ? ` +${x.fois}` : ''} · ${x.cout} PX`;
+  const ligne = (x: EtapeDuPlan) => `${x.genre === 'carac' ? libelleDeCarac(x.id).abr : x.label}${x.genre === 'carac' || x.genre === 'competence' ? ` +${x.points}` : ''} · ${x.cout} PX`;
   const refus = xp < etapes[0].cout ? `Il faut ${etapes[0].cout} PX pour sa première étape.` : '';
   return `<div class="plan"${apercuDe({ nom: 'Le plan conseillé', nature: `${etapes.length} étape${etapes.length > 1 ? 's' : ''} · ${total} PX`, texte: etapes.map(ligne).join('\n') })}>${achat({ verbe: 'Suivre le plan', prix: total, monnaie: 'PX', avoir: xp, attrs: `data-a="plan" data-id="${h.c.id}"`, refus })}</div>`;
 }
@@ -108,21 +127,21 @@ function caracteristiques(h: J.Heros, o: Offres, toutes: boolean, achats: boolea
     const cellule = `<span class="ab">${esc(abr)}</span><span class="v chiffres">${carac(h.c, k)}</span>`;
     const livre = (pied?: string) => apercuDe({ nom: label, nature: `Caractéristique · ${carac(h.c, k)}`, texte: texteDeCarac(k), ...(pied ? { pied } : {}) });
     if (!of) return `<div class="c"${livre()}>${cellule}</div>`;
-    const augs = `${label} : +${of.augmentations} sur +${o.requis} pour ce niveau`;
-    return `<div class="c carr${of.augmentations >= o.requis ? ' faite' : ''}"${livre(augs)}>${cellule}${marqueDesAugmentations(of.augmentations, o.requis)}${achats ? pasAAcheter(h, { genre: 'carac', id: k }, label) : ''}</div>`;
+    const augs = o.exigence?.type === 'completion' ? `${label} : +${of.points} sur +${o.exigence.points} pour ce niveau` : `${label} : +${of.points}`;
+    return `<div class="c carr${tient(of.points, o.exigence) ? ' faite' : ''}"${livre(augs)}>${cellule}${marqueDesPoints(of.points, o.exigence)}${achats ? pasAAcheter(h, { genre: 'carac', id: k }, label) : ''}</div>`;
   }).join('');
 }
 
 /** L'aperçu d'une Compétence : son texte du livre, la valeur de son Test, et où elle sert dans le roguelite. */
 const apercuDeCompetence = (k: Offres['competences'][number]): Apercu => {
   const f = ficheDeCompetence(k.ref.id);
-  return { nom: k.label, nature: `Compétence · ${f.carac ? libelleDeCarac(f.carac).label : k.carac} · Test ${k.valeur}`, texte: f.texte, pied: `${k.augmentations} Augmentation${k.augmentations > 1 ? 's' : ''}` };
+  return { nom: k.label, nature: `Compétence · ${f.carac ? libelleDeCarac(f.carac).label : k.carac} · Test ${k.valeur}`, texte: f.texte, pied: `+${k.points}` };
 };
 
 /** Les Compétences que la salle d'armes montre (`J.competencesMontrees`), une ligne chacune : la marque de ses
  *  Augmentations, la valeur de son Test et, à la progression (`achats`), le geste de son pas. */
 const competences = (h: J.Heros, o: Offres, achats: boolean) => J.competencesMontrees(h).map((k) =>
-  `<div class="achat${k.augmentations >= o.requis ? ' faite' : ''}">${k.carac ? `<span class="etiquette rectangle">${esc(k.carac)}</span>` : ''}<span class="n"${apercuDe(apercuDeCompetence(k))}>${esc(k.label)}</span>${k.pourLeNiveau ? '<span class="etiquette pour-le-niveau">pour le niveau</span>' : ''}${marqueDesAugmentations(k.augmentations, o.requis)}<span class="val chiffres" data-bulle="Valeur de son Test">${k.valeur}</span>${achats ? pasAAcheter(h, { genre: 'competence', ref: k.ref }, k.label) : ''}</div>`).join('');
+  `<div class="achat${tient(k.points, o.exigence) ? ' faite' : ''}">${k.carac ? `<span class="etiquette rectangle">${esc(k.carac)}</span>` : ''}<span class="n"${apercuDe(apercuDeCompetence(k))}>${esc(k.label)}</span>${k.pourLeNiveau ? '<span class="etiquette pour-le-niveau">pour le niveau</span>' : ''}${marqueDesPoints(k.points, o.exigence)}<span class="val chiffres" data-bulle="Valeur de son Test">${k.valeur}</span>${achats ? pasAAcheter(h, { genre: 'competence', ref: k.ref }, k.label) : ''}</div>`).join('');
 
 /** Les Talents du niveau qui agissent en combat : acquis, ou à apprendre. */
 const talentsDuNiveau = (h: J.Heros, o: Offres) => o.talents.map((t, i) => entree({

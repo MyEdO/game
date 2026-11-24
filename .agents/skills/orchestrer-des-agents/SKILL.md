@@ -51,7 +51,8 @@ l'annexe au moment de son déclencheur.
   l'item passe `clos` et se condense (`--condenser <ticket> <résumé>`). Le task-tracker n'est qu'un
   miroir de session.
 - **L'épique porte le design validé** en commentaire daté VERBATIM ; un ticket par lot (gabarit #101,
-  labels, Bloqué par / Débloque, DoD mesurable). Le commentaire de pilotage n'est qu'une PROJECTION du
+  labels dont `projet:<nom>` du projet qu'il sert, `projet:noyau` pour le noyau partagé, Bloqué par / Débloque, DoD
+  mesurable). Le commentaire de pilotage n'est qu'une PROJECTION du
   suivi, jamais relue comme état. Un brief de codeur est un commentaire DATÉ du ticket, jamais un `docs/`.
 
 ## Cycle

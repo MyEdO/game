@@ -53,7 +53,7 @@ describe('l’horloge des maladies entre les expéditions', () => {
   });
 });
 
-describe('« Je te renie ! » sans choix : le roguelite ne gère pas la Résilience (CONCEPTION.md)', () => {
+describe('« Je te renie ! » sans choix : le roguelite ne gère pas la Résilience (MyEdO/game#4947)', () => {
   /** Graine 5 : le Test du seuil échoue (`cor.thresholdFail`), le noyau ouvre « Je te renie ! » (Résilience 2). */
   it('une épreuve qui fait déborder la Corruption et rate le Test du seuil laisse venir la mutation, Résilience intacte', () => {
     const heros = nouvellePartie(7).roster[0].c;
