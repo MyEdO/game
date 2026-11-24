@@ -12,7 +12,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 ## Ensuite, dans l'ordre
 
-1. Le compagnon en rencontre (MyEdO/game#4804, lot B2 ; #4860 fusionnée par MyEdO/game#4888 le 2026-11-24) : le chien du Ratier membre du groupe ; `mountablesNear` exclut les bêtes du groupe pour tout allié (arbitrage du 2026-11-23, au ticket). Puis le lot C : Blessures des bêtes gardées et soignées.
+1. Le compagnon en rencontre (MyEdO/game#4804) : lot B2 en file de fusion (MyEdO/game#4908, le chien du Ratier membre du groupe, à son propre tour). Une fois fusionné : rejouer le roguelite (le Ratier combat avec son chien ; le rejeu montre son pion), puis le lot C : Blessures des bêtes gardées et soignées.
 2. Le mage en combat automatique (MyEdO/game#4838 fusionnée) : remesurer le taux de lancer des sorts de voie par niveau, avec et sans `magie-vdm-incantation` ; rouvrir Arme et Armure aethyriques et Explosion si l'IA les lance. Lot 2 de MyEdO/game#865 : Interruption volontaire (VDM 02 l.139), évacuation sûre (l.141), Maladresse de Focalisation (l.149).
 3. Choisir hors combat qui monte sa monture : le roguelite le propose avant la rencontre (gestes `monterLaBete`, `quitterLaSelle` du noyau, lot B1).
 4. Débords connus : la forge et l'Hospice à la taille d'interface « grande ». Libellés de refus encore doubles : `ui/services.ts` (`manqueAuPalier`), `ui/fiche.ts:43`.
@@ -36,6 +36,9 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 - MyEdO/game#4825 : Perforante et Ulgu additionnent toutes les pièces portées, le reste la meilleure par couche.
 - MyEdO/game#4879 : sept constructions `battle?.combatants ?? party` du pool des héros en combat hors d'`acteursEnJeu` (relevées par le juge de #4860).
+- MyEdO/game#4904 : `jouerLaRencontre` ne s'écoute que par la tenue des jetons et s'arrête en impasse sur « Je te renie ! » (le roguelite décore sa tenue, `ouvrirEcoutee`).
+- MyEdO/game#4906 : l'IA tire dans une mêlée où son camp est engagé (la fronde du Ratier touche son chien).
+- MyEdO/game#4907 : la moitié des PX du Joueur pour un Homme de main (LDB 75 l.11).
 - MyEdO/game#4827 : une monture perdue en cours de journée ouvre un budget à pied neuf (12 h de route le même jour).
 
 ## Attend l'utilisateur
