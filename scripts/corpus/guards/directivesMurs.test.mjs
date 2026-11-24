@@ -24,8 +24,8 @@ function directivesRefusees(code, fichier, vocabulaire = MURS_EXEMPTABLES_AU_SIT
   })
 }
 
-// Parmi les fichiers suivis, ce filtre rend exactement ce que lit la gate lint (test IGNORES de `lister.test.mjs`) ;
-// il y ajoute les non-suivis du disque.
+// Ce filtre rend exactement ce que la gate lint découvre : l’image de travail, suivis et non suivis non ignorés
+// (test IGNORES de `lister.test.mjs`).
 test('DIRECTIVES DES MURS — sous un mur, une directive ne nomme qu’un mur du vocabulaire, à sa ligne, jamais une restriction native ni rien', () => {
   const corpus = fichiersSousUnMur(RACINE_DEPOT).filter((rel) => EXTENSIONS_DE_SCRIPT.some((ext) => rel.endsWith(ext)))
   for (const temoin of ['src/noyau/rollSeam.ts', 'scripts/docs/build-all.mjs', 'server/src/rand.ts']) {
