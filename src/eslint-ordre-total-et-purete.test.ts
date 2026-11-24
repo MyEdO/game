@@ -105,15 +105,15 @@ function verdicts(fixtures: { filePath: string; code: string }[], regles: readon
   });
 }
 
-/** Des fichiers RÉELS de la zone, tests exclus (ordre total de `readCorpus`, jamais un nom en dur) : le
- *  PREMIER, et un fichier de SOUS-DOSSIER quand la zone en a — un spécificateur de remontée `../../` ne
+/** Des fichiers TypeScript RÉELS de la zone, comme les fixtures, tests exclus (ordre total de `readCorpus`, jamais un
+ *  nom en dur) : le PREMIER, et un fichier de SOUS-DOSSIER quand la zone en a — un spécificateur de remontée `../../` ne
  *  se comporte pas comme à la racine de la zone. Une zone dont le dossier, hors de `src/`, est absent de l'arbre : deux
  *  fixtures de son dossier, à sa racine et en sous-dossier ; sous `src/`, un dossier absent ou sans fichier lève
  *  (`readCorpus`) : une ligne sans dossier ne passe jamais sur des fixtures. */
 function sondes(zone: string): string[] {
   const dossier = dossierDe(zone);
   if (!dossier.startsWith('src/') && !existsSync(new URL(`../${dossier}`, import.meta.url))) return [`${dossier}/zz-sonde.ts`, `${dossier}/zz-sous/sonde.ts`];
-  const corpus = readCorpus([dossier]);
+  const corpus = readCorpus([dossier], { exts: ['.ts'] });
   const sousDossier = corpus.find((f) => f.rel.slice(dossier.length + 1).includes('/'));
   return sousDossier ? [corpus[0].rel, sousDossier.rel] : [corpus[0].rel];
 }
