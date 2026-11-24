@@ -333,7 +333,7 @@ import { beginShipwreck } from './shipwreck';
 import { isInanimate, isStructure, structureAimCell, ramVsNonDoor } from '../engine/structures';
 import { rollStructureCritical, structureCollapseLog, tableDesCritiquesDeStructure, type StructureCriticalResolved } from '../engine/structureCritical';
 import { structureCriticalsDie } from '../data/structureCriticals';
-import { actorIn, auContactDeLaSerie, choisitSaMontureHorsCombat, ecrireActeur, inBattleId, porteurParId } from './monde/combatants';
+import { actorIn, auContactDeLaSerie, choisitSaMontureHorsCombat, ecrireActeur, inBattleId, porteurParId, possessionEnJeu } from './monde/combatants';
 import { checkPartyWiped } from './partyWipe';
 import type { IdDeCombattant } from './designations';
 import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
@@ -8065,10 +8065,16 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   }
 }
 
+/** `c` garde-t-il le groupe en vie dans l'issue du combat (`checkBattleOver`, `finishCombatEnd`) ? Un allié en action,
+ *  ni engin INERTE (affût servi), ni monture (`mountable`), ni possession en jeu (`possessionEnJeu`, #4804). */
+function herosEnAction(s: Pick<Jeu, 'possessions'>, c: Combatant): boolean {
+  return c.kind === 'heros' && !c.inert && !c.mountable && !possessionEnJeu(s, c.id) && !isOutOfAction(c);
+}
+
 /** L'OBJECTIF de victoire de la rencontre en cours est-il rempli ? (#197) Absent = `allEnemiesDead`
  *  (équivalent à `!enemiesAlive`, comportement historique inchangé). `enemiesAlive` est passé par
  *  l'appelant (déjà calculé par `checkBattleOver`, hors engins INERTES). PUR (aucune écriture). */
-function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleState, scene: Scene | null, enemiesAlive: boolean): boolean {
+function victoryConditionMet(s: Pick<Jeu, 'possessions'>, vc: VictoryCondition | undefined, battle: BattleState, scene: Scene | null, enemiesAlive: boolean): boolean {
   switch (vc?.type) {
     case undefined:
     case 'allEnemiesDead':
@@ -8079,7 +8085,7 @@ function victoryConditionMet(vc: VictoryCondition | undefined, battle: BattleSta
       return battle.round > vc.rounds;
     case 'reachZone': {
       const kind = (vc.camp ?? 'groupe') === 'groupe' ? 'heros' : 'ennemi';
-      return battle.combatants.some((c) => c.kind === kind && !c.inert && !isOutOfAction(c) && c.pos && inRect(c.pos, vc.rect));
+      return battle.combatants.some((c) => c.kind === kind && !c.inert && !possessionEnJeu(s, c.id) && !isOutOfAction(c) && c.pos && inRect(c.pos, vc.rect));
     }
     case 'woundsThreshold': {
       if (vc.targetId === undefined) return !enemiesAlive;
@@ -8184,7 +8190,7 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
   if (campaignHull && isOutOfAction(campaignHull)) {
     const aboardIds = (campaignHull.crewIds ?? [])
       .map((id) => inBattleId(battle, id))
-      .filter((c): c is Combatant => !!c && c.kind === 'heros' && !c.dead)
+      .filter((c): c is Combatant => !!c && c.kind === 'heros' && !possessionEnJeu(get(), c.id) && !c.dead)
       .map((c) => c.id);
     const anyOverboardAlive = aboardIds.some((id) => inBattleId(battle, id)?.exitReason === 'naufrage');
     if (aboardIds.length && anyOverboardAlive) {
@@ -8195,16 +8201,14 @@ export function checkBattleOver(get: Get, set: SetFn): boolean {
       return true;
     }
   }
-  // Un engin INERTE (affût servi, immune) ne compte JAMAIS comme un combattant vivant — ni côté allié
-  // (`kind:'heros'`) ni côté ennemi : la victoire/défaite se joue sur les créatures (l'équipage), pas l'objet.
-  // Une MONTURE-possession (`mountable:true`, kind:'heros' allié — #621) n'est jamais un héros pour la
-  // défaite : un cavalier hors d'action dont la monture survit encore n'empêche PAS la défaite (LDB 14).
-  const heroesAlive = battle.combatants.some((c) => c.kind === 'heros' && !c.mountable && !c.inert && !isOutOfAction(c));
+  // Un engin INERTE (affût servi, immune) ne compte JAMAIS comme un combattant vivant côté ennemi : la victoire/défaite
+  // se joue sur les créatures (l'équipage), pas l'objet.
+  const heroesAlive = battle.combatants.some((c) => herosEnAction(get(), c));
   const enemiesAlive = battle.combatants.some((c) => c.kind === 'ennemi' && !c.inert && !isOutOfAction(c));
   // Objectif de victoire authorable (#197) : par défaut `allEnemiesDead` (équivalent à `!enemiesAlive`,
   // comportement historique inchangé) — un autre type NE termine PAS le combat à la mort du dernier
   // ennemi tant que sa propre condition n'est pas remplie (ex. porte intacte, bélier-porte).
-  if (victoryConditionMet(battle.victoryCondition, battle, scene, enemiesAlive)) {
+  if (victoryConditionMet(get(), battle.victoryCondition, battle, scene, enemiesAlive)) {
     // Tests de fin de combat des héros survivants (maladie/Corruption) AVANT l'écran de victoire (décision
     // utilisateur) : cadence-aware (héros manuel → cascade influençable). Si une cascade s'ouvre, on DIFFÈRE
     // la victoire — sa fermeture (`combatEndBoundary`) enchaîne sur `finishCombatEnd`/`finishVictory`.
@@ -8293,7 +8297,7 @@ export function finishVictory(get: Get, set: SetFn): void {
 export function finishCombatEnd(get: Get, set: SetFn): void {
   const battle = get().battle;
   if (!battle || battle.over) return;
-  const heroesAlive = battle.combatants.some((c) => c.kind === 'heros' && !isOutOfAction(c));
+  const heroesAlive = battle.combatants.some((c) => herosEnAction(get(), c));
   if (heroesAlive) { finishVictory(get, set); return; }
   // Aucun héros en action à la fermeture de la cascade → défaite.
   finalizeBattle(get, set);
@@ -9574,7 +9578,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Le groupe choisit sa monture hors combat (#4804).
   let justMounted = false;
   if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
-    const freeMount = mountableNear(battle, scene, enemy);
+    const freeMount = mountableNear(get(), battle, scene, enemy);
     if (freeMount) {
       mountUp(enemy, freeMount);
       justMounted = true;

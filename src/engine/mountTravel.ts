@@ -82,11 +82,14 @@ export function betesQuiPeuventLePorter(h: Combatant, possessions: Possession[])
     p.ownerId === h.id && p.nature === 'bete' && accepteUnCavalier(profilDeLaBete(p), h));
 }
 
-/** Bêtes qui peuvent porter `h` (`betesQuiPeuventLePorter`), `avec-le-groupe`, montables (`possessionRideable`) et
- *  qu'il n'a pas laissées sans cavalier (`sansCavalier`, #4804). */
+/** Bêtes qui peuvent porter `h` (`betesQuiPeuventLePorter`), `avec-le-groupe` et montables (`possessionRideable`). */
+function betesEnSelle(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' })[] {
+  return betesQuiPeuventLePorter(h, possessions).filter((p) => p.location.kind === 'avec-le-groupe' && possessionRideable(p));
+}
+
+/** Bêtes en selle de `h` (`betesEnSelle`) qu'il n'a pas laissées sans cavalier (`sansCavalier`, #4804). */
 function betesQuiLePortent(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' })[] {
-  return betesQuiPeuventLePorter(h, possessions).filter((p) =>
-    p.location.kind === 'avec-le-groupe' && !p.sansCavalier && possessionRideable(p));
+  return betesEnSelle(h, possessions).filter((p) => !p.sansCavalier);
 }
 
 /** Monture UTILISABLE d'un héros : première bête qui le porte (`betesQuiLePortent`) au profil EDOC. */
@@ -102,6 +105,18 @@ export function heroMount(h: Combatant, possessions: Possession[]): PartyMount |
  *  requis (le `cheval` LDB n'en a pas). */
 export function heroCombatMount(h: Combatant, possessions: Possession[]): (Possession & { nature: 'bete' }) | undefined {
   return betesQuiLePortent(h, possessions)[0];
+}
+
+/** Les bêtes-compagnons de `h` : ses bêtes `avec-le-groupe` et non détruites, hors sa monture de combat
+ *  (`heroCombatMount`), dans l'ordre du registre ; `montable` quand elle pourrait le porter (`betesEnSelle`).
+ *  LDB 75 l.11 ; LDB 13 l.14 ; #4804 */
+export function compagnonsDuHeros(h: Combatant, possessions: Possession[]): { bete: Possession & { nature: 'bete' }; montable: boolean }[] {
+  const monture = heroCombatMount(h, possessions);
+  const enSelle = new Set(betesEnSelle(h, possessions).map((p) => p.uid));
+  return possessions
+    .filter((p): p is Possession & { nature: 'bete' } =>
+      p.ownerId === h.id && p.nature === 'bete' && p.location.kind === 'avec-le-groupe' && !p.destroyed && p.uid !== monture?.uid)
+    .map((bete) => ({ bete, montable: enSelle.has(bete.uid) }));
 }
 
 /** Les montures des héros VIVANTS du groupe (un héros = au plus une monture). */

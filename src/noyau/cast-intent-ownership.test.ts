@@ -96,6 +96,7 @@ const state = (jet: JetOwnerRef, ownerId: string, over: Partial<Jeu> = {}): Jeu 
   ({
     net: { mode: 'hote', mySeat: 0, gmSeat: 2, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'MJ' }, ownership: { h2: 1 }, slots: [0, 1, 0, 0] },
     party: [{ id: H_HOST }, { id: H_GUEST }],
+    possessions: [],
     battle: { order: [H_HOST, H_GUEST, ENEMY], turn: 0, combatants: [
       { id: H_HOST, kind: 'heros' }, { id: H_GUEST, kind: 'heros' }, { id: ENEMY, kind: 'ennemi' },
     ] },

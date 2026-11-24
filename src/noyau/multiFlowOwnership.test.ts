@@ -39,6 +39,7 @@ const base = (over: Partial<Jeu>): Jeu =>
       ownership: { h2: 1, ship1: 2 }, slots: [0, 1, 0, 0],
     },
     party: [{ id: H_HOST }, { id: H_OWNER }],
+    possessions: [],
     battle: { order: [H_HOST, H_OWNER], turn: 0, combatants: [
       { id: H_HOST, kind: 'heros' }, { id: H_OWNER, kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },

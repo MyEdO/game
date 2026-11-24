@@ -27,12 +27,12 @@ import type { Scene } from './monde/scene';
 
 /** Pour chaque verbe à argument omissible, l'appel qui l'omet et celui qui désigne le candidat que son CORPS prend alors
  *  (`combatSlice.ts`), lu aux fonctions mêmes que lit le corps. */
-const CAS_DU_CORPS: { readonly [V in keyof VerbesDeLaBarre]?: (a: Combatant, b: BattleState, scene: Scene | null) => { omis: unknown[]; designe: unknown }[] } = {
+const CAS_DU_CORPS: { readonly [V in keyof VerbesDeLaBarre]?: (a: Combatant, b: BattleState, scene: Scene | null, s: Jeu) => { omis: unknown[]; designe: unknown }[] } = {
   rechargerLArme: (a, b) => [{ omis: [], designe: rechargeDuTour(a, b, undefined)?.arme.uid }],
   aspergerDEau: (a, b) => [{ omis: [], designe: waterSprayCandidates(a, b.combatants.filter((c) => c.kind === a.kind))[0]?.id }],
   faireUnBattement: (a, b) => [{ omis: [], designe: battementFoes(a, b)[0]?.id }],
   tenterDeDistraire: (a, b) => [{ omis: [], designe: distraireFoes(a, b)[0]?.id }],
-  monterEnSelle: (a, b, scene) => [{ omis: [], designe: mountablesNear(b, scene, a)[0]?.id }],
+  monterEnSelle: (a, b, scene, s) => [{ omis: [], designe: mountablesNear(s, b, scene, a)[0]?.id }],
   servirLePoste: (a, b, scene) => [{ omis: [], designe: servablePostes(scene, a, b.combatants)[0]?.poste.item.uid }],
   chanterLaChanson: (a) => [{ omis: [], designe: a.id }],
   manoeuvrerLeNavire: (a) => [{ omis: [], designe: a.id }],
@@ -72,7 +72,7 @@ function ecartsDuTour(s: Jeu, ou: string): string[] {
     if (!o.gate.ok && seuleEntree && 'refus' in v && v.refus !== o.gate.reason) ecarts.push(`${ou} ${o.actionId} fermée (${o.gate.reason}), refusée d'une autre raison : ${v.refus}`);
   }
   for (const [verbe, cas] of Object.entries(CAS_DU_CORPS)) {
-    for (const { omis, designe } of cas!(barre.active, barre.battle, s.scene)) {
+    for (const { omis, designe } of cas!(barre.active, barre.battle, s.scene, s)) {
       const vOmis = refusDuGeste(s, { verbe, args: omis } as GesteDuNoyau);
       const args = Array.isArray(designe) ? designe : [designe];
       const vDesigne = args.includes(undefined) ? undefined : refusDuGeste(s, { verbe, args } as GesteDuNoyau);

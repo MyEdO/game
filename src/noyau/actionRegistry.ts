@@ -383,7 +383,7 @@ export function actionGate(actionId: string, ctx: ActionCtx): ActionGate {
 
 /** Contexte des sélecteurs : impurs par nature (ils lisent le combat, parfois la scène). */
 export interface ActionSelectorCtx extends ActionCtx {
-  state?: Jeu;
+  state: Jeu;
   /** Arme visée quand le sélecteur dépend d'une arme précise (munitions compatibles). */
   weaponUid?: string;
 }
@@ -396,7 +396,7 @@ function sortsDissipables({ active, battle }: ActionSelectorCtx): DispellableSpe
 /** Les SÉLECTEURS de candidats, par id (`candidates` de `actions.json`) — enveloppes nommées des
  *  fonctions déjà écrites (la liste manuscrite de l'IA n'a plus lieu d'être). */
 export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx) => unknown[]> = {
-  'montures-adjacentes': ({ active, battle, scene }) => mountablesNear(battle, scene, active),
+  'montures-adjacentes': ({ active, battle, scene, state }) => mountablesNear(state, battle, scene, active),
   'pieces-servables': ({ active, battle, scene }) => servablePostes(scene, active, battle.combatants),
   /** La pièce POUSSABLE que l'actif sert — l'entité qui porte le geste de Pousser (spec zone 4 : le
    *  geste vit sur ce qui l'offre). Le verdict d'AFFORDANCE est celui de la source unique déjà écrite
@@ -647,7 +647,7 @@ const idDeLActif = (o: OffreAJouer): IdDeCombattant => garanti(o.active, o.def.i
 
 /** Le candidat que le CORPS d'un verbe prend pour une position omise, dans le combat de l'actif : l'argument même qu'il
  *  recevrait, lu aux fonctions que lit le corps. */
-type DefautDuCorps = (b: Pick<ActionCtx, 'active' | 'battle' | 'scene'>) => unknown;
+type DefautDuCorps = (b: Pick<ActionSelectorCtx, 'active' | 'battle' | 'scene' | 'state'>) => unknown;
 
 /** Ce que porte une position d'argument d'un verbe de la barre :
  *  - une clé du contexte de la case (`cle`) ;
@@ -699,7 +699,7 @@ const ARGUMENTS_DE_LA_BARRE: { readonly [V in keyof VerbesDeLaBarre]: LectureDuV
   tenterDeDistraire: { args: [{ cle: 'targetId', defaut: ({ active, battle }) => distraireFoes(active, battle)[0]?.id, omissible: true }] },
   entrerEnFrenesie: {},
   manoeuvrerSurSoi: { args: [{ cle: 'maneuverId' }], requis: ['maneuverId'] },
-  monterEnSelle: { args: [{ cle: 'targetId', defaut: ({ active, battle, scene }) => mountablesNear(battle, scene, active)[0]?.id, omissible: true }] },
+  monterEnSelle: { args: [{ cle: 'targetId', defaut: ({ active, battle, scene, state }) => mountablesNear(state, battle, scene, active)[0]?.id, omissible: true }] },
   mettrePiedATerre: {},
   servirLePoste: { args: [{ cle: 'posteUid', defaut: ({ active, battle, scene }) => servablePostes(scene, active, battle.combatants)[0]?.poste.item.uid, omissible: true }] },
   quitterLePoste: {},
@@ -739,7 +739,7 @@ function gesteDuVerbeDeLaBarre(verbe: keyof VerbesDeLaBarre, o: OffreAJouer): Ge
   const ctx: Record<string, unknown> = { ...o.args };
   for (const a of lecture.args ?? []) {
     if ('entree' in a || a.omissible || !a.defaut || argumentDuContexte(a, o.def, o.args, 0) !== undefined) continue;
-    Object.assign(ctx, versLeContexte(a, a.defaut({ active: garanti(o.active, o.def.id, 'actif de l’offre'), battle: garanti(o.etat.battle, o.def.id, 'combat de l’offre'), scene: o.etat.scene })));
+    Object.assign(ctx, versLeContexte(a, a.defaut({ active: garanti(o.active, o.def.id, 'actif de l’offre'), battle: garanti(o.etat.battle, o.def.id, 'combat de l’offre'), scene: o.etat.scene, state: o.etat })));
   }
   return { verbe, args: argumentsDuContexte(lecture, o.def, ctx as ContexteDOffre) };
 }
@@ -752,7 +752,7 @@ function versLeContexte(a: ArgumentDuVerbe, v: unknown): Record<string, unknown>
 
 /** Sens ARGUMENTS → CANDIDAT : le contexte de case que les arguments `args` du verbe lu par `lecture` désignent, dans le
  *  combat `b`. Un argument omis (`undefined`, ou `null` qu'un hôte JSON écrit pour omettre) prend le défaut du corps. */
-function contexteDesArguments(lecture: LectureDuVerbe, args: readonly unknown[], b: Pick<ActionCtx, 'active' | 'battle' | 'scene'>): ContexteDOffre {
+function contexteDesArguments(lecture: LectureDuVerbe, args: readonly unknown[], b: Pick<ActionSelectorCtx, 'active' | 'battle' | 'scene' | 'state'>): ContexteDOffre {
   return Object.assign({}, ...(lecture.args ?? []).map((a, i) => {
     const pose = args[i] ?? undefined;
     return versLeContexte(a, pose === undefined && !('entree' in a) && a.defaut ? a.defaut(b) : pose);
@@ -1042,7 +1042,7 @@ function pertinente(def: ActionDef, ctx: ActionCtx): boolean {
  * visible, arbitrage 2026-08-19). Des entrées d'interlude, seule compte la sortie du ciblage courant
  * (`currentInterludeAction`).
  */
-export function offresDeLActif(ctx: ActionSelectorCtx & { state: Jeu }): Offre[] {
+export function offresDeLActif(ctx: ActionSelectorCtx): Offre[] {
   // Le combat de l'offre est celui du contexte, que l'état lu par son geste reprend.
   const etat: Jeu = { ...ctx.state, battle: ctx.battle };
   const interlude = currentInterludeAction(() => etat);

@@ -81,7 +81,7 @@ export interface ZonesDeLaCreation {
  *  héros nouveau (`refusDUnNouveauHeros`), ou qui la ferme, pressé ; puis sa page ouverte, son titre et son rang, ses
  *  rubriques, ses gestes : la précédente, la suivante, refusée par `refusDeLaPage`, et à la dernière l'engagement,
  *  refusé par `refusDEngagement`, en focus. Sans création, ses zones sont vides. */
-export function zonesDeLaCreation(etat: Pick<Partie, 'battle' | 'party' | 'net'>, c: CreationOuverte | null): ZonesDeLaCreation {
+export function zonesDeLaCreation(etat: Pick<Partie, 'battle' | 'party' | 'net' | 'possessions'>, c: CreationOuverte | null): ZonesDeLaCreation {
   const creer = bouton('creation', t('ecran.creation.creer'), c ? null : { geste: 'ouvrir', args: [] }, c ? null : refusDUnNouveauHeros(etat), c !== null);
   if (!c) return { 'groupe.gestes': [creer], 'creation.titre': [], 'creation.corps': [], 'creation.gestes': [] };
   const pages = pagesDeCreation();

@@ -23,7 +23,7 @@ import { structureImmune } from '../engine/structures';
 import type { Pt } from './monde/path';
 import type { BattleState, Jeu } from './etat';
 import { sceneCombatModifiers } from './monde/sceneRules';
-import { inBattleId } from './monde/combatants';
+import { inBattleId, possessionEnJeu } from './monde/combatants';
 import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { effectiveTalents } from '../engine/talentEffects';
@@ -346,17 +346,18 @@ export function defenseDodgeMods(s: Pick<Jeu, 'scene' | 'gameTime'>, defender: C
 
 /** Montures LIBRES que `rider` (à pied) peut enfourcher, de la plus proche à la plus lointaine :
  *  marquées `mountable`, du MÊME camp (on n'enfourche pas la monture d'un ennemi), sans cavalier, à une
- *  case de leur empreinte (LDB 14). SOURCE UNIQUE de la disponibilité de « Monter » — la pastille de
- *  CHAQUE monture en naît, et le dispatcher y retrouve celle qu'on a désignée. */
-export function mountablesNear(battle: BattleState, scene: Scene | null, rider: Combatant): Combatant[] {
+ *  case de leur empreinte (LDB 14) ; une possession en jeu (`possessionEnJeu`) ne s'offre qu'à son propriétaire (#4804).
+ *  SOURCE UNIQUE de la disponibilité de « Monter » — la pastille de CHAQUE monture en naît, et le dispatcher y retrouve
+ *  celle qu'on a désignée. */
+export function mountablesNear(s: Pick<Jeu, 'possessions'>, battle: BattleState, scene: Scene | null, rider: Combatant): Combatant[] {
   return battle.combatants
-    .filter((m) => m.mountable && m.kind === rider.kind && canMount(scene, rider, m))
+    .filter((m) => m.mountable && m.kind === rider.kind && canMount(scene, rider, m) && (possessionEnJeu(s, m.id)?.ownerId ?? rider.id) === rider.id)
     .map((m) => ({ m, d: m.pos && rider.pos ? chebyshev(m.pos, rider.pos) : Infinity }))
     .sort((a, b) => a.d - b.d)
     .map((x) => x.m);
 }
 
 /** La PLUS PROCHE des montures enfourchables (`mountablesNear`) — le défaut quand aucune n'est désignée. */
-export function mountableNear(battle: BattleState, scene: Scene | null, rider: Combatant): Combatant | undefined {
-  return mountablesNear(battle, scene, rider)[0];
+export function mountableNear(s: Pick<Jeu, 'possessions'>, battle: BattleState, scene: Scene | null, rider: Combatant): Combatant | undefined {
+  return mountablesNear(s, battle, scene, rider)[0];
 }

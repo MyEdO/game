@@ -29,6 +29,7 @@ const base = (over: Partial<Jeu>): Jeu =>
     // `kind` PORTÉ par le groupe (comme tout héros réel, `createHero`) : hors combat, `seatInfluences`
     // résout le porteur d'un jet dans `party` et distingue héros ⇄ ennemi sur ce champ.
     party: [{ id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }],
+    possessions: [],
     battle: { order: ['h1', 'h2'], turn: 0, combatants: [
       { id: 'h1', kind: 'heros' }, { id: 'h2', kind: 'heros' }, { id: 'e1', kind: 'ennemi' },
     ] },

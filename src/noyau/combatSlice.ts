@@ -143,7 +143,9 @@ import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
 import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
-import { heroCombatMount } from '../engine/mountTravel';
+import { compagnonsDuHeros, heroCombatMount } from '../engine/mountTravel';
+import type { Possession } from '../engine/possession';
+import { freeTilesNear } from './summonFlow';
 import { accepteUnCavalier } from '../engine/traits/dispatch';
 import { ev, evLines, journaliser } from './combatLog';
 import type { FateSaveSource } from '../engine/fortune';
@@ -809,7 +811,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!battle || !scene || battle.over || battle.movementUsed > 0) return;
       const active = activeCombatant(battle);
       if (!active || active.mountId) return;
-      const montures = mountablesNear(battle, scene, active);
+      const montures = mountablesNear(get(), battle, scene, active);
       // Monture EXPLICITE (pastille de CETTE monture) → elle, et seulement si elle est enfourchable ;
       // sinon (touche du registre) → la plus proche. Même patron que `servirLePoste`.
       const mount = mountId ? montures.find((m) => m.id === mountId) : montures[0];
@@ -1701,26 +1703,40 @@ export function createCombatSlice(get: Get, set: Set) {
           return c;
         })
         .filter((c): c is Combatant => !!c);
-      // #621 — Montures-possession des héros (combat monté, LDB 14 l.179). Spawnée en ALLIÉ `pos-<uid>`
-      // (writeback #618 dans finalizeBattle), appairée au cavalier.
+      // Une bête possédée entre en rencontre à l'id de sa possession, alliée (writeback #618 dans `finalizeBattle`) ;
+      // `heroesAlive` ne la compte pas (`possessionEnJeu`, checkBattleOver, combatFlow.ts).
+      const enRencontre = (p: Possession & { nature: 'bete' }, pos: Pt | undefined): Combatant => {
+        const c = spawnEnemy('id' in p.ref ? { ref: p.ref.id } : { statblock: p.ref.custom }, p.uid, pos, { charsRolled: p.charsRolled, learnedTraits: p.learnedTraits });
+        c.kind = 'heros';
+        if (p.wounds) c.wounds.current = Math.min(p.wounds.current, c.wounds.max);
+        return c;
+      };
+      // #621 — Montures-possession des héros (combat monté, LDB 14 l.179), appairées au cavalier.
       const mountCombatants: Combatant[] = [];
       for (const hero of heroes) {
         const mp = heroCombatMount(hero, get().possessions);
         if (!mp) continue;
-        const mount = spawnEnemy(
-          'id' in mp.ref ? { ref: mp.ref.id } : { statblock: mp.ref.custom },
-          mp.uid,
-          hero.pos ? { ...hero.pos } : { x: 0, y: 0 },
-          { charsRolled: mp.charsRolled, learnedTraits: mp.learnedTraits },
-        );
-        mount.kind = 'heros'; // allié — exclue des DEUX bornes de fin de combat : `enemiesAlive` (kind:'ennemi'
-        // seulement) et `heroesAlive` (`!mountable`, checkBattleOver, combatFlow.ts) — jamais un héros.
+        const mount = enRencontre(mp, hero.pos ? { ...hero.pos } : { x: 0, y: 0 });
         mount.mountable = true;
-        if ('wounds' in mp && mp.wounds) mount.wounds.current = Math.min(mp.wounds.current, mount.wounds.max); // patron l.2476-2479
         mountUp(hero, mount); // câble mountId/riderId + partage la case (LDB 14 l.179)
         mountCombatants.push(mount);
       }
-      const all = [...heroes, ...enemies, ...structures, ...mountCombatants];
+      // Bêtes-compagnons (#4804) : toute autre bête du héros avec le groupe, voisine de son maître, à son propre tour.
+      // LDB 75 l.11 ; LDB 13 l.14
+      const zones = sceneZonesToBattle(scene.effectZones, scene.dimensions);
+      const compagnons: Combatant[] = [];
+      for (const hero of heroes) {
+        if (!hero.pos) continue;
+        for (const { bete, montable } of compagnonsDuHeros(hero, get().possessions)) {
+          const compagnon = enRencontre(bete, undefined);
+          const pos = freeTilesNear(scene, { combatants: [...heroes, ...enemies, ...structures, ...mountCombatants, ...compagnons], zones }, hero.pos, 1, compagnon)[0];
+          if (!pos) continue;
+          compagnon.pos = pos;
+          if (montable) compagnon.mountable = true;
+          compagnons.push(compagnon);
+        }
+      }
+      const all = [...heroes, ...enemies, ...structures, ...mountCombatants, ...compagnons];
       // COUCHE MER (navire-unité, MDG 14) : le groupe EMBARQUE — les PJ tiennent les rôles de leur navire
       // (l.39 « la performance des Personnages représente celle de tout l'équipage »). On les rattache à la coque
       // ALLIÉE (celle de campagne si connue, sinon la 1re coque alliée) → PASSAGERS (hors ordre ET hors rendu),
@@ -1728,7 +1744,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (isMerScene(scene)) {
         const allyHull = all.find((c) => estLeNavireDeCampagne(c, vessel0))
           ?? all.find((c) => estNavire(c) && c.kind === 'heros');
-        if (allyHull) allyHull.crewIds = [...new Set([...(allyHull.crewIds ?? []), ...heroes.map((h) => h.id)])];
+        if (allyHull) allyHull.crewIds = [...new Set([...(allyHull.crewIds ?? []), ...[...heroes, ...compagnons].map((c) => c.id)])];
       }
       // Postes d'artillerie (MDG 12-13) : sert chaque poste de coque à son chef de pièce (mannedPoste +
       // octroi du canon dérivé). Après le spawn, sur TOUS les combattants (héros/allié/ennemi indifférent).
@@ -1784,7 +1800,7 @@ export function createCombatSlice(get: Get, set: Set) {
         banRanged: enc.banRanged,
         siege: enc.siege,
         // Pièges/hasards authorés de la scène → zones de bataille PERMANENTES (même runtime que les sorts).
-        zones: sceneZonesToBattle(scene.effectZones, scene.dimensions),
+        zones,
         // Réserves d'Avantage par camp (AA 11 l.53-65) : seulement en mode « Avantage de groupe ».
         // Positionnement initial AUTO-dérivé : Surnombre + Surprise (calculés) + Manœuvrabilité/Menace/
         // Terrain (marqueurs éditables de la rencontre, AA 11 l.53-65).
