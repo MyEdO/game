@@ -80,7 +80,7 @@ export const BATIMENTS: readonly Batiment[] = [
 /** Les Sorts mineurs qu'un lanceur de Collège connaît à la recrue. */
 export const SORTS_MINEURS: readonly string[] = ['flechette', 'choc', 'eblouissant'];
 /** Les sorts et miracles que chaque voie offre, par domaine ou par dieu : ceux que le noyau applique et que l'IA d'un
- *  héros lance en combat automatique avec effet. Arbitrage du 2026-11-23, `CONCEPTION.md`. Chaque voie range ses
+ *  héros lance en combat automatique avec effet. Arbitrage du 2026-11-23, MyEdO/game#4947. Chaque voie range ses
  *  sorts par le plus bas niveau de carrière où la Salle d'armes les propose : un Collège ouvre au niveau 2 les sorts
  *  de NI 4 au plus, puis les NI 5 et 6 au niveau 3, les NI 7 à 9 au niveau 4 ; un culte ouvre ses miracles dès qu'il
  *  tient le Talent. */
@@ -297,7 +297,7 @@ export const disponibilitesDuPalier = (palier: number): readonly Disponibilite[]
 /** Une panoplie de la forge : son id dit les PA qu'elle porte sur chaque localisation ; ses pièces d'armure du catalogue
  *  (`trappings.json`), de cuir souple, de mailles ou de plates, sans conflit de couche (`equipConflicts`), revêtues d'un
  *  seul achat, sont la composition la plus légère portée (`itemsEncumbrance`), puis la moins chère. Arbitrages du
- *  2026-11-23, `CONCEPTION.md`. */
+ *  2026-11-23, MyEdO/game#4947. */
 export type IdDePanoplie = 'pa-1' | 'pa-2' | 'pa-3' | 'pa-4' | 'pa-5';
 export interface Panoplie { id: IdDePanoplie; label: string; pieces: readonly string[] }
 export const PANOPLIES: readonly Panoplie[] = [
@@ -310,12 +310,12 @@ export const PANOPLIES: readonly Panoplie[] = [
 /** Le Groupe des potions et remèdes du catalogue, que l'hospice reconnaît au sac d'un héros. */
 export const GROUPE_DES_REMEDES = 'herbes-et-potions';
 /** Ce que l'hospice vend du Groupe des remèdes : ceux dont le combat et la route jouent l'effet, un au moins par
- *  Disponibilité. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+ *  Disponibilité. Arbitrage du 2026-11-23, MyEdO/game#4947. */
 export const REMEDES_DE_L_HOSPICE: readonly string[] = ['cataplasme-de-guerison', 'soude-commune', 'potion-de-guerison', 'potion-de-vitalite', 'racine-des-tombes', 'faxtoryll'];
 /** Les Groupes d'armes que la forge vend. */
 export type GroupeDeLaForge = 'base' | 'escrime' | 'parade' | 'deux-mains' | 'armes-d-hast' | 'fleau' | 'arc' | 'arbalete' | 'fronde' | 'poudre-noire' | 'ingenierie' | 'lancer' | 'entraves';
 /** Les armes que la forge vend, par Groupe : une sélection qui couvre chaque Disponibilité, sans armes d'ogre ni
- *  lances de cavalerie. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+ *  lances de cavalerie. Arbitrage du 2026-11-23, MyEdO/game#4947. */
 export const ARMES_DE_LA_FORGE: Readonly<Record<GroupeDeLaForge, readonly string[]>> = {
   base: ['arme-simple', 'bouclier', 'pique-d-armes'],
   escrime: ['rapiere'],
@@ -331,7 +331,7 @@ export const ARMES_DE_LA_FORGE: Readonly<Record<GroupeDeLaForge, readonly string
   lancer: ['hache-de-lancer'],
   entraves: ['fouet'],
 };
-/** Les Groupes que la forge propose à tout héros, sans Compétence qui les couvre. Arbitrage du 2026-11-23, `CONCEPTION.md`. */
+/** Les Groupes que la forge propose à tout héros, sans Compétence qui les couvre. Arbitrage du 2026-11-23, MyEdO/game#4947. */
 export const GROUPES_SANS_COMPETENCE: ReadonlySet<GroupeDeLaForge> = new Set<GroupeDeLaForge>(['arbalete']);
 /** Les armes hors Boucliers tenues dans la main secondaire : celles de ces Groupes à une main, et ces armes-ci ; les
  *  autres vont dans la main principale, ou au set de tir. */
