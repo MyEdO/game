@@ -1111,7 +1111,7 @@ describe('l’éditeur de carte par le pont, le combat et l’ameublement', () =
     const fiche = findCreatureById('griffon-zoo-imperial')!;
     const facultatifs = fiche.optionals.flatMap((o) => ('id' in o && offerts.includes(o.id) ? [o.id] : []));
     const standard = traits.filter((t) => t.standard && !facultatifs.includes(t.id)).map((t) => t.id);
-    expect(offerts).toHaveLength(128);
+    expect([...offerts].sort(), 'chaque Trait du catalogue, une fois').toEqual(traits.map((t) => t.id).sort());
     expect(facultatifs.length, 'la fiche a des Traits facultatifs').toBeGreaterThan(0);
     expect(offerts.slice(0, facultatifs.length + standard.length), 'les Facultatifs de la fiche, puis les Traits standard (LDB 76 l.35)').toEqual([...facultatifs, ...standard]);
     const note = fiche.optionals.find((o) => 'note' in o);

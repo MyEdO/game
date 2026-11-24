@@ -39,6 +39,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { slugId } from '../../src/data/slug.ts';
+import { tableTotale } from '../../src/lib/tableTotale.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA = (rel) => path.join(ROOT, 'src/data', rel);
@@ -258,7 +259,7 @@ const MATIERE_D_ARMURE = {
   'Acier, Bouclier': 'metal', 'Acier, Grand bouclier': 'metal', 'Acier seulement & Arme à deux mains': 'metal',
 };
 const LOCS = ['tete', 'brasG', 'brasD', 'corps', 'jambeG', 'jambeD'];
-const parLoc = (autres, zones) => Object.fromEntries(LOCS.map((l) => [l, zones[l] ?? autres]));
+const parLoc = (autres, zones) => tableTotale(LOCS, (l) => zones[l] ?? autres);
 /** Points d'Armure par Localisation, par libellé imprimé : « Tête/Corps seulement » (BNO p.20) ; « corps, autre »
  *  (Zoat : Body 3, Other 1, Unofficial Bestiary 2.0 l.1427) ; « Écailles ; Tête » (Geckomandre : Scales 1; Head 2,
  *  Unofficial Bestiary 2.0 l.1962) ; « Corps » (BNO p.39). */
