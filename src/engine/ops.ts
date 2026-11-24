@@ -31,6 +31,7 @@ import {
   syncDerivedConditions,
   removeActiveEffects,
   pionsRetirables,
+  faitsDesPoses,
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
@@ -135,7 +136,7 @@ import { campOf } from './relations';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
 import type { ChaosAlign, ExposureLevel } from './corruption';
-import { t, deElide, type MsgKey } from '../i18n';
+import { t, deElide, listeEt, type MsgKey } from '../i18n';
 import { applyActiveEffect } from './effetsActifs';
 import { cleDeDe, desDeclaresDe, hauteurDeChute, type DeDeclare } from './faitsDOp';
 import { nomDe } from './nom';
@@ -1205,18 +1206,17 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           // État à durée d'HORLOGE (Belladone/Fleur de lune : sommeil « 1d10+4/5 heures ») — échéance
           // résolue MAINTENANT depuis ctx.now, purgée par purgeClockEffects (patron castPenalty.minutes).
           const min = clockMin;
-          addClockCondition(target, id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v, duree: { minutes: min } });
+          for (const f of faitsDesPoses(target, [id], () => addClockCondition(target, id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte)))
+            emettre(target, { ...f, duree: { minutes: min } });
         } else if (rounds != null) {
-          addTimedCondition(target, id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v, duree: { rounds } });
+          for (const f of faitsDesPoses(target, [id], () => addTimedCondition(target, id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte)))
+            emettre(target, { ...f, duree: { rounds } });
         } else {
-          addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte); // verrous : prédicat d'état / acte de soin (LDB 18)
           // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
           // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
           // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.
-          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v,
-            ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
+          for (const f of faitsDesPoses(target, [id], () => addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte))) // verrous : prédicat d'état / acte de soin (LDB 18)
+            emettre(target, { ...f, ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
         }
         if (avantageAvant > 0 && !target.advantage) emettre(target, { genre: 'avantage', ...sur(target), valeur: -avantageAvant, total: 0 }); // LDB 16 l.7
         // Empoignade (LDB 14 l.159) : le flag `grapple` pose la relation symétrique entre l'attaquant
@@ -1586,7 +1586,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ...permanentAmputations(o.sequels, loc, units),
         ];
         target.traumas = avecSequelles(target.traumas, poses);
-        for (const p of poses) lines.push(t('op.amputer', { name: nomDe(target), label: p.label, loc: locationLabel(loc, target.bodyShape) }));
+        if (poses.length) lines.push(t('op.amputer', { name: nomDe(target), label: listeEt(poses.map((p) => p.label)), loc: locationLabel(loc, target.bodyShape) }));
         // Cumuls (LDB 18 l.247/251/273/277/281) : agrégation + escalade au seuil, au MÊME point que la pose.
         lines.push(...consolidateAmputations(target));
         break;

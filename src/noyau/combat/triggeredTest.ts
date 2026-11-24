@@ -55,7 +55,7 @@ import { journaliser } from '../combatLog';
 import { ancreDeLaCascade, pushStep } from '../cascade';
 import type { Jeu } from '../etat';
 
-import { freeCons, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel } from '../rollSeam';
+import { freeCons, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel, stepPrecision } from '../rollSeam';
 import { designeGaranti, rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
@@ -197,6 +197,12 @@ function triggeredTestStepId(c: Combatant, label: string | undefined, skillLabel
  */
 export function withDerivedStake(ft: FlowTest, source: EffectSource | undefined): FlowTest {
   return poserEnjeu(ft, derivedStake(source));
+}
+
+/** Le sujet de la trace d'un Test de donnée : sa compétence, précisée du `label` de la donnée quand elle en porte un
+ *  (#4911 ; patron `turnHooks.ts`). */
+export function sujetDeTrace(ft: FlowTest, skillLabel: string): string {
+  return ft.label ? stepPrecision(dataLabel(skillLabel), dataLabel(ft.label)) : skillLabel;
 }
 
 /** SOURCE UNIQUE du squelette d'étape `testDeclenche` d'un Test SIMPLE (non opposé) : ligne montée par
@@ -597,7 +603,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     const gel = opposedAttackerFreeze(opp);
     queueLines(ctx.get, ctx.set, [traceLineOf({
       attacker: { who: nomDe(attacker), label: opposedAttackerLabel(gel) ?? '', roll: aT.roll, target: aT.target, sl: aT.sl },
-      defender: { who: nomDe(c), label: skillLabel, roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
+      defender: { who: nomDe(c), label: sujetDeTrace(ft, skillLabel), roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
       winner: o.winner,
     })], c.id);
     const lines = applyTriggeredTestBranch(c, { success: branchSuccess, sl: t.sl }, { onSuccess: node.reussite, onFail: node.echec }, exec);
@@ -609,7 +615,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     playAfter(ctx.get, ctx.set, c, after, ctx.label, oc);
     return;
   }
-  queueLines(ctx.get, ctx.set, [traceLineOf({ who: nomDe(c), label: testTraceLabel(skillLabel, difficulty), ...t })], c.id);
+  queueLines(ctx.get, ctx.set, [traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel), difficulty), ...t })], c.id);
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.reussite, onFail: node.echec }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
   if (!t.success && !oc.noReentryOwnTestFailed) lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));

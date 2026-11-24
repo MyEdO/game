@@ -252,6 +252,20 @@ describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre
     ]));
   });
 
+  it('Main mutilée d’un ennemi sans siège : le journal nomme le Test de plaie et dit l’amputation en une ligne (#4911)', () => {
+    seedBattleRng(1);
+    const enemy = mk('e', 'ennemi');
+    combat(mk('h', 'heros'), enemy);
+    subirCritique(enemy, 'brasG', 95);
+    expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
+      'e — Test de Résistance Difficile (−20) : 63/15 → échec (DR -5).',
+      'e reçoit 1 État Sonné.',
+      'e reçoit 1 État À Terre.',
+      'e : Amputation et Main/bras amputé (Bras gauche).',
+      'e — Test de Résistance (Plaie d’amputation) Difficile (−20) : 1/5 → réussi (DR +1).',
+    ]);
+  });
+
   it('Coupure à l’orteil : le report survit à la save et une réussite écarte le Test de plaie', () => {
     seedBattleRng(1);
     const hero = mk('h', 'heros');

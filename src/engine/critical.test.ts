@@ -235,6 +235,13 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
     expect(c.traumas!.some((t) => t.traumaId === 'doigt-ampute')).toBe(true);
   });
 
+  it('une amputation, une ligne : la plaie et la séquelle d’une même op sont nommées ensemble (#4911)', () => {
+    const c = cible(30);
+    const { lignes } = applyOps(c, [{ op: 'amputer', sequels: ['main-bras-ampute'], loc: 'brasD' }], { idNeuf: idsDeTest, rng: desDuTest });
+    expect(c.traumas!.map((t) => t.label)).toEqual(['Amputation', 'Main/bras amputé']);
+    expect(lignes).toEqual(['Cible : Amputation et Main/bras amputé (Bras droit).']);
+  });
+
   it('« Bouche explosée » : le 1d10 de la LIGNE (`unites`) pilote le comptage de bout en bout', () => {
     // d100=83 → « Bouche explosée » (81-85) ; le 1d10 des dents DÉCLARÉ par la ligne (`amputer.unites`)
     // est tiré par l'op, à l'application — c'est une QUANTITÉ, pas un Test.
