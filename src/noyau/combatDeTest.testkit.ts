@@ -48,7 +48,7 @@ export interface ProprietaireDuDuel {
 
 /** Ouvre chez `p` le combat `encId` de `scene` avec le groupe `party` : la scène, le combat, la manche confirmée, les
  *  suites programmées abandonnées. */
-function ouvrirLeCombat(p: ProprietaireDuDuel, scene: Scene, party: JeuDuNoyau['party'], encId: string): void {
+export function ouvrirLeCombat(p: ProprietaireDuDuel, scene: Scene, party: JeuDuNoyau['party'], encId: string): void {
   p.setState({ screen: 'campaign', party });
   p.getState().lancerLaScene(scene);
   p.getState().lancerLeCombat(encId);

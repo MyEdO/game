@@ -54,6 +54,7 @@ const LIVRE: { [R in RegleChiffree]: Record<(typeof RANGEES_DE_REGLE)[R][number]
     extreme: { mod: -30, plafond: 3, ref: 'LDB 62 l.200-206' },
   },
   'main-secondaire': { 'main-secondaire': { mod: -20, ref: 'LDB 14 l.78' } },
+  'retenue-du-gantelet-verrouille': { retenue: { mod: -20, ref: 'AA 08 l.236' } },
   'taille-modificateurs-en-combat': { 'plus-petit': { mod: 10, ref: 'LDB 85 l.366' } },
   'allonge-longueur-d-arme': { 'arme-plus-longue': { mod: -10, ref: 'LDB 62 l.172' } },
   'equipe-incomplete-machine-de-guerre': { 'equipe-incomplete': { mod: -20, ref: 'ADE II 8 l.233' } },

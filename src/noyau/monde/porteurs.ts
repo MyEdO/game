@@ -45,9 +45,7 @@ export function etiquettesDesObjetsPortes(porteur: Combatant, resolveTrapping: T
   if (porteur.dead || porteur.outOfRencontre) return [];
   return (porteur.items ?? []).flatMap((objet) => {
     if (objet.inside || objet.destroyed) return [];
-    const expose = objet.kind === 'melee' || objet.kind === 'distance'
-      ? isWeaponActive(porteur, objet.uid)
-      : objet.equipped && isWearable(objet);
+    const expose = isWeaponActive(porteur, objet.uid) || (!!objet.equipped && isWearable(objet));
     if (!expose) return [];
     const groups = ficheDObjetPorte(objet, resolveTrapping)?.groups;
     return groups?.length ? [{ genre: 'etiquette', id: idDEtiquetteDObjet(porteur.id, objet.uid), label: itemLabel(objet), groups }] : [];

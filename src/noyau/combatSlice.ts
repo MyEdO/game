@@ -40,6 +40,7 @@ import {
   STANCE_BLOCK,
   firedWeapon,
   openAttackCascade,
+  glisseDeLaMain,
   poserLeTestDeMain,
   poserLEtapeDAttaque,
   startDisengage,
@@ -150,7 +151,7 @@ import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { refuseSi } from './verrousDeFiche';
-import { crochetDuSol, lacherLeBouclierDuBinome, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
+import { lacherLeBouclierDuBinome, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
 import {
   nePeutPasDifferer,
   jouerFlowEntier,
@@ -3012,24 +3013,26 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const attacker = inBattleId(battle, pg.attackerId);
       set({ pendingHandGate: null });
       if (!attacker) return;
-      if (pg.success) {
-        // Réussite : l'Action déclarée s'ouvre TELLE QUELLE (`skipGate` pour ne pas re-tester). Une 2ᵉ frappe
-        // « des deux armes » reprend sa résolution pré-figée (`frapperDeLaSeconde`) ; sinon la cascade d'attaque.
-        if (pg.pa.dualSecond) frapperDeLaSeconde(get, set, pg.pa.targetId, true);
-        else openAttackCascade(get, set, pg.pa, pg.title, pg.icon, true);
-        return;
+      if (!pg.success) {
+        // Échec : l'objet glisse (`glisseDeLaMain`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
+        // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
+        const { lignes, tient } = glisseDeLaMain(get, set, attacker, pg.hand);
+        const b1 = get().battle!;
+        set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lignes, 'attaque', attacker.id)] } });
+        bus.emit(EVT.SCENE_DIRTY);
+        if (!tient) {
+          // 2ᵉ frappe « des deux armes » ratée : la 2ᵉ est renoncée (l'Action reste dépensée par la 1ʳᵉ frappe) →
+          // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('secondeFrappe')`).
+          if (pg.pa.dualSecond) { set({ pendingDualStrike: null }); advanceCombatJet(get); return; }
+          // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetValider('rechargement')).
+          if (aiDriven(get(), attacker) && get().battle) resumeEnemyTurn(get, set);
+          return;
+        }
       }
-      // Échec : l'objet glisse (op `disarm`, main gatée). Comme le gate de Bénédiction (`attackWardGate`),
-      // rien d'AUTRE n'est consommé — le joueur choisit une autre cible ou Action (mais l'arme est perdue).
-      const lines = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: pg.hand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) }).lignes;
-      const b1 = get().battle!;
-      set({ battle: { ...touchActors(get()).battle!, log: [...b1.log, ...evLines(lines, 'attaque', attacker.id)] } });
-      bus.emit(EVT.SCENE_DIRTY);
-      // 2ᵉ frappe « des deux armes » ratée : la 2ᵉ est renoncée (l'Action reste dépensée par la 1ʳᵉ frappe) →
-      // on clôt le sous-flux dual et on reprend la cascade (calque `fenetreFermer('secondeFrappe')`).
-      if (pg.pa.dualSecond) { set({ pendingDualStrike: null }); advanceCombatJet(get); return; }
-      // Héros PILOTÉ par l'IA (Auto-combat) : son tour était suspendu par la modale → reprise (calque jetValider('rechargement')).
-      if (aiDriven(get(), attacker) && get().battle) resumeEnemyTurn(get, set);
+      // Réussite, ou rien n'a glissé : l'Action déclarée s'ouvre TELLE QUELLE (`skipGate` pour ne pas re-tester). Une 2ᵉ
+      // frappe « des deux armes » reprend sa résolution pré-figée (`frapperDeLaSeconde`) ; sinon la cascade d'attaque.
+      if (pg.pa.dualSecond) frapperDeLaSeconde(get, set, pg.pa.targetId, true);
+      else openAttackCascade(get, set, pg.pa, pg.title, pg.icon, true);
     },
     recuperation: () => {
       const { battle, pendingStateRecovery: sr } = get();

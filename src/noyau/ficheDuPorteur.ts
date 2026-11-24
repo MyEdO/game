@@ -27,8 +27,8 @@ import { isPrayerFamily } from '../engine/combatFeatures/types';
 import { effectiveSkillCharKey, testValue } from '../engine/skills';
 import { effectiveTalents } from '../engine/talentEffects';
 import { effectiveEntry } from '../engine/variants';
-import { itemLabel } from '../engine/items';
-import { isWeaponActive } from '../engine/weaponLoad';
+import { isWearable, itemLabel } from '../engine/items';
+import { isHeld, isWeaponActive } from '../engine/weaponLoad';
 import { attackTestOf } from '../engine/combat';
 import { profilDArme, type ProfilDArme } from '../engine/weaponStats';
 import { resolveQualities } from '../engine/qualities/dispatch';
@@ -84,10 +84,10 @@ export interface ArmureDeLaFiche { localisation: { id: HitLocation; nom: PlayerT
 export interface EntreeDeLaFiche extends Renvoyable { desc: string | null }
 
 /** Une possession : l'objet qui la désigne (`uid`, le premier de celles comptées ensemble), son nom (`itemLabel`), si
- *  elle est équipée (une arme : tenue dans le set actif, `isWeaponActive`), combien en sont portées, l'argent qu'elle
- *  tient (`null` sans argent), le contenant où elle est rangée, son `uid` et son nom (`null` : en vrac), et l'objet du
- *  catalogue qu'elle instancie (`trappingId`). Des instances égales hors `uid` et `qty`, équipées de même, qui ne
- *  tiennent ni argent ni objet (`container`), se comptent ensemble. */
+ *  elle est équipée (une arme : tenue dans le set actif, `isWeaponActive` ; ce qui se porte : portée ou tenue, `isHeld`),
+ *  combien en sont portées, l'argent qu'elle tient (`null` sans argent), le contenant où elle est rangée, son `uid` et
+ *  son nom (`null` : en vrac), et l'objet du catalogue qu'elle instancie (`trappingId`). Des instances égales hors `uid`
+ *  et `qty`, équipées de même, qui ne tiennent ni argent ni objet (`container`), se comptent ensemble. */
 export interface PossessionDeLaFiche extends Renvoyable {
   uid: string;
   equipee: boolean;
@@ -199,7 +199,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
   const possessions: PossessionDeLaFiche[] = [];
   const empilables = new Map<string, PossessionDeLaFiche>();
   for (const it of items) {
-    const equipee = it.kind === 'melee' || it.kind === 'distance' ? isWeaponActive(c, it.uid) : it.equipped;
+    const equipee = (it.kind === 'melee' || it.kind === 'distance') && !isWearable(it) ? isWeaponActive(c, it.uid) : isHeld(c, it);
     const cle = it.money || it.container ? null : `${equipee}|${jsonCanonique({ ...it, uid: undefined, qty: undefined })}`;
     const meme = cle === null ? undefined : empilables.get(cle);
     if (meme) {
