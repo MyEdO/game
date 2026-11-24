@@ -11,7 +11,7 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const c = (id: string): Combatant => combattantDeTest({ id, label: id });
-const state = (over: Partial<Jeu>): Jeu => ({ party: [], battle: null, ...over } as unknown as Jeu);
+const state = (over: Partial<Jeu>): Jeu => ({ party: [], battle: null, possessions: [], ...over } as unknown as Jeu);
 
 describe('combatOrParty — base des actions joueur combat ⇄ hors combat', () => {
   describe('actorIn : résout l’acteur dans le bon ensemble', () => {
