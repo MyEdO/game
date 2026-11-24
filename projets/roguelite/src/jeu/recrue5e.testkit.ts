@@ -1,7 +1,7 @@
 /**
  * Les héros de témoin : une recrue 5e, un Soldat recruté par le jeu (`recrue`, la création 5e du noyau sous les règles
- * du roguelite), posé au roster d'une partie dont la salle d'armes enseigne le niveau 3 ; un héros 4e d'une sauvegarde
- * d'avant la création 5e (`heros4e`) ; et le prix d'un plan de niveau au noyau (`prixDuPlanAuNoyau`).
+ * du roguelite), posé au roster d'une partie dont la salle d'armes enseigne le niveau 3 ; un héros 4e nu du moteur
+ * (`heros4e`) ; et le prix d'un plan de niveau au noyau (`prixDuPlanAuNoyau`).
  */
 import { expect } from 'vitest';
 import { ameliorer, nouvellePartie, recrue, PROFILS, type Etat, type Heros } from './index';
@@ -25,8 +25,8 @@ export function recrue5e(xp: number): { e: Etat; h: Heros } {
   return { e, h };
 }
 
-/** Un héros 4e de la carrière `carriere`, tel qu'une sauvegarde d'avant la création 5e le porte : créé par le moteur
- *  (`createHero`) à la graine `graine`, son Talent et ses Sorts mineurs d'identité, `xp` PX à dépenser. */
+/** Un héros 4e de la carrière `carriere` créé par le moteur (`createHero`) à la graine `graine`, son Talent et ses Sorts
+ *  mineurs d'identité, sans Augmentation de création, `xp` PX à dépenser. */
 export function heros4e(carriere: string, graine: number, xp: number): Heros {
   const p = PROFILS.find((x) => x.id === carriere)!;
   const c = createHero({

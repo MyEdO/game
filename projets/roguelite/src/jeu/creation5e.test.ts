@@ -7,20 +7,20 @@ import {
   planVersLeNiveau,
   recrue,
   renouvelerLesCandidats,
-  sauver,
   suivreLePlan,
   PROFILS,
-  type Etat,
   type Heros,
   type Profil,
 } from './index';
 import { makeRNG, planDuNiveau, porterAuNiveau, poserLesReglesDuRoguelite, progression, tirerUneEspece } from '../noyau';
-import { heros4e, prixDuPlanAuNoyau } from './recrue5e.testkit';
+import { prixDuPlanAuNoyau } from './recrue5e.testkit';
 import { brouillonDeLaPartie } from '../../../../src/noyau';
 import { especesOffertes } from '../../../../src/noyau/creation/brouillon';
 import { modeleDe } from '../../../../src/engine/modeleDeProgression';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import type { Combatant } from '../../../../src/engine/types';
+/** Une sauvegarde de `nouvellePartie(5)` au code 2db8e5bd9b, d'avant la création 5e, ses candidats retirés. */
+import sauvegarde4e from './sauvegarde-4e.json?raw';
 
 beforeAll(poserLesReglesDuRoguelite);
 
@@ -93,24 +93,24 @@ describe('recrues : la création 5e du noyau', () => {
 describe('sauvegarde : une compagnie 4e', () => {
   afterEach(() => { vi.unstubAllGlobals(); });
 
-  it('une sauvegarde à héros 4e se charge, son héros progresse au barème 4e, et le relais y tire des recrues 5e', () => {
-    const memoire = new Map<string, string>();
+  it('une sauvegarde de la compagnie 4e (`sauvegarde-4e.json`) se charge, chaque héros passe au niveau 2 au prix de son plan, et le relais y tire des recrues 5e', () => {
+    const memoire = new Map<string, string>([['grisefosse-v1', sauvegarde4e]]);
     vi.stubGlobal('localStorage', { getItem: (k: string) => memoire.get(k) ?? null, setItem: (k: string, v: string) => { memoire.set(k, v); }, removeItem: (k: string) => { memoire.delete(k); } });
-    const e: Etat = nouvellePartie(5);
+    const e = charger()!;
+    expect(e.roster.map((h) => h.carriere)).toEqual(['soldat', 'nonne', 'pyromancien', 'hierophante']);
     e.or = 10_000; e.trophees = 10;
     expect(ameliorer(e, 'salle')).toBeNull();
-    e.roster[0] = heros4e('soldat', 4, 3000);
-    sauver(e);
-    const relue = charger()!;
-    const h = relue.roster[0];
-    expect(h.c.progression ?? '4e').toBe('4e');
-    expect(progression(h.c).exigence?.type).toBe('completion');
-    const plan = planVersLeNiveau(h);
-    const r = suivreLePlan(relue, h.c.id);
-    expect(r.refus).toBeNull();
-    expect(h.c.careerLevel).toBe(2);
-    expect(h.c.xp).toBe(3000 - plan.total);
-    renouvelerLesCandidats(relue);
-    expect(relue.candidats.every((x) => x.c.progression === '5e')).toBe(true);
+    for (const h of e.roster) {
+      expect(h.c.progression ?? '4e', h.carriere).toBe('4e');
+      expect(progression(h.c).exigence?.type, h.carriere).toBe('completion');
+      h.c.xp = 5000;
+      const plan = planVersLeNiveau(h);
+      expect(plan.total, h.carriere).toBeGreaterThan(0);
+      expect(suivreLePlan(e, h.c.id).refus, h.carriere).toBeNull();
+      expect([h.c.careerLevel, h.c.xp], h.carriere).toEqual([2, 5000 - plan.total]);
+    }
+    renouvelerLesCandidats(e);
+    expect(e.candidats.length).toBeGreaterThan(0);
+    expect(e.candidats.every((x) => x.c.progression === '5e')).toBe(true);
   });
 });

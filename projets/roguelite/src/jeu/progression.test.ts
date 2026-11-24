@@ -37,7 +37,7 @@ function recrueDe(carriere: string, niveau: number, xp: number): { e: Etat; h: H
   return { e, h };
 }
 const soldat = (niveau: number, xp: number) => recrueDe('soldat', niveau, xp);
-/** Le Soldat 4e d'une sauvegarde (`heros4e`) au roster d'une partie dont la salle d'armes est bâtie. */
+/** Un Soldat 4e (`heros4e`) au roster d'une partie dont la salle d'armes est bâtie. */
 function soldat4e(xp: number): { e: Etat; h: Heros } {
   const e = nouvellePartie(7);
   e.or = 10_000; e.trophees = 10;

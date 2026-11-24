@@ -20,7 +20,7 @@ function salle() {
   return { e, h };
 }
 
-/** Une partie à la salle d'armes au palier `palier`, un héros 4e de `carriere` d'une sauvegarde (`heros4e`) au roster,
+/** Une partie à la salle d'armes au palier `palier`, un héros 4e de `carriere` (`heros4e`) au roster,
  *  riche de `xp` PX. */
 function salle4e(carriere: string, palier: number, xp: number) {
   const e = J.nouvellePartie(3);
