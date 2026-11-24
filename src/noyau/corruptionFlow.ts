@@ -44,7 +44,7 @@ import { deDeLaTableTiree, findTableEntry } from '../engine/tables';
 import { pushStep, type TableStepDef } from './cascade';
 import { memoParVersion } from '../data/versionDataset';
 import { touchActors } from './combatOrParty';
-import { actorIn, inBattleId } from './monde/combatants';
+import { acteursEnJeu, actorIn, inBattleId } from './monde/combatants';
 import type { PendingCascade, PendingCorruption, PendingMutationStep } from './pendings';
 import { rule } from '../engine/policy';
 import { testValue } from '../engine/skills';
@@ -408,15 +408,14 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
   set({ ...touchActors(get()) });
 }
 
-/** Cible désignée et éligible ou, sans désignation, premier personnage vivant éligible, choisi sur la file de combat
- *  (`outOfRencontre`) et rendu dans les acteurs en jeu (`actorIn`, #4860). */
+/** Cible désignée et éligible ou, sans désignation, premier personnage vivant éligible des acteurs en jeu
+ *  (`acteursEnJeu`), `outOfRencontre` lu sur la file (`inBattleId`). #4860 */
 export function corruptionTarget(s: Jeu, heroId?: string): Combatant | undefined {
   if (heroId) {
     const actor = actorIn(s, heroId);
     return actor && recoitLaCorruption(actor) ? actor : undefined;
   }
-  const elu = (s.battle?.combatants ?? s.party).find((c) => !c.dead && !c.outOfRencontre && recoitLaCorruption(c));
-  return elu && actorIn(s, elu.id);
+  return acteursEnJeu(s).find((c) => !c.dead && !(inBattleId(s.battle, c.id) ?? c).outOfRencontre && recoitLaCorruption(c));
 }
 
 /** Le choix de « Je te renie ! » (`CorpsDesChoix`, LDB 17 l.67) : `resolveRenounce`. */

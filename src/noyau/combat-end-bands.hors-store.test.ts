@@ -211,7 +211,7 @@ describe('#1117 L4 — RAFALE de seuils de Corruption (LDB 19 l.70) : une file, 
     expect(g().pendingCorruption?.heroId, 'le premier seuil ouvre SA fenêtre').toBe(H[0].id);
     expect(g().pendingCorruption?.kind).toBe('seuil');
     expect(g().corruptionQueue.map((q) => q.heroId), 'le second ATTEND — il n’est pas résolu en silence').toEqual([H[1].id]);
-    expect(porteurs[1].mutations ?? [], 'aucune mutation posée sans que son Test soit joué').toHaveLength(0);
+    expect(g().party.find((h) => h.id === H[1].id)!.mutations ?? [], 'aucune mutation posée sans que son Test soit joué').toHaveLength(0);
 
     // Le premier acquitte (réussite : Corruption contenue) → la fenêtre passe au second.
     banc.setState({ pendingCorruption: { ...g().pendingCorruption!, roll: 1, target: 40, sl: 4, success: true } } as never);

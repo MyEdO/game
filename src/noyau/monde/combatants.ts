@@ -28,8 +28,8 @@ export function apresLeReport(s: Pick<Jeu, 'battle'>): boolean {
 
 /** Les combattants où se cherche un acteur, choisis par l'état : la file de combat ; après le report
  *  (`apresLeReport`), le groupe et les combattants de la file hors du groupe (par id) ; hors combat, le groupe et les
- *  combattants de la série d'attaques subies (`combattantsDeLaSerie`). Seul univers lu par `actorIn` et `porteurParId`.
- *  #4860 */
+ *  combattants de la série d'attaques subies (`combattantsDeLaSerie`). Le pool de tous les lecteurs de héros ;
+ *  `porteurParId` y ajoute la réserve. #4860 */
 export function acteursEnJeu(s: Partial<Pick<Jeu, 'battle' | 'party' | 'serieSubie'>>): readonly Combatant[] {
   const party = s.party ?? [];
   if (!s.battle) return [...party, ...combattantsDeLaSerie(s)];

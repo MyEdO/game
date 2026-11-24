@@ -155,7 +155,7 @@ import { startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, hasCondition, inDeathCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
-import { acteursEnJeu, actorIn, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
+import { acteursEnJeu, actorIn, apresLeReport, coqueParId, ecrireActeur, inBattleId, meneurDeboutDuMonde, meneurDuMonde, rencontreEngagee } from './monde/combatants';
 import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
 import type { Referent } from '../engine/formule';
 import { marinsDuRole } from '../engine/shipCritical';
@@ -1951,8 +1951,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Un `to` où le groupe ne se pose pas (faute d'authoring, levée par `refs`) REFUSE l'Effet entier.
       const sc = env.get().scene;
       if (e.to && sc && !groupePosable(sc, e.to)) return void refuserGeste(env.get, env.set, t('eff.chuteAtterrissageRefuse'));
-      if (e.to && env.get().battle && sc) for (const c of targets) placeCombatant(c, sc, e.to);
-      if (e.to && !env.get().battle) poserLeGroupe(env.get, env.set, e.to);
+      const surLaFile = !!env.get().battle && !apresLeReport(env.get());
+      if (e.to && surLaFile && sc) for (const c of targets) placeCombatant(c, sc, e.to);
+      if (e.to && !surLaFile) poserLeGroupe(env.get, env.set, e.to);
       if (targets.length) {
         env.set(touchActors(env.get()));
         env.log(t('eff.chuteOuverte', { m, noms: targets.map(nomDe).join(', ') }));

@@ -3765,6 +3765,11 @@ function alliesAtRange(resolveTrapping: TrappingResolver, scene: Scene | null, b
 export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boolean {
   const battle = get().battle;
   if (!battle || battle.over) return false;
+  // LDB 17 l.29-32 ; #4860
+  if (get().pendingFateSave) {
+    set({ battle: { ...battle, tirsRapidesSuspendus: faits } });
+    return true;
+  }
   if (faits.length && checkBattleOver(get, set)) return false;
   const tirRapideTimes = (c: Combatant) => effectiveTalents(c).find((tl) => tl.talentId === 'tir-rapide')?.times ?? 1;
   const shooters = battle.combatants
@@ -3799,6 +3804,16 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
   }
   ouvrirLeRound(get, set);
   return false;
+}
+
+/** La boucle des Tirs rapides que le Destin suspendait reprend à ses tireurs déjà passés (`runPreemptShots`), une fois
+ *  le combat débloqué ; rend `true` quand elle reprend. LDB 11 l.97-103 ; LDB 17 l.29-32 */
+function reprendreLesTirsRapides(get: Get, set: SetFn): boolean {
+  const { tirsRapidesSuspendus: faits, ...battle } = get().battle!;
+  if (!faits) return false;
+  set({ battle });
+  jouerFlowEntier(runPreemptShots(get, set, faits) ? OPS_DIFFEREES : undefined);
+  return true;
 }
 
 /**
@@ -8282,7 +8297,7 @@ function effacerLesTelegraphes(get: Get, set: SetFn, auteurId: string): void {
  *  parqué. Le tour d'un acteur que l'IA ne pilote pas ne finit jamais ici : il reste au joueur. No-op si le combat
  *  est terminé. */
 export function resumeEnemyTurn(get: Get, set: SetFn): void {
-  if (!detientLAutoriteDuJeu(get()) || combatAdvanceBlocked(get())) return;
+  if (!detientLAutoriteDuJeu(get()) || combatAdvanceBlocked(get()) || reprendreLesTirsRapides(get, set)) return;
   const active = activeCombatant(get().battle!);
   if (!active || !aiDriven(get(), active) || !armerLaSuite(get, set, active, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'))) maybeRunEnemyTurn(get, set);
 }
@@ -8293,14 +8308,15 @@ export function resumeEnemyTurn(get: Get, set: SetFn): void {
 export function resumeSuspendedAI(get: Get, set: SetFn): void {
   const s = get();
   // `resumeSuspendedAI` ne surveillait historiquement PAS `pendingCast` → `{ cast: false }` (iso A1).
-  if (!detientLAutoriteDuJeu(s) || combatAdvanceBlocked(s, { cast: false })) return;
+  if (!detientLAutoriteDuJeu(s) || combatAdvanceBlocked(s, { cast: false }) || reprendreLesTirsRapides(get, set)) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
-  if (!active || servirLaFrappePilotee(get, set, battle, active) || !aiDriven(s, active)) return;
-  // L'acteur IA actif est MORT pendant la conséquence suspendue (ex. critique défensif du héros — un
-  // démembrement — qui tue le chargeur PENDANT sa propre attaque) → son tour est terminé : AVANCER au
-  // combattant suivant. `advanceTurn` saute de lui-même les hors-combat.
+  if (!active || servirLaFrappePilotee(get, set, battle, active)) return;
+  // L'acteur actif, que l'IA le pilote ou non, est mis hors de combat pendant la conséquence suspendue (ex. critique
+  // défensif du héros — un démembrement — qui tue le chargeur PENDANT sa propre attaque) → son tour est terminé :
+  // AVANCER au combattant suivant. `advanceTurn` saute de lui-même les hors-combat.
   if (isOutOfAction(active)) { advanceTurn(get, set); return; }
+  if (!aiDriven(s, active)) return;
   // Acteur IA ayant déjà agi (conséquence d'attaque) → ses gratuites restantes, puis fin de tour. LDB 85 l.41-43 ; #1858
   if (battle.acted) {
     if (drainerLesGratuites(get, set, active)) return;
@@ -8555,9 +8571,9 @@ export function maybeRunEnemyTurn(get: Get, set: SetFn) {
   const active = activeCombatant(battle);
   if (!active) return;
   if (servirLaFrappePilotee(get, set, battle, active)) return;
-  if (!aiDriven(get(), active)) return;
-  // L'acteur que l'IA pilote est hors de combat : son tour est fini (comme `resumeSuspendedAI`).
+  // L'acteur actif est hors de combat, que l'IA le pilote ou non : son tour est fini.
   if (isOutOfAction(active)) { advanceTurn(get, set); return; }
+  if (!aiDriven(get(), active)) return;
   const tour = tourEnCoursDe(battle, active.id);
   if (tour?.decide) {
     if (tour.parquee && tour.suite) reprendreLaSuite(get, set, active, tour);

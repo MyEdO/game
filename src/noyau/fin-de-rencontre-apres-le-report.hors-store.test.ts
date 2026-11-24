@@ -13,7 +13,10 @@ import { createHero } from '../engine/character';
 import { seedBattleRng } from './battleRng';
 import { initialNet } from './etat';
 import { corruptionThreshold } from '../engine/corruption';
-import { actorIn, porteurParId } from './monde/combatants';
+import { actorIn, inBattleId, porteurParId } from './monde/combatants';
+import { bus, EVT } from './bus';
+import { effetsDeLAppel } from './effetsDeLAppel';
+import type { Evenement } from './partie';
 import { flowFromEffects } from './monde/flow';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
@@ -22,6 +25,7 @@ import { frapper } from './coupHorsBataille.testkit';
 import { heroDuDuel, heroFaceAUnEnnemi, INCANTATION_CRITIQUE, ouvrirLeDuel, SORT_A_DEGATS } from './combatDeTest.testkit';
 import { addCondition, COND, isOutOfAction } from '../engine/conditions';
 import { resetRule, setRule } from '../engine/policy';
+import { applyEffects } from './combatEffects';
 
 let banc: Banc;
 const g = () => banc.getState();
@@ -285,3 +289,50 @@ describe('#4860 — l’issue du combat attend le Destin en suspens', () => {
     expect(duGroupeT.pos).toEqual(posDuGroupe);
   });
 });
+
+describe('#4860 — les champs de rencontre se lisent sur la file après le report', () => {
+  it('(C) le coup fatal du héros qui clôt la rencontre rend son effet, distance lue aux cases de terrain', () => {
+    const { H, E } = heroFaceAUnEnnemi(banc, testScene());
+    banc.setState({ net: { ...initialNet(), mode: 'hote', mySeat: 0, slots: [0, 0, 0, 0], ownership: {} } } as never);
+    E.wounds.current = 1;
+    const evenements: Evenement[] = [];
+    const desabonner = bus.on(EVT.ANIM_ATTACK, (payload) => evenements.push({ type: 'emis', evt: EVT.ANIM_ATTACK, payload } as Evenement));
+    onTestFinished(desabonner);
+    frapper(banc, H, E, [5, 99]);
+    jouerLaBande(true);
+    expect(g().battle!.over).toBe('victoire');
+    expect(inBattleId(g().battle, H.id)?.pos, 'chemin : la case de terrain').toBeDefined();
+    expect(porteurParId(g(), H.id)?.pos, 'chemin : la copie du groupe n’a pas la case de terrain').not.toEqual(inBattleId(g().battle, H.id)?.pos);
+    expect(effetsDeLAppel(g(), evenements)).toContainEqual(expect.objectContaining({ quoi: 'coup', de: H.id, vers: E.id }));
+  });
+
+  it('(F) Chute `onVictory` à atterrissage : la copie du groupe ne reçoit pas de case de rencontre', () => {
+    const to = { x: 10, y: 12 };
+    const { H } = rencontre({ auSeuil: 0, resilience: 0, corrupteur: false, onVictory: [
+      { type: 'fall', target: 'groupe', metres: 0, to },
+    ] as Effect[] });
+    const posDuGroupe = structuredClone(g().party[0].pos);
+    checkBattleOver(g, banc.setState);
+    expect(g().battle!.over).toBe('victoire');
+    expect(posDuGroupe, 'chemin : l’atterrissage change la case').not.toEqual(to);
+    expect(duGroupe(H[0].id).pos).toEqual(posDuGroupe);
+  });
+
+  it('(E) Exposition sans héros désigné après une damnation d’après le report : l’élu se lit au groupe, jamais le damné', () => {
+    const { H } = rencontre({ auSeuil: 2, resilience: 0, corrupteur: true });
+    H[0].characteristics.endurance = 1;
+    H[0].characteristics['force-mentale'] = 1;
+    H[0].corruption = corruptionThreshold(H[0]);
+    H[1].corruption = 0;
+    checkBattleOver(g, banc.setState);
+    jouerLaBande(false);
+    expect(g().battle!.over).toBe('victoire');
+    seuilRate();
+    draineCascade(g);
+    expect(duGroupe(H[0].id).damned, 'chemin : la mutation d’office damne H0 au groupe').toBe(true);
+    expect(deTerrain(H[0].id).dead, 'chemin : la copie de terrain le croit vivant').toBeFalsy();
+    applyEffects(g, banc.setState, [{ type: 'corruptionExposure', level: 'majeure', nature: 'physique', heroId: '' }] as Effect[]);
+    expect(g().pendingCorruption?.heroId).toBe(H[1].id);
+  });
+});
+

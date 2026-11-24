@@ -401,8 +401,8 @@ function reprendreHorsBatailleApresLeDestin(get: Get, set: Set): void {
   if (get().serieSubie) jouerFlowEntier(poursuivreLaSerie(get, set));
 }
 
-/** La bataille reprend après le Destin : la limite de Round pour une mort lente ; sinon la fin de combat, que la défaite
- *  différait (`checkBattleOver`, #4860), puis le tour adverse. */
+/** La bataille reprend après le Destin : la limite de Round pour une mort lente ; sinon l'issue, que le Destin différait
+ *  (`checkBattleOver`, #4860), puis le tour adverse (`resumeEnemyTurn`). */
 function reprendreApresLeDestin(get: Get, set: Set, source: FateSaveSource): void {
   if (source === 'slow') resolveRoundBoundary(get, set);
   else if (!checkBattleOver(get, set)) resumeEnemyTurn(get, set);
