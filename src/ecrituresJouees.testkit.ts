@@ -9,7 +9,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { it, expect } from 'vitest';
-import { allBuiltinCampaigns } from './scenes/campaign';
+import { campagneDeTest } from './scenes/fixtures/campagneDeTest.testkit';
 import { paquetDuJeu } from './noyau/index';
 import {
   editer,
@@ -273,15 +273,14 @@ const VICTOIRE = 'valeur/victoryCondition/type';
 const MONTURE = 'valeur/members/1/mount';
 const CHEVAUCHEE = 'valeur/members/0/ridesEntityId';
 
-/** La scène d'un projet du jeu qui déclare un dialogue, et la case libre où s'y pose un personnage de la première des
+/** La scène du projet de test qui déclare un dialogue, et la case libre où s'y pose un personnage de la première des
  *  `FICHES`, qui choisit l'un de ses dialogues, puis l'autre (`dialogueId`). */
-const A_DIALOGUE = { campagne: 'loup-et-saumure', scene: 'ls-epilogue-salzenmund', case: { x: 4, y: 3 }, branches: ['valeur/dialogueId'] } as const;
+const A_DIALOGUE = { scene: 'scene-de-test-a', case: { x: 0, y: 3 }, branches: ['valeur/dialogueId'] } as const;
 
-/** Le projet dont le narratif déclare des presets de PNJ (`presetsPnj`), qu'un personnage choisit (`presetId`). */
-const PROJET_A_PRESETS = 'la-diligence';
+/** Les branches d'un personnage qui choisit un preset de PNJ du narratif du projet de test (`presetId`). */
 const BRANCHES_DU_PRESET = ['valeur/presetId'];
 
-/** Le type du décor posé dans une scène neuve du `PROJET_A_PRESETS`, dont les actions authorées s'écrivent
+/** Le type du décor posé dans une scène neuve du projet de test, dont les actions authorées s'écrivent
  *  (`usable.actions`). */
 const DECOR = 'brasero';
 
@@ -295,9 +294,9 @@ const EFFET_DU_DECOR = 'valeur/usable/actions/0/flow/effet/type';
 
 /** L'Effet de ce flux qui porte une adresse de prose, composée (`composerLAdresse`). */
 const PROSE_DU_DECOR = { effet: 'journal', adresse: 'valeur/usable/actions/0/flow/effet/descRef/' } as const;
-/** La coque pirate de la scène d'embuscade de la barge du sel, à Améliorations d'instance et à postes dotés de leur
- *  coffre (MDG 12), sa case, et les branches de navire qu'elle seule écrit. */
-const COQUE = { campagne: 'barge-du-sel', scene: 'barge-du-sel-embuscade', case: { x: 18, y: 7 }, branches: ['valeur/vehicule', 'valeur/upgrades', 'valeur/postes'] } as const;
+/** La coque de la scène navale du projet de test, à Améliorations d'instance et à postes dotés de leur coffre (MDG 12),
+ *  sa case, et les branches de navire qu'elle seule écrit. */
+const COQUE = { scene: 'scene-de-test-navale', case: { x: 3, y: 2 }, branches: ['valeur/vehicule', 'valeur/upgrades', 'valeur/postes'] } as const;
 
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 
@@ -314,24 +313,17 @@ const enroler = (s: SessionDEdition, rencontre: string, fiche: string, x: number
 /** L'id du porteur sélectionné de la session `s`. */
 const selectionne = (s: SessionDEdition): string => porteurChoisi(s)!.id;
 
-/** La session du projet du jeu d'id `id` (`ouvrir`). */
-function projetDuJeu(id: string): SessionDEdition {
-  const c = allBuiltinCampaigns.find((x) => x.id === id);
-  if (!c) throw new Error(`aucune campagne ${id}`);
-  return ouvrir(paquetDuJeu(c));
-}
+/** La session du projet de test (`ouvrir`), le paquet de la campagne de test. */
+const projetDeTest = (): SessionDEdition => ouvrir(paquetDuJeu(campagneDeTest));
 
-/** La session de la première campagne du jeu (`ouvrir`). */
-const premierProjet = (): SessionDEdition => ouvrir(paquetDuJeu(allBuiltinCampaigns[0]));
-
-/** Une scène neuve du `PROJET_A_PRESETS`. */
-const sceneAPresets = (): SessionDEdition => presser(projetDuJeu(PROJET_A_PRESETS), 'scenes/ajouter');
+/** Une scène neuve du projet de test. */
+const sceneNeuve = (): SessionDEdition => presser(projetDeTest(), 'scenes/ajouter');
 
 /** Le personnage posé dans la scène `A_DIALOGUE`, où la zone Logique ajoute un second dialogue. */
-const personnageDuDialogue = (): SessionDEdition => poserPersonnage(ajouter(presser(projetDuJeu(A_DIALOGUE.campagne), `scenes/${A_DIALOGUE.scene}`), 'dialogue', []), FICHES[0][0], A_DIALOGUE.case.x, A_DIALOGUE.case.y);
+const personnageDuDialogue = (): SessionDEdition => poserPersonnage(ajouter(presser(projetDeTest(), `scenes/${A_DIALOGUE.scene}`), 'dialogue', []), FICHES[0][0], A_DIALOGUE.case.x, A_DIALOGUE.case.y);
 
 /** La `COQUE`, sélectionnée. */
-const coqueChoisie = (): SessionDEdition => cliquer(presser(presser(projetDuJeu(COQUE.campagne), `scenes/${COQUE.scene}`), 'outil/select'), COQUE.case.x, COQUE.case.y);
+const coqueChoisie = (): SessionDEdition => cliquer(presser(presser(projetDeTest(), `scenes/${COQUE.scene}`), 'outil/select'), COQUE.case.x, COQUE.case.y);
 
 /** L'ancre de la caraque à un cap qui tient dans la scène neuve de 20 × 15 cases. */
 const NAVIRE_NEUF = { x: 8, y: 6 } as const;
@@ -358,14 +350,14 @@ function tracerLaZoneJouable(s: SessionDEdition, out: EcritureJouee[]): void {
   out.push({ avant: documentDu(s, 'scene'), apres: documentDu(tracee, 'scene'), chemin: ['zoneJouable'], valeur: sceneEditee(tracee).zoneJouable, saisie: 'bouton' });
 }
 
-/** Les écritures jouées sur l'inspecteur d'une scène neuve de la première campagne du jeu sans sélection, puis sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`), la zone jouable tracée (`tracerLaZoneJouable`) et un personnage de chacune des `FICHES` d'une
- *  scène neuve de la première campagne du jeu, le manifeste du `Source/` servi, chacun posé à son outil (Zone,
+/** Les écritures jouées sur l'inspecteur d'une scène neuve du projet de test sans sélection, puis sur une zone d'effet neuve qui barre le passage, un déclencheur neuf (`ZONES`), la zone jouable tracée (`tracerLaZoneJouable`) et un personnage de chacune des `FICHES` d'une
+ *  scène neuve du projet de test, le manifeste du `Source/` servi, chacun posé à son outil (Zone,
  *  Personnage), un dialogue que la zone Logique y ajoute, dont l'adresse de prose d'un nœud se compose, une réponse ajoutée à chaque nœud (`REPONSE_AJOUTEE`), puis chacun de ses nœuds et de leurs réponses renommé (`identifierChaque`), une rencontre que la zone Logique y ajoute, où un
  *  personnage d'`ENROLE` et un de la première des `FICHES` s'enrôlent (`enroler`), le second fait monture et chevauché
  *  par le premier (`MONTURE`, `CHEVAUCHEE`), puis chacun de ses objectifs de victoire (`VICTOIRE`), et un navire que
  *  l'outil navire y pose (`NAVIRE_NEUF`) ; puis sur un
  *  personnage de la
- *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du `PROJET_A_PRESETS`, puis sur chaque
+ *  première des `FICHES` et un décor de type `DECOR` posés dans une scène neuve du projet de test, puis sur chaque
  *  branche du flux de l'action qu'il reçoit (`ACTION_DU_DECOR`, `FLUX_DU_DECOR`) et sur chaque type d'Effet de sa
  *  branche `effet` (`EFFET_DU_DECOR`), puis sur l'adresse de prose de l'un d'eux et sa cellule (`PROSE_DU_DECOR`),
  *  sur un personnage de
@@ -375,7 +367,7 @@ function tracerLaZoneJouable(s: SessionDEdition, out: EcritureJouee[]): void {
  *  `BRANCHES_DU_PRESET`, `A_DIALOGUE`, `COQUE`), une écriture d'empreinte déjà jouée dans la partie ne s'y ajoutant pas. */
 export function ecrituresJouees(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
-  let s = presser(premierProjet(), 'scenes/ajouter');
+  let s = sceneNeuve();
   out.push(...ecrituresDesOutilsDeScene(s, { presser, cliquer, poserUnNavire }));
   jouerLInspecteur(s, out);
   for (const [sorte, de, a, boutons] of ZONES) {
@@ -402,7 +394,7 @@ export function ecrituresJouees(): EcritureJouee[] {
   const navire = poserUnNavire(s, NAVIRE_NEUF.x, NAVIRE_NEUF.y, out);
   const coqueAlliee = presser(presser(navire, `rencontre/${rencontre}/enrole`), `rencontre/${rencontre}/allie`);
   jouerLInspecteur(presser(coqueAlliee, `logique/rencontre/${rencontre}`), out, ['valeur/members/']);
-  const pnj = jouerLInspecteur(poserPersonnage(sceneAPresets(), FICHES[0][0], 5, 5), out, BRANCHES_DU_PRESET);
+  const pnj = jouerLInspecteur(poserPersonnage(sceneNeuve(), FICHES[0][0], 5, 5), out, BRANCHES_DU_PRESET);
   const decor = jouerLInspecteur(cliquer(presser(presser(pnj, 'outil/prop'), `prop/${DECOR}`), 3, 3), out);
   const action = presser(decor, choixDeLInspecteur(decor, ACTION_DU_DECOR).valeurs[0].id);
   jouerLInspecteur(action, out);
@@ -421,12 +413,12 @@ export function ecrituresJouees(): EcritureJouee[] {
  *  SEUL : posé dans une scène où rien n'est joué avant lui, sa partie à lui. Ce qu'elles créditent, `ecrituresJouees` le
  *  crédite déjà, ou une écriture sautée par empreinte cachait une offre. */
 export function ecrituresDesPorteursSeuls(): EcritureJouee[] {
-  const arene = presser(premierProjet(), 'scenes/ajouter');
-  const aRencontre = ajouter(arene, 'rencontre', []);
+  const neuve = sceneNeuve();
+  const aRencontre = ajouter(neuve, 'rencontre', []);
   const seuls: [SessionDEdition, readonly string[]][] = [
-    ...FICHES.map(([fiche, branches]): [SessionDEdition, readonly string[]] => [poserPersonnage(arene, fiche, 5, 5), branches]),
+    ...FICHES.map(([fiche, branches]): [SessionDEdition, readonly string[]] => [poserPersonnage(neuve, fiche, 5, 5), branches]),
     [enroler(aRencontre, selectionne(aRencontre), ENROLE.fiche, 5, 5), ENROLE.branches],
-    [poserPersonnage(sceneAPresets(), FICHES[0][0], 5, 5), BRANCHES_DU_PRESET],
+    [poserPersonnage(sceneNeuve(), FICHES[0][0], 5, 5), BRANCHES_DU_PRESET],
     [personnageDuDialogue(), A_DIALOGUE.branches],
     [coqueChoisie(), COQUE.branches],
   ];
@@ -458,10 +450,10 @@ function premierBouton(s: SessionDEdition, prefixe: string): string {
   return id;
 }
 
-/** Le narratif de la première campagne du jeu, mis en place pour que les Effets qui le désignent offrent leurs
+/** Le narratif du projet de test, mis en place pour que les Effets qui le désignent offrent leurs
  *  valeurs : une affaire, un indice à deux stades et un second indice, un état énuméré à deux valeurs, un PNJ. */
 function narratifMisEnPlace(): SessionDEdition {
-  const indices = ajouter(presser(ajouter(ajouter(presser(premierProjet(), 'document/narratif'), 'affaires', []), 'indices', []), 'valeur/stades/ajouter'), 'indices', []);
+  const indices = ajouter(presser(ajouter(ajouter(presser(projetDeTest(), 'document/narratif'), 'affaires', []), 'indices', []), 'valeur/stades/ajouter'), 'indices', []);
   const etat = presser(ajouter(indices, 'etats', []), 'etat/forme/enum');
   return ajouter(presser(etat, premierBouton(etat, 'valeur/forme/valeurs/ajouter')), 'presetsPnj', []);
 }
@@ -563,7 +555,7 @@ function ecrituresDeLaFeuilleDOperations(flux: SessionDEdition, charge: string):
   return out;
 }
 
-/** Les écritures de la carte du monde de la première campagne du jeu, son narratif mis en place (`narratifMisEnPlace`) :
+/** Les écritures de la carte du monde du projet de test, son narratif mis en place (`narratifMisEnPlace`) :
  *  la carte renommée (`identifierChaque`) ; l'inspecteur de la carte ; un lieu posé à l'outil Lieu et un ajouté à la zone Logique, un point d'intérêt épinglé à
  *  son plan, deux auberges ajoutées au lieu, le point tourné vers la première, la seconde retirée, leur nom et leur repos joués à l'inspecteur ; une route tirée à l'outil Chemin, un mode de transport, une péripétie dont le premier Effet joue chacun de
  *  ses types (`jouerLesVariantes`), chaque forme d'enjeu d'un Test étendu, l'adresse de prose d'un journal
@@ -680,7 +672,7 @@ function repereSurLesLignes(s: SessionDEdition, out: EcritureJouee[]): SessionDE
   return consigner(avecLigne, REPERE_AJOUTE, ['forme', 'identite', 'lignes', 0, 'valeurs'], out);
 }
 
-/** Les écritures du narratif de la première campagne du jeu : chacun des `REGISTRES` ajouté à la zone Logique, joué à
+/** Les écritures du narratif du projet de test : chacun des `REGISTRES` ajouté à la zone Logique, joué à
  *  son inspecteur, une ligne d'identité reposée (`avecUneLigne`), chaque élément renommé (`identifierChaque`), puis lui-même (`renommer`) ; un indice d'une seconde affaire ; chaque forme de dotation d'un PNJ ; chaque forme d'état, sur
  *  l'identité d'un état à lignes, un repère ajouté (`repereSurLesLignes`) ; un
  *  second indice qui renvoie au premier ; un PNJ d'une créature de base armée (`ENROLE`), l'apparence de ses objets ;
@@ -688,7 +680,7 @@ function repereSurLesLignes(s: SessionDEdition, out: EcritureJouee[]): SessionDE
  *  prose de sa description (`composerLAdresse`) ; puis le narratif singulier. Chacun joué à son inspecteur. */
 export function ecrituresDuNarratif(): EcritureJouee[] {
   const out: EcritureJouee[] = [];
-  let s = presser(premierProjet(), 'document/narratif');
+  let s = presser(projetDeTest(), 'document/narratif');
   for (const registre of REGISTRES) {
     s = renommer(identifierChaque(avecUneLigne(jouerLInspecteur(ajouter(s, registre, out), out)), out), out, `${registre}-joue`);
   }

@@ -13,6 +13,7 @@ import { engagement, rosterExport, type RosterEntry } from '../../../src/noyau/i
 import { ajouterAuRoster, chargerLeRoster, retirerDuRoster } from '../../../src/hote/roster';
 import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
@@ -109,7 +110,7 @@ describe('le roster par le pont', () => {
     expect(suiteDe(appel('roster', { roster: { importe: rosterExport(entrees[0]) } })).vue.zones['groupe.avis']).toEqual([]);
     expect(erreurDe(appel('roster', { roster: { importe: 3 } })).categorie, 'un texte, ou null').toBe('validation');
     appel('roster', boutonDe(s, entrees[0].hero.id, 'recruter').jeu);
-    appel('lancer', { lancer: 'la-diligence' });
+    appel('lancer', { lancer: campagneDeTest.id });
     expect(erreurDe(appel('roster', { roster: { importe: rosterExport(entrees[0]) } })).categorie, 'la partie lancée n’offre plus l’import').toBe('validation');
   });
 
@@ -130,7 +131,7 @@ describe('le roster par le pont', () => {
     const alda = entrees[0].hero.id;
     const s = suiteDe(appel('ouvrir', { graine: 7 }));
     appel('roster', boutonDe(s, alda, 'recruter').jeu);
-    const lancee = suiteDe(appel('lancer', { lancer: 'la-diligence' }));
+    const lancee = suiteDe(appel('lancer', { lancer: campagneDeTest.id }));
     expect([lancee.vue.zones['groupe.roster'], lancee.vue.zones['groupe.avis']]).toEqual([[], []]);
     suiteDe(appel('jouer', { type: 'ecrireLHistorique', args: [alda, { motivation: 'Foi' }] }));
     expect(chargerLeRoster(stockage).map((e) => [e.hero.id, e.hero.motivation, e.draft.motivation])).toEqual([[alda, 'Foi', 'Foi']]);

@@ -10,7 +10,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { deriveChapterRecap, snapshotChapitre } from './chapitreRecap';
 import { snapshotSave } from './persistance/save';
-import { diligenceCampaign } from '../scenes/campaign';
+import { campagneDeTest } from '../scenes/fixtures/campagneDeTest.testkit';
 import { poserLaCampagne } from './campagne.testkit';
 import { campagneDuJeu, paquetDuJeu } from './campagneLivree';
 import { testScene } from '../scenes/test-fixture';
@@ -125,9 +125,9 @@ describe('armement du récap — la CLÔTURE est une Condition relue après chaq
 
 describe('cycle de vie de la borne (#717)', () => {
   it('`chargerLeProjet` pose l’ouverture APRÈS `lancerLaScene` ; `lancerLaScene` seul efface le cadre', () => {
-    const { scenes, narratif } = paquetDuJeu(diligenceCampaign);
+    const { scenes, narratif } = paquetDuJeu(campagneDeTest);
     banc.setState({ party: [hero('h1', 10)] });
-    expect(poserLaCampagne(banc.getState, campagneDuJeu(diligenceCampaign), scenes[0].id)).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(campagneDeTest), scenes[0].id)).toBeNull();
     expect(get().pendingOuverture?.titre).toBe(narratif.ouverture!.titre);
 
     banc.getState().fenetreValider('ouverture');

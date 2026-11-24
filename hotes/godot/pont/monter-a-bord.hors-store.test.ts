@@ -11,7 +11,8 @@ import type { Pont, VueDuPont } from './pont';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import { buildScene } from '../../../src/noyau/mapSpec';
-import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
+import { contenuDuJeuDeRole } from '../../../src/scenes/campaign';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
 import { paquetDuJeu } from '../../../src/noyau/index';
 
 const COMMITES = await modelesCommites();
@@ -24,7 +25,7 @@ const offreDeMonter = (vue: VueDuPont): Bouton | undefined =>
 describe('« Monter à bord » s’offre et se joue par le pont dans La Diligence (#4576)', () => {
   it('le groupe à portée de la diligence voit le bouton, le presse, et part (`edo-ch1-depart`)', () => {
     const stockage = stockageEnMemoire();
-    const { pont, appel } = table(stockage);
+    const { pont, appel } = table(stockage, null, contenuDuJeuDeRole);
     ouvert = pont;
     let s = suiteDe(appel('ouvrir', { graine: 7 }));
     const recruter = s.vue.zones['groupe.pretires'][0].elements.find((x): x is Bouton => x.type === 'bouton')!;
@@ -46,7 +47,7 @@ describe('« Monter à bord » s’offre et se joue par le pont dans La Diligenc
   });
 });
 
-const servi = paquetDuJeu(allBuiltinCampaigns[0]);
+const servi = paquetDuJeu(campagneDeTest);
 
 /** La partie d'essai d'un pré où une diligence attend dans la rencontre `emb`, cachée selon `hidden`. */
 function essaiDuPre(hidden: boolean) {

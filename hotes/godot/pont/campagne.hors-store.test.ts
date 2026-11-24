@@ -1,13 +1,13 @@
 /**
  * JOUER UNE CAMPAGNE PAR LE PONT (#3009) : une partie ouverte au groupe (`ouvrir`), son groupe composé par les boutons
- * des zones `groupe.pretires` et `groupe.heros`, une campagne du jeu lancée par le bouton de `groupe.campagnes`
+ * des zones `groupe.pretires` et `groupe.heros`, une campagne remise par le jeu lancée par le bouton de `groupe.campagnes`
  * (`lancer`), la partie quittée (`quitter`), puis une autre ouverte sous le même pont.
  */
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { boursesDuGroupe, drainer, erreurDe, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { etatInitialDuJeu, pretiresOfferts } from '../../../src/noyau/index';
-import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
+import { campagneDeTest, contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
 import type { Bouton, Element, Entite, Jet } from '../../../src/hote/elements';
 import type { Pont, VueDuPont } from './pont';
 
@@ -24,7 +24,7 @@ const recruter = (vue: VueDuPont, pretire: string): Bouton => bouton(vue.zones['
 const lancer = (vue: VueDuPont, campagne: string): Bouton => bouton(vue.zones['groupe.campagnes'], `campagne/${campagne}`, 'lancer');
 
 describe('jouer une campagne par le pont', () => {
-  it('une partie ouverte au groupe offre chaque pré-tiré et chaque campagne du jeu, le lancement refusé groupe vide', () => {
+  it('une partie ouverte au groupe offre chaque pré-tiré et chaque campagne remise, le lancement refusé groupe vide', () => {
     const { pont, appel } = table();
     ouvert = pont;
     const s = suiteDe(appel('ouvrir', { graine: 7 }));
@@ -33,9 +33,9 @@ describe('jouer une campagne par le pont', () => {
     expect(s.vue.zones['groupe.heros']).toEqual([]);
     expect(s.vue.zones['groupe.pretires'].map((e) => e.id), 'chaque pré-tiré de la donnée').toEqual(pretiresOfferts(etatInitialDuJeu()).map((p) => `pretire/${p.id}`));
     expect(s.vue.zones['groupe.pretires'].every((e) => e.elements.some((x) => x.type === 'bouton' && x.refus === null)), 'chacun se recrute').toBe(true);
-    expect(s.vue.zones['groupe.campagnes'].map((e) => e.id), 'chaque campagne du jeu').toEqual(allBuiltinCampaigns.map((c) => `campagne/${c.id}`));
-    expect(lancer(s.vue, 'la-diligence').refus, 'le noyau dit le refus').toBe(t('party.action.start.empty'));
-    expect(erreurDe(appel('lancer', lancer(s.vue, 'la-diligence').jeu))).toEqual({ categorie: 'regle', message: t('party.action.start.empty') });
+    expect(s.vue.zones['groupe.campagnes'].map((e) => e.id), 'chaque campagne remise').toEqual(contenuDeTest.campagnes.map((c) => `campagne/${c.id}`));
+    expect(lancer(s.vue, campagneDeTest.id).refus, 'le noyau dit le refus').toBe(t('party.action.start.empty'));
+    expect(erreurDe(appel('lancer', lancer(s.vue, campagneDeTest.id).jeu))).toEqual({ categorie: 'regle', message: t('party.action.start.empty') });
     expect(erreurDe(appel('lancer', { lancer: 'inconnue' })).categorie).toBe('validation');
     expect(erreurDe(appel('ouvrir', {})).message, 'une partie à la fois').toMatch(/quitter d’abord/);
     expect(erreurDe(appel('demarrer', { scenario: 'dome' })).message).toMatch(/quitter d’abord/);
@@ -53,7 +53,7 @@ describe('jouer une campagne par le pont', () => {
     const refuse = suiteDe(appel('jouer', doublon.jeu));
     expect(refuse.journal.map((l) => (l.de === 'journal' ? l.texte : null)), 'hors combat, le noyau dit son refus au journal').toEqual([doublon.refus]);
     expect(refuse.vue.zones['groupe.heros']).toEqual(s.vue.zones['groupe.heros']);
-    expect(lancer(s.vue, 'arene').refus).toBeNull();
+    expect(lancer(s.vue, campagneDeTest.id).refus).toBeNull();
     const renvoyer = bouton(s.vue.zones['groupe.heros'], 'heros/pretire-harbull-piedvelu', 'renvoyer');
     expect(renvoyer.refus).toBeNull();
     s = suiteDe(appel('jouer', renvoyer.jeu));
@@ -68,7 +68,7 @@ describe('jouer une campagne par le pont', () => {
     s = suiteDe(appel('jouer', recruter(s.vue, 'harbull-piedvelu').jeu));
     s = suiteDe(appel('jouer', recruter(s.vue, 'werner-murrmann').jeu));
     const groupe = boursesDuGroupe(appel, s.vue);
-    s = drainer(appel, appel('lancer', lancer(s.vue, 'la-diligence').jeu)).suite;
+    s = drainer(appel, appel('lancer', lancer(s.vue, campagneDeTest.id).jeu)).suite;
     expect(s.vue.projection.fenetre?.cle, 'la campagne s’ouvre sur sa fenêtre d’ouverture').toBe('ouverture');
     expect(s.vue.plateau, 'la scène d’entrée est posée').not.toBeNull();
     expect(appel('monde'), 'son monde se sert').toMatchObject({ ok: true, monde: expect.anything() });
@@ -77,7 +77,7 @@ describe('jouer une campagne par le pont', () => {
     expect(s.vue.zones['groupe.pretires']).toEqual([]);
     expect(s.vue.zones['groupe.campagnes']).toEqual([]);
     expect(s.vue.zones['partie.gestes'].map((b) => b.jeu), 'la partie se sauvegarde, se règle, se joue en ligne et se quitte à tout moment').toEqual([{ sauvegardes: true }, { reglages: true }, { salon: true }, { quitter: true }]);
-    expect(erreurDe(appel('lancer', { lancer: 'arene' })).message, 'une partie en cours ne se relance pas').toMatch(/déjà en cours/);
+    expect(erreurDe(appel('lancer', { lancer: campagneDeTest.id })).message, 'une partie en cours ne se relance pas').toMatch(/déjà en cours/);
   });
 
   it('la partie quittée, une autre s’ouvre sous le même pont, ses jetons numérotés à la suite', { timeout: 120_000 }, () => {
@@ -102,7 +102,7 @@ describe('jouer une campagne par le pont', () => {
     expect(erreurDe(appel('reprendre', { jeton: premiers[0] })), 'un jeton de la partie quittée ne se reprend pas').toEqual({ categorie: 'validation', message: `jeton inconnu : ${premiers[0]}` });
     appel('quitter');
     suiteDe(appel('jouer', recruter(suiteDe(appel('ouvrir', { graine: 7 })).vue, 'wanda-weltschmertz').jeu));
-    expect(drainer(appel, appel('lancer', { lancer: 'arene' })).suite.vue.plateau, 'l’Arène lancée après un scénario quitté').not.toBeNull();
+    expect(drainer(appel, appel('lancer', { lancer: campagneDeTest.id })).suite.vue.plateau, 'la campagne lancée après un scénario quitté').not.toBeNull();
   });
 
   it('sans graine, les dés d’une partie viennent de l’entropie de l’hôte', () => {

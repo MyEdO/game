@@ -1,6 +1,6 @@
 /**
  * Le lancement d'un scénario de test (#1692, `lancerLeScenario`) lit la fiche ET le contenu construit, dont
- * `interludeWeeks` (ADE II 8 l.65) ; le lancement d'une campagne du jeu (#3009, `lancementDuProjet` de `campagneDuJeu`) passe par
+ * `interludeWeeks` (ADE II 8 l.65) ; le lancement d'une campagne livrée (#3009, `lancementDuProjet` de `campagneDuJeu`) passe par
  * la même séquence, le groupe composé gardé.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -9,7 +9,7 @@ import { seedBattleRng } from './battleRng';
 import { lancementDuProjet, lancerLeScenario, poserLeLancement } from './lancementDeScenario';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
-import { diligenceCampaign } from '../scenes/campaign';
+import { campagneDeTest } from '../scenes/fixtures/campagneDeTest.testkit';
 import { campagneDuJeu } from './campagneLivree';
 import { PRETIRE_DE_TEST, poserLesPretires } from './creation/pretireDeTest.testkit';
 import { resetRule, setRule } from '../engine/policy';
@@ -70,7 +70,7 @@ describe('le navire d’un scénario au lancement', () => {
   });
 });
 
-describe('le lancement d’une campagne du jeu par le groupe composé', () => {
+describe('le lancement d’une campagne livrée par le groupe composé', () => {
   /** Le groupe d'un pré-tiré de fixture, recruté par le verbe du noyau. */
   const recruter = (): void => {
     poserLesPretires();
@@ -80,7 +80,7 @@ describe('le lancement d’une campagne du jeu par le groupe composé', () => {
   it('la séquence unique garde le groupe recruté et sa possession, pose le document de la campagne sous son identité, à l’écran de campagne', () => {
     recruter();
     const { party, net } = banc.getState();
-    const lancee = campagneDuJeu(diligenceCampaign);
+    const lancee = campagneDuJeu(campagneDeTest);
     lancerLeScenario(banc.getState, banc.setState, lancementDuProjet(lancee, party, lancee.startSceneId, lancee.projet));
     const s = banc.getState();
     expect(s.party).toEqual(party);
@@ -94,7 +94,7 @@ describe('le lancement d’une campagne du jeu par le groupe composé', () => {
   it('`poserLeLancement` pose la même campagne sans la démarrer : le groupe gardé, le document posé, l’écran laissé', () => {
     recruter();
     const { party, net, screen } = banc.getState();
-    const lancee = campagneDuJeu(diligenceCampaign);
+    const lancee = campagneDuJeu(campagneDeTest);
     poserLeLancement(banc.getState, lancementDuProjet(lancee, party, lancee.startSceneId, lancee.projet));
     const s = banc.getState();
     expect(s.party).toEqual(party);
@@ -107,7 +107,7 @@ describe('le lancement d’une campagne du jeu par le groupe composé', () => {
 
   it('une scène d’entrée nommée ouvre la campagne sur elle ; absente du paquet, le lancement lève en la nommant', () => {
     recruter();
-    const lancee = campagneDuJeu(diligenceCampaign);
+    const lancee = campagneDuJeu(campagneDeTest);
     const autre = lancee.scenes[1];
     lancerLeScenario(banc.getState, banc.setState, lancementDuProjet(lancee, banc.getState().party, autre.id, lancee.projet));
     expect(banc.getState().scene?.id).toBe(autre.id);

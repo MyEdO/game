@@ -20,7 +20,7 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { WorldMap } from './worldMap';
 import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
-import { areneCampaign, diligenceCampaign } from '../scenes/campaign';
+import { campagneDeTest } from '../scenes/fixtures/campagneDeTest.testkit';
 import { campagneDuJeu } from './campagneLivree';
 import { poserLaCampagne } from './campagne.testkit';
 import { applyEffects } from './combatEffects';
@@ -132,19 +132,19 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     expect(banc.getState().scene?.id).toBe('scene-ancienne-porte');
   });
 
-  it('l’Arène lancée (#1692) : sa save porte son paquet, et ses zones résolvent au rechargement', () => {
+  it('une campagne livrée lancée (#1692) : sa save porte son paquet, et ses zones résolvent au rechargement', () => {
     banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: null });
-    const arene = campagneDuJeu(areneCampaign);
-    expect(poserLaCampagne(banc.getState, arene)).toBeNull();
-    expect(banc.getState().campaignDoc?.scenes.map((s) => s.id)).toEqual(arene.scenes.map((s) => s.id));
+    const lancee = campagneDuJeu(campagneDeTest);
+    expect(poserLaCampagne(banc.getState, lancee)).toBeNull();
+    expect(banc.getState().campaignDoc?.scenes.map((s) => s.id)).toEqual(lancee.scenes.map((s) => s.id));
     const save = sauverLeBanc(banc);
 
     resetSceneRegistry();
     banc.setState(etatInitialDuJeu());
     chargerSurLeBanc(banc, save);
-    expect(banc.getState().worldMap?.id).toBe(arene.worldMap?.id);
-    banc.getState().quitterLaScene('arene-hub');
-    expect(banc.getState().scene?.id).toBe('arene-hub');
+    expect(banc.getState().worldMap?.id).toBe(lancee.worldMap?.id);
+    banc.getState().quitterLaScene('scene-de-test-b');
+    expect(banc.getState().scene?.id).toBe('scene-de-test-b');
   });
 });
 
@@ -175,12 +175,12 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
 
   it('snapshot coop : l’invité adopte `campaignDoc.projet`, `document.documentId` et `pendingCampaign.projet`', () => {
     charger();
-    banc.setState({ pendingCampaign: campagneDuJeu(diligenceCampaign) });
+    banc.setState({ pendingCampaign: campagneDuJeu(campagneDeTest) });
     const data = JSON.parse(JSON.stringify(instantaneDeLaCoop(banc.getState()))) as Record<string, unknown>;
     banc.setState(etatInitialDuJeu());
     banc.setState(appliquerLInstantane(data, banc.getState()).etat);
     expect(banc.getState().campaignDoc?.projet).toEqual({ id: 'snap-projet' });
     expect(banc.getState().document?.documentId).toBe('snap-doc');
-    expect(banc.getState().pendingCampaign?.projet).toEqual({ id: diligenceCampaign.id });
+    expect(banc.getState().pendingCampaign?.projet).toEqual({ id: campagneDeTest.id });
   });
 });

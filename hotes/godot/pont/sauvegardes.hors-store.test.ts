@@ -10,6 +10,7 @@ import { AUTO_SLOT, cleDEmplacement, nomDEmplacement, type AnySlot } from '../..
 import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
 import type { ZonesDesSauvegardes } from '../../../src/hote/sauvegardes';
 import type { Pont, Suite } from './pont';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
@@ -20,12 +21,12 @@ const emplacement = (z: ZonesDesSauvegardes, slot: AnySlot): Entite => z['sauveg
 const boutons = (e: Entite): Bouton[] => e.elements.filter((x): x is Bouton => x.type === 'bouton');
 const fiche = (e: Entite): string => (e.elements.find((x) => x.id === 'fiche') as Ligne).texte;
 
-/** Une partie de la campagne `campagne` lancée par un pré-tiré, ses fenêtres d'entrée laissées en main. */
-function lancee(appel: Appel, campagne: string): Suite {
+/** Une partie de la campagne de test lancée par un pré-tiré, ses fenêtres d'entrée laissées en main. */
+function lancee(appel: Appel): Suite {
   const s = suiteDe(appel('ouvrir', { graine: 7 }));
   const recruter = s.vue.zones['groupe.pretires'][0].elements.find((x): x is Bouton => x.type === 'bouton')!;
   appel('jouer', recruter.jeu);
-  return drainer(appel, appel('lancer', { lancer: campagne })).suite;
+  return drainer(appel, appel('lancer', { lancer: campagneDeTest.id })).suite;
 }
 
 describe('sauvegarder et reprendre par le pont', () => {
@@ -44,7 +45,7 @@ describe('sauvegarder et reprendre par le pont', () => {
   it('la partie écrite à un emplacement manuel se rouvre telle quelle, sous le même pont puis sous un autre sur le même stockage', () => {
     const { pont, appel, stockage } = table();
     ouvert = pont;
-    const avant = lancee(appel, 'la-diligence');
+    const avant = lancee(appel);
     const groupe = boursesDuGroupe(appel, avant.vue);
     const offerts = zones(appel);
     expect(boutons(emplacement(offerts, AUTO_SLOT)), 'l’emplacement automatique ne s’écrit pas à la main').toEqual([]);
@@ -79,7 +80,7 @@ describe('sauvegarder et reprendre par le pont', () => {
     appel('quitter');
     expect(stockage.getItem(cleDEmplacement(AUTO_SLOT)), 'un scénario de test quitté n’écrit rien').toBeNull();
 
-    const groupe = boursesDuGroupe(appel, lancee(appel, 'la-diligence').vue);
+    const groupe = boursesDuGroupe(appel, lancee(appel).vue);
     appel('quitter');
     const auto = emplacement(zones(appel), AUTO_SLOT);
     expect(boutons(auto).map((b) => b.jeu), 'la campagne quittée se reprend').toEqual([{ charger: AUTO_SLOT }]);
