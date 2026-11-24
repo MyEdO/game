@@ -1,7 +1,8 @@
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { groupeVitrineDeScenario } from './_heros';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
-import { areneCampaign, paquetDuJeu } from '../campaign';
+import { areneCampaign } from '../campaign';
+import { paquetDuJeu } from '../../noyau/index';
 import type { TestScenario } from './_shared';
 
 /**

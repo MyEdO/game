@@ -12,7 +12,9 @@ import { lireLeFichier, ligneDuFichier, rejouer } from './partieTexte';
 import { nouvelEntete } from '../../src/hote/partieDeTest';
 import { fermerLaTable, table, verbe } from './hote.testkit';
 import { gestesDExploration } from '../../src/noyau/index';
-import { testScenarios } from '../../src/scenes/test-scenarios';
+import { catalogueDeLaPartie } from '../../src/hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 afterEach(fermerLaTable);
 
@@ -22,8 +24,8 @@ const fixture = (nom: string): string => readFileSync(join(DOSSIER, nom), 'utf8'
 
 /** Les gestes d'exploration de la partie que ce texte rejoue. */
 function gestesDuTexte(texte: string) {
-  const { entete, gestes } = lireLeFichier(texte);
-  const r = rejouer(entete, gestes);
+  const { entete, gestes } = lireLeFichier(CATALOGUE, texte);
+  const r = rejouer(CATALOGUE, entete, gestes);
   try {
     return gestesDExploration(r.partie.etat());
   } finally {
@@ -33,7 +35,7 @@ function gestesDuTexte(texte: string) {
 
 /** Les parties à l'ouverture de chaque scénario de test sans combat d'entrée, et la croisée des écuries. */
 const PARTIES = [
-  ...testScenarios.filter((s) => !s.autoCombat).map((s) => [s.id, ligneDuFichier(nouvelEntete(s.id, {}))] as const),
+  ...CATALOGUE.filter((s) => !s.autoCombat).map((s) => [s.id, ligneDuFichier(nouvelEntete(CATALOGUE, s.id, {}))] as const),
   ['croisee-ecuries', fixture('croisee-ecuries.jsonl')] as const,
 ];
 
@@ -59,7 +61,7 @@ describe('chaque geste d’exploration que la vue donne se joue tel qu’écrit'
 describe('le groupe en exploration', () => {
   it('un accès ouvert ne s’actionne pas : le refus dit qu’il se franchit en marchant, et la vue le donne en marche', () => {
     const texte = fixture('porte-ouverte.jsonl');
-    const { entete, gestes } = lireLeFichier(texte);
+    const { entete, gestes } = lireLeFichier(CATALOGUE, texte);
     const [id] = gestes.flatMap((g) => ('type' in g && g.type === 'actionnerLaPorte' ? g.args : []));
     if (typeof id !== 'string') throw new Error('la partie n’ouvre aucune porte');
     expect(gestesDuTexte(texte).map((g) => g.gestes.length)).toContain(1);
@@ -73,7 +75,7 @@ describe('le groupe en exploration', () => {
   });
 
   it('un geste qui part d’ailleurs à l’étage se donne avec le clic de la case qui mène le groupe jusqu’à lui (`cliquerLaCase`)', () => {
-    const lointains = gestesDuTexte(ligneDuFichier(nouvelEntete('fenetre-ecuries', {}))).filter((g) => g.gestes.length === 2);
+    const lointains = gestesDuTexte(ligneDuFichier(nouvelEntete(CATALOGUE, 'fenetre-ecuries', {}))).filter((g) => g.gestes.length === 2);
     expect(lointains.map((g) => g.gestes.map((x) => x.verbe))).toContainEqual(['cliquerLaCase', 'franchirLArete']);
   });
 

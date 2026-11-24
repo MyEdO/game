@@ -68,7 +68,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
 
 // AA 07 l.117
 describe('Main ensanglantée (aiHandGate) : l’arme qui glisse est nommée au journal', () => {
-  it('Échec du Test de Dextérité : la ligne de disarm suit la ligne du Test', () => {
+  it('Échec du Test de Dextérité : la ligne de disarm suit la ligne du Test, en conséquence', () => {
     const orque = mk({ id: 'o', label: 'Orque', pos: { x: 2, y: 1 }, characteristics: { ...CHARS, dexterite: 0 }, handGates: ['main'], weapons: [{ uid: 's1', label: 'Hachoir', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never });
     // Le groupe voit l'Orque, comme dans tout combat du jeu (`lancerLeCombat`) : le journal le nomme (#4017).
     const temoin = mk({ id: 'h', label: 'Témoin', kind: 'heros', pos: { x: 1, y: 1 } });
@@ -80,8 +80,8 @@ describe('Main ensanglantée (aiHandGate) : l’arme qui glisse est nommée au j
       seed++;
       if (seed > 50) throw new Error('aucune graine d’échec');
     }
-    const texts = banc.getState().battle!.log.map((e) => e.text);
-    expect(texts[texts.length - 1]).toBe('  ↳ Orque lâche Hachoir.');
+    const log = banc.getState().battle!.log;
+    expect(log[log.length - 1], 'la ligne de l’arme lâchée est une conséquence du Test (#4911)').toMatchObject({ kind: 'detail', text: 'Orque lâche Hachoir.' });
     expect(orque.weapons.some((w) => w.uid === 's1')).toBe(false);
   });
 });

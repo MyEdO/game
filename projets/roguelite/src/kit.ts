@@ -83,7 +83,3 @@ export const jauge = (part: number, { teinte = 'cire', taille = 'fine' } = {}): 
 /** Le bouton rond du kit, sans libellé : son nom en bulle (les coins). */
 export const rondMuet = (nom: string, libelle: string, attrs: string, taille: 'petit' | 'moyen' | 'grand' = 'grand'): string =>
   `<button type="button" class="bouton-rond laiton ${taille}" ${attrs} aria-label="${libelle}" data-bulle="${libelle}"><div>${picto(nom, { petit: 15, moyen: 20, grand: 24 }[taille])}</div></button>`;
-
-/** Le bouton rond du kit, à pictogramme, et son libellé dessous (l'« outil » du kit). */
-export const rond = (nom: string, libelle: string, attrs: string, taille: 'moyen' | 'grand' = 'grand'): string =>
-  `<button type="button" class="outil" ${attrs}><span class="bouton-rond laiton ${taille}"><span>${picto(nom, taille === 'grand' ? 24 : 20)}</span></span><span class="libelle">${libelle}</span></button>`;

@@ -36,6 +36,7 @@ import { rollTest, resolveOpposed, hydrateTR, estJete, evaluateTest, type TestRe
 import { effectiveChar, bonus, bonusDe } from '../engine/characteristics';
 import { testValue, skillBaseValue, type TestDesigne } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
+import type { Applique } from '../engine/faits';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
 import {
@@ -124,7 +125,9 @@ export function applyManeuverEffects(
   lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: tgt, margin, indice, rng, set }));
   const wl = before - tgt.wounds.current;
   if (wl > 0) floatDamage(tgt, wl);
-  if (tgt.wounds.current <= 0) applyZeroWounds(tgt);
+  const consequences: Applique = { lignes: [], faits: [] };
+  if (tgt.wounds.current <= 0) applyZeroWounds(tgt, consequences);
+  lines.push(...consequences.lignes);
   const pull = tablesPosees().apresToucheDeManoeuvre(get, set, attacker, def, tgt, hadEmpetre);
   if (pull && pull.length) lines.push(...pull);
   return lines;

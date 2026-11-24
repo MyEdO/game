@@ -1,5 +1,6 @@
 /**
- * LA TABLE DE TEST DE L'HÔTE TEXTE (#2898 lot D) : l'hôte (`creerHote`) sur un disque en mémoire, et ses trois outils
+ * LA TABLE DE TEST DE L'HÔTE TEXTE (#2898 lot D) : l'hôte (`creerHote`) sur un disque en mémoire et sur le
+ * seul catalogue commun des scénarios, et ses trois outils
  * appelés comme le serveur MCP les appelle, entrées validées comprises. Une partie par contexte JS : une table neuve
  * ferme la précédente, et `fermerLaTable` ferme la dernière.
  */
@@ -31,7 +32,7 @@ export function table(texte?: string) {
     prendre: (nom) => (tenues.add(nom), null),
     rendre: (nom) => void tenues.delete(nom),
   };
-  const hote = creerHote(disque);
+  const hote = creerHote(disque, []);
   derniere = hote;
   return {
     hote,

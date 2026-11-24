@@ -17,6 +17,9 @@ import { pickAttackWeaponList } from './mount';
 import { rejouer } from '../../hotes/texte/partieTexte';
 import { nouvelEntete } from '../hote/partieDeTest';
 import { ouvrirLeBanc } from './banc.testkit';
+import { catalogueDeLaPartie } from '../hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 /** Ids consommés au compteur de la partie (`prochainId`, #2907) par `lecture`. */
 const idsConsommesPar = (lecture: () => void): number => {
@@ -48,7 +51,7 @@ describe('une lecture ne forge aucun id (#2907)', () => {
   });
 
   it('le lancement d’un scénario : chaque id consommé depuis la partie neuve est porté par l’état', () => {
-    const r = rejouer(nouvelEntete('dome', { graine: 7 }), []);
+    const r = rejouer(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), []);
     try {
       const consommes = r.partie.etat().prochainId - 1;
       const portes = new Set<number>();

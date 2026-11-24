@@ -12,6 +12,9 @@ import type { Forme } from './formes';
 import { argumentsDuVerbe, gesteDuVerbe, SANS_PISTE } from './geste';
 import { ErreurDeGeste } from './partie';
 import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
+import { catalogueDeLaPartie } from './contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 /** Les désignations que les formes d'une liste de paramètres portent. */
 function designationsDe(f: Forme): string[] {
@@ -41,7 +44,7 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
   let partie: ReturnType<typeof ouvrirLaPartie>['partie'];
   let etat: ReturnType<typeof partie.etat>;
   beforeAll(() => {
-    ({ partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {}));
+    ({ partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {}));
     etat = partie.etat();
   });
   afterAll(() => partie.fermer());
@@ -99,7 +102,7 @@ describe('la valeur d’un réglage de jet ou d’un choix de fenêtre se contr�
 
 describe('une désignation nomme ses ids sur ce qu’elle a lu une fois de l’état (#3975)', () => {
   it('nommer un id, connu ou non, ne relit aucun champ de l’état', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const lus: string[] = [];

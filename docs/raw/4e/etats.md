@@ -58,8 +58,8 @@ Un personnage peut subir plusieurs fois le même État. Les pénalités s'accumu
 
 **Exceptions au cumul** : plusieurs États **ne se cumulent pas du tout** (un seul pion possible) :
 - **À Terre** (LDB 16 l.37 : « soit vous êtes *À Terre*, soit vous ne l'êtes pas »)
-- **Inconscient** (LDB 16 l.115 : même principe)
-- **Surpris** (LDB 16 l.137 : même principe)
+- **Inconscient** (LDB 16 l.115 : « L'État *Inconscient* ne se cumule pas – soit vous êtes *Inconscient*, soit vous ne l'êtes pas. »)
+- **Surpris** (LDB 16 l.137 : « L'État *Surpris* ne se cumule pas, et donc vous ne pouvez pas en subir plusieurs, même si, techniquement, vous pouvez être surpris plus d'une fois dans un même Round. »)
 
 **Sources RAW** :
 - `LDB 16 l.11-13` — règle de cumul (même État = additif ; États différents = pénalité la plus forte seule)

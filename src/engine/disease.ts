@@ -46,7 +46,7 @@ import { traitOctroye } from './psych/opsPsy';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { fateSaveOrDie } from './fortune';
-import { addCondition } from './conditions';
+import { addCondition, faitsDesPoses } from './conditions';
 import { emettreDans, type Applique } from './faits';
 import { campOf } from './relations';
 import { suspendSource } from './suspension';
@@ -322,8 +322,7 @@ function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: 
     } else if (op.op === 'condition') {
       // Pose par la SOURCE UNIQUE (LDB 16 l.115 non-cumul, l.7 perte d'Avantage, déclencheur de gain).
       const valeur = typeof op.value === 'number' ? op.value : 1;
-      addCondition(c, op.id.id, valeur);
-      emettreDans(sortie, c, { genre: 'etat', cible: c.id, camp: campOf(c), id: op.id.id, valeur });
+      for (const f of faitsDesPoses(c, [op.id.id], () => addCondition(c, op.id.id, valeur))) emettreDans(sortie, c, f);
     }
   }
 }

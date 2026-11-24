@@ -35,6 +35,7 @@ import { sceneMetresPerTile } from './monde/scene';
 import { porteeDeTir } from '../engine/items';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { loseWounds, isOutOfAction } from '../engine/conditions';
+import type { Applique } from '../engine/faits';
 import { exposedCrew } from '../engine/shipCritical';
 import { combatantsWithinRadius } from './monde/combatGeometry';
 import { emitCombatEvent } from './combatEvents';
@@ -121,8 +122,9 @@ function hitSecondary(
 ): string[] {
   const wl = woundsFromHit(hit.weapon, victim, hit.location, damage, 0, 0, hit.attacker.size); // plancher 0 (navire/ricochet)
   const lines: string[] = [];
-  if (wl > 0) loseWounds(victim, wl);
-  lines.push(tr(msgKey, { name: nomDe(victim), wl }));
+  const consequences: Applique = { lignes: [], faits: [] };
+  loseWounds(victim, wl, consequences);
+  lines.push(tr(msgKey, { name: nomDe(victim), wl }), ...consequences.lignes);
   // États « infligés par l'arme » via le MÊME dispatcher que le tir individuel (Empêtré, En flammes, Venin…),
   // déclenchés dès la touche, comme pour la cible PRIMAIRE (`toucheNonIgnoree`).
   // Une arme à Dégâts « Spéciaux » (Canon à flammes nain, ADE II 8 l.243) applique donc son État à 0 Blessure ;
@@ -156,8 +158,9 @@ export function resolveWeaponArea(
       // (pilonnage indirect d'une case) il n'y a PAS de « cible seule » de Bout portant → on retombe sur la branche
       // d'aire (les N plus proches autour de la case), via la condition `&& target`.
       const extra = woundsFromHit(weapon, target, hit.location, hit.damage + indice, 0, 0, hit.attacker.size) - woundsFromHit(weapon, target, hit.location, hit.damage, 0, 0, hit.attacker.size);
-      if (extra > 0 && !isOutOfAction(target)) loseWounds(target, extra);
-      lines.push(tr('cf.souffleABoutPortant', { name: nomDe(target), indice }));
+      const consequences: Applique = { lignes: [], faits: [] };
+      if (!isOutOfAction(target)) loseWounds(target, extra, consequences);
+      lines.push(tr('cf.souffleABoutPortant', { name: nomDe(target), indice }), ...consequences.lignes);
     } else {
       // Courte-Longue : cible + Indice plus proches. Extrême : idem mais −Indice aux Dégâts.
       const dmg = band === 'Extrême' ? hit.damage - indice : hit.damage;

@@ -20,12 +20,12 @@ const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }
 /** Arme Inoffensive (LDB 62 l.327) : aucune Blessure minimale. */
 const gourdin = { label: 'Gourdin', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [{ id: 'inoffensive' }] } as unknown as Weapon;
 
-interface Coup { sl: number; critical: boolean; martyr?: boolean; fenetre?: boolean; arme?: Weapon; endurance?: number; endurancePretre?: number; pa?: number }
+interface Coup { sl: number; critical: boolean; martyr?: boolean; fenetre?: boolean; arme?: Weapon; endurance?: number; endurancePretre?: number; pa?: number; pbPretre?: number }
 
 /** Une touche de `sl` DR sur la cible, gardée ou non par un prêtre sous Martyr, par la couture du jeu
  *  (`rederivePassiveAttack` → `applyHit`). `fenetre` : attaque STANDARD, dont le Critique ouvre la fenêtre
  *  de Blessure critique et RÉ-ENTRE `applyAttackResult`. */
-function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, endurance, endurancePretre, pa = 0 }: Coup) {
+function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, endurance, endurancePretre, pa = 0, pbPretre }: Coup) {
   banc.getState().ensemencerLeTirage(7);
   const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 7 });
   banc.setState({ party: [hero], battle: null, pendingCascade: null, suspendedCascades: [] });
@@ -41,12 +41,13 @@ function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, end
   cible.armour = { tete: pa, corps: pa, brasG: pa, brasD: pa, jambeG: pa, jambeD: pa };
   if (endurance != null) cible.characteristics = { ...cible.characteristics, endurance };
   if (endurancePretre != null) pretre.characteristics = { ...pretre.characteristics, endurance: endurancePretre };
+  if (pbPretre != null) pretre.wounds.current = pbPretre;
   if (martyr) cible.activeEffects = [{ label: 'Martyr', bonus: 0, duration: { scale: 'rounds', left: 4 }, martyrGuard: pretre.id }] as never;
   const res = rederivePassiveAttack(H, cible, arme, { roll: critical ? 44 : 45, target: 90, success: true, sl, isDouble: critical } as never, 'melee', { rng: makeRNG(1595) }, 'corps');
   applyAttackResult(banc.getState, banc.setState, H, cible, arme, res, fenetre ? {} : { sousAttaque: true });
   draineCascade(banc.getState);
   const apres = banc.getState().battle!.combatants;
-  return { res, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)! };
+  return { res, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)!, journal: banc.getState().battle!.log.map((l) => l.text) };
 }
 
 describe('Martyr : les Dégâts au prêtre, le Critique à la cible', () => {
@@ -88,6 +89,15 @@ describe('Martyr : les Dégâts au prêtre, le Critique à la cible', () => {
     expect(res).toMatchObject({ hit: true, woundsLost: 0 });
     expect(res.damage).toBeGreaterThan(0);
     expect(pretre.wounds.current).toBeLessThan(20);
+  });
+
+  it('le prêtre tombé à 0 Blessure : la ligne de son État À Terre suit celle des Dégâts encaissés (LDB 18 l.15 ; #4911)', () => {
+    const { pretre, journal } = touche({ sl: 2, critical: false, pbPretre: 1 });
+    expect(pretre.wounds.current).toBe(0);
+    const ligne = journal.find((l) => l.includes('Martyr :')) ?? '';
+    const aTerre = `${pretre.label} reçoit 1 État À Terre.`;
+    expect(ligne.split(aTerre), 'la ligne d’À Terre, une fois').toHaveLength(2);
+    expect(ligne.indexOf(aTerre)).toBeGreaterThan(ligne.indexOf('Martyr :'));
   });
 
   it('témoin sans Martyr : la plus forte touche coûte des Blessures à la cible', () => {

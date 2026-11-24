@@ -3,7 +3,8 @@ import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { computeStateVisible, computeStateVisibleAndLight, exploreAvec, sceneLightField, sceneLightSources, setRevealAll } from './visionState';
 import { computeLightField, type LightSource } from './monde/vision';
-import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
+import { diligenceCampaign } from '../scenes/campaign';
+import { paquetDuJeu } from './campagneLivree';
 import { Scene, WallSeg } from './monde/scene';
 import type { Combatant } from '../engine/types';
 

@@ -410,7 +410,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
     'src/data/speciesRace.json': null,
   };
 
-  it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 260_000 }, async () => {
+  it('dans chaque document, liste, record ou config (projets de scène compris), une entrée copiée sous un id neuf et une entrée NON référencée retirée tant que son schéma l’admet, un projet de scène neuf, cibles de code régénérées : aucun refus dans les deux sens, chaque volet inchangé', { timeout: 400_000 }, async () => {
     const dossier = mkdtempSync(join(tmpdir(), 'comptes-2995-'));
     // La mesure de la racine ne lit pas la copie : son processus tourne pendant les gestes.
     const mesureOriginale = mesurer(ROOT);

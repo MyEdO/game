@@ -23,7 +23,8 @@ import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../scen
 import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses, toitureEffective } from '../../sceneEdit';
 import { METRES_PER_LEVEL } from '../relief';
 import { encloseRect, perimeterWallSegs } from '../../sceneEdit.testkit';
-import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
+import { diligenceCampaign } from '../../../scenes/campaign';
+import { paquetDuJeu } from '../../campagneLivree';
 import { ornementsDuBati } from './ornements';
 import { piecesDeToitDeLaScene } from '../piecesDeToit';
 

@@ -127,9 +127,10 @@ describe('« Mât brisé » (l.718) : les deux présences tombent, chacune de SA
       const gabier = marin('gabier', { shipStation: 'greement' } as Partial<Combatant>);
       const vigie = marin('vigie', { shipStation: 'nid-de-pie' } as Partial<Combatant>);
       const be = 3; // Endurance 31 → BE 3
+      // La ligne de chute ouvre le journal de chaque op ; les lignes de ses États la suivent.
       const lignes = [
-        ...applyOps(gabier, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes,
-        ...applyOps(vigie, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes,
+        applyOps(gabier, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes[0],
+        applyOps(vigie, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes[0],
       ];
       const metres = lignes.map((l) => Number(/chute de (\d+) m/.exec(l)![1]));
       expect(metres[0], `seed ${seed} : gréement = 2d10 m`).toBeGreaterThanOrEqual(2);
@@ -269,7 +270,7 @@ describe('« 3 × mètres + 1d10 » n’a qu’UN foyer dans `src/**`', () => {
 
   it('le détecteur MORD : la formule INJECTÉE est vue, DANS LES DEUX ORDRES', () => {
     expect(FORMULE.test('  const lost = Math.max(0, 3 * m + d10(rng) - be);')).toBe(true);
-    expect(FORMULE.test('  applyFall(c, metres, d10Chute);')).toBe(false);
+    expect(FORMULE.test('  applyFall(c, metres, d10Chute, a);')).toBe(false);
     expect(FORMULE.test('  const lost = Math.max(0, d10(rng) + metres * 3 - be);'), 'ordre inverse').toBe(true);
     expect(FORMULE.test('  const lost = Math.max(0, 3 * m + d10Chute - be);'), 'sur un dé POSÉ aussi').toBe(true);
     expect(FORMULE.test('  const trois = 3 * facteur;'), 'un ×3 SANS dé n’est pas la chute').toBe(false);
@@ -281,7 +282,7 @@ describe('« 3 × mètres + 1d10 » n’a qu’UN foyer dans `src/**`', () => {
     applyOps(parLOp, opsDEchec(10), { idNeuf: idsDeTest, rng: makeRNG(7), hull: MOYENNE });
     // 25 m = la colonne nid-de-pie d'une coque Moyenne (entière : aucun dé de hauteur), et le 1d10 de
     // Dégâts est le PREMIER tirage de la même graine — la brique reçoit exactement ce que l'op tire.
-    applyFall(parLaBrique, 25, rollDes(1, 10, makeRNG(7)));
+    applyFall(parLaBrique, 25, rollDes(1, 10, makeRNG(7)), { lignes: [], faits: [] });
     expect(parLOp.wounds.current).toBe(parLaBrique.wounds.current);
     expect(hasCondition(parLOp, 'a-terre')).toBe(hasCondition(parLaBrique, 'a-terre'));
   });

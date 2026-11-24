@@ -614,6 +614,7 @@ import {
   applyEffects,
   gearFromEffects,
   drainPendingLog,
+  enfilerAuJournal,
   ouvrirChute,
   cloturer,
   comptePasDifferes,
@@ -2925,8 +2926,9 @@ function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine
     const { get, set, auteur, cible, log } = a;
     if (!auteur || issue === 'letale' || issue === 'reportee') return;
     if (issue === 'subie') {
-      const fb = loseWounds(cible, talentCritExtraWounds(auteur)).perdues;
-      if (fb > 0) log.push(tr('cf.coupBlessant', { name: nomDe(cible), n: fb }));
+      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      const fb = loseWounds(cible, talentCritExtraWounds(auteur), consequences);
+      if (fb > 0) log.push(tr('cf.coupBlessant', { name: nomDe(cible), n: fb }), ...consequences.lignes);
     }
     const battle = get().battle;
     if (!battle) return;
@@ -3226,7 +3228,9 @@ function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; inf
  *  de combat (LDB 13). */
 function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: string[]): void {
   resolveFirstBlood(cible, get().battle?.victoryCondition, currentBefore - cible.wounds.current, log);
-  if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
+  const consequences: LignesEtFaits = { lignes: [], faits: [] };
+  if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible, consequences);
+  log.push(...consequences.lignes);
   delierLeHorsDeCombat(get, cible);
 }
 
@@ -3575,7 +3579,8 @@ function appliquerLaTouche(
     const lancee = laisserTomber(attacker, weapon, get().forgerUnId);
     if (lancee && !itemCapability(lancee, 'detruitAuLancer')) lacherAuSol(get, set, lancee, land);
   }
-  log.push(...evLines(critLog, 'critique', attacker.id, target.id));
+  // Les lignes des flux que le coup a déclenchés (Test d'un Critique, ses États) suivent la ligne qui les porte (#4911).
+  log.push(...evLines(critLog, 'critique', attacker.id, target.id), ...drainPendingLog(get, set));
   // Nerveux, bruits forts : LDB 85 l.249 ; #4345
   if (battle && weapon.type === 'distance' && armeAPoudre(weapon)) {
     for (const c of battle.combatants) {
@@ -3604,12 +3609,9 @@ function appliquerLaTouche(
   // Interruption de Focalisation (LDB 46 l.144) : Dégâts subis pendant qu'on focalise
   // → Test de la fiche `interruption-de-focalisation`.
   if (res.hit && res.woundsLost) log.push(...evLines(checkFocusInterruption(get, set, target), 'detail', target.id));
-  if (isOutOfAction(target) && !isStructure(target)) log.push(ev('mort', tr('cf.horsDeCombat', { name: nomDe(target) }), target.id)); // structure → ligne d'Effondrement (collapseStructure), pas « hors de combat »
   // Salve (Aux Armes p.126) : un héros qui tire une arme à Salve gardant des tirs (chambered > 0) ne
   // consomme PAS son Action — il peut tirer encore ce tour (chaque tir suivant à −10 cumulatif).
   const salvoContinues = attacker.kind === 'heros' && weapon.type === 'distance' && hasQuality(weapon, 'salve') && (loadRegister(attacker, weapon).chambered ?? 0) > 0;
-  // Lignes de journal différées par un hook profond (ex. `onGainCondition` ennemi/auto déclenché plus
-  // haut dans cette résolution) → foldées dans le MÊME `log` réécrit, avant que ce `set` ne le clobbere.
   // Effet déclenché « après résolution de l'attaque » (touche OU raté) — dispatcher générique via le bus.
   // Point d'émission = fin de résolution d'attaque (LDB 14, Test de combat résolu). Inerte sans donnée.
   emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
@@ -3619,7 +3621,11 @@ function appliquerLaTouche(
   // non-porteur. Cadence-aware (`set` → héros : le FM de palier 2 en cascade, comme onGainCondition ; PNJ inline).
   if (res.attackerDetail && !res.attackerDetail.success) log.push(...evLines(fireOwnTestFailed(get, attacker, { sl: res.attackerDetail.sl, set, rng: battleRng() }), 'etat', attacker.id));
   if (res.defenderDetail && !res.defenderDetail.success) log.push(...evLines(fireOwnTestFailed(get, target, { sl: res.defenderDetail.sl, set, rng: battleRng() }), 'etat', target.id));
+  // Lignes différées par un hook profond déclenché depuis le premier drain → foldées dans le MÊME `log` réécrit,
+  // avant que ce `set` ne le clobbere.
   log.push(...drainPendingLog(get, set));
+  // « Hors de combat » clôt le journal du coup, après les conséquences drainées (#4911) ; une structure a sa ligne d'Effondrement (`collapseStructure`).
+  if (isOutOfAction(target) && !isStructure(target)) log.push(ev('mort', tr('cf.horsDeCombat', { name: nomDe(target) }), target.id));
   journaliserLeCoup(get, set, battle, log, !salvoContinues);
   bus.emit(EVT.SCENE_DIRTY);
   checkBattleOver(get, set);
@@ -3776,7 +3782,7 @@ export function applyFocusInterruption(get: Get, set: SetFn, focuser: Combatant)
   focuser.focus = undefined;
   const compUsed = useSpellComponent(focuser, focusedSpellId, lines); // un composant couvre aussi la Focalisation (incantation en cours)
   lines.push(...applyMiscast(get, set, focuser, 'mineure', { componentDowngrade: compUsed, domainId: findSpellById(focusedSpellId)?.domainId?.id }));
-  set({ pendingLogQueue: [...get().pendingLogQueue, ...lines.map((line) => ({ line, cid: focuser.id }))] });
+  enfilerAuJournal(get, set, lines, focuser.id);
 }
 
 /** Une Maladresse de l'attaquant dans un résultat d'attaque ? (jet propre raté + double, LDB 14 l.19 ;
@@ -4036,10 +4042,12 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   const force = forceDuPorteur(c);
   const units = r.roll % 10;
   switch (r.kind) {
-    case 'selfWound':
-      c.wounds.current = Math.max(0, c.wounds.current - 1); // ignore BE+PA (l.18)
-      if (c.wounds.current <= 0) applyZeroWounds(c);
+    case 'selfWound': {
+      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      loseWounds(c, 1, consequences); // ignore BE+PA (l.18)
+      log.push(...consequences.lignes);
       break;
+    }
     case 'weaponDamageActLast':
       c.actLastNextRound = true;
       break;
@@ -4065,9 +4073,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         const ally = allies[battleRng().int(0, allies.length - 1)];
         const loc = hitLocationByShape(reverseRoll(r.roll), ally.bodyShape);
         const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1 (l.165)
-        ally.wounds.current = Math.max(0, ally.wounds.current - lost);
-        if (ally.wounds.current <= 0) applyZeroWounds(ally);
-        log.push(tr('cf.maladresseToucheUnAllie', { name: nomDe(ally), loc: locationLabel(loc, ally.bodyShape), lost }));
+        const consequences: LignesEtFaits = { lignes: [], faits: [] };
+        loseWounds(ally, lost, consequences);
+        log.push(tr('cf.maladresseToucheUnAllie', { name: nomDe(ally), loc: locationLabel(loc, ally.bodyShape), lost }), ...consequences.lignes);
       } else {
         addCondition(c, COND.sonne); // « Si personne n'est à distance, vous vous frappez tout seul → Sonné » (l.45-46)
         log.push(tr('cf.maladresseSeSonne'));
@@ -4076,9 +4084,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
     }
     case 'misfire': {
       const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1
-      c.wounds.current = Math.max(0, c.wounds.current - lost);
-      if (c.wounds.current <= 0) applyZeroWounds(c);
-      log.push(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.maladresseRateLeTirDetruite' : 'cf.maladresseRateLeTir', { lost }));
+      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      loseWounds(c, lost, consequences);
+      log.push(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.maladresseRateLeTirDetruite' : 'cf.maladresseRateLeTir', { lost }), ...consequences.lignes);
       // Arme d'équipe (MDG 12 l.464) : « Si une arme dotée du Défaut Arme d'équipe subit un Incident de
       // tir, tous les membres de son équipage sont affectés. » → CHAQUE servant APTE du poste (hors le
       // tireur, déjà frappé ci-dessus) subit le même coup (Dégâts au Bras principal, mitigés à SA fiche).
@@ -4089,9 +4097,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
           const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
-          s.wounds.current = Math.max(0, s.wounds.current - sLost);
-          if (s.wounds.current <= 0) applyZeroWounds(s);
-          log.push(tr('cf.maladresseRateLeTirEquipage', { name: nomDe(s), lost: sLost }));
+          const deLEquipage: LignesEtFaits = { lignes: [], faits: [] };
+          loseWounds(s, sLost, deLEquipage);
+          log.push(tr('cf.maladresseRateLeTirEquipage', { name: nomDe(s), lost: sLost }), ...deLEquipage.lignes);
         }
       }
       // Table AA « Incidents de Tir d'Artillerie par Salve » (AA 10 l.270-277) : une arme à Atout
@@ -4115,9 +4123,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           for (const s of salveCrew) {
             const loc: HitLocation = salve.entry.location === 'brasPrincipal' ? 'brasD' : hitLocationByShape(reverseRoll(battleRng().int(1, 100)), s.bodyShape);
             const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, force) + battleRng().int(0, 9), 0, 1, c.size);
-            s.wounds.current = Math.max(0, s.wounds.current - sLost);
-            if (s.wounds.current <= 0) applyZeroWounds(s);
-            log.push(tr('cf.salveDArtillerieTouche', { name: nomDe(s), lost: sLost, loc: locationLabel(loc, s.bodyShape) }));
+            const deLaSalve: LignesEtFaits = { lignes: [], faits: [] };
+            loseWounds(s, sLost, deLaSalve);
+            log.push(tr('cf.salveDArtillerieTouche', { name: nomDe(s), lost: sLost, loc: locationLabel(loc, s.bodyShape) }), ...deLaSalve.lignes);
           }
         }
         if (salve.entry.strayFire) log.push(tr('cf.salveDArtilleriePerdue', { note: salve.note }));
@@ -4558,7 +4566,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const bg = get().battle;
   if (!gt.success) {
     const { lignes, tient } = glisseDeLaMain(get, set, attacker, gHand);
-    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeRatee', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lignes.map((l) => `  ↳ ${l}`), 'information', attacker.id)] } });
+    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeRatee', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lignes, 'detail', attacker.id)] } });
     return tient;
   }
   if (bg) set({ battle: { ...bg, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeReussie', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id)] } });
@@ -5330,8 +5338,9 @@ export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: Pen
     apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(issue, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
-  // 0 PB → À Terre (LDB 18 l.15).
-  if (target.wounds.current <= 0 && !target.dead && !hasCondition(target, COND.inconscient)) applyZeroWounds(target);
+  const consequences: LignesEtFaits = { lignes: [], faits: [] };
+  if (target.wounds.current <= 0 && !target.dead) applyZeroWounds(target, consequences); // LDB 18 l.15
+  log.push(...consequences.lignes);
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
 
@@ -6977,8 +6986,9 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
     apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.compte.blessures }),
   });
-  // 0 PB → À Terre (LDB 18 l.15).
-  if (cible.wounds.current <= 0 && !cible.dead && !hasCondition(cible, COND.inconscient)) applyZeroWounds(cible);
+  const consequences: LignesEtFaits = { lignes: [], faits: [] };
+  if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible, consequences); // LDB 18 l.15
+  lignes.push(...consequences.lignes);
   // Effets ADDITIONNELS d'un Projectile sur la cible (« Grands feux d'U'Zhul » : +2 En flammes, À
   // Terre ; « Drain » : soigne le lanceur) — lus depuis `spell.effects` (Flow éditable, feuilles
   // `on:'target'`).
@@ -8602,8 +8612,10 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   if (swarms.length)
     for (const c of battle.combatants) {
       if (c.swarm || isOutOfAction(c) || !(c.engagedWith ?? []).some((id) => swarms.some((s) => s.id === id))) continue;
-      c.wounds.current = Math.max(0, c.wounds.current - 1);
-      if (c.wounds.current <= 0) applyZeroWounds(c);
+      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      loseWounds(c, 1, consequences);
+      // Les faits d'État de `consequences` sont ceux qui portent une ligne (`emettreDans`), au même rang.
+      consequences.faits.filter((f): f is FaitDEtat => f.genre === 'etat').forEach((f, i) => battle.log.push(evDEtat(f.id, consequences.lignes[i], c.id)));
     }
   decayEngagement(battle.combatants);
   // Zones persistantes (L11) : un Round de moins ; les zones épuisées se dissipent (fumée, Mur de feu…).

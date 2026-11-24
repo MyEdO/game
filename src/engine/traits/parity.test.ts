@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { TRAITS } from './registry';
 import { formatTrait } from './dispatch';
 import type { TraitInstance } from '../statEntry';
-import { slugId } from '../../data/slug';
 
 /**
  * Parité des Traits de créature (LDB 85). Le registre `TRAITS` est désormais DÉRIVÉ 1:1 de la donnée
@@ -123,6 +122,8 @@ const DISPATCH = new Set<string>([
   // LDB 85 l.104) — même canal passive que Dressé (Guerre) +10 CC. DISPATCH.
   'Dressé (Guerre)', 'Dressé (Dompté)', 'Dressé (Garde)', 'Dressé (Divertir)',
   'Corruption mentale', 'Démoniaque', 'Élite', 'Endurant', 'Éthéré', 'Fabriqué', 'Foulée', 'Furtif',
+  // Bestiaire non officiel, forme d'`ethere` : fiche `user-arbitrage-contenu-fan-sans-code-neuf`.
+  'Immunité (Attaques Ordinaires)',
   'Grand', 'Immunité', 'Infravision', 'Insensible à la douleur', 'Instable', 'Intelligent', 'Magique',
   'Meneur', 'Mutation', 'Nerveux', 'Nuée', 'Parasité', 'Perturbant', 'Protection', 'Rage', 'Rapide',
   // Rampant (MSRC 15) : capability `noRun` (donnée) → `runMultiplier`=0 (budget de Course nul), la Marche
@@ -159,6 +160,8 @@ const DISPATCH = new Set<string>([
   'Manifestation de Ghur',
   'Régénération', 'Résistance à la Magie', 'Rusé', 'Sang corrosif', 'Stupide', 'Taille', 'Territorial',
   'Toile', 'Vision nocturne', 'Vol',
+  // Bestiaire non officiel, formes d'`intelligent` et `toile` : fiche `user-arbitrage-contenu-fan-sans-code-neuf`.
+  'Studieux', 'Enflammée',
   // Atouts de STRUCTURE de siège (ADE II 8) : capabilities `structResistant`/`structImpenetrable`
   // (donnée), lues par `hasCapability` dans `engine/structures` (`structureImmune`) — canal dispatch.
   'Résistant', 'Impénétrable (structure)',
@@ -209,9 +212,13 @@ const DISPATCH = new Set<string>([
   'Entêté',
 ]);
 
+/** Livres fan dont un Trait propre sans champ de mécanique reste au catalogue par son seul texte : fiche
+ *  `user-arbitrage-contenu-fan-sans-code-neuf`. */
+const LIVRES_SANS_MECANIQUE: ReadonlySet<string> = new Set(['bestiaire-non-officiel']);
+
 /** Entrée BRUTE de `traits.json` — lue au fichier (le registre `TRAITS` est dérivé, il ne rend pas
  *  les champs de mécanique tels quels). */
-type RawTrait = { label: string } & Partial<Record<(typeof MECHANIC_FIELDS)[number], unknown>>;
+type RawTrait = { id: string; label: string; source: { book: string } } & Partial<Record<(typeof MECHANIC_FIELDS)[number], unknown>>;
 
 /** Les CINQ champs de `TraitData` qui portent une mécanique exécutable (cf. `src/data/index.ts`) :
  *  `passive` (GameOp continus), `effects` (TriggeredEffect), `aura` (projection `recompute-auras`),
@@ -222,10 +229,6 @@ const MECHANIC_FIELDS = ['passive', 'effects', 'aura', 'capabilities', 'grantsMa
 function allTraits(): RawTrait[] {
   const path = fileURLToPath(new URL('../../data/traits.json', import.meta.url));
   return JSON.parse(readFileSync(path, 'utf8')) as RawTrait[];
-}
-
-function allTraitLabels(): string[] {
-  return allTraits().map((t) => t.label);
 }
 
 /** Champs de mécanique NON VIDES portés par l'entrée (liste vide = aucune mécanique en donnée). */
@@ -239,14 +242,15 @@ function mechanicFieldsOf(t: RawTrait): string[] {
 
 describe('parité — registre des Traits dérivé de traits.json', () => {
   it('la dérivation est totale : chaque trait de traits.json est dans TRAITS (par id)', () => {
-    const missing = allTraitLabels().filter((l) => !TRAITS()[slugId(l)]);
+    const missing = allTraits().filter((t) => !TRAITS()[t.id]).map((t) => t.id);
     expect(missing).toEqual([]);
   });
 
   it('chaque trait de traits.json est couvert par un sous-système identifié (dispatch / ailleurs / journal)', () => {
-    const uncovered = allTraitLabels().filter(
-      (l) => !DISPATCH.has(l) && !COUVERT_AILLEURS.has(l) && !JOURNAL_MJ.has(l),
-    );
+    const uncovered = allTraits()
+      .filter((t) => !(LIVRES_SANS_MECANIQUE.has(t.source.book) && !mechanicFieldsOf(t).length))
+      .map((t) => t.label)
+      .filter((l) => !DISPATCH.has(l) && !COUVERT_AILLEURS.has(l) && !JOURNAL_MJ.has(l));
     expect(uncovered).toEqual([]);
   });
 

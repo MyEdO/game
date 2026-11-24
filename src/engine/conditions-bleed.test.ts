@@ -54,10 +54,12 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('atteindre 0 par un coup → Inconscient (et À Terre)', () => {
     const c = ilyanweSaignee();
-    expect(loseWounds(c, 10)).toEqual({ perdues: 3, faits: [
+    const a = { lignes: [], faits: [] };
+    expect(loseWounds(c, 10, a)).toBe(3);
+    expect(a.faits).toEqual([
       { genre: 'etat', cible: c.id, camp: 'groupe', id: 'a-terre', valeur: 1 },
       { genre: 'etat', cible: c.id, camp: 'groupe', id: 'inconscient', valeur: 1 },
-    ] });
+    ]);
     expect(hasCondition(c, 'inconscient')).toBe(true);
     expect(hasCondition(c, 'a-terre')).toBe(true);
   });
@@ -71,13 +73,13 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('coup critique déjà décompté (PB posés à 0 par le flux d\'attaque) → Inconscient à `applyZeroWounds`', () => {
     const c = ilyanweSaignee(0);
-    applyZeroWounds(c);
+    applyZeroWounds(c, { lignes: [], faits: [] });
     expect(hasCondition(c, 'inconscient')).toBe(true);
   });
 
   it('sans Hémorragique, 0 PB ne fait pas perdre connaissance (LDB 18 l.15)', () => {
     const c = { ...ilyanweSaignee(), conditions: [] } as Combatant;
-    loseWounds(c, 10);
+    loseWounds(c, 10, { lignes: [], faits: [] });
     expect(hasCondition(c, 'a-terre')).toBe(true);
     expect(hasCondition(c, 'inconscient')).toBe(false);
   });
@@ -85,13 +87,17 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
   it("variante Aux Armes : le Test d'AA 07 l.5 décide, 0 PB seul ne pose pas l'Inconscient", () => {
     setRule('combat-aa-blessures', 'aa');
     const c = ilyanweSaignee();
-    loseWounds(c, 10);
+    loseWounds(c, 10, { lignes: [], faits: [] });
     expect(hasCondition(c, 'inconscient')).toBe(false);
   });
 
-  it('journal de l\'op `wounds` : les Blessures réellement perdues, rien à 0 PB', () => {
+  it('journal de l\'op `wounds` : les Blessures réellement perdues, puis les États posés ; rien de plus à 0 PB', () => {
     const c = ilyanweSaignee(1);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual(['Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).']);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual([
+      'Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).',
+      'Ilyanwe reçoit 1 État À Terre.',
+      'Ilyanwe reçoit 1 État Inconscient.',
+    ]);
     expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual([]);
   });
 });
@@ -101,7 +107,7 @@ describe('Inconscient du saignement : verrou et jet de mort (LDB 16 l.105 ; AA 0
 
   it('un soin ne réveille pas le porteur tant qu’un État Hémorragique reste', () => {
     const c = ilyanweSaignee();
-    loseWounds(c, 10);
+    loseWounds(c, 10, { lignes: [], faits: [] });
     const log = applyHealWounds(c, 2);
     expect(c.wounds.current).toBe(2);
     expect(hasCondition(c, 'inconscient'), 'verrou : Hémorragique encore porté').toBe(true);
@@ -114,7 +120,7 @@ describe('Inconscient du saignement : verrou et jet de mort (LDB 16 l.105 ; AA 0
   /** Soignée à 1 PB, toujours Inconsciente sous le verrou, 2 Hémorragique. */
   function soigneeA1PB(): Combatant {
     const c = ilyanweSaignee();
-    loseWounds(c, 10);
+    loseWounds(c, 10, { lignes: [], faits: [] });
     applyHealWounds(c, 1);
     expect(hasCondition(c, 'inconscient')).toBe(true);
     return c;

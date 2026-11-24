@@ -51,16 +51,25 @@ const DATA_DIR = __dirname;
  *  `folioIntegrity.mjs`) : `src/data/*.json` porte 4480 entrées à `source:{book,page}`, dont 1319
  *  citent AUSSI une ligne — 504 jugées ici, 815 écartées (807 hors-forme, 8 queue-trouée), soit 11,3 %
  *  des folios vérifiés machine par cette voie. Les deux bornes ci-dessous rendent ces chiffres
- *  OPPOSABLES, chacune dans son sens, sans marge : la prochaine entrée sourcée SANS citer sa ligne fait
- *  rouge, comme la prochaine entrée qui cesse d'être jugée. */
+ *  OPPOSABLES, chacune dans son sens, sans marge : la prochaine entrée d'un livre extrait sourcée SANS citer sa
+ *  ligne fait rouge, comme la prochaine entrée qui cesse d'être jugée. */
 const SCANNED_MIN = 504;
-const SANS_CITATION_MAX = 3161; // 4480 sourcées − 1319 citées.
+/** Remesurée le 2026-11-24 (#4916) sur les seuls livres extraits : 4907 sourcées, 1616 citées, 490 d'un livre sans
+ *  extraction. */
+const SANS_CITATION_MAX = 2801;
 
-/** Entrées à `source:{book,page}` (SOURCÉES) et celles qui citent AUSSI une ligne (CITÉES), même
- *  règle de lecture que `citedEntries` : `source.note`, à défaut le champ `ref` frère. */
-function compteSources(dir: string): { sourcees: number; citees: number } {
+/** Livres sans extraction sous `Source/` (sans `dir`, `docs/ajouter-un-livre-source.md` § 3) : leurs entrées n'ont
+ *  aucune ligne à citer. */
+const SANS_EXTRACTION = new Set(
+  (JSON.parse(readFileSync(join(DATA_DIR, 'books.json'), 'utf8')) as { id: string; dir?: string }[]).filter((b) => !b.dir).map((b) => b.id),
+);
+
+/** Entrées à `source:{book,page}` (SOURCÉES), celles qui citent AUSSI une ligne (CITÉES), même règle de lecture que
+ *  `citedEntries` : `source.note`, à défaut le champ `ref` frère, et celles d'un livre extrait qui n'en citent pas. */
+function compteSources(dir: string): { sourcees: number; citees: number; sansCitation: number } {
   let sourcees = 0;
   let citees = 0;
+  let sansCitation = 0;
   const walk = (node: unknown): void => {
     if (Array.isArray(node)) return node.forEach(walk);
     if (!node || typeof node !== 'object') return;
@@ -69,13 +78,14 @@ function compteSources(dir: string): { sourcees: number; citees: number } {
     if (estObjet(s) && typeof s.book === 'string' && typeof s.page === 'number') {
       sourcees++;
       if (typeof s.note === 'string' || typeof rec.ref === 'string') citees++;
+      else if (!SANS_EXTRACTION.has(s.book)) sansCitation++;
     }
     for (const [k, v] of Object.entries(rec)) if (k !== 'source') walk(v);
   };
   for (const f of listerDossier(dir).filter((x) => x.endsWith('.json'))) {
     walk(JSON.parse(readFileSync(join(dir, f), 'utf8')));
   }
-  return { sourcees, citees };
+  return { sourcees, citees, sansCitation };
 }
 
 const STOCK = 'scripts/guards/lib/folioLineAlignStock.mjs';
@@ -119,7 +129,7 @@ describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318)', ()
   });
 
   it('CLIQUET DE COUVERTURE : les entrées JUGÉES ne reculent pas, les entrées SANS citation ne croissent pas (2026-09-01)', () => {
-    const { sourcees, citees } = compteSources(DATA_DIR);
+    const { sourcees, citees, sansCitation } = compteSources(DATA_DIR);
     expect(citees, 'le compte de citations diverge de celui de `citedEntries` — la mesure ci-dessous ne porte plus sur la même population').toBe(
       scanned + ignored.length,
     );
@@ -128,8 +138,8 @@ describe('garde-fou « folio déclaré ↔ ligne citée » (cliquet, #1318)', ()
       `couverture EN RECUL : ${scanned} entrées jugées pour ${SCANNED_MIN} au relevé — une entrée cesse d'être machine-vérifiée sans le dire`,
     ).toBeGreaterThanOrEqual(SCANNED_MIN);
     expect(
-      sourcees - citees,
-      `entrées sourcées SANS citation à la ligne : ${sourcees - citees} pour ${SANS_CITATION_MAX} au relevé (${sourcees} sourcées, ${citees} citées) — une entrée neuve doit citer sa ligne, pas grossir l'angle mort`,
+      sansCitation,
+      `entrées d'un livre extrait SANS citation à la ligne : ${sansCitation} pour ${SANS_CITATION_MAX} au relevé (${sourcees} sourcées, ${citees} citées) — une entrée neuve doit citer sa ligne, pas grossir l'angle mort`,
     ).toBeLessThanOrEqual(SANS_CITATION_MAX);
   });
 

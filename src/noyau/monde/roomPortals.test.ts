@@ -5,7 +5,8 @@ import { pathTo, walkNeighbors, tileKey, type Pt } from './path';
 import { effectiveArchitecture } from '../sceneEdit';
 import { massFootprintCells } from './buildings';
 import { isRoomZone, occupiedRoomIds, roomsByTile } from './rooms';
-import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { areneCampaign, diligenceCampaign } from '../../scenes/campaign';
+import { paquetDuJeu } from '../campagneLivree';
 
 function sceneWithRooms(
   walls: WallSeg[] = [],

@@ -91,7 +91,8 @@ import { props } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
-import { allBuiltinCampaigns, areneCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { allBuiltinCampaigns, areneCampaign } from '../../scenes/campaign';
+import { paquetDuJeu } from '../campagneLivree';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession } from '../../hote/editeur';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */

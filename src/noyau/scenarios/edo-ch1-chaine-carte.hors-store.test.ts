@@ -13,7 +13,9 @@ import { aPorteeDe } from '../../noyau/monde/exploreNav';
 import { startOf } from '../../noyau/monde/scene';
 import type { ConditionCtx } from '../../engine/flowCore';
 import { tableTotale } from '../../lib/tableTotale';
-import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
+import { diligenceCampaign } from '../../scenes/campaign';
+import { poserLaCampagne } from '../campagne.testkit';
+import { campagneDuJeu, paquetDuJeu } from '../campagneLivree';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 import { creditBourse } from '../bourseFlow';
 import { draineCascade } from '../cascade.testkit';
@@ -105,7 +107,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
 
   it('du relais à la porte du Loup, les gestes du groupe posent les drapeaux et la clôture solde les deux objectifs', () => {
     const objectifs = () => get().objectives.map((o) => o.id);
-    expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     banc.getState().fenetreValider('ouverture');
     expect(get().scene?.id).toBe('la-diligence');
 
@@ -168,7 +170,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
 describe('ch.1 — chaque producteur se joue au geste ou au pas du groupe, sur des cases atteignables', () => {
   const get = () => banc.getState();
   beforeEach(() => {
-    expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
     banc.getState().fenetreValider('ouverture');
   });
   const entrer = (id: string) => {

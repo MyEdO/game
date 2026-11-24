@@ -25,6 +25,7 @@ import { isStructure } from './structures';
 import { possesses } from './skills';
 import { objetDuTrapping } from './items';
 import { nomDe } from './nom';
+import type { Applique } from './faits';
 
 /** Id STABLE de la Compétence des actes de soin — source unique des sites qui la testent ou la lisent. */
 export const HEAL_SKILL = 'guerison';
@@ -226,8 +227,9 @@ export function cappedHealAmount(target: Combatant, delta: number): number {
 export function applyHealWounds(target: Combatant, delta: number, opts: HealWoundsOptions = {}): string[] {
   const { wake = true, log: customLog } = opts;
   if (delta < 0) {
-    const lost = loseWounds(target, -delta).perdues; // perte centralisée (−Avantage + À Terre à 0)
-    return [t('heal.backfire', { name: nomDe(target), lost })];
+    const consequences: Applique = { lignes: [], faits: [] };
+    const lost = loseWounds(target, -delta, consequences);
+    return [t('heal.backfire', { name: nomDe(target), lost }), ...consequences.lignes];
   }
   if (delta === 0) return customLog ? customLog(0) : [t('heal.nothing', { name: nomDe(target) })];
   const before = target.wounds.current;

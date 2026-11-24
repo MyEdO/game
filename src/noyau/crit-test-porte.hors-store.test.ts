@@ -2,7 +2,8 @@ import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { avanceEtapeCascade, draineEtapes } from './cascade.testkit';
-import { applyCriticalToTarget, openCombatEndCascade } from './combatFlow';
+import { applyAttackResult, applyCriticalToTarget, openCombatEndCascade } from './combatFlow';
+import type { AttackResult } from '../engine/combat';
 import { resolveCritique } from '../engine/critical';
 import { testValue } from '../engine/skills';
 import { addCondition, stacks } from '../engine/conditions';
@@ -10,7 +11,7 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import { resolveStake } from '../data';
 import { testScene } from '../scenes/test-fixture';
-import type { Combatant, HitLocation, Trauma } from '../engine/types';
+import type { Combatant, HitLocation, Trauma, Weapon } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { chargerLaSave, exporterLaSauvegarde, lireSave, refusDeSauvegarde, snapshotSave } from './persistance/save';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -34,6 +35,8 @@ beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
  */
 
 const chars = { 'capacite-de-combat': 45, 'capacite-de-tir': 40, force: 35, endurance: 35, initiative: 30, agilite: 40, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
+
+const POINGS = { label: 'Poings', type: 'melee', damage: { plusBF: true, flat: 0, bare: true }, qualities: [] } as unknown as Weapon;
 
 const mk = (id: string, kind: 'heros' | 'ennemi'): Combatant =>
   (blessuresSurLeProfil({ id, name: id, label: id, kind, characteristics: { ...chars }, conditions: [], engagedWith: [], skills: [], talents: [],
@@ -250,6 +253,46 @@ describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre
     expect(porteur().traumas).toEqual(expect.arrayContaining([
       expect.objectContaining({ traumaId: 'main-bras-ampute', location: 'brasG' }),
     ]));
+  });
+
+  it('Main mutilée d’un ennemi sans siège : le journal nomme le Test de plaie et dit l’amputation en une ligne (#4911)', () => {
+    seedBattleRng(1);
+    const enemy = mk('e', 'ennemi');
+    combat(mk('h', 'heros'), enemy);
+    subirCritique(enemy, 'brasG', 95);
+    expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
+      'e — Test de Résistance Difficile (−20) : 63/15 → échec (DR -5).',
+      'e reçoit 1 État Sonné.',
+      'e reçoit 1 État À Terre.',
+      'e : Amputation et Main/bras amputé (Bras gauche).',
+      'e — Test de Résistance (Plaie d’amputation) Difficile (−20) : 1/5 → réussi (DR +1).',
+    ]);
+  });
+
+  it('Main mutilée d’un ennemi sans siège, par le coup : touche, Critique, ses conséquences en `detail`, puis « hors de combat » (#4911)', () => {
+    seedBattleRng(1);
+    const hero = mk('h', 'heros');
+    const enemy = mk('e', 'ennemi');
+    enemy.wounds.current = 2;
+    enemy.important = true; // hors Mort subite : LDB 18 l.46
+    combat(hero, enemy);
+    const crit = resolveCritique('ldb', enemy, 'brasG', battleRng(), { forcedRoll: 95 });
+    const coup: AttackResult = { hit: true, attackerRoll: 33, netSL: 3, location: 'brasG', damage: 20, woundsLost: 20, critical: false, advantageTo: null, defenderDefeated: false, log: 'h touche e.' };
+    applyAttackResult(banc.getState, banc.setState, hero, enemy, POINGS, coup, { critiques: [{ crit, deviation: 'subir' }] });
+    const journal = banc.getState().battle!.log.map(({ kind, text }) => ({ kind, text }));
+    const critique = journal.findIndex((e) => e.text === 'Blessure critique (Bras gauche) — Main mutilée.');
+    const test = journal.findIndex((e) => e.text === 'e — Test de Résistance Difficile (−20) : 63/15 → échec (DR -5).');
+    expect(journal[0]).toEqual({ kind: 'attaque', text: 'h touche e.' });
+    expect(journal[critique]?.kind).toBe('critique');
+    expect(test, 'le Test du Critique suit sa ligne').toBeGreaterThan(critique);
+    expect(journal.slice(test, test + 6)).toEqual([
+      { kind: 'detail', text: 'e — Test de Résistance Difficile (−20) : 63/15 → échec (DR -5).' },
+      { kind: 'detail', text: 'e reçoit 1 État Sonné.' },
+      { kind: 'detail', text: 'e reçoit 1 État À Terre.' },
+      { kind: 'detail', text: 'e : Amputation et Main/bras amputé (Bras gauche).' },
+      { kind: 'detail', text: 'e — Test de Résistance (Plaie d’amputation) Difficile (−20) : 1/5 → réussi (DR +1).' },
+      { kind: 'mort', text: 'e est mis hors de combat !' },
+    ]);
   });
 
   it('Coupure à l’orteil : le report survit à la save et une réussite écarte le Test de plaie', () => {

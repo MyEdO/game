@@ -26,7 +26,6 @@ import { fixtureText } from '../i18n/fixtureText';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { lancerLeScenario } from '../noyau/lancementDeScenario';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
-import { testScenarios } from '../scenes/test-scenarios/index';
 import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { isRation } from '../engine/provisions';
@@ -40,10 +39,13 @@ import { bancDeLInterlude } from '../noyau/interlude.testkit';
 import { craftCatalog, learnableTalents, orderCatalog } from '../engine/activities';
 import { formatMoney, fromBrass } from '../engine/money';
 import type { Choix } from './elements';
+import { catalogueDeLaPartie } from './contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
-  it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+  it('une ligne par événement, ses sous-lignes (`detail`, sans marque au texte) à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
@@ -56,8 +58,8 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
         { de: 'journal', texte: 'Vous entrez.', heure },
         combat('round', 'Round 2'),
         combat('attaque', 'Coup porté.', heros.id, ennemi.id),
-        combat('detail', '  ↳ Tête, 4 Blessures'),
-        combat('detail', '  ↳ Sonné'),
+        combat('detail', 'Tête, 4 Blessures'),
+        combat('detail', 'Sonné'),
         combat('critique', 'Critique au bras.', ennemi.id, heros.id),
         combat('mort', 'Hors de combat.', ennemi.id),
         combat('information', ''),
@@ -70,7 +72,7 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
         { id: 'journal/9', ton: 'reussite', texte: 'Hors de combat.', detail: null },
       ]);
       expect(dernier, 'le jour de la dernière ligne').toBe(jour);
-      expect(lignesDuJournal(etat, 0, [combat('detail', '↳ Seule')], jour).lignes, 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: '↳ Seule', detail: null }]);
+      expect(lignesDuJournal(etat, 0, [combat('detail', 'Seule')], jour).lignes, 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: 'Seule', detail: null }]);
       const lendemain = heure + MINUTES_PER_DAY;
       expect(lignesDuJournal(etat, 0, [{ de: 'journal', texte: 'Premier mot.', heure }, { de: 'journal', texte: 'Au matin.', heure: lendemain }], null), 'chaque jour s’ouvre sur sa date, le premier compris').toMatchObject({
         lignes: [
@@ -102,7 +104,7 @@ describe('les modificateurs de visibilité dans l’écran de jet (MDG 13 l.234�
     meteosImposees: [{ label: 'Brouillard', jusqua: 30 * MINUTES_PER_DAY, meteo: { visibilite: { id: 'brouillard' } } }],
   });
   const zones = (etat: Jeu) => zonesDeLEcran(
-    etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER,
+    etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, [],
   );
 
   it('l’Orientation joue deux rangées et montre une seule puce de DR pour tout l’équipage', () => {
@@ -166,13 +168,13 @@ describe('les modificateurs de visibilité dans l’écran de jet (MDG 13 l.234�
 
 describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
   it('ce qui emporte le héros et ses Points de Destin ; le coup ne s’évite que s’il porte', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const heros = partie.etat().battle!.combatants.find((c) => c.kind === 'heros')!;
       const ecran = (source: NonNullable<Jeu['pendingFateSave']>['source']) => {
         const etat: Jeu = { ...partie.etat(), pendingFateSave: source === 'hit' ? { heroId: heros.id, source, avantLeCoup: structuredClone(heros) } : { heroId: heros.id, source } };
         const fenetre = fenetreADessiner(etat);
-        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre, null, SANS_ROSTER);
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetre, null, SANS_ROSTER, []);
       };
       const lent = ecran('slow');
       expect(lent['fenetre.corps'], 'l’enjeu en alerte, puis les Points de Destin du héros').toMatchObject([{ id: 'destin/enjeu', ton: 'alerte' }, { id: 'destin/points', valeur: String(heros.fate ?? 0) }]);
@@ -189,14 +191,14 @@ describe('la fenêtre du Destin (`fenetre.corps`, `fenetre.gestes`)', () => {
 describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () => {
   it.each([['hors de vue', false], ['en vue', true]] as const)('un Griffon vaincu %s : la ligne et la valeur de « Dépecer » le nomment comme la vue (#4017)', (_cas, enVue) => {
     const banc = ouvrirLeBanc();
-    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(testScenarios.find((s) => s.id === 'melee-dans-le-noir')!, idsDeTest));
+    lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(CATALOGUE.find((s) => s.id === 'melee-dans-le-noir')!, idsDeTest));
     const battle = banc.getState().battle!;
     const pres = battle.combatants.find((c) => (enVue ? c.kind !== 'ennemi' : c.kind === 'ennemi'))!;
     const griffon = combattantDeTest({ id: 'griffon-de-test', label: 'Griffon', kind: 'ennemi', creatureId: 'griffon', pos: { ...pres.pos! } });
     banc.setState({ battle: { ...battle, combatants: [...battle.combatants, griffon].map((c) => (c.kind === 'ennemi' ? { ...c, wounds: { ...c.wounds, current: 0 }, dead: true } : c)) } });
     finishVictory(banc.getState, banc.setState);
     const etat = banc.getState() as unknown as Jeu;
-    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
     const nom = enVue ? 'Griffon' : t('vision.horsDeVue');
     expect(etat.pendingVictory!.defeated.find((d) => d.creatureId === 'griffon'), 'témoin : le Griffon est vaincu, sous la vue de sa case').toMatchObject({ nom, enVue });
     const depecer = zones['fenetre.reglages'].find((g) => g.id === 'fenetreChoisir@victoire#depecer');
@@ -206,10 +208,10 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
   });
 
   it('l’Expérience, l’argent, chaque adversaire vaincu et chaque message ; aucun dépeçage sans créature à dépecer', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const etat: Jeu = { ...partie.etat(), pendingVictory: { xp: 30, gold: { gold: 0, silver: 5, brass: 0 }, defeated: [{ nom: fixtureText('Gobelin'), count: 2, enVue: true }, { nom: fixtureText('Chef'), count: 1, enVue: true }], messages: ['La foule acclame.'] } };
-      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
       expect(zones['fenetre.corps'], 'en puces ce qui est gagné, puis les vaincus et les messages').toMatchObject([
         { id: 'victoire/xp', valeur: '+30' }, { id: 'victoire/argent', valeur: '5/–' },
         { id: 'victoire/vaincu/0', texte: 'Gobelin ×2' }, { id: 'victoire/vaincu/1', texte: 'Chef' }, { id: 'victoire/message/0', texte: 'La foule acclame.' },
@@ -217,7 +219,7 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
       const dessines = (z: typeof zones) => [...z['fenetre.gestes'], ...z['fenetre.reglages']].map((g) => g.id);
       expect(dessines(zones), 'un choix sans valeur ne se dessine pas').not.toContain('fenetreChoisir@victoire#depecer');
       const aDepecer: Jeu = { ...etat, pendingVictory: { ...etat.pendingVictory!, defeated: [{ nom: fixtureText('Griffon'), count: 1, creatureId: 'griffon', enVue: true }] } };
-      const temoin = zonesDeLEcran(aDepecer, projeter(aDepecer, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(aDepecer), null, SANS_ROSTER);
+      const temoin = zonesDeLEcran(aDepecer, projeter(aDepecer, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(aDepecer), null, SANS_ROSTER, []);
       expect(temoin['fenetre.reglages'].map((g) => g.id), 'témoin : une créature à dépecer se dessine en réglage de la fenêtre').toContain('fenetreChoisir@victoire#depecer');
     } finally {
       partie.fermer();
@@ -227,13 +229,13 @@ describe('la fenêtre de la victoire (`fenetre.corps`, `fenetre.gestes`)', () =>
 
 describe('le panneau du combat (`combat.avis`)', () => {
   it('la fin du tour armée par un premier geste qui laisse l’Action intacte se lit, et rien avant', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const b = partie.etat().battle!;
       const avis = (battle: typeof b) => {
         const etat: Jeu = { ...partie.etat(), pendingRoundStart: null, battle };
         expect(fenetreADessiner(etat), 'témoin : aucune fenêtre ne tient la main').toBeNull();
-        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, SANS_ROSTER)['combat.avis'];
+        return zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, SANS_ROSTER, [])['combat.avis'];
       };
       expect(avis(b).map((l) => l.id)).not.toContain('finDeTourArmee');
       expect(avis({ ...b, endTurnArmed: turnEconomyStamp(b) }), 'le second geste finit le tour : l’écran le dit').toContainEqual(expect.objectContaining({ id: 'finDeTourArmee', ton: 'alerte', texte: t('ecran.finDeTourArmee') }));
@@ -245,10 +247,10 @@ describe('le panneau du combat (`combat.avis`)', () => {
 
 describe('le début du Round (`fenetre.gestes`)', () => {
   it('seul ou en réseau, un geste le valide (le quorum lance) ; sans tireur, aucune visée de Tir rapide', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const debut = partie.etat();
-      const zones = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+      const zones = (etat: Jeu) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
       const dessines = (etat: Jeu) => { const z = zones(etat); return { gestes: z['fenetre.gestes'].map((g) => g.id), reglages: z['fenetre.reglages'].map((g) => g.id) }; };
       expect(debut.pendingRoundStart, 'le combat du dôme s’ouvre sur la pause de Round').not.toBeNull();
       const seul = { gestes: ['fenetreValider@debutDuRound'], reglages: ['fenetreChoisir@debutDuRound#promouvoir'] };
@@ -262,7 +264,7 @@ describe('le début du Round (`fenetre.gestes`)', () => {
 
 describe('l’ordre du tour (`combat.ordre`)', () => {
   it('le héros qui agit en premier ce Round reprend au Round suivant sa place de l’ordre canonique', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const debut = partie.etat().battle!;
       const base = debut.baseOrder ?? debut.order;
@@ -272,7 +274,7 @@ describe('l’ordre du tour (`combat.ordre`)', () => {
       partie.envoyer({ type: 'fenetreValider', args: ['debutDuRound'] });
       const etat = partie.etat();
       expect(etat.battle!.order[0], 'témoin : il ouvre le Round courant').toBe(promu);
-      const colonne = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, SANS_ROSTER)['combat.ordre'];
+      const colonne = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), null, null, SANS_ROSTER, [])['combat.ordre'];
       const enVue = new Set(colonne.flatMap((r) => (r.id.startsWith('ordre/') ? [r.id.slice('ordre/'.length)] : [])));
       expect(enVue.size, 'témoin : plus de combattants en vue que la tête du round suivant n’en montre').toBeGreaterThan(TETE_DU_ROUND_SUIVANT);
       expect(colonne.filter((r) => r.id.startsWith('suite/')).map((r) => r.id).reverse(), 'la tête du round suivant, de bas en haut : l’ordre canonique')
@@ -286,7 +288,7 @@ describe('l’ordre du tour (`combat.ordre`)', () => {
 
 describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
   it('le choix d’une parade Piège-lame dit sa portée et son issue avant qu’on tranche', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const combattants = partie.etat().battle!.combatants;
       const heros = combattants.find((c) => c.kind === 'heros')!;
@@ -295,7 +297,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
       const parade = heros.weapons[0];
       const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;
       const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'objet/arme', purpose: 'combat', cursor: 0, log: [], participants: [etape], seq: 1 } };
-      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER)['fenetre.corps'];
+      const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, [])['fenetre.corps'];
       expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
     } finally {
       partie.fermer();
@@ -305,7 +307,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
 
 describe('la carte d’un héros lit l’en-tête de sa fiche, pas la fiche (#3975)', () => {
   it('dessiner l’écran sans fiche ouverte ne calcule aucune fiche', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('porte-close', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'porte-close', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const ns = fiches as unknown as Record<string, unknown>;
@@ -317,7 +319,7 @@ describe('la carte d’un héros lit l’en-tête de sa fiche, pas la fiche (#39
           return vrai(...a);
         });
       }
-      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
       expect(zones['groupe.heros'].length, 'aucune carte de héros dessinée').toBeGreaterThan(0);
       expect(appels).toEqual([]);
     } finally {
@@ -341,7 +343,7 @@ describe('l’établissement fermé à l’écran du lieu (`fenetre.corps`, #427
     } });
     banc.getState().ouvrirLeLieu();
     const etat = banc.getState();
-    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
     const club = zones['fenetre.corps'].find((e) => e.id === 'service/club') as Entite;
     expect(club.elements.filter((e): e is Bouton => e.type === 'bouton').map((b) => [b.id, b.refus])).toEqual([
       ['dormir', 'Réservé aux membres.'], ['informations', 'Réservé aux membres.'],
@@ -364,7 +366,7 @@ describe('le récit du voyage à l’écran (`Projection.recit`, #4574)', () => 
       },
     });
     const etat = banc.getState();
-    const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER)['fenetre.corps'];
+    const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, [])['fenetre.corps'];
     return corps.filter((e) => e.id.startsWith('recit/')).map((e) => e.type === 'entite'
       ? [e.id, e.nom, e.elements.map((l) => (l.type === 'ligne' ? [l.texte, l.ton] : l.type))]
       : [e.id, ...(e.type === 'ligne' ? [e.texte, e.ton] : [e.type])]);
@@ -421,7 +423,7 @@ describe('la nuit à régler à l’écran (`Projection.repos`, #4574)', () => {
       banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Le relais') }, places: o.places ?? { camp: true }, ...(o.days ? { days: o.days } : {}), ...(o.quality ? { quality: o.quality } : {}) });
       if (o.rien) banc.actions.fenetreChoisir('repos', 'pitance', 'rien', anna.id);
       const etat = banc.getState();
-      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+      const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
       const carte = zones['groupe.heros'].find((h) => h.id === `heros/${anna.id}`)!;
       return {
         corps: zones['fenetre.corps'].filter((e) => /^(scene\/moment|repos\/)/.test(e.id)).map((e) => [e.id, 'texte' in e ? e.texte : null, 'ton' in e ? e.ton : null]),
@@ -464,7 +466,7 @@ describe('la conversation à l’écran (`Projection.conversation`, #4574)', () 
     ] }] } as unknown as Dialogue;
     banc.setState({ dialogue: ouvrirDialogue(banc.getState(), dialogue, 'aubergiste') });
     const etat = banc.getState();
-    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
     expect(zones['dialogue.orateur'].map((l) => l.texte)).toEqual(['Isolde']);
     expect(zones['dialogue.reponses'].map((b) => [b.id, b.libelle, b.refus])).toEqual([
       ['reponse/sonder', '[Intuition — Difficile (−20)] La sonder', null],
@@ -477,7 +479,7 @@ describe('la conversation à l’écran (`Projection.conversation`, #4574)', () 
 describe('l’interlude à l’écran (`Projection.interlude`, #4574)', () => {
   /** Le héros de l'interlude à l'écran, chacun de ses choix par son libellé. */
   const choixDuHeros = (etat: Jeu, id: string) => {
-    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, []);
     const heros = zones['fenetre.corps'].find((e): e is Entite => e.id === `repit/${id}`)!;
     return (id: string) => heros.elements.find((e): e is Choix => e.id === id)!.valeurs.map((v) => v.libelle);
   };
@@ -496,7 +498,7 @@ describe('l’interlude à l’écran (`Projection.interlude`, #4574)', () => {
 
 describe('la fiche à l’écran compose ses données (`fiche.porteur`, `fiche.objet`, #4574)', () => {
   it('la bourse et l’argent d’une possession en monnaie, le contenant par son nom', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
@@ -506,7 +508,7 @@ describe('la fiche à l’écran compose ses données (`fiche.porteur`, `fiche.o
       const besace = itemFromTrappingById('besace', fab)!;
       const dague = { ...itemFromTrappingById('dague', fab)!, inside: besace.uid };
       for (const c of [heros, ...etat.party.filter((h) => h.id === heros.id)]) c.items = [bourse, besace, dague];
-      const zones = (objet: string) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), { fiche: { porteur: heros.id, objet } }, SANS_ROSTER);
+      const zones = (objet: string) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), { fiche: { porteur: heros.id, objet } }, SANS_ROSTER, []);
       const enMonnaie = formatMoney({ gold: 1, silver: 2, brass: 3 });
       const z = zones(bourse.uid);
       expect(z['fiche.porteur'][0].elements.find((e) => e.id === 'bourse'), 'la bourse du héros').toMatchObject({ libelle: t('ecran.bourse'), valeur: enMonnaie });

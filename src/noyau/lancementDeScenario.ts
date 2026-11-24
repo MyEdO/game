@@ -4,7 +4,7 @@
  * du noyau : la pose (`poserLeLancement`), puis le démarrage (`demarrerLeLancement`). La partie la joue par
  * `Partie.lancer` (`partie.ts`). Le noyau ne lit ni le registre des scénarios, ni leur fiche, ni le catalogue des
  * campagnes : l'hôte construit le lancement (`lancementDuScenario`, `scenes/test-scenarios/_shared.ts` ;
- * `lancementDeLaCampagne`, `scenes/campaign.ts`), celui d'un projet par `lancementDuProjet`.
+ * celui d'une campagne ou d'un projet par `lancementDuProjet`).
  */
 import { poserLesRegles, type JeuDeRegles } from '../engine/policy';
 import type { Combatant } from '../engine/types';
@@ -52,7 +52,7 @@ export interface LancementDeScenario extends ContenuDeScenario {
 
 /** Le lancement du projet `projet` joué par le groupe `party`, sa scène `entree` à l'entrée, sous l'identité
  *  `identite` (`LancementDeScenario.projet`) : constructeur UNIQUE du lancement d'un paquet de scènes, celui d'une
- *  campagne (`lancementDeLaCampagne`, `scenes/campaign.ts`) comme celui de l'essai d'une scène éditée
+ *  campagne lancée (`campagneDuJeu`, lancée par le pont d'un hôte) comme celui de l'essai d'une scène éditée
  *  (`essaiDeLaScene`, `edition/session.ts`). */
 export function lancementDuProjet(projet: { scenes: Scene[]; worldMap?: WorldMap | null; narratif?: NarratifBlock }, party: Combatant[], entree: string, identite: CampaignDoc['projet']): LancementDeScenario {
   const scene = projet.scenes.find((s) => s.id === entree);

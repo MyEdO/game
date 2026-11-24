@@ -78,7 +78,8 @@ export function evLines(
  * MARQUE « dé fixé » sur les DEUX branches : `store.log` la pose pour le journal, `markFixedDie` la
  * pose ici pour le `battle.log` — une conséquence de dé POSÉ garde sa provenance, combat ouvert ou
  * non. Le DRAIN de `pendingLogQueue` n'est PAS fait ici (il vit dans `noyau/combatEffects.ts`,
- * module lourd) : le site qui en a besoin le passe en `extra`.
+ * module lourd) : le site qui en a besoin le passe en `extra`, écrit après `lines` sous le genre de chaque
+ * évènement, ou en texte au journal d'exploration.
  */
 export function journaliser(
   get: Get,
@@ -87,15 +88,15 @@ export function journaliser(
   kind: CombatEventKind = 'information',
   opts?: { actorId?: string; targetId?: string; extra?: CombatEvent[] },
 ): void {
-  const extra = opts?.extra ?? [];
-  if (!lines.length && !extra.length) return;
+  const evenements = [...evLines(lines, kind, opts?.actorId, opts?.targetId), ...(opts?.extra ?? [])];
+  if (!evenements.length) return;
   const b = get().battle;
   if (!b) {
-    get().ecrireAuJournal(lines);
+    get().ecrireAuJournal(evenements.map((e) => e.text));
     return;
   }
-  const dites = fixedJetOpen(get()) ? lines.map(markFixedDie) : lines;
-  set({ battle: { ...b, log: [...b.log, ...evLines(dites, kind, opts?.actorId, opts?.targetId), ...extra] } });
+  const dits = fixedJetOpen(get()) ? evenements.map((e) => ({ ...e, text: markFixedDie(e.text) })) : evenements;
+  set({ battle: { ...b, log: [...b.log, ...dits] } });
 }
 
 /**

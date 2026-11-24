@@ -25,7 +25,8 @@ import {
   areteOcculteEntre, areteOcculte, edgeOf, structureAt, doorAt, climbAt, porteEnJeu, setDoorRevealed,
   type Scene, type WallSeg, type WallSide,
 } from './scene';
-import { allBuiltinCampaigns, diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { allBuiltinCampaigns, diligenceCampaign } from '../../scenes/campaign';
+import { paquetDuJeu } from '../campagneLivree';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { scenario as fenetreEcuries } from '../../scenes/test-scenarios/23-fenetre-ecuries';
 
