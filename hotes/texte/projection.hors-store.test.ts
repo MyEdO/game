@@ -2,7 +2,7 @@
  * LA VUE LIT CE QUE LE JEU LIT (#2898, M4, sondes `distance` et `mvt` du juge promues ; lot C) : la distance d'un
  * combattant à l'actif est celle du ciblage (`distanceDeCombat` : empreinte et relief), et le Mouvement du Tour est celui
  * de la jauge de la console (`mouvementDuTour`). `pastilles-entite` porte une monture dont l'empreinte écarte la distance
- * de combat de la distance de case ; `ecuries-clayonnage`, un actif dont le budget du Tour n'est pas sa caractéristique.
+ * de combat de la distance de case.
  * La fenêtre nomme les verbes de chaque étape de cascade (`cascade-dome.jsonl`), le jet lancé se lit avant sa
  * confirmation (`pendingAttack.result`), l'aperçu du premier clic, les cases peintes et les entités de l'exploration se
  * lisent ; le journal ne se recopie pas à la défaite (`defaite-dome.jsonl`) et respecte la largeur.
@@ -57,7 +57,7 @@ describe('la projection lit les lecteurs du jeu', () => {
   });
 
   it('le Mouvement de l’actif est celui de la jauge (`mouvementDuTour`)', { timeout: 120_000 }, () => {
-    auPremierTour('ecuries-clayonnage', (r) => {
+    auPremierTour('pastilles-entite', (r) => {
       const etat = r.partie.etat();
       const b = etat.battle!;
       const actif = activeCombatant(b)!;

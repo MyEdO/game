@@ -140,3 +140,68 @@ export function relaisAEtage() {
     heroStart: [1, 16],
   });
 }
+
+const MURET = 'mur-en-pierres-seches';
+const OSSATURE = 'mur-a-ossature-en-bois';
+
+/** Les cases et arêtes nommées de la cour de ferme (`courDeFerme`). */
+export const COUR = {
+  /** L'enceinte en muret : sa ligne ouest (x 3|4, y 3..10) et sa ligne nord (y 2|3, x 4..11), son coin en (4,3). */
+  dedans: { x: 4, y: 8, z: 0 },
+  dehors: { x: 3, y: 8, z: 0 },
+  coinDehors: { x: 3, y: 2, z: 0 },
+  coinDedans: { x: 4, y: 3, z: 0 },
+  /** La cabane close (cases x 9..12, y 5..7) en mur à ossature : la croisée ouverte (8,6,E) de sa face ouest, le bout de
+   *  mur plein (8,5,E) au-dessus d'elle, son angle nord-ouest plein (8,5,E)+(9,5,N). */
+  sousLaCroisee: { x: 9, y: 6, z: 0 },
+  devantLaCroisee: { x: 8, y: 6, z: 0 },
+  auBoutDuMur: { x: 8, y: 5, z: 0 },
+  dansLaCabane: { x: 12, y: 6, z: 0 },
+  contreLaCabane: { x: 13, y: 6, z: 0 },
+  angleDedans: { x: 9, y: 5, z: 0 },
+  angleDehors: { x: 8, y: 4, z: 0 },
+  /** Le mur plein isolé (y 12|13, x 0..6), qu'on contourne par l'est. */
+  auNordDuMur: { x: 4, y: 12, z: 0 },
+  auSudDuMur: { x: 4, y: 13, z: 0 },
+  loinAuNordDuMur: { x: 2, y: 12, z: 0 },
+  loinAuSudDuMur: { x: 2, y: 13, z: 0 },
+  /** La ligne de muret (16,10,E)–(16,11,E), au flanc est d'une case Grande ancrée en (15,10). */
+  ancreGrande: { x: 15, y: 10, z: 0 },
+  /** La clôture en clayonnage (19,13,E) d'une box. */
+  box: { x: 19, y: 13, z: 0 },
+  allee: { x: 20, y: 13, z: 0 },
+  /** L'arête libre (16,3,N) que les suites ferment à leur gré. */
+  enHaut: { x: 16, y: 2, z: 0 },
+  enBas: { x: 16, y: 3, z: 0 },
+  /** L'id de sa rencontre, un gobelin posé à l'écart (22,14). */
+  rencontre: 'enc-cour',
+} as const;
+
+/**
+ * « Cour de ferme » (24×16) : une enceinte en `mur-en-pierres-seches` ouverte au sud et à l'est ; une cabane close en
+ * `mur-a-ossature-en-bois`, percée à l'ouest d'une croisée ouverte ; un mur plein isolé contre le bord ouest ; une ligne
+ * de muret de deux arêtes ; une clôture en `cloture-en-clayonnage`. Une rencontre `enc-cour` d'un gobelin.
+ */
+export function courDeFerme() {
+  const muret = (x: number, y: number, side: 'N' | 'E'): WallSpec => ({ x, y, side, structure: MURET });
+  const plein = (x: number, y: number, side: 'N' | 'E'): WallSpec => ({ x, y, side, structure: OSSATURE });
+  const de = (a: number, b: number) => Array.from({ length: b - a + 1 }, (_, i) => a + i);
+  return buildScene({
+    id: 'cour-de-ferme',
+    label: 'Cour de ferme',
+    size: [24, 16],
+    terrain: 'herbe',
+    walls: [
+      ...de(3, 10).map((y) => muret(3, y, 'E')),
+      ...de(4, 11).map((x) => muret(x, 3, 'N')),
+      plein(8, 5, 'E'), { x: 8, y: 6, side: 'E', window: true, structure: OSSATURE }, plein(8, 7, 'E'),
+      ...de(5, 7).map((y) => plein(12, y, 'E')),
+      ...de(9, 12).flatMap((x) => [plein(x, 5, 'N'), plein(x, 8, 'N')]),
+      ...de(0, 6).map((x) => plein(x, 13, 'N')),
+      muret(16, 10, 'E'), muret(16, 11, 'E'),
+      { x: 19, y: 13, side: 'E', structure: 'cloture-en-clayonnage' },
+    ],
+    encounters: [{ id: COUR.rencontre, enemies: [{ creature: { id: 'gobelin' }, pos: { x: 22, y: 14 }, facing: 'O' }] }],
+    heroStart: [1, 1],
+  });
+}
