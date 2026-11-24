@@ -29,6 +29,7 @@ import type { ZonesDuSalon } from '../../../src/hote/salon';
 import type { Bouton, Element, Entite, Ligne } from '../../../src/hote/elements';
 import { t } from '../../../src/i18n';
 import { testScene } from '../../../src/scenes/test-fixture';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
 import { herosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { resetCadence } from '../../../src/engine/cadence';
@@ -126,12 +127,12 @@ async function lobbyDeLHote() {
   return instantanes[instantanes.length - 1];
 }
 
-/** Les trames de l'hôte de `groupeDeLHote` qui a lancé `la-diligence`, Anna assise au siège 1, puis validé
+/** Les trames de l'hôte de `groupeDeLHote` qui a lancé la campagne de test, Anna assise au siège 1, puis validé
  *  l'ouverture et déplacé le groupe : chaque instantané envoyé au siège 1, et la scène et la case du groupe de sa vue
  *  au départ de chacun. L'hôte quitté ensuite. */
 async function tramesDeLHote() {
   const { appel, s } = groupeDeLHote();
-  suiteDe(appel('lancer', bouton(s.vue.zones['groupe.campagnes'], 'campagne/la-diligence', 'lancer').jeu));
+  suiteDe(appel('lancer', bouton(s.vue.zones['groupe.campagnes'], `campagne/${campagneDeTest.id}`, 'lancer').jeu));
   const ws = await hebergerAnna(appel);
   const vues: unknown[][] = [];
   const noter = () => {
@@ -382,7 +383,7 @@ describe('le pont rejoint un salon', () => {
     await recevoir(ws, instantane);
     suiteDe(appel('nouvelles'));
     const avant = [...stockage.contenu];
-    expect(erreurDe(appel('lancer', { lancer: 'la-diligence' }))).toEqual({ categorie: 'regle', message: t('party.guest.waiting') });
+    expect(erreurDe(appel('lancer', { lancer: campagneDeTest.id }))).toEqual({ categorie: 'regle', message: t('party.guest.waiting') });
     expect(erreurDe(appel('reglages', { type: 'regle', args: [PLAFOND.id, 3] }))).toEqual({ categorie: 'regle', message: t('houseRules.lockedForGuest') });
     expect(ruleOverrides()[PLAFOND.id], 'les règles de l’hôte ont changé').toBe(12);
     expect([...stockage.contenu], 'le stockage du joueur a changé').toEqual(avant);
@@ -456,7 +457,7 @@ describe('M5 — la jonction', () => {
     const { appel } = invite();
     const z = (appel('salon', { type: 'rejoindre', args: ['ABC234', 'Anna'] }) as unknown as { zones: ZonesDuSalon }).zones;
     expect(gestes(z)).toEqual(['quitter']);
-    for (const m of ['jouer', 'lancer', 'roster', 'creation', 'vue']) expect(erreurDe(appel(m, m === 'jouer' ? { type: 'terminerLeTour' } : m === 'lancer' ? { lancer: 'arene' } : undefined)).message, m).toMatch(/aucune partie/);
+    for (const m of ['jouer', 'lancer', 'roster', 'creation', 'vue']) expect(erreurDe(appel(m, m === 'jouer' ? { type: 'terminerLeTour' } : m === 'lancer' ? { lancer: campagneDeTest.id } : undefined)).message, m).toMatch(/aucune partie/);
     for (const [m, e] of [['ouvrir', {}], ['charger', { charger: AUTO_SLOT }], ['demarrer', { scenario: 'voyage' }]] as const) expect(erreurDe(appel(m, e)).message, m).toBe(`${m} : un salon se rejoint ; quitter le salon d’abord`);
     expect(appel('nouvelles')).toEqual(RIEN);
     expect(gestes(zonesDe(appel))).toEqual(['quitter']);

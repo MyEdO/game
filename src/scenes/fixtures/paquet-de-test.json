@@ -2,6 +2,7 @@
  "type": "projet",
  "id": "paquet-de-test",
  "label": "Paquet de test",
+ "icon": "scenario/entrainement",
  "versionContenu": 1,
  "maison": "fixture de test du commun — aucun livre ne publie ce paquet",
  "scenes": [
@@ -79,6 +80,18 @@
       "id": "tonneau"
      },
      "label": "Objet de test"
+    },
+    {
+     "id": "adversaire-de-test",
+     "kind": "personnage",
+     "creature": {
+      "id": "humain"
+     },
+     "pos": {
+      "x": 3,
+      "y": 0
+     },
+     "label": "Adversaire de test"
     }
    ],
    "dialogues": [
@@ -143,8 +156,40 @@
      ]
     }
    ],
-   "triggers": [],
-   "encounters": [],
+   "triggers": [
+    {
+     "id": "declencheur-de-test",
+     "rect": {
+      "x": 0,
+      "y": 3,
+      "w": 4,
+      "h": 1
+     },
+     "flow": {
+      "kind": "sequence",
+      "etapes": [
+       {
+        "kind": "effet",
+        "effet": {
+         "type": "journal",
+         "desc": "Journal de test."
+        }
+       }
+      ]
+     }
+    }
+   ],
+   "encounters": [
+    {
+     "id": "rencontre-de-test",
+     "members": [
+      {
+       "entityId": "adversaire-de-test",
+       "side": "ennemi"
+      }
+     ]
+    }
+   ],
    "flags": {}
   },
   {
@@ -209,6 +254,157 @@
       "x": 1,
       "y": 1
      }
+    }
+   ],
+   "dialogues": [],
+   "triggers": [],
+   "encounters": [],
+   "flags": {},
+   "entryPoints": {
+    "arrivee": {
+     "x": 0,
+     "y": 2
+    }
+   }
+  },
+  {
+   "type": "scene",
+   "id": "scene-de-test-navale",
+   "label": "Scène de test navale",
+   "desc": "Scène de test.",
+   "dimensions": {
+    "w": 6,
+    "h": 4
+   },
+   "metresPerTile": 10,
+   "ambiance": "exterieur",
+   "reliefDefaults": {
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
+   },
+   "roofDefaults": {
+    "material": {
+     "id": "toit-ardoise"
+    },
+    "pitchDeg": 45,
+    "riseMaxStoreys": 1
+   },
+   "layers": [
+    {
+     "z": 0,
+     "tiles": [
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau",
+      "eau"
+     ]
+    }
+   ],
+   "entities": [
+    {
+     "id": "coque-de-test",
+     "kind": "personnage",
+     "vehicule": {
+      "id": "cogue"
+     },
+     "pos": {
+      "x": 3,
+      "y": 2
+     },
+     "facing": "O",
+     "label": "Coque de test",
+     "crewIds": [
+      "matelot-de-test-1",
+      "matelot-de-test-2"
+     ],
+     "postes": [
+      {
+       "engin": {
+        "id": "canon-moyen"
+       },
+       "side": "tribord",
+       "crewIds": [],
+       "ammo": {
+        "boulet-et-poudre": 4
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
+      },
+      {
+       "engin": {
+        "id": "canon-moyen"
+       },
+       "side": "babord",
+       "crewIds": [],
+       "ammo": {
+        "boulet-et-poudre": 2
+       },
+       "selectedAmmo": {
+        "id": "boulet-et-poudre"
+       }
+      }
+     ],
+     "upgrades": [
+      {
+       "id": "renforce",
+       "value": 1
+      }
+     ]
+    },
+    {
+     "id": "matelot-de-test-1",
+     "kind": "personnage",
+     "creature": {
+      "id": "humain"
+     },
+     "pos": {
+      "x": 3,
+      "y": 1
+     },
+     "label": "Matelot de test"
+    },
+    {
+     "id": "matelot-de-test-2",
+     "kind": "personnage",
+     "creature": {
+      "id": "humain"
+     },
+     "pos": {
+      "x": 4,
+      "y": 1
+     },
+     "label": "Matelot de test"
     }
    ],
    "dialogues": [],
@@ -308,6 +504,16 @@
   ],
   "objets": [],
   "etats": [],
-  "documents": []
+  "documents": [
+   {
+    "id": "document-de-test",
+    "titre": "Document de test",
+    "prose": "Texte de test."
+   }
+  ],
+  "ouverture": {
+   "titre": "Ouverture de test",
+   "pitch": "Pitch de test."
+  }
  }
 }

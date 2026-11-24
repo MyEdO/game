@@ -12,7 +12,8 @@ import type { Saison } from '../asset/element.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import type { Stockage } from '../../../src/lib/stockage';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
-import { contenuDuJeuDeRole } from '../../../src/scenes/campaign';
+import { contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
+import type { ContenuDUnJeu } from '../../../src/hote/contenu';
 import { creerPont, type ReseauDuPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite, type VueDuPont } from './pont';
 import { gestesDessines } from './dessines';
 export { enFocus, gestesDessines } from './dessines';
@@ -25,9 +26,9 @@ import type { Bouton, Choix, Element, Entite, Formulaire, Jeu, Ligne, Plan, Sais
 export type Reponse = ({ ok: true } & Partial<Suite> & Record<string, unknown>) | { ok: false; erreur: { categorie: CategorieDuPont; message: string } };
 
 /** Un pont neuf sur le stockage `stockage`, en mémoire et vide par défaut, sur le réseau `reseau`, aucun par
- *  défaut, et sur le contenu du jeu de rôle que remet l'entrée du pont (`entree.ts`), et ses appels : `entree` passe en JSON, absente sans entrée. */
-export function table(stockage: Stockage = stockageEnMemoire(), reseau: ReseauDuPont | null = null) {
-  const pont: Pont = creerPont(stockage, reseau, contenuDuJeuDeRole);
+ *  défaut, et sur le contenu `contenu` d'un jeu, la seule campagne de test par défaut, et ses appels : `entree` passe en JSON, absente sans entrée. */
+export function table(stockage: Stockage = stockageEnMemoire(), reseau: ReseauDuPont | null = null, contenu: ContenuDUnJeu = contenuDeTest) {
+  const pont: Pont = creerPont(stockage, reseau, contenu);
   const appel = (methode: string, entree?: unknown): Reponse => {
     const brut = pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree));
     expect(typeof brut, 'le pont rend une chaîne JSON').toBe('string');

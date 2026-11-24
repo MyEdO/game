@@ -12,13 +12,13 @@ import { presetDuNarratif } from '../../../src/noyau/monde/resolveursDuNarratif'
 import { emptyScene, type SceneEntity } from '../../../src/noyau/monde/scene';
 import { ficheDEntite } from '../../../src/noyau/monde/sceneNpc';
 import { parseProject } from '../../../src/noyau/worldMap';
-import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
 import { paquetDuJeu } from '../../../src/noyau/index';
 
 type Edition = { vue: { zones: Record<string, Element[]> }; depot?: { texte: string } };
 
 const CONTROLE = 'valeur/combat/randomChars';
-const servi = paquetDuJeu(allBuiltinCampaigns[0]);
+const servi = paquetDuJeu(campagneDeTest);
 const preset = { id: 'preset-temoin', base: { id: 'humain' } };
 const narratif = { ...emptyNarratif(), presetsPnj: [preset] };
 const statblock = statblockDeLaCreature(findCreatureById('humain')!);
