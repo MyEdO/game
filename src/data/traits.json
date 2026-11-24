@@ -3504,7 +3504,14 @@
     "source": {
       "book": "bestiaire-non-officiel",
       "page": 7
-    }
+    },
+    "passive": [
+      {
+        "op": "mitigateIncoming",
+        "mode": "nullify",
+        "unlessKeyword": "magic"
+      }
+    ]
   },
   {
     "id": "glaive-du-destin",
