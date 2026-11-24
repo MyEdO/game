@@ -26,7 +26,7 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
       const f = e();
       expect(usesSuddenDeath(f)).toBe(true);
       expect(isOutOfAction(f)).toBe(false);
-      applyZeroWounds(f);
+      applyZeroWounds(f, { lignes: [], faits: [] });
       expect(hasCondition(f, 'a-terre')).toBe(true);
       tickDeath(f);
       expect(f.roundsAtZero).toBe(1);
@@ -70,7 +70,7 @@ describe('Modèle de mort (LDB 18-Traumatisme)', () => {
   });
   it('applyZeroWounds : à 0 PB → À Terre', () => {
     const h = mk({ wounds: blessuresDeBase(12, 0) });
-    applyZeroWounds(h);
+    applyZeroWounds(h, { lignes: [], faits: [] });
     expect(hasCondition(h, 'a-terre')).toBe(true);
   });
   it('tickDeath : à 0 PB, Inconscient après BE rounds', () => {
@@ -114,7 +114,7 @@ describe("OBJET INERTE (affût d'artillerie) — immune à la cascade de Blessur
       characteristics: { 'capacite-de-combat': 0, 'capacite-de-tir': 0, force: 0, endurance: 0, initiative: 0, agilite: 0, dexterite: 0, intelligence: 0, 'force-mentale': 0, sociabilite: 0 }, ...over }) as unknown as Partial<Combatant>);
   it("inert allié (kind:'heros') à 0 PB : applyZeroWounds ne pose PAS À Terre", () => {
     const e = engin({ kind: 'heros' });
-    applyZeroWounds(e);
+    applyZeroWounds(e, { lignes: [], faits: [] });
     expect(hasCondition(e, 'a-terre')).toBe(false);
   });
   it("inert allié : tickDeath ne pose PAS Inconscient même après plusieurs rounds (BE=0)", () => {
@@ -124,7 +124,7 @@ describe("OBJET INERTE (affût d'artillerie) — immune à la cascade de Blessur
   });
   it("inert ennemi (kind:'ennemi') : ni À Terre ni Inconscient", () => {
     const e = engin({ kind: 'ennemi', roundsAtZero: 5 } as Partial<Combatant>);
-    applyZeroWounds(e); tickDeath(e);
+    applyZeroWounds(e, { lignes: [], faits: [] }); tickDeath(e);
     expect(hasCondition(e, 'a-terre')).toBe(false);
     expect(hasCondition(e, 'inconscient')).toBe(false);
   });

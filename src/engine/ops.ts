@@ -31,6 +31,7 @@ import {
   syncDerivedConditions,
   removeActiveEffects,
   pionsRetirables,
+  faitsDesPoses,
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
@@ -135,7 +136,7 @@ import { campOf } from './relations';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
 import type { ChaosAlign, ExposureLevel } from './corruption';
-import { t, deElide, type MsgKey } from '../i18n';
+import { t, deElide, listeEt, type MsgKey } from '../i18n';
 import { applyActiveEffect } from './effetsActifs';
 import { cleDeDe, desDeclaresDe, hauteurDeChute, type DeDeclare } from './faitsDOp';
 import { nomDe } from './nom';
@@ -1009,12 +1010,13 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   const sortie: Applique = { lignes: lines, faits: [] };
   // LA seule émission d'un fait de la classe (#4574) : le fait et sa ligne, ensemble.
   const emettre = (cible: Combatant, f: FaitAvecLigne) => emettreDans(sortie, cible, f, ctx.label);
-  // Une perte de Blessures et les faits de ses conséquences (`loseWounds`), que le journal ne dit pas.
+  // Une perte de Blessures (`loseWounds`) : sa ligne, puis celles de ses États. LDB 16 l.105
   const perdre = (cible: Combatant, n: number, mitigation?: Extract<FaitAvecLigne, { genre: 'blessures' }>['mitigation']): number => {
-    const perte = loseWounds(cible, n);
-    if (perte.perdues > 0) emettre(cible, { genre: 'blessures', ...sur(cible), valeur: -perte.perdues, ...(mitigation ? { mitigation } : {}) }); // LDB 16 l.105
-    for (const f of perte.faits) constaterDans(sortie, f);
-    return perte.perdues;
+    const consequences: Applique = { lignes: [], faits: [] };
+    const perdues = loseWounds(cible, n, consequences);
+    if (perdues > 0) emettre(cible, { genre: 'blessures', ...sur(cible), valeur: -perdues, ...(mitigation ? { mitigation } : {}) });
+    absorber(consequences);
+    return perdues;
   };
   const sur = (cible: Combatant) => ({ cible: cible.id, camp: campOf(cible) });
   // Ce qu'une application imbriquée ou un socle d'États a dit : ses lignes ET ses faits.
@@ -1205,18 +1207,17 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           // État à durée d'HORLOGE (Belladone/Fleur de lune : sommeil « 1d10+4/5 heures ») — échéance
           // résolue MAINTENANT depuis ctx.now, purgée par purgeClockEffects (patron castPenalty.minutes).
           const min = clockMin;
-          addClockCondition(target, id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v, duree: { minutes: min } });
+          for (const f of faitsDesPoses(target, [id], () => addClockCondition(target, id, v, (ctx.now ?? 0) + min, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte)))
+            emettre(target, { ...f, duree: { minutes: min } });
         } else if (rounds != null) {
-          addTimedCondition(target, id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte);
-          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v, duree: { rounds } });
+          for (const f of faitsDesPoses(target, [id], () => addTimedCondition(target, id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte)))
+            emettre(target, { ...f, duree: { rounds } });
         } else {
-          addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte); // verrous : prédicat d'état / acte de soin (LDB 18)
           // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
           // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
           // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.
-          emettre(target, { genre: 'etat', ...sur(target), id, valeur: v,
-            ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
+          for (const f of faitsDesPoses(target, [id], () => addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte))) // verrous : prédicat d'état / acte de soin (LDB 18)
+            emettre(target, { ...f, ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
         }
         if (avantageAvant > 0 && !target.advantage) emettre(target, { genre: 'avantage', ...sur(target), valeur: -avantageAvant, total: 0 }); // LDB 16 l.7
         // Empoignade (LDB 14 l.159) : le flag `grapple` pose la relation symétrique entre l'attaquant
@@ -1586,7 +1587,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ...permanentAmputations(o.sequels, loc, units),
         ];
         target.traumas = avecSequelles(target.traumas, poses);
-        for (const p of poses) lines.push(t('op.amputer', { name: nomDe(target), label: p.label, loc: locationLabel(loc, target.bodyShape) }));
+        if (poses.length) lines.push(t('op.amputer', { name: nomDe(target), label: listeEt(poses.map((p) => p.label)), loc: locationLabel(loc, target.bodyShape) }));
         // Cumuls (LDB 18 l.247/251/273/277/281) : agrégation + escalade au seuil, au MÊME point que la pose.
         lines.push(...consolidateAmputations(target));
         break;
@@ -2035,18 +2036,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           : formuleDuCtx(hauteur, ref, ctx);
         const d10Chute = de('degats');
         const avant = target.wounds.current;
-        // Les États que la chute POSE se lisent par DIFFÉRENCE — la ligne ne nomme aucun État : c'est
-        // `applyFall` (LDB 15 l.84) qui décide, et ce qu'il pose se dit tel quel.
-        const etatsAvant = new Set((target.conditions ?? []).map((c) => c.id));
-        applyFall(target, metres, d10Chute);
-        const poses = (target.conditions ?? []).filter((c) => !etatsAvant.has(c.id)).map((c) => conditionLabel(c.id));
-        lines.push(t('op.chute', {
-          name: nomDe(target),
-          table,
-          m: metres,
-          n: avant - target.wounds.current,
-          etats: poses.length ? ` (${poses.join(', ')})` : '',
-        }));
+        // La ligne de chute, puis celles des États que `applyFall` pose (LDB 15 l.84).
+        const chute: Applique = { lignes: [], faits: [] };
+        applyFall(target, metres, d10Chute, chute);
+        lines.push(t('op.chute', { name: nomDe(target), table, m: metres, n: avant - target.wounds.current }));
+        absorber(chute);
         break;
       }
       case 'zone': {

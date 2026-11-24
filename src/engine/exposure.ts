@@ -28,6 +28,7 @@ import { CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, type Combatant, type CharKey, type 
 import type { RNG } from './dice';
 import { rollTest, type JetDeTest } from './tests';
 import { addCondition, hasCondition, loseWounds } from './conditions';
+import type { Applique } from './faits';
 import { applyActiveEffect } from './ops';
 import { hasCapability, itemCapability } from './capabilities';
 import { t } from '../i18n';
@@ -182,8 +183,9 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
     return { log, wounds: 0 };
   }
   const dmg = Math.max(1, rng.int(1, 10));
-  loseWounds(c, dmg);
-  log.push(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }));
+  const consequences: Applique = { lignes: [], faits: [] };
+  loseWounds(c, dmg, consequences);
+  log.push(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }), ...consequences.lignes);
   if (kind === 'froid' && c.wounds.current <= 0 && !hasCondition(c, 'inconscient')) {
     addCondition(c, 'inconscient');
     log.push(t('exp.sinksFrozen', { name: nomDe(c) }));

@@ -19,7 +19,6 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
  *  rendent des `string[]` nus, l'id ne peut pas les rejoindre. */
 const REMAINING: Record<string, number> = {
   'src/noyau/combatFlow.ts': 5,
-  'src/noyau/combatEffects.ts': 1,
   'src/noyau/combatPlacement.ts': 1,
   // Tests qui FABRIQUENT un événement `etat` — ils tomberont avec leurs sites de production.
   'src/noyau/combat/aa-bleed-unconscious.hors-store.test.ts': 1,

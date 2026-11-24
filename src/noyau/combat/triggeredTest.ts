@@ -49,13 +49,25 @@ import { combatConditionCtx, runPureFlowLines } from './flowEval';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest, Cloture } from '../pendings';
 import { battleRng } from '../battleRng';
-import { openSkillTest, applyLeafOps, drainPendingLog,
+import { openSkillTest, applyLeafOps, drainPendingLog, enfilerAuJournal,
   confierLaSuite, porterOpsCtx, ctxRepris, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
 import { journaliser } from '../combatLog';
 import { ancreDeLaCascade, pushStep } from '../cascade';
 import type { Jeu } from '../etat';
 
-import { freeCons, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel } from '../rollSeam';
+import {
+  freeCons,
+  rollStep,
+  surfaceOf,
+  bandStep,
+  monoStep,
+  choiceStep,
+  pushChoice,
+  pousseSi,
+  opposedAttackerLabel,
+  stepDetail,
+  stepPrecision,
+} from '../rollSeam';
 import { designeGaranti, rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
@@ -84,12 +96,6 @@ import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 import { accorderLAttaqueGratuite, applyFocusInterruption, applyBladeTrap } from '../combatFlow';
 
 const ancreDuDeclencheur = (s: Jeu) => ancreDeLaCascade(s) ?? (rencontreEngagee(s) ? 'combat' : 'sequence');
-
-/** Pousse des lignes de journal d'un effet inline dans la file différée (déversée au rendu) — un hook
- *  profond fire AVANT le `set(battle.log)` final → on passe par la file (`drainPendingLog`, §5). */
-function queueLines(get: Get, set: SetFn, lines: string[], cid: string): void {
-  if (lines.length) set({ pendingLogQueue: [...get().pendingLogQueue, ...lines.map((line) => ({ line, cid }))] });
-}
 
 /**
  * Environnement d'exécution d'un Flow d'ACTEUR — état (get/set), les combattants en jeu (`target`/`caster`,
@@ -197,6 +203,13 @@ function triggeredTestStepId(c: Combatant, label: string | undefined, skillLabel
  */
 export function withDerivedStake(ft: FlowTest, source: EffectSource | undefined): FlowTest {
   return poserEnjeu(ft, derivedStake(source));
+}
+
+/** Le sujet de la trace d'un Test de donnée : sa compétence, précisée du `label` de la donnée quand elle en porte un
+ *  (#4911 ; patron `turnHooks.ts`), par `former` : `stepPrecision` en trace simple, `stepDetail` dans la parenthèse
+ *  de la trace opposée (`casc.opposedTrace`). */
+export function sujetDeTrace(ft: FlowTest, skillLabel: string, former: typeof stepPrecision): string {
+  return ft.label ? former(dataLabel(skillLabel), dataLabel(ft.label)) : skillLabel;
 }
 
 /** SOURCE UNIQUE du squelette d'étape `testDeclenche` d'un Test SIMPLE (non opposé) : ligne montée par
@@ -473,7 +486,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
         if (steps.length) confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'sequence', etapes: steps })]);
         return FIN_DU_FLOW;
       }
-      ctx.set(touchActors(ctx.get())); queueLines(ctx.get, ctx.set, lines, unit.id);
+      ctx.set(touchActors(ctx.get())); enfilerAuJournal(ctx.get, ctx.set, lines, unit.id);
       return undefined;
     },
     test: (node, reste) => {
@@ -595,9 +608,9 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // côté attaquant y est nommé par la MÊME source que la fenêtre (`opposedAttackerFreeze`) et dans
     // le MÊME ordre : le libellé AUTHORÉ d'abord, la STRUCTURE au catalogue ensuite.
     const gel = opposedAttackerFreeze(opp);
-    queueLines(ctx.get, ctx.set, [traceLineOf({
+    enfilerAuJournal(ctx.get, ctx.set, [traceLineOf({
       attacker: { who: nomDe(attacker), label: opposedAttackerLabel(gel) ?? '', roll: aT.roll, target: aT.target, sl: aT.sl },
-      defender: { who: nomDe(c), label: skillLabel, roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
+      defender: { who: nomDe(c), label: sujetDeTrace(ft, skillLabel, stepDetail), roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
       winner: o.winner,
     })], c.id);
     const lines = applyTriggeredTestBranch(c, { success: branchSuccess, sl: t.sl }, { onSuccess: node.reussite, onFail: node.echec }, exec);
@@ -605,16 +618,16 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // égalité parfaite n'est pas un échec (statu quo) : le trigger ne part que si l'attaquant l'emporte.
     if (o.winner === 'attaquant' && !oc.noReentryOwnTestFailed) lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
     ctx.set(touchActors(ctx.get()));
-    queueLines(ctx.get, ctx.set, lines, c.id);
+    enfilerAuJournal(ctx.get, ctx.set, lines, c.id);
     playAfter(ctx.get, ctx.set, c, after, ctx.label, oc);
     return;
   }
-  queueLines(ctx.get, ctx.set, [traceLineOf({ who: nomDe(c), label: testTraceLabel(skillLabel, difficulty), ...t })], c.id);
+  enfilerAuJournal(ctx.get, ctx.set, [traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel, stepPrecision), difficulty), ...t })], c.id);
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.reussite, onFail: node.echec }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
   if (!t.success && !oc.noReentryOwnTestFailed) lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
   ctx.set(touchActors(ctx.get())); // les combattants ont muté (États retirés)
-  queueLines(ctx.get, ctx.set, lines, c.id);
+  enfilerAuJournal(ctx.get, ctx.set, lines, c.id);
   playAfter(ctx.get, ctx.set, c, after, ctx.label, oc); // continuation APRÈS la branche (ordre du journal)
 }
 
@@ -718,7 +731,7 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
   const auto = surface ? undefined : tenuParUnHumain(etat, decideur.id)
     ? personneConnueParDefaut(etat, cible, personnesConnues(etat, cible))
     : personneDuDecideurAuto(cible, personnesCandidates(etat, cible));
-  queueLines(ctx.get, ctx.set, [ligneDeDesignation(cible, auto, oc)], cible.id);
+  enfilerAuJournal(ctx.get, ctx.set, [ligneDeDesignation(cible, auto, oc)], cible.id);
   return fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto));
 }
 
@@ -791,7 +804,7 @@ export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success
   // Les lignes de la branche partent dans la file différée (SOURCE UNIQUE des hooks profonds) ; leur
   // destination est choisie par le ROUTAGE UNIQUE `journaliser` (`combatLog.ts`, #1881), jamais par une
   // écriture nue de `battle.log` ici.
-  journaliser(get, set, drainPendingLog(get, set).map((e) => e.text), 'etat');
+  journaliser(get, set, [], undefined, { extra: drainPendingLog(get, set) });
   // Une feuille partie à la PORTE (#1508) a reçu la suite : l'appelant n'a plus à jouer ses clôtures
   // devant le dé — même compte canonique que `jouerLesClotures`.
   return comptePasDifferes(get()) > avant ? OPS_DIFFEREES : undefined;
@@ -851,7 +864,7 @@ export function handleConditionGained(get: Get, set: SetFn, c: Combatant, name: 
     const lines: string[] = [];
     const battle = inBattleId(s.battle, c.id) ? s.battle : null;
     emitCombatEvent('onGainCondition', { get, set, battle, self: c, sink: (line) => lines.push(line), triggerCtx: { conditionName: name, rng: battleRng() } });
-    queueLines(get, set, lines, c.id);
+    enfilerAuJournal(get, set, lines, c.id);
   } finally {
     enCours.delete(name);
     if (!enCours.size) etatsEnNotification.delete(c);
@@ -983,7 +996,7 @@ export const TABLES = {
       const id = options?.sceneId === (etat.scene?.id ?? null) ? options.ids[rang] : undefined;
       const personne = id === undefined ? undefined : personnesConnues(etat, cible).find((p) => p.id === id);
       const ctx: ExecCtx = { get, set, target: cible, caster: oc.caster ?? hero, label: nomDeSource(oc), opsCtx: oc };
-      queueLines(get, set, [ligneDeDesignation(cible, personne, oc)], cible.id);
+      enfilerAuJournal(get, set, [ligneDeDesignation(cible, personne, oc)], cible.id);
       runCombatFlow(ctx, { kind: 'sequence', etapes: [fluxDEnvers(feuille.effet, personne, !!personne && sontAmis(cible, personne)), step.meta?.after ?? EMPTY_FLOW] });
       return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.text)) };
     },

@@ -29,7 +29,8 @@ import type { SeuilDeSauvegarde } from '../pendings';
 import { wardSaves, traitCapability } from '../../engine/traits/dispatch';
 import { tablesPosees } from '../tablesPosees';
 import { canPushback } from '../../engine/qualities/dispatch';
-import { isOutOfAction, loseWounds, applyZeroWounds, isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
+import { isOutOfAction, loseWounds, isMagicallyAsleep, wakeSleeper } from '../../engine/conditions';
+import type { Applique } from '../../engine/faits';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { woundsFromHit } from '../../engine/woundsCalc';
 import { distanceDeCombat } from '../monde/footprint';
@@ -188,12 +189,12 @@ export type TypeDAttaque = 'melee' | 'distance' | 'magique';
 export type LectureDeTouche = Pick<HitModifierCtx, 'attacker' | 'target' | 'weapon' | 'attaque' | 'res'> & { etat: Jeu };
 
 /** Ce qu'un modifier fait d'une touche : le `res` réécrit ; les seuils d'une sauvegarde à DÉCLARER (la chaîne s'arrête
- *  là) ; le tiers qui encaisse à la place de la cible (Martyr) ; l'écriture que l'application joue. */
+ *  là) ; le tiers qui encaisse à la place de la cible (Martyr) ; l'écriture que l'application joue, et ses lignes. */
 export interface IssueDuModifier {
   res: AttackResult;
   seuils?: SeuilDeSauvegarde[];
   encaisse?: { porteur: Combatant; pb: number };
-  ecrire?: () => void;
+  ecrire?: () => string[];
 }
 
 /** Un modifier de touche = une sauvegarde NOMMÉE qui TRANSFORME `res`. `order` fixe sa position dans la séquence
@@ -230,14 +231,13 @@ export interface ToucheApresModifiers {
 }
 
 /** Enchaîne les modifiers dans l'ordre `order`, chacun lisant le `res` laissé par le précédent ; `surIssue` reçoit
- *  chaque issue sans seuils. Un seuil rendu ARRÊTE la chaîne et la rend suspendue. */
-function enchainer(lire: () => Jeu, l: Omit<LectureDeTouche, 'etat'>, surIssue: (issue: IssueDuModifier) => void): ToucheApresModifiers & { seuils?: SeuilDeSauvegarde[] } {
+ *  chaque issue sans seuils et rend le `res` que lit le suivant. Un seuil rendu ARRÊTE la chaîne et la rend suspendue. */
+function enchainer(lire: () => Jeu, l: Omit<LectureDeTouche, 'etat'>, surIssue: (issue: IssueDuModifier) => AttackResult): ToucheApresModifiers & { seuils?: SeuilDeSauvegarde[] } {
   let res = l.res;
   for (const h of modifiersPoses()) {
     const issue = h.toucher({ ...l, etat: lire(), res });
     if (issue.seuils) return { res, suspendu: true, seuils: issue.seuils };
-    surIssue(issue);
-    res = issue.res;
+    res = surIssue(issue);
   }
   return { res, suspendu: false };
 }
@@ -251,8 +251,9 @@ function enchainer(lire: () => Jeu, l: Omit<LectureDeTouche, 'etat'>, surIssue: 
  *  À la ré-entrée (`res.sauvegarde` posée), `ward-saves` est TRAVERSANT et la chaîne tourne UNE fois. */
 export function runHitModifiers(ctx: HitModifierCtx): ToucheApresModifiers {
   const fin = enchainer(ctx.get, ctx, (issue) => {
-    issue.ecrire?.();
+    const lignes = issue.ecrire?.() ?? [];
     if (issue.encaisse) ctx.encaisse?.(issue.encaisse.porteur, issue.encaisse.pb);
+    return lignes.length ? { ...issue.res, ajouts: [...(issue.res.ajouts ?? []), ...lignes] } : issue.res;
   });
   if (fin.seuils) ctx.ouvrirSauvegarde(fin.seuils, fin.res);
   return { res: fin.res, suspendu: fin.suspendu };
@@ -262,7 +263,10 @@ export function runHitModifiers(ctx: HitModifierCtx): ToucheApresModifiers {
  *  `etat` sans rien écrire ; `suspendu` quand un dé de sauvegarde reste à tirer. PUR. */
 export function toucheAuJet(etat: Jeu, l: Omit<LectureDeTouche, 'etat'>): ToucheApresModifiers & { encaisses: { porteur: Combatant; pb: number }[] } {
   const encaisses: { porteur: Combatant; pb: number }[] = [];
-  const fin = enchainer(() => etat, l, (issue) => { if (issue.encaisse) encaisses.push(issue.encaisse); });
+  const fin = enchainer(() => etat, l, (issue) => {
+    if (issue.encaisse) encaisses.push(issue.encaisse);
+    return issue.res;
+  });
   return { res: fin.res, suspendu: fin.suspendu, encaisses };
 }
 
@@ -287,7 +291,7 @@ export const TABLES = {
         if (!res.hit || !isMagicallyAsleep(target) || traitCapability(attacker.traits, 'wakelessBite')) return { res };
         return {
           res: { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.reveilDuDormeur', { name: nomDe(attacker), foe: nomDe(target) })] },
-          ecrire: () => wakeSleeper(target),
+          ecrire: () => { wakeSleeper(target); return []; },
         };
       },
     },
@@ -341,8 +345,9 @@ export const TABLES = {
           res: { ...res, woundsLost: 0, degatsTransferes: true, ajouts: [...(res.ajouts ?? []), t('cf.martyrEncaisse', { priest: nomDe(priest), name: nomDe(target), taken })] },
           encaisse: { porteur: priest, pb: taken },
           ecrire: () => {
-            loseWounds(priest, taken);
-            if (priest.wounds.current <= 0) applyZeroWounds(priest);
+            const consequences: Applique = { lignes: [], faits: [] };
+            loseWounds(priest, taken, consequences);
+            return consequences.lignes;
           },
         };
       },
@@ -354,7 +359,7 @@ export const TABLES = {
       order: 50,
       toucher: ({ etat, attacker, target, weapon, attaque, res }) => {
         if (!attacker.pushbackMode || attaque !== 'melee' || !weapon || !canPushback(weapon)) return { res };
-        const consommer = (): void => { attacker.pushbackMode = false; }; // consommé par cette attaque (réussie ou non)
+        const consommer = (): string[] => { attacker.pushbackMode = false; return []; }; // consommé par cette attaque (réussie ou non)
         if (!res.hit) return { res, ecrire: consommer };
         const meters = Math.max(0, res.netSL);
         const wanted = Math.floor(meters / sceneMetresPerTile(etat.scene));
@@ -366,8 +371,9 @@ export const TABLES = {
             log: t('cf.repoussement', { name: nomDe(attacker), foe: nomDe(target), meters, bloque: moved < wanted ? t('cf.repoussementBloque') : '' }),
           },
           ecrire: () => {
-            consommer();
+            const lignes = consommer();
             if (recul && etat.scene) poserLeRecul(etat.scene, target, recul.pos);
+            return lignes;
           },
         };
       },

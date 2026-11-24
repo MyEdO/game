@@ -256,12 +256,14 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
       const gardeManger = cale ? rationsDeLaCale(cale, d * MINUTES_PER_DAY) : rationsDuSac(h);
       const r = dailyFoodUpkeep(h, gardeManger, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       if (r.rationConsumed && !cale) rations++;
-      if (r.damage > 0) loseWounds(h, r.damage);
-      lines.push(...lignesDEntretien(r.log, h.id));
+      const faim: Applique = { lignes: [], faits: [] };
+      loseWounds(h, r.damage, faim);
+      lines.push(...lignesDEntretien([...r.log, ...faim.lignes], h.id));
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
       const w = dailyWaterUpkeep(h, hasWater, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
-      if (w.damage > 0) loseWounds(h, w.damage);
-      lines.push(...lignesDEntretien(w.log, h.id));
+      const soif: Applique = { lignes: [], faits: [] };
+      loseWounds(h, w.damage, soif);
+      lines.push(...lignesDEntretien([...w.log, ...soif.lignes], h.id));
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {

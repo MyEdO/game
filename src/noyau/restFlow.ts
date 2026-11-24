@@ -33,6 +33,7 @@ import { partyAssisted } from '../engine/skills';
 import { designeGaranti } from './ligneDeJet';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
+import type { Applique } from '../engine/faits';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, constatSansRecuperation, type RestRoll } from '../engine/rest';
 import { diseaseDefs, contractionDue, applyDiseaseGangrene } from '../engine/disease';
 import { applyOps } from '../engine/ops';
@@ -971,13 +972,15 @@ export const TABLES = {
     }),
     faim: bandeDeNuit((_get, _set, _band, row, hero) => {
       const r = applyFaimTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
-      if (r.damage > 0) loseWounds(hero, r.damage); // 1d10 ignore les PA (LDB 18 l.342)
-      return { consequences: freeCons(r.log) };
+      const consequences: Applique = { lignes: [], faits: [] };
+      loseWounds(hero, r.damage, consequences); // LDB 18 l.342
+      return { consequences: freeCons([...r.log, ...consequences.lignes]) };
     }),
     soif: bandeDeNuit((_get, _set, _band, row, hero) => {
       const r = applySoifTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
-      if (r.damage > 0) loseWounds(hero, r.damage); // 1d10 ignore les PA (LDB 18 l.340)
-      return { consequences: freeCons(r.log) };
+      const consequences: Applique = { lignes: [], faits: [] };
+      loseWounds(hero, r.damage, consequences); // LDB 18 l.340
+      return { consequences: freeCons([...r.log, ...consequences.lignes]) };
     }),
     dessoulage: bandeDeNuit((_get, _set, band, row, hero) => {
       // Dessoûlage (LDB 09 l.485) : le 1ᵉʳ Test INFLUENÇABLE fixe la dissipation (10−DR h). Le 2ᵉ Test — « Une

@@ -1561,7 +1561,7 @@ export const fr = {
   'op.ligneDeCaracteristique': '{name} : {label} ({parts}, {dur}).',
   'op.blessures': '{name} subit {n} Blessure(s){mitig}.',
   'op.soin': '{name} regagne {n} Blessure(s).',
-  'op.chute': '{name} — {table} : chute de {m} m, {n} Blessure(s){etats}.',
+  'op.chute': '{name} — {table} : chute de {m} m, {n} Blessure(s).',
   // Les deux DÉS de la chute, tels que la porte les montre (#1508) — la hauteur (MDG 13 l.684) puis les
   // Dégâts (LDB 15 l.80). Le libellé dit ce que le dé DÉCIDE, l'unité vit sur la déclaration.
   'op.chute.deHauteur': 'Hauteur de chute — {table}',
@@ -1823,9 +1823,8 @@ export const fr = {
   'eff.navirePossede': 'Le groupe prend possession du navire : {name}.',
   'eff.souffleDeZone': 'Souffle de zone : {lines}.',
   // Ce QU'UN tombant encaisse, dit à la résolution de son dé de chute (applier `chuteDe`, #1508) —
-  // même forme que la ligne de l'op `fall`, l'État posé étant lu par différence.
-  'eff.chuteDeLaCible': '{name} — chute de {m} m : {lost} Blessure(s){aterre}.',
-  'eff.fragATerre': ' (À Terre)',
+  // même forme que la ligne de l'op `fall`.
+  'eff.chuteDeLaCible': '{name} — chute de {m} m : {lost} Blessure(s).',
   // L'Effet d'auteur ANNONCE la chute ; ce que chacun encaisse se dit à la résolution de SON dé
   // (étape à dé nu ouverte par `ouvrirChute`, #1508).
   'eff.chuteOuverte': 'Chute de {m}\u00a0m : {noms}.',
@@ -3812,8 +3811,8 @@ export const fr = {
   'suff.holding': "{name} retient son souffle ({s} s d'air).",
   'suff.noAir': "{name} n'a plus d'air — la suffocation commence.",
   'suff.lose': '{name} suffoque (−1 PB).',
-  'suff.faints': "{name} s'évanouit, privé d'air (Inconscient) — mort dans {n} Round(s).",
-  'suff.unconscious': '{name} suffoque, inconscient — mort dans {n} Round(s).',
+  'suff.faints': "{name} s'évanouit, privé d'air — mort dans {n} Round(s).",
+  'suff.unconscious': '{name} suffoque — mort dans {n} Round(s).',
   'suff.dies': '{name} cesse de respirer — la mort par suffocation le prend.',
   'suff.countdown': '{name} étouffe — mort dans {n} Round(s).',
 

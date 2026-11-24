@@ -41,12 +41,34 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
         "lines": [
           "round:— Round 2 —",
           "etat:Dider Rudlos subit 1 Blessure(s) (ignorant BE et PA).",
-          "etat:Dider Rudlos — Test de Résistance Intermédiaire (+0) : 13/20 → réussi (DR +1).",
+          "etat:Dider Rudlos — Test de Résistance (Résistance à l’Empoisonné) Intermédiaire (+0) : 13/20 → réussi (DR +1).",
           "etat:Dider Rudlos retire 1 État Empoisonné.",
           "etat:Dider Rudlos reçoit 1 État Exténué.",
         ],
         "rngProbe": 24,
       }
     `);
+  });
+
+  it('le Test de fin de Round d’un État nomme la situation que sa donnée lui donne (#4911, etats.json « Résistance au Sonné »)', () => {
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
+    banc.setState({ party: [hero] });
+    banc.getState().lancerLaScene(testScene());
+    seedBattleRng(777);
+    banc.getState().lancerLeCombat('enc-mutants');
+    banc.getState().fenetreValider('debutDuRound');
+    banc.abandonner();
+    const enemy = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
+    addCondition(enemy, COND.sonne);
+    const beforeLen = banc.getState().battle!.log.length;
+    seedBattleRng(424242);
+    banc.setState({ battle: { ...banc.getState().battle!, turn: banc.getState().battle!.order.length - 1 } });
+    advanceTurn(banc.getState, banc.setState);
+    expect(banc.getState().battle!.log.slice(beforeLen).map((e) => e.text)).toEqual([
+      '— Round 2 —',
+      'Dider Rudlos — Test de Résistance (Résistance au Sonné) Intermédiaire (+0) : 13/20 → réussi (DR +1).',
+      'Dider Rudlos retire 1 État Sonné.',
+      'Dider Rudlos reçoit 1 État Exténué.',
+    ]);
   });
 });

@@ -308,7 +308,7 @@ export function rendreLeJournal(journal: readonly LigneNumerotee[], depuis?: num
   return borner(lignes.length ? [...lignes, ...suite] : ['journal vide'], 'journal');
 }
 
-/** Les lignes de journal d'un geste, condensées : les détails (« ↳ ») tombent, une suite de lignes différées d'un
+/** Les lignes de journal d'un geste, condensées : les détails (`detail`) tombent, une suite de lignes différées d'un
  *  même acteur (un tour de l'IA) tient en une ligne. */
 function condenser(lignes: readonly LigneNumerotee[]): { n: number; texte: string }[] {
   const sortie: { n: number; texte: string; acteur?: string; plus: number }[] = [];

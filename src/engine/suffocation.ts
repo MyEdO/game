@@ -34,7 +34,8 @@
  */
 import type { Combatant } from './types';
 import { hasActiveFlag } from './activeFlags';
-import { addCondition, hasCondition, loseWounds } from './conditions';
+import { addCondition, faitsDesPoses, hasCondition, loseWounds } from './conditions';
+import { emettreDans, type Applique } from './faits';
 import { bonus, effectiveChar } from './characteristics';
 import { rule } from './policy';
 import { offTerrainSuffocates } from './ops';
@@ -79,6 +80,11 @@ export function prepareBreathHold(c: Combatant): void {
   c.breathHoldSeconds = breathHoldSeconds(c);
 }
 
+/** L'Inconscient de la suffocation, émis avec sa ligne dans `a` : LDB 18 l.346. */
+function perdreConnaissance(c: Combatant, a: Applique): void {
+  for (const f of faitsDesPoses(c, ['inconscient'], () => { if (!hasCondition(c, 'inconscient')) addCondition(c, 'inconscient'); })) emettreDans(a, c, f);
+}
+
 /** Tick de fin de Round d'un combattant qui suffoque. Mute `c`, retourne le journal. */
 export function suffocationTick(c: Combatant): string[] {
   if (c.dead || c.outOfRencontre) return [];
@@ -103,21 +109,22 @@ export function suffocationTick(c: Combatant): string[] {
   }
   const lines: string[] = [];
   const be = bonus(effectiveChar(c, 'endurance'));
+  const consequences: Applique = { lignes: [], faits: [] };
   if (c.wounds.current > 0) {
-    loseWounds(c, 1);
+    loseWounds(c, 1, consequences);
     lines.push(t('suff.lose', { name: nomDe(c) }));
     if (c.wounds.current <= 0) {
-      if (!hasCondition(c, 'inconscient')) addCondition(c, 'inconscient');
+      perdreConnaissance(c, consequences);
       c.suffocationCountdown = be;
-      lines.push(t('suff.faints', { name: nomDe(c), n: be }));
+      lines.push(...consequences.lignes, t('suff.faints', { name: nomDe(c), n: be }));
     }
     return lines;
   }
   // Déjà à 0 PB : décompte vers la mort (BE Rounds après l'Inconscient, LDB 18 l.346).
   if (c.suffocationCountdown == null) {
-    if (!hasCondition(c, 'inconscient')) addCondition(c, 'inconscient');
+    perdreConnaissance(c, consequences);
     c.suffocationCountdown = be;
-    lines.push(t('suff.unconscious', { name: nomDe(c), n: be }));
+    lines.push(...consequences.lignes, t('suff.unconscious', { name: nomDe(c), n: be }));
     return lines;
   }
   c.suffocationCountdown -= 1;

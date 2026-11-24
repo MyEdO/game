@@ -42,7 +42,7 @@ import { formatMoney, fromBrass } from '../engine/money';
 import type { Choix } from './elements';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
-  it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
+  it('une ligne par événement, ses sous-lignes (`detail`, sans marque au texte) à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
     const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
@@ -56,8 +56,8 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
         { de: 'journal', texte: 'Vous entrez.', heure },
         combat('round', 'Round 2'),
         combat('attaque', 'Coup porté.', heros.id, ennemi.id),
-        combat('detail', '  ↳ Tête, 4 Blessures'),
-        combat('detail', '  ↳ Sonné'),
+        combat('detail', 'Tête, 4 Blessures'),
+        combat('detail', 'Sonné'),
         combat('critique', 'Critique au bras.', ennemi.id, heros.id),
         combat('mort', 'Hors de combat.', ennemi.id),
         combat('information', ''),
@@ -70,7 +70,7 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
         { id: 'journal/9', ton: 'reussite', texte: 'Hors de combat.', detail: null },
       ]);
       expect(dernier, 'le jour de la dernière ligne').toBe(jour);
-      expect(lignesDuJournal(etat, 0, [combat('detail', '↳ Seule')], jour).lignes, 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: '↳ Seule', detail: null }]);
+      expect(lignesDuJournal(etat, 0, [combat('detail', 'Seule')], jour).lignes, 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: 'Seule', detail: null }]);
       const lendemain = heure + MINUTES_PER_DAY;
       expect(lignesDuJournal(etat, 0, [{ de: 'journal', texte: 'Premier mot.', heure }, { de: 'journal', texte: 'Au matin.', heure: lendemain }], null), 'chaque jour s’ouvre sur sa date, le premier compris').toMatchObject({
         lignes: [
