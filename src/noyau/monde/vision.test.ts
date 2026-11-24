@@ -22,7 +22,8 @@ import { METRES_PER_LEVEL } from './relief';
 import { computeStateVisible, sceneLightSources } from '../visionState';
 import { bumperDataset } from '../../data/versionDataset';
 import { parseWalledAscii } from './asciiMap';
-import { builtinCampaigns, paquetDuJeu } from '../../scenes/campaign';
+import { builtinCampaigns } from '../../scenes/campaign';
+import { paquetDuJeu } from '../campagneLivree';
 
 /** L'échelle des scènes de ce fichier — LUE, jamais redite : elles ne déclarent pas de
  *  `metresPerTile`, donc c'est le défaut du monde (`LDB 15 l.12`). */

@@ -20,7 +20,9 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { WorldMap } from './worldMap';
 import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
-import { campagneALancer, lancerCampagne, campagneDuJeu, diligenceCampaign } from '../scenes/campaign';
+import { areneCampaign, diligenceCampaign } from '../scenes/campaign';
+import { campagneDuJeu } from './campagneLivree';
+import { poserLaCampagne } from './campagne.testkit';
 import { applyEffects } from './combatEffects';
 import { appliquerLInstantane, instantaneDeLaCoop } from './coop';
 import { arriverAuLieu } from './lieuFlow';
@@ -130,10 +132,10 @@ describe('#766 — save de campagne auto-suffisante et rejouable', () => {
     expect(banc.getState().scene?.id).toBe('scene-ancienne-porte');
   });
 
-  it('l’Arène lancée sans choix (#1692) : sa save porte son paquet, et ses zones résolvent au rechargement', () => {
+  it('l’Arène lancée (#1692) : sa save porte son paquet, et ses zones résolvent au rechargement', () => {
     banc.setState({ party: tousLesHerosDeScenario(idsDeTest).slice(0, 1), battle: null });
-    const arene = campagneALancer(null);
-    expect(lancerCampagne(banc.getState, null)).toBeNull();
+    const arene = campagneDuJeu(areneCampaign);
+    expect(poserLaCampagne(banc.getState, arene)).toBeNull();
     expect(banc.getState().campaignDoc?.scenes.map((s) => s.id)).toEqual(arene.scenes.map((s) => s.id));
     const save = sauverLeBanc(banc);
 

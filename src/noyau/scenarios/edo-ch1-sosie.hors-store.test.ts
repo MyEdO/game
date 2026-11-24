@@ -11,7 +11,9 @@ import { pickActiveModalKey } from '../../noyau/modalArbiter';
 import { evalCondition } from '../../engine/flowCore';
 import { condCtx } from '../../noyau/bourseFlow';
 import { chargerSurLeBanc, sauverLeBanc } from '../persistance/save.testkit';
-import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
+import { diligenceCampaign } from '../../scenes/campaign';
+import { poserLaCampagne } from '../campagne.testkit';
+import { campagneDuJeu, paquetDuJeu } from '../campagneLivree';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 let banc: Banc;
@@ -24,7 +26,7 @@ const heros = (label: string, seed: number) => ({ ...createHero({ idNeuf: idsDeT
 
 beforeEach(() => {
   get().fixerLeGroupe([heros('Vivant', 1), { ...heros('Tombé', 2), dead: true }, heros('Autre', 3)]);
-  expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
+  expect(poserLaCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   get().fenetreValider('ouverture');
   get().quitterLaScene('route-principale-virage');
   poserLeGroupe(get, banc.setState, { x: 36, y: 3 });

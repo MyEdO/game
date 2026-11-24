@@ -15,7 +15,8 @@ import { ouvrirLeBanc } from './banc.testkit';
 import { gestesDExploration } from './gestesDExploration';
 import { pathTo } from './monde/path';
 import { optionsDeCheminDuGroupe } from './monde/exploreNav';
-import { diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
+import { diligenceCampaign } from '../scenes/campaign';
+import { paquetDuJeu } from './campagneLivree';
 import type { Scene } from './monde/scene';
 
 describe('les gestes d’exploration à l’étage de La Diligence', () => {

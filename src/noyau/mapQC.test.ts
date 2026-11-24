@@ -5,7 +5,8 @@ import { scenario as zonesPiecesScenario } from '../scenes/test-scenarios/zones-
 import { reachableCells, unreachableDescriptiveZones, reachedFloors } from './mapQC';
 import { walkNeighbors, type Pt } from './monde/path';
 import { startOf, type Scene } from './monde/scene';
-import { areneCampaign, diligenceCampaign, paquetDuJeu } from '../scenes/campaign';
+import { areneCampaign, diligenceCampaign } from '../scenes/campaign';
+import { paquetDuJeu } from './campagneLivree';
 const zonesPiecesScenarioConstruit = zonesPiecesScenario.construire(idsDeTest);
 
 describe('mapQC — harnais QC de cartes (#778)', () => {

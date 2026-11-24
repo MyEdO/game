@@ -3,7 +3,8 @@ import { clearedSpace, isSheltered, massCovers, shelterField } from './toits';
 import { massFootprintCells } from '../buildings';
 import { effectiveArchitecture } from '../../sceneEdit';
 import { emptyScene, type BuildingMass, type Scene } from '../scene';
-import { diligenceCampaign, paquetDuJeu } from '../../../scenes/campaign';
+import { diligenceCampaign } from '../../../scenes/campaign';
+import { paquetDuJeu } from '../../campagneLivree';
 
 /**
  * SOUS COUVERT (#1176 P2-6) — « cette case est-elle sous un toit ? » n'a qu'UNE réponse dans le

@@ -13,7 +13,9 @@ import { bourseOf } from '../../engine/bourse';
 import { testValue } from '../../engine/skills';
 import { bonus, effectiveChar } from '../../engine/characteristics';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
-import { lancerCampagne, campagneDuJeu, areneCampaign } from '../../scenes/campaign';
+import { areneCampaign } from '../../scenes/campaign';
+import { poserLaCampagne } from '../campagne.testkit';
+import { campagneDuJeu } from '../campagneLivree';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
@@ -40,21 +42,21 @@ const zone1 = project.find((s) => s.id === 'arene-zone1')!;
 describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () => {
   it('chargerLeProjet démarre sur la zone d’entrée, sans combat', () => {
     banc.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
-    expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     expect(banc.getState().scene?.id).toBe('arene-zone1');
     expect(banc.getState().battle).toBeNull();
   });
 
   it('entrer sur le sol (dans le rect du trigger) DÉCLENCHE la rencontre', () => {
     banc.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
-    expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     poserLeGroupe(banc.getState, banc.setState, { x: 8, y: 8 }); // dans le rect de combat (x≥7) → checkTriggers
     expect(banc.getState().battle).not.toBeNull();
   });
 
   it('onVictory : argent + flag zone1_clear + transition vers le hub', () => {
     banc.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
-    expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(banc.getState, banc.setState, zone1.encounters[0].onVictory!);
     expect(banc.getState().flags.zone1_clear).toBe(true);
     expect(banc.getState().scene?.id).toBe('arene-hub');
@@ -62,7 +64,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('au hub, la porte des Ruines s’ouvre une fois la Cour nettoyée', () => {
     banc.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
-    expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     runFlow(banc.getState, banc.setState, zone1.encounters[0].onVictory!);
     const hub = banc.getState().scene!;
     const dlgHub = hub.dialogues.find((d) => d.id === 'dlg-hub')!;
@@ -72,7 +74,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('ÉCHELLE COMPLÈTE : les 13 victoires enchaînées ouvrent chaque porte puis le titre de champion', () => {
     banc.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
-    expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-zone1')).toBeNull();
     const dlgHub = project.find((s) => s.id === 'arene-hub')!.dialogues.find((d) => d.id === 'dlg-hub')!;
     const choices = dlgHub.nodes.flatMap((n) => n.choices);
     for (let n = 1; n <= 13; n++) {
@@ -95,7 +97,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('ARCHITECTURE : la taverne du Bourg est cernée de murs d’arête, franchissable par sa PORTE', () => {
     banc.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
-    expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const hub = banc.getState().scene!;
     const bourg = hub.architecture?.find((body) => body.id === 'bourg');
     const taverne = bourg?.masses.find((mass) => mass.id === 'taverne');
@@ -121,7 +123,7 @@ describe('Arène — la boucle tourne sur le moteur existant (zéro code)', () =
 
   it('CONTRATS : la victoire au camp de Bella pose contrat_foret_fait → la prime du Maître se débloque', () => {
     banc.getState().fixerLeGroupe(groupeVitrineDeScenario(idsDeTest));
-    expect(lancerCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(areneCampaign), 'arene-hub')).toBeNull();
     const foret = project.find((s) => s.id === 'arene-exp-foret')!;
     const bande = foret.encounters.find((e) => e.id === 'enc-foret-bande')!;
     runFlow(banc.getState, banc.setState, bande.onVictory!);

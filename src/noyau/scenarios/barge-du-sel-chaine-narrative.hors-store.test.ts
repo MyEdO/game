@@ -9,7 +9,9 @@ import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { routesFrom, visiblePlaces } from '../../noyau/worldMap';
 import type { ConditionCtx } from '../../engine/flowCore';
-import { builtinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
+import { builtinCampaigns } from '../../scenes/campaign';
+import { poserLaCampagne } from '../campagne.testkit';
+import { campagneDuJeu, paquetDuJeu } from '../campagneLivree';
 import { poserLeGroupe } from '../../noyau/marcheDuGroupe';
 
 let banc: Banc;
@@ -25,7 +27,7 @@ const get = () => banc.getState();
 const ctx = (): ConditionCtx => ({ flags: get().flags, gameTime: get().gameTime });
 
 beforeEach(() => {
-  expect(lancerCampagne(banc.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!), barge.scenes[0].id)).toBeNull();
+  expect(poserLaCampagne(banc.getState, campagneDuJeu(builtinCampaigns.find((c) => c.id === 'barge-du-sel')!), barge.scenes[0].id)).toBeNull();
 });
 
 describe('chapitre « La Barge du Sel » — de l’ouverture à la clôture, sur la donnée committée', () => {
