@@ -158,9 +158,13 @@ export interface PendingTest {
   /** Delta de DR de la table Capricieux (`tirerLeCapricieux`, MSRC 15 l.149-159) : appliqué au DR du Test
    *  RÉSOLU (`FLOWS.test.resolve`), jamais à `skillValue`/`target`. */
   capriciousDR?: number;
-  /** Outil utilisé (uid résolu sur l'acteur) : sa qualité d'artisanat module l'issue / casse l'objet (Phase C2a). */
+  /** Outil utilisé (uid résolu sur l'acteur) : ses qualités d'artisanat entrent au DR du Test (`modsDR`) et sa casse
+   *  Bâclé (LDB 60 l.22, l.50, l.58). */
   itemUid?: string;
-  /** Jet double (Maladresse si en plus c'est un échec) — pour casser un outil Bâclé hors combat. */
+  /** Lignes de DR de l'outil `itemUid` entrées dans `sl` (`lignesDuTestRateALObjet`), absentes si elles ne valent rien :
+   *  la Chance repart du DR d'avant elles. LDB 60 l.22, l.58 */
+  modsDR?: ModLine[];
+  /** Jet double du dé écrit (Maladresse si en plus c'est un échec) — pour casser un outil Bâclé hors combat. */
   isDouble?: boolean;
   /** Membres du GROUPE pouvant tenter ce Test (le défaut `actorId` = le meilleur) — le joueur CHOISIT
    *  qui lance via réglage `test.testeur` (au lieu d'une désignation automatique). Chaque entrée porte sa

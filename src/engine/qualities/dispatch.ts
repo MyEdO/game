@@ -8,7 +8,7 @@
  * `passive: OpPassive[]` (weaponRollMod/weaponDamageMod/armourPierce/critOnRoll/testMod) pour les
  * modificateurs, `capabilities` pour les drapeaux irréductibles.
  */
-import type { Weapon, QualityInstance, ArmourBypass } from '../types';
+import type { Weapon, QualityInstance, ArmourBypass, ModLine } from '../types';
 import type { QualityId } from './ids';
 import type { QualityDef } from './types';
 import { findQualityById, findWeaponGroupById, groupeDeLArme, qualityInstance, type QualityCapabilities, type QualityData } from '../../data';
@@ -23,6 +23,9 @@ import type { GameOp, OpPassive } from '../ops';
  *  même altération, lues au MÊME point que le `passive` d'un Atout de registre (`weaponPassiveOps`). */
 export type QualityCarrier = { qualities: QualityInstance[]; weaponGroup?: string | null; subType?: string | null; noFamilyQualities?: boolean;
   removedQualities?: string[]; removedTypes?: ('atout' | 'defaut')[]; passive?: OpPassive[]; passifDArme?: OpPassive[] };
+
+/** Un objet qui nomme les lignes de DR de ses passifs : son libellé et son trapping de catalogue. */
+type ObjetALignes = QualityCarrier & { label: string; trappingId?: string };
 
 /** Une qualité résolue présente sur un objet : sa définition de registre (libellé), son id STABLE, sa
  *  donnée mécanique (`qualities.json` → passive/capabilities/effects) et son Indice éventuel. */
@@ -165,11 +168,22 @@ export function isUnbreakable(w: QualityCarrier | undefined): boolean {
   return resolveQualities(w).some((r) => r.caps?.unbreakable);
 }
 
-/** Ajustement de DR d'un Test RATÉ utilisant l'objet : Pratique +1, Peu Fiable -1 (LDB 60 l.22/58).
- *  Renvoie 0 si le test est RÉUSSI (la règle ne vise que les échecs). */
-export function craftTestDRAdjust(w: QualityCarrier | undefined, success: boolean): number {
-  if (success) return 0;
-  return rollModSum(w, 'testRate');
+/** Les lignes de DR d'un Test raté utilisant l'objet `w` (LDB 60 l.22, l.58) : chaque passif `weaponRollMod` de phase
+ *  `testRate` des sources de `weaponPassiveOps`, nommé par sa qualité, sinon par l'objet ; aucune si le Test est réussi. */
+export function lignesDuTestRateALObjet(w: ObjetALignes | undefined, success: boolean): ModLine[] {
+  if (success || !w) return [];
+  const ligne = (op: GameOp, label: string, ref: ModLine['ref']): ModLine[] =>
+    (op.op === 'weaponRollMod' && op.phase === 'testRate' && op.drMod ? [{ label, famille: 'jet', value: op.drMod, ref }] : []);
+  const objet = w.trappingId ? { category: 'trappings', id: w.trappingId } : undefined;
+  return [
+    ...resolveQualities(w).flatMap((r) => passiveOf(r.id).flatMap((op) => ligne(op, r.def.key, { category: 'qualities', id: r.id }))),
+    ...[...(w.passive ?? []), ...(w.passifDArme ?? [])].flatMap((op) => ligne(op, w.label, objet)),
+  ];
+}
+
+/** Ajustement de DR d'un Test utilisant l'objet : la somme de `lignesDuTestRateALObjet`. */
+export function craftTestDRAdjust(w: ObjetALignes | undefined, success: boolean): number {
+  return lignesDuTestRateALObjet(w, success).reduce((n, l) => n + l.value, 0);
 }
 
 /** Somme des modificateurs de Sociabilité (Laid -10, LDB 60 l.54) des qualités du porteur — lus dans la DONNÉE
