@@ -1,7 +1,7 @@
 /**
  * La carrière : ce que le niveau offre, les Talents qui agissent en combat, les sorts et miracles.
  */
-import { advanceCost, buyCharAdvance, buySkillAdvance, isCareerLevelComplete, careerChangeCost, talentCost } from '../../../src/engine/advancement';
+import { buyCharAdvance, buySkillAdvance, coutDeLAugmentation, coutDuChangement, coutDuTalent, isCareerLevelComplete, type Chiffrage } from '../../../src/engine/advancement';
 import { talentMaxReached } from '../../../src/engine/acquisitionTalents';
 import { spellCost, talentOuvre } from '../../../src/engine/grimoire';
 import { spellSupportOf } from '../../../src/engine/spellspec';
@@ -25,10 +25,11 @@ export function libelleDeCarac(k: CharKey): { abr: string; label: string } {
   return { abr: d?.abr ?? k, label: d?.label ?? k };
 }
 
-export interface OffreDeCarac { id: CharKey; label: string; valeur: number; augmentations: number; cout: number }
+/** `cout` : le prix de la prochaine Augmentation (`coutDeLAugmentation`), `null` quand le noyau la refuse. */
+export interface OffreDeCarac { id: CharKey; label: string; valeur: number; augmentations: number; cout: number | null }
 /** `carac` : l'abréviation de sa Caractéristique ; `valeur` : la valeur que son Test vise (`testValue`) ; `remise` :
  *  ce que chaque Augmentation coûte en moins (`competenceEnCarriere`). LDB 10 l.745 */
-export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: string; augmentations: number; cout: number; remise: number; carac: string; valeur: number }
+export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: string; augmentations: number; cout: number | null; remise: number; carac: string; valeur: number }
 /** `aSpecifier` : le Talent attend une spécialisation que la carrière laisse au choix (un domaine, un dieu) ;
  *  `auMaxi` : il ne se prend plus. LDB 10 */
 export interface OffreDeTalent { ref: { id: string; spec?: string }; label: string; possede: number; cout: number; auMaxi: boolean; aSpecifier?: boolean }
@@ -56,25 +57,52 @@ export function progression(c: Combatant): Progression {
   const prochain = niveaux.find((l) => l.level === niveau + 1);
   return {
     niveau, titre: niveaux.find((l) => l.level === niveau)?.label ?? carriere, requis: 5 * niveau, complet,
-    suivant: prochain ? { niveau: prochain.level, titre: prochain.label, cout: careerChangeCost(true) } : null,
-    caracs: [...new Set(chars)].map((k) => ({ id: k, label: libelleDeCarac(k).label, valeur: effectiveChar(c, k), augmentations: c.charAdvances?.[k] ?? 0, cout: advanceCost(c.charAdvances?.[k] ?? 0, 'caracteristique', true) })),
+    suivant: prochain ? { niveau: prochain.level, titre: prochain.label, cout: coutDuChangement(c, true) } : null,
+    caracs: [...new Set(chars)].map((k) => ({ id: k, label: libelleDeCarac(k).label, valeur: effectiveChar(c, k), augmentations: c.charAdvances?.[k] ?? 0, cout: prixDe(coutDeLAugmentation(c, { kind: 'caracteristique', char: k }, true)) })),
     competences: refs(sSlots).filter((r) => !r.aSpecifier).map(({ aSpecifier: _a, ...ref }) => {
       const adv = c.skills.find((x) => x.id === ref.id && (x.spec ?? '') === (ref.spec ?? ''))?.advances ?? 0;
       const k = byId('skill', ref.id)?.characteristic as CharKey | undefined;
       const { remise } = competenceEnCarriere(c, sSlots, designations, ref.id, ref.spec);
-      return { ref, label: refLabel('skills', ref), augmentations: adv, cout: advanceCost(adv, 'competence', true, remise), remise, carac: k ? libelleDeCarac(k).abr : '', valeur: testValue(c, { skill: ref }) };
+      return { ref, label: refLabel('skills', ref), augmentations: adv, cout: prixDe(coutDeLAugmentation(c, { kind: 'competence', competence: ref }, true, remise)), remise, carac: k ? libelleDeCarac(k).abr : '', valeur: testValue(c, { skill: ref }) };
     }),
     talents: refs(tSlots).map(({ aSpecifier, ...ref }) => {
       const fois = c.talents.filter((t) => t.talentId === ref.id && (aSpecifier || (t.spec ?? '') === (ref.spec ?? ''))).reduce((n, t) => n + t.times, 0);
-      return { ref, label: refLabel('talents', ref), possede: fois, cout: talentCost(fois), auMaxi: talentMaxReached(c, ref.id, ref.spec), ...(aSpecifier ? { aSpecifier } : {}) };
+      return { ref, label: refLabel('talents', ref), possede: fois, cout: coutDuTalent(c, ref.id, ref.spec), auMaxi: talentMaxReached(c, ref.id, ref.spec), ...(aSpecifier ? { aSpecifier } : {}) };
     }),
   };
 }
 
-/** Ce que coûtent `n` Augmentations de carrière d'une Caractéristique ou d'une Compétence qui en compte `depuis`,
- *  `remise` déduite de chacune (`advanceCost`). */
-export const coutDesAugmentations = (depuis: number, n: number, genre: 'caracteristique' | 'competence', remise = 0): number =>
-  Array.from({ length: n }, (_, i) => advanceCost(depuis + i, genre, true, remise)).reduce((s, x) => s + x, 0);
+/** Le prix d'un `Chiffrage`, `null` s'il est refusé. */
+const prixDe = (x: Chiffrage): number | null => (x.ok ? x.cout : null);
+
+/** Une Caractéristique ou une Compétence de carrière, cible d'Augmentations. */
+export type CibleDuPas = { genre: 'carac'; id: CharKey } | { genre: 'competence'; ref: { id: string; spec?: string } };
+
+/** Une copie de `c`, PX illimités, qui achète jusqu'à `n` Augmentations de carrière de `cible` (`buyCharAdvance`,
+ *  `buySkillAdvance`), `remise` déduite de chacune : la copie, les Augmentations prises, la somme de leurs `cost`, et le
+ *  refus du noyau qui l'a arrêtée. */
+function acheteesSurUneCopie(c: Combatant, cible: CibleDuPas, n: number, remise = 0): { copie: Combatant; fois: number; cout: number; refus: string | null } {
+  const copie: Combatant = { ...structuredClone(c), xp: Number.MAX_SAFE_INTEGER };
+  if (cible.genre === 'competence' && !copie.skills.some((s) => s.id === cible.ref.id && (s.spec ?? '') === (cible.ref.spec ?? ''))) {
+    copie.skills.push({ id: cible.ref.id, spec: cible.ref.spec, characteristic: byId('skill', cible.ref.id)?.characteristic as CharKey, advances: 0 });
+  }
+  let fois = 0;
+  let cout = 0;
+  while (fois < n) {
+    const r = cible.genre === 'carac' ? buyCharAdvance(copie, cible.id) : buySkillAdvance(copie, cible.ref, true, remise);
+    if (!r.ok) return { copie, fois, cout, refus: r.reason ?? '' };
+    fois++;
+    cout += r.cost;
+  }
+  return { copie, fois, cout, refus: null };
+}
+
+/** Ce que coûtent à `c` `n` Augmentations de carrière de `cible`, `remise` déduite de chacune
+ *  (`acheteesSurUneCopie`) ; `null` si le noyau en refuse une. */
+export function coutDesAugmentations(c: Combatant, cible: CibleDuPas, n: number, remise = 0): number | null {
+  const r = acheteesSurUneCopie(c, cible, n, remise);
+  return r.refus === null ? r.cout : null;
+}
 
 /** Un pas de progression : jusqu'au prochain multiple de cinq Augmentations. */
 export const PAS = 5;
@@ -85,29 +113,33 @@ export const augmentationsDuPas = (augmentations: number): number => PAS - (augm
 export type EtapeDuPlan = ({ genre: 'carac'; id: CharKey } | { genre: 'competence' | 'talent'; ref: { id: string; spec?: string } } | { genre: 'niveau' })
   & { label: string; fois: number; cout: number };
 
-/** Les pas (`augmentationsDuPas`) qui mènent de `depuis` à `jusqua` Augmentations : chacun ses Augmentations et son coût. */
-function pasJusqua(depuis: number, jusqua: number, genre: 'caracteristique' | 'competence', remise = 0): { fois: number; cout: number }[] {
+/** Les pas (`augmentationsDuPas`) qui mènent `cible` de `c` de `depuis` à `jusqua` Augmentations, achetés à la suite
+ *  (`acheteesSurUneCopie`) : chacun ses Augmentations et son coût ; ils s'arrêtent au refus du noyau. */
+function pasJusqua(c: Combatant, cible: CibleDuPas, depuis: number, jusqua: number, remise = 0): { fois: number; cout: number }[] {
   const pas: { fois: number; cout: number }[] = [];
+  let copie = c;
   for (let n = depuis; n < jusqua; n += pas[pas.length - 1].fois) {
-    const fois = Math.min(augmentationsDuPas(n), jusqua - n);
-    pas.push({ fois, cout: coutDesAugmentations(n, fois, genre, remise) });
+    const r = acheteesSurUneCopie(copie, cible, Math.min(augmentationsDuPas(n), jusqua - n), remise);
+    if (r.fois) pas.push({ fois: r.fois, cout: r.cout });
+    if (r.refus !== null) break;
+    copie = r.copie;
   }
   return pas;
 }
 
-/** Les achats qui complètent les exigences du niveau `p`, dans l'ordre et par pas (`pasJusqua`) : chaque
+/** Les achats qui complètent les exigences du niveau `p` du héros `c`, dans l'ordre et par pas (`pasJusqua`) : chaque
  *  Caractéristique de carrière jusqu'à l'exigence, des Compétences de carrière jusqu'à en tenir 8 à l'exigence (les
  *  `preferee` d'abord, puis les plus avancées), le premier Talent de `p.talents` qui se prend si aucun n'est acquis,
  *  puis le niveau suivant. LDB 07 l.118-131 */
-export function planDuNiveau(p: Progression, preferee: (ref: { id: string; spec?: string }) => boolean = () => false): EtapeDuPlan[] {
+export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id: string; spec?: string }) => boolean = () => false): EtapeDuPlan[] {
   const etapes: EtapeDuPlan[] = [];
   for (const k of p.caracs.filter((x) => x.augmentations < p.requis)) {
-    for (const x of pasJusqua(k.augmentations, p.requis, 'caracteristique')) etapes.push({ genre: 'carac', id: k.id, label: k.label, ...x });
+    for (const x of pasJusqua(c, { genre: 'carac', id: k.id }, k.augmentations, p.requis)) etapes.push({ genre: 'carac', id: k.id, label: k.label, ...x });
   }
   const tenues = p.competences.filter((k) => k.augmentations >= p.requis).length;
   const rang = (k: OffreDeCompetence) => (preferee(k.ref) ? 1 : 0);
   for (const k of p.competences.filter((x) => x.augmentations < p.requis).sort((x, y) => rang(y) - rang(x) || y.augmentations - x.augmentations).slice(0, Math.max(0, 8 - tenues))) {
-    for (const x of pasJusqua(k.augmentations, p.requis, 'competence', k.remise)) etapes.push({ genre: 'competence', ref: k.ref, label: k.label, ...x });
+    for (const x of pasJusqua(c, { genre: 'competence', ref: k.ref }, k.augmentations, p.requis, k.remise)) etapes.push({ genre: 'competence', ref: k.ref, label: k.label, ...x });
   }
   const talent = p.talents.some((t) => t.possede > 0) ? undefined : p.talents.find((t) => !t.aSpecifier && !t.auMaxi);
   if (talent) etapes.push({ genre: 'talent', ref: talent.ref, label: talent.label, fois: 1, cout: talent.cout });
@@ -118,19 +150,12 @@ export function planDuNiveau(p: Progression, preferee: (ref: { id: string; spec?
 /** Une valeur avant et après un achat. */
 export interface AvantApres { avant: number; apres: number }
 /** Ce que `n` Augmentations de carrière de `cible` changent au héros `c`, lu par le moteur sur une copie qui les a
- *  achetées (`buyCharAdvance`, `buySkillAdvance`) : la valeur du Test de chaque Compétence de `tests` (`testValue`),
+ *  achetées (`acheteesSurUneCopie`) : la valeur du Test de chaque Compétence de `tests` (`testValue`),
  *  le Bonus de la Caractéristique (`bonusDe`) et les Blessures (`effectiveMaxWounds`). */
 export function effetDesAugmentations(
-  c: Combatant, cible: { genre: 'carac'; id: CharKey } | { genre: 'competence'; ref: { id: string; spec?: string } }, n: number, tests: readonly { id: string; spec?: string }[],
+  c: Combatant, cible: CibleDuPas, n: number, tests: readonly { id: string; spec?: string }[],
 ): { tests: (AvantApres & { label: string })[]; bonus: AvantApres; blessures: AvantApres } {
-  const copie: Combatant = { ...structuredClone(c), xp: Number.MAX_SAFE_INTEGER };
-  if (cible.genre === 'competence' && !copie.skills.some((s) => s.id === cible.ref.id && (s.spec ?? '') === (cible.ref.spec ?? ''))) {
-    copie.skills.push({ id: cible.ref.id, spec: cible.ref.spec, characteristic: byId('skill', cible.ref.id)?.characteristic as CharKey, advances: 0 });
-  }
-  for (let i = 0; i < n; i++) {
-    if (cible.genre === 'carac') buyCharAdvance(copie, cible.id);
-    else buySkillAdvance(copie, cible.ref);
-  }
+  const { copie } = acheteesSurUneCopie(c, cible, n);
   const k: CharKey = cible.genre === 'carac' ? cible.id : byId('skill', cible.ref.id)?.characteristic as CharKey;
   return {
     tests: tests.map((ref) => ({ label: refLabel('skills', ref), avant: testValue(c, { skill: ref }), apres: testValue(copie, { skill: ref }) })),
@@ -183,7 +208,7 @@ export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Co
   while ((porte.careerLevel ?? 1) < niveau) {
     const p = progression(porte);
     const cible = p.niveau + 1;
-    const plan = planDuNiveau(p);
+    const plan = planDuNiveau(porte, p);
     const gestes: Geste[] = plan.flatMap((x) => Array.from({ length: x.fois }, (): Geste => {
       if (x.genre === 'carac') return { verbe: 'acheterLaCaracteristique', args: [porte.id, x.id] };
       if (x.genre === 'niveau') return { verbe: 'changerDeCarriere', args: [porte.id, porte.career, cible] };

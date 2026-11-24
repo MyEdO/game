@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { acheter, acheterUnPas, ameliorer, competencesMontrees, nouvellePartie, offresDeCarriere, planVersLeNiveau, prixDuPas, recrue, suivreLePlan, PROFILS, type CibleDuPas, type Etat, type Heros } from './index';
 import { porterAuNiveau, progression } from '../noyau';
-import { advanceCost } from '../../../src/engine/advancement';
+import { coutDeLAugmentation } from '../../../src/engine/advancement';
+import type { Combatant } from '../../../src/engine/types';
 
 /** Une recrue de `carriere` portée au niveau `niveau`, la salle d'armes bâtie par le jeu (`ameliorer`) jusqu'à
  *  enseigner le niveau 3. */
@@ -20,27 +21,38 @@ const soldat = (niveau: number, xp: number) => recrueDe('soldat', niveau, xp);
 
 const CC: CibleDuPas = { genre: 'carac', id: 'capacite-de-combat' };
 const augsCC = (h: Heros) => h.c.charAdvances?.['capacite-de-combat'] ?? 0;
-const prixNoyau = (depuis: number, n: number) => Array.from({ length: n }, (_, i) => advanceCost(depuis + i, 'caracteristique', true)).reduce((s, x) => s + x, 0);
+/** Le prix de la prochaine Augmentation de CC de `c` au noyau (`coutDeLAugmentation`). */
+const prixCC = (c: Combatant): number => { const x = coutDeLAugmentation(c, { kind: 'caracteristique', char: 'capacite-de-combat' }, true); if (!x.ok) throw new Error(x.raison); return x.cout; };
+/** Ce que le noyau fait payer `n` Augmentations de CC à la suite, chacune à son prix (`prixCC`) sur une copie de `h`. */
+const prixNoyau = (h: Heros, n: number) => {
+  const c = structuredClone(h.c);
+  let total = 0;
+  for (let i = 0; i < n; i++) { total += prixCC(c); c.charAdvances = { ...c.charAdvances, 'capacite-de-combat': (c.charAdvances?.['capacite-de-combat'] ?? 0) + 1 }; }
+  return total;
+};
 
 describe('progression : pas de +5', () => {
   it('de +3 à +5, un pas achète 2 Augmentations au prix du noyau ; de +5 à +10, il en achète 5', () => {
     const { e, h } = soldat(1, 5000);
     while (augsCC(h) % 5 !== 3) expect(acheter(e, h.c.id, CC)).toBeNull();
     const trois = augsCC(h);
-    expect(prixDuPas(h, CC)).toBe(prixNoyau(trois, 2));
-    expect(acheterUnPas(e, h.c.id, CC)).toEqual({ fois: 2, cout: prixNoyau(trois, 2), refus: null });
+    const deux = prixNoyau(h, 2);
+    expect(prixDuPas(h, CC)).toBe(deux);
+    expect(acheterUnPas(e, h.c.id, CC)).toEqual({ fois: 2, cout: deux, refus: null });
     expect(augsCC(h)).toBe(trois + 2);
-    expect(prixDuPas(h, CC)).toBe(prixNoyau(trois + 2, 5));
-    expect(acheterUnPas(e, h.c.id, CC)).toEqual({ fois: 5, cout: prixNoyau(trois + 2, 5), refus: null });
+    const cinq = prixNoyau(h, 5);
+    expect(prixDuPas(h, CC)).toBe(cinq);
+    expect(acheterUnPas(e, h.c.id, CC)).toEqual({ fois: 5, cout: cinq, refus: null });
     expect(augsCC(h)).toBe(trois + 7);
   });
 
   it('PX insuffisants : le pas s’arrête au refus du noyau et ne débite que ce qui a été acheté', () => {
     const { e, h } = soldat(1, 0);
     const avant = augsCC(h);
-    h.c.xp = advanceCost(avant, 'caracteristique', true) + 1;
+    const prix = prixCC(h.c);
+    h.c.xp = prix + 1;
     const r = acheterUnPas(e, h.c.id, CC);
-    expect(r).toMatchObject({ fois: 1, cout: advanceCost(avant, 'caracteristique', true) });
+    expect(r).toMatchObject({ fois: 1, cout: prix });
     expect(r.refus).toBeTruthy();
     expect(augsCC(h)).toBe(avant + 1);
     expect(h.c.xp).toBe(1);

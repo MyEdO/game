@@ -1,7 +1,7 @@
 /**
  * Les carrières : avancements et voies des lanceurs, joués par le noyau.
  */
-import { augmentationsDuPas, coutDesAugmentations, effetDesAugmentations, ficheDeCompetence, planDuNiveau, talentDeCombat, progression, type CharKey, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
+import { augmentationsDuPas, coutDesAugmentations, effetDesAugmentations, ficheDeCompetence, planDuNiveau, talentDeCombat, progression, type CibleDuPas, type EtapeDuPlan, type OffreDeCompetence, type Progression } from '../noyau';
 
 import { estUtile, TALENTS_HORS_DU_COMBAT, voieDe } from './valeurs';
 import { Etat, Heros } from './etat';
@@ -36,7 +36,7 @@ export function sortsProposes(h: Heros): string[] {
 export function peutProgresser(e: Etat, h: Heros): boolean {
   if (!niveauMaximal(e) || e.expedition?.groupe.includes(h.c.id)) return false;
   const p = progression(h.c);
-  const couts = [...p.caracs.map((x) => x.cout), ...p.competences.map((x) => x.cout), ...(p.complet && p.suivant && p.suivant.niveau <= niveauMaximal(e) ? [p.suivant.cout] : [])];
+  const couts = [...p.caracs.map((x) => x.cout), ...p.competences.map((x) => x.cout), ...(p.complet && p.suivant && p.suivant.niveau <= niveauMaximal(e) ? [p.suivant.cout] : [])].filter((x) => x !== null);
   return couts.length > 0 && (h.c.xp ?? 0) >= Math.min(...couts);
 }
 
@@ -65,7 +65,7 @@ export function acheter(e: Etat, id: string, a: Achat): string | null {
 /** `null` si le geste a pris (`pris`), sinon la ligne du noyau qui dit pourquoi. */
 const messageDuNoyau = (ligne: string, pris: () => boolean): string | null => (pris() ? null : ligne || 'Le geste n’a rien changé.');
 
-export type CibleDuPas = { genre: 'carac'; id: CharKey } | { genre: 'competence'; ref: { id: string; spec?: string } };
+export type { CibleDuPas };
 /** Ce qu'une suite d'achats a pris : combien de fois, les PX débités, et le refus du noyau qui l'a arrêtée. */
 export interface Achete { fois: number; cout: number; refus: string | null }
 
@@ -79,16 +79,17 @@ function repeter(e: Etat, h: Heros, a: Achat, fois: number): Achete {
 }
 
 /** Le pas de `cible` qu'offre la carrière du héros : ses Augmentations (`augmentationsDuPas`) et son prix
- *  (`coutDesAugmentations`) ; `null` si sa carrière ne l'offre pas. */
+ *  (`coutDesAugmentations`) ; `null` si sa carrière ne l'offre pas ou si le noyau le refuse. */
 export function pasDe(h: Heros, cible: CibleDuPas): { fois: number; prix: number } | null {
   const p = progression(h.c);
   const k = cible.genre === 'carac' ? p.caracs.find((x) => x.id === cible.id) : p.competences.find((x) => x.ref.id === cible.ref.id && (x.ref.spec ?? '') === (cible.ref.spec ?? ''));
   if (!k) return null;
   const fois = augmentationsDuPas(k.augmentations);
-  return { fois, prix: 'remise' in k ? coutDesAugmentations(k.augmentations, fois, 'competence', k.remise) : coutDesAugmentations(k.augmentations, fois, 'caracteristique') };
+  const prix = coutDesAugmentations(h.c, cible, fois, 'remise' in k ? k.remise : 0);
+  return prix === null ? null : { fois, prix };
 }
 
-/** Ce que coûte un pas de `cible` au héros (`pasDe`), `null` si sa carrière ne l'offre pas. */
+/** Ce que coûte un pas de `cible` au héros (`pasDe`), `null` sans pas (`pasDe`). */
 export const prixDuPas = (h: Heros, cible: CibleDuPas): number | null => pasDe(h, cible)?.prix ?? null;
 
 /** Un pas : les Augmentations de `cible` jusqu'au prochain multiple de cinq (`pasDe`), achetées une par une ;
@@ -123,7 +124,7 @@ export function competencesMontrees(h: Heros): (ReturnType<typeof offresDeCarrie
  *  (`offresDeCarriere`) avant les autres ; chaque étape et son coût, et le total. */
 export function planVersLeNiveau(h: Heros): { etapes: EtapeDuPlan[]; total: number } {
   const p = progression(h.c);
-  const etapes = planDuNiveau({ ...p, talents: [...offresDeCarriere(h).talents, ...p.talents] }, estUtile);
+  const etapes = planDuNiveau(h.c, { ...p, talents: [...offresDeCarriere(h).talents, ...p.talents] }, estUtile);
   return { etapes, total: etapes.reduce((s, x) => s + x.cout, 0) };
 }
 

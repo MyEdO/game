@@ -1,7 +1,8 @@
 /**
  * Les héros hors d'une partie : la recrue que le moteur crée, ses Caractéristiques, ses libellés.
  */
-import { CAREER_SKILL_ADVANCES, CAREER_SKILLS_ADVANCED, competencesDeCarriere, createHero, designer, libreDEspece, type CreateHeroOptions } from '../../../src/engine/character';
+import { CAREER_SKILL_ADVANCES, competencesDeCarriere, createHero, designer, libreDEspece, type CreateHeroOptions } from '../../../src/engine/character';
+import { CAREER_SKILLS_ADVANCED } from '../../../src/engine/advancement';
 import { adresseDeCreation, type AdresseDeCreation } from '../../../src/engine/adresseDeCreation';
 import { designateSlot, skillSlots, slotCovers } from '../../../src/engine/careerSlots';
 import { fabriqueLocale } from '../../../src/engine/fabriqueDId';
