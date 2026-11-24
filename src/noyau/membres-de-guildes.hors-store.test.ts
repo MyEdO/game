@@ -90,7 +90,7 @@ function fermerBilan(g: Lire) {
 function articleDeLEtal(g: Lire, id: string): Bouton | undefined {
   const etat = g();
   const projection = projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 });
-  const zones = zonesDeLEcran(etat, projection, fenetreADessiner(etat), null, SANS_ROSTER);
+  const zones = zonesDeLEcran(etat, projection, fenetreADessiner(etat), null, SANS_ROSTER, []);
   return zones['fenetre.corps'].flatMap((e) => e.type === 'entite' ? e.elements : [])
     .find((e): e is Bouton => e.type === 'bouton' && e.id === id);
 }

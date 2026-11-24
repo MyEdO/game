@@ -15,7 +15,22 @@ export interface Couche {
   /** Pour un outillage de la zone (clé : `couvre`), les seuls paquets de l'hôte web que ses modules chargent ; aucun module de
    *  la zone hors de lui ne l'importe. */
   readonly paquetsDOutillage?: Readonly<Record<string, readonly string[]>>;
+  /** Pour un projet, les zones qu'il ouvre au-delà des droits d'un projet, chacune nommée par son ticket. */
+  readonly ouvertures?: Readonly<Record<string, number>>;
 }
+
+/** Les droits d'un projet : ceux des hôtes, sans `scenes`. */
+export const DROITS_D_UN_PROJET: Couche;
+
+/** La ligne du projet de dossier `dossier` : les droits d'un projet, plus ses ouvertures ; ouvrir une zone l'importe et
+ *  retire sa porte. */
+export function ligneDeProjet(dossier: string, ouvertures: Readonly<Record<string, number>>): Couche;
+
+/** `z` est-il un projet : une zone dont le dossier est sous `projets/` ? */
+export function estProjet(z: unknown): boolean;
+
+/** La zone `vers` est-elle fermée à la zone `de` parce qu'elle est un projet, et `de` une autre zone ? */
+export function fermeParLeProjet(de: string, vers: string | null): boolean;
 
 /** La surface du noyau : porte de `noyau`, seul module de `src/state/`, `src/noyau/` et `src/scenes/` qui réexporte. */
 export const SURFACE_DU_NOYAU: "src/noyau/index.ts";
@@ -49,7 +64,7 @@ export function dossierDe(z: string): string;
 /** Les dossiers de premier niveau du dépôt qui portent une zone. */
 export const RACINES_DES_ZONES: readonly string[];
 
-/** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte. */
+/** Les hôtes du noyau : les zones bâties sur les droits d'un hôte ou d'un projet. */
 export const HOTES_DU_NOYAU: readonly string[];
 
 /** Les dossiers des zones déclarées d’une garde de corpus. Refuse une zone inconnue ou `racine`. */
@@ -60,7 +75,7 @@ export function porteeDeGarde(zones: readonly string[]): readonly string[];
 export function zoneDe(rel: string): string | null;
 
 /** Le verdict d'un arc de la zone `de` vers la zone `vers` : `null` s'il est ouvert, sinon ce qui le
- *  ferme — `'execution'` (un type passerait) ou `'type'` (fermé même pour un type). */
+ *  ferme — `'execution'` (un type passerait) ou `'type'` (fermé même pour un type) ; un projet est fermé à toute autre zone. */
 export function fermeture(de: string, vers: string, typeSeul: boolean): null | 'execution' | 'type';
 
 /** La zone `de` d'un instrument ferme-t-elle la zone `vers` : `de` survit à la bascule et `vers`, zone de la table, n'y
@@ -70,7 +85,7 @@ export function fermeParLaSurvie(de: string, vers: string | null): boolean;
 /** `z` est-il une zone de la table ? Clé PROPRE seulement. */
 export function estZone(z: unknown): z is string;
 
-/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type. */
+/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type ; un projet n'en est jamais. */
 export function ouvertes(de: string): { libres: string[]; enType: string[] };
 
 /** La porte que la zone `de` impose vers `vers` et que l'arc vers `cibleRel` manque, `null` sinon. */

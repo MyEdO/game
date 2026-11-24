@@ -2,14 +2,15 @@
  * LA PARTIE HORS DE SA SCÈNE (#3009), commune aux hôtes du noyau : tant qu'aucune partie n'est en cours
  * (`partieEnCours`), chaque pré-tiré de la donnée en entité, avec le bouton qui le recrute, chaque héros du roster de
  * l'hôte en entité, avec le bouton qui le recrute et celui qui le retire du roster (`{ roster }`), et chaque campagne
- * du jeu (`allBuiltinCampaigns`) en entité, avec le bouton qui la lance (`{ lancer }`) ; à tout moment, ses gestes
- * (`partie.gestes`) et le menu qui les offre (`partie.menu`). Le noyau juge chaque refus.
+ * que le jeu remet à l'affichage (`ContenuDUnJeu`, `contenu.ts`) en entité, avec le bouton qui la lance
+ * (`{ lancer }`) ; à tout moment, ses gestes (`partie.gestes`) et le menu qui les offre (`partie.menu`). Le noyau juge
+ * chaque refus.
  */
 import { herosDuRosterOfferts, partieEnCours, pretiresOfferts, refusDeLancer, type Jeu as Partie } from '../noyau/index';
 import { t } from '../i18n';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
-import { allBuiltinCampaigns } from '../scenes/campaign';
 import { ligne, type Bouton, type Entite, type Jeu, type Ligne } from './elements';
+import type { ContenuDUnJeu } from './contenu';
 import type { RosterMontre } from './roster';
 
 /**
@@ -66,8 +67,9 @@ const carte = (id: string, h: { nom: string; espece: string | null; carriere: st
 });
 
 /** Les zones de la partie `etat` hors de sa scène : le geste qui ouvre ses sauvegardes, celui qui la quitte, et,
- *  avant son lancement, son groupe à composer, des pré-tirés et du roster `roster` de l'hôte, et la campagne à lancer. */
-export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 'scene' | 'pendingCampaign'>, roster: RosterMontre): ZonesDeLaPartie {
+ *  avant son lancement, son groupe à composer, des pré-tirés et du roster `roster` de l'hôte, et la campagne à lancer,
+ *  parmi les campagnes `campagnes` du jeu. */
+export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 'scene' | 'pendingCampaign'>, roster: RosterMontre, campagnes: ContenuDUnJeu['campagnes']): ZonesDeLaPartie {
   const gestes: Bouton[] = [
     { type: 'bouton', id: 'sauvegardes', libelle: t('ecran.partie.sauvegardes'), jeu: { sauvegardes: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
     { type: 'bouton', id: 'reglages', libelle: t('ecran.partie.reglages'), jeu: { reglages: true }, presse: false, focus: false, detail: null, touche: null, refus: null },
@@ -88,7 +90,7 @@ export function zonesDeLaPartie(etat: Pick<Partie, 'battle' | 'party' | 'net' | 
     ])),
     'groupe.import': [bouton('importer', t('picker.import.btn'), { roster: { importer: true } }, null)],
     'groupe.avis': roster.avis === null ? [] : [ligne('roster', roster.avis, 'alerte')],
-    'groupe.campagnes': allBuiltinCampaigns.map((c): Entite => ({
+    'groupe.campagnes': campagnes.map((c): Entite => ({
       type: 'entite', id: `campagne/${c.id}`, ton: 'neutre', nom: c.label, elements: [...(c.desc ? [ligne('desc', c.desc)] : []), bouton(`lancer/${c.id}`, t('ecran.groupe.lancer'), { lancer: c.id }, refus)],
     })),
   };

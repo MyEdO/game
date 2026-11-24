@@ -3,7 +3,8 @@ import { buildScene } from '../../noyau/mapSpec';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { DocumentNarratif, NarratifBlock } from '../../data/schemas/defs-scenes/narratif';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { diligenceCampaign } from '../campaign';
+import { paquetDuJeu } from '../../noyau/index';
 import type { TestScenario } from './_shared';
 import type { DialogueChoice, DialogueNode, Scene } from '../../noyau/monde/scene';
 

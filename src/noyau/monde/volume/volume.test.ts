@@ -22,7 +22,7 @@ import { datasetArray, setDataset, type DatasetKey } from '../../../data/overrid
 import { idsDeTest } from '../../../engine/idsDeTest.testkit';
 import { scenario as brecheAuCanon } from '../../../scenes/test-scenarios/45-breche-au-canon';
 import { scenario as siegeEnceinte } from '../../../scenes/test-scenarios/siege-enceinte';
-import { scenario as scenarioDiligence } from '../../../scenes/test-scenarios/diligence';
+import { RELAIS_COUVERT, relaisCouvert } from '../../../scenes/fixtures/volumes.testkit';
 import { edgeKey } from '../facades';
 import { ancreDuDecor } from '../footprint';
 import { METRES_PER_LEVEL } from '../relief';
@@ -527,16 +527,16 @@ const porteOuverte = (scene: Scene): Scene => {
 };
 
 /** Les scènes du #4044, chacune avec la famille qu'elle porte (0 : nappes, 1 : couronnes) et ses écritures de
- *  drapeaux : la diligence porte des nappes et des portes, breche-au-canon une couronne sur sa porte de ville. */
+ *  drapeaux : le relais à étage porte des nappes et des portes, breche-au-canon une couronne sur sa porte de ville. */
 const SCENES_RETENUES = [
-  ['diligence', scenarioDiligence, 0, (s: Scene) => [murAbattu(s, { x: 22, y: 12, side: 'E', z: 0 }), porteOuverte(s)]],
-  ['breche-au-canon', brecheAuCanon, 1, (s: Scene) => [murAbattu(s, { x: 7, y: 9, side: 'N', z: 0 })]],
+  ['relais à étage', relaisCouvert, 0, (s: Scene) => [murAbattu(s, RELAIS_COUVERT.facadeEst), porteOuverte(s)]],
+  ['breche-au-canon', () => brecheAuCanon.construire(idsDeTest).scene, 1, (s: Scene) => [murAbattu(s, { x: 7, y: 9, side: 'N', z: 0 })]],
 ] as const;
 
 describe.each(SCENES_RETENUES)('toits et couronnes retenus sur ce qu’ils lisent (#4044) — %s', (
   _, sc, fam, ecrit,
 ) => {
-  const scene = poserLesNavires(sc.construire(idsDeTest).scene);
+  const scene = poserLesNavires(sc());
   const retenus = (s: Scene) => [toitsDuMonde(s), couronnesDuMonde(s)];
 
   it('la scène porte sa famille', () => {

@@ -9,12 +9,17 @@ import { estFichierVitest, estKitDeTest, estSuiteVitest } from '../scripts/guard
 import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 import {
   COUCHES,
+  DROITS_D_UN_PROJET,
   PAQUETS_DE_L_HOTE_WEB,
   RACINES_DES_ZONES,
   SURFACE_DU_NOYAU,
   dossierDe,
+  estProjet,
   estZone,
+  fermeParLeProjet,
   fermeture,
+  ligneDeProjet,
+  ouvertes,
   paquetFerme,
   porteManquee,
   zoneDe,
@@ -29,15 +34,17 @@ import {
  * config RÉSOLUE :
  *  1. CONTRAT de la table — chaque zone nommée existe, le dossier de chaque zone est à elle (`zoneDe`), une zone qui
  *     survit à la bascule (`survit`) n'ouvre que des zones qui survivent, chaque script d'`outillage` et chacun de ses
- *     modules existent, l'un dans sa zone, les autres hors des zones, et `fermeture`, `porteManquee` et
- *     `paquetFerme` rendent, sur un ORACLE écrit à la main, le verdict de chaque classe de ligne ;
+ *     modules existent, l'un dans sa zone, les autres hors des zones, la ligne d'un projet est celle de son
+ *     constructeur, aucune autre ligne ne le nomme et aucune de ses ouvertures n'est morte, `fermeture` et `ouvertes`
+ *     le ferment à toute autre zone, et `fermeture`, `porteManquee` et `paquetFerme` rendent, sur un ORACLE écrit à la
+ *     main, le verdict de chaque classe de ligne ;
  *  2. PÉRIMÈTRE — des fichiers RÉELS de chaque zone (racine et sous-dossier) sont sous les murs ; une zone dont
  *     l'arbre ne porte pas le dossier se mesure sur des fixtures posées dans son dossier ;
  *  3. FORMES — pour chaque paire de zones, chaque forme d'import rend le verdict de `fermeture`, et, depuis une
- *     suite de la zone, celui de `fermeParLaSurvie` (INSTRUMENTS, #3058), depuis des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
+ *     suite de la zone, celui de `fermeParLaSurvie` (INSTRUMENTS, #3058) et de `fermeParLeProjet` (#4903 H3), depuis des fichiers de la zone, par chemin relatif, par alias `@/` (vers une zone de `src/`), par chemin `/…` et vers
  *     l'index du dossier : la matrice prouve le CÂBLAGE (zone, cible, type ou valeur), l'oracle prouve la table ;
  *  4. PAQUETS, JOKER — chaque zone × chaque paquet de l'hôte web rend le verdict de `paquetFerme` ; un motif de glob
- *     dont le dossier de zone est un joker est refusé hors de `racine` ;
+ *     dont un joker peut atteindre une zone fermée au fichier est refusé, un projet depuis `racine` compris ;
  *  5. JSX, HORS ZONE — chaque zone qui survit refuse le JSX et tout module de code hors des zones, hors des modules
  *     que l'`outillage` d'un de ses scripts déclare pour ce script seul ; une zone qui ne survit pas, une donnée passent ;
  *  6. RÉEXPORTATION, SUITE JOUÉE, QUARANTAINE — chaque forme refusée l'est, chaque forme voisine passe ; chaque
@@ -56,6 +63,7 @@ import {
 const REGLE = 'murs/purete-imports';
 const REEX = 'murs/reexportation';
 const INSTR = 'murs/tests-survivants';
+const SUITE_JOUEE = 'murs/suite-jouee';
 const ZONES = Object.keys(COUCHES).filter((z) => z !== 'racine');
 
 /** L'objet de Vitest que les fixtures appellent pour mocker : le banc ne mocke rien, il écrit le code qu'il lint
@@ -97,15 +105,15 @@ function verdicts(fixtures: { filePath: string; code: string }[], regles: readon
   });
 }
 
-/** Des fichiers RÉELS de la zone, tests exclus (ordre total de `readCorpus`, jamais un nom en dur) : le
- *  PREMIER, et un fichier de SOUS-DOSSIER quand la zone en a — un spécificateur de remontée `../../` ne
+/** Des fichiers TypeScript RÉELS de la zone, comme les fixtures, tests exclus (ordre total de `readCorpus`, jamais un
+ *  nom en dur) : le PREMIER, et un fichier de SOUS-DOSSIER quand la zone en a — un spécificateur de remontée `../../` ne
  *  se comporte pas comme à la racine de la zone. Une zone dont le dossier, hors de `src/`, est absent de l'arbre : deux
  *  fixtures de son dossier, à sa racine et en sous-dossier ; sous `src/`, un dossier absent ou sans fichier lève
  *  (`readCorpus`) : une ligne sans dossier ne passe jamais sur des fixtures. */
 function sondes(zone: string): string[] {
   const dossier = dossierDe(zone);
   if (!dossier.startsWith('src/') && !existsSync(new URL(`../${dossier}`, import.meta.url))) return [`${dossier}/zz-sonde.ts`, `${dossier}/zz-sous/sonde.ts`];
-  const corpus = readCorpus([dossier]);
+  const corpus = readCorpus([dossier], { exts: ['.ts'] });
   const sousDossier = corpus.find((f) => f.rel.slice(dossier.length + 1).includes('/'));
   return sousDossier ? [corpus[0].rel, sousDossier.rel] : [corpus[0].rel];
 }
@@ -187,12 +195,35 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
 
   it('CONTRAT : une zone qui survit à la bascule (`survit`) n’ouvre que des zones qui survivent, en valeur, en type et par porte', () => {
     const survivent = Object.keys(COUCHES).filter((z) => COUCHES[z].survit === true);
-    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'godot', 'hote', 'i18n', 'lib', 'noyau', 'racine', 'scenes', 'texte']);
+    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'godot', 'hote', 'i18n', 'lib', 'noyau', 'racine', 'roguelite', 'scenes', 'texte']);
     expect(survivent).toHaveLength(Object.keys(COUCHES).length);
     for (const z of survivent) {
       const { importe, types = [], portes = {} } = COUCHES[z];
       expect(importe === '*', `${z} et ses droits d’import`).toBe(z === 'racine');
       for (const v of [...(importe === '*' ? [] : importe), ...types, ...Object.keys(portes)]) expect(COUCHES[v].survit, `${z} ouvre ${v}`).toBe(true);
+    }
+  });
+
+  it('CONTRAT : la ligne d’un projet est celle de son constructeur, aucune ligne hors de lui ne le nomme, aucune de ses ouvertures n’est morte, et toute autre zone le trouve fermé (#4903 H3)', () => {
+    const projets = Object.keys(COUCHES).filter(estProjet);
+    expect(projets, 'les projets de la table').toEqual(['roguelite']);
+    for (const p of projets) {
+      const { ouvertures = {} } = COUCHES[p];
+      expect(COUCHES[p], `${p} : la ligne de son constructeur`).toEqual(ligneDeProjet(dossierDe(p), ouvertures));
+      for (const [z, ticket] of Object.entries(ouvertures)) {
+        expect(Number.isInteger(ticket) && ticket > 0, `${p} ouvre ${z} : son ticket`).toBe(true);
+        const libre = (DROITS_D_UN_PROJET.importe as readonly string[]).includes(z) && DROITS_D_UN_PROJET.portes?.[z] === undefined;
+        expect(libre, `${p} ouvre ${z}, que les droits d’un projet ouvrent déjà sans porte : ouverture morte`).toBe(false);
+      }
+    }
+    for (const [z, { importe, types = [], portes = {} }] of Object.entries(COUCHES)) {
+      const nommees = [...(importe === '*' ? [] : importe), ...types, ...Object.keys(portes)];
+      expect(nommees.filter((v) => fermeParLeProjet(z, v)), `${z} nomme un projet`).toEqual([]);
+      for (const p of projets.filter((q) => q !== z)) {
+        expect([fermeture(z, p, false), fermeture(z, p, true)], `${z} → ${p}`).toEqual(['type', 'type']);
+        const { libres, enType } = ouvertes(z);
+        expect([...libres, ...enType], `${z} ouvre ${p}`).not.toContain(p);
+      }
     }
   });
 
@@ -241,6 +272,14 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['godot', 'texte', true, 'type'],
       ['texte', 'godot', true, 'type'],
       ['scenes', 'hote', true, 'type'],
+      ['roguelite', 'engine', false, null], // ouverture (#4932)
+      ['roguelite', 'noyau', false, null], // ouverture, sans porte (#4931)
+      ['roguelite', 'hote', false, null], // droits d'un projet
+      ['roguelite', 'godot', true, 'type'],
+      ['roguelite', 'racine', true, 'type'],
+      ['racine', 'roguelite', true, 'type'], // un projet est fermé, `'*'` compris (#4903 H3)
+      ['godot', 'roguelite', true, 'type'],
+      ['engine', 'roguelite', true, 'type'],
     ];
     expect(oracle.map(([de, vers, t]) => fermeture(de, vers, t))).toEqual(oracle.map(([, , , v]) => v));
     expect(['constructor', '__proto__', 'toString', 'hasOwnProperty'].filter(estZone)).toEqual([]);
@@ -256,6 +295,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hote', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
       ['godot', 'hote', 'src/hote/projection.ts', null], // aucune porte vers `hote`
       ['scenes', 'noyau', 'src/noyau/combatFlow.ts', null], // aucune porte pour `scenes`
+      ['roguelite', 'noyau', 'src/noyau/combatFlow.ts', null], // l'ouverture retire la porte (#4931)
       ['constructor', 'noyau', 'src/noyau/x.ts', null],
     ];
     expect(portes.map(([de, vers, cible]) => porteManquee(de, vers, cible))).toEqual(portes.map(([, , , v]) => v));
@@ -279,12 +319,12 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     const regles = (rel: string) => Object.keys(configPourFichier(rel).rules);
     for (const zone of ZONES) {
       for (const rel of sondes(zone)) {
-        expect(regles(rel), rel).toEqual(expect.arrayContaining([REGLE, 'murs/zone', 'murs/suite-jouee']));
+        expect(regles(rel), rel).toEqual(expect.arrayContaining([REGLE, 'murs/zone', SUITE_JOUEE]));
         expect(regles(rel).includes(REEX), rel).toBe(['noyau', 'scenes'].includes(zone) && !estKitDeTest(rel));
       }
     }
     for (const ext of ['.mjs', '.mts', '.cjs', '.js', '.jsx', '.tsx']) {
-      expect(regles(`src/lib/zz-dialecte${ext}`), ext).toEqual(expect.arrayContaining([REGLE, 'murs/zone', 'murs/suite-jouee']));
+      expect(regles(`src/lib/zz-dialecte${ext}`), ext).toEqual(expect.arrayContaining([REGLE, 'murs/zone', SUITE_JOUEE]));
     }
     const [noyau] = sondes('noyau');
     const horsReexportation = [SURFACE_DU_NOYAU, voisin(noyau, 0).replace(/\.ts$/, '.test.ts'), voisin(noyau, 1).replace(/\.ts$/, '.testkit.ts'), 'src/noyau/zz.d.ts'];
@@ -309,14 +349,16 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
         }
       }
     }
-    // Les suites gardent tous les imports entre zones vivantes. Chaque forme d’accès à Three hors de son
-    // outillage reste refusée, en valeur comme en type.
+    // Les suites gardent tous les imports entre zones vivantes, hors du projet d'une autre zone (#4903 H3) ; une suite
+    // qu'aucune configuration de Vitest ne joue est refusée (`murs/suite-jouee`). Chaque forme d’accès à Three hors de
+    // son outillage reste refusée, en valeur comme en type.
     for (const de of ZONES) {
       const [rel] = sondes(de);
       for (const vers of ZONES.filter((v) => v !== de)) {
         const { p } = arcsVers(rel, vers)[0];
         const filePath = suite(voisin(rel, cas.length));
-        cas.push({ cle: `${filePath} → ${p}`, attendu: 'passe', fixture: { filePath, code: FORMES[0].code(p) } });
+        const attendu = [...(estDeLaSuiteVitest(filePath) ? [] : [SUITE_JOUEE]), ...(fermeParLeProjet(de, vers) ? [INSTR] : [])].join('+') || 'passe';
+        cas.push({ cle: `${filePath} → ${p}`, attendu, fixture: { filePath, code: FORMES[0].code(p) } });
       }
     }
     const [noyau] = sondes('noyau');
@@ -324,7 +366,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       const filePath = suite(voisin(noyau, cas.length));
       cas.push({ cle: `${filePath} → three (${f.nom})`, attendu: INSTR, fixture: { filePath, code: f.code('three') } });
     }
-    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE, REEX, INSTR]);
+    const obtenus = verdicts(cas.map((c) => c.fixture), [REGLE, REEX, INSTR, SUITE_JOUEE]);
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
 
@@ -395,14 +437,14 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['noyau → scenes', suite(voisin(noyau, 2)), `import { X } from '${specifieurs(noyau, 'scenes')[0]}';\nexport const a = X;\n`, 'passe'],
       ['noyau → hors des zones', suite(voisin(noyau, 3)), `import { X } from '${relatif(noyau, 'scripts/zz-pont.mjs')}';\nexport const a = X;\n`, 'passe'],
       ['noyau → react', suite(voisin(noyau, 4)), "import { useState } from 'react';\nexport const a = useState;\n", INSTR],
-      ['noyau : JSX', suite(voisin(noyau, 6)).replace(/\.ts$/, '.tsx'), 'export const A = () => <div />;\n', `murs/suite-jouee+${INSTR}`],
+      ['noyau : JSX', suite(voisin(noyau, 6)).replace(/\.ts$/, '.tsx'), 'export const A = () => <div />;\n', `${SUITE_JOUEE}+${INSTR}`],
       ['noyau : mock d’un `import(…)`', suite(voisin(noyau, 7)), `${MOQUEUR}.mock(import('./zz-a'));\n`, 'passe'],
       ...calcule.map((appel, i): [string, string, string, string] => [`noyau : ${appel}`, suite(voisin(noyau, 8 + i)), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, INSTR]),
       ...calcule.map((appel, i): [string, string, string, string] => [`production noyau : ${appel}`, voisin(noyau, 20 + i), `const p = './zz-' + 'a';\nexport const f = () => ${appel};\n`, 'passe']),
       ...CHARGEURS_DETOURNES.map(([forme, code], i): [string, string, string, string] => [`noyau : ${forme}`, suite(voisin(noyau, 50 + i)), code, INSTR]),
       ...CHARGEURS_LISIBLES.map(([forme, code], i): [string, string, string, string] => [`noyau, lisible : ${forme}`, suite(voisin(noyau, 110 + i)), code, 'passe']),
     ];
-    const obtenus = verdicts(cas.map(([, filePath, code]) => ({ filePath, code })), [INSTR, 'murs/suite-jouee']);
+    const obtenus = verdicts(cas.map(([, filePath, code]) => ({ filePath, code })), [INSTR, SUITE_JOUEE]);
     expect(Object.fromEntries(cas.map(([cle], i) => [cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([cle, , , v]) => [cle, v])));
   });
 
@@ -511,18 +553,17 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
   });
 
   it('SUITE JOUÉE : une suite hors du corpus Vitest est refusée ; une suite jouée et un module passent', () => {
-    const SUITE = 'murs/suite-jouee';
     const cas: [filePath: string, attendu: string][] = [
       ['hotes/godot/pont/zz.test.ts', 'passe'],
-      ['src/lib/zz.test.mjs', SUITE],
-      ['src/lib/zz.test.js', SUITE],
+      ['src/lib/zz.test.mjs', SUITE_JOUEE],
+      ['src/lib/zz.test.js', SUITE_JOUEE],
       ['hotes/godot/pont/zz.hors-store.test.ts', 'passe'],
       ['src/hote/zz.test.ts', 'passe'],
       ['src/noyau/zz.hors-store.test.ts', 'passe'],
-      ['src/lib/zz.test.tsx', SUITE],
+      ['src/lib/zz.test.tsx', SUITE_JOUEE],
       ['hotes/godot/pont/zz.ts', 'passe'],
     ];
-    const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: 'export const a = 1;\n' })), [SUITE]);
+    const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: 'export const a = 1;\n' })), [SUITE_JOUEE]);
     expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas.map(([f, v]) => [f, v])));
   });
 
@@ -570,7 +611,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(obtenus).toEqual(['murs/zone', 'murs/zone', 'passe', 'passe', 'murs/zone', 'murs/zone', 'murs/zone', 'murs/zone']);
   });
 
-  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`', () => {
+  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises, ni par un motif joker qui peut l’atteindre ; un projet lit ses ouvertures et ses propres jokers, pas un affichage ni un joker qui peut atteindre une zone fermée, fichiers à même `src/` compris', () => {
     const obtenus = verdicts([
       { filePath: 'hotes/zz-inconnu/a.ts', code: 'export const a = 1;\n' },
       { filePath: 'hotes/zz-a.ts', code: 'export const a = 1;\n' },
@@ -580,11 +621,31 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       { filePath: 'hotes/godot/zz-p.ts', code: "import { p } from '../../projets/zz-a/p';\nexport const g = p;\n" },
       { filePath: 'src/zz-racine.ts', code: "import { p } from '../projets/zz-a/p';\nexport const r = p;\n" },
       { filePath: 'hotes/godot/zz-h.ts', code: "import { gesteDuVerbe } from '../../src/hote/geste';\nexport const h = gesteDuVerbe;\n" },
-    ], ['murs/zone', 'murs/purete-imports']);
+      { filePath: 'src/zz.ts', code: "import { p } from '../projets/roguelite/p';\nexport const r = p;\n" },
+      { filePath: 'src/zz.test.ts', code: "import { p } from '../projets/roguelite/p';\nexport const r = p;\n" },
+      { filePath: 'src/engine/zz.test.ts', code: "import type { P } from '../../projets/roguelite/p';\nexport type E = P;\n" },
+      { filePath: 'hotes/godot/zz.ts', code: "import { p } from '../../projets/roguelite/p';\nexport const g = p;\n" },
+      { filePath: 'hotes/godot/zz.test.ts', code: "import { p } from '../../projets/roguelite/p';\nexport const g = p;\n" },
+      { filePath: 'hotes/texte/zz.testkit.ts', code: "import { p } from '../../projets/roguelite/p';\nexport const t = p;\n" },
+      { filePath: 'projets/roguelite/src/zz-e.ts', code: "import { rollD100 } from '../../../src/engine/dice';\nexport const e = rollD100;\n" },
+      { filePath: 'projets/roguelite/src/zz-g.ts', code: "import { pont } from '../../../hotes/godot/pont/pont';\nexport const g = pont;\n" },
+      { filePath: 'projets/roguelite/src/zz-n.ts', code: "import { X } from '../../../src/noyau/combatFlow';\nexport const n = X;\n" },
+      ...['../projets/*/x.ts', '../projets/**/*.ts', '../*/roguelite/**/*.ts', '../projets/{roguelite,zz}/x.ts', '../projets/roguelit?/x.ts', '../projets/[r]oguelite/x.ts']
+        .map((motif, i) => ({ filePath: `src/zz-joker-${i}.test.ts`, code: `export const g = import.meta.glob('${motif}');\n` })),
+      { filePath: 'hotes/godot/zz-joker.ts', code: "export const g = import.meta.glob('../../projets/*/x.ts');\n" },
+      { filePath: 'projets/roguelite/src/zz-joker.ts', code: "export const g = import.meta.glob('../**/*.ts');\n" },
+      { filePath: 'projets/roguelite/src/zz-a.ts', code: "export const g = import.meta.glob('../../../src/**/*.json');\n" },
+      { filePath: 'projets/roguelite/src/zz-a.test.ts', code: "export const g = import.meta.glob('../../../src/**/*.json');\n" },
+    ], ['murs/zone', REGLE, INSTR]);
     expect(obtenus).toEqual([
       'murs/zone', 'murs/zone', 'murs/zone',
-      'murs/purete-imports', 'murs/purete-imports', 'murs/purete-imports', 'murs/purete-imports',
+      REGLE, REGLE, REGLE, REGLE,
       'passe',
+      REGLE, INSTR, INSTR, REGLE, INSTR, REGLE,
+      'passe', REGLE, 'passe',
+      INSTR, INSTR, INSTR, INSTR, INSTR, INSTR,
+      REGLE, 'passe',
+      REGLE, INSTR,
     ]);
   });
 });
@@ -612,8 +673,10 @@ function sondeProduction(): string {
 
 /** Le premier fichier de TEST réel de la couche `dir`, à sa PROFONDEUR attendue : `src` désigne la
  *  RACINE (un `src/x.test.ts`, glob `src/*.test.ts`), les autres toute la couche. Jamais un nom en
- *  dur — la sonde suit l'arbre. */
+ *  dur — la sonde suit l'arbre. Une couche dont le dossier, hors de `src/`, est absent de l'arbre : une suite fixture
+ *  de son dossier (`sondes`). */
 function sondeTest(dir: string): string {
+  if (!dir.startsWith('src') && !existsSync(new URL(`../${dir}`, import.meta.url))) return `${dir}/zz-sonde.test.ts`;
   const profondeurRacine = dir === 'src';
   const f = readCorpus([dir], { tests: true }).find(
     ({ rel }) => estSuiteVitest(rel) && (!profondeurRacine || rel.split('/').length === 2),

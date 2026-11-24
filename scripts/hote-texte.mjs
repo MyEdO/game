@@ -25,7 +25,8 @@ const RACINE = fileURLToPath(new URL('..', import.meta.url))
 process.chdir(RACINE)
 const entree = entreeDHote('hote-texte', [
   "export { creerHote } from '/hotes/texte/serveur.ts';",
-  "export { testScenarios } from '/src/scenes/test-scenarios/index.ts';",
+  "export { catalogueDeLaPartie } from '/src/hote/contenu.ts';",
+  "export { contenuDuJeuDeRole } from '/src/scenes/campaign.ts';",
   "export { preferenceDef } from '/src/noyau/index.ts';",
 ])
 
@@ -68,16 +69,18 @@ function rendre(nom) {
 process.on('exit', () => [...tenues].forEach(rendre))
 for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(0))
 
+/** Les scénarios de test que le jeu de rôle remet à l'hôte (`ContenuDUnJeu`, `src/hote/contenu.ts`). */
+const { scenarios } = module.contenuDuJeuDeRole
 const hote = module.creerHote({
   lire: (nom) => (existsSync(fichier(nom)) ? readFileSync(fichier(nom), 'utf8') : null),
   ecrire: (nom, texte) => writeFileSync(fichier(nom), texte),
   ajouter: (nom, texte) => appendFileSync(fichier(nom), texte),
   prendre,
   rendre,
-})
+}, scenarios)
 
 const serveur = new McpServer({ name: 'hote-texte', version: '1.0.0' }, { instructions: INSTRUCTIONS })
-const definitions = outils({ scenarios: module.testScenarios.map((sc) => sc.id), cadences: [...module.preferenceDef('combat-cadence').options] })
+const definitions = outils({ scenarios: module.catalogueDeLaPartie(scenarios).map((sc) => sc.id), cadences: [...module.preferenceDef('combat-cadence').options] })
 for (const [nom, { description, schema }] of Object.entries(definitions)) {
   serveur.registerTool(nom, { description, inputSchema: z.strictObject(schema) }, (entrees) => {
     const { texte, erreur } = hote[nom](entrees)

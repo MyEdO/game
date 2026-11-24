@@ -9,6 +9,7 @@
 import { empreinte, jouerUnGeste, ligneDuFichier, lireLeFichier, rejouer, PISTES_DU_TEXTE, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { ErreurDeGeste, type CategorieDErreur } from '../../src/hote/partie';
 import { nouvelEntete } from '../../src/hote/partieDeTest';
+import { catalogueDeLaPartie, type ContenuDUnJeu } from '../../src/hote/contenu';
 import { lireGeste, offresDeLaBarre, type Geste } from '../../src/hote/geste';
 import { VERBES } from '../../src/hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
@@ -85,8 +86,11 @@ const reponseDErreur = (e: ErreurDeGeste): Reponse => ({
   erreur: e.categorie,
 });
 
-/** L'hôte : la partie ouverte et les trois outils. */
-export function creerHote(disque: Disque) {
+/** L'hôte sur le disque `disque` et sur les scénarios de test `scenarios` que le jeu lui remet, joués avec le
+ *  catalogue commun (`catalogueDeLaPartie`, qui lève sur un id remis déjà au catalogue) : la partie ouverte et les
+ *  trois outils. */
+export function creerHote(disque: Disque, scenarios: ContenuDUnJeu['scenarios']) {
+  const catalogue = catalogueDeLaPartie(scenarios);
   let ouverte: { nom: string; texte: string; r: PartieRejouee } | null = null;
 
   /** Ferme la partie ouverte et la rend. */
@@ -122,16 +126,16 @@ export function creerHote(disque: Disque) {
     const texte = disque.lire(nom);
     if (texte === null) throw new ErreurDeGeste('validation', `aucune partie ${nom} : ${appelEcrit('nouvelle')} d’abord`);
     if (ouverte?.nom === nom && ouverte.texte === texte) return ouverte;
-    const { entete, gestes } = lireLeFichier(texte);
-    return { nom, r: ouvrir(nom, texte, () => rejouer(entete, gestes)) };
+    const { entete, gestes } = lireLeFichier(catalogue, texte);
+    return { nom, r: ouvrir(nom, texte, () => rejouer(catalogue, entete, gestes)) };
   }
 
   const projection = (r: PartieRejouee) => projeter(r.partie.etat(), r.gestes.length, r.journal.length);
 
   function nouvelle(e: EntreesDeNouvelle): Reponse {
-    const entete = nouvelEntete(e.scenario, e);
+    const entete = nouvelEntete(catalogue, e.scenario, e);
     const texte = ligneDuFichier(entete);
-    const r = ouvrir(e.partie, texte, () => rejouer(entete, []));
+    const r = ouvrir(e.partie, texte, () => rejouer(catalogue, entete, []));
     disque.ecrire(e.partie, texte);
     const p = projection(r);
     return { texte: borner([`partie neuve ${e.partie} : ${e.scenario}, graine ${entete.graine}, cadence ${entete.cadence}`, ...rendreLaVue(p)], 'nouvelle').join('\n'), erreur: null };

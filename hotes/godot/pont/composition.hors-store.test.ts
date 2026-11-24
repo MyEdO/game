@@ -15,6 +15,7 @@ import presets from '../../../src/data/presets-de-personnage.json';
 import { modelesDeLAtelier } from './atelier';
 import { composerSurLaBase } from './composition';
 import { creerPont } from './pont';
+import { contenuDuJeuDeRole } from '../../../src/scenes/campaign';
 import { NOMS_DES_SILHOUETTES } from '../asset/silhouettes.ts';
 import { NOMS_DES_FORMES_DE_TETE } from '../../../src/lib/formesDeTete';
 
@@ -154,7 +155,7 @@ describe('composerSurLaBase', () => {
 });
 
 describe('le pont : composer, catalogues, presetDeComposition', () => {
-  const pont = creerPont(null, null);
+  const pont = creerPont(null, null, contenuDuJeuDeRole);
   const appeler = (methode: string, entree?: unknown) => JSON.parse(pont.appeler(methode, entree === undefined ? undefined : JSON.stringify(entree)));
 
   it('composer se refuse avant modeles, puis compose sur une base servie', () => {

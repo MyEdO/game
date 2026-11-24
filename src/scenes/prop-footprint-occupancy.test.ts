@@ -1,6 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { allBuiltinCampaigns, paquetDuJeu } from './campaign';
+import { allBuiltinCampaigns } from './campaign';
+import { paquetDuJeu } from '../noyau/index';
 import { testScenarios } from './test-scenarios';
 import { propFootTiles } from '../noyau/monde/footprint';
 import { propIsSolid } from '../noyau/monde/sceneRules';
