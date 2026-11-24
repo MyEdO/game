@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import * as J from '../jeu';
 import { testValue } from '../../../../src/engine/skills';
-import { libelleDeCarac } from '../noyau';
+import { libelleDeCarac, porterAuNiveau, progression } from '../noyau';
+import { byId } from '../../../../src/data';
+import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
 import { ecranDuHeros, progressionDuHeros } from './fiche';
 import { panneauDeService } from './services';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
@@ -72,8 +74,32 @@ describe('le panneau d’exigences suit le modèle de progression du héros', ()
     const html = progressionDuHeros(e, h);
     const n = J.offresDeCarriere(h).caracs.length;
     expect(html).toMatch(new RegExp(`: \\+5 chacune</span><span class="cpt chiffres">\\d+ / ${n}</span>`));
-    expect(html).toMatch(/Huit Compétences à \+5<\/span><span class="cpt chiffres">\d+ \/ 8<\/span>/);
+    expect(html).toMatch(/>8 Compétences à \+5<\/span><span class="cpt chiffres">\d+ \/ 8<\/span>/);
     expect(html).toContain('<span>Un Talent de ce niveau</span>');
+  });
+
+  it('4e : « Passer » reste fermé tant que le noyau ne valide pas le niveau, même quand les comptes de la fiche sont pleins (LDB 07 l.124-131)', () => {
+    const e = J.nouvellePartie(3);
+    e.batiments.salle = 2;
+    const h = J.recrue(e, J.PROFILS.find((p) => p.id === 'alchimiste')!);
+    h.c = porterAuNiveau(h.c, 2, 5);
+    e.roster.push(h);
+    const c = h.c;
+    const p = progression(c);
+    for (const k of p.caracs) c.charAdvances = { ...c.charAdvances, [k.id]: 10 };
+    const metiers = p.competences.filter((k) => k.ref.id === 'metier');
+    for (const k of [...metiers, ...p.competences.filter((x) => x.ref.id !== 'metier').slice(0, 6)]) {
+      const s = c.skills.find((x) => x.id === k.ref.id && memeSpecialisation(x.spec, k.ref.spec));
+      if (s) s.advances = 10;
+      else c.skills.push({ id: k.ref.id, spec: k.ref.spec, characteristic: byId('skill', k.ref.id)!.characteristic, advances: 10 });
+    }
+    c.xp = 10000;
+    const talent = p.talents.find((t) => !t.aSpecifier && !t.auMaxi)!;
+    expect(J.acheter(e, c.id, { genre: 'talent', ref: talent.ref })).toBeNull();
+    expect(metiers.length).toBeGreaterThan(1);
+    expect(J.offresDeCarriere(h).complet).toBe(false);
+    const passer = progressionDuHeros(e, h).match(/<button[^>]*data-a="niveau"[^>]*>/)![0];
+    expect(passer).toContain(' disabled');
   });
 
   it('5e : les cases cochées au niveau sur leur seuil, les points de chaque valeur, un pas de +5 (CRB 048 l.45)', () => {

@@ -86,21 +86,21 @@ function exigencesDuNiveau(o: Offres): { lignes: string; manque: string[] } {
   }
   const caracsAFaire = o.caracs.filter((k) => !tient(k.points, x)).map((k) => libelleDeCarac(k.id).abr);
   const caracsFaites = o.caracs.length - caracsAFaire.length;
-  const compsFaites = Math.min(8, o.competences.filter((k) => tient(k.points, x)).length);
+  const compsFaites = Math.min(x.competences, o.competences.filter((k) => tient(k.points, x)).length);
   return {
     lignes: `${exige(caracsFaites >= o.caracs.length, `${o.caracs.map((k) => esc(libelleDeCarac(k.id).abr)).join(', ')} : +${x.points} chacune`, `${caracsFaites} / ${o.caracs.length}`)}
-      ${exige(compsFaites >= 8, `Huit Compétences à +${x.points}`, `${compsFaites} / 8`)}
+      ${exige(compsFaites >= x.competences, `${x.competences} Compétences à +${x.points}`, `${compsFaites} / ${x.competences}`)}
       ${exige(o.talentAcquis, 'Un Talent de ce niveau')}`,
-    manque: [caracsAFaire.length ? `${caracsAFaire.join(', ')} à +${x.points}` : '', compsFaites < 8 ? `${8 - compsFaites} Compétence${compsFaites < 7 ? 's' : ''} à +${x.points}` : '', o.talentAcquis ? '' : 'un Talent'].filter(Boolean),
+    manque: [caracsAFaire.length ? `${caracsAFaire.join(', ')} à +${x.points}` : '', compsFaites < x.competences ? `${x.competences - compsFaites} Compétence${x.competences - compsFaites > 1 ? 's' : ''} à +${x.points}` : '', o.talentAcquis ? '' : 'un Talent'].filter(Boolean),
   };
 }
 
-/** Le niveau suivant : ce qu'il exige (`exigencesDuNiveau`), où le héros en est, et son geste. */
+/** Le niveau suivant : ce qu'il exige (`exigencesDuNiveau`), où le héros en est, et son geste, ouvert par `complet`. */
 function niveauSuivant(e: J.Etat, h: J.Heros, o: Offres): string {
   const suivant = o.suivant;
   if (!suivant) return glose('Sommet de la carrière.');
   const { lignes, manque } = exigencesDuNiveau(o);
-  const refus = suivant.niveau > J.niveauMaximal(e) ? 'La salle d’armes n’enseigne pas encore ce niveau : agrandissez-la.' : manque.length ? `Il manque : ${manque.join(' ; ')}.` : null;
+  const refus = suivant.niveau > J.niveauMaximal(e) ? 'La salle d’armes n’enseigne pas encore ce niveau : agrandissez-la.' : o.complet ? null : manque.length ? `Il manque : ${manque.join(' ; ')}.` : 'Le noyau ne valide pas encore ce niveau.';
   return `<div class="rub">Niveau ${suivant.niveau} · ${esc(suivant.titre)}</div><div class="exigences">
       ${lignes}</div>
     ${achat({ verbe: `Passer ${suivant.titre}`, prix: suivant.cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="niveau" data-id="${h.c.id}"`, refus })}`;

@@ -16,7 +16,7 @@ import {
   type ContexteDeCompletion,
 } from '../../../../src/engine/advancement';
 import { modeleDe } from '../../../../src/engine/modeleDeProgression';
-import { casesDuNiveau, cocherUnAchat } from '../../../../src/engine/casesDeCarriere';
+import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import { talentMaxReached } from '../../../../src/engine/acquisitionTalents';
 import { spellCost, talentOuvre } from '../../../../src/engine/grimoire';
 import { spellSupportOf } from '../../../../src/engine/spellspec';
@@ -52,9 +52,9 @@ export interface OffreDeCompetence { ref: { id: string; spec?: string }; label: 
  *  `auMaxi` : il ne se prend plus. LDB 10 */
 export interface OffreDeTalent { ref: { id: string; spec?: string }; label: string; possede: number; cout: number; auMaxi: boolean; aSpecifier?: boolean }
 /** Ce que le niveau courant exige pour passer au suivant, selon le passage du modèle du héros : `completion`, les
- *  `points` de chaque Caractéristique de carrière et de huit Compétences, et un Talent du niveau ; `cases`, les `cases`
+ *  `points` de chaque Caractéristique de carrière et de `competences` Compétences, et un Talent du niveau ; `cases`, les `cases`
  *  cochées au niveau sur son `seuil`. LDB 07 l.124-131 ; CRB 048 l.45 */
-export type Exigence = { type: 'completion'; points: number } | { type: 'cases'; cases: number; seuil: number };
+export type Exigence = { type: 'completion'; points: number; competences: number } | { type: 'cases'; cases: number; seuil: number };
 export interface Progression {
   niveau: number; titre: string; exigence: Exigence | null; complet: boolean; suivant: { niveau: number; titre: string; cout: number } | null;
   caracs: OffreDeCarac[]; competences: OffreDeCompetence[]; talents: OffreDeTalent[];
@@ -66,7 +66,7 @@ export function exigenceDuNiveau(c: Combatant): Exigence | null {
   const niveau = c.careerLevel ?? 1;
   const passage = modeleDe(c).passage;
   switch (passage.type) {
-    case 'completion': return { type: 'completion', points: careerCompletionAdvances(niveau) };
+    case 'completion': return { type: 'completion', points: careerCompletionAdvances(niveau), competences: CAREER_SKILLS_ADVANCED };
     case 'cases': {
       const seuil = passage.seuils[niveau - 1];
       return seuil === undefined ? null : { type: 'cases', cases: casesDuNiveau(c, c.career ?? '', niveau), seuil };
@@ -174,7 +174,7 @@ export type EtapeDuPlan = ({ genre: 'carac'; id: CharKey; points: number } | { g
  *  `p.talents` qui se prend si aucun n'est acquis, puis, pas par pas (`butDuPas`) et à tour de rôle, les
  *  Caractéristiques de carrière et les Compétences de carrière (les `preferee` d'abord, puis les plus avancées) jusqu'à
  *  la validation ; enfin le niveau suivant. Sous l'exigence `completion`, chaque cible s'arrête à ses points et seules
- *  huit Compétences sont prises. LDB 07 l.118-131 ; CRB 048 l.45 */
+ *  ses `competences` Compétences sont prises. LDB 07 l.118-131 ; CRB 048 l.45 */
 export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id: string; spec?: string }) => boolean = () => false): EtapeDuPlan[] {
   const exigence = p.exigence;
   if (!exigence) return [];
@@ -182,7 +182,7 @@ export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id:
   const ctx = contexteDuNiveau(c);
   const valide = () => niveauValide(copie, p.niveau, ctx);
   const talent = p.talents.some((t) => t.possede > 0) || valide() ? undefined : p.talents.find((t) => !t.aSpecifier && !t.auMaxi);
-  if (talent && buyTalent(copie, talent.ref.id, talent.ref.spec).ok) cocherUnAchat(copie);
+  if (talent) buyTalent(copie, talent.ref.id, talent.ref.spec);
   const plafond = exigence.type === 'completion' ? exigence.points : Infinity;
   const rang = (k: OffreDeCompetence) => (preferee(k.ref) ? 1 : 0);
   const competences = p.competences.filter((x) => x.points < plafond).sort((x, y) => rang(y) - rang(x) || y.points - x.points);
@@ -190,7 +190,7 @@ export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id:
   type Cible = { cible: CibleDuPas; label: string; remise: number };
   let restantes: Cible[] = [
     ...p.caracs.filter((x) => x.points < plafond).map((k): Cible => ({ cible: { genre: 'carac', id: k.id }, label: k.label, remise: 0 })),
-    ...(exigence.type === 'completion' ? competences.slice(0, Math.max(0, CAREER_SKILLS_ADVANCED - tenues)) : competences)
+    ...(exigence.type === 'completion' ? competences.slice(0, Math.max(0, exigence.competences - tenues)) : competences)
       .map((k): Cible => ({ cible: { genre: 'competence', ref: k.ref }, label: k.label, remise: k.remise })),
   ];
   const etapes: EtapeDuPlan[] = [];

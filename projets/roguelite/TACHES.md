@@ -8,7 +8,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 | Tâche | Où | Reste |
 |---|---|---|
-| Création des recrues par la création 5e du noyau (arbitrage du 2026-11-24, `CONCEPTION.md`), à la place de la création au pas de 5. Non entamée : reprendre la procédure de MyEdO/game#4912. Le pas de progression (`PAS`, `augmentationsDuPas` de `projets/roguelite/src/noyau/carriere.ts`) compte des points d'Augmentation, que le modèle 5e ajoute par 5 (`modeleDe(hero).pas`) : à revoir avec elle | `projets/roguelite/src/noyau/heros.ts`, `projets/roguelite/src/noyau/carriere.ts` | tout |
+| Création des recrues par la création 5e du noyau (arbitrage du 2026-11-24, `CONCEPTION.md`), à la place de la création au pas de 5. Non entamée : reprendre la procédure de MyEdO/game#4912. | `projets/roguelite/src/noyau/heros.ts`, `projets/roguelite/src/noyau/carriere.ts` | tout |
 
 ## Ensuite, dans l'ordre
 
