@@ -59,7 +59,7 @@ import { maxBy } from '../engine/pick';
 import { rollTest, ECHEC_SANS_JET, type TestResult } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
-import { testValue } from '../engine/skills';
+import { testValue, type TestDesigne } from '../engine/skills';
 import { deMonde, tirer, type RNG } from '../engine/dice';
 import { strandingPenaltyLine } from '../engine/seaPerils';
 import { effectiveChar } from '../engine/characteristics';
@@ -86,7 +86,7 @@ import {
   pousseSi,
   openWorldTest,
   type Consequence,
-  type BandLigne,
+  type LigneNommee,
 } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { actorIn, equipageApte } from './monde/combatants';
@@ -297,10 +297,10 @@ function riverNavTest(river: RiverVoyageState, eff: ReturnType<typeof riverWindE
 /** Une étape-JET fluviale prête à influencer : la Difficulté est comprise dans `target` ET portée en
  *  DONNÉE de l'étape (`difficulty`) — la ligne de jet la DIT, l'affichage ne la devine pas. La LIGNE
  *  (base nue + toutes ses composantes nommées + cible + écrêtage) et la POSSESSION sont posées par le
- *  mint : ce monteur fluvial ne calcule rien, il DÉCLARE (`BandLigne`) et habille. */
+ *  mint : ce monteur fluvial ne calcule rien, il DÉCLARE (`LigneNommee`) et habille. */
 function riverStep(
   id: string, kind: GenreDEtape, actor: Combatant, label: PlayerText, icon: IconId, rollLabel: string,
-  ligne: BandLigne, difficulty: Difficulty, meta: CascadeStepMeta | undefined,
+  ligne: LigneNommee, difficulty: Difficulty, meta: CascadeStepMeta | undefined,
   // `stake` REQUIS (#1117) : une étape fluviale qui LANCE dit ce qu'elle met en jeu — le compilateur
   // tient le contrat pour les étapes construites ici (le cliquet textuel ne voit que les littéraux).
   opts: { stake: StakeRef },
@@ -364,7 +364,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // DÉCLARATION du jet de barre, faite UNE fois : les quatre étapes de barre et l'évitement de péril
   // testent la MÊME grandeur (même barreur, même Compétence, même Soutien) — seuls la Difficulté et
   // les modificateurs de situation changent.
-  const pilotLigne: BandLigne | undefined = pilot
+  const pilotLigne: LigneNommee | undefined = pilot
     ? { test: { skill: competence }, valeur: pilot.value, soutien: pilot.support }
     : undefined;
 
@@ -622,12 +622,12 @@ function rightingStep(get: Get, source: CascadeStep, round: number, be: number):
     meta: { rightRound: round, rightRounds: rounds, savoir },
     // Barreur en poste : sa valeur SOUTENUE se décompose. Plus de barreur éligible (mort, débarqué) :
     // la valeur figée à la construction tient lieu de seuil, DÉCLARÉE comme venant d'une autre formule
-    // (`valeurEtrangere`) — sans Test nommé, le monteur n'a RIEN à décomposer et rend la valeur en base
-    // (`testValueSplit` : « rien à décomposer » dès qu'aucune compétence ni caractéristique n'est
-    // déclarée), porteur nommé ou non. Les deux régimes passent donc par la MÊME entrée `ligne`.
-    ligne: pilot
-      ? { test: { skill: competence }, valeur: pilot.value, soutien: pilot.support, ...(cumul ? { surLaCible: cumul } : {}) }
-      : { valeur: Number(source.meta?.pilotValue ?? source.base ?? 0), valeurEtrangere: true, ...(cumul ? { surLaCible: cumul } : {}) },
+    // (`valeurEtrangere`) — sans Test nommé dans la ligne, le monteur n'a RIEN à décomposer et rend la
+    // valeur en base (`testValueSplit` : « rien à décomposer » dès qu'aucune compétence ni
+    // caractéristique n'est déclarée), porteur nommé ou non ; l'étape dit son `teste` (MSRC 7 note 4).
+    ...(pilot
+      ? { ligne: { test: { skill: competence }, valeur: pilot.value, soutien: pilot.support, ...(cumul ? { surLaCible: cumul } : {}) } }
+      : { ligne: { valeur: Number(source.meta?.pilotValue ?? source.base ?? 0), valeurEtrangere: true, ...(cumul ? { surLaCible: cumul } : {}) }, teste: { skill: structuredClone(competence) } }), // #2097
   });
 }
 
@@ -667,15 +667,18 @@ function applyBoatCritical(get: Get, set: Set, plan: TravelPlan, river: RiverVoy
   return insert;
 }
 
+/** Le Test de détection d'un péril du fleuve par le barreur. MSRC 7 l.136 */
+const AGILITE: TestDesigne = { characteristic: 'agilite' };
+
 /** Le meilleur réparateur de la réparation temporaire : le meilleur des deux Métiers, Construction de
  *  bateaux et Charpentier, soutenu (LDB 12) ; `null` si personne. Rend la DÉCLARATION du jet (`ligne`). MSRC 7 l.115 */
-function bestShipwright(get: Get): { actor: Combatant; value: number; ligne: BandLigne } | null {
+function bestShipwright(get: Get): { actor: Combatant; value: number; teste: TestDesigne; ligne: LigneNommee } | null {
   const r = maxBy([SPEC.constructionBateaux, SPEC.charpentier].flatMap((spec) => {
-    const test = { skill: { id: 'metier', spec } };
+    const test: TestDesigne = { skill: { id: 'metier', spec } };
     const a = partyAssisted(get().party, test);
     return a ? [{ test, a }] : [];
   }), (x) => x.a.value);
-  return r && { actor: r.item.a.actor, value: r.item.a.value, ligne: { test: r.item.test, valeur: r.item.a.value, soutien: r.item.a.support } };
+  return r && { actor: r.item.a.actor, value: r.item.a.value, teste: r.item.test, ligne: { test: r.item.test, valeur: r.item.a.value, soutien: r.item.a.support } };
 }
 
 /** Difficulté des Tests de réparation temporaire (calfatage, gréement) : règle maison
@@ -706,7 +709,7 @@ function holeBoat(get: Get, set: Set, plan: TravelPlan, tell: (l: string[]) => v
   if (repair) {
     // Repli SANS pilote humain (pas d'étape insérée ci-dessus) : aucune rangée nulle part pour ce
     // jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
-    const res = rollTest(repair.value, difficulty, rng);
+    const res = rollTest({ porteur: repair.actor.id, teste: repair.teste }, repair.value, difficulty, rng);
     tell([t('fleuve.coquePerceeEnLigne', { min: minutes, diff: DIFFICULTY_LABELS[difficulty], roll: res.roll, target: res.target, issue: t(res.success ? 'fleuve.voieDEauColmatee' : 'fleuve.calfatageRate') })]);
     if (res.success) {
       // Réparation temporaire (l.116) : restaure 1d10 Blessures de coque.
@@ -762,13 +765,13 @@ function resolveRiverPerilConsequence(get: Get, set: Set, peril: NonNullable<Ret
       const st = monoStep({
         id: `${step.id}-detect`, kind: 'fleuveDetectionDePeril', actor: pilot, icon: 'nautique/bois-flottant', label: stepDetail(dataLabel(peril.label), t('step.detection')),
         rollLabel: t('char.agilite'), difficulty: 'intermediaire',
-        ligne: { test: { characteristic: 'agilite' } },
+        ligne: { test: AGILITE },
         stake: voyageStakeRef('fleuve-peril-detection', { damage: peril.onHit.hullDamage }),
         meta: { perilId: peril.id },
       });
       pousseSi(insert, st);
     } else {
-      const detect = pilot ? rollTest(testValue(pilot, { characteristic: 'agilite' }), 'intermediaire', rng) : { success: false };
+      const detect = pilot ? rollTest({ porteur: pilot.id, teste: AGILITE }, testValue(pilot, AGILITE), 'intermediaire', rng) : { success: false };
       j.push(t('fleuve.ligneDeDetection', { peril: peril.label, roll: 'roll' in detect ? (detect as TestResult).roll : t('fleuve.fragmentSansJet'), issue: t(detect.success ? 'fleuve.detectionReussie' : 'fleuve.detectionRatee') }));
       if (!detect.success) {
         const impact = resolveRiverImpact(peril.onHit, rng);
@@ -790,13 +793,15 @@ export function applyEchouage(get: Get, set: Set, tell: (l: string[]) => void): 
   const { penalite, encTxt } = echouagePenalty(get);
   // Chemin IA/synchrone (`fleuveEchouageForce` gate l'acteur JOUEUR ci-dessus) : aucune rangée nulle
   // part pour ce jet — le journal est la SEULE surface, il PORTE le jet (#295 Lot 5, gardé nominativement).
-  const force = partyAssisted(get().party, { characteristic: 'force' });
-  const res = force ? rollTest(force.value, ECHOUAGE_DIFFICULTY, battleRng(), penalite?.value ?? 0) : null;
+  const force = partyAssisted(get().party, FORCE_DE_RENFLOUAGE);
+  const res = force ? rollTest({ porteur: force.actor.id, teste: FORCE_DE_RENFLOUAGE }, force.value, ECHOUAGE_DIFFICULTY, battleRng(), penalite?.value ?? 0) : null;
   tell([t('fleuve.echouage', { dmg: echouageDamage(), suite: res ? t('fleuve.fragmentDeRenflouage', { diff: DIFFICULTY_LABELS[ECHOUAGE_DIFFICULTY], enc: encTxt, roll: res.roll, target: res.target, issue: t(res.success ? 'fleuve.renflouageReussi' : 'fleuve.renflouageRate') }) : t('fleuve.fragmentDePoint') })]);
 }
 
 /** MSRC 7 l.99 ; LDB 12 l.148. */
 const ECHOUAGE_DIFFICULTY: Difficulty = 'intermediaire';
+/** Le Test de renflouage. MSRC 7 l.99 */
+const FORCE_DE_RENFLOUAGE: TestDesigne = { characteristic: 'force' };
 
 /** Pénalité du renflouage (MSRC 7 l.99), dérivée au jet de `strandingPenalty` — partagée par le renflouage
  *  IA/synchrone (`applyEchouage`) et l'étape-jet JOUEUR (`fleuveEchouageForce`, #270). */
@@ -814,7 +819,7 @@ function echouagePenalty(get: Get): { penalite: ModLine | null; encTxt: string }
  *  devient une étape-jet INFLUENÇABLE (`fleuveEchouageForce`) quand le jet de l'acteur se surface —
  *  sinon délègue à `applyEchouage` (chemin IA/synchrone inchangé). */
 function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./rollSeam').FreeConsLine[]): BuiltCascadeStep[] {
-  const force = partyAssisted(get().party, { characteristic: 'force' });
+  const force = partyAssisted(get().party, FORCE_DE_RENFLOUAGE);
   if (!force || !surfaceOf(get, force.actor.id)) {
     applyEchouage(get, set, (l) => j.push(...l));
     return [];
@@ -826,7 +831,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
   const st = monoStep({
     id: `${idPrefix}-echouage`, kind: 'fleuveEchouageForce', actor: force.actor, icon: 'voyage/reparer',
     label: t('step.riverEchouage'), rollLabel: t('char.force'), difficulty: ECHOUAGE_DIFFICULTY,
-    ligne: { test: { characteristic: 'force' }, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
+    ligne: { test: FORCE_DE_RENFLOUAGE, valeur: force.value, soutien: force.support, ...(penalite ? { surLaCible: [penalite] } : {}) },
     stake: voyageStakeRef('fleuve-renflouage'),
   });
   return st ? [st] : [];

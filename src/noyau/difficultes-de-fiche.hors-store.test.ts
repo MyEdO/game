@@ -199,7 +199,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     approachFearTrigger(g, banc.setState, E, { x: 15, y: 10 }, { x: 12, y: 10 });
     const rangee = g().pendingCascade!.participants.find((s) => s.kind === 'testDeclencheEnBande')!.participants!.find((p) => p.id === H.id)!;
     const { skill, difficulty } = testDeFiche('calme-d-approche', 'source-se-rapproche');
-    expect({ skill: rangee.skill, difficulty: rangee.difficulty }).toEqual({ skill, difficulty });
+    expect({ skill: rangee.teste.skill, difficulty: rangee.difficulty }).toEqual({ skill, difficulty });
   });
 
   it('Focalisation interrompue : l’étape porte le Test de `interruption-de-focalisation`', () => {
@@ -264,7 +264,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     for (let graine = 1; graine <= 30; graine++) {
       const enemy = C('ennemi', 'e', 2);
       const input: EnemyTurnInput = { enemy, heroes: [C('heros', 'h', 25)], scene, blocked: new Set(['25,10']), movement: 4, spells: [] };
-      const budget = (s: string, x: Difficulty) => 4 + resolveRun(testValue(enemy, { skill: { id: s } }), x, 4, makeRNG(graine)).bonusCases;
+      const budget = (s: string, x: Difficulty) => 4 + resolveRun({ porteur: enemy.id, teste: { skill: { id: s } } }, testValue(enemy, { skill: { id: s } }), x, 4, makeRNG(graine)).bonusCases;
       expect(aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(graine)).ran?.budget, `graine ${graine}`).toBe(budget(skill, d));
       if (budget(jeuSkill, d) !== budget(skill, d)) ecarts.competence++;
       if (budget(skill, jeuDiff) !== budget(skill, d)) ecarts.difficulte++;
@@ -285,7 +285,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
     E.characteristics.endurance = 85;
     const [jeuSkill, jeuDiff] = testDuJeu('corrompu', 'contenir');
     const [skill, d] = FICHE_DE_TEST.corrompu.contenir;
-    const reussit = (graine: number, s: string, x: Difficulty) => rollTest(testValue(E, { skill: { id: s } }), x, makeRNG(graine)).success;
+    const reussit = (graine: number, s: string, x: Difficulty) => rollTest({ porteur: E.id, teste: { skill: { id: s } } }, testValue(E, { skill: { id: s } }), x, makeRNG(graine)).success;
     const ecarts = { competence: 0, difficulte: 0 };
     for (let graine = 1; graine <= 60; graine++) {
       E.corruption = 99;

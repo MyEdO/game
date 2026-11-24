@@ -10,10 +10,10 @@ import { idsDeLaSousListe, type Id, type RefDesignee } from '../data/schemas/gra
 import { CIBLE_D_APPARTENANCE } from '../data/schemas/grammaire/sousListes';
 import { t } from '../i18n';
 import { RNG } from './dice';
-import { rollTest, extendedTestStep, jetPose, type JetPose } from './tests';
+import { rollTest, extendedTestStep, jetPose, type JetDeTest, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
-import { testValue } from './skills';
+import { testValue, type TestDesigne } from './skills';
 import { dataLabel, findGroupById, findPsychologyById, psychologyLabel, refLabel, talents } from '../data';
 import { nomDe } from './nom';
 import type { Relatif } from '../data/schemas/defs/groups';
@@ -517,13 +517,15 @@ export function difficulteDEntreeEnFrenesie(): Difficulty {
 }
 
 /** LDB 21 l.31 */
-export function resolveFrenzyEntry(fm: number, rng: RNG): JetPose {
-  return jetPose(rollTest(fm, difficulteDEntreeEnFrenesie(), rng));
+export function resolveFrenzyEntry(jet: JetDeTest, fm: number, rng: RNG): JetPose {
+  return jetPose(rollTest(jet, fm, difficulteDEntreeEnFrenesie(), rng));
 }
+
+const CALME: TestDesigne = { skill: { id: 'calme' } };
 
 /** Valeur de Test de Calme (`testValue`, États compris, LDB 16 l.125). */
 export function calmeValue(c: Combatant): number {
-  return testValue(c, { skill: { id: 'calme' } });
+  return testValue(c, CALME);
 }
 
 /** Un pas du Test ÉTENDU de Calme contre la Peur, depuis le DR cumulé `prevDR`. LDB 21 l.25 ;
@@ -775,7 +777,7 @@ export function ciblesDePhobieDuNoir(c: Combatant, terreurs: readonly TerreurSub
 /** Le Test de Calme seedé, à la difficulté `difficulte`, d'une acquisition de Trait psy ; `null` règle éteinte.
  *  PUR. ADE II 09 l.15, l.21 */
 export function calmeDAcquisition(c: Combatant, difficulte: Difficulty, rng: RNG): JetPose | null {
-  return rule('psycho-acquisition-optionnelle') ? jetPose(rollTest(calmeValue(c), difficulte, rng)) : null;
+  return rule('psycho-acquisition-optionnelle') ? jetPose(rollTest({ porteur: c.id, teste: CALME }, calmeValue(c), difficulte, rng)) : null;
 }
 
 /** Les Traits psy qu'une acquisition pose. ADE II 09 l.9, l.15 ; LDB 21 l.93 */

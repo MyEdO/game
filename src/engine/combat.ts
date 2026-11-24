@@ -12,6 +12,8 @@ import type { PlayerText } from '../i18n/playerText';
 import { nomDe } from './nom';
 import {
   rollTest,
+  jeterLeDe,
+  forcedTR,
   resolveOpposed,
   evaluateTest,
   cibleDuTest,
@@ -21,6 +23,7 @@ import {
   cibleMesuree,
   hydrateTR,
   TestResult,
+  type JetDeTest,
   type VerdictReason,
   type VainqueurOppose,
   reverseRoll,
@@ -403,6 +406,8 @@ export type DefenseMode = 'parade' | 'esquive' | 'social';
 /** Descripteur d'une défense par substitution sociale : valeur de Test de la Compétence substituée
  *  (`base`) + son libellé d'affichage (`label`, ex. « Intimidation »). Thread depuis la couche état. */
 export interface DefenseSub { base: number; label: string }
+/** La substitution sociale d'une défense JETÉE (`rollMeleeDefender`) : la Compétence substituée, par son id. */
+export interface SubstitutionJetee extends DefenseSub { readonly skillId: string }
 
 /** Arme de parade PAR DÉFAUT du défenseur, à défaut d'arme déclarée : la main principale. */
 export function defaultParryWeapon(c: Combatant): Weapon | undefined {
@@ -456,9 +461,13 @@ export function defenseValue(c: Combatant, mode: DefenseMode, weapon?: Weapon, s
  * que dans `defenseBaseValue` désigne le Test de mêlée et sa spécialité.
  */
 export function defenseTestOf(c: Combatant, mode: DefenseMode, weapon?: Weapon, socialSkillId?: string): SujetDuJet {
-  if (mode === 'parade') return attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee');
-  if (mode === 'esquive') return { skill: { id: 'esquive' } };
-  return { skill: socialSkillId ? { id: socialSkillId } : undefined };
+  if (mode === 'social') return { skill: socialSkillId ? { id: socialSkillId } : undefined };
+  return testDeDefenseArmee(c, mode, weapon);
+}
+
+/** Test d'une défense Parade ou Esquive, la même arme que `defenseBaseValue`. LDB 13 l.161-167 */
+function testDeDefenseArmee(c: Combatant, mode: 'parade' | 'esquive', weapon?: Weapon): TestDesigne {
+  return mode === 'parade' ? attackTestOf(c, weapon ?? defaultParryWeapon(c), 'melee') : { skill: { id: 'esquive' } };
 }
 
 /** Détail d'un jet (pour l'affichage : base, modificateurs, cible, d100 et DR). */
@@ -1140,8 +1149,17 @@ export function rollMeleeAttacker(
   flankRear?: boolean,
 ): TestResult {
   const atkVal = combatValue(attacker, 'melee', weapon);
-  const t = rollTest(atkVal, 'intermediaire', rng, combineMods(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env, flankRear })));
-  return { ...t, base: combatBaseValue(attacker, 'melee', weapon) }; // LDB 12 l.160
+  const jet: JetDeTest = { porteur: attacker.id, teste: attackTestOf(attacker, weapon, 'melee') };
+  const cible = cibleDuTest(atkVal, 'intermediaire', combineMods(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env, flankRear })));
+  return jeterLAttaque(jet, d100(rng), cible, combatBaseValue(attacker, 'melee', weapon), defender, 'melee'); // LDB 12 l.160
+}
+
+/** Le d100 `roll` de l'attaque `jet` contre `cible` (avant bornage), de valeur nue `base`, observé une fois ; contre
+ *  une cible `isHelplessTarget`, par `forcedTR`. LDB 12 l.160, LDB 16 l.113 */
+export function jeterLAttaque(jet: JetDeTest, roll: number, cible: number, base: number, defender: Combatant, kind: 'melee' | 'distance'): TestResult {
+  if (!isHelplessTarget(defender)) return { ...jeterLeDe(jet, roll, cible), base };
+  const sl = Math.max(evaluateTest(roll, cible).sl, 0) + (kind === 'distance' ? 6 : 0);
+  return { ...forcedTR(jet, roll, cible, sl, base), isDouble: true };
 }
 
 /** Jet du DÉFENSEUR seul (Parade = Corps à corps, Esquive = Agilité + avances ;
@@ -1153,10 +1171,12 @@ export function rollMeleeDefender(
   dodgeMods: ModLine[] = [], // lignes d'Esquive du contexte (LDB 14 l.82, l.184) ; n'affectent pas la parade
   parryWeapon: Weapon | undefined = defaultParryWeapon(defender), // arme de parade choisie (spé + pénalité main 2nde)
   vsWeapon?: Weapon, // arme de l'ATTAQUANT (Rapide : −10 à la parade d'une arme non-Rapide, LDB 62 l.298-302)
-  sub?: DefenseSub, // substitution sociale (mode 'social') : base = Test de la Compétence substituée
+  sub?: SubstitutionJetee, // substitution sociale (mode 'social') : base = Test de la Compétence substituée
 ): TestResult {
   const defVal = defenseValue(defender, mode, parryWeapon, sub?.base);
-  const t = rollTest(defVal, 'intermediaire', rng, combineMods(defenseTargetMods(defender, mode, dodgeMods, parryWeapon, vsWeapon)));
+  const teste = mode !== 'social' ? testDeDefenseArmee(defender, mode, parryWeapon) : sub && { skill: { id: sub.skillId } };
+  if (!teste) throw new Error('rollMeleeDefender : défense sociale sans Compétence substituée');
+  const t = rollTest({ porteur: defender.id, teste }, defVal, 'intermediaire', rng, combineMods(defenseTargetMods(defender, mode, dodgeMods, parryWeapon, vsWeapon)));
   return { ...t, base: defenseBaseValue(defender, mode, parryWeapon, sub?.base) }; // LDB 12 l.160
 }
 
@@ -1164,7 +1184,8 @@ export function rollMeleeDefender(
  *  (LDB 15 l.49 « Esquive/Corps à corps »). Inclut l'Avantage×10 et les pénalités
  *  d'États, mais PAS les Atouts d'arme ni les bonus de cible (ce n'est pas une attaque portée). */
 export function rollDisengageAttack(foe: Combatant, rng: RNG): TestResult {
-  const t = rollTest(combatValue(foe, 'melee', foe.weapons[0]), 'intermediaire', rng, baseTestMods(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }));
+  const jet: JetDeTest = { porteur: foe.id, teste: attackTestOf(foe, foe.weapons[0], 'melee') };
+  const t = rollTest(jet, combatValue(foe, 'melee', foe.weapons[0]), 'intermediaire', rng, baseTestMods(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }));
   return { ...t, base: combatBaseValue(foe, 'melee', foe.weapons[0]) }; // LDB 12 l.160
 }
 
@@ -1176,7 +1197,7 @@ export const GRAPPLE_TEST_CTX: EtatTestCtx = { movement: true };
 
 export function rollGrappleForce(c: Combatant, rng: RNG): TestResult {
   const force = effectiveChar(c, 'force'); // valeur NUE : `baseTestMods` voyage dans le modificateur (LDB 12 l.160)
-  return { ...rollTest(force, 'intermediaire', rng, baseTestMods(c, 'force', GRAPPLE_TEST_CTX)), base: force };
+  return { ...rollTest({ porteur: c.id, teste: { characteristic: 'force' } }, force, 'intermediaire', rng, baseTestMods(c, 'force', GRAPPLE_TEST_CTX)), base: force };
 }
 
 /** Arme du coup dans le dos d'une Fuite : c'est un **Test de Corps à corps** (LDB 15 l.63) → l'arme de
@@ -1221,7 +1242,7 @@ export function resolveBackstabAttack(foe: Combatant, target: Combatant, rng: RN
     ...baseTestModLines(foe, 'capacite-de-combat', { skill: weaponSkillId('melee') }),
     ligneDeRegle('fuite', 'dos-tourne'),
   ];
-  const atk = rollTest(combatValue(foe, 'melee', weapon), 'intermediaire', rng, mods.reduce((s, m) => s + m.value, 0));
+  const atk = rollTest({ porteur: foe.id, teste: attackTestOf(foe, weapon, 'melee') }, combatValue(foe, 'melee', weapon), 'intermediaire', rng, mods.reduce((s, m) => s + m.value, 0));
   return resolveMeleePassive(foe, target, weapon, atk, { rng }, undefined, [], undefined, false, composeAttack(mods));
 }
 
@@ -1334,19 +1355,6 @@ function combineOpposed(
   return res;
 }
 
-/**
- * Cible Inconscient (LDB 16 l.113) : l'attaquant bénéficie de « Je ne faillirai pas ! »
- * (LDB 17 l.68) sans dépenser de Résilience — il *choisit* le résultat, donc on prend le
- * meilleur : une réussite **critique** (double choisi). À distance, les Dégâts sont ceux
- * d'un tir **à bout portant** (+6 DR ≈ le +60 au toucher de la bande de portée). Le jet
- * brut n'est qu'un TOUCHÉ provisoire : la Localisation du Critique (garanti) est choisissable
- * par l'attaquant qui pilote (LDB 17 l.68, `pa.forcee` → CritLocationPicker, cf. targetingModes.ts).
- */
-function helplessTest(atk: TestResult, kind: 'melee' | 'distance'): TestResult {
-  const dr = Math.max(atk.sl, 0) + (kind === 'distance' ? 6 : 0);
-  return { ...atk, success: true, isDouble: true, sl: dr };
-}
-
 /** Attaque de mêlée sans défense, à partir d'un jet d'attaque déjà obtenu. LDB 16 l.135 ; LDB 16 l.113 ;
  *  LDB 15 l.63 */
 export function resolveMeleePassive(
@@ -1408,11 +1416,6 @@ function passiveOutcome(
 /** Cible sans défense possible face à une attaque (LDB 16 l.113). */
 export const isHelplessTarget = (c: Combatant): boolean => hasCondition(c, 'inconscient');
 
-/** Le jet d'attaque `atk` porté contre `defender`. LDB 16 l.113 */
-export function jetContreLaCible(atk: TestResult, defender: Combatant, kind: 'melee' | 'distance'): TestResult {
-  return isHelplessTarget(defender) ? helplessTest(atk, kind) : atk;
-}
-
 /** Le coup de corps à corps tue `defender` d'office. LDB 16 l.113 ; règle `combat-cible-inconsciente`. */
 export function tueDOffice(defender: Combatant): boolean {
   return isHelplessTarget(defender) && rule('combat-cible-inconsciente') === 'mort-auto';
@@ -1430,9 +1433,7 @@ export function resolveMelee(
   weapon = appliquerAtoutOptionnel(weapon);
   // Un OBJET INANIMÉ (structure de siège / véhicule-coque / affût inerte) n'a ni CC/Ag, ni Parade, ni Esquive → jamais de défense.
   const defenseMode = (cannotDefend(defender) || isInanimate(defender)) ? 'aucune' : opts.defense ?? 'parade';
-  let atk = rollMeleeAttacker(attacker, defender, weapon, rng, opts.location, opts.env, opts.flankRear);
-  // LDB 16 l.113
-  atk = jetContreLaCible(atk, defender, 'melee');
+  const atk = rollMeleeAttacker(attacker, defender, weapon, rng, opts.location, opts.env, opts.flankRear);
   const autoKill = tueDOffice(defender);
   let res: AttackResult;
   // Difficulté COMPOSÉE ICI, une fois, avec les mods COMPLETS (flanc/dos compris — `rollMeleeAttacker`
@@ -1557,8 +1558,8 @@ export function resolveRanged(
   if (distanceTiles != null && rangeM != null && rangeBandModifier(distanceTiles, rangeM, metresPerTile) == null)
     return { hit: false, attackerRoll: 0, netSL: 0, critical: false, advantageTo: null, defenderDefeated: false, log: t('touche.horsDePortee', { attaquant: nomDe(attacker) }) };
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile, resolveTrapping });
-  const jet = evaluateTest(jetImpose ?? d100(rng), cibleDuTest(atkVal, 'intermediaire', combineMods(mods)));
-  const atk = jetContreLaCible({ ...jet, base: combatBaseValue(attacker, 'distance', weapon) }, defender, 'distance'); // LDB 12 l.160 ; LDB 16 l.113
+  const jet: JetDeTest = { porteur: attacker.id, teste: attackTestOf(attacker, weapon, 'distance') };
+  const atk = jeterLAttaque(jet, jetImpose ?? d100(rng), cibleDuTest(atkVal, 'intermediaire', combineMods(mods)), combatBaseValue(attacker, 'distance', weapon), defender, 'distance'); // LDB 12 l.160 ; LDB 16 l.113
   const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), atkVal, atk, composeAttack(mods, modsDR));
   // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.40 / tireur Engagé 14 l.41) →
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.
@@ -1583,7 +1584,8 @@ export function rollRangedAttacker(
   metresPerTile: number,
 ): TestResult {
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile, resolveTrapping });
-  const t = rollTest(combatValue(attacker, 'distance', weapon), 'intermediaire', rng, combineMods(mods));
+  const jet: JetDeTest = { porteur: attacker.id, teste: attackTestOf(attacker, weapon, 'distance') };
+  const t = rollTest(jet, combatValue(attacker, 'distance', weapon), 'intermediaire', rng, combineMods(mods));
   return { ...t, base: combatBaseValue(attacker, 'distance', weapon) }; // LDB 12 l.160
 }
 
@@ -1967,7 +1969,8 @@ export function initiativeOrder(combatants: Combatant[], rng: RNG): Combatant[] 
   const groupSize = new Map<string, number>();
   for (const c of combatants) groupSize.set(groupKey(c), (groupSize.get(groupKey(c)) ?? 0) + 1);
   // Roulé dans l'ordre d'ENTRÉE, uniquement pour les égalités exactes → consommation RNG minimale et déterministe.
-  for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest(testValue(c, { characteristic: 'agilite' }), 'intermediaire', rng));
+  const agilite: TestDesigne = { characteristic: 'agilite' };
+  for (const c of combatants) if ((groupSize.get(groupKey(c)) ?? 0) > 1) tieTest.set(c, rollTest({ porteur: c.id, teste: agilite }, testValue(c, agilite), 'intermediaire', rng));
   return [...combatants].sort((a, b) => {
     const ia = initOf(a), ib = initOf(b);
     if (ib !== ia) return ib - ia;

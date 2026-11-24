@@ -678,6 +678,9 @@ export interface ActiveEffect {
   /** id STABLE de l'effet (langue-indépendant) pour les effets que le moteur reconnaît par identité
    *  (« Exposition (froid) » → 'exposition-froid') plutôt que par libellé. Le `label` reste l'affichage. */
   effectId?: string;
+  /** L'effet échu en Rounds reste porté, Round après Round, tant que dure l'une de ces causes (`causeDure`) : une séquelle
+   *  encore à soigner (`Trauma.uid`), ou le Test de Main ensanglantée de la main `mainGatee` (`handGates`). AA 08 l.236 */
+  tantQue?: { sequelles: readonly string[] } | { mainGatee: Main };
   /** Caractéristique modifiée, le cas échéant. */
   characteristic?: CharKey;
   /** Posé par un `charMod` dont la liste d'ops porte un `attrMod` de Blessures `auTotal` (#3060) : `characteristic`

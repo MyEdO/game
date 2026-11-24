@@ -64,7 +64,7 @@ describe('Test spectaculaire de Puissance (l.120)', () => {
   });
 
   it('un Test NON opposé jette d100 ≤ Puissance', () => {
-    const t = rollMightTest(60, 0, seqRNG(34));
+    const t = rollMightTest('army-Alliés', 60, 0, seqRNG(34));
     expect(t.roll).toBe(34);
     expect(t.success).toBe(true);
     expect(t.sl).toBe(3); // dizaines(60) − dizaines(34) = 6 − 3
@@ -72,7 +72,7 @@ describe('Test spectaculaire de Puissance (l.120)', () => {
 
   it('affrontement simultané : chaque armée réduit l\'adverse de 10 + son DR (min 5)', () => {
     // Allié 60 → jette 34 (DR +3) ; Ennemi 40 → jette 55 (échec, DR −1 : dizaines 4 − 5).
-    const c = resolveClash(60, 40, { rng: seqRNG(34, 55) });
+    const c = resolveClash({ allie: 'army-Alliés', ennemi: 'army-Ennemis' }, 60, 40, { rng: seqRNG(34, 55) });
     expect(c.allyTest.sl).toBe(3);
     expect(c.enemyTest.sl).toBe(-1);
     expect(c.enemyLoss).toBe(13); // 10 + 3

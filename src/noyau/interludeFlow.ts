@@ -49,7 +49,7 @@ import { gainCorruption, crochetsDeCorruption } from './corruptionFlow';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { applyMiscast } from './combatFlow';
 import { acheterLeSort as partyBuySpell, depenserPx } from './partyFlow';
-import type { SupportDetail } from '../engine/skills';
+import type { SupportDetail, TestDesigne } from '../engine/skills';
 import { rule } from '../engine/policy';
 import { groupsFor } from '../engine/groups';
 import { buyTalent as engineBuyTalent, buySkillAdvance as engineBuySkillAdvance, buyCharAdvance as engineBuyCharAdvance } from '../engine/advancement';
@@ -81,7 +81,7 @@ import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
 import { dataLabel } from '../data';
 import { stepDetail } from './rollSeam';
-import { memeSpecialisation, type RefDesignee } from '../data/schemas/grammaire/ref';
+import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -400,6 +400,8 @@ export interface PendingActivityFields extends PendingBase {
   heroIds?: string[];
   // ── Test COMBINÉ (Infiltration/Repérage, l.75/102 — un jet vs DEUX compétences, LDB 12 l.202-206) ──
   skill2?: string;
+  /** Ce que teste la seconde lecture du dé d'un Test combiné. */
+  teste2?: TestDesigne;
   skillValue2?: number;
   target2?: number;
   sl2?: number;
@@ -413,10 +415,10 @@ export interface PendingActivityFields extends PendingBase {
   /** Coût en sous de cuivre engagé par CETTE Activité (Réputation, LDB 23 l.228-234 : « le maximum de
    *  vos revenus standards », dépensé MÊME sur échec — calculé à l'ouverture, débité à la résolution). */
   costBrass?: number;
-  /** Compétence du Test retenue par le pré-jet (`preJetDActivite`) ou par l'ouverture d'un Test de
+  /** Ce que teste le jet, retenu par le pré-jet (`preJetDActivite`) ou par l'ouverture d'un Test de
    *  bataille : l'Entraînement au Combat (LDB 23 l.205-209) en SCOPE son jeton d'inversion, l'inversion
    *  (LDB 12 l.42) la lit, la modale en décompose la valeur. */
-  chosenSkill?: RefDesignee;
+  teste: TestDesigne;
 }
 
 const heroState = (s: Jeu, heroId: string) => s.interlude?.perHero[heroId];
@@ -565,14 +567,13 @@ function openCatalogActivity(get: Get, set: Set, heroId: string, def: ActivityDe
   // Modificateurs NOMMÉS du pré-jet, fondus en UNE ligne de mod (`pa.mod`/`modLabel`), comme la Menace.
   const mod = preJet.mods.reduce((n, m) => n + m.value, 0);
   const ligneDeMod = mod ? { mod, modLabel: preJet.mods.map((m) => m.label).join(' + ') } : {};
-  const competence = preJet.test.skill ? { chosenSkill: structuredClone(preJet.test.skill) } : {}; // #2097
   set({
     pendingActivity: {
       heroId, kind: 'catalog', activityId, label: def.label,
       skillLabel: testSkillLabel(preJet.test), skillValue: preJet.value, ligne: preJet.ligne,
       roll: null, target: 0, sl: 0, success: false,
       ...ligneDeMod,
-      ...competence,
+      teste: structuredClone(preJet.test), // #2097
       ...(opts.itemUid ? { itemUid: opts.itemUid } : {}),
       ...(opts.spellId ? { spellId: opts.spellId } : {}),
       ...(opts.depotId ? { depotId: opts.depotId } : {}),
@@ -792,20 +793,22 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Entraînement au Combat (LDB 23 l.205-209) : « sur un succès, vous pouvez inverser un Test de
       // la Compétence associée une fois pendant votre prochaine aventure » — jeton d'inversion SCOPÉ
       // (op existant, MÊME canal que « Observer une cible »).
-      if (!pa.chosenSkill) return { lines: [] };
-      const skillLabel = refLabel('skills', pa.chosenSkill);
+      const competence = pa.teste.skill;
+      if (!competence) return { lines: [] };
+      const skillLabel = refLabel('skills', competence);
       if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: nomDe(h), skill: skillLabel })] };
-      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes };
+      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: competence }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes };
     }
     case 'punchausen': {
       // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « vous recevez 2d10 pistoles et […]
       // vous pouvez inverser les dés sur un Test de Charme ou de Divertissement (Narration) » — même
       // canal de jeton que « Entraînement au Combat », SCOPÉ à la Compétence utilisée pour la vente.
-      if (!pa.success || !pa.chosenSkill) return { lines: [msg('if.punchausenKo', { name: nomDe(h) })] };
+      const competence = pa.teste.skill;
+      if (!pa.success || !competence) return { lines: [msg('if.punchausenKo', { name: nomDe(h) })] };
       const pistoles = roll(2, 10, battleRng());
       const gain = fromBrass(pistoles * PA_PER_SC);
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
-      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: pa.chosenSkill }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes;
+      const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: competence }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes;
       creditBourse(get, set, h.id, gain); // revenu PERSO (vente du récit DE ce héros), pas partagé par tête
       return { lines: [msg('if.punchausenOk', { name: nomDe(h), money: formatMoney(gain) }), ...tokenLines] };
     }

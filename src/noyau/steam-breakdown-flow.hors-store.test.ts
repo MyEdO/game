@@ -9,6 +9,7 @@ import { seedBattleRng, battleRng } from './battleRng';
 import type { WorldMap } from './worldMap';
 import type { PendingSteamSave } from './pendings';
 import { evaluateTest, extendedTestStep, rollTest, type TestResult } from '../engine/tests';
+import { JET_DE_TEST } from '../engine/tests.testkit';
 import { testValue } from '../engine/skills';
 import { makeRNG } from '../engine/dice';
 import { tableTotale } from '../lib/tableTotale';
@@ -117,7 +118,7 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
     const issue = (seed: number, pas: (total: number, r: TestResult) => number) => {
       const rng = makeRNG(seed);
       let total = 0;
-      for (let i = 0; total < force.drCible! && i < 20; i++) total = pas(total, rollTest(valeur, force.test.difficulty, rng));
+      for (let i = 0; total < force.drCible! && i < 20; i++) total = pas(total, rollTest(JET_DE_TEST, valeur, force.test.difficulty, rng));
       return total >= force.drCible!;
     };
     const cumul = (total: number, r: TestResult) => extendedTestStep(total, r, force.drCible!).total;

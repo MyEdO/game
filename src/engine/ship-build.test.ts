@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { JET_DE_TEST } from './tests.testkit';
 import {
   buildShip, shipSizeOfLength, installCost, rollPortRepair,
   propulsionDuNavire, steamBreakdownFor, steamBreakdownTriggered,
@@ -153,13 +154,13 @@ describe('installCost — pose d’une Amélioration par PALIER DE LONGUEUR (MDG
 describe('Réparations au port (MDG 13 l.639-643)', () => {
   it('port : Test réussi → 1d10 h, 1d10 Blessures, 1 CO/Blessure ; Lissage +50 % (ch.12 l.295)', () => {
     // jet 20 (réussite), heures d10=4, blessures d10=6.
-    const r = rollPortRepair(60, 20, seq(20, 4, 6));
+    const r = rollPortRepair(JET_DE_TEST, 60, 20, seq(20, 4, 6));
     expect(r).toMatchObject({ success: true, hours: 4, wounds: 6, costGold: 6 });
-    const lisse = rollPortRepair(60, 20, seq(20, 4, 6), { lissage: true });
+    const lisse = rollPortRepair(JET_DE_TEST, 60, 20, seq(20, 4, 6), { lissage: true });
     expect(lisse.costGold).toBe(9);
     // Restauration plafonnée aux Blessures manquantes.
-    expect(rollPortRepair(60, 3, seq(20, 4, 8)).wounds).toBe(3);
-    expect(rollPortRepair(60, 20, seq(99, 4)).wounds).toBe(0); // Test raté
+    expect(rollPortRepair(JET_DE_TEST, 60, 3, seq(20, 4, 8)).wounds).toBe(3);
+    expect(rollPortRepair(JET_DE_TEST, 60, 20, seq(99, 4)).wounds).toBe(0); // Test raté
   });
 });
 

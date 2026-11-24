@@ -182,7 +182,7 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
 
     choisir(get, 'usure');
     const usure = courant(get);
-    expect(usure.skill?.spec).toBe(metier);
+    expect(usure.teste?.skill?.spec).toBe(metier);
     expect(usure.difficulty).toBe('intermediaire');
     expect(usure.target! - usure.base!).toBe(mod);
     expect(inexplique(usure)).toBe(0);
@@ -195,7 +195,7 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
     choisir(get, '0');
     saisir(get, 8);
     const critique = courant(get);
-    expect(critique.skill?.spec).toBe(metier);
+    expect(critique.teste?.skill?.spec).toBe(metier);
     expect(critique.difficulty).toBe('difficile');
     expect(critique.target! - critique.base!).toBe(mod - 20);
     expect(inexplique(critique)).toBe(0);

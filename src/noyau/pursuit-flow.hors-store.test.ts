@@ -29,7 +29,7 @@ import { intentAllowedFor } from './netOwnership';
 import { modalOwnerOf } from './modalArbiter';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade, TESTE_DE_TEST } from './cascade.testkit';
 import { setCadence } from '../engine/cadence';
 import { cleDeFixture } from './noyau.testkit';
 
@@ -49,7 +49,7 @@ function doneRound(party: { id: string }[], sl: number): MancheClose {
   const participants: CascadeStep[] = [{
     id: 'pursuit-1', kind: 'mouvementDePoursuite', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: party.map((h) => ({
-      id: h.id, label: 'Athlétisme', base: 40, target: 40, interactive: true,
+      id: h.id, label: 'Athlétisme', teste: { skill: { id: 'athletisme' } }, base: 40, target: 40, interactive: true,
       result: { roll: 40, target: 40, sl, success: sl >= 0 },
     })),
   }];
@@ -361,7 +361,7 @@ describe('Poursuite — une manche bandifiée se possède comme la manche vive',
   const mono = (h: Combatant, round: string): BuiltCascadeStep => monoStep({
     id: `pursuit-${round}-${h.id}`, kind: 'mouvementDePoursuite', actor: h, icon: 'voyage/a-pied',
     label: fixtureText(`Manche ${round}`), rollLabel: 'Athlétisme', difficulty: 'intermediaire',
-    montee: { base: 40, target: 40 }, stake: combatStakeRef('poursuite-manche', { values: { distance: 10, evasion: 3 } }),
+    teste: TESTE_DE_TEST, montee: { base: 40, target: 40 }, stake: combatStakeRef('poursuite-manche', { values: { distance: 10, evasion: 3 } }),
   })!;
 
   it('N coureurs → fenêtre PARTAGÉE ; un seul → la manche EST la sienne', () => {
@@ -397,14 +397,14 @@ describe('Poursuite — une manche bandifiée se possède comme la manche vive',
     const [a] = heroes();
     const source = mono(a, '1');
     const rangee = pursuitBands([source])[0].participants![0];
-    expect(Object.keys(rangee).sort()).toEqual(['base', 'difficulty', 'id', 'interactive', 'label', 'result', 'target']);
+    expect(Object.keys(rangee).sort()).toEqual(['base', 'difficulty', 'id', 'interactive', 'label', 'result', 'target', 'teste']);
     expect(rangee.menace, 'aucune Menace sur un mono de manche AUJOURD’HUI').toBeUndefined();
     expect(rangee.meta, 'ni charge de rangée').toBeUndefined();
     // …et quand l'étape en porte, elles descendent (pli du socle, jamais un oubli local).
     const avecMenace = monoStep({
       id: `pursuit-9-${a.id}`, kind: 'mouvementDePoursuite', actor: a, label: fixtureText('Manche 9'), rollLabel: 'Athlétisme',
       // Tag de catalogue quelconque : ce qui est vérifié ici est le PLI DU SOCLE (le champ descend), pas la Menace.
-      difficulty: 'intermediaire', montee: { base: 40, target: 40 }, menace: 'maladie', meta: { round: 9 },
+      difficulty: 'intermediaire', teste: TESTE_DE_TEST, montee: { base: 40, target: 40 }, menace: 'maladie', meta: { round: 9 },
       stake: combatStakeRef('poursuite-manche', { values: { distance: 10, evasion: 3 } }),
     })!;
     const r2 = pursuitBands([avecMenace])[0].participants![0];

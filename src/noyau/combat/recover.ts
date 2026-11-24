@@ -6,11 +6,16 @@
  */
 import { nomDe } from '../../engine/nom';
 import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from '../../engine/types';
-import { testValue, skillBaseValue } from '../../engine/skills';
+import { testValue, skillBaseValue, type TestDesigne } from '../../engine/skills';
+import type { JetDeTest } from '../../engine/tests';
+import { designeGaranti } from '../ligneDeJet';
 import { isOutOfAction } from '../../engine/conditions';
 import { findConditionById, testSkillLabel } from '../../data';
 
 /** L'entrave d'un Test de récupération OPPOSÉ : sa valeur, sa nue, son libellé — posés ENSEMBLE. */
+/** Le Test de l'entrave : Force contre Force. LDB 16 l.66 */
+const FORCE: TestDesigne = { characteristic: 'force' };
+
 export interface RecoverOpposition {
   /** Force d'entrave opposée : `escapeStrength` FIGÉE en priorité, sinon Force de la source vivante. */
   value: number;
@@ -22,11 +27,15 @@ export interface RecoverOpposition {
   label: string;
   /** Difficulté du jet de l'entrave, lue sur l'État (`recover.opposedDifficulty`, `LDB 12 l.166`). */
   difficulty: Difficulty;
+  /** Le jet de l'entrave (#4848) : la source vivante, ou personne pour une valeur figée. LDB 16 l.66 */
+  jet: JetDeTest;
 }
 
 export interface RecoverResolution {
   /** Libellé du Test (Compétence ou Caractéristique) — affiché en popin/journal. */
   skillLabel: string;
+  /** Ce que teste l'acteur (#4848) : la Compétence ou la Caractéristique de `recover`. */
+  teste: TestDesigne;
   /** Valeur de Test de l'acteur (Compétence `skill` ou Caractéristique `characteristic`). */
   skillValue: number;
   /** Valeur NUE de l'acteur (`LDB 09 l.17`), grandeur du départage à DR égal (`LDB 12 l.160`). */
@@ -68,10 +77,10 @@ export function resolveRecoverTest(
     const source = cond?.sourceId && battle ? battle.combatants.find((c) => c.id === cond.sourceId) : undefined;
     const src = source && !isOutOfAction(source) ? source : undefined;
     if (cond?.escapeThreshold != null) { requireSl = cond.escapeThreshold; }
-    else if (cond?.escapeStrength != null) opposition = { value: cond.escapeStrength, base: cond.escapeStrength, label: source ? nomDe(source) : etat.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
-    else if (src) opposition = { value: testValue(src, { characteristic: 'force' }), base: skillBaseValue(src, { characteristic: 'force' }), label: nomDe(src), difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT };
+    else if (cond?.escapeStrength != null) opposition = { value: cond.escapeStrength, base: cond.escapeStrength, label: source ? nomDe(source) : etat.label, difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT, jet: { porteur: null, teste: FORCE } };
+    else if (src) opposition = { value: testValue(src, FORCE), base: skillBaseValue(src, FORCE), label: nomDe(src), difficulty: rec.opposedDifficulty ?? DIFFICULTE_PAR_DEFAUT, jet: { porteur: src.id, teste: FORCE } };
     entangleOnFail = cond?.entangleOnFail;
     struggleDamage = cond?.struggleDamage;
   }
-  return { skillValue, skillBase, skillLabel, difficulty: rec.difficulty ?? DIFFICULTE_PAR_DEFAUT, opposition, requireSl, entangleOnFail, struggleDamage };
+  return { teste: designeGaranti(rec, state), skillValue, skillBase, skillLabel, difficulty: rec.difficulty ?? DIFFICULTE_PAR_DEFAUT, opposition, requireSl, entangleOnFail, struggleDamage };
 }

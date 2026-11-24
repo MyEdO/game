@@ -16,7 +16,7 @@ import { evaluateTest, resolveOpposed } from '../engine/tests';
 import { jete } from '../engine/tests.testkit';
 import { activeSequence, sequenceAbandonOf } from './sequenceCore';
 import { advantageCapFor } from '../engine/advantage';
-import { tavernPartieEnCours, tavernParams } from './tavernFlow';
+import { HABITUE, tavernPartieEnCours, tavernParams } from './tavernFlow';
 import { TAVERN_FAST_RULE } from '../engine/tavernGame';
 import { TAVERN_GAMES } from '../data';
 import { setRule, resetRule } from '../engine/policy';
@@ -120,13 +120,13 @@ describe('jouerALaTaverne', () => {
     expect(step.actorId, 'un seul porteur JOUABLE : l’étape est la sienne').toBe(a.id);
   });
 
-  it('habitué au profil standard : jet figé sans attackerId (aucun banc), sous le nom de sa fiche', () => {
+  it('habitué au profil standard : jet figé porté par sa fiche, sous son nom', () => {
     const [a] = twoHeroes();
     banc.setState({ party: [a] });
     get().jouerALaTaverne(a.id, { gameId: 'cerevis', opponent: { kind: 'profil', id: 'humain' } });
     const step = get().pendingCascade!.participants[0];
     expect(step.meta?.opposed?.aT).toBeTruthy();
-    expect(step.meta?.opposed?.attackerId).toBeUndefined();
+    expect(step.meta?.opposed?.attackerId).toBe(HABITUE);
     expect(step.meta?.opposed?.attackerName).toBe('Humain');
   });
 

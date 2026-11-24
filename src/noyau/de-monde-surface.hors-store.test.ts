@@ -44,7 +44,7 @@ import type { WorldMap } from './worldMap';
 import type { LandMarketProfile } from '../engine/landCargo';
 import type { CargoLot } from '../engine/cargo';
 import type { Possession } from '../engine/possession';
-import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascadeDifferee, type PoseDe, TESTE_DE_TEST } from './cascade.testkit';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import type { GenreDEtape, GenreDeCascade } from './tablesPosees';
 import { tablesDuJeu } from './tablesDuJeu';
@@ -88,7 +88,7 @@ const surfaceMonde = (): Surface => surfaceDeLEtape(get, worldStep({
  *  et sa surface par la même couture. */
 const surfaceHerosDe = (h: Combatant, kind: GenreDEtape = cleDeFixture('x'), label = 'Test de héros'): Surface => surfaceDeLEtape(get, monoStep({
   id: kind, kind, label: fixtureText(label), actor: h, difficulty: 'intermediaire',
-  ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } },
+  ligne: { valeur: 40 }, teste: TESTE_DE_TEST, stake: { key: { dataset: 'combat', kind: 'mutation' } },
 })!);
 
 describe('#1426 socle — un siège qui POSSÈDE le monde VOIT son dé (porteur MONDE de `monoStep`)', () => {

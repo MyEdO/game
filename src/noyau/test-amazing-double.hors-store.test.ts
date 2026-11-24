@@ -28,7 +28,7 @@ const hero = (p: Partial<Combatant>): Combatant =>
   }) as Combatant);
 
 const basePending = (over: Partial<PendingTest> = {}): PendingTest => ({
-  actorId: 'h', label: 'Test', skill: 'Athlétisme', skillValue: 50,
+  actorId: 'h', label: 'Test', skill: 'Athlétisme', sujet: { skill: { id: 'athletisme' } }, skillValue: 50,
   difficulty: 'intermediaire', requireSL: 0, target: 50, isDouble: false,
   roll: null, success: false, sl: 0, ...over,
 });

@@ -1,14 +1,15 @@
 /** AA 08 l.234-238 */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { aiHandGate, applyBladeTrap, openAttackCascade } from './combatFlow';
+import { aiHandGate, applyBladeTrap, applyCriticalToTarget, openAttackCascade } from './combatFlow';
+import { resolveCritique } from '../engine/critical';
+import { desDuTest, desEnSuite } from '../engine/dice.testkit';
 import { seedBattleRng } from './battleRng';
 import { gestesDeLObjet } from './gestesDeLObjet';
 import { ficheDuPorteur } from './ficheDuPorteur';
 import { auContact, heroDuDuel, ouvrirLeCombat, reluDans } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { desDuTest } from '../engine/dice.testkit';
 import { itemFromTrappingById } from '../engine/items';
 import { applyOps } from '../engine/ops';
 import { activeCharTestMod, tickDurations } from '../engine/conditions';
@@ -191,7 +192,7 @@ describe.each([
     expect(malusCC(H(), 'secondaire')).toBe(0);
   });
 
-  it('un second évènement pendant la période : l’arme tombe', () => {
+  it('un second évènement pendant la période : l’arme tombe, et la retenue avec elle', () => {
     auGroupe(1);
     porter('g1');
     const { H, E } = auCombat();
@@ -199,6 +200,7 @@ describe.each([
     lacher(H(), E, arme);
     lacher(H(), E, arme);
     expect(tient(H(), arme)).toBe(false);
+    expect(malusCC(H(), 'main')).toBe(0);
   });
 
   it('le −20 tient le Round entamé et tout le Round suivant ; la période écoulée, un nouvel évènement est retenu à nouveau', () => {
@@ -252,5 +254,65 @@ describe.each([
     lacher(H(), E, 'g1');
     expect(tient(H(), 'g1')).toBe(true);
     expect(malusCC(H(), 'secondaire')).toBe(-20);
+  });
+});
+
+// AA 08 l.236, l.240
+describe('La retenue dure tant que dure la circonstance du lâcher, un Round au moins', () => {
+  /** Le Critique de bras droit tiré au `jet` (table du Livre de base), appliqué au héros. */
+  function critiqueAuBras(H: Combatant, jet: number, id: string): void {
+    const crit = resolveCritique('ldb', H, 'brasD', desEnSuite([jet], { boucle: true, borne: true }), { overkill: 0 });
+    expect(crit.entryId).toBe(id);
+    applyCriticalToTarget(H, 'brasD', 0, [], banc.setState, { prerolled: crit, get: banc.getState });
+  }
+
+  it('Cassure nette : le −20 dure jusqu’à l’Aide Médicale, puis s’éteint au Round suivant', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H } = auCombat();
+    const arme = armeEn(H(), 'main').uid!;
+    critiqueAuBras(H(), 53, 'cassure-nette');
+    expect(tient(H(), arme)).toBe(true);
+    for (let i = 0; i < 5; i++) tickDurations(H());
+    expect(malusCC(H(), 'main')).toBe(-20);
+    applyOps(H(), [{ op: 'aideMedicale' }], { idNeuf: idsDeTest, rng: desDuTest });
+    tickDurations(H());
+    expect(malusCC(H(), 'main')).toBe(0);
+  });
+
+  it('un Critique sans séquelle (Choc au bras) : le Round minimum seul', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H } = auCombat();
+    critiqueAuBras(H(), 5, 'choc-au-bras');
+    expect(H().activeEffects!.find((e) => e.testModHand === 'main')?.tantQue).toBeUndefined();
+  });
+
+  it('Clef de bras : le −20 dure autant que le bras inutilisable', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H } = auCombat();
+    seedBattleRng(3);
+    critiqueAuBras(H(), 43, 'clef-de-bras');
+    const bras = H().activeEffects!.find((e) => e.passive?.some((o) => o.op === 'maxWeaponHands'))!;
+    const retenue = H().activeEffects!.find((e) => e.testModHand === 'main')!;
+    expect(retenue.duration).toEqual({ scale: 'rounds', left: Math.max(2, bras.duration.scale === 'rounds' ? bras.duration.left : 0) });
+  });
+
+  it('Main ensanglantée : le −20 dure tant que la main reste gatée', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H, E } = auCombat();
+    H().handGates = ['main'];
+    const arme = armeEn(H(), 'main').uid!;
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H().id, targetId: E.id, location: null, result: null, weaponUid: arme }, 'Attaque', 'action/attaquer');
+    const pg = banc.getState().pendingHandGate!;
+    banc.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
+    banc.getState().jetValider('mainEnsanglantee');
+    for (let i = 0; i < 5; i++) tickDurations(H());
+    expect(malusCC(H(), 'main')).toBe(-20);
+    delete H().handGates;
+    tickDurations(H());
+    expect(malusCC(H(), 'main')).toBe(0);
   });
 });

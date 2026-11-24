@@ -1704,7 +1704,7 @@ export const fr = {
   'op.mainsDArmeMaximum': '{name} : armes limitées à {hands} main(s) ({src}).',
   'op.desarmement': '{name} lâche {item}.',
   'op.desarmementVain': '{name} ne tenait rien dans cette main.',
-  'op.ganteletRetient': 'Le gantelet verrouillé de {name} retient {item} ({mod} à ses Tests avec cet objet jusqu’à la fin du Round suivant).',
+  'op.ganteletRetient': 'Le gantelet verrouillé de {name} retient {item} ({mod} à ses Tests avec cet objet tant que dure ce qui devait le lui faire lâcher, un Round au moins).',
   'op.desarmementImmunise': '{item} est solidement fixé à {name} — impossible de le désarmer.',
   'op.testDeMain': '{name} a la main en sang — un faux mouvement et son arme lui glisserait des doigts.',
   'op.perteDeSens': '{name} perd {sense} ({src}).',

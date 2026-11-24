@@ -242,7 +242,7 @@ Toutes ces substances ont **Enc 0**.
 
 ### Effets
 
-Lecture de la **Dose** arbitrée au ticket #4839 (2026-11-23) : une limite d'usage par buveur et par période (rencontre, jour, Blessure Critique) ; « 1 par personne » (Belladone) dit la quantité qui suffit, sans limite. Lecture d'ingénierie en vigueur, à arbitrer à #4863 : la rencontre court d'une entrée en combat à la suivante, comme pour le soin de Guérison (LDB 09 l.260, `soinRencontreUtilise`) ; le jour est le jour de jeu (`dayIndex`) ; la Blessure Critique est celle que le journal des Critiques subies compte (`critEntriesSuffered`).
+Lecture de la **Dose** arbitrée au ticket #4839 (2026-11-23) : une limite d'usage par buveur et par période (rencontre, jour, Blessure Critique) ; « 1 par personne » (Belladone) dit la quantité qui suffit, sans limite. Lecture arbitrée au ticket #4863 (2026-11-24) : la rencontre court d'une entrée en combat à la suivante, comme pour le soin de Guérison (LDB 09 l.260, `soinRencontreUtilise`) ; le jour est le jour de jeu (`dayIndex`) ; la Blessure Critique est celle que le journal des Critiques subies compte (`critEntriesSuffered`).
 
 #### Belladone (3 CO, Rare)
 Plonge la victime dans un profond sommeil au bout de 2-3 heures, sauf si elle réussit

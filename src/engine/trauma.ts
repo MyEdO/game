@@ -60,6 +60,14 @@ export type TraumaSeverity = NonNullable<TraumaFiche['severity']>;
 
 const LEG: HitLocation[] = ['jambeG', 'jambeD'];
 
+/** Une cause d'effet (`ActiveEffect.tantQue`) dure-t-elle encore sur `c` : l'une de ses séquelles encore portée (l'Aide
+ *  Médicale reçue délie les séquelles, `receiveMedicalAid`), ou sa main encore gatée ? AA 08 l.236, l.240 */
+export function causeDure(c: Combatant, cause: NonNullable<ActiveEffect['tantQue']>): boolean {
+  return 'sequelles' in cause
+    ? cause.sequelles.some((uid) => (c.traumas ?? []).some((t) => t.uid === uid))
+    : (c.handGates ?? []).includes(cause.mainGatee);
+}
+
 /** Une séquelle avant sa pose : son identité (`Trauma.uid`) lui vient de son porteur (`avecSequelles`). */
 export type SequelleNeuve = Omit<Trauma, 'uid'>;
 
@@ -470,10 +478,12 @@ export function consolidateAmputations(c: Combatant): string[] {
 /**
  * Aide Médicale reçue (LDB 18 l.307-312 : Compétence Guérison réussie, bandage/cataplasme, ou sort/prière de
  * soin) : lève le drapeau `awaitingMedicalAid` de TOUTES les séquelles en attente — le PREMIER acte de soin des
- * 3 formes stoppe leur aggravation (escalade « 1 doigt de plus par Round » de « Main ouverte », AA 07 l.127 / LDB).
- * Appelé par les 3 formes (ops `heal`/`healCaster`/`aideMedicale` ; soin de Guérison réussi ou sous Bandages). Pur.
+ * 3 formes stoppe leur aggravation (escalade « 1 doigt de plus par Round » de « Main ouverte », AA 07 l.127 / LDB) —,
+ * et délie des séquelles chaque effet qui durait tant qu'elles (`tantQue`, AA 08 l.240).
+ * Appelé par les 3 formes (ops `heal`/`healCaster`/`aideMedicale` ; soin de Guérison réussi ou sous Bandages).
  */
 export function receiveMedicalAid(c: Combatant): string[] {
+  for (const e of c.activeEffects ?? []) if (e.tantQue && 'sequelles' in e.tantQue) delete e.tantQue;
   const awaiting = (c.traumas ?? []).filter((t) => t.awaitingMedicalAid);
   if (!awaiting.length) return [];
   for (const t of awaiting) t.awaitingMedicalAid = false;

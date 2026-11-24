@@ -40,6 +40,7 @@ import type { HostJet } from './slotsDeJet';
 import type { FermetureDuJet } from './rollFlowFactory';
 import { fixtureText } from '../i18n/fixtureText';
 import { tableTotale } from '../lib/tableTotale';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -75,7 +76,7 @@ const defense = (jete: boolean, def = tr(60, 40)): PendingDefense => ({
   suite: { mode: 'pilotee', pa: { attackerId: E.id, targetId: H.id, location: null, result: null } },
 });
 const test = (jete: boolean, cancellable = true): PendingTest => ({
-  actorId: H.id, label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, cancellable,
+  sujet: TESTE_DE_TEST, actorId: H.id, label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, cancellable,
   ...(jete ? { roll: 25, success: true, sl: 1 } : { roll: null, success: false, sl: 0 }),
 });
 const incantation = (jete: boolean, isCritical = false): PendingCast => ({

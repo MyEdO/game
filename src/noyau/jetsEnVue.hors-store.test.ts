@@ -21,6 +21,7 @@ import { evaluateTest, type TestResult } from '../engine/tests';
 import type { AttackResult, RollBreakdown } from '../engine/combat';
 import type { TestNomme } from '../engine/reglesChiffrees';
 import { fixtureText } from '../i18n/fixtureText';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -43,6 +44,7 @@ const bd = (label: string, roll: number, target: number): RollBreakdown => {
   return { label, base: target, modifier: 0, target, roll, sl: t.sl, success: t.success };
 };
 const jet = (roll: number, target: number) => { const t = evaluateTest(roll, target); return { roll, target, sl: t.sl, success: t.success }; };
+const RESISTANCE = { skill: { id: 'resistance' } };
 const TEST: TestNomme = { skill: { id: 'athletisme' }, difficulty: 'intermediaire', label: 'Course' };
 const COUP: AttackResult = {
   hit: true, attackerRoll: 21, netSL: 2, critical: false, advantageTo: 'attaquant', defenderDefeated: false, log: '',
@@ -82,13 +84,13 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
     flux: ['chirurgie'],
   },
   soins: { patch: { pendingHeal: { healerId: H.id, healerName: fixtureText(H.label), targetId: H.id, mode: 'blessures', intBonus: 3, test: 'guerison', bandagesDe: null, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, target: 40, roll: 33, success: true, sl: 0 } }, flux: ['soins'] },
-  rechargement: { patch: { pendingReload: { actorId: H.id, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['rechargement'] },
+  rechargement: { patch: { pendingReload: { teste: { skill: { id: 'distance', spec: 'arbaletes' } }, actorId: H.id, weaponUid: 'w', reload: 2, progressBefore: 0, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 12, target: 40, sl: 2, success: true } }, flux: ['rechargement'] },
   mainEnsanglantee: { patch: { pendingHandGate: { attackerId: H.id, hand: 'main', ligne: { base: 40, mods: [], target: 60, difficulty: 'accessible' }, roll: 70, target: 60, sl: -1, success: false, pa: ATTAQUE, title: 'Main', icon: 'melee/au-contact' } }, flux: ['mainEnsanglantee'] },
   recuperation: {
     patch: {
       pendingStateRecovery: {
-        actorId: H.id, state: 'empetre', skillLabel: 'Force', skillValue: 40, skillBase: 40, difficulty: 'intermediaire',
-        opposition: { value: 35, base: 35, label: E.label, difficulty: 'intermediaire' }, stacks: 1, roll: tr(20, 40), opponentRoll: tr(50, 35), netSL: 3, success: true,
+        actorId: H.id, state: 'empetre', skillLabel: 'Force', teste: { characteristic: 'force' }, skillValue: 40, skillBase: 40, difficulty: 'intermediaire',
+        opposition: { jet: { porteur: E.id, teste: { characteristic: 'force' } }, value: 35, base: 35, label: E.label, difficulty: 'intermediaire' }, stacks: 1, roll: tr(20, 40), opponentRoll: tr(50, 35), netSL: 3, success: true,
       },
     },
     flux: ['recuperation'],
@@ -98,10 +100,10 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   activite: {
     patch: {
       pendingActivity: {
-        heroId: H.id, kind: 'catalog', label: 'Tenez', skillLabel: 'Commandement', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 30, target: 40, sl: 1, success: true,
+        heroId: H.id, kind: 'catalog', label: 'Tenez', skillLabel: 'Commandement', teste: { skill: { id: 'commandement' } }, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 30, target: 40, sl: 1, success: true,
         enemyValue: 45, enemyRoll: 60, enemySL: -2,
       },
-      massBattle: { ennemi: { label: 'Orques' } } as NonNullable<Jeu['massBattle']>,
+      massBattle: { ennemi: { label: 'Orques', combatant: { id: 'army-Orques' } } } as NonNullable<Jeu['massBattle']>,
     },
     flux: ['activite'],
     oppose: true,
@@ -148,11 +150,11 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
     flux: ['incantation', 'contreSort', 'opposition'],
     oppose: true,
   },
-  test: { patch: { pendingCascade: cascade(etapeHote('test')), pendingTest: { actorId: H.id, label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 25, success: true, sl: 1 } }, flux: ['test'] },
+  test: { patch: { pendingCascade: cascade(etapeHote('test')), pendingTest: { sujet: TESTE_DE_TEST, actorId: H.id, label: 'Escalade', skillValue: 40, difficulty: 'intermediaire', requireSL: 0, target: 40, roll: 25, success: true, sl: 1 } }, flux: ['test'] },
   testEtendu: {
     patch: {
       pendingCascade: cascade(etapeHote('testEtendu')),
-      pendingExtendedTest: { actorId: H.id, label: 'Porte', skillLabel: 'Force', target: 45, drCible: 4, total: 0, rounds: [{ id: 'r1', result: { roll: 21, sl: 2, success: true } }] },
+      pendingExtendedTest: { actorId: H.id, label: 'Porte', skillLabel: 'Force', characteristic: 'force', target: 45, drCible: 4, total: 0, rounds: [{ id: 'r1', result: { roll: 21, sl: 2, success: true } }] },
     },
     flux: ['testEtendu'],
   },
@@ -182,13 +184,13 @@ const FUITE: Fixture = {
   flux: ['fuite'],
 };
 
-const PART = { id: H.id, base: 40, target: 40, result: jet(25, 40) };
+const PART = { id: H.id, teste: { skill: { id: 'calme' } }, base: 40, target: 40, result: jet(25, 40) };
 
 /** Les interactions de cascade qui lancent un dé, hors étape hôte. */
 const INTERACTIONS: Record<'jet' | 'jetOppose' | 'batch' | 'batchOppose' | 'table' | 'de' | 'bilan', Fixture> = {
-  jet: { patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: jet(30, 45) }) }, flux: ['cascade'] },
+  jet: { patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', teste: RESISTANCE, target: 45, base: 45, result: jet(30, 45) }) }, flux: ['cascade'] },
   jetOppose: {
-    patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: { ...jet(30, 45), success: true }, meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: fixtureText(E.label) } } }) },
+    patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', teste: RESISTANCE, target: 45, base: 45, result: { ...jet(30, 45), success: true }, meta: { opposed: { aT: tr(40, 50), attackerId: E.id, attackerName: fixtureText(E.label) } } }) },
     flux: ['cascade'],
     oppose: true,
   },
@@ -200,7 +202,7 @@ const INTERACTIONS: Record<'jet' | 'jetOppose' | 'batch' | 'batchOppose' | 'tabl
   },
   table: { patch: () => ({ pendingCascade: cascade(tableJetee()) }), flux: ['cascadeTirage'] },
   de: { patch: { pendingCascade: cascade({ id: 'd', kind: 'testDeclenche', actorId: H.id, de: { spec: { n: 2, sides: 10 }, unite: 'm', result: { roll: 7, total: 7 } } }) }, flux: ['cascadeTirage'] },
-  bilan: { patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: jet(30, 45), committed: true }, 1) }, flux: ['cascade'] },
+  bilan: { patch: { pendingCascade: cascade({ id: 'j', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', teste: RESISTANCE, target: 45, base: 45, result: jet(30, 45), committed: true }, 1) }, flux: ['cascade'] },
 };
 
 function tableJetee(): CascadeStep {
@@ -290,7 +292,7 @@ describe('jetsEnVue — la classe des fenêtres à jet', () => {
 
   it('une réussite forcée de cascade porte son verdict propre sans inventer un gagnant par comparaison', () => {
     const etape: CascadeStep = {
-      id: 'force', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance',
+      id: 'force', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', teste: RESISTANCE,
       target: 45, base: 45, forcee: true, result: jet(1, 45),
       meta: { opposed: { aT: tr(1, 90), attackerId: E.id, attackerName: fixtureText(E.label) } },
     };
@@ -312,7 +314,7 @@ describe('jetsEnVue — les deux témoins du dôme, par la surface de la partie'
   const partieSur = (pendingCascade: PendingCascade) => creerPartie({ ...(BASE as EtatDeJeu), pendingCascade }, ENTREES);
 
   it('« Résistance au Sonné » : après `jetLancer@cascade` puis `jetImposerLeResultat@cascade` à 30, la ligne dit Test, cible, dé, DR et verdict', () => {
-    const partie = partieSur(cascade({ id: 'sonne', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', target: 45, base: 45, result: null }));
+    const partie = partieSur(cascade({ id: 'sonne', kind: 'testDeclenche', actorId: H.id, rollLabel: 'Résistance', teste: RESISTANCE, target: 45, base: 45, result: null }));
     try {
       partie.envoyer({ type: 'jetLancer', args: ['cascade', 'sonne'] });
       partie.envoyer({ type: 'jetImposerLeResultat', args: ['cascade', 30, 'sonne'] });

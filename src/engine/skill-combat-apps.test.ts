@@ -92,7 +92,7 @@ describe('Mode de défense « social » branché dans le moteur (LDB 09 l.287)',
   it('finishMelee(social) : le breakdown défenseur porte le libellé + la base de la Compétence', () => {
     const def = defender(); const atk = attacker();
     const sub = combatSubstitute(def, atk, 'defense')!;
-    const dRoll = rollMeleeDefender(def, 'social', makeRNG(1), [], undefined, atk.weapons[0], { base: sub.value, label: 'Intimidation' });
+    const dRoll = rollMeleeDefender(def, 'social', makeRNG(1), [], undefined, atk.weapons[0], { base: sub.value, label: 'Intimidation', skillId: 'intimidation' });
     const aRoll = { roll: 55, target: 40, success: false, sl: -1, isDouble: false };
     const res = finishMelee(atk, def, atk.weapons[0], aRoll, dRoll, 'social', { rng: makeRNG(1595) }, undefined, [], [], undefined, undefined, false, { base: sub.value, label: 'Intimidation' });
     expect(res.defenderDetail?.mode).toBe('social');

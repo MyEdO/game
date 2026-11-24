@@ -48,7 +48,7 @@ import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './monde/sceneNpc';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade, TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -428,7 +428,7 @@ describe('L’Alvatafl — les camps asymétriques et la victoire au Critique (l
   /** Manche close : le jet du challenger et le jet adverse FIGÉ. */
   function manche(actorId: string, mien: { roll: number; sl: number }, sien: { roll: number; sl: number }): MancheClose {
     const step: CascadeStep = {
-      id: `${TAVERN_ROUND_KIND}-2`, kind: TAVERN_ROUND_KIND, actorId,
+      id: `${TAVERN_ROUND_KIND}-2`, kind: TAVERN_ROUND_KIND, actorId, teste: TESTE_DE_TEST,
       label: fixtureText('L\'Alvatafl'), rollLabel: 'Savoir', difficulty: 'intermediaire', base: 40, target: 40,
       result: { roll: mien.roll, target: 40, sl: mien.sl, success: true },
       meta: {

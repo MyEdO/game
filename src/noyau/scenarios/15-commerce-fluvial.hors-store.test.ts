@@ -242,7 +242,7 @@ describe('Scénario Commerce fluvial — réparation permanente à la cale sèch
 
     jouerLOffre('reparerLeNavire');
     const constructeur = get().pendingCascade!.participants[0];
-    expect(constructeur).toMatchObject({ kind: TEST, worldOwner: true, target: 65, skill: { id: 'metier', spec: 'construction-de-bateaux' } });
+    expect(constructeur).toMatchObject({ kind: TEST, worldOwner: true, target: 65, teste: { skill: { id: 'metier', spec: 'construction-de-bateaux' } } });
     expect(constructeur.actorId).toBeUndefined();
     expect(draineCascade(get, 10, () => 98)).toEqual([TEST]);
     expect(etatDeLaReparation()).toEqual(avant);
@@ -252,7 +252,7 @@ describe('Scénario Commerce fluvial — réparation permanente à la cale sèch
     const gunnar = get().party.find((p) => p.id === 'com-gunnar')!;
     const charpentier = get().pendingCascade!.participants[0];
     const competence = { id: 'metier', spec: 'charpentier' };
-    expect(charpentier).toMatchObject({ kind: TEST, actorId: gunnar.id, skill: competence });
+    expect(charpentier).toMatchObject({ kind: TEST, actorId: gunnar.id, teste: { skill: competence } });
     expect(charpentier.target).toBe(testValue(gunnar, { skill: competence }) - 10);
     expect(charpentier.mods?.map((m) => m.value)).toContain(-10);
     expect(inexplique(charpentier)).toBe(0);

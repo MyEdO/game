@@ -40,6 +40,7 @@ import { fermeturesDuFlux } from './verbesOuverts';
 import { seedBattleRng, battleRng } from './battleRng';
 import { avecLesTables, cleDeFixture, type FixtureDeTables } from './noyau.testkit';
 import { deDeLaTableTiree } from '../engine/tables';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => {
@@ -57,7 +58,7 @@ function etapeMono(porteur: Porteur, heroId: string, kind: GenreDEtape): Cascade
   const id = `parite-mono-${kind}`;
   const actor = get().party.find((h) => h.id === heroId)!;
   return porteur === 'heros'
-    ? monoStep({ id, kind, label: fixtureText('Jet'), difficulty: 'intermediaire', actor, ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } } })!
+    ? monoStep({ id, kind, label: fixtureText('Jet'), difficulty: 'intermediaire', actor, ligne: { valeur: 40 }, teste: TESTE_DE_TEST, stake: { key: { dataset: 'combat', kind: 'mutation' } } })!
     : worldStep({ id, kind, label: fixtureText('Jet'), cible: 40, verdict: { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') } });
 }
 

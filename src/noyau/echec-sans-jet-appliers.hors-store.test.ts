@@ -8,7 +8,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildStageSteps } from './travelPostes';
 import { seaActivityRefus } from './seaActivities';
 import { applierDe, startCascade } from './cascade';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { activityById, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from '../engine/activiteMer.testkit';
@@ -175,7 +175,7 @@ describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () =
     const champ = cle === 'psychologieDeRencontre' ? 'psychologieDeRencontre' : 'psychologieDeCombat';
     const hero = banc.getState().party[0];
     const ligne = rollStep({ actor: hero, test: { skill: { id: 'calme' } }, difficulty: 'intermediaire', refus: refusNePeutTenter(hero, { skill: { id: 'calme' } }) });
-    return bandStep({ id: cle, kind: cle, [champ]: decl }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!;
+    return bandStep({ id: cle, kind: cle, [champ]: decl }, [{ teste: TESTE_DE_TEST, id: hero.id, interactive: true, result: null, ...ligne }])!;
   };
 
   beforeEach(() => banc.setState({ party: [heros(INCONSCIENT)], journal: [], battle: null }));
@@ -229,7 +229,7 @@ describe('SEAM `onOwnTestFailed` : un échec sans jet est un Test raté de son p
   it('rangée de BANDE sans jet : SON porteur subit l’effet de son Test raté, à DR 0', () => {
     const hero = banc.getState().party[0];
     const ligne = rollStep({ actor: hero, test: { skill: { id: 'ragot' } }, difficulty: 'intermediaire', refus: refusRagot(hero) });
-    startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: cleDeFixture('bande-sans-jet') }, [{ id: hero.id, interactive: true, result: null, ...ligne }])!] });
+    startCascade(banc.getState, banc.setState, { title: 'X', purpose: 'test', steps: [bandStep({ id: 'bande-sans-jet', kind: cleDeFixture('bande-sans-jet') }, [{ teste: TESTE_DE_TEST, id: hero.id, interactive: true, result: null, ...ligne }])!] });
     banc.getState().jetValider('cascade');
     expect(hasCondition(banc.getState().party[0], 'sonne'), 'Test raté à DR 0 : Sonné posé par le symptôme').toBe(true);
     expect(hasCondition(banc.getState().party[0], 'a-terre'), 'aucun DR négatif').toBe(false);

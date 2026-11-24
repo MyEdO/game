@@ -14,7 +14,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 /**
  * #124 — Cible Inconsciente (LDB 16 l.113) : l'attaquant gagne « Je ne faillirai pas ! » SANS
  * dépenser de Résilience. LDB 17 l.68 : « Si vous infligez un Coup Critique, vous pouvez choisir
- * la Localisation atteinte, plutôt que de la laisser au hasard. » `helplessTest` (combat.ts) force
+ * la Localisation atteinte, plutôt que de la laisser au hasard. » `jeterLAttaque` (combat.ts) force
  * déjà succès+Critique ; il ne restait qu'à débloquer le picker de Localisation EXISTANT
  * (réglage `attaque.localisationDuCritique`, gated par `pendingAttack.forcee`) pour l'attaquant qui PILOTE. L'IA
  * (`doAttack`) ne passe jamais par `pendingAttack` : aucun choix, tirage inchangé.
@@ -53,7 +53,7 @@ describe('#124 — cible Inconsciente : choix de Localisation (RAW-2 gratuit, LD
     expect(banc.getState().pendingAttack?.forcee).toBe(true);
     banc.getState().jetLancer('attaque');
     const pa = banc.getState().pendingAttack!;
-    expect(pa.result?.critical).toBe(true); // helplessTest (combat.ts) : Critique déjà forcé (inchangé par #124)
+    expect(pa.result?.critical).toBe(true); // jeterLAttaque (combat.ts) : Critique déjà forcé (inchangé par #124)
     // AVANT #124, réglage `attaque.localisationDuCritique` était bloqué par le garde `!pa.forcee` (combatSlice.ts) :
     // la Localisation restait un tirage au hasard malgré le Critique forcé.
     banc.getState().jetRegler('attaque', 'localisationDuCritique', 'jambeG');

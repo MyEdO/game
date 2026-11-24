@@ -58,7 +58,7 @@ import { findVehicleById, voyageStakeRef, weather } from '../data';
 import { memoParVersion } from '../data/versionDataset';
 import { PERIPETIES, peripetieDie, peripetieSeuilDie } from '../data/peripeties';
 import { rollTest, testDetail } from '../engine/tests';
-import { partyAssisted, supportSplit, type SupportDetail } from '../engine/skills';
+import { partyAssisted, supportSplit, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
 import { canAfford, formatMoney, type Money } from '../engine/money';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
@@ -1101,6 +1101,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
     // l'aggravation de l.253. Ce chemin et la cascade joueur lisent le MÊME résolveur.
     const res = forcedPaceCheck({
       valeurConduite: driver.value,
+      jetConduite: { porteur: driver.actor.id, teste: CONDUITE_D_ATTELAGE },
       kmDejaCourus: galloped,
       animaux: draftAnimals(veh.draft!.count, draft.e),
       rng: battleRng(),
@@ -1158,7 +1159,7 @@ function applyVehicleProblemToTravel(get: Get, set: Set, out: Pick<ForcedPaceDay
     const driver = forcedPaceDriver(get);
     out.lines.push(t('tf.ennuiDeVehicule', { label: entry.label }));
     if (driver) {
-      const rt = rollTest(driver.value, 'intermediaire', battleRng());
+      const rt = rollTest({ porteur: driver.actor.id, teste: CONDUITE_D_ATTELAGE }, driver.value, 'intermediaire', battleRng());
       // Repli IA/synchrone (`forcedPaceDay`) : aucune rangée nulle part pour ce jet — le journal est
       // la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`), porteur fondu dans le libellé (la phrase
       // NOMME déjà le conducteur).
@@ -1207,8 +1208,11 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
  *  bonus de +10 au Test ») — les passagers d'un même véhicule sont adjacents (l.196) et la Conduite
  *  d'attelage n'est pas un Test de résistance (l.197). SOURCE UNIQUE : le km courant, le km SUIVANT et
  *  la reprise de contrôle désignent le conducteur par CETTE fonction, jamais par une valeur figée. */
+/** Ce que teste le conducteur d'un attelage forcé. EDOC 07 l.229 */
+const CONDUITE_D_ATTELAGE: TestDesigne = { skill: { id: 'conduite-d-attelage' } };
+
 function forcedPaceDriver(get: Get) {
-  return partyAssisted(get().party, { skill: { id: 'conduite-d-attelage' } });
+  return partyAssisted(get().party, CONDUITE_D_ATTELAGE);
 }
 
 /** Construit l'ÉTAPE-JET de Conduite d'attelage au kilomètre COURANT (#270, conducteur JOUEUR) — pénalité
@@ -1531,7 +1535,7 @@ export const TABLES = {
             // MÊME jet que le km (Conduite d'attelage soutenue, `LDB 12 l.189`) : ni la pénalité de km
             // (`EDOC 07 l.253` ne la reconduit pas), ni une valeur figée. Les deux surfaces — étape
             // influençable et repli sans pilote ci-dessous — lisent le MÊME conducteur soutenu.
-            ligne: { test: { skill: { id: 'conduite-d-attelage' } }, valeur: driver.value, soutien: driver.support },
+            ligne: { test: CONDUITE_D_ATTELAGE, valeur: driver.value, soutien: driver.support },
             meta: { finalKm, finalHours },
           });
           if (st) return { consequences: freeCons(j), insert: [st] };
@@ -1540,7 +1544,7 @@ export const TABLES = {
         // — le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`). MÊME valeur que la
         // surface influençable : le conducteur soutenu (`forcedPaceDriver`), jamais une grandeur seconde.
         if (driver) {
-          const rt = rollSansPilote(get, driver.actor, driver.value, 'intermediaire', battleRng());
+          const rt = rollSansPilote(get, driver.actor, CONDUITE_D_ATTELAGE, driver.value, 'intermediaire', battleRng());
           j.push(traceLineOf({
             label: t('tf.repriseDeControle', { name }),
             roll: rt.roll, target: rt.target, success: rt.success,

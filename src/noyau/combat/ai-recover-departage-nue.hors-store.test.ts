@@ -5,10 +5,13 @@ import { seedBattleRng, battleRng } from '../battleRng';
 import { resolveRecoverTest } from './recover';
 import { makeRNG } from '../../engine/dice';
 import { opposedTest, REPLIS_DEUX_CIBLES } from '../../engine/tests';
+import { JET_DE_TEST } from '../../engine/tests.testkit';
 import { etats } from '../../data';
 import { setDataset } from '../../data/overrides';
 import type { Combatant, Difficulty } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
+
+const DEUX_JETS = { attacker: JET_DE_TEST, defender: JET_DE_TEST };
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -72,7 +75,7 @@ describe('LDB 12 l.160 — la récupération opposée de l’IA départage sur l
 
   it('TÉMOIN : la sonde `REPLIS_DEUX_CIBLES` compte bien un opposé roulé SANS nue', () => {
     const avant = REPLIS_DEUX_CIBLES.count;
-    opposedTest(30, 40, makeRNG(1));
+    opposedTest(DEUX_JETS, 30, 40, makeRNG(1));
     expect(REPLIS_DEUX_CIBLES.count, 'sonde inerte : la preuve ci-dessous ne vaudrait rien').toBe(avant + 1);
   });
 
@@ -156,7 +159,7 @@ describe('LDB 12 l.166 — la Difficulté de `recover` s’applique à l’ACTEU
     // l'entrave, rejoué par l'IA sous la donnée déviante, ne libère que si l'IA l'a roulée.
     const issue = (seed: number, entrave: Difficulty) => {
       seedBattleRng(seed);
-      return opposedTest(30, 40, battleRng(), 'intermediaire', entrave, { attacker: 60, defender: 50 }).attackerWins;
+      return opposedTest(DEUX_JETS, 30, 40, battleRng(), 'intermediaire', entrave, { attacker: 60, defender: 50 }).attackerWins;
     };
     const seed = Array.from({ length: 200 }, (_, i) => i + 1).find((n) => issue(n, 'difficile') && !issue(n, 'intermediaire'));
     expect(seed, 'aucun tirage ne départage les deux Difficultés').toBeDefined();

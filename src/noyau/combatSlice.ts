@@ -1481,7 +1481,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({
         pendingStateRecovery: {
           actorId: active.id, state: etat,
-          skillLabel: rt.skillLabel, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
+          skillLabel: rt.skillLabel, teste: rt.teste, skillValue: rt.skillValue, skillBase: rt.skillBase, difficulty: rt.difficulty,
           opposition: rt.opposition, requireSl: rt.requireSl,
           entangleOnFail: rt.entangleOnFail, struggleDamage: rt.struggleDamage, stacks: n,
           roll: null, opponentRoll: null, netSL: 0, success: false,

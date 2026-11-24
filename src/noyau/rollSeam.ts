@@ -46,7 +46,7 @@ import type {
 import type { BuiltCascadeStep } from './stepBrand';
 import type { PlayerText } from '../i18n/playerText';
 import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
-import { rollLine, type RollLineDecl, type RollLineSpec } from './ligneDeJet';
+import { designeDuSujet, rollLine, type RollLineDecl, type RollLineSpec } from './ligneDeJet';
 import type { OupsResolved } from '../engine/oups';
 import { tonDuFait, type RecapLine, type RecapTone } from './recapLine';
 import type { Applique, FaitApplique } from '../engine/faits';
@@ -62,7 +62,7 @@ import {
   compteurDeSequence,
 } from './cascade';
 import { tablesPosees, type GenreDEtape, type GenreDeCascade } from './tablesPosees';
-import { testValue, partyBest, partyAssisted, type SupportDetail } from '../engine/skills';
+import { testValue, partyBest, partyAssisted, type SupportDetail, type TestDesigne } from '../engine/skills';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { tenuParUnHumain, seatOwns, conduitParLeSiegeDuMonde } from './sieges';
@@ -72,7 +72,7 @@ import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
 import { dataLabel, testSkillLabel, type StakeRef } from '../data';
 import { t, type OutKey, type OutVars } from '../i18n';
-import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type EchecSansJet } from '../engine/tests';
+import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type CeQueTeste, type EchecSansJet } from '../engine/tests';
 import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
 import { battleRng } from './battleRng';
@@ -557,7 +557,7 @@ export function bandCommonMeta(metas: readonly (CascadeStepMeta | undefined)[]):
  *  les porte. Les champs de JEU DÉJÀ POSÉ (influences, issue) descendent aussi : vides sur une étape
  *  fraîchement construite, peuplés sur une étape venue d'une sauvegarde. */
 const ROW_DEPUIS_ETAPE = [
-  'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'skill',
+  'base', 'target', 'mods', 'clamped', 'difficulty', 'menace', 'teste',
   'rerolled', 'forcee', 'fixed', 'outcome',
 ] as const;
 
@@ -655,15 +655,18 @@ export function rollStep(spec: RollLineSpec): LigneMontee {
   };
 }
 
-/** La Compétence lancée d'un Test de ligne, telle que l'étape la porte (`CascadeStepCore.skill`). */
-function competenceDuTest(test: SujetDuJet | undefined): { skill?: RefDesignee } {
-  return test?.skill ? { skill: structuredClone(test.skill) } : {}; // #2097
+/** Refus de la porte pour un jet qui ne nomme pas ce qu'il teste (#4848) : aucun jet ouvert. */
+function refusSansSujet(ou: string): undefined {
+  refusePorte(`${ou} : le Test ne nomme ni Compétence ni Caractéristique — son jet ne dirait pas ce qu'il teste. Aucun jet ouvert.`);
+  return undefined;
 }
 
 /** Résout un test skill/characteristic SIMPLE (mono, côté `actorId`) en `CascadeStep`
  *  prêt pour `startCascade`/`runCascadeImmediate` — calque `openSkillTest` (`combatEffects.ts:308-392`)
  *  réduit au cas générique (pas de candidats/mod social : hors périmètre du seam Ronde 0). */
-function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep {
+function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: CascadeStepMeta): CascadeStep | undefined {
+  const teste = designeDuSujet(req.test);
+  if (!teste) return refusSansSujet(`mono « ${kind} »`);
   const { actorId, actor, baseValue, support } = resolveMonoSide(get, req);
   // Ligne montée par le MONTEUR CANONIQUE : la cible reste dérivée de la valeur FONDUE (`testValue`
   // pour un acteur désigné, la valeur SOUTENUE de `partyAssisted` sinon).
@@ -678,10 +681,9 @@ function buildMonoStep(get: Get, req: RollRequest, kind: GenreDEtape, meta?: Cas
     // Difficulté en donnée de LIGNE (#1072) : la modale la rend en texte + valeur sur la rangée ; sa
     // valeur est déjà comprise dans `target` (`rollLine`).
     difficulty: req.difficulty,
-    // Compétence DÉRIVÉE du catalogue (`testSkillLabel`) — jamais `req.actionLabel` sauf repli (Test
-    // SANS compétence/carac déclarée, ex. Désertion : rien à nommer en position de compétence).
+    // Compétence DÉRIVÉE du catalogue (`testSkillLabel`) — jamais `req.actionLabel` sauf repli.
     rollLabel: testSkillLabel(req.test) ?? req.actionLabel,
-    ...competenceDuTest(req.test),
+    teste,
     base: line.base,
     ...(line.mods.length ? { mods: line.mods } : {}),
     target: line.target,
@@ -737,7 +739,7 @@ export function openRoll(get: Get, set: Set, req: RollRequest, kind: GenreDEtape
   // BANDE ou MONO : le NOMBRE de porteurs déclarés, jamais une classe (#1479) — le mono EST la bande à
   // N=1, et une requête qui déclare ses contributeurs monte ses rangées.
   const step = 'participants' in req.side ? buildBatchStep(get, req, kind, meta) : buildMonoStep(get, req, kind, meta);
-  return ouvrirLEtape(get, set, step, rollTitle(get, req));
+  return step && ouvrirLEtape(get, set, step, rollTitle(get, req));
 }
 
 /** LA QUEUE UNIQUE d'une étape ouverte SEULE : sa surface se dérive des porteurs de l'ÉTAPE
@@ -839,6 +841,9 @@ export function refusePorte(msg: string): void {
  *  garde son exclusivité (un `soutien` sans `valeur` reste inexprimable). */
 export type BandLigne = RollLineDecl extends infer U ? (U extends unknown ? Omit<U, 'actor'> : never) : never;
 
+/** Ligne qui NOMME ce qu'elle teste (`test`) : le jet dit sa Compétence ou sa Caractéristique (#4848). */
+export type LigneNommee = BandLigne & { test: SujetDuJet };
+
 /** UN porteur d'une bande : qui teste, et la LIGNE de son jet — deux régimes EXCLUSIFS, calqués sur
  *  `MonoSpec` :
  *  - `actor` : le porteur à fiche — la rangée prend son id, et sa SURFACE se déduit de lui (`surfaceRow`) ;
@@ -869,19 +874,22 @@ interface BandPorteurBase {
 
 /** Monte la rangée d'un porteur — ligne par le monteur canonique (`rollStep`), Compétence dérivée du
  *  catalogue. `interactive` est posé par `surfaceRow`, jamais ici. */
-function bandRow(p: BandPorteur, difficulty: Difficulty): BatchParticipant {
+function bandRow(p: BandPorteur, difficulty: Difficulty): BatchParticipant | undefined {
   const diff = p.difficulty ?? difficulty;
   const test = p.ligne?.test;
+  const teste = designeDuSujet(test);
+  const id = p.monde ? WORLD_STEP_OWNER : p.actor.id;
+  if (!teste) return refusSansSujet(`rangée « ${id} »`);
   const label = p.label ?? testSkillLabel(test ?? {});
   return {
-    id: p.monde ? WORLD_STEP_OWNER : p.actor.id,
+    id,
     result: null,
     interactive: true,
     difficulty: diff,
     ...rollStep({ ...(p.ligne ?? {}), actor: p.actor, difficulty: diff }),
     ...(label ? { label } : {}),
     ...(p.menace ? { menace: p.menace } : {}),
-    ...competenceDuTest(test),
+    teste,
     ...(p.essential ? { essential: true } : {}),
     ...(p.bonusSlOnSuccess ? { bonusSlOnSuccess: p.bonusSlOnSuccess } : {}),
     ...(p.meta ? { meta: p.meta } : {}),
@@ -934,7 +942,7 @@ function rowSurfacee(get: Get, r: Omit<BatchParticipant, 'interactive'>, cle: st
  */
 export function buildBand(get: Get, spec: BandRowsSpec): BuiltCascadeStep | undefined {
   const rows = spec.porteurs
-    ? spec.porteurs.map((p) => { const row = bandRow(p, spec.difficulty); return surfaceRow(get, row.id, row); })
+    ? spec.porteurs.flatMap((p) => { const row = bandRow(p, spec.difficulty); return row ? [surfaceRow(get, row.id, row)] : []; })
     : (spec.rows ?? []).flatMap((r) => rowSurfacee(get, r, spec.id) ?? []);
   return bandStep(spec, rows);
 }
@@ -1153,7 +1161,7 @@ interface MonoBase {
 /**
  * DÉCLARATION d'une étape MONO — deux régimes EXCLUSIFS, et le compilateur tient l'exclusion :
  *  - `ligne` : la déclaration du jet (même forme qu'une rangée de bande), MONTÉE par le mint. Régime
- *    normal — omise, la base est le `testValue` de l'acteur ;
+ *    normal : elle nomme son `test`, ou pose une valeur d'une autre formule et dit alors son `teste` ;
  *  - `montee` : ligne DÉJÀ étalée, fournie par le producteur. Régime des jets dont le MONTAGE et
  *    l'ASSEMBLAGE ne tombent pas au même moment : les Tests d'entretien différés (`upkeep.ts` monte la
  *    ligne pendant l'entretien, `restFlow.deferredUpkeepSteps` assemble l'étape après) — remonter la
@@ -1171,16 +1179,19 @@ interface MonoBase {
  */
 export type MonoSpec = MonoBase & (
   | ({ actor: Combatant; monde?: never } & (
-    | { ligne?: BandLigne; montee?: never }
-    | { montee: LigneMontee; ligne?: never }
+    | { ligne: LigneNommee; montee?: never; teste?: never }
+    /** `teste` : ce que teste une ligne à valeur POSÉE qui ne nomme pas son `test` (#4848). */
+    | { ligne: BandLigne & { test?: undefined }; montee?: never; teste: TestDesigne }
+    /** `teste` : ce que teste la ligne montée, qui ne le porte pas (#4848). */
+    | { montee: LigneMontee; ligne?: never; teste: TestDesigne }
   ))
-  | { monde: true; actor?: never; ligne: LigneMonde; montee?: never }
+  | { monde: true; actor?: never; ligne: LigneMonde; montee?: never; teste?: never }
 );
 
 /** LIGNE d'un porteur MONDE (`MonoSpec.monde`) : la valeur est POSÉE, il n'existe aucun acteur dont la
- *  dériver. Sans acteur, la décomposition est exacte par construction (`engine/skills.ts`
+ *  dériver ; elle nomme son `test` (#4848). Sans acteur, la décomposition est exacte par construction (`engine/skills.ts`
  *  `testValueSplit`) : ni `valeurEtrangere` à déclarer, ni Soutien à fondre. */
-type LigneMonde = Omit<Extract<BandLigne, { valeur: number }>, 'valeurEtrangere' | 'soutien'>;
+type LigneMonde = Omit<Extract<BandLigne, { valeur: number }>, 'valeurEtrangere' | 'soutien'> & { test: SujetDuJet };
 
 /**
  * CONSTRUCTEUR d'étape MONO (#1262) — un porteur, un jet, UNE fenêtre : la possession est posée ICI
@@ -1197,6 +1208,8 @@ type LigneMonde = Omit<Extract<BandLigne, { valeur: number }>, 'valeurEtrangere'
  */
 export function monoStep(spec: MonoSpec): BuiltCascadeStep | undefined {
   const actor = spec.monde ? undefined : spec.actor;
+  const teste = spec.teste ?? designeDuSujet(spec.ligne?.test);
+  if (!teste) return refusSansSujet(`mono « ${spec.id} » (${spec.kind})`);
   const parts = spec.montee
     ?? rollStep({ ...(spec.ligne ?? {}), actor, difficulty: spec.difficulty } as RollLineSpec);
   if (!Number.isFinite(parts.target)) {
@@ -1216,7 +1229,7 @@ export function monoStep(spec: MonoSpec): BuiltCascadeStep | undefined {
     ...(actor ? { actorId: actor.id } : { worldOwner: true }),
     difficulty: spec.difficulty,
     rollLabel: spec.rollLabel ?? testSkillLabel(spec.ligne?.test ?? {}) ?? spec.label,
-    ...competenceDuTest(spec.ligne?.test),
+    teste,
     ...parts,
     result: parts.result ?? null,
     ...(spec.menace ? { menace: spec.menace } : {}),
@@ -1756,11 +1769,13 @@ export function pushHost(get: Get, set: Set, spec: Declaree<HostSpec>): void {
  * DEV : la violation THROW (le jet silencieux se voit au premier passage) ; en PROD elle se journalise
  * en `console.error` et le jet est rendu quand même — jamais casser une partie en cours.
  *
- * `value`/`difficulty`/`rng`/`modifier` : la forme de `rollTest` (`engine/tests.ts`), passés tels quels.
+ * `teste` : ce que le Test teste, dont `actor` est le porteur (#4848) ; `value`/`difficulty`/`rng`/`modifier` : la
+ * forme de `rollTest` (`engine/tests.ts`), passés tels quels.
  */
 export function rollSansPilote(
   get: Get,
   actor: Combatant | undefined,
+  teste: CeQueTeste,
   value: number,
   difficulty: Difficulty,
   rng: RNG,
@@ -1771,5 +1786,5 @@ export function rollSansPilote(
     console.error(msg);
     if (import.meta.env?.DEV) throw new Error(msg);
   }
-  return rollTest(value, difficulty, rng, modifier);
+  return rollTest({ porteur: actor?.id ?? null, teste }, value, difficulty, rng, modifier);
 }

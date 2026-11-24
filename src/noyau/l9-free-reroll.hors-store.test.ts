@@ -9,6 +9,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { hasActiveFlag } from '../engine/activeFlags';
 import { EMPTY_FLOW } from '../engine/flowCore';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -31,7 +32,7 @@ function blessedHero(fortune = 0) {
 function openFailedTest(heroId: string) {
   banc.setState({
     pendingTest: {
-      actorId: heroId, label: 'Test de Force', skillValue: 50,
+      sujet: TESTE_DE_TEST, actorId: heroId, label: 'Test de Force', skillValue: 50,
       difficulty: 'intermediaire', requireSL: 0, target: 50, roll: null, success: false, sl: 0,
       onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
     },

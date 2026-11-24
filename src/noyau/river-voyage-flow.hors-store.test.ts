@@ -5,7 +5,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { shipboardSouls } from './shipCrew';
 import { buildRiverPlan, coqueDeDescente, buildRiverDayCascade, runRiverDays, hasBatelier, applyEchouage } from './riverVoyageFlow';
 import { applierDe } from './cascade';
-import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade } from './cascade.testkit';
+import { inexplique, soutienDe, avanceEtapeCascade, cascadeDeTest, draineCascade, TESTE_DE_TEST } from './cascade.testkit';
 import { composeRollLabel } from './rollSeam';
 import { t } from '../i18n';
 import { byId, findVehicleById, refLabel, resolveStake, voyageStakeRef, STAKES, regles } from '../data';
@@ -616,7 +616,7 @@ describe('descente end-to-end — le Reik jusqu\'à Altdorf (cascades jour + nui
  */
 describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage passe par la porte', () => {
   function riggingFailStep(actorId: string) {
-    return cascadeDeTest([{ id: 'rig', kind: 'fleuveGreement', actorId, rollLabel: 'Voile', base: 40, target: 40,
+    return cascadeDeTest([{ teste: TESTE_DE_TEST, id: 'rig', kind: 'fleuveGreement', actorId, rollLabel: 'Voile', base: 40, target: 40,
       result: { roll: 90, target: 40, sl: -5, success: false } }], { title: 'Journée', purpose: 'travelDay' });
   }
 
@@ -715,7 +715,7 @@ describe('péril fluvial — la ligne du Test d’évitement nomme la Compétenc
 describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () => {
   const capsizeStep = () => ({
     id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
-    label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
+    label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', teste: { skill: { id: 'voile', spec: 'chaland' } }, base: 40, difficulty: 'accessible' as const,
     target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
   });
 
@@ -744,7 +744,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     const be = 3;
     const round0 = {
       id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
-      label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
+      label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', teste: { skill: { id: 'voile', spec: 'chaland' } }, base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 98, target: 60, sl: -4, success: false }, interactive: true,
       meta: { rightRound: 0, rightRounds: be },
     };
@@ -770,7 +770,7 @@ describe('chavirage — le redressement s’ouvre Round par Round (#1104a)', () 
     set({ travelPlan: buildRiverPlan(get, 'r-reik', 'A', 'B', get().worldMap!.routes[0], 'barge-fluviale')! });
     const round0 = {
       id: 'river-capsize-right-0', kind: 'fleuveRedressement' as const, actorId: get().party[0].id, icon: 'nautique/louvoyage' as const,
-      label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
+      label: fixtureText('Redressement du bateau — Round 1/3'), rollLabel: 'Voile', teste: { skill: { id: 'voile', spec: 'chaland' } }, base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 12, target: 60, sl: 4, success: true }, interactive: true,
       meta: { rightRound: 0, rightRounds: 3 },
     };
@@ -860,7 +860,7 @@ describe('chavirage — le compte de Rounds de redressement a un plancher (#1112
     set({ travelPlan: { ...plan, vehicle: { ...plan.vehicle!, characteristics: { ...plan.vehicle!.characteristics, endurance: 0 } } } });
     const step = {
       id: 'fleuve-chavirage', kind: 'fleuveChavirage' as const, actorId: get().party[0].id, icon: 'nautique/vent' as const,
-      label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', base: 40, difficulty: 'accessible' as const,
+      label: fixtureText('Retirer la voile (chavirage)'), rollLabel: 'Voile', teste: { skill: { id: 'voile', spec: 'chaland' } }, base: 40, difficulty: 'accessible' as const,
       target: 60, result: { roll: 95, target: 60, sl: -3, success: false }, interactive: true, meta: { savoir: 0 },
     };
     const out = applierDe('fleuveChavirage')!(get, set, step, undefined, { steps: [step], index: 0 });

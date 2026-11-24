@@ -457,7 +457,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
     banc.setState({
       party: [hero], battle: null,
       pendingCascade: cascadeDeTest([
-        { id: 'dt', kind: 'maladie-test-quotidien', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
+        { teste: TESTE_DE_TEST, id: 'dt', kind: 'maladie-test-quotidien', actorId: hero.id, base: 0, target: 5, rollLabel: 'Endurance', result: null, meta: { diseaseName: 'x' } },
       ], { title: 'Entretien' }),
     });
     banc.getState().jetLancer('cascade');
@@ -468,7 +468,7 @@ describe('onOwnTestFailed — cadence-aware + seam central de cascade (correctio
 // ── Correction 1 (recette) : seams d'ATTAQUE — attaquant qui rate son jet + défenseur qui rate sa défense ──
 import { applyAttackResult } from './combatFlow';
 import type { AttackResult } from '../engine/combat';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, TESTE_DE_TEST } from './cascade.testkit';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 

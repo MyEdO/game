@@ -27,6 +27,8 @@ import { roll, d100, totalDuDe, type RNG, type DiceSpec } from '../engine/dice';
 import { findTableEntry, type DeDeTable } from '../engine/tables';
 import type {
   CascadeStep,
+  CascadeRollStep,
+  CascadeTestStep,
   CascadeStepMeta,
   PendingCascade,
   ReprisePilote,
@@ -66,7 +68,9 @@ import {
   resolveOpposed,
   opposedBranchSuccess,
   estJete,
+  forcedTR,
   refusSansJet,
+  type JetDeTest,
   type TestResult,
 } from '../engine/tests';
 import { battleRng } from './battleRng';
@@ -601,15 +605,25 @@ export function lireDeEtape(roll: number, target: number, evaluation?: StepEvalu
   return { roll, target, sl: ev.sl, success: ev.success };
 }
 
+/** Le jet de Test d'une étape (#4848) : son porteur (`null` pour une étape du MONDE) et ce qu'elle teste. */
+export function jetDeLEtape(st: CascadeTestStep): JetDeTest {
+  return { porteur: st.actorId ?? null, teste: st.teste };
+}
+
+/** Le jet de Test d'une rangée de bande (#4848) : son porteur (`null` pour le MONDE) et ce qu'elle teste. */
+export function jetDeLaRangee(p: BatchParticipant): JetDeTest {
+  return { porteur: p.id === WORLD_STEP_OWNER ? null : p.id, teste: p.teste };
+}
+
 /**
  * LE ROULAGE d'un dé d'étape — UN d100 dans les deux modes (parité de flux RNG garantie), puis
  * `lireDeEtape`. En mode `'test'` la cible passe par `rollTest` (qui l'écrête aux bornes de
  * `TestPolicy`) ; en mode `'seuil'` le dé est NU et la cible intacte.
  */
-export function roulerDeEtape(target: number, rng: RNG, evaluation?: StepEvaluation): CascadeRoll {
-  if (evaluation === 'seuil') return lireDeEtape(d100(rng), target, evaluation);
-  const t = rollTest(target, 'intermediaire', rng);
-  return { roll: t.roll, target, sl: t.sl, success: t.success };
+export function roulerDeEtape(st: CascadeRollStep, rng: RNG): CascadeRoll {
+  if (st.evaluation === 'seuil') return lireDeEtape(d100(rng), st.target, st.evaluation);
+  const t = rollTest(jetDeLEtape(st), st.target, 'intermediaire', rng);
+  return { roll: t.roll, target: st.target, sl: t.sl, success: t.success };
 }
 
 /** Jet d'UN participant batch — GÉNÉRIQUE : d100 contre sa cible EFFECTIVE (`target`, difficulté déjà
@@ -619,9 +633,8 @@ export function roulerDeEtape(target: number, rng: RNG, evaluation?: StepEvaluat
  *  `opposed` — jet d'adversaire FIGÉ de l'étape (`meta.opposed`) : la rangée est alors un Test OPPOSÉ
  *  et son issue vient d'`opposedCascadeRoll`, pas de `roll ≤ cible`. UNE opposition figée vaut pour
  *  TOUTES les rangées de l'étape (LDB 13 l.77) — c'est le producteur qui l'a jetée, une seule fois. */
-export function rollBatchParticipant(p: BatchParticipant, rng: RNG, opposed?: OpposedRowFreeze, evaluation?: StepEvaluation): CascadeRoll {
-  if (evaluation === 'seuil') return lireDeEtape(d100(rng), p.target, evaluation);
-  return evaluerRangeeBatch(p, rollTest(p.target, 'intermediaire', rng), opposed);
+export function rollBatchParticipant(p: BatchParticipant, rng: RNG, opposed?: OpposedRowFreeze): CascadeRoll {
+  return evaluerRangeeBatch(p, rollTest(jetDeLaRangee(p), p.target, 'intermediaire', rng), opposed);
 }
 
 /** ÉVALUATION d'une rangée batch pour un Test naturel `t` (dé contre sa cible) — SOURCE UNIQUE du jet,
@@ -634,13 +647,10 @@ export function evaluerRangeeBatch(p: BatchParticipant, t: TestResult, opposed?:
 
 /** Résilience « Je ne faillirai pas ! » (LDB 17 l.68) pour UN participant batch : DR MAXIMAL policy-aware
  *  sur sa cible (réussite forcée). PUR, générique. */
-export function forceBatchParticipant(p: BatchParticipant, evaluation?: StepEvaluation): CascadeRoll {
-  // Mode SEUIL : il n'y a pas de « meilleur DR » à choisir (aucun DR n'existe) — la Résilience achète
-  // la seule chose que le pourcentage offre, la réussite, sur le dé le plus bas.
-  if (evaluation === 'seuil') return { roll: 1, target: p.target, sl: 0, success: true };
+export function forceBatchParticipant(p: BatchParticipant): CascadeRoll {
   const die = bestForcedRoll(p.target);
-  const ev = evaluateTest(die, p.target);
-  return { roll: die, target: p.target, sl: ev.sl + (p.bonusSlOnSuccess ?? 0), success: true };
+  const t = forcedTR(jetDeLaRangee(p), die, p.target, evaluateTest(die, p.target).sl + (p.bonusSlOnSuccess ?? 0));
+  return { roll: die, target: p.target, sl: t.sl, success: true };
 }
 
 /** Agrège les jets d'une étape À PARTICIPANTS PRÊTE en un `CascadeRoll` scalaire — GÉNÉRIQUE (aucun
@@ -729,7 +739,7 @@ function rollBatchParticipants(step: CascadeStep, autoResolved = false, resout: 
   return step.participants!.map((p) => (p.result || !resout(p.id) ? (autoResolved && refusSansJet(p) != null ? { ...p, meta: { ...p.meta, autoResolved: true } } : p) : {
     ...p,
     ...(autoResolved ? { meta: { ...p.meta, autoResolved: true } } : {}),
-    result: rollBatchParticipant(p, battleRng(), opp, step.evaluation),
+    result: rollBatchParticipant(p, battleRng(), opp),
   }));
 }
 
@@ -1723,9 +1733,9 @@ function poserLeCurseur(get: Get, p: PendingCascade, arrivee = true): PendingCas
   } else if (interaction === 'de') {
     const de = liveDeDecl(get(), st);
     resolue = deStepResolved(st, de, roulerDe(de, de.spec, battleRng()));
-  } else {
-    resolue = { ...st, result: roulerDeEtape(st.target!, battleRng(), st.evaluation) };
-  }
+  } else if (st.target != null) {
+    resolue = { ...st, result: roulerDeEtape(st, battleRng()) };
+  } else return pose;
   return { ...pose, participants: pose.participants.map((x, k) => (k === pose.cursor ? resolue : x)) };
 }
 
@@ -1885,8 +1895,8 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
         return null;
       }
     }
-    if (interaction === 'jet' && !st.result) {
-      const result = roulerDeEtape(st.target!, battleRng(), st.evaluation);
+    if (st.target != null && !st.result) {
+      const result = roulerDeEtape(st, battleRng());
       steps = steps.map((x, k) => (k === i ? { ...x, result } : x));
     }
     // SÉQUENTIELS, jamais exclusifs : une étape porte une table ET un choix (la sévérité d'un Critique
@@ -2071,8 +2081,8 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
     // Jet POSÉ PAR CE PILOTE : aucune fenêtre ne s'ouvrira dessus — le goulot (`commitStep`) en dérive
     // sa ligne de dé. Une étape qui ARRIVE déjà résolue (jet montré ailleurs) n'en reçoit pas.
     let unwitnessed = false;
-    if (stepInteraction(st) === 'jet' && !st.result) {
-      const result = roulerDeEtape(st.target!, battleRng(), st.evaluation);
+    if (st.target != null && !st.result) {
+      const result = roulerDeEtape(st, battleRng());
       cur = cur.map((x, k) => (k === i ? { ...x, result } : x));
       unwitnessed = true;
     }

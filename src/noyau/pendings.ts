@@ -127,7 +127,7 @@ export interface PendingTest {
   /** Réf STRUCTURÉE du Test (≠ `skill` libellé d'affichage) : sa Compétence (Spécialisation comprise) ou
    *  sa Caractéristique — lue par `talentTestSLBonus` (LDB 10 : +DR de Talent par id, jamais un match par
    *  libellé). Celle du `FlowTest`, posée au build du pending. */
-  sujet?: SujetDuJet;
+  sujet: SujetDuJet;
   /** RÔLE tenu (id stable de `crew-roles`) — PROVENANCE de la rangée, jamais son libellé de ligne :
    *  la ligne NOMME la Compétence lancée (Z5), le rôle dit d'où vient le jet (#1117). */
   roleId?: string;
@@ -254,6 +254,8 @@ export interface PendingReload {
   reload: number; // Indice DR cible
   progressBefore: number; // DR déjà cumulés (Test étendu)
   skillValue: number; // combatValue(active, 'distance')
+  /** Ce que teste le jet (#4848) : la Compétence de tir de l'arme chargée (`attackTestOf`). LDB 62 l.335 */
+  teste: TestDesigne;
   difficulty: Difficulty; // 'intermediaire' (le canon ne spécifie pas → défaut)
   /** Ligne du jet montée à l'ouverture (`rollLine`, arme bakée et Soutien compris) — lue par la fenêtre. */
   ligne: RollLineParts;
@@ -278,6 +280,8 @@ export interface PendingStateRecovery {
    *  qui dit s'il se récupère par une Action, jamais une union gravée ici. */
   state: string;
   skillLabel: string; // 'Force' | 'Athlétisme'
+  /** Ce que teste le jet de l'acteur (`RecoverResolution.teste`). */
+  teste: TestDesigne;
   skillValue: number;
   /** Valeur NUE de l'acteur (`LDB 09 l.17`) — grandeur du départage à DR égal (`LDB 12 l.160`). */
   skillBase: number;
@@ -1589,8 +1593,8 @@ export interface PendingExtendedTest extends PendingBase {
 export interface OpposedFreeze {
   /** Jet COMPLET de l'attaquant (porteur), figé. */
   aT: TestResult;
-  /** Id de l'attaquant, quand c'est un COMBATTANT réel (`actorIn`) — porte l'en-tête A→B (`VsHeader`).
-   *  Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
+  /** Id de l'attaquant, porteur du jet figé (`JetDeTest.porteur`), quand il a une fiche — porte l'en-tête A→B
+   *  (`VsHeader`). Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
   attackerId?: string;
   /** Nom de l'attaquant (affichage de la ligne d'opposition) — tout producteur a un adversaire nommé. */
   attackerName: PlayerText;
@@ -1915,10 +1919,10 @@ export interface BatchParticipant extends RollParticipant {
   /** ÉCRÊTAGE réellement subi par `target` aux bornes de `TestPolicy` (`engine/tests.clampTarget`),
    *  mesuré à la construction — la rangée le NOMME (« plafond 99 ») au lieu de l'avouer « autres ». */
   clamped?: number;
-  /** COMPÉTENCE réellement lancée par ce contributeur (résolue à la construction par le flux
-   *  propriétaire — naval : `crewRoleValue().used`) : la ligne de jet NOMME la Compétence (Z5), le
-   *  rôle tenu n'étant que la PROVENANCE. */
-  skill?: RefDesignee;
+  /** CE QUE TESTE ce contributeur, Compétence ou Caractéristique (résolu à la construction par le flux
+   *  propriétaire — naval : `crewRoleValue().used`) : son jet le nomme (#4848), la ligne de jet NOMME la
+   *  Compétence (Z5), le rôle tenu n'étant que la PROVENANCE. */
+  teste: TestDesigne;
   /** RÔLE tenu (id stable de `crew-roles`) — PROVENANCE de la rangée, jamais son libellé de ligne. */
   roleId?: string;
   /** Contribue DOUBLE à l'agrégat sommé (rôle essentiel MDG 14 l.19 — « compte double », générique). */
@@ -2142,10 +2146,6 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
    *  lancée, pas la situation. LIÉ À `target` par le TYPE (cf. `CascadeStep` en fin d'interface) : une
    *  étape qui lance en porte un, une étape sans jet n'en porte pas. */
   rollLabel?: string;
-  /** COMPÉTENCE réellement lancée (id + Spécialisation), posée par le mint depuis le Test de la ligne —
-   *  lue par l'inversion (Talent, jeton), comme `BatchParticipant.skill`. Absente : Test de
-   *  Caractéristique, ou étape sans jet. */
-  skill?: RefDesignee;
   /** CONTEXTE du Test de l'étape (LDB 12 l.42), déclaré par son producteur (Psychologie, péril des eaux)
    *  — lu par l'inversion, qui n'offre une source qu'au Test que son passage vise. */
   contexte?: ContexteDeTest;
@@ -2308,7 +2308,11 @@ export type CascadeStepBase = CascadeStepCore & LectureDuDe;
 
 /** Étape qui LANCE un dé : `target` (cible effective) et `rollLabel` (compétence lancée) vont
  *  ENSEMBLE — la ligne de jet a besoin des deux (`RollLine`, contrat d'affichage `docs/ajouter-un-flux-de-jet.md`). */
-export type CascadeRollStep = CascadeStepBase & { target: number; rollLabel: string };
+export type CascadeRollStep = CascadeStepCore & { target: number; rollLabel: string } & (
+  /** CE QUE TESTE l'étape, Compétence ou Caractéristique (#4848) : son jet le nomme, l'inversion (Talent,
+   *  jeton) le lit, comme `BatchParticipant.teste`. Un pourcentage pur (`'seuil'`) n'est pas un Test. */
+  | (Extract<LectureDuDe, { evaluation?: 'test' }> & { teste: TestDesigne })
+  | (Extract<LectureDuDe, { evaluation: 'seuil' }> & { teste?: undefined }));
 
 /** Étape qui lance un dé LU EN TEST (`LectureDuDe` `'test'`, LDB 12 l.28). */
 export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
@@ -2319,7 +2323,7 @@ export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
  * `CascadeModal` n'a plus de « Jet » de secours à écrire quand un constructeur oublie le libellé —
  * l'oubli ne compile pas (#1078 LOT C1).
  */
-export type CascadeStep = CascadeRollStep | (CascadeStepBase & { target?: undefined; rollLabel?: undefined });
+export type CascadeStep = CascadeRollStep | (CascadeStepBase & { target?: undefined; rollLabel?: undefined; teste?: undefined });
 
 /** SURFACE des rangées d'une bande résolue par un pilote sans fenêtre, DÉCLARÉE par ce pilote : le
  *  procès-verbal structuré d'une traversée (`TravelPlan.procesVerbal`, écrit au commit de la bande par

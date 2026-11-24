@@ -35,7 +35,7 @@ import type { CascadeStep, CascadeStepMeta } from './pendings';
 import { monoStep } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { nightStakeRef } from '../data';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, TESTE_DE_TEST } from './cascade.testkit';
 import type { GenreDEtape } from './tablesPosees';
 import { deFixe } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -63,7 +63,7 @@ function nuit(spec: {
   const step = monoStep({
     id: spec.id, kind: spec.kind, actor: h(spec.hero ?? 'h1'), label: fixtureText(spec.label ?? ''),
     rollLabel: spec.rollLabel ?? 'Résistance', difficulty: spec.difficulty ?? DIFFICULTE_PAR_DEFAUT,
-    montee: { base: spec.base ?? 40, target: spec.target ?? 40 },
+    teste: TESTE_DE_TEST, montee: { base: spec.base ?? 40, target: spec.target ?? 40 },
     stake: nightStakeRef('faim'),
     ...(spec.menace ? { menace: spec.menace } : {}),
     ...(spec.meta ? { meta: spec.meta } : {}),
@@ -336,8 +336,8 @@ describe('file de fin de combat — SCISSION par pilote (invariant 7)', () => {
     const band: CascadeStep = {
       id: 'bande-faim', kind: 'faim', label: fixtureText('Faim'), aggregate: 'none',
       participants: [
-        { id: 'manuel', interactive: true, label: 'Résistance', base: 40, target: 40, result: null },
-        { id: 'temoin', interactive: true, label: 'Résistance', base: 35, target: 35, result: null },
+        { teste: TESTE_DE_TEST, id: 'manuel', interactive: true, label: 'Résistance', base: 40, target: 40, result: null },
+        { teste: TESTE_DE_TEST, id: 'temoin', interactive: true, label: 'Résistance', base: 35, target: 35, result: null },
       ],
     };
     const { kept, others } = splitBandRows(band, (id) => id === 'manuel');

@@ -12,12 +12,12 @@
  * (valeur + Difficulté) est calée par la policy du moteur, écart rendu dans `clamped`.
  * `difficulte` = id de `DIFFICULTY_LADDER`.
  * L'aléa d'un `(seed, tirage)` est `makeRNG(hashSeed(…))` : même couple, même jet. Le calcul est
- * celui de `rollTest` / `opposedTest` (`src/engine/tests.ts`), rendu tel quel en JSON sur stdout.
+ * celui de `evaluateTest` sur un d100 et de `resolveOpposed` (`src/engine/tests.ts`), rendu tel quel en JSON sur stdout.
  * Entrée invalide : `{ "erreur": … }` sur stderr, code de sortie 2.
  */
 import { parseArgs } from 'node:util';
-import { hashSeed, makeRNG, type RNG } from '../../src/engine/dice';
-import { DIFFICULTY_LADDER, opposedTest, rollTest } from '../../src/engine/tests';
+import { d100, hashSeed, makeRNG, type RNG } from '../../src/engine/dice';
+import { cibleDuTest, DIFFICULTY_LADDER, evaluateTest, resolveOpposed } from '../../src/engine/tests';
 import type { Difficulty } from '../../src/engine/types';
 
 /** L'aléa d'UN tirage : dérivé du seul couple `(seed, tirage)`, indépendant des tirages voisins. */
@@ -75,13 +75,16 @@ export function tirer(argv: string[]): object {
     if (v['valeur-oppose'] !== undefined || v['difficulte-oppose'] !== undefined) {
       throw new EntreeInvalide('--valeur-oppose / --difficulte-oppose réservés au test « oppose »');
     }
-    return { test, seed, tirage, valeur, difficulte: diff, resultat: rollTest(valeur, diff, rng) };
+    return { test, seed, tirage, valeur, difficulte: diff, resultat: evaluateTest(d100(rng), cibleDuTest(valeur, diff)) };
   }
   const valeurOppose = entier('valeur-oppose', v['valeur-oppose']);
   const diffOppose = difficulte('difficulte-oppose', v['difficulte-oppose']);
   return {
     test, seed, tirage, valeur, difficulte: diff, valeurOppose, difficulteOppose: diffOppose,
-    resultat: opposedTest(valeur, valeurOppose, rng, diff, diffOppose, { attacker: valeur, defender: valeurOppose }),
+    resultat: resolveOpposed(
+      { ...evaluateTest(d100(rng), cibleDuTest(valeur, diff)), base: valeur },
+      { ...evaluateTest(d100(rng), cibleDuTest(valeurOppose, diffOppose)), base: valeurOppose },
+    ),
   };
 }
 

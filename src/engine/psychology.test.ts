@@ -1,4 +1,5 @@
 import { idsDeTest } from './idsDeTest.testkit';
+import { JET_DE_TEST } from './tests.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import {
   parsePsychTraits,
@@ -72,10 +73,10 @@ describe('Psychologie (pur)', () => {
     expect(isFrenzyCapable({ traits: [{ id: 'arme', value: 7 }], talents: [] } as unknown as Combatant)).toBe(false);
   });
   it('resolveFrenzyEntry : le même jet réussit au réglage par défaut et échoue en Difficile', () => {
-    expect(resolveFrenzyEntry(60, deFixe(50))).toMatchObject({ roll: 50, target: 60, success: true });
+    expect(resolveFrenzyEntry(JET_DE_TEST, 60, deFixe(50))).toMatchObject({ roll: 50, target: 60, success: true });
     setRule('frenesie-difficulte', 'difficile');
     try {
-      expect(resolveFrenzyEntry(60, deFixe(50))).toMatchObject({ roll: 50, target: 40, success: false });
+      expect(resolveFrenzyEntry(JET_DE_TEST, 60, deFixe(50))).toMatchObject({ roll: 50, target: 40, success: false });
     } finally {
       resetRule('frenesie-difficulte');
     }

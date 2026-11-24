@@ -29,12 +29,13 @@ import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool, blessuresReconciliees } from './characteristics';
 import { d100, RNG } from './dice';
-import { annulateurDeSequelles, passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
+import { annulateurDeSequelles, causeDure, passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { rollTest, isDoubleRoll, DIFFICULTY_LADDER, type TestResult } from './tests';
+import type { TestDesigne } from './skills';
 import { dropExpiredGrantedPsych, dropExpiredGrantedTraits } from './grantedTraits';
 import { dropExpiredGrantedResources } from './grantedResources';
 import { dropExpiredGrantedWeapons } from './conjuredWeapons';
@@ -974,6 +975,8 @@ export function tickDurations(c: Combatant): string[] {
   // (les premières sont purgées par l'horloge `purgeClockEffects`).
   if (c.activeEffects?.length) {
     for (const e of c.activeEffects) if (!e.awaitingExtension) e.duration = tickRound(e.duration);
+    // AA 08 l.236
+    for (const e of c.activeEffects) if (e.tantQue && e.duration.scale === 'rounds' && e.duration.left <= 0 && causeDure(c, e.tantQue)) e.duration = { scale: 'rounds', left: 1 };
     // Durée « + » (LDB 47 l.311) : un effet dont le SORT source porte le marqueur est GELÉ à l'expiration
     // au lieu d'être retiré — l'offre de prolongation (Test de Force Mentale) est résolue par l'appelant
     // (hors moteur pur : cadence-aware, cf. `resolvePlusExtension`). Répétable : une prolongation réussie
@@ -1007,16 +1010,19 @@ export function tickDurations(c: Combatant): string[] {
   return log;
 }
 
+/** Ce que teste la nuit d'un Personnage aux Cauchemars. LDB 21 l.95 */
+export const TEST_DES_CAUCHEMARS: TestDesigne = { skill: { id: 'calme' } };
+
 /**
  * Cauchemars (trauma psychologique, LDB 21 l.95) : chaque nuit, un Personnage marqué effectue un
  * Test de **Calme Facile (+40)** ; sur un échec, il est en proie à de terribles cauchemars et gagne
  * un État **Exténué**. Pur ; mute `c`, renvoie le journal.
  *
- * `calme` = la valeur de la PORTE (`testValue(c, { skill: { id: 'calme' } })`), passée par l'appelant : `testValue` vit
+ * `calme` = la valeur de la PORTE (`testValue(c, TEST_DES_CAUCHEMARS)`), passée par l'appelant : `testValue` vit
  * dans `skills.ts`, qui importe CE module — le cycle interdit de la lire ici (#1657 B3-3).
  */
 export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { base: number; result: TestResult }[]): string[] {
-  const res = rollTest(calme, 'facile', rng); // Calme Facile (+40), palier canonique
+  const res = rollTest({ porteur: c.id, teste: TEST_DES_CAUCHEMARS }, calme, 'facile', rng); // Calme Facile (+40), palier canonique
   out?.push({ base: calme, result: res });
   if (res.success) return [t('cond.nightmareNone', { name: nomDe(c) })];
   addCondition(c, COND.extenue);
