@@ -15,6 +15,7 @@ import {
   ammoRangeModSchema,
   availabilitySchema,
   consumableDurationSchema,
+  periodeDeDoseSchema,
   contenantSchema,
   entrainementDeProtheseSchema,
   enumNomme,
@@ -274,6 +275,8 @@ const doc = document(
     pa: z.number().nullable().optional(),
     consumable: effetDeConsommation.optional(),
     consumableDuration: consumableDurationSchema.optional(),
+    /** LDB 72 l.22-30 ; #4839 */
+    dose: periodeDeDoseSchema.optional(),
     container: contenantSchema.optional(),
     /** VDM 02 l.165 */
     niPerGram: z.number().optional(),
@@ -351,6 +354,7 @@ const doc = document(
       label: 'Durée de l’effet consommé',
       hint: 'Durée (minutes/heures/jours) de l’effet une fois l’objet consommé',
     },
+    dose: { label: 'Dose', hint: 'Période au cours de laquelle un même buveur ne prend qu’une dose de l’objet' },
     container: { label: 'Capacité de contenant', hint: 'Quantité que l’objet peut ranger' },
     niPerGram: {
       label: 'NI par gramme',

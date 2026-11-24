@@ -304,6 +304,8 @@ const NOMMES = [
   // `cleDeTableDuDomaineSchema` (`defs/domains.ts`) : la clé de rôle d'une table d'un Domaine (`tables`), visée par
   // `domainTable` d'une rangée de miscast, VDM 02 l.238.
   'arcaneMark',
+  // `periodeDeDoseSchema` (#4839) : la période de la Dose d'un trapping (`dose`), LDB 72 l.22-30.
+  'rencontre|jour|blessureCritique',
 ].sort();
 
 /**

@@ -15,7 +15,8 @@
  * IMPURES `delayed` (Bonnet de fou/Délice de Ranald/Belladone) sont PROGRAMMÉES (`scheduleDelayedOps`).
  */
 import type { Combatant, ItemInstance, EffectSource } from '../engine/types';
-import { consommableDe, consumableUntilTime, bakeConsumableFlow } from '../engine/consumables';
+import { consommableDe, consumableUntilTime, bakeConsumableFlow, doseDejaPrise, prendreLaDose, type PeriodeDeDose } from '../engine/consumables';
+import { ficheDObjetPorte } from '../engine/items';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import { evalCondition, executerFlow, type ArretDeFlow, type ConditionCtx } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
@@ -30,6 +31,8 @@ import type { Get, Set as SetFn } from './flowTypes';
 import { t } from '../i18n';
 import { reussiteSansObjet, type GameOp } from '../engine/ops';
 import { nomDe } from '../engine/nom';
+import { dayIndex } from '../engine/clock';
+import type { Jeu } from './etat';
 
 /** ConditionCtx de SCÈNE augmenté du BUVEUR comme acteur (`target` ET `caster`) — les Conditions
  *  d'acteur (`has group elfe` de la Fleur de lune, `compare woundsCurrent` de la Potion de guérison)
@@ -108,16 +111,34 @@ function opsAtteintes(f: Flow, cc: ConditionCtx, issues: 'reussite' | 'toutes'):
   }
 }
 
-/** Refus de consommer `item` quand son Flow ne poserait rien à `hero` (ses conditions jugées sur lui), ou quand son
- *  effet réussi n'aurait rien à lui changer (`reussiteSansObjet`, jugée avant le Test au boire) : l'objet n'est pas
- *  perdu pour rien. Verdict UNIQUE d'`utiliserLObjet`, avant toute consommation. LDB 72 l.24 */
-export function refusDeConsommer(s: EtatDesConditions, hero: Combatant, item: ItemInstance, flow: Flow): string | null {
+/** État que lit le verdict de consommation : les conditions du monde, l'horloge et la fiche courante de l'objet. */
+type EtatDeConsommation = EtatDesConditions & Pick<Jeu, 'campaignNarratif'>;
+
+/** Période de la Dose de `item` et jour de jeu qui la date, lus de sa fiche courante ; `null` sans Dose. */
+function doseDe(s: EtatDeConsommation, item: ItemInstance): { trappingId: string; periode: PeriodeDeDose; jour: number } | null {
+  const periode = ficheDObjetPorte(item, objetDuNarratif(s.campaignNarratif))?.dose;
+  return periode && item.trappingId ? { trappingId: item.trappingId, periode, jour: dayIndex(s.gameTime) } : null;
+}
+
+/** Refus de consommer `item` quand `hero` en a déjà pris sa dose dans la période en cours (LDB 72 l.22-30), quand son
+ *  Flow ne lui poserait rien (ses conditions jugées sur lui), ou quand son effet réussi n'aurait rien à lui changer
+ *  (`reussiteSansObjet`, jugée avant le Test au boire) : l'objet n'est pas perdu pour rien. Verdict UNIQUE
+ *  d'`utiliserLObjet`, avant toute consommation. LDB 72 l.24 */
+export function refusDeConsommer(s: EtatDeConsommation, hero: Combatant, item: ItemInstance, flow: Flow): string | null {
+  const dose = doseDe(s, item);
+  if (dose && doseDejaPrise(hero, dose.trappingId, dose.periode, dose.jour)) return t(`cs.doseDejaPrise.${dose.periode}`, { name: nomDe(hero), item: item.label });
   const cc = drinkerCtx(s, hero);
   if (opsAtteintes(flow, cc, 'toutes')?.length === 0) return t('cs.consommableSansEffet', { name: nomDe(hero), item: item.label });
   const ops = opsAtteintes(flow, cc, 'reussite');
   const source: EffectSource | undefined = item.trappingId ? { kind: 'objet', id: item.trappingId } : undefined;
   const raison = ops ? reussiteSansObjet(hero, ops, { avantLeJet: true, ...(source ? { source } : {}) }) : null;
   return raison ? t('cs.consommableSansObjet', { raison, item: item.label }) : null;
+}
+
+/** Consigne sur `hero` la dose de `item` qu'il prend, quand sa fiche en porte une. LDB 72 l.22-30 */
+export function consignerLaDose(s: EtatDeConsommation, hero: Combatant, item: ItemInstance): void {
+  const dose = doseDe(s, item);
+  if (dose) prendreLaDose(hero, dose.trappingId, dose.periode, dose.jour);
 }
 
 /** Exécute le Flow d'un consommable sur son buveur (durée résolue + bake, puis la voie du contexte). */

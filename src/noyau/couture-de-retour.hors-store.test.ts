@@ -177,9 +177,10 @@ describe('coutures du héros en combat (#2312)', () => {
   it('l’entrée en rencontre pose les valeurs d’entrée et ne garde que les États persistants', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     h.advantage = 3; h.tookCriticalThisFight = true; h.woundDressed = true; h.roundsAtZero = 2; h.soinRencontreUtilise = true;
+    h.dosesDeRencontre = ['potion-de-guerison']; h.marquesDeDose = { 'racine-de-terre': 3 };
     h.engagedWith = ['x']; h.conditions = [{ id: 'au-sol', value: 1 }, { id: 'extenue', value: 1 }] as never;
     const c = entreeEnRencontre(h);
-    expect(c).toMatchObject({ advantage: 0, tookCriticalThisFight: false, woundDressed: false, roundsAtZero: 0, soinRencontreUtilise: false, engagedWith: [] });
+    expect(c).toMatchObject({ advantage: 0, tookCriticalThisFight: false, woundDressed: false, roundsAtZero: 0, soinRencontreUtilise: false, dosesDeRencontre: [], marquesDeDose: { 'racine-de-terre': 3 }, engagedWith: [] });
     expect([isPersistentCondition('au-sol'), isPersistentCondition('extenue')]).toEqual([false, true]);
     expect(c.conditions.map((x) => x.id)).toEqual(['extenue']);
     expect(partages(h, c)).toEqual([]);

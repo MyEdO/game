@@ -88,6 +88,8 @@ export const REPORT_DE_COMBATTANT = {
   breathHoldSeconds: rencontre(REGLE), // LDB 18 l.346
   wateredThisRound: rencontre(TOUR),
   soinRencontreUtilise: { sort: true, entree: false }, // LDB 09 l.260
+  dosesDeRencontre: { sort: true, entree: [] }, // LDB 72 l.24, l.30
+  marquesDeDose: PERSISTE, // LDB 72 l.22, l.28
   dead: PERSISTE, slainNotified: rencontre('garde d’unicité de l’émission `onSlain` dans la rencontre'), important: PERSISTE,
   outOfRencontre: rencontre(REGLE), // LDB 17 l.31
   exitReason: rencontre(REGLE), // LDB 17 l.31

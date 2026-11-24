@@ -28,8 +28,7 @@ import { t } from '../i18n';
 import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
 import { projeter, rendreLaVue } from '../hoteTexte/vue';
 import { choixDePaieOuverts } from '../noyau/shipCrew';
-import { gameDay } from '../noyau/merchantFlow';
-import { joursParSemaine } from '../engine/clock';
+import { dayIndex, joursParSemaine } from '../engine/clock';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';
 import { locationLabel, type Trauma } from '../engine/types';
 import { flowStakeRef } from '../data';
@@ -131,7 +130,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
 
   it('Butin : evaluerLObjet offre chaque ligne, fermée par le refus de l’Évaluation quand aucun mode ne l’évalue', { timeout: 120_000 }, () => {
     auDebutDuRound((etat) => {
-      const jour = gameDay(etat);
+      const jour = dayIndex(etat.gameTime);
       const manquee = [{ uid: 'L0', label: 'Épée', magic: false, effect: { type: 'giveTrapping', objet: { id: 'epee' }, identified: false, appraiseTriedDay: jour } }, { uid: 'L1', label: 'Bouclier', magic: false, effect: { type: 'giveTrapping', objet: { id: 'bouclier' }, identified: false } }] as never;
       const butin: Jeu = { ...etat, pendingRoundStart: null, battle: null, pendingLoot: { title: 'Coffre', gear: manquee } };
       expect(butin.party.some((h) => (h.talents ?? []).some((x) => x.talentId === 'detection-d-artefact')), 'témoin : aucun détecteur').toBe(false);

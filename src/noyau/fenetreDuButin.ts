@@ -11,7 +11,8 @@ import type { ActionsDuNoyau } from './actionsDuNoyau';
 import { fenetreDuJeu } from './combatAuto';
 import { libelleDuParametre } from './libelles';
 import { garanti } from '../lib/garanti';
-import { gameDay, MODE_D_EVALUATION_PAR_DEFAUT, refusDEvaluation } from './merchantFlow';
+import { MODE_D_EVALUATION_PAR_DEFAUT, refusDEvaluation } from './merchantFlow';
+import { dayIndex } from '../engine/clock';
 import type { ChoixNomme } from './reglages';
 import type { IdDeLigneDeButin } from './designations';
 
@@ -34,7 +35,7 @@ const estUnButin = (cle: string | undefined): cle is keyof typeof BUTINS => cle 
 export function fenetreDuButin(s: Jeu): FenetreDuButin | null {
   const cle = fenetreDuJeu(s)?.cle;
   if (!estUnButin(cle)) return null;
-  const jour = gameDay(s);
+  const jour = dayIndex(s.gameTime);
   const lignes = (s[BUTINS[cle]]?.gear ?? []).map((g) => ({
     valeur: g.uid, libelle: g.label, refus: refusDEvaluation(s.party, { ...g.effect, label: g.label }, MODE_D_EVALUATION_PAR_DEFAUT, jour),
   }));
