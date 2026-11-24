@@ -299,7 +299,7 @@ describe('Suite d’un coup dont l’attaquant est hors de combat', () => {
     horsDeCombat(enemy);
     banc.setState({ pendingDualStrike: null });
     jouerLApresCoup(banc.getState, banc.setState, { attackerId: enemy.id, targetId: heros[0].id, weapon: sword, res: toucheQuiBalaie(),
-      suite: { dualMain: { offWeaponUid: 'sw', mainRoll: 34 }, enchainement: { mode: 'aucun' } }, depuis: 'oupsAttaquant' });
+      suite: { dualMain: { offWeaponUid: 'sw', par: 'fenetre' }, enchainement: { mode: 'aucun' } }, depuis: 'oupsAttaquant' });
     expect(banc.getState().pendingDualStrike, 'un mort n’ouvre aucune 2ᵉ frappe').toBeNull();
   });
 });

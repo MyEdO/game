@@ -1251,7 +1251,9 @@ export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPo
 /** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas, parmi ses objets qui peuvent occuper
  *  un slot (`objetDeSlot`, seul filtre) : le 1er = meilleure arme de mêlée, et sous une arme à 1 main un
  *  bouclier en secondaire, sinon une 2e arme éligible (`isOffHandEligible`) ; le 2nd = 1re arme à distance
- *  (sinon vide). Chaque arme restante nommée par le profil reçoit son propre set. Idempotent.
+ *  (sinon vide) et, sous elle éligible à la paire et tenue à 1 main, une autre arme à distance éligible en
+ *  secondaire (LDB 14 l.138).
+ *  Chaque arme restante nommée par le profil reçoit son propre set. Idempotent.
  *  Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`). */
 export function ensureDefaultLoadout(c: Combatant): void {
   if (c.loadouts?.length) return;
@@ -1268,12 +1270,17 @@ export function ensureDefaultLoadout(c: Combatant): void {
       set1.secondaire = (secondaires.find(isShieldItem) ?? secondaires[0])?.uid;
     }
   }
-  const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: ranged[0]?.uid };
+  const tir = ranged[0];
+  const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: tir?.uid };
+  if (tir && mainsDuPorteur(c, tir) === 1 && isOffHandEligible(tir)) {
+    const secondaire = ranged.find((i) => i.uid !== tir.uid && isOffHandEligible(i));
+    if (secondaire) set2.secondaire = secondaire.uid;
+  }
   c.loadouts = [set1, set2];
   c.activeLoadoutId = (set1.main ? set1 : set2.main ? set2 : set1).id;
 
   const armesDeFiche = new Set(c.traits?.map(uidDeLArmeDuTrait));
-  const dejaEnSet = new Set([set1.main, set1.secondaire, set2.main]);
+  const dejaEnSet = new Set([set1.main, set1.secondaire, set2.main, set2.secondaire]);
   for (const arme of items) {
     if (armesDeFiche.has(arme.uid) && !dejaEnSet.has(arme.uid)) {
       c.loadouts.push({ id: newLoadoutId(c), main: arme.uid });

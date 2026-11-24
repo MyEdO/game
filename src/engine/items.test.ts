@@ -394,6 +394,20 @@ describe('ensureDefaultLoadout', () => {
     expect(soloMelee.loadouts!.map((l) => l.main)).toEqual(['e', undefined]);
   });
 
+  it('le 2nd set tient une 2e arme à distance éligible en secondaire sous une principale éligible à 1 main (LDB 14 l.138)', () => {
+    const pistolet = (uid: string) => ({ ...itemFromTrappingById('pistolet', idsDeTest)!, uid, equipped: true });
+    const arc = w('arc', 'Arc', { kind: 'distance', subType: 'Arc', hands: 2, equipped: true, damage: { plusBF: false, flat: 9 } });
+    const deux = hero([pistolet('p1'), pistolet('p2')]);
+    ensureDefaultLoadout(deux);
+    expect(deux.loadouts![1]).toMatchObject({ main: 'p1', secondaire: 'p2' });
+    const sousLArc = hero([arc, pistolet('p2')]);
+    ensureDefaultLoadout(sousLArc);
+    expect([sousLArc.loadouts![1].main, sousLArc.loadouts![1].secondaire], 'l’arc tient les deux mains').toEqual(['arc', undefined]);
+    const sousLaFronde = hero([{ ...itemFromTrappingById('fronde', idsDeTest)!, uid: 'f1', equipped: true }, pistolet('p2')]);
+    ensureDefaultLoadout(sousLaFronde);
+    expect(sousLaFronde.loadouts![1].secondaire, 'la fronde n’est pas de la paire').toBeUndefined();
+  });
+
   it('héros sans arme distance équipée : actif = Set I ; sans mêlée : actif = Set II', () => {
     const c = hero([w('arc', 'Arc', { kind: 'distance', subType: 'Arc', hands: 2, equipped: true, damage: { plusBF: false, flat: 9 } })]);
     ensureDefaultLoadout(c);

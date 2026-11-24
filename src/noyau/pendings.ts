@@ -1047,7 +1047,7 @@ export interface ChaineDeBalayage { hitIds: string[]; n: number; bcc: number; fm
  * Les champs sont ceux que la reprise lit déjà : deux DRAPEAUX DU COUP (l'Avantage différé du
  * Maniement de deux armes LDB 10 l.767-773, l'Empoignade LDB 14 l.159 — un coup repris sans eux ne
  * serait plus le même coup), la RESTITUTION de l'Action d'une gratuite, les EFFETS de sa manœuvre,
- * les gratuites « à la touche » du héros, l'ouverture de la 2ᵉ frappe du HÉROS, et l'ENCHAÎNEMENT
+ * les gratuites « à la touche » du héros, la 2ᵉ frappe du Maniement de deux armes, et l'ENCHAÎNEMENT
  * (ci-dessous). Tous JSON-sérialisables : la suite voyage sur l'étape.
  */
 export interface SuiteDeCoup {
@@ -1064,11 +1064,13 @@ export interface SuiteDeCoup {
   gratuitesALaTouche?: boolean;
   /** L'enchaînement d'après CE coup — DÉCLARÉ par le site d'origine, jamais déduit à la reprise. */
   enchainement?: EnchainementDuCoup;
-  /** Ouverture de la 2ᵉ frappe du Maniement de deux armes (LDB 10 l.767-773) : posée seulement pour la
-   *  main directrice d'un héros dont l'off-hand existe. `mainRoll` = le jet de la main directrice, que la
-   *  2ᵉ frappe reprend. La valeur de Critique, elle, se lit sur l'ÉTAPE de Critique que l'application
-   *  appende — elle n'existe donc qu'APRÈS le coup, jamais à l'ouverture. */
-  dualMain?: { offWeaponUid: string; mainRoll: number };
+  /** 2ᵉ frappe du Maniement de deux armes, DÉCLARÉE par le site d'origine de la frappe de la main
+   *  principale : `par` dit qui la joue, la fenêtre `pendingDualStrike` d'un siège humain ou la machine.
+   *  Son jet se tire du jet de la 1ʳᵉ frappe (`attackerDetail.roll` du coup appliqué). LDB 10 l.767-773 */
+  dualMain?: { offWeaponUid: string; par: 'fenetre' | 'machine' };
+  /** Ce coup est la 2ᵉ frappe du Maniement de deux armes, qui n'existe que si la 1ʳᵉ a touché : sa touche
+   *  donne l'Avantage des deux frappes (`applyAttackResult`). LDB 10 l.773 */
+  secondeFrappe?: true;
   /** Réaction de Porte-Bouclier DÉCLARÉE par le défenseur qui a paré (variante `AA 13 l.84`) : jouée
    *  au temps `reaction` de l'après-coup, APRÈS l'application — suspendue ou non. */
   reaction?: ReactionDeBouclier;

@@ -249,3 +249,26 @@ describe('IA — chaque arme de tir tenue a sa charge (#4835)', () => {
     expect(chooseEnemyAction(input(tireur(false, false), [cible()]))).toEqual({ kind: 'rechargement' });
   });
 });
+
+describe('IA — Maniement de deux armes (LDB 10 l.767-773)', () => {
+  const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 45, force: 35, endurance: 35, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 } as Combatant['characteristics'];
+  const pistolet = (uid: string, hand: 'main' | 'secondaire'): Weapon =>
+    ({ label: 'Pistolet', uid, hand, hands: 1, type: 'distance', damage: { plusBF: false, flat: 8 }, range: 20, reload: 1, loaded: true, qualities: [] });
+  const dague: Weapon = { label: 'Dague', uid: 'd', hand: 'secondaire', hands: 1, type: 'melee', damage: { plusBF: true, flat: 2 }, qualities: [] };
+  const p1 = pistolet('p1', 'main');
+  const p2 = pistolet('p2', 'secondaire');
+  const tireur = (secondaire: Weapon) => mk('e', 'ennemi', { x: 5, y: 5 }, { characteristics: CHARS, weapons: [p1, secondaire] });
+  const cibles = () => [mk('h1', 'heros', { x: 5, y: 8 }, { characteristics: CHARS }), mk('h2', 'heros', { x: 6, y: 8 }, { characteristics: CHARS })];
+
+  it('paire de deux pistolets chargés, deux cibles en portée → tir des deux armes au principal', () => {
+    expect(chooseEnemyAction(input(tireur(p2), cibles(), { paireDesDeuxArmes: { principale: p1, secondaire: p2 } })))
+      .toMatchObject({ kind: 'tir', weaponUid: 'p1', deuxArmes: true });
+  });
+  it('sans paire en entrée (pas de Talent) → tir simple', () => {
+    expect(chooseEnemyAction(input(tireur(p2), cibles()))).toEqual({ kind: 'tir', targetId: expect.any(String), weaponUid: 'p1' });
+  });
+  it('arme secondaire sans cible atteignable depuis la case → aucun tir des deux armes', () => {
+    expect(chooseEnemyAction(input(tireur(dague), cibles(), { paireDesDeuxArmes: { principale: p1, secondaire: dague } })))
+      .toEqual({ kind: 'tir', targetId: expect.any(String), weaponUid: 'p1' });
+  });
+});
