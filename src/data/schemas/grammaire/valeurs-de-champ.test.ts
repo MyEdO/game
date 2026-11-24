@@ -288,7 +288,7 @@ const NOMMES = [
   // `navireMod.jusqua` (#3606 M2e) : l'échéance de bord d'un modificateur de navire.
   'carenage|evenementDeBord',
   // `cibleDeFeuilleSchema` (#3606 M2e) : la cible d'une feuille `ops` nommée par une chaîne.
-  'groupe|heros|navire|membreAuHasard|target|caster',
+  'groupe|heros|navire|membreAuHasard|testeur|target|caster',
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
   // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).

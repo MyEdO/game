@@ -24,6 +24,7 @@
  * passent par `t()` (`MsgKey`) — jamais une chaîne joueur en dur.
  */
 import { t, type MsgKey } from '../../i18n';
+import { actionNommeeAuCatalogue } from '../../data/schemas/defs-scenes/scene';
 import { itemLabel } from '../../engine/items';
 import type { ItemInstance } from '../../engine/types';
 import { placesJouables } from './seating';
@@ -54,13 +55,22 @@ export function objetDuSol(ent: SceneEntity, objetsAuSol: EtatDesOffres['objetsA
  *  `interact`, et celui que l'éditeur pré-arme sur un décor fouillable (`PropData.searchable`). */
 export const ACTION_FOUILLER = 'fouiller';
 
+/** Le libellé affiché de l'action authorée `a` : celui de l'auteur, sinon le catalogue i18n à la clé `usable.<id>`. */
+export const libelleDAction = (a: ActionAuthoree): string => a.label ?? t(`usable.${a.id}` as MsgKey);
+
+/** L'action authorée `a` sous l'identifiant `id`, qui garde le libellé qu'elle affichait quand le catalogue ne nomme
+ *  pas `id` (`actionAuthoreeSchema`). */
+export function sousLIdentifiant(a: ActionAuthoree, id: string): ActionAuthoree {
+  return { ...a, id, ...(actionNommeeAuCatalogue(id) ? {} : { label: libelleDAction(a) }) };
+}
+
 /** L'action authorée neuve d'un décor qui porte déjà `actions` : la fouille, sous le premier identifiant que ses
  *  actions laissent libre (`fouiller`, `fouiller-2`, `fouiller-3`…), sans enchaînement, jouable une fois. */
 export function actionNeuve(actions: readonly ActionAuthoree[]): ActionAuthoree {
   const pris = new Set(actions.map((a) => a.id));
   let id = ACTION_FOUILLER;
   for (let n = 2; pris.has(id); n++) id = `${ACTION_FOUILLER}-${n}`;
-  return { id, flow: EMPTY_FLOW, unique: true };
+  return sousLIdentifiant({ id: ACTION_FOUILLER, flow: EMPTY_FLOW, unique: true }, id);
 }
 
 /** Clé du drapeau qui ÉPUISE une action authorée `unique` sur une entité donnée. SOURCE UNIQUE :
@@ -121,16 +131,15 @@ export function actionsAuthorees(ent: SceneEntity, flags: Drapeaux = {}): Action
  * actions authorées, assise, puis l'objet posé au sol à ramasser.
  *
  * LIBELLÉ d'une action authorée : celui de l'auteur s'il en a posé un, sinon le catalogue i18n à la
- * clé `usable.<id>` — l'id est de la LOGIQUE, le libellé de l'AFFICHAGE, et aucune chaîne française
- * ne se fige en donnée. Un id hors catalogue rend la clé elle-même (repli de `t`), lisible et non
- * traduite : c'est le signal qu'il manque une entrée au catalogue.
+ * clé `usable.<id>` — l'id est de la LOGIQUE, le libellé de l'AFFICHAGE. Une action sans libellé dont
+ * le catalogue n'a pas la clé est refusée à la porte (`actionAuthoreeSchema`).
  */
 export function actionsDe(scene: Scene, ent: SceneEntity, { flags = {}, objetsAuSol = {} }: EtatDesOffres = {}): ActionOfferte[] {
   const out: ActionOfferte[] = [];
   for (const [id, cap] of Object.entries(CAPACITES))
     if (cap.offerte(ent)) out.push({ id, label: t(cap.label), origine: 'capacite' });
   for (const a of actionsAuthorees(ent, flags))
-    out.push({ id: a.id, label: a.label ?? t(`usable.${a.id}` as MsgKey), origine: 'authoree' });
+    out.push({ id: a.id, label: libelleDAction(a), origine: 'authoree' });
   // ASSISE : l'auteur l'ACTIVE sur l'instance (`usable.assise`) et `placesJouables` porte la
   // géométrie du TYPE — deux faits, deux gardes, aucune ne redit l'autre.
   if (ent.usable?.assise && placesJouables(scene, ent.id).length)

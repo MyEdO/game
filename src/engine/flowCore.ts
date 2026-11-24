@@ -71,11 +71,12 @@ export interface TemporalCondition {
  *  Corruption/buffs… — vocabulaire PARTAGÉ avec les sorts, `engine/ops`) à une cible. C'est le DÉFAUT de
  *  la feuille générique `Flow<E>` ; la couche `state` élargit `E` à son union `Effect` (transition/
  *  dialogue/combat…). `on` = qui : `party`/`hero`/`navire` (scène, défaut `party` ; `navire` = le navire de
- *  campagne, `noyau/navireOps.ts`) ou `caster`/`target` (contexte d'incantation, résolu par le flux de sort). */
+ *  campagne, `noyau/navireOps.ts`), `testeur` (scène, branche d'un Test : cuit par `avecLeTesteur`) ou
+ *  `caster`/`target` (contexte d'incantation, résolu par le flux de sort). */
 export interface EffectOp {
   type: 'ops';
   ops: GameOp[];
-  on?: 'groupe' | 'heros' | 'navire' | 'membreAuHasard' | 'caster' | 'target' | CibleDeRole | CibleDeVolontaires;
+  on?: 'groupe' | 'heros' | 'navire' | 'membreAuHasard' | 'testeur' | 'caster' | 'target' | CibleDeRole | CibleDeVolontaires;
   heroId?: string;
   /** Échéance d'HORLOGE (minute `gameTime`) des effets DURABLES posés par ces ops — BAKÉE sur la feuille
    *  (durée d'un consommable résolue AU BOIRE, `bakeConsumableFlow`) pour SURVIVRE aux suspensions (une
@@ -773,6 +774,39 @@ export function racinesDeFlow(scene: unknown): RacineDeFlow[] {
   listeDe(sc.encounters).forEach((e, i) => pousse(objetDe(e).onVictory, ['encounters', i, 'onVictory'], 'encounter', idDe(objetDe(e))));
   return out;
 }
+/** La branche `flow` d'un Test jeté par `heroId`, chaque feuille `on:'testeur'` cuite sur lui (`on:'heros'`, `heroId`) ;
+ *  les branches d'un `test` imbriqué cuisent à leur propre résolution, sur leur testeur. Immuable. #4834 */
+export function avecLeTesteur<E, T, C, D>(flow: ArbreDeFlow<E, T, C, D>, heroId: string): ArbreDeFlow<E, T, C, D> {
+  switch (flow.kind) {
+    case 'sequence': return { ...flow, etapes: flow.etapes.map((s) => avecLeTesteur(s, heroId)) };
+    case 'si': return { ...flow, alors: avecLeTesteur(flow.alors, heroId), ...(flow.sinon ? { sinon: avecLeTesteur(flow.sinon, heroId) } : {}) };
+    case 'choix': return { ...flow, oui: avecLeTesteur(flow.oui, heroId), ...(flow.non ? { non: avecLeTesteur(flow.non, heroId) } : {}) };
+    case 'test': return flow;
+    case 'effet': return isEffectOp(flow.effet) && flow.effet.on === 'testeur' ? { ...flow, effet: { ...flow.effet, on: 'heros', heroId } } : flow;
+  }
+}
+
+/** Les chemins des feuilles `on:'testeur'` de `flow` qu'aucun Test à testeur unique ne porte : le nœud `test` le plus
+ *  proche au-dessus d'elles manque, ou c'est un Test d'équipage (`crewTestType`, N marins). #4834 */
+export function testeursHorsDeLeurTest<E, T extends { crewTestType?: unknown }, C, D>(
+  flow: ArbreDeFlow<E, T, C, D>,
+  chemin: CheminDeFlow = [],
+  sousSonTest = false,
+): CheminDeFlow[] {
+  const dans = (f: ArbreDeFlow<E, T, C, D> | undefined, cle: string, sous = sousSonTest): CheminDeFlow[] =>
+    f ? testeursHorsDeLeurTest(f, [...chemin, cle], sous) : [];
+  switch (flow.kind) {
+    case 'sequence': return flow.etapes.flatMap((s, i) => testeursHorsDeLeurTest(s, [...chemin, 'etapes', i], sousSonTest));
+    case 'si': return [...dans(flow.alors, 'alors'), ...dans(flow.sinon, 'sinon')];
+    case 'choix': return [...dans(flow.oui, 'oui'), ...dans(flow.non, 'non')];
+    case 'test': {
+      const unique = flow.test.crewTestType === undefined;
+      return [...dans(flow.reussite, 'reussite', unique), ...dans(flow.echec, 'echec', unique)];
+    }
+    case 'effet': return !sousSonTest && isEffectOp(flow.effet) && flow.effet.on === 'testeur' ? [chemin] : [];
+  }
+}
+
 /** RÉÉCRITURE d'un Flow, des feuilles vers la racine : `f` reçoit chaque nœud, ses branches déjà réécrites.
  *  Immuable (copie). */
 export function reecrireFlow<E, T, C, D>(
