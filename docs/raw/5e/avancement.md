@@ -6,7 +6,7 @@
 >
 > Rédigé pour #4898 ; chaque citation est recopiée de `Source/` et vérifiée par script contre le texte.
 
-Cette fiche couvre la **dépense de PX** en 5e : coût des Augmentations de Caractéristique et de Compétence, Talents, Augmentations hors carrière, cases de carrière, passage de niveau, changement de carrière, perte et reprise d'un niveau, et les deux Endeavours qui ouvrent ce qui est hors carrière (*Training*, *Unusual Learning*). La structure d'une carrière (niveaux, *Advance Scheme*, listes) relève de l'aire `carrieres` (fiche à extraire).
+Cette fiche couvre la **dépense de PX** en 5e : coût des Augmentations de Caractéristique et de Compétence, Talents, Augmentations hors carrière, cases de carrière, passage de niveau, changement de carrière, perte et reprise d'un niveau, et les deux Endeavours qui ouvrent ce qui est hors carrière (*Training*, *Unusual Learning*). La structure d'une carrière (niveaux, *Advance Scheme*, listes) vit dans [`carrieres.md`](carrieres.md).
 
 ## Sommaire
 

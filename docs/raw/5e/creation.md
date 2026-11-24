@@ -6,7 +6,7 @@
 >
 > Rédigé pour #4898 ; chaque citation est recopiée de `Source/` et vérifiée par script contre le texte.
 
-Cette fiche couvre la **création de personnage** en 5e, dans l'ordre des six étapes du livre : Espèce (tirage, +1 Fortune, Talents aléatoires, fiches des cinq Espèces), Classe et Carrière (tirage, dotations du niveau 2, cases cochées, Compétences de carrière), Caractéristiques (méthodes A/B/C, table par Espèce), Compétences (Augmentations d'Espèce et de carrière, plafond, types), Talent de carrière, dotations, richesse de départ, Blessures, Mouvement, Encombrement, *Oh Fickle Fate*, et prérequis du magicien et du prêtre ; l'étape 6, Personnalité, n'est pas couverte ici. La dépense de PX en jeu relève de l'aire `avancement` ; la structure d'une carrière (niveaux, *Advance Scheme*, listes) relève de l'aire `carrieres`.
+Cette fiche couvre la **création de personnage** en 5e, dans l'ordre des six étapes du livre : Espèce (tirage, +1 Fortune, Talents aléatoires, fiches des cinq Espèces), Classe et Carrière (tirage, dotations du niveau 2, cases cochées, Compétences de carrière), Caractéristiques (méthodes A/B/C, table par Espèce), Compétences (Augmentations d'Espèce et de carrière, plafond, types), Talent de carrière, dotations, richesse de départ, Blessures, Mouvement, Encombrement, *Oh Fickle Fate*, et prérequis du magicien et du prêtre ; l'étape 6, Personnalité, n'est pas couverte ici. La dépense de PX en jeu relève de l'aire `avancement` ; la structure d'une carrière (niveaux, *Advance Scheme*, listes) vit dans [`carrieres.md`](carrieres.md).
 
 ## Sommaire
 
