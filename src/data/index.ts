@@ -2481,13 +2481,14 @@ export function talentConcrete(t: { talentId: string; spec?: string }): PlayerTe
 }
 /**
  * Libellé d'un EMPLACEMENT de spécialisation NON DÉSIGNÉ : « Savoir (Au choix) » pour un choix
- * LIBRE, « Métier (Armurier ou Forgeron) » pour un choix BORNÉ (options résolues en LIBELLÉS par
+ * LIBRE, « Savoir (Toutes) » pour chaque spécialisation du pool, « Métier (Armurier ou Forgeron) » pour un choix BORNÉ (options résolues en LIBELLÉS par
  * `specLabel`, jamais des ids bruts). SOURCE UNIQUE du rendu d'un `choix` — la réf de statbloc
  * (`skillRefLabel`) comme l'emplacement d'avancement (`advancementLabel`) passent ici.
  * `LDB 09 l.40`.
  */
-export function choixLabel(category: string, id: string, choix: true | string[]): PlayerText {
+export function choixLabel(category: string, id: string, choix: NonNullable<RefASpecialisation['choix']>): PlayerText {
   const base = refLabel(category, { id });
+  if (choix === 'toutes') return t('ref.auChoix', { base, mot: t('ref.motToutes') });
   return Array.isArray(choix) && choix.length
     ? dataLabel(`${base} (${ouListe(choix.map((o) => specLabel(category, id, o)))})`)
     : t('ref.auChoix', { base, mot: t('ref.motAuChoix') });

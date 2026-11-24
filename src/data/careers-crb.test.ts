@@ -3,7 +3,7 @@
  * optionnelle `carrieres-crb` (`gatedByRule`, servie par `carriereOuverte`), leurs listes jouées par les ids 4e.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { careerLevels, careers, carriereOuverte } from '.';
+import { careerLevels, careers, carriereOuverte, carrieresTirables, findSpeciesById, offreDuJet } from '.';
 import { resetRule, setRule } from '../engine/policy';
 
 const REGLE = 'carrieres-crb';
@@ -19,6 +19,26 @@ describe('Carrières du CRB derrière leur règle optionnelle', () => {
     expect(CRB.filter(carriereOuverte)).toEqual([]);
     setRule(REGLE, true);
     expect(CRB.filter(carriereOuverte)).toHaveLength(64);
+  });
+});
+
+describe('Au tirage, la Carrière du CRB s’offre à la place de sa jumelle, aux espèces de sa Classe (CRB 013 l.7-11)', () => {
+  const espece = (id: string) => findSpeciesById(id)!;
+
+  it('règle active : le jet du Soldat offre aussi soldat-5e ; inactive : la seule jumelle', () => {
+    expect(offreDuJet(espece('humains-reiklander'), { id: 'soldat' })).toEqual(['soldat']);
+    setRule(REGLE, true);
+    expect(offreDuJet(espece('humains-reiklander'), { id: 'soldat' })).toEqual(['soldat', 'soldat-5e']);
+  });
+
+  it('la Classe borne l’espèce : le Tueur du CRB aux seuls Nains (CRB 018 l.3057)', () => {
+    setRule(REGLE, true);
+    expect(carrieresTirables(espece('nains'), false).map((c) => c.id)).toContain('tueur-5e');
+    expect(carrieresTirables(espece('humains-reiklander'), false).map((c) => c.id)).not.toContain('tueur-5e');
+  });
+
+  it('chaque Carrière du CRB se substitue à sa jumelle v4', () => {
+    expect(CRB.filter((c) => c.aLaPlaceDe?.id !== c.id.slice(0, -'-5e'.length))).toEqual([]);
   });
 });
 

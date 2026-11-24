@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 // LANCEUR DE L'HÔTE TEXTE (#2898 lot D) : un serveur MCP sur stdio, `npm run -s hote-texte`, déclaré aux sessions du dépôt
 // par `.mcp.json`. Le module runner de Vite charge, dans UN graphe de modules, l'entrée d'hôte (`entreeDHote`,
-// `scripts/entree-d-hote.mjs` : le gel du catalogue puis l'hôte, `src/hoteTexte/serveur.ts`, avec le greffon
+// `scripts/entree-d-hote.mjs` : le gel du catalogue puis l'hôte, `hotes/texte/serveur.ts`, avec le greffon
 // `proseSource()`), et `import.meta.env.DEV` vrai. Les outils, leur description et leur schéma viennent de
-// `src/hoteTexte/outils.ts` ; les scénarios et les cadences, du graphe chargé. Le lanceur prête le disque à l'hôte et
+// `hotes/texte/outils.ts` ; les scénarios et les cadences, du graphe chargé. Le lanceur prête le disque à l'hôte et
 // garde stdout au protocole : toute écriture de console part sur stderr. Une partie est un fichier de `.hote-texte/`, tenu par
 // un seul serveur à la fois. Doc : `npm run docs:hote-texte`.
 import { appendFileSync, existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -15,7 +15,7 @@ import { runnerImport } from 'vite'
 import { entreeDHote } from './entree-d-hote.mjs'
 import { estPidVivantDepuis } from './guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from './test/identiteMesuree.mjs'
-import { DOSSIER_DES_PARTIES, INSTRUCTIONS, outils } from '../src/hoteTexte/outils.ts'
+import { DOSSIER_DES_PARTIES, INSTRUCTIONS, outils } from '../hotes/texte/outils.ts'
 import { z } from 'zod'
 
 for (const niveau of ['log', 'info', 'debug']) console[niveau] = console.error
@@ -24,7 +24,7 @@ const RACINE = fileURLToPath(new URL('..', import.meta.url))
 // Le corpus `Source/` se lit depuis la racine du dépôt, d'où que le serveur soit lancé.
 process.chdir(RACINE)
 const entree = entreeDHote('hote-texte', [
-  "export { creerHote } from '/src/hoteTexte/serveur.ts';",
+  "export { creerHote } from '/hotes/texte/serveur.ts';",
   "export { testScenarios } from '/src/scenes/test-scenarios/index.ts';",
   "export { preferenceDef } from '/src/noyau/index.ts';",
 ])

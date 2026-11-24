@@ -121,7 +121,8 @@ Régime de push, `package-lock` : `docs/reprise-apres-pause.md`.
 src/engine/   règles WFRP4 PURES + testées (types, tests/DR, combat, ops.ts = GameOp, magic…)
 src/noyau/    orchestration sans hôte (cascade, combatFlow, rollFlow…) ; monde/ (scene.ts = SCHÉMA)
 src/hote/     commun aux hôtes du noyau (projection, sauvegardes, coop, réglages)
-hotes/godot/  hôte Godot : pont JSON vers le noyau (CONTRAT.md)
+hotes/        affichages : godot/ (pont JSON, CONTRAT.md), texte/ (MCP, sans écran)
+projets/      un dossier par projet (jeu ou outil), sa zone de COUCHES
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
 src/scenes/   documents de scène + campagne Arène
 server/       Worker Cloudflare du relay

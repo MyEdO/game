@@ -3,7 +3,16 @@
  * LDB 07 l.35-109 ; CRB 045 ; CRB 048 l.45, l.72
  */
 import { Combatant, CharKey } from './types';
-import { CareerSlot, acquerirTalent, parseRefKey, talentAcquisitions, talentSlots, talentSlotsUpTo, type EmplacementsDuNiveau } from './careerSlots';
+import {
+  CareerSlot,
+  acquerirTalent,
+  slotCovers,
+  parseRefKey,
+  talentAcquisitions,
+  talentSlots,
+  talentSlotsUpTo,
+  type EmplacementsDuNiveau,
+} from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import type * as advancementCostsDef from '../data/schemas/defs/advancementCosts';
 import { datasetDe } from '../data/datasets';
@@ -141,11 +150,11 @@ export function careerCompletionAdvances(level: number): number {
 }
 
 /** Référence `(id, spec)` couverte par un slot : l'option UNIQUE d'un slot EXPLICITE, ou — pour un
- *  slot À CHOIX — la désignation du héros (clé `refKey` décodée par `parseRefKey`, JAMAIS un
+ *  slot À CHOIX ou « (Toutes) » — la désignation du héros (clé `refKey` décodée par `parseRefKey`, JAMAIS un
  *  libellé re-parsé). null = rien ne couvre ce slot (pas encore désigné, ou tirage aléatoire sans
  *  identité réelle). */
 export function slotRef(slot: CareerSlot, designations: Record<string, string>): { id: string; spec?: string } | null {
-  if (!slot.needsChoice) {
+  if (!slot.needsChoice && !slot.options[0].toutes) {
     const o = slot.options[0];
     return o.optionId ? { id: o.optionId, spec: o.spec } : null;
   }
@@ -175,10 +184,8 @@ export function isCareerLevelComplete(
 
   let held = 0;
   for (const slot of opts.skillSlots) {
-    const ref = slotRef(slot, opts.designations);
-    if (!ref) continue;
-    const adv = hero.skills.find((s) => s.id === ref.id && memeSpecialisation(s.spec, ref.spec))?.advances ?? 0;
-    if (adv >= req) held += 1;
+    const tenues = hero.skills.filter((s) => tientLEmplacement(slot, opts.designations, s.id, s.spec));
+    if (Math.max(0, ...tenues.map((s) => s.advances ?? 0)) >= req) held += 1;
   }
   if (held < CAREER_SKILLS_ADVANCED) return false;
 
@@ -187,11 +194,15 @@ export function isCareerLevelComplete(
 
 /** `hero` tient-il le Talent d'un des emplacements `talentSlots` (`slotRef`) ? LDB 07 l.124 */
 export function tientUnTalentDuNiveau(hero: Pick<Combatant, 'talents'>, talentSlots: CareerSlot[], designations: Record<string, string>): boolean {
-  return talentSlots.some((slot) => {
-    const ref = slotRef(slot, designations);
-    if (!ref) return false;
-    return hero.talents.some((t) => t.talentId === ref.id && memeSpecialisation(t.spec, ref.spec) && t.times > 0);
-  });
+  return talentSlots.some((slot) => hero.talents.some((t) => t.times > 0 && tientLEmplacement(slot, designations, t.talentId, t.spec)));
+}
+
+/** L'entrée `(id, spec)` du héros tient-elle `slot` : sa référence (`slotRef`), ou pour un joker « (Toutes) » non
+ *  désigné toute spécialisation qu'il couvre (`slotCovers`). CRB 018 l.107 */
+function tientLEmplacement(slot: CareerSlot, designations: Record<string, string>, id: string, spec: string | undefined): boolean {
+  const ref = slotRef(slot, designations);
+  if (ref) return ref.id === id && memeSpecialisation(spec, ref.spec);
+  return slot.options[0].toutes === true && slotCovers(slot, id, spec);
 }
 
 /** Options de `isCareerLevelComplete` : emplacements, Caractéristiques de carrière et désignations du héros. */

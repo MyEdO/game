@@ -3,7 +3,8 @@
 // que l'arbre porte (`racinesPresentes.mjs`) la lisent, `docs/architecture.md` (§ Couches) la décrit.
 //
 // Une zone est un dossier : `dossier`, `src/<zone>` par défaut ; `racine` désigne les fichiers posés à même `src/`
-// (tests transverses). Par zone :
+// (tests transverses). Hors de `src/`, chaque dossier de `hotes/` est un affichage et chaque dossier de `projets/` un
+// projet (#4903 H3), chacun sa zone. Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type ;
@@ -48,9 +49,9 @@ export const COUCHES = Object.freeze({
     outillage: { 'src/noyau/noeudsDeTest.testkit.ts': ['scripts/guards/lib/lister.mjs'] },
   },
   hote: DROITS_D_HOTE,
-  hoteTexte: DROITS_DES_HOTES,
-  hotes: {
-    dossier: 'hotes',
+  texte: { dossier: 'hotes/texte', ...DROITS_DES_HOTES },
+  godot: {
+    dossier: 'hotes/godot',
     ...DROITS_DES_HOTES,
     outillage: {
       'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/fileBornee.mjs', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/test/verrou.mjs'],
@@ -92,8 +93,11 @@ export const estZone = (z) => typeof z === 'string' && Object.hasOwn(COUCHES, z)
 /** Le dossier de la zone `z`, relatif à la racine du dépôt : `src/<z>` sauf déclaration. */
 export const dossierDe = (z) => COUCHES[z].dossier ?? `src/${z}`;
 
-/** Les dossiers de premier niveau du dépôt qui portent une zone (`src`, `hotes`). */
-export const RACINES_DES_ZONES = Object.freeze([...new Set(Object.keys(COUCHES).map((z) => dossierDe(z).split('/')[0]))]);
+/** Les dossiers de premier niveau dont chaque dossier est une zone (#4903 H3) : les affichages, les projets. */
+const RACINES_PAR_DOSSIER = Object.freeze(['hotes', 'projets']);
+
+/** Les dossiers de premier niveau du dépôt qui portent une zone (`src`, `hotes`, `projets`). */
+export const RACINES_DES_ZONES = Object.freeze([...new Set([...Object.keys(COUCHES).map((z) => dossierDe(z).split('/')[0]), ...RACINES_PAR_DOSSIER])]);
 
 
 /** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte (`portes`). */
@@ -112,16 +116,19 @@ export function porteeDeGarde(zones) {
 const PAR_DOSSIER = Object.keys(COUCHES).filter((z) => z !== 'racine').map((z) => [dossierDe(z), z]).sort(([a], [b]) => b.length - a.length);
 
 /** La zone d'un chemin RELATIF à la racine du dépôt : celle dont le chemin est sous le dossier (`dossierDe`), `racine`
- *  pour un fichier posé à même `src/`, `null` hors de `src/` et des dossiers de zone. Un sous-dossier de `src/` sans
- *  ligne rend son dossier (`src/<segment>`), qui n'est jamais une zone, pour que `murs/zone` le nomme — `src/hotes/`
- *  et `src/racine/` compris, dont le nom est celui d'une zone d'un autre dossier. PURE. */
+ *  pour un fichier posé à même `src/`, `null` hors des racines des zones (`RACINES_DES_ZONES`). Un dossier sans ligne
+ *  rend son dossier, qui n'est jamais une zone, pour que `murs/zone` le nomme : `src/<segment>` (`src/godot/` et
+ *  `src/racine/` compris, dont le nom est celui d'une zone d'un autre dossier), `hotes/<segment>` ou
+ *  `projets/<segment>` ; un fichier posé à même `hotes/` ou `projets/` rend cette racine. PURE. */
 export function zoneDe(rel) {
   const chemin = cheminPosix.normalize(rel.split('\\').join('/'));
   const zone = PAR_DOSSIER.find(([d]) => chemin === d || chemin.startsWith(`${d}/`));
   if (zone) return zone[1];
   const segments = chemin.split('/');
-  if (segments[0] !== 'src' || segments.length < 2) return null;
-  return segments.length === 2 ? 'racine' : `src/${segments[1]}`;
+  if (segments.length < 2) return null;
+  if (segments[0] === 'src') return segments.length === 2 ? 'racine' : `src/${segments[1]}`;
+  if (!RACINES_PAR_DOSSIER.includes(segments[0])) return null;
+  return segments.length === 2 ? segments[0] : `${segments[0]}/${segments[1]}`;
 }
 
 /** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type. */

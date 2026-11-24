@@ -9,12 +9,12 @@ import {
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis, libelleDeDistance,
   CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, fenetreDuJeu,
   type ConsequenceEnVue, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
-} from '../noyau/index';
+} from '../../src/noyau/index';
 import type { LigneNumerotee } from './partieTexte';
-import { t } from '../i18n';
-import { formeEcrite, signature, type ParametreDeVerbe } from '../hote/formes';
-import { VERBES } from '../hote/verbes.generated';
-import { parametresDuGeste } from '../hote/gestes';
+import { t } from '../../src/i18n';
+import { formeEcrite, signature, type ParametreDeVerbe } from '../../src/hote/formes';
+import { VERBES } from '../../src/hote/verbes.generated';
+import { parametresDuGeste } from '../../src/hote/gestes';
 import {
   apercuDe,
   combattantsTries,
@@ -26,8 +26,8 @@ import {
   type OffreEnVue,
   type Projection,
   type ProprietaireDeLaFenetre,
-} from '../hote/projection';
-import { coupeAuMot } from '../lib/coupeAuMot.mjs';
+} from '../../src/hote/projection';
+import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs';
 import { appelEcrit } from './outils';
 
 /** Les bornes de chaque sortie (#2898, M2) : toute ligne tient en `largeur` caractères ; chaque commande a son nombre

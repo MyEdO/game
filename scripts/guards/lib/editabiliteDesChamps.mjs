@@ -111,12 +111,12 @@ export { cheminsCreditesJoues };
 const sous = (dossier) => (rel) => norm(rel).startsWith(`${dossier}/`);
 
 /** Les zones des hôtes du noyau, dérivées de `COUCHES` (`porteeDeGarde`, qui lève si l'une quitte la table ou cesse de
- *  survivre à la bascule) : `hote`, le modèle de vue commun ; `hotes`, le pont Godot. */
-const [DOSSIER_HOTE, DOSSIER_HOTES] = porteeDeGarde(['hote', 'hotes']);
+ *  survivre à la bascule) : `hote`, le modèle de vue commun ; `godot`, l'affichage du pont Godot. */
+const [DOSSIER_HOTE, DOSSIER_GODOT] = porteeDeGarde(['hote', 'godot']);
 
 /** Le point d'entrée de l'éditeur Godot : la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, #3508). Il est la
  *  seule racine de la fermeture d'appels : le pont sert aussi la partie, que l'auteur n'édite pas. */
-const PONT = `${DOSSIER_HOTES}/godot/pont`;
+const PONT = `${DOSSIER_GODOT}/pont`;
 const ENTREE_GODOT = { fichier: `${PONT}/pont.ts`, methode: 'editer' };
 
 /** Le chemin d'écriture de l'AUTEUR : le pont Godot et le modèle de vue commun des hôtes (`src/hote/`), les modules

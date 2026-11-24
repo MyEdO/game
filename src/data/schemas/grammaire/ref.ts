@@ -974,7 +974,7 @@ export interface RefDesignee<I extends string = string> {
   /** Un id du catalogue de l'entrée, ou, pour une entrée ouverte, un texte libre (`entreeOuverte`, LDB 09 l.40). */
   spec?: TexteLibre;
 }
-export interface RefASpecialisation extends RefDesignee { choix?: true | string[] }
+export interface RefASpecialisation extends RefDesignee { choix?: true | string[] | 'toutes' }
 
 /** La référence `ref` couvre-t-elle l'entrée `cible` du même id ? Sans `spec`, toutes ses
  *  Spécialisations ; avec `spec`, la sienne seule. LDB 09 l.44. PUR. */
@@ -1131,7 +1131,7 @@ function noeudASpecialisation<T extends TypeEntite>(
   const champs = {
     id: idDe(type),
     spec: z.string().min(1).optional(),
-    choix: z.union([nommerNoeud(z.literal(true), { label: 'spécialisation au choix' }), nommerNoeud(z.array(z.string().min(1)), { label: 'spécialisation parmi' })]).optional(),
+    choix: z.union([nommerNoeud(z.literal(true), { label: 'spécialisation au choix' }), nommerNoeud(z.array(z.string().min(1)), { label: 'spécialisation parmi' }), nommerNoeud(z.literal('toutes'), { label: 'toutes les spécialisations' })]).optional(),
     ...((extra ?? {}) as Record<string, z.ZodType>),
   };
   const { choix: _choix, ...designe } = champs;
@@ -1171,7 +1171,7 @@ function noeudASpecialisation<T extends TypeEntite>(
 }
 
 /**
- * Référence À SPÉCIALISATION : `{ id, spec }` XOR `{ id, choix: true | [ids] }` — exactement UN des
+ * Référence À SPÉCIALISATION : `{ id, spec }` XOR `{ id, choix: true | [ids] | 'toutes' }` — exactement UN des
  * deux régimes (une réf sans spécialisation est un `ref(type)` nu, ou un `refOuSpec(type)` quand le
  * site accepte les deux). L'entrée VISÉE doit d'abord être spécialisable, c'est-à-dire déclarer un
  * catalogue de specs (`estSpecialisable`) ; `spec`/`choix` sont ensuite validés contre ce catalogue

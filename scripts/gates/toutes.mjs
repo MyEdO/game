@@ -339,7 +339,7 @@ export const ECRIT_LU = {
     lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'La garde de chargement (#3058, scripts/guards/chargement-en-premier.mjs) : `git ls-files` des zones (`ZONES` : ' +
-      'noyau, engine, data, lib, geometry, i18n, hote, hoteTexte, hotes, scenes ; `hotes/` hors de src/), puis des ' +
+      'les zones de COUCHES qui survivent, hors de `racine`), puis des ' +
       'travailleurs (scripts/guards/lib/chargementDUnModule.mjs) qui chargent chaque module par le module runner de Vite ' +
       '(`configFile: false`, aucune config recompilée), avec le greffon `proseSource()` (scripts/source/prose-source-plugin.mjs), ' +
       'qui LIT Source/ pour la prose adressée ; la sortie de chaque lot va sous un `mkdtempSync` d’os.tmpdir(), effacé ' +

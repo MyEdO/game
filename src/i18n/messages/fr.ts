@@ -1146,7 +1146,7 @@ export const fr = {
   'ecran.editeur.calque.calage.tile2': 'Cliquez l’intersection de la grille qui correspond à ce 2ᵉ coin',
   'ecran.editeur.calque.retirer': 'Retirer le calque',
   // Qui tient la main d'une fenêtre (`ProprietaireDeLaFenetre`, `src/hote/projection.ts`), dit par l'hôte texte
-  // (`src/hoteTexte/vue.ts`) : sans propriétaire, à tous les sièges, à un porteur que l'état ne nomme pas.
+  // (`hotes/texte/vue.ts`) : sans propriétaire, à tous les sièges, à un porteur que l'état ne nomme pas.
   'ecran.proprietaire.aucun': 'l’hôte',
   'ecran.proprietaire.tous': 'tous',
   'ecran.proprietaire.sansNom': 'un porteur sans nom',
@@ -4447,6 +4447,8 @@ export const fr = {
   // `data/index.ts#choixLabel`, composée par `skillRefLabel` et `advancementLabel`. #1548
   'ref.auChoix': '{base} ({mot})',
   'ref.motAuChoix': 'Au choix',
+  // Emplacement qui couvre CHAQUE spécialisation de son pool (`choix: 'toutes'`). CRB 018 l.107
+  'ref.motToutes': 'Toutes',
   // Liants des faces d'affichage de la donnée (#1988) — lus AUSSI par les parseurs de saisie « format
   // livre » (`data/refFormatLivre.ts`) : l'affichage et la saisie partagent la même clé.
   'ref.ou': 'ou',
