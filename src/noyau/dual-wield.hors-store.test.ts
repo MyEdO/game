@@ -11,6 +11,14 @@ import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
 import type { Combatant, Weapon, Main } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { findTrappingById } from '../data';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { itemFromTrappingById, recomputeLoadout, loadWeapon } from '../engine/items';
+import { weaponLoaded } from '../engine/weaponLoad';
+import { cliquerSurLeCombattant } from './combatOrParty';
+import { fenetreDAttaque } from './fenetreDAttaque';
+import { ciblesDeLaDoubleFrappe, paireDesDeuxArmes } from './combatFlow';
+import type { ItemInstance } from '../engine/types';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -56,7 +64,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
   beforeEach(() => setupBattle());
 
   it('le jet INVERSÉ de la main directrice est tranché à l’ouverture, puis joué tel quel (34 → 43)', () => {
-    setupBattle();
+    setupBattle(DEUX_ARMES);
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 34, attackerDetail: { roll: 34, target: 50, success: true, sl: 1 } } as never), dualMode: true } as any });
     banc.getState().jetValider('attaque');
     expect(banc.getState().pendingDualStrike!.jet).toBe(reverseRoll(34));
@@ -65,7 +73,7 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
   });
 
   it('exception Critique, ldb : le jet est le d100 du tableau des Critiques du Coup Critique appliqué (LDB 10 l.773 ; LDB 18 l.53)', () => {
-    const { f1 } = setupBattle();
+    const { f1 } = setupBattle(DEUX_ARMES);
     f1.important = true; // LDB 18 l.44 : hors Mort subite
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ critical: true, critLocation: 'corps' }), dualMode: true } as any });
     banc.getState().jetValider('attaque');
@@ -89,9 +97,9 @@ describe('resolveDualSecond : 2ᵉ attaque du Maniement de deux armes (LDB 10 l.
     h.weapons = [W('m', 'main'), off];
     f2.conditions = [{ id: 'surpris' } as any]; // ne se défend pas → résolution déterministe
     h.skills = [];
-    const rSans = resolveDualSecond(banc.getState, h, f2, off, reverseRoll(32)); // jet forcé = 23 (3 unités) → touche
+    const rSans = resolveDualSecond(banc.getState, h, f2, off, reverseRoll(32)).res; // jet forcé = 23 (3 unités) → touche
     h.skills = [{ id: 'corps-a-corps', spec: 'fleau', advances: 0 } as any];
-    const rAvec = resolveDualSecond(banc.getState, h, f2, off, reverseRoll(32));
+    const rAvec = resolveDualSecond(banc.getState, h, f2, off, reverseRoll(32)).res;
     expect([rSans.hit, rAvec.hit]).toEqual([true, true]);
     expect(rAvec.damage! - rSans.damage!).toBe(3); // Percutante (3 unités) conservée AVEC la Spé, retirée SANS
   });
@@ -300,7 +308,7 @@ describe('purge du −10 au début du prochain Tour du porteur', () => {
 
 describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par SA fenêtre (LDB 10 l.773)', () => {
   it('siège MJ : 2ᵉ frappe résolue en attaquant seul, la fenêtre s’interpose, la fermeture l’applique', () => {
-    setupBattle();
+    setupBattle(DEUX_ARMES);
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
     // La 1ʳᵉ frappe revient de SA fenêtre (`pa.defended`, posé par `jetValider('defense')`) : elle touche.
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
@@ -320,12 +328,12 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
 
   it('défenseur non surfacé : la 2ᵉ frappe garde son jet de défense neuf', () => {
     const { h, f2 } = setupBattle();
-    const res = resolveDualSecond(banc.getState, h, f2, h.weapons[1], reverseRoll(34));
+    const res = resolveDualSecond(banc.getState, h, f2, h.weapons[1], reverseRoll(34)).res;
     expect(res.defenderDetail).toBeDefined();
   });
 
   it('le jet tranché à l’ouverture survit à la fenêtre du défenseur surfacé', () => {
-    setupBattle();
+    setupBattle(DEUX_ARMES);
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes(), dualMode: true, defended: true } as any });
     banc.getState().jetValider('attaque');
@@ -340,10 +348,10 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
 
   it('DR net identique, défenseur surfacé ou non, à dés égaux', () => {
     const { h, f2 } = setupBattle();
-    const inline = resolveDualSecond(banc.getState, h, f2, h.weapons[1], reverseRoll(34));
+    const inline = resolveDualSecond(banc.getState, h, f2, h.weapons[1], reverseRoll(34)).res;
     const deDefense = (inline.defenderDetail as any).roll as number;
     banc.setState({ ...initialFields(), battle: null });
-    setupBattle();
+    setupBattle(DEUX_ARMES);
     banc.setState({ net: { ...banc.getState().net, mode: 'local', mySeat: 0, gmSeat: 0, ownership: {} } });
     banc.setState({ pendingAttack: { attackerId: 'h', targetId: 'f1', location: 'corps', result: hitRes({ attackerRoll: 43, attackerDetail: { roll: 43, target: 50, success: true, sl: 0 } } as any), dualMode: true, defended: true } as any });
     banc.getState().jetValider('attaque');
@@ -353,5 +361,143 @@ describe('#998 — la 2ᵉ frappe opposée à un défenseur SURFACÉ passe par S
     banc.getState().jetLancer('defense');
     banc.getState().jetImposerLeResultat('defense', deDefense);
     expect(banc.getState().pendingDefense?.result?.netSL).toBe(inline.netSL);
+  });
+});
+
+describe('Maniement de deux armes au tir (LDB 10 l.767-773 ; LDB 14 l.138)', () => {
+  const objet = (id: string, uid: string, over: Partial<ItemInstance> = {}): ItemInstance =>
+    ({ ...itemFromTrappingById(id, idsDeTest)!, uid, equipped: true, ...over });
+
+  /** Héros au Talent tenant `main` et `secondaire` (objets réels, armes de tir chargées), munitions `munitions` ;
+   *  f1 et f2 à 3 cases, `loin` hors de portée de pistolet. */
+  function tireur(main: ItemInstance, secondaire: ItemInstance, munitions: ItemInstance[]) {
+    seedBattleRng(1);
+    const h = mkHero({ ...DEUX_ARMES, characteristics: { ...CHARS(50), 'capacite-de-tir': 60 } });
+    h.items = [main, secondaire, ...munitions];
+    h.loadouts = [{ id: 'lo', main: main.uid, secondaire: secondaire.uid }];
+    h.activeLoadoutId = 'lo';
+    recomputeLoadout(h);
+    for (const w of h.weapons) if (w.type === 'distance') loadWeapon(findTrappingById, h, w);
+    const f1 = mkFoe('f1', 3); const f2 = mkFoe('f2', 3); f2.pos = { x: 3, y: 1 };
+    const loin = mkFoe('loin', 39);
+    banc.setState({
+      mode: 'battle', scene: { ...emptyScene('scene-test', 40, 4), weather: 'clair' }, gameTime: 0, party: [h],
+      battle: { combatants: [h, f1, f2, loin], order: ['h', 'f1', 'f2', 'loin'], baseOrder: ['h', 'f1', 'f2', 'loin'], turn: 0, round: 1, log: [],
+        action: null, acted: false, movementUsed: 0, movedPreAction: false, loadoutSwapped: false, reachable: new Map(), over: null } as any,
+    });
+    return h;
+  }
+  const g = () => banc.getState();
+  const vivant = (id: string) => g().battle!.combatants.find((c) => c.id === id)!;
+  const munition = (qty: number) => objet('balle-et-poudre', 'bp', { equipped: false, qty });
+  const deuxArmesOffert = (cible: string): boolean => {
+    cliquerSurLeCombattant(g, cible, { confirm: true });
+    return !!fenetreDAttaque(g())?.deuxArmes;
+  };
+
+  it('deux pistolets chargés : 1re frappe au principal, 2e au secondaire au jet inversé avec la main secondaire ; les deux déchargés, deux munitions décomptées', () => {
+    tireur(objet('pistolet', 'p1'), objet('pistolet', 'p2'), [munition(5)]);
+    expect(deuxArmesOffert('f1')).toBe(true);
+    g().jetRegler('attaque', 'deuxArmes', true);
+    expect(g().pendingAttack?.weaponUid).toBe('p1');
+    g().jetLancer('attaque');
+    g().jetImposerLeResultat('attaque', 21);
+    g().jetValider('attaque');
+    draineCascade(g);
+    expect(g().pendingDualStrike).toMatchObject({ offWeaponUid: 'p2', jet: 12 });
+    const cibles = ciblesDeLaDoubleFrappe(g()).map((c) => c.id);
+    expect(cibles).toContain('f2');
+    expect(cibles, 'hors de portée du pistolet secondaire (LDB 13 l.114)').not.toContain('loin');
+    g().frapperDeLaSecondeArme('f2');
+    const pa = g().pendingAttack!;
+    expect(pa).toMatchObject({ weaponUid: 'p2', dualSecond: true, targetId: 'f2' });
+    expect(pa.result?.attackerRoll).toBe(12);
+    expect(pa.result?.attackerDetail?.label).toMatch(/Projectiles/);
+    const lignes = [...(pa.result?.attackerDetail?.mods ?? []), ...(pa.result?.attackerDetail?.difficultyParts ?? [])];
+    expect(lignes.map((m) => m.ref?.id), 'LDB 14 l.78').toContain('main-secondaire');
+    g().jetValider('attaque');
+    draineCascade(g);
+    expect(g().pendingDualStrike).toBeNull();
+    const h = vivant('h');
+    expect(h.weapons.filter((w) => w.type === 'distance').map((w) => weaponLoaded(h, w))).toEqual([false, false]);
+    expect(h.items!.find((i) => i.uid === 'bp')?.qty).toBe(3);
+  });
+
+  it('pistolet secondaire vide ou sans munition : « des deux armes » n’est pas offert', () => {
+    const h = tireur(objet('pistolet', 'p1'), objet('pistolet', 'p2'), [munition(5)]);
+    const p2 = h.weapons.find((w) => w.uid === 'p2')!;
+    h.items!.find((i) => i.uid === 'p2')!.loaded = false;
+    expect(weaponLoaded(h, p2)).toBe(false);
+    expect(deuxArmesOffert('f1')).toBe(false);
+    tireur(objet('pistolet', 'p1'), objet('pistolet', 'p2'), []);
+    expect(deuxArmesOffert('f1')).toBe(false);
+  });
+
+  it('une seule munition : la 1re frappe la dépense, la 2e n’a pas de cible', () => {
+    tireur(objet('pistolet', 'p1'), objet('pistolet', 'p2'), [munition(1)]);
+    expect(deuxArmesOffert('f1')).toBe(true);
+    g().jetRegler('attaque', 'deuxArmes', true);
+    g().jetLancer('attaque');
+    g().jetImposerLeResultat('attaque', 21);
+    g().jetValider('attaque');
+    draineCascade(g);
+    expect(g().pendingDualStrike).toBeNull();
+  });
+
+  it('ennemi épée et pistolet, sans munition suivie (#126) : la paire est admise', () => {
+    const e = tireur(objet('arme-simple', 'e1'), objet('pistolet', 'p2'), []);
+    expect(paireDesDeuxArmes(g, e), 'le héros sans munition ne tire pas').toBeUndefined();
+    e.kind = 'ennemi';
+    expect(paireDesDeuxArmes(g, e)?.secondaire.uid).toBe('p2');
+  });
+
+  it('arc en main secondaire : « des deux armes » n’est pas offert', () => {
+    tireur(objet('pistolet', 'p1'), objet('arc', 'a2'), [munition(5), objet('fleche', 'fl', { equipped: false, qty: 5 })]);
+    expect(vivant('h').weapons.find((w) => w.uid === 'a2')?.hand).toBe('secondaire');
+    expect(deuxArmesOffert('f1')).toBe(false);
+  });
+
+  it('épée en main, pistolet en secondaire : la 2e frappe part au tir', () => {
+    tireur(objet('arme-simple', 'e1'), objet('pistolet', 'p2'), [munition(5)]);
+    const f1 = vivant('f1'); f1.pos = { x: 1, y: 0 };
+    expect(deuxArmesOffert('f1')).toBe(true);
+    g().jetRegler('attaque', 'deuxArmes', true);
+    expect(g().pendingAttack?.weaponUid).toBe('e1');
+    g().jetLancer('attaque');
+    g().jetImposerLeResultat('attaque', 21);
+    g().jetValider('attaque');
+    draineCascade(g);
+    expect(ciblesDeLaDoubleFrappe(g()).map((c) => c.id)).toContain('f2');
+    g().frapperDeLaSecondeArme('f2');
+    expect(g().pendingAttack?.result?.attackerDetail?.label).toMatch(/Projectiles/);
+  });
+
+  it('cible Inconsciente : la 2e frappe touche d’office, à la mêlée comme au tir (LDB 16 l.113)', () => {
+    const { h, f2 } = setupBattle(DEUX_ARMES);
+    f2.conditions = [{ id: 'inconscient' } as any];
+    expect(resolveDualSecond(banc.getState, h, f2, h.weapons[1], 96).res.hit).toBe(true);
+    const tir = tireur(objet('pistolet', 'p1'), objet('pistolet', 'p2'), [munition(5)]);
+    const cible = vivant('f2');
+    cible.conditions = [{ id: 'inconscient' } as any];
+    expect(resolveDualSecond(banc.getState, tir, cible, tir.weapons.find((w) => w.uid === 'p2')!, 96).res.hit).toBe(true);
+  });
+
+  it('2e frappe au tir dans la mêlée, manquée par sa seule pénalité : elle dévie sur l’allié Engagé (LDB 14 l.116)', () => {
+    const h = tireur(objet('pistolet', 'p1'), objet('pistolet', 'p2'), [munition(5)]);
+    const allie = mkHero({ id: 'a', pos: { x: 4, y: 1 }, engagedWith: ['f2'] });
+    vivant('f2').engagedWith = ['a'];
+    g().battle!.combatants.push(allie);
+    const p2 = h.weapons.find((w) => w.uid === 'p2')!;
+    const cible = resolveDualSecond(banc.getState, h, vivant('f2'), p2, 1).res.attackerDetail!.target;
+    expect(deuxArmesOffert('f1')).toBe(true);
+    g().jetRegler('attaque', 'deuxArmes', true);
+    g().jetLancer('attaque');
+    g().jetImposerLeResultat('attaque', 21);
+    g().jetValider('attaque');
+    draineCascade(g);
+    banc.setState({ pendingDualStrike: { ...g().pendingDualStrike!, jet: cible + 10 } });
+    g().frapperDeLaSecondeArme('f2');
+    expect(g().pendingAttack).toMatchObject({ targetId: 'f2', victimId: 'a' });
+    expect(g().pendingAttack?.result?.hit).toBe(true);
   });
 });
