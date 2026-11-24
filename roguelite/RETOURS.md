@@ -364,6 +364,13 @@ sur une arène générée.
   L'écran dit « Le noyau ne dit pas d'où vient cet État. » Idée : que l'instance d'État porte sa source (Critique,
   sort, 0 Blessure) comme `derivedFrom` le fait pour un passif, et que la clôture de rencontre lève ce que LDB 18
   l.53 borne à la rencontre.
+- **Trou — le journal de combat tait l'État posé à 0 Blessure, et le Test d'amputation sans son nom (MyEdO/game#4911).**
+  Retour de l'utilisateur (2026-11-24) sur le chien du Ratier : « Soit il manque des choses dans le journal, soit il y a
+  un soucis ». La règle est juste (Inconscient à 0 Blessure sous Hémorragique, LDB 16 l.105 ; Test d'amputation,
+  LDB 18 l.237) ; le journal ne l'est pas. Sonde (graine 114, Hans/Greta/Ulli contre 2 gobelins) : « Chien est mis
+  hors de combat ! » s'écrit quand le Chien porte déjà `inconscient` et `a-terre`, qu'aucune ligne n'annonce ; le
+  second Test de Résistance s'écrit comme le premier, sans « Plaie d'amputation » ; « reçoit 1 État À Terre » s'écrit
+  pour un État non cumulable déjà porté ; une amputation fait deux lignes.
 - **Trou — le soin d'un sort ne réveille pas un Inconscient à 0 Blessure, ni n'arrête l'Hémorragie.** L'op `heal`
   soigne par `applyHealWounds(…, { wake: false })` (`src/engine/ops.ts:1025`) et ne lève que les verrous d'acte
   (`releaseConditionLocks`, `src/engine/ops.ts:1115`). Sonde (`auHameau`, `incanterLeSort` Bénédiction de Guérison
