@@ -60,6 +60,7 @@ function tirRapideSurUnHerosADestin(mode: 'local' | 'hote', tireurs: 1 | 2): voi
   de('h1').fate = 1;
   advanceTurn(banc.getState, banc.setState);
   de('h1').wounds.current = 0;
+  de('h1').loseNextMovement = true; de('h2').loseNextMovement = true;
   if (g().pendingRoundStart) g().fenetreValider('debutDuRound');
 }
 
@@ -94,7 +95,10 @@ describe('#4860 — le Destin ouvert par un Tir rapide de l’IA suspend la bouc
       expect(b.over).toBeNull();
       expect(b.round).toBe(2);
       expect(b.tirsRapidesSuspendus).toBeUndefined();
-      expect(activeCombatant(b)?.id, 'le Round ouvert sur le premier combattant en action').toBe(issue === 'eviter' ? 'h1' : 'h2');
+      const actif = issue === 'eviter' ? 'h1' : 'h2';
+      expect(activeCombatant(b)?.id, 'le Round ouvert sur le premier combattant en action').toBe(actif);
+      const perteDuMouvement = b.log.filter((l) => l.actorId === actif && l.text === t('cf.perdLeMouvement', { name: nomEnVue(g(), actif)! })).length;
+      expect([perteDuMouvement, b.movementUsed > 0], 'le Round s’ouvre une fois : son dû pris, jamais remis à zéro').toEqual([1, true]);
     });
   }
 });
