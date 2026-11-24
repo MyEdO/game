@@ -341,8 +341,8 @@ const priceLabel = (p: Money | 'ND' | null | undefined): string | null => {
 
 /** Fait « Dégâts » d'une arme/pièce : chaîne imprimée + note CONDITIONNELLE dérivée des capacités de qualité
  *  (Bélier `ram` / Siège `siege`, #135) — jamais un total qui suggère un dégât inconditionnel quand la
- *  donnée dit le contraire. `conditionalDamageNote` = SOURCE UNIQUE (`weaponStats.ts`), la MÊME que
- *  `weaponStatParts` pour les armes EN MAIN (Sac/popover/fiche personnage). */
+ *  donnée dit le contraire. `conditionalDamageNote` (`weaponStats.ts`) compose les `degatsConditionnels`, ceux
+ *  que publie le profil d'une arme de la fiche (`profilDArme`). */
 const damageFact = (t: { damage?: import('../../engine/types').WeaponDamageSpec | null; qualities: { id: string; value?: number }[]; onHitEffects?: import('../../engine/flowCore').TriggeredEffect[] }): string | undefined =>
   join(t.damage ? damageString(t.damage) : null, conditionalDamageNote(t));
 
@@ -1641,8 +1641,8 @@ const CODEX_SPECS = {
     build: () => mutations.map((m) => depuisEnveloppe(m, {
       sub: valeurFR('mutations.json', 'kind', m.kind),
       group: valeurFR('mutations.json', 'kind', m.kind),
-      // PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /
-      // grantNaturalWeapon / grantTrait) → rendus par passiveSection ; plus de facts/chips dédiés.
+      // PA, arme naturelle et traits conférés : GameOps du `passive` (`ap`, `grantNaturalWeapon`, `grantTrait`),
+      // rendus par `passiveSection`.
       sections: sections(
         passiveSection(m.passive),
         ...reverseSections('mutations', m.id), // Tables de Corruption la tirant
