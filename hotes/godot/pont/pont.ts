@@ -14,7 +14,7 @@
  * @contrat En-tête
  * v8 (#2928, #2948, #3086, #3253, #3508).
  *
- * Godot est un hôte du noyau, au même titre que l'hôte texte (`src/hoteTexte/`) : il envoie des gestes et lit une vue
+ * Godot est un hôte du noyau, au même titre que l'hôte texte (`hotes/texte/`) : il envoie des gestes et lit une vue
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */

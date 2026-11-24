@@ -6,13 +6,13 @@
  * virtuelle du noyau (`horlogeVirtuelle`), jusqu'à ce qu'il n'en reste aucun. Un geste en erreur (validation, permission,
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
-import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../noyau/index';
-import { ErreurDeGeste, valider, type TenueDesJetons } from '../hote/partie';
-import { nouvelEntete, ouvrirLaPartie, type Entete } from '../hote/partieDeTest';
-import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../hote/geste';
-import { estObjet } from '../lib/objet.mjs';
+import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../../src/noyau/index';
+import { ErreurDeGeste, valider, type TenueDesJetons } from '../../src/hote/partie';
+import { nouvelEntete, ouvrirLaPartie, type Entete } from '../../src/hote/partieDeTest';
+import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../../src/hote/geste';
+import { estObjet } from '../../src/lib/objet.mjs';
 import { appelEcrit } from './outils';
-import { tableTotale } from '../lib/tableTotale';
+import { tableTotale } from '../../src/lib/tableTotale';
 
 /** Les pistes de lecture de l'hôte texte : l'appel de `lire` qui montre la suite d'un refus. */
 export const PISTES_DU_TEXTE: PistesDeLecture = {

@@ -3,10 +3,11 @@
   "entry": [
     "src/**/*.test.ts",
     "hotes/**/*.test.ts",
+    "projets/**/*.test.ts",
     "scripts/**/*.{mjs,mts,ts}",
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",
-    "src/hoteTexte/serveur.ts",
+    "hotes/texte/serveur.ts",
     "hotes/godot/pont/entree.ts",
     "hotes/godot/recettes/*.ts",
     "hotes/godot/cibles/propositions/sources/rendre.mjs"
@@ -14,6 +15,7 @@
   "project": [
     "src/**/*.{ts,tsx}",
     "hotes/**/*.{ts,tsx,mjs}",
+    "projets/**/*.{ts,tsx,mjs}",
     "scripts/**/*.{mjs,mts,ts}"
   ],
   "ignore": [
