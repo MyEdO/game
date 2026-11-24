@@ -22,7 +22,9 @@ export interface Epreuve { label: string; flux: FluxDEpreuve }
 export type IssueDEpreuve = { groupe: Combatant[]; journal: string[] }
   & ({ reussite: boolean; testeur: string; dr: number; cible: number } | { refus: string });
 
+/** L'entité qui porte le Test : un décor du catalogue (`props.json`), que le roguelite ne montre pas. */
 const ENTITE = 'epreuve';
+const DECOR = 'caisse';
 
 /** Joue l'`epreuve` sur le `groupe` à la graine `graine`. Rend le groupe tel que le noyau le laisse, l'issue du Test
  *  (`EVT.TEST_RESOLVED`) ou ce qui l'a empêché, et les lignes du journal. */
@@ -34,7 +36,7 @@ export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, gr
     graine,
     () => {
       const scene = arena({ id: 'epreuve', label: epreuve.label, w: 8, h: 8, heroStart: { x: 2, y: 4 } });
-      scene.entities.push({ id: ENTITE, kind: 'prop', pos: { x: 3, y: 4 }, label: epreuve.label, usable: { actions: [{ id: ENTITE, label: epreuve.label, flow: epreuve.flux }] } });
+      scene.entities.push({ id: ENTITE, kind: 'prop', decor: { id: DECOR }, pos: { x: 3, y: 4 }, label: epreuve.label, usable: { actions: [{ id: ENTITE, label: epreuve.label, flow: epreuve.flux }] } });
       return { party: groupe.map((h) => structuredClone(h)), scene, projet: null };
     },
     (r) => {
