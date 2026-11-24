@@ -11,8 +11,9 @@
  */
 import { isOutOfAction } from '../../engine/conditions';
 import type { Combatant } from '../../engine/types';
+import type { Possession } from '../../engine/possession';
+import type { BattleState, Jeu } from '../etat';
 import type { Dir8 } from '../../geometry/dir8';
-import type { Jeu } from '../etat';
 import type { Pt } from './path';
 
 /**
@@ -80,7 +81,7 @@ export function ecrireActeur(
  * `undefined` (plusieurs sites cherchent un id OPTIONNEL, ex. `sourceId?`) — même repli honnête que
  * `.find` sur une valeur absente : ne matche jamais, retourne `undefined`.
  */
-export function inBattleId(battle: Jeu['battle'], id: string | undefined): Combatant | undefined {
+export function inBattleId(battle: Pick<BattleState, 'combatants'> | null, id: string | undefined): Combatant | undefined {
   return id == null ? undefined : battle?.combatants.find((c) => c.id === id);
 }
 
@@ -100,10 +101,15 @@ export function porteurParId(s: Jeu, id: string): Combatant | undefined {
   return actorIn(s, id) ?? s.party.find((c) => c.id === id);
 }
 
-/** `c` est-il un héros du groupe ou une de ses possessions en jeu (`uid` du registre) ? Le groupe choisit sa monture
+/** La possession du registre que le combattant `id` projette en rencontre (`Combatant.id === Possession.uid`, #621). */
+export function possessionEnJeu(s: Pick<Jeu, 'possessions'>, id: string): Possession | undefined {
+  return s.possessions.find((p) => p.uid === id);
+}
+
+/** `c` est-il un héros du groupe ou une de ses possessions en jeu (`possessionEnJeu`) ? Le groupe choisit sa monture
  *  hors combat (#4804). */
 export function choisitSaMontureHorsCombat(s: Pick<Jeu, 'party' | 'possessions'>, c: Combatant): boolean {
-  return s.party.some((h) => h.id === c.id) || s.possessions.some((p) => p.uid === c.id);
+  return s.party.some((h) => h.id === c.id) || !!possessionEnJeu(s, c.id);
 }
 
 /** Une rencontre est-elle engagée : une bataille, ou une série d'attaques subies (`serieSubie`, #3892) ? */

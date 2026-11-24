@@ -92,7 +92,7 @@ export function ajouterAuRoster(stockage: Stockage | null, entry: RosterEntry): 
  *  (`intentionDEngagement`, surface du noyau), que l'hôte envoie à sa partie, fait entrer le brouillon au groupe, où le
  *  noyau bâtit le héros : ajouté avec sa Richesse sous l'id de son entrée, ou, en édition, en place du héros `heroId`,
  *  qui garde son id. Le héros édité garde son entrée de roster (`idDeRosterDuHeros`), ou en reçoit une neuve. */
-export function engagerLeHeros(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'party' | 'net'>, d: CreatorDraft, idDuRoster: FabriqueDuRoster, heroId?: string): { refus: string } | { intention: IntentionDEngagement } {
+export function engagerLeHeros(stockage: Stockage | null, etat: Pick<Jeu, 'battle' | 'party' | 'net' | 'possessions'>, d: CreatorDraft, idDuRoster: FabriqueDuRoster, heroId?: string): { refus: string } | { intention: IntentionDEngagement } {
   const refus = refusDEngagement(etat, d, heroId);
   if (refus) return { refus };
   const edite = heroId === undefined ? undefined : etat.party.find((h) => h.id === heroId);

@@ -454,9 +454,15 @@ export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
     if (!r?.restant || !hull.pos || !hull.crewIds?.length || isOutOfAction(hull)) continue;
     if (!hull.crewIds.every((id) => { const c = inBattleId(battle, id); return !c || isOutOfAction(c); })) continue;
     const base = battle.combatants.length;
-    const montes = freeTilesNear(scene, battle, hull.pos, Math.min(r.vague, r.restant)).map((pos, i) => {
-      const c = spawnEnemy({ ref: r.ref }, `${hull.id}-vague-${base}-${i}`, pos);
+    const marin = (i: number): Combatant => {
+      const c = spawnEnemy({ ref: r.ref }, `${hull.id}-vague-${base}-${i}`, undefined);
       c.kind = hull.kind;
+      return c;
+    };
+    const premier = marin(0);
+    const montes = freeTilesNear(scene, battle, hull.pos, Math.min(r.vague, r.restant), premier).map((pos, i) => {
+      const c = i === 0 ? premier : marin(i);
+      c.pos = pos;
       return c;
     });
     if (!montes.length) continue;

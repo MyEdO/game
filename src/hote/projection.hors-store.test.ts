@@ -22,6 +22,7 @@ import { interludeEnVue } from '../noyau/interludeEnVue';
 import { bancDeLInterlude } from '../noyau/interlude.testkit';
 import { dayPhase, toDate } from '../engine/clock';
 import { scenario as fluvial } from '../scenes/test-scenarios/15-commerce-fluvial';
+import { testScene } from '../scenes/test-fixture';
 
 describe('projection d’un objet de campagne', () => {
   it('publie l’apparence de naissance, tenue en main, sur l’actif et dans la liste des combattants', () => {
@@ -48,6 +49,24 @@ describe('projection d’un objet de campagne', () => {
       expect(vue.combat!.voisins.liste.find((c) => c.id === hero.id)!.portee?.portees).toContainEqual(tenue);
     } finally {
       partie.fermer();
+    }
+  });
+});
+
+describe('projection d’une bête-compagnon (#4804)', () => {
+  it('publie le pion du chien du Ratier dans la liste des combattants, dans le camp du groupe, sur sa case', () => {
+    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'ratier', label: 'R', seed: 1 });
+    const banc = ouvrirLeBanc({ etat: { party: [hero] } });
+    try {
+      banc.getState().lancerLaScene(testScene());
+      const chien = banc.getState().possessions.find((p) => p.ownerId === hero.id && p.nature === 'bete')!;
+      banc.getState().lancerLeCombat('enc-mutants');
+      const vue = projeter(banc.getState(), 0, 0, { autres: 100, offres: 100, cibles: 100, gestes: 100, entites: 100 });
+      const pion = vue.combat!.voisins.liste.find((c) => c.id === chien.uid);
+      const pos = banc.getState().battle!.combatants.find((c) => c.id === chien.uid)!.pos!;
+      expect(pion).toMatchObject({ camp: 'heros', horsCombat: false, pos: [pos.x, pos.y, pos.z ?? 0] });
+    } finally {
+      banc.abandonner();
     }
   });
 });
