@@ -96,7 +96,7 @@ const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rm
 const DOSSIERS_DES_ZONES = RACINES_PRESENTES.map((r) => `${r}/`)
 
 /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
-const LIT_DES_AUDITS = [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', 'kill-pid.mjs', '.npmrc']
+const LIT_DES_AUDITS = [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', '.npmrc']
 
 export const ECRIT_LU = {
   'agents:check': {
@@ -130,7 +130,7 @@ export const ECRIT_LU = {
     lit: [
       '.claude/', '.codex/', '.github/workflows/', 'docs/', 'patches/', 'public/', 'scripts/', 'server/', ...DOSSIERS_DES_ZONES, 'Source/',
       'CLAUDE.md', 'AGENTS.md', 'oxlint.config.mjs', 'oxlint.noms-par-ligne.config.mjs', 'knip.json', 'package.json', 'package-lock.json', 'tsconfig.json',
-      'kill-pid.mjs', 'knip-exports-baseline.json', 'vitest.config.ts', '.mcp.json',
+      'knip-exports-baseline.json', 'vitest.config.ts', '.mcp.json',
     ],
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.mjs importe compat-cli.mjs : chargerRegistres ne fait que charger les registres de hooks ; runCompat et atomicWrite ne sont pas appelés, et la porte import.meta.main reste fermée ; ' +
@@ -183,7 +183,7 @@ export const ECRIT_LU = {
       '--porcelain` avant/après identique, et aucun résidu `migr-` dans os.tmpdir() ; +1 lecture le 2026-09-23 (#1739) : la garde du dépôt ' +
       '`guards/lib/pdfHorsCouture.test.mjs` LIT tout fichier de code et tout JSON de configuration, suivi ou ' +
       'non indexé — son banc exige que chaque racine de `racinesBalayees` soit couverte par ce `lit` ' +
-      '(kill-pid.mjs, knip-exports-baseline.json, vitest.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
+      '(knip-exports-baseline.json, vitest.config.ts) ; +1 écrivain le 2026-09-27 (#1806) : ' +
       '`git-hooks/docs-rebuild.test.mjs` pose une cale `git` (`mkdtempSync` + `writeFileSync` sous ' +
       'os.tmpdir(), `rmSync` en finally) sur le dépôt jetable de `instanceDeDepot` — sonde ' +
       '`git status --porcelain` avant/après identique, et aucun résidu dans os.tmpdir() ; +1 écrivain le ' +
@@ -261,7 +261,7 @@ export const ECRIT_LU = {
   },
   'test:ops': {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'oxlint.config.mjs', 'kill-pid.mjs', '.claude/workflows/', '.claude/agents/', '.claude/skills/harnais/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'oxlint.config.mjs', '.claude/workflows/', '.claude/agents/', '.claude/skills/harnais/', '.claude/settings.json', '.claude/credo.md', '.codex/hooks.json', '.github/workflows/', 'knip.json', 'knip-exports-baseline.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'session-start.test.mjs copie les configurations réelles .claude/settings.json et .codex/hooks.json, le credo .claude/credo.md et les scripts des hooks dans ses fixtures mkdtempSync sous os.tmpdir(), retirées par t.after ; ses mutations de configuration, hooks, credo et reçus restent dans ces fixtures ; ' +
       'session-start.mjs importe compat-cli.mjs ; le préflight charge registre.mjs dynamiquement via chargerRegistres, jamais runCompat ni atomicWrite ; session-start.test.mjs importe directement bootstrap-conteneur.mjs ; ' +
@@ -300,8 +300,8 @@ export const ECRIT_LU = {
       'LIT .github/workflows/ parce que `CHEMIN` de `canari.test.mjs` et le test « les contextes se LISENT ' +
       'dans le ci.yml réel » de `ruleset-main.test.mjs` lisent les workflows RÉELS, et ' +
       'scripts/guards/lib/ par le stock de `fermetures-non-citees.mjs` ; LIT tout fichier JavaScript suivi ' +
-      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, oxlint.config.mjs, ' +
-      'kill-pid.mjs), que la porte `workflows.test.mjs` parse pour y RECONNAÎTRE les scripts de workflow et ' +
+      'ou à suivre (`git ls-files -co --exclude-standard` : scripts/, .claude/workflows/, ' +
+      'oxlint.config.mjs), que la porte `workflows.test.mjs` parse pour y RECONNAÎTRE les scripts de workflow et ' +
       'les bancs qui importent `jouer-workflow.mjs` (`reconnaissanceDuDepot`, `bancsDeWorkflowDuDepot`), sans ' +
       'processus fils ; LIT .claude/agents/ (le cliquet d’EXCEPTIONS_MECANIQUES exige `.claude/agents/<type>.md`) ; ' +
       '`workflows-joues.test.mjs` joue les scripts de .claude/workflows/ EN PLACE, sur l’arbre réel ; ' +
@@ -626,12 +626,13 @@ export const ECRIT_LU = {
   },
   lint: {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', '.claude/workflows/', '.claude/skills/', 'oxlint.config.mjs', 'package.json', 'kill-pid.mjs'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', '.claude/', '.agents/', '.codex/', '.github/', 'docs/', 'patches/', 'public/', 'Source/',
+      'oxlint.config.mjs', 'oxlint.noms-par-ligne.config.mjs', 'vitest.config.ts', 'package.json'],
     raison:
-      'Oxlint sans `--fix` ; LIT sa config explicite, ses plugins sous scripts/, package.json et les ' +
-      'modules de code sélectionnés, dont .claude/workflows/ : lecture du code et découverte native ' +
-      '`oxlint . --config oxlint.config.mjs --debug files`, sonde 2026-10-05 ; les configurations imbriquées sont désactivées ; ' +
-      'le mur des mods (#2278) porte le périmètre hooks/types/tests sous .claude/skills/.',
+      'Oxlint sans `--fix` ; LIT sa config explicite, ses plugins sous scripts/, package.json et tout module de code ' +
+      'de l’image de travail que `.gitignore` n’écarte pas (#4903 L3 : `murs/zone` juge chacun) : découverte native ' +
+      '`oxlint . --config oxlint.config.mjs --debug files`, sonde 2026-11-24 (4 633 fichiers, l’image `TRAVAIL` filtrée sur ' +
+      '`EXTENSIONS_DE_SCRIPT`) ; les configurations imbriquées sont désactivées.',
   },
   test: {
     ecrit: [],

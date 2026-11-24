@@ -5,6 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs';
 import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
+import { DOSSIERS_DE_CODE_DE_MOD } from './scripts/guards/lib/horsDesZones.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy|MaximumDesBlessures|DeDeTable)$/';
 const MSG_FORGE = 'Marque d’origine (#1262/#1318/#3045/#1463/#1667) : forger un `Built*`/`PlayerText`/`AdresseDeCreation`/`CiblePsy`/`MaximumDesBlessures`/`DeDeTable` par cast rend la marque décorative. Passer par un constructeur de la porte (rollSeam), par `revealToStep`, par un minteur de texte (`t`, `refLabel`, `composeRollLabel`, `nomDe`), par une fabrique d’adresse (`adresseDeCreation`, `adresseLue`), par la fabrique de Cible (`ciblePsy`), par celles des Blessures (`blessuresPosees`, `blessuresReconciliees`), ou par le constructeur du dé de table (`deDeLaTableTiree`).';
@@ -262,10 +263,9 @@ const VERROU_POSITIONS = [
 ].map((selector) => ({ selector, message: MSG_POSITIONS }));
 
 // #2278, #2280
-const GLOBS_DE_MOD = ['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/**/*.ts`, `.claude/skills/*/${d}/**/*.mts`]);
-const DOSSIERS_DE_MOD = ['.claude/skills/', '.claude/skills/*/', ...['hooks', 'types', 'tests'].flatMap((d) => [`.claude/skills/*/${d}/`, `.claude/skills/*/${d}/**/`])];
+const GLOBS_DE_MOD = DOSSIERS_DE_CODE_DE_MOD.flatMap((d) => [`.claude/skills/*/${d}/**/*.ts`, `.claude/skills/*/${d}/**/*.mts`]);
 const EXTENSIONS_HORS_TS = ['js', 'mjs', 'cjs', 'cts', 'jsx', 'tsx'];
-const GLOBS_DE_MOD_HORS_TS = ['hooks', 'types', 'tests'].flatMap((d) => EXTENSIONS_HORS_TS.map((ext) => `.claude/skills/*/${d}/**/*.${ext}`));
+const GLOBS_DE_MOD_HORS_TS = DOSSIERS_DE_CODE_DE_MOD.flatMap((d) => EXTENSIONS_HORS_TS.map((ext) => `.claude/skills/*/${d}/**/*.${ext}`));
 const BANCS_DE_MOD = ['.claude/skills/**/*.test.ts'];
 const COUTURE_DE_MOD = ['.claude/skills/*/hooks/ops.ts'];
 const REMEDE_MOD = 'le calcul va à un script de `scripts/`, le mod rend (#2278)';
@@ -406,12 +406,7 @@ const VERROU_MOD_HORS_TS = [{
   message: `Module hors \`.ts\` dans un mod (\`.js\`, \`.mjs\`, \`.cjs\`, \`.cts\`, \`.jsx\`, \`.tsx\`, bancs compris) : un mod s'écrit en \`.ts\`, avec \`h()\` pour le rendu (#2278) ; ${REMEDE_MOD}.`,
 }];
 
-export const IGNORE_LINT = ['dist/**', 'node_modules/**', 'public/**', '_site/**', '**/*.json', '/*.config.*', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**',
-  '.claude/**/*', '!.claude/workflows/', '!.claude/workflows/**',
-  ...DOSSIERS_DE_MOD.map((dossier) => `!${dossier}`),
-  ...[...GLOBS_DE_MOD, ...GLOBS_DE_MOD_HORS_TS].map((glob) => `!${glob}`),
-  ...BANCS_DE_MOD,
-];
+export const IGNORE_LINT = ['dist/**', 'node_modules/**', '**/*.json', '/.lint-*.config.mjs', 'server/.wrangler/**', '.playwright-mcp/**', '.wt-*/**'];
 const coeur = Object.fromEntries(Object.entries(js.configs.recommended.rules).map(([k,v])=>[k==='no-dupe-args'||k==='no-octal'?'core/'+k:k,v]));
 export const BLOCS_LINT = [
 {files:['**/*'],rules:coeur},
@@ -681,7 +676,12 @@ export const BLOCS_LINT = [
   {
     // #2882, #2928
     files: CODE_DES_ZONES,
-    rules: { 'murs/zone': 'error', 'murs/suite-jouee': 'error' },
+    rules: { 'murs/suite-jouee': 'error' },
+  },
+  {
+    // #2882, #4903 L3
+    files: ['**/*'],
+    rules: { 'murs/zone': 'error' },
   },
   {
     // #2817 D2
