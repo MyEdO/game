@@ -8,8 +8,10 @@ import { nouvelEntete, ouvrirLaPartie, scenarioDeTest } from './partieDeTest';
 import { OPTIONAL_RULES } from '../engine/policy';
 import { PREFERENCES } from '../noyau/preferences';
 import { t } from '../i18n';
-import { testScenarios } from '../scenes/test-scenarios';
 import type { Combatant, Jeton, ResultatDeLAppel } from '../noyau/index';
+import { catalogueDeLaPartie } from './contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 /** Un résultat d'appel qui programme `jetons`, chacun à son délai, entre deux événements émis. */
 const programme = (...jetons: [Jeton, number][]): ResultatDeLAppel => ({
@@ -53,32 +55,32 @@ describe('la tenue des jetons programmés', () => {
 
 describe('le scénario de test nommé par son id', () => {
   it('rend la fiche du catalogue, ou refuse un id inconnu en `validation`', () => {
-    const [premier] = testScenarios;
-    expect(scenarioDeTest(premier.id)).toBe(premier);
-    const e = erreurDe(() => scenarioDeTest('zz-inconnu'));
+    const [premier] = CATALOGUE;
+    expect(scenarioDeTest(CATALOGUE, premier.id)).toBe(premier);
+    const e = erreurDe(() => scenarioDeTest(CATALOGUE, 'zz-inconnu'));
     expect([e?.categorie, e?.message]).toEqual(['validation', 'scénario inconnu : zz-inconnu']);
   });
 });
 
 describe('l’en-tête d’une partie', () => {
   it('refuse en `validation` une règle hors du registre ou une valeur non conforme ; accepte une surcharge conforme (#1463 LD.1)', () => {
-    const [premier] = testScenarios;
+    const [premier] = CATALOGUE;
     const r = OPTIONAL_RULES[0];
-    const e = erreurDe(() => nouvelEntete(premier.id, { regles: { 'regle-hors-registre': true } }));
+    const e = erreurDe(() => nouvelEntete(CATALOGUE, premier.id, { regles: { 'regle-hors-registre': true } }));
     expect(e?.categorie).toBe('validation');
     expect(e?.message).toContain(t('houseRules.refus.inconnue', { id: 'regle-hors-registre' }));
-    expect(erreurDe(() => nouvelEntete(premier.id, { regles: { [r.id]: r.kind === 'flag' ? 'texte' : true } }))?.categorie).toBe('validation');
-    expect(nouvelEntete(premier.id, { regles: { [r.id]: r.default } }).regles).toEqual({ [r.id]: r.default });
+    expect(erreurDe(() => nouvelEntete(CATALOGUE, premier.id, { regles: { [r.id]: r.kind === 'flag' ? 'texte' : true } }))?.categorie).toBe('validation');
+    expect(nouvelEntete(CATALOGUE, premier.id, { regles: { [r.id]: r.default } }).regles).toEqual({ [r.id]: r.default });
   });
 
   it('cadence et dés fixés : absents, le défaut de leur préférence ; non conformes à sa forme, refusés en `validation` (#3041)', () => {
-    const [premier] = testScenarios;
+    const [premier] = CATALOGUE;
     const defaut = (id: string) => PREFERENCES.find((p) => p.id === id)!.default;
-    const e = nouvelEntete(premier.id, {});
+    const e = nouvelEntete(CATALOGUE, premier.id, {});
     expect([e.cadence, e.desFixes]).toEqual([defaut('combat-cadence'), defaut('des-fixes')]);
-    expect(erreurDe(() => nouvelEntete(premier.id, { cadence: 'inconnue' }))?.categorie).toBe('validation');
-    expect(erreurDe(() => nouvelEntete(premier.id, { desFixes: 'oui' }))?.categorie).toBe('validation');
-    expect(nouvelEntete(premier.id, { cadence: 'auto', desFixes: true })).toMatchObject({ cadence: 'auto', desFixes: true });
+    expect(erreurDe(() => nouvelEntete(CATALOGUE, premier.id, { cadence: 'inconnue' }))?.categorie).toBe('validation');
+    expect(erreurDe(() => nouvelEntete(CATALOGUE, premier.id, { desFixes: 'oui' }))?.categorie).toBe('validation');
+    expect(nouvelEntete(CATALOGUE, premier.id, { cadence: 'auto', desFixes: true })).toMatchObject({ cadence: 'auto', desFixes: true });
   });
 });
 
@@ -86,7 +88,7 @@ describe('l’ouverture d’une partie', () => {
   it('le héros que le noyau persiste passe par le service `persisterLeHeros` que l’hôte fournit (#3041)', () => {
     const persistes: Combatant[] = [];
     // Hors combat : en combat, le background ne s'édite pas (`refusDuBackground`, `noyau/verrousDeFiche.ts`).
-    const { partie } = ouvrirLaPartie(nouvelEntete('entrainement', { graine: 7 }), (heros) => void persistes.push(heros));
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'entrainement', { graine: 7 }), (heros) => void persistes.push(heros));
     try {
       expect(partie.etat().battle, 'témoin : la partie s’ouvre hors combat').toBeFalsy();
       const id = partie.etat().party[0].id;

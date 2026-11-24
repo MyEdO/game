@@ -19,6 +19,9 @@ import { nouvelEntete, ouvrirLaPartie } from '../../src/hote/partieDeTest';
 import { adresseDeCreation } from '../../src/engine/adresseDeCreation';
 import { pregens } from '../../src/data';
 import type { GesteDeLAgent } from './serveur';
+import { catalogueDeLaPartie } from '../../src/hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 afterEach(fermerLaTable);
 
@@ -54,7 +57,7 @@ describe('un brouillon malformé se refuse à la frontière, au chemin de son ch
 describe('la frontière lit le brouillon entier, à la forme du type du verbe', () => {
   let partie: ReturnType<typeof ouvrirLaPartie>['partie'];
   beforeAll(() => {
-    ({ partie } = ouvrirLaPartie(nouvelEntete('fenetre-ecuries', { graine: 7 }), () => {}));
+    ({ partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'fenetre-ecuries', { graine: 7 }), () => {}));
   });
   afterAll(() => partie.fermer());
   /** Les arguments lus par la frontière (`gesteDuVerbe`), ou le message de son refus `validation`. */

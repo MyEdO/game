@@ -59,7 +59,7 @@ function table(banc: Banc, invite: string) {
 /** Les deux sorties de présentation produites ensemble par le pont, après sérialisation. */
 function presentation(etat: Jeu) {
   const projection = projeter(etat, 0, etat.journal.length, { autres: Infinity, offres: Infinity, cibles: Infinity, gestes: Infinity, entites: Infinity });
-  const zones = zonesDeLEcran(etat, projection, fenetreADessiner(etat), null, SANS_ROSTER);
+  const zones = zonesDeLEcran(etat, projection, fenetreADessiner(etat), null, SANS_ROSTER, []);
   const json = JSON.stringify({ projection, zones });
   return { ...JSON.parse(json) as { projection: typeof projection; zones: typeof zones }, json };
 }

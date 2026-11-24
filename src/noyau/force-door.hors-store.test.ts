@@ -83,7 +83,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
         const projection = projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 });
         expect(projection.fenetre?.fermes[cle], 'motif transmis dans la fenêtre').toBe(motif);
         expect(fenetre?.gestes.find((geste) => geste.cle === cle)?.raison).toBe(motif);
-        expect(zonesDeLEcran(etat, projection, fenetre, null, SANS_ROSTER)['fenetre.gestes'].find((geste) => geste.id === cle))
+        expect(zonesDeLEcran(etat, projection, fenetre, null, SANS_ROSTER, [])['fenetre.gestes'].find((geste) => geste.id === cle))
           .toMatchObject({ type: 'bouton', refus: motif, jeu: { type: 'jetLancer', args: ['cascade'] } });
       }
       get().jetLancer('cascade');

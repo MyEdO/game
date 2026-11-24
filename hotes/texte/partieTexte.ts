@@ -1,14 +1,15 @@
 /**
  * LE CŒUR DE L'HÔTE TEXTE (#2898, plan v3 étape 4) : le fichier de partie, son rejeu et le geste suivant, sans
  * écran ni disque. Le fichier (JSONL) est la vérité de la partie : un en-tête (`Entete`), puis une ligne par geste
- * appliqué (`Geste`). Le rejeu ouvre la partie de l'en-tête et lance son scénario (`ouvrirLaPartie`, le module commun
- * des hôtes), puis rejoue chaque ligne ; après chaque appel, l'hôte reprend tous les jetons programmés sur l'horloge
+ * appliqué (`Geste`). Le rejeu ouvre la partie de l'en-tête et lance son scénario, pris au catalogue de la partie
+ * (`ouvrirLaPartie`, le module commun des hôtes), puis rejoue chaque ligne ; après chaque appel, l'hôte reprend tous les jetons programmés sur l'horloge
  * virtuelle du noyau (`horlogeVirtuelle`), jusqu'à ce qu'il n'en reste aucun. Un geste en erreur (validation, permission,
  * règle) n'est pas écrit. Une seule partie par contexte JS (`branchement.ts`) : un processus par appel.
  */
 import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../../src/noyau/index';
 import { ErreurDeGeste, valider, type TenueDesJetons } from '../../src/hote/partie';
 import { nouvelEntete, ouvrirLaPartie, type Entete } from '../../src/hote/partieDeTest';
+import type { TestScenario } from '../../src/scenes/test-scenarios/_shared';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../../src/hote/geste';
 import { estObjet } from '../../src/lib/objet.mjs';
 import { appelEcrit } from './outils';
@@ -20,8 +21,8 @@ export const PISTES_DU_TEXTE: PistesDeLecture = {
   verbe: (id) => ` (${appelEcrit('lire', { quoi: 'verbes', id })})`,
 };
 
-/** Le texte d'un fichier : l'en-tête, puis les gestes. */
-export function lireLeFichier(texte: string): { entete: Entete; gestes: Geste[] } {
+/** Le texte d'un fichier : l'en-tête, sur un scénario du catalogue `catalogue`, puis les gestes. */
+export function lireLeFichier(catalogue: readonly TestScenario[], texte: string): { entete: Entete; gestes: Geste[] } {
   const lignes = texte.split('\n').filter((l) => l.trim() !== '');
   valider(lignes.length > 0, `fichier de partie vide : ${appelEcrit('nouvelle')} d’abord`);
   const json = lignes.map((l, i) => {
@@ -34,7 +35,7 @@ export function lireLeFichier(texte: string): { entete: Entete; gestes: Geste[] 
   const [tete, ...reste] = json;
   valider(estObjet(tete), 'en-tête : objet JSON attendu');
   const e = tete as Record<string, unknown>;
-  const entete = nouvelEntete(String(e.scenario), { graine: e.graine as number, cadence: e.cadence, desFixes: e.desFixes, regles: estObjet(e.regles) ? e.regles : {} });
+  const entete = nouvelEntete(catalogue, String(e.scenario), { graine: e.graine as number, cadence: e.cadence, desFixes: e.desFixes, regles: estObjet(e.regles) ? e.regles : {} });
   return { entete, gestes: reste.map(lireGeste) };
 }
 
@@ -99,13 +100,14 @@ export function jouerUnGeste(r: PartieRejouee, lu: Geste): LigneNumerotee[] {
  *  (en-tête et gestes), sans roster. */
 const ignorerLeHeros = (): void => {};
 
-/** Rejoue un fichier : la partie ouverte sur l'en-tête, le scénario lancé, chaque geste rejoué. Une ligne qui ne se
+/** Rejoue un fichier : la partie ouverte sur l'en-tête, le scénario lancé, pris au catalogue `catalogue`, chaque
+ *  geste rejoué. Une ligne qui ne se
  *  rejoue plus ferme la partie et lève, avec son rang (1 : l'en-tête, le lancement). */
-export function rejouer(entete: Entete, gestes: readonly Geste[]): PartieRejouee {
+export function rejouer(catalogue: readonly TestScenario[], entete: Entete, gestes: readonly Geste[]): PartieRejouee {
   let r: PartieRejouee | null = null;
   let ligne = 1;
   try {
-    const { partie, jetons, lancement } = ouvrirLaPartie(entete, ignorerLeHeros);
+    const { partie, jetons, lancement } = ouvrirLaPartie(catalogue, entete, ignorerLeHeros);
     r = { partie, jetons, entete, gestes: [], journal: [], reprises: [] };
     absorber(r, lancement, 0);
     for (const geste of gestes) {

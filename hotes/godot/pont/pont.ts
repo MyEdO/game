@@ -195,7 +195,7 @@ import {
 } from '../../../src/hote/editeur';
 import { boutonDuCompendium, estLIssueDUneTransaction, gesteDuCompendium, refusDuCompendiumDit, zonesDuCompendium } from '../../../src/hote/compendium';
 import { hash32 } from '../../../src/lib/hash';
-import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
+import { catalogueDeLaPartie, type ContenuDUnJeu } from '../../../src/hote/contenu';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import {
   AUTO_SLOT,
@@ -890,14 +890,19 @@ function manifesteServi(texte: unknown): NonNullable<SessionDEdition['source']['
   return lu as NonNullable<SessionDEdition['source']['manifeste']>;
 }
 
-/** Le pont des planches et recettes figées, avec la géométrie de chaque décor disponible localement. */
-export function creerPontFige() {
-  return creerPont(null, null, false);
+/** Le pont des planches et recettes figées sur le contenu `contenu` du jeu, avec la géométrie de chaque décor
+ *  disponible localement. */
+export function creerPontFige(contenu: ContenuDUnJeu) {
+  return creerPont(null, null, contenu, false);
 }
 
-/** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde) et sur son réseau `reseau`
- *  (`null` : aucun, aucun salon) : ses méthodes, chacune appelée par `appeler`. */
-export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null, secoursDesDecors = true) {
+/** Le pont sur le stockage `stockage` de son hôte (`null` : aucun, rien ne se sauvegarde), sur son réseau `reseau`
+ *  (`null` : aucun, aucun salon) et sur le contenu `contenu` que le jeu lui remet, ses campagnes et ses scénarios de
+ *  test joués avec le catalogue commun (`catalogueDeLaPartie`, qui lève sur un id remis déjà au catalogue) : ses
+ *  méthodes, chacune appelée par `appeler`. */
+export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null, contenu: ContenuDUnJeu, secoursDesDecors = true) {
+  const catalogue = catalogueDeLaPartie(contenu.scenarios);
+  const { campagnes } = contenu;
   /** Les réglages du joueur reposés : ses préférences et ses règles maison persistées, que le scénario de test d'un
    *  `demarrer` ou la sauvegarde d'un `charger` remplacent en mémoire. */
   const reposerLesReglages = (): void => {
@@ -1099,7 +1104,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       projection,
       corps: corpsDe(projection, etat, selection),
       disposition: fenetre?.disposition ?? null,
-      zones: zonesDeLEcran(etat, projection, fenetre, o.panneau, o.roster),
+      zones: zonesDeLEcran(etat, projection, fenetre, o.panneau, o.roster, campagnes),
       cases: casesAtteignables(etat),
       plateau: plateau && cleDesDecors ? { ...plateau, cleDuMonde: `${plateau.cleDuMonde}/${cleDesDecors}` } : plateau,
       lumiere: etat.scene ? lumiereDeLaScene({ ...etat, scene: etat.scene }, regard) : null,
@@ -1285,9 +1290,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return { zones: zonesDeLAccueil(stockage) };
     },
     /**
-     * `{ scenario, graine? }` : l'id d'un scénario de test du catalogue (`testScenarios`), la graine des dés (entier, 1
-     * par défaut) ; ou `{ essai: true, graine? }` : la dernière scène que l'éditeur a mise à l'essai (section
-     * « Éditeur »), refusé sans elle
+     * `{ scenario, graine? }` : l'id d'un scénario de test du catalogue de la partie (le catalogue commun et les
+     * scénarios que le jeu remet à `creerPont`), la graine des dés (entier, 1 par défaut) ; ou
+     * `{ essai: true, graine? }` : la dernière scène que l'éditeur a mise à l'essai (section « Éditeur »), refusé sans
+     * elle
      *
      * @returns une `Suite` : le lancement du scénario, ou de l'essai
      */
@@ -1301,8 +1307,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         return suite((ouverte = tenir(o, entrees.graine)));
       }
       valider(typeof e.scenario === 'string', 'demarrer : scenario, l’id d’un scénario de test');
-      const entete = nouvelEntete(e.scenario as string, { graine: e.graine as number | undefined });
-      const o = ouvrirLaPartie(entete, persisterLeHeros, premierJeton);
+      const entete = nouvelEntete(catalogue, e.scenario as string, { graine: e.graine as number | undefined });
+      const o = ouvrirLaPartie(catalogue, entete, persisterLeHeros, premierJeton);
       return suite((ouverte = tenir(o, entete.graine)));
     },
     /**
@@ -1321,7 +1327,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return suite((ouverte = tenir(ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton), entrees.graine)));
     },
     /**
-     * `{ lancer }` : l'id d'une campagne du jeu, le `jeu` d'un bouton de la zone `groupe.campagnes`
+     * `{ lancer }` : l'id d'une campagne que le jeu remet à `creerPont`, le `jeu` d'un bouton de la zone
+     * `groupe.campagnes`
      *
      * @returns une `Suite` : le lancement de la campagne (`campagneDuJeu`) par le groupe composé (`lancementDuProjet`),
      * sur la séquence unique du lancement, à sa scène d'entrée, sous l'identité de son document. Refusé (`validation`) sans
@@ -1332,8 +1339,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     lancer(json) {
       const o = demarree();
       const e = entreeDe('lancer', json, ['lancer']);
-      const campagne = allBuiltinCampaigns.find((c) => c.id === e.lancer);
-      valider(campagne, `lancer : lancer, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
+      const campagne = campagnes.find((c) => c.id === e.lancer);
+      valider(campagne, `lancer : lancer, l’id d’une campagne du jeu (${campagnes.map((c) => c.id).join(', ')})`);
       const etat = o.partie.etat();
       valider(!partieEnCours(etat), 'lancer : la partie est déjà en cours ; quitter, puis ouvrir, pour en lancer une autre');
       const refus = refusDeLancer(etat);
@@ -1430,7 +1437,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
      */
     scenarios(json) {
       entreeDe('scenarios', json, []);
-      return { zones: zonesDesScenarios() };
+      return { zones: zonesDesScenarios(catalogue) };
     },
     /**
      * aucune
@@ -2064,9 +2071,9 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return rendu;
     },
     /**
-     * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne du jeu (`allBuiltinCampaigns`,
-     * `src/scenes/campaign.ts`), le texte de son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de
-     * l'index des chapitres du `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
+     * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne que le jeu remet à `creerPont`, le texte de
+     * son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de l'index des chapitres du
+     * `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
      * `src/noyau/edition/session.ts`), un geste du pointeur sur le plan du document ouvert (la case et le point de la
      * scène ; sur la carte du monde, le point du cadre du plan `editeur.carte` multiplié par ses `unites`, sa
      * case la partie entière), l'issue d'un enregistrement, d'un chargement de planche ou
@@ -2103,8 +2110,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       let session: SessionDEdition;
       let depot: { id: string; texte: string } | null = null;
       if ('ouvrir' in e) {
-        const campagne = allBuiltinCampaigns.find((c) => c.id === e.ouvrir);
-        valider(campagne !== undefined, `editer : ouvrir, l’id d’une campagne du jeu (${allBuiltinCampaigns.map((c) => c.id).join(', ')})`);
+        const campagne = campagnes.find((c) => c.id === e.ouvrir);
+        valider(campagne !== undefined, `editer : ouvrir, l’id d’une campagne du jeu (${campagnes.map((c) => c.id).join(', ')})`);
         valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
         const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
         const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
@@ -2175,7 +2182,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     },
     /**
      * `{ ouvrir: true, manifeste?, categorie?, id?, instance? }` : le texte de l'index des chapitres du `Source/` que sert
-     * le poste, et l'entrée où le Compendium s'ouvre, son instance (« 8 Tentacules +8 ») ; ou `{ compendium }` : le geste
+     * le poste, et l'entrée où le Compendium s'ouvre, son instance (« 8 Tentacules +8 »), sur les paquets des campagnes
+     * que le jeu remet à `creerPont` ; ou `{ compendium }` : le geste
      * du Compendium (`GesteDuCompendium`, `src/noyau/codex/session.ts`) que porte un bouton des zones `compendium.*`, un
      * qui l'offre sans refus d'abord, l'issue de l'écriture au dépôt (`{ geste: 'enregistrement', reussi, refus? }`,
      * refusée en `validation` hors d'une transaction demandée) ou celle du chapitre attendu ; ou `{ type: 'recherche' |
@@ -2197,7 +2205,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         const cible = e.categorie === undefined && e.id === undefined ? undefined : e;
         valider(cible === undefined || (typeof cible.categorie === 'string' && typeof cible.id === 'string' && (cible.instance === undefined || typeof cible.instance === 'string')), 'compendium : categorie et id, l’entrée où il s’ouvre, instance son libellé montré');
         const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
-        const paquets = allBuiltinCampaigns.map((c) => ({ fichier: c.fichier, projet: c.paquet }));
+        const paquets = campagnes.map((c) => ({ fichier: c.fichier, projet: c.paquet }));
         reprise = null;
         codex = ouvrirLeCompendium(manifeste, paquets, cible && { categorie: cible.categorie as string, id: cible.id as string, ...(cible.instance === undefined ? {} : { instance: cible.instance as string }) });
         valider(!cible || codex.refus === null, `compendium : ${codex.refus}`);
@@ -2371,7 +2379,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
    * recharger la page. La file des résultats (section « Suite ») est celle de la partie : elle s'ouvre et se ferme
    * avec elle. Un `demarrer`, un `ouvrir` ou un `charger` refusé n'ouvre rien. Les sauvegardes vivent dans le
    * stockage que l'hôte donne au pont (`creerPont`) : celui de la page (`localStorage`), un fichier pour le pont du
-   * processus.
+   * processus. Les campagnes et les scénarios de test d'un jeu sont ceux que son point d'entrée remet au pont
+   * (`creerPont`, `ContenuDUnJeu`), les scénarios joués avec le catalogue commun.
    */
   return { appeler, appelerEnOctets, octets };
 }

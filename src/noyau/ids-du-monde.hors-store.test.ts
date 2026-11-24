@@ -22,6 +22,9 @@ import { pregens } from '../data';
 import { fabriqueLocale } from '../engine/fabriqueDId';
 import { testScenarios } from '../scenes/test-scenarios';
 import { DESIGNATIONS } from './designations';
+import { catalogueDeLaPartie } from '../hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 const ENTREES = { graine: 3, cadence: 'manuel' as const, desFixes: true, persisterLeHeros: () => {}, reglesMaison: {} };
 const HEROS = { id: 'h', label: 'H', kind: 'heros', conditions: [], items: [] } as unknown as Combatant;
@@ -74,7 +77,7 @@ describe('le compteur voyage dans l’instantané coop (#2907)', () => {
 
 describe('un scénario lancé garde le compteur que son groupe a consommé (#2907)', () => {
   it('`dome` : le prochain id dépasse tous ceux que l’état porte', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const etat = partie.etat();
       const rangs = [...idsDuMonde(JSON.stringify(etat))].map((id) => Number(/\d+$/.exec(id)![0]));
@@ -119,7 +122,7 @@ describe('un uid du monde n’a qu’un porteur (#2907)', () => {
   it('sur chaque scénario lancé, chaque uid lu une fois par la désignation d’objet ou de poste', () => {
     const doublons: string[] = [];
     for (const sc of testScenarios) {
-      const { partie } = ouvrirLaPartie(nouvelEntete(sc.id, { graine: 7 }), () => {});
+      const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, sc.id, { graine: 7 }), () => {});
       try {
         for (const [uid, porteurs] of porteursDesUids(partie.etat())) if (porteurs.size > 1) doublons.push(`${sc.id} ${uid} : ${[...porteurs].join(', ')}`);
         doublons.push(...lusPlusDUneFois(sc.id, partie.etat()));
@@ -136,8 +139,8 @@ describe('un uid du monde n’a qu’un porteur (#2907)', () => {
     expect(fichiers.length).toBeGreaterThan(0);
     const doublons: string[] = [];
     for (const f of fichiers) {
-      const { entete, gestes } = lireLeFichier(readFileSync(join(dossier, f), 'utf8'));
-      const r = rejouer(entete, gestes);
+      const { entete, gestes } = lireLeFichier(CATALOGUE, readFileSync(join(dossier, f), 'utf8'));
+      const r = rejouer(CATALOGUE, entete, gestes);
       try {
         const etat = r.partie.etat();
         for (const [uid, porteurs] of porteursDesUids(etat)) if (porteurs.size > 1) doublons.push(`${f} ${uid} : ${[...porteurs].join(', ')}`);
@@ -169,8 +172,8 @@ describe('un geste refusé ne consomme aucun id (#2907)', () => {
   });
 
   it('l’hôte texte juge sans effet un recrutement refusé en combat, et n’en écrit rien', () => {
-    const { entete } = lireLeFichier(readFileSync(new URL('../../hotes/texte/combat-dome.jsonl', import.meta.url), 'utf8'));
-    const r = rejouer(entete, []);
+    const { entete } = lireLeFichier(CATALOGUE, readFileSync(new URL('../../hotes/texte/combat-dome.jsonl', import.meta.url), 'utf8'));
+    const r = rejouer(CATALOGUE, entete, []);
     try {
       expect(r.partie.etat().battle).not.toBeNull();
       const avant = r.partie.etat().prochainId;
@@ -185,11 +188,11 @@ describe('un geste refusé ne consomme aucun id (#2907)', () => {
 
 describe('deux rejeux d’un même fichier forgent les mêmes ids (#2907, `combat-dome.jsonl`)', () => {
   it('même empreinte', () => {
-    const { entete, gestes } = lireLeFichier(readFileSync(new URL('../../hotes/texte/combat-dome.jsonl', import.meta.url), 'utf8'));
-    const a = rejouer(entete, gestes);
+    const { entete, gestes } = lireLeFichier(CATALOGUE, readFileSync(new URL('../../hotes/texte/combat-dome.jsonl', import.meta.url), 'utf8'));
+    const a = rejouer(CATALOGUE, entete, gestes);
     const ea = empreinte(a.partie.etat());
     a.partie.fermer();
-    const b = rejouer(entete, gestes);
+    const b = rejouer(CATALOGUE, entete, gestes);
     const eb = empreinte(b.partie.etat());
     b.partie.fermer();
     expect(ea).toBe(eb);
