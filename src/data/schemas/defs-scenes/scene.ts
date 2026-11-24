@@ -226,6 +226,22 @@ export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statbl
   return refusDuParcours(parcours, porteurDuProfil(findCreatureById(ent.creature.id) ?? {}));
 }
 
+/** Les renforts d'un personnage (`renfortsDe`), tels que l'auteur les écrit. */
+type RenfortsDEntite = { modeleDePnj?: Readonly<Record<string, number>>; profilDeHeros?: { id: string }; roleDeBete?: { id: string } };
+
+/** La faute des renforts d'un personnage (`renfortsDe`), son champ et ce qu'elle dit, `undefined` s'ils sont admis ou
+ *  qu'il n'en porte pas : des renforts partent d'un profil du Bestiaire (`creature`), sans statbloc ni preset ; un modèle
+ *  de carrière au plus, qui exclut un parcours de carrière (`parcoursDe`). BNO p.4-5 */
+export function refusDesRenforts(ent: RenfortsDEntite & Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string } }): FauteDEntite | undefined {
+  const modele = Object.keys(ent.modeleDePnj ?? {}).length;
+  const champ = (['modeleDePnj', 'profilDeHeros', 'roleDeBete'] as const).find((k) => (k === 'modeleDePnj' ? modele > 0 : ent[k] !== undefined));
+  if (!champ) return undefined;
+  if (ent.statblock || ent.presetId || !ent.creature) return { chemin: [champ], message: 'les renforts d’un PNJ (modèle de carrière, profil de héros, rôle de bête) partent d’un profil du Bestiaire (« creature »), sans statbloc ni preset' };
+  if (modele > 1) return { chemin: ['modeleDePnj'], message: 'un PNJ suit un modèle de carrière au plus' };
+  if (modele && parcoursDe(ent)) return { chemin: ['modeleDePnj'], message: 'un modèle de carrière et des carrières s’excluent : un PNJ suit l’un ou les autres' };
+  return undefined;
+}
+
 /** Un élément de `combat.optionals` d'une entité de scène (`LDB 76 l.45`) : un Trait posé, ou une note « swap » du
  *  Bestiaire, posée entière. */
 export const optionalDeSceneSchema = z.union([traitInstanceSchema, optionalSwapSchema]);
@@ -259,6 +275,10 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
   talentsDeCarriere: recordDIds('career', listeSansCle(z.array(refOuSpec('talent')))).optional(),
   competencesDeCarriere: recordDIds('career', listeSansCle(z.array(refOuSpec('skill')))).optional(),
   dotationsDeCarriere: champsDeChoix.trappingChoices,
+  /** Renforts d'un personnage du bestiaire (`RenfortsDuPnj`, `engine/renfortsDuPnj.ts`). BNO p.4-5 */
+  modeleDePnj: recordDIds('modeleDePnj', nommerNoeud(z.number().int().min(1).max(4), { nom: 'niveau' }), 'modele').optional(),
+  profilDeHeros: ref('modeleDePnj', undefined, 'heros').optional(),
+  roleDeBete: ref('modeleDePnj', undefined, 'bete').optional(),
   /** Source de lumière : `radiusM` = rayon en MÈTRES (même unité qu'au catalogue, #1507) ;
    *  `tone` = id d'un `lightTones` (apparence seule). */
   light: nommerChamps(z.strictObject({ radiusM: z.number(), tone: idDe('lightTone').optional() }), { radiusM: { label: "rayon en mètres" }, tone: { label: "ton" , texte: { regime: "technique"} } }).optional(),
@@ -290,7 +310,7 @@ const baseDEntiteSchema = nommerChamps(z.strictObject({
     }), { optionals: { label: "options" }, spells: { label: "sorts" , texte: { regime: "technique"} }, randomChars: { label: "caractéristiques aléatoires" }, skills: { label: "Compétences" }, hiddenUntilCombat: { label: "caché jusqu’au combat" } })
     .optional(),
   couvre: couvreSchema.optional(),
-}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, amateur: { label: "amateur des arts", hint: "arbitrage maison (ACE 12 l.60-62) : contrepartie d’un Test de Sociabilité, lue par les jetons de Mécénat" }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, inventaire: { label: "inventaire" , texte: { regime: "technique"} }, carrieres: { label: "carrières", texte: { regime: "technique" } }, talentsDeCarriere: { label: "Talents de carrière", texte: { regime: "technique" } }, competencesDeCarriere: { label: "Compétences de carrière", texte: { regime: "technique" } }, dotationsDeCarriere: { label: "dotations de carrière", texte: { regime: "technique" } }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "rôle au combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, pos: { label: "position" }, z: { label: "étage" }, facing: { label: "orientation"  }, label: { label: "libellé" , texte: { regime: "designation"} }, statblock: { label: "profil" }, presetId: { label: "profil précomposé" , texte: { regime: "technique"} }, crewIds: { label: "membres d’équipage" , texte: { regime: "technique"} }, postes: { label: "postes" }, upgrades: { label: "améliorations" }, dialogueId: { label: "dialogue" , texte: { regime: "technique"} }, amateur: { label: "amateur des arts", hint: "arbitrage maison (ACE 12 l.60-62) : contrepartie d’un Test de Sociabilité, lue par les jetons de Mécénat" }, appearance: { label: "apparence" }, anim: { label: "animation" , texte: { regime: "technique"} }, inventaire: { label: "inventaire" , texte: { regime: "technique"} }, carrieres: { label: "carrières", texte: { regime: "technique" } }, talentsDeCarriere: { label: "Talents de carrière", texte: { regime: "technique" } }, competencesDeCarriere: { label: "Compétences de carrière", texte: { regime: "technique" } }, dotationsDeCarriere: { label: "dotations de carrière", texte: { regime: "technique" } }, modeleDePnj: { label: "modèle de carrière", texte: { regime: "technique" }, hint: "Un modèle du Bestiaire non officiel, à son Niveau atteint (1 à 4) : +5 par Niveau à ses Caractéristiques et Compétences, ses Talents, ses possessions" }, profilDeHeros: { label: "profil de héros", hint: "Modificateurs de héros ajoutés au profil, Arme et Armure renforcées, Traits ajoutés" }, roleDeBete: { label: "rôle de bête", hint: "Prédateur ou proie : +20 à une Compétence, un Talent à son Maxi" }, light: { label: "lumière" }, merchant: { label: "marchand" }, tavernGame: { label: "jeu de taverne" }, usable: { label: "utilisable" }, combat: { label: "rôle au combat" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} } });
 
 /** Branche d'une entité de scène : les champs partagés, son `kind` et son corps. Le littéral
  *  DISCRIMINE la branche, `entityKindSchema` en NOMME la valeur (vocabulaire à libellés). */
@@ -312,11 +332,11 @@ export interface FauteDEntite { chemin: readonly (string | number)[]; message: s
 
 /** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
  *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
- *  un corps au plus, le parcours de carrière (`refusDuPnjDeCarriere`) et le cap
+ *  un corps au plus, le parcours de carrière (`refusDuPnjDeCarriere`), ses renforts (`refusDesRenforts`) et le cap
  *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
  *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
  *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & RenfortsDEntite & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
@@ -324,6 +344,8 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     if (corps.length > 1) fautes.push({ chemin: [corps[1]], message: `corps EXCLUSIFS — ${corps.map((k) => `« ${k} »`).join(', ')} : un personnage en porte un au plus` });
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
+    const renforts = refusDesRenforts(ent);
+    if (renforts) fautes.push(renforts);
     if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
     ent.postes?.forEach((p, rang) => {

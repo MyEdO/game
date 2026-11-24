@@ -125,6 +125,7 @@ import type { Warning } from './validateScene';
 import { emptyStatblock, statblockDeLaCreature } from '../data/valeursNeuves';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
 import { parcoursDe } from '../engine/pnjDeCarriere';
+import { renfortsDe } from '../engine/renfortsDuPnj';
 import { entityAppearanceSchema, OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
 import { apparencesChoisissablesDObjet, objetsAApparenceChoisie } from '../data/apparencesObjets';
 import { armesDEntite, equipementDAuteurDe } from './equipementDessine';
@@ -617,11 +618,12 @@ interface FormulaireDuPorteur<D> {
 }
 
 /** Les champs que le formulaire d'un personnage offre : de son rôle au combat, ses options, ses Compétences, le tirage de
- *  ses Caractéristiques et son embuscade ; son profil personnalisé ; sa contrepartie d'amateur des arts, son marchand, son
- *  jeu de taverne, son apparence, son animation. */
-const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['merchant'], ['tavernGame'], ['appearance'], ['anim']];
+ *  ses Caractéristiques et son embuscade ; son profil personnalisé ; ses renforts (modèle de carrière, profil de héros,
+ *  rôle de bête) ; sa contrepartie d'amateur des arts, son marchand, son jeu de taverne, son apparence, son animation. */
+const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['modeleDePnj'], ['profilDeHeros'], ['roleDeBete'], ['amateur'], ['merchant'], ['tavernGame'], ['appearance'], ['anim']];
 
-/** Les profils d'auteur qu'un PNJ de carrière ne porte pas (`refusDuPnjDeCarriere`) : son profil personnalisé et son preset. */
+/** Les profils d'auteur qu'un PNJ de carrière ou à renforts ne porte pas (`refusDuPnjDeCarriere`, `refusDesRenforts`) :
+ *  son profil personnalisé et son preset. */
 const PROFILS_D_AUTEUR: readonly Segment[] = ['statblock', 'presetId'];
 
 /** L'apparence d'un PNJ de carrière : chacune de ses clés (`entityAppearanceSchema`), hors de la tenue, que sa carrière
@@ -636,16 +638,18 @@ const SORTS_CHOISIS = ['combat', 'spells'] as const;
  *  (`dialoguesDeLaScene`) ; ses sorts choisis s'il en porte, ou si sa fiche (`ficheEditee`)
  *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule,
  *  ses Améliorations et ses postes (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
- *  et son apparence sans tenue (`APPARENCE_DU_PNJ_DE_CARRIERE`). */
+ *  ni modèle de carrière, et son apparence sans tenue (`APPARENCE_DU_PNJ_DE_CARRIERE`) ; d'un PNJ à renforts (`renfortsDe`), aucun
+ *  de ses profils d'auteur. */
 function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif } }: CadreDuPorteur): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
   const dialogue = ent.dialogueId !== undefined || dialoguesDeLaScene(scene).size ? [['dialogueId']] : [];
   const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, narratif);
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
   const coque = ent.vehicule ? [['vehicule'], ['upgrades'], ['postes']] : [];
-  const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
-  if (!parcoursDe(ent)) return champs;
-  return champs.flatMap((c) => (PROFILS_D_AUTEUR.includes(c[0]) ? [] : c[0] === 'appearance' ? APPARENCE_DU_PNJ_DE_CARRIERE : [c]));
+  const parcours = parcoursDe(ent);
+  const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque].filter((c) => !(parcours && c[0] === 'modeleDePnj'));
+  if (!parcours && !renfortsDe(ent)) return champs;
+  return champs.flatMap((c) => (PROFILS_D_AUTEUR.includes(c[0]) ? [] : parcours && c[0] === 'appearance' ? APPARENCE_DU_PNJ_DE_CARRIERE : [c]));
 }
 
 /** Les choix que le contexte d'un personnage pose à ses sorts choisis (`combat.spells`) : d'un élément au rang `rang`, ou

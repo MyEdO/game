@@ -115,6 +115,7 @@ const NOMMES = [
   // (`structures.taille`, `trappings.sizeFor`, `talents.size`, `CustomStatblock.size`), nommée avec
   // les 7 libellés de la table LDB 85 l.346-354.
   'minuscule|tresPetite|petite|moyenne|grande|enorme|monstrueuse',
+  'modele|heros|bete',
   'nord|sud|est|ouest',
   // `tablesDeCiblesSchema` : les tables de Cibles d'un Trait octroyé (EDOC 12 l.170).
   'obsessions',

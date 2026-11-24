@@ -174,6 +174,7 @@ import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-a
 import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
 import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
 import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-nature';
+import type * as modelesDePnjDef from './schemas/defs/modeles-de-pnj';
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
@@ -249,6 +250,7 @@ import talentsAleatoiresJson from './talents-aleatoires.json';
 import carrieresAleatoiresJson from './carrieres-aleatoires.json';
 import especesAleatoiresJson from './especes-aleatoires.json';
 import mutationNatureJson from './mutation-nature.json';
+import modelesDePnjJson from './modeles-de-pnj.json';
 import cargaisonsAleatoiresJson from './cargaisons-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
@@ -1774,6 +1776,11 @@ export function natureDeMutationDe(speciesId: string | undefined): (typeof mutat
   const race = findSpeciesById(speciesId)?.refChar ?? speciesId;
   return garanti(mutationNature.find((d) => d.race === race), race, 'document de la nature de la mutation pour la race');
 }
+/** Les modèles de carrière, profils de héros et rôles de bête qu'un PNJ du bestiaire porte en scène (BNO p.4-5),
+ *  leur sorte en `kind` — app-owned éditable au Codex (`setDataset`), même référence. */
+export const modelesDePnj = datasetDe<typeof modelesDePnjDef>(modelesDePnjJson);
+export type ModeleDePnjData = (typeof modelesDePnj)[number];
+export const findModeleDePnjById = indexParId('modelesDePnj', modelesDePnj);
 /** Les documents du Tableau des cargaisons, un par voie et colonne saisonnière (MDG 15 l.404-418 ; MSRC 13
  *  l.69-78) — app-owned éditable au Codex (`setDataset`), même référence. */
 export const cargaisonsAleatoires = datasetDe<typeof tableauDesCargaisons>(cargaisonsAleatoiresJson);

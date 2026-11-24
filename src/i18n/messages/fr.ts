@@ -590,6 +590,7 @@ export const fr = {
   'ecran.separateur': ' · ',
   // La fiche d'un héros (`zonesDeLaFiche`, `src/hote/ecran.ts`) : ses Points, ses onglets, le détail d'une Compétence.
   'ecran.fiche.chance': 'Chance',
+  'ecran.fiche.modeleDePnj': '{modele}, Niveau {niveau}',
   'ecran.fiche.resilience': 'Résilience',
   'ecran.fiche.determination': 'Détermination',
   'ecran.fiche.fermer': 'Fermer',
@@ -5730,6 +5731,10 @@ export const fr = {
   'codex.fiche.especesAleatoires': 'Races aléatoires (table)',
   'codex.fiche.cargaisonsAleatoires': 'Cargaisons aléatoires (table)',
   'codex.fiche.mutationNature': 'Corps ou esprit de la mutation (table)',
+  'codex.fiche.modelesDePnj': 'Modèles de PNJ',
+  'codex.fiche.traitsFacultatifs': 'Traits facultatifs',
+  'codex.fiche.armePlus': 'Arme +',
+  'codex.fiche.armurePlus': 'Armure +',
   'codex.fiche.reglesOptionnelles': 'Règles optionnelles',
   'codex.fiche.ref': 'Réf',
   'codex.fiche.controle': 'Contrôle',

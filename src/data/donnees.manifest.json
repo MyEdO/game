@@ -378,6 +378,12 @@
             "creatures.json"
           ],
           "desc": "Bestiaire / PNJ (statblocs : `char`, `traits`, `skills`, `spells`, `trappings`…)"
+        },
+        {
+          "files": [
+            "modeles-de-pnj.json"
+          ],
+          "desc": "Modèles de carrière, profils de héros et rôles de bête (`kind`) qu'un PNJ du bestiaire porte en scène (BNO p.4-5)"
         }
       ]
     },

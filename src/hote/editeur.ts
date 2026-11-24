@@ -142,6 +142,7 @@ import {
   libelleDeLaValeur,
   parcoursDe,
   parcoursRetouche,
+  renfortsDe,
   parseRefKey,
   prisParLesAutres,
   refKey,
@@ -1120,7 +1121,8 @@ function inventaire(s: SessionDEdition, ent: Scene['entities'][number]): (Choix 
 
 /** Le parcours de carrière du personnage `ent`, s'il part d'une fiche du bestiaire (EDO 11 l.19) :
  *  chaque carrière, la dernière actuelle, à son Niveau ou à retirer ; les Talents choisis de chacun de ses Niveaux
- *  atteints ; la Compétence de chacun de ses emplacements à choix ; une carrière à ajouter, qui devient l'actuelle ;
+ *  atteints ; la Compétence de chacun de ses emplacements à choix ; une carrière à ajouter, qui devient l'actuelle, sauf
+ *  sous un modèle de carrière (`refusDesRenforts`) ;
  *  chaque emplacement de dotation de l'actuelle, l'emplacement de la branche choisie dessous. Ce que l'auteur ne choisit
  *  pas se tire au spawn (« Tiré »).
  *  Chaque bouton écrit le parcours entier, retouché (`parcoursRetouche`). */
@@ -1182,8 +1184,8 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
   };
   return [
     ...etapes,
-    choix('carriere/ajouter', t('ecran.editeur.carriere.ajouter'), careers.filter((c) => !(c.id in p.carrieres))
-      .map((c) => boutonDEdition(`carriere/ajouter/${c.id}`, c.label, ecrire({ ...p, carrieres: { ...p.carrieres, [c.id]: 1 }, dotationsDeCarriere: undefined }), false, refusDeTenue)), 'liste'),
+    ...(renfortsDe(ent)?.modele ? [] : [choix('carriere/ajouter', t('ecran.editeur.carriere.ajouter'), careers.filter((c) => !(c.id in p.carrieres))
+      .map((c) => boutonDEdition(`carriere/ajouter/${c.id}`, c.label, ecrire({ ...p, carrieres: { ...p.carrieres, [c.id]: 1 }, dotationsDeCarriere: undefined }), false, refusDeTenue)), 'liste')]),
     ...(actuelle ? emplacementsDeDotation(dotationsDuPnj(actuelle.id, actuelle.niveau)).filter(estEmplacementRacine).flatMap(dotation) : []),
   ];
 }

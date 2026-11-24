@@ -124,6 +124,11 @@ export interface SceneEntity {
   talentsDeCarriere?: ParcoursDeCarriere['talentsDeCarriere'];
   competencesDeCarriere?: ParcoursDeCarriere['competencesDeCarriere'];
   dotationsDeCarriere?: ParcoursDeCarriere['dotationsDeCarriere'];
+  /** Renforts d'un personnage du bestiaire (`RenfortsDuPnj`, `engine/renfortsDuPnj.ts`) : un modèle de carrière à son
+   *  Niveau (un au plus, par son id), un profil de héros, un rôle de bête ; portés au spawn par `porterAuxRenforts`. BNO p.4-5 */
+  modeleDePnj?: Readonly<Record<string, number>>;
+  profilDeHeros?: { id: string };
+  roleDeBete?: { id: string };
   /** Source de lumière (brouillard de guerre) : rayon d'éclairage en MÈTRES, la même unité qu'au
    *  catalogue (`PropData.light`, #1507) — c'est `rayonEnCases` (`noyau/monde/vision.ts`) qui le ramène aux
    *  cases de la scène. Override de l'instance ; sinon le rayon vient du TYPE de prop

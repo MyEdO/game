@@ -17,7 +17,7 @@ import {
   qualities, trappingsEffectifs, siegeEngines, groupeDeSiege, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, modelesDePnj, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -1789,6 +1789,23 @@ const CODEX_SPECS = {
   traits: {
     label: 'codex.fiche.traits', group: 'monde',
     build: () => traits.map((t) => traitItem(t)),
+  },
+  modelesDePnj: {
+    label: 'codex.fiche.modelesDePnj', group: 'monde',
+    build: () => modelesDePnj.map((m) => depuisEnveloppe(m, {
+      sub: join(valeurFR('modeles-de-pnj.json', 'kind', m.kind), m.aussiPour),
+      meta: facts(fact(tr('codex.fiche.armePlus'), m.arme), fact(tr('codex.fiche.armurePlus'), m.armure), fact(tr('codex.fiche.bonus'), m.bonus)),
+      sections: sections(
+        m.caracteristiques ? { title: tr('codex.fiche.caracteristiques'), layout: 'chips', rows: charRefRows(m.caracteristiques) } : null,
+        m.modificateurs ? { title: tr('codex.fiche.caracteristiques'), layout: 'chips', rows: Object.entries(m.modificateurs).map(([k, v]) => ({ ...charRefRows([k as CharKey])[0], show: `${CHAR_LABELS[k as CharKey]} +${v}` })) } : null,
+        chips(tr('codex.fiche.competences'), [...(m.competences ?? []), ...(m.competence ? [m.competence] : [])].map((r) => idRefRow('skills', r.id, r.spec))),
+        chips(tr('codex.fiche.talents'), [...(m.talents ?? []), ...(m.talent ? [m.talent] : [])].map((r) => idRefRow('talents', r.id, 'spec' in r ? r.spec : undefined))),
+        chips(tr('codex.fiche.traits'), (m.traits ?? []).map((id) => idRefRow('traits', id))),
+        chips(tr('codex.fiche.traitsFacultatifs'), (m.traitsFacultatifs ?? []).map((id) => idRefRow('traits', id))),
+        trappingChips(tr('codex.fiche.possessions'), m.dotations),
+        ...reverseSections('modelesDePnj', m.id),
+      ),
+    })),
   },
   locations: {
     label: 'codex.fiche.lieux', group: 'monde',

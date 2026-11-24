@@ -76,6 +76,8 @@ export const TYPES = {
   // LDB 05 l.214 : `species.json › refCareer` nomme sa colonne du Tableau des Classes et Carrières aléatoires.
   carrieresAleatoires: { espace: 'carrieres-aleatoires.json', catalogue: 'colonnes du Tableau des Classes et Carrières aléatoires' },
   talentsAleatoires: { espace: 'talents-aleatoires.json', catalogue: 'tables de Talents aléatoires' },
+  // BNO p.4-5 : `SceneEntity.modeleDePnj`, `profilDeHeros` et `roleDeBete`, sous-listes par `kind`.
+  modeleDePnj: { espace: 'modeles-de-pnj.json', catalogue: 'modèles de PNJ' },
   navalTrait: { espace: 'naval-traits.json', catalogue: 'traits navals' },
   // PORT du catalogue naval : `MapPlace.port.ref` résout AU PARSE, toutes les réfs mortes nommées.
   navalPort: { espace: 'naval-ports.json', catalogue: 'ports' },

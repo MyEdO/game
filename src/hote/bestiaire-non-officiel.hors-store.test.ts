@@ -1,13 +1,15 @@
 /**
  * Le *Bestiaire non officiel* est un livre de la base commune (#4916, épique #4903 L12) : chacune de ses créatures se
  * pose dans une scène que `validateScene` accepte et se lève en combattant, chacun de ses Traits propres est au
- * catalogue, cité à sa page, et une rencontre contre l'une d'elles se joue jusqu'à son issue.
+ * catalogue, cité à sa page, ses modèles de carrière, profils de héros et rôles de bête se posent sur un PNJ de scène, et une
+ * rencontre contre l'une d'elles se joue jusqu'à son issue.
  */
 import { describe, it, expect } from 'vitest';
 import { books, creatures, traits } from '../data';
 import { buildScene, type EncounterSpec } from '../noyau/mapSpec';
 import { validateScene } from '../noyau/validateScene';
 import { creatureToCombatant } from '../noyau/monde/spawn';
+import { ficheDEntite } from '../noyau/monde/sceneNpc';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { itemFromTrappingById, recomputeLoadout } from '../engine/items';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
@@ -60,6 +62,16 @@ describe('Bestiaire non officiel, livre de la base commune (#4916)', () => {
       const combattant = creatureToCombatant(c, `bno-${c.id}`, ORIGINE);
       expect(combattant.wounds.max, c.id).toBeGreaterThan(0);
     }
+  });
+
+  it('un PNJ à modèle de carrière et profil de héros, une bête à rôle, posés en scène, sont valides et se lèvent en combattants', () => {
+    const scene = buildScene({ id: 'bno-renforts', label: 'Arène', size: [14, 8], heroStart: [2, 4], encounters: [rencontre('rencontre', ['humain', 'jaguars'])] });
+    const [pnj, bete] = scene.entities.filter((e) => e.kind === 'personnage');
+    Object.assign(pnj, { modeleDePnj: { 'modele-guerrier': 2 }, profilDeHeros: { id: 'heros-mineur' } });
+    Object.assign(bete, { roleDeBete: { id: 'bete-predateur' } });
+    expect(validateScene([scene]).filter((w) => w.level === 'error')).toEqual([]);
+    expect(ficheDEntite(pnj, () => undefined).porteurDeFiche?.renforts).toEqual({ modele: { id: 'modele-guerrier', niveau: 2 }, heros: 'heros-mineur' });
+    expect(ficheDEntite(bete, () => undefined).porteurDeFiche?.renforts).toEqual({ bete: 'bete-predateur' });
   });
 
   it('une rencontre contre une de ses créatures se joue jusqu’à son issue', () => {

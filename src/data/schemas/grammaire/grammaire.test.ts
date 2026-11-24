@@ -803,6 +803,8 @@ describe('exigences d’enveloppe des defs ADOPTÉS — le verrou que le mesureu
     // (MDG 15, MSRC 13).
     'cargoes.json · source',
     'siege-engines.json · source',
+    // #4916 — `modeles-de-pnj` naît adopté : chaque modèle, profil de héros et rôle de bête cite sa page (BNO p.4-5).
+    'modeles-de-pnj.json · source',
   ];
 
   it('la 1ʳᵉ entrée réelle de chaque def adopté est ACCEPTÉE — témoin positif de chaque paire', () => {

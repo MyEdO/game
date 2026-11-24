@@ -53,6 +53,7 @@ export {
   talentsDuParcours,
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
+export { renfortsDe } from '../engine/renfortsDuPnj';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
 export { candidatsDuSlot, parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {

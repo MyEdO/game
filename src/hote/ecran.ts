@@ -1271,8 +1271,8 @@ const etatsEnPuces = (etats: FicheDuPorteur['etats']): Puce[] => etats.map((e) =
   return terme(puce(`etat/${e.id}`, libelle, String(e.valeur), null, 'alerte'), { libelle, renvoi: cibleDuCodex('etats', e.id) });
 });
 
-/** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce et sa carrière, chacune en puce qui ouvre le
- *  Compendium sur elle (`terme`) ; ses Blessures en jauge ;
+/** Le porteur de la fiche, la tête de son statbloc : son nom ; son espèce, sa carrière et chacun de ses renforts, chacun en
+ *  puce qui ouvre le Compendium sur lui (`terme`) ; ses Blessures en jauge ;
  *  ses Points de Destin, de Chance, de Résilience et de Détermination, s'il en a ; sa bourse, s'il est un héros du groupe ; chacun de ses États en puce ;
  *  le bouton qui ouvre le Compendium sur la créature du bestiaire qu'il désigne. */
 function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
@@ -1283,6 +1283,7 @@ function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
     elements: [
       ...(f.espece === null ? [] : [terme(puce('espece', f.espece.libelle, null), f.espece)]),
       ...(f.carriere === null ? [] : [terme(puce('carriere', f.carriere.libelle, null), f.carriere)]),
+      ...f.renforts.map((r, i) => terme(puce(`renfort/${i}`, r.libelle, null), r)),
       jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
       ...points,
       ...(etat.party.some((h) => h.id === f.id) ? [puce('bourse', t('ecran.bourse'), formatMoney(f.bourse))] : []),

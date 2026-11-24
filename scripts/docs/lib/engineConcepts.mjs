@@ -39,6 +39,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/capabilities.ts', "Capacités d'entité (aptitudes)"],
   ['src/engine/careerSlots.ts', "Carrières : emplacements, statut en carrière"],
   ['src/engine/pnjDeCarriere.ts', 'Carrières : PNJ porté à ses Niveaux (EDO)'],
+  ['src/engine/renfortsDuPnj.ts', 'Carrières : PNJ porté à ses modèle, profil de héros et rôle de bête (BNO)'],
   ['src/engine/cargo.ts', 'Cargaison, fret'],
   ['src/engine/castingNumber.ts', "Magie : Nombre d'Incantation"],
   ['src/engine/character.ts', 'Personnage : dérivés, résolution de fiche'],

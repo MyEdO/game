@@ -69,6 +69,7 @@ import {
   weaponFromItem,
 } from '../../engine/items';
 import { argentDuPnj, porterAuParcours } from '../../engine/pnjDeCarriere';
+import { porterAuxRenforts } from '../../engine/renfortsDuPnj';
 import { doterLePorteur } from '../../engine/bourse';
 import { itemCapability } from '../../engine/capabilities';
 import { lierLesComposants } from '../../engine/magic';
@@ -451,7 +452,7 @@ export class RefIrresoluble extends Error {
 }
 
 /** La fiche du corps que porte `porteur` : sa créature, portée à son `parcours` de carrière s'il en a un
- *  (`porterAuParcours`), sa coque, son engin ; lève `RefIrresoluble` hors de son catalogue. */
+ *  (`porterAuParcours`), puis à ses `renforts` (`porterAuxRenforts`), sa coque, son engin ; lève `RefIrresoluble` hors de son catalogue. */
 function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehicule: string } | { engin: string }>, id: string, pos?: { x: number; y: number; z?: number }, opts?: SpawnExtras): Combatant {
   if (porteur.vehicule !== undefined) {
     // MDG 13 : la coque (`vehicleCombatant`, facette `hull`), à PV, sans arme ni Mouvement, immune à la Psychologie,
@@ -472,6 +473,7 @@ function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehic
   if (!creature) throw new RefIrresoluble(porteur.ref, id);
   const c = creatureToCombatant(creature, id, pos, opts);
   if (porteur.parcours) porterAuParcours(c, porteur.parcours);
+  if (porteur.renforts) porterAuxRenforts(c, porteur.renforts, creature.char);
   return c;
 }
 

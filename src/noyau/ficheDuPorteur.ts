@@ -3,8 +3,8 @@
  * son espèce et sa carrière, ses Blessures, ses Points de Destin, de Chance, de Résilience et de Détermination, ses
  * États, son Mouvement et ses Caractéristiques effectifs, ses armes à la valeur de leur Test, ses Points d'Armure
  * effectifs, ses Traits, ses Mutations, ses Compétences à la valeur de leur Test, ses Talents effectifs, ses sorts et
- * ses prières, leur description sous les règles actives, ses possessions, et la source du profil dont il est
- * l'instance ; l'entrée du Codex que nomme chacun de ces termes qui en désigne une (`Renvoyable`). Lecteur PUR, pour
+ * ses prières, leur description sous les règles actives, ses possessions, la source du profil dont il est
+ * l'instance et ses renforts ; l'entrée du Codex que nomme chacun de ces termes qui en désigne une (`Renvoyable`). Lecteur PUR, pour
  * tout hôte qui montre la partie.
  */
 import type { Jeu } from './etat';
@@ -39,6 +39,7 @@ import {
   careerLabelFor,
   charAbr,
   findCreatureById,
+  findModeleDePnjById,
   findSpeciesById,
   findSpellById,
   findTalentById,
@@ -52,6 +53,8 @@ import {
 import type { NatureDeMention, SourceRef } from '../data/schemas/grammaire/valeurs';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { jsonCanonique } from '../lib/jsonCanonique.mjs';
+import { garanti } from '../lib/garanti';
+import { t } from '../i18n';
 import { cibleDuCodex, type CibleDuCompendium } from './codex/registry';
 import type { PlayerText } from '../i18n/playerText';
 
@@ -135,6 +138,20 @@ export interface FicheDuPorteur {
   /** La créature du bestiaire que désigne le porteur (`porteurDeFiche.ref`), `null` sans elle (un héros, un preset,
    *  un statbloc d'auteur). */
   profil: Renvoyable | null;
+  /** Ses renforts (`porteurDeFiche.renforts`), chacun renvoyé à son entrée de `modeles-de-pnj.json` : son modèle de
+   *  carrière et son Niveau, son profil de héros, son rôle de bête. BNO p.4-5 */
+  renforts: Renvoyable[];
+}
+
+/** Les renforts du porteur `c` (`porteurDeFiche.renforts`), dans l'ordre modèle, héros, rôle de bête. */
+function renfortsDuPorteur(c: Combatant): Renvoyable[] {
+  const r = c.porteurDeFiche?.renforts;
+  if (!r) return [];
+  const entree = (id: string) => garanti(findModeleDePnjById(id), id, 'entrée de modeles-de-pnj.json');
+  return [
+    ...(r.modele ? [renvoyable('modelesDePnj', r.modele.id, t('ecran.fiche.modeleDePnj', { modele: entree(r.modele.id).label, niveau: r.modele.niveau }))] : []),
+    ...[r.heros, r.bete].flatMap((id) => (id ? [renvoyable('modelesDePnj', id, entree(id).label)] : [])),
+  ];
 }
 
 /** La source du profil dont `c` est l'instance (`porteurDeFiche`) : la créature du bestiaire, ou celle d'un preset. */
@@ -249,5 +266,6 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
     mentions: mentionsParNature(c.mentions ?? []).map(({ nature, titre, mentions }) => ({ nature, titre, mentions: mentions.map((m) => ({ libelle: m.label, nombre: m.nombre })) })),
     source: source ? instance('books', source.book, sourceRefLabel(source)) : null,
     profil: creature ? renvoyable('creatures', creature.id, creature.label) : null,
+    renforts: renfortsDuPorteur(c),
   };
 }

@@ -10,15 +10,16 @@ import { makeRNG, hashSeed } from './dice';
  *  l'absence est irreprésentable. `ref` est une créature du Bestiaire, `vehicule` une coque, `engin` un engin de
  *  siège (#2968). `presetCreature` est la CreatureData d'un preset de PNJ nommé (#671),
  *  déjà mergée par la couche campagne (`resolvePresetCreature`) ; `presetId` est l'id de ce preset (#2206).
- *  `parcours` porte une réf. du Bestiaire au parcours de carrière d'un PNJ (`porterAuParcours`, #773). */
+ *  `parcours` porte une réf. du Bestiaire au parcours de carrière d'un PNJ (`porterAuParcours`, #773), `renforts` à ses
+ *  modèle de carrière, profil de héros et rôle de bête (`porterAuxRenforts`, #4916). */
 export type PorteurDeFiche =
-  | (SansPorteur<'ref' | 'parcours'> & { ref: string; parcours?: import('./pnjDeCarriere').ParcoursDeCarriere })
+  | (SansPorteur<'ref' | 'parcours' | 'renforts'> & { ref: string; parcours?: import('./pnjDeCarriere').ParcoursDeCarriere; renforts?: import('./renfortsDuPnj').RenfortsDuPnj })
   | (SansPorteur<'vehicule'> & { vehicule: string })
   | (SansPorteur<'engin'> & { engin: string })
   | (SansPorteur<'statblock'> & { statblock: CustomStatblock })
   | (SansPorteur<'presetCreature' | 'presetId'> & { presetCreature: import('../data').CreatureData; presetId: string });
 /** Les champs des AUTRES porteurs de fiche que `K`, absents. */
-type SansPorteur<K extends string> = { [C in Exclude<'ref' | 'parcours' | 'vehicule' | 'engin' | 'statblock' | 'presetCreature' | 'presetId', K>]?: never };
+type SansPorteur<K extends string> = { [C in Exclude<'ref' | 'parcours' | 'renforts' | 'vehicule' | 'engin' | 'statblock' | 'presetCreature' | 'presetId', K>]?: never };
 
 /** Le statbloc personnalisé, forme de sortie de son schéma (`customStatblockSchema`). */
 export type CustomStatblock = import('zod').z.output<typeof import('../data/schemas/defs-scenes/communs').customStatblockSchema>;

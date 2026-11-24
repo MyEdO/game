@@ -27,6 +27,7 @@ import { refOuSpec } from '../../data/schemas/grammaire/ref';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { stripComments } from '../../../scripts/guards/lib/hardcode.mjs';
 import { lireExports } from '../../../scripts/gen-registry.mjs';
+import { DATASET_DE_LA_CATEGORIE } from '../../data/schemas/_cles-de-dataset.generated';
 
 const handleDemo = () => document(
   'demo', 'entite',
@@ -210,10 +211,13 @@ describe('canal registre → atelier (`metaPourFichier`)', () => {
  * un couple de nombres recopié : chaque def qui adopte `document()` la fait MONTER, une régression du
  * canal (méta perdue, table d'enveloppe amputée) la fait DESCENDRE et rougit.
  */
+/** Le fichier de la catégorie `cle` : celui de son dataset de liste (`DATASET_DE_LA_CATEGORIE`), sinon son homonyme. */
+const fichierDeLaCategorie = (cle: string): string => DATASET_DE_LA_CATEGORIE[cle]?.fichier ?? `${cle}.json`;
+
 describe('cliquet — part des champs de premier niveau qui portent un libellé', () => {
   const champsAffiches = () =>
     CODEX.filter((c) => isEditableCategory(c.key)).flatMap((c) =>
-      inferFields(editableEntries(c.key), { meta: metaPourFichier(`${c.key}.json`) }),
+      inferFields(editableEntries(c.key), { meta: metaPourFichier(fichierDeLaCategorie(c.key)) }),
     );
 
   // PLANCHER NOMINAL : 819/1220 = 67,1 % — mesure du 2026-08-28 sur l'arbre, les 76 defs `entite`
@@ -245,7 +249,7 @@ describe('cliquet — part des champs de premier niveau qui portent un libellé'
     // Non-vacuité : chaque libellé compté se retrouve en repassant la clé dans `libelleDuChamp` avec la
     // méta de sa catégorie — aucun n'est un artefact d'`inferFields`.
     const ecarts = CODEX.filter((c) => isEditableCategory(c.key)).flatMap((c) => {
-      const meta = metaPourFichier(`${c.key}.json`);
+      const meta = metaPourFichier(fichierDeLaCategorie(c.key));
       return inferFields(editableEntries(c.key), { meta })
         .filter((f) => f.label !== f.key && libelleDuChamp(f.key, { meta }) !== f.label)
         .map((f) => `${c.key}.${f.key} → ${f.label}`);

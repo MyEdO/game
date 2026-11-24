@@ -12,6 +12,7 @@ import { idDuCorps, type Scene, type SceneEntity } from './scene';
 import { spawnEnemy } from './spawn';
 import type { PorteurDeFiche } from '../../engine/statblock';
 import { parcoursDe } from '../../engine/pnjDeCarriere';
+import { renfortsDe } from '../../engine/renfortsDuPnj';
 import { nomDePreset, presetDuNarratif, resolvePresetCreature, type ResolveurDePreset } from './resolveursDuNarratif';
 import type { NomDIndividu } from '../../engine/psych/ciblage';
 import type { SansMarqueNonAffichable } from '../../i18n/playerText';
@@ -25,7 +26,8 @@ import { tirerLesDetails } from '../../engine/creation';
 import { hashSeed, makeRNG } from '../../engine/dice';
 
 /** Le porteur de fiche d'une entité et l'apparence qui l'accompagne — preset de PNJ nommé (#671),
- *  statbloc, puis son corps : sa créature, portée à son parcours de carrière s'il en a un (`parcoursDe`, #773), sa
+ *  statbloc, puis son corps : sa créature, portée à son parcours de carrière s'il en a un (`parcoursDe`, #773) et à ses
+ *  renforts (`renfortsDe`, #4916), sa
  *  coque ou son engin, dans cet ordre ; `undefined` si elle n'en porte aucun, ou si son preset ou son corps ne se
  *  résout pas (#1882). `presetDe` résout un preset (`nomDEntite`). */
 function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteur: PorteurDeFiche; appearance?: EntityAppearance } | undefined {
@@ -34,7 +36,7 @@ function porteurDeFiche(ent: SceneEntity, presetDe: ResolveurDePreset): { porteu
     return preset && { porteur: { presetCreature: preset.creature, presetId: ent.presetId }, appearance: { ...preset.apparence, ...ent.appearance } };
   }
   if (ent.statblock) return { porteur: { statblock: ent.statblock }, appearance: ent.appearance };
-  if (ent.creature) return findCreatureById(ent.creature.id) ? { porteur: { ref: ent.creature.id, parcours: parcoursDe(ent) }, appearance: ent.appearance } : undefined;
+  if (ent.creature) return findCreatureById(ent.creature.id) ? { porteur: { ref: ent.creature.id, parcours: parcoursDe(ent), renforts: renfortsDe(ent) }, appearance: ent.appearance } : undefined;
   if (ent.vehicule) return findFicheDeVehicule(ent.vehicule.id) ? { porteur: { vehicule: ent.vehicule.id }, appearance: ent.appearance } : undefined;
   if (ent.engin) return findSiegeEngineById(ent.engin.id) ? { porteur: { engin: ent.engin.id }, appearance: ent.appearance } : undefined;
   return undefined;

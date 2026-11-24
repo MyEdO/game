@@ -1,0 +1,1029 @@
+[
+  {
+    "id": "modele-assassin",
+    "type": "modeles-de-pnj",
+    "label": "Assassin",
+    "kind": "modele",
+    "aussiPour": "Duelliste, Espion",
+    "caracteristiques": [
+      "capacite-de-combat",
+      "initiative",
+      "agilite",
+      "dexterite"
+    ],
+    "competences": [
+      {
+        "id": "escalade"
+      },
+      {
+        "id": "corps-a-corps",
+        "spec": "base"
+      },
+      {
+        "id": "projectiles",
+        "spec": "lancer"
+      },
+      {
+        "id": "discretion"
+      }
+    ],
+    "talents": [
+      {
+        "id": "ambidextre"
+      },
+      {
+        "id": "discret"
+      },
+      {
+        "id": "frappe-blessante"
+      },
+      {
+        "id": "frappe-assommante"
+      }
+    ],
+    "traitsFacultatifs": [
+      "vision-nocturne",
+      "furtif",
+      "venin",
+      "grimpant"
+    ],
+    "dotations": [
+      {
+        "id": "dague"
+      },
+      {
+        "id": "flechette"
+      },
+      {
+        "id": "veste-de-cuir"
+      },
+      {
+        "text": "Fiole de poison"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 5,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-chef",
+    "type": "modeles-de-pnj",
+    "label": "Chef",
+    "kind": "modele",
+    "aussiPour": "Général, Commandant, Seigneur de guerre",
+    "caracteristiques": [
+      "capacite-de-combat",
+      "endurance",
+      "force-mentale",
+      "sociabilite"
+    ],
+    "competences": [
+      {
+        "id": "esquive"
+      },
+      {
+        "id": "intimidation"
+      },
+      {
+        "id": "commandement"
+      },
+      {
+        "id": "perception"
+      }
+    ],
+    "talents": [
+      {
+        "id": "maitrise-du-combat"
+      },
+      {
+        "id": "desarmer"
+      },
+      {
+        "id": "sixieme-sens"
+      },
+      {
+        "id": "coup-puissant"
+      }
+    ],
+    "traitsFacultatifs": [
+      "champion",
+      "elite",
+      "endurant",
+      "meneur"
+    ],
+    "dotations": [
+      {
+        "id": "plastron"
+      },
+      {
+        "id": "heaume"
+      },
+      {
+        "id": "bouclier"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "label": "Troupes",
+        "nature": "personne"
+      },
+      {
+        "id": "uniforme"
+      },
+      {
+        "monnaie": "gold",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-diplomate",
+    "type": "modeles-de-pnj",
+    "label": "Diplomate",
+    "kind": "modele",
+    "aussiPour": "Émissaire, Messager, Porte-étendard",
+    "caracteristiques": [
+      "endurance",
+      "initiative",
+      "agilite",
+      "sociabilite"
+    ],
+    "competences": [
+      {
+        "id": "charme"
+      },
+      {
+        "id": "resistance"
+      },
+      {
+        "id": "savoir",
+        "spec": "region"
+      },
+      {
+        "id": "chevaucher",
+        "spec": "cheval"
+      }
+    ],
+    "talents": [
+      {
+        "id": "fuite"
+      },
+      {
+        "id": "sociable"
+      },
+      {
+        "id": "lire-ecrire"
+      },
+      {
+        "id": "pas-de-cote"
+      }
+    ],
+    "traitsFacultatifs": [
+      "intelligent",
+      "ruse",
+      "rapide",
+      "endurant"
+    ],
+    "dotations": [
+      {
+        "id": "dague"
+      },
+      {
+        "id": "livree"
+      },
+      {
+        "id": "parchemin"
+      },
+      {
+        "id": "etui-a-parchemin"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-fanatique",
+    "type": "modeles-de-pnj",
+    "label": "Fanatique",
+    "kind": "modele",
+    "aussiPour": "Flagellant, Tueur",
+    "caracteristiques": [
+      "capacite-de-combat",
+      "force",
+      "endurance",
+      "force-mentale"
+    ],
+    "competences": [
+      {
+        "id": "esquive"
+      },
+      {
+        "id": "resistance"
+      },
+      {
+        "id": "intimidation"
+      },
+      {
+        "id": "corps-a-corps",
+        "spec": "base"
+      }
+    ],
+    "talents": [
+      {
+        "id": "sans-peur"
+      },
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "assaut-feroce"
+      },
+      {
+        "id": "dur-a-cuire"
+      }
+    ],
+    "traitsFacultatifs": [
+      "champion",
+      "peur",
+      "haine",
+      "insensible-a-la-douleur"
+    ],
+    "dotations": [
+      {
+        "text": "Hache ou fléau"
+      },
+      {
+        "id": "symbole-religieux"
+      },
+      {
+        "text": "Vêtements en lambeaux"
+      },
+      {
+        "monnaie": "brass",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-chasseur",
+    "type": "modeles-de-pnj",
+    "label": "Chasseur",
+    "kind": "modele",
+    "aussiPour": "Archer, Pisteur",
+    "caracteristiques": [
+      "capacite-de-tir",
+      "force",
+      "endurance",
+      "initiative"
+    ],
+    "competences": [
+      {
+        "id": "survie-en-exterieur"
+      },
+      {
+        "id": "projectiles",
+        "spec": "arc"
+      },
+      {
+        "id": "piegeage"
+      },
+      {
+        "id": "pistage"
+      }
+    ],
+    "talents": [
+      {
+        "id": "tir-precis"
+      },
+      {
+        "id": "dur-a-cuire"
+      },
+      {
+        "id": "oeil-du-chasseur"
+      },
+      {
+        "id": "nomade"
+      }
+    ],
+    "traitsFacultatifs": [
+      "arboricole",
+      "elite",
+      "vision-nocturne",
+      "pisteur"
+    ],
+    "dotations": [
+      {
+        "id": "piege-a-animaux"
+      },
+      {
+        "id": "arc"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "text": "Peaux"
+      },
+      {
+        "monnaie": "brass",
+        "count": {
+          "roll": {
+            "n": 4,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-marchand",
+    "type": "modeles-de-pnj",
+    "label": "Marchand",
+    "kind": "modele",
+    "aussiPour": "Colporteur, Commerçant",
+    "caracteristiques": [
+      "initiative",
+      "agilite",
+      "intelligence",
+      "sociabilite"
+    ],
+    "competences": [
+      {
+        "id": "conduite-d-attelage"
+      },
+      {
+        "id": "marchandage"
+      },
+      {
+        "id": "intuition"
+      },
+      {
+        "id": "savoir",
+        "spec": "region"
+      }
+    ],
+    "talents": [
+      {
+        "id": "baratiner"
+      },
+      {
+        "id": "negociateur"
+      },
+      {
+        "id": "savoir-vivre",
+        "spec": "guildes"
+      },
+      {
+        "id": "lire-ecrire"
+      }
+    ],
+    "traitsFacultatifs": [
+      "rapide",
+      "intelligent",
+      "nerveux"
+    ],
+    "dotations": [
+      {
+        "id": "boulier"
+      },
+      {
+        "id": "licence-de-guilde"
+      },
+      {
+        "text": "Mule et charrette"
+      },
+      {
+        "text": "Biens de commerce"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 5,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-noble",
+    "type": "modeles-de-pnj",
+    "label": "Noble",
+    "kind": "modele",
+    "aussiPour": "Seigneur, Politicien",
+    "caracteristiques": [
+      "initiative",
+      "intelligence",
+      "force-mentale",
+      "sociabilite"
+    ],
+    "competences": [
+      {
+        "id": "ragot"
+      },
+      {
+        "id": "commandement"
+      },
+      {
+        "id": "savoir",
+        "spec": "politique"
+      },
+      {
+        "id": "corps-a-corps",
+        "spec": "base"
+      }
+    ],
+    "talents": [
+      {
+        "id": "savoir-vivre",
+        "spec": "nobles"
+      },
+      {
+        "id": "noblesse"
+      },
+      {
+        "id": "orateur"
+      },
+      {
+        "id": "lire-ecrire"
+      }
+    ],
+    "traitsFacultatifs": [
+      "intelligent",
+      "meneur",
+      "prejuge",
+      "studieux-bno"
+    ],
+    "dotations": [
+      {
+        "id": "dague"
+      },
+      {
+        "id": "fleuret"
+      },
+      {
+        "text": "Vêtements de qualité"
+      },
+      {
+        "label": "Serviteur",
+        "nature": "personne"
+      },
+      {
+        "id": "necessaire-d-ecriture"
+      },
+      {
+        "monnaie": "gold",
+        "count": {
+          "roll": {
+            "n": 3,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-medecin",
+    "type": "modeles-de-pnj",
+    "label": "Médecin",
+    "kind": "modele",
+    "aussiPour": "Barbier-chirurgien, Guérisseur",
+    "caracteristiques": [
+      "dexterite",
+      "intelligence",
+      "force-mentale",
+      "sociabilite"
+    ],
+    "competences": [
+      {
+        "id": "guerison"
+      },
+      {
+        "id": "savoir",
+        "spec": "anatomie"
+      },
+      {
+        "id": "savoir",
+        "spec": "medecine"
+      },
+      {
+        "id": "metier",
+        "spec": "barbier"
+      }
+    ],
+    "talents": [
+      {
+        "id": "pansement-de-fortune"
+      },
+      {
+        "id": "lire-ecrire"
+      },
+      {
+        "id": "frappe-assommante"
+      },
+      {
+        "id": "chirurgie"
+      }
+    ],
+    "traitsFacultatifs": [
+      "ruse",
+      "maladie",
+      "prejuge",
+      "studieux-bno"
+    ],
+    "dotations": [
+      {
+        "id": "bandages"
+      },
+      {
+        "id": "licence-de-guilde"
+      },
+      {
+        "id": "outils-professionnels-medecin"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 3,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-pretre",
+    "type": "modeles-de-pnj",
+    "label": "Prêtre",
+    "kind": "modele",
+    "aussiPour": "Moine, Nonne, Chaman",
+    "caracteristiques": [
+      "dexterite",
+      "intelligence",
+      "force-mentale",
+      "sociabilite"
+    ],
+    "competences": [
+      {
+        "id": "charme"
+      },
+      {
+        "id": "resistance"
+      },
+      {
+        "id": "savoir",
+        "spec": "theologie"
+      },
+      {
+        "id": "priere"
+      }
+    ],
+    "talents": [
+      {
+        "id": "beni"
+      },
+      {
+        "id": "invocation"
+      },
+      {
+        "id": "ame-pure"
+      },
+      {
+        "id": "lire-ecrire"
+      }
+    ],
+    "traitsFacultatifs": [
+      "beni",
+      "ruse",
+      "miracles",
+      "studieux-bno"
+    ],
+    "dotations": [
+      {
+        "text": "Livres"
+      },
+      {
+        "text": "Dague de cérémonie"
+      },
+      {
+        "id": "symbole-religieux"
+      },
+      {
+        "id": "robes"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 1,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-voleur",
+    "type": "modeles-de-pnj",
+    "label": "Voleur",
+    "kind": "modele",
+    "aussiPour": "Éclaireur, Tirailleur, Sournois",
+    "caracteristiques": [
+      "force",
+      "initiative",
+      "agilite",
+      "dexterite"
+    ],
+    "competences": [
+      {
+        "id": "escalade"
+      },
+      {
+        "id": "corps-a-corps",
+        "spec": "base"
+      },
+      {
+        "id": "crochetage"
+      },
+      {
+        "id": "discretion"
+      }
+    ],
+    "talents": [
+      {
+        "id": "effraction"
+      },
+      {
+        "id": "criminel"
+      },
+      {
+        "id": "grimpeur"
+      },
+      {
+        "id": "pas-de-cote"
+      }
+    ],
+    "traitsFacultatifs": [
+      "rapide",
+      "vision-nocturne",
+      "furtif",
+      "venin"
+    ],
+    "dotations": [
+      {
+        "id": "pied-de-biche"
+      },
+      {
+        "id": "dague"
+      },
+      {
+        "id": "veste-de-cuir"
+      },
+      {
+        "id": "outils-de-crochetage"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 3,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-guerrier",
+    "type": "modeles-de-pnj",
+    "label": "Guerrier",
+    "kind": "modele",
+    "aussiPour": "Garde, Soldat",
+    "caracteristiques": [
+      "capacite-de-combat",
+      "capacite-de-tir",
+      "endurance",
+      "initiative"
+    ],
+    "competences": [
+      {
+        "id": "esquive"
+      },
+      {
+        "id": "savoir",
+        "spec": "guerre"
+      },
+      {
+        "id": "corps-a-corps",
+        "spec": "base"
+      },
+      {
+        "id": "projectiles",
+        "spec": "arbalete"
+      }
+    ],
+    "talents": [
+      {
+        "id": "vigilance"
+      },
+      {
+        "id": "porte-bouclier"
+      },
+      {
+        "id": "inebranlable"
+      }
+    ],
+    "traitsFacultatifs": [
+      "belliqueux",
+      "champion",
+      "elite",
+      "coriace"
+    ],
+    "dotations": [
+      {
+        "id": "plastron"
+      },
+      {
+        "id": "arbalete"
+      },
+      {
+        "id": "heaume"
+      },
+      {
+        "id": "arme-simple"
+      },
+      {
+        "id": "uniforme"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 3,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "modele-sorcier",
+    "type": "modeles-de-pnj",
+    "label": "Sorcier",
+    "kind": "modele",
+    "aussiPour": "Sorcière, Magicien",
+    "caracteristiques": [
+      "capacite-de-combat",
+      "initiative",
+      "intelligence",
+      "force-mentale"
+    ],
+    "competences": [
+      {
+        "id": "focalisation"
+      },
+      {
+        "id": "intuition"
+      },
+      {
+        "id": "langue",
+        "spec": "magick"
+      },
+      {
+        "id": "savoir",
+        "spec": "magie"
+      }
+    ],
+    "talents": [
+      {
+        "id": "magie-des-arcanes"
+      },
+      {
+        "id": "detection-d-artefact"
+      },
+      {
+        "id": "lire-ecrire"
+      },
+      {
+        "id": "seconde-vue"
+      }
+    ],
+    "traitsFacultatifs": [
+      "intelligent",
+      "lanceur-de-sorts",
+      "studieux-bno"
+    ],
+    "dotations": [
+      {
+        "id": "grimoire"
+      },
+      {
+        "text": "Licence magique"
+      },
+      {
+        "id": "baton-de-combat"
+      },
+      {
+        "id": "robes"
+      },
+      {
+        "monnaie": "silver",
+        "count": {
+          "roll": {
+            "n": 3,
+            "sides": 10
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 4
+    }
+  },
+  {
+    "id": "heros-chef",
+    "type": "modeles-de-pnj",
+    "label": "Chef d’unité",
+    "kind": "heros",
+    "modificateurs": {
+      "capacite-de-combat": 15,
+      "capacite-de-tir": 10,
+      "force": 5,
+      "endurance": 5,
+      "initiative": 10,
+      "agilite": 5,
+      "intelligence": 5,
+      "force-mentale": 10,
+      "sociabilite": 10
+    },
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 5
+    }
+  },
+  {
+    "id": "heros-mineur",
+    "type": "modeles-de-pnj",
+    "label": "Héros mineur",
+    "kind": "heros",
+    "modificateurs": {
+      "capacite-de-combat": 30,
+      "capacite-de-tir": 20,
+      "force": 10,
+      "endurance": 10,
+      "initiative": 20,
+      "agilite": 10,
+      "dexterite": 5,
+      "intelligence": 10,
+      "force-mentale": 20,
+      "sociabilite": 20
+    },
+    "arme": 1,
+    "armure": 1,
+    "traits": [
+      "champion"
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 5
+    }
+  },
+  {
+    "id": "heros-majeur",
+    "type": "modeles-de-pnj",
+    "label": "Héros majeur",
+    "kind": "heros",
+    "modificateurs": {
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 30,
+      "force": 20,
+      "endurance": 20,
+      "initiative": 30,
+      "agilite": 20,
+      "dexterite": 10,
+      "intelligence": 20,
+      "force-mentale": 30,
+      "sociabilite": 30
+    },
+    "arme": 2,
+    "armure": 2,
+    "traits": [
+      "champion",
+      "endurant",
+      "pisteur"
+    ],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 5
+    }
+  },
+  {
+    "id": "bete-predateur",
+    "type": "modeles-de-pnj",
+    "label": "Prédateur",
+    "kind": "bete",
+    "competence": {
+      "id": "corps-a-corps",
+      "spec": "bagarre"
+    },
+    "bonus": 20,
+    "talent": {
+      "id": "frappe-blessante"
+    },
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 5
+    }
+  },
+  {
+    "id": "bete-proie",
+    "type": "modeles-de-pnj",
+    "label": "Proie",
+    "kind": "bete",
+    "competence": {
+      "id": "perception"
+    },
+    "bonus": 20,
+    "talent": {
+      "id": "fuite"
+    },
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 5
+    }
+  }
+]
