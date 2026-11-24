@@ -32,9 +32,10 @@ import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import type { Combatant } from '../engine/types';
-import { scenario as scenarioEdo } from '../scenes/test-scenarios/96-presets-edo';
 import { presetDuNarratif } from './monde/resolveursDuNarratif';
-const scenarioEdoConstruit = scenarioEdo.construire(idsDeTest);
+import { emptyNarratif } from './monde/campaignNarratif';
+import type { PresetPnj } from '../data/schemas/defs-scenes/narratif';
+import type { SceneEntity } from './monde/scene';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -178,33 +179,46 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
  * rendait une fiche vide au nom générique — l'adversaire à fiche redevenait l'adversaire nu.
  */
 describe('#1279 S4-b — le PNJ authoré par PRESET (forme réelle de la campagne)', () => {
-  
+  /** Un profil de preset : Pari `pari`, toutes Caractéristiques à 30. */
+  const preset = (id: string, label: string, pari: number): PresetPnj => ({
+    id, base: { id: 'humain' }, source: { book: 'LDB', page: 0 },
+    profil: {
+      label, optionals: [],
+      char: { M: 4, 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30, B: 12 },
+      traits: [], skills: [{ id: 'pari', value: pari }], talents: [],
+    },
+  });
+  const NARRATIF = { ...emptyNarratif(), presetsPnj: [preset('preset-joueur', 'Joueur de dominos', 50), preset('preset-badaud', 'Badaud', 35)] };
+  /** Deux PNJ à `presetId`, sans `ref` ni `statblock` : le joueur de taverne déclaré, et un badaud qui ne joue pas. */
+  const ENTITES: SceneEntity[] = [
+    { id: 'npc-joueur', kind: 'personnage', pos: { x: 5, y: 4 }, presetId: 'preset-joueur', label: 'Joueur de dominos', tavernGame: { id: 'dominos', stakeBrass: 24 } },
+    { id: 'npc-badaud', kind: 'personnage', pos: { x: 3, y: 2 }, presetId: 'preset-badaud', label: 'Badaud' },
+  ];
+
   it('un PNJ à `presetId` joue de SON profil de campagne — nom et Compétence, jamais un repli générique', () => {
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[],
-      campaignNarratif: scenarioEdoConstruit.narratif,
-      scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
+      campaignNarratif: NARRATIF,
+      scene: { ...emptyScene('scene-test'), entities: ENTITES },
       battle: null, sequence: null, pendingCascade: null,
     });
 
-    const phillipe = sceneNpc(get().scene, 'npc-phillipe', presetPnjById);
-    expect(phillipe, 'le preset doit se résoudre en fiche').toBeTruthy();
-    expect(phillipe!.label).toBe('Phillipe Descartes');
-    // `EDO 23` lui donne Pari 50 : c'est SA valeur qui doit sortir du collecteur canonique, pas un
-    // défaut de Caractéristique.
-    expect(tavernGameValue(phillipe!, findTavernGameById('dominos')!)).toBe(50);
+    const joueur = sceneNpc(get().scene, 'npc-joueur', presetPnjById);
+    expect(joueur, 'le preset doit se résoudre en fiche').toBeTruthy();
+    expect(joueur!.label).toBe('Joueur de dominos');
+    expect(tavernGameValue(joueur!, findTavernGameById('dominos')!)).toBe(50);
   });
 
-  it('la scène EDO le déclare joueur de taverne, et la modale lit son jeu ET sa mise authorés', () => {
+  it('la scène le déclare joueur de taverne, et la modale lit son jeu ET sa mise authorés', () => {
     set({
       party: tousLesHerosDeScenario(idsDeTest).slice(0, 2) as Combatant[],
-      campaignNarratif: scenarioEdoConstruit.narratif,
-      scene: { ...emptyScene('scene-test'), entities: scenarioEdoConstruit.scene.entities },
+      campaignNarratif: NARRATIF,
+      scene: { ...emptyScene('scene-test'), entities: ENTITES },
       battle: null, sequence: null, pendingCascade: null,
     });
 
     const offres = tavernNpcOffers(get().scene, presetPnjById);
-    expect(offres).toEqual([{ id: 'npc-phillipe', label: 'Phillipe Descartes', gameId: 'dominos', stakeBrass: 24 }]);
+    expect(offres).toEqual([{ id: 'npc-joueur', label: 'Joueur de dominos', gameId: 'dominos', stakeBrass: 24 }]);
   });
 });
 
