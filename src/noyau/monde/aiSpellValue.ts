@@ -27,6 +27,7 @@ import { groupMatch, groupesDe } from '../../engine/groups';
 import { spellOps } from '../../engine/flowCore';
 import { type SpellData, findConditionById } from '../../data';
 import { etatExige } from '../../engine/conditions';
+import { enSimulation } from '../../engine/tests';
 import { RefIrresoluble, spawnEnemy } from './spawn';
 
 /** DR moyen prudent injecté dans l'espérance d'une touche (l'espérance d'un DR ≥ 0 sur une réussite). */
@@ -180,10 +181,11 @@ function bestAttackEV(c: Combatant, foe: Combatant | null): number {
 }
 
 /** Clone PROFOND de `c` avec `op` appliquée (charMod/augment/octroi…) — déterministe (RNG semé à neuf,
- *  `GRAINE_DU_CLONE`). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque). */
+ *  `GRAINE_DU_CLONE`), en simulation (`enSimulation`, #4848). Sert au BÉNÉFICE MARGINAL d'un buff (delta
+ *  réel de l'EV d'attaque). */
 function applyOpClone(c: Combatant, op: GameOp): Combatant {
   const clone = structuredClone(c);
-  applyOps(clone, [op], { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
+  enSimulation(() => applyOps(clone, [op], { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) }));
   return clone;
 }
 

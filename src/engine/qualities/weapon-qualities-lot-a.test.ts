@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { JET_DE_TEST } from '../tests.testkit';
 import {
   resolveQualities, attackDRAdjust, vsDefenseDRAdjust, rapideParryMod, strikesLast, canStrikeFirst,
   dangerousNine, magazineSize, protectriceAP, rangedOpposeWeapon, canPushback,
@@ -158,8 +159,8 @@ describe('finishMelee — parryWeapon exposé pour les Critiques opposés (LDB 1
     const a = fighter({ id: 'a' });
     const d = fighter({ id: 'd' });
     const parry = w(['Piège-lame']);
-    const atk = rollTest(40, 'intermediaire', makeRNG(1));
-    const def = rollTest(40, 'intermediaire', makeRNG(2));
+    const atk = rollTest(JET_DE_TEST, 40, 'intermediaire', makeRNG(1));
+    const def = rollTest(JET_DE_TEST, 40, 'intermediaire', makeRNG(2));
     const res = finishMelee(a, d, w([]), atk, def, 'parade', { rng: makeRNG(1595) }, undefined, [], [], undefined, parry);
     expect(res.parryWeapon).toBe(parry);
     const resEsq = finishMelee(a, d, w([]), atk, def, 'esquive', { rng: makeRNG(1595) }, undefined, [], [], undefined, parry);

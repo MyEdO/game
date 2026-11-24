@@ -122,7 +122,7 @@ import { findTableEntry } from '../engine/tables';
 import { rollTest, evaluateTest, isDoubleRoll, extendedTestStep, estJete, cibleMesuree } from '../engine/tests';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
-import { testValue, partyAssisted, partyBest, peutTenter, refusPersonneNePeutTenter, type SupportDetail } from '../engine/skills';
+import { testValue, partyAssisted, partyBest, peutTenter, refusPersonneNePeutTenter, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { buildWeapon, consommerLaCapacite, encDeLaCapacite } from '../engine/items';
 import { maxBy } from '../engine/pick';
 import { applyOps, resolveFormula, type Formula, type GameOp, type PairedSense } from '../engine/ops';
@@ -235,10 +235,11 @@ import {
   openChoice,
   pousseSi,
   type Consequence,
+  type LigneNommee,
   type RollRequest,
   type FreeConsLine,
 } from './rollSeam';
-import { rollLine, type RollLineDecl } from './ligneDeJet';
+import { designeGaranti, rollLine } from './ligneDeJet';
 import { ligneDeContraction } from './contraction';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade, jouerLaJournee, pushStep, runCascadeImmediate, type CascadeApplier, type TableStepDef } from './cascade';
@@ -421,6 +422,9 @@ export function vesselManann(vessel: CampaignVessel | null): ManannMood {
 
 /** Facteur de Moral de disette (MDG 14 l.171). */
 const FOOD_SHORTAGE_FACTOR = 'nourriture-insuffisante';
+
+/** Le Test d'Exposition de la route de mer (Résistance). MDG 13 l.203-225 */
+const SUJET_RESISTANCE = { skill: { id: 'resistance' }, characteristic: 'endurance' } as const;
 
 /**
  * VIVRES de l'équipage PNJ sur `days` jour(s) depuis l'heure de jeu : l'effectif nominal (`shipboardSouls().crew`)
@@ -701,7 +705,7 @@ export function etapeDEquipage(get: Get, testTypeId: string, kind: GenreDEtape, 
       id: a.crew.id,
       label: role?.label ?? a.roleId, // PROVENANCE affichée (rôle tenu) — jamais le libellé de LIGNE
       roleId: a.roleId,
-      ...(rv?.used ? { skill: structuredClone(rv.used) } : {}), // #2097
+      teste: { skill: structuredClone(garanti(rv?.used, a.roleId, 'Compétence du rôle')) }, // #2097
       interactive: true,
       essential: a.roleId === essentialRoleId,
       difficulty,
@@ -1868,7 +1872,7 @@ function jouerLaTemperatureDuJour(get: Get, set: Set): void {
         tell(get, set, [t('sv.wardedExposure', { name: nomDe(h), what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
         continue;
       }
-      const resVal = testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' });
+      const resVal = testValue(h, SUJET_RESISTANCE);
       // FROID : l'absence de manteau est DÉJÀ fondue dans la valeur jetée (`exposureTarget`) — elle se
       // déclare donc en `dansLaValeur` pour redevenir la chip NOMMÉE que `exposureCoatMods` produit.
       // PLANCHER : `exposureTarget` borne la valeur à 0 ; quand ce plancher MORD, la valeur ne vient
@@ -1886,9 +1890,10 @@ function jouerLaTemperatureDuJour(get: Get, set: Set): void {
         id: `merExposition-${h.id}`, kind: 'merExposition', actor: h, icon: 'repos/froid',
         label: stepPrecision(t('step.exposition'), dataLabel(tdef.label)), rollLabel: refLabel('skills', { id: 'resistance' }),
         difficulty: expDiff,
+        teste: { skill: structuredClone(SUJET_RESISTANCE.skill) }, // #2097
         montee: rollStep(valeur === brut
           ? {
-            actor: h, test: { skill: { id: 'resistance' }, characteristic: 'endurance' }, valeur,
+            actor: h, test: SUJET_RESISTANCE, valeur,
             ...(coat.length ? { dansLaValeur: coat } : {}),
             difficulty: expDiff, pont,
           }
@@ -2057,7 +2062,7 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
     const c = sea.crisis;
     const eff = effectiveSeaM(get);
     const myM = eff.m ?? 1;
-    const foe = rollTest(c.foeSkill, 'intermediaire', rng);
+    const foe = rollTest({ porteur: null, teste: VOILE_DU_POURSUIVANT }, c.foeSkill, 'intermediaire', rng);
     const gain = pursuitDistanceGain(myM, total + pursuitLowMPenalty(myM)) - pursuitDistanceGain(c.foeM, foe.sl + pursuitLowMPenalty(c.foeM));
     const distance = c.distance + gain;
     const j = [t('sv.chase', { label: c.label, issue: gain >= 0 ? t('sv.chaseGain') : t('sv.chaseLoss'), gain: `${gain >= 0 ? '+' : ''}${gain}`, distance, escapeAt: c.escapeAt })];
@@ -2113,13 +2118,14 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
     const { skill, characteristic, difficulty } = step.test;
     const value = testValue(eng, { skill, characteristic });
     const label = testSkillLabel({ skill, characteristic }) ?? '';
+    const jet = { porteur: eng.id, teste: designeGaranti({ skill, characteristic }, label) };
     if (step.drCible != null) {
       let etape = { total: 0, done: step.drCible <= 0 };
-      for (let i = 0; !etape.done && i < 20; i++) etape = extendedTestStep(etape.total, rollTest(value, difficulty, rng), step.drCible);
+      for (let i = 0; !etape.done && i < 20; i++) etape = extendedTestStep(etape.total, rollTest(jet, value, difficulty, rng), step.drCible);
       tell(get, set, [t('sv.engineStep', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
     } else {
-      let t = rollTest(value, difficulty, rng);
-      for (let i = 0; !t.success && i < 20; i++) t = rollTest(value, difficulty, rng);
+      let t = rollTest(jet, value, difficulty, rng);
+      for (let i = 0; !t.success && i < 20; i++) t = rollTest(jet, value, difficulty, rng);
       lastDR = Math.max(0, t.sl);
       // Aucune rangée nulle part (équipage abstrait, hors modale) — le journal PORTE le jet (#295 Lot 5, gardé nominativement).
       tell(get, set, [tr('sv.engineRestart', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
@@ -2379,6 +2385,9 @@ function startChaseBoarding(get: Get, set: Set): void {
   tell(get, set, [t('sv.noBoardingData')]);
 }
 
+/** Ce que teste le navire hostile d'une course-poursuite. MDG 13 l.376 */
+const VOILE_DU_POURSUIVANT: TestDesigne = { skill: { id: COMPETENCE_DU_MODE.voile } };
+
 /** Voile du Test de Navigation du navire hostile `b` : la meilleure de son chef et de son équipage, à défaut la
  *  donnée `voileSansProfil`. MDG 13 l.376 */
 function voileDuPoursuivant(b: SeaBoarding): number {
@@ -2607,6 +2616,9 @@ export function devisDeChantier(vessel: CampaignVessel, bourse: Money, refusDuQu
   };
 }
 
+/** Ce que teste le constructeur naval du port, sans fiche. MDG 13 l.643 */
+const METIER_DU_CONSTRUCTEUR_DE_NAVIRES: TestDesigne = { skill: { id: 'metier', spec: 'constructeur-de-navires' } };
+
 /** RÉPARATION au port : Tests de Métier (Constructeur de navires) du constructeur local, ou du constructeur de
  *  l'escale (`vessel.constructeurDEscale`), jusqu'à la coque pleine ; le prix suit les Blessures restaurées, le temps
  *  les heures des Tests, ou la durée du constructeur de l'escale. Purge les Critiques notés en voyage. Refus si la
@@ -2623,7 +2635,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   const competence = constructeur?.competence ?? REPARATION.constructeurLocal;
   let restaurees = 0, heures = 0, prix = 0, tests = 0, reussis = 0;
   while (restaurees < missing) {
-    const passe = rollPortRepair(competence, missing - restaurees, rng, { lissage });
+    const passe = rollPortRepair({ porteur: null, teste: METIER_DU_CONSTRUCTEUR_DE_NAVIRES }, competence, missing - restaurees, rng, { lissage });
     tests++;
     if (passe.success) reussis++;
     restaurees += passe.wounds; heures += passe.hours; prix += passe.costGold;
@@ -2672,7 +2684,7 @@ function plafondDeLaReparationDuGroupe(vessel: CampaignVessel, party: readonly C
 const CONSTRUCTION_DE_BATEAUX = 'construction-de-bateaux';
 
 /** LDB 12 l.187-200 ; MDG 13 l.641 ; MSRC 7 l.109 */
-export function reparateurDuGroupe(party: Combatant[], fluvial = false): { actor: Combatant; ligne: RollLineDecl } | null {
+export function reparateurDuGroupe(party: Combatant[], fluvial = false): { actor: Combatant; ligne: LigneNommee } | null {
   const voies = [
     { spec: fluvial ? CONSTRUCTION_DE_BATEAUX : 'constructeur-de-navires', malus: 0 },
     { spec: 'charpentier', malus: fluvial ? riverNavigation.permanentRepairCarpenterPenalty : REPARATION.charpentierMalus },
@@ -2692,7 +2704,7 @@ export function reparateurDuGroupe(party: Combatant[], fluvial = false): { actor
 }
 
 type PorteurDeReparation =
-  | { actor: Combatant; monde?: never; ligne: RollLineDecl }
+  | { actor: Combatant; monde?: never; ligne: LigneNommee }
   | { monde: true; actor?: never; ligne: { test: RollRequest['test']; valeur: number } };
 
 function ouvrirUneReparation(

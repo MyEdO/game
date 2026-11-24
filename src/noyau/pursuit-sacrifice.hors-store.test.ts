@@ -55,7 +55,7 @@ function doneRound(rows: { id: string; sl: number }[]): MancheClose {
   const participants: CascadeStep[] = [{
     id: 'pursuit-1', kind: 'mouvementDePoursuite', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: rows.map((r) => ({
-      id: r.id, label: 'Athlétisme', base: 40, target: 40, interactive: true,
+      id: r.id, label: 'Athlétisme', teste: { skill: { id: 'athletisme' } }, base: 40, target: 40, interactive: true,
       result: { roll: 40, target: 40, sl: r.sl, success: r.sl >= 0 },
     })),
   }];

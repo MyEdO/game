@@ -11,8 +11,8 @@ import { porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
  * Test, donc implémentées UNE SEULE FOIS et réutilisées par TOUS les flux :
  *   • Chance « +1 DR » (LDB 17 l.24) → `bumpSL(tr)` (ajoute un Degré, `success` INTACT) ;
  *   • Résilience « Je ne faillirai pas ! » (l.68/73) → `bestForcedRoll(cible)` (dé forcé DR-MAX
- *     SELON la policy : standard → 01, mais Fast DR (LDB 12 l.102) → dé le plus HAUT valide) + `forcedTR` ;
- *   • dé CHOISI (picker) → `evaluateTest(forced.roll, cible)` ; Résistance → `resist`.
+ *     SELON la policy : standard → 01, mais Fast DR (LDB 12 l.102) → dé le plus HAUT valide) + `forcedTR(jet, …)` ;
+ *   • dé CHOISI (Résilience) → `forcedTR(jet, …)`, dé FIXÉ → `jeterLeDe(jet, …)` ; Résistance → `resist`.
  * La fabrique `makeRollFlow` compose ces verbes ; un flux ne fournit que sa FORME (`resolve`/`lens`/
  * `bonus`/`caps`) — il ne doit JAMAIS RE-CODER la mécanique dans son closure.
  *
@@ -40,7 +40,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
   it('Résilience : le dé forcé PAR DÉFAUT passe par bestForcedRoll (jamais evaluateTest(1, …) en dur)', () => {
     // Le dé qui MAXIMISE le DR d'une réussite forcée DÉPEND de la policy (Fast DR → 01 = DR MINIMAL).
     // `bestForcedRoll(cible)` porte ce choix ; un `evaluateTest(1, …)` dans un résolveur forcé le recode
-    // en dur = bug Fast DR. Le dé CHOISI par le joueur reste `evaluateTest(forced.roll, …)` (autorisé).
+    // en dur = bug Fast DR. Le dé CHOISI par le joueur passe par la fabrique (`forcedTR(jet, …)`, `jeterLeDe(jet, …)`).
     const hits = scan(/evaluateTest\(\s*0?1\s*,/g);
     expect(
       hits,
@@ -59,7 +59,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
   });
 
   it('Réussite FORCÉE : passe par forcedTR (jamais le littéral { …, success: true, …, isDouble: isDoubleRoll(r) } recopié)', () => {
-    // `forcedTR(roll, target, sl)` = { roll, target, success: true, sl, isDouble: isDoubleRoll(roll) } : l'atome
+    // `forcedTR(jet, roll, target, sl)` = { roll, target, success: true, sl, isDouble: isDoubleRoll(roll) } : l'atome
     // UNIQUE d'un TestResult de réussite FORCÉE (Résilience « Je ne faillirai pas ! » LDB 17 l.68 / dé choisi).
     // Recopier ce littéral dans un résolveur forcé = dérive → on l'exige via l'atome. Portée du scan : `success:
     // true` COMBINÉ à `isDoubleRoll(` sur la MÊME construction (le littéral forcé). Faux positifs exclus PAR
@@ -70,7 +70,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
     const hits = scan(/success:\s*true\b[^}\n]*isDoubleRoll\(/g).filter((h) => !h.startsWith('src/engine/tests.ts:'));
     expect(
       hits,
-      `Réussite forcée recopiée à la main (${hits.join(', ')}) — construis-la avec forcedTR(roll, target, sl) (atome partagé, engine/tests.ts).`,
+      `Réussite forcée recopiée à la main (${hits.join(', ')}) — construis-la avec forcedTR(jet, roll, target, sl) (atome partagé, engine/tests.ts).`,
     ).toEqual([]);
   });
 
@@ -82,7 +82,7 @@ describe('Anti-dérive du système de jet — tout passe par la fabrique + les a
     // (Lire `result.isDouble` déjà posé reste OK : c'est un accès de champ, pas un appel à `isDoubleRoll`.)
     const specs = readFileSync(REGISTRE_DES_FLUX, 'utf8');
     const hits = specs.split('\n').flatMap((l, i) => (/isDoubleRoll\(/.test(l) ? [`rollFlowSpecs.ts:${i + 1}`] : []));
-    expect(hits, `isDoubleRoll( dans le registre des flux (${hits.join(', ')}) — utilise hydrateTR(detail) ou forcedTR(roll,target,sl).`).toEqual([]);
+    expect(hits, `isDoubleRoll( dans le registre des flux (${hits.join(', ')}) — utilise hydrateTR(detail) ou forcedTR(jet,roll,target,sl).`).toEqual([]);
   });
 
   it('les atomes partagés du système sont bien la source (bumpSL / bestForcedRoll / forcedTR / hydrateTR présents dans rollFlowSpecs)', () => {

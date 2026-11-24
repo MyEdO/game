@@ -118,7 +118,7 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
         return [ligneDExposition(cible, level)];
       }
       const { test } = testDExposition(nature ?? NATURES_D_INFLUENCE[0], difficulty);
-      const tst = rollSansPilote(get, cible, testValue(cible, test), test.difficulty, battleRng());
+      const tst = rollSansPilote(get, cible, { skill: test.skill }, testValue(cible, test), test.difficulty, battleRng());
       return [
         traceLineOf({ who: nomDe(cible), label: testTraceLabel(refLabel('skills', test.skill), test.difficulty), ...tst }),
         ...denouementDExposition(get, set, cible, corruptionGain(level, tst.success, tst.sl)),
@@ -189,7 +189,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // REPLI AUTO-RÉSOLU — atteint SEULEMENT quand AUCUN siège humain ne tient le porteur (le `return`
   // ci-dessus a déjà emporté tous les autres) : l'automate ne tient aucune modale, ni de seuil, ni de
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
-  const tst = rollSansPilote(get, hero, testValue(hero, test), test.difficulty, rng);
+  const tst = rollSansPilote(get, hero, { skill: test.skill }, testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
     lines.push(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
     return sortie;

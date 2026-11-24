@@ -27,6 +27,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { avanceEtapeCascade, draineCascade, membresHorsDifficulte } from './cascade.testkit';
+import { JET_DE_TEST } from '../engine/tests.testkit';
 import { acheterAuMarche } from './cargaison.testkit';
 import { applierDe } from './cascade';
 import { creditBourse, partyMoneyTotal } from './bourseFlow';
@@ -1541,7 +1542,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   /** Les passes de `rollPortRepair` à `competence` jusqu'à `manquantes` Blessures, tirées de `rng`. */
   const passesDeReparation = (rng: RNG, competence: number, manquantes: number) => {
     const passes = [];
-    for (let restaurees = 0; restaurees < manquantes; restaurees += passes[passes.length - 1].wounds) passes.push(rollPortRepair(competence, manquantes - restaurees, rng));
+    for (let restaurees = 0; restaurees < manquantes; restaurees += passes[passes.length - 1].wounds) passes.push(rollPortRepair(JET_DE_TEST, competence, manquantes - restaurees, rng));
     return passes;
   };
   const reparer = (graine: number, manquantes: number) => {

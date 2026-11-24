@@ -554,8 +554,9 @@ function appliquerEntretien(get: Get, set: Set, step: CascadeStep, hero: Combata
     return repriseDEntretien(get, set, hero, def, suite);
   }
   if (!step.result?.success) return repriseDEntretien(get, set, hero, def, suite, t('sact.entretienEchec'));
-  if (step.skill && !peutTenter(hero, { skill: step.skill })) {
-    return repriseDEntretien(get, set, hero, def, suite, refusNePeutTenter(hero, { skill: step.skill }));
+  const skill = step.teste?.skill;
+  if (skill && !peutTenter(hero, { skill })) {
+    return repriseDEntretien(get, set, hero, def, suite, refusNePeutTenter(hero, { skill }));
   }
   if (step.kind === 'merEntretienUsure') {
     return repriseDEntretien(get, set, hero, def, suite, soinDUsure(get, set, etat));

@@ -11,7 +11,7 @@ import { FLOWS } from './rollFlowSpecs';
 import { FLOW_VERBS, fluxAccepte, type FlowKey } from './flowVerbs';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, TESTE_DE_TEST } from './cascade.testkit';
 import { t } from '../i18n';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
@@ -145,8 +145,9 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
       pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
     }),
   },
+  // Le lanceur Focalise : il porte la Compétence (LDB 46 l.130).
   focalisation: { make: (win) => ({
-    battle: arena(),
+    battle: { combatants: [hero({ skills: [{ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 10 }] }), foe()], log: [] },
     pendingFocus: { casterId: 'A', spellId: sort.id, result: { dr: win ? 2 : 0, isCritical: false, isFumble: false, roll: win ? 8 : 95, target: 40, sl: win ? 2 : -5, log: '' } },
   }) },
   dissipation: { make: (win) => ({ battle: arena(), pendingDispel: { casterId: 'A', value: 40, result: win ? WIN : LOSE } }) },
@@ -181,16 +182,16 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   evaluation: { make: (win) => ({ battle: arena(), pendingAppraise: { actorId: 'A', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   corruption: { make: (win) => ({ battle: arena(), pendingCorruption: { heroId: 'A', nature: 'spirituelle', test: testDeRegle('influences-corruptrices', 'spirituelle'),  roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   test: {
-    make: (win) => ({ battle: arena(), pendingTest: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 0, roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }),
+    make: (win) => ({ battle: arena(), pendingTest: { sujet: TESTE_DE_TEST, actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 0, roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }),
     // Seuil de DR EXIGÉ manqué (`requireSL`, `meetsRequiredSL`) : le d100 est réussi (8 ≤ 40), l'issue
     // métier ne l'est pas. L'issue canonique doit rester celle du d100 (`LDB 12 l.11`).
-    composite: () => ({ battle: arena(), pendingTest: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 3, roll: 8, sl: 1, success: false } }),
+    composite: () => ({ battle: arena(), pendingTest: { sujet: TESTE_DE_TEST, actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 3, roll: 8, sl: 1, success: false } }),
   },
   fuiteDeVapeur: { make: (win) => ({ battle: arena(), pendingSteamSave: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, scaldOps: [{ op: 'wounds', amount: 1, ignoreAP: true }], roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }) },
-  activite: { make: (win) => ({ battle: arena(), pendingActivity: { heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  activite: { make: (win) => ({ battle: arena(), pendingActivity: { teste: TESTE_DE_TEST, heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   chansonDeMarin: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
   // ── Opposés « joueur vs figé » avec re-résolution dédiée (récupération / marchandage) ──
-  recuperation: { jetPropre: (etat) => etat.pendingStateRecovery?.roll, make: (win) => ({ battle: arena(), pendingStateRecovery: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
+  recuperation: { jetPropre: (etat) => etat.pendingStateRecovery?.roll, make: (win) => ({ battle: arena(), pendingStateRecovery: { teste: TESTE_DE_TEST, actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
   marchandage: { make: (win) => ({ battle: arena(), pendingBargain: { playerId: 'A', playerSkill: 40, contrepartie: { kind: 'marchand', mode: 'achat', titre: t('out.bargainTitreAchat') }, opposant: { label: 'Marchand', valeur: 40 }, roll: win ? WIN : LOSE, merchantRoll: { roll: 50, target: 40, success: false, sl: -1, isDouble: false }, result: { winner: win ? 'attaquant' : 'defenseur', attackerWins: win, netSL: win ? 2 : -2 } } }) },
   // ── MULTI (participant/round/étape « A ») ──
   contreSort: { pid: 'A', plancherOppose: 2, make: (win) => ({
@@ -205,11 +206,11 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   }) },
   cascade: { pid: 'st1', make: (win) => ({
     battle: arena(),
-    pendingCascade: cascadeDeTest([{ id: 'st1', kind: cleDeFixture('test'), actorId: 'A', target: 40, rollLabel: 'Test', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }], { purpose: 'combat' }),
+    pendingCascade: cascadeDeTest([{ teste: TESTE_DE_TEST, id: 'st1', kind: cleDeFixture('test'), actorId: 'A', target: 40, rollLabel: 'Test', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }], { purpose: 'combat' }),
   }) },
   testEtendu: { pid: 'r1', make: (win) => ({
     battle: arena(),
-    pendingExtendedTest: { actorId: 'A', label: 'x', skillLabel: 'x', target: 40, drCible: 5, total: 0, rounds: [{ id: 'r1', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }] },
+    pendingExtendedTest: { actorId: 'A', label: 'x', skillLabel: 'x', characteristic: 'force', target: 40, drCible: 5, total: 0, rounds: [{ id: 'r1', result: { roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }] },
   }) },
   enfoncerLaPorte: { pid: 'A', make: (win) => ({
     battle: arena(),
@@ -232,7 +233,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
     pendingCascade: cascadeDeTest([{
       id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
       meta: { opposed: { aT: { roll: 20, target: 60, success: true, sl: 4, isDouble: false, base: 60 }, attackerName: fixtureText('B') } },
-      participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: { roll: 8, target: 40, sl: win ? 9 : 1, success: win } }],
+      participants: [{ teste: TESTE_DE_TEST, id: 'A', interactive: true, base: 40, target: 40, result: { roll: 8, target: 40, sl: win ? 9 : 1, success: win } }],
     }], { purpose: 'combat' }),
   }) },
 };
@@ -421,7 +422,7 @@ describe.each([{ rapide: true, mode: 'rapide' }, { rapide: false, mode: 'standar
         battle: arena() as never,
         pendingCascade: cascadeDeTest([{
           id: 'b1', kind: 'testDeclencheEnBande', aggregate: 'none',
-          participants: [{ id: 'A', interactive: true, base: 40, target: 40, result: LOSE }],
+          participants: [{ teste: TESTE_DE_TEST, id: 'A', interactive: true, base: 40, target: 40, result: LOSE }],
         }], { purpose: 'combat' }),
       });
       banc.getState().jetForcerLaReussite('cascadeEnBande', 'A');
@@ -459,6 +460,7 @@ describe.each([{ rapide: true, mode: 'rapide' }, { rapide: false, mode: 'standar
           ...fixture.pendingActivity as Record<string, unknown>,
           target: 58,
           target2: 36,
+          teste2: TESTE_DE_TEST,
           success2: false,
           sl2: -6,
           combinedLevel: 'fail',

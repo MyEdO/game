@@ -3,6 +3,7 @@ import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { blessuresDeBase, combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -16,7 +17,7 @@ function setPendingTest(over: Partial<any> = {}) {
   banc.setState({
     party: [combattantDeTest({ id: 'h1', label: 'Héros', resilience: 2 })],
     pendingTest: {
-      actorId: 'h1', label: 'Test', skillValue: 40, difficulty: 'intermediaire',
+      sujet: TESTE_DE_TEST, actorId: 'h1', label: 'Test', skillValue: 40, difficulty: 'intermediaire',
       requireSL: 0, target: 40, roll: null, success: false, sl: 0,
       ...over,
     } as any,

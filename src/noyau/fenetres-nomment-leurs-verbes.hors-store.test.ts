@@ -21,9 +21,10 @@ import type { CascadeStep } from './pendings';
 import { cleDeFixture } from './noyau.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { CLES_DES_FENETRES, ETAT, fenetresDuJeu, MODALES, type Fenetre } from './fenetres.testkit';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 /** Une étape témoin à rangées : de quoi lire le `pid` de chaque interaction. */
-const ETAPE_TEMOIN: CascadeStep = { id: 'etape', kind: cleDeFixture('note'), label: fixtureText('etape'), participants: [{ id: 'rangee', interactive: true, base: 0, target: 0, difficulty: 'intermediaire', result: null }] };
+const ETAPE_TEMOIN: CascadeStep = { id: 'etape', kind: cleDeFixture('note'), label: fixtureText('etape'), participants: [{ teste: TESTE_DE_TEST, id: 'rangee', interactive: true, base: 0, target: 0, difficulty: 'intermediaire', result: null }] };
 const FENETRES = fenetresDuJeu(ETAPE_TEMOIN);
 
 /** Ce qui manque à la fenêtre : un geste, une action de la partie derrière chacun, son libellé (`libelleDuGeste`). */

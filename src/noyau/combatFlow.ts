@@ -295,6 +295,7 @@ import {
 import {
   opposedTest,
   rollTest,
+  jeterLeDe,
   evaluateTest,
   resolveOpposed,
   isDoubleRoll,
@@ -662,6 +663,8 @@ import {
   distraireDefenseValue,
   distraireAttackBase,
   distraireDefenseBase,
+  ATHLETISME_DU_DISTRAIRE,
+  CALME_DISTRAIT,
 } from './combatManeuvers';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import {
@@ -929,6 +932,11 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   return null;
 }
 
+const FORCE_MENTALE: TestDesigne = { characteristic: 'force-mentale' };
+const PERCEPTION: TestDesigne = { skill: { id: 'perception' } };
+const DEXTERITE: TestDesigne = { characteristic: 'dexterite' };
+const INTELLIGENCE: TestDesigne = { characteristic: 'intelligence' };
+
 /** LDB 14 l.106, l.116. */
 export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState, rng: RNG): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
@@ -951,7 +959,7 @@ export function crowdEligible(scene: Scene | null, battle: BattleState, attacker
  *  doivent choisir une cible ou une Action différente » (rien n'est consommé). */
 export function attackWardGate(attacker: Combatant, target: Combatant, rng: RNG): { allowed: boolean; lines: string[] } {
   if (!hasActiveFlag(target, 'attackWardFM')) return { allowed: true, lines: [] };
-  const t = rollTest(testValue(attacker, { characteristic: 'force-mentale' }), 'accessible', rng);
+  const t = rollTest({ porteur: attacker.id, teste: FORCE_MENTALE }, testValue(attacker, FORCE_MENTALE), 'accessible', rng);
   if (t.success) {
     return { allowed: true, lines: [tr('cs.shameOvercome', { name: nomDe(attacker), roll: t.roll, target: t.target, foe: nomDe(target) })] };
   }
@@ -1104,7 +1112,7 @@ export function rerollWindsOfMagic(get: Get, set: SetFn): void {
   const lines: { line: string; id: string }[] = [];
   for (const c of battle.combatants) {
     if (c.kind !== 'heros' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
-    const res = rollTest(testValue(c, { skill: { id: 'perception' } }), 'facile', battleRng());
+    const res = rollTest({ porteur: c.id, teste: PERCEPTION }, testValue(c, PERCEPTION), 'facile', battleRng());
     if (res.success) {
       revealed = true;
       lines.push({ line: tr('cs.windsOfMagicSeen', { name: nomDe(c) }), id: c.id });
@@ -1386,7 +1394,7 @@ export function resolveDualSecond(
     actor: attacker, difficulty: 'intermediaire', combat: { kind: 'melee', weapon: offWeapon },
     surLaCible: mods, plafond: 'difficultes',
   }).target;
-  const atk = evaluateTest(jet, toHit, valeur);
+  const atk = jeterLeDe({ porteur: attacker.id, teste: attackTestOf(attacker, offWeapon, 'melee') }, jet, toHit, valeur);
   // MÊME composition que la cible montée ci-dessus (`mods`, plafond compris) : les deux branches la
   // reçoivent FIGÉE — la 2ᵉ frappe annonce la Difficulté qui a fait sa cible.
   const compo = composeAttack(mods);
@@ -2022,7 +2030,7 @@ export function aiApproachPlan(
   if (refusDuBinome(input.scene, { combatants: [enemy, ...(input.squad ?? [])] }, enemy)) return none; // ZI 13 l.193
   // Course (LDB 15 l.41) : budget = Marche + Course + DR ; pas d'attaque.
   const course = testDuCavalier(enemy, testDeRegle('course', 'courir'));
-  const r = resolveRun(testValue(enemy, course), course.difficulty, M, rng);
+  const r = resolveRun({ porteur: enemy.id, teste: { skill: course.skill } }, testValue(enemy, course), course.difficulty, M, rng);
   const runBudget = M + r.bonusCases;
   const run = runBudget > input.movement ? chooseEnemyAction({ ...inp, movement: runBudget }) : action;
   if (run.kind === 'deplacement' && tileKey(run.to.x, run.to.y, run.to.z ?? 0) !== tileKey(action.to.x, action.to.y, action.to.z ?? 0))
@@ -4459,7 +4467,7 @@ export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, tit
 export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?: string): boolean {
   const gHand = attackHandGate(attacker, weaponUid);
   if (!gHand) return true;
-  const gt = rollSansPilote(get, attacker, testValue(attacker, { characteristic: 'dexterite' }), 'accessible', battleRng());
+  const gt = rollSansPilote(get, attacker, DEXTERITE, testValue(attacker, DEXTERITE), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
     const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) }).lignes;
@@ -5141,8 +5149,8 @@ function aiDistraire(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): bo
   const battle = get().battle;
   if (!battle) return false;
   // LDB 10 l.364 ; départage LDB 12 l.160.
-  const atk = { ...rollSansPilote(get, enemy, distraireAttackValue(enemy), 'intermediaire', battleRng()), base: distraireAttackBase(enemy) };
-  const def = { ...rollTest(distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) };
+  const atk = { ...rollSansPilote(get, enemy, ATHLETISME_DU_DISTRAIRE, distraireAttackValue(enemy), 'intermediaire', battleRng()), base: distraireAttackBase(enemy) };
+  const def = { ...rollTest({ porteur: foe.id, teste: CALME_DISTRAIT }, distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) };
   const line = resolveDistraire(enemy, foe, atk, def);
   set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attaque', line, enemy.id, foe.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
@@ -8947,14 +8955,16 @@ export function jetDeRecharge(resolveTrapping: TrappingResolver, scene: Scene | 
   const chargee = munition ? weaponWithAmmo(arme, munition) : arme;
   const w = present != null ? crewedFireWeapon(chargee, present) : chargee;
   const equipage = (piece?.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c);
-  const sout = soutienDetail(equipage, porteur, attackTestOf(porteur, w, 'distance'), porteur.pos ? (c) => !!c.pos && distanceDeContact(scene, porteur, c) <= 1 : undefined);
+  const teste = attackTestOf(porteur, w, 'distance');
+  const sout = soutienDetail(equipage, porteur, teste, porteur.pos ? (c) => !!c.pos && distanceDeContact(scene, porteur, c) <= 1 : undefined);
   const soutien = sout.bonus ? sout : undefined;
   const skillValue = combatValue(porteur, 'distance', w) + sout.bonus;
   const ligne = rollLine({ actor: porteur, difficulty: 'intermediaire', valeur: skillValue, soutien, combat: { kind: 'distance', weapon: w } });
   return {
     actorId: porteur.id, weaponUid: w.uid ?? '',
     reload: reloadDRTarget(w), progressBefore: reloadProgressOf(porteur, arme),
-    skillValue, difficulty: 'intermediaire', roll: null, ligne, ...cibleMesuree(ligne), sl: 0, success: false, soutien,
+    skillValue, teste: structuredClone(teste), difficulty: 'intermediaire', // #2097
+    roll: null, ligne, ...cibleMesuree(ligne), sl: 0, success: false, soutien,
   };
 }
 
@@ -9117,7 +9127,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
       // Le Test allégé se lit SUR LA RANGÉE qui en profite (sa Difficulté, son libellé de ligne) : deux
       // héros face à la MÊME source ne partagent pas forcément le Talent.
       label: sansPeur ? stepSansPeur(skillLabel) : skillLabel,
-      skill: structuredClone(skill), difficulty, // #2097
+      teste: { skill: structuredClone(skill) }, difficulty, // #2097
       // Ligne montée par le monteur CANONIQUE (#1153), canal `combat` NON-attaque : base NUE, pénalité
       // d'États NOMMÉE (LDB 16 : « -10 à tous vos Tests » par palier) et comptée UNE fois dans la cible.
       // La calculer à la main ici l'oubliait : un héros Brisé ×2 testait sa Peur à pleine valeur.
@@ -9186,7 +9196,7 @@ function passeDePsy(get: Get, set: SetFn, collect: (get: Get, c: Combatant, roun
 function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDecl, row: BatchParticipant): void {
   const jet = garanti(row.result, c.id, 'rangée de Psychologie jetée');
   const inv = estJete(jet)
-    ? inversionDeTalent(c, { skill: row.skill, contexte: 'psych' }, jet.roll, jet.target,
+    ? inversionDeTalent(c, { skill: row.teste.skill, contexte: 'psych' }, jet.roll, jet.target,
       (tr) => evaluerRangeeBatch(row, hydrateTR({ ...tr, target: row.target, base: row.base })))
     : null;
   const r = inv ? { ...jet, ...inv } : jet;
@@ -9449,7 +9459,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // peut pas exprimer « sauter le tour ». Il s'exécute APRÈS le dispatch `turnStart`, avant l'action IA.
   if (isStupid(enemy.traits) && enemy.pos) {
     const guided = effectifAuContactParmi(get().scene, battle.combatants.filter((a) => a.id !== enemy.id && !isStupid(a.traits)), enemy, enemy.kind) > 0;
-    if (!guided && !rollSansPilote(get, enemy, testValue(enemy, { characteristic: 'intelligence' }), 'facile', battleRng()).success) {
+    if (!guided && !rollSansPilote(get, enemy, INTELLIGENCE, testValue(enemy, INTELLIGENCE), 'facile', battleRng()).success) {
       battle.log.push(ev('detail', tr('cf.stupidite', { name: nomDe(enemy) }), enemy.id));
       set({ battle: { ...battle } });
       return advanceTurn(get, set);
@@ -9636,7 +9646,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const recharge = rw && rechargeDuTour(enemy, battle, rw.uid);
       if (!recharge) return advanceTurn(get, set);
       const jet = jetDeRecharge(objetDuNarratif(get().campaignNarratif), get().scene, recharge.porteur, recharge.arme, battle.combatants);
-      const test = rollSansPilote(get, recharge.porteur, jet.skillValue, 'intermediaire', battleRng());
+      const test = rollSansPilote(get, recharge.porteur, jet.teste, jet.skillValue, 'intermediaire', battleRng());
       appliquerLaRecharge(get, set, { ...jet, roll: test.roll, target: test.target, sl: test.sl, success: test.success }, recharge.arme);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'afterMove'));
       return;
@@ -9656,12 +9666,12 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       if (rt.opposition) {
         // LDB 12 l.160 : les DEUX camps portent leur nue ET leur Difficulté (`RecoverOpposition` les porte
         // ENSEMBLE), comme la voie joueur (`FLOWS.recuperation`) — mêmes accesseurs.
-        const opp = opposedTest(rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, rt.opposition.difficulty, {
+        const opp = opposedTest({ attacker: { porteur: enemy.id, teste: rt.teste }, defender: rt.opposition.jet }, rt.skillValue, rt.opposition.value, battleRng(), rt.difficulty, rt.opposition.difficulty, {
           attacker: rt.skillBase, defender: rt.opposition.base,
         });
         success = opp.attackerWins; netSL = opp.netSL;
       } else {
-        const t = rollSansPilote(get, enemy, rt.skillValue, rt.difficulty, battleRng());
+        const t = rollSansPilote(get, enemy, rt.teste, rt.skillValue, rt.difficulty, battleRng());
         netSL = Math.max(0, t.sl);
         success = rt.requireSl != null ? t.success && netSL >= rt.requireSl : t.success; // Filets (Zoo Impérial p.29) : DR ≥ Indice
       }

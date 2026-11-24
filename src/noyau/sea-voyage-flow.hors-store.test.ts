@@ -43,7 +43,17 @@ import { feedFromMeal, noterLeRepas, rationCount } from '../engine/provisions';
 import { dayIndex, duskMinute, minutesUntilNext, MINUTES_PER_DAY } from '../engine/clock';
 import type { Id } from '../data/schemas/grammaire/ref';
 import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
-import { inexplique, membresHorsDifficulte, soutienDe, avanceEtapeCascade, draineCascade, draineEtapes, type PoseDe, type ChoisitCle } from './cascade.testkit';
+import {
+  inexplique,
+  membresHorsDifficulte,
+  soutienDe,
+  avanceEtapeCascade,
+  draineCascade,
+  draineEtapes,
+  type PoseDe,
+  type ChoisitCle,
+  TESTE_DE_TEST,
+} from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { savoirOceansBonus } from '../engine/seaNavigation';
 import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
@@ -484,7 +494,7 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
       const etape = p.participants[p.cursor];
       expect(etape.kind).toBe('equipage-orientation');
       expect(etape.participants!.find((r) => r.id === navigateur.id))
-        .toMatchObject({ roleId: 'navigateur', essential: true, skill: { id: 'orientation' } });
+        .toMatchObject({ roleId: 'navigateur', essential: true, teste: { skill: { id: 'orientation' } } });
       avanceEtapeCascade(get, () => 29);
       const bilan = get().journal.find((l) => l.startsWith('Orientation (DR '));
       expect(bilan).toBeDefined();
@@ -605,8 +615,8 @@ describe('Tourbillon — l’Évasion se joue à la Difficulté du gabarit (MDG 
     const avec = evasion('tourbillon');
     const navigation = navigationDuNavire(get, get().travelPlan!.vehicle!);
     const rangees = avec.participants!;
-    const propulsion = rangees.filter((r) => r.skill?.id === navigation.id);
-    const autres = rangees.filter((r) => r.skill?.id !== navigation.id);
+    const propulsion = rangees.filter((r) => r.teste.skill?.id === navigation.id);
+    const autres = rangees.filter((r) => r.teste.skill?.id !== navigation.id);
     expect(propulsion.map((r) => r.roleId).sort()).toEqual(['mousse', 'timonier']);
     expect(autres.length).toBeGreaterThan(0);
     for (const r of propulsion) {
@@ -2952,7 +2962,7 @@ describe('Mal de mer — #460 (MDG 14 l.211-222, câblage jamais branché, cycle
   /** Bande du mal de mer : une rangée par porteur, chacune avec SON verdict. */
   const bandeMalDeMer = (rows: { id: string; success: boolean }[]): CascadeStep => ({
     id: 'x', kind: 'mer-mal-de-mer', label: fixtureText('x'), groupOwner: true,
-    participants: rows.map((r) => ({ id: r.id, interactive: true, base: 40, target: 40, result: { roll: r.success ? 1 : 99, target: 40, sl: r.success ? 6 : -6, success: r.success } })),
+    participants: rows.map((r) => ({ teste: TESTE_DE_TEST, id: r.id, interactive: true, base: 40, target: 40, result: { roll: r.success ? 1 : 99, target: 40, sl: r.success ? 6 : -6, success: r.success } })),
   });
 
   it('applier `mer-mal-de-mer` : la rangée en échec contracte (malaise/nausée/persistant), pas sa voisine', () => {
@@ -3389,7 +3399,7 @@ describe('Précipitations sur le pont — Tests d’équipage du jour de mer (MD
     expect(orientation?.participants?.length).toBeGreaterThan(0);
     for (const part of orientation!.participants!) {
       expect(part.mods).toContainEqual(expect.objectContaining({
-        label: 'Météo : Très abondantes', value: MALUS_TRES_ABONDANTES[part.skill?.id ?? ''] ?? -10, famille: 'circonstance',
+        label: 'Météo : Très abondantes', value: MALUS_TRES_ABONDANTES[part.teste.skill?.id ?? ''] ?? -10, famille: 'circonstance',
       }));
     }
   });
@@ -3998,7 +4008,7 @@ describe('Test d’équipage — la chanson de marin est NOMMÉE sur la rangée 
       const crew = get().party.find((h) => h.id === part.id)!;
       expect(part.mods, 'la chanson se NOMME sur la rangée du marin').toContainEqual({ label: chanson.label, value: chanson.crewTestMod, famille: 'jet' });
       expect(part.base, 'base NUE : la chanson n’y est plus fondue')
-        .toBe(skillBaseValue(crew, { skill: part.skill }));
+        .toBe(skillBaseValue(crew, { skill: part.teste.skill }));
       const st = { base: part.base, target: part.target, mods: part.mods, difficulty: part.difficulty, clamped: part.clamped } as never;
       expect(inexplique(st), 'aucune chip « autres » sur une rangée d’équipage').toBe(0);
     }

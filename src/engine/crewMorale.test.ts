@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { JET_DE_TEST } from './tests.testkit';
 import {
   moraleBase,
   MORALE_FACTORS,
@@ -117,7 +118,7 @@ describe('Choix de paie du Conseil de bord (#229) — barème `wageMul` EN DONN�
 describe('resolveCrewTest — Test d’équipage (somme des DR, rôle essentiel doublé, DR de Moral)', () => {
   it('additionne les DR ; le rôle ESSENTIEL compte double ; le DR de Moral s’applique au total', () => {
     const r = resolveCrewTest(
-      [{ value: 60, essential: true, label: 'Capitaine' }, { value: 50, label: 'Marin' }],
+      [{ value: 60, jet: JET_DE_TEST, essential: true, label: 'Capitaine' }, { value: 50, jet: JET_DE_TEST, label: 'Marin' }],
       'intermediaire', 80, seq([20, 30]), // band 76-100 → crewTestDR 0
     );
     expect(r.contributions[0].counted).toBe(r.contributions[0].sl * 2); // essentiel ×2
@@ -128,7 +129,7 @@ describe('resolveCrewTest — Test d’équipage (somme des DR, rôle essentiel 
   });
 
   it('un Moral bas (« canailles ») applique -1 DR au total ; extraDR (Manque de bras) s’ajoute', () => {
-    const r = resolveCrewTest([{ value: 50, label: 'Timonier' }], 'intermediaire', 30, seq([30]), -2); // band ≤50 → -1 DR
+    const r = resolveCrewTest([{ value: 50, jet: JET_DE_TEST, label: 'Timonier' }], 'intermediaire', 30, seq([30]), -2); // band ≤50 → -1 DR
     expect(r.moraleDR).toBe(-1);
     expect(r.total).toBe(r.baseTotal - 1 - 2);
   });

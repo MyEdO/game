@@ -351,7 +351,7 @@ const SHANTY_LABEL = (label: string): string => t('crew.shantyLabel', { label })
  * sur le chanteur (interruption sur Dégâts, l.38) et consomme le QUART du navire (l.40). Renvoie le journal.
  */
 /** MDG 09 l.36. */
-const TEST_DE_CHANSON = { skill: { id: 'divertissement', spec: 'chant' } } as const;
+export const TEST_DE_CHANSON = { skill: { id: 'divertissement', spec: 'chant' } } as const;
 
 /** Valeur du Test de Chanson de marin — MDG 09 l.34-36. */
 export function valeurDeChanson(singer: Combatant): number {

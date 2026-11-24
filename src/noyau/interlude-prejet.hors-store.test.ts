@@ -186,7 +186,7 @@ describe('Pré-jet d’Activité — la voie retenue est TENTABLE (LDB 09 l.30)'
       b.setState((s) => ({ party: [...s.party] }));
     }, 1607);
     expect(testValue(h, { skill: { id: 'projectiles' } }), 'témoin : la valeur nue de Projectiles dépasse Corps à corps').toBeGreaterThan(testValue(h, { skill: { id: 'corps-a-corps' } }));
-    expect([pa!.chosenSkill, pa!.skillValue]).toEqual([{ id: 'corps-a-corps' }, testValue(h, { skill: { id: 'corps-a-corps' } })]);
+    expect([pa!.teste, pa!.skillValue]).toEqual([{ skill: { id: 'corps-a-corps' } }, testValue(h, { skill: { id: 'corps-a-corps' } })]);
     expect(preJet!.test).toEqual({ skill: { id: 'corps-a-corps' } });
   });
 });

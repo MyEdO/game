@@ -6,7 +6,7 @@ import { effectiveChar } from './characteristics';
 import { loseWounds, addCondition } from './conditions';
 import { DIFFICULTE_PAR_DEFAUT, type Combatant, type Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
-import { rollTest, cibleMesuree, type CibleMesuree, type TestResult } from './tests';
+import { rollTest, cibleMesuree, type CibleMesuree, type JetDeTest, type TestResult } from './tests';
 import { effectiveMovement } from './encumbrance';
 
 /**
@@ -35,12 +35,13 @@ export function testDuCavalier<T extends { readonly skill: RefDesignee }>(actor:
  * négatif, clampé ≥ 0.
  */
 export function resolveRun(
+  jet: JetDeTest,
   athletics: number,
   difficulty: Difficulty,
   movement: number,
   rng: RNG,
 ): IssueDeCourse {
-  return runFromTest(rollTest(athletics, difficulty, rng), movement);
+  return runFromTest(rollTest(jet, athletics, difficulty, rng), movement);
 }
 
 /** Issue rangée d'une Course : le jet (cible mesurée) et la distance qu'il donne. */
@@ -108,11 +109,12 @@ export function ladderClimbReach(movement: number): number {
  * Mouvement + DR mètres » (ex. M4, DR+2 → 6 m de plus). Le bonus s'applique même sur DR négatif (clampé ≥ 0).
  */
 export function resolveLadderClimb(
+  jet: JetDeTest,
   escalade: number,
   movement: number,
   rng: RNG,
 ): { success: boolean; roll: number; target: number; dr: number; metres: number } {
-  const t = rollTest(escalade, 'accessible', rng); // Escalade Accessible (+20)
+  const t = rollTest(jet, escalade, 'accessible', rng); // Escalade Accessible (+20)
   return { success: t.success, roll: t.roll, target: t.target, dr: t.sl, metres: Math.max(0, movement + t.sl) };
 }
 
@@ -142,6 +144,7 @@ export function climbMovementCost(metres: number, metresPerTile: number): number
  * absence du Talent ⇒ escalade IMPOSSIBLE (0 m). Sur un échec de Test : aucune progression. Pur.
  */
 export function resolveSurfaceClimb(
+  jet: JetDeTest,
   escalade: number,
   movement: number,
   rng: RNG,
@@ -150,7 +153,7 @@ export function resolveSurfaceClimb(
   if (surfaceClimbImpossible(!!opts.requiresGrimpeur, !!opts.hasGrimpeur)) {
     return { success: false, roll: 0, target: 0, dr: 0, metres: 0, impossible: true };
   }
-  const t = rollTest(escalade, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
+  const t = rollTest(jet, escalade, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
   return { success: t.success, roll: t.roll, target: t.target, dr: t.sl, metres: t.success ? Math.max(0, Math.floor(movement / 2) + t.sl) : 0, impossible: false };
 }
 
@@ -160,12 +163,13 @@ export function resolveSurfaceClimb(
  * après réduction ; seul un DR POSITIF réduit. Pur ; ne mute rien.
  */
 export function resolveDeliberateFall(
+  jet: JetDeTest,
   athletics: number,
   difficulty: Difficulty,
   metres: number,
   rng: RNG,
 ): IssueDeChute {
-  return fallFromTest(rollTest(athletics, difficulty, rng), metres);
+  return fallFromTest(rollTest(jet, athletics, difficulty, rng), metres);
 }
 
 /** Issue rangée d'une chute volontaire : le jet (cible mesurée) et la hauteur effective. */

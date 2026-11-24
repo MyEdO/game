@@ -48,7 +48,7 @@ function testOuvert(banc: Banc, c: Combatant, skill: string) {
   const sequence = banc.getState().pendingCascade;
   expect(sequence, 'le Test doit s’ouvrir après le geste d’horloge').toBeTruthy();
   const etape = sequence!.participants[sequence!.cursor];
-  expect(etape).toMatchObject({ kind: 'testDeclenche', actorId: c.id, skill: { id: skill } });
+  expect(etape).toMatchObject({ kind: 'testDeclenche', actorId: c.id, teste: { skill: { id: skill } } });
   expect(etape.result, 'le dé appartient encore au joueur').toBeFalsy();
   return etape;
 }

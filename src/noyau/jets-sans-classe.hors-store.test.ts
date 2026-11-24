@@ -21,7 +21,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { buildBand, bandStep, monoStep, surfaceDesEtapes, surfaceDeLEtape } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { startCascade } from './cascade';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade, TESTE_DE_TEST } from './cascade.testkit';
 import { setCadence } from '../engine/cadence';
 import { fixtureText } from '../i18n/fixtureText';
 import { voyageStakeRef } from '../data';
@@ -132,7 +132,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
     }
     const deMonde = monoStep({
       id: 'x', kind: cleDeFixture('x'), monde: true, label: fixtureText('Désertion'), difficulty: 'intermediaire',
-      ligne: { valeur: 40 }, stake: voyageStakeRef('mer-salissures'),
+      ligne: { test: TESTE_DE_TEST, valeur: 40 }, stake: voyageStakeRef('mer-salissures'),
     })!;
     expect(surfaceDesEtapes(get, [deMonde]), 'le dé du MONDE, lui, revient au siège qui le tient').toBe('V');
   });
@@ -141,7 +141,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
     traversee('jourParJour');
     setCadence('rapide');
     const h = get().party[0];
-    const jet = monoStep({ id: 'mer-scorbut', kind: 'mer-scorbut', label: fixtureText('Scorbut'), actor: h, difficulty: 'intermediaire', ligne: { valeur: 40 }, stake: voyageStakeRef('mer-scorbut') })!;
+    const jet = monoStep({ id: 'mer-scorbut', kind: 'mer-scorbut', label: fixtureText('Scorbut'), actor: h, difficulty: 'intermediaire', ligne: { valeur: 40 }, teste: TESTE_DE_TEST, stake: voyageStakeRef('mer-scorbut') })!;
     expect(surfaceDeLEtape(get, jet), 'un dé isolé se résout inline en cadence déférée').toBe('I');
     expect(surfaceDesEtapes(get, [bandeDe('mer-scorbut', get().party)]), 'la bande garde son bilan — `combatAuto` la déroule').toBe('M');
   });
@@ -215,8 +215,8 @@ describe('#1479 — une bande que PERSONNE ne tient se résout d’office (jamai
 
   it('rangée d’id FANTÔME (aucun combattant derrière) → I : un id inconnu n’est tenu par personne', () => {
     const bande = bandStep({ id: 'fantome', kind: 'mer-scorbut', label: fixtureText('Fantôme') }, [
-      { id: 'FANTOME-1', interactive: true, result: null, base: 30, target: 30, difficulty: 'intermediaire' },
-      { id: 'FANTOME-2', interactive: true, result: null, base: 30, target: 30, difficulty: 'intermediaire' },
+      { teste: TESTE_DE_TEST, id: 'FANTOME-1', interactive: true, result: null, base: 30, target: 30, difficulty: 'intermediaire' },
+      { teste: TESTE_DE_TEST, id: 'FANTOME-2', interactive: true, result: null, base: 30, target: 30, difficulty: 'intermediaire' },
     ])!;
     expect(bande.groupOwner, 'deux porteurs : la bande se déclare de GROUPE').toBe(true);
     expect(surfaceDesEtapes(get, [bande])).toBe('I');

@@ -16,7 +16,7 @@ import type { Equipe } from './relations';
 import {
   massBattlePowerEstimate, massBattleMightModifiers, massBattleStructures, massBattleHazards,
 } from '../data';
-import { rollTest, difficultyFromModifier, type TestResult } from './tests';
+import { rollTest, difficultyFromModifier, type JetDeTest, type TestResult } from './tests';
 import { type Difficulty } from './types';
 import { RNG } from './dice';
 import { findTableEntry } from './tables';
@@ -109,8 +109,11 @@ export function mightReduction(sl: number): number {
 /** Un Test spectaculaire de Puissance NON opposé (l.120) : d100 ≤ Puissance courante, modifié par les
  *  bonus/malus de bataille (Planification/Discours/aléas). `modifier` = somme des modificateurs. */
 export function rollMightTest(might: number, modifier: number, rng: RNG): TestResult {
-  return rollTest(might, 'intermediaire', rng, modifier);
+  return rollTest(JET_DE_PUISSANCE, might, 'intermediaire', rng, modifier);
 }
+
+/** Le jet d'une armée : sans fiche, il teste sa Puissance (l.120). */
+export const JET_DE_PUISSANCE: JetDeTest = { porteur: null, teste: { puissance: true } };
 
 /** Issue de l'affrontement d'un Round : les deux Tests + les pertes de Puissance infligées de part et
  *  d'autre. Les pertes sont ensuite APPLIQUÉES aux Combattants-armées par l'op `wounds` (côté flux), pas

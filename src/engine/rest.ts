@@ -29,8 +29,17 @@ import { Combatant, UpkeepDeferTest } from './types';
 import { RNG } from './dice';
 import { rollTest } from './tests';
 import { effectiveChar, bonus } from './characteristics';
-import { testValue } from './skills';
-import { removeCondition, reprendreConnaissance, stacks, hasCondition, nightmareCheck, syncDerivedConditions, derivedStacks } from './conditions';
+import { testValue, type TestDesigne } from './skills';
+import {
+  removeCondition,
+  reprendreConnaissance,
+  stacks,
+  hasCondition,
+  nightmareCheck,
+  syncDerivedConditions,
+  derivedStacks,
+  TEST_DES_CAUCHEMARS,
+} from './conditions';
 import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, maladieDeclaree, type CycleDeFiche, type Disease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
@@ -39,6 +48,8 @@ import { diseaseLabel } from '../data';
 import { t, type MsgKey } from '../i18n';
 import { nomDe } from './nom';
 import { garanti } from '../lib/garanti';
+
+const RESISTANCE_DE_RECUPERATION: TestDesigne = { skill: { id: 'resistance' } }; // LDB 18 l.296
 
 /** États qui empêchent un repos réparateur. LDB 16 l.105 */
 function unstable(c: Combatant): boolean {
@@ -256,8 +267,8 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: R
     // volet a (LDB 18 l.296) : Test de Résistance Accessible (+20) — lancé seulement si utile (PB < max, non affamé).
     let roll: { sl: number; success: boolean } | null = null;
     if (needsRecoveryRoll(c)) {
-      const base = testValue(c, { skill: { id: 'resistance' } });
-      const res = rollTest(base, 'accessible', rng);
+      const base = testValue(c, RESISTANCE_DE_RECUPERATION);
+      const res = rollTest({ porteur: c.id, teste: RESISTANCE_DE_RECUPERATION }, base, 'accessible', rng);
       bilan?.jets.push({ kind: 'recuperation', base, target: res.target, roll: res.roll, sl: res.sl, success: res.success });
       roll = { sl: res.sl, success: res.success };
     }
@@ -267,7 +278,7 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: R
     if (c.nightmares) {
       const before = stacks(c, 'extenue');
       const out: { base: number; result: import('./tests').TestResult }[] = [];
-      nightmareCheck(c, testValue(c, { skill: { id: 'calme' } }), rng, out); // LDB 21 l.95 — Test de Calme, valeur de la porte
+      nightmareCheck(c, testValue(c, TEST_DES_CAUCHEMARS), rng, out); // LDB 21 l.95 — Test de Calme, valeur de la porte
       for (const o of out) bilan?.jets.push({ kind: 'cauchemar', base: o.base, target: o.result.target, roll: o.result.roll, sl: o.result.sl, success: o.result.success });
       if (stacks(c, 'extenue') > before) nightmareNights++;
     }

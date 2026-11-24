@@ -14,7 +14,7 @@
  * (`vehicleCombatant` met `movement:0`) → on les relit via `creatureId` (`shipManeuverParams`).
  */
 import { battleRng } from './battleRng';
-import { rollTest, evaluateTest, easeDifficulty, bestForcedRoll, ECHEC_SANS_JET, ligneSansJet, type EchecSansJet } from '../engine/tests';
+import { rollTest, evaluateTest, forcedTR, easeDifficulty, bestForcedRoll, ECHEC_SANS_JET, ligneSansJet, type EchecSansJet } from '../engine/tests';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import { testValue, partyBest, peutTenter, refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { resolveShipManeuver, type ShipManeuverOutcome } from '../engine/shipNavigation';
@@ -59,7 +59,7 @@ export function rollCrewRole(crew: Combatant, roleId: string, navigation: RefDes
   const rv = crewRoleValue(crew, role, navigation, sense);
   if (rv.refus != null) return ligneSansJet(rv.refus);
   const surCible = crewRoleTestMods(crew, role, navigation, sense).reduce((s, m) => s + m.value, 0);
-  const t = rollTest(rv.value, difficulteDuRole(cumul), rng, surCible);
+  const t = rollTest({ porteur: crew.id, teste: { skill: rv.used } }, rv.value, difficulteDuRole(cumul), rng, surCible);
   return { result: { roll: t.roll, target: t.target, sl: t.sl + (t.success ? crewTalentDR(crew, role, navigation) : 0) } };
 }
 
@@ -88,7 +88,8 @@ export function forceCrewRole(crew: Combatant, roleId: string, navigation: RefDe
   // voies d'un même Test — roulé et forcé par Résilience — ne peuvent pas jetter sur deux cibles.
   const target = ligneDuRoleTentable(crew, role, rv.value, navigation, cumul, sense).target;
   const die = bestForcedRoll(target);
-  return { roll: die, target, sl: evaluateTest(die, target).sl + crewTalentDR(crew, role, navigation) };
+  const t = forcedTR({ porteur: crew.id, teste: { skill: rv.used } }, die, target, evaluateTest(die, target).sl + crewTalentDR(crew, role, navigation));
+  return { roll: die, target, sl: t.sl };
 }
 
 /** Total du Test d'équipage de MANŒUVRE (MDG 14 l.13) : Σ des DR des contributeurs, le rôle ESSENTIEL compté
@@ -231,7 +232,8 @@ export function rollShipManeuver(get: Get, shipId: string, helmsmanId?: string):
   const helm = helmsmanId ? (imposed && peutTenter(imposed, { skill: params.competence }) ? imposed : undefined) : bestHelmsman(crew, params.competence);
   // LDB 09 l.30, MSRC 7 l.17 ; #2588 Q1.
   if (!helm) return imposed ? maneuverSansJet(params, refusNePeutTenter(imposed, { skill: params.competence }), nomDe(imposed)) : maneuverSansJet(params, refusPersonneNePeutTenter({ skill: params.competence }));
-  return deriveManeuver(params, ship, rollTest(testValue(helm, { skill: params.competence }), 'intermediaire', battleRng()), nomDe(helm));
+  const barre = { skill: params.competence };
+  return deriveManeuver(params, ship, rollTest({ porteur: helm.id, teste: barre }, testValue(helm, barre), 'intermediaire', battleRng()), nomDe(helm));
 }
 
 /**

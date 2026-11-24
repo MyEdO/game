@@ -45,6 +45,7 @@ import { TAVERN_SEQUENCE, TAVERN_ROUND_KIND, type TavernPayload, type TavernComb
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './monde/sceneNpc';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc({ desFixes: true }); });
@@ -80,7 +81,7 @@ function partie(challengerId: string, etat?: Partial<TavernCombinedState>, marks
  *  challenger est le SEUL de son camp — la seconde lecture se fait dessus. */
 function tour(actorId: string, mien: { roll: number; target: number; sl: number }, sien: { roll: number; sl: number }): MancheClose {
   const step: CascadeStep = {
-    id: `${TAVERN_ROUND_KIND}-2`, kind: TAVERN_ROUND_KIND, actorId,
+    id: `${TAVERN_ROUND_KIND}-2`, kind: TAVERN_ROUND_KIND, actorId, teste: TESTE_DE_TEST,
     label: fixtureText('Le Cerevis'), rollLabel: 'Pari', difficulty: 'accessible', base: mien.target, target: mien.target,
     result: { roll: mien.roll, target: mien.target, sl: mien.sl, success: evaluateTest(mien.roll, mien.target).success },
     meta: {
@@ -143,7 +144,7 @@ function verifierTestDeBoisson(buveur: Combatant): CascadeStep {
   const etape = etapeCourante();
   const cible = testValue(buveur, { skill: RESISTANCE_A_L_ALCOOL });
   expect(etape).toMatchObject({
-    kind: 'taverneBoisson', actorId: buveur.id, skill: RESISTANCE_A_L_ALCOOL,
+    kind: 'taverneBoisson', actorId: buveur.id, teste: { skill: RESISTANCE_A_L_ALCOOL },
     difficulty: 'intermediaire', base: cible, target: cible, result: null,
   });
   expect(jetsEnVue(get())).toMatchObject([{

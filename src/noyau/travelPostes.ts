@@ -206,6 +206,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
       batchParts.push({
         id: hero.id,
         label: testSkillLabel(spec.test),
+        teste: structuredClone(spec.test), // #2097
         interactive: true,
         difficulty,
         result: null,
@@ -242,6 +243,9 @@ function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeS
   return consequences;
 }
 
+/** Le Test de Résistance de traversée. EDOC 8 l.86, l.127 */
+const SUJET_RESISTANCE = { skill: { id: 'resistance' }, characteristic: 'endurance' } as const;
+
 /** Test de RÉSISTANCE de traversée (Neige l.86 / Blizzard l.127) au DÉMARRAGE du jour de voyage : UNE
  *  BANDE (une rangée par héros voyageant, jets INDÉPENDANTS influençables) — DISTINCTE de l'Exposition
  *  de fin d'Étape. L'ENJEU verbatim (donnée `resistanceTest.enjeu`) est porté sur la bande ; l'échec
@@ -255,9 +259,9 @@ export function buildWeatherResistanceSteps(get: Get, weather: Weather): BuiltCa
   for (const hero of get().party) {
     if (hero.dead || hero.outOfRencontre) continue;
     parts.push({
-      id: hero.id, label: refLabel('skills', { id: 'resistance' }), interactive: true,
+      id: hero.id, label: refLabel('skills', SUJET_RESISTANCE.skill), teste: { skill: structuredClone(SUJET_RESISTANCE.skill) }, interactive: true, // #2097
       difficulty: rt.difficulty,
-      ...rollStep({ actor: hero, test: { skill: { id: 'resistance' }, characteristic: 'endurance' }, difficulty: rt.difficulty }),
+      ...rollStep({ actor: hero, test: SUJET_RESISTANCE, difficulty: rt.difficulty }),
       result: null,
     });
   }

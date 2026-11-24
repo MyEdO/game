@@ -131,7 +131,7 @@ function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
       // la provenance, porté par le libellé d'entrée. La Difficulté posée à la construction voyage
       // avec la ligne (#1112) au lieu d'être jetée. Une ligne non tentable n'a pas de dé : son refus.
       ...(estJete(res) ? { d: {
-        label: part.skill ? refLabel('skills', part.skill) : (part.label ?? actor.label),
+        label: part.teste.skill ? refLabel('skills', part.teste.skill) : (part.label ?? actor.label),
         base: part.base, modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl,
         ...(part.difficulty ? { difficulty: part.difficulty } : {}),
       } } : { text: part.refus }),

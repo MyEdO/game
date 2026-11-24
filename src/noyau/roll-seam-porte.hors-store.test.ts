@@ -19,6 +19,10 @@ import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
 import type { Combatant } from '../engine/types';
 import { cleDeFixture } from './noyau.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { TESTE_DE_TEST } from './cascade.testkit';
+
+/** Le Test que nomme une rangée de MONDE (Résistance de l'équipage collectif, `shipCrew.porteursABord`). */
+const RESISTANCE_DU_MONDE = { skill: { id: 'resistance' } };
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -105,8 +109,8 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     openBand(banc.getState, banc.setState, {
       id: 'surprise', kind: 'testDeclencheEnBande', label: fixtureText('Surprise'), title: 'Surprise', purpose: 'combat',
       rows: [
-        { id: 'H1', base: 40, target: 40, result: null, difficulty: 'intermediaire' },
-        { id: 'H2', base: 30, target: 30, result: null, difficulty: 'intermediaire' },
+        { teste: TESTE_DE_TEST, id: 'H1', base: 40, target: 40, result: null, difficulty: 'intermediaire' },
+        { teste: TESTE_DE_TEST, id: 'H2', base: 30, target: 30, result: null, difficulty: 'intermediaire' },
       ],
     });
     const [r1, r2] = etapeCourante().participants!;
@@ -123,8 +127,8 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     openBand(banc.getState, banc.setState, {
       id: 'oppose', kind: 'testDeclencheEnBande', label: fixtureText('Opposé gelé'), title: 'Opposé', purpose: 'combat',
       rows: [
-        { id: 'H1', base: 40, target: 40, result: fige, difficulty: 'intermediaire' },
-        { id: 'H2', base: 30, target: 30, result: null, difficulty: 'intermediaire' },
+        { teste: TESTE_DE_TEST, id: 'H1', base: 40, target: 40, result: fige, difficulty: 'intermediaire' },
+        { teste: TESTE_DE_TEST, id: 'H2', base: 30, target: 30, result: null, difficulty: 'intermediaire' },
       ],
     });
     const [r1, r2] = etapeCourante().participants!;
@@ -138,7 +142,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     deuxSieges([h1, hero('H2')]);
     expect(() => openBand(banc.getState, banc.setState, {
       id: 'orpheline', kind: cleDeFixture('k'), label: fixtureText('L'), title: 'T', purpose: 'test',
-      rows: [{ id: 'FANTOME', base: 30, target: 30, result: null, difficulty: 'intermediaire' }],
+      rows: [{ teste: TESTE_DE_TEST, id: 'FANTOME', base: 30, target: 30, result: null, difficulty: 'intermediaire' }],
     })).toThrow(/sans combattant/);
     expect(banc.getState().pendingCascade, 'plus aucune rangée ⇒ aucune bande').toBeNull();
   });
@@ -151,14 +155,14 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
-  it('#4243 — porteur MONDE (sans fiche) : la rangée se monte à sa valeur posée, sans `test`, et le siège qui tient le monde la joue', () => {
+  it('#4243 — porteur MONDE (sans fiche) : la rangée se monte à sa valeur posée et le siège qui tient le monde la joue', () => {
     const h1 = hero('H1');
     deuxSieges([h1]);
     setCadence('manuel');
     openBand(banc.getState, banc.setState, {
       id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
       difficulty: 'intermediaire',
-      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'endurance' } } }, { monde: true, ligne: { valeur: 40 } }],
+      porteurs: [{ actor: h1, ligne: { test: { characteristic: 'endurance' } } }, { monde: true, ligne: { test: RESISTANCE_DU_MONDE, valeur: 40 } }],
     });
     const step = etapeCourante();
     expect(step.groupOwner, 'un héros et le monde : deux porteurs, bande de GROUPE').toBe(true);
@@ -175,7 +179,7 @@ describe('#1262 — openBand : la porte monte, surface et POSSÈDE', () => {
     openBand(banc.getState, banc.setState, {
       id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
       difficulty: 'intermediaire',
-      porteurs: [{ monde: true, ligne: { valeur: 40 } }],
+      porteurs: [{ monde: true, ligne: { test: RESISTANCE_DU_MONDE, valeur: 40 } }],
     });
     const step = etapeCourante();
     expect(step.actorId).toBe(WORLD_STEP_OWNER);
@@ -276,7 +280,7 @@ describe('#4243 — la rangée de MONDE se JOUE comme toute rangée', () => {
     openBand(banc.getState, banc.setState, {
       id: 'scorbut', kind: cleDeFixture('k'), label: fixtureText('Scorbut'), title: 'Scorbut', purpose: 'test',
       difficulty: 'intermediaire',
-      porteurs: [{ monde: true, ligne: { valeur: 40 } }],
+      porteurs: [{ monde: true, ligne: { test: RESISTANCE_DU_MONDE, valeur: 40 } }],
     });
     expect(etapeCourante().participants![0].interactive, 'jour par jour : la rangée est à jouer').toBe(true);
     banc.getState().jetLancer('cascadeEnBande', WORLD_STEP_OWNER);

@@ -50,9 +50,9 @@ export const EVT = {
   SFX: 'sfx',
   /** store → * : fin de combat — gong de victoire. */
   BATTLE_OVER: 'battle_over',
-  /** noyau → hôte : un Test de scène s'est résolu (`jetValider('test')`), sa Compétence ou sa Caractéristique en
-   *  `reference` (#4830). Observation pure, jamais lue par du code de règles. */
-  TEST_RESOLVED: 'test_resolved',
+  /** noyau → hôte : un Test jeté, dans l'ordre des jets, ce qu'il teste en `reference` (#4848). Observation pure,
+   *  jamais lue par du code de règles. */
+  TEST_JETE: 'test_jete',
   /** noyau → hôte : l'Effet `openCharacterCreator` demande la création d'un nouveau héros (sans charge),
    *  que l'hôte ouvre. */
   HEROS_A_CREER: 'heros_a_creer',
@@ -81,8 +81,17 @@ export type ChargeDAttaque =
  *  sort. */
 export interface ChargeDeZone { de: string; centre: Case; tiles: Case[]; sort?: string; rendu?: string }
 
-/** La charge de `TEST_RESOLVED` : `reference`, ce que le Test a testé, comme la ligne de jet le nomme (`ReferenceDeJet`). */
-export interface TestResolu { actorId: string; success: boolean; sl: number; roll: number | null; target: number; reference: ReferenceDeJet | null }
+/** La charge de `TEST_JETE` : son porteur (`null` sans fiche, ou hors de la vue du groupe), ce qu'il teste comme la
+ *  ligne de jet le nomme, ou la Puissance d'une armée, et son issue. Un jet que le groupe ne voit pas (jet figé
+ *  d'un Test opposé, `jetsEnVue`) sort à l'appel qui le révèle. `cible` et `dr` valent `null` pour une valeur masquée.
+ *  `relance` : un nouveau jet du même Test (Chance, Pacte) ; `forcee` : une réussite achetée (Résilience, Résistance). */
+export interface TestJete {
+  porteur: string | null;
+  reference: ReferenceDeJet | { genre: 'puissance' };
+  issue: { roll: number; cible: number | null; dr: number | null; reussi: boolean };
+  relance?: true;
+  forcee?: true;
+}
 
 /** La charge de chaque évènement du bus, `undefined` pour un évènement sans charge. */
 export interface ChargesDuBus {
@@ -96,7 +105,7 @@ export interface ChargesDuBus {
   dice_roll: undefined;
   sfx: { id: string };
   battle_over: { victory: boolean };
-  test_resolved: TestResolu;
+  test_jete: TestJete;
   heros_a_creer: undefined;
   arrivee_en_scene: { sceneId: string; neuve: boolean };
   ligne_au_journal: { texte: string };

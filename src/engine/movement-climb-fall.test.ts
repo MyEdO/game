@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { JET_DE_TEST } from './tests.testkit';
 import { ladderClimbReach, resolveLadderClimb, resolveSurfaceClimb, resolveDeliberateFall } from './movement';
 import {
   pursuitOutcome, pursuitMoveBonus, pursuitLaggard, npcSacrificeChoice, npcPursuerChoice,
@@ -14,18 +15,18 @@ describe('Escalade (LDB 15 l.53-57)', () => {
     expect(ladderClimbReach(4)).toBe(4);
   });
   it('échelle rapide (Action + Escalade Accessible) : M + DR mètres (M4, réussite ample)', () => {
-    const r = resolveLadderClimb(80, 4, fixed(1)); // 01 → réussite, DR élevé
+    const r = resolveLadderClimb(JET_DE_TEST, 80, 4, fixed(1)); // 01 → réussite, DR élevé
     expect(r.success).toBe(true);
     expect(r.metres).toBeGreaterThanOrEqual(4); // au moins M
   });
   it('surface à prises : (½M + DR) mètres sur réussite, 0 sur échec', () => {
-    const ok = resolveSurfaceClimb(80, 4, fixed(1)); // réussite
+    const ok = resolveSurfaceClimb(JET_DE_TEST, 80, 4, fixed(1)); // réussite
     expect(ok.metres).toBeGreaterThanOrEqual(2); // ½M(=2) + DR
-    const ko = resolveSurfaceClimb(20, 4, fixed(99)); // échec
+    const ko = resolveSurfaceClimb(JET_DE_TEST, 20, 4, fixed(99)); // échec
     expect(ko.metres).toBe(0);
   });
   it('surface exigeant Grimpeur, sans le Talent → escalade impossible', () => {
-    const r = resolveSurfaceClimb(80, 4, fixed(1), { requiresGrimpeur: true, hasGrimpeur: false });
+    const r = resolveSurfaceClimb(JET_DE_TEST, 80, 4, fixed(1), { requiresGrimpeur: true, hasGrimpeur: false });
     expect(r.impossible).toBe(true);
     expect(r.metres).toBe(0);
   });
@@ -33,16 +34,16 @@ describe('Escalade (LDB 15 l.53-57)', () => {
 
 describe('Chute volontaire (LDB 15 l.82)', () => {
   it('réussite : −1 m de chute par DR', () => {
-    const r = resolveDeliberateFall(80, 'accessible', 6, fixed(1)); // 01 → réussite, gros DR
+    const r = resolveDeliberateFall(JET_DE_TEST, 80, 'accessible', 6, fixed(1)); // 01 → réussite, gros DR
     expect(r.success).toBe(true);
     expect(r.effectiveMetres).toBeLessThan(6);
   });
   it('DR suffisant → chute ramenée à 0 (aucun Dégât)', () => {
-    const r = resolveDeliberateFall(100, 'accessible', 2, fixed(1)); // DR ≥ 2 attendu
+    const r = resolveDeliberateFall(JET_DE_TEST, 100, 'accessible', 2, fixed(1)); // DR ≥ 2 attendu
     expect(r.effectiveMetres).toBe(0);
   });
   it('échec : aucune réduction (on ne tombe pas de plus haut)', () => {
-    const r = resolveDeliberateFall(20, 'accessible', 6, fixed(99)); // échec
+    const r = resolveDeliberateFall(JET_DE_TEST, 20, 'accessible', 6, fixed(99)); // échec
     expect(r.effectiveMetres).toBe(6);
   });
 });

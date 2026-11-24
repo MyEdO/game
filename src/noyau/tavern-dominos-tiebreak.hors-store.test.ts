@@ -22,6 +22,7 @@ import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { pnjAuProfil } from './monde/sceneNpc';
 import type { DepartageDeSequence } from '../engine/sequenceVocab';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -50,7 +51,7 @@ interface Camp { roll: number; nue: number; sl: number }
 /** Manche CLOSE : le jet du challenger et le jet adverse FIGÉ, à la Difficulté des Dominos. */
 function doneRound(actorId: string, mien: Camp, sien: Camp): MancheClose {
   const step: CascadeStep = {
-    id: `${TAVERN_ROUND_KIND}-1`, kind: TAVERN_ROUND_KIND, actorId,
+    id: `${TAVERN_ROUND_KIND}-1`, kind: TAVERN_ROUND_KIND, actorId, teste: TESTE_DE_TEST,
     label: fixtureText('Les dominos'), rollLabel: 'Pari', difficulty: 'accessible',
     base: mien.nue, target: mien.nue + 20,
     result: { roll: mien.roll, target: mien.nue + 20, sl: mien.sl, success: true },

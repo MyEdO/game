@@ -8,7 +8,7 @@ import type { FlowKey } from './flowVerbs';
 import type { Combatant } from '../engine/types';
 import type { ShipManeuverParticipant } from './pendings';
 import { propulsionDuNavire } from '../engine/shipBuild';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, TESTE_DE_TEST } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -103,7 +103,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     }),
   },
   cascade: {
-    state: { pendingCascade: cascadeDeTest([{ id: 's1', kind: cleDeFixture('test'), actorId: 'H', target: T, rollLabel: 'Test', result: { roll: 88, target: T, sl: -4, success: false } }]) },
+    state: { pendingCascade: cascadeDeTest([{ teste: TESTE_DE_TEST, id: 's1', kind: cleDeFixture('test'), actorId: 'H', target: T, rollLabel: 'Test', result: { roll: 88, target: T, sl: -4, success: false } }]) },
     pid: 's1',
     read: (s) => ({ roll: P<{ participants: { result: { roll: number } }[] }>(s, 'pendingCascade').participants[0].result.roll, success: P<{ participants: { result: { success: boolean } }[] }>(s, 'pendingCascade').participants[0].result.success }),
   },
@@ -111,7 +111,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   // d100 (`roll ≤ cible`, cf. `partRead`) reviendrait à se fournir la valeur qu'on prétend mesurer :
   // la garde resterait verte alors même que l'accesseur de dé n'écrirait aucune issue.
   cascadeEnBande: {
-    state: { pendingCascade: cascadeDeTest([{ id: 'b1', kind: cleDeFixture('batch'), aggregate: 'none', participants: [{ id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }]) },
+    state: { pendingCascade: cascadeDeTest([{ id: 'b1', kind: cleDeFixture('batch'), aggregate: 'none', participants: [{ teste: TESTE_DE_TEST, id: 'H', interactive: true, base: T, target: T, result: { roll: 88, target: T, sl: -4, success: false } }] }]) },
     pid: 'H',
     read: (s) => {
       const r = P<{ participants: { participants: { result: { roll: number; success: boolean } }[] }[] }>(s, 'pendingCascade').participants[0].participants[0].result;
@@ -133,11 +133,11 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     },
   },
   test: {
-    state: { pendingTest: { actorId: 'H', label: 'T', skillValue: T, difficulty: 'intermediaire', requireSL: 0, ...rate, onSuccess: [], onFailure: [] } },
+    state: { pendingTest: { sujet: TESTE_DE_TEST, actorId: 'H', label: 'T', skillValue: T, difficulty: 'intermediaire', requireSL: 0, ...rate, onSuccess: [], onFailure: [] } },
     read: flatRead('pendingTest'),
   },
   activite: {
-    state: { pendingActivity: { heroId: 'H', activityId: 'a', skillValue: T, difficulty: 'intermediaire', ...rate } },
+    state: { pendingActivity: { teste: TESTE_DE_TEST, heroId: 'H', activityId: 'a', skillValue: T, difficulty: 'intermediaire', ...rate } },
     read: flatRead('pendingActivity'),
   },
   rechargement: {
@@ -164,7 +164,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     state: { pendingCorruption: { heroId: 'H', kind: 'exposition', level: 'mineure', nature: 'physique', test: testDeRegle('influences-corruptrices', 'physique'), natureFixee: true, menace: 'corruption', ...rate } },
     read: flatRead('pendingCorruption'),
   },
-  recuperation: { state: { pendingStateRecovery: { actorId: 'H', state: 'sonne', skillValue: T, difficulty: 'intermediaire', roll: rateTR } }, read: trRead('pendingStateRecovery') },
+  recuperation: { state: { pendingStateRecovery: { teste: TESTE_DE_TEST, actorId: 'H', state: 'sonne', skillValue: T, difficulty: 'intermediaire', roll: rateTR } }, read: trRead('pendingStateRecovery') },
   marchandage: {
     state: { pendingBargain: { playerId: 'H', merchantId: 'm', playerSkill: T, merchantRoll: { roll: 20, target: 50, success: true, sl: 3, isDouble: false }, roll: rateTR } },
     read: trRead('pendingBargain'),
@@ -189,7 +189,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: (s) => { const r = P<{ participants: { result: { roll: number; success: boolean } }[] }>(s, 'pendingFall').participants[0].result; return { roll: r.roll, success: r.success }; },
   },
   testEtendu: {
-    state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', target: T, drCible: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },
+    state: { pendingExtendedTest: { actorId: 'H', label: 'X', skillLabel: 'Force', characteristic: 'force', target: T, drCible: 6, total: 0, rounds: [{ id: 'r1', interactive: true, result: { roll: 88, sl: -4, success: false } }] } },
     pid: 'r1',
     read: (s) => {
       const r = P<{ rounds: { result: { roll: number; success: boolean } }[] }>(s, 'pendingExtendedTest').rounds[0].result;

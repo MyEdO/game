@@ -36,7 +36,19 @@ import { estHerosJouable } from '../engine/relations';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import { PORTEURS_D_ETAPE } from './slotsDeJet';
 import { sortirDeLHote } from './cascade';
-import { bumpSL, evaluateTest, maxForcedRoll, forcedTR, bestForcedRoll, cibleBrute, type TestResult } from '../engine/tests';
+import {
+  bumpSL,
+  evaluateTest,
+  maxForcedRoll,
+  forcedTR,
+  bestForcedRoll,
+  cibleBrute,
+  relancer,
+  jeterLeDe,
+  type CeQueTeste,
+  type JetDeTest,
+  type TestResult,
+} from '../engine/tests';
 import {
   applyReverse,
   reverseAvailable as engineReverseAvailable,
@@ -240,6 +252,9 @@ export interface RollFlowLens<P extends PendingBase, Slot extends PendingBase = 
   /** forceSuccess « sans re-dériver le dé » : opposé BINAIRE (→ issue « success ») ou flip-success simple.
    *  PRÉSENT ⇒ forceSuccess l'utilise au lieu de `applyRoll(forcedTR(…))`. `null` = interdit / déjà réussi. */
   forceWin?: (slot: Slot, actor: Combatant, tr: TestResult | null) => Partial<Slot> | null;
+  /** Ce que teste le dé de l'acteur (#4848), le sujet qui calcule sa cible : le jet que la fabrique construit
+   *  (`forcedTR`, `jeterLeDe`) le nomme. */
+  teste: (s: Jeu, slot: Slot, actor: Combatant, p: P) => CeQueTeste;
 }
 
 /**
@@ -358,6 +373,9 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
     /** ÉCRIVAIN de la seule voie RÉSILIENCE, quand la réussite achetée entraîne plus qu'une projection
      *  (incantation : DR de Talent, doublement de malepierre, plancher de NI). Absent = `write`. */
     resilience?: (s: Jeu, slot: Slot, actor: Combatant | undefined, get: Get, tr: TestResult, p: P) => Partial<Slot> | null;
+    /** Ce que teste le dé du slot (#4848), le sujet qui calcule sa cible : le jet que la fabrique construit sur un dé
+     *  choisi ou fixé le nomme. `undefined` : un dé qui n'est pas un Test (pourcentage, dé de table, dé d'étal). */
+    teste: (s: Jeu, slot: Slot, actor: Combatant | undefined, p: P) => CeQueTeste | undefined;
   };
   /**
    * Traits déclaratifs du flux. `forcer` : ce flux offre la Résilience (LDB 17 l.68, GLOBALE),
@@ -365,18 +383,10 @@ export interface RollFlowSpec<P extends PendingBase, Slot extends PendingBase = 
    * `forcerLaReussite` = dé par défaut, `imposerLeResultat` = dé choisi). Un flux qui NE pose PAS `forcer`
    * n'offre simplement pas la Résilience (`forcerLaReussite`/`imposerLeResultat` y sont des no-op : reload,
    * marchandage, évaluation…). Plus aucune dérive `force`/`forceRoll` séparée — cf. `ForcedResolve`.
-   *
-   * `selecteur` : OÙ vit le dé de ce flux — PARAMÈTRE de FORME, jamais une autorisation. Mesuré après
-   * l'absorption du sélecteur dans `RollShell` : les flux à LENTILLE n'en déclarent PLUS (la fabrique le
-   * dérive de `actorTR`/`dieTarget`) ; il ne subsiste que pour les résultats de forme PROPRE, non
-   * exprimables par une lentille — attaque/défense/piétinement/coup dans le dos (`result.attackerDetail`),
-   * incantation (`CastResult`, `critable` faux pour une Prière), étape de cascade (`step.result`/`target`),
-   * Test `fuite` du fuyard (`slot.jet`). Le QUAND (Résilience vs dé fixé, avant/après le jet) ne s'écrit
-   * plus ici : l'hôte l'arbitre une seule fois, à la pose du dé.
+   * OÙ vit le dé du flux se déclare par l'ACCESSEUR (`die`) ou la lentille (`lens`), jamais ici.
    */
   caps?: {
     forcer?: boolean;
-    selecteur?: (slot: Slot, actor: Combatant | undefined) => ForcedPick | null;
     /** Ce flux accepte l'auto-succès du talent Résistance (Menace) (LDB 10) : son `resolve` porte la
      *  branche `forced.sl` (DR = Bonus d'Endurance). Offert seulement sur un slot tagué `menace`. */
     resister?: boolean;
@@ -702,7 +712,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   const passive = (slot: Slot, s: Jeu, get: Get<Jeu>, p: P) =>
     !!spec.multi && spec.rolled(slot) && !surfaceOf(get, spec.actor(s, slot, p)?.id);
   const reresolveOf = (s: Jeu, slot: Slot, actor: Combatant, get: Get, p: P) =>
-    spec.reresolve ? spec.reresolve(s, slot, actor, get, p) : spec.resolve(s, slot, actor, get, undefined, p);
+    relancer(() => spec.reresolve ? spec.reresolve(s, slot, actor, get, p) : spec.resolve(s, slot, actor, get, undefined, p));
   const L = spec.lens; // lentille de dérivation des verbes d'influence (Chance/Résilience/Résistance)
   // « Échec » (gating de la Chance/Pacte/Résistance) DÉRIVÉ de l'issue canonique, sans prédicat
   // `failed` séparé qui pourrait diverger de l'issue réelle du flux (`won`). `won` est lu sur un jet
@@ -717,10 +727,9 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
     (L?.actorTR(slot) ? cibleBrute(L.actorTR(slot)!) : null) ?? (actor && L?.dieTarget ? L.dieTarget(slot, actor) : null);
   // ACCESSEUR DE DÉ, dérivé UNE fois : déclaré par la spec, sinon obtenu de la lentille (le jet POSÉ fait
   // foi — sa cible reste vraie une fois le Test réussi, là où `dieTarget` encode « reste-t-il à forcer ? »
-  // et s'éteint) ; `caps.picker` reste accepté comme `read` seul (flux historique sans écrivain).
+  // et s'éteint).
   const dieRead: ((slot: Slot, actor: Combatant | undefined, p?: P) => ForcedPick | null) | undefined =
     spec.die?.read
-    ?? spec.caps?.selecteur
     ?? (L
       ? (slot: Slot, actor: Combatant | undefined) => {
           const tr = L.actorTR(slot);
@@ -733,6 +742,15 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
   // (étape MONDE d'une cascade : aucun acteur à porter).
   const dieWrite: ((s2: Jeu, slot: Slot, a: Combatant | undefined, g: Get, tr: TestResult, p2: P) => Partial<Slot> | null) | undefined =
     spec.die?.write ?? (L ? (s2, slot, a, g, tr, p2) => (a ? L.applyRoll(s2, slot, a, g, tr, p2) : null) : undefined);
+  /** Le jet d'un slot (#4848), composé ICI pour les trois constructions de la fabrique (dé par défaut de la Résilience,
+   *  dé choisi ou fixé, Résistance) : son porteur, l'acteur du slot (`spec.actor`, `null` sans acteur), et ce qu'il teste. */
+  const jetDuSlot = (a: Combatant | undefined, teste: CeQueTeste): JetDeTest => ({ porteur: a?.id ?? null, teste });
+  /** Le jet du dé choisi ou fixé : ce qu'il teste vient de la source de l'écrivain (`die.teste`, sinon `lens.teste`).
+   *  `null` : le dé n'est pas un Test. */
+  const jetDuDe = (s2: Jeu, slot: Slot, a: Combatant | undefined, p2: P): JetDeTest | null => {
+    const teste = spec.die ? spec.die.teste(s2, slot, a, p2) : a && L ? L.teste(s2, slot, a, p2) : undefined;
+    return teste ? jetDuSlot(a, teste) : null;
+  };
   /** Ce flux sait-il RÉÉVALUER un dé saisi ? (lire où vit le dé ET réécrire l'issue re-dérivée.) */
   const fixable = !!dieRead && !!dieWrite;
   /** Plancher de DR d'une réussite forcée par la Résilience (défaut 1, cf. `die.floorSL`). */
@@ -810,7 +828,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
           // (Critique) correct.
           const die = bestForcedRoll(tgt);
           const sl = Math.max(evaluateTest(die, tgt).sl, floor);
-          return L.applyRoll(s, loc.slot, actor!, get, forcedTR(die, tgt, sl, cur?.base), p);
+          return L.applyRoll(s, loc.slot, actor!, get, forcedTR(jetDuSlot(actor, L.teste(s, loc.slot, actor!, p)), die, tgt, sl, cur?.base), p);
         }
       : () => spec.resolve(s, loc.slot, actor, get, {}, p);
     return opForceSuccess(actor, resolveForced, loc.commit);
@@ -953,13 +971,16 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       //  - dé de RÉSILIENCE (LDB 17 l.68) : le dé doit RESTER une réussite (`maxForcedRoll`), le DR est
       //    planché (`floorSL` — Test opposé : « vous l'emportez avec au moins DR +1 »), la réussite ACHETÉE
       //    est conservée (`forcedTR`). Le flux ne déclare que sa POLITIQUE, jamais une branche.
+      // Un dé qui n'est pas un Test (`jetDuDe` nul : pourcentage, dé de table) se lit sans jet (`evaluateTest`) : rien
+      // n'y est jeté, et la Résilience n'y achète que la réussite du dé choisi.
       const resolveChosen = (r: number) => {
         const cur = dieRead?.(loc.slot, actor, p);
         if (!cur || !dieWrite) return null;
-        if (fixed) return dieWrite(s, loc.slot, actor, get, evaluateTest(r, cur.target, cur.base), p);
+        const jet = jetDuDe(s, loc.slot, actor, p);
+        if (fixed) return dieWrite(s, loc.slot, actor, get, jet ? jeterLeDe(jet, r, cur.target, cur.base) : evaluateTest(r, cur.target, cur.base), p);
         if (r > maxForcedRoll(cur.target)) return null;
         const floor = dieFloor(loc.slot, actor, p);
-        const tr = forcedTR(r, cur.target, Math.max(evaluateTest(r, cur.target).sl, floor), cur.base);
+        const tr = jet ? forcedTR(jet, r, cur.target, Math.max(evaluateTest(r, cur.target).sl, floor), cur.base) : evaluateTest(r, cur.target, cur.base);
         return (spec.die?.resilience ?? dieWrite)(s, loc.slot, actor, get, tr, p);
       };
       if (!opSetForcedRoll(roll, resolveChosen, loc.commit, fixed) || !fixed) return;
@@ -983,7 +1004,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       // CIBLE : `lensDieTarget` (le jet POSÉ fait foi) — `dieTarget` seul s'éteint sur un Test déjà réussi,
       // et l'auto-succès du talent, offert APRÈS une réussite, se serait forcé contre une cible 0.
       const resolveResist = L
-        ? (sl: number) => { const cur = L.actorTR(loc.slot); const tgt = lensDieTarget(loc.slot, actor) ?? 0; return L.applyRoll(s, loc.slot, actor!, get, forcedTR(1, tgt, sl, cur?.base), p); }
+        ? (sl: number) => { const cur = L.actorTR(loc.slot); const tgt = lensDieTarget(loc.slot, actor) ?? 0; return L.applyRoll(s, loc.slot, actor!, get, forcedTR(jetDuSlot(actor, L.teste(s, loc.slot, actor!, p)), 1, tgt, sl, cur?.base), p); }
         : (sl: number) => spec.resolve(s, loc.slot, actor, get, { sl }, p);
       opResist(slot, actor, spec.rolled(loc.slot), spec.outcome(loc.slot), resolveResist, loc.commit);
     },
