@@ -142,14 +142,14 @@ describe('forge : l’armure qui gêne l’Incantation', () => {
     return { e, h };
   }
 
-  it('l’armure se refuse sur la panoplie entière : l’Alchimiste porte les mailles, le Chamane le cuir', () => {
+  it('l’armure se refuse sur ce que le héros porterait : l’Alchimiste porte la moyenne, le Chamane la légère', () => {
     const alchimiste = mage('alchimiste');
-    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'pa-2')).toBeNull();
-    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'pa-1')).toMatch(/^Cuir souple : −1 DR/);
+    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'armure-moyenne')).toBeNull();
+    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'armure-legere')).toMatch(/^Armure légère : −1 DR/);
     const chamane = mage('chamane');
-    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'pa-1')).toBeNull();
+    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'armure-legere')).toBeNull();
     const or = chamane.e.or;
-    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'pa-2')).toMatch(/^Mailles : −2 DR/);
+    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'armure-moyenne')).toMatch(/^Armure moyenne : −2 DR/);
     expect(chamane.e.or).toBe(or);
   });
 });

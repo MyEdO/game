@@ -74,11 +74,13 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   await p.click('.tete-service [data-a="ameliorer"]');
   constater((await or()) < avant, 'la forge s’agrandit et coûte de l’or');
   constater((await p.textContent('.article [data-a="arme"]')).includes('CO'), 'chaque offre de la forge porte son prix dans son geste');
-  await p.click('.emplacement[data-k="armure"]'); await p.click('[data-a="armure"][data-k="pa-2"]');
+  await p.click('.emplacement[data-k="armure"]'); await p.click('[data-a="armure"][data-k="armure-moyenne"]');
   await p.click('.emplacement[data-k="main"]'); await p.click('[data-a="arme"][data-k="pique-d-armes"]');
   await p.click('.emplacement[data-k="tir"]'); await p.click('[data-a="arme"][data-k="arbalete"]');
   const porte = await p.$$eval('.emplacement .nom-objet', (e) => e.map((x) => x.textContent));
-  constater(porte.includes('Pique d\'armes') && porte.includes('Mailles'), `la forge équipe le héros servi (${porte.join(', ')})`);
+  constater(porte.includes('Pique d\'armes') && porte.includes('Armure moyenne'), `la forge équipe le héros servi (${porte.join(', ')})`);
+  const pa = await p.textContent('.emplacement[data-k="armure"] .resume');
+  constater(/Tête 2 · Bras 2 · Corps 2 · Jambes 2/.test(pa), `l’armure moyenne porte 2 PA sur chaque Localisation (${pa})`);
   constater(porte.includes('Pique d\'armes') && porte.includes('Arbalète'), 'l’arme à distance a son emplacement : l’arme de mêlée reste en main');
 
   await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]');

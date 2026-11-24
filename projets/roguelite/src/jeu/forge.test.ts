@@ -1,11 +1,9 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   acheter, acheterUneArme, acheterUneArmure, acheterUneProvision, ameliorer, armesEnVente, armuresEnVente, nouvellePartie,
-  panoplie, panoplieDe, prixDe, voieDe, provisionsEnVente, provisionsPortees, recrue, ARMES_DE_LA_FORGE, MUNITIONS, PANOPLIES, PROFILS, type Etat,
+  allure, panoplie, prixDe, voieDe, provisionsEnVente, provisionsPortees, recrue, ARMES_DE_LA_FORGE, MUNITIONS, PROFILS, type Etat,
 } from './index';
 import { articleDuCatalogue, DISPONIBILITES, doter, objetsEnRayon, porterAuNiveau, protection, poserLesReglesDuRoguelite } from '../noyau';
-import { equipConflicts, wornArmourPoints } from '../../../../src/engine/items';
-import { findTrappingById } from '../../../../src/data';
 
 beforeAll(poserLesReglesDuRoguelite);
 
@@ -112,8 +110,10 @@ describe('les achats de la forge', () => {
   });
 });
 
-describe('panoplies de la forge', () => {
+describe('armures de la forge', () => {
   const soldat = (e: Etat) => { const h = recrue(e, profilDe('soldat')); e.roster.push(h); return h; };
+  const partout = (n: number) => ['Tête', 'Bras', 'Corps', 'Jambes'].map((zone) => ({ zone, pa: n }));
+  const armuresDe = (h: ReturnType<typeof soldat>) => h.c.items!.filter((i) => i.kind === 'armor').map((i) => i.trappingId).sort();
   /** Un lanceur de sorts de la carrière `id`, sa Voie apprise au jeu (`acheter`), à la forge de palier 2. */
   const mage = (id: string) => {
     const e = auHameau(11, 2);
@@ -127,81 +127,69 @@ describe('panoplies de la forge', () => {
     return { e, h };
   };
 
-  it('chaque panoplie s’ouvre au palier de la Disponibilité de sa pièce la plus rare', () => {
-    expect([0, 1, 2, 3].map((palier) => { const e = auHameau(1, palier); return armuresEnVente(e).map((a) => a.id); })).toEqual([
-      ['pa-1'], ['pa-1', 'pa-2', 'pa-3'], ['pa-1', 'pa-2', 'pa-3', 'pa-4', 'pa-5'], ['pa-1', 'pa-2', 'pa-3', 'pa-4', 'pa-5'],
+  it('la forge vend exactement les trois armures de l’option, chacune au palier de sa Disponibilité (LDB 63 l.101-103)', () => {
+    expect([0, 1, 2, 3].map((palier) => { const e = auHameau(1, palier); return armuresEnVente(e, soldat(e)).map((a) => a.id); })).toEqual([
+      ['armure-legere'], ['armure-legere', 'armure-moyenne'], ['armure-legere', 'armure-moyenne', 'armure-lourde'], ['armure-legere', 'armure-moyenne', 'armure-lourde'],
     ]);
   });
 
-  it('la panoplie pa-N porte N PA sur chaque localisation, sans pièce de même couche sur une même localisation', () => {
-    for (const [n, p] of PANOPLIES.entries()) {
-      expect(p.id).toBe(`pa-${n + 1}`);
-      const portees: ReturnType<typeof doter> = [];
-      for (const piece of doter(p.pieces, p.id)) {
-        expect(equipConflicts({ items: portees }, { ...piece, equipped: true })).toEqual([]);
-        portees.push({ ...piece, equipped: true });
-      }
-      expect([p.id, wornArmourPoints(portees)]).toEqual([p.id, { tete: n + 1, brasG: n + 1, brasD: n + 1, corps: n + 1, jambeG: n + 1, jambeD: n + 1 }]);
-      const e = auHameau(1, 2);
-      const h = soldat(e);
-      expect(acheterUneArmure(e, h.c.id, p.id)).toBeNull();
-      expect(h.c.armour).toEqual({ tete: n + 1, brasG: n + 1, brasD: n + 1, corps: n + 1, jambeG: n + 1, jambeD: n + 1 });
-    }
-  });
-
-  it('chaque pièce d’une panoplie est de cuir souple, de mailles ou de plates', () => {
-    const matieres = PANOPLIES.flatMap((p) => p.pieces.map((id) => `${p.id} ${id} ${findTrappingById(id)?.subType?.id}`));
-    expect(matieres.filter((m) => !/ (cuir-souple|mailles|plate)$/.test(m))).toEqual([]);
-  });
-
-  it('le niveau 4 ne pèse pas plus que le 5', () => {
-    const offres = armuresEnVente(auHameau(1, 2));
-    const [pa4, pa5] = ['pa-4', 'pa-5'].map((id) => offres.find((a) => a.id === id)!);
-    expect(pa4.enc).toBeLessThanOrEqual(pa5.enc);
-  });
-
-  it('l’offre dit le prix de ses pièces, leur Encombrement une fois revêtues, et leurs Défauts', () => {
-    const e = auHameau(1, 2);
-    const harnois = armuresEnVente(e).find((a) => a.id === 'pa-5')!;
-    const pieces = PANOPLIES.find((p) => p.id === 'pa-5')!.pieces;
-    expect(harnois.prix).toBe(pieces.reduce((n, id) => n + prixDe(id), 0));
-    expect(harnois.enc).toBe(11);
-    expect(harnois.qualites.filter((q) => q.defaut).map((q) => q.nom)).toContain('Points faibles');
-    expect(new Set(harnois.qualites.map((q) => q.nom)).size).toBe(harnois.qualites.length);
-  });
-
-  it('l’offre dit les pénalités de port que le noyau cumule pièce à pièce, chacune une fois par Compétence', () => {
-    const e = auHameau(1, 2);
-    const noms = armuresEnVente(e).find((a) => a.id === 'pa-4')!.qualites.map((q) => q.nom);
-    expect(noms.filter((n) => n.includes('% en'))).toEqual(['-70 % en discretion', '-20 % en perception']);
-  });
-
-  it('l’achat laisse toute l’armure portée au forgeron et revêt la panoplie, aux PA de l’offre', () => {
+  it('l’achat laisse au forgeron l’armure par pièces et revêt l’armure d’une pièce sur toutes les Localisations', () => {
     const e = auHameau(4, 1);
     const h = soldat(e);
     expect(h.c.items!.some((i) => i.trappingId === 'plastron-de-cuir')).toBe(true);
     const or = e.or;
-    const mailles = armuresEnVente(e).find((a) => a.id === 'pa-2')!;
-    expect(acheterUneArmure(e, h.c.id, 'pa-2')).toBeNull();
-    expect(e.or).toBe(or - mailles.prix);
-    const armures = h.c.items!.filter((i) => i.kind === 'armor');
-    expect(armures.map((i) => i.trappingId).sort()).toEqual([...PANOPLIES.find((p) => p.id === 'pa-2')!.pieces].sort());
-    expect(armures.every((i) => i.equipped)).toBe(true);
-    expect(protection(h.c)).toEqual(mailles.pa);
-    expect(panoplie(h).armure).toMatchObject({ label: 'Mailles', panoplie: 'pa-2', enc: mailles.enc });
-    expect(acheterUneArmure(e, h.c.id, 'pa-2')).toBe('Il la porte déjà.');
-    expect(acheterUneArmure(e, h.c.id, 'pa-1')).toBeNull();
-    expect(h.c.items!.filter((i) => i.kind === 'armor').map((i) => i.trappingId).sort()).toEqual([...PANOPLIES.find((p) => p.id === 'pa-1')!.pieces].sort());
-    expect(panoplieDe(h)?.id).toBe('pa-1');
+    const moyenne = armuresEnVente(e, h).find((a) => a.id === 'armure-moyenne')!;
+    expect(acheterUneArmure(e, h.c.id, 'armure-moyenne')).toBeNull();
+    expect(e.or).toBe(or - moyenne.prix);
+    expect(armuresDe(h)).toEqual(['armure-moyenne']);
+    expect(h.c.items!.find((i) => i.kind === 'armor')!.equipped).toBe(true);
+    expect(protection(h.c)).toEqual(partout(2));
+    expect(protection(h.c)).toEqual(moyenne.pa);
+    expect(panoplie(h).armure).toMatchObject({ label: 'Armure moyenne', enc: moyenne.enc });
+    expect(allure(h).armure).toEqual({ poids: 'armure-moyenne', bras: true, jambes: true });
+    expect(acheterUneArmure(e, h.c.id, 'armure-moyenne')).toBe('Il la porte déjà.');
+    expect(armuresEnVente(e, h).map((a) => a.id)).toEqual(['armure-legere']);
   });
 
-  it('la forge refuse au Pyromancien toute panoplie, et vend à l’Alchimiste les panoplies tout métal', () => {
+  it('une armure Flexible se garde sous la lourde ; deux Flexibles ne se superposent pas (LDB 63 l.74)', () => {
+    const porte = (ids: string[]) => {
+      const e = auHameau(2, 2), h = soldat(e);
+      for (const id of ids) expect(acheterUneArmure(e, h.c.id, id)).toBeNull();
+      return { armures: armuresDe(h), pa: protection(h.c) };
+    };
+    expect(porte(['armure-legere', 'armure-lourde'])).toEqual({ armures: ['armure-legere', 'armure-lourde'], pa: partout(4) });
+    expect(porte(['armure-lourde', 'armure-moyenne'])).toEqual({ armures: ['armure-lourde', 'armure-moyenne'], pa: partout(5) });
+    expect(porte(['armure-moyenne', 'armure-legere'])).toEqual({ armures: ['armure-legere'], pa: partout(1) });
+  });
+
+  it('l’offre dit ce que le héros porterait : PA, Encombrement et Défauts de l’armure et de ce qu’il garde dessous', () => {
+    const e = auHameau(1, 2), h = soldat(e);
+    expect(acheterUneArmure(e, h.c.id, 'armure-moyenne')).toBeNull();
+    const lourde = armuresEnVente(e, h).find((a) => a.id === 'armure-lourde')!;
+    expect(lourde.prix).toBe(prixDe('armure-lourde'));
+    expect(lourde.pa).toEqual(partout(5));
+    expect(lourde.enc).toBeGreaterThan(panoplie(h).armure!.enc);
+    expect(lourde.qualites.filter((q) => q.defaut).map((q) => q.nom)).toContain('Points faibles');
+    expect(new Set(lourde.qualites.map((q) => q.nom)).size).toBe(lourde.qualites.length);
+  });
+
+  it('une sauvegarde qui porte une ancienne panoplie de mailles se charge, se lit en armure moyenne et se remplace à la forge', () => {
+    const e = auHameau(3, 2), h = soldat(e);
+    h.c.items = [...h.c.items!.filter((i) => i.kind !== 'armor'), ...doter(['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles'], 'v2').map((i) => ({ ...i, equipped: true }))];
+    const relue = JSON.parse(JSON.stringify(e)) as Etat, r = relue.roster.find((x) => x.c.id === h.c.id)!;
+    expect(allure(r).armure?.poids).toBe('armure-moyenne');
+    expect(armuresEnVente(relue, r).map((a) => a.id)).toEqual(['armure-legere', 'armure-moyenne', 'armure-lourde']);
+    expect(acheterUneArmure(relue, r.c.id, 'armure-lourde')).toBeNull();
+    expect([armuresDe(r), protection(r.c)]).toEqual([['armure-lourde'], partout(3)]);
+  });
+
+  it('la forge refuse au Pyromancien toute armure, et vend à l’Alchimiste les armures de métal', () => {
     const refus = (id: string) => {
       const { e, h } = mage(id);
-      return PANOPLIES.map((p) => acheterUneArmure(structuredClone(e), h.c.id, p.id)?.match(/−\d DR/)?.[0] ?? null);
+      return ['armure-legere', 'armure-moyenne', 'armure-lourde'].map((a) => acheterUneArmure(structuredClone(e), h.c.id, a)?.match(/−\d DR/)?.[0] ?? null);
     };
-    expect(refus('pyromancien')).toEqual(['−1 DR', '−2 DR', '−3 DR', '−4 DR', '−5 DR']);
-    expect(refus('alchimiste')).toEqual(['−1 DR', null, '−1 DR', null, '−1 DR']);
+    expect(refus('pyromancien')).toEqual(['−1 DR', '−2 DR', '−3 DR']);
+    expect(refus('alchimiste')).toEqual(['−1 DR', null, null]);
   });
 });
 

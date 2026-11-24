@@ -28,8 +28,9 @@ export interface PartieEnAuto {
 
 /** Les règles optionnelles du noyau que le roguelite pose à son démarrage (`poserLesReglesDuRoguelite`) et sur chacune
  *  de ses parties (`ouvrirEcoutee`) : création, combat, hameau et épreuve. MyEdO/game#4947. `creation-5e` : CRB 005,
- *  `src/noyau/creation/procedure.ts` ; `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts`. */
-export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'creation-5e': true, 'magie-vdm-incantation': true };
+ *  `src/noyau/creation/procedure.ts` ; `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts` ; `armure-regles-rapides` : LDB 63 l.95-103,
+ *  MyEdO/game#4966. */
+export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'creation-5e': true, 'magie-vdm-incantation': true, 'armure-regles-rapides': true };
 
 /** Pose `REGLES_DU_ROGUELITE` (`poserLesReglesMaisonPersistees`) : le démarrage du roguelite, avant toute recrue. */
 export function poserLesReglesDuRoguelite(): void {

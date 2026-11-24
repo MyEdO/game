@@ -25,8 +25,8 @@ function equilibrer(graine0: number, expeditions: number, parties: number): void
     for (const b of ['temple', 'salle', 'forge', 'relais', 'cartographe', 'peage', 'memorial'] as const) J.ameliorer(e, b);
     voir(e);
     for (const h of e.roster) {
-      const armure = J.armuresEnVente(e).filter((a) => a.id === 'pa-1' || a.id === 'pa-2').pop();
-      if (armure && J.panoplieDe(h)?.id !== armure.id) J.acheterUneArmure(e, h.c.id, armure.id);
+      const armure = (['armure-moyenne', 'armure-legere'] as const).find((id) => J.allure(h).armure?.poids === id || J.armuresEnVente(e, h).some((a) => a.id === id));
+      if (armure) J.acheterUneArmure(e, h.c.id, armure);
       if (!J.provisionsPortees(h).length && J.provisionsEnVente(e).some((a) => a.id === 'potion-de-guerison')) J.acheterUneProvision(e, h.c.id, 'potion-de-guerison');
       let niveauPasse = true;
       while (niveauPasse) niveauPasse = J.suivreLePlan(e, h.c.id).achats.some((a) => a.genre === 'niveau');
