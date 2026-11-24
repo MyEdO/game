@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { OPTIONAL_RULES, rule, ruleDef, resetRule, type OptionalRule } from './policy';
-import { books, carriereOuverte, findCareerById } from '../data';
+import { books, ouvertParSaRegle, findCareerById } from '../data';
 import { ecartsDeLaRegle, schema } from '../data/schemas/defs/reglesOptionnelles';
 import { ref } from '../data/schemas/grammaire/ref';
 
@@ -51,7 +51,7 @@ describe('registre des règles optionnelles — LU de src/data/reglesOptionnelle
 
   it('lit la référence de règle d’une carrière et refuse une référence de compétence (#4175)', () => {
     const carriere = findCareerById('chevaucheur-de-blaireau')!;
-    expect(carriereOuverte(carriere)).toBe(Boolean(rule(carriere.gatedByRule!.id)));
+    expect(ouvertParSaRegle(carriere)).toBe(Boolean(rule(carriere.gatedByRule!.id)));
 
     const competence = ref('skill').parse({ id: 'athletisme' });
     expect(() => {

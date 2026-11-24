@@ -11,7 +11,6 @@ import { CHAR_KEYS, CharKey } from './types';
 import {
   randomSpeciesTable,
   rollSpecies,
-  speciesAllowed,
   rollCareer,
   validatePointBuy,
   POINT_BUY_TOTAL,
@@ -30,7 +29,7 @@ import {
   XP_CHARS_REASSIGNED,
   XP_STAR_ROLLED,
 } from './creation';
-import { careersForSpecies, findSpeciesById, eyes, hairs, libelleDeCouleur, offreDuJet, species, stars, type SpeciesData } from '../data';
+import { careersForSpecies, ouvertParSaRegle, findSpeciesById, eyes, hairs, libelleDeCouleur, offreDuJet, species, stars, type SpeciesData } from '../data';
 import { champDEnTete, setDataset, setEnTete } from '../data/overrides';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 
@@ -184,7 +183,7 @@ describe('Tableau des Races aléatoires (LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE
     const regles = [...new Set(species.flatMap((s) => (s.gatedByRule ? [s.gatedByRule.id] : [])))];
     for (let masque = 0; masque < 2 ** regles.length; masque++) {
       regles.forEach((r, i) => setRule(r, (masque & (2 ** i)) !== 0));
-      const ouvertes = new Set(species.filter(speciesAllowed).map((s) => s.refChar));
+      const ouvertes = new Set(species.filter(ouvertParSaRegle).map((s) => s.refChar));
       const races = randomSpeciesTable().entries.map((e) => findSpeciesById(e.ids[0])!.refChar);
       expect(new Set(races), regles.filter((_, i) => masque & (2 ** i)).join('+') || 'aucune').toEqual(ouvertes);
       expect(races).toHaveLength(ouvertes.size);

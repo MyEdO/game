@@ -2577,6 +2577,23 @@ L'armure **ne couvre pas entièrement la Localisation**. Un adversaire qui obtie
 
 L'armure possède de petits Points faibles où une lame peut facilement se glisser si votre adversaire est suffisamment habile ou chanceux. **Si votre adversaire possède une arme avec l'Atout Empaleuse ET obtient un Critique, les PA de votre armure sont ignorés.** Dans la table : Plastron de cuir, et toute la plate (Brassards, Heaume, Jambières d'acier, Plastron).
 
+### Option : Armure, règles rapides (LDB 63 l.95-103)
+
+> « Pour ceux qui souhaitent des règles rapides et simples pour les armures, utiliser ce qui suit. Les Armures sont séparées en trois groupes : Légères, Moyennes et Lourdes. Les Légères sont principalement en cuir, les Moyennes en maille et les Lourdes en plate. » — `LDB 63 l.97`
+
+| Armure         | Prix | Enc | Disponibilité | Pénalité                                  | Emplacements | PA | Atouts et Défauts            |
+|----------------|------|-----|---------------|-------------------------------------------|--------------|----|------------------------------|
+| Armure légère  | 2CO  | 1   | Commune       | –                                         | Tous         | 1  | Flexible                     |
+| Armure moyenne | 5CO  | 5   | Limitée       | -10 % en Perception,<br>-10 en Discrétion | Tous         | 2  | Flexible                     |
+| Armure lourde  | 30CO | 6   | Rare          | -20 % en Perception,<br>-20 en Discrétion | Tous         | 3  | Impénétrable, Points faibles |
+
+Lectures tranchées (#4208, arbitrages du 2026-11-24) :
+
+- **Emplacements « Tous »** : les six Localisations (`LDB 63 l.101`).
+- **Superposition** : l'Armure légère ou l'Armure moyenne se porte sous l'Armure lourde par l'Atout Flexible (`LDB 63 l.74`), jamais deux armures Flexibles l'une sur l'autre (#4208 c.7145166938). Légère + lourde : 4 PA à chaque Localisation ; moyenne + lourde : 5 PA.
+- **Option active, les armures par pièces sont remplacées en vente** par les trois armures d'une pièce : #4208 c.7144445060 « Remplacées », appui `LDB 63 l.97` et `Aventures à Ubersreik 07 l.88` (« une Armure de plate complète (ou une Armure lourde, si vous utilisez l'option des règles rapides d'Armure) »).
+- **Armures de monture** : bardes et caparaçons ne sont pas convertis et restent en vente ; l'option vise les armures de personnage (`LDB 63 l.13` ; #4208 c.7145490398 « Oui, les cinq », proposition 3).
+
 ### Réparer une Armure (LDB 63 l.63-66)
 
 - Réparer une armure coûte **10 % de son prix de base PAR PA perdu**.
@@ -2598,6 +2615,7 @@ Certaines sources naturelles de PA **ne peuvent pas servir à la Déviation Crit
 - `LDB 63 l.77-78` — Atout Impénétrable : « Toutes les Blessures Critiques causées par un nombre impair pour vous toucher, tel que 11 ou 33, sont ignorées. »
 - `LDB 63 l.85-86` — Défaut Partielle : jet de toucher pair OU Coup Critique → PA de la pièce Partielle ignorés.
 - `LDB 63 l.89-90` — Défaut Points Faibles : arme Empaleuse + Critique → PA ignorés.
+- `LDB 63 l.95-103` — Option Armure, règles rapides : Armures légère, moyenne et lourde à tous les Emplacements (1, 2, 3 PA).
 - `LDB 62 l.307` — Atout d'arme Taille : une touche endommage de 1 Point une pièce d'armure ou un Bouclier frappé (autre source de Dégâts d'Armure).
 - `EDO 11 l.192-196` — Mutation Écailles Épineuses : +1 PA sur tous les emplacements, mais ce PA n'est pas utilisable pour la Déviation Critique ; -10 Dextérité et -10 Sociabilité.
 

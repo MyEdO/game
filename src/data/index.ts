@@ -94,7 +94,7 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET } from './shipCriticals';
 import structureCriticalsJson from './structure-criticals.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
-import { rule } from '../engine/policy';
+import { rule, type RegleOptionnelleId } from '../engine/policy';
 import type * as stakesDef from './schemas/defs/stakes';
 import type * as careersDef from './schemas/defs/careers';
 import type * as careerLevelsDef from './schemas/defs/careerLevels';
@@ -850,7 +850,7 @@ export interface ItemCapabilities {
    *  adjacente hors de l'eau — NON gaté sur le port (on le sort du sac, comme `isRations`). */
   waterContainer?: boolean;
 }
-export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix' | 'groups'> {
+export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'variants' | 'qualitesAuChoix' | 'groups' | 'gatedByRule' | 'remplace'> {
   /** id STABLE (slug du libellé) — cible des `TrappingRef`, robuste au renommage. */
   id: string;
   label: string;
@@ -1241,10 +1241,32 @@ export function findTrappingById(id: string | null | undefined): TrappingData | 
   return id == null ? undefined : profilsDePossession().parId.get(id);
 }
 /** Trappings que le moteur INSTANCIE par leur id (`INSTANCIABLE_PAR_ID`, `dansLaSousListe`) : la vue que
- *  lit tout producteur d'ids d'objet (fabrication, commande, stock marchand, conjuration, armes
- *  choisissables, galeries). Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
+ *  lit tout producteur d'ids d'objet (conjuration, armes choisissables, galeries, validation) ; l'offre au
+ *  joueur en est la vue `trappingsEnVente`. Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
 export const trappingsInstanciables = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
   trappingsEffectifs().filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
+/** Entrée OUVERTE au joueur (carrière, espèce, objet) : sans `gatedByRule`, ou sa règle optionnelle active.
+ *  ADE I 07 l.9 ; NADJ 14 l.5 ; ADE II 02 l.110 ; #4208 */
+export const ouvertParSaRegle = (e: { gatedByRule?: { id: RegleOptionnelleId } }): boolean => !e.gatedByRule || !!rule(e.gatedByRule.id);
+const bandesActives = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
+  trappingsInstanciables().filter((t) => t.remplace && ouvertParSaRegle(t)));
+/** L'armure d'une pièce, sa règle active, qui remplace en vente la pièce d'armure `trappingId` (son type parmi
+ *  `remplace`) ; `undefined` pour une armure de monture ou une armure qui en remplace elle-même. LDB 63 l.97 ;
+ *  #4208 */
+export function bandeDe(trappingId: string): TrappingData | undefined {
+  const piece = findTrappingById(trappingId);
+  if (!piece || piece.categorie !== 'armor' || piece.remplace || piece.capabilities?.armureDeMonture) return undefined;
+  const type = piece.subType?.id;
+  return type === undefined ? undefined : bandesActives().find((b) => b.remplace!.some((r) => r === type));
+}
+/** Les objets OFFERTS au joueur (fabrication, commande, stock marchand) : `trappingsInstanciables` ouverts par leur
+ *  règle (`gatedByRule`) et non remplacés par une armure d'une pièce (`bandeDe`). #4208 */
+export const trappingsEnVente = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
+  trappingsInstanciables().filter((t) => ouvertParSaRegle(t) && !bandeDe(t.id)));
+const enVenteParId = memoParVersion(['trappings', 'reglesOptionnelles'], () => new Map(trappingsEnVente().map((t) => [t.id, t])));
+/** L'objet d'id `id` s'il est offert au joueur (`trappingsEnVente`) : la lecture des verdicts d'achat, de commande et
+ *  d'Artisanat. #4208 */
+export const findTrappingEnVente = (id: string): TrappingData | undefined => enVenteParId().get(id);
 /** Pièce d'armure nommée, lue au catalogue des armures, sa matière au Groupe : la parenthèse d'une Armure
  *  qui nomme des pièces (`classerParenthese`, `lireMatiere`). LDB 63 l.13 ; #1463. */
 export const emplacementsDesPiecesDuCatalogue = memoParVersion('trappings', () => emplacementsDesPieces(trappings, matiereDuGroupe));
@@ -1729,10 +1751,8 @@ export function tableDeCarrieres(colonne: string, avecPortion: boolean): { die: 
   const base = colonneDeCarrieres(colonne);
   return { die: deDeLaTableTiree(base), entries: tableAvecPortion(base.entries, avecPortion ? portionDeLaColonne(colonne)?.entries : undefined) };
 }
-/** Carrière OUVERTE : sans `gatedByRule`, ou sa règle optionnelle active. ADE I 07 l.9 */
-export const carriereOuverte = (c: CareerData) => !c.gatedByRule || !!rule(c.gatedByRule.id);
 /** Carrière admise au tirage de `sp` : ouverte, et sa race dans `races`. */
-const admiseAuTirage = (c: CareerData | undefined, sp: SpeciesData) => c !== undefined && carriereOuverte(c) && c.races?.includes(sp.refChar) === true;
+const admiseAuTirage = (c: CareerData | undefined, sp: SpeciesData) => c !== undefined && ouvertParSaRegle(c) && c.races?.includes(sp.refChar) === true;
 /** Les carrières que l'espèce `sp` peut choisir à la place de `tiree` (`aLaPlaceDe`, bornée à `especesALaPlaceDe`), admises
  *  au tirage. ADE I 07 l.9-23 ; Middenheim 09 l.57 ; AA 05 l.135-140 ; VDM 03 l.11 */
 export function substitutionsDe(tiree: string, sp: SpeciesData): string[] {
@@ -1908,10 +1928,10 @@ export function carrieresTirables(sp: SpeciesData, avecPortion: boolean): Career
 /**
  * Carrières accessibles à une espèce (Tableau des Classes et Carrières aléatoires, LDB 05
  * l.197+, l.360) : celles que son tirage offre, avec ou sans le remplacement (`carrieresTirables`).
- * `ignoreRestrictions` = LDB 05 l.314-316 : toutes les carrières ouvertes (`carriereOuverte`).
+ * `ignoreRestrictions` = LDB 05 l.314-316 : toutes les carrières ouvertes (`ouvertParSaRegle`).
  */
 export function careersForSpecies(sp: SpeciesData, ignoreRestrictions = false): CareerData[] {
-  if (ignoreRestrictions) return careers.filter(carriereOuverte);
+  if (ignoreRestrictions) return careers.filter(ouvertParSaRegle);
   const ids = new Set([false, true].flatMap((avecPortion) => carrieresTirables(sp, avecPortion).map((c) => c.id)));
   return careers.filter((c) => ids.has(c.id));
 }

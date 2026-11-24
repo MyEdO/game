@@ -189,6 +189,8 @@ type EntreeDePossessionAAffiner = QualitesDuProfil & {
   categorie: Categorie;
   subType: { id: string } | null;
   shape?: { id: string };
+  gatedByRule?: { id: string };
+  remplace?: readonly string[];
   variants?: readonly Partial<QualitesDuProfil>[];
 };
 
@@ -291,6 +293,10 @@ const doc = document(
     service: z.boolean().optional(),
     /** LDB 68 l.25, l.48 */
     licenceDeGuilde: z.literal(true).optional(),
+    /** LDB 63 l.95-103 ; #4208 */
+    gatedByRule: ref('regleOptionnelle').optional(),
+    /** LDB 63 l.97 ; #4208 */
+    remplace: refs('weaponGroup', { sousListe: 'armour' }).optional(),
   },
   {
     ...metaDesChamps(profilDArmeDeCatalogueSchema, { exigees: true }),
@@ -379,6 +385,11 @@ const doc = document(
       label: 'Licence de Guilde identifiée',
       hint: 'Licence dont la Guilde émettrice est identifiée',
     },
+    gatedByRule: { label: 'Règle optionnelle requise', hint: 'Présente : l’objet n’est en vente que si cette règle optionnelle est active' },
+    remplace: {
+      label: 'Types d’armure remplacés',
+      hint: 'Quand sa règle est active, cette armure remplace en vente les pièces de ces types',
+    },
   },
   {
     codex: { keys: ['trappings'] },
@@ -410,6 +421,8 @@ const doc = document(
             qualities: variante.qualities ?? e.qualities,
             qualitesAuChoix: variante.qualitesAuChoix ?? e.qualitesAuChoix,
           }, ctx, ['variants', i]));
+          if (e.remplace !== undefined && (e.gatedByRule === undefined || e.categorie !== 'armor'))
+            ctx.addIssue({ code: 'custom', path: ['remplace'], message: `${e.id} : seule une armure gardée par une règle optionnelle (\`gatedByRule\`) remplace des types d'armure` });
           if (e.categorie !== 'armor') return;
           const refus = e.subType === null ? 'aucun type d’armure' : refusDeLEntree('armour', e.subType);
           if (refus !== null) ctx.addIssue({ code: 'custom', path: ['subType'], message: `${e.id} : une armure porte un type d'armure — ${refus}` });

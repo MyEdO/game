@@ -49,7 +49,7 @@ import { actorStatus } from '../engine/social';
 import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import {
   findTrappingById,
-  trappingsInstanciables,
+  trappingsEnVente,
   findVehicleById,
   findCreatureById,
   vehicles,
@@ -439,7 +439,7 @@ function computeFreshStockLines(
 ): { stock: LigneDeStock[]; tested: StockLine[]; echecs: EchecDeDisponibilite[] } {
   const guild = !!marketRule(ent, 'guild');
   const marketMode = marketRule(ent, 'marketMode') as string;
-  const cat: CatalogItem[] = trappingsInstanciables()
+  const cat: CatalogItem[] = trappingsEnVente()
     .filter((t) => (!arch.category.categories || arch.category.categories.includes(t.categorie)) && (!arch.category.subTypes || (t.subType !== null && arch.category.subTypes.some((id) => id === t.subType?.id))))
     .map((t) => {
       const base: CatalogItem['availability'] = isTradable(t.availability) ? t.availability : null;

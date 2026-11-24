@@ -1727,6 +1727,20 @@
     "hint": "À l’acquisition d’une bête ou d’un serviteur (achat, dotation, don), les Caractéristiques sont tirées avec 2d10 − 10, ou 1d10 si la Caractéristique vaut 5. Le résultat est conservé pour cette bête ou ce serviteur. Si l’option est désactivée, le profil reste celui du catalogue."
   },
   {
+    "id": "armure-regles-rapides",
+    "type": "reglesOptionnelles",
+    "label": "Armure, règles rapides",
+    "ref": "LDB 63 l.95-103",
+    "source": {
+      "book": "livre-de-base",
+      "page": 300
+    },
+    "group": "Possessions",
+    "kind": "flag",
+    "default": false,
+    "hint": "Les armures légère, moyenne et lourde, d’une pièce, remplacent en vente les armures par pièces. Les armures de monture restent en vente. Désactivé par défaut."
+  },
+  {
     "id": "mer-carte-orientation-dr",
     "type": "reglesOptionnelles",
     "label": "Carte marine : bonus d’Orientation",

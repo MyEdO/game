@@ -10,6 +10,7 @@ import {
   findSpellById,
   findTalentById,
   findTrappingById,
+  findTrappingEnVente,
   levelsForCareer,
   refLabel,
 } from '../data';
@@ -162,7 +163,7 @@ export function refusDArtisanat(s: EtatDInterlude, heroId: string, trappingId?: 
   if (h.craft) return t('if.craftBusy', { name: nomDe(h), label: findTrappingById(h.craft.trappingId)?.label ?? h.craft.trappingId });
   if (!metierOf(h)) return t('if.craftNoSkill', { name: nomDe(h) });
   if (trappingId == null) return null;
-  const tr = findTrappingById(trappingId);
+  const tr = findTrappingEnVente(trappingId);
   if (!tr) return t('if.trappingUnknown', { id: trappingId });
   const spec = craftSpecOf(tr);
   if (!spec) return t('trade.craftRefused', { reason: outOfTradeReason(tr.label) });
@@ -211,7 +212,7 @@ export function refusDeCommande(s: EtatDInterlude, heroId: string, trappingId: s
   const refus = refusDActivite(s, heroId);
   const h = herosDe(s, heroId);
   if (refus || !h) return refus;
-  const tr = findTrappingById(trappingId);
+  const tr = findTrappingEnVente(trappingId);
   if (!tr) return t('if.trappingUnknown', { id: trappingId });
   const block = orderBlockOf(tr);
   if (block === 'sans-prix') return t('trade.orderRefused', { reason: outOfTradeReason(tr.label) });
