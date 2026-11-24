@@ -12,7 +12,6 @@
     "hotes/godot/recettes/*.ts",
     "hotes/godot/cibles/propositions/sources/rendre.mjs",
     "projets/roguelite/src/main.ts",
-    "projets/roguelite/construire.mjs",
     "projets/roguelite/recette/*.{mjs,ts}",
     "projets/roguelite/{balayage,equilibrage,catalogue}.ts"
   ],

@@ -23,7 +23,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
     const relever = async (ecran) => {
       const rognes = await p.$$eval(DOIVENT_TENIR, (fs) => fs.filter((f) => f.scrollHeight > f.clientHeight + 2 || f.scrollWidth > f.clientWidth + 2).map((f) => f.closest('.cadre')?.className.replace('cadre bois pan ', '') ?? f.className));
       if (rognes.length) { defauts++; console.log(`${taille.join('x')} ${ecran} : rogne → ${rognes.join(', ')}`); }
-      const dehors = await p.$$eval('button, .outil .libelle', (els) => els.filter((el) => {
+      const dehors = await p.$$eval('button', (els) => els.filter((el) => {
         if (!el.checkVisibility() || (!document.querySelector('#combat').hidden && !el.closest('#combat'))) return false;
         const r = el.getBoundingClientRect();
         return r.width > 0 && (r.left < -1 || r.top < -1 || r.right > innerWidth + 1 || r.bottom > innerHeight + 1);

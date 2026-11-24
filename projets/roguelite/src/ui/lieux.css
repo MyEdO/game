@@ -52,9 +52,6 @@
 .fond-expe .cour { -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent); mask-image: radial-gradient(closest-side, #000 70%, transparent); }
 .expedition::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0) 40%, rgba(0,0,0,.55)); pointer-events: none; z-index: 1; }
 @media (max-width: 900px) {
-  .outil { width: 76px; }
-  .outil .libelle { font-size: 10.5px; letter-spacing: .3px; }
-  .outil .bouton-rond.grand { width: 44px; height: 44px; }
   .recit-lieu { display: none; }
 }
 .recit-lieu .but .niveaux i { box-shadow: inset 0 0 0 1px var(--or-moyen); }
