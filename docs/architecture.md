@@ -116,7 +116,7 @@ déclare les seules zones du dépôt.
 | `noyau` | orchestration pure : (état, intention) → (état, journal, événements) ; modèle du monde (`noyau/monde/`) ; outils d'auteur purs que lisent le contenu et l'éditeur ; modèles-vues que tout hôte dessine | `engine`, `data`, feuilles |
 | `scenes` | contenu de campagne | `noyau`, `data`, `engine`, feuilles |
 | `hote` | module commun aux hôtes du noyau, et leurs services d'hôte : entropie, stockage web | la porte du noyau, `scenes`, feuilles |
-| `hoteTexte`, `hotes` (`hotes/`) | hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` |
+| `texte` (`hotes/texte/`), `godot` (`hotes/godot/`) | affichages : hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` |
 | racine de `src/` | tests transverses et leur préparation | toutes les zones |
 
 - **Le noyau ne lit de l'hôte que ce que l'hôte lui fournit** (mur `murs/sans-hote`) : la graine du RNG de
@@ -140,7 +140,9 @@ déclare les seules zones du dépôt.
 ## Arborescence
 
 Zones du dépôt (#2882, #2928, § Couches) : une zone est un dossier,
-`src/<zone>` sauf déclaration (`dossier`), et les fichiers posés à même `src/` forment la zone `racine`. La
+`src/<zone>` sauf déclaration (`dossier`), et les fichiers posés à même `src/` forment la zone `racine`. Hors de
+`src/`, chaque dossier de `hotes/` est un affichage et chaque dossier de `projets/` un projet, chacun sa zone
+(#4903). La
 table `COUCHES` (`scripts/guards/lib/couches.mjs`) est la seule source des zones, de leurs dossiers
 (`dossierDe`, `zoneDe`) et de leurs sens d'import : par zone, ce qu'elle importe librement, ce qu'elle ne lit
 qu'en type (`import type`), ses portes : pour une zone importée, le seul module qu'elle en lit (`portes`), et
@@ -152,8 +154,9 @@ sa ligne déclare (`outillage`), et, pour un outillage, les paquets de l'hôte w
 construction, sans dépendre de l'hôte web, et aucun module de la zone hors de lui ne l'importe, même pour un type
 (`outillageAtteint`) ; une clé d'outillage finie par `/` vaut un dossier, sinon un fichier (`couvre`).
 Les murs de couche la lisent (`scripts/guards/lib/couchesLint.mjs`), sous chaque racine des zones
-(`RACINES_DES_ZONES`) : `murs/zone` refuse un fichier de `src/` dont le dossier n'est celui d'aucune zone (un
-sous-dossier `hotes` ou `racine` de `src/` compris) ; `murs/purete-imports` refuse, à tout fichier d'une zone qui
+(`RACINES_DES_ZONES` : `src`, `hotes`, `projets`) : `murs/zone` refuse un fichier dont le dossier n'est celui
+d'aucune zone (un sous-dossier `godot` ou `racine` de `src/`, un dossier de `hotes/` ou de `projets/` sans ligne, un
+fichier posé à même `hotes/` ou `projets/` compris) ; `murs/purete-imports` refuse, à tout fichier d'une zone qui
 n'est ni suite ni banc (`estFichierVitest`), un arc d'import qu'elle n'ouvre pas ou qui manque une porte, sur toutes
 les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`, un paquet de l'hôte web, du JSX ou un module de code hors
 des zones et hors de son `outillage` dans une zone qui survit, et un motif d'`import.meta.glob` dont le dossier de
@@ -182,10 +185,11 @@ porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour témoin `src/racines-
 
 Hôtes du noyau (#2898, #2928) : une zone qui ne lit le noyau que par sa porte `src/noyau/index.ts`
 (`HOTES_DU_NOYAU`). Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
-feuilles ; un hôte (`hoteTexte`, `hotes`) a ces mêmes droits plus `hote`, lus d'une seule constante de
-`COUCHES` (`DROITS_DES_HOTES`). Les hôtes externes (le pont de Godot, #2928) forment la zone `hotes`, de
-dossier propre à la racine du dépôt : leur règle est sa ligne de la table, rien d'autre. `hote` (le
-commun, au singulier) et `hotes` (les hôtes externes, au pluriel) sont deux zones distinctes. Vitest joue les suites TypeScript des hôtes. La garde
+feuilles ; un affichage (`texte`, `godot`) a ces mêmes droits plus `hote`, lus d'une seule constante de
+`COUCHES` (`DROITS_DES_HOTES`). Les affichages vivent sous `hotes/` (#4903), un dossier et une zone chacun :
+leur règle est leur ligne de la table, rien d'autre, et aucun n'importe un autre affichage. Un projet (un jeu ou un
+outil) vit sous `projets/`, un dossier et une zone chacun ; un dossier de `projets/` naît avec sa ligne. Aucune
+zone qui survit ne lit un module de `projets/` sans ligne (« hors zone »). Vitest joue les suites TypeScript des hôtes. La garde
 `src/hote/derive-du-noyau.hors-store.test.ts` refuse, dans leur code, un verbe ou une fenêtre nommé en dur.
 
 Convention `X/interne/` (#2724) : un fichier sous `X/interne/` n'est importable que depuis `X/`, et ne
@@ -639,14 +643,14 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             `src/engine` et `src/noyau` n'en tirent jamais). `ouvrirLaPartie` (`partieDeTest.ts`) reçoit le `persisterLeHeros` de l'hôte. Entrée d'un hôte
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
-src/hoteTexte/              HÔTE TEXTE du noyau (#2898) : une partie pilotable par un serveur MCP, sans store
+hotes/texte/                HÔTE TEXTE du noyau (#2898, zone `texte`) : une partie pilotable par un serveur MCP, sans store
                             ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
                             (`portes` de `COUCHES`), plus `scenes`, le module commun `src/hote/` et les feuilles.
                             `partieTexte.ts` (fichier de partie, rejeu, reprise des jetons sur une horloge
                             virtuelle), `vue.ts` (projection à ses bornes et rendus bornés), `outils.ts` (les trois
                             outils et leur schéma), `serveur.ts` (ce qu'ils font) ; servi par
                             `scripts/hote-texte.mjs` (SDK MCP, stdio), déclaré par `.mcp.json`.
-hotes/godot/                HÔTE GODOT du noyau (#2928, zone `hotes`) : le pont JSON que Godot appelle, dans la page de
+hotes/godot/                HÔTE GODOT du noyau (#2928, zone `godot`) : le pont JSON que Godot appelle, dans la page de
                             l'export web ou, hors d'une page, par un processus Node (`processus.mjs` : `vivant.mjs`
                             sous l'éditeur, #3945, que `npm run godot:ouvrir` ouvre sur le projet ; `embarque.mjs`,
                             empaqueté à côté de l'exécutable de bureau, #3951).

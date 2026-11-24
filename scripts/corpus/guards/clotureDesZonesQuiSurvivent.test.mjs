@@ -345,7 +345,7 @@ test('CLÔTURE : un paquet fermé atteint par un module hors des zones est rouge
   const paquet = forger({ ...commun, 'scripts/pont.mts': "import type { Mesh } from 'three';\nexport type x = Mesh;\nexport { z } from 'zod';\n" })
   assert.deepEqual(paquet, ['noyau : paquet three ← scripts/pont.mts'], 'un paquet fermé atteint en transit, même pour un type ; zod passe')
   assert.deepEqual(forger({
-    'hotes/c.bench.ts': "import { y } from '../scripts/neutre.mjs';\nexport const c = y;\n",
+    'hotes/godot/c.bench.ts': "import { y } from '../../scripts/neutre.mjs';\nexport const c = y;\n",
     'scripts/neutre.mjs': "export { z as y } from '../src/noyau/z.ts';\n",
     'src/noyau/z.ts': 'export const z = 1;\n',
   }), [])
@@ -389,9 +389,9 @@ test('CLÔTURE : un enfant Node, son préchargeur ou le script de tsx suivent le
 })
 
 test('CLÔTURE : un module de production atteint Three par un pont hors des zones ; l’évaluateur d’assets de Godot peut l’utiliser', () => {
-  const hote = { 'hotes/x.mjs': "import { y } from '../scripts/pont.mjs';\nexport const x = y;\n" }
+  const hote = { 'hotes/godot/x.mjs': "import { y } from '../../scripts/pont.mjs';\nexport const x = y;\n" }
   const pont = { 'scripts/pont.mjs': "export { Mesh as y } from 'three';\n" }
-  assert.deepEqual(forger({ ...hote, ...pont }), ['hotes : paquet three ← scripts/pont.mjs'])
+  assert.deepEqual(forger({ ...hote, ...pont }), ['godot : paquet three ← scripts/pont.mjs'])
   assert.deepEqual(forger({
     'hotes/godot/asset/evaluateur/x.mjs': "export { y as x } from '../../../../scripts/pont.mjs';\n",
     ...pont,
@@ -469,12 +469,12 @@ test('CLÔTURE : les acquisitions calculées résolues étendent la clôture jus
 })
 
 test('CLÔTURE : une acquisition calculée partagée par deux groupes, ou atteinte d’un module de production, est rouge dans chacun', () => {
-  const hote = { 'hotes/h.mjs': "import { x } from '../scripts/pont.mjs';\nexport const h = x;\n" }
+  const hote = { 'hotes/godot/h.mjs': "import { x } from '../../scripts/pont.mjs';\nexport const h = x;\n" }
   const relais = 'export const x = (p) => import(p);\n'
   const deux = forger({ ...SOCLE_CALCULE, ...hote, 'scripts/pont.mjs': relais })
-  assert.deepEqual(['noyau', 'hotes'].map((zone) => rougeAuSite(deux, zone, 'scripts/pont.mjs:1')), ['rouge au site', 'rouge au site'], 'F9 : chaque groupe juge le module calculé relevé une fois')
+  assert.deepEqual(['noyau', 'godot'].map((zone) => rougeAuSite(deux, zone, 'scripts/pont.mjs:1')), ['rouge au site', 'rouge au site'], 'F9 : chaque groupe juge le module calculé relevé une fois')
   const { 'src/noyau/a.test.ts': _, ...sansSuite } = SOCLE_CALCULE
-  assert.equal(rougeAuSite(forger({ ...sansSuite, ...hote, 'scripts/pont.mjs': relais }), 'hotes', 'scripts/pont.mjs:1'), 'rouge au site', 'racine de production')
+  assert.equal(rougeAuSite(forger({ ...sansSuite, ...hote, 'scripts/pont.mjs': relais }), 'godot', 'scripts/pont.mjs:1'), 'rouge au site', 'racine de production')
 })
 
 test('CLÔTURE : une acquisition calculée que la forme fermée lit vers une zone qui survit passe : littéral (F6), registre gelé, descente', () => {

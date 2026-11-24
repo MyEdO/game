@@ -6,13 +6,14 @@
 import { describe, expect, it } from 'vitest';
 import { constructionsReserveesDuCorpus, scanConstructionsReservees } from '../scripts/guards/lib/canonUnique.mjs';
 import { DEFAUT_DE_DIFFICULTE } from '../scripts/guards/lib/difficulteParDefaut.mjs';
+import { RACINES_PRESENTES } from '../scripts/guards/lib/racinesPresentes.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 const vu = (text: string) => scanConstructionsReservees({ rel: 'src/sonde.ts', text }, [DEFAUT_DE_DIFFICULTE]).map((t) => t.line);
 
 describe('DEFAUT_DE_DIFFICULTE — le défaut d’une Difficulté s’écrit `DIFFICULTE_PAR_DEFAUT`', () => {
   it('aucun défaut littéral dans le corpus', () => {
-    const corpus = readCorpus(['src', 'hotes', 'scripts'], { tests: true });
+    const corpus = readCorpus([...RACINES_PRESENTES, 'scripts'], { tests: true });
     expect(constructionsReserveesDuCorpus(corpus, [DEFAUT_DE_DIFFICULTE])).toEqual([]);
   }, 120_000);
 

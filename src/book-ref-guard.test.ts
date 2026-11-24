@@ -6,7 +6,7 @@ import { contexteImports, liaisonImportee, type ContexteImports } from '../scrip
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { alternationDuRegistre, REGISTRE_LIVRES } from '../scripts/guards/lib/rawRefIntegrity.mjs';
 import { garanti } from './lib/garanti';
-import { dossierDe, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
+import { HOTES_DU_NOYAU, dossierDe, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * Garde-fou « réf de livre hors surface Codex » (#601, même classe que #596).
@@ -62,7 +62,7 @@ const CLES_DU_CODEX = 'codex.fiche.';
  * PUITS DE DIAGNOSTIC — `throw`, `new …Error(…)`, `console.*(…)` et `garanti` (`src/lib/garanti.ts` : « un
  * défaut interne […] — jamais un affichage »). Leur texte n'est pas muet : un `throw` du noyau remonte
  * au CANAL DE DÉFAUT des hôtes — `envoyerLIntention` (`src/hote/geste.ts:184`) le relaie en
- * `ErreurDeGeste` « `<verbe>` a levé : … », que le serveur texte (`src/hoteTexte/serveur.ts:69`) et le
+ * `ErreurDeGeste` « `<verbe>` a levé : … », que le serveur texte (`hotes/texte/serveur.ts:69`) et le
  * pont Godot (`hotes/godot/pont/pont.ts:170`) rendent. Ce canal porte une VIOLATION D'INVARIANT (un
  * producteur qui manque à sa garantie, une forme impossible), pas une phrase de jeu : le refus qu'un
  * joueur doit lire passe par le catalogue (`t()`, balayé sans dispense) ou par l'`ErreurDeGeste` que
@@ -129,7 +129,7 @@ function refsDuTexte(rel: string, text: string, horsDiagnostic = false) {
  * `src/noyau/**`, `src/engine/**` : les couches qui écrivent au journal (`ecrireAuJournal`, `tell`,
  * conséquences, détails d'option) sans passer par le catalogue ; leurs puits de diagnostic sont taillés.
  *
- * `src/hote/**`, `src/hoteTexte/**`, `hotes/godot/**` : les hôtes, où le `throw new ErreurDeGeste` EST le
+ * `src/hote/**`, `hotes/texte/**`, `hotes/godot/**` : les hôtes, où le `throw new ErreurDeGeste` EST le
  * texte rendu au joueur : aucun puits n'y est taillé.
  *
  * `src/scenes/test-scenarios/**` : le menu « Scénarios de test » (le pont Godot) rend leurs titres et descriptions, c'est une surface de jeu.
@@ -137,7 +137,7 @@ function refsDuTexte(rel: string, text: string, horsDiagnostic = false) {
 const PERIMETRES_DE_JEU = [
   { nom: 'catalogue i18n', racines: [`${dossierDe('i18n')}/messages`], horsDiagnostic: false },
   { nom: 'noyau et moteur', racines: porteeDeGarde(['noyau', 'engine']), horsDiagnostic: true },
-  { nom: 'hôtes', racines: [...porteeDeGarde(['hote', 'hoteTexte']), `${dossierDe('hotes')}/godot`], horsDiagnostic: false },
+  { nom: 'hôtes', racines: porteeDeGarde(HOTES_DU_NOYAU), horsDiagnostic: false },
   { nom: 'scénarios de test', racines: [`${dossierDe('scenes')}/test-scenarios`], horsDiagnostic: false },
 ] as const;
 

@@ -185,7 +185,7 @@ const GLOBS_GENERATEURS = [
 
 const SOURCE_DU_MUR = ['scripts/guards/lib/lister.mjs'];
 
-/** Le code des zones de `COUCHES` (#2882, #2928) : `src/`, et les hôtes externes (`hotes/`). */
+/** Le code des zones de `COUCHES` (#2882, #2928) : les racines des zones (`RACINES_DES_ZONES`). */
 const CODE_DES_ZONES = RACINES_DES_ZONES.map((r) => `${r}/**`);
 const TS_DES_ZONES = RACINES_DES_ZONES.flatMap((r) => [`${r}/**/*.ts`, `${r}/**/*.tsx`]);
 
@@ -813,7 +813,7 @@ export const BLOCS_LINT = [
   },
   {
     // #3821
-    files: ['src/**', 'hotes/**', 'scripts/**', 'server/**', '.claude/**'],
+    files: [...CODE_DES_ZONES, 'scripts/**', 'server/**', '.claude/**'],
     excludeFiles: BANCS_DE_MOD,
     rules: { 'murs/noms-par-ligne': 'error' },
   },

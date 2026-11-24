@@ -26,7 +26,7 @@ import { fenetreADessiner, type ArgumentDuGeste } from './gestes';
 import { proprietaireDeLaFenetre } from './projection';
 import { t } from '../i18n';
 import { nouvelEntete, ouvrirLaPartie } from './partieDeTest';
-import { projeter, rendreLaVue } from '../hoteTexte/vue';
+import { projeter, rendreLaVue } from '../../hotes/texte/vue';
 import { choixDePaieOuverts } from '../noyau/shipCrew';
 import { dayIndex, joursParSemaine } from '../engine/clock';
 import { findMoraleFactor, payChoices } from '../engine/crewMorale';

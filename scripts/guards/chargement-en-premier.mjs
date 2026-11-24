@@ -23,16 +23,16 @@ import { mkdtempSync, rmSync } from 'node:fs'
 import { availableParallelism, tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { dossierDe } from './lib/couches.mjs'
+import { COUCHES, dossierDe } from './lib/couches.mjs'
 import { TRAVAIL, depotDe, listerImage } from './lib/gitPorte.mjs'
 import { spawnBorne } from './lib/processusBorne.mjs'
 import { MARQUE_DE_VERDICT } from './lib/chargementDUnModule.mjs'
 import { estFichierVitest, estKitDeTest } from './lib/fichierVitest.mjs'
 import { estModule } from './lib/importGraph.mjs'
 
-/** Les zones dont chaque module se charge en premier (`COUCHES`, couches.mjs) : le noyau, le moteur, la donnée et les
- *  feuilles qu'il compose, ses hôtes (`hote`, `hoteTexte`, `hotes` hors de `src/`) et les scénarios qu'ils chargent. */
-export const ZONES = Object.freeze(['noyau', 'engine', 'data', 'lib', 'geometry', 'i18n', 'hote', 'hoteTexte', 'hotes', 'scenes'])
+/** Les zones dont chaque module se charge en premier : celles de `COUCHES` (couches.mjs) qui survivent à la bascule
+ *  (`survit`), hors des fichiers posés à même `src/` (`racine`). */
+export const ZONES = Object.freeze(Object.keys(COUCHES).filter((z) => z !== 'racine' && COUCHES[z].survit === true))
 
 /** Modules par lot d'un travailleur. */
 const TAILLE_DE_LOT = 12
@@ -42,14 +42,12 @@ const bornesDuLot = (n) => 90_000 + 20_000 * n
 
 const TRAVAILLEUR = fileURLToPath(new URL('./lib/chargementDUnModule.mjs', import.meta.url))
 
-const PREFIXE_DES_HOTES = `${dossierDe('hotes')}/`
-
-/** Le worker charge tous les scripts des zones de `src`. Hors de `src`, la zone des hôtes mêle
- *  les modules TypeScript de l'hôte à des pilotes CLI et des maquettes JavaScript exécutés dans
+/** Le worker charge tous les scripts des zones de `src`. Hors de `src`, un affichage mêle
+ *  ses modules TypeScript à des pilotes CLI et des maquettes JavaScript exécutés dans
  *  leur propre environnement. Seuls ses modules TypeScript sont des entrées de ce worker.
  *  Instruments, kits et déclarations sont hors du chargement. */
 export const estModuleACharger = (rel) =>
-  (rel.startsWith(PREFIXE_DES_HOTES) ? /\.(m?ts|tsx)$/.test(rel) : estModule(rel))
+  (rel.startsWith('src/') ? estModule(rel) : /\.(m?ts|tsx)$/.test(rel))
   && !/\.d\.[cm]?ts$/.test(rel) && !estFichierVitest(rel) && !estKitDeTest(rel)
 
 /** Les modules de la zone `zone` (`dossierDe`, couches.mjs) sous `racine`, suivis ou non encore indexés, triés. */

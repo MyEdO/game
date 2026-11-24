@@ -8,7 +8,7 @@ import { departDeLaCarte, drainer, table, gestesDessines } from './pont.testkit'
 import type { Bouton, Element, Entite, Puce } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
 import { imposerLesD100 } from '../../../src/noyau/battleRng.testkit';
-import { rendreLaVue } from '../../../src/hoteTexte/vue';
+import { rendreLaVue } from '../../texte/vue';
 import { giveTrappingSchema } from '../../../src/data/schemas/defs-scenes/effets';
 import { withBourseMoney } from '../../../src/engine/bourse';
 import { combattantDeTest } from '../../../src/engine/combattantDeTest.testkit';
