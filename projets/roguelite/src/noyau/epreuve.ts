@@ -7,6 +7,7 @@ import { arena } from '../../../../src/scenes/test-scenarios/_shared';
 import { EVT, type TestJete } from '../../../../src/noyau/bus';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Combatant } from '../../../../src/engine/types';
 import { evaluateTest } from '../../../../src/engine/tests';
+import { TIME_COST } from '../../../../src/engine/timeCost';
 import { rollLine } from '../../../../src/noyau/ligneDeJet';
 import { skills } from '../../../../src/data';
 import { peutTenter } from '../../../../src/engine/skills';
@@ -27,6 +28,8 @@ export type IssueDEpreuve = { groupe: Combatant[]; journal: string[] }
 /** L'entité qui porte le Test : un décor du catalogue (`props.json`), que le roguelite ne montre pas. */
 const ENTITE = 'epreuve';
 const DECOR = 'caisse';
+/** Ce que l'action de l'épreuve coûte à l'horloge : le Round de son Test. LDB 13 l.13 */
+const DUREE = TIME_COST.combatRound;
 
 /** Joue l'`epreuve` sur le `groupe` à la graine `graine`. Rend le groupe tel que le noyau le laisse, l'issue du Test
  *  (le dernier `EVT.TEST_JETE` de sa Compétence, relance comprise) ou ce qui l'a empêché, et les lignes du journal. */
@@ -39,7 +42,7 @@ export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, gr
     graine,
     () => {
       const scene = arena({ id: 'epreuve', label: epreuve.label, w: 8, h: 8, heroStart: { x: 2, y: 4 } });
-      scene.entities.push({ id: ENTITE, kind: 'prop', decor: { id: DECOR }, pos: { x: 3, y: 4 }, label: epreuve.label, usable: { actions: [{ id: ENTITE, label: epreuve.label, flow: epreuve.flux }] } });
+      scene.entities.push({ id: ENTITE, kind: 'prop', decor: { id: DECOR }, pos: { x: 3, y: 4 }, label: epreuve.label, usable: { actions: [{ id: ENTITE, label: epreuve.label, minutes: DUREE, flow: epreuve.flux }] } });
       return { party: groupe.map((h) => structuredClone(h)), scene, projet: null };
     },
     (r) => {

@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { ouvrirLeDuel } from '../combatDeTest.testkit';
+import { heroDuDuel, ouvrirLeDuel } from '../combatDeTest.testkit';
 import { testScenarios } from '../../scenes/test-scenarios';
+import { COUR, courDeFerme } from '../../scenes/fixtures/plans.testkit';
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { distanceDeContact } from '../monde/footprint';
 import { isWalkable, wallOnSight, type Scene } from '../monde/scene';
@@ -19,12 +20,12 @@ import type { Combatant, Weapon } from '../../engine/types';
 /**
  * #4105 : l'ennemi mené par l'IA rejoint par la route une cible qu'un mur plein sépare de lui, sans frapper à travers ;
  * sans route, il n'approche rien. On n'enfourche pas à travers un mur. LDB 13 l.114 ; LDB 15 l.12 ; LDB 14.
- * Paires CHERCHÉES dans la scène réelle d'`ecuries-clayonnage`, combattants posés par `placeCombatant`.
+ * Plan `courDeFerme`, combattants posés par `placeCombatant`.
  */
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const duel = () => ouvrirLeDuel(banc, testScenarios.find((s) => s.id === 'ecuries-clayonnage')!.construire(idsDeTest), 'enc-clayonnage');
+const duel = () => ouvrirLeDuel(banc, { scene: courDeFerme(), party: [heroDuDuel()] }, COUR.rencontre);
 const scene = (): Scene => banc.getState().scene!;
 const contact = (A: Combatant, B: Combatant) => distanceDeContact(scene(), A, B);
 const memeCase = (a: Pt | undefined, b: Pt) => !!a && a.x === b.x && a.y === b.y && (a.z ?? 0) === (b.z ?? 0);
@@ -36,21 +37,18 @@ function routeDeContact(H: Combatant, E: Combatant): number | null {
   return d ? reach.get(tileKey(d.x, d.y, d.z ?? 0))! : null;
 }
 
-/** Les paires de cases cardinales praticables au sol, qu'un mur plein sépare, où H et E posés ne sont pas au contact
- *  et dont la route de E au contact satisfait `garde` (au plus `max`). */
-function pairesDerriereUnMur(H: Combatant, E: Combatant, poser: (c: Combatant, p: Pt) => void, garde: (route: number | null) => boolean, max: number): { h: Pt; e: Pt; route: number | null }[] {
+/** Les paires posées de part et d'autre d'un mur plein : le mur isolé, qu'une route contourne ; la cabane close, sans route. */
+const PAIRES_CONTOURNABLES = [{ h: COUR.auNordDuMur, e: COUR.auSudDuMur }, { h: COUR.loinAuNordDuMur, e: COUR.loinAuSudDuMur }];
+const PAIRE_SANS_ROUTE = { h: COUR.contreLaCabane, e: COUR.dansLaCabane };
+
+/** Pose H et E sur la paire, et rend la route de E au contact après avoir vérifié la paire : praticable, séparée par un
+ *  mur plein, hors de contact. */
+function poserLaPaire(H: Combatant, E: Combatant, poser: (c: Combatant, p: Pt) => void, { h, e }: { h: Pt; e: Pt }): number | null {
   const s = scene();
-  const out: { h: Pt; e: Pt; route: number | null }[] = [];
-  for (let y = 0; y < s.dimensions.h; y++) for (let x = 0; x < s.dimensions.w; x++) for (const [dx, dy] of [[1, 0], [0, 1]]) {
-    const h = { x, y }, e = { x: x + dx, y: y + dy };
-    if (!isWalkable(s, h.x, h.y, 0) || !isWalkable(s, e.x, e.y, 0) || !wallOnSight(s, h, e, 0)) continue;
-    poser(H, h); poser(E, e);
-    if (!memeCase(H.pos, h) || !memeCase(E.pos, e) || contact(H, E) !== Infinity) continue;
-    const route = routeDeContact(H, E);
-    if (garde(route)) out.push({ h, e, route });
-    if (out.length >= max) return out;
-  }
-  return out;
+  expect([isWalkable(s, h.x, h.y, 0), isWalkable(s, e.x, e.y, 0), wallOnSight(s, h, e, 0)], `${JSON.stringify(h)} | ${JSON.stringify(e)}`).toEqual([true, true, true]);
+  poser(H, h); poser(E, e);
+  expect([memeCase(H.pos, h), memeCase(E.pos, e), contact(H, E)]).toEqual([true, true, Infinity]);
+  return routeDeContact(H, E);
 }
 
 /** Un tour de l'ennemi par la chaîne réelle (`buildAiInput` → `chooseEnemyAction` → `aiApproachPlan`), son déplacement
@@ -66,10 +64,9 @@ function tourDeLEnnemi(E: Combatant, rng: ReturnType<typeof makeRNG>): { action:
 describe('#4105 — approche de l’IA derrière un mur plein', () => {
   it('une route mène au contact : l’ennemi la suit et rejoint sa cible en tours bornés par la route, sans frapper à travers le mur', () => {
     const { H, E, poser } = duel();
-    const paires = pairesDerriereUnMur(H, E, poser, (route) => route !== null && route >= 5, 12);
-    expect(paires.length, 'des paires mur plein + route ≥ 5').toBeGreaterThan(0);
-    for (const { h, e, route } of paires) {
-      poser(H, h); poser(E, e);
+    for (const { h, e } of PAIRES_CONTOURNABLES) {
+      const route = poserLaPaire(H, E, poser, { h, e });
+      expect(route, `route de ${JSON.stringify(e)}`).toBeGreaterThanOrEqual(5);
       const rng = makeRNG(3);
       let tours = 0;
       let borne = Infinity;
@@ -86,31 +83,31 @@ describe('#4105 — approche de l’IA derrière un mur plein', () => {
 
   it('aucune route : l’ennemi ne frappe pas et reste sur sa case (aucune approche, aucune navette)', () => {
     const { H, E, poser } = duel();
-    const [paire] = pairesDerriereUnMur(H, E, poser, (route) => route === null, 1);
-    expect(paire, 'une paire mur plein sans route').toBeDefined();
+    const paire = PAIRE_SANS_ROUTE;
+    expect(poserLaPaire(H, E, poser, paire), 'aucune route').toBeNull();
     const rng = makeRNG(3);
     for (let tour = 1; tour <= 4; tour++) {
       expect(tourDeLEnnemi(E, rng).action, `tour ${tour}`).toBe('fin');
-      expect(E.pos).toEqual(paire.e);
+      expect(memeCase(E.pos, paire.e), `tour ${tour} : E en ${JSON.stringify(E.pos)}`).toBe(true);
     }
   });
 
   it('tireur sans route vers le contact : il approche encore (sa portée se mesure à vol d’oiseau)', () => {
     const ARC: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 7 }, range: 30, qualities: [] };
     const { H, E, poser } = duel();
-    const [paire] = pairesDerriereUnMur(H, E, poser, (route) => route === null, 1);
-    expect(paire, 'une paire mur plein sans route').toBeDefined();
+    const paire = PAIRE_SANS_ROUTE;
+    expect(poserLaPaire(H, E, poser, paire), 'aucune route').toBeNull();
     E.weapons = [ARC];
     const { action } = tourDeLEnnemi(E, makeRNG(3));
     expect(action).toBe('deplacement');
-    expect(E.pos).not.toEqual(paire.e);
+    expect(memeCase(E.pos, paire.e), 'le tireur a quitté sa case').toBe(false);
   });
 
   it('canMount passe par la mesure : refus à travers un mur plein, accord à une case sans arête', () => {
     const { H, E, poser } = duel();
     E.traits = [...(E.traits ?? []), { id: 'dresse-monture' }];
-    const [paire] = pairesDerriereUnMur(H, E, poser, () => true, 1);
-    expect(paire, 'une paire mur plein').toBeDefined();
+    const paire = PAIRE_SANS_ROUTE;
+    poserLaPaire(H, E, poser, paire);
     expect(canMount(scene(), H, E)).toBe(false);
     const s = scene();
     let libre: Pt | undefined;

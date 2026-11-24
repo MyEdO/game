@@ -156,13 +156,13 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     // Corrosion = op `damageArmour {material:'cuir'}` (GameOp authoré) : endommage une pièce de CUIR portée
     // (RAW « toute matière » non modélisée → cuir seul). On en équipe une pour l'observer : la pièce
     // PORTÉE encaisse, jamais un décrément direct du champ plat `armour.corps`.
-    H.items = [{ uid: 'jaque', name: 'Jaque de cuir', subType: 'cuir-bouilli', kind: 'armor', equipped: true, locs: ['corps'], pa: 2, damageTaken: 0, enc: 1, qualities: [] } as never];
+    H.items = [{ uid: 'jaque', name: 'Jaque de cuir', subType: 'cuir-bouilli', kind: 'armor', equipped: true, locs: ['corps'], pa: 2, enc: 1, qualities: [] } as never];
     const before = H.wounds.current;
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.wounds.current).toBeLessThan(before); // BE+4 Dégâts infligés
     expect(h.conditions.some((c) => c.id === 'sonne')).toBe(true);
-    expect(h.items!.find((i) => i.uid === 'jaque')!.damageTaken).toBe(1); // corrosion : 1 Dégât au cuir
+    expect(h.items!.find((i) => i.uid === 'jaque')!.usure).toEqual({ corps: 1 }); // corrosion : 1 Dégât au cuir
   });
 
   it('Souffle (Fumée) : la zone s’enfume — Lignes de vue bloquées pendant BE Rounds (RAW)', () => {

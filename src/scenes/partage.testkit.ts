@@ -1,6 +1,6 @@
 /**
  * KIT DE TEST du PARTAGE par identité (#2097) : ce qu'une racine de l'état atteint, les objets des
- * SOURCES de donnée (catalogue `src/data`, scènes, narratif de campagne), et le verdict de la garde
+ * SOURCES de donnée (catalogue `src/data`, paquet de test du commun, scènes, narratif de campagne), et le verdict de la garde
  * de résultat posée après chaque test par `src/test-setup-noyau.ts`.
  */
 import { SPEC_SOURCES, SYMPTOM_SEVERITIES } from '../data';
@@ -21,10 +21,11 @@ export function atteignables(racine: unknown, chemin: string, vus = new Map<obje
   return vus;
 }
 
-/** Les documents du catalogue et des scènes, avec les registres de données construits en TypeScript. */
+/** Les documents du catalogue et du paquet de test du commun (`src/scenes/fixtures`), avec les registres de données construits
+ *  en TypeScript. */
 const SOURCES_DU_CATALOGUE: readonly unknown[] = [
   ...Object.values(import.meta.glob('/src/data/**/*.json', { eager: true, import: 'default' })),
-  ...Object.values(import.meta.glob('/src/scenes/**/*.json', { eager: true, import: 'default' })),
+  ...Object.values(import.meta.glob('/src/scenes/fixtures/**/*.json', { eager: true, import: 'default' })),
   SPEC_SOURCES,
   SYMPTOM_SEVERITIES,
 ];
