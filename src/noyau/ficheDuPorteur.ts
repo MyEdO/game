@@ -18,7 +18,7 @@ import {
   nomObserve,
 } from './visionDuGroupe';
 import type { NomDIndividu } from '../engine/psych/ciblage';
-import { CHAR_KEYS, CHAR_LABELS, LOCALISATIONS_DE_COUP, locationLabel, type CharKey, type Combatant } from '../engine/types';
+import { CHAR_KEYS, CHAR_LABELS, LOCALISATIONS_DE_COUP, locationLabel, type CharKey, type Combatant, type HitLocation } from '../engine/types';
 import { effectiveArmourAt, effectiveChar, forceDuPorteur } from '../engine/characteristics';
 import { effectiveMovement } from '../engine/encumbrance';
 import { isVehicle } from '../engine/coque';
@@ -27,13 +27,13 @@ import { isPrayerFamily } from '../engine/combatFeatures/types';
 import { effectiveSkillCharKey, testValue } from '../engine/skills';
 import { effectiveTalents } from '../engine/talentEffects';
 import { effectiveEntry } from '../engine/variants';
-import { itemLabel } from '../engine/items';
-import { isWeaponActive } from '../engine/weaponLoad';
+import { isWearable, itemLabel } from '../engine/items';
+import { isHeld, isWeaponActive } from '../engine/weaponLoad';
 import { attackTestOf } from '../engine/combat';
-import { weaponStatParts } from '../engine/weaponStats';
+import { profilDArme, type ProfilDArme } from '../engine/weaponStats';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { traitLisible } from '../engine/traits/dispatch';
-import { formatMoney } from '../engine/money';
+import type { Money } from '../engine/money';
 import { bourseOf } from '../engine/bourse';
 import {
   careerLabelFor,
@@ -50,6 +50,8 @@ import {
   talentConcrete,
 } from '../data';
 import type { NatureDeMention, SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
+import { jsonCanonique } from '../lib/jsonCanonique.mjs';
 import { cibleDuCodex, type CibleDuCompendium } from './codex/registry';
 import type { PlayerText } from '../i18n/playerText';
 
@@ -60,34 +62,39 @@ export interface CaracteristiqueDeLaFiche { cle: CharKey; abrege: string; libell
  *  comprise (`cibleDuCodex`), `null` sans entrée au Codex. */
 export interface Renvoyable { libelle: string; renvoi: CibleDuCompendium | null }
 
-/** Une Compétence : son nom (Spécialisation comprise), la valeur de son Test (`testValue`), la Caractéristique qui
- *  la porte (`effectiveSkillCharKey`) et ses Augmentations. */
-export interface CompetenceDeLaFiche extends Renvoyable { valeur: number; caracteristique: CharKey; avances: number }
+/** Une Compétence : son id et sa Spécialisation (`RefDesignee`), son nom (Spécialisation comprise), la valeur de son
+ *  Test (`testValue`), la Caractéristique qui la porte (`effectiveSkillCharKey`) et ses Augmentations. */
+export interface CompetenceDeLaFiche extends Renvoyable, RefDesignee { valeur: number; caracteristique: CharKey; avances: number }
 
 /** Un Talent effectif (`effectiveTalents`) : son nom, son niveau, sa description sous les règles actives
  *  (`effectiveEntry`), `null` sans description. */
 export interface TalentDeLaFiche extends Renvoyable { fois: number; desc: string | null }
 
 /** Une arme tenue ou portée (`Combatant.weapons`) : son nom, la valeur du Test qui l'emploie (`attackTestOf`, à la
- *  même valeur que ses Compétences, `testValue`), ses Dégâts résolus, son Allonge ou sa Portée (`weaponStatParts`) et
- *  ses Atouts et Défauts (`resolveQualities`) ; l'arme désignée par son identité de catalogue (`trappingId`, sinon
- *  `builtinId`). */
-export interface ArmeDeLaFiche extends Renvoyable { valeur: number; stats: string[]; qualites: Renvoyable[] }
+ *  même valeur que ses Compétences, `testValue`), son profil pour son porteur (`profilDArme`) et ses Atouts et Défauts
+ *  (`resolveQualities`) ; l'arme désignée par son identité de catalogue (`trappingId`, sinon `builtinId`). */
+export interface ArmeDeLaFiche extends Renvoyable { valeur: number; profil: ProfilDArme; qualites: Renvoyable[] }
 
-/** Les Points d'Armure effectifs d'une localisation qui en porte (`effectiveArmourAt`) : son nom (`locationLabel`, à la
- *  forme du corps) et ses PA. */
-export interface ArmureDeLaFiche { localisation: string; pa: number }
+/** Les Points d'Armure effectifs d'une localisation qui en porte (`effectiveArmourAt`) : la localisation, son id et son
+ *  nom à la forme du corps (`locationLabel`), et ses PA. */
+export interface ArmureDeLaFiche { localisation: { id: HitLocation; nom: PlayerText }; pa: number }
 
 /** Une entrée nommée du profil (un Trait posé, une Mutation, un sort ou une prière connus) : son nom tel que le joueur
  *  le lit, sa description sous les règles actives, `null` sans description. */
 export interface EntreeDeLaFiche extends Renvoyable { desc: string | null }
 
 /** Une possession : l'objet qui la désigne (`uid`, le premier de celles comptées ensemble), son nom (`itemLabel`), si
- *  elle est équipée (une arme : tenue dans le set actif, `isWeaponActive`), combien en sont portées, l'argent qu'elle
- *  tient (`formatMoney`, `null` sans argent), le contenant où elle est rangée (`null` : en vrac) et l'objet du catalogue
- *  qu'elle instancie (`trappingId`). Les possessions de même nom, équipées de même, rangées au même endroit et sans
- *  argent, se comptent ensemble. */
-export interface PossessionDeLaFiche extends Renvoyable { uid: string; equipee: boolean; nombre: number; argent: string | null; contenant: string | null }
+ *  elle est équipée (une arme : tenue dans le set actif, `isWeaponActive` ; ce qui se porte : portée ou tenue, `isHeld`),
+ *  combien en sont portées, l'argent qu'elle tient (`null` sans argent), le contenant où elle est rangée, son `uid` et
+ *  son nom (`null` : en vrac), et l'objet du catalogue qu'elle instancie (`trappingId`). Des instances égales hors `uid`
+ *  et `qty`, équipées de même, qui ne tiennent ni argent ni objet (`container`), se comptent ensemble. */
+export interface PossessionDeLaFiche extends Renvoyable {
+  uid: string;
+  equipee: boolean;
+  nombre: number;
+  argent: Money | null;
+  contenant: { uid: string; nom: string } | null;
+}
 
 /** Les mentions d'une nature (`mentionsParNature`) : sa nature, son libellé de rubrique, et chacune, son libellé et son
  *  nombre. */
@@ -108,7 +115,7 @@ export interface FicheDuPorteur {
   determination: number | null;
   etats: { id: string; valeur: number }[];
   /** Sa bourse (`bourseOf`). */
-  bourse: string;
+  bourse: Money;
   mouvement: number;
   caracteristiques: CaracteristiqueDeLaFiche[];
   armes: ArmeDeLaFiche[];
@@ -190,15 +197,22 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
   if (!aUneFiche(c)) return null;
   const items = c.items ?? [];
   const possessions: PossessionDeLaFiche[] = [];
+  const empilables = new Map<string, PossessionDeLaFiche>();
   for (const it of items) {
-    const libelle = itemLabel(it);
-    const argent = it.money ? formatMoney(it.money) : null;
-    const equipee = it.kind === 'melee' || it.kind === 'distance' ? isWeaponActive(c, it.uid) : it.equipped;
+    const equipee = (it.kind === 'melee' || it.kind === 'distance') && !isWearable(it) ? isWeaponActive(c, it.uid) : isHeld(c, it);
+    const cle = it.money || it.container ? null : `${equipee}|${jsonCanonique({ ...it, uid: undefined, qty: undefined })}`;
+    const meme = cle === null ? undefined : empilables.get(cle);
+    if (meme) {
+      meme.nombre += it.qty ?? 1;
+      continue;
+    }
     const sac = it.inside ? items.find((i) => i.uid === it.inside) : undefined;
-    const contenant = sac ? itemLabel(sac) : null;
-    const meme = argent === null ? possessions.find((p) => p.libelle === libelle && p.equipee === equipee && items.find((i) => i.uid === p.uid)?.inside === it.inside && p.argent === null) : undefined;
-    if (meme) meme.nombre += it.qty ?? 1;
-    else possessions.push({ uid: it.uid, ...renvoyable('trappings', it.trappingId, libelle), equipee, nombre: it.qty ?? 1, argent, contenant });
+    const possession = {
+      uid: it.uid, ...renvoyable('trappings', it.trappingId, itemLabel(it)), equipee, nombre: it.qty ?? 1,
+      argent: it.money ?? null, contenant: sac ? { uid: sac.uid, nom: itemLabel(sac) } : null,
+    };
+    possessions.push(possession);
+    if (cle !== null) empilables.set(cle, possession);
   }
   const force = forceDuPorteur(c);
   const source = sourceDuProfil(c);
@@ -211,21 +225,21 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
     chance: c.fortune ?? null,
     resilience: c.resilience ?? null,
     determination: c.resolve ?? null,
-    bourse: formatMoney(bourseOf(c)),
+    bourse: bourseOf(c),
     mouvement: effectiveMovement(c),
     caracteristiques: CHAR_KEYS.map((cle) => ({ cle, abrege: charAbr(cle), libelle: CHAR_LABELS[cle], valeur: effectiveChar(c, cle) })),
     armes: c.weapons.map((w) => ({
-      ...renvoyable('trappings', w.trappingId ?? w.builtinId, w.label), valeur: testValue(c, attackTestOf(c, w, w.type)), stats: weaponStatParts(w, force),
+      ...renvoyable('trappings', w.trappingId ?? w.builtinId, w.label), valeur: testValue(c, attackTestOf(c, w, w.type)), profil: profilDArme(w, force),
       qualites: resolveQualities(w).map((q) => instance('qualities', q.id, qualityRefLabel(q.instance))),
     })),
     armure: LOCALISATIONS_DE_COUP.flatMap((l) => {
       const pa = effectiveArmourAt(c, l);
-      return pa > 0 ? [{ localisation: locationLabel(l, c.bodyShape), pa }] : [];
+      return pa > 0 ? [{ localisation: { id: l, nom: locationLabel(l, c.bodyShape) }, pa }] : [];
     }),
     traits: (c.traits ?? []).map((tp) => ({ ...instance('traits', tp.id, traitLisible(tp, nom)), desc: effectiveEntry(findTraitById(tp.id))?.desc ?? null })),
     mutations: (c.mutations ?? []).map((m) => ({ ...renvoyable('mutations', m.id, m.label), desc: m.desc ?? null })),
     competences: c.skills.map((sk) => ({
-      ...instance('skills', sk.id, skillInstanceLabel(sk)), valeur: testValue(c, { skill: sk }),
+      ...instance('skills', sk.id, skillInstanceLabel(sk)), id: sk.id, ...(sk.spec === undefined ? {} : { spec: sk.spec }), valeur: testValue(c, { skill: sk }),
       caracteristique: effectiveSkillCharKey(c, { skill: sk }), avances: sk.advances,
     })),
     talents: effectiveTalents(c).map((tt) => ({ ...instance('talents', tt.talentId, talentConcrete(tt)), fois: tt.times, desc: effectiveEntry(findTalentById(tt.talentId))?.desc ?? null })),

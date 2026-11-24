@@ -48,6 +48,7 @@ import {
   fenetreDuSoin,
   enTeteDuPorteur,
   ficheDuPorteur,
+  weaponStatParts,
   gestesDeLObjet,
   libelleDuDepot,
   porteurParId,
@@ -1284,7 +1285,7 @@ function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
       ...(f.carriere === null ? [] : [terme(puce('carriere', f.carriere.libelle, null), f.carriere)]),
       jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
       ...points,
-      ...(etat.party.some((h) => h.id === f.id) ? [puce('bourse', t('ecran.bourse'), f.bourse)] : []),
+      ...(etat.party.some((h) => h.id === f.id) ? [puce('bourse', t('ecran.bourse'), formatMoney(f.bourse))] : []),
       ...etatsEnPuces(f.etats),
       ...(f.profil === null ? [] : boutonDuRenvoi(f.profil)),
     ],
@@ -1336,12 +1337,12 @@ function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<key
       type: 'entite', id: `arme/${i}`, ton: 'neutre', nom: a.libelle,
       elements: [
         puce('test', t('ecran.statbloc.test'), String(a.valeur)),
-        ...a.stats.map((x, j) => puce(`stat/${j}`, x, null)),
+        ...weaponStatParts(a.profil).map((x, j) => puce(`stat/${j}`, x, null)),
         ...a.qualites.map((x, j) => terme(puce(`qualite/${j}`, x.libelle, null), x)),
         ...boutonDuRenvoi(a),
       ],
     })),
-    armure: f.armure.map((a, i) => puce(`armure/${i}`, a.localisation, String(a.pa))),
+    armure: f.armure.map((a, i) => puce(`armure/${i}`, a.localisation.nom, String(a.pa))),
     traits: entrees('trait', f.traits),
     mutations: entrees('mutation', f.mutations),
     competences: f.competences
@@ -1395,8 +1396,8 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
   };
   const elements: (Element | null)[] = [
     p.nombre > 1 ? puce('nombre', t('ecran.fiche.nombre', { nombre: p.nombre }), null) : null,
-    p.argent === null ? null : puce('argent', p.argent, null),
-    p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant }), null),
+    p.argent === null ? null : puce('argent', formatMoney(p.argent), null),
+    p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant.nom }), null),
     ...boutonDuRenvoi(p),
     simple('porter', g.porter?.porte),
     ...(g.mains ? (['main', 'secondaire'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),

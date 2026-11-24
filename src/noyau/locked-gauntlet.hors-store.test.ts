@@ -1,62 +1,256 @@
 /** AA 08 l.234-238 */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import type { BattleState } from './etat';
-import { applyBladeTrap } from './combatFlow';
-import type { Combatant } from '../engine/types';
-import { objetDeTest } from '../engine/objetsDeTest.testkit';
+import { aiHandGate, applyBladeTrap, openAttackCascade } from './combatFlow';
+import { seedBattleRng } from './battleRng';
+import { gestesDeLObjet } from './gestesDeLObjet';
+import { ficheDuPorteur } from './ficheDuPorteur';
+import { auContact, heroDuDuel, ouvrirLeCombat, reluDans } from './combatDeTest.testkit';
+import { testScene } from '../scenes/test-fixture';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { desDuTest } from '../engine/dice.testkit';
+import { itemFromTrappingById } from '../engine/items';
+import { applyOps } from '../engine/ops';
+import { activeCharTestMod, tickDurations } from '../engine/conditions';
+import type { Combatant, Main } from '../engine/types';
+import type { GesteDuNoyau } from './actionsDuNoyau';
 import type { BladeTrapFreeze } from './pendings';
-import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const chars = { 'capacite-de-combat': 40, 'capacite-de-tir': 30, force: 40, endurance: 40, initiative: 40, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
-
-function setup(withGauntlet: boolean): { attacker: Combatant; defender: Combatant } {
-  const attacker = blessuresSurLeProfil({
-    id: 'e1', name: 'Mercenaire', kind: 'ennemi', characteristics: chars, wounds: blessuresDeBase(30),
-    advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], pos: { x: 1, y: 0 }, size: 'moyenne',
-    weapons: [{ uid: 'w1', name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-    items: withGauntlet ? [objetDeTest('gantelet-verrouille', { uid: 'g1', equipped: true })] : [],
-  }) as unknown as Combatant;
-  const defender = blessuresSurLeProfil({
-    id: 'h1', name: 'Bretteur', kind: 'heros', characteristics: chars, wounds: blessuresDeBase(20),
-    advantage: 0, conditions: [], movement: 4, skills: [], talents: [], traits: [], pos: { x: 0, y: 0 }, size: 'moyenne',
-    weapons: [{ uid: 'd1', name: 'Rapière', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
-    armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [], fate: 0, criticalWounds: 0,
-  }) as unknown as Combatant;
-  const battle: BattleState = {
-    combatants: [attacker, defender], order: ['e1', 'h1'], baseOrder: ['e1', 'h1'],
-    turn: 1, round: 1, action: null, selectedSpellId: null, reachable: new Map(),
-    movementUsed: 0, movedPreAction: false, acted: false, log: [], over: null,
-  } as unknown as BattleState;
-  banc.setState({ battle, mode: 'battle' });
-  return { attacker, defender };
+/** Le héros du duel (Arme simple en main d'arme, Dague en main secondaire) au groupe, hors combat, `n` gantelets
+ *  verrouillés au sac, d'uids `g1`, `g2`… */
+function auGroupe(n: number): void {
+  const h = heroDuDuel();
+  const gantelets = Array.from({ length: n }, (_, i) => ({ ...itemFromTrappingById('gantelet-verrouille', idsDeTest)!, uid: `g${i + 1}` }));
+  h.items = [...(h.items ?? []), ...gantelets];
+  banc.setState({ screen: 'campaign', party: [h] });
 }
 
-// netSL = defenderSL + bt.defSL − bt.attackerSL = 2 → < 6 → simple désarmement (pas de casse de lame).
-const bt: BladeTrapFreeze = { attackerId: 'e1', weaponUid: 'w1', defSL: 0, attackerSL: 0 };
-const has = (id: string, uid: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!.weapons.some((w) => w.uid === uid);
+const heros = (): Combatant => banc.getState().party[0];
+const jouer = (g: GesteDuNoyau): void => (banc.getState()[g.verbe] as (...a: unknown[]) => void)(...g.args);
 
-describe('#40 — Gantelet verrouillé : anti-lâcher (AA folio 94)', () => {
-  it('1er désarmement : le porteur d’un gantelet verrouillé NE lâche PAS son arme', () => {
-    const { defender } = setup(true);
-    applyBladeTrap(banc.getState, banc.setState, defender, bt, 2);
-    expect(has('e1', 'w1')).toBe(true); // arme conservée
+/** Le geste « porter » que la fiche offre pour l'objet `uid`, joué. */
+function porter(uid: string): void {
+  const porter = gestesDeLObjet(banc.getState(), heros().id, uid)?.porter;
+  expect(porter, `${uid} se porte`).toBeTruthy();
+  expect(porter!.refus).toBeNull();
+  jouer(porter!.geste);
+}
+
+/** Le geste qui tient l'objet `uid` en main `main`, joué. */
+function tenir(uid: string, main: Main): void {
+  const mains = gestesDeLObjet(banc.getState(), heros().id, uid)?.mains;
+  expect(mains?.[main].refus).toBeNull();
+  jouer(mains![main].geste);
+}
+
+/** Le duel ouvert avec le groupe tel qu'équipé ; rend le héros et son adversaire. */
+function auCombat(): { H: () => Combatant; E: Combatant } {
+  ouvrirLeCombat(banc, testScene(), banc.getState().party, 'enc-mutants');
+  const { H, E, patch } = auContact(banc.getState());
+  banc.setState(patch);
+  return { H: () => reluDans(banc.getState, H), E };
+}
+
+const armeEn = (c: Combatant, main: Main) => c.weapons.find((w) => w.hand === main)!;
+const tient = (c: Combatant, uid: string) => c.weapons.some((w) => w.uid === uid);
+const malusCC = (c: Combatant, main: Main) => activeCharTestMod(c, 'capacite-de-combat', { weaponHand: main });
+
+/** Piège-lame gagné par `E` contre l'arme `uid` de `H`, marge nette 2 : désarmement sans casse (LDB 62 l.280). */
+function piegeALame(H: Combatant, E: Combatant, uid: string): void {
+  const bt: BladeTrapFreeze = { attackerId: H.id, weaponUid: uid, defSL: 0, attackerSL: 0 };
+  applyBladeTrap(banc.getState, banc.setState, E, bt, 2);
+}
+
+/** Un Critique qui fait lâcher l'objet tenu au bras touché. */
+const critiqueQuiDesarme = (c: Combatant, main: Main): void => {
+  applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: main === 'main' ? 'brasD' : 'brasG' });
+};
+
+describe('Gantelet verrouillé : la fiche le porte', () => {
+  it('le geste « porter » l’offre et le porte ; un troisième ôte le premier', () => {
+    auGroupe(3);
+    porter('g1');
+    porter('g2');
+    porter('g3');
+    const portes = heros().items!.filter((i) => i.equipped && i.uid.startsWith('g')).map((i) => i.uid);
+    expect(portes).toEqual(['g2', 'g3']);
   });
 
-  it('2e désarmement pendant la période : l’arme EST lâchée', () => {
-    const { defender } = setup(true);
-    applyBladeTrap(banc.getState, banc.setState, defender, bt, 2); // sauvé
-    applyBladeTrap(banc.getState, banc.setState, defender, bt, 2); // 2e évènement → lâche
-    expect(has('e1', 'w1')).toBe(false);
+  it('la fiche dit le gantelet porté équipé', () => {
+    auGroupe(1);
+    porter('g1');
+    expect(ficheDuPorteur(banc.getState(), heros().id)!.possessions.find((p) => p.uid === 'g1')?.equipee).toBe(true);
   });
 
-  it('sans gantelet verrouillé : le 1er désarmement fait lâcher l’arme', () => {
-    const { defender } = setup(false);
-    applyBladeTrap(banc.getState, banc.setState, defender, bt, 2);
-    expect(has('e1', 'w1')).toBe(false);
+  it('porter un gantelet tenu le retire de la main : il ne couvre qu’une main, l’arme de la main d’arme reste retenue', () => {
+    auGroupe(1);
+    tenir('g1', 'secondaire');
+    porter('g1');
+    const { H, E } = auCombat();
+    expect(tient(H(), 'g1')).toBe(false);
+    const arme = armeEn(H(), 'main').uid!;
+    critiqueQuiDesarme(H(), 'main');
+    expect(tient(H(), arme)).toBe(true);
+    piegeALame(H(), E, arme);
+    expect(tient(H(), arme)).toBe(false);
+  });
+
+  it('un gantelet porté ne se tient pas en main', () => {
+    auGroupe(1);
+    porter('g1');
+    expect(gestesDeLObjet(banc.getState(), heros().id, 'g1')?.mains?.secondaire.refus).toBeTruthy();
+  });
+
+  it('un gantelet tenu compte au plafond de deux mains : en porter deux autres ôte le premier porté', () => {
+    auGroupe(3);
+    tenir('g1', 'secondaire');
+    porter('g2');
+    porter('g3');
+    expect(heros().items!.filter((i) => i.equipped && i.uid.startsWith('g')).map((i) => i.uid)).toEqual(['g3']);
+  });
+
+  it('le plafond vaut pour chaque set : un gantelet tenu dans un autre set compte aussi', () => {
+    auGroupe(3);
+    const premier = heros().activeLoadoutId!;
+    banc.getState().creerLaPanoplie(heros().id);
+    tenir('g3', 'main');
+    banc.getState().prendreLaPanoplie(heros().id, premier);
+    porter('g1');
+    porter('g2');
+    expect(heros().items!.filter((i) => i.equipped && i.uid.startsWith('g')).map((i) => i.uid)).toEqual(['g2']);
+  });
+
+  it('deux gantelets tenus : un troisième ne se porte pas ; deux portés : un troisième ne se tient pas', () => {
+    auGroupe(3);
+    tenir('g1', 'main');
+    tenir('g2', 'secondaire');
+    expect(gestesDeLObjet(banc.getState(), heros().id, 'g3')?.porter?.refus).toBeTruthy();
+    auGroupe(3);
+    porter('g1');
+    porter('g2');
+    expect(gestesDeLObjet(banc.getState(), heros().id, 'g3')?.mains?.main.refus).toBeTruthy();
+  });
+});
+
+// AA 07 l.117
+describe('Main ensanglantée : le gantelet porté retient l’arme et l’Action se poursuit', () => {
+  /** Le héros au combat, un gantelet porté, la main d'arme sous Main ensanglantée. */
+  function gate(): { H: () => Combatant; E: Combatant; arme: string } {
+    auGroupe(1);
+    porter('g1');
+    const { H, E } = auCombat();
+    H().handGates = ['main'];
+    return { H, E, arme: armeEn(H(), 'main').uid! };
+  }
+
+  it('joueur : Test raté, l’arme reste en main et l’attaque déclarée s’ouvre, à −20', () => {
+    const { H, E, arme } = gate();
+    openAttackCascade(banc.getState, banc.setState, { attackerId: H().id, targetId: E.id, location: null, result: null, weaponUid: arme }, 'Attaque', 'action/attaquer');
+    const pg = banc.getState().pendingHandGate!;
+    banc.setState({ pendingHandGate: { ...pg, roll: 99, success: false, sl: -3 } });
+    banc.getState().jetValider('mainEnsanglantee');
+    expect(tient(H(), arme)).toBe(true);
+    expect(banc.getState().pendingAttack?.weaponUid).toBe(arme);
+    expect(malusCC(H(), 'main')).toBe(-20);
+  });
+
+  it('IA : Test raté, l’arme reste en main et le coup se poursuit', () => {
+    auGroupe(0);
+    const { E } = auCombat();
+    const ennemi = (): Combatant => reluDans(banc.getState, E);
+    ennemi().items = [...(ennemi().items ?? []), { ...itemFromTrappingById('gantelet-verrouille', idsDeTest)!, uid: 'g1', equipped: true }];
+    ennemi().handGates = ['main'];
+    const armes = ennemi().weapons.map((w) => w.uid);
+    for (let graine = 1; ; graine++) {
+      expect(graine, 'une graine d’échec').toBeLessThan(50);
+      seedBattleRng(graine);
+      const poursuit = aiHandGate(banc.getState, banc.setState, ennemi());
+      if (!banc.getState().battle!.log.some((e) => e.text.includes('→ échec'))) continue;
+      expect(poursuit).toBe(true);
+      expect(ennemi().weapons.map((w) => w.uid)).toEqual(armes);
+      return;
+    }
+  });
+});
+
+describe.each([
+  ['Piège-lame', (H: Combatant, E: Combatant, uid: string) => piegeALame(H, E, uid)],
+  ['Critique qui désarme', (H: Combatant, _E: Combatant, uid: string) => critiqueQuiDesarme(H, H.weapons.find((w) => w.uid === uid)!.hand!)],
+] as const)('%s : le gantelet porté retient l’arme de sa main', (_nom, lacher) => {
+  it('un gantelet porté : l’arme de la main d’arme est retenue, −20 aux Tests de cette main seule', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H, E } = auCombat();
+    const arme = armeEn(H(), 'main').uid!;
+    lacher(H(), E, arme);
+    expect(tient(H(), arme)).toBe(true);
+    expect(malusCC(H(), 'main')).toBe(-20);
+    expect(malusCC(H(), 'secondaire')).toBe(0);
+  });
+
+  it('un second évènement pendant la période : l’arme tombe', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H, E } = auCombat();
+    const arme = armeEn(H(), 'main').uid!;
+    lacher(H(), E, arme);
+    lacher(H(), E, arme);
+    expect(tient(H(), arme)).toBe(false);
+  });
+
+  it('le −20 tient le Round entamé et tout le Round suivant ; la période écoulée, un nouvel évènement est retenu à nouveau', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H, E } = auCombat();
+    const arme = armeEn(H(), 'main').uid!;
+    lacher(H(), E, arme);
+    tickDurations(H());
+    expect(malusCC(H(), 'main')).toBe(-20);
+    tickDurations(H());
+    expect(malusCC(H(), 'main')).toBe(0);
+    lacher(H(), E, arme);
+    expect(tient(H(), arme)).toBe(true);
+  });
+
+  it('sans gantelet, l’arme tombe', () => {
+    auGroupe(0);
+    const { H, E } = auCombat();
+    const arme = armeEn(H(), 'main').uid!;
+    lacher(H(), E, arme);
+    expect(tient(H(), arme)).toBe(false);
+  });
+
+  it('un gantelet porté ne couvre pas la main secondaire : la Dague tombe', () => {
+    auGroupe(1);
+    porter('g1');
+    const { H, E } = auCombat();
+    const dague = armeEn(H(), 'secondaire').uid!;
+    lacher(H(), E, dague);
+    expect(tient(H(), dague)).toBe(false);
+  });
+
+  it('deux gantelets portés couvrent les deux mains : la Dague est retenue', () => {
+    auGroupe(2);
+    porter('g1');
+    porter('g2');
+    const { H, E } = auCombat();
+    const dague = armeEn(H(), 'secondaire').uid!;
+    lacher(H(), E, dague);
+    expect(tient(H(), dague)).toBe(true);
+    expect(malusCC(H(), 'secondaire')).toBe(-20);
+    expect(malusCC(H(), 'main')).toBe(0);
+  });
+
+  it('un gantelet tenu comme arme couvre sa main', () => {
+    auGroupe(1);
+    tenir('g1', 'secondaire');
+    const { H, E } = auCombat();
+    expect(armeEn(H(), 'secondaire').uid).toBe('g1');
+    lacher(H(), E, 'g1');
+    expect(tient(H(), 'g1')).toBe(true);
+    expect(malusCC(H(), 'secondaire')).toBe(-20);
   });
 });

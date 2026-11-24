@@ -40,6 +40,7 @@ export type RuleId =
   | 'viser'
   | 'viser-une-localisation'
   | 'main-secondaire'
+  | 'retenue-du-gantelet-verrouille'
   | 'combat-deux-armes'
   | 'tirer-dans-le-tas'
   | 'tir-en-mouvement'
@@ -121,6 +122,7 @@ export const RANGEES_DE_REGLE = {
   empoignade: ['avantage-le-plus-faible', 'avantage-le-plus-fort'],
   'portee-d-une-arme': ['bout-portant', 'courte', 'moyenne', 'longue', 'extreme'],
   'main-secondaire': ['main-secondaire'],
+  'retenue-du-gantelet-verrouille': ['retenue'],
   'taille-modificateurs-en-combat': ['plus-petit'],
   'allonge-longueur-d-arme': ['arme-plus-longue'],
   'equipe-incomplete-machine-de-guerre': ['equipe-incomplete'],

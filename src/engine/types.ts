@@ -289,8 +289,11 @@ export const FIRE_ARCS = ['proue', 'tribord', 'poupe', 'babord'] as const;
  *  vit ici pour que `Weapon`/`ItemInstance` le portent sans dépendance engine→state. */
 export type FireArc = (typeof FIRE_ARCS)[number];
 
+/** Les deux mains du porteur, directrice d'abord. */
+export const MAINS = ['main', 'secondaire'] as const;
+
 /** Une main du porteur : la directrice ou la secondaire. */
-export type Main = 'main' | 'secondaire';
+export type Main = (typeof MAINS)[number];
 
 export interface Weapon extends ProprietesIntrinsequesDArme {
   label: string;
@@ -418,10 +421,6 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
    *  était DÉJÀ porté (MDG 12 l.460), lue sur la qualité `crewedTeam`. Posée par `crewedFireWeapon`, ajoutée
    *  aux modificateurs de touche par `attackModifiers` (comme Précise, mais négative). Absent = aucune. */
   crewedTohitPenalty?: number;
-  /** Gantelet verrouillé (AA folio 94) : Round où le porteur a évité de LÂCHER cette arme (anti-lâcher).
-   *  Tant que `round ≤ gauntletSavedRound + 1` (période de « 1 Round min »), un SECOND lâcher forcé fait
-   *  tomber l'arme ; au-delà, la protection se réarme. Marqueur transitoire posé/lu par `applyBladeTrap`. */
-  gauntletSavedRound?: number;
   /** Caractéristique de résolution ALTERNATIVE du Test d'attaque, à la place de CC (mêlée)/CT (distance)
    *  par défaut (ADE II 8 l.233 : « Toutes les machines de guerre... utilisent... Projectiles [Machine
    *  de guerre], à l'exception du bélier, qui utilise Force »). DÉRIVÉ (jamais un id en dur) de la SEULE arme

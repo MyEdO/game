@@ -3,7 +3,7 @@
  * `(get, set)` que combatFlow : équipement (équiper/transférer), avancement PX
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  */
-import { Combatant, CharKey, CHAR_LABELS, ItemInstance, type Main } from '../engine/types';
+import { Combatant, CharKey, CHAR_LABELS, ItemInstance, MAINS, type Main } from '../engine/types';
 import {
   avecObjet,
   choisirApparenceDObjet,
@@ -15,6 +15,9 @@ import {
   loadoutDelete,
   loadoutSetSlot,
   equipConflicts,
+  estUnGanteletVerrouille,
+  ganteletsAuxMains,
+  isWearable,
   canStow,
   isOffHandEligible,
   setADeuxMains,
@@ -135,13 +138,13 @@ function isCompleted(hero: Combatant): boolean {
 /** Pose `equipped` à `porte` sur un item d'un porteur (héros OU possession, #620) en place : le porter retire d'abord
  *  les conflits de port (armure de même couche, autre cape — LDB 63, échange façon jeu vidéo, journalisé).
  *  `items` est muté EN PLACE (référence du porteur clone) — le retour n'est que le message. */
-function applyEquip(items: ItemInstance[], uid: string, porte: boolean, label: SansMarqueNonAffichable): string {
+function applyEquip(porteur: { items: ItemInstance[] } & Partial<Pick<Combatant, 'loadouts'>>, uid: string, porte: boolean, label: SansMarqueNonAffichable): string {
   let msg = '';
-  const it = items.find((i) => i.uid === uid);
+  const it = porteur.items.find((i) => i.uid === uid);
   if (!it || it.equipped === porte) return msg;
   if (porte) {
     it.inside = undefined; // on ne porte pas un objet rangé dans un sac : il en sort d'abord
-    const out = equipConflicts({ items }, it);
+    const out = equipConflicts(porteur, it);
     for (const o of out) o.equipped = false;
     if (out.length) msg = t('pf.swapLayer', { name: label, out: out.map((o) => o.label).join(' + '), item: it.label });
   }
@@ -160,6 +163,13 @@ function herosPorteur(get: Get, set: Set, uid: string): string | undefined {
   return refuseSi(get, set, (s) => refusDuHerosPorteur(s, uid)) ? undefined : porteurDeLObjet(get(), uid);
 }
 
+/** Pourquoi le héros `c` ne peut pas porter son objet `uid` : un gantelet verrouillé quand l'un de ses sets tient déjà
+ *  un gantelet dans chaque main (`ganteletsAuxMains`). AA 08 l.234 */
+export function refusDePorter(c: Combatant, uid: string): string | null {
+  const it = c.items?.find((i) => i.uid === uid);
+  return it && estUnGanteletVerrouille(it) && ganteletsAuxMains(c, it).tenus >= MAINS.length ? t('pf.mainsGantelees', { name: nomDe(c) }) : null;
+}
+
 /** Équipe (`porte`) ou déséquipe un objet de son PORTEUR (héros de `party` OU possession de `possessions`, doctrine
  *  « porteur unique » #614/#620) ; rejoué, il ne change rien — un héros recalcule aussi ses armes/armure actives
  *  (`recomputeLoadout`, réservé aux Combatant : une possession n'a pas de loadout d'arme). Une arme se tient en main
@@ -168,6 +178,8 @@ export function equiperLObjet(get: Get, set: Set, uid: string, porte: boolean): 
   if (refuseSi(get, set, refusDInventaire)) return;
   const carrierId = porteurDuGroupe(get, set, uid);
   if (!carrierId) return;
+  const porteur = resolveCarrier(get(), carrierId);
+  if (porte && porteur?.kind === 'heros' && refuseSi(get, set, () => refusDePorter(porteur.hero, uid))) return;
   let msg = '';
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
@@ -175,8 +187,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string, porte: boolean): 
     if (carrier.kind === 'heros') {
       return ecrireActeur(s, carrierId, (h) => {
         const clone: Combatant = structuredClone(h);
-        clone.items ??= [];
-        msg = applyEquip(clone.items, uid, porte, nomDe(clone));
+        msg = applyEquip({ items: clone.items ??= [], loadouts: clone.loadouts }, uid, porte, nomDe(clone));
         recomputeLoadout(clone);
         return clone;
       });
@@ -185,7 +196,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string, porte: boolean): 
       possessions: s.possessions.map((p) => {
         if (p.uid !== carrierId) return p;
         const clone: Possession = structuredClone(p);
-        msg = applyEquip(clone.items, uid, porte, possessionLabel(clone));
+        msg = applyEquip(clone, uid, porte, possessionLabel(clone));
         return clone;
       }),
     };
@@ -300,7 +311,11 @@ export function refusEmplacementDeMain(
   if (uid == null) return null;
   const it = (hero.items ?? []).find((i) => i.uid === uid);
   if (!it) return t('pf.loadoutItemNotFound');
-  return slot === 'secondaire' && !isOffHandEligible(it) ? t('pf.offHandIneligible') : null;
+  if (it.equipped && isWearable(it)) return t('pf.loadoutWorn');
+  if (slot === 'secondaire' && !isOffHandEligible(it)) return t('pf.offHandIneligible');
+  const autre = (hero.items ?? []).find((i) => i.uid !== uid && i.uid === lo[slot === 'main' ? 'secondaire' : 'main']);
+  const gantelees = ganteletsAuxMains(hero, it).portes.length + (autre && estUnGanteletVerrouille(autre) ? 1 : 0);
+  return estUnGanteletVerrouille(it) && gantelees >= MAINS.length ? t('pf.mainsGantelees', { name: nomDe(hero) }) : null;
 }
 
 export function garnirLaPanoplie(get: Get, set: Set, heroId: string, id: string, slot: Main, uid: string | null): void {

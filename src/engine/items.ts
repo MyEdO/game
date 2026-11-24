@@ -23,7 +23,9 @@ import {
   type FireArc,
   type CharKey,
   type Main,
+  MAINS,
   type PerteSansEquipe,
+  type ActiveEffect,
 } from './types';
 import { bonus, bonusDeForce, baseWithTraits } from './characteristics';
 import { talentEncumbranceBonus, traitEncumbranceFactor } from './combatFeatures/dispatch';
@@ -81,6 +83,8 @@ import { itemCapability } from './capabilities';
 import {
   loadRegister, objetSourceDeLArme, traitSourceDeLArme, modifierEtatDArmeDuTrait, aRecharger, chambrePleine, type WeaponLoadState,
 } from './weaponLoad';
+import { modDeRegle } from './reglesChiffrees';
+import { applyActiveEffect } from './effetsActifs';
 import { nextEntityId } from '../lib/entityId';
 import { tableTotale } from '../lib/tableTotale';
 import type { FabriqueDId } from './fabriqueDId';
@@ -618,7 +622,7 @@ export function itemsEncumbrance(items: ItemInstance[]): number {
     // `sizeFor` reste réservé au malus de Taille hors-gabarit (`combat.ts` l.507).
     const enc = (i.enc || 0) + craftEncDelta(i); // Léger -1 / Volumineux +1 (LDB 60)
     if (!!i.equipped && i.subType === 'protheses') return s; // prothèse portée = Enc 0 (LDB 73)
-    // Objet PORTÉ sur le corps (armure OU accessoire — PAS une arme, qui se TIENT) : -1 (LDB 61 l.21) ;
+    // Objet PORTÉ sur le corps (`isWearable`) : -1 (LDB 61 l.21) ;
     // armure Volumineux portée = 1 (LDB 60 l.62).
     const worn = !!i.equipped && isWearable(i);
     const eff = worn ? (i.kind === 'armor' && hasQuality(i, 'volumineux') ? 1 : enc - 1) : enc;
@@ -713,9 +717,10 @@ export function isCapeItem(it: GabaritDObjet): boolean {
   return it.kind === 'misc' && itemCapability(it, 'weatherProtection');
 }
 
-/** Objet PORTABLE sur le corps (armure + accessoire). Les armes se TIENNENT (loadout), les munitions ne se portent pas. */
+/** Objet PORTABLE sur le corps (armure, accessoire, gantelet verrouillé). Les autres armes se TIENNENT (loadout), les
+ *  munitions ne se portent pas. AA 08 l.234 */
 export function isWearable(it: GabaritDObjet): boolean {
-  if (it.kind === 'armor') return true;
+  if (it.kind === 'armor' || estUnGanteletVerrouille(it)) return true;
   // misc porté sur le corps : Vêtements et Accessoires (LDB 61 l.21) + prothèses (LDB 73) ; le reste se transporte.
   return it.kind === 'misc' && (it.subType === 'vetements-et-accessoires' || it.subType === 'protheses');
 }
@@ -773,7 +778,7 @@ export function defaultContainerFor(c: Combatant, it: ItemInstance): string | nu
 /** Objets ÉQUIPÉS en conflit de port avec `it` : armure de MÊME couche sur ≥1 localisation commune
  *  (pas deux justaucorps de cuir l'un sur l'autre), ou autre cape déjà portée. Équiper `it` doit
  *  d'abord les retirer (échange façon jeu vidéo). */
-export function equipConflicts(c: Pick<Combatant, 'items'>, it: ItemInstance): ItemInstance[] {
+export function equipConflicts(c: Pick<Combatant, 'items'> & Partial<Pick<Combatant, 'loadouts'>>, it: ItemInstance): ItemInstance[] {
   const others = (c.items ?? []).filter((o) => o.uid !== it.uid && o.equipped);
   if (it.kind === 'armor' && it.locs?.length) {
     const layer = armourLayer(it);
@@ -782,7 +787,61 @@ export function equipConflicts(c: Pick<Combatant, 'items'>, it: ItemInstance): I
     );
   }
   if (isCapeItem(it)) return others.filter(isCapeItem);
+  if (estUnGanteletVerrouille(it)) {
+    const { tenus, portes } = ganteletsAuxMains(c, it);
+    return portes.slice(0, Math.max(0, tenus + portes.length + 1 - MAINS.length));
+  }
   return [];
+}
+
+/** Rounds de la retenue, décomptés en fin de Round (`tickDurations`) : le Round entamé, puis un Round entier. AA 08 l.236, l.238 */
+const ROUNDS_DE_RETENUE = 2;
+
+/** Gantelet verrouillé, lu par sa capacité `preventForcedDrop`. AA 08 l.234 */
+export function estUnGanteletVerrouille(it: GabaritDObjet): boolean {
+  return itemCapability(it, 'preventForcedDrop');
+}
+
+/** Les gantelets verrouillés aux mains de `c`, `sauf` excepté : les portés, et le plus de gantelets que tient l'un de ses
+ *  sets (`peutEtreTenu` rend porté et tenu exclusifs). Chacun couvre une main, quel que soit le set pris. AA 08 l.234 */
+export function ganteletsAuxMains(c: Pick<Combatant, 'items'> & Partial<Pick<Combatant, 'loadouts'>>, sauf?: ItemInstance): { tenus: number; portes: ItemInstance[] } {
+  const gantelets = (c.items ?? []).filter((g) => g.uid !== sauf?.uid && estUnGanteletVerrouille(g));
+  const tenus = (c.loadouts ?? []).map((lo) => MAINS.filter((m) => gantelets.some((g) => g.uid === lo[m] && peutEtreTenu(g))).length);
+  return { tenus: Math.max(0, ...tenus), portes: gantelets.filter((g) => g.equipped) };
+}
+
+/** Le gantelet verrouillé qui couvre chaque main de `c` : un gantelet tenu couvre sa main, les portés couvrent les mains
+ *  restantes, main d'arme d'abord (convention droitier de l'op `disarm`). AA 08 l.234 */
+function mainsGantelees(c: Combatant): Map<Main, ItemInstance> {
+  const couvertes = new Map<Main, ItemInstance>();
+  for (const w of c.weapons) {
+    const tenu = (c.items ?? []).find((g) => g.uid === w.uid && estUnGanteletVerrouille(g));
+    if (tenu) couvertes.set(w.hand ?? 'main', tenu);
+  }
+  const { portes } = ganteletsAuxMains(c);
+  let suivant = 0;
+  for (const main of MAINS) if (!couvertes.has(main) && suivant < portes.length) couvertes.set(main, portes[suivant++]);
+  return couvertes;
+}
+
+/** Le gantelet verrouillé de `c` retient-il l'arme `tenue` qu'un évènement lui ferait lâcher ? S'il couvre l'une de ses
+ *  mains et qu'aucune retenue n'y court, la retenue se pose sur `c` en effet actif, rendu ; sinon, ou au second évènement
+ *  de la période, `undefined` : l'arme tombe. AA 08 l.236 */
+export function ganteletRetient(c: Combatant, tenue: Weapon): (ActiveEffect & { testMod: number }) | undefined {
+  const couvertes = mainsGantelees(c);
+  const gantelet = (tenue.hands === 2 ? MAINS : [tenue.hand ?? 'main']).map((m) => couvertes.get(m)).find((g) => g != null);
+  if (!gantelet) return undefined;
+  const main = tenue.hand ?? 'main';
+  const source: EffectSource = { kind: 'objet', id: garanti(gantelet.trappingId, gantelet.uid, 'gantelet verrouillé sans trapping') };
+  if ((c.activeEffects ?? []).some((e) => e.testModHand === main && e.source?.kind === source.kind && e.source.id === source.id)) return undefined;
+  const retenue = {
+    label: gantelet.label, bonus: 0, duration: { scale: 'rounds', left: ROUNDS_DE_RETENUE },
+    testMod: modDeRegle('retenue-du-gantelet-verrouille', 'retenue'),
+    testModChar: tenue.type === 'distance' ? 'capacite-de-tir' : 'capacite-de-combat',
+    testModHand: main, source,
+  } satisfies ActiveEffect;
+  applyActiveEffect(c, retenue);
+  return retenue;
 }
 
 /** Id de catalogue des Mains nues, qui est aussi l'uid de leur arme (`unarmedWeapon`). LDB 62 l.28 */
@@ -1064,10 +1123,10 @@ export function objetDeSlot(c: Combatant, uid?: string): ItemInstance | undefine
   return uid == null ? undefined : (c.items ?? []).find((i) => i.uid === uid && peutEtreTenu(i));
 }
 
-/** L'objet peut-il occuper un slot de set (`objetDeSlot`) : non détruit, hors contenant, arme de mêlée ou à distance,
- *  sans Équipe. LDB 14 ; LDB 62 ; ADE II 8 l.233 */
+/** L'objet peut-il occuper un slot de set (`objetDeSlot`) : non détruit, hors contenant, non porté sur le corps, arme de
+ *  mêlée ou à distance, sans Équipe. LDB 14 ; LDB 62 ; ADE II 8 l.233 ; AA 08 l.234 */
 export const peutEtreTenu = (i: GabaritDObjet): boolean =>
-  !i.destroyed && !i.inside && (i.kind === 'melee' || i.kind === 'distance') && !requiresCrewedPoste(i);
+  !i.destroyed && !i.inside && !(i.equipped && isWearable(i)) && (i.kind === 'melee' || i.kind === 'distance') && !requiresCrewedPoste(i);
 
 /** Recalcule armes actives, PA des pièces et des mutations, et encombrement depuis leurs sources. #3684, #3693 */
 export function recomputeLoadout(c: Combatant): void {
@@ -1251,7 +1310,9 @@ export function hydratePoste(a: AuthoredShipPoste, uidDeLaPlace: string): ShipPo
 /** Génère les DEUX sets d'armes par défaut d'un héros qui n'en a pas, parmi ses objets qui peuvent occuper
  *  un slot (`objetDeSlot`, seul filtre) : le 1er = meilleure arme de mêlée, et sous une arme à 1 main un
  *  bouclier en secondaire, sinon une 2e arme éligible (`isOffHandEligible`) ; le 2nd = 1re arme à distance
- *  (sinon vide). Chaque arme restante nommée par le profil reçoit son propre set. Idempotent.
+ *  (sinon vide) et, sous elle éligible à la paire et tenue à 1 main, une autre arme à distance éligible en
+ *  secondaire (LDB 14 l.138).
+ *  Chaque arme restante nommée par le profil reçoit son propre set. Idempotent.
  *  Le libellé d'un set est DÉRIVÉ de son contenu à l'affichage (`loadoutLabel`). */
 export function ensureDefaultLoadout(c: Combatant): void {
   if (c.loadouts?.length) return;
@@ -1268,12 +1329,17 @@ export function ensureDefaultLoadout(c: Combatant): void {
       set1.secondaire = (secondaires.find(isShieldItem) ?? secondaires[0])?.uid;
     }
   }
-  const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: ranged[0]?.uid };
+  const tir = ranged[0];
+  const set2: WeaponLoadout = { id: nextEntityId(PREFIXE_DE_SET, [set1.id]), main: tir?.uid };
+  if (tir && mainsDuPorteur(c, tir) === 1 && isOffHandEligible(tir)) {
+    const secondaire = ranged.find((i) => i.uid !== tir.uid && isOffHandEligible(i));
+    if (secondaire) set2.secondaire = secondaire.uid;
+  }
   c.loadouts = [set1, set2];
   c.activeLoadoutId = (set1.main ? set1 : set2.main ? set2 : set1).id;
 
   const armesDeFiche = new Set(c.traits?.map(uidDeLArmeDuTrait));
-  const dejaEnSet = new Set([set1.main, set1.secondaire, set2.main]);
+  const dejaEnSet = new Set([set1.main, set1.secondaire, set2.main, set2.secondaire]);
   for (const arme of items) {
     if (armesDeFiche.has(arme.uid) && !dejaEnSet.has(arme.uid)) {
       c.loadouts.push({ id: newLoadoutId(c), main: arme.uid });
@@ -1625,7 +1691,7 @@ export function inventaireDesDotations(
   }
   // Port par défaut : les armures SANS conflit de couche (max une pièce par couche × localisation, meilleure PA
   // d'abord — LDB 63 : pas de « 2 armures de cuir ») ; les doublons restent dans l'inventaire. Une arme de dotation se tient
-  // par la panoplie (`ensureDefaultLoadout`) : elle ne naît pas portée.
+  // par la panoplie (`ensureDefaultLoadout`) : elle ne naît pas portée, sauf si elle se porte (`isWearable`).
   const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
   const armours = items.filter((i) => i.kind === 'armor' && !itemCapability(i, 'armureDeMonture')).sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
   for (const a of armours) if (!equipConflicts(holder, a).length) a.equipped = true;

@@ -38,7 +38,7 @@ import { porteeDeTir, type TrappingResolver } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
 import { effectiveChar } from '../../engine/characteristics';
-import { finite, expectedDamage, isNeutralized, spellActionValue, spellIsOffensive, spellTargetHarm, opValue } from './aiSpellValue';
+import { finite, expectedDamage, hitProbability, isNeutralized, spellActionValue, spellIsOffensive, spellTargetHarm, opValue } from './aiSpellValue';
 import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
 import { spellEffectOps } from '../../engine/flowCore';
 
@@ -103,9 +103,9 @@ export type EnemyAction =
   | { kind: 'incantation'; targetId: string; spell: string } // incantation offensive sur la cible
   | { kind: 'incantationDeZone'; spell: string; center: Pt } // sort de ZONE (ZdE) auto-posé sur un point couvrant ≥2 héros
   | { kind: 'focalisation'; spell: string } // Focalisation (LDB 46) d'un sort offensif infaisable en un seul jet
-  | { kind: 'tir'; targetId: string; weaponUid?: string } // tir depuis la position courante, avec l'arme évaluée (`pickAttackWeaponList`)
+  | { kind: 'tir'; targetId: string; weaponUid?: string; deuxArmes?: true } // tir depuis la position courante, avec l'arme évaluée (`pickAttackWeaponList`) ; `deuxArmes` : des deux armes (LDB 10 l.767-773)
   | { kind: 'rechargement' } // recharge une arme à Recharge déchargée (Test étendu de Projectiles, LDB 62 l.333)
-  | { kind: 'melee'; targetId: string; weaponUid?: string }
+  | { kind: 'melee'; targetId: string; weaponUid?: string; deuxArmes?: true }
   | { kind: 'poussee'; targetId: string; to: Pt }
   | { kind: 'deplacement'; to: Pt; thenTargetId: string; fuite?: true } // approche ; attaque après si adjacent ; `fuite` : fuite forcée (`fleeMove`)
   | { kind: 'liberation'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
@@ -194,6 +194,9 @@ export interface EnemyTurnInput {
    *  (Charge, Course) : une case n'est donc évaluée qu'UNE fois pour toute la décision. ABSENT (tests
    *  purs) = un mémo local à l'appel est créé — mêmes verdicts, mémoïsation seulement moins large. */
   losMemo?: LosMemo;
+  /** La paire du Maniement de deux armes de l'ennemi (`paireDesDeuxArmes`), surfacée par l'appelant impur. ABSENT =
+   *  aucune attaque des deux armes. LDB 10 l.767-773 */
+  paireDesDeuxArmes?: { principale: Weapon; secondaire: Weapon };
   /** MÉMO des distances à fermer de la DÉCISION en cours, par cible (`distanceAFermer`) : posé et repassé comme
    *  `losMemo`. ABSENT (tests purs) = un mémo local à l'appel. */
   memoDesApproches?: MemoDesApproches;
@@ -1218,6 +1221,33 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       });
     } else if (approche && !committingPrep) {
       candidates.push(...approcheDe(cible, attackUtility(cible, { kind: 'melee', weapon: approche })));
+    }
+  }
+
+  // LDB 10 l.767-773 : la 2ᵉ frappe espérée (touche de la 1ʳᵉ × meilleure cible de la secondaire) moins le coût du
+  // −10 aux défenses, poids d'ingénierie.
+  const paire = input.paireDesDeuxArmes;
+  if (paire) {
+    const { principale, secondaire } = paire;
+    const ciblesSecondaire = secondaire.type === 'distance'
+      ? shootPool.filter((t) => aPorteeDe(secondaire, t))
+      : heroes.filter(inMelee);
+    const optsDe = (w: Weapon, t: Combatant) => (w.type === 'distance'
+      ? { kind: 'distance' as const, distanceTiles: fpDist(t), metresPerTile: mpt, resolveTrapping }
+      : { kind: 'melee' as const, env: outnumberEnvMelee(t) });
+    const seconde = ciblesSecondaire.length
+      ? Math.max(...ciblesSecondaire.map((t) => Weff.damageDealt * finite(expectedDamage(enemy, t, secondaire, optsDe(secondaire, t)), 0)))
+      : null;
+    const coutDefensif = dangerAt(pos) * 0.1;
+    if (seconde != null) {
+      for (const c of [...candidates]) {
+        if (c.action.kind !== 'tir' && c.action.kind !== 'melee') continue;
+        if ((c.action.weaponUid ?? (c.action.kind === 'melee' ? meleeWeapon?.uid : undefined)) !== principale.uid || !principale.uid) continue;
+        const cible = [...heroes, ...structuresDeMelee].find((t) => t.id === c.targetId);
+        if (!cible) continue;
+        const touche = finite(hitProbability(enemy, cible, principale, optsDe(principale, cible)), 0);
+        candidates.push({ ...c, action: { ...c.action, deuxArmes: true }, utility: c.utility + touche * seconde - coutDefensif });
+      }
     }
   }
 
