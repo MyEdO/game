@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   ameliorer, attendreUneSemaine, PRIX_DU_SOIN_PAR_BLESSURE, prixDuSoin, soignerAuTemple, compagnieEpuisee, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
   qualiteDeLaChambre, recruter, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
 } from './index';
-import { prixDuSejourALAuberge, reposer } from '../noyau';
+import { prixDuSejourALAuberge, reposer, poserLesReglesDuRoguelite } from '../noyau';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 /** Une partie riche dont le quatrième héros est blessé. */
 function avecUnBlesse(graine: number): { e: Etat; id: string } {

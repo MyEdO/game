@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   acheter,
   acheterUnPas,
@@ -15,12 +15,13 @@ import {
   type Etat,
   type Heros,
 } from './index';
-import { porterAuNiveau, progression } from '../noyau';
-import { buyCharAdvance, buySkillAdvance, coutDeLAugmentation } from '../../../../src/engine/advancement';
+import { porterAuNiveau, progression, poserLesReglesDuRoguelite } from '../noyau';
+import { coutDeLAugmentation } from '../../../../src/engine/advancement';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
-import { byId } from '../../../../src/data';
-import { recrue5e } from './recrue5e.testkit';
-import type { CharKey, Combatant } from '../../../../src/engine/types';
+import { heros4e, prixDuPlanAuNoyau, recrue5e } from './recrue5e.testkit';
+import type { Combatant } from '../../../../src/engine/types';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 /** Une recrue de `carriere` portée au niveau `niveau`, la salle d'armes bâtie par le jeu (`ameliorer`) jusqu'à
  *  enseigner le niveau 3. */
@@ -36,6 +37,15 @@ function recrueDe(carriere: string, niveau: number, xp: number): { e: Etat; h: H
   return { e, h };
 }
 const soldat = (niveau: number, xp: number) => recrueDe('soldat', niveau, xp);
+/** Un Soldat 4e (`heros4e`) au roster d'une partie dont la salle d'armes est bâtie. */
+function soldat4e(xp: number): { e: Etat; h: Heros } {
+  const e = nouvellePartie(7);
+  e.or = 10_000; e.trophees = 10;
+  expect(ameliorer(e, 'salle')).toBeNull();
+  const h = heros4e('soldat', 3, xp);
+  e.roster.push(h);
+  return { e, h };
+}
 
 const CC: CibleDuPas = { genre: 'carac', id: 'capacite-de-combat' };
 const augsCC = (h: Heros) => h.c.charAdvances?.['capacite-de-combat'] ?? 0;
@@ -49,9 +59,9 @@ const prixNoyau = (h: Heros, n: number) => {
   return total;
 };
 
-describe('progression : pas de +5', () => {
+describe('progression 4e : pas de +5', () => {
   it('de +3 à +5, un pas achète 2 Augmentations au prix du noyau ; de +5 à +10, il en achète 5', () => {
-    const { e, h } = soldat(1, 5000);
+    const { e, h } = soldat4e(5000);
     while (augsCC(h) % 5 !== 3) expect(acheter(e, h.c.id, CC)).toBeNull();
     const trois = augsCC(h);
     const deux = prixNoyau(h, 2);
@@ -65,7 +75,7 @@ describe('progression : pas de +5', () => {
   });
 
   it('PX insuffisants : le pas s’arrête au refus du noyau et ne débite que ce qui a été acheté', () => {
-    const { e, h } = soldat(1, 0);
+    const { e, h } = soldat4e(0);
     const avant = augsCC(h);
     const prix = prixCC(h.c);
     h.c.xp = prix + 1;
@@ -163,23 +173,7 @@ describe('progression 5e : le même code, au barème du héros', () => {
     expect(progression(h.c).complet).toBe(false);
     const plan = planVersLeNiveau(h);
     const remises = new Map(offresDeCarriere(h).competences.map((k) => [`${k.ref.id}:${k.ref.spec ?? ''}`, k.remise]));
-    const copie: Combatant = { ...structuredClone(h.c), xp: Number.MAX_SAFE_INTEGER };
-    let attendu = 0;
-    for (const x of plan.etapes) {
-      for (let i = 0; i < x.fois; i++) {
-        if (x.genre === 'carac') {
-          const c = coutDeLAugmentation(copie, { kind: 'caracteristique', char: x.id }, true);
-          attendu += c.ok ? c.cout : NaN;
-          buyCharAdvance(copie, x.id);
-        } else if (x.genre === 'competence') {
-          const remise = remises.get(`${x.ref.id}:${x.ref.spec ?? ''}`) ?? 0;
-          const c = coutDeLAugmentation(copie, { kind: 'competence', competence: x.ref }, true, remise);
-          attendu += c.ok ? c.cout : NaN;
-          if (!copie.skills.some((s) => s.id === x.ref.id && s.spec === x.ref.spec)) copie.skills.push({ id: x.ref.id, spec: x.ref.spec, characteristic: byId('skill', x.ref.id)?.characteristic as CharKey, advances: 0 });
-          buySkillAdvance(copie, x.ref, true, remise);
-        } else attendu += x.cout;
-      }
-    }
+    const attendu = prixDuPlanAuNoyau(h.c, plan.etapes, remises);
     expect(plan.total).toBe(attendu);
     const r = suivreLePlan(e, h.c.id);
     expect(r.refus).toBeNull();

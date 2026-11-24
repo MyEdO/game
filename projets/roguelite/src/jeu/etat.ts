@@ -1,7 +1,7 @@
 /**
  * L'état d'une partie et sa création : la compagnie, les candidats, le hameau.
  */
-import { dotationDesNiveaux, generateName, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
+import { dotationDesNiveaux, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
 
 import { ESPECES, estUtile, IdBatiment, type LieuDeSejour, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
 import { choisir, noter, tirer } from './outils';
@@ -59,16 +59,15 @@ function compagnieDeDepart(e: Etat): Profil[] {
 }
 
 /** Une recrue de la carrière `p` : une espèce que sa carrière admet (`tirerUneEspece`), son dieu tiré parmi ceux du
- *  profil, créée par le moteur, portée par le noyau au niveau où la carrière s'engage (`porterAuNiveau`), dotée de ce
- *  que les niveaux atteints dotent (`dotationDesNiveaux`) et de ce que le roster lui remet en plus, ses armes en main. */
+ *  profil, créée par le brouillon du noyau (`nouvelleRecrue`), portée par le noyau au niveau où la carrière s'engage
+ *  (`porterAuNiveau`), dotée de ce que les niveaux atteints dotent (`dotationDesNiveaux`) et de ce que le roster lui
+ *  remet en plus, ses armes en main. */
 export function recrue(e: Etat, p: Profil): Heros {
   const rng = tirer(e);
   const espece = tirerUneEspece(rng, p.id, Object.keys(ESPECES));
-  const sexe = rng.int(0, 1) ? 'M' : 'F';
-  const nom = generateName(ESPECES[espece].race, sexe, rng) ?? 'Sans-nom';
   const identite = p.dieux ? { ...p.identite, talent: { ...p.identite.talent, spec: choisir(rng, p.dieux) } } : p.identite;
   const graine = e.graine++;
-  const h: Heros = { c: porterAuNiveau(nouvelleRecrue(graine, p.id, espece, nom, identite, estUtile), p.niveau, graine), carriere: p.id, espece, expeditions: 0, victoires: 0 };
+  const h: Heros = { c: porterAuNiveau(nouvelleRecrue(graine, p.id, espece, identite, estUtile), p.niveau, graine), carriere: p.id, espece, expeditions: 0, victoires: 0 };
   tenirLesObjets(e, h, dotationDesNiveaux(h.c, p.niveau, e.graine++));
   if (p.dotation) remettreLesObjets(e, h, p.dotation);
   prendreSesArmes(e, h);

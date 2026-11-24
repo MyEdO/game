@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { poserLesReglesDuRoguelite } from '../noyau';
 import { addCondition, COND, hasCondition } from '../../../../src/engine/conditions';
 import { agirDansLaSalle, EPREUVES, herosDuGroupe, nouvellePartie, recrue, refusDAction, salleAChoisir, PROFILS } from './index';
 import { blessures, devant, recit } from './salles.testkit';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 /** La nonne de Shallya : ni la meilleure en Perception, ni la première du groupe. */
 const NONNE = 1;

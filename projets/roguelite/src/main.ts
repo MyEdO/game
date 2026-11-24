@@ -5,7 +5,7 @@
  * (`./ui/ecran`) et montés sur les pièces du kit (`./ui/pieces`).
  */
 import * as J from './jeu';
-import type { CharKey } from './noyau';
+import { poserLesReglesDuRoguelite, type CharKey } from './noyau';
 import type { Vignette } from './vignettes';
 import { DEGRADES_DES_FIGURINES } from './figures';
 import { poserLesTextures } from './kit';
@@ -113,8 +113,10 @@ const basculer = (p: Panneau) => {
   rendre();
 };
 
-/** Ouvre la partie sauvegardée, sinon une neuve, pose les gestes et les survols sur la page, et la rend. */
+/** Pose les règles du roguelite (`poserLesReglesDuRoguelite`), ouvre la partie sauvegardée, sinon une neuve, pose les
+ *  gestes et les survols sur la page, et la rend. */
 function demarrer(): void {
+  poserLesReglesDuRoguelite();
   etat = J.charger() ?? J.nouvellePartie(Date.now() % 100000);
   document.addEventListener('click', (ev) => {
     const cible = ev.target as Element;

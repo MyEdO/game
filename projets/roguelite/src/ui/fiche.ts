@@ -163,18 +163,18 @@ function sortsAApprendre(h: J.Heros): string {
     return sort(id, 'À apprendre', prix == null ? plaque('Apprendre', '', { taille: 'petite', fermee: true, titre: 'Ce héros ne peut pas l’apprendre.' })
       : achat({ verbe: 'Apprendre', prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, taille: 'petite' }));
   }).join('') || glose(voie.sorts.every((s) => (h.c.spells ?? []).includes(s.id)) ? 'Tout est appris.' : 'Rien d’autre à ce niveau de carrière.');
-  return `<div class="rub">${esc(voie.nom)}</div>${liste}`;
+  return `<div class="rub">${esc(voie.nom)}</div><div class="deux-colonnes">${liste}</div>`;
 }
 
 /** Le bloc de progression, unique : à gauche le héros, ses PX, son niveau suivant et le plan conseillé ; puis les
- *  Caractéristiques de carrière, les Talents du niveau et les sorts de sa voie ; puis ses Compétences. La salle
- *  d'armes et l'onglet Progression de la fiche le posent tel quel. */
+ *  Caractéristiques de carrière et les Talents du niveau ; puis, sur deux colonnes, ses Compétences et les sorts de
+ *  sa voie. La salle d'armes et l'onglet Progression de la fiche le posent tel quel. */
 export function progressionDuHeros(e: J.Etat, h: J.Heros): string {
   const o = J.offresDeCarriere(h);
   return `<div class="progression"><div class="porteur">${herosEnTete(h)}${bourseDePX(h, o)}${niveauSuivant(e, h, o)}${planConseille(h)}</div>
     <div class="colonne"><div class="rub">Caractéristiques</div><div class="caracs">${caracteristiques(h, o, false, true)}</div>
-      <div class="rub">Talents ${glose('ceux qui agissent en combat')}</div>${talentsDuNiveau(h, o)}${sortsAApprendre(h)}</div>
-    <div class="colonne"><div class="rub">Compétences ${glose('celles qui servent ici')}</div><div class="deux-colonnes">${competences(h, o, true)}</div></div></div>`;
+      <div class="rub">Talents ${glose('ceux qui agissent en combat')}</div>${talentsDuNiveau(h, o)}</div>
+    <div class="colonne"><div class="rub">Compétences ${glose('celles qui servent ici')}</div><div class="deux-colonnes">${competences(h, o, true)}</div>${sortsAApprendre(h)}</div></div>`;
 }
 
 /** L'onglet des sorts : ceux qu'il connaît, et la voie que la salle d'armes enseigne. */

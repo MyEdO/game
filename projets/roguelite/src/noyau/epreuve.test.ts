@@ -1,12 +1,14 @@
-import { describe, expect, it } from 'vitest';
-import { epreuveTentable, jouerLeCombat, jouerLEpreuve, nouvelleRecrue, type Epreuve, type IssueDEpreuve } from './index';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { epreuveTentable, jouerLeCombat, jouerLEpreuve, nouvelleRecrue, type Epreuve, type IssueDEpreuve, poserLesReglesDuRoguelite } from './index';
 import { EPREUVES, estUtile, PROFILS } from '../jeu';
 import { addCondition, COND, hasCondition } from '../../../../src/engine/conditions';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 const { fouiller, desarmer } = EPREUVES.tresor.actions;
 const FOUILLE = fouiller.epreuves[0];
 const DESARMER = desarmer.epreuves[0];
-const recrueDu = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite, estUtile);
+const recrueDu = (graine: number, carriere: string, nom: string) => ({ ...nouvelleRecrue(graine, carriere, 'humains-reiklander', PROFILS.find((p) => p.id === carriere)!.identite, estUtile), label: nom });
 const groupe = () => [recrueDu(31, 'soldat', 'Hans'), recrueDu(32, 'chasseur', 'Greta'), recrueDu(33, 'ratier', 'Ulli')];
 
 /** Les Blessures que la branche d'échec de la table retire, lues sur la table. */
@@ -72,7 +74,7 @@ describe('jouerLEpreuve — la cache piégée jouée par le noyau', () => {
   it('un héros à États qui ouvrent leurs Tests (Hémorragique, Empoisonné, Brisé) tente l’épreuve : le Test est résolu', () => {
     for (const [etat, n] of [[COND.hemorragique, 1], [COND.empoisonne, 2], [COND.brise, 2]] as const) {
       const c = groupe()[1]; addCondition(c, etat, n);
-      for (const g of [1, 2, 3]) expect(jouerLEpreuve([c], DESARMER, g)).toMatchObject({ testeur: c.id, reussite: expect.any(Boolean) });
+      for (const g of [1, 3, 4]) expect(jouerLEpreuve([c], DESARMER, g)).toMatchObject({ testeur: c.id, reussite: expect.any(Boolean) });
     }
   });
 

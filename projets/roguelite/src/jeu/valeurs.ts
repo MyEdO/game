@@ -173,8 +173,8 @@ export const deviseDe = (carriere: string): string => profil(carriere)?.devise ?
 /** Le rôle d'une carrière, s'il est au roster (`PROFILS`). */
 export const roleDe = (carriere: string): Role | undefined => profil(carriere)?.role;
 
-export const ESPECES: Record<string, { nom: string; race: 'humain' | 'nain' | 'halfling' }> = {
-  'humains-reiklander': { nom: 'Humain', race: 'humain' }, nains: { nom: 'Nain', race: 'nain' }, halflings: { nom: 'Halfling', race: 'halfling' },
+export const ESPECES: Record<string, { nom: string }> = {
+  'humains-reiklander': { nom: 'Humain' }, nains: { nom: 'Nain' }, halflings: { nom: 'Halfling' },
 };
 export const nomDEspece = (id: string): string => ESPECES[id]?.nom ?? id;
 

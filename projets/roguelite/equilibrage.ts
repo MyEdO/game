@@ -5,6 +5,7 @@
 // les candidats proposés et parmi les recrues engagées, par palier du relais.
 // Usage : npx tsx projets/roguelite/equilibrage.ts <graine> <expéditions> [parties] — plusieurs parties : graines consécutives, sans journal.
 import * as J from './src/jeu';
+import { poserLesReglesDuRoguelite } from './src/noyau';
 /** Joue `parties` parties de `expeditions` expéditions, de la graine `graine0`, et dit la part de chaque carrière. */
 function equilibrer(graine0: number, expeditions: number, parties: number): void {
   const log = parties > 1 ? () => {} : console.log;
@@ -71,6 +72,7 @@ function equilibrer(graine0: number, expeditions: number, parties: number): void
 }
 
 if (import.meta.main) {
+  poserLesReglesDuRoguelite();
   const [graine0, expeditions, parties] = [42, 8, 1].map((d, i) => Number(process.argv[2 + i] ?? d));
   equilibrer(graine0, expeditions, parties);
 }

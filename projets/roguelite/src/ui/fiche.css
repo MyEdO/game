@@ -64,7 +64,7 @@
 .progression .talent .t i { display: none; }
 .progression .talent .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .progression .deux-colonnes { columns: 2; column-gap: 18px; }
-.progression .achat { break-inside: avoid; }
+.progression .deux-colonnes > * { break-inside: avoid; }
 .progression .achat .val { display: none; }
 .progression .bourse-px { margin-top: 4px; }
 .progression .plan { margin-top: 8px; align-self: stretch; }

@@ -6,7 +6,6 @@
 export type { Combatant, CharKey, ItemInstance } from '../../../../src/engine/types';
 export type { RNG } from '../../../../src/engine/dice';
 export { makeRNG } from '../../../../src/engine/dice';
-export { generateName } from '../../../../src/engine/names';
 export { memeSpecialisation, refCouvre } from '../../../../src/data/schemas/grammaire/ref';
 export * from './heros';
 export * from './combat';
@@ -15,3 +14,4 @@ export * from './soins';
 export * from './equipement';
 export * from './carriere';
 export * from './epreuve';
+export { poserLesReglesDuRoguelite } from './partie';
