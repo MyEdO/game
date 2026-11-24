@@ -62,7 +62,7 @@ export interface EtatDeMutation {
   /** Jet d100 sur le tableau (traçabilité). */
   roll: number;
   /** PA de mutation perdus par Localisation (Dégâts subis), compteur d'état à part du `passive` authoré, comme
-   *  `damageTaken` d'une pièce d'armure. Lu par `mutationArmourBonus`. LDB 63 l.19 */
+   *  `usure` d'une pièce d'armure. Lu par `mutationArmourBonus`. LDB 63 l.19 */
   usure?: Partial<Record<HitLocation, number>>;
   /** PROVENANCE, posée par `attachMutation` sur l'instance ATTACHÉE : les niveaux de Talent que son
    *  attache a effectivement acquis (`acquerirTalent` rendu `true`). `detachMutation` ne retire qu'eux. */
