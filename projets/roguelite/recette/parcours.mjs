@@ -1,4 +1,4 @@
-// Le parcours du néophyte (`CONCEPTION.md`), étape par étape, sur des états forcés dans la sauvegarde fixe : une
+// Le parcours du néophyte (MyEdO/game#4947), étape par étape, sur des états forcés dans la sauvegarde fixe : une
 // capture par étape et par taille d'écran (`parcours-<étape>-<largeur>.png`), et les repères qui se vérifient au DOM
 // (pastille, refus et identité au survol, mort et victoire finale).
 // Usage : node projets/roguelite/recette/parcours.mjs <dossier-des-captures> <partie-fixe.json>

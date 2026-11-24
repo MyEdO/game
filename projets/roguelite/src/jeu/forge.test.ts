@@ -7,7 +7,7 @@ import { articleDuCatalogue, DISPONIBILITES, doter, objetsEnRayon, porterAuNivea
 import { equipConflicts, wornArmourPoints } from '../../../../src/engine/items';
 import { findTrappingById } from '../../../../src/data';
 
-/** Les Disponibilités qu'ouvre chaque palier de la forge et de l'hospice (arbitrage du 2026-11-23, `CONCEPTION.md`). */
+/** Les Disponibilités qu'ouvre chaque palier de la forge et de l'hospice (arbitrage du 2026-11-23, MyEdO/game#4947). */
 const OUVERTES = [1, 2, 3, 4].map((n) => DISPONIBILITES.slice(0, n));
 const DISPONIBILITE = new Map(objetsEnRayon().map((o) => [o.id, o.disponibilite]));
 const profilDe = (id: string) => PROFILS.find((p) => p.id === id)!;

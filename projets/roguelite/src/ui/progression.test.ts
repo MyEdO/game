@@ -1,9 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import * as J from '../jeu';
 import { testValue } from '../../../../src/engine/skills';
-import { libelleDeCarac } from '../noyau';
+import { libelleDeCarac, porterAuNiveau, progression } from '../noyau';
+import { byId } from '../../../../src/data';
+import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
 import { ecranDuHeros, progressionDuHeros } from './fiche';
 import { panneauDeService } from './services';
+import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
+import { recrue5e } from '../jeu/recrue5e.testkit';
 
 /** Une partie à la salle d'armes au palier 1, le Soldat du roster riche de PX. */
 function salle() {
@@ -48,7 +52,7 @@ describe('un seul écran de progression', () => {
 
   it('le bouton du pas et les étapes du plan disent le gain réel du pas, au prix de `pasDe`', () => {
     const { e, h } = salle();
-    const vierge = J.offresDeCarriere(h).caracs.find((k) => k.augmentations === 0)!.id;
+    const vierge = J.offresDeCarriere(h).caracs.find((k) => k.points === 0)!.id;
     const K = { genre: 'carac', id: vierge } as const;
     const augs = () => h.c.charAdvances?.[vierge] ?? 0;
     while (augs() % 5 !== 2) expect(J.acheter(e, h.c.id, K)).toBeNull();
@@ -61,5 +65,50 @@ describe('un seul écran de progression', () => {
     const plein = J.pasDe(h, K)!;
     expect(plein.fois).toBe(5);
     expect(boutonDuPas(progressionDuHeros(e, h), vierge).libelle).toBe(`+5 · ${plein.prix} PX`);
+  });
+});
+
+describe('le panneau d’exigences suit le modèle de progression du héros', () => {
+  it('4e : Caractéristiques de carrière, huit Compétences et un Talent, à 5 × niveau points (LDB 07 l.124-131)', () => {
+    const { e, h } = salle();
+    const html = progressionDuHeros(e, h);
+    const n = J.offresDeCarriere(h).caracs.length;
+    expect(html).toMatch(new RegExp(`: \\+5 chacune</span><span class="cpt chiffres">\\d+ / ${n}</span>`));
+    expect(html).toMatch(/>8 Compétences à \+5<\/span><span class="cpt chiffres">\d+ \/ 8<\/span>/);
+    expect(html).toContain('<span>Un Talent de ce niveau</span>');
+  });
+
+  it('4e : « Passer » reste fermé tant que le noyau ne valide pas le niveau, même quand les comptes de la fiche sont pleins (LDB 07 l.124-131)', () => {
+    const e = J.nouvellePartie(3);
+    e.batiments.salle = 2;
+    const h = J.recrue(e, J.PROFILS.find((p) => p.id === 'alchimiste')!);
+    h.c = porterAuNiveau(h.c, 2, 5);
+    e.roster.push(h);
+    const c = h.c;
+    const p = progression(c);
+    for (const k of p.caracs) c.charAdvances = { ...c.charAdvances, [k.id]: 10 };
+    const metiers = p.competences.filter((k) => k.ref.id === 'metier');
+    for (const k of [...metiers, ...p.competences.filter((x) => x.ref.id !== 'metier').slice(0, 6)]) {
+      const s = c.skills.find((x) => x.id === k.ref.id && memeSpecialisation(x.spec, k.ref.spec));
+      if (s) s.advances = 10;
+      else c.skills.push({ id: k.ref.id, spec: k.ref.spec, characteristic: byId('skill', k.ref.id)!.characteristic, advances: 10 });
+    }
+    c.xp = 10000;
+    const talent = p.talents.find((t) => !t.aSpecifier && !t.auMaxi)!;
+    expect(J.acheter(e, c.id, { genre: 'talent', ref: talent.ref })).toBeNull();
+    expect(metiers.length).toBeGreaterThan(1);
+    expect(J.offresDeCarriere(h).complet).toBe(false);
+    const passer = progressionDuHeros(e, h).match(/<button[^>]*data-a="niveau"[^>]*>/)![0];
+    expect(passer).toContain(' disabled');
+  });
+
+  it('5e : les cases cochées au niveau sur leur seuil, les points de chaque valeur, un pas de +5 (CRB 048 l.45)', () => {
+    const { e, h } = recrue5e(5000);
+    const html = progressionDuHeros(e, h);
+    expect(html).toContain(`<span>Cases de carrière cochées à ce niveau</span><span class="cpt chiffres">${casesDuNiveau(h.c, 'soldat', 1)} / 10</span>`);
+    expect(html).toContain(`<span class="points chiffres">+${h.c.charAdvances?.['capacite-de-combat'] ?? 0}</span>`);
+    const pas = J.pasDe(h, { genre: 'carac', id: 'capacite-de-combat' })!;
+    expect(pas).toMatchObject({ fois: 1, points: 5 });
+    expect(boutonDuPas(html, 'capacite-de-combat').libelle).toBe(`+5 · ${pas.prix} PX`);
   });
 });

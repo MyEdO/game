@@ -147,7 +147,7 @@ function demarrer(): void {
       }
       case 'plan': return agir(() => {
         const r = J.suivreLePlan(etat, id);
-        const pris = r.achats.map((x) => (x.genre === 'carac' || x.genre === 'competence' ? `${x.label} +${x.fois}` : x.label));
+        const pris = r.achats.map((x) => (x.genre === 'carac' || x.genre === 'competence' ? `${x.label} +${x.points}` : x.label));
         return [pris.length ? `Pris : ${pris.join(', ')} (${r.cout} PX).` : '', r.refus ?? ''].filter(Boolean).join(' ');
       });
       case 'sort': return agir(() => J.acheter(etat, id, { genre: 'sort', id: k! }));

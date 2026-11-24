@@ -27,11 +27,11 @@ export interface PartieEnAuto {
 }
 
 /** Les règles optionnelles du noyau que le roguelite pose sur chacune de ses parties (`ouvrirEcoutee`) : combat, hameau
- *  et épreuve. `CONCEPTION.md`. `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts`. */
+ *  et épreuve. MyEdO/game#4947. `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts`. */
 export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'magie-vdm-incantation': true };
 
 /** Le choix qui laisse venir la mutation d'un « Je te renie ! » ouvert (`pendingRenounce`) : le roguelite ne gère pas
- *  la Résilience (`CONCEPTION.md`). LDB 17 l.67 */
+ *  la Résilience (MyEdO/game#4947). LDB 17 l.67 */
 const RENIER = { type: VERBE_DE_CHOIX, args: ['renier', 'renier', false] } as unknown as Intention;
 
 /** Plafond de tours de `pomper` : une partie qui rend toujours la main s'arrête plutôt que de boucler. */
