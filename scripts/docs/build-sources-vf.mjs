@@ -172,6 +172,11 @@ VO (nombres, ids et noms FR seulement, jamais de prose, \`source\` au livre VO r
   #3656, fiche \`user-arbitrage-bestiaire-frenchy\`) et **sorts propres** (\`spells.json\`, cités par page, prose
   verbatim du guide ; \`titreVO\` et \`livreVO\` gardent le titre et le livre VO que sa VF officielle remplacera, #3666) ; ni
   ses règles maison.
+- **${abbr('bestiaire-non-officiel')}** (${book('bestiaire-non-officiel').label}, Le Ratier Bretonnien, v2.03) — **bestiaire
+  d'auteur**, sans extraction dans \`Source/\` : **profils de créatures** (\`creatures.json\`, chaque statbloc cité par
+  page) et **Traits propres** (\`traits.json\`, texte verbatim, cités par page, sans mécanique jusqu'à leur ticket), #4916,
+  fiche \`user-arbitrage-bestiaire-non-officiel\` ; ses modèles de carrière, profils de héros et rôles de bête sont des
+  règles du noyau.
 - \`src/data/*.json\` est la **SOURCE app-owned** (commitée, éditée dans le Compendium) ; tout contenu
   s'ajoute à la main / via l'éditeur.
   EDO/EDOC/Middenheim sont AUSSI des livres de scénario (cf. ci-dessous) ; seule leur **donnée extraite**

@@ -74402,5 +74402,8674 @@
     "grantGroups": [
       "mort-vivant"
     ]
+  },
+  {
+    "id": "coatl",
+    "type": "creatures",
+    "label": "Coatl",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 55,
+      "initiative": 60,
+      "agilite": 50,
+      "dexterite": null,
+      "intelligence": 55,
+      "force-mentale": 45,
+      "sociabilite": null,
+      "B": 34
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "vol",
+        "value": 100
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      },
+      {
+        "id": "venin",
+        "arg": "difficile"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "feu"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 12
+    },
+    "appearance": {
+      "species": "serpent"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres",
+      "serpent"
+    ]
+  },
+  {
+    "id": "troglodytes",
+    "type": "creatures",
+    "label": "Troglodytes",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 45,
+      "endurance": 45,
+      "initiative": 20,
+      "agilite": 10,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 65,
+      "sociabilite": null,
+      "B": 36
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "champion"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-garde"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 12
+    },
+    "appearance": {
+      "species": "troglodyte"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "molosses-a-sang-froid",
+    "type": "creatures",
+    "label": "Molosses à sang froid",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 40,
+      "initiative": 20,
+      "agilite": 10,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 65,
+      "sociabilite": null,
+      "B": 17
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "constricteur"
+      },
+      {
+        "id": "stupide"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "dresse-garde"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 12
+    },
+    "appearance": {
+      "species": "molosse-a-sang-froid"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "culchans",
+    "type": "creatures",
+    "label": "Culchans",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": null,
+      "force": 45,
+      "endurance": 40,
+      "initiative": 20,
+      "agilite": 20,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 25,
+      "sociabilite": null,
+      "B": 18
+    },
+    "traits": [
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "stupide"
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-monture"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 12
+    },
+    "appearance": {
+      "species": "culchan"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "grenouilles-geantes",
+    "type": "creatures",
+    "label": "Grenouilles géantes",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": 45,
+      "force": 30,
+      "endurance": 35,
+      "initiative": 20,
+      "agilite": 40,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 30,
+      "sociabilite": null,
+      "B": 18
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "belliqueux"
+      },
+      {
+        "id": "bond"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "langue-prehensile",
+        "value": 3,
+        "range": 6
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "Morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "venin",
+        "arg": "Facile-Difficile"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 12
+    },
+    "appearance": {
+      "species": "grenouille"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "jaguars",
+    "type": "creatures",
+    "label": "Jaguars",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 30,
+      "initiative": 30,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 45,
+      "sociabilite": null,
+      "B": 14
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 7
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [
+      {
+        "id": "escalade",
+        "value": 60
+      },
+      {
+        "id": "natation",
+        "value": 60
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 13
+    },
+    "appearance": {
+      "species": "chat-sauvage"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "kroxigor",
+    "type": "creatures",
+    "label": "Kroxigor",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": null,
+      "force": 55,
+      "endurance": 45,
+      "initiative": 15,
+      "agilite": 20,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 75,
+      "sociabilite": null,
+      "B": 40
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 4,
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "limicole"
+      },
+      {
+        "id": "arme",
+        "value": 10,
+        "arg": "griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 13
+    },
+    "appearance": {
+      "species": "kroxigor"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "tigres-a-dents-de-sabre",
+    "type": "creatures",
+    "label": "Tigres à dents de sabre",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 50,
+      "endurance": 40,
+      "initiative": 40,
+      "agilite": 40,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 30,
+      "sociabilite": null,
+      "B": 32
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 9
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 13
+    },
+    "appearance": {
+      "species": "chat-sauvage"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "salamandres",
+    "type": "creatures",
+    "label": "Salamandres",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": 35,
+      "force": 55,
+      "endurance": 45,
+      "initiative": 45,
+      "agilite": 30,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 25,
+      "sociabilite": null,
+      "B": 30
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "peau"
+      },
+      {
+        "id": "belliqueux"
+      },
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "souffle",
+        "value": 10,
+        "arg": "feu"
+      },
+      {
+        "id": "souffle-enflamme"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "limicole"
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "dresse-garde"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 13
+    },
+    "appearance": {
+      "species": "salamandre"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "saurus",
+    "type": "creatures",
+    "label": "Saurus",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": 25,
+      "force": 40,
+      "endurance": 40,
+      "initiative": 25,
+      "agilite": 30,
+      "dexterite": 25,
+      "intelligence": 20,
+      "force-mentale": 45,
+      "sociabilite": 15,
+      "B": 16
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "limicole"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "a-distance",
+        "value": 6,
+        "arg": "fronde",
+        "range": 60
+      },
+      {
+        "id": "lanceur-de-sorts"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 13
+    },
+    "appearance": {
+      "species": "homme-lezard"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "skinks",
+    "type": "creatures",
+    "label": "Skinks",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": 35,
+      "force": 30,
+      "endurance": 25,
+      "initiative": 45,
+      "agilite": 55,
+      "dexterite": 45,
+      "intelligence": 30,
+      "force-mentale": 55,
+      "sociabilite": 30,
+      "B": 9
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "limicole"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "a-distance",
+        "value": 4,
+        "arg": "Sarbacane",
+        "range": 9
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "cieux"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 13
+    },
+    "appearance": {
+      "species": "skink"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "cameleons",
+    "type": "creatures",
+    "label": "Caméléons",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": 45,
+      "force": 30,
+      "endurance": 25,
+      "initiative": 55,
+      "agilite": 50,
+      "dexterite": 45,
+      "intelligence": 30,
+      "force-mentale": 65,
+      "sociabilite": 30,
+      "B": 10
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "a-distance",
+        "value": 4,
+        "arg": "Sarbacane",
+        "range": 9
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "venin",
+        "arg": "complexe"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "a-distance",
+        "value": 6,
+        "arg": "javelot",
+        "range": 9
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 14
+    },
+    "appearance": {
+      "species": "skink"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "slann",
+    "type": "creatures",
+    "label": "Slann",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": 30,
+      "force": 35,
+      "endurance": 50,
+      "initiative": 25,
+      "agilite": 15,
+      "dexterite": 20,
+      "intelligence": 95,
+      "force-mentale": 65,
+      "sociabilite": 35,
+      "B": 38
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      },
+      {
+        "id": "lanceur-de-sorts"
+      },
+      {
+        "id": "lanceur-de-sorts-slann"
+      },
+      {
+        "id": "mutation"
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 14
+    },
+    "appearance": {
+      "species": "slann"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "terradons",
+    "type": "creatures",
+    "label": "Terradons",
+    "title": null,
+    "folder": "Les bêtes de Lustrie",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": 25,
+      "force": 40,
+      "endurance": 35,
+      "initiative": 45,
+      "agilite": 55,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 55,
+      "sociabilite": null,
+      "B": 30
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 7
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "vol",
+        "value": 120
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 8
+      }
+    ],
+    "optionals": [
+      {
+        "id": "a-distance",
+        "value": 4,
+        "arg": "rocher",
+        "range": 12
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 14
+    },
+    "appearance": {
+      "species": "terradon"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "horreur-de-la-couvee",
+    "type": "creatures",
+    "label": "Horreur de la couvée",
+    "title": null,
+    "folder": "Les enfants du Rat Cornu",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 65,
+      "endurance": 55,
+      "initiative": 45,
+      "agilite": 25,
+      "dexterite": 15,
+      "intelligence": 15,
+      "force-mentale": 55,
+      "sociabilite": null,
+      "B": 84
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 11
+      },
+      {
+        "id": "corruption",
+        "arg": "moderee"
+      },
+      {
+        "id": "ichor-fetide"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "regeneration"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 10
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "belliqueux"
+      },
+      {
+        "id": "maladie",
+        "arg": "fievre-du-rongeur"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "taille",
+        "arg": "monstrueuse"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "venin",
+        "arg": "difficile"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 15
+    },
+    "appearance": {
+      "species": "horreur-de-la-couvee"
+    },
+    "grantGroups": [
+      "skaven",
+      "monstres"
+    ]
+  },
+  {
+    "id": "abominations-de-malefosse",
+    "type": "creatures",
+    "label": "Abominations de Malefosse",
+    "title": null,
+    "folder": "Les enfants du Rat Cornu",
+    "char": {
+      "M": 10,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 75,
+      "endurance": 60,
+      "initiative": 45,
+      "agilite": 20,
+      "dexterite": 10,
+      "intelligence": 25,
+      "force-mentale": 85,
+      "sociabilite": null,
+      "B": 108
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 4,
+        "matiere": "peau"
+      },
+      {
+        "id": "corruption",
+        "arg": "moderee"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "increvable"
+      },
+      {
+        "id": "maladie",
+        "arg": "fievre-du-rongeur"
+      },
+      {
+        "id": "cornes",
+        "value": 13,
+        "arg": "Têtes de rats"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "resistance-a-la-magie",
+        "value": 3
+      },
+      {
+        "id": "se-cabrer"
+      },
+      {
+        "id": "regeneration"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "terreur",
+        "value": 2
+      },
+      {
+        "id": "protection",
+        "value": 9
+      },
+      {
+        "id": "arme",
+        "value": 13
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 16
+    },
+    "appearance": {
+      "species": "abomination-de-malefosse"
+    },
+    "grantGroups": [
+      "skaven",
+      "monstres"
+    ]
+  },
+  {
+    "id": "pretres-de-la-peste",
+    "type": "creatures",
+    "label": "Prêtres de la peste",
+    "title": null,
+    "folder": "Les enfants du Rat Cornu",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 50,
+      "capacite-de-tir": 40,
+      "force": 40,
+      "endurance": 55,
+      "initiative": 60,
+      "agilite": 55,
+      "dexterite": 50,
+      "intelligence": 40,
+      "force-mentale": 45,
+      "sociabilite": 35,
+      "B": 18
+    },
+    "traits": [
+      {
+        "id": "maladie",
+        "arg": "au choix"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Chaos"
+      },
+      {
+        "id": "arme",
+        "value": 8
+      }
+    ],
+    "optionals": [
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "corruption-mentale"
+      },
+      {
+        "id": "mutation"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 16
+    },
+    "appearance": {
+      "species": "skaven"
+    },
+    "grantGroups": [
+      "skaven",
+      "nurgle"
+    ]
+  },
+  {
+    "id": "meres-rats",
+    "type": "creatures",
+    "label": "Mères-rats",
+    "title": null,
+    "folder": "Les enfants du Rat Cornu",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 65,
+      "initiative": 10,
+      "agilite": 15,
+      "dexterite": 10,
+      "intelligence": 5,
+      "force-mentale": 55,
+      "sociabilite": 5,
+      "B": 42
+    },
+    "traits": [
+      {
+        "id": "immunite"
+      },
+      {
+        "id": "rampant"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "affame"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 17
+    },
+    "appearance": {
+      "species": "mere-rat"
+    },
+    "grantGroups": [
+      "skaven"
+    ]
+  },
+  {
+    "id": "tirailleurs",
+    "type": "creatures",
+    "label": "Tirailleurs",
+    "title": null,
+    "folder": "Les enfants du Rat Cornu",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": 45,
+      "force": 30,
+      "endurance": 30,
+      "initiative": 40,
+      "agilite": 45,
+      "dexterite": 45,
+      "intelligence": 40,
+      "force-mentale": 25,
+      "sociabilite": 20,
+      "B": 11
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 1
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "a-distance",
+        "value": 0,
+        "arg": "Globe Vent de Empoisonné",
+        "range": 20
+      },
+      {
+        "id": "globes-de-vent-empoisonne"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "maladie",
+        "arg": "fievre-du-rongeur"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "equipe-jezzail"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "a-distance",
+        "value": 10,
+        "arg": "jazzail Warplockl",
+        "range": 150
+      },
+      {
+        "id": "jezzail-de-warlock"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 17
+    },
+    "appearance": {
+      "species": "skaven"
+    },
+    "grantGroups": [
+      "skaven"
+    ]
+  },
+  {
+    "id": "demon-mutant-de-choc",
+    "type": "creatures",
+    "label": "Démon mutant de choc",
+    "title": null,
+    "folder": "Les enfants du Rat Cornu",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 35,
+      "force": 55,
+      "endurance": 45,
+      "initiative": 50,
+      "agilite": 25,
+      "dexterite": null,
+      "intelligence": 35,
+      "force-mentale": 50,
+      "sociabilite": 65,
+      "B": 36
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme"
+      },
+      {
+        "id": "armes-demon-mutant-de-choc"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "maladie",
+        "arg": "fievre-du-rongeur"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "a-distance"
+      },
+      {
+        "id": "armes-demon-mutant-de-choc"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 8
+      },
+      {
+        "id": "pisteur"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 17
+    },
+    "appearance": {
+      "species": "rat-ogre"
+    },
+    "grantGroups": [
+      "skaven",
+      "monstres"
+    ]
+  },
+  {
+    "id": "seigneurs-de-guerre",
+    "type": "creatures",
+    "label": "Seigneurs de guerre",
+    "title": null,
+    "folder": "Les enfants du Rat Cornu",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 65,
+      "capacite-de-tir": 45,
+      "force": 55,
+      "endurance": 45,
+      "initiative": 60,
+      "agilite": 55,
+      "dexterite": 45,
+      "intelligence": 45,
+      "force-mentale": 55,
+      "sociabilite": 60,
+      "B": 22
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 5,
+        "matiere": "metal"
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "a-distance",
+        "value": 9,
+        "range": 20
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "Épée"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "maladie",
+        "arg": "fievre-du-rongeur"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 8
+      },
+      {
+        "id": "pisteur"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 18
+    },
+    "appearance": {
+      "species": "skaven"
+    },
+    "grantGroups": [
+      "skaven"
+    ]
+  },
+  {
+    "id": "chauves-souris-ordinaire",
+    "type": "creatures",
+    "label": "Chauves-Souris Ordinaire",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 1,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 5,
+      "endurance": 10,
+      "initiative": 40,
+      "agilite": 65,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 20,
+      "sociabilite": null,
+      "B": 1
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "vol",
+        "value": 60
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "taille",
+        "arg": "minuscule"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 0
+      }
+    ],
+    "optionals": [
+      {
+        "id": "maladie"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 19
+    },
+    "appearance": {
+      "species": "chauve-souris"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "chauve-souris-geantes",
+    "type": "creatures",
+    "label": "Chauve-Souris Géantes",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 1,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 25,
+      "endurance": 25,
+      "initiative": 30,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 35,
+      "sociabilite": null,
+      "B": 7
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "vol",
+        "value": 20
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "arme",
+        "value": 6
+      }
+    ],
+    "optionals": [
+      {
+        "id": "maladie"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "vampirique"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 19
+    },
+    "appearance": {
+      "species": "chauve-souris"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "ronce-de-sang",
+    "type": "creatures",
+    "label": "Ronce de sang",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": null,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 40,
+      "initiative": null,
+      "agilite": null,
+      "dexterite": null,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 20
+    },
+    "traits": [
+      {
+        "id": "absorption"
+      },
+      {
+        "id": "effraye",
+        "arg": "feu"
+      },
+      {
+        "id": "constricteur"
+      },
+      {
+        "id": "increvable"
+      },
+      {
+        "id": "inflammable"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "Branches",
+        "natural": true
+      },
+      {
+        "id": "branches"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "nuee"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 19
+    },
+    "appearance": {
+      "species": "ronce-de-sang"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "vivaneau-carnivore",
+    "type": "creatures",
+    "label": "Vivaneau carnivore",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 33,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 50,
+      "initiative": 10,
+      "agilite": 10,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 25,
+      "sociabilite": null,
+      "B": 31
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "parLocalisation": {
+          "tete": 2,
+          "brasG": 0,
+          "brasD": 0,
+          "corps": 2,
+          "jambeG": 0,
+          "jambeD": 0
+        },
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 9
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 5
+      },
+      {
+        "id": "arme",
+        "value": 4,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-garde"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 20
+    },
+    "appearance": {
+      "species": "brochet-du-stir"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "chats-domestiques",
+    "type": "creatures",
+    "label": "Chats Domestiques",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": null,
+      "force": 15,
+      "endurance": 20,
+      "initiative": 40,
+      "agilite": 50,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 30,
+      "sociabilite": null,
+      "B": 2
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "arme",
+        "value": 2,
+        "arg": "Griffe",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "effraye"
+      },
+      {
+        "id": "effraye",
+        "arg": "sorcieres"
+      },
+      {
+        "id": "animosite"
+      },
+      {
+        "id": "immunite"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "prejuge",
+        "arg": "tout"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "protection",
+        "value": 10
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 20
+    },
+    "appearance": {
+      "species": "chat-sauvage"
+    },
+    "grantGroups": [
+      "bete",
+      "animaux-domestiques"
+    ]
+  },
+  {
+    "id": "doppelgangers",
+    "type": "creatures",
+    "label": "Doppelgangers",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": 30,
+      "force": 40,
+      "endurance": 30,
+      "initiative": 30,
+      "agilite": 35,
+      "dexterite": 35,
+      "intelligence": 40,
+      "force-mentale": 35,
+      "sociabilite": 10,
+      "B": 16
+    },
+    "traits": [
+      {
+        "id": "effraye",
+        "arg": "feu"
+      },
+      {
+        "id": "doppelganger"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "arme",
+        "value": 4
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 21
+    },
+    "appearance": {
+      "species": "doppelganger"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "tortues-dragon",
+    "type": "creatures",
+    "label": "Tortues dragon",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 45,
+      "endurance": 45,
+      "initiative": 40,
+      "agilite": 20,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 45,
+      "sociabilite": null,
+      "B": 32
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "souffle",
+        "value": 8
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "enorme"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 21
+    },
+    "appearance": {
+      "species": "tortue-dragon"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "elementaire-monstrueuse",
+    "type": "creatures",
+    "label": "Élémentaire (Monstrueuse)",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 9,
+      "capacite-de-combat": 95,
+      "capacite-de-tir": 95,
+      "force": 95,
+      "endurance": 95,
+      "initiative": 95,
+      "agilite": 95,
+      "dexterite": 95,
+      "intelligence": 50,
+      "force-mentale": 95,
+      "sociabilite": null,
+      "B": 288
+    },
+    "traits": [
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "elementaire"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "monstrueuse"
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 13
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 21
+    },
+    "appearance": {
+      "species": "elementaire"
+    }
+  },
+  {
+    "id": "elementaire-enorme",
+    "type": "creatures",
+    "label": "Élémentaire (Enorme)",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 75,
+      "capacite-de-tir": 75,
+      "force": 75,
+      "endurance": 75,
+      "initiative": 75,
+      "agilite": 75,
+      "dexterite": 75,
+      "intelligence": 40,
+      "force-mentale": 75,
+      "sociabilite": null,
+      "B": 112
+    },
+    "traits": [
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "elementaire"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "terreur",
+        "value": 2
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 11
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 21
+    },
+    "appearance": {
+      "species": "elementaire"
+    }
+  },
+  {
+    "id": "elementaire-grande",
+    "type": "creatures",
+    "label": "Élémentaire (Grande)",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": 55,
+      "force": 55,
+      "endurance": 55,
+      "initiative": 55,
+      "agilite": 55,
+      "dexterite": 55,
+      "intelligence": 30,
+      "force-mentale": 55,
+      "sociabilite": null,
+      "B": 40
+    },
+    "traits": [
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "elementaire"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "terreur",
+        "value": 1
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 9
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 21
+    },
+    "appearance": {
+      "species": "elementaire"
+    }
+  },
+  {
+    "id": "elementaire-moyenne",
+    "type": "creatures",
+    "label": "Élémentaire (Moyenne)",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": 35,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 35,
+      "agilite": 35,
+      "dexterite": 35,
+      "intelligence": 20,
+      "force-mentale": 35,
+      "sociabilite": null,
+      "B": 12
+    },
+    "traits": [
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "elementaire"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "peur",
+        "value": 2
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 22
+    },
+    "appearance": {
+      "species": "elementaire"
+    }
+  },
+  {
+    "id": "elementaire-petite",
+    "type": "creatures",
+    "label": "Élémentaire (Petite)",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 1,
+      "capacite-de-combat": 15,
+      "capacite-de-tir": 15,
+      "force": 15,
+      "endurance": 15,
+      "initiative": 15,
+      "agilite": 15,
+      "dexterite": 15,
+      "intelligence": 10,
+      "force-mentale": 15,
+      "sociabilite": null,
+      "B": 3
+    },
+    "traits": [
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "elementaire"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "peur"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 5
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 22
+    },
+    "appearance": {
+      "species": "elementaire"
+    }
+  },
+  {
+    "id": "scarabees-geants",
+    "type": "creatures",
+    "label": "Scarabées géants",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 10,
+      "agilite": 20,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 10,
+      "sociabilite": null,
+      "B": 13
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "grimpant"
+      },
+      {
+        "id": "arme",
+        "value": 8
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "grande"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 22
+    },
+    "appearance": {
+      "species": "scarabee-geant"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "scorpions-geants",
+    "type": "creatures",
+    "label": "Scorpions géants",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 55,
+      "endurance": 65,
+      "initiative": 15,
+      "agilite": 25,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 20,
+      "sociabilite": null,
+      "B": 50
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 4,
+        "matiere": "peau"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 10
+      },
+      {
+        "id": "venin",
+        "arg": "difficile"
+      },
+      {
+        "id": "arme",
+        "value": 9
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 23
+    },
+    "appearance": {
+      "species": "scorpion-geant"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "harpies",
+    "type": "creatures",
+    "label": "Harpies",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": 25,
+      "force": 40,
+      "endurance": 40,
+      "initiative": 20,
+      "agilite": 35,
+      "dexterite": 35,
+      "intelligence": 15,
+      "force-mentale": 65,
+      "sociabilite": 10,
+      "B": 18
+    },
+    "traits": [
+      {
+        "id": "vol",
+        "value": 60
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "arme",
+        "value": 8
+      }
+    ],
+    "optionals": [
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 23
+    },
+    "appearance": {
+      "species": "harpie"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "bison",
+    "type": "creatures",
+    "label": "Bison",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 55,
+      "endurance": 55,
+      "initiative": 30,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 15,
+      "sociabilite": null,
+      "B": 32
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Cornes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 23
+    },
+    "appearance": {
+      "species": "boeuf"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "vers-vegetaux",
+    "type": "creatures",
+    "label": "Vers végétaux",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 30,
+      "initiative": 85,
+      "agilite": 10,
+      "dexterite": null,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 10
+    },
+    "traits": [
+      {
+        "id": "inflammable"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "attaque-de-fouet"
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 24
+    },
+    "appearance": {
+      "species": "vers"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "hommes-lezards",
+    "type": "creatures",
+    "label": "Hommes-lézards",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": 25,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 30,
+      "agilite": 30,
+      "dexterite": 25,
+      "intelligence": 20,
+      "force-mentale": 75,
+      "sociabilite": 15,
+      "B": 16
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "a-distance",
+        "value": 6,
+        "arg": "fronde",
+        "range": 60
+      },
+      {
+        "id": "lanceur-de-sorts"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 24
+    },
+    "appearance": {
+      "species": "homme-lezard"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "momies",
+    "type": "creatures",
+    "label": "Momies",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 55,
+      "initiative": 30,
+      "agilite": 25,
+      "dexterite": null,
+      "intelligence": 45,
+      "force-mentale": 85,
+      "sociabilite": null,
+      "B": 27
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "inflammable"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "regeneration"
+      },
+      {
+        "id": "mort-vivant"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 8
+      }
+    ],
+    "optionals": [
+      {
+        "id": "maladie"
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 24
+    },
+    "appearance": {
+      "species": "zombie"
+    },
+    "grantGroups": [
+      "mort-vivant"
+    ]
+  },
+  {
+    "id": "hiboux-ordinaire",
+    "type": "creatures",
+    "label": "Hiboux Ordinaire",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 20,
+      "initiative": 45,
+      "agilite": 55,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 45,
+      "sociabilite": null,
+      "B": 4
+    },
+    "traits": [
+      {
+        "id": "morsure",
+        "value": 1
+      },
+      {
+        "id": "vol",
+        "value": 100
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "arme",
+        "value": 1
+      }
+    ],
+    "optionals": [
+      {
+        "id": "infecte"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 65
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 24
+    },
+    "appearance": {
+      "species": "heomreth-hibou-geant"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "hiboux-geants",
+    "type": "creatures",
+    "label": "Hiboux Géants",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 55,
+      "endurance": 45,
+      "initiative": 50,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 45,
+      "force-mentale": 85,
+      "sociabilite": 45,
+      "B": 42
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 9
+      }
+    ],
+    "optionals": [
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 70
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 24
+    },
+    "appearance": {
+      "species": "heomreth-hibou-geant"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "palourde-des-sables",
+    "type": "creatures",
+    "label": "Palourde des sables",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 0,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 65,
+      "endurance": 50,
+      "initiative": 65,
+      "agilite": null,
+      "dexterite": null,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 32
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "attaque-de-coquille"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 3
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 25
+    },
+    "appearance": {
+      "species": "palourde-des-sables"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "aigle",
+    "type": "creatures",
+    "label": "Aigle",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": null,
+      "force": 20,
+      "endurance": 25,
+      "initiative": 55,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 20,
+      "sociabilite": null,
+      "B": 6
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 6
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "vol",
+        "value": 100
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "arme",
+        "value": 4,
+        "arg": "Griffe",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-garde"
+      },
+      {
+        "id": "dresse-revenir-a-la-maison"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 75
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 25
+    },
+    "appearance": {
+      "species": "grand-aigle"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "renard",
+    "type": "creatures",
+    "label": "Renard",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 20,
+      "initiative": 40,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 15,
+      "sociabilite": null,
+      "B": 2
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "arme",
+        "value": 1
+      }
+    ],
+    "optionals": [
+      {
+        "id": "infecte"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 60
+      },
+      {
+        "id": "pistage",
+        "value": 50
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 25
+    },
+    "appearance": {
+      "species": "renard"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "grenouille",
+    "type": "creatures",
+    "label": "Grenouille",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": null,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 10,
+      "initiative": 30,
+      "agilite": 65,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 5,
+      "sociabilite": null,
+      "B": 1
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "bond"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "minuscule"
+      },
+      {
+        "id": "nerveux"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "nuee"
+      },
+      {
+        "id": "venin",
+        "arg": "Très facile - Difficile"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 25
+    },
+    "appearance": {
+      "species": "grenouille"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "faucon",
+    "type": "creatures",
+    "label": "Faucon",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 1,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 15,
+      "endurance": 20,
+      "initiative": 45,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 5,
+      "sociabilite": null,
+      "B": 2
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 3
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "arme",
+        "value": 2,
+        "arg": "griffe",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-revenir-a-la-maison"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 65
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 25
+    },
+    "appearance": {
+      "species": "faucon-des-montagnes-grises"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "loutre",
+    "type": "creatures",
+    "label": "Loutre",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 20,
+      "initiative": 40,
+      "agilite": 65,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 10,
+      "sociabilite": null,
+      "B": 2
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 1
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "esquive",
+        "value": 70
+      },
+      {
+        "id": "perception",
+        "value": 60
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 25
+    },
+    "appearance": {
+      "species": "loutre"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "lapin",
+    "type": "creatures",
+    "label": "Lapin",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 10,
+      "initiative": 30,
+      "agilite": 55,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 5,
+      "sociabilite": null,
+      "B": 1
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 0
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "esquive",
+        "value": 65
+      },
+      {
+        "id": "perception",
+        "value": 50
+      }
+    ],
+    "talents": [
+      {
+        "id": "fuite"
+      }
+    ],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 25
+    },
+    "appearance": {
+      "species": "lapin"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "corneille",
+    "type": "creatures",
+    "label": "Corneille",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 10,
+      "initiative": 55,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 25,
+      "sociabilite": null,
+      "B": 1
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "vol",
+        "value": 60
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 1
+      }
+    ],
+    "optionals": [
+      {
+        "id": "nuee"
+      }
+    ],
+    "skills": [
+      {
+        "id": "intuition",
+        "value": 65
+      },
+      {
+        "id": "perception",
+        "value": 75
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 26
+    },
+    "appearance": {
+      "species": "volee-de-noctecorbes"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "ecureuil",
+    "type": "creatures",
+    "label": "Écureuil",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": null,
+      "force": 5,
+      "endurance": 10,
+      "initiative": 45,
+      "agilite": 55,
+      "dexterite": 35,
+      "intelligence": 5,
+      "force-mentale": 5,
+      "sociabilite": null,
+      "B": 1
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "taille",
+        "arg": "minuscule"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "grimpant"
+      },
+      {
+        "id": "arme",
+        "value": 0
+      }
+    ],
+    "optionals": [
+      {
+        "id": "infecte"
+      }
+    ],
+    "skills": [
+      {
+        "id": "athletisme",
+        "value": 65
+      },
+      {
+        "id": "esquive",
+        "value": 65
+      },
+      {
+        "id": "perception",
+        "value": 65
+      }
+    ],
+    "talents": [
+      {
+        "id": "fuite"
+      }
+    ],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 26
+    },
+    "appearance": {
+      "species": "ecureuil"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "hermine",
+    "type": "creatures",
+    "label": "Hermine",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 15,
+      "endurance": 20,
+      "initiative": 40,
+      "agilite": 40,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 10,
+      "sociabilite": null,
+      "B": 2
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "perturbant"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 1
+      }
+    ],
+    "optionals": [
+      {
+        "id": "infecte"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 60
+      },
+      {
+        "id": "pistage",
+        "value": 55
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 26
+    },
+    "appearance": {
+      "species": "hermine"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "nuees",
+    "type": "creatures",
+    "label": "Nuées",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 10,
+      "initiative": 35,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 35,
+      "sociabilite": null,
+      "B": 5
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "inflammable"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "minuscule"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "nuee"
+      },
+      {
+        "id": "arme",
+        "value": 0
+      }
+    ],
+    "optionals": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "maladie",
+        "arg": "peste-noire"
+      },
+      {
+        "id": "vol"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "limicole"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "venin"
+      },
+      {
+        "id": "grimpant"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 26
+    },
+    "appearance": {
+      "species": "nuee"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "homme-arbre",
+    "type": "creatures",
+    "label": "Homme-arbre",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 75,
+      "capacite-de-tir": 25,
+      "force": 60,
+      "endurance": 70,
+      "initiative": 20,
+      "agilite": 15,
+      "dexterite": 25,
+      "intelligence": 65,
+      "force-mentale": 85,
+      "sociabilite": 35,
+      "B": 70
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "peau"
+      },
+      {
+        "id": "inflammable"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "arme",
+        "value": 10,
+        "arg": "poing",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "taille",
+        "arg": "monstrueuse"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 27
+    },
+    "appearance": {
+      "species": "homme-arbre"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "licornes",
+    "type": "creatures",
+    "label": "Licornes",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 8,
+      "capacite-de-combat": 50,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 45,
+      "initiative": 40,
+      "agilite": 55,
+      "dexterite": null,
+      "intelligence": 25,
+      "force-mentale": 85,
+      "sociabilite": null,
+      "B": 40
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "magique"
+      },
+      {
+        "id": "immunite",
+        "arg": "magique"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "protection",
+        "value": 9
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "Corne",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 27
+    },
+    "appearance": {
+      "species": "cheval"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "zoats",
+    "type": "creatures",
+    "label": "Zoats",
+    "title": null,
+    "folder": "Créatures d'autrefois",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 59,
+      "capacite-de-tir": 25,
+      "force": 50,
+      "endurance": 50,
+      "initiative": 50,
+      "agilite": 25,
+      "dexterite": 43,
+      "intelligence": 43,
+      "force-mentale": 43,
+      "sociabilite": 40,
+      "B": 38
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "parLocalisation": {
+          "tete": 1,
+          "brasG": 1,
+          "brasD": 1,
+          "corps": 3,
+          "jambeG": 1,
+          "jambeD": 1
+        },
+        "matiere": "peau"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "immunite"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "se-cabrer"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "arme",
+        "value": 11,
+        "arg": "Mace Zoat"
+      },
+      {
+        "id": "mace-zoat"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "animosite",
+        "arg": "peau-verte"
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "ruse"
+      },
+      {
+        "id": "elite"
+      },
+      {
+        "id": "prejuge"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Ambre, Vie ou Sauvage"
+      },
+      {
+        "id": "studieux-bno"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 28
+    },
+    "appearance": {
+      "species": "zoat"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "chien-du-chaos",
+    "type": "creatures",
+    "label": "Chien du Chaos",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": null,
+      "force": 30,
+      "endurance": 40,
+      "initiative": 40,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 30,
+      "sociabilite": null,
+      "B": 14
+    },
+    "traits": [
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "peur",
+        "value": 1
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 29
+    },
+    "appearance": {
+      "species": "chien"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "coursiers-demoniaques",
+    "type": "creatures",
+    "label": "Coursiers démoniaques",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 8,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 45,
+      "endurance": 35,
+      "initiative": 30,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 40,
+      "sociabilite": null,
+      "B": 28
+    },
+    "traits": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 8
+      }
+    ],
+    "optionals": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "peur",
+        "value": 1
+      },
+      {
+        "id": "vol",
+        "value": 100
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "venin",
+        "arg": "difficile"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 29
+    },
+    "appearance": {
+      "species": "cheval"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "diablotins",
+    "type": "creatures",
+    "label": "Diablotins",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": 25,
+      "force": 25,
+      "endurance": 35,
+      "initiative": 50,
+      "agilite": 55,
+      "dexterite": 45,
+      "intelligence": 30,
+      "force-mentale": 35,
+      "sociabilite": 45,
+      "B": 13
+    },
+    "traits": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 10
+      },
+      {
+        "id": "peur",
+        "value": 1
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 5
+      }
+    ],
+    "optionals": [
+      {
+        "id": "seduisant"
+      },
+      {
+        "id": "morsure",
+        "value": 6
+      },
+      {
+        "id": "maladie",
+        "arg": "verole-urticante"
+      },
+      {
+        "id": "vol",
+        "value": 40
+      },
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Domaine du chaos"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 29
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "betes-de-nurgle",
+    "type": "creatures",
+    "label": "Bêtes de Nurgle",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 30,
+      "endurance": 50,
+      "initiative": 30,
+      "agilite": 15,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 55,
+      "sociabilite": null,
+      "B": 18
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "corruption",
+        "arg": "moderee"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "maladie"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "trainee-de-bave"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 7
+      },
+      {
+        "id": "tentacules",
+        "value": 3
+      },
+      {
+        "id": "venin",
+        "arg": "intermediaire"
+      },
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "grande"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 30
+    },
+    "appearance": {
+      "species": "bete-de-nurgle"
+    },
+    "grantGroups": [
+      "demon",
+      "nurgle"
+    ]
+  },
+  {
+    "id": "disques-de-tzeentch",
+    "type": "creatures",
+    "label": "Disques de Tzeentch",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 0,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 50,
+      "endurance": 55,
+      "initiative": 30,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 45,
+      "force-mentale": 55,
+      "sociabilite": null,
+      "B": 16
+    },
+    "traits": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 31
+    },
+    "appearance": {
+      "species": "disque-de-tzeentch"
+    },
+    "grantGroups": [
+      "demon",
+      "tzeentch"
+    ]
+  },
+  {
+    "id": "betes-de-slaanesh",
+    "type": "creatures",
+    "label": "Bêtes de Slaanesh",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 35,
+      "initiative": 40,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 45,
+      "sociabilite": null,
+      "B": 13
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "perturbant"
+      },
+      {
+        "id": "peur",
+        "value": 2
+      },
+      {
+        "id": "lechage"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 8
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "venin",
+        "arg": "difficile"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 31
+    },
+    "appearance": {
+      "species": "bete-de-slaanesh"
+    },
+    "grantGroups": [
+      "demon",
+      "slaanesh"
+    ]
+  },
+  {
+    "id": "chiens-de-khorne",
+    "type": "creatures",
+    "label": "Chiens de Khorne",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 50,
+      "capacite-de-tir": null,
+      "force": 45,
+      "endurance": 40,
+      "initiative": 60,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 65,
+      "sociabilite": null,
+      "B": 18
+    },
+    "traits": [
+      {
+        "id": "morsure",
+        "value": 9
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "peur",
+        "value": 2
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "resistance-a-la-magie",
+        "value": 3
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-guerre"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "venin",
+        "arg": "intermediaire"
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 31
+    },
+    "appearance": {
+      "species": "chien"
+    },
+    "grantGroups": [
+      "demon",
+      "khorne"
+    ]
+  },
+  {
+    "id": "juggernautes-de-khorne",
+    "type": "creatures",
+    "label": "Juggernautes de Khorne",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 55,
+      "endurance": 55,
+      "initiative": 20,
+      "agilite": 25,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 45,
+      "sociabilite": null,
+      "B": 38
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 10
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "peur",
+        "value": 3
+      },
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "cornes",
+        "value": 8
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "dresse-trait"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 31
+    },
+    "appearance": {
+      "species": "juggernaute"
+    },
+    "grantGroups": [
+      "demon",
+      "khorne"
+    ]
+  },
+  {
+    "id": "hurleurs-de-tzeentch",
+    "type": "creatures",
+    "label": "Hurleurs de Tzeentch",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 1,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 45,
+      "initiative": 60,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 24
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "peur",
+        "value": 2
+      },
+      {
+        "id": "vol",
+        "value": 120
+      },
+      {
+        "id": "hurlement-fantomatique"
+      },
+      {
+        "id": "cornes",
+        "value": 8
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 9
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "Morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "mutation"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 32
+    },
+    "appearance": {
+      "species": "hurleur-de-tzeentch"
+    },
+    "grantGroups": [
+      "demon",
+      "tzeentch"
+    ]
+  },
+  {
+    "id": "monture-de-slaanesh",
+    "type": "creatures",
+    "label": "Monture de Slaanesh",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 8,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 45,
+      "initiative": 60,
+      "agilite": 50,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 50,
+      "sociabilite": null,
+      "B": 34
+    },
+    "traits": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 9
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "Langue",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 32
+    },
+    "appearance": {
+      "species": "monture-de-slaanesh"
+    },
+    "grantGroups": [
+      "demon",
+      "slaanesh"
+    ]
+  },
+  {
+    "id": "demons-mineurs-profil-generique",
+    "type": "creatures",
+    "label": "Démons mineurs (profil générique)",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 50,
+      "capacite-de-tir": 45,
+      "force": 45,
+      "endurance": 35,
+      "initiative": 60,
+      "agilite": 55,
+      "dexterite": 30,
+      "intelligence": 35,
+      "force-mentale": 70,
+      "sociabilite": 15,
+      "B": 17
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "moderee"
+      },
+      {
+        "id": "demoniaque",
+        "value": 8
+      },
+      {
+        "id": "peur",
+        "value": 2
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 9
+      }
+    ],
+    "optionals": [
+      {
+        "id": "elite"
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 32
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "les-horreurs-du-soufre",
+    "type": "creatures",
+    "label": "Les Horreurs du Soufre",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 20,
+      "capacite-de-tir": 35,
+      "force": 25,
+      "endurance": 25,
+      "initiative": 35,
+      "agilite": 45,
+      "dexterite": 25,
+      "intelligence": 15,
+      "force-mentale": 20,
+      "sociabilite": 10,
+      "B": 6
+    },
+    "traits": [
+      {
+        "id": "enflammee"
+      },
+      {
+        "id": "souffle",
+        "value": 3,
+        "arg": "feu"
+      },
+      {
+        "id": "corruption",
+        "arg": "moderee"
+      },
+      {
+        "id": "demoniaque",
+        "value": 10
+      },
+      {
+        "id": "perturbant"
+      },
+      {
+        "id": "peur",
+        "value": 1
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "diviser-a-nouveau"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 4,
+        "arg": "Griffes",
+        "count": 2,
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "mutation"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 33
+    },
+    "appearance": {
+      "species": "horreur-bleue"
+    },
+    "grantGroups": [
+      "demon",
+      "tzeentch"
+    ]
+  },
+  {
+    "id": "fiddlespasm-axehacker-khorne",
+    "type": "creatures",
+    "label": "Fiddlespasm Axehacker (Khorne)",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 95,
+      "capacite-de-tir": 95,
+      "force": 150,
+      "endurance": 150,
+      "initiative": 45,
+      "agilite": 30,
+      "dexterite": 55,
+      "intelligence": 65,
+      "force-mentale": 105,
+      "sociabilite": 50,
+      "B": 110
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 6
+      },
+      {
+        "id": "morsure",
+        "value": 18
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "demoniaque",
+        "value": 7
+      },
+      {
+        "id": "increvable"
+      },
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "haine",
+        "arg": "tzeentch"
+      },
+      {
+        "id": "immunite-attaques-ordinaires"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "a-distance",
+        "value": 18,
+        "arg": "Hache",
+        "range": 30
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 20
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 34
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon",
+      "khorne"
+    ]
+  },
+  {
+    "id": "fleexgore-glutwarp-tzeentch",
+    "type": "creatures",
+    "label": "Fleexgore Glutwarp (Tzeentch)",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 85,
+      "capacite-de-tir": 95,
+      "force": 125,
+      "endurance": 130,
+      "initiative": 85,
+      "agilite": 90,
+      "dexterite": 75,
+      "intelligence": 95,
+      "force-mentale": null,
+      "sociabilite": 65,
+      "B": null
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "morsure",
+        "value": 14
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 8
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "haine",
+        "arg": "khorne"
+      },
+      {
+        "id": "immunite",
+        "arg": "magique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "regeneration"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Tzeentch"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 14
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 16
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 34
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon",
+      "tzeentch"
+    ]
+  },
+  {
+    "id": "demons-majeurs-profil-generique",
+    "type": "creatures",
+    "label": "Démons majeurs (profil générique)",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 95,
+      "capacite-de-tir": 90,
+      "force": 100,
+      "endurance": 100,
+      "initiative": 100,
+      "agilite": 100,
+      "dexterite": 85,
+      "intelligence": 85,
+      "force-mentale": 85,
+      "sociabilite": 55,
+      "B": 152
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 4
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 8
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "protection",
+        "value": 9
+      },
+      {
+        "id": "arme",
+        "value": 14
+      }
+    ],
+    "optionals": [
+      {
+        "id": "morsure"
+      },
+      {
+        "id": "elite"
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "cornes"
+      },
+      {
+        "id": "regeneration"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Chaos ou Démonologie"
+      },
+      {
+        "id": "tentacules"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 34
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "verminarque-du-rat-cornu",
+    "type": "creatures",
+    "label": "Verminarque du Rat Cornu",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 8,
+      "capacite-de-combat": 100,
+      "capacite-de-tir": 95,
+      "force": 100,
+      "endurance": 110,
+      "initiative": 100,
+      "agilite": 85,
+      "dexterite": 85,
+      "intelligence": 85,
+      "force-mentale": 115,
+      "sociabilite": 55,
+      "B": 172
+    },
+    "traits": [
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 6
+      },
+      {
+        "id": "maladie",
+        "arg": "fievre-du-rongeur"
+      },
+      {
+        "id": "haine"
+      },
+      {
+        "id": "cornes",
+        "value": 12
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "regeneration"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Warp"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 14
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 15,
+        "arg": "Glaive du Destin"
+      },
+      {
+        "id": "glaive-du-destin"
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 35
+    },
+    "appearance": {
+      "species": "rat-ogre"
+    },
+    "grantGroups": [
+      "demon",
+      "skaven"
+    ]
+  },
+  {
+    "id": "baalrukhs",
+    "type": "creatures",
+    "label": "Baalrukhs",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 100,
+      "capacite-de-tir": 95,
+      "force": 130,
+      "endurance": 100,
+      "initiative": 100,
+      "agilite": 55,
+      "dexterite": 85,
+      "intelligence": 85,
+      "force-mentale": 100,
+      "sociabilite": 15,
+      "B": 172
+    },
+    "traits": [
+      {
+        "id": "souffle",
+        "value": 20,
+        "arg": "feu"
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 6
+      },
+      {
+        "id": "enflammee"
+      },
+      {
+        "id": "cornes",
+        "value": 17
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "a-distance",
+        "value": 15,
+        "arg": "fouet",
+        "range": 12
+      },
+      {
+        "id": "regeneration"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "protection",
+        "value": 7
+      },
+      {
+        "id": "arme",
+        "value": 18,
+        "arg": "Épée"
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 36
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "mabrothrax",
+    "type": "creatures",
+    "label": "Mabrothrax",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 90,
+      "capacite-de-tir": 90,
+      "force": 110,
+      "endurance": 140,
+      "initiative": 100,
+      "agilite": 100,
+      "dexterite": 85,
+      "intelligence": 85,
+      "force-mentale": 85,
+      "sociabilite": 5,
+      "B": 94
+    },
+    "traits": [
+      {
+        "id": "souffle",
+        "value": 15
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "demoniaque",
+        "value": 8
+      },
+      {
+        "id": "maladie",
+        "arg": "peste-noire"
+      },
+      {
+        "id": "nuage-fetide"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "necromancie"
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "vampirique"
+      },
+      {
+        "id": "arme",
+        "value": 14,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 36
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "mardaggs",
+    "type": "creatures",
+    "label": "Mardaggs",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 95,
+      "capacite-de-tir": 90,
+      "force": 100,
+      "endurance": 100,
+      "initiative": 100,
+      "agilite": 100,
+      "dexterite": 85,
+      "intelligence": 85,
+      "force-mentale": 85,
+      "sociabilite": 5,
+      "B": 76
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 4
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "etreinte-glaciale"
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "demoniaque",
+        "value": 8
+      },
+      {
+        "id": "destination-finale"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "resistance-a-la-magie",
+        "value": 8
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 15
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 36
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "viydaggs",
+    "type": "creatures",
+    "label": "Viydaggs",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 95,
+      "capacite-de-tir": 90,
+      "force": 100,
+      "endurance": 100,
+      "initiative": 100,
+      "agilite": 100,
+      "dexterite": 85,
+      "intelligence": 85,
+      "force-mentale": 85,
+      "sociabilite": 5,
+      "B": 76
+    },
+    "traits": [
+      {
+        "id": "briser-le-demon"
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "demoniaque",
+        "value": 7
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "resistance-a-la-magie",
+        "value": 10
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "terreur",
+        "value": 3
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "protection",
+        "value": 6
+      },
+      {
+        "id": "arme",
+        "value": 16,
+        "arg": "Grande Epée"
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 36
+    },
+    "appearance": {
+      "species": "demon"
+    },
+    "grantGroups": [
+      "demon"
+    ]
+  },
+  {
+    "id": "acolytes-kairic",
+    "type": "creatures",
+    "label": "Acolytes Kairic",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": 30,
+      "force": 30,
+      "endurance": 30,
+      "initiative": 30,
+      "agilite": 30,
+      "dexterite": 30,
+      "intelligence": 30,
+      "force-mentale": 30,
+      "sociabilite": 30,
+      "B": 12
+    },
+    "traits": [
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Épée"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "armure",
+        "value": 1
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "meneur"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "a-distance",
+        "value": 6,
+        "range": 50
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Tzeentch"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 37
+    },
+    "appearance": {
+      "species": "humain"
+    },
+    "followsCharacterRules": true,
+    "grantGroups": [
+      "cultiste",
+      "humain",
+      "tzeentch"
+    ]
+  },
+  {
+    "id": "tzaangors",
+    "type": "creatures",
+    "label": "Tzaangors",
+    "title": null,
+    "folder": "Les perdus et les damnés",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": 35,
+      "force": 40,
+      "endurance": 40,
+      "initiative": 40,
+      "agilite": 35,
+      "dexterite": 25,
+      "intelligence": 35,
+      "force-mentale": 40,
+      "sociabilite": 25,
+      "B": 16
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 7
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "rage"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Griffe ou Epée"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "grand"
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "meneur"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "a-distance",
+        "value": 6,
+        "range": 50
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Tzeentch"
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "Grande lame"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 37
+    },
+    "appearance": {
+      "species": "gor"
+    },
+    "grantGroups": [
+      "homme-bete",
+      "tzeentch"
+    ]
+  },
+  {
+    "id": "armure-animee",
+    "type": "creatures",
+    "label": "Armure animée",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": 45,
+      "force": 40,
+      "endurance": 45,
+      "initiative": 45,
+      "agilite": 40,
+      "dexterite": 20,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 16
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 5,
+        "matiere": "metal"
+      },
+      {
+        "id": "fabrique"
+      },
+      {
+        "id": "increvable"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "metal"
+      },
+      {
+        "id": "endurant"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 38
+    },
+    "appearance": {
+      "species": "armure-animee"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "ambull",
+    "type": "creatures",
+    "label": "Ambull",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 50,
+      "capacite-de-tir": null,
+      "force": 50,
+      "endurance": 50,
+      "initiative": 50,
+      "agilite": 20,
+      "dexterite": 20,
+      "intelligence": 14,
+      "force-mentale": 43,
+      "sociabilite": 20,
+      "B": 38
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "Griffes",
+        "natural": true
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "tunnelier"
+      },
+      {
+        "id": "arme",
+        "value": 10,
+        "count": 2
+      }
+    ],
+    "optionals": [
+      {
+        "id": "armure",
+        "value": 3
+      },
+      {
+        "id": "belliqueux"
+      },
+      {
+        "id": "brutal"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      }
+    ],
+    "skills": [],
+    "talents": [
+      {
+        "id": "combattant-en-espace-clos"
+      },
+      {
+        "id": "rat-d-egout"
+      }
+    ],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 38
+    },
+    "appearance": {
+      "species": "ambull"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "gorilles",
+    "type": "creatures",
+    "label": "Gorilles",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": 25,
+      "force": 45,
+      "endurance": 40,
+      "initiative": 35,
+      "agilite": 40,
+      "dexterite": 25,
+      "intelligence": 20,
+      "force-mentale": 25,
+      "sociabilite": null,
+      "B": 14
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 7
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Poing",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-divertir"
+      },
+      {
+        "id": "dresse-garde"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 38
+    },
+    "appearance": {
+      "species": "singe"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "charogneur",
+    "type": "creatures",
+    "label": "Charogneur",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 35,
+      "initiative": 30,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 40,
+      "sociabilite": null,
+      "B": 14
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "Dents à mâcher",
+        "natural": true
+      },
+      {
+        "id": "dents-a-macher"
+      }
+    ],
+    "optionals": [],
+    "skills": [
+      {
+        "id": "esquive",
+        "value": 50
+      },
+      {
+        "id": "perception",
+        "value": 45
+      },
+      {
+        "id": "discretion",
+        "choix": true,
+        "value": 65
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 38
+    },
+    "appearance": {
+      "species": "charogneur"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "taureaux-centaures",
+    "type": "creatures",
+    "label": "Taureaux centaures",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 8,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 25,
+      "force": 40,
+      "endurance": 40,
+      "initiative": 30,
+      "agilite": 30,
+      "dexterite": 30,
+      "intelligence": 30,
+      "force-mentale": 35,
+      "sociabilite": 20,
+      "B": 30
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 3
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "se-cabrer"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 9
+      }
+    ],
+    "optionals": [
+      {
+        "id": "rage"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 38
+    },
+    "appearance": {
+      "species": "taureau-centaure"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "corail-des-cavernes",
+    "type": "creatures",
+    "label": "Corail des cavernes",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 0,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 55,
+      "initiative": 45,
+      "agilite": 40,
+      "dexterite": null,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 18
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "constricteur"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "tentacules",
+        "value": 5,
+        "count": 2
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "taille",
+        "arg": "monstrueuse"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 39
+    },
+    "appearance": {
+      "species": "corail-des-cavernes"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "centigors",
+    "type": "creatures",
+    "label": "Centigors",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 50,
+      "capacite-de-tir": 35,
+      "force": 45,
+      "endurance": 45,
+      "initiative": 30,
+      "agilite": 25,
+      "dexterite": 25,
+      "intelligence": 25,
+      "force-mentale": 35,
+      "sociabilite": 25,
+      "B": 30
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "leather"
+      },
+      {
+        "id": "rage"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "lance"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "armure",
+        "parLocalisation": {
+          "tete": 0,
+          "brasG": 0,
+          "brasD": 0,
+          "corps": 2,
+          "jambeG": 0,
+          "jambeD": 0
+        }
+      },
+      {
+        "id": "champion"
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "maladie",
+        "arg": "verole-du-tanneur"
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "corruption-mentale"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "a-distance",
+        "value": 7,
+        "arg": "arc",
+        "range": 50
+      },
+      {
+        "id": "pisteur"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 39
+    },
+    "appearance": {
+      "species": "centigor"
+    },
+    "grantGroups": [
+      "homme-bete"
+    ]
+  },
+  {
+    "id": "crocodiles",
+    "type": "creatures",
+    "label": "Crocodiles",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": null,
+      "force": 45,
+      "endurance": 35,
+      "initiative": 35,
+      "agilite": 20,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 50,
+      "sociabilite": null,
+      "B": 15
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "constricteur"
+      },
+      {
+        "id": "morsure-crocodiles"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "peur",
+        "value": 1
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 6
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [
+      {
+        "id": "discretion",
+        "choix": true,
+        "value": 55
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 39
+    },
+    "appearance": {
+      "species": "crocodile"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "dryades",
+    "type": "creatures",
+    "label": "Dryades",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 25,
+      "force": 45,
+      "endurance": 45,
+      "initiative": 60,
+      "agilite": 55,
+      "dexterite": 25,
+      "intelligence": 55,
+      "force-mentale": 35,
+      "sociabilite": 65,
+      "B": 19
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 2
+      },
+      {
+        "id": "inflammable"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "forme-d-arbre"
+      },
+      {
+        "id": "arme",
+        "value": 9,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "taille",
+        "arg": "grande"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 39
+    },
+    "appearance": {
+      "species": "choses-du-bois-mort"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "dragon-ogres",
+    "type": "creatures",
+    "label": "Dragon ogres",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": 25,
+      "force": 55,
+      "endurance": 45,
+      "initiative": 30,
+      "agilite": 25,
+      "dexterite": 25,
+      "intelligence": 35,
+      "force-mentale": 45,
+      "sociabilite": 20,
+      "B": 34
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "peur",
+        "value": 3
+      },
+      {
+        "id": "immunite",
+        "arg": "electrique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "se-cabrer"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 10
+      }
+    ],
+    "optionals": [
+      {
+        "id": "corruption",
+        "arg": "majeure"
+      },
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "mutation"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 39
+    },
+    "appearance": {
+      "species": "dragon-ogre"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "gargouilles",
+    "type": "creatures",
+    "label": "Gargouilles",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": 35,
+      "force": 35,
+      "endurance": 30,
+      "initiative": 45,
+      "agilite": 30,
+      "dexterite": null,
+      "intelligence": 15,
+      "force-mentale": 35,
+      "sociabilite": 10,
+      "B": 12
+    },
+    "traits": [
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "vol",
+        "value": 30
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 8
+      }
+    ],
+    "optionals": [
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 40
+    },
+    "appearance": {
+      "species": "gargouille"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "geckomandre",
+    "type": "creatures",
+    "label": "Geckomandre",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 50,
+      "capacite-de-tir": 40,
+      "force": 40,
+      "endurance": 35,
+      "initiative": 60,
+      "agilite": 65,
+      "dexterite": 0,
+      "intelligence": 15,
+      "force-mentale": 45,
+      "sociabilite": 15,
+      "B": 14
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "parLocalisation": {
+          "tete": 2,
+          "brasG": 1,
+          "brasD": 1,
+          "corps": 1,
+          "jambeG": 1,
+          "jambeD": 1
+        },
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 8
+      },
+      {
+        "id": "souffle",
+        "value": 9
+      },
+      {
+        "id": "immunite",
+        "arg": "feu"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "langue-prehensile",
+        "value": 4,
+        "range": 6
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 40
+    },
+    "appearance": {
+      "species": "geckomandre"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "castors-geants",
+    "type": "creatures",
+    "label": "Castors géants",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 35,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 40,
+      "initiative": 45,
+      "agilite": 45,
+      "dexterite": 30,
+      "intelligence": 15,
+      "force-mentale": 55,
+      "sociabilite": null,
+      "B": 38
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "limicole"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 9
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "infecte"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 40
+    },
+    "appearance": {
+      "species": "castor-geant"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "crabes-geants",
+    "type": "creatures",
+    "label": "Crabes géants",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 3,
+      "capacite-de-combat": 40,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 45,
+      "initiative": 20,
+      "agilite": 15,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 40,
+      "sociabilite": null,
+      "B": 30
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "peur",
+        "value": 1
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 40
+    },
+    "appearance": {
+      "species": "il-potente-granchio"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "escargots-geants",
+    "type": "creatures",
+    "label": "Escargots géants",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": null,
+      "capacite-de-tir": 30,
+      "force": 30,
+      "endurance": 45,
+      "initiative": 10,
+      "agilite": 5,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 85,
+      "sociabilite": null,
+      "B": 38
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 4,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "souffle",
+        "value": 8,
+        "arg": "corrosif"
+      },
+      {
+        "id": "attaque-de-salive-corrosifs"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 40
+    },
+    "appearance": {
+      "species": "escargot-geant"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "vers-lanternes",
+    "type": "creatures",
+    "label": "Vers lanternes",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 40,
+      "initiative": 60,
+      "agilite": 60,
+      "dexterite": null,
+      "intelligence": 25,
+      "force-mentale": 30,
+      "sociabilite": 5,
+      "B": 28
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 7
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "la-mort-d-en-haut"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "grimpant"
+      },
+      {
+        "id": "arme",
+        "value": 6,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 41
+    },
+    "appearance": {
+      "species": "vers"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "grignoteurs",
+    "type": "creatures",
+    "label": "Grignoteurs",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 15,
+      "capacite-de-tir": null,
+      "force": 10,
+      "endurance": 10,
+      "initiative": 55,
+      "agilite": 50,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 10,
+      "sociabilite": null,
+      "B": 1
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 3
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "minuscule"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "arme",
+        "value": 4,
+        "arg": "Morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "nuee"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 42
+    },
+    "appearance": {
+      "species": "grignoteur"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "cauchemars",
+    "type": "creatures",
+    "label": "Cauchemars",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 8,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 40,
+      "initiative": 25,
+      "agilite": 35,
+      "dexterite": null,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 24
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "fabrique"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "peur",
+        "value": 2
+      },
+      {
+        "id": "infecte"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "mort-vivant"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "perturbant"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "dresse-dompte"
+      },
+      {
+        "id": "dresse-trait"
+      },
+      {
+        "id": "dresse-magie"
+      },
+      {
+        "id": "dresse-monture"
+      },
+      {
+        "id": "dresse-guerre"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 42
+    },
+    "appearance": {
+      "species": "cheval"
+    },
+    "grantGroups": [
+      "mort-vivant"
+    ]
+  },
+  {
+    "id": "ostrix",
+    "type": "creatures",
+    "label": "Ostrix",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": 45,
+      "force": 40,
+      "endurance": 45,
+      "initiative": 45,
+      "agilite": 65,
+      "dexterite": 35,
+      "intelligence": 30,
+      "force-mentale": 40,
+      "sociabilite": 25,
+      "B": 16
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 3,
+        "matiere": "peau"
+      },
+      {
+        "id": "magique"
+      },
+      {
+        "id": "a-distance",
+        "value": 7,
+        "arg": "Bâton"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "foulee"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 7,
+        "arg": "Bâton"
+      }
+    ],
+    "optionals": [
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "lanceur-de-sorts"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 42
+    },
+    "appearance": {
+      "species": "ostrix"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "crabe-prometheen",
+    "type": "creatures",
+    "label": "Crabe prométhéen",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 60,
+      "capacite-de-tir": null,
+      "force": 60,
+      "endurance": 65,
+      "initiative": 15,
+      "agilite": 10,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 45,
+      "sociabilite": null,
+      "B": 88
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 5,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "peur",
+        "value": 3
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "faiblesse-yeux"
+      },
+      {
+        "id": "arme",
+        "value": 12,
+        "arg": "Griffes",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "affame"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 43
+    },
+    "appearance": {
+      "species": "il-potente-granchio"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "monstres-de-la-pourriture",
+    "type": "creatures",
+    "label": "Monstres de la pourriture",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 5,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 40,
+      "endurance": 40,
+      "initiative": 25,
+      "agilite": 15,
+      "dexterite": null,
+      "intelligence": 10,
+      "force-mentale": 40,
+      "sociabilite": null,
+      "B": 24
+    },
+    "traits": [
+      {
+        "id": "corrosion"
+      },
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "arme",
+        "value": 5,
+        "arg": "Morsure",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "elite"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 55
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 43
+    },
+    "appearance": {
+      "species": "monstre-de-la-pourriture"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres"
+    ]
+  },
+  {
+    "id": "gardiens-runiques",
+    "type": "creatures",
+    "label": "Gardiens runiques",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 60,
+      "endurance": 65,
+      "initiative": 10,
+      "agilite": 15,
+      "dexterite": 10,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 36
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 5
+      },
+      {
+        "id": "armure-gardiens-runiques"
+      },
+      {
+        "id": "fabrique"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "increvable"
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "arme",
+        "value": 10
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 43
+    },
+    "appearance": {
+      "species": "gardien-runique"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "serpents-de-mer",
+    "type": "creatures",
+    "label": "Serpents de mer",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 6,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": 50,
+      "force": 55,
+      "endurance": 55,
+      "initiative": 45,
+      "agilite": 45,
+      "dexterite": null,
+      "intelligence": 35,
+      "force-mentale": 75,
+      "sociabilite": 15,
+      "B": 88
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 4,
+        "matiere": "peau"
+      },
+      {
+        "id": "morsure",
+        "value": 9
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "venin",
+        "arg": "difficile"
+      },
+      {
+        "id": "arme",
+        "value": 10,
+        "arg": "Queue",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "taille",
+        "arg": "monstrueuse"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 43
+    },
+    "appearance": {
+      "species": "serpent-de-mer"
+    },
+    "grantGroups": [
+      "bete",
+      "monstres",
+      "serpent"
+    ]
+  },
+  {
+    "id": "requins",
+    "type": "creatures",
+    "label": "Requins",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 7,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": null,
+      "force": 55,
+      "endurance": 35,
+      "initiative": 35,
+      "agilite": 40,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 25,
+      "sociabilite": null,
+      "B": 26
+    },
+    "traits": [
+      {
+        "id": "amphibie"
+      },
+      {
+        "id": "armure",
+        "value": 1,
+        "matiere": "peau"
+      },
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "a-sang-froid"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "pisteur"
+      },
+      {
+        "id": "arme",
+        "value": 9
+      }
+    ],
+    "optionals": [
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "affame"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "taille",
+        "arg": "moyenne"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 44
+    },
+    "appearance": {
+      "species": "requin"
+    },
+    "grantGroups": [
+      "bete",
+      "predateur"
+    ]
+  },
+  {
+    "id": "farfadets",
+    "type": "creatures",
+    "label": "Farfadets",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 2,
+      "capacite-de-combat": 45,
+      "capacite-de-tir": 55,
+      "force": 15,
+      "endurance": 20,
+      "initiative": 75,
+      "agilite": 65,
+      "dexterite": 45,
+      "intelligence": 25,
+      "force-mentale": 35,
+      "sociabilite": 40,
+      "B": 2
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "vol",
+        "value": 40
+      },
+      {
+        "id": "magique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "changeur-de-forme"
+      },
+      {
+        "id": "furtif"
+      },
+      {
+        "id": "venin",
+        "arg": "difficile"
+      },
+      {
+        "id": "grimpant"
+      },
+      {
+        "id": "arme",
+        "value": 1,
+        "arg": "Lames Minuscules"
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 44
+    },
+    "appearance": {
+      "species": "farfadet"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "zombie-fongique",
+    "type": "creatures",
+    "label": "Zombie Fongique",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 25,
+      "capacite-de-tir": null,
+      "force": 35,
+      "endurance": 30,
+      "initiative": 5,
+      "agilite": 10,
+      "dexterite": 15,
+      "intelligence": null,
+      "force-mentale": null,
+      "sociabilite": null,
+      "B": 12
+    },
+    "traits": [
+      {
+        "id": "fabrique"
+      },
+      {
+        "id": "corruption",
+        "arg": "mineure"
+      },
+      {
+        "id": "infravision"
+      },
+      {
+        "id": "maladie"
+      },
+      {
+        "id": "champignon-t"
+      },
+      {
+        "id": "peur",
+        "value": 2
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "insensible-a-la-douleur"
+      },
+      {
+        "id": "mort-vivant"
+      },
+      {
+        "id": "instable"
+      },
+      {
+        "id": "arme",
+        "value": 7
+      }
+    ],
+    "optionals": [],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 44
+    },
+    "appearance": {
+      "species": "zombie"
+    },
+    "grantGroups": [
+      "mort-vivant"
+    ]
+  },
+  {
+    "id": "treekin",
+    "type": "creatures",
+    "label": "Treekin",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 0,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": null,
+      "force": 50,
+      "endurance": 60,
+      "initiative": 15,
+      "agilite": 10,
+      "dexterite": 15,
+      "intelligence": 5,
+      "force-mentale": 35,
+      "sociabilite": null,
+      "B": 52
+    },
+    "traits": [
+      {
+        "id": "arboricole"
+      },
+      {
+        "id": "armure",
+        "value": 2,
+        "matiere": "peau"
+      },
+      {
+        "id": "fabrique"
+      },
+      {
+        "id": "inflammable"
+      },
+      {
+        "id": "endurant"
+      },
+      {
+        "id": "taille",
+        "arg": "grande"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "arme",
+        "value": 8,
+        "arg": "Branches",
+        "natural": true
+      }
+    ],
+    "optionals": [
+      {
+        "id": "frenesie"
+      },
+      {
+        "id": "haine"
+      },
+      {
+        "id": "haine",
+        "arg": "chaos"
+      },
+      {
+        "id": "haine",
+        "arg": "peau-verte"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "taille",
+        "arg": "monstrueuse"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 45
+    },
+    "appearance": {
+      "species": "homme-arbre"
+    },
+    "grantGroups": [
+      "monstres"
+    ]
+  },
+  {
+    "id": "vautours",
+    "type": "creatures",
+    "label": "Vautours",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 1,
+      "capacite-de-combat": 30,
+      "capacite-de-tir": null,
+      "force": 15,
+      "endurance": 20,
+      "initiative": 45,
+      "agilite": 30,
+      "dexterite": null,
+      "intelligence": 5,
+      "force-mentale": 20,
+      "sociabilite": null,
+      "B": 6
+    },
+    "traits": [
+      {
+        "id": "bestial"
+      },
+      {
+        "id": "morsure",
+        "value": 4
+      },
+      {
+        "id": "vol",
+        "value": 80
+      },
+      {
+        "id": "taille",
+        "arg": "petite"
+      },
+      {
+        "id": "nerveux"
+      },
+      {
+        "id": "arme",
+        "value": 3
+      }
+    ],
+    "optionals": [
+      {
+        "id": "affame"
+      },
+      {
+        "id": "territorial"
+      }
+    ],
+    "skills": [
+      {
+        "id": "perception",
+        "value": 65
+      }
+    ],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 45
+    },
+    "appearance": {
+      "species": "charognard"
+    },
+    "grantGroups": [
+      "bete"
+    ]
+  },
+  {
+    "id": "dragons-zombies",
+    "type": "creatures",
+    "label": "Dragons zombies",
+    "title": null,
+    "folder": "Monstres répugnants",
+    "char": {
+      "M": 4,
+      "capacite-de-combat": 55,
+      "capacite-de-tir": 50,
+      "force": 75,
+      "endurance": 60,
+      "initiative": 45,
+      "agilite": 30,
+      "dexterite": null,
+      "intelligence": 85,
+      "force-mentale": 65,
+      "sociabilite": 10,
+      "B": 100
+    },
+    "traits": [
+      {
+        "id": "armure",
+        "value": 5
+      },
+      {
+        "id": "morsure",
+        "value": 11
+      },
+      {
+        "id": "souffle",
+        "value": 10
+      },
+      {
+        "id": "vol",
+        "value": 50
+      },
+      {
+        "id": "immunite-psychologique"
+      },
+      {
+        "id": "parasite"
+      },
+      {
+        "id": "magique"
+      },
+      {
+        "id": "vision-nocturne"
+      },
+      {
+        "id": "taille",
+        "arg": "enorme"
+      },
+      {
+        "id": "attaque-caudale",
+        "value": 10
+      },
+      {
+        "id": "mort-vivant"
+      },
+      {
+        "id": "arme",
+        "value": 10
+      }
+    ],
+    "optionals": [
+      {
+        "id": "rage"
+      },
+      {
+        "id": "corruption-mentale"
+      },
+      {
+        "id": "mutation"
+      },
+      {
+        "id": "taille",
+        "arg": "monstrueuse"
+      },
+      {
+        "id": "lanceur-de-sorts",
+        "arg": "Divers"
+      },
+      {
+        "id": "territorial"
+      },
+      {
+        "id": "dresse-monture"
+      }
+    ],
+    "skills": [],
+    "talents": [],
+    "trappings": [],
+    "spells": [],
+    "source": {
+      "book": "bestiaire-non-officiel",
+      "page": 45
+    },
+    "appearance": {
+      "species": "dragon"
+    },
+    "grantGroups": [
+      "mort-vivant"
+    ]
   }
 ]

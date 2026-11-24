@@ -432,6 +432,16 @@ Trois points d'enregistrement, dans cet ordre :
    et les livres dans l'ordre du fichier à l'intérieur d'un rayon. (Édition de `books.json` :
    round-trip octet-fidèle exigé par `src/data/serialize.test.ts`.)
 
+   **Livre SANS EXTRACTION** — un bestiaire d'auteur dont le dépôt n'a que des fiches déjà converties
+   (*Guide fan v4.5*, `guide-frenchy` ; *Bestiaire non officiel*, `bestiaire-non-officiel`) entre au registre
+   SANS `dir` ni `pdf`, au rayon `Contenu fan`, après accord de l'utilisateur consigné dans une fiche
+   `user-arbitrage-*`. Les §§ 1, 2 et 4 ne le concernent pas : aucun chapitre sous `Source/`, aucune fiche
+   d'Atlas, et `BOOKS` ne le voit pas. Ses entrées viennent par une migration datée depuis les fiches
+   converties (skill `integrer-des-pnj`), chacune citée `{ book, page }` ; un mot imprimé qui ne résout
+   aucune entrée du catalogue se relève dans la table de la migration. Son paragraphe de périmètre
+   s'écrit au gabarit de `scripts/docs/build-sources-vf.mjs`, et son abréviation à `AGENTS.md`
+   (§ Sources VF).
+
    **Livre de CŒUR (`coeur`)** — champ OPTIONNEL de la même entrée, la valeur nommant le corps de
    règles dont ce livre est le livre de base (`"4e"`, `"5e"` ; graphie normalisée : minuscules, sans
    espace de bord — deux livres ne portent jamais deux graphies d'un même cœur). Un supplément ne le

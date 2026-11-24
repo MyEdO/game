@@ -4,7 +4,6 @@ import { fileURLToPath } from 'node:url';
 import { TRAITS } from './registry';
 import { formatTrait } from './dispatch';
 import type { TraitInstance } from '../statEntry';
-import { slugId } from '../../data/slug';
 
 /**
  * Parité des Traits de créature (LDB 85). Le registre `TRAITS` est désormais DÉRIVÉ 1:1 de la donnée
@@ -209,9 +208,13 @@ const DISPATCH = new Set<string>([
   'Entêté',
 ]);
 
+/** Livres dont les Traits propres entrent au catalogue par leur texte, sans mécanique, jusqu'au ticket qui la leur
+ *  donne : fiche `user-arbitrage-bestiaire-non-officiel`. */
+const SANS_MECANIQUE_JUSQU_AU_TICKET: Readonly<Record<string, string>> = { 'bestiaire-non-officiel': '#4917' };
+
 /** Entrée BRUTE de `traits.json` — lue au fichier (le registre `TRAITS` est dérivé, il ne rend pas
  *  les champs de mécanique tels quels). */
-type RawTrait = { label: string } & Partial<Record<(typeof MECHANIC_FIELDS)[number], unknown>>;
+type RawTrait = { id: string; label: string; source: { book: string } } & Partial<Record<(typeof MECHANIC_FIELDS)[number], unknown>>;
 
 /** Les CINQ champs de `TraitData` qui portent une mécanique exécutable (cf. `src/data/index.ts`) :
  *  `passive` (GameOp continus), `effects` (TriggeredEffect), `aura` (projection `recompute-auras`),
@@ -222,10 +225,6 @@ const MECHANIC_FIELDS = ['passive', 'effects', 'aura', 'capabilities', 'grantsMa
 function allTraits(): RawTrait[] {
   const path = fileURLToPath(new URL('../../data/traits.json', import.meta.url));
   return JSON.parse(readFileSync(path, 'utf8')) as RawTrait[];
-}
-
-function allTraitLabels(): string[] {
-  return allTraits().map((t) => t.label);
 }
 
 /** Champs de mécanique NON VIDES portés par l'entrée (liste vide = aucune mécanique en donnée). */
@@ -239,14 +238,15 @@ function mechanicFieldsOf(t: RawTrait): string[] {
 
 describe('parité — registre des Traits dérivé de traits.json', () => {
   it('la dérivation est totale : chaque trait de traits.json est dans TRAITS (par id)', () => {
-    const missing = allTraitLabels().filter((l) => !TRAITS()[slugId(l)]);
+    const missing = allTraits().filter((t) => !TRAITS()[t.id]).map((t) => t.id);
     expect(missing).toEqual([]);
   });
 
   it('chaque trait de traits.json est couvert par un sous-système identifié (dispatch / ailleurs / journal)', () => {
-    const uncovered = allTraitLabels().filter(
-      (l) => !DISPATCH.has(l) && !COUVERT_AILLEURS.has(l) && !JOURNAL_MJ.has(l),
-    );
+    const uncovered = allTraits()
+      .filter((t) => !(t.source.book in SANS_MECANIQUE_JUSQU_AU_TICKET && !mechanicFieldsOf(t).length))
+      .map((t) => t.label)
+      .filter((l) => !DISPATCH.has(l) && !COUVERT_AILLEURS.has(l) && !JOURNAL_MJ.has(l));
     expect(uncovered).toEqual([]);
   });
 

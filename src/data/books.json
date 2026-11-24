@@ -336,5 +336,13 @@
     "abbr": "HCVM",
     "language": "VF",
     "folder": "Contenu fan"
+  },
+  {
+    "id": "bestiaire-non-officiel",
+    "type": "books",
+    "label": "Bestiaire non officiel",
+    "abbr": "BNO",
+    "language": "VF",
+    "folder": "Contenu fan"
   }
 ]

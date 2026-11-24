@@ -839,5 +839,407 @@
     "type": "planDeBestiaire",
     "label": "Colosse Necrofex",
     "omis": "assemblage de cadavres invoqué (HCVM p.561) : aucune forme commune"
+  },
+  {
+    "id": "troglodyte",
+    "type": "planDeBestiaire",
+    "label": "Troglodyte",
+    "corps": "troglodyte",
+    "famille": "theropode",
+    "echelle": 1.2
+  },
+  {
+    "id": "molosse-a-sang-froid",
+    "type": "planDeBestiaire",
+    "label": "Molosse à sang froid",
+    "corps": "molosse-a-sang-froid",
+    "famille": "quadrupede",
+    "echelle": 0.9
+  },
+  {
+    "id": "culchan",
+    "type": "planDeBestiaire",
+    "label": "Culchan",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "grenouille",
+    "type": "planDeBestiaire",
+    "label": "Grenouille",
+    "corps": "grenouille",
+    "famille": "quadrupede",
+    "echelle": 0.5
+  },
+  {
+    "id": "homme-lezard",
+    "type": "planDeBestiaire",
+    "label": "Homme-lézard",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "skink",
+    "type": "planDeBestiaire",
+    "label": "Skink",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 0.8
+  },
+  {
+    "id": "kroxigor",
+    "type": "planDeBestiaire",
+    "label": "Kroxigor",
+    "race": {
+      "id": "ogre"
+    },
+    "echelle": 1.1
+  },
+  {
+    "id": "slann",
+    "type": "planDeBestiaire",
+    "label": "Slann",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "salamandre",
+    "type": "planDeBestiaire",
+    "label": "Salamandre",
+    "corps": "salamandre",
+    "famille": "quadrupede",
+    "echelle": 1
+  },
+  {
+    "id": "terradon",
+    "type": "planDeBestiaire",
+    "label": "Terradon",
+    "corps": "terradon",
+    "famille": "quadrupede-aile",
+    "echelle": 1.1
+  },
+  {
+    "id": "horreur-de-la-couvee",
+    "type": "planDeBestiaire",
+    "label": "Horreur de la couvée",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "abomination-de-malefosse",
+    "type": "planDeBestiaire",
+    "label": "Abomination de Malefosse",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "mere-rat",
+    "type": "planDeBestiaire",
+    "label": "Mère-rat",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "chauve-souris",
+    "type": "planDeBestiaire",
+    "label": "Chauve-souris",
+    "corps": "chauve-souris",
+    "famille": "oiseau",
+    "echelle": 0.5
+  },
+  {
+    "id": "ronce-de-sang",
+    "type": "planDeBestiaire",
+    "label": "Ronce de sang",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "doppelganger",
+    "type": "planDeBestiaire",
+    "label": "Doppelganger",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "tortue-dragon",
+    "type": "planDeBestiaire",
+    "label": "Tortue dragon",
+    "corps": "tortue-dragon",
+    "famille": "quadrupede",
+    "echelle": 1.2
+  },
+  {
+    "id": "elementaire",
+    "type": "planDeBestiaire",
+    "label": "Élémentaire",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "scarabee-geant",
+    "type": "planDeBestiaire",
+    "label": "Scarabée géant",
+    "corps": "scarabee",
+    "famille": "arthropode-a-pinces",
+    "echelle": 0.9
+  },
+  {
+    "id": "scorpion-geant",
+    "type": "planDeBestiaire",
+    "label": "Scorpion géant",
+    "corps": "scorpion",
+    "famille": "arthropode-a-pinces",
+    "echelle": 1
+  },
+  {
+    "id": "harpie",
+    "type": "planDeBestiaire",
+    "label": "Harpie",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 0.9
+  },
+  {
+    "id": "palourde-des-sables",
+    "type": "planDeBestiaire",
+    "label": "Palourde des sables",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "renard",
+    "type": "planDeBestiaire",
+    "label": "Renard",
+    "corps": "renard",
+    "famille": "quadrupede",
+    "echelle": 0.6
+  },
+  {
+    "id": "loutre",
+    "type": "planDeBestiaire",
+    "label": "Loutre",
+    "corps": "loutre",
+    "famille": "quadrupede",
+    "echelle": 0.5
+  },
+  {
+    "id": "lapin",
+    "type": "planDeBestiaire",
+    "label": "Lapin",
+    "corps": "lapin",
+    "famille": "quadrupede",
+    "echelle": 0.45
+  },
+  {
+    "id": "ecureuil",
+    "type": "planDeBestiaire",
+    "label": "Écureuil",
+    "corps": "ecureuil",
+    "famille": "quadrupede",
+    "echelle": 0.4
+  },
+  {
+    "id": "hermine",
+    "type": "planDeBestiaire",
+    "label": "Hermine",
+    "corps": "hermine",
+    "famille": "quadrupede",
+    "echelle": 0.45
+  },
+  {
+    "id": "nuee",
+    "type": "planDeBestiaire",
+    "label": "Nuée",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "homme-arbre",
+    "type": "planDeBestiaire",
+    "label": "Homme-arbre",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1.4
+  },
+  {
+    "id": "zoat",
+    "type": "planDeBestiaire",
+    "label": "Zoat",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "juggernaute",
+    "type": "planDeBestiaire",
+    "label": "Juggernaute",
+    "corps": "juggernaute",
+    "famille": "quadrupede",
+    "echelle": 1.2
+  },
+  {
+    "id": "bete-de-nurgle",
+    "type": "planDeBestiaire",
+    "label": "Bête de Nurgle",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "disque-de-tzeentch",
+    "type": "planDeBestiaire",
+    "label": "Disque de Tzeentch",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "bete-de-slaanesh",
+    "type": "planDeBestiaire",
+    "label": "Bête de Slaanesh",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "hurleur-de-tzeentch",
+    "type": "planDeBestiaire",
+    "label": "Hurleur de Tzeentch",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "monture-de-slaanesh",
+    "type": "planDeBestiaire",
+    "label": "Monture de Slaanesh",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "armure-animee",
+    "type": "planDeBestiaire",
+    "label": "Armure animée",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "ambull",
+    "type": "planDeBestiaire",
+    "label": "Ambull",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "charogneur",
+    "type": "planDeBestiaire",
+    "label": "Charogneur",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "taureau-centaure",
+    "type": "planDeBestiaire",
+    "label": "Taureau centaure",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "corail-des-cavernes",
+    "type": "planDeBestiaire",
+    "label": "Corail des cavernes",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "centigor",
+    "type": "planDeBestiaire",
+    "label": "Centigor",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "crocodile",
+    "type": "planDeBestiaire",
+    "label": "Crocodile",
+    "corps": "crocodile",
+    "famille": "quadrupede",
+    "echelle": 1
+  },
+  {
+    "id": "dragon-ogre",
+    "type": "planDeBestiaire",
+    "label": "Dragon ogre",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "gargouille",
+    "type": "planDeBestiaire",
+    "label": "Gargouille",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 0.7
+  },
+  {
+    "id": "geckomandre",
+    "type": "planDeBestiaire",
+    "label": "Geckomandre",
+    "corps": "geckomandre",
+    "famille": "quadrupede",
+    "echelle": 0.9
+  },
+  {
+    "id": "castor-geant",
+    "type": "planDeBestiaire",
+    "label": "Castor géant",
+    "corps": "castor",
+    "famille": "quadrupede",
+    "echelle": 0.9
+  },
+  {
+    "id": "escargot-geant",
+    "type": "planDeBestiaire",
+    "label": "Escargot géant",
+    "corps": "escargot",
+    "famille": "sans-membres",
+    "echelle": 1
+  },
+  {
+    "id": "grignoteur",
+    "type": "planDeBestiaire",
+    "label": "Grignoteur",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "ostrix",
+    "type": "planDeBestiaire",
+    "label": "Ostrix",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 1
+  },
+  {
+    "id": "monstre-de-la-pourriture",
+    "type": "planDeBestiaire",
+    "label": "Monstre de la pourriture",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "gardien-runique",
+    "type": "planDeBestiaire",
+    "label": "Gardien runique",
+    "omis": "forme propre au livre, sans voisin au plan : son corps se tranche sur planche"
+  },
+  {
+    "id": "serpent-de-mer",
+    "type": "planDeBestiaire",
+    "label": "Serpent de mer",
+    "corps": "serpent-de-mer",
+    "famille": "sans-membres",
+    "echelle": 1.3
+  },
+  {
+    "id": "requin",
+    "type": "planDeBestiaire",
+    "label": "Requin",
+    "corps": "requin",
+    "famille": "poisson",
+    "echelle": 1.2
+  },
+  {
+    "id": "farfadet",
+    "type": "planDeBestiaire",
+    "label": "Farfadet",
+    "race": {
+      "id": "humain"
+    },
+    "echelle": 0.4
   }
 ]
