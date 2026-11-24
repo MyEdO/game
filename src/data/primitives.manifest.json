@@ -1165,7 +1165,7 @@
     "type": "primitives.manifest",
     "label": "ganteletRetient",
     "fichier": "src/engine/items.ts",
-    "concept": "lâcher forcé d'un objet tenu face au gantelet verrouillé (AA 08 l.236) : mains couvertes (`ganteletsAuxMains` : tenu et porté exclusifs, au plus un gantelet par main ; tenu : sa main ; portés : main d'arme puis secondaire), retenue posée en effet actif à `testModHand` pour le Round entamé et le suivant, valeur lue en donnée (`regles.json` `retenue-du-gantelet-verrouille`), second évènement pendant la retenue : l'objet tombe",
+    "concept": "lâcher forcé d'un objet tenu face au gantelet verrouillé (AA 08 l.236) : mains couvertes (`ganteletsAuxMains` : tenu et porté exclusifs, au plus un gantelet par main ; tenu : sa main ; portés : main d'arme puis secondaire), retenue posée en effet actif à `testModHand` pour le Round entamé et le suivant au moins, prolongée par `lierLaRetenue` tant que dure sa cause (`tantQue` : séquelle du Critique jusqu'à l'Aide Médicale, main gatée de Main ensanglantée) ; au second évènement, l'objet tombe et la retenue part, valeur lue en donnée (`regles.json` `retenue-du-gantelet-verrouille`), second évènement pendant la retenue : l'objet tombe",
     "perimetre": "tout site qui fait lâcher l'objet tenu : op `disarm` (Critiques, Main ensanglantée par `glisseDeLaMain`, dont l'Action se poursuit si rien n'a glissé), Piège-lame (`applyBladeTrap`)",
     "verrou": "src/noyau/locked-gauntlet.hors-store.test.ts"
   },

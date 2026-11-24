@@ -29,7 +29,7 @@ import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
 import { bonus, effectiveChar, effectPool, retenirParPool, blessuresReconciliees } from './characteristics';
 import { d100, RNG } from './dice';
-import { annulateurDeSequelles, passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
+import { annulateurDeSequelles, causeDure, passiveMods, passiveGlobalTestParts, settleHealedCriticals } from './trauma';
 import { memeSource } from './suspension';
 import type { GameOp, PairedSense } from './ops';
 import type { CodexTarget } from './ruleRefs';
@@ -974,6 +974,8 @@ export function tickDurations(c: Combatant): string[] {
   // (les premières sont purgées par l'horloge `purgeClockEffects`).
   if (c.activeEffects?.length) {
     for (const e of c.activeEffects) if (!e.awaitingExtension) e.duration = tickRound(e.duration);
+    // AA 08 l.236
+    for (const e of c.activeEffects) if (e.tantQue && e.duration.scale === 'rounds' && e.duration.left <= 0 && causeDure(c, e.tantQue)) e.duration = { scale: 'rounds', left: 1 };
     // Durée « + » (LDB 47 l.311) : un effet dont le SORT source porte le marqueur est GELÉ à l'expiration
     // au lieu d'être retiré — l'offre de prolongation (Test de Force Mentale) est résolue par l'appelant
     // (hors moteur pur : cadence-aware, cf. `resolvePlusExtension`). Répétable : une prolongation réussie
