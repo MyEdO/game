@@ -51,7 +51,7 @@ import {
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import {
   gapDifficulty, resolveClash, rallyHealAmount, battleOutcome, isDestroyed,
-  BATTLE_HAZARDS, battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus, JET_DE_PUISSANCE,
+  BATTLE_HAZARDS, battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus, jetDePuissance,
   type ClashResult, type HazardRow, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
 import { t } from '../i18n';
@@ -652,7 +652,7 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   // Caractéristique effective sinon.
   const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, { skill: picked.test.skill }) : effectiveChar(picked.actor, picked.test.characteristic);
   // Seuil de l'opposition (aucune Difficulté : Puissance + tenue), écrêté par l'évaluation PARTAGÉE.
-  const tenue = jeterLeDe(JET_DE_PUISSANCE, d100(battleRng()), armyMight(mb.ennemi) + enemyBonus, armyMight(mb.ennemi));
+  const tenue = jeterLeDe(jetDePuissance(mb.ennemi.combatant.id), d100(battleRng()), armyMight(mb.ennemi) + enemyBonus, armyMight(mb.ennemi));
   const opposition: ActivityOppositionOn = {
     enemyValue: tenue.target,
     enemyRoll: tenue.roll,
@@ -986,7 +986,7 @@ export function choixDeLaBataille(get: Get, set: Set) {
 function jouerLeTestSpectaculaire(get: Get, set: Set): void {
   const mb = get().massBattle!;
   const allyMod = mb.modificateurAllie + (mb.round === 1 ? mb.firstRoundBonus : 0);
-  const clash = resolveClash(armyMight(mb.allie), armyMight(mb.ennemi), { modificateurAllie: allyMod, modificateurEnnemi: 0, rng: battleRng() });
+  const clash = resolveClash({ allie: mb.allie.combatant.id, ennemi: mb.ennemi.combatant.id }, armyMight(mb.allie), armyMight(mb.ennemi), { modificateurAllie: allyMod, modificateurEnnemi: 0, rng: battleRng() });
   const ally = armyWithMightDelta(mb.allie, -clash.allyLoss, get().forgerUnId);
   const enemy = armyWithMightDelta(mb.ennemi, -clash.enemyLoss, get().forgerUnId);
   const lines: string[] = [

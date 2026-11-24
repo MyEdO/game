@@ -134,13 +134,6 @@ export function relancer<T>(fn: () => T): T {
   try { return fn(); } finally { enRelance = avant; }
 }
 
-/** Joue `fn` comme une simulation (une IA qui évalue un geste sur un clone) : aucun de ses jets n'est observé. */
-export function enSimulation<T>(fn: () => T): T {
-  const avant = observateur;
-  observateur = undefined;
-  try { return fn(); } finally { observateur = avant; }
-}
-
 function observer(jet: JetDeTest, r: TestResult, forcee: boolean): TestResult {
   observateur?.(jet, r, { ...(enRelance ? { relance: true as const } : {}), ...(forcee ? { forcee: true as const } : {}) });
   return r;
@@ -428,13 +421,19 @@ export function bumpSL(t: TestResult, by = 1): TestResult {
 }
 
 /** `TestResult` d'une réussite FORCÉE (Résilience « Je ne faillirai pas ! » LDB 17 l.68 / Résistance
- *  Menace LDB 10) au dé `roll`, DR `sl` imposé. Collapse le littéral `{ roll, target, success: true,
- *  sl, isDouble: isDoubleRoll(roll) }` recopié dans chaque résolveur forcé — atome PARTAGÉ, voisin de `bumpSL`.
- *  `cible` = la cible AVANT bornage, bornée et MESURÉE ici comme dans `evaluateTest` ;
+ *  Menace LDB 10) au dé `roll`, DR `sl` imposé, que l'observateur reçoit comme forcée. Collapse le littéral
+ *  `{ roll, target, success: true, sl, isDouble: isDoubleRoll(roll) }` recopié dans chaque résolveur forcé — atome
+ *  PARTAGÉ, voisin de `bumpSL`. `cible` = la cible AVANT bornage, bornée et MESURÉE ici comme dans `evaluateTest` ;
  *  `base` = valeur nue, à fournir quand le site la connaît (départage opposé, LDB 12 l.160). */
 export function forcedTR(jet: JetDeTest, roll: number, cible: number, sl: number, base?: number): TestResult {
+  return observer(jet, reussiteForcee(roll, cible, sl, base), true);
+}
+
+/** La réussite forcée de `forcedTR`, sans l'observer : le dé que le joueur choisit sur une réussite déjà forcée
+ *  (`imposerLeResultat`) réécrit le jet que la Résilience a acheté (LDB 17 l.68), il n'en jette aucun. */
+export function reussiteForcee(roll: number, cible: number, sl: number, base?: number): TestResult {
   const { target, clamped } = clampTarget(cible);
-  return observer(jet, { roll, target, success: true, sl, isDouble: isDoubleRoll(roll), ...(base != null ? { base } : {}), ...(clamped ? { clamped } : {}) }, true);
+  return { roll, target, success: true, sl, isDouble: isDoubleRoll(roll), ...(base != null ? { base } : {}), ...(clamped ? { clamped } : {}) };
 }
 
 /** `TestResult` RE-HYDRATÉ depuis un détail de jet stocké (RollBreakdown/attackerDetail/étape de

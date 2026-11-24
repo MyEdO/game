@@ -108,12 +108,12 @@ export function mightReduction(sl: number): number {
 
 /** Un Test spectaculaire de Puissance NON opposé (l.120) : d100 ≤ Puissance courante, modifié par les
  *  bonus/malus de bataille (Planification/Discours/aléas). `modifier` = somme des modificateurs. */
-export function rollMightTest(might: number, modifier: number, rng: RNG): TestResult {
-  return rollTest(JET_DE_PUISSANCE, might, 'intermediaire', rng, modifier);
+export function rollMightTest(armee: string, might: number, modifier: number, rng: RNG): TestResult {
+  return rollTest(jetDePuissance(armee), might, 'intermediaire', rng, modifier);
 }
 
-/** Le jet d'une armée : sans fiche, il teste sa Puissance (l.120). */
-export const JET_DE_PUISSANCE: JetDeTest = { porteur: null, teste: { puissance: true } };
+/** Le jet de l'armée d'id `armee` : il teste sa Puissance (l.120). */
+export const jetDePuissance = (armee: string): JetDeTest => ({ porteur: armee, teste: { puissance: true } });
 
 /** Issue de l'affrontement d'un Round : les deux Tests + les pertes de Puissance infligées de part et
  *  d'autre. Les pertes sont ensuite APPLIQUÉES aux Combattants-armées par l'op `wounds` (côté flux), pas
@@ -131,13 +131,14 @@ export interface ClashResult {
  *  réduit celle de l'adverse de 10 + DR (min 5), simultanément (les deux DR sont figés AVANT réduction).
  *  Ne retourne QUE les pertes ; le flux les applique en Blessures sur chaque Combattant-armée. */
 export function resolveClash(
+  armees: { allie: string; ennemi: string },
   puissanceAlliee: number,
   puissanceEnnemie: number,
   opts: { modificateurAllie?: number; modificateurEnnemi?: number; rng: RNG },
 ): ClashResult {
   const rng = opts.rng;
-  const allyTest = rollMightTest(puissanceAlliee, opts.modificateurAllie ?? 0, rng);
-  const enemyTest = rollMightTest(puissanceEnnemie, opts.modificateurEnnemi ?? 0, rng);
+  const allyTest = rollMightTest(armees.allie, puissanceAlliee, opts.modificateurAllie ?? 0, rng);
+  const enemyTest = rollMightTest(armees.ennemi, puissanceEnnemie, opts.modificateurEnnemi ?? 0, rng);
   return {
     allyTest,
     enemyTest,

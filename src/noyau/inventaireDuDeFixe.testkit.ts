@@ -19,7 +19,7 @@ export const HERO: Combatant = blessuresSurLeProfil({
   wounds: blessuresDeBase(10), advantage: 0, conditions: [], traumas: [],
   resilience: 3, fortune: 2, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: false, flat: 4 }, qualities: [] }], items: [],
   armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-  skills: [], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
+  skills: [{ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 5 }], talents: [], movement: 4, bodyShape: 'humanoide', pos: { x: 0, y: 0 },
 }) as unknown as Combatant;
 export const FOE = { ...HERO, id: 'E', label: 'Ennemi', kind: 'ennemi', pos: { x: 1, y: 0 } } as unknown as Combatant;
 

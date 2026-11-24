@@ -41,6 +41,7 @@ import {
   evaluateTest,
   maxForcedRoll,
   forcedTR,
+  reussiteForcee,
   bestForcedRoll,
   cibleBrute,
   relancer,
@@ -970,7 +971,8 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       //  - dé FIXÉ (option de confort) : évaluation NATURELLE, aucune politique — l'issue est celle du dé ;
       //  - dé de RÉSILIENCE (LDB 17 l.68) : le dé doit RESTER une réussite (`maxForcedRoll`), le DR est
       //    planché (`floorSL` — Test opposé : « vous l'emportez avec au moins DR +1 »), la réussite ACHETÉE
-      //    est conservée (`forcedTR`). Le flux ne déclare que sa POLITIQUE, jamais une branche.
+      //    est conservée (`reussiteForcee` : le point a acheté le jet, le dé choisi le réécrit sans en jeter un).
+      //    Le flux ne déclare que sa POLITIQUE, jamais une branche.
       // Un dé qui n'est pas un Test (`jetDuDe` nul : pourcentage, dé de table) se lit sans jet (`evaluateTest`) : rien
       // n'y est jeté, et la Résilience n'y achète que la réussite du dé choisi.
       const resolveChosen = (r: number) => {
@@ -980,7 +982,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
         if (fixed) return dieWrite(s, loc.slot, actor, get, jet ? jeterLeDe(jet, r, cur.target, cur.base) : evaluateTest(r, cur.target, cur.base), p);
         if (r > maxForcedRoll(cur.target)) return null;
         const floor = dieFloor(loc.slot, actor, p);
-        const tr = jet ? forcedTR(jet, r, cur.target, Math.max(evaluateTest(r, cur.target).sl, floor), cur.base) : evaluateTest(r, cur.target, cur.base);
+        const tr = jet ? reussiteForcee(r, cur.target, Math.max(evaluateTest(r, cur.target).sl, floor), cur.base) : evaluateTest(r, cur.target, cur.base);
         return (spec.die?.resilience ?? dieWrite)(s, loc.slot, actor, get, tr, p);
       };
       if (!opSetForcedRoll(roll, resolveChosen, loc.commit, fixed) || !fixed) return;

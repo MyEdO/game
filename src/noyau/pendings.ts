@@ -1592,8 +1592,8 @@ export interface PendingExtendedTest extends PendingBase {
 export interface OpposedFreeze {
   /** Jet COMPLET de l'attaquant (porteur), figé. */
   aT: TestResult;
-  /** Id de l'attaquant, quand c'est un COMBATTANT réel (`actorIn`) — porte l'en-tête A→B (`VsHeader`).
-   *  Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
+  /** Id de l'attaquant, porteur du jet figé (`JetDeTest.porteur`), quand il a une fiche — porte l'en-tête A→B
+   *  (`VsHeader`). Absent pour un adversaire ABSTRAIT (table sans Combatant, ex. jeux de taverne contre la maison). */
   attackerId?: string;
   /** Nom de l'attaquant (affichage de la ligne d'opposition) — tout producteur a un adversaire nommé. */
   attackerName: PlayerText;

@@ -22,7 +22,7 @@ import { verbeDeJetDe, type RollVerb } from './flowVerbs';
 import type { Cadence } from '../engine/cadence';
 import { patchDeLArmement } from './monde/carrier';
 import { detientLAutoriteDuJeu } from './netOwnership';
-import { testJeteEnVue } from './jetsEnVue';
+import { testJeteEnVue, testsJetesMasques } from './jetsEnVue';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -152,8 +152,8 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   /** Chaque État qu'un combattant porte et ne portait pas `avant`. */
   const etatsGagnes = (): Evenement[] =>
     [...etatsPortes()].flatMap(([porteur, etats]) => [...etats].filter((etat) => !avant.get(porteur)?.has(etat)).map((etat): Evenement => ({ type: 'etatGagne', porteur, etat })));
-  /** Les Tests jetés que le groupe ne voit pas, dans l'ordre des jets. */
-  let retenus: TestJete[] = [];
+  /** Les Tests jetés que le groupe ne voit pas, dans l'ordre des jets : à l'ouverture, ceux que l'état initial masque. */
+  let retenus: TestJete[] = testsJetesMasques(get());
   /** Les événements de l'appel, chaque Test jeté tel que le groupe le voit à sa fin (`testJeteEnVue`) : les retenus
    *  qu'il révèle d'abord, puis ceux de l'appel ; un jet masqué reste retenu. */
   const vusParLeGroupe = (evenements: Evenement[]): Evenement[] => {

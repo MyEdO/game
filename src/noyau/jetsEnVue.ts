@@ -223,7 +223,9 @@ export type LigneDeJet = DonneesDeLigne & {
    *  résolveur les donne. Absentes s'il n'en publie aucune. */
   consequences?: ConsequenceEnVue[];
 };
-type LigneLue = DonneesDeLigne & { id?: string; masque?: boolean; reference?: ReferenceDeJet | null; faits?: FaitApplique[] };
+/** Une ligne telle que son lecteur la pose, avant ce que le groupe en voit : une ligne masquée garde son Test jeté
+ *  (`jete`), que le groupe ne voit pas encore. */
+type LigneLue = DonneesDeLigne & { id?: string; masque?: boolean; reference?: ReferenceDeJet | null; faits?: FaitApplique[]; jete?: TestJete };
 
 /** Test opposé tranché : l'index de la ligne gagnante (null pour une égalité) et le DR net du vainqueur. */
 export interface OppositionEnVue { gagnante: number | null; drNet: number }
@@ -373,6 +375,7 @@ type ReglagesDeLigne = {
   critique?: boolean;
   maladresse?: boolean;
   forcee?: boolean;
+  puissance?: true;
 };
 
 const referenceDeCompetence = (ref: RefDesignee): ReferenceDeJet => ({ genre: 'competence', ...ref });
@@ -384,7 +387,8 @@ export function referenceDuSujet(sujet: { skill?: RefDesignee; characteristic?: 
 }
 
 function ligne(qui: string | null | undefined, test: string, r: JetLu, cible?: number | null, options: ReglagesDeLigne = {}): LigneLue {
-  const { id, reference, sort, masque, cacherDR, composition, seuil, mods, modsDR, critique, maladresse, forcee } = options;
+  const { id, reference, sort, masque, cacherDR, composition, seuil, mods, modsDR, critique, maladresse, forcee, puissance } = options;
+  const teste: TestJete['reference'] | null | undefined = puissance ? { genre: 'puissance' } : reference;
   const c = r?.target ?? cible ?? null;
   const reussi = r?.success ?? (r != null && c != null && evaluateTest(r.roll, c).success);
   return {
@@ -396,7 +400,7 @@ function ligne(qui: string | null | undefined, test: string, r: JetLu, cible?: n
       ...(maladresse ? { maladresse: true } : {}),
       ...(forcee ? { forcee: true } : {}),
     } : null,
-    ...(r && masque === 'roll' ? { masque: true } : {}),
+    ...(r && masque === 'roll' ? { masque: true, ...(teste ? { jete: { porteur: qui ?? null, reference: teste, issue: { roll: r.roll, cible: c, dr: r.sl ?? 0, reussi }, ...(forcee ? { forcee: true as const } : {}) } } : {}) } : {}),
     ...(!masque && composition ? { composition } : {}),
     ...(!masque && seuil ? { seuil } : {}),
     ...(!masque && mods?.length ? { mods } : {}),
@@ -715,10 +719,10 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
     const r = pa.roll != null ? { roll: pa.roll, target: pa.target, sl: pa.sl, success: pa.success } : null;
     const lignes = [ligne(pa.heroId, pa.skillLabel, r, pa.target)];
     if (pa.target2 != null && pa.skill2) lignes.push(ligne(pa.heroId, pa.skill2, pa.roll != null ? { roll: pa.roll, target: pa.target2, sl: pa.sl2 ?? 0, success: pa.success2 } : null, pa.target2));
-    const ennemi = r && pa.enemyValue != null && pa.enemyRoll != null && s.massBattle ? evaluateTest(pa.enemyRoll, pa.enemyValue) : null;
-    if (!ennemi) return vue('activite', lignes);
-    lignes.push(ligne(null, libelleDePuissance(s.massBattle!.ennemi.label), ennemi));
-    return vue('activite', lignes, { gagnante: pa.success ? 0 : lignes.length - 1, drNet: Math.abs(pa.enemySL ?? 0) });
+    const armee = s.massBattle?.ennemi;
+    if (!armee || pa.enemyValue == null || pa.enemyRoll == null) return vue('activite', lignes);
+    lignes.push(ligne(armee.combatant.id, libelleDePuissance(armee.label), evaluateTest(pa.enemyRoll, pa.enemyValue), null, { masque: r ? undefined : 'roll', puissance: true }));
+    return vue('activite', lignes, r && { gagnante: pa.success ? 0 : lignes.length - 1, drNet: Math.abs(pa.enemySL ?? 0) }, undefined, 'oppose');
   },
   marchandage: (s) => {
     const pb = s.pendingBargain;
@@ -898,7 +902,7 @@ function consequenceEnVue(s: Jeu, f: FaitApplique): ConsequenceEnVue {
 export function jetsEnVue(s: Jeu): JetEnVue[] {
   return jetsLus(s).filter((j) => j.lignes.length).map((j) => ({
     ...j,
-    lignes: j.lignes.map(({ id, masque, reference, faits, ...l }, i): LigneDeJet => {
+    lignes: j.lignes.map(({ id, masque, reference, faits, jete: _jete, ...l }, i): LigneDeJet => {
       const porteurHorsDeVue = l.qui !== null && !porteurEnVue(s, l.qui);
       const qui = porteurHorsDeVue ? null : l.qui;
       const quiUnique = qui && j.lignes.filter((r) => r.qui === qui).length === 1 ? qui : null;
@@ -928,6 +932,12 @@ export function chargeDuJet(jet: JetDeTest, r: TestResult, origine: OrigineDuJet
     issue: { roll: r.roll, cible: r.target, dr: r.sl, reussi: r.success },
     ...origine,
   };
+}
+
+/** Les Tests jetés que `s` masque au groupe (jets figés), dans l'ordre de leurs lignes : une partie ouverte sur `s` les
+ *  retient jusqu'à l'appel qui les révèle (`creerPartie`). */
+export function testsJetesMasques(s: Jeu): TestJete[] {
+  return jetsLus(s).flatMap((j) => j.lignes.flatMap((l) => (l.jete ? [l.jete] : [])));
 }
 
 /** Le Test jeté `jet` tel que le groupe le voit en `s` (#4848), `null` tant qu'une ligne ouverte de son porteur en masque

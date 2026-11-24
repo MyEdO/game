@@ -1029,7 +1029,8 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const difficulteAdverse = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[challenger.id]), idAdverse(p));
   const avantageAdverse = avantageSurLaCible(optMien, p.advantage?.[CAMP_OPPONENT] ?? 0).reduce((s, l) => s + l.value, 0);
   const valeurAdverse = p.ficheAdverseDeLaPartie ? testValue(p.ficheAdverseDeLaPartie, optMien.test) : p.opponentValue;
-  const rolled = rollTavernTest({ porteur: p.ficheAdverseDeLaPartie?.id ?? null, teste: test }, valeurAdverse, rng, difficulteAdverse, avantageAdverse);
+  const porteurAdverse = p.ficheAdverseDeLaPartie?.id;
+  const rolled = rollTavernTest({ porteur: porteurAdverse ?? null, teste: test }, valeurAdverse, rng, difficulteAdverse, avantageAdverse);
   const surLaCible = avantageSurLaCible(optMien, challenger);
   // TEST COMBINÉ (Cerevis l.90) : la fenêtre annonce SES DEUX cibles — sans quoi le second Test ne se
   // découvrait qu'en le ratant (friction mesurée en recette, #1279 S3).
@@ -1049,7 +1050,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
       stakeBrass: p.stakeBrass, round: seq.manche,
       // L'adversaire de la salle joue le MÊME Test que le challenger : la STRUCTURE voyage, le
       // libellé de sa ligne s'écrit au rendu.
-      opposed: { aT: rolled, attackerName: p.opponentName, test, difficulty: difficulteAdverse },
+      opposed: { aT: rolled, ...(porteurAdverse ? { attackerId: porteurAdverse } : {}), attackerName: p.opponentName, test, difficulty: difficulteAdverse },
     },
   });
   if (!step) return undefined;

@@ -12,6 +12,9 @@ import type { PlayerText } from '../i18n/playerText';
 import { nomDe } from './nom';
 import {
   rollTest,
+  jeterLeTest,
+  forcedTR,
+  cibleDuTest,
   resolveOpposed,
   evaluateTest,
   isDoubleRoll,
@@ -1147,8 +1150,17 @@ export function rollMeleeAttacker(
 ): TestResult {
   const atkVal = combatValue(attacker, 'melee', weapon);
   const jet: JetDeTest = { porteur: attacker.id, teste: attackTestOf(attacker, weapon, 'melee') };
-  const t = rollTest(jet, atkVal, 'intermediaire', rng, combineMods(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env, flankRear })));
-  return { ...t, base: combatBaseValue(attacker, 'melee', weapon) }; // LDB 12 l.160
+  const cible = cibleDuTest(atkVal, 'intermediaire', combineMods(attackModifiers(attacker, defender, weapon, { kind: 'melee', location, env, flankRear })));
+  return jeterLAttaque(jet, cible, combatBaseValue(attacker, 'melee', weapon), rng, defender, 'melee'); // LDB 12 l.160
+}
+
+/** Le d100 de l'attaque `jet` contre `cible` (avant bornage), de valeur nue `base`, observé une fois ; contre une cible
+ *  `isHelplessTarget`, par `forcedTR`. LDB 12 l.160, LDB 16 l.113 */
+function jeterLAttaque(jet: JetDeTest, cible: number, base: number, rng: RNG, defender: Combatant, kind: 'melee' | 'distance'): TestResult {
+  if (!isHelplessTarget(defender)) return { ...jeterLeTest(jet, cible, rng), base };
+  const roll = d100(rng);
+  const sl = Math.max(evaluateTest(roll, cible).sl, 0) + (kind === 'distance' ? 6 : 0);
+  return { ...forcedTR(jet, roll, cible, sl, base), isDouble: true };
 }
 
 /** Jet du DÉFENSEUR seul (Parade = Corps à corps, Esquive = Agilité + avances ;
@@ -1344,19 +1356,6 @@ function combineOpposed(
   return res;
 }
 
-/**
- * Cible Inconscient (LDB 16 l.113) : l'attaquant bénéficie de « Je ne faillirai pas ! »
- * (LDB 17 l.68) sans dépenser de Résilience — il *choisit* le résultat, donc on prend le
- * meilleur : une réussite **critique** (double choisi). À distance, les Dégâts sont ceux
- * d'un tir **à bout portant** (+6 DR ≈ le +60 au toucher de la bande de portée). Le jet
- * brut n'est qu'un TOUCHÉ provisoire : la Localisation du Critique (garanti) est choisissable
- * par l'attaquant qui pilote (LDB 17 l.68, `pa.forcee` → CritLocationPicker, cf. targetingModes.ts).
- */
-function helplessTest(atk: TestResult, kind: 'melee' | 'distance'): TestResult {
-  const dr = Math.max(atk.sl, 0) + (kind === 'distance' ? 6 : 0);
-  return { ...atk, success: true, isDouble: true, sl: dr };
-}
-
 /** Attaque de mêlée sans défense, à partir d'un jet d'attaque déjà obtenu. LDB 16 l.135 ; LDB 16 l.113 ;
  *  LDB 15 l.63 */
 export function resolveMeleePassive(
@@ -1430,12 +1429,11 @@ export function resolveMelee(
   weapon = appliquerAtoutOptionnel(weapon);
   // Un OBJET INANIMÉ (structure de siège / véhicule-coque / affût inerte) n'a ni CC/Ag, ni Parade, ni Esquive → jamais de défense.
   const defenseMode = (cannotDefend(defender) || isInanimate(defender)) ? 'aucune' : opts.defense ?? 'parade';
-  let atk = rollMeleeAttacker(attacker, defender, weapon, rng, opts.location, opts.env, opts.flankRear);
+  const atk = rollMeleeAttacker(attacker, defender, weapon, rng, opts.location, opts.env, opts.flankRear);
   // Cible Inconsciente (LDB 16 l.113) : auto-réussite + Critique (RAW). Règle optionnelle « mort-auto » :
   // en CORPS À CORPS la cible est tuée automatiquement → on marque `autoKill` (le store finalise la mort
   // par le chemin normal, Destin possible). Le tir n'est PAS concerné (cf. resolveRanged).
   const helpless = isHelplessTarget(defender);
-  if (helpless) atk = helplessTest(atk, 'melee');
   const autoKill = helpless && rule('combat-cible-inconsciente') === 'mort-auto';
   let res: AttackResult;
   // Difficulté COMPOSÉE ICI, une fois, avec les mods COMPLETS (flanc/dos compris — `rollMeleeAttacker`
@@ -1560,8 +1558,7 @@ export function resolveRanged(
     return { hit: false, attackerRoll: 0, netSL: 0, critical: false, advantageTo: null, defenderDefeated: false, log: t('touche.horsDePortee', { attaquant: nomDe(attacker) }) };
   const mods = attackModifiers(attacker, defender, weapon, { kind: 'distance', location, distanceTiles, env, metresPerTile, resolveTrapping });
   const jet: JetDeTest = { porteur: attacker.id, teste: attackTestOf(attacker, weapon, 'distance') };
-  let atk: TestResult = { ...rollTest(jet, atkVal, 'intermediaire', rng, combineMods(mods)), base: combatBaseValue(attacker, 'distance', weapon) }; // LDB 12 l.160
-  if (isHelplessTarget(defender)) atk = helplessTest(atk, 'distance'); // auto-succès, Dégâts à bout portant (LDB 16 l.113)
+  const atk = jeterLAttaque(jet, cibleDuTest(atkVal, 'intermediaire', combineMods(mods)), combatBaseValue(attacker, 'distance', weapon), rng, defender, 'distance'); // LDB 12 l.160 ; LDB 16 l.113
   const atkBd = bd(attackTestLabel(attacker, weapon, 'distance'), atkVal, atk, composeAttack(mods, modsDR));
   // Tir DÉFENDU (RAW : Protectrice 2+ LDB 62 l.296 / Bout Portant 14 l.40 / tireur Engagé 14 l.41) →
   // Test OPPOSÉ, cœur partagé avec la mêlée (`combineOpposed`). L'Inconscient ne se défend pas.

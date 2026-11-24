@@ -221,6 +221,7 @@ import {
   castInfo,
   incantationArcane,
   focalisationTestee,
+  focusValueOf,
   type CastResult,
   type SpellLike,
 } from '../engine/magic';
@@ -598,9 +599,13 @@ function holdVerdict(p: PendingActivity & ActivityOppositionOn, jet: { roll: num
   return { held: opp.winner !== 'defenseur', enemySL: et.sl - jet.sl };
 }
 
+/** Le second Test d'une Activité COMBINÉE (LDB 12 l.206), jeté sur le dé du premier. */
+const secondTestDuCombine = (p: PendingActivity): JetDeTest => ({ porteur: p.heroId, teste: garanti(p.teste2, p.heroId, 'second Test du combiné') });
+
 /** Lecture du dé `tr` d'une Activité : COMBINÉ (LDB 12 l.206 : UN dé confronté à DEUX valeurs), OPPOSÉ de
  *  « Tenez votre position » (l'ennemi garde son jet FIGÉ, seul le DR net se recalcule), sinon simple —
  *  SOURCE UNIQUE du dé choisi/fixé et de l'inversion. */
+
 function lireDeDActivite(
   p: PendingActivity,
   tr: { roll: number; target: number; sl: number; success: boolean },
@@ -2182,9 +2187,13 @@ export const FLOWS = paresseux({
         // Le dé passe par la MÊME source de modificateurs que les deux autres voies.
         const die = base?.target != null ? bestForcedRoll(base.target) : 1;
         const sea = { atSea: seaMagicContext(s).atSea };
+        const teste = testeDeFocalisation(actor, spell);
+        const valeur = focusValueOf(actor, spell);
         const sl = base?.target != null
-          ? forcedTR({ porteur: actor.id, teste: garanti(testeDeFocalisation(actor, spell), actor.id, 'Focalisation du jet posé') }, die, base.target, Math.max(withCastTestDRMods(actor, 'focalisation', evaluateTest(die, base.target), { spell, sea }).sl, 1)).sl
-          : Math.max(base?.sl ?? 1, 1);
+          ? forcedTR({ porteur: actor.id, teste: garanti(teste, actor.id, 'Focalisation du jet posé') }, die, base.target, Math.max(withCastTestDRMods(actor, 'focalisation', evaluateTest(die, base.target), { spell, sea }).sl, 1)).sl
+          : teste && valeur != null
+            ? forcedTR({ porteur: actor.id, teste }, die, cibleDuTest(valeur + windsMagicModOf(s.battle), 'intermediaire'), Math.max(base?.sl ?? 1, 1)).sl
+            : Math.max(base?.sl ?? 1, 1);
         // `base?.malepierreConsumed` (déjà figé au Round précédent) est REPORTÉ : forcer le résultat
         // ne consomme ni ne restitue une seconde fois la réserve de malepierre.
         return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: t('focalisation.forcee', { name: nomDe(actor) }), ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
@@ -2293,7 +2302,11 @@ export const FLOWS = paresseux({
         target: p.forcee && p.target2 != null ? Math.min(p.target, p.target2) : p.target,
         critable: false,
       },
-      write: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr),
+      // Le dé fixé d'un Test COMBINÉ jette ses deux Tests (LDB 12 l.206) : la fabrique jette le premier (`teste`).
+      write: (_s, p, _a, _g, tr) => {
+        if (p.target2 != null) jeterLeDe(secondTestDuCombine(p), tr.roll, p.target2);
+        return lireDeDActivite(p, tr);
+      },
       resilience: (_s, p, _a, _g, tr) => lireDeDActivite(p, tr, true),
       teste: (_s, p) => p.teste,
     },
@@ -2337,7 +2350,7 @@ export const FLOWS = paresseux({
         if (p.target2 != null) {
           const die2 = bestForcedRoll(Math.min(p.target, p.target2));
           const a = forcedTR(jet, die2, p.target, Math.max(evaluateTest(die2, p.target).sl, 1));
-          const b = forcedTR({ porteur: p.heroId, teste: garanti(p.teste2, p.heroId, 'second Test du combiné') }, die2, p.target2, Math.max(evaluateTest(die2, p.target2).sl, 1));
+          const b = forcedTR(secondTestDuCombine(p), die2, p.target2, Math.max(evaluateTest(die2, p.target2).sl, 1));
           return { roll: die2, success: a.success, sl: a.sl, success2: b.success, sl2: b.sl, combinedLevel: 'full' as const, forcee: true };
         }
         const die = bestForcedRoll(effTarget);
@@ -2352,7 +2365,7 @@ export const FLOWS = paresseux({
       if (p.target2 != null) {
         const roll = d100(battleRng());
         jeterLeDe(jet, roll, p.target);
-        jeterLeDe({ porteur: p.heroId, teste: garanti(p.teste2, p.heroId, 'second Test du combiné') }, roll, p.target2);
+        jeterLeDe(secondTestDuCombine(p), roll, p.target2);
         const c = evaluateCombinedTest(roll, p.target, p.target2);
         return { roll: c.roll, sl: c.a.sl, success: c.a.success, sl2: c.b.sl, success2: c.b.success, combinedLevel: c.level };
       }

@@ -28,7 +28,7 @@ const hero = (id: string, over: Partial<Combatant> = {}): Combatant =>
   });
 
 const rang = (id: string): BatchParticipant =>
-  ({ id, label: 'Résistance', difficulty: 'intermediaire', base: 40, target: 40, result: null, interactive: true }) as unknown as BatchParticipant;
+  ({ id, label: 'Résistance', difficulty: 'intermediaire', base: 40, target: 40, result: null, interactive: true, teste: { skill: { id: 'resistance' } } }) as unknown as BatchParticipant;
 
 describe('#1262 — surfaceRow : rangée SURFACÉE ou TÉMOIN né roulé', () => {
   beforeEach(() => {
