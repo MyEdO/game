@@ -23,8 +23,7 @@ import { emptyScene, type BuildingMass, type Scene, type WallSeg } from '../scen
 import { addLayer, effectiveArchitecture, fillTerrainRect, paintTiles, putLayer, rederiveRoofMasses, toitureEffective } from '../../sceneEdit';
 import { METRES_PER_LEVEL } from '../relief';
 import { encloseRect, perimeterWallSegs } from '../../sceneEdit.testkit';
-import { diligenceCampaign } from '../../../scenes/campaign';
-import { paquetDuJeu } from '../../campagneLivree';
+import { RELAIS_COUVERT, relaisCouvert } from '../../../scenes/fixtures/volumes.testkit';
 import { ornementsDuBati } from './ornements';
 import { piecesDeToitDeLaScene } from '../piecesDeToit';
 
@@ -602,11 +601,11 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     expect(buildRoofs(scene).every((pan) => !pan.states.roofOccupied)).toBe(true);
   });
 
-  /** Travées de charpente de la carte VIVANTE, et un POSTE d'observation sous chacune : une case de
+  /** Travées de charpente du relais à étage (`relaisCouvert`), et un POSTE d'observation sous chacune : une case de
    *  son emprise, à un niveau qu'elle couvre. Aucune déclaration de zone n'entre ici — l'auteur
    *  déclare ce qui est à ciel ouvert, plus ce qui est bâti (#881). */
-  const traveesDeLaDiligence = () => {
-    const carte = paquetDuJeu(diligenceCampaign).scenes[0];
+  const traveesDuRelais = () => {
+    const carte = relaisCouvert();
     const masses = effectiveArchitecture(carte)
       .flatMap((corps) => corps.masses.map((masse) => ({ masse, cells: massFootprintCells(masse.footprint) })));
     const postes = masses.map(({ masse, cells }) => {
@@ -617,13 +616,17 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     return { carte, masses, postes };
   };
 
-  it('CHEMIN RÉEL (La Diligence) : sous CHAQUE travée, aucun morceau de toit ne reste sur la tête de l’allié', () => {
-    // La carte que l'auteur édite, telle qu'elle est le jour du test. On se poste sous chacune de ses
-    // travées : toute masse qui recouvre la case où l'allié se tient doit se lever — sans quoi le
-    // joueur regarde son bâtiment par un trou. Le contrat vaut pour le bâti nu comme pour la pièce
-    // nommée : il ne tient à aucune zone déclarée.
-    const { carte, masses, postes } = traveesDeLaDiligence();
-    expect(masses.length).toBeGreaterThan(0);
+  it('la fixture EXERCE les deux niveaux : des travées dérivées au rez ET à l’étage', () => {
+    const { masses } = traveesDuRelais();
+    expect(new Set(masses.map(({ masse }) => masse.z))).toEqual(new Set([0, 1]));
+    expect(masses.every(({ masse }) => masse.derived)).toBe(true);
+  });
+
+  it('relais à étage : sous CHAQUE travée, aucun morceau de toit ne reste sur la tête de l’allié', () => {
+    // On se poste sous chacune des travées : toute masse qui recouvre la case où l'allié se tient doit
+    // se lever — sans quoi le joueur regarde son bâtiment par un trou. Le contrat vaut pour le bâti nu
+    // comme pour la pièce nommée : il ne tient à aucune zone déclarée.
+    const { carte, masses, postes } = traveesDuRelais();
     const restees: string[] = [];
     postes.forEach((poste) => {
       const levees = new Set(buildRoofs(carte, { allies: [poste] })
@@ -637,13 +640,12 @@ describe('buildRoofs — masses de bâtiment (#823)', () => {
     expect(restees).toEqual([]);
   });
 
-  it('CHEMIN RÉEL : l’espace ouvert est l’union EXACTE des travées de l’espace habité (ni trou, ni fuite)', () => {
-    // La carte de l'auteur est une donnée VIVANTE : on n'y mesure que des RELATIONS, jamais un compte
-    // figé ni la présence d'une déclaration. L'ESPACE HABITÉ de l'allié se lit du modèle
-    // (`clearedSpace` : sa pièce quand il en a une, l'emprise qui l'abrite sinon), et les travées
-    // attendues sont celles dont l'espace touche le sien — une de moins, le joueur regarde sa salle
-    // par un trou ; une de plus, le dégagement fuit vers un corps voisin.
-    const { carte, masses, postes } = traveesDeLaDiligence();
+  it('relais à étage : l’espace ouvert est l’union EXACTE des travées de l’espace habité (ni trou, ni fuite)', () => {
+    // L'ESPACE HABITÉ de l'allié se lit du modèle (`clearedSpace` : sa pièce quand il en a une,
+    // l'emprise qui l'abrite sinon), et les travées attendues sont celles dont l'espace touche le
+    // sien — une de moins, le joueur regarde sa salle par un trou ; une de plus, le dégagement fuit
+    // vers un corps voisin.
+    const { carte, masses, postes } = traveesDuRelais();
     const attendues = (poste: { x: number; y: number; z: number }) => {
       const cleared = clearedSpace(carte, [poste]);
       const degagees = new Set<string>(cleared.roomlessCells);
@@ -1076,7 +1078,7 @@ describe('buildRoofs — le PLAN est la source des masses dérivées (#841)', ()
  * cellules (identité, cutaway, exclusions intactes) mais la hauteur y est celle du champ commun — au
  * joint le versant CONTINUE et la noue s'ouvre à l'angle rentrant, au lieu de deux nappes qui retombent chacune à
  * l'égout. Les traitements d'EXTRÉMITÉ restent par masse : les pignons d'un corps central à versants
- * droits se mesurent sur La Diligence RÉELLE (describe suivant), dont les masses sont dérivées.
+ * droits se mesurent sur les masses DÉRIVÉES (« nappes DÉRIVÉES » ci-dessous).
  */
 describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)', () => {
   const AILE_O = { x: 0, y: 4, w: 8, h: 8 };
@@ -1205,156 +1207,6 @@ describe('groupe de nappe — un champ de hauteur sur le domaine UNION (#1186)',
 });
 
 /**
- * #1186 — LA DILIGENCE RÉELLE : ses masses d'étage partageaient un égout et des pentes fittées
- * distinctes, et retombaient chacune à l'égout au joint (griefs de la maquette : « les 3 toitures
- * sont sensées se rejoindre »). Ce que ce bloc mesure sur le plan livré est DÉRIVÉ de lui — jamais un
- * compte ni une cote recopiés (#1709) ; les comptes exacts se prennent sur la fixture qui suit.
- */
-describe('La Diligence — les nappes de l’étage se REJOIGNENT (#1186)', () => {
-  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
-  const masses = () => effectiveArchitecture(scene).find((b) => b.id === 'diligence')!.masses.filter((m) => m.z === 1);
-  const nappeOf = (massId: string) => resolveNappes(scene).get(nappeKey('diligence', massId))!;
-
-  it('les masses de l’étage forment UN groupe (même égout MESURÉ, 4-adjacentes)', () => {
-    const ids = masses().map((m) => m.id);
-    // NON-VACUITÉ, jamais un cardinal du plan livré (#1709) : sans DEUX nappes il n'y a pas de
-    // jonction à mesurer, et le compte exact se prend sur la fixture ci-dessous.
-    expect(ids.length, 'moins de deux nappes d’étage : rien à rejoindre').toBeGreaterThan(1);
-    expect(new Set(ids.map((id) => nappeOf(id).groupId)).size).toBe(1);
-    expect(new Set(ids.map((id) => nappeOf(id).field.shape.eaveHeightM)).size).toBe(1);
-  });
-
-  it('aucune face SÉCANTE entre les masses : toute leur couverture émise repose sur UN champ', () => {
-    // Deux nappes ne peuvent se croiser que si elles lisent deux hauteurs : chaque sommet de chaque
-    // pan des masses d'étage se relit ici sur LE champ du groupe (les débords d'avant-toit, hors nappe
-    // par construction, ne sont pas de la couverture).
-    const pans = buildRoofs(scene).filter((el) => el.cell.z === 1 && !el.panId?.startsWith('pignon-'));
-    expect(pans.length).toBeGreaterThan(0);
-    let sommets = 0;
-    for (const el of pans) {
-      const { field } = nappeOf(el.sectionId!);
-      for (const f of el.faces) {
-        if (!['N', 'E', 'S', 'O'].includes(f.material.part!)) continue;
-        for (const p of f.poly) {
-          expect(p.h).toBeCloseTo(fieldHeightAt(field, { x: p.x + 0.5, y: p.y + 0.5 }), 9);
-          sommets++;
-        }
-      }
-    }
-    expect(sommets).toBeGreaterThan(50);
-  });
-
-  it('au JOINT, le versant CONTINUE au-dessus de l’égout — plus de double retombée à 8 m', () => {
-    const owner = new Map<string, string>();
-    for (const mass of masses()) for (const key of nappeOf(mass.id).cells) owner.set(key, mass.id);
-    let coins = 0;
-    let auDessusEgout = 0;
-    for (const [key, a] of owner) {
-      const [x, y] = key.split(',').map(Number);
-      for (const [dx, dy, c0, c1] of [
-        [1, 0, { x: x + 1, y }, { x: x + 1, y: y + 1 }],
-        [0, 1, { x, y: y + 1 }, { x: x + 1, y: y + 1 }],
-      ] as const) {
-        const b = owner.get(`${x + dx},${y + dy}`);
-        if (!b || b === a) continue;
-        for (const v of [c0, c1]) {
-          const hA = fieldHeightAt(nappeOf(a).field, v);
-          const hB = fieldHeightAt(nappeOf(b).field, v);
-          expect(hA).toBeCloseTo(hB, 12); // une seule hauteur au même point, des deux côtés du joint
-          coins++;
-          if (hA > 8 + 1e-9) auDessusEgout++;
-        }
-      }
-    }
-    expect(coins).toBeGreaterThan(0);
-    expect(auDessusEgout).toBeGreaterThan(coins * 0.8); // seuls les BOUTS du joint touchent encore l'égout
-  });
-
-  it('chaque corps en `gable` ferme DEUX pignons, les croupes n’en ferment aucun', () => {
-    const pignons = buildRoofs(scene).filter((el) => el.cell.z === 1 && el.panId?.startsWith('pignon-'));
-    const gables = masses().filter((m) => m.profile === 'gable');
-    expect(gables.length, 'aucune masse `gable` à l’étage : la mesure n’a plus de sujet').toBeGreaterThan(0);
-    // DEUX pignons par masse à deux rampants, aucun par croupe : le compte se DÉDUIT du plan, il ne
-    // se recopie pas (#1709).
-    expect(pignons).toHaveLength(gables.length * 2);
-    expect(new Set(pignons.map((el) => el.sectionId))).toEqual(new Set(gables.map((m) => m.id)));
-  });
-});
-
-/**
- * #1186 — LA CARTE DÉCIDE : entrer dans un groupe de nappe coûte sa pente (refit sur la portée de
- * l'union) et son profil (le champ commun est `hip`). Une masse DÉRIVÉE n'a rien à perdre — sa pente
- * est déjà calculée. Une masse AUTHORÉE porte un geste d'auteur : elle ne rejoint que ce qui a
- * exactement son profil et sa pente, et jamais depuis une terrasse (`flat`) ou une mono-pente
- * (`shed`). Chaque cas se mesure contre la même masse posée SEULE : la valeur de référence n'est
- * jamais une constante recopiée.
- */
-describe('groupe de nappe — une masse AUTHORÉE ne cède ni sa pente ni son profil (#1186)', () => {
-  const A = { x: 0, y: 0, w: 8, h: 8 };
-  const B = { x: 8, y: 2, w: 4, h: 4 };
-
-  const scene = (masses: BuildingMass[], rects: { x: number; y: number; w: number; h: number }[]): Scene => {
-    const s = emptyScene('scene-test', 20, 14);
-    s.walls = perimeterWallSegs(rects);
-    s.architecture = [{ id: 'corps', style: { id: 'maison' }, storeys: [], facades: [], masses }];
-    return s;
-  };
-  const nappeOf = (s: Scene, massId: string) => resolveNappes(s).get(nappeKey('corps', massId))!;
-  /** Point le plus HAUT du champ, lu sur les seules cellules PAVÉES par la masse. */
-  const faiteSur = (s: Scene, massId: string): number => {
-    const n = nappeOf(s, massId);
-    let haut = -Infinity;
-    for (const key of n.cells) {
-      const [x, y] = key.split(',').map(Number);
-      for (const [dx, dy] of [[0, 0], [1, 0], [0, 1], [1, 1]] as const)
-        haut = Math.max(haut, fieldHeightAt(n.field, { x: x + dx, y: y + dy }));
-    }
-    return haut;
-  };
-  /** La MÊME masse, seule sur la carte : l'état que son auteur a demandé. */
-  const solo = (mass: BuildingMass) => faiteSur(scene([mass], [B]), mass.id);
-
-  const grosseMasse: BuildingMass = { id: 'a', z: 0, footprint: [A], levels: 1, profile: 'hip', pitchDeg: 45, material: { id: 'tuile' } };
-  const accolee = (patch: Partial<BuildingMass>): BuildingMass =>
-    ({ id: 'b', z: 0, footprint: [B], levels: 1, profile: 'hip', pitchDeg: 30, material: { id: 'tuile' }, ...patch });
-
-  it('une masse `flat` accolée reste PLATE : son faîte est son égout', () => {
-    const b = accolee({ profile: 'flat' });
-    const s = scene([grosseMasse, b], [A, B]);
-    expect(faiteSur(s, 'b')).toBeCloseTo(nappeOf(s, 'b').field.shape.eaveHeightM, 9); // terrasse : aucune pente reçue
-    expect(faiteSur(s, 'b')).toBeCloseTo(solo(b), 9);
-    expect(nappeOf(s, 'b').field.shape.profile).toBe('flat');
-    expect(nappeOf(s, 'b').groupId).not.toBe(nappeOf(s, 'a').groupId);
-  });
-
-  it('une masse `shed` accolée garde sa MONO-PENTE et son côté d’égout', () => {
-    const b = accolee({ profile: 'shed', eaveSide: 'E' });
-    const s = scene([grosseMasse, b], [A, B]);
-    expect(faiteSur(s, 'b')).toBeCloseTo(solo(b), 9);
-    expect(nappeOf(s, 'b').field.shape.profile).toBe('shed');
-    expect(nappeOf(s, 'b').groupId).not.toBe(nappeOf(s, 'a').groupId);
-    // Le versant descend d'ouest en est jusqu'à l'égout déclaré : une seule pente, pas de croupe.
-    const { field } = nappeOf(s, 'b');
-    const hauteurs = [8, 9, 10, 11, 12].map((x) => fieldHeightAt(field, { x, y: B.y + 2 }));
-    for (let i = 1; i < hauteurs.length; i++) expect(hauteurs[i]).toBeLessThan(hauteurs[i - 1]);
-    expect(hauteurs[hauteurs.length - 1]).toBeCloseTo(field.shape.eaveHeightM, 9);
-  });
-
-  it('deux pentes AUTHORÉES distinctes ⇒ deux groupes : chaque faîte reste celui de la masse seule', () => {
-    const GRAND = { x: 0, y: 0, w: 12, h: 8 };
-    const APPENTIS = { x: 12, y: 3, w: 2, h: 2 };
-    const grand: BuildingMass = { id: 'grand', z: 0, footprint: [GRAND], levels: 1, profile: 'hip', pitchDeg: 15, material: { id: 'tuile' } };
-    const app: BuildingMass = { id: 'app', z: 0, footprint: [APPENTIS], levels: 1, profile: 'hip', pitchDeg: 60, material: { id: 'tuile' } };
-    const duo = scene([grand, app], [GRAND, APPENTIS]);
-    const seul = scene([grand], [GRAND]);
-    expect(faiteSur(duo, 'grand')).toBeCloseTo(faiteSur(seul, 'grand'), 9); // l'appentis raide n'écrase rien
-    expect(nappeOf(duo, 'grand').field.shape.pitch).toBeCloseTo(nappeOf(seul, 'grand').field.shape.pitch, 12);
-    expect(nappeOf(duo, 'grand').groupId).not.toBe(nappeOf(duo, 'app').groupId);
-  });
-
-});
-
-/**
  * #1186 — LES MASSES DÉRIVÉES, elles, GROUPENT malgré des pentes distinctes. Une masse `derived` ne se
  * pose pas à la main : `effectiveArchitecture` rejoue la dérivation depuis le PLAN — la scène est donc
  * CONSTRUITE plan compris (#1709), jamais empruntée à une carte de campagne.
@@ -1406,6 +1258,44 @@ describe('nappes DÉRIVÉES — trois masses d’étage, trois pentes, UN champ 
     expect(new Set(nappes.map((n) => n.field.shape)).size).toBe(1);
     // Seule la masse dont le profil n'est pas celui du champ commun y ajoute le sien, en enveloppe.
     expect(nappes.filter((n) => n.field.propre).map((n) => n.mass.profile)).toEqual(['gable']);
+  });
+
+  it('aucune face SÉCANTE entre les masses : toute leur couverture émise repose sur UN champ', () => {
+    // Deux nappes ne peuvent se croiser que si elles lisent deux hauteurs : chaque sommet de chaque
+    // pan des masses d'étage se relit ici sur LE champ du groupe (les débords d'avant-toit, hors nappe
+    // par construction, ne sont pas de la couverture).
+    const faces = buildRoofs(scene).filter((el) => el.cell.z === 1 && !el.panId?.startsWith('pignon-'))
+      .flatMap((el) => el.faces.filter((f) => ['N', 'E', 'S', 'O'].includes(f.material.part!)).map((f) => ({ f, field: nappeOf(el.sectionId!).field })));
+    expect(faces.length).toBeGreaterThan(0);
+    for (const { f, field } of faces)
+      for (const p of f.poly) expect(p.h).toBeCloseTo(fieldHeightAt(field, { x: p.x + 0.5, y: p.y + 0.5 }), 9);
+  });
+
+  it('au JOINT, le versant CONTINUE au-dessus de l’égout — plus de double retombée', () => {
+    const egout = nappeOf(masses()[0].id).field.shape.eaveHeightM;
+    const owner = new Map<string, string>();
+    for (const mass of masses()) for (const key of nappeOf(mass.id).cells) owner.set(key, mass.id);
+    let coins = 0;
+    let auDessusEgout = 0;
+    for (const [key, a] of owner) {
+      const [x, y] = key.split(',').map(Number);
+      for (const [dx, dy, c0, c1] of [
+        [1, 0, { x: x + 1, y }, { x: x + 1, y: y + 1 }],
+        [0, 1, { x, y: y + 1 }, { x: x + 1, y: y + 1 }],
+      ] as const) {
+        const b = owner.get(`${x + dx},${y + dy}`);
+        if (!b || b === a) continue;
+        for (const v of [c0, c1]) {
+          const hA = fieldHeightAt(nappeOf(a).field, v);
+          const hB = fieldHeightAt(nappeOf(b).field, v);
+          expect(hA).toBeCloseTo(hB, 12); // une seule hauteur au même point, des deux côtés du joint
+          coins++;
+          if (hA > egout + 1e-9) auDessusEgout++;
+        }
+      }
+    }
+    expect(coins).toBeGreaterThan(0);
+    expect(auDessusEgout).toBeGreaterThan(coins * 0.8); // seuls les BOUTS du joint touchent encore l'égout
   });
 
   /** La masse à deux rampants du groupe, son champ propre (la même masse SEULE), et ses pans émis. */
@@ -1605,7 +1495,7 @@ describe('groupe de nappes — étanchéité de la couverture (#4471)', () => {
   };
 
   it.each([
-    ['La Diligence (demi-pas d’un groupe)', () => paquetDuJeu(diligenceCampaign).scenes[0], 'diligence'],
+    ['relais à étage (demi-pas d’un groupe dérivé)', relaisCouvert, RELAIS_COUVERT.corps],
     ['aile d’étage dérivée qui bute contre une croupe', aileDEtage, 'corps'],
     ['deux `gable` authorés à faîtages croisés', tAuthore, 'corps'],
     ['deux `gable` authorés de même faîtage', deuxTravees, 'corps'],
@@ -1615,6 +1505,12 @@ describe('groupe de nappes — étanchéité de la couverture (#4471)', () => {
     expect(faces).toBeGreaterThan(0);
     expect(seules).toEqual([]);
     expect(triples).toBe(0);
+  });
+
+  it('le relais EXERCE le demi-pas : le groupe de son étage pave au demi-pas', () => {
+    const groupe = [...resolveNappes(relaisCouvert()).values()].filter((n) => n.groupId === groupeDe(relaisCouvert(), RELAIS_COUVERT.corps));
+    expect(groupe.length).toBeGreaterThan(1);
+    expect(groupe.every((n) => n.field.demiPas)).toBe(true);
   });
 
   it('le bout de faîtage qui bute contre une voisine plus basse se ferme par un pignon ÉMERGENT limité à la marche', () => {

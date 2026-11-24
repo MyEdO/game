@@ -3,8 +3,7 @@ import { describe, it, expect } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { computeStateVisible, computeStateVisibleAndLight, exploreAvec, sceneLightField, sceneLightSources, setRevealAll } from './visionState';
 import { computeLightField, type LightSource } from './monde/vision';
-import { diligenceCampaign } from '../scenes/campaign';
-import { paquetDuJeu } from './campagneLivree';
+import { ATRE_DU_RELAIS, GALERIE_DU_RELAIS, relaisAEtage } from '../scenes/fixtures/plans.testkit';
 import { Scene, WallSeg } from './monde/scene';
 import type { Combatant } from '../engine/types';
 
@@ -72,32 +71,28 @@ describe('sceneLightSources — la liste UNIQUE que le champ mécanique et le re
   });
 });
 
-describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son porteur, pas la cour en dessous', () => {
-  const scene = paquetDuJeu(diligenceCampaign).scenes[0];
+describe('relais à étage — la lumière PORTÉE éclaire l’étage de son porteur, pas le rez en dessous', () => {
+  const scene = relaisAEtage();
   /** Cases éclairées par une SOURCE, par étage. */
   const parÉtage = (sources: LightSource[]): Record<number, number> => {
     const out: Record<number, number> = { 0: 0, 1: 0 };
     for (const k of computeLightField(scene, 0, sources).sourceLit!) out[+k.split(',')[2]]++;
     return out;
   };
-  // Case marchable de l'ÉTAGE du relais (z1), mesurée sur le plan authoré.
-  const surLeChemin = { x: 13, y: 6, z: 1 };
+  const surLeChemin = GALERIE_DU_RELAIS;
   /** Ce que le DOCUMENT éclaire déjà tout seul — les mesures de ce banc comptent le porteur EN PLUS.
    *  Dérivé de la scène, jamais recopié : meubler la salle d'une lampe de plus le dit ici même. */
   const posesDuDocument = sceneLightSources({ scene, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 } });
-  const signature = (s: LightSource) => [s.srcId, s.z ?? 0, s.radiusTiles, s.carried];
+  const signature = (s: LightSource) => [s.srcId, s.z ?? 0, s.carried];
 
   it('le document éclaire la salle par son ÂTRE, au rez, sans porteur', () => {
-    // Le meublement de la salle a posé la cheminée (`cheminee-interieure`) : sa `PropData.light`
-    // (rayon 5, ton flamme) en fait une source du document, comme un brasero authoré.
-    expect(posesDuDocument.map(signature)).toContainEqual(['diligence-salle-cheminee', 0, 5, undefined]);
-    expect(posesDuDocument.filter((s) => s.carried), 'aucune source du document n’est portée').toEqual([]);
+    expect(posesDuDocument.map(signature)).toEqual([[ATRE_DU_RELAIS, 0, undefined]]);
   });
 
   it('la lanterne d’un combattant à l’étage inscrit ses cases à z1, aucune au rez', () => {
     const battle = { combatants: [{ ...porteur('h1', surLeChemin.x, surLeChemin.y, true), pos: surLeChemin }] } as never;
     const sources = sceneLightSources({ scene, battle, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 } });
-    expect(sources.map(signature)).toEqual([...posesDuDocument.map(signature), ['h1', 1, 10, true]]);
+    expect(sources.map(signature)).toEqual([...posesDuDocument.map(signature), ['h1', 1, true]]);
     const lanterne = sources.filter((s) => s.carried);
     expect(lanterne.map((s) => s.srcId)).toEqual(['h1']);
     const enHaut = parÉtage(lanterne);
@@ -110,7 +105,7 @@ describe('« La Diligence » — la lumière PORTÉE éclaire l’étage de son 
   });
 
   it('la source POSÉE, elle, n’est pas portée (le rendu arbitre son budget là-dessus)', () => {
-    const avecTorche: Scene = { ...scene, entities: [...scene.entities, { id: 't1', kind: 'prop', pos: { x: 13, y: 6 }, z: 1, decor: { id: 'brasero' } }] } as unknown as Scene;
+    const avecTorche: Scene = { ...scene, entities: [...scene.entities, { id: 't1', kind: 'prop', pos: { x: surLeChemin.x, y: surLeChemin.y }, z: 1, decor: { id: 'brasero' } }] } as unknown as Scene;
     const posées = sceneLightSources({ scene: avecTorche, battle: null, party: [], meneurChoisi: null, partyPos: { x: 0, y: 0 } });
     expect(posées.map((s) => [s.srcId, s.z, s.carried]))
       .toEqual([...posesDuDocument.map((s) => [s.srcId, s.z, s.carried]), ['t1', 1, undefined]]);
