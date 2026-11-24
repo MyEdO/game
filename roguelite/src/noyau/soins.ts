@@ -3,6 +3,7 @@
  */
 import { rollTest } from '../../../src/engine/tests';
 import { testValue } from '../../../src/engine/skills';
+import { designeGaranti } from '../../../src/noyau/ligneDeJet';
 import { makeRNG } from '../../../src/engine/dice';
 import { restRecovery, dailyDiseaseUpkeep, applyDiseaseEnd } from '../../../src/engine/rest';
 import { applyDiseaseGangrene, maladieDeclaree } from '../../../src/engine/disease';
@@ -35,7 +36,7 @@ export function reposer(c: Combatant, graine: number, jours: number): string[] {
   const fins: string[] = [];
   const convalescence = tickTraumaRecovery(c, jours, (spec) => {
     const m = spec.meta as { severity: string; location: string; traumaLabel: string };
-    const r = rollTest(spec.test ? testValue(c, spec.test) : spec.base, spec.difficulty, rng);
+    const r = rollTest({ porteur: c.id, teste: designeGaranti(spec.test ?? {}, spec.kind) }, spec.test ? testValue(c, spec.test) : spec.base, spec.difficulty, rng);
     fins.push(...applyFractureEnd(c, r.success, m.severity, m.location, m.traumaLabel));
   });
   return [...lignes, ...convalescence, ...fins];
@@ -51,7 +52,7 @@ export function entretenirLesMaladies(c: Combatant, graine: number, jours: numbe
   const differes: Parameters<UpkeepDeferTest>[0][] = [];
   const appliquer = (spec: Parameters<UpkeepDeferTest>[0]) => {
     const valeur = spec.base ?? testValue(c, spec.test!);
-    const r = rollTest(valeur, spec.difficulty, rng, (spec.mods ?? []).reduce((n, m) => n + m.value, 0));
+    const r = rollTest({ porteur: c.id, teste: designeGaranti(spec.test ?? {}, spec.kind) }, valeur, spec.difficulty, rng, (spec.mods ?? []).reduce((n, m) => n + m.value, 0));
     const maladie = String(spec.meta?.diseaseName ?? '');
     if (spec.kind === 'maladie-persistance') lignes.push(...applyDiseaseEnd(c, maladie, r.success, r.sl, rng));
     else if (spec.kind === 'maladie-gangrene') lignes.push(...applyDiseaseGangrene(c, maladie, r.success, Number(spec.meta?.be ?? 0)));
@@ -108,7 +109,7 @@ export function panserLesPlaies(c: Combatant, valeur: number, graine: number): s
   const rng = makeRNG(graine);
   const lignes: string[] = [];
   while (hasTreatableTrauma(c)) {
-    const r = rollTest(valeur, 'intermediaire', rng);
+    const r = rollTest({ porteur: null, teste: { skill: { id: HEAL_SKILL } } }, valeur, 'intermediaire', rng);
     lignes.push(...treatTrauma(c, r.sl, r.success));
   }
   return lignes;

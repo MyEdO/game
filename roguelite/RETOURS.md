@@ -18,7 +18,7 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   `jetons.programmes`. Le roguelite lui donne une tenue dont `programmes` écoute d'abord (`ouvrirEcoutee`,
   `roguelite/src/noyau/partie.ts`). La même tenue répond au « Je te renie ! » (`renier`, mode `choice`, sans geste
   attendu), qui arrêterait sinon la rencontre en impasse. Idée : une écoute en option de `jouerLaRencontre`, ou un
-  contrat écrit sur `programmes` (« tout résultat y passe »).
+  contrat écrit sur `programmes` (« tout résultat y passe »). Ticket #4904.
 - **Résolu (#4829) — la fin du combat n'est pas la fin de la rencontre.** À `battle.over`, les combattants du champ
   portent encore l'état de la rencontre : `roundsAtZero`, `initiative`, `tookCriticalThisFight`,
   `meleeThisRound`, `defensiveStance`, `soinRencontreUtilise`, une position. Un hôte qui les lit là et les
@@ -148,7 +148,7 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
 
 - **Trou — aucune couture ne dit la cible d'un Test de scène avant de le jouer.** Pour montrer à chaque héros ses
   chances avant qu'on choisisse qui tente (« Qui intimide ? »), l'hôte veut la cible que le jet affrontera : seul
-  `EVT.TEST_RESOLVED` la porte (`TestResolu.target`, `src/noyau/bus.ts`), après le dé. Contournement de l'hôte :
+  `EVT.TEST_JETE` la porte (`TestJete.issue.cible`, `src/noyau/bus.ts`), après le dé. Contournement de l'hôte :
   `viseeDeLEpreuve` (`roguelite/src/noyau/epreuve.ts`) monte la ligne par `rollLine` (`src/noyau/ligneDeJet.ts`, hors
   de `src/noyau/index.ts`) sur `epreuveTentable`, et compte les chances par `evaluateTest` sur les cent faces ; un test
   la confronte à la cible du Test que le noyau joue. Ce que la scène réelle ajouterait (Soutien, précipitations,
@@ -182,7 +182,7 @@ sur une arène générée.
   `jouerAction(entite, action)`. Le meilleur du groupe jette (Soutien compris), aux dés de la partie : même graine, même
   sortie octet pour octet. Idée : un verbe `testerLaCompetence(ref, difficulte, heroId?)` qui rende l'issue, sans décor.
 - **Friction — l'issue d'un Test n'est lisible que sur le bus interne.** Succès, DR, jet et cible sortent dans
-  `EVT.TEST_RESOLVED` (`{"actorId":"r32-hero-13","success":false,"sl":-4,"roll":52,"target":12}`), relayé par
+  `EVT.TEST_JETE` (`TestJete` : porteur, ce qu'il teste, `issue` ; #4848, qui remplace `TEST_RESOLVED`), relayé par
   `evenements` ; ni `EVT` ni `bus.ts` ne sont dans `src/noyau/index.ts`. Sans eux, il reste le journal (« Greta échoue. »).
 - **Piège — choisir qui jette impose la cadence manuelle.** En cadence `auto`, le Test se résout dans l'appel de
   `jouerAction` : aucune fenêtre, le meilleur jette. En `manuel`, la fenêtre `test` porte `candidates` et
@@ -283,7 +283,9 @@ sur une arène générée.
   sont chargées au début du combat (`loadWeapon` par arme, `combatSlice.ts`). L'IA recharge l'arme vide plutôt que de
   tirer avec l'arme chargée. Le rechargement et l'usage de la main secondaire sont joués ; c'est le choix de l'IA qui
   laisse le second pistolet de côté.
-- **Friction — aucun événement ne dit quelle Compétence un combat fait jeter.** `TestResolu` porte
+- **Résolu (#4848) — aucun événement ne dit quelle Compétence un combat fait jeter.** Chaque Test jeté sort désormais
+  en `EVT.TEST_JETE`, ce qu'il teste en `reference` ; l'épreuve du roguelite y lit son Test par sa Compétence
+  (`roguelite/src/noyau/epreuve.ts`). Le constat d'origine : `TestResolu` portait
   `actorId, success, sl, roll, target` ; `CombatEvent` porte `kind, text, actorId, targetId, etat` ; `ChargeDAttaque`
   porte l'arme mais pas la Compétence. Pour compter, l'hôte relit le texte du journal (« Gor — Test de Calme
   Intermédiaire (+0) : 62/1 → échec (DR -6). »), et le Test d'incantation ou de prière n'y est pas nommé (« échoue à

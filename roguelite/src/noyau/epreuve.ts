@@ -3,7 +3,7 @@
  * l'intention `jouerAction` en cadence automatique ; ses branches sont des effets de scène du noyau.
  */
 import { arena } from '../../../src/scenes/test-scenarios/_shared';
-import { EVT, type TestResolu } from '../../../src/noyau/bus';
+import { EVT, type TestJete } from '../../../src/noyau/bus';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Combatant } from '../../../src/engine/types';
 import { evaluateTest } from '../../../src/engine/tests';
 import { rollLine } from '../../../src/noyau/ligneDeJet';
@@ -27,10 +27,11 @@ const ENTITE = 'epreuve';
 const DECOR = 'caisse';
 
 /** Joue l'`epreuve` sur le `groupe` à la graine `graine`. Rend le groupe tel que le noyau le laisse, l'issue du Test
- *  (`EVT.TEST_RESOLVED`) ou ce qui l'a empêché, et les lignes du journal. */
+ *  (le dernier `EVT.TEST_JETE` de sa Compétence, relance comprise) ou ce qui l'a empêché, et les lignes du journal. */
 export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, graine: number): IssueDEpreuve {
   const journal: string[] = [];
-  let resolu: TestResolu | null = null;
+  let resolu: TestJete | null = null;
+  const competence = epreuve.flux.test.skill?.id;
   let refus: string | undefined;
   const { partie, envoyer, pomper } = ouvrirEnAuto(
     graine,
@@ -41,7 +42,11 @@ export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, gr
     },
     (r) => {
       journal.push(...lignesDuJournal(r));
-      for (const e of r.evenements) if (e.type === 'emis' && e.evt === EVT.TEST_RESOLVED) resolu = e.payload as TestResolu;
+      for (const e of r.evenements) {
+        if (e.type !== 'emis' || e.evt !== EVT.TEST_JETE) continue;
+        const jet = e.payload as TestJete;
+        if (jet.reference.genre === 'competence' && jet.reference.id === competence) resolu = jet;
+      }
       if (r.refus) { journal.push(r.refus); refus = r.refus; }
     },
   );
@@ -51,8 +56,12 @@ export function jouerLEpreuve(groupe: readonly Combatant[], epreuve: Epreuve, gr
   const { party, partyWiped } = partie.etat();
   const rendu = party.map((c) => structuredClone(c));
   partie.fermer();
-  const issue = resolu as TestResolu | null;
-  if (issue) return { groupe: rendu, reussite: issue.success, testeur: issue.actorId, dr: issue.sl, cible: issue.target, journal };
+  const jet = resolu as TestJete | null;
+  if (jet) {
+    const { porteur, issue } = jet;
+    if (porteur === null || issue.cible === null || issue.dr === null) throw new Error(`Épreuve « ${epreuve.label} » : jet masqué au groupe`);
+    return { groupe: rendu, reussite: issue.reussi, testeur: porteur, dr: issue.dr, cible: issue.cible, journal };
+  }
   if (partyWiped) refus = `${rendu.map((c) => c.label).join(', ')} : hors d'action, le Test n'est pas joué.`;
   if (refus) return { groupe: rendu, refus, journal };
   throw new Error(`Épreuve « ${epreuve.label} » sans Test résolu ni refus : ${journal.join(' ')}`);
