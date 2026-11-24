@@ -4,7 +4,7 @@
  * qu'une entité de scène déclare (`armesDEntite`, l'éditeur), son emblème (`emblemeDe`) et la forme qu'une arme donne à
  * lire (`armeDeDessin`), keyés par ids stables.
  */
-import type { Combatant, Weapon, Main } from '../engine/types';
+import { MAINS, type Combatant, type Weapon, type Main } from '../engine/types';
 import {
   apparencesCandidates,
   apparencesObjetsDe,
@@ -53,7 +53,7 @@ export function armeDeDessin(w: Weapon, maniement: ContexteDeManiement = {}): Ar
 /** Les armes tenues, chacune à sa main, et le surplus, chacun dans l'ordre relatif de `weapons` : la seule attribution
  *  des mains. Les mains explicites passent d'abord ; une arme naturelle ne réserve aucune main. */
 function mainsDesArmes(weapons: readonly Weapon[], maniement: ContexteDeManiement): { tenues: { arme: Weapon; hand: Main }[]; surplus: Weapon[] } {
-  const libres = new Set<Main>(['main', 'secondaire']);
+  const libres = new Set<Main>(MAINS);
   const tenues: { position: number; arme: Weapon; hand: Main }[] = [];
   const surplus: { position: number; arme: Weapon }[] = [];
   const priorites = weapons.map((w, position) => ({ w, position })).sort((a, b) => Number(a.w.hand === undefined) - Number(b.w.hand === undefined));

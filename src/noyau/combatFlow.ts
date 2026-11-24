@@ -338,7 +338,7 @@ import { touchActors, windsMagicModOf, seaMagicContext, ventsAnnonces } from './
 import { campOf, followsCharacterRules, effectivelyHostile } from '../engine/relations';
 import type { ShipRig } from '../engine/combat';
 import { rigDuNavire } from '../engine/shipBuild';
-import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme } from '../engine/weaponLoad';
+import { loadRegister, weaponLoaded, reloadProgressOf, objetSourceDeLArme, isWeaponActive } from '../engine/weaponLoad';
 import {
   recomputeLoadout,
   weaponWithAmmo,
@@ -359,9 +359,10 @@ import {
   rederiverLArmeTenue,
   endommagerLArmeTenue,
   weaponIdentity,
+  ganteletRetient,
 } from '../engine/items';
 import { crochetDuSol, lacherAuSol, lacherLeBouclierDuBinome } from './objetsAuSol';
-import { hasCapability, itemCapability } from '../engine/capabilities';
+import { itemCapability } from '../engine/capabilities';
 import { effectiveMovement } from '../engine/encumbrance';
 import {
   isOutOfAction,
@@ -4450,10 +4451,20 @@ export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, tit
   return true;
 }
 
+/** Le Test de Main ensanglantée raté de `attacker` : l'objet de la main `hand` glisse (op `disarm`). Rend les lignes, et
+ *  `tient` quand rien n'a glissé (gantelet verrouillé, objet qu'on n'arrache pas) : l'Action se poursuit alors.
+ *  AA 07 l.117 ; AA 08 l.236 ; ADE II 02 l.695 */
+export function glisseDeLaMain(get: Get, set: SetFn, attacker: Combatant, hand: Main): { lignes: string[]; tient: boolean } {
+  const tenues = attacker.weapons.flatMap((w) => (w.uid ? [w.uid] : []));
+  const { lignes } = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: hand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
+  return { lignes, tient: tenues.every((uid) => isWeaponActive(attacker, uid)) };
+}
+
 /** Main ensanglantée (AA 07 l.117) — Test de Dextérité (+20) JOUÉ INLINE pour un attaquant PILOTÉ PAR L'IA
  *  (jamais de modale, résolution forcée). SOURCE UNIQUE des chemins IA : attaque normale (`doAttack`), Tir
  *  rapide (`runPreemptShots`) et pilonnage servi (même point). Renvoie `true` si le coup peut se poursuivre ;
- *  sur ÉCHEC, l'objet de la main gatée glisse (op `disarm`) et l'on renvoie `false` (l'IA renonce à CE coup).
+ *  sur ÉCHEC, l'objet de la main gatée glisse (`glisseDeLaMain`) et, s'il a glissé, l'on renvoie `false` (l'IA renonce à
+ *  CE coup).
  *  `weaponUid` = arme réellement employée : une pièce SERVIE hors loadout main/secondaire → `attackHandGate` = null →
  *  jamais gatée (parité avec le pilonnage joueur, canon monté). */
 export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?: string): boolean {
@@ -4462,9 +4473,9 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
   const gt = rollSansPilote(get, attacker, testValue(attacker, { characteristic: 'dexterite' }), 'accessible', battleRng());
   const bg = get().battle;
   if (!gt.success) {
-    const lache = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: gHand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) }).lignes;
-    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeRatee', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lache.map((l) => `  ↳ ${l}`), 'information', attacker.id)] } });
-    return false;
+    const { lignes, tient } = glisseDeLaMain(get, set, attacker, gHand);
+    if (bg) set({ battle: { ...touchActors(get()).battle!, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeRatee', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id), ...evLines(lignes.map((l) => `  ↳ ${l}`), 'information', attacker.id)] } });
+    return tient;
   }
   if (bg) set({ battle: { ...bg, log: [...bg.log, ev('information', tr('cf.mainEnsanglanteeReussie', { name: nomDe(attacker), roll: gt.roll, target: gt.target }), attacker.id)] } });
   return true;
@@ -8179,21 +8190,6 @@ export function finishCombatEnd(get: Get, set: SetFn): void {
   set({ battle: { ...get().battle!, over: 'defaite', log: [...get().battle!.log, ev('information', tr('cf.defaite'))] } });
 }
 
-/** Gantelet verrouillé (AA folio 94) — anti-lâcher GÉNÉRIQUE (capacité lue en DONNÉE `preventForcedDrop`,
- *  jamais par le nom de l'objet). Renvoie true si le porteur GARDE l'arme `drop` (la 1re fois dans la période
- *  de « 1 Round minimum » — il subit alors −20 pendant 1 Round, journalisé par l'appelant) ; false s'il doit
- *  la LÂCHER (aucun gantelet, ou SECOND évènement de lâcher pendant la période). Pose/réarme le marqueur
- *  transitoire `drop.gauntletSavedRound`. */
-function lockedGauntletHolds(wielder: Combatant, drop: Weapon, roundCourant: number | undefined): boolean {
-  const hasGauntlet = hasCapability(wielder, 'preventForcedDrop'); // capacité agrégée (gantelet PORTÉ/TENU)
-  if (!hasGauntlet) return false;
-  const round = garanti(roundCourant, wielder.id, 'Round du gantelet verrouillé hors bataille (LDB 13 l.13)');
-  const saved = drop.gauntletSavedRound;
-  if (saved != null && round <= saved + 1) { drop.gauntletSavedRound = undefined; return false; } // 2e évènement dans la période → lâche
-  drop.gauntletSavedRound = round; // 1re sauvegarde (ou période écoulée → réarmement) : garde l'arme, −20/1 Round
-  return true;
-}
-
 /**
  * Conséquence PROCÉDURALE d'un Test opposé de Piège-lame GAGNÉ par le défenseur (op `breakBlade`, hook
  * `piegeALame`) : l'adversaire est désarmé de la lame visée (`bt.weaponUid`), arrachée de ses mains. Marge
@@ -8233,12 +8229,10 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   } else {
     line = tr('cf.armeLachee', { name: nomDe(attacker), weapon: drop.label });
   }
-  // Gantelet verrouillé (AA folio 94) : anti-lâcher — la lame DÉTRUITE échappe à cette grâce (un gantelet
-  // ne sauve pas une arme brisée). Sinon, la 1re fois dans la période le porteur GARDE l'arme (−20/1 Round) ;
-  // le 2e évènement de lâcher la fait tomber. Capacité lue en DONNÉE (`preventForcedDrop`), jamais par nom.
   const brisee = usee?.issue === 'brisee';
-  if (!brisee && lockedGauntletHolds(attacker, drop, get().battle?.round)) {
-    pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('cf.ganteletVerrouilleRetient', { name: nomDe(attacker), weapon: drop.label })]),
+  const retenue = brisee ? undefined : ganteletRetient(attacker, drop);
+  if (retenue) {
+    pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('op.ganteletRetient', { name: nomDe(attacker), item: drop.label, mod: retenue.testMod })]),
       ...(usee ? { faits: [usee] } : {}) });
     set(touchActors(get()));
     bus.emit(EVT.SCENE_DIRTY);

@@ -335,6 +335,37 @@
     }
   },
   {
+    "id": "retenue-du-gantelet-verrouille",
+    "type": "regles",
+    "label": "Gantelet verrouillé",
+    "descRef": {
+      "book": "aux-armes",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "les-armes-de-bagarre",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 5,
+          "sum": "e8cfc7f6f456a499"
+        }
+      ]
+    },
+    "source": {
+      "book": "aux-armes",
+      "page": 94
+    },
+    "rangees": [
+      {
+        "id": "retenue",
+        "label": "Gantelet verrouillé",
+        "palier": "difficile",
+        "famille": "circonstance"
+      }
+    ]
+  },
+  {
     "id": "double-critique-maladresse",
     "type": "regles",
     "label": "Critique et Maladresse (double)",

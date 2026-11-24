@@ -16,7 +16,7 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { carriersColocated } from '../engine/cargo';
 import { resolveCarrier, porteurLocalise, type Carrier } from './monde/carrier';
 import { refusDInventaire } from './verrousDeFiche';
-import { refusEmplacementDeMain } from './partyFlow';
+import { refusDePorter, refusEmplacementDeMain } from './partyFlow';
 import { refusDeConsommer } from './consumableFlow';
 import { gameDay, refusDEvaluation } from './merchantFlow';
 import { refusDePoser } from './objetsAuSol';
@@ -80,7 +80,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
   };
   const inconnu = hero && it.identified === false;
   return {
-    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid, !it.equipped]), porte: it.equipped } : null,
+    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid, !it.equipped], hero && !it.equipped ? refusDePorter(hero, uid) : null), porte: it.equipped } : null,
     mains: set ? { set: set.id, main: main('main'), secondaire: main('secondaire') } : null,
     ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'rangerLObjet', args: [uid, c.uid] } })) } : null,
     sortir: it.inside ? sur('rangerLObjet', [uid, null]) : null,

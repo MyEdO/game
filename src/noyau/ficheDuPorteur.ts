@@ -28,7 +28,7 @@ import { effectiveSkillCharKey, testValue } from '../engine/skills';
 import { effectiveTalents } from '../engine/talentEffects';
 import { effectiveEntry } from '../engine/variants';
 import { itemLabel } from '../engine/items';
-import { isWeaponActive } from '../engine/weaponLoad';
+import { isHeld } from '../engine/weaponLoad';
 import { attackTestOf } from '../engine/combat';
 import { weaponStatParts } from '../engine/weaponStats';
 import { resolveQualities } from '../engine/qualities/dispatch';
@@ -83,7 +83,7 @@ export interface ArmureDeLaFiche { localisation: string; pa: number }
 export interface EntreeDeLaFiche extends Renvoyable { desc: string | null }
 
 /** Une possession : l'objet qui la désigne (`uid`, le premier de celles comptées ensemble), son nom (`itemLabel`), si
- *  elle est équipée (une arme : tenue dans le set actif, `isWeaponActive`), combien en sont portées, l'argent qu'elle
+ *  elle est équipée (portée, ou tenue dans le set actif : `isHeld`), combien en sont portées, l'argent qu'elle
  *  tient (`formatMoney`, `null` sans argent), le contenant où elle est rangée (`null` : en vrac) et l'objet du catalogue
  *  qu'elle instancie (`trappingId`). Les possessions de même nom, équipées de même, rangées au même endroit et sans
  *  argent, se comptent ensemble. */
@@ -193,7 +193,7 @@ export function ficheDuCombattant(c: Combatant, nom: NomDIndividu): FicheDuPorte
   for (const it of items) {
     const libelle = itemLabel(it);
     const argent = it.money ? formatMoney(it.money) : null;
-    const equipee = it.kind === 'melee' || it.kind === 'distance' ? isWeaponActive(c, it.uid) : it.equipped;
+    const equipee = isHeld(c, it);
     const sac = it.inside ? items.find((i) => i.uid === it.inside) : undefined;
     const contenant = sac ? itemLabel(sac) : null;
     const meme = argent === null ? possessions.find((p) => p.libelle === libelle && p.equipee === equipee && items.find((i) => i.uid === p.uid)?.inside === it.inside && p.argent === null) : undefined;
