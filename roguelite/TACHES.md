@@ -8,11 +8,11 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 | Tâche | Où | Reste |
 |---|---|---|
-| Question ouverte à l'utilisateur : création fidèle à la 5e (CRB 014-015 : 5 Compétences d'espèce à +5, 8 Augmentations de carrière plafonnées à +15, aucune Augmentation de Caractéristique) ou 4e alignée sur le pas de 5 (livrée, `roguelite/src/noyau/heros.ts`). À égalité, le Pyromancien met ses 5 Augmentations sur CC plutôt que FM | `roguelite/src/noyau/heros.ts` | attend la réponse |
+| Création des recrues par la création 5e du noyau (arbitrage du 2026-11-24, `CONCEPTION.md`), à la place de la création au pas de 5. Non entamée : reprendre la procédure de MyEdO/game#4912. Le pas de progression (`PAS`, `augmentationsDuPas` de `roguelite/src/noyau/carriere.ts`) compte des points d'Augmentation, que le modèle 5e ajoute par 5 (`modeleDe(hero).pas`) : à revoir avec elle | `roguelite/src/noyau/heros.ts`, `roguelite/src/noyau/carriere.ts` | tout |
 
 ## Ensuite, dans l'ordre
 
-1. Le compagnon en rencontre (MyEdO/game#4804) : lot B2 fusionné (MyEdO/game#4908), le chien du Ratier combat à son propre tour et le rejeu montre son pion, son portrait dans l'ordre et sa carte. Reste le lot C : Blessures des bêtes gardées et soignées.
+1. Le compagnon en rencontre (MyEdO/game#4804) : lot B2 fusionné (MyEdO/game#4908), le chien du Ratier combat à son propre tour et le rejeu montre son pion, son portrait dans l'ordre et sa carte. Reste le lot C : Blessures des bêtes gardées et soignées, non entamé et libéré au ticket le 2026-11-24. Après la fusion de MyEdO/game#4911 (journal de combat), dessiner « ↳ » depuis le genre `detail` des lignes et rejouer le combat du chien (graine 114).
 2. Le mage en combat automatique (MyEdO/game#4838 fusionnée) : remesurer le taux de lancer des sorts de voie par niveau, avec et sans `magie-vdm-incantation` ; rouvrir Arme et Armure aethyriques et Explosion si l'IA les lance. Lot 2 de MyEdO/game#865 : Interruption volontaire (VDM 02 l.139), évacuation sûre (l.141), Maladresse de Focalisation (l.149).
 3. Choisir hors combat qui monte sa monture : le roguelite le propose avant la rencontre (gestes `monterLaBete`, `quitterLaSelle` du noyau, lot B1).
 4. Débords connus : la forge et l'Hospice à la taille d'interface « grande ». Libellés de refus encore doubles : `ui/services.ts` (`manqueAuPalier`), `ui/fiche.ts:43`.

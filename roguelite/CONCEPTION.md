@@ -247,6 +247,7 @@ survol ; le dernier fait du journal sous le cartouche du hameau.
   chaque Caractéristique et chaque Compétence de sa carrière, tous niveaux, à un multiple de 5 (`nouvelleRecrue`) :
   ses 5 Augmentations de Caractéristique sur une seule du niveau 1, ses +3 d'espèce hors de la carrière, ses 40 de
   carrière par 5 sur 8 Compétences du niveau 1, les utiles d'abord (LDB 05 l.459, l.484, l.535).
+- **2026-11-24, la création v5 du noyau** : « Parfais, le roguelite va pouvoir utiliser les vrais règles de la création v5 », puis « Je le veux ». — Une recrue naît par la création 5e du noyau (MyEdO/game#4912, `src/engine/advancement.ts` et la création de `src/engine/character.ts`), par la porte du noyau ; elle remplace la création au pas de 5 du roguelite.
 
 ## Les phases
 
