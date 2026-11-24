@@ -23,10 +23,13 @@ import { bancDeLInterlude } from '../noyau/interlude.testkit';
 import { dayPhase, toDate } from '../engine/clock';
 import { scenario as fluvial } from '../scenes/test-scenarios/15-commerce-fluvial';
 import { testScene } from '../scenes/test-fixture';
+import { catalogueDeLaPartie } from './contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 describe('projection d’un objet de campagne', () => {
   it('publie l’apparence de naissance, tenue en main, sur l’actif et dans la liste des combattants', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const base = partie.etat();
       const { hero, narratif, candidats } = porteurDObjetDeCampagne(idsDeTest, 'hache_naine');
@@ -73,7 +76,7 @@ describe('projection d’une bête-compagnon (#4804)', () => {
 
 describe('projection des cibles du Tab (`combat.cibles`)', () => {
   it('Frénésie, deux adversaires adjacents : seule la cible imposée est publiée (LDB 21 l.33)', () => {
-    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, 'dome', { graine: 7 }), () => {});
     try {
       const base = partie.etat(); // pause de début de Round ouverte : refermée ci-dessous
       const heros = { ...base.battle!.combatants.find((c) => c.kind === 'heros')!, pos: { x: 6, y: 6 }, engagedWith: [], psychState: [{ type: 'frenesie' }] } as Combatant;

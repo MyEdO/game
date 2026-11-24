@@ -30,6 +30,7 @@
 import { clicDuCombattant, creerPontFige, type MondeDuPont, type Suite } from '../pont/pont';
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
+import { contenuDuJeuDeRole } from '../../../src/scenes/campaign';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import {
   elementsDesGestes,
@@ -181,7 +182,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
    *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. `planche` rend la planche
    *  de la suite `s` de sa partie. */
   const unPont = (journal: Ligne[]) => {
-    const pont = creerPontFige();
+    const pont = creerPontFige(contenuDuJeuDeRole);
     let scenario = '';
     const appeler = (methode: string, entree: unknown): Suite => {
       const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;

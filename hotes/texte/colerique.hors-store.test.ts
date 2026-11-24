@@ -12,6 +12,9 @@ import { nouvelEntete } from '../../src/hote/partieDeTest';
 import { creerPartie } from '../../src/noyau/partie';
 import { jouerUnGeste, type PartieRejouee } from './partieTexte';
 import { BORNES, projeter, rendreLaVue, rendreLesChoix } from './vue';
+import { catalogueDeLaPartie } from '../../src/hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 describe('Colérique à l’hôte texte (#4017)', () => {
   it('pagine les choix connus et joue le nom déjà vu après avoir restauré la partie', () => {
@@ -83,7 +86,7 @@ describe('Colérique à l’hôte texte (#4017)', () => {
     });
     const partie = creerPartie(chargerLaSave(suspendue).etat, { ...ENTREES_DU_BANC, graine: 7 });
     const rejouee: PartieRejouee = {
-      partie, jetons: tenueDesJetons(partie), entete: nouvelEntete('magie', { graine: 7 }), gestes: [], journal: [], reprises: [],
+      partie, jetons: tenueDesJetons(partie), entete: nouvelEntete(CATALOGUE, 'magie', { graine: 7 }), gestes: [], journal: [], reprises: [],
     };
     try {
       jouerUnGeste(rejouee, { type: 'jetRegler', args: ['cascade', 'choix', choix, etapeId] });

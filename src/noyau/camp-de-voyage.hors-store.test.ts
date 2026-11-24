@@ -63,7 +63,7 @@ function preparerVoyage(options: {
 
 function optionDeCamp(etat: Jeu) {
   const p = projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 });
-  return zonesDeLEcran(etat, p, fenetreADessiner(etat), null, SANS_ROSTER)['fenetre.reglages']
+  return zonesDeLEcran(etat, p, fenetreADessiner(etat), null, SANS_ROSTER, [])['fenetre.reglages']
     .find((g) => g.id === 'jetRegler@cascade#choix');
 }
 

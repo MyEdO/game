@@ -6,6 +6,9 @@ import { fermerLaTable, table } from './hote.testkit';
 import { lireLeFichier, rejouer } from './partieTexte';
 import type { EntreesDeJouer } from './serveur';
 import { BORNES, projeter, rendreLaCarte } from './vue';
+import { catalogueDeLaPartie } from '../../src/hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 afterEach(fermerLaTable);
 
@@ -28,9 +31,9 @@ describe('départ en voyage depuis la carte de l’hôte texte', () => {
     expect(reponse.erreur, reponse.texte).toBeNull();
     expect(reponse.texte).toContain('En route vers Steinbruck (30 km, à pied)');
 
-    const { entete, gestes: enregistres } = lireLeFichier(hote.fichier());
+    const { entete, gestes: enregistres } = lireLeFichier(CATALOGUE, hote.fichier());
     fermerLaTable();
-    const { partie } = rejouer(entete, enregistres);
+    const { partie } = rejouer(CATALOGUE, entete, enregistres);
     try {
       expect(partie.etat().travelPlan).toMatchObject({ routeId: 'r-grandroute', orders: { cadence } });
     } finally {
@@ -63,9 +66,9 @@ describe('départ en voyage depuis la carte de l’hôte texte', () => {
   it('réserve l’offre de cadence aux parties locales', () => {
     const hote = table();
     expect(hote.nouvelle('voyage', { graine: 7 }).erreur).toBeNull();
-    const { entete, gestes } = lireLeFichier(hote.fichier());
+    const { entete, gestes } = lireLeFichier(CATALOGUE, hote.fichier());
     fermerLaTable();
-    const { partie } = rejouer(entete, gestes);
+    const { partie } = rejouer(CATALOGUE, entete, gestes);
     try {
       const etat = partie.etat();
       const enCoop = { ...etat, net: { ...etat.net, mode: 'hote' as const } };

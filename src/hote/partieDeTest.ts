@@ -1,16 +1,15 @@
 /**
- * LA PARTIE D'UN SCÉNARIO DE TEST DU CATALOGUE (`testScenarios`), que l'hôte texte et le pont Godot ouvrent par l'id
- * du scénario : son en-tête et son ouverture sur `ouvrirLeLancement` (`partie.ts`). Le catalogue tire les projets de
- * campagne (`src/scenes/campaign.ts`) : un hôte qui lance ses propres combats n'importe que `partie.ts` (#4836).
+ * LA PARTIE D'UN SCÉNARIO DE TEST du catalogue de la partie (`catalogueDeLaPartie`, `contenu.ts`), que l'hôte texte et
+ * le pont Godot ouvrent par l'id du scénario : son en-tête et son ouverture sur `ouvrirLeLancement` (`partie.ts`). Un
+ * hôte qui lance ses propres combats n'importe que `partie.ts` (#4836).
  */
 import { ErreurDeGeste, nouvellesEntrees, ouvrirLeLancement, type EntreesDeLEntete, type PartieOuverte } from './partie';
 import type { EntreesDeLaPartie } from '../noyau/index';
 import { lancementDuScenario, type TestScenario } from '../scenes/test-scenarios/_shared';
-import { testScenarios } from '../scenes/test-scenarios';
 
-/** Le scénario de test `id` du catalogue (`testScenarios`), ou l'erreur de validation qui le refuse. */
-export function scenarioDeTest(id: string): TestScenario {
-  const scenario = testScenarios.find((s) => s.id === id);
+/** Le scénario de test `id` du catalogue `catalogue`, ou l'erreur de validation qui le refuse. */
+export function scenarioDeTest(catalogue: readonly TestScenario[], id: string): TestScenario {
+  const scenario = catalogue.find((s) => s.id === id);
   if (!scenario) throw new ErreurDeGeste('validation', `scénario inconnu : ${id}`);
   return scenario;
 }
@@ -20,15 +19,16 @@ export interface Entete extends EntreesDeLEntete {
   scenario: string;
 }
 
-/** L'en-tête d'une partie neuve, ou l'erreur de validation qui le refuse (`nouvellesEntrees`). */
-export function nouvelEntete(scenario: string, options: Parameters<typeof nouvellesEntrees>[0]): Entete {
-  scenarioDeTest(scenario);
+/** L'en-tête d'une partie neuve sur un scénario du catalogue `catalogue`, ou l'erreur de validation qui le refuse
+ *  (`nouvellesEntrees`). */
+export function nouvelEntete(catalogue: readonly TestScenario[], scenario: string, options: Parameters<typeof nouvellesEntrees>[0]): Entete {
+  scenarioDeTest(catalogue, scenario);
   return { scenario, ...nouvellesEntrees(options) };
 }
 
-/** Ouvre la partie de l'en-tête : son scénario lancé par le constructeur unique du lancement (`lancementDuScenario`,
- *  `ouvrirLeLancement`). */
-export function ouvrirLaPartie(entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0): PartieOuverte {
-  const scenario = scenarioDeTest(entete.scenario);
+/** Ouvre la partie de l'en-tête : son scénario, pris au catalogue `catalogue`, lancé par le constructeur unique du
+ *  lancement (`lancementDuScenario`, `ouvrirLeLancement`). */
+export function ouvrirLaPartie(catalogue: readonly TestScenario[], entete: Entete, persisterLeHeros: EntreesDeLaPartie['persisterLeHeros'], premierJeton = 0): PartieOuverte {
+  const scenario = scenarioDeTest(catalogue, entete.scenario);
   return ouvrirLeLancement(entete, (idNeuf) => lancementDuScenario(scenario, idNeuf), persisterLeHeros, premierJeton);
 }

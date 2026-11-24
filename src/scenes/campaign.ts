@@ -25,3 +25,7 @@ export const areneCampaign: BuiltinCampaign = campagneDuPaquet(areneProjet, 'are
 /** Toutes les campagnes du jeu (Arène + `builtinCampaigns`), source unique pour tout listing
  *  homogène (bibliothèque de campagnes ET « Ouvrir » de l'éditeur, #367). */
 export const allBuiltinCampaigns: BuiltinCampaign[] = [areneCampaign, ...builtinCampaigns];
+
+/** Le contenu du jeu de rôle que ses points d'entrée remettent à l'affichage (`ContenuDUnJeu`, `src/hote/contenu.ts`) :
+ *  ses campagnes, et aucun scénario de test hors du catalogue commun. */
+export const contenuDuJeuDeRole = { campagnes: allBuiltinCampaigns, scenarios: [] };
