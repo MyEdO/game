@@ -240,6 +240,19 @@ describe('Compléter / Changer de Carrière (LDB 07 l.111-140, LDB 07 l.144)', (
     h.talents = [{ talentId: 't3', times: 1 }];
     expect(isCareerLevelComplete(h, 2, completionOpts(2))).toBe(true);
   });
+  it('un emplacement « (Toutes) » est tenu par la mieux montée de ses spécialisations (CRB 018 l.107)', () => {
+    const levels: EmplacementsDuNiveau[] = [{ level: 1, skills: [...A(['s1', 's2', 's3', 's4', 's5', 's6', 's7']), { id: 'savoir', choix: 'toutes' }], talents: A(['t1']) }];
+    const opts = { ...completionOpts(1), skillSlots: skillSlots(levels, 1), talentSlots: talentSlots(levels, 1) };
+    const h = completedHero(0);
+    h.skills = [
+      ...h.skills.slice(0, 7),
+      { id: 'savoir', spec: 'region', characteristic: 'intelligence', advances: 3 },
+      { id: 'savoir', spec: 'remedes', characteristic: 'intelligence', advances: 4 },
+    ] as Combatant['skills'];
+    expect(isCareerLevelComplete(h, 1, opts)).toBe(false);
+    h.skills[8] = { ...h.skills[8], advances: 5 };
+    expect(isCareerLevelComplete(h, 1, opts)).toBe(true);
+  });
   it('coutDuChangement : 100 si complété, 200 sinon (l.120)', () => {
     expect(coutDuChangement(hero(0), true)).toBe(100);
     expect(coutDuChangement(hero(0), false)).toBe(200);

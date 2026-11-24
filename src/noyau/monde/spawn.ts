@@ -221,6 +221,10 @@ export function skillsFromBook(list: SkillRef[] | undefined, printedChars: Chara
   (list ?? []).forEach((ref, i) => {
     const sk = byId('skill', ref.id);
     if (!sk) return;
+    if (ref.choix === 'toutes') {
+      for (const spec of specPoolOf(sk)) out.push(skillInstance(sk.id, spec, ref.value, printedChars));
+      return;
+    }
     const spec = ref.choix != null ? designateSpec(sk, ref.choix, `${seed}:${sk.id}:${i}`) : ref.spec;
     out.push(skillInstance(sk.id, spec, ref.value, printedChars));
   });
