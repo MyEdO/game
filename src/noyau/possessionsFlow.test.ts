@@ -358,7 +358,7 @@ describe('mise en selle hors combat : monter, descendre (#4804, LDB 85 l.112)', 
     expect(refus(b)).toBe(t('pos.pasMontable'));
     set((s) => ({ party: s.party.map((h) => ({ ...h, size: 'enorme' as const })) }));
     expect(refus(ajouterLaPossession(get, set, cheval('h1')))).toBe(t('pos.refuseLeCavalier'));
-    set({ battle: {} as BattleState });
+    set({ battle: { combatants: [] } as unknown as BattleState });
     expect(refus(ajouterLaPossession(get, set, cheval('h2')))).toBe(t('pos.batailleEnCours'));
   });
 
@@ -367,7 +367,7 @@ describe('mise en selle hors combat : monter, descendre (#4804, LDB 85 l.112)', 
     expect(refusGestePossession(get(), b, { kind: 'descendre' })).toBe(t('pos.pasMontee'));
     quitterLaSelle(get, set, b);
     expect(monture()).toBe(a);
-    set({ battle: {} as BattleState });
+    set({ battle: { combatants: [] } as unknown as BattleState });
     expect(refusGestePossession(get(), a, { kind: 'descendre' })).toBe(t('pos.batailleEnCours'));
     set({ battle: null });
     quitterLaSelle(get, set, a);

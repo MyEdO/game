@@ -53,7 +53,7 @@ export const MODELES_DE_PROGRESSION: Readonly<Record<CleDeProgression, ModeleDeP
     apprentissage: { test: true, premierNiveauSeul: false, tuteur: { des: 2, faces: 10, parTranche: 100 } }, // LDB 23 l.66-72
   },
   '5e': {
-    pas: 5, // CRB 014 l.21 ; CRB 045 l.15
+    pas: 5, // CRB 045 l.15
     coutDuTalent: { base: 100, parPrise: 0 }, // CRB 045 l.60
     porteeDesTalents: 'cumul', // CRB 045 l.58
     horsCarriere: { coefficient: 2, competencesAvancees: false }, // CRB 018 l.69

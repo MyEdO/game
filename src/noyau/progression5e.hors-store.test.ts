@@ -1,7 +1,7 @@
 /**
  * Progression d'un héros au modèle `'5e'` (`MODELES_DE_PROGRESSION`), jouée par les gestes du noyau : Augmentations de
  * +5 au barème du CRB, Talents à 100 PX, hors carrière, cases de carrière, passage et changement de carrière,
- * Entraînement et Apprentissage. CRB 014 l.21 ; CRB 018 l.19-27, l.67-73 ; CRB 045 ; CRB 048 l.25, l.45, l.72,
+ * Entraînement et Apprentissage. CRB 018 l.19-27, l.67-73 ; CRB 045 ; CRB 048 l.25, l.45, l.72,
  * l.214-226
  */
 import { describe, it, expect } from 'vitest';
