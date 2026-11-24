@@ -136,7 +136,7 @@ export const fenetreDeDeterminationSchema = z.union([
  *  les DURÉES et la récurrence (l'effet porteur les tient), les VERROUS (la source EST le verrou), et
  *  les champs de LUTTE, figés par `addCondition` à la pose — que la réconciliation appelle NU. */
 export const CHAMPS_EXCLUS_DE_CARRIED = [
-  'durationRounds', 'durationMinutes', 'durationHours', 'perRound', 'lockedUntil', 'unlockBy',
+  'durationRounds', 'durationMinutes', 'durationHours', 'finDeRencontre', 'perRound', 'lockedUntil', 'unlockBy',
   'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'difficulte', 'argDifficulty', 'grapple',
 ] as const;
 
@@ -147,6 +147,12 @@ function refusDeLaPoseDEtat(v: Readonly<Record<string, unknown>> & { id: { id: s
   const id = v.id.id;
   if (v.perRound === true && (v.durationMinutes != null || v.durationHours != null)) {
     ctx.addIssue({ code: 'custom', path: ['perRound'], message: messageRecurrenceHorloge(id) });
+  }
+  if (v.finDeRencontre === true) {
+    for (const champ of ['durationRounds', 'durationMinutes', 'durationHours', 'perRound'] as const) {
+      if (v[champ] == null) continue;
+      ctx.addIssue({ code: 'custom', path: [champ], message: `État « ${id} » : « finDeRencontre » est une durée, EXCLUSIVE de « ${champ} ».` });
+    }
   }
   if (v.carried === true) {
     for (const champ of CHAMPS_EXCLUS_DE_CARRIED) {
@@ -625,6 +631,7 @@ const DECLARATIONS_D_OPS = {
     durationRounds: formulaSchema.optional(),
     durationMinutes: formulaSchema.optional(),
     durationHours: formulaSchema.optional(),
+    finDeRencontre: z.literal(true).optional(),
     onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE }).optional(),
     onlyIfCondition: refDEtatSchema.optional(),
     unlessCondition: refDEtatSchema.optional(),
@@ -639,7 +646,7 @@ const DECLARATIONS_D_OPS = {
     unlockBy: acteDeDeverrouillageSchema.optional(),
     grapple: z.boolean().optional(),
     carried: z.literal(true).optional(),
-  }).superRefine(refusDeLaPoseDEtat), { op: { label: "opération"  }, id: { label: "État" }, value: { label: "pions" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, valuePerSL: { label: "pions par DR" }, perRound: { label: "chaque Round" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: 'durée en minutes', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: 'durée en heures', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, onlyIfCondition: { label: "si la cible porte" }, unlessCondition: { label: "sauf si la cible porte" }, escapeStrength: { label: "Force d’évasion" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, escapeThreshold: { label: "DR d’évasion" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, entangleOnFail: { label: "aggravé sur échec" }, struggleDamage: { label: "dégâts de lutte" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, difficulte: { label: "difficulté d’élimination" }, argDifficulty: { label: "difficulté de l’argument" }, lockedUntil: { label: "verrouillé tant que" }, resolveWindow: { label: "fenêtre de Détermination" }, unlockBy: { label: "retiré seulement par" }, grapple: { label: "Empoignade" }, carried: { label: "porté par l’effet" } }),
+  }).superRefine(refusDeLaPoseDEtat), { op: { label: "opération"  }, id: { label: "État" }, value: { label: "pions" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, valuePerSL: { label: "pions par DR" }, perRound: { label: "chaque Round" }, durationRounds: { label: 'durée en Rounds', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: 'durée en minutes', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: 'durée en heures', texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, finDeRencontre: { label: "jusqu’à la fin de la rencontre" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, onlyIfCondition: { label: "si la cible porte" }, unlessCondition: { label: "sauf si la cible porte" }, escapeStrength: { label: "Force d’évasion" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, escapeThreshold: { label: "DR d’évasion" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, entangleOnFail: { label: "aggravé sur échec" }, struggleDamage: { label: "dégâts de lutte" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, difficulte: { label: "difficulté d’élimination" }, argDifficulty: { label: "difficulté de l’argument" }, lockedUntil: { label: "verrouillé tant que" }, resolveWindow: { label: "fenêtre de Détermination" }, unlockBy: { label: "retiré seulement par" }, grapple: { label: "Empoignade" }, carried: { label: "porté par l’effet" } }),
   removeCondition: nommerChamps(z.strictObject({
     op: z.literal('removeCondition'),
     id: refDEtatSchema.optional(),
