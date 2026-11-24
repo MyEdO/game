@@ -109,7 +109,7 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
 - **Constat — les verbes de fiche marchent dans une partie d'exploration générée.** `acheterLaCaracteristique`,
   `acheterLaCompetence`, `acheterLeTalent`, `acheterLeSort`, `changerDeCarriere`, `utiliserLObjet`, `incanterLeSort`
   se jouent sur une arène sans rencontre, et leurs refus s'écrivent au journal. L'hôte n'a rien recodé de l'avancement
-  (`projets/roguelite/src/combat.ts`, `auHameau`).
+  (`projets/roguelite/src/noyau/hameau.ts`, `auHameau`).
 - **Piège — `equiperLObjet` bascule.** Un objet né `equipped: true` (pièce d'armure fabriquée par l'hôte) est
   *déséquipé* par le verbe, et l'armure dérivée tombe à 0 PA sans un mot. Une arme, elle, ne se « porte » pas : elle va
   en main par `garnirLaPanoplie(héros, panoplie, main, uid)`, que rien ne relie à `equiperLObjet` côté hôte. Idée : un

@@ -611,7 +611,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(obtenus).toEqual(['murs/zone', 'murs/zone', 'passe', 'passe', 'murs/zone', 'murs/zone', 'murs/zone', 'murs/zone']);
   });
 
-  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises, ni par un motif joker qui peut l’atteindre ; un projet lit ses ouvertures et ses propres jokers, pas un affichage', () => {
+  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises, ni par un motif joker qui peut l’atteindre ; un projet lit ses ouvertures et ses propres jokers, pas un affichage ni un joker qui peut atteindre une zone fermée, fichiers à même `src/` compris', () => {
     const obtenus = verdicts([
       { filePath: 'hotes/zz-inconnu/a.ts', code: 'export const a = 1;\n' },
       { filePath: 'hotes/zz-a.ts', code: 'export const a = 1;\n' },
@@ -634,6 +634,8 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
         .map((motif, i) => ({ filePath: `src/zz-joker-${i}.test.ts`, code: `export const g = import.meta.glob('${motif}');\n` })),
       { filePath: 'hotes/godot/zz-joker.ts', code: "export const g = import.meta.glob('../../projets/*/x.ts');\n" },
       { filePath: 'projets/roguelite/src/zz-joker.ts', code: "export const g = import.meta.glob('../**/*.ts');\n" },
+      { filePath: 'projets/roguelite/src/zz-a.ts', code: "export const g = import.meta.glob('../../../src/**/*.json');\n" },
+      { filePath: 'projets/roguelite/src/zz-a.test.ts', code: "export const g = import.meta.glob('../../../src/**/*.json');\n" },
     ], ['murs/zone', REGLE, INSTR]);
     expect(obtenus).toEqual([
       'murs/zone', 'murs/zone', 'murs/zone',
@@ -643,6 +645,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       'passe', REGLE, 'passe',
       INSTR, INSTR, INSTR, INSTR, INSTR, INSTR,
       REGLE, 'passe',
+      REGLE, INSTR,
     ]);
   });
 });

@@ -28,7 +28,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 ## Reprendre ce chantier depuis un autre compte
 
 - La branche `chantier/busy-pasteur-mpnok2` et sa PR MyEdO/game#4767 portent tout le roguelite. La PR reste en brouillon, sans fusion dans `main` (choix « Garder en brouillon » de l'utilisateur, carte de décision du 2026-11-24) ; ce fichier est l'état du travail, les arbitrages de l'utilisateur sont dans `CONCEPTION.md` et sur les tickets, cités et datés.
-- Recette navigateur : `npm run roguelite:construire`, puis `npm run roguelite:recette` (le lot), ou `node projets/roguelite/recette/partie.mjs <dossier>` ; tests : `npm run roguelite:tests` ; typecheck : `npm run typecheck:fast`.
+- Recette navigateur : `npm run roguelite:construire`, puis `npm run roguelite:recette` (le lot), ou `node projets/roguelite/recette/partie.mjs dist/roguelite-recette dist/roguelite-recette/partie-fixe.json` (la partie fixe posée par le lot, `recette/lot.mjs`) ; tests : `npm run roguelite:tests` ; typecheck : `npm run typecheck:fast`.
 - Le roguelite ne modifie jamais `src/` : un manque du noyau va dans `RETOURS.md`, puis en ticket et chantier `chantier/<N>` (TDD, juge, PR).
 - Avant de prendre un ticket du noyau : lire ses champs `Statut` / `Tenu par` (skill `se-coordonner-entre-comptes`).
 

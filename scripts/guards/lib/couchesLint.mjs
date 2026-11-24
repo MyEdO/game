@@ -63,18 +63,18 @@ const TABLE = 'la table `COUCHES` (`scripts/guards/lib/couches.mjs`)';
 /** Le nom d'une zone dans un message : `racine` n'est pas un dossier. */
 const nommer = (z) => (z === 'racine' ? 'un fichier posé à même `src/`' : dossierDe(z));
 
-/** Les dossiers des zones à dossier propre que la table ferme à la zone `de` à l'exécution (`fermeture`) ou à ses
- *  instruments (`fermeParLaSurvie`) : celles qu'un motif joker de `de` ne doit pas pouvoir atteindre. */
+/** Les dossiers des zones que la table ferme à la zone `de` à l'exécution (`fermeture`) ou à ses instruments
+ *  (`fermeParLaSurvie`), `racine` comprise (`src`) : celles qu'un motif joker de `de` ne doit pas pouvoir atteindre. */
 const dossiersFermes = (de) => Object.keys(COUCHES)
-  .filter((z) => z !== 'racine' && (fermeture(de, z, false) !== null || fermeParLaSurvie(de, z))).map(dossierDe);
+  .filter((z) => fermeture(de, z, false) !== null || fermeParLaSurvie(de, z)).map(dossierDe);
 
 /** Le motif `cibleRel` (relatif à la racine) peut-il atteindre l'un des `dossiers` par un joker ? Sa partie
- *  littérale (`picomatch.scan`) s'arrête au-dessus de l'un d'eux, ou est vide, et son joker descend d'un dossier. */
+ *  littérale (`picomatch.scan`) s'arrête sur l'un d'eux ou au-dessus, ou est vide, et son joker descend d'un dossier. */
 function dossierJoker(cibleRel, dossiers) {
   const { base, isGlob } = picomatch.scan(cibleRel);
   const joker = cibleRel.slice(base.length);
   if (!isGlob || !(joker.slice(1).includes('/') || joker.includes('**'))) return false;
-  return base === '' || dossiers.some((d) => d.startsWith(`${base}/`));
+  return base === '' || dossiers.some((d) => d === base || d.startsWith(`${base}/`));
 }
 
 /** La cible `cibleRel` est-elle du CODE : sans extension (un module résolu), ou d'une extension de script

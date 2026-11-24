@@ -14,7 +14,7 @@ function balayer(N: number, destination?: string): void {
           const g = [0, 1, 2, 3].map((k) => recrue(e, PROFILS[(i * 4 + k) % PROFILS.length]).c);
           const r = jouerLeCombat(g, ennemis, 9000 + i, d.lumiere);
           if (r.issue === 'victoire') v++; if (r.issue === 'impasse') imp++; if (r.pas.length < 5) courts++; morts += r.morts.length;
-          if (r.groupe.length !== g.length - (r.issue === 'victoire' ? 0 : 0) && r.groupe.length + r.morts.length < g.length) console.log('   groupe rendu incomplet', r.issue, r.groupe.length, r.morts.length);
+          if (r.groupe.length + r.morts.length < g.length) console.log('   groupe rendu incomplet', r.issue, r.groupe.length, r.morts.length);
         }
         console.log(`${d.id} ${genre} ${ennemis.map(nomDeCreature).join('+')} : ${v}/${N} victoires, ${imp} impasses, ${courts} courts, ${morts} morts, ${((Date.now() - t0) / N).toFixed(0)} ms`);
       }

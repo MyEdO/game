@@ -1,8 +1,9 @@
 // La recette de l'interface : le jeu construit (`npm run roguelite:construire`, sous `SORTIE`), servi à chaque contexte
 // du navigateur par l'interception de ses requêtes (`BrowserContext.route`), sans serveur ni port. Le stockage de la
 // page se pose et se lit par l'état du contexte (`newContext({ storageState })`, `storageState()`) : un contexte neuf
-// est un stockage vide. Chaque script reçoit en premier argument le dossier des captures.
-// Usage : npm run roguelite:recette, ou node projets/roguelite/recette/<script>.mjs <dossier-des-captures> [...]
+// est un stockage vide. Chaque script reçoit en premier argument le dossier des captures, en second le fichier de la
+// partie fixe (`partie-fixe.json`, que `lot.mjs` pose sous `dist/roguelite-recette/`).
+// Usage : npm run roguelite:recette, ou node projets/roguelite/recette/<script>.mjs <dossier-des-captures> <partie-fixe.json> [...]
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { chromium } from 'playwright';
