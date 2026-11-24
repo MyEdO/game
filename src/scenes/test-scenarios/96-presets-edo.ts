@@ -4,7 +4,8 @@ import { flowFromEffects } from '../../noyau/monde/flow';
 import type { Dialogue, Scene } from '../../noyau/monde/scene';
 import { emptyNarratif } from '../../noyau/monde/campaignNarratif';
 import type { NarratifBlock, PresetPnj } from '../../data/schemas/defs-scenes/narratif';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { diligenceCampaign } from '../campaign';
+import { paquetDuJeu } from '../../noyau/index';
 import type { TestScenario } from './_shared';
 
 /**

@@ -28,7 +28,8 @@ import {
 } from '../../../src/noyau/index';
 import type { Dir4 } from '../../../src/geometry/dir8';
 import { tableTotale } from '../../../src/lib/tableTotale';
-import { diligenceCampaign, paquetDuJeu } from '../../../src/scenes/campaign';
+import { diligenceCampaign } from '../../../src/scenes/campaign';
+import { paquetDuJeu } from '../../../src/noyau/index';
 
 /** Les entrées de `echantillon` que l'atelier envoie, dans l'ordre des gestes de la recette : un décor, la mer, une
  *  matière de relief, une matière de toit et `MUR_CRENELE`, dont la brèche abat la couronne et dont la case crénelée

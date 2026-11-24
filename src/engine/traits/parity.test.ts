@@ -122,6 +122,8 @@ const DISPATCH = new Set<string>([
   // LDB 85 l.104) — même canal passive que Dressé (Guerre) +10 CC. DISPATCH.
   'Dressé (Guerre)', 'Dressé (Dompté)', 'Dressé (Garde)', 'Dressé (Divertir)',
   'Corruption mentale', 'Démoniaque', 'Élite', 'Endurant', 'Éthéré', 'Fabriqué', 'Foulée', 'Furtif',
+  // Bestiaire non officiel, forme d'`ethere` : fiche `user-arbitrage-contenu-fan-sans-code-neuf`.
+  'Immunité (Attaques Ordinaires)',
   'Grand', 'Immunité', 'Infravision', 'Insensible à la douleur', 'Instable', 'Intelligent', 'Magique',
   'Meneur', 'Mutation', 'Nerveux', 'Nuée', 'Parasité', 'Perturbant', 'Protection', 'Rage', 'Rapide',
   // Rampant (MSRC 15) : capability `noRun` (donnée) → `runMultiplier`=0 (budget de Course nul), la Marche
@@ -158,6 +160,8 @@ const DISPATCH = new Set<string>([
   'Manifestation de Ghur',
   'Régénération', 'Résistance à la Magie', 'Rusé', 'Sang corrosif', 'Stupide', 'Taille', 'Territorial',
   'Toile', 'Vision nocturne', 'Vol',
+  // Bestiaire non officiel, formes d'`intelligent` et `toile` : fiche `user-arbitrage-contenu-fan-sans-code-neuf`.
+  'Studieux', 'Enflammée',
   // Atouts de STRUCTURE de siège (ADE II 8) : capabilities `structResistant`/`structImpenetrable`
   // (donnée), lues par `hasCapability` dans `engine/structures` (`structureImmune`) — canal dispatch.
   'Résistant', 'Impénétrable (structure)',
@@ -208,8 +212,8 @@ const DISPATCH = new Set<string>([
   'Entêté',
 ]);
 
-/** Livres non officiels dont les Traits propres sont au catalogue par leur seul texte : fiche
- *  `user-arbitrage-bestiaire-non-officiel` (#4917). */
+/** Livres fan dont un Trait propre sans champ de mécanique reste au catalogue par son seul texte : fiche
+ *  `user-arbitrage-contenu-fan-sans-code-neuf`. */
 const LIVRES_SANS_MECANIQUE: ReadonlySet<string> = new Set(['bestiaire-non-officiel']);
 
 /** Entrée BRUTE de `traits.json` — lue au fichier (le registre `TRAITS` est dérivé, il ne rend pas

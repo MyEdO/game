@@ -29,6 +29,9 @@ import {
   snapshotSave,
   partieEnCours,
   refusDeLancer,
+  campagneDuJeu,
+  lancementDuProjet,
+  paquetDuJeu,
   brouillonDeLaPartie,
   cataloguesDeComposition,
   enTeteDuPorteur,
@@ -192,7 +195,7 @@ import {
 } from '../../../src/hote/editeur';
 import { boutonDuCompendium, estLIssueDUneTransaction, gesteDuCompendium, refusDuCompendiumDit, zonesDuCompendium } from '../../../src/hote/compendium';
 import { hash32 } from '../../../src/lib/hash';
-import { allBuiltinCampaigns, campagneDuJeu, lancementDeLaCampagne, paquetDuJeu } from '../../../src/scenes/campaign';
+import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
 import { zonesDesScenarios } from '../../../src/hote/scenarios';
 import {
   AUTO_SLOT,
@@ -1320,8 +1323,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     /**
      * `{ lancer }` : l'id d'une campagne du jeu, le `jeu` d'un bouton de la zone `groupe.campagnes`
      *
-     * @returns une `Suite` : le lancement de la campagne par le groupe composé (`lancementDeLaCampagne`,
-     * `src/scenes/campaign.ts`), sur la séquence unique du lancement, à sa scène d'entrée. Refusé (`validation`) sans
+     * @returns une `Suite` : le lancement de la campagne (`campagneDuJeu`) par le groupe composé (`lancementDuProjet`),
+     * sur la séquence unique du lancement, à sa scène d'entrée, sous l'identité de son document. Refusé (`validation`) sans
      * partie ouverte, sur un id qui n'est celui d'aucune campagne du jeu, ou quand la partie est déjà en cours
      * (`partieEnCours`, surface du noyau) ; refusé (`regle`) avec la raison du noyau quand le groupe ne se lance pas
      * (`refusDeLancer`).
@@ -1335,7 +1338,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       valider(!partieEnCours(etat), 'lancer : la partie est déjà en cours ; quitter, puis ouvrir, pour en lancer une autre');
       const refus = refusDeLancer(etat);
       if (refus) throw new ErreurDeGeste('regle', refus);
-      o.partie.lancer(lancementDeLaCampagne(campagneDuJeu(campagne!), etat.party));
+      const lancee = campagneDuJeu(campagne!);
+      o.partie.lancer(lancementDuProjet(lancee, etat.party, lancee.startSceneId, lancee.projet));
       o.pas++;
       return suite(o);
     },

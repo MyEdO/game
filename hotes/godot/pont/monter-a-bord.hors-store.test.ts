@@ -11,7 +11,8 @@ import type { Pont, VueDuPont } from './pont';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import { buildScene } from '../../../src/noyau/mapSpec';
-import { allBuiltinCampaigns, paquetDuJeu } from '../../../src/scenes/campaign';
+import { allBuiltinCampaigns } from '../../../src/scenes/campaign';
+import { paquetDuJeu } from '../../../src/noyau/index';
 
 const COMMITES = await modelesCommites();
 let ouvert: Pont | null = null;

@@ -34,7 +34,7 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   « Place libre ». L'écran se ferme par la croix.
 - Entrées : pré-tirés (`src/hote/groupe.ts:83`, `src/data/pregens.json`), onglets Pré-tirés et Mes personnages,
   « Créer un personnage », « Importer un personnage… » (`groupe.ts:89`), « Recruter », « Renvoyer », « Lancer » ;
-  campagnes (`groupe.ts:91-93`, `src/scenes/campaign.ts:171-182`) et campagne publiée (`src/hote/bibliotheque.ts`).
+  campagnes (`groupe.ts:91-93`, `src/scenes/campaign.ts`) et campagne publiée (`src/hote/bibliotheque.ts`).
 - État `roster` : onglet « Mes personnages » ; sous « Recruter » du personnage pointé, deux
   pastilles « Exporter » et « Supprimer » (`{roster:{exporter}}`, `{roster:{retirer}}`, `src/hote/groupe.ts:86-90`).
 - État `coop` : la « Place libre » porte le choix de son siège

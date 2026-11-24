@@ -9,7 +9,8 @@
  */
 import { fileURLToPath } from 'node:url';
 import { it, expect } from 'vitest';
-import { allBuiltinCampaigns, paquetDuJeu } from './scenes/campaign';
+import { allBuiltinCampaigns } from './scenes/campaign';
+import { paquetDuJeu } from './noyau/index';
 import {
   editer,
   idDeLaSceneEditee,
