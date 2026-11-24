@@ -1,6 +1,6 @@
 ---
 name: user-arbitrage-bestiaire-non-officiel
-description: "Le Bestiaire non officiel devient un livre de la base commune : ses créatures jouent en combat, ses Traits propres restent sans mécanique"
+description: "Le Bestiaire non officiel devient un livre de la base commune : ses créatures jouent en combat, ses Traits propres n'ont de mécanique que par la donnée"
 metadata:
   node_type: memory
   type: user
@@ -18,4 +18,4 @@ Verbatim utilisateur (laurent, 2026-11-24, #4917) : « Je ne veux pas coder les 
 
 **Why:** les créatures du *Bestiaire non officiel* (Le Ratier Bretonnien, v2.03) n'existaient qu'à l'Atelier des PNJ, refusées au lancement d'un combat ; l'utilisateur veut qu'elles jouent comme celles des livres officiels.
 
-**How to apply:** le livre `bestiaire-non-officiel` (BNO) est sans `dir` : ses créatures entrent au bestiaire, citées `{ book: 'bestiaire-non-officiel', page }`, ses Traits propres au catalogue par leur texte verbatim. Ses modèles de carrière, profils de héros et rôles de bête ne sont pas des règles du noyau : l'Atelier des PNJ les applique à la création, en une fiche ordinaire (plan #4903, L10). Ses Traits propres ne reçoivent aucune mécanique : ils ne font rien en jeu (#4917). Un id repris d'un catalogue croisé prend le suffixe `-bno`.
+**How to apply:** le livre `bestiaire-non-officiel` (BNO) est sans `dir` : ses créatures entrent au bestiaire, citées `{ book: 'bestiaire-non-officiel', page }`, ses Traits propres au catalogue par leur texte verbatim. Ses modèles de carrière, profils de héros et rôles de bête ne sont pas des règles du noyau : l'Atelier des PNJ les applique à la création, en une fiche ordinaire (plan #4903, L10). Ses Traits propres n'ont de mécanique que par la donnée (fiche `user-arbitrage-contenu-fan-sans-code-neuf`). Un id repris d'un catalogue croisé prend le suffixe `-bno`.
