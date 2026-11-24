@@ -6,7 +6,7 @@
 >
 > Rédigé pour #4898 ; chaque citation est recopiée de `Source/` et vérifiée par script contre le texte.
 
-Cette fiche couvre la **dépense de PX** en 5e : coût des Augmentations de Caractéristique et de Compétence, Talents, Augmentations hors carrière, cases de carrière, passage de niveau, changement de carrière, perte et reprise d'un niveau, et les deux Endeavours qui ouvrent ce qui est hors carrière (*Training*, *Unusual Learning*). La structure d'une carrière (niveaux, *Advance Scheme*, listes) relève de l'aire `carrieres` (fiche à extraire).
+Cette fiche couvre la **dépense de PX** en 5e : coût des Augmentations de Caractéristique et de Compétence, Talents, Augmentations hors carrière, cases de carrière, passage de niveau, changement de carrière, perte et reprise d'un niveau, et les deux Endeavours qui ouvrent ce qui est hors carrière (*Training*, *Unusual Learning*). La structure d'une carrière (niveaux, *Advance Scheme*, listes) vit dans [`carrieres.md`](carrieres.md).
 
 ## Sommaire
 
@@ -110,6 +110,8 @@ Au plus haut niveau, un Test de revenu raté fait perdre 1 de *Standing* ; à 0,
 Avec l'accord de la GM, changer pour une carrière **de la même Classe** coûte **100 PX**, pour une carrière **d'une autre Classe** **200 PX** (`CRB 048 l.72`). Le texte n'exige aucune complétion du niveau courant, et ne dit pas à quel niveau de la nouvelle carrière on entre ; à la création, on entre toujours au premier niveau (`CRB 018 l.37`).
 
 > « Assuming your GM agrees, you may pay 100 XP to change to a Career within your current Class, or 200 XP to change to a Career in another Class. » — `CRB 048 l.72`
+
+La carrière de cet exemple, *Soldier*, imprime son *Advance Scheme* (`CRB 018 l.3201-3205`) puis ses quatre niveaux, de *Recruit* à *Officer*, chacun avec son statut, ses Compétences, ses Talents et ses dotations (`CRB 018 l.3209-3239`).
 
 ## Training et Unusual Learning — l'hors-carrière payé à un tuteur
 

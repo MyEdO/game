@@ -11,14 +11,14 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../noyau/index';
+import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../../src/noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { nouvelEntete, ouvrirLaPartie } from '../hote/partieDeTest';
-import type { Geste } from '../hote/geste';
-import { casesAtteignables, projeter as projeterLaPartie } from '../hote/projection';
+import { nouvelEntete, ouvrirLaPartie } from '../../src/hote/partieDeTest';
+import type { Geste } from '../../src/hote/geste';
+import { casesAtteignables, projeter as projeterLaPartie } from '../../src/hote/projection';
 import { BORNES, borner, ligneDeCombattant, pageDeLaCarte, projeter, rendreLaCarte, rendreLaVue, rendreLeJournal, rendreLesCases } from './vue';
 import { fermerLaTable, partie, verbe } from './hote.testkit';
-import { t } from '../i18n';
+import { t } from '../../src/i18n';
 
 /** La partie du scénario, sa pause de Round confirmée, puis `gestes` ; fermée après `faire`. */
 function auPremierTour(scenario: string, faire: (r: PartieRejouee) => void, ...gestes: Geste[]) {

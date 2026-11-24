@@ -24,8 +24,8 @@
     { "cle": "activites", "titre": "Activités & Événements (Entre deux aventures)" }
   ],
   "5e": [
-    { "cle": "creation", "titre": "Création de Personnage", "ticket": "#1825" },
-    { "cle": "carrieres", "titre": "Classes, Carrières & Statut", "ticket": "#1825" },
+    { "cle": "creation", "titre": "Création de Personnage" },
+    { "cle": "carrieres", "titre": "Classes, Carrières & Statut" },
     { "cle": "competences", "titre": "Compétences", "ticket": "#1825" },
     { "cle": "talents", "titre": "Talents", "ticket": "#1825" },
     { "cle": "tests", "titre": "Tests & Success Levels (SL)" },

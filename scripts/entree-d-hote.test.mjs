@@ -6,7 +6,7 @@ test("l'entrée virtuelle préserve les déclarations du pont, de l'hôte texte 
   const entrees = {
     'wfrp-pont': ["import '/hotes/godot/pont/entree.ts';"],
     'hote-texte': [
-      "export { creerHote } from '/src/hoteTexte/serveur.ts';",
+      "export { creerHote } from '/hotes/texte/serveur.ts';",
       "export { testScenarios } from '/src/scenes/test-scenarios/index.ts';",
       "export { preferenceDef } from '/src/noyau/index.ts';",
     ],

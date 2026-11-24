@@ -4,20 +4,20 @@
  * (`HorsDesignation`) compris. Un brouillon malformé se refuse en `validation`, au chemin de son champ fautif, et rien
  * ne s'écrit ; le noyau ne le reçoit pas.
  */
-import { rosterDeTest } from '../engine/idsDeTest.testkit';
+import { rosterDeTest } from '../../src/engine/idsDeTest.testkit';
 import { describe, it, expect, afterEach, afterAll, beforeAll } from 'vitest';
 import { fermerLaTable, table, verbe } from './hote.testkit';
-import { brouillonComplet } from '../noyau/creation/engagement.testkit';
-import { engagement } from '../noyau/creation/engagement';
-import { newDraft, stepIds, validateStep, type CreatorDraft } from '../noyau/creation/brouillon';
-import { fillDraftDefaults } from '../noyau/creation/defauts';
-import { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, rubriquesDeLaPage, type GesteDuBrouillon } from '../noyau/creation/vueDeLaCreation';
-import { ecrireLeRoster, lireLeRoster } from '../noyau/persistance/roster';
-import { gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../hote/geste';
-import { ErreurDeGeste } from '../hote/partie';
-import { nouvelEntete, ouvrirLaPartie } from '../hote/partieDeTest';
-import { adresseDeCreation } from '../engine/adresseDeCreation';
-import { pregens } from '../data';
+import { brouillonComplet } from '../../src/noyau/creation/engagement.testkit';
+import { engagement } from '../../src/noyau/creation/engagement';
+import { newDraft, stepIds, validateStep, type CreatorDraft } from '../../src/noyau/creation/brouillon';
+import { fillDraftDefaults } from '../../src/noyau/creation/defauts';
+import { apresLeGeste, brouillonDeLaPartie, pagesDeCreation, rubriquesDeLaPage, type GesteDuBrouillon } from '../../src/noyau/creation/vueDeLaCreation';
+import { ecrireLeRoster, lireLeRoster } from '../../src/noyau/persistance/roster';
+import { gesteDuVerbe, intentionDuGeste, SANS_PISTE } from '../../src/hote/geste';
+import { ErreurDeGeste } from '../../src/hote/partie';
+import { nouvelEntete, ouvrirLaPartie } from '../../src/hote/partieDeTest';
+import { adresseDeCreation } from '../../src/engine/adresseDeCreation';
+import { pregens } from '../../src/data';
 import type { GesteDeLAgent } from './serveur';
 
 afterEach(fermerLaTable);
@@ -40,7 +40,7 @@ function refuseALaFrontiere(geste: GesteDeLAgent, message: RegExp): void {
 
 describe('un brouillon malformé se refuse à la frontière, au chemin de son champ', () => {
   it('brouillon vide : le champ requis qui manque', { timeout: 120_000 }, () => {
-    refuseALaFrontiere(verbe('recruterLeHeros', { brouillon: {} }), /recruterLeHeros : heros\.brouillon\.speciesId manque/);
+    refuseALaFrontiere(verbe('recruterLeHeros', { brouillon: {} }), /recruterLeHeros : heros\.brouillon\.procedure manque/);
   });
   it('le membre de l’union que la valeur vise rend son écart : `brouillon` qui n’est pas un objet', { timeout: 120_000 }, () => {
     refuseALaFrontiere(verbe('recruterLeHeros', { brouillon: 3 }), /recruterLeHeros : heros\.brouillon : un objet JSON /);
@@ -115,9 +115,9 @@ describe('la frontière lit le brouillon entier, à la forme du type du verbe', 
     const brouillons: [string, CreatorDraft][] = [];
     for (let graine = 0; graine < 4; graine++) {
       brouillons.push([`neuf ${graine}`, newDraft(graine)]);
-      for (const etape of stepIds()) brouillons.push([`défauts ${graine}@${etape}`, fillDraftDefaults(newDraft(100 + graine), etape)]);
+      for (const etape of stepIds(newDraft(100 + graine))) brouillons.push([`défauts ${graine}@${etape}`, fillDraftDefaults(newDraft(100 + graine), etape)]);
       let d = brouillonDeLaPartie(77, graine);
-      for (const page of pagesDeCreation()) {
+      for (const page of pagesDeCreation(d)) {
         for (let k = 0; k < 3; k++) {
           const gestes = rubriquesDeLaPage(d, page).flatMap((r): GesteDuBrouillon[] => (r.genre === 'geste' ? (r.refus ? [] : [r.geste]) : r.genre === 'choix' ? r.options.flatMap((o) => (o.refus ? [] : [o.geste])) : []));
           if (!gestes.length) break;

@@ -4,7 +4,7 @@ paths:
   - "src/noyau/effetsDeLAppel.ts"
   - "src/hote/projection.ts"
   - "src/hote/ecran.ts"
-  - "src/hoteTexte/**"
+  - "hotes/texte/**"
   - "hotes/godot/pont/pont.ts"
   - "hotes/godot/recette.mjs"
   - "hotes/godot/projet/art/monde.gdshader"

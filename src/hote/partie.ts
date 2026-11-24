@@ -1,6 +1,6 @@
 /**
- * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928), commun à
- * l'hôte texte (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : l'erreur structurée d'un geste et sa catégorie,
+ * CE QU'UN HÔTE DU NOYAU FAIT D'UNE PARTIE (#2928), commun
+ * aux affichages (`hotes/`) : l'erreur structurée d'un geste et sa catégorie,
  * les entrées d'une partie, son ouverture (la partie du noyau, le lancement, la tenue des jetons programmés, que
  * l'horloge virtuelle du noyau rejoue chez un hôte sans minuteur). Un hôte qui a ses minuteurs (Godot) rend lui-même
  * chaque jeton ; le geste joué sur la partie vit dans `geste.ts` ; la partie d'un scénario de test du catalogue, dans

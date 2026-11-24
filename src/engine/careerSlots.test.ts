@@ -353,3 +353,24 @@ describe('emplacements de carrière — la clé résume l’emplacement en ids (
     expect(cle).toBe('1:skill:6:musicien*');
   });
 });
+
+describe('un emplacement « (Toutes) » couvre chaque spécialisation de son pool sans désignation (CRB 018 l.107)', () => {
+  const NIVEAU: EmplacementsDuNiveau[] = [{ level: 1, skills: [{ id: 'savoir', choix: 'toutes' }], talents: [{ id: 'sens-aiguise', choix: 'toutes' }] }];
+  const [savoir] = skillSlots(NIVEAU, 1);
+  const [sens] = talentSlots(NIVEAU, 1);
+  it('ni la Compétence ni le Talent n’attendent de désignation', () => {
+    expect(savoir.needsChoice).toBe(false);
+    expect(sens.needsChoice).toBe(false);
+    expect(savoir.entry).toBe('Savoir (Toutes)');
+  });
+  it('deux spécialisations distinctes sont l’une et l’autre de carrière', () => {
+    expect(inCareerStatus([savoir], {}, 'savoir', 'region')).toBe('explicit');
+    expect(inCareerStatus([savoir], {}, 'savoir', 'remedes')).toBe('explicit');
+    const [une, autre] = wildcardSpecs(sens.options[0], 'talent').slice(0, 2);
+    expect(inCareerStatus([sens], {}, 'sens-aiguise', une)).toBe('explicit');
+    expect(inCareerStatus([sens], {}, 'sens-aiguise', autre)).toBe('explicit');
+  });
+  it('l’entrée nue, sans spécialisation, ne le couvre pas', () => {
+    expect(inCareerStatus([savoir], {}, 'savoir', undefined)).toBeNull();
+  });
+});

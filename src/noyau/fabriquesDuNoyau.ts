@@ -99,7 +99,7 @@ import type { RecapTone } from './recapLine';
 import type { VainqueurDeTaverne } from '../engine/tavernGame';
 import type { SellRelation } from '../engine/seaVoyage';
 import type { VoyageCadence } from './voyageCadence';
-import type { CharMode } from './creation/brouillon';
+import type { CharMode } from './creation/procedure';
 import type { HealMode } from '../engine/healing';
 import type { bankWithdrawOutcome, EntrainementOption, GenreDeDepot, statusIncome } from '../engine/activities';
 import type { CargoRaidOutcome } from '../engine/cargo';
@@ -188,7 +188,7 @@ export type VerrouDesMots<S extends string> = Verrou<Exclude<Mots<S>, `${number}
  *  `partieLue`, scripts/docs/lib/verbesDeLaPartie.mjs) : les actions du lexique, et les mots que ses domaines nomment
  *  (#3614), et ceux des littéraux du noyau, du moteur, des ids de raccourci et des clés `codex.op.*` (#3924, #3928, #3938). */
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | ActionDeJet
-  | 'a' | 'abandon' | 'abandonner' | 'abregee' | 'abri' | 'absent' | 'accepter' | 'achat' | 'acheteur' | 'acquise'
+  | '4e' | '5e' | 'a' | 'abandon' | 'abandonner' | 'abregee' | 'abri' | 'absent' | 'accepter' | 'achat' | 'acheteur' | 'acquise'
   | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adversaires' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
   | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'allies' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
   | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'apres' | 'architecture' | 'arete' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'

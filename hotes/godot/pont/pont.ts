@@ -14,7 +14,7 @@
  * @contrat En-tête
  * v8 (#2928, #2948, #3086, #3253, #3508).
  *
- * Godot est un hôte du noyau, au même titre que l'hôte texte (`src/hoteTexte/`) : il envoie des gestes et lit une vue
+ * Godot est un hôte du noyau, au même titre que l'hôte texte (`hotes/texte/`) : il envoie des gestes et lit une vue
  * faite des lecteurs du noyau. Le pont (`pont.ts`) ne porte aucune règle ; il passe par le module commun des hôtes
  * (`src/hote/`). Ticket : #2928. Les tests `*.hors-store.test.ts` de ce dossier vérifient ce contrat.
  */
@@ -1150,7 +1150,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
    */
   /** Ouvre la création sur un brouillon neuf, à sa première page, à la place du panneau ouvert. */
   const ouvrirLaCreation = (o: Tenue): void => {
-    o.panneau = { creation: { brouillon: brouillonDeLaPartie(o.graine, o.brouillons++), page: pagesDeCreation()[0] } };
+    const brouillon = brouillonDeLaPartie(o.graine, o.brouillons++);
+    o.panneau = { creation: { brouillon, page: pagesDeCreation(brouillon)[0] } };
   };
 
   /** La partie `o` écrite à l'emplacement `slot` du stockage, datée de l'heure réelle, ses règles maison en vigueur

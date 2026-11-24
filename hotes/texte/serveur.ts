@@ -7,12 +7,12 @@
  * touchée, se rejoue. Doc généré : `npm run docs:hote-texte`.
  */
 import { empreinte, jouerUnGeste, ligneDuFichier, lireLeFichier, rejouer, PISTES_DU_TEXTE, type LigneNumerotee, type PartieRejouee } from './partieTexte';
-import { ErreurDeGeste, type CategorieDErreur } from '../hote/partie';
-import { nouvelEntete } from '../hote/partieDeTest';
-import { lireGeste, offresDeLaBarre, type Geste } from '../hote/geste';
-import { VERBES } from '../hote/verbes.generated';
+import { ErreurDeGeste, type CategorieDErreur } from '../../src/hote/partie';
+import { nouvelEntete } from '../../src/hote/partieDeTest';
+import { lireGeste, offresDeLaBarre, type Geste } from '../../src/hote/geste';
+import { VERBES } from '../../src/hote/verbes.generated';
 import { appelEcrit, type Lecture } from './outils';
-import { casesAtteignables } from '../hote/projection';
+import { casesAtteignables } from '../../src/hote/projection';
 import {
   borner,
   enSuspens,
@@ -29,8 +29,8 @@ import {
   rendreLesVerbes,
   replier,
 } from './vue';
-import { etatDeLaBarre, gestesDExploration, porteurEnVue } from '../noyau/index';
-import { t } from '../i18n';
+import { etatDeLaBarre, gestesDExploration, porteurEnVue } from '../../src/noyau/index';
+import { t } from '../../src/i18n';
 
 /** Le disque que le lanceur prête, par NOM de partie : lire son fichier (`null` s'il n'existe pas), l'écrire, y ajouter ;
  *  la prendre pour ce serveur (`null`, ou qui la tient déjà) et la rendre. */

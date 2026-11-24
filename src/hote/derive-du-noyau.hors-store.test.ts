@@ -99,7 +99,7 @@ describe('l’hôte ne nomme aucun verbe ni aucune fenêtre en dur', () => {
   it('aucun fichier de code d’un hôte', () => {
     const fichiers = fichiersDesHotes();
     for (const d of DOSSIERS) expect(fichiers.some((f) => f.startsWith(`${d}/`)), `témoin : la garde lit ${d}`).toBe(true);
-    expect(DOSSIERS, 'témoin : la garde lit le module commun et l’hôte texte').toEqual(expect.arrayContaining(['src/hote', 'src/hoteTexte']));
+    expect(DOSSIERS, 'témoin : la garde lit le module commun et l’hôte texte').toEqual(expect.arrayContaining(['src/hote', 'hotes/texte']));
     expect(fichiers.some(estGdscript), 'témoin : la garde lit les scripts de l’hôte Godot').toBe(true);
     const trouves = fichiers.flatMap((f) => {
       const code = readFileSync(new URL(f, RACINE), 'utf8');

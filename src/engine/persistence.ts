@@ -71,7 +71,7 @@ export const REPORT_DE_COMBATTANT = {
   focus: rencontre('Focalisation en cours d’une incantation de la rencontre'),
   dispel: rencontre('cumul du Test étendu de Dissipation mené pendant la rencontre'), // LDB 46 l.158-162
   craft: PERSISTE, ritual: PERSISTE, movement: PERSISTE,
-  fate: PERSISTE, fortune: PERSISTE, resilience: PERSISTE, resolve: PERSISTE, resistanceUsed: PERSISTE,
+  fate: PERSISTE, fortune: PERSISTE, resilience: PERSISTE, resolve: PERSISTE, fortuneDeBase: PERSISTE, resistanceUsed: PERSISTE,
   motivation: PERSISTE, mentions: PERSISTE, star: PERSISTE, details: PERSISTE, criticalWounds: PERSISTE,
   tookCriticalThisFight: rencontre(REGLE, false), // LDB 20 l.90
   critEntriesSuffered: PERSISTE,

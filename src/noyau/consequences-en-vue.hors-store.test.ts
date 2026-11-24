@@ -13,7 +13,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { buildScene } from './mapSpec';
 import type { WorldMap } from './worldMap';
 import { jetsEnVue } from './jetsEnVue';
-import { projeter, rendreLaVue } from '../hoteTexte/vue';
+import { projeter, rendreLaVue } from '../../hotes/texte/vue';
 import type { CascadeStep } from './pendings';
 import { evaluateTest } from '../engine/tests';
 import { fixtureText } from '../i18n/fixtureText';

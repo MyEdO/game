@@ -10,6 +10,7 @@ import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 import {
   COUCHES,
   PAQUETS_DE_L_HOTE_WEB,
+  RACINES_DES_ZONES,
   SURFACE_DU_NOYAU,
   dossierDe,
   estZone,
@@ -173,15 +174,20 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       for (const z of nommees) expect(ZONES, `${zone} nomme ${z}`).toContain(z);
     }
     expect(ZONES.map((z) => zoneDe(`${dossierDe(z)}/a/b.ts`)), 'la zone du dossier de chaque zone').toEqual(ZONES);
-    // Hors du dossier d'une zone, le nom de la zone ne la rend pas : `src/hotes/`, `src/racine/` sont des dossiers sans ligne.
-    expect(['src/a.ts', 'src/zz-inconnue/a.ts', 'src/hotes/a.ts', 'src/racine/a.ts', 'scripts/a.mjs', 'hoteX/a.ts'].map(zoneDe))
-      .toEqual(['racine', 'src/zz-inconnue', 'src/hotes', 'src/racine', null, null]);
-    for (const z of ['src/zz-inconnue', 'src/hotes', 'src/racine']) expect(estZone(z), z).toBe(false);
+    // Hors du dossier d'une zone, le nom de la zone ne la rend pas : `src/godot/`, `src/racine/` sont des dossiers sans ligne.
+    expect(['src/a.ts', 'src/zz-inconnue/a.ts', 'src/godot/a.ts', 'src/racine/a.ts', 'scripts/a.mjs', 'hoteX/a.ts'].map(zoneDe))
+      .toEqual(['racine', 'src/zz-inconnue', 'src/godot', 'src/racine', null, null]);
+    // Sous `hotes/` et `projets/`, chaque dossier est une zone (#4903 H3) : un dossier sans ligne rend son dossier, un
+    // fichier posé à même la racine rend la racine, et aucun n'est une zone.
+    expect(['hotes/zz-inconnu/a.ts', 'hotes/a.ts', 'projets/zz-inconnu/sous/a.ts', 'projets/a.ts', 'hotes/godot/a.ts', 'hotes/texte/a.ts'].map(zoneDe))
+      .toEqual(['hotes/zz-inconnu', 'hotes', 'projets/zz-inconnu', 'projets', 'godot', 'texte']);
+    for (const z of ['src/zz-inconnue', 'src/godot', 'src/racine', 'hotes/zz-inconnu', 'hotes', 'projets/zz-inconnu', 'projets']) expect(estZone(z), z).toBe(false);
+    expect(RACINES_DES_ZONES, 'les racines des zones').toEqual(['src', 'hotes', 'projets']);
   });
 
   it('CONTRAT : une zone qui survit à la bascule (`survit`) n’ouvre que des zones qui survivent, en valeur, en type et par porte', () => {
     const survivent = Object.keys(COUCHES).filter((z) => COUCHES[z].survit === true);
-    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'hote', 'hoteTexte', 'hotes', 'i18n', 'lib', 'noyau', 'racine', 'scenes']);
+    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'godot', 'hote', 'i18n', 'lib', 'noyau', 'racine', 'scenes', 'texte']);
     expect(survivent).toHaveLength(Object.keys(COUCHES).length);
     for (const z of survivent) {
       const { importe, types = [], portes = {} } = COUCHES[z];
@@ -205,57 +211,57 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     const oracle: [de: string, vers: string, typeSeul: boolean, verdict: ReturnType<typeof fermeture>][] = [
       ['engine', 'data', false, null], // importe
       ['engine', 'engine', false, null], // même zone
-      ['racine', 'hotes', false, null], // '*'
+      ['racine', 'godot', false, null], // '*'
       ['data', 'scenes', false, 'type'], // fermé (#2884)
       ['lib', 'engine', false, 'type'], // feuille
       ['engine', 'constructor', false, 'type'], // clé du prototype
-      ['constructor', 'hotes', false, null], // zone inconnue : `murs/zone` la refuse, pas ce verdict
+      ['constructor', 'godot', false, null], // zone inconnue : `murs/zone` la refuse, pas ce verdict
       ['engine', 'noyau', false, 'type'],
       ['scenes', 'noyau', false, null], // importe
       ['data', 'noyau', true, 'type'], // fermé (#2884)
       ['data', 'noyau', false, 'type'],
-      ['hoteTexte', 'noyau', false, null], // importe (par sa porte)
-      ['hoteTexte', 'scenes', false, null],
-      ['hoteTexte', 'engine', true, 'type'], // fermé (#2898)
-      ['hoteTexte', 'data', true, 'type'],
-      ['noyau', 'hoteTexte', false, 'type'],
+      ['texte', 'noyau', false, null], // importe (par sa porte)
+      ['texte', 'scenes', false, null],
+      ['texte', 'engine', true, 'type'], // fermé (#2898)
+      ['texte', 'data', true, 'type'],
+      ['noyau', 'texte', false, 'type'],
       ['hote', 'noyau', false, null], // importe (par sa porte, #2928)
       ['hote', 'scenes', false, null],
       ['hote', 'engine', true, 'type'], // fermé
       ['hote', 'data', true, 'type'],
-      ['hote', 'hoteTexte', true, 'type'], // le module commun ne lit aucun hôte
-      ['hote', 'hotes', true, 'type'],
+      ['hote', 'texte', true, 'type'], // le module commun ne lit aucun hôte
+      ['hote', 'godot', true, 'type'],
       ['noyau', 'hote', true, 'type'],
-      ['hoteTexte', 'hote', false, null], // importe le module commun
-      ['hotes', 'hote', false, null],
-      ['hotes', 'noyau', false, null], // importe (par sa porte)
-      ['hotes', 'scenes', false, null],
-      ['hotes', 'engine', true, 'type'], // fermé (#2928 M4)
-      ['hotes', 'data', true, 'type'],
-      ['hotes', 'hoteTexte', true, 'type'],
-      ['hoteTexte', 'hotes', true, 'type'],
+      ['texte', 'hote', false, null], // importe le module commun
+      ['godot', 'hote', false, null],
+      ['godot', 'noyau', false, null], // importe (par sa porte)
+      ['godot', 'scenes', false, null],
+      ['godot', 'engine', true, 'type'], // fermé (#2928 M4)
+      ['godot', 'data', true, 'type'],
+      ['godot', 'texte', true, 'type'],
+      ['texte', 'godot', true, 'type'],
       ['scenes', 'hote', true, 'type'],
     ];
     expect(oracle.map(([de, vers, t]) => fermeture(de, vers, t))).toEqual(oracle.map(([, , , v]) => v));
     expect(['constructor', '__proto__', 'toString', 'hasOwnProperty'].filter(estZone)).toEqual([]);
     const portes: [de: string, vers: string, cible: string, verdict: string | null][] = [
-      ['hoteTexte', 'noyau', 'src/noyau/index.ts', null],
-      ['hoteTexte', 'noyau', 'src/noyau/index', null],
-      ['hoteTexte', 'noyau', 'src/noyau', null],
-      ['hoteTexte', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
-      ['hoteTexte', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
-      ['hoteTexte', 'scenes', 'src/scenes/x.ts', null], // aucune porte vers `scenes`
-      ['hotes', 'noyau', 'src/noyau/index.ts', null],
-      ['hotes', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
+      ['texte', 'noyau', 'src/noyau/index.ts', null],
+      ['texte', 'noyau', 'src/noyau/index', null],
+      ['texte', 'noyau', 'src/noyau', null],
+      ['texte', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
+      ['texte', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
+      ['texte', 'scenes', 'src/scenes/x.ts', null], // aucune porte vers `scenes`
+      ['godot', 'noyau', 'src/noyau/index.ts', null],
+      ['godot', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
       ['hote', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
-      ['hotes', 'hote', 'src/hote/projection.ts', null], // aucune porte vers `hote`
+      ['godot', 'hote', 'src/hote/projection.ts', null], // aucune porte vers `hote`
       ['scenes', 'noyau', 'src/noyau/combatFlow.ts', null], // aucune porte pour `scenes`
       ['constructor', 'noyau', 'src/noyau/x.ts', null],
     ];
     expect(portes.map(([de, vers, cible]) => porteManquee(de, vers, cible))).toEqual(portes.map(([, , , v]) => v));
     const paquets: [de: string, paquet: string | null, verdict: boolean][] = [
       ['noyau', 'react', true],
-      ['hotes', 'three', true],
+      ['godot', 'three', true],
       ['scenes', 'zustand', true],
       ['hote', 'react-dom', true],
       ['lib', 'react', true],
@@ -373,7 +379,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['src/noyau/zz-partage-4.testkit.ts', REGLE],
       ['src/engine/zz-partage-5.bench.kit.ts', REGLE],
       ['src/noyau/zz-partage-6.ts', REGLE],
-      ['hotes/zz-partage-7.hors-store.test.ts', INSTR],
+      ['hotes/godot/zz-partage-7.hors-store.test.ts', INSTR],
     ];
     expect(cas.map(([f]) => estFichierVitest(f))).toEqual(cas.map(([, v]) => v === INSTR));
     const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code: vers() })), [REGLE, INSTR]);
@@ -558,10 +564,28 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       { filePath: 'src/zz-racine.ts', code: 'export const d = 1;\n' },
       { filePath: 'src/constructor/e.ts', code: 'export const e = 1;\n' },
       { filePath: 'src/toString/f.ts', code: "import { X } from '../ui/x';\nexport const f = X;\n" },
-      { filePath: 'src/hotes/g.ts', code: "import { X } from '../noyau/partie';\nexport const g = X;\n" },
+      { filePath: 'src/godot/g.ts', code: "import { X } from '../noyau/partie';\nexport const g = X;\n" },
       { filePath: 'src/racine/h.ts', code: "import { X } from '../state/store';\nexport const h = X;\n" },
     ], ['murs/zone']);
     expect(obtenus).toEqual(['murs/zone', 'murs/zone', 'passe', 'passe', 'murs/zone', 'murs/zone', 'murs/zone', 'murs/zone']);
+  });
+
+  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`', () => {
+    const obtenus = verdicts([
+      { filePath: 'hotes/zz-inconnu/a.ts', code: 'export const a = 1;\n' },
+      { filePath: 'hotes/zz-a.ts', code: 'export const a = 1;\n' },
+      { filePath: 'projets/zz-inconnu/sous/a.ts', code: 'export const a = 1;\n' },
+      { filePath: 'hotes/godot/zz-g.ts', code: "import { vue } from '../texte/vue';\nexport const g = vue;\n" },
+      { filePath: 'hotes/texte/zz-t.ts', code: "import type { Pont } from '../godot/pont/pont';\nexport type T = Pont;\n" },
+      { filePath: 'hotes/godot/zz-p.ts', code: "import { p } from '../../projets/zz-a/p';\nexport const g = p;\n" },
+      { filePath: 'src/zz-racine.ts', code: "import { p } from '../projets/zz-a/p';\nexport const r = p;\n" },
+      { filePath: 'hotes/godot/zz-h.ts', code: "import { gesteDuVerbe } from '../../src/hote/geste';\nexport const h = gesteDuVerbe;\n" },
+    ], ['murs/zone', 'murs/purete-imports']);
+    expect(obtenus).toEqual([
+      'murs/zone', 'murs/zone', 'murs/zone',
+      'murs/purete-imports', 'murs/purete-imports', 'murs/purete-imports', 'murs/purete-imports',
+      'passe',
+    ]);
   });
 });
 

@@ -7,7 +7,8 @@
 // deux niveaux satisfait les deux — mesuré sur `tueur` (LDB folio 76), niveaux 3 et 4 intervertis,
 // garde verte. Ce module compare l'AFFECTATION marque -> Caractéristique, niveau par niveau.
 //
-// JOINTURE : par TITRE imprimé, dans le livre déclaré — jamais par folio. Le folio a été un support
+// JOINTURE : par TITRE imprimé, dans le livre des NIVEAUX de la Carrière (celui qui imprime son Schéma),
+// sous son `label`, son `labelF` ou la `quote` de son emplacement `alsoIn` dans ce livre — jamais par folio. Le folio a été un support
 // de jointure INFIDÈLE : 26 des 108 Carrières de `careers.json` déclaraient un `source.page` qui ne
 // tombait pas sur le folio où le PDF imprime leur titre (à la veille de #1640 — `livre-de-base` 20,
 // `aux-armes` 6 : « Joueur d'épée » déclarait AA folio 12, celui qu'imprime « Arquebusier »), donc un
@@ -15,11 +16,12 @@
 // BLOQUANTS : `folioEcarts`, recompté à chaque exécution, compte dans le code de sortie du CLI
 // `scripts/data/check-progression-schemas.mjs` et est épinglé à vide par la suite.
 //
-// PÉRIMÈTRE MESURÉ (7 livres extraits, 111 bandes, 108 Carrières appariées) : `livre-de-base`
-// (65 bandes / 64 Carrières), `vents-de-la-magie` (14/12), `aux-armes` (15/15), `mer-des-griffes`
-// (9/9), `archives-de-l-empire-1` (4/4), `archives-de-l-empire-2` (3/3), `middenheim` (1/1). Les
-// 3 bandes en surnombre n'appartiennent à aucune Carrière (l'exemple pédagogique du chapitre
-// « Classes et Carrières », LDB folio 46 ; les deux familiers de VDM folio 188) : elles sont
+// PÉRIMÈTRE MESURÉ (8 livres extraits, 176 bandes, 172 Carrières appariées) : `livre-de-base`
+// (65 bandes / 64 Carrières), `core-rulebook-5e` (65/64), `vents-de-la-magie` (14/12), `aux-armes`
+// (15/15), `mer-des-griffes` (9/9), `archives-de-l-empire-1` (4/4), `archives-de-l-empire-2` (3/3),
+// `middenheim` (1/1). Les 4 bandes en surnombre n'appartiennent à aucune Carrière (les exemples
+// pédagogiques des chapitres « Classes et Carrières », LDB folio 46, et « Class and Careers », CRB
+// folio 43 ; les deux familiers de VDM folio 188) : elles sont
 // RAPPORTÉES nommément (`bandesHorsDonnee`), jamais tues — une Carrière du PDF jamais curée doit se
 // voir.
 //
@@ -64,15 +66,25 @@ export function auditProgressionSchemas(sources = {}) {
   const careers = /** @type {any[]} */ (sources.careers ?? readJson('careers.json'))
   const levels = /** @type {any[]} */ (sources.careerLevels ?? readJson('careerLevels.json'))
 
+  /** @type {Map<string, string>} livre qui imprime les niveaux, donc le Schéma, de chaque Carrière */
+  const livreDesNiveaux = new Map()
+  for (const l of levels) if (l.source?.book) livreDesNiveaux.set(l.career.id, l.source.book)
+
   /** @type {Map<string, any[]>} carrières par livre, indexées par titre normalisé */
   const byBookTitle = new Map()
+  /** @type {Map<string, { page?: number }>} emplacement de chaque Carrière dans le livre de ses niveaux */
+  const emplacementDe = new Map()
   for (const c of careers) {
-    const book = c.source?.book
-    if (!book) continue
+    const book = livreDesNiveaux.get(c.id)
+    // L'emplacement est l'ancre `source`, ou l'emplacement secondaire `alsoIn` du livre des niveaux (une
+    // Carrière CRB ancre sa prose dans le livre de sa jumelle) : sa `quote` est le titre que la page imprime.
+    const emplacement = [c.source, ...(c.alsoIn ?? [])].find((e) => e?.book === book)
+    if (!book || !emplacement) continue
+    emplacementDe.set(c.id, emplacement)
     // Le `label` porte parfois un qualifiant que la page n'imprime PAS dans son titre : la Mer des
     // Griffes titre « MARIN » folio 68 là où la donnée distingue « Marin (Côtier) » du Marin du LDB.
     // La clé étant portée par le LIVRE, indexer aussi la forme sans parenthèse ne crée pas de collision.
-    const labels = [c.label, c.labelF].filter((x) => typeof x === 'string')
+    const labels = [c.label, c.labelF, emplacement.quote].filter((x) => typeof x === 'string')
     for (const label of [...labels, ...labels.map((l) => l.replace(/\s*\([^)]*\)/g, ''))]) {
       const key = `${book}::${normTitle(label)}`
       const bucket = byBookTitle.get(key) ?? []
@@ -114,8 +126,9 @@ export function auditProgressionSchemas(sources = {}) {
     const career = hits[0]
     couvertes.add(career.id)
     parLivre[s.book] = (parLivre[s.book] ?? 0) + 1
-    if (career.source?.page !== s.page) {
-      folioEcarts.push({ career: career.id, book: s.book, declare: career.source?.page ?? null, imprime: s.page })
+    const page = emplacementDe.get(career.id)?.page
+    if (page !== s.page) {
+      folioEcarts.push({ career: career.id, book: s.book, declare: page ?? null, imprime: s.page })
     }
     for (const n of ['1', '2', '3', '4']) {
       const lvl = levelOf.get(`${career.id}::${Number(n)}`)

@@ -15,7 +15,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { ouvrirLaPartie, nouvelEntete } from '../hote/partieDeTest';
-import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from '../hoteTexte/partieTexte';
+import { empreinte, jouerUnGeste, lireLeFichier, rejouer } from '../../hotes/texte/partieTexte';
 import { ouvrirLeBanc } from './banc.testkit';
 import { groupeVitrineDeScenario } from '../scenes/test-scenarios/_heros';
 import { pregens } from '../data';
@@ -131,7 +131,7 @@ describe('un uid du monde n’a qu’un porteur (#2907)', () => {
   }, 120_000);
 
   it('sur chaque partie committée de l’hôte texte rejouée jusqu’au bout, chaque uid lu une fois par la désignation d’objet ou de poste', () => {
-    const dossier = fileURLToPath(new URL('../hoteTexte/', import.meta.url));
+    const dossier = fileURLToPath(new URL('../../hotes/texte/', import.meta.url));
     const fichiers = listerDossier(dossier).filter((f) => f.endsWith('.jsonl'));
     expect(fichiers.length).toBeGreaterThan(0);
     const doublons: string[] = [];
@@ -169,7 +169,7 @@ describe('un geste refusé ne consomme aucun id (#2907)', () => {
   });
 
   it('l’hôte texte juge sans effet un recrutement refusé en combat, et n’en écrit rien', () => {
-    const { entete } = lireLeFichier(readFileSync(new URL('../hoteTexte/combat-dome.jsonl', import.meta.url), 'utf8'));
+    const { entete } = lireLeFichier(readFileSync(new URL('../../hotes/texte/combat-dome.jsonl', import.meta.url), 'utf8'));
     const r = rejouer(entete, []);
     try {
       expect(r.partie.etat().battle).not.toBeNull();
@@ -185,7 +185,7 @@ describe('un geste refusé ne consomme aucun id (#2907)', () => {
 
 describe('deux rejeux d’un même fichier forgent les mêmes ids (#2907, `combat-dome.jsonl`)', () => {
   it('même empreinte', () => {
-    const { entete, gestes } = lireLeFichier(readFileSync(new URL('../hoteTexte/combat-dome.jsonl', import.meta.url), 'utf8'));
+    const { entete, gestes } = lireLeFichier(readFileSync(new URL('../../hotes/texte/combat-dome.jsonl', import.meta.url), 'utf8'));
     const a = rejouer(entete, gestes);
     const ea = empreinte(a.partie.etat());
     a.partie.fermer();

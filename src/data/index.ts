@@ -174,6 +174,7 @@ import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-a
 import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
 import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
 import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-nature';
+import type * as especesCrbDef from './schemas/defs/especesCrb';
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
@@ -249,6 +250,7 @@ import talentsAleatoiresJson from './talents-aleatoires.json';
 import carrieresAleatoiresJson from './carrieres-aleatoires.json';
 import especesAleatoiresJson from './especes-aleatoires.json';
 import mutationNatureJson from './mutation-nature.json';
+import especesCrbJson from './especesCrb.json';
 import cargaisonsAleatoiresJson from './cargaisons-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
@@ -1818,6 +1820,8 @@ const especeParId = indexParId('species', species);
 export function findSpeciesById(id: string | undefined): SpeciesData | undefined {
   return especeParId(id);
 }
+/** La création du livre de base 5e de chaque espèce du CRB, keyée par l'id de son espèce (`especesCrb.json`). CRB 008-012 */
+export const especesCrb = datasetDe<typeof especesCrbDef>(especesCrbJson);
 /** Les profils standard (`LDB 77 l.7`) : les fiches que `species.json` désigne par `profilStandard`,
  *  sans doublon, dans l'ordre du dataset. */
 export function profilsStandard(): string[] {
@@ -2477,13 +2481,14 @@ export function talentConcrete(t: { talentId: string; spec?: string }): PlayerTe
 }
 /**
  * Libellé d'un EMPLACEMENT de spécialisation NON DÉSIGNÉ : « Savoir (Au choix) » pour un choix
- * LIBRE, « Métier (Armurier ou Forgeron) » pour un choix BORNÉ (options résolues en LIBELLÉS par
+ * LIBRE, « Savoir (Toutes) » pour chaque spécialisation du pool, « Métier (Armurier ou Forgeron) » pour un choix BORNÉ (options résolues en LIBELLÉS par
  * `specLabel`, jamais des ids bruts). SOURCE UNIQUE du rendu d'un `choix` — la réf de statbloc
  * (`skillRefLabel`) comme l'emplacement d'avancement (`advancementLabel`) passent ici.
  * `LDB 09 l.40`.
  */
-export function choixLabel(category: string, id: string, choix: true | string[]): PlayerText {
+export function choixLabel(category: string, id: string, choix: NonNullable<RefASpecialisation['choix']>): PlayerText {
   const base = refLabel(category, { id });
+  if (choix === 'toutes') return t('ref.auChoix', { base, mot: t('ref.motToutes') });
   return Array.isArray(choix) && choix.length
     ? dataLabel(`${base} (${ouListe(choix.map((o) => specLabel(category, id, o)))})`)
     : t('ref.auChoix', { base, mot: t('ref.motAuChoix') });

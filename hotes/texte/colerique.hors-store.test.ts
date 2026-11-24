@@ -1,15 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { ENTREES_DU_BANC, surUnBancHorsTest } from '../noyau/banc.testkit';
-import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
-import { testScene } from '../scenes/test-fixture';
-import { emptyScene, type SceneEntity } from '../noyau/monde/scene';
-import { appliquerLInstantane, instantaneDeLaCoop } from '../noyau/coop';
-import { chargerLaSave, exporterLaSauvegarde, lireSave, snapshotSave } from '../noyau/persistance/save';
-import { ciblePsy } from '../engine/psych/ciblage';
-import { tenueDesJetons } from '../hote/partie';
-import { nouvelEntete } from '../hote/partieDeTest';
-import { creerPartie } from '../noyau/partie';
+import { ENTREES_DU_BANC, surUnBancHorsTest } from '../../src/noyau/banc.testkit';
+import { idsDeTest } from '../../src/engine/idsDeTest.testkit';
+import { groupeDeScenario } from '../../src/scenes/test-scenarios/_heros';
+import { testScene } from '../../src/scenes/test-fixture';
+import { emptyScene, type SceneEntity } from '../../src/noyau/monde/scene';
+import { appliquerLInstantane, instantaneDeLaCoop } from '../../src/noyau/coop';
+import { chargerLaSave, exporterLaSauvegarde, lireSave, snapshotSave } from '../../src/noyau/persistance/save';
+import { ciblePsy } from '../../src/engine/psych/ciblage';
+import { tenueDesJetons } from '../../src/hote/partie';
+import { nouvelEntete } from '../../src/hote/partieDeTest';
+import { creerPartie } from '../../src/noyau/partie';
 import { jouerUnGeste, type PartieRejouee } from './partieTexte';
 import { BORNES, projeter, rendreLaVue, rendreLesChoix } from './vue';
 

@@ -20,7 +20,7 @@ import { projeter } from '../projection';
 import { fenetreADessiner } from '../gestes';
 import { zonesDeLEcran } from '../ecran';
 import { SANS_ROSTER } from '../roster';
-import { rendreLaVue } from '../../hoteTexte/vue';
+import { rendreLaVue } from '../../../hotes/texte/vue';
 import { t } from '../../i18n';
 import { testScene } from '../../scenes/test-fixture';
 import { herosDeScenario } from '../../scenes/test-scenarios/_heros';

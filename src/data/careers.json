@@ -1868,5 +1868,3072 @@
       "page": 104,
       "note": "VDM 08 l.51 ; races : Winds of Magic 12 l.41 (VO, ligne d'espèce absente de la VF)"
     }
+  },
+  {
+    "id": "conseiller-5e",
+    "type": "careers",
+    "label": "Conseiller (5e)",
+    "labelF": "Conseillère (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "conseiller"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "conseiller-elfe-sylvain-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "8633f6ea44bb9c6b"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 62,
+      "note": "LDB 08 l.682"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 45,
+        "quote": "Adviser"
+      }
+    ]
+  },
+  {
+    "id": "agitateur-5e",
+    "type": "careers",
+    "label": "Agitateur (5e)",
+    "labelF": "Agitatrice (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "agitateur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "format-des-carrieres",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 10,
+          "sum": "b63e61ccbaa1934d"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 53,
+      "note": "LDB 08 l.163"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 46,
+        "quote": "Agitator"
+      }
+    ]
+  },
+  {
+    "id": "apothicaire-5e",
+    "type": "careers",
+    "label": "Apothicaire (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "apothicaire"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "apothicaire-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "6b178a98e994f917"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 85,
+      "note": "LDB 08 l.2001"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 47,
+        "quote": "Apothecary"
+      }
+    ]
+  },
+  {
+    "id": "artisan-5e",
+    "type": "careers",
+    "label": "Artisan (5e)",
+    "labelF": "Artisane (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "artisan"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "artisan",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 8,
+          "sum": "45156a8da908dd20"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 54,
+      "note": "LDB 08 l.224"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 48,
+        "quote": "Artisan"
+      }
+    ]
+  },
+  {
+    "id": "artiste-5e",
+    "type": "careers",
+    "label": "Artiste (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "artiste"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "artiste-elfe-sylvain-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "b851d49b7f0dc532"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 61,
+      "note": "LDB 08 l.633"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 49,
+        "quote": "Artist"
+      }
+    ]
+  },
+  {
+    "id": "bailli-5e",
+    "type": "careers",
+    "label": "Bailli (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "grantGroups": [
+      "bailli",
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "bailli"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "cambrioleur-argent-3",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 10,
+          "sum": "af513f0adb84331b"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 109,
+      "note": "LDB 08 l.3423"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 50,
+        "quote": "Bailiff"
+      }
+    ]
+  },
+  {
+    "id": "mendiant-5e",
+    "type": "careers",
+    "label": "Mendiant (5e)",
+    "labelF": "Mendiante (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "mendiant"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "prince-marchand-or-3",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 5,
+          "sum": "4a91be54595d2181"
+        },
+        {
+          "kind": "blocs",
+          "sec": "roi-des-mendiants-argent-2",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 7,
+          "sum": "50c93188d2c10581"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 58,
+      "note": "LDB 08 l.454"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 51,
+        "quote": "Beggar"
+      }
+    ]
+  },
+  {
+    "id": "batelier-5e",
+    "type": "careers",
+    "label": "Batelier (5e)",
+    "labelF": "Batelière (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "batelier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "batelier-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "0d6c20bf6e625bba"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 93,
+      "note": "LDB 08 l.2491"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 52,
+        "quote": "Boatman"
+      }
+    ]
+  },
+  {
+    "id": "chasseur-de-primes-5e",
+    "type": "careers",
+    "label": "Chasseur de primes (5e)",
+    "labelF": "Chasseuse de primes (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "chasseur-de-primes"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "chasseur-de-primes",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 5,
+          "sum": "0acae34c2b5a3737"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 77,
+      "note": "LDB 08 l.1519"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 53,
+        "quote": "Bounty Hunter"
+      }
+    ]
+  },
+  {
+    "id": "cavalier-5e",
+    "type": "careers",
+    "label": "Cavalier (5e)",
+    "labelF": "Cavalière (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "grantGroups": [
+      "figures-symboles-de-guerre"
+    ],
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "cavalier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "cavalier-elfe-sylvain-haut-elfe-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 5,
+          "sum": "a0abf56cf6df4fb1"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 69,
+      "note": "LDB 08 l.1063"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 54,
+        "quote": "Cavalryman"
+      }
+    ]
+  },
+  {
+    "id": "charlatan-5e",
+    "type": "careers",
+    "label": "Charlatan (5e)",
+    "labelF": "Charlatane (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "races": [
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "charlatan"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "maitre-abordeur-or-1",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 12,
+          "sum": "85dd2a58b039b9ef"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 101,
+      "note": "LDB 08 l.2961"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 55,
+        "quote": "Charlatan"
+      }
+    ]
+  },
+  {
+    "id": "cocher-5e",
+    "type": "careers",
+    "label": "Cocher (5e)",
+    "labelF": "Cochère (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "cocher"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "chasseur-de-primes-veteran-or-1",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 9,
+          "sum": "8b79e67d17c8853c"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 78,
+      "note": "LDB 08 l.1578"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 56,
+        "quote": "Coachman"
+      }
+    ]
+  },
+  {
+    "id": "duelliste-5e",
+    "type": "careers",
+    "label": "Duelliste (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "races": [
+      "nain",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "duelliste"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "duelliste-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 7,
+          "sum": "c0c21702056d585b"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 63,
+      "note": "LDB 08 l.743"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 57,
+        "quote": "Duellist"
+      }
+    ]
+  },
+  {
+    "id": "ingenieur-5e",
+    "type": "careers",
+    "label": "Ingénieur (5e)",
+    "labelF": "Ingénieure (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "ingenieur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "professeur-or-1",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 4,
+          "sum": "99dc1b1ad6bb71b7"
+        },
+        {
+          "kind": "blocs",
+          "sec": "ingenieur-agree-or-2",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 8,
+          "sum": "8e5328dd6eb8c792"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 87,
+      "note": "LDB 08 l.2153"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 58,
+        "quote": "Engineer"
+      }
+    ]
+  },
+  {
+    "id": "saltimbanque-5e",
+    "type": "careers",
+    "label": "Saltimbanque (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "saltimbanque"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "saltimbanque",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 3,
+          "sum": "33046e4d3ef0fe54"
+        },
+        {
+          "kind": "blocs",
+          "sec": "chef-de-troupe-or-1",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 8,
+          "sum": "b55358580eb5747d"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 84,
+      "note": "LDB 08 l.1948"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 59,
+        "quote": "Entertainer"
+      }
+    ]
+  },
+  {
+    "id": "emissaire-5e",
+    "type": "careers",
+    "label": "Émissaire (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "emissaire"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "emissaire",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 8,
+          "sum": "01dcebae593dd023"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 64,
+      "note": "LDB 08 l.802"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 60,
+        "quote": "Envoy"
+      }
+    ]
+  },
+  {
+    "id": "receleur-5e",
+    "type": "careers",
+    "label": "Receleur (5e)",
+    "labelF": "Receleuse (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "receleur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "baron-du-crime-argent-5",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 8,
+          "sum": "49439835adce85d6"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 106,
+      "note": "LDB 08 l.3262"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 61,
+        "quote": "Fence"
+      }
+    ]
+  },
+  {
+    "id": "flagellant-5e",
+    "type": "careers",
+    "label": "Flagellant (5e)",
+    "labelF": "Flagellante (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "flagellant"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "flagellant-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 9,
+          "sum": "e9fd71a65d747979"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 80,
+      "note": "LDB 08 l.1698"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 62,
+        "quote": "Flagellant"
+      }
+    ]
+  },
+  {
+    "id": "pilleur-de-tombes-5e",
+    "type": "careers",
+    "label": "Pilleur de tombes (5e)",
+    "labelF": "Pilleuse de tombes (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "races": [
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "pilleur-de-tombes"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "roi-des-bandits-argent-2",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 12,
+          "sum": "09bcf2b6ec0458df"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 104,
+      "note": "LDB 08 l.3150"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 63,
+        "quote": "Grave Robber"
+      }
+    ]
+  },
+  {
+    "id": "garde-5e",
+    "type": "careers",
+    "label": "Garde (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "grantGroups": [
+      "garde",
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "garde"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "chevalier-du-cercle-interieur-or-4",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 8,
+          "sum": "38bb273b3f428ebe"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 71,
+      "note": "LDB 08 l.1171"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 64,
+        "quote": "Guard"
+      }
+    ]
+  },
+  {
+    "id": "sorcier-de-village-5e",
+    "type": "careers",
+    "label": "Sorcier de village (5e)",
+    "labelF": "Sorcière de village (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "grantGroups": [
+      "sorcieres"
+    ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier-de-village"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "evolution-de-carriere",
+          "secOcc": 62,
+          "b0": 19,
+          "b1": 24,
+          "sum": "a2238c1125fd47d4"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 115,
+      "note": "LDB 08 l.3739"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 65,
+        "quote": "Hedge Witch"
+      }
+    ]
+  },
+  {
+    "id": "herboriste-5e",
+    "type": "careers",
+    "label": "Herboriste (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "herboriste"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "explorateur-argent-5",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 5,
+          "sum": "1256f8ca49305f7d"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 112,
+      "note": "LDB 08 l.3580"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 66,
+        "quote": "Herbalist"
+      }
+    ]
+  },
+  {
+    "id": "chasseur-5e",
+    "type": "careers",
+    "label": "Chasseur (5e)",
+    "labelF": "Chasseuse (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "chasseur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "chasseur",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 8,
+          "sum": "3ddbb262a544d913"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 110,
+      "note": "LDB 08 l.3488"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 67,
+        "quote": "Hunter"
+      }
+    ]
+  },
+  {
+    "id": "enqueteur-5e",
+    "type": "careers",
+    "label": "Enquêteur (5e)",
+    "labelF": "Enquêtrice (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "enqueteur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "bourgmestre-or-1",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 11,
+          "sum": "e46c2dad31494830"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 56,
+      "note": "LDB 08 l.336"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 68,
+        "quote": "Investigator"
+      }
+    ]
+  },
+  {
+    "id": "entremetteur-5e",
+    "type": "careers",
+    "label": "Entremetteur (5e)",
+    "labelF": "Entremetteuse (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "races": [
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "entremetteur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "escroc-argent-4",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 11,
+          "sum": "8feec4cdb7576186"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 102,
+      "note": "LDB 08 l.3022"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 69,
+        "quote": "Knave"
+      }
+    ]
+  },
+  {
+    "id": "chevalier-5e",
+    "type": "careers",
+    "label": "Chevalier (5e)",
+    "labelF": "Chevalière (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "grantGroups": [
+      "chevalier",
+      "figures-symboles-de-guerre"
+    ],
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "chevalier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "evolution-de-carriere",
+          "secOcc": 17,
+          "b0": 15,
+          "b1": 21,
+          "sum": "af622499deee7770"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 70,
+      "note": "LDB 08 l.1116"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 70,
+        "quote": "Knight"
+      }
+    ]
+  },
+  {
+    "id": "juriste-5e",
+    "type": "careers",
+    "label": "Juriste (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "grantGroups": [
+      "juriste",
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "juriste"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "juriste-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "7da5ec64ed6a28c5"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 88,
+      "note": "LDB 08 l.2190"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 71,
+        "quote": "Lawyer"
+      }
+    ]
+  },
+  {
+    "id": "marchand-5e",
+    "type": "careers",
+    "label": "Marchand (5e)",
+    "labelF": "Marchande (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "marchand"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "marchand-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 7,
+          "sum": "14e46caa1c11b231"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 57,
+      "note": "LDB 08 l.405"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 72,
+        "quote": "Merchant"
+      }
+    ]
+  },
+  {
+    "id": "messager-5e",
+    "type": "careers",
+    "label": "Messager (5e)",
+    "labelF": "Messagère (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "messager"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "messager-elfe-sylvain-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 7,
+          "sum": "46f60942acbec78b"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 81,
+      "note": "LDB 08 l.1755"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 73,
+        "quote": "Messenger"
+      }
+    ]
+  },
+  {
+    "id": "mineur-5e",
+    "type": "careers",
+    "label": "Mineur (5e)",
+    "labelF": "Mineuse (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "mineur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "herbaliste-de-renom-argent-3",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 8,
+          "sum": "d91c4fc71c070faa"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 113,
+      "note": "LDB 08 l.3633"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 74,
+        "quote": "Miner"
+      }
+    ]
+  },
+  {
+    "id": "mystique-5e",
+    "type": "careers",
+    "label": "Mystique (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "mystique"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "contremaitre-de-la-mine-argent-4",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 7,
+          "sum": "1f7b84c7210a534c"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 114,
+      "note": "LDB 08 l.3680"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 75,
+        "quote": "Mystic"
+      }
+    ]
+  },
+  {
+    "id": "noble-5e",
+    "type": "careers",
+    "label": "Noble (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "grantGroups": [
+      "noble",
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "noble"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "noble-elfe-sylvain-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 5,
+          "sum": "9e52bfd173b5c67a"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 67,
+      "note": "LDB 08 l.953"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 76,
+        "quote": "Noble"
+      }
+    ]
+  },
+  {
+    "id": "nonne-5e",
+    "type": "careers",
+    "label": "Nonne (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "nonne"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "nonne-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "487b428caceee4d5"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 90,
+      "note": "LDB 08 l.2308"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 77,
+        "quote": "Nun"
+      }
+    ]
+  },
+  {
+    "id": "hors-la-loi-5e",
+    "type": "careers",
+    "label": "Hors-la-loi (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "grantGroups": [
+      "hors-la-loi"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "hors-la-loi"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "hors-la-loi",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 7,
+          "sum": "368fa91d342cdf94"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 103,
+      "note": "LDB 08 l.3087"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 78,
+        "quote": "Outlaw"
+      }
+    ]
+  },
+  {
+    "id": "colporteur-5e",
+    "type": "careers",
+    "label": "Colporteur (5e)",
+    "labelF": "Colporteuse (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "colporteur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "maitre-des-routes-argent-5",
+          "secOcc": 1,
+          "b0": 4,
+          "b1": 9,
+          "sum": "a0435b34c6d26f97"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 79,
+      "note": "LDB 08 l.1635"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 79,
+        "quote": "Pedlar"
+      }
+    ]
+  },
+  {
+    "id": "medecin-5e",
+    "type": "careers",
+    "label": "Médecin (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "medecin"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "medecin-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 8,
+          "sum": "88f5048b7c5088ba"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 89,
+      "note": "LDB 08 l.2251"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 80,
+        "quote": "Physician"
+      }
+    ]
+  },
+  {
+    "id": "nautonier-5e",
+    "type": "careers",
+    "label": "Nautonier (5e)",
+    "labelF": "Nautonière (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "nautonier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "capitaine-naufrageur-argent-2",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 7,
+          "sum": "fd66eb51e3b20ebc"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 99,
+      "note": "LDB 08 l.2847"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 81,
+        "quote": "Pilot"
+      }
+    ]
+  },
+  {
+    "id": "gladiateur-5e",
+    "type": "careers",
+    "label": "Gladiateur (5e)",
+    "labelF": "Gladiatrice (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "gladiateur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "gladiateur",
+          "secOcc": 1,
+          "b0": 1,
+          "b1": 6,
+          "sum": "e2cac7516187fb3e"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 72,
+      "note": "LDB 08 l.1232"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 82,
+        "quote": "Pit Fighter"
+      }
+    ]
+  },
+  {
+    "id": "pretre-5e",
+    "type": "careers",
+    "label": "Prêtre (5e)",
+    "labelF": "Prêtresse (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "pretre"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "pretre-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 8,
+          "sum": "0d66504daf245684"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 91,
+      "note": "LDB 08 l.2377"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 83,
+        "quote": "Priest"
+      }
+    ]
+  },
+  {
+    "id": "spadassin-5e",
+    "type": "careers",
+    "label": "Spadassin (5e)",
+    "labelF": "Spadassine (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "spadassin"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "spadassin-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 5,
+          "sum": "5e9e88e948f3696e"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 75,
+      "note": "LDB 08 l.1397"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 84,
+        "quote": "Protagonist"
+      }
+    ]
+  },
+  {
+    "id": "ranconneur-5e",
+    "type": "careers",
+    "label": "Rançonneur (5e)",
+    "labelF": "Rançonneuse (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "ranconneur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "chasseur-de-tresors-argent-5",
+          "secOcc": 1,
+          "b0": 4,
+          "finSec": "si-tu-ne-peux-pas-payer-le-prix-fais-pas-le-pari",
+          "finSecOcc": 1,
+          "b1": 3,
+          "sum": "dd21359068f3363d"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 105,
+      "note": "LDB 08 l.3209"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 85,
+        "quote": "Racketeer"
+      }
+    ]
+  },
+  {
+    "id": "ratier-5e",
+    "type": "careers",
+    "label": "Ratier (5e)",
+    "labelF": "Ratière (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "ratier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "evolution-de-carriere",
+          "secOcc": 7,
+          "b0": 15,
+          "b1": 22,
+          "sum": "6c1cd2519c497e6a"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 60,
+      "note": "LDB 08 l.576"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 86,
+        "quote": "Rat Catcher"
+      }
+    ]
+  },
+  {
+    "id": "patrouilleur-fluvial-5e",
+    "type": "careers",
+    "label": "Patrouilleur fluvial (5e)",
+    "labelF": "Patrouilleuse fluviale (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "grantGroups": [
+      "patrouilleurs-fluviaux",
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "patrouilleur-fluvial"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "evolution-de-carriere",
+          "secOcc": 47,
+          "b0": 15,
+          "b1": 20,
+          "sum": "0b92a3a7f083e7b6"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 100,
+      "note": "LDB 08 l.2898"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 87,
+        "quote": "Riverwarden"
+      }
+    ]
+  },
+  {
+    "id": "femme-du-fleuve-5e",
+    "type": "careers",
+    "label": "Femme du fleuve (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "femme-du-fleuve"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "maitre-des-docks-argent-5",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 8,
+          "sum": "3aa2ada7adfb7c98"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 96,
+      "note": "LDB 08 l.2662"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 88,
+        "quote": "Riverwoman"
+      }
+    ]
+  },
+  {
+    "id": "patrouilleur-routier-5e",
+    "type": "careers",
+    "label": "Patrouilleur routier (5e)",
+    "labelF": "Patrouilleuse routière (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "grantGroups": [
+      "patrouilleurs-routiers",
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "patrouilleur-routier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "patrouilleur-routier-halfling-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "a201b50c563a37b9"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 82,
+      "note": "LDB 08 l.1822"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 89,
+        "quote": "Roadwarden"
+      }
+    ]
+  },
+  {
+    "id": "marin-5e",
+    "type": "careers",
+    "label": "Marin (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "marin"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "ancienne-du-fleuve-argent-2",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 10,
+          "sum": "4fabe2e27cd629af"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 97,
+      "note": "LDB 08 l.2729"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 90,
+        "quote": "Sailor"
+      }
+    ]
+  },
+  {
+    "id": "erudit-5e",
+    "type": "careers",
+    "label": "Érudit (5e)",
+    "labelF": "Érudite (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "erudit"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "erudit-elfe-sylvain-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "79940fe7e5395dc6"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 86,
+      "note": "LDB 08 l.2070"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 91,
+        "quote": "Scholar"
+      }
+    ]
+  },
+  {
+    "id": "eclaireur-5e",
+    "type": "careers",
+    "label": "Éclaireur (5e)",
+    "labelF": "Éclaireuse (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "eclaireur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "maitre-de-la-chasse-argent-3",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 6,
+          "sum": "b91a13010f80a61c"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 111,
+      "note": "LDB 08 l.3535"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 92,
+        "quote": "Scout"
+      }
+    ]
+  },
+  {
+    "id": "serviteur-5e",
+    "type": "careers",
+    "label": "Serviteur (5e)",
+    "labelF": "Servante (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "serviteur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "serviteur-halfling-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 7,
+          "sum": "f0b5ccc8e70e017f"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 68,
+      "note": "LDB 08 l.1008"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 93,
+        "quote": "Servant"
+      }
+    ]
+  },
+  {
+    "id": "tueur-5e",
+    "type": "careers",
+    "label": "Tueur (5e)",
+    "labelF": "Tueuse (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "races": [
+      "nain"
+    ],
+    "aLaPlaceDe": {
+      "id": "tueur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "assassin-or-1",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 12,
+          "sum": "fa28b0717e54f03e"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 76,
+      "note": "LDB 08 l.1460"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 94,
+        "quote": "Slayer"
+      }
+    ]
+  },
+  {
+    "id": "contrebandier-5e",
+    "type": "careers",
+    "label": "Contrebandier (5e)",
+    "labelF": "Contrebandière (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "contrebandier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "contrebandier-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 5,
+          "sum": "257b3a7d96cf4308"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 94,
+      "note": "LDB 08 l.2554"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 95,
+        "quote": "Smuggler"
+      }
+    ]
+  },
+  {
+    "id": "soldat-5e",
+    "type": "careers",
+    "label": "Soldat (5e)",
+    "labelF": "Soldate (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "grantGroups": [
+      "soldat",
+      "figures-symboles-de-guerre"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "soldat"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "soldat-elfe-sylvain-halfling-haut-elfe-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 6,
+          "sum": "22b3c8fc4fa47035"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 74,
+      "note": "LDB 08 l.1344"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 96,
+        "quote": "Soldier"
+      }
+    ]
+  },
+  {
+    "id": "espion-5e",
+    "type": "careers",
+    "label": "Espion (5e)",
+    "labelF": "Espionne (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "espion"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "ambassadeur-or-5",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 6,
+          "sum": "518fe1f59482452e"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 65,
+      "note": "LDB 08 l.853"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 97,
+        "quote": "Spy"
+      }
+    ]
+  },
+  {
+    "id": "debardeur-5e",
+    "type": "careers",
+    "label": "Débardeur (5e)",
+    "labelF": "Débardeuse (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "debardeur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "debardeur-halfling-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 7,
+          "sum": "8514bec5c41cbf54"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 95,
+      "note": "LDB 08 l.2611"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 98,
+        "quote": "Stevedore"
+      }
+    ]
+  },
+  {
+    "id": "voleur-5e",
+    "type": "careers",
+    "label": "Voleur (5e)",
+    "labelF": "Voleuse (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "voleur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "demoniste-bronze-5",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 9,
+          "sum": "efd8b51603e4ab6b"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 108,
+      "note": "LDB 08 l.3364"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 99,
+        "quote": "Thief"
+      }
+    ]
+  },
+  {
+    "id": "bourgeois-5e",
+    "type": "careers",
+    "label": "Bourgeois (5e)",
+    "labelF": "Bourgeoise (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "bourgeois"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "maitre-de-guilde-or-1",
+          "secOcc": 1,
+          "b0": 3,
+          "b1": 8,
+          "sum": "a14cf72ee2cfa961"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 55,
+      "note": "LDB 08 l.277"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 100,
+        "quote": "Townsman"
+      }
+    ]
+  },
+  {
+    "id": "villageois-5e",
+    "type": "careers",
+    "label": "Villageois (5e)",
+    "labelF": "Villageoise (5e)",
+    "class": {
+      "id": "ruraux"
+    },
+    "races": [
+      "nain",
+      "halfling",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "villageois"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "sage-de-village-bronze-5",
+          "secOcc": 1,
+          "b0": 5,
+          "b1": 11,
+          "sum": "b634a4805c4e1901"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 116,
+      "note": "LDB 08 l.3800"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 101,
+        "quote": "Villager"
+      }
+    ]
+  },
+  {
+    "id": "intendant-5e",
+    "type": "careers",
+    "label": "Intendant (5e)",
+    "labelF": "Intendante (5e)",
+    "class": {
+      "id": "courtisans"
+    },
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "intendant"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "maitre-espion-or-4",
+          "secOcc": 1,
+          "b0": 2,
+          "b1": 7,
+          "sum": "290dd45244be6da1"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 66,
+      "note": "LDB 08 l.900"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 102,
+        "quote": "Warden"
+      }
+    ]
+  },
+  {
+    "id": "pretre-guerrier-5e",
+    "type": "careers",
+    "label": "Prêtre guerrier (5e)",
+    "labelF": "Prêtresse guerrière (5e)",
+    "class": {
+      "id": "guerriers"
+    },
+    "grantGroups": [
+      "figures-symboles-religieux",
+      "religion"
+    ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "pretre-guerrier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "pretre-guerrier-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 4,
+          "sum": "eb4b2f174643cbd8"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 73,
+      "note": "LDB 08 l.1285"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 103,
+        "quote": "Warrior Priest"
+      }
+    ]
+  },
+  {
+    "id": "milicien-5e",
+    "type": "careers",
+    "label": "Milicien (5e)",
+    "labelF": "Milicienne (5e)",
+    "class": {
+      "id": "citadins"
+    },
+    "grantGroups": [
+      "miliciens",
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "haut-elfe",
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "milicien"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "roi-des-mendiants-argent-2",
+          "secOcc": 1,
+          "b0": 8,
+          "b1": 15,
+          "sum": "d26b1c0575ce309a"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 59,
+      "note": "LDB 08 l.521"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 104,
+        "quote": "Watchman"
+      }
+    ]
+  },
+  {
+    "id": "sorcier-dissident-5e",
+    "type": "careers",
+    "label": "Sorcier dissident (5e)",
+    "labelF": "Sorcière dissidente (5e)",
+    "class": {
+      "id": "roublards"
+    },
+    "grantGroups": [
+      "sorcieres",
+      "sorciers-dissidents"
+    ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier-dissident"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "sorcier-dissident-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 4,
+          "sum": "7695f66dd4841bde"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 107,
+      "note": "LDB 08 l.3315"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 105,
+        "quote": "Witch"
+      }
+    ]
+  },
+  {
+    "id": "repurgateur-5e",
+    "type": "careers",
+    "label": "Répurgateur (5e)",
+    "labelF": "Répurgatrice (5e)",
+    "class": {
+      "id": "itinerants"
+    },
+    "grantGroups": [
+      "figures-symboles-d-autorite"
+    ],
+    "races": [
+      "humain"
+    ],
+    "aLaPlaceDe": {
+      "id": "repurgateur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "repurgateur-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 7,
+          "sum": "4bb887a1882f7bae"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 83,
+      "note": "LDB 08 l.1881"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 106,
+        "quote": "Witch Hunter"
+      }
+    ]
+  },
+  {
+    "id": "sorcier-5e",
+    "type": "careers",
+    "label": "Sorcier (5e)",
+    "labelF": "Sorcière (5e)",
+    "class": {
+      "id": "lettres"
+    },
+    "races": [
+      "haut-elfe",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "sorcier"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "sorcier-elfe-sylvain-haut-elfe-humain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 5,
+          "sum": "37c577636a7abfba"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 92,
+      "note": "LDB 08 l.2438"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 107,
+        "quote": "Wizard"
+      }
+    ]
+  },
+  {
+    "id": "naufrageur-5e",
+    "type": "careers",
+    "label": "Naufrageur (5e)",
+    "labelF": "Naufrageuse (5e)",
+    "class": {
+      "id": "riverains"
+    },
+    "grantGroups": [
+      "naufrageurs"
+    ],
+    "races": [
+      "nain",
+      "halfling",
+      "humain",
+      "elfe-sylvain"
+    ],
+    "aLaPlaceDe": {
+      "id": "naufrageur"
+    },
+    "gatedByRule": {
+      "id": "carrieres-crb"
+    },
+    "descRef": {
+      "book": "livre-de-base",
+      "ch": "08",
+      "parts": [
+        {
+          "kind": "blocs",
+          "sec": "naufrageur-elfe-sylvain-humain-nain",
+          "secOcc": 1,
+          "b0": 0,
+          "b1": 7,
+          "sum": "04174602609ec581"
+        }
+      ]
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 98,
+      "note": "LDB 08 l.2796"
+    },
+    "alsoIn": [
+      {
+        "book": "core-rulebook-5e",
+        "page": 108,
+        "quote": "Wrecker"
+      }
+    ]
   }
 ]

@@ -1,6 +1,6 @@
 /**
- * LE GESTE D'UN HÔTE DU NOYAU (#2928), commun à l'hôte texte
- * (`src/hoteTexte/`) et aux hôtes externes (`hotes/`) : un geste écrit en JSON (un verbe de la partie, celui qu'une offre
+ * LE GESTE D'UN HÔTE DU NOYAU (#2928), commun aux
+ * affichages (`hotes/`) : un geste écrit en JSON (un verbe de la partie, celui qu'une offre
  * déclare compris, #3610), sa lecture, le contrôle de son verbe et de ses arguments contre ses paramètres (`formes.ts`,
  * `verbes.generated.ts`), son intention contrôlée, et l'issue de son envoi traduite en catégorie d'erreur. Chaque
  * refus nomme ce que l'état offre ; l'hôte y joint ses pistes de lecture (`PistesDeLecture`), là où son auteur lit la suite.

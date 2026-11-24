@@ -426,7 +426,7 @@ export function refusDeReserveDeDetermination(resolve: number): string | undefin
  * `conditionId` absent (LDB 17 l.59-60) : seule la réserve compte.
  */
 export function refusDeDetermination(c: Combatant, conditionId?: string): string | undefined {
-  const reserve = refusDeReserveDeDetermination(c.resolve ?? 0);
+  const reserve = refusDeReserveDeDetermination(determinationDe(c));
   if (reserve || !conditionId) return reserve;
   if (!c.conditions.some((x) => x.id === conditionId)) return t('agate.stateNotCarried');
   return raisonRefusDetermination(c, conditionId);
@@ -598,6 +598,7 @@ function srcLabel(src: CodexTarget | undefined, nature: string): string {
 // `charMod` là-bas) le lisent sans cycle d'import. Ré-exporté pour ses consommateurs.
 import { passivePartLine } from './trauma';
 import { nomDe } from './nom';
+import { determinationDe } from './talentEffects';
 export { passivePartLine };
 
 // `effectRef` (couture UNIQUE effet→fiche Codex) vit dans `types.ts`, à côté de la table
