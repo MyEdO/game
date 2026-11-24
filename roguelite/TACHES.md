@@ -8,7 +8,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 
 | Tâche | Où | Reste |
 |---|---|---|
-| Écritures de fin de combat perdues après le report (MyEdO/game#4860) : la mutation du seuil de Corruption et les ops d'`onVictory` écrivent le groupe ; la défaite et la victoire attendent un Destin en suspens | branche `chantier/4860` (instantané poussé, design jugé au ticket) | codeur en cours sur la garde du Destin remontée en tête de `checkBattleOver` (victoire comprise) ; puis un juge de diff, la PR et la file de fusion |
+| Écritures de fin de combat perdues après le report (MyEdO/game#4860) : la mutation du seuil de Corruption et les ops d'`onVictory` écrivent le groupe ; la défaite et la victoire attendent un Destin en suspens | branche `chantier/4860` (poussée, tête `284087db1d`) | ronde 1 du juge de diff corrigée (passes A et B, dont les Tirs rapides de l'IA figés par le Destin) ; ronde 2, la dernière, en cours ; puis le commit `corrige #4860`, la PR brouillon et la file de fusion |
 | Question ouverte à l'utilisateur : création fidèle à la 5e (CRB 014-015 : 5 Compétences d'espèce à +5, 8 Augmentations de carrière plafonnées à +15, aucune Augmentation de Caractéristique) ou 4e alignée sur le pas de 5 (livrée, `roguelite/src/noyau/heros.ts`). À égalité, le Pyromancien met ses 5 Augmentations sur CC plutôt que FM | `roguelite/src/noyau/heros.ts` | attend la réponse |
 
 ## Ensuite, dans l'ordre
@@ -37,6 +37,7 @@ arrêté », puis les arbitrages) ; les idées non encore lancées dans `PISTES.
 ## Tickets du noyau ouverts en chemin, sans preneur
 
 - MyEdO/game#4825 : Perforante et Ulgu additionnent toutes les pièces portées, le reste la meilleure par couche.
+- MyEdO/game#4879 : sept constructions `battle?.combatants ?? party` du pool des héros en combat hors d'`acteursEnJeu` (relevées par le juge de #4860).
 - MyEdO/game#4827 : une monture perdue en cours de journée ouvre un budget à pied neuf (12 h de route le même jour).
 
 ## Attend l'utilisateur
