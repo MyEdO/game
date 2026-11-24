@@ -1,21 +1,15 @@
-import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 /** LDB 05 l.214-299 ; MDG 09 l.9, l.21-30 ; AA 02 l.109-128 ; VDM 03 l.17-31 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { couvertureDuDeParDocument, ecartsDeCouverture, ecartsDuDeDeLaTable, enumNomme, plageSchema } from '../grammaire/valeurs';
+import { couvertureDuDeParDocument, ecartsDeCouverture, ecartsDuDeDeLaTable, enumNomme, rangeeDeTable } from '../grammaire/valeurs';
 import { formatDice, type DiceSpec } from '../../../engine/dice';
-import { idDe, ref } from '../grammaire/ref';
+import { idDe } from '../grammaire/ref';
 
 export const file = 'carrieres-aleatoires.json';
 export const famille = 'entite';
 
-const plage = metaDesChamps(plageSchema, { exigees: true });
-
 /** Une rangée du tableau : la référence de la Carrière qu'elle désigne, à sa fourchette. */
-export const rangee = ref('career', {
-  min: nommerNoeud(z.number(), { nom: plage.min.label }),
-  max: nommerNoeud(z.number(), { nom: plage.max.label }),
-});
+export const rangee = rangeeDeTable('career');
 
 type Fourchette = { readonly min: number; readonly max: number };
 

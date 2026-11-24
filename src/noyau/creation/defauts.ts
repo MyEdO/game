@@ -35,17 +35,19 @@ import {
   speciesTalentChoiceEntries,
   attendSaSpec,
   probeHero,
-  CAREER_CHAR_ADVANCES,
+  especesOffertes,
+  repartition,
 } from './brouillon';
-import { species, levelsForCareer } from '../../data';
+import { procedureDe } from './procedure';
+import { levelsForCareer } from '../../data';
 import { idsDeLaSousListe } from '../../data/schemas/grammaire/ref';
 import type { CharKey } from '../../engine/types';
 import { talentMaxReached } from '../../engine/careerSlots';
-import { CAREER_SKILL_ADVANCES, SPECIES_SKILLS_PLUS3, SPECIES_SKILLS_PLUS5, designer, libreDEspece } from '../../engine/character';
+import { designer, libreDEspece } from '../../engine/character';
 
 function fillSpecies(d: CreatorDraft): CreatorDraft {
   if (draftSpecies(d)) return d;
-  const first = species[0];
+  const first = especesOffertes(d)[0];
   return first ? withSpecies(d, first.id) : d;
 }
 
@@ -62,12 +64,12 @@ function fillChars(d: CreatorDraft): CreatorDraft {
   if (!sp) return d;
   let cur = d.charsRolled ? d : rollDraftChars(d);
   const keys = careerCharKeys(cur);
-  const allocSum = Object.values(cur.charAdvancesAlloc).reduce((a, b) => a + (b ?? 0), 0);
-  if (keys.length && allocSum !== CAREER_CHAR_ADVANCES) {
+  const { total, quota } = repartition(cur, 'augmentation');
+  if (keys.length && total !== quota) {
     const alloc: Partial<Record<CharKey, number>> = {};
-    let remaining = CAREER_CHAR_ADVANCES;
+    let remaining = quota;
     keys.forEach((k, i) => {
-      const share = i === keys.length - 1 ? remaining : Math.floor(CAREER_CHAR_ADVANCES / keys.length);
+      const share = i === keys.length - 1 ? remaining : Math.floor(quota / keys.length);
       alloc[k] = share;
       remaining -= share;
     });
@@ -88,7 +90,8 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
   let cur = d;
 
   // 5a — Compétences de race : quotas + Spécialisations (1re libre du pool de l'emplacement).
-  if (cur.speciesPlus5.length !== SPECIES_SKILLS_PLUS5 || cur.speciesPlus3.length !== SPECIES_SKILLS_PLUS3) {
+  const quotas = procedureDe(cur).competencesDEspece;
+  if (cur.speciesPlus5.length !== quotas.plus5 || cur.speciesPlus3.length !== quotas.plus3) {
     cur = withSpeciesSkillDefaults(cur);
   }
   for (const ref of speciesSkillRefs(cur)) {
@@ -105,8 +108,8 @@ function fillSkills(d: CreatorDraft): CreatorDraft {
   // Utilisation d'un Talent tiré : celle que `rollRandomTalent` désigne sans choix.
   for (const t of speciesTalentRandomDrawn(cur)) if (t.utilisations.length && t.utilisationChoisie == null) cur = withRandomTalentSpec(cur, t.adresse, t.ref.spec ?? t.utilisations[0]);
 
-  // 5b — Compétences de carrière : répartition égale des 40 Augmentations, 1re spécialisation libre des jokers dotés.
-  if (careerAdvTotal(cur) !== CAREER_SKILL_ADVANCES) cur = withEvenCareerSkillAdvances(cur);
+  // 5b — Compétences de carrière : répartition égale des Augmentations, 1re spécialisation libre des jokers dotés.
+  if (careerAdvTotal(cur) !== procedureDe(cur).competencesDeCarriere.quota) cur = withEvenCareerSkillAdvances(cur);
   for (const { adresse } of careerSkillEntries(cur)) {
     const c = careerSkillEntries(cur).find((e) => e.adresse === adresse)!;
     if (!c.designee && (cur.skillAdvances[c.cle] ?? 0) > 0) cur = withCareerSkillSpec(cur, c, designer('skill', c.ref, undefined, c.libre).spec ?? '');
@@ -151,9 +154,9 @@ const STEP_FILLERS: Record<StepId, (d: CreatorDraft) => CreatorDraft> = {
 
 /** Applique les défauts de recette étape par étape jusqu'à `upto` INCLUSE — PUR, réutilise
  *  `brouillon.ts` (jamais un chemin parallèle). INVARIANT : `validateStep(fillDraftDefaults(d, s), s')`
- *  est `null` pour chaque étape `s' <= s` de `stepIds()`. */
+ *  est `null` pour chaque étape `s' <= s` de `stepIds(d)`. */
 export function fillDraftDefaults(d: CreatorDraft, upto: StepId): CreatorDraft {
-  const order = stepIds();
+  const order = stepIds(d);
   const idx = order.indexOf(upto);
   const cutoff = idx === -1 ? order.length - 1 : idx;
   let cur = d;

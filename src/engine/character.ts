@@ -70,6 +70,8 @@ import { memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { CAREER_SKILLS_ADVANCED, careerCompletionAdvances, slotRef, tientUnTalentDuNiveau } from './advancement';
 import type { FabriqueDId } from './fabriqueDId';
 import { blessuresPosees } from './characteristics';
+import { modeleDe } from './modeleDeProgression';
+import { cocherLaDotationDeRang } from './casesDeCarriere';
 
 /** Caractéristique d'une Compétence (skills.json) par `id` STABLE — LDB 09 : valeur de Test =
  *  Caractéristique + avances. (≠ re-lookup par libellé — multilangue-safe.) */
@@ -237,45 +239,59 @@ export function libreDEspece(sp: SpeciesData, ref: RefASpecialisation, autres: R
   return (spec) => !pris.has(refKey(ref.id, spec));
 }
 
-/** Répartition par défaut des Augmentations de carrière (LDB 05 l.535 ; AA 02 l.134 ; VDM 03 l.37) :
- *  `CAREER_SKILL_ADVANCES` également réparties sur les `CAREER_SKILLS_ADVANCED` premiers emplacements
- *  du Niveau, le reste aux premiers, `MAX_ADV_PER_SKILL` au plus. Clé : `cle`. */
-export function repartitionDeCarriere(entrees: CompetenceDeCarriere[]): Record<string, number> {
+/** Barème des Augmentations de carrière de la création : points à répartir, plafond par Compétence, pas d'une
+ *  Augmentation. LDB 05 l.535 ; CRB 015 l.12, l.29 */
+export interface BaremeDeCarriere { quota: number; plafond: number; pas: number }
+/** LDB 05 l.535 */
+export const BAREME_DE_CARRIERE_LDB: BaremeDeCarriere = { quota: CAREER_SKILL_ADVANCES, plafond: MAX_ADV_PER_SKILL, pas: 1 };
+
+/** Répartition par défaut des Augmentations de carrière (LDB 05 l.535 ; AA 02 l.134 ; VDM 03 l.37) : le `quota` du
+ *  barème également réparti, par `pas`, sur les `CAREER_SKILLS_ADVANCED` premiers emplacements du Niveau, le reste aux
+ *  premiers, `plafond` au plus. Clé : `cle`. */
+export function repartitionDeCarriere(entrees: CompetenceDeCarriere[], { quota, plafond, pas }: BaremeDeCarriere = BAREME_DE_CARRIERE_LDB): Record<string, number> {
   const dotees = entrees.filter((c) => !c.ajout).slice(0, CAREER_SKILLS_ADVANCED);
   if (!dotees.length) return {};
-  const base = Math.min(MAX_ADV_PER_SKILL, Math.floor(CAREER_SKILL_ADVANCES / dotees.length));
-  let reste = CAREER_SKILL_ADVANCES - base * dotees.length;
+  const unites = quota / pas;
+  const maxi = Math.floor(plafond / pas);
+  const base = Math.min(maxi, Math.floor(unites / dotees.length));
+  let reste = unites - base * dotees.length;
   return Object.fromEntries(dotees.map((c) => {
-    const extra = reste > 0 && base < MAX_ADV_PER_SKILL ? 1 : 0;
+    const extra = reste > 0 && base < maxi ? 1 : 0;
     reste -= extra;
-    return [c.cle, base + extra];
+    return [c.cle, (base + extra) * pas];
   }));
 }
 
+/** Nombre de Compétences d'espèce retenues à +5 et à +3. LDB 05 l.484 ; CRB 008 l.59 */
+export interface QuotasDEspece { plus5: number; plus3: number }
+/** LDB 05 l.484 */
+export const QUOTAS_D_ESPECE_LDB: QuotasDEspece = { plus5: SPECIES_SKILLS_PLUS5, plus3: SPECIES_SKILLS_PLUS3 };
+
 /** Compétences d'espèce retenues à +5/+3 (LDB 05 l.484) : six de la liste et leurs spécialisations, que `prendre`
  *  retient ; par défaut les 3 premières / 3 suivantes, que le créateur propose au joueur. */
-export function speciesSkillDefaults(sp: SpeciesData, prendre: Prendre = proposition): { plus5: RefDesignee[]; plus3: RefDesignee[] } {
+export function speciesSkillDefaults(sp: SpeciesData, prendre: Prendre = proposition, quotas: QuotasDEspece = QUOTAS_D_ESPECE_LDB): { plus5: RefDesignee[]; plus3: RefDesignee[] } {
   const reste = sp.skills.filter((a): a is Extract<typeof a, { id: string }> => 'id' in a);
   const designees: RefDesignee[] = [];
-  while (designees.length < SPECIES_SKILLS_PLUS5 + SPECIES_SKILLS_PLUS3 && reste.length) {
+  while (designees.length < quotas.plus5 + quotas.plus3 && reste.length) {
     const [a] = reste.splice(prendre(reste.length), 1);
     designees.push(designer('skill', a, undefined, libreDEspece(sp, a, designees), prendre));
   }
-  return { plus5: designees.slice(0, SPECIES_SKILLS_PLUS5), plus3: designees.slice(SPECIES_SKILLS_PLUS5) };
+  return { plus5: designees.slice(0, quotas.plus5), plus3: designees.slice(quotas.plus5) };
 }
 
 /** Tire un Talent sur le Tableau des Talents aléatoires (LDB 05 l.484, l.514-531). `doublon` : Talent déjà dans
  *  `possedes`, toutes utilisations confondues (LDB 10 l.17). Utilisation : `specChoisie` (`randomSpecPicks`,
  *  écrit par `withRandomTalentSpec`) si `specPoolOf` la propose, sinon tirée sur `rng` parmi les non possédées, sinon parmi toutes. */
-function rollRandomTalent(table: ReturnType<typeof tableDeTalents>, rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean } {
-  const { id } = findTableEntry(table.entries, rollDice(table.die, rng));
-  const entry = garanti(findTalentById(id), id, 'Talent');
+function rollRandomTalent(table: ReturnType<typeof tableDeTalents>, rng: RNG, possedes: readonly RefDesignee[], specChoisie?: string): { ref: RefDesignee; doublon: boolean; utilisations: string[] } {
+  const rangee = findTableEntry(table.entries, rollDice(table.die, rng));
+  const entry = garanti(findTalentById(rangee.id), rangee.id, 'Talent');
   const doublon = possedes.some((p) => p.id === entry.id);
-  const specs = specPoolOf(entry); // tirage JOUEUR : ce que le Talent PROPOSE
-  if (!specs.length) return { ref: { id: entry.id }, doublon };
-  if (specChoisie && specs.includes(specChoisie)) return { ref: { id: entry.id, spec: specChoisie }, doublon };
-  const libres = specs.filter((s) => !possedes.some((p) => p.id === entry.id && p.spec === s));
-  return { ref: { id: entry.id, spec: tirerUn(libres.length ? libres : specs, rng)! }, doublon };
+  if (rangee.spec) return { ref: { id: entry.id, spec: rangee.spec }, doublon, utilisations: [] }; // CRB 006 l.35, l.39
+  const utilisations = specPoolOf(entry); // tirage JOUEUR : ce que le Talent PROPOSE
+  if (!utilisations.length) return { ref: { id: entry.id }, doublon, utilisations };
+  if (specChoisie && utilisations.includes(specChoisie)) return { ref: { id: entry.id, spec: specChoisie }, doublon, utilisations };
+  const libres = utilisations.filter((s) => !possedes.some((p) => p.id === entry.id && p.spec === s));
+  return { ref: { id: entry.id, spec: tirerUn(libres.length ? libres : utilisations, rng)! }, doublon, utilisations };
 }
 
 /**
@@ -293,11 +309,11 @@ export function resolveSpeciesTalents(sp: SpeciesData, opts: OptionsDeResolution
 type OptionsDeResolution = Pick<ChoixDeCreation, 'seed' | 'speciesTalentChoices' | 'specChoices' | 'randomSpecPicks' | 'talentRerolls' | 'talentsRolled'>;
 
 /** Un Talent d'espèce résolu ; `tirage` pour un Talent tiré (LDB 05 l.484) : son adresse
- *  (`adresseDeCreation.especeTirage`), son rang de relance effectif et `doublon` au regard des Talents
- *  résolus avant lui. */
+ *  (`adresseDeCreation.especeTirage`), son rang de relance effectif, `doublon` au regard des Talents
+ *  résolus avant lui, et les utilisations que le joueur choisit (vide quand la table fixe la spécialisation). */
 export interface TalentDEspece {
   ref: RefDesignee;
-  tirage?: { adresse: AdresseDeCreation; rang: number; doublon: boolean };
+  tirage?: { adresse: AdresseDeCreation; rang: number; doublon: boolean; utilisations: string[] };
 }
 
 /** `resolveSpeciesTalents`, chaque Talent tiré portant son `tirage`. */
@@ -310,7 +326,7 @@ export function resolveSpeciesTalentsDetail(sp: SpeciesData, opts: OptionsDeReso
     let rang = 0;
     let t = aRang(rang);
     while (t.doublon && rang < relances) t = aRang(++rang);
-    result.push({ ref: t.ref, tirage: { adresse, rang, doublon: t.doublon } });
+    result.push({ ref: t.ref, tirage: { adresse, rang, doublon: t.doublon, utilisations: t.utilisations } });
   };
   optionsDesTalentsDEspece(sp, opts.speciesTalentChoices).forEach((choisie, i) => {
     const adresse = adresseDeCreation.especeTalent(i);
@@ -343,6 +359,16 @@ export interface CreateHeroOptions extends ChoixDeCreation {
   charAdvancesAlloc?: Partial<Record<CharKey, number>>;
   /** Répartition des points supplémentaires Destin/Résilience. */
   fateSplit?: { fate: number; resilience: number };
+  /** Espèce jouée, en place de celle de `speciesId` (une espèce surchargée par la procédure de création). */
+  espece?: SpeciesData;
+  /** Réserves de départ, en place de celles de l'espèce et de `fateSplit`. */
+  reserves?: ReservesDeDepart;
+  /** Modèle de progression du héros (`Combatant.progression`). */
+  progression?: Combatant['progression'];
+  /** Langues d'espèce : chacune reçoit `points`. CRB 008 l.55 */
+  langues?: { refs: readonly RefDesignee[]; points: number };
+  /** Dotations du Niveau suivant acquises à la création, par rang dans la liste du Niveau, chacune cochée. CRB 013 l.11-15 */
+  dotationsDuNiveauSuivant?: readonly number[];
   /** PX bonus gagnés pendant la création (choix aléatoires acceptés, LDB 04/05). */
   xpBonus?: number;
   details?: HeroDetails;
@@ -444,7 +470,7 @@ function acheverLeNiveau(hero: Combatant, careerId: string, levels: readonly Car
 }
 
 export function createHero(opts: CreateHeroOptions): Combatant {
-  const trouvee = findSpeciesById(opts.speciesId);
+  const trouvee = opts.espece ?? findSpeciesById(opts.speciesId);
   if (!trouvee) throw new Error(`Espèce inconnue : ${opts.speciesId}`);
   const sp = structuredClone(trouvee); // #2097
   const levels = levelsForCareer(opts.careerId);
@@ -516,16 +542,19 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     tenues.add(cle);
     addSkill(designee, i < espece.plus5.length ? 5 : 3);
   });
+  for (const ref of opts.langues?.refs ?? []) addSkill(ref, opts.langues!.points);
 
   // 5) Possessions de Classe et des Niveaux 1 à `niveau` (LDB 05 l.552, l.572), emplacements résolus par
   //    `opts.trappingChoices` avant `doterLePorteur`.
-  const rawTrappings = resolveTrappingChoices(dotationsDuHeros(opts.careerId, niveau), opts.trappingChoices ?? {});
+  const suivant = levels.find((l) => l.level === niveau + 1)?.trappings ?? [];
+  const enSus = (opts.dotationsDuNiveauSuivant ?? []).map((i) => garanti(suivant[i], i, `dotation du Niveau ${niveau + 1} de « ${opts.careerId} »`));
+  const rawTrappings = resolveTrappingChoices([...dotationsDuHeros(opts.careerId, niveau), ...enSus], opts.trappingChoices ?? {});
   const { items, mentions } = doterLePorteur(rawTrappings, fluxDeCreation(opts.seed, 'possessions'), opts.idNeuf, contexteDeNaissanceDObjet({ species: opts.speciesId, career: opts.careerId }));
   const id = opts.id ?? opts.idNeuf('hero');
 
   // Destin / Résilience
-  const fateBase = sp.fate;
-  const split = opts.fateSplit ?? autoFateSplit(fateBase.extra);
+  const split = opts.fateSplit ?? autoFateSplit(sp.fate.extra);
+  const reserves = opts.reserves ?? { fate: sp.fate.fate + split.fate, resilience: sp.fate.resilience + split.resilience };
 
   // Désignations des emplacements de carrière utilisés à la création (cf. careerSlots) :
   // compétences « (Au choix) » ayant reçu des augmentations + talent de carrière à choix.
@@ -548,8 +577,9 @@ export function createHero(opts: CreateHeroOptions): Combatant {
   const horsMagieMineure = (opts.pettySpells ?? []).filter((id) => findSpellById(id)?.family !== 'mineure');
   if (horsMagieMineure.length) throw new Error(`Sorts de Magie mineure « ${horsMagieMineure.join(', ')} » : absents du catalogue des sorts mineurs (LDB 10 l.714).`);
 
-  return assemblerLeHeros({
+  const hero = assemblerLeHeros({
     espece: sp,
+    progression: opts.progression,
     career: opts.careerId,
     careerLevel: niveau,
     id,
@@ -561,8 +591,7 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     items,
     mentions,
     careerSlotChoices: heroSoFar.careerSlotChoices,
-    fate: fateBase.fate + split.fate,
-    resilience: fateBase.resilience + split.resilience,
+    reserves,
     spells: quota ? (opts.pettySpells ?? []).slice(0, quota) : [],
     // Les 5 Augmentations gratuites de la création (LDB 05 l.459) sont comptées dans charAdvances ; les PX
     // bonus des choix aléatoires (LDB 04/05) restent à dépenser.
@@ -571,11 +600,17 @@ export function createHero(opts: CreateHeroOptions): Combatant {
     motivation: opts.motivation,
     apparence: opts.apparence,
   });
+  for (const i of opts.dotationsDuNiveauSuivant ?? []) cocherLaDotationDeRang(hero, i);
+  return hero;
 }
+
+/** Les réserves de départ d'un héros, par champ du héros. LDB 05 l.426 ; CRB 006 l.27 */
+export interface ReservesDeDepart { fate: number; resilience?: number; fortuneDeBase?: number }
 
 /** Un héros aux valeurs DÉJÀ résolues — ni tirage ni choix par adresse : l'entrée d'`assemblerLeHeros`. */
 export interface HerosResolu {
   espece: SpeciesData;
+  progression?: Combatant['progression'];
   /** Carrière actuelle, son Niveau, et le parcours qui la contient (`Combatant.careerHistory`). */
   career: string;
   careerLevel: number;
@@ -590,8 +625,7 @@ export interface HerosResolu {
   items: ItemInstance[];
   mentions?: Combatant['mentions'];
   careerSlotChoices?: Combatant['careerSlotChoices'];
-  fate: number;
-  resilience: number;
+  reserves: ReservesDeDepart;
   /** Sorts appris en plus des Bénédictions qu'octroient les Talents (`appliquerAcquisitions`). */
   spells: readonly string[];
   xp: number;
@@ -612,6 +646,7 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
   // Taille (LDB 85 l.344-354) — portée par `TalentData.size` (#572) : `sizeFromTalents` sur les talents, sinon Moyenne.
   const size = sizeFromTalents(r.talents.map((tt) => tt.talentId), tailleDuTalent) ?? 'moyenne';
 
+  const { fate: _destin, ...horsDestin } = r.reserves;
   const sansBlessures: Omit<Combatant, 'wounds'> = {
     id: r.id,
     label: r.label,
@@ -631,10 +666,11 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
     talents: r.talents,
     traits: speciesTraits.length ? speciesTraits : undefined, // Trait racial d'espèce (#572) — Ogre : encombrance/consommation ×2 + Taille
     movement: sp.movement,
-    fate: r.fate,
-    fortune: r.fate,
-    resilience: r.resilience,
-    resolve: r.resilience,
+    fate: r.reserves.fate,
+    fortune: 0,
+    ...horsDestin,
+    [modeleDe(r).reserves.determination]: 0,
+    ...(r.progression ? { progression: r.progression } : {}),
     motivation: r.motivation,
     details: r.details,
     xp: r.xp,
@@ -650,7 +686,7 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
   const hero: Combatant = { ...sansBlessures, wounds: blessuresPosees(sansBlessures) };
   appliquerAcquisitions(hero);
   hero.fortune = fortuneMax(hero);
-  hero.resolve = resolveMax(hero);
+  hero[modeleDe(hero).reserves.determination] = resolveMax(hero);
 
   // Sorts appris, après les Bénédictions déjà octroyées par `applyTalentAcquisition`.
   const appris = r.spells.filter((id) => !(hero.spells ?? []).includes(id));

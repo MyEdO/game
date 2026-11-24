@@ -652,7 +652,7 @@ describe('Magie mineure à la création (LDB 10 l.714) — BFM sorts inclus au T
 
 describe('signe astral (ADE II 3) — étape, tirage, PX et effet', () => {
   it('stepIds insère « star » juste après « chars » (règle activée par défaut)', () => {
-    const ids = stepIds();
+    const ids = stepIds(newDraft(1));
     expect(ids).toContain('star');
     expect(ids.indexOf('star')).toBe(ids.indexOf('chars') + 1);
   });

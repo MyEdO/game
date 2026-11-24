@@ -174,6 +174,7 @@ import { tableDeCarrieres as tableAvecPortion } from './schemas/defs/carrieres-a
 import type * as tableDesCarrieresAleatoires from './schemas/defs/carrieres-aleatoires';
 import type * as tableauDesRacesAleatoires from './schemas/defs/especes-aleatoires';
 import type * as tableauDeLaNatureDeMutation from './schemas/defs/mutation-nature';
+import type * as especesCrbDef from './schemas/defs/especesCrb';
 import type * as tableauDesCargaisons from './schemas/defs/cargaisons-aleatoires';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
@@ -249,6 +250,7 @@ import talentsAleatoiresJson from './talents-aleatoires.json';
 import carrieresAleatoiresJson from './carrieres-aleatoires.json';
 import especesAleatoiresJson from './especes-aleatoires.json';
 import mutationNatureJson from './mutation-nature.json';
+import especesCrbJson from './especesCrb.json';
 import cargaisonsAleatoiresJson from './cargaisons-aleatoires.json';
 import interludeEventsJson from './interludeEvents.json';
 import tavernGamesJson from './tavernGames.json';
@@ -1818,6 +1820,9 @@ const especeParId = indexParId('species', species);
 export function findSpeciesById(id: string | undefined): SpeciesData | undefined {
   return especeParId(id);
 }
+/** La création du livre de base 5e de chaque espèce du CRB, keyée par l'id de son espèce (`especesCrb.json`). CRB 008-012 */
+export const especesCrb = datasetDe<typeof especesCrbDef>(especesCrbJson);
+export type EspeceCrbData = EntreeDe<typeof especesCrbDef>;
 /** Les profils standard (`LDB 77 l.7`) : les fiches que `species.json` désigne par `profilStandard`,
  *  sans doublon, dans l'ordre du dataset. */
 export function profilsStandard(): string[] {

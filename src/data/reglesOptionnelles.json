@@ -769,6 +769,20 @@
     "hint": "Étape optionnelle ADE II : un signe astral (1d100, +25 PX si le tirage est gardé) qui modifie les attributs de départ ou octroie un Talent, plus l’ascendant et les demeures célestes (flavor). Désactiver retire l’étape du créateur."
   },
   {
+    "id": "creation-5e",
+    "type": "reglesOptionnelles",
+    "label": "Création de personnage du livre de base 5e",
+    "ref": "CRB 005 l.13",
+    "source": {
+      "book": "core-rulebook-5e",
+      "page": 22
+    },
+    "group": "Création",
+    "kind": "flag",
+    "default": false,
+    "hint": "Le créateur suit la procédure du livre de base 5e : espèces et listes du CRB, Augmentations de +5, cases de carrière. Le héros créé progresse selon le barème 5e, même si la règle est désactivée ensuite. Désactivé par défaut."
+  },
+  {
     "id": "marche-mode",
     "type": "reglesOptionnelles",
     "label": "Système d’achat / vente",

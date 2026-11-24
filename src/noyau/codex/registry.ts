@@ -17,7 +17,7 @@ import {
   qualities, trappingsEffectifs, siegeEngines, groupeDeSiege, weaponGroups, etats, maladies, creatures, traits, spells, maneuvers, domains, mutations, mutationTables, gods,
   stars, locations, findLocationById, books, bookAbr, careerLevels, raceAppearance, levelsForCareer, skillRefLabel, talentRefLabel, refLabel, trappingRefLabel, estMention, mentionsParNature, qualityRefLabel, advancementLabel, weaponGroupLabel, qualitySubtypeLabel, qualityTypeLabel,
   skillInstanceLabel, careersForSpecies, findCareerById, careerLabelFor, entryKey, libelleDeClasse, findSpeciesById, eyes, hairs, tableDesYeux, tableDesCheveux, eyesDie, hairsDie, details, semencesDeScene, defautsDeCompilation, names,
-  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, psychologyLabel,
+  pregens, oups, interludeEvents, peripeties, talentsAleatoires, carrieresAleatoires, especesAleatoires, cargaisonsAleatoires, porteurDuDeDeCarrieres, mutationNature, especesCrb, psychologyLabel,
   allAxes,
   calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases, weather, weatherConditions, symptoms, symptomLabel,
   isNamed, specCatalogOf, specLabel, seasonLabel,
@@ -528,7 +528,7 @@ export function caracteristiqueDEspece(s: Pick<(typeof species)[number], 'baseCh
 }
 
 /** Section « Caractéristiques de base » d'une race — chaque carac affiche son écart racial (±). */
-export function raceCharSection(s: (typeof species)[number]): CodexSection {
+export function raceCharSection(s: Pick<(typeof species)[number], 'baseChar'>): CodexSection {
   const rows: CodexRow[] = CHAR_KEYS.map((k) => {
     const { base, ecart } = caracteristiqueDEspece(s, k);
     return {
@@ -542,7 +542,7 @@ export function raceCharSection(s: (typeof species)[number]): CodexSection {
 }
 
 /** Section « Compétences de race » — chips cliquables, « A ou B » éclaté en choix. */
-export function raceSkillSection(s: (typeof species)[number]): CodexSection | null {
+export function raceSkillSection(s: Pick<(typeof species)[number], 'skills'>): CodexSection | null {
   const rows = s.skills.map((a) => advancementRow('skills', a));
   return rows.length ? { title: tr('codex.fiche.competencesDeRace'), layout: 'chips', rows } : null;
 }
@@ -550,7 +550,7 @@ export function raceSkillSection(s: (typeof species)[number]): CodexSection | nu
 /** Section « Talents de race » — chips cliquables, « A ou B » éclaté en choix. Note d'atelier finale
  *  (#393 P2, verdict juge vision P1 item 8) : les choix/tirages (« au d100 ») ne se tranchent pas ici,
  *  mais à l'étape 5 (Compétences & Talents) du créateur. */
-export function raceTalentSection(s: (typeof species)[number]): CodexSection | null {
+export function raceTalentSection(s: Pick<(typeof species)[number], 'talents'>): CodexSection | null {
   const rows = s.talents.map((a) => advancementRow('talents', a));
   if (!rows.length) return null;
   return { title: tr('codex.fiche.talentsDeRace'), layout: 'chips', rows: [...rows, { t: 'nb', text: tr('codex.fiche.seTranchentALEtape5') }] };
@@ -1420,6 +1420,18 @@ const CODEX_SPECS = {
       meta: facts(fact(tr('codex.fiche.mouvement'), s.movement), fact(tr('codex.fiche.destin'), s.fate?.fate), fact(tr('codex.fiche.resilience'), s.fate?.resilience)),
       // Contenu = SOURCE UNIQUE partagée avec le créateur (plus de ré-implémentation divergente).
       tabs: raceFicheTabs(s),
+    })),
+  },
+  especesCrb: {
+    label: 'codex.fiche.especesCrb', group: 'personnage',
+    build: () => especesCrb.map((e) => depuisEnveloppe(e, {
+      meta: facts(fact(tr('codex.fiche.mouvement'), e.movement), fact(tr('codex.fiche.destin'), e.fate), fact(tr('codex.fiche.fortune'), e.fortune)),
+      sections: sections(
+        raceCharSection(e),
+        { title: tr('codex.fiche.languesCourantes'), layout: 'chips', rows: e.langues.map((a) => advancementRow('skills', a)) },
+        raceSkillSection(e),
+        raceTalentSection(e),
+      ),
     })),
   },
   careers: {

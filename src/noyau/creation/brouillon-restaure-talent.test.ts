@@ -8,7 +8,7 @@ function pretreComplet(): CreatorDraft {
   return fillDraftDefaults({ ...newDraft(4242), speciesId: 'humains-reiklander', careerId: 'pretre' }, 'presentation');
 }
 /** Première étape que l'assistant refuse de franchir — `Suivant`/`Engager` suivent `validateStep`. */
-const premierRefus = (d: CreatorDraft) => stepIds().map((s) => ({ s, err: validateStep(d, s) })).find((x) => x.err);
+const premierRefus = (d: CreatorDraft) => stepIds(d).map((s) => ({ s, err: validateStep(d, s) })).find((x) => x.err);
 
 describe('brouillon restauré : Talent de carrière joker sans spécialisation', () => {
   it('témoin : le brouillon complet du Prêtre franchit toutes les étapes et construit un héros', () => {

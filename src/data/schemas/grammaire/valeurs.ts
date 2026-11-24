@@ -35,7 +35,7 @@ import {
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
 import { ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG, type FormeDeTete } from '../../../lib/formesDeTete';
-import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLocale, type RefTypee } from './ref';
+import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLocale, type RefTypee, type TypeEntite } from './ref';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { controlerSousPortee, listeCle } from './collection-cle';
@@ -1469,6 +1469,16 @@ export const natureDInfluenceSchema = enumNomme(tableTotale(NATURES_D_INFLUENCE,
  * se vérifie, elle, par `ecartsDeCouverture` ci-dessous.
  */
 export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z.number() }), { min: { label: "Minimum" }, max: { label: "Maximum" } });
+
+/** Rangée d'une table tirée qui désigne une entrée du catalogue `type`, sa spécialisation si la table la fixe, à sa
+ *  fourchette `plageSchema`. */
+export const rangeeDeTable = <T extends TypeEntite>(type: T) => {
+  const plage = metaDesChamps(plageSchema, { exigees: true });
+  return refOuSpec(type, {
+    min: nommerNoeud(z.number(), { nom: plage.min.label }),
+    max: nommerNoeud(z.number(), { nom: plage.max.label }),
+  });
+};
 
 /** Fourchette de résultats entiers. */
 export const plageEntiereSchema = nommerChamps(z.strictObject({
