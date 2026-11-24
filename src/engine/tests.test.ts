@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { JET_DE_TEST } from './tests.testkit';
 import {
   evaluateTest,
   maxForcedRoll,
@@ -59,10 +60,10 @@ describe('evaluateTest — DR rapide (« Calculer Rapidement un DR », LDB 12 l.
 describe('Tests >100 % (LDB 12 l.73-77) : la valeur n’est plus plafonnée à 99', () => {
   const rng50: RNG = deFixe(50); // jet 50
   it('off (défaut) : valeur 115 plafonnée à 99 → DR = tens(99) − tens(50) = 4', () => {
-    expect(rollTest(115, 'intermediaire', rng50, 0, P()).sl).toBe(4);
+    expect(rollTest(JET_DE_TEST, 115, 'intermediaire', rng50, 0, P()).sl).toBe(4);
   });
   it('on : valeur 115 non plafonnée → DR = tens(115) − tens(50) = 6 (+1 par 10 % au-delà de 100)', () => {
-    expect(rollTest(115, 'intermediaire', rng50, 0, P({ targetMax: 999 })).sl).toBe(6);
+    expect(rollTest(JET_DE_TEST, 115, 'intermediaire', rng50, 0, P({ targetMax: 999 })).sl).toBe(6);
   });
 });
 
@@ -155,9 +156,9 @@ describe('Bascule in-game : éditer UNE règle change le comportement (preuve «
   });
   it('test-plus-de-100 → true : rollTest cesse de plafonner la valeur à 99', () => {
     const rng50: RNG = deFixe(50);
-    expect(rollTest(115, 'intermediaire', rng50).sl).toBe(4); // défaut : plafonné 99
+    expect(rollTest(JET_DE_TEST, 115, 'intermediaire', rng50).sl).toBe(4); // défaut : plafonné 99
     setRule('test-plus-de-100', true);
-    expect(rollTest(115, 'intermediaire', rng50).sl).toBe(6); // règle on : valeur 115 pleine
+    expect(rollTest(JET_DE_TEST, 115, 'intermediaire', rng50).sl).toBe(6); // règle on : valeur 115 pleine
   });
 });
 

@@ -5,7 +5,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { bonus } from '../engine/characteristics';
 import { startCascade } from './cascade';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { estVerbeDeFenetre, FLOW_VERBS } from './flowVerbs';
 import { VERBES_D_INTERACTION } from './combatAuto';
 import { frozenOpposedBatchStep } from './combat/triggeredTest';
@@ -49,7 +49,7 @@ const band = (kind: string, parts: BatchParticipant[], over: Partial<CascadeStep
   }) as CascadeStep;
 
 const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant =>
-  ({ id, interactive: true, base: 50, target: 50, result: null, ...over });
+  ({ teste: TESTE_DE_TEST, id, interactive: true, base: 50, target: 50, result: null, ...over });
 
 beforeEach(() => {
   banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [] });

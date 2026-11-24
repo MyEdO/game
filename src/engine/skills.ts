@@ -300,11 +300,11 @@ export function partyBest(
 /** Meilleur PJ pour une liste de Tests AU CHOIX (celui qui donne la plus haute valeur décide) ; le
  *  `test` rendu EST l'élément retenu de `tests`. `sense` (optionnel) : transmis tel quel à
  *  `partyBest`/`testValue`. */
-export function bestForTests(
+export function bestForTests<T extends TestDesigne>(
   party: Combatant[],
-  tests: readonly TestDesigne[],
+  tests: readonly T[],
   sense?: PairedSense,
-): { actor: Combatant; value: number; test: TestDesigne } | null {
+): { actor: Combatant; value: number; test: T } | null {
   // Le meilleur ACTEUR par Test, puis argmax sur les Tests (first-max via `maxBy`). Un Test ne
   // concourt que si le groupe fournit un porteur (`partyBest` null ⇒ groupe vide ⇒ résultat null).
   const perTest = tests.flatMap((test) => {

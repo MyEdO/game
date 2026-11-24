@@ -35,7 +35,7 @@ import { WORLD_STEP_OWNER, type CascadeStep } from './pendings';
 import { deFixe } from '../engine/dice.testkit';
 import { setCadence } from '../engine/cadence';
 import { setRule } from '../engine/policy';
-import { cascadeDeTest, draineEtapes } from './cascade.testkit';
+import { cascadeDeTest, draineEtapes, TESTE_DE_TEST } from './cascade.testkit';
 import type { WorldMap } from './worldMap';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 
@@ -179,7 +179,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     const onFail = spellOps(diseaseDefs()['pneumonie'].dailyTest!.test.echec, 'target');
     const bande = (id: string) => cascadeDeTest([
       { id, kind: 'maladie-test-quotidien', label: fixtureText('Fièvre (Pneumonie)'), aggregate: 'none',
-        participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 30, target: 30,
+        participants: [{ teste: TESTE_DE_TEST, id: h.id, interactive: true, label: 'Résistance', base: 30, target: 30,
           meta: { diseaseName: 'pneumonie', symptomId: 'fievre', opsEchec: onFail },
           result: { roll: 99, target: 30, sl: -6, success: false } }] },
     ], { title: 'Entretien', purpose: 'travel' });
@@ -201,7 +201,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     // Cascade à une BANDE de marche forcée (#1117 L3), jet de la rangée figé sur un ÉCHEC.
     banc.setState({ pendingCascade: cascadeDeTest([
       { id: 'bande-m1', kind: 'marche-forcee', label: fixtureText('Marche forcée'), aggregate: 'none',
-        participants: [{ id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
+        participants: [{ teste: TESTE_DE_TEST, id: h.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 99, target: 40, sl: -4, success: false } }] },
     ], { title: 'Marche', purpose: 'travel' }) });
     banc.getState().jetValider('cascade'); // verrouille l'échec → +Exténué (applyForcedMarch)
     expect(stacks(banc.getState().party[0], 'extenue')).toBe(exten0 + 1);

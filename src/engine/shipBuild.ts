@@ -29,7 +29,7 @@ import { shipConstruction, STEAM_BREAKDOWNS, steamBreakdownDie, type SteamBreakd
 import { findTableEntry } from './tables';
 import { rollDice, tirer, type RNG } from './dice';
 import { REPARATION } from './seaNavigation';
-import { rollTest } from './tests';
+import { rollTest, type JetDeTest } from './tests';
 import { DIFFICULTE_PAR_DEFAUT, type Difficulty } from './types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { findVehicleById } from '../data';
@@ -240,8 +240,8 @@ export function blessuresPayeesParLesPieces(enc: number, lissage: boolean): numb
 
 /** UNE passe de réparation au PORT : Test de Métier (Constructeur de navires) à `skillValue`, ou de Métier
  *  (Charpentier) déjà pénalisé par l'appelant. MDG 13 l.641-643 ; MDG 12 l.295. PUR (RNG injecté). */
-export function rollPortRepair(skillValue: number, woundsMissing: number, rng: RNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
-  const t = rollTest(skillValue, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
+export function rollPortRepair(jet: JetDeTest, skillValue: number, woundsMissing: number, rng: RNG, opts: { lissage?: boolean; difficulty?: Difficulty } = {}): RepairTick {
+  const t = rollTest(jet, skillValue, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
   const hours = tirer(REPARATION.testHours, rng);
   if (!t.success) return { roll: t.roll, target: t.target, success: false, wounds: 0, hours, costGold: 0 };
   const wounds = Math.min(woundsMissing, tirer(REPARATION.woundsPerTest, rng));

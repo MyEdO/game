@@ -24,7 +24,7 @@ import { checkPartyWiped } from './partyWipe';
 import { arriverAuLieu } from './lieuFlow';
 import { lieuDuGroupe, placeById, visiblePlaces, type WorldMap, type MapPlace } from './worldMap';
 import { condCtx } from './bourseFlow';
-import { testValue } from '../engine/skills';
+import { testValue, type TestDesigne } from '../engine/skills';
 import { isOutOfAction } from '../engine/conditions';
 import { rule } from '../engine/policy';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
@@ -49,6 +49,10 @@ const swimTestLabel = (diff: Difficulty): PlayerText =>
 /** Lieu le plus proche d'un point de la carte (distance euclidienne sur `pos`) — pris dans la liste
  *  fournie par l'appelant, jamais dans `map.places` brut (un naufrage n'échoue pas le groupe sur un
  *  lieu que le récit n'a pas révélé, #684). */
+/** Le Test du nageur d'un naufrage, et ce qu'il teste. LDB 18 l.344 */
+const SUJET_NATATION = { skill: { id: 'natation' }, characteristic: 'force' } as const;
+const NATATION: TestDesigne = { skill: SUJET_NATATION.skill };
+
 function nearestPlaceTo(places: MapPlace[], pos: { x: number; y: number }): MapPlace | undefined {
   let best: MapPlace | undefined;
   let bestD = Infinity;
@@ -147,8 +151,8 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     for (const h of swimmers) {
       // Aucune rangée nulle part sur ce chemin (repli sans pilote humain, aucune cascade démarrée) —
       // le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`) comme toute ligne de dé.
-      const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
-      const tr = rollSansPilote(get, h, value, diff, rng);
+      const value = testValue(h, SUJET_NATATION);
+      const tr = rollSansPilote(get, h, NATATION, value, diff, rng);
       lines.push(traceLineOf({
         who: nomDe(h), label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
         // LDB 18 l.344
@@ -169,13 +173,13 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // n'a rien à router).
   const meta = { shoreId: shore?.id ?? '', journalMark };
   const steps: CascadeStep[] = swimmers.map((h) => {
-    const value = testValue(h, { skill: { id: 'natation' }, characteristic: 'force' });
+    const value = testValue(h, SUJET_NATATION);
     const human = humanControlled(get(), h);
-    const result = human ? null : (() => { const t = rollSansPilote(get, h, value, diff, rng); return { roll: t.roll, target: t.target, sl: t.sl, success: t.success }; })();
+    const result = human ? null : (() => { const t = rollSansPilote(get, h, NATATION, value, diff, rng); return { roll: t.roll, target: t.target, sl: t.sl, success: t.success }; })();
     return {
       id: `shipwreck-${h.id}`, kind: 'naufrageNatation', actorId: h.id, icon: 'nautique/natation',
-      label: t('step.natation'), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff,
-      ...rollStep({ actor: h, test: { skill: { id: 'natation' }, characteristic: 'force' }, difficulty: diff }),
+      label: t('step.natation'), rollLabel: refLabel('skills', { id: 'natation' }), difficulty: diff, teste: structuredClone(NATATION), // #2097
+      ...rollStep({ actor: h, test: SUJET_NATATION, difficulty: diff }),
       stake: voyageStakeRef('mer-naufrage-nage'),
       result,
       meta,

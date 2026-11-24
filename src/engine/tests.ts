@@ -10,6 +10,7 @@ import { DIFFICULTE_PAR_DEFAUT, Difficulty, DIFFICULTY_MODIFIERS } from './types
 import { type TestPolicy, getTestPolicy } from './testPolicy';
 import { rule } from './policy';
 import type { ModLine } from './combat';
+import type { TestDesigne } from './skills';
 
 /** Chiffre des dizaines d'un d100 (00 = 100 → 10). SOURCE UNIQUE du calcul de DR. */
 export const tens = (n: number): number => Math.floor(n / 10);
@@ -102,6 +103,53 @@ export function refusSansJet<R>(ligne: { result?: object | null; refus?: R }): R
   return ligne.result != null && !estJete(ligne.result) ? ligne.refus : undefined;
 }
 
+/** Ce qu'un jet de Test teste : sa Compétence ou sa Caractéristique (`TestDesigne`), ou la Puissance d'une armée
+ *  (`massBattle.ts`, ADE II), seul Test qui ne vise pas une fiche. */
+export type CeQueTeste = TestDesigne | { readonly puissance: true };
+
+/** Un jet de Test (#4848) : qui le jette (`null` : un porteur sans fiche) et ce qu'il teste. */
+export interface JetDeTest { readonly porteur: string | null; readonly teste: CeQueTeste }
+
+/** Comment l'issue d'un jet est née : relancée (Chance, Pacte), ou forcée (Résilience, Résistance). */
+export interface OrigineDuJet { readonly relance?: true; readonly forcee?: true }
+
+/** Ce qui regarde chaque jet de Test du moteur. Le moteur ne connaît pas ses lecteurs (règle 3 d'AGENTS.md) : le
+ *  noyau le pose (`brancherLeJeu`). Absent ⇒ aucun lecteur. */
+export type ObservateurDesJets = (jet: JetDeTest, resultat: TestResult, origine: OrigineDuJet) => void;
+
+let observateur: ObservateurDesJets | undefined;
+let enRelance = false;
+
+/** Pose l'observateur et REND le précédent, au patron de `poserLeNommeur` (`engine/nom.ts`). */
+export function poserLObservateurDesJets(fn: ObservateurDesJets | undefined): ObservateurDesJets | undefined {
+  const precedent = observateur;
+  observateur = fn;
+  return precedent;
+}
+
+/** Joue `fn` comme la relance d'un Test (LDB 17 l.23, LDB 12 l.40) : chaque jet qu'elle jette se dit relancé. */
+export function relancer<T>(fn: () => T): T {
+  const avant = enRelance;
+  enRelance = true;
+  try { return fn(); } finally { enRelance = avant; }
+}
+
+function observer(jet: JetDeTest, r: TestResult, forcee: boolean): TestResult {
+  observateur?.(jet, r, { ...(enRelance ? { relance: true as const } : {}), ...(forcee ? { forcee: true as const } : {}) });
+  return r;
+}
+
+/** Le dé `roll` jeté pour `jet` contre `cible` (avant bornage) : l'issue d'un jet NEUF, que l'observateur reçoit. Un
+ *  dé déjà posé se relit par `evaluateTest`, qui n'observe rien. */
+export function jeterLeDe(jet: JetDeTest, roll: number, cible: number, base?: number, policy: TestPolicy = getTestPolicy()): TestResult {
+  return observer(jet, evaluateTest(roll, cible, base, policy), false);
+}
+
+/** Le d100 jeté pour `jet` contre `cible` (avant bornage, LDB 12 l.7-13). */
+export function jeterLeTest(jet: JetDeTest, cible: number, rng: RNG, base?: number, policy: TestPolicy = getTestPolicy()): TestResult {
+  return jeterLeDe(jet, d100(rng), cible, base, policy);
+}
+
 /** Effectue un Test simple contre une valeur cible (d100 ≤ valeur, LDB 12 l.7-13).
  *  Le `TestResult` rendu ne porte AUCUNE valeur nue (`base`) : `value` est la valeur TESTÉE, qui n'est
  *  la valeur nue du départage (`LDB 12 l.160`, `LDB 09 l.17`) que par coïncidence. Un site dont le jet
@@ -110,13 +158,14 @@ export function refusSansJet<R>(ligne: { result?: object | null; refus?: R }): R
  *  les cibles des DEUX camps — jamais un départage mixte, et le repli se JOURNALISE en DEV
  *  (`REPLIS_DEUX_CIBLES`) : il tranche sur une grandeur que le RAW ne désigne pas. */
 export function rollTest(
+  jet: JetDeTest,
   value: number,
   difficulty: Difficulty,
   rng: RNG,
   modifier = 0,
   policy: TestPolicy = getTestPolicy(),
 ): TestResult {
-  return evaluateTest(d100(rng), cibleDuTest(value, difficulty, modifier), undefined, policy);
+  return jeterLeTest(jet, cibleDuTest(value, difficulty, modifier), rng, undefined, policy);
 }
 
 /** Cible d'un Test AVANT bornage : valeur testée + Difficulté + modificateurs (LDB 12 l.92-94). C'est elle
@@ -267,6 +316,7 @@ export interface OpposedResult {
  * (TOUT-OU-RIEN par construction) : c'est le SEUL canal par lequel une nue entre dans un jet roulé ici.
  */
 export function opposedTest(
+  jets: { attacker: JetDeTest; defender: JetDeTest },
   attackerValue: number,
   defenderValue: number,
   rng: RNG,
@@ -275,8 +325,8 @@ export function opposedTest(
   /** Valeurs NUES des deux camps (`LDB 09 l.17`), grandeur du départage à DR égal (`LDB 12 l.160`). */
   bases?: { attacker: number; defender: number },
 ): OpposedResult {
-  const attacker = { ...rollTest(attackerValue, attackerDifficulty, rng), ...(bases ? { base: bases.attacker } : {}) };
-  const defender = { ...rollTest(defenderValue, defenderDifficulty, rng), ...(bases ? { base: bases.defender } : {}) };
+  const attacker = { ...rollTest(jets.attacker, attackerValue, attackerDifficulty, rng), ...(bases ? { base: bases.attacker } : {}) };
+  const defender = { ...rollTest(jets.defender, defenderValue, defenderDifficulty, rng), ...(bases ? { base: bases.defender } : {}) };
   return resolveOpposed(attacker, defender);
 }
 
@@ -371,11 +421,17 @@ export function bumpSL(t: TestResult, by = 1): TestResult {
 }
 
 /** `TestResult` d'une réussite FORCÉE (Résilience « Je ne faillirai pas ! » LDB 17 l.68 / Résistance
- *  Menace LDB 10) au dé `roll`, DR `sl` imposé. Collapse le littéral `{ roll, target, success: true,
- *  sl, isDouble: isDoubleRoll(roll) }` recopié dans chaque résolveur forcé — atome PARTAGÉ, voisin de `bumpSL`.
- *  `cible` = la cible AVANT bornage, bornée et MESURÉE ici comme dans `evaluateTest` ;
+ *  Menace LDB 10) au dé `roll`, DR `sl` imposé, que l'observateur reçoit comme forcée. Collapse le littéral
+ *  `{ roll, target, success: true, sl, isDouble: isDoubleRoll(roll) }` recopié dans chaque résolveur forcé — atome
+ *  PARTAGÉ, voisin de `bumpSL`. `cible` = la cible AVANT bornage, bornée et MESURÉE ici comme dans `evaluateTest` ;
  *  `base` = valeur nue, à fournir quand le site la connaît (départage opposé, LDB 12 l.160). */
-export function forcedTR(roll: number, cible: number, sl: number, base?: number): TestResult {
+export function forcedTR(jet: JetDeTest, roll: number, cible: number, sl: number, base?: number): TestResult {
+  return observer(jet, reussiteForcee(roll, cible, sl, base), true);
+}
+
+/** La réussite forcée de `forcedTR`, sans l'observer : le dé que le joueur choisit sur une réussite déjà forcée
+ *  (`imposerLeResultat`) réécrit le jet que la Résilience a acheté (LDB 17 l.68), il n'en jette aucun. */
+export function reussiteForcee(roll: number, cible: number, sl: number, base?: number): TestResult {
   const { target, clamped } = clampTarget(cible);
   return { roll, target, success: true, sl, isDouble: isDoubleRoll(roll), ...(base != null ? { base } : {}), ...(clamped ? { clamped } : {}) };
 }

@@ -84,6 +84,7 @@ import {
   loadRegister, objetSourceDeLArme, traitSourceDeLArme, modifierEtatDArmeDuTrait, aRecharger, chambrePleine, type WeaponLoadState,
 } from './weaponLoad';
 import { modDeRegle } from './reglesChiffrees';
+import type { RuleId } from './ruleRefs';
 import { applyActiveEffect } from './effetsActifs';
 import { nextEntityId } from '../lib/entityId';
 import { tableTotale } from '../lib/tableTotale';
@@ -794,6 +795,15 @@ export function equipConflicts(c: Pick<Combatant, 'items'> & Partial<Pick<Combat
   return [];
 }
 
+/** La règle chiffrée de la retenue. AA 08 l.236 */
+const RETENUE = 'retenue-du-gantelet-verrouille' satisfies RuleId;
+
+/** La retenue d'un gantelet verrouillé, reconnue à sa source : un objet qui empêche le lâcher forcé. AA 08 l.236 */
+function estUneRetenue(e: ActiveEffect): boolean {
+  const objet = e.source?.kind === 'objet' ? gabaritDObjet(e.source.id) : null;
+  return !!objet && estUnGanteletVerrouille(objet);
+}
+
 /** Rounds de la retenue, décomptés en fin de Round (`tickDurations`) : le Round entamé, puis un Round entier. AA 08 l.236, l.238 */
 const ROUNDS_DE_RETENUE = 2;
 
@@ -825,23 +835,37 @@ function mainsGantelees(c: Combatant): Map<Main, ItemInstance> {
 }
 
 /** Le gantelet verrouillé de `c` retient-il l'arme `tenue` qu'un évènement lui ferait lâcher ? S'il couvre l'une de ses
- *  mains et qu'aucune retenue n'y court, la retenue se pose sur `c` en effet actif, rendu ; sinon, ou au second évènement
- *  de la période, `undefined` : l'arme tombe. AA 08 l.236 */
+ *  mains et qu'aucune retenue n'y court, la retenue se pose sur `c` en effet actif, rendu ; sinon `undefined` : l'arme
+ *  tombe, et au second évènement de la période la retenue part avec elle. AA 08 l.236 */
 export function ganteletRetient(c: Combatant, tenue: Weapon): (ActiveEffect & { testMod: number }) | undefined {
   const couvertes = mainsGantelees(c);
   const gantelet = (tenue.hands === 2 ? MAINS : [tenue.hand ?? 'main']).map((m) => couvertes.get(m)).find((g) => g != null);
   if (!gantelet) return undefined;
   const main = tenue.hand ?? 'main';
   const source: EffectSource = { kind: 'objet', id: garanti(gantelet.trappingId, gantelet.uid, 'gantelet verrouillé sans trapping') };
-  if ((c.activeEffects ?? []).some((e) => e.testModHand === main && e.source?.kind === source.kind && e.source.id === source.id)) return undefined;
+  const courante = (c.activeEffects ?? []).find((e) => estUneRetenue(e) && e.testModHand === main);
+  if (courante) {
+    c.activeEffects = c.activeEffects!.filter((e) => e !== courante);
+    return undefined;
+  }
   const retenue = {
     label: gantelet.label, bonus: 0, duration: { scale: 'rounds', left: ROUNDS_DE_RETENUE },
-    testMod: modDeRegle('retenue-du-gantelet-verrouille', 'retenue'),
+    testMod: modDeRegle(RETENUE, 'retenue'),
     testModChar: tenue.type === 'distance' ? 'capacite-de-tir' : 'capacite-de-combat',
     testModHand: main, source,
   } satisfies ActiveEffect;
   applyActiveEffect(c, retenue);
   return retenue;
+}
+
+/** La retenue que `c` vient de recevoir (absente d'`avant`) dure tant que dure sa `cause`, et au moins autant que les
+ *  effets en Rounds posés avec elle. AA 08 l.236 */
+export function lierLaRetenue(c: Combatant, avant: readonly ActiveEffect[], cause: NonNullable<ActiveEffect['tantQue']>): void {
+  const neufs = (c.activeEffects ?? []).filter((e) => !avant.includes(e));
+  const retenue = neufs.find(estUneRetenue);
+  if (retenue?.duration.scale !== 'rounds') return;
+  if (!('sequelles' in cause) || cause.sequelles.length) retenue.tantQue = cause;
+  retenue.duration = { scale: 'rounds', left: Math.max(retenue.duration.left, ...neufs.map((e) => (e.duration.scale === 'rounds' ? e.duration.left : 0))) };
 }
 
 /** Id de catalogue des Mains nues, qui est aussi l'uid de leur arme (`unarmedWeapon`). LDB 62 l.28 */

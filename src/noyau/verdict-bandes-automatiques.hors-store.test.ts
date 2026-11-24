@@ -18,6 +18,7 @@ import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 import type { TavernPayload } from './tavernFlow';
 import { fixtureText } from '../i18n/fixtureText';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -30,7 +31,7 @@ function testPose(roll: number, cible: number, fortune = 1) {
   const t = evaluateTest(roll, cible);
   banc.setState({
     battle: null, pendingCascade: null, party: [hero],
-    pendingTest: { actorId: hero.id, label: 'Test', skillValue: cible, difficulty: 'intermediaire',
+    pendingTest: { sujet: TESTE_DE_TEST, actorId: hero.id, label: 'Test', skillValue: cible, difficulty: 'intermediaire',
       requireSL: 0, target: t.target, roll, success: t.success, sl: t.sl, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
   });
   return hero;

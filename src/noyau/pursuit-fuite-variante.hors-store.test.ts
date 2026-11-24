@@ -38,7 +38,7 @@ function doneRound(h: Combatant, sl: number): MancheClose {
   const participants: CascadeStep[] = [{
     id: 'pursuit-1', kind: 'mouvementDePoursuite', label: fixtureText('Manche 1 — Athlétisme'), aggregate: 'none',
     participants: [{
-      id: h.id, label: 'Athlétisme', base: 40, target: 40, interactive: true,
+      id: h.id, label: 'Athlétisme', teste: { skill: { id: 'athletisme' } }, base: 40, target: 40, interactive: true,
       result: { roll: 40, target: 40, sl, success: sl >= 0 },
     }],
   }];

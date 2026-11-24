@@ -20,7 +20,7 @@ import { RNG, d10 } from './dice';
 import { applyOps } from './ops';
 import { inanimateCombatant } from './inanimate';
 import { rollVehicleProblem, type TravelTableEntry } from './travelTables';
-import { rollTest, isImpressiveFailure, isAstoundingFailure, type TestResult } from './tests';
+import { rollTest, isImpressiveFailure, isAstoundingFailure, type JetDeTest, type TestResult } from './tests';
 import { COND } from './conditions';
 import type { MilieuDeNavigation } from './shipBuild';
 
@@ -64,6 +64,8 @@ export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG, 
 export interface VehicleRepairParams {
   /** Valeur TESTÉE de la Compétence Métier employée (résolue par l'appelant, `skills.testValue`). */
   valeurMetier: number;
+  /** Le jet de ce Métier. */
+  jet: JetDeTest;
   /** Points de Dégâts actuellement subis par la coque — plafond de ce qu'une passe peut restaurer. */
   degatsSubis: number;
   /** Trois conditions matérielles de EDOC 07 l.351, FAITS fournis par l'appelant (le moteur ne les déduit pas). */
@@ -100,7 +102,7 @@ export function repairVehicleAttempt(p: VehicleRepairParams): VehicleRepairResul
   if (!p.materiaux || !p.outils || !p.installations) {
     return { possible: false, restaure: 0, heures: 0, degatsRestants: p.degatsSubis };
   }
-  const test = rollTest(p.valeurMetier, p.difficulty ?? DIFFICULTE_PAR_DEFAUT, p.rng);
+  const test = rollTest(p.jet, p.valeurMetier, p.difficulty ?? DIFFICULTE_PAR_DEFAUT, p.rng);
   const restaure = test.success ? Math.min(p.degatsSubis, d10(p.rng) + test.sl) : 0;
   return { possible: true, test, restaure, heures: 1, degatsRestants: p.degatsSubis - restaure };
 }
@@ -141,6 +143,9 @@ export function ligneAllureForcee(kmDejaCourus = 0): ModLine | null {
   return kmDejaCourus === 0 ? null : ligneDeRegle('allure-forcee-attelage', 'par-km', { ajuste: (parKm) => parKm * kmDejaCourus });
 }
 
+/** Le jet de Résistance d'une bête de trait, sans fiche de combattant. EDOC 07 l.229 */
+const RESISTANCE_DE_LA_BETE: JetDeTest = { porteur: null, teste: { skill: { id: 'resistance' } } };
+
 /**
  * Le Test de Résistance d'UNE bête de l'attelage, une fois le conducteur en échec — EDOC 07 l.229 :
  * « chacun doit réussir un Test de Résistance Intermédiaire (+0) ou acquérir un État *Exténué* », et
@@ -153,7 +158,7 @@ export function ligneAllureForcee(kmDejaCourus = 0): ModLine | null {
  * sont RENDUS, l'appelant les applique).
  */
 export function forcedPaceBeastCheck(a: ForcedPaceAnimal, rng: RNG): ForcedPaceAnimalOutcome {
-  const resistance = rollTest(a.valeurResistance, 'intermediaire', rng);
+  const resistance = rollTest(RESISTANCE_DE_LA_BETE, a.valeurResistance, 'intermediaire', rng);
   const etats: string[] = [];
   if (!resistance.success) etats.push(COND.extenue);
   if (isImpressiveFailure(resistance.success, resistance.sl)) etats.push(COND.extenue);
@@ -172,6 +177,8 @@ export function forcedPaceBeastCheck(a: ForcedPaceAnimal, rng: RNG): ForcedPaceA
  */
 export function forcedPaceCheck(p: {
   valeurConduite: number;
+  /** Le jet du conducteur. */
+  jetConduite: JetDeTest;
   /** Kilomètres DÉJÀ parcourus au pas de course avant celui-ci. */
   kmDejaCourus?: number;
   animaux: ForcedPaceAnimal[];
@@ -179,7 +186,7 @@ export function forcedPaceCheck(p: {
 }): ForcedPaceResult {
   const rng = p.rng;
   const ligne = ligneAllureForcee(p.kmDejaCourus);
-  const conduite = rollTest(p.valeurConduite, 'intermediaire', rng, ligne?.value ?? 0);
+  const conduite = rollTest(p.jetConduite, p.valeurConduite, 'intermediaire', rng, ligne?.value ?? 0);
   if (conduite.success) return { conduite, ligne, retourAuPas: false, animaux: [] };
   return { conduite, ligne, retourAuPas: true, animaux: p.animaux.map((a) => forcedPaceBeastCheck(a, rng)) };
 }

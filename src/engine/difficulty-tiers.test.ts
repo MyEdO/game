@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { JET_DE_TEST } from './tests.testkit';
 import { rollTest, difficulteDeLArg, easeDifficulty, DIFFICULTY_LADDER } from './tests';
 import { DIFFICULTY_MODIFIERS } from './types';
 import { makeRNG } from './dice';
@@ -16,14 +17,14 @@ describe('Difficultés extrêmes EDO — Presque Impossible (−40) / Impossible
   it('rollTest applique −50 / −40 sur la valeur cible (hors zone de clamp)', () => {
     const rng = makeRNG(1);
     // 80 − 50 = 30 ; 80 − 40 = 40 : aucune borne ne s'interpose, le modificateur brut transparaît.
-    expect(rollTest(80, 'impossible', rng).target).toBe(30);
-    expect(rollTest(80, 'presqueImpossible', rng).target).toBe(40);
+    expect(rollTest(JET_DE_TEST, 80, 'impossible', rng).target).toBe(30);
+    expect(rollTest(JET_DE_TEST, 80, 'presqueImpossible', rng).target).toBe(40);
   });
 
   it('Impossible peut écraser la cible jusqu’au plancher de la policy (targetMin = 1)', () => {
     const rng = makeRNG(1);
     // 50 − 50 = 0 → clampé au plancher des valeurs cible (LDB 12 : 1..99).
-    expect(rollTest(50, 'impossible', rng).target).toBe(1);
+    expect(rollTest(JET_DE_TEST, 50, 'impossible', rng).target).toBe(1);
   });
 
   it('difficulteDeLArg désigne chacun des deux paliers par son id (EDO App.2 l.156-165)', () => {

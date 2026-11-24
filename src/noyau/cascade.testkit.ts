@@ -12,6 +12,10 @@ import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
 import type { ModLine } from '../engine/combat';
 import { RULE_REF } from '../engine/ruleRefs';
 import { lignesDe } from '../engine/modLine.testkit';
+import type { TestDesigne } from '../engine/skills';
+
+/** Ce que teste une étape ou une rangée de fixture qui ne juge que le dé contre sa cible (calque de `JET_DE_TEST`). */
+export const TESTE_DE_TEST: TestDesigne = { characteristic: 'capacite-de-combat' };
 
 /** UNE séquence de test, seule fabrique des fixtures de `PendingCascade` : son compteur d'identité
  *  (`seq`, #1508) vaut le nombre d'étapes poussées, comme pour une séquence ouverte par le code. */

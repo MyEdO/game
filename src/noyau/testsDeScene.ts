@@ -16,7 +16,6 @@ import { armeDEnfoncement, bilanDuRound } from './enfoncerUnePorte';
 import { refuserGeste } from './refusVisible';
 import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { bus, EVT } from './bus';
-import { referenceDuSujet } from './jetsEnVue';
 import { actorIn, inBattleId } from './monde/combatants';
 import { placeCombatant } from './monde/spawn';
 import { flowFromEffects } from './monde/flow';
@@ -198,7 +197,6 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         // réussi le d100 mais manqué le seuil requireSL (jamais un Test raté, `evaluateTest` → on ne crée pas de réussite).
         const drDelta = tool ? craftTestDRAdjust(tool, pt.success) : 0;
         const effSuccess = drDelta !== 0 ? evaluateTest(lance, pt.target).success && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
-        bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: lance, target: pt.target, reference: referenceDuSujet(pt.sujet) });
         // Bâclé : un outil Bâclé qui Maladresse (échec + double) se brise (LDB 60, généralisé hors combat).
         if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
           tool.destroyed = true;

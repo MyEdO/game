@@ -14,7 +14,7 @@
  * Moteur PUR (RNG seedable) : les valeurs de Compétence sont calculées par l'appelant.
  */
 import { RNG } from './dice';
-import { rollTest, resolveOpposed, easeDifficulty, TestResult } from './tests';
+import { rollTest, resolveOpposed, easeDifficulty, TestResult, type JetDeTest } from './tests';
 import { Difficulty, type Combatant } from './types';
 import { hasTalent } from './magic';
 import { rule } from './policy';
@@ -114,8 +114,8 @@ export function roundSL(t: TestResult, cap?: number): number {
  * départage (LDB 12 l.160). Un adversaire INCARNÉ (héros) a une valeur de Test fondue — son porteur
  * (`noyau/tavernFlow.ts`) réécrit alors `base` à l'accesseur canon.
  */
-export function rollTavernTest(value: number, rng: RNG, difficulty: Difficulty = TAVERN_TEST_DIFFICULTY, modifier = 0): TestResult {
-  return { ...rollTest(value, difficulty, rng, modifier), base: value };
+export function rollTavernTest(jet: JetDeTest, value: number, rng: RNG, difficulty: Difficulty = TAVERN_TEST_DIFFICULTY, modifier = 0): TestResult {
+  return { ...rollTest(jet, value, difficulty, rng, modifier), base: value };
 }
 
 /** Issue d'UNE manche entre deux `TestResult` DÉJÀ roulés — PUR (aucun rng, aucune décision de

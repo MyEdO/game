@@ -13,6 +13,7 @@ import { monoStep } from './rollSeam';
 import { startSequence, activeSequence } from './sequenceCore';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -35,7 +36,7 @@ describe('#1595 — une manche résolue en branche I se clôt', () => {
       manche: (g, seq) => {
         const step = monoStep({
           id: `m-${seq.manche}`, kind: cleDeFixture('sondeMancheI'), label: fixtureText('Manche'), actor: g().party[0],
-          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+          difficulty: 'intermediaire', teste: TESTE_DE_TEST, montee: { base: 50, target: 50 },
           stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Manche'), steps: [step] } : undefined;

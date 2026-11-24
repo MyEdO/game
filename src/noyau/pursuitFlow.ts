@@ -182,9 +182,10 @@ export function pursuedMovement(h: Combatant, partyRole: 'fleeing' | 'pursuing')
  *  sans influence. Une rangée témoin NAÎT avec son `result` (roulé ici) : son DR compte dans la
  *  comparaison de la manche et `stepReady` ne l'attend jamais. */
 function pursuitRow(get: Get, h: Combatant, skill: string, label: string): BatchParticipant {
+  const teste = { skill: { id: skill } };
   const row: BatchParticipant = {
-    id: h.id, label, skill: { id: skill }, difficulty: PURSUIT_DIFFICULTY, result: null, interactive: true,
-    ...rollStep({ actor: h, test: { skill: { id: skill } }, difficulty: PURSUIT_DIFFICULTY }),
+    id: h.id, label, teste, difficulty: PURSUIT_DIFFICULTY, result: null, interactive: true,
+    ...rollStep({ actor: h, test: teste, difficulty: PURSUIT_DIFFICULTY }),
   };
   if (!cadenceAuto() && jetSurfaced(get(), h)) return row;
   return { ...row, interactive: false, result: rollBatchParticipant(row, battleRng()) };
@@ -357,7 +358,7 @@ function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: 
     // Adversaires (pas des PJ) : aucune rangée nulle part pour leur jet — le journal est la SEULE
     // surface, et sa ligne se DÉRIVE (`traceLineOf`) comme toute ligne de dé. Le libellé NOMME la
     // Compétence de la manche — la MÊME que celle des rangées des coureurs. L'issue de CE jet est son DR.
-    const t = rollTest(f.skill, PURSUIT_DIFFICULTY, rng);
+    const t = rollTest({ porteur: f.id ?? null, teste: { skill: { id: p.skill } } }, f.skill, PURSUIT_DIFFICULTY, rng);
     log.push(traceLineOf({ who: f.label, label: skillLabel, roll: t.roll, target: t.target, success: t.success, issue: drDit(t.sl) }));
     return { id: f.id ?? f.label, label: f.label, movement: f.movement, total: t.sl + pursuitMoveBonus(f.movement, slowest) };
   });

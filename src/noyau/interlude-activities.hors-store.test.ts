@@ -6,7 +6,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade, TESTE_DE_TEST } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { makeRNG, roll } from '../engine/dice';
 import { toBrass, fromBrass, priceToMoney, PA_PER_CO } from '../engine/money';
@@ -127,7 +127,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     // `blocked` au catalogue, le choix `interlude.activite` refuse.
     banc.setState({
       pendingActivity: {
-        heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
+        teste: TESTE_DE_TEST, heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
         skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
         roll: null, target: 0, sl: 0, success: false,
         ...r!, label: `Accomplir un Rituel — ${r!.label}`,
@@ -160,7 +160,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     expect(r2!.drBefore).toBe(10);
     banc.setState({
       pendingActivity: {
-        heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
+        teste: TESTE_DE_TEST, heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
         skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
         roll: null, target: 0, sl: 0, success: false,
         ...r2!, label: `Accomplir un Rituel — ${r2!.label}`,
@@ -549,7 +549,7 @@ describe('Activités d’interlude (LDB 23)', () => {
 
     const basePending: PendingActivity = {
       kind: 'catalog', heroId: h.id, activityId: 'alchimie-ordinaire', label: 'Alchimie ordinaire',
-      skillLabel: 'Métier (Alchimiste)', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' },
+      skillLabel: 'Métier (Alchimiste)', teste: { skill: { id: 'metier', spec: 'alchimiste' } }, skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' },
       roll: 99, target: 40, success: false, sl: 0,
     };
     const setupHero = () => {

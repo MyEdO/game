@@ -83,7 +83,7 @@ describe('Test étendu : le Round s’inverse sur la Compétence du Test', () =>
 describe('Activité : Talents partout, jetons d’aventure sur les seules Scènes de bataille', () => {
   const activite = (skillId: string, over: Partial<PendingActivity> = {}): PendingActivity => ({
     heroId: 'H', kind: 'catalog', label: 'A', skillLabel: 'A', skillValue: 55, difficulty: 'intermediaire', ligne: {} as never,
-    roll: 64, target: 55, sl: -1, success: false, chosenSkill: { id: skillId }, ...over,
+    roll: 64, target: 55, sl: -1, success: false, teste: { skill: { id: skillId } }, ...over,
   } as PendingActivity);
 
   it('Studieux sur la Recherche d’une Activité d’interlude : offert 46', () => {
@@ -143,7 +143,7 @@ describe('Battement : le Test de Corps à corps s’inverse', () => {
 });
 
 describe('À sang-froid sur une rangée de Psychologie PILOTÉE (LDB 85 l.13)', () => {
-  const RANGEE: BatchParticipant = { id: 'H', interactive: true, base: 55, target: 55, skill: { id: 'calme' }, result: { roll: 64, target: 55, sl: -1, success: false } };
+  const RANGEE: BatchParticipant = { id: 'H', interactive: true, base: 55, target: 55, teste: { skill: { id: 'calme' } }, result: { roll: 64, target: 55, sl: -1, success: false } };
   const bande = (banc: Banc, h: Combatant) => banc.setState({
     battle: { combatants: [h], log: [] } as never,
     pendingCascade: cascadeDeTest([{ id: 'b1', kind: cleDeFixture('psychologieDeCombat'), contexte: 'psych', aggregate: 'none', participants: [{ ...RANGEE }] }]),

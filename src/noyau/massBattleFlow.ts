@@ -41,7 +41,7 @@ import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresPosees } from '../engine/characteristics';
 import { dataLabel, massBattleHazardsDie, testSkillLabel } from '../data';
-import { clampTarget } from '../engine/tests';
+import { jeterLeDe } from '../engine/tests';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import {
   activityById, activitiesFor, activityModLines, testsDeLActivite, matchBattleOutcomes, battleOutcomeAmount,
@@ -51,7 +51,7 @@ import {
 import type { PendingActivity, PendingActivityFields, ActivityOppositionOn } from './interludeFlow';
 import {
   gapDifficulty, resolveClash, rallyHealAmount, battleOutcome, isDestroyed,
-  BATTLE_HAZARDS, battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus,
+  BATTLE_HAZARDS, battleHazard, clampMight, initHoldState, resolveHoldRound, holdEnemyBonus, jetDePuissance,
   type ClashResult, type HazardRow, type BattleOutcome, type HoldState, type BattleHold, type MassBattleSpec,
 } from '../engine/massBattle';
 import { t } from '../i18n';
@@ -352,7 +352,7 @@ function describeThreats(threats: string[]): string | null {
 /** Ouverture d'un Test de bataille (préparation ou Scène) : le meneur, sa valeur et ce qui pèse sur la cible. */
 interface OuvertureDeBataille {
   actor: Combatant; battle: 'prep' | 'round'; def: ActivityDef;
-  skillValue: number; test?: TestDesigne; difficulty: Difficulty;
+  skillValue: number; test: TestDesigne; difficulty: Difficulty;
   label?: string; mod?: number; modLabel?: string;
   combined?: { test: TestDesigne; value: number };
   opposition?: ActivityOppositionOn;
@@ -366,13 +366,13 @@ export interface TestDeBataille { pending: PendingActivity; ligne2?: RollLinePar
 
 /** Monte le Test de bataille de `o`. PUR. */
 function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
-  const skillLabel = (o.test && testSkillLabel(o.test)) ?? t('mbf.testFallback');
+  const skillLabel = testSkillLabel(o.test) ?? t('mbf.testFallback');
   // Cibles montées par le monteur canonique (`rollLine`, #1153) : le modificateur de SITUATION (Menace
   // ADE II 8 l.219 / Planification l.75) pèse SUR LA CIBLE (il n'est pas dans la valeur) et se nomme.
   const surLaCible = activityModLines(o.mod, o.modLabel);
   const ligne = rollLine({
     actor: o.actor,
-    ...(o.test ? { test: o.test } : {}),
+    test: o.test,
     valeur: o.skillValue, soutien: o.support, difficulty: o.difficulty, surLaCible,
   });
   const ligne2 = o.combined
@@ -380,7 +380,7 @@ function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
     : undefined;
   const target = ligne.target;
   const combined = o.combined && ligne2
-    ? { skill2: testSkillLabel(o.combined.test), skillValue2: o.combined.value, target2: ligne2.target }
+    ? { skill2: testSkillLabel(o.combined.test), teste2: structuredClone(o.combined.test), skillValue2: o.combined.value, target2: ligne2.target }
     : {};
   const pa: PendingActivityFields = {
     heroId: o.actor.id, kind: 'catalog', activityId: o.def.id, battle: o.battle,
@@ -389,7 +389,7 @@ function pendingDeBataille(o: OuvertureDeBataille): TestDeBataille {
     ...(o.mod ? { mod: o.mod, modLabel: o.modLabel } : {}),
     ...(o.support ? { support: o.support } : {}),
     ...(o.heroIds ? { heroIds: o.heroIds } : {}),
-    ...(o.test?.skill ? { chosenSkill: structuredClone(o.test.skill) } : {}), // #2097
+    teste: structuredClone(o.test), // #2097
     ...combined,
   };
   return { pending: o.opposition ? { ...pa, ...o.opposition } : pa, ...(ligne2 ? { ligne2 } : {}) };
@@ -651,10 +651,11 @@ function openHoldScene(get: Get, set: Set, scene: ActivityDef): void {
   // Niveau de Compétence NU du PJ retenu (`LDB 09 l.17`) — Compétence si le Test retenu en nomme une,
   // Caractéristique effective sinon.
   const skillBase = 'skill' in picked.test ? skillBaseValue(picked.actor, { skill: picked.test.skill }) : effectiveChar(picked.actor, picked.test.characteristic);
+  // Seuil de l'opposition (aucune Difficulté : Puissance + tenue), écrêté par l'évaluation PARTAGÉE.
+  const tenue = jeterLeDe(jetDePuissance(mb.ennemi.combatant.id), d100(battleRng()), armyMight(mb.ennemi) + enemyBonus, armyMight(mb.ennemi));
   const opposition: ActivityOppositionOn = {
-    // Seuil de l'opposition (aucune Difficulté : Puissance + tenue) — écrêté par la primitive PARTAGÉE.
-    enemyValue: clampTarget(armyMight(mb.ennemi) + enemyBonus).target,
-    enemyRoll: d100(battleRng()),
+    enemyValue: tenue.target,
+    enemyRoll: tenue.roll,
     enemyBase: armyMight(mb.ennemi),
     skillBase,
   };
@@ -985,7 +986,7 @@ export function choixDeLaBataille(get: Get, set: Set) {
 function jouerLeTestSpectaculaire(get: Get, set: Set): void {
   const mb = get().massBattle!;
   const allyMod = mb.modificateurAllie + (mb.round === 1 ? mb.firstRoundBonus : 0);
-  const clash = resolveClash(armyMight(mb.allie), armyMight(mb.ennemi), { modificateurAllie: allyMod, modificateurEnnemi: 0, rng: battleRng() });
+  const clash = resolveClash({ allie: mb.allie.combatant.id, ennemi: mb.ennemi.combatant.id }, armyMight(mb.allie), armyMight(mb.ennemi), { modificateurAllie: allyMod, modificateurEnnemi: 0, rng: battleRng() });
   const ally = armyWithMightDelta(mb.allie, -clash.allyLoss, get().forgerUnId);
   const enemy = armyWithMightDelta(mb.ennemi, -clash.enemyLoss, get().forgerUnId);
   const lines: string[] = [

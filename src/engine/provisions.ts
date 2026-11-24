@@ -239,7 +239,7 @@ export function dailyFoodUpkeep(c: Combatant, gardeManger: GardeManger, resVal: 
       deferTest({ kind: 'faim', label: t('prov.faim'), base: resVal, test: RESISTANCE_TEST, difficulty: 'intermediaire', mods: [hungerThirstPenalty(penalty)] });
       return res;
     }
-    const t2 = rollTest(resVal, 'intermediaire', rng, penalty);
+    const t2 = rollTest({ porteur: c.id, teste: { skill: RESISTANCE_TEST.skill } }, resVal, 'intermediaire', rng, penalty);
     h.tests += 1;
     // Test résolu SANS fenêtre (entretien du jour) : sa ligne se DÉRIVE (`traceLineOf`).
     res.log.push(traceLineOf({
@@ -316,7 +316,7 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
     deferTest({ kind: 'soif', label: t('prov.soif'), base: resVal, test: RESISTANCE_TEST, difficulty: 'intermediaire', mods: [hungerThirstPenalty(penalty)] });
     return res;
   }
-  const t2 = rollTest(resVal, 'intermediaire', rng, penalty);
+  const t2 = rollTest({ porteur: c.id, teste: { skill: RESISTANCE_TEST.skill } }, resVal, 'intermediaire', rng, penalty);
   s.tests += 1;
   res.log.push(traceLineOf({
     who: nomDe(c), label: t('prov.testLabel', { kind: t('prov.soif'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: s.tests > 1 ? t('prov.fragTestMalus', { n: (s.tests - 1) * 10 }) : '' }),

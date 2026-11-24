@@ -17,7 +17,7 @@ import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../ro
 import { battleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { isOutOfAction, combatTestPenalty, peutEntrerEnFrenesie } from '../../engine/conditions';
-import { rawCombatTestBase, testValue } from '../../engine/skills';
+import { rawCombatTestBase, testValue, type TestDesigne } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
@@ -115,7 +115,8 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
       });
       continue;
     }
-    const res = rollSansPilote(get, c, rawCombatTestBase(c, { characteristic: char }), 'intermediaire', battleRng(), combatTestPenalty(c));
+    const teste = { characteristic: char } as const;
+    const res = rollSansPilote(get, c, teste, rawCombatTestBase(c, teste), 'intermediaire', battleRng(), combatTestPenalty(c));
     out.lines.push(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
     if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: nomDe(c) })); }
   }
@@ -126,6 +127,8 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
 // Fonctions de cycle de tour ennemi. Elles journalisent ELLES-MÊMES (kinds `frenzy`/`fear` via `ev`) —
 // le `sink` du ctx n'est pas requis ici (contrairement à roundHooks).
 // ============================================================================================
+
+const FORCE_MENTALE: TestDesigne = { characteristic: 'force-mentale' };
 
 /** L'IA tente d'entrer en Frénésie au début de son tour (LDB 21 l.31) : combattant capable, pas déjà
  *  frénétique ni immunisé à la Psychologie, avec un adversaire vivant en Ligne de Vue → Test de Force
@@ -139,7 +142,7 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   // que charger, la Frénésie passe au tour suivant. Peek déterministe, sans RNG (avant le test FM) → aucune
   // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
   if (aiJetteraitUnSort(get, enemy.id)) return;
-  if (resolveFrenzyEntry(testValue(enemy, { characteristic: 'force-mentale' }), battleRng()).success) {
+  if (resolveFrenzyEntry({ porteur: enemy.id, teste: FORCE_MENTALE }, testValue(enemy, FORCE_MENTALE), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: PSY.frenesie });
     set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: nomDe(enemy) }), enemy.id)] } });
   }

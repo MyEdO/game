@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { type CascadeApplier } from './cascade';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import {
   openRoll,
   openSequence,
@@ -84,7 +84,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     title: 'Désertion', purpose: 'test',
     steps: [monoStep({
       id: 'seam-subi', kind: cleDeFixture('seam-subi'), monde: true, label: composeRollLabel(undefined, 'Désertion', {}), difficulty: 'intermediaire',
-      ligne: { valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } },
+      ligne: { test: { skill: { id: 'resistance' } }, valeur: 40 }, stake: { key: { dataset: 'combat', kind: 'mutation' } },
     })!],
   });
 
@@ -157,7 +157,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     const crew: Combatant = combattantDeTest({ id: 'timonier1', label: 'Timonier', kind: 'heros', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] });
     banc.setState({ party: [crew], travelPlan: { routeId: 'r', fromPlaceId: 'a', toPlaceId: 'b', mode: 'sea', hoursPerDay: 8, km: 0, kmDone: 0, interrupted: false, orders: { cadence: 'commande' } } as never });
     const req: RollRequest = {
-      side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
+      side: { participants: [{ teste: TESTE_DE_TEST, id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
     // `equipage-progression` est doublé par le `beforeEach` du bloc (#275 Décision 4 cran 2).
@@ -172,7 +172,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     const crew: Combatant = combattantDeTest({ id: 'timonier1', label: 'Timonier', kind: 'heros', characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 }, skills: [{ id: 'navigation-fluviale', characteristic: 'intelligence', advances: 30 }], conditions: [], talents: [] });
     banc.setState({ party: [crew] });
     const req: RollRequest = {
-      side: { participants: [{ id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
+      side: { participants: [{ teste: TESTE_DE_TEST, id: 'timonier1', essential: true, base: 30, target: 30, result: null }] },
       actionLabel: 'Progression', test: {}, difficulty: 'intermediaire',
     };
     openRoll(banc.getState, banc.setState, req, cleDeFixture('seam-batch'));

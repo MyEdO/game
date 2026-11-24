@@ -10,6 +10,7 @@ import type { CascadeStep } from './pendings';
 import { monoStep } from './rollSeam';
 import { nightStakeRef } from '../data';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -31,7 +32,7 @@ describe('#253.1 — dessoûlage : le 2ᵉ Test (gueule de bois) est une étape 
     banc.setState({ party: [hero], gameTime: 8 * 60 });
     // BANDE de Dessoûlage (#1117 L3) : la conséquence se joue PAR RANGÉE.
     const step: CascadeStep = { id: 'bande-dessoulage', kind: 'dessoulage', label: fixtureText('Dessoûlage'), aggregate: 'none',
-      participants: [{ id: hero.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 45, target: 40, sl: 1, success: true } }] };
+      participants: [{ teste: TESTE_DE_TEST, id: hero.id, interactive: true, label: 'Résistance', base: 40, target: 40, result: { roll: 45, target: 40, sl: 1, success: true } }] };
 
     const out = applierDe('dessoulage')!(get, set, step, hero, { steps: [step], index: 0 });
 
@@ -74,7 +75,7 @@ describe('#253.2 — combat franchissant minuit : les Tests d\'entretien se mett
     const heroClone = { ...hero, kind: 'heros' as const };
     // La file accepte seulement une étape MINTÉE (#1262 V2) ; sa ligne est posée telle quelle.
     const queued = monoStep({ id: 'faim-H-0', kind: 'faim', actor: hero, label: fixtureText('Faim'), rollLabel: 'Résistance',
-      difficulty: 'intermediaire', montee: { base: 40, target: 40 }, stake: nightStakeRef('faim') })!;
+      difficulty: 'intermediaire', teste: TESTE_DE_TEST, montee: { base: 40, target: 40 }, stake: nightStakeRef('faim') })!;
     banc.setState({
       party: [hero],
       battle: { combatants: [heroClone, deadEnemy()], order: [hero.id, 'e'], turn: 0, round: 1, log: [], over: null } as never,

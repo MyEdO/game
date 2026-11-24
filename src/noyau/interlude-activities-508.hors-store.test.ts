@@ -71,7 +71,7 @@ describe('Gate de Classe (LDB 23 l.197 / AA 12 l.5) — appliqué au chemin rée
     expect(testValue(h, { skill: { id: 'charme' } })).toBe(testValue(h, { skill: { id: 'divertissement', spec: 'narration' } }));
     pratiquer(banc.getState, heroId, 'punchausen');
     const pa = banc.getState().pendingActivity!;
-    expect(pa.chosenSkill).toEqual({ id: 'divertissement', spec: 'narration' });
+    expect(pa.teste.skill).toEqual({ id: 'divertissement', spec: 'narration' });
     expect(pa.difficulty).toBe('intermediaire');
   });
 });
@@ -82,14 +82,14 @@ describe('Entraînement au Combat (LDB 23 l.205-209) — jeton d’inversion SCO
     pratiquer(banc.getState, heroId, 'entrainement-au-combat');
     const pa = banc.getState().pendingActivity!;
     expect(pa.activityId).toBe('entrainement-au-combat');
-    expect(['corps-a-corps', 'projectiles']).toContain(pa.chosenSkill?.id);
+    expect(['corps-a-corps', 'projectiles']).toContain(pa.teste.skill?.id);
     banc.getState().jetLancer('activite');
     banc.setState({ pendingActivity: { ...banc.getState().pendingActivity!, roll: 1, success: true, sl: 2 } });
     banc.getState().jetValider('activite');
     expect(banc.getState().pendingActivity).toBeNull();
     const hero = banc.getState().party[0];
-    expect(consumeReverseToken(hero, { skill: { id: pa.chosenSkill!.id } })).toBe(true);
-    expect(consumeReverseToken(hero, { skill: { id: pa.chosenSkill!.id } })).toBe(false); // épuisé, une seule utilisation
+    expect(consumeReverseToken(hero, { skill: { id: pa.teste.skill!.id } })).toBe(true);
+    expect(consumeReverseToken(hero, { skill: { id: pa.teste.skill!.id } })).toBe(false); // épuisé, une seule utilisation
   });
 });
 

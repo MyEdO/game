@@ -27,6 +27,7 @@ import { startSequence, activeSequence, sequenceCumulsDeLaManche, sequenceScoreO
 import { SEQUENCE_MAX_ROUNDS, type SequenceRound, type SequenceState, type SequenceVerdict } from './sequenceContract';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -150,7 +151,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [NAV
         const h = get().party[0];
         const step = monoStep({
           id: `b-${seq.manche}`, kind: cleDeFixture('testCriseNavale'), label: fixtureText('Boucle'), actor: h,
-          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+          difficulty: 'intermediaire', teste: TESTE_DE_TEST, montee: { base: 50, target: 50 },
           stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Boucle'), steps: [step], immediate: true } : undefined;
