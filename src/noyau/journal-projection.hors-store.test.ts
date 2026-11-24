@@ -6,7 +6,7 @@ import { createHero } from '../engine/character';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { deElide } from '../i18n';
 import { startCascade, runCascadeImmediate } from './cascade';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { FLOWS } from './rollFlowSpecs';
 import type { CascadeStep, PendingReload, PendingTest } from './pendings';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
@@ -102,7 +102,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     return h;
   }
   const step = (id: string, actorId: string): CascadeStep =>
-    ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: 55, target: 55, result: null });
+    ({ teste: TESTE_DE_TEST, id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: 55, target: 55, result: null });
 
   it('pilote IMMÉDIAT (aucune fenêtre) : l’étape MONO reçoit SA ligne de dé, dérivée', () => {
     banc.getState().ensemencerLeTirage(3);

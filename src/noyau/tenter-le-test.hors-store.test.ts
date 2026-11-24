@@ -14,7 +14,7 @@ import { ouvrirLeBanc } from './banc.testkit';
 import { runFlow } from './combatEffects';
 import { testFlow } from './monde/flow';
 import { ProjetRefuse } from './worldMap';
-import { EVT } from './bus';
+import { EVT, type TestJete } from './bus';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
@@ -33,24 +33,24 @@ const PERCEPTION = { id: 'perception' } as const;
 function avecUnePartie(party: Combatant[], cadence: Cadence, geste: (partie: Partie) => void, lancement: Partial<Parameters<Partie['lancer']>[0]> = {}): void {
   const partie = creerPartie(etatInitialDuJeu(), { graine: 11, reglesMaison: {}, cadence, desFixes: false, persisterLeHeros: () => {} });
   try {
-    testsResolus(partie, partie.lancer({ party, scene: testScene(), projet: null, ...lancement }));
+    testsJetes(partie, partie.lancer({ party, scene: testScene(), projet: null, ...lancement }));
     geste(partie);
   } finally {
     partie.fermer();
   }
 }
 
-/** Les Tests résolus par `resultat` et par chaque jeton qu'il programme, rejoués jusqu'au dernier. */
-function testsResolus(partie: Partie, resultat: ResultatDeLAppel): { actorId: string; success: boolean }[] {
-  const resolus: { actorId: string; success: boolean }[] = [];
-  const file = [resultat];
+/** Les jets montrés par `resultats` et par chaque jeton qu'ils programment, rejoués jusqu'au dernier. */
+function testsJetes(partie: Partie, ...resultats: ResultatDeLAppel[]): TestJete[] {
+  const jetes: TestJete[] = [];
+  const file = [...resultats];
   while (file.length) {
     for (const e of file.shift()!.evenements) {
-      if (e.type === 'emis' && e.evt === EVT.TEST_RESOLVED) resolus.push(e.payload);
+      if (e.type === 'emis' && e.evt === EVT.TEST_JETE) jetes.push(e.payload);
       if (e.type === 'programme') file.push(partie.reprendre(e.jeton));
     }
   }
-  return resolus;
+  return jetes;
 }
 
 /** Les lignes écrites au journal par `resultat`. */
@@ -61,17 +61,17 @@ describe('tenterLeTest : un Test de Compétence par un verbe public', () => {
     const party = groupe();
     avecUnePartie(party, cadence, (partie) => {
       const ouvert = partie.envoyer({ type: 'tenterLeTest', args: [PERCEPTION, 'intermediaire', party[1].id] });
-      const resolus = cadence === 'auto'
-        ? testsResolus(partie, ouvert)
-        : (partie.envoyer({ type: 'jetLancer', args: ['test'] }), testsResolus(partie, partie.envoyer({ type: 'jetValider', args: ['test'] })));
-      expect(resolus.map((r) => r.actorId)).toEqual([party[1].id]);
+      const jetes = cadence === 'auto'
+        ? testsJetes(partie, ouvert)
+        : testsJetes(partie, partie.envoyer({ type: 'jetLancer', args: ['test'] }), partie.envoyer({ type: 'jetValider', args: ['test'] }));
+      expect(jetes.map((j) => j.porteur)).toEqual([party[1].id]);
     });
   });
 
   it('sans héros désigné, le meilleur du groupe jette', () => {
     const party = groupe();
     avecUnePartie(party, 'auto', (partie) => {
-      expect(testsResolus(partie, partie.envoyer({ type: 'tenterLeTest', args: [PERCEPTION, 'intermediaire'] })).map((r) => r.actorId)).toEqual([party[2].id]);
+      expect(testsJetes(partie, partie.envoyer({ type: 'tenterLeTest', args: [PERCEPTION, 'intermediaire'] })).map((j) => j.porteur)).toEqual([party[2].id]);
     });
   });
 

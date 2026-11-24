@@ -35,6 +35,7 @@ import { ownsLocal, humanControlled } from './netOwnership';
 import { seatOwns } from './sieges';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -305,6 +306,6 @@ describe('#1262 lot 2 — le garde-fou du socle nommait déjà le bug que ce lot
     const H = setupCoop();
     expect(humanControlled(g(), H), 'le gate pré-lot laissait donc entrer ce porteur dans la voie inline').toBe(false);
     expect(surfaceOf(g, H.id)).toBe(true);
-    expect(() => rollSansPilote(g, H, 40, 'intermediaire', makeRNG(3))).toThrow(/jet silencieux/);
+    expect(() => rollSansPilote(g, H, TESTE_DE_TEST, 40, 'intermediaire', makeRNG(3))).toThrow(/jet silencieux/);
   });
 });

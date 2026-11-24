@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects, ctxRepris, porterOpsCtx } from './combatEffects';
 import { gainCorruption, corruptionTarget, releaseCorruptionSlot } from './corruptionFlow';
-import { draineCascade, avanceEtapeCascade } from './cascade.testkit';
+import { draineCascade, avanceEtapeCascade, TESTE_DE_TEST } from './cascade.testkit';
 import type { RevealEntry } from './pendings';
 import type { Jeu } from './etat';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
@@ -281,7 +281,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, label: 'Test important', skillValue: 40,
+        sujet: TESTE_DE_TEST, actorId: a.id, label: 'Test important', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,
@@ -299,7 +299,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, label: 'Test', skillValue: 40,
+        sujet: TESTE_DE_TEST, actorId: a.id, label: 'Test', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 12, sl: 2, success: true, isDouble: false, onSuccess: [], onFailure: [],
       } as never,
@@ -316,7 +316,7 @@ describe('Sombre Pacte (LDB 19 l.17)', () => {
     banc.setState({
       party,
       pendingTest: {
-        actorId: a.id, label: 'Test', skillValue: 40,
+        sujet: TESTE_DE_TEST, actorId: a.id, label: 'Test', skillValue: 40,
         difficulty: 'intermediaire', requireSL: 0, target: 40,
         roll: 95, sl: -6, success: false, isDouble: false, rerolled: true, onSuccess: [], onFailure: [],
       } as never,

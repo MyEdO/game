@@ -5,7 +5,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { tickCombatAuto } from './combatAuto';
 
 import type { CascadeStep } from './pendings';
@@ -34,7 +34,7 @@ describe('Cadence Rapide — auto-résolution des cascades par le driver', () =>
     return h;
   }
   const step = (id: string, actorId: string): CascadeStep =>
-    ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', target: 55, result: null});
+    ({ teste: TESTE_DE_TEST, id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', target: 55, result: null});
 
   it('manuel (défaut) : le driver ne touche PAS la cascade', () => {
     const h = hero();

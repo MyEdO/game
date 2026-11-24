@@ -21,7 +21,7 @@ import {
 import { buildSeaPlan } from './seaVoyageFlow';
 import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { fermeturesDeLaFenetre, fermeturesDuFlux } from './verbesOuverts';
 import { fenetreDuJeu, TOUT_RESOUDRE } from './combatAuto';
 import { cleDuGeste } from './modalArbiter';
@@ -60,7 +60,7 @@ describe('Cascade séquentielle influençable', () => {
     return h;
   }
   const step = (id: string, actorId: string, target = 55): CascadeStep =>
-    ({ id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: target, target, result: null});
+    ({ teste: TESTE_DE_TEST, id, kind: cleDeFixture('tally'), actorId, label: fixtureText(id), rollLabel: 'Résistance', base: target, target, result: null});
 
   it('présente une étape à la fois, applique chaque conséquence dans l’ordre, puis finalise', () => {
     banc.getState().ensemencerLeTirage(3);
@@ -98,10 +98,10 @@ describe('Cascade séquentielle influençable', () => {
     // Une étape insérée passe par un mint de la porte (`insert` n'accepte aucun littéral) : valeur
     // FOURNIE (40) à Intermédiaire (+0) — base 40, cible 40, comme le montage à la main d'avant.
     function step1Insert(actor: Combatant, id: string): BuiltCascadeStep {
-      return monoStep({ id, kind: cleDeFixture('tally'), actor, label: fixtureText(id), rollLabel: 'Résistance', difficulty: 'intermediaire', stake: combatStakeRef('combat-fatigue'), ligne: { valeur: 40, valeurEtrangere: true } })!;
+      return monoStep({ id, kind: cleDeFixture('tally'), actor, label: fixtureText(id), rollLabel: 'Résistance', difficulty: 'intermediaire', stake: combatStakeRef('combat-fatigue'), ligne: { valeur: 40, valeurEtrangere: true }, teste: TESTE_DE_TEST })!;
     }
     // Abri FORCÉ raté (dé 99) → insère 2 étapes d'Exposition.
-    const shelter: CascadeStep = { id: 'abri', kind: 'abri-de-fortune', actorId: h.id, label: fixtureText('Abri'), rollLabel: 'Survie', base: 40, target: 40, result: { roll: 99, target: 40, sl: -5, success: false }};
+    const shelter: CascadeStep = { teste: TESTE_DE_TEST, id: 'abri', kind: 'abri-de-fortune', actorId: h.id, label: fixtureText('Abri'), rollLabel: 'Survie', base: 40, target: 40, result: { roll: 99, target: 40, sl: -5, success: false }};
     startCascade(banc.getState, banc.setState, { title: 'Camp', purpose: 'test', steps: [shelter] });
     expect(banc.getState().pendingCascade!.participants).toHaveLength(1);
     banc.getState().jetValider('cascade'); // valide l'abri raté → +2 étapes
@@ -125,7 +125,7 @@ describe('Cascade séquentielle influençable', () => {
 
   it('mêmes verbes d’influence : la Chance relance une étape propre ratée', () => {
     const h = hero();
-    const failed: CascadeStep = { id: 's1', kind: cleDeFixture('tally'), actorId: h.id, label: fixtureText('s1'), rollLabel: 'Résistance', base: 30, target: 30, result: { roll: 88, target: 30, sl: -5, success: false }, rerolled: false};
+    const failed: CascadeStep = { teste: TESTE_DE_TEST, id: 's1', kind: cleDeFixture('tally'), actorId: h.id, label: fixtureText('s1'), rollLabel: 'Résistance', base: 30, target: 30, result: { roll: 88, target: 30, sl: -5, success: false }, rerolled: false};
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [failed] });
     banc.getState().jetRelancer('cascade', 's1');
     expect(banc.getState().party[0].fortune).toBe(1); // 1 Point de Chance dépensé
@@ -136,7 +136,7 @@ describe('Cascade séquentielle influençable', () => {
   });
 
   it('stepInteraction / stepReady : type d’interaction inféré des champs', () => {
-    const jet: CascadeStep = { id: 'j', kind: cleDeFixture('tally'), actorId: 'x', rollLabel: 'R', base: 30, target: 30, result: null};
+    const jet: CascadeStep = { teste: TESTE_DE_TEST, id: 'j', kind: cleDeFixture('tally'), actorId: 'x', rollLabel: 'R', base: 30, target: 30, result: null};
     const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: 'x', options: [{ key: 'a', label: fixtureText('A') }, { key: 'b', label: fixtureText('B') }]};
     const aff: CascadeStep = { id: 'd', kind: cleDeFixture('note'), actorId: 'x'};
     expect(stepInteraction(jet)).toBe('jet');
@@ -285,7 +285,7 @@ describe('Cascade séquentielle influençable', () => {
 
   it('runCascadeImmediate : étape HÔTE TENUE dont la fenêtre vit (`pendingExtendedTest`) → S’ARRÊTE PENDANTE, non validée (#1765)', () => {
     const h = hero();
-    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, drCible: 15 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', characteristic: 'force', target: 70, drCible: 15 });
     const hote = banc.getState().pendingCascade!.participants[0];
     banc.setState({ pendingCascade: null });
     const resolved = runCascadeImmediate(banc.getState, banc.setState, [hote]);
@@ -299,7 +299,7 @@ describe('Cascade séquentielle influençable', () => {
   it('runCascadeImmediate : étape HÔTE qu’AUCUN humain ne tient → parquée, ses verbes se jouent d’office sur le slot (#3892)', () => {
     banc.getState().ensemencerLeTirage(7);
     const h = hero();
-    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, drCible: 15 });
+    banc.getState().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', characteristic: 'force', target: 70, drCible: 15 });
     const hote = banc.getState().pendingCascade!.participants[0];
     banc.setState({ pendingCascade: null, party: banc.getState().party.map((c) => (c.id === h.id ? { ...c, aiControlled: true } : c)) });
     expect(runCascadeImmediate(banc.getState, banc.setState, [hote]), 'la séquence se dénoue par la clôture du jet, pas par le pilote').toBeUndefined();
@@ -314,7 +314,7 @@ describe('Cascade séquentielle influençable', () => {
     appliers.jetEtendu = spyApplier(applied, () => ({ kind: 'jetEtendu', success: true }));
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const sequence = (): CascadeStep[] => {
-      g().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', target: 70, drCible: 15 });
+      g().ouvrirLeTestEtendu({ actorId: h.id, label: 'Enfoncer la porte', skillLabel: 'Force', characteristic: 'force', target: 70, drCible: 15 });
       const hote = g().pendingCascade!.participants[0];
       s({ pendingCascade: null });
       return [hote, step('s1', h.id), { id: 'd', kind: cleDeFixture('note'), actorId: h.id }];
@@ -380,8 +380,8 @@ describe('Cascade séquentielle influençable', () => {
     banc.setState({ party: [h1, h2] });
     appliers['crew-batch'] = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ consequences: freeCons([`${step.label} → DR ${step.result?.sl}`]) }));
     const participants: BatchParticipant[] = [
-      { id: h1.id, label: 'Timonier', essential: true, interactive: true, base: 40, target: 40, result: null },
-      { id: h2.id, label: 'Vigie', essential: false, interactive: true, base: 40, target: 40, result: null },
+      { teste: TESTE_DE_TEST, id: h1.id, label: 'Timonier', essential: true, interactive: true, base: 40, target: 40, result: null },
+      { teste: TESTE_DE_TEST, id: h2.id, label: 'Vigie', essential: false, interactive: true, base: 40, target: 40, result: null },
     ];
     // Deux porteurs → possession de GROUPE (`bandStep`/`buildBatchStep`) : une bande anonyme n'entre
     // plus dans une séquence (#1262 V2 L4, `assertBandeDeclarePossession`).

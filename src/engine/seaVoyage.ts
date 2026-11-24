@@ -21,7 +21,7 @@ import { seaCargo, seaEvents, type SeaCargoData, type SeaEventsData } from '../d
 import { deDeLaTableTiree, findTableEntry, findTableEntryIndex, tableOuverte, type DeDeTable } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { d10, rollDice, tirerSigne, type RNG } from './dice';
-import { rollTest, type TestResult } from './tests';
+import { rollTest, type JetDeTest, type TestResult } from './tests';
 import type { Difficulty } from './types';
 import type { MeteoImposee } from '../data/schemas/grammaire/valeurs';
 import type { AggravationMeteo } from './ops';
@@ -289,8 +289,11 @@ export function rollMerchantSkill(cosmopolite: boolean, rng: RNG): { value: numb
  *  valeur NUE du marchand (archétype tiré par `rollMerchantSkill`, aucun modificateur) : elle se pose
  *  telle quelle en grandeur de départage à DR égal (LDB 12 l.160). */
 export function rollMerchantOpposition(merchantValue: number, rng: RNG): TestResult {
-  return { ...rollTest(merchantValue, 'intermediaire', rng), base: merchantValue };
+  return { ...rollTest(JET_DU_MARCHAND, merchantValue, 'intermediaire', rng), base: merchantValue };
 }
+
+/** Le marchand PNJ, sans fiche, teste son Marchandage. */
+const JET_DU_MARCHAND: JetDeTest = { porteur: null, teste: { skill: { id: 'marchandage' } } };
 
 /** DR de camp du Marchandage d'ACHAT (MDG 15 l.335-341). PUR — écart de camp ouvert en #1140. */
 export function buySellerDR(partial: boolean, surplus: boolean): number {

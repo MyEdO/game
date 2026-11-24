@@ -346,10 +346,16 @@ export function focusWindLabel(spell: SpellLike): string | undefined {
   return spec ? (findDomainById(spec)?.wind ?? findDomainById(spec)?.label ?? spec) : undefined;
 }
 
+/** La Focalisation que `c` teste pour CE sort ; `null` sans Compétence. LDB 46 l.130 */
+export function focalisationTestee(c: Combatant, spell: SpellLike): { id: 'focalisation'; spec?: string } | null {
+  const sk = focusSkillFor(c, spell);
+  return sk ? { id: 'focalisation', spec: sk.spec } : null;
+}
+
 /** Valeur du Test de Focalisation de `c` pour CE sort, Vents exclus ; `null` sans Compétence. LDB 46 l.130 */
 export function focusValueOf(c: Combatant, spell: SpellLike): number | null {
-  const sk = focusSkillFor(c, spell);
-  return sk ? focalisationValue(c, { id: 'focalisation', spec: sk.spec }) : null;
+  const skill = focalisationTestee(c, spell);
+  return skill ? focalisationValue(c, skill) : null;
 }
 
 /** La Focalisation de `c` a-t-elle atteint le NI de `spell`, réserve exclue. LDB 46 l.128, l.132 */
@@ -808,7 +814,7 @@ export function resolveCasting(
     };
   }
   const value = castingValue(caster, info) + extraMod;
-  const jet = rollTest(value, difficulty, rng);
+  const jet = rollTest({ porteur: caster.id, teste: { skill: info.skill } }, value, difficulty, rng);
   // Modificateurs propres du Test — SOURCE UNIQUE, partagée avec le Contre-sort (`castTestDRMods`).
   const delta = castTestDRMods(caster, 'incantation', { success: jet.success, spell, sea, wind, env });
   // Malepierre (`LDB 46 l.173`, règle INCONDITIONNELLE) : doublement du DR obtenu tant que
@@ -1024,7 +1030,7 @@ export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult
  *  avant le dé (Soutien du groupe uni, LDB 12 l.189 — cf. `soutenuBonusOf`). */
 export function resolveCounterspell(counter: Combatant, castT: TestResult, rng: RNG, env: MagicEnvironment = {}, extraMod = 0): CounterspellOutcome {
   const value = counterspellValue(counter) + extraMod;
-  const t = rollTest(value, 'intermediaire', rng);
+  const t = rollTest({ porteur: counter.id, teste: { skill: incantationArcane().skill } }, value, 'intermediaire', rng);
   return counterspellOutcomeFrom(counter, withCastTestDRMods(counter, 'dissipation', t, { env }), castT);
 }
 
@@ -1296,8 +1302,8 @@ export function resolveFocus(
    *  fourni par l'appelant (état). */
   env: MagicEnvironment = {},
 ): FocusResult {
-  const nue = focusValueOf(caster, spell);
-  if (nue == null) {
+  const skill = focalisationTestee(caster, spell);
+  if (skill == null) {
     // AFFICHAGE : Focalisation est spécialisée par VENT → montre le Vent du Domaine (id bete → « Ghur »).
     const wind = focusWindLabel(spell);
     return {
@@ -1305,8 +1311,8 @@ export function resolveFocus(
       log: wind ? t('focalisation.nonMaitriseeVent', { name: nomDe(caster), vent: wind }) : t('focalisation.nonMaitrisee', { name: nomDe(caster) }),
     };
   }
-  const value = nue + extraMod;
-  const jet = rollTest(value, difficulty, rng);
+  const value = focalisationValue(caster, skill) + extraMod;
+  const jet = rollTest({ porteur: caster.id, teste: { skill } }, value, difficulty, rng);
   const { dr, malepierreConsumed } = focusDROf(caster, spell, jet, atSea, windCtx, env);
   // Bête/Ghur en mer (MDG 02 l.180) : Critique déclenché aussi sur un résultat finissant par 0.
   const isCritical = jet.success && (jet.isDouble || (domainSeaWidensCritFumble(spell, atSea) && jet.roll % 10 === 0));

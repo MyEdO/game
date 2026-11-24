@@ -62,6 +62,7 @@ import { attaqueNaturelle } from '../engine/creatureAttacks';
 import { activeSymptoms } from '../engine/disease';
 import { difficulteDeLArg, rollTest } from '../engine/tests';
 import { rawCombatTestBase } from '../engine/skills';
+import { designeGaranti } from './ligneDeJet';
 import { combatConditionCtx, runPureFlowLines } from './combat/flowEval';
 import { cibleEnVue, isAfflictionActive, type CibleEnVue, type PsychAffliction } from '../engine/psychology';
 import { estCibleType } from '../engine/psych/ciblage';
@@ -383,7 +384,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const { difficulty } = decision;
   const skillLabel = testSkillLabel(ft) ?? 'Test';
   const rng = ctx.rng;
-  const res = rollTest(base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
+  const res = rollTest({ porteur: c.id, teste: designeGaranti(ft, skillLabel) }, base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.reussite : flow.echec;
   const lines = [traceLineOf({ who: nomDe(c), label: testTraceLabel(skillLabel, difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes

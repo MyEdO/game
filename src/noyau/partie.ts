@@ -18,11 +18,12 @@ import { appliquerLInstantane, type InstantaneApplique } from './coop';
 import { appliquerLIntentionDUnSiege, refusChezLInvite, type IssueDIntention } from './intentionsDeSiege';
 import { refuserGeste } from './refusVisible';
 import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenario';
-import { bus, EVT, type ChargesDuBus } from './bus';
+import { bus, EVT, type ChargesDuBus, type TestJete } from './bus';
 import { verbeDeJetDe, type RollVerb } from './flowVerbs';
 import type { Cadence } from '../engine/cadence';
 import { patchDeLArmement } from './monde/carrier';
 import { detientLAutoriteDuJeu } from './netOwnership';
+import { testJeteEnVue, testsJetesMasques } from './jetsEnVue';
 
 /** Une intention : l'appel d'une action du noyau, au nom du siège `siege` s'il est posé. */
 export type Intention = {
@@ -169,6 +170,23 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   /** Chaque État qu'un combattant porte et ne portait pas `avant`. */
   const etatsGagnes = (): Evenement[] =>
     [...etatsPortes()].flatMap(([porteur, etats]) => [...etats].filter((etat) => !avant.get(porteur)?.has(etat)).map((etat): Evenement => ({ type: 'etatGagne', porteur, etat })));
+  /** Les Tests jetés que le groupe ne voit pas, dans l'ordre des jets : à l'ouverture, ceux que l'état initial masque. */
+  let retenus: TestJete[] = testsJetesMasques(get());
+  /** Les événements de l'appel, chaque Test jeté tel que le groupe le voit à sa fin (`testJeteEnVue`) : les retenus
+   *  qu'il révèle d'abord, puis ceux de l'appel ; un jet masqué reste retenu. */
+  const vusParLeGroupe = (evenements: Evenement[]): Evenement[] => {
+    const etat = get();
+    const encore: TestJete[] = [];
+    const montrer = (jet: TestJete): Evenement[] => {
+      const vu = testJeteEnVue(etat, jet);
+      if (vu) return [{ type: 'emis', evt: EVT.TEST_JETE, payload: vu }];
+      encore.push(jet);
+      return [];
+    };
+    const vus = [...retenus.flatMap(montrer), ...evenements.flatMap((e) => (e.type === 'emis' && e.evt === EVT.TEST_JETE ? montrer(e.payload) : [e]))];
+    retenus = encore;
+    return vus;
+  };
   /** Un appel qui lève ne retire que les événements et les lignes venus après son entrée. */
   const appeler = (geste: string, jouer: () => IssueDeLAppel): ResultatDeLAppel => {
     brancheePour(geste);
@@ -179,7 +197,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     try {
       const issue = jouer();
       capter();
-      return { issue, evenements: [...tampon.splice(0), ...etatsGagnes()], journal: lignes.splice(0) };
+      return { issue, evenements: [...vusParLeGroupe(tampon.splice(0)), ...etatsGagnes()], journal: lignes.splice(0) };
     } catch (erreur) {
       capter();
       tampon.splice(emisAvant);
@@ -261,6 +279,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
       ouverte = false;
       proprietaire.fermer();
       tampon.length = 0;
+      retenus = [];
       lignes.length = 0;
     },
   };

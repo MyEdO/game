@@ -104,7 +104,7 @@ describe('LDB 12 l.160 — seam de CASCADE opposée : la nue de l’étape, jama
   /** Étape opposée : Compétence NUE 45, Difficulté Difficile (−20) → cible 25. L'attaquant figé porte
    *  une nue de 40 et le MÊME DR : seul le départage par la Compétence peut trancher. */
   const step = (over: Partial<CascadeTestStep> = {}): CascadeStep => ({
-    id: 's1', kind: cleDeFixture('test'), actorId: 'A', rollLabel: 'Force Mentale',
+    id: 's1', kind: cleDeFixture('test'), actorId: 'A', rollLabel: 'Force Mentale', teste: { characteristic: 'force-mentale' },
     base: 45, target: 25, difficulty: 'difficile',
     meta: { opposed: { aT: { roll: 13, target: 40, base: 40, sl: 1, success: true, isDouble: false }, attackerId: 'E', attackerName: fixtureText('E'), attackerLabel: 'Force' } },
     result: { roll: 88, target: 25, sl: -6, success: false },

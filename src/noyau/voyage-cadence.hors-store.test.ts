@@ -309,10 +309,10 @@ describe('rangées d’équipage — le libellé de ligne est DÉRIVÉ de la Com
       const cur = p.participants[p.cursor];
       if (cur?.participants?.length) {
         for (const part of cur.participants) {
-          expect(part.skill, 'la Compétence lancée est une DONNÉE (id), pas un texte').toBeTruthy();
+          expect(part.teste.skill, 'la Compétence lancée est une DONNÉE (id), pas un texte').toBeTruthy();
           expect(part.roleId, 'le rôle tenu voyage en id — provenance').toBeTruthy();
           // Le libellé RENDU vient du catalogue, spécialisation comprise.
-          const attendu = refLabel('skills', part.skill!);
+          const attendu = refLabel('skills', part.teste.skill!);
           expect(attendu.length).toBeGreaterThan(0);
           expect(CREW_ROLES.some((r) => r.label === attendu), 'jamais un libellé de RÔLE').toBe(false);
         }

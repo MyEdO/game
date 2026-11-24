@@ -1194,7 +1194,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
       const b = hero({ id: 'b', label: 'Bert', skills: [{ id: 'survie-en-exterieur', characteristic: 'intelligence', advances: 5 } as any] });
       banc.setState({ party: [a, b], pendingCascade: null, journal: [] });
       const bande = bandStep({ id: 'stage-postes', kind: 'etapePosteEnBande', label: t('step.stagePostes') }, [a, b].map((h) => ({
-        id: h.id, label: testSkillLabel({ skill: { id: 'survie-en-exterieur' } }), interactive: true, result: null, difficulty: 'intermediaire' as const,
+        id: h.id, teste: { skill: { id: 'survie-en-exterieur' } }, label: testSkillLabel({ skill: { id: 'survie-en-exterieur' } }), interactive: true, result: null, difficulty: 'intermediaire' as const,
         ...rollStep({ actor: h, test: { skill: { id: 'survie-en-exterieur' } }, difficulty: 'intermediaire' }),
       })))!;
       const peril = monoStep({ id: 'peril-survie', kind: 'perilATerreSurvie', actor: a, label: t('step.perilATerreSurvie'), difficulty: 'accessible',

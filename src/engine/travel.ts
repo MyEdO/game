@@ -219,9 +219,11 @@ export interface ForcedMarchResult {
   d: { label: string; base: number; modifier: number; target: number; roll: number; success: boolean; sl: number };
 }
 
+const RESISTANCE_DE_MARCHE = { skill: { id: 'resistance' }, characteristic: 'endurance' } as const;
+
 /** Cible du Test de marche forcée (Résistance +0, LDB 51 l.195) — base de l'étape de cascade. */
 export function forcedMarchTarget(c: Combatant): number {
-  return testValue(c, { skill: { id: 'resistance' }, characteristic: 'endurance' });
+  return testValue(c, RESISTANCE_DE_MARCHE);
 }
 
 /** Applique le RÉSULTAT d'un Test de marche forcée (séparé du jet pour différer/influencer en
@@ -240,8 +242,8 @@ export function applyForcedMarch(c: Combatant, success: boolean): { line: string
 export function forcedMarchTest(c: Combatant, rng: RNG): ForcedMarchResult | null {
   if (c.dead) return null;
   const base = forcedMarchTarget(c);
-  const tr = rollTest(base, 'intermediaire', rng);
-  const skill = refLabel('skills', { id: 'resistance' });
+  const tr = rollTest({ porteur: c.id, teste: { skill: RESISTANCE_DE_MARCHE.skill } }, base, 'intermediaire', rng);
+  const skill = refLabel('skills', RESISTANCE_DE_MARCHE.skill);
   const d = testDetail(skill, base, tr);
   const r = applyForcedMarch(c, tr.success);
   // Test résolu SANS fenêtre (jour de marche) : sa ligne se DÉRIVE (`traceLineOf`).

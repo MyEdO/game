@@ -6,6 +6,7 @@ import { makeRNG } from '../engine/dice';
 import { setCadence } from '../engine/cadence';
 import type { Combatant } from '../engine/types';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 /**
  * Porte de repli SANS-PILOTE du seam (#918 phase 2a) — l'invariant « un jet inline n'est permis QUE si
@@ -36,7 +37,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
     const e = mk({ id: 'E', label: 'Ennemi', kind: 'ennemi' });
     banc.setState({ party: [e] });
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const res = rollSansPilote(banc.getState, e, 45, 'intermediaire', rng());
+    const res = rollSansPilote(banc.getState, e, TESTE_DE_TEST, 45, 'intermediaire', rng());
     expect(res.target).toBe(45);
     expect(typeof res.success).toBe('boolean');
     expect(spy).not.toHaveBeenCalled();
@@ -50,7 +51,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
     banc.setState({ party: [e] });
     prendreLeSiegeMJ(0);
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => rollSansPilote(banc.getState, e, 45, 'intermediaire', rng()))
+    expect(() => rollSansPilote(banc.getState, e, TESTE_DE_TEST, 45, 'intermediaire', rng()))
       .toThrowError(/jet silencieux d'un acteur piloté/);
   });
 
@@ -60,13 +61,13 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
     prendreLeSiegeMJ(0);
     setCadence('auto');
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(rollSansPilote(banc.getState, e, 45, 'intermediaire', rng()).target).toBe(45);
+    expect(rollSansPilote(banc.getState, e, TESTE_DE_TEST, 45, 'intermediaire', rng()).target).toBe(45);
     expect(spy).not.toHaveBeenCalled();
   });
 
   it('SANS acteur (côté monde) → invariant vide, jet rendu', () => {
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const res = rollSansPilote(banc.getState, undefined, 30, 'intermediaire', rng());
+    const res = rollSansPilote(banc.getState, undefined, TESTE_DE_TEST, 30, 'intermediaire', rng());
     expect(res.target).toBe(30);
     expect(spy).not.toHaveBeenCalled();
   });
@@ -75,7 +76,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
     const h = mk({ id: 'H', label: 'Héros' });
     banc.setState({ party: [h] });
     vi.spyOn(console, 'error').mockImplementation(() => {});
-    expect(() => rollSansPilote(banc.getState, h, 45, 'intermediaire', rng()))
+    expect(() => rollSansPilote(banc.getState, h, TESTE_DE_TEST, 45, 'intermediaire', rng()))
       .toThrowError(/jet silencieux d'un acteur piloté/);
   });
 
@@ -84,7 +85,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
     const h = mk({ id: 'H', label: 'Héros' });
     banc.setState({ party: [h] });
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const res = rollSansPilote(banc.getState, h, 45, 'intermediaire', rng());
+    const res = rollSansPilote(banc.getState, h, TESTE_DE_TEST, 45, 'intermediaire', rng());
     expect(res.target).toBe(45);
     expect(spy).toHaveBeenCalledTimes(1);
     expect(String(spy.mock.calls[0][0])).toMatch(/jet silencieux d'un acteur piloté/);
@@ -95,7 +96,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
     banc.setState({ party: [h] });
     setCadence('auto');
     const spy = vi.spyOn(console, 'error').mockImplementation(() => {});
-    const res = rollSansPilote(banc.getState, h, 45, 'intermediaire', rng());
+    const res = rollSansPilote(banc.getState, h, TESTE_DE_TEST, 45, 'intermediaire', rng());
     expect(res.target).toBe(45);
     expect(spy).not.toHaveBeenCalled();
   });
@@ -103,7 +104,7 @@ describe('rollSansPilote — porte de repli sans-pilote (#918)', () => {
   it('modificateur et difficulté sont passés tels quels à rollTest (forme de engine/tests)', () => {
     const e = mk({ id: 'E', label: 'Ennemi', kind: 'ennemi' });
     banc.setState({ party: [e] });
-    expect(rollSansPilote(banc.getState, e, 40, 'facile', rng()).target).toBe(80); // +40
-    expect(rollSansPilote(banc.getState, e, 40, 'intermediaire', rng(), -10).target).toBe(30);
+    expect(rollSansPilote(banc.getState, e, TESTE_DE_TEST, 40, 'facile', rng()).target).toBe(80); // +40
+    expect(rollSansPilote(banc.getState, e, TESTE_DE_TEST, 40, 'intermediaire', rng(), -10).target).toBe(30);
   });
 });

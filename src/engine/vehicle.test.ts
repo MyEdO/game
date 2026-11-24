@@ -1,4 +1,5 @@
 import { idsDeTest } from './idsDeTest.testkit';
+import { JET_DE_TEST } from './tests.testkit';
 import { describe, it, expect } from 'vitest';
 import { makeRNG, type RNG } from './dice';
 import { findVehicleById } from '../data';
@@ -64,7 +65,7 @@ describe('véhicule-à-coque (Combatant à PV)', () => {
 describe('réparation terrestre d’un véhicule (EDOC 07 l.349-353)', () => {
   it('matériaux/outils/installations réunis + Test réussi → (1d10 + DR) points rendus en 1 heure', () => {
     // Métier 50, jet 31 → réussite à +2 DR ; puis 1d10 = 6 → 8 points.
-    const r = repairVehicleAttempt({ valeurMetier: 50, degatsSubis: 20, materiaux: true, outils: true, installations: true, rng: script(31, 6) });
+    const r = repairVehicleAttempt({ jet: JET_DE_TEST, valeurMetier: 50, degatsSubis: 20, materiaux: true, outils: true, installations: true, rng: script(31, 6) });
     expect(r.possible).toBe(true);
     expect(r.test?.sl).toBe(2);
     expect(r.restaure).toBe(8);
@@ -73,13 +74,13 @@ describe('réparation terrestre d’un véhicule (EDOC 07 l.349-353)', () => {
   });
 
   it('la restauration est bornée par les Dégâts réellement subis', () => {
-    const r = repairVehicleAttempt({ valeurMetier: 50, degatsSubis: 3, materiaux: true, outils: true, installations: true, rng: script(31, 6) });
+    const r = repairVehicleAttempt({ jet: JET_DE_TEST, valeurMetier: 50, degatsSubis: 3, materiaux: true, outils: true, installations: true, rng: script(31, 6) });
     expect(r.restaure).toBe(3);
     expect(r.degatsRestants).toBe(0);
   });
 
   it('Test raté : l’heure est consommée (MAISON — l.353 attache l’heure à « chaque réparation »), aucun point rendu', () => {
-    const r = repairVehicleAttempt({ valeurMetier: 50, degatsSubis: 20, materiaux: true, outils: true, installations: true, rng: script(71) });
+    const r = repairVehicleAttempt({ jet: JET_DE_TEST, valeurMetier: 50, degatsSubis: 20, materiaux: true, outils: true, installations: true, rng: script(71) });
     expect(r.test?.success).toBe(false);
     expect(r.restaure).toBe(0);
     expect(r.heures).toBe(1);
@@ -88,7 +89,7 @@ describe('réparation terrestre d’un véhicule (EDOC 07 l.349-353)', () => {
 
   it('une seule des trois conditions matérielles manquante → aucun jet, aucune heure', () => {
     for (const manque of ['materiaux', 'outils', 'installations'] as const) {
-      const p = { valeurMetier: 50, degatsSubis: 20, materiaux: true, outils: true, installations: true, rng: script() };
+      const p = { jet: JET_DE_TEST, valeurMetier: 50, degatsSubis: 20, materiaux: true, outils: true, installations: true, rng: script() };
       const r = repairVehicleAttempt({ ...p, [manque]: false });
       expect(r.possible, manque).toBe(false);
       expect(r.test, manque).toBeUndefined();
@@ -101,7 +102,7 @@ describe('réparation terrestre d’un véhicule (EDOC 07 l.349-353)', () => {
 describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
   it('pénalité cumulative par kilomètre DÉJÀ couru, lue à sa fiche ; réussite → aucune bête éprouvée', () => {
     const parKm = modDeRegle('allure-forcee-attelage', 'par-km');
-    const r = forcedPaceCheck({ valeurConduite: 45, kmDejaCourus: 2, animaux: [{ valeurResistance: 40 }], rng: script(20) });
+    const r = forcedPaceCheck({ jetConduite: JET_DE_TEST, valeurConduite: 45, kmDejaCourus: 2, animaux: [{ valeurResistance: 40 }], rng: script(20) });
     expect(r.ligne?.value).toBe(2 * parKm);
     expect(r.conduite.target).toBe(45 + 2 * parKm);
     expect(r.retourAuPas).toBe(false);
@@ -111,6 +112,7 @@ describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
   it('échec du conducteur : retour au pas + un Test de Résistance PAR animal', () => {
     // Conduite 45 (jet 60 → échec), puis Résistance 40 : jet 20 (réussi) et jet 45 (raté).
     const r = forcedPaceCheck({
+      jetConduite: JET_DE_TEST,
       valeurConduite: 45,
       animaux: [{ valeurResistance: 40 }, { valeurResistance: 40 }],
       rng: script(60, 20, 45),
@@ -125,7 +127,7 @@ describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
 
   it('Échec Impressionnant au Test de Résistance → un État Exténué SUPPLÉMENTAIRE', () => {
     // Résistance 40, jet 85 → −4 DR.
-    const r = forcedPaceCheck({ valeurConduite: 45, animaux: [{ valeurResistance: 40 }], rng: script(60, 85) });
+    const r = forcedPaceCheck({ jetConduite: JET_DE_TEST, valeurConduite: 45, animaux: [{ valeurResistance: 40 }], rng: script(60, 85) });
     expect(r.animaux[0].resistance.sl).toBe(-4);
     expect(r.animaux[0].etats).toEqual(['extenue', 'extenue']);
     expect(r.animaux[0].blessures).toBe(0);
@@ -135,13 +137,13 @@ describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
     expect(ligneAllureForcee(0)).toBeNull();
     expect(ligneAllureForcee(3)).toMatchObject({ ref: refDeRegle('allure-forcee-attelage'), value: 3 * modDeRegle('allure-forcee-attelage', 'par-km') });
     // Le composeur ne recalcule rien : il délègue au même résolveur.
-    expect(forcedPaceCheck({ valeurConduite: 45, kmDejaCourus: 3, animaux: [], rng: script(20) }).ligne).toEqual(ligneAllureForcee(3));
+    expect(forcedPaceCheck({ jetConduite: JET_DE_TEST, valeurConduite: 45, kmDejaCourus: 3, animaux: [], rng: script(20) }).ligne).toEqual(ligneAllureForcee(3));
   });
 
   it('le jet de bête est EXTRACTIBLE (forcedPaceBeastCheck) et rend le MÊME résultat que le composeur', () => {
     // Résistance 40, jet 85 (−4 DR) : Échec Impressionnant → Exténué + Exténué supplémentaire (l.253).
     const seul = forcedPaceBeastCheck({ valeurResistance: 40 }, script(85));
-    const parLeComposeur = forcedPaceCheck({ valeurConduite: 45, animaux: [{ valeurResistance: 40 }], rng: script(60, 85) });
+    const parLeComposeur = forcedPaceCheck({ jetConduite: JET_DE_TEST, valeurConduite: 45, animaux: [{ valeurResistance: 40 }], rng: script(60, 85) });
     expect(seul.etats).toEqual(['extenue', 'extenue']);
     expect(parLeComposeur.animaux[0].etats).toEqual(seul.etats);
     expect(parLeComposeur.animaux[0].resistance.roll).toBe(seul.resistance.roll);
@@ -149,11 +151,11 @@ describe('course forcée d’un attelage (EDOC 07 l.229, l.253)', () => {
 
   it('Échec Stupéfiant → 1d10 Blessures réduites du Bonus d’Endurance, minimum 1', () => {
     // Résistance 40, jet 100 → −6 DR ; 1d10 = 8, BE 3 → 5 Blessures.
-    const r = forcedPaceCheck({ valeurConduite: 45, animaux: [{ valeurResistance: 40, be: 3 }], rng: script(60, 100, 8) });
+    const r = forcedPaceCheck({ jetConduite: JET_DE_TEST, valeurConduite: 45, animaux: [{ valeurResistance: 40, be: 3 }], rng: script(60, 100, 8) });
     expect(r.animaux[0].resistance.sl).toBe(-6);
     expect(r.animaux[0].blessures).toBe(5);
     // 1d10 = 2, BE 9 → plancher à 1.
-    const plancher = forcedPaceCheck({ valeurConduite: 45, animaux: [{ valeurResistance: 40, be: 9 }], rng: script(60, 100, 2) });
+    const plancher = forcedPaceCheck({ jetConduite: JET_DE_TEST, valeurConduite: 45, animaux: [{ valeurResistance: 40, be: 9 }], rng: script(60, 100, 2) });
     expect(plancher.animaux[0].blessures).toBe(1);
   });
 });

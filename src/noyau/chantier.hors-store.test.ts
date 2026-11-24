@@ -467,7 +467,7 @@ describe('#4239 — le groupe répare lui-même la coque au chantier (MDG 13 l.6
     const { getState: get } = bancDe([reparateur(metiers, 10)]);
     expect(refus(get)).toBeNull();
     get().reparerParLeGroupe();
-    expect(etape(get).skill?.spec).toBe(spec);
+    expect(etape(get).teste?.skill?.spec).toBe(spec);
     expect(puces(get).map((m) => m.value), 'MDG 13 l.641 : –10 sur tous les jets').toEqual(spec === CHARPENTIER ? [REPARATION.charpentierMalus] : []);
   });
 

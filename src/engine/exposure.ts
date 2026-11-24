@@ -26,7 +26,7 @@
  */
 import { CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, type Combatant, type CharKey, type Difficulty, type ItemInstance } from './types';
 import type { RNG } from './dice';
-import { rollTest } from './tests';
+import { rollTest, type JetDeTest } from './tests';
 import { addCondition, hasCondition, loseWounds } from './conditions';
 import { applyActiveEffect } from './ops';
 import { hasCapability, itemCapability } from './capabilities';
@@ -212,8 +212,9 @@ export function exposureNight(
   let wounds = 0;
   const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
   const skin = kind === 'froid' ? sealskinDR(c) : 0;
+  const jet: JetDeTest = { porteur: c.id, teste: { skill: { id: 'resistance' } } }; // LDB 18 l.326-334
   for (let i = 0; i < count; i++) {
-    const res = rollTest(target, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
+    const res = rollTest(jet, target, opts.difficulty ?? DIFFICULTE_PAR_DEFAUT, rng);
     // Peau de phoque : « +1 DR … pour supporter l'exposition au froid » (MDG 14 l.277) — sur un Test
     // binaire, l'échec dont le DR remonte à ≥ +1 est TENU (lecture déclarée, cf. en-tête).
     const held = !res.success && skin > 0 && res.sl + skin >= 1;

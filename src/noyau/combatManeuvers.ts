@@ -28,11 +28,13 @@ import {
   DEFENSE_LABEL,
   baseTestModLines,
   weaponSkillId,
+  attackTestOf,
+  defenseTestOf,
 } from '../engine/combat';
 import { isInanimate } from '../engine/structures';
 import { rollTest, resolveOpposed, hydrateTR, estJete, evaluateTest, type TestResult } from '../engine/tests';
 import { effectiveChar, bonus, bonusDe } from '../engine/characteristics';
-import { testValue, skillBaseValue } from '../engine/skills';
+import { testValue, skillBaseValue, type TestDesigne } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
 import { isFrenzied } from '../engine/psychology';
@@ -50,7 +52,7 @@ import { attackKindSchema } from '../data/schemas/grammaire/valeurs';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
 import { startCascade } from './cascade';
 import { freeCons } from './rollSeam';
-import { rollLine, type RollLineParts } from './ligneDeJet';
+import { designeGaranti, rollLine, type RollLineParts } from './ligneDeJet';
 import { defenseSurfaced } from './netOwnership';
 import { inBattleId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
@@ -348,7 +350,8 @@ export function selectedAttackOption(scene: Scene | null, active: Combatant, bat
  *  → `stat` absent : `rollManeuverAttacker` n'est jamais appelé pour lui. */
 export function rollManeuverAttacker(attacker: Combatant, stat: 'capacite-de-combat' | 'capacite-de-tir', rng: RNG, difficulty: Difficulty = DIFFICULTE_PAR_DEFAUT): TestResult {
   const kind = stat === 'capacite-de-combat' ? 'melee' : 'distance';
-  return { ...rollTest(combatValue(attacker, kind), difficulty, rng), base: combatBaseValue(attacker, kind) }; // LDB 12 l.160
+  const jet = { porteur: attacker.id, teste: attackTestOf(attacker, undefined, kind) };
+  return { ...rollTest(jet, combatValue(attacker, kind), difficulty, rng), base: combatBaseValue(attacker, kind) }; // LDB 12 l.160
 }
 
 /** Ligne du jet d'attaquant d'une manœuvre (`rollLine`, canal de combat, même valeur que
@@ -381,12 +384,13 @@ function measureMeters(spec: ManeuverMeasure | undefined, ref: Combatant): numbe
  *  'auto' = meilleure réaction ; 'esquive'/'parade' = explicite. */
 function defenderRoll(tgt: Combatant, defense: ManeuverDef['defense']): TestResult | null {
   if (!defense || defense === 'resist') return null;
+  const jet = { porteur: tgt.id, teste: maneuverDefenseTest(tgt, defense) };
   if (defense === 'init') { // Regard, opposé à l'Initiative (LDB 85)
     const init = effectiveChar(tgt, 'initiative');
-    return { ...rollTest(init, 'intermediaire', battleRng()), base: init };
+    return { ...rollTest(jet, init, 'intermediaire', battleRng()), base: init };
   }
   const mode = defense === 'auto' ? bestDefenseMode(tgt) : defense;
-  return { ...rollTest(defenseValue(tgt, mode), 'intermediaire', battleRng()), base: defenseBaseValue(tgt, mode) }; // LDB 12 l.160
+  return { ...rollTest(jet, defenseValue(tgt, mode), 'intermediaire', battleRng()), base: defenseBaseValue(tgt, mode) }; // LDB 12 l.160
 }
 
 /** Émet la ZONE (empreinte centre ± rayon, clippée à la scène) que `de` pose, au rendu `rendu` de sa manœuvre — montre
@@ -574,6 +578,12 @@ function maneuverDefenseValue(tgt: Combatant, defense: NonNullable<ManeuverDef['
   const mode = defense === 'auto' ? bestDefenseMode(tgt) : (defense === 'resist' ? 'esquive' : defense);
   return defenseValue(tgt, mode);
 }
+/** Ce que teste la réaction opposée à une manœuvre pour `tgt` (mirroir de `maneuverDefenseValue`). */
+function maneuverDefenseTest(tgt: Combatant, defense: NonNullable<ManeuverDef['defense']>): TestDesigne {
+  if (defense === 'init') return { characteristic: 'initiative' };
+  const mode = defense === 'auto' ? bestDefenseMode(tgt) : (defense === 'resist' ? 'esquive' : defense);
+  return designeGaranti(defenseTestOf(tgt, mode), tgt.id);
+}
 /** Libellé du cadre de jet de la réaction (« Initiative » / « Esquive » / « Parade ») — dépend de `tgt` pour `auto`. */
 function maneuverDefenseLabel(tgt: Combatant, defense: NonNullable<ManeuverDef['defense']>): string {
   if (defense === 'init') return CHAR_LABELS.initiative;
@@ -595,6 +605,7 @@ function openManeuverDefenseCascade(
       kind: 'defenseDeManoeuvre',
       actorId: h.id,
       rollLabel: maneuverDefenseLabel(h, def.defense!),
+      teste: maneuverDefenseTest(h, def.defense!),
       base,
       target: base, // Test opposé Intermédiaire (+0) → cible = valeur nue ; l'issue vient de resolveOpposed(aT)
       label: attackerLabel,
@@ -671,28 +682,32 @@ export function resolveDistraire(attacker: Combatant, foe: Combatant, atk: TestR
   return t('manv.distraire', { name: nomDe(attacker), foe: nomDe(foe) });
 }
 
+/** Ce que teste chaque camp du Test opposé du Distraire : Athlétisme du meneur, Calme du distrait. LDB 10 l.364 */
+export const ATHLETISME_DU_DISTRAIRE: TestDesigne = { skill: { id: 'athletisme' } };
+export const CALME_DISTRAIT: TestDesigne = { skill: { id: 'calme' } };
+
 /** Valeurs du Test opposé d'Athlétisme/Calme du Distraire (LDB 10 l.364) — SOURCE des jets de
  *  `resolveDistraire`. Pur. */
 export function distraireAttackValue(c: Combatant): number {
-  return testValue(c, { skill: { id: 'athletisme' } });
+  return testValue(c, ATHLETISME_DU_DISTRAIRE);
 }
 export function distraireDefenseValue(c: Combatant): number {
-  return testValue(c, { skill: { id: 'calme' } });
+  return testValue(c, CALME_DISTRAIT);
 }
 /** Niveaux de Compétence NUS du départage du Distraire — LDB 12 l.160, LDB 09 l.17. Pur. */
 export function distraireAttackBase(c: Combatant): number {
-  return skillBaseValue(c, { skill: { id: 'athletisme' } });
+  return skillBaseValue(c, ATHLETISME_DU_DISTRAIRE);
 }
 export function distraireDefenseBase(c: Combatant): number {
-  return skillBaseValue(c, { skill: { id: 'calme' } });
+  return skillBaseValue(c, CALME_DISTRAIT);
 }
 
 /** Lignes du Test opposé de Distraire (`rollLine`, mêmes valeurs que le jet) — LDB 10 l.364. */
 export function ligneDeDistraire(mover: Combatant): RollLineParts {
-  return rollLine({ actor: mover, test: { skill: { id: 'athletisme' } }, valeur: distraireAttackValue(mover), difficulty: 'intermediaire' });
+  return rollLine({ actor: mover, test: ATHLETISME_DU_DISTRAIRE, valeur: distraireAttackValue(mover), difficulty: 'intermediaire' });
 }
 export function ligneDuCalmeDistrait(foe: Combatant): RollLineParts {
-  return rollLine({ actor: foe, test: { skill: { id: 'calme' } }, valeur: distraireDefenseValue(foe), difficulty: 'intermediaire' });
+  return rollLine({ actor: foe, test: CALME_DISTRAIT, valeur: distraireDefenseValue(foe), difficulty: 'intermediaire' });
 }
 
 /** Ligne du Corps à corps « brut » (`rollLine`, mêmes valeur et modificateurs que `rollDisengageAttack`)
@@ -742,7 +757,7 @@ export function startBattement(_get: Get, set: SetFn, attacker: Combatant, foe: 
  *  Athlétisme vs Calme. Le jet de Calme du foe est tiré et FIGÉ d'avance (pattern Désengagement/
  *  Au Contact) ; seul l'Athlétisme du mover se (re)joue dans la modale. */
 export function startDistraire(_get: Get, set: SetFn, mover: Combatant, foe: Combatant): void {
-  const defRoll = { ...rollTest(distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) }; // Calme du foe, figé (jamais relancé)
+  const defRoll = { ...rollTest({ porteur: foe.id, teste: CALME_DISTRAIT }, distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) }; // Calme du foe, figé (jamais relancé)
   set({ pendingDistraire: { moverId: mover.id, foeId: foe.id, atk: null, defRoll, result: null } });
 }
 

@@ -691,6 +691,9 @@ function appliquerLesOpsReprises(get: Get, set: SetFn, cible: Combatant, ops: Ga
 }
 
 /** IDENTITÉ de la grappe de dés d'une étape : celle qu'elle DÉCLARE, sinon la SIENNE (elle l'ouvre). */
+/** Le Test d'Exposition (Résistance). LDB 18 l.327-334 */
+const SUJET_RESISTANCE = { skill: { id: 'resistance' }, characteristic: 'endurance' } as const;
+
 const groupeDe = (s: CascadeStep): string => (typeof s.meta?.opsDeGroupe === 'string' ? s.meta.opsDeGroupe : s.id);
 
 /** PORTE l'`OpsCtx` d'une feuille jusqu'à sa reprise (`OpsCtxPorte`) — pendant d'écriture de `ctxRepris`.
@@ -2069,7 +2072,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const lines: string[] = [];
       for (const c of heroes) {
         if (isWeatherWarded(c)) { lines.push(t('eff.meteoConjuree', { name: nomDe(c), what: t(kind === 'froid' ? 'eff.protectionDuFroid' : 'eff.protectionDeLaChaleur') })); continue; }
-        const resVal = testValue(c, { skill: { id: 'resistance' }, characteristic: 'endurance' });
+        const resVal = testValue(c, SUJET_RESISTANCE);
         const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
         // et ressort en chip nommée) — une autre arithmétique que celle du monteur, à ne pas refaire.
@@ -2077,7 +2080,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           id: `expo-${c.id}`, kind: 'exposition-nocturne', actor: c, icon: 'repos/froid',
           rollLabel: 'Résistance', label: stepPrecision(t('step.exposition'), t(kind === 'froid' ? 'step.froid' : 'step.chaleur')),
           difficulty: 'intermediaire',
-          montee: { base: resVal, ...(kind === 'froid' ? exposureCoatMods(c) : {}), target },
+          montee: { base: resVal, ...(kind === 'froid' ? exposureCoatMods(c) : {}), target }, teste: { skill: structuredClone(SUJET_RESISTANCE.skill) }, // #2097
           meta: { kind }, stake: nightStakeRef('exposition-nocturne'),
         });
         pousseSi(steps, st);

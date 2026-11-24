@@ -27,7 +27,7 @@ import type { Possession } from './possession';
 import { possessionLabel, possessionRideable, profilDeLaBete } from './possession';
 import { accepteUnCavalier } from './traits/dispatch';
 import { rollDice, type RNG } from './dice';
-import { rollTest, testDetail } from './tests';
+import { rollTest, testDetail, type JetDeTest } from './tests';
 import { testValue } from './skills';
 import { rollMountIncident, mountIncidentEffects, mountIncidentDie, type TravelTableEntry } from './travelTables';
 import { t, type MsgKey } from '../i18n';
@@ -190,7 +190,7 @@ export function resolveMountIncident(entry: TravelTableEntry, mount: PartyMount,
     const carried = mountIncidentEffects(mount.possession.mountInjury)?.ridingPenalty ?? 0;
     const { skill, characteristic, difficulty = DIFFICULTE_PAR_DEFAUT } = eff.riderTest.test;
     const base = Math.max(0, testValue(mount.hero, { skill, characteristic }) + carried);
-    const tst = rollTest(base, difficulty, rng);
+    const tst = rollTest({ porteur: mount.hero.id, teste: { skill } }, base, difficulty, rng);
     out.riderTest = testDetail(testSkillLabel({ skill, characteristic }) ?? 'Test', base, tst);
     if (!tst.success) {
       out.riderFallM = eff.riderTest.fallM;
@@ -235,6 +235,10 @@ export interface MountDayOutcome {
   lines: string[];
 }
 
+const RESISTANCE = { id: 'resistance' } as const;
+/** Le jet de Résistance d'une monture : une bête de la Possession, sans fiche de combattant. EDOC 07 l.146 */
+const RESISTANCE_DE_LA_BETE: JetDeTest = { porteur: null, teste: { skill: RESISTANCE } };
+
 /**
  * Résout la fatigue d'UNE journée en selle (EDOC 07 l.142-146) pour chaque monture : par heure au-delà
  * de l'endurance de l'allure, +1 Exténué + Test de Résistance Intermédiaire (+0), avec le malus d'États
@@ -257,8 +261,8 @@ export function resolveMountedDay(mounts: PartyMount[], hours: number, allure: A
     for (let h = 0; h < Math.ceil(overHours - 1e-9); h++) {
       o.extenue += 1; // « il gagne un État Exténué » (l.146)
       const base = Math.max(0, p.e - 10 * o.extenue); // -10 par État Exténué (LDB 16)
-      const tst = rollTest(base, 'intermediaire', rng);
-      o.tests.push(testDetail(t('mt.testOf', { skill: refLabel('skills', { id: 'resistance' }), mount: possessionLabel(mount.possession) }), base, tst));
+      const tst = rollTest(RESISTANCE_DE_LA_BETE, base, 'intermediaire', rng);
+      o.tests.push(testDetail(t('mt.testOf', { skill: refLabel('skills', RESISTANCE), mount: possessionLabel(mount.possession) }), base, tst));
       if (!tst.success) {
         o.extenue += 1; // « l'animal prend un nouvel État Exténué » (l.146)
         const inc = resolveMountIncident(rollMountIncident(rollDice(mountIncidentDie(), rng)), mount, rng);
@@ -269,8 +273,8 @@ export function resolveMountedDay(mounts: PartyMount[], hours: number, allure: A
       }
       if (o.extenue > be) {
         o.collapsed = true; // Sonné + À Terre (l.146)
-        const t2 = rollTest(p.e, 'intermediaire', rng); // « sans aucun modificateur »
-        o.tests.push(testDetail(t('mt.testCollapseOf', { skill: refLabel('skills', { id: 'resistance' }), mount: possessionLabel(mount.possession) }), p.e, t2));
+        const t2 = rollTest(RESISTANCE_DE_LA_BETE, p.e, 'intermediaire', rng); // « sans aucun modificateur »
+        o.tests.push(testDetail(t('mt.testCollapseOf', { skill: refLabel('skills', RESISTANCE), mount: possessionLabel(mount.possession) }), p.e, t2));
         o.dead = !t2.success;
         o.lines.push(o.dead
           ? t('mt.collapseDead', { mount: possessionLabel(mount.possession) })

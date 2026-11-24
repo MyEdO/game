@@ -30,6 +30,7 @@ import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
 import { reposDeScene } from './monde/scene';
 import { partyAssisted } from '../engine/skills';
+import { designeGaranti } from './ligneDeJet';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
 import { addCondition, loseWounds } from '../engine/conditions';
 import { restRecovery, applyRecoveryDay, needsRecoveryRoll, applyDiseaseEnd, constatSansRecuperation, type RestRoll } from '../engine/rest';
@@ -390,6 +391,7 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
       // Ligne montée par le wrapper d'entretien (`upkeep.ts`, `rollStep`) AU MOMENT du Test dû : la
       // remonter ici la calculerait sur un héros que l'entretien a changé entre-temps.
       montee: { base: t.base, ...(t.mods?.length ? { mods: t.mods } : {}), target: t.target, ...(t.clamped ? { clamped: t.clamped } : {}) },
+      teste: designeGaranti(t.test ?? {}, t.kind),
       // Le JOUR rejoint le `meta` : il entre dans la CLÉ de bande (`nightBands`) — trois jours
       // franchis font trois bandes de Dessoûlage, pas trois rangées de même id dans une seule.
       meta: { ...t.meta, day: t.day } as CascadeStepMeta });

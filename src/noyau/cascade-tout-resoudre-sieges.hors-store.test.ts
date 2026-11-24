@@ -21,6 +21,7 @@ import type { Combatant } from '../engine/types';
 import type { BatchParticipant, CascadeStep } from './pendings';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from './noyau.testkit';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -49,7 +50,7 @@ function installerLaTable(net: Record<string, unknown> = { mode: 'hote', mySeat:
 
 function table(net?: Record<string, unknown>) {
   installerLaTable(net);
-  const row = (id: string): BatchParticipant => ({ id, interactive: true, base: 50, target: 50, result: null });
+  const row = (id: string): BatchParticipant => ({ teste: TESTE_DE_TEST, id, interactive: true, base: 50, target: 50, result: null });
   const bande: CascadeStep = { id: 'bande', kind: cleDeFixture('bande-partagee'), label: fixtureText('Bande'), aggregate: 'none', participants: [row('h1'), row('h2')], result: null, groupOwner: true };
   startCascade(banc.getState, banc.setState, { title: 'Bande', purpose: 'test', steps: [bande] });
 }
