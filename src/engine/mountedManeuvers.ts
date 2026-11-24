@@ -16,7 +16,11 @@ import { COND } from './conditions';
 import { type RNG } from './dice';
 import { extendedTestStep, rollTest, opposedTest, type OpposedResult, type TestResult } from './tests';
 import type { Difficulty } from './types';
+import type { TestDesigne } from './skills';
 import type { Allure } from './mountTravel';
+
+const ATHLETISME: TestDesigne = { skill: { id: 'athletisme' } };
+const CHEVAUCHER: TestDesigne = { skill: { id: 'chevaucher' } };
 
 /** Hauteur de chute de selle du chapitre, en mètres — EDOC 07 l.167, l.174, l.178, l.328. */
 export const CHUTE_SELLE_M = 2;
@@ -28,6 +32,8 @@ export function boardingDifficulty(depuisArret = false): Difficulty {
 }
 
 export interface BoardingParams {
+  /** `id` du sauteur, `null` sans fiche. */
+  porteur: string | null;
   /** Valeur TESTÉE d'Athlétisme du sauteur (résolue par l'appelant, `skills.testValue`). */
   valeurAthletisme: number;
   /** Le saut part d'une position immobile (EDOC 07 l.330). */
@@ -46,7 +52,7 @@ export interface BoardingResult {
 
 /** Sauter sur un VÉHICULE en mouvement — EDOC 07 l.328. Échec : la cible est manquée, chute de 2 m. */
 export function boardMovingVehicle(p: BoardingParams): BoardingResult {
-  const athletisme = rollTest(p.valeurAthletisme, boardingDifficulty(p.depuisArret), p.rng);
+  const athletisme = rollTest({ porteur: p.porteur, teste: ATHLETISME }, p.valeurAthletisme, boardingDifficulty(p.depuisArret), p.rng);
   return athletisme.success ? { athletisme, aBord: true } : { athletisme, aBord: false, chuteM: CHUTE_SELLE_M };
 }
 
@@ -56,7 +62,7 @@ export interface BoardMountParams extends BoardingParams {
   /** Valeur TESTÉE de Chevaucher du sauteur (Trait Nerveux et/ou dispute de selle). */
   valeurChevaucher?: number;
   /** Cavalier DÉJÀ en selle, s'il y en a un (EDOC 07 l.328). */
-  cavalier?: { valeurChevaucher: number };
+  cavalier?: { porteur: string | null; valeurChevaucher: number };
 }
 
 export interface BoardMountResult extends BoardingResult {
@@ -90,11 +96,12 @@ export interface BoardMountResult extends BoardingResult {
  */
 export function boardMovingMount(p: BoardMountParams): BoardMountResult {
   const rng = p.rng;
-  const athletisme = rollTest(p.valeurAthletisme, boardingDifficulty(p.depuisArret), rng);
+  const athletisme = rollTest({ porteur: p.porteur, teste: ATHLETISME }, p.valeurAthletisme, boardingDifficulty(p.depuisArret), rng);
   if (!athletisme.success) return { athletisme, aBord: false, chuteM: CHUTE_SELLE_M };
 
   if (p.cavalier) {
     const disputeSelle = opposedTest(
+      { attacker: { porteur: p.porteur, teste: CHEVAUCHER }, defender: { porteur: p.cavalier.porteur, teste: CHEVAUCHER } },
       p.valeurChevaucher ?? 0,
       p.cavalier.valeurChevaucher,
       rng,
@@ -114,7 +121,7 @@ export function boardMovingMount(p: BoardMountParams): BoardMountResult {
   }
 
   if (p.montureNerveuse) {
-    const controleMonture = rollTest(p.valeurChevaucher ?? 0, 'intermediaire', rng);
+    const controleMonture = rollTest({ porteur: p.porteur, teste: CHEVAUCHER }, p.valeurChevaucher ?? 0, 'intermediaire', rng);
     return controleMonture.success
       ? { athletisme, controleMonture, aBord: true }
       : { athletisme, controleMonture, aBord: false, chuteM: CHUTE_SELLE_M };
@@ -150,13 +157,15 @@ export interface DraggedByStirrupResult {
  * `mouvementMonture` = la Caractéristique de Mouvement de la bête, prise en Dégâts au trot/galop.
  */
 export function resolveDraggedByStirrup(p: {
+  /** `id` du cavalier, `null` sans fiche. */
+  porteur: string | null;
   /** Valeur TESTÉE d'Esquive du cavalier. */
   valeurEsquive: number;
   allure: DragAllure;
   mouvementMonture: number;
   rng: RNG;
 }): DraggedByStirrupResult {
-  const esquive = rollTest(p.valeurEsquive, 'intermediaire', p.rng);
+  const esquive = rollTest({ porteur: p.porteur, teste: { skill: { id: 'esquive' } } }, p.valeurEsquive, 'intermediaire', p.rng);
   if (esquive.success) {
     return { esquive, piedPris: false, etats: [], degatsParRound: 0, liberationOuverte: false };
   }
@@ -175,11 +184,12 @@ export function resolveDraggedByStirrup(p: {
  * Le cumul passe par la primitive partagée `extendedTestStep` (source unique de l'arithmétique).
  */
 export function freeFootFromStirrupStep(
+  porteur: string | null,
   prevDR: number,
   valeurAthletisme: number,
   rng: RNG,
 ): { test: TestResult; total: number; done: boolean } {
-  const test = rollTest(valeurAthletisme, 'intermediaire', rng);
+  const test = rollTest({ porteur, teste: ATHLETISME }, valeurAthletisme, 'intermediaire', rng);
   return { test, ...extendedTestStep(prevDR, test, STIRRUP_FREE_DR) };
 }
 
@@ -188,11 +198,12 @@ export function freeFootFromStirrupStep(
  * possible seulement avec une arme tranchante à portée de main. Sans arme : aucun jet.
  */
 export function cutStirrupStrap(
+  porteur: string | null,
   valeurCC: number,
   armeTranchanteEnMain: boolean,
   rng: RNG,
 ): { test?: TestResult; tranche: boolean } {
   if (!armeTranchanteEnMain) return { tranche: false };
-  const test = rollTest(valeurCC, 'tresDifficile', rng);
+  const test = rollTest({ porteur, teste: { characteristic: 'capacite-de-combat' } }, valeurCC, 'tresDifficile', rng);
   return { test, tranche: test.success };
 }

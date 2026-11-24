@@ -13,6 +13,7 @@
  *  3. les producteurs de combat posent la leur à l'accesseur canon (`combatBaseValue`/`defenseBaseValue`).
  */
 import { describe, it, expect } from 'vitest';
+import { JET_DE_TEST } from './tests.testkit';
 import { rollTest, resolveOpposed, opposedReasons, type TestResult } from './tests';
 import { makeRNG } from './dice';
 import {
@@ -63,7 +64,7 @@ const tr = (target: number, sl: number, base?: number): TestResult =>
 
 describe('#1153 L6 — `rollTest` ne pose aucune valeur nue', () => {
   it('la valeur TESTÉE ne se fait plus passer pour la nue du départage', () => {
-    const t = rollTest(50, 'intermediaire', makeRNG(7));
+    const t = rollTest(JET_DE_TEST, 50, 'intermediaire', makeRNG(7));
     expect(t.target).toBe(50);
     expect(t.base).toBeUndefined();
   });
@@ -84,8 +85,8 @@ describe('#1153 L6 — une opposition sans nue explicite retombe sur les DEUX ci
     // A déclare sa nue (20) et teste Difficile (75 − 20 = cible 55) ; B ne déclare rien (cible 40).
     // Repli tout-ou-rien → [55, 40] : A l'emporte. Si `rollTest` reposait `base = value`, B opposerait
     // 40 à la nue 20 de A et RENVERSERAIT le verdict sur deux grandeurs différentes.
-    const a = { ...rollTest(75, 'difficile', makeRNG(11)), base: 20, success: true, sl: 2 };
-    const b = { ...rollTest(40, 'intermediaire', makeRNG(12)), success: true, sl: 2 };
+    const a = { ...rollTest(JET_DE_TEST, 75, 'difficile', makeRNG(11)), base: 20, success: true, sl: 2 };
+    const b = { ...rollTest(JET_DE_TEST, 40, 'intermediaire', makeRNG(12)), success: true, sl: 2 };
     expect([a.target, b.target]).toEqual([55, 40]);
     const opp = resolveOpposed(a, b);
     expect(opp.winner).toBe('attaquant');

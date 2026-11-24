@@ -32,7 +32,7 @@ import type { GenreDeCascade } from './tablesPosees';
 import { openCastCascade, activeCombatant, commitPlacedZone, startDisengage, openAttackCascade, advanceTurn } from './combatFlow';
 import { emptyScene } from './monde/scene';
 import { bus, EVT } from './bus';
-import { avanceEtapeCascade } from './cascade.testkit';
+import { avanceEtapeCascade, TESTE_DE_TEST } from './cascade.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -207,7 +207,7 @@ describe('#1479 — PARITÉ DE TRACE : le dé posé d’office par le curseur a 
     const jet = monoStep({
       id: 'sonde-jet', kind: KIND_JET, actor: h, label: fixtureText('Jet de sonde'),
       difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'),
-      ligne: { valeur: 50 },
+      ligne: { valeur: 50 }, teste: TESTE_DE_TEST,
     })!;
     setCadence('rapide'); // cadence déférée à un automate → aucun siège ne tient l'étape
     startCascade(get, set, { title: 'Sonde', purpose: 'test', steps: [jet] });
@@ -730,7 +730,7 @@ describe('#3981 — la clôture d’un jet hôte hors combat rend le slot à son
   });
   it('la branche du Test se joue AVANT l’étape suivante, même jouée d’office', () => {
     runFlow(get, set, { ...testDeForce, reussite: posee('x'), echec: posee('x') });
-    const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!;
+    const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 }, teste: TESTE_DE_TEST })!;
     startCascade(get, set, { title: 'Suite', purpose: 'test', steps: [jet] });
     get().jetLancer('test');
     get().jetValider('test');
@@ -772,7 +772,7 @@ describe('#3981 — la clôture d’un jet hôte hors combat rend le slot à son
   };
   it('un hôte clos derrière une note au curseur : la note reste à jouer', () => hoteHorsDuCurseur(note()));
   it('un hôte clos derrière un jet du meneur non lancé : la branche n’est pas perdue', () => hoteHorsDuCurseur(
-    monoStep({ id: 'jet-meneur', kind: KIND_INERTE, actor: get().party[0], label: fixtureText('Jet meneur'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!,
+    monoStep({ id: 'jet-meneur', kind: KIND_INERTE, actor: get().party[0], label: fixtureText('Jet meneur'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 }, teste: TESTE_DE_TEST })!,
   ));
 
   it('une sortie imbriquée qui dénoue sa séquence ne reprend pas la pile : la sortie externe la reprend après sa suite', () => {
@@ -782,7 +782,7 @@ describe('#3981 — la clôture d’un jet hôte hors combat rend le slot à son
     // Le `get` du propriétaire, celui que les verbes du store passent à la sortie imbriquée.
     sortirDeLHote(banc.getState, set, {}, () => {
       runFlow(get, set, testDeForce);
-      const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 } })!;
+      const jet = monoStep({ id: 'jet-auto', kind: KIND_VOIT_LES_FLAGS, actor: get().party[1], label: fixtureText('Jet auto'), difficulty: 'intermediaire', stake: voyageStakeRef('equipage-progression'), ligne: { valeur: 50 }, teste: TESTE_DE_TEST })!;
       startCascade(get, set, { title: 'Interne', purpose: 'test', steps: [jet] });
       get().jetLancer('test');
       get().jetValider('test');

@@ -9,7 +9,7 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { spyApplier } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { openRoll, rollSansPilote, type RollRequest } from './rollSeam';
 import { humanControlled } from './netOwnership';
 import { jetSurfaced } from './sieges';
@@ -72,7 +72,7 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
   it('rollSansPilote REFUSE le héros d’un siège invité (il a un pilote — ailleurs)', () => {
     hoteAvecHerosDInvite();
     const h = banc.getState().party[0];
-    expect(() => rollSansPilote(banc.getState, h, 45, 'intermediaire', desDuTest)).toThrow(/jet silencieux/);
+    expect(() => rollSansPilote(banc.getState, h, TESTE_DE_TEST, 45, 'intermediaire', desDuTest)).toThrow(/jet silencieux/);
   });
 
   it('un héros conduit par l’IA (aiControlled) n’a AUCUN pilote : il reste inline, et le repli l’accepte', () => {
@@ -82,6 +82,6 @@ describe('#1262 — le jet du héros d’un AUTRE siège se surface (jamais roul
     expect(banc.getState().pendingCascade, 'aucun pilote : aucune fenêtre').toBeNull();
     expect(applied, 'résolu d’office, conséquence appliquée').toHaveLength(1);
     const h = banc.getState().party[0];
-    expect(() => rollSansPilote(banc.getState, h, 45, 'intermediaire', desDuTest)).not.toThrow();
+    expect(() => rollSansPilote(banc.getState, h, TESTE_DE_TEST, 45, 'intermediaire', desDuTest)).not.toThrow();
   });
 });

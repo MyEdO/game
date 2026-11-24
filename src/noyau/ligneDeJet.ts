@@ -19,10 +19,26 @@ import {
   supportSplit,
   type SujetContextualise,
   type SupportDetail,
+  type TestDesigne,
 } from '../engine/skills';
+import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import { garanti } from '../lib/garanti';
 import type { PlayerText } from '../i18n/playerText';
 import { testStatePenaltyParts } from '../engine/conditions';
 import { clampTarget, cibleDuTest } from '../engine/tests';
+
+/** Ce que désigne le Test d'une ligne (#4848) : sa Compétence, sinon sa Caractéristique ; `undefined` s'il ne
+ *  nomme ni l'une ni l'autre. */
+export function designeDuSujet(test: SujetDuJet | undefined): TestDesigne | undefined {
+  if (test?.skill) return { skill: structuredClone(test.skill) }; // #2097
+  return test?.characteristic ? { characteristic: test.characteristic } : undefined;
+}
+
+/** Ce que désigne un Test dont le producteur garantit le sujet : Test de DONNÉE (`nommerCeQueTesteLeJet`,
+ *  `grammaire/mecanique.ts`), défense armée (`defenseTestOf` hors mode social). */
+export function designeGaranti(test: SujetDuJet, ou: string): TestDesigne {
+  return garanti(designeDuSujet(test), ou, 'sujet du Test');
+}
 
 /** Ce qui est VRAI de tout jet : qui teste quoi, à quelle Difficulté, et ce qui pèse SUR LA CIBLE. */
 interface RollLineBase {

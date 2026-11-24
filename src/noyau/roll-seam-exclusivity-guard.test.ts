@@ -410,7 +410,7 @@ describe('garde-fou « rng vivant → résolveur moteur » — un flux state/** 
       "import { rollTavernTest } from '../engine/tavernGame';",
       "import { battleRng } from '../noyau/battleRng';",
       "const v = testValue(hero, { skill: { id: 'pari' } });",
-      "const opponentTR = rollTavernTest(opponentValue, battleRng());",
+      "const opponentTR = rollTavernTest(jetAdverse, opponentValue, battleRng());",
     ].join('\n');
     expect(scanBattleRngEngineLeak('src/state/x.ts', clean, contexte()).length).toBe(0);
   });

@@ -16,7 +16,7 @@ import { estVerbeDeFenetre, FLOW_VERBS, NOM_DU_VERBE_DE_JET, type RollVerb } fro
 import { intentAllowedFor, ROUTES } from './netOwnership';
 import { COMBAT_INTENTS } from './intentionsDeSiege';
 import type { Jeu } from './etat';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, TESTE_DE_TEST } from './cascade.testkit';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { cleDeFixture } from './noyau.testkit';
 
@@ -46,7 +46,7 @@ const base = (over: Partial<Jeu>): Jeu =>
     ...over,
   }) as unknown as Jeu;
 
-const parts = [{ id: H_HOST, base: 40, target: 40, result: null }, { id: H_OWNER, base: 40, target: 40, result: null }];
+const parts = [{ teste: TESTE_DE_TEST, id: H_HOST, base: 40, target: 40, result: null }, { teste: TESTE_DE_TEST, id: H_OWNER, base: 40, target: 40, result: null }];
 /** Cascade d'accueil des flux qui vivent en ÉTAPE (owner '*' : la modale ouvrirait TOUT à TOUS). */
 const groupCascade = {
   pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture('x'), groupOwner: true }]),

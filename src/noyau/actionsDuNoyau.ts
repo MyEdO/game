@@ -265,7 +265,7 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   jouerAction: (entityId: IdDEntiteDeScene, actionId: IdDActionDEntite) => void;
   /** TENTE un Test de Compétence hors combat (LDB 12 l.7), sans conséquence, à la Difficulté que l'hôte décide
    *  (LDB 12 l.137) : le héros `heroId` le jette, le meilleur du groupe sans lui (Soutien compris, LDB 12 l.187-200),
-   *  en toute cadence. Son issue est l'événement `TEST_RESOLVED`. Refus DIT hors exploration, d'un héros hors du
+   *  en toute cadence. Son issue est l'événement `TEST_JETE`. Refus DIT hors exploration, d'un héros hors du
    *  groupe ou qui ne peut pas le tenter (LDB 09 l.30), et quand personne ne le peut. */
   tenterLeTest: (skill: RefDesignee<IdDeCompetence>, difficulty: Difficulty, heroId?: IdDeHeros) => void;
   /** FOUILLER LA PIÈCE où se tient le groupe (`rooms.roomFocusAt`) — geste d'exploration du GROUPE :

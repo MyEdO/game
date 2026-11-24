@@ -35,6 +35,7 @@ import { tablesDuJeu } from './tablesDuJeu';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { deDeLaTableTiree } from '../engine/tables';
 import { fermeturesDuFlux } from './verbesOuverts';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -87,7 +88,7 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
   it('cible NON CALCULABLE → refusé (DEV : throw) : une étape sans cible serait « prête » d’office', () => {
     expect(() => monoStep({
       id: 'fantome', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU,
-      ligne: { valeur: Number.NaN, valeurEtrangere: true },
+      ligne: { valeur: Number.NaN, valeurEtrangere: true }, teste: TESTE_DE_TEST,
     })).toThrow(/cible non calculable/);
   });
 
@@ -380,7 +381,7 @@ describe('#1262 — les portes d’APPEND', () => {
   /** La possession de BANDE est ce que la voie d'APPEND doit encore refuser : la garde jumelle du CHOIX
    *  DE GROUPE est morte au profit du type (`ChoiceSpec.groupOwner?: never`, #1262 V4 M2). */
   it('la GARDE de possession mord sur la voie d’APPEND, comme à l’ouverture (#1262 B8)', () => {
-    const rangee = (id: string) => ({ id, interactive: true, label: fixtureText('Résistance'), base: 40, target: 40, result: null });
+    const rangee = (id: string) => ({ teste: TESTE_DE_TEST, id, interactive: true, label: fixtureText('Résistance'), base: 40, target: 40, result: null });
     const sansPossession: CascadeStep = { id: 'e', kind: cleDeFixture('sonde-bande'), label: fixtureText('Bande'), aggregate: 'none', participants: [rangee('H1'), rangee('H2')] };
     expect(() => pushStep(banc.setState, sansPossession, 'combat')).toThrow(/possession/);
     expect(banc.getState().pendingCascade, 'aucune bande sans possession n’a été appendue').toBeNull();
@@ -470,7 +471,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
   };
   const minte = (): BuiltCascadeStep => monoStep({
     id: 'faim-H1', kind: 'faim', actor: hero('H1'), label: fixtureText('Faim'), rollLabel: 'Résistance',
-    difficulty: 'intermediaire', stake: ENJEU, montee: { base: 40, target: 40 }, meta: { day: 1 },
+    difficulty: 'intermediaire', stake: ENJEU, teste: TESTE_DE_TEST, montee: { base: 40, target: 40 }, meta: { day: 1 },
   })!;
 
   it('la FILE refuse une étape manuscrite, accepte le produit de la porte', () => {
@@ -491,7 +492,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
   it('`montee` : la ligne DÉJÀ montée entre TELLE QUELLE (aucun remontage à l’assemblage)', () => {
     const st = monoStep({
       id: 'faim-H1', kind: 'faim', actor: hero('H1'), label: fixtureText('Faim'), difficulty: 'complexe', stake: ENJEU,
-      montee: { base: 33, target: 23, mods: [{ label: 'Faim (2ᵉ Test)', value: -10, famille: 'jet' }] },
+      teste: TESTE_DE_TEST, montee: { base: 33, target: 23, mods: [{ label: 'Faim (2ᵉ Test)', value: -10, famille: 'jet' }] },
     })!;
     expect(st.base, 'la base vient du producteur, pas d’un second calcul').toBe(33);
     expect(st.target, 'la Difficulté DÉCLARÉE n’est pas ré-appliquée à une cible déjà montée').toBe(23);
@@ -512,7 +513,7 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
 
     h.characteristics.endurance = 19; // l'entretien a frappé entre le montage et l'assemblage
 
-    const figee = monoStep({ id: 'faim-H1', kind: 'faim', actor: h, label: fixtureText('Faim'), difficulty: 'intermediaire', stake: ENJEU, montee: dejaMontee })!;
+    const figee = monoStep({ id: 'faim-H1', kind: 'faim', actor: h, label: fixtureText('Faim'), difficulty: 'intermediaire', stake: ENJEU, teste: { characteristic: 'endurance' }, montee: dejaMontee })!;
     expect(figee.base, 'la ligne DUE est celle du moment où le Test était dû').toBe(34);
     expect(figee.target).toBe(34);
 
@@ -540,8 +541,8 @@ describe('#1262 V2 — la FILE d’entretien et la FABRIQUE de nuit n’accepten
     const cumul = [{ label: '−5 cumulatif (Round 2)', value: -5, famille: 'jet' as const }];
     const commun = { id: 'right-1', kind: 'fleuveRedressement' as const, actor: h, label: fixtureText('Redressement'), difficulty: 'accessible' as const, stake: ENJEU };
 
-    const parLigne = monoStep({ ...commun, ligne: { valeur: 42, valeurEtrangere: true, surLaCible: cumul } })!;
-    const parMontee = monoStep({ ...commun, montee: rollStep({ difficulty: 'accessible', valeur: 42, valeurEtrangere: true, surLaCible: cumul }) })!;
+    const parLigne = monoStep({ ...commun, ligne: { valeur: 42, valeurEtrangere: true, surLaCible: cumul }, teste: TESTE_DE_TEST })!;
+    const parMontee = monoStep({ ...commun, montee: rollStep({ difficulty: 'accessible', valeur: 42, valeurEtrangere: true, surLaCible: cumul }), teste: TESTE_DE_TEST })!;
 
     expect(parLigne.base, 'la valeur fournie EST la base (aucune décomposition possible)').toBe(42);
     expect(parLigne.target, '42 + 20 (Accessible) − 5 (cumulatif)').toBe(57);

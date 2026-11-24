@@ -22,6 +22,7 @@ import type { BatchParticipant, CascadeStep } from './pendings';
 import { t } from '../i18n';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from './noyau.testkit';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -46,7 +47,7 @@ function arene() {
   });
 }
 
-const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant => ({ id, interactive: true, base: 50, target: 50, result: null, ...over });
+const row = (id: string, over: Partial<BatchParticipant> = {}): BatchParticipant => ({ teste: TESTE_DE_TEST, id, interactive: true, base: 50, target: 50, result: null, ...over });
 
 /** Une bande de Peur (LDB 21 l.25) partagée par `h2` et `h3` : la fenêtre est à tous (`groupOwner`). */
 function bandeDePeur(rangees: BatchParticipant[] = [row('h2'), row('h3')]) {

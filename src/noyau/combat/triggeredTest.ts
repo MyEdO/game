@@ -23,7 +23,7 @@
 import { nomDe } from '../../engine/nom';
 import { rollTest, resolveOpposed, opposedBranchSuccess, type TestResult } from '../../engine/tests';
 import { combatTestPenalty } from '../../engine/conditions';
-import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
+import { testValue, rawCombatTestBase, skillBaseValue, type TestDesigne } from '../../engine/skills';
 import { type OpsCtx } from '../../engine/ops';
 import { nomDeSource } from '../../engine/faits';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
@@ -56,7 +56,7 @@ import { ancreDeLaCascade, pushStep } from '../cascade';
 import type { Jeu } from '../etat';
 
 import { freeCons, rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel } from '../rollSeam';
-import { rollLine } from '../ligneDeJet';
+import { designeGaranti, rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
@@ -242,7 +242,8 @@ export function simpleTriggeredTestStep(
  *  reconstruite depuis ce seul jet en réconcilierait l'écart en chip « autres » (#1153, ticket ouvert). */
 export function rollFrozenOpposedAttacker(attacker: Combatant, opp: NonNullable<FlowTest['opposed']>, difficulty: Difficulty): TestResult {
   const line = rollLine({ actor: attacker, test: { skill: opp.attackerSkill ? { id: opp.attackerSkill } : undefined, characteristic: opp.attacker }, difficulty });
-  const r = rollTest(line.target, 'intermediaire', battleRng());
+  const teste: TestDesigne = opp.attackerSkill ? { skill: { id: opp.attackerSkill } } : { characteristic: opp.attacker };
+  const r = rollTest({ porteur: attacker.id, teste }, line.target, 'intermediaire', battleRng());
   return { ...r, base: line.base, sl: r.sl + (opp.attackerBonusSL ?? 0), ...(line.clamped ? { clamped: line.clamped } : {}) };
 }
 
@@ -301,7 +302,7 @@ export function frozenOpposedBatchStep(
       id: c.id, interactive: true, result: null, difficulty,
       ...rollStep({ actor: c, test: decision.sujet, difficulty }),
       ...(ft.menace ? { menace: ft.menace } : {}),
-      ...(ft.skill ? { skill: structuredClone(ft.skill) } : {}), // #2097
+      teste: designeGaranti(decision.sujet, ft.label ?? skillLabel),
     });
   }
   return bandStep({
@@ -345,7 +346,7 @@ export function simpleBatchTestStep(
       id: c.id, interactive: true, result: null, difficulty, label: skillLabel,
       ...rollStep({ actor: c, test: decision.sujet, difficulty, combat: { kind: 'test' } }),
       ...(ft.menace ? { menace: ft.menace } : {}),
-      ...(ft.skill ? { skill: structuredClone(ft.skill) } : {}), // #2097
+      teste: designeGaranti(decision.sujet, ft.label ?? skillLabel),
     });
   }
   return bandStep({
@@ -577,7 +578,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
   const exec = { get: ctx.get, set: ctx.set, opsCtx: oc, ...(ctx.freeAttack ? { freeAttack: ctx.freeAttack } : {}), ...(btFreeze ? { piegeALame: btFreeze } : {}) };
   // Ennemi OU héros rapide/auto : jet INLINE + branche + continuation ; ligne de parité.
   // `skillLabel` = la Compétence/Caractéristique RÉELLE (cadre de jet), distincte du `label` de situation.
-  const t = rollTest(base, difficulty, battleRng(), penalty);
+  const t = rollTest({ porteur: c.id, teste: designeGaranti(ft, label) }, base, difficulty, battleRng(), penalty);
   if (opp && aT && attacker) {
     // Test OPPOSÉ inline : l'attaquant figé (1ʳᵉ position) vs le jet du défenseur. `t.success`/`t.sl` du
     // jet simple sont REMPLACÉS par l'issue opposée ; la BRANCHE se lit au socle (`opposedBranchSuccess`

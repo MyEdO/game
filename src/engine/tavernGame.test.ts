@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { JET_DE_TEST } from './tests.testkit';
 import { makeRNG } from './dice';
 import { rollTest, extendedTestStep, type TestResult } from './tests';
 import { findTavernGameById, resolveTavernRound, rollTavernTest, TAVERN_TEST_DIFFICULTY } from './tavernGame';
@@ -21,8 +22,8 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
     let pWins = 0;
     for (let seed = 0; seed < 60; seed++) {
       const rng = makeRNG(seed);
-      const playerTR = rollTest(70, TAVERN_TEST_DIFFICULTY, rng);
-      const opponentTR = rollTavernTest(25, rng);
+      const playerTR = rollTest(JET_DE_TEST, 70, TAVERN_TEST_DIFFICULTY, rng);
+      const opponentTR = rollTavernTest(JET_DE_TEST, 25, rng);
       const r = resolveTavernRound(dominos, playerTR, opponentTR);
       if (r.winner === 'joueur') pWins++;
     }
@@ -32,9 +33,9 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
   it('déterminisme : même seed → même issue', () => {
     const flechettes = findTavernGameById('flechettes')!;
     const rngA = makeRNG(3);
-    const a = resolveTavernRound(flechettes, rollTest(45, TAVERN_TEST_DIFFICULTY, rngA), rollTavernTest(45, rngA));
+    const a = resolveTavernRound(flechettes, rollTest(JET_DE_TEST, 45, TAVERN_TEST_DIFFICULTY, rngA), rollTavernTest(JET_DE_TEST, 45, rngA));
     const rngB = makeRNG(3);
-    const b = resolveTavernRound(flechettes, rollTest(45, TAVERN_TEST_DIFFICULTY, rngB), rollTavernTest(45, rngB));
+    const b = resolveTavernRound(flechettes, rollTest(JET_DE_TEST, 45, TAVERN_TEST_DIFFICULTY, rngB), rollTavernTest(JET_DE_TEST, 45, rngB));
     expect(a).toEqual(b);
   });
 
@@ -81,7 +82,7 @@ describe('Jeux de taverne — moteur générique (NADJ 16)', () => {
     for (let seed = 0; seed < 40; seed++) {
       const rng = makeRNG(seed);
       // valeurs énormes → DR bruts > 6
-      const r = resolveTavernRound(boules, rollTest(100, TAVERN_TEST_DIFFICULTY, rng), rollTavernTest(100, rng));
+      const r = resolveTavernRound(boules, rollTest(JET_DE_TEST, 100, TAVERN_TEST_DIFFICULTY, rng), rollTavernTest(JET_DE_TEST, 100, rng));
       expect(r.dr.joueur).toBeLessThanOrEqual(6);
       expect(r.dr.adversaire).toBeLessThanOrEqual(6);
     }

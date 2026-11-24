@@ -17,6 +17,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { startCascade } from './cascade';
 import type { CascadeStep } from './pendings';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -28,7 +29,7 @@ describe('#1262 V2 L4 — une bande DÉCLARE sa possession', () => {
 
   const bande = (over: Partial<CascadeStep>): CascadeStep =>
     ({ id: 'b', kind: 'sonde-bande', label: 'Bande', aggregate: 'none', ...over }) as CascadeStep;
-  const rangee = (id: string) => ({ id, interactive: true, label: 'Résistance', base: 40, target: 40, result: null });
+  const rangee = (id: string) => ({ teste: TESTE_DE_TEST, id, interactive: true, label: 'Résistance', base: 40, target: 40, result: null });
   const ouvrir = (st: CascadeStep) => () => startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [st] });
 
   it('DEUX porteurs sans `groupOwner` → REFUSÉE (la fenêtre échoirait à l’hôte seul)', () => {
@@ -46,7 +47,7 @@ describe('#1262 V2 L4 — une bande DÉCLARE sa possession', () => {
   });
 
   it('une étape SANS rangées n’est pas concernée (mono, choix, affichage)', () => {
-    expect(ouvrir(bande({ id: 'mono', actorId: 'h1', rollLabel: 'Résistance', target: 40 }))).not.toThrow();
+    expect(ouvrir(bande({ id: 'mono', actorId: 'h1', rollLabel: 'Résistance', teste: TESTE_DE_TEST, target: 40 }))).not.toThrow();
     banc.setState({ pendingCascade: null, suspendedCascades: [] } as never);
     expect(ouvrir(bande({ id: 'affichage' }))).not.toThrow();
   });

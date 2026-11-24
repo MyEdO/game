@@ -22,7 +22,7 @@ export function armeDEnfoncement(actor: Combatant, part: Pick<ForceDoorParticipa
   return part.armeUid ? armesDEnfoncement(actor).find((w) => w.uid === part.armeUid) : undefined;
 }
 
-function testDEnfoncement(actor: Combatant, arme: Weapon | undefined): TestDesigne {
+export function testDEnfoncement(actor: Combatant, arme: Weapon | undefined): TestDesigne {
   return arme ? attackTestOf(actor, arme, 'melee') : TEST_A_MAINS_NUES;
 }
 

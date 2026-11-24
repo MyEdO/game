@@ -6,17 +6,16 @@ import { touchActors } from './combatOrParty';
 import { journaliser } from './combatLog';
 import type { BuiltCascadeStep } from './stepBrand';
 import { pousseSi, hostStep, idDansLaSequence, openSequence, resultLine } from './rollSeam';
-import { evaluateTest, extendedTestStep } from '../engine/tests';
+import { extendedTestStep } from '../engine/tests';
 import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
 import { curseurPose, sortirDeLHote } from './cascade';
 import { tablesPosees, type FragmentDeTables } from './tablesPosees';
-import { FLOWS, meetsRequiredSL, type CloturesDuJet } from './rollFlowSpecs';
+import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
 import { armeDEnfoncement, bilanDuRound } from './enfoncerUnePorte';
 import { refuserGeste } from './refusVisible';
-import { craftTestDRAdjust, hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
+import { hasQuality, isUnbreakable } from '../engine/qualities/dispatch';
 import { bus, EVT } from './bus';
-import { referenceDuSujet } from './jetsEnVue';
 import { actorIn, inBattleId } from './monde/combatants';
 import { placeCombatant } from './monde/spawn';
 import { flowFromEffects } from './monde/flow';
@@ -194,11 +193,6 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       sortirDeLHote(get, set, { pendingTest: null }, (fermee) => {
         const actor = get().party.find((c) => c.id === pt.actorId);
         const tool = pt.itemUid ? actor?.items?.find((i) => i.uid === pt.itemUid) : undefined;
-        // Pratique/Peu Fiable : ±1 DR sur un Test RATÉ (LDB 60 l.22/58). Ne repêche qu'un échec qui a
-        // réussi le d100 mais manqué le seuil requireSL (jamais un Test raté, `evaluateTest` → on ne crée pas de réussite).
-        const drDelta = tool ? craftTestDRAdjust(tool, pt.success) : 0;
-        const effSuccess = drDelta !== 0 ? evaluateTest(lance, pt.target).success && meetsRequiredSL(pt.requireSL, pt.sl + drDelta) : pt.success;
-        bus.emit(EVT.TEST_RESOLVED, { actorId: pt.actorId, success: effSuccess, sl: pt.sl, roll: lance, target: pt.target, reference: referenceDuSujet(pt.sujet) });
         // Bâclé : un outil Bâclé qui Maladresse (échec + double) se brise (LDB 60, généralisé hors combat).
         if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
           tool.destroyed = true;
@@ -212,7 +206,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         const battle = ca ? get().battle : null;
         if (ca && battle) {
           const c = inBattleId(battle, ca.combatantId);
-          if (c && effSuccess && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
+          if (c && pt.success && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
           set({ battle: { ...markActed(get, set), action: null } });
         }
         // Branche choisie PUIS continuation (suite du `sequence` parent d'un nœud `test`), jouées par le
@@ -221,11 +215,11 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         // scène parle `party`/`hero`/`testeur` et reste chez `runFlow` (butin de Test → fenêtre d'attribution),
         // sa branche cuite sur son testeur (`avecLeTesteur`), jamais la continuation, qui est au parent.
         const avant = comptePasDifferes(get());
-        let branch = effSuccess ? pt.onSuccess : pt.onFailure;
+        let branch = pt.success ? pt.onSuccess : pt.onFailure;
         if (pt.escalade) {
           const etat = get();
           const grimpeur = actorIn(etat, pt.actorId);
-          if (effSuccess) {
+          if (pt.success) {
             if (!etat.battle) poserLeGroupe(get, set, pt.escalade.arrivee);
             else if (grimpeur) {
               placeCombatant(grimpeur, etat.scene, pt.escalade.arrivee);
@@ -238,7 +232,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
           }
         }
         const issue = pt.subi
-          ? reprendreTestSubi(get, set, pt, effSuccess)
+          ? reprendreTestSubi(get, set, pt, pt.success)
           : runFlow(get, set, { kind: 'sequence', etapes: [avecLeTesteur(branch ?? EMPTY_FLOW, pt.actorId), pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
         // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
         //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
@@ -248,7 +242,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         //    palier 2) → il ne RÉ-ÉMET PAS.
         //  · avancée de dialogue différée (un `choice.flow` avait suspendu ICI).
         const clotures: Cloture[] = [];
-        if (!effSuccess && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
+        if (!pt.success && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
         if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
         const suiteDeLHote = fermee?.participants[fermee.cursor]?.meta?.apresSuite ?? [];
         clotures.push(...suiteDeLHote);

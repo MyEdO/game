@@ -58,13 +58,15 @@ const lotJoue = () => {
       try { return { sortie: JSON.stringify(tirer(argv)) }; } catch (e) { return { erreur: e.message, classe: e.constructor.name }; }
     };
     const cas = ${JSON.stringify(CAS)};
+    const jet = { porteur: null, teste: { characteristic: 'capacite-de-combat' } };
+    const jets = { attacker: jet, defender: jet };
     console.log(JSON.stringify({
       cas: Object.fromEntries(Object.entries(cas).map(([nom, argv]) => [nom, [jouer(argv), jouer(argv)]])),
       moteur: {
-        simple: rollTest(45, 'difficile', rngDuTirage('edo01', 0)),
-        oppose: opposedTest(45, 38, rngDuTirage('edo01', 1), 'intermediaire', 'complexe', { attacker: 45, defender: 38 }),
-        simple110: rollTest(110, 'tresDifficile', rngDuTirage('edo01', 0)),
-        oppose0: opposedTest(45, 0, rngDuTirage('edo01', 2), 'difficile', 'facile', { attacker: 45, defender: 0 }),
+        simple: rollTest(jet, 45, 'difficile', rngDuTirage('edo01', 0)),
+        oppose: opposedTest(jets, 45, 38, rngDuTirage('edo01', 1), 'intermediaire', 'complexe', { attacker: 45, defender: 38 }),
+        simple110: rollTest(jet, 110, 'tresDifficile', rngDuTirage('edo01', 0)),
+        oppose0: opposedTest(jets, 45, 0, rngDuTirage('edo01', 2), 'difficile', 'facile', { attacker: 45, defender: 0 }),
       },
     }));
   `]);

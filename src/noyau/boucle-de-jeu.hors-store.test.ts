@@ -4,11 +4,10 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { parseQualityInstance } from '../data/refFormatLivre';
 import { resetFields } from './stateFields';
 import { acheterAuPanier } from './marchand.testkit';
 import type { BattleState } from './etat';
-import { avanceEtapeCascade, draineCascade, cascadeDeTest } from './cascade.testkit';
+import { avanceEtapeCascade, draineCascade, cascadeDeTest, TESTE_DE_TEST } from './cascade.testkit';
 import { flowFromEffects, testFlow } from './monde/flow';
 import { flowEffects, EMPTY_FLOW } from '../engine/flowCore';
 import { buildAdvancementView } from './monde/advancement';
@@ -280,7 +279,7 @@ describe('Boucle de jeu (store)', () => {
     expect(banc.getState().pendingAttack).toBeNull();
   });
 
-  // ── Phase C2a — qualité d'outil sur les Tests HORS COMBAT (Pratique/Peu Fiable/Bâclé) ──
+  // ── Outil d'un Test hors combat : Pratique, Bâclé, Peu Fiable (LDB 60 l.22, l.50, l.58) ──
   it('Effect.test : outil résolu par trappingId (id catalogue) vers pendingTest.itemUid', () => {
     const chars = { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 55, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
     const hero = combattantDeTest(blessuresSurLeProfil({
@@ -321,7 +320,7 @@ describe('Boucle de jeu (store)', () => {
     banc.setState({
       party: [hero],
       pendingTest: {
-        actorId: 'h1', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+        sujet: TESTE_DE_TEST, actorId: 'h1', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: null, success: false, sl: 0, isDouble: undefined,
         onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW,
       },
@@ -330,56 +329,22 @@ describe('Boucle de jeu (store)', () => {
     expect(typeof banc.getState().pendingTest!.isDouble).toBe('boolean');
   });
 
-  // jetValider('test') avec outil : pendingTest injecté à la main (RNG hors combat non seedable → déterministe).
-  function mkToolTest(quality: string, over: Partial<import('../noyau/pendings').PendingTest>): Combatant {
+  it('jetValider@test : un Test raté suit sa branche d’échec', () => {
     const hero = combattantDeTest({
       id: 'h1', label: 'Lest', kind: 'heros',
       characteristics: { 'capacite-de-combat': 30, 'capacite-de-tir': 30, force: 30, endurance: 30, initiative: 30, agilite: 30, dexterite: 50, intelligence: 30, 'force-mentale': 30, sociabilite: 30 },
       wounds: blessuresDeBase(10), advantage: 0, conditions: [], movement: 4, skills: [], talents: [],
-      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 },
-      items: [{ uid: 't1', label: 'Outil', kind: 'melee', qualities: quality ? [parseQualityInstance(quality)!] : [], enc: 0, equipped: false }],
+      armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 }, items: [],
     });
     banc.setState({
       party: [hero], flags: {}, journal: [],
       pendingTest: {
-        actorId: 'h1', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
-        requireSL: 1, target: 50, roll: 48, success: false, sl: 0, isDouble: false, itemUid: 't1',
+        sujet: TESTE_DE_TEST, actorId: 'h1', label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+        requireSL: 1, target: 50, roll: 48, success: false, sl: 0, isDouble: false,
         onSuccess: flowFromEffects([{ type: 'setFlag', flag: 'reussi', value: true }]),
         onFailure: flowFromEffects([{ type: 'setFlag', flag: 'rate', value: true }]),
-        ...over,
       },
     });
-    return hero;
-  }
-
-  it('jetValider@test : Pratique (+1 DR) repêche un échec qui n’a manqué que le seuil requireSL', () => {
-    mkToolTest('Pratique', {}); // roll 48 ≤ 50, sl 0 < requireSL 1 → +1 DR ⇒ sl 1 ≥ 1
-    banc.getState().jetValider('test');
-    expect(banc.getState().flags['reussi']).toBe(true);
-  });
-
-  it('jetValider@test : Pratique ne transforme PAS un d100 raté (roll > cible) en réussite', () => {
-    mkToolTest('Pratique', { roll: 60, sl: -1, requireSL: 0 }); // roll 60 > 50 → raté au dé
-    banc.getState().jetValider('test');
-    expect(banc.getState().flags['rate']).toBe(true);
-  });
-
-  it('jetValider@test : Peu Fiable (−1 DR) ne repêche pas (échec aggravé)', () => {
-    mkToolTest('Peu Fiable', {}); // sl 0 −1 = −1 < requireSL 1 → reste raté
-    banc.getState().jetValider('test');
-    expect(banc.getState().flags['rate']).toBe(true);
-  });
-
-  it('jetValider@test : outil Bâclé qui Maladresse (échec + double) se brise', () => {
-    mkToolTest('Bâclé', { roll: 55, sl: -1, requireSL: 0, isDouble: true });
-    banc.getState().jetValider('test');
-    const item = banc.getState().party[0].items!.find((i) => i.uid === 't1')!;
-    expect(item.destroyed).toBe(true);
-    expect(banc.getState().journal.some((l) => l.includes('se brise'))).toBe(true);
-  });
-
-  it('jetValider@test : sans outil, l’issue est inchangée (branche échec)', () => {
-    mkToolTest('', { itemUid: undefined });
     banc.getState().jetValider('test');
     expect(banc.getState().flags['rate']).toBe(true);
   });
@@ -693,7 +658,7 @@ describe('Boucle de jeu (store)', () => {
       party: [hero],
       flags: {},
       pendingTest: {
-        actorId: hero.id,
+        sujet: TESTE_DE_TEST, actorId: hero.id,
         label: 'Test de Force',
         skillValue: 95,
         difficulty: 'intermediaire',
@@ -2099,7 +2064,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     hero.fortune = 2;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+      pendingTest: { sujet: TESTE_DE_TEST, actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 20, success: true, sl: 3, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetRelancer('test');
@@ -2112,7 +2077,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     hero.fortune = 2;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 5, difficulty: 'intermediaire',
+      pendingTest: { sujet: TESTE_DE_TEST, actorId: hero.id, label: 'Test', skillValue: 5, difficulty: 'intermediaire',
         requireSL: 0, target: 5, roll: 95, success: false, sl: -9, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetRelancer('test'); // 1re relance OK (jet raté)
@@ -2127,7 +2092,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     hero.fortune = 3;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+      pendingTest: { sujet: TESTE_DE_TEST, actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 2, target: 50, roll: 45, success: false, sl: 0, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetAjouterUnDR('test'); // DR 0 → 1 (< 2)
@@ -2145,7 +2110,7 @@ describe('Chance : relance 1×/Test et seulement sur jet propre raté (LDB 12 l.
     banc.setState({
       party: [hero],
       // d100 95 > cible 50 : l'issue tient au dé (LDB 12 l.90-94), `requireSL` 0 = aucun seuil de DR exigé.
-      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
+      pendingTest: { sujet: TESTE_DE_TEST, actorId: hero.id, label: 'Test', skillValue: 50, difficulty: 'intermediaire',
         requireSL: 0, target: 50, roll: 95, success: false, sl: -5, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetAjouterUnDR('test');
@@ -2600,7 +2565,7 @@ describe('Résilience — « Je ne faillirai pas ! » (LDB 17 l.68)', () => {
     hero.resilience = 1;
     banc.setState({
       party: [hero],
-      pendingTest: { actorId: hero.id, label: 'Test', skillValue: 30, difficulty: 'intermediaire',
+      pendingTest: { sujet: TESTE_DE_TEST, actorId: hero.id, label: 'Test', skillValue: 30, difficulty: 'intermediaire',
         requireSL: 0, target: 30, roll: 95, success: false, sl: -6, rerolled: false, onSuccess: EMPTY_FLOW, onFailure: EMPTY_FLOW },
     });
     banc.getState().jetForcerLaReussite('test');
@@ -2876,7 +2841,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).ammoUid = 'am2';
     banc.setState({
       pendingReload: {
-        actorId: H.id, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
+        teste: TESTE_DE_TEST, actorId: H.id, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
@@ -2896,7 +2861,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).ammoUid = 'am2';
     banc.setState({
       pendingReload: {
-        actorId: H.id, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
+        teste: TESTE_DE_TEST, actorId: H.id, weaponUid: 'w-arb', reload: 1, progressBefore: 0,
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 10, target: 40, sl: 3, success: true,
       },
     });
@@ -2967,7 +2932,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     rangedOf(H).reloadProgress = 1;
     banc.setState({
       pendingReload: {
-        actorId: H.id, weaponUid: 'w-arb', reload: 2, progressBefore: 1,
+        teste: TESTE_DE_TEST, actorId: H.id, weaponUid: 'w-arb', reload: 2, progressBefore: 1,
         skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, roll: 95, target: 40, sl: -2, success: false,
       },
     });

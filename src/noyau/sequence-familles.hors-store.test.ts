@@ -19,6 +19,7 @@ import { startSequence, sequenceTableRow, sequencePhaseOf, sequenceRoundOps } fr
 import { type SequenceParams, type SequenceRound, type SequenceVerdict } from './sequenceContract';
 import { avecLesTables, sequenceDeFixture, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { TESTE_DE_TEST } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -81,7 +82,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
     passes.push(seq.manche);
     const step = monoStep({
       id: `passe-${seq.manche}`, kind: cleDeFixture('testJoute'), label: fixtureText(`Passe ${seq.manche}`), actor: h,
-      difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+      difficulty: 'intermediaire', teste: TESTE_DE_TEST, montee: { base: 50, target: 50 },
       stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
     });
     return step ? { title: fixtureText(`Joute — passe ${seq.manche}`), steps: [step], immediate: true, chargeUtile: { ...seq.chargeUtile, passes: [...seq.chargeUtile.passes, seq.manche] } } : undefined;
@@ -99,7 +100,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
         passes.push(seq.manche);
         const step = monoStep({
           id: `b-${seq.manche}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
-          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+          difficulty: 'intermediaire', teste: TESTE_DE_TEST, montee: { base: 50, target: 50 },
           stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;
@@ -111,7 +112,7 @@ beforeEach(() => { avecLesTables({ sequences: { ...tablesDuJeu().sequences, [JOU
         passes.push(seq.manche);
         const step = monoStep({
           id: `p-${seq.manche}`, kind: cleDeFixture('testJoute'), label: fixtureText('Passe'), actor: h,
-          difficulty: 'intermediaire', montee: { base: 50, target: 50 },
+          difficulty: 'intermediaire', teste: TESTE_DE_TEST, montee: { base: 50, target: 50 },
           stake: combatStakeRef('poursuite-manche', { values: { distance: 1, evasion: 10 } }),
         });
         return step ? { title: fixtureText('Joute'), steps: [step], immediate: true } : undefined;

@@ -21,7 +21,7 @@ import { appliquerLIntentionDUnSiege } from './intentionsDeSiege';
 import { seedBattleRng } from './battleRng';
 import { bonus } from '../engine/characteristics';
 import type { Combatant, Weapon } from '../engine/types';
-import { cascadeDeTest } from './cascade.testkit';
+import { cascadeDeTest, TESTE_DE_TEST } from './cascade.testkit';
 import { fixtureText } from '../i18n/fixtureText';
 import { cleDeFixture } from './noyau.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -217,7 +217,7 @@ describe('#1050 — Résistance (Menace) d’une étape de cascade : routée sur
     setup();
     banc.setState({
       pendingCascade: cascadeDeTest([
-        { id: 'st0', kind: 'maladieDeFinDeCombat', actorId: 'h2', groupOwner: true, menace: 'magie', label: fixtureText('Menace'), target: 40, rollLabel: 'Résistance' },
+        { teste: TESTE_DE_TEST, id: 'st0', kind: 'maladieDeFinDeCombat', actorId: 'h2', groupOwner: true, menace: 'magie', label: fixtureText('Menace'), target: 40, rollLabel: 'Résistance' },
       ]),
     });
   };

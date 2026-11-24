@@ -16,7 +16,7 @@
  */
 import { battleRng } from './battleRng';
 import { lieuDuGroupe, marcheDuLieu } from './worldMap';
-import { partyAssisted, partyBest, testValue, skillBaseValue } from '../engine/skills';
+import { partyAssisted, partyBest, testValue, skillBaseValue, type TestDesigne } from '../engine/skills';
 import { opposedTest, type OpposedResult } from '../engine/tests';
 import { variationDuNegoce } from '../engine/bargain';
 import { type RNG } from '../engine/dice';
@@ -227,6 +227,9 @@ export function deplacerLaCargaison(get: Get, set: Set, lotId: IdDeCargaison, to
   log(get, set, [t('lm.transfert', { enc: res.moved, label, de: from.label, vers: to.label })]);
 }
 
+/** Ce que teste chaque camp du Marchandage, le marchand sans fiche compris. MSRC 13 l.127 */
+const MARCHANDAGE: TestDesigne = { skill: { id: 'marchandage' } };
+
 /** Marchandage OPPOSÉ terrestre (MSRC 13 l.127) : les deux camps jettent, `opposedTest` est le SEUL
  *  juge (LDB 12 l.160) — le meneur y oppose son Niveau de Compétence NU, lu à l'accesseur canon
  *  (`skillBaseValue`, `LDB 09 l.17`) et non reconstitué par soustraction : sa valeur de jet
@@ -237,8 +240,8 @@ export function deplacerLaCargaison(get: Get, set: Set, lotId: IdDeCargaison, to
 function bargainOpposed(best: NonNullable<ReturnType<typeof partyAssisted>>, merchant: number, rng: RNG): OpposedResult {
   // Les deux nues passent par le CANAL `bases` d'`opposedTest` (jamais reposées après coup) : le meneur
   // oppose son Niveau de Compétence NU (accesseur canon) et le marchand sa valeur, qui EST nue.
-  return opposedTest(best.value, merchant, rng, 'intermediaire', 'intermediaire', {
-    attacker: skillBaseValue(best.actor, { skill: { id: 'marchandage' } }), defender: merchant,
+  return opposedTest({ attacker: { porteur: best.actor.id, teste: MARCHANDAGE }, defender: { porteur: null, teste: MARCHANDAGE } }, best.value, merchant, rng, 'intermediaire', 'intermediaire', {
+    attacker: skillBaseValue(best.actor, MARCHANDAGE), defender: merchant,
   });
 }
 
@@ -309,7 +312,7 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
   if (devis.refus) { refuserGeste(get, set, raisonDuRefusDAchatDeCargaison(devis.refus)); return; }
   const { offre: offer, porteur: carrier, enc: want, partiel: partial } = devis;
   const rng = battleRng();
-  const best = partyAssisted(get().party, { skill: { id: 'marchandage' } });
+  const best = partyAssisted(get().party, MARCHANDAGE);
   const merchant = rollMerchantSkill(rng); // petit marchand : 2d10 + 30 (l.129)
   let pct = 0; // % appliqué au prix (négatif = remise pour l'acheteur)
   let bargainLine = 'Aucun marchandeur dans le groupe — prix plein.';
@@ -378,7 +381,7 @@ function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: numbe
   if (avant.length) log(get, set, avant);
   const rng = battleRng();
   const offerPct = sellOfferPct(st.market);
-  const best = partyAssisted(get().party, { skill: { id: 'marchandage' } });
+  const best = partyAssisted(get().party, MARCHANDAGE);
   const merchant = rollMerchantSkill(rng);
   let bargainPctVal = 0;
   let bargainLine = 'Aucun marchandeur — mise à prix prise telle quelle.';

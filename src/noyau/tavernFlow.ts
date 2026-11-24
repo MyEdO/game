@@ -37,7 +37,8 @@ import { resolveOpposed, isDoubleRoll, evaluateTest, evaluateCombinedTest, estJe
 import { isDrunk } from '../engine/drunkenness';
 import { hasCondition } from '../engine/conditions';
 import { applyOps, avantageDeCampSansFiche } from '../engine/ops';
-import { testValue } from '../engine/skills';
+import { testValue, type TestDesigne } from '../engine/skills';
+import { designeGaranti } from './ligneDeJet';
 import type { SujetDuJet } from '../data/schemas/grammaire/mecanique';
 import { advantageCap, advantageCapFor } from '../engine/advantage';
 import { groupAdvantage } from '../engine/advantagePool';
@@ -214,11 +215,11 @@ function enOption(t: SujetDuJet): TavernOption {
 }
 
 /** Sujet du Test d'une séquence de la DONNÉE : sa Compétence, sinon sa Caractéristique. PURE. */
-function testDeSequence(test: Pick<FlowTest, 'skill' | 'characteristic'>): SujetDuJet {
-  return test.skill ? { skill: structuredClone(test.skill) } : { characteristic: test.characteristic }; // #2097
+function testDeSequence(test: Pick<FlowTest, 'skill' | 'characteristic'>): TestDesigne {
+  return designeGaranti(test, 'séquence de taverne');
 }
 
-function tavernTestSpec(game: TavernGame): SujetDuJet {
+function tavernTestSpec(game: TavernGame): TestDesigne {
   if (game.skill) return { skill: structuredClone(game.skill) }; // #2097
   if (game.characteristic) return { characteristic: game.characteristic };
   return { skill: { id: 'pari' } };
@@ -544,7 +545,7 @@ function tavernRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame, c
   const row: BatchParticipant = {
     id: h.id,
     label: testSkillLabel(test) ?? game.label,
-    ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
+    teste: test,
     difficulty,
     result: null,
     interactive: true,
@@ -593,7 +594,7 @@ function figurantRow(id: string, label: string, valeur: number, opt: TavernOptio
   const difficulty = opt.test.difficulty ?? TAVERN_TEST_DIFFICULTY;
   const row: BatchParticipant = {
     id, label, difficulty, result: null, interactive: false,
-    ...(opt.test.skill ? { skill: structuredClone(opt.test.skill) } : {}),
+    teste: testDeSequence(opt.test),
     ...rollStep({ valeur, valeurEtrangere: true, difficulty, ...(surLaCible.length ? { surLaCible } : {}) }),
   };
   return { ...row, result: rollBatchParticipant(row, battleRng()) };
@@ -665,7 +666,7 @@ function equipierRow(get: Get, p: TavernPayload, h: Combatant, game: TavernGame,
   const row: BatchParticipant = {
     id: h.id,
     label: testSkillLabel(test) ?? game.label,
-    ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
+    teste: test,
     difficulty,
     result: null,
     interactive: true,
@@ -764,11 +765,11 @@ function torchonRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Se
   const difficulty = difficulteDuSiege(p, difficulteDeBase(game), lanceur.id);
   const lanceurRow: BatchParticipant = heros
     ? {
-      id: lanceur.id, label: testSkillLabel(test) ?? game.label, ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
+      id: lanceur.id, label: testSkillLabel(test) ?? game.label, teste: test,
       difficulty, result: null, interactive: true,
       ...rollStep({ actor: heros, test, difficulty }),
     }
-    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { test: { difficulty } }, 0);
+    : figurantRow(lanceur.id, lanceur.label, lanceur.value ?? p.opponentValue, { test: { ...test, difficulty } }, 0);
   const jouable = !!heros && !cadenceAuto() && jetSurfaced(get(), heros);
   // Un héros qu'aucun siège ne tient reste monté sur SA fiche (`equipierRow` l'a déjà roulé) : seule
   // sa rangée devient témoin. Il ne passe jamais par la porte des figurants, dont la fiche ne suit pas la séquence.
@@ -888,7 +889,7 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
   // figurant, dont la fiche ne suit pas la séquence (valeur dérivée à l'ouverture). Jamais un jet forgé à la main.
   const pinte: BatchParticipant = heros
     ? {
-      id, label: testSkillLabel(test) ?? lanceur.label, ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
+      id, label: testSkillLabel(test) ?? lanceur.label, teste: test,
       difficulty, result: null, interactive: false,
       ...rollStep({ actor: heros, test, difficulty }),
     }
@@ -1028,7 +1029,8 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const difficulteAdverse = difficulteDuSiege(p, difficulteDeBase(game, p.choices?.[challenger.id]), idAdverse(p));
   const avantageAdverse = avantageSurLaCible(optMien, p.advantage?.[CAMP_OPPONENT] ?? 0).reduce((s, l) => s + l.value, 0);
   const valeurAdverse = p.ficheAdverseDeLaPartie ? testValue(p.ficheAdverseDeLaPartie, optMien.test) : p.opponentValue;
-  const rolled = rollTavernTest(valeurAdverse, rng, difficulteAdverse, avantageAdverse);
+  const porteurAdverse = p.ficheAdverseDeLaPartie?.id;
+  const rolled = rollTavernTest({ porteur: porteurAdverse ?? null, teste: test }, valeurAdverse, rng, difficulteAdverse, avantageAdverse);
   const surLaCible = avantageSurLaCible(optMien, challenger);
   // TEST COMBINÉ (Cerevis l.90) : la fenêtre annonce SES DEUX cibles — sans quoi le second Test ne se
   // découvrait qu'en le ratant (friction mesurée en recette, #1279 S3).
@@ -1048,7 +1050,7 @@ function tavernRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
       stakeBrass: p.stakeBrass, round: seq.manche,
       // L'adversaire de la salle joue le MÊME Test que le challenger : la STRUCTURE voyage, le
       // libellé de sa ligne s'écrit au rendu.
-      opposed: { aT: rolled, attackerName: p.opponentName, test, difficulty: difficulteAdverse },
+      opposed: { aT: rolled, ...(porteurAdverse ? { attackerId: porteurAdverse } : {}), attackerName: p.opponentName, test, difficulty: difficulteAdverse },
     },
   });
   if (!step) return undefined;
@@ -2156,7 +2158,7 @@ function volleyRound(get: Get, seq: SequenceState<TavernPayload>, rng: RNG): Seq
   const test = tavernTestSpec(game);
   const rowJet: BatchParticipant = heros
     ? {
-      id: lanceur.id, label: testSkillLabel(test) ?? game.label, ...(test.skill ? { skill: structuredClone(test.skill) } : {}),
+      id: lanceur.id, label: testSkillLabel(test) ?? game.label, teste: test,
       difficulty, result: null, interactive: true,
       ...rollStep({ actor: heros, test, difficulty }),
     }

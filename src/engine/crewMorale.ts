@@ -20,7 +20,7 @@ import { datasetDe, type DatasetDe } from '../data/datasets';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { tirerSigne, type RNG } from './dice';
-import { rollTest, easeDifficulty, ECHEC_SANS_JET } from './tests';
+import { rollTest, easeDifficulty, ECHEC_SANS_JET, type JetDeTest } from './tests';
 import { bestForTests, refusNePeutTenter } from './skills';
 import type { PlayerText } from '../i18n/playerText';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
@@ -168,8 +168,8 @@ export function payChoiceCostBrass(wageBrass: number, factorId: string): number 
 
 /** Un contributeur à un Test d'équipage (un rôle tenu par un Personnage). `essential` → son DR compte DOUBLE. */
 export type CrewContributor = CrewContributorBase & (
-  /** Valeur de Compétence effective du contributeur pour ce Test. */
-  | { value: number; refus?: undefined }
+  /** Valeur de Compétence effective du contributeur pour ce Test, et son jet. */
+  | { value: number; jet: JetDeTest; refus?: undefined }
   /** Contributeur qui ne peut pas tenter son Test (`crewRoleValue().refus`) : aucun jet, `ECHEC_SANS_JET`. */
   | { value?: undefined; refus: PlayerText }
 );
@@ -213,7 +213,7 @@ export function resolveCrewTest(
   extraDR = 0,
 ): CrewTestResult {
   const contributions = contributors.map((c) => {
-    const t = c.refus != null ? ECHEC_SANS_JET : rollTest(c.value, c.difficulty ?? difficulty, rng, c.modifier ?? 0);
+    const t = c.refus != null ? ECHEC_SANS_JET : rollTest(c.jet, c.value, c.difficulty ?? difficulty, rng, c.modifier ?? 0);
     const sl = t.sl + (t.success ? (c.successDR ?? 0) : 0); // +DR de Talent sur un jet RÉUSSI (Commandant émérite)
     const counted = c.essential ? sl * 2 : sl;
     return { label: c.label, sl, essential: !!c.essential, counted, ...(c.refus != null ? { refus: c.refus } : {}) };
@@ -370,7 +370,7 @@ export function crewRoleValue(crew: Combatant, role: CrewRoleData, navigation: R
  *  aucune des Compétences du rôle (`peutTenter`, LDB 09 l.30) — la Compétence du rôle et son refus
  *  NOMMÉ, sans valeur : ce Test ne se lance pas (`ECHEC_SANS_JET`, #2588 Q1). */
 export type CrewRoleValue =
-  | { value: number; used?: RefDesignee; refus?: undefined }
+  | { value: number; used: RefDesignee; refus?: undefined }
   | { value?: undefined; used?: RefDesignee; refus: PlayerText };
 
 /** Modificateurs SUR LA CIBLE du jet d'un rôle d'équipage en combat : Précipitations sur le pont (MDG 13
@@ -419,14 +419,15 @@ export function resolveCrewTestByRoles(
   const essentialRole = findCrewTestTypeById(testTypeId)?.essential.id;
   const contributors: CrewContributor[] = assignments.map((a) => {
     const role = findCrewRoleById(a.roleId);
-    const rv = role ? crewRoleValue(a.crew, role, navigation) : undefined;
+    if (!role) throw new Error(`Test d'équipage : rôle inconnu « ${a.roleId} »`);
+    const rv = crewRoleValue(a.crew, role, navigation);
     return {
-      ...(rv?.refus != null ? { refus: rv.refus } : { value: rv?.value ?? 0 }),
-      modifier: role ? crewRoleTestMods(a.crew, role, navigation).reduce((s, m) => s + m.value, 0) : 0,
+      ...(rv.refus != null ? { refus: rv.refus } : { value: rv.value, jet: { porteur: a.crew.id, teste: { skill: rv.used } } }),
+      modifier: crewRoleTestMods(a.crew, role, navigation).reduce((s, m) => s + m.value, 0),
       essential: a.roleId === essentialRole,
-      label: role?.label ?? a.roleId,
+      label: role.label,
       difficulty: a.doubleRole ? easeDifficulty(difficulty, -2) : undefined,
-      successDR: role ? crewTalentDR(a.crew, role, navigation) : 0, // Commandant émérite (MDG 09 l.54)
+      successDR: crewTalentDR(a.crew, role, navigation), // Commandant émérite (MDG 09 l.54)
     };
   });
   const res = resolveCrewTest(contributors, difficulty, moraleScore, rng, (opts.understaffed ? UNDERCREW_DR : 0) + (opts.extraDR ?? 0));

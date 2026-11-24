@@ -909,10 +909,10 @@ function comptePositif(base: number, perSL: PerSL | undefined, ctx: ContexteDeRe
   return base + slBonus(ctx.sl, perSL) > 0 || (!!ctx.avantLeJet && !!perSL && perSL.amount > 0 && !perSL.onFailure);
 }
 
-/** L'acte de soin `act` lèverait-il quelque chose chez `c` : une séquelle qui attend l'Aide Médicale, un État qu'il
- *  déverrouille ? LDB 18 l.308-311 */
+/** L'acte de soin `act` lèverait-il quelque chose chez `c` : une séquelle qui attend l'Aide Médicale, un effet qui dure
+ *  tant que ses séquelles (`tantQue`), un État qu'il déverrouille ? LDB 18 l.308-311 ; AA 08 l.240 */
 function aideOperante(c: Combatant, act: 'medicalAid' | 'magic'): boolean {
-  return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || aUnVerrouLevePar(c, act);
+  return (c.traumas ?? []).some((tr) => tr.awaitingMedicalAid) || (c.activeEffects ?? []).some((e) => e.tantQue && 'sequelles' in e.tantQue) || aUnVerrouLevePar(c, act);
 }
 
 /** La raison pour laquelle l'op de RETRAIT ou de SOIN `o` n'a rien à ôter ni à rendre à `c` sous `ctx` (État, Trait

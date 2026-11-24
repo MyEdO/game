@@ -8,6 +8,7 @@ import { rollStep } from '../rollSeam';
 import { combatTestPenalty } from '../../engine/conditions';
 import { testValue, rawCombatTestBase, skillBaseValue } from '../../engine/skills';
 import { clampTarget, evaluateTest, rollTest } from '../../engine/tests';
+import { JET_DE_TEST } from '../../engine/tests.testkit';
 import { DIFFICULTY_MODIFIERS, type Combatant, type Difficulty } from '../../engine/types';
 import { ligneDe } from '../../engine/modLine.testkit';
 import { refLabel } from '../../data';
@@ -218,7 +219,7 @@ describe('SONDE PROMUE — la matrice complète des postures × crans de Difficu
           horsBornes += 1;
           expect(st.clamped, `${cle} : écrêtage non nommé`).toBe(borne.clamped);
           expect(st.target, `${cle} : la cible stockée doit être la cible JOUÉE`)
-            .toBe(rollTest(st.target!, 'intermediaire', battleRng()).target);
+            .toBe(rollTest(JET_DE_TEST, st.target!, 'intermediaire', battleRng()).target);
           expect(st.target, `${cle} : hors bornes, l’ancienne cible était l’autre nombre`).not.toBe(ancienne);
         } else {
           expect(st.clamped, `${cle} : écrêtage fantôme`).toBeUndefined();
@@ -246,7 +247,7 @@ describe('SONDE PROMUE — la matrice complète des postures × crans de Difficu
         seedBattleRng(31);
         // Ancienne formule EXACTE du site (`rollTest(testValue, difficulty, rng)`) — c'est elle qui
         // écrêtait déjà, et c'est pourquoi le JET ne bouge dans aucun des deux régimes.
-        const ancien = rollTest(testValue(att, { characteristic: 'force' }), d, battleRng());
+        const ancien = rollTest(JET_DE_TEST, testValue(att, { characteristic: 'force' }), d, battleRng());
         const cle = `${p.nom}/${d}`;
         expect(neuf.roll, `${cle} : d100`).toBe(ancien.roll);
         expect(neuf.target, `${cle} : cible`).toBe(ancien.target);
