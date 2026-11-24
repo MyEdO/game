@@ -324,13 +324,6 @@ export const LEGACY_VOCAB_SITES = [
   {
     fichier: "src/i18n/messages/fr.ts",
     motif: "désormais",
-    ancre: "(Les Résistances Empoisonné/Sonné sont désormais data-driven — leur journal vient des ops",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/i18n/messages/fr.ts",
-    motif: "désormais",
     ancre: "arrivé le premier sous `fleuve.localisation*` ; le moteur en porte désormais les HUIT, la navigation",
     lot: "L7 désormais",
     date: "2026-09-26",
@@ -549,13 +542,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/noyau/vessel-morale.hors-store.test.ts",
     motif: "désormais",
     ancre: "inchangé ; en cadence manuelle un équipage salarié convoque désormais le Conseil de bord (#229, ci-dessous).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "src/noyau/codex/registry.ts",
-    motif: "désormais",
-    ancre: "// PA / arme naturelle / traits conférés sont désormais des GameOps du `passive` (ap /",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

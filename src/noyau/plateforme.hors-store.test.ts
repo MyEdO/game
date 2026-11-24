@@ -21,12 +21,12 @@ describe('plateforme du noyau, sans hôte', () => {
 
 describe('brancherLeJeu — une pose par propriétaire', () => {
   it('une seconde pose sans retrait LÈVE, et le premier branchement reste en place', () => {
-    const premier = { get: () => ({}) as JeuDuNoyau, set: () => {} };
-    const second = { get: () => ({}) as JeuDuNoyau, set: () => {} };
-    brancherLeJeu(premier.get, premier.set, tablesDuJeu());
+    const premier = { get: () => ({}) as JeuDuNoyau, set: () => {}, suspendre: () => {} };
+    const second = { get: () => ({}) as JeuDuNoyau, set: () => {}, suspendre: () => {} };
+    brancherLeJeu(premier, tablesDuJeu());
     try {
-      expect(() => brancherLeJeu(second.get, second.set, tablesDuJeu())).toThrow(/déjà branché/);
-      expect(jeuBranche()).toEqual(premier);
+      expect(() => brancherLeJeu(second, tablesDuJeu())).toThrow(/déjà branché/);
+      expect(jeuBranche()).toBe(premier);
       expect(tablesPosees()).toBe(tablesDuJeu());
     } finally {
       debrancherLeJeu();

@@ -1,4 +1,4 @@
-import type { CharKey, Main } from '../engine/types';
+import type { CharKey, Difficulty, Main } from '../engine/types';
 import type { GenreDeDepot } from '../engine/activities';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShootingStanceKey } from './etat';
@@ -263,6 +263,11 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
   /** JOUE une offre NOMMÉE d'une entité (`ActionOfferte.id`) — l'exécuteur UNIQUE des gestes
    *  d'exploration ; `interagirAvecLEntite` n'en est que le raccourci « joue l'unique offre ». */
   jouerAction: (entityId: IdDEntiteDeScene, actionId: IdDActionDEntite) => void;
+  /** TENTE un Test de Compétence hors combat (LDB 12 l.7), sans conséquence, à la Difficulté que l'hôte décide
+   *  (LDB 12 l.137) : le héros `heroId` le jette, le meilleur du groupe sans lui (Soutien compris, LDB 12 l.187-200),
+   *  en toute cadence. Son issue est l'événement `TEST_JETE`. Refus DIT hors exploration, d'un héros hors du
+   *  groupe ou qui ne peut pas le tenter (LDB 09 l.30), et quand personne ne le peut. */
+  tenterLeTest: (skill: RefDesignee<IdDeCompetence>, difficulty: Difficulty, heroId?: IdDeHeros) => void;
   /** FOUILLER LA PIÈCE où se tient le groupe (`rooms.roomFocusAt`) — geste d'exploration du GROUPE :
    *  second déclencheur de la découverte des portes secrètes (`decouvertePorteSecrete.fouilleDeLaPiece`),
    *  coûte la maison `fouille-piece-minutes` une fois par geste (LDB 12 l.200). Refus DIT hors exploration,

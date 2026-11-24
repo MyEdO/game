@@ -45,7 +45,6 @@ function tireur(idNeuf: FabriqueDId): Combatant {
     id: 'tr-tireur',
   });
   const arb = itemFromTrappingById('arbalete', idNeuf, undefined, contexteDeNaissanceDObjet(h))!; // Recharge 1 + Empaleuse
-  arb.equipped = true;
   const carreaux = itemFromTrappingById('carreau', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   const lant = itemFromTrappingById('lanterne', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   lant.equipped = true; // PORTÉE → halo de lumière qui le suit (gate : un objet rangé n'éclaire pas)
@@ -142,7 +141,7 @@ const construireScene = (): Scene => buildScene({
         { statblock: MANNEQUIN, appearance: { species: 'humains-reiklander' }, pos: { x: 21, y: 2 } }, //  au loin dans le brouillard → invisible tant qu'on n'éclaire/approche pas
         { creature: { id: 'gobelin' }, pos: { x: 15, y: 7 } }, //         sparring : charge / Engagé / désengagement / deux armes
         { creature: { id: 'gobelin' }, pos: { x: 16, y: 9 } }, //         + cible plus petite que le Cheval → charge montée +20
-        { creature: { id: 'cheval' }, pos: { x: 5, y: 10 }, mount: true, side: 'allie' }, // monture libre à enfourcher
+        { creature: { id: 'cheval-de-monte' }, pos: { x: 5, y: 10 }, mount: true, side: 'allie' }, // monture libre à enfourcher
       ],
     },
   ],

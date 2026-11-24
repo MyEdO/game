@@ -95,14 +95,14 @@ import {
   armeNaturelleAccordee,
   estUneVraieArme,
   ficheDObjetPorte,
+  ganteletRetient,
   objetDeSlot,
-  isWeaponActive,
   uidDArme,
   type TrappingResolver,
 } from './items';
 import { bourseBrass, setBourseBrass } from './bourse';
 import { itemCapability } from './capabilities';
-import { objetSourceDeLArme } from './weaponLoad';
+import { isWeaponActive, objetSourceDeLArme } from './weaponLoad';
 import { retraitsDits } from './weaponDamage';
 import { effectivePsychTraits, isFrenzyCapable, suppressPsychTraits, type CibleEnVue, type PsychAffliction } from './psychology';
 import { cibleDeRef, estCibleType, identiteDeCiblage } from './psych/ciblage';
@@ -2242,15 +2242,19 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         if (objet && itemCapability(objet, 'disarmImmune')) {
           // ADE II 02 l.695.
           lines.push(t('op.desarmementImmunise', { name: nomDe(target), item: objet.label }));
-        } else if (tenue) {
-          if (!ctx.onLacher) lacherLArme(target, tenue);
-          else {
-            const tombe = laisserTomber(target, tenue, ctx.idNeuf);
-            if (tombe) ctx.onLacher(target, tombe);
-          }
-          lines.push(t('op.desarmement', { name: nomDe(target), item: tenue.label }));
-        } else {
+        } else if (!tenue) {
           lines.push(t('op.desarmementVain', { name: nomDe(target) }));
+        } else {
+          const retenue = ganteletRetient(target, tenue);
+          if (retenue) lines.push(t('op.ganteletRetient', { name: nomDe(target), item: tenue.label, mod: retenue.testMod }));
+          else {
+            if (!ctx.onLacher) lacherLArme(target, tenue);
+            else {
+              const tombe = laisserTomber(target, tenue, ctx.idNeuf);
+              if (tombe) ctx.onLacher(target, tombe);
+            }
+            lines.push(t('op.desarmement', { name: nomDe(target), item: tenue.label }));
+          }
         }
         break;
       }

@@ -103,7 +103,7 @@ export type ShootingStanceKey = keyof ShootingStance;
  *  (`frappePilotee`), qui porte en `reprise` le geste de l'IA qu'elle a devancé dans un tour décidé. */
 export type GesteDeSuite =
   | { kind: 'frappePilotee'; pa: PendingAttack; reprise?: GesteDeSuite }
-  | { kind: 'frappe'; cibleId: string; weaponUid?: string }
+  | { kind: 'frappe'; cibleId: string; weaponUid?: string; deuxArmes?: true }
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }
@@ -173,6 +173,9 @@ export interface BattleState {
    *  sa seule garde, `maybeRunEnemyTurn` son seul point de reprise (`combatFlow.ts`). Porté par `battle` : il naît
    *  et meurt avec le combat. */
   tourEnCours?: TourEnCours;
+  /** Les tireurs déjà passés de la boucle des Tirs rapides de l'IA (`runPreemptShots`) que le Destin suspend, repris par
+   *  `reprendreLesTirsRapides`. LDB 11 l.97-103 ; LDB 17 l.29-32 */
+  tirsRapidesSuspendus?: string[];
   /** Le set d'armes a-t-il déjà été changé ce Tour ? Plafond MAISON 1×/tour (dégainer = Action gratuite,
    *  cadence laissée au MJ, LDB 13 l.106). Reset au tour. */
   loadoutSwapped?: boolean;

@@ -9438,7 +9438,8 @@
           }
         ]
       }
-    }
+    },
+    "dose": "blessureCritique"
   },
   {
     "id": "potion-de-guerison",
@@ -9493,7 +9494,8 @@
     },
     "shape": {
       "id": "fiole"
-    }
+    },
+    "dose": "rencontre"
   },
   {
     "id": "potion-de-vitalite",
@@ -9590,7 +9592,8 @@
     },
     "consumableDuration": {
       "days": 1
-    }
+    },
+    "dose": "jour"
   },
   {
     "id": "soude-commune",
@@ -9634,7 +9637,8 @@
           }
         ]
       }
-    }
+    },
+    "dose": "rencontre"
   },
   {
     "id": "tonique-digestif",

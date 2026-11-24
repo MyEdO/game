@@ -30,13 +30,11 @@ import {
   jourImperial,
   libelleDeDistance,
   clockLabel,
-  marchandEnVue,
-  marcheEnVue,
   VERBE_DE_CHOIX,
   type AxeDuChoix,
   type FenetreAChoix,
   conditionLabel,
-  conversationEnVue,
+  libelleDuTestAnnonce,
   difficultyText,
   documentEnVue,
   lieuEnVue,
@@ -50,8 +48,9 @@ import {
   fenetreDuSoin,
   enTeteDuPorteur,
   ficheDuPorteur,
+  weaponStatParts,
   gestesDeLObjet,
-  interludeEnVue,
+  libelleDuDepot,
   porteurParId,
   locationLabel,
   refLabel,
@@ -62,6 +61,8 @@ import {
   type CombatEvent,
   type FaitApplique,
   type Equipe,
+  type Money,
+  type CoutDeLaValeur,
   type EntreeDeLaFiche,
   type IconId,
   type IdDeCouche,
@@ -220,15 +221,15 @@ export interface ZonesDeLEcran extends ZonesDeLaCreation, ZonesDeLaPartie {
    */
   'exploration.gestes': Bouton[];
   /**
-   * la conversation en cours, `conversationEnVue`, surface du noyau, quand aucune fenêtre ne la suspend : le nom de son
+   * la conversation en cours, `Projection.conversation`, quand aucune fenêtre ne la suspend : le nom de son
    * interlocuteur.
    */
   'dialogue.orateur': Ligne[];
   /** la réplique du nœud. */
   'dialogue.replique': Ligne[];
   /**
-   * chaque réponse visible en bouton qui la choisit, ce qu'elle annonce (son Test, son coût) avant son libellé, refusée
-   * avec sa raison.
+   * chaque réponse visible en bouton qui la choisit : son Test annoncé, son libellé puis son coût, refusée avec sa
+   * raison.
    */
   'dialogue.reponses': Bouton[];
   /**
@@ -476,11 +477,11 @@ function corpsDeLaFenetre(etat: Jeu, p: Projection, jetsRestants: Element[]): El
     ...patientDuSoin(etat),
     ...trajetsDeLaCarte(p),
     ...ecranDuLieu(etat, p),
-    ...echoppe(etat),
-    ...marche(etat),
+    ...echoppe(p),
+    ...marche(p),
     ...voyage(p),
     ...recitDuVoyage(p),
-    ...herosDeLInterlude(etat),
+    ...herosDeLInterlude(p),
     ...champDeBataille(etat),
     ...nuitDuRepos(p, cle),
     ...jetsRestants,
@@ -565,13 +566,17 @@ const saisieDeValeurs = (nom: string, libelle: string, valeurs: readonly { libel
 /** Un choix de valeurs en boutons, en liste au-delà de `CHOIX_EN_BOUTONS`. */
 const typeDuChoix = (n: number): Choix['type'] => (n > CHOIX_EN_BOUTONS ? 'liste' : 'choix');
 
-/** L'interlude ouvert (`interludeEnVue`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
- *  l'Événement de sa période en puces, puis chaque choix de l'Activité qu'il compose, la sienne pressée et chacune
- *  fermée avec sa raison, et le bouton qui la pratique ; ses Activités jouées par leur verbe, un bouton sans cible, un
- *  choix de ses cibles sinon, fermée avec sa raison ; son dépôt ; puis les dépôts en banque, chacun le bouton de son
- *  retrait. */
-function herosDeLInterlude(etat: Jeu): Element[] {
-  const itl = interludeEnVue(etat);
+/** Un nom dit avec ce qu'il coûte (`null` : rien), en PX ou en prix. */
+const avecCout = (nom: string, cout: CoutDeLaValeur | null): string =>
+  (cout === null ? nom : t('ecran.aCout', { nom, prix: 'px' in cout ? t('ecran.px', { px: cout.px }) : formatMoney(cout.prix) }));
+
+/** L'interlude ouvert (`Projection.interlude`) : chaque héros en entité, ses Activités restantes, ses PX, sa bourse et
+ *  l'Événement de sa période en puces, puis chaque choix de l'Activité qu'il compose, chaque valeur dite avec son coût,
+ *  la sienne pressée et chacune fermée avec sa raison, et le bouton qui la pratique ; ses Activités jouées par leur
+ *  verbe, un bouton sans cible, un choix de ses cibles sinon, chacune dite avec son prix et fermée avec sa raison ; son
+ *  dépôt, chaque genre nommé ; puis les dépôts en banque (`libelleDuDepot`), chacun le bouton de son retrait. */
+function herosDeLInterlude(p: Projection): Element[] {
+  const itl = p.interlude;
   if (!itl) return [];
   return [
     ligne('repit/semaines', t('ecran.repit.semaines', { semaines: itl.semaines, s: pluriel(itl.semaines) })),
@@ -580,23 +585,23 @@ function herosDeLInterlude(etat: Jeu): Element[] {
       elements: [
         puce('restantes', t('ecran.repit.restantes', { restantes: h.restantes, recues: h.recues }), null),
         puce('px', t('ecran.repit.px'), String(h.px)),
-        puce('bourse', t('ecran.repit.bourse'), h.bourse),
-        ...(h.evenement ? [puce('evenement', h.evenement, null)] : []),
+        puce('bourse', t('ecran.repit.bourse'), formatMoney(h.bourse)),
+        ...(h.evenement ? [puce('evenement', h.evenement.nom, null)] : []),
         ...h.composition.map((c): Choix => ({
           type: typeDuChoix(c.valeurs.length), id: c.axe, ton: 'neutre', libelle: c.libelle, focus: false, refus: null,
-          valeurs: c.valeurs.map((v, i) => boutonDeGeste(`${c.axe}/${i}`, v.libelle, v.geste, v.refus, v.choisie)),
+          valeurs: c.valeurs.map((v, i) => boutonDeGeste(`${c.axe}/${i}`, avecCout(v.libelle, v.cout), v.geste, v.refus, v.choisie)),
         })),
         ...(h.pratiquer ? [boutonDuNoyau('pratiquer', h.pratiquer)] : []),
         ...h.activites.map((a): Bouton | Choix => (a.cible
-          ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDuNoyau(`${a.id}/${i}`, g)) }
+          ? { type: typeDuChoix(a.gestes.length), id: a.id, ton: 'neutre', libelle: a.libelle, focus: false, refus: a.refus, valeurs: a.gestes.map((g, i) => boutonDeGeste(`${a.id}/${i}`, avecCout(g.libelle, g.cout), g.geste, g.refus)) }
           : boutonDuNoyau(a.id, a.gestes[0]))),
         formulaireDuNoyau(`depot/${h.id}`, t('ecran.repit.depot'), h.depot, h.depot.refus ? [] : [
-          saisieDeValeurs('genre', t('ecran.repit.genre'), h.depot.genres),
+          saisieDeValeurs('genre', t('ecran.repit.genre'), h.depot.genres.map((g) => ({ ...g, libelle: t(`interlude.genre.${g.valeur}`) }))),
           { type: 'saisieNombre', id: 'montant', ton: 'neutre', nom: 'montant', optionnel: false, libelle: t('ecran.repit.montant'), valeur: h.depot.pas, min: h.depot.pas, max: h.depot.max, pas: h.depot.pas },
         ]),
       ],
     })),
-    ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDuNoyau(String(i), d)) } satisfies Entite] : []),
+    ...(itl.depots.length ? [{ type: 'entite', id: 'repit/depots', ton: 'neutre', nom: t('ecran.repit.depots'), elements: itl.depots.map((d, i) => boutonDeGeste(String(i), libelleDuDepot(d), d.geste, d.refus)) } satisfies Entite] : []),
   ];
 }
 
@@ -726,35 +731,34 @@ function recitDuVoyage(p: Projection): Element[] {
   ];
 }
 
-/** L'échoppe ouverte (`marchandEnVue`) : la bourse du groupe ; chaque famille de l'étal en entité, chaque article en
+/** L'échoppe ouverte (`Projection.marchand`) : la bourse du groupe ; chaque famille de l'étal en entité, chaque article en
  *  bouton qui en met une unité au panier, son prix au libellé, pressé quand le panier en tient ; le panier, chaque ligne
  *  en bouton qui en ôte une unité, et le paiement de son total ; chaque héros et ses possessions, chacune en bouton qui la
  *  met au lot ou l'en retire, son gain au libellé ; puis la vente du lot. */
-function echoppe(etat: Jeu): Element[] {
-  const m = marchandEnVue(etat);
+function echoppe(p: Projection): Element[] {
+  const m = p.marchand;
   if (!m) return [];
-  const avecPrix = (nom: string, prix: string | null) => (prix === null ? nom : t('ecran.echoppe.article', { nom, prix }));
   return [
-    puce('bourse', t('ecran.bourse'), m.bourse),
+    puce('bourse', t('ecran.bourse'), formatMoney(m.bourse)),
     ...m.etal.map((f): Entite => ({
       type: 'entite', id: `etal/${f.id}`, ton: 'neutre', nom: f.nom,
       elements: f.articles.map((a) => {
         const nom = a.recoursDeGuilde ? t('mf.guildeArticleARechercher', { article: a.nom }) : a.nom;
-        return boutonDeGeste(a.id, avecPrix(nom, a.prix), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0);
+        return boutonDeGeste(a.id, avecCout(nom, a.prix && { prix: a.prix }), a.ajouter.geste, a.ajouter.refus, a.auPanier > 0);
       }),
     })),
     {
       type: 'entite', id: 'panier', ton: 'neutre', nom: t('ecran.echoppe.panier'),
       elements: [
-        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecPrix(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal), l.oter, null)),
-        boutonDeGeste('payer', t('ecran.echoppe.payer', { total: m.panier.total }), m.panier.payer.geste, m.panier.payer.refus),
+        ...m.panier.lignes.map((l) => boutonDeGeste(l.id, avecCout(t('ecran.echoppe.ligne', { nom: l.nom, qty: l.qty }), l.sousTotal && { prix: l.sousTotal }), l.oter, null)),
+        boutonDeGeste('payer', t('ecran.echoppe.payer', { total: formatMoney(m.panier.total) }), m.panier.payer.geste, m.panier.payer.refus),
       ],
     },
     ...m.vente.heros.map((h): Entite => ({
       type: 'entite', id: `vente/${h.id}`, ton: 'neutre', nom: h.nom,
-      elements: h.possessions.map((p) => boutonDeGeste(p.uid, avecPrix(p.nom, p.gain), p.basculer, p.refus, p.auLot)),
+      elements: h.possessions.map((o) => boutonDeGeste(o.uid, avecCout(o.nom, { prix: o.gain }), o.basculer, o.refus, o.auLot)),
     })),
-    boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: m.vente.total }), m.vente.vendre.geste, m.vente.vendre.refus),
+    boutonDeGeste('vendre', t('ecran.echoppe.vendre', { total: formatMoney(m.vente.total) }), m.vente.vendre.geste, m.vente.vendre.refus),
   ];
 }
 
@@ -891,26 +895,26 @@ function voyage(p: Projection): Element[] {
   ];
 }
 
-/** Le marché de cargaison ouvert (`marcheEnVue`) : la bourse, chaque offre en entité, son Enc disponible, son prix
+/** Le marché de cargaison ouvert (`Projection.marche`) : la bourse, chaque offre en entité, son Enc disponible, son prix
  *  par Enc, la qualité de son vin ou son évaluation, puis le bouton qui en compose l'achat, pressé quand il se compose,
  *  et son estimation (le porteur, l'Enc et la conclusion de l'achat en composition sont des réglages de la fenêtre) ;
  *  chaque lot des porteurs du groupe en entité, son porteur et son Enc, son prix de base, sa vente, son bradage, puis
  *  son transfert vers un porteur co-localisé. */
-function marche(etat: Jeu): Element[] {
-  const m = marcheEnVue(etat);
+function marche(p: Projection): Element[] {
+  const m = p.marche;
   if (!m) return [];
   const enc = (n: number) => t('ecran.marche.enc', { enc: n });
-  const parEnc = (prix: string) => puce('prix', t('ecran.marche.prix'), t('ecran.marche.parEnc', { prix }));
+  const parEnc = (prix: Money) => puce('prix', t('ecran.marche.prix'), t('ecran.marche.parEnc', { prix: formatMoney(prix) }));
   return [
-    puce('bourse', t('ecran.bourse'), m.bourse),
+    puce('bourse', t('ecran.bourse'), formatMoney(m.bourse)),
     ...m.offres.map((o): Entite => ({
       type: 'entite', id: `offre/${o.id}`, ton: 'neutre', nom: o.nom,
       elements: [
         puce('dispo', t('ecran.marche.dispo'), enc(o.dispo)),
-        parEnc(o.prix),
-        ...(o.qualite ? [{ ...puce('qualite', t('ecran.marche.qualite'), o.qualite.fiable ? o.qualite.texte : t('ecran.marche.incertaine', { qualite: o.qualite.texte })), ton: o.qualite.fiable ? 'neutre' : 'alerte' } satisfies Puce] : []),
+        parEnc(o.prixParEnc),
+        ...(o.qualite ? [{ ...puce('qualite', t('ecran.marche.qualite'), o.qualite.fiable ? o.qualite.nom : t('ecran.marche.incertaine', { qualite: o.qualite.nom })), ton: o.qualite.fiable ? 'neutre' : 'alerte' } satisfies Puce] : []),
         ...(o.evaluer ? [boutonDuNoyau('evaluer', { ...o.evaluer, libelle: t('ecran.marche.evaluer') })] : []),
-        puce('estimation', t('ecran.marche.estimation'), o.acheter.estimation),
+        puce('estimation', t('ecran.marche.estimation'), formatMoney(o.acheter.estimation)),
         boutonDeGeste('acheter', t('ecran.marche.acheter'), o.acheter.geste, o.acheter.refus, o.acheter.compose),
       ],
     })),
@@ -918,7 +922,7 @@ function marche(etat: Jeu): Element[] {
       type: 'entite', id: `lot/${l.uid}`, ton: 'neutre', nom: l.nom,
       elements: [
         puce('porteur', c.nom, enc(l.enc)),
-        parEnc(l.prix),
+        parEnc(l.prixParEnc),
         boutonDuNoyau('vendre', { ...l.vendre, libelle: t('ecran.marche.vendre') }),
         boutonDuNoyau('brader', { ...l.brader, libelle: t('ecran.marche.brader') }),
         formulaireDuNoyau('deplacer', t('ecran.marche.deplacer'), { geste: { verbe: l.deplacer.geste.verbe, args: [l.uid] }, refus: l.deplacer.refus }, l.deplacer.refus ? [] : [
@@ -1281,7 +1285,7 @@ function porteurDeLaFiche(etat: Jeu, f: FicheDuPorteur): Entite {
       ...(f.carriere === null ? [] : [terme(puce('carriere', f.carriere.libelle, null), f.carriere)]),
       jauge('blessures', t('ecran.jauge.blessures'), f.blessures),
       ...points,
-      ...(etat.party.some((h) => h.id === f.id) ? [puce('bourse', t('ecran.bourse'), f.bourse)] : []),
+      ...(etat.party.some((h) => h.id === f.id) ? [puce('bourse', t('ecran.bourse'), formatMoney(f.bourse))] : []),
       ...etatsEnPuces(f.etats),
       ...(f.profil === null ? [] : boutonDuRenvoi(f.profil)),
     ],
@@ -1333,12 +1337,12 @@ function sectionsDeLaFiche(f: FicheDuPorteur, ouverte: FicheOuverte): Record<key
       type: 'entite', id: `arme/${i}`, ton: 'neutre', nom: a.libelle,
       elements: [
         puce('test', t('ecran.statbloc.test'), String(a.valeur)),
-        ...a.stats.map((x, j) => puce(`stat/${j}`, x, null)),
+        ...weaponStatParts(a.profil).map((x, j) => puce(`stat/${j}`, x, null)),
         ...a.qualites.map((x, j) => terme(puce(`qualite/${j}`, x.libelle, null), x)),
         ...boutonDuRenvoi(a),
       ],
     })),
-    armure: f.armure.map((a, i) => puce(`armure/${i}`, a.localisation, String(a.pa))),
+    armure: f.armure.map((a, i) => puce(`armure/${i}`, a.localisation.nom, String(a.pa))),
     traits: entrees('trait', f.traits),
     mutations: entrees('mutation', f.mutations),
     competences: f.competences
@@ -1392,8 +1396,8 @@ function objetDeLaFiche(etat: Jeu, f: FicheDuPorteur, ouverte: FicheOuverte): En
   };
   const elements: (Element | null)[] = [
     p.nombre > 1 ? puce('nombre', t('ecran.fiche.nombre', { nombre: p.nombre }), null) : null,
-    p.argent === null ? null : puce('argent', p.argent, null),
-    p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant }), null),
+    p.argent === null ? null : puce('argent', formatMoney(p.argent), null),
+    p.contenant === null ? null : puce('contenant', t('ecran.objet.contenant', { contenant: p.contenant.nom }), null),
     ...boutonDuRenvoi(p),
     simple('porter', g.porter?.porte),
     ...(g.mains ? (['main', 'secondaire'] as const).map((m) => boutonDeGeste(m, t(`ecran.objet.${m}`), g.mains![m].geste, g.mains![m].refus, g.mains![m].tenue)) : []),
@@ -1458,7 +1462,7 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
     'exploration.gestes': (fenetre ? [] : p.exploration?.gestes.liste ?? []).map((g, i): Bouton => ({
       type: 'bouton', id: `exploration/${i}`, libelle: g.libelle, jeu: { suite: g.gestes.map((x) => ({ type: x.verbe, args: x.args })) }, presse: false, focus: false, detail: null, touche: null, refus: g.refus ?? null,
     })),
-    ...zonesDuDialogue(etat, fenetre !== null),
+    ...zonesDuDialogue(p, fenetre !== null),
     'journal.titre': c ? [{ type: 'entite', id: 'journal', ton: 'neutre', nom: t('ecran.journal'), elements: [{ type: 'icone', id: 'icone', icone: 'navigation/carnet' }] }] : [],
     'groupe.heros': c ? [] : herosDuGroupe(etat, fiche, gestesSurLesCartes, jetsSurLesCartes),
     ...zonesDeLaFiche(etat, fiche),
@@ -1467,16 +1471,16 @@ export function zonesDeLEcran(etat: Jeu, p: Projection, fenetre: FenetreADessine
   };
 }
 
-/** Les zones de la conversation en cours (`conversationEnVue`), quand aucune fenêtre ne la suspend : son
- *  interlocuteur, sa réplique, et chaque réponse visible en bouton qui la choisit, ce qu'elle annonce (son Test, son
- *  coût) avant son libellé, refusée avec sa raison. */
-function zonesDuDialogue(etat: Jeu, fenetreOuverte: boolean): Pick<ZonesDeLEcran, 'dialogue.orateur' | 'dialogue.replique' | 'dialogue.reponses'> {
-  const v = fenetreOuverte ? null : conversationEnVue(etat);
+/** Les zones de la conversation en cours (`Projection.conversation`), quand aucune fenêtre ne la suspend : son
+ *  interlocuteur, sa réplique, et chaque réponse visible en bouton qui la choisit : son Test annoncé
+ *  (`libelleDuTestAnnonce`), son libellé, puis son coût, refusée avec sa raison. */
+function zonesDuDialogue(p: Projection, fenetreOuverte: boolean): Pick<ZonesDeLEcran, 'dialogue.orateur' | 'dialogue.replique' | 'dialogue.reponses'> {
+  const v = fenetreOuverte ? null : p.conversation;
   return {
-    'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur)] : [],
+    'dialogue.orateur': v?.orateur ? [ligne('orateur', v.orateur.nom)] : [],
     'dialogue.replique': v?.replique ? [ligne('replique', v.replique)] : [],
     'dialogue.reponses': (v?.reponses ?? []).map((r): Bouton => ({
-      type: 'bouton', id: `reponse/${r.id}`, libelle: [r.annonce, r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
+      type: 'bouton', id: `reponse/${r.id}`, libelle: [r.test && libelleDuTestAnnonce(r.test), r.label, r.cost && formatMoney(r.cost)].filter(Boolean).join(' '),
       jeu: { type: r.geste.verbe, args: r.geste.args }, presse: false, focus: false, detail: null, touche: null, refus: r.refus ?? null,
     })),
   };

@@ -66,11 +66,13 @@ describe('Commerce terrestre MSRC 13 — ACHAT (l.22-131)', () => {
 
   it('Révélation de la qualité du Vin (l.95) : succès → vraie qualité ; échec → fausse indication décalée du DR', () => {
     const bon = rollWineQuality(seq(6)).qualite;
-    expect(wineEvalReveal(bon, true, 2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Bon' });
-    // Échec DR −2 → décalé de 2 échelons vers le haut (idx 3+2=5) = « Supérieur » (fausse indication).
-    expect(wineEvalReveal(bon, false, -2)).toEqual({ trueLabel: 'Bon', shownLabel: 'Supérieur' });
+    expect([bon.rang, bon.libelles[bon.rang]]).toEqual([3, 'Bon']);
+    expect(wineEvalReveal(bon, true, 2)).toBe(3);
+    expect(wineEvalReveal(bon, false, -2)).toBe(5);
+    expect(bon.libelles[5]).toBe('Supérieur');
     const superieur = rollWineQuality(seq(10)).qualite;
-    expect(wineEvalReveal(superieur, false, -2)).toEqual({ trueLabel: 'Supérieur', shownLabel: 'Bon' });
+    expect([superieur.rang, superieur.libelles[superieur.rang]]).toEqual([5, 'Supérieur']);
+    expect(wineEvalReveal(superieur, false, -2)).toBe(3);
   });
 
   it('Marchandage : marchand 2d10+30 (l.129) ; lot partiel +10 %, mini 10 Enc (l.131)', () => {

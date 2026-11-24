@@ -14,6 +14,7 @@ import { actorIn } from './monde/combatants';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { Get, Set } from './flowTypes';
 import { nomDe } from '../engine/nom';
+import { TIME_COST } from '../engine/timeCost';
 
 interface EffetDEtatEnFinDeRound {
   effet: TriggeredEffect;
@@ -60,7 +61,10 @@ function traiterLAgonie(c: Combatant): string[] {
   return [...log, t(nom, { name: nomDe(c) })];
 }
 
-export function outOfCombatUpkeep(get: Get, set: Set, rounds: number): Applique {
+/** Les Rounds que `minutes` font passer hors combat, joués par l'entretien du groupe. */
+export function jouerLEntretienDesRoundsEcoules(get: Get, set: Set, minutes: number): Applique {
+  const rounds = Math.floor(minutes / TIME_COST.combatRound);
+  if (get().battle || rounds <= 0) return undefined;
   return reprendreEntretienDesRounds(get, set, { rounds, porteurs: get().party.map((c) => c.id), index: 0, roundActif: false });
 }
 

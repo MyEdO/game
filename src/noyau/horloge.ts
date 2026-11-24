@@ -1,8 +1,8 @@
 /** Horloge de jeu : l'avance du temps et ce qui la suit hors combat (#668, #T2, #T3). */
-import { comptePasDifferes, confierLaSuite, fireScheduledEffects, OPS_DIFFEREES, pushReveal, type Applique } from './combatEffects';
+import { comptePasDifferes, confierLaSuite, fireScheduledEffects, OPS_DIFFEREES, pushReveal } from './combatEffects';
 import { purgeSurAvanceDHorloge } from './upkeep';
 import { TIME_COST } from '../engine/timeCost';
-import { outOfCombatUpkeep, reprendreEntretienDesRounds } from './outOfCombatUpkeep';
+import { jouerLEntretienDesRoundsEcoules, reprendreEntretienDesRounds } from './outOfCombatUpkeep';
 import { releaseSeatsOfDowned } from './combatFlow';
 import { type DeferredUpkeepTest, runDailyUpkeep } from './upkeep';
 import { nightBands } from './nightBands';
@@ -23,12 +23,6 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
       purgeSurAvanceDHorloge(get, set, minutes);
     },
   } satisfies FabriqueDuNoyau;
-}
-
-export function jouerLEntretienDesRoundsEcoules(get: Get, set: Set, minutes: number): Applique {
-  const rounds = Math.floor(minutes / TIME_COST.combatRound);
-  if (!get().battle && rounds > 0) return outOfCombatUpkeep(get, set, rounds);
-  return undefined;
 }
 
 /** Prépare l'entretien quotidien du pas d'horloge après les Rounds. */

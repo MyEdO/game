@@ -1310,7 +1310,7 @@ export const actorRefSchema = enumNomme(LIBELLES_D_ACTEUR);
 
 /** Cible d'une feuille `ops` nommée par une chaîne (`EffectOp.on`, `engine/flowCore.ts`) : celles d'une scène
  *  (`CIBLES_D_EFFET_DE_SCENE`, `noyau/combatEffects.ts`), puis l'acteur du déclenché. */
-export const cibleDeFeuilleSchema = enumNomme({ groupe: 'Tout le groupe', heros: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard', ...LIBELLES_D_ACTEUR });
+export const cibleDeFeuilleSchema = enumNomme({ groupe: 'Tout le groupe', heros: 'Un héros', navire: 'Le navire', membreAuHasard: 'Un membre du bord au hasard', testeur: 'Le héros qui a jeté le Test', ...LIBELLES_D_ACTEUR });
 
 /** `Relation | Camp` (`src/engine/relations.ts`) — union complète lue par la Condition `relation`.
  *  Resserré depuis `z.string()` (variantes `domains`/`talents`/`etats`/`spells`) : les 9 JSON ne
@@ -2352,7 +2352,9 @@ export function arbreDeFlow<E, T, C, D>(
   coutDAvantage: z.ZodType<C>,
   test: z.ZodType<T>,
 ): z.ZodType<ArbreDeFlow<E, T, C, D>> {
-  const flow: z.ZodType<ArbreDeFlow<E, T, C, D>> = z.lazy(() => branchesDeFlow(feuille, condition, coutDAvantage, test, flow));
+  // Les branches se bâtissent une fois : un schéma dérivé de l'arbre (`superRefine` d'une racine) partage ses nœuds.
+  let branches: z.ZodType<ArbreDeFlow<E, T, C, D>> | undefined;
+  const flow: z.ZodType<ArbreDeFlow<E, T, C, D>> = z.lazy(() => (branches ??= branchesDeFlow(feuille, condition, coutDAvantage, test, flow)));
   return flow;
 }
 
@@ -2394,7 +2396,8 @@ function effetDOperations<S extends z.ZodType>(operations: S) {
     untilTime: z.number().optional(),
     label: z.string().optional(),
     pendantJours: formulaSchema.optional(),
-  }).refine((v) => v.untilTime === undefined || v.pendantJours === undefined, { message: 'durée EXCLUSIVE : « untilTime » (échéance bakée) OU « pendantJours » (jours tirés à l’application), jamais les deux.' }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} }, pendantJours: { label: "pendant (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }), 'construire', 'effectOp');
+  }).refine((v) => v.untilTime === undefined || v.pendantJours === undefined, { message: 'durée EXCLUSIVE : « untilTime » (échéance bakée) OU « pendantJours » (jours tirés à l’application), jamais les deux.' })
+    .refine((v) => v.on !== 'testeur' || v.heroId === undefined, { path: ['heroId'], message: 'cible EXCLUSIVE : « testeur » vise le héros qui a jeté le Test, sans « heroId ».' }), { type: { label: "type"  }, ops: { label: "opérations" }, on: { label: "cible"  }, heroId: { label: "héros" , texte: { regime: "technique"} }, untilTime: { label: "échéance" }, label: { label: "libellé" , texte: { regime: "designation"} }, pendantJours: { label: "pendant (jours)" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }), 'construire', 'effectOp');
 }
 
 function construire<R extends Regimes>(regimes: R) {

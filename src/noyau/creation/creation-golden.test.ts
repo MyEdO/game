@@ -68,6 +68,7 @@ const TEMOINS: Record<string, () => CreatorDraft> = {
     pettySpells: ['putrefaction', 'choc'],
   }),
   'Béni': () => brouillon(55, 'humains-reiklander', 'pretre', {
+    speciesTalentChoices: { [adresseDeCreation.especeTalent(0)]: { id: 'affable' } },
     careerTalent: { id: 'beni', spec: 'ulric' },
   }),
   'A ou B à joker d\'espèce + Talent aléatoire': () => brouillon(66, 'halflings-piedpaille', 'erudit', {

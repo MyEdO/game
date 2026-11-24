@@ -38,7 +38,7 @@ import { porteeDeTir, type TrappingResolver } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
 import { effectiveChar } from '../../engine/characteristics';
-import { finite, expectedDamage, isNeutralized, spellActionValue, spellIsOffensive, spellTargetHarm, opValue } from './aiSpellValue';
+import { finite, expectedDamage, hitProbability, isNeutralized, spellActionValue, spellIsOffensive, spellTargetHarm, opValue } from './aiSpellValue';
 import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
 import { spellEffectOps } from '../../engine/flowCore';
 
@@ -103,9 +103,9 @@ export type EnemyAction =
   | { kind: 'incantation'; targetId: string; spell: string } // incantation offensive sur la cible
   | { kind: 'incantationDeZone'; spell: string; center: Pt } // sort de ZONE (ZdE) auto-posé sur un point couvrant ≥2 héros
   | { kind: 'focalisation'; spell: string } // Focalisation (LDB 46) d'un sort offensif infaisable en un seul jet
-  | { kind: 'tir'; targetId: string; weaponUid?: string } // tir depuis la position courante, avec l'arme évaluée (`pickAttackWeaponList`)
+  | { kind: 'tir'; targetId: string; weaponUid?: string; deuxArmes?: true } // tir depuis la position courante, avec l'arme évaluée (`pickAttackWeaponList`) ; `deuxArmes` : des deux armes (LDB 10 l.767-773)
   | { kind: 'rechargement' } // recharge une arme à Recharge déchargée (Test étendu de Projectiles, LDB 62 l.333)
-  | { kind: 'melee'; targetId: string; weaponUid?: string }
+  | { kind: 'melee'; targetId: string; weaponUid?: string; deuxArmes?: true }
   | { kind: 'poussee'; targetId: string; to: Pt }
   | { kind: 'deplacement'; to: Pt; thenTargetId: string; fuite?: true } // approche ; attaque après si adjacent ; `fuite` : fuite forcée (`fleeMove`)
   | { kind: 'liberation'; state: 'empetre' | 'en-flammes' } // se libérer / se rouler au sol (LDB 16 l.66/84)
@@ -194,6 +194,9 @@ export interface EnemyTurnInput {
    *  (Charge, Course) : une case n'est donc évaluée qu'UNE fois pour toute la décision. ABSENT (tests
    *  purs) = un mémo local à l'appel est créé — mêmes verdicts, mémoïsation seulement moins large. */
   losMemo?: LosMemo;
+  /** La paire du Maniement de deux armes de l'ennemi (`paireDesDeuxArmes`), surfacée par l'appelant impur. ABSENT =
+   *  aucune attaque des deux armes. LDB 10 l.767-773 */
+  paireDesDeuxArmes?: { principale: Weapon; secondaire: Weapon };
   /** MÉMO des distances à fermer de la DÉCISION en cours, par cible (`distanceAFermer`) : posé et repassé comme
    *  `losMemo`. ABSENT (tests purs) = un mémo local à l'appel. */
   memoDesApproches?: MemoDesApproches;
@@ -628,10 +631,11 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // #537 : `banRanged` (duel judiciaire, NADJ 06 l.181) ne vise QUE les armes, jamais les sorts offensifs.
   const hasRanged = !hasAnyOffensiveSpell && !input.banRanged && enemy.weapons.some((w) => w.type === 'distance');
   const hasMeleeWeapon = enemy.weapons.some((w) => w.type === 'melee');
-  // Rechargement (LDB 62 l.333) : une arme à Recharge DÉCHARGÉE ne peut pas tirer → il faut recharger d'abord
-  // (Test étendu de Projectiles). Cycle `loaded` unifié héros/ennemi (spawn chargé, tir → déchargé).
-  const rangedW = enemy.weapons.find((w) => w.type === 'distance');
-  const reloadNeeded = hasRanged && !!rangedW && (rangedW.reload ?? 0) > 0 && !weaponLoaded(enemy, rangedW);
+  // Chaque arme de tir TENUE (main principale ET secondaire) a sa charge : seules les armes prêtes tirent, et
+  // l'IA ne recharge que si aucune ne l'est. LDB 62 l.335 ; #4835
+  const armesDeTir = hasRanged ? enemy.weapons.filter((w) => w.type === 'distance') : [];
+  const armesPretes = armesDeTir.filter((w) => weaponLoaded(enemy, w));
+  const reloadNeeded = armesDeTir.length > 0 && armesPretes.length === 0;
 
   // Un ennemi sans AUCUN moyen d'agir (aucun sort jouable NI arme) passe la main : un sort (offensif OU
   // soutien) compte comme une capacité d'action → un lanceur de pur soutien DOIT pouvoir agir. Servir une
@@ -654,6 +658,11 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(enemy), h.pos!, footprintN(h));
   const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'distance' ? porteeDeTir(resolveTrapping, enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
   const shootPool = maxWeaponRange > 0 ? shootableHeroes.filter((h) => rangeBandModifier(fpDist(h), maxWeaponRange, mpt) != null) : shootableHeroes;
+  // Cible dans une bande de portée de CETTE arme (sans portée chiffrée : pas de gate).
+  const aPorteeDe = (w: Weapon, cible: Combatant): boolean => {
+    const portee = porteeDeTir(resolveTrapping, enemy, w);
+    return portee == null || portee <= 0 || rangeBandModifier(fpDist(cible), portee, mpt) != null;
+  };
   // Frénésie (LDB 21 l.33) : la seule Action est un Test de Capacité de Combat / Athlétisme — ni tir ni sort.
   const frenzied = isFrenzied(enemy);
   // LdV vers un point (centre de ZdE) — réutilisé par le gate `canCast` et l'énumération de zone.
@@ -675,15 +684,16 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Tir en étant *Engagé* : IMPOSSIBLE sauf Atout d'arme Pistolet (`LDB 14 l.41`) — veto de RÈGLE, à côté
   // de la préférence tactique « une arme de mêlée en main et un adversaire adjacent → on frappe ». MÊME
   // porte que la voie joueur (`firedAttackBlock`, combatFlow).
-  const engagedNoFire = isEngaged(enemy) && !!rangedW && !canFireWhileEngaged(rangedW);
-  const canShoot = !frenzied && hasRanged && !reloadNeeded && !engagedNoFire && !(adjacentFoes.length > 0 && hasMeleeWeapon) && shootPool.length > 0;
+  const armesTirables = isEngaged(enemy) ? armesPretes.filter((w) => canFireWhileEngaged(w)) : armesPretes;
+  const tirPossible = armesTirables.length > 0 && !(adjacentFoes.length > 0 && hasMeleeWeapon);
+  const canShoot = !frenzied && tirPossible && shootPool.length > 0;
   // Structures que l'arme à distance peut viser, chargée ou non (AA 10 l.138) : FACE exposée en vue (on vise
   // le côté tireur, la case derrière la structure est masquée par son arête), arme qui l'ABÎME
   // (`structureImmune`, ADE II 08 l.296-300), en portée. Vivier de l'anti-immobilisme, de la recharge et du tir. `LDB 21 l.33`
-  const shootableStructures = !frenzied && hasRanged && rangedW
+  const shootableStructures = !frenzied && armesDeTir.length > 0
     ? (input.structures ?? []).filter((st) => st.pos
       && los.clear(pos, { ...structureAimCell(pos, st), z: pos.z })
-      && !structureImmune(rangedW, st)
+      && armesDeTir.some((w) => !structureImmune(w, st))
       && (maxWeaponRange <= 0 || rangeBandModifier(fpDist(st), maxWeaponRange, mpt) != null))
     : [];
 
@@ -1136,7 +1146,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     }
   }
 
-  // Recharger (LDB 62 l.333) : arme à Recharge déchargée + cible en vue/portée (héros ou structure), sauf
+  // Recharger (LDB 62 l.333) : aucune arme de tir tenue prête + cible en vue/portée (héros ou structure), sauf
   // attaque de mêlée justifiée. Utilité neutre (préparation) — préféré seulement faute de tir/mêlée meilleurs.
   // Un frénétique NE recharge PAS (Frénésie LDB 21 l.33 : seule Action = Test de CC/Athlétisme → mêlée).
   if (!frenzied && reloadNeeded && (shootPool.length > 0 || shootableStructures.length > 0) && !(adjacentFoes.length > 0 && hasMeleeWeapon)) {
@@ -1144,10 +1154,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     committingPrep = true; // un tireur recharge sur place plutôt que de foncer en mêlée
   }
   // Tir (hors Combat rapproché, cible visible) : UN candidat PAR cible tirable (Lot 3 — multi-cibles).
-  if (canShoot && rangedW) {
+  // UN candidat par arme prête et par cible à sa portée : l'argmax départage les mains (LDB 14 l.78).
+  if (canShoot) {
     const pool = restrict(fpick ? [fpick].filter((h) => shootPool.includes(h)) : shootPool);
-    for (const t of pool) {
-      candidates.push({ action: { kind: 'tir', targetId: t.id, ...(rangedW.uid ? { weaponUid: rangedW.uid } : {}) }, kind: 'tir', utility: attackUtility(t, { kind: 'distance', weapon: rangedW, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
+    for (const w of armesTirables) for (const t of pool) {
+      if (!aPorteeDe(w, t)) continue;
+      candidates.push({ action: { kind: 'tir', targetId: t.id, ...(w.uid ? { weaponUid: w.uid } : {}) }, kind: 'tir', utility: attackUtility(t, { kind: 'distance', weapon: w, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
     }
   }
   // === MÊLÉE / APPROCHE / REPOSITION =================================================================
@@ -1186,11 +1198,11 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   }
 
   // AA 10 l.94–98, l.138 ; ADE II 08 l.249, l.258, l.292, l.296–300.
-  const canFireStruct = !reloadNeeded && !engagedNoFire && !(adjacentFoes.length > 0 && hasMeleeWeapon);
-  if (canFireStruct && rangedW) for (const st of shootableStructures) {
+  if (tirPossible) for (const w of armesTirables) for (const st of shootableStructures) {
+    if (structureImmune(w, st) || !aPorteeDe(w, st)) continue;
     candidates.push({
-      action: { kind: 'tir', targetId: st.id, ...(rangedW.uid ? { weaponUid: rangedW.uid } : {}) },
-      kind: 'tir', utility: attackUtility(st, { kind: 'distance', weapon: rangedW, dist: fpDist(st) }),
+      action: { kind: 'tir', targetId: st.id, ...(w.uid ? { weaponUid: w.uid } : {}) },
+      kind: 'tir', utility: attackUtility(st, { kind: 'distance', weapon: w, dist: fpDist(st) }),
       targetId: st.id, coord: st.pos!,
     });
   }
@@ -1209,6 +1221,33 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       });
     } else if (approche && !committingPrep) {
       candidates.push(...approcheDe(cible, attackUtility(cible, { kind: 'melee', weapon: approche })));
+    }
+  }
+
+  // LDB 10 l.767-773 : la 2ᵉ frappe espérée (touche de la 1ʳᵉ × meilleure cible de la secondaire) moins le coût du
+  // −10 aux défenses, poids d'ingénierie.
+  const paire = input.paireDesDeuxArmes;
+  if (paire) {
+    const { principale, secondaire } = paire;
+    const ciblesSecondaire = secondaire.type === 'distance'
+      ? shootPool.filter((t) => aPorteeDe(secondaire, t))
+      : heroes.filter(inMelee);
+    const optsDe = (w: Weapon, t: Combatant) => (w.type === 'distance'
+      ? { kind: 'distance' as const, distanceTiles: fpDist(t), metresPerTile: mpt, resolveTrapping }
+      : { kind: 'melee' as const, env: outnumberEnvMelee(t) });
+    const seconde = ciblesSecondaire.length
+      ? Math.max(...ciblesSecondaire.map((t) => Weff.damageDealt * finite(expectedDamage(enemy, t, secondaire, optsDe(secondaire, t)), 0)))
+      : null;
+    const coutDefensif = dangerAt(pos) * 0.1;
+    if (seconde != null) {
+      for (const c of [...candidates]) {
+        if (c.action.kind !== 'tir' && c.action.kind !== 'melee') continue;
+        if ((c.action.weaponUid ?? (c.action.kind === 'melee' ? meleeWeapon?.uid : undefined)) !== principale.uid || !principale.uid) continue;
+        const cible = [...heroes, ...structuresDeMelee].find((t) => t.id === c.targetId);
+        if (!cible) continue;
+        const touche = finite(hitProbability(enemy, cible, principale, optsDe(principale, cible)), 0);
+        candidates.push({ ...c, action: { ...c.action, deuxArmes: true }, utility: c.utility + touche * seconde - coutDefensif });
+      }
     }
   }
 

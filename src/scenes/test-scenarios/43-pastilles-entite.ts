@@ -76,7 +76,7 @@ function construireScene(): Scene {
           engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
           postes: [{ engin: { id: 'belier-ade2' }, crewIds: [...RAM_CREW] }],
         },
-        { creature: { id: 'cheval' }, pos: { x: 5, y: 5 }, mount: true, side: 'allie', label: 'Cheval de manœuvre' },
+        { creature: { id: 'cheval-de-monte' }, pos: { x: 5, y: 5 }, mount: true, side: 'allie', label: 'Cheval de manœuvre' },
         { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
         { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
         { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },

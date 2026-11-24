@@ -8,7 +8,10 @@ import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type Se
 import { meneurDuMonde, poserCapDuGroupe } from './monde/combatants';
 import { t } from '../i18n';
 import { bus, EVT } from './bus';
-import { cloturer, runFlow, flowRestant } from './combatEffects';
+import { cloturer, runFlow, flowRestant, openSkillTest } from './combatEffects';
+import { condCtx } from './bourseFlow';
+import { EMPTY_FLOW } from '../engine/flowCore';
+import { peutTenter, refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
 import { removeEntity } from './combatPlacement';
 import { aPorteeDe, cheminsDuGroupe, exploreMovePlan, exploreSeatPlan, type ExploreMovePlan } from './monde/exploreNav';
 import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
@@ -19,6 +22,7 @@ import { enEmbuscade, entiteConnue, type EntreesDeLaConnaissance } from './visio
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
 import { refusDeDecisionDeGroupe } from './netOwnership';
+import { surfaceTientLaMain } from './modalArbiter';
 import { porteurDExploration } from './gesteDArete';
 import { marcherLeChemin } from './marcheDuGroupe';
 import { roomFocusAt } from './monde/rooms';
@@ -323,6 +327,17 @@ export function creerActionsDInteraction(get: Get, set: Set) {
         ...(action.consume ? [{ verbe: 'retirerEntite' as const, entityId }] : []),
         ...(action.unique ? [{ verbe: 'marquerActionJouee' as const, entityId, actionId }] : []),
       ]);
+    },
+    tenterLeTest: (skill, difficulty, heroId) => {
+      const etat = get();
+      if (etat.mode !== 'exploration' || etat.dialogue) return void refuserGeste(get, set, t('tenterLeTest.refus.horsExploration'));
+      if (surfaceTientLaMain(etat)) return void refuserGeste(get, set, t('tenterLeTest.refus.mainTenue'));
+      const heros = heroId === undefined ? undefined : etat.party.find((h) => h.id === heroId);
+      if (heroId !== undefined && !heros) return void refuserGeste(get, set, t('tenterLeTest.refus.horsDuGroupe', { id: heroId }));
+      if (heros && !peutTenter(heros, { skill })) return void refuserGeste(get, set, refusNePeutTenter(heros, { skill }));
+      if (!openSkillTest(get, set, { skill, difficulty }, condCtx(get), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, heros ? { actorId: heros.id } : undefined)) {
+        refuserGeste(get, set, refusPersonneNePeutTenter({ skill }));
+      }
     },
     fouillerLaPiece: () => {
       const fouille = fouilleOuverte(get());

@@ -139,7 +139,7 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
     scenes: [sceneMinimale({ entities: [
       { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, usable: { actions: [
         { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: id } } } },
-        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [op] } } },
+        { id: 'ouvrir', label: 'Ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [op] } } },
       ] } },
       { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: { [id]: { id: 'epee' } } } },
     ] })],
@@ -323,7 +323,7 @@ describe('références de campagne dans la scène, les dotations et les objets e
   const pnj = (champs: Jouet) => ({ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, ...champs });
   const action = (effet: Jouet) => ({
     id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 2, y: 2 },
-    usable: { actions: [{ id: 'ouvrir', flow: feuille(effet) }] },
+    usable: { actions: [{ id: 'ouvrir', label: 'Ouvrir', flow: feuille(effet) }] },
   });
   const document = (id: string) => projet({
     narratif: {

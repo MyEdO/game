@@ -98,6 +98,9 @@ export type QuantiteTiree = number | Tirage;
 /** La valeur d'une `QuantiteTiree` : le nombre tel quel, le tirage roulé (`rollDice`). PUR (RNG injecté). */
 export const tirer = (v: QuantiteTiree, rng: RNG): number => (typeof v === 'number' ? v : rollDice(v.dice, rng));
 
+/** Un élément de `liste` tiré sur `rng`, `undefined` d'une liste vide. */
+export const tirerUn = <T>(liste: readonly T[], rng: RNG): T | undefined => (liste.length ? liste[rng.int(0, liste.length - 1)] : undefined);
+
 /** Modificateur de dés SIGNÉ (`effetSigneSchema`) : `n` vaut 0 quand seul `plus` compte. */
 export interface EffetSigne { sign: 1 | -1; dice: DiceSpec }
 /** Le total signé d'un `EffetSigne` : `sign × rollDice(dice)`. PUR (RNG injecté). */

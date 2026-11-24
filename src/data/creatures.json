@@ -1434,7 +1434,11 @@
     },
     "grantGroups": [
       "bete"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "sanglier"
+    }
   },
   {
     "id": "serpent",
@@ -2166,7 +2170,11 @@
       "bete",
       "monstres",
       "predateur"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "griffon"
+    }
   },
   {
     "id": "hyppogriffe",
@@ -2258,7 +2266,11 @@
     "grantGroups": [
       "bete",
       "monstres"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "griffon"
+    }
   },
   {
     "id": "hydre",
@@ -5589,6 +5601,10 @@
     "appearance": {
       "species": "griffon",
       "armurePortee": true
+    },
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "demigriffon"
     }
   },
   {
@@ -6690,7 +6706,11 @@
     "grantGroups": [
       "bete",
       "grandes-betes"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "rhinox"
+    }
   },
   {
     "id": "brise-krag",
@@ -8872,6 +8892,10 @@
       "rarity": "exotique",
       "danger": "menacante",
       "uses": "Un oreiller de plumes apporte un sommeil léger aux âmes fautives"
+    },
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "pegase"
     }
   },
   {
@@ -10536,7 +10560,11 @@
     "grantGroups": [
       "bete",
       "monstres"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "cornu"
+    }
   },
   {
     "id": "carnosaure",
@@ -10646,7 +10674,11 @@
       "bete",
       "predateur",
       "monstres"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "carnosaure"
+    }
   },
   {
     "id": "chat-sauvage",
@@ -10964,6 +10996,10 @@
       "rarity": "rare",
       "danger": "inquietante",
       "uses": "Plumes porte-bonheur"
+    },
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "griffon"
     }
   },
   {
@@ -12324,6 +12360,10 @@
     },
     "appearance": {
       "species": "loup"
+    },
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "grand-loup"
     }
   },
   {
@@ -22668,7 +22708,11 @@
     },
     "grantGroups": [
       "bete"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "blaireau"
+    }
   },
   {
     "id": "mouton",
@@ -46102,7 +46146,11 @@
     },
     "grantGroups": [
       "bete"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "sanglier"
+    }
   },
   {
     "id": "grand-sanglier-ombrageux",
@@ -46284,7 +46332,11 @@
     },
     "grantGroups": [
       "bete"
-    ]
+    ],
+    "competenceDuCavalier": {
+      "id": "chevaucher",
+      "spec": "sanglier"
+    }
   },
   {
     "id": "nuee-de-rats",

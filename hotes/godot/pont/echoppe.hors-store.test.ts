@@ -56,6 +56,7 @@ describe('l’échoppe par le pont', () => {
     const familles = Object.keys(c).filter((id) => id.startsWith('etal/'));
     expect(familles.length, 'l’étal rangé par famille').toBeGreaterThan(1);
     expect(boutons(c[familles[0]]).every((b) => / · /.test(b.libelle)), 'chaque article dit son prix').toBe(true);
+    expect(suite.vue.projection.marchand?.panier, 'le panier vide en données').toMatchObject({ lignes: [], total: { gold: 0, silver: 0, brass: 0 } });
     expect(boutons(c['panier']).map((b) => [b.libelle, b.refus]), 'le panier vide ne se paie pas').toEqual([['Payer 0 sc', 'Le panier est vide.']]);
     expect(Object.keys(c).filter((id) => id.startsWith('vente/')), 'les possessions de chaque héros').toEqual(['vente/bjorn', 'vente/mira', 'vente/aldric', 'vente/greta']);
     expect(suite.vue.zones['fenetre.reglages'].map((r) => r.id), 'l’étal et les ventes ne se redisent pas en listes').not.toContain('fenetreChoisir@marchand#ajouterAuPanier');

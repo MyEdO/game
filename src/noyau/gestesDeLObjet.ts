@@ -16,9 +16,10 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { carriersColocated } from '../engine/cargo';
 import { resolveCarrier, porteurLocalise, type Carrier } from './monde/carrier';
 import { refusDInventaire } from './verrousDeFiche';
-import { refusEmplacementDeMain } from './partyFlow';
+import { refusDePorter, refusEmplacementDeMain } from './partyFlow';
 import { refusDeConsommer } from './consumableFlow';
-import { gameDay, refusDEvaluation } from './merchantFlow';
+import { refusDEvaluation } from './merchantFlow';
+import { dayIndex } from '../engine/clock';
 import { refusDePoser } from './objetsAuSol';
 import { nomDe } from '../engine/nom';
 import type { SansMarqueNonAffichable } from '../i18n/playerText';
@@ -80,7 +81,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
   };
   const inconnu = hero && it.identified === false;
   return {
-    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid, !it.equipped]), porte: it.equipped } : null,
+    porter: isWearable(it) && !consommable ? { ...sur('equiperLObjet', [uid, !it.equipped], hero && !it.equipped ? refusDePorter(hero, uid) : null), porte: it.equipped } : null,
     mains: set ? { set: set.id, main: main('main'), secondaire: main('secondaire') } : null,
     ranger: contenants.length ? { refus: verrou, choix: contenants.map((c) => ({ cible: c, libelle: itemLabel(c), geste: { verbe: 'rangerLObjet', args: [uid, c.uid] } })) } : null,
     sortir: it.inside ? sur('rangerLObjet', [uid, null]) : null,
@@ -90,7 +91,7 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
     }) } : null,
     poser: { geste: { verbe: 'poserLObjet', args: [uid] }, refus: refusDePoser(s, uid) },
     utiliser: hero && consommable ? sur('utiliserLObjet', [uid], refusDeConsommer(s, hero, it, consommable)) : null,
-    evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluation', gameDay(s))) : null,
-    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detection'], refusDEvaluation(s.party, it, 'detection', gameDay(s))) : null,
+    evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluation', dayIndex(s.gameTime))) : null,
+    detecter: inconnu ? sur('evaluerLObjet', [uid, 'detection'], refusDEvaluation(s.party, it, 'detection', dayIndex(s.gameTime))) : null,
   };
 }

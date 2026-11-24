@@ -124,7 +124,7 @@ dans les lits d'une chambre ou les places d'un abri, et à part ceux qui restent
 - Le plan de Bögenhafen ; sept lieux épinglés, chacun une Activité (LDB 23 l.132-240) ; le lieu choisi à droite, son
   hôte (le tenancier et sa réplique), ses seules activités et « Envoyer Mira à la taverne ».
 - À gauche, par héros : l'Événement de sa période (LDB 22 l.5, LDB 23 l.15, `eventRoll`) et le compteur de ses
-  Activités restantes sur trois (LDB 23 l.5, `src/noyau/interludeEnVue.ts:48-52`) ; l'avis de la reprise (LDB 23
+  Activités restantes sur trois (LDB 23 l.5, `HerosDInterlude`, `src/noyau/interludeEnVue.ts`) ; l'avis de la reprise (LDB 23
   l.13-19). La sortie est la pastille « Reprendre la route » (le noyau ne tient pas de semaine courante).
   « Semer la dissension » dit ses deux Activités (LDB 23 l.240).
 - Le même écran porte la préparation d'une bataille de masse (`bataille-de-masse-preparation`, `combat-suite.md`).

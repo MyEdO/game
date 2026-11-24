@@ -24,10 +24,11 @@ import { craftAtoutCount } from './qualities/craftEconomy';
 import { availableChars, skillSlots, talentSlots } from './careerSlots';
 import { isCareerLevelComplete } from './advancement';
 import { augmenterLaCompetence } from './character';
+import { idsDeTest } from './idsDeTest.testkit';
 import type { Combatant } from './types';
 import { bourseOf, bourseInstanceOf, setBourseBrass } from './bourse';
 import { toBrass } from './money';
-import { wornArmourPoints } from './items';
+import { itemFromTrappingById, wornArmourPoints } from './items';
 
 const porte = (p: ParcoursDeCarriere, id = 'pnj'): Combatant => {
   const c = combattantDeTest({ id });
@@ -262,5 +263,19 @@ describe('porterAuParcours — l’argent et les mentions imprimés aux Niveaux 
   });
   it('le Tueur de Niveau 1 porte sa mention « Honte »', () => {
     expect(porte({ carrieres: { tueur: 1 } }).mentions).toEqual([{ nature: 'intangible', label: 'Honte', nombre: 1 }]);
+  });
+});
+
+describe('porterAuParcours — les dotations s\'ajoutent à ce que le porteur tient (#4831)', () => {
+  it('l\'objet tenu avant le parcours reste, et sa panoplie ne pointe aucun uid absent', () => {
+    const c = combattantDeTest({ id: 'pnj' });
+    const dague = itemFromTrappingById('dague', idsDeTest)!;
+    c.items = [dague];
+    c.loadouts = [{ id: 'lo-0', main: dague.uid }];
+    porterAuParcours(c, { carrieres: { repurgateur: 2 } });
+    const uids = new Set(c.items!.map((i) => i.uid));
+    expect(uids.has(dague.uid)).toBe(true);
+    expect(c.items!.length).toBeGreaterThan(1);
+    expect((c.loadouts ?? []).flatMap((lo) => [lo.main, lo.secondaire]).filter((u) => u != null && !uids.has(u))).toEqual([]);
   });
 });

@@ -195,8 +195,7 @@
       "page": 338
     },
     "capabilities": {
-      "psychImmuneIfAhead": true,
-      "refuseLeCavalier": true
+      "psychImmuneIfAhead": true
     }
   },
   {
@@ -564,11 +563,9 @@
     "capabilities": {
       "grantGroups": [
         "animaux-domestiques"
-      ]
-    },
-    "suppressesCapabilities": [
-      "refuseLeCavalier"
-    ]
+      ],
+      "monture": true
+    }
   },
   {
     "id": "dresse-garde",

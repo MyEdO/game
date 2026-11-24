@@ -1,12 +1,13 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { acheterAuMarche } from './cargaison.testkit';
 import { t } from '../i18n';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { seedBattleRng, battleRng } from './battleRng';
 import { draineCascadeDifferee } from './cascade.testkit';
+import { imposerLesD100 } from './battleRng.testkit';
 import { toBrass } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { datasetObject, setObjectDataset } from '../data/overrides';
@@ -250,13 +251,41 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
       get().evaluerLeVin(id);
       drainCascade();
 
-      expect(marcheEnVue(get())?.offres.find((o) => o.id === id)?.qualite).toEqual({ texte: 'Bon', fiable: true });
+      expect(marcheEnVue(get())?.offres.find((o) => o.id === id)?.qualite).toEqual({ rang: 3, nom: 'Bon', fiable: true });
       expect(acheterAuMarche(get, 'marcheDeTerre', CARRIER_ID, id, 10)).toBeNull();
       expect(carrierCargo()).toMatchObject([{ cargoId: id, enc: 10, basePriceGold: 0.3 }]);
     } finally {
       rng.int = tirer;
       setObjectDataset('landCargo', fiche);
     }
+  });
+
+  it('le marché en vue, en données : bourse, prix par Enc et estimation en Money, le lot par son id de cargaison, le vin mal évalué à son rang faux, non fiable (MSRC 13 l.95)', () => {
+    const id = 'vin-eau-de-vie';
+    seedBattleRng(3);
+    const rng = battleRng();
+    const tirer = rng.int;
+    rng.int = (_min, max) => max === 10 ? 6 : 5;
+    try {
+      get().ouvrirLeMarche();
+      get().jetValider('etalLot');
+      draineCascadeDifferee(get, () => banc.reprendreLesEnAttente());
+    } finally {
+      rng.int = tirer;
+    }
+    setCarrierCargo([{ uid: 'lot-a', cargoId: 'metal', enc: 10, basePriceGold: 3 }]);
+    imposerLesD100(100);
+    try {
+      get().evaluerLeVin(id);
+      drainCascade();
+    } finally {
+      vi.restoreAllMocks();
+    }
+    const m = marcheEnVue(get())!;
+    const vin = m.offres.find((o) => o.id === id)!;
+    expect(m.bourse).toEqual(partyMoneyTotal(get));
+    expect([vin.prixParEnc, vin.qualite, vin.evaluer, vin.acheter.estimation]).toEqual([{ gold: 0, silver: 6, brass: 0 }, { rang: 0, nom: 'Médiocre', fiable: false }, null, { gold: 23, silver: 2, brass: 0 }]);
+    expect(m.cargaison.flatMap((c) => c.lots.map((l) => [l.uid, l.cargo, l.prixParEnc]))).toEqual([['lot-a', 'metal', { gold: 3, silver: 0, brass: 0 }]]);
   });
 
   it('personne qui puisse tenter l’Évaluation (LDB 09 l.30) : evaluerLeVin journalise le refus NOMMÉ, aucun Test ouvert', () => {
@@ -267,7 +296,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     get().evaluerLeVin(wine.cargoId);
     expect(get().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
     expect(get().pendingCascade).toBeNull();
-    expect(get().landMarket!.offers.find((o) => o.cargoId === wine.cargoId)!.wineTier).toBeUndefined();
+    expect(get().landMarket!.offers.find((o) => o.cargoId === wine.cargoId)!.vinEvalue).toBeUndefined();
   });
 
   it('rumeur commerciale (l.180) : le bien se vend au DOUBLE au Lieu DÉSIGNÉ par la rumeur du board (#99)', () => {

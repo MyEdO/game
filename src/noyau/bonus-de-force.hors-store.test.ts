@@ -16,7 +16,7 @@ import { formulaExpectation } from '../engine/ops';
 import { indiceSurLeProfil, valeurSansTirage } from '../engine/formule';
 import { findTavernGameById } from '../engine/tavernGame';
 import { findTrappingById, findSpellById } from '../data';
-import { weaponStatParts } from '../engine/weaponStats';
+import { profilDArme } from '../engine/weaponStats';
 import { deFixe } from '../engine/dice.testkit';
 import { blessuresDeBase, combattantDeTest } from '../engine/combattantDeTest.testkit';
 import type { Combatant, ItemInstance, Weapon } from '../engine/types';
@@ -150,9 +150,9 @@ describe('Arme naturelle dont l’Indice inclut le BF : la part passive s’y aj
     };
     expect(apercu(true)).toBe(9);
     expect(apercu(false)).toBe(8);
-    const fiche = (fr: boolean): string => { const { c, arme } = creature(fr); return weaponStatParts(arme, forceDuPorteur(c))[0]; };
-    expect(fiche(true)).toBe('Dégâts +8 (9)');
-    expect(fiche(false)).toBe('Dégâts +8 (8)');
+    const fiche = (fr: boolean): number | undefined => { const { c, arme } = creature(fr); return profilDArme(arme, forceDuPorteur(c)).degats?.total; };
+    expect(fiche(true)).toBe(9);
+    expect(fiche(false)).toBe(8);
   });
 
   it('Arme +8 et Morsure +7 : +1 Blessure appliquée en Frénésie au même jet', () => {
@@ -166,6 +166,6 @@ describe('Arme naturelle dont l’Indice inclut le BF : la part passive s’y aj
 
   it('Langue préhensile +6 : l’Indice n’inclut pas le BF, aucun +1 (LDB 85 l.213)', () => {
     const langue = gratuite('langue');
-    expect(weaponStatParts(langue, forceDuPorteur(creature(true).c))[0]).toBe('Dégâts +6 (6)');
+    expect(profilDArme(langue, forceDuPorteur(creature(true).c)).degats?.total).toBe(6);
   });
 });

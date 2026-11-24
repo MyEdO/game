@@ -35,6 +35,10 @@ import { entreeOuverte, refusDeSpec, memeSpecialisation } from '../data/schemas/
 import { domainSpellsKnown } from './grimoire';
 import { t } from '../i18n';
 
+import { talentMaxReached, type PorteurDeTalents } from './acquisitionTalents';
+import { tirerUn, type RNG } from './dice';
+import type { RefDesignee } from '../data/schemas/grammaire/ref';
+
 export {
   acquerirTalent,
   talentAcquisitions,
@@ -171,6 +175,20 @@ export function slotCovers(slot: CareerSlot, optionId: string, spec?: string): b
     if (spec == null || refusDeSpec(slot.kind, optionId, spec) !== null) return false;
     return (!o.specOptions && entreeOuverte(slot.kind, optionId)) || wildcardSpecs(o, slot.kind).includes(spec);
   });
+}
+
+/** Les Compétences ou Talents concrets (`refKey`) qu'un emplacement peut désigner : chaque option à id, chaque
+ *  spécialisation de son pool pour un joker (`wildcardSpecs`). */
+export function candidatsDuSlot(slot: CareerSlot): string[] {
+  return slot.options.flatMap((o) => (o.optionId === undefined ? [] : (o.wildcard ? wildcardSpecs(o, slot.kind) : [o.spec]).map((spec) => refKey(o.optionId!, spec))));
+}
+
+/** Un Talent tiré sur `rng` parmi les emplacements `slots` d'un Niveau et les Talents `ajoutes` aux carrières : une
+ *  liste (un emplacement, ou les ajouts) qui en offre un dont le Maxi n'est pas atteint pour `porteur`
+ *  (`talentMaxReached`), puis l'un de ceux-là. LDB 05 l.535 ; LDB 07 l.124 ; EDO 11 l.19 */
+export function talentTire(porteur: PorteurDeTalents, slots: CareerSlot[], ajoutes: readonly RefDesignee[], rng: RNG): RefDesignee | undefined {
+  const offerts = [...slots.map((s) => candidatsDuSlot(s).map(parseRefKey)), [...ajoutes]].map((l) => l.filter((r) => !talentMaxReached(porteur, r.id, r.spec))).filter((l) => l.length);
+  return tirerUn(tirerUn(offerts, rng) ?? [], rng);
 }
 
 /** Désignations d'un héros pour une carrière : slotKey → clé d'identité `refKey(id, spec)`

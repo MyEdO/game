@@ -559,7 +559,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   });
 
   it('(iii) MANIEMENT DE DEUX ARMES : la 2ᵉ frappe s’ouvre à la reprise, avec la valeur du Critique', () => {
-    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }] } as never);
     const demon = mk('ennemi', 'demon', { pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */ } as never);
     setBattle([heros, demon]);
     const critique = { ...touche(), critical: true, critLocation: 'corps', attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
@@ -578,7 +578,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   });
 
   it('(iii bis) MANIEMENT DE DEUX ARMES : la valeur est celle du Coup Critique, pas du Critique de dépassement (LDB 10 l.767-773 ; #1595 C7)', () => {
-    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }] } as never);
     const demon = mk('ennemi', 'demon', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), traits: demoniaque, important: true /* LDB 18 l.44 : hors Mort subite */, wounds: blessuresDeBase(30, 2) }) as never);
     const voisin = mk('ennemi', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773 : un adversaire reste disponible
     setBattle([heros, demon, voisin]);
@@ -597,7 +597,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   /** La 1ʳᵉ frappe d'un Maniement de deux armes, en `aa`, sur une cible à `current` Blessures, jusqu'à l'ouverture de la 2ᵉ. */
   function secondeMainEnAA(critique: boolean, current: number, cibleOver: Partial<Combatant> = {}) {
     setRule('combat-aa-blessures', 'aa');
-    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague] } as never);
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }] } as never);
     const cible = mk('ennemi', 'cible', blessuresSurLeProfil({ pos: { x: 1, y: 0 }, characteristics: nul(), talents: [{ talentId: 'chanceux', times: 1 }] /* AA 07 l.67 : hors Mort subite */, wounds: blessuresDeBase(30, current), ...cibleOver }) as never);
     const voisin = mk('ennemi', 'voisin', { pos: { x: 0, y: 1 } } as never); // LDB 10 l.773
     setBattle([heros, cible, voisin]);
@@ -658,7 +658,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     // Un héros conduit par l'IA (`aiControlled`) passe la garde `aiDriven` d'`autoCleave` ; sa frappe de
     // main directrice pose `res.cleave` (plus grand, LDB 85 l.362). C'est le SITE D'ORIGINE qui tranche :
     // `jetValider('attaque')` n'a jamais balayé sur cette branche — la queue partagée ne doit pas le faire à sa place.
-    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], size: 'enorme', aiControlled: true } as never);
+    const heros = mk('heros', 'bretteur', { pos: { x: 0, y: 0 }, weapons: [epee, dague], talents: [{ talentId: 'maniement-de-deux-armes', times: 1 }], size: 'enorme', aiControlled: true } as never);
     const e1 = mk('ennemi', 'e1', { pos: { x: 1, y: 0 }, characteristics: nul() } as never);
     const e2 = mk('ennemi', 'e2', { pos: { x: 0, y: 1 }, characteristics: nul() } as never);
     // L'œil du groupe (`visibleFrom`, `src/noyau/visionState.ts`) : un héros non piloté par l'IA, hors de portée du coup.

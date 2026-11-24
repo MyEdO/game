@@ -7,7 +7,8 @@ import { libelleOuAbsence } from '../../data';
 import { nomDe } from '../../engine/nom';
 import type { PlayerText } from '../../i18n/playerText';
 import { estIdDEtiquetteDObjet, idDEtiquetteDObjet } from '../../lib/entityId';
-import { ficheDObjetPorte, isWeaponActive, isWearable, itemLabel, type TrappingResolver } from '../../engine/items';
+import { ficheDObjetPorte, isWearable, itemLabel, type TrappingResolver } from '../../engine/items';
+import { isWeaponActive } from '../../engine/weaponLoad';
 import { sourceCombattant, type SourceEnVue } from '../../engine/psychology';
 import type { BattleState } from '../etat';
 import type { Scene } from './scene';
@@ -44,9 +45,7 @@ export function etiquettesDesObjetsPortes(porteur: Combatant, resolveTrapping: T
   if (porteur.dead || porteur.outOfRencontre) return [];
   return (porteur.items ?? []).flatMap((objet) => {
     if (objet.inside || objet.destroyed) return [];
-    const expose = objet.kind === 'melee' || objet.kind === 'distance'
-      ? isWeaponActive(porteur, objet.uid)
-      : objet.equipped && isWearable(objet);
+    const expose = isWeaponActive(porteur, objet.uid) || (!!objet.equipped && isWearable(objet));
     if (!expose) return [];
     const groups = ficheDObjetPorte(objet, resolveTrapping)?.groups;
     return groups?.length ? [{ genre: 'etiquette', id: idDEtiquetteDObjet(porteur.id, objet.uid), label: itemLabel(objet), groups }] : [];

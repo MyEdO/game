@@ -62,11 +62,9 @@ export interface LandOffer {
   basePrice: number;
   wine: boolean;
   qualiteSecreteDuVin?: QualiteSecreteDuVin;
-  /** Vin ÉVALUÉ (Test d'Évaluation joué, l.95) : la qualité affichée (vraie sur un succès, FAUSSE sur un
-   *  échec). Absent tant que le lot n'a pas été évalué (« qualité incertaine »). */
-  wineTier?: string;
-  /** Le Test d'Évaluation a-t-il RÉUSSI (indication fiable) ? Présent une fois évalué. */
-  wineEvalOk?: boolean;
+  /** Vin évalué (l.95) : le rang révélé (`wineEvalReveal`) dans `qualiteSecreteDuVin.libelles`, et `fiable` : le Test
+   *  d'Évaluation a réussi. Absent tant que le lot n'a pas été évalué. */
+  vinEvalue?: { rang: number; fiable: boolean };
 }
 
 /** État MARCHÉ TERRESTRE ouvert (généré une fois à l'arrivée — les d100 de disponibilité ne se re-tirent pas
@@ -149,7 +147,7 @@ function apresHalle(get: Get, set: Set): void {
   // MSRC 13 l.176-180 ; l'« index géographique du Reikland » (l.180) = les Lieux de la carte porteurs d'un `market`.
   openPartyTest(get, set, {
     skill: { id: 'ragot' }, assisted: false,
-    actionLabel: 'Rumeur commerciale',
+    actionLabel: t('lm.rumeurCommerciale'),
     difficulty: gossipRule.difficulty,
     stake: combatStakeRef(LAND_GOSSIP_KIND),
   }, LAND_GOSSIP_KIND, { placeId: cur.placeId });
@@ -193,23 +191,21 @@ export function refusDEvaluerLeVin(s: Pick<Jeu, 'net' | 'landMarket' | 'party'>,
   const offre = s.landMarket.offers.find((o) => o.cargoId === cargoId);
   if (!offre) return t('lm.offreAbsente');
   if (!offre.wine) return t('lm.pasDuVin', { label: offre.label });
-  if (offre.wineTier) return t('lm.vinEvalue', { label: offre.label });
+  if (offre.vinEvalue) return t('lm.vinEvalue', { label: offre.label });
   return appraiseRefus(s.party);
 }
 
-/** ÉVALUATION de la qualité SECRÈTE d'un lot de Vin/Eau-de-vie proposé (l.95) : Test d'Évaluation, difficulté
- *  Intermédiaire (Accessible si le meneur a Résistance à l'alcool ≥ 50). Sur un succès, révèle la vraie qualité ;
- *  sur un échec, une FAUSSE indication décalée du degré d'échec. Un lot ne s'évalue qu'une fois. */
+/** ÉVALUATION de la qualité secrète d'un lot de Vin/Eau-de-vie proposé (MSRC 13 l.95) : le Test d'Évaluation du
+ *  meneur (`wineEvalDifficulty`), dont l'application pose le rang révélé (`wineEvalReveal`, `LandOffer.vinEvalue`). */
 export function evaluerLeVin(get: Get, set: Set, cargoId: string): void {
   const refus = refusDEvaluerLeVin(get(), cargoId);
   if (refus) { refuserGeste(get, set, refus); return; }
   const offer = garanti(get().landMarket?.offers.find((o) => o.cargoId === cargoId), cargoId, 'vin à évaluer');
   const best = partyBest(get().party, { skill: APPRAISE_SKILL.evaluation.skill })!;
   const diff = wineEvalDifficulty(testValue(best.actor, { skill: { id: 'resistance-a-l-alcool' } }));
-  // #274 sweep : `rollTest` inline silencieux — migré sur `openRoll`.
   openPartyTest(get, set, {
     skill: { id: 'evaluation' }, assisted: false,
-    actionLabel: `Évaluer ${offer.label}`,
+    actionLabel: t('lm.evaluer', { offre: offer.label }),
     difficulty: diff,
     stake: combatStakeRef(LAND_WINE_EVAL_KIND),
   }, LAND_WINE_EVAL_KIND, { cargoId });
@@ -462,10 +458,10 @@ export const TABLES = {
       if (!st || !offer) return {};
       const { success, sl, roll } = step.result;
       const qualite = garanti(offer.qualiteSecreteDuVin, cargoId, 'qualité secrète du vin');
-      const rev = wineEvalReveal(qualite, success, sl);
-      set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, wineTier: rev.shownLabel, wineEvalOk: success } : o) } });
+      const rang = wineEvalReveal(qualite, success, sl);
+      set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, vinEvalue: { rang, fiable: success } } : o) } });
       const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
-      return { consequences: freeCons([t(success ? 'lm.evaluationDuVin' : 'lm.evaluationDuVinIncertaine', { name: nomDe(garanti(actor, step.actorId, 'évaluation du vin')), offre: offer.label, roll: garanti(roll, step.id, 'dé de l’évaluation du vin'), qualite: rev.shownLabel })]) };
+      return { consequences: freeCons([t(success ? 'lm.evaluationDuVin' : 'lm.evaluationDuVinIncertaine', { name: nomDe(garanti(actor, step.actorId, 'évaluation du vin')), offre: offer.label, roll: garanti(roll, step.id, 'dé de l’évaluation du vin'), qualite: qualite.libelles[rang] })]) };
     },
     [LAND_SELL_BUYER_KIND]: (get, set, step) => {
       if (!step.result) return {};

@@ -31,9 +31,15 @@ import { createHero } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { isRation } from '../engine/provisions';
 import { addCondition } from '../engine/conditions';
-import { itemFromTrappingById } from '../engine/items';
+import { itemFromTrappingById, itemLabel } from '../engine/items';
 import { resetRule, setRule } from '../engine/policy';
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
+import { ouvrirDialogue } from '../noyau/dialogue';
+import type { Dialogue } from '../noyau/monde/scene';
+import { bancDeLInterlude } from '../noyau/interlude.testkit';
+import { craftCatalog, learnableTalents, orderCatalog } from '../engine/activities';
+import { formatMoney, fromBrass } from '../engine/money';
+import type { Choix } from './elements';
 
 describe('le journal de l’écran (`journal.lignes`)', () => {
   it('une ligne par événement, ses sous-lignes à son détail, le ton dit ce qu’il pèse et pour quel camp', () => {
@@ -442,5 +448,73 @@ describe('la nuit à régler à l’écran (`Projection.repos`, #4574)', () => {
 
   it('trois nuits chez soi, de piètre qualité : la tête de la scène les dit', () => {
     expect(nuit({ places: { maison: true }, days: 3, quality: 'pietre' })).toEqual({ corps: [['scene/moment', 'Nuit chez soi — Le relais · 3 nuits · piètre', 'neutre']], alertes: [] });
+  });
+});
+
+describe('la conversation à l’écran (`Projection.conversation`, #4574)', () => {
+  it('chaque réponse en bouton : son Test annoncé, son libellé, puis son coût ; l’orateur par son nom', () => {
+    const gustav = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gustav', seed: 11 }), { gold: 0, silver: 0, brass: 0 }, idsDeTest);
+    const scene = { ...emptyScene('s', 4, 4), entities: [{ id: 'aubergiste', kind: 'personnage', creature: { id: 'humain' }, label: 'Isolde', pos: { x: 1, y: 1 } }] } as Jeu['scene'];
+    const banc = ouvrirLeBanc({ graine: 7, etat: { party: [gustav], scene } as Partial<Jeu> });
+    const sonder = { kind: 'test', test: { skill: { id: 'intuition' }, difficulty: 'difficile', label: 'Quelque chose cloche' }, reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] } };
+    const dialogue = { id: 'd', start: { id: 'n1' }, nodes: [{ id: 'n1', desc: 'Une chambre ?', choices: [
+      { id: 'sonder', label: 'La sonder', flow: sonder },
+      { id: 'chambre', label: 'Prendre une chambre', cost: { silver: 5 } },
+      { id: 'partir', label: 'Partir' },
+    ] }] } as unknown as Dialogue;
+    banc.setState({ dialogue: ouvrirDialogue(banc.getState(), dialogue, 'aubergiste') });
+    const etat = banc.getState();
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    expect(zones['dialogue.orateur'].map((l) => l.texte)).toEqual(['Isolde']);
+    expect(zones['dialogue.reponses'].map((b) => [b.id, b.libelle, b.refus])).toEqual([
+      ['reponse/sonder', '[Intuition — Difficile (−20)] La sonder', null],
+      ['reponse/chambre', 'Prendre une chambre 5/–', 'Pas assez d’argent pour cette option.'],
+      ['reponse/partir', 'Partir', null],
+    ]);
+  });
+});
+
+describe('l’interlude à l’écran (`Projection.interlude`, #4574)', () => {
+  /** Le héros de l'interlude à l'écran, chacun de ses choix par son libellé. */
+  const choixDuHeros = (etat: Jeu, id: string) => {
+    const zones = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER);
+    const heros = zones['fenetre.corps'].find((e): e is Entite => e.id === `repit/${id}`)!;
+    return (id: string) => heros.elements.find((e): e is Choix => e.id === id)!.valeurs.map((v) => v.libelle);
+  };
+
+  it('chaque valeur dite avec son coût, en PX ou en prix, par le même composeur que l’échoppe', () => {
+    const { banc, id } = bancDeLInterlude();
+    const article = (nom: string, prix: string) => t('ecran.aCout', { nom, prix });
+    expect(choixDuHeros(banc.getState(), id)('order'), 'chaque Commande et son prix').toEqual(orderCatalog().map((o) => article(o.label, formatMoney(fromBrass(o.priceBrass)))));
+    banc.actions.fenetreChoisir('interlude', 'activite', 'craft', id);
+    expect(choixDuHeros(banc.getState(), id)('ouvrage'), 'chaque ouvrage et ses matériaux').toEqual(craftCatalog().map((o) => article(o.label, formatMoney(fromBrass(o.materialsBrass)))));
+    banc.actions.fenetreChoisir('interlude', 'activite', 'learn', id);
+    const talents = learnableTalents(banc.getState().party[0]);
+    expect(choixDuHeros(banc.getState(), id)('talent'), 'chaque Talent et ses PX').toEqual(talents.map((o) => article(o.label, t('ecran.px', { px: o.xpCost }))));
+  });
+});
+
+describe('la fiche à l’écran compose ses données (`fiche.porteur`, `fiche.objet`, #4574)', () => {
+  it('la bourse et l’argent d’une possession en monnaie, le contenant par son nom', () => {
+    const { partie } = ouvrirLaPartie(nouvelEntete('dome', { graine: 7 }), () => {});
+    try {
+      const etat = partie.etat();
+      const heros = etat.battle!.combatants.find((c) => c.kind === 'heros')!;
+      let n = 0;
+      const fab = () => `ecran-fiche-${++n}`;
+      const bourse = { ...itemFromTrappingById('bourse', fab)!, money: { gold: 1, silver: 2, brass: 3 } };
+      const besace = itemFromTrappingById('besace', fab)!;
+      const dague = { ...itemFromTrappingById('dague', fab)!, inside: besace.uid };
+      for (const c of [heros, ...etat.party.filter((h) => h.id === heros.id)]) c.items = [bourse, besace, dague];
+      const zones = (objet: string) => zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), { fiche: { porteur: heros.id, objet } }, SANS_ROSTER);
+      const enMonnaie = formatMoney({ gold: 1, silver: 2, brass: 3 });
+      const z = zones(bourse.uid);
+      expect(z['fiche.porteur'][0].elements.find((e) => e.id === 'bourse'), 'la bourse du héros').toMatchObject({ libelle: t('ecran.bourse'), valeur: enMonnaie });
+      expect(z['fiche.objet'][0].elements.find((e) => e.id === 'argent'), 'l’argent de la Bourse').toMatchObject({ libelle: enMonnaie });
+      expect(zones(dague.uid)['fiche.objet'][0].elements.find((e) => e.id === 'contenant'), 'le contenant de la dague')
+        .toMatchObject({ libelle: t('ecran.objet.contenant', { contenant: itemLabel(besace) }) });
+    } finally {
+      partie.fermer();
+    }
   });
 });

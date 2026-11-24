@@ -45,6 +45,7 @@ describe('le marché de cargaison par le pont', () => {
     expect(c['bourse'], 'la bourse du groupe : les 5000 CO du scénario et les 3d10 pistoles de Berta, Marchande (LDB 08 l.419)').toMatchObject({ type: 'puce', valeur: expect.stringMatching(/^5000 CO \d+\/–$/) });
     const offre = c['offre/laine-terre'];
     expect([dans(offre, 'dispo'), dans(offre, 'prix')], 'son Enc et son prix, 1 CO les 10 Enc au livre (MSRC 13 l.91)').toMatchObject([{ valeur: '350 Enc' }, { valeur: '2/– / Enc' }]);
+    expect(suite.vue.projection.marche?.offres.find((o) => o.id === 'laine-terre'), 'l’offre en données').toMatchObject({ dispo: 350, prixParEnc: { gold: 0, silver: 2, brass: 0 }, qualite: null, evaluer: null });
     expect(dans(offre, 'acheter'), 'l’achat ouvert, à composer').toMatchObject({ type: 'bouton', jeu: { type: 'fenetreChoisir', args: ['marcheDeTerre', 'offre', 'laine-terre'] }, presse: false, refus: null });
     expect(suite.vue.zones['fenetre.reglages'], 'rien à régler avant de composer').toEqual([]);
     const compose = jouer((dans(offre, 'acheter') as Bouton).jeu);
@@ -63,9 +64,11 @@ describe('le marché de cargaison par le pont', () => {
     const compose = jouer((dans(corps(suite)['offre/laine-terre'], 'acheter') as Bouton).jeu);
     const porteurs = compose.vue.zones['fenetre.reglages'].find((e) => e.id === CHOIX_PORTEUR) as Choix;
     jouer(porteurs.valeurs[0].jeu);
-    const c = corps(jouer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'acheter', true] }));
+    const achete = jouer({ type: 'fenetreChoisir', args: ['marcheDeTerre', 'acheter', true] });
+    const c = corps(achete);
     const lot = Object.values(c).find((e) => e.id.startsWith('lot/'))!;
     expect(lot, 'le lot de laine').toMatchObject({ type: 'entite', nom: 'Laine' });
+    expect(achete.vue.projection.marche?.cargaison.flatMap((p) => p.lots.map((l) => [p.id, l.uid, l.cargo, l.enc])), 'le lot en données, par son id de cargaison').toEqual([[expect.any(String), lot.id.slice('lot/'.length), 'laine-terre', 25]]);
     expect(dans(lot, 'porteur'), 'sur la charrette').toMatchObject({ libelle: 'Charrette', valeur: '25 Enc' });
     const recompose = jouer((dans(c['offre/laine-terre'], 'acheter') as Bouton).jeu);
     expect(recompose.vue.zones['fenetre.reglages'].find((e) => e.id === CHOIX_PORTEUR), 'charrette pleine, la barge reste disponible par défaut').toMatchObject({ valeurs: [
