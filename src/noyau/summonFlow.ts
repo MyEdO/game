@@ -16,8 +16,9 @@ import type { PorteurDeFiche } from '../engine/statblock';
 import type { BattleState } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import { pointDeCase, type Pt, tileKey } from './monde/path';
-import { Scene, isWalkable } from './monde/scene';
-import { occupied } from './monde/combatGeometry';
+import { Scene } from './monde/scene';
+import { occupied, tientDebout } from './monde/combatGeometry';
+import { footprintN, footprintTiles } from './monde/footprint';
 import { inBattleId } from './monde/combatants';
 import { spawnEnemy, traitsDeLIndividu } from './monde/spawn';
 import { grantTrait } from '../engine/grantedTraits';
@@ -38,19 +39,24 @@ type Summon = Omit<Extract<GameOp, { op: 'summon' }>, 'op'>;
  *  reconstitue (`ScheduledRespawn`, #1882). */
 export type Invocation = Summon | (Omit<Summon, 'creature'> & { porteur: PorteurDeFiche });
 
-/** Cases walkable et LIBRES (toute empreinte exclue) autour de `center`, en anneaux croissants (≤8),
- *  sur l'ÉTAGE de `center` (z-aware, #802) : un lanceur posé sur un chemin de ronde `z>0` invoque sur
- *  SON étage, jamais au sol en contrebas. */
-export function freeTilesNear(scene: Scene, battle: BattleState, center: Pt, n: number): Pt[] {
+/** Cases d'ancrage LIBRES autour de `center`, en anneaux croissants (≤8), sur l'ÉTAGE de `center` (z-aware, #802) : chaque
+ *  case de l'empreinte de `pose` (`footprintN`, LDB 15 l.12) y tient debout (`tientDebout` : marchable, joignable à pied
+ *  depuis `center`), hors de toute empreinte en bataille et des empreintes déjà rendues. Un lanceur posé sur un chemin de ronde `z>0` invoque sur SON étage, jamais au sol en contrebas. */
+export function freeTilesNear(scene: Scene, battle: Pick<BattleState, 'combatants' | 'zones'>, center: Pt, n: number, pose: Parameters<typeof footprintN>[0]): Pt[] {
   const blocked = occupied(battle, '__summon-placement__'); // un id ⇒ toutes les empreintes bloquent
   const z = center.z ?? 0;
+  const cote = footprintN(pose);
+  const debout = tientDebout(scene, center, blocked);
   const out: Pt[] = [];
   for (let r = 1; r <= 8 && out.length < n; r++)
     for (let dy = -r; dy <= r && out.length < n; dy++)
       for (let dx = -r; dx <= r && out.length < n; dx++) {
         const x = center.x + dx, y = center.y + dy;
         if (chebyshev({ x, y }, center) !== r) continue; // seulement l'anneau de rayon r
-        if (isWalkable(scene, x, y, z) && !blocked.has(tileKey(x, y, z))) out.push(pointDeCase(x, y, z));
+        const cases = footprintTiles({ x, y }, cote);
+        if (!cases.every((t) => debout(t.x, t.y))) continue;
+        for (const t of cases) blocked.add(tileKey(t.x, t.y, z));
+        out.push(pointDeCase(x, y, z));
       }
   return out;
 }
@@ -103,16 +109,21 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
   }
   // Camp : allié = même `kind` que le lanceur (contrôlé/IA selon son camp) ; hostile = camp opposé.
   const kind: Combatant['kind'] = hostile ? (caster.kind === 'heros' ? 'ennemi' : 'heros') : caster.kind;
-  const tiles = freeTilesNear(scene, battle, caster.pos, count);
-  const placed: Combatant[] = [];
-  for (let i = 0; i < count; i++) {
-    const pos = tiles[i];
-    if (!pos) break; // plus de place libre à proximité
-    const id = `summon-${caster.id}-${battle.round}-${battle.combatants.length}-${i}`;
-    const c = spawnEnemy(porteur, id, pos);
+  const base = battle.combatants.length;
+  const invoquer = (i: number): Combatant => {
+    const id = `summon-${caster.id}-${battle.round}-${base + i}-${i}`;
+    const c = spawnEnemy(porteur, id, undefined);
     c.kind = kind;
     if (summon.size) c.size = summon.size;
     for (const t of traitsDeLIndividu(summon.addTraits ?? [], { id, indice: indiceSurLeProfil(c) }, { dejaPortes: c.traits })) grantTrait(c, t); // traits surchargés (Frénésie, Magique…)
+    return c;
+  };
+  const premier = invoquer(0);
+  const tiles = freeTilesNear(scene, battle, caster.pos, count, premier);
+  const placed: Combatant[] = [];
+  tiles.forEach((pos, i) => {
+    const c = i === 0 ? premier : invoquer(i);
+    c.pos = pos;
     c.summon = {
       byId: caster.id,
       ...(opts.label ? { label: opts.label } : {}),
@@ -122,7 +133,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     };
     inscrireEnBataille(battle, c, caster.id);
     placed.push(c);
-  }
+  });
   set({ battle: { ...battle } });
   if (!placed.length) return [t('summon.noRoom', { name: nomDe(caster), ref: invoque })];
   const name = nomDe(placed[0]);

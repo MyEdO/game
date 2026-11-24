@@ -122,7 +122,7 @@ export const refusDUnNouveauHeros = (s: Pick<Jeu, 'battle' | 'party' | 'net'>): 
 /** Le refus d'engager `d` pour le siège qui décide : en édition du héros `heroId`, le refus de le composer
  *  (`refusDeComposerLeHeros`), sinon le refus d'un héros nouveau (`refusDUnNouveauHeros`) ; puis la première étape
  *  invalide (`refusDuBrouillon`). `null` s'il s'engage. */
-export function refusDEngagement(s: Pick<Jeu, 'battle' | 'party' | 'net'>, d: CreatorDraft, heroId?: string): string | null {
+export function refusDEngagement(s: Pick<Jeu, 'battle' | 'party' | 'net' | 'possessions'>, d: CreatorDraft, heroId?: string): string | null {
   return (heroId ? refusDeComposerLeHeros(s, heroId, decidingSeat(s)) : refusDUnNouveauHeros(s)) ?? refusDuBrouillon(d);
 }
 

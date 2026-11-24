@@ -814,7 +814,7 @@ export function refusDAjoutAuGroupe(s: Pick<Jeu, 'battle' | 'party' | 'net'>, he
 /** Raison du refus de RETIRER, REMPLACER ou MODIFIER le héros `heroId` pour `seat` : composition close
  *  (`refusComposition`), héros d'un autre siège (`seatOwns`) ; `null` s'il se compose. Verdict UNIQUE de
  *  `renvoyerLeHeros`, `remplacerLeHeros`, de l'engagement en édition (`refusDEngagement`) et de l'écran d'équipe. */
-export function refusDeComposerLeHeros(s: Pick<Jeu, 'battle' | 'net' | 'party'>, heroId: string, seat: number): string | null {
+export function refusDeComposerLeHeros(s: Pick<Jeu, 'battle' | 'net' | 'party' | 'possessions'>, heroId: string, seat: number): string | null {
   return refusComposition(s) ?? (seatOwns(s, seat, heroId) ? null : t('pf.heroOfAnotherSeat'));
 }
 
@@ -829,7 +829,7 @@ export function refusDeRecruter(s: Pick<Jeu, 'battle' | 'party' | 'net'>, heros:
 
 /** Raison du refus de RENVOYER le héros `heroId` pour le siège qui décide (`refusDeComposerLeHeros`) ; `null` s'il se
  *  renvoie. Verdict UNIQUE de `renvoyerLeHeros` et des écrans qui l'offrent. */
-export function refusDeRenvoyer(s: Pick<Jeu, 'battle' | 'net' | 'party'>, heroId: string): string | null {
+export function refusDeRenvoyer(s: Pick<Jeu, 'battle' | 'net' | 'party' | 'possessions'>, heroId: string): string | null {
   return refusDeComposerLeHeros(s, heroId, decidingSeat(s));
 }
 

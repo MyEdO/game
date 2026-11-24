@@ -705,7 +705,7 @@ const LECTEURS: Record<FlowKey, (s: Jeu) => JetLuEnVue | null> = {
   },
   test: (s) => {
     const p = s.pendingTest;
-    return p && vue('test', [ligne(p.actorId, libelleDuTestDeScene(p), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: evaluateTest(p.roll, p.target).success } : null, p.target, { reference: referenceDuSujet(p.sujet), mods: p.mods })]);
+    return p && vue('test', [ligne(p.actorId, libelleDuTestDeScene(p), p.roll != null ? { roll: p.roll, target: p.target, sl: p.sl, success: p.success } : null, p.target, { reference: referenceDuSujet(p.sujet), mods: p.mods, modsDR: p.modsDR })]);
   },
   fuiteDeVapeur: (s) => {
     const p = s.pendingSteamSave;

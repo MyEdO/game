@@ -4,7 +4,7 @@
 import type { Jeu, NetState } from './etat';
 import type { Intention } from './partie';
 import type { Combatant } from '../engine/types';
-import { PARTY_MAX, inBattleId, porteurParId } from './monde/combatants';
+import { PARTY_MAX, inBattleId, porteurParId, possessionEnJeu } from './monde/combatants';
 import { WORLD_STEP_OWNER } from './pendings';
 import { t } from '../i18n';
 
@@ -206,7 +206,8 @@ export function worldSeat(s: Pick<Jeu, 'net'>): number {
  * LE PORTEUR EST-IL CONDUIT PAR LE SIÈGE DU MONDE ? (#1479) — les deux routes que `seatOwns`
  * distingue depuis toujours, NOMMÉES : un porteur de l'ENVIRONNEMENT (sentinelle `WORLD_STEP_OWNER` :
  * désertion, Moral, météo) et un ennemi du bac-à-sable MJ reviennent au `worldSeat` ; tout autre
- * porteur est ATTRIBUÉ à un siège par `net.ownership` (réservé aux héros).
+ * porteur est ATTRIBUÉ à un siège par `net.ownership` (réservé aux héros ; une possession en jeu suit son
+ * propriétaire, `siegeDe`).
  *
  * Un seul site pour cette route : `seatOwns` la consomme pour dire QUI possède, `rollSeam` pour dire
  * qui VOIT (un héros dont le siège est aussi le siège MJ — hôte-MJ solo — reste tenu par SON joueur,
@@ -219,15 +220,16 @@ export function conduitParLeSiegeDuMonde(s: Pick<Jeu, 'battle' | 'net'>, combata
   return !!c && c.kind === 'ennemi' && s.net.gmSeat != null;
 }
 
-/** Le siège qui possède ce combattant (héros non attribué → hôte, siège 0). */
-export function siegeDe(s: Pick<Jeu, 'battle' | 'net'>, combatantId: string | undefined): number {
+/** Le siège qui possède ce combattant (héros non attribué → hôte, siège 0) ; une possession en jeu (`possessionEnJeu`) est
+ *  au siège de son propriétaire. LDB 75 l.11 */
+export function siegeDe(s: Pick<Jeu, 'battle' | 'net' | 'possessions'>, combatantId: string | undefined): number {
   if (conduitParLeSiegeDuMonde(s, combatantId)) return worldSeat(s);
   if (!combatantId) return 0;
-  return siegeDuHeros(s.net, combatantId);
+  return siegeDuHeros(s.net, possessionEnJeu(s, combatantId)?.ownerId ?? combatantId);
 }
 
 /** Le siège possède-t-il ce combattant ? */
-export function seatOwns(s: Pick<Jeu, 'battle' | 'net'>, seat: number, combatantId: string | undefined): boolean {
+export function seatOwns(s: Pick<Jeu, 'battle' | 'net' | 'possessions'>, seat: number, combatantId: string | undefined): boolean {
   return siegeDe(s, combatantId) === seat;
 }
 

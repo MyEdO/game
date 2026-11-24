@@ -37,7 +37,7 @@ function auContactDuCheval(rider: 'heros' | 'allie'): { cavalier: Combatant; che
   for (const c of b.combatants) if (c !== cheval && c !== cavalier && c !== cible) c.dead = true;
   placeCombatant(cavalier, banc.getState().scene, { x: cheval.pos!.x + 1, y: cheval.pos!.y });
   banc.setState({ battle: { ...b, acted: false, movementUsed: 0, turn: b.order.indexOf(cavalier.id), action: null } });
-  expect(mountableNear(banc.getState().battle!, banc.getState().scene, cavalier)?.id, 'prémisse : le Cheval libre au contact').toBe(cheval.id);
+  expect(mountableNear(banc.getState(), banc.getState().battle!, banc.getState().scene, cavalier)?.id, 'prémisse : le Cheval libre au contact').toBe(cheval.id);
   return { cavalier, cheval };
 }
 

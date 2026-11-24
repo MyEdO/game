@@ -28,7 +28,7 @@ import { effectiveTalents } from '../../engine/talentEffects';
  * ex. pose d'une invocation dans `summonFlow.ts`) : aucun filtrage de Taille, toutes les
  * empreintes bloquent.
  */
-export function occupied(battle: BattleState, mover: Combatant | string): Set<string> {
+export function occupied(battle: Pick<BattleState, 'combatants' | 'zones'>, mover: Combatant | string): Set<string> {
   const exceptId = typeof mover === 'string' ? mover : mover.id;
   const moverSize = typeof mover === 'string' ? undefined : mover.size;
   // Plus petit → dégagé du chemin (85 l.373-374).

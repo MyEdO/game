@@ -13,6 +13,7 @@ import {
   magazineSize,
   resolveQualities,
   qualityArmourBypasses,
+  lignesDuTestRateALObjet,
 } from './dispatch';
 import { craftEncDelta } from './craftEconomy';
 import { findQualityById, findTrappingById, qualityRefLabel, trappings } from '../../data';
@@ -302,5 +303,17 @@ describe('qualityArmourBypasses — Perforante ignore le non-métal (LDB 62 l.27
   });
   it('sans Perforante → aucun bypass', () => {
     expect(qualityArmourBypasses(w(['Précise']))).toEqual([]);
+  });
+});
+
+describe('dispatch — lignes de DR d’un Test raté à l’objet (LDB 60 l.22, l.58)', () => {
+  const marteau = (patch: Partial<Weapon>) => ({ ...itemFromTrappingById('marteau', idsDeTest), ...patch }) as Weapon;
+  it('une ligne par source de passif `testRate` : la qualité nommée, sinon l’objet, aucune sur un Test réussi', () => {
+    const w = marteau({ qualities: [{ id: 'pratique' }], passive: [{ op: 'weaponRollMod', phase: 'testRate', drMod: -1 }] as Weapon['passive'] });
+    expect(lignesDuTestRateALObjet(w, false)).toEqual([
+      { label: findQualityById('pratique')!.label, famille: 'jet', value: 1, ref: { category: 'qualities', id: 'pratique' } },
+      { label: w.label, famille: 'jet', value: -1, ref: { category: 'trappings', id: 'marteau' } },
+    ]);
+    expect(lignesDuTestRateALObjet(w, true)).toEqual([]);
   });
 });
