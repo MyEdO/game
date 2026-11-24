@@ -119,7 +119,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   marchanderLeBillet: 'hôte', reprendreLeVoyage: 'hôte',
   fixerLaCadence: 'hôte', fouillerLaPiece: 'hôte',
   // Le groupe en exploration : offre d'une entité (pastille), porte, pas et pivot du regard.
-  jouerAction: 'hôte', actionnerLaPorte: 'hôte', avancerDUnPas: 'hôte', pivoterLeGroupe: 'hôte',
+  jouerAction: 'hôte', tenterLeTest: 'hôte', actionnerLaPorte: 'hôte', avancerDUnPas: 'hôte', pivoterLeGroupe: 'hôte',
   // ── Fiche de personnage : progression (PX), équipement, sorts hors combat ─────────────────────
   acheterLaCaracteristique: 'hôte', acheterLaCompetence: 'hôte', acheterLeTalent: 'hôte', acheterLeSort: 'hôte',
   changerDeCarriere: 'hôte', designerLeCreneau: 'hôte', entrainerLaProthese: 'hôte', acheterLaComposante: 'hôte',
@@ -223,7 +223,7 @@ const OUVERTURE_DES_FLUX = {
   soins: { parInvite: ['cliquerLaCase', 'fenetreChoisir'], parHote: ['ouvrirLeMedecin'] },
   chirurgie: { interne: 'acteDeSoin.lancerLActeDeSoin (jetLancer d’un acte d’opération) et medicFlow.appliquerLaPasse (passe suivante)' },
   corruption: { interne: 'exposition/seuil : combatEffects (Effect) et corruptionFlow.gainCorruption' },
-  test: { interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
+  test: { parHote: ['tenterLeTest'], interne: 'combatEffects.openSkillTest (Effet de scène, dialogue, consommable)' },
   fuiteDeVapeur: { interne: 'panne de vapeur : seaVoyageFlow.openSteamSave' },
   // Interlude : le choix `interlude.pratiquer`, au siège du héros (`CHOIX_DES_FENETRES`).
   activite: { parInvite: ['fenetreChoisir'] },

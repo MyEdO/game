@@ -211,7 +211,9 @@ describe('resolveMountedDay — sur-endurance (EDOC 07 l.146)', () => {
     // plus tard à la 2e heure supplémentaire), sauf Boiteux/Patte brisée qui stoppe la journée avant.
     let collapsedSeen = false;
     for (let seed = 1; seed <= 12 && !collapsedSeen; seed++) {
-      const o = resolveMountedDay([mountOf('chien-de-trait')], 6, 'galop', makeRNG(seed))[0];
+      const h = hero();
+      const chien = heroMount(h, [{ ...beast(h.id, 'chien-de-trait'), learnedTraits: ['dresse-monture'] } as Possession])!;
+      const o = resolveMountedDay([chien], 6, 'galop', makeRNG(seed))[0];
       if (o.collapsed) {
         collapsedSeen = true;
         const last = o.tests[o.tests.length - 1];
@@ -240,6 +242,20 @@ describe('la monture porte son cavalier — `accepteUnCavalier` (LDB 85 l.112 ; 
   it('combat : un humain ne monte pas son chien (Taille Petite)', () => {
     const humain = heros('humains-reiklander');
     expect(heroCombatMount(humain, [beast(humain.id, 'chien')])).toBeUndefined();
+  });
+
+  it('possession : le cheval LDB se monte une fois Dressé (Monture) appris (#4816)', () => {
+    const humain = heros('humains-reiklander');
+    expect(heroCombatMount(humain, [beast(humain.id, 'cheval')])).toBeUndefined();
+    expect(heroCombatMount(humain, [{ ...beast(humain.id, 'cheval'), learnedTraits: ['dresse-monture'] } as Possession])).toBeDefined();
+  });
+
+  it('possession : le griffon dressé exige Chevaucher (Griffon) de son maître (#4816)', () => {
+    const humain = heros('humains-reiklander');
+    const griffon = { ...beast(humain.id, 'griffon'), learnedTraits: ['dresse-monture'] } as Possession;
+    expect(heroCombatMount(humain, [griffon])).toBeUndefined();
+    const chevaucheur = { ...humain, skills: [...humain.skills, { id: 'chevaucher', spec: 'griffon', characteristic: 'agilite' as const, advances: 5 }] };
+    expect(heroCombatMount(chevaucheur, [griffon])?.uid).toBe(griffon.uid);
   });
 });
 

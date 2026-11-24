@@ -16,7 +16,7 @@ export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant, ordreDuRoundSuivant } from './combatFlow';
 export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, locationLabel, type Difficulty, type FireArc } from '../engine/types';
-export { formatMoney, fromBrass, libelleDuStatut } from '../engine/money';
+export { formatMoney, fromBrass, libelleDuStatut, type Money } from '../engine/money';
 export type { FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, toDate, type DayPhaseId, type ImperialDate } from '../engine/clock';
@@ -46,7 +46,6 @@ export {
 } from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
 export {
-  candidatsDuSlot,
   carriereActuelle,
   designationsDeCarriere,
   parcoursDe,
@@ -55,7 +54,7 @@ export {
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
-export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
+export { candidatsDuSlot, parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {
   dotationsDuPnj,
   emplacementsDeDotation,
@@ -122,7 +121,7 @@ export { distanceDeCombat } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
 export { effectiveTalents } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY } from './combatAuto';
-export { conversationEnVue } from './dialogue';
+export { conversationEnVue, libelleDuTestAnnonce, type ConversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
 export type { Combatant, ItemInstance } from '../engine/types';
@@ -334,15 +333,16 @@ export { fenetreDuSoin } from './soin';
 export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
+export { weaponStatParts } from '../engine/weaponStats';
 export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
 export { carteEnVue, trajetsDepuis, type CarteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
-export { marchandEnVue } from './marchandEnVue';
-export { marcheEnVue } from './marcheEnVue';
+export { marchandEnVue, type MarchandEnVue } from './marchandEnVue';
+export { marcheEnVue, type MarcheEnVue } from './marcheEnVue';
 export { voyageEnVue, type VoyageEnVue } from './voyageEnVue';
 export { CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet } from './voyageCadence';
 export { recitEnVue, type RecitEnVue } from './recitEnVue';
-export { interludeEnVue } from './interludeEnVue';
+export { interludeEnVue, libelleDuDepot, type InterludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
 export { reposEnVue, type ReposEnVue } from './reposEnVue';
 export { TITRE_DE_LA_NUIT } from './restFlow';
@@ -365,7 +365,7 @@ export { FERMETURES_DITES } from './rollFlowFactory';
 export { effetDuGeste, reglagesDesElements, type Reglage, type ValeurDuReglage } from './reglages';
 export { declarationDuReglageNomme, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from './reglagesDuJet';
 export { VERBE_DE_CHOIX, declarationDuChoixNomme, type AxeDuChoix, type FenetreAChoix } from './choixDesFenetres';
-export { reglagesDesChoix } from './choixDeFenetre';
+export { reglagesDesChoix, type CoutDeLaValeur } from './choixDeFenetre';
 export { avecSigne } from '../engine/types';
 export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
 export type { VerrouDesMots } from './fabriquesDuNoyau';

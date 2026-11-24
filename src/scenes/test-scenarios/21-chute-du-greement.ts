@@ -31,14 +31,14 @@ import { especeDApparence } from '../../data';
  * sous « Dés fixés »).
  */
 function equipage(idNeuf: FabriqueDId): Combatant[] {
-  const gabier = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
+  const gabier = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'marin', label: 'Gabier Ott', motivation: 'Test', seed: 1508, id: 'gabier' });
   gabier.shipRole = 'mousse';
   gabier.shipStation = 'greement';
   renforcerCompetence(gabier, 'athletisme', 5); // il tombe volontiers : c'est l'échec qu'on vient voir
   renforcerCompetence(gabier, 'voile', 45, 'cogue');
   gabier.appearance = { species: especeDApparence('humains-reiklander'), sex: 'M' };
 
-  const vigie = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'matelot', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
+  const vigie = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'marin', label: 'Vigie Nissa', motivation: 'Test', seed: 1509, id: 'vigie' });
   vigie.shipRole = 'vigie';
   vigie.shipStation = 'nid-de-pie';
   renforcerCompetence(vigie, 'athletisme', 5);

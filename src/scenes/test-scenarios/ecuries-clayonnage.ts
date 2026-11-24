@@ -37,7 +37,6 @@ function poserDepart(base: Scene): Scene {
 function chasseurArme(idNeuf: FabriqueDId): Combatant {
   const h = herosDeScenario(idNeuf, 'chasseur');
   const arc = itemFromTrappingById('arc', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
-  arc.equipped = true;
   const fleches = itemFromTrappingById('fleche', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
   h.items = [...(h.items ?? []), arc, fleches];
   loadoutSetSlot(h, loadoutCreate(h), 'main', arc.uid);

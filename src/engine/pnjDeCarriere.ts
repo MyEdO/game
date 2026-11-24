@@ -11,6 +11,7 @@ import { levelsForCareer } from '../data';
 import {
   acquerirTalent,
   availableChars,
+  candidatsDuSlot,
   freeSlotFor,
   inCareerStatus,
   parseRefKey,
@@ -18,10 +19,8 @@ import {
   refKey,
   skillSlots,
   slotCovers,
-  talentMaxReached,
   talentSlots,
-  wildcardSpecs,
-  type CareerSlot,
+  talentTire,
 } from './careerSlots';
 import { applyTalentAcquisition, competencesAjouteesPar, deplierAjouts, talentsAjoutesALaCarriere, talentsAjoutesPar } from './talentEffects';
 import { augmenterLaCompetence } from './character';
@@ -35,7 +34,7 @@ import {
   type ChoixDeDotation,
   type PorteurDArme,
 } from './trappingChoices';
-import { hashSeed, makeRNG, type RNG } from './dice';
+import { hashSeed, makeRNG, tirerUn, type RNG } from './dice';
 import { statusIncome } from './activities';
 import { actorStatus } from './social';
 import { bourseOf, doterLePorteur, ensureBourseInstance } from './bourse';
@@ -107,14 +106,6 @@ export function designationsDeCarriere(carriere: string, niveau: number, refs: r
   return { designations, refusees };
 }
 
-/** Les Compétences ou Talents concrets (`refKey`) qu'un emplacement peut désigner : chaque option à id, chaque
- *  spécialisation de son pool pour un joker (`wildcardSpecs`). */
-export function candidatsDuSlot(slot: CareerSlot): string[] {
-  return slot.options.flatMap((o) => (o.optionId === undefined ? [] : (o.wildcard ? wildcardSpecs(o, slot.kind) : [o.spec]).map((spec) => refKey(o.optionId!, spec))));
-}
-
-/** Un élément de `liste` tiré sur `rng`, `undefined` d'une liste vide. */
-const tirer = <T>(liste: readonly T[], rng: RNG): T | undefined => (liste.length ? liste[rng.int(0, liste.length - 1)] : undefined);
 
 /** Le flux de tirage `quoi` de la carrière `carriere` du porteur `id`. */
 const fluxDuPnj = (id: string, carriere: string, quoi: string): RNG => makeRNG(hashSeed(`carriere:${id}:${carriere}:${quoi}`));
@@ -124,7 +115,7 @@ const fluxDuPnj = (id: string, carriere: string, quoi: string): RNG => makeRNG(h
 function choixCompletes(dotations: Parameters<typeof emplacementsDeDotation>[0], choisis: NonNullable<ParcoursDeCarriere['dotationsDeCarriere']>, porteur: PorteurDArme, rng: RNG): ChoixDeDotation {
   const complets: ChoixDeDotation = {};
   for (const e of emplacementsDeDotation(dotations)) {
-    const v = choisis[e.adresse] ?? tirer(valeursDeLEmplacement(e, porteur), rng);
+    const v = choisis[e.adresse] ?? tirerUn(valeursDeLEmplacement(e, porteur), rng);
     if (v !== undefined) complets[e.adresse] = v;
   }
   return complets;
@@ -188,17 +179,11 @@ export function parcoursRetouche(p: ParcoursDeCarriere, porteur: PorteurDArme): 
   };
 }
 
-/** Un Talent du Niveau `slots` tiré sur `rng` : un emplacement, ou les Talents `ajoutes` aux carrières, qui en offre
- *  un dont le Maxi n'est pas atteint (`talentMaxReached`), puis l'un de ceux-là. */
-function talentTire(c: Combatant, slots: CareerSlot[], ajoutes: readonly RefDesignee[], rng: RNG): RefDesignee | undefined {
-  const offerts = [...slots.map((s) => candidatsDuSlot(s).map(parseRefKey)), [...ajoutes]].map((l) => l.filter((r) => !talentMaxReached(c, r.id, r.spec))).filter((l) => l.length);
-  return tirer(tirer(offerts, rng) ?? [], rng);
-}
 
 /** Le PNJ `c`, profil de base en main, porté au parcours `p` (EDO 11 l.19) : pour chaque Niveau atteint de chaque
  *  carrière, +5 à chaque Caractéristique et Compétence disponible (R1, R2), au moins un Talent du Niveau ; puis la
- *  carrière actuelle et son Niveau (Statut, LDB 08 l.9), les dotations de ses Niveaux 1 à N (R3, R4, `doterLePorteur`), et ses
- *  Blessures recalées sur le profil (`blessuresReconciliees`). Mute `c`. */
+ *  carrière actuelle et son Niveau (Statut, LDB 08 l.9), les dotations de ses Niveaux 1 à N ajoutées à ce qu'il porte (R3,
+ *  R4, `doterLePorteur`), et ses Blessures recalées sur le profil (`blessuresReconciliees`). Mute `c`. */
 export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
   const carrieres = Object.entries(p.carrieres);
   for (const [id, niveau] of carrieres) {
@@ -207,7 +192,7 @@ export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
   }
   // Compétences ajoutées par un Talent : `rang` de la carrière où il est pris (-1 : tenu avant le parcours), `niveau`.
   const rngAjouts = fluxDuPnj(c.id, '', 'ajouts');
-  const ajoutee = (ref: RefASpecialisation) => tirer(deplierAjouts([ref], 'skill'), rngAjouts);
+  const ajoutee = (ref: RefASpecialisation) => tirerUn(deplierAjouts([ref], 'skill'), rngAjouts);
   const ajouts = c.talents.flatMap(competencesAjouteesPar).flatMap((ref) => ajoutee(ref) ?? []).map((ref) => ({ ref, rang: -1, niveau: 1 }));
   const { niveaux } = talentsDuParcours(p);
   for (const [rang, [id]] of carrieres.entries()) {
@@ -231,7 +216,7 @@ export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
     for (const s of slots) {
       if (!s.needsChoice || designations[s.key]) continue;
       const pris = prisParLesAutres(s, slots, designations);
-      const k = tirer(candidatsDuSlot(s).filter((x) => !pris.has(x)), rngCompetences);
+      const k = tirerUn(candidatsDuSlot(s).filter((x) => !pris.has(x)), rngCompetences);
       if (k) designations[s.key] = k;
     }
     const premierNiveau = new Map<string, number>();
@@ -250,7 +235,9 @@ export function porterAuParcours(c: Combatant, p: ParcoursDeCarriere): void {
   const dotations = dotationsDuPnj(actuelle.id, actuelle.niveau);
   const rngDotations = fluxDuPnj(c.id, actuelle.id, 'dotations');
   let n = 0;
-  Object.assign(c, doterLePorteur(resolveTrappingChoices(dotations, choixCompletes(dotations, p.dotationsDeCarriere ?? {}, c, rngDotations)), rngDotations, () => `${c.id}-dotation-${n++}`, contexteDeNaissanceDObjet(c)));
+  const dote = doterLePorteur(resolveTrappingChoices(dotations, choixCompletes(dotations, p.dotationsDeCarriere ?? {}, c, rngDotations)), rngDotations, () => `${c.id}-dotation-${n++}`, contexteDeNaissanceDObjet(c));
+  c.items = [...(c.items ?? []), ...dote.items];
+  if (dote.mentions) c.mentions = [...(c.mentions ?? []), ...dote.mentions];
   c.wounds = blessuresReconciliees(c);
 }
 

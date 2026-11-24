@@ -1029,8 +1029,9 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
     expect(formulaireDe('entite', decor(pose), cadreDeLaSession(pose)).map((f) => f.key)).toEqual(['usable']);
     expect(choixDuDecor(pose, ['usable']), 'l’utilisable absent se pose avec sa première action').toEqual([{ actions: [fouille('fouiller')] }]);
     const une = jouer(pose, valeur(pose, ['usable'], { actions: [fouille('fouiller')] }));
-    expect(choixDuDecor(une, ['usable', 'actions', 1])).toEqual([fouille('fouiller-2')]);
-    const deux = jouer(une, valeur(une, ['usable', 'actions'], [fouille('fouiller'), fouille('fouiller-2')]));
+    const seconde = { ...fouille('fouiller-2'), label: 'Fouiller' };
+    expect(choixDuDecor(une, ['usable', 'actions', 1]), 'hors de l’identifiant du catalogue, l’action neuve porte son libellé').toEqual([seconde]);
+    const deux = jouer(une, valeur(une, ['usable', 'actions'], [fouille('fouiller'), seconde]));
     const ecrite = jouer(deux, valeur(deux, ['usable', 'actions', 1, 'label'], 'Ouvrir le coffre'), valeur(deux, ['usable', 'actions', 1, 'consume'], true),
       valeur(deux, ['usable', 'actions', 1, 'unique'], false), valeur(deux, ['usable', 'actions', 1, 'minutes'], 5));
     expect(decor(ecrite).usable?.actions?.[1]).toEqual({ id: 'fouiller-2', label: 'Ouvrir le coffre', flow: { kind: 'sequence', etapes: [] }, consume: true, unique: false, minutes: 5 });
@@ -2268,7 +2269,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     scenes: [{ ...emptyScene('relais', 4, 4), label: 'Le relais', entities: [
       { id: 'coffre', kind: 'prop', decor: { id: 'coffre' }, pos: { x: 1, y: 1 }, usable: { actions: [
         { id: 'fouiller', flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: OBJET.id } } } },
-        { id: 'ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: OBJET.id } }] } } },
+        { id: 'ouvrir', label: 'Ouvrir', flow: { kind: 'effet', effet: { type: 'ops', ops: [{ op: 'giveTrapping', objet: { id: OBJET.id } }] } } },
       ] } },
       { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: apparencesVers(OBJET.id) } },
     ] }],

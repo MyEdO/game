@@ -35,10 +35,10 @@ import {
 } from '../engine/activities';
 import { describeQuality } from '../engine/qualities/describe';
 import { libelleDePsy } from '../engine/psych/ciblage';
-import { formatMoney, fromBrass } from '../engine/money';
+import { fromBrass, type Money } from '../engine/money';
 import { interludeCatalog } from './interludeFlow';
 import {
-  brouillonDe, ciblesDActivite, refusDeLaComposition, refusDeLaValeur, type CompositionDActivite,
+  brouillonDe, ciblesDActivite, refusDeLaComposition, refusDeLaValeur, type AxeDuBrouillon, type CompositionDActivite,
 } from './verdictsDInterlude';
 import {
   activitesDuNavireEnResolution, plafondDeMiseDOpportunite, plafondDePlanque, seaActivitiesCatalog, seaActivityBlocked, seaActivityRefus,
@@ -163,9 +163,6 @@ const nomDuPorteur = (s: Jeu, id: string): string => garanti(nomEnVue(s, id), id
 /** Le combattant `id` de la bataille, nommé. */
 const combattant = (s: Jeu, id: string): ValeurDuReglage => ouverte(id, nomDuPorteur(s, id));
 
-/** Ce qu'une valeur coûte, dit avec elle : une valeur de liste ne se montre que par son libellé. */
-export const auPrix = (label: string, prix: string): string => t('interlude.prix', { label, prix });
-
 /** Les Activités que compose un héros de l'interlude : celles du catalogue de ce lieu (`interludeCatalog`), hors de la
  *  préparation de bataille (`menerLActionDeBataille`) et du Mécénat, une Opération bancaire. LDB 23 l.5 */
 export const activitesComposables = (s: Jeu): ActivityDef[] => interludeCatalog(s).filter((d) => !d.contexts.includes('bataille') && d.resolver !== 'mecenat');
@@ -182,12 +179,40 @@ const composee = (s: Jeu, pid: IdDeHeros | undefined, lue: (resolver: ActivityRe
 const duCatalogue = (r: ActivityResolver | undefined): boolean => r !== 'craftExtended' && r !== 'learnTalent' && r !== 'entrainement';
 /** L'ouvrage d'Artisanat à engager, le héros n'en ayant pas en cours. LDB 23 l.76 */
 const aEngager = (r: ActivityResolver | undefined, h: Combatant): boolean => r === 'craftExtended' && !h.craft;
-/** Le choix de la cible `cle` de l'Activité composée du catalogue : chacune de `liste`, fermée par son refus (`refusDeLaValeur`). */
-const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsychologique', cle: keyof CompositionDActivite['cibles'], liste: (h: Combatant, def: ActivityDef) => readonly T[], valeur: (x: T) => string, libelle: (x: T) => string) =>
-  reglage('interlude', axe, (s, pid) => {
-    const lu = composee(s, pid, duCatalogue);
-    return lu ? liste(lu.h, lu.def).map((x) => ouverte(valeur(x), libelle(x), refusDeLaValeur(s, lu.h.id, lu.c, axe, valeur(x)))) : [];
-  }, (s, pid) => composee(s, pid, duCatalogue)?.c.cibles[cle] ?? null);
+/** Une cible de l'Activité composée : l'Activité que `lue` retient, chacune de `liste` sur son héros, sa valeur et son nom. */
+interface CibleDeLaComposition<T> {
+  lue: (resolver: ActivityResolver | undefined, h: Combatant) => boolean;
+  liste: (h: Combatant, def: ActivityDef) => readonly T[];
+  valeur: (x: T) => string;
+  libelle: (x: T) => string;
+}
+/** Les valeurs du choix `axe` de la cible `c`, au héros `pid` qui compose l'Activité qu'elle vise, chacune fermée par son
+ *  refus (`refusDeLaValeur`). */
+const valeursDeLaCible = <T>(axe: AxeDuBrouillon, c: CibleDeLaComposition<T>) => (s: Jeu, pid: IdDeHeros | undefined): ValeurDuReglage[] => {
+  const lu = composee(s, pid, c.lue);
+  return lu ? c.liste(lu.h, lu.def).map((x) => ouverte(c.valeur(x), c.libelle(x), refusDeLaValeur(s, lu.h.id, lu.c, axe, c.valeur(x)))) : [];
+};
+/** Le choix de la cible `cle` de l'Activité composée du catalogue (`duCatalogue`). */
+const cibleDuCatalogue = <T>(axe: 'objet' | 'sort' | 'traitPsychologique', cle: keyof CompositionDActivite['cibles'], c: Omit<CibleDeLaComposition<T>, 'lue'>) =>
+  reglage('interlude', axe, valeursDeLaCible(axe, { ...c, lue: duCatalogue }), (s, pid) => composee(s, pid, duCatalogue)?.c.cibles[cle] ?? null);
+
+/** Ce que coûte une valeur : des PX, ou un prix. */
+export type CoutDeLaValeur = { px: number } | { prix: Money };
+/** Une cible de l'Activité composée qui coûte : ce que coûte chacune. */
+interface CibleACout<T> extends CibleDeLaComposition<T> { cout: (x: T) => CoutDeLaValeur }
+const aCout = <T>(c: CibleACout<T>): CibleACout<T> => c;
+/** LDB 23 l.66-72 */
+const TALENT = aCout({ lue: (r) => r === 'learnTalent', liste: (h: Combatant) => learnableTalents(h), valeur: (o) => o.id, libelle: (o) => o.label, cout: (o) => ({ px: o.xpCost }) });
+/** LDB 23 l.132-136 */
+const ENTRAINEMENT = aCout({ lue: (r) => r === 'entrainement', liste: (h: Combatant) => entrainementOptions(h), valeur: cleDEntrainement, libelle: (o) => o.label, cout: (o) => ({ px: o.xpCost }) });
+/** LDB 23 l.74-78 */
+const OUVRAGE = aCout({ lue: aEngager, liste: () => craftCatalog(), valeur: (o) => o.id, libelle: (o) => o.label, cout: (o) => ({ prix: fromBrass(o.materialsBrass) }) });
+const SORT = aCout({ lue: duCatalogue, liste: (h: Combatant, def: ActivityDef) => ciblesDActivite(h, def).sorts, valeur: (x) => x.spell.id, libelle: (x) => x.spell.label, cout: (x) => ({ px: x.cost }) });
+/** Ce que coûte chaque valeur de la cible `c`, par sa valeur, au héros `pid` qui compose l'Activité qu'elle vise. */
+const coutsDe = <T>(c: CibleACout<T>) => (s: Jeu, pid: IdDeHeros): ReadonlyMap<string, CoutDeLaValeur> => {
+  const lu = composee(s, pid, c.lue);
+  return new Map(lu ? c.liste(lu.h, lu.def).map((x) => [c.valeur(x), c.cout(x)] as const) : []);
+};
 /** Un Atout ou un Défaut d'Artisanat, nommé. */
 const qualite = (id: string): ValeurDuReglage => ouverte(id, garanti(describeQuality({ id }), id, 'qualité d’artisanat').label);
 /** Les qualités que vise l'ouvrage composé (`retenue`), parmi les Atouts puis les Défauts. LDB 23 l.95 */
@@ -381,25 +406,16 @@ export const OUVERTS_DU_CHOIX = {
       return h ? activitesComposables(s).map((def) => ouverte(def.id, def.label, refusDeLaComposition(s, h.id, brouillonDe(s.interlude?.perHero[h.id]?.composition, def.id), false))) : [];
     }, (s, pid) => (pid === undefined ? null : s.interlude?.perHero[pid]?.composition?.activite ?? null)),
     // LDB 23 l.66-72
-    talent: reglage('interlude', 'talent', (s, pid) => {
-      const lu = composee(s, pid, (r) => r === 'learnTalent');
-      return lu ? learnableTalents(lu.h).map((o) => ouverte(o.id, auPrix(o.label, t('interlude.px', { px: o.xpCost })), refusDeLaValeur(s, lu.h.id, lu.c, 'talent', o.id))) : [];
-    }, (s, pid) => composee(s, pid, (r) => r === 'learnTalent')?.c.cibles.talentId ?? null),
+    talent: reglage('interlude', 'talent', valeursDeLaCible('talent', TALENT), (s, pid) => composee(s, pid, TALENT.lue)?.c.cibles.talentId ?? null),
     // LDB 23 l.132-136
-    entrainement: reglage('interlude', 'entrainement', (s, pid) => {
-      const lu = composee(s, pid, (r) => r === 'entrainement');
-      return lu ? entrainementOptions(lu.h).map((o) => ouverte(cleDEntrainement(o), auPrix(o.label, t('interlude.px', { px: o.xpCost })), refusDeLaValeur(s, lu.h.id, lu.c, 'entrainement', cleDEntrainement(o)))) : [];
-    }, (s, pid) => composee(s, pid, (r) => r === 'entrainement')?.c.entrainement ?? null),
+    entrainement: reglage('interlude', 'entrainement', valeursDeLaCible('entrainement', ENTRAINEMENT), (s, pid) => composee(s, pid, ENTRAINEMENT.lue)?.c.entrainement ?? null),
     // LDB 23 l.74-78
-    ouvrage: reglage('interlude', 'ouvrage', (s, pid) => {
-      const lu = composee(s, pid, aEngager);
-      return lu ? craftCatalog().map((o) => ouverte(o.id, auPrix(o.label, formatMoney(fromBrass(o.materialsBrass))), refusDeLaValeur(s, lu.h.id, lu.c, 'ouvrage', o.id))) : [];
-    }, (s, pid) => composee(s, pid, aEngager)?.c.ouvrage ?? null),
+    ouvrage: reglage('interlude', 'ouvrage', valeursDeLaCible('ouvrage', OUVRAGE), (s, pid) => composee(s, pid, aEngager)?.c.ouvrage ?? null),
     ajouterLaQualite: qualitesDeLOuvrage('ajouterLaQualite', (c, q) => !visee(c, q)),
     retirerLaQualite: qualitesDeLOuvrage('retirerLaQualite', visee),
-    objet: cibleDuCatalogue('objet', 'itemUid', (h, def) => { const { armes, artefacts } = ciblesDActivite(h, def); return [...armes, ...artefacts]; }, (i) => i.uid, (i) => i.label),
-    sort: cibleDuCatalogue('sort', 'spellId', (h, def) => ciblesDActivite(h, def).sorts, (x) => x.spell.id, (x) => auPrix(x.spell.label, t('interlude.px', { px: x.cost }))),
-    traitPsychologique: cibleDuCatalogue('traitPsychologique', 'traitPsy', (h, def) => ciblesDActivite(h, def).traitsPsy, (x) => x.cle, (x) => libelleDePsy(x.trait.type, x.trait.cible)),
+    objet: cibleDuCatalogue('objet', 'itemUid', { liste: (h, def) => { const { armes, artefacts } = ciblesDActivite(h, def); return [...armes, ...artefacts]; }, valeur: (i) => i.uid, libelle: (i) => i.label }),
+    sort: cibleDuCatalogue('sort', 'spellId', SORT),
+    traitPsychologique: cibleDuCatalogue('traitPsychologique', 'traitPsy', { liste: (h, def) => ciblesDActivite(h, def).traitsPsy, valeur: (x) => x.cle, libelle: (x) => libelleDePsy(x.trait.type, x.trait.cible) }),
     pratiquer: reglage('interlude', 'pratiquer', (s, pid) => {
       const lu = composee(s, pid, () => true);
       return lu ? [ouverte(true, libelleDuChoix('interlude', 'pratiquer'), refusDeLaComposition(s, lu.h.id, lu.c))] : [];
@@ -429,6 +445,11 @@ export const OUVERTS_DU_CHOIX = {
     motivation: caseDuHeros('motivation'),
   },
 } as const satisfies OuvertsDuChoix;
+
+/** Ce que coûte chaque valeur des choix de l'interlude qui coûtent, par sa valeur, au héros `pid` (`OUVERTS_DU_CHOIX`). */
+export const COUTS_DE_L_INTERLUDE: Partial<Record<AxeDe<'interlude'>, (s: Jeu, pid: IdDeHeros) => ReadonlyMap<string, CoutDeLaValeur>>> = {
+  talent: coutsDe(TALENT), entrainement: coutsDe(ENTRAINEMENT), ouvrage: coutsDe(OUVRAGE), sort: coutsDe(SORT),
+};
 
 /** Le réglage du choix `axe` de la fenêtre `fenetre` dans l'état `s`, sur le héros `pid` d'un choix de rangée
  *  (`OUVERTS_DU_CHOIX`). */

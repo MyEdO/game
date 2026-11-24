@@ -12,11 +12,11 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
-import { createHero } from '../engine/character';
+import { createHero, speciesSkillDefaults } from '../engine/character';
 import { toBrass, fromBrass, PA_PER_CO } from '../engine/money';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { hasCondition } from '../engine/conditions';
-import { spells } from '../data';
+import { findSpeciesById, spells } from '../data';
 import { testScene } from '../scenes/test-fixture';
 import { pratiquer } from './interlude.testkit';
 import { reglageDuChoixDeFenetre } from './choixDeFenetre';
@@ -27,7 +27,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', () => {
   beforeEach(() => {
-    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
+    const a = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', speciesSkillAdvances: speciesSkillDefaults(findSpeciesById('humains-reiklander')!), label: 'A', seed: 1 });
     // Prière et Recherche sont avancées : le héros les a apprises pour tenter Pénitence et l'étude (LDB 09 l.30).
     a.skills.push({ id: 'priere', characteristic: 'sociabilite', advances: 5 }, { id: 'recherche', characteristic: 'intelligence', advances: 5 });
     banc.setState({ party: [a] });

@@ -312,7 +312,7 @@ exemple.
   (`src/data/activities.json`, contexte `bataille`) avec leur Test ; la prise montre son enjeu ; Infiltration et
   Sabotage sont fermées, la raison au survol (« Exige un Repérage réussi au préalable. ») ; « Envoyer Mira au camp »
   commet ; le geste de sortie de l'interlude devient « Livrer bataille ».
-- Verbes : `menerLActionDeBataille(heroId, activityId)` (`src/noyau/interludeEnVue.ts:94-96`) ; refus de
+- Verbes : `menerLActionDeBataille(heroId, activityId)` (`activitesDuHeros`, `src/noyau/interludeEnVue.ts`) ; refus de
   `refusDePrepaDeBataille` (`src/noyau/massBattleFlow.ts:460-476`) ; `fenetreValider('interlude')` clôt l'interlude et
   engage la bataille (`src/noyau/interludeFlow.ts:1196-1200`).
 - À valider : la préparation rangée dans un lieu de la carte, « Le camp de l'armée », alors que le jeu ajoute ses

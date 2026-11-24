@@ -164,10 +164,10 @@
   {
     "id": "actorIn",
     "type": "primitives.manifest",
-    "label": "actorIn/inBattleId/ecrireActeur/combattantsDeLaSerie",
+    "label": "actorIn/acteursEnJeu/apresLeReport/inBattleId/ecrireActeur/combattantsDeLaSerie",
     "fichier": "src/noyau/monde/combatants.ts",
-    "concept": "combattant par id — combat, ou groupe et combattants de la série d'attaques subies, vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
-    "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312)",
+    "concept": "combattant par id dans les acteurs en jeu — la file de combat, après le report le groupe et la file hors du groupe, hors combat le groupe et les combattants de la série d'attaques subies —, vs en-combat-seulement ; écriture par id dans le groupe ET la file de combat",
+    "perimetre": "toute résolution d'acteur ; toute écriture d'un héros ou d'un combattant par id (#2312, #4860)",
     "verrou": "in-battle-find-guard.test.ts"
   },
   {
@@ -175,7 +175,7 @@
     "type": "primitives.manifest",
     "label": "touchActors",
     "fichier": "src/noyau/combatOrParty.ts",
-    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, sinon le groupe et la série d'attaques subies",
+    "concept": "re-rendu après mutation EN PLACE d'un acteur : notifie la file de combat en combat, et le groupe après le report, sinon le groupe et la série d'attaques subies",
     "perimetre": "toute mutation en place d'un combattant ou d'un héros (#2312)",
     "verrou": "couture-de-retour.hors-store.test.ts"
   },
@@ -1159,6 +1159,15 @@
     "concept": "transaction du contrôle des écritures : préparation avant lancement, projection pure sans nonce, reporters temporaires restitués après clôture, veto mémorisé et nettoyage idempotent",
     "perimetre": "fabrique de supervision et intercepteur des lancements Node --test",
     "verrou": "scripts/guards/lib/perimetreSansEcriture.test.mjs"
+  },
+  {
+    "id": "ganteletRetient",
+    "type": "primitives.manifest",
+    "label": "ganteletRetient",
+    "fichier": "src/engine/items.ts",
+    "concept": "lâcher forcé d'un objet tenu face au gantelet verrouillé (AA 08 l.236) : mains couvertes (`ganteletsAuxMains` : tenu et porté exclusifs, au plus un gantelet par main ; tenu : sa main ; portés : main d'arme puis secondaire), retenue posée en effet actif à `testModHand` pour le Round entamé et le suivant, valeur lue en donnée (`regles.json` `retenue-du-gantelet-verrouille`), second évènement pendant la retenue : l'objet tombe",
+    "perimetre": "tout site qui fait lâcher l'objet tenu : op `disarm` (Critiques, Main ensanglantée par `glisseDeLaMain`, dont l'Action se poursuit si rien n'a glissé), Piège-lame (`applyBladeTrap`)",
+    "verrou": "src/noyau/locked-gauntlet.hors-store.test.ts"
   },
   {
     "id": "naissanceDObjet",

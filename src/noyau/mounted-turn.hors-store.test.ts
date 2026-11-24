@@ -20,7 +20,7 @@ function setup() {
   hero.pos = { x: 5, y: 5 };
   hero.initiative = 50;
   const horse = spawnEnemy({ ref: 'cheval' }, 'horse', { x: 6, y: 5 });
-  horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }] as never; // Cheval ordinaire : Trait Nerveux, Taille Grande
+  horse.traits = [{ id: 'nerveux' }, { id: 'taille', arg: 'Grande' }, { id: 'dresse-monture' }] as never; // LDB 14 l.182 ; AA 09 l.23
   horse.size = 'grande';
   horse.mountable = true;
   horse.kind = 'heros'; // monture ALLIÉE (on n'enfourche que sa propre équipe)

@@ -10,7 +10,7 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { reponsesDuNoeud, testAnnonce, ouvrirDialogue } from './dialogue';
+import { conversationEnVue, reponsesDuNoeud, testAnnonce, ouvrirDialogue } from './dialogue';
 import { conditionCtx } from '../engine/flowCore';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import type { Dialogue, DialogueNode } from './monde/scene';
@@ -160,5 +160,25 @@ describe('ouvrirDialogue — une conversation naît avec sa SESSION', () => {
     const plein = Array.from({ length: DIALOGUE_HISTORY_CAP + 5 }, (_, i) => archive(i + 1));
     const borne = recordTurn(plein.slice(0, -1), plein[plein.length - 1]);
     expect(ouvrirDialogue({ dialogueHistory: borne }, dlg).session).toBe(plein.length + 1);
+  });
+});
+
+describe('conversationEnVue — la conversation en données (#4574)', () => {
+  const dlg = noeud([{ id: 'sonder', label: 'Le sonder', flow: testDIntuition }, { id: 'payer', label: 'Payer', cost: { silver: 5 } }] as DialogueNode['choices']);
+  const avec = (entities: object[]) => etat(dlg, { scene: { entities } as never, dialogue: { dialogue: dlg, nodeId: 'n1', speakerId: 'gustav', session: 1 } });
+
+  it('l’orateur par son id et son nom ; chaque réponse porte son Test en ids, son coût en Money, sans annonce composée', () => {
+    expect(conversationEnVue(avec([{ id: 'gustav', kind: 'personnage', creature: { id: 'humain' }, label: 'Gustav', pos: { x: 0, y: 0 } }]))).toEqual({
+      orateur: { id: 'gustav', nom: 'Gustav' },
+      replique: '…',
+      reponses: [
+        { id: 'sonder', rang: 1, label: 'Le sonder', enabled: true, test: { skill: { id: 'intuition' }, difficulty: 'difficile' }, geste: { verbe: 'fenetreChoisir', args: ['dialogue', 'reponse', 'sonder'] } },
+        { id: 'payer', rang: 2, label: 'Payer', cost: { gold: 0, silver: 5, brass: 0 }, enabled: false, refus: 'Pas assez d’argent pour cette option.', geste: { verbe: 'fenetreChoisir', args: ['dialogue', 'reponse', 'payer'] } },
+      ],
+    });
+  });
+
+  it('sans interlocuteur sur la scène : aucun orateur', () => {
+    expect(conversationEnVue(avec([]))?.orateur).toBeNull();
   });
 });

@@ -89,8 +89,7 @@ export function constatSansRecuperation(c: Combatant): { cle: MsgKey; params?: R
 /**
  * UNE journée de maladie (LDB 20) pour `c` — appelée par l'entretien quotidien (#T3) à CHAQUE
  * franchissement de jour (repos OU PAS) : fait avancer incubation/durée (`tickDisease`), applique les
- * soins d'un soignant (LDB 09-Compétences : « Pour chaque journée complète… la durée de la maladie est
- * réduite de 1, jusqu'à un minimum de 1 » — −1 jour SUPPLÉMENTAIRE par maladie active), puis réconcilie
+ * soins d'un soignant (LDB 09 l.265) sur une Durée qui court ce jour-là (MDG 14 l.232), puis réconcilie
  * les États PORTÉS par les passifs des symptômes (Malaise → Exténué l.188, Fièvre (Grave) → Inconscient
  * l.170) — SOCLE `syncDerivedConditions`, jamais un delta de compte par symptôme.
  * Mute `c`, renvoie le journal.
@@ -99,11 +98,12 @@ export function dailyDiseaseUpkeep(
   c: Combatant, rng: RNG, defer: UpkeepDeferTest, caredFor = false, peutDeclarer?: CycleDeFiche['peutDeclarer'],
 ): string[] {
   if (c.dead || !c.diseases?.length) return [];
+  const duree = new Map(c.diseases.filter(maladieDeclaree).map((dz) => [dz, dz.minutesLeft]));
   const log = tickDisease(c, MINUTES_PER_DAY, rng, defer, bonus(effectiveChar(c, 'endurance')), peutDeclarer);
   if (caredFor) {
     for (const dz of c.diseases ?? []) {
-      // −1 JOUR supplémentaire par maladie active, minimum 1 jour restant (LDB 09-Compétences).
-      if (maladieDeclaree(dz) && dz.minutesLeft > MINUTES_PER_DAY) dz.minutesLeft -= MINUTES_PER_DAY;
+      // LDB 09 l.265 ; MDG 14 l.232
+      if (dz.minutesLeft < (duree.get(dz) ?? 0) && dz.minutesLeft > MINUTES_PER_DAY) dz.minutesLeft -= MINUTES_PER_DAY;
     }
   }
   log.push(...syncDerivedConditions(c).lignes);

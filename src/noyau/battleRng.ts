@@ -22,6 +22,11 @@ export function seedBattleRng(seed: number): void {
   _rng = makeRNG(seed);
 }
 
+/** Pose le RNG de combat `rng`, que garde une partie suspendue (`ouvrirLeProprietaire`, #4862). */
+export function poserBattleRng(rng: RNG): void {
+  _rng = rng;
+}
+
 export function creerActionsDesDes(_get: Get, _set: Set) {
   return {
     ensemencerLeTirage: (seed) => {

@@ -11,13 +11,13 @@ import { describe, it, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
-import { createHero, skillCharacteristicById } from '../engine/character';
+import { createHero, skillCharacteristicById, speciesSkillDefaults } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
 import { activitiesFor, activityById, craftCatalog, craftSpecOf, craftTarget, learnableTalents, metierOf } from '../engine/activities';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { learnableSpells } from '../engine/grimoire';
 import { soutienMod, testValue } from '../engine/skills';
-import { careers, findTrappingById, spells, testSkillLabel } from '../data';
+import { careers, findSpeciesById, findTrappingById, spells, testSkillLabel } from '../data';
 import { ciblesDActivite, preJetDActivite, refusDeLaComposition, refusDeRetrait, type CiblesChoisies } from './verdictsDInterlude';
 import { battleActivityById, battlePrepEntries, preJetDePreparation, refusDePrepaDeBataille } from './massBattleFlow';
 import type { Combatant, Difficulty, ItemInstance } from '../engine/types';
@@ -35,7 +35,7 @@ const SORTS_DE_FEU = spells.filter((sp) => sp.family === 'arcane' && sp.subType 
 /** Le Vétéran (soldat), sorcier du Feu instruit en Savoir (Magie), forgeron, riche de 1000 PX, qui porte une arme inhabituelle, un artefact,
  *  une Peur et un Péché : chaque Activité du catalogue trouve sa cible. */
 function vétéran(seed = 1601, instruit = false): Combatant {
-  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vétéran', seed }), { gold: 20, silver: 0, brass: 0 }, idsDeTest);
+  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', careerTalent: { id: 'guerrier-ne' }, speciesSkillAdvances: speciesSkillDefaults(findSpeciesById('humains-reiklander')!), label: 'Vétéran', seed }), { gold: 20, silver: 0, brass: 0 }, idsDeTest);
   h.items = [...(h.items ?? []), COUTEAU_DE_HARALD, AMULETTE];
   h.psychTraits = [{ type: 'peur' }];
   h.sinPoints = 1;

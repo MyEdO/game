@@ -638,7 +638,7 @@ describe('Boucle de jeu (store)', () => {
   });
 
   it('une Bénédiction de bonus pose un effet actif temporisé sur la cible', () => {
-    const pretre = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'pretre', label: 'Prêtre', seed: 8 });
+    const pretre = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'pretre', label: 'Prêtre', seed: 8, careerTalent: { id: 'beni', spec: 'deesse-araignee' } });
     pretre.characteristics.sociabilite = 95; // assurer la réussite de la Prière
     pretre.spells = ['benediction-de-bataille'];
     banc.setState({ party: [pretre] });

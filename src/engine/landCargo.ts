@@ -148,13 +148,11 @@ export function wineEvalDifficulty(alcoholResist: number): Difficulty {
 }
 
 /** MSRC 13 l.95 */
-export function wineEvalReveal({ rang, libelles }: QualiteSecreteDuVin, success: boolean, sl: number): { trueLabel: string; shownLabel: string } {
-  const trueLabel = libelles[rang];
-  if (success) return { trueLabel, shownLabel: trueLabel };
+export function wineEvalReveal({ rang, libelles }: QualiteSecreteDuVin, success: boolean, sl: number): number {
+  if (success) return rang;
   const last = libelles.length - 1;
   const step = Math.max(1, Math.abs(sl));
-  const shown = rang + step <= last ? rang + step : Math.max(0, rang - step);
-  return { trueLabel, shownLabel: libelles[shown] };
+  return rang + step <= last ? rang + step : Math.max(0, rang - step);
 }
 
 /** Surcoût d'un LOT PARTIEL à l'achat (l.131) : « le prix de base par 10 Points d'Encombrement doit être

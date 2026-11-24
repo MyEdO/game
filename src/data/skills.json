@@ -167,6 +167,16 @@
       {
         "id": "rats",
         "label": "Rats"
+      },
+      {
+        "id": "carnosaure",
+        "label": "Carnosaure",
+        "maison": "monture belliqueuse sans spécialisation de Chevaucher sourcée : arbitrage #4842 du 2026-11-23"
+      },
+      {
+        "id": "cornu",
+        "label": "Cornu",
+        "maison": "monture belliqueuse sans spécialisation de Chevaucher sourcée : arbitrage #4842 du 2026-11-23"
       }
     ],
     "desc": "C'est la façon dont vous maîtrisez le fait de chevaucher un groupe particulier d'animaux ; Chevaucher (Cheval), par exemple, vous permettra de monter des chevaux, des mules, des ânes et autres animaux similaires. Vous aurez besoin de faire un Test uniquement lorsque vous voudrez effectuer quelque chose d'inhabituel, comme une course, du dressage, traverser un terrain dangereux ou charger en combat. Autrement, si vous possédez la Compétence, vous êtes considéré comme capable de chevaucher sans avoir besoin de Test.\n\nSi vous êtes monté sur un destrier, vous vous déplacez en utilisant les statistiques de Mouvement du destrier ; si vous voulez courir, sauter, ou bondir, vous utilisez votre Compétence Chevaucher, et pas Athlétisme. Un Test de Chevaucher étendu peut être nécessaire si vous vous rendez quelque part, le DR cible dépendant de la longueur du voyage, et le nombre de Tests indiquant combien de temps vous mettez à arriver. Un Test de Chevaucher peut être modifié par les conditions environnementales et le tempérament de la monture. Pour plus d'information sur les montures, voir le Chapitre 12 : Bestiaire.\n\nLa Compétence Chevaucher peut être activement utilisée en combat. Voir Chapitre 5 : Règles pour plus d'informations sur le combat monté.",

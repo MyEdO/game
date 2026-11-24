@@ -2,6 +2,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { itemFromTrappingById } from '../engine/items';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { draineCascade } from './cascade.testkit';
 import { contractDisease } from '../engine/disease';
 import { traumaById, dechirureFractureFicheId, avecSequelles } from '../engine/trauma';
 import type { HitLocation } from '../engine/types';
@@ -44,6 +45,29 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     banc.getState().avancerLeTemps(2 * MINUTES_PER_DAY); // 2 jours d'aventure, personne ne dort
     const dz = banc.getState().party[0].diseases![0];
     expect(dz.phase).toBe('active'); // l'incubation (2 j) s'est écoulée — calendaire, pas « au repos »
+  });
+
+  it('un jour franchi hors nuit compte le soignant du groupe comme la nuit (LDB 09 l.265)', () => {
+    const c = hero({ diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
+    const soignant = hero({ id: 's', skills: [{ id: 'guerison', advances: 10, characteristic: 'intelligence' }] });
+    banc.setState({ party: [c, soignant], gameTime: 0, lastUpkeepDay: 0, pendingCascade: null });
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
+    expect(banc.getState().party[0].diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
+  });
+
+  it('le malade ne se soigne pas lui-même : sa Guérison ne compte pas pour sa maladie (LDB 09 l.265)', () => {
+    const c = hero({ skills: [{ id: 'guerison', advances: 10, characteristic: 'intelligence' }], diseases: [contractDisease('infection-mineure', deFixe(1), { incubation: 0, duration: 6 })!] });
+    banc.setState({ party: [c], gameTime: 0, lastUpkeepDay: 0, pendingCascade: null });
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
+    expect(banc.getState().party[0].diseases![0].minutesLeft).toBe(5 * MINUTES_PER_DAY);
+  });
+
+  it('un jour de maladie passé par avancerLeTemps joue son Test quotidien par les tables du noyau', () => {
+    const c = hero({ diseases: [contractDisease('pneumonie', deFixe(1), { incubation: 0 })!] });
+    banc.setState({ party: [c], gameTime: 0, lastUpkeepDay: 0, pendingCascade: null });
+    banc.getState().avancerLeTemps(MINUTES_PER_DAY);
+    expect(draineCascade(banc.getState)).toContain('maladie-test-quotidien');
+    expect(banc.getState().pendingCascade).toBeNull();
   });
 
   it('le bilan d’entretien d’avancerLeTemps est VISIBLE et INFLUENÇABLE : le Test de Faim ouvre une cascade (#253), jamais un témoin pré-résolu', () => {

@@ -11,7 +11,7 @@ import { nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { proseNommee } from '../grammaire/prose';
 import { champsDAcces, META_DE_L_ACCES, refuserLAccesMuet } from '../grammaire/acces';
-import { effectSchema, waterExposureModeSchema } from './effets';
+import { effectSchema, refuserLeTesteurHorsDuTest, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
 import { offresDAubergeSchema } from '../grammaire/hebergement';
@@ -181,7 +181,10 @@ export const routePerilSchema = nommerChamps(ouvrirPortees(z.strictObject({
   label: z.string(),
   chancePct: z.number(),
   effects: listeSansCle(z.array(effectSchema)),
-}).superRefine((peril, ctx) => refuserLesIndividus(peril.effects, ctx, 'une péripétie de route')), PORTEES_DE_LA_SCENE, 'vide'), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
+}).superRefine((peril, ctx) => {
+  refuserLesIndividus(peril.effects, ctx, 'une péripétie de route');
+  refuserLeTesteurHorsDuTest(peril.effects, ctx, 'effects');
+}), PORTEES_DE_LA_SCENE, 'vide'), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** Une référence à un lieu de la carte (`ref(LIEUX_DE_LA_CARTE)`). */
 type RefDeLieu = { id: string };

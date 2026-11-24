@@ -147,10 +147,10 @@ export function possessionRideable(p: Possession): boolean {
 }
 
 /** Profil d'une bête-possession tel que le spawn le projette (`creatureToCombatant`, `statblockToCombatant`) : traits
- *  innés et appris, Taille du profil (`livingSize`, `tailleDuProfil`). PUR. */
-export function profilDeLaBete(p: Possession & { nature: 'bete' }): { traits: TraitsDesignes; size: SizeCategory } {
+ *  innés et appris, Taille du profil (`livingSize`, `tailleDuProfil`), id de la fiche du bestiaire. PUR. */
+export function profilDeLaBete(p: Possession & { nature: 'bete' }): { traits: TraitsDesignes; size: SizeCategory; creatureId?: string } {
   const innate = 'id' in p.ref ? (findCreatureById(p.ref.id)?.traits ?? []) : (p.ref.custom.traits ?? []);
-  return { traits: [...innate, ...(p.learnedTraits ?? []).map((id) => ({ id }))], size: livingSize(p.ref) };
+  return { traits: [...innate, ...(p.learnedTraits ?? []).map((id) => ({ id }))], size: livingSize(p.ref), creatureId: 'id' in p.ref ? p.ref.id : undefined };
 }
 
 /** Libellé affiché : `label` d'instance (« Marguerite ») sinon le libellé du catalogue de sa nature

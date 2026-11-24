@@ -45,10 +45,10 @@ export function avecLesTables(fixture: FixtureDeTables): void {
   // `onTestFinished` lève et rien n'est posé.
   onTestFinished(() => {
     debrancherLeJeu();
-    brancherLeJeu(jeu.get, jeu.set, tablesDuJeu());
+    brancherLeJeu(jeu, tablesDuJeu());
   });
   debrancherLeJeu();
-  brancherLeJeu(jeu.get, jeu.set, { ...tablesDuJeu(), ...fixture } as TablesDuJeu);
+  brancherLeJeu(jeu, { ...tablesDuJeu(), ...fixture } as TablesDuJeu);
 }
 
 /** Pose la table du jeu dont l'applier `kind` joue celui du jeu puis ouvre `flow` (`runFlow`, la porte des nœuds

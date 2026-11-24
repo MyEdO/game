@@ -1,4 +1,4 @@
-import type { ItemInstance, Weapon, WeaponRangeSpec, AmmoRangeMod, WeaponDamageSpec, Combatant } from './types';
+import type { ItemInstance, Weapon, WeaponRangeSpec, AmmoRangeMod, WeaponDamageSpec, Combatant, ReachValue } from './types';
 import type { TriggeredEffect } from './flowCore';
 import { damageString } from './items';
 import { effectiveWeaponDamage, effectiveRange } from './weaponDamage';
@@ -7,25 +7,46 @@ import { resolveQualities, type QualityCarrier } from './qualities/dispatch';
 import { siegeMultiplier } from './structures';
 import { t } from '../i18n';
 
-/**
- * Parts d'affichage CANONIQUES des stats MÉCANIQUES d'une arme (hors qualités, gérées par l'appelant) :
- * « Dégâts <spec> (<total>) » puis l'Allonge de mêlée OU la Portée de tir (mutuellement exclusives —
- * LDB 62 : Allonge = mêlée, Portée = distance en mètres). SOURCE UNIQUE consommée par le Sac
- * (`CharacterSheet`), l'encart « En main » et le popover d'arme (`EquipmentPanel`) — fin des trois copies
- * dont deux affichaient « [object Object] » (un `WeaponDamageSpec` / `reach` brut non routé par `damageString`).
- * Marche pour un `ItemInstance` (Sac/popover) comme pour un `Weapon` dérivé (armes EN MAIN). `force` = BF
- * du porteur (`forceDuPorteur`), injecté dans les Dégâts résolus ET la Portée (arme de jet `{bf}` → BF×N) ;
- * « Spécial » → total 0.
- */
-export function weaponStatParts(it: ItemInstance | Weapon, force: { bf: number; passif: number }): string[] {
-  const parts: string[] = [];
-  if (it.damage) parts.push(t('ws.degats', { spec: damageString(it.damage), total: effectiveWeaponDamage(it as Weapon, force) }));
-  const rangeM = effectiveRange(it.range, force.bf); // SPEC → mètres (BF×N pour une arme de jet)
-  if (rangeM != null) parts.push(t('ws.portee', { m: rangeM }));
-  else if (it.reach) parts.push(t('ws.allonge', { reach: it.reach }));
-  const note = conditionalDamageNote(it as QualityCarrier & { damage?: WeaponDamageSpec | null; onHitEffects?: TriggeredEffect[] });
-  if (note) parts.push(note);
-  return parts;
+/** Les Dégâts d'une arme dont le champ `damage` imprimé n'est pas la vérité inconditionnelle (#135) : `belier` (cap
+ *  `ram`, ADE II 8 l.249, `repli`) ; `siege` (cap `siege`, ADE II 8 l.292, `mult`) ; `aLaTouche` (`onHitEffects` sans
+ *  `damage`). */
+export type DegatsConditionnels = { genre: 'belier'; repli: WeaponDamageSpec } | { genre: 'siege'; mult: number } | { genre: 'aLaTouche' };
+
+/** Le profil mécanique d'une arme pour son porteur (hors Atouts et Défauts) : ses Dégâts, leur formule et leur total
+ *  résolu au Bonus de Force (`effectiveWeaponDamage`, « Spécial » → 0), `null` sans Dégâts ; sa Portée en mètres
+ *  (`effectiveRange`) ; son Allonge, `null` pour une arme à Portée (LDB 62) ; ses
+ *  Dégâts conditionnels (`degatsConditionnels`). */
+export interface ProfilDArme {
+  degats: { formule: WeaponDamageSpec; total: number } | null;
+  portee: number | null;
+  allonge: ReachValue | null;
+  conditionnels: DegatsConditionnels[];
+}
+
+/** Ce que porte une arme ou une pièce dont on lit les Dégâts conditionnels. */
+type PorteurDeDegats = QualityCarrier & { damage?: WeaponDamageSpec | null; onHitEffects?: TriggeredEffect[] };
+
+/** Le profil de l'arme `it` (un `ItemInstance` comme un `Weapon` dérivé) pour un porteur de force `force`
+ *  (`forceDuPorteur`), injectée dans les Dégâts résolus et la Portée (arme de jet `{bf}` → BF×N). PUR. */
+export function profilDArme(it: ItemInstance | Weapon, force: { bf: number; passif: number }): ProfilDArme {
+  const portee = effectiveRange(it.range, force.bf);
+  return {
+    degats: it.damage ? { formule: it.damage, total: effectiveWeaponDamage(it as Weapon, force) } : null,
+    portee,
+    allonge: portee === null ? it.reach ?? null : null,
+    conditionnels: degatsConditionnels(it as PorteurDeDegats),
+  };
+}
+
+/** Le profil `p` en texte, une part par stat : « Dégâts <formule> (<total>) », la Portée ou l'Allonge, puis la note
+ *  de ses Dégâts conditionnels. */
+export function weaponStatParts(p: ProfilDArme): string[] {
+  const note = noteDesConditionnels(p.conditionnels);
+  return [
+    ...(p.degats ? [t('ws.degats', { spec: damageString(p.degats.formule), total: p.degats.total })] : []),
+    ...(p.portee !== null ? [t('ws.portee', { m: p.portee })] : p.allonge ? [t('ws.allonge', { reach: p.allonge })] : []),
+    ...(note ? [note] : []),
+  ];
 }
 
 /** Repli d'**Arme improvisée** (LDB 62 l.31, `+BF+1`) — dérivé une fois via `improvisedProfile` (résultat
@@ -34,30 +55,29 @@ export function weaponStatParts(it: ItemInstance | Weapon, force: { bf: number; 
 const IMPROVISED_DAMAGE: WeaponDamageSpec = improvisedProfile({ label: '', type: 'melee', damage: { plusBF: false, flat: 0 }, qualities: [] }).damage;
 
 /** Cible SYNTHÉTIQUE « structure » — `siegeMultiplier` ne lit que `bodyShape` (`isStructure`) ; aucune
- *  structure réelle n'existe à l'affichage d'une fiche catalogue (Codex/popover), hors combat. */
+ *  structure réelle n'existe à l'affichage d'une fiche catalogue (Codex), hors combat. */
 const SIEGE_TARGET = { bodyShape: 'structure' } as Combatant;
 
-/**
- * Note de DÉGÂTS CONDITIONNELS d'une arme/pièce dont le champ `damage` imprimé n'est PAS la vérité
- * inconditionnelle (#135 — le Codex affichait le statbloc brut pour des armes dont les dégâts RÉELS
- * dépendent de la cible/du contexte) :
- *  - **Bélier** (cap `ram`, ADE II 8 l.249) : ne frappe QUE les portes — Arme improvisée sinon.
- *  - **Siège** (cap `siege`, ADE II 8 l.292) : double les dégâts contre une STRUCTURE.
- * DATA-DRIVEN : capacités lues via `resolveQualities`/`siegeMultiplier` — les MÊMES fonctions que consomme
- * `engine/structures` en combat, zéro id d'arme en dur (toute future qualité à capacité `ram`/`siege` est
- * couverte sans code supplémentaire). Sans dégâts imprimés (`damage` absent) mais un effet À LA TOUCHE
- * déclenché (`onHitEffects`) dont on ne peut pas dériver de formule : badge générique. `null` = dégâts
- * imprimés déjà fidèles (rien à ajouter).
- */
-export function conditionalDamageNote(w: QualityCarrier & { damage?: WeaponDamageSpec | null; onHitEffects?: TriggeredEffect[] }): string | null {
-  const notes: string[] = [];
-  if (resolveQualities(w).some((r) => r.caps?.ram)) notes.push(t('ws.belier', { dmg: damageString(IMPROVISED_DAMAGE) }));
+/** Les Dégâts conditionnels de `w` (`DegatsConditionnels`), lus des capacités de ses qualités par les fonctions
+ *  qu'emploie le combat (`resolveQualities`, `siegeMultiplier`, `engine/structures`) ; `aLaTouche` seulement sans
+ *  autre condition. PUR. */
+export function degatsConditionnels(w: PorteurDeDegats): DegatsConditionnels[] {
   const siegeMult = siegeMultiplier({ qualities: w.qualities } as Weapon, SIEGE_TARGET);
-  if (siegeMult > 1) notes.push(t('ws.siege', { mult: siegeMult }));
-  if (notes.length) return notes.join(' · ');
-  if (!w.damage && w.onHitEffects?.length) return t('ws.conditionnels');
-  return null;
+  const conditions: DegatsConditionnels[] = [
+    ...(resolveQualities(w).some((r) => r.caps?.ram) ? [{ genre: 'belier', repli: IMPROVISED_DAMAGE } as const] : []),
+    ...(siegeMult > 1 ? [{ genre: 'siege', mult: siegeMult } as const] : []),
+  ];
+  return conditions.length || w.damage || !w.onHitEffects?.length ? conditions : [{ genre: 'aLaTouche' }];
 }
+
+/** Les Dégâts conditionnels `conditions` en une note, `null` sans condition. */
+const noteDesConditionnels = (conditions: readonly DegatsConditionnels[]): string | null =>
+  conditions.length
+    ? conditions.map((c) => (c.genre === 'belier' ? t('ws.belier', { dmg: damageString(c.repli) }) : c.genre === 'siege' ? t('ws.siege', { mult: c.mult }) : t('ws.conditionnels'))).join(' · ')
+    : null;
+
+/** La note des Dégâts conditionnels de `w` (`degatsConditionnels`), `null` quand les Dégâts imprimés sont fidèles. */
+export const conditionalDamageNote = (w: PorteurDeDegats): string | null => noteDesConditionnels(degatsConditionnels(w));
 
 /** Libellé d'AFFICHAGE d'une Portée NON résolue (catalogue : Codex/Marchand/Création, sans BF de porteur) :
  *  « 50 m » (mètres fixes) ou « BF×3 m » (formule de jet). null → pas de Portée. Pour les vues qui ne
