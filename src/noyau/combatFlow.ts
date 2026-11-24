@@ -8311,12 +8311,11 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
   if (!detientLAutoriteDuJeu(s) || combatAdvanceBlocked(s, { cast: false }) || reprendreLesTirsRapides(get, set)) return;
   const battle = s.battle!;
   const active = activeCombatant(battle);
-  if (!active || servirLaFrappePilotee(get, set, battle, active)) return;
-  // L'acteur actif, que l'IA le pilote ou non, est mis hors de combat pendant la conséquence suspendue (ex. critique
-  // défensif du héros — un démembrement — qui tue le chargeur PENDANT sa propre attaque) → son tour est terminé :
-  // AVANCER au combattant suivant. `advanceTurn` saute de lui-même les hors-combat.
+  if (!active || servirLaFrappePilotee(get, set, battle, active) || !aiDriven(s, active)) return;
+  // L'acteur IA actif est MORT pendant la conséquence suspendue (ex. critique défensif du héros — un
+  // démembrement — qui tue le chargeur PENDANT sa propre attaque) → son tour est terminé : AVANCER au
+  // combattant suivant. `advanceTurn` saute de lui-même les hors-combat.
   if (isOutOfAction(active)) { advanceTurn(get, set); return; }
-  if (!aiDriven(s, active)) return;
   // Acteur IA ayant déjà agi (conséquence d'attaque) → ses gratuites restantes, puis fin de tour. LDB 85 l.41-43 ; #1858
   if (battle.acted) {
     if (drainerLesGratuites(get, set, active)) return;
@@ -8571,9 +8570,9 @@ export function maybeRunEnemyTurn(get: Get, set: SetFn) {
   const active = activeCombatant(battle);
   if (!active) return;
   if (servirLaFrappePilotee(get, set, battle, active)) return;
-  // L'acteur actif est hors de combat, que l'IA le pilote ou non : son tour est fini.
-  if (isOutOfAction(active)) { advanceTurn(get, set); return; }
   if (!aiDriven(get(), active)) return;
+  // L'acteur que l'IA pilote est hors de combat : son tour est fini (comme `resumeSuspendedAI`).
+  if (isOutOfAction(active)) { advanceTurn(get, set); return; }
   const tour = tourEnCoursDe(battle, active.id);
   if (tour?.decide) {
     if (tour.parquee && tour.suite) reprendreLaSuite(get, set, active, tour);

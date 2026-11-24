@@ -142,8 +142,8 @@ function duelAuTourDeH(): { H: Combatant; E: Combatant } {
   return { H, E };
 }
 
-describe('#4860 — l’acteur actif tenu par un joueur, mis hors de combat par le coup : son tour passe au suivant après le Destin', () => {
-  it('Destin choisi pendant la séquence du coup (deux Critiques, LDB 18 l.53), « Meurs un autre jour » : le tour quitte H à sa clôture', () => {
+describe('#4860 — l’acteur actif tenu par un joueur, mis hors de combat par le coup : son tour ne reste pas figé après le Destin', () => {
+  it('Destin choisi pendant la séquence du coup (deux Critiques, LDB 18 l.53), « Meurs un autre jour » : à sa clôture, le tour reste au joueur, qui le finit', () => {
     const { H, E } = duelAuTourDeH();
     H.wounds.current = 1;
     frapper(banc, E, H, [11, 90, 1], MELEE);
@@ -155,10 +155,14 @@ describe('#4860 — l’acteur actif tenu par un joueur, mis hors de combat par 
     draineCascade(g);
     expect(isOutOfAction(de(H.id)), 'chemin : H hors de combat').toBe(true);
     expect(g().battle!.over).toBeNull();
+    expect(g().pendingFateSave, 'aucune modale en attente : le combat ne se fige pas').toBeNull();
+    expect(g().pendingCascade, 'la séquence du coup est close').toBeNull();
+    expect(activeCombatant(g().battle!)?.id).toBe(H.id);
+    g().terminerLeTour();
     expect(activeCombatant(g().battle!)?.id).not.toBe(H.id);
   });
 
-  it('mort-auto (LDB 16 l.113) sur le héros actif, « Meurs un autre jour » (LDB 17 l.31) : le tour quitte H', () => {
+  it('mort-auto (LDB 16 l.113) sur le héros actif, « Meurs un autre jour » (LDB 17 l.31) : le tour reste au joueur, qui le finit', () => {
     const { H, E } = duelAuTourDeH();
     setRule('combat-cible-inconsciente', 'mort-auto');
     H.wounds.current = 0;
@@ -169,6 +173,9 @@ describe('#4860 — l’acteur actif tenu par un joueur, mis hors de combat par 
     g().fenetreChoisir('destin', 'issue', 'survivre');
     expect(isOutOfAction(de(H.id)), 'chemin : H hors de combat').toBe(true);
     expect(g().battle!.over).toBeNull();
+    expect(g().pendingFateSave, 'aucune modale en attente : le combat ne se fige pas').toBeNull();
+    expect(activeCombatant(g().battle!)?.id).toBe(H.id);
+    g().terminerLeTour();
     expect(activeCombatant(g().battle!)?.id).not.toBe(H.id);
   });
 });
