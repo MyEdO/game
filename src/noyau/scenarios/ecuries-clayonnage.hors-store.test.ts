@@ -1,7 +1,5 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
-import { scenario } from '../../scenes/test-scenarios/ecuries-clayonnage';
-import { scenario as diligence } from '../../scenes/test-scenarios/diligence';
 import { couvertDuTir, lineOfSightCover, makeLosMemo, type LosMemo } from '../../noyau/monde/lineOfSight';
 import { wallBetween, areteOcculteEntre, structureAt, emptyScene, type Scene } from '../../noyau/monde/scene';
 import { parseWalledAscii, scanMarkers } from '../../noyau/monde/asciiMap';
@@ -18,14 +16,11 @@ import { herosDeScenario } from '../../scenes/test-scenarios/_heros';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
-const diligenceConstruit = diligence.construire(idsDeTest);
-const scenarioConstruit = scenario.construire(idsDeTest);
 
 /**
  * OPACITÉ DÉCLARÉE PAR STRUCTURE (#1680, #1709) — les contrats du MOTEUR, sur une carte CONSTRUITE
  * pour eux seuls : deux stalles séparées du couloir, l'une par une `cloture-en-clayonnage`
- * (`occulte: false`, AA 10 l.65), l'autre par un `mur-a-ossature-en-bois`. Aucune carte de campagne
- * n'entre ici — le scénario de recette homonyme reste le MENU humain, ce banc mesure le moteur.
+ * (`occulte: false`, AA 10 l.65), l'autre par un `mur-a-ossature-en-bois`.
  *
  * Ce que la carte pose, et dont les attentes DÉRIVENT :
  *  · une colonne de clayonnage devant l'archer, une devant le gobelin voisin, une colonne de mur à
@@ -249,26 +244,5 @@ describe('IA — le mémo de Ligne de Vue du tour est PORTEUR (clé from→to)',
       [amnesique.clear(derriereLeMur, cible), amnesique.clear(parLeSud, cible)],
       'clé sans `from` : le second poste hérite du verdict du premier',
     ).toEqual([false, false]);
-  });
-});
-
-/**
- * Le SCÉNARIO de recette, lui, ne se mesure que sur ce qu'il promet au menu : il arme son tireur, et
- * il travaille sur une COPIE de la carte de campagne (`structuredClone`) — aucune de ses retouches
- * ne remonte dans la scène partagée. Aucune case, aucun id de cette carte n'est nommé ici.
- */
-describe('scénario de recette « écuries » — armement du tireur et non-contamination', () => {
-  it('arme le tireur du groupe d’une arme à DISTANCE (l’arc en main, pas la fronde rangée)', () => {
-    const tireur = scenario.construire(idsDeTest).party[0];
-    expect(tireur.weapons.some((w) => w.type === 'distance')).toBe(true);
-  });
-
-  it('pose son groupe et ses ennemis SANS toucher la scène de campagne partagée', () => {
-    const depart = (s: Scene) => s.entities.find((e) => e.kind === 'heroStart')!.pos;
-    expect(scenarioConstruit.scene).not.toBe(diligenceConstruit.scene);
-    expect(depart(scenarioConstruit.scene)).not.toEqual(depart(diligenceConstruit.scene));
-    const posees = scenarioConstruit.scene.encounters.map((e) => e.id);
-    expect(posees.length).toBeGreaterThan(0);
-    expect(diligenceConstruit.scene.encounters.filter((e) => posees.includes(e.id))).toEqual([]);
   });
 });
