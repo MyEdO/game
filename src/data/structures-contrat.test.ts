@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -56,6 +56,7 @@ import { STRUCTURES_CIBLES } from '../../scripts/guards/lib/structuresStock.mjs'
 import { conditionSchema, extendedTestSchema, flowTestSchema, gameOpSchema, sujetDuJetSchema } from './schemas/grammaire/mecanique';
 import { coDescendre } from './schemas/grammaire/descente';
 import { estObjet } from '../lib/objet.mjs';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -89,6 +90,8 @@ const GARDE = {
 /** `docs/structures-donnees.md` tel que son générateur le rend (`rendreCible`), jamais le fichier du disque. */
 const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
+/** Le paquet de test du commun (`defs-scenes/paquet-de-test.ts`), sous le nom que lui donne `defsDeDocument`. */
+const PAQUET_DE_TEST = 'paquet-de-test.json';
 
 function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<string, unknown>>, defs: readonly SchemaDef[]) {
   const dossier = mkdtempSync(join(tmpdir(), nom));
@@ -537,12 +540,18 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
   });
 
   it('les références emboîtées des opérations atteignent les catalogues de leur schéma de porteur', () => {
-    const slots = slotsDuParse(scan, DEFS);
-    expect(slots).toEqual(expect.arrayContaining([
+    expect(slotsDuParse(scan, DEFS)).toEqual(expect.arrayContaining([
       expect.objectContaining({ dataset: 'activities.json', path: '[].outcomes[].ops[].table.id', type: 'table' }),
       expect.objectContaining({ dataset: 'spells.json', path: '[].effects.etapes[].effet.ops[].disease.id', type: 'maladie' }),
       expect.objectContaining({
         dataset: 'loup-et-saumure-projet.json',
+        path: 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.ops[].facteur.id',
+        type: 'manannFactor',
+      }),
+    ]));
+    expect(slotsDuParse({ brutParNom: new Map([[PAQUET_DE_TEST, paquetDeTest]]) }, DEFS)).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        dataset: PAQUET_DE_TEST,
         path: 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.ops[].facteur.id',
         type: 'manannFactor',
       }),
@@ -670,9 +679,12 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
       }
       for (const [k, e] of Object.entries(o)) marche(e, dataset, k);
     };
-    const jsons = (d: string): string[] =>
-      listerArbre(d, { filtre: (rel) => rel.endsWith('.json') }).map((rel) => join(d, rel));
-    for (const f of ['src/data', 'src/scenes'].flatMap((r) => jsons(join(ROOT, r)))) {
+    // Les JSON de `src/data` et les projets livrés : le paquet de test du commun n'est pas au corpus du scan (#4936).
+    const jsons = [
+      ...listerArbre(join(ROOT, 'src/data'), { filtre: (rel) => rel.endsWith('.json') }).map((rel) => join(ROOT, 'src/data', rel)),
+      ...listerProjetsLivres().map((rel) => join(dossierDesProjetsLivres(), rel)),
+    ];
+    for (const f of jsons) {
       let doc: unknown;
       try { doc = JSON.parse(readFileSync(f, 'utf8')); } catch { continue; }
       marche(doc, f.split(/[\\/]/).pop()!, ''); // les deux séparateurs : `join` rend des antislashs sur Windows
@@ -712,10 +724,13 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
 /**
  * POSES (#3012) — le lexique reconnaît un concept à la pose que la grammaire met sur son nœud
  * (`conceptDe`, lue par `posesDesObjets`), plus au nom d'un champ ou d'un dataset. Mesuré sur la donnée
- * des deux racines, co-descendue avec ses defs.
+ * du scan et sur le paquet de test du commun, co-descendue avec ses defs.
  */
 describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () => {
-  const brutParNom = new Map<string, unknown>(listerDocuments(ROOT).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))]));
+  const brutParNom = new Map<string, unknown>([
+    ...listerDocuments(ROOT).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))] as const),
+    [PAQUET_DE_TEST, paquetDeTest],
+  ]);
   const poses = posesDesObjets(DEFS, brutParNom);
   const objets: { site: string; dataset: string; champ: string; o: Record<string, unknown> }[] = [];
   const marche = (v: unknown, dataset: string, champ: string, chemin: string): void => {
@@ -728,8 +743,7 @@ describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () 
   const conceptsDesPoses = (ids: ReadonlySet<IdConceptPose> | undefined) => new Set([...(ids ?? [])].map((p) => CONCEPT_DE_LA_POSE[p]));
   const STRUCTURELS = CONCEPTS.filter((c) => c.exigeCandidatureStructurelle).map((c) => c.id);
 
-  it('le Test étendu réel doit sa cible à la pose de son schéma de scène (#1657)', () => {
-    const dataset = 'loup-et-saumure-projet.json';
+  it.each(['loup-et-saumure-projet.json', PAQUET_DE_TEST])('%s : le Test étendu réel doit sa cible à la pose de son schéma de scène (#1657)', (dataset) => {
     const { o, champ } = objets.find((x) => x.dataset === dataset && x.o.type === 'extendedTest')!;
     const def = DEFS.find((d) => d.file === dataset)!;
     const projet = structuredClone(brutParNom.get(dataset));

@@ -33,6 +33,7 @@ import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 import { norm } from '../lib/normalize';
 import { estObjet } from '../lib/objet.mjs';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
@@ -585,13 +586,16 @@ describe('GameOp — les références de la donnée sont jugées au parse (#847,
   const horsDuParse = (noeuds: readonly NoeudDOp[], atteintes: ReadonlySet<object>) =>
     noeuds.filter((n) => !atteintes.has(n.noeud)).map(({ path, op }) => `${path} : ${op}`);
 
+  /** Le corpus du scan, enrichi du paquet de test du commun (`defs-scenes/paquet-de-test.ts`), que le scan ne lit pas. */
+  const ENRICHI = { brutParNom: new Map<string, unknown>([...CORPUS.brutParNom, ['paquet-de-test.json', paquetDeTest]]) };
+
   it('chaque nœud GameOp des deux racines atteint son schéma de porteur', () => {
-    const fichiersAvecOps = [...CORPUS.brutParNom].map(([file, doc]) => [file, [...noeudsDOp(doc, file)]] as const)
+    const fichiersAvecOps = [...ENRICHI.brutParNom].map(([file, doc]) => [file, [...noeudsDOp(doc, file)]] as const)
       .filter(([, ops]) => ops.length > 0);
     const racines = new Set(DEFS.filter((d) => fichiersAvecOps.some(([file]) => file === d.file)).map((d) => d.root));
     expect([...racines].sort()).toEqual(['src/data', 'src/scenes']);
     const noeuds = fichiersAvecOps.flatMap(([, ops]) => ops);
-    const atteintes = opsDuParse(CORPUS, DEFS);
+    const atteintes = opsDuParse(ENRICHI, DEFS);
     const lignes = horsDuParse(noeuds, atteintes);
     expect(lignes, `nœuds d’op hors du parse :\n${lignes.join('\n')}`).toEqual([]);
     expect(atteintes.size).toBe(noeuds.length);

@@ -4,8 +4,8 @@
  * Deux contrats, aux deux bouts de la chaîne :
  *  1. COMPLÉTUDE au SCHÉMA — le z.enum `weatherIdSchema` refuse un id INCONNU mais ne dit rien d'une
  *     SUPPRESSION : le `superRefine` de `defs/weather.ts` ferme ce trou, en NOMMANT l'id manquant.
- *     La sonde le mesure par la porte réelle (`validateDataset`), celle que les trois portes du projet
- *     empruntent (CI `schema-contract`, boot `dev-validate`, save transactionnel du Codex).
+ *     La sonde le mesure par la porte réelle (`validateDataset`), celle que les deux portes du projet
+ *     empruntent (CI `schema-contract`, `validerMutation` du Compendium).
  *  2. CANAL — éditer le `label` d'une condition au Codex se voit à la PORTE (`weatherCondition`) ET
  *     sur un site RÉEL (la `ModLine` « Météo : … » du canal `weatherTestMods`, EDOC 8 l.82). Sans ce
  *     second bout, une carte FR pourrait renaître ailleurs sans qu'aucun test ne la voie.
