@@ -24,11 +24,7 @@ export const EMBLEME = 'taureau-rouge';
 /** Le Porte-écu : épée et bouclier tenus, l'emblème de sa donnée. */
 function porteEcu(idNeuf: FabriqueDId): Combatant {
   const h = createHero({ idNeuf, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Porte-écu', motivation: 'Test', seed: 3253, id: 'porte-ecu' });
-  const tenu = (id: string) => {
-    const it = itemFromTrappingById(id, idNeuf)!;
-    it.equipped = true;
-    return it;
-  };
+  const tenu = (id: string) => itemFromTrappingById(id, idNeuf)!;
   h.items = [tenu('arme-simple'), tenu('bouclier')];
   h.loadouts = undefined;
   h.activeLoadoutId = undefined;

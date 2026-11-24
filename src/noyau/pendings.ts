@@ -1685,6 +1685,8 @@ export type Cloture =
   | { verbe: 'effetsProgrammes'; restants: ScheduledEffect[] }
   | { verbe: 'reprendreEntretienDesRounds'; reprise: import('./outOfCombatUpkeep').RepriseEntretienDesRounds }
   | { verbe: 'reprendreEntretienDeLHorloge'; minutes: number; apresLesRounds?: true }
+  /** Suite d'une nuit de repos dont les Rounds sont joués (`openRestNight`). */
+  | { verbe: 'reprendreLaNuit'; p: import('./restFlow').PendingRest; nightsLeft: number; extraContagion: import('./contagion').ContagionSpec[] }
   /** Suite du pas maritime déjà écoulé. */
   | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number; apresLesRounds?: true }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et

@@ -11,6 +11,7 @@ import {
   recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, objetDuTrapping, type TrappingResolver,
 } from '../engine/items';
 import { isRepairable, itemRepairCostBrass } from '../engine/repair';
+import { isHeld } from '../engine/weaponLoad';
 import {
   bargainBuyFactor, bargainSellFactor, bargainPct, FACTEUR_DE_VENTE_SANS_MARCHANDAGE, issueDuMarchandage, type BargainOutcome,
 } from '../engine/bargain';
@@ -45,7 +46,7 @@ import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi 
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
-import { MINUTES_PER_DAY } from '../engine/clock';
+import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import {
   findTrappingById,
   trappingsInstanciables,
@@ -784,9 +785,9 @@ export function barterQuote(giveT: TrappingData | undefined, getT: TrappingData 
   return { ratio, giveAv, getAv, giveCount: Math.max(1, Math.ceil(giveValue / givePrice)) };
 }
 
-/** Exemplaires CÉDABLES au Troc d'un trapping chez un héros : instances NON équipées. */
+/** Exemplaires CÉDABLES au Troc d'un trapping chez un héros : instances ni portées ni tenues (`isHeld`). */
 function exemplairesCedables(hero: Combatant, trappingId: string): ItemInstance[] {
-  return (hero.items ?? []).filter((i) => i.trappingId === trappingId && !i.equipped);
+  return (hero.items ?? []).filter((i) => i.trappingId === trappingId && !isHeld(hero, i));
 }
 
 /** L'exemplaire du bien `trappingId` que `hero` cède au Troc (choix `marchand.trocCeder`) : le premier des
@@ -804,7 +805,7 @@ export interface OptionDeTroc { heroId: string; trappingId: string; label: strin
 export function optionsDeTroc(party: readonly Combatant[], resolveTrapping: TrappingResolver): OptionDeTroc[] {
   const out: OptionDeTroc[] = [];
   for (const h of party) {
-    const ids = new Set((h.items ?? []).flatMap((it) => (it.trappingId && !it.equipped ? [it.trappingId] : [])));
+    const ids = new Set((h.items ?? []).flatMap((it) => (it.trappingId && !isHeld(h, it) ? [it.trappingId] : [])));
     for (const trappingId of ids) {
       const trapping = resolveTrapping(trappingId);
       if (!trapping) continue;
@@ -1103,11 +1104,6 @@ function openAppraise(
   } });
 }
 
-/** Indice du jour depuis l'origine de l'horloge de jeu. */
-export function gameDay(s: Pick<Jeu, 'gameTime'>): number {
-  return Math.floor(s.gameTime / MINUTES_PER_DAY);
-}
-
 /** Ce qu'évalue `evaluerLObjet` : l'objet qu'un héros du groupe porte, sinon la ligne d'un butin encore en fenêtre
  *  (`butin` puis `victoire`) ; sa cible ouverte (`openAppraise`) et ce que lisent ses refus. `null` : l'uid ne désigne ni
  *  l'un ni l'autre. */
@@ -1149,7 +1145,7 @@ export function evaluerLObjet(get: Get, set: Set, aEvaluer: IdDObjet | IdDeLigne
   if (porteurDeLObjet(get(), aEvaluer) && (refuseSi(get, set, refusDInventaire) || refuseSi(get, set, (s) => refusDuHerosPorteur(s, aEvaluer)))) return;
   const cible = cibleAEvaluer(get(), aEvaluer);
   if (!cible) return void refuserGeste(get, set, t('pf.objetSansPorteur'));
-  if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, gameDay(s)))) return;
+  if (refuseSi(get, set, (s) => refusDEvaluation(s.party, cible.cible, mode, dayIndex(s.gameTime)))) return;
   openAppraise(get, set, cible.target, cible.cible.label, mode, cible.fiche, cible.cible);
 }
 
@@ -1222,7 +1218,7 @@ function acquitterLEvaluation(get: Get, set: Set): void {
   }
   if (!pa.success) {
     // LDB 12 l.94
-    if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: gameDay(get()) });
+    if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: dayIndex(get().gameTime) });
     get().ecrireAuJournal(t('mf.evaluationRatee', { item: pa.itemName }));
     return;
   }

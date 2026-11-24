@@ -9,7 +9,6 @@ import {
   apparencesCandidates,
   apparencesObjetsDe,
   deciderApparencesDesArmes,
-  isWeaponActive,
   objetDeSlot,
   objetsDeLInventaire,
   peutEtreTenu,
@@ -19,6 +18,7 @@ import {
   type TrappingResolver,
   isShieldItem,
 } from '../engine/items';
+import { isWeaponActive } from '../engine/weaponLoad';
 import { renderWeaponsFromTraits, traitsDevantLEquipement } from '../engine/creatureEquip';
 import type { TraitInstance } from '../engine/statEntry';
 import { porteurDuProfil, traitsDeLIndividu } from './monde/spawn';

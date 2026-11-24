@@ -288,7 +288,7 @@ const NOMMES = [
   // `navireMod.jusqua` (#3606 M2e) : l'échéance de bord d'un modificateur de navire.
   'carenage|evenementDeBord',
   // `cibleDeFeuilleSchema` (#3606 M2e) : la cible d'une feuille `ops` nommée par une chaîne.
-  'groupe|heros|navire|membreAuHasard|target|caster',
+  'groupe|heros|navire|membreAuHasard|testeur|target|caster',
   // `capaciteDeTraitSchema` (#4056) : une capacité de Trait, nommée par le libellé de son champ (`traits.suppressesCapabilities`).
   Object.keys(traitCapabilitiesSchema.shape).join('|'),
   // `capaciteDObjetSchema` (#4056) : une capacité d'objet, nommée par le libellé de son champ (`skills.tool.capability`).
@@ -304,6 +304,8 @@ const NOMMES = [
   // `cleDeTableDuDomaineSchema` (`defs/domains.ts`) : la clé de rôle d'une table d'un Domaine (`tables`), visée par
   // `domainTable` d'une rangée de miscast, VDM 02 l.238.
   'arcaneMark',
+  // `periodeDeDoseSchema` (#4839) : la période de la Dose d'un trapping (`dose`), LDB 72 l.22-30.
+  'rencontre|jour|blessureCritique',
 ].sort();
 
 /**

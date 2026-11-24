@@ -1,7 +1,7 @@
 /**
  * ENTRE DEUX RENCONTRES (#4833) : sur une scène générée, le repos du noyau joue la récupération et dit pourquoi elle est
- * nulle (LDB 16 l.74, l.105 ; LDB 18 l.296, l.338) ; la fin de convalescence d'une fracture passe par la nuit du noyau
- * (LDB 18 l.202) ; l'infirmerie dit toujours pourquoi elle ne soigne pas (LDB 09 l.260) et son soigneur se choisit
+ * nulle (LDB 16 l.74 ; LDB 18 l.296, l.338) ; la nuit joue ses Rounds (LDB 16 l.76, l.105) ; la fin de convalescence
+ * d'une fracture passe par la nuit du noyau (LDB 18 l.202) ; l'infirmerie dit toujours pourquoi elle ne soigne pas (LDB 09 l.260) et son soigneur se choisit
  * (réglage `soins.soigneur`, Soutien LDB 12).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -12,6 +12,8 @@ import { arena } from '../scenes/test-scenarios/_shared';
 import { t } from '../i18n';
 import { fenetreDuSoin } from './soin';
 import { draineCascade } from './cascade.testkit';
+import { poserInconscientDeSaignement, stacks } from '../engine/conditions';
+import { dayIndex } from '../engine/clock';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -53,10 +55,28 @@ describe('le repos sur une scène générée récupère, ou dit pourquoi', () =>
     expect(g().journal).toContain(t('rest.deprived', { name: 'a', etat: t('rest.deprivedHunger') }));
   });
 
-  it('Hémorragique : la nuit dit qu’il est à stabiliser (LDB 16 l.105)', () => {
-    surLArene([blesse('a', { conditions: [{ id: 'hemorragique', value: 1 }] })], { maison: true });
+  it('le dormeur qui saigne sans soins : les Rounds de la nuit le font coaguler ou mourir (LDB 16 l.105)', () => {
+    const saigne = heros('a', { wounds: blessuresDeBase(14, 0), conditions: [{ id: 'hemorragique', value: 2 }] });
+    poserInconscientDeSaignement(saigne);
+    surLArene([saigne, heros('b')], { maison: true });
     dormir();
-    expect(g().journal).toContain(t('rest.noRest', { name: 'a' }));
+    const a = g().party[0];
+    expect(a.dead || stacks(a, 'hemorragique') === 0, 'l’hémorragie est close').toBe(true);
+    expect(g().lastNightDay, 'la nuit passe pour le groupe').toBe(dayIndex(g().gameTime));
+  });
+
+  it('tout le groupe à 0 PB sans saigner : il sombre dans la nuit et se réveille à l’aube (LDB 18 l.15, l.296)', () => {
+    surLArene([heros('a', { wounds: blessuresDeBase(14, 0) }), heros('b', { wounds: blessuresDeBase(14, 0) })], { maison: true });
+    dormir();
+    expect(g().partyWiped, 'aucune défaite avant la récupération de l’aube').toBeFalsy();
+    expect(g().party.every((h) => h.wounds.current > 0)).toBe(true);
+  });
+
+  it('un Round qui attend son jet (Empoisonné) suspend la nuit, qui reprend après lui (LDB 16 l.76)', () => {
+    surLArene([heros('a', { conditions: [{ id: 'empoisonne', value: 1 }] }), heros('b')], { maison: true });
+    dormir();
+    expect(stacks(g().party[0], 'empoisonne')).toBe(0);
+    expect(g().lastNightDay).toBe(dayIndex(g().gameTime));
   });
 
   it('la fracture au terme de sa convalescence se clôt par la nuit du noyau (LDB 18 l.202)', () => {

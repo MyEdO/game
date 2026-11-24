@@ -5,7 +5,7 @@
  */
 import type { EspeceDApparence } from '../engine/authoringAppearance';
 import type { PlayerText } from '../i18n/playerText';
-import type { ConsumableDuration } from '../engine/consumables';
+import type { ConsumableDuration, PeriodeDeDose } from '../engine/consumables';
 import { listeEt, t, type MsgKey } from '../i18n';
 import type { Sexe, SourceRef, SecondaryRef, RaceKey, MatiereDArmure } from './schemas/grammaire/valeurs';
 import {
@@ -976,6 +976,8 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
   /** Durée d'HORLOGE des effets durables du consommable (LDB 71/72 « Durée : … ») — résolue AU BOIRE
    *  (dés tirés une fois), les ops durables du Flow expirent à l'échéance (`purgeClockEffects`). */
   consumableDuration?: ConsumableDuration;
+  /** Dose : la période où un même buveur n'en prend qu'une (`doseDejaPrise`). LDB 72 l.22-30 */
+  dose?: PeriodeDeDose;
   /** Contenant (LDB 64) : capacité de rangement (« Contenu », en Enc). Sacs/sacoches/sac à dos. */
   container?: { capacity: number };
   /** NI d'énergie magique qu'UN GRAMME de cet objet apporte à un Test d'Incantation/Focalisation en

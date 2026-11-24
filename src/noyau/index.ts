@@ -46,7 +46,6 @@ export {
 } from '../data';
 export { isWearable, objetsDeLInventaire } from '../engine/items';
 export {
-  candidatsDuSlot,
   carriereActuelle,
   designationsDeCarriere,
   parcoursDe,
@@ -55,7 +54,7 @@ export {
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
-export { parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
+export { candidatsDuSlot, parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
 export {
   dotationsDuPnj,
   emplacementsDeDotation,

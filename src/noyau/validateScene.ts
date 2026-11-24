@@ -33,13 +33,23 @@ import { nommerChamps } from '../data/schemas/grammaire/meta';
 import { z } from 'zod';
 import { metaNarratif, narratifSchema } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
-import { validerFormeVivante, cheminLisible, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
+import { validerFormeVivante, cheminLisible, rapportDeFautes, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { objetInstanciableDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
-import { colonneDeDisponibiliteDuMarchand, estUnHebergement, lieuDeLaScene, nomDuPoi, placeServices, sceneAubergeOffer, type WorldMap } from './worldMap';
+import {
+  colonneDeDisponibiliteDuMarchand,
+  estUnHebergement,
+  lieuDeLaScene,
+  nomDuPoi,
+  placeServices,
+  PROJET_AUTRE_FORMAT,
+  ProjetRefuse,
+  sceneAubergeOffer,
+  type WorldMap,
+} from './worldMap';
 import { scenePlanDefects, type PlanDefectAt, type PlanDefectFamily } from './planDefects';
 import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
@@ -181,6 +191,24 @@ const nomDAuteur = (element: ElementDeLieu): string => element.libelle ?? elemen
 function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string {
   const ou = cheminLisible([...(f.element ? [f.element] : []), ...f.reste], nomDAuteur);
   return ou ? `${ou} : ${message}` : message;
+}
+
+/** Les fautes de FORME d'un projet lancé (les schémas de sa carte, de son narratif et de chaque scène, sous la portée
+ *  des objets du narratif), situées dans le projet : ce que la porte `parseProject` refuse d'un document. */
+function fautesDeFormeDuProjet(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Faute[] {
+  const sous = (racine: readonly (string | number)[], segment: SegmentDeLieu) => (f: Faute): Faute => ({ ...f, chemin: [...racine, ...f.chemin], lieu: [segment, ...f.lieu] });
+  return [
+    ...(worldMap ? fautesDeSchema(worldMapSchema, worldMap, narratif) ?? [] : []).map(sous(['worldMap'], { genre: 'champ', cle: 'worldMap', nom: 'carte du monde' })),
+    ...(narratif ? fautesDeSchema(narratifSchema, narratif, narratif) ?? [] : []).map(sous(['narratif'], { genre: 'champ', cle: 'narratif', nom: 'Bloc narratif' })),
+    ...project.flatMap((scene, i) => (fautesDeSchema(sceneSchema, scene, narratif) ?? []).map(sous(['scenes', i], { genre: 'element', liste: 'scenes', cle: scene.id, nom: 'scène' }))),
+  ];
+}
+
+/** Refuse le lancement d'un projet `project` (ses scènes, sa carte, son narratif) d'une forme que la porte du projet
+ *  refuserait, en `ProjetRefuse` de cause `schema` : un projet bâti hors du parse n'atteint pas l'exécution. */
+export function exigerUnProjetJouable(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): void {
+  const fautes = fautesDeFormeDuProjet(project, worldMap, narratif);
+  if (fautes.length) throw new ProjetRefuse('schema', fautes, rapportDeFautes(PROJET_AUTRE_FORMAT, fautes));
 }
 
 /**

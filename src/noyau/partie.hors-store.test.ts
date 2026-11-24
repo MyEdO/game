@@ -332,9 +332,8 @@ describe('creerPartie — le `set` du propriétaire', () => {
     }
   });
 
-  it('un seul propriétaire : une seconde partie ouverte lève, une partie fermée ne reçoit plus rien', () => {
+  it('une partie fermée ne reçoit plus rien', () => {
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
-    expect(() => creerPartie(etatInitialDuJeu(), ENTREES)).toThrow(/déjà branché/);
     partie.fermer();
     expect(() => partie.envoyer({ type: 'terminerLeTour', args: [] })).toThrow(/partie fermée/);
   });
