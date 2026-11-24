@@ -69,6 +69,9 @@ import { findTrappingById, nightStakeRef, refLabel, testSkillLabel, libelleOuAbs
 import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
+import { jouerLEntretienDesRoundsEcoules } from './outOfCombatUpkeep';
+import { confierLaSuite, OPS_DIFFEREES } from './combatEffects';
+import { checkPartyWiped } from './partyWipe';
 import { continueTravelAfterNight } from './travelFlow';
 import { activeExposureSeverity } from './combatFlow';
 import { bus, EVT } from './bus';
@@ -190,9 +193,6 @@ const SKILL_CALME = (): string => refLabel('skills', { id: 'calme' });
 /**
  * LE moteur de nuit (sans modale) : avance l'horloge à l'aube (× days), entretien #T3, récupération
  * + cauchemars, contagion. Renvoie le bilan structuré ; écrit aussi le journal.
- * NB : on n'avance PAS l'horloge minute par minute (avancerLeTemps rejouerait l'entretien de Round —
- * hémorragie/poison/feu tueraient le dormeur ; LDB 16 l.105 : le repos suppose des États stabilisés,
- * restRecovery refuse d'ailleurs un héros Hémorragique/En flammes/Empoisonné).
  */
 export function sleepParty(
   get: Get,
@@ -857,7 +857,15 @@ export const TITRE_DE_LA_NUIT = { auberge: 'rf.nightInn', maison: 'rf.nightHome'
  *  la nuit suivante. `extraContagion` (repas de la qualité à risque) ne s'applique qu'à la nuit d'ARRIVÉE (repas
  *  du soir posé une fois en amont par `dormir`).
  */
-export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = []): void {
+export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: number, extraContagion: ContagionSpec[] = [], apresLesRounds?: true): void {
+  // Les Rounds de la nuit, joués avant elle : LDB 16 l.105.
+  if (!apresLesRounds) {
+    const minutes = aubeApresNuits(get().gameTime, 1) - get().gameTime;
+    if (jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+      confierLaSuite(set, [{ verbe: 'reprendreLaNuit', p, nightsLeft, extraContagion }]);
+      return;
+    }
+  }
   const { steps, log } = buildNightCascade(get, set, p, { extraContagion });
   const remaining = nightsLeft - 1;
   // La halte de voyage (travelHalt) reprend la route à la clôture — SEULEMENT sur la DERNIÈRE nuit du
@@ -869,6 +877,8 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
       title: t(TITRE_DE_LA_NUIT[toitDeLaNuit(p, get().party)]), icon: 'temps/nuit', purpose: isLast && p.travelHalt ? 'travel' : 'night',
       travelHalt: isLast ? p.travelHalt : undefined, steps, log, restNights: { p, nightsLeft: remaining },
     });
+  } else if (checkPartyWiped(get, set)) {
+    return;
   } else if (remaining > 0) {
     // `buildNightCascade` a DÉJÀ journalisé le titre + tout ce qui suit l'entretien (#216) — rien à
     // influencer cette nuit-ci (PB pleins, pas de campement) → enchaîne directement la suivante.
@@ -918,6 +928,9 @@ export const GENRES_D_ETAPE = [
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
+  clotures: {
+    reprendreLaNuit: (get, set, { p, nightsLeft, extraContagion }) => openRestNight(get, set, p, nightsLeft, extraContagion, true),
+  },
   appliers: {
     ...tableTotale(EXPOSURE_BAND_KINDS, () => appliquerLExposition),
     recuperation: bandeDeNuit((_get, _set, _band, row, hero) => {
