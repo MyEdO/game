@@ -41,8 +41,7 @@ import { validateScene } from './validateScene';
 import { estAbsent, terrainAbsent } from './monde/terrain';
 import { perimeterWallSegs } from './sceneEdit.testkit';
 import { stairFlightCells } from './planDefects';
-import { parseProject } from './worldMap';
-import diligenceProjet from '../scenes/diligence/diligence-projet.json';
+import { relaisAEtage } from '../scenes/fixtures/plans.testkit';
 
 /**
  * Toiture DÉRIVÉE du plan (#829, #930) — UN corps de bâtiment reçoit UN toit. La portée de charpente
@@ -83,7 +82,7 @@ const minSpanOf = (mass: BuildingMass): number => {
 };
 
 describe('deriveArchitectureMasses — un corps, UN toit (#930)', () => {
-  // 14 × 18 cases à 2 m = un corps de 28 m sur 36 m : l'emprise mesurée sur l'étage de La Diligence.
+  // 14 × 18 cases à 2 m = un corps de 28 m sur 36 m.
   const profond = corpsScene(24, [{ x: 2, y: 2, w: 14, h: 18 }]);
 
   it('un corps PROFOND rend UNE seule masse — jamais un peigne de travées parallèles', () => {
@@ -372,9 +371,7 @@ describe('deriveArchitectureMasses — borne de comble (#947)', () => {
  * #881 — LES MURS DÉFINISSENT L'INTÉRIEUR, jamais la seule zone `presentation:'interior'`. Contrat
  * POSITIF (une boucle fermée de murs porte plancher+toiture SANS aucune zone) et son RÉFUTANT
  * (l'enclosure seule ne suffit pas : une cour ceinte de murs et déclarée `exterior` reste à ciel
- * ouvert) — mesuré sur `diligence-projet.json` : au rez, clos 1066 − exterior 472 = 594 cases contre
- * 593 déclarées `interior` (sans le filtre `exterior`, les deux cours, le passage couvert et le
- * potager, 472 cases, recevraient une toiture).
+ * ouvert).
  */
 describe('realFloorAt/deriveArchitectureMasses — les MURS définissent l’intérieur (#881)', () => {
   it('boucle fermée de murs, AUCUNE zone déclarée → plancher réel ET masse de toiture', () => {
@@ -676,14 +673,11 @@ describe('deriveArchitectureMasses — les trémies d’une volée sont TOITÉES
 });
 
 /**
- * L'ATTRIBUTION du plancher résiduel ne doit rien devoir à l'ORDRE du tableau `architecture` (#1172).
- * La Diligence portait DEUX corps non bornés (`diligence` et un `architecture-0` vide) : la dérivation
- * donnait tout son plancher et toutes ses masses au PREMIER du tableau, et tout basculait sur l'autre
- * à l'ordre inversé. Le corps mort purgé, le résultat est le MÊME dans les deux sens — c'est cette
- * ÉGALITÉ des deux sens qui se mesure ici, jamais un compte figé du plan livré (#1709).
+ * L'ATTRIBUTION du plancher résiduel ne doit rien devoir à l'ORDRE du tableau `architecture` (#1172) : deux corps
+ * non bornés se disputeraient le plancher. C'est l'ÉGALITÉ des deux sens qui se mesure ici (#1709).
  */
 describe('deriveArchitectureMasses — l’ORDRE du tableau `architecture` ne décide de rien', () => {
-  const scene = parseProject(diligenceProjet).scenes[0];
+  const scene = relaisAEtage();
   const bilan = (s: Scene) => deriveArchitectureMasses(s)
     .map((body) => `${body.id}:${body.masses.length}:${cellsOf(body.masses.flatMap((mass) => mass.footprint)).size}`)
     .sort();

@@ -10,7 +10,10 @@
     "hotes/texte/serveur.ts",
     "hotes/godot/pont/entree.ts",
     "hotes/godot/recettes/*.ts",
-    "hotes/godot/cibles/propositions/sources/rendre.mjs"
+    "hotes/godot/cibles/propositions/sources/rendre.mjs",
+    "projets/roguelite/src/main.ts",
+    "projets/roguelite/recette/*.{mjs,ts}",
+    "projets/roguelite/{balayage,equilibrage,catalogue}.ts"
   ],
   "project": [
     "src/**/*.{ts,tsx}",

@@ -4,7 +4,9 @@
 //
 // Une zone est un dossier : `dossier`, `src/<zone>` par défaut ; `racine` désigne les fichiers posés à même `src/`
 // (tests transverses). Hors de `src/`, chaque dossier de `hotes/` est un affichage et chaque dossier de `projets/` un
-// projet (#4903 H3), chacun sa zone. Par zone :
+// projet (#4903 H3), chacun sa zone. La ligne d'un projet se construit (`ligneDeProjet`) : les droits d'un projet
+// (`DROITS_D_UN_PROJET`), plus ses `ouvertures`, chacune nommée par son ticket. Un projet est fermé à toute autre zone,
+// `importe: '*'` compris (`fermeParLeProjet`). Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
 //  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type ;
@@ -36,6 +38,23 @@ const DROITS_D_HOTE = Object.freeze({ importe: Object.freeze(['noyau', 'scenes',
 
 /** Les droits d'un hôte qui lit le module commun des hôtes (`hote`) : ceux d'un hôte, plus `hote`. */
 const DROITS_DES_HOTES = Object.freeze({ ...DROITS_D_HOTE, importe: Object.freeze([...DROITS_D_HOTE.importe, 'hote']) });
+
+/** Les droits d'un projet (#4903 H3) : ceux des hôtes (`DROITS_DES_HOTES`), sans `scenes`. */
+export const DROITS_D_UN_PROJET = Object.freeze({ ...DROITS_DES_HOTES, importe: Object.freeze(DROITS_DES_HOTES.importe.filter((z) => z !== 'scenes')) });
+
+/** La ligne du projet de dossier `dossier` (#4903 H3) : les droits d'un projet (`DROITS_D_UN_PROJET`), plus ses
+ *  `ouvertures` (`{ <zone>: <n° de ticket> }`) ; ouvrir une zone l'importe et retire sa porte. La ligne garde ses
+ *  ouvertures. PURE. */
+export function ligneDeProjet(dossier, ouvertures) {
+  const ouvertes = Object.keys(ouvertures);
+  return Object.freeze({
+    dossier,
+    ...DROITS_D_UN_PROJET,
+    importe: Object.freeze([...new Set([...DROITS_D_UN_PROJET.importe, ...ouvertes])]),
+    portes: Object.freeze(Object.fromEntries(Object.entries(DROITS_D_UN_PROJET.portes).filter(([z]) => !ouvertes.includes(z)))),
+    ouvertures: Object.freeze({ ...ouvertures }),
+  });
+}
 
 export const COUCHES = Object.freeze({
   lib: { importe: [], survit: true },
@@ -70,6 +89,7 @@ export const COUCHES = Object.freeze({
     },
     paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
   },
+  roguelite: ligneDeProjet('projets/roguelite', { engine: 4932, data: 4933, scenes: 4933, noyau: 4931 }),
   scenes: {
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
     survit: true,
@@ -100,8 +120,12 @@ const RACINES_PAR_DOSSIER = Object.freeze(['hotes', 'projets']);
 export const RACINES_DES_ZONES = Object.freeze([...new Set([...Object.keys(COUCHES).map((z) => dossierDe(z).split('/')[0]), ...RACINES_PAR_DOSSIER])]);
 
 
-/** Les hôtes du noyau : les zones qui ne lisent le noyau que par sa porte (`portes`). */
-export const HOTES_DU_NOYAU = Object.freeze(Object.keys(COUCHES).filter((z) => COUCHES[z].portes?.noyau === SURFACE_DU_NOYAU));
+/** Les hôtes du noyau (#2898, #4903 H3) : les zones bâties sur les droits d'un hôte ou d'un projet, celles dont la ligne
+ *  importe chaque zone des droits d'un projet (`DROITS_D_UN_PROJET`) autre qu'elle-même. */
+export const HOTES_DU_NOYAU = Object.freeze(Object.keys(COUCHES).filter((z) => {
+  const { importe } = COUCHES[z];
+  return importe !== '*' && DROITS_D_UN_PROJET.importe.every((v) => v === z || importe.includes(v));
+}));
 
 /** Les dossiers des zones déclarées d’une garde de corpus, issus de `COUCHES` (#3556). La zone `racine` ne
  *  désigne pas un dossier à parcourir séparément. */
@@ -131,17 +155,27 @@ export function zoneDe(rel) {
   return segments.length === 2 ? segments[0] : `${segments[0]}/${segments[1]}`;
 }
 
-/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type. */
+/** `z` est-il un projet : une zone dont le dossier est sous `projets/` (#4903 H3) ? */
+export const estProjet = (z) => estZone(z) && dossierDe(z).startsWith('projets/');
+
+/** La zone `vers` est-elle fermée à la zone `de` parce qu'elle est un projet, et `de` une autre zone (#4903 H3) ? Ni
+ *  `importe: '*'`, ni une ligne, ni une suite ne l'ouvrent. PURE. */
+export const fermeParLeProjet = (de, vers) => estProjet(vers) && de !== vers;
+
+/** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type ; un projet n'en est jamais
+ *  (`fermeParLeProjet`). */
 export function ouvertes(de) {
   const { importe, types = [] } = COUCHES[de];
-  const libres = importe === '*' ? Object.keys(COUCHES).filter((z) => z !== de) : [...importe];
-  return { libres, enType: [...types] };
+  const ouverte = (z) => z !== de && !fermeParLeProjet(de, z);
+  return { libres: (importe === '*' ? Object.keys(COUCHES) : importe).filter(ouverte), enType: types.filter(ouverte) };
 }
 
 /** Le verdict d'un arc de la zone `de` vers la zone `vers` : `null` s'il est ouvert, sinon ce qui le
- *  ferme — `'execution'` (un type passerait) ou `'type'` (fermé même pour un type). */
+ *  ferme — `'execution'` (un type passerait) ou `'type'` (fermé même pour un type) ; un projet est fermé à toute autre
+ *  zone (`fermeParLeProjet`). */
 export function fermeture(de, vers, typeSeul) {
   if (!estZone(de) || de === vers) return null;
+  if (fermeParLeProjet(de, vers)) return 'type';
   const zone = COUCHES[de];
   if (zone.importe === '*' || zone.importe.includes(vers)) return null;
   if ((zone.types ?? []).includes(vers)) return typeSeul ? null : 'execution';

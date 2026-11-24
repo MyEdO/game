@@ -889,6 +889,11 @@ const ATTENDU = {
   // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
   // (`construire.mjs`) dépose les GLB (`ecritFerme`).
   'godot:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  // #4929, ECRIT_LU (`scripts/gates/toutes.mjs`) : `construire.mjs` écrit la page et ses feuilles sous `dist/roguelite/`
+  // (`ecritFerme`), que git ignore ; `lot.mjs` écrit la partie fixe et les captures sous `dist/roguelite-recette/`, que
+  // git ignore et qu'aucune gate ne lit.
+  'roguelite:construire': ['projets/roguelite/construire.mjs'],
+  'roguelite:recette': ['projets/roguelite/recette/lot.mjs'],
   // #3145, ECRIT_LU (`scripts/gates/toutes.mjs`) : `environnement.mjs` écrit le venv et son témoin sous
   // `~/.cache/wfrp-personnage-3d/`, hors de l'arbre.
   'personnage-3d:tests': ['scripts/personnage-3d/environnement.mjs'],

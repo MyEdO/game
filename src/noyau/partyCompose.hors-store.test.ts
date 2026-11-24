@@ -20,7 +20,9 @@ import { emplacementsDuGroupe, fermerLeSiege } from './sieges';
 import { refusDeComposerLeHeros, refusDeLancer, refusDeRecruter, refusDeRenvoyer } from './partyFlow';
 import { pretiresOfferts } from './creation/engagement';
 import { careerLabelFor, findSpeciesById } from '../data';
-import { lancerCampagne } from '../scenes/campaign';
+import { poserLaCampagne } from './campagne.testkit';
+import { buildScene } from './mapSpec';
+import type { CampagneLancee } from './persistance/bibliotheque';
 import { t } from '../i18n';
 import { brouillonComplet, engage } from './creation/engagement.testkit';
 import { draftWealth, newDraft } from './creation/brouillon';
@@ -216,9 +218,12 @@ describe('le rang de chaque héros est un état du jeu (`net.rangs`, #3059 F10)'
   });
 });
 
-describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10)', () => {
-  it('D1 — un groupe vide : `lancerCampagne` rend le refus, aucune scène n’est posée', () => {
-    expect(lancerCampagne(banc.getState, null)).toBe(t('party.action.start.empty'));
+describe('lancer la partie : `refusDeLancer`, lu par `poserLaCampagne` (#3059 F10)', () => {
+  const DEPART = buildScene({ id: 'compose-depart', label: 'Départ', size: [2, 2] });
+  const CAMPAGNE: CampagneLancee = { id: 'compose', label: 'Composition', scenes: [DEPART], startSceneId: DEPART.id, worldMap: null, projet: { id: 'compose' } };
+
+  it('D1 — un groupe vide : `poserLaCampagne` rend le refus, aucune scène n’est posée', () => {
+    expect(poserLaCampagne(banc.getState, CAMPAGNE)).toBe(t('party.action.start.empty'));
     expect(banc.getState().scene).toBeNull();
   });
 
@@ -229,7 +234,7 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
     });
     expect(emplacementsDuGroupe(banc.getState())[1].heroId, 'témoin : l’orphelin de l’hôte occupe l’emplacement de l’invité').toBe('b');
     expect(refusDeLancer(banc.getState())).toBe(t('party.action.start.guestPending'));
-    expect(lancerCampagne(banc.getState, null)).toBe(t('party.action.start.guestPending'));
+    expect(poserLaCampagne(banc.getState, CAMPAGNE)).toBe(t('party.action.start.guestPending'));
     expect(banc.getState().scene).toBeNull();
   });
 
@@ -238,7 +243,7 @@ describe('lancer la partie : `refusDeLancer`, lu par `lancerCampagne` (#3059 F10
     expect(refusDeLancer(banc.getState()), 'témoin : le groupe complet se lance en partie locale').toBeNull();
     banc.setState({ net: { ...initialNet(), mode: 'invite', mySeat: 1, roomCode: 'ABCDEF' } });
     expect(refusDeLancer(banc.getState())).toBe(t('party.guest.waiting'));
-    expect(lancerCampagne(banc.getState, null)).toBe(t('party.guest.waiting'));
+    expect(poserLaCampagne(banc.getState, CAMPAGNE)).toBe(t('party.guest.waiting'));
     expect(banc.getState().scene).toBeNull();
   });
 

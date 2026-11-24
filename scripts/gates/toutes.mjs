@@ -70,8 +70,10 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * C'est cette table, et rien d'autre, qui autorise deux gates à tourner EN MÊME TEMPS : un écrivain
  * et son lecteur dans deux lanes différentes, c'est un lecteur sur un fichier à moitié écrit.
  * Un chemin qui finit par `/` désigne le dossier et tout ce qu'il contient.
- * Ce qui vit HORS de l'arbre n'est pas déclaré : `node_modules/.cache/…` est nommé par PID, `dist/`
- * n'est lu par aucune gate, et les fixtures de test se fabriquent sous `os.tmpdir()`.
+ * Ce qui vit HORS de l'arbre n'est pas déclaré : `node_modules/.cache/…` est nommé par PID, et les
+ * fixtures de test se fabriquent sous `os.tmpdir()`. `dist/` est ignoré par git mais un sous-dossier
+ * qu'une gate lit se déclare : `dist/roguelite/` en `ecritFerme` de `roguelite:construire`, lu par
+ * `roguelite:recette` ; le reste de `dist/` n'est lu par aucune gate.
  *
  * `prerequis` (optionnel) dit ce que la gate exige d'AVOIR sous la racine pour mesurer quoi que ce
  * soit, et la commande qui le pose : sans lui, elle rend l'erreur brute de son outil, qui ne nomme
@@ -557,6 +559,29 @@ export const ECRIT_LU = {
       '`editeur` et `compendium` servent chacun un dépôt temporaire pour leurs enregistrements. La préparation et les ' +
       'copies sont effacées. Les journaux vont sous `dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit. ' +
       'LIT ce que lit `godot:sonde` et écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
+  },
+  'roguelite:construire': {
+    ecrit: [],
+    ecritFerme: {
+      'dist/roguelite/':
+        'la page du roguelite et ses feuilles sous la sortie ignorée par git ; sa seule gate lectrice, ' +
+        '`roguelite:recette`, le suit dans le job `godot-recette` de ci.yml, une SÉRIE',
+    },
+    lit: [...DOSSIERS_DES_ZONES, 'tsconfig.json', 'package.json'],
+    raison:
+      'esbuild (projets/roguelite/construire.mjs, #4929) empaquette la façade du noyau du roguelite et son interface, ' +
+      'qui tirent les zones du dépôt, et recopie la page et ses feuilles sous dist/roguelite/ (`ecritFerme`)',
+  },
+  'roguelite:recette': {
+    ecrit: [],
+    lit: [...DOSSIERS_DES_ZONES, 'tsconfig.json', 'package.json'],
+    raison:
+      'Le lot (projets/roguelite/recette/lot.mjs, #4929) tire la partie fixe (`partie-fixe.ts`, par tsx, qui lit les ' +
+      'zones) puis joue chaque recette dans son processus : Chrome par Playwright, un contexte neuf par page, son ' +
+      'profil sous os.tmpdir(), la construction de dist/roguelite/ servie par interception (`route`). La partie fixe et ' +
+      'les captures vont sous dist/roguelite-recette/, que git ignore et qu’aucune gate ne lit. Il LIT aussi ' +
+      'dist/roguelite/, absent d’un checkout propre : c’est l’`ecritFerme` de `roguelite:construire`, qui le précède ' +
+      'dans le job `godot-recette` de ci.yml, une SÉRIE',
   },
   'personnage-3d:tests': {
     ecrit: [],

@@ -11,7 +11,9 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { imposerLesD100 } from '../../noyau/battleRng.testkit';
 import { setRule, resetRule } from '../../engine/policy';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { campagneDuJeu, diligenceCampaign, lancerCampagne, paquetDuJeu } from '../../scenes/campaign';
+import { diligenceCampaign } from '../../scenes/campaign';
+import { poserLaCampagne } from '../campagne.testkit';
+import { campagneDuJeu, paquetDuJeu } from '../campagneLivree';
 import { groupeVitrineDeScenario } from '../../scenes/test-scenarios/_heros';
 import { creditBourse, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { toBrass } from '../../engine/money';
@@ -46,7 +48,7 @@ const BOURSE_DE_FIXTURE = { gold: 0, silver: 3, brass: 4 };
 function aBord(): void {
   const groupe = groupeVitrineDeScenario(idsDeTest);
     banc.setState({ party: groupe });
-  expect(lancerCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
+  expect(poserLaCampagne(banc.getState, campagneDuJeu(diligenceCampaign), paquet.scenes[0].id)).toBeNull();
   for (const h of groupe) creditBourse(get, banc.setState, h.id, BOURSE_DE_FIXTURE);
   get().fenetreValider('ouverture');
   poserLeGroupe(get, banc.setState, { x: 24, y: 28 }); // à portée de la diligence (patron `edo-ch1-chaine-carte.hors-store.test.ts`)

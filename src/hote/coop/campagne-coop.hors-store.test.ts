@@ -13,7 +13,7 @@ import { tousLesHerosDeScenario } from '../../scenes/test-scenarios/_heros';
 import { etatInitialDuJeu, initialNet, type EtatDeJeu } from '../../noyau/etat';
 import { buildScene } from '../../noyau/mapSpec';
 import { resetSceneRegistry, sceneDuRegistre } from '../../noyau/monde/registreDesScenes';
-import { lancerCampagne } from '../../scenes/campaign';
+import { poserLaCampagne } from '../../noyau/campagne.testkit';
 
 const DEPART = buildScene({ id: 'campagne-coop-depart', label: 'Départ', size: [2, 2] });
 const SUITE = buildScene({ id: 'campagne-coop-suite', label: 'Suite', size: [2, 2] });
@@ -44,7 +44,7 @@ describe('Campagne en coop : les scènes du paquet viennent de l’instantané',
     expect(invite.etat.scene).toBeNull();
     expect(invite.etat.pendingCampaign?.label).toBe(CAMPAGNE.label);
 
-    expect(lancerCampagne(hote.getState, hote.getState().pendingCampaign)).toBeNull();
+    expect(poserLaCampagne(hote.getState, CAMPAGNE)).toBeNull();
     host.broadcastSnapshot();
     resetSceneRegistry();
     appliquer();

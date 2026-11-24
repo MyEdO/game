@@ -1,5 +1,6 @@
 import { analyserCorpus, avecAnalyse } from '../scripts/guards/lib/dialecte.mjs';
 import { describe, it, expect } from 'vitest';
+import { existsSync } from 'node:fs';
 import * as ts from 'typescript/unstable/ast';
 import type { Checker } from 'typescript/unstable/sync';
 import { contexteImports, liaisonImportee, type ContexteImports } from '../scripts/guards/lib/canonUnique.mjs';
@@ -129,15 +130,15 @@ function refsDuTexte(rel: string, text: string, horsDiagnostic = false) {
  * `src/noyau/**`, `src/engine/**` : les couches qui écrivent au journal (`ecrireAuJournal`, `tell`,
  * conséquences, détails d'option) sans passer par le catalogue ; leurs puits de diagnostic sont taillés.
  *
- * `src/hote/**`, `hotes/texte/**`, `hotes/godot/**` : les hôtes, où le `throw new ErreurDeGeste` EST le
- * texte rendu au joueur : aucun puits n'y est taillé.
+ * Les hôtes du noyau (`HOTES_DU_NOYAU` : les zones bâties sur les droits d'un hôte ou d'un projet) que l'arbre porte,
+ * où le `throw new ErreurDeGeste` EST le texte rendu au joueur : aucun puits n'y est taillé.
  *
  * `src/scenes/test-scenarios/**` : le menu « Scénarios de test » (le pont Godot) rend leurs titres et descriptions, c'est une surface de jeu.
  */
 const PERIMETRES_DE_JEU = [
   { nom: 'catalogue i18n', racines: [`${dossierDe('i18n')}/messages`], horsDiagnostic: false },
   { nom: 'noyau et moteur', racines: porteeDeGarde(['noyau', 'engine']), horsDiagnostic: true },
-  { nom: 'hôtes', racines: porteeDeGarde(HOTES_DU_NOYAU), horsDiagnostic: false },
+  { nom: 'hôtes', racines: porteeDeGarde(HOTES_DU_NOYAU).filter((d) => existsSync(new URL(`../${d}`, import.meta.url))), horsDiagnostic: false },
   { nom: 'scénarios de test', racines: [`${dossierDe('scenes')}/test-scenarios`], horsDiagnostic: false },
 ] as const;
 

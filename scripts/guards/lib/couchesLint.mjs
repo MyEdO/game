@@ -7,14 +7,15 @@
 //    (`portes`), l'arc ne vise que ce module, en valeur comme en type (`porteManquee`). Une zone qui survit à
 //    la bascule (`survit`) ne charge aucun paquet de l'hôte web (`paquetFerme`), même pour un type, hors des paquets que sa
 //    ligne ouvre à un outillage (`paquetsDOutillage`) ; aucun module de la zone hors de cet outillage ne l'importe, en
-//    valeur comme en type (`outillageAtteint`). Hors de
-//    `racine`, un motif de glob dont le dossier de zone est un joker est refusé (`dossierJoker`). Une zone qui survit
+//    valeur comme en type (`outillageAtteint`). Un motif de glob dont un joker peut atteindre une zone que la table ferme au fichier est
+//    refusé (`dossierJoker`), `importe: '*'` compris : un projet n'est atteint par aucun joker d'une autre zone. Une zone qui survit
 //    n'écrit aucun JSX et ne lit aucun module de CODE hors des zones (`scripts/`, `server/`… ; `estCode` : une donnée
 //    n'importe rien), sauf, pour un outillage de la zone, les modules que sa ligne déclare (`outillage`,
 //    `horsZoneOuvert`). Elle juge tout fichier d'une zone qui n'est ni suite ni banc (`estFichierVitest`).
 //  - `murs/tests-survivants` (#3058) : une suite ou un banc (`estFichierVitest`) d'une zone qui survit n'a aucun arc,
-//    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeParLaSurvie`), ne charge aucun
-//    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker (`dossierJoker`), et ne
+//    sous aucune forme et en type compris, vers une zone qui n'y survit pas (`fermeParLaSurvie`) ni vers le projet
+//    d'une autre zone (`fermeParLeProjet`, #4903 H3), ne charge aucun
+//    paquet de l'hôte web (`paquetFerme`), n'écrit aucun JSX, ne lit aucun motif joker vers une zone fermée (`dossierJoker`), et ne
 //    charge rien que la lecture des arcs ne suive (`surCalcule` de `visiteurDArcs`) : spécificateur ou motif calculé,
 //    chargeur renommé, lié comme valeur ou lu par un accès calculé. Une cible hors des zones s'ouvre : sa clôture est
 //    le mur `scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`, qui suit l'acquisition calculée d'un membre en
@@ -43,6 +44,7 @@ import {
   dossierDe,
   estZone,
   fermeParLaSurvie,
+  fermeParLeProjet,
   fermeture,
   horsZoneOuvert,
   outillageAtteint,
@@ -61,16 +63,18 @@ const TABLE = 'la table `COUCHES` (`scripts/guards/lib/couches.mjs`)';
 /** Le nom d'une zone dans un message : `racine` n'est pas un dossier. */
 const nommer = (z) => (z === 'racine' ? 'un fichier posé à même `src/`' : dossierDe(z));
 
-/** Les dossiers des zones à dossier propre. */
-const DOSSIERS = Object.keys(COUCHES).filter((z) => z !== 'racine').map(dossierDe);
+/** Les dossiers des zones que la table ferme à la zone `de` à l'exécution (`fermeture`) ou à ses instruments
+ *  (`fermeParLaSurvie`), `racine` comprise (`src`) : celles qu'un motif joker de `de` ne doit pas pouvoir atteindre. */
+const dossiersFermes = (de) => Object.keys(COUCHES)
+  .filter((z) => fermeture(de, z, false) !== null || fermeParLaSurvie(de, z)).map(dossierDe);
 
-/** Le motif `cibleRel` (relatif à la racine) traverse-t-il un dossier de zone par un joker ? Sa partie
- *  littérale (`picomatch.scan`) s'arrête au-dessus d'un dossier de zone, et son joker descend d'un dossier. */
-function dossierJoker(cibleRel) {
+/** Le motif `cibleRel` (relatif à la racine) peut-il atteindre l'un des `dossiers` par un joker ? Sa partie
+ *  littérale (`picomatch.scan`) s'arrête sur l'un d'eux ou au-dessus, ou est vide, et son joker descend d'un dossier. */
+function dossierJoker(cibleRel, dossiers) {
   const { base, isGlob } = picomatch.scan(cibleRel);
   const joker = cibleRel.slice(base.length);
   if (!isGlob || !(joker.slice(1).includes('/') || joker.includes('**'))) return false;
-  return base === '' || DOSSIERS.some((d) => d.startsWith(`${base}/`));
+  return base === '' || dossiers.some((d) => d === base || d.startsWith(`${base}/`));
 }
 
 /** La cible `cibleRel` est-elle du CODE : sans extension (un module résolu), ou d'une extension de script
@@ -100,19 +104,20 @@ const zone = {
 /** Le message d'un paquet de l'hôte web que la zone `de` ferme. */
 const msgPaquet = (de, paquet) => `Paquet d’hôte (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et ne charge pas \`${paquet}\`, paquet de l’hôte web, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} le ferme (\`survit\`, \`PAQUETS_DE_L_HOTE_WEB\`) : laisser ce qui en dépend à l’hôte web, ou, pour un outillage de la zone, le déclarer dans sa ligne (\`paquetsDOutillage\`).`;
 /** Le message d'un motif d'`import.meta.glob` dont le dossier de zone est un joker. */
-const msgJoker = (de, motif) => `Motif joker (#2882) : ${nommer(de)} ne lit pas un motif d’\`import.meta.glob\` dont le dossier de zone est un joker (\`${motif}\`) — ${TABLE} ne juge que la zone qu’un chemin nomme : écrire le dossier de la zone visée.`;
+const msgJoker = (de, motif) => `Motif joker (#2882) : ${nommer(de)} ne lit pas un motif d’\`import.meta.glob\` dont un joker peut atteindre une zone qu’elle ne lit pas (\`${motif}\`) — ${TABLE} ne juge que la zone qu’un chemin nomme : écrire le dossier de la zone visée.`;
 /** Le message d'un JSX dans la zone `de`, qui survit. */
 const msgJsx = (de) => `JSX (#2882, #2817 D9) : ${nommer(de)} survit à la bascule et n’écrit aucun JSX — sa compilation chargerait \`react/jsx-runtime\`, paquet de l’hôte web (${TABLE}, \`survit\`) : laisser le rendu à l’hôte web.`;
 
 /** Le JUGEUR D'ARCS des murs de zone (`purete`, `testsSurvivants`) : les visiteurs qui rendent chaque arc du fichier,
  *  de la zone `de`, à son juge. La requête d'un spécificateur (`?raw`) ne fait pas partie du chemin ; dans un motif,
  *  `?` est un joker, et un motif `!…` n'est pas jugé. Un arc sans cible lexicale (`cibleLexicale`) est un paquet :
- *  `surPaquet(node, paquet)` ; sinon `surCible(node, cibleRel, typeSeul)`, chemin relatif à la racine. Hors de
- *  `racine`, un motif dont le dossier de zone est un joker (`dossierJoker`) va à `surJoker(node, motif)`. Une zone qui
+ *  `surPaquet(node, paquet)` ; sinon `surCible(node, cibleRel, typeSeul)`, chemin relatif à la racine. Un motif dont
+ *  un joker peut atteindre une zone fermée à `de` (`dossierJoker`, `dossiersFermes`) va à `surJoker(node, motif)`. Une zone qui
  *  survit rend chaque JSX à `surJsx(node)`. `surCalcule` : celui de `visiteurDArcs`. */
 function jugeurDArcs(context, de, { surPaquet, surCible, surJoker, surJsx, surCalcule }) {
   const racine = context.cwd;
   const importeur = posix(context.filename);
+  const fermes = dossiersFermes(de);
   const juger = (node, spec, typeSeul) => {
     const cible = cibleLexicale(importeur, spec, racine);
     if (cible === null) surPaquet(node, paquetDe(spec));
@@ -121,7 +126,7 @@ function jugeurDArcs(context, de, { surPaquet, surCible, surJoker, surJsx, surCa
   const jugerMotif = (node, motif) => {
     if (motif === null || motif.startsWith('!')) return;
     const cible = cibleLexicale(importeur, motif, racine);
-    if (cible !== null && COUCHES[de].importe !== '*' && dossierJoker(posix(relative(racine, cible)))) surJoker(node, motif);
+    if (cible !== null && dossierJoker(posix(relative(racine, cible)), fermes)) surJoker(node, motif);
     else juger(node, motif, false);
   };
   return {
@@ -188,6 +193,10 @@ const testsSurvivants = {
       surPaquet: (node, paquet) => { if (paquetFerme(de, paquet, importeurRel)) rapporter(node, msgPaquet(de, paquet)); },
       surCible: (node, cibleRel) => {
         const vers = zoneDe(cibleRel);
+        if (fermeParLeProjet(de, vers)) {
+          rapporter(node, `Projet fermé (#2882, #4903 H3) : une suite ou un banc de ${nommer(de)} n’importe rien de ${nommer(vers)}, projet que ${TABLE} ferme à toute autre zone (\`fermeParLeProjet\`), ni à l’EXÉCUTION ni pour un TYPE : jouer la forme commune hors du projet, ou poser la suite dans le projet.`);
+          return;
+        }
         if (!fermeParLaSurvie(de, vers)) return;
         rapporter(node, `Zone fermée (#2882) : une suite ou un banc de ${nommer(de)}, qui survit à la bascule, n’importe rien de ${nommer(vers)}, qui n’y survit pas, ni à l’EXÉCUTION ni pour un TYPE — ${TABLE} (\`survit\`, \`fermeParLaSurvie\`) : jouer la règle par une zone qui survit, ou poser le test de l’hôte web dans sa zone.`);
       },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { diligenceCampaign, paquetDuJeu } from './campaign';
+import { relaisAEtage, VOLEES_DU_RELAIS } from './fixtures/plans.testkit';
 import { emptyScene, isWalkable, type Scene, type WallSeg } from '../noyau/monde/scene';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { reachable, tileKey, walkNeighbors, type MoveEnv, type Pt } from '../noyau/monde/path';
@@ -36,22 +36,19 @@ function sensUniques(scene: Scene): string[] {
 }
 
 describe('path — le franchissement d’une arête est SYMÉTRIQUE', () => {
-  const diligence: Scene = paquetDuJeu(diligenceCampaign).scenes[0];
+  const relais: Scene = relaisAEtage();
 
-  it('sur « La Diligence » (carte authorée, 3 couches), toute arête franchie l’est dans les deux sens', () => {
-    expect(sensUniques(diligence)).toEqual([]);
+  it('sur le relais à étage (deux couches, deux volées, portes et cloisons), toute arête franchie l’est dans les deux sens', () => {
+    expect(sensUniques(relais)).toEqual([]);
   });
 
-  it('les sommets des deux escaliers se montent ET se redescendent', () => {
-    const sommets: [Pt, Pt][] = [
-      [{ x: 27, y: 28, z: 0 }, { x: 28, y: 27, z: 1 }], // volée est : dernière marche (3 m) → plancher (4 m)
-      [{ x: 22, y: 31, z: 0 }, { x: 21, y: 30, z: 1 }], // volée ouest
-      [{ x: 28, y: 28, z: 0 }, { x: 29, y: 27, z: 1 }], // paliers voisins de ces mêmes sommets
-      [{ x: 21, y: 31, z: 0 }, { x: 20, y: 30, z: 1 }],
-    ];
-    for (const [bas, haut] of sommets) {
-      expect([key(bas), key(haut), links(diligence, bas, haut)]).toEqual([key(bas), key(haut), true]);
-      expect([key(haut), key(bas), links(diligence, haut, bas)]).toEqual([key(haut), key(bas), true]);
+  it('le sommet de chaque volée se monte ET se redescend, en diagonale inter-couches comprise', () => {
+    for (const { haut } of VOLEES_DU_RELAIS) {
+      const sommet: Pt = { ...haut, z: 0 };
+      const montees = walkNeighbors(relais, sommet).filter((n) => (n.z ?? 0) === 1);
+      // Le cas critique : au moins une montée en DIAGONALE depuis la dernière marche.
+      expect(montees.filter((n) => n.x !== sommet.x && n.y !== sommet.y).map(key), key(sommet)).not.toEqual([]);
+      for (const n of montees) expect([key(sommet), key(n), links(relais, n, sommet)]).toEqual([key(sommet), key(n), true]);
     }
   });
 

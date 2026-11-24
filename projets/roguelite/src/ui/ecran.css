@@ -1,0 +1,100 @@
+/* Le gabarit des écrans (`ecran.ts`) : la scène fixe de 1280 × 720, ses cadres placés, le socle de la compagnie,
+   la croix, le retour, le carton ; sur un écran étroit, les cadres s'empilent. */
+.ecran-plein { position: fixed; inset: 0; z-index: 20; background: radial-gradient(120% 90% at 50% 30%, #2a1d14, #0d0907 70%); }
+.scene-fixe { position: absolute; left: 0; top: 0; width: 1280px; height: 720px; transform-origin: 0 0; }
+.place-cadre { position: absolute; display: flex; }
+.place-cadre > .cadre { flex: 1; display: flex; min-height: 0; min-width: 0; }
+.place-cadre > .cadre > .fond { flex: 1; min-height: 0; overflow-x: hidden; overflow-y: auto; scrollbar-width: thin; display: flex; flex-direction: column; }
+.socle-compagnie > .fond { padding: 8px 10px; }
+.socle-compagnie .rang-heros { display: grid; grid-auto-flow: column; grid-auto-columns: calc((100% - (var(--n, 4) - 1) * 8px) / var(--n, 4)); gap: 8px; height: 100%; overflow-x: auto; overflow-y: hidden; scrollbar-width: thin; scroll-snap-type: x mandatory; }
+.socle-compagnie .carte-heros { max-width: none; scroll-snap-align: start; }
+.socle-compagnie .rang-heros.serre .carte-heros { gap: 6px; padding: 6px; }
+.socle-compagnie .rang-heros.serre .carte-heros .portrait { width: 56px; height: 70px; }
+.socle-compagnie .rang-heros.serre .ligne-etat { display: none; }
+.socle-compagnie .rang-heros.serre .carte-heros .qui { gap: 1px; }
+.socle-compagnie .rang-heros.serre .carte-heros .sous-titre { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 11px; }
+.socle-compagnie .rang-heros.serre .carte-heros .vie:not(.sejour-hospice) > span:first-child { display: none; }
+.socle-compagnie .rang-heros.serre .carte-heros .vie:not(.sejour-hospice) { justify-content: flex-end; }
+@media (max-width: 899px) {
+  .ecran-plein { overflow-y: auto; }
+  .scene-fixe { position: static; width: auto; height: auto; transform: none !important; padding: 12px 0 24px; }
+  .place-cadre { position: relative; left: auto !important; top: auto !important; width: auto !important; height: auto !important; margin: 0 16px 14px; }
+  .place-cadre > .cadre > .fond { overflow: visible; }
+  .place-cadre > .cadre.bande > .fond { grid-template-columns: repeat(5, minmax(0, 1fr)); row-gap: 6px; padding: 18px 6px 8px; }
+  .socle-compagnie .rang-heros { grid-auto-columns: 78%; }
+  .ecran-plein .croix-ecran { position: fixed; left: auto !important; right: 16px; top: 12px !important; z-index: 3; }
+}
+.croix-ecran { position: absolute; width: 46px; height: 46px; border-radius: 50%; border: 0; cursor: pointer; font-size: 26px; line-height: 1; color: var(--encre); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen) 55%, var(--laiton)); box-shadow: 0 3px 7px var(--ombre-forte), 0 0 0 2px var(--laiton-ombre); }
+.pan>.fond{padding:15px 19px 14px}
+.pan>.fond.bois{padding:14px 16px}
+.pan:has(>.onglets)>.fond{padding-top:26px}
+.pan .lignes+.rub,.pan .deux+.rub,.pan .trois+.rub,.pan .tire+.rub{margin-top:10px}
+/* le carton : ses places au fond, le texte qui défile entre le titre et les gestes du pied */
+.carton > .fond { position: relative; padding: 0; overflow: hidden; }
+.place-carton { position: absolute; min-width: 0; }
+.place-carton[data-place="vignette"] { display: grid; place-items: center; border-radius: 2px; background: radial-gradient(90% 90% at 50% 40%, #3b2718, #120b07); box-shadow: 0 0 0 1px var(--trait-encre), 0 4px 10px var(--ombre); overflow: hidden; }
+.place-carton[data-place="vignette"] > svg { width: 100%; height: 100%; display: block; }
+.place-carton[data-place="tete"] { display: flex; align-items: baseline; gap: 14px; white-space: nowrap; overflow: hidden; }
+.place-carton[data-place="tete"] .nom-propre { font-size: 28px; line-height: 34px; }
+.place-carton[data-place="texte"] { overflow-y: auto; scrollbar-width: thin; padding-right: 8px; }
+.place-carton[data-place="gestes"] > .gestes { height: 100%; justify-content: center; }
+.recit { display: grid; grid-template-columns: minmax(0, 1fr); gap: 6px; font-size: 15.5px; line-height: 21px; }
+.recit.defaite p:first-child { color: var(--sang); }
+/* l'épreuve en pièces : le Test et son sceau, le touché et sa jauge, la bourse ; dessous, ce qu'il advient */
+.recit.epreuve { gap: 10px; }
+.pieces-epreuve { display: flex; gap: 10px; align-items: stretch; }
+.piece-epreuve { flex: 0 1 auto; min-width: 0; display: flex; align-items: center; gap: 12px; height: 108px; box-sizing: border-box; padding: 10px 14px 10px 12px; border-radius: 3px; background: rgba(255,246,218,.38); box-shadow: inset 0 0 0 1px var(--trait-encre), 0 2px 5px rgba(70,45,20,.25); }
+.piece-epreuve.test { flex: 1 1 auto; }
+.piece-epreuve:not(.test) { flex: none; }
+.piece-epreuve .dit { min-width: 0; overflow: hidden; display: grid; gap: 5px; align-content: center; }
+.piece-epreuve .rub { font-size: 14px; }
+.piece-epreuve .nom-propre { font-size: 21px; line-height: 24px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding: 4px 2px; margin: -4px -2px; }
+.piece-epreuve .issue { display: flex; align-items: center; gap: 10px; white-space: nowrap; }
+.piece-epreuve .issue .etiquette { height: 24px; padding: 0 11px; font-size: 15px; }
+.piece-epreuve.reussi .issue .etiquette { border-color: var(--vert-sombre); background: linear-gradient(180deg, var(--vert-clair), var(--vert)); }
+.piece-epreuve .difficulte { font-size: 15px; color: var(--encre-2); }
+.piece-epreuve .marque-dr { flex: none; display: grid; justify-items: center; gap: 3px; }
+.piece-epreuve .marque-dr .rub { font-size: 13px; line-height: 14px; }
+.piece-epreuve.touche { box-shadow: inset 0 0 0 2px var(--sang), 0 2px 5px rgba(70,45,20,.25); }
+.piece-epreuve.touche .dit { min-width: 128px; }
+.piece-epreuve.touche .jauge { height: 10px; }
+.piece-epreuve .reste { font-size: 15px; line-height: 20px; color: var(--encre-2); }
+.piece-epreuve .reste b { font-size: 19px; color: var(--sang); }
+.piece-epreuve.bourse { box-shadow: inset 0 0 0 2px var(--laiton), 0 2px 5px rgba(70,45,20,.25); background: rgba(201,161,74,.26); }
+.piece-epreuve .somme { display: flex; align-items: baseline; gap: 6px; font: 22px/38px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--sepia); white-space: nowrap; }
+.piece-epreuve .somme svg { align-self: center; }
+.piece-epreuve .somme b { font-size: 32px; letter-spacing: 0; }
+.recit.epreuve > p { font-style: italic; font-size: 16.5px; line-height: 22px; }
+@media (max-width: 899px) {
+  .carton > .fond { display: grid; gap: 10px; padding: 26px 14px 14px; }
+  .place-carton { position: static; width: auto !important; height: auto !important; }
+  .place-carton[data-place="vignette"] { display: none; }
+  .place-carton[data-place="tete"] { flex-wrap: wrap; white-space: normal; }
+  .place-carton[data-place="texte"] { overflow: visible; }
+  .pieces-epreuve { flex-direction: column; }
+  .ecran-plein.lieu .scene-fixe:has(.carton) { max-height: 82dvh; }
+}
+.socle-compagnie.a-choisir { box-shadow: 0 0 0 2px var(--laiton), 0 0 22px var(--halo-vif); }
+.socle-compagnie.a-choisir > .ruban { font-size: 17px; }
+/* la salle à choix : une pièce par action, qui est son geste — le Test, l'enjeu */
+.recit.epreuve.choix { gap: 7px; }
+.recit.epreuve.choix > p { font-style: normal; font-size: 15.5px; line-height: 21px; }
+.piece-epreuve.action { flex: 1 1 0; height: auto; padding: 8px 12px; border: 0; font: inherit; color: inherit; text-align: left; cursor: pointer; background: rgba(255,246,218,.5); box-shadow: inset 0 0 0 1px var(--trait-encre), inset 0 0 0 3px rgba(168,132,47,.35), 0 2px 5px rgba(70,45,20,.25); }
+.piece-epreuve.action.passer { flex: 0 1 auto; }
+.piece-epreuve.action:hover:not(:disabled) { box-shadow: inset 0 0 0 2px var(--laiton), 0 0 12px var(--halo-vif), 0 2px 5px rgba(70,45,20,.25); }
+.piece-epreuve.action.choisi { background: linear-gradient(180deg, rgba(226,192,106,.75), rgba(201,161,74,.5)); box-shadow: inset 0 0 0 3px var(--laiton-ombre), 0 0 14px var(--halo-vif); }
+.piece-epreuve.action:disabled { cursor: default; background: rgba(120,105,85,.22); }
+.piece-epreuve.action:disabled .nom-propre, .piece-epreuve.action:disabled .enjeu { opacity: .55; }
+.piece-epreuve.action .dit { flex: 1; gap: 2px; }
+.piece-epreuve.action .rub { font-size: 12.5px; line-height: 15px; letter-spacing: .8px; }
+.piece-epreuve.action .titre-action { display: flex; flex-wrap: wrap; align-items: baseline; column-gap: 8px; }
+.piece-epreuve.action .nom-propre { display: flex; align-items: center; gap: 7px; font-size: 21px; line-height: 23px; }
+.piece-epreuve.action .nom-propre svg { flex: none; color: var(--rouille); }
+.piece-epreuve.action .difficulte { font-size: 14.5px; line-height: 18px; font-weight: 600; color: var(--encre); }
+.piece-epreuve .enjeu { display: flex; flex-wrap: wrap; align-items: center; column-gap: 10px; font-size: 14px; line-height: 18px; color: var(--encre); }
+.piece-epreuve .enjeu .gain { display: inline-flex; align-items: center; gap: 4px; color: var(--sepia); }
+.piece-epreuve .enjeu .risque { font-weight: 600; color: var(--sang); }
+.place-carton[data-place="gestes"] .glose { font-size: 15px; line-height: 20px; color: var(--encre); }
+@media (max-width: 899px) {
+  .piece-epreuve.action, .piece-epreuve.action.passer { flex: none; }
+}

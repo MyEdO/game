@@ -1,183 +1,31 @@
-/** Les campagnes du jeu : chacune est un paquet commité (`{<identité>, scenes, worldMap, narratif}`, `src/data/schemas/defs-scenes/projet.ts`), `src/scenes/<campagne>/<campagne>-projet.json`
- *  — celui de l'Arène est l'octet du `build()` de `scripts/arene/generate.mjs` (#1522, #1601) —, que
- *  l'éditeur ouvre en copie (`copieDuJeu`). À l'import, son IDENTITÉ est validée à la racine
- *  du paquet selon le schéma de projet. La jouer, l'ouvrir dans l'éditeur ou l'exporter fait passer
- *  le paquet entier par `parseProject` AU GESTE (#1692), comme une entrée de bibliothèque
- *  (`campagneDeLEntree`). */
-import { z } from 'zod';
-import type { IconId } from '../data/icons';
-import { Scene } from '../noyau/monde/scene';
-import { WorldMap, parseProject, documentDeProjet, playerEntryError, ProjetRefuse, type ProjectDoc, type ProjectIdentite } from '../noyau/worldMap';
-import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import { projetDoc } from '../data/schemas/defs-scenes/projet';
-import { enfantsDe } from '../data/schemas/grammaire/descente';
-import { refuserSansProvenance } from '../data/schemas/grammaire/document';
-import { metaDesChamps, nommerChamps } from '../data/schemas/grammaire/meta';
-import { refineProse } from '../data/schemas/grammaire/prose';
-import { noeudObjet, rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
-import { tableTotale } from '../lib/tableTotale';
-import type { Combatant } from '../engine/types';
-import type { Jeu } from '../noyau/etat';
-import type { Get } from '../noyau/flowTypes';
-import { lancementDuProjet, poserLeLancement, type LancementDeScenario } from '../noyau/lancementDeScenario';
-import { refusDeLancer } from '../noyau/partyFlow';
+/** Les campagnes du jeu : chacune est un paquet commité, `src/scenes/<campagne>/<campagne>-projet.json` — celui de
+ *  l'Arène est l'octet du `build()` de `scripts/arene/generate.mjs` (#1522, #1601) —, lu par `campagneDuPaquet`. */
+import { campagneDuPaquet, type BuiltinCampaign } from '../noyau/index';
 import areneProjet from './arene/arene-projet.json';
 import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';
 import bargeDuSelProjet from './barge-du-sel/barge-du-sel-projet.json';
 import diligenceProjet from './diligence/diligence-projet.json';
 
-/** Le paquet d'une campagne du jeu tel que commité, NON PARSÉ : seul le compte de ses scènes se lit
- *  sans la porte (liste de la bibliothèque, comme `SavedProject.project.scenes`). */
-interface PaquetDuJeu {
-  readonly scenes: readonly unknown[];
-}
-
-/** Une campagne du jeu (embarquée au build, pas dans le localStorage) : son identité et son paquet.
- *  #211. */
-export interface BuiltinCampaign extends ProjectIdentite {
-  /** L'icône est REQUISE sur une campagne exposée au picker (l'enveloppe la pose optionnelle). */
-  icon: IconId;
-  paquet: PaquetDuJeu;
-  /** Nom du fichier du paquet sous `src/scenes/` (`diligence-projet.json`), tel que ce registre le déclare. */
-  fichier: string;
-}
-
-/** Le paquet d'une campagne du jeu passé par la porte `parseProject`, AU GESTE : un refus lève
- *  `ProjetRefuse`, laissé à l'appelant. Sa première scène est l'entrée. */
-export function paquetDuJeu(c: BuiltinCampaign): Omit<ProjectDoc, 'schema'> {
-  return parseProject(structuredClone(c.paquet)); // #2097
-}
-
-/** La campagne LANCÉE depuis une campagne du jeu (`setPendingCampaign`), SOURCE UNIQUE de tout site
- *  qui la joue (picker de `PartyScreen`, bibliothèque de campagnes, `__wfrp.campaign`). Son paquet
- *  passe la porte à l'appel (`paquetDuJeu`). */
-export function campagneDuJeu(c: BuiltinCampaign): NonNullable<Jeu['pendingCampaign']> {
-  const { id, label, scenes, worldMap, activeAxes, narratif } = paquetDuJeu(c);
-  return {
-    id: c.id,
-    label,
-    scenes,
-    startSceneId: scenes[0].id,
-    worldMap: worldMap ?? null,
-    ...(activeAxes !== undefined ? { activeAxes } : {}),
-    narratif,
-    projet: { id },
-  };
-}
-
-/** La campagne que lance « Lancer » : celle choisie (`pendingCampaign`), et sans choix (`null`)
- *  l'Arène, lancée par `campagneDuJeu` comme toute campagne du jeu. Un refus lève `ProjetRefuse`. */
-export function campagneALancer(choisie: Jeu['pendingCampaign']): NonNullable<Jeu['pendingCampaign']> {
-  return choisie ?? campagneDuJeu(areneCampaign);
-}
-
-/** LE lancement de la campagne `lancee` (`campagneDuJeu`) par le groupe `party`, constructeur UNIQUE que partagent
- *  les hôtes du noyau (`lancementDuProjet`) : sa scène d'entrée, que `sceneId` remplace, et l'identité de son document. */
-export function lancementDeLaCampagne(lancee: NonNullable<Jeu['pendingCampaign']>, party: Combatant[], sceneId: string = lancee.startSceneId): LancementDeScenario {
-  return lancementDuProjet(lancee, party, sceneId, lancee.projet);
-}
-
-/** POSE la campagne `campagneALancer(choisie)` par le groupe en place, sur la séquence unique du lancement
- *  (`poserLeLancement` de `lancementDeLaCampagne`) : « Lancer » du store web (`PartyScreen`), repli de défaite
- *  (`CampaignView`) et `__wfrp.campaign` ; `sceneId` remplace sa scène d'entrée. Rend le refus du groupe
- *  (`refusDeLancer`), ou celui de la porte énoncé au joueur (`playerEntryError`, `noyau/worldMap.ts`), `null` quand
- *  la campagne est chargée. */
-export function lancerCampagne(get: Get, choisie: Jeu['pendingCampaign'], sceneId?: string): string | null {
-  const refus = refusDeLancer(get());
-  if (refus) return refus;
-  let lancee: NonNullable<Jeu['pendingCampaign']>;
-  try {
-    lancee = campagneALancer(choisie);
-  } catch (err) {
-    return playerEntryError(err, 'jouer');
-  }
-  poserLeLancement(get, lancementDeLaCampagne(lancee, get().party, sceneId));
-  return null;
-}
-
-/** Ce qu'OUVRE dans l'éditeur la COPIE d'une campagne du jeu (#367) — SOURCE UNIQUE de `loadBuiltin`
- *  de l'éditeur, qui ne fait que la poser. Tout y est la copie PROFONDE de `paquetDuJeu` : l'édition
- *  ne touche jamais le paquet commité. L'identité est celle du paquet parsé, ENTIÈRE (provenance
- *  comprise), sans le `label`, que l'éditeur renomme ; `activeAxes` n'y figure que si la campagne en
- *  déclare. Un refus de la porte lève `ProjetRefuse`. */
-export function copieDuJeu(c: BuiltinCampaign): {
-  depart: Scene;
-  autresScenes: Scene[];
-  worldMap: WorldMap | null;
-  activeAxes?: string[];
-  narratif: NarratifBlock;
-  identite: Omit<ProjectIdentite, 'label'>;
-} {
-  const { scenes: [depart, ...autresScenes], worldMap, activeAxes, narratif, label: _lb, ...identite } = paquetDuJeu(c);
-  return {
-    depart,
-    autresScenes,
-    worldMap: worldMap ?? null,
-    ...(activeAxes !== undefined ? { activeAxes } : {}),
-    narratif,
-    identite,
-  };
-}
-
-/** Le document PORTABLE d'une campagne du jeu, rendu par son EXPORT (bibliothèque de campagnes).
- *  L'identité est RECONDUITE : un export qui la laisserait tomber rendrait un document anonyme, que
- *  sa propre porte refuserait. Un refus de la porte lève `ProjetRefuse`. */
-export function documentDuJeu(c: BuiltinCampaign): ProjectDoc {
-  const { scenes, worldMap, activeAxes, narratif, ...identite } = paquetDuJeu(c);
-  return documentDeProjet(identite, scenes, { worldMap, activeAxes, narratif });
-}
-
-const CLES_IDENTITE_DU_PAQUET = [
-  'type', 'id', 'label', 'icon', 'versionContenu', 'desc', 'auteur', 'source', 'maison', 'descRef',
-] as const satisfies readonly (keyof ProjectIdentite | 'descRef')[];
-
-const noeudProjet = noeudObjet(projetDoc.schema);
-if (!(noeudProjet instanceof z.ZodObject)) throw new Error('Le schéma du projet ne porte aucun objet racine.');
-const enfantsDuProjet = enfantsDe(noeudProjet);
-const metaDuProjet = metaDesChamps(noeudProjet, { exigees: true });
-const noeudsDIdentite = tableTotale(CLES_IDENTITE_DU_PAQUET, cle => {
-  const noeud = enfantsDuProjet.find(enfant => enfant.cle === cle)?.noeud;
-  if (!(noeud instanceof z.ZodType)) throw new Error(`Le schéma du projet ne porte pas le champ « ${cle} ».`);
-  return noeud;
-});
-const identiteDuPaquetSchema = nommerChamps(
-  z.strictObject({ ...noeudsDIdentite, icon: noeudsDIdentite.icon.nonoptional() })
-    .superRefine((valeur, ctx) => refuserSansProvenance(valeur, ctx, 'de l’entrée'))
-    .superRefine(refineProse({ type: projetDoc.type, exigeProse: projetDoc.exiges.includes('desc') })),
-  tableTotale(CLES_IDENTITE_DU_PAQUET, cle => metaDuProjet[cle]),
-);
-
-/** À l'import, seuls les nœuds d'identité du projet sont validés. L'adresse de la description
- *  sert au contrôle de la prose et le paquet original est conservé pour la lecture au geste. */
-export function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>>, fichier: string): BuiltinCampaign {
-  const projection: Partial<Record<(typeof CLES_IDENTITE_DU_PAQUET)[number], unknown>> = {};
-  for (const cle of CLES_IDENTITE_DU_PAQUET) {
-    const valeur = paquet[cle];
-    if (valeur !== undefined) projection[cle] = valeur;
-  }
-  const refus = validerFormeVivante(identiteDuPaquetSchema, projection);
-  if (refus) throw new ProjetRefuse(refus.cause, refus.fautes, rapportDeFautes(fichier, refus.fautes));
-
-  const { descRef: _descRef, ...identite } = projection as ProjectIdentite & { icon: IconId; descRef?: unknown };
-  return { ...identite, paquet, fichier };
-}
-
 /** « La Diligence » — chapitre 1 de L'Ennemi Intérieur : paquet éditeur portant SES scènes (la
  *  première étant l'entrée) et la carte du monde du chapitre. */
 export const diligenceCampaign: BuiltinCampaign = campagneDuPaquet(diligenceProjet, 'diligence-projet.json');
 
-/** Campagnes du jeu proposées au picker en plus de l'Arène (la campagne sans choix,
- *  `campagneALancer`). Ajouter une campagne étalon = un item ICI, jamais un chemin parallèle. */
+/** Campagnes du jeu proposées au picker en plus de l'Arène. Ajouter une campagne étalon = un item ICI, jamais un
+ *  chemin parallèle. */
 export const builtinCampaigns: BuiltinCampaign[] = [
   campagneDuPaquet(loupEtSaumureProjet, 'loup-et-saumure-projet.json'),
   campagneDuPaquet(bargeDuSelProjet, 'barge-du-sel-projet.json'),
   diligenceCampaign,
 ];
 
-/** L'Arène, la campagne lancée sans choix (`campagneALancer`), sous la MÊME forme, pour la réutiliser
- *  partout où une liste homogène est nécessaire (#367 : « Ouvrir » de l'éditeur). */
+/** L'Arène, sous la MÊME forme, pour la réutiliser partout où une liste homogène est nécessaire (#367 : « Ouvrir »
+ *  de l'éditeur). */
 export const areneCampaign: BuiltinCampaign = campagneDuPaquet(areneProjet, 'arene-projet.json');
 
 /** Toutes les campagnes du jeu (Arène + `builtinCampaigns`), source unique pour tout listing
  *  homogène (bibliothèque de campagnes ET « Ouvrir » de l'éditeur, #367). */
 export const allBuiltinCampaigns: BuiltinCampaign[] = [areneCampaign, ...builtinCampaigns];
+
+/** Le contenu du jeu de rôle que ses points d'entrée remettent à l'affichage (`ContenuDUnJeu`, `src/hote/contenu.ts`) :
+ *  ses campagnes, et aucun scénario de test hors du catalogue commun. */
+export const contenuDuJeuDeRole = { campagnes: allBuiltinCampaigns, scenarios: [] };

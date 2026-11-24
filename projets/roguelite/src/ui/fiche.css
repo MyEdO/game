@@ -1,0 +1,74 @@
+/* La fiche du héros (`fiche.ts`) : règles de `heros/heros.css` du kit (`main`), polices remappées comme `kit.css`. */
+.place-cadre > .cadre.bande > .fond { display: grid; overflow: visible; flex-direction: row; }
+.place-cadre > .cadre.droite > .fond { padding-top: 34px; }
+.droite .rub, .competences .rub { white-space: normal; }
+.competences > .fond > .defile, .droite > .fond { overflow-y: auto; scrollbar-width: thin; }
+.competences > .fond > .defile { flex: 1; min-height: 0; }
+.ident > .fond { overflow-y: auto; scrollbar-width: thin; gap: 6px; }
+.trou { display: inline-grid; place-items: center; }
+.trou.plein { border-color: var(--laiton); background: linear-gradient(180deg, var(--or-eclat), var(--or-moyen)); color: var(--encre); }
+:is(.bande, .caracs) .c { border: 0; background: none; font: inherit; color: inherit; padding-bottom: 0; }
+.gestes-ident { margin-top: auto; padding-top: 8px; }
+:is(.ligne,.achat,.competence)>.etiquette.rectangle{width:32px;justify-content:center}
+.val{flex:none;font-family:"Open Sans";font-size:14px;font-weight:600;color:var(--encre);min-width:24px;text-align:right}
+.trou{flex:none;width:20px;height:20px;border-radius:50%;border:1.5px solid var(--trait-encre);background:rgba(60,40,20,.08)}
+.ident .tete{display:flex;gap:14px}
+.ident .tete>.q{flex:1;min-width:0}
+.ident .l{font-family:"IM Fell English SC";font-size:12.5px;line-height:19px;letter-spacing:1px;color:var(--rouille);white-space:nowrap}
+.bourse-px{display:flex;align-items:center;gap:13px;margin-top:12px}
+.bourse-px .px{flex:none;min-width:84px;height:48px;padding:3px;border-radius:26px;box-shadow:0 3px 7px var(--brou),0 0 0 1px var(--contour)}
+.bourse-px .px>div{height:100%;border-radius:24px;display:grid;place-items:center;padding:0 14px;background:linear-gradient(180deg,var(--or-eclat),var(--or-moyen) 55%,var(--laiton));box-shadow:inset 0 0 0 1px var(--laiton-ombre),inset 0 1px 0 var(--reflet-vif);font-family:"Open Sans";font-size:22px;font-weight:600;color:var(--encre)}
+.bourse-px b{display:block;font-family:"IM Fell English SC";font-weight:400;font-size:15px;line-height:20px;letter-spacing:1.1px;color:var(--sepia);white-space:nowrap}
+.exigences{margin-top:3px}
+.exige{display:flex;align-items:center;gap:9px;min-height:27px;padding:2px 0;font-family:"IM Fell English";font-size:14px;line-height:17px;color:var(--encre)}
+.exige>span:not(.cpt){flex:1;min-width:0}
+.exige .cpt{flex:none;font-size:12.5px;white-space:nowrap}
+.bande>.fond{display:grid;grid-template-columns:repeat(10,minmax(0,1fr));padding:0 6px}
+:is(.bande,.caracs) .c{position:relative;display:flex;flex-direction:column;align-items:center;padding-top:10px}
+:is(.bande,.caracs) .c+.c{border-left:1px solid var(--filet-encre)}
+:is(.bande,.caracs) .c .ab{font-family:"IM Fell English SC";font-size:12.5px;line-height:15px;letter-spacing:1px;color:var(--rouille)}
+:is(.bande,.caracs) .c .v{font-family:"Open Sans";font-size:23px;line-height:27px;color:var(--encre)}
+:is(.bande,.caracs) .c.carr::before{content:"";position:absolute;inset:6px 3px 5px;border:2px solid var(--laiton);border-radius:3px;background:rgba(255,246,208,.45);box-shadow:0 0 0 1px var(--contour)}
+:is(.bande,.caracs) .c>*{position:relative}
+.achat{position:relative;display:flex;align-items:center;gap:8px;height:34px;padding:0 2px;border-bottom:1px solid var(--filet-encre);min-width:0}
+.achat>.n{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;font-family:"IM Fell English";font-size:14.5px;color:var(--encre);white-space:nowrap}
+.achat svg{flex:none}
+.droite .jauge { margin: 4px 0 2px; }
+.droite .rub { margin-top: 9px; }
+.droite .rub:first-child { margin-top: 0; }
+.pied-equipement { margin-top: auto; padding-top: 10px; }
+.cases-equipement { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 4px; }
+.achat .plaque{flex:none}
+.competences .achat{height:28px}
+.caracs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.caracs .c{padding-bottom:10px}
+.caracs .c+.c{border-left:0}
+.exigences+.plaque{margin-top:8px;align-self:stretch}
+.bande .c .crans { position: absolute; bottom: 9px; left: 0; right: 0; margin: 0; }
+/* la marque des Augmentations : un cran par pas de +5, rempli à sa part (`--part`) */
+.crans { flex: none; display: flex; gap: 5px; justify-content: center; align-items: center; height: 12px; }
+.crans i { width: 8px; height: 8px; transform: rotate(45deg); box-shadow: inset 0 0 0 1px var(--trait-encre); background: linear-gradient(135deg, var(--or-eclat), var(--laiton)) no-repeat 0 0 / var(--part, 0%) 100%; }
+.crans i.plein { --part: 100%; box-shadow: 0 0 0 1px var(--laiton-ombre); }
+.caracs .c .crans { margin: 2px 0 3px; }
+.achat .crans { width: 62px; justify-content: flex-end; }
+.etiquette.pour-le-niveau { flex: none; height: 18px; padding: 0 6px; font-size: 10.5px; }
+
+/* le bloc de progression, posé tel quel par la salle d'armes et l'onglet Progression de la fiche */
+.progression { display: grid; grid-template-columns: 300px minmax(0, 1fr) minmax(0, 2fr); gap: 16px; min-height: 0; height: 100%; overflow: hidden; }
+.progression .colonne { display: flex; flex-direction: column; gap: 3px; min-height: 0; overflow-y: auto; scrollbar-width: thin; }
+.progression .colonne .rub { margin-top: 4px; white-space: normal; }
+.progression .colonne .rub:first-child { margin-top: 0; }
+.progression .talent { margin-top: 0; padding: 0 8px; gap: 8px; }
+.progression .talent .medaillon { width: 26px; height: 26px; }
+.progression .talent .medaillon svg { width: 14px; height: 14px; }
+.progression .talent .t i { display: none; }
+.progression .talent .nom-propre { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.progression .deux-colonnes { columns: 2; column-gap: 18px; }
+.progression .achat { break-inside: avoid; }
+.progression .achat .val { display: none; }
+.progression .bourse-px { margin-top: 4px; }
+.progression .plan { margin-top: 8px; align-self: stretch; }
+.place-cadre > .cadre.progresser > .fond { padding-top: 34px; }
+@media (max-width: 899px) {
+  .progression { grid-template-columns: minmax(0, 1fr); height: auto; overflow: visible; }
+}

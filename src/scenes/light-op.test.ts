@@ -16,7 +16,7 @@ import { itemFromTrappingById } from '../engine/items';
 import { applyOps } from '../engine/ops';
 import { findSpellById, findTrappingById } from '../data';
 import { emptyScene, sceneMetresPerTile } from '../noyau/monde/scene';
-import { builtinCampaigns, paquetDuJeu } from './campaign';
+import { sceneMer } from './fixtures/volumes.testkit';
 import type { Combatant } from '../engine/types';
 import { desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
@@ -24,11 +24,8 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 const pos = { x: 3, y: 3 };
 /** Échelle TERRESTRE : celle d'une scène qui ne déclare rien — le défaut du monde (`LDB 15 l.12`). */
 const MPT_TERRE = sceneMetresPerTile(emptyScene('scene-test', 1, 1));
-/** Échelle MER, LUE sur une scène livrée : l'abordage de la cogue du Loup et Saumure (combat naval,
- *  MDG 13) — jamais un littéral d'épreuve. */
-const MPT_MER = sceneMetresPerTile(
-  paquetDuJeu(builtinCampaigns.find((c) => c.id === 'loup-et-saumure')!).scenes.find((s) => s.id === 'ls-abordage-cogue')!,
-);
+/** Échelle MER, LUE sur une scène construite à cette échelle (`sceneMer`). */
+const MPT_MER = sceneMetresPerTile(sceneMer());
 const target = (): Combatant => combattantDeTest({ id: 't', label: 'Cible' });
 
 describe('op light — OBJET passif gaté sur le port', () => {

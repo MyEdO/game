@@ -8,10 +8,13 @@ import { describe, it, expect } from 'vitest';
 import { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type Jeu } from './index';
 import { nouvelEntete, ouvrirLaPartie } from '../hote/partieDeTest';
 import { itemFromTrappingById } from '../engine/items';
+import { catalogueDeLaPartie } from '../hote/contenu';
+
+const CATALOGUE = catalogueDeLaPartie([]);
 
 /** L'état du scénario `id` à son lancement. */
 function auLancement<T>(id: string, faire: (etat: Jeu) => T): T {
-  const { partie } = ouvrirLaPartie(nouvelEntete(id, { graine: 7 }), () => {});
+  const { partie } = ouvrirLaPartie(CATALOGUE, nouvelEntete(CATALOGUE, id, { graine: 7 }), () => {});
   try {
     return faire(partie.etat());
   } finally {

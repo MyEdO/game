@@ -87,6 +87,8 @@ const VERROU_LISTAGE = [
 
 const STOCKAGES_WEB = ['localStorage', 'sessionStorage'];
 const MSG_STOCKAGE_WEB = 'Stockage web (#1897) : le `localStorage` et le `sessionStorage` ne se touchent que par `stockageWeb(genre)` (`src/hote/stockageWeb.ts`), quel que soit l’objet porteur (`window`, `globalThis`, `self`, déstructuration, accès indexé).';
+// #1897, #4929 — les pilotes Node d'un navigateur : le champ `localStorage` d'un `storageState` Playwright n'est pas le stockage web d'un hôte.
+const PILOTES_DE_NAVIGATEUR = ['projets/*/recette/**'];
 
 const REMEDE_CONSOLE = 'rendre l’information VISIBLE, la nommer en `aria-label`/`aria-describedby`, ou la confier au popover `CodexRef` (verbatim de la donnée)';
 const VERROU_CONSOLE = [{
@@ -742,10 +744,13 @@ export const BLOCS_LINT = [
     // #1897, #2724, #2928
     files: CODE_DES_ZONES,
     excludeFiles: ['**/*.test.*', '**/*.bench.*'],
-    rules: {
-      'murs/stockage-web': ['error', ...STOCKAGES_WEB.map((property) => ({ property, message: MSG_STOCKAGE_WEB }))],
-      'murs/stockage-web-global': ['error', ...STOCKAGES_WEB.map((name) => ({ name, message: MSG_STOCKAGE_WEB }))],
-    },
+    rules: { 'murs/stockage-web-global': ['error', ...STOCKAGES_WEB.map((name) => ({ name, message: MSG_STOCKAGE_WEB }))] },
+  },
+  {
+    // #1897, #2724, #2928
+    files: CODE_DES_ZONES,
+    excludeFiles: ['**/*.test.*', '**/*.bench.*', ...PILOTES_DE_NAVIGATEUR],
+    rules: { 'murs/stockage-web': ['error', ...STOCKAGES_WEB.map((property) => ({ property, message: MSG_STOCKAGE_WEB }))] },
   },
   {
     // #1463, #2995
