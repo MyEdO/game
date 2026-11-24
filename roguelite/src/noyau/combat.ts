@@ -1,17 +1,17 @@
 /**
  * Couture de l'hôte avec le noyau pour un combat : une arène générée, le groupe et la rencontre, joués de bout en bout
- * en cadence automatique par la partie du noyau (`ouvrirEnAuto`, `./partie.ts`). L'hôte ne résout aucune
- * règle : il reprend les jetons programmés, joue la fenêtre qui tient la main (`fenetreDuJeu`), et relève à chaque pas
+ * en cadence automatique par la couture de la rencontre (`jouerLaRencontre`, `src/hote/rencontre.ts`) sur la partie
+ * écoutée du roguelite (`ouvrirEcoutee`, `./partie.ts`). L'hôte ne résout aucune règle : il relève à chaque résultat
  * le plateau et le journal pour le rejeu.
  */
 import { arena, setEncounters } from '../../../src/scenes/test-scenarios/_shared';
-import { fenetreDuJeu } from '../../../src/noyau/combatAuto';
+import { jouerLaRencontre, type LotAuSol } from '../../../src/hote/rencontre';
 import { EVT, type ChargeDAttaque } from '../../../src/noyau/bus';
 import { footprintN } from '../../../src/noyau/monde/footprint';
 import { ligneDuCoup } from '../../../src/engine/combat';
 import { findCreatureById } from '../../../src/data';
 import type { Combatant } from '../../../src/engine/types';
-import { jouerLaFenetre, ouvrirEnAuto } from './partie';
+import { ouvrirEcoutee } from './partie';
 import { nomDeSort } from './carriere';
 
 /** `cases` : le côté de l'empreinte du corps, en cases (`footprintN` : 2 pour un Grand). */
@@ -30,6 +30,8 @@ export interface IssueDuCombat {
   groupe: Combatant[];
   /** Les héros tombés pour de bon. */
   morts: string[];
+  /** Le Destin que chaque héros a perdu pendant la rencontre (`RencontreClose.destinDepense`), vide en impasse. */
+  destinDepense: Record<string, number>;
   largeur: number;
   hauteur: number;
 }
@@ -55,19 +57,13 @@ export function annonceDuCoupSurUnAllie(c: Coup, allie: boolean): { flash: strin
   return { flash: c.touche ? 'Touche un allié !' : null, ruban: c.ligne };
 }
 
-/** Plafond de pas : un combat qui ne se ferme pas s'arrête en impasse plutôt que de boucler. */
-const PLAFOND_DE_PAS = 4000;
-
-/** Joue le combat du `groupe` contre les créatures `ennemis` (ids du Bestiaire) à la graine `graine`.
- *  `lumiere` : id d'un `lightLevels` (`jour`, `crepuscule`…), posé sur la scène (`ambientLight`) ; sans lui, l'arène suit
- *  l'horloge et le premier jour tombe de nuit. */
-/** Les pièces d'équipement qu'un héros a lâchées à terre pendant la rencontre (on lâche ce qu'on tient en tombant
- *  Inconscient) : le groupe vainqueur les ramasse, chacune revient dans la main où elle était. */
-function ramasser(avant: readonly Combatant[], apres: Combatant[]): Combatant[] {
-  const piece = (k?: string) => k === 'melee' || k === 'distance' || k === 'armor';
+/** Les lots que les héros ont laissés au sol pendant la rencontre (`LotAuSol` : on lâche ce qu'on tient en tombant
+ *  Inconscient, l'arme de jet lancée) : le groupe vainqueur les ramasse, chaque pièce revient dans la main où elle était
+ *  avant la rencontre (`avant`). */
+function ramasser(avant: readonly Combatant[], apres: Combatant[], auSol: readonly LotAuSol[]): Combatant[] {
   return apres.map((c) => {
     const a = avant.find((x) => x.id === c.id);
-    const perdues = (a?.items ?? []).filter((i) => piece(i.kind) && !(c.items ?? []).some((j) => j.uid === i.uid));
+    const perdues = auSol.filter((l) => l.porteur === c.id).flatMap((l) => l.objets);
     if (!a || !perdues.length) return c;
     const revient = (uid?: string | null) => !!uid && perdues.some((i) => i.uid === uid);
     const loadouts = (c.loadouts ?? []).map((l) => {
@@ -78,12 +74,17 @@ function ramasser(avant: readonly Combatant[], apres: Combatant[]): Combatant[] 
   });
 }
 
+/** Joue le combat du `groupe` contre les créatures `ennemis` (ids du Bestiaire) à la graine `graine`.
+ *  `lumiere` : id d'un `lightLevels` (`jour`, `crepuscule`…), posé sur la scène (`ambientLight`) ; sans lui, l'arène suit
+ *  l'horloge et le premier jour tombe de nuit. Une impasse rend le groupe tel qu'il est parti. */
 export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly string[], graine: number, lumiere = 'jour'): IssueDuCombat {
   const largeur = 14;
   const hauteur = Math.max(6, Math.max(groupe.length, ennemis.length) * 2);
   let coups: Coup[] = [];
   let etats: EtatGagne[] = [];
-  const { partie, recevoir, vider, envoyer } = ouvrirEnAuto(
+  const pas: Pas[] = [];
+  let vus = 0;
+  const o = ouvrirEcoutee(
     graine,
     () => {
       const scene = arena({ id: 'arene', label: 'Rencontre', w: largeur, h: hauteur, heroStart: { x: 2, y: Math.floor(hauteur / 2) } });
@@ -100,13 +101,13 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
         if (e.type !== 'emis' || e.evt !== EVT.ANIM_ATTACK) continue;
         coups.push(coupDe(e.payload as ChargeDAttaque));
       }
+      releve();
     },
   );
 
-  const pas: Pas[] = [];
-  let vus = 0;
-  const releve = () => {
-    const b = partie.etat().battle;
+  /** Relève le pas que le dernier résultat laisse : ses lignes de journal, le plateau, ses coups et ses États. */
+  function releve() {
+    const b = o.partie.etat().battle;
     if (!b) return;
     const lignes = b.log.slice(vus).map((l) => l.text).filter((t): t is string => !!t);
     vus = b.log.length;
@@ -124,39 +125,16 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
     else pas.push({ lignes, pions, round: b.round, coups, etats, actif, ordre: [...b.order] });
     coups = [];
     etats = [];
-  };
-
-  /** La rencontre close par le noyau : la fenêtre de fin fermée (`fenetreFermer`), le groupe revenu en exploration,
-   *  débarrassé de ce qui ne vit que le temps d'une rencontre. Rend le groupe tel que l'état le porte alors. */
-  const clore = (): Combatant[] => {
-    for (let k = 0; k < 5 && partie.etat().battle; k++) {
-      const ferme = fenetreDuJeu(partie.etat() as never)?.gestes.find((g) => g.verbe === 'fenetreFermer');
-      if (!ferme) break;
-      envoyer('fenetreFermer', [ferme.fenetre]);
-      vider();
-    }
-    const e = partie.etat();
-    const heros = e.battle ? e.battle.combatants.filter((c) => c.kind === 'heros') : e.party;
-    return heros.map((c) => structuredClone(c));
-  };
-
-  let issue: IssueDuCombat['issue'] = 'impasse';
-  let morts: string[] = [];
-  let groupeFinal: Combatant[] = groupe.map((h) => structuredClone(h));
-  for (let n = 0; n < PLAFOND_DE_PAS; n++) {
-    vider(releve);
-    const s = partie.etat();
-    const fin = s.battle?.over;
-    if (fin === 'victoire' || fin === 'defaite') {
-      issue = fin;
-      morts = (s.battle?.combatants ?? []).filter((c) => c.kind === 'heros' && c.dead).map((c) => c.id);
-      groupeFinal = fin === 'victoire' ? ramasser(groupe, clore()) : clore();
-      break;
-    }
-    if (!jouerLaFenetre(partie, recevoir, releve)) break;
   }
-  partie.fermer();
-  return { issue, pas, groupe: groupeFinal, morts, largeur, hauteur };
+
+  try {
+    const r = jouerLaRencontre(o, o.lancement);
+    if (r.issue === 'impasse') return { issue: 'impasse', pas, groupe: groupe.map((h) => structuredClone(h)), morts: [], destinDepense: {}, largeur, hauteur };
+    const rendu = r.issue === 'victoire' ? ramasser(groupe, r.groupe, r.auSol) : r.groupe;
+    return { issue: r.issue, pas, groupe: rendu, morts: rendu.filter((c) => c.dead).map((c) => c.id), destinDepense: r.destinDepense, largeur, hauteur };
+  } finally {
+    o.partie.fermer();
+  }
 }
 
 /** Libellé du Bestiaire d'une créature. */

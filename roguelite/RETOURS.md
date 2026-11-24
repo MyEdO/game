@@ -7,19 +7,24 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
 
 ## Brancher un combat automatique
 
-- **Trou — aucune couture « jouer ce combat jusqu'au bout ».** Pour qu'un combat se termine tout seul,
-  l'hôte écrit la boucle lui-même : reprendre les jetons programmés (`tenueDesJetons`), lire la fenêtre
-  qui tient la main (`fenetreDuJeu`), jouer son `drive` à défaut un `fenetreValider`, s'arrêter sur
-  `victoire` ou `aneantissement`. C'est environ 30 lignes (`roguelite/src/combat.ts`, `jouerLeCombat`),
-  que l'hôte texte, les bancs d'équilibrage et une simulation de masse réécriraient chacun.
-  Idée : un `jouerJusquAIssue(partie, plafond)` dans `src/hote/partie.ts`, qui rend l'issue.
-- **Piège — la fin du combat n'est pas la fin de la rencontre.** À `battle.over`, les combattants du champ
+- **Résolu (#4829) — aucune couture « jouer ce combat jusqu'au bout ».** L'hôte écrivait la boucle lui-même : reprendre
+  les jetons programmés, lire la fenêtre qui tient la main, jouer son `drive`, s'arrêter sur `battle.over`.
+  `jouerLaRencontre` (`src/hote/rencontre.ts`) mène désormais la rencontre jusqu'à la sortie de son écran de fin et rend
+  son issue ; `jouerLeCombat` (`roguelite/src/noyau/combat.ts`) l'appelle, et relève le plateau du rejeu par l'écoute
+  de la tenue des jetons (`ouvrirEcoutee`). Les morts se lisent sur le groupe rendu, après la fenêtre du Destin : la
+  boucle de l'hôte les relevait à `battle.over`, avant elle, et comptait mort un héros que son Destin sauvait.
+- **Friction — `jouerLaRencontre` ne s'écoute que par la tenue des jetons.** Un hôte qui anime le combat lit chaque
+  résultat (coups, États, journal, plateau) ; la couture n'a pas d'écoute, mais passe chaque résultat à
+  `jetons.programmes`. Le roguelite lui donne une tenue dont `programmes` écoute d'abord (`ouvrirEcoutee`,
+  `roguelite/src/noyau/partie.ts`). La même tenue répond au « Je te renie ! » (`renier`, mode `choice`, sans geste
+  attendu), qui arrêterait sinon la rencontre en impasse. Idée : une écoute en option de `jouerLaRencontre`, ou un
+  contrat écrit sur `programmes` (« tout résultat y passe »).
+- **Résolu (#4829) — la fin du combat n'est pas la fin de la rencontre.** À `battle.over`, les combattants du champ
   portent encore l'état de la rencontre : `roundsAtZero`, `initiative`, `tookCriticalThisFight`,
   `meleeThisRound`, `defensiveStance`, `soinRencontreUtilise`, une position. Un hôte qui les lit là et les
   sauvegarde fait entrer ces champs dans la rencontre suivante. C'est la fermeture de la fenêtre `victoire`
   (`fenetreFermer`) qui rend la main au noyau : retour en exploration, et `etat().party` débarrassé de ces
-  champs. Rien ne le dit à un hôte. Idée : une issue de rencontre explicite (`rencontreClose`, ou
-  `party` rendu par l'appel qui ferme), et le `jouerJusquAIssue` ci-dessus qui la rendrait.
+  champs. `jouerLaRencontre` rend ce groupe (`RencontreClose.groupe`) et le Destin perdu par héros (`destinDepense`).
 - **Friction — le coup n'est lisible qu'à travers le bus interne.** Pour animer un combat (qui frappe qui, touche,
   Blessures, parade, esquive, Critique), la seule source structurée est `EVT.ANIM_ATTACK` et sa `ChargeDAttaque`
   (`src/noyau/bus.ts`), que `Partie` relaie dans `evenements`. Le type et le nom de l'événement ne sont pas dans la
@@ -32,21 +37,21 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   donc l'Animosité de tout coup sur son camp, et l'affichait pour la flèche du Chasseur. L'hôte montre désormais le
   fait (« Touche un allié ! ») et la ligne du noyau (`ligneDuCoup`, `annonceDuCoupSurUnAllie`). Idée : une cause typée
   dans la charge du coup (tir dévié, pulsion psychologique, zone), ticket #4830.
-- **Piège — l'arme lâchée par un héros tombé reste sur la scène après la rencontre.** Un héros qui tombe
+- **Résolu (#4829) — l'arme lâchée par un héros tombé reste sur la scène après la rencontre.** Un héros qui tombe
   Inconscient perd la pièce qu'il tenait : après `fenetreFermer`, elle n'est plus dans ses `items` ni dans sa
   panoplie (constaté : groupe de quatre, un héros à 1 Blessure contre deux gobelins, victoire, sa main vide).
   Un hôte sans scène persistante (combat en arène jetable) perd l'objet pour de bon, sans que rien ne le dise.
-  Contournement de l'hôte : `ramasser` (`roguelite/src/noyau/combat.ts`) remet au vainqueur les pièces disparues,
-  chacune dans sa main. Idée : que l'issue de rencontre liste ce qui est resté au sol, par porteur, ou un verbe
-  « ramasser tout » à la clôture d'une victoire.
+  L'issue de rencontre liste désormais les lots restés au sol, par porteur (`RencontreClose.auSol`) ; `ramasser`
+  (`roguelite/src/noyau/combat.ts`) les remet au vainqueur, chaque pièce dans sa main.
 - **Piège — `Combatant.weapons` ne suit pas la panoplie.** Un Chasseur né avec sa dotation de carrière porte une
   Fronde équipée (`items`, panoplie) que `weapons` ne liste pas, et le combat s'en sert (23 coups à distance sur 24
   sur six rencontres). Un hôte qui affiche `weapons` montre une arme de mêlée à un tireur. Lire la panoplie
   (`loadouts`, `activeLoadoutId`, `items`) ; idée : retirer `weapons` de ce qu'un hôte peut lire, ou le dériver.
-- **Friction — la fenêtre `victoire` n'a pas de drive en cadence auto.** Tout le reste du combat se
+- **Résolu (#4829) — la fenêtre `victoire` n'a pas de drive en cadence auto.** `victoire`, `defaite` et `repli`
+  déclarent désormais leur sortie en `drive`. Tout le reste du combat se
   pilote seul, mais la victoire attend son `fenetreFermer`. C'est logique pour un joueur (butin, dépeçage) ;
   pour un hôte entièrement automatique, la règle « la cadence auto ferme ce qui n'a pas de choix » ne
-  s'applique pas ici.
+  s'appliquait pas.
 - **Friction — fabriquer une scène de combat passe par les scénarios de test.** `arena` et
   `setEncounters` vivent dans `src/scenes/test-scenarios/_shared.ts`. Ce sont des constructeurs de scène
   généraux (arène dégagée, rencontre posée), utiles à tout hôte qui génère ses combats.
@@ -54,13 +59,12 @@ ce que l'appli pourrait en tirer. Classement : **Trou** (manque qui force un con
   sans les appliquer (la cible reste à 12/12 après une touche à 9). C'est voulu : le moteur est pur,
   et le noyau applique. À retenir pour tout hôte qui serait tenté de ne brancher que le moteur : il
   devrait réécrire l'application de la touche, donc passer par le noyau.
-- **Trou — un héros piloté par l'IA n'a pas d'yeux.** Le premier réflexe pour un combat automatique est
+- **Résolu (#4829) — un héros piloté par l'IA n'a pas d'yeux.** `docs/hote-texte.md` dit désormais que la cadence
+  `auto` pilote les héros et que `aiControlled` est réservé aux alliés hors du groupe. Le premier réflexe pour un combat automatique est
   de poser `aiControlled` sur les héros. Or `visibleFrom` (`src/noyau/visionState.ts:98`) exclut de la vue
   du groupe tout héros `aiControlled` (pensé pour les PNJ alliés, défenseurs de siège). Avec un groupe
   entièrement piloté, personne ne voit : chaque ennemi devient « Inconnu » au journal. La cadence `auto`
-  fait déjà jouer leur tour aux héros sans ce drapeau. Le piège n'est écrit nulle part côté hôte. Idée :
-  documenter dans `docs/hote-texte.md` que la cadence auto pilote les héros, et que `aiControlled` est
-  réservé aux alliés non membres du groupe.
+  fait déjà jouer leur tour aux héros sans ce drapeau.
 - **Friction — une arène générée tombe de nuit.** Sans `ambientLight`, la scène suit l'horloge, et la
   partie neuve commence à une heure de nuit : vue à 5 cases, donc des ennemis « Inconnu » au journal
   (`vision.horsDeVue`, `nomEnVue`) dès qu'ils sont à plus de 5 cases. Dans un même round, « Gobelin charge chasseur » est suivi de

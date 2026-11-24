@@ -219,7 +219,6 @@ export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string
 function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: string[]; fin?: RecitDeSalle } {
   const d = destinationCourante(e)!;
   const groupe = herosDuGroupe(e);
-  const destinAvant = new Map(groupe.map((h) => [h.c.id, h.c.fate ?? 0]));
   const issue = jouerLeCombat(groupe.filter(valide).map((h) => h.c), ennemis, e.graine++, d.lumiere);
   for (const apres of issue.groupe) {
     const h = groupe.find((g) => g.c.id === apres.id);
@@ -229,7 +228,7 @@ function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: 
   if (issue.issue === 'impasse') {
     return { issue, lignes: [], fin: { titre: 'Retraite', combat: issue, fin: 'defaite', lignes: ['Le combat s’enlise ; le groupe décroche en bon ordre.', ...rentrer(e, false)] } };
   }
-  if (issue.issue === 'defaite') return { issue, lignes: [], fin: { titre: 'Déroute', combat: issue, fin: 'defaite', lignes: terminerEnDeroute(e, destinAvant) } };
+  if (issue.issue === 'defaite') return { issue, lignes: [], fin: { titre: 'Déroute', combat: issue, fin: 'defaite', lignes: terminerEnDeroute(e, issue.destinDepense) } };
   const morts = groupe.filter((h) => h.c.dead);
   for (const h of morts) enterrer(e, h, d.nom);
   return { issue, lignes: morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`) };
@@ -308,12 +307,12 @@ function enterrer(e: Etat, h: Heros, ou: string): void {
 /** Déroute : le butin est perdu. Chaque héros laissé pour mort brûle un point de Destin pour en réchapper ; sans
  *  Destin, il ne revient pas. Qui en a déjà brûlé un pendant la rencontre (« Meurs un autre jour ») ne paie pas deux
  *  fois. LDB 17 l.31. */
-function terminerEnDeroute(e: Etat, destinAvant: Map<string, number>): string[] {
+function terminerEnDeroute(e: Etat, destinDepense: Readonly<Record<string, number>>): string[] {
   const d = destinationCourante(e)!;
   const lignes = ['Le groupe est submergé. Le butin de l’expédition est perdu.'];
   for (const h of herosDuGroupe(e)) {
     if (h.c.dead) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h, d.nom); continue; }
-    if ((h.c.fate ?? 0) < (destinAvant.get(h.c.id) ?? 0)) { lignes.push(`${h.c.label} a échappé à la mort pendant le combat (Destin −1, reste ${h.c.fate}).`); continue; }
+    if ((destinDepense[h.c.id] ?? 0) > 0) { lignes.push(`${h.c.label} a échappé à la mort pendant le combat (Destin −1, reste ${h.c.fate}).`); continue; }
     if ((h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label}, sans plus de Destin, ne revient pas.`); enterrer(e, h, d.nom); continue; }
     h.c.fate = (h.c.fate ?? 0) - 1;
     lignes.push(`${h.c.label} échappe de peu à la mort et rampe jusqu’au hameau (Destin −1, reste ${h.c.fate}).`);
