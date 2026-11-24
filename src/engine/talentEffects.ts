@@ -28,6 +28,7 @@
  */
 import type { Combatant, CharKey, TalentInstance } from './types';
 import { findTalentById, findTraitById, blessingsOf } from '../data';
+import { modeleDe } from './modeleDeProgression';
 import { wildcardSpecs, inCareerStatus, type CareerSlot, type InCareerStatus } from './careerSlots';
 import type { RefASpecialisation, RefDesignee } from '../data/schemas/grammaire/ref';
 import { passiveMods, sommeAttrMods } from './trauma';
@@ -81,14 +82,72 @@ function activeAttrSum(hero: Combatant, attr: 'fortune' | 'resolve'): number {
   return (hero.activeEffects ?? []).reduce((s, e) => s + (e.attrMods?.[attr] ?? 0), 0);
 }
 
-/** Maximum de Points de Chance : Destin + `attrMod{fortune}` passifs de tout porteur (Chanceux, LDB 10) + effets actifs. */
-export function fortuneMax(hero: Combatant): number {
-  return (hero.fate ?? 0) + sommeAttrMods(passiveMods(hero), 'fortune', hero) + activeAttrSum(hero, 'fortune');
+type Reserve = 'fortune' | 'resolve';
+
+/** Champ de la réserve que gonfle un `attrMod{attr}` de `hero` (CRB 116 l.36). */
+const champDeLaReserve = (hero: Combatant, attr: Reserve): Reserve => (attr === 'fortune' ? 'fortune' : modeleDe(hero).reserves.determination);
+
+/** Maximum de la réserve `champ` : sa base (Fortune : `baseDeLaFortune` ; Détermination : la Résilience), plus les
+ *  `attrMod` passifs de tout porteur (Chanceux, Obstiné, LDB 10) et les effets actifs qui la gonflent. */
+function maxDeLaReserve(hero: Combatant, champ: Reserve): number {
+  const base = champ === 'fortune' ? (hero[modeleDe(hero).reserves.baseDeLaFortune] ?? 0) : resilienceDe(hero);
+  return (['fortune', 'resolve'] as const)
+    .filter((attr) => champDeLaReserve(hero, attr) === champ)
+    .reduce((s, attr) => s + sommeAttrMods(passiveMods(hero), attr, hero) + activeAttrSum(hero, attr), base);
 }
 
-/** Maximum de Détermination : Résilience + `attrMod{resolve}` passifs de tout porteur (Obstiné) + effets actifs. */
+/** Maximum de Points de Chance (de Fortune). LDB 17 l.41 ; LDB 10 l.160 ; CRB 116 l.36 */
+export function fortuneMax(hero: Combatant): number {
+  return maxDeLaReserve(hero, 'fortune');
+}
+
+/** Maximum de Détermination. LDB 17 l.53 ; CRB 116 l.36 */
 export function resolveMax(hero: Combatant): number {
-  return (hero.resilience ?? 0) + sommeAttrMods(passiveMods(hero), 'resolve', hero) + activeAttrSum(hero, 'resolve');
+  return maxDeLaReserve(hero, modeleDe(hero).reserves.determination);
+}
+
+/** Résilience de `hero`. LDB 17 l.49-53 ; CRB 116 l.36 */
+export function resilienceDe(hero: Combatant): number {
+  return hero[modeleDe(hero).reserves.resilience] ?? 0;
+}
+
+/** Détermination de `hero`. LDB 17 l.53 ; CRB 116 l.36 */
+export function determinationDe(hero: Combatant): number {
+  return hero[modeleDe(hero).reserves.determination] ?? 0;
+}
+
+/** Pose la Détermination de `hero` à `points`. LDB 17 l.55-61, l.81 ; CRB 116 l.36 */
+export function poserLaDetermination(hero: Combatant, points: number): void {
+  hero[modeleDe(hero).reserves.determination] = points;
+}
+
+/** Perte permanente d'un Point de Résilience. LDB 17 l.7, l.63-68 ; CRB 116 l.36 */
+export function perdreUnPointDeResilience(hero: Combatant): void {
+  const champ = modeleDe(hero).reserves.perteDeResilience;
+  hero[champ] = (hero[champ] ?? 0) - 1;
+}
+
+/** La Résilience et la Détermination PROPRES de `hero` à afficher, `null` pour celle qui se lit sur le Destin ou la
+ *  Fortune. CRB 116 l.36 */
+export function reservesPropres(hero: Combatant): { resilience: number | null; determination: number | null } {
+  const { resilience, determination } = modeleDe(hero).reserves;
+  return {
+    resilience: resilience === 'resilience' ? (hero.resilience ?? null) : null,
+    determination: determination === 'resolve' ? (hero.resolve ?? null) : null,
+  };
+}
+
+/** Maximum de chaque réserve de `hero`, par champ. */
+export function maximaDesReserves(hero: Combatant): Partial<Record<Reserve, number>> {
+  return { fortune: fortuneMax(hero), [modeleDe(hero).reserves.determination]: resolveMax(hero) };
+}
+
+/** Reporte sur chaque réserve de `hero` la hausse de son maximum depuis `avant` (`maximaDesReserves` pris avant
+ *  l'achat) : Chanceux, Obstiné, LDB 10 l.160. */
+export function reporterLaHausseDesMaxima(hero: Combatant, avant: Partial<Record<Reserve, number>>): void {
+  for (const [champ, max] of Object.entries(maximaDesReserves(hero)) as [Reserve, number][]) {
+    hero[champ] = (hero[champ] ?? 0) + max - (avant[champ] ?? 0);
+  }
 }
 
 

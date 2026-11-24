@@ -7,7 +7,7 @@
  * PUR (aucun effet de bord) : la couche state applique ces valeurs (giveXp / resolve) + restaure la Chance.
  */
 import { Combatant } from './types';
-import { resolveMax } from './talentEffects';
+import { determinationDe, resolveMax } from './talentEffects';
 
 /** PX d'une Ambition accomplie (LDB 05) : +50 (court terme, l.795) ou +500 (long terme, l.799). */
 export function ambitionXp(scope: 'short' | 'long'): number {
@@ -41,5 +41,5 @@ export function heroSessionXp(personal: SessionAmbition, group: SessionAmbition)
  * nouveau total de Détermination.
  */
 export function regainDetermination(hero: Combatant, points = 1): number {
-  return Math.min(resolveMax(hero), (hero.resolve ?? 0) + Math.max(0, points));
+  return Math.min(resolveMax(hero), determinationDe(hero) + Math.max(0, points));
 }

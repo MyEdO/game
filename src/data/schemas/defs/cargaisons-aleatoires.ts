@@ -1,22 +1,16 @@
-import { metaDesChamps, nommerNoeud } from '../grammaire/meta';
 /** MDG 15 l.404-418 ; MSRC 13 l.69-78 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
-import { couvertureDuDeParDocument, plageSchema, saisonSchema } from '../grammaire/valeurs';
+import { couvertureDuDeParDocument, rangeeDeTable, saisonSchema } from '../grammaire/valeurs';
 import type { DiceSpec } from '../../../engine/dice';
-import { raffinementDeCatalogue, ref } from '../grammaire/ref';
+import { raffinementDeCatalogue } from '../grammaire/ref';
 import { voieSchema } from './cargoes';
 
 export const file = 'cargaisons-aleatoires.json';
 export const famille = 'entite';
 
-const plage = metaDesChamps(plageSchema, { exigees: true });
-
 /** Une rangée d'une colonne : la référence de la cargaison qu'elle désigne, à sa fourchette. */
-export const rangee = ref('cargo', {
-  min: nommerNoeud(z.number(), { nom: plage.min.label }),
-  max: nommerNoeud(z.number(), { nom: plage.max.label }),
-});
+export const rangee = rangeeDeTable('cargo');
 
 type Document = { id: string; die: DiceSpec; voie: z.output<typeof voieSchema>; saison: z.output<typeof saisonSchema>; entries: z.output<typeof rangee>[] };
 

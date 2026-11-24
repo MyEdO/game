@@ -1,0 +1,445 @@
+{
+ "premiers tirages gardés, deux dotations du niveau 2": {
+  "species": "humains-reiklander",
+  "career": "garde",
+  "progression": "5e",
+  "characteristics": {
+   "capacite-de-combat": 32,
+   "capacite-de-tir": 35,
+   "force": 29,
+   "endurance": 31,
+   "initiative": 28,
+   "agilite": 28,
+   "dexterite": 37,
+   "intelligence": 38,
+   "force-mentale": 32,
+   "sociabilite": 30
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "destinee",
+    "times": 1
+   },
+   {
+    "talentId": "ame-pure",
+    "times": 1
+   },
+   {
+    "talentId": "flairer-les-ennuis",
+    "times": 1
+   },
+   {
+    "talentId": "nomade",
+    "times": 1
+   },
+   {
+    "talentId": "brouet",
+    "times": 1
+   },
+   {
+    "talentId": "frappe-assommante",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "corps-a-corps",
+    "spec": "base",
+    "characteristic": "capacite-de-combat",
+    "advances": 5
+   },
+   {
+    "id": "divertissement",
+    "spec": "narration",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "pari",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "ragot",
+    "characteristic": "sociabilite",
+    "advances": 10
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "soin-aux-animaux",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "reikspiel",
+    "characteristic": "intelligence",
+    "advances": 30
+   }
+  ],
+  "items": [
+   "vetements",
+   "arme-simple",
+   "dague",
+   "bourse",
+   "bouclier-targe",
+   "veste-de-cuir",
+   "lampe-tempete",
+   "huile-de-lampe",
+   "arc",
+   "bouclier"
+  ],
+  "wounds": {
+   "current": 11,
+   "max": 11,
+   "ecart": 0
+  },
+  "fate": 5,
+  "fortuneDeBase": 4,
+  "fortune": 4,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "humain",
+   "garde",
+   "figures-symboles-d-autorite"
+  ],
+  "casesDeCarriere": {
+   "garde": {
+    "1": {
+     "achats": 0,
+     "dotations": [
+      "arc",
+      "bouclier"
+     ]
+    }
+   }
+  }
+ },
+ "Halfling, jets réassignés": {
+  "species": "halflings",
+  "career": "intendant",
+  "progression": "5e",
+  "characteristics": {
+   "capacite-de-combat": 16,
+   "capacite-de-tir": 43,
+   "force": 22,
+   "endurance": 16,
+   "initiative": 52,
+   "agilite": 38,
+   "dexterite": 39,
+   "intelligence": 26,
+   "force-mentale": 44,
+   "sociabilite": 41
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "sens-aiguise",
+    "spec": "gout",
+    "times": 1
+   },
+   {
+    "talentId": "vision-nocturne",
+    "times": 1
+   },
+   {
+    "talentId": "resistance",
+    "spec": "chaos",
+    "times": 1
+   },
+   {
+    "talentId": "attirant",
+    "times": 1
+   },
+   {
+    "talentId": "doigts-de-fee",
+    "times": 1
+   },
+   {
+    "talentId": "frappe-assommante",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "athletisme",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "emprise-sur-les-animaux",
+    "characteristic": "force-mentale",
+    "advances": 5
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 10
+   },
+   {
+    "id": "savoir",
+    "spec": "region",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "charme",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "esquive",
+    "characteristic": "agilite",
+    "advances": 5
+   },
+   {
+    "id": "pari",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "marchandage",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "halfling",
+    "characteristic": "intelligence",
+    "advances": 30
+   },
+   {
+    "id": "langue",
+    "spec": "reikspiel",
+    "characteristic": "intelligence",
+    "advances": 30
+   }
+  ],
+  "items": [
+   "vetements",
+   "dague",
+   "bourse",
+   "pince-a-epiler",
+   "cure-oreille",
+   "cure-oreille",
+   "peigne",
+   "clef",
+   "clef",
+   "lanterne",
+   "huile-de-lampe",
+   "livree"
+  ],
+  "wounds": {
+   "current": 8,
+   "max": 8,
+   "ecart": 0
+  },
+  "fate": 2,
+  "fortuneDeBase": 4,
+  "fortune": 4,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "halfling",
+   "figures-symboles-d-autorite"
+  ]
+ },
+ "Nain choisi, 100 points": {
+  "species": "nains",
+  "career": "mineur",
+  "progression": "5e",
+  "characteristics": {
+   "capacite-de-combat": 40,
+   "capacite-de-tir": 30,
+   "force": 30,
+   "endurance": 40,
+   "initiative": 20,
+   "agilite": 20,
+   "dexterite": 40,
+   "intelligence": 30,
+   "force-mentale": 50,
+   "sociabilite": 20
+  },
+  "charAdvances": {},
+  "talents": [
+   {
+    "talentId": "resistance-a-la-magie",
+    "times": 1
+   },
+   {
+    "talentId": "vision-nocturne",
+    "times": 1
+   },
+   {
+    "talentId": "lire-ecrire",
+    "times": 1
+   },
+   {
+    "talentId": "determine",
+    "times": 1
+   },
+   {
+    "talentId": "costaud",
+    "times": 1
+   },
+   {
+    "talentId": "bon-marcheur",
+    "spec": "rocailleux",
+    "times": 1
+   }
+  ],
+  "skills": [
+   {
+    "id": "calme",
+    "characteristic": "force-mentale",
+    "advances": 10
+   },
+   {
+    "id": "corps-a-corps",
+    "spec": "deux-mains",
+    "characteristic": "capacite-de-combat",
+    "advances": 5
+   },
+   {
+    "id": "intuition",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "natation",
+    "characteristic": "force",
+    "advances": 5
+   },
+   {
+    "id": "perception",
+    "characteristic": "initiative",
+    "advances": 5
+   },
+   {
+    "id": "resistance",
+    "characteristic": "endurance",
+    "advances": 10
+   },
+   {
+    "id": "savoir",
+    "spec": "region",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "survie-en-exterieur",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "resistance-a-l-alcool",
+    "characteristic": "endurance",
+    "advances": 5
+   },
+   {
+    "id": "divertissement",
+    "spec": "narration",
+    "characteristic": "sociabilite",
+    "advances": 5
+   },
+   {
+    "id": "evaluation",
+    "characteristic": "intelligence",
+    "advances": 5
+   },
+   {
+    "id": "langue",
+    "spec": "khazalid",
+    "characteristic": "intelligence",
+    "advances": 30
+   },
+   {
+    "id": "langue",
+    "spec": "reikspiel",
+    "characteristic": "intelligence",
+    "advances": 30
+   }
+  ],
+  "items": [
+   "cape",
+   "vetements",
+   "dague",
+   "bourse",
+   "besace",
+   "ration",
+   "batonnet-de-fusain",
+   "carte",
+   "casserole",
+   "pelle"
+  ],
+  "wounds": {
+   "current": 16,
+   "max": 16,
+   "ecart": 0
+  },
+  "fate": 2,
+  "fortuneDeBase": 2,
+  "fortune": 2,
+  "xp": 0,
+  "size": "moyenne",
+  "groups": [
+   "nain"
+  ]
+ }
+}

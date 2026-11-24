@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import {
-  newDraft, withSpecies, withCareer, rollDraftCareer, rollDraftChars, rerollDraftChars, careerXpDuProchainJet, charsXpDeLaMethode,
+  newDraft, withSpecies, withCareer, rollDraftCareer, rollDraftChars, rerollDraftChars, gainDuProchainJet, gainDeLaMethode,
   repartition, bornesDuCompteur, withCompteur, valeurDuCompteur, etapeDeRang, stepIds, skillsSubDone, speciesSkillTier,
   speciesSkillRefs, withSpeciesSkillTier, careerSkillEntries, careerCharKeys, validateStep,
 } from './brouillon';
@@ -59,27 +59,28 @@ describe('compteurs d’allocation de l’assistant', () => {
 describe('PX offerts par les gestes de l’assistant', () => {
   it('carrière : 50 au 1ᵉʳ jet, 25 aux deux de plus, puis 0 à la relance libre', () => {
     let d = withSpecies(newDraft(7), 'humains-reiklander');
-    expect(careerXpDuProchainJet(d)).toBe(50);
+    expect(gainDuProchainJet(d)).toEqual({ px: 50 });
     d = rollDraftCareer(d);
-    expect(careerXpDuProchainJet(d)).toBe(25);
+    expect(gainDuProchainJet(d)).toEqual({ px: 25 });
     d = rollDraftCareer(d);
-    expect(careerXpDuProchainJet(d)).toBe(0);
+    expect(gainDuProchainJet(d)).toEqual({});
   });
 
   it('caractéristiques : 50 garder, 25 réassigner, 0 en répartition de points ou après relance', () => {
     const d = pret();
-    expect(charsXpDeLaMethode(d, 'tire')).toBe(50);
-    expect(charsXpDeLaMethode(d, 'reassigne')).toBe(25);
-    expect(charsXpDeLaMethode(d, 'repartition')).toBe(0);
-    expect(charsXpDeLaMethode(rerollDraftChars(d), 'tire')).toBe(0);
+    expect(gainDeLaMethode(d, 'tire')).toEqual({ px: 50 });
+    expect(gainDeLaMethode(d, 'reassigne')).toEqual({ px: 25 });
+    expect(gainDeLaMethode(d, 'repartition')).toEqual({});
+    expect(gainDeLaMethode(rerollDraftChars(d), 'tire')).toEqual({});
   });
 });
 
 describe('état de l’assistant', () => {
   it('le rang d’étape au-delà de la dernière rend la dernière', () => {
-    expect(etapeDeRang(0)).toBe('species');
-    expect(etapeDeRang(99)).toBe('presentation');
-    expect(etapeDeRang(stepIds().length - 1)).toBe('presentation');
+    const d = newDraft(1);
+    expect(etapeDeRang(d, 0)).toBe('species');
+    expect(etapeDeRang(d, 99)).toBe('presentation');
+    expect(etapeDeRang(d, stepIds(d).length - 1)).toBe('presentation');
   });
 
   it('sous-écran de l’étape 5 soldé', () => {

@@ -1540,6 +1540,8 @@ export interface Combatant {
   fortune?: number;
   resilience?: number;
   resolve?: number;
+  /** Base de la Fortune maximale d'un héros 5e (CRB 116 l.36), lue par `fortuneMax`. */
+  fortuneDeBase?: number;
   /** Talent Résistance (Menace), LDB 10 l.1016-1020 : specs (normalisées) dont l'auto-succès « premier
    *  Test pour résister à la menace » a DÉJÀ servi cette séance de jeu. Remis à zéro par la couture de
    *  début de séance (`restoreFortune`, LDB 17 l.41). Persisté (party + writeback de combat). */

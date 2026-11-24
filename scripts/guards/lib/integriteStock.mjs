@@ -123,7 +123,9 @@ export const MAISON_MASQUEES = [
 
 export const COMPETENCES_NUES = [
   { famille: 'competence-nue', fichier: 'src/data/careerLevels.json', ref: '["sorcier-de-village-1","skills","focalisation",""]', occurrence: 1 },
+  { famille: 'competence-nue', fichier: 'src/data/careerLevels.json', ref: '["sorcier-de-village-5e-1","skills","focalisation",""]', occurrence: 1 },
   { famille: 'competence-nue', fichier: 'src/data/careerLevels.json', ref: '["sorcier-dissident-1","skills","focalisation",""]', occurrence: 1 },
+  { famille: 'competence-nue', fichier: 'src/data/careerLevels.json', ref: '["sorcier-dissident-5e-1","skills","focalisation",""]', occurrence: 1 },
   { famille: 'competence-nue', fichier: 'src/data/creatures.json', ref: '["caledair-la-faux-de-feu","skills","corps-a-corps",""]', occurrence: 1 },
   { famille: 'competence-nue', fichier: 'src/data/creatures.json', ref: '["dragon-de-la-foret","skills","corps-a-corps",""]', occurrence: 1 },
   { famille: 'competence-nue', fichier: 'src/data/creatures.json', ref: '["familier-de-sorts","skills","focalisation",""]', occurrence: 1 },
@@ -194,6 +196,7 @@ export const DOTATIONS_TEXTES = [
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["magister-vigilant-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["pyromancien-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["sorcier-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
+  { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["sorcier-5e-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["spirite-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
   { famille: 'dotation-texte', fichier: 'src/data/careerLevels.json', ref: '["umbramancien-3","trappings.text","","3a70e02606d5e6695c20fc2db5929712480a334eb7a82377ead46154d736255b"]', occurrence: 1 },
 ];

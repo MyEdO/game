@@ -5,7 +5,7 @@
  * généré : `npm run docs:hote-texte`.
  */
 import {
-  effectiveArmourAt, effectiveTalents, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
+  effectiveArmourAt, effectiveTalents, reservesPropres, actionGate, etatDeLaBarre, endTurnArmed, entiteConnue, porteurParId, CLIC_DU_CHAMP,
   LOCALISATIONS_DE_COUP, ACTIONS, cleDuGeste, lieuDuGroupe, trajetsDepuis, libelleDeDistance,
   CADENCES_AU_CHOIX, DEFAULT_VOYAGE_ORDERS, cadenceAUnEffet, fenetreDuJeu,
   type ConsequenceEnVue, type GesteDExploration, type GesteDuJeu, type Jeu, type JetEnVue, type LigneDeJet, type Offre, type TrajetEnVue,
@@ -404,10 +404,11 @@ export function rendreLesGestes(gestes: readonly GesteDExploration[], depuis?: n
 export function rendreLaFiche(etat: Jeu, id: string): string[] | null {
   const c = porteurParId(etat, id);
   if (!c) return null;
+  const { resilience, determination } = reservesPropres(c);
   const ch = Object.entries(c.characteristics).map(([k, v]) => `${k} ${typeof v === 'number' ? v : JSON.stringify(v)}`).join(' · ');
   return borner([
     `${c.id} ${c.label} · ${c.kind}${c.species ? ` · ${c.species}` : ''}${c.career ? ` · ${c.career}` : ''}`,
-    `PB ${c.wounds.current}/${c.wounds.max} · Av ${c.advantage} · Mvt ${c.movement} · Destin ${c.fate ?? 0} · Fortune ${c.fortune ?? 0} · Résilience ${c.resilience ?? 0} · Détermination ${c.resolve ?? 0}`,
+    `PB ${c.wounds.current}/${c.wounds.max} · Av ${c.advantage} · Mvt ${c.movement} · Destin ${c.fate ?? 0} · Fortune ${c.fortune ?? 0}${resilience === null ? '' : ` · Résilience ${resilience}`}${determination === null ? '' : ` · Détermination ${determination}`}`,
     `carac : ${ch}`,
     `armes : ${c.weapons.map((w) => w.label).join(' · ') || 'aucune'}`,
     `armure (PA) : ${LOCALISATIONS_DE_COUP.map((loc) => `${loc} ${effectiveArmourAt(c, loc)}`).join(' · ')}`,

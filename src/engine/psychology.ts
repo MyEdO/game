@@ -28,7 +28,7 @@ import { campOf, relationBetween } from './relations';
 import { bellicosePsychImmune, traitCapability } from './traits/dispatch';
 import { featuresOf } from './combatFeatures/dispatch';
 import { diseasePsychTraits } from './disease';
-import { traitsConferes } from './talentEffects';
+import { determinationDe, poserLaDetermination, traitsConferes } from './talentEffects';
 import { parsePsychTraits, PSY } from './psych/registry';
 import { applyActiveEffect, type GameOp } from './ops';
 import type { Flow } from './flowCore';
@@ -457,8 +457,8 @@ const EFFET_IMMUNITE_PSY = 'determination-psych';
 /** Détermination (LDB 17 l.59) : immunité à la Psychologie jusqu'à la fin du prochain Round. Portée par un
  *  `ActiveEffect` à durée 2 Rounds (système de Durée unifié : décrémenté/expiré au passage de Round). */
 export function spendResolveForPsychImmunity(c: Combatant): string | null {
-  if ((c.resolve ?? 0) <= 0) return null;
-  c.resolve = (c.resolve ?? 0) - 1;
+  if (determinationDe(c) <= 0) return null;
+  poserLaDetermination(c, determinationDe(c) - 1);
   removeActiveEffects(c, (e) => e.effectId === EFFET_IMMUNITE_PSY);
   applyActiveEffect(c, { label: 'Détermination (immunité psy)', effectId: EFFET_IMMUNITE_PSY, bonus: 0, duration: { scale: 'rounds', left: 2 }, psychImmune: true });
   return t('psy.determinationImmune', { name: nomDe(c) });
