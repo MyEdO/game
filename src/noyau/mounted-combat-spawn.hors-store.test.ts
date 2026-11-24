@@ -35,10 +35,10 @@ function startFixtureCombat(hero: ReturnType<typeof makeHero>, possessions: Poss
 }
 
 describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () => {
-  it('un CHEVAL (LDB, non Belliqueux) avec-le-groupe est spawné en allié, appairé au héros', () => {
+  it('un CHEVAL (LDB) avec-le-groupe, Dressé (Monture) appris, est spawné en allié, appairé au héros', () => {
     const hero = makeHero();
     const cheval: Possession = {
-      uid: 'pos-cheval-1', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' },
+      uid: 'pos-cheval-1', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' }, learnedTraits: ['dresse-monture'],
       location: { kind: 'avec-le-groupe' }, items: [],
     };
     startFixtureCombat(hero, [cheval]);
@@ -100,7 +100,7 @@ describe('#621 — montures-possession spawnées en combat monté (LDB 14)', () 
   it('cavalier SEUL hors d’action, monture encore vivante → DÉFAITE (une monture `mountable` ne compte pas comme héros vivant)', () => {
     const hero = makeHero();
     const cheval: Possession = {
-      uid: 'pos-cheval-defaite', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' },
+      uid: 'pos-cheval-defaite', ownerId: hero.id, nature: 'bete', ref: { id: 'cheval' }, learnedTraits: ['dresse-monture'],
       location: { kind: 'avec-le-groupe' }, items: [],
     };
     startFixtureCombat(hero, [cheval]);
@@ -160,7 +160,7 @@ function cavalerieScene(preMonte: boolean): { scene: Scene; montureId: string; c
   const enc = buildEncounter({
     id: ENC_CAVALERIE,
     enemies: [
-      { creature: { id: 'cheval' }, pos: { x: 16, y: 11 }, mount: true },
+      { creature: { id: 'cheval' }, pos: { x: 16, y: 11 }, mount: true, optionals: [{ id: 'dresse-monture' }] },
       { creature: { id: 'mutant' }, pos: { x: 19, y: 11 }, ...(preMonte ? { rides: 0 } : {}) },
     ],
   });
@@ -250,7 +250,7 @@ describe('Barde authorée au cavalier : le couple pré-monté la passe à sa mon
     const enc = buildEncounter({
       id: ENC_CAVALERIE,
       enemies: [
-        { creature: { id: 'demigriffon' }, pos: { x: 16, y: 11 }, mount: true },
+        { creature: { id: 'demigriffon' }, pos: { x: 16, y: 11 }, mount: true, optionals: [{ id: 'dresse-monture' }] },
         { creature: { id: 'mutant' }, pos: { x: 19, y: 11 }, rides: 0, inventaire: { barde: false } },
       ],
     });

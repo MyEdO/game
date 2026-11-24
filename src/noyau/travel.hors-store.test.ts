@@ -651,6 +651,9 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     uid: string, ownerId: string, creatureId = 'cheval-de-monte',
     injury?: 'sangle-cassee' | 'perte-d-un-fer' | 'boiteux' | 'patte-brisee',
   ): Possession => ({ uid, ownerId, nature: 'bete', ref: { id: creatureId }, location: { kind: 'avec-le-groupe' }, items: [], mountInjury: injury });
+  /** Chien de trait (EDOC 07, BE 2) dressé à la monte : Dressé (Monture) appris (AA 09 l.23 ; #4816). */
+  const chienDeTraitDresse = (uid: string, ownerId: string): Possession =>
+    ({ ...mountPossession(uid, ownerId, 'chien-de-trait'), learnedTraits: ['dresse-monture'] }) as Possession;
 
   it('OFF (défaut) : le départ « en selle » est refusé', () => {
     const h = hero();
@@ -722,7 +725,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     setRule('voyage-allures', true);
     // Chien M4 : galop 12 km/h, endurance ½ BE = 1 h → une longue journée dépasse LARGEMENT.
     const h = hero();
-    setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
+    setup(map({ km: 80 }), [h], [chienDeTraitDresse('m1', h.id)]);
     banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
     const j = banc.getState().journal;
     expect(j.some((l) => l.includes('Incident de monte') || l.includes('s’effondre') || l.includes("s'effondre"))).toBe(true);
@@ -735,7 +738,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     for (let seed = 1; seed <= 20 && !degraded; seed++) {
       seedBattleRng(seed);
       const h = hero();
-      setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
+      setup(map({ km: 80 }), [h], [chienDeTraitDresse('m1', h.id)]);
       banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
       // La bascule à pied se joue en tête de la journée suivante (#4804).
       if (banc.getState().pendingRest) banc.getState().fenetreValider('repos');
@@ -788,7 +791,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     for (let seed = 1; seed <= 60 && !fell; seed++) {
       seedBattleRng(seed);
       const h = hero();
-      setup(map({ km: 80 }), [h], [mountPossession('m1', h.id, 'chien-de-trait')]);
+      setup(map({ km: 80 }), [h], [chienDeTraitDresse('m1', h.id)]);
       const partyRefBefore = banc.getState().party;
       const woundsBefore = banc.getState().party[0].wounds.current;
       banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
