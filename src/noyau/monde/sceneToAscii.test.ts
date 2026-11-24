@@ -5,7 +5,8 @@ import { sceneZoneTiles } from './zones';
 import { planDeLaCouche, sceneToAscii } from './sceneToAscii';
 import { glypheDe, tousLesTerrains } from './terrain';
 import { setDataset } from '../../data/overrides';
-import { diligenceCampaign, paquetDuJeu } from '../../scenes/campaign';
+import { diligenceCampaign } from '../../scenes/campaign';
+import { paquetDuJeu } from '../campagneLivree';
 import { buildOperaFloorplan } from '../../scenes/opera/floorplan';
 import { GLYPHES_RESERVES } from '../../data/schemas/grammaire/carte-ascii';
 

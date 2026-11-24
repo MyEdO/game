@@ -10,7 +10,9 @@ import { makeRNG, type RNG } from '../engine/dice';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { testScenarios } from '../scenes/test-scenarios';
-import { allBuiltinCampaigns, campagneDuJeu, lancerCampagne, paquetDuJeu } from '../scenes/campaign';
+import { allBuiltinCampaigns } from '../scenes/campaign';
+import { poserLaCampagne } from './campagne.testkit';
+import { campagneDuJeu, paquetDuJeu } from './campagneLivree';
 import { applyEffects, EFFECT_HANDLERS } from './combatEffects';
 import { combatHooksOf } from './combatHooks';
 import { memoByRef } from './monde/sceneMemo';
@@ -209,9 +211,9 @@ describe('coutures donnée → état (#2097)', () => {
     expect(ops).toBeGreaterThan(0);
   });
 
-  it.each(allBuiltinCampaigns.map((c) => [c.id, c] as const))('campagne %s lancée par `lancerCampagne` : rien de partagé, ouverture comprise', (_id, c) => {
+  it.each(allBuiltinCampaigns.map((c) => [c.id, c] as const))('campagne %s lancée par `poserLaCampagne` : rien de partagé, ouverture comprise', (_id, c) => {
     banc.setState({ party: [herosDeScenario(idsDeTest, 'soldat')] });
-    expect(lancerCampagne(banc.getState, campagneDuJeu(c))).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(c))).toBeNull();
     expect(partagesDeLEtat(banc.getState(), scenesDuRegistre())).toEqual([]);
   });
 });

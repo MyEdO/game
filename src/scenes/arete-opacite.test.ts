@@ -16,7 +16,8 @@ import { couvertDArete } from '../noyau/monde/lineOfSight';
 import { cranDeCouvertEnMoins } from '../engine/cover';
 import { buildOpaque } from '../noyau/monde/vision';
 import { structures, findStructureById } from '../data';
-import { diligenceCampaign, paquetDuJeu } from './campaign';
+import { diligenceCampaign } from './campaign';
+import { paquetDuJeu } from '../noyau/index';
 import { schema as schemaStructures } from '../data/schemas/defs/structures';
 import { refsInLine } from '../../scripts/guards/lib/rawRefIntegrity.mjs';
 

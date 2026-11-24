@@ -1,5 +1,6 @@
 import { groupeVitrineDeScenario } from './_heros';
-import { diligenceCampaign, paquetDuJeu } from '../campaign';
+import { diligenceCampaign } from '../campaign';
+import { paquetDuJeu } from '../../noyau/index';
 import type { TestScenario } from './_shared';
 
 export const scenario: TestScenario = {

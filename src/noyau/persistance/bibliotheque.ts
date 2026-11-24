@@ -100,25 +100,31 @@ export function projetDUneEntree(p: EntreeListee): ProjectDoc {
   return parseProject(p.project);
 }
 
-/** La campagne lancée depuis l'entrée `p` : le document passe la porte (`projetDUneEntree`) et un refus lève
- *  `ProjetRefuse`. Le `label` est celui du document PARSÉ ; l'`id` et la scène d'entrée sont ceux de l'ENTRÉE,
- *  `projet` est l'id du DOCUMENT parsé (#2206), et une scène d'entrée absente du document lève `ProjetRefuse` de
- *  cause `'entree'`. */
+/** La campagne lancée depuis l'entrée `p` (`campagneDuDocument`) : le document passe la porte (`projetDUneEntree`),
+ *  l'`id` et la scène d'entrée sont ceux de l'ENTRÉE. */
 export function campagneDUneEntree(p: EntreeListee): CampagneLancee {
-  const { id, label, scenes, worldMap, activeAxes, narratif } = projetDUneEntree(p);
+  return campagneDuDocument(projetDUneEntree(p), p.id, p.startSceneId);
+}
+
+/** La campagne lancée du document `doc`, déjà passé par la porte, sous l'id `id`, à la scène d'entrée `startSceneId` :
+ *  projection UNIQUE d'une entrée de bibliothèque (`campagneDUneEntree`) et d'une campagne livrée (`campagneDuJeu`,
+ *  `campagneLivree.ts`). Le `label` est celui du document, `projet` son id (#2206) ; `activeAxes` n'y figure que si le
+ *  document en déclare ; une scène d'entrée absente du document lève `ProjetRefuse` de cause `'entree'`. */
+export function campagneDuDocument(doc: Omit<ProjectDoc, 'schema'>, id: string, startSceneId: string): CampagneLancee {
+  const { id: projet, label, scenes, worldMap, activeAxes, narratif } = doc;
   // #1627
-  if (!scenes.some((s) => s.id === p.startSceneId)) {
-    throw refusDeForme('entree', ['startSceneId'], `scène de départ « ${p.startSceneId} » absente du projet`);
+  if (!scenes.some((s) => s.id === startSceneId)) {
+    throw refusDeForme('entree', ['startSceneId'], `scène de départ « ${startSceneId} » absente du projet`);
   }
   return {
-    id: p.id,
+    id,
     label,
     scenes,
-    startSceneId: p.startSceneId,
+    startSceneId,
     worldMap: worldMap ?? null,
     ...(activeAxes !== undefined ? { activeAxes } : {}),
     narratif,
-    projet: { id },
+    projet: { id: projet },
   };
 }
 

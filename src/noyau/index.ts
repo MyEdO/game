@@ -7,7 +7,8 @@
  */
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
 export type { ChargeDAttaque, TestJete } from './bus';
-export type { LancementDeScenario } from './lancementDeScenario';
+export { lancementDuProjet, type LancementDeScenario } from './lancementDeScenario';
+export { campagneDuJeu, campagneDuPaquet, paquetDuJeu, type BuiltinCampaign } from './campagneLivree';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
 export type { JeuDuNoyau } from './machinerieDuNoyau';
 export type { Get } from './flowTypes';

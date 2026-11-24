@@ -1,7 +1,8 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { it, expect } from 'vitest';
 import { testScenarios } from '../scenes/test-scenarios';
-import { allBuiltinCampaigns, paquetDuJeu } from '../scenes/campaign';
+import { allBuiltinCampaigns } from '../scenes/campaign';
+import { paquetDuJeu } from './campagneLivree';
 import { ficheDEntite, sceneNpc } from './monde/sceneNpc';
 import { memoByRef } from './monde/sceneMemo';
 import { atteignables, objetsDuCatalogue } from '../scenes/partage.testkit';
