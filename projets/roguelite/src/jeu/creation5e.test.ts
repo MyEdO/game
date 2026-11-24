@@ -58,6 +58,22 @@ describe('recrues : la création 5e du noyau', () => {
     expect(offertes).toEqual(expect.arrayContaining(Object.keys(ESPECES)));
   });
 
+  it('l’espèce d’une recrue se tire au poids de la table des espèces du CRB, parmi celles dont la colonne offre sa carrière. CRB 006 l.11-17 ; CRB 013 l.23-103', () => {
+    const tirage = (carriere: string) => {
+      const compte: Record<string, number> = {};
+      for (let face = 1, fin = false; !fin; face++) {
+        const rng = { int: (min: number, max: number) => { fin = face >= max; return Math.min(face, max) + min - 1; } };
+        const e = tirerUneEspece(rng, carriere, Object.keys(ESPECES));
+        compte[e] = (compte[e] ?? 0) + 1;
+      }
+      return compte;
+    };
+    expect(tirage('soldat')).toEqual({ 'humains-reiklander': 90, halflings: 4, nains: 4 });
+    expect(tirage('duelliste')).toEqual({ 'humains-reiklander': 90, nains: 4 });
+    expect(tirage('tueur')).toEqual({ nains: 4 });
+    expect(tirage('nonne')).toEqual({ 'humains-reiklander': 90 });
+  });
+
   it('PROFILS × espèces : la recrue au niveau du profil, en 5e, ses seuils de cases atteints sans dépassement, ses points sur des multiples de 5, et son niveau suivant aux prix du noyau. CRB 048 l.45', () => {
     const ecarts: string[] = [];
     for (const p of PROFILS) {
