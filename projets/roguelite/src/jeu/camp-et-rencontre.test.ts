@@ -1,6 +1,6 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { addCondition, COND } from '../../../../src/engine/conditions';
-import { soignerUnCompagnon } from '../noyau';
+import { soignerUnCompagnon, poserLesReglesDuRoguelite } from '../noyau';
 import { HEAL_SKILL } from '../../../../src/engine/healing';
 import {
   agirDansLaSalle,
@@ -19,6 +19,8 @@ import {
   type Heros,
 } from './index';
 import { blessures, devant, recit } from './salles.testkit';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 const MEDECIN = PROFILS.find((p) => p.id === 'medecin')!;
 const du = (e: Etat, carriere: string, n = 0): Heros => herosDuGroupe(e).filter((h) => h.carriere === carriere)[n];

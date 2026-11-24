@@ -38,12 +38,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
     }
     // Le lanceur passé au niveau 2 : ses Compétences et les sorts de sa voie tiennent à la salle d'armes.
     await geste(p, 'batiment', 'salle'); await p.click(`.socle-compagnie .carte-heros >> nth=${LANCEUR}`);
-    for (let n = 0; n < 80 && await p.$('.salle [data-a="niveau"]:disabled'); n++) {
-      const augmentation = await p.$('.salle :is(.c.carr, .achat):not(.faite) [data-a="pas"]:not(:disabled)');
-      if (!augmentation) break;
-      await augmentation.click();
-    }
-    await p.click('.salle [data-a="niveau"]'); await p.click('.salle [data-a="talent"]');
+    await p.click('.salle [data-a="plan"]'); await p.locator('.salle :has(> [data-a="talent"])', { hasText: 'Magie des Arcanes' }).locator('[data-a="talent"]').click();
     if (!(await p.$('.salle [data-a="sort"]'))) { defauts++; console.log(`${taille.join('x')} : le lanceur n'a pas atteint sa voie`); }
     await relever('salle, lanceur de niveau 2'); await geste(p, 'fermer-panneau');
     await geste(p, 'chronique'); await relever('chronique'); await geste(p, 'fermer-panneau');

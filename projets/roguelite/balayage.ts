@@ -2,7 +2,7 @@
 // roster complet (`PROFILS`), sur plusieurs graines. Signale les impasses, les combats de moins de 5 pas et le taux de victoire.
 // Usage : npx tsx projets/roguelite/balayage.ts <graines> [destination]
 import { DESTINATIONS, PROFILS, nouvellePartie, recrue } from './src/jeu';
-import { jouerLeCombat, nomDeCreature } from './src/noyau';
+import { jouerLeCombat, nomDeCreature, poserLesReglesDuRoguelite } from './src/noyau';
 /** Balaie chaque rencontre sur `N` graines, la destination `destination` seule si elle est nommée. */
 function balayer(N: number, destination?: string): void {
   for (const d of DESTINATIONS.filter((x) => !destination || x.id === destination)) {
@@ -22,4 +22,7 @@ function balayer(N: number, destination?: string): void {
   }
 }
 
-if (import.meta.main) balayer(Number(process.argv[2] ?? 10), process.argv[3]);
+if (import.meta.main) {
+  poserLesReglesDuRoguelite();
+  balayer(Number(process.argv[2] ?? 10), process.argv[3]);
+}

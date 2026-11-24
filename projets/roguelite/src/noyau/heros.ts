@@ -1,9 +1,17 @@
 /**
- * Les héros hors d'une partie : la recrue que le moteur crée, ses Caractéristiques, ses libellés.
+ * Les héros hors d'une partie : la recrue que la création 5e du noyau crée, ses Caractéristiques, ses libellés.
  */
-import { CAREER_SKILL_ADVANCES, competencesDeCarriere, createHero, designer, libreDEspece, type CreateHeroOptions } from '../../../../src/engine/character';
-import { CAREER_SKILLS_ADVANCED } from '../../../../src/engine/advancement';
-import { adresseDeCreation, type AdresseDeCreation } from '../../../../src/engine/adresseDeCreation';
+import {
+  apresLeGeste,
+  brouillonDeLaPartie,
+  pagesDeCreation,
+  refusDeLaPage,
+  rubriquesDeLaPage,
+  type CreatorDraft,
+  type GesteDuBrouillon,
+} from '../../../../src/noyau';
+import { buildHero } from '../../../../src/noyau/creation/brouillon';
+import { adresseDeCreation } from '../../../../src/engine/adresseDeCreation';
 import { designateSlot, skillSlots, slotCovers } from '../../../../src/engine/careerSlots';
 import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
 import { effectiveChar } from '../../../../src/engine/characteristics';
@@ -20,10 +28,9 @@ import {
   colonneDeCarrieres,
   especesAleatoires,
 } from '../../../../src/data';
-import type { RNG } from '../../../../src/engine/dice';
+import { makeRNG, type RNG } from '../../../../src/engine/dice';
 import type { Combatant, CharKey, ConditionInstance } from '../../../../src/engine/types';
-import { memeSpecialisation, type RefDesignee } from '../../../../src/data/schemas/grammaire/ref';
-import { progression } from './carriere';
+import type { RefDesignee } from '../../../../src/data/schemas/grammaire/ref';
 
 /** La spécialisation `spec` de la Compétence `id` désignée à l'emplacement « (Au choix) » du niveau `niveau`. */
 export interface Designation { niveau: number; id: string; spec: string }
@@ -31,75 +38,69 @@ export interface Designation { niveau: number; id: string; spec: string }
  *  d'un Béni), les Sorts mineurs d'un lanceur, et les emplacements « (Au choix) » de Compétence désignés. */
 export interface Identite { talent: { id: string; spec?: string }; sortsMineurs?: readonly string[]; designations?: readonly Designation[] }
 
-/** Un héros neuf de la carrière `carriere`, tiré par la création du moteur (`createHero`) à la graine `graine` : une
- *  désignation du niveau 1 passe par la création (`specChoices`), une autre se pose par `designateSlot`. Ses
- *  Augmentations de création suivent `alignement`, lu sur un premier tirage à la même graine. LDB 05 l.535 */
-export function nouvelleRecrue(graine: number, carriere: string, espece: string, nom: string, identite: Identite, utile: (ref: RefDesignee) => boolean): Combatant {
-  const niveaux = levelsForCareer(carriere);
-  const premier = niveaux.find((l) => l.level === 1)?.skills ?? [];
-  const designations = identite.designations ?? [];
-  const specChoices: Record<AdresseDeCreation, string> = {};
-  for (const d of designations.filter((x) => x.niveau === 1)) {
-    const i = premier.findIndex((r) => 'id' in r && r.id === d.id && r.choix != null);
-    if (i < 0) throw new Error(`Désignation ${d.id} (${d.spec}) : aucun emplacement « (Au choix) » au niveau 1 de ${carriere}.`);
-    specChoices[adresseDeCreation.carriereCompetence(i)] = d.spec;
+/** Les gestes de création qu'une recrue laisse au hasard de sa graine, une fois ses choix d'identité faits : la
+ *  spécialisation d'un emplacement « (Au choix) », un Talent d'espèce à choix, l'utilisation d'un Talent tiré, une
+ *  dotation à choix, et le Talent de carrière quand celui de l'identité est déjà au Maxi par un Talent tiré. */
+const CHOIX_AU_HASARD: ReadonlySet<GesteDuBrouillon['geste']> = new Set(['specialiteDeCarriere', 'specialiteDEspece', 'talentDEspece', 'utilisation', 'dotation', 'talentDeCarriere']);
+
+/** Les Sorts mineurs que la page des Talents de `d` offre encore. LDB 10 l.714 */
+const sortsMineursLibres = (d: CreatorDraft): GesteDuBrouillon[] =>
+  rubriquesDeLaPage(d, 'skills.talents').flatMap((r) => (r.genre === 'choix' ? r.options.flatMap((o) => (o.geste.geste === 'sortMineur' && !o.choisie && !o.refus ? [o.geste] : [])) : []));
+
+/** Un héros neuf de la carrière `carriere` et de l'espèce `espece`, créé par le brouillon du noyau sous la règle
+ *  `creation-5e` (`poserLesReglesDuRoguelite`), par ses gestes publics (`apresLeGeste`) : ses Caractéristiques tirées,
+ *  leur bonus de carrière porté au plus haut sur chaque Caractéristique de carrière à son tour, ses Compétences
+ *  d'espèce à +5 (les `utile` d'abord, puis au hasard), la Répartition simple de carrière, son Talent d'identité, ses
+ *  Talents tirés, ses Sorts mineurs (ceux de l'identité, puis au hasard jusqu'au quota), sa bourse, son sexe et son
+ *  nom ; les choix restants (`CHOIX_AU_HASARD`) tirés à la graine `graine`. Une désignation du niveau 1 passe par la
+ *  création (`specialiteDeCarriere`), une autre se pose sur le héros par `designateSlot`. CRB 006 l.5 ; CRB 014 l.11 ;
+ *  CRB 008 l.59 ; CRB 015 l.7, l.12 */
+export function nouvelleRecrue(graine: number, carriere: string, espece: string, identite: Identite, utile: (ref: RefDesignee) => boolean): Combatant {
+  const rng = makeRNG(graine);
+  let d = brouillonDeLaPartie(graine, 0);
+  if (d.procedure !== '5e') throw new Error('Recrue hors de la règle `creation-5e` : `poserLesReglesDuRoguelite` se joue au démarrage.');
+  const jouer = (g: GesteDuBrouillon) => { d = apresLeGeste(d, g); };
+  jouer({ geste: 'espece', args: [espece] });
+  jouer({ geste: 'carriere', args: [carriere] });
+  jouer({ geste: 'tirerLesCaracteristiques', args: [] });
+  for (const id of rubriquesDeLaPage(d, 'chars').map((x) => x.id)) {
+    const r = rubriquesDeLaPage(d, 'chars').find((x) => x.id === id);
+    if (r?.genre !== 'choix') continue;
+    const bonus = r.options.flatMap((o) => (o.geste.geste === 'compteur' && o.geste.args[0].genre === 'augmentation' && !o.refus ? [o.geste] : []));
+    if (bonus.length) jouer(bonus.reduce((m, g) => (g.args[1] > m.args[1] ? g : m)));
   }
-  const emplacements = skillSlots(niveaux, Math.max(...niveaux.map((l) => l.level)));
-  const creer = (augmentations: Augmentations): Combatant => {
-    const c = createHero({
-      idNeuf: fabriqueLocale(`r${graine}`), speciesId: espece, careerId: carriere, label: nom, seed: graine, specChoices,
-      careerTalent: identite.talent, ...(identite.sortsMineurs ? { pettySpells: [...identite.sortsMineurs] } : {}), ...augmentations,
-    });
-    for (const d of designations.filter((x) => x.niveau > 1)) {
-      const slot = emplacements.find((s) => s.needsChoice && s.level === d.niveau && slotCovers(s, d.id, d.spec));
-      const r = slot ? designateSlot(c, carriere, slot, d.id, d.spec, emplacements) : { ok: false, reason: 'aucun emplacement' };
-      if (!r.ok) throw new Error(`Désignation ${d.id} (${d.spec}) au niveau ${d.niveau} de ${carriere} : ${r.reason}.`);
-    }
-    return c;
-  };
-  return creer(alignement(creer({}), espece, specChoices, utile));
-}
-
-/** Les Augmentations gratuites de Caractéristique de la création. LDB 05 l.459 */
-const AUGMENTATIONS_DE_CARACTERISTIQUE = 5;
-type Augmentations = Pick<CreateHeroOptions, 'charAdvancesAlloc' | 'skillAdvances' | 'speciesSkillAdvances'>;
-
-/** Les Augmentations de création du héros `brouillon`, qui laissent chaque Caractéristique et chaque Compétence que sa
- *  carrière offre à son sommet (`progression`) à un multiple du pas (`PAS`) :
- *  - Caractéristique : toutes sur celle du niveau 1 qui porte le plus de Compétences `utile` offertes, la première du
- *    niveau à égalité (LDB 05 l.459) ;
- *  - espèce : les +3 sur celles qu'aucun emplacement de la carrière ne couvre, puis celles que seul un emplacement
- *    « (Au choix) » non désigné couvre, jamais une offerte ; les +5 sur les offertes `utile` d'abord (LDB 05 l.484) ;
- *  - carrière : une part égale par Compétence du niveau 1, les `utile` d'abord (LDB 05 l.535 ; AA 02 l.134). */
-function alignement(brouillon: Combatant, espece: string, specChoices: Record<AdresseDeCreation, string>, utile: (ref: RefDesignee) => boolean): Augmentations {
-  const carriere = brouillon.career ?? '';
+  const paliers = rubriquesDeLaPage(d, 'skills.race').flatMap((r) => (r.genre === 'choix' ? r.options.flatMap((o) => (o.geste.geste === 'palier' && o.geste.args[1] === 5 ? [o.geste] : [])) : []));
+  const auHasard = paliers.map((g) => ({ g, rang: (utile(g.args[0]) ? 0 : 1) + rng.int(0, 999) / 1000 }));
+  for (const { g } of auHasard.sort((a, b) => a.rang - b.rang)) jouer(g);
+  const premier = levelsForCareer(carriere).find((l) => l.level === 1)?.skills ?? [];
+  const designations = identite.designations ?? [];
+  for (const x of designations.filter((y) => y.niveau === 1)) {
+    const i = premier.findIndex((r) => 'id' in r && r.id === x.id && r.choix != null);
+    if (i < 0) throw new Error(`Désignation ${x.id} (${x.spec}) : aucun emplacement « (Au choix) » au niveau 1 de ${carriere}.`);
+    jouer({ geste: 'specialiteDeCarriere', args: [adresseDeCreation.carriereCompetence(i), x.spec] });
+  }
+  jouer({ geste: 'competencesDeCarriere', args: [] });
+  jouer({ geste: 'talentDeCarriere', args: [identite.talent] });
+  jouer({ geste: 'tirerLesTalents', args: [] });
+  for (const s of identite.sortsMineurs ?? []) jouer({ geste: 'sortMineur', args: [s] });
+  for (let libres = sortsMineursLibres(d); libres.length && refusDeLaPage(d, 'skills.talents'); libres = sortsMineursLibres(d)) jouer(libres[rng.int(0, libres.length - 1)]);
+  jouer({ geste: 'tirerLaBourse', args: [] });
+  jouer({ geste: 'sexe', args: [rng.int(0, 1) ? 'M' : 'F'] });
+  jouer({ geste: 'tirerUnNom', args: [graine] });
+  for (let page = pagesDeCreation(d).find((p) => refusDeLaPage(d, p)); page; page = pagesDeCreation(d).find((p) => refusDeLaPage(d, p))) {
+    const options = rubriquesDeLaPage(d, page).flatMap((r) => (r.genre === 'choix' && !r.options.some((o) => o.choisie && !o.refus) ? [r.options.filter((o) => !o.refus && CHOIX_AU_HASARD.has(o.geste.geste))] : [])).find((l) => l.length);
+    if (!options) throw new Error(`${carriere} × ${espece} : la page ${page} de la création refuse (${refusDeLaPage(d, page)}).`);
+    jouer(options[rng.int(0, options.length - 1)].geste);
+  }
+  const c = buildHero(d, fabriqueLocale(`r${graine}`));
   const niveaux = levelsForCareer(carriere);
-  const sommet = Math.max(...niveaux.map((l) => l.level));
-  const premier = niveaux.find((l) => l.level === 1);
-  const offertes = progression({ ...brouillon, careerLevel: sommet }).competences.map((k) => k.ref);
-  const offerte = (r: RefDesignee) => offertes.some((o) => o.id === r.id && memeSpecialisation(o.spec, r.spec));
-  const emplacements = skillSlots(niveaux, sommet);
-  const couverte = (r: RefDesignee) => emplacements.some((s) => slotCovers(s, r.id, r.spec));
-  const parRang = <T>(liste: readonly T[], rang: (x: T) => number): T[] => [...liste].sort((a, b) => rang(a) - rang(b));
-
-  const portees = (k: CharKey) => offertes.filter((r) => utile(r) && ficheDeCompetence(r.id).carac === k).length;
-  const caracteristique = (premier?.characteristics ?? []).reduce((m, k) => (portees(k) > portees(m) ? k : m));
-
-  const sp = findSpeciesById(espece);
-  if (!sp) throw new Error(`Espèce inconnue : ${espece}`);
-  const designees: RefDesignee[] = [];
-  for (const a of sp.skills) if ('id' in a) designees.push(designer('skill', a, undefined, libreDEspece(sp, a, designees)));
-  const plus3 = parRang(designees, (r) => (offerte(r) ? 2 : couverte(r) ? 1 : 0)).slice(0, 3);
-  // LDB 05 l.484
-  if (plus3.some(offerte)) throw new Error(`${carriere} × ${espece} : moins de 3 Compétences d'espèce hors de la carrière.`);
-  const plus5 = parRang(designees.filter((r) => !plus3.includes(r)), (r) => (offerte(r) ? (utile(r) ? 0 : 1) : 2)).slice(0, 3);
-
-  const dotees = parRang(competencesDeCarriere(premier, brouillon, specChoices).filter((e) => !e.ajout), (e) => (utile(e.designee ?? e.ref) ? 0 : 1)).slice(0, CAREER_SKILLS_ADVANCED);
-  return {
-    charAdvancesAlloc: { [caracteristique]: AUGMENTATIONS_DE_CARACTERISTIQUE },
-    speciesSkillAdvances: { plus5, plus3 },
-    skillAdvances: Object.fromEntries(dotees.map((e) => [e.cle, CAREER_SKILL_ADVANCES / CAREER_SKILLS_ADVANCED])),
-  };
+  const emplacements = skillSlots(niveaux, Math.max(...niveaux.map((l) => l.level)));
+  for (const x of designations.filter((y) => y.niveau > 1)) {
+    const slot = emplacements.find((s) => s.needsChoice && s.level === x.niveau && slotCovers(s, x.id, x.spec));
+    const r = slot ? designateSlot(c, carriere, slot, x.id, x.spec, emplacements) : { ok: false, reason: 'aucun emplacement' };
+    if (!r.ok) throw new Error(`Désignation ${x.id} (${x.spec}) au niveau ${x.niveau} de ${carriere} : ${r.reason}.`);
+  }
+  return c;
 }
 
 /** Une espèce de `especes` tirée pour la carrière `carriere` : parmi celles dont la colonne du Tableau des Classes et

@@ -1,0 +1,116 @@
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import {
+  ameliorer,
+  charger,
+  ESPECES,
+  nouvellePartie,
+  planVersLeNiveau,
+  recrue,
+  renouvelerLesCandidats,
+  sauver,
+  suivreLePlan,
+  PROFILS,
+  type Etat,
+  type Heros,
+  type Profil,
+} from './index';
+import { makeRNG, planDuNiveau, porterAuNiveau, poserLesReglesDuRoguelite, progression, tirerUneEspece } from '../noyau';
+import { heros4e, prixDuPlanAuNoyau } from './recrue5e.testkit';
+import { brouillonDeLaPartie } from '../../../../src/noyau';
+import { especesOffertes } from '../../../../src/noyau/creation/brouillon';
+import { modeleDe } from '../../../../src/engine/modeleDeProgression';
+import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
+import type { Combatant } from '../../../../src/engine/types';
+
+beforeAll(poserLesReglesDuRoguelite);
+
+/** Les espèces que `tirerUneEspece` donne à la carrière de `p`, sur 300 tirages. */
+const especesDe = (p: Profil) => [...new Set(Array.from({ length: 300 }, (_, i) => tirerUneEspece(makeRNG(i), p.id, Object.keys(ESPECES))))];
+
+/** Les recrues de `p` que le relais d'une partie tire jusqu'à en avoir une de chaque espèce de `especesDe(p)`. */
+function recruesDe(p: Profil): Heros[] {
+  const voulues = especesDe(p);
+  const e = nouvellePartie(p.id.length * 97);
+  const parEspece = new Map<string, Heros>();
+  for (let n = 0; n < 60 && parEspece.size < voulues.length; n++) {
+    const h = recrue(e, p);
+    if (!parEspece.has(h.espece)) parEspece.set(h.espece, h);
+  }
+  expect([...parEspece.keys()].sort(), p.id).toEqual([...voulues].sort());
+  return [...parEspece.values()];
+}
+
+/** Les points de chaque Caractéristique et Compétence de `c` hors d'un multiple de 5. CRB 014 l.21 ; CRB 015 l.7 */
+const horsDuPas = (c: Combatant): string[] => [
+  ...Object.entries(c.charAdvances ?? {}).filter(([, n]) => (n ?? 0) % 5).map(([k, n]) => `${k} = ${n}`),
+  ...c.skills.filter((s) => s.advances % 5).map((s) => `${s.id}:${s.spec ?? ''} = ${s.advances}`),
+];
+
+describe('recrues : la création 5e du noyau', () => {
+  it('la compagnie de départ de `nouvellePartie` naît en 5e, sa première recrue comprise', () => {
+    const e = nouvellePartie(3);
+    expect(e.roster.map((h) => h.c.progression)).toEqual(['5e', '5e', '5e', '5e']);
+    expect(e.candidats.every((h) => h.c.progression === '5e')).toBe(true);
+  });
+
+  it('les espèces du roguelite sont offertes au brouillon 5e (`especesOffertes`). CRB 006 l.5', () => {
+    const offertes = especesOffertes(brouillonDeLaPartie(1, 0)).map((s) => s.id);
+    expect(offertes).toEqual(expect.arrayContaining(Object.keys(ESPECES)));
+  });
+
+  it('PROFILS × espèces : la recrue au niveau du profil, en 5e, ses seuils de cases atteints sans dépassement, ses points sur des multiples de 5, et son niveau suivant aux prix du noyau. CRB 048 l.45', () => {
+    const ecarts: string[] = [];
+    for (const p of PROFILS) {
+      for (const h of recruesDe(p)) {
+        const cle = `${p.id} × ${h.espece}`;
+        const c = h.c;
+        if (c.progression !== '5e') ecarts.push(`${cle} : progression ${c.progression}`);
+        if (c.careerLevel !== p.niveau) ecarts.push(`${cle} : niveau ${c.careerLevel}`);
+        const passage = modeleDe(c).passage;
+        if (passage.type !== 'cases') { ecarts.push(`${cle} : passage ${passage.type}`); continue; }
+        for (let n = 1; n < p.niveau; n++) {
+          const cases = casesDuNiveau(c, p.id, n);
+          if (cases !== passage.seuils[n - 1]) ecarts.push(`${cle} : ${cases} cases au niveau ${n} pour un seuil de ${passage.seuils[n - 1]}`);
+        }
+        ecarts.push(...horsDuPas(c).map((x) => `${cle} : ${x}`));
+        const prog = progression(c);
+        const plan = planDuNiveau(c, prog);
+        const remises = new Map(prog.competences.map((k) => [`${k.ref.id}:${k.ref.spec ?? ''}`, k.remise]));
+        const prix = plan.reduce((s, x) => s + x.cout, 0);
+        const auNoyau = prixDuPlanAuNoyau(c, plan, remises);
+        if (prix !== auNoyau) ecarts.push(`${cle} : plan à ${prix} PX, ${auNoyau} au noyau`);
+        const porte = porterAuNiveau({ ...c, xp: 0 }, p.niveau + 1, 5);
+        if (porte.careerLevel !== p.niveau + 1 || (porte.xp ?? 0) !== 0) ecarts.push(`${cle} : porté au niveau ${porte.careerLevel}, ${porte.xp} PX restants`);
+        const cases = casesDuNiveau(porte, p.id, p.niveau);
+        if (cases !== passage.seuils[p.niveau - 1]) ecarts.push(`${cle} : ${cases} cases au niveau ${p.niveau} pour un seuil de ${passage.seuils[p.niveau - 1]}`);
+        ecarts.push(...horsDuPas(porte).map((x) => `${cle} porté : ${x}`));
+      }
+    }
+    expect(ecarts).toEqual([]);
+  });
+});
+
+describe('sauvegarde : une compagnie 4e', () => {
+  afterEach(() => { vi.unstubAllGlobals(); });
+
+  it('une sauvegarde à héros 4e se charge, son héros progresse au barème 4e, et le relais y tire des recrues 5e', () => {
+    const memoire = new Map<string, string>();
+    vi.stubGlobal('localStorage', { getItem: (k: string) => memoire.get(k) ?? null, setItem: (k: string, v: string) => { memoire.set(k, v); }, removeItem: (k: string) => { memoire.delete(k); } });
+    const e: Etat = nouvellePartie(5);
+    e.or = 10_000; e.trophees = 10;
+    expect(ameliorer(e, 'salle')).toBeNull();
+    e.roster[0] = heros4e('soldat', 4, 3000);
+    sauver(e);
+    const relue = charger()!;
+    const h = relue.roster[0];
+    expect(h.c.progression ?? '4e').toBe('4e');
+    expect(progression(h.c).exigence?.type).toBe('completion');
+    const plan = planVersLeNiveau(h);
+    const r = suivreLePlan(relue, h.c.id);
+    expect(r.refus).toBeNull();
+    expect(h.c.careerLevel).toBe(2);
+    expect(h.c.xp).toBe(3000 - plan.total);
+    renouvelerLesCandidats(relue);
+    expect(relue.candidats.every((x) => x.c.progression === '5e')).toBe(true);
+  });
+});

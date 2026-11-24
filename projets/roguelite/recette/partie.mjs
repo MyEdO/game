@@ -27,7 +27,8 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   let p = await page(b, [1366, 768], surLaPartieFixe((e) => {
     SANS_BATIMENT(e);
     e.or = 900; e.trophees = 4;
-    for (const h of e.roster) h.c.xp = 600;
+    // Le pas, puis le plan suivi en partie, laissent au héros servi de quoi prendre une Compétence à la fiche.
+    for (const h of e.roster) h.c.xp = 630;
     e.roster[3].c.wounds.current = 2;
   }));
   const or = async () => Number((await p.textContent('.ressources .etiquette')).replace(/\D/g, ''));
@@ -85,11 +86,11 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   const px = await pxDe();
   await p.click('.page-service .c.carr [data-a="pas"]');
   constater((await pxDe()) < px, 'la salle d’armes augmente une Caractéristique d’un pas de +5 contre des PX');
-  // « Suivre le plan » : un clic dépense des PX et remplit des crans.
-  const crans = () => p.$$eval('.page-service .crans i', (e) => e.reduce((s, x) => s + (x.classList.contains('plein') ? 1 : parseFloat(x.style.getPropertyValue('--part') || '0') / 100), 0));
-  const [pxAvantPlan, cransAvantPlan] = [await pxDe(), await crans()];
+  // « Suivre le plan » : un clic dépense des PX et coche des cases de carrière (CRB 048 l.45).
+  const cases = () => p.$$eval('.page-service .exige', (e) => parseInt(e.find((x) => x.textContent.includes('Cases de carrière'))?.querySelector('.cpt')?.textContent ?? 'NaN', 10));
+  const [pxAvantPlan, casesAvantPlan] = [await pxDe(), await cases()];
   await p.click('.page-service [data-a="plan"]');
-  constater((await pxDe()) < pxAvantPlan && (await crans()) > cransAvantPlan, `« Suivre le plan » dépense des PX et remplit des crans (${await p.textContent('#toast')})`);
+  constater((await pxDe()) < pxAvantPlan && (await cases()) > casesAvantPlan, `« Suivre le plan » dépense des PX et coche des cases de carrière (${await p.textContent('#toast')})`);
   await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
   const pxDeLaFiche = await pxDe();
   await p.click('.progression .achat [data-a="pas"]:not(:disabled)');

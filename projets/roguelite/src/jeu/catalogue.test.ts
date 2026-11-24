@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { CHEMIN_DU_CATALOGUE, catalogue } from '../../catalogue';
 import {
   acheter,
@@ -14,7 +14,9 @@ import {
   SORTS_DES_VOIES,
   SORTS_MINEURS,
 } from './index';
-import { sortsDeLaVoie, nomDeSort, porterAuNiveau } from '../noyau';
+import { sortsDeLaVoie, nomDeSort, porterAuNiveau, poserLesReglesDuRoguelite } from '../noyau';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 const profilDe = (id: string) => PROFILS.find((p) => p.id === id)!;
 

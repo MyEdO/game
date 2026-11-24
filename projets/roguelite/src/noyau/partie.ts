@@ -5,7 +5,7 @@
 import { ouvrirLeLancement, type PartieOuverte as PartieDuLancement } from '../../../../src/hote/partie';
 import { fenetreDuJeu } from '../../../../src/noyau/combatAuto';
 import type { Intention } from '../../../../src/noyau/partie';
-import { VERBE_DE_CHOIX, type GesteDuJeu } from '../../../../src/noyau';
+import { poserLesReglesMaisonPersistees, VERBE_DE_CHOIX, type GesteDuJeu } from '../../../../src/noyau';
 
 export type PartieOuverte = PartieDuLancement['partie'];
 export type Resultat = PartieDuLancement['lancement'];
@@ -26,9 +26,15 @@ export interface PartieEnAuto {
   jouerDansLaFenetre: (choisi: (g: GesteDuJeu) => boolean) => void;
 }
 
-/** Les règles optionnelles du noyau que le roguelite pose sur chacune de ses parties (`ouvrirEcoutee`) : combat, hameau
- *  et épreuve. MyEdO/game#4947. `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts`. */
-export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'magie-vdm-incantation': true };
+/** Les règles optionnelles du noyau que le roguelite pose à son démarrage (`poserLesReglesDuRoguelite`) et sur chacune
+ *  de ses parties (`ouvrirEcoutee`) : création, combat, hameau et épreuve. MyEdO/game#4947. `creation-5e` : CRB 005,
+ *  `src/noyau/creation/procedure.ts` ; `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts`. */
+export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'creation-5e': true, 'magie-vdm-incantation': true };
+
+/** Pose `REGLES_DU_ROGUELITE` (`poserLesReglesMaisonPersistees`) : le démarrage du roguelite, avant toute recrue. */
+export function poserLesReglesDuRoguelite(): void {
+  poserLesReglesMaisonPersistees(REGLES_DU_ROGUELITE);
+}
 
 /** Le choix qui laisse venir la mutation d'un « Je te renie ! » ouvert (`pendingRenounce`) : le roguelite ne gère pas
  *  la Résilience (MyEdO/game#4947). LDB 17 l.67 */
