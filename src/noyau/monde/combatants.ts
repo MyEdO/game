@@ -21,14 +21,30 @@ import type { Pt } from './path';
  */
 export const PARTY_MAX = 4;
 
-/** Acteur d'une action joueur résolu dans le bon ensemble : file de combat si en combat, sinon le groupe et les
- *  combattants de la série d'attaques subies (`combattantsDeLaSerie`). */
-export function actorIn(state: Jeu, id: string): Combatant | undefined {
-  return (state.battle?.combatants ?? [...state.party, ...combattantsDeLaSerie(state)]).find((c) => c.id === id);
+/** Le report de fin de rencontre est-il fait (`battle.over`, posé après `finalizeBattle`) ? #4860 */
+export function apresLeReport(s: Pick<Jeu, 'battle'>): boolean {
+  return !!s.battle?.over;
 }
 
-/** Les combattants qu'HÉBERGE la série d'attaques subies (`serieSubie`), hors du groupe : seul univers lu par
- *  `actorIn`, `porteurParId` et `sansCorps`. MDG 15 l.163-164 */
+/** Les combattants où se cherche un acteur, choisis par l'état : la file de combat ; après le report
+ *  (`apresLeReport`), le groupe et les combattants de la file hors du groupe (par id) ; hors combat, le groupe et les
+ *  combattants de la série d'attaques subies (`combattantsDeLaSerie`). Le pool de tous les lecteurs de héros ;
+ *  `porteurParId` y ajoute la réserve. #4860 */
+export function acteursEnJeu(s: Partial<Pick<Jeu, 'battle' | 'party' | 'serieSubie'>>): readonly Combatant[] {
+  const party = s.party ?? [];
+  if (!s.battle) return [...party, ...combattantsDeLaSerie(s)];
+  if (!s.battle.over) return s.battle.combatants;
+  const groupe = new Set(party.map((h) => h.id));
+  return [...party, ...s.battle.combatants.filter((c) => !groupe.has(c.id))];
+}
+
+/** Acteur d'une action joueur résolu dans le bon ensemble (`acteursEnJeu`). */
+export function actorIn(state: Jeu, id: string): Combatant | undefined {
+  return acteursEnJeu(state).find((c) => c.id === id);
+}
+
+/** Les combattants qu'HÉBERGE la série d'attaques subies (`serieSubie`), hors du groupe : lus par `acteursEnJeu`.
+ *  MDG 15 l.163-164 */
 export function combattantsDeLaSerie(s: Partial<Pick<Jeu, 'serieSubie'>>): Combatant[] {
   return s.serieSubie ? [s.serieSubie.assaillant, ...(s.serieSubie.membre ? [s.serieSubie.membre.combattant] : [])] : [];
 }
@@ -69,9 +85,8 @@ export function inBattleId(battle: Jeu['battle'], id: string | undefined): Comba
 }
 
 /**
- * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : la file de combat, les combattants de la série
- * d'attaques subies (`combattantsDeLaSerie`) ET le groupe. DISTINCT d'`actorIn`, qui choisit la file de combat OU
- * le reste : un héros du
+ * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : les acteurs en jeu (`acteursEnJeu`) ET le groupe.
+ * DISTINCT d'`actorIn`, qui s'en tient aux acteurs en jeu : un héros du
  * groupe resté HORS de la file d'un combat ouvert (allié en réserve, héros non engagé) y est
  * introuvable, et un porteur introuvable ne se surface pas — son dé se résoudrait d'office alors
  * qu'un siège le tient. La possession, elle, ne connaît pas cette frontière : `net.ownership` est
@@ -82,7 +97,7 @@ export function inBattleId(battle: Jeu['battle'], id: string | undefined): Comba
  * et valeur d'un dé ne peuvent pas répondre depuis deux univers différents.
  */
 export function porteurParId(s: Jeu, id: string): Combatant | undefined {
-  return inBattleId(s.battle, id) ?? combattantsDeLaSerie(s).find((c) => c.id === id) ?? s.party.find((c) => c.id === id);
+  return actorIn(s, id) ?? s.party.find((c) => c.id === id);
 }
 
 /** `c` est-il un héros du groupe ou une de ses possessions en jeu (`uid` du registre) ? Le groupe choisit sa monture
