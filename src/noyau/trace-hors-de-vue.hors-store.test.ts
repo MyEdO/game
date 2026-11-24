@@ -28,9 +28,9 @@ import { emptyScene, type SceneEntity } from './monde/scene';
 import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
 import type { Combatant } from '../engine/types';
 import { fenetreDAttaque } from './fenetreDAttaque';
-import { libelleDuDepot } from './interludeEnVue';
+import { depotEnVue } from './interludeEnVue';
 import { createHero } from '../engine/character';
-import { formatMoney, fromBrass } from '../engine/money';
+import { fromBrass } from '../engine/money';
 import { applyShipManeuver, rollShipManeuver } from './shipManeuver';
 import { supersededLines, type PsychAffliction } from '../engine/psychology';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
@@ -187,14 +187,14 @@ describe('sourceName de la psychologie — la Peur surmontée nomme sa source pa
   });
 });
 
-describe('libelleDuDepot — le libellé d’un dépôt nomme son héros par `nomEnVue` sur l’état qu’il reçoit', () => {
+describe('depotEnVue — un dépôt nomme son héros par `nomEnVue` sur l’état qu’il reçoit', () => {
   it('l’état reçu fait foi, pas l’état publié que lit le nommeur', () => {
     const banc = ouvrirLeBanc();
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Gunnar', seed: 7 });
     banc.setState({ party: [h], battle: null, interlude: null, bank: [], journal: [] });
     const recu = { ...banc.getState(), party: [{ ...h, label: 'Hilde' }] } as unknown as Jeu;
     const depot = { uid: 'd1', heroId: h.id, kind: 'planque', brass: 240, rate: 0 } as const;
-    expect(libelleDuDepot(recu, depot)).toBe(t('interlude.depot.planque', { heros: 'Hilde', montant: formatMoney(fromBrass(240)) }));
+    expect(depotEnVue(recu, depot)).toMatchObject({ heros: { id: h.id, nom: 'Hilde' }, genre: 'planque', montant: fromBrass(240), investissement: null });
   });
 });
 
