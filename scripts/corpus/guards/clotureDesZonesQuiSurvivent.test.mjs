@@ -2,9 +2,9 @@
 // type, `import()`, `require` et ses liaisons `createRequire(…)`, `tsImport` de `tsx/esm/api`, chargeurs de Vitest,
 // motifs d'`import.meta.glob`, spécificateurs relatifs, alias et `/…`) de chaque module, production, suites et bancs,
 // d'une zone qui survit (`survit`, `couches.mjs`) ne compte aucun module d'une zone qui n'y survit pas
-// (`fermeParLaSurvie`), par un module hors des zones compris : celui qu'ouvre `murs/tests-survivants` à un instrument,
+// (`fermeParLaSurvie`) ni le projet d'une autre zone (`fermeParLeProjet`, #4903 H3), par un module hors des zones compris : celui qu'ouvre `murs/tests-survivants` à un instrument,
 // ou l'`outillage` déclaré (`horsZoneOuvert`) à la production, qui ouvre un module hors des zones, jamais une zone qui
-// ne survit pas ; et aucun de ses membres ne charge un paquet de l'hôte web que la zone ferme (`paquetFerme`).
+// ne survit pas ni un projet ; et aucun de ses membres ne charge un paquet de l'hôte web que la zone ferme (`paquetFerme`).
 // ACQUISITIONS CALCULÉES (#3058 B2) : chaque acquisition calculée d'un membre se lit en forme fermée
 // (`valeursDAcquisition`, `racinesBalayees.mjs`) ; ses fichiers et les modules des dossiers qu'elle descend entrent
 // dans la clôture, jusqu'au point fixe ; une valeur hors de la liste, vide ou introuvable, et un chargeur que la lecture
@@ -15,7 +15,7 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'nod
 import { tmpdir } from 'node:os'
 import { dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { COUCHES, PAQUETS_DE_L_HOTE_WEB, estZone, fermeParLaSurvie, paquetFerme, zoneDe } from '../../guards/lib/couches.mjs'
+import { COUCHES, PAQUETS_DE_L_HOTE_WEB, estZone, fermeParLaSurvie, fermeParLeProjet, paquetFerme, zoneDe } from '../../guards/lib/couches.mjs'
 import { paquetDe } from '../../guards/lib/couchesLint.mjs'
 import { cibleLexicale } from '../../guards/lib/interneLint.mjs'
 import { EXTENSIONS_DE_SCRIPT, analyserTexte, typescript } from '../../guards/lib/dialecte.mjs'
@@ -244,7 +244,7 @@ function transitsDesZonesQuiSurvivent(racine, fichiers, ignores = []) {
     suivis += calculesVers.size
     for (const rel of membres) cloture.add(rel)
     const inverse = grapheInverse(cache)
-    for (const rel of [...membres].filter((m) => fermeParLaSurvie(de, zoneDe(m))).sort()) {
+    for (const rel of [...membres].filter((m) => fermeParLaSurvie(de, zoneDe(m)) || fermeParLeProjet(de, zoneDe(m))).sort()) {
       const importeurs = (inverse.get(abs(rel)) ?? []).map((a) => relDe(a.importeur)).filter((i) => membres.has(i))
       transits.push(`${de} : ${rel} ← ${[...new Set([...importeurs, ...(calculesVers.get(rel) ?? [])])].sort().join(', ')}`)
     }
@@ -290,9 +290,9 @@ function transitsDuTravail(depot) {
   return transitsDesZonesQuiSurvivent(depot.cwd, fichiers, ignores)
 }
 
-test('CLÔTURE : aucun module d’une zone qui survit, production comprise, n’atteint, de proche en proche, une zone qui n’y survit pas', () => {
+test('CLÔTURE : aucun module d’une zone qui survit, production comprise, n’atteint, de proche en proche, une zone qui n’y survit pas ni le projet d’une autre zone', () => {
   const { cloture, transits, suivis, enfants } = transitsDuTravail(depotDe(RACINE))
-  assert.deepEqual(transits, [], 'transit vers une zone qui ne survit pas (`fermeParLaSurvie`), ou acquisition calculée non résolue : chaque ligne nomme la zone du module racine, le module atteint et ses importeurs, ou le site')
+  assert.deepEqual(transits, [], 'transit vers une zone qui ne survit pas (`fermeParLaSurvie`) ou vers le projet d’une autre zone (`fermeParLeProjet`), ou acquisition calculée non résolue : chaque ligne nomme la zone du module racine, le module atteint et ses importeurs, ou le site')
   // Témoins de MESURE : la marche traverse un module hors des zones, ce que `murs/tests-survivants` et `murs/purete-imports`
   // ne suivent pas, et suit au moins une acquisition calculée.
   assert.ok([...cloture].some((rel) => zoneDe(rel) === null), 'la clôture ne traverse aucun module hors des zones : le mur ne mesure plus le transit')
@@ -386,6 +386,15 @@ test('CLÔTURE : un enfant Node, son préchargeur ou le script de tsx suivent le
   })
   assert.deepEqual(precharger('react'), ['processus enfant : paquet react (préchargement) ← scripts/lanceur.mjs:2'])
   assert.deepEqual(precharger('three'), [])
+})
+
+test('CLÔTURE : une suite racine ou un affichage qui atteint un projet par un module hors des zones est rouge ; le projet qui s’atteint lui-même par ce module passe', () => {
+  const pont = { 'scripts/pont.mjs': "export { p as y } from '../projets/roguelite/p.ts';\n", 'projets/roguelite/p.ts': 'export const p = 1;\n' }
+  assert.deepEqual(forger({ ...pont, 'src/zz.test.ts': "import { y } from '../scripts/pont.mjs';\nexport const a = y;\n" }),
+    ['racine : projets/roguelite/p.ts ← scripts/pont.mjs'])
+  assert.deepEqual(forger({ ...pont, 'hotes/godot/x.mjs': "import { y } from '../../scripts/pont.mjs';\nexport const x = y;\n" }),
+    ['godot : projets/roguelite/p.ts ← scripts/pont.mjs'])
+  assert.deepEqual(forger({ ...pont, 'projets/roguelite/q.ts': "import { y } from '../../scripts/pont.mjs';\nexport const q = y;\n" }), [])
 })
 
 test('CLÔTURE : un module de production atteint Three par un pont hors des zones ; l’évaluateur d’assets de Godot peut l’utiliser', () => {

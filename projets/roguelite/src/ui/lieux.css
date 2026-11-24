@@ -1,0 +1,58 @@
+/* Les lieux (`lieux.ts`) : le hameau en panorama et ses enseignes, l'expédition et sa route ; leur scène laisse
+   passer les clics hors de ses cadres. */
+.panorama { position: absolute; inset: 0; overflow-x: auto; overflow-y: hidden; scrollbar-width: none; background: linear-gradient(180deg, #0d0b1e 55%, #110c17 85%, #060408); }
+.panorama::-webkit-scrollbar { display: none; }
+.toile { position: absolute; left: 0; bottom: var(--bas, 0px); width: max(100vw, calc((100dvh - var(--bas, 0px) - 120px) * 1600 / 720)); aspect-ratio: 1600 / 720; }
+.toile::after { content: ""; position: absolute; left: 0; right: 0; top: 100%; height: var(--bas, 0px); background: #060408; }
+.toile .scene { position: absolute; inset: 0; width: 100%; height: 100%; }
+.scene .bat { cursor: pointer; transition: filter .2s; }
+.scene .bat:hover { filter: brightness(1.35) drop-shadow(0 0 10px rgba(255,190,110,.35)); }
+.enseigne { position: absolute; transform: translate(-50%, -100%); display: flex; align-items: center; gap: 8px; padding: 5px 12px 5px 5px; border: 0; border-radius: 3px; cursor: pointer; text-align: left;
+  background: radial-gradient(130% 140% at 50% 0%, var(--chene), var(--chene-nuit) 80%); box-shadow: 0 6px 14px var(--ombre-forte), 0 0 0 1px var(--contour), inset 0 0 0 1px var(--filet-or); transition: transform .15s; white-space: nowrap; }
+.enseigne::after { content: ""; position: absolute; left: 50%; bottom: -7px; width: 12px; height: 12px; transform: translateX(-50%) rotate(45deg); background: var(--chene-nuit); box-shadow: 1px 1px 0 var(--filet-or); }
+.enseigne:hover, .enseigne.ouverte { transform: translate(-50%, -100%) translateY(-3px); box-shadow: 0 8px 18px var(--ombre-forte), 0 0 0 1px var(--contour), inset 0 0 0 1px var(--filet-or-vif), 0 0 16px var(--halo); }
+.enseigne .nom { display: block; font-size: 17px; line-height: 1.1; color: var(--ivoire); }
+.enseigne .sous { display: block; font: 11.5px "IM Fell English SC", serif; letter-spacing: 1px; color: var(--creme-2); }
+.enseigne.ruine { background: radial-gradient(130% 140% at 50% 0%, var(--fer-mat), var(--fer-sombre) 80%); }
+.enseigne.ruine .nom { color: var(--creme-2); }
+.pastille-soins { position: absolute; top: -5px; left: -5px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f08a6c, #9b2a18); box-shadow: 0 0 10px rgba(224,85,58,.7), 0 0 0 1px var(--contour); animation: pouls 1.6s ease-in-out infinite; }
+.pastille-batir { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--or-eclat), var(--laiton)); box-shadow: 0 0 10px var(--halo-vif), 0 0 0 1px var(--laiton-ombre); animation: pouls 1.6s ease-in-out infinite; }
+@keyframes pouls { 50% { transform: scale(1.25); } }
+.recit-lieu { font-style: italic; font-size: 14.5px; line-height: 1.4; color: var(--creme); }
+.recit-lieu[data-rect] { height: auto !important; }
+.bandeau-victoire { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 8px 36px; font-size: 26px; color: var(--ivoire); background: linear-gradient(180deg, var(--lie), var(--lie-sombre)); box-shadow: inset 0 0 0 1px var(--filet-or); clip-path: polygon(0 0,100% 0,calc(100% - 12px) 50%,100% 100%,0 100%,12px 50%); z-index: 3; }
+.ecran-plein.lieu { background: none; pointer-events: none; z-index: 4; }
+.ecran-plein.lieu .place-cadre, .ecran-plein.lieu .coins, .ecran-plein.lieu .action-de-coin, .ecran-plein.lieu .recit-lieu, .ecran-plein.lieu .frise-route { pointer-events: auto; }
+/* le carnet du hameau, pendu sous le cartouche : la bourse, le but, la dernière ligne de la chronique */
+.ecran-plein.lieu .recit-lieu { position: absolute; margin: 0; display: grid; gap: 8px; padding: 10px 14px 11px; border-radius: 3px; background: linear-gradient(180deg, rgba(27,16,10,.82), rgba(27,16,10,.6)); box-shadow: inset 0 0 0 1px var(--filet-or), 0 3px 8px var(--ombre); }
+.recit-lieu p { margin: 0; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; overflow: hidden; }
+.coins { position: absolute; display: grid; gap: 14px; justify-items: center; align-content: end; }
+.coins.haut { display: flex; justify-content: flex-end; align-items: flex-start; gap: 12px; }
+.action-de-coin { position: absolute; display: flex; justify-content: center; }
+.action-de-coin .plaque { width: 100%; }
+.recit-lieu .but { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding-bottom: 8px; border-bottom: 1px solid var(--filet-or); font-style: normal; }
+.recit-lieu .but .niveaux { margin-top: 0; }
+.recit-lieu .but .nom-propre { color: var(--or-eclat); }
+.coins .bouton-rond { border: 0; cursor: pointer; }
+.coins .bouton-rond:hover { box-shadow: 0 4px 8px var(--ombre-forte), 0 0 0 1px var(--contour), 0 0 12px var(--halo); }
+.carte-salle > .fond { padding: 18px 18px 14px; gap: 10px; }
+.carte-salle .pied-salle { margin-top: auto; }
+.colonne-sacs .nom-objet { display: none; }
+.colonne-sacs > .fond { padding: 26px 14px 12px; overflow-y: auto; }
+@media (max-width: 899px) { .ecran-plein.lieu { overflow: visible; } .ecran-plein.lieu .scene-fixe { position: absolute; top: auto; bottom: 0; left: 0; right: 0; max-height: 34dvh; overflow-y: auto; padding: 10px 0 12px; pointer-events: auto; background: linear-gradient(180deg, rgba(8,5,3,0), rgba(8,5,3,.85) 18%); } .coins { position: static; display: flex; margin: 0 16px 12px; } .ecran-plein.lieu .recit-lieu { position: static; margin: 0 16px 12px; } }
+.frise-route { position: absolute; display: flex; align-items: center; justify-content: center; gap: 34px; margin: 0; padding: 0; list-style: none; }
+.frise-route li { position: relative; display: grid; place-items: center; }
+.frise-route li + li::before { content: ""; position: absolute; right: calc(100% + 2px); top: 50%; width: 30px; height: 2px; background: var(--laiton); opacity: .6; }
+.frise-route li.faite { opacity: .55; }
+.frise-route li.ici .medaillon { transform: scale(1.3); box-shadow: 0 3px 6px var(--ombre-forte), 0 0 18px var(--halo-vif); }
+.tableau { overflow: hidden; }
+.tableau:not(.fond-expe) { position: relative; }
+.tableau .cour { pointer-events: none; }
+.fond-expe { position: absolute; inset: 0; width: 100%; height: 100%; background: radial-gradient(80% 70% at 50% 45%, #1b2414, #07090a 80%); }
+.fond-expe .cour { -webkit-mask-image: radial-gradient(closest-side, #000 70%, transparent); mask-image: radial-gradient(closest-side, #000 70%, transparent); }
+.expedition::before { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0,0,0,.35), rgba(0,0,0,0) 40%, rgba(0,0,0,.55)); pointer-events: none; z-index: 1; }
+@media (max-width: 900px) {
+  .recit-lieu { display: none; }
+}
+.recit-lieu .but .niveaux i { box-shadow: inset 0 0 0 1px var(--or-moyen); }
+.recit-lieu .but .niveaux i.plein { box-shadow: 0 0 0 1px var(--laiton-ombre); }

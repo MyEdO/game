@@ -9,6 +9,7 @@ export const RACINES_DE_LA_SUITE = Object.freeze([
   racine('server/src'),
   racine('scripts/map'),
   racine('scripts/personnage-3d'),
+  racine('projets'),
 ])
 
 export const EXCLUSIONS_DE_LA_SUITE = Object.freeze(['**/node_modules/**', '**/.git/**'])
