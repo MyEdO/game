@@ -1470,15 +1470,13 @@ export const natureDInfluenceSchema = enumNomme(tableTotale(NATURES_D_INFLUENCE,
  */
 export const plageSchema = nommerChamps(z.strictObject({ min: z.number(), max: z.number() }), { min: { label: "Minimum" }, max: { label: "Maximum" } });
 
+/** Le nom affiché d'une borne de `plageSchema`. */
+const nomDeBorne = (borne: 'min' | 'max'): string => metaDesChamps(plageSchema, { exigees: true })[borne].label;
+
 /** Rangée d'une table tirée qui désigne une entrée du catalogue `type`, sa spécialisation si la table la fixe, à sa
  *  fourchette `plageSchema`. */
-export const rangeeDeTable = <T extends TypeEntite>(type: T) => {
-  const plage = metaDesChamps(plageSchema, { exigees: true });
-  return refOuSpec(type, {
-    min: nommerNoeud(z.number(), { nom: plage.min.label }),
-    max: nommerNoeud(z.number(), { nom: plage.max.label }),
-  });
-};
+export const rangeeDeTable = <T extends TypeEntite>(type: T) =>
+  refOuSpec(type, { min: nommerNoeud(z.number(), { nom: nomDeBorne('min') }), max: nommerNoeud(z.number(), { nom: nomDeBorne('max') }) });
 
 /** Fourchette de résultats entiers. */
 export const plageEntiereSchema = nommerChamps(z.strictObject({

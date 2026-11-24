@@ -30235,7 +30235,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "savoir",
@@ -30280,7 +30280,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 45
+      "page": 45,
+      "note": "CRB 018 l.103"
     }
   },
   {
@@ -30346,7 +30347,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 45
+      "page": 45,
+      "note": "CRB 018 l.111"
     }
   },
   {
@@ -30408,7 +30410,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 45
+      "page": 45,
+      "note": "CRB 018 l.119"
     }
   },
   {
@@ -30467,7 +30470,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 45
+      "page": 45,
+      "note": "CRB 018 l.127"
     }
   },
   {
@@ -30501,7 +30505,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "savoir",
@@ -30556,7 +30560,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 46
+      "page": 46,
+      "note": "CRB 018 l.173"
     }
   },
   {
@@ -30620,7 +30625,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 46
+      "page": 46,
+      "note": "CRB 018 l.181"
     }
   },
   {
@@ -30679,7 +30685,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 46
+      "page": 46,
+      "note": "CRB 018 l.189"
     }
   },
   {
@@ -30743,7 +30750,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 46
+      "page": 46,
+      "note": "CRB 018 l.197"
     }
   },
   {
@@ -30831,7 +30839,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 47
+      "page": 47,
+      "note": "CRB 018 l.233"
     }
   },
   {
@@ -30897,7 +30906,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 47
+      "page": 47,
+      "note": "CRB 018 l.241"
     }
   },
   {
@@ -30965,7 +30975,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 47
+      "page": 47,
+      "note": "CRB 018 l.249"
     }
   },
   {
@@ -31017,7 +31028,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 47
+      "page": 47,
+      "note": "CRB 018 l.257"
     }
   },
   {
@@ -31106,7 +31118,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 48
+      "page": 48,
+      "note": "CRB 018 l.291"
     }
   },
   {
@@ -31127,7 +31140,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "ragot"
@@ -31172,7 +31185,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 48
+      "page": 48,
+      "note": "CRB 018 l.299"
     }
   },
   {
@@ -31236,7 +31250,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 48
+      "page": 48,
+      "note": "CRB 018 l.307"
     }
   },
   {
@@ -31289,7 +31304,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 48
+      "page": 48,
+      "note": "CRB 018 l.315"
     }
   },
   {
@@ -31378,7 +31394,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 49
+      "page": 49,
+      "note": "CRB 018 l.347"
     }
   },
   {
@@ -31414,8 +31431,7 @@
     ],
     "talents": [
       {
-        "id": "attirant",
-        "choix": true
+        "id": "attirant"
       },
       {
         "id": "noctambule"
@@ -31444,7 +31460,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 49
+      "page": 49,
+      "note": "CRB 018 l.355"
     }
   },
   {
@@ -31511,7 +31528,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 49
+      "page": 49,
+      "note": "CRB 018 l.363"
     }
   },
   {
@@ -31572,7 +31590,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 49
+      "page": 49,
+      "note": "CRB 018 l.371"
     }
   },
   {
@@ -31650,7 +31669,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 50
+      "page": 50,
+      "note": "CRB 018 l.409"
     }
   },
   {
@@ -31679,7 +31699,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       }
     ],
     "talents": [
@@ -31717,7 +31737,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 50
+      "page": 50,
+      "note": "CRB 018 l.417"
     }
   },
   {
@@ -31781,7 +31802,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 50
+      "page": 50,
+      "note": "CRB 018 l.425"
     }
   },
   {
@@ -31840,7 +31862,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 50
+      "page": 50,
+      "note": "CRB 018 l.433"
     }
   },
   {
@@ -31924,7 +31947,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 51
+      "page": 51,
+      "note": "CRB 018 l.465"
     }
   },
   {
@@ -31953,7 +31977,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "escamotage"
@@ -31991,7 +32015,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 51
+      "page": 51,
+      "note": "CRB 018 l.473"
     }
   },
   {
@@ -32054,7 +32079,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 51
+      "page": 51,
+      "note": "CRB 018 l.481"
     }
   },
   {
@@ -32108,7 +32134,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 51
+      "page": 51,
+      "note": "CRB 018 l.489"
     }
   },
   {
@@ -32190,7 +32217,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 52
+      "page": 52,
+      "note": "CRB 018 l.535"
     }
   },
   {
@@ -32258,7 +32286,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 52
+      "page": 52,
+      "note": "CRB 018 l.543"
     }
   },
   {
@@ -32320,7 +32349,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 52
+      "page": 52,
+      "note": "CRB 018 l.551"
     }
   },
   {
@@ -32376,7 +32406,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 52
+      "page": 52,
+      "note": "CRB 018 l.559"
     }
   },
   {
@@ -32458,7 +32489,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 53
+      "page": 53,
+      "note": "CRB 018 l.599"
     }
   },
   {
@@ -32559,7 +32591,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 53
+      "page": 53,
+      "note": "CRB 018 l.607"
     }
   },
   {
@@ -32618,7 +32651,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 53
+      "page": 53,
+      "note": "CRB 018 l.615"
     }
   },
   {
@@ -32679,7 +32713,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 53
+      "page": 53,
+      "note": "CRB 018 l.623"
     }
   },
   {
@@ -32795,7 +32830,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 54
+      "page": 54,
+      "note": "CRB 018 l.659"
     }
   },
   {
@@ -32861,7 +32897,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 54
+      "page": 54,
+      "note": "CRB 018 l.667"
     }
   },
   {
@@ -32918,7 +32955,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 54
+      "page": 54,
+      "note": "CRB 018 l.675"
     }
   },
   {
@@ -32971,7 +33009,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 54
+      "page": 54,
+      "note": "CRB 018 l.683"
     }
   },
   {
@@ -33055,7 +33094,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 55
+      "page": 55,
+      "note": "CRB 018 l.711"
     }
   },
   {
@@ -33135,7 +33175,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 55
+      "page": 55,
+      "note": "CRB 018 l.719"
     }
   },
   {
@@ -33166,8 +33207,7 @@
     ],
     "talents": [
       {
-        "id": "attirant",
-        "choix": true
+        "id": "attirant"
       },
       {
         "id": "menteur"
@@ -33197,7 +33237,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 55
+      "page": 55,
+      "note": "CRB 018 l.727"
     }
   },
   {
@@ -33249,7 +33290,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 55
+      "page": 55,
+      "note": "CRB 018 l.735"
     }
   },
   {
@@ -33335,7 +33377,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 56
+      "page": 56,
+      "note": "CRB 018 l.777"
     }
   },
   {
@@ -33356,7 +33399,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "orientation"
@@ -33407,7 +33450,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 56
+      "page": 56,
+      "note": "CRB 018 l.785"
     }
   },
   {
@@ -33475,7 +33519,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 56
+      "page": 56,
+      "note": "CRB 018 l.793"
     }
   },
   {
@@ -33528,7 +33573,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 56
+      "page": 56,
+      "note": "CRB 018 l.801"
     }
   },
   {
@@ -33619,7 +33665,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 57
+      "page": 57,
+      "note": "CRB 018 l.837"
     }
   },
   {
@@ -33700,7 +33747,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 57
+      "page": 57,
+      "note": "CRB 018 l.845"
     }
   },
   {
@@ -33771,7 +33819,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 57
+      "page": 57,
+      "note": "CRB 018 l.855"
     }
   },
   {
@@ -33826,7 +33875,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 57
+      "page": 57,
+      "note": "CRB 018 l.863"
     }
   },
   {
@@ -33913,7 +33963,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 58
+      "page": 58,
+      "note": "CRB 018 l.897"
     }
   },
   {
@@ -33982,7 +34033,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 58
+      "page": 58,
+      "note": "CRB 018 l.905"
     }
   },
   {
@@ -34039,7 +34091,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 58
+      "page": 58,
+      "note": "CRB 018 l.913"
     }
   },
   {
@@ -34098,7 +34151,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 58
+      "page": 58,
+      "note": "CRB 018 l.921"
     }
   },
   {
@@ -34147,8 +34201,7 @@
     ],
     "talents": [
       {
-        "id": "attirant",
-        "choix": true
+        "id": "attirant"
       },
       {
         "id": "imitation"
@@ -34179,7 +34232,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 59
+      "page": 59,
+      "note": "CRB 018 l.953"
     }
   },
   {
@@ -34253,7 +34307,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 59
+      "page": 59,
+      "note": "CRB 018 l.961"
     }
   },
   {
@@ -34313,7 +34368,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 59
+      "page": 59,
+      "note": "CRB 018 l.969"
     }
   },
   {
@@ -34375,7 +34431,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 59
+      "page": 59,
+      "note": "CRB 018 l.977"
     }
   },
   {
@@ -34459,7 +34516,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 60
+      "page": 60,
+      "note": "CRB 018 l.1015"
     }
   },
   {
@@ -34527,7 +34585,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 60
+      "page": 60,
+      "note": "CRB 018 l.1023"
     }
   },
   {
@@ -34589,7 +34648,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 60
+      "page": 60,
+      "note": "CRB 018 l.1031"
     }
   },
   {
@@ -34649,7 +34709,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 60
+      "page": 60,
+      "note": "CRB 018 l.1039"
     }
   },
   {
@@ -34685,7 +34746,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "corps-a-corps",
@@ -34739,7 +34800,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 61
+      "page": 61,
+      "note": "CRB 018 l.1077"
     }
   },
   {
@@ -34810,7 +34872,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 61
+      "page": 61,
+      "note": "CRB 018 l.1085"
     }
   },
   {
@@ -34876,7 +34939,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 61
+      "page": 61,
+      "note": "CRB 018 l.1093"
     }
   },
   {
@@ -34933,7 +34997,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 61
+      "page": 61,
+      "note": "CRB 018 l.1101"
     }
   },
   {
@@ -35012,7 +35077,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 62
+      "page": 62,
+      "note": "CRB 018 l.1135"
     }
   },
   {
@@ -35083,7 +35149,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 62
+      "page": 62,
+      "note": "CRB 018 l.1143"
     }
   },
   {
@@ -35139,7 +35206,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 62
+      "page": 62,
+      "note": "CRB 018 l.1151"
     }
   },
   {
@@ -35192,7 +35260,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 62
+      "page": 62,
+      "note": "CRB 018 l.1159"
     }
   },
   {
@@ -35278,7 +35347,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 63
+      "page": 63,
+      "note": "CRB 018 l.1197"
     }
   },
   {
@@ -35360,7 +35430,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 63
+      "page": 63,
+      "note": "CRB 018 l.1205"
     }
   },
   {
@@ -35429,7 +35500,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 63
+      "page": 63,
+      "note": "CRB 018 l.1213"
     }
   },
   {
@@ -35491,7 +35563,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 63
+      "page": 63,
+      "note": "CRB 018 l.1221"
     }
   },
   {
@@ -35577,7 +35650,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 64
+      "page": 64,
+      "note": "CRB 018 l.1257"
     }
   },
   {
@@ -35653,7 +35727,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 64
+      "page": 64,
+      "note": "CRB 018 l.1265"
     }
   },
   {
@@ -35729,7 +35804,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 64
+      "page": 64,
+      "note": "CRB 018 l.1273"
     }
   },
   {
@@ -35782,7 +35858,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 64
+      "page": 64,
+      "note": "CRB 018 l.1281"
     }
   },
   {
@@ -35869,7 +35946,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 65
+      "page": 65,
+      "note": "CRB 018 l.1311"
     }
   },
   {
@@ -35887,7 +35965,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "savoir",
@@ -35938,7 +36016,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 65
+      "page": 65,
+      "note": "CRB 018 l.1319"
     }
   },
   {
@@ -35999,7 +36078,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 65
+      "page": 65,
+      "note": "CRB 018 l.1327"
     }
   },
   {
@@ -36057,7 +36137,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 65
+      "page": 65,
+      "note": "CRB 018 l.1335"
     }
   },
   {
@@ -36149,7 +36230,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 66
+      "page": 66,
+      "note": "CRB 018 l.1373"
     }
   },
   {
@@ -36175,7 +36257,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "orientation"
@@ -36210,7 +36292,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 66
+      "page": 66,
+      "note": "CRB 018 l.1381"
     }
   },
   {
@@ -36276,7 +36359,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 66
+      "page": 66,
+      "note": "CRB 018 l.1389"
     }
   },
   {
@@ -36335,7 +36419,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 66
+      "page": 66,
+      "note": "CRB 018 l.1397"
     }
   },
   {
@@ -36424,7 +36509,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 67
+      "page": 67,
+      "note": "CRB 018 l.1431"
     }
   },
   {
@@ -36502,7 +36588,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 67
+      "page": 67,
+      "note": "CRB 018 l.1439"
     }
   },
   {
@@ -36565,7 +36652,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 67
+      "page": 67,
+      "note": "CRB 018 l.1447"
     }
   },
   {
@@ -36630,7 +36718,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 67
+      "page": 67,
+      "note": "CRB 018 l.1455"
     }
   },
   {
@@ -36714,7 +36803,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 68
+      "page": 68,
+      "note": "CRB 018 l.1493"
     }
   },
   {
@@ -36784,7 +36874,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 68
+      "page": 68,
+      "note": "CRB 018 l.1501"
     }
   },
   {
@@ -36845,7 +36936,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 68
+      "page": 68,
+      "note": "CRB 018 l.1509"
     }
   },
   {
@@ -36900,7 +36992,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 68
+      "page": 68,
+      "note": "CRB 018 l.1517"
     }
   },
   {
@@ -36940,7 +37033,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "discretion",
@@ -36949,8 +37042,7 @@
     ],
     "talents": [
       {
-        "id": "attirant",
-        "choix": true
+        "id": "attirant"
       },
       {
         "id": "baratiner"
@@ -36979,7 +37071,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 69
+      "page": 69,
+      "note": "CRB 018 l.1553"
     }
   },
   {
@@ -37052,7 +37145,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 69
+      "page": 69,
+      "note": "CRB 018 l.1561"
     }
   },
   {
@@ -37107,7 +37201,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 69
+      "page": 69,
+      "note": "CRB 018 l.1569"
     }
   },
   {
@@ -37137,7 +37232,7 @@
       },
       {
         "id": "savant",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "intrigant"
@@ -37162,7 +37257,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 69
+      "page": 69,
+      "note": "CRB 018 l.1577"
     }
   },
   {
@@ -37259,7 +37355,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 70
+      "page": 70,
+      "note": "CRB 018 l.1609"
     }
   },
   {
@@ -37345,7 +37442,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 70
+      "page": 70,
+      "note": "CRB 018 l.1617"
     }
   },
   {
@@ -37406,7 +37504,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 70
+      "page": 70,
+      "note": "CRB 018 l.1625"
     }
   },
   {
@@ -37465,7 +37564,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 70
+      "page": 70,
+      "note": "CRB 018 l.1633"
     }
   },
   {
@@ -37547,7 +37647,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 71
+      "page": 71,
+      "note": "CRB 018 l.1665"
     }
   },
   {
@@ -37574,7 +37675,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "signes-secrets",
@@ -37618,7 +37719,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 71
+      "page": 71,
+      "note": "CRB 018 l.1675"
     }
   },
   {
@@ -37681,7 +37783,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 71
+      "page": 71,
+      "note": "CRB 018 l.1683"
     }
   },
   {
@@ -37733,7 +37836,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 71
+      "page": 71,
+      "note": "CRB 018 l.1691"
     }
   },
   {
@@ -37827,7 +37931,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 72
+      "page": 72,
+      "note": "CRB 018 l.1733"
     }
   },
   {
@@ -37856,7 +37961,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "signes-secrets",
@@ -37914,7 +38019,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 72
+      "page": 72,
+      "note": "CRB 018 l.1741"
     }
   },
   {
@@ -37986,7 +38092,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 72
+      "page": 72,
+      "note": "CRB 018 l.1749"
     }
   },
   {
@@ -38067,7 +38174,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 72
+      "page": 72,
+      "note": "CRB 018 l.1757"
     }
   },
   {
@@ -38146,7 +38254,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 73
+      "page": 73,
+      "note": "CRB 018 l.1791"
     }
   },
   {
@@ -38167,7 +38276,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "survie-en-exterieur"
@@ -38216,7 +38325,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 73
+      "page": 73,
+      "note": "CRB 018 l.1799"
     }
   },
   {
@@ -38276,7 +38386,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 73
+      "page": 73,
+      "note": "CRB 018 l.1807"
     }
   },
   {
@@ -38332,7 +38443,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 73
+      "page": 73,
+      "note": "CRB 018 l.1815"
     }
   },
   {
@@ -38359,7 +38471,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "corps-a-corps",
@@ -38428,7 +38540,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 74
+      "page": 74,
+      "note": "CRB 018 l.1851"
     }
   },
   {
@@ -38501,7 +38614,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 74
+      "page": 74,
+      "note": "CRB 018 l.1859"
     }
   },
   {
@@ -38558,7 +38672,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 74
+      "page": 74,
+      "note": "CRB 018 l.1867"
     }
   },
   {
@@ -38610,7 +38725,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 74
+      "page": 74,
+      "note": "CRB 018 l.1875"
     }
   },
   {
@@ -38699,7 +38815,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 75
+      "page": 75,
+      "note": "CRB 018 l.1913"
     }
   },
   {
@@ -38761,7 +38878,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 75
+      "page": 75,
+      "note": "CRB 018 l.1921"
     }
   },
   {
@@ -38818,7 +38936,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 75
+      "page": 75,
+      "note": "CRB 018 l.1929"
     }
   },
   {
@@ -38869,7 +38988,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 75
+      "page": 75,
+      "note": "CRB 018 l.1937"
     }
   },
   {
@@ -38980,7 +39100,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 76
+      "page": 76,
+      "note": "CRB 018 l.1973"
     }
   },
   {
@@ -39103,7 +39224,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 76
+      "page": 76,
+      "note": "CRB 018 l.1981"
     }
   },
   {
@@ -39125,7 +39247,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "savoir",
@@ -39187,7 +39309,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 76
+      "page": 76,
+      "note": "CRB 018 l.1989"
     }
   },
   {
@@ -39251,7 +39374,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 76
+      "page": 76,
+      "note": "CRB 018 l.1997"
     }
   },
   {
@@ -39332,7 +39456,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 77
+      "page": 77,
+      "note": "CRB 018 l.2033"
     }
   },
   {
@@ -39360,7 +39485,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "corps-a-corps",
@@ -39400,7 +39525,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 77
+      "page": 77,
+      "note": "CRB 018 l.2041"
     }
   },
   {
@@ -39461,7 +39587,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 77
+      "page": 77,
+      "note": "CRB 018 l.2049"
     }
   },
   {
@@ -39510,7 +39637,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 77
+      "page": 77,
+      "note": "CRB 018 l.2057"
     }
   },
   {
@@ -39594,7 +39722,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 78
+      "page": 78,
+      "note": "CRB 018 l.2095"
     }
   },
   {
@@ -39614,7 +39743,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "projectiles",
@@ -39694,7 +39823,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 78
+      "page": 78,
+      "note": "CRB 018 l.2103"
     }
   },
   {
@@ -39757,7 +39887,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 78
+      "page": 78,
+      "note": "CRB 018 l.2111"
     }
   },
   {
@@ -39811,7 +39942,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 78
+      "page": 78,
+      "note": "CRB 018 l.2119"
     }
   },
   {
@@ -39909,7 +40041,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 79
+      "page": 79,
+      "note": "CRB 018 l.2157"
     }
   },
   {
@@ -39933,7 +40066,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "perception"
@@ -40006,7 +40139,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 79
+      "page": 79,
+      "note": "CRB 018 l.2165"
     }
   },
   {
@@ -40088,7 +40222,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 79
+      "page": 79,
+      "note": "CRB 018 l.2173"
     }
   },
   {
@@ -40166,7 +40301,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 79
+      "page": 79,
+      "note": "CRB 018 l.2181"
     }
   },
   {
@@ -40247,7 +40383,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 80
+      "page": 80,
+      "note": "CRB 018 l.2213"
     }
   },
   {
@@ -40317,7 +40454,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 80
+      "page": 80,
+      "note": "CRB 018 l.2221"
     }
   },
   {
@@ -40377,7 +40515,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 80
+      "page": 80,
+      "note": "CRB 018 l.2229"
     }
   },
   {
@@ -40408,7 +40547,7 @@
       },
       {
         "id": "savant",
-        "spec": "medecine"
+        "spec": "remedes"
       },
       {
         "id": "obstine"
@@ -40431,7 +40570,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 80
+      "page": 80,
+      "note": "CRB 018 l.2237"
     }
   },
   {
@@ -40455,7 +40595,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "savoir",
@@ -40507,7 +40647,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 81
+      "page": 81,
+      "note": "CRB 018 l.2273"
     }
   },
   {
@@ -40577,7 +40718,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 81
+      "page": 81,
+      "note": "CRB 018 l.2281"
     }
   },
   {
@@ -40597,7 +40739,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "savoir",
@@ -40640,7 +40782,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 81
+      "page": 81,
+      "note": "CRB 018 l.2289"
     }
   },
   {
@@ -40694,7 +40837,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 81
+      "page": 81,
+      "note": "CRB 018 l.2297"
     }
   },
   {
@@ -40776,7 +40920,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 82
+      "page": 82,
+      "note": "CRB 018 l.2335"
     }
   },
   {
@@ -40868,7 +41013,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 82
+      "page": 82,
+      "note": "CRB 018 l.2343"
     }
   },
   {
@@ -40926,7 +41072,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 82
+      "page": 82,
+      "note": "CRB 018 l.2351"
     }
   },
   {
@@ -40975,7 +41122,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 82
+      "page": 82,
+      "note": "CRB 018 l.2359"
     }
   },
   {
@@ -41056,7 +41204,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 83
+      "page": 83,
+      "note": "CRB 018 l.2391"
     }
   },
   {
@@ -41124,7 +41273,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 83
+      "page": 83,
+      "note": "CRB 018 l.2403"
     }
   },
   {
@@ -41195,7 +41345,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 83
+      "page": 83,
+      "note": "CRB 018 l.2411"
     }
   },
   {
@@ -41252,7 +41403,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 83
+      "page": 83,
+      "note": "CRB 018 l.2419"
     }
   },
   {
@@ -41342,7 +41494,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 84
+      "page": 84,
+      "note": "CRB 018 l.2463"
     }
   },
   {
@@ -41412,7 +41565,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 84
+      "page": 84,
+      "note": "CRB 018 l.2471"
     }
   },
   {
@@ -41536,7 +41690,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 84
+      "page": 84,
+      "note": "CRB 018 l.2479"
     }
   },
   {
@@ -41584,7 +41739,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 84
+      "page": 84,
+      "note": "CRB 018 l.2489"
     }
   },
   {
@@ -41616,7 +41772,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "corps-a-corps",
@@ -41667,7 +41823,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 85
+      "page": 85,
+      "note": "CRB 018 l.2523"
     }
   },
   {
@@ -41733,7 +41890,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 85
+      "page": 85,
+      "note": "CRB 018 l.2531"
     }
   },
   {
@@ -41803,7 +41961,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 85
+      "page": 85,
+      "note": "CRB 018 l.2539"
     }
   },
   {
@@ -41866,7 +42025,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 85
+      "page": 85,
+      "note": "CRB 018 l.2547"
     }
   },
   {
@@ -41956,7 +42116,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 86
+      "page": 86,
+      "note": "CRB 018 l.2583"
     }
   },
   {
@@ -42026,7 +42187,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 86
+      "page": 86,
+      "note": "CRB 018 l.2593"
     }
   },
   {
@@ -42105,7 +42267,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 86
+      "page": 86,
+      "note": "CRB 018 l.2601"
     }
   },
   {
@@ -42159,7 +42322,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 86
+      "page": 86,
+      "note": "CRB 018 l.2609"
     }
   },
   {
@@ -42240,7 +42404,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 87
+      "page": 87,
+      "note": "CRB 018 l.2645"
     }
   },
   {
@@ -42316,7 +42481,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 87
+      "page": 87,
+      "note": "CRB 018 l.2653"
     }
   },
   {
@@ -42380,7 +42546,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 87
+      "page": 87,
+      "note": "CRB 018 l.2661"
     }
   },
   {
@@ -42437,7 +42604,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 87
+      "page": 87,
+      "note": "CRB 018 l.2669"
     }
   },
   {
@@ -42466,7 +42634,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "survie-en-exterieur"
@@ -42522,7 +42690,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 88
+      "page": 88,
+      "note": "CRB 018 l.2707"
     }
   },
   {
@@ -42596,7 +42765,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 88
+      "page": 88,
+      "note": "CRB 018 l.2715"
     }
   },
   {
@@ -42656,7 +42826,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 88
+      "page": 88,
+      "note": "CRB 018 l.2723"
     }
   },
   {
@@ -42717,7 +42888,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 88
+      "page": 88,
+      "note": "CRB 018 l.2731"
     }
   },
   {
@@ -42805,7 +42977,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 89
+      "page": 89,
+      "note": "CRB 018 l.2767"
     }
   },
   {
@@ -42884,7 +43057,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 89
+      "page": 89,
+      "note": "CRB 018 l.2775"
     }
   },
   {
@@ -42945,7 +43119,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 89
+      "page": 89,
+      "note": "CRB 018 l.2783"
     }
   },
   {
@@ -43003,7 +43178,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 89
+      "page": 89,
+      "note": "CRB 018 l.2793"
     }
   },
   {
@@ -43085,7 +43261,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 90
+      "page": 90,
+      "note": "CRB 018 l.2831"
     }
   },
   {
@@ -43151,7 +43328,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 90
+      "page": 90,
+      "note": "CRB 018 l.2839"
     }
   },
   {
@@ -43217,7 +43395,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 90
+      "page": 90,
+      "note": "CRB 018 l.2847"
     }
   },
   {
@@ -43277,7 +43456,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 90
+      "page": 90,
+      "note": "CRB 018 l.2857"
     }
   },
   {
@@ -43359,7 +43539,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 91
+      "page": 91,
+      "note": "CRB 018 l.2895"
     }
   },
   {
@@ -43426,7 +43607,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 91
+      "page": 91,
+      "note": "CRB 018 l.2903"
     }
   },
   {
@@ -43487,7 +43669,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 91
+      "page": 91,
+      "note": "CRB 018 l.2911"
     }
   },
   {
@@ -43548,7 +43731,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 91
+      "page": 91,
+      "note": "CRB 018 l.2919"
     }
   },
   {
@@ -43575,7 +43759,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "corps-a-corps",
@@ -43640,7 +43824,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 92
+      "page": 92,
+      "note": "CRB 018 l.2957"
     }
   },
   {
@@ -43755,7 +43940,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 92
+      "page": 92,
+      "note": "CRB 018 l.2965"
     }
   },
   {
@@ -43826,7 +44012,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 92
+      "page": 92,
+      "note": "CRB 018 l.2973"
     }
   },
   {
@@ -43882,7 +44069,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 92
+      "page": 92,
+      "note": "CRB 018 l.2981"
     }
   },
   {
@@ -43957,7 +44145,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 93
+      "page": 93,
+      "note": "CRB 018 l.3023"
     }
   },
   {
@@ -43991,7 +44180,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       }
     ],
     "talents": [
@@ -44023,7 +44212,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 93
+      "page": 93,
+      "note": "CRB 018 l.3031"
     }
   },
   {
@@ -44088,7 +44278,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 93
+      "page": 93,
+      "note": "CRB 018 l.3039"
     }
   },
   {
@@ -44149,7 +44340,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 93
+      "page": 93,
+      "note": "CRB 018 l.3047"
     }
   },
   {
@@ -44236,7 +44428,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 94
+      "page": 94,
+      "note": "CRB 018 l.3087"
     }
   },
   {
@@ -44299,7 +44492,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 94
+      "page": 94,
+      "note": "CRB 018 l.3095"
     }
   },
   {
@@ -44359,7 +44553,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 94
+      "page": 94,
+      "note": "CRB 018 l.3103"
     }
   },
   {
@@ -44408,7 +44603,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 94
+      "page": 94,
+      "note": "CRB 018 l.3111"
     }
   },
   {
@@ -44435,7 +44631,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "perception"
@@ -44509,7 +44705,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 95
+      "page": 95,
+      "note": "CRB 018 l.3149"
     }
   },
   {
@@ -44582,7 +44779,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 95
+      "page": 95,
+      "note": "CRB 018 l.3159"
     }
   },
   {
@@ -44652,7 +44850,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 95
+      "page": 95,
+      "note": "CRB 018 l.3167"
     }
   },
   {
@@ -44706,7 +44905,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 95
+      "page": 95,
+      "note": "CRB 018 l.3175"
     }
   },
   {
@@ -44790,7 +44990,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 96
+      "page": 96,
+      "note": "CRB 018 l.3209"
     }
   },
   {
@@ -44862,7 +45063,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 96
+      "page": 96,
+      "note": "CRB 018 l.3217"
     }
   },
   {
@@ -44921,7 +45123,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 96
+      "page": 96,
+      "note": "CRB 018 l.3225"
     }
   },
   {
@@ -44992,7 +45195,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 96
+      "page": 96,
+      "note": "CRB 018 l.3233"
     }
   },
   {
@@ -45083,7 +45287,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 97
+      "page": 97,
+      "note": "CRB 018 l.3265"
     }
   },
   {
@@ -45120,8 +45325,7 @@
     ],
     "talents": [
       {
-        "id": "attirant",
-        "choix": true
+        "id": "attirant"
       },
       {
         "id": "imitation"
@@ -45154,7 +45358,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 97
+      "page": 97,
+      "note": "CRB 018 l.3273"
     }
   },
   {
@@ -45220,7 +45425,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 97
+      "page": 97,
+      "note": "CRB 018 l.3281"
     }
   },
   {
@@ -45274,7 +45480,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 97
+      "page": 97,
+      "note": "CRB 018 l.3289"
     }
   },
   {
@@ -45353,7 +45560,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 98
+      "page": 98,
+      "note": "CRB 018 l.3333"
     }
   },
   {
@@ -45380,7 +45588,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "signes-secrets",
@@ -45426,7 +45634,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 98
+      "page": 98,
+      "note": "CRB 018 l.3343"
     }
   },
   {
@@ -45484,7 +45693,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 98
+      "page": 98,
+      "note": "CRB 018 l.3351"
     }
   },
   {
@@ -45542,7 +45752,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 98
+      "page": 98,
+      "note": "CRB 018 l.3359"
     }
   },
   {
@@ -45624,7 +45835,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 99
+      "page": 99,
+      "note": "CRB 018 l.3399"
     }
   },
   {
@@ -45649,7 +45861,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "signes-secrets",
@@ -45696,7 +45908,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 99
+      "page": 99,
+      "note": "CRB 018 l.3407"
     }
   },
   {
@@ -45765,7 +45978,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 99
+      "page": 99,
+      "note": "CRB 018 l.3415"
     }
   },
   {
@@ -45817,7 +46031,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 99
+      "page": 99,
+      "note": "CRB 018 l.3423"
     }
   },
   {
@@ -45853,7 +46068,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "recherche"
@@ -45894,7 +46109,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 100
+      "page": 100,
+      "note": "CRB 018 l.3459"
     }
   },
   {
@@ -45960,7 +46176,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 100
+      "page": 100,
+      "note": "CRB 018 l.3467"
     }
   },
   {
@@ -46038,7 +46255,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 100
+      "page": 100,
+      "note": "CRB 018 l.3475"
     }
   },
   {
@@ -46108,7 +46326,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 100
+      "page": 100,
+      "note": "CRB 018 l.3483"
     }
   },
   {
@@ -46144,7 +46363,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "corps-a-corps",
@@ -46180,7 +46399,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 101
+      "page": 101,
+      "note": "CRB 018 l.3517"
     }
   },
   {
@@ -46282,7 +46502,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 101
+      "page": 101,
+      "note": "CRB 018 l.3525"
     }
   },
   {
@@ -46348,7 +46569,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 101
+      "page": 101,
+      "note": "CRB 018 l.3533"
     }
   },
   {
@@ -46382,7 +46604,7 @@
       },
       {
         "id": "savant",
-        "spec": "local"
+        "spec": "region"
       }
     ],
     "trappings": [
@@ -46400,7 +46622,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 101
+      "page": 101,
+      "note": "CRB 018 l.3541"
     }
   },
   {
@@ -46439,7 +46662,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "perception"
@@ -46485,7 +46708,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 102
+      "page": 102,
+      "note": "CRB 018 l.3583"
     }
   },
   {
@@ -46575,7 +46799,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 102
+      "page": 102,
+      "note": "CRB 018 l.3591"
     }
   },
   {
@@ -46637,7 +46862,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 102
+      "page": 102,
+      "note": "CRB 018 l.3599"
     }
   },
   {
@@ -46668,7 +46894,7 @@
       },
       {
         "id": "savant",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "nanti"
@@ -46697,7 +46923,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 102
+      "page": 102,
+      "note": "CRB 018 l.3607"
     }
   },
   {
@@ -46787,7 +47014,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 103
+      "page": 103,
+      "note": "CRB 018 l.3641"
     }
   },
   {
@@ -46855,7 +47083,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 103
+      "page": 103,
+      "note": "CRB 018 l.3651"
     }
   },
   {
@@ -46911,7 +47140,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 103
+      "page": 103,
+      "note": "CRB 018 l.3659"
     }
   },
   {
@@ -46961,7 +47191,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 103
+      "page": 103,
+      "note": "CRB 018 l.3667"
     }
   },
   {
@@ -47041,7 +47272,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 104
+      "page": 104,
+      "note": "CRB 018 l.3705"
     }
   },
   {
@@ -47065,7 +47297,7 @@
       },
       {
         "id": "savoir",
-        "spec": "local"
+        "spec": "region"
       },
       {
         "id": "corps-a-corps",
@@ -47113,7 +47345,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 104
+      "page": 104,
+      "note": "CRB 018 l.3713"
     }
   },
   {
@@ -47177,7 +47410,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 104
+      "page": 104,
+      "note": "CRB 018 l.3721"
     }
   },
   {
@@ -47239,7 +47473,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 104
+      "page": 104,
+      "note": "CRB 018 l.3729"
     }
   },
   {
@@ -47322,7 +47557,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 105
+      "page": 105,
+      "note": "CRB 018 l.3765"
     }
   },
   {
@@ -47366,8 +47602,7 @@
         "spec": "sorcellerie"
       },
       {
-        "id": "attirant",
-        "choix": true
+        "id": "attirant"
       },
       {
         "id": "criminel"
@@ -47401,7 +47636,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 105
+      "page": 105,
+      "note": "CRB 018 l.3773"
     }
   },
   {
@@ -47463,7 +47699,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 105
+      "page": 105,
+      "note": "CRB 018 l.3781"
     }
   },
   {
@@ -47520,7 +47757,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 105
+      "page": 105,
+      "note": "CRB 018 l.3789"
     }
   },
   {
@@ -47599,7 +47837,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 106
+      "page": 106,
+      "note": "CRB 018 l.3825"
     }
   },
   {
@@ -47702,7 +47941,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 106
+      "page": 106,
+      "note": "CRB 018 l.3833"
     }
   },
   {
@@ -47763,7 +48003,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 106
+      "page": 106,
+      "note": "CRB 018 l.3841"
     }
   },
   {
@@ -47818,7 +48059,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 106
+      "page": 106,
+      "note": "CRB 018 l.3849"
     }
   },
   {
@@ -47910,7 +48152,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 107
+      "page": 107,
+      "note": "CRB 018 l.3885"
     }
   },
   {
@@ -47988,7 +48231,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 107
+      "page": 107,
+      "note": "CRB 018 l.3893"
     }
   },
   {
@@ -48061,7 +48305,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 107
+      "page": 107,
+      "note": "CRB 018 l.3901"
     }
   },
   {
@@ -48116,7 +48361,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 107
+      "page": 107,
+      "note": "CRB 018 l.3909"
     }
   },
   {
@@ -48198,7 +48444,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 108
+      "page": 108,
+      "note": "CRB 018 l.3943"
     }
   },
   {
@@ -48268,7 +48515,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 108
+      "page": 108,
+      "note": "CRB 018 l.3951"
     }
   },
   {
@@ -48350,7 +48598,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 108
+      "page": 108,
+      "note": "CRB 018 l.3959"
     }
   },
   {
@@ -48410,7 +48659,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 108
+      "page": 108,
+      "note": "CRB 018 l.3967"
     }
   }
 ]

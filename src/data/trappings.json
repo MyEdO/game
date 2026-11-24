@@ -18618,7 +18618,8 @@
     },
     "source": {
       "book": "core-rulebook-5e",
-      "page": 313
+      "page": 313,
+      "note": "CRB 096 l.17"
     }
   },
   {
@@ -18639,7 +18640,8 @@
     "price": null,
     "source": {
       "book": "core-rulebook-5e",
-      "page": 314
+      "page": 314,
+      "note": "CRB 097 l.37"
     }
   },
   {
@@ -18660,7 +18662,8 @@
     "price": null,
     "source": {
       "book": "core-rulebook-5e",
-      "page": 79
+      "page": 79,
+      "note": "CRB 018 l.2163"
     }
   },
   {
@@ -18681,7 +18684,8 @@
     "price": null,
     "source": {
       "book": "core-rulebook-5e",
-      "page": 94
+      "page": 94,
+      "note": "CRB 018 l.3117"
     }
   },
   {
@@ -18702,7 +18706,8 @@
     "price": null,
     "source": {
       "book": "core-rulebook-5e",
-      "page": 99
+      "page": 99,
+      "note": "CRB 018 l.3429"
     }
   }
 ]

@@ -1822,7 +1822,6 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
 }
 /** La création du livre de base 5e de chaque espèce du CRB, keyée par l'id de son espèce (`especesCrb.json`). CRB 008-012 */
 export const especesCrb = datasetDe<typeof especesCrbDef>(especesCrbJson);
-export type EspeceCrbData = EntreeDe<typeof especesCrbDef>;
 /** Les profils standard (`LDB 77 l.7`) : les fiches que `species.json` désigne par `profilStandard`,
  *  sans doublon, dans l'ordre du dataset. */
 export function profilsStandard(): string[] {

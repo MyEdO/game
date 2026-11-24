@@ -819,7 +819,8 @@
     "label": "Marchands",
     "source": {
       "book": "core-rulebook-5e",
-      "page": 98
+      "page": 98,
+      "note": "CRB 018 l.3363"
     }
   }
 ]
