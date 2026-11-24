@@ -190,7 +190,7 @@ export function proseSource(options = {}) {
       // — les catalogues `src/data/<nom>.json` à plat et les projets livrés `<x>-projet.json` de `src/scenes`.
       if (!estDocumentDeProse(marque === -1 ? propre : propre.slice(0, marque))) return null
       // Un id à QUERY demande une AUTRE forme du fichier, et l'id est vu ici (`vite:json` vient après) :
-      // `?raw` sert la FORME DISQUE, celle que le schéma décrit et que `dev-validate` valide.
+      // `?raw` sert la FORME DISQUE, celle que le schéma décrit et que `validateDataset` valide.
       if (marque !== -1) return null
       let materialise
       try {

@@ -94,8 +94,7 @@ const doc = document(
     //    que la table saisonnière tire encore (`weatherCondition`, engine, ne lit que ce tableau).
     // COUVERTURE du dé de chaque saison (`ecartsDeCouverture`, grammaire) : les deux bornes étant
     //    éditables au Codex, le schéma vérifie qu'à chaque jet correspond une seule météo.
-    // Refus NOMINATIF dans les deux cas, aux trois portes (CI `schema-contract`, boot `dev-validate`,
-    // save transactionnel du Codex).
+    // Refus NOMINATIF dans les deux cas, aux deux portes (CI `schema-contract`, `validerMutation` du Compendium).
     affinerEntree: (entree) =>
       entree.superRefine((v, ctx) => {
         const ids = ((v as { conditions?: { id?: string }[] }).conditions ?? []).map((c) => c.id);

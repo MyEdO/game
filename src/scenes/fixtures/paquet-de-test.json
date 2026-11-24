@@ -1,0 +1,313 @@
+{
+ "type": "projet",
+ "id": "paquet-de-test",
+ "label": "Paquet de test",
+ "versionContenu": 1,
+ "maison": "fixture de test du commun — aucun livre ne publie ce paquet",
+ "scenes": [
+  {
+   "type": "scene",
+   "id": "scene-de-test-a",
+   "label": "Scène de test A",
+   "desc": "Scène de test.",
+   "dimensions": {
+    "w": 4,
+    "h": 4
+   },
+   "ambiance": "exterieur",
+   "reliefDefaults": {
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
+   },
+   "roofDefaults": {
+    "material": {
+     "id": "toit-ardoise"
+    },
+    "pitchDeg": 45,
+    "riseMaxStoreys": 1
+   },
+   "layers": [
+    {
+     "z": 0,
+     "tiles": [
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe"
+     ]
+    }
+   ],
+   "entities": [
+    {
+     "id": "depart",
+     "kind": "heroStart",
+     "pos": {
+      "x": 1,
+      "y": 1
+     }
+    },
+    {
+     "id": "objet-de-test",
+     "kind": "prop",
+     "pos": {
+      "x": 2,
+      "y": 2
+     },
+     "decor": {
+      "id": "tonneau"
+     },
+     "label": "Objet de test"
+    }
+   ],
+   "dialogues": [
+    {
+     "id": "dialogue-de-test",
+     "start": {
+      "id": "noeud-de-test"
+     },
+     "nodes": [
+      {
+       "id": "noeud-de-test",
+       "desc": "Réplique de test.",
+       "choices": [
+        {
+         "id": "choix-test-etendu",
+         "label": "Test étendu",
+         "flow": {
+          "kind": "sequence",
+          "etapes": [
+           {
+            "kind": "effet",
+            "effet": {
+             "type": "extendedTest",
+             "skill": {
+              "id": "athletisme"
+             },
+             "difficulty": "complexe",
+             "label": "Test étendu de test",
+             "drCible": 2,
+             "flag": "test-etendu-fait"
+            }
+           }
+          ]
+         }
+        },
+        {
+         "id": "choix-ops",
+         "label": "Ops",
+         "flow": {
+          "kind": "sequence",
+          "etapes": [
+           {
+            "kind": "effet",
+            "effet": {
+             "type": "ops",
+             "on": "navire",
+             "ops": [
+              {
+               "op": "manann",
+               "facteur": {
+                "id": "pretre-sans-peche"
+               }
+              }
+             ]
+            }
+           }
+          ]
+         }
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "triggers": [],
+   "encounters": [],
+   "flags": {}
+  },
+  {
+   "type": "scene",
+   "id": "scene-de-test-b",
+   "label": "Scène de test B",
+   "desc": "Scène de test.",
+   "dimensions": {
+    "w": 4,
+    "h": 4
+   },
+   "ambiance": "exterieur",
+   "reliefDefaults": {
+    "cliff": {
+     "id": "terre"
+    },
+    "ramp": {
+     "id": "terre"
+    },
+    "deck": {
+     "id": "pierre"
+    },
+    "pilier": {
+     "id": "pilier"
+    }
+   },
+   "roofDefaults": {
+    "material": {
+     "id": "toit-ardoise"
+    },
+    "pitchDeg": 45,
+    "riseMaxStoreys": 1
+   },
+   "layers": [
+    {
+     "z": 0,
+     "tiles": [
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe",
+      "herbe"
+     ]
+    }
+   ],
+   "entities": [
+    {
+     "id": "depart",
+     "kind": "heroStart",
+     "pos": {
+      "x": 1,
+      "y": 1
+     }
+    }
+   ],
+   "dialogues": [],
+   "triggers": [],
+   "encounters": [],
+   "flags": {}
+  }
+ ],
+ "worldMap": {
+  "id": "carte-de-test",
+  "label": "Carte de test",
+  "places": [
+   {
+    "id": "lieu-a",
+    "label": "Lieu A",
+    "pos": {
+     "x": 20,
+     "y": 50
+    },
+    "scene": {
+     "id": "scene-de-test-a"
+    },
+    "entry": "depart"
+   },
+   {
+    "id": "lieu-b",
+    "label": "Lieu B",
+    "pos": {
+     "x": 80,
+     "y": 50
+    },
+    "scene": {
+     "id": "scene-de-test-b"
+    }
+   }
+  ],
+  "routes": [
+   {
+    "id": "route-a-b",
+    "a": {
+     "id": "lieu-a"
+    },
+    "b": {
+     "id": "lieu-b"
+    },
+    "km": 10,
+    "modes": [
+     "pied",
+     "diligence"
+    ],
+    "billets": {
+     "diligence": {
+      "prix": {
+       "exterieur": 2,
+       "interieur": 4
+      },
+      "depuis": {
+       "id": "lieu-a"
+      },
+      "marchandage": {
+       "presetId": "pnj-de-test",
+       "paliers": [
+        {
+         "seuil": 0,
+         "prix": {
+          "exterieur": 1,
+          "interieur": 2
+         }
+        }
+       ]
+      },
+      "maison": "fixture de test"
+     }
+    },
+    "provenances": {
+     "km": {
+      "maison": "fixture de test"
+     }
+    }
+   }
+  ]
+ },
+ "narratif": {
+  "affaires": [],
+  "indices": [],
+  "presetsPnj": [
+   {
+    "id": "pnj-de-test",
+    "base": {
+     "id": "humain"
+    },
+    "profil": {
+     "label": "PNJ de test",
+     "maison": "fixture de test"
+    }
+   }
+  ],
+  "objets": [],
+  "etats": [],
+  "documents": []
+ }
+}

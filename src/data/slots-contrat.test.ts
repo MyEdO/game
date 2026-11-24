@@ -15,6 +15,7 @@ import {
 } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, scannerDonnees } from '../../scripts/docs/lib/structures-scan.mjs';
 import { ANGLES_MORTS_SLOTS, MANDAT_SLOTS } from '../../scripts/docs/lib/structures-lexique.mjs';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -52,6 +53,12 @@ const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const SLOTS = slotsDuParse(scan, DEFS);
 const couple = (dataset: string, champ: string) => couplesDeReference(scan, SLOTS).find((c) => c.dataset === dataset && c.champ === champ);
 const slotsAuPath = (dataset: string, path: string) => SLOTS.filter((s) => s.dataset === dataset && s.path === path);
+/** Le paquet de test du commun (`defs-scenes/paquet-de-test.ts`), hors du scan : ses slots se lisent par le parse de son def. */
+type EffetDeTest = { skill?: object };
+const PAQUET = paquetDeTest as unknown as {
+  scenes: { layers: { tiles: string[] }[]; entities: { decor?: object }[]; dialogues: { nodes: { choices: { flow: { etapes: { effet: EffetDeTest }[] } }[] }[] }[] }[];
+};
+const slotsDuPaquet = (path: string) => slotsDuParse({ brutParNom: new Map([['paquet-de-test.json', PAQUET]]) }, DEFS).filter((s) => s.path === path);
 const couplesTouches = (slots: readonly Slot[]) => [...new Set([...occurrencesTouchees(scan, slots)].map((o) => `${o.dataset} | ${o.champ}`))].sort();
 
 describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', () => {
@@ -129,6 +136,14 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
+  it('branche LISTE d’ids nus (`paquet-de-test.json › tiles`) : chaque liste porte un slot par élément', () => {
+    const tuiles = slotsDuPaquet('scenes[].layers[].tiles[]');
+    const listes = PAQUET.scenes.flatMap((sc) => sc.layers.map((l) => l.tiles));
+    expect(new Set(tuiles.map((s) => s.type))).toEqual(new Set(['terrain']));
+    for (const liste of listes) expect(tuiles.filter((s) => s.porteur === liste).map((s) => s.cle)).toEqual(liste.map((_, i) => i));
+    expect(tuiles.length).toBe(listes.flat().length);
+  });
+
   it('cas canonique `merchants.json › [].curated[]` : chaque occurrence atteinte, chaque valeur un slot de trapping', () => {
     const curated = slotsAuPath('merchants.json', '[].curated[]');
     expect(curated.length).toBeGreaterThan(0);
@@ -153,6 +168,13 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
+  it('RÉCURSION : un `test.skill` sous un flux de dialogue est un slot (`paquet-de-test.json › skill`)', () => {
+    const effets = PAQUET.scenes.flatMap((sc) => sc.dialogues.flatMap((d) => d.nodes.flatMap((n) => n.choices.flatMap((c) => c.flow.etapes.map((e) => e.effet)))));
+    const competences = effets.flatMap((e) => (e.skill ? [e.skill] : []));
+    expect(competences.length).toBeGreaterThan(0);
+    expect(slotsDuPaquet('scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.skill.id').map((s) => [s.porteur, s.type])).toEqual(competences.map((c) => [c, 'skill']));
+  });
+
   it('PAYLOAD D’OP : une référence validée par le `superRefine` de `gameOpSchema` est un slot (`tables.json › of`, joint)', () => {
     expect(new Set(slotsAuPath('tables.json', '[].entries[].ops[].montant.brass.times.of.rule').map((s) => s.type))).toEqual(new Set(['regleOptionnelle']));
     const c = couple('tables.json', 'of')!;
@@ -163,6 +185,12 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].decor.id').map((s) => s.type))).toEqual(new Set(['prop']));
     const c = couple('diligence-projet.json', 'decor')!;
     expect(c.atteintes).toBe(c.occurrences);
+  });
+
+  it('CORPS DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `ref(\'prop\')` (`paquet-de-test.json › decor`)', () => {
+    const decors = PAQUET.scenes.flatMap((sc) => sc.entities.flatMap((e) => (e.decor ? [e.decor] : [])));
+    expect(decors.length).toBeGreaterThan(0);
+    expect(slotsDuPaquet('scenes[].entities[].decor.id').map((s) => [s.porteur, s.type])).toEqual(decors.map((d) => [d, 'prop']));
   });
 
   it('fixture : une Spécialisation homonyme d’un id n’ouvre aucune référence (`CLES_DE_SPECIALISATION`, #1904)', () => {

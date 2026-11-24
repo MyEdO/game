@@ -1,8 +1,7 @@
 /**
  * Validation d'un document authoré contre son schéma zod — SOURCE UNIQUE, DEUX portes :
  *  - `validateDataset(file, value)` : porte par FICHIER, pour qui connaît le nom du document —
- *    contrat CI (`schema-contract.test.ts`), sauvegarde éditeur/Compendium (`CodexEdit.save`),
- *    chargement DEV (`src/dev-validate.ts`).
+ *    contrat CI (`schema-contract.test.ts`), sauvegarde du Compendium (`validerMutation`, `src/data/atelierDuCodex.ts`).
  *    Le registre couvre les DEUX racines (`src/data` par basename, `src/scenes` par chemin relatif).
  *  - `validateDocument(schema, value)` : porte par SCHÉMA, pour un seam qui n'a PAS de nom de
  *    fichier — `parseProject` sert du JSON committé, du localStorage et de l'import utilisateur.
@@ -108,7 +107,7 @@ export function rapportDeFautes(sujet: string, fautes: readonly Faute[]): string
   return `${sujet} — JSON invalide contre son schéma :\n${lines.join('\n')}`;
 }
 
-/** Schéma zod d'un document par nom de fichier (`characteristics.json`, `arene/arene-projet.json`),
+/** Schéma zod d'un document par nom de fichier (`characteristics.json`, `fixtures/paquet-de-test.json`),
  *  ou undefined s'il n'est pas registré. */
 export function schemaForFile(file: string): z.ZodType | undefined {
   return DEFS_DE_DOCUMENT.find((d) => d.file === file)?.schema;
