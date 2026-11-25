@@ -30,11 +30,11 @@ const GESTES: readonly (string | ReturnType<typeof pointe>)[] = [
   'scenes/ajouter',
   'outil/navire',
   'navire/cap/E',
-  pointe('appui', 10, 6, 10.25, 6.25),
+  pointe('appui', 7, 6, 7.25, 6.25),
   'outil/select',
-  pointe('appui', 10, 6, 10.125, 6.125),
-  pointe('glisse', 12, 6, 12.125, 6.125),
-  pointe('relache', 12, 6, 12.125, 6.125),
+  pointe('appui', 7, 6, 7.125, 6.125),
+  pointe('glisse', 9, 6, 9.125, 6.125),
+  pointe('relache', 9, 6, 9.125, 6.125),
   'couche/haute',
 ];
 
