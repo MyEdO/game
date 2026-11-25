@@ -27,7 +27,7 @@ export type MethodeTenue = 'tire' | 'reassigne' | 'autre';
  *  Caractéristiques de carrière. */
 export interface Gain { px?: number; fortune?: number; dotations?: number; bonusDeCarriere?: number }
 
-/** D'où viennent les espèces : `species.json` (celles que `speciesAllowed` ouvre), ou les entrées de
+/** D'où viennent les espèces : `species.json` (celles que `ouvertParSaRegle` ouvre), ou les entrées de
  *  `especesCrb.json`, chacune surchargeant l'espèce de même id, ses langues à `pointsDesLangues`. */
 export type EspecesDeLaProcedure = { type: 'ldb' } | { type: 'crb'; pointsDesLangues: number };
 

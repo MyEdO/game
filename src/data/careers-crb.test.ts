@@ -1,9 +1,9 @@
 /**
  * #4898 — les 64 Carrières du livre de base 5e (`<id v4>-5e`), source de Carrières de plus derrière la règle
- * optionnelle `carrieres-crb` (`gatedByRule`, servie par `carriereOuverte`), leurs listes jouées par les ids 4e.
+ * optionnelle `carrieres-crb` (`gatedByRule`, servie par `ouvertParSaRegle`), leurs listes jouées par les ids 4e.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { careerLevels, careers, carriereOuverte, carrieresTirables, findSpeciesById, offreDuJet } from '.';
+import { careerLevels, careers, ouvertParSaRegle, carrieresTirables, findSpeciesById, offreDuJet } from '.';
 import { resetRule, setRule } from '../engine/policy';
 
 const REGLE = 'carrieres-crb';
@@ -16,9 +16,9 @@ afterEach(() => resetRule(REGLE));
 describe('Carrières du CRB derrière leur règle optionnelle', () => {
   it('règle inactive (défaut) : aucune Carrière -5e ouverte ; active : les 64', () => {
     expect(CRB).toHaveLength(64);
-    expect(CRB.filter(carriereOuverte)).toEqual([]);
+    expect(CRB.filter(ouvertParSaRegle)).toEqual([]);
     setRule(REGLE, true);
-    expect(CRB.filter(carriereOuverte)).toHaveLength(64);
+    expect(CRB.filter(ouvertParSaRegle)).toHaveLength(64);
   });
 });
 

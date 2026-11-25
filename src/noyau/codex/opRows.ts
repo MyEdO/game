@@ -7,7 +7,7 @@
  * kind SANS id stable (invocation d'arme nommée, marqueur d'atelier…) ou pointant une catégorie hors
  * Codex tombe en `{t:'text'}`. JAMAIS `opSummary` (résumeur d'ATELIER, `editor/interne/resumeDOp.ts`).
  */
-import { estCausePersistante, type GameOp, type Formula, type PerSL } from '../../engine/ops';
+import { type GameOp, type Formula, type PerSL } from '../../engine/ops';
 import { slBonus } from '../../engine/formule';
 import type { DiceSpec } from '../../engine/dice';
 import type { CodexRow } from './registry';
@@ -15,8 +15,6 @@ import {
   humanizeOp,
   humanizeFormula,
   humanizePerSL,
-  causePersistante,
-  replieCausesPersistantes,
   plural,
   dureePropre,
   plancher,
@@ -139,13 +137,9 @@ export function opRow(o: GameOp, ctx?: OpRowCtx): CodexRow {
       const n = resolvedCount(o.value, o.valuePerSL, ctx?.sl);
       const show = n != null ? `${n} × ${label}`
         : o.value != null && o.value !== 1 ? `${humanizeFormula(o.value)} × ${label}` : label;
-      // CAUSE PERSISTANTE (`LDB 16 l.117`) : l'op ne pose pas un État DE PLUS par Round — elle maintient
-      // celui-ci. La chip reste UNE, la persistance est dite au badge, du même mot que le journal.
-      const persistante = estCausePersistante(o);
       const duree = dureePropre(o);
       const badge = [
-        persistante ? causePersistante() : undefined,
-        duree ?? (!persistante && o.perRound ? t('codex.ligne.parRound') : undefined),
+        duree ?? (o.perRound ? t('codex.ligne.parRound') : undefined),
         n == null && o.valuePerSL ? humanizePerSL(o.valuePerSL) : undefined,
       ].filter((s) => !!s).join(' · ') || undefined;
       return { t: 'ref', category: 'etats', id: o.id.id, label, show, badge };
@@ -250,5 +244,5 @@ function opRowsForOp(o: GameOp, depth: number, ctx?: OpRowCtx): CodexRow[] {
 /** Une liste d'ops → SES lignes Codex, dans l'ordre (un `rollTable` s'expanse en ses rangées).
  *  `ctx` : le DR du jet réalisé quand ces lignes sont un VERDICT (cf. `OpRowCtx`). */
 export function opRows(ops: GameOp[], ctx?: OpRowCtx): CodexRow[] {
-  return replieCausesPersistantes(ops).flatMap((o) => opRowsForOp(o, 0, ctx));
+  return ops.flatMap((o) => opRowsForOp(o, 0, ctx));
 }

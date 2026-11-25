@@ -14,9 +14,9 @@ import { campOf, type Camp } from './relations';
 import type { CodexTarget } from './ruleRefs';
 import type { Combatant, ConditionId, HitLocation } from './types';
 
-/** La durée d'un État posé : Rounds, horloge (minutes), ou annonce d'une pose récurrente (pions par Round,
- *  Rounds de la cause). */
-export type DureeDEtat = { rounds: number } | { minutes: number } | { parRound: number; rounds?: number };
+/** La durée d'un État posé : Rounds, horloge (minutes), annonce d'une pose récurrente (pions par Round),
+ *  ou la rencontre. */
+export type DureeDEtat = { rounds: number } | { minutes: number } | { parRound: number } | { rencontre: true };
 
 /** Atténuation d'une perte de Blessures hors coup d'arme : `sans`, ou ce que la perte a déduit. */
 export type MitigationDesBlessures = 'sans' | { pa: 'touches' | 'ignores'; be: 'deduit' | 'ignore' };
@@ -57,7 +57,7 @@ export interface FaitDEtat extends FaitSurUneCible {
   id: ConditionId;
   /** Variation signée du compte de pions ; 0 pour l'annonce d'une pose récurrente. */
   valeur: number;
-  /** Durée de la pose. */
+  /** Durée de la pose ; d'un État porté, celle de son porteur. */
   duree?: DureeDEtat;
   /** État porté par un effet ; `src` : ce qui le porte. */
   porte?: { src?: CodexTarget };
@@ -65,10 +65,6 @@ export interface FaitDEtat extends FaitSurUneCible {
   verrouLeve?: true;
   /** Tout l'État retiré. */
   tous?: true;
-  /** Re-pose d'une cause persistante. */
-  regagne?: true;
-  /** Annonce d'une cause persistante. */
-  sauf?: true;
 }
 
 /** Corruption gagnée, retirée ou écartée. */
@@ -153,28 +149,30 @@ export function nomDeSource(ctx: { label?: string } | undefined, nature: NatureD
 /** Le résultat d'une application : les lignes du journal et les faits dont elles sont la lecture. */
 export interface Applique { lignes: string[]; faits: FaitApplique[] }
 
+/** Le fragment d'une durée bornée, en Rounds ou à l'horloge. */
+function texteDeDuree(d: Exclude<DureeDEtat, { parRound: number }>): string {
+  if ('rencontre' in d) return t('op.frag.finDeRencontre');
+  if ('minutes' in d) {
+    const min = d.minutes;
+    return min >= 60 ? t('op.frag.heures', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.minutes', { n: min });
+  }
+  return t('op.frag.plafondDeRounds', { n: d.rounds, s: d.rounds > 1 ? 's' : '' });
+}
+
 function texteDEtat(f: FaitDEtat, name: string, source: string | undefined): string {
   const cond = conditionLabel(f.id);
+  const d = f.duree;
   if (f.porte) {
     const src = f.porte.src ? refLabel(f.porte.src.category, { id: f.porte.src.id }) : t('cond.derivedSrcFallback');
-    return t(f.valeur > 0 ? 'cond.derivedGain' : 'cond.derivedLoss', { name, cond, src });
+    if (f.valeur <= 0) return t('cond.derivedLoss', { name, cond, src });
+    return t('cond.derivedGain', { name, cond, src, duree: d && !('parRound' in d) ? ` (${texteDeDuree(d)})` : '' });
   }
   if (f.verrouLeve) return t('cond.lockReleased', { name, cond });
   if (f.valeur < 0) return t('op.etatRetire', { name, what: f.tous ? t('op.etatsTous') : t('op.etatsCertains', { n: -f.valeur }), cond });
-  const d = f.duree;
-  if (d && 'parRound' in d) {
-    const src = nomDeSource({ label: source });
-    return f.sauf && d.rounds != null
-      ? t('op.etatParRoundSauf', { name, cond, src, n: d.rounds })
-      : t('op.etatParRound', { name, v: d.parRound, cond, src });
-  }
+  if (d && 'parRound' in d) return t('op.etatParRound', { name, v: d.parRound, cond, src: nomDeSource({ label: source }) });
   const v = f.valeur;
-  if (d && 'minutes' in d) {
-    const min = d.minutes;
-    return t('op.etatTemporaire', { name, v, cond, roundsTxt: min >= 60 ? t('op.frag.heures', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.minutes', { n: min }) });
-  }
-  if (d) return t('op.etatTemporaire', { name, v, cond, roundsTxt: t('op.frag.plafondDeRounds', { n: d.rounds, s: d.rounds > 1 ? 's' : '' }) });
-  return f.regagne ? t('op.etatRegagne', { name, v, cond, src: nomDeSource({ label: source }) }) : t('op.etat', { name, v, cond });
+  if (d) return t('op.etatTemporaire', { name, v, cond, roundsTxt: texteDeDuree(d) });
+  return t('op.etat', { name, v, cond });
 }
 
 function texteDesBlessures(f: FaitDeBlessures, name: string): string {

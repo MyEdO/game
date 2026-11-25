@@ -182,7 +182,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
     return `${mesure('Attaque', m.attaque, t && m.attaque - t.attaque, { chiffre: true, bulle: `Test de ${m.test}${MAITRISE[m.maitrise]?.bulle ? ` — ${MAITRISE[m.maitrise]!.bulle}` : ''}` })}${mesure('Dégâts', m.degats, t && m.degats - t.degats, { chiffre: true })}${allonge}`;
   };
   const armure = protection(h.c);
-  /** Les PA par zone : ceux du héros, ou ceux d'une panoplie `pa` face aux siens. */
+  /** Les PA par zone : ceux du héros, ou ceux `pa` qu'il porterait, face aux siens. */
   const mesuresDArmure = (pa?: { zone: string; pa: number }[]) =>
     (pa ?? armure).map((z) => mesure(esc(z.zone), z.pa, pa ? z.pa - (armure.find((x) => x.zone === z.zone)?.pa ?? 0) : undefined)).join('');
 
@@ -213,7 +213,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
   const armes = emplacement === 'armure' ? [] : J.armesEnVente(e, h).filter((a) => a.tenue === emplacement && a.id !== tenue?.id && (emplacement !== 'secondaire' || /^bouclier/.test(a.id) || J.manieDeuxArmes(h)))
     .map((a) => ({ a, m: maniement(h.c, a.id) })).sort((x, y) => y.m.attaque - x.m.attaque || y.m.degats - x.m.degats);
   const offres = emplacement === 'armure'
-    ? J.armuresEnVente(e).filter((a) => a.id !== p.armure?.panoplie).map((a) => article('armure', a.label, `${mesuresDArmure(a.pa)}${mesure('Enc.', a.enc)}`, `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
+    ? J.armuresEnVente(e, h).map((a) => article('armure', a.label, `${mesuresDArmure(a.pa)}${mesure('Enc.', a.enc)}`, `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
       achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="armure" data-id="${h.c.id}" data-k="${a.id}"`, taille: 'petite' })))
     : armes.map(({ a, m }) => article(iconeDArme(a.label), a.label, mesuresDArme(a, tenue),
       `${a.mains === 2 && emplacement !== 'tir' ? `<span class="etiquette rectangle qualite defaut"${p.secondaire ? ` data-bulle="${esc(p.secondaire.label)} quitte sa main."` : ''}>Deux mains${p.secondaire ? `<span class="suite"> · sans ${esc(p.secondaire.label.toLowerCase())}</span>` : ''}</span>` : ''}${MAITRISE[m.maitrise] ? `<span class="etiquette rectangle qualite defaut suite" data-bulle="${esc(`${MAITRISE[m.maitrise]!.bulle} : ${m.test}`)}">${MAITRISE[m.maitrise]!.mot}</span>` : ''}${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, tenue?.enc)}`,
@@ -300,9 +300,20 @@ const pageDuJardin = ({ e }: Lecture): Page => ({
 
 const pageDeLaChronique = ({ e }: Lecture): Page => ({ classe: 'annales', corps: `<ol class="chronique">${e.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` });
 
-/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son sac, et ce que l'hospice lui vend. */
+/** Le rang et la consigne de combat du héros `h`, chacun en plaques, l'actuel armé, ce qu'il fait au survol. */
+function auCombat(h: J.Heros): string {
+  const id = `data-id="${h.c.id}"`;
+  const rang = J.rangDe(h);
+  const consigne = J.consigneDe(h);
+  const rangs = (Object.keys(J.RANGS) as J.Rang[]).map((r) => plaque(esc(J.RANGS[r].nom), `data-a="rang" ${id} data-k="${r}"`, { taille: 'petite', armee: r === rang, titre: esc(J.RANGS[r].bulle) }));
+  const consignes = J.CONSIGNES.map((c) => plaque(esc(c.nom), `data-a="consigne" ${id} data-k="${c.doctrine ?? ''}"`, { taille: 'petite', armee: c === consigne, titre: esc(c.bulle) }));
+  return `<div class="au-combat"><div class="choix-au-combat"><span class="rub">Au combat</span>${rangs.join('')}</div><div class="choix-au-combat">${consignes.join('')}</div></div>`;
+}
+
+/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son rang et sa consigne au combat, son sac,
+ *  et ce que l'hospice lui vend. */
 function pageDuDepart({ e, choix }: Lecture): Page {
-  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}
+  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}${auCombat(h)}
     <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div>${provisions(e, h)}</section>`);
   const libres = Array.from({ length: Math.max(0, J.TAILLE_DU_GROUPE - groupe.length) }, () => `<section class="carte-service emporte libre"><span class="portrait-vide"></span><span class="place-libre">Place libre</span><span class="sous-titre">un héros du socle</span></section>`);
   return {

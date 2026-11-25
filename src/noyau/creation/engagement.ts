@@ -19,7 +19,7 @@ import { careerLabelFor, findSpeciesById, pregens } from '../../data';
 import { idDuPretire, possessionsTireesDuPretire, pretire, richesseDuPretire } from '../../data/pregens';
 import type { RNG } from '../../engine/dice';
 import { carriereActuelle } from '../../engine/pnjDeCarriere';
-import { recomputeLoadout } from '../../engine/items';
+import { armuresRapides, recomputeLoadout } from '../../engine/items';
 import { garanti } from '../../lib/garanti';
 import { t } from '../../i18n';
 
@@ -45,12 +45,12 @@ export function verdictDEngagement(h: HerosEngage): { id: string | undefined } |
 }
 
 /** Le héros que le noyau bâtit de `h`, que `verdictDEngagement` admet : le pré-tiré de la donnée (`pretire`), augmenté de
- *  ses possessions imprimées à quantité aux dés, tirées à `rng` (`possessionsTireesDuPretire`), ou le brouillon, aux ids de
- *  `idNeuf`. */
+ *  ses possessions imprimées à quantité aux dés, tirées à `rng` (`possessionsTireesDuPretire`), ses armures fondues
+ *  (`armuresRapides`), ou le brouillon, aux ids de `idNeuf`. #4208 */
 export function herosDeLEngagement(h: HerosEngage, idNeuf: FabriqueDId, rng: RNG): Combatant {
   if ('pretire' in h) {
     const hero = pretire(idNeuf, h.pretire);
-    (hero.items ??= []).push(...possessionsTireesDuPretire(garanti(pregens.find((p) => p.id === h.pretire), String(h.pretire), 'pré-tiré'), rng, idNeuf));
+    hero.items = armuresRapides([...(hero.items ?? []), ...possessionsTireesDuPretire(garanti(pregens.find((p) => p.id === h.pretire), String(h.pretire), 'pré-tiré'), rng, idNeuf)]);
     recomputeLoadout(hero);
     return hero;
   }

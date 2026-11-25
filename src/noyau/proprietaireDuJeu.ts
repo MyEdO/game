@@ -26,7 +26,7 @@ import { loadRuleOverrides, ruleOverrides } from '../engine/policy';
 import { cadence, setCadence, type Cadence } from '../engine/cadence';
 import { desFixes, setDesFixes } from '../engine/fixedDie';
 import type { RNG } from '../engine/dice';
-import { patchDeLArmement } from './monde/carrier';
+import { patchDeLEquipement } from './monde/carrier';
 import { poserLeRegistre, reposerPaquetDeCampagne, retirerLeRegistre } from './monde/registreDesScenes';
 import type { Scene } from './monde/scene';
 
@@ -89,7 +89,7 @@ export function ouvrirLeProprietaire(
   const set = ecrire as SetDesClesReservees;
   const actions = creerActionsDuNoyau(get, set);
   loadRuleOverrides(entrees.reglesMaison);
-  let etat = preparerLaPublication({ ...etatInitial, ...patchDeLArmement(etatInitial), ...actions });
+  let etat = preparerLaPublication({ ...etatInitial, ...patchDeLEquipement(etatInitial), ...actions });
 
   const plateforme: Plateforme = {
     programmer: (suite, delai, apresDeplacement) => {

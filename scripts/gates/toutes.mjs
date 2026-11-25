@@ -56,6 +56,8 @@ import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { CACHE_FRAICHEUR } from '../docs/lib/cache-fraicheur.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { RACINES_PRESENTES } from '../guards/lib/racinesPresentes.mjs'
+import { ouvertes } from '../guards/lib/couches.mjs'
+import { dossierHorsDeSrc } from './classerPush.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /**
@@ -86,6 +88,10 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
  * avec la PORTE qui ferme le cas, nommée au chemin (jamais à la gate). Aucune écriture n'est
  * effacée de la table pour faire passer une lane : elle change de champ, en disant pourquoi.
  *
+ * `zones` (optionnel, #4903 L4) : les zones de `COUCHES` dont la gate lit le code, rien d'autre sous `hotes/` et
+ * `projets/` ; la part de `lit` qui touche aux zones en DÉRIVE (`lectureDesZones`), et la gate saute sur un push dont
+ * chaque fichier est dans un dossier de zone qu'elle ne lit pas (`gatesSautees`, scripts/gates/classerPush.mjs).
+ *
  * `delegueeAuPerimetre` (optionnel) : la raison MESURÉE pour laquelle `test:perimetre` ne joue pas cette gate et la
  * laisse à la CI ; tout fichier touché sous son `lit` la nomme au journal (`lignesDeDelegation`, scripts/test/perimetre.mjs).
  */
@@ -94,6 +100,23 @@ const RETRAIT_WORKTREE_FERME = "protectionWorktree.mjs : retirerResiduelVide (rm
 /** Le code des zones que l'arbre porte (`RACINES_PRESENTES`, #2928) : une gate qui lit `src/` lit chaque racine des
  *  zones présente, et la première racine posée y entre sans geste. */
 const DOSSIERS_DES_ZONES = RACINES_PRESENTES.map((r) => `${r}/`)
+
+/** Ce que lit le code des `zones` : `src/` entier, et le dossier de chaque zone hors de `src/` que ces zones ouvrent,
+ *  de proche en proche (`ouvertes`, scripts/guards/lib/couches.mjs) ; un projet n'est ouvert qu'à lui-même. */
+function litDesZones(zones) {
+  const vues = new Set()
+  const visiter = (z) => {
+    if (vues.has(z)) return
+    vues.add(z)
+    const { libres, enType } = ouvertes(z)
+    for (const v of [...libres, ...enType]) visiter(v)
+  }
+  for (const z of zones) visiter(z)
+  return ['src/', ...[...vues].map(dossierHorsDeSrc).filter(Boolean)]
+}
+
+/** L'entrée `zones` et `lit` d'une gate qui lit le code des `zones` et les chemins `autres`, hors des zones. */
+const lectureDesZones = (zones, autres) => ({ zones, lit: [...litDesZones(zones), ...autres] })
 
 /** Ce que LISENT les gates d'audit du dépôt réel (`GATES_D_AUDIT`, scripts/gates/testsParGate.mjs). */
 const LIT_DES_AUDITS = [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'docs/', 'Source/', '.claude/', '.codex/', '.github/', 'AGENTS.md', 'package.json', 'package-lock.json', 'tsconfig.json', 'oxlint.config.mjs', 'knip.json', 'knip-exports-baseline.json', '.npmrc']
@@ -425,7 +448,7 @@ export const ECRIT_LU = {
   },
   'pont:godot': {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       '`vite build` du pont de Godot (hotes/godot/construire.mjs, #2928) sans `--sortie` : `write: false`, le bundle reste ' +
       'en mémoire, exécuté dans un `node:vm`, et rien ne s’écrit ; `configFile: false`, donc aucune config recompilée ; LIT les zones, scripts/ ' +
@@ -460,7 +483,7 @@ export const ECRIT_LU = {
         '(`pont_fige.gd`), dont `requeter` n’envoie aucune requête ; les seules recettes qui ouvrent le pont vivant, ' +
         '`partie-vivante.gd` et `campagne.gd`, jouent une partie (`Combat.tscn`) et n’ouvrent pas l’éditeur',
     },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       '`godot --headless --import`, `--check-only` de chaque script puis exécution des recettes sous `recettes/` ' +
       'déclarant `const RECETTE_AUTONOME := true` (hotes/godot/construire.mjs, #2928, plan M-f), sur ' +
@@ -489,7 +512,7 @@ export const ECRIT_LU = {
       'dist/godot/': 'export Web Godot, paquets et avis de licences sous la sortie ignorée par git',
       'hotes/godot/projet/modeles/': 'mêmes GLB épinglés et mêmes écritures atomiques que `godot:sonde`, avant lui dans le job godot',
     },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison: 'Le constructeur Godot exporte depuis sa copie importée et produit le pont, les paquets, les planches et les licences sous dist/godot/. Les caches sont hors du dépôt.',
   },
   'godot:rendus': {
@@ -502,7 +525,7 @@ export const ECRIT_LU = {
         '(`LANE_LOCALE_DE_JOB`), une SÉRIE : il ne lui reste rien à écrire, et la gate lectrice du dossier, ' +
         '`personnage-3d:tests`, suit `godot:sonde` dans son job comme dans la lane',
     },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       '`godot --headless --import`, puis chaque recette sous `recettes/` déclarant `const RECETTE_RENDUE := true` jouée ' +
       'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
@@ -528,7 +551,7 @@ export const ECRIT_LU = {
         '`--persist-to`, que le mode efface ; `.wrangler/` est gitignoré (server/.gitignore), et la seule autre gate ' +
         'lectrice de server/, `server:typecheck`, ne compile que `server/src/` (server/tsconfig.json)',
     },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'server/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['godot'], ['scripts/', 'server/', 'Source/', 'tsconfig.json', 'package.json']),
     prerequis: [{ chemin: 'server/node_modules', pose: 'npm --prefix server ci' }],
     raison:
       '`godot --headless --import` sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, ' +
@@ -549,7 +572,7 @@ export const ECRIT_LU = {
         'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
         '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml',
     },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       'Le lot natif (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) prépare sous `os.tmpdir()` le bundle du pont ' +
       'et un clone de la copie importée hors de l’arbre (`~/.cache/wfrp-godot-copies/`). Les jeux `combat`, `editeur` et ' +
@@ -588,14 +611,14 @@ export const ECRIT_LU = {
         'la page du roguelite et ses feuilles sous la sortie ignorée par git ; sa seule gate lectrice, ' +
         '`roguelite:recette`, le suit dans le job `godot-recette` de ci.yml, une SÉRIE',
     },
-    lit: [...DOSSIERS_DES_ZONES, 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
     raison:
       'esbuild (projets/roguelite/construire.mjs, #4929) empaquette la façade du noyau du roguelite et son interface, ' +
       'qui tirent les zones du dépôt, et recopie la page et ses feuilles sous dist/roguelite/ (`ecritFerme`)',
   },
   'roguelite:recette': {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
     raison:
       'Le lot (projets/roguelite/recette/lot.mjs, #4929) tire la partie fixe (`partie-fixe.ts`, par tsx, qui lit les ' +
       'zones) puis joue chaque recette dans son processus : Chrome par Playwright, un contexte neuf par page, son ' +
@@ -614,9 +637,7 @@ export const ECRIT_LU = {
         'en sous-processus n’en écrivent pas ' +
         '(`PYTHONDONTWRITEBYTECODE`)',
     },
-    lit: ['scripts/personnage-3d/', 'hotes/godot/asset/charger.mjs', 'hotes/godot/asset/evaluateur/gardes/seuils.json', 'hotes/godot/projet/modeles/', 'package.json',
-      'src/data/materials.json', 'src/data/props.json', 'src/data/props.types.ts', 'src/data/structureAppearance.json',
-      'src/data/terrains.json', 'src/data/vehicles.json', 'src/geometry/dir8.ts', 'src/noyau/monde/piecesDArete.ts', 'src/noyau/monde/relief.ts'],
+    ...lectureDesZones(['godot'], ['scripts/personnage-3d/', 'package.json']),
     raison:
       '`tests.py` (#3145) dans le venv épinglé d’`environnement.mjs`, qui vit hors de l’arbre ' +
       '(`~/.cache/wfrp-personnage-3d/`) ; les tests écrivent leurs GLB sous `tempfile.TemporaryDirectory()`. LIT ' +
@@ -640,7 +661,8 @@ export const ECRIT_LU = {
       'sur base d’`element/`, sur les GLB ' +
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
       'dans la lane) ; tous comparent ' +
-      'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/',
+      'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/. Son `lit` déclare `src/` et `hotes/godot/` entiers, ' +
+      'par ses `zones` (#4903 L4) : elle saute avec `godot:sonde`, qui remplit ce cache, et seulement hors de ces dossiers',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +
       'à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',

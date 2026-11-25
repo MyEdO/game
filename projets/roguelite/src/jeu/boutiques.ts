@@ -7,9 +7,11 @@ import {
   doter,
   gesteDeLObjet,
   articleDuCatalogue,
+  armureRapideDe,
   DISPONIBILITES,
   drPerdusSousLesPieces,
   encombrementDesPieces,
+  equipConflicts,
   maniement,
   objetsEnRayon,
   progression,
@@ -18,22 +20,21 @@ import {
   type ArticleDuCatalogue,
   type ItemInstance,
   type ObjetEnRayon,
-  type PoidsDArmure,
   type Qualite,
 } from '../noyau';
 
 import {
   ARMES_DE_LA_FORGE,
+  ARMURES_DE_LA_FORGE,
   ECHELLE_DES_PRIX,
   GROUPE_DES_REMEDES,
   GROUPES_SANS_COMPETENCE,
   MAIN_SECONDAIRE,
   MUNITIONS,
-  PANOPLIES,
   REMEDES_DE_L_HOSPICE,
   disponibilitesDuPalier,
+  type ArmureDeLaForge,
   type GroupeDeLaForge,
-  type Panoplie,
 } from './valeurs';
 import { Etat, Heros } from './etat';
 import { enRuine } from './village';
@@ -73,27 +74,31 @@ function manie(h: Pick<Heros, 'c'>, id: string): boolean {
 /** Les armes que la forge vend au héros `h` à son palier : celles qu'il manie (`manie`). */
 export const armesEnVente = (e: Etat, h: Pick<Heros, 'c'>): Article[] => auPalier(RAYON_DE_LA_FORGE, e.batiments.forge).filter((id) => manie(h, id)).map(article);
 
-const DISPONIBILITE_EN_RAYON = new Map(objetsEnRayon().map((o) => [o.id, o.disponibilite]));
-/** La Disponibilité d'une panoplie : celle de sa pièce la plus rare. */
-const disponibiliteDe = (p: Panoplie) => DISPONIBILITES[Math.max(...p.pieces.map((id) => DISPONIBILITES.indexOf(DISPONIBILITE_EN_RAYON.get(id)!)))];
-/** Une panoplie en vente (`PANOPLIES`) : son prix, somme des prix de ses pièces, son Encombrement une fois
- *  revêtue (`encombrementDesPieces`), ses PA par zone d'armure (`protectionDesPieces`), les pièces qu'elle revêt et leurs
- *  qualités, Défauts et pénalités de port totales compris (`qualitesDesPieces`, LDB 63). */
-export interface ArmureEnVente { id: Panoplie['id']; label: string; prix: number; enc: number; pa: { zone: string; pa: number }[]; pieces: string[]; qualites: Qualite[] }
-const enVente = (p: Panoplie): ArmureEnVente => {
-  const articles = p.pieces.map(articleDuCatalogue), pieces = doter(p.pieces, 'essai');
-  return {
-    id: p.id, label: p.label, prix: p.pieces.reduce((n, id) => n + prixDe(id), 0), enc: encombrementDesPieces(pieces),
-    pa: protectionDesPieces(pieces), pieces: articles.map((a) => a.label), qualites: qualitesDesPieces(pieces),
-  };
-};
-/** Les panoplies que la forge vend : celles dont la Disponibilité est ouverte à son palier (`disponibilitesDuPalier`). */
-export const armuresEnVente = (e: Etat): ArmureEnVente[] =>
-  PANOPLIES.filter((p) => disponibilitesDuPalier(e.batiments.forge).includes(disponibiliteDe(p))).map(enVente);
-/** La panoplie que porte le héros, reconnue à ses pièces d'armure : exactement les siennes. */
-export function panoplieDe(h: Pick<Heros, 'c'>): Panoplie | undefined {
-  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped).map((i) => i.trappingId ?? '').sort().join();
-  return PANOPLIES.find((p) => [...p.pieces].sort().join() === portees);
+/** Les armures d'une pièce que le héros porte (`armureRapideDe`). */
+const armuresRapidesPortees = (h: Pick<Heros, 'c'>): ItemInstance[] =>
+  (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped && !!i.trappingId && armureRapideDe(i.trappingId) === i.trappingId);
+/** Les armures que le héros garde en revêtant `neuve` : celles d'une pièce qu'il porte sans conflit de couche avec elle
+ *  (`equipConflicts`), une armure Flexible sous une autre qui ne l'est pas ; le reste de son armure est laissé au forgeron.
+ *  LDB 63 l.74 ; MyEdO/game#4208 */
+function gardeesSous(h: Pick<Heros, 'c'>, neuve: ItemInstance): ItemInstance[] {
+  const portees = armuresRapidesPortees(h);
+  const conflits = new Set(equipConflicts({ items: portees }, neuve).map((i) => i.uid));
+  return portees.filter((i) => !conflits.has(i.uid));
+}
+/** Une armure en vente (`ARMURES_DE_LA_FORGE`) : son prix, et ce que le héros porterait l'ayant revêtue sur ce qu'il garde
+ *  (`gardeesSous`) : son Encombrement (`encombrementDesPieces`), ses PA par zone (`protectionDesPieces`) et ses qualités,
+ *  Défauts et pénalités de port totales compris (`qualitesDesPieces`, LDB 63). */
+export interface ArmureEnVente { id: ArmureDeLaForge; label: string; prix: number; enc: number; pa: { zone: string; pa: number }[]; qualites: Qualite[] }
+/** Les armures que la forge vend au héros `h` : celles dont la Disponibilité est ouverte à son palier, hors de celle qu'il porte. */
+export function armuresEnVente(e: Etat, h: Pick<Heros, 'c'>): ArmureEnVente[] {
+  const portees = new Set(armuresRapidesPortees(h).map((i) => i.trappingId));
+  return auPalier(rayon(ARMURES_DE_LA_FORGE), e.batiments.forge).filter((id) => !portees.has(id)).map((id) => {
+    const neuve = doter([id], 'essai'), revetues = [...gardeesSous(h, neuve[0]), ...neuve];
+    return {
+      id: id as ArmureDeLaForge, label: articleDuCatalogue(id).label, prix: prixDe(id), enc: encombrementDesPieces(revetues),
+      pa: protectionDesPieces(revetues), qualites: qualitesDesPieces(revetues),
+    };
+  });
 }
 /** Les potions et remèdes de l'hospice, rien tant qu'il est en ruine. */
 export const provisionsEnVente = (e: Etat): Article[] => (enRuine(e.batiments, 'temple') ? [] : auPalier(RAYON_DE_L_HOSPICE, e.batiments.temple).map(article));
@@ -112,9 +117,8 @@ function sets(h: Pick<Heros, 'c'>) {
  *  la pièce en disent (Dégâts, mains, allonge, portée, qualités) ; pour une arme de tir, les `munitions` qui restent.
  *  Les PA d'une armure se lisent par zone au héros. */
 export interface PieceDecrite { label: string; id?: string; enc: number; degats?: string; mains?: number; allonge?: string; portee?: number; qualites: Qualite[]; munitions?: { label: string; nombre: number } }
-/** L'équipement du héros : ses deux mains (set de mêlée), son arme à distance (set de tir) et son armure portée, nommée
- *  par sa panoplie (`panoplieDe`) quand elle en est une. */
-export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; tir?: PieceDecrite; armure?: PieceDecrite & { panoplie?: Panoplie['id'] } } {
+/** L'équipement du héros : ses deux mains (set de mêlée), son arme à distance (set de tir) et son armure portée. */
+export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDecrite; tir?: PieceDecrite; armure?: PieceDecrite } {
   const { melee, tir } = sets(h);
   const arme = (uid?: string): PieceDecrite | undefined => {
     const it = objetDe(h, uid);
@@ -127,24 +131,24 @@ export function panoplie(h: Heros): { main?: PieceDecrite; secondaire?: PieceDec
       ...(munition ? { munitions: { label: articleDuCatalogue(munition).label, nombre: reste.reduce((n, i) => n + (i.qty ?? 1), 0) } } : {}),
     };
   };
-  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped), revetue = panoplieDe(h);
+  const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
   return {
     main: arme(melee?.main), secondaire: arme(melee?.secondaire), tir: arme(tir?.main),
     ...(portees.length ? { armure: {
-      label: revetue?.label ?? portees.map((i) => i.label).join(', '), enc: encombrementDesPieces(portees),
-      qualites: qualitesDesPieces(portees), ...(revetue ? { panoplie: revetue.id } : {}),
+      label: portees.map((i) => i.label).join(', '), enc: encombrementDesPieces(portees), qualites: qualitesDesPieces(portees),
     } } : {}),
   };
 }
 
 /** Ce qui se voit du héros équipé : la forme (`shape.id`) de ce que tiennent ses mains (set de mêlée) et combien de
- *  mains prend son arme, la forme de son arme de tir, le poids de son armure la plus lourde et les membres couverts. */
-export interface Allure { main?: { forme: string; mains: number }; secondaire?: string; tir?: string; armure?: { poids: PoidsDArmure; bras: boolean; jambes: boolean } }
-const POIDS_DE_MATIERE: Record<string, PoidsDArmure> = { 'cuir-souple': 'legere', 'cuir-bouilli': 'legere', mailles: 'moyenne', plate: 'lourde' };
+ *  mains prend son arme, la forme de son arme de tir, la plus lourde des armures d'une pièce dans lesquelles se lit son
+ *  armure (`armureRapideDe`) et les membres couverts. */
+export interface Allure { main?: { forme: string; mains: number }; secondaire?: string; tir?: string; armure?: { poids: ArmureDeLaForge; bras: boolean; jambes: boolean } }
 export function allure(h: Pick<Heros, 'c'>): Allure {
   const lo = sets(h), main = objetDe(h, lo.melee?.main), secondaire = objetDe(h, lo.melee?.secondaire), tir = objetDe(h, lo.tir?.main);
   const portees = (h.c.items ?? []).filter((i) => i.kind === 'armor' && i.equipped);
-  const poids = (['lourde', 'moyenne', 'legere'] as const).find((p) => portees.some((i) => POIDS_DE_MATIERE[i.subType ?? ''] === p));
+  const lues = new Set(portees.map((i) => i.trappingId && armureRapideDe(i.trappingId)));
+  const poids = [...ARMURES_DE_LA_FORGE].reverse().find((b) => lues.has(b));
   const couvre = (zone: 'bras' | 'jambe') => portees.some((i) => i.locs?.some((l) => l.startsWith(zone)));
   return {
     ...(main?.shape ? { main: { forme: main.shape.id, mains: main.hands ?? 1 } } : {}), ...(secondaire?.shape ? { secondaire: secondaire.shape.id } : {}),
@@ -264,21 +268,22 @@ export function prendreSesArmes(e: Etat, h: Heros): void {
   if (gestes.length) auNoyau(e, h, gestes);
 }
 
-/** Achète la panoplie `panoplieId` au héros : toute son armure est laissée au forgeron, sans reprise, et le noyau lui
- *  fait revêtir les pièces de la panoplie (`tenirLesObjets`). */
-export function acheterUneArmure(e: Etat, id: string, panoplieId: string): string | null {
+/** Achète l'armure `armureId` au héros : il garde dessous ou dessus les armures d'une pièce qui s'y superposent
+ *  (`gardeesSous`), laisse le reste de son armure au forgeron, sans reprise, et le noyau la lui fait revêtir
+ *  (`tenirLesObjets`). */
+export function acheterUneArmure(e: Etat, id: string, armureId: string): string | null {
   const h = heros(e, id);
   if (!h) return 'Héros introuvable.';
-  const offre = armuresEnVente(e).find((a) => a.id === panoplieId);
+  if (armuresRapidesPortees(h).some((i) => i.trappingId === armureId)) return 'Il la porte déjà.';
+  const offre = armuresEnVente(e, h).find((a) => a.id === armureId);
   if (!offre) return 'La forge ne la vend pas encore.';
-  if (panoplieDe(h)?.id === panoplieId) return 'Il la porte déjà.';
-  const pieces = PANOPLIES.find((p) => p.id === panoplieId)!.pieces;
-  const dr = drPerdusSousLesPieces(h.c, doter(pieces, 'essai'));
+  const essai = doter([armureId], 'essai')[0], gardees = gardeesSous(h, essai);
+  const dr = drPerdusSousLesPieces(h.c, [...gardees, essai]);
   if (dr) return `${offre.label} : −${dr} DR à ses Tests d’Incantation.`; // LDB 46 l.150-152
   const refus = payer(e, h, offre.prix);
   if (refus) return refus;
-  h.c = { ...h.c, items: (h.c.items ?? []).filter((i) => i.kind !== 'armor') };
-  tenirLesObjets(e, h, doter(pieces, `forge${e.graine++}`));
+  h.c = { ...h.c, items: (h.c.items ?? []).filter((i) => i.kind !== 'armor' || gardees.includes(i)) };
+  tenirLesObjets(e, h, doter([armureId], `forge${e.graine++}`));
   return null;
 }
 
