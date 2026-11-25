@@ -29,6 +29,7 @@ import {
   type CodeDEcartDElement,
 } from './element.ts';
 import { ecrireGlb, lireGlb } from './glb.ts';
+import { validerModele } from './modeles.ts';
 
 const BASE: BaseDUnElement = {
   base: 'humanoide',
@@ -399,50 +400,47 @@ describe('validerElement : ce qui change selon la saison d’un décor (#4335)',
   });
 });
 
-describe('CLI godot:valider : base validée avant l’élément', () => {
-  const dossiers: string[] = [];
-  afterEach(() => dossiers.splice(0).forEach(d => rmSync(d, { recursive: true, force: true })));
-  const vetement = (piece: string) => ({
-    ...elementSchema3(), categorie: 'vetement', cle: { piece }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: [], surfaces: [{ nom: 'metal', palette: 'vet1' }],
-  });
+describe('validerModele : un élément se juge contre sa base validée, ou seul sans base', () => {
+  const baseLivree = (brut: unknown = baseDeTest()) => new Map([['humanoide', { brut, octets: GLB_DE_BASE }]]);
   const tete = (id: string) => ({
     ...elementSchema3(), categorie: 'tete', cle: { tete: id }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'metal', palette: 'peau' }],
   });
-  const pilosite = (coiffure: string) => ({
-    ...elementSchema3(), categorie: 'pilosite', cle: { coiffure }, liaison: { mode: 'squelette' }, couche: 'peau', couvre: [], surfaces: [{ nom: 'metal', palette: 'cheveux' }],
+  it('une tête monstrueuse de la garde-robe se valide', () => expect(validerModele(tete('skaven'), GLB_D_ELEMENT, baseLivree())).toMatchObject({ ok: true }));
+  it('une tête monstrueuse absente de la garde-robe est nommée', () => {
+    expect(validerModele(tete('rat'), GLB_D_ELEMENT, baseLivree())).toEqual({ ok: false, refus: [expect.stringMatching(/^\[cle-inconnue\] cle\.tete : rat/)] });
   });
-  it.each(['valide', 'vetement', 'tete', 'tete-monstrueuse', 'pilosite', 'os-inconnu', 'glb-different', 'base-absente', 'forme', 'chemin-absolu', 'cle-inconnue', 'cle-inconnue-tete', 'cle-inconnue-tete-monstrueuse'] as const)('%s', cas => {
+  it('une base dont l’empreinte diffère de son GLB refuse l’élément, nommée côté base', () => {
+    const base = baseDeTest();
+    base.glb.sha256 = 'a'.repeat(64);
+    expect(validerModele(elementSchema3(), GLB_D_ELEMENT, baseLivree(base))).toEqual({ ok: false, refus: [expect.stringMatching(/^\[glb-different\] base /)] });
+  });
+  it('un véhicule se valide sans base, et refuse la base qu’il nomme', () => {
+    expect(validerModele(vehiculeDeTest(), GLB_SANS_BASE)).toMatchObject({ ok: true });
+    expect(validerModele({ ...vehiculeDeTest(), base: 'humanoide' }, GLB_SANS_BASE)).toEqual({ ok: false, refus: [expect.stringMatching(/^\[champ-hors-categorie\] base/)] });
+  });
+});
+
+describe('CLI godot:valider : le câblage de la porte', () => {
+  const dossiers: string[] = [];
+  afterEach(() => dossiers.splice(0).forEach(d => rmSync(d, { recursive: true, force: true })));
+  it.each([
+    ['valide', 0, null],
+    ['cle-inconnue', 1, '[cle-inconnue] cle.piece : robe-de-bure'],
+    ['base-absente', 1, '[glb-de-base-absent]'],
+  ] as const)('%s', (cas, statut, imprime) => {
     const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
     dossiers.push(d);
-    const base = baseDeTest();
-    if (cas === 'os-inconnu') base.os = ['absent'];
-    if (cas === 'glb-different') base.glb.sha256 = 'a'.repeat(64);
-    writeFileSync(join(d, 'base.manifeste.json'), JSON.stringify(base));
+    writeFileSync(join(d, 'base.manifeste.json'), JSON.stringify(baseDeTest()));
     if (cas !== 'base-absente') writeFileSync(join(d, 'base.glb'), GLB_DE_BASE);
-    const element = cas === 'forme' ? { ...elementSchema3(), surfaces: undefined }
-      : cas === 'chemin-absolu' ? { ...elementSchema3(), surfaces: [{ nom: 'C:\\Users\\x\\metal.png', palette: 'metal' }] }
-      : cas === 'vetement' ? vetement('pourpoint') : cas === 'cle-inconnue' ? vetement('robe-de-bure')
-      : cas === 'tete' ? tete('humain') : cas === 'cle-inconnue-tete' ? tete('humain-m-1')
-      : cas === 'tete-monstrueuse' ? tete('skaven') : cas === 'cle-inconnue-tete-monstrueuse' ? tete('rat')
-      : cas === 'pilosite' ? pilosite('crane-rase') : elementSchema3();
+    const element = cas === 'cle-inconnue'
+      ? { ...elementSchema3(), categorie: 'vetement', cle: { piece: 'robe-de-bure' }, liaison: { mode: 'squelette' }, couche: 'tenue', couvre: [], surfaces: [{ nom: 'metal', palette: 'vet1' }] }
+      : elementSchema3();
     writeFileSync(join(d, 'element.json'), JSON.stringify(element));
     writeFileSync(join(d, 'element.glb'), GLB_D_ELEMENT);
     const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'base.manifeste.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
     expect(r.error).toBeUndefined();
-    const accepte = cas === 'valide' || cas === 'vetement' || cas === 'tete' || cas === 'tete-monstrueuse' || cas === 'pilosite';
-    expect(r.status, r.stderr + r.stdout).toBe(accepte ? 0 : 1);
-    if (cas === 'cle-inconnue') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.piece : robe-de-bure');
-    else if (cas === 'cle-inconnue-tete') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : humain-m-1');
-    else if (cas === 'cle-inconnue-tete-monstrueuse') expect(r.stdout + r.stderr).toContain('[cle-inconnue] cle.tete : rat');
-    else if (!accepte) expect(r.stdout + r.stderr).toContain(cas === 'base-absente' ? 'glb-de-base-absent' : cas);
-  }, 65000);
-  it.each([['vehicule', 0], ['vehicule-avec-base', 1]] as const)('%s : un élément sans base se valide sans manifeste de base', (cas, statut) => {
-    const d = mkdtempSync(join(tmpdir(), 'element-cli-'));
-    dossiers.push(d);
-    writeFileSync(join(d, 'element.json'), JSON.stringify(cas === 'vehicule' ? vehiculeDeTest() : { ...vehiculeDeTest(), base: 'humanoide' }));
-    writeFileSync(join(d, 'element.glb'), GLB_SANS_BASE);
-    const r = spawnSync(process.execPath, ['hotes/godot/asset/valider.mjs', join(d, 'element.json'), join(d, 'element.glb')], { encoding: 'utf8', timeout: 60000 });
     expect(r.status, r.stderr + r.stdout).toBe(statut);
-    if (statut) expect(r.stdout).toContain('[champ-hors-categorie] base');
+    if (imprime) expect(r.stdout + r.stderr).toContain(imprime);
   }, 65000);
 });
+
