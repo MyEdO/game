@@ -12,20 +12,33 @@
 // (`scripts/docs/lib/structures-lexique.mts`) — ils ne se reformulent nulle part.
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
 import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
+import { projetDoc } from '../../../src/data/schemas/defs-scenes/projet';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import { estFeuilleDId, mesureDuParse, reperesDuParse, type CibleDeReference } from '../../../src/data/schemas/grammaire/ref';
 import { defDe, descendre, enfantsDe, declarationDEnfants } from '../../../src/data/schemas/grammaire/descente';
 import { OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
-import { nomDeDocument, type OccurrenceDeReference, type ReferencesParPorteur } from './structures-scan.mjs';
+import { nomDeDocument, RACINE_DES_PAQUETS, type OccurrenceDeReference, type ReferencesParPorteur } from './structures-scan.mjs';
 import { parUnitesDeCode } from '../../guards/lib/lister.mjs';
 
 /**
  * Les defs des DEUX racines, keyées comme le scan key ses documents : par BASENAME. Les defs de
- * `src/scenes` déclarent un CHEMIN RELATIF (`arene/arene-projet.json`) là où `listerDocuments` rend
+ * `src/scenes` déclarent un CHEMIN RELATIF (`<x>/<x>-projet.json`) là où `listerDocuments` rend
  * un basename — sans cette normalisation la jointure déclaré × observé serait VIDE sur les scènes.
+ * Un paquet mesuré (`paquets`, chemins de `listerDocuments`) que le registre ne déclare pas est un
+ * document de projet (`projetDoc`) : un projet livre ses paquets sans def au registre du commun (#4936).
  */
-export function defsDeDocument(): SchemaDef[] {
-  return [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES].map((d) => ({ ...d, file: nomDeDocument(d.file) }));
+export function defsDeDocument(paquets: readonly string[] = []): SchemaDef[] {
+  const registre = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES].map((d) => ({ ...d, file: nomDeDocument(d.file) }));
+  const declares = new Set(registre.map((d) => d.file));
+  const projets = paquets.map(nomDeDocument).filter((file) => !declares.has(file)).map((file) => ({
+    file,
+    root: RACINE_DES_PAQUETS,
+    schema: projetDoc.schema,
+    famille: projetDoc.famille,
+    meta: projetDoc.meta,
+    exposition: projetDoc.exposition,
+  }));
+  return [...registre, ...projets];
 }
 
 /**

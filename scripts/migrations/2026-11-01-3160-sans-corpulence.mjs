@@ -1,6 +1,6 @@
 /**
  * #3160
- * Entrées : `src/data/pregens.json`, `src/scenes/arene/arene-projet.json` et `src/scenes/loup-et-saumure/loup-et-saumure-projet.json` (lues et réécrites).
+ * Entrées : `src/data/pregens.json`, `projets/jeu-de-role/campagnes/arene/arene-projet.json` et `projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json` (lues et réécrites).
  */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
@@ -8,8 +8,8 @@ import { serializeDataset } from '../../src/data/serialize.ts';
 
 const cibles = [
   ['src/data/pregens.json', true],
-  ['src/scenes/arene/arene-projet.json', false],
-  ['src/scenes/loup-et-saumure/loup-et-saumure-projet.json', false],
+  ['projets/jeu-de-role/campagnes/arene/arene-projet.json', false],
+  ['projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json', false],
 ];
 for (const [rel, dataset] of cibles) {
   const chemin = fileURLToPath(new URL(`../../${rel}`, import.meta.url));

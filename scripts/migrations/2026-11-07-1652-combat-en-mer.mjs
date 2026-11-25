@@ -12,7 +12,7 @@
  *   `monstre-marin`            lisent dans `params.creatures` (« 1-3 : hydre d'os »…), nombre et Trait Nuée
  *                              compris                                 MDG 15 l.142-143, l.165-168
  *
- * Entrées : src/data/sea-events.json et chaque `src/scenes/<c>/<c>-projet.json`. Une rangée nommée absente
+ * Entrées : src/data/sea-events.json et chaque projet livré `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`). Une rangée nommée absente
  * n'est pas une anomalie : la migration rejouée après sa suppression sort 0 sans écrire.
  *
  * FORME ASSERTÉE SUR LE RÉSULTAT : aucune rangée ne porte plus un genre migré, aucune ne porte à la fois
@@ -20,10 +20,11 @@
  * `params` hors de la forme attendue, une créature inconnue ou un document non canonique sont un ARRÊT
  * nominatif (exit 1), AUCUNE écriture. Rejouée sur l'arbre migré : no-op byte-identique.
  */
-import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SEA = join(ROOT, 'src/data/sea-events.json');
@@ -130,17 +131,12 @@ function reserialise(doc, texte) {
   return `${JSON.stringify(doc, null, indent)}${texte.endsWith('\n') ? '\n' : ''}`;
 }
 
-const SCENES = join(ROOT, 'src/scenes');
-const projets = readdirSync(SCENES, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => join(SCENES, d.name, `${d.name}-projet.json`))
-  .filter((f) => existsSync(f));
 const ecritures = [];
-for (const fichier of projets) {
+for (const nom of cheminsDesProjetsLivres(ROOT)) {
+  const fichier = join(ROOT, nom);
   const brut = readFileSync(fichier, 'utf8');
   if (!brut.includes('"woundsThreshold"')) continue;
   const doc = JSON.parse(brut);
-  const nom = fichier.slice(SCENES.length + 1);
   if (brut !== reserialise(doc, brut)) { arrets.push(`${nom} : forme non canonique`); continue; }
   const migrer = (noeud, chemin) => {
     if (Array.isArray(noeud)) { noeud.forEach((v, i) => migrer(v, `${chemin}[${i}]`)); return; }

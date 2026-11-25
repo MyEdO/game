@@ -57,7 +57,7 @@ const ROOT = resolve(racineDe(depotDe(process.cwd())) ?? process.cwd());
 const depot = depotDe(ROOT);
 // Périmètre de `scanHardcode` : celui de `combat-hardcode-guard.test.ts` (`SCAN_DIRS`).
 const hardcodeRe = /^src\/(?:engine|state)\//;
-const estJsonDeDonnee = (rel) => /^src\/scenes\/.*\.json$/.test(rel) || /^src\/data\/[^/]+\.json$/.test(rel);
+const estJsonDeDonnee = (rel) => /^(src\/scenes|projets)\/.*\.json$/.test(rel) || /^src\/data\/[^/]+\.json$/.test(rel);
 /** La baseline nominative, relative à la racine du dépôt qui porte ce hook : lue dans l'INDEX de ROOT
  *  comme le contenu jugé. */
 const BASELINE = relative(fileURLToPath(new URL('../..', import.meta.url)), DECISIONS_BASELINE_PATH).split(sep).join('/');
@@ -146,7 +146,7 @@ for (const rel of staged) {
     for (const x of scanRollSeamExclusivity(rel, text)) avertir('seam de jet contourné', `${rel}:${x.line} ${x.detail}`);
 }
 
-// #290 — emoji dans la DONNÉE (`src/scenes/**/*.json` + `src/data/*.json`).
+// #290 — emoji dans la DONNÉE (`src/scenes/**/*.json`, `projets/**/*.json` + `src/data/*.json`).
 for (const rel of staged.filter(estJsonDeDonnee)) {
   const text = texteAJuger(rel);
   if (text === null) continue;

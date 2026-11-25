@@ -1,64 +1,19 @@
 import { idsDeTest } from './engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { listerProjetsLivres } from '../scripts/guards/lib/projetsLivres.mjs';
-import { lireProjetLivre } from '../scripts/source/projetLivre.mjs';
 import { findPropById, props } from './data';
 import { setDataset } from './data/overrides';
-import { empriseLocaleM, type PropPrimitive } from './data/props.types';
-import { emptyScene, heightAt, tileAt, sceneMetresPerTile, type Scene, type SceneEntity } from './noyau/monde/scene';
+import type { PropPrimitive } from './data/props.types';
+import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from './noyau/monde/scene';
 import { propFootTiles } from './noyau/monde/footprint';
 import { parseProject } from './noyau/worldMap';
-import { fieldHeightAt, massCovers, resolveNappes } from './noyau/monde/volume/toits';
+import { fieldHeightAt, resolveNappes } from './noyau/monde/volume/toits';
 import { SCENARIOS } from './scenes/test-scenarios/_registry.generated';
+import paquetDeTest from './scenes/fixtures/paquet-de-test.json';
+import { decorsQuiTraversent } from './noyau/monde/decorSousPlafond.testkit';
 
-/**
- * AUCUN DÉCOR VOLUMIQUE NE TRAVERSE UNE DALLE NI UN TOIT (#1343). Le corps d'un décor posé au niveau
- * `z` monte depuis le sol de sa case (`heightAt`) jusqu'au
- * `haut` de sa primitive la plus haute (`empriseLocaleM`). Son PLAFOND, case par case de son empreinte :
- * - le sol du premier niveau supérieur dont la case n'est pas `vide` — un volume à double hauteur
- *   (étage `vide` au-dessus) prend le plafond du niveau d'après ;
- * - sinon le point le plus BAS du toit au-dessus de la case : parmi les nappes qui la coiffent à ce
- *   niveau (`resolveNappes`, `massCovers`), le minimum de `fieldHeightAt` sur ses quatre coins ;
- * - sinon rien : une case à ciel ouvert n'a pas de plafond.
- */
 
-const projets = listerProjetsLivres();
-const scenesDeProjet: Scene[] = projets.flatMap((f) => parseProject(lireProjetLivre(f)).scenes);
-const scenesDeScenario: Scene[] = SCENARIOS.map((sc) => sc.construire(idsDeTest).scene);
-const SCENES: Scene[] = [...scenesDeScenario, ...scenesDeProjet];
-
-function plafondM(scene: Scene, x: number, y: number, z: number): number | undefined {
-  const dessus = scene.layers.map((l) => l.z).filter((zz) => zz > z).sort((a, b) => a - b);
-  for (const zz of dessus) if (tileAt(scene, x, y, zz) !== 'vide') return heightAt(scene, x, y, zz);
-  let toit: number | undefined;
-  for (const nappe of resolveNappes(scene).values()) {
-    if (!massCovers(nappe.mass, nappe.cells, x, y, z)) continue;
-    const coins = [{ x, y }, { x: x + 1, y }, { x, y: y + 1 }, { x: x + 1, y: y + 1 }];
-    toit = Math.min(toit ?? Infinity, ...coins.map((v) => fieldHeightAt(nappe.field, v)));
-  }
-  return toit;
-}
-
-/** Les décors volumiques d'une scène qui dépassent le plafond d'une case de leur empreinte. */
-function decorsQuiTraversent(scene: Scene): string[] {
-  const mpt = sceneMetresPerTile(scene);
-  const out: string[] = [];
-  for (const e of scene.entities as SceneEntity[]) {
-    const prop = e.kind === 'prop' ? findPropById(e.decor?.id) : undefined;
-    if (!prop?.volume) continue;
-    const z = e.z ?? 0;
-    const hautM = Math.max(...prop.volume.primitives.map((p) => empriseLocaleM(p).haut));
-    const sommet = heightAt(scene, e.pos.x, e.pos.y, z) + hautM;
-    for (const t of propFootTiles(e.decor?.id, e.pos, e.facing, mpt)) {
-      const plafond = plafondM(scene, t.x, t.y, z);
-      if (plafond !== undefined && sommet > plafond + 1e-6) {
-        out.push(`${scene.id} ${e.id} (${e.decor?.id}) z${z} : sommet ${sommet.toFixed(2)} m > plafond ${plafond.toFixed(2)} m en (${t.x},${t.y})`);
-        break;
-      }
-    }
-  }
-  return out;
-}
+/** Les scènes du commun : les scénarios de test et le paquet de test ; un projet joue les siennes dans sa suite. */
+const SCENES: Scene[] = [...SCENARIOS.map((sc) => sc.construire(idsDeTest).scene), ...parseProject(paquetDeTest).scenes];
 
 describe('aucun décor volumique ne traverse une dalle ni un toit (#1343)', () => {
   it('le corpus porte des scènes à étage ET des scènes coiffées de toits', () => {
@@ -66,7 +21,7 @@ describe('aucun décor volumique ne traverse une dalle ni un toit (#1343)', () =
     expect(SCENES.some((s) => resolveNappes(s).size > 0), 'une nappe de toiture au moins').toBe(true);
   });
 
-  it('dans toutes les scènes (scénarios de test et projets), chaque corps reste sous le plafond de ses cases', () => {
+  it('dans toutes les scènes (scénarios de test et paquet de test), chaque corps reste sous le plafond de ses cases', () => {
     const fautes = SCENES.flatMap(decorsQuiTraversent);
     expect(fautes, fautes.join('\n')).toEqual([]);
   });

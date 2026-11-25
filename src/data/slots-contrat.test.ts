@@ -14,7 +14,6 @@ import {
   type Slot,
 } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, scannerDonnees } from '../../scripts/docs/lib/structures-scan.mjs';
-import { cheminsDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { ANGLES_MORTS_SLOTS, MANDAT_SLOTS } from '../../scripts/docs/lib/structures-lexique.mjs';
 import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
@@ -50,11 +49,11 @@ const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** La composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`) : la
  *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `inventaireDeDette.mts`. */
-const { defs: DEFS, scan } = scanDuCorpus(ROOT, cheminsDesProjetsLivres(ROOT));
+const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const SLOTS = slotsDuParse(scan, DEFS);
 const couple = (dataset: string, champ: string) => couplesDeReference(scan, SLOTS).find((c) => c.dataset === dataset && c.champ === champ);
 const slotsAuPath = (dataset: string, path: string) => SLOTS.filter((s) => s.dataset === dataset && s.path === path);
-/** Le paquet de test du commun (`defs-scenes/paquet-de-test.ts`), hors du scan : ses slots se lisent par le parse de son def. */
+/** Le paquet de test du commun (`defs-scenes/paquet-de-test.ts`), par son import : ses slots se lisent par le parse de son def, à l’identité de ses objets. */
 type EffetDeTest = { skill?: object };
 const PAQUET = paquetDeTest as unknown as {
   scenes: { layers: { tiles: string[] }[]; entities: { decor?: object }[]; dialogues: { nodes: { choices: { flow: { etapes: { effet: EffetDeTest }[] } }[] }[] }[] }[];
@@ -136,18 +135,14 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('branche LISTE d’ids nus (`arene-projet.json › tiles`) : chaque liste est UNE occurrence, atteinte par ses éléments', () => {
-    expect(couplesTouches(slotsAuPath('arene-projet.json', 'scenes[].layers[].tiles[]'))).toContain('arene-projet.json | tiles');
-    const c = couple('arene-projet.json', 'tiles')!;
-    expect(c.atteintes).toBe(c.occurrences);
-  });
-
   it('branche LISTE d’ids nus (`paquet-de-test.json › tiles`) : chaque liste porte un slot par élément', () => {
     const tuiles = slotsDuPaquet('scenes[].layers[].tiles[]');
     const listes = PAQUET.scenes.flatMap((sc) => sc.layers.map((l) => l.tiles));
     expect(new Set(tuiles.map((s) => s.type))).toEqual(new Set(['terrain']));
     for (const liste of listes) expect(tuiles.filter((s) => s.porteur === liste).map((s) => s.cle)).toEqual(liste.map((_, i) => i));
     expect(tuiles.length).toBe(listes.flat().length);
+    const c = couple('paquet-de-test.json', 'tiles')!;
+    expect(c.atteintes, 'chaque liste est UNE occurrence, atteinte par ses éléments').toBe(c.occurrences);
   });
 
   it('cas canonique `merchants.json › [].curated[]` : chaque occurrence atteinte, chaque valeur un slot de trapping', () => {
@@ -166,19 +161,15 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(champsSansSlot(scan, SLOTS)).toContainEqual(c);
   });
 
-  it('RÉCURSION : un `test.skill` sous un flux de dialogue est un slot (`loup-et-saumure-projet.json › skill`, joint)', () => {
-    expect(couplesTouches(slotsAuPath('loup-et-saumure-projet.json', 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.skill.id'))).toEqual([
-      'loup-et-saumure-projet.json | skill',
-    ]);
-    const c = couple('loup-et-saumure-projet.json', 'skill')!;
-    expect(c.atteintes).toBe(c.occurrences);
-  });
-
   it('RÉCURSION : un `test.skill` sous un flux de dialogue est un slot (`paquet-de-test.json › skill`)', () => {
     const effets = PAQUET.scenes.flatMap((sc) => sc.dialogues.flatMap((d) => d.nodes.flatMap((n) => n.choices.flatMap((c) => c.flow.etapes.map((e) => e.effet)))));
     const competences = effets.flatMap((e) => (e.skill ? [e.skill] : []));
     expect(competences.length).toBeGreaterThan(0);
     expect(slotsDuPaquet('scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.skill.id').map((s) => [s.porteur, s.type])).toEqual(competences.map((c) => [c, 'skill']));
+  });
+
+  it('PAYLOAD D’OP sous un flux de dialogue : le facteur de Manann est un slot de son catalogue (`paquet-de-test.json`, joint)', () => {
+    expect(new Set(slotsAuPath('paquet-de-test.json', 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.ops[].facteur.id').map((s) => s.type))).toEqual(new Set(['manannFactor']));
   });
 
   it('PAYLOAD D’OP : une référence validée par le `superRefine` de `gameOpSchema` est un slot (`tables.json › of`, joint)', () => {
@@ -187,16 +178,12 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(c.atteintes).toBe(c.occurrences);
   });
 
-  it('CORPS DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `ref(\'prop\')` (`diligence-projet.json › decor`, joint)', () => {
-    expect(new Set(slotsAuPath('diligence-projet.json', 'scenes[].entities[].decor.id').map((s) => s.type))).toEqual(new Set(['prop']));
-    const c = couple('diligence-projet.json', 'decor')!;
-    expect(c.atteintes).toBe(c.occurrences);
-  });
-
   it('CORPS DE DÉCOR : la branche `prop` de `sceneEntitySchema` porte `ref(\'prop\')` (`paquet-de-test.json › decor`)', () => {
     const decors = PAQUET.scenes.flatMap((sc) => sc.entities.flatMap((e) => (e.decor ? [e.decor] : [])));
     expect(decors.length).toBeGreaterThan(0);
     expect(slotsDuPaquet('scenes[].entities[].decor.id').map((s) => [s.porteur, s.type])).toEqual(decors.map((d) => [d, 'prop']));
+    const c = couple('paquet-de-test.json', 'decor')!;
+    expect(c.atteintes).toBe(c.occurrences);
   });
 
   it('fixture : une Spécialisation homonyme d’un id n’ouvre aucune référence (`CLES_DE_SPECIALISATION`, #1904)', () => {

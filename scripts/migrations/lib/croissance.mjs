@@ -33,6 +33,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 import { listerDossier } from '../../guards/lib/lister.mjs';
+import { cheminsDesProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
 import { pagesDeLAtlas } from '../../raw/_lib.mjs';
 import { comparer, empreinteDe } from './empreinteRejeu.mjs';
 import { PERIMETRE } from '../replay.mjs';
@@ -172,10 +173,7 @@ export function croitreDocuments(racine) {
     grandir(rel, (doc) => doc);
   }
 
-  for (const campagne of listerDossier(path.join(racine, 'src/scenes'), { absent: 'vide' })) {
-    const rel = `src/scenes/${campagne}/${campagne}-projet.json`;
-    if (fs.existsSync(path.join(racine, rel))) grandir(rel, (doc) => doc?.scenes);
-  }
+  for (const rel of cheminsDesProjetsLivres(racine)) grandir(rel, (doc) => doc?.scenes);
 
   return { faits, sautes };
 }

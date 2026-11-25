@@ -7,10 +7,10 @@
  * migration sur un dépôt JETABLE (`os.tmpdir()`), une fois par scénario, et exige à chaque fois la
  * sortie 1, un message NOMINATIF, et ZÉRO fichier touché (octet ET horodatage antidaté).
  *
- * Le TÉMOIN ouvre le banc : sur la copie FIDÈLE de l'arbre (déjà migré), la migration sort 0 sans
+ * Le TÉMOIN ouvre le banc : sur les catalogues de l'arbre (déjà migrés), la migration sort 0 sans
  * rien écrire — sans lui, les deux rouges ne prouveraient pas que le dépôt jetable est jouable.
- * Les documents de projet sont posés dans l'état que la migration produit : la couverture en id nu
- * (#2968 L12).
+ * Le document de projet est le paquet de test du commun, posé là où la migration le cherche et dans
+ * l'état qu'elle produit : la couverture en id nu (#2968 L12, #4936).
  *
  * Ce banc vit sous `lib/` : `replay.mjs` scanne le dossier des migrations à PLAT et n'y admet que
  * des `.mjs` à préfixe DATÉ — un `.test.mjs` posé à côté des migrations y serait rejoué ou refusé.
@@ -19,20 +19,15 @@ import { strict as assert } from 'node:assert';
 import fs from 'node:fs';
 import path from 'node:path';
 import test from 'node:test';
-import { fileURLToPath } from 'node:url';
 import { FORME_DATA, FORME_PROJET, serialise } from './croissance.mjs';
 import { depot, efface, joue, lireArbre, rienTouche } from './joue.mjs';
 import { tableTotale } from '../../../src/lib/tableTotale.ts';
 
-const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
 const MIGRATION = '2026-09-05-1686-ardoise-ids-composes.mjs';
 
-/** Les documents de projet du dépôt, tels que la migration les découvre. */
-const PROJETS = fs
-  .readdirSync(path.join(RACINE, 'src/scenes'), { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => `src/scenes/${d.name}/${d.name}-projet.json`)
-  .filter((rel) => fs.existsSync(path.join(RACINE, rel)));
+/** Le paquet de test du commun, et l'emplacement où la migration découvre un document de projet. */
+const PAQUET_DE_TEST = 'src/scenes/fixtures/paquet-de-test.json';
+const PROJET = 'projets/paquet-de-test/paquet-de-test-projet.json';
 
 const DATASETS = ['src/data/materials.json', 'src/data/props.json'];
 
@@ -50,12 +45,15 @@ const projetEnIdNu = (doc) => ({
 });
 
 /**
- * Dépôt jetable portant EXACTEMENT ce que la migration lit — les documents de l'arbre, sous leur
- * forme canonique, ceux de projet à leur couverture en id nu. `mute` reçoit `{ docs }` (documents
- * parsés, keyés par chemin relatif) et les modifie en place avant la pose.
+ * Dépôt jetable portant EXACTEMENT ce que la migration lit — les catalogues de l'arbre et le document
+ * de projet, sous leur forme canonique, ce dernier à sa couverture en id nu. `mute` reçoit `{ docs }`
+ * (documents parsés, keyés par chemin relatif) et les modifie en place avant la pose.
  */
 function depotMute(mute) {
-  const docs = tableTotale([...DATASETS, ...PROJETS], (rel) => (PROJETS.includes(rel) ? projetEnIdNu : (d) => d)(JSON.parse(lireArbre(rel))));
+  const docs = {
+    ...tableTotale(DATASETS, (rel) => JSON.parse(lireArbre(rel))),
+    [PROJET]: projetEnIdNu(JSON.parse(lireArbre(PAQUET_DE_TEST))),
+  };
   mute(docs);
   return depot(
     Object.fromEntries(
@@ -64,7 +62,7 @@ function depotMute(mute) {
   );
 }
 
-test('TÉMOIN : sur la copie fidèle de l’arbre (déjà migré), la migration sort 0 sans rien écrire', (t) => {
+test('TÉMOIN : sur les catalogues de l’arbre (déjà migrés) et le paquet de test, la migration sort 0 sans rien écrire', (t) => {
   const { racine, avant } = depotMute(() => {});
   t.after(() => efface(racine));
   const { code, sortie } = joue(racine, MIGRATION);
@@ -74,26 +72,17 @@ test('TÉMOIN : sur la copie fidèle de l’arbre (déjà migré), la migration 
 });
 
 test('PORTE 1 : un porteur `ardoise` HORS masse de toit / primitive → sortie 1 NOMINATIVE, rien d’écrit', (t) => {
-  let pose = null;
   const { racine, avant } = depotMute((docs) => {
-    for (const rel of PROJETS)
-      for (const s of docs[rel].scenes ?? [])
-        for (const b of s.architecture ?? [])
-          for (const f of b.facades ?? [])
-            for (const ft of f.features ?? []) {
-              if (!pose) {
-                ft.material = 'ardoise';
-                pose = `${rel} ${b.id}/${f.id}/${ft.id}`;
-              }
-            }
+    const scene = docs[PROJET].scenes[0];
+    assert.ok(scene?.roofDefaults, 'aucune couverture de scène au paquet de test — la morsure ne mesure rien');
+    scene.roofDefaults.material = 'ardoise';
   });
   t.after(() => efface(racine));
-  assert.ok(pose, 'aucune ouverture de façade dans les documents de projet — la morsure ne mesure rien');
 
   const { code, sortie } = joue(racine, MIGRATION);
   assert.equal(code, 1, `sortie ${code} — un porteur hors périmètre doit ARRÊTER la migration : ${sortie.slice(0, 600)}`);
   assert.match(sortie, /hors masse de toit/, `arrêt sans NOMMER la classe du porteur : ${sortie.slice(0, 600)}`);
-  assert.match(sortie, /features/, `arrêt sans NOMMER le chemin du porteur : ${sortie.slice(0, 600)}`);
+  assert.match(sortie, /scenes\[0\]\.roofDefaults/, `arrêt sans NOMMER le chemin du porteur : ${sortie.slice(0, 600)}`);
   assert.deepEqual(rienTouche(racine, avant), [], 'la migration a écrit alors que l’arrêt précède toute écriture');
 });
 

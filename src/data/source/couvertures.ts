@@ -1,7 +1,7 @@
 // COUVERTURES D'UN PAQUET DE CAMPAGNE (#2290) — ce qu'un projet CITE des fiches de dossier de chapitre :
 // chaque `couvre` de ses porteurs (`couvreSchema`, `src/data/schemas/defs-scenes/communs.ts`) et ses
 // `narratif.ecartes`. LA lecture, composée par l'état des lieux (`scripts/docs/build-dossiers-de-chapitre.mjs`)
-// et par la garde référentielle (`src/data/dossiers-couverture.test.ts`).
+// et par la garde référentielle de chaque projet (#2290).
 //
 // Module PUR, sans import : chargé tel quel par Node nu (retrait de types natif) comme par vitest. Il lit
 // la FORME d'un projet (`ProjectDoc`, `src/noyau/worldMap.ts`) par un type structurel réduit aux porteurs.

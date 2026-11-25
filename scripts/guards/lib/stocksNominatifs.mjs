@@ -148,7 +148,7 @@ const PORTEURS = [
 ];
 
 /** Chemin de dépôt : une racine suivie, puis tout sauf des espaces. */
-const CHEMIN = String.raw`(?:src|scripts|docs)\/[^'"\`\s]+`;
+const CHEMIN = String.raw`(?:src|scripts|docs|projets)\/[^'"\`\s]+`;
 /** Chemin d'un CHAPITRE EXTRAIT : la racine `Source/` puis un `.md` dont le nom porte des ESPACES
  *  (`"Source/Warhammer v4 - Livre de base version corrigee/08 - Statut.md"`). Racine ajoutée pour
  *  `scripts/raw/folio-gaps-stock.json` (#1711 T4), dont chaque entrée nomme le chapitre où vit le
@@ -190,7 +190,7 @@ const NOMME = new RegExp(String.raw`^(?:${CHEMIN}|${NOM_NU}|${CHEMIN_SOURCE})${S
  *  au besoin de `:ligne`/`:symbole`), ou un nom de fichier nu. `'src/noyau'`, `'src/noyau/monde'`,
  *  `'scripts/migrations'` n'en sont pas : ce sont des RACINES de scan. Ce motif ne sert QU'À décider
  *  si un littéral en position d'ARGUMENT reste un porteur — partout ailleurs, `NOMME` fait foi. */
-const CHEMIN_FICHIER = String.raw`(?:src|scripts|docs)\/[^'"\`\s]*\.(?:ts|tsx|mjs|mts|json|md|css)`;
+const CHEMIN_FICHIER = String.raw`(?:src|scripts|docs|projets)\/[^'"\`\s]*\.(?:ts|tsx|mjs|mts|json|md|css)`;
 const NOMME_FICHIER = new RegExp(String.raw`^(?:${CHEMIN_FICHIER}|${NOM_NU}|${CHEMIN_SOURCE})${SUFFIXE_JETON}$`);
 
 /**

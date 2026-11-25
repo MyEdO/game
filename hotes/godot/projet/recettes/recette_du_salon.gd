@@ -48,17 +48,19 @@ func _conclure() -> void:
 	quit(0 if _fautes.is_empty() else 1)
 
 
-## Un pré-tiré recruté à son bouton, puis l'Arène lancée : si sa scène se pose, la pastille du menu de la partie publiée.
-func _lancer_l_arene() -> bool:
+## Un pré-tiré recruté à son bouton, puis la première campagne que le jeu remet au pont (`campagnes`) lancée : si sa
+## scène se pose, la pastille du menu de la partie publiée.
+func _lancer_la_campagne() -> bool:
 	if not await _attendre(func() -> bool: return _recrue() != null, "un pré-tiré à recruter"):
 		return false
 	_cliquer(_recrue())
-	if not await _attendre(func() -> bool: return _renvois() == 1 and _publie("bouton/lancer/arene") != null, "le pré-tiré recruté, « Lancer » de l'Arène"):
+	var lancer: String = "bouton/lancer/" + _pont.appeler("campagnes").campagnes[0]
+	if not await _attendre(func() -> bool: return _renvois() == 1 and _publie(lancer) != null, "le pré-tiré recruté, « Lancer » de la campagne"):
 		return false
-	_cliquer(_publie("bouton/lancer/arene"))
-	if not await _attendre(func() -> bool: return _en_partie() and current_scene.get("_vue").projection.scene != null and _renvois() == 0, "la scène de l'Arène, le menu de la partie offert"):
+	_cliquer(_publie(lancer))
+	if not await _attendre(func() -> bool: return _en_partie() and current_scene.get("_vue").projection.scene != null and _renvois() == 0, "la scène de la campagne, le menu de la partie offert"):
 		return false
-	print("[%s] Arène lancée : scène %s" % [_nom, current_scene.get("_vue").projection.scene.id])
+	print("[%s] campagne lancée : scène %s" % [_nom, current_scene.get("_vue").projection.scene.id])
 	return true
 
 

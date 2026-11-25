@@ -12,7 +12,8 @@
 // l'atelier (parcours `preset`), posé au clip `<clip>` à l'instant `<instant>` s s'il est nommé, et le capture sous
 // chaque vue, journal et captures sous `--captures/preset-<id>/`.
 // En natif, `--entree <module>` nomme l'entrée du jeu dont le pont démarre (`poserLEntree`, `construire.mjs`), que la
-// préparation et chaque jeu héritent.
+// préparation et chaque jeu héritent. Un projet joue ses propres jeux, de même forme que `JEUX_DU_PARCOURS`, sur le
+// contenu de son entrée par `jouerLeLot`, que son lot appelle : le lot est l'entrée, cet affichage ne l'importe pas.
 //   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu] [--entree <module>]) --captures <dossier> [--jeux combat,planche:<nom>,preset:<id>]
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
@@ -49,7 +50,7 @@ export const JEUX_DU_PARCOURS = {
   critique: { critique: [] },
   fin: { fin: [] },
   dialogue: { dialogue: ['--scenario', 'dialogue-multi'] },
-  document: { document: ['--scenario', 'documents-edo'] },
+  document: { document: ['--scenario', 'liasse-de-documents'] },
   incantation: { incantation: ['--scenario', 'magie'] },
   soin: { soin: ['--scenario', 'magie'] },
   voyage: { voyage: ['--scenario', 'voyage'] },
@@ -67,7 +68,6 @@ export const JEUX_DU_PARCOURS = {
   vehicule: { vehicule: ['--scenario', 'caraque'] },
   cadrages: {
     cadrages: ['--scenario', 'a-bord-de-la-caraque', '--vues', 'hotes/godot/cadrages/a-bord-de-la-caraque.json'],
-    'cadrages-diligence': ['--scenario', 'diligence', '--vues', 'hotes/godot/cadrages/la-diligence.json'],
     'cadrages-coque-terrestre': ['--scenario', 'coque-terrestre', '--vues', 'hotes/godot/cadrages/coque-terrestre.json'],
   },
   bord: { bord: ['--scenario', 'a-bord-de-la-caraque', '--route', `${DOSSIER}/a-bord-de-la-caraque.json`] },
@@ -137,12 +137,20 @@ async function avecPreparationNative(captures, faire) {
 /** Les lignes d'un journal rouge recopiées au verdict. */
 const QUEUE = 15
 
-if (import.meta.main) {
-  const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, rendu: { type: 'boolean' }, entree: { type: 'string' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
-  if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif) || (o.entree !== undefined && !o.natif)) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif [--rendu] [--entree <module>]) --captures <dossier> [--jeux <nom>,<nom>]')
+/**
+ * Joue les jeux `jeuxDuLot`, de même forme que `JEUX_DU_PARCOURS`, dans le lieu que nomment les options du CLI (`web`,
+ * `natif`, `rendu`, `entree`), journaux et captures sous `captures`, réduits aux noms de `jeux` (`a,b`) s'il est donné.
+ * Imprime le verdict de chaque jeu et du lot ; rend le code de sortie, non nul dès qu'un jeu est rouge.
+ * @param {Record<string, Record<string, string[]>>} jeuxDuLot
+ * @param {{ web?: string, natif?: boolean, rendu?: boolean, entree?: string, captures: string, jeux?: string }} o
+ * @returns {Promise<number>}
+ */
+export async function jouerLeLot(jeuxDuLot, o) {
   poserLEntree(o.entree)
+  const etrangers = Object.keys(jeuxDuLot).filter((parcours) => !Object.hasOwn(JEUX_DU_PARCOURS, parcours))
+  if (etrangers.length) throw new Error(`${etrangers.join(', ')} n’est pas un parcours de recette.mjs`)
   const lieu = (parcours) => (!o.natif ? ['--web', resolve(o.web)] : o.rendu || RENDUS_EN_NATIF.has(parcours) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
-  const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args, dossier: nom, journal: 'journal.txt' })))
+  const jeux = Object.entries(jeuxDuLot).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args, dossier: nom, journal: 'journal.txt' })))
   const voulus = o.jeux?.split(',') ?? jeux.map((j) => j.nom)
   for (const nom of voulus) {
     const prefixe = Object.keys(JEUX_PARAMETRES).find((p) => nom.startsWith(p) && nom.length > p.length)
@@ -188,5 +196,11 @@ if (import.meta.main) {
     : await lancerLesJeux()
   const rouges = verdicts.filter((v) => !v.vert).map((v) => v.nom)
   console.log(rouges.length ? `lot ROUGE : ${rouges.join(', ')}` : 'lot vert')
-  process.exitCode = rouges.length ? 1 : 0
+  return rouges.length ? 1 : 0
+}
+
+if (import.meta.main) {
+  const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, rendu: { type: 'boolean' }, entree: { type: 'string' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
+  if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif) || (o.entree !== undefined && !o.natif)) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif [--rendu] [--entree <module>]) --captures <dossier> [--jeux <nom>,<nom>]')
+  process.exitCode = await jouerLeLot(JEUX_DU_PARCOURS, o)
 }

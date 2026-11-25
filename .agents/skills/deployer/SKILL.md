@@ -13,7 +13,7 @@ description: Déployer le jeu en test (« déploie en test », /dev) ou en prod 
 | `jeu` | https://cgauche.github.io/jeu/ | la production : l’export Web Godot et ses modèles, dans le dossier `jeu/` du dépôt `cgauche/cgauche.github.io` |
 | `dev` (défaut) | https://cgauche.github.io/dev/ | la version de développement : l’export Web Godot et ses modèles, à la racine du dépôt `cgauche/dev` |
 
-Les deux cibles construisent l’export Godot par `npm run godot:web`.
+Les deux cibles construisent l’export Godot par `npm run jeu-de-role:web` (le pont démarré sur l’entrée du jeu de rôle, `projets/jeu-de-role/godot.ts`).
 Le workflow se déclenche manuellement et construit le commit distant de la ref demandée.
 La commande produit `dist/godot/index.html`, `dist/godot/index.pck` et les ressources de l’export. Elle permet de les vérifier sans lancer le workflow.
 
@@ -44,7 +44,7 @@ Depuis un fil de projet cloud, sans `gh workflow` : l'outil GitHub `actions_run_
 
 ## Exécutable de bureau
 
-`bureau.yml` fabrique l'exécutable de bureau de l'hôte Godot sous Linux et sous Windows (`npm run godot:bureau`, qui lui
+`bureau.yml` fabrique l'exécutable de bureau de l'hôte Godot sous Linux et sous Windows (`npm run jeu-de-role:bureau`, qui lui
 fait jouer une partie) et garde le dossier de chaque plateforme en artefact du run (`bureau-windows-latest`,
 `bureau-ubuntu-latest`), à télécharger depuis la page du run. Il ne publie rien : aucun accord à demander. Le dossier
 porte sous `licences/` l'avis de licence de chaque œuvre tierce embarquée (Godot, Node, paquets npm des bundles,
