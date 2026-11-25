@@ -580,9 +580,9 @@
     "type": "primitives.manifest",
     "label": "confierLaSuite/cloturer/Suite (pendings.ts)",
     "fichier": "src/noyau/combatEffects.ts",
-    "concept": "suite d'un appelant qui rend la main : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main et rejouée à sa clôture dans l'ordre de la confidence",
-    "perimetre": "hôtes d'`executerFlow` de scène et de combat, lots d'Effets, déclencheurs, effets programmés, clôtures de verbe (dialogue, horloge, victoire)",
-    "verrou": "src/noyau/chute-a-la-porte.hors-store.test.ts, src/noyau/roll-seam-exclusivity-guard.test.ts"
+    "concept": "suite d'un appelant qui rend la main (`MAIN_RENDUE`) : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main — dé à la porte, étape-hôte d'un geste (`differeLaSuite`) ou geste hors cascade (`PORTEURS_DE_GESTE`), lus à l'état par `comptePorteursDeSuite` — et rejouée à sa clôture dans l'ordre de la confidence",
+    "perimetre": "hôtes d'`executerFlow` de scène et de combat, lots d'Effets, décisions de Flow (`ouvrirEtConfier`), déclencheurs, effets programmés, sorties d'hôte, clôtures de verbe (dialogue, horloge, victoire)",
+    "verrou": "src/noyau/chute-a-la-porte.hors-store.test.ts, src/noyau/appelants-sous-le-geste.hors-store.test.ts, src/noyau/roll-seam-exclusivity-guard.test.ts"
   },
   {
     "id": "suiteDuCoup",

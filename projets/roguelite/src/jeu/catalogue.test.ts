@@ -1,5 +1,5 @@
 import { readFileSync } from 'node:fs';
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { CHEMIN_DU_CATALOGUE, catalogue } from '../../catalogue';
 import {
   acheter,
@@ -14,7 +14,9 @@ import {
   SORTS_DES_VOIES,
   SORTS_MINEURS,
 } from './index';
-import { sortsDeLaVoie, nomDeSort, porterAuNiveau } from '../noyau';
+import { sortsDeLaVoie, nomDeSort, porterAuNiveau, poserLesReglesDuRoguelite } from '../noyau';
+
+beforeAll(() => poserLesReglesDuRoguelite());
 
 const profilDe = (id: string) => PROFILS.find((p) => p.id === id)!;
 
@@ -37,15 +39,16 @@ describe('le catalogue', () => {
 });
 
 describe('la Salle d’armes et les sorts de la voie', () => {
-  it('propose à un Pyromancien de niveau 2 les seuls sorts de niveau 2, et refuse ceux du niveau 3', () => {
+  it('propose à un Pyromancien de niveau 2 les seuls sorts de niveau 2, et refuse un sort de sa voie hors de la sélection', () => {
     const e = nouvellePartie(3);
     e.or = 1e5; e.trophees = 10; ameliorer(e, 'salle');
     const h = recrue(e, profilDe('pyromancien'));
     h.c = porterAuNiveau(h.c, 2, 7); h.c.xp = 5000; e.roster.push(h);
     expect(acheter(e, h.c.id, { genre: 'talent', ref: { id: 'magie-des-arcanes', spec: 'feu' } })).toBeNull();
-    const { 2: niveau2, 3: niveau3 } = SORTS_DES_VOIES.feu;
+    const niveau2 = SORTS_DES_VOIES.feu[2];
     expect(sortsProposes(h)).toEqual(niveau2);
-    expect(acheter(e, h.c.id, { genre: 'sort', id: niveau3[0] })).toBe('La salle d’armes n’enseigne pas ce sort à ce héros.');
+    const horsSelection = sortsDeLaVoie('magie-des-arcanes', 'feu').find((id) => !Object.values(SORTS_DES_VOIES.feu).flat().includes(id))!;
+    expect(acheter(e, h.c.id, { genre: 'sort', id: horsSelection })).toBe('La salle d’armes n’enseigne pas ce sort à ce héros.');
     expect(acheter(e, h.c.id, { genre: 'sort', id: niveau2[0] })).toBeNull();
     expect(h.c.spells).toContain(niveau2[0]);
   });

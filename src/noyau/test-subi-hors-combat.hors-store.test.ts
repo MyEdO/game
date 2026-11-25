@@ -324,7 +324,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
       etapes: [{ kind: 'effet', effet: { type: 'ops', on: 'heros', heroId: 'h4', ops: [{ op: 'teamCommander', commanderId: 'h1' }] } }],
     } as unknown as Flow;
     openSkillTest(get, set, { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: 'Commandant d’équipe' },
-      condCtx(get), onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: 'h1' });
+      condCtx(get), onSuccess, EMPTY_FLOW, { actorId: 'h1' });
     expect(get().pendingTest!.subi, 'aucun marqueur : ce n’est pas un Test SUBI').toBeUndefined();
     acquitter({ success: true, sl: 1 });
     expect(heros('h4').teamCommanderId, 'le `heroId` de scène doit rester honoré').toBe('h1');

@@ -9,7 +9,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { it, expect } from 'vitest';
-import { campagneDeTest, contenuDeTest } from './scenes/fixtures/campagneDeTest';
+import { campagneDeTest, contenu } from './scenes/fixtures/contenuDuCommun';
 import { paquetDuJeu } from './noyau/index';
 import {
   editer,
@@ -56,7 +56,7 @@ function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
 /** La session d'édition du paquet `paquet`, ouverte comme le pont l'ouvre (`hotes/godot/pont/pont.ts`, méthode
  *  `ouvrir`) : le manifeste du `Source/` versionné et les entrées des fiches du contenu de test servis. */
 const ouvrir = (paquet: ReturnType<typeof paquetDuJeu>): SessionDEdition =>
-  ouvrirLEdition(paquet, false, undefined, manifesteDe(CORPUS_DISQUE), entreesDesFiches(contenuDeTest.dossiers));
+  ouvrirLEdition(paquet, false, undefined, manifesteDe(CORPUS_DISQUE), entreesDesFiches(contenu.dossiers));
 
 /** Les zones d'une session réduites à son inspecteur (`inspecteurDeLaSession`), seul lu par le jeu de ses offres. */
 type Inspecteur = Pick<ZonesDeLEditeur, 'editeur.inspecteur'>;

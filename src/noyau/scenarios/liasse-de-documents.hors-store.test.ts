@@ -1,7 +1,8 @@
 /**
  * Scénario `liasse-de-documents` (#679, #4936) : à côté de la liasse, son geste authoré ouvre la conversation ; chaque
  * document du registre du scénario est offert par un chapitre, s'ouvre à son titre et à sa prose (`store.document`), et
- * la conversation revient à la liasse. Deux réponses par document, depuis la liasse ouverte.
+ * la conversation revient à la liasse quand le document se referme (#2689). Deux réponses par document, depuis la liasse
+ * ouverte.
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -34,7 +35,7 @@ describe('liasse-de-documents — la liasse sert le registre du scénario', () =
     expect(banc.getState().dialogue?.nodeId).toBe('liasse');
   });
 
-  it('chaque document : offert par son chapitre, ouvert à son titre et à sa prose, retour à la liasse, en deux réponses', () => {
+  it('chaque document : offert par son chapitre, ouvert à son titre et à sa prose, retour à la liasse une fois refermé, en deux réponses', () => {
     const { narratif } = charger();
     const documents = narratif!.documents;
     expect(documents.length).toBeGreaterThan(1);
@@ -48,6 +49,8 @@ describe('liasse-de-documents — la liasse sert le registre du scénario', () =
       banc.getState().fenetreChoisir('dialogue', 'reponse', chapitre!.id);
       banc.getState().fenetreChoisir('dialogue', 'reponse', `lire-${doc.id}`);
       expect([banc.getState().document?.title, banc.getState().document?.text]).toEqual([doc.titre, doc.prose]);
+      expect(banc.getState().dialogue?.nodeId, 'le dialogue n’avance pas sous le document (#2689)').toBe(chapitre!.next!.id);
+      banc.getState().fenetreFermer('document');
       expect(banc.getState().dialogue?.nodeId).toBe('liasse');
     }
   });

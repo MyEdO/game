@@ -1,10 +1,10 @@
 extends SceneTree
 
 ## Le volume servi par l'éditeur (#3833) : le même tablier à 4 m, sur un rez à 1 m, reçoit un
-## tonneau au-dessous. Le morceau du sol de l'étage reçu en octets garde ses tranches et ses montants.
+## tonneau au-dessous. Le morceau du sol de l'étage reçu en octets garde ses tranches et ses montants. Le projet de
+## recette s'ouvre sous l'id de la première campagne que le jeu remet au pont (`campagnes`), quelle que soit son entrée.
 
 const RECETTE_AUTONOME := true
-const PROJET := "paquet-de-test"
 const ETAGE := "sol/1/0/0"
 const POSE := "pose/0/0/0"
 const REZ_M := 1.0
@@ -19,22 +19,25 @@ func _initialize() -> void:
 
 func _recetter() -> void:
 	var pont: PontDuNoyau = root.get_node("Pont")
-	if await pont.rejoindre(_fautes.append, _fautes.append):
-		var libre := _etage(pont, false)
-		var meuble := _etage(pont, true)
+	if not await pont.rejoindre(_fautes.append, _fautes.append):
+		_fautes.append("le pont du noyau ne s’est pas ouvert")
+	elif pont.appeler("campagnes").get("campagnes", []).is_empty():
+		_fautes.append("le jeu ne remet aucune campagne au pont")
+	else:
+		var projet: String = pont.appeler("campagnes").campagnes[0]
+		var libre := _etage(pont, projet, false)
+		var meuble := _etage(pont, projet, true)
 		if not libre.is_empty() and not meuble.is_empty() and libre != meuble:
 			_fautes.append("le tonneau change le morceau de l’étage : %s → %s" % [libre.empreinte, meuble.empreinte])
-	else:
-		_fautes.append("le pont du noyau ne s’est pas ouvert")
 	for faute in _fautes:
 		push_error("[surplomb-sur-decor] " + faute)
 	print("[surplomb-sur-decor] erreurs=", _fautes.size())
 	quit(0 if _fautes.is_empty() else 1)
 
 
-func _etage(pont: PontDuNoyau, meuble: bool) -> Dictionary:
+func _etage(pont: PontDuNoyau, projet: String, meuble: bool) -> Dictionary:
 	var cas := "avec tonneau" if meuble else "sans tonneau"
-	var edition := pont.appeler("editer", {ouvrir = PROJET, projet = JSON.stringify(_projet(meuble))})
+	var edition := pont.appeler("editer", {ouvrir = projet, projet = JSON.stringify(_projet(projet, meuble))})
 	if edition.get("ok") != true:
 		_fautes.append("%s : l’ouverture du projet n’a pas abouti" % cas)
 		return {}
@@ -67,7 +70,7 @@ func _bornes(bloc: Dictionary, matiere: String) -> Vector2:
 	return Vector2(basse, haute)
 
 
-func _projet(meuble: bool) -> Dictionary:
+func _projet(projet: String, meuble: bool) -> Dictionary:
 	var rez := []
 	var etage := []
 	var hauteurs := []
@@ -83,7 +86,7 @@ func _projet(meuble: bool) -> Dictionary:
 	haut[5] = ETAGE_M
 	var tonneau := {id = "tonneau-de-recette", kind = "prop", decor = {id = "tonneau"}, pos = {x = 1, y = 1}}
 	return {
-		id = PROJET, type = "projet", label = "Recette du surplomb", icon = "scenario/arene", versionContenu = 1,
+		id = projet, type = "projet", label = "Recette du surplomb", icon = "scenario/arene", versionContenu = 1,
 		maison = "Carte de recette",
 		narratif = {affaires = [], indices = [], presetsPnj = [], objets = [], documents = [], etats = []},
 		scenes = [{

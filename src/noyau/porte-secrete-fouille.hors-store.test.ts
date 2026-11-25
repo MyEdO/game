@@ -94,7 +94,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     explorer(plan([A, B]), { x: 1, y: 2 });
     const avant = banc.getState().gameTime;
     fouiller();
-    expect(banc.getState().gameTime).toBe(avant + DUREE);
+    expect(banc.getState().gameTime, 'l’horloge ne court pas sous les Tests (#2689)').toBe(avant);
     const difficultes = [banc.getState().pendingTest!.difficulty];
     resoudre(false);
     difficultes.push(banc.getState().pendingTest!.difficulty);

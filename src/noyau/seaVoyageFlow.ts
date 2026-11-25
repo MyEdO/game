@@ -193,7 +193,7 @@ import {
   revealPurpose,
   runFlow,
   indiceDeMembreDuBord,
-  comptePasDifferes, OPS_DIFFEREES,
+  comptePorteursDeSuite, MAIN_RENDUE,
   confierLaSuite,
   fireScheduledEffects,
 } from './combatEffects';
@@ -1478,7 +1478,7 @@ function terminerLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: num
   const plan = get().travelPlan;
   const sea = plan?.sea;
   if (sea?.fast && minutes > 0) {
-    if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+    if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === MAIN_RENDUE) {
       suspendreLePasEnMer(get, set, borneDuPas, minutes, true);
       return false;
     }
@@ -1537,10 +1537,10 @@ export function continuerLeTempsEnMer(get: Get, set: Set, doneSteps?: CascadeSte
     }
     const minutes = fin - debut;
     if (sea.fast) log(get, set, consumeCrewProvisions(get, set, dayIndex(fin) - dayIndex(debut)));
-    const avant = comptePasDifferes(get());
+    const avant = comptePorteursDeSuite(get());
     if (minutes > 0) get().avancerLHorloge(minutes);
     else fireScheduledEffects(get, set);
-    if (comptePasDifferes(get()) > avant) {
+    if (comptePorteursDeSuite(get()) > avant) {
       suspendreLePasEnMer(get, set, fin, minutes);
       return;
     }
@@ -3072,14 +3072,6 @@ function accosterLeNavire(get: Get, set: Set, placeId: string): string[] {
 }
 
 
-/** L'accostage `arrival` qu'une cascade FERMÉE sans clôture portait : il passe à la cascade que sa branche
- *  a ouverte, sinon il se finalise. */
-export function poursuivreLAccostage(get: Get, set: Set, arrival: NonNullable<PendingCascade['portArrival']>): void {
-  const ouverte = get().pendingCascade;
-  if (ouverte) set({ pendingCascade: { ...ouverte, portArrival: arrival } });
-  else finalizePortArrival(get, set, arrival);
-}
-
 /** Clôture d'une cascade `portArrival` (désertion à la relâche surfacée, #387) : résout le lieu par id
  *  puis finalise l'accostage. Appelée par `dispatchCascadeDone` — `pendingCascade` est DÉJÀ null. */
 export function finalizePortArrival(get: Get, set: Set, arrival: NonNullable<PendingCascade['portArrival']>): void {
@@ -3128,6 +3120,7 @@ export const INTERRUPTIONS_DE_PERIL = [SEA_PERIL_INTERRUPT] as const;
 export const TABLES = {
   clotures: {
     reprendreLeTempsEnMer: (get, set, { borneDuPas, minutes, apresLesRounds }) => reprendreLeTempsEnMerApresEffet(get, set, borneDuPas, minutes, apresLesRounds),
+    finaliserLAccostage: (get, set, { arrival }) => finalizePortArrival(get, set, arrival),
   },
   appliers: {
     [SEA_BOARD_EVENT_KIND]: (get, set, step) => {
@@ -3346,13 +3339,13 @@ export const TABLES = {
     },
     'equipage-affaler': (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
     /** Test d'équipage d'un nœud `test` de Flow (`navireOps.ouvrirLeTestDEquipage`) : cascade AUTONOME
-     *  (`purpose:'test'`), dont la branche du verdict puis la suite du Flow se jouent ici, sous le libellé et
-     *  le DR du Flow qui l'a ouverte. MDG 14 l.13 */
+     *  (`purpose:'test'`), dont la branche du verdict se joue ici, sous le libellé et le DR du Flow qui l'a
+     *  ouverte ; la suite du Flow est celle confiée à l'étape. MDG 14 l.13 */
     testDEquipage: (get, set, step) => {
       if (!step.result) return;
       moralDuTestDEquipage(get, set, step);
       const branche = (step.result.success ? step.meta?.onSuccess : step.meta?.onFail) ?? EMPTY_FLOW;
-      jouerFlowEntier(runFlow(get, set, { kind: 'sequence', etapes: [branche, step.meta?.after ?? EMPTY_FLOW] }, step.meta?.flowLabel, step.meta?.flowSl));
+      jouerFlowEntier(runFlow(get, set, branche, step.meta?.flowLabel, step.meta?.flowSl));
       return { consequences: freeCons([]) };
     },
     /** Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311) → Repères / Changement de cap. */

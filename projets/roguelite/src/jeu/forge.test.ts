@@ -1,11 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   acheter, acheterUneArme, acheterUneArmure, acheterUneProvision, ameliorer, armesEnVente, armuresEnVente, nouvellePartie,
   panoplie, panoplieDe, prixDe, voieDe, provisionsEnVente, provisionsPortees, recrue, ARMES_DE_LA_FORGE, MUNITIONS, PANOPLIES, PROFILS, type Etat,
 } from './index';
-import { articleDuCatalogue, DISPONIBILITES, doter, objetsEnRayon, porterAuNiveau, protection } from '../noyau';
+import { articleDuCatalogue, DISPONIBILITES, doter, objetsEnRayon, porterAuNiveau, protection, poserLesReglesDuRoguelite } from '../noyau';
 import { equipConflicts, wornArmourPoints } from '../../../../src/engine/items';
 import { findTrappingById } from '../../../../src/data';
+
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Les Disponibilités qu'ouvre chaque palier de la forge et de l'hospice (arbitrage du 2026-11-23, MyEdO/game#4947). */
 const OUVERTES = [1, 2, 3, 4].map((n) => DISPONIBILITES.slice(0, n));
@@ -36,10 +38,10 @@ describe('la sélection de la forge', () => {
       return armesEnVente(e, recrue(e, profilDe('ingenieur'))).map((a) => a.id).sort();
     });
     expect(vendues).toEqual([
-      ['arbalete', 'arme-simple', 'bouclier'],
-      ['arbalete', 'arme-simple', 'arquebuse', 'bouclier', 'pique-d-armes'],
-      ['arbalete', 'arme-simple', 'arquebus-a-repetition', 'arquebuse', 'bouclier', 'pique-d-armes', 'pistolet', 'pistolet-a-repetition'],
-      ['arbalete', 'arme-simple', 'arquebus-a-repetition', 'arquebuse', 'bouclier', 'long-fusil-d-hochland', 'pique-d-armes', 'pistolet', 'pistolet-a-repetition'],
+      ['arbalete', 'arc', 'arme-simple', 'bouclier'],
+      ['arbalete', 'arc', 'arc-long', 'arme-simple', 'arquebuse', 'bouclier', 'pique-d-armes'],
+      ['arbalete', 'arc', 'arc-long', 'arme-simple', 'arquebus-a-repetition', 'arquebuse', 'bouclier', 'pique-d-armes', 'pistolet', 'pistolet-a-repetition'],
+      ['arbalete', 'arc', 'arc-elfique', 'arc-long', 'arme-simple', 'arquebus-a-repetition', 'arquebuse', 'bouclier', 'long-fusil-d-hochland', 'pique-d-armes', 'pistolet', 'pistolet-a-repetition'],
     ]);
   });
 });
@@ -56,15 +58,15 @@ describe('la forge filtre par les Compétences du héros', () => {
     expect(acheterUneArme(e, h.c.id, 'arquebuse')).toBe('La forge ne la lui vend pas.');
   });
 
-  it('un Duelliste voit la Parade de sa carrière, et à distance la seule Poudre noire avec l’arbalète', () => {
+  it('un Duelliste voit la Parade de sa carrière, et à distance la Poudre noire et l’arbalète de sa carrière avec l’arc de ses Compétences d’espèce', () => {
     const e = auHameau(1, 3);
     expect(groupesVendus(e, 'duelliste')).toEqual(expect.arrayContaining(['base', 'parade']));
     const aDistance = armesEnVente(e, recrue(e, profilDe('duelliste'))).filter((a) => a.categorie === 'distance');
-    expect([...new Set(aDistance.map((a) => a.groupe))].sort()).toEqual(['arbalete', 'poudre-noire']);
+    expect([...new Set(aDistance.map((a) => a.groupe))].sort()).toEqual(['arbalete', 'arc', 'poudre-noire']);
   });
 
-  it('un Chasseur de primes voit les Entraves et l’arbalète de sa carrière', () => {
-    expect(groupesVendus(auHameau(1, 3), 'chasseur-de-primes')).toEqual(['arbalete', 'base', 'entraves']);
+  it('un Chasseur de primes voit les Entraves et l’arbalète de sa carrière, l’arc de ses Compétences d’espèce', () => {
+    expect(groupesVendus(auHameau(1, 3), 'chasseur-de-primes')).toEqual(['arbalete', 'arc', 'base', 'entraves']);
   });
 });
 

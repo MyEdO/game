@@ -4,8 +4,9 @@
  */
 import { ouvrirLeLancement, type PartieOuverte as PartieDuLancement } from '../../../../src/hote/partie';
 import { fenetreDuJeu } from '../../../../src/noyau/combatAuto';
+import { ruleOverrides } from '../../../../src/engine/policy';
 import type { Intention } from '../../../../src/noyau/partie';
-import { VERBE_DE_CHOIX, type GesteDuJeu } from '../../../../src/noyau';
+import { poserLesReglesMaisonPersistees, VERBE_DE_CHOIX, type GesteDuJeu } from '../../../../src/noyau';
 
 export type PartieOuverte = PartieDuLancement['partie'];
 export type Resultat = PartieDuLancement['lancement'];
@@ -26,9 +27,17 @@ export interface PartieEnAuto {
   jouerDansLaFenetre: (choisi: (g: GesteDuJeu) => boolean) => void;
 }
 
-/** Les règles optionnelles du noyau que le roguelite pose sur chacune de ses parties (`ouvrirEcoutee`) : combat, hameau
- *  et épreuve. MyEdO/game#4947. `magie-vdm-incantation` : VDM 02 l.5-7, `src/engine/magic.ts`. */
-export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'magie-vdm-incantation': true };
+/** Les règles optionnelles du noyau que le roguelite pose à son démarrage (`poserLesReglesDuRoguelite`), et sous
+ *  lesquelles chacune de ses parties s'ouvre (`ouvrirEcoutee`) : création, combat, hameau et épreuve. MyEdO/game#4947.
+ *  `creation-5e` : CRB 005, `src/noyau/creation/procedure.ts` ; `magie-vdm-incantation` : VDM 02 l.5-7,
+ *  `src/engine/magic.ts`. */
+export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'creation-5e': true, 'magie-vdm-incantation': true };
+
+/** Pose `REGLES_DU_ROGUELITE` au registre des règles du noyau (`poserLesReglesMaisonPersistees`), aux `ecarts` près
+ *  (une mesure qui compare le jeu avec et sans une règle) : le démarrage du roguelite, avant toute recrue. */
+export function poserLesReglesDuRoguelite(ecarts: Readonly<Record<string, unknown>> = {}): void {
+  poserLesReglesMaisonPersistees({ ...REGLES_DU_ROGUELITE, ...ecarts });
+}
 
 /** Le choix qui laisse venir la mutation d'un « Je te renie ! » ouvert (`pendingRenounce`) : le roguelite ne gère pas
  *  la Résilience (MyEdO/game#4947). LDB 17 l.67 */
@@ -38,11 +47,11 @@ const RENIER = { type: VERBE_DE_CHOIX, args: ['renier', 'renier', false] } as un
 const PLAFOND_DE_POMPE = 200;
 
 /** Ouvre la partie du noyau en cadence automatique à la graine `graine` sur ce que `lancement` construit
- *  (`ouvrirLeLancement`, `src/hote/partie.ts`), sous `REGLES_DU_ROGUELITE`. Sa tenue des jetons passe chaque résultat
+ *  (`ouvrirLeLancement`, `src/hote/partie.ts`), sous les règles en vigueur au registre (`poserLesReglesDuRoguelite`). Sa tenue des jetons passe chaque résultat
  *  qu'elle reçoit à `ecouter`, puis laisse venir la mutation d'un « Je te renie ! » ouvert (`RENIER`) et en programme
  *  aussi les jetons. */
 export function ouvrirEcoutee(graine: number, lancement: Lancement, ecouter: (r: Resultat) => void = () => {}): PartieDuLancement {
-  const o = ouvrirLeLancement({ graine, regles: { ...REGLES_DU_ROGUELITE }, cadence: 'auto', desFixes: false }, lancement, () => {});
+  const o = ouvrirLeLancement({ graine, regles: ruleOverrides(), cadence: 'auto', desFixes: false }, lancement, () => {});
   const { partie, jetons } = o;
   const programmes = (r: Resultat): Programme[] => {
     ecouter(r);

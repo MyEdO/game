@@ -225,6 +225,11 @@ describe('Opéra — Théâtre : intrigue n°1 (la bombe de la loge royale)', ()
     const before = lonePartyAt(35).wounds.current;
     applyEffects(banc.getState, banc.setState, flowEffects(arm.flow));
     banc.getState().avancerLeTemps(60);
+    // Le Test de Perception des pétards (20h30) tient la main : les échéances suivantes attendent son issue (#2689).
+    expect(banc.getState().pendingTest?.label).toBe('Repérer le voleur dans le brouhaha');
+    expect(banc.getState().party[0].wounds.current, 'la bombe attend').toBeGreaterThan(before - 15);
+    banc.getState().jetLancer('test');
+    banc.getState().jetValider('test');
     expect(banc.getState().party[0].wounds.current).toBeLessThanOrEqual(before - 15);
   });
 });

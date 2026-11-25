@@ -18,7 +18,7 @@ import { sceneSchema } from '../defs-scenes/scene';
 import { routePerilSchema } from '../defs-scenes/worldmap';
 import { validateDocument, cheminLisible } from '../validate';
 import { parseProject, ProjetRefuse } from '../../../noyau/worldMap';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 import {
   collectionDe,
   collectionsDesDocuments,
@@ -140,14 +140,14 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
   type Carte = { id: string; label: string; places: unknown[]; routes: unknown[] };
   type Doc = { scenes: Record<string, unknown[]>[]; worldMap?: Carte };
   const doublon = (muter: (d: Doc) => void): Doc => {
-    const d = structuredClone(areneProjet) as unknown as Doc;
+    const d = structuredClone(paquetDeTest) as unknown as Doc;
     muter(d);
     return d;
   };
   const repete = <T,>(liste: T[]): void => {
     liste.push(structuredClone(liste[0]));
   };
-  const lieu = { id: 'lieu-1', label: 'Lieu', pos: { x: 1, y: 1 }, scene: { id: 'arene-zone1' } };
+  const lieu = { id: 'lieu-1', label: 'Lieu', pos: { x: 1, y: 1 }, scene: { id: 'scene-de-test-a' } };
   const route = { id: 'route-1', a: { id: 'lieu-1' }, b: { id: 'lieu-1' }, km: 1, modes: ['pied'] };
   const noeud = { id: 'n1', desc: 'x', choices: [] };
   const CAS: [string, (d: Doc) => void, string][] = [

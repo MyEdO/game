@@ -16,6 +16,7 @@ import semencesJson from '../../semences-de-scene.json';
 import terrainsJson from '../../terrains.json';
 import traitsJson from '../../traits.json';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Entree = Record<string, unknown>;
 
@@ -43,10 +44,10 @@ const horsDeSonTerrain = (id: string, valeur: unknown): Entree[] => {
   return [{ ...t, passive: passifs.map((o: Entree) => (o.op === 'offTerrainMod' ? { ...o, terrain: valeur } : o)) }];
 };
 
-/** La première scène de l'Arène, sa falaise portant `valeur`. */
+/** La première scène du paquet de test, sa falaise portant `valeur`. */
 const sceneAFalaise = (valeur: unknown): Entree => {
-  const s: Entree = structuredClone(areneProjet.scenes[0]);
-  return { ...s, reliefDefaults: { ...structuredClone(areneProjet.scenes[0].reliefDefaults), cliff: valeur } };
+  const s = structuredClone(paquetDeTest.scenes[0]);
+  return { ...s, reliefDefaults: { ...s.reliefDefaults, cliff: valeur } };
 };
 
 const PORTEURS = [
@@ -57,7 +58,7 @@ const PORTEURS = [
   { porteur: 'semences-de-scene.json › reliefDefaults.cliff', schema: schemaSemences, doc: (v: unknown) => ({ ...semencesJson, reliefDefaults: { ...semencesJson.reliefDefaults, cliff: v } }), connue: 'pierre', refus: 'est hors de la sous-liste « relief » du catalogue des matières' },
   { porteur: 'traits.json › passive[].terrain', schema: schemaTraits, doc: (v: unknown) => horsDeSonTerrain('aquatique', v), connue: 'lave', refus: 'est absent du catalogue des terrains' },
   { porteur: 'terrains.json › matiere', schema: schemaTerrains, doc: (v: unknown) => avec(terrainsJson, 'mur', 'matiere', v), connue: 'terre', refus: 'est hors de la sous-liste « relief » du catalogue des matières' },
-  { porteur: 'arene-projet.json › scenes[].reliefDefaults.cliff', schema: sceneSchema, doc: sceneAFalaise, connue: 'pierre', refus: 'est hors de la sous-liste « relief » du catalogue des matières' },
+  { porteur: 'scenes[].reliefDefaults.cliff', schema: sceneSchema, doc: sceneAFalaise, connue: 'pierre', refus: 'est hors de la sous-liste « relief » du catalogue des matières' },
 ];
 
 describe('#2968 L11 — terrain, décor et matière de relief désignés par `ref(type)`', () => {

@@ -2,7 +2,7 @@ import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { applyIncomingMeleeAdvantage, doAttack, maybeOpenDefense } from './combatFlow';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { inBattleId } from './monde/combatants';
 import { addCondition, COND } from '../engine/conditions';
 import { seedBattleRng } from './battleRng';
@@ -68,7 +68,7 @@ describe('le coup de l’IA résout son arme une fois : tireur à profil [mêlé
 
   it('doAttack : le tir sur un héros à bouclier ouvre la fenêtre de défense AU TIR', () => {
     const { enemy, hero } = setup([sword, shield], { x: 10, y: 0 }, [sword, arc]);
-    expect(doAttack(banc.getState, banc.setState, enemy, hero)).toBe(OPS_DIFFEREES);
+    expect(doAttack(banc.getState, banc.setState, enemy, hero)).toBe(MAIN_RENDUE);
     expect(banc.getState().pendingDefense!.weapon.type).toBe('distance');
   });
 

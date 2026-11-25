@@ -16,7 +16,7 @@ import type { MondeDuPont } from '../pont/pont';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
-import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
+import { campagneDeTest } from '../../../src/scenes/fixtures/contenuDuCommun';
 
 /** Un geste du pointeur `geste` sur la case `x`, `y`, au point de la carte `fx`, `fy`, hors des cases entières comme le
  *  monde touche. */

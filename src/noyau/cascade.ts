@@ -44,6 +44,7 @@ import type {
   CascadeTableResult,
   OpposedRowFreeze,
   Cloture,
+  Suite,
   StepEvaluation,
   SeuilDeSauvegarde,
 } from './pendings';
@@ -78,7 +79,7 @@ import { clotureHorsCombat } from './partyWipe';
 import { traceLineOf, traceDieLineOf } from '../engine/traceLine';
 import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
-import { cloturer, comptePasDifferes, OPS_DIFFEREES } from './combatEffects';
+import { cloturer, comptePorteursDeSuite, MAIN_RENDUE } from './combatEffects';
 import { seatOwns, tenuParUnHumain } from './sieges';
 import { jouerLaPaireDuJet, TOUT_RESOUDRE } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
@@ -1380,7 +1381,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   let insereesParLApplier: CascadeStep[];
   let bornes: BornesDuFragment | null;
   try {
-    const differesAvant = comptePasDifferes(get());
+    const differesAvant = comptePorteursDeSuite(get());
     out = applierDe(step.kind)?.(get, set, step, hero, { steps, index: i });
     pilote.suiteDeLHote?.();
     // `consequences` (#295 Lot 0) : rendu en LIGNES STRUCTURÉES (#349, `resultLines`) — seule voie de
@@ -1389,7 +1390,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
     lines = out?.consequences ? resultLines(out.consequences) : [];
     if (out?.dejaDites) assertDejaDitesPorteSesLignes(step, lines);
     else journaliser(get, set, lines.map((l) => l.text), 'information', { actorId: step.actorId });
-    const differe = comptePasDifferes(get()) > differesAvant ? OPS_DIFFEREES : undefined;
+    const differe = comptePorteursDeSuite(get()) > differesAvant ? MAIN_RENDUE : undefined;
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
     // dans le journal, et ce qui laisse la conséquence se mesurer sur l'état qu'elle a elle-même produit.
@@ -1564,22 +1565,31 @@ const enSortieDHote = new WeakSet<Get>();
  * dont le slot (`PENDING_BY_JET`) est l'un de ceux que `libere` vide ; hors du curseur, aucune étape n'est validée
  * à sa place : il sort de la séquence (curseur gardé sur la même étape) et sa suite se joue, une fois. Seule la
  * sortie la plus externe reprend la pile (`reprendreLaPile`, muette tant qu'une sortie joue sa suite), après sa
- * suite entière.
+ * suite entière. La suite CONFIÉE à l'étape-hôte (`meta.apresSuite`, #2689) suit toujours la sienne : au commit
+ * quand l'hôte est validé, ici sinon — annulation comprise —, suivie de ce que la `suite` rend pour la séquence
+ * qu'elle a reçue fermée.
  */
-export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: (fermee: PendingCascade | null) => void): void {
+export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: (fermee: PendingCascade | null) => Suite | void): void {
   const sequence = get().pendingCascade;
   const externe = !enSortieDHote.has(get);
   enSortieDHote.add(get);
   let denouee: PendingCascade | null = null;
+  const estLHote = (s: CascadeStep | undefined): boolean => {
+    const slot = s?.jet && !s.committed ? PENDING_BY_JET[s.jet] : null;
+    return slot != null && slot in libere;
+  };
+  /** Hors `commitStep`, la suite CONFIÉE à l'étape-hôte (#2689) se joue ici, après la sienne et avant ce que la sortie
+   *  remet à la séquence fermée, du bon côté de ce qu'elle a ouvert. */
+  const suiviDeLaSuiteConfiee = (hote: CascadeStep | undefined, fermee: PendingCascade | null): void => {
+    const avant = comptePorteursDeSuite(get());
+    const apres = suite(fermee) ?? [];
+    cloturer(get, set, comptePorteursDeSuite(get()) > avant ? MAIN_RENDUE : undefined, [...(hote?.meta?.apresSuite ?? []), ...apres]);
+  };
   try {
     if (!sequence || sequence.cursor >= sequence.participants.length - 1) {
       set({ ...libere, pendingCascade: null });
-      suite(sequence);
+      suiviDeLaSuiteConfiee(sequence?.participants.find(estLHote), sequence);
     } else {
-      const estLHote = (s: CascadeStep | undefined): boolean => {
-        const slot = s?.jet && !s.committed ? PENDING_BY_JET[s.jet] : null;
-        return slot != null && slot in libere;
-      };
       const { participants, cursor } = sequence;
       if (estLHote(participants[cursor])) {
         set(libere);
@@ -1587,7 +1597,7 @@ export function sortirDeLHote(get: Get, set: Set, libere: PatchDeFlux, suite: (f
       } else {
         const hote = participants.findIndex(estLHote);
         set(hote < 0 ? libere : { ...libere, pendingCascade: { ...sequence, participants: participants.filter((_, i) => i !== hote), cursor: hote < cursor ? cursor - 1 : cursor } });
-        suite(null);
+        suiviDeLaSuiteConfiee(participants[hote], null);
       }
     }
     if (denouee) clotureDeCascade(denouee);

@@ -13,7 +13,7 @@ import {
   jouerFlowEntier,
   pushCombatStep,
   revealPurpose,
-  OPS_DIFFEREES,
+  MAIN_RENDUE,
   porterOpsCtx,
   ctxRepris,
 } from './combatEffects';
@@ -157,7 +157,7 @@ describe('(iii) l’applier OUVRE : deux étapes à dé nu, possédées par la v
   const ouvrir = () => applyLeafOps(banc.getState, banc.setState, gabier(), feuille(opsDeChute()), { idNeuf: idsDeTest, rng: desDuTest, hull: coque() });
 
   it('rien n’est encaissé à l’application : la porte ouvre la HAUTEUR d’abord', () => {
-    expect(ouvrir(), 'la feuille est DIFFÉRÉE : elle n’a pas de journal, elle n’est pas encore jouée').toBe(OPS_DIFFEREES);
+    expect(ouvrir(), 'la feuille est DIFFÉRÉE : elle n’a pas de journal, elle n’est pas encore jouée').toBe(MAIN_RENDUE);
     const p = banc.getState().pendingCascade!;
     expect(p.participants).toHaveLength(1);
     const st = p.participants[0];
@@ -586,7 +586,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
   // walker, puis la suite du VERBE APPELANT. La continuation ne portait qu'un `Flow` ; ce que le site
   // enchaînait ensuite (l'horloge d'une fouille, l'avancée d'un dialogue, un seam de Test raté) n'en
   // était pas un et passait devant. Une `Cloture` est un VERBE SÉRIALISABLE que l'étape porte comme
-  // son Flow — le socle en avait déjà un, `PendingTest.dialogueNext`, ici généralisé.
+  // son Flow.
   const marinBlesse = (id: string): Combatant =>
     marin(id, { kind: 'heros', wounds: { current: 190, max: 200 } } as Partial<Combatant>);
   const CHUTE: Flow = { kind: 'effet', effet: { type: 'fall', target: 'party', metres: 4 } } as unknown as Flow;
@@ -740,7 +740,7 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       { type: 'fall', target: 'groupe', metres: 4 } as unknown as Effect,
       { type: 'giveTrapping', custom: 'Talisman-sonde' } as Effect,
     ], 'Fouille');
-    expect(issue, 'le lot a rendu la main').toBe(OPS_DIFFEREES);
+    expect(issue, 'le lot a rendu la main').toBe(MAIN_RENDUE);
     expect(banc.getState().pendingLoot, 'rien n’est offert devant le dé').toBeNull();
     poseLeDe(8);
     const s = banc.getState();

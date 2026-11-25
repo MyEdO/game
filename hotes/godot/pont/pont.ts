@@ -2071,6 +2071,16 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return rendu;
     },
     /**
+     * aucune
+     *
+     * @returns `{ campagnes }` : l'id de chaque campagne que le jeu remet à `creerPont`, dans son ordre ; l'éditeur
+     * ouvre la première sans paramètre `campagne` ni projet manuscrit servi (section « Éditeur »)
+     */
+    campagnes(json) {
+      entreeDe('campagnes', json, []);
+      return { campagnes: campagnes.map((c) => c.id) };
+    },
+    /**
      * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne que le jeu remet à `creerPont`, le texte de
      * son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de l'index des chapitres du
      * `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,

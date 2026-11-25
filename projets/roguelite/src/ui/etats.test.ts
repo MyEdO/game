@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { addCondition, COND, poserInconscientDeSaignement } from '../../../../src/engine/conditions';
 import { disponible, nouvellePartie, partir, type Heros } from '../jeu';
-import { causesDEtat, libelleDEtat } from '../noyau';
+import { causesDEtat, libelleDEtat, poserLesReglesDuRoguelite } from '../noyau';
 import { carteDeHeros, causeDEtat, etats } from './pieces';
 import { ecranDeLExpedition } from './lieux';
+
+beforeAll(() => poserLesReglesDuRoguelite());
 
 const inconscient = (h: Heros) => h.c.conditions.find((x) => x.id === COND.inconscient)!;
 /** Les aperçus (`apercuDe`) d'un fragment, dans l'ordre, décodés. */

@@ -10,7 +10,7 @@ import { AUTO_SLOT, cleDEmplacement, nomDEmplacement, type AnySlot } from '../..
 import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
 import type { ZonesDesSauvegardes } from '../../../src/hote/sauvegardes';
 import type { Pont, Suite } from './pont';
-import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
+import { campagneDeTest } from '../../../src/scenes/fixtures/contenuDuCommun';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });

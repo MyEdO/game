@@ -50,20 +50,26 @@ const marqueDesPoints = (points: number, x: Exigence | null) => (x?.type !== 'co
     return part >= 1 ? '<i class="plein"></i>' : part > 0 ? `<i style="--part:${part * 100}%"></i>` : '<i></i>';
   }).join('')}</span>`);
 
-/** Le geste d'un pas (« +gain · prix ») : ce qu'il achète (`J.pasDe`), et en aperçu ce qu'il change en combat, lu par le
- *  noyau (`J.effetDuPas`). */
+/** Ce qu'un avancement change en combat (`J.effetDeLAvancement`), une ligne par valeur qui bouge : chaque Test et l'écart
+ *  de ses chances, le Bonus des Caractéristiques qui comptent en combat, les Blessures. */
+function lignesDeLEffet(h: J.Heros, a: J.Avancement): string[] | null {
+  const effet = J.effetDeLAvancement(h, a);
+  if (!effet) return null;
+  const bouge = (x: { avant: number; apres: number }) => x.avant !== x.apres;
+  const ecart = (x: { avant: number; apres: number }) => `${x.apres > x.avant ? '+' : '−'}${Math.abs(x.apres - x.avant)}`;
+  return [
+    ...effet.tests.filter(bouge).map((t) => `${t.label} ${t.avant} → ${t.apres}${bouge(t.chances) ? ` : ${ecart(t.chances)} % de chances${t.attaque ? ' de toucher' : ''}` : ''}`),
+    ...effet.bonus.filter((b) => CARACS_A_BONUS.has(b.id) && bouge(b)).map((b) => `Bonus de ${libelleDeCarac(b.id).label} ${b.avant} → ${b.apres}`),
+    ...(bouge(effet.blessures) ? [`Blessures ${effet.blessures.avant} → ${effet.blessures.apres}`] : []),
+  ];
+}
+
+/** Le geste d'un pas (« +gain · prix ») : ce qu'il achète (`J.pasDe`), et en aperçu ce qu'il change en combat
+ *  (`lignesDeLEffet`). */
 function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
   const pas = J.pasDe(h, cible);
-  const effet = J.effetDuPas(h, cible);
-  if (!pas || !effet) return '';
-  const bouge = (x: { avant: number; apres: number }) => x.avant !== x.apres;
-  const lignes = cible.genre === 'competence'
-    ? effet.tests.map((t) => `Test ${t.avant} → ${t.apres}`)
-    : [
-      ...effet.tests.filter(bouge).map((t) => `${t.label} ${t.avant} → ${t.apres}`),
-      ...(CARACS_A_BONUS.has(cible.id) && bouge(effet.bonus) ? [`Bonus ${effet.bonus.avant} → ${effet.bonus.apres}`] : []),
-      ...(bouge(effet.blessures) ? [`Blessures ${effet.blessures.avant} → ${effet.blessures.apres}`] : []),
-    ];
+  const lignes = lignesDeLEffet(h, cible);
+  if (!pas || !lignes) return '';
   const cibleAttrs = cible.genre === 'carac' ? `data-g="carac" data-k="${cible.id}"` : `data-g="competence" data-k="${cible.ref.id}"${cible.ref.spec ? ` data-s="${esc(cible.ref.spec)}"` : ''}`;
   const apercu = apercuDe({ nom: `${nom} +${pas.points}`, nature: `${pas.fois} Augmentation${pas.fois > 1 ? 's' : ''} · ${pas.prix} PX`, texte: lignes.join('\n') || 'Aucun Test de combat ne change.' });
   return achat({ verbe: `+${pas.points}`, prix: pas.prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="pas" data-id="${h.c.id}" ${cibleAttrs}${apercu}`, taille: 'petite' });
@@ -143,11 +149,19 @@ const apercuDeCompetence = (k: Offres['competences'][number]): Apercu => {
 const competences = (h: J.Heros, o: Offres, achats: boolean) => J.competencesMontrees(h).map((k) =>
   `<div class="achat${tient(k.points, o.exigence) ? ' faite' : ''}">${k.carac ? `<span class="etiquette rectangle">${esc(k.carac)}</span>` : ''}<span class="n"${apercuDe(apercuDeCompetence(k))}>${esc(k.label)}</span>${k.pourLeNiveau ? '<span class="etiquette pour-le-niveau">pour le niveau</span>' : ''}${marqueDesPoints(k.points, o.exigence)}<span class="val chiffres" data-bulle="Valeur de son Test">${k.valeur}</span>${achats ? pasAAcheter(h, { genre: 'competence', ref: k.ref }, k.label) : ''}</div>`).join('');
 
+/** Le geste d'un Talent du niveau (« Apprendre · prix »), et en aperçu ce qu'il change en combat (`lignesDeLEffet`) quand
+ *  il bouge une valeur de combat. */
+function achatDuTalent(h: J.Heros, t: Offres['talents'][number], i: number): string {
+  const lignes = lignesDeLEffet(h, { genre: 'talent', ref: t.ref });
+  const apercu = lignes?.length ? apercuDe({ nom: t.label, nature: `Talent · ${t.cout} PX`, texte: lignes.join('\n') }) : '';
+  return achat({ verbe: t.possede ? 'Renforcer' : 'Apprendre', prix: t.cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="talent" data-id="${h.c.id}" data-i="${i}"${apercu}`, taille: 'petite' });
+}
+
 /** Les Talents du niveau qui agissent en combat : acquis, ou à apprendre. */
 const talentsDuNiveau = (h: J.Heros, o: Offres) => o.talents.map((t, i) => entree({
   icone: t.possede ? 'etoile' : 'livre', nom: t.label, etat: t.possede ? `Acquis${t.possede > 1 ? ` ×${t.possede}` : ''}` : 'À apprendre', acquis: t.possede > 0,
   apercu: { nom: t.label, nature: 'Talent', texte: texteDuTalent(t.ref.id) },
-  ...(t.auMaxi ? {} : { action: achat({ verbe: t.possede ? 'Renforcer' : 'Apprendre', prix: t.cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="talent" data-id="${h.c.id}" data-i="${i}"`, taille: 'petite' }) }),
+  ...(t.auMaxi ? {} : { action: achatDuTalent(h, t, i) }),
 })).join('');
 
 const sort = (id: string, etat: string, action?: string) => { const f = ficheDuSort(id); return entree({ icone: 'feu', nom: f.label, etat, acquis: !action, apercu: { nom: f.label, nature: f.nature, texte: f.texte }, action }); };
@@ -163,18 +177,18 @@ function sortsAApprendre(h: J.Heros): string {
     return sort(id, 'À apprendre', prix == null ? plaque('Apprendre', '', { taille: 'petite', fermee: true, titre: 'Ce héros ne peut pas l’apprendre.' })
       : achat({ verbe: 'Apprendre', prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, taille: 'petite' }));
   }).join('') || glose(voie.sorts.every((s) => (h.c.spells ?? []).includes(s.id)) ? 'Tout est appris.' : 'Rien d’autre à ce niveau de carrière.');
-  return `<div class="rub">${esc(voie.nom)}</div>${liste}`;
+  return `<div class="rub">${esc(voie.nom)}</div><div class="deux-colonnes">${liste}</div>`;
 }
 
 /** Le bloc de progression, unique : à gauche le héros, ses PX, son niveau suivant et le plan conseillé ; puis les
- *  Caractéristiques de carrière, les Talents du niveau et les sorts de sa voie ; puis ses Compétences. La salle
- *  d'armes et l'onglet Progression de la fiche le posent tel quel. */
+ *  Caractéristiques de carrière et les Talents du niveau ; puis, sur deux colonnes, ses Compétences et les sorts de
+ *  sa voie. La salle d'armes et l'onglet Progression de la fiche le posent tel quel. */
 export function progressionDuHeros(e: J.Etat, h: J.Heros): string {
   const o = J.offresDeCarriere(h);
   return `<div class="progression"><div class="porteur">${herosEnTete(h)}${bourseDePX(h, o)}${niveauSuivant(e, h, o)}${planConseille(h)}</div>
     <div class="colonne"><div class="rub">Caractéristiques</div><div class="caracs">${caracteristiques(h, o, false, true)}</div>
-      <div class="rub">Talents ${glose('ceux qui agissent en combat')}</div>${talentsDuNiveau(h, o)}${sortsAApprendre(h)}</div>
-    <div class="colonne"><div class="rub">Compétences ${glose('celles qui servent ici')}</div><div class="deux-colonnes">${competences(h, o, true)}</div></div></div>`;
+      <div class="rub">Talents ${glose('ceux qui agissent en combat')}</div>${talentsDuNiveau(h, o)}</div>
+    <div class="colonne"><div class="rub">Compétences ${glose('celles qui servent ici')}</div><div class="deux-colonnes">${competences(h, o, true)}</div>${sortsAApprendre(h)}</div></div>`;
 }
 
 /** L'onglet des sorts : ceux qu'il connaît, et la voie que la salle d'armes enseigne. */

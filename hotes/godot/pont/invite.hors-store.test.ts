@@ -29,7 +29,7 @@ import type { ZonesDuSalon } from '../../../src/hote/salon';
 import type { Bouton, Element, Entite, Ligne } from '../../../src/hote/elements';
 import { t } from '../../../src/i18n';
 import { testScene } from '../../../src/scenes/test-fixture';
-import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
+import { campagneDeTest } from '../../../src/scenes/fixtures/contenuDuCommun';
 import { herosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { resetCadence } from '../../../src/engine/cadence';
