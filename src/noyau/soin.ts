@@ -48,11 +48,14 @@ export function refusDesBandages(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party'
   return porteur && porteDesBandages(porteur) ? null : t('heal.bandagesAbsents', { name: nomOuAbsence(porteur, 'combattant', porteurId) });
 }
 
+/** Le patient du soin en cours. */
+const patientDuSoin = (s: Pick<Jeu, 'battle' | 'party'>, ph: PendingHeal): Combatant => garanti(actorIn(s as Jeu, ph.targetId), ph.targetId, 'patient du soin');
+
 /** Pourquoi le Test `test` est refusé au soin en cours, `null` s'il s'offre. VERDICT UNIQUE du réglage `soins.test` et de la fenêtre. */
 export function refusDuTestDuSoin(s: Pick<Jeu, 'pendingHeal' | 'battle' | 'party'>, test: TestDeSoin): string | null {
   const ph = garanti(s.pendingHeal, test, 'soin du Test');
   if (ph.roll != null) return t('heal.testJetFait');
-  return refusDuTestDeSoin(actorIn(s as Jeu, ph.healerId) ?? null, ph.mode, { test, bandages: ph.bandagesDe != null });
+  return refusDuTestDeSoin(actorIn(s as Jeu, ph.healerId) ?? null, ph.mode, { test, bandages: ph.bandagesDe != null }, patientDuSoin(s, ph));
 }
 
 /** Pourquoi le héros `soigneurId` ne peut pas prendre le soin en cours, `null` s'il le peut : seuls les héros soignent
@@ -74,8 +77,8 @@ export function refusDuModeDuSoin(s: Pick<Jeu, 'pendingHeal' | 'pendingSurgery' 
   const ph = garanti(s.pendingHeal, mode, 'soin de l’acte');
   if (ph.roll != null) return t('heal.testJetFait');
   if (!s.battle) return refusDeLActeALInfirmerie(s, mode);
-  const patient = garanti(actorIn(s as Jeu, ph.targetId), ph.targetId, 'patient du soin');
-  return raisonDeModeDeSoinEnCombat(patient, mode) ?? refusDuTestDeSoin(actorIn(s as Jeu, ph.healerId) ?? null, mode, parametresDuSoin(ph));
+  const patient = patientDuSoin(s, ph);
+  return raisonDeModeDeSoinEnCombat(patient, mode) ?? refusDuTestDeSoin(actorIn(s as Jeu, ph.healerId) ?? null, mode, parametresDuSoin(ph), patient);
 }
 
 /** La fenêtre du soin en données : le patient, le soigneur, l'acte, le Test et les Bandages engagés (réglages
