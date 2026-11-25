@@ -13,7 +13,7 @@ import { setRule, resetRule } from '../../engine/policy';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { diligenceCampaign } from '../../scenes/campaign';
 import { poserLaCampagne } from '../campagne.testkit';
-import { campagneDuJeu, paquetDuJeu } from '../campagneLivree';
+import { campagneDuJeu, paquetDisqueDuJeu, paquetDuJeu } from '../campagneLivree';
 import { groupeVitrineDeScenario } from '../../scenes/test-scenarios/_heros';
 import { creditBourse, partyMoneyTotal } from '../../noyau/bourseFlow';
 import { toBrass } from '../../engine/money';
@@ -224,7 +224,7 @@ describe('(e) tronçon sans billet d’auteur : tarif au km (LDB 51 l.178)', () 
 });
 
 describe('(f) validation du billet au chargement', () => {
-  const doc = (): ProjectDoc => structuredClone(diligenceCampaign.paquet) as unknown as ProjectDoc;
+  const doc = (): ProjectDoc => paquetDisqueDuJeu(diligenceCampaign) as unknown as ProjectDoc;
   const billet = (d: ProjectDoc) => d.worldMap!.routes.find((r) => r.id === T1)!.billets!.diligence!;
   const refus = (d: ProjectDoc): string => {
     try { parseProject(d); return ''; } catch (e) { if (e instanceof ProjetRefuse) return e.message; throw e; }

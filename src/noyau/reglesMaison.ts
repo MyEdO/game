@@ -37,7 +37,7 @@ export function surchargerUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: Reg
   if (!reglesMaisonMutables(s).mutable) return false;
   const avant = rule(id);
   surchargerUneSaisie(id, valeur);
-  if (ruleDef(id)?.reprojetteArmement && rule(id) !== avant) reprojeter?.();
+  if (ruleDef(id)?.reprojetteEquipement && rule(id) !== avant) reprojeter?.();
   return true;
 }
 
@@ -46,6 +46,6 @@ export function retablirUneRegleMaison(s: Pick<Jeu, 'battle' | 'net'>, id: Regle
   if (!reglesMaisonMutables(s).mutable) return false;
   const avant = rule(id);
   resetRule(id);
-  if (ruleDef(id)?.reprojetteArmement && rule(id) !== avant) reprojeter?.();
+  if (ruleDef(id)?.reprojetteEquipement && rule(id) !== avant) reprojeter?.();
   return true;
 }

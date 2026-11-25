@@ -48,6 +48,8 @@ const AUTRES_ZONES: Readonly<Record<string, readonly HitLocation[]>> = {
   'membres posterieurs': ['jambeG', 'jambeD'],
   // ACE 05 l.2043
   poitrine: ['corps'],
+  // LDB 63 l.101
+  tous: LOCALISATIONS_DE_COUP,
 };
 
 /** Zone nommée, repliée (`norm`) → Localisations : Emplacements, Localisations de la table, autres zones. */

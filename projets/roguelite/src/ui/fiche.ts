@@ -81,34 +81,27 @@ function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
 const bourseDePX = (h: J.Heros, o: Offres) =>
   `<div class="bourse-px"><div class="px laiton"><div class="chiffres">${h.c.xp ?? 0}</div></div><div><b>PX à dépenser</b>${glose(`${esc(J.nomDeCarriere(h.carriere))} · niveau ${o.niveau} : ${esc(o.titre)}`)}</div></div>`;
 
-/** L'exigence du niveau selon le passage du modèle du héros (`Exigence`) : ses lignes, et ce qui manque encore.
- *  LDB 07 l.124-131 ; CRB 048 l.45 */
-function exigencesDuNiveau(o: Offres): { lignes: string; manque: string[] } {
+/** L'exigence du niveau selon le passage du modèle du héros (`Exigence`), une ligne cochée par condition, et où le
+ *  héros en est. LDB 07 l.124-131 ; CRB 048 l.45 */
+function exigencesDuNiveau(o: Offres): string {
   const x = o.exigence;
-  if (!x) return { lignes: '', manque: [] };
-  if (x.type === 'cases') {
-    const reste = x.seuil - x.cases;
-    return { lignes: exige(o.complet, 'Cases de carrière cochées à ce niveau', `${x.cases} / ${x.seuil}`), manque: o.complet ? [] : [`${reste} case${reste > 1 ? 's' : ''} de carrière`] };
-  }
-  const caracsAFaire = o.caracs.filter((k) => !tient(k.points, x)).map((k) => libelleDeCarac(k.id).abr);
-  const caracsFaites = o.caracs.length - caracsAFaire.length;
+  if (!x) return '';
+  if (x.type === 'cases') return exige(o.complet, 'Cases de carrière cochées à ce niveau', `${x.cases} / ${x.seuil}`);
+  const caracsFaites = o.caracs.filter((k) => tient(k.points, x)).length;
   const compsFaites = Math.min(x.competences, o.competences.filter((k) => tient(k.points, x)).length);
-  return {
-    lignes: `${exige(caracsFaites >= o.caracs.length, `${o.caracs.map((k) => esc(libelleDeCarac(k.id).abr)).join(', ')} : +${x.points} chacune`, `${caracsFaites} / ${o.caracs.length}`)}
+  return `${exige(caracsFaites >= o.caracs.length, `${o.caracs.map((k) => esc(libelleDeCarac(k.id).abr)).join(', ')} : +${x.points} chacune`, `${caracsFaites} / ${o.caracs.length}`)}
       ${exige(compsFaites >= x.competences, `${x.competences} Compétences à +${x.points}`, `${compsFaites} / ${x.competences}`)}
-      ${exige(o.talentAcquis, 'Un Talent de ce niveau')}`,
-    manque: [caracsAFaire.length ? `${caracsAFaire.join(', ')} à +${x.points}` : '', compsFaites < x.competences ? `${x.competences - compsFaites} Compétence${x.competences - compsFaites > 1 ? 's' : ''} à +${x.points}` : '', o.talentAcquis ? '' : 'un Talent'].filter(Boolean),
-  };
+      ${exige(o.talentAcquis, 'Un Talent de ce niveau')}`;
 }
 
-/** Le niveau suivant : ce qu'il exige (`exigencesDuNiveau`), où le héros en est, et son geste, ouvert par `complet`. */
+/** Le niveau suivant : ce qu'il exige (`exigencesDuNiveau`), où le héros en est, et son geste, ouvert par `complet` ;
+ *  fermé, il renvoie à ces exigences sans les redire. */
 function niveauSuivant(e: J.Etat, h: J.Heros, o: Offres): string {
   const suivant = o.suivant;
   if (!suivant) return glose('Sommet de la carrière.');
-  const { lignes, manque } = exigencesDuNiveau(o);
-  const refus = suivant.niveau > J.niveauMaximal(e) ? 'La salle d’armes n’enseigne pas encore ce niveau : agrandissez-la.' : o.complet ? null : manque.length ? `Il manque : ${manque.join(' ; ')}.` : 'Le noyau ne valide pas encore ce niveau.';
+  const refus = suivant.niveau > J.niveauMaximal(e) ? 'La salle d’armes n’enseigne pas encore ce niveau : agrandissez-la.' : o.complet ? null : 'Les exigences du niveau ne sont pas toutes remplies.';
   return `<div class="rub">Niveau ${suivant.niveau} · ${esc(suivant.titre)}</div><div class="exigences">
-      ${lignes}</div>
+      ${exigencesDuNiveau(o)}</div>
     ${achat({ verbe: `Passer ${suivant.titre}`, prix: suivant.cout, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="niveau" data-id="${h.c.id}"`, refus })}`;
 }
 
@@ -173,9 +166,8 @@ function sortsAApprendre(h: J.Heros): string {
   if (!voie) return '';
   const appris = h.c.talents.some((t) => t.talentId === voie.talent);
   const liste = !appris ? glose(`Au niveau 2, le Talent ${esc(voie.nom)} ouvre ces sorts.`) : J.sortsProposes(h).map((id) => {
-    const prix = prixDuSort(h.c, id);
-    return sort(id, 'À apprendre', prix == null ? plaque('Apprendre', '', { taille: 'petite', fermee: true, titre: 'Ce héros ne peut pas l’apprendre.' })
-      : achat({ verbe: 'Apprendre', prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, taille: 'petite' }));
+    const prix = prixDuSort(h.c, id)!;
+    return sort(id, 'À apprendre', achat({ verbe: 'Apprendre', prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, taille: 'petite' }));
   }).join('') || glose(voie.sorts.every((s) => (h.c.spells ?? []).includes(s.id)) ? 'Tout est appris.' : 'Rien d’autre à ce niveau de carrière.');
   return `<div class="rub">${esc(voie.nom)}</div><div class="deux-colonnes">${liste}</div>`;
 }
@@ -205,9 +197,9 @@ function identite(ctx: Contexte, h: J.Heros, progresse: boolean) {
   const c = h.c;
   const progression = progresse || e.expedition ? '' : glose('Relevez la salle d’armes pour dépenser les PX.');
   const refusDeRenvoi = J.refusDeRenvoi(e, h);
-  const renvoi = e.expedition ? '' : `<div class="gestes-ident">${refusDeRenvoi ? glose(esc(refusDeRenvoi)) : ctx.congediement === c.id
+  const renvoi = e.expedition ? '' : `<div class="gestes-ident">${ctx.congediement === c.id
     ? `${plaque('Confirmer le renvoi', `data-a="congedier-ok" data-id="${c.id}"`, { taille: 'petite', armee: true })}${plaque('Garder', 'data-a="congedier-non"', { taille: 'petite' })}`
-    : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}">Renvoyer de la compagnie</button>`}</div>`;
+    : `<button type="button" class="lien" data-a="congedier" data-id="${c.id}"${refusDeRenvoi ? ` disabled data-bulle="${esc(refusDeRenvoi)}"` : ''}>Renvoyer de la compagnie</button>`}</div>`;
   return `<div class="tete">${portraitDeHeros(h, 'grand')}<div class="q"><div class="nom-propre moyen gothique">${esc(c.label)}</div>
     <div class="l">${esc(J.nomDEspece(h.espece))}</div><div class="l">${esc(carriereDe(h))}</div><div class="l">Destin ${c.fate ?? 0} · ${h.expeditions} expédition${h.expeditions > 1 ? 's' : ''}</div></div></div>
     ${glose(esc(J.deviseDe(h.carriere)))}${ligneDeVie(c)}${h.sejour ? sejourDe(h.sejour) : ''}${etats(c)}${etiquettesDeSequelles(c)}${etiquettesDeSouillure(c)}${progression}${renvoi}`;
@@ -216,8 +208,8 @@ function identite(ctx: Contexte, h: J.Heros, progresse: boolean) {
 /** En route : les provisions du héros et sa prière, en entrées. */
 function entreDeuxSalles(e: J.Etat, h: J.Heros) {
   const provisions = J.provisionsPortees(h).map((q) => entree({
-    icone: iconeDeProvision(q.id), nom: q.label, etat: `×${q.nombre}`, ferme: !!q.refus, apercu: { ...apercuDeProvision(q.id), ...(q.refus ? { pied: q.refus } : {}) },
-    action: plaque('Utiliser', `data-a="utiliser" data-id="${h.c.id}" data-k="${q.uid}"`, { taille: 'petite', fermee: !!q.refus, armee: !q.refus }),
+    icone: iconeDeProvision(q.id), nom: q.label, etat: `×${q.nombre}`, ferme: !!q.refus, apercu: apercuDeProvision(q.id),
+    action: plaque('Utiliser', `data-a="utiliser" data-id="${h.c.id}" data-k="${q.uid}"`, { taille: 'petite', fermee: !!q.refus, armee: !q.refus, titre: esc(q.refus ?? '') }),
   })).join('');
   const priere = (h.c.spells ?? []).includes('benediction-de-guerison') ? (() => {
     const f = ficheDuSort('benediction-de-guerison');

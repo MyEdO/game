@@ -15,7 +15,7 @@ import {
   type Etat,
   type Heros,
 } from './index';
-import { porterAuNiveau, poserLesReglesDuRoguelite } from '../noyau';
+import { porterAuNiveau, poserLesReglesDuRoguelite, progression } from '../noyau';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -36,6 +36,7 @@ describe('recrues du relais', () => {
     expect(h.c.xp ?? 0).toBe(0);
     expect(o.niveau).toBe(2);
     expect(o.suivant?.niveau).toBe(3);
+    expect(progression({ ...h.c, careerLevel: 1 }).complet).toBe(true);
     for (const k of ['capacite-de-combat', 'endurance', 'force-mentale'] as const) expect(h.c.charAdvances?.[k] ?? 0).toBeGreaterThanOrEqual(5);
   });
 
@@ -143,14 +144,14 @@ describe('forge : l’armure qui gêne l’Incantation', () => {
     return { e, h };
   }
 
-  it('l’armure se refuse sur la panoplie entière : l’Alchimiste porte les mailles, le Chamane le cuir', () => {
+  it('l’armure se refuse sur ce que le héros porterait : l’Alchimiste porte la moyenne, le Chamane la légère', () => {
     const alchimiste = mage('alchimiste');
-    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'pa-2')).toBeNull();
-    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'pa-1')).toMatch(/^Cuir souple : −1 DR/);
+    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'armure-moyenne')).toBeNull();
+    expect(acheterUneArmure(alchimiste.e, alchimiste.h.c.id, 'armure-legere')).toMatch(/^Armure légère : −1 DR/);
     const chamane = mage('chamane');
-    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'pa-1')).toBeNull();
+    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'armure-legere')).toBeNull();
     const or = chamane.e.or;
-    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'pa-2')).toMatch(/^Mailles : −2 DR/);
+    expect(acheterUneArmure(chamane.e, chamane.h.c.id, 'armure-moyenne')).toMatch(/^Armure moyenne : −2 DR/);
     expect(chamane.e.or).toBe(or);
   });
 });

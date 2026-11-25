@@ -87,7 +87,6 @@ import {
   refusDOuvrage,
   selRect,
   effectZoneRect,
-  ENTREES_DE_DOSSIER,
   isRoomZone,
   poigneeDeLaSelection,
   sameSel,
@@ -572,7 +571,7 @@ export interface ZonesDeLEditeur {
    * coupe la ligne de vue, si elle barre le passage à tous ; sa couche ; d'un déclencheur, s'il ne joue qu'une fois ;
    * d'un déclencheur ou d'une zone d'effet, les entrées de fiche qu'il couvre (`couvre`), chacune sur sa ligne, son
    * texte coupé au mot, puis en liste, à retirer, ou une ligne qui dit qu'il n'en couvre aucune, puis, en liste, chaque
-   * entrée des fiches commitées qu'il ne couvre pas (`ENTREES_DE_DOSSIER`), à couvrir ;
+   * entrée des fiches que l'hôte sert qu'il ne couvre pas (`SessionDEdition.entreesDeFiche`), à couvrir ;
    *
    * d'une zone d'effet encore, le formulaire tiré du schéma de son Test de traversée (`crossTest`), de ses effets à
    * la traversée (`onCross`) et à chaque Round (`perRound`), et, quand elle barre le passage, des groupes qu'elle bloque
@@ -928,8 +927,9 @@ const identifiantsDesElements = (famille: 'action' | 'noeud' | 'choix' | 'stade'
 const identifiantsDesActions = (ent: Scene['entities'][number]): Formulaire[] =>
   identifiantsDesElements('action', (ent.usable?.actions ?? []).map((a) => a.id), (id) => t('ecran.editeur.action.identifier', { id }));
 
-/** Par entrée des fiches commitées, son texte coupé au mot. */
-const COURT_DE_L_ENTREE = new Map(ENTREES_DE_DOSSIER.map((e) => [e.id, coupeAuMot(e.libelle, 70)]));
+/** Par entrée des fiches que l'hôte sert à la session `s`, son texte coupé au mot. */
+const courtDesEntrees = (s: SessionDEdition): ReadonlyMap<string, string> =>
+  new Map(s.entreesDeFiche.map((e) => [e.id, coupeAuMot(e.libelle, 70)]));
 
 /** La liste d'ids `poses` à l'id `id`, tirés du catalogue `catalogue` (le texte de chaque id), dite par les textes
  *  `ecran.editeur.<famille>.*` : une ligne par id posé, son texte, ou la ligne qui dit qu'il n'y en a aucun ; la liste
@@ -949,9 +949,10 @@ function listeDIds(id: string, famille: 'zone.couvre' | 'scene.groupes', poses: 
   ];
 }
 
-/** Les entrées de fiche couvertes (`couvre`), à l'id `id` (`listeDIds`), parmi les entrées des fiches commitées. */
-const couverture = (id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
-  listeDIds(id, 'zone.couvre', couvre, COURT_DE_L_ENTREE, jeu);
+/** Les entrées de fiche couvertes (`couvre`), à l'id `id` (`listeDIds`), parmi les entrées des fiches que l'hôte sert
+ *  à la session `s`. */
+const couverture = (s: SessionDEdition, id: string, couvre: readonly string[] | undefined, jeu: (couvre: string[] | null) => GesteDEdition): (Choix | Ligne)[] =>
+  listeDIds(id, 'zone.couvre', couvre, courtDesEntrees(s), jeu);
 
 /** Pourquoi l'outil ne pose pas de navire dans `scene` : elle n'est pas à l'échelle des ponts
  *  (`aLEchelleDesPonts`) ; `null` s'il s'y pose. */
@@ -993,7 +994,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
     ...(ent.kind === 'personnage' ? [...inventaire(s, ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
-    ...couverture('entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
+    ...couverture(s, 'entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
     ...formulaireDuPorteur(s, { sorte: 'entite', id: ent.id }, ent),
     boutonDEdition('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
   ];
@@ -1513,7 +1514,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
       boutonDEdition('zone/pleine', t('ecran.editeur.zone.emprise.pleine'), sur({ pleine: true }), false, ez.tiles ? null : t('ecran.editeur.zone.emprise.dejaPleine')),
       boutonDEdition('zone/blocksLoS', t('ecran.editeur.zone.blocksLoS'), sur({ blocksLoS: !ez.blocksLoS }), !!ez.blocksLoS),
       boutonDEdition('zone/barrier', t('ecran.editeur.zone.barrier'), sur({ barrier: !ez.barrier }), !!ez.barrier),
-      ...couverture('zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
+      ...couverture(s, 'zone/couvre', ez.couvre, (couvre) => sur({ couvre })),
       ...formulaireDuPorteur(s, { sorte: 'zone', id: ez.id }, ez),
     );
   }
@@ -1523,7 +1524,7 @@ function inspecteurDeZone(s: SessionDEdition, zone: ZoneLue): (Choix | Ligne | B
     return [ligne('zone/poignee', t('ecran.editeur.zone.poignee')), ...inspecteurDuPorteur(s, 'zone', { sorte: 'declencheur', id: declencheur.id }, [
       ...propre,
       boutonDEdition('zone/uneFois', t('ecran.editeur.zone.uneFois'), sur({ once: !declencheur.once }), !!declencheur.once),
-      ...couverture('zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })),
+      ...couverture(s, 'zone/couvre', declencheur.couvre, (couvre) => sur({ couvre })),
     ])];
   }
   if (sel?.type === 'restZone') {
@@ -1968,7 +1969,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     ...reglette('scene/bord/est', t('ecran.editeur.scene.bord.est', { v: w }), w, PAS_DE_GRILLE, (v) => sur({ dimensions: { w: v, h } })),
     ...reglette('scene/bord/nord', t('ecran.editeur.scene.bord.nord', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v, decalage: { x: 0, y: v - h } } })),
     ...reglette('scene/bord/sud', t('ecran.editeur.scene.bord.sud', { v: h }), h, PAS_DE_GRILLE, (v) => sur({ dimensions: { w, h: v } })),
-    ...couverture('scene/couvre', scene.couvre, (couvre) => scalaire({ couvre })),
+    ...couverture(s, 'scene/couvre', scene.couvre, (couvre) => scalaire({ couvre })),
     ...listeDIds('scene/groupes', 'scene.groupes', scene.groups, new Map(groupesDuLieu().map((g) => [String(g.valeur), g.libelle])), (groups) => scalaire({ groups })),
     choix('scene/ambiance', t('ecran.editeur.scene.ambiance'), AMBIANCES.map((a) => boutonDEdition(`scene/ambiance/${a}`, t(`ecran.editeur.scene.ambiance.${a}`), scalaire({ ambiance: a }), (scene.ambiance ?? 'exterieur') === a))),
     ...reglette('scene/echelle', t('ecran.editeur.scene.echelle', { v: echelle }), echelle, PAS_D_ECHELLE, (v) => scalaire({ metresPerTile: v })),

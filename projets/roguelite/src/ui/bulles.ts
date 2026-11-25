@@ -5,6 +5,7 @@
  * qu'elle qualifie, dessous s'il manque la place ; l'aperçu à sa droite, à gauche s'il manque la place ; tous deux
  * restent dans l'écran.
  */
+import { parseTable } from '../noyau';
 import type { Apercu } from './pieces';
 
 /** Le sens des abréviations du livre que l'interface affiche, en bulle au survol. */
@@ -72,12 +73,31 @@ function enLigne(texte: string): Node[] {
   });
 }
 
-/** Le texte du livre, verbatim, rendu : ses paragraphes, ses listes, son gras et son italique (Markdown). */
+/** Une table du texte du livre (`parseTable`) : son titre, ses en-têtes et ses rangées. */
+function tableDuTexte(table: NonNullable<ReturnType<typeof parseTable>>): HTMLTableElement {
+  const el = document.createElement('table');
+  if (table.titre) el.createCaption().append(...enLigne(table.titre));
+  const rangee = (cellules: string[], balise: 'th' | 'td') => {
+    const tr = document.createElement('tr');
+    for (const c of cellules) { const cellule = document.createElement(balise); cellule.append(...enLigne(c)); tr.append(cellule); }
+    return tr;
+  };
+  el.createTHead().append(rangee(table.headers, 'th'));
+  el.createTBody().append(...table.rows.map((r) => rangee(r, 'td')));
+  return el;
+}
+
+/** Le texte du livre, verbatim, rendu : ses paragraphes, ses listes, ses tables, son gras et son italique (Markdown). */
 function corpsDuTexte(texte: string): HTMLElement {
   const corps = document.createElement('div');
   corps.className = 'corps-apercu';
   for (const bloc of texte.split(/\n{2,}/)) {
     const lignes = bloc.split('\n');
+    const table = lignes.every((l) => /^\s*\|/.test(l)) ? parseTable(bloc) : null;
+    if (table) {
+      corps.append(tableDuTexte(table));
+      continue;
+    }
     if (lignes.every((l) => /^\s*[-*] /.test(l))) {
       const ul = document.createElement('ul');
       for (const l of lignes) { const li = document.createElement('li'); li.append(...enLigne(l.replace(/^\s*[-*] /, ''))); ul.append(li); }

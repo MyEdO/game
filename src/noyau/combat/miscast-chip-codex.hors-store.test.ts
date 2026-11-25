@@ -1,12 +1,9 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
-import { applyMiscast } from '../combatFlow';
-import { seedBattleRng } from '../battleRng';
-import { avanceEtapeCascade } from '../cascade.testkit';
+import { jouerPurifierLaChair } from './purifierLaChair.testkit';
 import { createHero } from '../../engine/character';
 import { testScene } from '../../scenes/test-fixture';
-import type { Combatant } from '../../engine/types';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -33,43 +30,11 @@ describe('Contrecoup — la pastille de l’effet porte SA rangée (LDB 40 l.75)
     return { H };
   }
 
-  const live = (id: string): Combatant => banc.getState().battle!.combatants.find((x) => x.id === id)!;
-
-  /** Joue la Colère jusqu'au palier `onFailHard` (−4 DR forcé, comme `miscast-test.hors-store.test.ts`) : c'est là
-   *  que la rangée pose l'État ET la cause qui le maintient. */
-  function purifierLaChair(): Combatant {
-    let seed = -1;
-    for (let s = 0; s < 400 && seed < 0; s++) {
-      const { H } = setup();
-      seedBattleRng(s);
-      applyMiscast(banc.getState, banc.setState, H, 'colere');
-      avanceEtapeCascade(banc.getState);
-      const casc = banc.getState().pendingCascade;
-      const m = casc?.participants.find((p) => p.kind === 'incantationImparfaite');
-      if (m?.outcome?.some((l) => /Purifier la chair/.test(l.text)) && casc?.participants.some((p) => p.kind === 'testDeclenche')) seed = s;
-      banc.setState({ pendingCascade: null });
-    }
-    expect(seed, 'aucune graine ne produit la rangée 81-87').toBeGreaterThanOrEqual(0);
-
-    const { H } = setup();
-    seedBattleRng(seed);
-    applyMiscast(banc.getState, banc.setState, H, 'colere');
-    avanceEtapeCascade(banc.getState);
-    const p0 = banc.getState().pendingCascade!;
-    const idx = p0.participants.findIndex((s) => s.kind === 'testDeclenche');
-    const step = p0.participants[idx];
-    banc.setState({
-      pendingCascade: { ...p0, participants: p0.participants.map((s, k) => (k === idx ? { ...s, result: { roll: 99, target: step.base ?? 30, sl: -5, success: false } } : s)) },
-    });
-    banc.getState().jetLancer('cascade');
-    return live(H.id);
-  }
-
   it('la pastille de l’effet nomme la rangée et ouvre SA fiche Codex', () => {
-    const h = purifierLaChair();
-    const cause = (h.activeEffects ?? []).find((e) => e.opsPerRound);
-    expect(cause, 'la cause récurrente est posée').toBeTruthy();
-    expect(cause!.source, 'l’ancrage est la RANGÉE, dans la catégorie que sa table déclare')
+    const h = jouerPurifierLaChair(banc, () => setup().H);
+    const porteur = (h.activeEffects ?? []).find((e) => e.passive?.some((o) => o.op === 'condition' && o.id.id === 'inconscient'));
+    expect(porteur, 'l’effet porteur de l’Inconscient est posé').toBeTruthy();
+    expect(porteur!.source, 'l’ancrage est la RANGÉE, dans la catégorie que sa table déclare')
       .toEqual({ kind: 'colereDesDieux', id: 'colere-purifier-la-chair' });
   });
 });

@@ -58,7 +58,7 @@ describe('matières de relief — l’id émis est celui de la DONNÉE (toutes s
   it('chaque gisement de scènes livrées alimente le balayage, et le balayage émet des faces de relief', () => {
     expect(testScenarios.length, 'le registre des scénarios ne porte plus aucune scène').toBeGreaterThan(0);
     for (const c of allBuiltinCampaigns) {
-      expect(c.paquet.scenes.length, `campagne « ${c.id} » : aucune scène livrée — elle n’entre plus dans la mesure`).toBeGreaterThan(0);
+      expect(paquetDuJeu(c).scenes.length, `campagne « ${c.id} » : aucune scène livrée — elle n’entre plus dans la mesure`).toBeGreaterThan(0);
     }
     expect(mesures.reduce((n, m) => n + m.faces, 0), 'aucune face de relief émise : le contrat porterait sur rien').toBeGreaterThan(0);
   });

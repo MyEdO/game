@@ -105,7 +105,7 @@ describe('le scan suit les déclarations de prose du schéma des projets', () =>
       const { formes } = scannerDonnees(dossier, [
         { file: PROJET, root: 'src/scenes', famille: 'config', schema: projetSchema },
         { file: CATALOGUE, root: 'src/data', famille: 'config', schema: z.strictObject({ flow: sceneFlowSchema }) },
-      ]);
+      ], undefined, undefined, [`src/scenes/${PROJET}`]);
       expect(formes.filter((f) => f.concept === 'prose-nommee').map(
         (f) => [f.dataset, f.champ, f.strate, f.signature, f.statut, f.occurrences],
       )).toEqual([

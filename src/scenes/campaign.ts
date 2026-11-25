@@ -5,6 +5,9 @@ import areneProjet from './arene/arene-projet.json';
 import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';
 import bargeDuSelProjet from './barge-du-sel/barge-du-sel-projet.json';
 import diligenceProjet from './diligence/diligence-projet.json';
+import { lireLesFiches } from '../data/dossiers';
+import edo01 from '../../docs/dossiers/EDO/01.json';
+import edo02 from '../../docs/dossiers/EDO/02.json';
 
 /** « La Diligence » — chapitre 1 de L'Ennemi Intérieur : paquet éditeur portant SES scènes (la
  *  première étant l'entrée) et la carte du monde du chapitre. */
@@ -27,5 +30,9 @@ export const areneCampaign: BuiltinCampaign = campagneDuPaquet(areneProjet, 'are
 export const allBuiltinCampaigns: BuiltinCampaign[] = [areneCampaign, ...builtinCampaigns];
 
 /** Le contenu du jeu de rôle que ses points d'entrée remettent à l'affichage (`ContenuDUnJeu`, `src/hote/contenu.ts`) :
- *  ses campagnes, et aucun scénario de test hors du catalogue commun. */
-export const contenuDuJeuDeRole = { campagnes: allBuiltinCampaigns, scenarios: [] };
+ *  ses campagnes, aucun scénario de test hors du catalogue commun, et ses fiches de dossier de chapitre. */
+export const contenuDuJeuDeRole = {
+  campagnes: allBuiltinCampaigns,
+  scenarios: [],
+  dossiers: lireLesFiches({ 'EDO/01.json': edo01, 'EDO/02.json': edo02 }),
+};

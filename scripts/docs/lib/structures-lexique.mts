@@ -18,7 +18,7 @@
 // `cible` exige de toucher le stock — un mot du lexique ne solde plus des centaines d'occurrences.
 
 import { basename } from 'node:path';
-import { listerProjetsLivres } from '../../guards/lib/projetsLivres.mjs';
+import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated.ts';
 import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
 import { exigeSource } from '../../../src/data/schemas/grammaire/sans-livre.ts';
 import type { conceptDe } from '../../../src/data/schemas/grammaire/concepts.ts';
@@ -38,8 +38,8 @@ export type StatutSignature = 'cible' | 'historique' | 'declaree';
 export type IdConceptPose = NonNullable<ReturnType<typeof conceptDe>>;
 export type SignatureLexique = { sig: string; statut: StatutSignature; note?: string; pose?: IdConceptPose };
 
-/** Les documents des PROJETS DE CAMPAGNE livrés (`listerProjetsLivres`), par nom de dataset. */
-export const DATASETS_DES_PROJETS: readonly string[] = listerProjetsLivres().map((rel) => basename(rel));
+/** Les documents de PROJET que le registre des schémas de scène déclare (`SCHEMA_DEFS_SCENES`), par nom de dataset. */
+export const DATASETS_DES_PROJETS: readonly string[] = SCHEMA_DEFS_SCENES.map((d) => basename(d.file));
 
 /**
  * Strate de la grammaire (#1463, design 2026-08-23) à laquelle une forme appartient.

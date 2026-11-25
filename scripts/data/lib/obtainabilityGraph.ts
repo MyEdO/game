@@ -14,7 +14,7 @@
  * de `spellNever` pour la même raison — verdicts RAW cités sur les entrées, pas un silence.
  */
 import { readFileSync } from 'node:fs';
-import { listerProjetsLivres, PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
+import { paquetsDuCommun } from '../../guards/lib/paquetsDuCommun.mjs';
 import { join } from 'node:path';
 import { auChemin } from '../../../src/lib/objet.mjs';
 import {
@@ -42,7 +42,8 @@ function walkNode(node: unknown, onNode: (n: Record<string, unknown>) => void) {
   }
 }
 
-export function computeObtainability(root: string): ObtainabilityResult {
+/** Le graphe d'obtenabilité de la donnée sous `root`, avec les paquets `paquets` (chemins relatifs à `root`). */
+export function computeObtainability(root: string, paquets: readonly string[] = paquetsDuCommun(root)): ObtainabilityResult {
   const talentSources = new Map<string, Set<string>>();
   const addTalentSource = (id: string, src: string) => {
     if (!talentSources.has(id)) talentSources.set(id, new Set());
@@ -68,7 +69,7 @@ export function computeObtainability(root: string): ObtainabilityResult {
   for (const t of effectTables) walkNode(t, (n) => { if (n.op === 'grantTalent') addTalentSource((n.talent as { id: string }).id, `table:${t.id}`); });
 
   const learnSpellIds = new Set<string>();
-  for (const f of listerProjetsLivres(root).map((rel) => `${PROJETS_LIVRES.dossier}/${rel}`)) {
+  for (const f of paquets) {
     const text = readFileSync(join(root, f), 'utf8');
     if (!text.includes('"grantTalent"') && !text.includes('"learnSpell"')) continue;
     let json: unknown;

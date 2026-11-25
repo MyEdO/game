@@ -15,13 +15,11 @@ export const RACINE_DES_CATALOGUES = 'src/data';
  * `constFields` (option PAR registre, avec `fields`) : champs de VALEUR LITTÉRALE ajoutés à chaque
  * entrée générée — ce que le def ne déclare pas parce que c'est une propriété du REGISTRE (la
  * racine `root` d'un dataset : le def dit son fichier, le registre dit d'où il vient).
- * `json` (option PAR registre) : les entrées sont les fichiers `.json` de tout l'arbre de `dir`, pas des modules de
- * def ; le registre est l'objet `{ <chemin relatif à dir>: <document> }`, sans `type` ni `typeFrom`.
  * `vocabulaire` (option PAR registre, #2968 P-art) : la table `id → libellé` de ses defs, lue aux champs
  * littéraux `id` et `libelle` (`vocabulaireDuRegistre`, `scripts/gen-registry.mjs`), s'écrit sous `nom` dans
  * `SORTIE_VOCABULAIRES_D_ART` : un VOCABULAIRE (`src/data/schemas/grammaire/vocabulaires.ts`), donc l'espace
  * `vocabulaire:<nom>` de l'index des ids, que `TYPES` (`src/data/schemas/grammaire/ref.ts`) peut déclarer.
- * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type?:string, typeFrom?:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, vocabulaire?:{ nom:string, id:string, libelle:string }, fields?:string[], constFields?:Record<string,string>, json?:true }[]}
+ * @type {{ dir:string, out:string, exportName?:string, arrayName:string, type?:string, typeFrom?:string, importDir?:string, idUnion?:{ typeName:string, field:string, out?:string }, vocabulaire?:{ nom:string, id:string, libelle:string }, fields?:string[], constFields?:Record<string,string> }[]}
  */
 export const REGISTRIES = [
   {
@@ -111,14 +109,6 @@ export const REGISTRIES = [
     fields: ['file', 'schema', 'famille', 'exposition'],
     optionalFields: ['meta'],
     constFields: { root: "'src/scenes'" },
-  },
-  {
-    // Fiches de dossier de chapitre commitées (#2290) : 1 fiche = `docs/dossiers/<ABBR>/<NN>.json`.
-    dir: 'docs/dossiers',
-    out: 'src/data/_dossiers.generated.ts',
-    importDir: '../../docs/dossiers',
-    arrayName: 'FICHIERS_DE_DOSSIER',
-    json: true,
   },
 ];
 
