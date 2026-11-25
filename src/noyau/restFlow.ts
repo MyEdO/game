@@ -71,7 +71,7 @@ import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import { aubeApresNuits, MINUTES_PER_DAY, dayIndex } from '../engine/clock';
 import { runDailyUpkeep } from './upkeep';
 import { jouerLEntretienDesRoundsEcoules } from './outOfCombatUpkeep';
-import { confierLaSuite, OPS_DIFFEREES } from './combatEffects';
+import { confierLaSuite, MAIN_RENDUE } from './combatEffects';
 import { checkPartyWiped } from './partyWipe';
 import { continueTravelAfterNight } from './travelFlow';
 import { activeExposureSeverity } from './combatFlow';
@@ -859,7 +859,7 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
   // Les Rounds de la nuit, joués avant elle : LDB 16 l.105.
   if (!apresLesRounds) {
     const minutes = aubeApresNuits(get().gameTime, 1) - get().gameTime;
-    if (jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+    if (jouerLEntretienDesRoundsEcoules(get, set, minutes) === MAIN_RENDUE) {
       confierLaSuite(set, [{ verbe: 'reprendreLaNuit', p, nightsLeft, extraContagion }]);
       return;
     }

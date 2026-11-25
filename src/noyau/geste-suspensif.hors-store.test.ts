@@ -1,7 +1,6 @@
 /**
- * GESTE JOUEUR au milieu d'un Flow d'auteur (handler `suspensif`, `combatEffects.ts`) : le pending qu'il
- * ouvre porte la SUITE (patron `openSkillTest(..., after)`), et sa clôture la rejoue — aucune étape posée
- * après le geste ne se perd. Chemin réel : `runFlow` / `applyEffects`, puis le geste de clôture du noyau.
+ * GESTE JOUEUR au milieu d'un Flow d'auteur (#2689) : le porteur qu'il ouvre tient la main, la SUITE lui est
+ * confiée (`confierLaSuite`), et sa clôture la rejoue — aucune étape posée après le geste ne se perd. Chemin réel : `runFlow` / `applyEffects`, puis le geste de clôture du noyau.
  * EDO 02 l.91 (désignation) ; LDB 12 l.172-174 (Test étendu) ; EDO Appendice 2 (porte).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';

@@ -53,7 +53,7 @@ import {
   voyageShip,
 } from './seaVoyageFlow';
 import { findSeaHazard } from '../engine/seaPerils';
-import { applyLeafOps, indiceDeMembreDuBord, OPS_DIFFEREES, scheduleDelayedOps } from './combatEffects';
+import { applyLeafOps, indiceDeMembreDuBord, MAIN_RENDUE, scheduleDelayedOps } from './combatEffects';
 import { startCascade } from './cascade';
 import { condCtx } from './bourseFlow';
 import { autrePortAuHasard } from './portFlow';
@@ -361,7 +361,7 @@ const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
  * puis `after`. Son enjeu est celui que le Test nomme (`flowTestSchema`). `false` : aucun marin
  * apte à bord, l'appelant joue l'échec. MDG 14 l.39 ; MDG 15 l.144-145
  */
-export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { kind: 'test' }>, after: Flow, label: string, sl?: number): boolean {
+export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { kind: 'test' }>, label: string, sl?: number): boolean {
   const { crewTestType, stake } = node.test;
   const type = garanti(crewTestType, label, 'type de Test d’équipage');
   const { difficulty } = resoudreFlowTest(node.test, { cc: condCtx(get) });
@@ -371,7 +371,7 @@ export function ouvrirLeTestDEquipage(get: Get, set: Set, node: Extract<Flow, { 
   const reparation = findCrewTestTypeById(type)?.steering ? reparationTemporaireDuNavire(get, get().travelPlan?.vehicle, st.id) : undefined;
   startCascade(get, set, {
     title: label, icon: 'voyage/ancre', purpose: 'test',
-    steps: [{ ...st, meta: { ...st.meta, onSuccess: node.reussite, onFail: node.echec, after, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }, ...(reparation ? [reparation] : [])],
+    steps: [{ ...st, meta: { ...st.meta, differeLaSuite: true, onSuccess: node.reussite, onFail: node.echec, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) } }, ...(reparation ? [reparation] : [])],
   });
   return true;
 }
@@ -393,7 +393,7 @@ export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx)
   const viderLesPures = (): void => {
     if (!pures.length) return;
     const issue = applyLeafOps(get, set, coque, { ...e, ops: pures }, ctx);
-    if (issue === OPS_DIFFEREES) throw new Error(`#1652 — une op à dé ouvert à la porte vise le navire (${pures.map((o) => o.op).join(', ')}) : son applier ne retrouverait pas la coque.`);
+    if (issue === MAIN_RENDUE) throw new Error(`#1652 — une op à dé ouvert à la porte vise le navire (${pures.map((o) => o.op).join(', ')}) : son applier ne retrouverait pas la coque.`);
     lignes.push(...issue);
     pures = [];
     persister();

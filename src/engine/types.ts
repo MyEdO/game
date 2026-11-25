@@ -1120,6 +1120,8 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
   requiresMastery?: boolean;
   /** Dégâts subis par l'arme (LDB 62 l.135), persistés sur le trapping ; propagé au Weapon actif. */
   damageTaken?: number;
+  /** PA perdus par une pièce d'ARMURE, par Emplacement endommagé. LDB 63 l.19, l.21 */
+  usure?: Partial<Record<HitLocation, number>>;
   /** Arme détruite (Incident de Tir) : non équipable. */
   destroyed?: boolean;
   /** Réserve de NI d'énergie magique RESTANTE sur CET objet (`VDM 02 l.165` : « garder une trace du

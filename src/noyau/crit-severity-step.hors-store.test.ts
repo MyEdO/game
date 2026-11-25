@@ -24,7 +24,7 @@ import type { Weapon, Combatant, HitLocation, ArmourPoints } from '../engine/typ
 const lastCrit = (c: Combatant): string | undefined => (c.critEntriesSuffered ?? [])[(c.critEntriesSuffered ?? []).length - 1];
 const SANS_PA: ArmourPoints = { tete: 0, corps: 0, brasG: 0, brasD: 0, jambeG: 0, jambeD: 0 };
 import type { AttackResult } from '../engine/combat';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 
 let banc: Banc;
@@ -138,7 +138,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     // l'option « Dés fixés » n'ajoute que la POSE du dé, jamais l'existence de l'étape.
     const { H, E } = startFight();
     const suspended = applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);
     expect(etapes[0].table!.tableId).toBe(CRIT_TABLE_IDS.corps);
@@ -158,7 +158,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     setDesFixes(true);
     const avant = { pb: H.wounds.current, crits: H.criticalWounds ?? 0 };
     const suspended = applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit('corps'));
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const step = banc.getState().pendingCascade!.participants[0];
     expect(step.kind).toBe('deviation');
     expect(stepInteraction(step)).toBe('table'); // dé À POSER → les deux affordances de la modale
@@ -235,7 +235,7 @@ describe('Sévérité d’un Critique — la table LDB en étape (#942 L4)', () 
     E.important = true; // LDB 18 l.44 : hors Mort subite
     setDesFixes(true);
     const suspended = applyAttackResult(banc.getState, banc.setState, H, E, hache, critHit('corps'));
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);
     expect(etapes[0].table!.result, 'aucun siège ne la tient → le socle a tiré au rang du curseur').toBeTruthy();

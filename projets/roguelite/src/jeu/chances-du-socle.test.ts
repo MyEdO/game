@@ -5,7 +5,7 @@ import { ecranDeLExpedition } from '../ui/lieux';
 import { ACTIONS_A_JET, herosDuGroupe, refusDAction, refusDuSoigneur, viseeDuSoigneur } from './index';
 import { devant } from './salles.testkit';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** La carte du héros `id` au socle de l'écran `html`. */
 const carte = (html: string, id: string): string => {

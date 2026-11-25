@@ -158,7 +158,7 @@ import { lacherLeBouclierDuBinome, ramasserDuSol, ramasserHorsCombat } from './o
 import {
   nePeutPasDifferer,
   jouerFlowEntier,
-  OPS_DIFFEREES,
+  MAIN_RENDUE,
   entityPickables,
   cleFeuilleRamassee,
   applyEffects,
@@ -1304,7 +1304,7 @@ export function createCombatSlice(get: Get, set: Set) {
       set({ battle: { ...markActed(get, set), action: null } }); // le Test EST l'Action (réussite ou non)
       openSkillTest(get, set,
         { skill: { id: 'commandement' }, difficulty: 'intermediaire', label: t('cs.teamCommandTest'), stake: combatStakeRef('equipe-direction') },
-        combatConditionCtx(active, {}), onSuccess, EMPTY_FLOW, EMPTY_FLOW, { actorId: active.id });
+        combatConditionCtx(active, {}), onSuccess, EMPTY_FLOW, { actorId: active.id });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -2101,7 +2101,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Test est PERSONNEL — `noSupport` (LDB 09 l.308, LDB 12 l.197).
       openSkillTest(get, set,
         { skill: { id: skillId }, difficulty: 'intermediaire', label: t('cs.skillAdvantageTest'), noSupport: true, stake: combatStakeRef('competence-avantage', { entryId: skillId, values: { capChar } }) },
-        combatConditionCtx(active, {}), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW,
+        combatConditionCtx(active, {}), EMPTY_FLOW, EMPTY_FLOW,
         { actorId: active.id, combatAdvantage: { combatantId: active.id, cap }, cancellable: true });
     },
 
@@ -2685,7 +2685,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // son dé l'appliquera. L'étape de casse s'APPEND DERRIÈRE cette étape (`cascade.pushStep`), donc
       // le curseur y ARRIVE — la suite de ce verbe est le curseur, jamais une application.
       const issue = c ? applyOups(get, set, c, step.maladresse.weapon, oups, new Map(), coup) : undefined;
-      const differee = issue === OPS_DIFFEREES;
+      const differee = issue === MAIN_RENDUE;
       const suite = get().pendingCascade;
       // Fail-fast : une casse différée sans étape derrière elle ferait FERMER la cascade au curseur
       // (`advanceCascade`, curseur au bout) — le dé en vol serait perdu avec sa Maladresse.
@@ -2693,7 +2693,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         throw new Error('#1508 — casse d’arme différée sans étape derrière la Maladresse : le curseur fermerait la cascade sur un dé jamais servi.');
       }
       // L'après-coup qui tient la main a poussé ses étapes DERRIÈRE celle-ci : la suite est le curseur.
-      if (!differee && coup) jouerFlowEntier(jouerLApresCoup(get, set, coup) ? OPS_DIFFEREES : undefined);
+      if (!differee && coup) jouerFlowEntier(jouerLApresCoup(get, set, coup) ? MAIN_RENDUE : undefined);
       // La Maladresse est l'étape COURANTE de la cascade combat → enchaîner le curseur (sa clôture reprend l'IA).
       validerLEtape(get, set);
     },

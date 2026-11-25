@@ -22,7 +22,7 @@ import {
 } from '../engine/combat';
 import { reverseRoll } from '../engine/tests';
 import { makeRNG } from '../engine/dice';
-import { recomputeLoadout } from '../engine/items';
+import { armureUtilisable, recomputeLoadout } from '../engine/items';
 import { setRule } from '../engine/policy';
 import { testScene } from '../scenes/test-fixture';
 import { locationLabel, type Combatant, type HitLocation, type ItemInstance, type Weapon } from '../engine/types';
@@ -122,7 +122,7 @@ describe('aperçu au jet = application, par `compteDuCoup`', () => {
     expect(attendu, 'LDB 60 l.50 : la pièce cassée ne protège plus').toBe(woundsAtCritLocation(res, epee, intacte, lieu) + 2);
     expect(apercu.blessures).toBe(attendu);
     expect(apercu.critiques).toBe(1);
-    expect((apres.items!.find((i) => i.uid === 'p1')!.damageTaken ?? 0)).toBeGreaterThan(2);
+    expect(armureUtilisable(apres.items!.find((i) => i.uid === 'p1')!)).toBe(false);
     expect(applique).toEqual({ critiques: apercu.critiques, blessures: apercu.blessures, lieu: apercu.lieu });
   });
 

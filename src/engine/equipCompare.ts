@@ -5,8 +5,8 @@
  * des stats déjà portées par les trappings (Dégâts, Allonge, Portée, Qualités, PA d'armure ;
  * Protection des boucliers via l'Atout « Protectrice N »). Présentation pure → testable hors UI.
  */
-import type { Combatant, WeaponDamageSpec, QualityInstance } from './types';
-import { type GabaritDObjet, damageScore, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
+import type { Combatant, HitLocation, WeaponDamageSpec, QualityInstance } from './types';
+import { type GabaritDObjet, damageScore, paNette, isShieldItem, isUnarmed, damageString, unarmedWeapon, reachRankOf } from './items';
 import { effectiveRange } from './weaponDamage';
 import { bonusDeForce } from './characteristics';
 import { resolveQualities } from './qualities/dispatch';
@@ -75,12 +75,13 @@ export function compareEquip(item: GabaritDObjet, hero: Combatant): EquipCompari
 
   if (item.kind === 'armor') {
     const cur = items.filter((i) => i.equipped && i.kind === 'armor');
-    const newPA = (item.pa ?? 0) - (item.damageTaken ?? 0);
+    const paDeZone = (i: GabaritDObjet, locs: readonly HitLocation[]): number[] =>
+      locs.filter((l) => i.locs?.includes(l)).map((l) => paNette(i, l));
     const rows: CompareRow[] = [];
     for (const z of ZONES_D_ARMURE) {
       if (!z.locs.some((l) => item.locs?.includes(l))) continue;
-      const covering = cur.filter((i) => z.locs.some((l) => i.locs?.includes(l)));
-      const curPA = covering.length ? Math.max(0, ...covering.map((i) => (i.pa ?? 0) - (i.damageTaken ?? 0))) : 0;
+      const newPA = Math.max(...paDeZone(item, z.locs));
+      const curPA = Math.max(0, ...cur.flatMap((i) => paDeZone(i, z.locs)));
       // Le modèle prend le MAX par localisation (recomputeLoadout) → gain seulement si la neuve fait mieux.
       rows.push({ label: `PA ${z.label}`, current: String(curPA), next: String(Math.max(curPA, newPA)), trend: trendOf(newPA - curPA) });
     }

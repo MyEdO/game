@@ -10,7 +10,8 @@ import {
   type CreatorDraft,
   type GesteDuBrouillon,
 } from '../../../../src/noyau';
-import { buildHero } from '../../../../src/noyau/creation/brouillon';
+import { buildHero, carrieresOffertes, especesOffertes } from '../../../../src/noyau/creation/brouillon';
+import { randomSpeciesTable } from '../../../../src/engine/creation';
 import { adresseDeCreation } from '../../../../src/engine/adresseDeCreation';
 import { designateSlot, skillSlots, slotCovers } from '../../../../src/engine/careerSlots';
 import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
@@ -18,15 +19,11 @@ import { effectiveChar } from '../../../../src/engine/characteristics';
 import { raisonVerrouEtat } from '../../../../src/engine/conditions';
 import {
   findCareerById,
-  findSpeciesById,
   levelsForCareer,
   characteristics,
   conditionLabel,
   refLabel,
   skills,
-  carrieresAleatoires,
-  colonneDeCarrieres,
-  especesAleatoires,
 } from '../../../../src/data';
 import { makeRNG, type RNG } from '../../../../src/engine/dice';
 import type { Combatant, CharKey, ConditionInstance } from '../../../../src/engine/types';
@@ -103,24 +100,16 @@ export function nouvelleRecrue(graine: number, carriere: string, espece: string,
   return c;
 }
 
-/** Une espèce de `especes` tirée pour la carrière `carriere` : parmi celles dont la colonne du Tableau des Classes et
- *  Carrières aléatoires porte la carrière, ou porte celle de sa variante quand la carrière admet leur race, ou, pour
- *  une carrière qu'aucun tableau ne porte, dont la carrière admet la race, au poids de leur rangée au Tableau des
- *  Races aléatoires. LDB 05 l.214-299 ; AA 02 l.109-128 ; LDB 04 l.93-101 */
+/** Une espèce de `especes` tirée pour la carrière `carriere`, sur la création 5e du noyau : parmi les espèces que le
+ *  brouillon offre (`especesOffertes`) et dont le tirage de carrière offre `carriere` (`carrieresOffertes`), au poids de
+ *  leur rangée à la table des espèces du brouillon (`randomSpeciesTable`). CRB 006 l.9-17 ; CRB 013 l.7-9 */
 export function tirerUneEspece(rng: RNG, carriere: string, especes: readonly string[]): string {
-  const variante = carrieresAleatoires.find((d) => d.kind === 'variante' && d.entries.some((r) => r.id === carriere));
-  const tabulee = carrieresAleatoires.some((d) => d.entries.some((r) => r.id === carriere));
-  const races = findCareerById(carriere)?.races;
-  const permise = (id: string) => {
-    const sp = findSpeciesById(id);
-    if (!sp) return false;
-    if (!tabulee) return races?.includes(sp.refChar) ?? false;
-    const colonne = colonneDeCarrieres(sp.refCareer).entries;
-    return colonne.some((r) => r.id === carriere) || (!!variante && variante.kind === 'variante' && colonne.some((r) => r.id === variante.carriere) && (races?.includes(sp.refChar) ?? true));
-  };
-  const rangees = especesAleatoires.find((t) => t.id === 'races-ldb')!.entries.filter((r) => especes.includes(r.id) && permise(r.id));
-  let jet = rng.int(1, rangees.reduce((n, r) => n + r.max - r.min + 1, 0));
-  return rangees.find((r) => (jet -= r.max - r.min + 1) <= 0)!.id;
+  const d = brouillonDeLaPartie(0, 0);
+  const offertes = especesOffertes(d);
+  const permise = (id: string) => especes.includes(id) && carrieresOffertes(apresLeGeste(d, { geste: 'espece', args: [id] })).some((c) => c.id === carriere);
+  const rangees = randomSpeciesTable(offertes).entries.flatMap(({ min, max, ids }) => ids.filter(permise).slice(0, 1).map((id) => ({ id, poids: max - min + 1 })));
+  let jet = rng.int(1, rangees.reduce((n, r) => n + r.poids, 0));
+  return rangees.find((r) => (jet -= r.poids) <= 0)!.id;
 }
 
 /** Valeur courante d'une Caractéristique, Augmentations et effets compris. */

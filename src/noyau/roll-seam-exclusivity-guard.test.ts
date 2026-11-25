@@ -1286,7 +1286,7 @@ function fonctionsNommees(sf: ts.SourceFile): Array<{ nom: string; fn: ts.Node }
 }
 
 /** Le corps `corps` rend-il une valeur DÉRIVÉE du retour d'un des `points` ? Dérivée : l'expression
- *  rendue porte l'appel (direct ou comparé, `=== OPS_DIFFEREES`), ou une variable locale qui l'a
+ *  rendue porte l'appel (direct ou comparé, `=== MAIN_RENDUE`), ou une variable locale qui l'a
  *  capturé (déclaration ou affectation, transitivement), ou le `return` est gardé par un `if` dont la
  *  condition en dérive. Les fonctions imbriquées ont leurs propres `return` : on n'y descend pas. */
 function rendUnDerive(corps: ts.Node, points: ReadonlySet<string>): boolean {
@@ -1426,7 +1426,7 @@ function appelsPerdus(): string[] {
 
 /**
  * FORME, pas liste de noms (même doctrine que le reste de ce fichier). Une application d'Effets peut
- * DIFFÉRER (ses dés partent à la porte, #1508) : elle rend alors `OPS_DIFFEREES` et rien n'est encore
+ * DIFFÉRER (ses dés partent à la porte, #1508) : elle rend alors `MAIN_RENDUE` et rien n'est encore
  * joué. Un appelant qui poursuit sans lire ce retour applique sa suite PAR-DESSUS un dé en vol — c'est
  * l'inversion d'ordre authoré que le canal existe pour empêcher.
  *
@@ -1570,7 +1570,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
   it('un RELAIS rend une valeur DÉRIVÉE du coup : direct, comparé, capturé, gardé — au point fixe', () => {
     const relaisDe = (src: string): string[] => relaisDans(function* () { yield { rel: 'x.ts', sf: ast({ rel: 'x.ts', text: src })! }; }).noms;
     expect(relaisDe('function relais() { return applyAttackResult(g, s, a, d, w, r); }'), 'A — relais direct').toEqual(['relais']);
-    expect(relaisDe('function runPreemptShots() { for (const x of l) { return applyAttackResult(g, s, a, d, w, r, { suite }) === OPS_DIFFEREES; } return false; }'), 'B — booléen comparé').toEqual(['runPreemptShots']);
+    expect(relaisDe('function runPreemptShots() { for (const x of l) { return applyAttackResult(g, s, a, d, w, r, { suite }) === MAIN_RENDUE; } return false; }'), 'B — booléen comparé').toEqual(['runPreemptShots']);
     expect(relaisDe('function f() { const t = applyAttackResult(g, s, a, d, w, r); return t; }'), 'C — capturé puis rendu').toEqual(['f']);
     expect(relaisDe('function f() { let suspendu = false; suspendu = doAttack(g, s, a, d); if (suspendu) return true; return false; }'), 'affecté puis gardé').toEqual(['f']);
     expect(relaisDe('function f() { return g(); } function h() { return f() || applyFreeAttack(g, s, a, d, k, 0); } function i() { return h(); }'), 'relais de relais').toEqual(['h', 'i']);
