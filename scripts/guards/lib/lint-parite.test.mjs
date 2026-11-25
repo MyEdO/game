@@ -653,7 +653,7 @@ test('positions Unicode et erreur de parse sans code sont rendues par le vrai CL
 test('les ignores globaux s’appliquent en chemins explicites et en découverte, warning seul refuse', () => {
   const cwd=mkdtempSync(join(tmpdir(),'lint-ignores-'))
   try {
-    const fichiers=['src/sain.ts','dist/fautif.ts','public/fautif.js','probe.config.ts','node_modules/fautif.ts']
+    const fichiers=['src/sain.ts','dist/fautif.ts','node_modules/fautif.ts','.lint-sonde.config.mjs']
     for(const f of fichiers) {mkdirSync(dirname(join(cwd,f)),{recursive:true});writeFileSync(join(cwd,f),f==='src/sain.ts'?'export const a=1;':'debugger;')}
     for(const selection of [fichiers,['.']]) {
       const res=lancerLint(RACINE,selection,{cwd})
@@ -666,8 +666,8 @@ test('les ignores globaux s’appliquent en chemins explicites et en découverte
     assert.deepEqual(avertissement.defauts.map(d=>[d.regle,d.gravite]),[['prefer-const','avertissement']])
     assert.equal(config.options.reportUnusedDisableDirectives,'warn')
     mkdirSync(join(cwd,'scripts'),{recursive:true})
-    writeFileSync(join(cwd,'scripts/probe.config.ts'),'debugger;')
-    const imbrique=lancerLint(RACINE,['scripts/probe.config.ts'],{cwd})
+    writeFileSync(join(cwd,'scripts/.lint-sonde.config.mjs'),'debugger;')
+    const imbrique=lancerLint(RACINE,['scripts/.lint-sonde.config.mjs'],{cwd})
     assert.deepEqual(imbrique.defauts.map(d=>d.regle),['no-debugger'])
   } finally {rmSync(cwd,{recursive:true,force:true})}
 })

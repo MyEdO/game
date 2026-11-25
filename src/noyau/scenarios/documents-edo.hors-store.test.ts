@@ -110,6 +110,8 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
     const ouvert = banc.getState().document;
     expect(ouvert?.title).toBe(doc!.titre);
     expect(ouvert?.text).toBe(doc!.prose);
+    expect(banc.getState().dialogue?.nodeId, 'le dialogue n’avance pas sous le document (#2689)').toBe(chemin!.chapitre);
+    banc.getState().fenetreFermer('document');
     expect(banc.getState().dialogue?.nodeId).toBe('liasse');
   });
 

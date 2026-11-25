@@ -27,12 +27,15 @@ import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
 import { makeRNG } from '../../../../src/engine/dice';
 import { availableChars, skillSlots, designationsFor, parseRefKey } from '../../../../src/engine/careerSlots';
 import { bonusDe, effectiveChar, effectiveMaxWounds } from '../../../../src/engine/characteristics';
-import { testValue } from '../../../../src/engine/skills';
+import { peutTenter, testValue } from '../../../../src/engine/skills';
+import { weaponSkillId } from '../../../../src/engine/combat';
 import { competenceEnCarriere } from '../../../../src/engine/talentEffects';
 import { byId, characteristics, findSpellById, findTalentById, levelsForCareer, refLabel, spells } from '../../../../src/data';
-import type { Combatant, CharKey, ItemInstance } from '../../../../src/engine/types';
+import { CHAR_KEYS, type Combatant, type CharKey, type ItemInstance } from '../../../../src/engine/types';
 import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
 import { auHameau, type Geste } from './hameau';
+import { articleDuCatalogue, maniement } from './equipement';
+import { chancesDeReussite } from './epreuve';
 
 
 /** Abréviation et libellé d'une Caractéristique, tels que la donnée les porte (`characteristics.json`). */
@@ -211,18 +214,41 @@ export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id:
 
 /** Une valeur avant et après un achat. */
 export interface AvantApres { avant: number; apres: number }
-/** Ce que les Augmentations de carrière de `cible` jusqu'à `but` points changent au héros `c`, lu par le moteur sur une
- *  copie qui les a achetées (`acheterSur`) : la valeur du Test de chaque Compétence de `tests` (`testValue`), le Bonus
- *  de la Caractéristique (`bonusDe`) et les Blessures (`effectiveMaxWounds`). */
-export function effetDesAugmentations(
-  c: Combatant, cible: CibleDuPas, but: number, tests: readonly { id: string; spec?: string }[],
-): { tests: (AvantApres & { label: string })[]; bonus: AvantApres; blessures: AvantApres } {
+/** Un achat de carrière : les Augmentations d'une Caractéristique ou d'une Compétence jusqu'à `but` points, ou un
+ *  Talent. */
+export type AchatDeCarriere = (CibleDuPas & { but: number }) | { genre: 'talent'; ref: { id: string; spec?: string } };
+/** Un Test de combat avant et après un achat : sa valeur, et ses chances (`chancesDeReussite`) ; `attaque` : le Test
+ *  d'attaque d'une arme. */
+export interface EcartDeTest extends AvantApres { label: string; attaque: boolean; chances: AvantApres }
+
+/** Les Compétences de combat (`COMPETENCES_DU_COMBAT`) hors Test d'attaque que `c` peut tenter (`peutTenter`) : les
+ *  siennes, spécialisation comprise, ou la Compétence de base qu'il n'a pas apprise. */
+function competencesDeCombat(c: Combatant): { id: string; spec?: string }[] {
+  return [...COMPETENCES_DU_COMBAT].filter((id) => id !== weaponSkillId('melee') && id !== weaponSkillId('distance')).flatMap((id) => {
+    const siennes = c.skills.filter((s) => s.id === id).map((s) => ({ id, ...(s.spec ? { spec: s.spec } : {}) }));
+    return siennes.length ? siennes : peutTenter(c, { skill: { id } }) ? [{ id }] : [];
+  });
+}
+
+/** Ce que `achat` change au héros `c` en combat, lu par le moteur sur une copie qui l'a acheté (`acheterSur`,
+ *  `buyTalent`) : le Test d'attaque de chaque arme `armes` du catalogue entre ses mains (`maniement`), puis celui de
+ *  chaque Compétence de combat qu'il tente (`competencesDeCombat`, `testValue`) ou qu'il achète, avec leurs chances
+ *  (`chancesDeReussite`) ; le Bonus de chaque Caractéristique (`bonusDe`) et les Blessures (`effectiveMaxWounds`).
+ *  `null` si le noyau refuse l'achat. */
+export function effetEnCombat(
+  c: Combatant, achat: AchatDeCarriere, armes: readonly string[],
+): { tests: EcartDeTest[]; bonus: (AvantApres & { id: CharKey })[]; blessures: AvantApres } | null {
   const copie = copieSansCompte(c);
-  acheterSur(copie, cible, but, 0);
-  const k: CharKey = cible.genre === 'carac' ? cible.id : byId('skill', cible.ref.id)?.characteristic as CharKey;
+  if (achat.genre === 'talent' ? !buyTalent(copie, achat.ref.id, achat.ref.spec).ok : acheterSur(copie, achat, achat.but, 0).refus !== null) return null;
+  const ecart = (label: string, attaque: boolean, avant: number, apres: number): EcartDeTest =>
+    ({ label, attaque, avant, apres, chances: { avant: chancesDeReussite(avant), apres: chancesDeReussite(apres) } });
+  const tenues = armes.map((id) => ({ id, m: maniement(c, id) }));
+  const attaques = tenues.map(({ id, m }) => ecart(`${articleDuCatalogue(id).label} · ${m.test}`, true, m.attaque, maniement(copie, id).attaque));
+  const achetee = achat.genre === 'competence' && !tenues.some(({ m }) => m.designe.skill?.id === achat.ref.id && memeSpecialisation(m.designe.skill.spec, achat.ref.spec)) ? [achat.ref] : [];
+  const competences = [...achetee, ...competencesDeCombat(copie).filter((r) => !achetee.some((a) => a.id === r.id && memeSpecialisation(a.spec, r.spec)))];
   return {
-    tests: tests.map((ref) => ({ label: refLabel('skills', ref), avant: testValue(c, { skill: ref }), apres: testValue(copie, { skill: ref }) })),
-    bonus: { avant: bonusDe(c, k), apres: bonusDe(copie, k) },
+    tests: [...attaques, ...competences.map((ref) => ecart(refLabel('skills', ref), false, testValue(c, { skill: ref }), testValue(copie, { skill: ref })))],
+    bonus: CHAR_KEYS.map((id) => ({ id, avant: bonusDe(c, id), apres: bonusDe(copie, id) })),
     blessures: { avant: effectiveMaxWounds(c), apres: effectiveMaxWounds(copie) },
   };
 }

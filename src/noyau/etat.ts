@@ -697,8 +697,8 @@ export interface EtatDeJeu {
   pendingLoot: PendingLoot | null;
   /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide.
    *  `documentId` = l'entrée de `narratif.documents` remise (Effet `document`) : le texte est une prose de paquet ;
-   *  `suite` = la SUITE du Flow qui l'a remise (geste `suspensif`), rejouée par sa sortie (`fenetreFermer('document')`). */
-  document: { title: string; text: string; source?: SourceRef; documentId?: string; suite?: Flow; remise: number } | null;
+   *  `suite` = ce qu'on lui a confié (`confierLaSuite`, #2689), rejoué par sa sortie (`fenetreFermer('document')`). */
+  document: { title: string; text: string; source?: SourceRef; documentId?: string; suite?: Suite; remise: number } | null;
   /** Compteur des remises de `document` : chaque pose l'estampille (`remise`), le masque de l'invité s'y keye. */
   remisesDeDocument: number;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */

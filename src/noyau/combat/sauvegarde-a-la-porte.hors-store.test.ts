@@ -32,7 +32,7 @@ import { stepInteraction } from '../cascade';
 import type { CascadeStep } from '../pendings';
 import { CHAR_KEYS, type Combatant, type Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
-import { OPS_DIFFEREES } from '../combatEffects';
+import { MAIN_RENDUE } from '../combatEffects';
 import { avanceEtapeCascade, cascadeDeTest } from '../cascade.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
@@ -132,7 +132,7 @@ describe('coup physique — le dé naît à la porte, AVANT toute mutation', () 
   it('un TIR du dehors SUSPEND le coup : étape de dé NON résolue, portant son seuil, et rien n’a bougé', () => {
     const { cible, archer } = monteDome();
     const suspendu = applyAttackResult(banc.getState, banc.setState, archer, cible, arc, touche());
-    expect(suspendu, 'la résolution est suspendue tant que le dé n’est pas tombé').toBe(OPS_DIFFEREES);
+    expect(suspendu, 'la résolution est suspendue tant que le dé n’est pas tombé').toBe(MAIN_RENDUE);
     const st = etapeCourante()!;
     expect(st.kind).toBe('sauvegarde');
     expect(stepInteraction(st), 'le dé reste à jeter').toBe('de');
@@ -196,7 +196,7 @@ describe('aucune scission par KIND de porteur (canon : la porte pousse pour tous
     setBattle([hero, demon]);
     const epee = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 0 }, qualities: [] } as unknown as Weapon;
     const suspendu = applyAttackResult(banc.getState, banc.setState, hero, demon, epee, touche());
-    expect(suspendu, 'le coup est suspendu pour un porteur ENNEMI aussi').toBe(OPS_DIFFEREES);
+    expect(suspendu, 'le coup est suspendu pour un porteur ENNEMI aussi').toBe(MAIN_RENDUE);
     const st = etapeCourante()!;
     expect(st.kind).toBe('sauvegarde');
     expect(st.actorId, 'le dé appartient au démon').toBe(demon.id);
@@ -447,7 +447,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     // 1) La SAUVEGARDE s'ouvre la première, avant toute mutation.
     const suspendu = applyAttackResult(banc.getState, banc.setState, brute, porteur, gourdin, depassement,
       { suite: { deferAttackerAdvantage: true } });
-    expect(suspendu, 'la sauvegarde suspend AVANT toute mutation').toBe(OPS_DIFFEREES);
+    expect(suspendu, 'la sauvegarde suspend AVANT toute mutation').toBe(MAIN_RENDUE);
     expect(etapeCourante()!.kind).toBe('sauvegarde');
     expect(etapesDeviation(), 'aucune fenêtre de Critique avant le dé').toHaveLength(0);
 
