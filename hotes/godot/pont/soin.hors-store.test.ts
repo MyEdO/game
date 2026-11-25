@@ -49,7 +49,7 @@ describe('le soin par le pont', () => {
     expect(acte.valeurs.find((b) => b.libelle === 'Arrêter l’Hémorragie')!.refus, 'un acte sans objet est fermé avec sa raison').toBe('Aucune Hémorragie');
     expect(acte.valeurs.find((b) => b.libelle === 'Opérer')!.refus, 'un acte d’infirmerie est fermé en combat').toBeTruthy();
     expect(reglages().Test.valeurs.map((b) => [b.libelle, b.presse, b.refus]), 'le Test, Guérison déclarée').toEqual([
-      ['Guérison', true, null], ['Dextérité', false, 'La Dextérité n’arrête que l’Hémorragie'],
+      ['Guérison', true, null], ['Soin aux animaux', false, 'Soin aux animaux ne soigne que les animaux'], ['Dextérité', false, 'La Dextérité n’arrête que l’Hémorragie'],
     ]);
 
     ({ suite } = drainer(appel, appel('jouer', enFocus(suite.vue)!.jeu)));

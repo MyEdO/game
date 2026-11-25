@@ -291,7 +291,8 @@ jobs:
   # `godot:recette` (#3945) : les jeux `combat`, `editeur` et `compendium` des recettes natives de l'hôte Godot
   # (`lot-de-recettes.mjs --natif`), sans export ni navigateur ; `canari.yml` joue le lot natif entier.
   # `roguelite:construire` puis `roguelite:recette` (#4929) : le roguelite construit sous `dist/roguelite/`, et son lot de
-  # recettes (`projets/roguelite/recette/lot.mjs`) dans le Chrome du runner, la page servie par interception, sans serveur.
+  # recettes (`projets/roguelite/recette/lot.mjs`) dans le Chromium épinglé (scripts/recette/navigateur.mjs), la page
+  # servie par interception, sans serveur.
   godot-recette:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -317,9 +318,17 @@ jobs:
       - name: Roguelite — construction
         if: ${{ !contains(steps.prologue.outputs.sautees, ' roguelite:construire ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run roguelite:construire
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' roguelite:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npx playwright install chromium
       - name: Roguelite — recettes
         if: ${{ !contains(steps.prologue.outputs.sautees, ' roguelite:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run roguelite:recette
+      # Les captures d'une recette rouge, dont les images comparées à la référence (`dist/roguelite-recette/images/`).
+      - if: ${{ failure() && steps.prologue.outcome == 'success' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: roguelite-recette
+          path: dist/roguelite-recette
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

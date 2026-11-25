@@ -260,6 +260,7 @@ const TESTS_FIXES = {
   focalisation: testFixeDeCompetence({ id: 'focalisation' }),
   'langue-magick': testFixeDeCompetence({ id: 'langue', spec: 'magick' }),
   guerison: testFixeDeCompetence({ id: 'guerison' }),
+  'soin-aux-animaux': testFixeDeCompetence({ id: 'soin-aux-animaux' }),
   projectiles: testFixeDeCompetence({ id: 'projectiles' }),
   marchandage: testFixeDeCompetence({ id: 'marchandage' }),
   bagarre: testFixeDeCompetence({ id: 'corps-a-corps', spec: 'bagarre' }, () => 'Bagarre'),

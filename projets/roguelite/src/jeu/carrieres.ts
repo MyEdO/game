@@ -7,6 +7,7 @@ import {
   memeSpecialisation,
   planDuNiveau,
   pointsDe,
+  prixDuSort,
   prochainPas,
   talentDeCombat,
   progression,
@@ -39,10 +40,10 @@ export function offresDeCarriere(h: Heros): Omit<Progression, 'competences'> & {
 }
 
 /** Les sorts de sa voie que la Salle d'armes propose au héros : ceux de son niveau de carrière ou en dessous
- *  (`SORTS_DES_VOIES`), qu'il ne connaît pas encore. */
+ *  (`SORTS_DES_VOIES`) que le noyau le laisse apprendre (`prixDuSort`). */
 export function sortsProposes(h: Heros): string[] {
   const niveau = h.c.careerLevel ?? 1;
-  return (voieDe(h.carriere, h.c)?.sorts ?? []).filter((s) => s.niveau <= niveau && !(h.c.spells ?? []).includes(s.id)).map((s) => s.id);
+  return (voieDe(h.carriere, h.c)?.sorts ?? []).filter((s) => s.niveau <= niveau && prixDuSort(h.c, s.id) !== null).map((s) => s.id);
 }
 
 /** Le héros peut-il acheter un avancement maintenant (au hameau, salle d'armes ouverte, assez de PX pour la moins

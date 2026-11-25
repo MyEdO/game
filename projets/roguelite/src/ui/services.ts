@@ -55,10 +55,9 @@ const prixDuPalier = (p: J.Batiment['paliers'][number], e?: J.Etat) => {
 
 /** Le tableau des paliers d'un bâtiment, au survol de son palier actuel comme du geste qui l'agrandit : chaque rang
  *  en losanges et son état (départ, bâti, ici, prochain), ses apports à leur pictogramme, puis son prix tant qu'il
- *  reste à payer, la coche une fois payé ; le prochain est encadré ; au pied, ce qui manque pour bâtir. */
+ *  reste à payer, la coche une fois payé ; le prochain est encadré. */
 function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
   const n = e.batiments[b.id];
-  const refus = manqueAuPalier(e, b);
   const lignes = b.paliers.map((p, i) => {
     const etat = i < n ? 'bati' : i === n ? 'ici' : i === n + 1 ? 'prochain' : 'loin';
     return `<tr class="${etat}"${i === n ? ' aria-current="true"' : ''}><th scope="row">${niveaux(i, b.paliers.length)}<span class="rub">${{ bati: i ? 'Bâti' : 'Départ', ici: 'Ici', prochain: 'Prochain', loin: '' }[etat]}</span></th>
@@ -68,12 +67,11 @@ function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
   return apercuDe({
     nom: b.nom, nature: `Palier ${n + 1} sur ${b.paliers.length}${J.enRuine(e.batiments, b.id) ? ' · en ruine' : ''}`,
     planche: `<table class="paliers-apercu"><tbody>${lignes}</tbody></table>`,
-    ...(refus ? { pied: refus } : {}),
   });
 }
 
-/** Le prix du palier suivant d'un bâtiment, en geste d'achat : ce qui manque (or, trophées) le ferme ; tous les paliers
- *  au survol. */
+/** Le prix du palier suivant d'un bâtiment, en geste d'achat : ce qui manque (or, trophées) le ferme et se dit au
+ *  survol, au pied de tous les paliers. */
 function batir(e: J.Etat, b: J.Batiment, taille: 'petite' | 'moyenne' = 'moyenne') {
   const suivant = b.paliers[e.batiments[b.id] + 1];
   return achat({
@@ -130,7 +128,6 @@ const NOM_DE_QUALITE: Record<J.QualiteDeRepos, string> = { pietre: 'piètre', no
  *  rôle, sa carrière, le Collège ou le dieu que le sort lui a donné, le Talent qui la définit, et le geste qui
  *  l'engage. */
 function pageDuRelais({ e, servi, congediement }: Lecture): Page {
-  const gratuit = J.engagementSansSolde(e);
   const candidats = e.candidats.map((c, i) => {
     const role = J.roleDe(c.carriere);
     const r = role && J.ROLES[role];
@@ -142,7 +139,7 @@ function pageDuRelais({ e, servi, congediement }: Lecture): Page {
       <div class="sous-titre">${esc(carriereDe(c))} · ${esc(J.nomDEspece(c.espece))}</div>
       ${r ? `<div class="role">${picto(r.picto, 18, 1.8)}${esc(r.nom)}</div>` : ''}<p class="effet">${esc(J.deviseDe(c.carriere))}</p>
       <div class="traits">${voie ? `<span class="etiquette rectangle qualite voie"${apercuDe(voie.apercu)}>${voie.signe}${esc(voie.nom)}</span>` : ''}${talent ? `<span class="etiquette rectangle qualite"${apercuDe({ nom: talent.label, nature: 'Talent', texte: texteDuTalent(talent.id) })}>${esc(talent.label)}</span>` : ''}<span class="etiquette rectangle qualite neutre">${c.c.wounds.max} Blessures</span></div>
-      ${achat({ verbe: 'Engager', prix: gratuit ? 0 : c.prix, offert: 'sans solde', avoir: e.or, attrs: `data-a="recruter" data-i="${i}"` })}</article>`;
+      ${achat({ verbe: 'Engager', prix: 0, avoir: e.or, attrs: `data-a="recruter" data-i="${i}"` })}</article>`;
   }).join('');
   return { classe: 'rangee', corps: `${servi ? servicesDuRelais(e, servi, congediement) : ''}${candidats || placard('chope', 'Personne au relais', 'D’autres voyageurs arriveront avec la prochaine diligence.')}` };
 }
@@ -241,7 +238,7 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   const tarif = J.tarifDuSoin(e);
   const soin = (o: { icone: string; nom: string; effet: string; duree: string; verbe: string; prix: number | null; attrs: string; refus: string | null }) => {
     const refus = ruine ?? (o.prix == null ? 'L’hospice agrandi l’offrira.' : hospice ?? o.refus);
-    return `<article class="carte-service soin${refus ? ' clos' : ''}">${vignette(o.icone, !!refus)}<div class="nom-propre moyen gothique">${esc(o.nom)}</div><p class="effet">${esc(o.effet)}</p><span class="sous-titre">${esc(o.duree)}</span>
+    return `<article class="carte-service soin${refus ? ' clos' : ''}">${vignette(o.icone, !!refus)}<div class="nom-propre moyen gothique">${esc(o.nom)}</div><p class="effet">${esc(o.effet)}</p>${o.duree ? `<span class="sous-titre">${esc(o.duree)}</span>` : ''}
       ${o.prix == null ? plaque(esc(o.verbe), '', { fermee: true, titre: esc(refus ?? '') }) : achat({ verbe: o.verbe, prix: o.prix, avoir: e.or, attrs: o.attrs, refus })}</article>`;
   };
   const id = `data-id="${h.c.id}"`;
@@ -249,9 +246,9 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   const remedes = vente ? `<article class="carte-service remedes"><div class="nom-propre moyen gothique">Potions et remèdes</div>${vente}</article>` : '';
   return {
     classe: 'chapelle',
-    corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${hospice ? glose(esc(hospice), 'avertissement') : ''}${e.roster.some((x) => x.sejour?.ou === 'temple') ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e, 'temple')}</div>` : ''}</div>
+    corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${e.roster.some((x) => x.sejour?.ou === 'temple') ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e, 'temple')}</div>` : ''}</div>
       <div class="etal ample" style="--colonnes:4">
-      ${soin({ icone: 'soin', nom: 'Soigner', effet: 'Tous les Points de Blessure, et les États de la rencontre.', duree: J.blesse(h) ? `${Math.max(0, h.c.wounds.current)} → ${h.c.wounds.max} Blessures${tarif ? ` · ${blessuresARendre(h.c)} Blessures × ${tarif} CO` : ''}` : 'en pleine santé', verbe: 'Soigner', prix: J.prixDuSoin(e, h), attrs: `data-a="soigner" ${id}`, refus: J.blesse(h) ? null : 'Aucune blessure.' })}
+      ${soin({ icone: 'soin', nom: 'Soigner', effet: 'Tous les Points de Blessure, et les États de la rencontre.', duree: J.blesse(h) ? `${Math.max(0, h.c.wounds.current)} → ${h.c.wounds.max} Blessures${tarif ? ` · ${blessuresARendre(h.c)} Blessures × ${tarif} CO` : ''}` : '', verbe: 'Soigner', prix: J.prixDuSoin(e, h), attrs: `data-a="soigner" ${id}`, refus: J.blesse(h) ? null : 'Aucune blessure.' })}
       ${soin({ icone: 'lit', nom: 'Panser', effet: 'Les sœurs pansent les plaies : une déchirure mineure guérit plus vite, une fracture est réduite.', duree: `dans la journée · Test de Guérison des sœurs (${J.GUERISON_DE_L_HOSPICE})`, verbe: 'Panser', prix: J.prixDeLHospice(e, 'panser'), attrs: `data-a="hospice" ${id} data-k="panser"`, refus: J.refusDeLHospice(e, h, 'panser') })}
       ${soin({ icone: 'dague', nom: 'Opérer', effet: 'Le chirurgien opère les blessures qui l’exigent : plaie d’amputation, fracture majeure, artère.', duree: 'une semaine à l’hospice', verbe: 'Opérer', prix: J.prixDeLHospice(e, 'operer'), attrs: `data-a="hospice" ${id} data-k="operer"`, refus: J.refusDeLHospice(e, h, 'operer') })}
       ${soin({ icone: 'etoile', nom: 'Larmes de Shallya', effet: 'Le miracle guérit une Blessure critique de convalescence, jamais une amputation.', duree: 'une séquelle', verbe: 'Prier', prix: J.prixDeSequelle(e), attrs: `data-a="sequelle" ${id}`, refus: J.sequellesGuerissables(h) ? null : 'Aucune séquelle que la prière puisse guérir.' })}
