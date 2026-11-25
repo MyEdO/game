@@ -84,12 +84,12 @@ script au nom différent du doc est entre parenthèses.
 ## Sources VF
 
 Tout est en **français** sous `Source/`, dossiers préfixés `Warhammer v4 - ` / `WH - V4 - ` ; ceux
-SANS ce préfixe sont la VO du dépôt parent — jamais lus, jamais cités ici. **Exceptions** :
-`Source/Warhammer Fantasy Roleplay 5e Core Rulebook/` (**CRB**), livre VO AUTORISÉ, cœur de la 5e — fiche
-`user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`. La VO de L'Ennemi Intérieur se lit pour
-comprendre : fiche `user-doctrine-lecture-vo-campagne-pour-comprendre`. Une donnée MÉCANIQUE absente de
-la VF se prend à la VO, nombres et ids FR seulement, jamais de prose : fiche
-`user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`. Livres : **LDB** ·
+SANS ce préfixe sont la VO, lue par exception seulement : le **CRB**
+(`Source/Warhammer Fantasy Roleplay 5e Core Rulebook/`), cœur de la 5e
+(`user-doctrine-edition-5e-coeur-remplace-ldb-raw-sauf-errata`) ; la VO de L'Ennemi Intérieur, pour comprendre
+(`user-doctrine-lecture-vo-campagne-pour-comprendre`) ; et ce qui manque à la VF, donnée MÉCANIQUE sans prose
+(`user-doctrine-vo-fournit-la-donnee-mecanique-absente-de-la-vf`) ou SYSTÈME, par livre
+(`user-doctrine-vo-autorisee-pour-tout-systeme-manquant`). Livres : **LDB** ·
 **ADE I/II** · **EDO/EDOC** · **PDTP** · **Middenheim** · **AA** · **ZI** · **MDG** · **ACE** · **MSRC** ·
 **NADJ** · **VDM** · **HCVM** · **BNO** (bestiaires fan), chacun pour son périmètre (tout livre FR peut fournir une règle, par PASSAGE) —
 chemins et chapitres : `docs/sources-vf.md`. `src/data/*.json`, source APP-OWNED, s'édite au
