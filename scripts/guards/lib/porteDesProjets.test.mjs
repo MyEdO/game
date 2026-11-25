@@ -2,7 +2,6 @@
 // une passe que frappe la porte, avant leur mémo ; une passe forgée ou d'un autre projet ne l'ouvre pas.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -53,12 +52,7 @@ test('une passe se frappe par la seule porte : la copie de sa forme et le sceau 
 })
 
 test('un dossier « projets » hors de ce dépôt n\'est pas celui des projets', () => {
-  const racine = mkdtempSync(join(tmpdir(), 'porte-des-projets-'))
-  try {
-    mkdirSync(join(racine, 'projets', 'p'), { recursive: true })
-    writeFileSync(join(racine, 'projets', 'p', 'a.ts'), 'export const a = 1\n')
-    assert.deepEqual(listerArbre(racine), ['projets/p/a.ts'])
-  } finally {
-    rmSync(racine, { recursive: true, force: true })
-  }
+  const ailleurs = join(tmpdir(), 'porte-des-projets-hors-du-depot', 'projets')
+  assert.deepEqual(listerDossier(ailleurs, { absent: 'vide' }), [])
+  assert.equal(listerEntrees(join(ailleurs, 'p'), { absent: 'vide' }).nature, 'absent')
 })
