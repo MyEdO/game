@@ -7,7 +7,8 @@
  * `erreurs`, le serveur continue. `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes
  * fichiers sans les GLB ni leur fiche d'import, le même listage en forme `scene`, et fait fabriquer la scène de chaque
  * modèle listé ; servi en `statique`, l'export rend ce dépôt.
- * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
+ * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/` rend les ids de ses projets manuscrits (#4936) ;
+ * `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
  * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire ;
  * `GET source/manifest.json` et `GET source/<livre>/<NNN>.md` rendent l'index des chapitres et le texte d'un chapitre du
  * `Source/` de ce dépôt-ci (#3606 M2g), 404 sans dépôt, export statique ou non.
@@ -18,18 +19,19 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { baseDeTest, deposerModeleDeTest, elementSchema3, GLB_D_ELEMENT, GLB_DE_BASE } from './asset/modeles.testkit.ts';
 import { empreinte } from './asset/empreinte.ts';
 import { ecrireGlb } from './asset/glb.ts';
 import { servir } from './servir.mjs';
 import { deposerLesModeles, LISTAGE } from './listage.mjs';
-import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { dossierDesProjetsLivres, estManuscrit } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { cheminDuDepot } from '../../scripts/source/adresses.mjs';
-import { books } from '../../src/data';
+import { ACTIVITIES, books } from '../../src/data';
+import paquetDeTest from '../../src/scenes/fixtures/paquet-de-test.json';
 import { hash32 } from '../../src/lib/hash';
 
 const racine = mkdtempSync(join(tmpdir(), 'servir-3086-'));
@@ -159,17 +161,27 @@ describe('servir', () => {
 describe('servir, le dépôt', () => {
   const depot = join(racine, 'depot');
   const corpus = dossierDesProjetsLivres(depot);
-  const [manuscrit, genere] = [true, false].map((m) => listerProjetsLivres().find((rel) => basename(rel) in PROJETS_MANUSCRITS === m)!);
+  /** Deux projets bâtis du paquet de test du commun : un manuscrit, dont un preset porte une prose adressée (l'adresse
+   *  d'une Activité du catalogue), et un généré, que son `generate.mjs` voisin désigne (`estManuscrit`). */
+  const [manuscrit, genere] = ['un-jeu/manuscrit/manuscrit-projet.json', 'un-jeu/genere/genere-projet.json'];
+  const adresse = ACTIVITIES.find((a) => a.descRef)!.descRef;
+  const [pnj, ...autres] = paquetDeTest.narratif.presetsPnj;
+  const projets = {
+    [manuscrit]: { ...paquetDeTest, id: 'manuscrit-de-test', narratif: { ...paquetDeTest.narratif, presetsPnj: [{ ...pnj, profil: { ...pnj.profil, descRef: adresse } }, ...autres] } },
+    [genere]: { ...paquetDeTest, id: 'genere-de-test' },
+  };
   const idDe = (rel: string) => (JSON.parse(readFileSync(join(corpus, rel), 'utf8')) as { id: string }).id;
   const disque = () => readFileSync(join(corpus, manuscrit), 'utf8');
   let url = '';
   let id = '';
 
   beforeAll(async () => {
-    for (const rel of [manuscrit, genere]) {
+    for (const [rel, doc] of Object.entries(projets)) {
       mkdirSync(dirname(join(corpus, rel)), { recursive: true });
-      cpSync(join(dossierDesProjetsLivres(), rel), join(corpus, rel));
+      writeFileSync(join(corpus, rel), `${JSON.stringify(doc, null, 2)}\n`);
     }
+    writeFileSync(join(corpus, dirname(genere), 'generate.mjs'), '');
+    expect([manuscrit, genere].map((rel) => estManuscrit(rel, depot))).toEqual([true, false]);
     const s = await servir({ web, modeles, depot });
     serveurs.push(s);
     url = s.url;
@@ -184,6 +196,12 @@ describe('servir, le dépôt', () => {
     expect((await fetch(`${url}depot/nulle-part`)).status).toBe(404);
   });
 
+  it('GET depot/ rend les ids des seuls projets manuscrits, en no-store ; une autre méthode reçoit 405', async () => {
+    const r = await fetch(`${url}depot/`);
+    expect([r.status, r.headers.get('cache-control'), await r.json()]).toEqual([200, 'no-store', [id]]);
+    expect((await fetch(`${url}depot/`, { method: 'PUT', body: '[]' })).status).toBe(405);
+  });
+
   it('sans export, seuls modeles/ et depot/ répondent, le reste reçoit 404', async () => {
     const s = await servir({ modeles, depot });
     serveurs.push(s);
@@ -192,7 +210,8 @@ describe('servir, le dépôt', () => {
   });
 
   it('sans dépôt, depot/ n’est pas servi', async () => {
-    expect((await fetch(`${await demarrer()}depot/${id}`)).status).toBe(404);
+    const sans = await demarrer();
+    expect([(await fetch(`${sans}depot/${id}`)).status, (await fetch(`${sans}depot/`)).status]).toEqual([404, 404]);
   });
 
   it('source/ sert l’index des chapitres et le texte d’un chapitre du Source/ de ce dépôt ; un chapitre absent reçoit 404', async () => {

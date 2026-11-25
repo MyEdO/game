@@ -17,7 +17,8 @@ import {
   listerDocuments,
   empreintesDefs,
   DOSSIERS_DE_DEFS,
-  RACINES,
+  RACINE_DES_DONNEES,
+  RACINE_DES_PAQUETS,
 } from './lib/structures-scan.mjs';
 import { noeudsDeStructure, type ClasseDeStructure } from '../guards/lib/structuresLocales.mts';
 import { PORTEURS } from '../guards/lib/porteursDesComptes.mjs';
@@ -127,12 +128,10 @@ function rendu() {
   for (const d of DEFS) declaresParRacine.set(d.root, (declaresParRacine.get(d.root) ?? 0) + 1);
   out += tableau(
     ['Racine', 'Fichiers retenus', 'Documents', 'Au registre zod'],
-    RACINES.map((r) => [
-      `\`${r.dir}\``,
-      `\`${r.motif}\`${r.recursif ? ' (récursif)' : ''}`,
-      parRacine.get(r.id) ?? 0,
-      `${declaresParRacine.get(r.id) ?? 0} / ${parRacine.get(r.id) ?? 0}`,
-    ]),
+    [
+      [RACINE_DES_DONNEES.id, `\`${RACINE_DES_DONNEES.motif}\`${RACINE_DES_DONNEES.recursif ? ' (récursif)' : ''}`],
+      [RACINE_DES_PAQUETS, docs.filter((d) => d.racine === RACINE_DES_PAQUETS).map((d) => `\`${d.chemin}\``).join(' ')],
+    ].map(([id, retenus]) => [`\`${id}\``, retenus, parRacine.get(id) ?? 0, `${declaresParRacine.get(id) ?? 0} / ${parRacine.get(id) ?? 0}`]),
   );
   {
     const orphelins = scan.documents.filter((d) => !parFichierDeclare.has(d.nom));

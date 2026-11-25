@@ -11,10 +11,6 @@ import { DIALOGUES_DE_LA_SCENE } from './communs';
 import { idsDeLaPortee } from '../grammaire/collection-cle';
 import { mesureDuParse } from '../grammaire/ref';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
-import bargeDuSelProjet from '../../../scenes/barge-du-sel/barge-du-sel-projet.json';
-import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
-import loupEtSaumureProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Route = Omit<(typeof paquetDeTest.worldMap.routes)[number], 'billets'> & { billets?: (typeof paquetDeTest.worldMap.routes)[number]['billets'] };
@@ -70,7 +66,7 @@ const PORTEURS = [
 
 describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`', () => {
   it('les cartes livrées parsent', () => {
-    for (const projet of [areneProjet, bargeDuSelProjet, diligenceProjet, loupEtSaumureProjet]) expect(worldMapSchema.safeParse(projet.worldMap).success).toBe(true);
+    for (const projet of [paquetDeTest]) expect(worldMapSchema.safeParse(projet.worldMap).success).toBe(true);
   });
 
   it('chaque référence est un slot `local:places` / `local:routes` au parse de mesure, à son path', () => {

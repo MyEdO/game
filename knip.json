@@ -8,12 +8,15 @@
     "!scripts/test/lib/**",
     "src/**/*.generated.ts",
     "hotes/texte/serveur.ts",
-    "hotes/godot/pont/entree.ts",
+    "hotes/godot/pont/entree-*.ts",
     "hotes/godot/recettes/*.ts",
     "hotes/godot/cibles/propositions/sources/rendre.mjs",
     "projets/roguelite/src/main.ts",
     "projets/roguelite/recette/*.{mjs,ts}",
-    "projets/roguelite/{balayage,equilibrage,catalogue}.ts"
+    "projets/roguelite/{balayage,equilibrage,catalogue}.ts",
+    "projets/jeu-de-role/{godot,contenu}.ts",
+    "projets/jeu-de-role/recettes/*.mjs",
+    "projets/jeu-de-role/campagnes/*/generate.mjs"
   ],
   "project": [
     "src/**/*.{ts,tsx}",

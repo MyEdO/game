@@ -69,13 +69,7 @@ Affable (affable), Studieux (studieux), Voyageur aguerri (voyageur-aguerri), Fui
 | Lancer (lancer) | Hache de lancer (hache-de-lancer) |
 | Entraves (entraves) | Fouet (fouet) |
 
-| Panoplie | Pièces |
-|---|---|
-| Cuir souple (pa-1) | Calotte de cuir (calotte-de-cuir), Veste de cuir (veste-de-cuir), Jambières de cuir (jambieres-en-cuir) |
-| Mailles (pa-2) | Heaume ouvert (heaume-ouvert), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles) |
-| Mailles sur cuir (pa-3) | Calotte de cuir (calotte-de-cuir), Veste de cuir (veste-de-cuir), Jambières de cuir (jambieres-en-cuir), Heaume ouvert (heaume-ouvert), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles) |
-| Plates sur mailles (pa-4) | Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles), Heaume ouvert (heaume-ouvert), Brassards (brassards), Plastron (plastron), Jambières d'acier (jambieres-d-acier) |
-| Harnois complet (pa-5) | Calotte de cuir (calotte-de-cuir), Veste de cuir (veste-de-cuir), Jambières de cuir (jambieres-en-cuir), Coiffe de mailles (coiffe-de-mailles), Cotte de mailles (cotte-de-mailles), Chausses de mailles (chausses-de-mailles), Heaume ouvert (heaume-ouvert), Brassards (brassards), Plastron (plastron), Jambières d'acier (jambieres-d-acier) |
+Armures : Armure légère (armure-legere), Armure moyenne (armure-moyenne), Armure lourde (armure-lourde).
 
 ## Auberge relais
 
@@ -89,11 +83,19 @@ Affable (affable), Studieux (studieux), Voyageur aguerri (voyageur-aguerri), Fui
 
 | Palier | Soin par Blessure rendue |
 |---|---|
-| 1 | 4 CO |
-| 2 | 2 CO |
+| 1 | 2 CO |
+| 2 | 1 CO |
 | 3 | 0 CO |
 
 Cataplasme de guérison (cataplasme-de-guerison), Soude commune (soude-commune), Potion de guérison (potion-de-guerison), Potion de vitalité (potion-de-vitalite), Racine des tombes (racine-des-tombes), Faxtoryll (faxtoryll)
+
+## Péage du pont
+
+| Palier | Revenu par salle franchie |
+|---|---|
+| 1 | 3 CO |
+| 2 | 6 CO |
+| 3 | 12 CO |
 
 ## Destinations et adversaires
 

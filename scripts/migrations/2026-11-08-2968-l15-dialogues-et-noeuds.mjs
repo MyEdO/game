@@ -8,7 +8,7 @@
  *  - `scenes[].entities[].dialogueId` : une entrée de `dialogues` de la MÊME scène.
  * La clé garde son rang, les autres clés le leur.
  *
- * ENTRÉES : écrites et lues — les quatre projets de `src/scenes/`, dont chaque dialogue et chaque scène portent
+ * ENTRÉES : écrites et lues — les quatre projets de `projets/jeu-de-role/campagnes/`, dont chaque dialogue et chaque scène portent
  * le catalogue de leur portée.
  * CARDINAL ASSERTÉ : `CARDINAL` gestes au premier passage, `PAR_PORTEUR` par porteur.
  * IDEMPOTENT, FAIL-FAST et FORMATAGE : `lib/idNuEnRef.mjs` ; rejouée sur l'état final, rien ne s'écrit et la
@@ -28,10 +28,10 @@ const SCENE = {
 };
 
 const PROJETS = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/diligence/diligence-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ];
 
 /** Gestes du premier passage par porteur, mesurés le 2026-11-08 sur `fc0eb0efc5`. */

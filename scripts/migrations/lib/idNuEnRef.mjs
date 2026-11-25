@@ -16,7 +16,7 @@
  * pour `objet`), clé hors de l'objet qui ouvre sa portée, valeur ni chaîne ni `{ id }` seul, id absent de son
  * catalogue, cible renommée sans destination ou à plusieurs, clé de destination déjà posée, compte de gestes ≠
  * `cardinal` ou ≠ `parPorteur`.
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`) ; un projet de campagne (`src/scenes/`), la forme
+ * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`) ; un projet de campagne (`<x>-projet.json`), la forme
  * dépôt de `texteDuDepot` (`src/noyau/worldMap.ts`).
  */
 import fs from 'node:fs';
@@ -40,7 +40,7 @@ import { auChemin, estObjet } from '../../../src/lib/objet.mjs';
  */
 
 /** Le texte du document `rel` : un projet de campagne à la forme dépôt, un dataset à la sienne. */
-const serialiser = (rel, doc) => (rel.startsWith('src/scenes/') ? `${JSON.stringify(doc, null, 1)}\n` : serializeDataset(doc));
+const serialiser = (rel, doc) => (rel.endsWith('-projet.json') ? `${JSON.stringify(doc, null, 1)}\n` : serializeDataset(doc));
 
 /** `doc` où la valeur au bout de `chemin` (champs et rangs de liste) est remplacée par `valeur`, chaque clé à son rang. */
 const remplacer = (doc, chemin, valeur) => {

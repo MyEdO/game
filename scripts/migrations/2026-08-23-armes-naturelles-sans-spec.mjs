@@ -12,12 +12,14 @@
  * journalisée. Un second passage ne réécrit rien. Arrêt en 1 si `weaponGroups.json` est vide.
  *
  * Entrées : `src/data/weaponGroups.json` (registre des Groupes d'armes) + `src/data/*.json` (tous
- * les datasets, `readdirSync`) + `src/scenes/**.json` (marche récursive).
+ * les datasets, `readdirSync`) + `src/scenes/**.json` (marche récursive) + les projets livrés
+ * `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
@@ -65,6 +67,7 @@ const cibles = fs.readdirSync(DATA_DIR).filter((f) => f.endsWith('.json')).map((
     else if (e.name.endsWith('.json')) cibles.push(path.relative(ROOT, p).replace(/\\/g, '/'));
   }
 })(path.join(ROOT, 'src/scenes'));
+cibles.push(...cheminsDesProjetsLivres(ROOT));
 
 const touches = [];
 for (const rel of cibles) if (migrateJson(rel)) touches.push(rel);

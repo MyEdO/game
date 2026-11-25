@@ -74,11 +74,13 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   await p.click('.tete-service [data-a="ameliorer"]');
   constater((await or()) < avant, 'la forge s’agrandit et coûte de l’or');
   constater((await p.textContent('.article [data-a="arme"]')).includes('CO'), 'chaque offre de la forge porte son prix dans son geste');
-  await p.click('.emplacement[data-k="armure"]'); await p.click('[data-a="armure"][data-k="pa-2"]');
+  await p.click('.emplacement[data-k="armure"]'); await p.click('[data-a="armure"][data-k="armure-moyenne"]');
   await p.click('.emplacement[data-k="main"]'); await p.click('[data-a="arme"][data-k="pique-d-armes"]');
   await p.click('.emplacement[data-k="tir"]'); await p.click('[data-a="arme"][data-k="arbalete"]');
   const porte = await p.$$eval('.emplacement .nom-objet', (e) => e.map((x) => x.textContent));
-  constater(porte.includes('Pique d\'armes') && porte.includes('Mailles'), `la forge équipe le héros servi (${porte.join(', ')})`);
+  constater(porte.includes('Pique d\'armes') && porte.includes('Armure moyenne'), `la forge équipe le héros servi (${porte.join(', ')})`);
+  const pa = await p.textContent('.emplacement[data-k="armure"] .resume');
+  constater(/Tête 2 · Bras 2 · Corps 2 · Jambes 2/.test(pa), `l’armure moyenne porte 2 PA sur chaque Localisation (${pa})`);
   constater(porte.includes('Pique d\'armes') && porte.includes('Arbalète'), 'l’arme à distance a son emplacement : l’arme de mêlée reste en main');
 
   await geste(p, 'fermer-panneau'); await geste(p, 'batiment', 'salle'); await p.click('.tete-service [data-a="ameliorer"]');
@@ -86,17 +88,18 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   const px = await pxDe();
   await p.click('.page-service .c.carr [data-a="pas"]');
   constater((await pxDe()) < px, 'la salle d’armes augmente une Caractéristique d’un pas de +5 contre des PX');
+  await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
+  const pxDeLaFiche = await pxDe();
+  await p.click('.progression .achat [data-a="pas"]:not(:disabled)');
+  constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
+  await p.click('.croix-ecran'); await geste(p, 'batiment', 'salle');
   // « Suivre le plan » : un clic dépense des PX et coche des cases de carrière (CRB 048 l.45).
   const cases = () => p.$$eval('.page-service .exige', (e) => parseInt(e.find((x) => x.textContent.includes('Cases de carrière'))?.querySelector('.cpt')?.textContent ?? 'NaN', 10));
   const [pxAvantPlan, casesAvantPlan] = [await pxDe(), await cases()];
   await p.click('.page-service [data-a="plan"]');
   constater((await pxDe()) < pxAvantPlan && (await cases()) > casesAvantPlan, `« Suivre le plan » dépense des PX et coche des cases de carrière (${await p.textContent('#toast')})`);
-  await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
-  const pxDeLaFiche = await pxDe();
-  await p.click('.progression .achat [data-a="pas"]:not(:disabled)');
-  constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
+  await geste(p, 'fermer-panneau');
 
-  await p.click('.croix-ecran');
   const blesse = (await sauvegarde(p)).roster[3].c.id;
   await geste(p, 'batiment', 'relais'); await geste(p, 'client', blesse);
   const orAvantChambre = await or();
@@ -127,6 +130,13 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
     const deborde = await p.$eval('.corps-service', (c) => c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1);
     constater(!deborde, 'les colonnes du départ tiennent sans ascenseur');
   }
+  // Au départ, chaque colonne place son héros et lui donne sa consigne : l'un et l'autre s'arment et se sauvegardent.
+  const place = await p.$eval('.emporte [data-a="rang"][data-k="derriere"]:not(.armee)', (x) => x.dataset.id);
+  await p.click(`[data-a="rang"][data-id="${place}"][data-k="derriere"]`);
+  await p.click(`[data-a="consigne"][data-id="${place}"][data-k="soldats"]`);
+  const lu = (await sauvegarde(p)).roster.find((h) => h.c.id === place);
+  constater(lu.rang === 'derriere' && lu.c.aiDoctrine === 'soldats' && await p.$(`[data-a="consigne"][data-id="${place}"][data-k="soldats"].armee`),
+    'le départ place un héros derrière et lui donne « Tenir la ligne » : la plaque s’arme, la sauvegarde garde son rang et sa doctrine');
   const partirVisible = await p.$eval('[data-a="partir"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
   constater(partirVisible, '« Partir » est visible au pied de son cadre');
   await p.click('[data-a="partir"]');

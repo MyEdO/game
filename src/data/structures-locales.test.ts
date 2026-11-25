@@ -1,7 +1,6 @@
 /**
  * STRUCTURES LOCALES (#1463) : la dette de structure mesurée sur le SCHÉMA
- * (`scripts/guards/lib/structuresLocales.mts`) et son stock (`horsStrateStock.mjs`, `STRUCTURES_LOCALES`). Le contrat
- * #2995 (une donnée saine ajoutée ou retirée ne fait naître aucun site) se prouve sur toute la porte : `src/comptes-plage.test.ts`.
+ * (`scripts/guards/lib/structuresLocales.mts`) et son stock (`horsStrateStock.mjs`, `STRUCTURES_LOCALES`).
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';

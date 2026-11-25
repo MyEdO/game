@@ -9,7 +9,7 @@ import {
   choisirApparenceDObjet,
   contexteDeNaissanceDObjet,
   itemFromTrappingById,
-  porteurAvecArmementEffectif,
+  porteurALEquipementEffectif,
   recomputeLoadout,
   loadoutCreate,
   loadoutDelete,
@@ -1031,7 +1031,7 @@ export function creerActionsDuGroupe(get: Get, set: Set) {
     },
     entrainerLaProthese: (uid) => entrainerLaProthese(get, set, uid),
     changerDeCarriere: (heroId, newCareer, newLevel) => changerDeCarriere(get, set, heroId, newCareer, newLevel),
-    fixerLeGroupe: (p) => set({ party: p.map(porteurAvecArmementEffectif) }),
+    fixerLeGroupe: (p) => set({ party: p.map(porteurALEquipementEffectif) }),
     // Longues Séances de Jeu (LDB 17 l.47) : réutilise l'Effet `restoreFortune` (NE DUPLIQUE PAS la
     // logique — même case que le début de session, qui appelle `engine/fortune.restoreFortune`).
     // Corps de BLOC, retour CONSOMMÉ (#1508) : une flèche à corps expression typée `() => void` avale le

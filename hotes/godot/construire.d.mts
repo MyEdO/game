@@ -1,5 +1,9 @@
 // Types de la construction de l'hôte Godot : mêmes signatures que construire.mjs.
 
+export function lireOptions(argv: readonly string[]):
+  | { options: { mode: string | null; sortie: string | null; entree: string | undefined; rendus: string[] }; erreur?: undefined }
+  | { erreur: string; options?: undefined };
+
 export function empaqueter(sortie: string | null, mode: 'production' | 'development'): Promise<{ code: string; modules: string[] }>;
 
 export function lecturesDuBundle(code: string): Record<string, number>;

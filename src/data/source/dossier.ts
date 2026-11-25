@@ -1,6 +1,6 @@
 // FICHE DE DOSSIER DE CHAPITRE (#2290) — définition UNIQUE, pour l'app (`src/data/schemas/`, champ
 // `couvre` du paquet de campagne) comme pour l'outillage (`scripts/raw/lib/dossiers.mjs`, chargeur des
-// fiches commitées `docs/dossiers/<ABBR>/<NN>.json`).
+// fiches commitées `projets/<projet>/dossiers/<ABBR>/<NN>.json`).
 //
 // Module PUR, sans entrée/sortie : chargé tel quel par Node nu (retrait de types natif) comme par
 // vitest et le navigateur. Le chemin de la fiche porte le livre et le chapitre : aucun champ ne les
@@ -238,7 +238,7 @@ export const entreesDeLaFiche = (abbr: string, nn: string, fiche: FicheDeDossier
 const idsDeLaFiche = (abbr: string, nn: string, fiche: FicheDeDossier): string[] =>
   entreesDeLaFiche(abbr, nn, fiche).map((e) => e.id);
 
-/** Chemin d'une fiche RELATIF à la racine des dossiers (`docs/dossiers`), séparateur `/` : `<ABBR>/<NN>.json`. */
+/** Chemin d'une fiche RELATIF au dossier des fiches d'un projet (`projets/<projet>/dossiers`), séparateur `/` : `<ABBR>/<NN>.json`. */
 const CHEMIN_DE_FICHE = /^([^/]+)\/(\d+)\.json$/;
 
 /** Une fiche commitée, lue : `chemin` (affichage), livre et chapitre tirés du chemin, fiche validée,
@@ -256,7 +256,7 @@ export interface FicheLue {
  *  LÈVE sur un chemin hors de `<ABBR>/<NN>.json` ou une fiche hors schéma. */
 export function lireFicheDeDossier(chemin: string, rel: string, json: unknown): FicheLue {
   const m = CHEMIN_DE_FICHE.exec(rel);
-  if (!m) throw new Error(`${chemin} : une fiche de dossier vit en docs/dossiers/<ABBR>/<NN>.json`);
+  if (!m) throw new Error(`${chemin} : une fiche de dossier vit en <dossier>/<ABBR>/<NN>.json`);
   const [, abbr, nn] = m;
   const lu = ficheDeDossier.safeParse(json);
   if (!lu.success) {

@@ -11,7 +11,7 @@ extends SceneTree
 ## La part se lit en lumière linéaire, l'environnement de la recette en tonemap linéaire : la teinte du noyau est une
 ## part de lumière linéaire, que la courbe filmique, transformation d'affichage, abaisserait encore sur les pixels sombres.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")

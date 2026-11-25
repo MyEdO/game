@@ -9,9 +9,8 @@ import type { Possession } from '../../engine/possession';
 import type { PorteurLocalise } from '../../engine/cargo';
 import type { Jeu } from '../etat';
 import { t } from '../../i18n';
-import { armementDuPorteurVariable, porteurAvecArmementEffectif, recomputeLoadout } from '../../engine/items';
+import { armuresRapides, cocherLesDotationsRecues, porteurALEquipementEffectif, recomputeLoadout } from '../../engine/items';
 import { BOURSE_TRAPPING_ID } from '../../engine/bourse';
-import { cocherLaDotation } from '../../engine/casesDeCarriere';
 import { fromBrass, toBrass } from '../../engine/money';
 import { ecrireActeur } from './combatants';
 
@@ -80,9 +79,10 @@ export function avecLeLot(items: readonly ItemInstance[], lot: readonly ItemInst
   return [...items.map((i) => (i === bourse ? { ...i, money: fromBrass(brass) } : i)), ...contenu.map((i) => ({ ...i, equipped: false, inside: bourse.uid }))];
 }
 
-/** Le patch d'état qui réécrit les objets de chaque porteur de `ecritures` (son id, puis ce qu'il porte ensuite) : une
- *  possession dans `possessions` ; sinon un combattant par `ecrireActeur`, ses armes re-dérivées (`recomputeLoadout`) et
- *  la dotation de carrière de chaque objet reçu cochée (`cocherLaDotation`). */
+/** Le patch d'état qui réécrit les objets de chaque porteur de `ecritures` (son id, puis ce qu'il porte ensuite), ses
+ *  armures fondues (`armuresRapides`) : une possession dans `possessions` ; sinon un combattant par `ecrireActeur`, ses
+ *  armes re-dérivées (`recomputeLoadout`) et la dotation de carrière de chaque objet reçu cochée
+ *  (`cocherLesDotationsRecues`). */
 export function ecrireLesPorteurs(
   s: Pick<Jeu, 'party' | 'battle' | 'possessions'>,
   ecritures: Readonly<Record<string, (items: ItemInstance[]) => ItemInstance[]>>,
@@ -93,29 +93,38 @@ export function ecrireLesPorteurs(
     ? ecrireActeur(s, acteurs, (h) => {
       const c: Combatant = structuredClone(h);
       const avant = new Set((c.items ?? []).map((i) => i.uid));
-      c.items = ecritures[h.id](c.items ?? []);
+      const ecrits = ecritures[h.id](c.items ?? []);
+      c.items = armuresRapides(ecrits);
       recomputeLoadout(c);
-      for (const it of c.items) if (!avant.has(it.uid)) cocherLaDotation(c, it.trappingId);
+      cocherLesDotationsRecues(c, ecrits.filter((it) => !avant.has(it.uid)));
       return c;
     })
     : {};
   if (!Object.keys(ecritures).some(estPossession)) return patch;
-  return { ...patch, possessions: s.possessions.map((p) => (p.uid in ecritures ? { ...structuredClone(p), items: ecritures[p.uid](structuredClone(p.items)) } : p)) };
+  return { ...patch, possessions: s.possessions.map((p) => (p.uid in ecritures ? { ...structuredClone(p), items: armuresRapides(ecritures[p.uid](structuredClone(p.items))) } : p)) };
 }
 
-/** Reprojette les armes tenues lorsque le réglage d'armement ou l'état chargé change. Les armes déjà capturées
- *  par un jet restent dans ses pendings. AA 02 l.17, l.21 ; AA 08 l.65 */
-export function patchDeLArmement(s: Pick<Jeu, 'party' | 'battle' | 'serieSubie'>): Partial<Pick<Jeu, 'party' | 'battle' | 'serieSubie'>> | undefined {
-  const ids = [...s.party, ...(s.battle?.combatants ?? [])].filter(armementDuPorteurVariable).map((c) => c.id);
-  const acteurs = ids.length ? ecrireActeur(s, ids, porteurAvecArmementEffectif) : undefined;
+/** Reprojette l'équipement des porteurs (`porteurALEquipementEffectif`, `armuresRapides`) lorsqu'une règle d'équipement
+ *  ou l'état chargé change. Les armes déjà capturées par un jet restent dans ses pendings. AA 02 l.17, l.21 ; AA 08 l.65 ;
+ *  #4208 */
+export function patchDeLEquipement(
+  s: Pick<Jeu, 'party' | 'battle' | 'serieSubie' | 'possessions'>,
+): Partial<Pick<Jeu, 'party' | 'battle' | 'serieSubie' | 'possessions'>> | undefined {
+  const ids = [...s.party, ...(s.battle?.combatants ?? [])].filter((c) => porteurALEquipementEffectif(c) !== c).map((c) => c.id);
+  const acteurs = ids.length ? ecrireActeur(s, ids, porteurALEquipementEffectif) : undefined;
+  const possessions = s.possessions.map((p) => {
+    const items = armuresRapides(p.items);
+    return items === p.items ? p : { ...p, items };
+  });
+  const sansSerie = possessions.some((p, i) => p !== s.possessions[i]) ? { ...acteurs, possessions } : acteurs;
   const serie = s.serieSubie;
-  if (!serie) return acteurs;
-  const assaillant = porteurAvecArmementEffectif(serie.assaillant);
+  if (!serie) return sansSerie;
+  const assaillant = porteurALEquipementEffectif(serie.assaillant);
   const cibleAvant = serie.membre ? serie.membre.combattant : serie.avant;
-  const cible = porteurAvecArmementEffectif(cibleAvant);
-  if (assaillant === serie.assaillant && cible === cibleAvant) return acteurs;
+  const cible = porteurALEquipementEffectif(cibleAvant);
+  if (assaillant === serie.assaillant && cible === cibleAvant) return sansSerie;
   return {
-    ...acteurs,
+    ...sansSerie,
     serieSubie: serie.membre
       ? { ...serie, assaillant, membre: { ...serie.membre, combattant: cible } }
       : { ...serie, assaillant, avant: cible },

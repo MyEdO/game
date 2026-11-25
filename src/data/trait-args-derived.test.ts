@@ -14,8 +14,8 @@
  * ── PÉRIMÈTRE ─────────────────────────────────────────────────────────────────────────────────────
  * Les instances vivent dans `creatures.json` (`traits[]` profil imprimé + `optionals[]`, LDB 76) ET dans
  * les STATBLOCS D'AUTEUR des scénarios de test (`src/scenes/test-scenarios/**`, registre `testScenarios`)
- * ET le PROJET d'éditeur de la campagne Arène
- * (`src/scenes/arene/arene-projet.json`, compilé via `parseProject`, #146) — un statbloc/projet de scène
+ * ET le paquet de test du commun
+ * (`src/scenes/fixtures/paquet-de-test.json`, compilé via `parseProject`, #146) — un statbloc/projet de scène
  * est une SOURCE de données comme le bestiaire, la même dérive (libellé tapé à la main au lieu de l'id)
  * s'y produit (#145, #146). TOUTES sont id-based `{ id, value?, arg?, range?, count? }` — la liste
  * `optionals[]` du bestiaire peut AUSSI porter des OPTIONNELS COMPOSÉS (`OptionalEntry`, #174) : une
@@ -32,14 +32,15 @@ import { describe, it, expect } from 'vitest';
 import { traits, creatures, type TraitData } from './index';
 import { testScenarios } from '../scenes/test-scenarios';
 import { parseProject } from '../noyau/worldMap';
-import areneProjetJson from '../scenes/arene/arene-projet.json';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 import type { Scene } from '../noyau/monde/scene';
 import { fileURLToPath } from 'node:url';
 import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
 import { customStatblockSchema } from './schemas/defs-scenes/communs';
 
 /** Entrées partielles embarquées du corpus des DEUX racines (`scanDuCorpus`), mesurées UNE fois. */
-const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.meta.url))).scan.entreesPartielles;
+const RACINE = fileURLToPath(new URL('../..', import.meta.url));
+const ENTREES_PARTIELLES = scanDuCorpus(RACINE).scan.entreesPartielles;
 
 /** Forme BRUTE d'une instance. Typage local : un `TraitInstance` porte `id` ; un OPTIONNEL COMPOSÉ
  *  (`OptionalEntry`, #174) porte `note` (et jamais `id`/`value` de premier niveau) → accès via ce shape. */
@@ -49,12 +50,12 @@ const byId = new Map<string, TraitData>(traits.map((t) => [t.id, t]));
 
 interface Row { inst: RawTraitInstance; def: TraitData | undefined; where: string; }
 
-/** Scènes balayées par la garde : le registre des scénarios de test (menu « 🧪 Tests ») + le PROJET d'éditeur de la
- *  campagne Arène (`arene-projet.json`, compilé via `parseProject`/`buildScene` — MÊME schéma
+/** Scènes balayées par la garde : le registre des scénarios de test (menu « 🧪 Tests ») + le paquet de test du
+ *  commun (`paquet-de-test.json`, compilé via `parseProject`/`buildScene` — MÊME schéma
  *  d'instance qu'un scénario de test). Un projet d'éditeur reste une SOURCE de données comme un
  *  scénario ou le bestiaire : la même dérive (libellé tapé à la main au lieu de l'id) s'y produit
  *  (#146, même classe que #145/#142) — plus d'exclusion par nature de fichier. */
-const scenesToScan: Scene[] = [...testScenarios.map((s) => s.construire(idsDeTest).scene), ...parseProject(areneProjetJson).scenes];
+const scenesToScan: Scene[] = [...testScenarios.map((s) => s.construire(idsDeTest).scene), ...parseProject(paquetDeTest).scenes];
 
 /** Statblocs D'AUTEUR des scénarios de test/projets d'éditeur — même schéma d'instance que le
  *  bestiaire (id-based), soumis au même invariant #1. Balaie

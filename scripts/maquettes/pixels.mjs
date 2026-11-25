@@ -6,7 +6,7 @@
 // `<dossier>/styles/<écran>--<état>.json`. `--reference` pose la référence d'une tête, avec sa tête (`tete.json` : le
 // commit et si l'arbre diffère de lui) ; `--comparer` rend l'arbre courant et le confronte à la référence, sur les
 // écrans rendus (`ecarts.mjs`) :
-//   - chaque PNG à celui de la référence (`ecart`, `planches.mjs`) : ceux qui diffèrent, leur nombre de pixels et leur boîte ;
+//   - chaque PNG à celui de la référence (`ecart`, `scripts/recette/ecart.mjs`) : ceux qui diffèrent, leur nombre de pixels et leur boîte ;
 //   - les entrées de relevé neuves, dans chaque format (`relevesNeufs`) ;
 //   - sous `--attendu <fichier.json>` (répétable, `{ "<écran>/<état>": [...] }`, l'union des fichiers) : les états
 //     attendus restés inchangés et les états changés hors attendu (`confronter`) ;
@@ -24,7 +24,7 @@ import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
 import { enFileBornee } from '../guards/lib/fileBornee.mjs'
-import { ecart } from '../../hotes/godot/planches.mjs'
+import { ecart } from '../recette/ecart.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { confronter, ecartDeStyle, pngDe, relevesDeLaSortie, relevesNeufs } from './ecarts.mjs'
 

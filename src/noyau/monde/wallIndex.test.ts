@@ -25,7 +25,7 @@ import {
   areteOcculteEntre, areteOcculte, edgeOf, structureAt, doorAt, climbAt, porteEnJeu, setDoorRevealed,
   type Scene, type WallSeg, type WallSide,
 } from './scene';
-import { allBuiltinCampaigns } from '../../scenes/campaign';
+import { campagneDeTest } from '../../scenes/fixtures/contenuDuCommun';
 import { paquetDuJeu } from '../campagneLivree';
 import { testScenarios } from '../../scenes/test-scenarios';
 import { scenario as fenetreEcuries } from '../../scenes/test-scenarios/23-fenetre-ecuries';
@@ -42,13 +42,13 @@ const naif = (scene: Scene, x: number, y: number, side: WallSide, z: number): Wa
 const scenesLivrees = (): { nom: string; scene: Scene }[] => {
   const out: { nom: string; scene: Scene }[] = [];
   for (const s of testScenarios) out.push({ nom: `scenario:${s.id}`, scene: s.construire(idsDeTest).scene });
-  for (const c of allBuiltinCampaigns) for (const sc of paquetDuJeu(c).scenes) out.push({ nom: `campagne:${c.id}/${sc.id}`, scene: sc });
+  for (const sc of paquetDuJeu(campagneDeTest).scenes) out.push({ nom: `campagne:${campagneDeTest.id}/${sc.id}`, scene: sc });
   return out;
 };
 /** Plancher DÉRIVÉ du nombre de scènes attendues — un scan vide (registre non chargé, campagne sans
  *  scène) ne peut pas rester vert. */
 const plancherScenes = (): number =>
-  testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + c.paquet.scenes.length, 0);
+  testScenarios.length + paquetDuJeu(campagneDeTest).scenes.length;
 
 describe('wallIndex — contrat', () => {
   it('le relais porte des murs aux deux niveaux, des portes et des croisées (sans quoi le banc ne mesure rien)', () => {

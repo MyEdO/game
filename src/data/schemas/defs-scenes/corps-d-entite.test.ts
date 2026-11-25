@@ -9,12 +9,9 @@ import { sceneEntitySchema } from './scene';
 import { projetSchema } from './projet';
 import { mesureDuParse } from '../grammaire/ref';
 import { versDisque } from '../grammaire/prose';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
-import bargeProjet from '../../../scenes/barge-du-sel/barge-du-sel-projet.json';
-import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
-import loupProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
-const PROJETS = { arene: areneProjet, 'barge-du-sel': bargeProjet, diligence: diligenceProjet, 'loup-et-saumure': loupProjet };
+const PROJETS = { 'paquet-de-test': paquetDeTest };
 
 /** Le type de catalogue de chaque clé de corps. */
 const TYPE_DU_CORPS: Record<string, string> = { decor: 'prop', creature: 'creature', vehicule: 'vehicle', engin: 'engin' };

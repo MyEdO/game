@@ -5,7 +5,8 @@
 // Une zone est un dossier : `dossier`, `src/<zone>` par défaut ; `racine` désigne les fichiers posés à même `src/`
 // (tests transverses). Hors de `src/`, chaque dossier de `hotes/` est un affichage et chaque dossier de `projets/` un
 // projet (#4903 H3), chacun sa zone. La ligne d'un projet se construit (`ligneDeProjet`) : les droits d'un projet
-// (`DROITS_D_UN_PROJET`), plus ses `ouvertures`, chacune nommée par son ticket. Un projet est fermé à toute autre zone,
+// (`DROITS_D_UN_PROJET`), plus les affichages qu'il déclare, plus ses `ouvertures`, chacune nommée par son ticket, et
+// son `outillage`. Un projet est fermé à toute autre zone,
 // `importe: '*'` compris (`fermeParLeProjet`). Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
@@ -42,16 +43,19 @@ const DROITS_DES_HOTES = Object.freeze({ ...DROITS_D_HOTE, importe: Object.freez
 /** Les droits d'un projet (#4903 H3) : ceux des hôtes (`DROITS_DES_HOTES`), sans `scenes`. */
 export const DROITS_D_UN_PROJET = Object.freeze({ ...DROITS_DES_HOTES, importe: Object.freeze(DROITS_DES_HOTES.importe.filter((z) => z !== 'scenes')) });
 
-/** La ligne du projet de dossier `dossier` (#4903 H3) : les droits d'un projet (`DROITS_D_UN_PROJET`), plus ses
- *  `ouvertures` (`{ <zone>: <n° de ticket> }`) ; ouvrir une zone l'importe et retire sa porte. La ligne garde ses
- *  ouvertures. PURE. */
-export function ligneDeProjet(dossier, ouvertures) {
+/** La ligne du projet de dossier `dossier` (#4903 H3) : les droits d'un projet (`DROITS_D_UN_PROJET`), plus les
+ *  `affichages` qu'il déclare, des droits, plus ses `ouvertures` (`{ <zone>: <n° de ticket> }`) ; ouvrir une zone
+ *  l'importe et retire sa porte. `outillage` : les modules hors des zones que lit chacun de ses outillages. La ligne
+ *  garde ses affichages et ses ouvertures. PURE. */
+export function ligneDeProjet(dossier, ouvertures, { affichages = [], outillage } = {}) {
   const ouvertes = Object.keys(ouvertures);
   return Object.freeze({
     dossier,
     ...DROITS_D_UN_PROJET,
-    importe: Object.freeze([...new Set([...DROITS_D_UN_PROJET.importe, ...ouvertes])]),
+    importe: Object.freeze([...new Set([...DROITS_D_UN_PROJET.importe, ...affichages, ...ouvertes])]),
     portes: Object.freeze(Object.fromEntries(Object.entries(DROITS_D_UN_PROJET.portes).filter(([z]) => !ouvertes.includes(z)))),
+    ...(outillage && { outillage: Object.freeze({ ...outillage }) }),
+    affichages: Object.freeze([...affichages]),
     ouvertures: Object.freeze({ ...ouvertures }),
   });
 }
@@ -61,7 +65,11 @@ export const COUCHES = Object.freeze({
   geometry: { importe: [], survit: true },
   i18n: { importe: [], survit: true },
   engine: { importe: ['data', ...FEUILLES], survit: true },
-  data: { importe: ['engine', ...FEUILLES], survit: true },
+  data: {
+    importe: ['engine', ...FEUILLES],
+    survit: true,
+    outillage: { 'src/data/specsNommees.testkit.ts': ['scripts/guards/lib/stock.mjs', 'scripts/data/lib/skillSpecWalk.mjs'] },
+  },
   noyau: {
     importe: ['engine', 'data', ...FEUILLES],
     survit: true,
@@ -75,25 +83,33 @@ export const COUCHES = Object.freeze({
     outillage: {
       'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/fileBornee.mjs', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/test/verrou.mjs'],
       'hotes/godot/avis.mjs': ['scripts/guards/lib/lister.mjs'],
-      'hotes/godot/cibles/propositions/sources/rendre.mjs': ['scripts/guards/lib/lister.mjs'],
+      'hotes/godot/cibles/propositions/sources/rendre.mjs': ['scripts/guards/lib/lister.mjs', 'scripts/recette/navigateur.mjs'],
       'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],
       'hotes/godot/asset/evaluer.mjs': ['scripts/test/partition.mjs'],
       'hotes/godot/asset/importer.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
       'hotes/godot/asset/release.ts': ['scripts/guards/lib/ecritureJsonAtomique.mjs'],
-      'hotes/godot/etalons.mjs': ['scripts/guards/lib/fileBornee.mjs', 'scripts/recette/lib.mjs'],
+      'hotes/godot/etalons.mjs': ['scripts/guards/lib/fileBornee.mjs', 'scripts/recette/ecart.mjs', 'scripts/recette/lib.mjs', 'scripts/recette/navigateur.mjs'],
       'hotes/godot/lot-de-recettes.mjs': ['scripts/guards/lib/fileBornee.mjs'],
       'hotes/godot/pilotage/': ['scripts/recette/lib.mjs'],
-      'hotes/godot/planches.mjs': ['scripts/qc/lib/pngDecode.mjs'],
-      'hotes/godot/recette.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/qc/lib/pngDecode.mjs', 'scripts/docs/lib/cibles-registres.mjs'],
+      'hotes/godot/planches.mjs': ['scripts/qc/lib/pngDecode.mjs', 'scripts/qc/lib/pngEncode.mjs'],
+      'hotes/godot/recette.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/qc/lib/pngDecode.mjs', 'scripts/qc/lib/pngEncode.mjs', 'scripts/docs/lib/cibles-registres.mjs'],
       'hotes/godot/servir.mjs': ['scripts/guards/lib/projetsLivres.mjs', 'scripts/source/projetLivre.mjs', 'scripts/source/resoudre.mjs', 'scripts/source/prose-source-plugin.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/docs/lib/cibles-registres.mjs'],
     },
     paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
   },
-  roguelite: ligneDeProjet('projets/roguelite', { engine: 4932, data: 4933, scenes: 4933, noyau: 4931 }),
+  roguelite: ligneDeProjet('projets/roguelite', { engine: 4932, data: 4933, scenes: 4933, noyau: 4931 }, {
+    outillage: {
+      'projets/roguelite/recette/commun.mjs': ['scripts/recette/navigateur.mjs'],
+      'projets/roguelite/recette/images.mjs': ['scripts/recette/ecart.mjs'],
+    },
+  }),
+  'jeu-de-role': ligneDeProjet('projets/jeu-de-role', { noyau: 5005, engine: 5006, data: 5007, scenes: 5007 }, {
+    affichages: ['godot'],
+    outillage: { 'projets/jeu-de-role/suites/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
+  }),
   scenes: {
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
     survit: true,
-    outillage: { 'src/scenes/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
   },
   racine: {
     dossier: 'src',

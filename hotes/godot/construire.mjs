@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : sept modes.
 // `--pont-seul` bâtit le bundle du pont par `vite build` en production, en bibliothèque, format iife, depuis l'entrée d'hôte unique
-// (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
+// (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis l'entrée d'un jeu, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
+// `--entree <module>` nomme l'entrée du jeu, un module du dépôt, son chemin relatif à la racine, qui démarre le pont sur son contenu (`demarrerLePont`,
+// `hotes/godot/pont/entree.ts`, #4936), l'entrée commune sans lui (`ENTREE_COMMUNE`) ; posée une fois dans
+// l'environnement (`poserLEntree`), elle vaut pour chaque mode et chaque processus qu'il lance (`vivant.mjs`).
 // Il dit sa taille, le LIT (`lecturesDuBundle`) : chaque nom de navigateur lu en identifiant libre est porté par le
 // processus (`API_DU_NAVIGATEUR`) ou compté dans `HORS_DU_PROCESSUS` à son nombre de lectures ; puis l'EXÉCUTE dans un
 // `node:vm` qui ne porte que les API de navigateur déclarées : `demarrer`, `vue`, `sauvegardes` et `salon` répondent
@@ -40,8 +43,10 @@
 // (`empaqueterLeProcessus`, `embarque.mjs`) et le Node qui joue l'export ; l'export de son préréglage sur son modèle
 // épinglé ; à côté, les modèles en scène et les avis de licence, Node et les paquets npm des deux bundles compris ;
 // puis l'exécutable joue une partie sur son noyau embarqué
-// (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des deux rendus du projet (`RENDUS`), les recettes
-// déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant comme la sonde ; la CI le joue (`npm run godot:rendus`).
+// (`jouerLExecutable`). `--rendus` joue en rendu réel, sous chacun des rendus du projet (`RENDUS`) ou sous ceux que
+// nomment ses `--rendu <méthode>`, les recettes déclarant `const RECETTE_RENDUE := true` (`rendre`), sur le pont vivant
+// comme la sonde ; la file de fusion le joue sous `gl_compatibility` (`npm run godot:rendus`), le canari sous
+// `forward_plus` (#5037).
 // `--coop` (#3009) lance le relay local (`npm run relay:dev`, `server/` installé) et joue la coop par deux processus Godot
 // sans écran, l'hôte et l'invité (`coop`) ; la CI le joue (`npm run godot:coop`). L'import de ce module
 // ne lance aucun mode et ne charge pas les assets (#3963) ; `poserLesRanges` rend les poses des objets rangés d'une
@@ -77,11 +82,21 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 /** Le pont vivant que l'hôte natif lance (`--pont=<chemin>`, `vivant.mjs`). */
 const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
-const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop
+/** L'entrée commune du pont (#4936) : le pont démarré sur le contenu de test du commun. */
+const ENTREE_COMMUNE = 'hotes/godot/pont/entree-commune.ts'
+/** La variable d'environnement qui nomme l'entrée du jeu (`--entree`) : chaque processus du lanceur en hérite. */
+const ENTREE = 'WFRP_GODOT_ENTREE'
+/** Les deux rendus du projet (`rendering/renderer/rendering_method` de `projet/project.godot`) : celui de l'hôte hors
+ *  d'une page, et celui de la page. */
+const RENDUS = ['forward_plus', 'gl_compatibility']
+
+const USAGE = `Usage : node hotes/godot/construire.mjs [--entree <module>] (--pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus [--rendu <méthode>]... | --ouvrir | --coop)
+  --entree <module>   l'entrée du jeu dont le pont démarre, un module du dépôt relatif à la racine (${ENTREE_COMMUNE} sans elle)
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
   --export            le bundle, l'export Web du projet et ses paquets, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
   --rendus            le projet importé et les recettes rendues jouées en rendu réel sous chacun des deux rendus, Forward+ et compatibilité, par l'éditeur Godot épinglé
+  --rendu <méthode>   avec --rendus, le seul rendu joué parmi ${RENDUS.join(', ')}, à répéter pour plusieurs (tous sans lui)
   --bureau            l'exécutable de bureau de cette plateforme, son noyau embarqué, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, puis la partie vivante jouée par l'exécutable
   --ouvrir            les GLB tirés de la Release et le catalogue des dessins déposés, puis l'éditeur Godot épinglé ouvert sur le projet en place, qui y joue sur le noyau vivant
   --coop              le projet importé, le relay local lancé (npm run relay:dev, server/ installé) et la coop jouée par deux processus Godot sans écran, l'hôte et l'invité (Linux seul)
@@ -92,25 +107,37 @@ const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <do
 const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export', '--bureau': 'bureau', '--rendus': 'rendus', '--ouvrir': 'ouvrir', '--coop': 'coop' }
 
 /** Les options de la ligne de commande, ou l'erreur qui les refuse. */
-function lireOptions(argv) {
-  const options = { mode: null, sortie: null }
+export function lireOptions(argv) {
+  const options = { mode: null, sortie: null, entree: undefined, rendus: [] }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a in MODES && !options.mode) options.mode = MODES[a]
     else if (a === '--sortie' && argv[i + 1]) options.sortie = resolve(argv[++i])
+    else if (a === '--entree' && argv[i + 1] && options.entree === undefined) options.entree = argv[++i]
+    else if (a === '--rendu' && RENDUS.includes(argv[i + 1]) && !options.rendus.includes(argv[i + 1])) options.rendus.push(argv[++i])
+    else if (a === '--rendu') return { erreur: `--rendu : un rendu attendu parmi ${RENDUS.join(', ')}, une fois chacun : ${argv[i + 1] ?? '(rien)'}` }
     else return { erreur: `option inconnue, incomplète ou en double : ${a}` }
   }
   if (!options.mode) return { erreur: `un mode attendu : ${Object.keys(MODES).join(', ')}` }
   if ((options.mode === 'export' || options.mode === 'bureau') && !options.sortie) return { erreur: `--${options.mode} attend --sortie <dossier>` }
   if (['sonde', 'ouvrir', 'rendus', 'coop'].includes(options.mode) && options.sortie) return { erreur: `--${options.mode} : --sortie hors de propos` }
+  if (options.mode !== 'rendus' && options.rendus.length) return { erreur: `--${options.mode} : --rendu hors de propos` }
+  if (!options.rendus.length) options.rendus = RENDUS
   return { options }
 }
 
-/** Le bundle du pont bâti dans le `mode` donné (`'production'` ou `'development'`) : son code et les ids des modules
+/** Pose l'entrée du jeu `entree` (`--entree`) dans l'environnement du lanceur, que ses processus héritent ; sans elle,
+ *  rien : l'entrée héritée, ou l'entrée commune, vaut. */
+export function poserLEntree(entree) {
+  if (entree !== undefined) process.env[ENTREE] = entree
+}
+
+/** Le bundle du pont bâti dans le `mode` donné (`'production'` ou `'development'`) depuis l'entrée du jeu que pose
+ *  l'environnement (`poserLEntree`), l'entrée commune sans elle : son code et les ids des modules
  *  qu'il porte (`avisDesPaquets`), écrit dans `sortie` si elle est donnée. Vite lit le mode dans `process.env.NODE_ENV`,
  *  posé au `mode` le temps de la construction, puis rendu à sa valeur d'avant, ou retiré s'il était absent. */
 export async function empaqueter(sortie, mode) {
-  const entree = entreeDHote('wfrp-pont', ["import '/hotes/godot/pont/entree.ts';"])
+  const entree = entreeDHote('wfrp-pont', [`import '/${process.env[ENTREE] ?? ENTREE_COMMUNE}';`])
   const avant = process.env.NODE_ENV
   process.env.NODE_ENV = mode
   try {
@@ -811,10 +838,6 @@ function sonder(binaire, { DOSSIER_DES_MODELES, figerVuesDeLEcran, figerLeVehicu
   })
 }
 
-/** Les deux rendus du projet (`rendering/renderer/rendering_method` de `projet/project.godot`) : celui de l'hôte hors
- *  d'une page, et celui de la page. */
-const RENDUS = ['forward_plus', 'gl_compatibility']
-
 /** L'écran virtuel de `largeur` × `hauteur` qui porte un rendu réel là où aucun écran n'est ouvert (la CI, un
  *  conteneur). */
 const ecranVirtuel = ({ largeur, hauteur }) => process.platform === 'linux' && !process.env.DISPLAY ? ['xvfb-run', '-a', '-s', `-screen 0 ${largeur}x${hauteur}x24`] : []
@@ -831,20 +854,20 @@ export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_R
 /** Le projet importé par l'éditeur `binaire`, les échantillons de l'atelier figés (`figerLeDecor`) sous
  *  `recettes/vues/decor.json` de la copie, que lit `aretes-en-instances.gd`, puis chaque recette déclarant
  *  `const RECETTE_RENDUE := true` jouée en
- *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
+ *  rendu réel sous chacun des `rendus` demandés, parmi les `RENDUS` (#3951, #5037), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
  *  pas, et que Godot remplace, est une erreur. La recette imprime sa ligne de clôture (`erreurs=<n>`) après ses
  *  assertions et les libérations de scène qu'elle joue. Le code de sortie et les lignes `ERROR` ou `SCRIPT ERROR`
  *  jusqu'à cette clôture entrent dans le verdict. Le journal intégral garde aussi les diagnostics que le moteur écrit
  *  à l'arrêt du processus, après la clôture (#4215). */
-function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins }) {
+function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins }, rendus) {
   return surUneCopie(binaire, figerLesDessins, async (copie) => {
     deposerLaVue(copie, 'decor', figerLeDecor(await listage(DOSSIER_DES_MODELES)))
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_RENDUE := true\s*$/m.test(sourceDe(copie, script)))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]
     const [commande, ...prefixe] = [...ECRAN_VIRTUEL, binaire]
-    const erreurs = await menerDeFront(copie, recettes.flatMap((recette) => RENDUS.map((rendu) => ({
+    const erreurs = await menerDeFront(copie, recettes.flatMap((recette) => rendus.map((rendu) => ({
       commande,
       args: (donnees) => [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette, ...argumentsDuPont(donnees)],
       juger: ({ lignes, echec }) => {
@@ -858,7 +881,7 @@ function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins })
         ]
       },
     }))), COEURS_D_UNE_RECETTE_RENDUE)
-    if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) rendue(s) sous ${RENDUS.join(' et ')}`)
+    if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) rendue(s) sous ${rendus.join(' et ')}`)
     return erreurs
   })
 }
@@ -1080,12 +1103,13 @@ async function principal() {
     console.error(`${erreur}\n${USAGE}`)
     return 2
   }
+  poserLEntree(options.entree)
   if (options.mode === 'pont') return (await pont(options.sortie)).statut
   if (options.mode === 'sonde') {
     const a = await deposerLesAssets()
     return verdict(await sonder(await editeur(), a))
   }
-  if (options.mode === 'rendus') return verdict(await rendre(await editeur(), await deposerLesAssets()))
+  if (options.mode === 'rendus') return verdict(await rendre(await editeur(), await deposerLesAssets(), options.rendus))
   if (options.mode === 'coop') return verdict(await coop(await editeur(), await deposerLesAssets()))
   if (options.mode === 'ouvrir') {
     deposerLesDessins(PROJET, (await deposerLesAssets()).figerLesDessins)

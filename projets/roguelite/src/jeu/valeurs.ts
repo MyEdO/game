@@ -14,11 +14,12 @@ import {
   type FluxDEpreuve,
   type Designation,
   type QualiteDeRepos,
+  type DoctrineId,
 } from '../noyau';
 
 import { profil } from './outils';
 
-export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage' | 'memorial';
+export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage';
 
 /** Un apport d'un palier : son pictogramme (`PICTOS` de `../kit`), sa phrase, et le chiffre de la phrase à marquer. */
 export interface Apport { picto: string; chiffre?: string; texte: string }
@@ -27,17 +28,31 @@ export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: 
 export const phraseDuPalier = (p: Batiment['paliers'][number]): string => p.apports.map((a) => a.texte).join(' ; ');
 const apport = (picto: string, texte: string, chiffre?: string): Apport => (chiffre ? { picto, chiffre, texte } : { picto, texte });
 
+export const TAILLE_DU_GROUPE = 4;
+/** Les voyageurs que le relais propose à son palier, tous engagés sans frais : de quoi monter un groupe entier, et un
+ *  de plus par palier. */
+export const candidatsAuPalier = (palier: number): number => TAILLE_DU_GROUPE + palier;
+const candidatsDuPalier = (palier: number, carrieres?: string): Apport =>
+  apport('chope', `${candidatsAuPalier(palier)} candidats engagés sans frais${carrieres ? `, ${carrieres}` : ''}`, String(candidatsAuPalier(palier)));
+
+/** Le revenu du péage à chaque palier, par salle que l'expédition franchit : il suit la longueur de la route, et rentrer
+ *  après une salle n'en rapporte qu'une part. Mesure MyEdO/game#4963. */
+export const PEAGE_PAR_SALLE: readonly number[] = [0, 3, 6, 12];
+const peageDuPalier = (palier: number): string => `+${PEAGE_PAR_SALLE[palier]} CO`;
 /** Prix des actes de l'hospice, avant la remise du dernier palier. */
 export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
-/** Le prix du soin de l'hospice par Point de Blessure rendu, à chaque palier ; `null` : l'hospice fermé. */
-export const PRIX_DU_SOIN_PAR_BLESSURE: readonly (number | null)[] = [null, 4, 2, 0];
+/** Le prix des Larmes de Shallya de l'hospice à chaque palier ; `null` : l'hospice ne les vend pas à ce palier. */
+export const PRIX_DES_LARMES: readonly (number | null)[] = [null, null, 40, 20];
+/** Le prix du soin de l'hospice par Point de Blessure rendu, à chaque palier ; `null` : l'hospice fermé. Mesure
+ *  MyEdO/game#4963. */
+export const PRIX_DU_SOIN_PAR_BLESSURE: readonly (number | null)[] = [null, 2, 1, 0];
 const soinsDuPalier = (palier: number): string => `Soins à ${PRIX_DU_SOIN_PAR_BLESSURE[palier]} CO la Blessure`;
 
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Auberge relais', role: 'Recrues', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('lit', 'repos en chambre piètre')] },
-    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3'), apport('lit', 'repos en chambre normale')] },
-    { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4'), apport('lit', 'repos en chambre de grande qualité')] },
+    { cout: 0, trophees: 0, apports: [candidatsDuPalier(0), apport('lit', 'repos en chambre piètre')] },
+    { cout: 120, trophees: 0, apports: [candidatsDuPalier(1, 'carrières d’aventure'), apport('lit', 'repos en chambre normale')] },
+    { cout: 300, trophees: 1, apports: [candidatsDuPalier(2, 'carrières d’élite'), apport('lit', 'repos en chambre de grande qualité')] },
   ] },
   { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins, chirurgie et remèdes', paliers: [
     { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : on ne se repose qu’en chambre à l’auberge')] },
@@ -65,14 +80,9 @@ export const BATIMENTS: readonly Batiment[] = [
   ] },
   { id: 'peage', nom: 'Péage du pont', role: 'Revenu', paliers: [
     { cout: 0, trophees: 0, apports: [apport('pieces', 'Ruiné : aucun revenu')] },
-    { cout: 90, trophees: 0, apports: [apport('pieces', '+10 CO par expédition qui franchit une salle', '+10 CO')] },
-    { cout: 240, trophees: 1, apports: [apport('pieces', '+25 CO', '+25 CO')] },
-    { cout: 480, trophees: 2, apports: [apport('pieces', '+50 CO', '+50 CO')] },
-  ] },
-  { id: 'memorial', nom: 'Jardin de Morr', role: 'Mémoire', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('croix', 'Un champ en friche')] },
-    { cout: 110, trophees: 0, apports: [apport('etoile', 'Chaque recrue arrive avec 10 PX par héros tombé (max 100)', '10 PX')] },
-    { cout: 300, trophees: 1, apports: [apport('etoile', '20 PX par héros tombé (max 200)', '20 PX')] },
+    { cout: 90, trophees: 0, apports: [apport('pieces', `${peageDuPalier(1)} par salle franchie en expédition`, peageDuPalier(1))] },
+    { cout: 240, trophees: 1, apports: [apport('pieces', peageDuPalier(2), peageDuPalier(2))] },
+    { cout: 480, trophees: 2, apports: [apport('pieces', peageDuPalier(3), peageDuPalier(3))] },
   ] },
 ];
 
@@ -119,6 +129,24 @@ export const ROLES: Record<Role, { nom: string; picto: string }> = {
   front: { nom: 'Ligne de front', picto: 'bouclier' }, tireur: { nom: 'Tireur', picto: 'arc' }, eclaireur: { nom: 'Éclaireur', picto: 'oeil' },
   soigneur: { nom: 'Soigneur', picto: 'soin' }, lanceur: { nom: 'Lanceur de sorts', picto: 'etoile' },
 };
+/** Le rang d'un héros à l'entrée d'une rencontre : la tête du groupe, face à l'ennemi, ou derrière elle. */
+export type Rang = 'devant' | 'derriere';
+export const RANGS: Record<Rang, { nom: string; bulle: string }> = {
+  devant: { nom: 'Devant', bulle: 'Entre en tête du groupe, face à l’ennemi.' },
+  derriere: { nom: 'Derrière', bulle: 'Entre derrière ceux qui vont devant.' },
+};
+/** Le rang d'un héros que le joueur n'a pas placé, selon le rôle de sa carrière. */
+export const RANG_DU_ROLE: Record<Role, Rang> = { front: 'devant', eclaireur: 'devant', tireur: 'derriere', soigneur: 'derriere', lanceur: 'derriere' };
+/** Les consignes de combat offertes au joueur : une doctrine de l'IA du noyau (`Combatant.aiDoctrine`), ou `null`, que
+ *  le noyau déduit du héros. `meute` (une bête), `horde` (un esprit absent), `embuscade` (la charge d'un embusqué) et
+ *  `standard` (le défaut neutre) ne décrivent pas un aventurier ; `artillerie`, que le noyau déduit d'un lanceur, double
+ *  `tirailleurs` pour un héros. */
+export const CONSIGNES: readonly { doctrine: DoctrineId | null; nom: string; bulle: string }[] = [
+  { doctrine: null, nom: 'À son idée', bulle: 'Combat selon ce qu’il porte et ce qu’il sait faire.' },
+  { doctrine: 'soldats', nom: 'Tenir la ligne', bulle: 'Cherche le contact et reste au coude à coude avec les siens.' },
+  { doctrine: 'tirailleurs', nom: 'Harceler', bulle: 'Garde ses distances, recule devant l’ennemi et vise les plus dangereux.' },
+  { doctrine: 'racaille', nom: 'Se ménager', bulle: 'Achève les blessés et se replie quand il est très entamé.' },
+];
 /** Une carrière du roster : son palier de relais, le niveau de carrière où elle s'engage, son rôle, ce qui la
  *  caractérise à la création, les objets du catalogue qu'elle reçoit en plus de sa dotation, sa voie de lanceur, et
  *  les dieux parmi lesquels se tire la spécialisation de son Talent d'identité (`beni`), qui fixe sa voie. */
@@ -271,13 +299,15 @@ export const CAMP = {
   soigner: { libelle: 'Soigner un blessé', titre: 'Les soins du camp', soigneur: 'Qui soigne ?', patient: 'Qui est soigné ?' },
 };
 
+/** Le butin d'une salle de combat : l'or de l'étape (`Destination.or`) multiplié par son type, puis par un tirage
+ *  entre `ecart.min` et `ecart.max` centièmes. */
+export const BUTIN_DES_SALLES = { facteur: { combat: 1, elite: 2, boss: 4 }, ecart: { min: 75, max: 125 } } as const;
+/** Les trophées : la chance en pour cent qu'une élite en laisse un, ceux du maître, et celui de plus la première fois
+ *  qu'il tombe. */
+export const TROPHEES = { elite: 35, boss: 1, premiereVictoire: 1 } as const;
 /** PX gagnés par salle franchie, par type. */
 export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10 };
 export const OR_INITIAL = 100;
-export const PRIX_DE_RECRUE = [15, 30, 50];
-/** Ce qu'une recrue coûte en plus par niveau de carrière au-delà du premier. */
-export const SUPPLEMENT_PAR_NIVEAU = 20;
-export const TAILLE_DU_GROUPE = 4;
 /** Le prix d'un objet au hameau : son prix au catalogue (CO) multiplié, à l'échelle du butin des expéditions. */
 export const ECHELLE_DES_PRIX = 10;
 /** Jours de repos accordés à tous quand personne n'est plus en état de partir ; durée d'un séjour à l'hospice. */
@@ -292,19 +322,10 @@ export type LieuDeSejour = keyof typeof LIEUX_DE_SEJOUR;
 
 /** Les Disponibilités (`DISPONIBILITES`) qu'ouvre le palier `palier` de la forge ou de l'hospice : une de plus par palier. */
 export const disponibilitesDuPalier = (palier: number): readonly Disponibilite[] => DISPONIBILITES.slice(0, palier + 1);
-/** Une panoplie de la forge : son id dit les PA qu'elle porte sur chaque localisation ; ses pièces d'armure du catalogue
- *  (`trappings.json`), de cuir souple, de mailles ou de plates, sans conflit de couche (`equipConflicts`), revêtues d'un
- *  seul achat, sont la composition la plus légère portée (`itemsEncumbrance`), puis la moins chère. Arbitrages du
- *  2026-11-23, MyEdO/game#4947. */
-export type IdDePanoplie = 'pa-1' | 'pa-2' | 'pa-3' | 'pa-4' | 'pa-5';
-export interface Panoplie { id: IdDePanoplie; label: string; pieces: readonly string[] }
-export const PANOPLIES: readonly Panoplie[] = [
-  { id: 'pa-1', label: 'Cuir souple', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir'] },
-  { id: 'pa-2', label: 'Mailles', pieces: ['heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] },
-  { id: 'pa-3', label: 'Mailles sur cuir', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] },
-  { id: 'pa-4', label: 'Plates sur mailles', pieces: ['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron', 'jambieres-d-acier'] },
-  { id: 'pa-5', label: 'Harnois complet', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron', 'jambieres-d-acier'] },
-];
+/** Les armures que la forge vend : les trois armures d'une pièce de l'option du noyau `armure-regles-rapides`, de la plus
+ *  légère à la plus lourde. LDB 63 l.95-103 ; arbitrage du 2026-11-24, MyEdO/game#4966. */
+export const ARMURES_DE_LA_FORGE = ['armure-legere', 'armure-moyenne', 'armure-lourde'] as const;
+export type ArmureDeLaForge = (typeof ARMURES_DE_LA_FORGE)[number];
 /** Le Groupe des potions et remèdes du catalogue, que l'hospice reconnaît au sac d'un héros. */
 export const GROUPE_DES_REMEDES = 'herbes-et-potions';
 /** Ce que l'hospice vend du Groupe des remèdes : ceux dont le combat et la route jouent l'effet, un au moins par

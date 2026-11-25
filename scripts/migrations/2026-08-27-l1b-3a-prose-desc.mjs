@@ -20,7 +20,7 @@
  * porteur reconnu ci-dessous : la reconnaissance est POSITIVE (chemin + forme), jamais par exclusion.
  *
  * ENTRÉES : `src/data/{incidents-monture,problemes-vehicule,rencontres-edoc,interludeEvents,
- * peripeties,mass-battle,land-cargo}.json` et les 4 `src/scenes/<campagne>/<campagne>-projet.json`.
+ * peripeties,mass-battle,land-cargo}.json` et les projets livrés `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`).
  *
  * FORMATAGE PRÉSERVÉ : `src/data` est `JSON.stringify(doc, null, 2)` ; les documents de scène ont
  * leur PROPRE sérialiseur `JSON.stringify(doc, null, 1) + '\n'` (précédent déclaré par
@@ -36,6 +36,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { auChemin } from '../../src/lib/objet.mjs';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const echecs = [];
@@ -106,7 +107,7 @@ for (const [rel, etat] of docs) {
   ecritures.push({ rel, abs: path.join(ROOT, rel), brut: etat.brut, out, migres: etat.migres, deja: etat.deja });
 }
 
-// ── Racine `src/scenes` : reconnaissance POSITIVE des porteurs pendant la descente ───────────────
+// ── Projets livrés : reconnaissance POSITIVE des porteurs pendant la descente ───────────────
 const TYPES_EFFET = new Set(['journal', 'document', 'setObjective']);
 const canoniqueScene = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 
@@ -118,12 +119,8 @@ const estPorteur = (o, dansNodes) =>
   (dansNodes && Array.isArray(o.choices))
   || (typeof o.type === 'string' && TYPES_EFFET.has(o.type) && o.documentId === undefined);
 
-const RACINE_SCENES = path.join(ROOT, 'src/scenes');
-for (const d of fs.readdirSync(RACINE_SCENES, { withFileTypes: true })) {
-  if (!d.isDirectory()) continue;
-  const abs = path.join(RACINE_SCENES, d.name, `${d.name}-projet.json`);
-  if (!fs.existsSync(abs)) continue;
-  const rel = path.relative(ROOT, abs).replace(/\\/g, '/');
+for (const rel of cheminsDesProjetsLivres(ROOT)) {
+  const abs = path.join(ROOT, rel);
   const brut = fs.readFileSync(abs, 'utf8');
   const doc = JSON.parse(brut);
   if (canoniqueScene(doc) !== brut) { echecs.push(`${rel} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 1) + '\\n'\`)`); continue; }

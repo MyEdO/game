@@ -2,7 +2,9 @@
 // `node chargementDUnModule.mjs <racine> <module relatif>…`. Chaque module se charge EN PREMIER par le module runner
 // de Vite, celui de `runnerImport` (`scripts/hote-texte.mjs`), avec le greffon `proseSource()` des hôtes
 // (`scripts/entree-d-hote.mjs`) : un ModuleRunner neuf par module, donc un graphe de modules neuf ; le serveur, et
-// avec lui le cache des transformations, est partagé par le lot.
+// avec lui le cache des transformations, est partagé par le lot. Les piles se ramènent au source par l'intercepteur
+// de Vite (`sourcemapInterceptor: 'prepareStackTrace'`), à la demande : celui de Node (`'node'`, le défaut) scrute le
+// code de chaque module évalué, à chaque graphe neuf (#5037).
 // Rend sur stdout une ligne `@@chargement <JSON>` par module : son échec, ou `null` — l'erreur et ses premières
 // lignes de pile dans le code chargé. Code 0, sauf panne du travailleur, ou erreur hors de tout chargement
 // (minuteur échu d'un module chargé).
@@ -42,7 +44,7 @@ export async function chargerChacun(racine, modules, rendre) {
   try {
     for (const rel of modules) {
       let echec = null
-      const runner = createServerModuleRunner(serveur.environments.ssr, { hmr: false })
+      const runner = createServerModuleRunner(serveur.environments.ssr, { hmr: false, sourcemapInterceptor: 'prepareStackTrace' })
       try {
         await runner.import(join(racine, rel))
       } catch (e) {

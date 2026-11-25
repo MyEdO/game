@@ -57,7 +57,7 @@ const SANS_DECLENCHEURS = { declencheursNonJoues: [], declencheursEcartes: [] }
 
 /** Ce qui manque au dossier reçu pour armer la table — vide quand il l'arme. */
 function manquesDuDossier() {
-  if (!DOSSIER) return [`args.dossier — l'objet de la fiche commitée du chapitre (docs/dossiers/<livre>/<chapitre>.json, la fiche du MJ en est tirée) : ${LANCEUR}`]
+  if (!DOSSIER) return [`args.dossier — l'objet de la fiche commitée du chapitre (projets/<projet>/dossiers/<livre>/<chapitre>.json, la fiche du MJ en est tirée) : ${LANCEUR}`]
   const manques = []
   for (const champ of CHAMPS_DE_LA_FICHE) if (!Array.isArray(DOSSIER[champ])) manques.push(`args.dossier.${champ} absent — la fiche du chapitre vient du lanceur : ${LANCEUR}`)
   if (Array.isArray(DOSSIER.beats) && !DOSSIER.beats.length) manques.push('args.dossier.beats vide — le MJ ne joue pas un chapitre sans beats')

@@ -2,7 +2,7 @@ extends SceneTree
 
 ## Les pièces de toit se posent en instances sur les arêtes des toits (#4471, `hotes/godot/pont/CONTRAT.md`, méthode
 ## `aretes`, `piecesDeToit`) : celles des échantillons de toit figés par la sonde (`toit` de `hotes/godot/recettes/decor.ts`,
-## une couverture sur ses quatre profils à 2 m comme à 3 m par case, et La Diligence), une pièce par case, faîtières,
+## une couverture sur ses quatre profils à 2 m comme à 3 m par case, et le plan de l'Opéra), une pièce par case, faîtières,
 ## arêtiers et noues, posées par le volume de la scène (`VolumeDeScene.poser_les_aretes`) sur les nappes de ce même
 ## échantillon (`VolumeDeScene.poser`), du modèle de toit de test (`_modele_de_test` : une `faitiere` longue de `LONG`,
 ## un `aretier` et une `noue` longs de `LONG_D_ARETE`, chacun le long de X, Y à 0 sur son arête, un V en travers dont
@@ -58,7 +58,7 @@ func _recetter() -> void:
 		_avec_leur_nappe(volume, echantillon.piecesDeToit, moment)
 	PontFige.poser(self, decor)
 	MontageDeComposition.retenir_les_modeles(decor.modeles, decor.listage)
-	var echantillon: Dictionary = echantillons.diligence
+	var echantillon: Dictionary = echantillons.opera
 	for servie: String in servis:
 		var volume := _volume(echantillon)
 		var pieces: Array = echantillon.piecesDeToit.map(func(f: Dictionary) -> Dictionary: return f.merged({famille = servie}, true))

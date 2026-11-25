@@ -137,7 +137,7 @@ jobs:
         run: npm run server:typecheck
       # La passe des maquettes (#4585, `npm run godot:maquettes`) : chaque état de chaque écran de
       # `hotes/godot/cibles/propositions/sources/maquettes/` rendu et relevé, 10 à 15 min, trop lourd pour le budget de
-      # `ci.yml`. Le Chromium épinglé des planches (`EPINGLE`, `refusDuNavigateur`, que `rendre.mjs` vérifie), installé
+      # `ci.yml`. Le Chromium épinglé des planches (`EPINGLE`, scripts/recette/navigateur.mjs, que `rendre.mjs` lance), installé
       # ici par le Playwright des devDependencies sous le même `PLAYWRIGHT_BROWSERS_PATH` que les étalons.
       - id: godot-maquettes
         continue-on-error: true
@@ -160,7 +160,7 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: node hotes/godot/construire.mjs --export --sortie "$RUNNER_TEMP/godot-web"
       # Le banc des étalons (#3935) sur ce même export : chaque planche comparée au pixel à son étalon, dans le Chromium
-      # que l'épingle nomme (`EPINGLE`, hotes/godot/planches.mjs), installé par le Playwright des devDependencies
+      # que l'épingle nomme (`EPINGLE`, scripts/recette/navigateur.mjs), installé par le Playwright des devDependencies
       # sous son propre `PLAYWRIGHT_BROWSERS_PATH` posé au step : les recettes gardent le Chrome du runner.
       - id: godot-etalons
         continue-on-error: true
@@ -200,6 +200,17 @@ jobs:
         with:
           name: godot-recettes-natives
           path: ${{ runner.temp }}/godot-recettes-natives
+      # Les recettes rendues sous Forward+, le rendu du bureau et de l'éditeur (#5037) : la file de fusion ne les joue que
+      # sous le rendu de compatibilité (`godot:rendus`, ci.yml), sur le même écran virtuel et le même rendu logiciel de Mesa.
+      - id: godot-rendus-forward
+        continue-on-error: true
+        if: ${{ !cancelled() && steps.install.outcome == 'success' }}
+        timeout-minutes: 30
+        env:
+          LP_NUM_THREADS: '2'
+        run: |
+          sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
+          node hotes/godot/construire.mjs --rendus --rendu forward_plus
       # La chaîne 3D reconstruite en entier (`WFRP_3D_TOUT=1`, scripts/personnage-3d/entrees.py, #3412) : la file de
       # fusion ne reconstruit que les éléments et les modèles de véhicule dont une entrée a changé.
       - id: python-3d
@@ -287,6 +298,7 @@ jobs:
             godot-etalons=${{ steps.godot-etalons.outcome }}
             godot-recettes=${{ steps.godot-recettes.outcome }}
             godot-recettes-natives=${{ steps.godot-recettes-natives.outcome }}
+            godot-rendus-forward=${{ steps.godot-rendus-forward.outcome }}
             python-3d=${{ steps.python-3d.outcome }}
             personnage-3d-tout=${{ steps.personnage-3d-tout.outcome }}
             personnage-3d-portes=${{ steps.personnage-3d-portes.outcome }}

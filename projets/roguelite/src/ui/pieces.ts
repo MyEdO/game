@@ -88,8 +88,8 @@ export const sejourDe = ({ ou, reste, total }: J.Sejour) =>
   `<span class="vie sejour-hospice"><span>${J.LIEUX_DE_SEJOUR[ou].nom}</span><span class="chiffres">${reste} j</span></span>${jauge(1 - reste / Math.max(reste, total), { teinte: 'or', taille: 'forte' })}`;
 
 /** La carte d'un héros : portrait, nom, rôle, carrière et voie, vie, état ; son identité et la cause de ses États au survol. `geste` : ce qu'un
- *  clic fait (ouvrir sa fiche, le servir, l'emmener) ; `refus` : pourquoi il n'est pas disponible pour ce geste, dit
- *  sur la carte à la place de son état ; `visee` : sa Compétence, la cible de son Test et ses chances, dites à la
+ *  clic fait (ouvrir sa fiche, le servir, l'emmener) ; `refus` : pourquoi il n'est pas disponible pour ce geste, qui
+ *  ferme la carte et se dit au survol ; `visee` : sa Compétence, la cible de son Test et ses chances, dites à la
  *  place de son état ; `meilleur` : ses chances sont les meilleures du socle ;
  *  `progresse` : il peut acheter un avancement. Un héros en séjour garde sa place et ses couleurs : sa carte porte
  *  la marque du bâtiment sur son portrait, et son séjour (jours restants, jauge) à la place de sa vie. */
@@ -101,13 +101,13 @@ export function carteDeHeros(h: J.Heros, choisi: boolean, geste = 'heros', o: { 
   const lePortrait = portraitDeHeros(h, 'grand', choisi ? 'choisi' : '', true);
   const identite: Apercu = {
     nom: c.label, nature: [carriereDe(h), r?.nom, J.nomDEspece(h.espece)].filter(Boolean).join(' · '),
-    texte: [J.deviseDe(h.carriere), voie && [`**${voie.apercu.nom}**`, voie.apercu.texte].filter(Boolean).join(' : '), ...c.conditions.map((e) => `**${libelleDEtat(e.id, e.value)}** : ${causeDEtat(c, e)}`)].filter(Boolean).join('\n\n'), ...(o.refus ? { pied: o.refus } : {}),
+    texte: [J.deviseDe(h.carriere), voie && [`**${voie.apercu.nom}**`, voie.apercu.texte].filter(Boolean).join(' : '), ...c.conditions.map((e) => `**${libelleDEtat(e.id, e.value)}** : ${causeDEtat(c, e)}`)].filter(Boolean).join('\n\n'),
   };
   const s = h.sejour;
-  return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${s ? ' retrait' : ''}${choisi ? ' choisi' : ''}${o.meilleur ? ' meilleur' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ' disabled' : ''}${apercuDe(identite)}>
+  return `<button type="button" class="carte-heros${J.valide(h) ? '' : ' hors'}${s ? ' retrait' : ''}${choisi ? ' choisi' : ''}${o.meilleur ? ' meilleur' : ''}" data-a="${geste}" data-id="${c.id}"${o.refus ? ` disabled data-bulle="${esc(o.refus)}"` : ''}${apercuDe(identite)}>
     ${s ? `<span class="au-batiment">${lePortrait}${medaillon(J.LIEUX_DE_SEJOUR[s.ou].picto, 'petit')}</span>` : lePortrait}${o.progresse ? '<i class="pastille-progres" aria-label="Peut progresser"></i>' : ''}
     <span class="qui"><span class="nom-propre petit gothique">${esc(c.label)}</span><span class="sous-titre">${r ? picto(r.picto, 12, 1.8) : ''}${esc(nomDeCarriere(h.c))}</span>
-    ${s ? sejourDe(s) : ligneDeVie(c)}<span class="ligne-etat${o.refus && !s ? ' refus' : o.visee ? ' visee' : ''}">${o.refus && !s ? esc(o.refus) : o.visee ? `${esc(o.visee.competence)} ${o.visee.cible} · <b class="chiffres">${o.visee.chances}\u00a0%</b>` : c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : s ? `<span class="revient">de retour dans ${s.reste} jour${s.reste > 1 ? 's' : ''}</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : maladies(c).length ? `<span class="marque">${maladies(c).length > 1 ? `${maladies(c).length} maladies` : esc(maladies(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
+    ${s ? sejourDe(s) : ligneDeVie(c)}<span class="ligne-etat${o.visee ? ' visee' : ''}">${o.visee ? `${esc(o.visee.competence)} ${o.visee.cible} · <b class="chiffres">${o.visee.chances}\u00a0%</b>` : c.conditions.length ? esc(c.conditions.map((e) => libelleDEtat(e.id, e.value)).join(', ')) : s ? `<span class="revient">de retour dans ${s.reste} jour${s.reste > 1 ? 's' : ''}</span>` : !J.valide(h) ? 'hors de combat' : sequelles(c).length ? `<span class="marque">${sequelles(c).length > 1 ? `${sequelles(c).length} séquelles` : esc(sequelles(c)[0].label)}</span>` : maladies(c).length ? `<span class="marque">${maladies(c).length > 1 ? `${maladies(c).length} maladies` : esc(maladies(c)[0].label)}</span>` : `${c.xp ?? 0} PX · Destin ${c.fate ?? 0}`}</span></span>
   </button>`;
 }
 
@@ -168,7 +168,7 @@ export function etiquettesDeSouillure(c: Combatant) {
 // ─── Ce qu'on possède ou qu'on achète ───────────────────────────────────────────────────────────────────────
 
 /** Une entrée : médaillon (ou portrait d'une personne), nom, état ; une action à droite (une plaque) ; l'aperçu au
- *  survol. Talents, sorts, provisions, prières, voyageurs, routes et tombes s'y montrent de la même façon. */
+ *  survol. Talents, sorts, provisions, prières, voyageurs et routes s'y montrent de la même façon. */
 export function entree(o: { icone: string; portrait?: string; nom: string; etat: string; acquis?: boolean; ferme?: boolean; action?: string; apercu: Apercu }) {
   return `<div class="talent${o.acquis ? ' acquis' : ''}${o.ferme ? ' clos' : ''}"${apercuDe(o.apercu)}>${o.portrait ? portrait(o.portrait, 'heros', 'petit') : medaillon(o.icone, 'moyen', !!o.ferme)}<div class="t"><div class="nom-propre petit gothique">${esc(o.nom)}</div><i>${esc(o.etat)}</i></div>${o.action ?? ''}</div>`;
 }
@@ -178,13 +178,13 @@ export const iconeDArme = (label: string) => (/bouclier/i.test(label) ? 'bouclie
 export const iconeDeProvision = (id: string) => (id.startsWith('potion') ? 'fiole' : 'pot');
 
 /** Une case d'objet : son pictogramme, son compte, son nom dessous, son aperçu ; `attrs` en fait un bouton, `refus`
- *  le ferme et se dit au pied de l'aperçu. Sans icône, la case est vide. */
+ *  le ferme et se dit au survol. Sans icône, la case est vide. */
 export function caseObjet(o: { icone?: string; nom: string; apercu: Apercu; compte?: number; attrs?: string; refus?: string | null; taille?: 'grande' | 'petite' }) {
   const vide = !o.icone;
   const corps = `${vide ? '' : picto(o.icone!, o.taille === 'grande' ? 30 : 22, 1.6)}${o.compte && o.compte > 1 ? `<em class="chiffres">${o.compte}</em>` : ''}`;
-  const apercu = apercuDe(o.refus ? { ...o.apercu, pied: o.refus } : o.apercu);
+  const apercu = apercuDe(o.apercu);
   const boite = o.attrs
-    ? `<button type="button" class="boite-objet" ${o.attrs}${apercu}${o.refus ? ' disabled' : ''}>${corps}</button>`
+    ? `<button type="button" class="boite-objet" ${o.attrs}${apercu}${o.refus ? ` disabled data-bulle="${esc(o.refus)}"` : ''}>${corps}</button>`
     : `<span class="boite-objet"${apercu}>${corps}</span>`;
   return `<div class="case-objet ${o.taille ?? 'petite'}${vide ? ' vide' : ''}">${boite}<span class="nom-objet">${esc(o.nom)}</span></div>`;
 }
@@ -205,12 +205,12 @@ export const casesDuSac = (h: J.Heros, utilisable: boolean) => J.provisionsPorte
 })).join('');
 
 /** Le geste d'achat, seule forme d'un prix : une plaque « verbe · prix ». Faute de quoi payer, ou sur un `refus`,
- *  elle est fermée et dit pourquoi au survol. `offert` : ce qu'elle dit d'un prix nul ; `suite` : ce qui s'ajoute au
- *  prix (des trophées). */
-export function achat(o: { verbe: string; prix: number; avoir: number; attrs: string; monnaie?: 'CO' | 'PX'; refus?: string | null; offert?: string; suite?: string; icone?: string; taille?: 'petite' | 'moyenne' | 'appel' }) {
+ *  elle est fermée et dit pourquoi au survol ; un prix nul se dit « gratuit ». `suite` : ce qui s'ajoute au prix (des
+ *  trophées). */
+export function achat(o: { verbe: string; prix: number; avoir: number; attrs: string; monnaie?: 'CO' | 'PX'; refus?: string | null; suite?: string; icone?: string; taille?: 'petite' | 'moyenne' | 'appel' }) {
   const monnaie = o.monnaie ?? 'CO';
   const refus = o.refus ?? J.refusDuPrix(o.avoir, o.prix, monnaie);
-  const prix = [o.prix ? `${o.prix} ${monnaie}` : o.offert ?? 'gratuit', o.suite].filter(Boolean).join(' · ');
+  const prix = [o.prix ? `${o.prix} ${monnaie}` : 'gratuit', o.suite].filter(Boolean).join(' · ');
   return plaque(`${esc(o.verbe)} · ${esc(prix)}`, o.attrs, { armee: !refus, fermee: !!refus, taille: o.taille ?? 'moyenne', icone: o.icone ?? '', titre: refus ? esc(refus) : '' });
 }
 

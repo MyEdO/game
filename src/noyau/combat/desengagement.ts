@@ -7,12 +7,11 @@
 import type { Combatant } from '../../engine/types';
 import type { BattleState } from '../etat';
 import type { Scene } from '../monde/scene';
-import { isOutOfAction } from '../../engine/conditions';
+import { engagesDe } from '../../engine/engagement';
 import { groupAdvantage } from '../../engine/advantagePool';
 import { canDisengageWithLessAdvantage, retreatAdvantageCost } from '../../engine/combatFeatures/dispatch';
 import { sizeGap } from '../../engine/size';
 import { spendableAdvantage } from './advantagePool';
-import { inBattleId } from '../monde/combatants';
 import { canMove, defenseDodgeMods } from '../mount';
 import type { Jeu } from '../etat';
 import { defenseTargetMods, defenseValue, defenseValueModParts } from '../../engine/combat';
@@ -32,9 +31,7 @@ export interface CtxDeFuite extends CtxDeDesengagement {
 
 /** Les adversaires Engagés de l'acteur encore en jeu. */
 export function adversairesEngages({ active, battle }: CtxDeDesengagement): Combatant[] {
-  return (active.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c && !isOutOfAction(c));
+  return engagesDe(active, battle.combatants);
 }
 
 /** Départ libre : LDB 85 l.373-374 ; Nuée : LDB 85 l.253. */

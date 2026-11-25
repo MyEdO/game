@@ -3,7 +3,7 @@
  *
  * Une migration de donnée est REJOUABLE : rejouée sur l'arbre courant, elle ne réécrit RIEN. Cette
  * porte le mesure pour de bon — les scripts de `scripts/migrations/*.mjs` sont rejoués DANS L'ORDRE
- * LEXICAL, EN PLACE dans la racine qu'on lui donne (ils lisent `src/data`, `src/scenes` et `Source/`
+ * LEXICAL, EN PLACE dans la racine qu'on lui donne (ils lisent `src/data`, `src/scenes`, `projets` et `Source/`
  * par leur propre chemin : la racine rejouée est celle de LEUR copie).
  *
  * DEUX ARBRES, DEUX MESURES, une même question (« le rejeu a-t-il écrit ? ») :
@@ -74,21 +74,21 @@ export const estUneMigration = (nom) => /^\d{4}-\d{2}-\d{2}-.+\.mjs$/.test(nom);
  */
 const MODULES_DE_LA_PORTE = ['replay.mjs', 'replay-head.mjs', 'replay-croissance.mjs'];
 
-/** Périmètre ÉCRIT par les migrations : les deux racines de documents, l'AUTHORING qui produit
- *  les artefacts de scène (`scripts/arene` + les générateurs des deux campagnes navales et leur lib
- *  partagée, écrits par `give-trapping` et `give-money-enveloppe` — migrer l'artefact sans sa source
- *  serait une demi-migration : les trois projets sont régénérés À L'OCTET par leur `generate.mjs`),
- *  et l'OUTILLAGE de l'Atlas (`scripts/raw`), dont les stocks nominatifs sont de la donnée keyée par
- *  chemin de page : une migration qui les réécrit à chaque passage doit être vue ici.
+/** Périmètre ÉCRIT par les migrations : les deux racines de documents, les PROJETS (`projets`) — leurs
+ *  paquets livrés ET l'AUTHORING qui produit les artefacts de scène (les générateurs des campagnes et
+ *  leur lib partagée, écrits par `give-trapping` et `give-money-enveloppe` — migrer l'artefact sans sa
+ *  source serait une demi-migration : les trois projets générés le sont À L'OCTET par leur
+ *  `generate.mjs`), et l'OUTILLAGE de l'Atlas (`scripts/raw`), dont les stocks nominatifs sont de la
+ *  donnée keyée par chemin de page : une migration qui les réécrit à chaque passage doit être vue ici.
  *  Deux lecteurs, aucune recopie : la mesure par git ci-dessous et l'empreinte de `replay-head.mjs`.
  *
  *  Ce périmètre ne se DÉRIVE PAS de l'en-tête `ENTRÉES` des migrations, mesuré sur tous les scripts
  *  du dossier : cet en-tête est de la PROSE (globs « `src/data/*.json` (tous les datasets) », comptes
- *  « les 4 `src/scenes/<campagne>/<campagne>-projet.json` », renvois « les deux racines de documents »,
+ *  « les quatre projets de `projets/jeu-de-role/campagnes/` », renvois « les deux racines de documents »,
  *  « le dossier d'extraction qu'il déclare ») et il mêle ce qui est LU à ce qui est ÉCRIT (`declareSesEntrees`
  *  ne teste que la PRÉSENCE du bloc). En tirer un périmètre d'écriture demanderait de deviner à la fois
  *  les chemins et leur sens — une mesure fausse serait pire que celle-ci, qui est bornée et explicite. */
-export const PERIMETRE = ['src/data', 'src/scenes', 'scripts/arene', 'scripts/barge-du-sel', 'scripts/loup-et-saumure', 'scripts/campagne', 'scripts/raw'];
+export const PERIMETRE = ['src/data', 'src/scenes', 'projets', 'scripts/raw'];
 
 /**
  * `racine` est-elle DANS un arbre de travail git ?

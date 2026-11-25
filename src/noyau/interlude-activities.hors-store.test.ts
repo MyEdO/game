@@ -128,7 +128,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.setState({
       pendingActivity: {
         teste: TESTE_DE_TEST, heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
-        skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
+        skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty, ligne: focus().ligne,
         roll: null, target: 0, sl: 0, success: false,
         ...r!, label: `Accomplir un Rituel — ${r!.label}`,
       } as PendingActivity,
@@ -161,7 +161,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.setState({
       pendingActivity: {
         teste: TESTE_DE_TEST, heroId: h.id, kind: 'catalog', activityId: 'accomplir-un-rituel',
-        skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty,
+        skillLabel: 'Focalisation', skillValue: focus().value, difficulty: focus().difficulty, ligne: focus().ligne,
         roll: null, target: 0, sl: 0, success: false,
         ...r2!, label: `Accomplir un Rituel — ${r2!.label}`,
       } as PendingActivity,

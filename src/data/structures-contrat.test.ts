@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { paquetsDuCommun } from '../../scripts/guards/lib/paquetsDuCommun.mjs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -92,15 +92,16 @@ const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 /** Le paquet de test du commun (`defs-scenes/paquet-de-test.ts`), sous le nom que lui donne `defsDeDocument`. */
 const PAQUET_DE_TEST = 'paquet-de-test.json';
+/** Les paquets du commun, que la garde mesure avec la donnée (`listerDocuments`). */
+const PAQUETS = paquetsDuCommun(ROOT);
 
 function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<string, unknown>>, defs: readonly SchemaDef[]) {
   const dossier = mkdtempSync(join(tmpdir(), nom));
   try {
     mkdirSync(join(dossier, 'src/data'), { recursive: true });
-    mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
     cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
     for (const [file, contenu] of Object.entries(documents)) writeFileSync(join(dossier, 'src/data', file), JSON.stringify(contenu));
-    return scannerDonnees(dossier, defs);
+    return scannerDonnees(dossier, defs, undefined, undefined, []);
   } finally {
     rmSync(dossier, { recursive: true, force: true });
   }
@@ -110,7 +111,7 @@ function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<stri
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
  *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
  *  MÊME que lisent `build-structures.mts` et `corpusDesComptes.mts`. */
-const { defs: DEFS, declares: DECLARES, choix: CHOIX, choixOps: CHOIX_OPS, scan } = scanDuCorpus(ROOT);
+const { defs: DEFS, declares: DECLARES, choix: CHOIX, choixOps: CHOIX_OPS, scan } = scanDuCorpus(ROOT, PAQUETS);
 const { redeclarations } = scannerRedeclarations(ROOT);
 /** L'INVENTAIRE de la dette que la donnée révèle (`inventaireDeDette.mts`), lu une fois. */
 const INVENTAIRE = inventaireDe({ scan, defs: DEFS, declares: DECLARES });
@@ -423,14 +424,13 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const dossier = mkdtempSync(join(tmpdir(), 'cases-de-reference-'));
     try {
       mkdirSync(join(dossier, 'src/data'), { recursive: true });
-      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
       cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
       writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
       writeFileSync(join(dossier, 'src/data/marins.json'), JSON.stringify([
         { id: 'm1', skills: [{ skillId: 'alpha' }, { skillId: 'beta' }] },
         { id: 'm2', competences: ['alpha', 'beta'] },
       ]));
-      const fixture = scannerDonnees(dossier, []);
+      const fixture = scannerDonnees(dossier, [], undefined, undefined, []);
       const mesure = COLLECTIONS_D_INVENTAIRE.find((c) => c.nom === 'CASES_DE_REFERENCE')!.mesure({ scan: fixture, defs: [], declares: [] });
       const parSite = new Map(mesure.map((l) => [l.site, l]));
       expect([...parSite.keys()].sort()).toEqual(['marins.json | competences', 'marins.json | skills']);
@@ -516,9 +516,9 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ['careerLevels.json', 'skills', 'id,spec', 'skills.json'],
     ['careerLevels.json', 'skills', 'choix,id', 'skills.json'],
     ['criticals.json', 'id', 'id', 'etats.json'],
-    ['arene-projet.json', 'members', 'entityId', 'arene-projet.json'],
     ['maladies.json', 'symptoms', 'symptomId', 'symptoms.json'],
     ['activities.json', 'table', 'id', 'tables.json'],
+    [PAQUET_DE_TEST, 'members', 'entityId+…', PAQUET_DE_TEST],
   ])('%s › %s {%s} est une occurrence de référence dont la cible résout vers %s', (dataset, champ, sig, cible) => {
     const f = occurrence(dataset, champ, sig);
     expect(f, `aucune occurrence de référence mesurée sous \`${dataset} › ${champ} {${sig}}\` — le champ porteur est MESURÉ, pas déclaré.`).toBeTruthy();
@@ -543,11 +543,6 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     expect(slotsDuParse(scan, DEFS)).toEqual(expect.arrayContaining([
       expect.objectContaining({ dataset: 'activities.json', path: '[].outcomes[].ops[].table.id', type: 'table' }),
       expect.objectContaining({ dataset: 'spells.json', path: '[].effects.etapes[].effet.ops[].disease.id', type: 'maladie' }),
-      expect.objectContaining({
-        dataset: 'loup-et-saumure-projet.json',
-        path: 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.ops[].facteur.id',
-        type: 'manannFactor',
-      }),
     ]));
     expect(slotsDuParse({ brutParNom: new Map([[PAQUET_DE_TEST, paquetDeTest]]) }, DEFS)).toEqual(expect.arrayContaining([
       expect.objectContaining({
@@ -620,7 +615,7 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
   });
 
   it('la forme d’un état n’est revendiquée qu’au SITE des projets, à ses clés réelles', () => {
-    const projet = DATASETS_DES_PROJETS.find((d) => d === 'diligence-projet.json')!;
+    const projet = DATASETS_DES_PROJETS.find((d) => d === PAQUET_DE_TEST)!;
     expect(classement({ kind: 'heros' }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind', statut: 'cible' });
     expect(classement({ kind: 'enum', valeurs: [] }, 'forme', projet)).toMatchObject({ concept: 'forme-d-etat', signature: 'kind,valeurs', statut: 'cible' });
     expect(classement({ couleur: 'x', taille: 1 }, 'forme', 'creatures.json')).toBeNull();
@@ -679,10 +674,10 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
       }
       for (const [k, e] of Object.entries(o)) marche(e, dataset, k);
     };
-    // Les JSON de `src/data` et les projets livrés : le paquet de test du commun n'est pas au corpus du scan (#4936).
+    // Les JSON de `src/data` et le contenu du commun (#4936).
     const jsons = [
       ...listerArbre(join(ROOT, 'src/data'), { filtre: (rel) => rel.endsWith('.json') }).map((rel) => join(ROOT, 'src/data', rel)),
-      ...listerProjetsLivres().map((rel) => join(dossierDesProjetsLivres(), rel)),
+      ...PAQUETS.map((rel) => join(ROOT, rel)),
     ];
     for (const f of jsons) {
       let doc: unknown;
@@ -728,7 +723,7 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
  */
 describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () => {
   const brutParNom = new Map<string, unknown>([
-    ...listerDocuments(ROOT).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))] as const),
+    ...listerDocuments(ROOT, PAQUETS).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))] as const),
     [PAQUET_DE_TEST, paquetDeTest],
   ]);
   const poses = posesDesObjets(DEFS, brutParNom);
@@ -743,7 +738,7 @@ describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () 
   const conceptsDesPoses = (ids: ReadonlySet<IdConceptPose> | undefined) => new Set([...(ids ?? [])].map((p) => CONCEPT_DE_LA_POSE[p]));
   const STRUCTURELS = CONCEPTS.filter((c) => c.exigeCandidatureStructurelle).map((c) => c.id);
 
-  it.each(['loup-et-saumure-projet.json', PAQUET_DE_TEST])('%s : le Test étendu réel doit sa cible à la pose de son schéma de scène (#1657)', (dataset) => {
+  it.each([PAQUET_DE_TEST])('%s : le Test étendu réel doit sa cible à la pose de son schéma de scène (#1657)', (dataset) => {
     const { o, champ } = objets.find((x) => x.dataset === dataset && x.o.type === 'extendedTest')!;
     const def = DEFS.find((d) => d.file === dataset)!;
     const projet = structuredClone(brutParNom.get(dataset));
@@ -834,10 +829,6 @@ describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () 
     ];
     const classes = objets.map((x) => ({ ...x, concept: classerValeur(signature(Object.keys(x.o)), Object.keys(x.o), { dataset: x.dataset, champ: x.champ, poses: poses.get(x.o) })?.concept }));
     expect(
-      anciennementNommes.filter((c) => !classes.some((x) => x.concept === c)),
-      'un concept nommé ne classe plus aucun objet : sa pose ne le reconnaît pas.',
-    ).toEqual([]);
-    expect(
       classes.filter((x) => x.concept && anciennementNommes.includes(x.concept) && !conceptsDesPoses(poses.get(x.o)).has(x.concept)).map((x) => `${x.concept} | ${x.site}`),
       'un noyau revendique hors de sa pose ce que le dataset bornait : c’est un débordement.',
     ).toEqual([]);
@@ -863,27 +854,6 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     expect(classement({ book: 'ldb', page: 12 })).toMatchObject({ concept: 'source' });
     expect(classement({ book: 'ldb', ch: '12', parts: [] })).toMatchObject({ concept: 'adresse' });
     expect(classement({ id: 'x' })).toBeNull();
-  });
-
-  // #2001
-  it('les porteurs bruts de texte du corpus scanné sont des proses sans concept concurrent', () => {
-    const porteurs: { site: string; objet: Record<string, unknown> }[] = [];
-    const marche = (v: unknown, site: string): void => {
-      if (Array.isArray(v)) { v.forEach((e, i) => marche(e, `${site}[${i}]`)); return; }
-      if (!v || typeof v !== 'object') return;
-      const o = v as Record<string, unknown>;
-      if (Object.prototype.hasOwnProperty.call(o, 'texte')) porteurs.push({ site, objet: o });
-      for (const [k, e] of Object.entries(o)) marche(e, `${site}.${k}`);
-    };
-    for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')), d.chemin);
-    expect(porteurs.length, 'aucun porteur brut de texte : la sonde ne mesurerait rien.').toBeGreaterThan(0);
-    for (const { site, objet } of porteurs) {
-      expect(typeof objet.texte, site).toBe('string');
-      expect(Object.keys(objet).filter((k) => !['texte', 'source', 'adapteDe'].includes(k)), site).toEqual([]);
-      expect(classerValeur(signature(Object.keys(objet)), Object.keys(objet)), site).toMatchObject({
-        concept: 'prose-nommee', strate: 'Document', statut: 'cible',
-      });
-    }
   });
 
   it('A — aucun concept d’enveloppe n’est keyé par CHAMP : un concept champ-keyé est AVEUGLE à la forme', () => {
@@ -945,10 +915,11 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     "const url = (p) => pathToFileURL(join(R, p)).href;",
     "const SCAN = url('scripts/docs/lib/structures-scan.mjs');",
     "const lexique = await import(url('scripts/docs/lib/structures-lexique.mjs'));",
-    'const avec = (await import(SCAN)).scanDuCorpus(R).scan;',
+    "const P = (await import(url('scripts/guards/lib/paquetsDuCommun.mjs'))).paquetsDuCommun(R);",
+    'const avec = (await import(SCAN)).scanDuCorpus(R, P).scan;',
     "const retires = lexique.CONCEPTS.filter((c) => c.strate === 'Document');",
     'for (const c of retires) lexique.CONCEPTS.splice(lexique.CONCEPTS.indexOf(c), 1);',
-    "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R).scan;",
+    "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R, P).scan;",
     "const site = (x) => x.dataset + ' › ' + x.champ;",
     "const kf = (f) => f.concept + ' | ' + site(f) + ' | ' + f.signature + ' | ' + f.occurrences;",
     "const ko = (o) => site(o) + ' | ' + o.signature + ' | ' + o.motif + ' | ' + o.occurrences;",
@@ -1166,7 +1137,7 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
       if (Object.prototype.hasOwnProperty.call(v, 'op')) objetsAOp += 1;
       Object.values(v).forEach(marche);
     };
-    for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
+    for (const d of listerDocuments(ROOT, PAQUETS)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
     expect(objetsAOp, 'la marche brute ne voit aucun `op` : l’égalité ci-dessous ne mesurerait rien.').toBeGreaterThan(0);
     expect(
       scan.totalConditionsAvecOp + scan.totalOps + scan.autresPorteursDOp.reduce((n, o) => n + (o.op === undefined ? 0 : o.occurrences), 0),
@@ -1218,44 +1189,6 @@ describe('marcheur du scan : le champ porteur d’un objet (`parcourir`)', () =>
 });
 
 describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', () => {
-  it('une façade et un déclencheur supplémentaires font monter le site de l’inventaire, nommé avec sa cible', { timeout: 60_000 }, () => {
-    const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
-    try {
-      for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
-      const relatif = listerProjetsLivres(copie).find((p) =>
-        JSON.parse(readFileSync(join(copie, 'src/scenes', p), 'utf8')).id === 'la-diligence',
-      )!;
-      const chemin = join(copie, 'src/scenes', relatif);
-      const paquet = JSON.parse(readFileSync(chemin, 'utf8'));
-      const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
-      const cheminArene = join(copie, 'src/scenes/arene/arene-projet.json');
-      const arene = JSON.parse(readFileSync(cheminArene, 'utf8'));
-      type Facade = { appearance?: unknown };
-      const chapelle = (f: Facade) => f.appearance === 'chapelle';
-      const batiment = arene.scenes.flatMap((s: { architecture?: { facades?: Facade[] }[] }) => s.architecture ?? []).find((a: { facades?: Facade[] }) => a.facades?.some(chapelle));
-      batiment.facades.push({ ...batiment.facades.find(chapelle), id: 'facade-croissance-2337' });
-      writeFileSync(cheminArene, JSON.stringify(arene), 'utf8');
-      scene.triggers.push({
-        id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true,
-        flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'croissance-2337' } }] },
-      });
-      writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
-      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
-      const site = (f: { dataset: string; champ: string; signature: string }) =>
-        f.dataset === 'arene-projet.json' && f.champ === 'appearance' && f.signature === 'id-nu';
-      expect(apres.formes.find(site)!.occurrences).toBe(scan.formes.find(site)!.occurrences + 1);
-      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'CASES_DE_REFERENCE' && l.site === 'arene-projet.json | appearance')!;
-      const avant = ligne(INVENTAIRE);
-      const hausse = ligne(inventaireDe({ scan: apres, defs: DEFS, declares: DECLARES }));
-      expect(hausse.occurrences, 'la hausse d’un site connu se lit à l’inventaire, sur la même ligne.').toBe(avant.occurrences! + 1);
-      expect(hausse.cible, 'le seul remède d’une hausse est la migration vers la CIBLE du site.').toContain('Migrer ce site vers une forme CIBLE du lexique (`id`');
-      const cleDOp = (o: { op: string; signature: string; dataset: string; occurrences: number }) => `${o.op} | ${o.signature} | ${o.dataset} | ${o.occurrences}`;
-      expect(apres.ops.map(cleDOp)).toEqual(scan.ops.map(cleDOp));
-    } finally {
-      rmSync(copie, { recursive: true, force: true });
-    }
-  });
-
   it('trois dérives injectées dans une COPIE de l’arbre sont VUES : forme neuve, orpheline neuve, op neuve', { timeout: 60_000 }, () => {
     const copie = mkdtempSync(join(tmpdir(), 'structures-contrat-'));
     try {
@@ -1274,7 +1207,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       const defs: SchemaDef[] = [...DEFS, { file: 'sonde.json', root: 'src/data', famille: 'entite', schema: sonde.schema }];
       const chemin = join(copie, 'src/data/sonde.json');
       writeFileSync(chemin, '[]', 'utf8');
-      const temoin = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS);
+      const temoin = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS, PAQUETS);
       const cleF = (f: { concept: string; dataset: string; champ: string; signature: string; statut: string; occurrences: number }) =>
         `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.occurrences}`;
       const cleO = (o: { dataset: string; champ: string; signature: string; motif: string }) =>
@@ -1301,7 +1234,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       axes[0].casses = [{ machinId: 'ceci-n-existe-pas' }]; // FK morte : clé …Id qui ne résout vers rien
       writeFileSync(chemin, JSON.stringify(axes), 'utf8');
 
-      const apres = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS);
+      const apres = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS, PAQUETS);
       const formesNeuves = apres.formes.filter((f) => !temoin.formes.some((g) => cleF(g) === cleF(f))).map(cleF);
       const orphelinesNeuves = apres.orphelines.filter((o) => !temoin.orphelines.some((q) => cleO(q) === cleO(o))).map(cleO);
       const opsNeuves = apres.ops.filter((o) => !temoin.ops.some((q) => cleOpSonde(q) === cleOpSonde(o))).map(cleOpSonde);
@@ -1337,6 +1270,29 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       rmSync(copie, { recursive: true, force: true });
     }
   });
+
+  it('un membre de rencontre de plus fait monter le site de l’inventaire du paquet de test, nommé avec sa cible', { timeout: 60_000 }, () => {
+    const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
+    try {
+      for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
+      const chemin = join(copie, PAQUETS.find((rel) => rel.endsWith('/paquet-de-test.json'))!);
+      const paquet = JSON.parse(readFileSync(chemin, 'utf8'));
+      const [scene] = paquet.scenes;
+      const adversaire = scene.entities.find((e: { id: string }) => e.id === scene.encounters[0].members[0].entityId);
+      scene.entities.push({ ...adversaire, id: 'adversaire-de-croissance', pos: { x: adversaire.pos.x, y: adversaire.pos.y + 1 } });
+      scene.encounters[0].members.push({ ...scene.encounters[0].members[0], entityId: 'adversaire-de-croissance' });
+      writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
+      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS, PAQUETS);
+      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'CASES_DE_REFERENCE' && l.site === 'paquet-de-test.json | members')!;
+      const hausse = ligne(inventaireDe({ scan: apres, defs: DEFS, declares: DECLARES }));
+      expect(hausse.occurrences, 'la hausse d’un site connu se lit à l’inventaire, sur la même ligne.').toBe(ligne(INVENTAIRE).occurrences! + 1);
+      expect(hausse.cible, 'le seul remède d’une hausse est la migration vers la CIBLE du site.').toContain('Migrer ce site vers une forme CIBLE du lexique (`id`');
+      const cleDOp = (o: { op: string; signature: string; dataset: string; occurrences: number }) => `${o.op} | ${o.signature} | ${o.dataset} | ${o.occurrences}`;
+      expect(apres.ops.map(cleDOp)).toEqual(scan.ops.map(cleDOp));
+    } finally {
+      rmSync(copie, { recursive: true, force: true });
+    }
+  });
 });
 
 /**
@@ -1359,7 +1315,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
         }), 'utf8');
         return { file, root: 'src/data' as const, famille: 'record' as const, schema: sonde.schema };
       });
-      const apres = scannerDonnees(copie, [...DEFS, ...fixtures], CHOIX, CHOIX_OPS);
+      const apres = scannerDonnees(copie, [...DEFS, ...fixtures], CHOIX, CHOIX_OPS, PAQUETS);
       const collision = apres.index.collisions.find((c) => c.id === 'cle-de-charge');
       expect(collision?.datasets, 'la clé d’`entries` doit être indexée dans chaque record enveloppé.').toEqual([
         'sonde-record-a.json',
@@ -1400,7 +1356,6 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
   const dossier = mkdtempSync(join(tmpdir(), 'structures-collection-'));
   afterAll(() => rmSync(dossier, { recursive: true, force: true }));
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
-  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
   writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', type: 'alpha', label: 'Renvoi un', maison: 'sonde' }, { id: 'renvoi-deux', type: 'alpha', label: 'Renvoi deux', maison: 'sonde' }]));
   writeFileSync(
@@ -1416,7 +1371,7 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
       u: { fooId: 'renvoi-absent' },
     }),
   );
-  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE, undefined, undefined, []);
   const brut = fixture.brutParNom.get('x.json') as Record<string, object>;
   it('la carte marquée est une collection relevée et n’est pas invisible ; sa jumelle NON marquée l’est', () => {
     expect(fixture.collections.filter((c) => c.dataset === 'x.json').map((c) => c.cle)).toEqual(['x.json#t', 'x.json#r', 'x.json#u']);
@@ -1509,7 +1464,6 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
   const dossier = mkdtempSync(join(tmpdir(), 'structures-partielle-'));
   afterAll(() => rmSync(dossier, { recursive: true, force: true }));
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
-  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
   writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', type: 'alpha', label: 'Renvoi un', maison: 'sonde' }]));
   writeFileSync(join(dossier, 'src/data/a.json'), JSON.stringify([{ id: 'a1', type: 'a', label: 'A1', maison: 'sonde' }]));
@@ -1517,7 +1471,7 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
     join(dossier, 'src/data/b.json'),
     JSON.stringify({ pnjs: [{ id: 'p', profil: { liens: [{ cibleId: 'renvoi-un' }] } }], leurre: { liens: [{ cibleId: 'renvoi-un' }] } }),
   );
-  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE, undefined, undefined, []);
   const formesDesLiens = () =>
     fixture.formes.filter((f) => f.champ === 'liens').map((f) => `${f.concept} | ${f.dataset} | ${f.signature} | ${f.occurrences}`);
 
@@ -1560,7 +1514,6 @@ describe('signature projetée : une réf `{ id }` imbriquée qui résout reste u
   const dossier = mkdtempSync(join(tmpdir(), 'structures-signature-'));
   afterAll(() => rmSync(dossier, { recursive: true, force: true }));
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
-  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
   writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'espece-un', maison: 'sonde' }, { id: 'tenue-un', maison: 'sonde' }]));
   const deuxScalaires = { species: 'espece-un', tenue: 'tenue-un' };
@@ -1574,7 +1527,7 @@ describe('signature projetée : une réf `{ id }` imbriquée qui résout reste u
       c: [{ species: { id: 'espece-un' }, tenue: { id: 'tenue-un' } }],
     }),
   );
-  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE, undefined, undefined, []);
   const sitesDe = (champ: string) =>
     fixture.formes.filter((f) => f.dataset === 'x.json' && f.champ === champ).map((f) => `${f.signature} | ${f.occurrences}`);
 

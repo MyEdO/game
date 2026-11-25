@@ -161,7 +161,6 @@ export const ECRIT_LU = {
       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
       'operationsFs.test.mjs écrit sous deux mkdtempSync de os.tmpdir() (racine refusée par l’interception, dehors permis), vérifie la racine vide, puis rmSync en finally ; ' +
       'arbreProcessus.test.mjs et son suspendeur (scripts/test/suspendeurDeMesure.mjs) écrivent pilote, script PowerShell et témoin d’armement dans mkdtempSync de os.tmpdir(), puis rmSync en t.after ; ' +
-      'comptes-plage.test.mjs forge son dépôt sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; son enfant tsx (jugerLesComptes) pose chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
@@ -257,10 +256,10 @@ export const ECRIT_LU = {
   },
   'comptes:plage': {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'docs/dossiers/', 'package.json', 'tsconfig.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'la porte des comptes (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
-      '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `docs/dossiers/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
+      '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
       'et pose chacune une fois sous un `mkdtempSync` d’os.tmpdir(), effacé à la sortie du processus, ' +
       '`node_modules` lié (`lierDependances`) et ses cibles de code produites par SON `genererCode` dans un processus fils (cwd = l’image), ' +
       'puis, son `scripts/` retiré, la mesure deux fois : avec une COPIE de `scripts/`, `package.json` et `tsconfig.json` de l’arbre (le détecteur de la tête), ' +
@@ -402,7 +401,7 @@ export const ECRIT_LU = {
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT les fiches de docs/dossiers/ et les projets livrés sous src/scenes/ ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT les fiches et les paquets livrés des projets sous projets/ ' +
       'quand `scripts/docs/build-dossiers-de-chapitre.test.mjs` rend leur état des lieux. ' +
       '`scripts/docs/lib/enregistreur-lectures.test.mjs` charge `src/lib/coupeAuMot.mjs` depuis une fixture ' +
       'pour vérifier la mesure d’un module préchauffé ; ' +
@@ -436,7 +435,7 @@ export const ECRIT_LU = {
   },
   'test:recette': {
     ecrit: [],
-    lit: ['scripts/recette/'],
+    lit: ['scripts/recette/', 'scripts/qc/lib/pngDecode.mjs', 'scripts/qc/lib/pngEncode.mjs', 'package.json'],
     raison: RETRAIT_WORKTREE_FERME + 'le profil de navigateur et les captures vivent hors de l’arbre (le banc capture sous os.tmpdir() et l’efface) ; LIT le dériveur de port qu’il éprouve',
   },
   typecheck: {
@@ -475,7 +474,7 @@ export const ECRIT_LU = {
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
         '`godot` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
         'qu’après l’écriture',
-      'src/scenes/':
+      'projets/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
         'écrit un projet manuscrit qu’à un `PUT depot/<id>`, que seul l’enregistrement de l’éditeur envoie (`_deposer`, ' +
@@ -493,7 +492,7 @@ export const ECRIT_LU = {
       'par `chargerAssets`, leurs catalogues et Source/ (prose adressée), tsconfig.json et package.json ; ' +
       'le contrat d’asset et ses écrivains sont chargés par l’entrée Vite, hors de la fermeture statique des imports. ' +
       'Chaque recette reçoit `--pont=<hotes/godot/vivant.mjs>`, qui bâtit le bundle en mémoire (`write: false`). ' +
-      'Écrit sous hotes/godot/projet/modeles/ les seuls GLB, et peut écrire sous src/scenes/ par le pont vivant ' +
+      'Écrit sous hotes/godot/projet/modeles/ les seuls GLB, et peut écrire sous projets/jeu-de-role/ par le pont vivant ' +
       '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) n’écrit que sous `--export` et `--bureau`, ' +
       '`deposerLesPlanches` (hotes/godot/planches.mjs, #3935) que sous `--export`, `deposerLesAvis` (hotes/godot/avis.mjs, #4063) ' +
       'que sous `--export` et `--bureau`, dans leur `--sortie` ; le stockage du pont vivant ' +
@@ -528,7 +527,8 @@ export const ECRIT_LU = {
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       '`godot --headless --import`, puis chaque recette sous `recettes/` déclarant `const RECETTE_RENDUE := true` jouée ' +
-      'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
+      'en rendu réel sous `--rendering-method gl_compatibility`, le rendu du Web (`--rendu`, #5037 : `forward_plus` se joue au canari, et ' +
+      '`npm run godot:rendus -- --rendu forward_plus` rejoue les deux), menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
       'sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, ' +
       'tirée de la copie importée de `godot:sonde`, hors de l’arbre (`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935), et sur un écran (`xvfb-run` sans `DISPLAY`) ; ' +
       'LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
@@ -569,8 +569,9 @@ export const ECRIT_LU = {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `preparerLePilotage`) : ' +
         '`recupererModeles` n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par ' +
-        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
-        '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml',
+        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde`, ' +
+        '`godot:rendus` et les gates du jeu de rôle dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une ' +
+        'SÉRIE, et a son job dans ci.yml, sur son runner (#5037)',
     },
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
@@ -583,28 +584,54 @@ export const ECRIT_LU = {
       'copies sont effacées. Les journaux vont sous `dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit. ' +
       'LIT ce que lit `godot:sonde` et écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
   },
+  'jeu-de-role:construire': {
+    ecrit: [],
+    ...lectureDesZones(['jeu-de-role'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
+    raison:
+      'Le pont de Godot bâti sur l’entrée du jeu de rôle (`--pont-seul --entree projets/jeu-de-role/godot.ts`, #4936) : ' +
+      'ce que fait `pont:godot`, bundle en mémoire, rien d’écrit ; LIT les zones que la sienne ouvre (`hotes/godot/` ' +
+      'compris), scripts/, Source/, tsconfig.json et package.json',
+  },
+  'jeu-de-role:recette': {
+    ecrit: [],
+    ecritFerme: {
+      'hotes/godot/projet/modeles/':
+        'le même dépôt que `godot:recette` (`deposerLesAssets` par `preparerLePilotage`) : un `<id>.glb` absent ou de ' +
+        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` précède `godot:recette` dans la lane ' +
+        '`types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE ; en CI, chacun a son job, sur son runner (#5037)',
+    },
+    ...lectureDesZones(['jeu-de-role'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
+    raison:
+      'Le lot du jeu de rôle (`projets/jeu-de-role/recettes/lot.mjs`, #4936) joue ses jeux par `jouerLeLot` ' +
+      '(`hotes/godot/lot-de-recettes.mjs`, #3945) en natif sur son entrée (`projets/jeu-de-role/godot.ts`) ; mêmes ' +
+      'écritures que `godot:recette`, ses journaux sous `dist/jeu-de-role-recettes/`, que git ignore et qu’aucune gate ne lit',
+  },
   'roguelite:construire': {
     ecrit: [],
     ecritFerme: {
       'dist/roguelite/':
         'la page du roguelite et ses feuilles sous la sortie ignorée par git ; sa seule gate lectrice, ' +
-        '`roguelite:recette`, le suit dans le job `godot-recette` de ci.yml, une SÉRIE',
+        '`roguelite:recette`, le suit dans le job `roguelite-recette` de ci.yml, une SÉRIE',
     },
     ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
     raison:
-      'esbuild (projets/roguelite/construire.mjs, #4929) empaquette la façade du noyau du roguelite et son interface, ' +
+      'vite (projets/roguelite/construire.mjs, #4929, #5010) empaquette la façade du noyau du roguelite et son interface, ' +
       'qui tirent les zones du dépôt, et recopie la page et ses feuilles sous dist/roguelite/ (`ecritFerme`)',
   },
   'roguelite:recette': {
     ecrit: [],
-    ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
+    ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json', 'scripts/recette/', 'scripts/qc/lib/pngDecode.mjs']),
     raison:
       'Le lot (projets/roguelite/recette/lot.mjs, #4929) tire la partie fixe (`partie-fixe.ts`, par tsx, qui lit les ' +
-      'zones) puis joue chaque recette dans son processus : Chrome par Playwright, un contexte neuf par page, son ' +
-      'profil sous os.tmpdir(), la construction de dist/roguelite/ servie par interception (`route`). La partie fixe et ' +
+      'zones) puis joue chaque recette dans son processus : le navigateur épinglé (scripts/recette/navigateur.mjs, #5010), ' +
+      'installé hors de l’arbre sous PLAYWRIGHT_BROWSERS_PATH, un contexte neuf par page, son profil sous os.tmpdir(), la ' +
+      'construction de dist/roguelite/ servie par interception (`route`), les polices rejouées de ' +
+      'projets/roguelite/recette/polices.har.zip et le rendu de texte de projets/roguelite/recette/polices.conf ' +
+      '(FONTCONFIG_FILE, polices DejaVu du système) ; la recette d’images compare chaque écran à ' +
+      'projets/roguelite/recette/reference/ par `ecart` (scripts/recette/ecart.mjs). La partie fixe et ' +
       'les captures vont sous dist/roguelite-recette/, que git ignore et qu’aucune gate ne lit. Il LIT aussi ' +
       'dist/roguelite/, absent d’un checkout propre : c’est l’`ecritFerme` de `roguelite:construire`, qui le précède ' +
-      'dans le job `godot-recette` de ci.yml, une SÉRIE',
+      'dans le job `roguelite-recette` de ci.yml, une SÉRIE',
   },
   'personnage-3d:tests': {
     ecrit: [],
@@ -641,7 +668,9 @@ export const ECRIT_LU = {
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
       'dans la lane) ; tous comparent ' +
       'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/. Son `lit` déclare `src/` et `hotes/godot/` entiers, ' +
-      'par ses `zones` (#4903 L4) : elle saute avec `godot:sonde`, qui remplit ce cache, et seulement hors de ces dossiers',
+      'par ses `zones` (#4903 L4) : elle saute avec `godot:sonde`, qui remplit ce cache, et seulement hors de ces dossiers ; ' +
+      'ce que chaque test reconstruit se juge sur les entrées d’une reconstruction (`racinesDesReconstructions`, ' +
+      'scripts/personnage-3d/changements.mjs, #5037)',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +
       'à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',

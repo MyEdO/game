@@ -18,7 +18,7 @@ import { env, exit, stderr, stdout } from 'node:process'
 import { GitIndisponible, TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, refusDeGit, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { COUCHES, couvre, dossierDe } from '../guards/lib/couches.mjs'
 import { SKILLS, racinesDeMods, racinesDeModsParmi } from '../mods/racines.mjs'
-import { COMMANDE_RENDU_LOGICIEL, COMMANDE_VERSION_PYTHON_3D } from './gatesDeCi.mjs'
+import { COMMANDE_NAVIGATEUR_EPINGLE, COMMANDE_RENDU_LOGICIEL, COMMANDE_VERSION_PYTHON_3D } from './gatesDeCi.mjs'
 
 /**
  * Chemins NON EXÉCUTABLES, chacun avec sa raison. Un push dont TOUS les fichiers changés tombent
@@ -67,6 +67,10 @@ export const CI_SEULEMENT_DE_GATE = {
   [COMMANDE_RENDU_LOGICIEL]: {
     raison: 'écran virtuel et rendu logiciel du seul `godot:rendus`, sautable avec lui',
     gates: ['godot:rendus'],
+  },
+  [COMMANDE_NAVIGATEUR_EPINGLE]: {
+    raison: 'navigateur épinglé du seul `roguelite:recette`, sautable avec lui',
+    gates: ['roguelite:recette'],
   },
 }
 

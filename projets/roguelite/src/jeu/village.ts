@@ -6,7 +6,7 @@ import { nomDeCarriere, prixDuSejourALAuberge, type QualiteDeRepos } from '../no
 import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, SEMAINE_DE_REPOS, phraseDuPalier } from './valeurs';
 import { Etat, Heros, renouvelerLesCandidats } from './etat';
 import { blesse } from './soins';
-import { engagementSansSolde, sejourDit } from './expedition';
+import { sejourDit } from './expedition';
 import { heros, noter, refusDuPrix } from './outils';
 
 /** Les bâtiments qui servent dès le premier jour ; les autres sont en ruine tant qu'on ne les a pas relevés. */
@@ -27,17 +27,12 @@ export function ameliorer(e: Etat, id: IdBatiment): string | null {
   return null;
 }
 
+/** Engage le candidat `i`, sans frais. */
 export function recruter(e: Etat, i: number): string | null {
-  const cand = e.candidats[i];
-  if (!cand) return 'Candidat parti.';
-  const gratuit = engagementSansSolde(e);
-  const refus = gratuit ? null : refusDuPrix(e.or, cand.prix);
-  if (refus) return refus;
-  if (!gratuit) e.or -= cand.prix;
-  const { prix: _prix, ...h } = cand;
+  const [h] = e.candidats.splice(i, 1);
+  if (!h) return 'Candidat parti.';
   e.roster.push(h);
-  e.candidats.splice(i, 1);
-  noter(e, `${h.c.label}, ${nomDeCarriere(h.c).toLowerCase()}, rejoint la compagnie${gratuit ? ' sans solde, faute de mieux' : ''}.`);
+  noter(e, `${h.c.label}, ${nomDeCarriere(h.c).toLowerCase()}, rejoint la compagnie.`);
   return null;
 }
 

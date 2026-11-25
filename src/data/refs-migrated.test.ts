@@ -6,9 +6,9 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { createHash } from 'node:crypto';
 import { z } from 'zod';
-import { ecartsDeStock, cleDeSite, sitesEnEntrees, type EntreeDeSite, type Site } from '../../scripts/guards/lib/stock.mjs';
+import { horsDuParse, noeudsDOp } from './noeudsDOp.testkit';
+import { collecteSpecs, duCorpus, ecartIntegrite, partiellesDeCreatures, siteIntegrite } from './specsNommees.testkit';
 import { COMPETENCES_NUES, TALENTS_TEXTES, TALENTS_SENTINELLES, DOTATIONS_TEXTES } from '../../scripts/guards/lib/integriteStock.mjs';
 import {
   creatures, careerLevels, species, gods, etats, maladies, weaponGroups,
@@ -19,7 +19,7 @@ import {
 } from './index';
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 import type { SchemaDef } from './schemas/types';
-import { catalogueSpecs, entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
+import { entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
 import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
 import { pretires } from './pregens';
@@ -30,10 +30,8 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { fauteDEspece } from './schemas/grammaire/valeurs';
 import { opsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
-import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
+import { extractedBooks, frenchSourceDirs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 import { norm } from '../lib/normalize';
-import { estObjet } from '../lib/objet.mjs';
-import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
 const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object' && x != null;
 
@@ -41,6 +39,11 @@ const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 /** Le corpus des DEUX racines (`scanDuCorpus`), lu UNE fois pour tout le fichier. */
 const CORPUS_SCANNE = scanDuCorpus(REPO_ROOT);
+/** Les documents du corpus, nom → chemin : les stocks nommés n'y jugent que les entrées de ces fichiers (`duCorpus`). */
+const fichiersDeSpecs = new Map(listerDocuments(REPO_ROOT).map((d) => [d.nom, d.chemin]));
+const LISTES_DE_SPECS = [
+  ['creatures', creatures], ['careerLevels', careerLevels], ['species', species], ...partiellesDeCreatures(CORPUS_SCANNE.scan.entreesPartielles),
+] as const;
 
 describe('refs migrées — refs structurées par id, zéro libellé résiduel', () => {
   it('weaponGroups portent un id stable + kind valide', () => {
@@ -347,30 +350,7 @@ describe('refs migrées — refs structurées par id, zéro libellé résiduel',
 // d'une spéc se juge au parse (`refusDeSpec`, par la fabrique de chaque porteur) ; restent ici les stocks
 // que la fabrique admet sans les solder. Le périmètre et la marche viennent du module PARTAGÉ avec la
 // migration (`scripts/data/lib/skillSpecWalk.mjs`) : une garde qui remarcherait la donnée à sa façon
-// mesurerait autre chose que le geste qu'elle garde.
-type SiteDIntegrite = Site & { famille: string };
-/** Un texte d'instance de Talent (`nonSpecialisable`, #1621), nommé par sa clé stable `fichier|porteur|refId|spec`. */
-type TexteDInstance = { key: string; site: SiteDIntegrite };
-
-const empreinteIntegrite = (texte: string): string => createHash('sha256').update(texte).digest('hex');
-const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = ''): SiteDIntegrite => ({ famille, fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
-const fichiersDeSpecs = new Map(listerDocuments(REPO_ROOT).map((d) => [d.nom, d.chemin]));
-function ecartIntegrite(observe: readonly SiteDIntegrite[], stock: readonly EntreeDeSite[], observation = false): void {
-  const normalise = sitesEnEntrees(observe);
-  const ecart = ecartsDeStock({ observe: normalise, stock, cle: cleDeSite, remede: {
-    neuve: (cle, entree) => entree.famille === 'dotation-texte'
-      ? `${cle} — migrer la dotation en référence typée (#622).`
-      : entree.famille === 'talent-sentinelle'
-        ? `${cle} — poser la spécialisation ou le choix imprimé ; régime de choix à #1621.`
-        : `${cle} — corriger la donnée vers sa forme cible : scripts/guards/lib/integriteStock.mjs ne fait que décroître.`,
-  } });
-  expect(ecart.taille, 'Stock dupliqué : retirer les identités répétées').toBe(stock.length);
-  expect(ecart.neuves, `Entrées neuves :\n${ecart.neuves.join('\n')}`).toEqual([]);
-  if (observation) {
-    if (ecart.perimees.length) console.info(`Observations disparues : retirer de scripts/guards/lib/integriteStock.mjs :\n${ecart.perimees.join('\n')}`);
-  } else expect(ecart.perimees, `Entrées soldées : retirer de scripts/guards/lib/integriteStock.mjs :\n${ecart.perimees.join('\n')}`).toEqual([]);
-}
-
+// mesurerait autre chose que le geste qu'elle garde. La marche vit dans `specsNommees.testkit.ts`.
 describe('intégrité des collections nominatives', () => {
   for (const [nom, famille, observation] of [
     ['competences-nues', 'competence-nue', true],
@@ -398,63 +378,10 @@ describe('intégrité des collections nominatives', () => {
   }
 });
 
-type EntreeDeSpecs = { id?: string; label?: string; source?: { book?: string } };
-
-/** Les ENTRÉES PARTIELLES de `creatures.json` embarquées ailleurs (`entreesPartiellesEmbarquees`,
- *  `scripts/docs/lib/structures-scan.mts`), groupées par document hôte : porteur et provenance = ceux
- *  de leur fiche (plus proche ancêtre portant `id`, resp. `source`). */
-const partiellesDeCreatures = (): [string, EntreeDeSpecs[]][] => {
-  const parHote = new Map<string, EntreeDeSpecs[]>();
-  for (const [objet, fiche] of CORPUS_SCANNE.scan.entreesPartielles) {
-    if (fiche.document !== 'creatures.json') continue;
-    if (typeof fiche.id !== 'string') throw new Error(`${fiche.hote} : entrée partielle creatures sans id de propriétaire`);
-    const entree = { ...(objet as object), id: fiche.id, source: fiche.source as EntreeDeSpecs['source'] };
-    parHote.set(fiche.hote, [...(parHote.get(fiche.hote) ?? []), entree]);
-  }
-  return [...parHote];
-};
-
-/**
- * MARCHE PARTAGÉE des observations — Compétences (#1342 L2-a) et Talents (#1457 B1) : même périmètre
- * (`creatures`/`careerLevels`/`species`, et les entrées partielles de `creatures` embarquées ailleurs),
- * MÊME walker (`walkSkillRefs`, paramétré par son tableau porteur) et MÊME prédicat (`refusDeSpec`).
- */
-function collecteSpecs(
-  arrName: 'skills' | 'talents',
-): { textes: TexteDInstance[]; nues: { where: string; book: string; refId: string; site: SiteDIntegrite }[]; sentinelles: SiteDIntegrite[] } {
-  const textes: TexteDInstance[] = [];
-  const nues: { where: string; book: string; refId: string; site: SiteDIntegrite }[] = [];
-  const sentinelles: SiteDIntegrite[] = [];
-  const listes: [string, EntreeDeSpecs[]][] = [
-    ['creatures', creatures], ['careerLevels', careerLevels], ['species', species], ...partiellesDeCreatures(),
-  ] as [string, EntreeDeSpecs[]][];
-  for (const [file, list] of listes) {
-    for (const entry of list) {
-      const book = entry.source?.book ?? '(sans source)';
-      if (typeof entry.id !== 'string') throw new Error(`${file} : propriétaire sans id`);
-      const owner = entry.id;
-      const fichier = fichiersDeSpecs.get(file.endsWith('.json') ? file : `${file}.json`);
-      if (!fichier) throw new Error(`${file} : document absent du corpus`);
-      const site = (famille: string, node: { id: string; spec?: string }) => siteIntegrite(famille, fichier, owner, arrName, node.id, node.spec ?? '');
-      walkSkillRefs(entry, (node) => {
-        const type = arrName === 'skills' ? 'skill' : 'talent';
-        const catalogue = catalogueSpecs(type, node.id).length > 0;
-        // Un nœud à `choix` PORTE un régime de spécialisation (borne ou libre) : ce n'est pas une réf NUE.
-        if (node.choix != null) return;
-        if (node.spec == null) { if (catalogue) nues.push({ where: `${file}(${owner})`, book, refId: node.id, site: site('competence-nue', node) }); return; }
-        if (isSentinel(node.spec)) { sentinelles.push(site('talent-sentinelle', node)); return; }
-        if (refusDeSpec(type, node.id, node.spec) !== 'nonSpecialisable') return;
-        textes.push({ key: `${file}|${owner}|${node.id}|${node.spec}`, site: site('talent-texte', node) });
-      }, arrName);
-    }
-  }
-  return { textes, nues, sentinelles };
-}
-
 describe('Compétences de statbloc, de Carrière et d’espèce — observations nommées (#1342 L2-a)', () => {
   const ROOT = fileURLToPath(new URL('../../', import.meta.url));
   const { extraits: EXTRAITS, dirManquant } = extractedBooks(books, ROOT);
-  const { nues } = collecteSpecs('skills');
+  const { nues } = collecteSpecs('skills', LISTES_DE_SPECS, fichiersDeSpecs);
 
   it('books.json#dir : chaque livre déclaré a son extraction sur disque', () => {
     expect(EXTRAITS.size).toBeGreaterThan(10);
@@ -484,7 +411,7 @@ describe('Compétences de statbloc, de Carrière et d’espèce — observations
   // LDB 08 l.3325 ; LDB 08 l.3749 ; LDB 08 l.2448
   it('les compétences nues restent des observations nommées', () => {
     expect(nues.length).toBeGreaterThan(0);
-    ecartIntegrite(nues.map((n) => n.site), COMPETENCES_NUES, true);
+    ecartIntegrite(nues.map((n) => n.site), duCorpus(COMPETENCES_NUES, fichiersDeSpecs), true);
   });
 
   // CONTRAT POSITIF NOMINATIF — `humains-tileens` porte EXACTEMENT les 12 Compétences de AA 05 l.122 :
@@ -510,19 +437,17 @@ describe('Compétences de statbloc, de Carrière et d’espèce — observations
 // `talentRefSchema` admet le texte d'instance d'un Talent sans catalogue. Le parse refuse la
 // sentinelle de spécialisation (#1456) et l'inventaire en mesure le stock vide.
 describe('Talents de statbloc, de Carrière et d’espèce — observations nommées (#1457 B1)', () => {
-  const { textes, sentinelles } = collecteSpecs('talents');
+  const { textes, sentinelles } = collecteSpecs('talents', LISTES_DE_SPECS, fichiersDeSpecs);
 
   // LDB 10 l.315
   it('les textes de Talent sans catalogue restent des observations nommées', () => {
     expect(textes.length).toBeGreaterThan(0);
-    const RACINES_DE_CORPUS = new Set(['creatures', 'careerLevels', 'species']);
-    expect(textes.some((h) => !RACINES_DE_CORPUS.has(h.key.split('|')[0])), 'aucune entrée partielle de texte de Talent').toBe(true);
-    ecartIntegrite(textes.map((h) => h.site), TALENTS_TEXTES, true);
+    ecartIntegrite(textes.map((h) => h.site), duCorpus(TALENTS_TEXTES, fichiersDeSpecs), true);
   });
 
   // #1621
   it('les sentinelles de Talent sont nommées et soldées', () => {
-    ecartIntegrite(sentinelles, TALENTS_SENTINELLES);
+    ecartIntegrite(sentinelles, duCorpus(TALENTS_SENTINELLES, fichiersDeSpecs));
   });
 });
 
@@ -566,36 +491,13 @@ describe('appearance.species — espèce d’apparence (fauteDEspece), jamais un
 describe('GameOp — les références de la donnée sont jugées au parse (#847, #1473)', () => {
   const { defs: DEFS, scan: CORPUS } = CORPUS_SCANNE;
 
-  interface NoeudDOp {
-    readonly path: string;
-    readonly op: string;
-    readonly noeud: object;
-  }
-
-  /** Les opérations observées dans le document brut, par identité, sans ouvrir son schéma. */
-  function* noeudsDOp(valeur: unknown, path: string): Generator<NoeudDOp> {
-    if (Array.isArray(valeur)) {
-      for (const [rang, enfant] of valeur.entries()) yield* noeudsDOp(enfant, `${path}[${rang}]`);
-      return;
-    }
-    if (!estObjet(valeur)) return;
-    if (typeof valeur.op === 'string' && !('kind' in valeur)) yield { path, op: valeur.op, noeud: valeur };
-    for (const [cle, enfant] of Object.entries(valeur)) yield* noeudsDOp(enfant, `${path}.${cle}`);
-  }
-
-  const horsDuParse = (noeuds: readonly NoeudDOp[], atteintes: ReadonlySet<object>) =>
-    noeuds.filter((n) => !atteintes.has(n.noeud)).map(({ path, op }) => `${path} : ${op}`);
-
-  /** Le corpus du scan, enrichi du paquet de test du commun (`defs-scenes/paquet-de-test.ts`), que le scan ne lit pas. */
-  const ENRICHI = { brutParNom: new Map<string, unknown>([...CORPUS.brutParNom, ['paquet-de-test.json', paquetDeTest]]) };
-
   it('chaque nœud GameOp des deux racines atteint son schéma de porteur', () => {
-    const fichiersAvecOps = [...ENRICHI.brutParNom].map(([file, doc]) => [file, [...noeudsDOp(doc, file)]] as const)
+    const fichiersAvecOps = [...CORPUS.brutParNom].map(([file, doc]) => [file, [...noeudsDOp(doc, file)]] as const)
       .filter(([, ops]) => ops.length > 0);
     const racines = new Set(DEFS.filter((d) => fichiersAvecOps.some(([file]) => file === d.file)).map((d) => d.root));
     expect([...racines].sort()).toEqual(['src/data', 'src/scenes']);
     const noeuds = fichiersAvecOps.flatMap(([, ops]) => ops);
-    const atteintes = opsDuParse(ENRICHI, DEFS);
+    const atteintes = opsDuParse(CORPUS, DEFS);
     const lignes = horsDuParse(noeuds, atteintes);
     expect(lignes, `nœuds d’op hors du parse :\n${lignes.join('\n')}`).toEqual([]);
     expect(atteintes.size).toBe(noeuds.length);

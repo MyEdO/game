@@ -88,12 +88,12 @@ const CHEMINS = [
   ['src/data/trappings.json', ['[]', 'onHitEffects', '[]', 'flow', 'then', 'test']],
   ['src/data/trappings.json', ['[]', 'passive', '[]']],
   ['src/data/traumas.json', ['[]', 'ops', '[]']],
-  ['src/scenes/arene/arene-projet.json', ['scenes', '[]', 'dialogues', '[]', 'nodes', '[]', 'choices', '[]', 'flow', 'test']],
-  ['src/scenes/arene/arene-projet.json', ['scenes', '[]', 'entities', '[]', 'interact', 'flow', 'test']],
-  ['src/scenes/arene/arene-projet.json', ['scenes', '[]', 'triggers', '[]', 'flow', 'steps', '[]', 'effect']],
-  ['src/scenes/arene/arene-projet.json', ['scenes', '[]', 'triggers', '[]', 'flow', 'test']],
-  ['src/scenes/loup-et-saumure/loup-et-saumure-projet.json', ['scenes', '[]', 'dialogues', '[]', 'nodes', '[]', 'choices', '[]', 'flow', 'steps', '[]', 'effect']],
-  ['src/scenes/loup-et-saumure/loup-et-saumure-projet.json', ['scenes', '[]', 'dialogues', '[]', 'nodes', '[]', 'choices', '[]', 'flow', 'test']],
+  ['projets/jeu-de-role/campagnes/arene/arene-projet.json', ['scenes', '[]', 'dialogues', '[]', 'nodes', '[]', 'choices', '[]', 'flow', 'test']],
+  ['projets/jeu-de-role/campagnes/arene/arene-projet.json', ['scenes', '[]', 'entities', '[]', 'interact', 'flow', 'test']],
+  ['projets/jeu-de-role/campagnes/arene/arene-projet.json', ['scenes', '[]', 'triggers', '[]', 'flow', 'steps', '[]', 'effect']],
+  ['projets/jeu-de-role/campagnes/arene/arene-projet.json', ['scenes', '[]', 'triggers', '[]', 'flow', 'test']],
+  ['projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json', ['scenes', '[]', 'dialogues', '[]', 'nodes', '[]', 'choices', '[]', 'flow', 'steps', '[]', 'effect']],
+  ['projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json', ['scenes', '[]', 'dialogues', '[]', 'nodes', '[]', 'choices', '[]', 'flow', 'test']],
 ].map(([fichier, chemin]) => ({ fichier, chemin }));
 
 /** SPÉCIALISATIONS EN LIBELLÉ corrigées dans le geste — `libellé → id de pool`, liste FERMÉE et

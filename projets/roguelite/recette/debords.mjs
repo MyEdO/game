@@ -9,8 +9,9 @@ const TAILLE = process.argv[4] ?? 'moyenne';
 /** Le rang du lanceur dans la compagnie de la partie fixe : le pyromancien. */
 const LANCEUR = 2;
 
-// À la taille `grande` (vue de 720 de haut), l'étal d'une forge agrandie défile : ses offres ne tiennent pas toutes.
-const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .tete-service, .corps-service, .porteur, ${TAILLE === 'grande' ? '' : '.etal, '}.corps-service .colonne, .pied-service, .bande > .fond`;
+// À la taille `grande` (vue de 720 de haut), l'étal d'une forge agrandie (plus de quatre offres) défile : ses offres ne
+// tiennent pas toutes.
+const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .tete-service, .corps-service, .porteur, ${TAILLE === 'grande' ? '.etal:not(.forge > :not(.ample))' : '.etal'}, .corps-service .colonne, .pied-service, .bande > .fond`;
 
 (async () => {
   const b = await lancer();
@@ -31,7 +32,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
       if (dehors.length) { defauts++; console.log(`${taille.join('x')} ${ecran} : hors de l'écran → ${dehors.join(', ')}`); }
     };
     await relever('hameau');
-    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) {
+    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage']) {
       await geste(p, 'batiment', id); await relever(id);
       if (id === 'forge') for (const k of ['secondaire', 'tir', 'armure']) { await p.click(`.emplacement[data-k="${k}"]`); await relever(`forge ${k}`); }
       await geste(p, 'fermer-panneau');

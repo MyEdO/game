@@ -14,7 +14,7 @@
  *     Difficulté (`LDB 12 l.143-151`, `EDO App.2 l.156-165`). Un `arg` de Venin qui n'en nomme aucun reste.
  *
  * ENTRÉES : écrites — `src/data/traits.json`, `src/data/creatures.json`, `src/data/mutations.json`,
- * `src/scenes/diligence/diligence-projet.json` ; aucun autre fichier n'est lu.
+ * `projets/jeu-de-role/campagnes/diligence/diligence-projet.json` ; aucun autre fichier n'est lu.
  * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : une entrée de `traits.json` n'est déclarée que si les clés
  * de son geste sont EXACTEMENT à leur forme d'avant (`avant`) ; absente, déjà déclarée ou révisée après la
  * migration, elle est laissée telle quelle.
@@ -38,7 +38,7 @@ const FICHIERS = {
   'src/data/traits.json': serializeDataset,
   'src/data/creatures.json': serializeDataset,
   'src/data/mutations.json': serializeDataset,
-  'src/scenes/diligence/diligence-projet.json': serializeProjet,
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json': serializeProjet,
 };
 
 /** Libellé imprimé → id, par Trait. */
@@ -105,7 +105,7 @@ function convertir(noeud) {
   }
   for (const v of Object.values(noeud)) convertir(v);
 }
-for (const rel of ['src/data/creatures.json', 'src/data/mutations.json', 'src/scenes/diligence/diligence-projet.json']) convertir(docs.get(rel).doc);
+for (const rel of ['src/data/creatures.json', 'src/data/mutations.json', 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json']) convertir(docs.get(rel).doc);
 
 if (fautes.length) {
   console.error(`ARRÊT — rien n'est écrit :\n${fautes.join('\n')}`);

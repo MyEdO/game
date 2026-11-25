@@ -1,85 +1,69 @@
 /**
- * « MONTER À BORD » PAR LE PONT (#4576, #4471) : dans La Diligence, l'action authorée sur la diligence posée
- * (`diligence-cour-diligence`, une coque terrestre que l'exploration ne nomme pas) s'offre au groupe à sa portée parmi
- * les boutons de `exploration.gestes`, et s'y joue jusqu'au départ (`edo-ch1-depart`). Une coque terrestre en
- * embuscade ne se sert pas parmi `corps.coques` en exploration (`coquesEnVue`), non cachée elle s'y sert.
+ * L'ACTION AUTHORÉE D'UNE COQUE TERRESTRE PAR LE PONT (#4576, #4471) : sur une coque posée, que l'exploration ne nomme
+ * pas, l'action de l'auteur s'offre au groupe à sa portée parmi les boutons de `exploration.gestes`, et s'y joue.
  */
 import { afterEach, describe, expect, it } from 'vitest';
-import { drainer, enFocus, modelesCommites, servirLesModeles, suiteDe, table, vueDe } from './pont.testkit';
-import type { Bouton, Element } from '../../../src/hote/elements';
+import { drainer, enFocus, table } from './pont.testkit';
+import type { Bouton } from '../../../src/hote/elements';
 import type { Pont, VueDuPont } from './pont';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import { buildScene } from '../../../src/noyau/mapSpec';
-import { contenuDuJeuDeRole } from '../../../src/scenes/campaign';
-import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
-import { paquetDuJeu } from '../../../src/noyau/index';
+import { flowFromEffects } from '../../../src/noyau/monde/flow';
+import { tousLesHerosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
+import type { TestScenario } from '../../../src/scenes/test-scenarios/_shared';
+import { contenu } from '../../../src/scenes/fixtures/contenuDuCommun';
 
-const COMMITES = await modelesCommites();
+/** Une diligence posée, cap au nord, qui porte l'action « Monter à bord » ; le groupe entre hors de sa portée. */
+const MONTER_A_BORD: TestScenario = {
+  id: 'monter-a-bord',
+  order: 0,
+  category: 'rendu',
+  icon: 'scenario/galerie',
+  title: 'Monter à bord',
+  tests: 'L’action authorée d’une coque terrestre s’offre au groupe à sa portée.',
+  partyNote: 'Approchez la diligence.',
+  construire: (idNeuf) => ({
+    party: tousLesHerosDeScenario(idNeuf),
+    scene: buildScene({
+      id: 'monter-a-bord',
+      label: 'Cour',
+      size: [12, 10],
+      terrain: 'herbe',
+      ambientLight: 'jour',
+      heroStart: [1, 1],
+      entities: [{
+        id: 'diligence', kind: 'personnage', vehicule: { id: 'diligence' }, pos: { x: 6, y: 6 }, facing: 'N', label: 'La diligence',
+        usable: { actions: [{ id: 'monter-a-bord', label: 'Monter à bord', unique: true, flow: flowFromEffects([{ type: 'setFlag', flag: 'a-bord' }]) }] },
+      }],
+    }),
+  }),
+};
+
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });
-const MONTER = { type: 'jouerAction', args: ['diligence-cour-diligence', 'monter-a-bord'] };
+const MONTER = { type: 'jouerAction', args: ['diligence', 'monter-a-bord'] };
 const offreDeMonter = (vue: VueDuPont): Bouton | undefined =>
   vue.zones['exploration.gestes'].find((b) => JSON.stringify(b.jeu) === JSON.stringify({ suite: [MONTER] }));
 
-describe('« Monter à bord » s’offre et se joue par le pont dans La Diligence (#4576)', () => {
-  it('le groupe à portée de la diligence voit le bouton, le presse, et part (`edo-ch1-depart`)', () => {
+describe('l’action authorée d’une coque terrestre s’offre et se joue par le pont (#4576)', () => {
+  it('le groupe à portée de la coque voit le bouton, le presse, et l’action se joue', () => {
     const stockage = stockageEnMemoire();
-    const { pont, appel } = table(stockage, null, contenuDuJeuDeRole);
+    const { pont, appel } = table(stockage, null, { ...contenu, scenarios: [MONTER_A_BORD] });
     ouvert = pont;
-    let s = suiteDe(appel('ouvrir', { graine: 7 }));
-    const recruter = s.vue.zones['groupe.pretires'][0].elements.find((x): x is Bouton => x.type === 'bouton')!;
-    appel('jouer', recruter.jeu);
-    s = drainer(appel, appel('lancer', { lancer: 'la-diligence' })).suite;
+    let s = drainer(appel, appel('demarrer', { scenario: 'monter-a-bord', graine: 7 })).suite;
     while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (enFocus(s.vue) as Bouton).jeu)).suite;
-    expect(s.vue.projection.scene?.id).toBe('la-diligence');
     expect(offreDeMonter(s.vue), 'hors de portée, rien à offrir').toBeUndefined();
 
-    s = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 24, y: 28 }] })).suite;
-    expect(s.vue.projection.exploration!.groupe).toEqual([24, 28]);
+    s = drainer(appel, appel('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 6, y: 5 }] })).suite;
+    expect(s.vue.projection.exploration!.groupe).toEqual([6, 5]);
     const offre = offreDeMonter(s.vue);
     expect(offre, s.vue.zones['exploration.gestes'].map((b) => b.libelle).join(' | ')).toBeDefined();
     expect(offre!.refus).toBeNull();
 
-    drainer(appel, appel('jouer', offre!.jeu));
+    s = drainer(appel, appel('jouer', offre!.jeu)).suite;
+    expect(offreDeMonter(s.vue), 'l’action unique jouée ne s’offre plus').toBeUndefined();
     expect(appel('sauvegarder', { sauvegarder: 1 }).ok).toBe(true);
-    expect([...stockage.contenu.values()].some((v) => v.includes('"edo-ch1-depart":true')), 'la sauvegarde porte le flag du départ').toBe(true);
-  });
-});
-
-const servi = paquetDuJeu(campagneDeTest);
-
-/** La partie d'essai d'un pré où une diligence attend dans la rencontre `emb`, cachée selon `hidden`. */
-function essaiDuPre(hidden: boolean) {
-  const { pont, appel } = table();
-  ouvert = pont;
-  const scene = buildScene({
-    id: 'pre-a-la-diligence', label: 'Pré', size: [24, 8], terrain: 'herbe', ambientLight: 'jour', heroStart: [1, 4], entities: [],
-    encounters: [{ id: 'emb', hidden, enemies: [{ vehicule: { id: 'diligence' }, pos: { x: 18, y: 3 }, facing: 'O', label: 'Diligence' }, { creature: { id: 'humain' }, pos: { x: 20, y: 4 }, label: 'Brigand' }] }],
-  } as never);
-  const editer = (gestes: unknown) => {
-    const r = appel('editer', gestes);
-    expect(r.ok, JSON.stringify(r).slice(0, 400)).toBe(true);
-    return r as unknown as { vue: { zones: Record<string, Element[]> } };
-  };
-  const e = editer({ ouvrir: servi.id, projet: JSON.stringify({ ...servi, worldMap: undefined, scenes: [scene] }) });
-  const tester = Object.values(e.vue.zones).flat().find((x): x is Bouton => x.type === 'bouton' && x.id === 'tester')!;
-  editer(tester.jeu);
-  let s = drainer(appel, appel('demarrer', { essai: true, graine: 7 })).suite;
-  servirLesModeles(appel, COMMITES);
-  while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (enFocus(s.vue) as Bouton).jeu)).suite;
-  return vueDe(appel('vue'));
-}
-
-describe('une coque terrestre en embuscade ne se sert pas au monde en exploration (`corpsDe`, `coquesEnVue`)', () => {
-  it('cachée : absente de `corps.coques`', () => {
-    const vue = essaiDuPre(true);
-    expect(vue.projection.exploration).not.toBeNull();
-    expect(Object.keys(vue.corps.coques)).toEqual([]);
-  });
-  it('non cachée : servie parmi `corps.coques`', () => {
-    const vue = essaiDuPre(false);
-    expect(vue.projection.exploration).not.toBeNull();
-    expect(Object.values(vue.corps.coques).map((c) => c.corps.element)).toEqual(['vehicule--diligence']);
+    expect([...stockage.contenu.values()].some((v) => v.includes('"a-bord":true')), 'son effet est posé').toBe(true);
   });
 });

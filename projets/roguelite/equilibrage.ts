@@ -1,65 +1,129 @@
-// Équilibrage : joue des expéditions entières sous node, sans interface, avec une stratégie simple (recruter,
-// soigner, loger, bâtir, équiper, suivre le plan conseillé de carrière, partir vers la destination la plus lointaine
-// avec des potions, prier et boire entre les salles, rentrer sous 2 héros valides).
-// L'état passe par JSON entre deux expéditions, comme une sauvegarde relue. Finit par la part de chaque carrière parmi
-// les candidats proposés et parmi les recrues engagées, par palier du relais.
-// Usage : npx tsx projets/roguelite/equilibrage.ts <graine> <expéditions> [parties] — plusieurs parties : graines consécutives, sans journal.
+// Équilibrage : joue des expéditions entières sous node, sans interface, avec une stratégie simple : recruter jusqu'à
+// quatre héros en état de partir, soigner, loger, bâtir dans `ORDRE_DES_BATIMENTS` sans entamer `RESERVE`, équiper
+// (`equiper`), suivre le plan conseillé de carrière quand ses PX le paient en entier, apprendre sa voie
+// (`apprendreLaVoie`), partir avec les plus avancés vers la destination la plus lointaine dont chacun a le niveau
+// attendu (`attendu`), avec des potions, prier et boire entre les salles, rentrer sous 2 héros valides ou après
+// `rentrerApres` salles. L'état passe par JSON entre deux expéditions, comme une sauvegarde relue. Finit par l'économie
+// des sorties (or gagné, or dépensé par poste), le jour où chaque bâtiment atteint chaque palier, le niveau de carrière
+// du groupe au premier départ vers chaque destination, puis la part de chaque carrière parmi les candidats proposés et
+// parmi les recrues engagées, par palier du relais.
+// Usage : npx tsx projets/roguelite/equilibrage.ts <graine> <expéditions> [parties] [rentrerApres]
+//         plusieurs parties : graines consécutives, sans journal, moyennes par sortie.
+import { tableTotale } from '../../src/lib/tableTotale';
 import * as J from './src/jeu';
 import { poserLesReglesDuRoguelite } from './src/noyau';
-/** Joue `parties` parties de `expeditions` expéditions, de la graine `graine0`, et dit la part de chaque carrière. */
-function equilibrer(graine0: number, expeditions: number, parties: number): void {
+import { apprendreLaVoie, attendu, equiper } from './balayage';
+
+/** L'ordre où la stratégie bâtit, et l'or qu'elle garde pour soigner et loger après avoir bâti. */
+const ORDRE_DES_BATIMENTS = ['salle', 'temple', 'peage', 'forge', 'relais', 'cartographe'] as const;
+const RESERVE = 60;
+/** Les postes de dépense d'une sortie, dans l'ordre où la stratégie les paie. */
+const POSTES = ['recrues', 'soins', 'chambres', 'batiments', 'equipement'] as const;
+type Poste = (typeof POSTES)[number];
+/** Une sortie mesurée : son rang, son jour de retour, sa destination, l'or gagné au retour, l'or dépensé avant le
+ *  départ par poste, la bourse au retour, les jours qu'elle a pris, les Blessures que l'hospice a rendues avant le
+ *  départ et son palier. */
+interface Sortie { rang: number; jour: number; destination: string; gagne: number; depense: Record<Poste, number>; or: number; jours: number; blessures: number; hospice: number }
+
+/** Joue `parties` parties de `expeditions` expéditions, de la graine `graine0`, en rentrant après `rentrerApres`
+ *  salles franchies au plus ; dit l'économie, les paliers du hameau et la part de chaque carrière. */
+function equilibrer(graine0: number, expeditions: number, parties: number, rentrerApres: number): void {
   const log = parties > 1 ? () => {} : console.log;
   const proposes = new Map<string, number>(), engages = new Map<string, number>(), vus = new Set<string>();
   const compter = (m: Map<string, number>, cle: string) => m.set(cle, (m.get(cle) ?? 0) + 1);
+  const sorties: Sortie[] = [];
+  /** Le jour de chaque palier atteint, par bâtiment et par partie ; le niveau moyen du groupe au premier départ vers
+   *  chaque destination, par partie. */
+  const paliers = new Map<string, number[]>(), niveaux = new Map<string, number[]>();
   /** En état de partir : valide, à 60 % de ses Blessures au moins ; les autres prennent une chambre. */
   const partant = (h: J.Heros) => J.valide(h) && h.c.wounds.current >= h.c.wounds.max * 0.6;
   const voir = (e: J.Etat) => { for (const c of e.candidats) if (!vus.has(c.c.id)) { vus.add(c.c.id); compter(proposes, `${e.batiments.relais}|${c.carriere}`); } };
   for (let partie = 0; partie < parties; partie++) {
-  let e = J.nouvellePartie(graine0 + partie);
-  for (let exp = 0; exp < expeditions; exp++) {
-    e = JSON.parse(JSON.stringify(e)) as J.Etat; // la sauvegarde relue entre deux expéditions
-    voir(e);
-    while (e.candidats.length && e.roster.length < 4) { const c = e.candidats[0]; if (J.recruter(e, 0)) break; compter(engages, `${e.batiments.relais}|${c.carriere}`); }
-    for (const h of e.roster) if (J.blesse(h)) J.soignerAuTemple(e, h.c.id);
-    for (const h of e.roster) if (!partant(h)) J.prendreUneChambre(e, h.c.id);
-    for (const b of ['temple', 'salle', 'forge', 'relais', 'cartographe', 'peage', 'memorial'] as const) J.ameliorer(e, b);
-    voir(e);
-    for (const h of e.roster) {
-      const armure = J.armuresEnVente(e).filter((a) => a.id === 'pa-1' || a.id === 'pa-2').pop();
-      if (armure && J.panoplieDe(h)?.id !== armure.id) J.acheterUneArmure(e, h.c.id, armure.id);
-      if (!J.provisionsPortees(h).length && J.provisionsEnVente(e).some((a) => a.id === 'potion-de-guerison')) J.acheterUneProvision(e, h.c.id, 'potion-de-guerison');
-      let niveauPasse = true;
-      while (niveauPasse) niveauPasse = J.suivreLePlan(e, h.c.id).achats.some((a) => a.genre === 'niveau');
-    }
-    const dest = J.destinationsOuvertes(e).pop()!;
-    const err = J.partir(e, dest.id, e.roster.filter((h) => J.disponible(h) && partant(h)).slice(0, 4).map((h) => h.c.id));
-    if (err) { log('départ refusé', err, e.roster.length, e.or, J.attendreUneSemaine(e) ?? 'la compagnie attend une semaine'); continue; }
-    while (e.expedition) {
-      const r = J.avancer(e) ?? (() => {
-        const g = J.herosDuGroupe(e);
-        const x = e.expedition!;
-        if (x.salles[x.index].type === 'camp') {
-          // Au camp : le premier soigneur soigne chaque blessé que le noyau lui confie, puis le groupe se repose.
-          const soigneur = g.find((h) => !J.refusDuSoigneur(e, h));
-          if (soigneur) for (const h of g) if (!J.refusDuPatient(e, soigneur, h)) J.agirDansLaSalle(e, 'soigner', soigneur.c.id, h.c.id);
-          return J.agirDansLaSalle(e, 'reposer') as J.RecitDeSalle;
+    let e = J.nouvellePartie(graine0 + partie);
+    const atteints = new Set<string>(), partiesVers = new Set<string>();
+    for (let exp = 0; exp < expeditions; exp++) {
+      e = JSON.parse(JSON.stringify(e)) as J.Etat; // la sauvegarde relue entre deux expéditions
+      const depense = tableTotale(POSTES, () => 0);
+      /** Paie `geste` au poste `poste` : ce qu'il ôte à la bourse. */
+      const payer = (poste: Poste, geste: () => void) => { const avant = e.or; geste(); depense[poste] += avant - e.or; };
+      voir(e);
+      payer('recrues', () => { while (e.candidats.length && e.roster.filter(partant).length < J.TAILLE_DU_GROUPE && e.roster.length < 2 * J.TAILLE_DU_GROUPE) { const c = e.candidats[0]; if (J.recruter(e, 0)) break; compter(engages, `${e.batiments.relais}|${c.carriere}`); } });
+      let blessures = 0;
+      payer('soins', () => { for (const h of e.roster) { const avant = h.c.wounds.current; if (J.blesse(h) && !J.soignerAuTemple(e, h.c.id)) blessures += h.c.wounds.current - avant; } });
+      payer('chambres', () => { for (const h of e.roster) if (!partant(h)) J.prendreUneChambre(e, h.c.id); });
+      payer('batiments', () => { for (const b of ORDRE_DES_BATIMENTS) if ((J.palierSuivant(e, b)?.cout ?? Infinity) + RESERVE <= e.or) J.ameliorer(e, b); });
+      for (const [b, palier] of Object.entries(e.batiments)) {
+        const cle = `${b}|${palier}`;
+        if (palier && !atteints.has(cle)) { atteints.add(cle); paliers.set(cle, [...(paliers.get(cle) ?? []), e.jour]); }
+      }
+      voir(e);
+      payer('equipement', () => {
+        for (const h of e.roster) {
+          equiper(e, h);
+          if (!J.provisionsPortees(h).length && J.provisionsEnVente(e).some((a) => a.id === 'potion-de-guerison')) J.acheterUneProvision(e, h.c.id, 'potion-de-guerison');
         }
-        const [action, repli] = x.salles[x.index].type === 'rencontre' ? ['parlementer', 'parlementer'] as const : ['desarmer', 'fouiller'] as const;
-        const tenteur = g.find((h) => !J.refusDAction(h, action));
-        const r = tenteur ? J.agirDansLaSalle(e, action, tenteur.c.id) : J.agirDansLaSalle(e, repli, g.find(J.valide)?.c.id);
-        return typeof r === 'string' ? J.agirDansLaSalle(e, 'passer') as J.RecitDeSalle : r;
-      })();
-      const g = J.herosDuGroupe(e);
-      const blesse = g.filter((h) => !h.c.dead).sort((a, b) => a.c.wounds.current - b.c.wounds.current)[0];
-      for (const h of g) if (blesse && blesse.c.wounds.current < blesse.c.wounds.max && J.peutPrier(e, h)) J.prier(e, h.c.id, blesse.c.id);
-      for (const h of g) for (const p of J.provisionsPortees(h)) if (!p.refus && h.c.wounds.current < h.c.wounds.max / 2) J.utiliserUneProvision(e, h.c.id, p.uid);
-      const valides = g.filter(J.valide).length;
-      log(`  ${r.titre}${r.combat ? ` (${r.combat.issue}, ${r.combat.pas.length} pas)` : ''} | valides ${valides}/${g.length}`);
-      if (e.expedition && valides < 2 && !r.fin) { J.rentrer(e, false); log('  → retraite'); }
+      });
+      for (const h of e.roster) {
+        while ((h.c.xp ?? 0) >= J.planVersLeNiveau(h).total && J.suivreLePlan(e, h.c.id).achats.some((a) => a.genre === 'niveau'));
+        apprendreLaVoie(e, h);
+      }
+      const prets = e.roster.filter((h) => J.disponible(h) && partant(h));
+      const groupe = (prets.length ? prets : e.roster.filter((h) => J.disponible(h) && h.c.wounds.current * 2 >= h.c.wounds.max)).sort((a, b) => (b.c.careerLevel ?? 1) - (a.c.careerLevel ?? 1)).slice(0, J.TAILLE_DU_GROUPE);
+      const niveau = Math.min(...groupe.map((h) => h.c.careerLevel ?? 1));
+      const ouvertes = J.destinationsOuvertes(e);
+      const dest = ouvertes.filter((d) => attendu(d.palier).niveau <= niveau).pop() ?? ouvertes[0];
+      const err = J.partir(e, dest.id, groupe.map((h) => h.c.id));
+      if (err) { log('départ refusé', err, e.roster.length, e.or, J.attendreUneSemaine(e) ?? 'la compagnie attend une semaine'); continue; }
+      if (!partiesVers.has(dest.id)) {
+        partiesVers.add(dest.id);
+        niveaux.set(dest.id, [...(niveaux.get(dest.id) ?? []), groupe.reduce((n, h) => n + (h.c.careerLevel ?? 1), 0) / groupe.length]);
+      }
+      const orAuDepart = e.or, jourAuDepart = e.jour;
+      while (e.expedition) {
+        const r = J.avancer(e) ?? (() => {
+          const g = J.herosDuGroupe(e);
+          const x = e.expedition!;
+          if (x.salles[x.index].type === 'camp') {
+            // Au camp : le premier soigneur soigne chaque blessé que le noyau lui confie, puis le groupe se repose.
+            const soigneur = g.find((h) => !J.refusDuSoigneur(e, h));
+            if (soigneur) for (const h of g) if (!J.refusDuPatient(e, soigneur, h)) J.agirDansLaSalle(e, 'soigner', soigneur.c.id, h.c.id);
+            return J.agirDansLaSalle(e, 'reposer') as J.RecitDeSalle;
+          }
+          const [action, repli] = x.salles[x.index].type === 'rencontre' ? ['parlementer', 'parlementer'] as const : ['desarmer', 'fouiller'] as const;
+          const tenteur = g.find((h) => !J.refusDAction(h, action));
+          const r = tenteur ? J.agirDansLaSalle(e, action, tenteur.c.id) : J.agirDansLaSalle(e, repli, g.find(J.valide)?.c.id);
+          return typeof r === 'string' ? J.agirDansLaSalle(e, 'passer') as J.RecitDeSalle : r;
+        })();
+        const g = J.herosDuGroupe(e);
+        const blesse = g.filter((h) => !h.c.dead).sort((a, b) => a.c.wounds.current - b.c.wounds.current)[0];
+        for (const h of g) if (blesse && blesse.c.wounds.current < blesse.c.wounds.max && J.peutPrier(e, h)) J.prier(e, h.c.id, blesse.c.id);
+        for (const h of g) for (const p of J.provisionsPortees(h)) if (!p.refus && h.c.wounds.current < h.c.wounds.max / 2) J.utiliserUneProvision(e, h.c.id, p.uid);
+        const valides = g.filter(J.valide).length;
+        log(`  ${r.titre}${r.combat ? ` (${r.combat.issue}, ${r.combat.pas.length} pas)` : ''} | valides ${valides}/${g.length}`);
+        if (e.expedition && (valides < 2 || e.expedition.index >= rentrerApres) && !r.fin) { J.rentrer(e, false); log('  → retour'); }
+      }
+      sorties.push({ rang: exp, jour: e.jour, destination: dest.id, gagne: e.or - orAuDepart, depense, or: e.or, jours: e.jour - jourAuDepart, blessures, hospice: e.batiments.temple });
+      log(`J${e.jour} ${dest.nom}: +${e.or - orAuDepart} CO, dépensé ${JSON.stringify(depense)}, or ${e.or}, trophées ${e.trophees}, roster ${e.roster.length}, niveaux ${e.roster.map((h) => `${h.c.careerLevel ?? 1}:${h.c.xp ?? 0}`).join(" ")}, bât ${JSON.stringify(e.batiments)}`);
     }
-    log(`J${e.jour} ${dest.nom}: or ${e.or}, trophées ${e.trophees}, roster ${e.roster.length}, morts ${e.cimetiere.length}, niveaux ${e.roster.map((h) => h.c.careerLevel ?? 1).join("")}, sorts ${e.roster.map((h) => (h.c.spells ?? []).length).join("")}, bât ${JSON.stringify(e.batiments)}`);
   }
+  const moyenne = (l: readonly number[]) => (l.length ? l.reduce((a, b) => a + b, 0) / l.length : NaN);
+  console.log(`\n${parties} partie(s) de ${expeditions} sorties, retour après ${rentrerApres === Infinity ? 'le maître' : `${rentrerApres} salle(s)`}`);
+  console.log(`| Sorties | Jour moyen | Or gagné | Or par jour | ${POSTES.join(' | ')} | Blessures soignées | Bourse |\n|---|---|---|---|${POSTES.map(() => '---|').join('')}---|---|`);
+  const tranche = Math.max(1, Math.floor(expeditions / 6));
+  for (let debut = 0; debut < expeditions; debut += tranche) {
+    const s = sorties.filter((x) => x.rang >= debut && x.rang < debut + tranche);
+    if (!s.length) continue;
+    const m = (f: (x: Sortie) => number) => moyenne(s.map(f)).toFixed(0);
+    console.log(`| ${debut + 1}-${debut + tranche} | ${m((x) => x.jour)} | ${m((x) => x.gagne)} | ${(moyenne(s.map((x) => x.gagne)) / Math.max(1, moyenne(s.map((x) => x.jours)))).toFixed(1)} | ${POSTES.map((p) => m((x) => x.depense[p])).join(' | ')} | ${m((x) => x.blessures)} | ${m((x) => x.or)} |`);
   }
+  const hautes = sorties.filter((x) => x.hospice >= 2);
+  console.log(`Hospice au palier 2 ou plus : ${hautes.length} sorties, ${moyenne(hautes.map((x) => x.blessures)).toFixed(0)} Blessures soignées et ${moyenne(hautes.map((x) => x.gagne)).toFixed(0)} CO gagnés par sortie ; le soin gratuit du palier 3 en offre ${J.PRIX_DU_SOIN_PAR_BLESSURE[2]} CO la Blessure.`);
+  console.log('\n| Bâtiment | ' + [1, 2, 3].map((p) => `Palier ${p} (jour moyen, parties)`).join(' | ') + ' |\n|---|---|---|---|');
+  for (const b of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage']) {
+    console.log(`| ${b} | ${[1, 2, 3].map((p) => { const j = paliers.get(`${b}|${p}`) ?? []; return j.length ? `${moyenne(j).toFixed(0)} (${j.length})` : '—'; }).join(' | ')} |`);
+  }
+  console.log('\n| Destination | Niveau moyen du groupe au premier départ | Parties |\n|---|---|---|');
+  for (const d of J.DESTINATIONS) { const n = niveaux.get(d.id) ?? []; console.log(`| ${d.id} | ${n.length ? moyenne(n).toFixed(1) : '—'} | ${n.length} |`); }
   for (const palier of [0, 1, 2]) {
     const total = (m: Map<string, number>) => [...m].filter(([k]) => k.startsWith(`${palier}|`)).reduce((n, [, v]) => n + v, 0);
     const tp = total(proposes), te = total(engages);
@@ -73,6 +137,6 @@ function equilibrer(graine0: number, expeditions: number, parties: number): void
 
 if (import.meta.main) {
   poserLesReglesDuRoguelite();
-  const [graine0, expeditions, parties] = [42, 8, 1].map((d, i) => Number(process.argv[2 + i] ?? d));
-  equilibrer(graine0, expeditions, parties);
+  const [graine0, expeditions, parties, rentrerApres] = [42, 8, 1, Infinity].map((d, i) => Number(process.argv[2 + i] ?? d));
+  equilibrer(graine0, expeditions, parties, rentrerApres);
 }

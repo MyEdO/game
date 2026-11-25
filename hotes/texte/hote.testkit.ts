@@ -20,8 +20,9 @@ export function fermerLaTable(): void {
 /** Une réponse et ses lignes. */
 const avecLignes = (r: Reponse) => ({ ...r, lignes: r.texte.split('\n') });
 
-/** Une table : la partie `PARTIE` posée à `texte` (aucune sans lui), les trois outils, le fichier et ses verrous. */
-export function table(texte?: string) {
+/** Une table : la partie `PARTIE` posée à `texte` (aucune sans lui), les trois outils, le fichier et ses verrous ;
+ *  l'hôte joue le catalogue commun et les scénarios `scenarios` que remet un jeu (`creerHote`). */
+export function table(texte?: string, scenarios: Parameters<typeof creerHote>[1] = []) {
   fermerLaTable();
   const fichiers = new Map<string, string>(texte === undefined ? [] : [[PARTIE, texte]]);
   const tenues = new Set<string>();
@@ -32,7 +33,7 @@ export function table(texte?: string) {
     prendre: (nom) => (tenues.add(nom), null),
     rendre: (nom) => void tenues.delete(nom),
   };
-  const hote = creerHote(disque, []);
+  const hote = creerHote(disque, scenarios);
   derniere = hote;
   return {
     hote,

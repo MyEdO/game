@@ -12,13 +12,31 @@ import { sceneSchema } from './scene';
 import { lireBlocsAvances } from '../blocsAvances';
 import { mesureDuParse } from '../grammaire/ref';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
-import loupEtSaumureProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
-type Scene = (typeof areneProjet.scenes)[number];
+/** La première scène du paquet de test, à trois dialogues (dont un de marchand) et un marchand. */
+const HUB = {
+  ...structuredClone(paquetDeTest.scenes[0]),
+  entities: [
+    ...structuredClone(paquetDeTest.scenes[0].entities),
+    { id: 'marchand', kind: 'personnage', pos: { x: 0, y: 2 }, label: 'Marchand', creature: { id: 'humain' }, dialogueId: { id: 'dialogue-marchand' }, merchant: { archetype: { id: 'medecin' } } },
+  ],
+  dialogues: [
+    { id: 'dialogue-de-test', start: { id: 'accueil' }, nodes: [
+      { id: 'accueil', desc: 'Réplique.', choices: [{ id: 'vers-suite', label: 'Suite', next: { id: 'suite' } }] },
+      { id: 'suite', desc: 'Réplique.', choices: [] },
+      { id: 'fin', desc: 'Réplique.', choices: [] },
+    ] },
+    { id: 'dialogue-marchand', start: { id: 'accueil' }, nodes: [
+      { id: 'accueil', desc: 'Réplique.', choices: [{ id: 'commercer', label: 'Commercer', flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'openMerchant', entityId: { id: 'marchand' } } as Record<string, unknown> }] } }] },
+    ] },
+    { id: 'dialogue-autre', start: { id: 'ailleurs' }, nodes: [{ id: 'ailleurs', desc: 'Réplique.', choices: [] }] },
+  ],
+};
+type Scene = typeof HUB;
+type Choix = { next?: unknown; flow?: { etapes: Record<string, unknown>[] } };
 
-const HUB = areneProjet.scenes.find((s) => s.id === 'arene-hub')!;
-const RANG_ENTITE = HUB.entities.findIndex((e) => e.id === 'maitre');
+const RANG_ENTITE = HUB.entities.findIndex((e) => e.id === 'adversaire-de-test');
 
 const messages = (scene: unknown): string[] => {
   const r = sceneSchema.safeParse(scene);
@@ -33,62 +51,53 @@ const hub = (retouche: (copie: Scene) => void): Scene => {
   return copie;
 };
 
-/** Le chemin de l'effet du premier choix du premier nœud du dialogue du médecin, et le hub où cet effet vaut `effet`. */
-const RANG_DIALOGUE = HUB.dialogues.findIndex((d) => d.id === 'dlg-medecin');
+/** Le chemin de l'effet du premier choix du dialogue du marchand, et le hub où cet effet vaut `effet`. */
+const RANG_DIALOGUE = HUB.dialogues.findIndex((d) => d.id === 'dialogue-marchand');
 const EFFET = `dialogues.${RANG_DIALOGUE}.nodes.0.choices.0.flow.etapes.0.effet`;
-const avecEffet = (effet: unknown) => hub((c) => Object.assign(c.dialogues[RANG_DIALOGUE].nodes[0].choices[0].flow!.etapes![0], { effet }));
+const avecEffet = (effet: unknown) => hub((c) => Object.assign((c.dialogues[RANG_DIALOGUE].nodes[0].choices[0] as Choix).flow!.etapes[0], { effet }));
 
+/** `etrangere` : un nœud d'un AUTRE dialogue de la scène, ou un id qu'aucune collection de cette scène ne porte. */
 const PORTEURS = [
   {
-    porteur: 'scenes[].dialogues[].start', chemin: 'dialogues.0.start', connue: 'echelle', etrangere: 'rumeurs', catalogue: 'nœuds du dialogue', collection: 'nodes',
+    porteur: 'scenes[].dialogues[].start', chemin: 'dialogues.0.start', connue: 'suite', etrangere: 'ailleurs', catalogue: 'nœuds du dialogue', collection: 'nodes',
     avec: (v: unknown) => hub((c) => Object.assign(c.dialogues[0], { start: v })),
   },
   {
-    porteur: 'scenes[].dialogues[].nodes[].choices[].next', chemin: 'dialogues.0.nodes.0.choices.0.next', connue: 'contrats', etrangere: 'rumeurs', catalogue: 'nœuds du dialogue', collection: 'nodes',
+    porteur: 'scenes[].dialogues[].nodes[].choices[].next', chemin: 'dialogues.0.nodes.0.choices.0.next', connue: 'fin', etrangere: 'ailleurs', catalogue: 'nœuds du dialogue', collection: 'nodes',
     avec: (v: unknown) => hub((c) => Object.assign(c.dialogues[0].nodes[0].choices[0], { next: v })),
   },
   {
-    porteur: 'scenes[].entities[].dialogueId', chemin: `entities.${RANG_ENTITE}.dialogueId`, connue: 'dlg-garde', etrangere: 'dlg-prisonnier', catalogue: 'dialogues de la scène', collection: 'dialogues',
+    porteur: 'scenes[].entities[].dialogueId', chemin: `entities.${RANG_ENTITE}.dialogueId`, connue: 'dialogue-autre', etrangere: 'dialogue-d-une-autre-scene', catalogue: 'dialogues de la scène', collection: 'dialogues',
     avec: (v: unknown) => hub((c) => Object.assign(c.entities[RANG_ENTITE], { dialogueId: v })),
   },
   {
-    porteur: 'scenes[].dialogues[].nodes[].speakerId', chemin: 'dialogues.0.nodes.0.speakerId', connue: 'maitre', etrangere: 'prisonnier', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal'],
+    porteur: 'scenes[].dialogues[].nodes[].speakerId', chemin: 'dialogues.0.nodes.0.speakerId', connue: 'adversaire-de-test', etrangere: 'personnage-d-une-autre-scene', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['objet-de-test'],
     avec: (v: unknown) => hub((c) => Object.assign(c.dialogues[0].nodes[0], { speakerId: v })),
   },
   {
-    porteur: 'effet startDialogue.dialogue', chemin: `${EFFET}.dialogue`, connue: 'dlg-garde', etrangere: 'dlg-prisonnier', catalogue: 'dialogues de la scène', collection: 'dialogues',
+    porteur: 'effet startDialogue.dialogue', chemin: `${EFFET}.dialogue`, connue: 'dialogue-autre', etrangere: 'dialogue-d-une-autre-scene', catalogue: 'dialogues de la scène', collection: 'dialogues',
     avec: (v: unknown) => avecEffet({ type: 'startDialogue', dialogue: v }),
   },
   {
-    porteur: 'effet startDialogue.speakerId', chemin: `${EFFET}.speakerId`, connue: 'maitre', etrangere: 'prisonnier', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal'],
-    avec: (v: unknown) => avecEffet({ type: 'startDialogue', dialogue: { id: 'dlg-garde' }, speakerId: v }),
+    porteur: 'effet startDialogue.speakerId', chemin: `${EFFET}.speakerId`, connue: 'adversaire-de-test', etrangere: 'personnage-d-une-autre-scene', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['objet-de-test'],
+    avec: (v: unknown) => avecEffet({ type: 'startDialogue', dialogue: { id: 'dialogue-autre' }, speakerId: v }),
   },
   {
-    porteur: 'effet openMerchant.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'marchands de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal', 'maitre'],
+    porteur: 'effet openMerchant.entityId', chemin: `${EFFET}.entityId`, connue: 'marchand', etrangere: 'personnage-d-une-autre-scene', catalogue: 'marchands de la scène', collection: 'entities', horsDuFiltre: ['objet-de-test', 'adversaire-de-test'],
     avec: (v: unknown) => avecEffet({ type: 'openMerchant', entityId: v }),
   },
   {
-    porteur: 'effet medicalAid.entityId', chemin: `${EFFET}.entityId`, connue: 'medecin', etrangere: 'prisonnier', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['orn-echoppe-etal'],
+    porteur: 'effet medicalAid.entityId', chemin: `${EFFET}.entityId`, connue: 'marchand', etrangere: 'personnage-d-une-autre-scene', catalogue: 'personnages de la scène', collection: 'entities', horsDuFiltre: ['objet-de-test'],
     avec: (v: unknown) => avecEffet({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: v }),
   },
 ];
 
 describe('#2968 L15 — dialogues et nœuds désignés par `ref(portee)`', () => {
-  it('les scènes réelles parsent, et leurs références sont des slots `local:nodes` / `local:dialogues` au parse de mesure', () => {
-    const compte = (projet: { scenes: readonly unknown[] }, cible: string) =>
-      projet.scenes.flatMap((s) => {
-        expect(sceneSchema.safeParse(s).success).toBe(true);
-        return mesureDuParse(sceneSchema, s).reperes.filter((r) => r.type === cible);
-      }).length;
-    /** Les références de nœud écrites dans la donnée : le `start` de chaque dialogue et chaque `choices[].next`. */
-    const nodesEcrits = (projet: { scenes: readonly unknown[] }) =>
-      (projet.scenes as { dialogues?: { nodes: { choices?: { next?: unknown }[] }[] }[] }[])
-        .flatMap((s) => s.dialogues ?? [])
-        .reduce((n, d) => n + 1 + d.nodes.flatMap((x) => x.choices ?? []).filter((c) => c.next !== undefined).length, 0);
-    for (const projet of [areneProjet, loupEtSaumureProjet]) {
-      expect(compte(projet, 'local:nodes')).toBe(nodesEcrits(projet));
-      expect(compte(projet, 'local:dialogues')).toBeGreaterThan(0);
-    }
+  it('le hub parse, et ses références sont des slots `local:nodes` / `local:dialogues` au parse de mesure', () => {
+    expect(sceneSchema.safeParse(HUB).success).toBe(true);
+    const reperes = mesureDuParse(sceneSchema, HUB).reperes;
+    expect(reperes.filter((r) => r.type === 'local:nodes').length, 'trois `start` et un `next`').toBe(4);
+    expect(reperes.filter((r) => r.type === 'local:dialogues').length, 'deux `dialogueId`').toBe(2);
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ avec, connue }) => {
@@ -119,17 +128,17 @@ describe('#2968 L15 — dialogues et nœuds désignés par `ref(portee)`', () =>
       Object.assign(c.dialogues[0].nodes[0].choices[0], { next: { id: 'nœud-neuf' } });
     });
     expect(sceneSchema.safeParse(ajoute).success).toBe(true);
-    const sansGarde = { ...structuredClone(HUB), dialogues: HUB.dialogues.filter((d) => d.id !== 'dlg-garde') };
-    expect(messages(sansGarde).join(' ')).toContain('« dlg-garde » est absent du catalogue des dialogues de la scène');
+    const sansMarchand = { ...structuredClone(HUB), dialogues: HUB.dialogues.filter((d) => d.id !== 'dialogue-marchand') };
+    expect(messages(sansMarchand).join(' ')).toContain('« dialogue-marchand » est absent du catalogue des dialogues de la scène');
   });
 
   it('la modale « Avancé » juge les nœuds de chaque dialogue collé, sans la scène', () => {
     expect(lireBlocsAvances({ dialogues: structuredClone(HUB.dialogues) }).ok).toBe(true);
     const casse = structuredClone(HUB.dialogues);
-    casse[0].start = { id: 'rumeurs' };
+    casse[0].start = { id: 'ailleurs' };
     const lu = lireBlocsAvances({ dialogues: casse });
     expect(lu.ok).toBe(false);
-    expect(lu.ok ? '' : lu.rapport).toContain('« rumeurs » est absent du catalogue des nœuds du dialogue');
+    expect(lu.ok ? '' : lu.rapport).toContain('« ailleurs » est absent du catalogue des nœuds du dialogue');
   });
 
   it('un id local n’entre dans aucun espace de l’INDEX DES IDS', () => {

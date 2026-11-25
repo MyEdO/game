@@ -6,7 +6,7 @@
  * (relais, forge, hospice, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
-import { blessuresARendre, encombrement, maniement, nomDeCarriere, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
+import { blessuresARendre, encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
 import { medaillon, picto, plaque } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { progressionDuHeros } from './fiche';
@@ -22,7 +22,7 @@ export type Emplacement = J.Tenue | 'armure';
 export interface Contexte { e: J.Etat; client: string | null; emplacement: Emplacement; dest: string | null; choix: ReadonlySet<string>; congediement: string | null }
 export type Service = J.IdBatiment | 'depart' | 'chronique';
 
-export const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte', peage: 'pieces', memorial: 'croix' };
+export const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte', peage: 'pieces' };
 const SERVENT_UN_HEROS: ReadonlySet<Service> = new Set(['relais', 'forge', 'temple', 'salle']);
 const niveaux = (n: number, max: number) => `<span class="niveaux" aria-label="palier ${n + 1} sur ${max}">${Array.from({ length: max }, (_, i) => `<i class="${i <= n ? 'plein' : ''}"></i>`).join('')}</span>`;
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
@@ -55,10 +55,9 @@ const prixDuPalier = (p: J.Batiment['paliers'][number], e?: J.Etat) => {
 
 /** Le tableau des paliers d'un bâtiment, au survol de son palier actuel comme du geste qui l'agrandit : chaque rang
  *  en losanges et son état (départ, bâti, ici, prochain), ses apports à leur pictogramme, puis son prix tant qu'il
- *  reste à payer, la coche une fois payé ; le prochain est encadré ; au pied, ce qui manque pour bâtir. */
+ *  reste à payer, la coche une fois payé ; le prochain est encadré. */
 function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
   const n = e.batiments[b.id];
-  const refus = manqueAuPalier(e, b);
   const lignes = b.paliers.map((p, i) => {
     const etat = i < n ? 'bati' : i === n ? 'ici' : i === n + 1 ? 'prochain' : 'loin';
     return `<tr class="${etat}"${i === n ? ' aria-current="true"' : ''}><th scope="row">${niveaux(i, b.paliers.length)}<span class="rub">${{ bati: i ? 'Bâti' : 'Départ', ici: 'Ici', prochain: 'Prochain', loin: '' }[etat]}</span></th>
@@ -68,12 +67,11 @@ function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
   return apercuDe({
     nom: b.nom, nature: `Palier ${n + 1} sur ${b.paliers.length}${J.enRuine(e.batiments, b.id) ? ' · en ruine' : ''}`,
     planche: `<table class="paliers-apercu"><tbody>${lignes}</tbody></table>`,
-    ...(refus ? { pied: refus } : {}),
   });
 }
 
-/** Le prix du palier suivant d'un bâtiment, en geste d'achat : ce qui manque (or, trophées) le ferme ; tous les paliers
- *  au survol. */
+/** Le prix du palier suivant d'un bâtiment, en geste d'achat : ce qui manque (or, trophées) le ferme et se dit au
+ *  survol, au pied de tous les paliers. */
 function batir(e: J.Etat, b: J.Batiment, taille: 'petite' | 'moyenne' = 'moyenne') {
   const suivant = b.paliers[e.batiments[b.id] + 1];
   return achat({
@@ -130,7 +128,6 @@ const NOM_DE_QUALITE: Record<J.QualiteDeRepos, string> = { pietre: 'piètre', no
  *  rôle, sa carrière, le Collège ou le dieu que le sort lui a donné, le Talent qui la définit, et le geste qui
  *  l'engage. */
 function pageDuRelais({ e, servi, congediement }: Lecture): Page {
-  const gratuit = J.engagementSansSolde(e);
   const candidats = e.candidats.map((c, i) => {
     const role = J.roleDe(c.carriere);
     const r = role && J.ROLES[role];
@@ -142,7 +139,7 @@ function pageDuRelais({ e, servi, congediement }: Lecture): Page {
       <div class="sous-titre">${esc(carriereDe(c))} · ${esc(J.nomDEspece(c.espece))}</div>
       ${r ? `<div class="role">${picto(r.picto, 18, 1.8)}${esc(r.nom)}</div>` : ''}<p class="effet">${esc(J.deviseDe(c.carriere))}</p>
       <div class="traits">${voie ? `<span class="etiquette rectangle qualite voie"${apercuDe(voie.apercu)}>${voie.signe}${esc(voie.nom)}</span>` : ''}${talent ? `<span class="etiquette rectangle qualite"${apercuDe({ nom: talent.label, nature: 'Talent', texte: texteDuTalent(talent.id) })}>${esc(talent.label)}</span>` : ''}<span class="etiquette rectangle qualite neutre">${c.c.wounds.max} Blessures</span></div>
-      ${achat({ verbe: 'Engager', prix: gratuit ? 0 : c.prix, offert: 'sans solde', avoir: e.or, attrs: `data-a="recruter" data-i="${i}"` })}</article>`;
+      ${achat({ verbe: 'Engager', prix: 0, avoir: e.or, attrs: `data-a="recruter" data-i="${i}"` })}</article>`;
   }).join('');
   return { classe: 'rangee', corps: `${servi ? servicesDuRelais(e, servi, congediement) : ''}${candidats || placard('chope', 'Personne au relais', 'D’autres voyageurs arriveront avec la prochaine diligence.')}` };
 }
@@ -182,7 +179,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
     return `${mesure('Attaque', m.attaque, t && m.attaque - t.attaque, { chiffre: true, bulle: `Test de ${m.test}${MAITRISE[m.maitrise]?.bulle ? ` — ${MAITRISE[m.maitrise]!.bulle}` : ''}` })}${mesure('Dégâts', m.degats, t && m.degats - t.degats, { chiffre: true })}${allonge}`;
   };
   const armure = protection(h.c);
-  /** Les PA par zone : ceux du héros, ou ceux d'une panoplie `pa` face aux siens. */
+  /** Les PA par zone : ceux du héros, ou ceux `pa` qu'il porterait, face aux siens. */
   const mesuresDArmure = (pa?: { zone: string; pa: number }[]) =>
     (pa ?? armure).map((z) => mesure(esc(z.zone), z.pa, pa ? z.pa - (armure.find((x) => x.zone === z.zone)?.pa ?? 0) : undefined)).join('');
 
@@ -213,7 +210,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
   const armes = emplacement === 'armure' ? [] : J.armesEnVente(e, h).filter((a) => a.tenue === emplacement && a.id !== tenue?.id && (emplacement !== 'secondaire' || /^bouclier/.test(a.id) || J.manieDeuxArmes(h)))
     .map((a) => ({ a, m: maniement(h.c, a.id) })).sort((x, y) => y.m.attaque - x.m.attaque || y.m.degats - x.m.degats);
   const offres = emplacement === 'armure'
-    ? J.armuresEnVente(e).filter((a) => a.id !== p.armure?.panoplie).map((a) => article('armure', a.label, `${mesuresDArmure(a.pa)}${mesure('Enc.', a.enc)}`, `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
+    ? J.armuresEnVente(e, h).map((a) => article('armure', a.label, `${mesuresDArmure(a.pa)}${mesure('Enc.', a.enc)}`, `${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, p.armure?.enc)}`,
       achat({ verbe: 'Acheter', prix: a.prix, avoir: e.or, attrs: `data-a="armure" data-id="${h.c.id}" data-k="${a.id}"`, taille: 'petite' })))
     : armes.map(({ a, m }) => article(iconeDArme(a.label), a.label, mesuresDArme(a, tenue),
       `${a.mains === 2 && emplacement !== 'tir' ? `<span class="etiquette rectangle qualite defaut"${p.secondaire ? ` data-bulle="${esc(p.secondaire.label)} quitte sa main."` : ''}>Deux mains${p.secondaire ? `<span class="suite"> · sans ${esc(p.secondaire.label.toLowerCase())}</span>` : ''}</span>` : ''}${MAITRISE[m.maitrise] ? `<span class="etiquette rectangle qualite defaut suite" data-bulle="${esc(`${MAITRISE[m.maitrise]!.bulle} : ${m.test}`)}">${MAITRISE[m.maitrise]!.mot}</span>` : ''}${etiquettesDeQualites(a.qualites)}${tropLourd(a.enc, tenue?.enc)}`,
@@ -241,7 +238,7 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   const tarif = J.tarifDuSoin(e);
   const soin = (o: { icone: string; nom: string; effet: string; duree: string; verbe: string; prix: number | null; attrs: string; refus: string | null }) => {
     const refus = ruine ?? (o.prix == null ? 'L’hospice agrandi l’offrira.' : hospice ?? o.refus);
-    return `<article class="carte-service soin${refus ? ' clos' : ''}">${vignette(o.icone, !!refus)}<div class="nom-propre moyen gothique">${esc(o.nom)}</div><p class="effet">${esc(o.effet)}</p><span class="sous-titre">${esc(o.duree)}</span>
+    return `<article class="carte-service soin${refus ? ' clos' : ''}">${vignette(o.icone, !!refus)}<div class="nom-propre moyen gothique">${esc(o.nom)}</div><p class="effet">${esc(o.effet)}</p>${o.duree ? `<span class="sous-titre">${esc(o.duree)}</span>` : ''}
       ${o.prix == null ? plaque(esc(o.verbe), '', { fermee: true, titre: esc(refus ?? '') }) : achat({ verbe: o.verbe, prix: o.prix, avoir: e.or, attrs: o.attrs, refus })}</article>`;
   };
   const id = `data-id="${h.c.id}"`;
@@ -249,9 +246,9 @@ function pageDeLaChapelle({ e, servi: h }: Lecture): Page {
   const remedes = vente ? `<article class="carte-service remedes"><div class="nom-propre moyen gothique">Potions et remèdes</div>${vente}</article>` : '';
   return {
     classe: 'chapelle',
-    corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${hospice ? glose(esc(hospice), 'avertissement') : ''}${e.roster.some((x) => x.sejour?.ou === 'temple') ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e, 'temple')}</div>` : ''}</div>
+    corps: `<div class="porteur">${herosEnTete(h, 'affiche')}${etats(h.c)}${etiquettesDeSequelles(h.c)}${e.roster.some((x) => x.sejour?.ou === 'temple') ? `<div class="rub">À l’hospice</div><div class="sejours">${sejours(e, 'temple')}</div>` : ''}</div>
       <div class="etal ample" style="--colonnes:4">
-      ${soin({ icone: 'soin', nom: 'Soigner', effet: 'Tous les Points de Blessure, et les États de la rencontre.', duree: J.blesse(h) ? `${Math.max(0, h.c.wounds.current)} → ${h.c.wounds.max} Blessures${tarif ? ` · ${blessuresARendre(h.c)} Blessures × ${tarif} CO` : ''}` : 'en pleine santé', verbe: 'Soigner', prix: J.prixDuSoin(e, h), attrs: `data-a="soigner" ${id}`, refus: J.blesse(h) ? null : 'Aucune blessure.' })}
+      ${soin({ icone: 'soin', nom: 'Soigner', effet: 'Tous les Points de Blessure, et les États de la rencontre.', duree: J.blesse(h) ? `${Math.max(0, h.c.wounds.current)} → ${h.c.wounds.max} Blessures${tarif ? ` · ${blessuresARendre(h.c)} Blessures × ${tarif} CO` : ''}` : '', verbe: 'Soigner', prix: J.prixDuSoin(e, h), attrs: `data-a="soigner" ${id}`, refus: J.blesse(h) ? null : 'Aucune blessure.' })}
       ${soin({ icone: 'lit', nom: 'Panser', effet: 'Les sœurs pansent les plaies : une déchirure mineure guérit plus vite, une fracture est réduite.', duree: `dans la journée · Test de Guérison des sœurs (${J.GUERISON_DE_L_HOSPICE})`, verbe: 'Panser', prix: J.prixDeLHospice(e, 'panser'), attrs: `data-a="hospice" ${id} data-k="panser"`, refus: J.refusDeLHospice(e, h, 'panser') })}
       ${soin({ icone: 'dague', nom: 'Opérer', effet: 'Le chirurgien opère les blessures qui l’exigent : plaie d’amputation, fracture majeure, artère.', duree: 'une semaine à l’hospice', verbe: 'Opérer', prix: J.prixDeLHospice(e, 'operer'), attrs: `data-a="hospice" ${id} data-k="operer"`, refus: J.refusDeLHospice(e, h, 'operer') })}
       ${soin({ icone: 'etoile', nom: 'Larmes de Shallya', effet: 'Le miracle guérit une Blessure critique de convalescence, jamais une amputation.', duree: 'une séquelle', verbe: 'Prier', prix: J.prixDeSequelle(e), attrs: `data-a="sequelle" ${id}`, refus: J.sequellesGuerissables(h) ? null : 'Aucune séquelle que la prière puisse guérir.' })}
@@ -290,19 +287,22 @@ function paliers(e: J.Etat, id: J.IdBatiment): string {
 
 const pageDuPeage = ({ e }: Lecture): Page => ({ classe: 'rangee', corps: paliers(e, 'peage') });
 
-const pageDuJardin = ({ e }: Lecture): Page => ({
-  classe: 'tombes',
-  corps: e.cimetiere.length
-    ? e.cimetiere.map((t) => `<article class="carte-service tombe">${medaillon('croix', 'moyen')}<div class="nom-propre petit gothique">${esc(t.nom)}</div><span class="sous-titre">${esc(nomDeCarriere({ career: t.carriere, appearance: { sex: t.sexe } }))}</span>
-      <span class="effet">${esc(t.ou)} · jour ${t.jour}</span><span class="effet">${pluriel(t.expeditions, 'expédition')}</span></article>`).join('')
-    : placard('croix', 'Aucune tombe', 'Puisse-t-il en rester ainsi.'),
-});
-
 const pageDeLaChronique = ({ e }: Lecture): Page => ({ classe: 'annales', corps: `<ol class="chronique">${e.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` });
 
-/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son sac, et ce que l'hospice lui vend. */
+/** Le rang et la consigne de combat du héros `h`, chacun en plaques, l'actuel armé, ce qu'il fait au survol. */
+function auCombat(h: J.Heros): string {
+  const id = `data-id="${h.c.id}"`;
+  const rang = J.rangDe(h);
+  const consigne = J.consigneDe(h);
+  const rangs = (Object.keys(J.RANGS) as J.Rang[]).map((r) => plaque(esc(J.RANGS[r].nom), `data-a="rang" ${id} data-k="${r}"`, { taille: 'petite', armee: r === rang, titre: esc(J.RANGS[r].bulle) }));
+  const consignes = J.CONSIGNES.map((c) => plaque(esc(c.nom), `data-a="consigne" ${id} data-k="${c.doctrine ?? ''}"`, { taille: 'petite', armee: c === consigne, titre: esc(c.bulle) }));
+  return `<div class="au-combat"><div class="choix-au-combat"><span class="rub">Au combat</span>${rangs.join('')}</div><div class="choix-au-combat">${consignes.join('')}</div></div>`;
+}
+
+/** Le départ : ceux qu'on emmène (choisis au socle), une colonne chacun — son rang et sa consigne au combat, son sac,
+ *  et ce que l'hospice lui vend. */
 function pageDuDepart({ e, choix }: Lecture): Page {
-  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}
+  const groupe = e.roster.filter((h) => choix.has(h.c.id)).map((h) => `<section class="carte-service emporte">${herosEnTete(h)}${auCombat(h)}
     <div class="cases-sac">${casesDuSac(h, false) || glose('sac vide')}</div>${provisions(e, h)}</section>`);
   const libres = Array.from({ length: Math.max(0, J.TAILLE_DU_GROUPE - groupe.length) }, () => `<section class="carte-service emporte libre"><span class="portrait-vide"></span><span class="place-libre">Place libre</span><span class="sous-titre">un héros du socle</span></section>`);
   return {
@@ -315,7 +315,7 @@ function pageDuDepart({ e, choix }: Lecture): Page {
 /** Chaque service, sa page. */
 const PAGES: Record<Service, (l: Lecture) => Page> = {
   relais: pageDuRelais, forge: pageDeLaForge, temple: pageDeLaChapelle, salle: pageDeLaSalle, cartographe: pageDuCartographe,
-  peage: pageDuPeage, memorial: pageDuJardin, chronique: pageDeLaChronique, depart: pageDuDepart,
+  peage: pageDuPeage, chronique: pageDeLaChronique, depart: pageDuDepart,
 };
 
 // ─── L'écran ────────────────────────────────────────────────────────────────────────────────────────────────

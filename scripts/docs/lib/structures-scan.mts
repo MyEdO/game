@@ -6,7 +6,8 @@ import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs';
 // Aucun rendu ici : uniquement des mesures (l'affichage vit dans le générateur, le stock dans
 // `scripts/guards/lib/structuresStock.mjs`).
 //
-// Deux RACINES de documents, déclarées UNE fois dans `RACINES` (consommée par `listerDocuments`).
+// Deux RACINES de documents : `src/data`, déclarée UNE fois (`RACINE_DES_DONNEES`), et les paquets de scène, le corpus que
+// l'appelant passe, le contenu du commun par défaut (`paquetsDuCommun`), rangés sous `RACINE_DES_PAQUETS`.
 // Les JSON sont lus UNE fois par run ; toutes les passes ci-dessous travaillent en mémoire.
 //
 // LE CŒUR EST L'INDEX DES IDS, SCOPÉ PAR DATASET (`id → Set<dataset>`) : la résolution se mesure
@@ -25,11 +26,11 @@ import { estSuiteVitest } from '../../guards/lib/fichierVitest.mjs';
 //   4. SITES, RE-MESURÉS sur l'index complété par la passe 3 (les pions de scène sont indexés
 //      AVANT que `members {entityId}` ne soit résolu).
 //   5. MESURE — occurrences de référence, formes de valeur, ops, enveloppe, orphelines, ambiguës.
-import { readFileSync, statSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 import { basename, join, relative } from 'node:path';
 import { z } from 'zod';
 import { parUnitesDeCode, listerArbre, listerDossier } from '../../guards/lib/lister.mjs';
-import { PROJETS_LIVRES } from '../../guards/lib/projetsLivres.mjs';
+import { paquetsDuCommun } from '../../guards/lib/paquetsDuCommun.mjs';
 import { typeDuDocument } from '../../guards/lib/proseInline.mjs';
 import { REGISTRIES } from './cibles-registres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
@@ -51,7 +52,7 @@ import {
 } from '../../../src/data/schemas/grammaire/descente';
 import { documentDeLEntreePartielle } from '../../../src/data/schemas/grammaire/document';
 import { declarationProseNommee, sourceHeritee } from '../../../src/data/schemas/grammaire/prose';
-import type { SchemaDef } from '../../../src/data/schemas/types';
+import type { RacineDocument, SchemaDef } from '../../../src/data/schemas/types';
 import { TYPES, declarationDeRefTypee, espaceDe, type TypeEntite } from '../../../src/data/schemas/grammaire/ref';
 import * as ts from 'typescript/unstable/ast';
 import {
@@ -84,17 +85,17 @@ export type Racine = {
   recursif: boolean;
 };
 
-export const RACINES: readonly Racine[] = [
-  { id: 'src/data', dir: 'src/data', motif: '*.json', suffixe: '.json', recursif: false },
-  { id: PROJETS_LIVRES.dossier, dir: PROJETS_LIVRES.dossier, motif: `*${PROJETS_LIVRES.suffixe}`, suffixe: PROJETS_LIVRES.suffixe, recursif: PROJETS_LIVRES.recursif },
-];
+export const RACINE_DES_DONNEES: Racine = { id: 'src/data', dir: 'src/data', motif: '*.json', suffixe: '.json', recursif: false };
+
+/** La racine documentaire des paquets de scène (`RacineDocument`, `src/data/schemas/types.ts`), où leurs defs vivent. */
+export const RACINE_DES_PAQUETS: RacineDocument = 'src/scenes';
 
 export type Document = { racine: string; chemin: string; nom: string };
 
 /**
  * NOM d'un document tel que le scan le key : son BASENAME. Les defs de `src/scenes` déclarent un
- * CHEMIN RELATIF à leur racine (`arene/arene-projet.json`) là où `listerDocuments` rend un basename
- * (`arene-projet.json`) : toute jointure DÉCLARÉ × OBSERVÉ passe par ici, jamais par `file` brut.
+ * CHEMIN RELATIF à leur racine (`<x>/<x>-projet.json`) là où `listerDocuments` rend un basename
+ * (`<x>-projet.json`) : toute jointure DÉCLARÉ × OBSERVÉ passe par ici, jamais par `file` brut.
  */
 export const nomDeDocument = (file: string): string => file.split(/[\\/]/).pop() ?? file;
 
@@ -123,32 +124,27 @@ const chargeRecord = (brut: unknown): unknown => {
   return estObjet(entries) ? entries : brut;
 };
 
-export const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
+const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
   if (familleDeclaree?.startsWith('liste')) return 'elements';
   if (familleDeclaree?.startsWith('record')) return 'valeurs';
   if (familleDeclaree) return 'racine';
   return Array.isArray(brut) ? 'elements' : 'racine';
 };
 
-/** Liste les documents des deux `RACINES`, chemins POSIX relatifs à la racine du dépôt. */
-export function listerDocuments(root: string): Document[] {
-  const out: Document[] = [];
-  for (const racine of RACINES) {
-    const base = join(root, racine.dir);
-    if (!statSync(base).isDirectory()) continue;
-    for (const rel of listerArbre(base, {
-      descendre: () => racine.recursif,
-      filtre: (r) => r.endsWith(racine.suffixe) && !basename(r).startsWith('_'),
-    })) {
-      const p = join(base, rel);
-      out.push({ racine: racine.id, chemin: relative(root, p).split('\\').join('/'), nom: basename(rel) });
-    }
-  }
-  return out.filter((d, i, xs) => xs.findIndex((x) => x.chemin === d.chemin) === i);
+/** Liste les documents de `RACINE_DES_DONNEES` puis les paquets `paquets` (chemins POSIX relatifs à `root`), chemins
+ *  POSIX relatifs à la racine du dépôt. */
+export function listerDocuments(root: string, paquets: readonly string[] = paquetsDuCommun(root)): Document[] {
+  const racine = RACINE_DES_DONNEES;
+  const base = join(root, racine.dir);
+  const donnees = listerArbre(base, {
+    descendre: () => racine.recursif,
+    filtre: (r) => r.endsWith(racine.suffixe) && !basename(r).startsWith('_'),
+  }).map((rel) => ({ racine: racine.id, chemin: relative(root, join(base, rel)).split('\\').join('/'), nom: basename(rel) }));
+  return [...donnees, ...paquets.map((chemin) => ({ racine: RACINE_DES_PAQUETS, chemin, nom: basename(chemin) }))];
 }
 
-export function lireDocuments(root: string) {
-  const docs = listerDocuments(root);
+export function lireDocuments(root: string, paquets?: readonly string[]) {
+  const docs = listerDocuments(root, paquets);
   const brutParDocument = new Map<string, unknown>(
     docs.map((d) => [d.chemin, JSON.parse(readFileSync(join(root, d.chemin), 'utf8')) as unknown]),
   );
@@ -663,14 +659,16 @@ function mecaniquesDesObjets(defs: readonly SchemaDef[], brutParNom: ReadonlyMap
  * @param choixDesOps op → champ du payload → littéraux d'enum que ce champ déclare
  *   (`choixDesPayloadsDOp`, #2818) : sur un objet qui porte `op: X`, la clé `k` dont la valeur est l'un
  *   d'eux n'ouvre pas de référence. Absente = aucun payload fermé.
+ * @param paquets les paquets de scène mesurés, chemins relatifs à `root` (`listerDocuments`).
  */
 export function scannerDonnees(
   root: string,
   defs: readonly SchemaDef[],
   choixDeclares: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
   choixDesOps: ReadonlyMap<string, ReadonlyMap<string, ReadonlySet<string>>> = new Map(),
+  paquets?: readonly string[],
 ) {
-  const { docs, brutParDocument, brutParNom } = lireDocuments(root);
+  const { docs, brutParDocument, brutParNom } = lireDocuments(root, paquets);
   const famillesDeclarees = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
   /** Les COLLECTIONS À CLÉ déclarées au schéma, par la co-descente des objets PARSÉS ci-dessus. */
   const collections = collectionsDesDocuments(defs, brutParNom);
@@ -679,9 +677,9 @@ export function scannerDonnees(
   // La co-descente rapproche la déclaration PROSES_NOMMEES du même objet que parcourirDocument.
   const prosesNommees = new WeakSet<object>();
   if (CONCEPT_PROSE_NOMMEE) {
-    const schemasDeProjet = new Map(defs.filter((d) => d.root === PROJETS_LIVRES.dossier).map((d) => [d.file, d.schema]));
+    const schemasDeProjet = new Map(defs.filter((d) => d.root === RACINE_DES_PAQUETS).map((d) => [d.file, d.schema]));
     for (const d of docs) {
-      if (d.racine !== PROJETS_LIVRES.dossier) continue;
+      if (d.racine !== RACINE_DES_PAQUETS) continue;
       const schema = schemasDeProjet.get(d.nom);
       if (!schema) continue;
       coDescendre(schema, brutParDocument.get(d.chemin), ({ noeuds, valeur }) => {
@@ -834,7 +832,7 @@ export function scannerDonnees(
   // ET vers quels datasets : c'est ce qui distingue une RÉFÉRENCE CASSÉE d'un DOCUMENT embarqué, et
   // c'est ce qui scope la résolution. Sous `creatures.json|skills`, la clé `id` résout partout vers
   // `skills.json` — un `{id:"zzz", value:10}` y est une référence orpheline, jamais un document, et
-  // un `id` qui ne résout QUE vers `careers.json` y est AMBIGU. Sous `arene-projet.json|entities`,
+  // un `id` qui ne résout QUE vers `careers.json` y est AMBIGU. Sous `<x>-projet.json|entities`,
   // c'est `ref` qui résout et jamais `id` — un pion de scène EST un document.
   type Site = { resolvent: number; total: number; cibles: Map<string, number> };
   /** Le champ sous lequel un objet est MESURÉ : `(racine)` pour une entrée de racine. */
@@ -1453,14 +1451,15 @@ export function scannerDonnees(
  * aucun enum n'est fermé et des discriminants comptent comme références), et aucune garde ne verrait
  * la divergence.
  * Tout est rendu — `defs`, `declares`, `choix`, `choixOps`, `scan` — parce que chaque consommateur
- * en lit une part différente et qu'aucun ne doit refabriquer la sienne.
+ * en lit une part différente et qu'aucun ne doit refabriquer la sienne. `paquets` : les paquets de scène mesurés
+ * (`listerDocuments`).
  */
-export function scanDuCorpus(root: string) {
-  const defs = defsDeDocument();
+export function scanDuCorpus(root: string, paquets?: readonly string[]) {
+  const defs = defsDeDocument(paquets);
   const declares = introspecterDefs(defs);
   const choix = choixDeclares(defs);
   const choixOps = choixDesPayloadsDOp(OP_DEFS, IDS_PAR_ESPACE);
-  return { defs, declares, choix, choixOps, scan: scannerDonnees(root, defs, choix, choixOps) };
+  return { defs, declares, choix, choixOps, scan: scannerDonnees(root, defs, choix, choixOps, paquets) };
 }
 
 /**

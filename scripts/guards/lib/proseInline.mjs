@@ -10,9 +10,10 @@
 // `adapteDe` (`champAdapteDe`, `src/data/schemas/grammaire/prose.ts`) COUPE l'héritage, pour lui et ce
 // qu'il contient (#2001).
 //
-// PÉRIMÈTRE — les DEUX racines de documents, DONNÉES EN DESCRIPTEURS (`RACINES_PROSE` ci-dessous),
-// aux mêmes motifs que `RACINES` (`scripts/docs/lib/structures-scan.mts`) : `src/data/*.json` (non
-// récursif) et les `*-projet.json` de `src/scenes` (récursif).
+// PÉRIMÈTRE — des racines de documents DONNÉES EN DESCRIPTEURS. Défaut de la mesure, le commun
+// (`RACINES_DU_COMMUN`) : `src/data/*.json` (non récursif, le motif de `RACINE_DES_DONNEES`,
+// `scripts/docs/lib/structures-scan.mts`) et son contenu (`CORPUS_DU_COMMUN`). Le greffon de prose transforme
+// aussi les projets livrés (`RACINES_PROSE`, `PROJETS_LIVRES`).
 //
 // CLÉ — le `type` du DOCUMENT racine du fichier (`type` de la racine objet, ou de son premier
 // élément quand la racine est une liste), à défaut le nom de base du fichier. C'est la clé que le
@@ -22,23 +23,23 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { listerArbre } from './lister.mjs';
 import { PROJETS_LIVRES } from './projetsLivres.mjs';
+import { CORPUS_DU_COMMUN } from './paquetsDuCommun.mjs';
 import { REGISTRE_LIVRES, estLivreExtrait } from '../../raw/_lib.mjs';
 import { fileURLToPath } from 'node:url';
 
 /** Racine du dépôt, déduite de l'emplacement de ce module (`scripts/guards/lib`). */
 export const RACINE_DEPOT = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 
-/**
- * Les DEUX racines de documents, en DESCRIPTEURS ENTIERS (dossier + motif de fichier + récursivité)
- * — même partition que `RACINES` du scan de structures (`scripts/docs/lib/structures-scan.mts`).
- * Une racine se donne entière à `mesurerProseInline`, jamais par une CLÉ à résoudre : un identifiant
- * de racine à résoudre serait un branchement par identité dans du code générique (#842,
- * `src/registry-id-branch-guard.test.ts`) et une 2ᵉ vérité sur ce que sont ces racines.
- */
-export const RACINES_PROSE = Object.freeze([
-  Object.freeze({ dossier: 'src/data', suffixe: '.json', recursif: false }),
-  PROJETS_LIVRES,
-]);
+/** Les données du commun, en DESCRIPTEUR ENTIER (dossier + motif de fichier + récursivité). Une racine se donne
+ *  entière à `mesurerProseInline`, jamais par une CLÉ à résoudre : un identifiant de racine à résoudre serait un
+ *  branchement par identité dans du code générique (#842, `src/registry-id-branch-guard.test.ts`). */
+const DONNEES = Object.freeze({ dossier: 'src/data', suffixe: '.json', recursif: false });
+
+/** Les racines du COMMUN : ses données et son contenu, défaut de `mesurerProseInline`. */
+const RACINES_DU_COMMUN = Object.freeze([DONNEES, CORPUS_DU_COMMUN]);
+
+/** Les documents que le greffon de prose transforme (`estDocumentDeProse`) : les données et les projets livrés. */
+export const RACINES_PROSE = Object.freeze([DONNEES, PROJETS_LIVRES]);
 
 /**
  * Le fichier `chemin` est-il un DOCUMENT de l'une des `RACINES_PROSE` ? Jugé sur le chemin à partir du
@@ -81,11 +82,11 @@ export function typeDuDocument(doc, chemin) {
 
 /**
  * Mesure la prose inline d'un livre extrait sur les racines DONNÉES (des descripteurs entiers, cf.
- * `RACINES_PROSE`, jamais des identifiants à résoudre).
+ * `RACINES_DU_COMMUN`, jamais des identifiants à résoudre) ; un projet passe les siennes.
  * Rend `{ [type]: { entrees, noeuds } }` — `noeuds` étant les chemins `fichier › chemin.dans.le.json`,
  * triés, pour que la garde nomme ce qui dérive au lieu d'imprimer un delta nu.
  */
-export function mesurerProseInline(racines = RACINES_PROSE, root = RACINE_DEPOT) {
+export function mesurerProseInline(racines = RACINES_DU_COMMUN, root = RACINE_DEPOT) {
   const extraits = livresExtraits();
   const parType = new Map();
   for (const racine of racines) {

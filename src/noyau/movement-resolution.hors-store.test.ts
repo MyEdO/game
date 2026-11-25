@@ -1,3 +1,4 @@
+import { setEngaged } from '../engine/engagement';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { createHero } from '../engine/character';
@@ -58,7 +59,7 @@ describe('résolution canonique du déplacement', () => {
 
   it('retourne la raison du même gate qui bloque le déplacement', () => {
     const active = setup();
-    active.engagedWith = ['enemy'];
+    setEngaged(active, banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!);
     const result = resolveMovement(banc.getState, { x: active.pos!.x - 1, y: active.pos!.y });
     expect(result).toEqual({ status: 'bloque', reason: 'engage' });
   });

@@ -7,7 +7,7 @@
  * `loup-et-saumure-projet.json › worldMap.places[].backdrop`, chacun `ref('fond')`. Aucun des trois autres
  * projets ne porte de fond.
  *
- * ENTRÉES : écrites et lues — `src/data/lieux-services.json`, `src/scenes/loup-et-saumure/loup-et-saumure-projet.json` ;
+ * ENTRÉES : écrites et lues — `src/data/lieux-services.json`, `projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json` ;
  * lues — les defs du registre des fonds (`src/data/fonds/defs`, `vocabulaireDuRegistre` de
  * `scripts/gen-registry.mjs`), catalogue de la cible.
  * CARDINAL ASSERTÉ : `CARDINAL` gestes au premier passage, `PAR_PORTEUR` par porteur.
@@ -36,7 +36,7 @@ migrerLesIdsNus({
   lot: '2968 L17 fond',
   porteurs: {
     'src/data/lieux-services.json': { cles: { backdrop: 'fond' } },
-    'src/scenes/loup-et-saumure/loup-et-saumure-projet.json': { collection: 'worldMap.places', cles: { backdrop: 'fond' } },
+    'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json': { collection: 'worldMap.places', cles: { backdrop: 'fond' } },
   },
   catalogues: { fond: new Set(Object.keys(vocabulaireDuRegistre(path.join(ROOT, REGISTRE.dir), REGISTRE.vocabulaire))) },
   parPorteur: PAR_PORTEUR,

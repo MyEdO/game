@@ -2,7 +2,7 @@
  * REJEU DES MIGRATIONS SUR UN EXPORT DE LA TÊTE (#1613) — `npm run migrations:replay:head [<sha>]`.
  *
  * `npm run migrations:replay` rejoue EN PLACE : sur l'arbre de travail partagé (sessions parallèles,
- * WIP permanent) il réécrit `src/data` et `src/scenes`, donc personne ne le joue, donc son rouge
+ * WIP permanent) il réécrit `src/data`, `src/scenes` et `projets`, donc personne ne le joue, donc son rouge
  * n'est vu qu'APRÈS le push, dans la CI. Cette porte-ci joue le MÊME rejeu sur une COPIE JETABLE de
  * l'arbre du sha, et laisse le dépôt intact.
  *
@@ -63,7 +63,7 @@ export const CHEMINS_EXPORTES = {
   src: 'les deux racines de documents (`src/data`, `src/scenes`) ET le reste de `src/` : des migrations importent des modules de `src/` hors des deux racines (`src/lib/normalize.ts`)',
   scripts: 'les migrations elles-mêmes, leurs libs (`scripts/guards/lib`, `scripts/data/lib`, `scripts/raw`) et les générateurs d’authoring du périmètre',
   'docs/raw': 'l’Atlas RAW, lu par `scripts/raw/_lib.mjs` et par `scripts/raw/build-implemente.mjs`',
-  'docs/dossiers': 'les fiches de dossier, que `scripts/gen-registry.mjs` inscrit en `src/data/_dossiers.generated.ts`, cible de code que `preparerExport` produit',
+  projets: 'les projets : leurs paquets livrés, leurs générateurs et leurs fiches de dossier',
   ...tableTotale(LUS_PAR_LES_GENERATEURS, () => 'lu par un générateur que `preparerExport` rejoue (`LUS_PAR_LES_GENERATEURS`)'),
   Source: 'les livres, lus de façon non bornée : `scripts/raw/_lib.mjs` dérive les dossiers de `books.json`',
   'package.json': 'racine de projet (`type: module`) — sans lui, node refuse les `.mjs` relatifs du lot',

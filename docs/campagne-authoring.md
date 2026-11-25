@@ -9,21 +9,21 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 
 ## 1. Pipeline
 
-- **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
+- **Paquet MANUSCRIT** `projets/jeu-de-role/campagnes/<campagne>/<campagne>-projet.json`, commité (fiche
   `user-doctrine-campagne-jamais-generee-par-script`), édité dans Godot ou comme document JSON.
-  Avec `npm run godot:editeur`, ouvre le projet livré dans l’atelier et utilise « Enregistrer ».
+  Avec `npm run jeu-de-role:editeur`, ouvre le projet livré dans l’atelier et utilise « Enregistrer ».
   Le geste valide le document par `parseProject`, produit sa forme dépôt par `texteDuDepot`
-  et transmet le texte au service local `depot/<id>`. L’atelier affiche le résultat de l’écriture. Tout paquet neuf se
-  déclare dans `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` (volet couverture de
-  `src/scenes/generateurs-byte-stables.test.ts`). Modèle :
-  `src/scenes/diligence/`.
+  et transmet le texte au service local `depot/<id>`. L’atelier affiche le résultat de l’écriture. Un paquet est
+  manuscrit quand aucun `generate.mjs` n'est son voisin (`estManuscrit`, `scripts/guards/lib/projetsLivres.mjs` ;
+  volet couverture de `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`). Modèle :
+  `projets/jeu-de-role/campagnes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/noyau/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
-  (`src/noyau/validateScene.ts`) et `src/scenes/bundled-projects.test.ts` (tout `*-projet.json` au glob)
+  (`src/noyau/validateScene.ts`) et `projets/jeu-de-role/suites/bundled-projects.test.ts` (tout `*-projet.json` au glob)
   confrontent le contenu. Un changement de forme réécrit les paquets commités dans le MÊME commit, par
   leur générateur ou, pour un paquet manuscrit, par un script one-shot non commité (#2404).
-- **Générateurs** `scripts/<dossier>/generate.mjs` + lib `scripts/campagne/lib.mjs` : contrat byte-stable
-  (`src/scenes/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
+- **Générateurs** `scripts/<dossier>/generate.mjs` + lib `projets/jeu-de-role/campagnes/lib.mjs` : contrat byte-stable
+  (`projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`, #1522 — `build()` PUR et chemin `OUT`, artefact comparé
   à l'octet) qui fait du script le propriétaire exclusif de son paquet ; leur `scene()` compile un `MapSpec` par
   `buildScene()` (`src/noyau/mapSpec.ts`), comme les scénarios de test décrits dans `docs/test-scenarios.md`.
   Une option que `scene()` ne lit pas LÈVE en se nommant. Régime réservé au contenu CALCULÉ
@@ -136,7 +136,7 @@ l.258) ; une position de scène DISTINCTE prime toujours (placement d'auteur res
 Le corps d'une entité nomme son type (#2968) : `decor` (`props.json`), et d'un personnage au plus un de
 `creature` (bestiaire), `vehicule` (`vehicles.json`, #218) et `engin` (engin de siège), chacun `{ id }`. Un `vehicule`
 (`cogue`/`langskip`/`loup-imperial`) passe en `encounters[].enemies[]` terse comme en `entities` BRUTES ; le générateur
-le valide dans son catalogue (`corpsValide`, `scripts/campagne/lib.mjs`).
+le valide dans son catalogue (`corpsValide`, `projets/jeu-de-role/campagnes/lib.mjs`).
 Une coque RICHE (équipage exposé `crewIds`, artillerie `postes`, améliorations `upgrades`) se pose en
 `entities` + s'enrôle via `encounters[].members` (plus expressif que le terse).
 
@@ -213,7 +213,7 @@ déroule journal (EDO 02 l.89), désignation (l.91), Document 3 et le stade « v
 Les valeurs d'état vivent dans `GameState.etats` (snapshot de sauvegarde, vidées en nouvelle partie,
 jamais fusionnées à une transition). Au parse du projet, un état lu ou posé doit être DÉCLARÉ, son usage
 conforme à sa forme (`FORMES_D_ETAT`, `src/data/schemas/defs-scenes/formes-d-etat.ts`) et sa valeur
-déclarée ; la garde `src/scenes/drapeau-lu-produit.test.ts` exige qu'un drapeau, un état ou une valeur
+déclarée ; la garde `projets/jeu-de-role/suites/drapeau-lu-produit.test.ts` exige qu'un drapeau, un état ou une valeur
 LU ait son producteur dans le paquet, et qu'un état déclaré y soit produit. L'onglet **États** de
 l'éditeur du narratif (`NarratifEditor`) déclare, renomme (propagé à toute référence) et retire (refusé
 tant qu'une référence le désigne) un état et ses valeurs. Pas de compteur codé en dur.
@@ -417,11 +417,11 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   REFUSÉ par `parseProject` (`ProjetRefuse`, cause `schema`, rapport zod), et une scène d'autosave par
   `parseSceneDeProjet` (#2404, décision utilisateur du 2026-10-05). La fabrique UNIQUE du document est
   `documentDeProjet` (`src/noyau/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
-  `projectDoc` (`scripts/campagne/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
-  `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
-  `PROJETS_MANUSCRITS` du même module — « La Diligence »
-  (`src/scenes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
-  tous passent `parseProject` et `validateScene` en CI (`src/scenes/bundled-projects.test.ts`).
+  `projectDoc` (`projets/jeu-de-role/campagnes/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
+  `scripts/guards/lib/projetsLivres.mjs`) sont produits par le `generate.mjs` de leur dossier, sauf les manuscrits, sans générateur voisin
+  (`estManuscrit` du même module) — « La Diligence »
+  (`projets/jeu-de-role/campagnes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
+  tous passent `parseProject` et `validateScene` en CI (`projets/jeu-de-role/suites/bundled-projects.test.ts`).
   Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
 - **Éditeur.** Dans Godot, ouvrir le narratif puis les documents. Le formulaire édite le titre,
   le texte Markdown et la source. Dans un stade d’indice, le champ « Document croisé » choisit le
@@ -493,7 +493,7 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
   l'état à l'init) ; `CampaignView` monte alors `CampaignOpeningScreen` par-dessus la vue. Le `pitch`
   est verbatim quand `source` est posé (règle stricte 5) ; sans `source`, texte maison (fiche `user-doctrine-regle-5-campagne-repliques-et-narration-maison`) ;
   rendu par `<Prose>`. Un pitch sourcé se vérifie au fichier `Source/` — garde transverse sur tout paquet livré qui déclare un `source`
-  (`src/scenes/bundled-projects.test.ts`, livre résolu par `books.json`), jamais à l'œil.
+  (`projets/jeu-de-role/suites/bundled-projects.test.ts`, livre résolu par `books.json`), jamais à l'œil.
 - **`cloture`** (`ClotureBlock`) : `when` (`Condition`), `titre`, `sousTitre?`. Le `when` est ÉVALUÉ
   au contexte HORS COMBAT (`condCtx`, `src/noyau/bourseFlow.ts`) — même sous-ensemble borné qu'un
   `when` de carte (`CONDITION_KINDS_CARTE`), sinon la Condition serait FAUSSE en silence. Il est relu
@@ -510,7 +510,7 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
 
 ## 10quinquies. Lien aux fiches de dossier de chapitre (`couvre` / `narratif.ecartes`, #2290)
 
-Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `ficheDeDossier` de
+Une fiche de dossier de chapitre (`projets/jeu-de-role/dossiers/<ABBR>/<NN>.json`, schéma `ficheDeDossier` de
 `src/data/source/dossier.ts`) nomme chaque entrée par un identifiant GLOBAL `<ABBR>-<NN>#<id>`
 (`ID_D_ENTREE`). Le paquet de campagne CITE ces entrées ; la fiche ne connaît pas le paquet.
 
@@ -521,11 +521,12 @@ Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `fic
   `{ entree, motif }` : une entrée de fiche que l'adaptation écarte, une fois, motif non vide.
 - **Édition.** Dans l’éditeur Godot, remplir `couvre` sur l’élément porteur et les écarts dans
   le narratif. Les entrées offertes viennent des fiches de dossier commitées.
-- **État des lieux.** `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend, par fiche et par
-  famille, chaque entrée couverte (par quel élément de quel projet livré), écartée (motif) ou non couverte.
-  Il lit le paquet sous `src/scenes/`. Le lien posé dans l’atelier Godot entre dans l’état des lieux
-  lors de la régénération qui suit « Enregistrer » (§1).
-  Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
+- **État des lieux.** `npm run jeu-de-role:docs` rend sur la sortie standard, par fiche et par famille,
+  chaque entrée couverte (par quel élément de quel paquet du jeu de rôle), écartée (motif) ou non couverte ;
+  il lit les paquets que le script nomme dans `package.json`. Le lien posé dans l’atelier Godot y entre dès
+  « Enregistrer » (§1). `docs/projets/jeu-de-role/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run jeu-de-role:docs`) rend le même état
+  des lieux sur le seul contenu du commun (`paquetsDuCommun`, les `.json` de `src/scenes/fixtures`).
+  Garde : `projets/jeu-de-role/suites/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
   entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 
 ## 10sexies. Cible d'individu d'un Trait psy (`@id`, #3045)

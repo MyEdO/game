@@ -17,7 +17,6 @@ import { ensureBourse, setBourseBrass } from '../engine/bourse';
 import { stepPrecision } from './rollSeam';
 import { diseaseLabel } from '../data';
 import { t } from '../i18n';
-import loupEtSaumure from '../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 
 const ACE = { book: 'altdorf-couronne-de-l-empire', page: 31, note: 'ACE 02 l.99' };
 /** L'asile de nuit de Miriam : chambre commune 5 sc (vérole urticante 5 %), repas 3 sc (courante galopante 5 %). ACE 02 l.99 */
@@ -130,14 +129,5 @@ describe('un établissement d’hébergement sans `rest` (#4277 B1)', () => {
     reposA({ id: 'auberge', kind: { id: 'auberge' } });
     expect(nuit().offres.map((o) => o.id)).toEqual(['commune', 'chambre', 'grande', 'repas']);
     expect(nuit().perHero[vivants()[0].id].lodging).toBe('chambre-1');
-  });
-
-  const auberges = loupEtSaumure.worldMap.places.flatMap((p) => (p.services ?? []).filter((s) => s.kind.id === 'auberge').map((s) => [p.id, s] as const));
-  it('« Le Loup et la Saumure » déclare deux auberges', () => {
-    expect(auberges.map(([lieu]) => lieu)).toEqual(['salzenmund', 'erengrad']);
-  });
-  it.each(auberges)('l’auberge de %s ouvre le repos avec l’offre par défaut', (_lieu, auberge) => {
-    reposA({ ...auberge, kind: { id: 'auberge' } });
-    expect(nuit().offres.map((o) => o.id)).toEqual(['commune', 'chambre', 'grande', 'repas']);
   });
 });

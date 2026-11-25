@@ -37,7 +37,7 @@ jobs:
       - run: npm run typecheck
       - uses: ./.github/actions/caches-3d
       - name: Construire l’export Web Godot
-        run: npm run godot:web
+        run: npm run jeu-de-role:web
       # PROD_DEPLOY_KEY : clé privée SSH dont la publique est une deploy key en écriture sur cgauche/cgauche.github.io
       - if: ${{ inputs.cible == 'jeu' }}
         uses: actions/checkout@v4

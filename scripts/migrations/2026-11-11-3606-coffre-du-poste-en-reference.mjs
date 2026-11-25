@@ -8,19 +8,19 @@
  *
  * `hydratePoste` (`src/engine/items.ts`) matérialise au spawn. MDG 12 l.410-424
  *
- * Entrées : chaque `src/scenes/<c>/<c>-projet.json`, et `src/data/trappings.json`.
+ * Entrées : chaque projet livré `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`), et `src/data/trappings.json`.
  *
  * Une munition hors du catalogue des munitions (`categorie` `ammunition`), d'un libellé autre que le sien, deux
  * munitions d'un même id, une `qty` non entière positive, un `ammoUid` hors du coffre, un poste qui porte
  * `loadedAmmoUid` ou `enchants` (que la forme d'après ne porte plus) sont un ARRÊT nominatif (exit 1), AUCUNE
  * écriture. Un coffre déjà en record passe. Rejouée sur l'arbre migré : no-op byte-identique.
  */
-import { readFileSync, readdirSync, existsSync, writeFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const SCENES = join(ROOT, 'src/scenes');
 const MUNITIONS = new Map(JSON.parse(readFileSync(join(ROOT, 'src/data/trappings.json'), 'utf8')).filter((t) => t.categorie === 'ammunition').map((t) => [t.id, t]));
 
 const arrets = [];
@@ -57,16 +57,12 @@ function migrerLePoste(p, ou) {
   gestes++;
 }
 
-const projets = readdirSync(SCENES, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => join(SCENES, d.name, `${d.name}-projet.json`))
-  .filter((f) => existsSync(f));
 const ecritures = [];
-for (const fichier of projets) {
+for (const nom of cheminsDesProjetsLivres(ROOT)) {
+  const fichier = join(ROOT, nom);
   const brut = readFileSync(fichier, 'utf8');
   if (!brut.includes('"postes"')) continue;
   const doc = JSON.parse(brut);
-  const nom = fichier.slice(SCENES.length + 1);
   if (brut !== reserialise(doc, brut)) { arrets.push(`${nom} : forme non canonique`); continue; }
   const parcourir = (noeud, chemin) => {
     if (Array.isArray(noeud)) { noeud.forEach((v, i) => parcourir(v, `${chemin}[${i}]`)); return; }

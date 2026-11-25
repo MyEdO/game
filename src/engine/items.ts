@@ -48,6 +48,8 @@ import {
   qualityInstance,
   refLabel,
   estDotationDObjet,
+  bandeDe,
+  qualitesDesPiecesDuLivre,
   type TrappingRef,
   type TrappingData,
   type ArmeDerivee,
@@ -1298,6 +1300,17 @@ export function porteurAvecArmementEffectif(c: Combatant): Combatant {
   };
 }
 
+/** Le porteur `c` sous les règles optionnelles d'équipement : ses armures d'une pièce (`armuresRapides`), ses PA
+ *  re-dérivés, puis son armement (`porteurAvecArmementEffectif`) ; `c` quand rien ne change. #4208 ; AA 02 l.17 */
+export function porteurALEquipementEffectif(c: Combatant): Combatant {
+  const avant = c.items ?? [];
+  const items = armuresRapides(avant);
+  if (items === avant) return porteurAvecArmementEffectif(c);
+  const calcul: Combatant = { ...c, items, loadouts: c.loadouts?.map((set) => ({ ...set })) };
+  recomputeLoadout(calcul);
+  return porteurAvecArmementEffectif({ ...c, items, armour: calcul.armour, encumbrance: calcul.encumbrance });
+}
+
 /**
  * Arme dérivée d'un poste d'artillerie SERVI (`mannedPoste`, MDG 12-13) — taguée `mountSide = poste.side`,
  * profil et altérations de l'instance repliés par la projection UNIQUE `weaponFromItem`. Builder PARTAGÉ par
@@ -1426,15 +1439,22 @@ export function autoStowNewItem(c: Combatant, it: ItemInstance): void {
 
 /**
  * SOURCE UNIQUE du « donner un objet à un combattant » : `it` rejoint son inventaire PERSONNEL, rangé
- * (`autoStowNewItem`), son équipement actif re-dérivé, et la case de carrière d'une dotation du niveau suivant
- * cochée (`cocherLaDotation`). Mute `c` ; l'appelant crée l'instance UNE fois (`itemFromTrappingById`,
- * `itemFromGive`). CRB 018 l.25
+ * (`autoStowNewItem`), ses armures fondues (`armuresRapides`), son équipement actif re-dérivé, et la case de carrière
+ * d'une dotation du niveau suivant cochée (`cocherLesDotationsRecues`). Mute `c` ; l'appelant crée l'instance UNE fois
+ * (`itemFromTrappingById`, `itemFromGive`). CRB 018 l.25 ; #4208
  */
 export function recevoirLObjet(c: Combatant, it: ItemInstance): void {
   c.items = [...(c.items ?? []), it];
   autoStowNewItem(c, it);
+  c.items = armuresRapides(c.items);
   recomputeLoadout(c);
-  cocherLaDotation(c, it.trappingId);
+  cocherLesDotationsRecues(c, [it]);
+}
+
+/** Coche la dotation de carrière de chaque objet de `recus` (`cocherLaDotation`), lu dans l'armure d'une pièce qui le
+ *  remplace (`bandeDe`). CRB 018 l.25 ; #4208 */
+export function cocherLesDotationsRecues(c: Combatant, recus: readonly ItemInstance[]): void {
+  for (const it of recus) cocherLaDotation(c, it.trappingId && (bandeDe(it.trappingId)?.id ?? it.trappingId));
 }
 
 /** `recevoirLObjet` sur un CLONE du héros et une COPIE de `it` : la même instance s'écrit sur chaque copie de l'acteur
@@ -1733,11 +1753,99 @@ export function inventaireDesDotations(
   // d'abord — LDB 63 : pas de « 2 armures de cuir ») ; les doublons restent dans l'inventaire. Une arme de dotation se tient
   // par la panoplie (`ensureDefaultLoadout`) : elle ne naît pas portée, sauf si elle se porte (`isWearable`).
   const holder = { items } as Combatant; // equipConflicts lit c.items (équipés au fil de l'eau)
-  const armours = items.filter((i) => i.kind === 'armor' && !itemCapability(i, 'armureDeMonture')).sort((a, b) => (b.pa ?? 0) - (a.pa ?? 0));
-  for (const a of armours) if (!equipConflicts(holder, a).length) a.equipped = true;
+  porterLesArmures(holder, items.filter(estUneArmureDuPorteur));
   // LDB 61 l.21
   for (const it of items) if (it.kind !== 'armor' && isWearable(it) && !equipConflicts(holder, it).length) it.equipped = true;
   return items;
+}
+
+/** Armure portée sur soi, hors armure de monture. */
+const estUneArmureDuPorteur = (i: ItemInstance): boolean => i.kind === 'armor' && !itemCapability(i, 'armureDeMonture');
+
+/** Porte chaque armure de `candidates` sans conflit de port chez `tenant` (`equipConflicts`), meilleure PA d'abord.
+ *  LDB 63 l.60, l.74 */
+function porterLesArmures(tenant: Pick<Combatant, 'items'>, candidates: readonly ItemInstance[]): void {
+  for (const a of [...candidates].sort((x, y) => (y.pa ?? 0) - (x.pa ?? 0))) if (!equipConflicts(tenant, a).length) a.equipped = true;
+}
+
+/** Dégâts de l'armure d'une pièce de PA `pa` née de la fonte de `pieces`. #4208 */
+function usureDeLaFonte(pa: number, pieces: readonly ItemInstance[]): ItemInstance['usure'] {
+  const usure: Partial<Record<HitLocation, number>> = {};
+  for (const loc of LOCALISATIONS_DE_COUP) {
+    const la = pieces.filter((p) => p.locs?.includes(loc));
+    const perdus = la.some((p) => !armureUtilisableA(p, loc)) ? pa + 1 : Math.min(pa, Math.max(0, ...la.map((p) => p.usure?.[loc] ?? 0)));
+    if (perdus) usure[loc] = perdus;
+  }
+  return Object.keys(usure).length ? usure : undefined;
+}
+
+/** L'armure d'une pièce `id` qui fond `fondues` sous l'uid de `reprise` (`fondues[0]`) : les qualités qu'aucune pièce
+ *  de son livre ne porte à leur type (`qualitesDesPiecesDuLivre`), l'état d'identification d'une pièce non identifiée.
+ *  LDB 63 l.97 ; #4208 */
+function armureDeLaFonte(id: string, fondues: readonly [ItemInstance, ...ItemInstance[]]): ItemInstance {
+  const [reprise] = fondues;
+  const bande = instanceDuGabarit(garanti(gabaritDObjet(id), id, 'armure d’une pièce'), reprise.uid);
+  const livre = garanti(findTrappingById(id), id, 'armure d’une pièce').source.book;
+  const qualites = new Set(bande.qualities.map((q) => q.id));
+  for (const p of fondues) {
+    const communes = qualitesDesPiecesDuLivre(livre, p.subType);
+    for (const q of p.qualities) if (!qualites.has(q.id) && !communes.has(q.id)) {
+      qualites.add(q.id);
+      bande.qualities.push({ ...q });
+    }
+  }
+  const usure = usureDeLaFonte(bande.pa ?? 0, fondues);
+  const sizeFor = fondues.find((p) => p.sizeFor)?.sizeFor;
+  const inconnue = fondues.find((p) => p.identified === false);
+  const resultat: ItemInstance = {
+    ...bande,
+    equipped: fondues.some((p) => p.equipped),
+    ...(reprise.inside ? { inside: reprise.inside } : {}),
+    ...(reprise.source ? { source: reprise.source } : {}),
+    ...(reprise.teinte ? { teinte: reprise.teinte } : {}),
+    ...(sizeFor ? { sizeFor } : {}),
+    ...(usure ? { usure } : {}),
+    ...(inconnue ? { identified: false } : {}),
+    ...(inconnue?.magicKnown ? { magicKnown: true } : {}),
+    ...(inconnue?.detectTriedBy ? { detectTriedBy: [...inconnue.detectTriedBy] } : {}),
+    ...(inconnue?.appraiseTriedDay != null ? { appraiseTriedDay: inconnue.appraiseTriedDay } : {}),
+    ...(inconnue?.suspectedQualities ? { suspectedQualities: [...inconnue.suspectedQualities] } : {}),
+  };
+  if (reprise.apparence) choisirApparenceDObjet(resultat, reprise.apparence, trappingBrutParId);
+  return resultat;
+}
+
+/** Les objets `items`, chaque pièce d'armure fondue dans l'armure d'une pièce qui la remplace (`bandeDe`) : une par
+ *  armure, celle déjà possédée d'abord, puis la pièce portée ; les armures portées se reportent (`porterLesArmures`).
+ *  Même référence sans pièce à fondre. LDB 63 l.95-103 ; #4208 */
+export function armuresRapides(items: ItemInstance[]): ItemInstance[] {
+  const pieces = new Map<string, ItemInstance[]>();
+  for (const it of items) {
+    const bande = it.trappingId ? bandeDe(it.trappingId) : undefined;
+    if (bande) pieces.set(bande.id, [...(pieces.get(bande.id) ?? []), it]);
+  }
+  if (!pieces.size) return items;
+  const remplacees = new Map<string, ItemInstance>();
+  const fondues = new Set<string>();
+  const premiere = (l: readonly ItemInstance[]): ItemInstance => l.find((i) => i.equipped) ?? l[0];
+  for (const [id, liste] of pieces) {
+    const possedees = items.filter((i) => i.trappingId === id);
+    const reprise = premiere(possedees.length ? possedees : liste);
+    const fonte: [ItemInstance, ...ItemInstance[]] = [reprise, ...liste.filter((p) => p !== reprise)];
+    remplacees.set(reprise.uid, armureDeLaFonte(id, fonte));
+    for (const p of fonte) fondues.add(p.uid);
+  }
+  const portees: ItemInstance[] = [];
+  const resultat = items.flatMap((i) => {
+    const it = remplacees.get(i.uid) ?? (fondues.has(i.uid) ? undefined : i);
+    if (!it) return [];
+    if (!it.equipped || !estUneArmureDuPorteur(it)) return [it];
+    const otee = { ...it, equipped: false };
+    portees.push(otee);
+    return [otee];
+  });
+  porterLesArmures({ items: resultat }, portees);
+  return resultat;
 }
 
 /** Famille générique de munitions. LDB 14 l.142 ; LDB 62 l.74-76, l.99, l.101, l.106-131. */

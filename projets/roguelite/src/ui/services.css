@@ -107,19 +107,19 @@
 /* le départ */
 .emporte { align-items: stretch; text-align: left; gap: 10px; }
 .emporte .cases-sac { min-height: 62px; }
+.au-combat { display: grid; gap: 6px; }
+.choix-au-combat { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.choix-au-combat .rub { margin-right: auto; }
 .provision { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; color: var(--sepia); }
 .provision .n { font: 16px/18px "Grenze Gotisch", serif; }
 .emporte.libre { align-items: center; justify-content: center; background: none; box-shadow: none; border: 1.5px dashed var(--trait-encre); }
 .emporte.libre .glose { font-size: 15px; }
 
-/* les paliers, les tombes, la chronique */
+/* les paliers, la chronique */
 .palier .niveaux { margin-top: 6px; }
 .palier .apport { display: block; }
 .palier.courant { background: rgba(201,161,74,.26); box-shadow: inset 0 0 0 2px var(--laiton); }
 .palier > .sous-titre { margin-top: auto; }
-.corps-service.tombes { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; align-content: start; }
-.tombe { gap: 4px; }
-.tombe .effet { font-size: 14px; line-height: 18px; color: var(--encre-2); }
 .chronique { margin: 0; padding: 0; list-style: none; columns: 2; column-gap: 44px; font-size: 15.5px; line-height: 1.45; }
 .chronique li { break-inside: avoid; margin-bottom: 10px; padding-left: 12px; border-left: 1px solid var(--filet-encre); color: var(--encre-2); }
 .chronique li:first-child { color: var(--encre); }
@@ -144,3 +144,28 @@
 .tete-service .effet-actuel { justify-self: start; }
 .etiquette.qualite.voie { gap: 5px; height: 23px; padding-left: 3px; }
 .etiquette.qualite.voie .signe-de-voie { font-size: 11.5px; box-shadow: 0 0 0 1px var(--contour); }
+/* une page plus basse que celle de la taille d'interface par défaut (la vue de référence, à la taille « grande ») :
+   cartes, porteur, étal et colonnes du départ se resserrent pour tenir sans défiler */
+@container (max-height: 400px) {
+  .carte-service { gap: 5px; padding: 10px; }
+  .vignette-carte { width: 64px; height: 64px; margin-bottom: 0; }
+  .vignette-carte > .medaillon { transform: none; }
+  .carte-service > .nom-propre { font-size: 22px; line-height: 26px; }
+  .carte-service .effet { font-size: 14.5px; line-height: 19px; }
+  .recrue .portrait { min-height: 72px; }
+  .porteur { gap: 3px; }
+  .porteur .heros-en-tete .portrait { width: 56px; height: 70px; }
+  .porteur .heros-en-tete .qui { gap: 2px; }
+  .emplacement { padding: 1px 8px; }
+  .emplacement .boite-objet, .emplacement.choisi .boite-objet { width: 40px; height: 40px; }
+  .emplacement .nom-objet { font-size: 16px; line-height: 19px; }
+  .emplacement .etiquette.qualite { height: 18px; padding: 0 6px; font-size: 11px; }
+  :is(.emplacement, .etal.ample) .traits { gap: 3px; }
+  .etal.ample .mesures { gap: 4px 10px; }
+  .etal.ample .mesure b { font-size: 22px; line-height: 26px; }
+  .etal.ample .etiquette.qualite { height: 20px; padding: 0 6px; font-size: 11.5px; letter-spacing: .3px; }
+  .emporte .cases-sac { min-height: 0; }
+  .provisions { gap: 3px; }
+  .provision .n { font-size: 14px; line-height: 16px; }
+  .au-combat, .choix-au-combat { gap: 3px; }
+}

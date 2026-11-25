@@ -15,6 +15,8 @@ export interface Couche {
   /** Pour un outillage de la zone (clé : `couvre`), les seuls paquets de l'hôte web que ses modules chargent ; aucun module de
    *  la zone hors de lui ne l'importe. */
   readonly paquetsDOutillage?: Readonly<Record<string, readonly string[]>>;
+  /** Pour un projet, les affichages qu'il déclare, importés de droit. */
+  readonly affichages?: readonly string[];
   /** Pour un projet, les zones qu'il ouvre au-delà des droits d'un projet, chacune nommée par son ticket. */
   readonly ouvertures?: Readonly<Record<string, number>>;
 }
@@ -22,9 +24,14 @@ export interface Couche {
 /** Les droits d'un projet : ceux des hôtes, sans `scenes`. */
 export const DROITS_D_UN_PROJET: Couche;
 
-/** La ligne du projet de dossier `dossier` : les droits d'un projet, plus ses ouvertures ; ouvrir une zone l'importe et
- *  retire sa porte. */
-export function ligneDeProjet(dossier: string, ouvertures: Readonly<Record<string, number>>): Couche;
+/** La ligne du projet de dossier `dossier` : les droits d'un projet, plus les affichages qu'il déclare, plus ses
+ *  ouvertures ; ouvrir une zone l'importe et retire sa porte. `outillage` : les modules hors des zones que lit chacun de
+ *  ses outillages. */
+export function ligneDeProjet(
+  dossier: string,
+  ouvertures: Readonly<Record<string, number>>,
+  declarations?: { readonly affichages?: readonly string[]; readonly outillage?: Readonly<Record<string, readonly string[]>> },
+): Couche;
 
 /** `z` est-il un projet : une zone dont le dossier est sous `projets/` ? */
 export function estProjet(z: unknown): boolean;
