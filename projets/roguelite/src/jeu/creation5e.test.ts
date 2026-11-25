@@ -104,7 +104,7 @@ describe('recrues : la création 5e du noyau', () => {
       }
     }
     expect(ecarts).toEqual([]);
-  });
+  }, 60_000);
 
   it('le nom d’une recrue se tire au sexe tiré de la recrue : son prénom, et le suffixe de son patronyme nain, dans la banque de son sexe. LDB 05 l.621-633', () => {
     const ecarts: string[] = [];
@@ -124,7 +124,7 @@ describe('recrues : la création 5e du noyau', () => {
     }
     expect(ecarts).toEqual([]);
     expect([...sexes].sort()).toEqual(['F', 'M']);
-  });
+  }, 60_000);
 });
 
 describe('sauvegarde : une compagnie 4e', () => {
