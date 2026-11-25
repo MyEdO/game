@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { contractDisease, maladieDeclaree } from '../../../../src/engine/disease';
 import { MINUTES_PER_DAY } from '../../../../src/engine/clock';
-import { jouerLEpreuve, makeRNG, maladies, souillure, type Combatant, type Epreuve } from '../noyau';
+import { jouerLEpreuve, makeRNG, maladies, souillure, type Combatant, type Epreuve, poserLesReglesDuRoguelite } from '../noyau';
 import { ecranDuHeros } from '../ui/fiche';
 import { attendreUneSemaine, compagnieEpuisee, confierALHospice, EPREUVES, nouvellePartie, SEMAINE_DE_REPOS, type Etat, type Heros } from './index';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 /** La compagnie épuisée : chacun sous la moitié de ses Blessures, la semaine d'attente s'ouvre. */
 function epuisee(e: Etat): void {

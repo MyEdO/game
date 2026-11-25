@@ -91,8 +91,6 @@ import { props } from '../../data';
 import { adresseDeCreation } from '../../engine/adresseDeCreation';
 import { ficheDEntite } from '../monde/sceneNpc';
 import { presetDuNarratif } from '../monde/resolveursDuNarratif';
-import { allBuiltinCampaigns, areneCampaign } from '../../scenes/campaign';
-import { paquetDuJeu } from '../campagneLivree';
 import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession } from '../../hote/editeur';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
@@ -107,6 +105,20 @@ const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene
 const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
+/** Une rade : la cogue `cogue-pirate` (Amélioration `renforce` 1, un canon moyen chargé de boulets), une autre coque, deux
+ *  personnages sans coque. */
+const RADE: Scene = {
+  ...emptyScene('rade', 24, 14),
+  entities: [
+    { id: 'cogue-pirate', kind: 'personnage', vehicule: { id: 'cogue' }, pos: { x: 18, y: 7 }, facing: 'O', upgrades: [{ id: 'renforce', value: 1 }], postes: [{ engin: { id: 'canon-moyen' }, side: 'tribord', crewIds: [], ammo: { 'boulet-et-poudre': 12 }, selectedAmmo: { id: 'boulet-et-poudre' } }] },
+    { id: 'louve', kind: 'personnage', vehicule: { id: 'loup-imperial' }, pos: { x: 3, y: 7 }, facing: 'E' },
+    { id: 'pirate-1', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 11, y: 2 } },
+    { id: 'pirate-2', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 11, y: 11 } },
+  ],
+} as Scene;
+/** La rade ouverte à l'édition, la cogue sélectionnée au pointeur. */
+const laCogueSelectionnee = (): SessionDEdition => [{ geste: 'appui', point: point(18, 7) }, { geste: 'relache', point: point(18, 7) }]
+  .reduce((s, g) => editer(s, g as GesteDEdition), ouverteSur(RADE));
 
 describe('session d’édition', () => {
   it('ajouter une couche l’édite ; annuler l’ajout ramène au rez, rétablir garde le rez', () => {
@@ -642,10 +654,9 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const ecrite = jouer(griffon, valeur(id, ['combat'], {}), valeur(id, ['combat', 'randomChars'], true), valeur(id, ['combat', 'optionals'], [{ id: 'rapide' }]), valeur(id, ['combat', 'optionals', 0, 'value'], 2), valeur(id, ['amateur'], 'amateurDArt'));
     expect(entiteDeLaSelection(sceneEditee(ecrite), ecrite.sel), 'la sélection désigne toujours l’entité écrite').toMatchObject({ id, combat: { randomChars: true, optionals: [{ id: 'rapide', value: 2 }] }, amateur: 'amateurDArt' });
     expect(ecrite.historique.passe.length - griffon.historique.passe.length, 'chaque écriture sur un cran').toBe(5);
-    const barge = allBuiltinCampaigns.find((c) => c.id === 'barge-du-sel')!;
-    const cogue = jouer(ouvrirLEdition(paquetDuJeu(barge), false), { geste: 'scenes', quoi: 'aller', id: 'barge-du-sel-embuscade' }, { geste: 'appui', point: point(18, 7) }, { geste: 'relache', point: point(18, 7) });
+    const cogue = laCogueSelectionnee();
     const coque = idDe(cogue);
-    expect(entiteDeLaSelection(sceneEditee(cogue), cogue.sel), 'la coque pirate de l’embuscade').toMatchObject({ vehicule: { id: 'cogue' }, upgrades: [{ id: 'renforce', value: 1 }] });
+    expect(entiteDeLaSelection(sceneEditee(cogue), cogue.sel), 'la cogue de la rade').toMatchObject({ vehicule: { id: 'cogue' }, upgrades: [{ id: 'renforce', value: 1 }] });
     const amelioree = jouer(cogue, valeur(coque, ['upgrades', 0, 'value'], 2));
     expect(entiteDeLaSelection(sceneEditee(amelioree), amelioree.sel)?.upgrades).toEqual([{ id: 'renforce', value: 2 }]);
     expect(refusDeLaValeur(griffon, valeur(id, ['upgrades'], [{ id: 'renforce' }])), 'seule une coque porte des Améliorations').toBe('nonOffert');
@@ -751,16 +762,22 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
   });
 
   it('la référence locale d’un effet se choisit parmi exactement sa portée : les scènes du projet, les personnages de la scène, ses marchands (#3606 M2d)', () => {
-    const projetArene = paquetDuJeu(areneCampaign);
-    const hub = projetArene.scenes.find((sc) => sc.id === 'arene-hub')!;
+    const place: Scene = {
+      ...emptyScene('place', 6, 6),
+      entities: [
+        { id: 'medecin', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 1, y: 1 }, merchant: { archetype: { id: 'medecin' } } },
+        { id: 'badaud', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 1 } },
+        { id: 'brasero', kind: 'prop', decor: { id: 'brasero' }, pos: { x: 3, y: 3 } },
+      ],
+    } as Scene;
+    const projet = { scenes: [place, emptyScene('ruelle', 4, 4)] };
     const offerts = (effect: Effect, champ: string) => {
       const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence' as const, etapes: [{ kind: 'effet' as const, effet: effect }] } };
-      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: hub, projet: { scenes: projetArene.scenes, narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
+      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: place, projet: { scenes: projet.scenes, narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
     };
-    expect(offerts({ type: 'transition', scene: { id: 'arene-hub' } }, 'scene')).toEqual(projetArene.scenes.map((sc) => sc.id));
-    const personnages = hub.entities.filter((e) => e.kind === 'personnage');
-    expect(offerts({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, 'entityId')).toEqual(personnages.map((e) => e.id));
-    expect(offerts({ type: 'openMerchant', entityId: { id: 'medecin' } }, 'entityId')).toEqual(personnages.filter((e) => e.merchant).map((e) => e.id));
+    expect(offerts({ type: 'transition', scene: { id: 'place' } }, 'scene')).toEqual(['place', 'ruelle']);
+    expect(offerts({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, 'entityId')).toEqual(['medecin', 'badaud']);
+    expect(offerts({ type: 'openMerchant', entityId: { id: 'medecin' } }, 'entityId')).toEqual(['medecin']);
   });
 
   it.each([
@@ -1074,8 +1091,7 @@ describe('les actions d’un décor au formulaire tiré du schéma (#3606 M1e)',
 
 describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', () => {
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
-  const barge = allBuiltinCampaigns.find((c) => c.id === 'barge-du-sel')!;
-  const cogue = jouer(ouvrirLEdition(paquetDuJeu(barge), false), { geste: 'scenes', quoi: 'aller', id: 'barge-du-sel-embuscade' }, { geste: 'appui', point: point(18, 7) }, { geste: 'relache', point: point(18, 7) });
+  const cogue = laCogueSelectionnee();
   const coque = (s: SessionDEdition) => entiteDeLaSelection(sceneEditee(s), s.sel)!;
   const valeur = (chemin: Segment[], v: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'entite', id: coque(cogue).id }, chemin, valeur: v });
   const choix = (s: SessionDEdition, chemin: Segment[]) => choixDuChamp('entite', coque(s), chemin, cadreDeLaSession(s))?.map((c) => c.valeur);

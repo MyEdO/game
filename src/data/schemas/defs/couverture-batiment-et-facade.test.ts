@@ -11,6 +11,7 @@ import { sceneSchema } from '../defs-scenes/scene';
 import buildingsJson from '../../buildings.json';
 import semencesJson from '../../semences-de-scene.json';
 import areneProjet from '../../../scenes/arene/arene-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Entree = Record<string, unknown>;
 
@@ -20,14 +21,14 @@ const messages = (schema: z.ZodType, doc: unknown): string => {
   return r.success ? '' : r.error.issues.map((i) => i.message).join(' ');
 };
 
-/** La première scène de l'Arène qui porte un corps architectural, ce corps passé par `corps`. */
-const sceneAuCorps = (corps: (c: Entree) => Entree): Entree => {
-  const s = areneProjet.scenes.find((x) => x.architecture?.length);
-  expect(s, 'aucune scène de l’Arène ne porte de corps : le cas n’est plus exerçable').toBeDefined();
-  const scene: Entree = structuredClone(s ?? {});
-  const [premier, ...autres] = (scene.architecture ?? []) as Entree[];
-  return { ...scene, architecture: [corps(premier), ...autres] };
-};
+/** Une masse de toiture sur la bande `x`..`x+1` de la scène. */
+const masse = (id: string, x: number): Entree => ({ id, z: 0, footprint: [{ x, y: 0, w: 2, h: 2 }], levels: 1, profile: 'gable', pitchDeg: 30, material: { id: 'tuile' } });
+
+/** La première scène du paquet de test, dotée d'un corps architectural à deux masses passé par `corps`. */
+const sceneAuCorps = (corps: (c: Entree) => Entree): Entree => ({
+  ...structuredClone(paquetDeTest.scenes[0]),
+  architecture: [corps({ id: 'corps-de-test', label: 'Corps de test', storeys: [], facades: [], masses: [masse('masse-a', 0), masse('masse-b', 2)] })],
+});
 
 /** Les masses de `c`, chacune passée par `masse`. */
 const masses = (c: Entree, masse: (m: Entree, i: number) => Entree): Entree => ({ ...c, masses: (c.masses as Entree[]).map(masse) });
@@ -38,10 +39,10 @@ const PORTEURS = [
   { porteur: 'buildings.json › roofMaterial', schema: schemaBuildings, doc: (v: unknown) => buildingsJson.map((b) => (b.id === 'forge' ? { ...structuredClone(b), roofMaterial: v } : b)), connue: 'chaume', refus: COUVERTURE },
   { porteur: 'semences-de-scene.json › roofDefaults.material', schema: schemaSemences, doc: (v: unknown) => ({ ...semencesJson, roofDefaults: { ...semencesJson.roofDefaults, material: v } }), connue: 'tuile', refus: COUVERTURE },
   { porteur: 'semences-de-scene.json › facade', schema: schemaSemences, doc: (v: unknown) => ({ ...semencesJson, facade: v }), connue: 'mur-en-pierre', refus: 'est absent du catalogue des structures' },
-  { porteur: 'arene-projet.json › scenes[].roofDefaults.material', schema: sceneSchema, doc: (v: unknown) => ({ ...areneProjet.scenes[0], roofDefaults: { ...areneProjet.scenes[0].roofDefaults, material: v } }), connue: 'chaume', refus: COUVERTURE },
-  { porteur: 'arene-projet.json › scenes[].architecture[].roofDefaults.material', schema: sceneSchema, doc: (v: unknown) => sceneAuCorps((c) => ({ ...c, roofDefaults: { material: v } })), connue: 'chaume', refus: COUVERTURE },
-  { porteur: 'arene-projet.json › scenes[].architecture[].masses[].material', schema: sceneSchema, doc: (v: unknown) => sceneAuCorps((c) => masses(c, (m, i) => (i === 0 ? { ...m, material: v } : m))), connue: 'chaume', refus: COUVERTURE },
-  { porteur: 'arene-projet.json › scenes[].architecture[].style', schema: sceneSchema, doc: (v: unknown) => sceneAuCorps((c) => ({ ...c, style: v })), connue: 'taverne', refus: 'est absent du catalogue des bâtiments' },
+  { porteur: 'scenes[].roofDefaults.material', schema: sceneSchema, doc: (v: unknown) => ({ ...paquetDeTest.scenes[0], roofDefaults: { ...paquetDeTest.scenes[0].roofDefaults, material: v } }), connue: 'chaume', refus: COUVERTURE },
+  { porteur: 'scenes[].architecture[].roofDefaults.material', schema: sceneSchema, doc: (v: unknown) => sceneAuCorps((c) => ({ ...c, roofDefaults: { material: v } })), connue: 'chaume', refus: COUVERTURE },
+  { porteur: 'scenes[].architecture[].masses[].material', schema: sceneSchema, doc: (v: unknown) => sceneAuCorps((c) => masses(c, (m, i) => (i === 0 ? { ...m, material: v } : m))), connue: 'chaume', refus: COUVERTURE },
+  { porteur: 'scenes[].architecture[].style', schema: sceneSchema, doc: (v: unknown) => sceneAuCorps((c) => ({ ...c, style: v })), connue: 'taverne', refus: 'est absent du catalogue des bâtiments' },
 ];
 
 describe('#2968 L12 — couverture, type de bâtiment et façade désignés par `ref(type)`', () => {

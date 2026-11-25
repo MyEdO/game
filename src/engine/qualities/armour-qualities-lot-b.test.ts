@@ -109,9 +109,9 @@ describe('Impénétrable — Critiques impairs ignorés (LDB 63)', () => {
   });
   it('pièce à 0 PA (LDB 63 l.19) → protège encore ; inutilisable sous 0 (LDB 63 l.21) → ne protège plus', () => {
     const usee = piece('Heaume', 2, ['tete'], ['Impénétrable']);
-    usee.damageTaken = 2;
+    usee.usure = { tete: 2 };
     expect(impenetrableAt(wearer([usee]), 'tete')).toBe(true);
-    usee.damageTaken = 3;
+    usee.usure = { tete: 3 };
     expect(impenetrableAt(wearer([usee]), 'tete')).toBe(false);
   });
 });

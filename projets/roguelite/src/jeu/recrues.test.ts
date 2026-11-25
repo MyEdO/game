@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import {
   acheter,
   acheterUneArmure,
@@ -14,7 +14,9 @@ import {
   type Etat,
   type Heros,
 } from './index';
-import { porterAuNiveau } from '../noyau';
+import { porterAuNiveau, poserLesReglesDuRoguelite } from '../noyau';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 const profilDe = (id: string) => PROFILS.find((p) => p.id === id)!;
 /** Une partie au relais `palier`, bâti par le jeu (`ameliorer`). */

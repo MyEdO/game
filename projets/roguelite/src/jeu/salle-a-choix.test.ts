@@ -1,7 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { poserLesReglesDuRoguelite } from '../noyau';
 import { addCondition, COND, hasCondition } from '../../../../src/engine/conditions';
 import { agirDansLaSalle, EPREUVES, herosDuGroupe, nouvellePartie, recrue, refusDAction, salleAChoisir, PROFILS } from './index';
 import { blessures, devant, recit } from './salles.testkit';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 /** La nonne de Shallya : ni la meilleure en Perception, ni la première du groupe. */
 const NONNE = 1;
@@ -86,8 +89,7 @@ describe('la cache piégée, salle à choix', () => {
   it('un Test que le noyau ne joue pas : ni bourse ni piège, le héros repris tel qu’il saigne, la salle reste au choix', () => {
     const e = devant('tresor', 8, ['chasseur']);
     const h = herosDuGroupe(e).find((g) => g.carriere === 'chasseur')!;
-    // equilibrage 15 8 : Brisé 6, Hémorragique 2, 13 Blessures
-    h.c.wounds.current = 13; addCondition(h.c, COND.brise, 6); addCondition(h.c, COND.hemorragique, 2);
+    h.c.wounds.current = 2; addCondition(h.c, COND.hemorragique, 2);
     const r = recit(agirDansLaSalle(e, 'desarmer', h.c.id));
     const repris = herosDuGroupe(e).find((g) => g.c.id === h.c.id)!;
     expect(r.epreuve).toBeUndefined();

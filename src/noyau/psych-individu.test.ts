@@ -30,7 +30,7 @@ import { presetDuNarratif } from './monde/resolveursDuNarratif';
 import { validateScene } from './validateScene';
 import type { Combatant, Weapon } from '../engine/types';
 import { SCHEMA_DEFS } from '../data/schemas/_registry.generated';
-import { readFileSync } from 'node:fs';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 import { blessuresDeBase, blessuresSurLeProfil, profilDeTest } from '../engine/combattantDeTest.testkit';
 
 /** Le texte brut des documents du catalogue, par chemin relatif (`../data/<file>`). */
@@ -207,7 +207,7 @@ describe('l’op psy de donnée : sa Cible est un Groupe, dans tout document', (
   const statblocAvec = (arg: string) => ({ type: 'statblock', label: 'Chien', char: {}, traits: [{ id: traitMixte!.id, arg }] });
 
   it('le projet admet l’individu au statbloc de ses scènes, jamais à l’op', () => {
-    const projet = JSON.parse(readFileSync(new URL('../scenes/arene/arene-projet.json', import.meta.url), 'utf8'));
+    const projet = JSON.parse(JSON.stringify(paquetDeTest));
     const [scene] = projet.scenes;
     const personnage = scene.entities[0].id;
     scene.entities.push({ id: 'pnj-cible', kind: 'personnage', pos: { x: 1, y: 1 }, statblock: statblocAvec(`@${personnage}`) });

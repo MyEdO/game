@@ -55,6 +55,23 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     await clic(p, '[data-a="partir"]'); await image(p, '4-expedition', l);
     await p.context().close();
   }
+  // 7. Progresser : à la salle d'armes puis à la fiche, le pas de CC du Soldat dit au survol l'écart de ses chances
+  // de toucher.
+  {
+    const p = await partie(l, h);
+    const pas = '.progression [data-a="pas"][data-k="capacite-de-combat"]';
+    const ditLEcart = async () => {
+      await p.hover(pas); await p.waitForTimeout(400);
+      return (await p.isVisible('.apercu-du-jeu')) && /% de chances de toucher/.test(await p.textContent('.apercu-du-jeu'));
+    };
+    await clic(p, 'button[data-a="batiment"][data-id="salle"]');
+    constater(await ditLEcart(), `7 : à la salle d’armes, le pas de CC dit au survol l’écart de chances de toucher (${l})`);
+    await image(p, '7-salle', l);
+    await clic(p, '[data-a="fermer-panneau"]'); await clic(p, '.socle-compagnie .carte-heros');
+    constater(await ditLEcart(), `7 : à la fiche, le pas de CC dit au survol l’écart de chances de toucher (${l})`);
+    await image(p, '7-fiche', l);
+    await p.context().close();
+  }
   // 9. La mort : sans Destin, à 1 Blessure, face au maître triplé.
   {
     let p = await partie(l, h);

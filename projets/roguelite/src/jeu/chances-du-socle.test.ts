@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import { addCondition, COND } from '../../../../src/engine/conditions';
-import { chancesDeReussite, epreuveTentable, jouerLEpreuve } from '../noyau';
+import { chancesDeReussite, epreuveTentable, jouerLEpreuve, poserLesReglesDuRoguelite } from '../noyau';
 import { ecranDeLExpedition } from '../ui/lieux';
 import { ACTIONS_A_JET, herosDuGroupe, refusDAction, refusDuSoigneur, viseeDuSoigneur } from './index';
 import { devant } from './salles.testkit';
+
+beforeAll(poserLesReglesDuRoguelite);
 
 /** La carte du héros `id` au socle de l'écran `html`. */
 const carte = (html: string, id: string): string => {

@@ -20,6 +20,7 @@ import { castingKindOf } from '../../../../src/engine/combatFeatures/dispatch';
 import { effectiveTalents } from '../../../../src/engine/talentsPossedes';
 import { findQualityById, findTrappingById, refLabel, testSkillLabel, trappingsInstanciables, weaponGroups } from '../../../../src/data';
 import type { ArmourPoints, Availability, Combatant, ItemInstance } from '../../../../src/engine/types';
+import type { TestDesigne } from '../../../../src/engine/skills';
 export { AVAILABILITIES as DISPONIBILITES, type Availability as Disponibilite } from '../../../../src/engine/types';
 
 export type PoidsDArmure = 'legere' | 'moyenne' | 'lourde';
@@ -97,16 +98,17 @@ export const qualitesDites = (qs: readonly { id: string; value?: number }[]): Qu
     return { nom: q.value == null ? nom : nom.startsWith('%') ? `${q.value} ${nom}` : `${nom} (${q.value})`, texte: d?.desc ?? '', defaut: d?.polarite === 'defaut' };
   });
 
-/** L'arme `id` du catalogue entre les mains de `c` : la valeur et le nom de son Test d'attaque, si sa Compétence
+/** L'arme `id` du catalogue entre les mains de `c` : la valeur, la désignation et le nom de son Test d'attaque, si sa Compétence
  *  couvre le Groupe de l'arme, ses Dégâts au Bonus de Force du porteur, le rang de son allonge. LDB 09 l.44 */
 /** `maitrise` : `complet`, la Spécialisation du Groupe de l'arme ; `degrade`, une autre Spécialisation de Tir qui garde
  *  son bonus mais fait perdre les Atouts de l'arme (Arbalète, Lancer : LDB 62 l.184) ; `aucun`, la Caractéristique seule. */
-export interface Maniement { attaque: number; test: string; maitrise: 'complet' | 'degrade' | 'aucun'; degats: number; rangDAllonge: number | null }
+export interface Maniement { attaque: number; designe: TestDesigne; test: string; maitrise: 'complet' | 'degrade' | 'aucun'; degats: number; rangDAllonge: number | null }
 export function maniement(c: Combatant, id: string): Maniement {
   const arme = weaponFromItem(doter([id], 'essai')[0]);
   const genre = arme.type === 'distance' ? 'distance' : 'melee';
+  const designe = attackTestOf(c, arme, genre);
   return {
-    attaque: combatBaseValue(c, genre, arme), test: testSkillLabel(attackTestOf(c, arme, genre)), maitrise: weaponGroupSkillMode(c, arme, genre),
+    attaque: combatBaseValue(c, genre, arme), designe, test: testSkillLabel(designe), maitrise: weaponGroupSkillMode(c, arme, genre),
     degats: effectiveWeaponDamage(arme, forceDuPorteur(c)), rangDAllonge: reachRankOf(arme.reach),
   };
 }

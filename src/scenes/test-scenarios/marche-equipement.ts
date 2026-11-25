@@ -26,7 +26,7 @@ function negociant(idNeuf: FabriqueDId): Combatant {
   const epee = itemFromGive({ trappingId: 'epee-batarde', teinte: { id: 'aethyrique' }, qualities: ['de-plaies-atroces'] }, idNeuf, undefined, undefined, contexteDeNaissanceDObjet(h));
   epee.identified = false;
   const maille = itemFromTrappingById('chemise-de-mailles', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;
-  maille.damageTaken = 2; // 2 PA perdus → réparable (10 %/PA, LDB 63)
+  maille.usure = { corps: 2 }; // LDB 63 l.64
   maille.equipped = true;
   const dague = itemFromTrappingById('dague', idNeuf, undefined, contexteDeNaissanceDObjet(h))!; // un objet à vendre
   const selle = itemFromTrappingById('selle-et-harnais', idNeuf, undefined, contexteDeNaissanceDObjet(h))!;

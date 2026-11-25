@@ -24,7 +24,7 @@ import { choixDuNoeud } from '../../../noyau/codex/editFields';
 import { renommeAuProjet, retireDuProjet } from '../../../noyau/narratifEdit';
 import { cheminLisible, validateDocument } from '../validate';
 import { versDisque } from '../grammaire/prose';
-import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
 import { declarationDeFeuilleDId, mesureDuParse } from '../grammaire/ref';
@@ -304,8 +304,8 @@ describe('portée des objets du projet (`OBJETS_DU_PROJET`) : catalogue ∪ `nar
     ]);
   });
 
-  it('`sitesDeLaPortee` lit toute portée : les scènes d’un projet commité sont ses repères locaux `scenes`', () => {
-    const doc = versDisque(diligenceProjet);
+  it('`sitesDeLaPortee` lit toute portée : les scènes du paquet de test sont ses repères locaux `scenes`', () => {
+    const doc = versDisque(paquetDeTest);
     const reperes = mesureDuParse(projetSchema, doc).reperes.filter((r) => r.type === 'local:scenes').map((r) => r.path.join('.')).sort();
     expect(reperes.length).toBeGreaterThan(0);
     expect(sitesDeLaPortee(projetSchema, doc, SCENES_DU_PROJET).map((s) => s.chemin.join('.')).sort()).toEqual(reperes);
@@ -760,8 +760,8 @@ describe('projetSchema — la FORME que voit le seam (avant normalizeScene/resol
 
 /**
  * UNE arête, UN segment (#1624) — l'invariant que l'index d'arêtes (`noyau/monde/wallIndex.ts`) SUPPOSE
- * et que ses consommateurs consomment (`aretesA(...)[0]`, `noyau/monde/volume/toits.ts`). Mesuré vrai
- * sur les 65 scènes livrées ; `setEdgeWall` (`noyau/sceneEdit.ts`) le tient à la POSE, ce banc le
+ * et que ses consommateurs consomment (`aretesA(...)[0]`, `noyau/monde/volume/toits.ts`).
+ * `setEdgeWall` (`noyau/sceneEdit.ts`) le tient à la POSE, ce banc le
  * tient à la PORTE — le chemin que prennent l'authoring littéral, les migrations et l'import.
  */
 describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () => {
@@ -785,10 +785,13 @@ describe('sceneSchema — une arête `x,y,side,z` ne porte qu’un segment', () 
     expect(projetSchema.safeParse(avecMurs([{ x: 3, y: 3, side: 'N' }, { x: 3, y: 3, side: 'N', z: 1 }])).success).toBe(true);
   });
 
-  it('la DONNÉE livrée traverse : aucune arête dupliquée dans les scènes de la Diligence', () => {
-    const scenes = diligenceProjet.scenes;
-    expect(scenes.flatMap<unknown>((s) => s.walls ?? []).length).toBeGreaterThan(0);
-    expect(projetSchema.safeParse(versDisque(diligenceProjet)).success).toBe(true);
+  it('l’arête est unique DANS sa scène : la même clé dans deux scènes du paquet de test est acceptée', () => {
+    const mur = { x: 1, y: 1, side: 'N' };
+    const doc = structuredClone(paquetDeTest) as unknown as { scenes: Jouet[] };
+    for (const scene of doc.scenes) scene.walls = [mur];
+    expect(projetSchema.safeParse(doc).success).toBe(true);
+    doc.scenes[1].walls = [mur, mur];
+    expect(fautes(doc)).toEqual(['scène « scene-de-test-b » › murs « 1,1,N,0 » :: « 1,1,N,0 » dupliqué : « x,y,side,z » identifie l’élément dans sa liste, il y est unique.']);
   });
 });
 
@@ -842,10 +845,12 @@ describe('sceneSchema — chaque tableau parallèle d’une couche porte EXACTEM
     expect(projetSchema.safeParse(projet({ scenes: [sceneMinimale()] })).success).toBe(true);
   });
 
-  it('la DONNÉE livrée traverse : les couches de la Diligence sont au cardinal', () => {
-    const scenes = diligenceProjet.scenes;
-    expect(scenes.flatMap((s) => s.layers ?? []).length).toBeGreaterThan(0);
-    expect(projetSchema.safeParse(versDisque(diligenceProjet)).success).toBe(true);
+  it('le paquet de test traverse : chacune de ses couches porte `w×h` cases, une case retirée le refuse', () => {
+    const doc = structuredClone(paquetDeTest) as unknown as { scenes: { dimensions: { w: number; h: number }; layers: { tiles: string[] }[] }[] };
+    for (const { dimensions, layers } of doc.scenes) expect(layers.map((c) => c.tiles.length)).toEqual(layers.map(() => dimensions.w * dimensions.h));
+    expect(projetSchema.safeParse(doc).success).toBe(true);
+    doc.scenes[1].layers[0].tiles.pop();
+    expect(fautes(doc)).toEqual(['scène « scene-de-test-b » › couches « 0 » › cases :: `tiles` porte 15 entrée(s) pour une grille 4×4 — il en faut EXACTEMENT 16']);
   });
 });
 
@@ -945,7 +950,7 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
 
   it('(f) PROVENANCE : ni `source` ni `maison` → rouge ; l’une des deux suffit', () => {
     // Refine de FABRIQUE (`grammaire/document.ts`) : une campagne sans folio n'est pas interdite,
-    // elle doit DIRE pourquoi. Mesuré au dépôt : la Diligence cite EDO, les 3 autres sont maison.
+    // elle doit DIRE pourquoi.
     expect(fautes(sans('maison'))).toEqual([expect.stringMatching(/^Source :: /)]);
     const avecSource = { ...sans('maison'), source: { book: 'ennemi-dans-l-ombre', page: 12 } };
     expect(projetSchema.safeParse(avecSource).success).toBe(true);
@@ -960,41 +965,40 @@ describe('projetSchema — les quatre sémantiques du seam, chacune NOMMÉE', ()
 });
 
 /**
- * ANCRAGE au document RÉEL (« La Diligence », le seul paquet committé à citer un folio). Le
- * projet-JOUET ci-dessus prouve la forme ; ici c'est la DONNÉE du dépôt qui traverse la porte, et
+ * ANCRAGE au paquet de test du commun (`src/scenes/fixtures/paquet-de-test.json`). Le projet-JOUET
+ * ci-dessus prouve la forme ; ici un document complet (scènes, carte, narratif) traverse la porte, et
  * chaque refus est APPARIÉ à son acceptation — un rouge ne prouve rien s'il ne se distingue pas d'un
- * vert. Les FK (`activeAxes` vers `axes.json`, `presetId` intra-document) ne sont mesurables qu'ici :
- * elles exigent des ids qui EXISTENT.
+ * vert. Les FK (`activeAxes` vers `axes.json`, `presetId` intra-document) exigent des ids qui EXISTENT.
  */
-describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du juge #1552)', () => {
-  const reel = () => versDisque(JSON.parse(JSON.stringify(diligenceProjet))) as Jouet;
+describe('projetSchema — le paquet de test, ses FK et son enveloppe (sondes du juge #1552)', () => {
+  const complet = () => versDisque(JSON.parse(JSON.stringify(paquetDeTest))) as Jouet;
   const ok = (doc: Jouet) => projetSchema.safeParse(doc).success;
-  const sansCle = (cle: string) => { const d = reel(); delete d[cle]; return d; };
+  const sansCle = (cle: string) => { const d = complet(); delete d[cle]; return d; };
 
-  it('le document committé PARSE tel quel — et le handle déclare bien ce qu’il dit déclarer', () => {
-    expect(ok(reel())).toBe(true);
+  it('le paquet de test PARSE tel quel — et le handle déclare bien ce qu’il dit déclarer', () => {
+    expect(ok(complet())).toBe(true);
     expect(projetDoc.type).toBe('projet');
     expect(projetDoc.famille).toBe('config');
   });
 
   it('FK `activeAxes` → axes.json : ids RÉELS acceptés (et la liste vide/absente aussi), inconnu REFUSÉ au CHEMIN', () => {
-    expect(ok({ ...reel(), activeAxes: ['melee', 'tir'] }), 'axes réels refusés').toBe(true);
-    expect(ok({ ...reel(), activeAxes: [] }), 'liste vide = socle de base').toBe(true);
+    expect(ok({ ...complet(), activeAxes: ['melee', 'tir'] }), 'axes réels refusés').toBe(true);
+    expect(ok({ ...complet(), activeAxes: [] }), 'liste vide = socle de base').toBe(true);
     expect(ok(sansCle('activeAxes')), 'absente = socle de base').toBe(true);
-    expect(fautes({ ...reel(), activeAxes: ['axe-qui-nexiste-pas'] })).toEqual([
+    expect(fautes({ ...complet(), activeAxes: ['axe-qui-nexiste-pas'] })).toEqual([
       'Axes actifs 1 :: « axe-qui-nexiste-pas » est absent du catalogue des axes (axes.json).',
     ]);
     // Un id qui n'est pas un AXE (c'est une compétence) est refusé comme un id inventé : la FK vise
     // `axes.json`, pas « un id connu quelque part ».
-    expect(ok({ ...reel(), activeAxes: ['courage'] })).toBe(false);
+    expect(ok({ ...complet(), activeAxes: ['courage'] })).toBe(false);
   });
 
   it('FK intra-document `presetId` → narratif.presetsPnj : preset DÉCLARÉ accepté, fantôme REFUSÉ au CHEMIN', () => {
     const avecPreset = (presetId: string, declare: boolean): Jouet => {
-      const d = reel();
+      const d = complet();
       const scenes = d.scenes as Record<string, unknown>[];
       const entites = (scenes[0].entities as Record<string, unknown>[]);
-      scenes[0] = { ...scenes[0], entities: [{ ...entites[0], presetId }, ...entites.slice(1)] };
+      scenes[0] = { ...scenes[0], entities: [...entites, { id: 'pnj-du-preset', kind: 'personnage', pos: { x: 3, y: 3 }, presetId }] };
       const narratif = d.narratif as { presetsPnj: unknown[] };
       if (declare) narratif.presetsPnj = [...narratif.presetsPnj, { id: presetId, profil: { char: { 'capacite-de-combat': 40 }, traits: [] } }];
       return { ...d, scenes };
@@ -1005,26 +1009,26 @@ describe('projetSchema — le document RÉEL, ses FK et son enveloppe (sondes du
     ]);
   });
 
-  it('ENVELOPPE sur la donnée réelle : chaque clé d’identité amputée est rouge, NOMMÉE', () => {
+  it('ENVELOPPE sur le paquet de test : chaque clé d’identité amputée est rouge, NOMMÉE', () => {
     for (const cle of ['id', 'label', 'versionContenu', 'type']) {
       expect(fautes(sansCle(cle)), `« ${cle} » amputé`).toEqual([expect.stringMatching(new RegExp(`^${({ id: "Identifiant", label: "Nom", versionContenu: "Version de contenu", type: "Type de document" } as Record<string, string>)[cle]} :: `))]);
     }
-    expect(fautes({ ...reel(), label: '' })).toEqual([expect.stringMatching(/^Nom :: /)]);
-    expect(fautesCodees({ ...reel(), type: 'scene' })).toEqual(['type :: invalid_value ["projet"]']);
+    expect(fautes({ ...complet(), label: '' })).toEqual([expect.stringMatching(/^Nom :: /)]);
+    expect(fautesCodees({ ...complet(), type: 'scene' })).toEqual(['type :: invalid_value ["projet"]']);
   });
 
-  it('PROVENANCE réelle : la Diligence cite son folio ; sans provenance c’est rouge, les DEUX ensemble passent', () => {
-    expect(reel().source, 'la Diligence cite EDO à sa racine').toBeTruthy();
-    expect(fautes(sansCle('source'))).toEqual([expect.stringMatching(/^Source :: /)]);
+  it('PROVENANCE : le paquet de test se dit maison ; sans provenance c’est rouge, les DEUX ensemble passent', () => {
+    expect(complet().maison, 'le paquet de test se dit maison à sa racine').toBeTruthy();
+    expect(fautes(sansCle('maison'))).toEqual([expect.stringMatching(/^Source :: /)]);
     // `source` ∨ `maison` : le refine exige AU MOINS une provenance, il n'en interdit pas deux.
-    expect(ok({ ...reel(), maison: 'arbitrage maison, en plus du folio' })).toBe(true);
+    expect(ok({ ...complet(), source: { book: 'ennemi-dans-l-ombre', page: 12 } })).toBe(true);
   });
 
-  it('SCEAU sur la donnée réelle : un numéro de forme d’un autre format, clé inconnue et scène muette sont refusés', () => {
-    expect(fautesCodees({ ...reel(), schema: 18 })).toEqual([' :: unrecognized_keys ["schema"]']);
+  it('SCEAU sur le paquet de test : un numéro de forme d’un autre format, clé inconnue et scène muette sont refusés', () => {
+    expect(fautesCodees({ ...complet(), schema: 18 })).toEqual([' :: unrecognized_keys ["schema"]']);
     // Chemin VIDE : la clé inconnue est rapportée à la RACINE du document.
-    expect(fautesCodees({ ...reel(), champInconnu: 1 })).toEqual([' :: unrecognized_keys ["champInconnu"]']);
-    const d = reel();
+    expect(fautesCodees({ ...complet(), champInconnu: 1 })).toEqual([' :: unrecognized_keys ["champInconnu"]']);
+    const d = complet();
     const [premiere, ...suivantes] = d.scenes as Jouet[];
     const { type: _muette, ...sceneMuette } = premiere;
     expect(fautesCodees({ ...d, scenes: [sceneMuette, ...suivantes] })).toEqual(['scenes.0.type :: invalid_value ["scene"]']);

@@ -1,6 +1,7 @@
 // Une partie fixe pour les instantanés : graine 42, bâtiments au premier palier, PX à dépenser, une séquelle.
 // Usage : npx tsx projets/roguelite/recette/partie-fixe.ts > fixe.json
 import * as J from '../src/jeu';
+import { poserLesReglesDuRoguelite } from '../src/noyau';
 
 /** La partie fixe des instantanés. */
 function partieFixe(): J.Etat {
@@ -12,4 +13,7 @@ function partieFixe(): J.Etat {
   return e;
 }
 
-if (import.meta.main) process.stdout.write(JSON.stringify(partieFixe()));
+if (import.meta.main) {
+  poserLesReglesDuRoguelite();
+  process.stdout.write(JSON.stringify(partieFixe()));
+}

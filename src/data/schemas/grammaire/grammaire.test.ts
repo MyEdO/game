@@ -53,6 +53,8 @@ const UN_TALENT_A_SPECS = talents.find((t) => t.specs?.length)!;
 const declareDesSpecs = (e: EntreeASpecs) => !!(e.specs?.length || e.specsSource);
 
 const SOURCE_REELLE = { book: 'livre-de-base', page: 118 };
+const FRAGMENT = { kind: 'blocs', sec: 'les-tests', secOcc: 1, b0: 0, b1: 2, sum: '0123456789abcdef' } as const;
+const ADRESSE = { book: 'livre-de-base', ch: '13', parts: [FRAGMENT] };
 /** Livre VF RÉEL dont `books.json` ne porte AUCUN `dir` : rien n'est extrait, donc rien n'est
  *  adressable — une prose y reste inline légitimement (verrou V3, `grammaire/prose.ts`).
  *  Fixture SYNTHÉTIQUE : `page: 1` est un remplissage de forme, PAS une citation — aucun folio de ce
@@ -242,9 +244,8 @@ describe('document() — enveloppe posée par la fabrique', () => {
   it('`exclusiviteAdapteDe` : `adapteDe` refusé quand une entrée embarquée ADRESSE sa prose, la clé fautive nommée (#2206)', () => {
     const objet = z.strictObject({ fiche: (creaturePartielle as z.ZodType).optional(), adapteDe: sourceRefSchema.optional() });
     const schema = objet.superRefine(exclusiviteAdapteDe(objet));
-    const disque = JSON.parse(readFileSync(resolve(__dirname, '../../../scenes/diligence/diligence-projet.json'), 'utf8')) as { narratif: { presetsPnj: { profil?: { descRef?: unknown } }[] } };
-    const descRef = disque.narratif.presetsPnj.map((p) => p.profil?.descRef).find((r) => r !== undefined);
-    const ko = schema.safeParse({ fiche: { descRef }, adapteDe: SOURCE_REELLE });
+    expect(schema.safeParse({ fiche: { descRef: ADRESSE } }).success).toBe(true);
+    const ko = schema.safeParse({ fiche: { descRef: ADRESSE }, adapteDe: SOURCE_REELLE });
     expect(ko.error?.issues.map((i) => ({ path: i.path, message: i.message }))).toEqual([
       { path: ['adapteDe'], message: 'texte adapté, alors que la description de « fiche » est la copie adressée du livre.' },
     ]);
@@ -1336,8 +1337,6 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
   const jouet = (type: string, exiges?: readonly CleExigible[]) =>
     document(type, 'entite', { max: z.number().optional() }, { max: { label: 'Max' } }, EXPOSITION, exiges ? { exiges } : undefined);
 
-  const FRAGMENT = { kind: 'blocs', sec: 'les-tests', secOcc: 1, b0: 0, b1: 2, sum: '0123456789abcdef' } as const;
-  const ADRESSE = { book: 'livre-de-base', ch: '13', parts: [FRAGMENT] };
   /** Adresse dans un livre RÉEL sans extraction : irrésoluble. */
   const ADRESSE_IRRESOLUBLE = { ...ADRESSE, book: SOURCE_SANS_EXTRACTION.book };
 

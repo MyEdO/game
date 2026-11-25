@@ -212,25 +212,20 @@ for (const ext of ['js', 'mjs', 'cjs', 'cts', 'jsx', 'tsx'])
     }
   })
 
-test('PÉRIMÈTRE natif : modules et workflows lus, bancs TS et reste de `.claude/` ignorés en chemins explicites et découverte', () => {
+test('PÉRIMÈTRE natif : tout module de `.claude/` est lu, en chemins explicites et découverte ; hors du code d’un mod et des workflows, `murs/zone` le refuse', () => {
   const lus = ['hooks/a.ts', 'hooks/sous/a.mts', 'types/index.d.ts', 'tests/a.ts', 'hooks/ops.ts']
-  const ignores = ['hooks/a.test.ts', 'hooks/hooks.json', 'a.ts', 'scripts/a.ts', 'SKILL.md']
   const modules = lus.map((rel) => `.claude/skills/m/${rel}`)
   for (const ext of ['js', 'mjs', 'cjs', 'cts', 'jsx', 'tsx'])
     for (const rel of [`hooks/vue.${ext}`, `hooks/vue.test.${ext}`, `types/vue.${ext}`, `tests/vue.${ext}`])
       modules.push(`.claude/skills/m/${rel}`)
+  const bancs = ['hooks/a.test.ts', 'hooks/sous/a.test.ts', 'types/a.test.ts', 'tests/a.test.ts'].map((rel) => `.claude/skills/m/${rel}`)
   const workflows = ['.claude/workflows/a.mjs', '.claude/workflows/sous/a.js']
-  const exclus = [
-    ...ignores.map((rel) => `.claude/skills/m/${rel}`),
-    '.claude/skills/m/hooks/sous/a.test.ts',
-    '.claude/skills/m/types/a.test.ts',
-    '.claude/skills/m/tests/a.test.ts',
-    '.claude/hooks/a.ts', '.claude/memory/a.mjs', '.claude/agents/a.ts', '.claude/a.ts',
-  ]
+  const horsMod = ['.claude/skills/m/a.ts', '.claude/skills/m/scripts/a.ts', '.claude/hooks/a.ts', '.claude/memory/a.mjs', '.claude/agents/a.ts', '.claude/a.ts']
+  const nonCode = ['.claude/skills/m/hooks/hooks.json', '.claude/skills/m/SKILL.md']
   const cwd = mkdtempSync(join(tmpdir(), 'lint-mod-perimetre-'))
   try {
-    const selectionnes = [...modules, ...workflows]
-    const fichiers = [...selectionnes, ...exclus]
+    const selectionnes = [...modules, ...bancs, ...workflows, ...horsMod]
+    const fichiers = [...selectionnes, ...nonCode]
     for (const fichier of fichiers) {
       const chemin = join(cwd, fichier)
       mkdirSync(dirname(chemin), { recursive: true })
@@ -244,14 +239,17 @@ test('PÉRIMÈTRE natif : modules et workflows lus, bancs TS et reste de `.claud
       assert.equal(rapport.number_of_files, selectionnes.length, resultat.brut)
       assert.equal(resultat.codeSortie, 1, resultat.brut)
       assert.ok(!resultat.defauts.some((defaut) => ['(outillage)', '(parse)'].includes(defaut.regle)), resultat.brut)
-      const debug = resultat.defauts.filter((defaut) => defaut.regle === 'no-debugger')
-      assert.equal(debug.length, selectionnes.filter((fichier) => !fichier.endsWith('.d.ts')).length, resultat.brut)
       for (const fichier of selectionnes) {
         const regle = fichier.endsWith('.d.ts') ? 'no-var' : 'no-debugger'
         assert.equal(resultat.defauts.filter((defaut) => defaut.site.startsWith(`${fichier}:`) && defaut.regle === regle).length, 1, fichier)
+        const zone = resultat.defauts.filter((defaut) => defaut.site.startsWith(`${fichier}:`) && defaut.regle === 'murs/zone').length
+        assert.equal(zone, horsMod.includes(fichier) ? 1 : 0, fichier)
       }
-      for (const fichier of exclus) {
+      for (const fichier of nonCode) {
         assert.ok(!resultat.defauts.some((defaut) => defaut.site.startsWith(`${fichier}:`)), fichier)
+      }
+      for (const fichier of bancs) {
+        assert.ok(!resultat.defauts.some((defaut) => defaut.site.startsWith(`${fichier}:`) && defaut.regle === MUR), fichier)
       }
       for (const fichier of modules.filter((fichier) => /\.(js|mjs|cjs|cts|jsx|tsx)$/.test(fichier))) {
         const defauts = resultat.defauts.filter((defaut) => defaut.site.startsWith(`${fichier}:`) && defaut.regle === MUR)

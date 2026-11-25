@@ -1,9 +1,11 @@
-import { describe, expect, it } from 'vitest';
-import { annonceDuCoupSurUnAllie, jouerLeCombat, nouvelleRecrue, type Coup, type IssueDuCombat } from './index';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { annonceDuCoupSurUnAllie, jouerLeCombat, nouvelleRecrue, type Coup, type IssueDuCombat, poserLesReglesDuRoguelite } from './index';
 import { DESTINATIONS, estUtile, nouvellePartie, PROFILS, recrue as recrueDuHameau } from '../jeu';
 import { t } from '../../../../src/i18n';
 
-const recrue = (graine: number, carriere: string, nom: string) => nouvelleRecrue(graine, carriere, 'humains-reiklander', nom, PROFILS.find((p) => p.id === carriere)!.identite, estUtile);
+beforeAll(poserLesReglesDuRoguelite);
+
+const recrue = (graine: number, carriere: string, nom: string) => ({ ...nouvelleRecrue(graine, carriere, 'humains-reiklander', PROFILS.find((p) => p.id === carriere)!.identite, estUtile), label: nom });
 const groupe = () => [recrue(31, 'soldat', 'Hans'), recrue(32, 'chasseur', 'Greta'), recrue(33, 'ratier', 'Ulli')];
 
 /** Les coups d'arme d'une figure sur une autre de son camp, lu sur le plateau du pas qui les porte. */
@@ -19,7 +21,8 @@ describe('le rejeu d’un coup porté sur son propre camp', () => {
     const issue = jouerLeCombat(groupe(), ['gobelin'], 4);
     const [coup] = coupsSurUnAllie(issue);
     expect(coup).toMatchObject({ genre: 'distance', touche: true });
-    expect(coup.ligne).toContain(t('cf.touchePerdueEnMelee', { name: 'Hans' }));
+    const victime = issue.pas.flatMap((x) => x.pions).find((q) => q.id === coup.vers)!.label;
+    expect(coup.ligne).toContain(t('cf.touchePerdueEnMelee', { name: victime }));
     expect(annonceDuCoupSurUnAllie(coup, true)).toEqual({ flash: 'Touche un allié !', ruban: coup.ligne });
   });
 
