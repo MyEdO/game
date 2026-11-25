@@ -20,7 +20,7 @@ import {
 
 import { profil } from './outils';
 
-export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage' | 'memorial';
+export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage';
 
 /** Un apport d'un palier : son pictogramme (`PICTOS` de `../kit`), sa phrase, et le chiffre de la phrase à marquer. */
 export interface Apport { picto: string; chiffre?: string; texte: string }
@@ -40,9 +40,6 @@ const candidatsDuPalier = (palier: number, carrieres?: string): Apport =>
  *  après une salle n'en rapporte qu'une part. Mesure MyEdO/game#4963. */
 export const PEAGE_PAR_SALLE: readonly number[] = [0, 3, 6, 12];
 const peageDuPalier = (palier: number): string => `+${PEAGE_PAR_SALLE[palier]} CO`;
-/** Les PX qu'une recrue reçoit par héros tombé, et leur plafond, multipliés par le palier du Jardin de Morr. */
-export const PX_DE_MORR = { parMort: 10, plafond: 100 } as const;
-const morrDuPalier = (palier: number): string => `${PX_DE_MORR.parMort * palier} PX par héros tombé (max ${PX_DE_MORR.plafond * palier})`;
 /** Prix des actes de l'hospice, avant la remise du dernier palier. */
 export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
 /** Le prix des Larmes de Shallya de l'hospice à chaque palier ; `null` : l'hospice ne les vend pas à ce palier. */
@@ -87,11 +84,6 @@ export const BATIMENTS: readonly Batiment[] = [
     { cout: 90, trophees: 0, apports: [apport('pieces', `${peageDuPalier(1)} par salle franchie en expédition`, peageDuPalier(1))] },
     { cout: 240, trophees: 1, apports: [apport('pieces', peageDuPalier(2), peageDuPalier(2))] },
     { cout: 480, trophees: 2, apports: [apport('pieces', peageDuPalier(3), peageDuPalier(3))] },
-  ] },
-  { id: 'memorial', nom: 'Jardin de Morr', role: 'Mémoire', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('croix', 'Un champ en friche')] },
-    { cout: 110, trophees: 0, apports: [apport('etoile', `Chaque recrue arrive avec ${morrDuPalier(1)}`, `${PX_DE_MORR.parMort} PX`)] },
-    { cout: 300, trophees: 1, apports: [apport('etoile', morrDuPalier(2), `${PX_DE_MORR.parMort * 2} PX`)] },
   ] },
 ];
 

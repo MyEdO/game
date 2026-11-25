@@ -32,7 +32,7 @@ const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .
       if (dehors.length) { defauts++; console.log(`${taille.join('x')} ${ecran} : hors de l'écran → ${dehors.join(', ')}`); }
     };
     await relever('hameau');
-    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) {
+    for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage']) {
       await geste(p, 'batiment', id); await relever(id);
       if (id === 'forge') for (const k of ['secondaire', 'tir', 'armure']) { await p.click(`.emplacement[data-k="${k}"]`); await relever(`forge ${k}`); }
       await geste(p, 'fermer-panneau');

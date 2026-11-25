@@ -284,7 +284,7 @@ export function recommencerEnCarton(): string {
   return carton({
     ruban: 'Recommencer', titre: 'Recommencer ?', surTitre: 'Grisefosse',
     vignette: 'recommencer',
-    texte: '<div class="recit"><p>Le hameau, la compagnie et le Jardin de Morr seront effacés.</p></div>',
+    texte: '<div class="recit"><p>Le hameau et la compagnie seront effacés.</p></div>',
     gestes: `${plaque('Garder ma partie', 'data-a="fermer"', { armee: true })}${plaque('Tout effacer', 'data-a="reset-ok"')}`,
   });
 }

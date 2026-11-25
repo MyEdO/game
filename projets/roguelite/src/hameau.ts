@@ -11,7 +11,7 @@ export const HAUTEUR = 720;
 const ancre = (x: number, y: number): [number, number] => [(x - 100) * (LARGEUR / 1600), y];
 /** Où poser l'enseigne de chaque bâtiment, en coordonnées de toile. */
 export const ANCRES: Record<IdBatiment, [number, number]> = {
-  memorial: ancre(206, 478), temple: ancre(426, 402), relais: ancre(668, 350), forge: ancre(940, 430), salle: ancre(1168, 402), cartographe: ancre(1353, 236), peage: ancre(1560, 420),
+  temple: ancre(426, 402), relais: ancre(668, 350), forge: ancre(940, 430), salle: ancre(1168, 402), cartographe: ancre(1353, 236), peage: ancre(1560, 420),
 };
 
 const alea = (graine: number) => () => {
@@ -66,28 +66,6 @@ function sapin(x: number, y: number, h: number, fill: string): string {
 /** Un personnage debout en silhouette. */
 const silhouette = (x: number, y: number, h: number, fill: string) =>
   `<g transform="translate(${x},${y}) scale(${h / 100})" fill="${fill}"><path d="M-15,0C-18,-28 -19,-54 -13,-72C-9,-78 9,-78 13,-72C19,-54 18,-28 15,0Z"/><circle cx="0" cy="-88" r="10.5"/></g>`;
-
-const tombe = (x: number, y: number, h: number, penche = 0) => `<g transform="rotate(${penche} ${x} ${y})">${p(`M${x - 8},${y}v-${h - 8}a8,8 0 0 1 16,0v${h - 8}z`, PIERRE, C)}${trait(`M${x},${y - h + 5}v10M${x - 3.5},${y - h + 9}h7`, NOIR, 1.4, 'opacity=".6"')}</g>`;
-
-/** Le jardin de Morr : la butte, la grille et son portail au corbeau, les tombes ; puis le caveau et la statue. */
-function jardinDeMorr(n: number): string {
-  const al = alea(5);
-  let s = p('M60,612C110,548 300,544 350,612Z', '#1b1524', C) + trait('M112,574C160,556 250,554 300,572', '#2c2438', 5, 'opacity=".7"');
-  s += trait('M300,574C296,548 304,528 314,512M306,536l15,-11M302,550l-13,-9M314,512l-7,-13M314,512l11,-7', '#120d18', 4.5);
-  if (n === 0) {
-    for (let k = 0; k < 36; k++) { const x = 100 + al() * 220, y = 566 + al() * 34; s += trait(`M${x.toFixed(0)},${y.toFixed(0)}q2,-${(8 + al() * 10).toFixed(0)} 4,0`, '#0a070d', 1.4); }
-    return s + tombe(150, 582, 30, -24) + tombe(206, 578, 34, 14) + tombe(252, 584, 26, 38) + trait('M118,590l18,-30M270,592l-12,-26', '#2a2132', 3);
-  }
-  let grille = 'M112,584H292';
-  for (let k = 0; k < 10; k++) grille += `M${116 + k * 19.5},592v-26l2,-5 2,5`;
-  s += tombe(140, 580, 28) + tombe(252, 578, 32) + tombe(276, 584, 24, 8) + (n >= 3 ? tombe(118, 586, 22, -6) : '');
-  s += r(180, 524, 9, 62, PIERRE, C) + r(223, 524, 9, 62, PIERRE, C) + trait('M184,526Q206,496 228,526', PIERRE, 7) + trait('M184,526Q206,496 228,526', LUNE, 1.5, 'opacity=".8"')
-    + p('M197,503l5,-10 5,3 8,-4 -3,8 -5,4h-8z', NOIR) + trait(grille, '#3a3046', 2.2);
-  s += lanterne(206, 544);
-  if (n >= 2) s += mur(60, 540, 48, 46, PIERRE) + pignon(60, 108, 540, 514, PIERRE) + porte(84, 586, 16, 30, NOIR) + lueur(84, 570, 30, 0.6) + r(81, 566, 6, 9, OR);
-  if (n >= 3) s += r(312, 566, 22, 20, PIERRE, C) + p('M315,566c-2,-22 2,-40 8,-46c6,6 10,24 8,46z', '#2a2436', C) + `<circle cx="323" cy="512" r="7" fill="#2a2436" ${C}/>` + lueur(323, 540, 44, 0.35);
-  return s;
-}
 
 /** L'hospice de Shallya : la nef, sa rosace et ses lancettes, le clocher au cœur doré. */
 function chapelle(n: number): string {
@@ -222,7 +200,6 @@ export function sceneDuHameau(paliers: Record<IdBatiment, number>): string {
   ${foret}${maisons}
   <rect y="${SOL - 2}" width="${LARGEUR}" height="${HAUTEUR - SOL + 2}" fill="url(#sol)"/>
   ${p('M0,614C300,598 520,592 800,594C1080,596 1400,602 1800,614V650C1400,638 1080,632 800,630C520,628 300,634 0,650Z', '#30263a', 'opacity=".8"')}
-  ${bat('memorial', jardinDeMorr(paliers.memorial))}
   ${bat('temple', chapelle(paliers.temple))}
   ${bat('relais', relais(paliers.relais))}
   ${bat('forge', forge(paliers.forge))}
