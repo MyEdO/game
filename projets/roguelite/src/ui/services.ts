@@ -22,7 +22,7 @@ export type Emplacement = J.Tenue | 'armure';
 export interface Contexte { e: J.Etat; client: string | null; emplacement: Emplacement; dest: string | null; choix: ReadonlySet<string>; congediement: string | null }
 export type Service = J.IdBatiment | 'depart' | 'chronique';
 
-export const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte', peage: 'pieces', memorial: 'croix' };
+export const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte', peage: 'pieces' };
 const SERVENT_UN_HEROS: ReadonlySet<Service> = new Set(['relais', 'forge', 'temple', 'salle']);
 const niveaux = (n: number, max: number) => `<span class="niveaux" aria-label="palier ${n + 1} sur ${max}">${Array.from({ length: max }, (_, i) => `<i class="${i <= n ? 'plein' : ''}"></i>`).join('')}</span>`;
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
@@ -288,14 +288,6 @@ function paliers(e: J.Etat, id: J.IdBatiment): string {
 
 const pageDuPeage = ({ e }: Lecture): Page => ({ classe: 'rangee', corps: paliers(e, 'peage') });
 
-const pageDuJardin = ({ e }: Lecture): Page => ({
-  classe: 'tombes',
-  corps: e.cimetiere.length
-    ? e.cimetiere.map((t) => `<article class="carte-service tombe">${medaillon('croix', 'moyen')}<div class="nom-propre petit gothique">${esc(t.nom)}</div><span class="sous-titre">${esc(J.nomDeCarriere(t.carriere))}</span>
-      <span class="effet">${esc(t.ou)} · jour ${t.jour}</span><span class="effet">${pluriel(t.expeditions, 'expédition')}</span></article>`).join('')
-    : placard('croix', 'Aucune tombe', 'Puisse-t-il en rester ainsi.'),
-});
-
 const pageDeLaChronique = ({ e }: Lecture): Page => ({ classe: 'annales', corps: `<ol class="chronique">${e.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` });
 
 /** Le rang et la consigne de combat du héros `h`, chacun en plaques, l'actuel armé, ce qu'il fait au survol. */
@@ -324,7 +316,7 @@ function pageDuDepart({ e, choix }: Lecture): Page {
 /** Chaque service, sa page. */
 const PAGES: Record<Service, (l: Lecture) => Page> = {
   relais: pageDuRelais, forge: pageDeLaForge, temple: pageDeLaChapelle, salle: pageDeLaSalle, cartographe: pageDuCartographe,
-  peage: pageDuPeage, memorial: pageDuJardin, chronique: pageDeLaChronique, depart: pageDuDepart,
+  peage: pageDuPeage, chronique: pageDeLaChronique, depart: pageDuDepart,
 };
 
 // ─── L'écran ────────────────────────────────────────────────────────────────────────────────────────────────

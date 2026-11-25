@@ -12,7 +12,7 @@ await p.waitForTimeout(400);
 const image = async (nom) => { await p.mouse.move(0, 0); await p.evaluate(() => document.fonts.ready); await p.waitForTimeout(300); await p.screenshot({ path: `${CAPTURES}/${nom}.png`, animations: 'disabled' }); };
 const geste = (a, id) => p.evaluate(([x, i]) => document.querySelector(`button[data-a="${x}"]${i ? `[data-id="${i}"]` : ''}`).click(), [a, id]);
 await image('hameau');
-for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) { await geste('batiment', id); await image(id); await geste('fermer-panneau'); }
+for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage']) { await geste('batiment', id); await image(id); await geste('fermer-panneau'); }
 await geste('chronique'); await image('chronique'); await geste('fermer-panneau');
 await geste('batiment', 'cartographe'); await p.click('[data-a="preparer"]'); await image('depart');
 await geste('fermer-panneau');

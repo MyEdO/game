@@ -22,7 +22,7 @@ function equilibrer(graine0: number, expeditions: number, parties: number): void
     while (e.candidats.length && e.roster.length < 4) { const c = e.candidats[0]; if (J.recruter(e, 0)) break; compter(engages, `${e.batiments.relais}|${c.carriere}`); }
     for (const h of e.roster) if (J.blesse(h)) J.soignerAuTemple(e, h.c.id);
     for (const h of e.roster) if (!partant(h)) J.prendreUneChambre(e, h.c.id);
-    for (const b of ['temple', 'salle', 'forge', 'relais', 'cartographe', 'peage', 'memorial'] as const) J.ameliorer(e, b);
+    for (const b of ['temple', 'salle', 'forge', 'relais', 'cartographe', 'peage'] as const) J.ameliorer(e, b);
     voir(e);
     for (const h of e.roster) {
       const armure = (['armure-moyenne', 'armure-legere'] as const).find((id) => J.allure(h).armure?.poids === id || J.armuresEnVente(e, h).some((a) => a.id === id));
@@ -57,7 +57,7 @@ function equilibrer(graine0: number, expeditions: number, parties: number): void
       log(`  ${r.titre}${r.combat ? ` (${r.combat.issue}, ${r.combat.pas.length} pas)` : ''} | valides ${valides}/${g.length}`);
       if (e.expedition && valides < 2 && !r.fin) { J.rentrer(e, false); log('  → retraite'); }
     }
-    log(`J${e.jour} ${dest.nom}: or ${e.or}, trophées ${e.trophees}, roster ${e.roster.length}, morts ${e.cimetiere.length}, niveaux ${e.roster.map((h) => h.c.careerLevel ?? 1).join("")}, sorts ${e.roster.map((h) => (h.c.spells ?? []).length).join("")}, bât ${JSON.stringify(e.batiments)}`);
+    log(`J${e.jour} ${dest.nom}: or ${e.or}, trophées ${e.trophees}, roster ${e.roster.length}, niveaux ${e.roster.map((h) => h.c.careerLevel ?? 1).join("")}, sorts ${e.roster.map((h) => (h.c.spells ?? []).length).join("")}, bât ${JSON.stringify(e.batiments)}`);
   }
   }
   for (const palier of [0, 1, 2]) {
