@@ -285,15 +285,11 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
+  # Les recettes de l'hôte Godot et des projets, un job par famille (#5037) : chacun sur son runner, son arbre et ses
+  # caches ; aucun ne lit ce qu'un autre écrit.
   # `jeu-de-role:construire` puis `jeu-de-role:recette` (#4936) : le pont du jeu de rôle sur son entrée
-  # (`projets/jeu-de-role/godot.ts`), puis les jeux de son lot (`projets/jeu-de-role/recettes/lot.mjs`), en natif ;
-  # avant `godot:recette`, dont ils ne lisent rien d'écrit.
-  # `godot:recette` (#3945) : les jeux `combat`, `editeur` et `compendium` des recettes natives de l'hôte Godot
-  # (`lot-de-recettes.mjs --natif`), sans export ni navigateur ; `canari.yml` joue le lot natif entier.
-  # `roguelite:construire` puis `roguelite:recette` (#4929) : le roguelite construit sous `dist/roguelite/`, et son lot de
-  # recettes (`projets/roguelite/recette/lot.mjs`) dans le Chromium épinglé (scripts/recette/navigateur.mjs), la page
-  # servie par interception, sans serveur.
-  godot-recette:
+  # (`projets/jeu-de-role/godot.ts`), puis les jeux de son lot (`projets/jeu-de-role/recettes/lot.mjs`), en natif.
+  jeu-de-role-recette:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -312,9 +308,46 @@ jobs:
       - name: Jeu de rôle — recettes
         if: ${{ !contains(steps.prologue.outputs.sautees, ' jeu-de-role:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run jeu-de-role:recette
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # `godot:recette` (#3945) : les jeux `combat`, `editeur` et `compendium` des recettes natives de l'hôte Godot
+  # (`lot-de-recettes.mjs --natif`), sans export ni navigateur ; `canari.yml` joue le lot natif entier.
+  godot-recette:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
+        uses: ./.github/actions/prologue
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
       - name: Godot — recettes natives
         if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:recette
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # `roguelite:construire` puis `roguelite:recette` (#4929) : le roguelite construit sous `dist/roguelite/`, et son lot de
+  # recettes (`projets/roguelite/recette/lot.mjs`) dans le Chromium épinglé (scripts/recette/navigateur.mjs), la page
+  # servie par interception, sans serveur ; ni Godot ni modèles, donc sans `caches-3d`.
+  roguelite-recette:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
+        uses: ./.github/actions/prologue
       - name: Roguelite — construction
         if: ${{ !contains(steps.prologue.outputs.sautees, ' roguelite:construire ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run roguelite:construire
@@ -356,8 +389,8 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # `test:corpus`, hors du chemin critique de `types` et de `types-hooks` (#3412) : ces jobs et ceux de Godot se
-  # partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
+  # `test:corpus`, hors du chemin critique de `types` et de `types-hooks` (#3412) : ces jobs, ceux de Godot et ceux des
+  # recettes se partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
   # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
   # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   corpus:
