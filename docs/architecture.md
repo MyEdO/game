@@ -723,7 +723,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `godot`) : le pont
                             `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`
                             la dépose sous `<export>/planches/` (`planches.mjs`). `npm run godot:etalons` exporte le
                             jeu et refuse tout pixel d'écart entre une planche et son étalon, dans le seul Chromium
-                            épinglé (`EPINGLE`, `planches.mjs`) sous Linux x86-64 ; le canari le joue (#3935,
+                            épinglé (`EPINGLE`, `scripts/recette/navigateur.mjs`) sous Linux x86-64 ; le canari le joue (#3935,
                             `.claude/rules/ecrans-godot.md`).
 src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arène, `arene/arene-projet.json`,
                             projet {scenes, worldMap}, scènes listées par `build()` de `scripts/arene/generate.mjs`).

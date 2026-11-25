@@ -436,7 +436,7 @@ export const ECRIT_LU = {
   },
   'test:recette': {
     ecrit: [],
-    lit: ['scripts/recette/'],
+    lit: ['scripts/recette/', 'scripts/qc/lib/pngDecode.mjs', 'scripts/qc/lib/pngEncode.mjs', 'package.json'],
     raison: RETRAIT_WORKTREE_FERME + 'le profil de navigateur et les captures vivent hors de l’arbre (le banc capture sous os.tmpdir() et l’efface) ; LIT le dériveur de port qu’il éprouve',
   },
   typecheck: {
@@ -592,16 +592,19 @@ export const ECRIT_LU = {
     },
     ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
     raison:
-      'esbuild (projets/roguelite/construire.mjs, #4929) empaquette la façade du noyau du roguelite et son interface, ' +
+      'vite (projets/roguelite/construire.mjs, #4929, #5010) empaquette la façade du noyau du roguelite et son interface, ' +
       'qui tirent les zones du dépôt, et recopie la page et ses feuilles sous dist/roguelite/ (`ecritFerme`)',
   },
   'roguelite:recette': {
     ecrit: [],
-    ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
+    ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json', 'scripts/recette/', 'scripts/qc/lib/pngDecode.mjs']),
     raison:
       'Le lot (projets/roguelite/recette/lot.mjs, #4929) tire la partie fixe (`partie-fixe.ts`, par tsx, qui lit les ' +
-      'zones) puis joue chaque recette dans son processus : Chrome par Playwright, un contexte neuf par page, son ' +
-      'profil sous os.tmpdir(), la construction de dist/roguelite/ servie par interception (`route`). La partie fixe et ' +
+      'zones) puis joue chaque recette dans son processus : le navigateur épinglé (scripts/recette/navigateur.mjs, #5010), ' +
+      'installé hors de l’arbre sous PLAYWRIGHT_BROWSERS_PATH, un contexte neuf par page, son profil sous os.tmpdir(), la ' +
+      'construction de dist/roguelite/ servie par interception (`route`), les polices rejouées de ' +
+      'projets/roguelite/recette/polices.har.zip ; la recette d’images compare chaque écran à ' +
+      'projets/roguelite/recette/reference/ par `ecart` (scripts/recette/ecart.mjs). La partie fixe et ' +
       'les captures vont sous dist/roguelite-recette/, que git ignore et qu’aucune gate ne lit. Il LIT aussi ' +
       'dist/roguelite/, absent d’un checkout propre : c’est l’`ecritFerme` de `roguelite:construire`, qui le précède ' +
       'dans le job `godot-recette` de ci.yml, une SÉRIE',

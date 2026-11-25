@@ -6,19 +6,24 @@
 // Usage : npm run roguelite:recette, ou node projets/roguelite/recette/<script>.mjs <dossier-des-captures> <partie-fixe.json> [...]
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
-import { chromium } from 'playwright';
+import { fileURLToPath } from 'node:url';
+import { lancerLeNavigateurEpingle } from '../../../scripts/recette/navigateur.mjs';
 import { SORTIE } from '../construire.mjs';
 
 /** L'origine sous laquelle la page se charge, servie par `route`. */
 const BASE = 'http://roguelite.recette';
 const CAPTURES = process.argv[2] ?? '.';
+/** Les polices de la page (Google Fonts), prises du réseau à la pose de la référence d'images (`images.mjs --poser`),
+ *  rejouées de cette archive à toute autre passe : une police hors de l'archive est une erreur de la page. */
+const POLICES = fileURLToPath(new URL('./polices.har.zip', import.meta.url));
+const POLICE = /^https:\/\/fonts\.(googleapis|gstatic)\.com\//;
 /** La clé de la sauvegarde de la partie (`src/jeu/sauvegarde.ts`). */
 const SAUVEGARDE = 'grisefosse-v1';
 /** Les erreurs de page de toutes les pages du script. */
 const erreurs = [];
 
-/** Le navigateur de la recette : le Chrome installé sur la machine (celui du runner en CI). */
-const lancer = () => chromium.launch({ channel: 'chrome' });
+/** Le navigateur de la recette : le build épinglé (`lancerLeNavigateurEpingle`), celui de sa référence d'images. */
+const lancer = () => lancerLeNavigateurEpingle();
 
 /** Le stockage local de la page `p`, entrée par entrée (`{ clé: valeur }`). */
 async function stockage(p) {
@@ -43,12 +48,14 @@ async function page(navigateur, [width, height], entrees = {}, attendre = '.ense
     viewport: { width, height },
     storageState: { cookies: [], origins: [{ origin: BASE, localStorage: Object.entries(entrees).map(([name, value]) => ({ name, value })) }] },
   });
+  await contexte.routeFromHAR(POLICES, { url: POLICE, notFound: 'abort', update: process.argv.includes('--poser') });
   await contexte.route(`${BASE}/**`, (r) => {
     const fichier = join(SORTIE, new URL(r.request().url()).pathname);
     return existsSync(fichier) ? r.fulfill({ path: fichier }) : r.fulfill({ status: 404 });
   });
   const p = await contexte.newPage();
   p.on('pageerror', (e) => erreurs.push(e.message));
+  p.on('requestfailed', (r) => { if (POLICE.test(r.url())) erreurs.push(`police hors de l'archive : ${r.url()}`); });
   await p.goto(`${BASE}/recette.html`);
   await p.waitForSelector(attendre);
   return p;
