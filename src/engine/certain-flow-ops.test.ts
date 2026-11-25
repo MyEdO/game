@@ -1,25 +1,21 @@
 /**
- * RÉGIME `calcule` de l'encadré « Réussite / Échec » — `certainFlowOps` est la brique de dérivation :
- * ce que l'UI affiche vient des OPS de la branche, jamais d'une phrase rédigée à la main. Une phrase
- * stockée ment dès qu'une règle optionnelle modifie les ops appliquées ; une dérivation suit (ref #1117).
- *
- * L'invariant qui compte est le FAIL-CLOSED : une branche dont l'issue dépend d'une Condition, d'un
- * second jet ou d'un choix ne se résume PAS — l'encadré se tait plutôt que de promettre.
+ * `certainFlowOps` (#1117) : les ops qu'un Flow appliquera à coup sûr. L'invariant qui compte est le FAIL-CLOSED :
+ * un Flow dont l'issue dépend d'une Condition, d'un second jet ou d'un choix ne se résume PAS.
  */
 import { describe, it, expect } from 'vitest';
-import { certainFlowOps, EMPTY_FLOW, testFlow, type Condition, type Flow } from './flowCore';
+import { certainFlowOps, EMPTY_FLOW, testFlow, type Flow } from './flowCore';
 import type { GameOp } from './ops';
 
 const OPS: GameOp[] = [{ op: 'condition', id: { id: 'sonne' }, value: 1 }];
 const AUTRES: GameOp[] = [{ op: 'wounds', amount: 3 }];
 const doOps = (ops: GameOp[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'target', ops } });
 
-describe('certainFlowOps — l’encadré Réussite/Échec se CALCULE des ops (#1117)', () => {
+describe('certainFlowOps — les ops certaines d’un Flow (#1117)', () => {
   it('une feuille d’ops rend SES ops, dans l’ordre', () => {
     expect(certainFlowOps(doOps(OPS))).toEqual(OPS);
   });
 
-  it('une séquence CONCATÈNE ses feuilles (l’ordre d’application est celui de l’encadré)', () => {
+  it('une séquence CONCATÈNE ses feuilles, dans l’ordre d’application', () => {
     const f: Flow = { kind: 'sequence', etapes: [doOps(OPS), doOps(AUTRES)] };
     expect(certainFlowOps(f)).toEqual([...OPS, ...AUTRES]);
   });
@@ -31,27 +27,8 @@ describe('certainFlowOps — l’encadré Réussite/Échec se CALCULE des ops (#
   it('FAIL-CLOSED : un `if` ne se résume pas (la branche dépend d’une Condition évaluée plus tard)', () => {
     const f: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'x' }, alors: doOps(OPS), sinon: doOps(AUTRES) };
     expect(certainFlowOps(f)).toBeUndefined();
-    // …et il CONTAMINE la séquence qui le porte : un « Réussite : Sonné » suivi d'un peut-être mentirait.
+    // …et il CONTAMINE la séquence qui le porte.
     expect(certainFlowOps({ kind: 'sequence', etapes: [doOps(OPS), f] })).toBeUndefined();
-  });
-
-  it('l’oracle visite le si retenu une fois et s’arrête au premier Test ambigu', () => {
-    const retenue: Condition = { kind: 'flag', expr: 'retenue' };
-    const ecartee: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'écartée' }, alors: doOps(AUTRES) };
-    const apres: Flow = { kind: 'si', condition: { kind: 'flag', expr: 'après' }, alors: doOps(AUTRES) };
-    const etapes: Flow[] = [
-      { kind: 'si', condition: retenue, alors: ecartee, sinon: doOps(OPS) },
-      testFlow({ characteristic: 'force', difficulty: 'intermediaire' }, EMPTY_FLOW, doOps(AUTRES)),
-      apres,
-    ];
-    const consultations: Condition[] = [];
-    const oracle = (condition: Condition) => {
-      consultations.push(condition);
-      return false;
-    };
-
-    expect(certainFlowOps({ kind: 'sequence', etapes }, oracle)).toBeUndefined();
-    expect(consultations).toEqual([retenue]);
   });
 
   it('FAIL-CLOSED : un `test` imbriqué (second jet) et un `choice` ne se résument pas non plus', () => {

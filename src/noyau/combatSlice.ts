@@ -192,7 +192,7 @@ import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
-import { texteDuFait, type Applique, type FaitApplique } from '../engine/faits';
+import { lignesHorsDesFaits, type Applique, type FaitApplique } from '../engine/faits';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { spendResolveForPsychImmunity, calmeDAcquisition, ciblesDAnimositeAcquise, PSY } from '../engine/psychology';
 import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel } from '../engine/items';
@@ -638,7 +638,7 @@ function retireEtatParDetermination(c: Combatant, conditionName: string, now: nu
     const r = syncDerivedConditions(c);
     const dit = r.faits.find((f): f is Extract<FaitApplique, { genre: 'etat' }> => f.genre === 'etat' && f.id === conditionName && f.valeur < 0);
     a.faits.push(...r.faits);
-    a.lignes.push(...(dit ? r.lignes.filter((l) => l !== texteDuFait(dit, nomDe(c))) : r.lignes));
+    a.lignes.push(...(dit ? lignesHorsDesFaits({ lignes: r.lignes, faits: [dit] }, () => nomDe(c)) : r.lignes));
   }
   if (stacks(c, conditionName) >= avant) removeCondition(c, conditionName, 1, a); // « Retirez un État » (un pion), LDB 17 l.61
   const retire = stacks(c, conditionName) < avant;

@@ -496,35 +496,18 @@ export function spellEffectOps<E = EffectOp>(flow: Flow<E> | undefined): GameOp[
 }
 
 /**
- * OPS CERTAINES d'une branche de Flow (#1117, régime `calcule`) — la liste des `GameOp` que CETTE
- * branche appliquera À COUP SÛR, pour que l'encadré « Réussite / Échec » d'un jet se CALCULE des ops
- * au lieu d'être écrit à la main : une phrase stockée ment dès qu'une règle optionnelle change les
- * ops appliquées, une dérivation ne le peut pas.
+ * OPS CERTAINES d'un Flow (#1117) — la liste des `GameOp` qu'il appliquera À COUP SÛR, lue par le lancer d'un sort
+ * pour dire un effet certain sans objet sur sa cible (`reussiteSansObjet`).
  *
- * FAIL-CLOSED : rend `undefined` dès qu'un nœud rend l'issue INCERTAINE — un `si` non résolu (la
- * branche dépend d'une Condition), un `test` imbriqué (un second jet), un `choix` (une décision à
- * venir), ou une feuille qui n'est pas une liste d'ops (transition, dialogue). Aplatir
- * ces cas produirait un encadré qui PROMET ce qui ne se produira peut-être pas. Une branche vide rend
- * `[]` (« rien ne se produit »), qui est une réponse, pas une absence. PURE.
+ * FAIL-CLOSED : rend `undefined` dès qu'un nœud rend l'issue INCERTAINE — un `si` (la branche dépend d'une
+ * Condition), un `test` imbriqué (un second jet), un `choix` (une décision à venir), ou une feuille qui n'est pas une
+ * liste d'ops (transition, dialogue). Un Flow vide rend `[]` (« rien ne se produit »), qui est une réponse. PURE.
  *
- * `evalCond` (optionnel) — ORACLE PARTIEL de Condition : il rend `true`/`false` UNIQUEMENT pour ce
- * qu'il sait trancher hors exécution, et `undefined` pour tout le reste. Ce troisième cas est le
- * cœur du contrat : un évaluateur TOTAL (qui répondrait `false` faute de contexte) ferait promettre
- * la branche `sinon` d'une Condition qu'il n'a pas su lire — l'encadré enseignerait une règle
- * AMPUTÉE. Ici, `undefined` ⇒ le `si` reste incertain ⇒ la branche entière se tait. Sans `evalCond`,
- * tout `si` est incertain (comportement d'origine). Un `si` sans `sinon` dont la Condition est
- * FAUSSE de façon tranchée rend `[]` : rien ne s'applique, c'est une réponse.
- *
- * PORTÉE de la certitude : elle est STRUCTURELLE — elle porte sur la FORME du Flow (`effet`+ops sans
- * `test`/`choix`/`si` non résolu en amont), jamais sur le contenu d'une op. Une op dont l'effet est
- * conditionné EN INTERNE (garde dans son propre payload) est rendue comme certaine : sa certitude relève
- * de son exécuteur, `applyOps`. Une op qui doit annoncer une issue conditionnelle expose sa condition
- * dans la STRUCTURE du Flow (`si`), où cette fonction la lit.
+ * PORTÉE de la certitude : elle est STRUCTURELLE — elle porte sur la FORME du Flow, jamais sur le contenu d'une op.
+ * Une op dont l'effet est conditionné EN INTERNE (garde dans son propre payload) est rendue comme certaine : sa
+ * certitude relève de son exécuteur, `applyOps`.
  */
-export function certainFlowOps<E = EffectOp>(
-  flow: Flow<E> | undefined,
-  evalCond?: (cond: Condition) => boolean | undefined,
-): GameOp[] | undefined {
+export function certainFlowOps<E = EffectOp>(flow: Flow<E> | undefined): GameOp[] | undefined {
   if (!flow) return undefined;
   const out: GameOp[] = [];
   const complet = walkFlow(flow, (noeud) => {
@@ -534,11 +517,7 @@ export function certainFlowOps<E = EffectOp>(
         if (!isEffectOp(noeud.effet)) return 'stop';
         out.push(...noeud.effet.ops);
         return;
-      case 'si': {
-        const verdict = evalCond?.(noeud.condition);
-        if (verdict === undefined) return 'stop';
-        return verdict ? 'alors' : 'sinon';
-      }
+      case 'si':
       case 'test':
       case 'choix':
         return 'stop';
