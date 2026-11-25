@@ -364,7 +364,7 @@ function retireEtat(c: Combatant, name: string, value: number, parSaSource: bool
 /** Les États que la sortie de `id` pose à un porteur qui portait `portes` juste avant : `EtatData.aLaSortie`, hors
  *  la pose dont l'`unlessCondition` est portée. #4993 */
 function posesDeSortie(id: string, portes: ReadonlySet<string>): string[] {
-  return (findConditionById(id)?.aLaSortie ?? []).filter((o) => !(o.unlessCondition && portes.has(o.unlessCondition.id))).map((o) => o.id.id);
+  return (findConditionById(id)?.aLaSortie ?? []).flatMap((o) => (o.op === 'condition' && !(o.unlessCondition && portes.has(o.unlessCondition.id)) ? [o.id.id] : []));
 }
 
 /** LA SORTIE des États `ids`, dont la dernière instance vient de quitter `c`, qui portait `portesAvant` : la

@@ -8,7 +8,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { couleurHexSchema, difficultySchema, gatingDeStatutSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { conditionSchema, gameOpSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
+import { conditionSchema, executeesDe, gameOpSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 import { ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { visuelDeLumiereSchema } from './lightTones';
@@ -48,12 +48,11 @@ const verrouDEtatSchema = conditionSchema.superRefine((v, ctx) => {
  *  l'État dont le port l'écarte. */
 const CHAMPS_DE_LA_SORTIE: ReadonlySet<string> = new Set(['op', 'id', 'unlessCondition']);
 
-type PoseALaSortie = Extract<z.output<typeof gameOpSchema>, { op: 'condition' }>;
-
-/** Une pose de `EtatData.aLaSortie` : une op `condition` réduite aux champs que la sortie lit. */
-const poseALaSortieSchema = gameOpSchema.refine(
-  (o): o is PoseALaSortie => o.op === 'condition' && Object.keys(o).every((k) => CHAMPS_DE_LA_SORTIE.has(k)),
-  { message: `À la sortie : une op « condition » qui ne porte que ${[...CHAMPS_DE_LA_SORTIE].join(', ')}.` },
+/** `EtatData.aLaSortie` : des ops `condition` réduites aux champs que la sortie lit. La garde porte sur la liste, pas
+ *  sur l'op : chaque op reste le nœud `gameOpSchema` que l'atelier et le parse de mesure reconnaissent. */
+const posesALaSortieSchema = executeesDe(gameOpSchema).refine(
+  (l) => l.every((o) => o.op === 'condition' && Object.keys(o).every((k) => CHAMPS_DE_LA_SORTIE.has(k))),
+  { message: `À la sortie : des ops « condition » qui ne portent que ${[...CHAMPS_DE_LA_SORTIE].join(', ')}.` },
 );
 
 const doc = document(
@@ -80,7 +79,7 @@ const doc = document(
     /** LDB 16 l.56/70/84/92/107/117 ; LDB 62 l.250. */
     persistsAfterCombat: z.boolean().optional(),
     /** LDB 16 l.58, l.78, l.109, l.119, l.129 ; AA 07 l.11. */
-    aLaSortie: z.array(poseALaSortieSchema).optional(),
+    aLaSortie: posesALaSortieSchema.optional(),
     /** EDOC 12 l.170-197 ; #3045 */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** LDB 85 l.174 ; VDM 10 l.153 */
