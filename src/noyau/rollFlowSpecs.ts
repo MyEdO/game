@@ -2705,7 +2705,7 @@ export const FLOWS = paresseux({
     // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
     // engage des Bandages ; le dé renversé s'évalue comme `resolve`.
     reverse: {
-      skillOf: (_s, p) => (p.test === 'dexterite' ? { characteristic: 'dexterite' } : { skill: { id: HEAL_SKILL }, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) }),
+      skillOf: (_s, p) => (p.test === 'guerison' ? { skill: { id: HEAL_SKILL }, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) } : IDS_DU_TEST_DE_SOIN[p.test]),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
         const issue = issueDuSoin(s, actor, p.test, tr);
