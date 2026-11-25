@@ -486,9 +486,8 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => /^ogre touche/.test(t));
     const vu = coups.join(' | ');
     // TROIS enchaînements (h2, h3, h4), aucun rejoué, puis la gratuite de créature du tour sur h1 : le
-    // Piétinement (LDB 85 l.387), une fois la chaîne close, dont la réussite relance le balayage sur h2
-    // (LDB 85 l.360). Pas un coup de plus.
-    expect(coups.map((t) => /^ogre touche (h\d)/.exec(t)?.[1]), `un coup par maillon, aucun rejoué — ${vu}`).toEqual(['h2', 'h3', 'h4', 'h1', 'h2']);
+    // Piétinement (LDB 85 l.387), une fois la chaîne close, qui n'en rouvre pas (arbitrage #5031). Pas un coup de plus.
+    expect(coups.map((t) => /^ogre touche (h\d)/.exec(t)?.[1]), `un coup par maillon, aucun rejoué — ${vu}`).toEqual(['h2', 'h3', 'h4', 'h1']);
     expect(coups.filter((t) => /h4/.test(t)).length, `h4 est frappé UNE fois, à travers la Déviation de h3 — ${vu}`).toBe(1);
   });
 });

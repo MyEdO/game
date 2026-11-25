@@ -15,7 +15,7 @@
 import { describe, it, expect } from 'vitest';
 import { fireTriggers } from './triggeredEffects';
 import { areGrappling } from '../engine/grapple';
-import { clearEngagementOf } from '../engine/engagement';
+import { clearEngagementOf, setEngaged } from '../engine/engagement';
 import { stacks } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
@@ -39,7 +39,11 @@ const beast = (adv: number, over: Partial<Combatant> = {}): Combatant =>
 const prey = (id: string, size: SizeCategory, adv = 0, over: Partial<Combatant> = {}): Combatant =>
   mk({ id, label: id, kind: 'heros', size, advantage: adv, engagedWith: ['beast'], pos: { x: 5, y: 6 }, ...over });
 
-const get = (...cs: Combatant[]) => (() => ({ battle: { combatants: cs } })) as never;
+/** Le combat de `cs`, chaque lien Engagé d'une proie posé des deux côtés (LDB 13 l.169-171). */
+const get = (...cs: Combatant[]) => {
+  for (const a of cs) for (const id of a.engagedWith ?? []) { const b = cs.find((x) => x.id === id); if (b) setEngaged(a, b); }
+  return (() => ({ battle: { combatants: cs } })) as never;
+};
 const empetre = (c: Combatant) => stacks(c, 'empetre');
 const digere = (c: Combatant) => stacks(c, 'digere');
 
