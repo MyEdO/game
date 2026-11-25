@@ -11,6 +11,7 @@ import { equipConflicts, itemFromTrappingById, wornArmourPoints } from '../engin
 import { cocherLaDotation } from '../engine/casesDeCarriere';
 import { LOCALISATIONS_DE_COUP } from '../engine/localisations';
 import type { Combatant, ItemInstance } from '../engine/types';
+import { tableTotale } from '../lib/tableTotale';
 
 const REGLE = 'armure-regles-rapides';
 const BANDES = ['armure-legere', 'armure-moyenne', 'armure-lourde'];
@@ -51,7 +52,7 @@ describe('offre au joueur', () => {
 
 describe('superposition par l’Atout Flexible (LDB 63 l.74)', () => {
   const porte = (...ids: string[]): ItemInstance[] => ids.map((id) => ({ ...itemFromTrappingById(id, idsDeTest)!, equipped: true }));
-  const partout = (pa: number) => Object.fromEntries(LOCALISATIONS_DE_COUP.map((l) => [l, pa]));
+  const partout = (pa: number) => tableTotale(LOCALISATIONS_DE_COUP, () => pa);
 
   it('« Tous » couvre les six Localisations (LDB 63 l.101)', () => {
     expect(porte('armure-legere')[0].locs).toEqual([...LOCALISATIONS_DE_COUP]);
