@@ -174,11 +174,14 @@ export type EtapeDuPlan = ({ genre: 'carac'; id: CharKey; points: number } | { g
   & { label: string; fois: number; cout: number };
 
 /** Les achats qui valident le niveau `p` du héros `c` (`niveauValide`, sur une copie) : le premier Talent de
- *  `p.talents` qui se prend si aucun n'est acquis, puis, pas par pas (`butDuPas`) et à tour de rôle, les
- *  Caractéristiques de carrière et les Compétences de carrière (les `preferee` d'abord, puis les plus avancées) jusqu'à
- *  la validation ; enfin le niveau suivant. Sous l'exigence `completion`, chaque cible s'arrête à ses points et seules
- *  ses `competences` Compétences sont prises. LDB 07 l.118-131 ; CRB 048 l.45 */
-export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id: string; spec?: string }) => boolean = () => false): EtapeDuPlan[] {
+ *  `p.talents` qui se prend si aucun n'est acquis, puis, pas par pas (`butDuPas`) jusqu'à la validation, la
+ *  Caractéristique ou la Compétence `preferee` de carrière la moins avancée (`pointsDe`), à égalité les
+ *  Compétences d'abord, les plus avancées en tête, puis les Caractéristiques ; les autres Compétences, de même, quand aucune de
+ *  celles-là ne se prend plus ; enfin le niveau suivant. Le plan ne lit que l'état de `c` : payé en plusieurs fois, il
+ *  coûte ce qu'il coûte en une fois (#5014). Sous l'exigence `completion`, chaque cible s'arrête à ses points et seules
+ *  ses `competences` Compétences sont prises, les `preferee` d'abord, puis les plus avancées. LDB 07 l.118-131 ;
+ *  CRB 048 l.45 */
+export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id: string; spec?: string }) => boolean = () => true): EtapeDuPlan[] {
   const exigence = p.exigence;
   if (!exigence) return [];
   const copie = copieSansCompte(c);
@@ -190,22 +193,20 @@ export function planDuNiveau(c: Combatant, p: Progression, preferee: (ref: { id:
   const rang = (k: OffreDeCompetence) => (preferee(k.ref) ? 1 : 0);
   const competences = p.competences.filter((x) => x.points < plafond).sort((x, y) => rang(y) - rang(x) || y.points - x.points);
   const tenues = p.competences.length - competences.length;
-  type Cible = { cible: CibleDuPas; label: string; remise: number };
+  type Cible = { cible: CibleDuPas; label: string; remise: number; palier: number };
   let restantes: Cible[] = [
-    ...p.caracs.filter((x) => x.points < plafond).map((k): Cible => ({ cible: { genre: 'carac', id: k.id }, label: k.label, remise: 0 })),
     ...(exigence.type === 'completion' ? competences.slice(0, Math.max(0, exigence.competences - tenues)) : competences)
-      .map((k): Cible => ({ cible: { genre: 'competence', ref: k.ref }, label: k.label, remise: k.remise })),
+      .map((k): Cible => ({ cible: { genre: 'competence', ref: k.ref }, label: k.label, remise: k.remise, palier: rang(k) })),
+    ...p.caracs.filter((x) => x.points < plafond).map((k): Cible => ({ cible: { genre: 'carac', id: k.id }, label: k.label, remise: 0, palier: 1 })),
   ];
+  const avant = (x: Cible, m: Cible) => x.palier - m.palier || pointsDe(copie, m.cible) - pointsDe(copie, x.cible);
   const etapes: EtapeDuPlan[] = [];
-  while (restantes.length && !valide()) {
-    const encore: Cible[] = [];
-    for (const x of restantes) {
-      if (valide()) break;
-      const r = acheterSur(copie, x.cible, Math.min(butDuPas(pointsDe(copie, x.cible)), plafond), x.remise);
-      if (r.fois) etapes.push({ ...x.cible, label: x.label, fois: r.fois, points: r.points, cout: r.cout });
-      if (r.refus === null && pointsDe(copie, x.cible) < plafond) encore.push(x);
-    }
-    restantes = encore;
+  while (!valide()) {
+    const choisie = restantes.reduce<Cible | undefined>((m, x) => (!m || avant(x, m) > 0 ? x : m), undefined);
+    if (!choisie) break;
+    const r = acheterSur(copie, choisie.cible, Math.min(butDuPas(pointsDe(copie, choisie.cible)), plafond), choisie.remise);
+    if (r.fois) etapes.push({ ...choisie.cible, label: choisie.label, fois: r.fois, points: r.points, cout: r.cout });
+    if (r.refus !== null || pointsDe(copie, choisie.cible) >= plafond) restantes = restantes.filter((x) => x !== choisie);
   }
   if (talent) etapes.push({ genre: 'talent', ref: talent.ref, label: talent.label, fois: 1, cout: talent.cout });
   if (p.suivant) etapes.push({ genre: 'niveau', label: p.suivant.titre, fois: 1, cout: p.suivant.cout });

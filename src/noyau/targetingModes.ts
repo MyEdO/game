@@ -488,7 +488,7 @@ function healAffordance(get: Get, active: Combatant, target: Combatant): HoverTa
   if (!soignablesAPortee(get, active).some((c) => c.id === target.id)) return { kind: 'none' };
   const mode = modesDOuverture(target, active)[0];
   if (!mode) return { kind: 'invalid', reason: 'sans-soin-de-combat' };
-  const test = garanti(soinDOuverture(active, mode), mode, 'soin ouvert').test;
+  const test = garanti(soinDOuverture(active, mode, target), mode, 'soin ouvert').test;
   return { kind: 'ok', line: 'solid', title: 'Soigner', skill: libelleDeTest(test), base: 0, mod: 0, dmg: null };
 }
 

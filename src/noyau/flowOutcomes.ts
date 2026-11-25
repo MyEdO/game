@@ -65,7 +65,7 @@ export function describeHeal(ph: PendingHeal, target: Combatant, name: string): 
   const wounds = ph.mode === 'blessures';
   const trauma = ph.mode === 'traumatisme';
   const ammo = ph.mode === 'munition';
-  const rawPreview = wounds ? healWoundsDelta(ph.intBonus, ph.sl, ph.success) : 0;
+  const rawPreview = wounds ? healWoundsDelta(ph.intBonus, ph.sl, ph.success, ph.test) : 0;
   const preview = wounds ? cappedHealAmount(target, rawPreview) : rawPreview;
   if (ph.success) {
     if (wounds) return t('out.healWounds', { name, n: preview });

@@ -5,21 +5,19 @@
 // `<export>/planches/<nom>.json`, chaque jeu de réponses communes sous
 // `<export>/planches/communes/<empreinte>.json` (`deposerLesPlanches`). Sous `etalons/` sont commités `<nom>.png`,
 // l'étalon de la planche, et `valides.json`, par nom de planche la date et l'empreinte SHA-256 de l'étalon que l'utilisateur a validé. Un étalon ne vaut que pour le
-// Chromium épinglé (`EPINGLE`) sous Linux x86-64 (`refusDuNavigateur`) : le canari le compare
-// (mesure `godot-etalons` de `.github/workflows/canari.yml`), qui installe ce Chromium à la version de Playwright lue ici.
+// Chromium épinglé (`EPINGLE`, `refusDuNavigateur`, scripts/recette/navigateur.mjs) : le canari le compare par `ecart`
+// (scripts/recette/ecart.mjs ; mesure `godot-etalons` de `.github/workflows/canari.yml`), qui installe ce Chromium.
 // La maquette validée d'une planche, `cibles/maquettes/<nom>.png`, se déclare dans `cibles/maquettes.json` (`MAQUETTES`) ; `coteACote`
 // la pose au-dessus de la capture de la planche.
 import { createHash } from 'node:crypto'
 import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { crc32, deflateSync } from 'node:zlib'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
+import { encoderPng } from '../../scripts/qc/lib/pngEncode.mjs'
 
 export const DOSSIER_DES_ETALONS = fileURLToPath(new URL('./etalons', import.meta.url))
 export const VALIDES = join(DOSSIER_DES_ETALONS, 'valides.json')
-/** Les maquettes des planches : par nom de planche, `chemin` du PNG depuis `cibles/`, `sha256`, `facteur` (sa taille sur celle de la
- *  capture) et `date` de sa validation. */
 /** La vue de base du projet (`display/window/size/viewport_*` de `projet/project.godot`), `{ largeur, hauteur }` : à
  *  cette fenêtre, l'échelle de l'interface vaut 1, et ce que l'écran publie est en pixels de la fenêtre. */
 export const VUE_DE_BASE = (() => {
@@ -27,33 +25,9 @@ export const VUE_DE_BASE = (() => {
   const lue = (cle) => Number(new RegExp(`^window/size/viewport_${cle}=(\\d+)$`, 'm').exec(projet)[1])
   return Object.freeze({ largeur: lue('width'), hauteur: lue('height') })
 })()
+/** Les maquettes des planches : par nom de planche, `chemin` du PNG depuis `cibles/`, `sha256`, `facteur` (sa taille sur celle de la
+ *  capture) et `date` de sa validation. */
 export const MAQUETTES = fileURLToPath(new URL('./cibles/maquettes.json', import.meta.url))
-/** Le build du navigateur des étalons : la version de Playwright qui l'installe (`devDependencies` de `package.json`),
- *  et celle de Chrome for Testing qu'il installe. Monter l'épingle, c'est reposer tous les étalons dans le même commit. */
-export const EPINGLE = Object.freeze({
-  playwright: JSON.parse(readFileSync(new URL('../../package.json', import.meta.url), 'utf8')).devDependencies.playwright,
-  chrome: '153.0.8010.12',
-})
-/** La plateforme où l'épingle a été mesurée (`process.platform`, `process.arch`). */
-const PLATEFORME = Object.freeze({ plateforme: 'linux', architecture: 'x64' })
-
-/** Les pixels qui diffèrent entre les PNG `a` et `b`, et la boîte qui les contient ; tous, d'une taille à l'autre (`b`, l'étalon ou la référence). PURE. */
-export function ecart(a, b) {
-  const A = decodePng(a)
-  const B = decodePng(b)
-  if (A.w !== B.w || A.h !== B.h) return { pixels: A.w * A.h, boite: `étalon ${B.w}×${B.h}, rendu ${A.w}×${A.h}` }
-  let pixels = 0
-  let [x0, y0, x1, y1] = [A.w, A.h, -1, -1]
-  for (let i = 0; i < A.data.length; i += 4) {
-    if (A.data[i] === B.data[i] && A.data[i + 1] === B.data[i + 1] && A.data[i + 2] === B.data[i + 2]) continue
-    pixels++
-    const x = (i / 4) % A.w
-    const y = Math.floor(i / 4 / A.w)
-    x0 = Math.min(x0, x); y0 = Math.min(y0, y); x1 = Math.max(x1, x); y1 = Math.max(y1, y)
-  }
-  return { pixels, boite: pixels ? `de (${x0}, ${y0}) à (${x1}, ${y1})` : '' }
-}
-
 /** Dépose chaque planche et déduplique les réponses communes identiques par leur empreinte. */
 export function deposerLesPlanches(sortie, planches) {
   const dossier = join(sortie, 'planches')
@@ -72,38 +46,9 @@ export function deposerLesPlanches(sortie, planches) {
   }
 }
 
-/** Le refus du banc pour le navigateur `navigateur` (le `product` de `Browser.getVersion`, `<nom>/<version>`) lancé
- *  sur `plateforme` et `architecture` (`process.platform`, `process.arch`) : ce qu'il a lu, ce qu'il attend et la
- *  commande qui installe le build épinglé ; `null` pour le seul `Chrome/<EPINGLE.chrome>` sous Linux x86-64. PURE. */
-export function refusDuNavigateur(navigateur, { plateforme, architecture }) {
-  const surLaPlateforme = plateforme === PLATEFORME.plateforme && architecture === PLATEFORME.architecture
-  if (surLaPlateforme && navigateur === `Chrome/${EPINGLE.chrome}`) return null
-  return `navigateur ${navigateur} sous ${plateforme}-${architecture}, le banc attend Chrome ${EPINGLE.chrome} sous ` +
-    `${PLATEFORME.plateforme}-${PLATEFORME.architecture} ; sur une telle machine : ` +
-    `PLAYWRIGHT_BROWSERS_PATH=<dossier> npx -y playwright@${EPINGLE.playwright} install chromium, puis le banc avec ce même PLAYWRIGHT_BROWSERS_PATH`
-}
-
 /** Les étalons de `fichiers` (le contenu du dossier des étalons) qu'aucune planche de `noms` ne porte. PURE. */
 export const etalonsSansPlanche = (fichiers, noms) => fichiers.filter((f) => f.endsWith('.png') && !noms.includes(f.slice(0, -'.png'.length)))
 
-/** Le PNG RGBA 8 bits de l'image `image` (`data` : ses pixels RGBA, rangée après rangée). */
-export function encoderPng({ w, h, data }) {
-  const rangees = Buffer.alloc(h * (1 + w * 4))
-  for (let y = 0; y < h; y++) rangees.set(data.subarray(y * w * 4, (y + 1) * w * 4), y * (1 + w * 4) + 1)
-  const bloc = (type, donnees) => {
-    const tete = Buffer.alloc(8)
-    tete.writeUInt32BE(donnees.length)
-    tete.write(type, 4)
-    const crc = Buffer.alloc(4)
-    crc.writeUInt32BE(crc32(Buffer.concat([tete.subarray(4), donnees])))
-    return Buffer.concat([tete, donnees, crc])
-  }
-  const ihdr = Buffer.alloc(13)
-  ihdr.writeUInt32BE(w, 0)
-  ihdr.writeUInt32BE(h, 4)
-  ihdr.set([8, 6, 0, 0, 0], 8)
-  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), bloc('IHDR', ihdr), bloc('IDAT', deflateSync(rangees)), bloc('IEND', Buffer.alloc(0))])
-}
 
 /**
  * Le côte à côte de la planche `nom` : sa maquette déclarée dans `maquettes` (`MAQUETTES`) ramenée à la taille de la

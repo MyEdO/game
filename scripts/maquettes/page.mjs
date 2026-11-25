@@ -3,15 +3,15 @@
 //   - `donnees.json` : les familles (un compte rendu chacune, et `dispositions.md`, transverse), les écrans et leurs
 //     états (le journal de chaque écran de la passe), les « À valider » rattachés aux états de leur section, les
 //     gabarits des états (`sources/maquettes/<écran>.ts`), la table `CADRES` de `sources/rendu.js`, les planches du kit ;
-//   - `img/<écran>-<état>.jpg` (1600 de large), `min/` (320) et `kit/<planche>.jpg` (1600), réduits par le Chromium de
-//     Playwright, depuis les captures de la passe (`png/`, `png/kit/`) :
+//   - `img/<écran>-<état>.jpg` (1600 de large), `min/` (320) et `kit/<planche>.jpg` (1600), réduits par le navigateur
+//     épinglé (`scripts/recette/navigateur.mjs`), depuis les captures de la passe (`png/`, `png/kit/`) :
 //   node scripts/maquettes/page.mjs [<passe>] [--sortie <dossier>]      `<passe>` : `dist/maquettes-passe` par défaut
 import { createHash } from 'node:crypto'
 import { copyFileSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { join, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { parseArgs } from 'node:util'
-import { chromium } from 'playwright'
+import { lancerLeNavigateurEpingle } from '../recette/navigateur.mjs'
 
 const P = fileURLToPath(new URL('../../hotes/godot/cibles/propositions/', import.meta.url))
 const DIST = fileURLToPath(new URL('../../dist/', import.meta.url))
@@ -115,12 +115,12 @@ for (const d of ['img', 'min', 'kit']) mkdirSync(join(sortie, d), { recursive: t
 copyFileSync(join(P, 'page', 'kit-et-dispositions.html'), join(sortie, 'kit-et-dispositions.html'))
 writeFileSync(join(sortie, 'donnees.json'), JSON.stringify({ familles, ecrans, choix, cadres, kit, gabarits, cibles: [] }))
 
-/** Les réductions : chaque capture, à la largeur de son dossier, en JPEG de qualité 82, par le Chromium de Playwright. */
+/** Les réductions : chaque capture, à la largeur de son dossier, en JPEG de qualité 82, par le navigateur épinglé. */
 const reductions = [
   ...Object.entries(ecrans).flatMap(([e, ss]) => ss.flatMap((s) => [['img', 1600], ['min', 320]].map(([d, l]) => [join(passe, 'png', `${e}-${s}.png`), join(sortie, d, `${e}-${s}.jpg`), l]))),
   ...kit.map((k) => [join(passe, 'png', 'kit', `${k}.png`), join(sortie, 'kit', `${k}.jpg`), 1600]),
 ]
-const b = await chromium.launch({ channel: 'chromium' })
+const b = await lancerLeNavigateurEpingle()
 try {
   const p = await b.newPage({ deviceScaleFactor: 1 })
   for (const [png, jpg, largeur] of reductions) {

@@ -190,10 +190,10 @@ export type VerrouDesMots<S extends string> = Verrou<Exclude<Mots<S>, `${number}
 type MotDuLexique = ActionDuLexique | ActionDeLaMachinerie | ActionDeFenetre | ActionDeJet
   | '4e' | '5e' | 'a' | 'abandon' | 'abandonner' | 'abregee' | 'abri' | 'absent' | 'accepter' | 'achat' | 'acheteur' | 'acquise'
   | 'acteur' | 'action' | 'active' | 'activite' | 'activites' | 'adapte' | 'adversaire' | 'adversaires' | 'adverse' | 'affaler' | 'aggrave' | 'agir'
-  | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'allies' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animosite'
+  | 'aide' | 'alea' | 'aleatoire' | 'allie' | 'allies' | 'alors' | 'ambition' | 'amis' | 'amputer' | 'aneantissement' | 'animaux' | 'animosite'
   | 'anneau' | 'annulation' | 'apercu' | 'approche' | 'apres' | 'architecture' | 'arete' | 'argent' | 'arme' | 'armee' | 'armes' | 'armure' | 'arriere'
   | 'aspersion' | 'asphyxie' | 'attaquant' | 'attaque' | 'attaques' | 'atteints' | 'attenuation' | 'attenue' | 'atout' | 'attribut' | 'au' | 'auberge' | 'aucun' | 'aucune' | 'aucun' | 'aucune'
-  | 'augmentee' | 'auto' | 'autour' | 'avant' | 'avantage' | 'b' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bannissement' | 'bas'
+  | 'augmentee' | 'auto' | 'autour' | 'aux' | 'avant' | 'avantage' | 'b' | 'baisser' | 'balayage' | 'bandages' | 'bande' | 'bannissement' | 'bas'
   | 'bataille' | 'battement' | 'batterie' | 'benediction' | 'bilan' | 'blessures' | 'bloque' | 'bois' | 'boisson'
   | 'bonus' | 'bord' | 'bordee' | 'bouclier' | 'bourse' | 'bras' | 'breche' | 'brisee' | 'briser' | 'butin' | 'cacher'
   | 'cadre' | 'camera' | 'camp' | 'campagne' | 'camps' | 'canons' | 'capacite' | 'car' | 'caracteristique' | 'cargaison'

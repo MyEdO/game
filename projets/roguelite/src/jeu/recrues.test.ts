@@ -3,6 +3,7 @@ import {
   acheter,
   acheterUneArmure,
   ameliorer,
+  candidatsAuPalier,
   dieuDe,
   nouvellePartie,
   offresDeCarriere,
@@ -11,11 +12,13 @@ import {
   roleDe,
   voieDe,
   PROFILS,
+  ROLES,
   SORTS_DES_VOIES,
+  TAILLE_DU_GROUPE,
   type Etat,
   type Heros,
 } from './index';
-import { porterAuNiveau, poserLesReglesDuRoguelite } from '../noyau';
+import { porterAuNiveau, poserLesReglesDuRoguelite, progression } from '../noyau';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -36,16 +39,18 @@ describe('recrues du relais', () => {
     expect(h.c.xp ?? 0).toBe(0);
     expect(o.niveau).toBe(2);
     expect(o.suivant?.niveau).toBe(3);
+    expect(progression({ ...h.c, careerLevel: 1 }).complet).toBe(true);
     for (const k of ['capacite-de-combat', 'endurance', 'force-mentale'] as const) expect(h.c.charAdvances?.[k] ?? 0).toBeGreaterThanOrEqual(5);
   });
 
-  it('les candidats d’un même tirage ont des rôles distincts', () => {
+  it('un tirage propose de quoi monter un groupe entier, un de plus par palier, chaque rôle avant qu’un rôle revienne', () => {
     for (let graine = 1; graine <= 10; graine++) {
       for (const palier of [0, 1, 2]) {
         const e = auRelais(graine, palier);
         const roles = e.candidats.map((c) => roleDe(c.carriere));
-        expect(roles).toHaveLength(2 + palier);
-        expect(new Set(roles).size).toBe(roles.length);
+        expect(roles).toHaveLength(candidatsAuPalier(palier));
+        expect(roles.length).toBeGreaterThanOrEqual(TAILLE_DU_GROUPE);
+        expect(new Set(roles).size).toBe(Math.min(roles.length, Object.keys(ROLES).length));
       }
     }
   });

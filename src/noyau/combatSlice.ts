@@ -1883,8 +1883,8 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!campAuContact(get().scene, battle, healer).some((c) => c.id === target.id)) return void refuserGesteDuSiege(get, set, t('cf.horsDePortee'));
       // L'acte d'ouverture : le premier que le soigneur ouvre sur la cible ; il se change par `jetRegler('soins', 'mode')`.
       const mode = modesDOuverture(target, healer)[0] ?? HEAL_MODES[0];
-      const ouverture = soinDOuverture(healer, mode);
-      const raison = raisonDeModeDeSoinEnCombat(target, mode) ?? (ouverture ? null : refusDuTestDeSoin(healer, mode, { test: 'guerison', bandages: false }));
+      const ouverture = soinDOuverture(healer, mode, target);
+      const raison = raisonDeModeDeSoinEnCombat(target, mode) ?? (ouverture ? null : refusDuTestDeSoin(healer, mode, { test: 'guerison', bandages: false }, target));
       if (raison || !ouverture) return void refuserGesteDuSiege(get, set, garanti(raison, mode, 'refus du soin'));
       const { skillValue, difficulty, ligne } = jetDuSoigneur(healer, ouverture.test, mode);
       set({
@@ -3275,7 +3275,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (panse && porteur) log.push(t('heal.bandageUtilise', { name: nomDe(porteur) }));
       const params = { test: ph.test, bandages: panse };
       if (ph.mode === 'blessures') {
-        const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), panse);
+        const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), params);
         log.push(...r.log);
         if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'soin' });
       } else if (ph.mode === 'hemorragie') {
