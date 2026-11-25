@@ -380,7 +380,7 @@ function appelDeMethode(n, methode) {
  *  (#2007). `JSON.stringify` d'une chaîne n'en est pas un : son échappement est celui de la plateforme. */
 export const ECHAPPEUR_DE_LITTERAL = Object.freeze({
   nom: 'ECHAPPEUR_DE_LITTERAL',
-  indice: (texte) => texte.includes('.replace('),
+  indice: (texte) => texte.includes('.replace(') && texte.includes("/'/"),
   /** @param {ts.Node} n @returns {string | null} */
   reconnait: (n) => {
     const appel = appelDeMethode(n, 'replace');
@@ -454,7 +454,7 @@ function maillonDeChaine(n, op) {
  *  `!X ? true : Y === X`, `X == null ? true : Y === X`. Une chaîne se compte une fois, à sa racine. */
 export const COUVERTURE_DE_SPEC = Object.freeze({
   nom: 'COUVERTURE_DE_SPEC',
-  indice: (texte) => texte.includes('spec'),
+  indice: (texte) => /\bspec\b[^;=]*?[=!]=|[=!]=[^;=]*?\bspec\b/.test(texte),
   /** @param {ts.Node} n @param {ts.SourceFile} sf @returns {string | null} */
   reconnait: (n, sf) => {
     const verdict = 'couverture de Spécialisation recopiée (`refCouvre`)';
@@ -485,7 +485,7 @@ export const COUVERTURE_DE_SPEC = Object.freeze({
  *  vide par défaut en `X ?? ''` ou `X || ''`, nu ou sous `String(…)`. */
 export const IDENTITE_D_INSTANCE = Object.freeze({
   nom: 'IDENTITE_D_INSTANCE',
-  indice: (texte) => texte.includes('spec'),
+  indice: (texte) => /\bspec\b[^;=]*?(?:\?\?|\|\|)\s*(?:''|"")/.test(texte),
   /** @param {ts.Node} n @returns {string | null} */
   reconnait: (n) => {
     if (!ts.isBinaryExpression(n) || ![...EGALITES_SEULES, ...INEGALITES].includes(n.operatorToken.kind)) return null;
@@ -562,7 +562,7 @@ export const CONSTRUCTION_DE_PROGRAMME = Object.freeze({
  *  littéral>, …)` dont l'objet porte une propriété `entrees`, avec `quoi`, avec une propagation ou seule. */
 export const ECRITURE_DE_STOCK_JSON = Object.freeze({
   nom: 'ECRITURE_DE_STOCK_JSON',
-  indice: (texte) => texte.includes('JSON.stringify'),
+  indice: (texte) => texte.includes('JSON.stringify') && /\bentrees\b/.test(texte),
   /** @param {ts.Node} n @returns {string | null} */
   reconnait: (n) => {
     const appel = appelDeMethode(n, 'stringify');
@@ -577,7 +577,7 @@ export const ECRITURE_DE_STOCK_JSON = Object.freeze({
  *  signal `0` ou `'0'` (kill(2), #2516). Son foyer : `estPidVivant`. */
 export const SONDE_D_EXISTENCE = Object.freeze({
   nom: 'SONDE_D_EXISTENCE',
-  indice: (texte) => texte.includes('kill'),
+  indice: (texte) => /\bkill\b/.test(texte),
   /** @param {ts.Node} n @returns {string | null} */
   reconnait: (n) => {
     if (!ts.isCallExpression(n) || n.arguments.length < 2) return null;
@@ -1204,6 +1204,15 @@ const NOMS_DU_FICHIER = new Set(['fichier', 'file', 'chemin', 'path', 'rel', 'ur
 const NOMS_DE_POSITION = new Set(['ligne', 'line', 'row']);
 const NOMS_DE_RAISON = new Set(['raison', 'reason', 'justification']);
 const NOM_DE_POLITIQUE = /exempt|except|allowlist|allowed_?sites|whitelist|ratchet|(?:^|_)admis|stock/i;
+/** Les textes sans lesquels `EXEMPTION_PAR_LIGNE` ne reconnaît rien : un littéral `….ext:N`, un gabarit
+ *  qui finit par `:${position}` ou `:${N}`, une clé de position à valeur numérique, un nom de champ de
+ *  fichier, un champ de raison ou un nom de politique. */
+const mots = (noms) => `\\b(?:${[...noms].join('|')})\\b`;
+const ADRESSE_LITTERALE = /\.[\p{L}0-9]+:\d+['"`]/u;
+const ADRESSE_GABARIT = new RegExp(`:\\$\\{[^\`]*?${mots(NOMS_DE_POSITION)}[^\`]*?\\}\`|:\\$\\{[^\`}]*?\\d[^\`}]*\\}\``);
+const POSITION_NUMERIQUE = new RegExp(`${mots(NOMS_DE_POSITION)}['"\\]]?\\s*:[\\s(]*(?:<[^>]*>[\\s(]*)*\\d`);
+const MOT_DU_FICHIER = new RegExp(mots(NOMS_DU_FICHIER));
+const CONTEXTE_D_EXEMPTION = new RegExp(`${mots(NOMS_DE_RAISON)}|${NOM_DE_POLITIQUE.source}`, 'i');
 
 /** @param {ts.Node} n */
 function estDansUnePolitiqueDeSites(n) {
@@ -1270,7 +1279,9 @@ function estAttenduLitteral(n) {
  */
 export const EXEMPTION_PAR_LIGNE = Object.freeze({
   nom: 'exemption par numéro de ligne',
-  indice: (texte) => /:\d+|:\$\{|\b(?:ligne|line|row)\b/.test(texte),
+  indice: (texte) => ADRESSE_LITTERALE.test(texte)
+    || (ADRESSE_GABARIT.test(texte) && (CONTEXTE_D_EXEMPTION.test(texte) || /\bMap\b/.test(texte)))
+    || (POSITION_NUMERIQUE.test(texte) && MOT_DU_FICHIER.test(texte) && CONTEXTE_D_EXEMPTION.test(texte)),
   /** @param {ts.Node} n @param {ts.SourceFile} sf */
   reconnait: (n, sf) => {
     const cle = cleNumeriqueDeclaree(n);
@@ -1287,6 +1298,10 @@ export const EXEMPTION_PAR_LIGNE = Object.freeze({
 });
 
 const NOMS_D_ANCRE = new Set(['ancre', 'anchor', 'motif', 'pattern']);
+/** L'accès `.nom` ou `['nom']` à l'un des `noms` : le texte que lit `porteurDuChamp`. @param {Iterable<string>} noms */
+const accesAuChamp = (noms) => new RegExp(`\\.\\s*${mots(noms)}|\\[\\s*['"\`]${mots(noms)}['"\`]\\s*\\]`);
+const ACCES_A_L_ANCRE = accesAuChamp(NOMS_D_ANCRE);
+const ACCES_AU_FICHIER = accesAuChamp(NOMS_DU_FICHIER);
 
 /** Porteur d'un champ d'entrée, à travers une éventuelle projection unaire.
  * @param {ts.Expression} e @param {ReadonlySet<string>} noms @param {ts.SourceFile} sf */
@@ -1305,7 +1320,7 @@ function porteurDuChamp(e, noms, sf) {
  */
 export const COMPARATEUR_D_ANCRE_EN_LIGNE = Object.freeze({
   nom: 'comparateur d’ancre recopié',
-  indice: (texte) => texte.includes('&&') && /\b(?:ancre|anchor|motif|pattern)\b/.test(texte),
+  indice: (texte) => texte.includes('&&') && texte.includes('==') && ACCES_A_L_ANCRE.test(texte) && ACCES_AU_FICHIER.test(texte),
   /** @param {ts.Node} n @param {ts.SourceFile} sf */
   reconnait: (n, sf) => {
     const et = ts.SyntaxKind.AmpersandAmpersandToken;
