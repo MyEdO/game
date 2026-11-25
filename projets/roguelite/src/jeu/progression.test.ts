@@ -182,6 +182,18 @@ describe('progression 5e : le même code, au barème du héros', () => {
     expect(casesDuNiveau(h.c, 'soldat', 1)).toBe(10);
   });
 
+  it.each([300, 200])('suivi à %i PX par retour, le plan valide le niveau au prix du plan payé en une fois (#5014)', (apport) => {
+    const { e, h } = recrue5e(0);
+    const enUneFois = planVersLeNiveau(h).total;
+    let paye = 0;
+    for (let retour = 0; retour < 20 && h.c.careerLevel === 1; retour++) {
+      h.c.xp = (h.c.xp ?? 0) + apport;
+      paye += suivreLePlan(e, h.c.id).cout;
+    }
+    expect(h.c.careerLevel).toBe(2);
+    expect(paye).toBe(enUneFois);
+  });
+
   it('porté au niveau 3 par `porterAuNiveau` : 10 puis 12 cases, chaque valeur sur un multiple de 5 points', () => {
     const { h } = recrue5e(0);
     const c = porterAuNiveau(h.c, 3, 11);

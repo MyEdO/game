@@ -19,6 +19,7 @@ import { especesOffertes } from '../../../../src/noyau/creation/brouillon';
 import { modeleDe } from '../../../../src/engine/modeleDeProgression';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import type { Combatant } from '../../../../src/engine/types';
+import { findSpeciesById, names } from '../../../../src/data';
 /** Une sauvegarde de `nouvellePartie(5)` au code 2db8e5bd9b, d'avant la création 5e, ses candidats retirés. */
 import sauvegarde4e from './sauvegarde-4e.json?raw';
 
@@ -103,6 +104,26 @@ describe('recrues : la création 5e du noyau', () => {
       }
     }
     expect(ecarts).toEqual([]);
+  }, 60_000);
+
+  it('le nom d’une recrue se tire au sexe tiré de la recrue : son prénom, et le suffixe de son patronyme nain, dans la banque de son sexe. LDB 05 l.621-633', () => {
+    const ecarts: string[] = [];
+    const sexes = new Set<string>();
+    for (const p of PROFILS) {
+      for (const h of recruesDe(p)) {
+        const sexe = h.c.appearance?.sex;
+        const banque = names.find((n) => n.id === findSpeciesById(h.espece)?.refChar)!;
+        const [prenom, ...reste] = h.c.label.split(' ');
+        const prenoms = sexe === 'F' ? banque.femaleFirstNames : banque.maleFirstNames;
+        const suffixes = banque.lastNameSuffixes?.[sexe!];
+        if (!sexe) { ecarts.push(`${p.id} × ${h.espece} : sans sexe`); continue; }
+        sexes.add(sexe);
+        if (!prenoms.includes(prenom)) ecarts.push(`${p.id} × ${h.espece} (${sexe}) : prénom ${prenom}`);
+        if (suffixes && !suffixes.some((s) => reste.join(' ').endsWith(s))) ecarts.push(`${p.id} × ${h.espece} (${sexe}) : patronyme ${reste.join(' ')}`);
+      }
+    }
+    expect(ecarts).toEqual([]);
+    expect([...sexes].sort()).toEqual(['F', 'M']);
   }, 60_000);
 });
 

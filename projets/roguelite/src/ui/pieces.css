@@ -128,10 +128,4 @@ abbr[data-bulle] { text-decoration: underline dotted rgba(168,132,47,.7); text-u
 .portrait.petit > .voie-au-portrait { font-size: 11px; left: -4px; bottom: -4px; }
 .voie-au-portrait b { margin-left: -9px; padding: 0 6px 0 11px; border-radius: 0 9px 9px 0; font: 400 10.5px/16px "IM Fell English SC", serif; letter-spacing: .3px; white-space: nowrap; color: var(--ivoire); background: rgba(24,14,9,.94); box-shadow: 0 0 0 1px var(--contour), inset 0 0 0 1px var(--filet-or-vif), 0 2px 4px var(--ombre-forte); }
 .rang-heros.serre .voie-au-portrait b, .au-batiment .voie-au-portrait b { display: none; }
-/* la carte fermée dit pourquoi, à la place de son état : trois lignes serrées */
-.carte-heros:has(.ligne-etat.refus) .qui { gap: 1px; }
-.carte-heros .ligne-etat.refus { white-space: normal; display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 3; font-size: 11px; line-height: 12px; font-style: normal; color: #ffb9a3; }
-.socle-compagnie .rang-heros.serre .ligne-etat.refus { display: -webkit-box; -webkit-line-clamp: 2; }
-.carte-heros:disabled:has(.ligne-etat.refus) { opacity: 1; }
-.carte-heros:disabled:has(.ligne-etat.refus) .portrait > div, .carte-heros:disabled:has(.ligne-etat.refus) .vie, .carte-heros:disabled:has(.ligne-etat.refus) .jauge, .carte-heros:disabled:has(.ligne-etat.refus) .nom-propre, .carte-heros:disabled:has(.ligne-etat.refus) .sous-titre { opacity: .5; filter: grayscale(.6); }
 .heros-en-tete .portrait > .voie-au-portrait { left: 0; }
