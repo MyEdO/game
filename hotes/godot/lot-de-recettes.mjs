@@ -11,9 +11,9 @@
 // `<nom>-cote-a-cote.png`, dont le chemin s'imprime ; `preset:<id>[:<clip>:<instant>]` compose le preset `<id>` à
 // l'atelier (parcours `preset`), posé au clip `<clip>` à l'instant `<instant>` s s'il est nommé, et le capture sous
 // chaque vue, journal et captures sous `--captures/preset-<id>/`.
-// En natif, `--entree </module>` nomme l'entrée du jeu dont le pont démarre (`poserLEntree`, `construire.mjs`), que la
+// En natif, `--entree <module>` nomme l'entrée du jeu dont le pont démarre (`poserLEntree`, `construire.mjs`), que la
 // préparation et chaque jeu héritent.
-//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu] [--entree </module>]) --captures <dossier> [--jeux combat,planche:<nom>,preset:<id>]
+//   node hotes/godot/lot-de-recettes.mjs (--web <export> | --natif [--rendu] [--entree <module>]) --captures <dossier> [--jeux combat,planche:<nom>,preset:<id>]
 import { spawn, spawnSync } from 'node:child_process'
 import { once } from 'node:events'
 import { closeSync, mkdirSync, mkdtempSync, openSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
@@ -139,7 +139,7 @@ const QUEUE = 15
 
 if (import.meta.main) {
   const { values: o } = parseArgs({ options: { web: { type: 'string' }, natif: { type: 'boolean' }, rendu: { type: 'boolean' }, entree: { type: 'string' }, captures: { type: 'string' }, jeux: { type: 'string' } } })
-  if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif) || (o.entree !== undefined && !o.natif)) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif [--rendu] [--entree </module>]) --captures <dossier> [--jeux <nom>,<nom>]')
+  if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif) || (o.entree !== undefined && !o.natif)) throw new Error('usage : node hotes/godot/lot-de-recettes.mjs (--web <dossier de l’export> | --natif [--rendu] [--entree <module>]) --captures <dossier> [--jeux <nom>,<nom>]')
   poserLEntree(o.entree)
   const lieu = (parcours) => (!o.natif ? ['--web', resolve(o.web)] : o.rendu || RENDUS_EN_NATIF.has(parcours) ? ['--natif', '--rendu', RENDU_DE_LA_PAGE] : ['--natif'])
   const jeux = Object.entries(JEUX_DU_PARCOURS).flatMap(([parcours, parNom]) => Object.entries(parNom).map(([nom, args]) => ({ nom, parcours, args, dossier: nom, journal: 'journal.txt' })))

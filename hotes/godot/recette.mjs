@@ -3,7 +3,7 @@
 // - `--natif` (#3945, `pilotage/natif.mjs`) : sans export ni navigateur, le jeu lancé sur une copie importée du projet,
 //   sans rendu, son pont et son serveur dans ce processus ; `--rendu <méthode>` le lance en rendu réel sur un écran
 //   virtuel, ce qu'attend un parcours qui lit l'image (`RENDUS_EN_NATIF`, `lot-de-recettes.mjs`). `--statique` s'y
-//   refuse ; sans rendu, une capture se saute, notée ; `--entree </module>` y nomme l'entrée du jeu dont le pont
+//   refuse ; sans rendu, une capture se saute, notée ; `--entree <module>` y nomme l'entrée du jeu dont le pont
 //   démarre (`poserLEntree`, `construire.mjs`), hors d'une préparation de lot, qui porte la sienne ;
 // - `--web <export>` (`pilotage/page.mjs`) : l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`)
 //   servi par `servir.mjs`, Chromium piloté sur le canevas.
@@ -317,7 +317,7 @@ const { values: o } = parseArgs({
 })
 const preparation = o['preparation-native']
 if (preparation !== undefined && (!o.natif || !preparation)) throw new Error('--preparation-native attend le dossier de préparation d’un lot natif')
-if (o.entree !== undefined && (!o.natif || preparation !== undefined)) throw new Error('--entree </module> nomme l’entrée du jeu du pont natif qu’aucun lot n’a préparé : l’export porte la sienne, la préparation du lot aussi')
+if (o.entree !== undefined && (!o.natif || preparation !== undefined)) throw new Error('--entree <module> nomme l’entrée du jeu du pont natif qu’aucun lot n’a préparé : l’export porte la sienne, la préparation du lot aussi')
 poserLEntree(o.entree)
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/recette.mjs (--web <dossier de l’export> | --natif [--rendu <méthode>]) --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
