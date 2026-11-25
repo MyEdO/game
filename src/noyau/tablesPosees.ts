@@ -10,6 +10,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
+import type { Possession } from '../engine/possession';
 import type { AnnonceDEtape, CascadeApplier, CascadeTableFold, ExtendedTestOutcomeApplier, TableStepDef, TableStepFamily } from './cascade';
 import type { CombatHook } from './combatHooks';
 import type { HitModifier } from './combat/hitModifiers';
@@ -169,6 +170,8 @@ export interface TablesDuJeu {
   readonly clotures: { readonly [K in Cloture['verbe']]: ClotureApplier<K> };
   readonly lancerLeSort: LanceurDeSort;
   readonly lancerLeSortGaranti: LanceurGaranti;
+  /** La projection hors rencontre d'une bête possédée (`laBeteHorsRencontre`, `monde/spawn`), lue par `betesHorsRencontre`. #4804 */
+  readonly projeterLaBeteHorsRencontre: (p: Possession & { nature: 'bete' }) => Combatant;
   /** Conséquence post-touche d'une manœuvre (LDB 85 l.213). */
   readonly apresToucheDeManoeuvre: ManeuverPostHitHook;
   /** Définitions de séquence, TOUTES (`SequenceFamilies`). */

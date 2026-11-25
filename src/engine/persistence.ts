@@ -111,9 +111,9 @@ export const REPORT_DE_COMBATTANT = {
 
 const CHAMPS = Object.entries(REPORT_DE_COMBATTANT) as [keyof Combatant, Report][];
 
-/** États persistants seuls. Copie défensive. */
+/** États persistants seuls, hors ceux qui durent la rencontre (LDB 18 l.53). Copie défensive. */
 function persistentConditions(c: Combatant): ConditionInstance[] {
-  return c.conditions.filter((x) => isPersistentCondition(x.id)).map((x) => ({ ...x }));
+  return c.conditions.filter((x) => isPersistentCondition(x.id) && !x.finDeRencontre).map((x) => ({ ...x }));
 }
 
 /** Couture de RETOUR (fin de combat, `finalizeBattle`) : tout ce qui sort du combattant vers le héros du

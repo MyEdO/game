@@ -1,10 +1,7 @@
 /**
- * Cascade combat → Possession (#618 SOCLE POSSESSIONS, dernier item DoD) — un combattant issu d'une
- * Possession (bête montée/de bât en pièce, convention `Combatant.id === Possession.uid`, `pos-N`) qui
- * finit le combat écrit son état vers le registre `possessions` — MÊME couture que le writeback héros
- * (`carryOverState`) déjà fait par `finalizeBattle` : blessée → `wounds.current` persisté (clampé à son
- * max) ; morte → `destroyed:true`, ses `items`/`cargo` restent CO-LOCALISÉS sur la Possession (jamais
- * évaporés — miroir du patron `travelFlow.ts` bête abandonnée : `{ ...p, destroyed: true }`).
+ * Cascade combat → Possession (#618, #4804) — une bête possédée entre en rencontre par `projeterLaBete`
+ * (`Combatant.id === Possession.uid`) ; à la fin du combat, `finalizeBattle` écrit son état sur la possession :
+ * blessée → `blessures`, morte → `destroyed:true` (items CO-LOCALISÉS), indemne → aucune Blessure portée.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -12,68 +9,57 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { finalizeBattle } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
+import { inBattleId } from './monde/combatants';
 import type { Possession } from '../engine/possession';
-import type { Combatant, ItemInstance } from '../engine/types';
-import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
+import type { ItemInstance } from '../engine/types';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-describe('finalizeBattle — writeback Possession (bête/serviteur/véhicule en pièce, #618)', () => {
-  function setup() {
+describe('finalizeBattle — writeback de la bête possédée (#618, #4804)', () => {
+  function rencontre(blessures?: number) {
     const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'W', seed: 3 });
     banc.setState({ party: [W] });
     banc.getState().lancerLaScene(testScene());
+    const mule: Possession = {
+      uid: 'pos-1', nature: 'bete', ownerId: W.id, label: 'Marguerite',
+      location: { kind: 'avec-le-groupe' }, items: [{ itemId: 'sac-a-dos', qty: 1 } as unknown as ItemInstance],
+      ref: { id: 'mule' }, sansCavalier: true, ...(blessures !== undefined ? { blessures } : {}),
+    };
+    banc.setState({ possessions: [mule] });
     banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('debutDuRound');
-    banc.abandonner();
-    return banc.getState().battle!;
+    const bete = inBattleId(banc.getState().battle!, 'pos-1')!;
+    expect(bete.kind, 'prémisse : la mule entre en rencontre').toBe('heros');
+    return bete;
   }
+  const possession = () => banc.getState().possessions.find((x) => x.uid === 'pos-1');
 
-  const mule = (uid: string): Possession => ({
-    uid, nature: 'bete', ownerId: 'W', label: 'Marguerite',
-    location: { kind: 'avec-le-groupe' }, items: [{ itemId: 'sac-a-dos', qty: 1 } as unknown as ItemInstance],
-    ref: { id: 'mule' }, wounds: { current: 8, max: 8 },
+  it('blessée sans Blessures portées → ses Blessures courantes sont écrites sur la possession', () => {
+    const bete = rencontre();
+    bete.wounds.current = bete.wounds.max - 3;
+    finalizeBattle(banc.getState, banc.setState);
+    expect(possession()).toMatchObject({ blessures: bete.wounds.max - 3 });
   });
 
-  it('bête possession BLESSÉE en combat → wounds persisté sur la Possession (clampé à son max)', () => {
-    const battle = setup();
-    banc.setState({ possessions: [mule('pos-1')] });
-    const combatant: Combatant = blessuresSurLeProfil({
-      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'pnj',
-      wounds: blessuresDeBase(8, 3), dead: false,
-    });
-    banc.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
+  it('entre avec ses Blessures portées, puis les garde à la sortie', () => {
+    const bete = rencontre(2);
+    expect(bete.wounds.current).toBe(2);
     finalizeBattle(banc.getState, banc.setState);
-    const p = banc.getState().possessions.find((x) => x.uid === 'pos-1');
-    expect(p?.nature === 'bete' && p.wounds).toEqual({ current: 3, max: 8 });
+    expect(possession()).toMatchObject({ blessures: 2 });
   });
 
-  it('bête possession TUÉE en combat → destroyed:true, items CO-LOCALISÉS (pas évaporés)', () => {
-    const battle = setup();
-    banc.setState({ possessions: [mule('pos-1')] });
-    const combatant: Combatant = blessuresSurLeProfil({
-      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'pnj',
-      wounds: blessuresDeBase(8, 0), dead: true,
-    });
-    banc.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
+  it('rétablie au maximum du profil → la possession ne porte plus de Blessures', () => {
+    const bete = rencontre(2);
+    bete.wounds.current = bete.wounds.max;
     finalizeBattle(banc.getState, banc.setState);
-    const p = banc.getState().possessions.find((x) => x.uid === 'pos-1');
-    expect(p?.destroyed).toBe(true);
-    expect(p?.items).toHaveLength(1);
+    expect(possession()).not.toHaveProperty('blessures');
   });
 
-  it('bête possession SURVIT indemne → aucune mutation, wounds inchangé, destroyed absent', () => {
-    const battle = setup();
-    banc.setState({ possessions: [mule('pos-1')] });
-    const combatant: Combatant = blessuresSurLeProfil({
-      ...battle.combatants[0], id: 'pos-1', label: 'Marguerite', kind: 'pnj',
-      wounds: blessuresDeBase(8), dead: false,
-    });
-    banc.setState({ battle: { ...battle, combatants: [...battle.combatants, combatant] } });
+  it('tuée → destroyed:true, items CO-LOCALISÉS', () => {
+    const bete = rencontre();
+    bete.wounds.current = 0;
+    bete.dead = true;
     finalizeBattle(banc.getState, banc.setState);
-    const p = banc.getState().possessions.find((x) => x.uid === 'pos-1');
-    expect(p?.destroyed).toBeUndefined();
-    expect(p?.nature === 'bete' && p.wounds).toEqual({ current: 8, max: 8 });
+    expect(possession()).toMatchObject({ destroyed: true, items: [expect.anything()] });
   });
 });
