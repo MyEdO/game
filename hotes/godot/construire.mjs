@@ -1,8 +1,11 @@
 #!/usr/bin/env node
 // LA CONSTRUCTION DE L'HÔTE GODOT (#2928) : sept modes.
 // `--pont-seul` bâtit le bundle du pont par `vite build` en production, en bibliothèque, format iife, depuis l'entrée d'hôte unique
-// (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis `hotes/godot/pont/entree.ts`, avec le greffon
+// (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis l'entrée d'un jeu, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
+// `--entree <module>` nomme l'entrée du jeu, un module du dépôt, son chemin relatif à la racine, qui démarre le pont sur son contenu (`demarrerLePont`,
+// `hotes/godot/pont/entree.ts`, #4936), l'entrée commune sans lui (`ENTREE_COMMUNE`) ; posée une fois dans
+// l'environnement (`poserLEntree`), elle vaut pour chaque mode et chaque processus qu'il lance (`vivant.mjs`).
 // Il dit sa taille, le LIT (`lecturesDuBundle`) : chaque nom de navigateur lu en identifiant libre est porté par le
 // processus (`API_DU_NAVIGATEUR`) ou compté dans `HORS_DU_PROCESSUS` à son nombre de lectures ; puis l'EXÉCUTE dans un
 // `node:vm` qui ne porte que les API de navigateur déclarées : `demarrer`, `vue`, `sauvegardes` et `salon` répondent
@@ -77,7 +80,12 @@ const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 /** Le pont vivant que l'hôte natif lance (`--pont=<chemin>`, `vivant.mjs`). */
 const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
-const USAGE = `Usage : node hotes/godot/construire.mjs --pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop
+/** L'entrée commune du pont (#4936) : le pont démarré sur le contenu de test du commun. */
+const ENTREE_COMMUNE = 'hotes/godot/pont/entree-commune.ts'
+/** La variable d'environnement qui nomme l'entrée du jeu (`--entree`) : chaque processus du lanceur en hérite. */
+const ENTREE = 'WFRP_GODOT_ENTREE'
+const USAGE = `Usage : node hotes/godot/construire.mjs [--entree <module>] (--pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop)
+  --entree <module>   l'entrée du jeu dont le pont démarre, un module du dépôt relatif à la racine (${ENTREE_COMMUNE} sans elle)
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
   --export            le bundle, l'export Web du projet et ses paquets, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
@@ -93,11 +101,12 @@ const MODES = { '--pont-seul': 'pont', '--sonde': 'sonde', '--export': 'export',
 
 /** Les options de la ligne de commande, ou l'erreur qui les refuse. */
 function lireOptions(argv) {
-  const options = { mode: null, sortie: null }
+  const options = { mode: null, sortie: null, entree: undefined }
   for (let i = 0; i < argv.length; i++) {
     const a = argv[i]
     if (a in MODES && !options.mode) options.mode = MODES[a]
     else if (a === '--sortie' && argv[i + 1]) options.sortie = resolve(argv[++i])
+    else if (a === '--entree' && argv[i + 1] && options.entree === undefined) options.entree = argv[++i]
     else return { erreur: `option inconnue, incomplète ou en double : ${a}` }
   }
   if (!options.mode) return { erreur: `un mode attendu : ${Object.keys(MODES).join(', ')}` }
@@ -106,11 +115,18 @@ function lireOptions(argv) {
   return { options }
 }
 
-/** Le bundle du pont bâti dans le `mode` donné (`'production'` ou `'development'`) : son code et les ids des modules
+/** Pose l'entrée du jeu `entree` (`--entree`) dans l'environnement du lanceur, que ses processus héritent ; sans elle,
+ *  rien : l'entrée héritée, ou l'entrée commune, vaut. */
+export function poserLEntree(entree) {
+  if (entree !== undefined) process.env[ENTREE] = entree
+}
+
+/** Le bundle du pont bâti dans le `mode` donné (`'production'` ou `'development'`) depuis l'entrée du jeu que pose
+ *  l'environnement (`poserLEntree`), l'entrée commune sans elle : son code et les ids des modules
  *  qu'il porte (`avisDesPaquets`), écrit dans `sortie` si elle est donnée. Vite lit le mode dans `process.env.NODE_ENV`,
  *  posé au `mode` le temps de la construction, puis rendu à sa valeur d'avant, ou retiré s'il était absent. */
 export async function empaqueter(sortie, mode) {
-  const entree = entreeDHote('wfrp-pont', ["import '/hotes/godot/pont/entree.ts';"])
+  const entree = entreeDHote('wfrp-pont', [`import '/${process.env[ENTREE] ?? ENTREE_COMMUNE}';`])
   const avant = process.env.NODE_ENV
   process.env.NODE_ENV = mode
   try {
@@ -1080,6 +1096,7 @@ async function principal() {
     console.error(`${erreur}\n${USAGE}`)
     return 2
   }
+  poserLEntree(options.entree)
   if (options.mode === 'pont') return (await pont(options.sortie)).statut
   if (options.mode === 'sonde') {
     const a = await deposerLesAssets()

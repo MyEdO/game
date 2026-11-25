@@ -8,7 +8,7 @@
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
 export type { ChargeDAttaque, TestJete } from './bus';
 export { lancementDuProjet, type LancementDeScenario } from './lancementDeScenario';
-export { campagneDuJeu, campagneDuPaquet, paquetDuJeu, type BuiltinCampaign } from './campagneLivree';
+export { campagneDuJeu, campagneDuPaquet, paquetDisqueDuJeu, paquetDuJeu, type BuiltinCampaign } from './campagneLivree';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
 export type { JeuDuNoyau } from './machinerieDuNoyau';
 export type { Get } from './flowTypes';
@@ -81,7 +81,8 @@ export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/icons';
 export { CADRE_DES_CADRES, CADRES } from '../data/cadres';
 export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
 export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/paysages';
-export { ENTREES_DE_DOSSIER } from '../data/dossiers';
+export { entreesDesFiches } from '../data/dossiers';
+export type { FicheLue } from '../data/source/dossier';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { LigneDeGardeRobe } from '../data/index';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';

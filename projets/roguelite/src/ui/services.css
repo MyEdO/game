@@ -107,6 +107,9 @@
 /* le départ */
 .emporte { align-items: stretch; text-align: left; gap: 10px; }
 .emporte .cases-sac { min-height: 62px; }
+.au-combat { display: grid; gap: 6px; }
+.choix-au-combat { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.choix-au-combat .rub { margin-right: auto; }
 .provision { display: grid; grid-template-columns: 22px minmax(0, 1fr) auto; align-items: center; gap: 8px; color: var(--sepia); }
 .provision .n { font: 16px/18px "Grenze Gotisch", serif; }
 .emporte.libre { align-items: center; justify-content: center; background: none; box-shadow: none; border: 1.5px dashed var(--trait-encre); }

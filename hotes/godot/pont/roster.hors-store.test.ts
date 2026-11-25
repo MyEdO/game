@@ -13,7 +13,7 @@ import { engagement, rosterExport, type RosterEntry } from '../../../src/noyau/i
 import { ajouterAuRoster, chargerLeRoster, retirerDuRoster } from '../../../src/hote/roster';
 import type { Bouton, Entite, Ligne } from '../../../src/hote/elements';
 import type { Pont, Suite } from './pont';
-import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from '../../../src/scenes/fixtures/contenuDuCommun';
 
 let ouvert: Pont | null = null;
 afterEach(() => { ouvert?.appeler('quitter'); ouvert = null; });

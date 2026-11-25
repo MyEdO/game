@@ -2133,7 +2133,8 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
 
   /** Les entrées de fiche que l'hôte sert à la session, comme il sert le manifeste du `Source/`. */
   const ENTREES = ['EDO-01#i1', 'EDO-01#i2'];
-  const servie = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, null, ENTREES), { geste: 'document', document: 'narratif' });
+  const SERVIES = ENTREES.map((id) => ({ famille: 'indices' as const, id, libelle: `Indice ${id}` }));
+  const servie = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, null, SERVIES), { geste: 'document', document: 'narratif' });
 
   it('un écart s’ajoute avec son entrée parmi les entrées libres que l’hôte sert, écrit son motif, change d’entrée vers une libre, se retire', () => {
     const [premiere, seconde] = ENTREES;

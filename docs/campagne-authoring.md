@@ -521,10 +521,11 @@ Une fiche de dossier de chapitre (`docs/dossiers/<ABBR>/<NN>.json`, schéma `fic
   `{ entree, motif }` : une entrée de fiche que l'adaptation écarte, une fois, motif non vide.
 - **Édition.** Dans l’éditeur Godot, remplir `couvre` sur l’élément porteur et les écarts dans
   le narratif. Les entrées offertes viennent des fiches de dossier commitées.
-- **État des lieux.** `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend, par fiche et par
-  famille, chaque entrée couverte (par quel élément de quel projet livré), écartée (motif) ou non couverte.
-  Il lit le paquet sous `src/scenes/`. Le lien posé dans l’atelier Godot entre dans l’état des lieux
-  lors de la régénération qui suit « Enregistrer » (§1).
+- **État des lieux.** `npm run jeu-de-role:dossiers` rend sur la sortie standard, par fiche et par famille,
+  chaque entrée couverte (par quel élément de quel paquet du jeu de rôle), écartée (motif) ou non couverte ;
+  il lit les paquets que le script nomme dans `package.json`. Le lien posé dans l’atelier Godot y entre dès
+  « Enregistrer » (§1). `docs/dossiers-de-chapitre.md` (GÉNÉRÉ, `npm run docs:dossiers`) rend le même état
+  des lieux sur le seul contenu du commun (`paquetsDuCommun`, les `.json` de `src/scenes/fixtures`).
   Garde : `src/data/dossiers-couverture.test.ts` — tout lien résout à une entrée de fiche commitée, aucune
   entrée n'est couverte et écartée dans le même paquet ; une entrée non couverte n'est jamais rouge.
 

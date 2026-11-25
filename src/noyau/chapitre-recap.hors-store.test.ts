@@ -10,7 +10,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { deriveChapterRecap, snapshotChapitre } from './chapitreRecap';
 import { snapshotSave } from './persistance/save';
-import { campagneDeTest } from '../scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from '../scenes/fixtures/contenuDuCommun';
 import { poserLaCampagne } from './campagne.testkit';
 import { campagneDuJeu, paquetDuJeu } from './campagneLivree';
 import { testScene } from '../scenes/test-fixture';

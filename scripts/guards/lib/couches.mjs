@@ -5,7 +5,8 @@
 // Une zone est un dossier : `dossier`, `src/<zone>` par défaut ; `racine` désigne les fichiers posés à même `src/`
 // (tests transverses). Hors de `src/`, chaque dossier de `hotes/` est un affichage et chaque dossier de `projets/` un
 // projet (#4903 H3), chacun sa zone. La ligne d'un projet se construit (`ligneDeProjet`) : les droits d'un projet
-// (`DROITS_D_UN_PROJET`), plus ses `ouvertures`, chacune nommée par son ticket. Un projet est fermé à toute autre zone,
+// (`DROITS_D_UN_PROJET`), plus les affichages qu'il déclare, plus ses `ouvertures`, chacune nommée par son ticket, et
+// son `outillage`. Un projet est fermé à toute autre zone,
 // `importe: '*'` compris (`fermeParLeProjet`). Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
@@ -42,16 +43,19 @@ const DROITS_DES_HOTES = Object.freeze({ ...DROITS_D_HOTE, importe: Object.freez
 /** Les droits d'un projet (#4903 H3) : ceux des hôtes (`DROITS_DES_HOTES`), sans `scenes`. */
 export const DROITS_D_UN_PROJET = Object.freeze({ ...DROITS_DES_HOTES, importe: Object.freeze(DROITS_DES_HOTES.importe.filter((z) => z !== 'scenes')) });
 
-/** La ligne du projet de dossier `dossier` (#4903 H3) : les droits d'un projet (`DROITS_D_UN_PROJET`), plus ses
- *  `ouvertures` (`{ <zone>: <n° de ticket> }`) ; ouvrir une zone l'importe et retire sa porte. La ligne garde ses
- *  ouvertures. PURE. */
-export function ligneDeProjet(dossier, ouvertures) {
+/** La ligne du projet de dossier `dossier` (#4903 H3) : les droits d'un projet (`DROITS_D_UN_PROJET`), plus les
+ *  `affichages` qu'il déclare, des droits, plus ses `ouvertures` (`{ <zone>: <n° de ticket> }`) ; ouvrir une zone
+ *  l'importe et retire sa porte. `outillage` : les modules hors des zones que lit chacun de ses outillages. La ligne
+ *  garde ses affichages et ses ouvertures. PURE. */
+export function ligneDeProjet(dossier, ouvertures, { affichages = [], outillage } = {}) {
   const ouvertes = Object.keys(ouvertures);
   return Object.freeze({
     dossier,
     ...DROITS_D_UN_PROJET,
-    importe: Object.freeze([...new Set([...DROITS_D_UN_PROJET.importe, ...ouvertes])]),
+    importe: Object.freeze([...new Set([...DROITS_D_UN_PROJET.importe, ...affichages, ...ouvertes])]),
     portes: Object.freeze(Object.fromEntries(Object.entries(DROITS_D_UN_PROJET.portes).filter(([z]) => !ouvertes.includes(z)))),
+    ...(outillage && { outillage: Object.freeze({ ...outillage }) }),
+    affichages: Object.freeze([...affichages]),
     ouvertures: Object.freeze({ ...ouvertures }),
   });
 }
