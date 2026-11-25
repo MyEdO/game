@@ -22,9 +22,8 @@
  * ENTRÉES : `src/data/obsessions.json`, `src/data/surincantation.json` (les seules données lues et
  * écrites) — la vérification au `Source/` est faite, elle n'est pas rejouée ici.
  *
- * IDEMPOTENT : un document sans `ref` et dont la `note` est celle attendue est reconnu migré.
- * FAIL-FAST : `ref` d'une autre valeur que celle mesurée, ou `note` déjà présente et divergente de
- * l'attendu → rien n'est écrit, exit 1.
+ * IDEMPOTENT : un document sans `ref` n'est plus dans la forme d'avant ; il passe sans faute (#1463).
+ * FAIL-FAST : `ref` d'une autre valeur que celle mesurée → rien n'est écrit, exit 1.
  * FORMATAGE PRÉSERVÉ : `JSON.stringify(doc, null, 2)` vérifié AVANT toute écriture.
  */
 import fs from 'node:fs';
@@ -50,21 +49,16 @@ for (const [fichier, attendu] of Object.entries(CIBLES)) {
   const brut = fs.readFileSync(cible, 'utf8');
   const data = JSON.parse(brut);
 
+  if (!Object.prototype.hasOwnProperty.call(data, 'ref')) {
+    rapport.push(`  no-op ${fichier} — \`ref\` absente`);
+    continue;
+  }
   if (JSON.stringify(data, null, 2) !== brut) {
     echecs.push(`${fichier} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 2)\`)`);
     continue;
   }
   if (!data.source || typeof data.source !== 'object') {
     echecs.push(`${fichier} : \`source\` absente ou de forme inattendue`);
-    continue;
-  }
-  const aRef = Object.prototype.hasOwnProperty.call(data, 'ref');
-  if (!aRef) {
-    if (data.source.note !== attendu.note) {
-      echecs.push(`${fichier} : \`ref\` déjà retirée mais \`source.note\` = ${JSON.stringify(data.source.note)} ≠ ${JSON.stringify(attendu.note)}`);
-      continue;
-    }
-    rapport.push(`  no-op ${fichier} — \`ref\` absente, note = ${JSON.stringify(attendu.note)}`);
     continue;
   }
   if (data.ref !== attendu.ref) {
