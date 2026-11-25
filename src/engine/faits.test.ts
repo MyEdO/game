@@ -81,11 +81,6 @@ const CORPUS: Cas[] = [
     lignes: ['Cobaye subira 1 État Exténué par Round (Brume).'], faits: [{ genre: 'etat', ...sur, id: COND.extenue, valeur: 0, duree: { parRound: 1 } }], source: 'Brume' },
   { nom: 'annonce d’un État par Round sans libellé', jouer: () => appliquer([{ op: 'condition', id: { id: COND.extenue }, perRound: true, value: 2 }]),
     lignes: ['Cobaye subira 2 État Exténué par Round (Effet).'], faits: [{ genre: 'etat', ...sur, id: COND.extenue, valeur: 0, duree: { parRound: 2 } }] },
-  { nom: 'annonce d’une cause persistante', jouer: () => appliquer([{ op: 'condition', id: { id: COND.empetre }, perRound: true, unlessCondition: { id: COND.empetre }, durationRounds: 4 }], heros(), { label: 'Lianes' }),
-    lignes: ["Cobaye regagnera l'État Empêtré à chaque fin de Round, tant que dure Lianes (4 Rounds)."],
-    faits: [{ genre: 'etat', ...sur, id: COND.empetre, valeur: 0, duree: { parRound: 1, rounds: 4 }, sauf: true }], source: 'Lianes' },
-  { nom: 're-pose d’une cause persistante', jouer: () => appliquer([{ op: 'condition', id: { id: COND.empetre }, value: 1, unlessCondition: { id: COND.empetre } }], heros(), { label: 'Filet', rejeuRecurrent: true }),
-    lignes: ['Cobaye regagne 1 État Empêtré : Filet le tient toujours.'], faits: [{ genre: 'etat', ...sur, id: COND.empetre, valeur: 1, regagne: true }], source: 'Filet' },
   { nom: 'État qui dépense l’Avantage', jouer: () => appliquer([{ op: 'condition', id: { id: COND.sonne } }], heros({ advantage: 3 })),
     lignes: ['Cobaye reçoit 1 État Sonné.', 'Cobaye perd tous ses Avantages.'],
     faits: [{ genre: 'etat', ...sur, id: COND.sonne, valeur: 1 }, { genre: 'avantage', ...sur, valeur: -3, total: 0 }] },
@@ -96,7 +91,14 @@ const CORPUS: Cas[] = [
   { nom: 'Avantage dépensé à la perte du tour', jouer: () => appliquer([{ op: 'spendAdvantage' }], heros({ advantage: 3 })),
     lignes: ['Cobaye perd tous ses Avantages.'], faits: [{ genre: 'avantage', ...sur, valeur: -3, total: 0 }] },
   { nom: 'État porté', jouer: () => appliquer([{ op: 'condition', id: { id: COND.sonne }, carried: true }], heros(), { label: 'Sort', defaultDurationRounds: 2 }),
-    lignes: ['Cobaye gagne l’État Sonné — un mal qu’il traîne.'], faits: [{ genre: 'etat', ...sur, id: COND.sonne, valeur: 1, porte: {} }] },
+    lignes: ['Cobaye gagne l’État Sonné — un mal qu’il traîne (2 Rounds).'], faits: [{ genre: 'etat', ...sur, id: COND.sonne, valeur: 1, porte: {}, duree: { rounds: 2 } }] },
+  { nom: 'État porté à durée d’op', jouer: () => appliquer([{ op: 'condition', id: { id: COND.inconscient }, carried: true, durationRounds: 4 }], heros(), { label: 'Contrecoup', defaultDurationRounds: 2 }),
+    lignes: ['Cobaye gagne l’État Inconscient — un mal qu’il traîne (4 Rounds).'], faits: [{ genre: 'etat', ...sur, id: COND.inconscient, valeur: 1, porte: {}, duree: { rounds: 4 } }] },
+  { nom: 'État porté par un effet permanent', jouer: () => {
+    const c = heros();
+    c.activeEffects = [{ label: 'Forme', effectId: 'forme', bonus: 0, duration: { scale: 'permanent' }, passive: [{ op: 'condition', id: { id: COND.sonne }, value: 1 }] }];
+    return appliquer([], c);
+  }, lignes: ['Cobaye gagne l’État Sonné — un mal qu’il traîne.'], faits: [{ genre: 'etat', ...sur, id: COND.sonne, valeur: 1, porte: {} }] },
   { nom: 'État porté qui part avec son effet', jouer: () => {
     const c = heros();
     c.activeEffects = [{ label: 'Forme', effectId: 'forme', bonus: 0, duration: { scale: 'permanent' }, passive: [{ op: 'condition', id: { id: COND.sonne }, value: 1 }] }];

@@ -9,12 +9,12 @@ import type { Combatant } from './types';
 import { makeRNG } from './dice';
 import { rollMiscast } from './miscast';
 import { setRule, resetRule } from './policy';
-import { applyOps, type GameOp } from './ops';
+import { applyOps } from './ops';
 import {
   castingValue, castBlockedBy, prayerMaxZeroDR, evaluateCasting, castPenaltyMod,
   incantationArcane,
 } from './magic';
-import { endOfRound, removeCondition, hasCondition, isMagicallyAsleep } from './conditions';
+import { endOfRound, hasCondition, isMagicallyAsleep } from './conditions';
 import { ouvrirLeBanc } from '../noyau/banc.testkit';
 import { TIME_COST } from './timeCost';
 import type { Flow } from './flowCore';
@@ -288,7 +288,7 @@ describe('mitigation déclarée des Blessures — donnée → lierLesOps → app
   });
 });
 
-describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 40 l.75 + LDB 16 l.117)', () => {
+describe('81-87 Purifier la chair — Inconscient pour 1d10 Rounds, porté par sa Colère (LDB 40 l.75 + LDB 16 l.117)', () => {
   /** Les ops du palier `onFailHard` (« −4 DR ou moins ») de la rangée, telles que la donnée les déplie. */
   function opsDuPalier(): ReturnType<typeof rollMiscast>['ops'] {
     for (let seed = 0; seed < 600; seed++) {
@@ -303,75 +303,35 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
     throw new Error('rangée « Purifier la chair » introuvable');
   }
 
-  /** Pose le palier sur un héros à PB > 0, RNG SEMÉ (`battleRng` sème à l'horloge — `test-setup.ts`).
-   *  `label` = celui que le dénouement passe en `OpsCtx` (`m.label` = libellé de la RANGÉE,
-   *  `noyau/combatFlow.ts` ligne `label: m.label` de `finishMiscast`). */
+  /** Pose le palier sur un héros à PB > 0, avec le libellé et la source que le dénouement passe en
+   *  `OpsCtx` (`finishMiscast`, `noyau/combatFlow.ts`). */
   function palier(seed: number) {
     const c = hero();
-    const log = applyOps(c, opsDuPalier(), { idNeuf: idsDeTest, rng: makeRNG(seed), label: 'Purifier la chair' }).lignes;
-    const cause = (c.activeEffects ?? []).find((e) => e.opsPerRound)!;
-    return { c, cause, log: log.join('\n') };
+    const log = applyOps(c, opsDuPalier(), {
+      idNeuf: idsDeTest, rng: makeRNG(seed), label: 'Purifier la chair', source: { kind: 'colereDesDieux', id: 'colere-purifier-la-chair' },
+    }).lignes;
+    const porteur = (c.activeEffects ?? []).find((e) => e.passive?.some((o) => o.op === 'condition' && o.id.id === 'inconscient'))!;
+    const n = porteur.duration.scale === 'rounds' ? porteur.duration.left : 0;
+    return { c, porteur, n, log };
   }
 
-  it('l’État est GAGNÉ, et la CAUSE est un effet actif de N Rounds portant le nom de la rangée', () => {
-    const { c, cause, log } = palier(3);
-    const n = cause.duration.scale === 'rounds' ? cause.duration.left : 0;
-    expect(log, 'la POSE dit la RE-PRISE conditionnelle, pas « un État par Round »')
-      .toBe(`Cobaye reçoit 1 État Inconscient.\nCobaye regagnera l'État Inconscient à chaque fin de Round, tant que dure Purifier la chair (${n} Rounds).`);
-    expect(c.wounds.current).toBeGreaterThan(0);
-    expect(c.conditions.find((x) => x.id === 'inconscient')?.value).toBe(1);
-    expect(c.conditions.find((x) => x.id === 'inconscient')?.roundsLeft, 'l’État lui-même n’expire pas (LDB 16 l.117)').toBeUndefined();
-    expect(cause.label, 'ce que le joueur lit dans ses effets actifs').toBe('Purifier la chair');
-    expect(cause.duration.scale).toBe('rounds');
+  it('l’État est GAGNÉ, porté par un effet de 1d10 Rounds au nom de la rangée, et la pose dit sa durée', () => {
+    const { c, porteur, n, log } = palier(3);
     expect(n).toBeGreaterThanOrEqual(1);
     expect(n).toBeLessThanOrEqual(10);
+    expect(porteur.label, 'ce que le joueur lit dans ses effets actifs').toBe('Purifier la chair');
+    expect(log).toEqual([`Cobaye gagne l’État Inconscient — Purifier la chair (${n} Round${n > 1 ? 's' : ''}).`]);
+    expect(c.conditions.find((x) => x.id === 'inconscient')?.value).toBe(1);
+    expect(c.conditions.find((x) => x.id === 'inconscient')?.derivedFrom?.src).toEqual({ category: 'colereDesDieux', id: 'colere-purifier-la-chair' });
   });
 
-  it('retiré (Détermination) alors que la cause court : REGAGNÉ à la fin du Round, 1 pion, cause NOMMÉE (LDB 16 l.117)', () => {
-    const { c } = palier(3);
-    removeCondition(c, 'inconscient'); // chemin `depenserLaDetermination` : le retrait A LIEU
-    expect(hasCondition(c, 'inconscient')).toBe(false);
-    const log = endOfRound(c, makeRNG(7), idsDeTest);
-    expect(c.conditions.find((x) => x.id === 'inconscient')?.value, 'un seul pion — l’État ne se cumule pas (LDB 16 l.115)').toBe(1);
-    expect(log, 'la RE-POSE nomme sa cause').toEqual(['Cobaye regagne 1 État Inconscient : Purifier la chair le tient toujours.']);
-  });
-
-  it('la cause ÉCOULÉE (N fins de Round), un retrait n’est plus suivi d’une re-pose', () => {
-    const { c, cause } = palier(3);
-    const n = cause.duration.scale === 'rounds' ? cause.duration.left : 0;
-    for (let i = 0; i < n; i++) endOfRound(c, makeRNG(7 + i), idsDeTest);
-    expect((c.activeEffects ?? []).some((e) => e.opsPerRound), 'la cause a expiré').toBe(false);
-    expect(hasCondition(c, 'inconscient'), 'l’État survit à sa cause (règles normales)').toBe(true);
-    removeCondition(c, 'inconscient');
+  it('au bout des Rounds tirés, l’État part avec son porteur', () => {
+    const { c, n } = palier(3);
+    for (let i = 0; i < n - 1; i++) endOfRound(c, makeRNG(7 + i), idsDeTest);
+    expect(hasCondition(c, 'inconscient'), 'l’État tient tant que son porteur dure').toBe(true);
     endOfRound(c, makeRNG(99), idsDeTest);
     expect(hasCondition(c, 'inconscient')).toBe(false);
-  });
-
-  /** Le journal suit le DRAPEAU DE REJEU (`OpsCtx.rejeuRecurrent`, posé par `endOfRound` seul), jamais
-   *  la FORME de l'op : 13 ops authorées se gatent déjà sur l'État qu'elles posent (Filet
-   *  `maneuvers.json`, Sommeil/Brisé `spells.json`, qualités, traits) et sont dispatchées AVEC un label. */
-  it('une op gatée sur son propre État, posée HORS rejeu, annonce une POSE (Filet) — et une RE-POSE au rejeu', () => {
-    const c = hero();
-    const filet: GameOp = { op: 'condition', id: { id: 'empetre' }, value: 1, unlessCondition: { id: 'empetre' } };
-    expect(applyOps(c, [filet], { idNeuf: idsDeTest, label: 'Filet', rng: makeRNG(1) }).lignes, 'PREMIÈRE pose : le gate n’a rien retenu')
-      .toEqual(['Cobaye reçoit 1 État Empêtré.']);
-    removeCondition(c, 'empetre');
-    c.activeEffects = [{ label: 'Filet', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [filet] }];
-    expect(endOfRound(c, makeRNG(1), idsDeTest), 'REJEU de fin de Round : la cause est NOMMÉE')
-      .toContain('Cobaye regagne 1 État Empêtré : Filet le tient toujours.');
-  });
-
-  /** Le drapeau porte sur les ops LITTÉRALES re-jouées, pas sur ce qu'un DÉ atteint sous elles : une
-   *  liste `opsPerRound` qui roule une table pose, à chaque fin de Round, une rangée que le Round
-   *  précédent n'avait pas posée — première pose, journal de POSE (`LDB 16 l.117`). */
-  it('une op gatée atteinte par un dé SOUS le rejeu annonce une POSE, jamais « le tient toujours »', () => {
-    const c = hero();
-    const roulee: GameOp = {
-      op: 'rollTable', die: { n: 1, sides: 10 },
-      entries: [{ min: 1, max: 10, ops: [{ op: 'condition', id: { id: 'aveugle' }, value: 1, unlessCondition: { id: 'aveugle' } }] }],
-    };
-    c.activeEffects = [{ label: 'Nuée', bonus: 0, duration: { scale: 'rounds', left: 2 }, opsPerRound: [roulee] }];
-    expect(endOfRound(c, makeRNG(4), idsDeTest)).toEqual(['Cobaye reçoit 1 État Aveuglé.']);
+    expect(c.activeEffects ?? []).toEqual([]);
   });
 
   it('ce n’est PAS un sommeil magique (`isMagicallyAsleep` ne s’en empare pas)', () => {
@@ -384,14 +344,13 @@ describe('81-87 Purifier la chair — Inconscient tant que la Colère dure (LDB 
       .toThrow(/« perRound » ne se combine qu'avec « durationRounds »/);
   });
 
-  it('HORS COMBAT : l’entretien fait expirer la cause (elle ne gèle pas à PB > 0)', () => {
-    const { c, cause } = palier(3);
-    const n = cause.duration.scale === 'rounds' ? cause.duration.left : 0;
+  it('HORS COMBAT : l’entretien fait expirer le porteur, et l’État avec lui', () => {
+    const { c, n } = palier(3);
     const banc = ouvrirLeBanc({ graine: 5, etat: { party: [c] } });
     banc.getState().avancerLeTemps((n + 2) * TIME_COST.combatRound);
     const porteur = banc.getState().party[0];
-    expect((porteur.activeEffects ?? []).some((e) => e.opsPerRound)).toBe(false);
-    expect(hasCondition(porteur, 'inconscient')).toBe(true);
+    expect(porteur.activeEffects ?? []).toEqual([]);
+    expect(hasCondition(porteur, 'inconscient')).toBe(false);
   });
 });
 

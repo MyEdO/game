@@ -28,7 +28,7 @@ import {
   zoneShapeSchema,
 } from '../../data/schemas/grammaire/mecanique';
 import { INDICE_TEMPLATE, seuilDeBourse, type ActorRef, type CompareOp, type CompareSubject } from '../../engine/flowCore';
-import { estCausePersistante, estPoseDEtat, type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
+import { type GameOp, type Formula, type FormuleSansTirage, type ResolveWindow } from '../../engine/ops';
 import type { Camp, Relation } from '../../engine/relations';
 import { CHAR_LABELS, DIFFICULTY_LABELS, HIT_LOCATION_LABELS, type CharKey, type ArmourBypass } from '../../engine/types';
 import { formatWardSave, traitLabelById, traitLisible } from '../../engine/traits/dispatch';
@@ -388,11 +388,6 @@ function humanizeFall(tableId: string): string {
   return t('codex.chute', { table: table.label, colonnes: colonnes.join(', ') });
 }
 
-/** UN terme joueur pour la CAUSE PERSISTANTE (prédicat `estCausePersistante`, `engine/ops.ts`) : le
- *  même que le journal (`op.etatParRoundSauf`/`op.etatRegagne`). SOURCE UNIQUE de la formulation,
- *  composée par les trois lecteurs du Codex (`humanizeOp`, `opRows`, dialecte miscast de `registry`). */
-export const causePersistante = (): string => t('codex.causePersistante');
-
 /** MAGNITUDE d'un coût d'Avantage (`Flow` `choice.coutEnAvantage`) telle qu'un JOUEUR la lit. Un coût
  *  resté TEMPLATE (`INDICE_TEMPLATE`, substitué par `withArg` sur l'instance porteuse) se lit comme le
  *  livre l'imprime — `AA 08 l.87` « **Taillade (XA) :** … dépenser X Avantages ». SOURCE UNIQUE des deux
@@ -408,15 +403,6 @@ export function coutAvantageTexte(cost: number | typeof INDICE_TEMPLATE | undefi
  *  faire, la forme la plus courante en donnée). */
 export function flowMuet(f: Flow | undefined): boolean {
   return !f || (f.kind === 'sequence' && f.etapes.length === 0);
-}
-
-/** Une rangée qui pose un État PUIS déclare la cause qui le maintient (`LDB 16 l.117`) l'écrit en DEUX
- *  ops ; elle se LIT en UNE chip — la pose littérale est ABSORBÉE par la cause, qui porte le terme et la
- *  durée. Pré-passe PARTAGÉE des deux lecteurs de LISTES d'ops (`opRows`, dialecte miscast de
- *  `registry`), sur la forme MINIMALE commune aux deux dialectes. */
-export function replieCausesPersistantes<T extends { op?: unknown }>(ops: readonly T[]): T[] {
-  const maintenus = new Set(ops.flatMap((o) => (estPoseDEtat(o) && estCausePersistante(o) ? [o.id.id] : [])));
-  return ops.filter((o) => !estPoseDEtat(o) || estCausePersistante(o) || !maintenus.has(o.id.id));
 }
 
 /** L'effet d'une pénalité d'incantation, phrase du Codex : SOURCE UNIQUE de l'op `castPenalty` et de la
@@ -457,7 +443,6 @@ export function humanizeOp(o: GameOp): string {
       const duree = pendant(o);
       const fenetre = humanizeResolveWindow(o.resolveWindow);
       const determination = fenetre ? ` — ${fenetre}` : '';
-      if (estCausePersistante(o)) return t('codex.op.condition.persistante', { etat: stateItal(o.id.id), perSL, cause: causePersistante(), duree, determination });
       return t('codex.op.condition', {
         fois: o.value != null && o.value !== 1 ? `${humanizeFormula(o.value)} × ` : '',
         etat: stateItal(o.id.id), perSL, duree, parRound: o.perRound ? t('codex.op.condition.parRound') : '', determination,
