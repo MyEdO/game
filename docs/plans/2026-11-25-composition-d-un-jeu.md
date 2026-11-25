@@ -233,8 +233,10 @@ hôte compose un catalogue, et il le remet à sa partie.
     par `src/hote/catalogue.ts`. Les hôtes sont le pont Godot, l'hôte texte et la page du roguelite.
   - La partie possède son catalogue. Il entre par `EntreesDeLaPartie.catalogue`, qui remplace `reglesMaison`
     (`src/noyau/partie.ts:47`) : une seule source.
-  - Le catalogue est porté par `MachinerieDuNoyau.catalogue` (`src/noyau/machinerieDuNoyau.ts`), que fournit le
-    propriétaire. Il est hors d'`EtatDeJeu`, donc hors sauvegarde par construction : la sauvegarde ne prend que les
+  - Le catalogue est porté par une interface de valeur, `CatalogueDeLaPartie` (`JeuDuNoyau = Jeu & MachinerieDuNoyau
+    & CatalogueDeLaPartie`), que compose le propriétaire. `MachinerieDuNoyau` est un lexique d'actions verrouillé à la
+    compilation (`src/noyau/fabriquesDuNoyau.ts:358`), et un nom n'y entre pas. Le catalogue est hors d'`EtatDeJeu`,
+    donc hors sauvegarde par construction : la sauvegarde ne prend que les
     clés d'`etatInitialDuJeu()` (`src/noyau/persistance/save.ts:6`).
 - **Un seul geste, la recomposition.** L'hôte recompose, puis remet le catalogue par `Partie.recomposer(catalogue)`.
   - *Ouverture.* L'hôte compose avec les règles de son stockage. `loadRuleOverrides(entrees.reglesMaison)`
@@ -432,8 +434,10 @@ compilateur.
   Leur logique passe à `schemas/catalogue`, et l'ancien export la rappelle sur `catalogueDuProcessus()`.
 - **Fossile 4 : `rule(id)`, sa `Map`, `OPTIONAL_RULES` et `loadRuleOverrides`.** Un lot remplace `rule` par `regle`
   dans ses fichiers.
-- **Fossile 5 : la repose.** Le propriétaire pose `MachinerieDuNoyau.catalogue` depuis le fossile 1. Il le repose sur
-  `abonnerAuxDatasets` et sur un changement de règle, jusqu'au lot du Compendium et des hôtes.
+- **Fossile 5 : la repose.** Le propriétaire pose `catalogue` depuis le fossile 1, et le repose à chaque branchement.
+  Il ne s'abonne à `abonnerAuxDatasets` que tant qu'il est branché. Le fossile 1 lit les règles du propriétaire
+  branché, si bien qu'une partie suspendue ne reçoit jamais celles d'une autre. La repose vit jusqu'au lot du
+  Compendium et des hôtes.
 - **Fossile 7 : l'ancien module des ids.** `src/data/schemas/_ids.generated.ts` reste émis à l'identique (valeur et
   types), et `scripts/docs/lib/structures-scan.mts` y lit la valeur. La porte `comptes:plage` croise les détecteurs de
   la base et de la tête (`scripts/guards/lib/corpusDesComptes.mts`, `jugerLesComptes`) : un module généré ne se
@@ -465,7 +469,7 @@ ferme le cycle les solde.
 
 | Ordre | Famille | Fichiers de production | Sites de la base | Fan-in hors famille | Lots estimés |
 |---|---|---|---|---|---|
-| 0 | Socle : zone `schemas` (ligne transitoire) et son dossier `catalogue/`, modules purs déplacés, type `Catalogue`, bibliothèque, `composer`, `entreeDe`, le cœur de `memoByRef` en feuille, `regle`, `ouvertParSaRegle(e, cat)`, `catalogueDeTest`, partie et `MachinerieDuNoyau.catalogue`, fossiles 1, 2 et 5 | ~25 déplacés | — | — | 4 |
+| 0 | Socle : zone `schemas` (ligne transitoire) et son dossier `catalogue/`, modules purs déplacés, type `Catalogue`, bibliothèque, `composer`, `entreeDe`, le cœur de `memoByRef` en feuille, `regle`, `ouvertParSaRegle(e, cat)`, `catalogueDeTest`, partie et `CatalogueDeLaPartie`, fossiles 1, 2 et 5 | ~25 déplacés | — | — | 4 |
 | 1 | Grammaire : seconde passe des références (sous-listes et marqueurs compris), `parserSousCatalogue` et ses 8 sites d'entrée, fautes croisées, 10 fichiers et 11 `lire.catalogue` de `schemas`, `IDS_PAR_ESPACE` sous `data`, 70 suites de `schemas` | ~30 | 24 imports | — | 7 |
 | 2 | Apparence (`noyau/apparence/*`, `animation`) | 6 | 52 | 8 | 1 |
 | 3 | Monde et scènes (`noyau/monde/*`, `sceneEdit*`, `worldMap*`, `engine/structures`, `poseDesPonts`, `valeursNeuves`) | 30 | 116 | 145 | 5 |
