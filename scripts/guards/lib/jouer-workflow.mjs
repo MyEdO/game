@@ -19,6 +19,7 @@ import { readFileSync } from 'node:fs'
 import { basename, join, relative, resolve, sep } from 'node:path'
 import { estSuiteVitest } from './fichierVitest.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 import { defautsDeRacine, estDialecteDeWorkflow, lireWorkflow, PREFILTRE_DE_WORKFLOW } from './formeDeWorkflow.mjs'
 
 /**
@@ -32,7 +33,7 @@ import { defautsDeRacine, estDialecteDeWorkflow, lireWorkflow, PREFILTRE_DE_WORK
 
 /** L'image `TRAVAIL` de l'hôte (`listerImage`), chemins ABSOLUS. LÈVE si elle est vide. */
 function fichiersDuDepot(racine) {
-  const fichiers = listerImage(depotDe(racine), TRAVAIL)
+  const fichiers = listerImage(depotDe(racine, { porte: porteDeTousLesProjets }), TRAVAIL)
   if (!fichiers.length) throw new Error(`jouer-workflow : git ne rend aucun fichier de ${racine}`)
   return fichiers.map((f) => resolve(join(racine, f)))
 }

@@ -1,3 +1,5 @@
+/** La racine de CE dépôt, dont la serrure garde le dossier `projets/`. */
+export const DEPOT: string;
 /** Une passe de la porte des projets, frappée par le sceau que seule la porte reçoit (`porteDesProjets.mjs`). */
 export type PasseDesProjets = Readonly<{ lit: 'tous' } | { lit: 'projet'; projet: string }>;
 /** Le sceau des passes, remis au seul module de la porte. */

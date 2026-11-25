@@ -993,6 +993,8 @@ test('readSoldeFile/readRefFile : lisent le RÉPERTOIRE du commit, pas le dépô
       [readSoldeFile(999, elsewhere), readRefFile(999, elsewhere)],
       [null, null],
     )
+    mkdirSync(join(soldesDir, '998.md'))
+    assert.throws(() => readSoldeFile(998, fakeRepo), (e) => e.code === 'EISDIR', 'un solde illisible n’est pas un solde absent')
   } finally {
     process.chdir(cwd)
     rmSync(fakeRepo, { recursive: true, force: true })

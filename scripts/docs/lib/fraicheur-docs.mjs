@@ -247,7 +247,7 @@ export function invaliderPreuve(racine, scripts) {
 export function preparerPreuves(racine, options) {
   const cache = chargerPreuve(racine) ?? { version: 2, generateurs: {} }
   const mesure = lireMesure(racine, options, true)
-  const depot = gitPorte.depotDe(racine)
+  const depot = gitPorte.depotDe(racine, { porte: porteDeTousLesProjets })
   const perimetre = perimetreDeMesure(racine)
   const ignores = perimetre.ignores
   const motifsDeclares = options.generateurs.flatMap((g) => g.targets)

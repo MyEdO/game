@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url'
 import { RACINES_DE_LA_SUITE, estDeLaSuiteVitest } from './racinesDeLaSuite.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
 import { entreeDe } from './sourceCorpus.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
 
@@ -17,7 +18,7 @@ const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
  *  triés ; git lancé sous `env`. Une lecture git en échec LÈVE ; une suite VIDE lève aussi : jouer zéro test serait le
  *  pire des verts. */
 export function suiteVitestDuDepot(racine = RACINE, { env, suite: estDeLaSuite = estDeLaSuiteVitest } = {}) {
-  const suite = listerImage(depotDe(racine, { env }), TRAVAIL).filter((rel) => estDeLaSuite(rel)).sort()
+  const suite = listerImage(depotDe(racine, { env, porte: porteDeTousLesProjets }), TRAVAIL).filter((rel) => estDeLaSuite(rel)).sort()
   if (!suite.length) throw new Error(`suiteVitest : aucune suite Vitest sous ${racine} (${estDeLaSuite === estDeLaSuiteVitest ? `racines ${RACINES_DE_LA_SUITE.map((r) => r.motif).join(', ')}` : 'prédicat `suite` de l’appelant'})`)
   return suite
 }
@@ -28,6 +29,6 @@ export function suiteVitestDuDepot(racine = RACINE, { env, suite: estDeLaSuite =
 export function fichiersDeLaSuite(racine = RACINE, { env, suite } = {}) {
   return suiteVitestDuDepot(racine, { env, suite }).map((rel) => {
     const abs = join(racine, rel)
-    return { abs, rel, text: entreeDe(abs).text }
+    return { abs, rel, text: entreeDe(abs, { porte: porteDeTousLesProjets }).text }
   })
 }

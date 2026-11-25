@@ -1,13 +1,17 @@
-// La porte des projets (#5037) : les passerelles (`lister.mjs`, `sourceCorpus.mjs`, `clotureDImports`, `repoProgram`)
+// La porte des projets (#5037) : les passerelles (`lister.mjs`, `sourceCorpus.mjs`, `clotureDImports`, `repoProgram`,
+// `listerImage` et `lireEnLot` de `gitPorte.mjs`)
 // refusent `projets/` de ce dépôt sans une passe que frappe la porte, avant leur mémo ; une passe forgée ou d'un autre
 // projet ne l'ouvre pas.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
+import { spawnSync } from 'node:child_process'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerArbre, listerDossier, listerEntrees } from './lister.mjs'
-import { readCorpus } from './sourceCorpus.mjs'
+import { entreeDe, readCorpus } from './sourceCorpus.mjs'
+import { INDEX, depotDe, lireEnLot, listerImage } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
 import { repoProgram } from './tsProgram.mjs'
 import { porteDeTousLesProjets, porteDuProjet } from './porteDesProjets.mjs'
@@ -84,5 +88,45 @@ test('repoProgram refuse une racine sous projets/ et un module du programme qui 
     assert.ok(session.program.getSourceFileNames().some((f) => f.endsWith(MODULE_DU_ROGUELITE)))
   } finally {
     session.dispose()
+  }
+})
+
+test('entreeDe refuse, avant son mémo, un fichier sous projets/ sans passe qui l\'admette', () => {
+  const abs = join(DEPOT, MODULE_DU_ROGUELITE)
+  assert.match(entreeDe(abs, { porte: porteDuProjet('roguelite') }).text, /\S/)
+  assert.throws(() => entreeDe(abs), REFUS)
+  assert.throws(() => entreeDe(abs, { porte: porteDuProjet('jeu-de-role') }), REFUS)
+})
+
+test('listerImage refuse une image qui couvre projets/ sans la passe du dépôt', () => {
+  const nu = depotDe(DEPOT)
+  assert.throws(() => listerImage(nu, INDEX), REFUS, 'sans dossier : tout l\'arbre')
+  assert.throws(() => listerImage(nu, INDEX, 'projets/roguelite'), REFUS)
+  assert.throws(() => listerImage(nu, INDEX, '*.json'), REFUS, 'un joker de tête traverse projets/')
+  assert.throws(() => listerImage(nu, INDEX, ':(glob)src/**'), REFUS, 'un pathspec magique couvre la racine')
+  assert.throws(() => listerImage(depotDe(join(DEPOT, 'src')), INDEX, '../projets'), REFUS, 'un pathspec se lit depuis le cwd du dépôt')
+  assert.ok(listerImage(nu, INDEX, 'scripts/guards/lib').includes('scripts/guards/lib/porteDesProjets.mjs'), 'hors de projets/ : aucune passe')
+  assert.ok(listerImage(depotDe(DEPOT, { porte: porteDuProjet('roguelite') }), INDEX, 'projets/roguelite').includes(MODULE_DU_ROGUELITE))
+  assert.throws(() => listerImage(depotDe(DEPOT, { porte: porteDuProjet('roguelite') }), INDEX), REFUS, 'la passe d\'un projet n\'ouvre pas l\'arbre')
+  assert.ok(listerImage(depotDe(DEPOT, { porte: porteDeTousLesProjets }), INDEX).includes(MODULE_DU_ROGUELITE))
+})
+
+test('lireEnLot refuse un chemin sous projets/ sans la passe du dépôt', () => {
+  assert.throws(() => lireEnLot(depotDe(DEPOT), INDEX, ['package.json', MODULE_DU_ROGUELITE]), REFUS)
+  assert.throws(() => lireEnLot(depotDe(DEPOT, { porte: porteDuProjet('jeu-de-role') }), INDEX, [MODULE_DU_ROGUELITE]), REFUS)
+  assert.match(lireEnLot(depotDe(DEPOT, { porte: porteDuProjet('roguelite') }), INDEX, [MODULE_DU_ROGUELITE]).get(MODULE_DU_ROGUELITE), /\S/)
+})
+
+test('un dépôt d\'une autre racine n\'a pas de projets à garder', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'porte-des-projets-fixture-'))
+  try {
+    mkdirSync(join(racine, 'projets', 'p'), { recursive: true })
+    writeFileSync(join(racine, 'projets', 'p', 'a.txt'), 'a\n')
+    for (const args of [['init', '-q'], ['add', '.']]) assert.equal(spawnSync('git', args, { cwd: racine }).status, 0)
+    const fixture = depotDe(racine)
+    assert.deepEqual(listerImage(fixture, INDEX), ['projets/p/a.txt'])
+    assert.equal(lireEnLot(fixture, INDEX, ['projets/p/a.txt']).get('projets/p/a.txt'), 'a\n')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
   }
 })

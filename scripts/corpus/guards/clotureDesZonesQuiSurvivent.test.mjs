@@ -292,7 +292,7 @@ function transitsDuTravail(depot) {
 }
 
 test('CLÔTURE : aucun module d’une zone qui survit, production comprise, n’atteint, de proche en proche, une zone qui n’y survit pas ni le projet d’une autre zone', () => {
-  const { cloture, transits, suivis, enfants } = transitsDuTravail(depotDe(RACINE))
+  const { cloture, transits, suivis, enfants } = transitsDuTravail(depotDe(RACINE, { porte: porteDeTousLesProjets }))
   assert.deepEqual(transits, [], 'transit vers une zone qui ne survit pas (`fermeParLaSurvie`) ou vers le projet d’une autre zone (`fermeParLeProjet`), ou acquisition calculée non résolue : chaque ligne nomme la zone du module racine, le module atteint et ses importeurs, ou le site')
   // Témoins de MESURE : la marche traverse un module hors des zones, ce que `murs/tests-survivants` et `murs/purete-imports`
   // ne suivent pas, et suit au moins une acquisition calculée.

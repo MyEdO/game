@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { TRAVAIL, depotDe, listerImage } from '../scripts/guards/lib/gitPorte.mjs';
+import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs';
 import { retoursDuRig } from '../scripts/guards/lib/retourDuRig.mjs';
 
 const RACINE = join(dirname(fileURLToPath(import.meta.url)), '..');
@@ -30,7 +31,7 @@ const GARDE = {
   ],
 } as const;
 
-const fichiersDuDepot = (): string[] => listerImage(depotDe(RACINE), TRAVAIL);
+const fichiersDuDepot = (): string[] => listerImage(depotDe(RACINE, { porte: porteDeTousLesProjets }), TRAVAIL);
 
 describe('le rig SVG ne revient pas', () => {
   it('en-tête : la garde se déclare — périmètre, primitive, angles morts, ticket', () => {

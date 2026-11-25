@@ -10,6 +10,7 @@ import { fileURLToPath } from 'node:url'
 import { baseDuDiff } from '../gates/classerPush.mjs'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { SUIVI, TRAVAIL, ceQuiChange, depotDe, listerImage } from '../guards/lib/gitPorte.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 
 /** Les fichiers hors de la chaîne qu'ouvre une reconstruction (`construire.py`, `element/construire.py`), relevés par
  *  `construire_en_relevant` (`entrees.py`) : `seuils.py`, `habillage.py`, `arete/apparences.py`, `decor/gabarit.py`,
@@ -42,7 +43,7 @@ export function racinesDesReconstructions() {
 
 /** Les chemins suivis changés de `base` à l'arbre de travail, et les non-suivis non ignorés, triés. */
 export function cheminsChanges(base) {
-  const depot = depotDe(process.cwd())
+  const depot = depotDe(process.cwd(), { porte: porteDeTousLesProjets })
   const suivis = new Set(listerImage(depot, SUIVI))
   const nonSuivis = listerImage(depot, TRAVAIL).filter((chemin) => !suivis.has(chemin))
   return [...new Set([...ceQuiChange(depot, base, SUIVI).chemins(), ...nonSuivis])].sort()

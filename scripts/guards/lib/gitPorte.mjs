@@ -51,6 +51,7 @@ import { coupeAuMot } from '../../../src/lib/coupeAuMot.mjs'
 import { DEPOT } from './ticketsGh.mjs'
 import { fileURLToPath } from 'node:url'
 import { estObjet } from '../../../src/lib/objet.mjs'
+import { DEPOT as DEPOT_DE_LA_SERRURE, exigerLaPorte } from './serrureDesProjets.mjs'
 
 /** Borne de présentation de `raisonCourte`. */
 const RAISON_MAX = 200
@@ -289,23 +290,46 @@ const lanceurs = new WeakMap()
  * du processus (`envDeDepotForge`, `depotGabarit.mjs`), objet ou fournisseur synchrone résolu une fois
  * par interrogation, celui du parent par défaut ; `spawn`/`attendre` :
  * injectables (mesure) ; `enPanne(raison, vu)` : sans lui, une INDISPONIBILITÉ JETTE (`GitIndisponible`),
- * avec lui la lecture la lui confie et rend `null`.
+ * avec lui la lecture la lui confie et rend `null`. `porte` : la passe de la porte des projets
+ * (`porteDesProjets.mjs`, #5037) qu'exige une image ou un lot de CE dépôt qui couvre `projets/`
+ * (`listerImage`, `lireEnLot`).
  * @param {string} cwd
- * @param {{ env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv), spawn?: Function, attendre?: Function, enPanne?: (raison: string, vu: ReturnType<typeof indisponible>) => void }} [opts]
+ * @param {{ env?: NodeJS.ProcessEnv | (() => NodeJS.ProcessEnv), spawn?: Function, attendre?: Function, enPanne?: (raison: string, vu: ReturnType<typeof indisponible>) => void, porte?: object }} [opts]
  * @returns {Depot}
  */
-export function depotDe(cwd, { env, spawn, attendre, enPanne } = {}) {
+export function depotDe(cwd, { env, spawn, attendre, enPanne, porte } = {}) {
   /** @type {Depot} */
   const depot = Object.freeze({ cwd, [MARQUE_DEPOT]: /** @type {true} */ (true) })
-  lanceurs.set(depot, { cwd, env, spawn, attendre, enPanne, version: undefined, vide: undefined })
+  lanceurs.set(depot, { cwd, env, spawn, attendre, enPanne, porte, racine: undefined, version: undefined, vide: undefined })
   return depot
+}
+
+/** Le dossier que couvre le pathspec `spec` de `cwd` : son préfixe LITTÉRAL, coupé au dossier de son premier joker
+ *  (un joker traverse `/`, `git help glossary`, « pathspec ») ; la racine pour un pathspec magique. */
+function couvertPar(cwd, racine, spec) {
+  if (spec.startsWith(':')) return racine
+  const joker = spec.search(/[*?[\\]/)
+  return resolve(cwd, joker < 0 ? spec : spec.slice(0, spec.lastIndexOf('/', joker) + 1))
+}
+
+/** Refuse que `passerelle` lise sous `projets/` de CE dépôt (`exigerLaPorte`) sans la passe de `depot`
+ *  (`depotDe(cwd, { porte })`) : `pathspecs` relatifs à `cwd` (tout l'arbre sans), `rels` depuis la racine. Un dépôt
+ *  d'une autre racine (fixture, autre worktree) n'a pas de projets à garder. */
+function exigerLaPorteDuDepot(depot, passerelle, { pathspecs, rels }) {
+  const hote = lanceurDe(depot)
+  if (hote.racine === undefined) hote.racine = racineSurDisque(hote.cwd)
+  if (hote.racine !== DEPOT_DE_LA_SERRURE) return
+  const cwd = resolve(hote.cwd)
+  const couverts = rels ? rels.map((rel) => resolve(hote.racine, rel))
+    : pathspecs.length ? pathspecs.map((spec) => couvertPar(cwd, hote.racine, spec)) : [cwd]
+  for (const abs of couverts) exigerLaPorte(abs, hote.porte, passerelle, { ancetres: true })
 }
 
 /** Le dépôt de `dir` (`depotDe`) dont les PANNES vont à `pannes` (`refusDeGit`) : une lecture rend `null`
  *  pour un objet absent, un code de sortie non nul ou une panne, et la panne reste dite pour un refus
- *  NOMMÉ au rendu — jamais « rien n'est lu ».
- *  @param {string} dir @param {string[]} pannes @returns {Depot} */
-export const depotAuxPannes = (dir, pannes) => depotDe(dir, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
+ *  NOMMÉ au rendu — jamais « rien n'est lu ». `porte` : celle de `depotDe`.
+ *  @param {string} dir @param {string[]} pannes @param {{ porte?: object }} [options] @returns {Depot} */
+export const depotAuxPannes = (dir, pannes, { porte } = {}) => depotDe(dir, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)), porte })
 
 /** Racine de l'arbre git qui contient `dir` — le premier dossier porté par un `.git` en remontant —,
  *  ou `null` s'il n'y en a aucun. Lue sur le DISQUE, pas par `racineDe` : elle répond sans git, et
@@ -1328,12 +1352,14 @@ export const ecartsDuTravail = (depot, ...pathspecs) => enregistrementsDe(depot,
  * rendait un fichier SUPPRIMÉ absent de la pré-image elle-même (#1728).
  * @param {Depot} depot @param {string} arbre @param {...string} dossiers
  * @returns {string[]}
- * @throws {BorneAbsente} la ref `arbre` absente du dépôt.
+ * @throws {BorneAbsente} la ref `arbre` absente du dépôt. Le refus de la porte des projets : des `dossiers` qui
+ *   couvrent `projets/` de ce dépôt sans la passe du dépôt (`exigerLaPorteDuDepot`).
  */
 export function listerImage(depot, arbre, ...dossiers) {
   const args = arbre === INDEX || arbre === SUIVI ? ['ls-files', '--cached']
     : arbre === TRAVAIL ? ['ls-files', '--cached', '--others', '--exclude-standard']
       : ['ls-tree', '-r', '--name-only', ...revisionsDe([arbre])]
+  exigerLaPorteDuDepot(depot, 'listerImage', { pathspecs: dossiers })
   const ref = args[0] === 'ls-tree'
   const chemins = enregistrementsDe(depot, [...args, '--', ...dossiers], ref ? ['listerImage', [arbre], 'tree'] : undefined)
   if (arbre !== SUIVI && arbre !== TRAVAIL) return chemins
@@ -1387,7 +1413,8 @@ export function fichiersDuGrep(depot, portee, motif, pathspecs) {
  * @param {readonly string[]} rels @returns {Map<string, string | null>}
  * @throws {Error} un chemin à caractère de contrôle (`porteUnControle`), avant le spawn ; sortie de
  *   `cat-file` qui ne suit pas sa forme `<objet> <type> <taille>`. {BorneAbsente} la ref `arbre`
- *   absente du dépôt.
+ *   absente du dépôt. Le refus de la porte des projets : un chemin sous `projets/` de ce dépôt sans la passe du
+ *   dépôt (`exigerLaPorteDuDepot`).
  */
 export function lireEnLot(depot, arbre, rels) {
   /** @type {Map<string, string | null>} */
@@ -1396,6 +1423,7 @@ export function lireEnLot(depot, arbre, rels) {
   const prefixe = arbre === INDEX ? ':' : `${revisionsDe([arbre])[0]}:`
   const fautifs = rels.filter((rel) => typeof rel !== 'string' || porteUnControle(rel))
   if (fautifs.length) throw new Error(`lireEnLot : un chemin tient sur une ligne du lot, sans caractère de contrôle — refusés : ${JSON.stringify(fautifs)}`)
+  exigerLaPorteDuDepot(depot, 'lireEnLot', { rels })
   const vu = interroger(depot, ['cat-file', '--batch'], { entree: rels.map((rel) => `${prefixe}${rel}\n`).join('') })
   if (!vu.disponible || vu.absent || vu.valeur.status !== 0) {
     confier(depot, vu.disponible ? indisponible(`\`git cat-file --batch\` sans lot (${vu.absent ? 'objet absent' : `status ${vu.valeur.status}`})`, { diagnostic: vu.diagnostic ?? vu.valeur }) : vu)

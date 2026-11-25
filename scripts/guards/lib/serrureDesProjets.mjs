@@ -8,12 +8,13 @@ import { dirname, join, relative, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ICI = dirname(fileURLToPath(import.meta.url));
-const DEPOT = join(ICI, '..', '..', '..');
+/** La racine de CE dépôt : la serrure ne garde que son dossier `projets/`. */
+export const DEPOT = join(ICI, '..', '..', '..');
 const DOSSIER_DES_PROJETS = join(DEPOT, 'projets');
 const MODULE_DE_LA_PORTE = join(ICI, 'porteDesProjets.mjs');
 
-/** Les passes frappées par le sceau ; une passe est un objet gelé `{ lit: 'tous' } | { lit: 'projet', projet } |
- *  `. @type {WeakSet<object>} */
+/** Les passes frappées par le sceau ; une passe est un objet gelé `{ lit: 'tous' } | { lit: 'projet', projet }`.
+ *  @type {WeakSet<object>} */
 const PASSES = new WeakSet();
 
 /** Frappe une passe de lecture `lecture`. */

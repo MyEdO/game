@@ -9,6 +9,7 @@ import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { TRAVAIL, depotDe, listerImage } from './gitPorte.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 import { estLivreExtrait } from '../../raw/_lib.mjs'
 
 const RACINE = fileURLToPath(new URL('../../..', import.meta.url))
@@ -263,7 +264,7 @@ export const EXEMPTIONS = [
  *  — une faute dans un fichier neuf se voit avant son `git add` —, hors suivis effacés de l'arbre.
  *  LÈVE si git ne répond pas. */
 export function fichiersBalayes(racine = RACINE) {
-  return [...new Set(listerImage(depotDe(racine), TRAVAIL).filter((f) => estBalaye(f) && existsSync(join(racine, f))))].sort()
+  return [...new Set(listerImage(depotDe(racine, { porte: porteDeTousLesProjets }), TRAVAIL).filter((f) => estBalaye(f) && existsSync(join(racine, f))))].sort()
 }
 
 /** Les RACINES que le balayage lit (`dossier/` de premier niveau ou fichier de la racine), triées :

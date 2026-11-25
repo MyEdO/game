@@ -14,7 +14,7 @@ import { estCiblePure } from './cibles-generees.mjs'
 /** L'index porte les chemins suivis, y compris ceux dont le fichier a disparu du disque. */
 export function verifierCiblesPures(racine, generateurs) {
   if (racineSurDisque(racine) === null) return
-  const suivies = listerImage(depotDe(racine), INDEX).filter((chemin) => estCiblePure(chemin, generateurs))
+  const suivies = listerImage(depotDe(racine, { porte: porteDeTousLesProjets }), INDEX).filter((chemin) => estCiblePure(chemin, generateurs))
   if (suivies.length) throw new Error(`cible(s) pure(s) suivie(s) dans Git :\n${suivies.map((cible) => `  ${cible}`).join('\n')}`)
 }
 
