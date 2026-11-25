@@ -18,7 +18,7 @@ import {
   type Etat,
   type Heros,
 } from './index';
-import { porterAuNiveau, poserLesReglesDuRoguelite } from '../noyau';
+import { porterAuNiveau, poserLesReglesDuRoguelite, progression } from '../noyau';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -39,6 +39,7 @@ describe('recrues du relais', () => {
     expect(h.c.xp ?? 0).toBe(0);
     expect(o.niveau).toBe(2);
     expect(o.suivant?.niveau).toBe(3);
+    expect(progression({ ...h.c, careerLevel: 1 }).complet).toBe(true);
     for (const k of ['capacite-de-combat', 'endurance', 'force-mentale'] as const) expect(h.c.charAdvances?.[k] ?? 0).toBeGreaterThanOrEqual(5);
   });
 
