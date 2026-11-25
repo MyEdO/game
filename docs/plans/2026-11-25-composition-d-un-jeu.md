@@ -175,7 +175,7 @@ Les corrections du juge qui survivent, à reprendre au design neuf :
 Ronde 1 du juge : CORRIGER, 13 points. Ronde 2 : CORRIGER, 3 de ces points partiels et 7 points neufs. Ce texte les
 intègre tous, et se recadre sur deux points. L'invariant des suites passe à la clôture de leurs imports. Les
 raffinements croisés de `schemas` deviennent des lectures du catalogue, avec leurs appelants nommés. Le texte recadré
-se juge comme un livrable neuf. Les verdicts sont consignés au ticket.
+se juge comme un livrable neuf. Sa ronde 1 : CORRIGER, 8 points, intégrés ici. Les verdicts sont consignés au ticket.
 
 **Invariant.** Aucune valeur de la base n'est atteignable depuis `src/engine`, `src/noyau` ou `src/scenes`
 autrement que par un argument. Leurs suites de test n'atteignent la base par aucun chemin d'import, même transitif. Une règle lit le catalogue qu'on lui passe. Seul un
@@ -191,7 +191,13 @@ hôte compose un catalogue, et il le remet à sa partie.
   - 458 suites d'`engine`, du `noyau` et de `scenes` lisent la façade ;
   - 67 autres l'atteignent hors de la façade (`overrides`, `criticals`, `refFormatLivre`…) ;
   - 70 suites de `schemas` lisent la façade ou un JSON ;
-  - 20 suites du noyau passent par `src/hote`, et environ 70 par les testkits de la racine (`src/*.testkit.ts`).
+  - 20 suites du noyau passent par `src/hote` ;
+  - 18 suites lisent `src/data` par le disque (`readFileSync`), par exemple `src/engine/policy-donnee.test.ts:27`, comme
+    le testkit `src/noyau/noeudsDeTest.testkit.ts:83` ;
+  - environ 56 suites de garde de corpus importent `scripts/`, qui atteint la base (par exemple
+    `src/noyau/parseProject-porte.test.ts:13` → `scripts/source/registre-livres.mjs:1`, `books.json`) ;
+  - aucune suite de ces zones n'importe un testkit de la racine (`src/*.testkit.ts`), car ces testkits n'ont pour
+    importeurs que les suites de la racine et le setup.
 - `rule(` compte 162 appels dans 70 fichiers.
 - Le fan-in hors famille va de 8 fichiers (apparence) à 145 (monde et scènes), 128 (objets) et 138 (combat).
 - 49 captures à l'import sont localisées hors de `src/data`. La méthode diffère du relevé du § 8.2, qui en comptait
@@ -248,11 +254,13 @@ hôte compose un catalogue, et il le remet à sa partie.
 - Un flux du noyau lit `get().catalogue`. Un utilitaire du noyau sans `get` reçoit `cat`.
 - Les lectures vivent dans une zone pure, `src/data/catalogue/`, sans JSON.
   - `entreeDe(cle, id, cat)` est générique. Elle remplace les accesseurs `find…ById` et `indexParId`. Son index se
-    mémoïse par l'identité de la collection, dans une `WeakMap`.
+    mémoïse par `memoByRef(collection)`.
   - Les dérivés deviennent des fonctions `(…, cat)` : `dataLabel`, `refLabel`, `levelsForCareer`, `especeParDefaut`.
     Ce dernier remplace le scalaire `DEFAULT_RACE_ID`.
-  - Une lecture de champ reste un accesseur. Seul un vrai calcul se mémoïse, par `memoDuCatalogue(clef, calcul,
-    cat)`, sur l'identité du catalogue. Ce mémo remplace `memoParVersion`, `indexParChamp` et `bumperDataset`.
+  - Une lecture de champ reste un accesseur. Seul un vrai calcul se mémoïse, par l'identité, avec le patron canonique
+    `memoByRef` et `memoByRefDeps` (`docs/primitives.md:105`). Ce patron quitte `src/noyau/monde/sceneMemo.ts` pour une
+    feuille de `src/lib`, et perd son couplage à `versionDesDatasets` (`sceneMemo.ts:2`). Il remplace
+    `memoParVersion`, `indexParChamp` et `bumperDataset`.
   - `regle(id, cat)` remplace `rule(id)` (`src/engine/policy.ts:64`). La `Map` globale des surcharges
     (`policy.ts:47`) disparaît, car les choix sont dans la composition.
 - **Les références.** Une référence ne se raffine plus contre un index global. Le schéma garde la forme : il est
@@ -265,8 +273,23 @@ hôte compose un catalogue, et il le remet à sa partie.
   profil (`scene.ts:226`). Ils deviennent des lectures `fautesDe…(document, cat)` de `catalogue`. Trois sites les
   appellent :
   - la seconde passe, au chargement de la bibliothèque et au Compendium ;
-  - l'éditeur de scène, par `refusDeLEntite` (`scene.ts:313-319`) ;
-  - le chargement de paquet du noyau, par `parseProject` (`src/noyau/worldMap.ts:752`).
+  - l'éditeur de scène ;
+  - le noyau, pour ses paquets et ses scènes.
+
+  Une seule porte de `catalogue` les sert : `parserSousCatalogue(schema, valeur, cat)`, qui parse puis juge les fautes
+  croisées sous `cat`. Pour les schémas à fautes croisées, elle remplace `validerFormeVivante`
+  (`src/data/schemas/validate.ts:406`). Le type exige `cat` à chacun de leurs sites d'entrée, que la famille 1
+  inventorie :
+  - `parseProject` (`src/noyau/worldMap.ts:752`) et `parseSceneDeProjet` (`worldMap.ts:730`, autosave de l'éditeur et
+    chargement de sauvegarde) ;
+  - `src/noyau/persistance/save.ts:151` ;
+  - `src/noyau/mapSpec.ts:996` ;
+  - `src/noyau/validateScene.ts:125-126` ;
+  - `src/noyau/sceneEditLecture.ts:475` ;
+  - `src/noyau/campagneLivree.ts:88`.
+
+  `refusDeLEntite` (`scene.ts:313-319`) se scinde : sa forme reste à `schemas`, et ses fautes croisées passent à
+  `catalogue`.
 - **Le sort des 10 fichiers de `schemas` qui lisent la base.** Ils deviennent des fautes, ou des lectures
   `(…, cat)` de `catalogue` :
   - `defs-scenes/scene.ts:60,64` (navire à ponts, `refusDePoseDesPonts`, munitions, carrière) ;
@@ -281,8 +304,17 @@ hôte compose un catalogue, et il le remet à sa partie.
   - Le Compendium juge la bibliothèque *candidate* : une entrée créée, puis référencée par une autre, est acceptée sans
     `npm run gen`.
   - `lireLEspace`, `idsVivants`, `fige` et `poserRegimeVivant` meurent.
-  - La valeur `IDS_PAR_ESPACE` se régénère sous `src/data/`. `schemas` n'en garde que le type `IdsParEspace`, que lit
-    `Id<T>`.
+  - Le repère porte aussi sa sous-liste et son marqueur, et la seconde passe les juge contre `cat`. Ce jugement
+    remplace `idsDesignes`, `refusDuMarqueur`, `refusDeLaDiscriminee` (`ref.ts:283-295`) et l'index de `ref.ts:215`.
+    Il couvre les 13 références à sous-liste (`idDe(type, sousListe)`, par exemple `defs/props.ts:35` et
+    `grammaire/valeurs.ts:1156`).
+  - `porteLeMarqueur` (`ref.ts:345`) devient `porteLeMarqueur(type, marqueur, id, cat)` dans `catalogue`. Ses 14 sites
+    suivent leur famille : `scene.ts:125` va à la famille 1, `src/engine/weaponGroup.ts:16,20` à la famille 6.
+  - Les 11 lectures `lire.catalogue(…)` des defs passent à la seconde passe, dans la famille 1 : `trappings.ts:83,413`,
+    `careerLevels.ts:16`, `garde-robe.ts:188`, `merchants.ts:27`, `apparences.ts:66`, `cargaisons-aleatoires.ts:21`,
+    `reference.ts:90-93`, `especes-aleatoires`.
+  - La génération des ids émet deux modules. Le type littéral `IdsParEspace`, que lit `Id<T>`, va sous `schemas`. La
+    valeur `IDS_PAR_ESPACE` va sous `src/data/`. Aujourd'hui, les deux vivent ensemble (`_ids.generated.ts:514`).
 
 **3. La structure qui ferme la classe.** La règle de couche `COUCHES` (`scripts/guards/lib/couches.mjs`) porte la
 fermeture. Le lint `murs/*` l'applique au job `types` (`npm run lint`, `ci.yml:205`). Dans `COUCHES`, le dossier le
@@ -293,29 +325,45 @@ plus long gagne (`couches.mjs:156`).
 | `schemas` | `src/data/schemas` | grammaire, defs, types d'ids, type `Catalogue`, et les modules purs de `src/data` qui y entrent au socle (`icons`, `cadres`, `fonds`, `paysages`, `sons`, `source`, `dossiers`, `datasets`, `rangees`, `serialize`, `slug`, `*.types`, `icones.generated`, `sourceRefs`, `graphieOpsDeTalent`) | `engine`, feuilles ; `survit: true` |
 | `catalogue` | `src/data/catalogue` | lectures pures `(…, cat)`, dont celles des modules de donnée de `src/data` ; `catalogueDeTest.testkit.ts`, et les testkits purs de `src/data` (`idDeFixture`, `deDeLaTable`…) | `schemas`, `engine`, feuilles ; `survit: true` |
 | `data` | `src/data` | JSON, bibliothèque, `composer`, `porteDeLHote.ts`, atelier du Compendium | `engine`, `schemas`, `catalogue`, feuilles |
-| `engine` | `src/engine` | règles pures | `schemas`, `catalogue`, feuilles ; plus `data` |
-| `noyau`, `scenes` | inchangés | | `engine`, `schemas`, `catalogue`, feuilles ; plus `data` |
-| `hote` | `src/hote` | détenteur | ce qu'il importe, plus `data` par sa seule porte `src/data/porteDeLHote.ts` |
+| `engine` | `src/engine` | règles pures | `schemas`, `catalogue`, feuilles ; n'importe plus `data` |
+| `noyau`, `scenes` | inchangés | | `engine`, `schemas`, `catalogue`, feuilles ; n'importent plus `data` |
+| `hote` | `src/hote` | détenteur | ce qu'il importe déjà, et en outre `data` par sa seule porte `src/data/porteDeLHote.ts` |
 | projets | `projets/*` | | les ouvertures `data` de #4933 (Roguelite : ne plus importer la base de données ni les scénarios de test) et de #5007 (Jeu de rôle : même titre) se ferment ; un projet lit son catalogue par `src/hote` |
+
+C'est la table finale. Les lignes transitoires sont les suivantes :
+- du socle à la famille 1, `schemas` importe en outre `data` ;
+- jusqu'à la bascule, `catalogue` n'importe que sa ligne, et `engine`, `noyau` et `scenes` gardent `data`.
 
 La table gagne deux champs. Ce sont deux règles de couche, que le lint porte : une branche neuve de `purete`, et un
 test de plus dans `testsSurvivants` (`couchesLint.mjs:196-207`).
 - **`json: false`** sur `engine`, `noyau`, `scenes`, `schemas` et `catalogue`. `murs/purete-imports` y refuse tout
   import d'un `.json`, même interne à la zone. Aujourd'hui, `fermeture` laisse passer un arc interne
-  (`couches.mjs:208`).
+  (`couches.mjs:193`).
   - Stock à la pose : les 19 modules lecteurs de JSON, plus `src/scenes/fixtures/contenuDuCommun.ts:8`
     (`paquet-de-test.json`).
   - Ce paquet de test devient un module `.ts` littéral, dans la famille 12.
-- **`suitesSansDonnee: true`** sur les mêmes zones. `murs/tests-survivants` refuse à leurs suites tout arc vers une
-  zone dont la clôture d'imports atteint `data`. Cette clôture se calcule sur la table, comme celle de
-  `fermeParLaSurvie` ; ce n'est pas une liste. Elle couvre `data`, `hote`, `texte`, `godot`, `racine` et les projets.
-  - Aujourd'hui, `purete` saute les suites (`estFichierVitest`), et `testsSurvivants` ne juge que la survie et les
-    projets.
+- **`suitesSansDonnee: true`** sur les mêmes zones. Leurs suites portent les murs que `purete` applique déjà à la
+  production :
+  - aucun arc vers une zone dont la clôture d'imports atteint `data`. Cette clôture se calcule sur la table, comme
+    celle de `fermeParLaSurvie` ; ce n'est pas une liste. Elle couvre `data`, `hote`, `texte`, `godot`, `racine` et les
+    projets ;
+  - aucun module de code hors des zones sans outillage déclaré (`horsZoneOuvert`). Les quelque 56 suites de garde de
+    corpus qui importent `scripts/` partent donc sous `scripts/corpus/` ;
+  - `node:fs` refusé comme paquet, pour les suites comme pour les testkits de ces zones. Les 18 suites qui lisent
+    `src/data` par le disque, et `noeudsDeTest.testkit.ts`, migrent avec leur famille.
+
+  Aujourd'hui, `purete` saute les suites (`estFichierVitest`), et `testsSurvivants` ne juge que la survie et les
+  projets.
   - Stock à la pose : les suites mesurées plus haut.
-  - Un testkit de la racine qui ne lit pas la base passe en zone `catalogue`. Celui qui la lit sert les invariants
-    de `src/data`.
+  - Les testkits de la racine importent `noyau` ou `hote` (`compendiumJoue`, `ecritures*`, `formulaireJoue`,
+    `singletons`). Ils restent à la racine, avec leurs seuls importeurs.
   - Les suites de `schemas` qui parsent la base livrée passent sous `src/data`.
   - Le champ se pose à la bascule.
+- **Le setup de la suite.** `src/test-setup-noyau.ts:15` importe `overrides`, et `:21` importe
+  `src/scenes/partage.testkit.ts`. Ce testkit lit `versionDataset` (`:7`) et parcourt `/src/data/**/*.json` (`:27`).
+  - À la bascule, le setup perd ces deux imports.
+  - `composer` et `catalogueDeTest` gèlent en profondeur (`gelerProfond`). Aucun état de test ne partage alors d'objet
+    avec les JSON livrés, et la garde de partage (#2097) meurt avec son parcours.
 
 Avec cette table, un module ou une suite de `engine`, `noyau` ou `scenes` ne charge aucune donnée. `import { skills }
 from '../data'` et `import x from '../data/x.json'` sont refusés, et aucune zone qu'ils lisent n'exporte de donnée. La
@@ -398,8 +446,8 @@ ferme le cycle les solde.
 
 | Ordre | Famille | Fichiers de production | Sites de la base | Fan-in hors famille | Lots estimés |
 |---|---|---|---|---|---|
-| 0 | Socle : zones `schemas` et `catalogue` (sans bascule), modules purs déplacés, type `Catalogue`, bibliothèque, `composer`, `entreeDe`, `memoDuCatalogue`, `regle`, `offert`, `catalogueDeTest`, partie et `MachinerieDuNoyau.catalogue`, fossiles 1, 2 et 5 | ~25 déplacés | — | — | 4 |
-| 1 | Grammaire : seconde passe des références sur `AccesAuxDocuments`, fautes croisées et leurs trois appelants, 10 fichiers de `schemas`, `IDS_PAR_ESPACE` sous `data`, 70 suites de `schemas` | 13 | 24 imports | — | 5 |
+| 0 | Socle : zones `schemas` et `catalogue` (lignes transitoires), modules purs déplacés, `memoByRef` en feuille, type `Catalogue`, bibliothèque, `composer`, `entreeDe`, `memoDuCatalogue`, `regle`, `offert`, `catalogueDeTest`, partie et `MachinerieDuNoyau.catalogue`, fossiles 1, 2 et 5 | ~25 déplacés | — | — | 4 |
+| 1 | Grammaire : seconde passe des références (sous-listes et marqueurs compris), `parserSousCatalogue` et ses 8 sites d'entrée, fautes croisées, 10 fichiers et 11 `lire.catalogue` de `schemas`, `IDS_PAR_ESPACE` sous `data`, 70 suites de `schemas` | ~30 | 24 imports | — | 7 |
 | 2 | Apparence (`noyau/apparence/*`, `animation`) | 6 | 52 | 8 | 1 |
 | 3 | Monde et scènes (`noyau/monde/*`, `sceneEdit*`, `worldMap*`, `engine/structures`, `poseDesPonts`, `valeursNeuves`) | 30 | 116 | 145 | 5 |
 | 4 | Repos, maladie, temps (`clock`, `disease`, `rest`, `restFlow`, `innFlow`…) | 12 | 80 | 40 | 2 |
@@ -411,9 +459,9 @@ ferme le cycle les solde.
 | 10 | Codex et désignations (`noyau/codex/*`, `designations`, `refFormatLivre`, `bookMarker`, `livres`) | 11 | 371 | 16 | 3 |
 | 11 | Transverses du noyau et du moteur : les 165 appelants (`cascade`, `partie`, `etat`, `tablesDuJeu`…) reçoivent et passent `cat` | 165 | — | — | 14 |
 | 12 | Compendium, hôtes, scènes, projets : atelier pur, `porteDeLHote.ts`, `src/hote/catalogue.ts`, règles maison chez l'hôte, sauvegarde et coop, `src/scenes` (15), `projets/roguelite/src/noyau` (6), `projets/jeu-de-role/campagnes/lib.mjs`, fossile 5 | ~35 | ~230 | — | 5 |
-| 13 | Bascule : `COUCHES` ferme `data` aux trois zones et pose `json` et `suitesSansDonnee` ; les testkits de la racine reçoivent leur zone ; les défauts tombent ; la façade, `overrides.ts`, `versionDataset.ts`, les fossiles et les deux gardes meurent | — | — | — | 2, plus le reste de la sonde |
+| 13 | Bascule : `COUCHES` ferme `data` aux trois zones et pose `json` et `suitesSansDonnee` ; les suites de corpus partent sous `scripts/corpus/` ; le setup perd `overrides` et la garde de partage ; les défauts tombent ; la façade, `overrides.ts`, `versionDataset.ts`, les fossiles et les deux gardes meurent | — | — | — | 2, plus le reste de la sonde |
 
-L'estimation est d'environ 75 lots, à 25 % près. Les familles 2 à 12 se partagent les suites d'`engine`, du `noyau` et de
+L'estimation est d'environ 80 lots, à 25 % près. Les familles 2 à 12 se partagent les suites d'`engine`, du `noyau` et de
 `scenes`, chacune celles de ses fichiers. Les suites qui passent par `src/hote` ou par les testkits de la racine
 migrent avec la famille du fichier qu'elles testent.
 
