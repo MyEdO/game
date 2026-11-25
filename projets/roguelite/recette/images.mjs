@@ -34,7 +34,7 @@ const image = async (nom) => {
 };
 const geste = (a, id) => p.evaluate(([x, i]) => document.querySelector(`button[data-a="${x}"]${i ? `[data-id="${i}"]` : ''}`).click(), [a, id]);
 await image('hameau');
-for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial']) { await geste('batiment', id); await image(id); await geste('fermer-panneau'); }
+for (const id of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage']) { await geste('batiment', id); await image(id); await geste('fermer-panneau'); }
 await geste('chronique'); await image('chronique'); await geste('fermer-panneau');
 await geste('batiment', 'cartographe'); await p.click('[data-a="preparer"]'); await image('depart');
 await geste('fermer-panneau');
