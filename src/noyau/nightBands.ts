@@ -25,7 +25,8 @@ import type { Combatant } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import { isNightTestKind } from '../engine/types';
 import type { CascadeApplier } from './cascade';
-import { actorIn } from './monde/combatants';
+import { actorIn, porteurParId } from './monde/combatants';
+import { touchActors } from './combatOrParty';
 import {
   faitsDesConsequences,
   resultLines,
@@ -140,7 +141,7 @@ export function bandeDeNuit(rowFn: NightRowApplier, bandFn?: NightBandApplier): 
     if (!step.participants) return;
     const insert: BuiltCascadeStep[] = [];
     for (const row of step.participants) {
-      const hero = actorIn(get(), row.id);
+      const hero = porteurParId(get(), row.id);
       if (!hero || !row.result) { row.outcome = []; continue; }
       const out = rowFn(get, set, step, row, hero, ctx);
       const lines = out?.consequences ? resultLines(out.consequences) : [];
@@ -150,7 +151,7 @@ export function bandeDeNuit(rowFn: NightRowApplier, bandFn?: NightBandApplier): 
       for (const l of lines) get().ecrireAuJournal(l.text);
       if (out?.insert?.length) insert.push(...out.insert);
     }
-    set({ party: [...get().party] });
+    set(touchActors(get()));
     return { consequences: [], insert: bandFn ? bandFn(get, set, step, ctx, insert) : nightBands(insert) };
   };
 }
