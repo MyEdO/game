@@ -1,4 +1,4 @@
-// Chargeur des fiches de dossier de chapitre commitées (#2290) : `docs/dossiers/<ABBR>/<NN>.json`, chacune
+// Chargeur des fiches de dossier de chapitre commitées (#2290) : `projets/<projet>/dossiers/<ABBR>/<NN>.json`, chacune
 // lue par `lireFicheDeDossier` (`src/data/source/dossier.ts`), la lecture que partage le chargeur de l'app
 // (`src/data/dossiers.ts`). Côté NODE seulement : le module pur ne lit aucun fichier. S'y ajoutent les
 // gardes de graphie des réfs, qui composent `refRe` de l'outillage RAW.
@@ -7,7 +7,7 @@ import { join } from 'node:path'
 import { listerArbre } from '../../guards/lib/lister.mjs'
 import { refRe } from '../_lib.mjs'
 import { FAMILLES_DE_DOSSIER, lireFicheDeDossier } from '../../../src/data/source/dossier.ts'
-import { DOSSIERS_DIR } from './fichiersCitants.mjs'
+import { dossiersDesProjets } from './fichiersCitants.mjs'
 
 /** Un élément de `ref` est UNE réf à la graphie unique `refRe`, ENTIÈRE : ni préfixe, ni reste. */
 const estUneRef = (s) => {
@@ -41,12 +41,13 @@ const lignesNues = (fiche) =>
     ),
   )
 
-/** Les fiches de `dir`, chacune `{ chemin, abbr, nn, fiche, ids }` (`ids` = identifiants GLOBAUX), en
+/** Les fiches de `dirs` (un dossier ou une liste ; par défaut, les dossiers de fiches des projets, `dossiersDesProjets`),
+ *  dossier par dossier, chacune `{ chemin, abbr, nn, fiche, ids }` (`ids` = identifiants GLOBAUX), en
  *  ordre total (`listerArbre`). Lève sur tout fichier hors de la forme `<ABBR>/<NN>.json`, tout JSON
  *  illisible, toute fiche hors schéma, toute réf hors graphie `refRe` et tout `l.<n>` de prose hors d'une
  *  réf entière `refRe` : un dossier commité est valide ou n'est pas chargé. */
-export function chargerDossiers(dir = DOSSIERS_DIR) {
-  return listerArbre(dir).map((rel) => {
+export function chargerDossiers(dirs = dossiersDesProjets()) {
+  return [dirs].flat().flatMap((dir) => listerArbre(dir).map((rel) => {
     const chemin = join(dir, rel).replace(/\\/g, '/')
     const lue = lireFicheDeDossier(chemin, rel, JSON.parse(readFileSync(join(dir, rel), 'utf8')))
     const horsGraphie = refsHorsGraphie(lue.fiche)
@@ -58,5 +59,5 @@ export function chargerDossiers(dir = DOSSIERS_DIR) {
       throw new Error(`${chemin} : ligne nue en prose, sans sigle ni chapitre : toute \`l.<ligne>\` d'un champ texte appartient à une réf entière \`<ABRÉV> <NN> l.<ligne>\` (refRe, scripts/raw/_lib.mjs)\n${nues.join('\n')}`)
     }
     return lue
-  })
+  }))
 }

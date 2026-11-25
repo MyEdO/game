@@ -1,7 +1,7 @@
 /**
  * Le chapitre (#4411), sur son carton : `ouverture`, l'auberge-relais à la nuit tombante, le texte du chapitre et la
  * compagnie ; `fin`, Altdorf au petit matin, ce que le chapitre laisse (`src/noyau/chapitreRecap.ts:34-68`) et la fin de
- * séance qu'il ouvre. Titres, texte, objectifs et lieux : `src/scenes/diligence/diligence-projet.json:3755-3789`
+ * séance qu'il ouvre. Titres, texte, objectifs et lieux : `projets/jeu-de-role/campagnes/diligence/diligence-projet.json:3755-3789`
  * (`narratif`, `setObjective`, `worldMap.places`) (`../../accueil-et-systeme.md`, sections `ouverture-de-chapitre` et
  * `fin-de-chapitre`).
  */

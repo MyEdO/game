@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { idDeFixture } from './idDeFixture.testkit';
 import { readFileSync } from 'node:fs';
-import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { paquetsDuCommun } from '../../scripts/guards/lib/paquetsDuCommun.mjs';
 import { schema as propsSchema } from './schemas/defs/props';
 import { schema as materialsSchema } from './schemas/defs/materials';
 import { props, matieresDe, findPropMaterialById, findPropById } from './index';
@@ -190,7 +190,7 @@ describe('validatePropCatalog — invariants de données du décor', () => {
    * ABORD AMBIGU — la règle UNIQUE que le catalogue tient sur les abords, et elle porte sur ce que la
    * case désigne : un abord qui dessert DEUX SIÈGES DISTINCTS ne dit plus où l'on s'assoit. Deux places
    * qui s'effondrent dans la MÊME case de siège sont légitimes — c'est l'état de TOUT meuble à N places
-   * aux échelles grossières (10 m/case, la barge du sel et le Loup & Saumure) — et `noyau/monde/seating.ts`
+   * aux échelles grossières (10 m/case) — et `noyau/monde/seating.ts`
    * les sert l'une après l'autre (contrat `seating-abord-effondre.test.ts`). La règle précédente, qui
    * refusait tout abord RÉPÉTÉ, interdisait ces meubles-là dès qu'une scène les posait à 10 m/case.
    */
@@ -338,23 +338,20 @@ describe('validatePropCatalog — invariants de données du décor', () => {
   /**
    * ÉCHELLES EN USAGE — l'intégrité d'un catalogue dépend de l'ÉCHELLE depuis #1509 (l'empreinte
    * effective d'un décor à recette s'en déduit, et avec elle la case de chaque siège et de chaque
-   * abord). Le juger à la seule échelle par défaut laisse passer ce qu'une scène LIVRÉE fait vraiment :
-   * la barge du sel et le Loup & Saumure sont à 10 m/case, où tout meuble à N places tient sur une case.
-   * La liste est DÉRIVÉE des documents (les projets livrés, `projetsLivres.mjs`) plus le défaut du monde — une scène
-   * qui adopte une nouvelle échelle entre sous garde par sa seule déclaration.
+   * abord). Le juger à la seule échelle par défaut laisse passer ce qu'une scène fait vraiment : à 10 m/case,
+   * tout meuble à N places tient sur une case. La liste est DÉRIVÉE des documents (le contenu du commun,
+   * `paquetsDuCommun.mjs`) plus le défaut du monde ; chaque projet juge le catalogue aux échelles de ses paquets.
    */
   const ECHELLES_EN_USAGE = (() => {
     const vues = new Set<number>([MPT]);
-    const racine = new URL('../scenes/', import.meta.url);
-    const projets = listerProjetsLivres();
-    for (const rel of projets) {
-      const doc = JSON.parse(readFileSync(new URL(rel, racine), 'utf8')) as { scenes?: { metresPerTile?: number }[] };
+    for (const rel of paquetsDuCommun()) {
+      const doc = JSON.parse(readFileSync(new URL(`../../${rel}`, import.meta.url), 'utf8')) as { scenes?: { metresPerTile?: number }[] };
       for (const sc of doc.scenes ?? []) if (typeof sc.metresPerTile === 'number') vues.add(sc.metresPerTile);
     }
     return [...vues].sort((a, b) => a - b);
   })();
 
-  it('le catalogue RÉEL est intègre à CHAQUE échelle en usage dans les documents livrés', () => {
+  it('le catalogue RÉEL est intègre à CHAQUE échelle en usage dans le contenu du commun', () => {
     // La liste est mesurée, pas écrite : si elle retombait à une seule échelle, ce contrat mesurerait seulement le défaut du monde — et c'est précisément le trou qu'il ferme.
     expect(ECHELLES_EN_USAGE.length, 'échelles en usage').toBeGreaterThan(1);
     expect(ECHELLES_EN_USAGE).toContain(MPT);

@@ -12,10 +12,10 @@
 //
 //   node hotes/godot/servir.mjs --web <dossier de l'export> [--modeles <dossier> | --statique] [--depot]
 import { readdirSync, readFileSync, statSync } from 'node:fs'
-import { basename, join, resolve } from 'node:path'
+import { join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
+import { dossierDesProjetsLivres, estManuscrit, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs'
 import { materialiser } from '../../scripts/source/resoudre.mjs'
 import { servirLaSource } from '../../scripts/source/prose-source-plugin.mjs'
@@ -39,18 +39,18 @@ const CORPS_MAX = 32 * 1024 * 1024
 /**
  * Le dépôt est servi par `servir.mjs` lancé avec `--depot` (`npm run godot:editeur` exporte le projet dans `dist/godot`
  * puis l'y sert), ou par le pont vivant (`vivant.mjs`, `npm run godot:ouvrir`) : `GET depot/` rend la liste des ids de ses
- * projets manuscrits, dans l'ordre du corpus (`listerProjetsLivres`), en `no-store` ; `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
+ * projets manuscrits, dans l'ordre du corpus (`listerProjetsLivres`), en `no-store` ; `GET depot/<id>` rend le projet manuscrit d'id `id` (`estManuscrit`,
  * `scripts/guards/lib/projetsLivres.mjs`), prose adressée matérialisée (`lireProjetLivre`), en `no-store` ; `PUT
  * depot/<id>` écrit son corps à la place du fichier, 200, ou le refuse en 422 avec sa raison s'il n'est pas du JSON,
- * pas ce projet, ou pas en forme dépôt (`materialiser` le refuse). Un projet généré (`scripts/<dossier>/generate.mjs`)
+ * pas ce projet, ou pas en forme dépôt (`materialiser` le refuse). Un projet généré (un `generate.mjs` voisin)
  * ou inconnu reçoit 404 : il s'ouvre tel que le jeu l'embarque.
  * @contrat Éditeur
  */
 
-/** Les projets manuscrits (`PROJETS_MANUSCRITS`) du dépôt `depot`, dans l'ordre du corpus : chacun son chemin relatif
+/** Les projets manuscrits (`estManuscrit`) du dépôt `depot`, dans l'ordre du corpus : chacun son chemin relatif
  *  au corpus et son id. */
 function manuscrits(depot) {
-  return listerProjetsLivres(depot).filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
+  return listerProjetsLivres(depot).filter((rel) => estManuscrit(rel, depot))
     .map((rel) => ({ rel, id: JSON.parse(readFileSync(join(dossierDesProjetsLivres(depot), rel), 'utf8')).id }))
 }
 

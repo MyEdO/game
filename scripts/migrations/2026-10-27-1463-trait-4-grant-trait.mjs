@@ -48,10 +48,10 @@ const RACINES = {
   'src/data/tables.json': serializeDataset,
   'src/data/traits.json': serializeDataset,
   'src/data/trappings.json': serializeDataset,
-  'src/scenes/arene/arene-projet.json': serializeProjet,
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json': serializeProjet,
-  'src/scenes/diligence/diligence-projet.json': serializeProjet,
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json': serializeProjet,
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json': serializeProjet,
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json': serializeProjet,
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json': serializeProjet,
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json': serializeProjet,
 };
 
 /** Clés à plat d'un `grantTrait` → clé du Trait posé. */

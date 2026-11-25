@@ -285,6 +285,9 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
+  # `jeu-de-role:construire` puis `jeu-de-role:recette` (#4936) : le pont du jeu de rôle sur son entrée
+  # (`projets/jeu-de-role/godot.ts`), puis les jeux de son lot (`projets/jeu-de-role/recettes/lot.mjs`), en natif ;
+  # avant `godot:recette`, dont ils ne lisent rien d'écrit.
   # `godot:recette` (#3945) : les jeux `combat`, `editeur` et `compendium` des recettes natives de l'hôte Godot
   # (`lot-de-recettes.mjs --natif`), sans export ni navigateur ; `canari.yml` joue le lot natif entier.
   # `roguelite:construire` puis `roguelite:recette` (#4929) : le roguelite construit sous `dist/roguelite/`, et son lot de
@@ -303,6 +306,12 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
+      - name: Jeu de rôle — construction
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' jeu-de-role:construire ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run jeu-de-role:construire
+      - name: Jeu de rôle — recettes
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' jeu-de-role:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run jeu-de-role:recette
       - name: Godot — recettes natives
         if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:recette

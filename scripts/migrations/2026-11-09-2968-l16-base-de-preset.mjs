@@ -17,10 +17,10 @@ import { tableTotale } from '../../src/lib/tableTotale.ts';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 const PROJETS = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/diligence/diligence-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ];
 
 /** Gestes du premier passage par porteur, mesurés le 2026-11-09 sur `78b7b7d40f`. */

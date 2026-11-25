@@ -61,7 +61,7 @@ test('croitreDocuments : les documents grandissent, le NON CANONIQUE reste INTAC
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'croissance-'));
   t.after(() => efface(racine));
   fs.mkdirSync(path.join(racine, 'src/data'), { recursive: true });
-  fs.mkdirSync(path.join(racine, 'src/scenes/arene'), { recursive: true });
+  fs.mkdirSync(path.join(racine, 'projets/p/c'), { recursive: true });
 
   const canonique = [{ id: 'un', type: 't' }, { id: 'deux', type: 't' }];
   const brutNonCanonique = JSON.stringify([{ id: 'x' }], null, 4);
@@ -69,10 +69,10 @@ test('croitreDocuments : les documents grandissent, le NON CANONIQUE reste INTAC
   fs.writeFileSync(path.join(racine, 'src/data/reflow.json'), brutNonCanonique, 'utf8');
   fs.writeFileSync(path.join(racine, 'src/data/objet.json'), JSON.stringify({ a: 1 }, null, 2), 'utf8');
   const projet = { scenes: [{ id: 's1', entities: [] }] };
-  fs.writeFileSync(path.join(racine, 'src/scenes/arene/arene-projet.json'), `${JSON.stringify(projet, null, 1)}\n`, 'utf8');
+  fs.writeFileSync(path.join(racine, 'projets/p/c/c-projet.json'), `${JSON.stringify(projet, null, 1)}\n`, 'utf8');
 
   const { faits, sautes } = croitreDocuments(racine);
-  assert.deepEqual(faits, [`src/data/exemple.json → deux${SUFFIXE}`, `src/scenes/arene/arene-projet.json → s1${SUFFIXE}`]);
+  assert.deepEqual(faits, [`src/data/exemple.json → deux${SUFFIXE}`, `projets/p/c/c-projet.json → s1${SUFFIXE}`]);
   assert.equal(
     fs.readFileSync(path.join(racine, 'src/data/reflow.json'), 'utf8'),
     brutNonCanonique,
@@ -82,7 +82,7 @@ test('croitreDocuments : les documents grandissent, le NON CANONIQUE reste INTAC
     sautes.some((s) => s.startsWith('src/data/reflow.json')) && sautes.some((s) => s.startsWith('src/data/objet.json')),
     `ce qui n’a pas grandi doit se DIRE, sinon la garde est verte par le vide : ${sautes.join(' | ')}`,
   );
-  const relu = JSON.parse(fs.readFileSync(path.join(racine, 'src/scenes/arene/arene-projet.json'), 'utf8'));
+  const relu = JSON.parse(fs.readFileSync(path.join(racine, 'projets/p/c/c-projet.json'), 'utf8'));
   assert.equal(relu.scenes.length, 2, 'le document de projet n’a pas reçu sa Scène de plus');
 });
 

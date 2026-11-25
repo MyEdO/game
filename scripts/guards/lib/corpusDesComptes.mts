@@ -123,10 +123,9 @@ const estDuClassement = (_rel: string, texte: string): boolean => texte.startsWi
 const LIB_DU_DETECTEUR = 'src/lib';
 /** Le fichier est-il un module JavaScript de `LIB_DU_DETECTEUR` ? */
 const estModulePartage = (rel: string): boolean => rel.endsWith('.mjs');
-/** Ce que l'image apporte : `src/` (donnée ET schémas), `Source/` (les chapitres que mesure `SOURCE_FORMAT`),
- *  `docs/dossiers/` (les fiches qu'importe le contenu du jeu de rôle, `src/scenes/campaign.ts`) et ce que ses
+/** Ce que l'image apporte : `src/` (donnée ET schémas), `Source/` (les chapitres que mesure `SOURCE_FORMAT`) et ce que ses
  *  générateurs lisent hors de `src/` (`LUS_PAR_LES_GENERATEURS`). */
-const DE_L_IMAGE = ['src', 'Source', 'docs/dossiers', ...LUS_PAR_LES_GENERATEURS];
+const DE_L_IMAGE = ['src', 'Source', ...LUS_PAR_LES_GENERATEURS];
 /** Les DÉCLARATIONS de la donnée de l'image que `scripts/` porte : la liste de découpe d'un livre (son grain, `sansFolio`)
  *  dit ce que SES chapitres de `Source/` impriment (#3884). Elles se posent de l'image PAR-DESSUS le détecteur. */
 const DECLARATIONS_DE_L_IMAGE = ['scripts/raw/decoupes'];

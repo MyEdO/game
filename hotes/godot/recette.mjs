@@ -64,7 +64,7 @@
 // - `dialogue` (`--scenario dialogue-multi`) : l'entrée de la scène poursuivie à l'Entrée, un clic sur une case à côté de
 //   Gustav, son offre « Parler » cliquée parmi les gestes d'exploration, la conversation dessinée, puis la première
 //   réponse cliquée : l'interlocuteur suivant prend la parole.
-// - `document` (`--scenario documents-edo`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à côté de la
+// - `document` (`--scenario liasse-de-documents`) : l'entrée de la scène poursuivie à l'Entrée, le groupe à côté de la
 //   liasse, son offre cliquée, « Chapitre 1 » puis « Lire » : le document se lit au centre ; « Refermer » rend la
 //   conversation à la liasse.
 // - `incantation` (`--scenario magie`) : le groupe franchit la ligne d'engagement à sa case la plus proche, la liste des sorts de la Haute
@@ -104,14 +104,15 @@
 //   carrière tirée, puis les Caractéristiques ; « Nouveau héros » pressé ferme la création sans héros nouveau.
 // - `campagne` (#3009) : « Jouer » ouvre une partie au groupe, sans scène : les pré-tirés à recruter, les campagnes du
 //   jeu, dont « Lancer » ne se joue pas groupe vide ; deux pré-tirés recrutés à leur bouton, chacun en carte au pied de
-//   l'écran, son recrutement refusé ensuite ; « Lancer » de la Diligence pose sa scène d'entrée, le groupe composé au
+//   l'écran, son recrutement refusé ensuite ; « Lancer » de la campagne (`--campagne <id>`, sinon la première remise au
+//   pont) pose sa scène d'entrée, le groupe composé au
 //   monde, sa fenêtre d'ouverture en main ; « Sauvegardes » ouvre le panneau des emplacements, l'emplacement 1 écrit à
 //   son bouton ; « Quitter la partie » rend le menu, le pont sans partie ; la page rechargée, « Reprendre » montre
 //   l'emplacement 1 et l'automatique gardé en quittant, l'emplacement 1 chargé rend la partie, son groupe et sa scène ;
-//   quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée sans recharger la page.
+//   quittée, « Jouer » de nouveau, un pré-tiré recruté, la campagne relancée sans recharger la page.
 // - `roster` (#3009) : un héros créé et engagé par le pont, sans l'écran, la partie quittée ; la page rechargée,
 //   « Jouer » le montre au roster ; « Recruter » de sa carte le fait entrer au groupe sous l'id que le roster garde, son
-//   recrutement refusé ensuite ; la Diligence lancée avec lui, puis quittée, il reste au roster ; « Exporter » en
+//   recrutement refusé ensuite ; la première campagne remise au pont lancée avec lui, puis quittée, il reste au roster ; « Exporter » en
 //   télécharge le fichier ; « Supprimer », puis « Importer un personnage… » sur ce fichier le rend au roster ;
 //   « Supprimer » l'en retire, page rechargée comprise.
 // - `reglages` (#3009) : « Options » du menu ouvre le panneau des réglages ; la molette, tournée sur un curseur de
@@ -121,11 +122,11 @@
 //   même panneau, « Non » la remet, « Fermer » rend la partie. Le volume de la musique (#3949) réglé par le pont avant
 //   le rechargement : il revient du stockage et, dans la page (`lieu.releverLesGains`), un gain de son graphe audio le
 //   porte au lancement ; remis à 1 par le pont, le geste du panneau y remet ce gain.
-// - `editeur` (#3508), servi avec une copie des projets manuscrits du dépôt (`servir.mjs`, `depot`) : « Éditeur » ouvre la
-//   Diligence telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
+// - `editeur` (#3508), servi avec un dépôt jetable dont le paquet de test du commun est le projet manuscrit (`servir.mjs`,
+//   `depot`) : « Éditeur » ouvre sa scène de l'éditeur telle que le dépôt la sert, sur sa couche 0, rien à enregistrer ; l'outil Hauteur, « Haute (4 m) » et le
 //   pinceau 3×3 choisis à leurs boutons, un glissé de deux cases sur la carte : bouton tenu, la surcouche couvre
 //   l'emprise du pinceau sur chaque case et le monde reste tel quel ; relâché, la surface des cases peintes monte à
-//   l'écran. « Enregistrer » l'écrit à la copie du dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
+//   l'écran. « Enregistrer » l'écrit au dépôt, puis rien à enregistrer ; « Annuler » rend la surface à sa
 //   place. L'outil Murs, un clic sur le côté commun de deux de ces cases pose une cloison sur le monde ; l'outil
 //   Sélection, un clic au même point la choisit, gainée, et la dit ; à l'inspecteur, « Porte » en fait une porte, puis
 //   « Fermée au départ » la ferme, que le monde dessine ; « Annuler » trois fois la retire. L'outil Volée, un clic trace
@@ -147,8 +148,8 @@
 //   Architecture, un clic sur une case libre puis « Nouveau corps » y pose un corps, dont l'inspecteur dit la toiture ;
 //   « Poser une façade », un clic sur le côté nord de la case y pose une façade, « Ajouter une ouverture » lui en donne
 //   une ; « Tirer une exclusion de toiture », un rectangle tiré à côté l'ajoute au corps ; un clic sur la case puis
-//   « Nouvelle masse de toiture » y pose une masse, que « +1 » monte à deux niveaux. L'outil Sélection, un clic sur la
-//   case voisine du décor choisit le déclencheur qui la couvre : à son inspecteur, sa condition « TOUS (ET) » choisie en
+//   « Nouvelle masse de toiture » y pose une masse, que « +1 » monte à deux niveaux. L'outil Sélection, un clic sur une
+//   case d'un déclencheur de la scène le choisit : à son inspecteur, sa condition « TOUS (ET) » choisie en
 //   liste, puis « Ajouter » lui donne une condition dans son contenu ; « Annuler » deux fois la retire.
 //   Au flux du même déclencheur, un pas d'effet « journal » : son adresse de prose (#3606 M2g) se désigne par des choix
 //   seuls, le livre, le chapitre que Godot charge à la demande (`source/`), une cellule ajoutée, sa ligne choisie : le
@@ -158,7 +159,7 @@
 //   l'image, son coin comme son nœud, et le centre de la case quatre plus loin comme second point, le coin de la case
 //   huit plus loin comme son nœud : la planche s'étire du double, son échelle dite en pixels par case moitié de celle
 //   d'avant.
-//   « Couche 1 » édite l'étage, sans calque. Au menu Fichier, « Carte du monde » (#3606 M5) montre son plan à côté du
+//   « Ajouter une couche » édite la couche 1, sans calque. Au menu Fichier, « Carte du monde » (#3606 M5) montre son plan à côté du
 //   panneau : l'outil Lieu, un clic au large y pose un lieu, « Ajouter un lieu » un second ; l'outil Sélection, le premier
 //   glissé au large, « Annuler » une fois le rend à sa place ; l'outil Chemin, le premier tiré jusqu'au second les relie ;
 //   l'outil Sélection, un clic sur la route la choisit, « Depuis » le second l'oriente, son refus s'écrit au formulaire ;
@@ -169,8 +170,8 @@
 //   message de départ » l'ajoute vide, son texte tapé au clavier sur deux lignes, « Écrire » le pose, « Annuler » deux
 //   fois le retire. « Nouvelle scène » l'ajoute au projet ; « Annuler » rend le projet à ses scènes d'avant, la scène
 //   d'avant montrée, « Rétablir » la rend ; « Retirer la scène » rend la précédente, dont « +15° » tourne le nord ; une
-//   autre scène choisie à la liste, « Annuler » rend la précédente, son nord au haut du plan. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages de la
-//   Diligence : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
+//   autre scène choisie à la liste, « Annuler » rend la précédente, son nord au haut du plan. Une seconde « Nouvelle scène » reçoit, dans un bloc de cases à l'écran, les ouvrages d'un
+//   bâtiment : une couche ajoutée, un palier peint en Dallage à 4 m ; douze côtés en Mur à ossature en bois autour de
 //   trois cases sur trois, une porte au nord, une fenêtre au sud ; la pièce tirée sur elles ; un corps, son étage, une
 //   façade au nord et son ouverture ; une volée de quatre cases tirée vers le palier, posée ; un décor tourné à l’est,
 //   un départ, un déclencheur tiré : la validation ne dit aucune erreur. « Enregistrer » écrit au dépôt la scène et
@@ -281,10 +282,10 @@
  * vue nommée du fichier à la touche du regard, la pose par `wfrpCadrer`, écrit au journal le plan de sa couche, l'œil
  * posé marqué (`plan`), et la capture sous son nom ; les vues de la caraque sont
  * `hotes/godot/cadrages/a-bord-de-la-caraque.json`.
- * L'éditeur (`--parcours editeur`) sert une copie
- * neuve des projets manuscrits du dépôt, clique « Éditeur », puis ses boutons, les cases de la carte et les points du
+ * L'éditeur (`--parcours editeur`) sert un dépôt
+ * jetable dont le paquet de test du commun est le projet manuscrit, clique « Éditeur », puis ses boutons, les cases de la carte et les points du
  * cadre du plan de la carte du monde (`wfrpEcran.editeur.plan`), lit son état
- * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à la copie ; il amène chaque bouton et chaque champ
+ * dans `wfrpEcran.editeur`, et le fichier que « Enregistrer » écrit à ce dépôt ; il amène chaque bouton et chaque champ
  * du panneau par la molette, aux crans que dit son point au défilement publié (`wfrpEcran.panneau`) ; il intercepte le choix de fichier de
  * la page (`Page.setInterceptFileChooserDialog`) et remplit l'`input[data-fichier]` d'une planche qu'il écrit.
  * En natif (`--natif`), les mêmes parcours se jouent sans export : `wfrpEcran` et `wfrpPont` vivent dans le processus de
@@ -307,14 +308,14 @@ import { LISTAGE } from './listage.mjs'
 import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { gestesDessines } from './pont/dessines.ts'
-import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
+import { dossierDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
 import { SORTIES_DES_ESPACES } from '../../scripts/docs/lib/cibles-registres.mjs'
 import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, instant: chaine, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, entree: chaine, 'preparation-native': chaine },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, instant: chaine, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, entree: chaine, campagne: chaine, 'preparation-native': chaine },
 })
 const preparation = o['preparation-native']
 if (preparation !== undefined && (!o.natif || !preparation)) throw new Error('--preparation-native attend le dossier de préparation d’un lot natif')
@@ -323,6 +324,7 @@ poserLEntree(o.entree)
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/recette.mjs (--web <dossier de l’export> | --natif [--rendu <méthode>]) --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')
+if (o.campagne !== undefined && o.parcours !== 'campagne') throw new Error('--campagne <id> nomme la campagne que lance le parcours campagne, et lui seul')
 if (o.parcours === 'cadrages' && !o.vues) throw new Error('--parcours cadrages attend --vues <fichier JSON des vues nommées>')
 if (o.parcours === 'bord' && !o.route) throw new Error('--parcours bord attend --route <route.json> (`hotes/godot/recettes/route-a-bord.hors-store.test.ts`)')
 if (o.parcours === 'composition' && !(o.modeles && o.base && o.piece)) throw new Error('--parcours composition attend --modeles <dossier neuf>, --base et --piece <production skinnée>')
@@ -333,19 +335,30 @@ if (o.planche && !o.natif) throw new Error('--planche se joue en natif (--natif)
 if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--parcours combat attend --modeles <dossier neuf> et --element <production> ensemble, ou aucun des deux')
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
 
-/** Les projets manuscrits du dépôt, chacun par son chemin relatif au corpus (`listerProjetsLivres`). */
-const MANUSCRITS = listerProjetsLivres().filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
+/** Les projets manuscrits du dépôt jetable du parcours `editeur`, chacun par son chemin relatif au corpus
+ *  (`dossierDesProjetsLivres`) : le paquet de test du commun (`PAQUET_DE_TEST`), seul. */
+const MANUSCRITS = ['commun/paquet-de-test-projet.json']
+/** Le paquet de test du commun, que l'entrée commune remet au pont (`src/scenes/fixtures/contenuDuCommun.ts`), sa scène
+ *  de l'éditeur en tête : la scène que l'éditeur ouvre d'abord (`hotes/godot/pont/editeur.hors-store.test.ts`). */
+const PAQUET_DE_TEST = (() => {
+  const paquet = JSON.parse(readFileSync(new URL('../../src/scenes/fixtures/paquet-de-test.json', import.meta.url), 'utf8'))
+  const deLEditeur = (sc) => sc.id === 'scene-de-l-editeur'
+  return { ...paquet, scenes: [...paquet.scenes.filter(deLEditeur), ...paquet.scenes.filter((sc) => !deLEditeur(sc))] }
+})()
 /** Les fichiers de l'atelier du Compendium, par nom leur chemin relatif au dépôt (phase 2 de `npm run gen`). */
 const FICHIERS_DE_L_ATELIER = JSON.parse(readFileSync(SORTIES_DES_ESPACES.atelier, 'utf8'))
-/** Le dépôt que sert le parcours `editeur` ou `compendium` : une copie neuve de ce que son enregistrement écrit, les
- *  projets manuscrits, ou les fichiers de l'atelier du Compendium et leur liste. */
+/** Le dépôt que sert le parcours `editeur` ou `compendium` : un dossier neuf qui porte ce que son enregistrement
+ *  écrit, le paquet de test du commun en projet manuscrit, ou une copie des fichiers de l'atelier du Compendium et de
+ *  leur liste. */
 const depot = ['editeur', 'compendium'].includes(o.parcours) ? mkdtempSync(join(tmpdir(), `recette-${o.parcours}-`)) : null
-const COPIES = !depot ? [] : o.parcours === 'editeur'
-  ? MANUSCRITS.map((rel) => [join(dossierDesProjetsLivres(), rel), join(dossierDesProjetsLivres(depot), rel)])
-  : [SORTIES_DES_ESPACES.atelier, ...Object.values(FICHIERS_DE_L_ATELIER)].map((rel) => [rel, join(depot, rel)])
-for (const [de, vers] of COPIES) {
+if (depot && o.parcours === 'editeur') {
+  const vers = join(dossierDesProjetsLivres(depot), MANUSCRITS[0])
   mkdirSync(dirname(vers), { recursive: true })
-  cpSync(de, vers)
+  writeFileSync(vers, `${JSON.stringify(PAQUET_DE_TEST, null, 2)}\n`)
+}
+for (const rel of depot && o.parcours === 'compendium' ? [SORTIES_DES_ESPACES.atelier, ...Object.values(FICHIERS_DE_L_ATELIER)] : []) {
+  mkdirSync(dirname(join(depot, rel)), { recursive: true })
+  cpSync(rel, join(depot, rel))
 }
 /** Le dossier des modèles que lisent les preuves : `--modeles`, sinon celui du projet, que le serveur sert ou dont
  *  l'export servi en `--statique` a fabriqué les scènes. */
@@ -2023,6 +2036,9 @@ async function recruterLePretire(rang) {
   assert.ok(boutonDeLEntite(apres, 'groupe.pretires', carte.id, 'recruter').refus, `${carte.nom} au groupe ne se recrute plus`)
   return apres
 }
+/** L'id de la première campagne que le jeu remet au pont, la première carte de la zone `groupe.campagnes` de la vue
+ *  `v`. */
+const premiereCampagne = (v) => zone(v, 'groupe.campagnes')[0].id.slice('campagne/'.length)
 /** La campagne `id` lancée à son bouton de la zone `groupe.campagnes` ; la vue d'après, sa scène d'entrée posée. */
 async function lancerLaCampagne(id) {
   await cliquerBouton(bouton(boutonDeLEntite(await vue(), 'groupe.campagnes', `campagne/${id}`, 'lancer')))
@@ -2099,18 +2115,19 @@ async function parcoursCampagne() {
   let v = await ouvrirAuGroupe()
   assert.equal(v.projection.scene, null, 'la partie ouverte au groupe n’a pas de scène')
   assert.deepEqual(zone(v, 'groupe.heros'), [], 'ni de héros')
-  const diligence = boutonDeLEntite(v, 'groupe.campagnes', 'campagne/la-diligence', 'lancer')
-  assert.ok(diligence.refus, 'groupe vide, la campagne ne se lance pas')
-  assert.equal(trouver((await ecran()).boutons, bouton(diligence)), undefined, 'son bouton refusé ne se joue pas')
-  noter(`au groupe : ${zone(v, 'groupe.pretires').length} pré-tirés, campagnes ${zone(v, 'groupe.campagnes').map((e) => e.nom).join(' · ')} ; « ${diligence.libelle} » refusé : ${diligence.refus}`)
+  const campagne = o.campagne ?? premiereCampagne(v)
+  const lancer = boutonDeLEntite(v, 'groupe.campagnes', `campagne/${campagne}`, 'lancer')
+  assert.ok(lancer.refus, 'groupe vide, la campagne ne se lance pas')
+  assert.equal(trouver((await ecran()).boutons, bouton(lancer)), undefined, 'son bouton refusé ne se joue pas')
+  noter(`au groupe : ${zone(v, 'groupe.pretires').length} pré-tirés, campagnes ${zone(v, 'groupe.campagnes').map((e) => e.nom).join(' · ')} ; « ${lancer.libelle} » refusé : ${lancer.refus}`)
   await capturer('3009-campagne-1-groupe-vide')
   await recruterLePretire(0)
   v = await recruterLePretire(1)
   const groupe = zone(v, 'groupe.heros').map((e) => e.nom)
   noter(`groupe composé : ${groupe.join(', ')}`)
   await capturer('3009-campagne-2-groupe-compose')
-  v = await lancerLaCampagne('la-diligence')
-  assert.equal(v.projection.fenetre?.cle, 'ouverture', 'la Diligence s’ouvre sur sa fenêtre d’ouverture')
+  v = await lancerLaCampagne(campagne)
+  assert.equal(v.projection.fenetre?.cle, 'ouverture', 'la campagne s’ouvre sur sa fenêtre d’ouverture')
   assert.deepEqual(zone(v, 'groupe.heros').map((e) => e.nom), groupe, 'le groupe composé entre en scène')
   assert.deepEqual([zone(v, 'groupe.pretires'), zone(v, 'groupe.campagnes')], [[], []], 'la composition se ferme, la partie en cours')
   noter(`campagne lancée : scène ${v.projection.scene.nom}, fenêtre « ${zone(v, 'fenetre.titre')[0].texte} »`)
@@ -2143,7 +2160,7 @@ async function parcoursCampagne() {
   v = await ouvrirAuGroupe()
   assert.deepEqual(zone(v, 'groupe.heros'), [], 'la partie suivante s’ouvre sur un groupe vide')
   await recruterLePretire(2)
-  v = await lancerLaCampagne('arene')
+  v = await lancerLaCampagne(campagne)
   noter(`seconde partie sans recharger : scène ${v.projection.scene.nom}`)
   await capturer('3009-campagne-7-seconde-partie')
 }
@@ -2201,7 +2218,7 @@ async function parcoursRoster() {
   assert.equal(trouver((await ecran()).boutons, bouton(boutonDeLEntite(v, 'groupe.roster', carte.id, 'recruter'))), undefined, 'son bouton refusé ne se joue pas')
   noter(`${nom} recruté du roster ; « Recruter » refusé : ${refus}`)
   await capturer('3009-roster-2-recrute')
-  v = await lancerLaCampagne('la-diligence')
+  v = await lancerLaCampagne(premiereCampagne(v))
   assert.deepEqual([zone(v, 'groupe.heros').map((e) => e.nom), zone(v, 'groupe.roster')], [[nom], []], 'il entre en scène, la composition retirée')
   noter(`campagne lancée avec ${nom} : scène ${v.projection.scene.nom}`)
   await capturer('3009-roster-3-en-scene')
@@ -2761,7 +2778,7 @@ async function parcoursEditeur() {
   noter(`« Annuler » : le nord rendu à ${nordInitial}`)
   const message = 'Au relais\nEn route'
   const formulaireDuMessage = `globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'].find((l) => l.id === 'valeur/startMessage/texte')`
-  assert.equal(boutonDeLEditeur(await editeur(), 'valeur/startMessage/ajouter')?.libelle, 'Ajouter : message de départ', 'la Diligence n’a pas de message de départ')
+  assert.equal(boutonDeLEditeur(await editeur(), 'valeur/startMessage/ajouter')?.libelle, 'Ajouter : message de départ', 'la scène n’a pas de message de départ')
   await cliquerAuPanneau({ element: 'bouton/valeur/startMessage/ajouter' })
   await waitFor(session, `${formulaireDuMessage} !== undefined`)
   const champMessage = await amenerAuPanneau({ element: 'saisieMultiligne/valeur/startMessage/texte/valeur' }, 'saisies')
@@ -3170,9 +3187,13 @@ async function parcoursEditeur() {
   noter(`un clic sur la case, « Nouvelle masse de toiture », « +1 » : ${e.zones['editeur.pointee'].find((l) => l.id === 'zone')?.texte} ; ${inspecte(e, 'masse/niveaux').texte}`)
   await capturer('3508-l5-2-masse')
   await cliquerAuPanneau({ element: 'bouton/outil/select' })
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  /** Une case du premier déclencheur de la couche, à l'écran et sans repère : son clic le désigne. */
+  const [tx, ty] = (e.surcouche.zones.find((z) => z.sorte === 'declencheur')?.cases ?? []).map(({ x, y }) => [x, y])
+    .find(([x, y]) => cases[`${x},${y}`] && auMonde(carte, cases[`${x},${y}`]) && !e.surcouche.reperes.some((r) => r.x === x && r.y === y)) ?? []
+  assert.ok(tx !== undefined, `une case d’un déclencheur de la couche, à l’écran, sans repère : ${JSON.stringify(e.surcouche.zones.map((z) => z.sorte))}`)
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, '(globalThis.wfrpEcran?.editeur?.zones["editeur.pointee"] ?? []).some((l) => l.id === "zone")')
-  noter(`outil Sélection, un clic sur la case ${dx + 1}, ${dy} : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
+  noter(`outil Sélection, un clic sur la case ${tx}, ${ty} : ${(await editeur()).zones['editeur.pointee'].find((l) => l.id === 'zone').texte}`)
   await waitFor(session, `(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id === 'valeur/when/kind')`)
   e = await editeur()
   /** Le déclencheur tel que l'inspecteur le montre : sa condition pressée et les pas de son flux. */
@@ -3198,7 +3219,7 @@ async function parcoursEditeur() {
   for (let n = 0; n < 5; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/when/of'))`)
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » cinq fois, le déclencheur recliqué : rendu à sa condition et à son flux d’avant les deux étapes')
   await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
@@ -3227,13 +3248,13 @@ async function parcoursEditeur() {
   noter(`le même pas d’effet, une seconde op « ${pressee(`${pasDOps}/ops/1/op`)} », champ par champ : l’État « ${pressee(`${pasDOps}/ops/1/id/id`)} » choisi à la liste du catalogue`)
   await capturer('3606-m2a2-1-etat')
   for (let n = 0; n < 3; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, montre(`${pasDOps}/ops/0/op`))
   e = await editeur()
   assert.deepEqual([inspecte(e, `${pasDOps}/ops/1/op`), pressee(`${pasDOps}/ops/0/op`)], [undefined, opTypee], '« Annuler » trois fois, le déclencheur recliqué : la seconde op partie, l’op typée reste')
   for (let n = 0; n < 7; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » sept fois, le déclencheur recliqué : rendu à son flux d’avant l’op')
   await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
@@ -3250,7 +3271,7 @@ async function parcoursEditeur() {
   await capturer('3606-m2d-1-ref-locale')
   for (let n = 0; n < 4; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » quatre fois, le déclencheur recliqué : rendu à son flux d’avant l’effet')
   e = await editeur()
@@ -3277,7 +3298,7 @@ async function parcoursEditeur() {
   await capturer('3606-m2e-1-variante-nommee')
   for (let n = 0; n < 8; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » huit fois, le déclencheur recliqué : rendu à sa condition et à son flux d’avant l’étape')
   e = await editeur()
@@ -3297,7 +3318,7 @@ async function parcoursEditeur() {
   await choisirLaForme(inspecte(e, 'valeur/when/atLeast/forme').valeurs.find((b) => b.jeu.args[2]?.brass?.tire === undefined).id, 'Montant')
   noter(`puis revenu en « ${pressee('valeur/when/atLeast/forme')} »`)
   for (let n = 0; n < 3; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » trois fois, le déclencheur recliqué : rendu à sa condition d’avant la Bourse')
   await ajouterLePas('valeur/flow', rangDuPas, 'effet', `valeur/flow/etapes/${rangDuPas}/effet/flag`)
@@ -3318,7 +3339,7 @@ async function parcoursEditeur() {
   await capturer('3606-m2g-1-cellule')
   for (let n = 0; n < 7; n++) await cliquerAuPanneau({ element: 'bouton/annuler' })
   await waitFor(session, `!(globalThis.wfrpEcran?.editeur?.zones['editeur.inspecteur'] ?? []).some((l) => l.id.startsWith('valeur/flow/etapes/${rangDuPas}/'))`)
-  await cliquerPoint(...cases[`${dx + 1},${dy}`])
+  await cliquerPoint(...cases[`${tx},${ty}`])
   await waitFor(session, montre('valeur/when/kind'))
   assert.deepEqual(etatDuDeclencheur(await editeur()), declencheurAvant, '« Annuler » sept fois, le déclencheur recliqué : rendu à son flux d’avant l’adresse')
   const planche = join(depot, 'planche.png')
@@ -3346,9 +3367,9 @@ async function parcoursEditeur() {
   assert.ok(Math.abs(echelle(e) / avantLeCalage - 0.5) < 0.02, `calée, la planche s’étire du double : ${avantLeCalage} puis ${echelle(e)} px par case`)
   noter(`« Caler par deux points », la case ${cx}, ${cy} sur son nœud, la case ${cx + 4}, ${cy} sur celui de la case ${cx + 8}, ${cy} : ${avantLeCalage} puis ${ligneDuCalque(e, 'calque/echelle')}`)
   await capturer('3508-l1b-2-planche-calee')
-  await cliquerAuPanneau({ element: 'bouton/couche/1' })
+  await cliquerAuPanneau({ element: 'bouton/couche/ajouter' })
   e = await editeur()
-  assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, 'la couche 1 s’édite')
+  assert.equal(boutonDeLEditeur(e, 'couche/1')?.presse, true, '« Ajouter une couche » : la couche 1 s’édite')
   assert.equal(e.calque_pose, false, 'la couche 1 n’a pas de calque')
   await capturer('3508-l1-3-couche-1')
   await etapeDeLaCarte()

@@ -461,7 +461,7 @@ const ATTENDU = {
     // (`ecrireFiche`, `dir` jetable) qui arme la table ; l'arbre n'est jamais écrit.
     'scripts/ops/workflows-joues.test.mjs',
     // +1 le 2026-10-05 (#2290) : le lanceur `workflow-args.mjs`, IMPORTÉ par le banc des workflows joués
-    // pour projeter les args ; son écriture sous `docs/dossiers/` vit dans sa seule CLI `ecrire-fiche`,
+    // pour projeter les args ; son écriture sous `projets/<projet>/dossiers/` vit dans sa seule CLI `ecrire-fiche`,
     // que la gate ne lance pas — le banc lui passe un `dir` jetable d'os.tmpdir().
     'scripts/raw/workflow-args.mjs',
     // +2 le 2026-10-05 (#2280) : `vigie.mjs` garde les verdicts `verte` sous `<arbre principal>/.git/vigie/`
@@ -751,7 +751,7 @@ const ATTENDU = {
     // finally ; depuis #2290 il y fait aussi écrire les fiches de dossier par `ecrireFiche`.
     'scripts/raw/workflow-args.test.mjs',
     // +1 le 2026-10-05 (#2290) : le lanceur ÉCRIT la fiche d'un run de `dossier-de-chapitre`
-    // (`ecrireFiche`) — sous `docs/dossiers/` par sa seule CLI `ecrire-fiche`, que la gate ne lance
+    // (`ecrireFiche`) — sous `projets/<projet>/dossiers/` par sa seule CLI `ecrire-fiche`, que la gate ne lance
     // pas ; ses bancs lui passent un `dir` sous `mkdtempSync` de os.tmpdir(), et sa copie de garde
     // (`chargerDossiers` avant écriture) naît et meurt sous os.tmpdir(). L'arbre n'est jamais écrit.
     'scripts/raw/workflow-args.mjs',
@@ -891,6 +891,10 @@ const ATTENDU = {
   // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
   // (`construire.mjs`) dépose les GLB (`ecritFerme`).
   'godot:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  // #4936, ECRIT_LU (`scripts/gates/toutes.mjs`) : `jeu-de-role:construire` est `pont:godot` sur l'entrée du jeu de rôle,
+  // `jeu-de-role:recette` le lot natif de `godot:recette` réduit à ses jeux.
+  'jeu-de-role:construire': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'jeu-de-role:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   // #4929, ECRIT_LU (`scripts/gates/toutes.mjs`) : `construire.mjs` écrit la page et ses feuilles sous `dist/roguelite/`
   // (`ecritFerme`), que git ignore ; `lot.mjs` écrit la partie fixe et les captures sous `dist/roguelite-recette/`, que
   // git ignore et qu'aucune gate ne lit.

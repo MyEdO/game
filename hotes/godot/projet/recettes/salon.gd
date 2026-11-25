@@ -176,7 +176,7 @@ func _g5() -> bool:
 
 ## G6 : toute `Suite` fait relire le salon, panneau fermé.
 func _g6(quitte: Dictionary) -> bool:
-	if not await _lancer_l_arene():
+	if not await _lancer_la_campagne():
 		return false
 	_pont.dictees.salon = func() -> Dictionary: return quitte.duplicate(true)
 	_regarder()

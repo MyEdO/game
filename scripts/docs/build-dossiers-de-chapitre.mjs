@@ -1,24 +1,21 @@
-// État des lieux des dossiers de chapitre (#2290) : pour chaque fiche commitée `docs/dossiers/<ABBR>/<NN>.json`
-// (`chargerDossiers`, scripts/raw/lib/dossiers.mjs), chaque entrée est couverte (par quel porteur de quel
-// paquet), écartée (motif) ou non couverte. DÉRIVÉ des `couvre` et `narratif.ecartes` des paquets mesurés, le
-// contenu du commun par défaut (`paquetsDuCommun`) (`couverturesDuProjet`, src/data/source/couvertures.ts) — patron du champ `Implémente` de l'Atlas
-// (scripts/raw/build-implemente.mjs) : la fiche ne connaît pas le paquet, le paquet la cite.
-// Sortie : docs/dossiers-de-chapitre.md (cible pure, jamais commitée, #2203), sur le contenu du commun.
-// Re-run : node scripts/docs/build-dossiers-de-chapitre.mjs (npm run docs:dossiers).
-// Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
-// Des paquets en arguments (chemins relatifs au dépôt) : leur état des lieux sur la sortie standard, aucun doc écrit
-// (patron de `scripts/data/obtainability-graph.mts`).
+// État des lieux des dossiers de chapitre (#2290), un par projet qui en a : pour chaque fiche commitée
+// `projets/<projet>/dossiers/<ABBR>/<NN>.json` (`chargerDossiers`, scripts/raw/lib/dossiers.mjs), chaque entrée est
+// couverte (par quel porteur de quel paquet), écartée (motif) ou non couverte. DÉRIVÉ des `couvre` et
+// `narratif.ecartes` des paquets livrés du même projet (`couverturesDuProjet`, src/data/source/couvertures.ts) — patron
+// du champ `Implémente` de l'Atlas (scripts/raw/build-implemente.mjs) : la fiche ne connaît pas le paquet, le paquet la cite.
+// Sortie : docs/projets/<projet>/dossiers-de-chapitre.md (cible pure, jamais commitée, #2203), régénérée par
+// `npm run <projet>:docs`. Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { chargerDossiers } from '../raw/lib/dossiers.mjs'
-import { paquetsDuCommun } from '../guards/lib/paquetsDuCommun.mjs'
+import { dossiersDesProjets } from '../raw/lib/fichiersCitants.mjs'
+import { cheminsDuCorpus, PROJETS_LIVRES } from '../guards/lib/projetsLivres.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { entreesDeLaFiche, FAMILLES_DE_DOSSIER, LIBELLES_DE_FAMILLE, nomDeFiche } from '../../src/data/source/dossier.ts'
 import { couverturesDuProjet, nommerPorteur } from '../../src/data/source/couvertures.ts'
 
-const OUT = 'docs/dossiers-de-chapitre.md'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /** Les paquets `chemins` (relatifs au dépôt), `{ paquet, lu }` : `paquet` = son chemin, `lu` = ses couvertures.
@@ -49,8 +46,8 @@ function ligneDEntree(e) {
   return preuves.length ? `${tete} : ${preuves.join(' ; ')}` : tete
 }
 
-/** Le corps rendu, depuis les fiches et les paquets donnés. PUR. */
-export function rendreEtat(fiches, paquets) {
+/** Le corps rendu, depuis les fiches du dossier `dossier` et les paquets donnés, régénéré par `npm run <commande>`. PUR. */
+export function rendreEtat(fiches, paquets, { dossier, commande }) {
   const couverturesPar = new Map()
   const ecartesPar = new Map()
   for (const { paquet, lu } of paquets) {
@@ -68,15 +65,15 @@ export function rendreEtat(fiches, paquets) {
   }))
 
   let out = `# Dossiers de chapitre — état des lieux\n\n`
-  out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-dossiers-de-chapitre.mjs\` (\`npm run docs:dossiers\`) — NE PAS ÉDITER À LA MAIN.\n`
-  out += `> Sources : les fiches \`docs/dossiers/<ABBR>/<NN>.json\` (schéma \`ficheDeDossier\`, \`src/data/source/dossier.ts\`) et les\n`
+  out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-dossiers-de-chapitre.mjs\` (\`npm run ${commande}\`) — NE PAS ÉDITER À LA MAIN.\n`
+  out += `> Sources : les fiches \`${dossier}/<ABBR>/<NN>.json\` (schéma \`ficheDeDossier\`, \`src/data/source/dossier.ts\`) et les\n`
   out += `> champs \`couvre\` / \`narratif.ecartes\` des paquets mesurés (${paquets.map((p) => `\`${p.paquet}\``).join(', ') || 'aucun'}). Lien : \`docs/campagne-authoring.md\` § 10quinquies.\n\n`
   out += `**Périmètre mesuré / angles morts** — une entrée est « couverte » dès qu'un élément d'un paquet mesuré la cite\n`
   out += `dans \`couvre\`, « écartée » quand aucun ne la cite et qu'un paquet l'écarte avec motif, « non couverte » sinon.\n`
   out += `Ce rendu ne juge pas si l'élément qui couvre une entrée la rend fidèlement, ni si un motif d'écart tient. Une\n`
   out += `entrée non couverte n'est pas une faute : un chapitre non adapté est un état normal. Un paquet hors de la\n`
   out += `liste ci-dessus, bibliothèque locale de l'éditeur comprise, n'est pas lu. Un lien vers une entrée absente\n`
-  out += `des fiches rougit \`src/data/dossiers-couverture.test.ts\` et n'apparaît pas ici.\n\n`
+  out += `des fiches rougit la suite de couverture du projet et n'apparaît pas ici.\n\n`
 
   out += `## Synthèse\n\n${TETE_DE_COMPTE('Fiche')}\n`
   for (const f of parFiche) out += `${ligneDeCompte(`[${f.nom}](#${f.nom.toLowerCase()})`, compter(f.entrees))}\n`
@@ -98,31 +95,31 @@ export function rendreEtat(fiches, paquets) {
   return out
 }
 
-/** Le corps rendu sur les paquets `paquets` (chemins relatifs au dépôt) et les messages du lanceur, sans rien écrire. */
-function rendu(paquets = paquetsDuCommun(RACINE)) {
-  const fiches = chargerDossiers()
-  const out = rendreEtat(fiches, lirePaquets(paquets))
+/** Le rendu du projet dont `dossier` (`projets/<projet>/dossiers`, relatif à la racine) porte les fiches, mesuré sur
+ *  les paquets livrés du projet, et les messages du lanceur, sans rien écrire. */
+function rendu(dossier) {
+  const projet = path.posix.dirname(dossier)
+  const commande = `${path.posix.basename(projet)}:docs`
+  const cible = `docs/${projet}/dossiers-de-chapitre.md`
+  const fiches = chargerDossiers(dossier)
+  const out = rendreEtat(fiches, lirePaquets(cheminsDuCorpus({ ...PROJETS_LIVRES, dossier: projet }, RACINE)), { dossier, commande })
   return {
     out,
-    path: OUT,
-    staleMsg: `docs:dossiers — ${OUT} est PÉRIMÉ (diverge des fiches docs/dossiers et des liens couvre / ecartes des paquets mesurés).`,
-    rerunMsg: '  → relancer `npm run docs:dossiers` (dérivé jamais commité, #2203).',
-    okMsg: `docs:dossiers — OK (${OUT} à jour, ${fiches.length} fiche(s))`,
-    writeMsg: `${OUT} — ${fiches.length} fiche(s).`,
+    path: cible,
+    staleMsg: `${commande} — ${cible} est PÉRIMÉ (diverge des fiches ${dossier} et des liens couvre / ecartes des paquets du projet).`,
+    rerunMsg: `  → relancer \`npm run ${commande}\` (dérivé jamais commité, #2203).`,
+    okMsg: `${commande} — OK (${cible} à jour, ${fiches.length} fiche(s))`,
+    writeMsg: `${cible} — ${fiches.length} fiche(s).`,
   }
 }
 
-/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire, sur les paquets
- *  `paquets`. */
-export function rendre(paquets) {
-  const { path: cible, out } = rendu(paquets)
-  return new Map([[cible, out]])
+/** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire, une par projet à fiches. */
+export function rendre() {
+  return new Map([...produire()].map(({ path: cible, out }) => [cible, out]))
 }
 
 export function* produire() {
-  yield rendu()
+  for (const dossier of dossiersDesProjets(RACINE)) yield rendu(dossier)
 }
 
-const PAQUETS_EN_ARGUMENTS = process.argv.slice(2).filter((a) => !a.startsWith('--'))
-if (import.meta.main && PAQUETS_EN_ARGUMENTS.length) process.stdout.write(rendu(PAQUETS_EN_ARGUMENTS).out)
-else await lancerDepuisCLI(import.meta, produire)
+await lancerDepuisCLI(import.meta, produire)

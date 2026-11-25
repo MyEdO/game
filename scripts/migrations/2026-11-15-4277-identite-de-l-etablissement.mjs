@@ -12,7 +12,7 @@
  * AUTOMATIQUE (port, marché) tombe : le nom se lit au catalogue. `id = kind.id` garde la clé de stock marchand
  * (`placeServiceMerchantId`).
  *
- * ENTRÉES : écrites — les quatre projets de `src/scenes/` ; lue — `src/data/lieux-services.json`.
+ * ENTRÉES : écrites — les quatre projets de `projets/jeu-de-role/campagnes/` ; lue — `src/data/lieux-services.json`.
  * CARDINAL ASSERTÉ : `PAR_PROJET` gestes au premier passage. Deux services d'un même type dans un lieu, un fichier
  * hors de son formatage : ARRÊT nominatif (exit 1), AUCUNE écriture. Rejouée sur l'arbre migré : 0 geste, rien ne
  * s'écrit, sortie 0.
@@ -24,14 +24,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 const PROJETS = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/diligence/diligence-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ];
 
 /** Gestes du premier passage par projet (6 services, 8 points d'intérêt), mesurés le 2026-11-15 sur `ff1698a58a`. */
-const PAR_PROJET = { 'src/scenes/loup-et-saumure/loup-et-saumure-projet.json': 14 };
+const PAR_PROJET = { 'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json': 14 };
 
 const serialiser = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 const libelleDuCatalogue = new Map(JSON.parse(readFileSync(join(ROOT, 'src/data/lieux-services.json'), 'utf8')).map((e) => [e.id, e.label]));

@@ -7,7 +7,7 @@
  * rang, les autres clés le leur. `worldMap.routes[].billets{}.depuis` n'a aucune valeur posée ; `suite` reste
  * une liste d'ids (`refs(portee)`).
  *
- * ENTRÉES : écrites et lues — les quatre projets de `src/scenes/`, dont la carte porte le catalogue de ses lieux.
+ * ENTRÉES : écrites et lues — les quatre projets de `projets/jeu-de-role/campagnes/`, dont la carte porte le catalogue de ses lieux.
  * CARDINAL ASSERTÉ : `CARDINAL` gestes au premier passage, `PAR_PORTEUR` par porteur.
  * IDEMPOTENT, FAIL-FAST et FORMATAGE : `lib/idNuEnRef.mjs` ; rejouée sur l'état final, rien ne s'écrit et la
  * sortie est 0.
@@ -29,10 +29,10 @@ const PROJET = {
 };
 
 const PROJETS = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/diligence/diligence-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ];
 
 /** Gestes du premier passage par porteur, mesurés le 2026-11-09 sur `2e65cf0dca`. */

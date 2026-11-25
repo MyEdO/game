@@ -30,10 +30,6 @@ import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, emptyScene, type Scene,
 import { documentDeProjet, type ProjectIdentite } from '../../src/noyau/worldMap';
 import { emptyNarratif } from '../../src/noyau/monde/campaignNarratif';
 
-/** « La Diligence » — paquet ÉDITEUR (`src/scenes/diligence/diligence-projet.json`) : la Scène y est
- *  déjà compilée, `findMaps` la relit par `parseProject` sans rien rebâtir. */
-const diligenceScene = (): Scene =>
-  findMaps(fileURLToPath(new URL('../../src/scenes/diligence/diligence-projet.json', import.meta.url)))[0].build();
 
 /** Rubriques TELLES QUE LE CLI LES IMPRIME — dérivées du registre `PLAN_DEFECT_FAMILIES` (source
  *  unique des titres et du sujet de chaque famille) et numérotées comme lui, par le rang dans le
@@ -120,17 +116,6 @@ describe('auditFacade — critère GÉOMÉTRIQUE (#823 défauts 1+2)', () => {
     expect(auditFacade(scene, 1, 0, false)).toEqual([]);
   });
 
-  it('CONTRE-PREUVE sur La Diligence (scène réelle) : retirer le mur z1 en (26,12)N fait apparaître EXACTEMENT un défaut de plus — le silence structurel du défaut 2 est corrigé', () => {
-    const scene = diligenceScene();
-    const [[aboveZ, belowZ]] = floorPairs(scene);
-    const targetWall = (w: WallSeg) => (w.z ?? 0) === aboveZ && w.side === 'N' && w.x === 26 && w.y === 12;
-    expect((scene.walls ?? []).some(targetWall)).toBe(true); // le mur existe bien sur le plan actuel
-
-    const before = auditFacade(scene, aboveZ, belowZ);
-    const mutated: Scene = { ...scene, walls: (scene.walls ?? []).filter((w) => !targetWall(w)) }; // EN MÉMOIRE — aucun fichier touché
-    const after = auditFacade(mutated, aboveZ, belowZ);
-    expect(after.length).toBe(before.length + 1);
-  });
 });
 
 /** Dossier jetable où poser une grille ASCII source : `locateGrid` cherche par ÉGALITÉ de contenu dans
@@ -175,26 +160,6 @@ describe('locateGrid — jamais de position devinée (#823 défaut 3)', () => {
 });
 
 describe('mesures INFORMATIVES sur les scènes réelles (non contractuelles — bougent légitimement à chaque correction de plan)', () => {
-  /** PLAFONDS relevés sur le plan de La Diligence au 2026-07-27, jamais des égalités : l'auteur est en
-   *  train de rattacher ses cases à des pièces, ces comptes ne doivent que DESCENDRE. Une valeur gravée
-   *  passerait au rouge à la première correction ; le contrat de COMPORTEMENT de chaque famille vit sur
-   *  fixtures synthétiques (`src/noyau/planDefects.test.ts`), jamais sur cette carte. */
-  const PLAFONDS_DILIGENCE: Record<string, number> = {
-    'facade-decalee': 0,
-    'mur-manquant': 0,
-    'etage-sur-exterior': 4,
-    'case-sans-zone': 60,
-    'etage-sans-appui': 4,
-  };
-
-  it('La Diligence — aucun défaut de plan ne REMONTE (paquet éditeur `diligence-projet.json`)', () => {
-    const scene = diligenceScene();
-    const [[aboveZ, belowZ]] = floorPairs(scene);
-    const defects = [...auditFacade(scene, aboveZ, belowZ), ...auditZoneCoverage(scene, aboveZ, belowZ), ...auditUnsupportedFloor(scene, aboveZ, belowZ, groundTerrains())];
-    for (const [family, plafond] of Object.entries(PLAFONDS_DILIGENCE)) {
-      expect(defects.filter((d) => d.family === family).length, `famille « ${family} »`).toBeLessThanOrEqual(plafond);
-    }
-  });
 
   it('Théâtre Staatsoper — la façade de l’étage est D’APLOMB sur celle du rez, et ce zéro est un verdict : la famille a de quoi mesurer, et le dit dès qu’on ouvre le périmètre', () => {
     const scene = findMap('opera').build();

@@ -9,8 +9,7 @@ import { parseProject, routesCliquables, routesFrom, routesEtat, visiblePlaces, 
 import { emptyNarratif } from '../noyau/monde/campaignNarratif';
 import { emptyScene } from '../noyau/monde/scene';
 import type { ConditionCtx } from '../engine/flowCore';
-import areneProjet from './arene/arene-projet.json';
-import loupEtSaumureProjet from './loup-et-saumure/loup-et-saumure-projet.json';
+import paquetDeTest from './fixtures/paquet-de-test.json';
 
 const ctx = (flags: Record<string, boolean> = {}): ConditionCtx => ({ flags, gameTime: 0 });
 
@@ -20,10 +19,9 @@ function carteDe(nom: string, doc: unknown): WorldMap {
   return map;
 }
 
-/** Cartes réelles SANS gating : elles mesurent la non-régression (même offre avec et sans ctx). */
+/** Carte du paquet de test SANS gating : elles mesurent la non-régression (même offre avec et sans ctx). */
 const cartesNonGatees: [string, WorldMap][] = [
-  ['arene-projet.json', carteDe('arene-projet.json', areneProjet)],
-  ['loup-et-saumure-projet.json', carteDe('loup-et-saumure-projet.json', loupEtSaumureProjet)],
+  ['paquet-de-test.json', carteDe('paquet-de-test.json', paquetDeTest)],
 ];
 
 /** Carte-FIXTURE portant les DEUX axes sur le MÊME flag : le cap donné au quai révèle l'îlot ET ouvre

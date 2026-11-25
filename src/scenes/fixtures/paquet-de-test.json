@@ -91,7 +91,10 @@
       "x": 3,
       "y": 0
      },
-     "label": "Adversaire de test"
+     "label": "Adversaire de test",
+     "dialogueId": {
+      "id": "dialogue-de-test"
+     }
     }
    ],
    "dialogues": [

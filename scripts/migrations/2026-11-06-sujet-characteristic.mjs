@@ -5,9 +5,9 @@
  * GESTE, par porteur de `CIBLES` : la clé `char` devient `characteristic`, à son rang (les autres clés
  * gardent le leur). Porteurs : `talents.json › [].test.matches[]`, `spells.json › [].opposed`,
  * `tavernGames.json › [].combined.second` et `[].fastSkill`, et toute op `grantReverseToken` de
- * `src/data/*.json` et des projets de `src/scenes/`, à toute profondeur.
+ * `src/data/*.json` et des projets livrés, à toute profondeur.
  *
- * ENTRÉES : `src/data/*.json`, `src/scenes/<projet>/*.json` (les seules données lues et écrites).
+ * ENTRÉES : `src/data/*.json`, `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`) (les seules données lues et écrites).
  * IDEMPOTENT : un porteur sans `char` n'a aucun geste ; rejouée sur l'état final, rien ne s'écrit.
  * FAIL-FAST — sortie 1 avant toute écriture : fichier à réécrire hors de son formatage, ou porteur qui
  * porte à la fois `char` et `characteristic`.
@@ -18,6 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -52,9 +53,7 @@ const SITES_NOMMES = {
 
 const jsonDe = (dossier) => fs.readdirSync(path.join(ROOT, dossier), { withFileTypes: true })
   .filter((e) => e.isFile() && e.name.endsWith('.json')).map((e) => `${dossier}/${e.name}`);
-const projets = fs.readdirSync(path.join(ROOT, 'src/scenes'), { withFileTypes: true })
-  .filter((e) => e.isDirectory()).flatMap((e) => jsonDe(`src/scenes/${e.name}`));
-const CIBLES = [...jsonDe('src/data'), ...projets].sort();
+const CIBLES = [...jsonDe('src/data'), ...cheminsDesProjetsLivres(ROOT)].sort();
 
 const fautes = [];
 const aEcrire = [];

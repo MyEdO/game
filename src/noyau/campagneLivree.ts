@@ -25,7 +25,7 @@ interface PaquetDuJeu {
 export interface BuiltinCampaign extends ProjectIdentite {
   /** L'icône est REQUISE sur une campagne exposée au picker (l'enveloppe la pose optionnelle). */
   icon: IconId;
-  /** Nom du fichier du paquet (`diligence-projet.json`), tel que la liste du projet le déclare. */
+  /** Nom du fichier du paquet (`<id>-projet.json`), tel que la liste du projet le déclare. */
   fichier: string;
 }
 

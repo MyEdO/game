@@ -6,8 +6,7 @@ import { FOND_ECRIT, GRAMMAIRE_ASCII } from '../../data/schemas/grammaire/carte-
 
 /**
  * Authoring de carte par ASCII (1 char = 1 tuile) — lisible et fidèle pour reproduire un plan. Une
- * grille par ÉTAGE (z) pour le multi-niveaux. Même esprit que le générateur d'arène (`scripts/arene`),
- * mais côté app (source unique réutilisable par les scénarios `src/scenes/...`).
+ * grille par ÉTAGE (z) pour le multi-niveaux. Source unique réutilisable par les scénarios.
  */
 
 /** LÉGENDE COMMUNE — DÉRIVÉE du dataset : chaque terrain qui porte un glyphe d'authoring

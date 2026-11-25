@@ -30,10 +30,10 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const RELIEF = { 'reliefDefaults.cliff': 'relief', 'reliefDefaults.ramp': 'relief', 'reliefDefaults.deck': 'relief', 'reliefDefaults.pilier': 'relief' };
 
 const PROJETS = {
-  'arene-projet.json': 'src/scenes/arene/arene-projet.json',
-  'barge-du-sel-projet.json': 'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'diligence-projet.json': 'src/scenes/diligence/diligence-projet.json',
-  'loup-et-saumure-projet.json': 'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'arene-projet.json': 'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'barge-du-sel-projet.json': 'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'diligence-projet.json': 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
+  'loup-et-saumure-projet.json': 'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 };
 
 /** Scènes par projet, mesurées le 2026-11-08 sur `2b785c1b9f` : quatre parties de relief chacune. */

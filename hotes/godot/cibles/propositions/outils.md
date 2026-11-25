@@ -20,7 +20,7 @@ Premières maquettes : chaque « choix à valider » attend l'utilisateur.
 Textes repris du jeu : libellés de `src/i18n/messages/fr.ts` (`coop.*` l.1419-1441, `ecran.salon.*` l.1484-1495,
 `party.slot.invite` l.1286, `groupe.hoteSeul` l.2600, `ecran.editeur.*`, `ecran.compendium.*` l.892-932) ; talent
 « Négociateur » verbatim de `src/data/talents.json:3325` ; scènes, lieux et routes de
-`src/scenes/diligence/diligence-projet.json`.
+`projets/jeu-de-role/campagnes/diligence/diligence-projet.json`.
 
 Exemples chiffrés, sans valeur de règle : code de partie « K7M2QX », noms des joueurs (Karl, Lena, Otto), bourses de
 la halle vue en coop, « Feuillet 9 sur 15 ».
