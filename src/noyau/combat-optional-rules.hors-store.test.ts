@@ -10,7 +10,7 @@ import type { AttackResult } from '../engine/combat';
 import { resolveMelee } from '../engine/combat';
 import { makeRNG } from '../engine/dice';
 import { emptyScene } from './monde/scene';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
@@ -88,7 +88,7 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
     const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 } });
     setBattle([e, h]);
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, critWeapon, critRes());
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const dev = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation');
     expect(dev).toBeTruthy();
   });
@@ -101,7 +101,7 @@ describe('combat-deviation-critique — offre de Déviation Critique (LDB 63 l.3
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, critWeapon, critRes());
     // La sévérité se tire toujours dans SA fenêtre (#1426) ; c'est la DÉCISION qui disparaît : l'étape
     // ne porte AUCUNE voie, donc le Critique est subi tel quel.
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const dev = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(dev).toHaveLength(1);
     expect(dev[0].options, 'règle désactivée → aucune voie de Déviation').toBeUndefined();

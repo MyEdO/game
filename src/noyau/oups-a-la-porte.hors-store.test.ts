@@ -26,7 +26,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { applyOups, applyAttackResult, applyBladeTrap, firedWeapon, resolveAttack } from './combatFlow';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { emptyScene } from './monde/scene';
 import { runCascadeImmediate, stepInteraction } from './cascade';
 import { pushHost } from './rollSeam';
@@ -175,7 +175,7 @@ describe('Bâclé + Solide — le dé naît à la porte, AVANT toute mutation de
   it('l’étape de Sauvegarde Solide est OUVERTE, portant son seuil, et l’arme n’a pas bougé', () => {
     const { hero, arme } = monte();
     const issue = applyOups(banc.getState, banc.setState, hero, arme, MALADRESSE);
-    expect(issue, 'rien n’est appliqué tant que le dé n’est pas tombé').toBe(OPS_DIFFEREES);
+    expect(issue, 'rien n’est appliqué tant que le dé n’est pas tombé').toBe(MAIN_RENDUE);
     const st = etapeCourante()!;
     expect(st.kind).toBe('casseDArme');
     expect(stepInteraction(st), 'le dé reste à jeter').toBe('de');
@@ -367,7 +367,7 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
     const arme = piece();
     const hero = mk('heros', 'canonnier', { weapons: [arme] });
     setBattle([hero], [hero]);
-    expect(applyOups(banc.getState, banc.setState, hero, arme, INCIDENT)).toBe(OPS_DIFFEREES);
+    expect(applyOups(banc.getState, banc.setState, hero, arme, INCIDENT)).toBe(MAIN_RENDUE);
     expect(etapeCourante()!.id, 'le 1ᵉʳ dé est la Sauvegarde Solide de l’Incident').toContain('-solide-');
     expect(hero.wounds.current, 'aucune Blessure avant les dés').toBe(30);
     poser(9); // l'arme tient l'Incident de tir
@@ -429,7 +429,7 @@ describe('aucune scission par PORTEUR — un ennemi conduit par l’IA suit le M
     const brute = mk('ennemi', 'brute', { weapons: [arme] });
     setBattle([brute]);
     const issue = applyOups(banc.getState, banc.setState, brute, arme, MALADRESSE);
-    expect(issue, 'la casse part à la porte pour un ennemi aussi').toBe(OPS_DIFFEREES);
+    expect(issue, 'la casse part à la porte pour un ennemi aussi').toBe(MAIN_RENDUE);
     const st = etapeCourante()!;
     expect(st.kind).toBe('casseDArme');
     expect(st.actorId).toBe(brute.id);
@@ -563,7 +563,7 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
       defenderDetail: { roll: 33, success: false, sl: -3 },
     } as unknown as AttackResult;
     const suspendu = applyAttackResult(banc.getState, banc.setState, hero, brute, hero.weapons[0], res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' } } });
-    expect(suspendu, 'le site rend « suspendu » parce que la casse est partie à la porte').toBe(OPS_DIFFEREES);
+    expect(suspendu, 'le site rend « suspendu » parce que la casse est partie à la porte').toBe(MAIN_RENDUE);
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(brisee(arme), 'l’arme du défenseur n’a pas encore cassé').toBeFalsy();
     expect(banc.getState().battle!.acted, 'l’Action du coup est consommée ; la suite (Action rendue) n’a PAS joué').toBe(true);
@@ -595,7 +595,7 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     const nomDuRival = t('vision.horsDeVue');
 
     const suspendu = applyAttackResult(banc.getState, banc.setState, frappeur, rival, armeAttaquant, res, { sousAttaque: true, suite: { restitution: { prevActed: false }, manoeuvre: { kind: 'frappe-reactive' }, enchainement: { mode: 'aucun' } } });
-    expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(OPS_DIFFEREES);
+    expect(suspendu, 'la casse de l’attaquant est partie à la porte : le coup est suspendu').toBe(MAIN_RENDUE);
     // Ce que la suspension a figé : rien de la queue n'a joué devant le dé.
     expect(etapeCourante()!.kind).toBe('casseDArme');
     expect(etapeCourante()!.actorId, 'le dé en vol est celui de l’ATTAQUANT').toBe(frappeur.id);
@@ -646,7 +646,7 @@ describe('Piège-lame — le désarmement ne dépend pas du dé, la destruction 
   it('le dé part à la porte avant toute mutation, puis un 9 laisse la lame INTACTE — mais désarmée', () => {
     const { defenseur, attaquant, bt } = monte();
     const issue = applyBladeTrap(banc.getState, banc.setState, defenseur, bt, 0);
-    expect(issue).toBe(OPS_DIFFEREES);
+    expect(issue).toBe(MAIN_RENDUE);
     expect(tientEncore(), 'rien n’est joué avant le dé').toBe(true);
     expect(etapeCourante()!.actorId, 'le dé appartient au porteur de la lame').toBe(attaquant.id);
     poser(9);

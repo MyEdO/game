@@ -24,7 +24,7 @@ import { conditionCtxDe, type EtatDesConditions } from './bourseFlow';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { buildActorView } from '../engine/actorView';
 import { runCombatFlow, withDerivedStake } from './combat/triggeredTest';
-import { openSkillTest, runFlow, applyLeafOps, confierLaSuite, jouerFlowEntier, OPS_DIFFEREES } from './combatEffects';
+import { openSkillTest, runFlow, applyLeafOps, confierLaSuite, ouvrirEtConfier, jouerFlowEntier, MAIN_RENDUE } from './combatEffects';
 import { touchActors } from './combatOrParty';
 import { battleRng } from './battleRng';
 import type { Get, Set as SetFn } from './flowTypes';
@@ -46,7 +46,7 @@ function drinkerCtx(s: EtatDesConditions, hero: Combatant): ConditionCtx {
  *  BUVEUR via `applyLeafOps` (durée bakée + `delayed` programmées), `si` évalués avec sa vue d'acteur,
  *  `test` gaté (`exceptGroups` du Bonnet de fou…) puis ouvert RESTREINT à lui (`actorId`). Un nœud
  *  `choix` (aucun consommable n'en porte) prend sa branche `non` — défaut conservateur, pas de décision
- *  silencieuse. Les branches d'un `test` suspendu sont reprises par `jetValider('test')`→`runFlow` : leurs
+ *  silencieuse. Les branches d'un `test` ouvert sont reprises par `jetValider('test')`→`runFlow` : leurs
  *  feuilles BAKÉES (`on:'hero'` + untilTime) y retombent sur le handler `ops` (applyLeafOps). */
 function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flow, label: string, source?: EffectSource): void {
   const fini: ArretDeFlow<void> = { arret: undefined };
@@ -64,7 +64,7 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       // Feuille partie à la PORTE (#1508) : le reste de la pile est SA suite, exactement comme
       // pour un nœud `test` ci-dessous — sans quoi la fin du produit s'appliquerait par-dessus un
       // dé en vol. Reprise par `runFlow` : les feuilles bakées y retombent sur `ops`.
-      if (lines === OPS_DIFFEREES) {
+      if (lines === MAIN_RENDUE) {
         const steps = reste().etapes;
         if (steps.length) confierLaSuite(set, [{ verbe: 'reprendreFlow', flow: { kind: 'sequence', etapes: steps }, label }]);
         return fini;
@@ -85,8 +85,11 @@ function runSceneConsumableFlow(get: Get, set: SetFn, hero: Combatant, flow: Flo
       // Enjeu DÉRIVÉ du PRODUIT bu quand la donnée n'en déclare pas (#1262 V2 L6d) : « ce qui se joue »
       // EST le consommable, et sa fiche Codex porte déjà sa règle verbatim.
       const ft = { ...withDerivedStake(node.test, source), noSupport: node.test.noSupport ?? true };
-      // Modale RESTREINTE au buveur ; impossible (mort) → continuation directe.
-      if (!openSkillTest(get, set, ft, cc, node.reussite, node.echec, after, { actorId: hero.id })) jouerFlowEntier(runFlow(get, set, after, label));
+      // Modale RESTREINTE au buveur. Elle tient la main : le reste de la pile est sa suite ; impossible (mort) ou
+      // résolue aussitôt → continuation directe.
+      if (!ouvrirEtConfier(get, set, () => openSkillTest(get, set, ft, cc, node.reussite, node.echec, { actorId: hero.id }), after, label)) {
+        jouerFlowEntier(runFlow(get, set, after, label));
+      }
       return fini;
     },
     choix: (node) => node.non,

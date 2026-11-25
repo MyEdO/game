@@ -5,7 +5,7 @@ import { jouerLEpreuve, makeRNG, maladies, souillure, type Combatant, type Epreu
 import { ecranDuHeros } from '../ui/fiche';
 import { attendreUneSemaine, compagnieEpuisee, confierALHospice, EPREUVES, nouvellePartie, SEMAINE_DE_REPOS, type Etat, type Heros } from './index';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** La compagnie épuisée : chacun sous la moitié de ses Blessures, la semaine d'attente s'ouvre. */
 function epuisee(e: Etat): void {

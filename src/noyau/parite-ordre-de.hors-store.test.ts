@@ -26,7 +26,7 @@ import { recomputeLoadout } from '../engine/items';
 import type { Mutation } from '../engine/corruption';
 import type { Weapon, Combatant, ArmourPoints, HitLocation } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -110,7 +110,7 @@ describe('#1426 — parité du coup : l’ordre du dé change, jamais son issue'
       const avant = H.wounds.current;
       journalDes(seed, () => {
         const suspendu = applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit());
-        expect(suspendu, `graine ${seed} : la fenêtre de Blessure critique doit s’ouvrir`).toBe(OPS_DIFFEREES);
+        expect(suspendu, `graine ${seed} : la fenêtre de Blessure critique doit s’ouvrir`).toBe(MAIN_RENDUE);
         const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
         expect(etapes[0].options, `graine ${seed} : rien à sacrifier → aucune voie`).toBeUndefined();
         draineCascade(banc.getState);
@@ -126,7 +126,7 @@ describe('#1426 — parité du coup : l’ordre du dé change, jamais son issue'
     for (let seed = 1; seed <= 25; seed++) {
       const { H, E } = startFight(seed, { pa: AVEC_PA });
       const suspendu = applyAttackResult(banc.getState, banc.setState, E, H, hache, critHit());
-      expect(suspendu, `graine ${seed}`).toBe(OPS_DIFFEREES);
+      expect(suspendu, `graine ${seed}`).toBe(MAIN_RENDUE);
       const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
       expect(etapes, `graine ${seed} : une seule fenêtre`).toHaveLength(1);
       expect(etapes[0].options?.map((o) => o.key), `graine ${seed}`).toEqual(['devier', 'subir']);
@@ -142,7 +142,7 @@ describe('#1426 — parité du coup : l’ordre du dé change, jamais son issue'
       const { H, E } = startFight(seed);
       expect(tenuParUnHumain(banc.getState(), E.id), `graine ${seed}`).toBe(false);
       const suspendu = applyAttackResult(banc.getState, banc.setState, H, E, hache, critHit());
-      expect(suspendu, `graine ${seed}`).toBe(OPS_DIFFEREES);
+      expect(suspendu, `graine ${seed}`).toBe(MAIN_RENDUE);
       const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
       expect(etapes, `graine ${seed} : une seule étape pour la Blessure critique`).toHaveLength(1);
       const ligne = etapes[0].table!.result;
@@ -173,7 +173,7 @@ describe('#1426 — parité du coup : l’ordre du dé change, jamais son issue'
       const { H, E } = startFight(seed, { pa: AVEC_PA, gmSeat: 1 });
       expect(tenuParUnHumain(banc.getState(), E.id), `graine ${seed} : le MJ tient ses ennemis`).toBe(true);
       const suspendu = applyAttackResult(banc.getState, banc.setState, H, E, hache, critHit());
-      expect(suspendu, `graine ${seed} : la fenêtre doit s’ouvrir pour le porteur tenu`).toBe(OPS_DIFFEREES);
+      expect(suspendu, `graine ${seed} : la fenêtre doit s’ouvrir pour le porteur tenu`).toBe(MAIN_RENDUE);
       const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
       expect(etapes, `graine ${seed} : une seule fenêtre`).toHaveLength(1);
       expect(etapes[0].options?.map((o) => o.key), `graine ${seed}`).toEqual(['devier', 'subir']);

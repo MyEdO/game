@@ -8,7 +8,7 @@ import { t } from '../i18n';
 import { battleRng } from './battleRng';
 import { journaliser } from './combatLog';
 import { touchActors } from './combatOrParty';
-import { comptePasDifferes, confierLaSuite, drainPendingLog, OPS_DIFFEREES, type Applique } from './combatEffects';
+import { comptePorteursDeSuite, confierLaSuite, drainPendingLog, MAIN_RENDUE, type Applique } from './combatEffects';
 import { applyTriggeredEffects, sourcesDEtats } from './triggeredEffects';
 import { actorIn } from './monde/combatants';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
@@ -83,13 +83,13 @@ export function reprendreEntretienDesRounds(get: Get, set: Set, reprise: Reprise
         if (!avecAgonie && !aUnTest && !faitPasserUnRound(c)) continue;
         entretien = { avecAgonie };
         roundActif = true;
-        const avant = comptePasDifferes(get());
+        const avant = comptePorteursDeSuite(get());
         const { forgerUnId, campaignNarratif } = get();
         direLEntretien(get, set, c, endOfRound(c, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif)));
-        if (comptePasDifferes(get()) > avant) {
+        if (comptePorteursDeSuite(get()) > avant) {
           set(touchActors(get()));
           confierLaSuite(set, [{ verbe: 'reprendreEntretienDesRounds', reprise: { rounds, porteurs, index, roundActif, entretien } }]);
-          return OPS_DIFFEREES;
+          return MAIN_RENDUE;
         }
       }
 
@@ -97,14 +97,14 @@ export function reprendreEntretienDesRounds(get: Get, set: Set, reprise: Reprise
       const effets = entretien.effetsRestants ?? effetsDEtatEnFinDeRound(get, c)
         .filter(({ effet }) => avecAgonie || flowHasTest(effet.flow));
       for (const [position, { effet, stacks }] of effets.entries()) {
-        const avant = comptePasDifferes(get());
+        const avant = comptePorteursDeSuite(get());
         const lignes = applyTriggeredEffects(get, c, [effet], 'onRoundEnd', { set, rng: battleRng(), stacks });
         direLEntretien(get, set, c, lignes);
-        if (comptePasDifferes(get()) > avant) {
+        if (comptePorteursDeSuite(get()) > avant) {
           set(touchActors(get()));
           const enCours = { avecAgonie, effetsRestants: effets.slice(position + 1) };
           confierLaSuite(set, [{ verbe: 'reprendreEntretienDesRounds', reprise: { rounds, porteurs, index, roundActif, entretien: enCours } }]);
-          return OPS_DIFFEREES;
+          return MAIN_RENDUE;
         }
       }
       if (avecAgonie) direLEntretien(get, set, c, traiterLAgonie(c));

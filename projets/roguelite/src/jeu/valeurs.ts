@@ -81,21 +81,21 @@ export const BATIMENTS: readonly Batiment[] = [
 /** Les Sorts mineurs qu'un lanceur de Collège connaît à la recrue. */
 export const SORTS_MINEURS: readonly string[] = ['flechette', 'choc', 'eblouissant'];
 /** Les sorts et miracles que chaque voie offre, par domaine ou par dieu : ceux que le noyau applique et que l'IA d'un
- *  héros lance en combat automatique avec effet. Arbitrage du 2026-11-23, MyEdO/game#4947. Chaque voie range ses
- *  sorts par le plus bas niveau de carrière où la Salle d'armes les propose : un Collège ouvre au niveau 2 les sorts
- *  de NI 4 au plus, puis les NI 5 et 6 au niveau 3, les NI 7 à 9 au niveau 4 ; un culte ouvre ses miracles dès qu'il
- *  tient le Talent. */
+ *  héros lance en combat automatique avec effet, mesurés par `npx tsx projets/roguelite/balayage.ts sorts`. Arbitrage du
+ *  2026-11-23, MyEdO/game#4947, mesure MyEdO/game#4954. Chaque voie range ses sorts par le plus bas niveau de carrière
+ *  où la Salle d'armes les propose : un Collège ouvre au niveau 2 les sorts de NI 4 au plus, puis les NI 5 et 6 au
+ *  niveau 3, les NI 7 à 9 au niveau 4 ; un culte ouvre ses miracles dès qu'il tient le Talent. */
 export const SORTS_DES_VOIES: Readonly<Record<string, Readonly<Record<number, readonly string[]>>>> = {
-  feu: { 2: ['carreau', 'embrasement', 'flamme-fascinante', 'cauteriser'], 3: ['sang-bouillant'] },
-  lumiere: { 2: ['carreau'], 3: ['collet-d-abulla', 'clarte-d-esprit'], 4: ['filet-d-amyntok'] },
-  vie: { 2: ['carreau', 'ecorce', 'graisse-de-la-terre'], 4: ['chair-de-pierre'] },
-  bete: { 2: ['carreau', 'ver-fretillant'], 4: ['la-lance-d-ambre'] },
-  metal: { 2: ['carreau'], 3: ['arme-enchantee'], 4: ['creuset-de-chamon'] },
-  mort: { 2: ['carreau'], 3: ['liberation-de-la-mort', 'contraindre-les-esprits'], 4: ['caresse-de-laniph', 'vol-de-vie'] },
-  shallya: { 1: ['larmes-de-shallya', 'amere-catharsis', 'baume-pour-un-esprit-blesse', 'endurance-de-l-anachorete', 'martyr'] },
-  sigmar: { 1: ['comete-a-deux-queues', 'vaincre-les-impies', 'marteau-ardent-de-sigmar', 'flambeau-de-vertu', 'n-ecoutez-point-la-sorciere'] },
-  ulric: { 1: ['jugement-du-roi-de-la-neige', 'hurlement-du-loup', 'fureur-d-ulric', 'frisson-du-givre', 'peau-de-loup-d-hiver'] },
-  myrmidia: { 1: ['devotion-de-la-vierge-guerriere', 'appel-a-la-fureur', 'inspirant', 'terrifier-l-ennemi', 'bouclier-de-myrmidia', 'soleil-flamboyant'] },
+  feu: { 2: ['embrasement', 'flamme-fascinante'] },
+  lumiere: { 2: ['carreau'] },
+  vie: { 2: ['carreau'] },
+  bete: { 2: ['carreau', 'ver-fretillant'] },
+  metal: { 2: ['carreau'] },
+  mort: { 2: ['carreau'] },
+  shallya: { 1: ['larmes-de-shallya'] },
+  sigmar: { 1: ['comete-a-deux-queues', 'marteau-ardent-de-sigmar'] },
+  ulric: { 1: ['jugement-du-roi-de-la-neige', 'hurlement-du-loup'] },
+  myrmidia: { 1: ['devotion-de-la-vierge-guerriere'] },
 };
 
 /** Les Compétences que le roguelite fait jouer, en combat et dans les salles : un id (`skills.json`), ou `id:spec`

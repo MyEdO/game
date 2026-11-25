@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { applyAttackResult, jouerLesTirsDeBordee } from './combatFlow';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { draineCascade } from './cascade.testkit';
 import { resolveVolley } from '../engine/volley';
 import { rederivePassiveAttack } from '../engine/combat';
@@ -106,7 +106,7 @@ describe('Critique d’un personnage ou d’une créature dont le coup est absor
     const { H, E } = combat();
     const res = doubleAbsorbe(E, H);
     expect(res).toMatchObject({ hit: true, critical: true, woundsLost: 0 });
-    expect(applyAttackResult(banc.getState, banc.setState, E, H, gourdin, res)).toBe(OPS_DIFFEREES);
+    expect(applyAttackResult(banc.getState, banc.setState, E, H, gourdin, res)).toBe(MAIN_RENDUE);
     const etape = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!;
     expect(etape.table).toBeDefined();
     banc.getState().jetLancer('cascadeTirage', etape.id);
