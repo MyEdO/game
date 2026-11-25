@@ -3,7 +3,7 @@
  */
 import { blessuresARendre, plaiesASoigner, panserLesPlaies, opererLesBlessures, soigner, guerirDesSequelles, sequelles } from '../noyau';
 
-import { GUERISON_DE_L_HOSPICE, PRIX_DE_L_HOSPICE, PRIX_DU_SOIN_PAR_BLESSURE, SEMAINE_DE_REPOS } from './valeurs';
+import { GUERISON_DE_L_HOSPICE, PRIX_DE_L_HOSPICE, PRIX_DES_LARMES, PRIX_DU_SOIN_PAR_BLESSURE, SEMAINE_DE_REPOS } from './valeurs';
 import { Etat, Heros } from './etat';
 import { heros, noter, refusDuPrix } from './outils';
 import { sejourDit } from './expedition';
@@ -12,7 +12,7 @@ import { sejourDit } from './expedition';
 export const tarifDuSoin = (e: Etat): number | null => PRIX_DU_SOIN_PAR_BLESSURE[e.batiments.temple] ?? null;
 /** Le prix du soin du héros : le tarif du palier par Blessure que le soin lui rend. */
 export const prixDuSoin = (e: Etat, h: Heros): number | null => { const tarif = tarifDuSoin(e); return tarif == null ? null : tarif * blessuresARendre(h.c); };
-export const prixDeSequelle = (e: Etat): number | null => [null, null, 40, 20][e.batiments.temple] ?? null;
+export const prixDeSequelle = (e: Etat): number | null => PRIX_DES_LARMES[e.batiments.temple] ?? null;
 export const blesse = (h: Heros): boolean => h.c.wounds.current < h.c.wounds.max || h.c.conditions.length > 0;
 /** Le héros attend l'hospice : blessé, ou marqué d'une séquelle. */
 export const aSoigner = (h: Heros): boolean => blesse(h) || sequelles(h.c).length > 0;
