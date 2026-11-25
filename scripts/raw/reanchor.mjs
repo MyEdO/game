@@ -34,7 +34,18 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { BOOKS, SUFFIXE_DE_LIGNE, allAbbrAlternation, bookOf, chapterFile, livreDuSigle, normalize, refRe as refReDesCitants, ELLIPSIS_SENTINEL as SENT, readText } from './_lib.mjs'
+import {
+  BOOKS,
+  SUFFIXE_DE_LIGNE,
+  allAbbrAlternation,
+  bookOf,
+  chapterFile,
+  livreDuSigle,
+  normalize,
+  refRe as refReDesCitants,
+  ELLIPSIS_SENTINEL as SENT,
+  readText,
+} from './_lib.mjs'
 import { RACINES_CITANTES, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { pagesDeLAtlasRendues } from './build-catalogs.mjs'
 import { graphieDuFichier } from '../../src/data/source/decoupe.ts'
