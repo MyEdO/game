@@ -20,7 +20,9 @@ import { join } from 'node:path'
 import { parseArgs } from 'node:util'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { VUE_REFERENCE, consoleGuard, launchSession, sleep, waitFor } from '../../scripts/recette/lib.mjs'
-import { DOSSIER_DES_ETALONS, MAQUETTES, VALIDES, coteACote, ecart, etalonsSansPlanche, refusDuNavigateur } from './planches.mjs'
+import { DOSSIER_DES_ETALONS, MAQUETTES, VALIDES, coteACote, etalonsSansPlanche } from './planches.mjs'
+import { ecart } from '../../scripts/recette/ecart.mjs'
+import { refusDuNavigateur } from '../../scripts/recette/navigateur.mjs'
 import { FIL_DE_LA_PAGE_MS, WEBGL_LOGICIEL, servir } from './servir.mjs'
 
 const { values: o } = parseArgs({
