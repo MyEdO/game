@@ -9,6 +9,7 @@
 import { Combatant, Weapon } from './types';
 import { REACH_IDS, reachIdOf, reachRankOf } from './items';
 import { casesDansLaPortee } from './grid';
+import { isOutOfAction } from './conditions';
 
 /**
  * Portée d'ENGAGEMENT / d'attaque d'une arme de MÊLÉE, en CASES à l'échelle de la scène (`metresPerTile`).
@@ -43,12 +44,21 @@ export function meleeReachTiles(weapons: Weapon[], metresPerTile: number): numbe
   return reachTiles(weapons.find((w) => w.type === 'melee'), metresPerTile);
 }
 
-export function isEngaged(c: Combatant): boolean {
-  return (c.engagedWith?.length ?? 0) > 0;
+/** Les combattants de `roster` avec qui `c` est Engagé et qui sont encore en action : un lien vers un combattant
+ *  hors de combat ne se lit pas, quel que soit le chemin qui l'a mis hors de combat (LDB 13 l.169-171). La liste
+ *  nue ne se lit ailleurs que pour lever des liens, ou là où les deux parties sont en action (`agressifEnvers`). */
+export function engagesDe(c: Combatant, roster: readonly Combatant[]): Combatant[] {
+  const ids = c.engagedWith ?? [];
+  return ids.length ? roster.filter((o) => ids.includes(o.id) && !isOutOfAction(o)) : [];
 }
 
-export function isEngagedWith(a: Combatant, bId: string): boolean {
-  return !!a.engagedWith?.includes(bId);
+export function isEngaged(c: Combatant, roster: readonly Combatant[]): boolean {
+  return engagesDe(c, roster).length > 0;
+}
+
+/** `a` est-il Engagé avec `b`, encore en action ? LDB 13 l.169-171 */
+export function isEngagedWith(a: Combatant, b: Combatant): boolean {
+  return !!a.engagedWith?.includes(b.id) && !isOutOfAction(b);
 }
 
 /** Pose Engagé symétriquement ET marque le coup échangé ce Round (les deux côtés).

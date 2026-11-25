@@ -161,7 +161,7 @@ describe('fireTriggers — Traits et Atouts sur le même système flow+déclench
   });
 
   it('TRAIT Sang corrosif : onWoundLoss → les Engagés subissent 1d10 (BE+PA, min 1)', () => {
-    const acid = mk({ id: 'ac', traits: [{ id: 'sang-corrosif' }] });
+    const acid = mk({ id: 'ac', traits: [{ id: 'sang-corrosif' }], engagedWith: ['fo'] });
     const foe = mk({ id: 'fo', engagedWith: ['ac'], characteristics: { ...mk().characteristics, endurance: 80 } }); // BE élevé → mitigation forte
     const get = () => ({ battle: { combatants: [acid, foe] } }) as never;
     const before = foe.wounds.current;
