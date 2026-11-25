@@ -122,19 +122,26 @@ Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-
 
 **Hypothèses révisables, tranchées par L0.**
 
-- **H1 — Une composition par processus, posée par `overrides.ts` au chargement.** Le pont Godot, l'hôte texte et la
-  page du roguelite n'ouvrent chacun qu'un projet. La solution concurrente est un catalogue passé en valeur aux 235
-  lecteurs. La mesure dira si un processus doit tenir deux compositions à la fois (coop, tests en parallèle).
+- **H1 — Une composition par processus, posée par `overrides.ts` au chargement : tenue par L0 (§ 8.2).** Chaque
+  processus n'ouvre qu'un projet, et `entreeDHote` (`scripts/entree-d-hote.mjs`) charge déjà `overrides.ts` avant
+  l'hôte. Elle tient à trois conditions, portées par L1 :
+  - les 63 captures au niveau module passent par l'invalidation existante (`memoParVersion`, `indexParId`,
+    `src/data/versionDataset.ts`) ;
+  - `overrides.ts` couvre les 7 datasets qui lui échappent ;
+  - un test qui compose remet la donnée à zéro, car Vitest tourne sous `isolate:false`.
 - **H2 — Deux étages de choix.** Le projet fixe ce qui est disponible, la partie choisit parmi ce disponible
   (verbatim 5). Le choix de la partie voyage par les canaux qui portent déjà les règles : `SaveGame.rules` et
   `packHouseRules`, étendus à l'empreinte de la composition.
+- **H3 — Les espaces de vocabulaire du système forment le socle de l'édition, hors composition** : caractéristiques,
+  enjeux de jet, règles, règles optionnelles, actions (§ 8.1). Le contenu sujet à la composition commence aux
+  compétences, états, carrières, talents, qualités et objets. À juger en L1.
 
 ## 5. Lots
 
 | Lot | Contenu | Après | Preuve de fini |
 |---|---|---|---|
 | L0 | Mesure, en lecture seule. (a) Chaque id de donnée littéral de `src/engine` et `src/noyau`, classé : devient op/`Flow`, ou reste irréductible et passe par un emploi. (b) Qui charge quoi, par processus (H1). (c) Chaque export de `valeurs.ts`, classé. | — | Une annexe chiffrée à ce plan ; H1 et H2 tranchées ou remontées. |
-| L1 | Le schéma de la composition, posé par `overrides.ts` (P3, P4, P7) : livres, éléments, modification en place, dérivation, livre du projet. L'édition et la langue de #1816 (WFRP 5e : édition sélectionnable et axe de langue VF/VO) en sont deux champs. | L0 | Tests sur un livre de test : retenir, exclure, modifier, dériver, ajouter. Un refus nomme la chaîne. Le Compendium crée, modifie et supprime une entrée du livre d'un projet. |
+| L1 | Les conditions de H1 (§ 8.2). Puis le schéma de la composition, posé par `overrides.ts` dans `entreeDHote` (P3, P4, P7) : livres, éléments, modification en place, dérivation, livre du projet. L'édition et la langue de #1816 (WFRP 5e : édition sélectionnable et axe de langue VF/VO) en sont deux champs. | L0 | Tests sur un livre de test : retenir, exclure, modifier, dériver, ajouter. Un refus nomme la chaîne. Le Compendium crée, modifie et supprime une entrée du livre d'un projet. Aucune capture au niveau module ne survit à `setDataset` (banc sur les 63 sites). |
 | L2 | Chaque processus charge la composition de son projet. Elle voyage dans la sauvegarde et dans la coop (H2). Absorption de `gatedByRule`, des registres narratifs, des champs locaux des ports. Solde de #4919 (Choisir, par livre, le contenu proposé au jeu). | L1 | `npm test` complet et `npm run typecheck` verts. Le lot `npm run jeu-de-role:recette` passe, parcours `campagne` et `editeur` compris. La reprise d'une sauvegarde sous une autre composition est refusée, et l'invité d'une coop reçoit la composition de l'hôte. `git grep` des anciens porteurs vide. |
 | L3 | `Id<T>` se ferme à la composition (P5). | L2 | Un id littéral dans une règle de `src/engine` ou de `src/noyau` ne compile pas (banc de typage). |
 | L4 | Les ids en dur deviennent ops ou `Flow` (P1), et le reste passe par des emplois (P2). Par familles, dans l'ordre que donne L0. | L3 | Une composition « système seul », avec un livre de test, joue un combat par le noyau. Typecheck complet vert sans littéral d'id. |
@@ -159,3 +166,75 @@ Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-
   décision de l'utilisateur, livre par livre.
 - Les établissements de #4277 (Données de lieu : établissements nommés, qualité à trois niveaux), qui restent à
   leur ticket et deviennent un client de L1.
+
+## 8. Annexe : mesure de L0 (2026-11-25, à `6b222896d`)
+
+Les scripts de relevé ont tourné hors du dépôt. Ils ne sont pas gardés, car L3 rend le premier relevé
+incompilable et L1 rend le second testable par banc. Les chiffres ci-dessous sont ceux de leur sortie.
+
+### 8.1 Ids de donnée écrits en dur (`src/engine`, `src/noyau`, hors tests)
+
+- **Méthode.** AST de 273 fichiers. Les ids viennent de `IDS_PAR_ESPACE` (`src/data/schemas/_ids.generated.ts`).
+  - Un littéral égal à un id compte.
+  - Il est écarté comme *ambigu* quand son type contextuel est un vocabulaire du moteur (`Difficulty`,
+    `DefenseMode`…), ou quand son seul espace est interne.
+- **Totaux.** 3560 littéraux égaux à un id. 1730 sont ambigus. **1830 sont retenus**, dans 214 fichiers, soit 595
+  ids distincts dans 53 espaces.
+- **La frontière entre système et contenu se lit dans les espaces.**
+  - Espaces du *système*, qu'aucun projet ne retire : caractéristiques 294, enjeux de jet 238, règles optionnelles
+    159, règles 147, actions 132.
+  - Espaces de *contenu*, sujets à la composition : compétences 183, éléments de décor 83, états 72, qualités 46,
+    carrières 41, groupes 31, talents 30, et une longue traîne.
+  - Cette frontière est l'hypothèse **H3**, à juger en L1 : les espaces du système forment le socle de l'édition,
+    hors composition.
+- **Classes (heuristique par espace, à relire en L4).** Emplois 1095 (entre 287 et 504 emplois distincts avant
+  fusion par rôle), autres 566, ops ou `Flow` 141, doublons 28. Le cas de `src/engine/combat.ts:427` donne `esquive`
+  comme emploi et `agilite` comme doublon.
+- **Familles les plus lourdes.** `noyau/seaVoyageFlow` 155, `noyau/combatFlow` 127, `engine/combat` 93,
+  `engine/ruleRefs` 76, `noyau/restFlow` 59, `noyau/planDeLaCaraque` 52, `engine/magic` 46.
+- **Non vu par la mesure.** Les ids construits par concaténation, ou importés d'un autre module ; les 1730 ambigus.
+
+### 8.2 Chargement par processus (H1)
+
+- **Un projet par processus.**
+  - Pont Godot : un second `demarrer` est refusé.
+  - Hôte texte : un graphe Vite unique.
+  - Page du roguelite.
+  - Le relay n'importe rien de `src/`.
+  - En coop, l'hôte et l'invité sont deux processus. Chacun compose seul, d'où l'empreinte de H2.
+  - Le seul cas multi-composition est Vitest : `isolate:false` (`vitest.config.ts:36`), où une composition fuit
+    d'un fichier au suivant.
+  - Non vérifié : le worker `pile` du pont.
+- **L'invalidation existe** : `memoParVersion`, `indexParId` et `indexParChamp` (`src/data/versionDataset.ts`),
+  incrémentés par `bumperDataset` à chaque écriture d'`overrides.ts`. 172 mémos s'en servent.
+- **63 captures n'en profitent pas** : 22 dérivés, 38 appels au chargement, 3 effets. Exemples :
+  - `src/noyau/actionRegistry.ts:832` et `:893` ;
+  - `src/noyau/monde/aretes.ts:95` ;
+  - `src/noyau/marchandEnVue.ts:73` ;
+  - `src/data/index.ts:1464` ;
+  - `src/engine/seaNavigation.ts:57` ;
+  - `src/noyau/restFlow.ts:543` ;
+  - `projets/roguelite/src/jeu/boutiques.ts:57`.
+
+  Le Compendium mute déjà la base en place, par `src/data/atelierDuCodex.ts`. Ces captures ne voient donc pas ses
+  éditions aujourd'hui : c'est un défaut existant, qui se solde en L1.
+- **Datasets hors d'`overrides.ts`** : `ACTIONS`, `merchantFamilies`, `structureAppearances`, `lieuxServices`,
+  `tablesDeLocalisation`, `ambiance`, `DEFAULT_RACE_ID`.
+- **Aucun appel ne pose aujourd'hui une composition au chargement.** Seul l'éditeur appelle `setDataset` en
+  production. La pose au chargement est à écrire.
+
+### 8.3 `projets/roguelite/src/jeu/valeurs.ts` (L5)
+
+| Classe | Exports | Lignes |
+|---|---|---|
+| Sélection | `PROFILS` (22 carrières), `SORTS_MINEURS`, `SORTS_DES_VOIES`, `COMPETENCES_UTILES`, `TALENTS_HORS_DU_COMBAT`, `ESPECES`, `PRIERE_DE_SOIN`, créatures des `DESTINATIONS`, `ARMES_`, `ARMURES_DE_LA_FORGE`, `REMEDES_DE_L_HOSPICE`, `GROUPES_SANS_COMPETENCE` | ~95 |
+| Modification en place | `PROFILS.nom`, `ESPECES.nom` ; `identite` et `dotation` n'existent pas sur les carrières du noyau | ~25 |
+| Connaissance de règle | `MAIN_SECONDAIRE`, qui double `isOffHandEligible` (`src/engine/items.ts:693`) ; `MUNITION_DE_FAMILLE`, `MUNITION_DES_ARMES` et `MUNITIONS`, face à `ammoFamily` et `defaultAmmo` (`items.ts:1852`, `:1885`) | 6 |
+| Contenu propre | `BATIMENTS`, `EPREUVES`, `ACTIONS_A_JET`, `CAMP`, `Voie`, `ROLES`, `RANG_DU_ROLE`, `CONSIGNES`, `LIEUX_DE_SEJOUR`, `CHAMBRE_DU_RELAIS` | ~110 |
+| Réglage | prix, butin, PX, trophées, taille du groupe, or initial, semaine de repos | ~30 |
+| Affichage et code | libellés, pictos, utilitaires | ~60 |
+
+Les tests du roguelite qui verrouillent ces valeurs par listes ou par comptes se réécrivent en L5, au sens de
+#2995 (Ajouter une donnée ne rougit aucun test) : `recrues.test.ts`, `forge.test.ts`, `creation5e.test.ts`,
+`catalogue.test.ts`, `progression.test.ts`, `sauvegarde.test.ts`.
+
