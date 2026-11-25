@@ -17,7 +17,7 @@ import {
   sauver,
 } from './index';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 afterEach(() => { vi.unstubAllGlobals(); });
 
 /** Une sauvegarde en mémoire à la place du stockage du navigateur. */
