@@ -92,7 +92,7 @@ function hasBrouet(c: Combatant): boolean {
   return effectiveTalents(c).some((t) => t.talentId === 'brouet' && (t.times ?? 1) >= 1);
 }
 
-/** Consommation de vivres/eau ×N (ADE II 2 l.708, folio 31 : « les ogres doivent manger et boire
+/** Consommation de vivres/eau ×N (ADE II 2 l.755, folio 31 : « les ogres doivent manger et boire
  *  au moins deux fois plus qu'un humain en une journée ») portée par un Trait RACIAL (Ogre) — MÊME
  *  lecture ciblée sur `c.traits` que `traitEncumbranceFactor` (`combatFeatures/dispatch.ts`). Le PLUS GRAND
  *  facteur porté l'emporte (jamais cumulatif). */
@@ -205,7 +205,7 @@ export function dailyFoodUpkeep(c: Combatant, gardeManger: GardeManger, resVal: 
   const h: HungerState = c.hunger ?? { days: 0, tests: 0, failures: 0 };
 
   // 1. Manger : journée déjà couverte (demi-ration de Brouet, repas d'auberge), sinon `traitConsumptionFactor`
-  // ration(s) (ogre ADE II 2 l.708 : « les ogres doivent manger … au moins deux fois plus » — 2 rations/jour).
+  // ration(s) (ogre ADE II 2 l.755 : « les ogres doivent manger … au moins deux fois plus » — 2 rations/jour).
   let repas: RepasDuJour;
   if (h.coveredDay) {
     res.ate = true;

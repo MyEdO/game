@@ -20,7 +20,7 @@ export interface ChoixDuTrait {
   label: PlayerText;
 }
 
-/** EDOC 13 l.245 ; LDB 85 l.207 ; LDB 47 l.5-11 ; LDB 51 l.5 ; ADE II 02 l.733. */
+/** EDOC 13 l.245 ; LDB 85 l.207 ; LDB 47 l.5-11 ; LDB 51 l.5 ; ADE II 02 l.780. */
 export function choixDuTrait(id: string, porteur: Combatant): ChoixDuTrait[] {
   const trait = findTraitById(id);
   if (!trait?.capabilities?.spellcaster) return [];

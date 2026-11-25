@@ -202,7 +202,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(meleeReachRank(arme)).toBeNull();
   });
 
-  // ZI 04 l.46,48 ; ZI 05 l.122,138 ; VDM 13 l.24,26 ; Guide de Frenchy, chap. 51, lignes 272, 350 ; ADE II 02 l.604,710
+  // ZI 04 l.46,48 ; ZI 05 l.122,138 ; VDM 13 l.24,26 ; Guide de Frenchy, chap. 51, lignes 272, 350 ; ADE II 02 l.651,757
   it.each([
     ['troll-des-rivieres', 'merlin-grossier'],
     ['sorciere-troll-des-rivieres', 'baton-en-bois-mort'],
@@ -215,7 +215,7 @@ describe('Armes de catalogue des statblocs (#4382)', () => {
     expect(modDeTaille(c, armeDuCatalogue(c, trapping))).toBeUndefined();
   });
 
-  it('une dague de taille ordinaire inflige encore le malus à un grand porteur (ADE II 02 l.710)', () => {
+  it('une dague de taille ordinaire inflige encore le malus à un grand porteur (ADE II 02 l.757)', () => {
     const c = spawnEnemy({ ref: 'troll-des-rivieres' }, 'troll-dague', undefined, { inventaire: { dague: true } });
     expect(modDeTaille(c, armeDuCatalogue(c, 'dague'))).toBe(-20);
   });

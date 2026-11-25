@@ -21,7 +21,7 @@ describe('caractéristique d’incantation — DATA-DRIVEN (point unique, zéro 
     expect(castingValue(mk({ skills: [langue('intelligence')] }), incantationArcane())).toBe(30);
   });
 
-  it('carac alternative PORTÉE PAR LA DONNÉE : l’instance sur Endurance → Endurance (ex. lanceur ogre, ADE II 2 l.728)', () => {
+  it('carac alternative PORTÉE PAR LA DONNÉE : l’instance sur Endurance → Endurance (ex. lanceur ogre, ADE II 2 l.775)', () => {
     // Aucun sniff d'espèce, aucune règle en dur : le moteur lit SkillInstance.characteristic.
     expect(castingValue(mk({ skills: [langue('endurance')] }), incantationArcane())).toBe(40);
   });
@@ -36,7 +36,7 @@ describe('caractéristique d’incantation — DATA-DRIVEN (point unique, zéro 
     expect(testValue(c, { skill: { id: 'langue', spec: 'magick' } })).toBe(40);
   });
 
-  it('lanceur ogre, hors du Domaine de la Gueule : Langue (Magick) sur Endurance (ADE II 2 l.728)', () => {
+  it('lanceur ogre, hors du Domaine de la Gueule : Langue (Magick) sur Endurance (ADE II 2 l.775)', () => {
     const ogre = mk({ skills: [langue('intelligence')], traits: [{ id: 'ogre' }], talents: [{ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 }] });
     expect(castingValue(ogre, incantationArcane())).toBe(40);
     expect(castingValue(mk({ skills: [langue('intelligence')], talents: [{ talentId: 'magie-des-arcanes', spec: 'gueule', times: 1 }] }), incantationArcane())).toBe(30);

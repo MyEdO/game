@@ -354,7 +354,7 @@ export function maxEncumbranceFactor(capabilities: { encumbranceFactor?: number 
   return capabilities.reduce((f, d) => (d.encumbranceFactor ? Math.max(f, d.encumbranceFactor) : f), 1);
 }
 
-/** Encombrement portable ×N (ADE II 2 l.708, folio 31) : facteur MULTIPLICATIF sur (Bonus de Force +
+/** Encombrement portable ×N (ADE II 2 l.755, folio 31) : facteur MULTIPLICATIF sur (Bonus de Force +
  *  Bonus d'Endurance), porté par le Trait RACIAL (`capabilities.encumbranceFactor`, Ogre) — composé par
  *  `items.maxEncumbrance`. 1 = aucune capacité de ce type (aucun effet sur `maxEncumbrance`). */
 export function traitEncumbranceFactor(c: Combatant): number {

@@ -151,7 +151,7 @@ describe("recomputeLoadout — propagation des Dégâts d'arme", () => {
   });
 });
 
-describe('effectiveWeapon — Lance-harpon, corde séparée (ADE II 02 l.677, mode de tir choisi #476)', () => {
+describe('effectiveWeapon — Lance-harpon, corde séparée (ADE II 02 l.724, mode de tir choisi #476)', () => {
   const harpoon = (): Weapon => ({
     label: 'Lance-harpon', type: 'distance', damage: { plusBF: false, flat: 10 }, range: 20,
     qualities: [{ id: 'immobilisante' }, { id: 'recharge', value: 2 }],

@@ -127,7 +127,7 @@ describe('la création en pages', () => {
   });
 });
 
-describe('les deux noms offerts aux ogres (ADE II 02 l.325-334)', () => {
+describe('les deux noms offerts aux ogres (ADE II 02 l.325-382)', () => {
   const ogre = withSpecies(newDraft(7), 'ogres');
   const reiklander = withSpecies(newDraft(7), 'humains-reiklander');
   const page = (d: CreatorDraft) => rubriquesDeLaPage(d, 'details');

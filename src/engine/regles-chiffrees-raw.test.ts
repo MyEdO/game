@@ -39,7 +39,7 @@ const LIVRE: { [R in RegleChiffree]: Record<(typeof RANGEES_DE_REGLE)[R][number]
     'cibler-le-cavalier': { mod: -10, ref: 'LDB 14 l.181' },
     'esquive-a-cheval': { mod: -20, ref: 'LDB 14 l.184' },
   },
-  'possession-pas-a-sa-taille': { 'possession-pas-a-sa-taille': { mod: -20, ref: 'ADE II 2 l.710' } },
+  'possession-pas-a-sa-taille': { 'possession-pas-a-sa-taille': { mod: -20, ref: 'ADE II 2 l.757' } },
   'climat-extreme': { 'climat-extreme': { mod: -20, ref: 'LDB 14 l.76' } },
   'neige-eau-terrain-difficile': { 'neige-eau-terrain-difficile': { mod: -30, ref: 'LDB 14 l.82' } },
   empoignade: {
