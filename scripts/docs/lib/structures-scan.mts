@@ -124,7 +124,7 @@ const chargeRecord = (brut: unknown): unknown => {
   return estObjet(entries) ? entries : brut;
 };
 
-export const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
+const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
   if (familleDeclaree?.startsWith('liste')) return 'elements';
   if (familleDeclaree?.startsWith('record')) return 'valeurs';
   if (familleDeclaree) return 'racine';

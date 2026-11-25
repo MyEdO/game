@@ -113,7 +113,7 @@ const RACINE = fileURLToPath(new URL('../../..', import.meta.url));
 /** Ce que le détecteur apporte à une image : son code et sa configuration de modules. */
 const DU_DETECTEUR = ['scripts', 'package.json', 'tsconfig.json'];
 /** La première ligne d'un module de CLASSEMENT de `src/` (#2969) : le détecteur qui le porte le pose dans l'image. */
-export const MARQUE_DE_CLASSEMENT = '// CLASSEMENT DU DÉTECTEUR';
+const MARQUE_DE_CLASSEMENT = '// CLASSEMENT DU DÉTECTEUR';
 /** Le dossier des modules de classement. */
 const RACINE_DU_CLASSEMENT = 'src/data/schemas/grammaire';
 /** Le texte d'un module est-il du classement ? */
