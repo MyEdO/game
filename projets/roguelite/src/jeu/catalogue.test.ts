@@ -52,6 +52,20 @@ describe('la Salle d’armes et les sorts de la voie', () => {
     expect(acheter(e, h.c.id, { genre: 'sort', id: niveau2[0] })).toBeNull();
     expect(h.c.spells).toContain(niveau2[0]);
   });
+
+  it('ne propose à une Nonne de niveau 1, sans le Talent Invocation, aucun miracle de sa voie ; le Talent pris au niveau 2 les ouvre', () => {
+    const e = nouvellePartie(3);
+    e.or = 1e5; e.trophees = 10; ameliorer(e, 'salle');
+    const h = recrue(e, profilDe('nonne'));
+    e.roster.push(h);
+    expect(h.c.careerLevel).toBe(1);
+    expect(SORTS_DES_VOIES.shallya[1]).toContain('larmes-de-shallya');
+    expect(sortsProposes(h)).toEqual([]);
+    expect(acheter(e, h.c.id, { genre: 'sort', id: 'larmes-de-shallya' })).toBe('La salle d’armes n’enseigne pas ce sort à ce héros.');
+    h.c = porterAuNiveau(h.c, 2, 7); h.c.xp = 5000;
+    expect(acheter(e, h.c.id, { genre: 'talent', ref: { id: 'invocation', spec: 'shallya' } })).toBeNull();
+    expect(sortsProposes(h)).toEqual(['larmes-de-shallya']);
+  });
 });
 
 describe('les emplacements « (Au choix) » désignés à la recrue', () => {
