@@ -83,7 +83,6 @@ import { interludeEventDie } from '../../data/interludeEvents';
 import { peripetieDie } from '../../data/peripeties';
 import { traumaLabelOf } from '../../engine/trauma';
 import { spellOps, walkFlow, type Flow, type FlowTest, type FlowTestNode } from '../../engine/flowCore';
-import { estCausePersistante } from '../../engine/ops';
 import { critiqueDie, type CritTableKey, type JeuDeCritique } from '../../data/criticals';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET, type CrewTarget, type ShipCritEntry, type ShipCritSet } from '../../data/shipCriticals';
 import { datasetArray, datasetObject } from '../../data/overrides';
@@ -133,7 +132,7 @@ import { costPerEnc } from '../../engine/harvest';
 import { formatMoney, libelleDuStatut, memeStatut, priceToMoney, type Money } from '../../engine/money';
 import { passiveSection, effectsSection, careerGrantSection, spellFlowSection } from './describe';
 import { opRows, tableRows } from './opRows';
-import { humanizeCastBonus, humanizeCondition, causePersistante, replieCausesPersistantes, effetDeContrecoup } from './humanize';
+import { humanizeCastBonus, humanizeCondition, effetDeContrecoup } from './humanize';
 import { libelleDUnEnginAuCodex, reverseGroups, bookContents } from './relations';
 import { formatManeuverMeasure } from './maneuverMeasure';
 import { metaPourFichier, chargeDiscriminee, noeudDuChamp } from '../../data/schemas/validate';
@@ -990,11 +989,8 @@ function miscastOpRow(o: Record<string, unknown>): CodexRow {
       const label = conditionLabel(id);
       const value = o.value != null ? miscastAmountLabel(o.value) : null;
       const dur = o.durationRounds != null ? tr('codex.fiche.roundS', { v: miscastAmountLabel(o.durationRounds) }) : undefined;
-      // CAUSE PERSISTANTE (`LDB 16 l.117`) : la rangée pose UN État et le MAINTIENT — la persistance se
-      // dit au BADGE de SA chip, du mot du journal et de la même forme que l'autre lecteur (`opRows`).
-      const badge = [estCausePersistante(o) ? causePersistante() : undefined, dur].filter((s): s is string => !!s).join(' · ') || undefined;
       const show = value && value !== '1' ? `${value} × ${label}` : label;
-      return { t: 'ref', category: 'etats', id, label, show, badge };
+      return { t: 'ref', category: 'etats', id, label, show, ...(dur ? { badge: dur } : {}) };
     }
     case 'wounds': {
       // Mitigation DITE par la donnée (`ignoreTB`/`ignoreAP`), aux trois régimes du RAW — LDB 46
@@ -1041,9 +1037,9 @@ function miscastTestSection(t: NonNullable<MiscastRowEntry['test']>): CodexSecti
   const rows: CodexRow[] = [
     { t: 'kv', k: tr('codex.fiche.test'), v: `${who} ${DIFFICULTY_LABELS[t.test.difficulty!]}` },
     { t: 'sub', label: tr('codex.fiche.echec') },
-    ...replieCausesPersistantes(t.onFail).map(miscastOpRow),
+    ...t.onFail.map(miscastOpRow),
   ];
-  if (t.onFailHard) rows.push({ t: 'sub', label: tr('codex.fiche.echecDr', { dr: t.onFailHard.dr }) }, ...replieCausesPersistantes(t.onFailHard.ops).map(miscastOpRow));
+  if (t.onFailHard) rows.push({ t: 'sub', label: tr('codex.fiche.echecDr', { dr: t.onFailHard.dr }) }, ...t.onFailHard.ops.map(miscastOpRow));
   return { title: tr('codex.fiche.testImbrique'), layout: 'list', rows };
 }
 
@@ -1054,8 +1050,8 @@ function miscastRowItem(e: MiscastRowEntry, de: DeDeTable): CodexItem {
     sub: bandeAuDe(de, e.min, e.max),
     meta: facts(e.reroll ? fact(tr('codex.fiche.relance'), e.reroll === 'majeure' ? tr('codex.fiche.cascadeTableauMajeur') : tr('codex.fiche.multiplication2TiragesMineurs')) : null),
     sections: sections(
-      e.ops?.length ? { title: tr('codex.fiche.effetImmediat'), layout: 'list', rows: replieCausesPersistantes(e.ops).map(miscastOpRow) } : null,
-      e.targetOps?.length ? { title: tr('codex.fiche.effetSurLesCibles'), layout: 'list', rows: replieCausesPersistantes(e.targetOps).map(miscastOpRow) } : null,
+      e.ops?.length ? { title: tr('codex.fiche.effetImmediat'), layout: 'list', rows: e.ops.map(miscastOpRow) } : null,
+      e.targetOps?.length ? { title: tr('codex.fiche.effetSurLesCibles'), layout: 'list', rows: e.targetOps.map(miscastOpRow) } : null,
       e.test ? miscastTestSection(e.test) : null,
     ),
   });
