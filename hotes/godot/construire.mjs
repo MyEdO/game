@@ -3,7 +3,7 @@
 // `--pont-seul` bâtit le bundle du pont par `vite build` en production, en bibliothèque, format iife, depuis l'entrée d'hôte unique
 // (`entreeDHote`, `scripts/entree-d-hote.mjs` : le gel du catalogue, puis l'entrée d'un jeu, avec le greffon
 // `proseSource()`) ; le bundle tient seul dans une page et expose `globalThis.wfrpPont` (`hotes/godot/pont/CONTRAT.md`).
-// `--entree </module>` nomme l'entrée du jeu, un module du dépôt qui démarre le pont sur son contenu (`demarrerLePont`,
+// `--entree <module>` nomme l'entrée du jeu, un module du dépôt, son chemin relatif à la racine, qui démarre le pont sur son contenu (`demarrerLePont`,
 // `hotes/godot/pont/entree.ts`, #4936), l'entrée commune sans lui (`ENTREE_COMMUNE`) ; posée une fois dans
 // l'environnement (`poserLEntree`), elle vaut pour chaque mode et chaque processus qu'il lance (`vivant.mjs`).
 // Il dit sa taille, le LIT (`lecturesDuBundle`) : chaque nom de navigateur lu en identifiant libre est porté par le
@@ -81,11 +81,11 @@ const PROJET = join(RACINE, 'hotes', 'godot', 'projet')
 /** Le pont vivant que l'hôte natif lance (`--pont=<chemin>`, `vivant.mjs`). */
 const VIVANT = join(RACINE, 'hotes', 'godot', 'vivant.mjs')
 /** L'entrée commune du pont (#4936) : le pont démarré sur le contenu de test du commun. */
-const ENTREE_COMMUNE = '/hotes/godot/pont/entree-commune.ts'
+const ENTREE_COMMUNE = 'hotes/godot/pont/entree-commune.ts'
 /** La variable d'environnement qui nomme l'entrée du jeu (`--entree`) : chaque processus du lanceur en hérite. */
 const ENTREE = 'WFRP_GODOT_ENTREE'
-const USAGE = `Usage : node hotes/godot/construire.mjs [--entree </module>] (--pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop)
-  --entree </module>  l'entrée du jeu dont le pont démarre, un module du dépôt (${ENTREE_COMMUNE} sans elle)
+const USAGE = `Usage : node hotes/godot/construire.mjs [--entree <module>] (--pont-seul [--sortie <dossier>] | --sonde | --export --sortie <dossier> | --bureau --sortie <dossier> | --rendus | --ouvrir | --coop)
+  --entree <module>   l'entrée du jeu dont le pont démarre, un module du dépôt relatif à la racine (${ENTREE_COMMUNE} sans elle)
   --pont-seul         le bundle ${PONT}, sans Godot, bâti puis exécuté
   --sonde             les GLB tirés de la Release, le projet importé, chaque script contrôlé et les recettes autonomes exécutées par l'éditeur Godot épinglé
   --export            le bundle, l'export Web du projet et ses paquets, ses modèles fabriqués en scène et les avis de licence de ce qu'il embarque, dans --sortie, sur le modèle d'export épinglé (téléchargé au premier appel)
@@ -126,7 +126,7 @@ export function poserLEntree(entree) {
  *  qu'il porte (`avisDesPaquets`), écrit dans `sortie` si elle est donnée. Vite lit le mode dans `process.env.NODE_ENV`,
  *  posé au `mode` le temps de la construction, puis rendu à sa valeur d'avant, ou retiré s'il était absent. */
 export async function empaqueter(sortie, mode) {
-  const entree = entreeDHote('wfrp-pont', [`import '${process.env[ENTREE] ?? ENTREE_COMMUNE}';`])
+  const entree = entreeDHote('wfrp-pont', [`import '/${process.env[ENTREE] ?? ENTREE_COMMUNE}';`])
   const avant = process.env.NODE_ENV
   process.env.NODE_ENV = mode
   try {

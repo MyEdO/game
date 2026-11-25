@@ -4,7 +4,7 @@
 // `scripts/entree-d-hote.mjs` : le gel du catalogue puis l'hôte, `hotes/texte/serveur.ts`, avec le greffon
 // `proseSource()`), et `import.meta.env.DEV` vrai. Les outils, leur description et leur schéma viennent de
 // `hotes/texte/outils.ts` ; les scénarios et les cadences, du graphe chargé, les scénarios du jeu du contenu que nomme
-// `--contenu </module>` (#4936), un module du dépôt qui exporte `contenu` (`ContenuDUnJeu`), le contenu de test du
+// `--contenu <module>` (#4936), un module du dépôt, son chemin relatif à la racine, qui exporte `contenu` (`ContenuDUnJeu`), le contenu de test du
 // commun sans lui (`CONTENU_COMMUN`). Le lanceur prête le disque à l'hôte et
 // garde stdout au protocole : toute écriture de console part sur stderr. Une partie est un fichier de `.hote-texte/`, tenu par
 // un seul serveur à la fois. Doc : `npm run docs:hote-texte`.
@@ -24,7 +24,7 @@ import { z } from 'zod'
 for (const niveau of ['log', 'info', 'debug']) console[niveau] = console.error
 
 /** Le contenu de test du commun, que remet l'hôte sans `--contenu`. */
-const CONTENU_COMMUN = '/src/scenes/fixtures/contenuDuCommun.ts'
+const CONTENU_COMMUN = 'src/scenes/fixtures/contenuDuCommun.ts'
 const { values: o } = parseArgs({ options: { contenu: { type: 'string', default: CONTENU_COMMUN } } })
 const RACINE = fileURLToPath(new URL('..', import.meta.url))
 // Le corpus `Source/` se lit depuis la racine du dépôt, d'où que le serveur soit lancé.
@@ -32,7 +32,7 @@ process.chdir(RACINE)
 const entree = entreeDHote('hote-texte', [
   "export { creerHote } from '/hotes/texte/serveur.ts';",
   "export { catalogueDeLaPartie } from '/src/hote/contenu.ts';",
-  `export { contenu } from '${o.contenu}';`,
+  `export { contenu } from '/${o.contenu}';`,
   "export { preferenceDef } from '/src/noyau/index.ts';",
 ])
 
