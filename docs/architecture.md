@@ -125,8 +125,10 @@ déclare les seules zones du dépôt.
   un motif joker d'`import.meta.glob` qui peut l'atteindre (`dossierJoker`, `couchesLint.mjs`), ni en transit par
   un module hors des zones (`scripts/corpus/guards/clotureDesZonesQuiSurvivent.test.mjs`), par la nature de la zone
   (`fermeParLeProjet` : son dossier est sous `projets/`). Sa ligne se construit
-  (`ligneDeProjet`) : les droits d'un projet, plus ses `ouvertures`, chacune nommée par son ticket ; ouvrir une
-  zone l'importe et retire sa porte. Le banc refuse une ligne qui nomme un autre projet et une ouverture morte.
+  (`ligneDeProjet`) : les droits d'un projet, plus les `affichages` qu'il déclare, des droits et non des
+  ouvertures, plus ses `ouvertures`, chacune nommée par son ticket, et son `outillage`, les modules hors des zones
+  qu'il lit ; ouvrir une zone l'importe et retire sa porte. Le banc refuse une ligne qui nomme un autre projet, un
+  affichage déclaré hors de `hotes/` et une ouverture morte.
 - **Un hôte du noyau ne nomme aucun verbe** (`src/hote/derive-du-noyau.hors-store.test.ts`) : la garde juge
   chaque zone de `HOTES_DU_NOYAU`, projets compris, sauf celle dont la ligne ouvre le noyau hors de sa porte
   (`ouvertures.noyau`, posée par `ligneDeProjet`) : une zone qui lit encore le noyau hors de sa porte ne dérive pas
@@ -671,9 +673,11 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `godot`) : le pont
                             `pont/pont.ts` (une méthode = une chaîne JSON en entrée, une en sortie, jamais une levée ;
                             gestes par le module commun, vue faite des lecteurs du noyau, jetons tenus par numéro ; la
                             porte `appelerEnOctets` des transports de Godot passe les tableaux de `morceaux` en un
-                            tampon de `Float32`, `pont/octets.ts`, #3948), `pont/entree.ts` (`globalThis.wfrpPont`),
+                            tampon de `Float32`, `pont/octets.ts`, #3948), `pont/entree.ts` (`demarrerLePont` :
+                            `globalThis.wfrpPont` sur le contenu que l'entrée d'un jeu lui remet, #4936),
                             contrat `pont/CONTRAT.md` ; `construire.mjs
-                            --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI).
+                            --pont-seul` bâtit le bundle iife par Vite (`npm run pont:godot`, étape de la CI) depuis
+                            l'entrée que nomme `--entree`, l'entrée commune `pont/entree-commune.ts` sans elle.
   asset/                    le contrat d'asset d'un personnage 3D (lecteur GLB, manifeste, import par `importer.mjs`) ;
                             le manifeste d'élément du schéma 3 et sa validation contre la base et la donnée du jeu (`asset/element.ts`) ;
                             les GLB vivent dans les Releases `modeles-3d-<c>`, nommés par leur SHA-256 dont `<c>` est le premier caractère (#4823), que la provenance

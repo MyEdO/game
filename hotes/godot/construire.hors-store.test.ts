@@ -2,7 +2,8 @@
  * LE BUNDLE DU PONT LU ET EXÉCUTÉ (#3009, `pont/CONTRAT.md`, section « Transport ») : sur un bundle bâti
  * (`empaqueter`), une passe de `lecturesDuBundle` ne laisse aucun nom de navigateur hors de ce que le processus porte
  * (`API_DU_NAVIGATEUR`) ou compte (`HORS_DU_PROCESSUS`) ; `salon` répond dans le contexte du processus ; le mode que
- * l'appelant dit à `empaqueter` est celui du bundle, l'adresse du relay comprise (`relayHttpUrl`).
+ * l'appelant dit à `empaqueter` est celui du bundle, l'adresse du relay comprise (`relayHttpUrl`) ; sans entrée posée, le
+ * bundle démarre le pont sur le contenu de test du commun, et `--entree` le bâtit depuis l'entrée qu'il nomme (#4936).
  */
 import { execFile } from 'node:child_process';
 import { Console } from 'node:console';
@@ -24,6 +25,11 @@ const CONSTRUIRE = new URL('./construire.mjs', import.meta.url);
 
 /** L'environnement des enfants (`sansModeNiRelais`). */
 const ENV = sansModeNiRelais();
+
+/** L'entrée du jeu de rôle (`package.json`, scripts `godot:*`). */
+const ENTREE_DU_JEU_DE_ROLE = '/hotes/godot/pont/entree-jeu-de-role.ts';
+/** Une scène du paquet de test du commun (`src/scenes/fixtures/paquet-de-test.json`), que seul son contenu porte. */
+const SCENE_DU_COMMUN = 'scene-de-test-a';
 
 /** Ce qu'un bundle porte de son mode : l'adresse de prod, l'adresse locale, la branche de développement de
  *  `openValues` (`src/engine/tests.ts`). */
@@ -64,7 +70,7 @@ writeFileSync(${JSON.stringify(join(dossier, 'production.js'))}, production);
 writeFileSync(${JSON.stringify(join(dossier, 'developpement.js'))}, developpement);
 process.stdout.write(JSON.stringify({ lectures: lecturesDuBundle(production), apres }));`;
   const d1 = await enfant(['--input-type=module', '-e', script]);
-  const d2 = await enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie]);
+  const d2 = await enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie, '--entree', ENTREE_DU_JEU_DE_ROLE]);
   if (d1.code !== 0) throw new Error(`l’enfant de D1 sort en ${d1.code} :\n${d1.stderr}`);
   const lu = JSON.parse(d1.stdout) as { lectures: Record<string, number>; apres: (string | null)[] };
   lectures = lu.lectures;
@@ -124,6 +130,13 @@ describe('D2 — `--pont-seul --sortie` écrit un bundle de production', () => {
   it('sort en 0, et le bundle écrit porte l’adresse de prod, ni l’adresse locale ni la branche de développement', () => {
     expect(pontSeul.code, pontSeul.stderr).toBe(0);
     expect(marques(code)).toEqual({ prod: true, local: false, developpement: false });
+  });
+});
+
+describe('l’entrée du jeu (#4936)', () => {
+  it('sans entrée posée, le bundle porte le contenu de test du commun ; `--entree` le bâtit depuis l’entrée nommée, sans lui', () => {
+    expect(code, 'le bundle de `--pont-seul`').not.toBe('');
+    expect([levier.production.includes(SCENE_DU_COMMUN), levier.developpement.includes(SCENE_DU_COMMUN), code.includes(SCENE_DU_COMMUN)]).toEqual([true, true, false]);
   });
 });
 

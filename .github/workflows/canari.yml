@@ -158,7 +158,7 @@ jobs:
       - id: godot-export
         continue-on-error: true
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
-        run: node hotes/godot/construire.mjs --export --sortie "$RUNNER_TEMP/godot-web"
+        run: node hotes/godot/construire.mjs --export --sortie "$RUNNER_TEMP/godot-web" --entree /hotes/godot/pont/entree-jeu-de-role.ts
       # Le banc des étalons (#3935) sur ce même export : chaque planche comparée au pixel à son étalon, dans le Chromium
       # que l'épingle nomme (`EPINGLE`, hotes/godot/planches.mjs), installé par le Playwright des devDependencies
       # sous son propre `PLAYWRIGHT_BROWSERS_PATH` posé au step : les recettes gardent le Chrome du runner.
@@ -194,7 +194,7 @@ jobs:
         timeout-minutes: 180
         run: |
           sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
-          node hotes/godot/lot-de-recettes.mjs --natif --captures "$RUNNER_TEMP/godot-recettes-natives"
+          node hotes/godot/lot-de-recettes.mjs --natif --entree /hotes/godot/pont/entree-jeu-de-role.ts --captures "$RUNNER_TEMP/godot-recettes-natives"
       - if: ${{ !cancelled() && steps.godot-recettes-natives.outcome == 'failure' }}
         uses: actions/upload-artifact@v4
         with:

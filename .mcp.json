@@ -2,7 +2,7 @@
   "mcpServers": {
     "hote-texte": {
       "command": "node",
-      "args": ["scripts/hote-texte.mjs"]
+      "args": ["scripts/hote-texte.mjs", "--contenu", "/hotes/godot/pont/contenu-jeu-de-role.ts"]
     }
   }
 }

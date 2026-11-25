@@ -9,7 +9,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { it, expect } from 'vitest';
-import { campagneDeTest } from './scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from './scenes/fixtures/contenuDuCommun';
 import { paquetDuJeu } from './noyau/index';
 import {
   editer,

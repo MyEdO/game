@@ -1,5 +1,5 @@
 ## L'éditeur de carte (#3508), hôte de la méthode `editer` du pont (`hotes/godot/pont/CONTRAT.md`, section « Éditeur ») :
-## il ouvre la campagne du jeu du paramètre `campagne` (`PontDuNoyau.parametre`, sinon `CAMPAGNE`), telle que le dépôt la sert
+## il ouvre la campagne du jeu du paramètre `campagne` (`PontDuNoyau.parametre`, sinon `_premiere_campagne`), telle que le dépôt la sert
 ## (`GET depot/<id>`) s'il la sert, sinon telle que le jeu l'embarque, avec l'index des chapitres du `Source/` qu'il sert
 ## (`GET source/manifest.json`), et applique chaque réponse ; un chapitre demandé (`chapitre`) se charge
 ## (`GET source/<book>/<ch>.md`) et revient au pont. Le texte qu'une
@@ -28,7 +28,8 @@ extends Node
 
 ## @contrat Éditeur
 ## Le routeur `projet/scripts/editeur.gd` (scène `projet/scenes/Editeur.tscn`, ouverte par le bouton « Éditeur » du
-## menu) ouvre la campagne du paramètre `campagne` (la Diligence sans lui), avec le `projet` que sert
+## menu) ouvre la campagne du paramètre `campagne`, sans lui le premier projet manuscrit que liste `GET depot/` parmi
+## les campagnes que le jeu remet (`campagnes`), sinon la première remise, avec le `projet` que sert
 ## `GET depot/<id>` s'il répond (`PontDuNoyau.requeter`), une fois les modèles du serveur indexés et retenus
 ## (`MontageDeComposition.indexer_les_modeles`, rien d'ouvert sans eux), pose le monde rendu (`Monde.poser`, son manifeste et les morceaux dont
 ## l'empreinte a bougé, `morceaux` de source `edition`), masqué au-dessus de la couche éditée (`retrait`), ses arêtes
@@ -54,8 +55,6 @@ extends Node
 ## porte `chapitre` le charge par `GET source/<book>/<ch>.md` et rend au pont `{ geste: 'chapitre', book, ch, texte }`,
 ## `texte` nul s'il ne répond pas. Une réponse qui porte `essai` ouvre le combat (`projet/scenes/Combat.tscn`), qui démarre l'essai (`PontDuNoyau.essai`).
 
-## La campagne qui s'ouvre sans `campagne` à l'adresse : celle de la Diligence, la carte que l'éditeur bâtit (#3508).
-const CAMPAGNE := "la-diligence"
 ## Le dossier des calques gardés, et de leurs planches.
 const CALQUES := "user://calques"
 
@@ -108,8 +107,9 @@ func _ready() -> void:
 		_panne.text = "\n".join(PackedStringArray(recueil))
 	if not retenus:
 		return
-	var campagne := _pont.parametre("campagne")
-	_campagne = campagne if campagne != "" else CAMPAGNE
+	_campagne = _pont.parametre("campagne")
+	if _campagne == "":
+		_campagne = await _premiere_campagne()
 	var ouvrir := {ouvrir = _campagne}
 	if FileAccess.file_exists(_fichier_des_calques()):
 		ouvrir.calques = FileAccess.get_file_as_string(_fichier_des_calques())
@@ -122,6 +122,20 @@ func _ready() -> void:
 				if manifeste != "":
 					ouvrir.manifeste = manifeste
 				_suivre(_pont.appeler("editer", ouvrir))))
+
+
+## La campagne qui s'ouvre sans `campagne` à l'adresse (#4936) : le premier projet manuscrit que liste le dépôt
+## (`GET depot/`) parmi les campagnes que le jeu remet au pont (`campagnes`), sinon la première remise.
+func _premiere_campagne() -> String:
+	var remises: Array = _pont.appeler("campagnes").campagnes
+	var hors_du_depot: Array[String] = []
+	var liste := await _pont.requeter("depot/", hors_du_depot)
+	var manuscrits: Variant = JSON.parse_string(liste.get_string_from_utf8()) if not liste.is_empty() else null
+	if manuscrits is Array:
+		for id in manuscrits:
+			if id in remises:
+				return id
+	return remises[0]
 
 
 ## Les morceaux associés au manifeste de cette réponse, sans nappe ni couronne. En cas de pose en cours,
