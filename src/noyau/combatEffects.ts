@@ -718,7 +718,7 @@ export function porterOpsCtx(ctx: OpsCtx): OpsCtxPorte {
  * RECONSTRUIT l'`OpsCtx` porté à sa reprise (étapes `operationsDe`, `testDeclenche`, `choixDeclenche`,
  * `personneChoisie`, clôture `reprendreFlowDeCombat`) — lecture UNIQUE de la partition totale d'`OpsCtx`
  * (`engine/ops`) : la part GELÉE revient verbatim, les Combattants sont retrouvés par ID, et ce qui ne se
- * sérialise pas se REBÂTIT par un chemin nommé (le rng de la partie, les hooks de Corruption et de gain
+ * sérialise pas se REBÂTIT par un chemin nommé (le rng et le catalogue de la partie, les hooks de Corruption et de gain
  * d'Avantage branchés sur l'état, `onOpposingAdvantage` sur le porteur, cf. `OPS_CTX_REBATIS`).
  * `des` est monté par l'applier depuis les étapes sœurs, jamais recopié.
  *
@@ -734,6 +734,7 @@ export function ctxRepris(get: Get, set: SetFn, porte: OpsCtxPorte): OpsCtx | nu
     ...porte.gele,
     rng: battleRng(),
     idNeuf: get().forgerUnId,
+    catalogue: get().catalogue,
     resolveTrapping: objetDuNarratif(get().campaignNarratif),
     ...crochetsDeCorruption(get, set),
     ...campAdvantageHooks(get),

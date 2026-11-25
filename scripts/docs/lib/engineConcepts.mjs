@@ -32,6 +32,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/bargain.ts', 'Marchandage, négociation de prix'],
   ['src/engine/bodyForm.ts', 'Gabarit corporel par espèce'],
   ['src/engine/cadence.ts', 'Cadence de tir'],
+  ['src/engine/catalogueDu.ts', "Catalogue d'un contexte du moteur : celui de la partie, sinon celui du processus"],
   ['src/engine/fabriqueDId.ts', "Fabrique d'ids du monde : requise par tout site qui forge, le compteur vit dans l'état"],
   ['src/engine/favor.ts', 'Faveurs dues'],
   ['src/engine/faits.ts', 'Faits appliqués par les ops : conséquences en données et leur texte de journal'],

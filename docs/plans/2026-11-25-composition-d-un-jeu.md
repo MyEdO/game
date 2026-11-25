@@ -232,7 +232,7 @@ hôte compose un catalogue, et il le remet à sa partie.
   - L'hôte possède la bibliothèque, la composition et le stockage des règles maison (`src/hote/reglesMaison.ts`),
     par `src/hote/catalogue.ts`. Les hôtes sont le pont Godot, l'hôte texte et la page du roguelite.
   - La partie possède son catalogue. Il entre par `EntreesDeLaPartie.catalogue`, qui remplace `reglesMaison`
-    (`src/noyau/partie.ts:47`) : une seule source.
+    (`src/noyau/partie.ts:49`) : une seule source.
   - Le catalogue est porté par une interface de valeur, `CatalogueDeLaPartie` (`JeuDuNoyau = Jeu & MachinerieDuNoyau
     & CatalogueDeLaPartie`), que compose le propriétaire. `MachinerieDuNoyau` est un lexique d'actions verrouillé à la
     compilation (`src/noyau/fabriquesDuNoyau.ts:358`), et un nom n'y entre pas. Le catalogue est hors d'`EtatDeJeu`,
@@ -240,14 +240,14 @@ hôte compose un catalogue, et il le remet à sa partie.
     clés d'`etatInitialDuJeu()` (`src/noyau/persistance/save.ts:6`).
 - **Un seul geste, la recomposition.** L'hôte recompose, puis remet le catalogue par `Partie.recomposer(catalogue)`.
   - *Ouverture.* L'hôte compose avec les règles de son stockage. `loadRuleOverrides(entrees.reglesMaison)`
-    (`src/noyau/proprietaireDuJeu.ts:91`) disparaît.
+    (`src/noyau/proprietaireDuJeu.ts:96`) disparaît.
   - *Règle maison changée.* Les écrivains de la surface passent à `src/hote` : `surchargerUneRegleMaison`,
     `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:409`, `src/noyau/reglesMaison.ts`).
   - *Sauvegarde.* `snapshotSave` reçoit les règles du catalogue de la partie, et non plus `ruleOverrides()`
-    (`hotes/godot/pont/pont.ts:1167`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
+    (`hotes/godot/pont/pont.ts:1168`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
   - *Coop.* L'hôte envoie les règles de son catalogue (`src/noyau/coop.ts:39`). Chez l'invité, la réception ne charge
     plus rien (`coop.ts:58-59`). L'hôte de l'invité tient l'instantané avant de le remettre à la partie
-    (`hotes/godot/pont/pont.ts:809,1948`). Il en lit les règles par `unpackHouseRules` (`src/noyau/persistance/save.ts:107`),
+    (`hotes/godot/pont/pont.ts:810,1949`). Il en lit les règles par `unpackHouseRules` (`src/noyau/persistance/save.ts:107`),
     exposé à la surface. Il recompose, appelle `Partie.recomposer`, puis `recevoir` : l'instantané s'applique sous les
     règles de l'hôte.
   - *Compendium.* Voir le point 4.
@@ -256,7 +256,7 @@ hôte compose un catalogue, et il le remet à sa partie.
 - Une fonction qui lit la base reçoit `cat: Catalogue` en **dernier** paramètre. Un paramètre optionnel qui le précède
   devient `X | undefined`.
 - Si la fonction reçoit déjà un contexte, le catalogue va dans ce contexte, et jamais aux deux places : `OpsCtx`
-  (`src/engine/ops.ts:523`) et `ContexteDuTest` (`src/engine/decisionDuTest.ts:20`).
+  (`src/engine/ops.ts:524`) et `ContexteDuTest` (`src/engine/decisionDuTest.ts:21`).
 - `OpsCtx.resolveTrapping` reste le résolveur de la couche narrative (`src/noyau/monde/resolveursDuNarratif.ts:45-49`) :
   il cherche d'abord dans les objets du paquet, puis dans `cat`.
 - Un flux du noyau lit `get().catalogue`. Un utilitaire du noyau sans `get` reçoit `cat`.

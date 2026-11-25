@@ -21,6 +21,7 @@ import { lancerLeScenario, type LancementDeScenario } from './lancementDeScenari
 import { bus, EVT, type ChargesDuBus, type TestJete } from './bus';
 import { verbeDeJetDe, type RollVerb } from './flowVerbs';
 import type { Cadence } from '../engine/cadence';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
 import { patchDeLEquipement } from './monde/carrier';
 import { detientLAutoriteDuJeu } from './netOwnership';
 import { testJeteEnVue, testsJetesMasques } from './jetsEnVue';
@@ -73,6 +74,8 @@ export interface Partie {
   /** L'état de la partie, branchée d'abord tant qu'elle est ouverte. */
   etat: Get;
   reprojeterLEquipement: () => void;
+  /** Remplace le catalogue de la partie par `catalogue` (#5069). */
+  recomposer: (catalogue: Catalogue) => void;
   /** Relance les automates de la partie à la cadence choisie par son hôte. */
   reprendreLaCadence: () => ResultatDeLAppel;
   /** Joue l'intention : au nom de son `siege` s'il est posé (`appliquerLIntentionDUnSiege`), sinon par l'action de
@@ -234,6 +237,10 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     reprojeterLEquipement: () => {
       brancheePour('reprojeterLEquipement');
       set(patchDeLEquipement(get()) ?? {});
+    },
+    recomposer: (catalogue) => {
+      brancheePour('recomposer');
+      proprietaire.recomposer(catalogue);
     },
     reprendreLaCadence: () => appeler('reprendreLaCadence', () => {
       const avant = get();

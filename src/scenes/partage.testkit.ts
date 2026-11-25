@@ -56,6 +56,7 @@ export const RACINES_EXCLUES: Readonly<Record<string, string>> = {
   campaignNarratif: 'narratif de la campagne chargée',
   campaignDoc: 'paquet de la campagne chargée (scènes, carte, narratif)',
   worldMap: 'carte du monde du projet, lue et jamais écrite en jeu (le même objet que `campaignDoc.worldMap`)',
+  catalogue: 'catalogue de la partie (`CatalogueDeLaPartie`), composé des documents de la bibliothèque',
 };
 
 const objetsDUneSource = new WeakMap<object, Set<object>>();
