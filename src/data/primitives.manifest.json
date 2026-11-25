@@ -518,7 +518,7 @@
     "label": "trappingsEnVente/bandeDe",
     "fichier": "src/data/index.ts",
     "concept": "vue des trappings OFFERTS au joueur : les instanciables ouverts par leur règle optionnelle (`gatedByRule`), moins les pièces d'armure qu'une armure d'une pièce remplace (`bandeDe`, sa règle active, armures de monture exclues)",
-    "perimetre": "fabrication (`craftCatalog`), commande (`orderCatalog`), stock marchand (`computeFreshStockLines`) ; `bandeDe` : cases de carrière (`casesDeCarriere.ts`)",
+    "perimetre": "fabrication (`craftCatalog`), commande (`orderCatalog`), stock marchand (`computeFreshStockLines`) ; `bandeDe` : cases de carrière (`casesDeCarriere.ts`), conversion des possessions (`armuresRapides`, `src/engine/items.ts`)",
     "verrou": "src/data/armure-regles-rapides.test.ts"
   },
   {

@@ -2594,6 +2594,13 @@ Lectures tranchées (#4208, arbitrages du 2026-11-24) :
 - **Option active, les armures par pièces sont remplacées en vente** par les trois armures d'une pièce : #4208 c.7144445060 « Remplacées », appui `LDB 63 l.97` et `Aventures à Ubersreik 07 l.88` (« une Armure de plate complète (ou une Armure lourde, si vous utilisez l'option des règles rapides d'Armure) »).
 - **Armures de monture** : bardes et caparaçons ne sont pas convertis et restent en vente ; l'option vise les armures de personnage (`LDB 63 l.13` ; #4208 c.7145490398 « Oui, les cinq », proposition 3).
 
+Lectures de conversion des armures possédées (#4208) :
+
+- **Chaque pièce compte** : option active, chaque pièce possédée devient l'armure de son groupe sur les six Localisations (cuir légère, mailles moyenne, plate lourde), puis la superposition s'applique (#4208 c.7145166938 « P1, chaque pièce compte »).
+- **Possessions** : la conversion vaut pour toute armure possédée, dotation de création, Possessions des niveaux, inventaire d'une sauvegarde et possessions du groupe (#4208 c.7144461611).
+- **PNJ** : une pièce portée par un PNJ se lit dans son groupe comme une pièce nommée par un livre (#4208 c.7144445060 « Remplacées »).
+- **Doublons et qualités** : les pièces qui deviennent la même armure en donnent une seule ; une pièce qui porte une qualité qu'aucune pièce du Livre de base de son type ne porte la garde une fois convertie (#4208 c.7145490398 « Oui, les cinq », propositions 1 et 4) ; désactiver l'option ne rend pas les pièces (même commentaire, ingénierie).
+
 ### Réparer une Armure (LDB 63 l.63-66)
 
 - Réparer une armure coûte **10 % de son prix de base PAR PA perdu**.

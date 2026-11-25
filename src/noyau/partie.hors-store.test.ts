@@ -533,13 +533,13 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
     });
     try {
       expect(partie.etat().party).toEqual([]);
-      reglerUneRegleMaison(null, partie.etat(), 'test-bandes-auto', 'off', partie.reprojeterLArmement);
-      remettreUneRegleMaison(null, partie.etat(), 'test-bandes-auto', partie.reprojeterLArmement);
+      reglerUneRegleMaison(null, partie.etat(), 'test-bandes-auto', 'off', partie.reprojeterLEquipement);
+      remettreUneRegleMaison(null, partie.etat(), 'test-bandes-auto', partie.reprojeterLEquipement);
       expect(publications).toEqual([]);
-      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
-      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLArmement);
-      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLArmement);
-      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLArmement);
+      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLEquipement);
+      reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLEquipement);
+      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLEquipement);
+      remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLEquipement);
       expect(publications).toEqual([{ [regle]: true }, {}]);
     } finally {
       arreter();

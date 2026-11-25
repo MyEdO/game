@@ -21,7 +21,7 @@
 import { RNG, roll, rollDice, fluxDerive, tirerUn } from './dice';
 import { findTableEntry } from './tables';
 import { garanti } from '../lib/garanti';
-import { contexteDeNaissanceDObjet, recomputeLoadout, emptyArmour } from './items';
+import { armuresRapides, contexteDeNaissanceDObjet, recomputeLoadout, emptyArmour } from './items';
 import { doterLePorteur } from './bourse';
 import { groupsFor } from './groups';
 import { CharKey, CHAR_KEYS, Characteristics, Combatant, SkillInstance, TalentInstance, HeroDetails, type ItemInstance } from './types';
@@ -635,7 +635,7 @@ export interface HerosResolu {
 }
 
 /** Le héros des valeurs résolues `r`, sans tirage : Traits d'espèce, Taille, Blessures, effets d'acquisition des
- *  Talents, Chance et Détermination, sorts, loadout. */
+ *  Talents, Chance et Détermination, sorts, armures d'une pièce (`armuresRapides`), loadout. */
 export function assemblerLeHeros(r: HerosResolu): Combatant {
   const sp = r.espece;
   // Trait RACIAL de l'espèce (#572) — Ogre `{id:'ogre'}` (encombrance/consommation ×2, ADE2 « Ogres
@@ -660,7 +660,7 @@ export function assemblerLeHeros(r: HerosResolu): Combatant {
     conditions: [],
     weapons: [],
     armour: emptyArmour(),
-    items: r.items,
+    items: armuresRapides(r.items),
     ...(r.mentions ? { mentions: r.mentions } : {}),
     skills: r.skills,
     talents: r.talents,
