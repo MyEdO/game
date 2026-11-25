@@ -318,7 +318,7 @@
     "group": "Combat",
     "kind": "flag",
     "default": false,
-    "reprojetteArmement": true,
+    "reprojetteEquipement": true,
     "hint": "Applique les profils réimprimés dans Aux Armes. Désactivé, utilise les profils du Livre de base."
   },
   {
@@ -1738,7 +1738,8 @@
     "group": "Possessions",
     "kind": "flag",
     "default": false,
-    "hint": "Les armures légère, moyenne et lourde, d’une pièce, remplacent en vente les armures par pièces. Les armures de monture restent en vente. Désactivé par défaut."
+    "reprojetteEquipement": true,
+    "hint": "Les armures légère, moyenne et lourde, d’une pièce, remplacent en vente les armures par pièces. Les armures de monture restent en vente. Les pièces déjà possédées se fondent dans leur armure d’une pièce, et désactiver l’option ne rend pas les pièces. Désactivé par défaut."
   },
   {
     "id": "mer-carte-orientation-dr",

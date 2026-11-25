@@ -128,7 +128,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       const cout = toBrass(coutDeReparation(ligne().item, findTrappingById));
       expect(cout).toBeGreaterThan(0);
 
-      reglerUneRegleMaison(null, partie.etat(), 'combat-aa-armement', true, partie.reprojeterLArmement);
+      reglerUneRegleMaison(null, partie.etat(), 'combat-aa-armement', true, partie.reprojeterLEquipement);
       expect(ligne().refus).toBe(t('mf.irreparable', { label: briseEpee.label }));
       expect(toBrass(coutDeReparation(ligne().item, findTrappingById))).toBe(0);
       const avant = bourseDuGroupe(partie);
@@ -136,7 +136,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       expect(bourseDuGroupe(partie)).toBe(avant);
       expect(ligne().item.damageTaken).toBe(1);
 
-      remettreUneRegleMaison(null, partie.etat(), 'combat-aa-armement', partie.reprojeterLArmement);
+      remettreUneRegleMaison(null, partie.etat(), 'combat-aa-armement', partie.reprojeterLEquipement);
       expect(ligne().refus).toBeNull();
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', briseEpee.uid] });
       expect(avant - bourseDuGroupe(partie)).toBe(cout);

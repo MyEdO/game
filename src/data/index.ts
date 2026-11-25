@@ -1247,7 +1247,7 @@ export const trappingsInstanciables = memoParVersion(['trappings', 'reglesOption
   trappingsEffectifs().filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
 /** Entrée OUVERTE au joueur (carrière, espèce, objet) : sans `gatedByRule`, ou sa règle optionnelle active.
  *  ADE I 07 l.9 ; NADJ 14 l.5 ; ADE II 02 l.110 ; #4208 */
-export const ouvertParSaRegle = (e: Pick<CareerData | SpeciesData | TrappingData, 'gatedByRule'>): boolean => !e.gatedByRule || !!rule(e.gatedByRule.id);
+export const ouvertParSaRegle = (e: CareerData | SpeciesData | TrappingData): boolean => !e.gatedByRule || !!rule(e.gatedByRule.id);
 const bandesActives = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
   trappingsInstanciables().filter((t) => t.remplace && ouvertParSaRegle(t)));
 /** L'armure d'une pièce, sa règle active, qui remplace en vente la pièce d'armure `trappingId` (son type parmi
@@ -1259,6 +1259,20 @@ export function bandeDe(trappingId: string): TrappingData | undefined {
   const type = piece.subType?.id;
   return type === undefined ? undefined : bandesActives().find((b) => b.remplace!.some((r) => r === type));
 }
+const qualitesDesPiecesParLivre = memoParVersion('trappings', () => {
+  const parLivreEtType = new Map<string, Set<string>>();
+  for (const t of trappings) {
+    if (t.categorie !== 'armor' || t.remplace || !t.subType) continue;
+    const cle = `${t.source.book}:${t.subType.id}`;
+    const qualites = parLivreEtType.get(cle) ?? new Set<string>();
+    for (const q of t.qualities ?? []) qualites.add(q.id);
+    parLivreEtType.set(cle, qualites);
+  }
+  return parLivreEtType;
+});
+/** Les qualités que porte une pièce d'armure du livre `livre` de type `type`. #4208 */
+export const qualitesDesPiecesDuLivre = (livre: string, type: string | undefined): ReadonlySet<string> =>
+  (type === undefined ? undefined : qualitesDesPiecesParLivre().get(`${livre}:${type}`)) ?? new Set();
 /** Les objets OFFERTS au joueur (fabrication, commande, stock marchand) : `trappingsInstanciables` ouverts par leur
  *  règle (`gatedByRule`) et non remplacés par une armure d'une pièce (`bandeDe`). #4208 */
 export const trappingsEnVente = memoParVersion(['trappings', 'reglesOptionnelles'], () =>

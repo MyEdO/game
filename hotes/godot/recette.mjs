@@ -3,7 +3,8 @@
 // - `--natif` (#3945, `pilotage/natif.mjs`) : sans export ni navigateur, le jeu lancé sur une copie importée du projet,
 //   sans rendu, son pont et son serveur dans ce processus ; `--rendu <méthode>` le lance en rendu réel sur un écran
 //   virtuel, ce qu'attend un parcours qui lit l'image (`RENDUS_EN_NATIF`, `lot-de-recettes.mjs`). `--statique` s'y
-//   refuse ; sans rendu, une capture se saute, notée ;
+//   refuse ; sans rendu, une capture se saute, notée ; `--entree <module>` y nomme l'entrée du jeu dont le pont
+//   démarre (`poserLEntree`, `construire.mjs`), hors d'une préparation de lot, qui porte la sienne ;
 // - `--web <export>` (`pilotage/page.mjs`) : l'export Web (`node hotes/godot/construire.mjs --export --sortie <web>`)
 //   servi par `servir.mjs`, Chromium piloté sur le canevas.
 // Godot publie ce que l'écran porte (`globalThis.wfrpEcran`, `pont/CONTRAT.md`, section « Écran publié ») : le texte et
@@ -298,7 +299,7 @@ import { tmpdir } from 'node:os'
 import { basename, dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { parseArgs } from 'node:util'
-import { chronometrer } from './construire.mjs'
+import { chronometrer, poserLEntree } from './construire.mjs'
 import { FIL_DE_LA_PAGE_MS } from './servir.mjs'
 import { VUE_DE_BASE, encoderPng } from './planches.mjs'
 import { LISTAGE } from './listage.mjs'
@@ -312,10 +313,12 @@ import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
 
 const chaine = { type: 'string' }
 const { values: o } = parseArgs({
-  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, instant: chaine, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, 'preparation-native': chaine },
+  options: { parcours: { type: 'string', default: 'combat' }, web: chaine, captures: chaine, scenario: { type: 'string', default: 'dome' }, graine: { type: 'string', default: '7' }, modeles: chaine, base: chaine, element: chaine, reexport: chaine, piece: chaine, vues: chaine, route: chaine, preset: chaine, planche: chaine, clip: { type: 'string', default: 'Sword_Attack' }, instant: chaine, statique: { type: 'boolean' }, natif: { type: 'boolean' }, rendu: chaine, entree: chaine, 'preparation-native': chaine },
 })
 const preparation = o['preparation-native']
 if (preparation !== undefined && (!o.natif || !preparation)) throw new Error('--preparation-native attend le dossier de préparation d’un lot natif')
+if (o.entree !== undefined && (!o.natif || preparation !== undefined)) throw new Error('--entree <module> nomme l’entrée du jeu du pont natif qu’aucun lot n’a préparé : l’export porte la sienne, la préparation du lot aussi')
+poserLEntree(o.entree)
 if (o.statique && o.modeles) throw new Error('--statique sert les modèles déposés dans l’export : --modeles hors de propos')
 if (!o.web === !o.natif || !o.captures || (o.rendu && !o.natif)) throw new Error('usage : node hotes/godot/recette.mjs (--web <dossier de l’export> | --natif [--rendu <méthode>]) --captures <dossier> [--parcours <nom>] ; les parcours : l’en-tête du fichier')
 if (o.parcours === 'atelier' && o.modeles && !(o.base && o.element && o.reexport)) throw new Error('--parcours atelier avec --modeles <dossier neuf> attend --base, --element et --reexport <dossier de production>')

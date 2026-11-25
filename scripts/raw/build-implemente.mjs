@@ -17,7 +17,10 @@ export const RAWDIR = 'docs/raw'
 export const MANIFEST_EDITORIAL_RE = /^src\/data\/[^/]+\.manifest\.json$/
 export const MANIFEST_PATH = 'src/data/raw.manifest.json'
 export const BOOKS_JSON_PATH = 'src/data/books.json'
-export const APP_ROOT_MODULE = 'hotes/godot/pont/entree.ts'
+/** Les racines de l'application, dont la clôture d'imports sous `src/` (`closureOf`) est le code joué (`⚠hors-app`
+ *  hors d'elle) : le démarrage du pont et les deux contenus que ses entrées lui remettent, celui de test du commun et
+ *  celui du jeu de rôle (#4936). */
+export const APP_ROOT_MODULES = ['hotes/godot/pont/entree.ts', 'hotes/godot/pont/entree-commune.ts', 'hotes/godot/pont/contenu-jeu-de-role.ts']
 // Fenêtre de match en lignes : comble le décalage folio↔fiche (ex. `MSRC 16 l.109-111` contre la
 // plage folio `l.65-105`) ; `renderBlock` accepte `ctx.tol`. Le bruit des pages-catalogues denses
 // vient de la plage FOLIO, pas de TOL (#434).
@@ -631,7 +634,7 @@ export function couvertureDe(entree, topics, dette) {
 /** Contexte complet (index code + closure + dette) + parse de toutes les fiches. */
 export function buildContext({ rawDir = RAWDIR, racines = RACINES_DU_CODE, manifestPath = MANIFEST_PATH, booksPath = BOOKS_JSON_PATH } = {}) {
   const index = indexCode(racines, loadAbbrMap(booksPath))
-  const closure = closureOf([APP_ROOT_MODULE])
+  const closure = closureOf(APP_ROOT_MODULES)
   const fiches = pagesDeLAtlas(rawDir, { classes: CLASSES }).map(({ relatif: doc, chemin }) => {
     const content = readText(chemin)
     return { doc, content, parsed: parseFiche(doc, content) }

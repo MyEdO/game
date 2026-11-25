@@ -7,7 +7,7 @@
  * Deux façons de désigner une carte, un seul rapport :
  *   npm run map:check -- opera                              (clé du registre : position FICHIER:LIGNE:COLONNE
  *   npm run map:check -- opera --carte                       dans la grille ASCII source + extrait, curseur `^`)
- *   npm run map:check -- src/scenes/diligence/diligence-projet.json
+ *   npm run map:check -- src/scenes/fixtures/paquet-de-test.json
  *                                                           (projet exporté par l'éditeur : COORDONNÉES de case,
  *                                                            aucune grille ASCII n'existant derrière)
  */

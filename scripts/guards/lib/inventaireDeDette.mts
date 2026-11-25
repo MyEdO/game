@@ -2,7 +2,8 @@
  * INVENTAIRE DE LA DETTE QUE LA DONNÉE RÉVÈLE (#2995) : les cases de référence en forme non cible ou sans slot
  * (une ligne par case), les formes de valeur historiques ou divergentes, les orphelines, les homonymes, les divergences
  * d'enveloppe hors `source` absente (celle-ci est refusée au parse, `exigeSource`) et les clés déclarées jamais portées,
- * mesurés sur la donnée des deux racines (`scanDuCorpus`, `scripts/docs/lib/structures-scan.mts`). HORS DE LA PORTE :
+ * mesurés sur `src/data` et les paquets du commun (`scanDuCorpus` à son corpus par défaut, `paquetsDuCommun`,
+ * `scripts/docs/lib/structures-scan.mts`). HORS DE LA PORTE :
  * ni stock commis, ni règle de plage, ni refus — ajouter ou retirer une donnée change l'inventaire, jamais le verdict
  * d'une garde. La dette qu'un changement de CODE fait naître est jugée sous la porte (`SOUS_LA_PORTE`,
  * `occurrencesStock.mjs`) ; un chemin de schéma `idDe` qui cesse de l'être l'est par le plancher `FEUILLES_D_ID`.
@@ -173,7 +174,7 @@ export const INVENTAIRE: readonly CollectionDInventaire[] = [
 export const inventaireDe = (corpus: CorpusDInventaire): LigneDInventaire[] =>
   INVENTAIRE.flatMap((c) => c.mesure(corpus).map((l) => ({ collection: c.nom, ...l })).sort((a, b) => parUnitesDeCode(a.site, b.site)));
 
-/** L'inventaire de la racine `root`. */
+/** L'inventaire de la racine `root` : `src/data` et les paquets du commun. */
 export function inventaireDeLaRacine(root: string): LigneDInventaire[] {
   const { scan, defs, declares } = scanDuCorpus(root);
   return inventaireDe({ scan, defs, declares });
