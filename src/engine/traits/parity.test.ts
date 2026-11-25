@@ -181,7 +181,7 @@ const DISPATCH = new Set<string>([
   // (tirage 1d10/3 Mutations alternées mental/phys, `noyau/monde/spawn.spawnMutations` — PLUS LÉGER que Khorne :
   // ni Frénésie ni blocage d'incantation, non RAW pour Tzeentch).
   'Marque de Tzeentch',
-  // Ogre (ADE II 2 l.708, folio 31) : `capabilities.encumbranceFactor`/`consumptionFactor` (donnée)
+  // Ogre (ADE II 2 l.755, folio 31) : `capabilities.encumbranceFactor`/`consumptionFactor` (donnée)
   // — lus par `combatFeatures/dispatch.traitEncumbranceFactor` (composé max talent/trait dans `items.maxEncumbrance`)
   // et `provisions.traitConsumptionFactor` (composé dans `dailyFoodUpkeep`). Canal
   // dispatch (capability lue par id, MÊME lecture ciblée `c.traits` que Marque de Khorne).

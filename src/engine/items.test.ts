@@ -720,7 +720,7 @@ describe('items — recomputeLoadout / encombrement', () => {
     const c = { characteristics: { force: 30, endurance: 30 }, talents: [{ talentId: 'costaud', times: 1 }] } as unknown as Combatant;
     expect(maxEncumbrance(c)).toBe(3 + 3 + 2); // BF+BE + Costaud×2
   });
-  it("totalEncumbrance : `sizeFor` ne double JAMAIS l'Enc à l'exécution — le catalogue ogre est déjà saisi à son Enc final (ADE II 2 l.604/l.708, valeurs vérifiées contre les tables l.609-654)", () => {
+  it("totalEncumbrance : `sizeFor` ne double JAMAIS l'Enc à l'exécution — le catalogue ogre est déjà saisi à son Enc final (ADE II 2 l.651/l.755, valeurs vérifiées contre les tables l.656-701)", () => {
     const native = { items: [item({ label: 'Massue ogre', enc: 2, sizeFor: 'grande' })] } as unknown as Combatant;
     expect(totalEncumbrance(native)).toBe(2);
     const noSizeFor = { items: [item({ label: 'Épée', enc: 1 })] } as unknown as Combatant;
@@ -1052,7 +1052,7 @@ describe('Munitions & rechargement', () => {
     const munitions = trappings.filter((t) => t.categorie === 'ammunition');
     const charge = (armeId: string, munitionId: string) => chargeLArme(findTrappingById, objet(munitionId), objet(armeId));
     const armesQuiChargent = (munitionId: string) => distances.filter((a) => charge(a.id, munitionId)).map((a) => a.id).sort();
-    it('Pistolet : balle et poudre seule parmi les munitions à poudre que le livre réserve (LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; ADE II 02 l.665)', () => {
+    it('Pistolet : balle et poudre seule parmi les munitions à poudre que le livre réserve (LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; ADE II 02 l.712)', () => {
       expect(charge('pistolet', 'balle-et-poudre')).toBe(true);
       for (const m of ['petites-munitions-et-poudre', 'munitions-improvisees-et-poudre', 'ferraille-et-poudre', 'balle-crache-plomb', 'boulet-crache-plomb', 'grappin-munition', 'bombe-explosive'])
         expect(charge('pistolet', m), m).toBe(false);
@@ -1064,15 +1064,15 @@ describe('Munitions & rechargement', () => {
       ['grappin-munition', ['mortier-a-main']], // AA 08 l.534
       ['bombe-explosive', ['mortier-a-main']], // AA 08 l.521-523
       ['balle-de-gros-calibre-et-poudre', ['haquebute', 'mortier-a-main']], // AA 08 l.517
-      ['balle-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.665
-      ['boulet-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.665
+      ['balle-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.712
+      ['boulet-crache-plomb', ['canon-crache-plomb']], // ADE II 02 l.712
     ])('les armes à distance qui chargent %s : exactement %j', (munitionId, attendues) => {
       expect(armesQuiChargent(munitionId)).toEqual(attendues);
     });
     it.each([
       ['tromblon', 'petites-munitions-et-poudre'], // AA 08 l.482
       ['mortier-a-main', 'bombe-explosive'], // AA 08 l.509
-      ['canon-crache-plomb', 'balle-crache-plomb'], // ADE II 02 l.665
+      ['canon-crache-plomb', 'balle-crache-plomb'], // ADE II 02 l.712
     ])('%s : sa munition représentative est %s', (armeId, munitionId) => {
       expect(objet(armeId).defaultAmmo).toBe(munitionId);
     });

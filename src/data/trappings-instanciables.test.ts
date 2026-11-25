@@ -141,7 +141,7 @@ describe('arme au choix — aucune arme magique (ZI 13 l.862 ; VDM 12 l.3)', () 
   });
 });
 
-describe('arme au choix — à la Taille du porteur (ADE II 2 l.604 ; ADE II 2 l.710 ; arbitrage #4110)', () => {
+describe('arme au choix — à la Taille du porteur (ADE II 2 l.651 ; ADE II 2 l.757 ; arbitrage #4110)', () => {
   const jokers = careers
     .flatMap((c) => emplacementsDeDotation([...dotationsDuHeros(c.id), ...dotationsDuPnj(c.id, 4)]))
     .filter((e) => e.sorte === 'joker');

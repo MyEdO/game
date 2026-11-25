@@ -2213,7 +2213,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const objet = tenue && (objetSourceDeLArme(target, tenue)
           ?? ficheDObjetPorte(tenue, ctx.resolveTrapping ?? findTrappingById));
         if (objet && itemCapability(objet, 'disarmImmune')) {
-          // ADE II 02 l.695.
+          // ADE II 02 l.742.
           lines.push(t('op.desarmementImmunise', { name: nomDe(target), item: objet.label }));
         } else if (!tenue) {
           lines.push(t('op.desarmementVain', { name: nomDe(target) }));

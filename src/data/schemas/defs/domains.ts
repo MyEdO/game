@@ -61,7 +61,7 @@ const doc = document(
 
     /** LDB 47 l.509 */
     arcane: ref('breathType').optional(),
-    /** ADE II 02 l.733. */
+    /** ADE II 02 l.780. */
     onlyGroups: refs('groupe', { sousListe: CIBLE_D_APPARTENANCE, min: 1 }).optional(),
     /** VDM 02 l.192 ; LDB 50. */
     dark: z.boolean().optional(),

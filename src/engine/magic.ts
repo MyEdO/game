@@ -100,7 +100,7 @@ export function hasTalent(c: Combatant, talentId: string): boolean {
 }
 
 /** Test de la famille Incantation : sa Compétence, et si la Caractéristique d'incantation que porte un Trait du
- *  lanceur la remplace (`TraitCapabilities.castingChar`). ADE II 2 l.728 */
+ *  lanceur la remplace (`TraitCapabilities.castingChar`). ADE II 2 l.775 */
 export interface TestDIncantation {
   skill: RefDesignee;
   caracDuLanceur?: true;
@@ -264,7 +264,7 @@ export function prayerTalentMissing(c: Combatant, spell: SpellLike): 'beni' | 'i
  * Caractéristique d'un Test d'incantation — POINT UNIQUE, lu par la valeur du Test (`castingValue`)
  * comme par le plafond de Soutien (LDB 12 l.198). Carac d'instance (data-driven, `skills.ts`) sinon
  * celle de `skills.json`. Surcharge par un Trait du lanceur quand le Test la déclare (`caracDuLanceur`) :
- * capacité `castingChar` du Trait, aucun sniff d'espèce. ADE II 2 l.728
+ * capacité `castingChar` du Trait, aucun sniff d'espèce. ADE II 2 l.775
  */
 export function castingCharKey(c: Combatant, test: TestDIncantation): CharKey {
   const duTrait = test.caracDuLanceur ? (c.traits ?? []).map((t) => findTraitById(t.id)?.capabilities?.castingChar).find((k) => k !== undefined) : undefined;

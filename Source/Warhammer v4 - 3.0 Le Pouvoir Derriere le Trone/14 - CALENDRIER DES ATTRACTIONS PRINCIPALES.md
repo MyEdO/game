@@ -385,4 +385,100 @@ POUR KARL
 
 *Tous mes vœux de santé et de bonheur,*
 
- *MM*<span id="page-161-0" data-folio="159"></span><span id="page-162-0" data-folio="160"></span><span id="page-163-0" data-folio="161"></span><span id="page-166-0" data-folio="164"></span>
+ *MM*<span id="page-161-0" data-folio="159"></span><span id="page-162-0" data-folio="160"></span><span id="page-163-0" data-folio="161"></span>
+
+### <span id="page-164-0" data-folio="162"></span>RELATIONS ET MACHINATIONS À LA COUR DE MIDDENHEIM
+
+**TODBRINGER**
+
+**X « VOTES » D'INFLUENCE AVEC LE GRAF**
+
+**LES DAMES DE LA COUR**
+
+- **PETRA LIEBKOSEN** *La personnalité mondaine*
+- **KIRSTEN JUNG** *Émissaire*
+- **NATASHA SINNLICH** *La Courtisane ambitieuse*
+
+**DIETER SCHMIEDEHAMMER** *Le Champion du Graf* (1)
+
+**EMMANUELLE SCHLAGEN** *La Favorite* (2)
+
+**PRESQUE TOUTES** *les Personnes influentes*
+
+**LES MILITAIRES** (1)
+
+- **ULRICH SCHUTZMANN** *Commandant de la Garde*
+- **JOHANN SCHWERMUTT** *Général*
+
+**LA BARONNIE DU NORDLAND**
+
+**MAXIMILLIAN VON GENSCHER** *Middenmarshal*
+
+**LES VON WITTGENSTEIN DU REIKLAND**
+
+**AR-ULRIC JARRICK VALGEIR** *Le Grand Prêtre* (1)
+
+**ANIKA-ELISE NIKSE** *La défunte femme du Graf*
+
+**JOSEF SPARSAM** *Le Chancelier* (2)
+
+- KIRSTEN JUNG — *Fiancés* — DIETER SCHMIEDEHAMMER
+- DIETER SCHMIEDEHAMMER — *Amis* — RALLANE LAFAREL
+- PETRA LIEBKOSEN, KIRSTEN JUNG — *Peut organiser une rencontre avec* — PRESQUE TOUTES les Personnes influentes
+- EMMANUELLE SCHLAGEN — *Romance* — AR-ULRIC JARRICK VALGEIR
+- ANIKA-ELISE NIKSE — LA BARONNIE DU NORDLAND
+- ANIKA-ELISE NIKSE — *Dans le Spectre de Jade avec* — GOTTHARD WALLENSTEIN
+- GOTTHARD WALLENSTEIN — *Fils rebelle de* — LES VON WITTGENSTEIN DU REIKLAND
+
+**SIEGFRIED PRUNKVOLL** *Le Chevalier Éternel*
+
+**GOTTHARD WALLENSTEIN** *Le Kommission Convenor*
+
+<span id="page-165-0" data-folio="163"></span>**RALLANE LAFAREL** *Le Ménestrel de la cour* (1)
+
+**ALLAVANDREL FANMARIS** *Grand-Veneur*
+
+**HEINRICH TODBRINGER** *Le Fils Illégitime*
+
+**KATARINA TODBRINGER** *La « Princesse »* (3)
+
+**BORIS TODBRINGER** *Le Graf de Middenheim*
+
+**BRUNHILDE KLAGLICH** *Le Redoutable bras droit*
+
+**LES SORCIERS** (1)
+
+- **ALBRECHT HELSEHER** *Le Grand Sorcier*
+- **JANNA EBERHAUER** *Le Substitut du Grand Sorcier*
+
+**HILDEGARDE ZIMPERLICH** *Chaperon* (1)
+
+**BRUNO KOHL** *Le Pharmacologue*
+
+**STEFAN TODBRINGER** *L'Héritier*
+
+**LUIGI PAVAROTTI** *Le Médecin du Baron* (1)
+
+**SEIGNEURS DES LOIS** (3)
+
+- **KARL-HEINZ WASMEIER** *Seigneur des Lois & Cultiste*
+- **JOACHIM HOFLICH** *Seigneur des Lois & Doppelgänger*
+- **REINER EHRLICH** *Seigneur des Lois*
+
+- RALLANE LAFAREL — *Amis* — ALLAVANDREL FANMARIS
+- DIETER SCHMIEDEHAMMER — *Amis* — ALLAVANDREL FANMARIS
+- RALLANE LAFAREL — *Éprouve des sentiments pour* — KATARINA TODBRINGER
+- HILDEGARDE ZIMPERLICH — *Protège de façon obsessionnelle* — KATARINA TODBRINGER
+- EMMANUELLE SCHLAGEN — *Romance* — BORIS TODBRINGER
+- BORIS TODBRINGER — *Famille* — HEINRICH TODBRINGER, KATARINA TODBRINGER, STEFAN TODBRINGER
+- BORIS TODBRINGER — *Fait le deuil de* — ANIKA-ELISE NIKSE
+- JOSEF SPARSAM — *Supervise les impôts* — BORIS TODBRINGER
+- DIETER SCHMIEDEHAMMER — *Hypnotisé* — BRUNHILDE KLAGLICH
+- BRUNHILDE KLAGLICH — *Chantage : Preuves d'infidélité* — AR-ULRIC JARRICK VALGEIR
+- BRUNHILDE KLAGLICH — *Chantage : Addiction* — JOSEF SPARSAM
+- HILDEGARDE ZIMPERLICH — *Tante secrète de* — BRUNO KOHL
+- LUIGI PAVAROTTI — *Doktor/Patient* — STEFAN TODBRINGER
+- BRUNO KOHL — *Fournit du délice de Ranald à* — BRUNHILDE KLAGLICH
+- BRUNHILDE KLAGLICH — *Co-conspirateurs* — KARL-HEINZ WASMEIER
+- KARL-HEINZ WASMEIER — *Co-conspirateurs* — JOACHIM HOFLICH
+- BRUNHILDE KLAGLICH — *Chantage : Retient sa nièce en otage* — REINER EHRLICH<span id="page-166-0" data-folio="164"></span>

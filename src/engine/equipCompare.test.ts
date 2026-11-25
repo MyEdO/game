@@ -106,7 +106,7 @@ describe('compareEquip (accordéon « équiper » du marchand)', () => {
     expect(c.rows[0].trend).toBe('up');
   });
 
-  it('Atout Protectrice sans être un bouclier (ADE II 02 l.613) : comparé comme une arme de mêlée', () => {
+  it('Atout Protectrice sans être un bouclier (ADE II 02 l.660) : comparé comme une arme de mêlée', () => {
     const poing = itemFromTrappingById('poing-de-fer', idsDeTest)!;
     expect(poing.qualities.some((q) => q.id === 'protectrice'), 'PRÉMISSE : porte Protectrice').toBe(true);
     const c = compareEquip(poing, hero({}));

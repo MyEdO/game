@@ -1,7 +1,7 @@
 /**
  * Composants d'incantation, règle courante (LDB 46 l.107-113 ; arbitrage #4132 du 2026-11-16) : objet
  * d'inventaire lié à un Sort, consumé au point d'incantation ; achat (LDB 46 l.113, LDB 49 l.5) ; liaison
- * du joueur et du PNJ ; perte de Blessures du lanceur ogre (ADE II 02 l.726).
+ * du joueur et du PNJ ; perte de Blessures du lanceur ogre (ADE II 02 l.773).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -191,7 +191,7 @@ describe('liaison d’un PNJ au spawn : ses Sorts connus dans l’ordre, en cycl
   });
 });
 
-describe('lanceur ogre sans ingrédient (ADE II 02 l.726)', () => {
+describe('lanceur ogre sans ingrédient (ADE II 02 l.773)', () => {
   function ogre(...items: ReturnType<typeof objetDeTest>[]): Combatant {
     const o = createHero({ idNeuf: idsDeTest, speciesId: 'ogres', careerId: 'boucher-ogre', label: 'Ogre', seed: 5 });
     o.items = [...(o.items ?? []).filter((it) => !itemCapability(it, 'isRations') && !itemCapability(it, 'isSpellComponent')), ...items];

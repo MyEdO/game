@@ -426,7 +426,7 @@ describe('rations des nuits en route — les haltes consomment (LDB 66 l.20)', (
     return 10 - rationCount(banc.getState().party[0]);
   };
 
-  it('Ogre (ADE II 2 l.708) : 3 nuits × 2 = 6 rations', () => {
+  it('Ogre (ADE II 2 l.755) : 3 nuits × 2 = 6 rations', () => {
     expect(nuitsConsommees(hero({ items: dixRations(), traits: [{ id: 'ogre' }] }))).toBe(6);
   });
 

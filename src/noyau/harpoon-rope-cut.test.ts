@@ -9,7 +9,7 @@ import { firedWeapon, weaponContextOf } from './combatFlow';
 import * as capabilities from '../engine/capabilities';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
-// ADE II 02 l.677 ; #476
+// ADE II 02 l.724 ; #476
 afterEach(() => vi.restoreAllMocks());
 
 const CHARS = { 'capacite-de-combat': 40, 'capacite-de-tir': 40, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -27,14 +27,14 @@ const target = mk({ id: 't', kind: 'ennemi', pos: { x: 1, y: 0 } });
 const harpoon = armeDeTest('lance-harpon', { uid: 'hp' });
 const harpoonItem = objetDeTest('lance-harpon', { uid: 'hp', equipped: true });
 
-describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677, #476)', () => {
+describe('Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.724, #476)', () => {
   it('toggle posé + arme éligible (ropeMode) → arme résolue au tir Portée 60, Immobilisante perdue', () => {
     vi.spyOn(capabilities, 'itemCapability').mockReturnValue(true);
     const atk = mk({ weapons: [harpoon], items: [harpoonItem] });
     const w = firedWeapon(findTrappingById, null, atk, target, 'hp', undefined, true);
     expect(w.range).toBe(60);
     expect(w.qualities.some((q) => q.id === 'immobilisante')).toBe(false);
-    expect(w.qualities.some((q) => q.id === 'recharge')).toBe(true); // ADE II 02 l.677
+    expect(w.qualities.some((q) => q.id === 'recharge')).toBe(true); // ADE II 02 l.724
   });
 
   it('toggle NON posé (même arme éligible) → profil de base inchangé (Portée 20, Immobilisante conservée)', () => {

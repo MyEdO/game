@@ -186,7 +186,7 @@ export function fenetreDAttaque(s: Jeu): FenetreDAttaque | null {
   const tasALaConsole = !!battle.stances?.[attaquant.id]?.dansLeTas;
   const raisonTas = !res && tir ? intoCrowdStanceBlock(s.scene, battle, attaquant, arme, cible) : null;
   const tasSansObjet = !pa.dansLeTas && tasALaConsole && !!raisonTas;
-  // ADE II 02 l.677
+  // ADE II 02 l.724
   const objetSource = objetSourceDeLArme(attaquant, arme);
   const corde = !res && tir && heros && !!objetSource && itemCapability(objetSource, 'ropeMode');
   // LDB 18 l.30 ; AA 07 l.59, l.61

@@ -64,7 +64,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     expect(isStarving(c)).toBe(false);
   });
 
-  it('#513 — ogre (ADE II 2 l.708) : consomme 2 rations/jour, insuffisant si une seule dispo', () => {
+  it('#513 — ogre (ADE II 2 l.755) : consomme 2 rations/jour, insuffisant si une seule dispo', () => {
     const c = hero({ rations: 2, traits: [{ id: 'ogre' }] });
     const r = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(r.ate).toBe(true);

@@ -51,7 +51,7 @@ export interface ReglagesDuJet {
     deuxArmes: boolean;
     /** AA 07 l.59-61 */
     retenirSesCoups: boolean;
-    /** ADE II 02 l.677 */
+    /** ADE II 02 l.724 */
     sansLaCorde: boolean;
     /** LDB 14 l.159 */
     empoigner: boolean;

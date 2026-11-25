@@ -229,7 +229,7 @@ describe('#1852 — la PORTE : aucune défense ne s’ouvre par-dessus une défe
   // l.237 puis Piétinement l.387) : le scénario même de #1852, passé par le 4ᵉ appelant (`autoCleave`
   // depuis `jetValider('defense')`). Ce qui est MESURÉ ici est l'INVARIANT DE FENÊTRAGE — chaque fenêtre a SON
   // étape, aucun id ne collisionne, la séquence se clôt, le tour avance. La SUITE EXACTE des coups (qui
-  // enchaîne sur qui, combien de fois — Frappe Mortelle, ADE II 02 l.576 : « il ne peut pas attaquer la
+  // enchaîne sur qui, combien de fois — Frappe Mortelle, ADE II 02 l.623 : « il ne peut pas attaquer la
   // même créature plus d'une fois ») est le périmètre de #1858, pas celui-ci.
   const verifierLaFile = (armes: string[], reperes: string[], doublons: string[]) => {
     expect(doublons, 'aucune collision d’id dans la séquence').toEqual([]);

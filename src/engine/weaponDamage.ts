@@ -156,7 +156,7 @@ export interface WeaponContext {
    *  `effectiveWeapon` ne peut pas déduire seul. Posé par le funnel (`weaponContextOf`). Source actuelle :
    *  Bélier (`ram`) hors-porte (ADE II 8 l.249, via `ramVsNonDoor`). */
   improvised?: boolean;
-  /** Lance-harpon (ADE II 02 l.677) : la corde a été séparée de la flèche → profil dégradé (Portée 60,
+  /** Lance-harpon (ADE II 02 l.724) : la corde a été séparée de la flèche → profil dégradé (Portée 60,
    *  perte de l'Atout Immobilisante). MODE DE TIR choisi par le joueur au moment de l'attaque (arbitrage
    *  user #476), pas un événement subi — posé par le funnel (`weaponContextOf`) depuis le choix courant. */
   harpoonRopeCut?: boolean;
@@ -194,7 +194,7 @@ export function armeSansEquipe(w: Weapon): Weapon {
   };
 }
 
-/** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.190 ; AA 08 l.212 ; AA 08 l.314 ; AA 08 l.343 ; ADE II 02 l.677 ;
+/** LDB 62 l.58,135,146-147,176,184,188 ; AA 08 l.190 ; AA 08 l.212 ; AA 08 l.314 ; AA 08 l.343 ; ADE II 02 l.724 ;
  *  AA 10 l.148 ; ZI 13 l.193 */
 export function effectiveWeapon(arme: Weapon, ctx?: WeaponContext): Weapon {
   const profil = appliquerAtoutOptionnel(arme);
@@ -204,7 +204,7 @@ export function effectiveWeapon(arme: Weapon, ctx?: WeaponContext): Weapon {
   // LDB 62 l.176
   if (ctx?.auContact && longerThanShort(w)) return improvisedProfile(w);
   if (ctx?.improvised) return improvisedProfile(w); // ADE II 8 l.249
-  // ADE II 02 l.677
+  // ADE II 02 l.724
   if (ctx?.harpoonRopeCut) return { ...w, range: 60, qualities: w.qualities.filter((q) => q.id !== 'immobilisante') };
   // AA 08 l.190 ; AA 08 l.314 ; AA 08 l.343
   const remplacees = ctx?.maniement?.qualites ?? [];

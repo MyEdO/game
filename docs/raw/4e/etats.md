@@ -612,7 +612,7 @@ Le Zoo Impérial (ZI) utilise à plusieurs reprises le terme « **État Assommé
 
 Interprétation probable : traduction alternative de l'anglais *Stunned* = **Sonné** (État officiel). À traiter comme Sonné si ce trait est importé dans le jeu. Ne pas créer d'état « Assommé » distinct.
 
-Le même terme apparaît dans ADE II (sort ogre du Domaine de la Gueule, `ADE II 2 l.770`) dans le même sens.
+Le même terme apparaît dans ADE II (sort ogre du Domaine de la Gueule, `ADE II 2 l.817`) dans le même sens.
 
 ### « État Fatigué »
 
