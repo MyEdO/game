@@ -2,11 +2,13 @@
 // quatre héros en état de partir, soigner, loger, bâtir dans `ORDRE_DES_BATIMENTS` sans entamer `RESERVE`, équiper
 // (`equiper`), suivre le plan conseillé de carrière quand ses PX le paient en entier, apprendre sa voie
 // (`apprendreLaVoie`), partir avec les plus avancés vers la destination la plus lointaine dont chacun a le niveau
-// attendu (`attendu`), avec des potions, prier et boire entre les salles, rentrer sous 2 héros valides ou après
-// `rentrerApres` salles. L'état passe par JSON entre deux expéditions, comme une sauvegarde relue. Finit par l'économie
-// des sorties (or gagné, or dépensé par poste), le jour où chaque bâtiment atteint chaque palier, le niveau de carrière
-// du groupe au premier départ vers chaque destination, puis la part de chaque carrière parmi les candidats proposés et
-// parmi les recrues engagées, par palier du relais.
+// attendu (`attendu`), avec des potions ; entre les salles, soigner chaque blessé par la Guérison du premier soigneur
+// (`soignerLeGroupe`), prier et boire ; rentrer sous 2 héros valides ou après `rentrerApres` salles. L'état passe par
+// JSON entre deux expéditions, comme une sauvegarde relue. Finit par l'économie des sorties (or gagné, or dépensé par
+// poste), le jour où chaque bâtiment atteint chaque palier, le niveau de carrière du groupe au premier départ vers
+// chaque destination, la part de chaque carrière parmi les candidats proposés et parmi les recrues engagées, par palier
+// du relais, puis par destination les départs, les morts par sortie, le maître atteint et vaincu, la part des Blessures
+// du groupe à l'entrée du maître et au retour, et les soins de Guérison par sortie.
 // Usage : npx tsx projets/roguelite/equilibrage.ts <graine> <expéditions> [parties] [rentrerApres]
 //         plusieurs parties : graines consécutives, sans journal, moyennes par sortie.
 import { tableTotale } from '../../src/lib/tableTotale';
@@ -23,7 +25,22 @@ type Poste = (typeof POSTES)[number];
 /** Une sortie mesurée : son rang, son jour de retour, sa destination, l'or gagné au retour, l'or dépensé avant le
  *  départ par poste, la bourse au retour, les jours qu'elle a pris, les Blessures que l'hospice a rendues avant le
  *  départ et son palier. */
-interface Sortie { rang: number; jour: number; destination: string; gagne: number; depense: Record<Poste, number>; or: number; jours: number; blessures: number; hospice: number }
+interface Sortie {
+  rang: number; jour: number; destination: string; gagne: number; depense: Record<Poste, number>; or: number; jours: number; blessures: number; hospice: number;
+  /** Les héros morts pendant la sortie ; la part des Blessures du groupe à l'entrée du maître (`null` s'il n'est pas
+   *  atteint) et au retour ; le maître vaincu ; les soins de Guérison joués entre les salles. */
+  morts: number; auMaitre: number | null; auRetour: number; vaincu: boolean; soins: number;
+}
+/** Entre deux salles, le premier soigneur du groupe soigne chaque blessé que le noyau lui confie (`soignerEnRoute`) :
+ *  rend le nombre de soins joués. */
+function soignerLeGroupe(e: J.Etat): number {
+  const g = J.herosDuGroupe(e);
+  const soigneur = g.find((h) => !J.refusDuSoigneur(e, h));
+  return soigneur ? g.filter((h) => !J.refusDuPatient(soigneur, h) && typeof J.soignerEnRoute(e, soigneur.c.id, h.c.id) !== 'string').length : 0;
+}
+/** La part des Blessures que portent encore les héros du `groupe`. */
+const etatDu = (groupe: readonly J.Heros[]): number =>
+  groupe.reduce((n, h) => n + h.c.wounds.current, 0) / Math.max(1, groupe.reduce((n, h) => n + h.c.wounds.max, 0));
 
 /** Joue `parties` parties de `expeditions` expéditions, de la graine `graine0`, en rentrant après `rentrerApres`
  *  salles franchies au plus ; dit l'économie, les paliers du hameau et la part de chaque carrière. */
@@ -79,30 +96,30 @@ function equilibrer(graine0: number, expeditions: number, parties: number, rentr
         niveaux.set(dest.id, [...(niveaux.get(dest.id) ?? []), groupe.reduce((n, h) => n + (h.c.careerLevel ?? 1), 0) / groupe.length]);
       }
       const orAuDepart = e.or, jourAuDepart = e.jour;
+      let auMaitre: number | null = null, vaincu = false, soins = 0;
       while (e.expedition) {
+        if (e.expedition.salles[e.expedition.index].type === 'boss' && auMaitre === null) auMaitre = etatDu(J.herosDuGroupe(e));
         const r = J.avancer(e) ?? (() => {
           const g = J.herosDuGroupe(e);
           const x = e.expedition!;
-          if (x.salles[x.index].type === 'camp') {
-            // Au camp : le premier soigneur soigne chaque blessé que le noyau lui confie, puis le groupe se repose.
-            const soigneur = g.find((h) => !J.refusDuSoigneur(e, h));
-            if (soigneur) for (const h of g) if (!J.refusDuPatient(e, soigneur, h)) J.agirDansLaSalle(e, 'soigner', soigneur.c.id, h.c.id);
-            return J.agirDansLaSalle(e, 'reposer') as J.RecitDeSalle;
-          }
+          if (x.salles[x.index].type === 'camp') return J.agirDansLaSalle(e, 'reposer') as J.RecitDeSalle;
           const [action, repli] = x.salles[x.index].type === 'rencontre' ? ['parlementer', 'parlementer'] as const : ['desarmer', 'fouiller'] as const;
           const tenteur = g.find((h) => !J.refusDAction(h, action));
           const r = tenteur ? J.agirDansLaSalle(e, action, tenteur.c.id) : J.agirDansLaSalle(e, repli, g.find(J.valide)?.c.id);
           return typeof r === 'string' ? J.agirDansLaSalle(e, 'passer') as J.RecitDeSalle : r;
         })();
+        if (e.expedition && !r.fin) soins += soignerLeGroupe(e);
         const g = J.herosDuGroupe(e);
         const blesse = g.filter((h) => !h.c.dead).sort((a, b) => a.c.wounds.current - b.c.wounds.current)[0];
         for (const h of g) if (blesse && blesse.c.wounds.current < blesse.c.wounds.max && J.peutPrier(e, h)) J.prier(e, h.c.id, blesse.c.id);
         for (const h of g) for (const p of J.provisionsPortees(h)) if (!p.refus && h.c.wounds.current < h.c.wounds.max / 2) J.utiliserUneProvision(e, h.c.id, p.uid);
+        if (r.fin === 'succes') vaincu = true;
         const valides = g.filter(J.valide).length;
         log(`  ${r.titre}${r.combat ? ` (${r.combat.issue}, ${r.combat.pas.length} pas)` : ''} | valides ${valides}/${g.length}`);
         if (e.expedition && (valides < 2 || e.expedition.index >= rentrerApres) && !r.fin) { J.rentrer(e, false); log('  → retour'); }
       }
-      sorties.push({ rang: exp, jour: e.jour, destination: dest.id, gagne: e.or - orAuDepart, depense, or: e.or, jours: e.jour - jourAuDepart, blessures, hospice: e.batiments.temple });
+      sorties.push({ rang: exp, jour: e.jour, destination: dest.id, gagne: e.or - orAuDepart, depense, or: e.or, jours: e.jour - jourAuDepart, blessures, hospice: e.batiments.temple,
+        morts: groupe.filter((h) => !e.roster.includes(h)).length, auMaitre, auRetour: etatDu(groupe.filter((h) => e.roster.includes(h))), vaincu, soins });
       log(`J${e.jour} ${dest.nom}: +${e.or - orAuDepart} CO, dépensé ${JSON.stringify(depense)}, or ${e.or}, trophées ${e.trophees}, roster ${e.roster.length}, niveaux ${e.roster.map((h) => `${h.c.careerLevel ?? 1}:${h.c.xp ?? 0}`).join(" ")}, bât ${JSON.stringify(e.batiments)}`);
     }
   }
@@ -124,6 +141,14 @@ function equilibrer(graine0: number, expeditions: number, parties: number, rentr
   }
   console.log('\n| Destination | Niveau moyen du groupe au premier départ | Parties |\n|---|---|---|');
   for (const d of J.DESTINATIONS) { const n = niveaux.get(d.id) ?? []; console.log(`| ${d.id} | ${n.length ? moyenne(n).toFixed(1) : '—'} | ${n.length} |`); }
+  const pourcent = (x: number) => (Number.isNaN(x) ? '—' : `${(100 * x).toFixed(0)} %`);
+  console.log('\n| Destination | Départs | Morts par sortie | Maître atteint | Maître vaincu | Blessures à l’entrée du maître | Blessures au retour | Soins par sortie |\n|---|---|---|---|---|---|---|---|');
+  for (const d of J.DESTINATIONS) {
+    const s = sorties.filter((x) => x.destination === d.id);
+    const atteint = s.filter((x) => x.auMaitre !== null);
+    console.log(`| ${d.id} | ${s.length} | ${s.length ? moyenne(s.map((x) => x.morts)).toFixed(2) : '—'} | ${atteint.length} | ${s.filter((x) => x.vaincu).length} | ${pourcent(moyenne(atteint.map((x) => x.auMaitre!)))} | ${pourcent(moyenne(s.map((x) => x.auRetour)))} | ${s.length ? moyenne(s.map((x) => x.soins)).toFixed(1) : '—'} |`);
+  }
+  console.log(`Toutes destinations : ${sorties.length} sorties, ${moyenne(sorties.map((x) => x.morts)).toFixed(2)} mort(s) par sortie.`);
   for (const palier of [0, 1, 2]) {
     const total = (m: Map<string, number>) => [...m].filter(([k]) => k.startsWith(`${palier}|`)).reduce((n, [, v]) => n + v, 0);
     const tp = total(proposes), te = total(engages);

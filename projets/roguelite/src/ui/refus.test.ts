@@ -45,25 +45,25 @@ function ficheDuDernier(): [string, string] {
   return ['fiche · dernier héros', ecranDuHameau(e, ecranDuHeros({ e, congediement: null }, e.roster[0].c.id, 'talents'), null, '')];
 }
 
-/** Chaque écran d'une expédition dont un héros est hors de combat, dans une salle à choix de `type`, chaque héros
- *  parti en pleine santé avec chaque potion et remède de l'hospice : la salle, le socle qui attend le héros de chaque
- *  action, et la fiche de chaque héros en route. */
-function ecransDeLExpedition(type: J.TypeDeSalle): [string, string][] {
+/** Chaque écran d'une expédition dont le seul héros qui sait désarmer est hors de combat, dans une salle à choix de
+ *  `type` ou entre deux salles (`null`), chaque héros parti en pleine santé avec chaque potion et remède de l'hospice :
+ *  la salle, le socle qui attend le héros de chaque action (le blessé du soin de la nonne, entre deux salles), et la
+ *  fiche de chaque héros en route. */
+function ecransDeLExpedition(type: J.TypeDeSalle | null): [string, string][] {
   const e = J.nouvellePartie(3);
   e.or = 1000;
   e.batiments.temple = 1;
   for (const h of e.roster) for (const a of J.provisionsEnVente(e)) expect(J.acheterUneProvision(e, h.c.id, a.id)).toBeNull();
   expect(J.partir(e, J.DESTINATIONS[0].id, e.roster.map((h) => h.c.id))).toBeNull();
   const x = e.expedition!;
-  x.salles[x.index] = { type, ennemis: [], faite: false, ouverte: true };
+  if (type) x.salles[x.index] = { type, ennemis: [], faite: false, ouverte: true };
   const groupe = J.herosDuGroupe(e);
-  groupe[1].c.wounds.current = 0;
-  const actions: ChoixDeSalle[] = type === 'camp'
-    ? [{ action: 'soigner' }, { action: 'soigner', soigneur: groupe[0].c.id }]
-    : (Object.keys(J.EPREUVES[type as J.SalleAJet].actions) as J.IdActionAJet[]).map((action) => ({ action }));
+  groupe[3].c.wounds.current = 0;
+  const actions: ChoixDeSalle[] = !type ? [{ action: 'soigner', soigneur: groupe[1].c.id }]
+    : type === 'camp' ? [] : (Object.keys(J.EPREUVES[type as J.SalleAJet].actions) as J.IdActionAJet[]).map((action) => ({ action }));
   return [
-    [`salle ${type}`, ecranDeLExpedition(e, '', null, '', null)],
-    ...actions.map((c): [string, string] => [`salle ${type} · ${c.action}${c.soigneur ? ' · patient' : ''}`, ecranDeLExpedition(e, '', null, '', c)]),
+    [`salle ${type ?? 'à venir'}`, ecranDeLExpedition(e, '', null, '', null)],
+    ...actions.map((c): [string, string] => [`salle ${type ?? 'à venir'} · ${c.action}`, ecranDeLExpedition(e, '', null, '', c)]),
     ...groupe.map((h): [string, string] => [`fiche en route · ${h.c.label}`, ecranDeLExpedition(e, ecranDuHeros({ e, congediement: null }, h.c.id, null), null, '', null)]),
   ];
 }
@@ -86,7 +86,7 @@ function ditAilleurs(hote: HTMLElement): string[] {
 }
 
 describe('chaque geste fermé dit sa raison une fois, au survol', () => {
-  const ecrans = [...ecransDuHameau(partieFermee(false)), ...ecransDuHameau(partieFermee(true)), ficheDuDernier(), ...ecransDeLExpedition('tresor'), ...ecransDeLExpedition('camp')];
+  const ecrans = [...ecransDuHameau(partieFermee(false)), ...ecransDuHameau(partieFermee(true)), ficheDuDernier(), ...ecransDeLExpedition('tresor'), ...ecransDeLExpedition('camp'), ...ecransDeLExpedition(null)];
 
   it('les écrans éprouvés ferment des gestes de chaque sorte', () => {
     const hote = document.createElement('div');

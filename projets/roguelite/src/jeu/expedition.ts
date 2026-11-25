@@ -1,5 +1,5 @@
 /**
- * L'expédition : départ, salles, prière et provisions en route, retour, repos des absents, victoire.
+ * L'expédition : départ, salles, soins, prière et provisions en route, retour, repos des absents, victoire.
  */
 import {
   epreuveTentable,
@@ -37,6 +37,7 @@ import {
   TypeDeSalle,
   ACTIONS_A_JET,
   CAMP,
+  SOIN_EN_ROUTE,
   type SalleAJet,
   CONSIGNES,
   RANG_DU_ROLE,
@@ -76,6 +77,8 @@ export function consigner(e: Etat, id: string, doctrine: string | null): void {
 /** La consigne de combat du héros (`CONSIGNES`). */
 export const consigneDe = (h: Heros) => CONSIGNES.find((x) => x.doctrine === (h.c.aiDoctrine ?? null))!;
 
+/** Part vers `destinationId` avec le `groupe` : un combat d'abord, des salles tirées, un camp, puis le maître. Le camp
+ *  avant le maître est une valeur d'adaptation : arbitrage Clément, 2026-11-25, MyEdO/game#5051. */
 export function partir(e: Etat, destinationId: string, groupe: string[]): string | null {
   const d = DESTINATIONS.find((x) => x.id === destinationId);
   if (!d || d.palier > e.batiments.cartographe) return 'Destination inconnue.';
@@ -86,7 +89,7 @@ export function partir(e: Etat, destinationId: string, groupe: string[]): string
   const salles: Salle[] = [];
   for (let i = 0; i < d.salles - 1; i++) {
     const t = rng.int(1, 100);
-    const type: TypeDeSalle = i === 0 ? 'combat' : t <= 50 ? 'combat' : t <= 70 ? 'elite' : t <= 85 ? 'camp'
+    const type: TypeDeSalle = i === d.salles - 2 ? 'camp' : i === 0 ? 'combat' : t <= 50 ? 'combat' : t <= 70 ? 'elite' : t <= 85 ? 'camp'
       : t <= 93 && !salles.some((s) => s.type === 'rencontre') ? 'rencontre' : 'tresor';
     salles.push({ type, ennemis: type === 'combat' ? choisir(rng, d.meutes) : type === 'elite' ? choisir(rng, d.elites) : [], faite: false });
   }
@@ -150,8 +153,8 @@ export interface EpreuveDuRecit {
 /** Le récit d'une salle ; `combatAVenir` : l'épreuve ratée tourne au combat, que la salle livre au prochain `avancer`. */
 export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes'; epreuve?: EpreuveDuRecit; combatAVenir?: true }
 
-/** Une action d'une salle à choix : une action à jet, passer son chemin, ou au camp se reposer et soigner. */
-export type ActionDeSalle = IdActionAJet | 'passer' | 'reposer' | 'soigner';
+/** Une action d'une salle à choix : une action à jet, passer son chemin, ou au camp se reposer. */
+export type ActionDeSalle = IdActionAJet | 'passer' | 'reposer';
 /** La salle courante attend-elle le choix d'une action ? */
 export const salleAChoisir = (e: Etat): boolean => !!e.expedition?.salles[e.expedition.index]?.ouverte;
 
@@ -166,46 +169,57 @@ export function refusDAction(h: Heros, action: IdActionAJet): string | null {
 export const viseeDAction = (h: Heros, action: IdActionAJet): Visee | undefined =>
   (refusDAction(h, action) ? undefined : viseeDeLEpreuve(h.c, ACTIONS_A_JET[action].epreuves));
 
-/** Ce que le `soigneur` viserait au soin du héros `h` au camp courant (`viseeDuSoin`), ou `undefined` sur un refus
- *  (`refusDuPatient`). */
-const viseeDuSoinAuCamp = (e: Etat, soigneur: Heros, h: Heros): Visee | undefined => {
-  if (refusDuPatient(e, soigneur, h)) return undefined;
+/** Ce que le `soigneur` viserait au soin du héros `h` (`viseeDuSoin`), ou `undefined` sur un refus (`refusDuPatient`). */
+const viseeDuSoinDe = (soigneur: Heros, h: Heros): Visee | undefined => {
+  if (refusDuPatient(soigneur, h)) return undefined;
   const v = viseeDuSoin(soigneur.c, h.c);
   return 'refus' in v ? undefined : v;
 };
 
-/** Ce que le héros `h` viserait au mieux en soignant au camp courant : sa meilleure visée parmi les blessés qu'il peut
- *  soigner (`viseeDuSoinAuCamp`), ou `undefined`. */
+/** Ce que le héros `h` viserait au mieux en soignant : sa meilleure visée parmi les blessés du groupe qu'il peut soigner
+ *  (`viseeDuSoinDe`), ou `undefined`. */
 export const viseeDuSoigneur = (e: Etat, h: Heros): Visee | undefined =>
-  herosDuGroupe(e).map((p) => viseeDuSoinAuCamp(e, h, p)).reduce<Visee | undefined>((m, v) => (v && (!m || v.chances > m.chances) ? v : m), undefined);
+  herosDuGroupe(e).map((p) => viseeDuSoinDe(h, p)).reduce<Visee | undefined>((m, v) => (v && (!m || v.chances > m.chances) ? v : m), undefined);
 
 /** Pourquoi le héros `h` ne sait pas soigner, ou `null` s'il le sait. LDB 09 l.30 */
 const refusDeLaGuerison = (h: Heros): string | null =>
   !valide(h) ? 'Hors de combat.' : saitSoigner(h.c) ? null : 'Ne sait pas tenter la Guérison.';
 
-/** Pourquoi le héros `h` ne peut pas soigner au camp courant, ou `null` s'il le peut : il sait soigner, et un autre
+/** Pourquoi le héros `h` ne peut pas soigner entre deux salles, ou `null` s'il le peut : il sait soigner, et un autre
  *  héros du groupe peut recevoir son soin (`refusDuPatient`). LDB 09 l.30 */
 export const refusDuSoigneur = (e: Etat, h: Heros): string | null =>
-  refusDeLaGuerison(h) ?? (herosDuGroupe(e).some((p) => !refusDuPatient(e, h, p)) ? null : 'Personne à soigner.');
+  refusDeLaGuerison(h) ?? (herosDuGroupe(e).some((p) => !refusDuPatient(h, p)) ? null : 'Personne à soigner.');
 
-/** Pourquoi le `soigneur` ne peut pas soigner le héros `h` au camp courant, ou `null` s'il le peut : le soigneur, un
- *  autre héros que lui, un soin par blessé et par camp, puis le verdict de l'infirmerie du noyau (`verdictDuSoin`). */
-export function refusDuPatient(e: Etat, soigneur: Heros, h: Heros): string | null {
-  const salle = e.expedition?.salles[e.expedition.index];
-  if (salle?.type !== 'camp' || !salle.ouverte) return 'Aucun camp dressé.';
-  const refus = refusDeLaGuerison(soigneur) ?? (h.c.id === soigneur.c.id ? 'Le soigneur soigne un autre héros.'
-    : salle.soignes?.includes(h.c.id) ? 'Déjà soigné·e à ce camp.' : null);
+/** Pourquoi le `soigneur` ne peut pas soigner le héros `h`, ou `null` s'il le peut : le soigneur, un autre héros que
+ *  lui, puis le verdict de l'infirmerie du noyau (`verdictDuSoin`), un jet de Guérison par patient et par rencontre
+ *  compris. LDB 09 l.260 */
+export function refusDuPatient(soigneur: Heros, h: Heros): string | null {
+  const refus = refusDeLaGuerison(soigneur) ?? (h.c.id === soigneur.c.id ? 'Le soigneur soigne un autre héros.' : null);
   if (refus) return refus;
   const verdict = verdictDuSoin(soigneur.c, h.c);
   return 'refus' in verdict ? verdict.refus : null;
 }
 
+/** Entre deux salles, le héros `soigneurId` soigne le héros `patientId` par l'infirmerie du noyau
+ *  (`soignerUnCompagnon`) : rend le récit du soin, ou pourquoi il est refusé (`refusDuPatient`). */
+export function soignerEnRoute(e: Etat, soigneurId: string, patientId: string): RecitDeSalle | string {
+  const groupe = herosDuGroupe(e);
+  const soigneur = groupe.find((g) => g.c.id === soigneurId);
+  const patient = groupe.find((g) => g.c.id === patientId);
+  if (!soigneur || !patient) return 'Choisissez le soigneur et le blessé.';
+  const refus = refusDuPatient(soigneur, patient);
+  if (refus) return refus;
+  const r = soignerUnCompagnon(soigneur.c, patient.c, e.graine++);
+  for (const c of r.groupe) { const h = groupe.find((g) => g.c.id === c.id); if (h) h.c = c; }
+  if ('refus' in r) return r.refus;
+  return { titre: SOIN_EN_ROUTE.titre, lignes: r.journal.length ? r.journal : [`${patient.c.label} : le soin n’apporte rien.`] };
+}
+
 /** Joue l'`action` choisie dans la salle ouverte. Une action à jet se joue sur le seul héros `herosId`, testeur et
- *  cible de l'échec ; au camp, « soigner » fait soigner le héros `patientId` par le héros `herosId` et laisse le camp
- *  ouvert ; « passer » et « se reposer » ne jouent aucun Test. Rend le récit, ou pourquoi l'action est refusée. Un Test
+ *  cible de l'échec ; « passer » et « se reposer » ne jouent aucun Test. Rend le récit, ou pourquoi l'action est refusée. Un Test
  *  que le noyau ne joue pas (`IssueDEpreuve`, `refus`) laisse la salle ouverte : le héros revient tel que le noyau le
  *  laisse, et le choix reste au joueur. */
-export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string, patientId?: string): RecitDeSalle | string {
+export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string): RecitDeSalle | string {
   const x = e.expedition;
   const salle = x?.salles[x.index];
   if (!x || !salle?.ouverte) return 'Aucune action en attente.';
@@ -215,17 +229,7 @@ export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string
       const lignes = groupe.flatMap((h) => reposer(h.c, e.graine++, 1));
       return franchir(e, { titre: CAMP.titre, lignes: [CAMP.reposer.recit, ...(lignes.length ? lignes : ['Personne n’a besoin de repos.'])] });
     }
-    if (action !== 'soigner') return 'Action inconnue ici.';
-    const soigneur = groupe.find((g) => g.c.id === herosId);
-    const patient = groupe.find((g) => g.c.id === patientId);
-    if (!soigneur || !patient) return 'Choisissez le soigneur et le blessé.';
-    const refus = refusDuPatient(e, soigneur, patient);
-    if (refus) return refus;
-    const r = soignerUnCompagnon(soigneur.c, patient.c, e.graine++);
-    for (const c of r.groupe) { const h = groupe.find((g) => g.c.id === c.id); if (h) h.c = c; }
-    if ('refus' in r) return r.refus;
-    salle.soignes = [...(salle.soignes ?? []), patient.c.id];
-    return { titre: CAMP.soigner.titre, lignes: r.journal.length ? r.journal : [`${patient.c.label} : le soin n’apporte rien.`] };
+    return 'Action inconnue ici.';
   }
   const s = EPREUVES[salle.type as SalleAJet];
   if (action === 'passer') return franchir(e, { titre: s.titre, lignes: [s.passer.recit] });

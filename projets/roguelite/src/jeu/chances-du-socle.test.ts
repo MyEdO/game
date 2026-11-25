@@ -2,8 +2,8 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { addCondition, COND } from '../../../../src/engine/conditions';
 import { chancesDeReussite, epreuveTentable, jouerLEpreuve, poserLesReglesDuRoguelite } from '../noyau';
 import { ecranDeLExpedition } from '../ui/lieux';
-import { ACTIONS_A_JET, herosDuGroupe, refusDAction, refusDuSoigneur, viseeDuSoigneur } from './index';
-import { devant } from './salles.testkit';
+import { ACTIONS_A_JET, agirDansLaSalle, herosDuGroupe, refusDAction, refusDuPatient, SOIN_EN_ROUTE, viseeDuSoigneur } from './index';
+import { devant, recit } from './salles.testkit';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -35,20 +35,22 @@ describe('le socle dit les chances de chaque héros avant de choisir', () => {
     expect(tentables).toBeGreaterThan(0);
   });
 
-  it('« Qui soigne ? » : la carte du soigneur dit sa Guérison et ses chances, les autres leur refus', () => {
+  it('« Qui est soigné ? » : la case de Guérison du soigneur dit ses meilleures chances ; au socle, chaque blessé refusé dit son refus', () => {
     const e = devant('camp', 2, ['medecin']);
+    recit(agirDansLaSalle(e, 'reposer'));
     const groupe = herosDuGroupe(e);
+    const medecin = groupe.find((h) => h.carriere === 'medecin')!;
     groupe[0].c.wounds.current = 2;
-    const html = ecranDeLExpedition(e, '', null, '', { action: 'soigner' });
-    let soigneurs = 0;
+    const v = viseeDuSoigneur(e, medecin)!;
+    expect(ecranDeLExpedition(e, '', null, '', null)).toContain(`${v.chances} % au mieux`);
+    const html = ecranDeLExpedition(e, '', null, '', { action: 'soigner', soigneur: medecin.c.id });
+    expect(html).toContain(SOIN_EN_ROUTE.patient);
+    let soignables = 0;
     for (const h of groupe) {
-      const c = carte(html, h.c.id);
-      const refus = refusDuSoigneur(e, h);
-      const v = viseeDuSoigneur(e, h);
-      if (refus) { expect(c).toContain(refus); continue; }
-      soigneurs++;
-      expect(c).toContain(`Guérison ${v!.cible} · <b class="chiffres">${v!.chances}\u00a0%</b>`);
+      const refus = refusDuPatient(medecin, h);
+      if (refus) { expect(carte(html, h.c.id)).toContain(refus); continue; }
+      soignables++;
     }
-    expect(soigneurs).toBeGreaterThan(0);
+    expect(soignables).toBeGreaterThan(0);
   });
 });

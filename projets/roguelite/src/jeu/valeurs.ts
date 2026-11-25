@@ -292,14 +292,14 @@ export type IdActionAJet = { [S in SalleAJet]: keyof (typeof EPREUVES)[S]['actio
 /** Toutes les actions à jet, par id. */
 export const ACTIONS_A_JET: Record<IdActionAJet, ActionAJet> = { ...EPREUVES.tresor.actions, ...EPREUVES.rencontre.actions };
 
-/** Valeurs d'adaptation : le camp, salle à choix. Chaque blessé y reçoit un soin au plus (`Salle.soignes`) ; le repos
- *  lève le camp. */
+/** Valeurs d'adaptation : le camp, salle à choix ; le repos lève le camp. */
 export const CAMP = {
   titre: 'Un abri pour la nuit',
-  annonce: 'Un abri se devine entre les arbres. Le groupe peut y passer la nuit, et ses blessés y être soignés.',
+  annonce: 'Un abri se devine entre les arbres. Le groupe peut y passer la nuit.',
   reposer: { libelle: 'Se reposer', issue: 'Une nuit de repos pour tous, puis la route', recit: 'Le groupe établit un camp et monte la garde à tour de rôle.' },
-  soigner: { libelle: 'Soigner un blessé', titre: 'Les soins du camp', soigneur: 'Qui soigne ?', patient: 'Qui est soigné ?' },
 };
+/** Le soin de Guérison entre deux salles (`soignerEnRoute`) : le titre de son récit, la question au socle. */
+export const SOIN_EN_ROUTE = { libelle: 'Guérison', titre: 'Les soins de la route', patient: 'Qui est soigné ?' };
 
 /** Le butin d'une salle de combat : l'or de l'étape (`Destination.or`) multiplié par son type, puis par un tirage
  *  entre `ecart.min` et `ecart.max` centièmes. */
