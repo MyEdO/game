@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
-  ameliorer, attendreUneSemaine, PRIX_DU_SOIN_PAR_BLESSURE, prixDuSoin, soignerAuTemple, compagnieEpuisee, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
+  ameliorer, attendreUneSemaine, PRIX_DU_SOIN_PAR_BLESSURE, prixDuSoin, soignerAuTemple, compagnieEpuisee, TAILLE_DU_GROUPE, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
   qualiteDeLaChambre, recruter, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
 } from './index';
 import { prixDuSejourALAuberge, reposer, poserLesReglesDuRoguelite } from '../noyau';
@@ -78,17 +78,23 @@ describe('la chambre de l’Auberge relais', () => {
   });
 });
 
-describe('l’engagement sans solde au relais', () => {
-  it('la compagnie épuisée et sans le sou engage un voyageur gratis, et peut repartir', () => {
+describe('l’engagement au relais', () => {
+  it('la compagnie épuisée et sans le sou engage sans frais un groupe entier, et peut repartir', () => {
     const e = nouvellePartie(3);
     for (const h of e.roster) h.c.wounds.current = 0;
     e.or = 0;
     expect(compagnieEpuisee(e)).toBe(true);
-    const effectif = e.roster.length;
-    expect(recruter(e, 0)).toBeNull();
-    expect(e.roster).toHaveLength(effectif + 1);
+    const tombes = new Set(e.roster.map((h) => h.c.id));
+    for (let k = 0; k < TAILLE_DU_GROUPE; k++) expect(recruter(e, 0)).toBeNull();
     expect(e.or).toBe(0);
-    expect(compagnieEpuisee(e)).toBe(false);
+    const groupe = e.roster.filter((h) => !tombes.has(h.c.id)).map((h) => h.c.id);
+    expect(groupe).toHaveLength(TAILLE_DU_GROUPE);
+    expect(partir(e, 'reikwald', groupe)).toBeNull();
+  });
+
+  it('refuse un candidat déjà parti', () => {
+    const e = nouvellePartie(3);
+    expect(recruter(e, e.candidats.length)).toBe('Candidat parti.');
   });
 });
 
