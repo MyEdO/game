@@ -50,7 +50,7 @@ import type { Get, Set as SetFn } from '../flowTypes';
 import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest, Cloture } from '../pendings';
 import { battleRng } from '../battleRng';
 import { openSkillTest, applyLeafOps, drainPendingLog, enfilerAuJournal,
-  confierLaSuite, porterOpsCtx, ctxRepris, comptePasDifferes, OPS_DIFFEREES, type Applique } from '../combatEffects';
+  confierLaSuite, porterOpsCtx, ctxRepris, comptePorteursDeSuite, MAIN_RENDUE, type Applique } from '../combatEffects';
 import { journaliser } from '../combatLog';
 import { ancreDeLaCascade, pushStep } from '../cascade';
 import type { Jeu } from '../etat';
@@ -470,7 +470,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
       // La Sauvegarde Solide de la lame peut partir à la porte (#1508 T3b-4) : le reste du Flow est
       // alors SA continuation, et le nœud re-entre PRIVÉ de l'op déjà jouée (jamais deux bris).
       if (ctx.piegeALame && node.effet.ops.some((op) => op.op === 'breakBlade')
-        && applyBladeTrap(ctx.get, ctx.set, unit, ctx.piegeALame, ctx.opsCtx?.sl ?? 0) === OPS_DIFFEREES) {
+        && applyBladeTrap(ctx.get, ctx.set, unit, ctx.piegeALame, ctx.opsCtx?.sl ?? 0) === MAIN_RENDUE) {
         const prive = { ...node, effect: { ...node.effet, ops: node.effet.ops.filter((op) => op.op !== 'breakBlade') } };
         confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'sequence', etapes: [prive, ...reste().etapes] })]);
         return FIN_DU_FLOW;
@@ -481,7 +481,7 @@ export function runCombatFlow(ctx: ExecCtx, flow: Flow): void {
       // Feuille partie à la PORTE (#1508) : le reste de la pile est SA continuation — MÊME geste
       // que le `test` ci-dessous, et pour la même raison. Poursuivre ici appliquerait les
       // nœuds suivants AVANT la conséquence qui attend son dé, inversant l'ordre de l'auteur.
-      if (lines === OPS_DIFFEREES) {
+      if (lines === MAIN_RENDUE) {
         const steps = reste().etapes;
         if (steps.length) confierLaSuite(ctx.set, [suiteDeCombat(ctx, unit, oc, { kind: 'sequence', etapes: steps })]);
         return FIN_DU_FLOW;
@@ -768,7 +768,7 @@ export function routeTriggeredTest(
       ...(opsCtx?.label ? { label: opsCtx.label } : {}),
       ...(opsCtx?.source ? { source: opsCtx.source } : {}),
     };
-    openSkillTest(get, set, ft, cc, flow.reussite, flow.echec, EMPTY_FLOW, { actorId: target.id, noOwnTestFailed: opsCtx?.noReentryOwnTestFailed, subi });
+    openSkillTest(get, set, ft, cc, flow.reussite, flow.echec, { actorId: target.id, noOwnTestFailed: opsCtx?.noReentryOwnTestFailed, subi });
     return;
   }
   runCombatFlow({ get, set, target, caster: actor, label: nomDeSource(opsCtx), opsCtx }, flow);
@@ -797,17 +797,17 @@ export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success
   }
   const caster = (casterId ? actorIn(get(), casterId) : undefined) ?? sujet;
   const branche = success ? pt.onSuccess : pt.onFailure;
-  const avant = comptePasDifferes(get());
+  const avant = comptePorteursDeSuite(get());
   runCombatFlow({
     get, set, target: sujet, caster, label, opsCtx: { ...gele, sl: pt.sl },
-  }, { kind: 'sequence', etapes: [branche ?? EMPTY_FLOW, pt.after ?? EMPTY_FLOW] });
+  }, branche ?? EMPTY_FLOW);
   // Les lignes de la branche partent dans la file différée (SOURCE UNIQUE des hooks profonds) ; leur
   // destination est choisie par le ROUTAGE UNIQUE `journaliser` (`combatLog.ts`, #1881), jamais par une
   // écriture nue de `battle.log` ici.
   journaliser(get, set, [], undefined, { extra: drainPendingLog(get, set) });
   // Une feuille partie à la PORTE (#1508) a reçu la suite : l'appelant n'a plus à jouer ses clôtures
   // devant le dé — même compte canonique que `jouerLesClotures`.
-  return comptePasDifferes(get()) > avant ? OPS_DIFFEREES : undefined;
+  return comptePorteursDeSuite(get()) > avant ? MAIN_RENDUE : undefined;
 }
 
 /**

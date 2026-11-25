@@ -7,7 +7,7 @@ import { combatAdvanceBlocked } from './combatGate';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { AttackResult } from '../engine/combat';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -110,7 +110,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     // (1) Le Critique sur le héros armé SUSPEND, en posant une ÉTAPE DE CHOIX (Critique pré-tiré + options).
     banc.setState({ pendingCascade: null });
     const suspended = applyAttackResult(banc.getState, banc.setState, enemy, hero, enemy.weapons[0], res);
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const devId = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'deviation')!.id;
     banc.getState().jetLancer('cascadeTirage', devId); // le dé de sévérité tombe DANS la MÊME fenêtre (#1426)
     const dev = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'deviation');

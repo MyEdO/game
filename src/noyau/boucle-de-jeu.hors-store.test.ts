@@ -40,7 +40,7 @@ import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { ensureBourse, bourseInstanceOf, withBourseMoney } from '../engine/bourse';
 import { findTrappingById, talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
-import { entityPickables, OPS_DIFFEREES, applyEffects, applyEffectsLoot, runFlow } from './combatEffects';
+import { entityPickables, MAIN_RENDUE, applyEffects, applyEffectsLoot, runFlow } from './combatEffects';
 import { t } from '../i18n';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
@@ -199,7 +199,7 @@ describe('Boucle de jeu (store)', () => {
 
   it('Blessure critique (héros) : applyAttackResult SUSPEND sur UNE étape — tirage puis décision, sans effet de bord', () => {
     const { suspended } = mkDeviationSetup();
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const avant = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(avant).toHaveLength(1);
     expect(avant[0].table, 'la sévérité se tire DANS cette fenêtre').toBeTruthy();

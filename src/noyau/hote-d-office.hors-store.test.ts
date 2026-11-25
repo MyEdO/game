@@ -50,7 +50,7 @@ const sorcier = (ia: boolean): Combatant => {
 const MEMBRES: readonly { jet: string; slot: PendingKey; porteur: (ia: boolean) => Combatant; ouvrir: (c: Combatant) => void }[] = [
   {
     jet: 'test', slot: 'pendingTest', porteur: heros,
-    ouvrir: (c) => { openSkillTest(banc.getState, banc.setState, { characteristic: 'force-mentale', difficulty: 'difficile' } as never, condCtx(banc.getState), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, { actorId: c.id }); },
+    ouvrir: (c) => { openSkillTest(banc.getState, banc.setState, { characteristic: 'force-mentale', difficulty: 'difficile' } as never, condCtx(banc.getState), EMPTY_FLOW, EMPTY_FLOW, { actorId: c.id }); },
   },
   {
     jet: 'testEtendu', slot: 'pendingExtendedTest', porteur: heros,
