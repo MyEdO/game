@@ -335,7 +335,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       const heros = heroId === undefined ? undefined : etat.party.find((h) => h.id === heroId);
       if (heroId !== undefined && !heros) return void refuserGeste(get, set, t('tenterLeTest.refus.horsDuGroupe', { id: heroId }));
       if (heros && !peutTenter(heros, { skill })) return void refuserGeste(get, set, refusNePeutTenter(heros, { skill }));
-      if (!openSkillTest(get, set, { skill, difficulty }, condCtx(get), EMPTY_FLOW, EMPTY_FLOW, EMPTY_FLOW, heros ? { actorId: heros.id } : undefined)) {
+      if (!openSkillTest(get, set, { skill, difficulty }, condCtx(get), EMPTY_FLOW, EMPTY_FLOW, heros ? { actorId: heros.id } : undefined)) {
         refuserGeste(get, set, refusPersonneNePeutTenter({ skill }));
       }
     },

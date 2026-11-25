@@ -83,11 +83,14 @@ describe('jouerLEpreuve — la cache piégée jouée par le noyau', () => {
     const r = jouerLEpreuve([inconscient], DESARMER, 1);
     expect(r).toMatchObject({ refus: `${inconscient.label} : hors d'action, le Test n'est pas joué.` });
     expect(r.groupe).toEqual([inconscient]);
+  });
+
+  it('un héros qui saigne jette d’abord : le temps de l’action court après le Test (#2689)', () => {
     // equilibrage 15 8 : Brisé 6, Hémorragique 2, 13 Blessures
     const saigne = groupe()[1]; saigne.wounds.current = 13; addCondition(saigne, COND.brise, 6); addCondition(saigne, COND.hemorragique, 2);
     for (const g of [1, 2, 3]) {
       const issue = jouerLEpreuve([saigne], DESARMER, g);
-      expect(issue).toHaveProperty('refus');
+      expect(issue).toHaveProperty('reussite');
       expect(hasCondition(issue.groupe[0], COND.inconscient)).toBe(true);
     }
   });

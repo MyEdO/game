@@ -86,20 +86,15 @@ describe('la cache piégée, salle à choix', () => {
     expect(salleAChoisir(e)).toBe(true);
   });
 
-  it('un Test que le noyau ne joue pas : ni bourse ni piège, le héros repris tel qu’il saigne, la salle reste au choix', () => {
+  it('un héros qui saigne jette d’abord : le temps de l’action court après le Test, puis il est repris hors de combat (#2689)', () => {
     const e = devant('tresor', 8, ['chasseur']);
     const h = herosDuGroupe(e).find((g) => g.carriere === 'chasseur')!;
     // equilibrage 15 8 : Brisé 6, Hémorragique 2, 13 Blessures
     h.c.wounds.current = 13; addCondition(h.c, COND.brise, 6); addCondition(h.c, COND.hemorragique, 2);
     const r = recit(agirDansLaSalle(e, 'desarmer', h.c.id));
     const repris = herosDuGroupe(e).find((g) => g.c.id === h.c.id)!;
-    expect(r.epreuve).toBeUndefined();
-    expect(r.lignes[r.lignes.length - 1]).toBe(`${h.c.label} : hors d'action, le Test n'est pas joué.`);
+    expect(r.epreuve!.testeur).toBe(h.c.id);
     expect(hasCondition(repris.c, COND.inconscient)).toBe(true);
-    expect(e.expedition!.or).toBe(0);
-    expect(e.expedition!.index).toBe(0);
-    expect(salleAChoisir(e)).toBe(true);
     expect(refusDAction(repris, 'desarmer')).toBe('Hors de combat.');
-    expect(recit(agirDansLaSalle(e, 'fouiller', e.roster[0].c.id)).epreuve!.testeur).toBe(e.roster[0].c.id);
   });
 });
