@@ -55,6 +55,7 @@ import { readFileSync } from 'node:fs';
 import { isAbsolute, join, relative } from 'node:path';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { listerArbre } from './lister.mjs';
+import { exigerLaPorte } from './serrureDesProjets.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { fileURLToPath } from 'node:url';
 
@@ -125,17 +126,19 @@ export function entreeDe(p) {
  *   (défaut `EXTENSIONS_DE_SCRIPT`) ; `tests` = garder les INSTRUMENTS Vitest — suites `.test.` ET bancs
  *   `.bench.`, tous dialectes (`estFichierVitest`, `fichierVitest.mjs`), et KITS de test (`estKitDeTest`) — (défaut : non). L'option
  *   INCLUT exactement ce que le filtre exclut : un seul prédicat décide des deux côtés. Les `*.d.ts`
- *   sont hors corpus, sans option (cf. `EST_DECLARATION`).
+ *   sont hors corpus, sans option (cf. `EST_DECLARATION`). `porte` = la passe (`porteDesProjets.mjs`) qu'exige une
+ *   base sous `projets/` ou qui le contient, vérifiée AVANT le mémo (`exigerLaPorte`).
  * @returns {ReadonlyArray<CorpusFile>} gelé, `rel` =
  *   chemin POSIX depuis la racine.
  * @throws {Error} si l'une des bases rend 0 fichier (voir REFUS DU VIDE, en-tête).
  */
-export function readCorpus(dirs, { exts = EXTENSIONS_DE_SCRIPT, tests = false } = {}) {
+export function readCorpus(dirs, { exts = EXTENSIONS_DE_SCRIPT, tests = false, porte } = {}) {
   const bases = dirs.map((d) => (isAbsolute(d) ? d : join(ROOT, d)));
+  for (const base of bases) exigerLaPorte(base, porte, 'readCorpus', { ancetres: true });
   const cle = JSON.stringify([bases.map(posixDepuisRacine), [...exts].sort(), tests]);
   const memo = CORPUS.get(cle);
   if (memo) return memo;
-  const parBase = bases.map((base) => listerArbre(base, { filtre: (nom) => estRetenu(nom, { exts, tests }) }));
+  const parBase = bases.map((base) => listerArbre(base, { filtre: (nom) => estRetenu(nom, { exts, tests }), porte }));
   const vide = parBase.findIndex((noms) => noms.length === 0);
   if (vide >= 0) {
     throw new Error(

@@ -15,6 +15,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { EXTENSIONS_DE_SCRIPT } from '../../guards/lib/dialecte.mjs'
 import { listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 
 /** Les fiches de dossier de chapitre commitées (#2290, #4936) : `projets/<projet>/dossiers/<ABBR>/<NN>.json`, trouvées par leur
  *  EMPLACEMENT. `dossiersDesProjets` en rend les dossiers, lus par `scripts/raw/lib/dossiers.mjs`. */
@@ -30,7 +31,7 @@ const sousLesFiches = (chemin) => {
  *  `projets/<projet>/<sousDossier>` présent, en ordre total. Par défaut, les dossiers de fiches. */
 export function dossiersDesProjets(racine = '.', sousDossier = DOSSIERS_DES_PROJETS.dossier) {
   const projets = join(racine, DOSSIERS_DES_PROJETS.racine)
-  return listerEntrees(projets, { absent: 'vide' }).entrees
+  return listerEntrees(projets, { absent: 'vide', porte: porteDeTousLesProjets }).entrees
     .filter((e) => e.nature === 'directory' && existsSync(join(projets, e.nom, sousDossier)))
     .map((e) => `${DOSSIERS_DES_PROJETS.racine}/${e.nom}/${sousDossier}`)
 }
@@ -53,5 +54,6 @@ export function fichiersCitants(racines, exts = EXTS_CITANTES) {
   return [racines].flat().flatMap((dir) => listerArbre(dir, {
     descendre: (rel) => !rel.split('/').includes('node_modules') && (sousLesFiches(dir) || !sousLesFiches(join(dir, rel).split('\\').join('/'))),
     filtre: (rel) => exts.some((x) => rel.endsWith(x)),
+    porte: porteDeTousLesProjets,
   }).map((rel) => join(dir, rel)))
 }

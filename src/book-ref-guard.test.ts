@@ -5,6 +5,7 @@ import * as ts from 'typescript/unstable/ast';
 import type { Checker } from 'typescript/unstable/sync';
 import { contexteImports, liaisonImportee, type ContexteImports } from '../scripts/guards/lib/canonUnique.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs';
 import { alternationDuRegistre, REGISTRE_LIVRES } from '../scripts/guards/lib/rawRefIntegrity.mjs';
 import { garanti } from './lib/garanti';
 import { HOTES_DU_NOYAU, dossierDe, estProjet, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
@@ -160,7 +161,7 @@ const CONSIGNE = 'retirer la réf (elle va en commentaire au site qui écrit le 
 describe('réfs de livre — réservées au Codex et aux surfaces d’authoring (#601)', () => {
   it.each(PERIMETRES_DE_JEU)('aucun texte joueur du périmètre $nom ne porte une référence de livre (#3059)', ({ racines, horsDiagnostic }) => {
     const offenders: string[] = [];
-    for (const { fichier: { rel }, sourceFile, checker } of analyserCorpus(readCorpus(racines))) {
+    for (const { fichier: { rel }, sourceFile, checker } of analyserCorpus(readCorpus(racines, { porte: porteDeTousLesProjets }))) {
       if (rel.startsWith(CODEX_DU_NOYAU)) continue;
       for (const h of renderedBookRefs(sourceFile!, checker, horsDiagnostic)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }

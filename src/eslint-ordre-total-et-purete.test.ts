@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { blocsDeRegle, creerBancLint, lintFixtures, selectionnerMessages, configPourFichier } from '../scripts/guards/lib/lint.testkit.mjs';
 import { correspondGlob, listerEntrees } from '../scripts/guards/lib/lister.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs';
 import { estFichierVitest, estKitDeTest, estSuiteVitest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { estDeLaSuiteVitest } from '../scripts/guards/lib/racinesDeLaSuite.mjs';
 import {
@@ -113,7 +114,7 @@ function verdicts(fixtures: { filePath: string; code: string }[], regles: readon
 function sondes(zone: string): string[] {
   const dossier = dossierDe(zone);
   if (!dossier.startsWith('src/') && !existsSync(new URL(`../${dossier}`, import.meta.url))) return [`${dossier}/zz-sonde.ts`, `${dossier}/zz-sous/sonde.ts`];
-  const corpus = readCorpus([dossier], { exts: ['.ts'] });
+  const corpus = readCorpus([dossier], { exts: ['.ts'], porte: porteDeTousLesProjets });
   const sousDossier = corpus.find((f) => f.rel.slice(dossier.length + 1).includes('/'));
   return sousDossier ? [corpus[0].rel, sousDossier.rel] : [corpus[0].rel];
 }
@@ -205,7 +206,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
 
   it('CONTRAT : la ligne d’un projet est celle de son constructeur, chacun de ses affichages un dossier de `hotes/`, aucune ligne hors de lui ne le nomme, aucune de ses ouvertures n’est morte, et toute autre zone le trouve fermé (#4903 H3)', () => {
     const projets = Object.keys(COUCHES).filter(estProjet);
-    const dossiers = listerEntrees(fileURLToPath(new URL('../projets/', import.meta.url))).entrees.filter((e) => e.nature === 'directory').map((e) => `projets/${e.nom}`);
+    const dossiers = listerEntrees(fileURLToPath(new URL('../projets/', import.meta.url)), { porte: porteDeTousLesProjets }).entrees.filter((e) => e.nature === 'directory').map((e) => `projets/${e.nom}`);
     expect(dossiers.length, 'aucun dossier de projet : le contrat ne mesure rien').toBeGreaterThan(0);
     expect(projets.map(dossierDe).sort(), 'chaque dossier de `projets/` est la ligne d’un projet').toEqual(dossiers.sort());
     for (const p of projets) {
@@ -707,7 +708,7 @@ function sondeProduction(): string {
 function sondeTest(dir: string): string {
   if (!dir.startsWith('src') && !existsSync(new URL(`../${dir}`, import.meta.url))) return `${dir}/zz-sonde.test.ts`;
   const profondeurRacine = dir === 'src';
-  const f = readCorpus([dir], { tests: true }).find(
+  const f = readCorpus([dir], { tests: true, porte: porteDeTousLesProjets }).find(
     ({ rel }) => estSuiteVitest(rel) && (!profondeurRacine || rel.split('/').length === 2),
   );
   expect(f, `${dir} : aucun fichier de test réel — la sonde du mur ne mesure rien`).toBeTruthy();

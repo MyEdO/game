@@ -29,6 +29,7 @@ import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import { join } from 'node:path'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { dossiersDesProjets } from '../raw/lib/fichiersCitants.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 
 const DIR_DU_COMMUN = 'src/scenes/test-scenarios'
 
@@ -48,7 +49,7 @@ function rendu(DIR = DIR_DU_COMMUN) {
 
   /** Même filtre que `scripts/gen-registry.mjs` (entrée `test-scenarios`) — SOURCE UNIQUE du périmètre. */
   function scenarioFiles() {
-    return listerDossier(DIR)
+    return listerDossier(DIR, { porte: porteDeTousLesProjets })
       .filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !estKitDeTest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts')
   }
 

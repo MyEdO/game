@@ -6,6 +6,7 @@ import { programmeDesChamps } from './fieldConsumers.mjs'
 import { estModule } from './importGraph.mjs'
 import { listerArbre } from './lister.mjs'
 import { RACINES_PRESENTES } from './racinesPresentes.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
 import { enfantsDe } from '../../../src/data/schemas/grammaire/descente.ts'
 import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated.ts'
@@ -346,6 +347,7 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
   const files = fichiers ?? [...RACINES_PRESENTES, 'scripts'].flatMap(dir => listerArbre(join(root, dir), {
     filtre: rel => estModule(rel) && (!estFichierVitest(rel) || /-guard\./.test(rel)) &&
       !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel),
+    porte: porteDeTousLesProjets,
   }).map(rel => join(root, dir, rel)))
   const session = programme ?? programmeDesChamps(root, files)
   const { program, checker } = session
