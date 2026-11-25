@@ -2,7 +2,7 @@
 // une fiche hors schéma `ficheDeDossier` (`src/data/source/dossier.ts`) est refusée, chaque élément de `ref` est UNE réf
 // entière à la graphie `refRe`, tout `l.<ligne>` d'un champ texte appartient à une telle réf entière ; bornes et ligne
 // non aveugle relèvent des scanners CITANTS (`scripts/raw/lib/fichiersCitants.mjs`). Les fiches commitées d'un projet
-// se jugent dans sa suite (`projets/jeu-de-role/suites/dossiers.test.ts`).
+// se jugent dans sa suite.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'

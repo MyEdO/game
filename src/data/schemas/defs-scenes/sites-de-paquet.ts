@@ -1,7 +1,7 @@
 /**
  * SITES DE CONDITION ET D'EFFET d'un paquet de campagne (#2539) — UN énumérateur, partagé par le visiteur
- * des références narratives (`./refs-narratives.ts`) et par la garde « lu ⇒ produit »
- * (`projets/jeu-de-role/suites/drapeau-lu-produit.test.ts`). Une liste de sites tenue ailleurs rate le site suivant.
+ * des références narratives (`./refs-narratives.ts`) et par la garde « lu ⇒ produit » d'un projet (#2539).
+ * Une liste de sites tenue ailleurs rate le site suivant.
  *
  * Sites, dans l'ordre du document :
  *  - scène : `when` des déclencheurs et des choix de dialogue ; chaque RACINE de Flow (`racinesDeFlow` :

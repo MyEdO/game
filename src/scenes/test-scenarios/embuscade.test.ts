@@ -112,7 +112,7 @@ describe('embuscade — Scene produite par buildScene', () => {
       (id) => s.entities.find((e) => e.id === id)?.pos,
     );
     // Les mutants encerclent l'épave SANS naître dedans : elle occupe 2×2 depuis (15,6) au catalogue
-    // (`props.json` `epave-carrosse`) — cf. le balayage `projets/jeu-de-role/suites/prop-footprint-occupancy.test.ts`.
+    // (`props.json` `epave-carrosse`) — cf. le balayage `src/noyau/monde/prop-footprint-occupancy.test.ts`.
     expect(positions).toEqual([
       { x: 17, y: 6 },
       { x: 17, y: 7 },

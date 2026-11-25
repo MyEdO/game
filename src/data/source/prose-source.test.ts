@@ -12,6 +12,8 @@ import { mkdtempSync, mkdirSync, writeFileSync, readFileSync, rmSync } from 'nod
 import { tmpdir } from 'node:os';
 import { join, dirname, relative, resolve } from 'node:path';
 import { createServer } from 'vite';
+import { ACTIVITIES } from '../index';
+import paquetDeTest from '../../scenes/fixtures/paquet-de-test.json';
 import { parseChapitre, fragmentBlocs, type ChapitreParse, type FragmentBlocs } from './decoupe.ts';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { proseSource, titreDeChapitre } from '../../../scripts/source/prose-source-plugin.mjs';
@@ -181,21 +183,20 @@ describe('plugin `wfrp:prose-source` — projets de campagne LIVRÉS (#680)', ()
     }
   });
 
-  it('serveur Vite RÉEL sur le dépôt : le preset de Gustav sort de la Diligence avec la prose de son adresse, à l’octet du `Source/`', async () => {
-    const rel = 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json';
-    const disque = JSON.parse(readFileSync(join(RACINE_DEPOT, rel), 'utf8'));
-    type Preset = { id: string; profil: { desc?: string; descRef?: { book: string; ch: string } } };
-    const gustavDe = (doc: { narratif: { presetsPnj: Preset[] } }): Preset | undefined =>
-      doc.narratif.presetsPnj.find((p) => p.id === 'edo-gustav-fondleburger');
-    const surDisque = gustavDe(disque)!;
-    expect(surDisque.profil.desc, 'le DISQUE ne porte que l’adresse').toBeUndefined();
-    const ref = surDisque.profil.descRef!;
+  it('serveur Vite RÉEL : le preset d’un projet sort avec la prose de son adresse, à l’octet du `Source/`', async () => {
+    const racine = mkdtempSync(join(tmpdir(), 'prose-vite-'));
+    const rel = 'projets/un-jeu/un-jeu-projet.json';
+    const ref = ACTIVITIES.find((a) => a.descRef)!.descRef!;
+    const [pnj, ...autres] = paquetDeTest.narratif.presetsPnj;
+    const doc = { ...paquetDeTest, narratif: { ...paquetDeTest.narratif, presetsPnj: [{ ...pnj, profil: { ...pnj.profil, descRef: ref } }, ...autres] } };
+    mkdirSync(join(racine, dirname(rel)), { recursive: true });
+    writeFileSync(join(racine, rel), JSON.stringify(doc));
     const attendu = (resoudreProse({ descRef: ref }) as { md: string }).md;
     expect(readFileSync(cheminDuDepot(cheminChapitre(ref.book, ref.ch)), 'utf8'), 'le texte est celui du livre').toContain(attendu);
 
     const server = await createServer({
       configFile: false,
-      root: RACINE_DEPOT,
+      root: racine,
       logLevel: 'silent',
       server: { middlewareMode: true, watch: null },
       optimizeDeps: { noDiscovery: true },
@@ -203,9 +204,10 @@ describe('plugin `wfrp:prose-source` — projets de campagne LIVRÉS (#680)', ()
     });
     try {
       const module = await server.ssrLoadModule(`/${rel}`);
-      expect(gustavDe(module.default)?.profil.desc).toBe(attendu);
+      expect(module.default.narratif.presetsPnj[0].profil.desc).toBe(attendu);
     } finally {
       await server.close();
+      rmSync(racine, { recursive: true, force: true });
     }
   });
 });

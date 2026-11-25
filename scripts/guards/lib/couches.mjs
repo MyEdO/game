@@ -65,7 +65,11 @@ export const COUCHES = Object.freeze({
   geometry: { importe: [], survit: true },
   i18n: { importe: [], survit: true },
   engine: { importe: ['data', ...FEUILLES], survit: true },
-  data: { importe: ['engine', ...FEUILLES], survit: true },
+  data: {
+    importe: ['engine', ...FEUILLES],
+    survit: true,
+    outillage: { 'src/data/specsNommees.testkit.ts': ['scripts/guards/lib/stock.mjs', 'scripts/data/lib/skillSpecWalk.mjs'] },
+  },
   noyau: {
     importe: ['engine', 'data', ...FEUILLES],
     survit: true,

@@ -28,7 +28,6 @@ import path from 'node:path';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { mesurerLibellesDeReponse } from '../../scripts/guards/lib/dialogueLabelTest.mjs';
-import { cheminsDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { avisLibelleRecopie, validateScene } from '../noyau/validateScene';
 import { testScenarios } from './test-scenarios';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
@@ -73,9 +72,9 @@ function trouvaille(label: string, flow?: unknown, cost?: Record<string, number>
 }
 
 describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propre flux', () => {
-  it.each([['du commun', undefined], ['du jeu de rôle', cheminsDesProjetsLivres()]] as const)('aucun paquet %s ne recopie ce que le tag dérivé dira déjà', (_corpus, paquets) => {
+  it('aucun paquet du commun ne recopie ce que le tag dérivé dira déjà', () => {
     expect(
-      mesurerLibellesDeReponse(VOC, undefined, paquets),
+      mesurerLibellesDeReponse(VOC),
       'le tag « [Compétence — Difficulté] » et la puce de coût sont DÉRIVÉS de la donnée : retirer la mention du libellé',
     ).toEqual([]);
   });

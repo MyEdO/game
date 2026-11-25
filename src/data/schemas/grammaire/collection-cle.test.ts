@@ -12,7 +12,6 @@ import { SCHEMA_DEFS_SCENES } from '../_registry-scenes.generated';
 import { DATASET_FICHIER_DERIVE } from '../exposition-derivee';
 import { DATASET_KEYS, datasetArray } from '../../overrides';
 import { scanDuCorpus } from '../../../../scripts/docs/lib/structures-scan.mjs';
-import { cheminsDesProjetsLivres } from '../../../../scripts/guards/lib/projetsLivres.mjs';
 import { projetSchema } from '../defs-scenes/projet';
 import { sceneSchema } from '../defs-scenes/scene';
 import { routePerilSchema } from '../defs-scenes/worldmap';
@@ -153,8 +152,8 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
   const CAS: [string, (d: Doc) => void, string][] = [
     ['une entité', (d) => repete(d.scenes[0].entities), 'entité'],
     ['un déclencheur', (d) => { d.scenes[0].triggers = [{ id: 't1', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [] } }]; repete(d.scenes[0].triggers); }, 'déclencheur'],
-    ['un nœud de dialogue', (d) => { d.scenes[0].dialogues = [{ id: 'd1', start: { id: 'n1' }, nodes: [noeud, noeud] }]; }, 'nœud'],
-    ['une réponse de dialogue', (d) => { const oui = { id: 'oui', label: 'Oui' }; d.scenes[0].dialogues = [{ id: 'd1', start: { id: 'n1' }, nodes: [{ ...noeud, choices: [oui, oui] }] }]; }, 'réponse'],
+    ['un nœud de dialogue', (d) => { d.scenes[0].dialogues.push({ id: 'd1', start: { id: 'n1' }, nodes: [noeud, noeud] }); }, 'nœud'],
+    ['une réponse de dialogue', (d) => { const oui = { id: 'oui', label: 'Oui' }; d.scenes[0].dialogues.push({ id: 'd1', start: { id: 'n1' }, nodes: [{ ...noeud, choices: [oui, oui] }] }); }, 'réponse'],
     ['un lieu', (d) => { d.worldMap = { id: 'carte', label: 'Carte', places: [lieu, lieu], routes: [] }; }, 'lieux'],
     ['une route', (d) => { d.worldMap = { id: 'carte', label: 'Carte', places: [lieu], routes: [route, route] }; }, 'routes'],
   ];
@@ -196,7 +195,7 @@ describe('`espace` — jamais sur une liste de RÉFÉRENCES', () => {
 });
 
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-const { defs: DEFS, scan } = scanDuCorpus(ROOT, cheminsDesProjetsLivres(ROOT));
+const { defs: DEFS, scan } = scanDuCorpus(ROOT);
 const COLLECTIONS = scan.collections;
 const ESPACES = COLLECTIONS.filter((c) => c.marque.espace);
 const trie = (ids: readonly string[]) => [...ids].sort();

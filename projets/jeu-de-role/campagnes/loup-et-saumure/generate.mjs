@@ -376,8 +376,9 @@ resetIds();
 scenes.push(scene({
   id: 'ls-abordage-cogue',
   label: 'La Dent de Manann — voile noire sous le vent (J4)',
+  // MDG 15 l.171-173
   desc:
-    "La cogue pirate intercepte le Grimm en haute mer. Sommation RAW complète (MDG 15 l.171-173) : fouille " +
+    "La cogue pirate intercepte le Grimm en haute mer. Sommation complète : fouille " +
     "de cale et pillage, PUIS un prisonnier à sacrifier à Stromfels. Frère Aldo nomme l'ennemi à voix haute.",
   weather: 'brouillard',
   base: 'eau',
@@ -451,8 +452,9 @@ resetIds();
 scenes.push(scene({
   id: 'ls-quai-erengrad',
   label: 'Erengrad — le port kislevite',
+  // MDG 15 l.439-506
   desc:
-    "Erengrad (Taille 4, Richesse 4, surplus Laine +1 — MDG 15 l.439-506). Négoce, rumeurs, et une nuit où " +
+    "Erengrad (Taille 4, Richesse 4, surplus Laine +1). Négoce, rumeurs, et une nuit où " +
     "le chat du bord tombe malade.",
   weather: 'neige',
   base: 'sable',

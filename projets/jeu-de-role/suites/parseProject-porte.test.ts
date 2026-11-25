@@ -1,59 +1,19 @@
 /**
- * La porte `parseProject` n'altère JAMAIS ce qu'on lui passe, et son refus est une DONNÉE
- * (`ProjetRefuse` : la cause et les fautes, chemin + message) — le `message` restant le rapport
- * technique que lisent les scripts. Mesuré sur les paquets COMMITTÉS (appelés sur leurs modules JSON
- * importés, `projets/jeu-de-role/contenu.ts`) et sur un document à carte. `projetSchema` est le SEUL contrôle de
- * forme (#2404) : un document d'un autre format est REFUSÉ, jamais migré.
+ * La porte `parseProject` sur les paquets COMMITTÉS du jeu (`src/noyau/parseProject-porte.test.ts` en tient le
+ * contrat sur le commun) : gelés, ils passent intacts ; leur forme disque est refusée ; les formes que le dépôt a
+ * quittées, posées sur un paquet, sont REFUSÉES, jamais migrées (#2404).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
-import { parseProject, ProjetRefuse } from '../../../src/noyau/worldMap';
-import { emptyScene } from '../../../src/noyau/monde/scene';
-import { emptyNarratif } from '../../../src/noyau/monde/campaignNarratif';
+import { parseProject } from '../../../src/noyau/worldMap';
+import { gele, refusDe } from '../../../src/noyau/porteDuProjet.testkit';
 import { auChemin } from '../../../src/lib/objet.mjs';
 
 const SCENES_DIR = dossierDesProjetsLivres();
 const PAQUETS = listerProjetsLivres().map((rel) => join(SCENES_DIR, rel));
-
-/** Gel PROFOND : toute écriture de la porte sur son entrée lève (module ESM = mode strict). */
-function gele<T>(o: T): T {
-  if (o && typeof o === 'object' && !Object.isFrozen(o)) {
-    Object.freeze(o);
-    for (const v of Object.values(o)) gele(v);
-  }
-  return o;
-}
-
-/** Un document au format courant, à carte dont le port est par RÉFÉRENCE : la porte le résout. */
-function documentAPort(): Record<string, unknown> {
-  return {
-    type: 'projet',
-    id: 'projet-a-port',
-    label: 'Projet à port',
-    versionContenu: 1,
-    maison: 'fixture de test',
-    narratif: emptyNarratif(),
-    scenes: [{ ...emptyScene('s1', 4, 4), label: 'Salle' }],
-    worldMap: {
-      id: 'm', label: 'Côte', routes: [],
-      places: [{ id: 'l1', label: 'Port', pos: { x: 50, y: 50 }, scene: { id: 's1' }, port: { ref: 'salzenmund' } }],
-    },
-  };
-}
-
-/** Le refus de la porte pour ce document (échoue le test s'il passe ou lève autre chose). */
-function refusDe(doc: unknown): ProjetRefuse {
-  try {
-    parseProject(doc);
-  } catch (e) {
-    if (e instanceof ProjetRefuse) return e;
-    throw e;
-  }
-  throw new Error('la porte a laissé passer le document');
-}
 
 describe('parseProject — la porte n’altère JAMAIS son entrée', () => {
   it('au moins un paquet committé porte une carte à ports (sans quoi la pureté ne mesurerait rien)', () => {
@@ -68,67 +28,9 @@ describe('parseProject — la porte n’altère JAMAIS son entrée', () => {
     expect(JSON.stringify(doc)).toBe(avant);
   });
 
-  it('un document à port par référence GELÉ passe la porte, intact', () => {
-    const avant = JSON.stringify(documentAPort());
-    const doc = gele(documentAPort());
-    const lu = parseProject(doc);
-    expect(JSON.stringify(doc)).toBe(avant);
-    expect(lu.worldMap!.places[0].port!.taille, 'le port est RÉSOLU sur la copie').toBeGreaterThan(0);
-  });
 });
 
 describe('parseProject — le refus est une DONNÉE (`ProjetRefuse`)', () => {
-  it('document absent : cause `schema`, faute à la racine, rapport « d’un autre format, ou mal formé »', () => {
-    const refus = refusDe(null);
-    expect(refus.cause).toBe('schema');
-    expect(refus.fautes.map((f) => f.chemin)).toEqual([[]]);
-    expect(refus.message).toMatch(/^Projet d’un autre format, ou mal formé — JSON invalide contre son schéma :\n {2}- \(racine\): /);
-  });
-
-  it('schéma enfreint : cause `schema`, les fautes de zod telles quelles, et le rapport des scripts', () => {
-    const doc = { ...documentAPort(), label: '' };
-    const refus = refusDe(doc);
-    expect(refus.cause).toBe('schema');
-    const faute = refus.fautes.find((f) => f.chemin.join('.') === 'label');
-    expect(faute, 'une faute au chemin `label`').toBeTruthy();
-    expect(refus.message).toContain(`  - Nom: ${faute!.message}`);
-  });
-
-  it('réfs de port inconnues : fautes de SCHÉMA, TOUTES nommées à leur chemin', () => {
-    const doc = documentAPort();
-    const carte = doc.worldMap as { places: Record<string, unknown>[] };
-    carte.places = [
-      { ...carte.places[0], port: { ref: 'port-mort-1' } },
-      { ...carte.places[0], id: 'l2', port: { ref: 'port-mort-2' } },
-    ];
-    const refus = refusDe(doc);
-    expect(refus.cause).toBe('schema');
-    expect(refus.fautes.map((f) => f.chemin)).toEqual([
-      ['worldMap', 'places', 0, 'port', 'ref'],
-      ['worldMap', 'places', 1, 'port', 'ref'],
-    ]);
-  });
-
-  it('`scenes` non-tableau : cause `schema`, faute au chemin `scenes`', () => {
-    const refus = refusDe({ ...documentAPort(), scenes: {} });
-    expect(refus.cause).toBe('schema');
-    expect(refus.fautes.map((f) => f.chemin)).toEqual([['scenes']]);
-  });
-
-  /** Documents MAL FORMÉS : la porte ne laisse sortir QUE des `ProjetRefuse`, jamais une exception brute. */
-  const MAL_FORMES: Record<string, unknown> = {
-    'scènes nulles': { type: 'projet', id: 'x', label: 'X', versionContenu: 1, scenes: [null] },
-    'scène en chaîne': { type: 'projet', id: 'x', label: 'X', scenes: ['a'] },
-    'entités nulles': { type: 'projet', id: 'x', label: 'X', scenes: [{ id: 's', entities: null }] },
-    'lieux nuls': { type: 'projet', id: 'x', label: 'X', scenes: [], worldMap: { places: null } },
-    'entité nulle': { type: 'projet', id: 'x', label: 'X', scenes: [{ id: 's', entities: [null] }] },
-    'tableau nu': [],
-    'chaîne nue': 'x',
-  };
-  it.each(Object.entries(MAL_FORMES))('%s : refus `ProjetRefuse` de cause `schema`, jamais une exception brute', (_nom, doc) => {
-    expect(refusDe(doc).cause).toBe('schema');
-  });
-
   it('la FORME DISQUE d’un projet livré (prose adressée sans son texte) : `prose-non-materialisee`, chaque nœud à son chemin ; servie, elle passe', () => {
     const rel = 'jeu-de-role/campagnes/diligence/diligence-projet.json';
     const disque = JSON.parse(readFileSync(join(SCENES_DIR, rel), 'utf8')) as { narratif: { presetsPnj: { id: string; profil?: { descRef?: unknown } }[] } };

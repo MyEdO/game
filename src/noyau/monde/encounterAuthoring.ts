@@ -6,8 +6,8 @@
  * la VISIBILITÉ (`hidden`) est un choix explicite (défaut : visible — RAW, le groupe voit ses
  * adversaires, quitte à les manquer sur un Test de Perception opposé via `surprise`).
  *
- * Utilisé par les scènes de test (`src/scenes/**`). Le générateur de campagne (`projets/jeu-de-role/campagnes/lib.mjs`,
- * Node pur) délègue à `buildScene` (`tsx`, MÊME compilateur) — pas de mirroir JS séparé à maintenir.
+ * Utilisé par les scènes de test (`src/scenes/**`). Les générateurs de campagne des projets
+ * (Node pur) délèguent à `buildScene` (`tsx`, MÊME compilateur) — pas de mirroir JS séparé à maintenir.
  */
 import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
 import type { EntityAppearance } from '../../engine/authoringAppearance';

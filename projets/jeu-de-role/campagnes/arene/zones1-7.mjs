@@ -651,7 +651,7 @@ export function makeZone7() {
           { creature: { id: 'serpent' }, pos: { x: 20, y: 6 } },
           { creature: { id: 'serpent' }, pos: { x: 14, y: 16 } },
           { creature: { id: 'basilic' }, pos: { x: 22, y: 18 } },
-          { creature: { id: 'vouivre' }, pos: { x: 24, y: 5 } }, // empreinte 3×3 : (24,4) chevaucherait les « Chapeaux moirés » (26,4), désormais bloquants
+          { creature: { id: 'vouivre' }, pos: { x: 24, y: 5 } }, // empreinte 3×3 : (24,4) chevaucherait les « Chapeaux moirés » (26,4), bloquants
         ],
         onVictory: zoneVictory(7, { money: { gold: 2, silver: 10 }, xp: 220, journal: 'Le Nid : brûlé ! La vouivre ne sifflera plus sous l’arène.' }),
       },

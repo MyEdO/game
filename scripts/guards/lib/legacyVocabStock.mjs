@@ -133,13 +133,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "projets/jeu-de-role/suites/prop-foot-migration.test.ts",
-    motif: "désormais",
-    ancre: "désormais 1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/prose-resolution.test.ts",
     motif: "désormais",
     ancre: "entrer est désormais FERMÉE PAR LA LIB : une cellule résolue rend le saut de ligne IMPRIMÉ",
@@ -542,13 +535,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/noyau/vessel-morale.hors-store.test.ts",
     motif: "désormais",
     ancre: "inchangé ; en cadence manuelle un équipage salarié convoque désormais le Conseil de bord (#229, ci-dessous).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "projets/jeu-de-role/campagnes/arene/zones1-7.mjs",
-    motif: "désormais",
-    ancre: "// empreinte 3×3 : (24,4) chevaucherait les « Chapeaux moirés » (26,4), désormais bloquants",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

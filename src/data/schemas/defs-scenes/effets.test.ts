@@ -22,7 +22,7 @@ import { describe, it, expect, expectTypeOf } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerArbre } from '../../../../scripts/guards/lib/lister.mjs';
-import { listerProjetsLivres, PROJETS_LIVRES } from '../../../../scripts/guards/lib/projetsLivres.mjs';
+import { CORPUS_DU_COMMUN, paquetsDuCommun } from '../../../../scripts/guards/lib/paquetsDuCommun.mjs';
 import type { z } from 'zod';
 import { noeudDuChamp } from '../validate';
 import {
@@ -44,10 +44,10 @@ const ROOT = join(__dirname, '../../../..');
 /** Clés dont la VALEUR est un effet (ou en contient) — établies par mesure sur les deux racines. */
 const CONTEXTES_D_EFFET = ['effet', 'effects', 'onEnter', 'onExit', 'reward', 'interact'];
 
-/** Les documents de chaque racine authorée, relatifs à elle : les projets livrés, et tous les `.json`
+/** Les documents de chaque racine authorée, relatifs à elle : le contenu du commun, et tous les `.json`
  *  de `src/data`. */
 const DOCUMENTS_DE_RACINE: Record<string, () => string[]> = {
-  [PROJETS_LIVRES.dossier]: () => listerProjetsLivres(ROOT),
+  [CORPUS_DU_COMMUN.dossier]: () => paquetsDuCommun(ROOT).map((rel) => rel.slice(CORPUS_DU_COMMUN.dossier.length + 1)),
   'src/data': () => listerArbre(join(ROOT, 'src/data'), { filtre: (rel) => rel.endsWith('.json') }),
 };
 

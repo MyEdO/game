@@ -1,9 +1,9 @@
 /**
  * `documentDeProjet` est L'ENVELOPPE que l'application écrit — la SEULE, partagée par les trois
  * sorties d'un projet (« Enregistrer »/« Exporter JSON » de l'éditeur, import de fichier à la
- * bibliothèque, export d'une entrée) et par les générateurs de campagne (`projectDoc`,
- * `projets/jeu-de-role/campagnes/lib.mjs`). Ce que ce banc tient : l'ORDRE des clés, celui des paquets GÉNÉRÉS
- * (figé à l'octet par `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`), et le fait qu'une clé
+ * bibliothèque, export d'une entrée) et par les générateurs de campagne des projets (`projectDoc`). Ce que ce banc
+ * tient : l'ORDRE des clés, celui des paquets GÉNÉRÉS (figé à l'octet par la suite des générateurs de chaque
+ * projet, #1601), et le fait qu'une clé
  * optionnelle non fournie ne s'écrive PAS — un `worldMap: undefined` posé se lirait « carte
  * effacée » au diff du document.
  */

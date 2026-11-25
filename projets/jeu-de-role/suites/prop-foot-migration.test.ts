@@ -74,7 +74,7 @@ const LEGACY_AUTHORED_FOOT_SITES: [string, string][] = [
 /** Empreinte EFFECTIVE d'une instance authorée : sa ref courante et les cases que le catalogue lui
  *  donne AU CAP ET À L'ÉCHELLE de sa scène — `foot` déclaré pour un billboard, corps tourné pour un
  *  décor à recette depuis #1509 (`empreinteDuProp`, la couture unique). Lire le seul `foot` rendrait
- *  désormais 1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */
+ *  1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */
 function authoredPropFoot(scene: string, id: string): [string, number, number] {
   const ent = entitiesOf(scene).find((e) => e.id === id)!;
   const { w, h } = empreinteDuProp(findPropById(ent.decor?.id), ent.facing, mptDe(scene));
