@@ -1469,9 +1469,14 @@ export function consommerLaCapacite(porteurs: readonly Combatant[], cap: keyof I
   }
 }
 
-/** PA d'une pièce d'armure, nette des dégâts subis. LDB 63 l.19 */
-export function paNette(it: ItemInstance): number {
-  return Math.max(0, (it.pa ?? 0) - (it.damageTaken ?? 0));
+/** PA d'une pièce d'armure à `loc`, nette des Dégâts subis à cet Emplacement. LDB 63 l.19 */
+export function paNette(it: Pick<ItemInstance, 'pa' | 'usure'>, loc: HitLocation): number {
+  return Math.max(0, (it.pa ?? 0) - (it.usure?.[loc] ?? 0));
+}
+
+/** 1 Dégât à la pièce d'armure `it`, à l'Emplacement `loc`. L'appelant re-dérive. LDB 63 l.19 */
+function endommagerLaPieceA(it: ItemInstance, loc: HitLocation): void {
+  it.usure = { ...it.usure, [loc]: (it.usure?.[loc] ?? 0) + 1 };
 }
 
 /** Un emplacement de la fiche : la pièce qui l'occupe, et celles qui peuvent l'occuper. */
@@ -1503,9 +1508,8 @@ export function wornArmourPoints(items: ItemInstance[], exclude?: (it: ItemInsta
   for (const it of items) {
     if (!it.equipped || it.kind !== 'armor' || !it.pa || !it.locs || it.destroyed) continue;
     if (exclude?.(it)) continue;
-    const net = paNette(it);
     const couche = couches[armourLayer(it)];
-    for (const l of it.locs) couche[l] = Math.max(couche[l], net);
+    for (const l of it.locs) couche[l] = Math.max(couche[l], paNette(it, l));
   }
   const armour = emptyArmour();
   for (const l of Object.keys(armour) as HitLocation[]) armour[l] = couches.souple[l] + couches.flexible[l] + couches.rigide[l];
@@ -1532,21 +1536,26 @@ export function impenetrableAt(c: Combatant, loc: HitLocation): boolean {
   return piecesPorteesA(c, loc).some((i) => hasQuality(i, 'impenetrable'));
 }
 
-/** Pièce d'armure utilisable : PA nette ≥ 0 (LDB 63 l.19, l.21). */
+/** La pièce d'armure `i` est-elle utilisable à `loc` : PA nette ≥ 0 à cet Emplacement. LDB 63 l.19, l.21 */
+export function armureUtilisableA(i: ItemInstance, loc: HitLocation): boolean {
+  return !i.destroyed && (i.pa ?? 0) - (i.usure?.[loc] ?? 0) >= 0;
+}
+
+/** La pièce d'armure `i` est-elle utilisable à l'un de ses Emplacements ? LDB 63 l.21, l.64 */
 export function armureUtilisable(i: ItemInstance): boolean {
-  return !i.destroyed && (i.pa ?? 0) - (i.damageTaken ?? 0) >= 0;
+  return (i.locs ?? []).some((l) => armureUtilisableA(i, l));
 }
 
 /** Pièces d'armure équipées et utilisables qui protègent `loc`. */
 export function piecesPorteesA(c: Combatant, loc: HitLocation): ItemInstance[] {
-  return (c.items ?? []).filter((i) => i.equipped && i.kind === 'armor' && (i.pa ?? 0) > 0 && !!i.locs?.includes(loc) && armureUtilisable(i));
+  return (c.items ?? []).filter((i) => i.equipped && i.kind === 'armor' && (i.pa ?? 0) > 0 && !!i.locs?.includes(loc) && armureUtilisableA(i, loc));
 }
 
 /** LDB 60 l.50 ; LDB 63 l.21. */
 export function casserLaPieceBaclee(c: Combatant, loc: HitLocation): boolean {
   const piece = piecesPorteesA(c, loc).find((i) => hasQuality(i, 'bacle'));
   if (!piece) return false;
-  piece.damageTaken = (piece.pa ?? 0) + 1;
+  piece.usure = tableTotale(piece.locs ?? [], () => (piece.pa ?? 0) + 1);
   recomputeLoadout(c);
   return true;
 }
@@ -1558,16 +1567,16 @@ export function deviatableArmourAt(c: Combatant, loc: HitLocation): boolean {
   return piecesPorteesA(c, loc).length > 0 || armourPhysiqueAt(c, loc) - nonDeviatableMutationAP(c, loc) > 0;
 }
 
-/** Endommage de 1 PA l'armure de `c` à `loc` : la pièce portée la plus solide (damageTaken+1) puis
+/** Endommage de 1 PA l'armure de `c` à `loc` : la pièce portée la plus solide à `loc` puis
  *  re-dérivation, sinon `userLArmureSansPiece`. Rend le fait d'objet (`brisee` : la pièce devient inutilisable), ou
  *  `null` si aucun PA ne tombe. LDB 63 l.19-21 */
 export function damageArmour(c: Combatant, loc: HitLocation): FaitDObjet | null {
   const pieces = piecesPorteesA(c, loc);
   if (pieces.length) {
-    const piece = pieces.sort((a, b) => ((b.pa ?? 0) - (b.damageTaken ?? 0)) - ((a.pa ?? 0) - (a.damageTaken ?? 0)))[0];
-    piece.damageTaken = (piece.damageTaken ?? 0) + 1;
+    const piece = pieces.sort((a, b) => paNette(b, loc) - paNette(a, loc))[0];
+    endommagerLaPieceA(piece, loc);
     recomputeLoadout(c);
-    return faitDObjet(c, { armure: loc }, armureUtilisable(piece) ? 'usee' : 'brisee');
+    return faitDObjet(c, { armure: loc }, armureUtilisableA(piece, loc) ? 'usee' : 'brisee');
   }
   return userLArmureSansPiece(c, loc) ? faitDObjet(c, { armure: loc }, 'usee') : null;
 }
@@ -1602,8 +1611,8 @@ function userLArmureSansPiece(c: Combatant, loc: HitLocation): boolean {
 export function endommagerLEquipementPorte(c: Combatant): { localisations: number; armes: number } {
   const locs = LOCALISATIONS_DE_COUP;
   const portees = locs.map((loc) => ({ loc, pieces: piecesPorteesA(c, loc) }));
+  for (const { loc, pieces } of portees) for (const piece of pieces) endommagerLaPieceA(piece, loc);
   const pieces = new Set(portees.flatMap((x) => x.pieces));
-  for (const piece of pieces) piece.damageTaken = (piece.damageTaken ?? 0) + 1;
   const enSet = new Set((c.loadouts ?? []).flatMap((lo) => [lo.main, lo.secondaire]));
   const objets = (c.items ?? []).filter((i) => (i.kind === 'melee' || i.kind === 'distance') && !i.inside && !i.destroyed && (i.equipped || enSet.has(i.uid)));
   let armes = objets.filter((it) => endommagerLObjetArme(it) !== 'intacte').length;
@@ -1659,13 +1668,13 @@ export function endommagerLArmeTenue(c: Combatant, weapon: Weapon): 'intacte' | 
 
 /** LDB 47 l.238 */
 export function damageLeatherArmour(c: Combatant): HitLocation | null {
-  const piece = (c.items ?? []).find(
-    (i) => i.equipped && i.kind === 'armor' && matiereDuGroupe(i.subType) === 'leather' && armureUtilisable(i) && paNette(i) > 0,
-  );
-  if (piece) {
-    piece.damageTaken = (piece.damageTaken ?? 0) + 1;
+  for (const piece of c.items ?? []) {
+    if (!piece.equipped || piece.kind !== 'armor' || matiereDuGroupe(piece.subType) !== 'leather') continue;
+    const loc = (piece.locs ?? []).find((l) => armureUtilisableA(piece, l) && paNette(piece, l) > 0);
+    if (!loc) continue;
+    endommagerLaPieceA(piece, loc);
     recomputeLoadout(c);
-    return piece.locs?.[0] ?? 'corps';
+    return loc;
   }
   for (const loc of LOCALISATIONS_DE_COUP) {
     if (sourceDuTraitA(c, loc)?.matiere === 'leather' && userLePADuTrait(c, loc)) return loc;

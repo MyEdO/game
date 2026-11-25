@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { degatsSubis } from '../engine/repair';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { tenuParUnHumain } from './sieges';
@@ -107,12 +108,12 @@ describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 6
   });
 
   it('LDB 63 l.19, l.21 : une pièce portée à 0 PA reste déviable ; la Déviation la rend inutilisable', () => {
-    const piece = { ...wornPiece(1), damageTaken: 1, qualities: [{ id: 'impenetrable' }] } as unknown as ItemInstance;
+    const piece = { ...wornPiece(1), usure: { corps: 1 }, qualities: [{ id: 'impenetrable' }] } as unknown as ItemInstance;
     const c = hero({ items: [piece] });
     expect(deviatableArmourAt(c, 'corps')).toBe(true);
     expect(impenetrableAt(c, 'corps')).toBe(true);
     expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'brisee' });
-    expect(piece.damageTaken).toBe(2);
+    expect(piece.usure).toEqual({ corps: 2 });
     expect(deviatableArmourAt(c, 'corps')).toBe(false);
     expect(impenetrableAt(c, 'corps')).toBe(false);
     expect(damageArmour(c, 'corps')).toBeNull();
@@ -183,7 +184,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     expect(applyAttackResult(banc.getState, banc.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true }), 'sous-attaque : suspendu').toBe(MAIN_RENDUE);
     expect(tireLaSeverite().options?.map((o) => o.key), 'sous-attaque : Dévier / Subir offerts').toEqual(['devier', 'subir']);
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken ?? 0, 'rien n’est sacrifié avant la décision').toBe(0);
+    expect(degatsSubis(hh.items!.find((i) => i.uid === 'arm1')!), 'rien n’est sacrifié avant la décision').toBe(0);
   });
 
   it('héros avec une PIÈCE portée → Déviation offerte ; sur « Dévier », la pièce perd 1 PA, Critique ignoré', () => {
@@ -195,7 +196,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const tiree = tireLaSeverite();
     resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true); // « Dévier »
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce endommagée (−1 PA)
+    expect(degatsSubis(hh.items!.find((i) => i.uid === 'arm1')!)).toBe(1); // pièce endommagée (−1 PA)
     expect(hh.armour.corps).toBe(2);                                       // PA re-dérivée
     expect(hh.criticalWounds ?? 0).toBe(0);                               // Critique ignoré
   });
@@ -268,7 +269,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const tiree = tireLaSeverite();
     resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true);
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce portée endommagée
+    expect(degatsSubis(hh.items!.find((i) => i.uid === 'arm1')!)).toBe(1); // pièce portée endommagée
     expect(hh.armour.corps).toBe(3);                                      // (3−1) porté + 1 Écailles
     expect(hh.criticalWounds ?? 0).toBe(0);
   });

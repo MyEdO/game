@@ -799,15 +799,22 @@ describe('Dégâts d’armure (LDB 63 l.19-21)', () => {
   const heroWith = (items: ItemInstance[]): Combatant =>
     ({ characteristics: { force: 30, endurance: 30 }, items, armour: emptyArmour() }) as unknown as Combatant;
 
-  it('recomputeLoadout dérive la PA NETTE des dégâts (pa − damageTaken, plancher 0)', () => {
-    const c = heroWith([item({ kind: 'armor', pa: 3, locs: ['corps'], equipped: true, damageTaken: 1 })]);
+  it('recomputeLoadout dérive la PA NETTE des dégâts de l’Emplacement (plancher 0)', () => {
+    const c = heroWith([item({ kind: 'armor', pa: 3, locs: ['corps'], equipped: true, usure: { corps: 1 } })]);
     recomputeLoadout(c);
     expect(c.armour.corps).toBe(2);
   });
-  it('pièce réduite à 0 (damageTaken ≥ pa) → n’apporte plus de PA', () => {
-    const c = heroWith([item({ kind: 'armor', pa: 2, locs: ['corps'], equipped: true, damageTaken: 5 })]);
+  it('Emplacement inutilisable (Dégâts > PA) → n’apporte plus de PA à cet Emplacement, la pièce protège les autres', () => {
+    const c = heroWith([item({ kind: 'armor', pa: 2, locs: ['brasG', 'brasD', 'corps'], equipped: true, usure: { corps: 3 } })]);
     recomputeLoadout(c);
-    expect(c.armour.corps).toBe(0);
+    expect(c.armour).toMatchObject({ corps: 0, brasG: 2, brasD: 2 });
+  });
+  it('damageArmour : une cotte de mailles touchée au Corps ne perd ses PA qu’au Corps (LDB 63 l.19)', () => {
+    const c = heroWith([item({ kind: 'armor', pa: 2, locs: ['brasG', 'brasD', 'corps'], equipped: true })]);
+    recomputeLoadout(c);
+    damageArmour(c, 'corps');
+    expect(c.armour).toMatchObject({ corps: 1, brasG: 2, brasD: 2 });
+    expect(c.items![0].usure).toEqual({ corps: 1 });
   });
   it('damageArmour (héros) : endommage la pièce la plus solide + re-dérive', () => {
     const c = heroWith([item({ kind: 'armor', pa: 3, locs: ['corps'], equipped: true })]);
