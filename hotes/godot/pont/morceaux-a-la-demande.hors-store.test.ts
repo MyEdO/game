@@ -21,7 +21,7 @@ function compter(): Record<'volumeDuMonde' | 'toitsDuMonde' | 'couronnesDuMonde'
 describe('morceaux à la demande', () => {
   it('des listes vides ne calculent rien ; une clé de toit calcule les toits, seuls', () => {
     const { appel } = table();
-    appel('demarrer', { scenario: 'diligence' });
+    appel('demarrer', { scenario: 'rue-ornee' });
     const toit = mondeDe(appel).toits[0].cle;
     const n = compter();
 

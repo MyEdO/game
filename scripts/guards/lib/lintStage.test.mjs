@@ -83,19 +83,21 @@ test('FAIL-CLOSED — un diagnostic sans position ou hors caractère est un refu
 
 test('MORSURE — un fichier fautif est refusé, un fichier IGNORÉ par la config ne l’est pas', () => {
   const dossier = dossierDeFixtures()
-  const relIgnore = 'lint-fixture.config.ts'
+  const relIgnore = 'dist/lint-fixture.ts'
   try {
-    // `oxlint.config.mjs` — `no-irregular-whitespace`.
-    writeFileSync(join(dossier, 'fautif.ts'), `export const a =${NBSP}1\n`)
-    writeFileSync(join(dossier, 'sain.ts'), 'export const b = 1\n')
-    // `oxlint.config.mjs` ignore `*.config.*` : cité EXPLICITEMENT, ce fichier rendrait un
+    // `oxlint.config.mjs` — `no-irregular-whitespace` ; les fixtures jugées sont de l'outillage (`scripts/`).
+    mkdirSync(join(dossier, 'scripts'))
+    mkdirSync(join(dossier, 'dist'))
+    writeFileSync(join(dossier, 'scripts/fautif.ts'), `export const a =${NBSP}1\n`)
+    writeFileSync(join(dossier, 'scripts/sain.ts'), 'export const b = 1\n')
+    // `oxlint.config.mjs` ignore `dist/**` : cité EXPLICITEMENT, ce fichier rendrait un
     // avertissement — donc un échec sous `--max-warnings 0` — sans `--no-warn-ignored`.
     writeFileSync(join(dossier, relIgnore), `export const c =${NBSP}1\n`)
 
-    const { defauts, brut } = lancerLint(RACINE, ['fautif.ts', 'sain.ts', relIgnore], { cwd: dossier })
+    const { defauts, brut } = lancerLint(RACINE, ['scripts/fautif.ts', 'scripts/sain.ts', relIgnore], { cwd: dossier })
     assert.ok(defauts.length >= 1, `aucun défaut rendu — sortie brute : ${brut.slice(0, 400)}`)
     assert.deepEqual(
-      defauts.filter((d) => d.site.startsWith('fautif.ts:')).map((d) => d.regle),
+      defauts.filter((d) => d.site.startsWith('scripts/fautif.ts:')).map((d) => d.regle),
       ['no-irregular-whitespace'],
     )
     assert.deepEqual(defauts.filter((d) => d.site.includes('sain.ts')), [])
@@ -161,12 +163,13 @@ test('lots de ligne : ordre gardé, chaque lot tient dans le budget, un chemin t
 test('MORSURE EN PLUSIEURS LANCEMENTS : les défauts de chaque lot s’additionnent, aucun fichier ne se perd', () => {
   const dossier = dossierDeFixtures()
   try {
-    writeFileSync(join(dossier, 'fautif-a.ts'), `export const a =${NBSP}1\n`)
-    writeFileSync(join(dossier, 'sain.ts'), 'export const b = 1\n')
-    writeFileSync(join(dossier, 'fautif-c.ts'), `export const c =${NBSP}1\n`)
+    mkdirSync(join(dossier, 'scripts'))
+    writeFileSync(join(dossier, 'scripts/fautif-a.ts'), `export const a =${NBSP}1\n`)
+    writeFileSync(join(dossier, 'scripts/sain.ts'), 'export const b = 1\n')
+    writeFileSync(join(dossier, 'scripts/fautif-c.ts'), `export const c =${NBSP}1\n`)
     // Budget 1 : chaque fichier part dans SON lancement.
-    const { defauts, stdout } = lancerLint(RACINE, ['fautif-a.ts', 'sain.ts', 'fautif-c.ts'], { cwd: dossier, budget: 1 })
-    assert.deepEqual(defauts.map((d) => `${d.site.split(':')[0]} ${d.regle}`), ['fautif-a.ts no-irregular-whitespace', 'fautif-c.ts no-irregular-whitespace'])
+    const { defauts, stdout } = lancerLint(RACINE, ['scripts/fautif-a.ts', 'scripts/sain.ts', 'scripts/fautif-c.ts'], { cwd: dossier, budget: 1 })
+    assert.deepEqual(defauts.map((d) => `${d.site.split(':')[0]} ${d.regle}`), ['scripts/fautif-a.ts no-irregular-whitespace', 'scripts/fautif-c.ts no-irregular-whitespace'])
     assert.equal(JSON.parse(stdout).number_of_files, 3)
   } finally {
     rmSync(dossier, { recursive: true, force: true })

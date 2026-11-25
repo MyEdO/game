@@ -5,7 +5,7 @@ import {
 } from './index';
 import { articleDuCatalogue, DISPONIBILITES, doter, objetsEnRayon, porterAuNiveau, protection, poserLesReglesDuRoguelite } from '../noyau';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Les Disponibilités qu'ouvre chaque palier de la forge et de l'hospice (arbitrage du 2026-11-23, MyEdO/game#4947). */
 const OUVERTES = [1, 2, 3, 4].map((n) => DISPONIBILITES.slice(0, n));

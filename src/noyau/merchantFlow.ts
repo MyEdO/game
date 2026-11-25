@@ -10,7 +10,7 @@ import { Combatant, ItemInstance, type TestIds } from '../engine/types';
 import {
   recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, objetDuTrapping, type TrappingResolver,
 } from '../engine/items';
-import { isRepairable, itemRepairCostBrass } from '../engine/repair';
+import { degatsSubis, isRepairable, itemRepairCostBrass, remettreEnEtat } from '../engine/repair';
 import { isHeld } from '../engine/weaponLoad';
 import {
   bargainBuyFactor, bargainSellFactor, bargainPct, FACTEUR_DE_VENTE_SANS_MARCHANDAGE, issueDuMarchandage, type BargainOutcome,
@@ -949,7 +949,7 @@ export function refusDeReparation(hero: Combatant, item: ItemInstance, refusHote
 /** Chaque objet abîmé d'un héros du groupe, avec ce qui refuse de le réparer : une arme réduite à l'état improvisé
  *  (`isRepairable`), puis la bourse de son porteur (`refusDeReparation`). */
 export function objetsAReparer(party: readonly Combatant[], resolveTrapping: TrappingResolver): { hero: Combatant; item: ItemInstance; refus: string | null }[] {
-  return party.flatMap((hero) => (hero.items ?? []).filter((item) => (item.damageTaken ?? 0) > 0).map((item) => ({
+  return party.flatMap((hero) => (hero.items ?? []).filter((item) => degatsSubis(item) > 0).map((item) => ({
     hero, item, refus: isRepairable(item) ? refusDeReparation(hero, item, null, resolveTrapping) : t('mf.irreparable', { label: item.label }),
   })));
 }
@@ -964,7 +964,7 @@ function reparerLObjet(get: Get, set: Set, uid: string): void {
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'réparation' });
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
-    const it = clone.items?.find((i) => i.uid === uid); if (it) it.damageTaken = 0;
+    const it = clone.items?.find((i) => i.uid === uid); if (it) remettreEnEtat(it);
     recomputeLoadout(clone);
     return clone;
   }));

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { degatsSubis } from '../engine/repair';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { tenuParUnHumain } from './sieges';
@@ -12,7 +13,7 @@ import type { AttackResult } from '../engine/combat';
 import { emptyScene } from './monde/scene';
 import { draineCascade } from './cascade.testkit';
 import { stepInteraction } from './cascade';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { desDuTest } from '../engine/dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -107,12 +108,12 @@ describe('deviatableArmourAt / nonDeviatableMutationAP — PA sacrifiable (LDB 6
   });
 
   it('LDB 63 l.19, l.21 : une pièce portée à 0 PA reste déviable ; la Déviation la rend inutilisable', () => {
-    const piece = { ...wornPiece(1), damageTaken: 1, qualities: [{ id: 'impenetrable' }] } as unknown as ItemInstance;
+    const piece = { ...wornPiece(1), usure: { corps: 1 }, qualities: [{ id: 'impenetrable' }] } as unknown as ItemInstance;
     const c = hero({ items: [piece] });
     expect(deviatableArmourAt(c, 'corps')).toBe(true);
     expect(impenetrableAt(c, 'corps')).toBe(true);
     expect(damageArmour(c, 'corps')).toMatchObject({ genre: 'objet', valeur: -1, issue: 'brisee' });
-    expect(piece.damageTaken).toBe(2);
+    expect(piece.usure).toEqual({ corps: 2 });
     expect(deviatableArmourAt(c, 'corps')).toBe(false);
     expect(impenetrableAt(c, 'corps')).toBe(false);
     expect(damageArmour(c, 'corps')).toBeNull();
@@ -155,7 +156,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, critWeapon, critRes());
     // La sévérité se tire DANS la fenêtre pour TOUT porteur — la déviation, elle, n'a rien à sacrifier :
     // l'étape existe, sans voies. Une étape et une seule (jamais une 2ᵉ fenêtre pour le même coup).
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes).toHaveLength(1);
     expect(etapes[0].table, 'la table de sévérité n’est pas déclarée sur l’étape').toBeTruthy();
@@ -175,15 +176,15 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
       return { e, h };
     };
     const std = mont();
-    expect(applyAttackResult(banc.getState, banc.setState, std.e, std.h, critWeapon, critRes()), 'standard : suspendu').toBe(OPS_DIFFEREES);
+    expect(applyAttackResult(banc.getState, banc.setState, std.e, std.h, critWeapon, critRes()), 'standard : suspendu').toBe(MAIN_RENDUE);
     expect(tireLaSeverite().options?.map((o) => o.key), 'standard : Dévier / Subir offerts').toEqual(['devier', 'subir']);
 
     banc.setState({ pendingCascade: null });
     const sous = mont();
-    expect(applyAttackResult(banc.getState, banc.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true }), 'sous-attaque : suspendu').toBe(OPS_DIFFEREES);
+    expect(applyAttackResult(banc.getState, banc.setState, sous.e, sous.h, critWeapon, critRes(), { sousAttaque: true }), 'sous-attaque : suspendu').toBe(MAIN_RENDUE);
     expect(tireLaSeverite().options?.map((o) => o.key), 'sous-attaque : Dévier / Subir offerts').toEqual(['devier', 'subir']);
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken ?? 0, 'rien n’est sacrifié avant la décision').toBe(0);
+    expect(degatsSubis(hh.items!.find((i) => i.uid === 'arm1')!), 'rien n’est sacrifié avant la décision').toBe(0);
   });
 
   it('héros avec une PIÈCE portée → Déviation offerte ; sur « Dévier », la pièce perd 1 PA, Critique ignoré', () => {
@@ -191,11 +192,11 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const h = hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 3, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], criticalWounds: 0 });
     setBattle([e, h]);
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, critWeapon, critRes());
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const tiree = tireLaSeverite();
     resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true); // « Dévier »
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce endommagée (−1 PA)
+    expect(degatsSubis(hh.items!.find((i) => i.uid === 'arm1')!)).toBe(1); // pièce endommagée (−1 PA)
     expect(hh.armour.corps).toBe(2);                                       // PA re-dérivée
     expect(hh.criticalWounds ?? 0).toBe(0);                               // Critique ignoré
   });
@@ -224,7 +225,7 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     expect(tenuParUnHumain(banc.getState(), 'e1'), 'un siège MJ tient les ennemis').toBe(true);
     // La décision appartient à la VICTIME : le MJ la tient, donc c'est LUI qui tranche — pas l'automate.
     const suspended = applyAttackResult(banc.getState, banc.setState, h, e, critWeapon, critRes());
-    expect(suspended, 'la fenêtre doit s’ouvrir pour le porteur tenu').toBe(OPS_DIFFEREES);
+    expect(suspended, 'la fenêtre doit s’ouvrir pour le porteur tenu').toBe(MAIN_RENDUE);
     const etapes = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(etapes, 'une seule fenêtre pour la Blessure critique').toHaveLength(1);
     expect(etapes[0].options?.map((o) => o.key), 'les voies Dévier/Subir doivent être offertes').toEqual(['devier', 'subir']);
@@ -264,11 +265,11 @@ describe('Déviation Critique — flux (LDB 63 l.30-32 + EDO App.2 l.196)', () =
     const h = avecEcailles(hero({ armour: { tete: 0, brasG: 0, brasD: 0, corps: 4, jambeG: 0, jambeD: 0 }, items: [wornPiece(3)], criticalWounds: 0 }));
     setBattle([e, h]);
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, critWeapon, critRes());
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const tiree = tireLaSeverite();
     resolveDeviation(banc.getState, banc.setState, tiree.id, tiree.deviation!, true);
     const hh = banc.getState().battle!.combatants.find((c) => c.id === 'h1')!;
-    expect(hh.items!.find((i) => i.uid === 'arm1')!.damageTaken).toBe(1); // pièce portée endommagée
+    expect(degatsSubis(hh.items!.find((i) => i.uid === 'arm1')!)).toBe(1); // pièce portée endommagée
     expect(hh.armour.corps).toBe(3);                                      // (3−1) porté + 1 Écailles
     expect(hh.criticalWounds ?? 0).toBe(0);
   });

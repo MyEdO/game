@@ -213,8 +213,6 @@ export interface PendingTest {
   /** Branches du Test : des FLOWS (le nœud `test` du Flow ; `Effect.test` y est normalisé). */
   onSuccess?: Flow;
   onFailure?: Flow;
-  /** Continuation : le Flow à reprendre APRÈS la branche (suite du `seq` parent d'un nœud `test`). */
-  after?: Flow;
   /** Action de COMBAT « cumuler l'Avantage » (LDB 09 l.305-308 : Intuition/Savoir/Survie/Prière) : sur
    *  RÉUSSITE, octroie +1 Avantage au combattant `combatantId`, plafonné à `cap` (= Bonus de la
    *  Caractéristique — Int pour Intuition/Savoir/Survie, Soc pour Prière). Appliqué par `jetValider('test')`
@@ -222,10 +220,6 @@ export interface PendingTest {
    *  ou non (« Chaque Round que vous passez à… »). Absent = Test ordinaire. */
   combatAdvantage?: { combatantId: string; cap: number };
   escalade?: EscaladeEnAttente;
-  /** Avancée de DIALOGUE différée : quand le choix `dialogue.reponse` lance un `choice.flow` qui SUSPEND sur ce
-   *  Test, l'avancée (`choice.next` → nœud, ou clôture) est portée ici et appliquée par `jetValider('test')`
-   *  APRÈS la branche + continuation — sinon le nœud suivant coexiste sous la modale de jet. */
-  dialogueNext?: DialogueTransition;
   /** Test initié en COMBAT (Cumuler l'Avantage…) : annulable pré-jet (« Annuler » referme la cascade ;
    *  l'Action n'est pas encore dépensée, rien à rembourser). Absent = test de dialogue/scène → NON
    *  annulable (la branche onSuccess/onFailure doit se résoudre). */
@@ -1511,17 +1505,15 @@ export interface PendingForceDoor extends MultiPending<ForceDoorParticipant> {
   doorBmax: number; // Blessures initiales (jauge)
   /** Flag de scène posé quand la porte cède (ouverture en jeu) — optionnel. */
   flag?: string;
-  /** SUITE du Flow qui a ouvert l'enfoncement (Effet `forceDoor`, geste `suspensif`) — rejouée à sa clôture. */
-  suite?: Flow;
 }
 
 /** DÉSIGNATION d'un héros pour l'état de campagne `etat` (Effet `designerHeros`, EDO 02 l.91) : décision
- *  de GROUPE, refermée par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent `suite`. `invite` = la prose
- *  de l'Effet affichée par la modale. */
+ *  de GROUPE, refermée par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent `suite`, ce
+ *  qu'on lui a confié (`confierLaSuite`, #2689). `invite` = la prose de l'Effet affichée par la modale. */
 export interface PendingDesignationHeros {
   etat: string;
   invite?: string;
-  suite?: Flow;
+  suite?: Suite;
 }
 
 /** UN dé du lot d'étal : une rangée POSABLE, sans acteur — c'est le MONDE qui le lance. `value` est
@@ -1582,8 +1574,6 @@ export interface PendingExtendedTest extends PendingBase {
    *  qu'il ait ATTEINT sa cible ou buté sur `tentativesMax`. `meta` = paramètres sérialisables (jamais de
    *  closure — coop). Absent ⇒ comportement historique (`flag`/`dispel`, réussite seule). */
   outcome?: { kind: IssueDeTestEtendu; meta?: CascadeStepMeta };
-  /** SUITE du Flow qui a ouvert le Test (Effet `extendedTest`, geste `suspensif`) — rejouée à sa clôture. */
-  suite?: Flow;
 }
 
 /** Paramètres SÉRIALISABLES de la conséquence d'une étape (jamais de closure — coop : le pending est
@@ -1668,10 +1658,9 @@ export interface BladeTrapFreeze {
  * CLÔTURE d'un verbe, différée AVEC sa continuation (#1508) — ce que le site allait faire APRÈS son
  * Flow, écrit en DONNÉE plutôt qu'en instruction.
  *
- * Le socle portait déjà le patron sur un Test : `PendingTest.dialogueNext` est une clôture NOMMÉE,
- * rejouée après le jet. Elle est ici GÉNÉRALISÉE, parce que la même chose vaut d'un dé : l'horloge
- * d'une fouille tire les effets PROGRAMMÉS et les ticks (Hémorragique, Poison, agonie) — jouée devant
- * un dé de chute, elle les tire sur des Blessures qui n'ont pas encaissé.
+ * Elle vaut de tout porteur qui tient la main, dé comme geste : l'horloge d'une fouille tire les effets PROGRAMMÉS et
+ * les ticks (Hémorragique, Poison, agonie) — jouée devant un dé de chute ou un Test, elle les tire sur des Blessures
+ * qui n'ont pas encaissé.
  *
  * UNION FERMÉE de verbes SÉRIALISABLES, résolus par une TABLE (`clotures`, patron de la table `appliers`) : jamais
  * une fermeture JS. `pendingCascade` est SAUVEGARDÉ (`persistance/save.ts`) et voyage sur le réseau — une
@@ -1698,6 +1687,8 @@ export type Cloture =
   | { verbe: 'reprendreLaNuit'; p: import('./restFlow').PendingRest; nightsLeft: number; extraContagion: import('./contagion').ContagionSpec[] }
   /** Suite du pas maritime déjà écoulé. */
   | { verbe: 'reprendreLeTempsEnMer'; borneDuPas: number; minutes: number; apresLesRounds?: true }
+  /** Accostage d'une séquence close par la sortie d'hôte de son Test (`seaVoyageFlow.finalizePortArrival`). */
+  | { verbe: 'finaliserLAccostage'; arrival: NonNullable<PendingCascade['portArrival']> }
   /** Écran de victoire (`finalizeBattle`), POSÉ après le dé : il ne doit pas s'ouvrir devant lui, et
    *  ses deltas de PX/bourse se LISENT après l'encaissement — d'où les deux bornes AVANT, pas un total. */
   | { verbe: 'ouvrirEcranDeVictoire'; ecran: Omit<PendingVictory, 'xp' | 'gold'>; xpAvant: number; laitonAvant: number }
@@ -1747,7 +1738,7 @@ export interface CascadeStepMeta {
    *  le coup ou l'étape dont l'application l'a poussée lui confie SA SUITE (`apresSuite`) au lieu de continuer
    *  par-dessus. Posé par les mints (`operationsDe`, `chuteDe`, `nombreDAttaquesSubies`, `testDeclenche`,
    *  `choixDeclenche`, `personneChoisie`, `piegeALame`) ; lu par les walkers de Flow, `combatFlow.applyAttackResult`
-   *  et `cascade.commitStep` (`combatEffects.comptePasDifferes`), qui n'ont ainsi aucune liste de `kind` à tenir —
+   *  et `cascade.commitStep` (`combatEffects.comptePorteursDeSuite`), qui n'ont ainsi aucune liste de `kind` à tenir —
    *  un kind de plus déclare le même champ et il est servi. */
   differeLaSuite?: boolean;
   /** L'op `attaquesSubies` dont l'étape `nombreDAttaquesSubies` tire le dé `nombre` (`combatFlow.ouvrirLeNombreDAttaquesSubies`),

@@ -2,7 +2,7 @@
  * LA VISION DU GROUPE PAR LE PONT (#3950, tranche A) : ce que la vue montre est ce que le groupe connaît
  * (`src/noyau/visionDuGroupe.ts`), ce que le noyau laisse viser ne change pas. `siege-enceinte` pose des ennemis visibles
  * par la herse et d'autres cachés derrière la courtine ; `opera-plan`, une scène à deux couches explorée pas à pas ;
- * `poursuite-terrestre`, 3 brigands embusqués ; `ecuries-clayonnage`, des structures de siège dont une face est vue et
+ * `poursuite-terrestre`, 3 brigands embusqués ; `rue-ornee`, des structures de siège dont une face est vue et
  * l'ancrage non ; `melee-dans-le-noir`, deux gobelins au contact du groupe dans les ténèbres, hors de vue et qui se battent
  * (`docs/raw/4e/combat.md`, « Combat rapproché dans le noir »).
  */
@@ -213,11 +213,11 @@ describe('poursuite-terrestre — les embusqués', () => {
   });
 });
 
-describe('ecuries-clayonnage — une structure de siège en vue par sa face', () => {
+describe('rue-ornee — une structure de siège en vue par sa face', () => {
   it('une structure dont l’ancrage n’est pas vu et dont une face l’est est aux voisins', { timeout: 60_000 }, () => {
     const { appel } = table();
     try {
-      const { vue } = drainer(appel, appel('demarrer', { scenario: 'ecuries-clayonnage', graine: 1 })).suite;
+      const { vue } = drainer(appel, appel('demarrer', { scenario: 'rue-ornee', graine: 1 })).suite;
       const { masque, largeur, rangeesParPlan } = visionDe(appel('vision'));
       const octets = depuisBase64(masque);
       const { hauteurs } = mondeDe(appel).monde!;

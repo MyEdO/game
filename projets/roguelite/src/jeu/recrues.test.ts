@@ -11,12 +11,13 @@ import {
   roleDe,
   voieDe,
   PROFILS,
+  SORTS_DES_VOIES,
   type Etat,
   type Heros,
 } from './index';
 import { porterAuNiveau, poserLesReglesDuRoguelite } from '../noyau';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 const profilDe = (id: string) => PROFILS.find((p) => p.id === id)!;
 /** Une partie au relais `palier`, bâti par le jeu (`ameliorer`). */
@@ -97,7 +98,7 @@ describe('recrues du relais', () => {
     for (const palier of [0, 1, 2]) expect(colleges.some((p) => p.relais === palier)).toBe(true);
     const feu = voieDe('pyromancien', { talents: [] })!;
     expect(feu).toMatchObject({ talent: 'magie-des-arcanes', spec: 'feu' });
-    expect(feu.sorts).toContainEqual({ id: 'cauteriser', niveau: 2 });
+    expect(feu.sorts).toEqual(SORTS_DES_VOIES.feu[2].map((id) => ({ id, niveau: 2 })));
   });
 
   it('la compagnie de départ : le Soldat et la Nonne, puis deux autres carrières du relais 0 tirées sans doublon', () => {

@@ -4,6 +4,7 @@
  * un porteur qui n'a pas le droit au geste, est refusé et le refus se dit. En coop, la possession du geste d'un porteur
  * suit le porteur lu dans l'état (`netOwnership`).
  */
+import { degatsSubis } from '../engine/repair';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -97,12 +98,12 @@ describe('chaque verbe d’objet joue sur le porteur lu dans l’état, jamais s
   });
 
   it('marchand.reparer : aux frais du porteur', () => {
-    const maille = (uid: string) => objet({ uid, trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, enc: 1, equipped: true } as Partial<ItemInstance>);
+    const maille = (uid: string) => objet({ uid, trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, locs: ['corps'], usure: { corps: 2 }, enc: 1, equipped: true } as Partial<ItemInstance>);
     banc.setState({ party: [heros('a', { items: [maille('ma')] }), heros('b', { items: [maille('mb')] })], scene: marchand() });
     creditBourse(g, banc.setState, 'b', { gold: 5, silver: 0, brass: 0 });
     g().ouvrirLeMarchand('pnj');
     g().fenetreChoisir('marchand', 'reparer', 'mb');
-    expect([objetDe('a', 'ma')?.damageTaken, objetDe('b', 'mb')?.damageTaken]).toEqual([2, 0]);
+    expect([objetDe('a', 'ma'), objetDe('b', 'mb')].map((o) => degatsSubis(o!))).toEqual([2, 0]);
   });
 
   it('evaluerLObjet', () => {
@@ -143,15 +144,15 @@ describe('marchand.reparer : chaque refus est dit', () => {
     g().fenetreChoisir('marchand', 'reparer', it.uid);
   };
   it('sans marchand', () => {
-    avec(objet({ uid: 'm', kind: 'armor', damageTaken: 2 }), false);
+    avec(objet({ uid: 'm', kind: 'armor', usure: { corps: 2 } }), false);
     expect(dernier()).toBe(t('choix.refus.fermee'));
   });
   it('un objet intact : l’échoppe ne l’offre pas', () => {
-    avec(objet({ uid: 'm', label: 'Maille', kind: 'armor', damageTaken: 0 }));
+    avec(objet({ uid: 'm', label: 'Maille', kind: 'armor' }));
     expect(dernier()).toBe(t('choix.refus.valeur'));
   });
   it('un objet que personne ne porte : l’échoppe ne l’offre pas', () => {
-    avec(objet({ uid: 'm', label: 'Maille', kind: 'armor', damageTaken: 2 }));
+    avec(objet({ uid: 'm', label: 'Maille', kind: 'armor', usure: { corps: 2 } }));
     g().fenetreChoisir('marchand', 'reparer', 'personne');
     expect(dernier()).toBe(t('choix.refus.valeur'));
   });

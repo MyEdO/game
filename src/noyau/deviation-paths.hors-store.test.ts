@@ -22,7 +22,7 @@ import { locationLabel, type Combatant, type HitLocation, type Weapon } from '..
 import type { AttackResult } from '../engine/combat';
 import { emptyScene } from './monde/scene';
 import { stepInteraction } from './cascade';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { draineCascade } from './cascade.testkit';
 import { t as tr } from '../i18n';
 import { avecLesTables } from './noyau.testkit';
@@ -385,7 +385,7 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
     const h = mk('heros', 'h1', { armour: { ...uniformArmour(0), corps: 3 }, wounds: blessuresDeBase(15, 3) });
     setBattle([e, h]);
     const suspended = applyAttackResult(banc.getState, banc.setState, e, h, weapon, overkillRes());
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     // UNE étape porte le tirage de sévérité ET les voies — jamais deux fenêtres pour le même coup.
     expect(devSteps()).toHaveLength(1);
     expect(devSteps()[0].table, 'la sévérité se tire DANS cette fenêtre').toBeTruthy();
