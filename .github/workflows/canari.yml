@@ -137,7 +137,7 @@ jobs:
         run: npm run server:typecheck
       # La passe des maquettes (#4585, `npm run godot:maquettes`) : chaque état de chaque écran de
       # `hotes/godot/cibles/propositions/sources/maquettes/` rendu et relevé, 10 à 15 min, trop lourd pour le budget de
-      # `ci.yml`. Le Chromium épinglé des planches (`EPINGLE`, `refusDuNavigateur`, que `rendre.mjs` vérifie), installé
+      # `ci.yml`. Le Chromium épinglé des planches (`EPINGLE`, scripts/recette/navigateur.mjs, que `rendre.mjs` lance), installé
       # ici par le Playwright des devDependencies sous le même `PLAYWRIGHT_BROWSERS_PATH` que les étalons.
       - id: godot-maquettes
         continue-on-error: true
@@ -160,7 +160,7 @@ jobs:
         if: ${{ !cancelled() && steps.install.outcome == 'success' }}
         run: node hotes/godot/construire.mjs --export --sortie "$RUNNER_TEMP/godot-web" --entree hotes/godot/pont/entree-jeu-de-role.ts
       # Le banc des étalons (#3935) sur ce même export : chaque planche comparée au pixel à son étalon, dans le Chromium
-      # que l'épingle nomme (`EPINGLE`, hotes/godot/planches.mjs), installé par le Playwright des devDependencies
+      # que l'épingle nomme (`EPINGLE`, scripts/recette/navigateur.mjs), installé par le Playwright des devDependencies
       # sous son propre `PLAYWRIGHT_BROWSERS_PATH` posé au step : les recettes gardent le Chrome du runner.
       - id: godot-etalons
         continue-on-error: true

@@ -3,7 +3,7 @@
 // et la boucle de jeu), qui importe la façade par `./noyau.js`, la page, sa feuille `jeu.css` et le kit des maquettes
 // (`kit.css`).
 // Usage : npm run roguelite:construire
-import { build } from 'esbuild';
+import { build } from 'vite';
 import { copyFileSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -17,22 +17,33 @@ if (import.meta.main) await construire();
 /** Les paquets, la page et ses feuilles, sous `SORTIE`. */
 async function construire() {
   mkdirSync(SORTIE, { recursive: true });
-  const commun = { bundle: true, format: 'esm', platform: 'browser', target: 'es2022', minify: true, legalComments: 'none', logLevel: 'warning' };
+  const facade = join(ici, 'src/noyau/index.ts');
+  /** Le paquet ESM `fichier` de l'entrée `entree`, minifié pour le navigateur, sans configuration ni dossier public. */
+  const paquet = (entree, fichier, options = {}) => build({
+    root: ici,
+    configFile: false,
+    publicDir: false,
+    logLevel: 'warn',
+    ...options,
+    build: {
+      lib: { entry: entree, formats: ['es'], fileName: () => fichier },
+      outDir: SORTIE,
+      emptyOutDir: false,
+      target: 'es2022',
+      minify: true,
+      reportCompressedSize: false,
+    },
+  });
 
-  await build({ ...commun, entryPoints: [join(ici, 'src/noyau/index.ts')], outfile: join(SORTIE, 'noyau.js') });
-  await build({
-    ...commun,
-    entryPoints: [join(ici, 'src/main.ts')],
-    outfile: join(SORTIE, 'jeu.js'),
+  await paquet(facade, 'noyau.js');
+  await paquet(join(ici, 'src/main.ts'), 'jeu.js', {
     // La page est le point d'entrée de `main.ts` (`import.meta.main`).
     define: { 'import.meta.main': 'true' },
-    plugins: [{
-      name: 'facade-du-noyau',
-      setup(b) {
-        const facade = join(ici, 'src/noyau');
-        b.onResolve({ filter: /(^|\/)noyau$/ }, (a) => (join(a.resolveDir, a.path) === facade ? { path: './noyau.js', external: true } : undefined));
-      },
-    }],
+    // La façade du noyau reste à `noyau.js`, que la page charge à côté.
+    plugins: [{ name: 'facade-du-noyau', enforce: 'pre', async resolveId(source, importeur) {
+      const vise = await this.resolve(source, importeur, { skipSelf: true });
+      return vise?.id === facade ? { id: './noyau.js', external: true } : null;
+    } }],
   });
   // La feuille du jeu : celle de chaque module de l'interface, à côté de lui, recollées dans l'ordre de la cascade.
   const FEUILLES = ['base', 'ecran', 'pieces', 'fiche', 'services', 'lieux', 'rejeu'];
