@@ -26,7 +26,7 @@ import {
   setReliefDefault,
 } from '../sceneEdit';
 import { canonEdge, emptyScene, setStructureDown, type CellSide, type Scene, type WallSeg, type WallSide } from './scene';
-import { memoByDeps } from './sceneMemo';
+import { memoByDeps } from '../../lib/memoParIdentite';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainKitDEscalier, terrainSolidHeightM } from './terrain';
 import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';

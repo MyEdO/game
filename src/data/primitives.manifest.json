@@ -623,11 +623,29 @@
   {
     "id": "memoByRef",
     "type": "primitives.manifest",
-    "label": "memoByRef/memoByRefDeps/memoByDeps",
+    "label": "memoByRef/memoByRefDeps",
     "fichier": "src/noyau/monde/sceneMemo.ts",
-    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé ; `memoByRef` et `memoByRefDeps` oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), un `memoByDeps` nu qui lit un catalogue reçoit cette version en dépendance",
-    "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web), et tout calcul qui reprend sa variante précédente",
+    "concept": "mémoïsation par IDENTITÉ datée par la version des datasets : `memoByRef` par référence de la clé (gelée en développement), `memoByRefDeps` un `memoByDeps` par clé ; tous deux oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), et composent le cœur sans version `memoParIdentite`/`memoParIdentiteEtDeps` (`src/lib/memoParIdentite.ts`)",
+    "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web)",
     "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
+  },
+  {
+    "id": "memoParIdentite",
+    "type": "primitives.manifest",
+    "label": "memoParIdentite/memoParIdentiteEtDeps/memoByDeps",
+    "fichier": "src/lib/memoParIdentite.ts",
+    "concept": "cœur de la mémoïsation par IDENTITÉ, sans version ni gel : `memoParIdentite` une valeur par référence de la clé, `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoParIdentiteEtDeps` un `memoByDeps` par clé ; un `memoByDeps` nu qui lit un catalogue reçoit sa version en dépendance",
+    "perimetre": "tout calcul qui reprend sa variante précédente ; les lectures du catalogue passé en valeur (`src/data/schemas/catalogue/catalogue.ts`, `src/data/catalogueDuProcessus.ts`)",
+    "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
+  },
+  {
+    "id": "catalogue",
+    "type": "primitives.manifest",
+    "label": "composer/entreeDe/regle/ouvertParSaRegle/catalogueDeTest",
+    "fichier": "src/data/schemas/catalogue/catalogue.ts",
+    "concept": "le CATALOGUE passé en valeur (#5069) : `composer(bibliotheque, { regles })` rend une valeur neuve, entrées à variantes effectives sous les règles de la composition, sans retrait ; `entreeDe(cle, id, cat)` lit une entrée par id sur une clé de dataset-liste, au type généré de sa collection (`CollectionDuDataset`) ; `regle(id, cat)` le choix de la composition, sinon le défaut du registre de `cat` ; `ouvertParSaRegle(entree, cat)` le filtre d'offre ; `catalogueDeTest(livre)` (`catalogueDeTest.testkit.ts`) compose les seuls documents qu'une suite déclare, un document absent se lisant vide",
+    "perimetre": "toute règle qui lit la base en argument, et ses suites ; le pont vers la base vivante est `catalogueDuProcessus()` (`src/data/catalogueDuProcessus.ts`)",
+    "verrou": "src/data/schemas/catalogue/catalogue.test.ts ; src/data/catalogueDuProcessus.test.ts"
   },
   {
     "id": "echapperRegex",

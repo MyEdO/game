@@ -140,7 +140,7 @@ import { choixDuNoeud, elementDuNoeud, type ValeurDuChoix } from '../codex/editF
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { qualiteDeReposSchema, type QualiteDeRepos } from '../../data/schemas/grammaire/valeurs';
 import { architectureSelectionForWarning, validateScene, type Warning } from '../validateScene';
-import { memoByDeps } from '../monde/sceneMemo';
+import { memoByDeps } from '../../lib/memoParIdentite';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { planDefectKey, planFocusAt, planFocusTiles } from '../planDefects';
 import { annuler, historiqueDe, poser, reecrire, retablir, type Historique } from './historique';

@@ -161,6 +161,11 @@ const TYPE_DATASET_DE_CATEGORIE =
   `/** Une rangée de \`DATASET_DE_LA_CATEGORIE\` et de \`DATASET_DE_L_ESPACE\` : un dataset et le chemin de sa collection. */\n` +
   `export interface DatasetDeCategorie {\n  readonly cle: CleDeDataset;\n  readonly fichier: string;\n  readonly chemin: readonly PasResolu[];\n}\n\n`;
 
+/** Le type TS de la collection au bout de `chemin` depuis le type `racine` : un pas `champ` lit le champ, un pas `[clé]` un
+ *  élément de la liste. */
+const typeDuChemin = (racine: string, chemin: readonly PasResolu[]): string =>
+  `NonNullable<${chemin.reduce((t, pas) => ('champ' in pas ? `NonNullable<${t}>[${litteralJs(pas.champ)}]` : `NonNullable<${t}>[number]`), racine)}>`;
+
 /** Littéral JS d'un pas résolu. */
 const litteralDePas = (pas: PasResolu): string =>
   'champ' in pas ? `{ champ: ${litteralJs(pas.champ)} }` : `{ cle: ${litteralJs(pas.cle)}, par: ${litteralJs(pas.par)} }`;
@@ -424,11 +429,19 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
     `// Régénérer : \`npm run gen\` (une collection par document de \`SCHEMA_DEFS\`).\n` +
     `import type { DatasetDe } from ${litteralJs(specificateur(SORTIE_CATALOGUE, 'src/data/datasets'))};\n` +
+    `import type { RuleValue } from ${litteralJs(specificateur(SORTIE_CATALOGUE, 'src/engine/policy'))};\n` +
     documents.map((d, i) => `import type * as d${i} from ${litteralJs(specificateur(SORTIE_CATALOGUE, d.def))};\n`).join('') +
     `\n` +
-    `/** CATALOGUE : fichier → dataset, une collection par document de \`SCHEMA_DEFS\`, au type de son def (\`DatasetDe\`, #5069). */\n` +
+    `/** CATALOGUE : fichier → dataset, une collection par document de \`SCHEMA_DEFS\`, au type de son def (\`DatasetDe\`), et les\n` +
+    ` *  règles optionnelles choisies par sa composition (#5069). */\n` +
     `export interface Catalogue {\n` +
     documents.map((d, i) => `  readonly ${litteralJs(d.fichier)}: DatasetDe<typeof d${i}>;\n`).join('') +
+    `  readonly regles: Readonly<Record<string, RuleValue>>;\n` +
+    `}\n\n` +
+    `/** COLLECTION de chaque clé de dataset-LISTE dans le \`Catalogue\` : au bout du chemin de sa collection (\`DATASET_DE_L_ESPACE\`),\n` +
+    ` *  dont un pas \`[clé]\` lit un élément de la liste qu'il traverse (#5069). */\n` +
+    `export interface CollectionDuDataset {\n` +
+    [...datasetsDeLEspace].sort(([, a], [, b]) => parUnitesDeCode(a.cle, b.cle)).map(([, { cle, fichier, chemin }]) => `  readonly ${litteralJs(cle)}: ${typeDuChemin(`Catalogue[${litteralJs(fichier)}]`, chemin)};\n`).join('') +
     `}\n`;
   const atelier = `${JSON.stringify(Object.fromEntries(fichiersDeLAtelier), null, 2)}\n`;
   return { textes: new Map([[SORTIE, body], [SORTIE_IDS_ET_TYPES, idsEtTypes], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines], [SORTIE_CATALOGUE, catalogue], [SORTIE_ATELIER, atelier]]), table, clesDeDataset, racines, documents };

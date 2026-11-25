@@ -190,6 +190,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/travelStages.ts', 'Étapes de voyage'],
   ['src/engine/travelTables.ts', 'Tables de voyage'],
   ['src/engine/types.ts', 'Types de base du moteur'],
+  ['src/engine/variantes.ts', 'Variantes de règles'],
   ['src/engine/variants.ts', 'Variantes de règles'],
   ['src/engine/vehicle.ts', 'Véhicule'],
   ['src/engine/volley.ts', 'Volée de tir'],

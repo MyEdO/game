@@ -94,7 +94,8 @@ import { SHIP_CRIT_SET, RIVER_CRIT_SET } from './shipCriticals';
 import structureCriticalsJson from './structure-criticals.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
-import { rule } from '../engine/policy';
+import { ouvertParSaRegle as ouvertSousLeCatalogue } from './schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 import type * as stakesDef from './schemas/defs/stakes';
 import type * as careersDef from './schemas/defs/careers';
 import type * as careerLevelsDef from './schemas/defs/careerLevels';
@@ -1245,9 +1246,8 @@ export function findTrappingById(id: string | null | undefined): TrappingData | 
  *  joueur en est la vue `trappingsEnVente`. Le catalogue brut ne se lit qu'aux sites que nomme `trappings-vue-guard.test.ts`. */
 export const trappingsInstanciables = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
   trappingsEffectifs().filter((t) => dansLaSousListe(INSTANCIABLE_PAR_ID, t)));
-/** Entrée OUVERTE au joueur (carrière, espèce, objet) : sans `gatedByRule`, ou sa règle optionnelle active.
- *  ADE I 07 l.9 ; NADJ 14 l.5 ; ADE II 02 l.110 ; #4208 */
-export const ouvertParSaRegle = (e: CareerData | SpeciesData | TrappingData): boolean => !e.gatedByRule || !!rule(e.gatedByRule.id);
+/** `ouvertParSaRegle` du catalogue sur `catalogueDuProcessus()` (#5069, fossile 3). */
+export const ouvertParSaRegle = (e: CareerData | SpeciesData | TrappingData): boolean => ouvertSousLeCatalogue(e, catalogueDuProcessus());
 const bandesActives = memoParVersion(['trappings', 'reglesOptionnelles'], () =>
   trappingsInstanciables().filter((t) => t.remplace && ouvertParSaRegle(t)));
 /** L'armure d'une pièce, sa règle active, qui remplace en vente la pièce d'armure `trappingId` (son type parmi
