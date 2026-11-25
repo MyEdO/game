@@ -12,7 +12,7 @@
  * dans le `defs/` correspondant, puis relancer.
  */
 import { readFileSync } from 'node:fs';
-import { listerDossier } from './guards/lib/lister.mjs';
+import { listerDossier, listerEntrees } from './guards/lib/lister.mjs';
 import { join } from 'node:path';
 import { estFichierVitest, estKitDeTest } from './guards/lib/fichierVitest.mjs';
 import { lancerDepuisCLI } from './docs/lib/ecriture-derives.mjs';
@@ -82,14 +82,10 @@ const messagesDe = (out) => ({
   rerunMsg: '  → relancer `npm run gen` (cible de code jamais commitée, #2203 A2).',
 });
 
-/** Le module rendu d'un registre, ou `null` quand son dossier n'existe pas. */
+/** Le module rendu d'un registre, ou `null` quand son dossier n'existe pas ; un chemin qui n'est pas un dossier lève. */
 function renduDuRegistre(r) {
   const importDir = r.importDir ?? './defs';
-  try {
-    listerDossier(r.dir);
-  } catch {
-    return null;
-  }
+  if (listerEntrees(r.dir, { absent: 'vide' }).nature === 'absent') return null;
   // Registre à champ `file` : un module du dossier qui ne DÉCLARE pas de document (modules de
   // FORME partagés entre defs) n'est pas une entrée — critère STRUCTUREL, jamais une liste de noms.
   const lus = r.fields

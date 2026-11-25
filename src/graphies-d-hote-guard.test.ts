@@ -7,6 +7,7 @@ import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mj
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { lecturesDHote } from '../scripts/guards/lib/graphiesDHote.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
+import { textesDesSourcesSuivies } from '../scripts/guards/lib/sourcesSuiviesLues.mjs';
 import type { CorpusFile } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -221,16 +222,7 @@ describe('garde de classe — aucune lecture d’hôte que le rendu sous win32 n
     const suivies: string[] = sourcesSuivies().filter((rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel));
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];
-    const fichiers: Pick<CorpusFile, 'rel' | 'text'>[] = [];
-    for (const rel of suivies) {
-      let texte: string;
-      try {
-        texte = readFileSync(join(RACINE, rel), 'utf8');
-      } catch {
-        continue; // suivi mais supprimé de l'arbre : aucun code à lire
-      }
-      fichiers.push({ rel, text: texte });
-    }
+    const fichiers: Pick<CorpusFile, 'rel' | 'text'>[] = textesDesSourcesSuivies(suivies);
     for (const analyse of analyserCorpus(fichiers)) {
       const { fichier: { rel, text } } = analyse;
       for (const { ligne, extrait } of lecturesDHote(text, rel, analyse)) offenders.push(`${rel}:${ligne} → ${extrait}`);

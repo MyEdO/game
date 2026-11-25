@@ -12,7 +12,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { cheminAbsent, correspondGlob, listerDossier } from '../../guards/lib/lister.mjs'
-import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
+import { estRefusDeLaPorte } from '../../guards/lib/serrureDesProjets.mjs'
 import { CACHE_FRAICHEUR } from './cache-fraicheur.mjs'
 
 const HOTE_PIPE = String.raw`[^\\/]+[\\/]pipe[\\/]`
@@ -92,7 +92,12 @@ function dossierCanonique(dossier, dossiers) {
 function nomsDe(dossier, noms) {
   let presents = noms.get(dossier)
   if (presents === undefined) {
-    try { presents = new Set(listerDossier(dossier, { porte: porteDeTousLesProjets })) } catch { presents = new Set() }
+    try {
+      presents = new Set(listerDossier(dossier, { absent: 'vide' }))
+    } catch (err) {
+      if (!estRefusDeLaPorte(err)) throw err
+      presents = new Set()
+    }
     noms.set(dossier, presents)
   }
   return presents
@@ -106,7 +111,12 @@ function canoniserFeuille(abs, lien, { dossiers, noms }) {
   return path.join(dossierCanonique(dossier, dossiers), feuille)
 }
 
-function estLien(abs) { try { return fs.lstatSync(abs).isSymbolicLink() } catch { return true } }
+function estLien(abs) {
+  try { return fs.lstatSync(abs).isSymbolicLink() } catch (err) {
+    if (!cheminAbsent(err)) throw err
+    return true
+  }
+}
 
 /**
  * `canoniser` (non strict) MÉMORISÉ PAR DOSSIER (#2603) : le dossier parent se canonise une fois, la

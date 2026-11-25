@@ -25,6 +25,7 @@ import { evaluer, lecteurDExpressions, valeursDAcquisition } from '../../guards/
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { TRAVAIL, depotDe, fichiersIgnoresDe, listerImage } from '../../guards/lib/gitPorte.mjs'
 import { CHEMIN_TSCONFIG, aliasDe, arbreDuDisque, clotureDImports, estModule, grapheInverse, resolveImport } from '../../guards/lib/importGraph.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
 
@@ -207,7 +208,7 @@ function transitsDesZonesQuiSurvivent(racine, fichiers, ignores = []) {
     const rouges = []
     let membres
     for (let racinesDuTour = racines; ;) {
-      membres = clotureDImports(racinesDuTour, { racine, cache, arbre, surSites })
+      membres = clotureDImports(racinesDuTour, { racine, cache, arbre, surSites, porte: porteDeTousLesProjets })
       calculesVers.clear()
       paquetsCalcules.length = 0
       rouges.length = 0

@@ -349,7 +349,7 @@ export function mesurerChampsDeSchema(root, { definitions = SCHEMA_DEFS, program
       !estKitDeTest(rel) && !/(?:\/migrations\/|\/schemas\/|\/ops\/sondes\/|schemaFieldConsumers\.)/.test('/' + rel),
     porte: porteDeTousLesProjets,
   }).map(rel => join(root, dir, rel)))
-  const session = programme ?? programmeDesChamps(root, files)
+  const session = programme ?? programmeDesChamps(root, files, { porte: porteDeTousLesProjets })
   const { program, checker } = session
   try {
     const { claims, reads, unresolved } = relierChargements(root, session, { files, definitions })
