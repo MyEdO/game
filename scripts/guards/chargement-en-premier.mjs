@@ -25,6 +25,7 @@ import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { COUCHES, dossierDe } from './lib/couches.mjs'
 import { TRAVAIL, depotDe, listerImage } from './lib/gitPorte.mjs'
+import { porteDeTousLesProjets } from './lib/porteDesProjets.mjs'
 import { spawnBorne } from './lib/processusBorne.mjs'
 import { MARQUE_DE_VERDICT } from './lib/chargementDUnModule.mjs'
 import { estFichierVitest, estKitDeTest } from './lib/fichierVitest.mjs'
@@ -52,7 +53,7 @@ export const estModuleACharger = (rel) =>
 
 /** Les modules de la zone `zone` (`dossierDe`, couches.mjs) sous `racine`, suivis ou non encore indexés, triés. */
 export const modulesDeZone = (racine, zone) =>
-  listerImage(depotDe(racine), TRAVAIL, dossierDe(zone)).filter(estModuleACharger).sort()
+  listerImage(depotDe(racine, { porte: porteDeTousLesProjets }), TRAVAIL, dossierDe(zone)).filter(estModuleACharger).sort()
 
 /** Les verdicts `{ module, echec }` que rend la sortie d'un travailleur, dans leur ordre. */
 export const verdictsDe = (sortie) => sortie.split(/\r?\n/)

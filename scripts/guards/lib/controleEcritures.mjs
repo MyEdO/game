@@ -11,12 +11,13 @@ import { listerDossier } from './lister.mjs'
 import { photoArbre } from './photoArbre.mjs'
 
 const INTERCEPTEUR = new URL('./intercepterEcritures.mjs', import.meta.url).href
+const SERRURE_DES_LECTURES = new URL('./intercepterLecturesDesProjets.mjs', import.meta.url).href
 const PRECHARGE = Symbol.for('wfrp.tests.perimetreSansEcriture')
 
 export const activerPrecharge = () => !globalThis[PRECHARGE] && (globalThis[PRECHARGE] = true)
 
 export const environnementDuControle = (env = process.env) => ({ ...env, PYTHONDONTWRITEBYTECODE: '1',
-  NODE_OPTIONS: `${env.NODE_OPTIONS ?? ''} --import=${INTERCEPTEUR}`.trim() })
+  NODE_OPTIONS: `${env.NODE_OPTIONS ?? ''} --import=${INTERCEPTEUR} --import=${SERRURE_DES_LECTURES}`.trim() })
 
 export const lancementControle = (commande, args) => commande === process.execPath && Array.isArray(args) && args.includes('--test')
 

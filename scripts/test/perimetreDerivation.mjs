@@ -683,7 +683,7 @@ export function depuisDTO(dto) {
 }
 
 export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine, CACHE), lectureSeule = false, mode = 'perimetre' }, stade = () => {}) {
-  const depot = depotDe(racine)
+  const depot = depotDe(racine, { porte: porteDeTousLesProjets })
   stade('images', null)
   const images = mode === 'balayages' ? { base: null, tete: null, touches: [], post: listerImage(depot, TRAVAIL), avant: [] } : imagesDuDiff(depot, { base, tete })
   const lire = images.tete ? (rels) => lireEnLot(depot, images.tete, rels) : lireDuDisque(racine)

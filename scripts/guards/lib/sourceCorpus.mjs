@@ -107,8 +107,11 @@ const CORPUS = new Map();
  *  @type {Map<string, CorpusFile>} */
 const ENTREES = new Map();
 
-/** L'entrée de `p` (absolu), lue au disque la première fois qu'une clé ou un appelant la demande. @param {string} p */
-export function entreeDe(p) {
+/** L'entrée de `p` (absolu), lue au disque la première fois qu'une clé ou un appelant la demande ; `porte` = la passe
+ *  qu'exige un chemin sous `projets/`, vérifiée AVANT le mémo (`exigerLaPorte`).
+ *  @param {string} p @param {{ porte?: object }} [options] */
+export function entreeDe(p, { porte } = {}) {
+  exigerLaPorte(p, porte, 'entreeDe');
   let e = ENTREES.get(p);
   if (!e) ENTREES.set(p, (e = Object.freeze({ abs: p, rel: posixDepuisRacine(p), text: readFileSync(p, 'utf8') })));
   return e;
@@ -150,7 +153,7 @@ export function readCorpus(dirs, { exts = EXTENSIONS_DE_SCRIPT, tests = false, p
   }
   const lu = Object.freeze(
     bases.flatMap((base, i) =>
-      parBase[i].map((rel) => entreeDe(join(base, rel))),
+      parBase[i].map((rel) => entreeDe(join(base, rel), { porte })),
     ),
   );
   CORPUS.set(cle, lu);

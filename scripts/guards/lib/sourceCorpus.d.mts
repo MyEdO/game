@@ -27,7 +27,7 @@ export function readCorpus(dirs: readonly string[], opts?: ReadCorpusOptions): r
 
 /** L'entrée de `p` (absolu), lue au disque la première fois qu'une clé ou un appelant la demande, puis
  *  partagée : un chemin n'a qu'un texte. Son `rel` est POSIX depuis la racine de CE dépôt (`../` hors de lui). */
-export function entreeDe(p: string): Readonly<CorpusFile>;
+export function entreeDe(p: string, options?: { porte?: PasseDesProjets }): Readonly<CorpusFile>;
 
 /** Relâche tous les corpus mémoïsés : la lecture suivante retourne au disque. Le relâchement est
  *  TOTAL (toutes les clés, pas une) et l'IDENTITÉ des tableaux et des entrées est perdue — les mémos

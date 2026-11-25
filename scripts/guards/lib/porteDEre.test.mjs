@@ -6,6 +6,7 @@ import { rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { depotDe } from './gitPorte.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 import { instanceDeDepot } from './depotGabarit.mjs'
 import * as porteActuelle from './plageStock.mjs'
 import { PORTE_DE_PLAGE } from './plageStock.mjs'
@@ -90,7 +91,7 @@ const SUITE_QUI_FORGE = {
 
 test('#2503 ère chargée par HOOKS : servie sous les URL du dépôt, ses racines dérivées de `import.meta.url` restent celles du dépôt', async () => {
   let charger
-  const vu = await jugeDeLEre(depotDe(RACINE), ERE_ANCIENNE, { ...PORTE_DE_PLAGE, vie: (p) => { charger = p.charger; return true } })
+  const vu = await jugeDeLEre(depotDe(RACINE, { porte: porteDeTousLesProjets }), ERE_ANCIENNE, { ...PORTE_DE_PLAGE, vie: (p) => { charger = p.charger; return true } })
   assert.deepEqual([vu.note, vu.source], [null, 'arbre'])
   const paquet = new URL('../../../package.json', import.meta.url)
   assert.equal(fileURLToPath(`${paquet.href}?ere=${ERE_ANCIENNE}`), fileURLToPath(paquet), '`fileURLToPath` ignore la requête')

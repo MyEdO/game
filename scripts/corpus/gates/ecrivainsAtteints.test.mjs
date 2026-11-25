@@ -38,6 +38,10 @@ const ATTENDU = {
     'scripts/gates/testsSansEcriture.test.mjs',
     // #4936 : le dépôt de fixture du corpus sous un `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/projetsLivres.test.mjs',
+    // #5037 : le dépôt de fixture de la porte (`instanceDeDepot`) et les modules lecteurs de la serrure des lectures sous un
+    // `mkdtempSync` d'os.tmpdir(), retirés par `rmSync` en finally ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/porteDesProjets.test.mjs',
+    'scripts/guards/lib/intercepterLecturesDesProjets.test.mjs',
     // #2489 : bancs Vitest et génération sous os.tmpdir() ; rapports périmètre relayés
     // après contrôle dans l'outil, bancs des reporters dans des dépôts temporaires.
     'scripts/gates/generationCode.test.mjs',
