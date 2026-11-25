@@ -26,6 +26,7 @@ import {
 import { campagneDuPaquet, paquetDuJeu } from '../../../src/noyau/index';
 import paquetDeTest from '../../../src/scenes/fixtures/paquet-de-test.json';
 import { file } from '../../../src/data/schemas/defs-scenes/paquet-de-test';
+import { contenu as contenuDuCommun } from '../../../src/scenes/fixtures/contenuDuCommun';
 import type { Bouton, Choix, Formulaire, Ligne, Plan } from '../../../src/hote/elements';
 import type { CalqueAffiche, SurcoucheDeLEdition, ZonesDeLEditeur } from '../../../src/hote/editeur';
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -90,7 +91,7 @@ function valeursDeLInspecteur(e: Edition, id: string): Bouton[] {
 const deLEditeur = (sc: { id: string }) => sc.id === 'scene-de-l-editeur';
 const campagneDeLEditeur = campagneDuPaquet({ ...paquetDeTest, scenes: [...paquetDeTest.scenes.filter(deLEditeur), ...paquetDeTest.scenes.filter((sc) => !deLEditeur(sc))] }, file);
 /** Le contenu du jeu de cette suite : la seule campagne de l'éditeur. */
-const contenuDeLEditeur = { campagnes: [campagneDeLEditeur], scenarios: [] };
+const contenuDeLEditeur = { campagnes: [campagneDeLEditeur], scenarios: [], dossiers: contenuDuCommun.dossiers };
 const CAMPAGNE = campagneDeLEditeur.id;
 const COMMITES = await modelesCommites();
 /** Le document que relit le dépôt jetable où s'écrit le texte `texte` d'un enregistrement. */
