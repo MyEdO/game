@@ -326,19 +326,10 @@ export type LieuDeSejour = keyof typeof LIEUX_DE_SEJOUR;
 
 /** Les Disponibilités (`DISPONIBILITES`) qu'ouvre le palier `palier` de la forge ou de l'hospice : une de plus par palier. */
 export const disponibilitesDuPalier = (palier: number): readonly Disponibilite[] => DISPONIBILITES.slice(0, palier + 1);
-/** Une panoplie de la forge : son id dit les PA qu'elle porte sur chaque localisation ; ses pièces d'armure du catalogue
- *  (`trappings.json`), de cuir souple, de mailles ou de plates, sans conflit de couche (`equipConflicts`), revêtues d'un
- *  seul achat, sont la composition la plus légère portée (`itemsEncumbrance`), puis la moins chère. Arbitrages du
- *  2026-11-23, MyEdO/game#4947. */
-export type IdDePanoplie = 'pa-1' | 'pa-2' | 'pa-3' | 'pa-4' | 'pa-5';
-export interface Panoplie { id: IdDePanoplie; label: string; pieces: readonly string[] }
-export const PANOPLIES: readonly Panoplie[] = [
-  { id: 'pa-1', label: 'Cuir souple', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir'] },
-  { id: 'pa-2', label: 'Mailles', pieces: ['heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] },
-  { id: 'pa-3', label: 'Mailles sur cuir', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'heaume-ouvert', 'cotte-de-mailles', 'chausses-de-mailles'] },
-  { id: 'pa-4', label: 'Plates sur mailles', pieces: ['coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron', 'jambieres-d-acier'] },
-  { id: 'pa-5', label: 'Harnois complet', pieces: ['calotte-de-cuir', 'veste-de-cuir', 'jambieres-en-cuir', 'coiffe-de-mailles', 'cotte-de-mailles', 'chausses-de-mailles', 'heaume-ouvert', 'brassards', 'plastron', 'jambieres-d-acier'] },
-];
+/** Les armures que la forge vend : les trois armures d'une pièce de l'option du noyau `armure-regles-rapides`, de la plus
+ *  légère à la plus lourde. LDB 63 l.95-103 ; arbitrage du 2026-11-24, MyEdO/game#4966. */
+export const ARMURES_DE_LA_FORGE = ['armure-legere', 'armure-moyenne', 'armure-lourde'] as const;
+export type ArmureDeLaForge = (typeof ARMURES_DE_LA_FORGE)[number];
 /** Le Groupe des potions et remèdes du catalogue, que l'hospice reconnaît au sac d'un héros. */
 export const GROUPE_DES_REMEDES = 'herbes-et-potions';
 /** Ce que l'hospice vend du Groupe des remèdes : ceux dont le combat et la route jouent l'effet, un au moins par

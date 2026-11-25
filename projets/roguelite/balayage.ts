@@ -14,6 +14,8 @@
 import {
   DESTINATIONS,
   acheterUneArmure,
+  allure,
+  ARMURES_DE_LA_FORGE,
   armuresEnVente,
   suivreLePlan,
   type Destination,
@@ -22,7 +24,6 @@ import {
   PROFILS,
   acheter,
   ameliorer,
-  panoplieDe,
   dieuDe,
   nouvellePartie,
   recrue,
@@ -41,10 +42,14 @@ export function apprendreLaVoie(e: Etat, h: Heros): void {
   for (const id of sortsProposes(h)) acheter(e, h.c.id, { genre: 'sort', id });
 }
 
-/** Le héros `h` revêt la panoplie la plus lourde que la forge vend et qu'il accepte (`acheterUneArmure` refuse celle
- *  qui ôte des DR à ses Tests d'Incantation). */
+/** Le héros `h` revêt l'armure la plus lourde que la forge lui vend et qu'il accepte (`acheterUneArmure` refuse celle
+ *  qui ôte des DR à ses Tests d'Incantation), sans jamais descendre sous celle qu'il porte (`allure`). */
 export function equiper(e: Etat, h: Heros): void {
-  for (const a of [...armuresEnVente(e)].reverse()) if (!acheterUneArmure(e, h.c.id, a.id) || panoplieDe(h)?.id === a.id) return;
+  const portee = allure(h).armure?.poids;
+  for (const id of [...ARMURES_DE_LA_FORGE].reverse()) {
+    if (id === portee) return;
+    if (armuresEnVente(e, h).some((a) => a.id === id) && !acheterUneArmure(e, h.c.id, id)) return;
+  }
 }
 
 /** Ce qu'un groupe complet a atteint quand il part vers la destination de palier `palier` : le niveau de carrière que

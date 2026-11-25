@@ -48,7 +48,7 @@ const scenesLivrees = (): { nom: string; scene: Scene }[] => {
 /** Plancher DÉRIVÉ du nombre de scènes attendues — un scan vide (registre non chargé, campagne sans
  *  scène) ne peut pas rester vert. */
 const plancherScenes = (): number =>
-  testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + c.paquet.scenes.length, 0);
+  testScenarios.length + allBuiltinCampaigns.reduce((n, c) => n + paquetDuJeu(c).scenes.length, 0);
 
 describe('wallIndex — contrat', () => {
   it('le relais porte des murs aux deux niveaux, des portes et des croisées (sans quoi le banc ne mesure rien)', () => {

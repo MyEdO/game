@@ -18,12 +18,24 @@ import { ZONES_D_ARMURE } from '../../../../src/engine/classementDeTrait';
 import { armourCastDRPenalty } from '../../../../src/engine/magic';
 import { castingKindOf } from '../../../../src/engine/combatFeatures/dispatch';
 import { effectiveTalents } from '../../../../src/engine/talentsPossedes';
-import { findQualityById, findTrappingById, refLabel, testSkillLabel, trappingsInstanciables, weaponGroups } from '../../../../src/data';
+import {
+  bandeDe,
+  findQualityById,
+  findTrappingById,
+  refLabel,
+  testSkillLabel,
+  trappingsEnVente,
+  trappingsInstanciables,
+  weaponGroups,
+} from '../../../../src/data';
 import type { ArmourPoints, Availability, Combatant, ItemInstance } from '../../../../src/engine/types';
+export { equipConflicts } from '../../../../src/engine/items';
 import type { TestDesigne } from '../../../../src/engine/skills';
 export { AVAILABILITIES as DISPONIBILITES, type Availability as Disponibilite } from '../../../../src/engine/types';
 
-export type PoidsDArmure = 'legere' | 'moyenne' | 'lourde';
+/** L'armure d'une pièce (`armure-regles-rapides`) que l'objet `trappingId` est, ou dans laquelle il se lit (`bandeDe`) ;
+ *  `undefined` hors de l'option, et pour une armure de monture ou ce qui n'est pas une armure. LDB 63 l.97 ; #4208 */
+export const armureRapideDe = (trappingId: string): string | undefined => (findTrappingById(trappingId)?.remplace ? trappingId : bandeDe(trappingId)?.id);
 
 /** Les objets de `c` une fois toute son armure ôtée et les pièces `pieces` revêtues à sa place. */
 const sousLesPieces = (c: Pick<Combatant, 'items'>, pieces: readonly ItemInstance[]): ItemInstance[] =>
@@ -38,9 +50,9 @@ export function drPerdusSousLesPieces(c: Combatant, pieces: readonly ItemInstanc
 
 /** Un objet que le catalogue vend : sa catégorie, sa Disponibilité, et s'il se consomme (`isConsumable`). */
 export interface ObjetEnRayon { id: string; categorie: string; disponibilite: Availability; consommable: boolean }
-/** Les objets instanciables du catalogue (`trappingsInstanciables`) qui ont une Disponibilité du livre et un prix. */
+/** Les objets que le noyau offre au joueur (`trappingsEnVente`) qui ont une Disponibilité du livre et un prix. */
 export function objetsEnRayon(): ObjetEnRayon[] {
-  return trappingsInstanciables().flatMap((t) => {
+  return trappingsEnVente().flatMap((t) => {
     const p = t.price && t.price !== 'ND' ? t.price : undefined;
     if (!t.availability || t.availability === 'ND' || !p || !((p.gold ?? 0) || (p.silver ?? 0) || (p.brass ?? 0))) return [];
     return [{ id: t.id, categorie: t.categorie, disponibilite: t.availability, consommable: isConsumable({ trappingId: t.id }, findTrappingById) }];

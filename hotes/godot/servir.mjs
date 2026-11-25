@@ -38,7 +38,8 @@ const CORPS_MAX = 32 * 1024 * 1024
 
 /**
  * Le dépôt est servi par `servir.mjs` lancé avec `--depot` (`npm run godot:editeur` exporte le projet dans `dist/godot`
- * puis l'y sert), ou par le pont vivant (`vivant.mjs`, `npm run godot:ouvrir`) : `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
+ * puis l'y sert), ou par le pont vivant (`vivant.mjs`, `npm run godot:ouvrir`) : `GET depot/` rend la liste des ids de ses
+ * projets manuscrits, dans l'ordre du corpus (`listerProjetsLivres`), en `no-store` ; `GET depot/<id>` rend le projet manuscrit d'id `id` (`PROJETS_MANUSCRITS`,
  * `scripts/guards/lib/projetsLivres.mjs`), prose adressée matérialisée (`lireProjetLivre`), en `no-store` ; `PUT
  * depot/<id>` écrit son corps à la place du fichier, 200, ou le refuse en 422 avec sa raison s'il n'est pas du JSON,
  * pas ce projet, ou pas en forme dépôt (`materialiser` le refuse). Un projet généré (`scripts/<dossier>/generate.mjs`)
@@ -46,10 +47,11 @@ const CORPS_MAX = 32 * 1024 * 1024
  * @contrat Éditeur
  */
 
-/** Le projet manuscrit (`PROJETS_MANUSCRITS`) d'id `id` du dépôt `depot` : son chemin relatif au corpus, ou `null`. */
-function manuscrit(depot, id) {
-  return listerProjetsLivres(depot).find((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel))
-    && JSON.parse(readFileSync(join(dossierDesProjetsLivres(depot), rel), 'utf8')).id === id) ?? null
+/** Les projets manuscrits (`PROJETS_MANUSCRITS`) du dépôt `depot`, dans l'ordre du corpus : chacun son chemin relatif
+ *  au corpus et son id. */
+function manuscrits(depot) {
+  return listerProjetsLivres(depot).filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
+    .map((rel) => ({ rel, id: JSON.parse(readFileSync(join(dossierDesProjetsLivres(depot), rel), 'utf8')).id }))
 }
 
 /** Pourquoi `texte` ne s'écrit pas à la place du projet `id` : ni du JSON, ni ce projet, ou une adresse de prose qui
@@ -70,14 +72,20 @@ function refusDuTexte(texte, id) {
   return null
 }
 
-/** `GET depot/<id>` : le projet manuscrit `id` du dépôt `depot`, prose matérialisée (`lireProjetLivre`), en `no-store` ;
+/** `GET depot/` : les ids des projets manuscrits du dépôt `depot` (`manuscrits`), en `no-store`, 405 une autre méthode ;
+ *  `GET depot/<id>` : le projet manuscrit `id` du dépôt `depot`, prose matérialisée (`lireProjetLivre`), en `no-store` ;
  *  `PUT depot/<id>` : le corps écrit à sa place (`ecrireTexteAtomique`), 200, ou 422 et sa raison (`refusDuTexte`). 404
  *  hors des manuscrits, 405 une autre méthode, 413 un corps de plus de `CORPS_MAX` octets, 500 et sa raison une
  *  lecture ou une écriture qui échoue. */
 function servirLeDepot(req, res, depot, id) {
   const echec = (e) => void res.writeHead(500, { 'Content-Type': 'text/plain; charset=utf-8' }).end(String(e?.message ?? e))
   try {
-    const rel = manuscrit(depot, id)
+    const tous = manuscrits(depot)
+    if (id === '') {
+      if (req.method !== 'GET') return void res.writeHead(405, { Allow: 'GET' }).end()
+      return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(tous.map((m) => m.id)))
+    }
+    const rel = tous.find((m) => m.id === id)?.rel
     if (!rel) return void res.writeHead(404).end()
     if (req.method === 'GET') return void res.writeHead(200, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' }).end(JSON.stringify(lireProjetLivre(rel, depot)))
     if (req.method !== 'PUT') return void res.writeHead(405, { Allow: 'GET, PUT' }).end()

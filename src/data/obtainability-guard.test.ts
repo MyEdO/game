@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fileURLToPath } from 'node:url';
 import { computeObtainability } from '../../scripts/data/lib/obtainabilityGraph';
+import { cheminsDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 
 /**
  * Garde-fou « obtenabilité réelle » (#321 lentille 1, cliquet baseline patron `scripts/guards/lib/`) :
@@ -54,10 +55,12 @@ import { computeObtainability } from '../../scripts/data/lib/obtainabilityGraph'
  */
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 const BASELINE = { talents: 0, spells: 0 };
+/** Les paquets du jeu de rôle, que la garde éprouve avec la donnée. */
+const PAQUETS = cheminsDesProjetsLivres(ROOT);
 
 describe('garde-fou obtenabilité réelle (talents/sorts jamais obtenables)', () => {
   it('le compte de Talents JAMAIS-obtenables ne dépasse pas la baseline gelée', () => {
-    const { talentNever } = computeObtainability(ROOT);
+    const { talentNever } = computeObtainability(ROOT, PAQUETS);
     expect(
       talentNever.length,
       `Talents sans chemin d'obtention : ${talentNever.map((t) => t.id).join(', ')} — soit câbler une source (carrière/espèce/créature/mutation/étoile/scène), soit documenter la référence codex-seulement et AJUSTER la baseline (${BASELINE.talents}) de ce test`,
@@ -65,7 +68,7 @@ describe('garde-fou obtenabilité réelle (talents/sorts jamais obtenables)', ()
   });
 
   it('le compte de Sorts JAMAIS-obtenables ne dépasse pas la baseline gelée', () => {
-    const { spellNever } = computeObtainability(ROOT);
+    const { spellNever } = computeObtainability(ROOT, PAQUETS);
     expect(
       spellNever.length,
       `Sorts sans Talent de lanceur/Domaine/Culte/scène : ${spellNever.map((v) => v.id).join(', ')} — soit câbler une source, soit AJUSTER la baseline (${BASELINE.spells}) de ce test`,

@@ -1014,7 +1014,7 @@ export function passiveMods(c: Combatant): PassiveMod[] {
     // Canal UNIQUE des passifs d'effet (#1695, `ActiveEffect.passive`) : toute op qu'un effet porte
     // s'annonce ICI au nom de l'effet, donc suspendable (`sourceSuspended`). Une op `condition` y devient
     // un pion DÉRIVÉ que la réconciliation pose et retire AVEC l'effet (LDB 48 l.495).
-    for (const op of e.passive ?? []) out.push({ op, kind: 'magique', src: effectRef(e), label: e.label });
+    for (const op of e.passive ?? []) out.push({ op, kind: 'magique', src: effectRef(e), label: e.label, duration: e.duration });
   }
   // SUSPENSION d'une source (`engine/suspension.ts`) : tout ce qu'une source suspendue émet est écarté
   // ICI, au collecteur unique — aucun consommateur n'a à connaître le mécanisme. Les émetteurs SANS

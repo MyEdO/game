@@ -10,9 +10,9 @@
 // `adapteDe` (`champAdapteDe`, `src/data/schemas/grammaire/prose.ts`) COUPE l'héritage, pour lui et ce
 // qu'il contient (#2001).
 //
-// PÉRIMÈTRE — les DEUX racines de documents, DONNÉES EN DESCRIPTEURS (`RACINES_PROSE` ci-dessous),
-// aux mêmes motifs que `RACINES` (`scripts/docs/lib/structures-scan.mts`) : `src/data/*.json` (non
-// récursif) et les `*-projet.json` de `src/scenes` (récursif).
+// PÉRIMÈTRE — les DEUX racines de documents, DONNÉES EN DESCRIPTEURS (`RACINES_PROSE` ci-dessous) :
+// `src/data/*.json` (non récursif, le motif de `RACINE_DES_DONNEES`, `scripts/docs/lib/structures-scan.mts`) et
+// les `*-projet.json` de `src/scenes` (récursif, `PROJETS_LIVRES`).
 //
 // CLÉ — le `type` du DOCUMENT racine du fichier (`type` de la racine objet, ou de son premier
 // élément quand la racine est une liste), à défaut le nom de base du fichier. C'est la clé que le
@@ -29,8 +29,7 @@ import { fileURLToPath } from 'node:url';
 export const RACINE_DEPOT = path.resolve(fileURLToPath(new URL('../../..', import.meta.url)));
 
 /**
- * Les DEUX racines de documents, en DESCRIPTEURS ENTIERS (dossier + motif de fichier + récursivité)
- * — même partition que `RACINES` du scan de structures (`scripts/docs/lib/structures-scan.mts`).
+ * Les DEUX racines de documents, en DESCRIPTEURS ENTIERS (dossier + motif de fichier + récursivité).
  * Une racine se donne entière à `mesurerProseInline`, jamais par une CLÉ à résoudre : un identifiant
  * de racine à résoudre serait un branchement par identité dans du code générique (#842,
  * `src/registry-id-branch-guard.test.ts`) et une 2ᵉ vérité sur ce que sont ces racines.

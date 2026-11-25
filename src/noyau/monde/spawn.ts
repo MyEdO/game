@@ -55,6 +55,7 @@ import { randomizeChars, type PorteurDeFiche, CustomStatblock } from '../../engi
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import {
   apparencesObjetsDe,
+  armuresRapides,
   contexteDeNaissanceDObjet,
   deciderApparencesDesArmes,
   equipConflicts,
@@ -480,7 +481,7 @@ function ficheDuCorps(porteur: Extract<PorteurDeFiche, { ref: string } | { vehic
   return c;
 }
 
-/** LDB 77 l.7 ; #3684 ; #4348. */
+/** LDB 77 l.7 ; #3684 ; #4348 ; #4208 */
 function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur, resolveTrapping: TrappingResolver, trappings: CreatureData['trappings'] = []): void {
   const contexte = contexteDeNaissanceDObjet(c);
   const armureDecriteParLeTrait = new Set<string>(trappings.flatMap((r) => 'decritLeTraitArmure' in r ? [r.id] : []));
@@ -513,8 +514,9 @@ function equiperDeLInventaire(c: Combatant, inventaire: InventaireDAuteur, resol
   for (const o of [...auteurSeul, ...redefinis]) {
     if (o.equipped) for (const x of equipConflicts({ items: dotations }, o)) x.equipped = false;
   }
-  c.items = [...dotations, ...auteurSeul];
-  ajusterTraitsDuProfil(c, fiche.items, [...carriere, ...auteurSeul], { armureDecriteParLeTrait: armureDecriteParLeTrait.size > 0 });
+  c.items = armuresRapides([...dotations, ...auteurSeul]);
+  const deLaFiche = new Set(fiche.items.map((o) => o.uid));
+  ajusterTraitsDuProfil(c, c.items.filter((o) => deLaFiche.has(o.uid)), c.items.filter((o) => !deLaFiche.has(o.uid)), { armureDecriteParLeTrait: armureDecriteParLeTrait.size > 0 });
   const armeDEquipe = fiche.items.find((o) => o.bouclierDEquipe && objetDeSlot(c, o.uid));
   if (armeDEquipe) {
     ensureDefaultLoadout(c);

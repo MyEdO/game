@@ -1,25 +1,27 @@
 /**
  * Garde d'intégrité RÉFÉRENTIELLE des liens paquet → fiche de dossier de chapitre (#2290) : dans chaque projet
  * livré (`listerProjetsLivres`), tout `couvre` et tout `narratif.ecartes[].entree` résout à une entrée d'une
- * fiche commitée (`ENTREES_DE_DOSSIER`, `src/data/dossiers.ts`), et aucune entrée n'est à la fois couverte et
+ * fiche que remet le contenu du jeu de rôle (`contenuDuJeuDeRole.dossiers`, `src/scenes/campaign.ts`), et aucune entrée n'est à la fois couverte et
  * écartée dans le même paquet. Une entrée NON couverte n'est jamais une faute : un chapitre non adapté est un
- * état normal (`docs/dossiers-de-chapitre.md` le mesure).
+ * état normal (`npm run jeu-de-role:dossiers` le mesure).
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
-import { ENTREES_DE_DOSSIER, FICHES_DE_DOSSIER } from './dossiers';
+import { entreesDesFiches } from './dossiers';
+import { contenuDuJeuDeRole } from '../scenes/campaign';
 import { couverturesDuProjet, fautesDeReference, KINDS_DE_PORTEUR, type ProjetLu } from './source/couvertures';
 
 /** Le disque suffit : `couvre` et `ecartes` ne sont pas de la prose adressée. */
 const PROJETS = listerProjetsLivres().map((rel) => [rel, JSON.parse(readFileSync(join(dossierDesProjetsLivres(), rel), 'utf8')) as ProjetLu] as const);
-const CONNUES = new Set(ENTREES_DE_DOSSIER.map((e) => e.id));
+const ENTREES = entreesDesFiches(contenuDuJeuDeRole.dossiers);
+const CONNUES = new Set(ENTREES.map((e) => e.id));
 
 describe('liens `couvre` / `ecartes` des projets livrés (#2290)', () => {
   it('les fiches commitées sont lues', () => {
-    expect(FICHES_DE_DOSSIER.length).toBeGreaterThan(0);
-    expect(CONNUES.size).toBe(ENTREES_DE_DOSSIER.length);
+    expect(contenuDuJeuDeRole.dossiers.length).toBeGreaterThan(0);
+    expect(CONNUES.size).toBe(ENTREES.length);
   });
 
   it('chaque lien résout à une entrée de fiche commitée, et aucune entrée n’est couverte ET écartée dans un même paquet', () => {

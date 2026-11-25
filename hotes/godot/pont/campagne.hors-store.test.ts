@@ -1,13 +1,14 @@
 /**
  * JOUER UNE CAMPAGNE PAR LE PONT (#3009) : une partie ouverte au groupe (`ouvrir`), son groupe composé par les boutons
  * des zones `groupe.pretires` et `groupe.heros`, une campagne remise par le jeu lancée par le bouton de `groupe.campagnes`
- * (`lancer`), la partie quittée (`quitter`), puis une autre ouverte sous le même pont.
+ * (`lancer`), la partie quittée (`quitter`), puis une autre ouverte sous le même pont ; `campagnes` rend les ids des
+ * campagnes remises.
  */
 import { afterEach, describe, it, expect, vi } from 'vitest';
 import { boursesDuGroupe, drainer, erreurDe, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { etatInitialDuJeu, pretiresOfferts } from '../../../src/noyau/index';
-import { campagneDeTest, contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest, contenu } from '../../../src/scenes/fixtures/contenuDuCommun';
 import type { Bouton, Element, Entite, Jet } from '../../../src/hote/elements';
 import type { Pont, VueDuPont } from './pont';
 
@@ -33,7 +34,8 @@ describe('jouer une campagne par le pont', () => {
     expect(s.vue.zones['groupe.heros']).toEqual([]);
     expect(s.vue.zones['groupe.pretires'].map((e) => e.id), 'chaque pré-tiré de la donnée').toEqual(pretiresOfferts(etatInitialDuJeu()).map((p) => `pretire/${p.id}`));
     expect(s.vue.zones['groupe.pretires'].every((e) => e.elements.some((x) => x.type === 'bouton' && x.refus === null)), 'chacun se recrute').toBe(true);
-    expect(s.vue.zones['groupe.campagnes'].map((e) => e.id), 'chaque campagne remise').toEqual(contenuDeTest.campagnes.map((c) => `campagne/${c.id}`));
+    expect(s.vue.zones['groupe.campagnes'].map((e) => e.id), 'chaque campagne remise').toEqual(contenu.campagnes.map((c) => `campagne/${c.id}`));
+    expect(appel('campagnes'), 'les ids des campagnes remises, dans leur ordre').toEqual({ ok: true, campagnes: contenu.campagnes.map((c) => c.id) });
     expect(lancer(s.vue, campagneDeTest.id).refus, 'le noyau dit le refus').toBe(t('party.action.start.empty'));
     expect(erreurDe(appel('lancer', lancer(s.vue, campagneDeTest.id).jeu))).toEqual({ categorie: 'regle', message: t('party.action.start.empty') });
     expect(erreurDe(appel('lancer', { lancer: 'inconnue' })).categorie).toBe('validation');

@@ -4,6 +4,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { rendreEtat, rendre } from './build-dossiers-de-chapitre.mjs'
+import { paquetsDuCommun } from '../guards/lib/paquetsDuCommun.mjs'
 import { FAMILLES_DE_DOSSIER } from '../../src/data/source/dossier.ts'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
@@ -47,8 +48,16 @@ test('sans paquet, toute entrée est non couverte — jamais une faute', () => {
   assert.ok(rendreEtat([FICHE], []).includes('| [EDO-01](#edo-01) | 4 | 0 | 0 | 4 |'))
 })
 
-test('`rendre()` : la cible pure unique, rendue depuis les fiches commitées et les projets livrés', () => {
+test('`rendre()` : la cible pure unique, rendue depuis les fiches commitées et les paquets du commun par défaut', () => {
   const cibles = rendre()
   assert.deepEqual([...cibles.keys()], ['docs/dossiers-de-chapitre.md'])
-  assert.match(cibles.get('docs/dossiers-de-chapitre.md'), /GÉNÉRÉ par `node scripts\/docs\/build-dossiers-de-chapitre\.mjs`/)
+  const md = cibles.get('docs/dossiers-de-chapitre.md')
+  assert.match(md, /GÉNÉRÉ par `node scripts\/docs\/build-dossiers-de-chapitre\.mjs`/)
+  assert.ok(md.includes(`paquets mesurés (${paquetsDuCommun().map((p) => `\`${p}\``).join(', ')})`), 'le contenu du commun, seul')
+})
+
+test('`rendre(paquets)` : les paquets passés, et eux seuls, sont mesurés', () => {
+  const md = rendre([]).get('docs/dossiers-de-chapitre.md')
+  assert.ok(md.includes('paquets mesurés (aucun)'))
+  assert.ok(!md.includes('**couverte**'), 'aucun paquet, aucune entrée couverte')
 })

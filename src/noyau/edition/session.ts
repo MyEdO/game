@@ -178,6 +178,7 @@ import type { FormeDEtatKind } from '../../data/schemas/defs-scenes/formes-d-eta
 import { placeServices, type MapPlace, type OffreDAuberge, type WorldMap } from '../worldMap';
 import type { CalibProgress } from './calage';
 import type { Manifeste } from '../../data/source/chapitres';
+import type { EntreeNommee } from '../../data/source/dossier';
 import { adressesDe, avecLeChapitreDemande, avecLeChapitreRecu, sourceServie, type SourceServie } from './adresseDeProse';
 import { caler, calqueNeuf, calquesLus, type CalqueDeCouche, type CalquesDuProjet, type ReglageDuCalque } from './calque';
 
@@ -530,9 +531,9 @@ export interface SessionDEdition {
   chargement: { sceneId: string; z: number } | null;
   /** Le `Source/` que l'hôte sert : son index, les chapitres chargés et celui qu'il charge (`SourceServie`). */
   source: SourceServie;
-  /** Les identifiants des entrées des fiches de dossier que l'hôte sert, que l'écart du narratif écarte ; vides s'il
-   *  n'en sert aucune, l'écart n'en offrant alors aucune. */
-  entreesDeFiche: readonly string[];
+  /** Les entrées des fiches de dossier que l'hôte sert, que l'écart du narratif écarte et que `couvre` désigne ; vides
+   *  s'il n'en sert aucune, l'écart n'en offrant alors aucune. */
+  entreesDeFiche: readonly EntreeNommee[];
   /** Les calques que l'hôte gardait étaient d'un autre format, retirés à l'ouverture. */
   ecartes: boolean;
   /** Le plan du lieu sélectionné de la carte du monde, ouvert : le pointeur y va (`planDuLieuOuvert`), et `poi` y est le
@@ -667,9 +668,9 @@ function avecLeLieuPatche(s: SessionDEdition, patch: (lieu: MapPlace) => PatchDe
 /** La session qui édite la première scène du projet `projet`, à l'outil de sélection, sur la couche 0 ; `duDepot` :
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format ; `manifeste`, l'index des chapitres du
- *  `Source/` que l'hôte sert, sans aucun chapitre chargé ; `entreesDeFiche`, les identifiants des entrées des fiches de
- *  dossier que l'hôte sert. */
-export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null, entreesDeFiche: readonly string[] = []): SessionDEdition {
+ *  `Source/` que l'hôte sert, sans aucun chapitre chargé ; `entreesDeFiche`, les entrées des fiches de dossier que
+ *  l'hôte sert. */
+export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null, entreesDeFiche: readonly EntreeNommee[] = []): SessionDEdition {
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
