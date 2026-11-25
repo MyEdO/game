@@ -16,8 +16,11 @@
 // Ce qui monte, naît ou cède sous l'un ou l'autre détecteur est le SCHÉMA (un `idDe` relâché se voit, `FEUILLES_D_ID`)
 // et refuse la plage. Aucune ligne de message n'admet une hausse ni un plancher qui cède ; une baisse du DÉTECTEUR, plancher
 // compris, se justifie par `FAUX-POSITIF:` (`baissesDuDetecteur`).
-// ANGLES MORTS : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711) ; une forme
-// générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher une mesure. Une
+// MODULES GÉNÉRÉS : sous les cibles de l'image, chaque module généré que le détecteur importe (`MODULES_GENERES_LUS`)
+// à un chemin que l'image ne déclare pas et ne porte pas y est un RENVOI vers le module au chemin que déclare l'image
+// (`CIBLES_DECLAREES` de son commit, `poserLesRenvois`) ; un module déplacé dans la plage se lit aux deux bornes (#5083).
+// ANGLES MORTS : une forme générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher
+// une mesure. Au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711). Une
 // DÉCLARATION (`DECLARATIONS_DE_L_IMAGE`) qui tait une famille, `sansFolio` posé sur une liste existante, en retire la
 // dette comme une baisse de DONNÉE, sans `FAUX-POSITIF:`.
 // L’ordinal d’un compte n’est pas l’adresse d’une valeur. Un chemin RENOMMÉ dans la plage même où sa référence se
@@ -36,9 +39,9 @@
 // sortir un nœud G1 sous les deux détecteurs ; c’est une forme partagée réelle, pas un re-classement (#3012).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join } from 'node:path';
+import { dirname, join, posix } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { lierDependances } from '../../migrations/replay-head.mjs';
 import { LUS_PAR_LES_GENERATEURS } from '../../docs/build-all.mjs';
@@ -113,7 +116,7 @@ const RACINE = fileURLToPath(new URL('../../..', import.meta.url));
 /** Ce que le détecteur apporte à une image : son code et sa configuration de modules. */
 const DU_DETECTEUR = ['scripts', 'package.json', 'tsconfig.json'];
 /** La première ligne d'un module de CLASSEMENT de `src/` (#2969) : le détecteur qui le porte le pose dans l'image. */
-export const MARQUE_DE_CLASSEMENT = '// CLASSEMENT DU DÉTECTEUR';
+const MARQUE_DE_CLASSEMENT = '// CLASSEMENT DU DÉTECTEUR';
 /** Le dossier des modules de classement. */
 const RACINE_DU_CLASSEMENT = 'src/data/schemas/grammaire';
 /** Le texte d'un module est-il du classement ? */
@@ -129,6 +132,10 @@ const DE_L_IMAGE = ['src', 'Source', ...LUS_PAR_LES_GENERATEURS];
 /** Les DÉCLARATIONS de la donnée de l'image que `scripts/` porte : la liste de découpe d'un livre (son grain, `sansFolio`)
  *  dit ce que SES chapitres de `Source/` impriment (#3884). Elles se posent de l'image PAR-DESSUS le détecteur. */
 const DECLARATIONS_DE_L_IMAGE = ['scripts/raw/decoupes'];
+/** La déclaration des chemins des modules générés (#5083) : celle de l'image se pose sous `COPIE_DES_CIBLES`, à côté de
+ *  celle du détecteur. */
+const CIBLES_DECLAREES = 'scripts/docs/lib/cibles-registres.mjs';
+const COPIE_DES_CIBLES = '.cibles-de-l-image';
 /** Les fichiers TEXTE que la mesure lit ; un fichier binaire ne se pose pas. */
 const EXTENSIONS_DE_TEXTE = [...EXTENSIONS_DE_SCRIPT, '.md', '.json', '.css', '.snap'];
 /** Le point d'entrée de la mesure, dans le code d'un détecteur. */
@@ -270,8 +277,35 @@ function imageGeneree(depot: Depot, sha: string, configuration: string): ImageGe
   return image;
 }
 
+/** Les chemins des MODULES GÉNÉRÉS, indexés par leur nom stable, selon la déclaration `argv[1]` puis `argv[2]` : chaque
+ *  sortie de `SORTIES_DES_ESPACES` sous sa clé, chaque `out` de `REGISTRIES` sous son `arrayName`. */
+const MODULES_GENERES_LUS = [
+  'const lus = async (url) => { const { SORTIES_DES_ESPACES, REGISTRIES } = await import(url);',
+  '  return [...Object.entries(SORTIES_DES_ESPACES ?? {}), ...(REGISTRIES ?? []).map((r) => [r.arrayName, r.out])]; };',
+  'process.stdout.write(JSON.stringify([await lus(process.argv[1]), await lus(process.argv[2])]));',
+].join('\n');
+
+/** Sous `dossier`, à chaque chemin d'un module généré (`MODULES_GENERES_LUS`) que déclare le détecteur posé, absent de
+ *  l'image et autre que celui qu'elle déclare, un module de RENVOI vers celui de l'image (#5083). */
+function poserLesRenvois(dossier: string, configuration: string): void {
+  const vu = spawnSync(process.execPath, ['--input-type=module', '-e', MODULES_GENERES_LUS,
+    pathToFileURL(join(dossier, COPIE_DES_CIBLES, CIBLES_DECLAREES)).href, pathToFileURL(join(dossier, CIBLES_DECLAREES)).href], {
+    cwd: dossier, encoding: 'utf8',
+  });
+  if (vu.status !== 0) throw new MesureImpossible(`${configuration} : lecture des modules générés en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
+  const [deLImage, duDetecteur] = JSON.parse(vu.stdout) as [[string, string][], [string, string][]];
+  const viseParNom = new Map(deLImage);
+  for (const [nom, chemin] of duDetecteur) {
+    const vise = viseParNom.get(nom);
+    if (vise === undefined || chemin === vise || !/\.m?ts$/.test(chemin) || existsSync(join(dossier, chemin))) continue;
+    mkdirSync(dirname(join(dossier, chemin)), { recursive: true });
+    writeFileSync(join(dossier, chemin), `export * from './${posix.relative(posix.dirname(chemin), vise)}';\n`);
+  }
+}
+
 /** Les comptes de `sha` sous les cibles de SON image (`imageGeneree`), le code du `detecteur` posé à la place du sien,
- *  sur le classement de l'image qu'une pose précédente a pu recouvrir. */
+ *  sur le classement de l'image qu'une pose précédente a pu recouvrir ; ses modules générés aux chemins que déclare
+ *  l'image (`CIBLES_DECLAREES`). */
 function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
   const configuration = `${sha.slice(0, 9)} sous les cibles de l’image`;
   const image = imageGeneree(depot, sha, configuration);
@@ -284,6 +318,8 @@ function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Dete
   ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT]);
   detecteur.poser(dossier);
   poserLesDeclarations(depot, sha, dossier);
+  ecrireDeLImage(depot, sha, join(dossier, COPIE_DES_CIBLES), [CIBLES_DECLAREES]);
+  poserLesRenvois(dossier, configuration);
   const comptes = mesurerImage(dossier, configuration);
   image.derniereMesure = { empreinte, comptes };
   return comptes;

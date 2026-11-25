@@ -13,6 +13,7 @@ import { describe, it, expect } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
+import { porteDeTousLesProjets } from '../../scripts/guards/lib/porteDesProjets.mjs';
 import { estFichierVitest, estKitDeTest } from '../../scripts/guards/lib/fichierVitest.mjs';
 import { COUCHES, HOTES_DU_NOYAU, dossierDe, ligneDeProjet } from '../../scripts/guards/lib/couches.mjs';
 import { calculsDeRegle, estMiseEnPage } from '../../scripts/guards/lib/gdscriptSansRegle.mjs';
@@ -36,7 +37,7 @@ const DOSSIERS = derivantes(HOTES_DU_NOYAU, COUCHES).map(dossierDe).filter((d) =
  *  pas du code d'hôte). La recette JavaScript pilote l'hôte de l'extérieur : elle nomme les gestes
  *  précis dont elle vérifie le parcours. */
 const fichiersDesHotes = (): string[] =>
-  DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f) }).map((f) => `${d}/${f}`).filter((f) => !estCiblePure(f, GENERATORS)))
+  DOSSIERS.flatMap((d) => listerArbre(fileURLToPath(new URL(d, RACINE)), { filtre: (f) => /\.(ts|gd)$/.test(f) && !estFichierVitest(f) && !estKitDeTest(f), porte: porteDeTousLesProjets }).map((f) => `${d}/${f}`).filter((f) => !estCiblePure(f, GENERATORS)))
     .filter((f) => !f.startsWith('hotes/godot/cibles/'));
 const estGdscript = (f: string): boolean => f.endsWith('.gd');
 

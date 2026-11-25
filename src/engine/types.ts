@@ -383,7 +383,7 @@ export interface Weapon extends ProprietesIntrinsequesDArme {
   /** Attaque NATURELLE de corps (morsure/griffes/cornes…) : aucune arme tenue : ce que porte
    *  un combattant l'écarte (`porteeDuCombattant`). Stampé au spawn depuis `TraitInstance.natural` / la capacité `naturalWeapon`. */
   natural?: boolean;
-  /** Taille PRÉVUE pour l'arme (ADE II 2 l.706-710) — propagée depuis `ItemInstance.sizeFor`. Différente
+  /** Taille PRÉVUE pour l'arme (ADE II 2 l.753-757) — propagée depuis `ItemInstance.sizeFor`. Différente
    *  de la Taille du porteur → −20 à tous les Tests avec cette arme (`attackModifiers`). */
   sizeFor?: import('./size').SizeCategory;
   /** Trait « Arme +N » générique SANS objet de catalogue identifié (`creatureEquip.weaponFromTrait`) :
@@ -1074,7 +1074,7 @@ export interface ItemInstance extends ProprietesIntrinsequesDObjet {
    *  objet non-bourse. Compte de pièces (pas la valeur en sous) : `totalEncumbrance` en dérive l'Enc
    *  (1 Enc / 200 pièces, LDB 61 l.29). Manipulé par les primitives `noyau/bourseFlow.ts`. */
   money?: import('./money').Money;
-  /** Taille PRÉVUE pour l'objet (ADE II 2 l.706-710 : « la version ogre de la plupart des possessions
+  /** Taille PRÉVUE pour l'objet (ADE II 2 l.753-757 : « la version ogre de la plupart des possessions
    *  vaut deux fois l'Encombrement classique ») — copiée du catalogue (`TrappingData.sizeFor`), propagée
    *  à `Weapon.sizeFor`. Absent = taille Moyenne (le standard implicite, `effectiveSize`). Plus grande que
    *  Moyenne → Enc effectif ×2 (`totalEncumbrance`) ; manié/porté par un combattant d'une AUTRE taille →

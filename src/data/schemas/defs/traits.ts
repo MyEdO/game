@@ -91,13 +91,13 @@ export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   darkSightTiles: z.number().nullable().optional(),
   /** MSRC 15 */
   wakelessBite: z.boolean().optional(),
-  /** ADE II 2 l.708 */
+  /** ADE II 2 l.755 */
   encumbranceFactor: z.number().optional(),
-  /** ADE II 2 l.708 */
+  /** ADE II 2 l.755 */
   consumptionFactor: z.number().optional(),
-  /** ADE II 2 l.728 */
+  /** ADE II 2 l.775 */
   castingChar: charKeySchema.optional(),
-  /** ADE II 2 l.726 */
+  /** ADE II 2 l.773 */
   castingHunger: z.boolean().optional(),
 }), {
   bonusWoundsBE: { label: 'Bonus de Blessures par Bonus d’Endurance' },

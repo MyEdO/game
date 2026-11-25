@@ -831,7 +831,7 @@ export interface ItemCapabilities {
   /** Pièces détachées de navire (MDG 14 l.281-283) : « consommées quand vous entreprenez l'Activité
    *  Entretien du navire » — NON gaté (stock de cale). */
   shipParts?: boolean;
-  /** Arme SOLIDEMENT FIXÉE au porteur (Poing de fer ogre, ADE II 02 l.694-698 : « il ne pourra pas en
+  /** Arme SOLIDEMENT FIXÉE au porteur (Poing de fer ogre, ADE II 02 l.741-745 : « il ne pourra pas en
    *  être désarmé ») — immunité PERMANENTE et INCONDITIONNELLE au retrait (`case 'disarm'`, `engine/ops.ts`),
    *  distincte du Gantelet verrouillé (`preventForcedDrop`, AA folio 94 : protection À USAGE UNIQUE par
    *  période avec pénalité de -20). Lue par-objet (`itemCapability`), pas gatée sur le port : l'arme est
@@ -841,7 +841,7 @@ export interface ItemCapabilities {
   detruitAuLancer?: boolean;
   /** Armure de monture, portée par la bête et jamais équipée par une dotation (`harnacher`, `noyau/mount.ts`). AA 09 l.184 ; ADE I 07 l.66 ; #4135 */
   armureDeMonture?: boolean;
-  /** Arme à corde séparable (Lance-harpon, ADE II 02 l.677 : « Si la corde est séparée de la flèche, la
+  /** Arme à corde séparable (Lance-harpon, ADE II 02 l.724 : « Si la corde est séparée de la flèche, la
    *  portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante ») — active le mode de tir
    *  `WeaponContext.harpoonRopeCut` (`effectiveWeapon`, `noyau/combatFlow.ts` `weaponContextOf`), choisi
    *  par le joueur avant le jet (`PendingAttack.harpoonRopeCut`). Lue par-objet (`itemCapability`). */
@@ -911,7 +911,7 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
   unarmed?: true;
   /** LDB 62 l.31 ; LDB 62 l.135 */
   improvised?: true;
-  /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.613 */
+  /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.660 */
   shield?: true;
   /** Formes choisibles (racines de `apparences.json`) d'une arme ABSTRAITE (« Arme simple » → épée/hache/
    *  masse/marteau de guerre/demi-lance). Le picker pose le choix sur `ItemInstance.apparence` ;
@@ -941,7 +941,7 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
    *  NON-ENCOMBRANTS / non chiffrés — `'ND'` (ateliers : on ne les transporte pas) et `'Variable'`
    *  (arme improvisée). Ces strings sont traitées comme 0 au calcul (`itemFromTrappingById`). */
   enc?: number | 'ND' | 'Variable' | null;
-  /** Taille PRÉVUE pour l'objet (ADE II 2 l.706-710) — présente sur la version « taille ogre » d'une
+  /** Taille PRÉVUE pour l'objet (ADE II 2 l.753-757) — présente sur la version « taille ogre » d'une
    *  possession ordinaire (`enc` reste la valeur CLASSIQUE, doublée au runtime, `totalEncumbrance`). Absente
    *  sur le catalogue NATIVEMENT ogre (massue ogre, pansière ogre… l.604 : Enc déjà entré à sa valeur pleine,
    *  pas de doublement). Propagée à `ItemInstance.sizeFor` / `Weapon.sizeFor`. */

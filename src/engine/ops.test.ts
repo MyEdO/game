@@ -472,8 +472,8 @@ describe('applyOps — opérations unitaires', () => {
       expect(c.loadouts![0].main).toBeUndefined();
     });
 
-    // #476 — Poing de fer ogre (ADE II 02 l.694-698) : capacité `disarmImmune` (`ItemCapabilities`).
-    it("capacité disarmImmune (Poing de fer, ADE II 02 l.694-698) → refuse le désarmement, l'arme reste tenue", () => {
+    // #476 — Poing de fer ogre (ADE II 02 l.741-745) : capacité `disarmImmune` (`ItemCapabilities`).
+    it("capacité disarmImmune (Poing de fer, ADE II 02 l.741-745) → refuse le désarmement, l'arme reste tenue", () => {
       const c = hero({ items: [{ ...itemFromTrappingById('poing-de-fer', idsDeTest)!, uid: 'w1', equipped: true }] });
       c.loadouts = [{ id: 'l1', main: 'w1' }];
       c.activeLoadoutId = 'l1';

@@ -4,6 +4,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { clotureDImports, estModule } from '../scripts/guards/lib/importGraph.mjs';
+import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
 import { fabriquesDuCorpus, retentionsDAnalyse } from '../scripts/guards/lib/analyseRetenue.mjs';
@@ -616,7 +617,7 @@ it('x', () => lire());
   });
 
   it('aucun module chargé par la suite ne retient une structure d’analyse', { timeout: 1_200_000 }, () => {
-    const charges = clotureDImports(fichiersDeLaSuite().map((f) => f.abs), { racine: ROOT });
+    const charges = clotureDImports(fichiersDeLaSuite().map((f) => f.abs), { racine: ROOT, porte: porteDeTousLesProjets });
     const duCorpus = readCorpus(['src', 'scripts', 'server/src'], { tests: true }).filter(({ rel }) => charges.has(rel));
     // Tout module de CODE de la clôture est lu : ceux que le corpus ne porte pas (`vite.config.ts`, à
     // la racine) sont lus au disque — un module chargé non lu échapperait à la garde en silence.

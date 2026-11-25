@@ -331,8 +331,55 @@ De nombreux ogres impériaux portent des noms propres à l'Empire, qu'ils ont ad
 Traditionnellement, les noms des ogres sont formés à partir d'un certain nombre de racines et de terminaisons communes. La première composante est inspirée de ce qui constitue le premier repas de l'enfant, tandis que la seconde varie selon la saison, le lieu de naissance, les actes notables des parents, etc. Pour générer un nom d'ogre, utilisez les deux tableaux de la page suivante et combinez les deux composantes.
 
 
+#### <span id="page-23-0" data-folio="22"></span>1ÈRE PARTIE D'UN NOM OGRE
+
+| 1d100 | Élément | 1d100 | Élément | 1d100 | Élément | 1d100 | Élément | 1d100 | Élément |
+|---|---|---|---|---|---|---|---|---|---|
+| 01 | Ar | 21 | Grum | 41 | Nar | 61 | Tar | 81 | Verm |
+| 02 | Ag | 22 | Gurz | 42 | Narg | 62 | Tag | 82 | Vug |
+| 03 | Az | 23 | Hroth | 43 | Nag | 63 | Tazag | 83 | Vuz |
+| 04 | Bargh | 24 | Keggur | 44 | Nagar | 64 | Teg | 84 | Vuzzig |
+| 05 | Blag | 25 | Kug | 45 | Naz | 65 | Terg | 85 | Yar |
+| 06 | Boz | 26 | Kuz | 46 | Nartha | 66 | Thar | 86 | Yamith |
+| 07 | Bur | 27 | Mag | 47 | Ner | 67 | Thag | 87 | Yer |
+| 08 | Dar | 28 | Mar | 48 | Nerg | 68 | Thaz | 88 | Yeg |
+| 09 | Dergh | 29 | Margh | 49 | Neggim | 69 | Thegiz | 89 | Yorgh |
+| 10 | Duth | 30 | Meg | 50 | Nur | 70 | Ther | 90 | Yorz |
+| 11 | Far | 31 | Merrig | 51 | Nug | 71 | Thug | 91 | Yur |
+| 12 | Feg | 32 | Mor | 52 | Nuggith | 72 | Torg | 92 | Yug |
+| 13 | Fer | 33 | Morg | 53 | Rar | 73 | Torz | 93 | Yuz |
+| 14 | Fog | 34 | Morz | 54 | Rag | 74 | Tur | 94 | Zar |
+| 15 | Fuzgh | 35 | Mug | 55 | Raggim | 75 | Turg | 95 | Zargh |
+| 16 | Gar | 36 | Murg | 56 | Raz | 76 | Tuz | 96 | Zag |
+| 17 | Gagh | 37 | Murgog | 57 | Razog | 77 | Var | 97 | Zer |
+| 18 | Geg | 38 | Murz | 58 | Rer | 78 | Varg | 98 | Zeg |
+| 19 | Gez | 39 | Muz | 59 | Reg | 79 | Varz | 99 | Zog |
+| 20 | Gorg | 40 | Murthig | 60 | Skr | 80 | Ver | 00 | Zor |
+
 #### 2E PARTIE D'UN NOM OGRE
 
+| 1d100 | Élément | 1d100 | Élément | 1d100 | Élément | 1d100 | Élément | 1d100 | Élément |
+|---|---|---|---|---|---|---|---|---|---|
+| 01 | abba | 21 | ebb | 41 | getha | 61 | ork | 81 | thruta |
+| 02 | addoo | 22 | edd | 42 | gothish | 62 | ort | 82 | thrush |
+| 03 | akka | 23 | ek | 43 | gratoo | 63 | orth | 83 | ubbsh |
+| 04 | ag | 24 | elg | 44 | grethi | 64 | ott | 84 | uddoo |
+| 05 | alloo | 25 | ell | 45 | grothoo | 65 | rag | 85 | ulgoo |
+| 06 | alta | 26 | elt | 46 | gruta | 66 | reg | 86 | ulloo |
+| 07 | algoo | 27 | elg | 47 | guta | 67 | ret | 87 | ultsh |
+| 08 | alza | 28 | elz | 48 | guttash | 68 | reth | 88 | ulgi |
+| 09 | angoosh | 29 | eng | 49 | obbi | 69 | rob | 89 | ulzish |
+| 10 | annash | 30 | emm | 50 | oddi | 70 | rok | 90 | ungish |
+| 11 | argo | 31 | enn | 51 | okka | 71 | roth | 91 | unnoo |
+| 12 | argani | 32 | erg | 52 | olgish | 72 | rug | 92 | urga |
+| 13 | argloo | 33 | ergl | 53 | olloo | 73 | ruk | 93 | urka |
+| 14 | arki | 34 | erk | 54 | oltush | 74 | rut | 94 | urthoo |
+| 15 | arkash | 35 | erkag | 55 | olgtha | 75 | rutag | 95 | urthu |
+| 16 | arkuga | 36 | ert | 56 | olthi | 76 | tag | 96 | urthagish |
+| 17 | artha | 37 | erth | 57 | onga | 77 | teg | 97 | urutoo |
+| 18 | artaga | 38 | ett | 58 | onni | 78 | thorg | 98 | uruzi |
+| 19 | arthash | 39 | ew | 59 | orgoo | 79 | throg | 99 | uttish |
+| 20 | attha | 40 | gat | 60 | orglish | 80 | throt | 00 | yogg |
 
 ## <span id="page-24-0" data-folio="23"></span>**Titres des ogres et noms de clan**
 

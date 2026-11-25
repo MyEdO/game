@@ -67,12 +67,12 @@ describe('generateName — banques de noms', () => {
     [69, 1, 'Thegizabba'],
     [70, 1, 'Therabba'],
     [71, 1, 'Thugabba'],
-    [100, 100, 'Zoyogg'],
+    [100, 100, 'Zoryogg'],
   ] as const)('Ogre traditionnel : les faces %i et %i donnent %s', (racine, terminaison, attendu) => {
     expect(generateName('ogre', 'F', desEnSuite([racine - 1, terminaison - 1]))).toBe(attendu);
   });
 
-  it('Ogre : parcours humain et déterminisme à graine égale (ADE II 02 l.325-334)', () => {
+  it('Ogre : parcours humain et déterminisme à graine égale (ADE II 02 l.325-382)', () => {
     for (const sex of sexeSchema.options) {
       expect(generateName('ogre', sex, makeRNG(42), 'humain')).toBe(generateName('humain', sex, makeRNG(42)));
       expect(generateName('ogre', sex, makeRNG(42))).toBe(generateName('ogre', sex, makeRNG(42)));

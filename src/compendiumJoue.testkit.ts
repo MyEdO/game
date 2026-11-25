@@ -415,7 +415,7 @@ function identite(s: SessionDuCompendium): EcritureJouee | null {
  *  le champ d'identité (`champDuChemin`) n'est pas parmi les `identifiees` de la catégorie : « Ajouter » de la liste
  *  joué, puis le formulaire `identifier/<chemin>` de l'élément ajouté, que rien ne désigne, joué vers `<clé>-joue`. */
 function identifierLesElements(s: SessionDuCompendium, noeud: unknown, identifiees: Set<string>, out: EcritureJouee[]): void {
-  for (const f of zonesDuCompendium(s)['compendium.atelier']) {
+  for (const f of atelierDe(s)) {
     if (f.type !== 'formulaire' || f.verbe !== 'identifier' || f.champs[0]?.type !== 'fixe') continue;
     const liste = (f.champs[0].valeur as Segment[]).slice(0, -1);
     const element = auChemin(s.atelier!.entree, f.champs[0].valeur as Segment[]);
@@ -450,12 +450,12 @@ function enTete(s: SessionDuCompendium): EcritureJouee | null {
  *  (`composerLAdresse`). */
 function composerLesAdresses(s: SessionDuCompendium, noeud: unknown, composees: Set<string>, out: EcritureJouee[]): void {
   let x = s;
-  for (const e of zonesDuCompendium(s)['compendium.atelier']) {
+  for (const e of atelierDe(s)) {
     if ((e.type !== 'choix' && e.type !== 'liste') || !e.id.endsWith('/ajouter') || !e.valeurs.length) continue;
     const jeu = e.valeurs[0].jeu;
     const chemin = ('args' in jeu ? jeu.args[1] : []) as Segment[];
     if (!noeudsAuChemin(noeud, x.atelier!.entree, chemin).some(estChampDAdresse)) continue;
-    const geste = gesteDuJeu(zonesDuCompendium(x), x, jeu);
+    const geste = gesteDuJeu(BANC.zones(x), x, jeu);
     if (geste?.geste === 'valeur') x = ecrire(x, geste, 'saisieChoix', out);
   }
   for (const { chemin } of adressesDe(noeud, x.atelier!.entree)) {
@@ -474,13 +474,21 @@ function composerLesAdresses(s: SessionDuCompendium, noeud: unknown, composees: 
  *  le champ qui le permet est posé (la `maison` d'une `source`, `refuserSansProvenance`). */
 function reposerLesObjets(s: SessionDuCompendium, rempli: SessionDuCompendium, noeud: unknown, reposes: Set<string>, out: EcritureJouee[]): void {
   const zones = BANC.zones(s);
+  /** Le champ (`champDuChemin`) d'un objet présent que le geste `g` retire, hors des `reposes` ; `undefined` sans lui. */
+  const champARetirer = (g: GesteDuCompendium | undefined): string | undefined => {
+    if (g?.geste !== 'valeur' || typeof g.chemin[g.chemin.length - 1] !== 'string' || !estObjet(auChemin(s.atelier!.entree, g.chemin))) return undefined;
+    const champ = champDuChemin(noeud, s.atelier!.entree, g.chemin);
+    return champ === undefined || reposes.has(champ) ? undefined : champ;
+  };
   for (const e of zones['compendium.atelier']) {
     const aucune = e.id.endsWith('/aucune');
     if (e.type !== 'bouton' || (!aucune && !e.id.endsWith('/retirer'))) continue;
+    // Le geste qu'emballe le bouton se lit avant que les zones le valident (`gesteDuJeu`), au prix de chacun de leurs boutons.
+    const emballe = BANC.deballe(e.jeu) as GesteDuCompendium | undefined;
+    if (emballe !== undefined && champARetirer(emballe) === undefined) continue;
     const retrait = gesteDuJeu(zones, s, e.jeu);
-    if (retrait?.geste !== 'valeur' || typeof retrait.chemin[retrait.chemin.length - 1] !== 'string' || !estObjet(auChemin(s.atelier!.entree, retrait.chemin))) continue;
-    const champ = champDuChemin(noeud, s.atelier!.entree, retrait.chemin);
-    if (champ === undefined || reposes.has(champ)) continue;
+    const champ = champARetirer(retrait);
+    if (champ === undefined || retrait?.geste !== 'valeur') continue;
     reposes.add(champ);
     /** L'atelier `x` où le bouton de ce retrait est joué, `undefined` s'il ne l'offre pas ou le refuse. */
     const retirer = (x: SessionDuCompendium): SessionDuCompendium | undefined => {

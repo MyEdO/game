@@ -27,8 +27,9 @@ import type { EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.m
 // ─── Le champ du schéma ─────────────────────────────────────────────────────────────────────────────────────────────
 
 /** Le champ de nœud `noeud` est-il requis et d'une seule valeur, littérale ou d'un enum à une option : un champ que
- *  l'auteur ne choisit pas, sauf champ direct d'une variante d'union, que le choix de sa variante écrit (#841) ? */
-export const litteralFige = (noeud: unknown): boolean => videDuNoeud(noeud) !== undefined && ouverts([noeud]).filter((n) => !estTransparent(n)).every((n) => ['literal', 'enum'].includes(defDe(n)?.type ?? '')) && choixDuNoeud(noeud)?.length === 1;
+ *  l'auteur ne choisit pas, sauf champ direct d'une variante d'union, que le choix de sa variante écrit (#841) ? Ses
+ *  choix ne se lisent que d'un littéral ou d'un enum, jamais du catalogue : la lecture se mémoïse par nœud (`parNoeud`). */
+export const litteralFige = parNoeud((noeud: unknown): boolean => videDuNoeud(noeud) !== undefined && ouverts([noeud]).filter((n) => !estTransparent(n)).every((n) => ['literal', 'enum'].includes(defDe(n)?.type ?? '')) && choixDuNoeud(noeud)?.length === 1);
 
 /** Les clés que fige un littéral dans la variante `valeur` au point de schéma `noeuds` : son choix les écrit. */
 function clesFigees(noeuds: readonly unknown[], valeur: unknown): string[] {

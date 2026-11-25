@@ -5,6 +5,7 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { listerArbre } from '../../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 import { refRe } from '../_lib.mjs'
 import { FAMILLES_DE_DOSSIER, lireFicheDeDossier } from '../../../src/data/source/dossier.ts'
 import { dossiersDesProjets } from './fichiersCitants.mjs'
@@ -47,7 +48,7 @@ const lignesNues = (fiche) =>
  *  illisible, toute fiche hors schéma, toute réf hors graphie `refRe` et tout `l.<n>` de prose hors d'une
  *  réf entière `refRe` : un dossier commité est valide ou n'est pas chargé. */
 export function chargerDossiers(dirs = dossiersDesProjets()) {
-  return [dirs].flat().flatMap((dir) => listerArbre(dir).map((rel) => {
+  return [dirs].flat().flatMap((dir) => listerArbre(dir, { porte: porteDeTousLesProjets }).map((rel) => {
     const chemin = join(dir, rel).replace(/\\/g, '/')
     const lue = lireFicheDeDossier(chemin, rel, JSON.parse(readFileSync(join(dir, rel), 'utf8')))
     const horsGraphie = refsHorsGraphie(lue.fiche)

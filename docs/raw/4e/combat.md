@@ -2006,7 +2006,7 @@ Synthèse des règles du combat d'honneur (`NADJ 06 l.176-191`) :
 - `NADJ 11 l.23-32` — Statbloc des espions *Marqués* (Trait *Arme (Griffes de Tigre) +5*) — l'arme en usage par des PNJ.
 - `NADJ 06 l.176-191` — Duel Judiciaire (jugement par combat) : « premier sang » = première attaque > 3 Blessures (≤ 3 = estafilade), « incapable de continuer » = 0 Blessure ; issue selon sévérité de la charge ; libre choix des armes mais projectiles interdits par la plupart des lois locales ; serment de véracité + inspection des armes (poison/sorcellerie) + prière de Verena avant le combat.
 
-> NB : l'entrée *Les ogres* (ADE II 02 l.661-705) décrit des armes propres au bestiaire ogre (Massue ogre personnalisable, Poing de fer, Grande lance, Piège à chaînes, Lance-harpon, Pistolet ogre) qui **renvoient explicitement à ce schéma LDB 62** (« Voir WFJDR p. 297 pour ces Atouts ») mais ne font pas partie des tables de Groupe LDB — elles relèvent de l'équipement de créature, hors périmètre de cette entrée. De même, le Trait *Arme (Griffes de Tigre) +5* des PNJ Marqués est un Trait de créature, distinct du profil d'arme transportable ci-dessus.
+> NB : l'entrée *Les ogres* (ADE II 02 l.708-752) décrit des armes propres au bestiaire ogre (Massue ogre personnalisable, Poing de fer, Grande lance, Piège à chaînes, Lance-harpon, Pistolet ogre) qui **renvoient explicitement à ce schéma LDB 62** (« Voir WFJDR p. 297 pour ces Atouts ») mais ne font pas partie des tables de Groupe LDB — elles relèvent de l'équipement de créature, hors périmètre de cette entrée. De même, le Trait *Arme (Griffes de Tigre) +5* des PNJ Marqués est un Trait de créature, distinct du profil d'arme transportable ci-dessus.
 
 **Voir aussi** : Atouts et Défauts d'arme (LDB) ; Allonge d'arme et fourchettes de portée (LDB) ; Armes à distance (LDB) : groupes et tables ; Le Combat (Test de Corps à corps, Parade, Esquive) ; Résolution d'une attaque (corps à corps / distance) ; Compétences groupées (Corps à corps / Projectiles).
 
@@ -2452,7 +2452,7 @@ La fabrication de munitions magiques est encore plus rare que celle des armes ma
 - `AA 08 l.67-76` — Atouts Optionnels (choix avant le jet ; ex. marteau de guerre Assommante/Perforante ; défaut → premier Atout listé).
 - `AA 08 l.79-95` — nouveaux Atouts/Défauts : Déséquilibrée, Déstabilisante, Taillade (XA), Tir de zone (Indice), Salve (Indice).
 - `AA 08 l.98-108` — Atout Protectrice modifié (PA en opposition CC/Corps à Corps ; Protectrice 2+ pare les projectiles, exemple Uri).
-- `ADE II 02 l.608-658` — armes ogres comme exemples d'Atouts (Défensive, Protectrice 1, Dévastatrice, Empaleuse, Percutante, Perforante, Pistolet, Recharge, Dangereuse, Explosion 3, Immobilisante de l'arbalète de siège).
+- `ADE II 02 l.655-705` — armes ogres comme exemples d'Atouts (Défensive, Protectrice 1, Dévastatrice, Empaleuse, Percutante, Perforante, Pistolet, Recharge, Dangereuse, Explosion 3, Immobilisante de l'arbalète de siège).
 - `ADE II 04 l.212` — distinction « utilisateur » (manie l'arme) vs « porteur » (la transporte).
 - `ADE II 04 l.214` — **règle-cadre 1** : toute arme magique blesse les créatures immunisées aux attaques non magiques (Trait Éthéré).
 - `ADE II 04 l.216` — **règle-cadre 2** : les Atouts conférés par la magie ne sont pas cumulables (un même Atout obtenu deux fois ne s'empile pas ; ex. Rapide).
@@ -3823,7 +3823,7 @@ Les créatures plus grandes encaissent plus de Blessures. (BF = Bonus de Force, 
 | +2 catégories | tout ce qui précède **+ Atout Percutante** ; **Dégâts ×2** ; inspire **Terreur (Indice 2)** ; cible en Parade subit **−4 DR** ; **gagne automatiquement** les Tests opposés de Force |
 | +3 catégories | Dévastatrice + Percutante ; **Dégâts ×3** ; **Terreur 3** ; **−6 DR** en Parade ; auto-victoire en Force |
 
-Côté inverse, l'adversaire **plus petit** gagne toujours **+10 pour toucher** la grande créature. *— consolidé de `LDB 85 l.357-387`, `ADE II 02 l.563-589`, `ZI 14 l.1075`.*
+Côté inverse, l'adversaire **plus petit** gagne toujours **+10 pour toucher** la grande créature. *— consolidé de `LDB 85 l.357-387`, `ADE II 02 l.610-636`, `ZI 14 l.1075`.*
 
 **Sources RAW** :
 - `LDB 85 l.339-340` — « Utiliser les Tailles » : agrandir = +10 F, +10 E, −5 Ag **par catégorie** de Taille supérieure ; procédé inversé pour rapetisser.
@@ -3835,8 +3835,8 @@ Côté inverse, l'adversaire **plus petit** gagne toujours **+10 pour toucher** 
 - `LDB 85 l.382-383` — Peur et Terreur (créature agressive) : Peur si plus grande (écart ≥ 1), Terreur si écart ≥ 2 ; **Indice = différence de catégories**.
 - `LDB 85 l.386-387` — Piétinement : Action gratuite à **1 Avantage**, créature plus grande frappant vers le bas, **BF+0 Dégâts**, Compétence **Corps à corps (Bagarre)**.
 - `LDB 85 l.391-406` — Blessures par Taille (table) : Minuscule 1 · Très petite BE · Petite 2×BE+BFM · Moyenne BF+2×BE+BFM · Grande ×2 · Énorme ×4 · Monstrueuse ×8.
-- `ADE II 02 l.563-589` — application aux **ogres** (Taille Grande) : armes gagnent Dévastatrice vs Moyenne, Percutante + **Dégâts doublés** vs Petite ; défense **−2 DR** (Moyenne) / **−4 DR** (Petite) en Corps à corps (pas Esquive) ; pas de Désengagement vs taille inférieure ; Piétinement 1 Avantage BF+0 ; **+10 pour toucher** un ogre (CC et Projectiles). NB : ADE II nomme « Frappe Mortelle » l'enchaînement de l'ogre dans l'espace d'une cible plus petite (≤ Bonus de CC fois, jamais deux fois la même cible, pas besoin que la première meure) — c'est la même règle optionnelle LDB p. 160 déclenchée par la Taille.
-- `ADE II 02 l.584-585` — ogres hostiles : **Peur** chez les créatures Moyennes, **Terreur** chez les Petites.
+- `ADE II 02 l.610-636` — application aux **ogres** (Taille Grande) : armes gagnent Dévastatrice vs Moyenne, Percutante + **Dégâts doublés** vs Petite ; défense **−2 DR** (Moyenne) / **−4 DR** (Petite) en Corps à corps (pas Esquive) ; pas de Désengagement vs taille inférieure ; Piétinement 1 Avantage BF+0 ; **+10 pour toucher** un ogre (CC et Projectiles). NB : ADE II nomme « Frappe Mortelle » l'enchaînement de l'ogre dans l'espace d'une cible plus petite (≤ Bonus de CC fois, jamais deux fois la même cible, pas besoin que la première meure) — c'est la même règle optionnelle LDB p. 160 déclenchée par la Taille.
+- `ADE II 02 l.631-632` — ogres hostiles : **Peur** chez les créatures Moyennes, **Terreur** chez les Petites.
 - `ZI 14 l.1070, l.2998` — tableau de référence rapide du Trait Taille : attaquant ≥ +1 cat. → Dévastatrice + Frappe Mortelle + inspire Peur + gagne les Tests opposés de Force (sauf Critique adverse) ; ≥ +2 cat. → + Percutante, **Dégâts × différence**, Terreur (Indice = différence), victoire automatique en Force ; plus petit → **+10 pour toucher** ; Piétinement (« Se cabrer ») **Action de Mouvement** (pas 1 Avantage — `ZI 14 l.1162`), BF+0 ; Blessures affectées (renvoi p. 342).
 
 > « Vous multipliez les Dégâts infligés par le nombre de catégories de Taille supérieures (ainsi, 2 catégories = x2, 3 catégories = x3, et ainsi de suite) : cette multiplication est calculée après l'application des modificateurs. » — `LDB 85 l.361`
@@ -5726,17 +5726,17 @@ Note spéciale : le **Canon à flammes nain** inflige **2 + DR États *En flamme
 
 ## Armes et armures des ogres (ADE II)
 
-Les ogres forgent et utilisent leurs **propres armes et armures**, distinctes des versions « taille ogre » des possessions ordinaires. Ces créations — immenses massues, lance-harpons, canons crache-plomb, pansières — sont **réservées aux ogres** ([ADE II 02 l.605]). Trois conséquences mécaniques majeures les distinguent de l'équipement standard de cette entrée du domaine Combat :
+Les ogres forgent et utilisent leurs **propres armes et armures**, distinctes des versions « taille ogre » des possessions ordinaires. Ces créations — immenses massues, lance-harpons, canons crache-plomb, pansières — sont **réservées aux ogres** ([ADE II 02 l.651]). Trois conséquences mécaniques majeures les distinguent de l'équipement standard de cette entrée du domaine Combat :
 
-- **L'Encombrement n'est PAS doublé.** Contrairement aux versions « taille ogre » des possessions humaines (qui valent deux fois l'Enc. classique et coûtent deux fois plus cher), ces armes propres aux ogres portent l'Enc. tel qu'indiqué dans les tables ci-dessous — pas de doublement ([ADE II 02 l.605], cf. l.634-635).
-- **Inutilisables par les races Moyennes et Petites.** « Ces armes sont pratiquement inutilisables entre les mains des créatures de Taille Moyenne et […] la plupart des Petites créatures auront même du mal à les soulever. » ([ADE II 02 l.605]).
-- **La disponibilité indiquée vaut pour l'Empire**, où certaines de ces armes sont plus rares que dans les Montagnes des Larmes ([ADE II 02 l.616], l.580).
+- **L'Encombrement n'est PAS doublé.** Contrairement aux versions « taille ogre » des possessions humaines (qui valent deux fois l'Enc. classique et coûtent deux fois plus cher), ces armes propres aux ogres portent l'Enc. tel qu'indiqué dans les tables ci-dessous — pas de doublement ([ADE II 02 l.651], cf. l.755).
+- **Inutilisables par les races Moyennes et Petites.** « Ces armes sont pratiquement inutilisables entre les mains des créatures de Taille Moyenne et […] la plupart des Petites créatures auront même du mal à les soulever. » ([ADE II 02 l.651]).
+- **La disponibilité indiquée vaut pour l'Empire**, où certaines de ces armes sont plus rares que dans les Montagnes des Larmes ([ADE II 02 l.664], l.680).
 
 Le topic [armes-melee-tables] écarte explicitement ces armes (« relèvent de l'équipement de créature, hors périmètre de cette entrée ») ; cette entrée les transcrit verbatim, à l'instar des tables d'armes d'Aux Armes / Zoo Impérial déjà rattachées au domaine Combat.
 
-> « Attention : il s'agit d'armes réservées aux ogres, les points d'Encombrement n'ont donc pas besoin d'être doublés comme pour les autres Possessions (voir p. 31). Inutile de préciser que ces armes sont pratiquement inutilisables entre les mains des créatures de Taille Moyenne et que la plupart des Petites créatures auront même du mal à les soulever. » — `ADE II 02 l.604`
+> « Attention : il s'agit d'armes réservées aux ogres, les points d'Encombrement n'ont donc pas besoin d'être doublés comme pour les autres Possessions (voir p. 31). Inutile de préciser que ces armes sont pratiquement inutilisables entre les mains des créatures de Taille Moyenne et que la plupart des Petites créatures auront même du mal à les soulever. » — `ADE II 02 l.651`
 
-À noter sur les versions « taille ogre » des armes ordinaires (≠ armes propres ci-dessous) : elles n'ont pas d'effets supplémentaires hormis leur poids, « si ce n'est qu'elles peuvent potentiellement acquérir les Atouts Dévastatrice et Percutante en plus d'augmenter les dégâts contre les Petites créatures » ([ADE II 02 l.602]).
+À noter sur les versions « taille ogre » des armes ordinaires (≠ armes propres ci-dessous) : elles n'ont pas d'effets supplémentaires hormis leur poids, « si ce n'est qu'elles peuvent potentiellement acquérir les Atouts Dévastatrice et Percutante en plus d'augmenter les dégâts contre les Petites créatures » ([ADE II 02 l.649]).
 
 ### Armes de Corps à corps des ogres
 
@@ -5749,8 +5749,8 @@ Le topic [armes-melee-tables] écarte explicitement ces armes (« relèvent de l
 | (2M) Grande massue ogre | 5 CO | 6 | Courante | Longue | BF+6 | Dévastatrice, Spéciale** |
 
 *La disponibilité est indiquée pour l'Empire, où certaines armes sont plus rares que dans les Montagnes des Larmes.
-**Les massues des ogres sont toujours personnalisées en fonction des préférences de leur utilisateur (voir Personnalisations de massue, ci-dessous).
-— `ADE II 02 l.607-618`
+**Les massues des ogres sont toujours personnalisées en fonction des préférences de leur utilisateur. Voir la description des armes.
+— `ADE II 02 l.654-664`, l.703
 
 ### Armes à distance des ogres
 
@@ -5766,7 +5766,7 @@ Le topic [armes-melee-tables] écarte explicitement ces armes (« relèvent de l
 | Pistolet ogre | 9 CO | 3 | Exotique | 20 | +8 | Pistolet, Recharge 1 |
 
 *La disponibilité est indiquée pour l'Empire, où certaines armes sont plus rares que dans les Montagnes des Larmes.
-— `ADE II 02 l.620-634`
+— `ADE II 02 l.667-681`
 
 ### Munitions des ogres
 
@@ -5779,7 +5779,7 @@ Le topic [armes-melee-tables] écarte explicitement ces armes (« relèvent de l
 | Boulet crache-plomb (1) | 1 CO* | 0 | Limitée | Comme l'arme | +4 | Empaleuse, Percutante, Perforante |
 
 *« Fondamentalement, il s'agit d'un boulet de canon. Le prix indiqué pour un boulet crache-plomb comprend 2/- pour la quantité de poudre suffisante pour tirer un seul coup. Le boulet peut souvent être récupéré. En le tirant à nouveau, vous dépensez uniquement le prix de la poudre. »
-— `ADE II 02 l.637-646`
+— `ADE II 02 l.684-693`
 
 ### Armures des ogres
 
@@ -5789,7 +5789,7 @@ Le topic [armes-melee-tables] écarte explicitement ces armes (« relèvent de l
 | Pansière ogre* | 20 CO | 4 | Rare | – | Corps | 3 | Impénétrable |
 
 *« Les pansières des ogres sont particulièrement adaptées à leur anatomie. Même si elles étaient réduites, elles n'offriraient qu'une protection partielle aux races dont les organes vitaux ne se trouvent pas dans leur ventre. »
-— `ADE II 02 l.649-656`
+— `ADE II 02 l.694-701`
 
 ### Personnalisations de massue
 
@@ -5799,40 +5799,40 @@ Une **massue ogre** ou une **grande massue ogre** peut être personnalisée d'un
 - **Pointes rouillées** : l'arme gagne l'Atout **Perforante**.
 - **Lames récupérées** : l'arme gagne l'Atout **Taille**.
 
-— `ADE II 02 l.663-668`
+— `ADE II 02 l.728-730`
 
 ### Règles spéciales par arme
 
-- **Poing de fer** — « énorme gantelet » d'art du combat de fosse. **Solidement fixé** au poing de l'ogre : il **ne pourra pas en être désarmé**. La main équipée du poing de fer peut tout de même tenir une arme ou effectuer des actions simples ([ADE II 02 l.692-696]).
-- **Pistolet ogre** — version améliorée de l'équivalent Impérial, utilise les mêmes munitions et la même poudre qu'une arme typique à poudre noire (**WFJDR** p. 297). Suffisamment solide pour **servir d'arme simple** ; il **ne se brise qu'en cas de Maladresse** ([ADE II 02 l.681-685]).
-- **Lance-harpon** — tire une énorme flèche de la taille d'une lance attachée à une longue corde, sans mécanisme de rappel (l'ogre saisit la corde et tire sa proie à la main). Il peut être utilisé avec les Compétences **Projectiles (Arbalète)** ou **Projectiles (Entraves)** sans pénalité. **Si la corde est séparée de la flèche, la portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante** ([ADE II 02 l.673-674], l.600).
-- **Piège à chaînes** — mâchoires métalliques à ressort au bout d'une longue chaîne robuste ; outil de chasse lancé sur la cible puis ramené ([ADE II 02 l.671-672]).
-- **Grande lance** — javelots massifs et rudimentaires des chasseurs ogres pourchassant les grandes bêtes des Montagnes des Larmes ([ADE II 02 l.669-670]).
-- **Canon crache-plomb** — summum de l'ingénierie ogre, chargé par la culasse, déclenché par une mèche ; bombarde tout ce que le porteur a sous la main (chaînes, briques, grenailles de plomb, pierres, clous rouillés) ou de véritables boulets de canon récupérés sur le champ de bataille ([ADE II 02 l.664-666]).
-- **Massues ogres** — les armes les plus simples ; les ogres parcourent champs de bataille, forêts et cimetières pour trouver une bonne massue solide et les matériaux pour l'adapter (cf. Personnalisations ci-dessus) ([ADE II 02 l.663-665]).
-- **Pansière** — faite de métal, bois dur, os ou cuir ; protège le ventre, siège de la plupart des organes vitaux de l'ogre, et sert de support aux symboles militaires/religieux (souvent la Gueule, un anneau de dents déchiquetées) ([ADE II 02 l.703-704]).
+- **Poing de fer** — « énorme gantelet » d'art du combat de fosse. **Solidement fixé** au poing de l'ogre : il **ne pourra pas en être désarmé**. La main équipée du poing de fer peut tout de même tenir une arme ou effectuer des actions simples ([ADE II 02 l.742]).
+- **Pistolet ogre** — version améliorée de l'équivalent Impérial, utilise les mêmes munitions et la même poudre qu'une arme typique à poudre noire (**WFJDR** p. 297). Suffisamment solide pour **servir d'arme simple** ; il **ne se brise qu'en cas de Maladresse** ([ADE II 02 l.738]).
+- **Lance-harpon** — tire une énorme flèche de la taille d'une lance attachée à une longue corde, sans mécanisme de rappel (l'ogre saisit la corde et tire sa proie à la main). Il peut être utilisé avec les Compétences **Projectiles (Arbalète)** ou **Projectiles (Entraves)** sans pénalité. **Si la corde est séparée de la flèche, la portée passe à 60 et l'arme ne possède plus l'Atout Immobilisante** ([ADE II 02 l.720-724]).
+- **Piège à chaînes** — mâchoires métalliques à ressort au bout d'une longue chaîne robuste ; outil de chasse lancé sur la cible puis ramené ([ADE II 02 l.734]).
+- **Grande lance** — javelots massifs et rudimentaires des chasseurs ogres pourchassant les grandes bêtes des Montagnes des Larmes ([ADE II 02 l.716]).
+- **Canon crache-plomb** — summum de l'ingénierie ogre, chargé par la culasse, déclenché par une mèche ; bombarde tout ce que le porteur a sous la main (chaînes, briques, grenailles de plomb, pierres, clous rouillés) ou de véritables boulets de canon récupérés sur le champ de bataille ([ADE II 02 l.712]).
+- **Massues ogres** — les armes les plus simples ; les ogres parcourent champs de bataille, forêts et cimetières pour trouver une bonne massue solide et les matériaux pour l'adapter (cf. Personnalisations ci-dessus) ([ADE II 02 l.728]).
+- **Pansière** — faite de métal, bois dur, os ou cuir ; protège le ventre, siège de la plupart des organes vitaux de l'ogre, et sert de support aux symboles militaires/religieux (souvent la Gueule, un anneau de dents déchiquetées) ([ADE II 02 l.750]).
 
 ### Versions « taille ogre » des possessions ordinaires (Un Lourd Fardeau)
 
-À distinguer des armes propres ci-dessus : la version ogre de la plupart des possessions humaines **vaut deux fois l'Encombrement classique et coûte deux fois plus cher**. De plus, un ogre mange et boit au moins deux fois plus qu'un humain par jour, et ne ressent aucun effet des drogues/poisons « à moins qu'on lui administre deux fois la dose standard ». En contrepartie, **un ogre peut porter deux fois l'Encombrement normal d'un humain : (Bonus de Force + Bonus d'Endurance) × 2** ([ADE II 02 l.707-708]).
+À distinguer des armes propres ci-dessus : la version ogre de la plupart des possessions humaines **vaut deux fois l'Encombrement classique et coûte deux fois plus cher**. De plus, un ogre mange et boit au moins deux fois plus qu'un humain par jour, et ne ressent aucun effet des drogues/poisons « à moins qu'on lui administre deux fois la dose standard ». En contrepartie, **un ogre peut porter deux fois l'Encombrement normal d'un humain : (Bonus de Force + Bonus d'Endurance) × 2** ([ADE II 02 l.755]).
 
-Un ogre subit **-20 à tous les Tests** lorsqu'il tente d'utiliser des possessions non prévues pour sa taille, « en plus de trouver certaines choses impossibles à faire » (ex. un doigt d'ogre ne peut presser la détente d'un pistolet à répétition humain) ([ADE II 02 l.710-711]).
+Un ogre subit **-20 à tous les Tests** lorsqu'il tente d'utiliser des possessions non prévues pour sa taille, « en plus de trouver certaines choses impossibles à faire » (ex. un doigt d'ogre ne peut presser la détente d'un pistolet à répétition humain) ([ADE II 02 l.757]).
 
 **Sources RAW** :
-- `ADE II 02 l.601-605` — Équipement des ogres : armes/armures propres aux ogres, réservées aux ogres, Enc. non doublé, inutilisables par Moyens/Petits (CONSOLIDE).
-- `ADE II 02 l.607-618` — Table « Armes de Corps à corps des ogres » verbatim (Massue ogre, Poing de fer, Grande massue ogre 2M) + notes de disponibilité et de personnalisation.
-- `ADE II 02 l.620-634` — Table « Armes à distance des ogres » verbatim (Lance-harpon, Piège à chaînes, Grande lance, Canon crache-plomb 2M, Pistolet ogre).
-- `ADE II 02 l.637-646` — Table « Munitions des ogres » verbatim (Harpon, Balle crache-plomb, Boulet crache-plomb) + note de récupération du boulet.
-- `ADE II 02 l.649-656` — Table « Armures des ogres » verbatim (Pansière ogre, PA 3, Impénétrable).
-- `ADE II 02 l.658` — Lance-harpon : Projectiles (Arbalète/Entraves) sans pénalité ; corde séparée → portée 60 et perte de l'Atout Immobilisante.
-- `ADE II 02 l.663-668` — Description des massues + 3 personnalisations (Plaques de métal → Assommante ; Pointes rouillées → Perforante ; Lames récupérées → Taille).
-- `ADE II 02 l.669-696` — Règles spéciales par arme (Grande lance, Piège à chaînes, Lance-harpon, Pistolet ogre incassable sauf Maladresse, Poing de fer non désarmable).
-- `ADE II 02 l.698-704` — Description des armures (seule la pansière vise la protection ; anatomie ogre).
-- `ADE II 02 l.707-711` — Un Lourd Fardeau : versions « taille ogre » (Enc. ×2, prix ×2, port ×2, dose poison ×2, -20 hors-taille).
+- `ADE II 02 l.649-651` — Équipement des ogres : armes/armures propres aux ogres, réservées aux ogres, Enc. non doublé, inutilisables par Moyens/Petits (CONSOLIDE).
+- `ADE II 02 l.654-664`, l.703 — Table « Armes de Corps à corps des ogres » verbatim (Massue ogre, Poing de fer, Grande massue ogre 2M) + notes de disponibilité et de personnalisation.
+- `ADE II 02 l.666-680` — Table « Armes à distance des ogres » verbatim (Lance-harpon, Piège à chaînes, Grande lance, Canon crache-plomb 2M, Pistolet ogre).
+- `ADE II 02 l.682-692` — Table « Munitions des ogres » verbatim (Harpon, Balle crache-plomb, Boulet crache-plomb) + note de récupération du boulet.
+- `ADE II 02 l.694-701` — Table « Armures des ogres » verbatim (Pansière ogre, PA 3, Impénétrable).
+- `ADE II 02 l.724` — Lance-harpon : Projectiles (Arbalète/Entraves) sans pénalité ; corde séparée → portée 60 et perte de l'Atout Immobilisante.
+- `ADE II 02 l.728-730` — Description des massues + 3 personnalisations (Plaques de métal → Assommante ; Pointes rouillées → Perforante ; Lames récupérées → Taille).
+- `ADE II 02 l.714-742` — Règles spéciales par arme (Grande lance, Piège à chaînes, Lance-harpon, Pistolet ogre incassable sauf Maladresse, Poing de fer non désarmable).
+- `ADE II 02 l.744-750` — Description des armures (seule la pansière vise la protection ; anatomie ogre).
+- `ADE II 02 l.753-757` — Un Lourd Fardeau : versions « taille ogre » (Enc. ×2, prix ×2, port ×2, dose poison ×2, -20 hors-taille).
 
-> « Toutefois, il est suffisamment solide pour servir d'arme simple et ne se brise qu'en cas de Maladresse. » — `ADE II 02 l.691` (Pistolet ogre)
+> « Toutefois, il est suffisamment solide pour servir d'arme simple et ne se brise qu'en cas de Maladresse. » — `ADE II 02 l.738` (Pistolet ogre)
 
-> « Le poing de fer est solidement fixé à celui de l'ogre, de sorte qu'il ne pourra pas en être désarmé. » — `ADE II 02 l.695`
+> « Le poing de fer est solidement fixé à celui de l'ogre, de sorte qu'il ne pourra pas en être désarmé. » — `ADE II 02 l.742`
 
 **Voir aussi** : armes-melee-tables ; armes-distance-munitions-tables ; armures-tables ; atouts-defauts-armes ; ogres-regles-de-taille (Frappe Mortelle / Peur / Désengagement)
 
@@ -6331,7 +6331,7 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - ZI 'Se cabrer' vs Piétinement dans Taille — RÉSOLU (#474a) : les deux entrées ZI coexistent bien côte à côte avec des économies d'action DISTINCTES (Se cabrer = Action de Mouvement, ZI 14 l.1070/l.1162 ; Piétinement générique = 1 Avantage, ZI 14 l.1075, LDB 85 l.386-387) — ce ne sont PAS deux formulations d'un même coût. Le markdown (corps l.3752 + Récapitulatif l.3793) a été corrigé pour ne plus dire 'même effet' et citer l'Action de Mouvement. Le Trait `se-cabrer` (`src/data/traits.json`) encode désormais ce coût : `freeAttackCost` (`src/noyau/combatManeuvers.ts`), lu par `availableAttacks` et `aiCreatureFreeAttacks`, fait consommer `movementUsed` (plein Mouvement) au lieu de l'Avantage quand le Trait est présent.
 - Parenthèse éditoriale non sourcée — 'donc avant l'absorption Endurance + Armure' : le LDB (l.297) dit uniquement 'cette multiplication est calculée après l'application des modificateurs' sans préciser la relation avec l'absorption BE/PA. L'ajout '(donc avant l'absorption Endurance + Armure)' est une inférence de l'auteur absente du texte RAW. Correcte sur le plan des règles mais non attestée à cette ligne.
 - Inversion des modificateurs non verbatim : la section 'Utiliser les Tailles' du LDB (l.277) dit seulement 'Inversez le procédé si vous voulez rendre une créature plus petite', sans énoncer explicitement '−10 F/E, +5 Ag'. Le Récapitulatif 'Sources RAW' donne ces valeurs chiffrées comme si elles étaient dans la source — il s'agit d'une inférence correcte mais pas d'une citation verbatim.
-- ADE II 2 l.570 — règle supplémentaire omise : ADE II dit qu'un ogre (Taille Grande) peut 'utiliser soit le nombre indiqué sur le dé, soit le DR pour déterminer les Dégâts'. Cette option spécifique aux ogres n'est pas mentionnée dans le markdown. Omission bénigne (le contexte traite la Taille en général, pas les ogres spécifiquement) mais signalable pour exhaustivité.
+- ADE II 2 l.617 — règle supplémentaire omise : ADE II dit qu'un ogre (Taille Grande) peut 'utiliser soit le nombre indiqué sur le dé, soit le DR pour déterminer les Dégâts'. Cette option spécifique aux ogres n'est pas mentionnée dans le markdown. Omission bénigne (le contexte traite la Taille en général, pas les ogres spécifiquement) mais signalable pour exhaustivité.
 
 ### Trait Nuée ❌
 - TABLEAU TAILLE — La table présentée sous 'LDB 85 l.346-355' inclut deux colonnes absentes de cette source : 'Hauteur ou Longueur' (ex. 'Moins de 30cm', 'Jusqu'à 60cm'…) et 'Mod.' (−30/−20/−10/0/+20/+40/+60). La table LDB 85 l.346-355 n'a que deux colonnes : Taille et Exemples (pas de dimensions ni de modificateurs). Ces colonnes proviennent d'une table distincte dans LDB 14 (pages 162-165, lines 151-170), qui est le tableau de Difficulté de Combat par taille. La ref LDB 85 l.346-355 est correcte pour les exemples, mais les colonnes hauteurs et modificateurs sont ajoutées depuis une autre source sans le signaler.
@@ -6385,11 +6385,9 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 - Tableau récapitulatif, colonne Fureur Vengeresse : 'relance de tous les jets de Corps à Corps' — la source (l.2432) dit 'jets de Compétence Corps à Corps'. Abréviation sans incidence sur le sens, et la section détail reproduit le texte exact. Signalé pour cohérence de terminologie.
 
 ### Armes et armures des ogres (ADE II) ❌
-- INTRO l.554 — La phrase d'accroche du markdown liste « immenses massues, lance-harpons, canons crache-plomb, pansières » mais l.554 ne cite que « leurs immenses massues et leurs impressionnantes pansières ». Lance-harpons et canons crache-plomb sont des ajouts absents de la source à cet endroit.
+- INTRO l.651 — La phrase d'accroche du markdown liste « immenses massues, lance-harpons, canons crache-plomb, pansières » mais l.651 ne cite que « leurs immenses massues et leurs impressionnantes pansières ». Lance-harpons et canons crache-plomb sont des ajouts absents de la source à cet endroit.
 - QUALIFICATION « Spéciale** » appelée « Défaut » — le markdown dit « ce qui justifie le Défaut « Spéciale** » » mais la colonne source est « Atouts et Défauts » et rien dans le texte ne précise si « Spéciale » est un Atout ou un Défaut. C'est une interprétation non étayée.
-- INCOHÉRENCE SOURCE non signalée — La table (l.572) liste « Entraves » pour le lance-harpon, mais l.600 dit « l'Atout Immobilisante » (corde séparée → perte de l'Atout Immobilisante). Le markdown transcrit fidèlement les deux mais ne signale pas que les deux noms désignent peut-être la même qualité ou qu'il y a une incohérence dans le livre source.
-- STRUCTURE SOURCE (PDF artifact) — Dans le source (l.605-611), le header « ## **Canon Crache-Plomb** » (l.606) apparaît ENTRE le header « ## **Massues Ogres** » (l.605) et sa description (l.607), vraisemblablement un artefact de conversion PDF. Le markdown assigne correctement le contenu, mais la ref « ADE II 02 l.663-668 » pour les massues inclut la ligne du canon crache-plomb (l.606) — légère imprécision de ref.
-- l.600 POSITION — La ligne l.600 est un fragment de phrase qui complète la description du lance-harpon de l.619-620 (coupée par la conversion PDF). Le markdown la cite correctement dans les règles spéciales du lance-harpon, mais la présente comme source distincte « [ADE II 02 l.673-674], l.600 » alors que c'est une seule description fragmentée.
+- INCOHÉRENCE SOURCE non signalée — La table (l.671) liste « Entraves » pour le lance-harpon, mais l.724 dit « l'Atout Immobilisante » (corde séparée → perte de l'Atout Immobilisante). Le markdown transcrit fidèlement les deux mais ne signale pas que les deux noms désignent peut-être la même qualité ou qu'il y a une incohérence dans le livre source.
 
 ---
 
@@ -6397,8 +6395,8 @@ Une arme à *Tir de zone* projette **un nuage de projectiles** qui se déploie e
 
 Passages de combat repérés au survey mais hors des topics ci-dessus (à reclasser) :
 
-- `ADE II 02 l.576-577` (ADE II) — Si un ogre touche créature de Taille inférieure, peut charger dans son espace et attaquer créature adjacente supplémentaire (max = Bonus Capacité Combat). Pas nécessaire que cible initiale meure.
-- `ADE II 02 l.711` (ADE II) — Ogre subit -20 à tous Tests utilisant possessions non adaptées sa taille. Exemple : doigt ogre ne peut pas presser détente pistolet à répétition.
+- `ADE II 02 l.623-624` (ADE II) — Si un ogre touche créature de Taille inférieure, peut charger dans son espace et attaquer créature adjacente supplémentaire (max = Bonus Capacité Combat). Pas nécessaire que cible initiale meure.
+- `ADE II 02 l.757` (ADE II) — Ogre subit -20 à tous Tests utilisant possessions non adaptées sa taille. Exemple : doigt ogre ne peut pas presser détente pistolet à répétition.
 - `ADE II 08 l.52-64` (ADE II) — Puissance de Bataille : Attribut 0-100 représentant taille + force armée. Modificateurs : Mal équipée -10, Bien équipée +10, Lanceurs sorts +10, Vétérans +10, Élites +20, Taille Petite -10, Taille Grande +10, Taille Énorme +20, Taille Monstrueuse +30.
 - `ADE II 08 l.69-71` (ADE II) — Discours Inspirant : Test Commandement difficulté = différence Puissance arrondie dizaine. Succès = armée gagne +10 Test Puissance Round 1 bataille.
 - `ADE II 08 l.138-141` (ADE II) — Charge au combat : 1+ Personnages chargent max 2 Rounds. Côté chargeant débute avec 1 Avantage. Chaque ennemi touché = Puissance ennemie -1, chaque ennemi neutralisé/tué = -2.

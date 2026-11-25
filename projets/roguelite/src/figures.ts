@@ -3,6 +3,7 @@
  * nommer (coiffe, arme, bouclier, barbe, cornes). Pied en (0, 0), boîte -50 -130 100 150, regard vers la droite.
  */
 import type { Allure } from './jeu';
+import type { Sexe } from './noyau';
 
 type Signe = 'masque' | 'cape' | 'coeur' | 'comete' | 'creves' | 'chaines' | 'tatouages' | 'tentacule' | 'besicles' | 'tablier' | 'cartouches' | 'rats' | 'pelisse' | 'lance-et-ecu';
 type Arme = 'epee' | 'hache' | 'baton' | 'arc' | 'arbalete' | 'fronde' | 'lance' | 'hallebarde' | 'fleau' | 'grande-epee' | 'massue' | 'marteau' | 'dague';
@@ -94,8 +95,8 @@ const SECONDAIRES: Record<string, Gabarit['secondaire']> = { rond: 'ecu', grand:
 const TIRS: Record<string, Gabarit['portee']> = { arc: 'arc', arc_court: 'arc', arc_long: 'arc', arbalete: 'arbalete', fronde: 'fronde', pistolet: 'pistolet' };
 
 /** Le gabarit d'un héros : sa carrière l'habille et le coiffe, son `dieu` la reteint, son espèce lui donne sa taille,
- *  son équipement (`allure`) ses mains, son dos, sa ceinture et son armure. */
-export function gabaritDuHeros(carriere: string, espece: string, allure: Allure, dieu?: string): Gabarit {
+ *  son équipement (`allure`) ses mains, son dos, sa ceinture et son armure ; une héroïne (`sexe`) n'a pas de barbe. */
+export function gabaritDuHeros(carriere: string, espece: string, allure: Allure, dieu?: string, sexe?: Sexe): Gabarit {
   const nain = espece === 'nains', halfling = espece === 'halflings';
   const arme = allure.main && FORMES[allure.main.forme], secondaire = allure.secondaire && SECONDAIRES[allure.secondaire], portee = allure.tir && TIRS[allure.tir];
   return {
@@ -103,6 +104,7 @@ export function gabaritDuHeros(carriere: string, espece: string, allure: Allure,
     cheveux: nain ? '#8a3a12' : halfling ? '#7a4a22' : '#4a2f1b', barbe: nain, chef: nain ? 1.18 : halfling ? 1.22 : 1,
     ...TENUES[carriere], ...(dieu ? TENUES_DE_DIEU[dieu] : {}), prise: allure.main?.mains === 2 ? 'deux-mains' : 'une-main',
     ...(arme ? { arme, forme: allure.main!.forme } : {}), ...(secondaire ? { secondaire } : {}), ...(portee ? { portee } : {}), ...(allure.armure ? { armure: allure.armure } : {}),
+    ...(sexe === 'F' ? { barbe: false } : {}),
   };
 }
 

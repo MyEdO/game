@@ -94,11 +94,23 @@ export const LANE_LOCALE_DE_JOB = {
       '`godot:rendus` (#3951) a son job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient ' +
       '`PLAFOND_LANES` lanes, et `types` le porte',
   },
+  'jeu-de-role-recette': {
+    lane: 'types',
+    raison:
+      '`jeu-de-role:construire` et `jeu-de-role:recette` (#4936) ont leur job pour raccourcir le chemin critique de la ' +
+      'CI (#5037) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+  },
   'godot-recette': {
     lane: 'types',
     raison:
       '`godot:recette` (#3945) a son job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient ' +
       '`PLAFOND_LANES` lanes, et `types` le porte',
+  },
+  'roguelite-recette': {
+    lane: 'types',
+    raison:
+      '`roguelite:construire` et `roguelite:recette` (#4929) ont leur job pour raccourcir le chemin critique de la CI ' +
+      '(#5037) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
   },
   corpus: {
     lane: 'types',
@@ -109,7 +121,7 @@ export const LANE_LOCALE_DE_JOB = {
   'docs-tests': {
     lane: 'docs',
     raison:
-      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178), et il porte `noyau:chargement`, ' +
+      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178), et il porte ' +
       '`test:corpus-isole`, `test:ops` et `test:runner` pour répartir la durée de la course de file entre les jobs ' +
       '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `docs` les porte',
   },

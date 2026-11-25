@@ -1,5 +1,5 @@
 import { nommerChamps } from '../grammaire/meta';
-/** LDB 05 ; LDB 05 l.627-633 ; ADE II 02 l.325-334 */
+/** LDB 05 ; LDB 05 l.627-633 ; ADE II 02 l.325-382 */
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { raceKeySchema } from '../grammaire/valeurs';

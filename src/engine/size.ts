@@ -67,7 +67,7 @@ export const SIZE_LABEL: Record<SizeCategory, string> = {
 export const effectiveSize = (size?: SizeCategory): SizeCategory => size ?? 'moyenne';
 
 /** Une possession taillée pour `sizeFor` (absent : objet ordinaire du catalogue) est-elle à la Taille de son porteur
- *  `porteur` ? ADE II 2 l.604 ; ADE II 2 l.710 ; LDB 10 l.939-943 */
+ *  `porteur` ? ADE II 2 l.651 ; ADE II 2 l.757 ; LDB 10 l.939-943 */
 export const possessionASaTaille = (sizeFor: SizeCategory | undefined, porteur: SizeCategory | undefined): boolean =>
   sizeFor === undefined ? SIZE_ORDER[effectiveSize(porteur)] <= SIZE_ORDER.moyenne : sizeFor === effectiveSize(porteur);
 

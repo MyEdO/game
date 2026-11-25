@@ -1,6 +1,6 @@
 /**
  * L'attaque avant le dé (#4411) : Ilyanwe vise la tête de l'Orc, puis Berta qui règle son arme et ses deux armes (LDB
- * 10 l.767-773), son empoignade à mains nues (LDB 14 l.159), son tir au lance-harpon (ADE II 02 l.677), et la
+ * 10 l.767-773), son empoignade à mains nues (LDB 14 l.159), son tir au lance-harpon (ADE II 02 l.724), et la
  * localisation qu'elle choisit pour son Critique (LDB 17 l.68), sur la cour (`../../combat.md`, sections
  * `jet-avant-le-de`).
  */

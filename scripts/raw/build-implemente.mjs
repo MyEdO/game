@@ -3,6 +3,7 @@ import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { join, posix } from 'node:path'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
@@ -23,13 +24,13 @@ export const BOOKS_JSON_PATH = 'src/data/books.json'
 export const APP_ROOT_MODULES = [
   'hotes/godot/pont/entree.ts',
   'hotes/godot/pont/entree-commune.ts',
-  ...listerDossier('projets').map((projet) => `projets/${projet}/godot.ts`).filter((entree) => existsSync(entree)),
+  ...listerDossier('projets', { porte: porteDeTousLesProjets }).map((projet) => `projets/${projet}/godot.ts`).filter((entree) => existsSync(entree)),
 ]
 
 /** La clôture d'imports de `APP_ROOT_MODULES` sous les racines du code (`RACINES_DU_CODE`) : un projet joue son contenu
  *  par son entrée, et le code commun que ce contenu tire. */
 const closureDeLApplication = () =>
-  clotureDImports(APP_ROOT_MODULES, { retenir: (abs) => RACINES_DU_CODE.some((racine) => abs.includes(`/${racine}/`)) })
+  clotureDImports(APP_ROOT_MODULES, { retenir: (abs) => RACINES_DU_CODE.some((racine) => abs.includes(`/${racine}/`)), porte: porteDeTousLesProjets })
 // Fenêtre de match en lignes : comble le décalage folio↔fiche (ex. `MSRC 16 l.109-111` contre la
 // plage folio `l.65-105`) ; `renderBlock` accepte `ctx.tol`. Le bruit des pages-catalogues denses
 // vient de la plage FOLIO, pas de TOL (#434).

@@ -152,7 +152,7 @@ Transcrire un sort dans un grimoire ne suffit pas à l'apprendre. Pour **mémori
 
 ## Test d'incantation
 
-**Sources RAW :** `LDB 46 l.14`, `LDB 46 l.22-24`, `LDB 47 l.5-11`, `LDB 51 l.5`, `LDB 85 l.205-207`, `EDOC 13 l.245`, `EDOC 13 l.262-266`, `EDOC 13 l.272-276`, `ADE II 02 l.731-733`
+**Sources RAW :** `LDB 46 l.14`, `LDB 46 l.22-24`, `LDB 47 l.5-11`, `LDB 51 l.5`, `LDB 85 l.205-207`, `EDOC 13 l.245`, `EDOC 13 l.262-266`, `EDOC 13 l.272-276`, `ADE II 02 l.778-780`
 
 Pour lancer un sort : effectuer un **Test de Langue (Magick)** (compétence avancée, Caractéristique = Intelligence).
 

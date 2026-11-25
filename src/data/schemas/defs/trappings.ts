@@ -148,7 +148,7 @@ export const profilDArmeDeCatalogueSchema = nommerChamps(z.strictObject({
   minRangeBand: z.enum(RANGEES_DE_REGLE['portee-d-une-arme']).optional(),
   perteSansEquipe: perteSansEquipeSchema.optional(),
   onHitEffects: z.array(triggeredEffectSchema).optional(),
-  /** AA 08 l.482, l.517 ; AA 10 l.150, l.198-221 ; MDG 12 l.410-424 ; ADE II 02 l.665 */
+  /** AA 08 l.482, l.517 ; AA 10 l.150, l.198-221 ; MDG 12 l.410-424 ; ADE II 02 l.712 */
   munitions: refs('trapping', { sousListe: 'ammunition' }).optional(),
   reach: reachSchema.nullable().optional(),
   range: weaponRangeSpecSchema.nullable().optional(),
@@ -244,7 +244,7 @@ const doc = document(
     unarmed: z.literal(true).optional(),
     /** LDB 62 l.31 ; LDB 62 l.135 */
     improvised: z.literal(true).optional(),
-    /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.613 */
+    /** LDB 62 l.33-35 ; AA 08 l.156 ; ZI 13 l.911 ; AA 08 l.290 ; ADE II 02 l.660 */
     shield: z.literal(true).optional(),
     /** LDB 62 l.278 */
     bladed: z.boolean().optional(),
@@ -264,7 +264,7 @@ const doc = document(
     prosthesisTraining: z.array(entrainementDeProtheseSchema).optional(),
     /** LDB 61 l.5 */
     enc: z.union([z.number(), z.literal('ND'), z.literal('Variable')]).nullable().optional(),
-    /** ADE II 2 l.706-710 */
+    /** ADE II 2 l.753-757 */
     sizeFor: sizeCategorySchema.optional(),
     /** Arbitrage #4110 (2026-11-16) */
     reserveeA: ref('groupe', undefined, DECLARABLE_PAR_UN_PORTEUR).optional(),

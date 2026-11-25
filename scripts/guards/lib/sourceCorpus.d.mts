@@ -1,3 +1,4 @@
+import type { PasseDesProjets } from './serrureDesProjets.mjs';
 /** Entrée de corpus, GELÉE : le corpus est mémoïsé et partagé entre appelants. */
 export interface CorpusFile {
   /** Chemin ABSOLU du fichier. */
@@ -12,6 +13,8 @@ export interface ReadCorpusOptions {
   exts?: readonly string[];
   /** Garder les instruments Vitest et les kits de test (défaut : non). */
   tests?: boolean;
+  /** La passe de la porte des projets qu'exige une base sous `projets/` ou qui le contient. */
+  porte?: PasseDesProjets;
 }
 
 /** Corpus MÉMOÏSÉ par clé (dossiers + extensions + `tests`) : même clé = même tableau, gelé. Les

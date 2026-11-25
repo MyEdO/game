@@ -19,6 +19,7 @@ import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { LEGACY_VOCAB_SITES } from './legacyVocabStock.mjs';
 import { estRetenu, readCorpus, sAppliqueA } from './sourceCorpus.mjs';
 import { RACINES_PRESENTES } from './racinesPresentes.mjs';
+import { porteDeTousLesProjets } from './porteDesProjets.mjs';
 import { lexemesGdscript } from './gdscript.mjs';
 import { positionsDesAncres } from './stock.mjs';
 
@@ -37,9 +38,10 @@ export const PERIMETRE_DES_GARDES = Object.freeze({
   tests: true,
 });
 
-/** Le corpus du périmètre des gardes (`readCorpus`, mémoïsé : même tableau à chaque appel). */
+/** Le corpus du périmètre des gardes (`readCorpus`, mémoïsé : même tableau à chaque appel), projets compris (porte des
+ *  projets, #5037). */
 export const corpusDesGardes = () =>
-  readCorpus(PERIMETRE_DES_GARDES.racines, { exts: PERIMETRE_DES_GARDES.extensions, tests: PERIMETRE_DES_GARDES.tests });
+  readCorpus(PERIMETRE_DES_GARDES.racines, { exts: PERIMETRE_DES_GARDES.extensions, tests: PERIMETRE_DES_GARDES.tests, porte: porteDeTousLesProjets });
 
 /** Le corpus des gardes en dialecte TypeScript ou JavaScript, celui que lisent les gardes qui l'analysent
  *  (`analyserCorpus`). */

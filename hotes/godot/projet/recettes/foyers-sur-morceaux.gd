@@ -6,7 +6,7 @@ extends SceneTree
 ## d'entre elles, sa borne par objet (`rendering/limits/opengl/max_lights_per_object`) ; sous Forward+, qui n'a pas
 ## cette borne, par toutes.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const LARGEUR := 32

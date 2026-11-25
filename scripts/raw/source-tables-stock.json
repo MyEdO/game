@@ -245,22 +245,6 @@
     {
       "famille": "banniere-suspecte",
       "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
-      "ref": "mutations-physiques#1 :: 1d100||||||",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "banniere-suspecte",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
-      "ref": "mutations-physiques#1 :: 1d100||||||",
-      "occurrence": 2,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "banniere-suspecte",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
       "ref": "obsessions#1 :: obsessions|",
       "occurrence": 1,
       "lot": "#1384 B1",
@@ -2199,24 +2183,24 @@
     {
       "famille": "br-litteral",
       "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
+      "ref": "mutations-physiques#1 :: 1d100|khorne|nurgle|slaanesh|tzeentch||",
+      "occurrence": 1,
+      "lot": "#4397",
+      "date": "2026-11-25"
+    },
+    {
+      "famille": "br-litteral",
+      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
+      "ref": "mutations-physiques#1 :: 1d100|khorne|nurgle|slaanesh|tzeentch||",
+      "occurrence": 2,
+      "lot": "#4397",
+      "date": "2026-11-25"
+    },
+    {
+      "famille": "br-litteral",
+      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
       "ref": "mutations-physiques#1 :: 1d100|khorne|nurgle|slaanesh|tzeentch|||",
       "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "br-litteral",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
-      "ref": "mutations-physiques#1 :: 1d100||||||",
-      "occurrence": 1,
-      "lot": "#1384 B1",
-      "date": "2026-09-14"
-    },
-    {
-      "famille": "br-litteral",
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
-      "ref": "mutations-physiques#1 :: 1d100||||||",
-      "occurrence": 2,
       "lot": "#1384 B1",
       "date": "2026-09-14"
     },

@@ -17,7 +17,7 @@ import { RELAY_URL_PROD } from '../../src/hote/coop/page';
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs';
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
-import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
+import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, lireOptions, signaturesDu } from './construire.mjs';
 
 /** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
@@ -196,5 +196,21 @@ describe('la garde de l’export Web : aucun fichier au-delà de ce que GitHub t
       truncateSync(join(d, rel), taille);
     }
     expect(fichiersAuDelaDeGitHub(d)).toEqual([{ fichier: 'index.pck', taille: 104_857_601 }, { fichier: 'modeles/lourd.scn', taille: 200_000_000 }]);
+  });
+});
+
+describe('les rendus que joue `--rendus` (`--rendu`, #5037)', () => {
+  it('sans `--rendu`, les deux rendus du projet', () => {
+    expect(lireOptions(['--rendus']).options?.rendus).toEqual(['forward_plus', 'gl_compatibility']);
+  });
+  it('un `--rendu` : ce seul rendu ; deux : les deux, dans l’ordre dit', () => {
+    expect(lireOptions(['--rendus', '--rendu', 'gl_compatibility']).options?.rendus).toEqual(['gl_compatibility']);
+    expect(lireOptions(['--rendu', 'forward_plus', '--rendus', '--rendu', 'gl_compatibility']).options?.rendus).toEqual(['forward_plus', 'gl_compatibility']);
+  });
+  it('un rendu inconnu, absent ou en double est refusé, et `--rendu` hors de `--rendus` aussi', () => {
+    expect(lireOptions(['--rendus', '--rendu', 'vulkan']).erreur).toMatch(/^--rendu : .*: vulkan$/);
+    expect(lireOptions(['--rendus', '--rendu']).erreur).toMatch(/^--rendu : .*: \(rien\)$/);
+    expect(lireOptions(['--rendus', '--rendu', 'forward_plus', '--rendu', 'forward_plus']).erreur).toMatch(/^--rendu : .*: forward_plus$/);
+    expect(lireOptions(['--sonde', '--rendu', 'forward_plus']).erreur).toBe('--sonde : --rendu hors de propos');
   });
 });

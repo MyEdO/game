@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as gitPorte from '../../guards/lib/gitPorte.mjs'
 import { cheminAbsent, correspondGlob, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 import { canoniser, canoniserParDossier, dansLaMesure, memoireDeCanonisation, projeterListingMesure, relatifEntreCheminsCanoniques } from './chemin-mesure.mjs'
 import { perimetreDeMesure, verifierCiblesPures } from './perimetre-mesure.mjs'
 import { estUnDocMarkdown } from './ecriture-derives.mjs'
@@ -160,7 +161,7 @@ function entreeValide(racine, entree, memoire) {
 }
 
 function listing(racine, rel, memoire) {
-  return listerEntrees(cheminSous(racine, rel, memoire), { absent: 'vide' })
+  return listerEntrees(cheminSous(racine, rel, memoire), { absent: 'vide', porte: porteDeTousLesProjets })
 }
 
 function sonde(racine, requete, vue, memoire) {
@@ -252,7 +253,7 @@ export function preparerPreuves(racine, options) {
   const motifsDeclares = options.generateurs.flatMap((g) => g.targets)
   const chemins = new Set(perimetre.nature === 'git'
     ? [...gitPorte.listerImage(depot, gitPorte.INDEX), ...gitPorte.listerImage(depot, gitPorte.TRAVAIL)].filter((rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares))
-    : listerArbre(racine, { filtre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares), descendre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares) }))
+    : listerArbre(racine, { filtre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares), descendre: (rel) => dansLaMesure(rel, ignores, new Set(), motifsDeclares), porte: porteDeTousLesProjets }))
   const selection = options.selection ?? options.generateurs
   for (const g of selection) {
     for (const rel of sortiesDe(racine, g, options)) chemins.add(rel)

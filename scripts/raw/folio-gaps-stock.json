@@ -2,13 +2,6 @@
   "quoi": "Sauts de la séquence `data-folio` des chapitres extraits : une ENTRÉE par saut mesuré (`<ABBR NN> <from>→<to>`, des folios du PDF), sous le chapitre qui le porte. Dette d'EXTRACTION, pas de rédaction : une entrée se solde en ré-extrayant la ou les pages manquantes. Mise à la forme nominative le 2026-09-12 (#1711 T4) par conversion du compte par chapitre qui le précédait, à somme égale chapitre par chapitre (76 sites, 46 chapitres). Ce fichier EST le rendu de regenerations() de scripts/raw/check-folio-continuity.mjs, clé pour clé et dans l'ORDRE CANONIQUE de la clé (parCleDeSite) — jamais dans l'ordre du balayage, donc réordonner src/data/books.json ne le réécrit pas. Après une ré-extraction Marker il se réécrit par `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-folio-continuity.mjs`, qui refuse d'entériner un saut NEUF (refusDeCroissance) et fait survivre les échéances posées à la main — il n'en pose donc jamais lui-même ; scripts/raw/check-folio-continuity.test.mjs le vérifie.",
   "entrees": [
     {
-      "fichier": "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon/12 - CHAPITRE 8 - Les mutants dans l'Empire.md",
-      "ref": "EDOC 12 67→69",
-      "occurrence": 1,
-      "lot": "#4388",
-      "date": "2026-11-16"
-    },
-    {
       "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/02 - Introduction.md",
       "ref": "PDT 2 6→8",
       "occurrence": 1,
@@ -28,13 +21,6 @@
       "occurrence": 1,
       "lot": "#4388",
       "date": "2026-11-16"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/14 - CALENDRIER DES ATTRACTIONS PRINCIPALES.md",
-      "ref": "PDT 14 161→164",
-      "occurrence": 1,
-      "lot": "#4397",
-      "date": "2026-11-17"
     },
     {
       "fichier": "Source/Warhammer v4 - Aldorf la Couronne de l'Empire/01 - La Couronne de l'Empire.md",
@@ -81,13 +67,6 @@
     {
       "fichier": "Source/Warhammer v4 - Aldorf la Couronne de l'Empire/05 - La rive sud.md",
       "ref": "ACE 5 124→113",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Les archives de l'Empire volume 2/02 - Les ogres.md",
-      "ref": "ADE II 2 21→23",
       "occurrence": 1,
       "lot": "#1711",
       "date": "2026-09-12"

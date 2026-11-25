@@ -4,7 +4,8 @@
 // (LOW + « texte trouvé en ZI 2 l.68 ») mais ne bloquait rien. Lancé par `npm run test:raw`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
 import { basename, join } from 'node:path'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { ecartDeRegeneration, texteEnPlace } from '../guards/lib/stockDeSites.mjs'
@@ -16,6 +17,9 @@ import {
   classifyQuote,
   continuations,
   regenerations,
+  porterSite,
+  remapperLesCitants,
+  remapperRef,
   rendre,
   scan,
   sitesLow,
@@ -245,6 +249,38 @@ test('continuations : un `l.N` nu hérite de la réf qui le PRÉCÈDE sur sa lig
   assert.deepEqual(continuations('| `CRB 075 l.24` | `l.26` |'), [], 'autre cellule : aucun hôte')
   assert.deepEqual(continuations('- `l.26` seul'), [], 'sans réf qui précède : pas une réf')
   assert.deepEqual(continuations('(`CRB 024 l.7-9`, `l.29-31`)').map((c) => c.full), ['l.29-31'])
+  assert.deepEqual(continuations('// CRB 075 l.10, l.24/26').map((c) => c.full), ['l.24/26'], 'forme compacte portée par la continuation')
+})
+
+test('continuations : la forme `/NN l.` change de chapitre ; tout autre chiffre dans l’écart rend le rattachement INCERTAIN', () => {
+  const sites = (ligne) => continuations(ligne).map((c) => [c.ch, c.depart, c.suffix, c.candidats?.map(({ abbr, ch }) => `${abbr} ${ch}`)])
+  assert.deepEqual(sites('// LDB 18 l.298/20 l.90/20 l.25/51'), [['20', 90, '', undefined], ['20', 25, '/51', undefined]])
+  assert.deepEqual(sites('(LDB 37 l.17 ; 14 l.3, l.9)'), [['37', 3, '', ['LDB 37', 'LDB 14']], ['37', 9, '', ['LDB 37', 'LDB 14']]], 'incertitude héritée')
+  assert.deepEqual(sites('VDM 03 l.4 ; Winds of Magic 07 l.30'), [['03', 30, '', ['VDM 03', 'VDM 07']]])
+  assert.deepEqual(sites('LDB 10 l.17–18, l.704'), [['10', 704, '', ['LDB 10']]])
+  assert.deepEqual(sites('LDB 77 l.23 Nain 30, l.45'), [['77', 45, '', ['LDB 77']]])
+})
+
+test('continuations : une SOURCE nommée dans l’écart (sigle, dossier `Source/`, VO) rend le rattachement INCERTAIN et entre aux candidats', () => {
+  const candidats = (ligne) => continuations(ligne).map((c) => [c.depart, c.candidats?.map(({ abbr, ch }) => `${abbr} ${ch}`)])
+  assert.deepEqual(candidats('MDG 12 l.432-433 / VO l.315-317'), [[315, ['MDG 12']]], 'la VO : l’hôte seul pour candidat')
+  assert.deepEqual(candidats('LDB 05 l.758-768 ; colonne gnome = NADJ (Nuits) « 15 - _GoBack.md » l.99-104, puis l.105'),
+    [[99, ['LDB 05', 'NADJ 15']], [105, ['LDB 05', 'NADJ 15']]], 'sigle suivi du numéro de son fichier, hérité par la suite de la ligne')
+  assert.deepEqual(candidats('LDB 18 l.30 ; Aux Armes (`Source/WH - V4 - Aux Armes/07 - MISES.md` l.12)'), [[12, ['LDB 18', 'AA 07']]])
+})
+
+
+test('porterSite : un site INCERTAIN est rapporté si un chapitre candidat bouge sous lui, jamais réécrit ; laissé tel quel sinon', () => {
+  const carteDe = (abbr, ch) => ch === '14' ? CARTE_FORGEE : ch === '37' ? (n) => ({ ligne: n }) : null
+  const [incertain] = continuations('(LDB 37 l.17 ; 14 l.3)')
+  assert.deepEqual(porterSite(incertain, carteDe), { raison: 'rattachement incertain (LDB 37 ou LDB 14)' })
+  const [vo] = continuations('MDG 12 l.432-433 / VO l.315-317')
+  assert.deepEqual(porterSite(vo, () => CARTE_FORGEE), { raison: 'rattachement incertain (MDG 12)' }, 'rapporté si MDG 12 bouge, jamais réécrit')
+  assert.deepEqual(porterSite(vo, () => (n) => ({ ligne: n })), { change: false })
+  const [immobile] = continuations('VDM 03 l.4 ; Winds of Magic 07 l.30')
+  assert.deepEqual(porterSite(immobile, () => (n) => ({ ligne: n })), { change: false })
+  const [multi] = continuations('// LDB 18 l.298/20 l.90')
+  assert.deepEqual(porterSite(multi, (abbr, ch) => ch === '20' ? CARTE_FORGEE : null), { texte: 'l.89', change: true })
 })
 
 // Carte forgée : l.24 → l.23 (une ligne ôtée avant), l.26 → l.25, l.30 supprimée, l.32 dans un hunk ambigu.
@@ -258,6 +294,26 @@ test('--remap : réf directe ET continuation nue réécrites par la carte', () =
     assert.equal(r.remappedTotal, 2)
     assert.equal(readFileSync(join(dir, relatif), 'utf8'), '- `CRB 075 l.23`, `l.25` — synthèse\n')
   })
+})
+
+test('remapperRef : chaque numéro du suffixe est une ligne citée, plage, point ou forme compacte', () => {
+  assert.deepEqual(remapperRef(CARTE_FORGEE, 24, '-26+28/29'), { texte: 'l.23-25+27/28', change: true })
+  assert.deepEqual(remapperRef(CARTE_FORGEE, 24, '+30'), { raison: 'l.30 (ligne citée) : ligne supprimée' })
+  assert.deepEqual(remapperRef(CARTE_FORGEE, 24, '-30'), { raison: 'l.30 (fin de plage) : ligne supprimée' })
+})
+
+test('--remap sur le CODE : réfs, plages, points et continuations portés en place ; une ligne supprimée est RAPPORTÉE', () => {
+  const racine = mkdtempSync(join(tmpdir(), 'reanchor-code-'))
+  try {
+    const fichier = join(racine, 'regle.ts')
+    writeFileSync(fichier, "// CRB 075 l.24-26, l.28 ; CRB 075 l.25+29\nconst ref = 'CRB 075 l.30'\n")
+    const r = remapperLesCitants({ racines: [racine], carteDe: () => CARTE_FORGEE })
+    assert.equal(r.remappees, 3)
+    assert.deepEqual(r.nonRemappees.map((n) => [basename(n.doc), n.ligne, n.full, n.detail]), [['regle.ts', 2, 'CRB 075 l.30', 'l.30 : ligne supprimée']])
+    assert.equal(readFileSync(fichier, 'utf8'), "// CRB 075 l.23-25, l.27 ; CRB 075 l.24+28\nconst ref = 'CRB 075 l.30'\n")
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
 })
 
 test('--apply et --remap modifient les fiches et signalent les références périmées du catalogue', () => {

@@ -596,7 +596,7 @@ d'échec (voir [Magie](magie.md)).
 **Langue (Bataille) :** ordres et gestes simples utilisables en combat sans pénalité pour celui qui
 la possède ; coordination d'attaques et stratégie inaccessibles à ceux qui ne la possèdent pas.
 
-**Sources RAW :** LDB 09 l.310-312, l.296-302, l.314-341 ; LDB 09 l.30 ; LDB 10 l.650 ; ADE II 2 l.728 (ogres : Langue Magick sur Endurance).
+**Sources RAW :** LDB 09 l.310-312, l.296-302, l.314-341 ; LDB 09 l.30 ; LDB 10 l.650 ; ADE II 2 l.775 (ogres : Langue Magick sur Endurance).
 
 ---
 
@@ -956,10 +956,10 @@ pour ce personnage.
 **LDB 09 l.358 :** Pour Métier utilisé comme Savoir, le MJ peut préférer Int à Dex (souvent ignoré
 pour simplifier).
 
-**ADE II 2 l.728 :** Pour les lanceurs ogres, Langue (Magick) utilise l'Endurance au lieu de
+**ADE II 2 l.775 :** Pour les lanceurs ogres, Langue (Magick) utilise l'Endurance au lieu de
 l'Intelligence. (Voir section dédiée.)
 
-**Sources RAW :** LDB 09 l.293-294 ; LDB 09 l.358 ; ADE II 2 l.728
+**Sources RAW :** LDB 09 l.293-294 ; LDB 09 l.358 ; ADE II 2 l.775
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecompetencesregle-optionnelle-caracteristique-alternative)
 
@@ -973,9 +973,9 @@ l'Intelligence (Int) pour leur Compétence Langue (Magick).**
 
 > « Les lanceurs de sorts ogres utilisent l'Endurance au lieu de l'Intelligence pour leur Compétence
 > Langue (Magick). »
-> — ADE II 2 l.728
+> — ADE II 2 l.775
 
-**Sources RAW :** ADE II 2 l.728
+**Sources RAW :** ADE II 2 l.775
 
 **Implémente :** [État calculé](../implemente.generated.md#4ecompetencesextension-ogre-langue-magick-sur-endurance)
 
@@ -1488,7 +1488,7 @@ Usages (Test étendu de **Savoir (Magie)**) :
 - `LDB 18 l.202` (traumatisme → pénalité Langue) : hors scope de ce fichier (domaine Traumatisme) ;
   mentionné dans `testValue` via `traumaSkillPenalty`. Voir `traumatisme.md`.
 - `LDB 09 l.34-45` (Compétences groupées) : couvert § Compétences Groupées + Implémente.
-- `ADE II 2 l.728` (ogre Langue Magick / Endurance) : couvert § Extension ogre.
+- `ADE II 2 l.775` (ogre Langue Magick / Endurance) : couvert § Extension ogre.
 
 **Écarts code ↔ RAW identifiés :**
 - Aucun écart de règle détecté. La Caractéristique alternative par entité (ogre) est correctement

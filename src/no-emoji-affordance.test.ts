@@ -4,6 +4,7 @@ import { EXTENSIONS_DE_SCRIPT } from '../scripts/guards/lib/dialecte.mjs';
 import { emojisIn } from '../scripts/guards/lib/emojiAffordance.mjs';
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { RACINES_PRESENTES } from '../scripts/guards/lib/racinesPresentes.mjs';
+import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs';
 
 /**
  * Garde-fou anti-emoji (LOT 4) : aucun emoji dans le code, la donnée ni la prose affichée (journal, logs) — une
@@ -30,7 +31,7 @@ const EXCLUDED = (rel: string): boolean =>
 describe('garde-fou anti-emoji (affordances → registre d’icônes)', () => {
   it('aucun emoji dans toutes les racines des zones (scripts et JSON), hors exclusions par nature', () => {
     const offenders: string[] = [];
-    for (const { rel, text } of readCorpus(RACINES_PRESENTES, { exts: [...EXTENSIONS_DE_SCRIPT, '.json'], tests: true })) {
+    for (const { rel, text } of readCorpus(RACINES_PRESENTES, { exts: [...EXTENSIONS_DE_SCRIPT, '.json'], tests: true, porte: porteDeTousLesProjets })) {
       if (EXCLUDED(rel)) continue;
       const hits = emojisIn(text);
       if (hits.length) offenders.push(`${rel} → ${hits.join(' ')}`);

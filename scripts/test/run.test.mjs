@@ -30,6 +30,7 @@ import {
   TAS_WORKER_MO,
   partieDe,
   refusDePartie,
+  partieDuFichier,
   trancher,
   ateliersMorts,
   nomDAtelier,
@@ -433,18 +434,32 @@ test('partie : pour K ∈ {1..5}, les K tranches sont DISJOINTES et leur union e
   }
 })
 
-test('partie : un fichier AJOUTÉ ne déplace aucun autre fichier de tranche', () => {
-  const liste = listeDe(120)
-  const partieDeChacun = (l, k) =>
-    new Map(Array.from({ length: k }, (_, i) => trancher(l, { i: i + 1, k }).fichiers.map((f) => [f, i + 1])).flat())
+const partieDeChacun = (l, k, tete) =>
+  new Map(Array.from({ length: k }, (_, i) => trancher(l, { i: i + 1, k }, tete).fichiers.map((f) => [f, i + 1])).flat())
+
+test('partie : un fichier AJOUTÉ hors de la tête ne déplace aucun autre fichier de tranche, tête comprise', () => {
+  const tete = { 'src/lourd/a.test.ts': 500, 'src/lourd/b.test.ts': 400, 'src/lourd/c.test.ts': 300 }
+  const liste = [...listeDe(120), ...Object.keys(tete)]
   for (let k = 2; k <= 5; k += 1) {
-    const avant = partieDeChacun(liste, k)
+    const avant = partieDeChacun(liste, k, tete)
     for (const ajout of ['src/aaa/premier.test.ts', 'src/state/f60b.test.ts', 'zzz/dernier.test.ts']) {
-      const apres = partieDeChacun([...liste, ajout], k)
+      const apres = partieDeChacun([...liste, ajout], k, tete)
       const deplaces = liste.filter((f) => apres.get(f) !== avant.get(f))
       assert.deepEqual(deplaces, [], `K=${k}, ajout de ${ajout} : fichiers déplacés`)
     }
   }
+})
+
+test('partie : la tête va du plus lourd au plus léger vers la partie la moins chargée, égalités au plus petit indice ; une clé absente de la liste ne pèse rien', () => {
+  const tete = { 'src/l/a.test.ts': 100, 'src/l/b.test.ts': 90, 'src/l/c.test.ts': 50, 'src/l/d.test.ts': 40, 'src/l/e.test.ts': 10, 'src/l/f.test.ts': 10, 'src/absent.test.ts': 1_000 }
+  const liste = listeDe(30).concat(Object.keys(tete).filter((c) => c !== 'src/absent.test.ts'))
+  const parties = partieDeChacun(liste, 2, tete)
+  assert.deepEqual(
+    Object.keys(tete).map((c) => parties.get(c)),
+    [1, 2, 2, 1, 1, 2, undefined],
+    'a→1 (0|0) · b→2 (100|0) · c→2 (100|90) · d→1 (100|140) · e→1 (140|140) · f→2 (150|140)',
+  )
+  for (const f of listeDe(30)) assert.equal(parties.get(f), partieDuFichier(f, 2), `${f} : hors de la tête, la partie est celle de son empreinte`)
 })
 
 test('partie : la tranche est triée par unité de code, son empreinte ne dépend que de son contenu', () => {

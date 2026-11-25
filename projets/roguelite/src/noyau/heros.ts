@@ -18,7 +18,7 @@ import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
 import { effectiveChar } from '../../../../src/engine/characteristics';
 import { raisonVerrouEtat } from '../../../../src/engine/conditions';
 import {
-  findCareerById,
+  careerLabelFor,
   levelsForCareer,
   characteristics,
   conditionLabel,
@@ -26,6 +26,7 @@ import {
   skills,
 } from '../../../../src/data';
 import { makeRNG, type RNG } from '../../../../src/engine/dice';
+import type { PorteurDeSexe } from '../../../../src/data';
 import type { Combatant, CharKey, ConditionInstance } from '../../../../src/engine/types';
 import type { RefDesignee } from '../../../../src/data/schemas/grammaire/ref';
 
@@ -119,8 +120,8 @@ export const carac = (c: Combatant, k: CharKey): number => effectiveChar(c, k);
 /** Hors de combat : à 0 PB ou Inconscient. */
 export const horsDeCombat = (c: Combatant): boolean => !!c.dead || c.wounds.current <= 0 || c.conditions.some((e) => e.id === 'inconscient');
 
-/** Libellé d'une carrière (`careers.json`). */
-export const nomDeCarriereDuLivre = (id: string): string => findCareerById(id)?.label ?? id;
+/** Libellé de la carrière d'un porteur (`careers.json`), à la forme de son sexe. */
+export const nomDeCarriere = (c: { career?: string } & PorteurDeSexe): string => careerLabelFor(c);
 
 /** Ce que le livre dit d'une Caractéristique (`characteristics.json`), verbatim. */
 export const texteDeCarac = (k: CharKey): string => characteristics.find((x) => x.id === k)?.desc ?? '';

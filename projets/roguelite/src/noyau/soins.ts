@@ -76,6 +76,9 @@ export function entretenirLesMaladies(c: Combatant, graine: number, jours: numbe
   return lignes;
 }
 
+/** Le nom d'une maladie de `maladies.json`. */
+export const nomDeMaladie = (id: string): string => diseaseLabel(id);
+
 /** Les maladies portées : libellé, phase (incubation ou déclarée), jours restants dans la phase, symptômes. LDB 20 */
 export const maladies = (c: Combatant): { label: string; declaree: boolean; jours: number; symptomes: string[] }[] =>
   (c.diseases ?? []).map((d) => ({

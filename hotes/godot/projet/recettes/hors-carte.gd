@@ -6,7 +6,7 @@ extends SceneTree
 ## fond ; avec un fondu, le sol se voit au bord du plateau et se perd dans la pénombre, le fond, au-delà de son fondu ; sans fondu (l'immersion), il se voit encore au loin ; sans sol (un intérieur), le bord du
 ## plateau montre le fond.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")

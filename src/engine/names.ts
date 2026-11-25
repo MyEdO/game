@@ -1,6 +1,6 @@
 /**
  * Génération de noms de personnage — pur, RNG injecté. Pools : `src/data/names.json` (`NamePool`).
- * LDB 05 l.621-633 ; NADJ 15 l.55-72 ; ADE II 02 l.325-334
+ * LDB 05 l.621-633 ; NADJ 15 l.55-72 ; ADE II 02 l.325-382
  */
 import { names as POOLS, type NamePool } from '../data';
 import type { Sexe, RaceKey } from '../data/schemas/grammaire/valeurs';
