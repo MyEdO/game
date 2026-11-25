@@ -84,10 +84,10 @@ describe('engine/healing — gate compétence & cibles', () => {
 
 describe('engine/healing — calculs DR (purs)', () => {
   it('healWoundsDelta : succès = BI+DR (plancher 0) ; échec BI+DR<0 = perte ; échec BI+DR≥0 = 0', () => {
-    expect(healWoundsDelta(3, 2, true)).toBe(5);
-    expect(healWoundsDelta(3, -5, true)).toBe(0);   // succès ne blesse jamais
-    expect(healWoundsDelta(1, -4, false)).toBe(-3); // échec, BI+DR<0 → -3
-    expect(healWoundsDelta(3, -1, false)).toBe(0);  // échec mais BI+DR≥0 → rien
+    expect(healWoundsDelta(3, 2, true, 'guerison')).toBe(5);
+    expect(healWoundsDelta(3, -5, true, 'guerison')).toBe(0);   // succès ne blesse jamais
+    expect(healWoundsDelta(1, -4, false, 'guerison')).toBe(-3); // échec, BI+DR<0 → -3
+    expect(healWoundsDelta(3, -1, false, 'guerison')).toBe(0);  // échec mais BI+DR≥0 → rien
   });
 
   it('stopBleedOutcome : retire 1+DR borné aux pions ; Exténué quand tout retiré ; échec = rien', () => {

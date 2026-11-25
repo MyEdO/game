@@ -391,9 +391,6 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
 /** Quand personne n'est plus en état de partir (hors de combat, ou sous la moitié de ses Blessures), la compagnie
  *  attend une semaine : ceux en séjour s'y reposent. */
 export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => disponible(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
-/** Compagnie vide ou épuisée, et bourse sous le prix du moins cher des candidats : un voyageur s'engage sans solde. */
-export const engagementSansSolde = (e: Etat): boolean =>
-  (e.roster.length === 0 || compagnieEpuisee(e)) && e.or < Math.min(...e.candidats.map((c) => c.prix));
 export function attendreUneSemaine(e: Etat): string | null {
   if (!compagnieEpuisee(e)) return 'Il reste des héros en état de partir.';
   noter(e, 'Personne n’est en état de partir : la compagnie attend une semaine.');
@@ -422,7 +419,6 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
     if (h.sejour.reste <= 0) delete h.sejour;
   }
   renouvelerLesCandidats(e);
-  if (engagementSansSolde(e)) noter(e, 'Personne n’est en état de partir et la bourse est vide : un voyageur accepte de servir sans solde.');
 }
 
 export const victoireFinale = (e: Etat): boolean => e.bossVaincus.includes('autel');
