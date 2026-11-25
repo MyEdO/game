@@ -7,13 +7,13 @@ import { Combatant, type Difficulty, type TestIds } from './types';
 import { hasSurgery } from './combatFeatures/dispatch';
 import {
   loseWounds,
-  addCondition,
   removeCondition,
   reprendreConnaissance,
   recoveredStacks,
   hasSurgeryLockedCondition,
   syncDerivedConditions,
   stacks,
+  retirerHemorragie,
 } from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
@@ -204,8 +204,8 @@ export interface HealWoundsOptions {
    *  couvert ici) — `false` pour éviter un double traitement partiel. */
   wake?: boolean;
   /** Libellé de journal spécifique au chemin (reçoit le nombre de PB EFFECTIVEMENT rendus, déjà
-   *  plafonné) — sinon le libellé par défaut du chemin Guérison. */
-  log?: (healed: number) => string[];
+   *  plafonné, et le réveil) — sinon le libellé par défaut du chemin Guérison, réveil compris. */
+  log?: (healed: number, reveille: boolean) => string[];
 }
 
 /** Montant de PB effectivement rendus par un `delta` positif (plafond munitions Empaleuses logées,
@@ -231,15 +231,16 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
     const lost = loseWounds(target, -delta, consequences);
     return [t('heal.backfire', { name: nomDe(target), lost }), ...consequences.lignes];
   }
-  if (delta === 0) return customLog ? customLog(0) : [t('heal.nothing', { name: nomDe(target) })];
+  if (delta === 0) return customLog ? customLog(0, false) : [t('heal.nothing', { name: nomDe(target) })];
   const before = target.wounds.current;
   target.wounds.current = before + cappedHealAmount(target, delta);
   const healed = target.wounds.current - before;
-  const log = customLog ? customLog(healed) : (healed > 0
-    ? [t('heal.gain', { name: nomDe(target), n: healed, cur: target.wounds.current, max: target.wounds.max })]
-    : [t('heal.lodgedBlocks', { name: nomDe(target) })]);
-  if (wake && target.wounds.current > 0 && reprendreConnaissance(target)) log.push(t('heal.awake', { name: nomDe(target) }));
+  const reveille = wake && target.wounds.current > 0 && reprendreConnaissance(target);
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
+  const log = customLog ? customLog(healed, reveille) : [
+    healed > 0 ? t('heal.gain', { name: nomDe(target), n: healed, cur: target.wounds.current, max: target.wounds.max }) : t('heal.lodgedBlocks', { name: nomDe(target) }),
+    ...(reveille ? [t('heal.awake', { name: nomDe(target) })] : []),
+  ];
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
   log.push(...syncDerivedConditions(target).lignes);
@@ -254,14 +255,10 @@ export function arretDHemorragie(target: Combatant, dr: number, success: boolean
 
 /** Applique l'arrêt d'Hémorragie (mutation). `dr` = DR du Test réussi. */
 export function applyStopBleed(target: Combatant, dr: number, p: ParametresDeSoin): string[] {
-  const { removed, gainExtenue } = arretDHemorragie(target, dr, true, p);
-  if (removed <= 0) return [t('heal.bleedResists', { name: nomDe(target) })];
-  removeCondition(target, 'hemorragique', removed);
-  const log = [t('heal.bleedStopped', { name: nomDe(target), n: removed })];
-  if (gainExtenue) {
-    addCondition(target, 'extenue');
-    log.push(t('heal.bleedExtenue', { name: nomDe(target) }));
-  }
+  const { retires, extenue } = retirerHemorragie(target, arretDHemorragie(target, dr, true, p).removed);
+  if (retires <= 0) return [t('heal.bleedResists', { name: nomDe(target) })];
+  const log = [t('heal.bleedStopped', { name: nomDe(target), n: retires })];
+  if (extenue) log.push(t('heal.bleedExtenue', { name: nomDe(target) }));
   return log;
 }
 

@@ -458,7 +458,7 @@ describe('Aux Armes (AA 07, approche alternative) — lignes nommées', () => {
     ]);
     expect(paliers.map((pal) => opsDe(pal.alors))).toEqual([
       [{ op: 'condition', id: { id: 'sonne' }, value: 1 }],
-      [{ op: 'condition', id: { id: 'inconscient' }, value: 1 }],
+      [{ op: 'condition', id: { id: 'inconscient' }, value: 1, finDeRencontre: true }], // LDB 18 l.53, #4948
     ]);
   });
 
