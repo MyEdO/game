@@ -48,7 +48,7 @@ export const RANG_TOOLCHAIN = RANG_SETUP + 1
 const rangDe = (lien) => lien.nature === 'touché' ? 0 : lien.nature === 'racine balayée' ? 1
   : lien.nature === 'import' ? 1 + lien.distance : lien.nature === 'setup' ? RANG_SETUP : RANG_TOOLCHAIN
 /** La config Vitest d'où se lisent les `setupFiles`. */
-const CONFIG_VITEST = 'vitest.config.ts'
+export const CONFIG_VITEST = 'vitest.config.ts'
 
 /** Les VARIANTES gardées par évaluation de module (`evaluations`) : une par jeu de réponses, les tours du
  *  point fixe des lecteurs en posant plusieurs. */
@@ -100,7 +100,7 @@ function imagesDuDiff(depot, { base, tete } = {}) {
 }
 
 /** Les `setupFiles` de la config Vitest (`CONFIG_VITEST`), lus sur son arbre syntaxique (`analyser`). */
-function setupFilesDe(texte, analyser) {
+export function setupFilesDe(texte, analyser) {
   if (texte === null) return []
   const ts = typescript()
   const [{ sourceFile }] = [...analyser([{ rel: CONFIG_VITEST, text: texte }])]

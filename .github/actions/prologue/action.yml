@@ -15,6 +15,12 @@ outputs:
       Gates sautées du push (scripts/gates/sauteesDuPush.mjs), sous la forme ` <nom> <nom> … ` ; un output vide ne
       saute rien (fail-closed).
     value: ${{ steps.sautees.outputs.sautees }}
+  zone:
+    description: >-
+      Zone du push (scripts/gates/sauteesDuPush.mjs, `zoneDuPush`, #5037 L2) — le projet qui contient chaque fichier
+      changé que la suite lit ; vide hors d'un diff d'un seul projet, et la tranche joue alors la suite entière
+      (fail-closed).
+    value: ${{ steps.sautees.outputs.zone }}
 
 runs:
   using: composite
@@ -35,7 +41,8 @@ runs:
     - id: install
       shell: bash
       run: npm ci
-    # APRÈS `npm ci` : les gates sautées se lisent dans `ECRIT_LU` (scripts/gates/toutes.mjs), qui atteint des paquets.
+    # APRÈS `npm ci` : les gates sautées et la zone du push se lisent dans `ECRIT_LU` (scripts/gates/toutes.mjs), qui
+    # atteint des paquets.
     - id: sautees
       shell: bash
       env:
