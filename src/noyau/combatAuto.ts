@@ -108,10 +108,15 @@ function jouerLeGeste(get: Get, g: GesteDuJeu): void {
   if (typeof fn === 'function') fn(g.flux, g.reglage, g.valeur);
 }
 
-/** Joue EN SYNCHRONE la paire de gestes d'une étape-jet (`paireDuJet`) : ce qu'un humain fait sur sa fenêtre, quand
- *  aucun humain ne la tient (`cascade.jouerLHoteDOffice`, #3892). */
+/** Joue EN SYNCHRONE les gestes `drive` d'une fenêtre : ce qu'un humain fait sur elle, quand aucun ne la tient
+ *  (`cascade.jouerLHoteDOffice`, #3892, #5042). */
+export function jouerLeDrive(get: Get, drive: readonly GesteDuJeu[]): void {
+  for (const g of drive) jouerLeGeste(get, g);
+}
+
+/** La paire de gestes d'une étape-jet (`paireDuJet`), jouée d'office (`jouerLeDrive`). */
 export function jouerLaPaireDuJet(get: Get, jet: HostJet): void {
-  for (const g of paireDuJet(jet)) jouerLeGeste(get, g);
+  jouerLeDrive(get, paireDuJet(jet));
 }
 
 /**

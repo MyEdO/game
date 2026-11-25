@@ -6,7 +6,7 @@
  */
 import type { Combatant, Weapon } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
-import { effectiveMovement } from '../engine/encumbrance';
+import { effectiveMovement, mouvementDeVol } from '../engine/encumbrance';
 import { sizeGap, type SizeCategory } from '../engine/size';
 import { fearSizeAsMount, runMovementBonus } from '../engine/combatFeatures/dispatch';
 import type { ModLine, AttackOptions } from '../engine/combat';
@@ -280,10 +280,11 @@ export function sweepDismountDeaths(battle: BattleState, scene: Scene): string[]
 const hasAcrobatiesEquestres = (c: Combatant): boolean =>
   effectiveTalents(c).some((t) => (t.times ?? 0) > 0 && t.talentId === 'acrobaties-equestres');
 
-/** Mouvement effectif d'un combattant : celui de sa MONTURE s'il est cavalier (LDB 14 l.179), sinon le sien. */
+/** Mouvement effectif d'un combattant : celui de sa MONTURE s'il est cavalier (LDB 14 l.179), sinon le sien ; la
+ *  Marche, ou le Vol s'il porte plus loin (`mouvementDeVol`, LDB 85 l.431-439). */
 export function mountMovement(battle: BattleState, c: Combatant): number {
-  const mount = mountOf(battle, c);
-  return effectiveMovement(mount ?? c);
+  const geom = mountOf(battle, c) ?? c;
+  return Math.max(effectiveMovement(geom), mouvementDeVol(geom) ?? 0);
 }
 
 /** Le Mouvement qui compte pour la Course : celui du Tour (`mountMovement`, LDB 14 l.179) + le Sprinter de celui
