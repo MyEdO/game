@@ -1,7 +1,7 @@
 // L'image de chaque écran sur une partie fixe, comparée au pixel (`ecart`) à sa référence, `reference/<écran>.png`, prise
 // sur le navigateur épinglé à la vue 1366×768, les polices rejouées de leur archive (`commun.mjs`) et le rejeu du combat
-// sur une horloge arrêtée (`Page.clock`) : une image absente, en trop ou qui diffère rend 1. `--poser` remplace la
-// référence par les images de la passe, et l'archive des polices par celles du réseau.
+// sur une horloge arrêtée (`Page.clock`) : une image absente, en trop ou qui diffère de plus de `SEUIL` rend 1.
+// `--poser` remplace la référence par les images de la passe, et l'archive des polices par celles du réseau.
 // Usage : node projets/roguelite/recette/images.mjs <dossier> <partie-fixe.json> [--poser]
 import { copyFileSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,6 +10,9 @@ import { ecart } from '../../../scripts/recette/ecart.mjs';
 import { CAPTURES, erreurs, lancer, page, surLaPartieFixe } from './commun.mjs';
 
 const REFERENCE = fileURLToPath(new URL('./reference', import.meta.url));
+/** L'écart toléré par canal : la composition d'un calque filtré (un portrait hors de combat) varie d'une unité d'une
+ *  passe à l'autre sur le même poste, mesuré sur cinq passes à la même tête (#5010). */
+const SEUIL = 1;
 const IMAGES = join(CAPTURES, 'images');
 rmSync(IMAGES, { recursive: true, force: true });
 mkdirSync(IMAGES, { recursive: true });
@@ -64,7 +67,7 @@ const references = pngs(REFERENCE);
 const ecarts = [...new Set([...pngs(IMAGES), ...references])].flatMap((f) => {
   if (!references.includes(f)) return [`${f} : sans référence`];
   if (!pngs(IMAGES).includes(f)) return [`${f} : référence sans image`];
-  const { pixels, boite } = ecart(readFileSync(join(IMAGES, f)), readFileSync(join(REFERENCE, f)));
+  const { pixels, boite } = ecart(readFileSync(join(IMAGES, f)), readFileSync(join(REFERENCE, f)), { seuil: SEUIL });
   return pixels ? [`${f} : ${pixels} pixels, ${boite}`] : [];
 });
 console.log(`${references.length} images · écarts : ${ecarts.length ? `\n  ${ecarts.join('\n  ')}` : 'aucun'} · erreurs de page : ${erreurs.length ? erreurs : 'aucune'}`);
