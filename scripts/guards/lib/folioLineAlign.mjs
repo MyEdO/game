@@ -66,8 +66,8 @@ export function anchorsAt(lines) {
  *   les folios 151 et 152 n'ont pas d'ancre). Le span porte plusieurs folios imprimés et rien ne
  *   dit lequel ; 29 chapitres sur 215 sont dans ce cas (résidu #522).
  * - `queue-trouee` — la ligne est au-delà de la DERNIÈRE ancre du chapitre, et le chapitre suivant
- *   ne REPREND pas la numérotation (`folio` ou `folio+1`) : même trou, en bout de fichier. Ex.
- *   `EDOC 12` (ancres 64 et 65 pour un chapitre qui court jusqu'au folio 71).
+ *   ne REPREND pas la numérotation (`folio` ou `folio+1`) : même trou, en bout de fichier. Ex. la
+ *   fixture `troue` de `folioLineAlign.test.mjs`.
  * - `sans-ancre` — aucune ancre avant la ligne, ni dans le chapitre ni en amont.
  *
  * Le seul REPORT accepté : la ligne précède la première ancre de son chapitre et le folio a été

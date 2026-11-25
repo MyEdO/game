@@ -362,8 +362,9 @@ export const looseReDe = (alt) => new RegExp(`\\b(${alt}) (?:ch\\.)?(\\d+)\\b`, 
 // chaque numéro se rend, `refNums`). Le `(?!\d)(?!\s*l\.)` (nombre ENTIER, puis pas de ` l.` derrière — sans le garde
 // de chiffre la regex se rabattrait sur `/2` de `/20 l.72`) distingue `/315` (ligne du MÊME chapitre) de `/20 l.72` (réf
 // MULTI-CHAPITRES `LDB 18 l.298/20 l.72`, où `20` est un CHAPITRE — jamais une ligne du 18).
+export const SUFFIXE_DE_LIGNE = '(?:[-+]\\d+|/\\d+(?!\\d)(?!\\s*l\\.))*'
 export const refReDe = (alt) =>
-  new RegExp(`\\b(${alt})(?: (?:ch\\.)?(\\d+))? l\\.(\\d+)((?:[-+]\\d+|/\\d+(?!\\d)(?!\\s*l\\.))*)`, 'g')
+  new RegExp(`\\b(${alt})(?: (?:ch\\.)?(\\d+))? l\\.(\\d+)(${SUFFIXE_DE_LIGNE})`, 'g')
 export const refRe = () => refReDe(ABBR_ALT)
 
 // Miroir FOLIO de `refRe` (#606) : la graphie canonique `ABBR NN p.<folio>[-fin][+pts]` (gelee par

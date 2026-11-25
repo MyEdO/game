@@ -721,6 +721,10 @@ const ATTENDU = {
     // DANS l'arbre, même classe que `anchor-fill.mjs` ci-dessus.
     'scripts/raw/lib/pdf-extract.mjs',
     'scripts/raw/reanchor-split.mjs',
+    // #4397 : le banc de `--remap` sur le code écrit un fichier source JETABLE (`mkdtempSync` + `writeFileSync`
+    // sous `os.tmpdir()`, `rmSync` en finally). Aucune écriture DANS l'arbre : même classe que
+    // `check-source-format.test.mjs` ci-dessus.
+    'scripts/raw/reanchor.test.mjs',
     'scripts/raw/reconcile.test.mjs',
     // +1 le 2026-09-21 (#1739 S1) : `recouper-source.test.mjs` importe le re-coupeur des `.md` en
     // service pour éprouver son cœur PUR (`recouper`, `planDe`, `contenuDe`, `indexDe`, `recalerStock`)
