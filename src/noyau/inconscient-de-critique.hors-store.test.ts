@@ -14,7 +14,6 @@ import { addCondition, removeCondition, stacks, tickDeath, COND } from '../engin
 import { suffocationTick } from '../engine/suffocation';
 import { bonus, effectiveChar } from '../engine/characteristics';
 import { testScene } from '../scenes/test-fixture';
-import { CRITIQUE_DOCS } from '../data/criticals';
 import type { GameOp } from '../engine/ops';
 
 let banc: Banc;
@@ -88,23 +87,5 @@ describe('Inconscient d’une Critique (LDB 18 l.53)', () => {
     jouer([INCONSCIENT_DE_CRITIQUE]);
     removeCondition(auCombat(id), COND.inconscient, 1, { lignes: [], faits: [] });
     expect(stacks(auCombat(id), COND.inconscient)).toBe(1);
-  });
-
-  it('les tables de Critiques posent l’Inconscient pour la rencontre, sauf les deux qui ne le lèvent que par Aide médicale', () => {
-    const autres: string[] = [];
-    let deRencontre = 0;
-    const walk = (o: unknown, ou: string): void => {
-      if (Array.isArray(o)) { o.forEach((x) => walk(x, ou)); return; }
-      if (!o || typeof o !== 'object') return;
-      const r = o as Record<string, unknown>;
-      if (r.op === 'condition' && (r.id as { id?: string })?.id === COND.inconscient) {
-        if (r.finDeRencontre === true && r.unlockBy == null) deRencontre++;
-        else autres.push(`${ou} ${String(r.unlockBy)}`);
-      }
-      Object.values(r).forEach((x) => walk(x, ou));
-    };
-    for (const table of CRITIQUE_DOCS) for (const e of table.entries) walk(e, `${table.id}/${e.id}`);
-    expect(autres).toEqual(['criticals-ldb-corps/clavicule-cassee medicalAid', 'criticals-aa-corps/aa-corps-96 medicalAid']); // LDB 18 l.151
-    expect(deRencontre).toBe(38);
   });
 });

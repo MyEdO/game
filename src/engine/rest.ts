@@ -41,7 +41,7 @@ import {
   faitsDesPoses,
   TEST_DES_CAUCHEMARS,
 } from './conditions';
-import { emettreDans, type Applique } from './faits';
+import { absorberDans, emettreDans, type Applique } from './faits';
 import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, maladieDeclaree, type CycleDeFiche, type Disease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
@@ -243,7 +243,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   }
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170 — « vous obligeant à rester alité ») revient par la réconciliation.
-  syncDerivedConditions(c);
+  absorberDans(a, syncDerivedConditions(c));
   return { wokeUp };
 }
 

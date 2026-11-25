@@ -352,27 +352,30 @@ function retireEtat(c: Combatant, name: string, value: number, parSaSource: bool
   if (!existing || n <= 0) return;
   existing.value -= n;
   if (existing.value <= 0) {
+    const avant = new Set(c.conditions.map((x) => x.id));
     c.conditions = c.conditions.filter((x) => x.id !== name);
-    sortirEtats(c, [name], () => true, a);
+    sortirEtats(c, [name], avant, () => true, a);
   }
   // POINT UNIQUE de retrait d'État → une Blessure critique dont tous les États associés sont tombés
   // est GUÉRIE (LDB 18 l.304) : octroie la cicatrice post-guérison (Blessure spectaculaire / Nez cassé, l.61/72).
   settleHealedCriticals(c);
 }
 
-/** LA SORTIE des États `ids`, dont la dernière instance vient de quitter `c` : la conséquence que chacun déclare
- *  (`EtatData.aLaSortie`) est posée, chaque pose émise dans `a`, hors celle que `garde` refuse au porteur.
- *  LDB 16 l.58, l.78, l.109, l.119, l.129 ; AA 07 l.11. */
-function sortirEtats(c: Combatant, ids: readonly string[], garde: (x: ConditionInstance) => boolean, a: Applique): void {
-  // `unlessCondition` se lit sur le porteur d'AVANT la sortie : des États qui sortent ensemble ne dépendent pas
-  // de leur ordre. #4993
-  const portesAvant = new Set(c.conditions.map((x) => x.id));
+/** Les États que la sortie de `id` pose à un porteur qui portait `portes` juste avant : `EtatData.aLaSortie`, hors
+ *  la pose dont l'`unlessCondition` est portée. #4993 */
+function posesDeSortie(id: string, portes: ReadonlySet<string>): string[] {
+  return (findConditionById(id)?.aLaSortie ?? []).filter((o) => !(o.unlessCondition && portes.has(o.unlessCondition.id))).map((o) => o.id.id);
+}
+
+/** LA SORTIE des États `ids`, dont la dernière instance vient de quitter `c`, qui portait `portesAvant` : la
+ *  conséquence que chacun déclare (`posesDeSortie`) est posée, chaque pose émise dans `a`, hors celle que `garde`
+ *  refuse au porteur. LDB 16 l.58, l.78, l.109, l.119, l.129 ; AA 07 l.11. */
+function sortirEtats(c: Combatant, ids: readonly string[], portesAvant: ReadonlySet<string>, garde: (x: ConditionInstance) => boolean, a: Applique): void {
   for (const id of ids) {
     // Main ensanglantée (AA 07 l.117) : les gates de main (op `handGate`) durent « tant que vous êtes sous
     // l'effet de cet État ».
     if (id === COND.hemorragique) delete c.handGates;
-    for (const { id: { id: pose }, unlessCondition } of findConditionById(id)?.aLaSortie ?? []) {
-      if (unlessCondition && portesAvant.has(unlessCondition.id)) continue;
+    for (const pose of posesDeSortie(id, portesAvant)) {
       if (!garde({ id: pose, value: 1 })) continue;
       for (const f of faitsDesPoses(c, [pose], () => addCondition(c, pose))) emettreDans(a, c, f);
     }
@@ -389,8 +392,9 @@ export function removeCondition(c: Combatant, name: string, value: number, a: Ap
 export function purgerEtats(c: Combatant, pred: (x: ConditionInstance) => boolean, a: Applique): void {
   const sortis = (c.conditions ?? []).filter(pred).map((x) => x.id);
   if (!sortis.length) return;
+  const avant = new Set(c.conditions.map((x) => x.id));
   c.conditions = c.conditions.filter((x) => !pred(x));
-  sortirEtats(c, sortis, (x) => !pred(x), a);
+  sortirEtats(c, sortis, avant, (x) => !pred(x), a);
   settleHealedCriticals(c);
 }
 
