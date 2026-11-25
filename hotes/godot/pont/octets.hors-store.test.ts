@@ -93,10 +93,10 @@ describe('appelerEnOctets', () => {
       expect(recolle(pont, entree), scenario).toEqual(parTableau(json, (t: number[]) => t.map(Math.fround)));
       return { entree, json };
     };
-    // La porte de breche-au-canon porte une couronne, la diligence des nappes de toit.
+    // La porte de breche-au-canon porte une couronne, la rue ornée une nappe de toit.
     const breche = partie('breche-au-canon');
     pont.appeler('quitter');
-    const { entree, json } = partie('diligence');
+    const { entree, json } = partie('rue-ornee');
     expect(FAMILLES.map((f) => [breche.json, json].some((r) => r[f].length > 0)), 'des géométries de chaque famille')
       .toEqual([true, true, true]);
 

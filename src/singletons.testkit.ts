@@ -5,12 +5,14 @@
  * (`src/test-setup-noyau.ts`) non, l'ouverture du propriétaire posant ces singletons pour tout son fichier.
  */
 import { loadRuleOverrides } from './engine/policy';
+import { resetCadence } from './engine/cadence';
 import { resetDesFixes } from './engine/fixedDie';
 import { seedBattleRng } from './noyau/battleRng';
 import { resetOwnTestFailedGuard } from './noyau/triggeredEffects';
 
 export function remettreLesSingletons(): void {
   loadRuleOverrides({});
+  resetCadence();
   resetDesFixes();
   seedBattleRng(1); // #1788
   resetOwnTestFailedGuard();

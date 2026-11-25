@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as J from '../jeu';
 import { testValue } from '../../../../src/engine/skills';
-import { libelleDeCarac, porterAuNiveau, progression, poserLesReglesDuRoguelite } from '../noyau';
+import { articleDuCatalogue, chancesDeReussite, libelleDeCarac, maniement, porterAuNiveau, progression, poserLesReglesDuRoguelite } from '../noyau';
 import { byId } from '../../../../src/data';
 import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
 import { ecranDuHeros, progressionDuHeros } from './fiche';
@@ -9,7 +9,7 @@ import { panneauDeService } from './services';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import { heros4e, recrue5e } from '../jeu/recrue5e.testkit';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Une partie à la salle d'armes au palier 1, le Soldat du roster riche de PX. */
 function salle() {
@@ -51,15 +51,39 @@ describe('un seul écran de progression', () => {
     expect(ecranDuHeros({ e, congediement: null }, h.c.id, 'progression')).toContain(bloc);
   });
 
-  it('l’aperçu du pas de CC dit le Test de Corps à corps avant et après, tel que le noyau le joue', () => {
+  it('l’aperçu du pas de CC dit le Test d’attaque de l’arme tenue et l’écart de ses chances, tels que le noyau les joue', () => {
     const { e, h } = salle();
-    const ref = { id: 'corps-a-corps', spec: 'base' };
-    const avant = testValue(h.c, { skill: ref });
+    const arme = J.panoplie(h).main!.id!;
+    const avant = maniement(h.c, arme);
     const { texte } = apercuDuPas(progressionDuHeros(e, h), 'capacite-de-combat');
     expect(J.acheterUnPas(e, h.c.id, { genre: 'carac', id: 'capacite-de-combat' }).refus).toBeNull();
-    const apres = testValue(h.c, { skill: ref });
-    expect(apres).toBeGreaterThan(avant);
-    expect(texte.split('\n')).toContain(`Corps à corps (Base) ${avant} → ${apres}`);
+    const apres = maniement(h.c, arme).attaque;
+    const ecart = chancesDeReussite(apres) - chancesDeReussite(avant.attaque);
+    expect(ecart).toBeGreaterThan(0);
+    expect(texte.split('\n')).toContain(`${articleDuCatalogue(arme).label} · ${avant.test} ${avant.attaque} → ${apres} : +${ecart} % de chances de toucher`);
+  });
+
+  it('l’aperçu d’un Talent dit l’écart de chances du Test qu’il change, tel que le noyau le joue (Imperturbable, Calme)', () => {
+    const { e, h } = salle4e('joueur-d-epee', 1, 900);
+    const i = J.offresDeCarriere(h).talents.findIndex((t) => t.ref.id === 'imperturbable');
+    expect(i).toBeGreaterThanOrEqual(0);
+    const bouton = progressionDuHeros(e, h).match(new RegExp(`<button[^>]*data-a="talent"[^>]*data-i="${i}"[^>]*>`))![0];
+    const calme = { skill: { id: 'calme' } };
+    const avant = testValue(h.c, calme);
+    expect(J.acheter(e, h.c.id, { genre: 'talent', ref: { id: 'imperturbable' } })).toBeNull();
+    const apres = testValue(h.c, calme);
+    const ecart = chancesDeReussite(apres) - chancesDeReussite(avant);
+    expect(ecart).toBeGreaterThan(0);
+    expect(apercuDe(bouton).texte.split('\n')).toContain(`Calme ${avant} → ${apres} : +${ecart} % de chances`);
+  });
+
+  it('un Talent qui ne change aucune valeur de combat n’a pas d’aperçu sur sa plaque (Tireur de précision sans arme à distance)', () => {
+    const { e, h } = salle();
+    expect(J.panoplie(h).tir).toBeUndefined();
+    const i = J.offresDeCarriere(h).talents.findIndex((t) => t.ref.id === 'tireur-de-precision');
+    expect(i).toBeGreaterThanOrEqual(0);
+    const bouton = progressionDuHeros(e, h).match(new RegExp(`<button[^>]*data-a="talent"[^>]*data-i="${i}"[^>]*>`))![0];
+    expect(bouton).not.toContain('data-apercu');
   });
 
   it('4e : le bouton du pas et les étapes du plan disent le gain réel du pas, au prix de `pasDe`', () => {

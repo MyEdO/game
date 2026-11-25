@@ -1,5 +1,5 @@
 /** Horloge de jeu : l'avance du temps et ce qui la suit hors combat (#668, #T2, #T3). */
-import { comptePasDifferes, confierLaSuite, fireScheduledEffects, OPS_DIFFEREES, pushReveal } from './combatEffects';
+import { comptePorteursDeSuite, confierLaSuite, fireScheduledEffects, MAIN_RENDUE, pushReveal } from './combatEffects';
 import { purgeSurAvanceDHorloge } from './upkeep';
 import { TIME_COST } from '../engine/timeCost';
 import { jouerLEntretienDesRoundsEcoules, reprendreEntretienDesRounds } from './outOfCombatUpkeep';
@@ -34,7 +34,7 @@ export function preparerLEntretienQuotidien(get: Get, set: Set, minutes: number)
 }
 
 function reprendreEntretienDeLHorloge(get: Get, set: Set, minutes: number, apresLesRounds?: true): void {
-  if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === OPS_DIFFEREES) {
+  if (!apresLesRounds && jouerLEntretienDesRoundsEcoules(get, set, minutes) === MAIN_RENDUE) {
     confierLaSuite(set, [{ verbe: 'reprendreEntretienDeLHorloge', minutes, apresLesRounds: true }]);
     return;
   }
@@ -54,9 +54,9 @@ export function creerActionsDHorloge(get: Get, set: Set) {
   return {
     avancerLeTemps: (minutes) => {
       if (minutes <= 0) return;
-      const avant = comptePasDifferes(get());
+      const avant = comptePorteursDeSuite(get());
       get().avancerLHorloge(minutes);
-      if (comptePasDifferes(get()) > avant) {
+      if (comptePorteursDeSuite(get()) > avant) {
         confierLaSuite(set, [{ verbe: 'reprendreEntretienDeLHorloge', minutes }]);
         return;
       }

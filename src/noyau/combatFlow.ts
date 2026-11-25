@@ -618,7 +618,7 @@ import {
   enfilerAuJournal,
   ouvrirChute,
   cloturer,
-  comptePasDifferes,
+  comptePorteursDeSuite,
   confierLaSuite,
   ctxRepris,
   revealPurpose,
@@ -626,7 +626,7 @@ import {
   jouerFlowEntier,
   jouerLesClotures,
   rendreALEquipage,
-  OPS_DIFFEREES,
+  MAIN_RENDUE,
   type Applique,
 } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
@@ -3314,7 +3314,7 @@ export interface ApplicationDuCoup {
 
 /**
  * UN COUP (#1508 T3b-4) = son application (`appliquerLaTouche`) PUIS son après-coup (`jouerLApresCoup`),
- * une seule fonction. Rend `OPS_DIFFEREES` quand une fenêtre tient la main (sauvegarde, Déviation,
+ * une seule fonction. Rend `MAIN_RENDUE` quand une fenêtre tient la main (sauvegarde, Déviation,
  * Maladresse, dé de casse, fenêtre de défense d'un maillon ou d'une gratuite de la suite) : c'est sa
  * reprise qui rejouera la suite, jamais l'appelant. L'appelant DÉCLARE ce qui suit le coup (`suite`) ;
  * il ne joue rien après l'appel qui dépende de l'issue.
@@ -3328,19 +3328,19 @@ export function applyAttackResult(
   res: AttackResult,
   coup: ApplicationDuCoup = {},
 ): Applique {
-  const avant = comptePasDifferes(get());
+  const avant = comptePorteursDeSuite(get());
   const finale = appliquerLaTouche(get, set, attacker, target, weapon, res, coup);
-  if (!finale) return OPS_DIFFEREES;
+  if (!finale) return MAIN_RENDUE;
   const { suite } = coup;
   // LDB 10 l.773 ; LDB 13 l.123.
   if (suite?.secondeFrappe && res.hit) { campGain(get, attacker); attacker.gainedAdvThisRound = true; }
   const queue: QueueDuCoup = { attackerId: attacker.id, targetId: target.id, weapon, res: finale, ...(suite ? { suite } : {}), depuis: APRES_COUP[0] };
   // L'application a poussé une étape qui attend (Test, choix) : l'après-coup est SA suite (#4011).
-  if (comptePasDifferes(get()) > avant) {
+  if (comptePorteursDeSuite(get()) > avant) {
     confierLaSuite(set, [{ verbe: 'apresCoup', queue }]);
-    return OPS_DIFFEREES;
+    return MAIN_RENDUE;
   }
-  return jouerLApresCoup(get, set, queue) ? OPS_DIFFEREES : undefined;
+  return jouerLApresCoup(get, set, queue) ? MAIN_RENDUE : undefined;
 }
 
 /** L'APPLICATION du coup, sans son après-coup. Rend la touche FINALE, celle que les modificateurs de
@@ -3709,7 +3709,7 @@ function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defense
   if (contreSurDefenseGagnee(defenseur, q.res.parryWeapon)?.plafond != null) defenseur.ripostesThisRound = (defenseur.ripostesThisRound ?? 0) + 1;
   const frappe = toucheDuTestDeDefense(defenseur, attacker, arme, q.res.defenderDetail!, q.res.netSL, { rng: battleRng() });
   const res: AttackResult = { ...frappe, advantageTo: null, ajouts: [...(frappe.ajouts ?? []), ajout] };
-  return applyAttackResult(get, set, defenseur, attacker, arme, res, { suite: { enchainement: { mode: 'apresCoup', queue: suivant } } }) === OPS_DIFFEREES;
+  return applyAttackResult(get, set, defenseur, attacker, arme, res, { suite: { enchainement: { mode: 'apresCoup', queue: suivant } } }) === MAIN_RENDUE;
 }
 
 /** ÉCRIT la Maladresse de `porteur` sur `arme` (LDB 14 l.19) — ÉCRITURE UNIQUE des deux temps de
@@ -3720,12 +3720,12 @@ function jouerLaFrappePassive(get: Get, set: SetFn, attacker: Combatant, defense
  *  tient la main (l'étape, ou le dé de casse de l'arme). */
 function ecrireLaMaladresse(get: Get, set: SetFn, porteur: Combatant, arme: Weapon, jetDeMaladresse: number, suivant: QueueDuCoup): boolean {
   const incident = incidentDeTir(arme, jetDeMaladresse);
-  if (incident) return applyOups(get, set, porteur, arme, incident, new Map(), suivant) === OPS_DIFFEREES;
+  if (incident) return applyOups(get, set, porteur, arme, incident, new Map(), suivant) === MAIN_RENDUE;
   if (jetSurfaced(get(), porteur)) {
     pushHost(get, set, (index) => ({ id: `cons-maladresse-${porteur.id}-${index}`, kind: 'jetDeMaladresse', jet: 'maladresse', actorId: porteur.id, maladresse: { weapon: arme, result: null, coup: suivant } }));
     return true;
   }
-  return applyOups(get, set, porteur, arme, rollOups(battleRng()), new Map(), suivant) === OPS_DIFFEREES;
+  return applyOups(get, set, porteur, arme, rollOups(battleRng()), new Map(), suivant) === MAIN_RENDUE;
 }
 
 /** Maladresse de l'ATTAQUANT : son Test d'attaque raté sur un double (LDB 14 l.19), sur l'arme du coup. */
@@ -3866,7 +3866,7 @@ export function runPreemptShots(get: Get, set: SetFn, faits: string[] = []): boo
     if (maybeOpenDefense(get, set, shooter, t0, weapon, suite)) return true;
     const r = resolveAttack(get, shooter, t0, weapon);
     if (!r) continue;
-    return applyAttackResult(get, set, shooter, r.victim ?? t0, r.weapon, r.res, { suite }) === OPS_DIFFEREES;
+    return applyAttackResult(get, set, shooter, r.victim ?? t0, r.weapon, r.res, { suite }) === MAIN_RENDUE;
   }
   ouvrirLeRound(get, set);
   return false;
@@ -3878,7 +3878,7 @@ function reprendreLesTirsRapides(get: Get, set: SetFn): boolean {
   const { tirsRapidesSuspendus: faits, ...battle } = get().battle!;
   if (!faits) return false;
   set({ battle });
-  jouerFlowEntier(runPreemptShots(get, set, faits) ? OPS_DIFFEREES : undefined);
+  jouerFlowEntier(runPreemptShots(get, set, faits) ? MAIN_RENDUE : undefined);
   return true;
 }
 
@@ -4020,15 +4020,15 @@ export function faitsPrevusDeLOups(s: Jeu, porteurId: string | undefined, weapon
  *
  * POINT D'APPLICATION (#1508 T3b-4) : tant qu'un dé de sa grappe reste à jeter (`engine/oups.desDOups`
  * — Sauvegarde Solide de l'arme, table des Incidents par Salve), RIEN n'est appliqué : l'étape s'ouvre
- * avec sa charge de reprise et la fonction rend `OPS_DIFFEREES`. Ses appelants CONSOMMENT ce retour.
+ * avec sa charge de reprise et la fonction rend `MAIN_RENDUE`. Ses appelants CONSOMMENT ce retour.
  * `des` = les dés DÉJÀ TOMBÉS de la grappe, par clé ; `coup` = la queue du coup qui l'a déclenchée,
  * emportée par la charge pour être jouée à la reprise (le site appelant l'a rendue suspendue).
  */
-export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r: OupsResolved, des: Map<string, number> = new Map(), coup?: QueueDuCoup): typeof OPS_DIFFEREES | { faits: FaitDObjet[] } {
+export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r: OupsResolved, des: Map<string, number> = new Map(), coup?: QueueDuCoup): typeof MAIN_RENDUE | { faits: FaitDObjet[] } {
   const reste = desDOups(c, weapon, r).filter((d) => !des.has(d.cle));
   if (reste.length) {
     ouvrirDeDeCasse(set, c, reste[0], { des: [...des], reprise: { mode: 'oups', actorId: c.id, weapon, r, ...(coup ? { coup } : {}) } });
-    return OPS_DIFFEREES;
+    return MAIN_RENDUE;
   }
   const battle = get().battle;
   const log: string[] = [tr('cf.oups', { name: nomDe(c), effet: r.label })];
@@ -4602,7 +4602,7 @@ export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   const suite: SuiteDeCoup = offUid
     ? { gratuitesALaTouche: true, deferAttackerAdvantage: true, enchainement: { mode: 'aucun' }, dualMain: { offWeaponUid: offUid, par: 'machine' } }
     : { gratuitesALaTouche: true, ...(enchainement ? { enchainement } : {}) };
-  if (maybeOpenDefense(get, set, attacker, target, arme, suite, attacker.chargedThisTurn)) return OPS_DIFFEREES; // suspendu : reprise via jetValider('defense')/jetAnnuler('defense') ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
+  if (maybeOpenDefense(get, set, attacker, target, arme, suite, attacker.chargedThisTurn)) return MAIN_RENDUE; // suspendu : reprise via jetValider('defense')/jetAnnuler('defense') ; `chargedThisTurn` = le MÊME `fromCharge` que le `resolveAttack` ci-dessous
   // Tir ennemi : annoncé dans le journal de COMBAT (battle.log → fil + tiroir) DÈS la décision (#12d).
   if (arme.type === 'distance') {
     const b0 = get().battle;
@@ -4663,11 +4663,11 @@ export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, 
  *  ouvert (`pendingFateSave`), le coup n'est pas achevé : la série attend. La dernière attaque achevée ou la cible hors
  *  d'action, la série se ferme (`fermerLaSerieSubie`) ; sinon l'assaillant qui perd son Action (`loseNextAction`) la
  *  voit décomptée sans être jouée (LDB 14 l.28), et l'attaque suivante part par `doAttack`. Une attaque à laquelle
- *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend un `Applique` : `OPS_DIFFEREES` quand une
+ *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend un `Applique` : `MAIN_RENDUE` quand une
  *  fenêtre ou le Destin tient la main, `undefined` quand la série s'est fermée.
  *  MDG 15 l.163-164, l.177-178 */
 export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
-  if (get().pendingFateSave) return OPS_DIFFEREES;
+  if (get().pendingFateSave) return MAIN_RENDUE;
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const restantes = serie.restantes - 1;
   const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
@@ -4682,7 +4682,7 @@ export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
     return poursuivreLaSerie(get, set);
   }
   set({ serieSubie: { ...serie, restantes } });
-  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === OPS_DIFFEREES) return OPS_DIFFEREES;
+  if (doAttack(get, set, assaillant, cible, { mode: 'subie' }) === MAIN_RENDUE) return MAIN_RENDUE;
   return get().serieSubie ? poursuivreLaSerie(get, set) : undefined;
 }
 
@@ -4723,7 +4723,7 @@ export function jouerLesTirsDeBordee(get: Get, set: SetFn, bordee: TirsDeBordee)
   if (!tireur || !cible || isOutOfAction(cible)) return false;
   const res = toucheAuJetPose(tireur, cible, tir.weapon, tir.jet, tir.jet.sl, { rng: battleRng() });
   return applyAttackResult(get, set, tireur, cible, tir.weapon, res,
-    { sousAttaque: true, suite: { enchainement: { mode: 'bordee', targetId: bordee.targetId, actedAvant: bordee.actedAvant, tirs } } }) === OPS_DIFFEREES;
+    { sousAttaque: true, suite: { enchainement: { mode: 'bordee', targetId: bordee.targetId, actedAvant: bordee.actedAvant, tirs } } }) === MAIN_RENDUE;
 }
 
 // ---------------------------------------------------------------------------
@@ -4771,7 +4771,7 @@ function runCleaveChain(get: Get, set: SetFn, attacker: Combatant, chain: Chaine
     const r = resolveAttack(get, attacker, next, arme);
     if (!r) continue;
     // Le maillon suivant est la SUITE de ce coup : son après-coup la joue (`resumeCleaveChain`).
-    return applyAttackResult(get, set, attacker, r.victim ?? next, r.weapon, r.res, { sousAttaque: true, suite }) === OPS_DIFFEREES;
+    return applyAttackResult(get, set, attacker, r.victim ?? next, r.weapon, r.res, { sousAttaque: true, suite }) === MAIN_RENDUE;
   }
   set({ battle: { ...get().battle! } });
   bus.emit(EVT.SCENE_DIRTY);
@@ -4882,7 +4882,7 @@ function frapperDeLaSecondeParLaMachine(get: Get, set: SetFn, attacker: Combatan
   const suite: SuiteDeCoup = { deferAttackerAdvantage: true, enchainement: { mode: 'apresCoup', queue: premiere }, secondeFrappe: true };
   // Un tir dévié n'oppose personne (LDB 14 l.116).
   if (!victim && maybeOpenDefense(get, set, attacker, cible, weapon, suite, undefined, res)) return true;
-  return applyAttackResult(get, set, attacker, victim ?? cible, weapon, res, { suite }) === OPS_DIFFEREES;
+  return applyAttackResult(get, set, attacker, victim ?? cible, weapon, res, { suite }) === MAIN_RENDUE;
 }
 
 /**
@@ -4949,7 +4949,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
     case 'tirRapide': suspendu = runPreemptShots(get, set, enchainement.faits); break; // la boucle des tireurs reprend (#997)
     case 'aucun': break; // le site d'origine a tranché : aucun balayage ne suit ce coup
     case 'apresCoup': suspendu = jouerLApresCoup(get, set, enchainement.queue); break; // LDB 10 l.1037 ; LDB 85 l.71
-    case 'subie': suspendu = poursuivreLaSerie(get, set) === OPS_DIFFEREES; break; // MDG 15 l.163-164, l.177-178
+    case 'subie': suspendu = poursuivreLaSerie(get, set) === MAIN_RENDUE; break; // MDG 15 l.163-164, l.177-178
   }
   if (suspendu) return true;
   if (restitution && !portee) set({ battle: { ...get().battle!, acted: restitution.prevActed } });
@@ -5049,7 +5049,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   // Défenseur SURFACÉ : la frappe passe par la MÊME couture d'ouverture que les autres gratuites
   // (patron `applyFreeAttack`) — suspendue ici, appliquée à `jetValider('defense')` (Action restaurée).
   // REND sa suspension (#1852) : l'appelant s'arrête, la frappe suivante attend la fermeture.
-  if (maybeOpenDefense(get, set, actor, target, arme, suite)) return OPS_DIFFEREES;
+  if (maybeOpenDefense(get, set, actor, target, arme, suite)) return MAIN_RENDUE;
   const r = resolveAttack(get, actor, target, arme);
   if (!r) return undefined;
   return applyAttackResult(get, set, actor, r.victim ?? target, r.weapon, r.res, { sousAttaque: true, suite });
@@ -5128,7 +5128,7 @@ function freeAttackTarget(scene: Scene | null, battle: BattleState, c: Combatant
 }
 
 /** Résout UNE attaque gratuite de `kind` contre `target`, OPPOSÉE et GRATUITE : ouvre la modale de
- *  défense (héros) → suspendu (`OPS_DIFFEREES`) ; sinon résout instantanément (opposé auto, ou passif si Surpris),
+ *  défense (héros) → suspendu (`MAIN_RENDUE`) ; sinon résout instantanément (opposé auto, ou passif si Surpris),
  *  restaure l'Action et applique les effets. Dépense `cost` Avantage (coût RAW par type :
  *  Cornes/Tentacules 0, Morsure/Caudale/Piétinement 1). */
 function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, kind: string, cost = 1): Applique {
@@ -5139,7 +5139,7 @@ function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Comb
   // à la reprise sur la touche telle qu'elle a survécu (`toucheSauvee`) — le coup a bien eu lieu (LDB 13
   // l.123), seul son EFFET est ignoré (LDB 85 l.98) ; l'Action, gratuite, est rendue par la reprise.
   const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind } };
-  if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return OPS_DIFFEREES; // suspendu : resolve via défense
+  if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return MAIN_RENDUE; // suspendu : resolve via défense
   const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target), bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) });
   // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
   return applyAttackResult(get, set, attacker, target, weapon, res, { sousAttaque: true, suite });
@@ -8357,7 +8357,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
     const reste = desDeBrisDeLame(attacker, drop).filter((d) => !des.has(d.cle));
     if (reste.length) {
       ouvrirDeDeCasse(set, attacker, reste[0], { des: [...des], reprise: { mode: 'piegeALame', defenderId: defender.id, bt, defenderSL } });
-      return OPS_DIFFEREES;
+      return MAIN_RENDUE;
     }
     // L'ISSUE fait foi, jamais l'état de `drop` : sur un porteur à `ItemInstance`, la casse est portée
     // par l'item et `recomputeLoadout` reconstruit `attacker.weapons` — le `Weapon` tenu ici est alors
@@ -8677,7 +8677,7 @@ export function enterRoundStartPause(get: Get, set: SetFn): void {
  *  aussi par l'enchaînement des Rounds sans pause. */
 export function lancerLeRound(get: Get, set: SetFn): void {
   set({ pendingRoundStart: null, preemptAiming: null });
-  jouerFlowEntier(runPreemptShots(get, set) ? OPS_DIFFEREES : undefined);
+  jouerFlowEntier(runPreemptShots(get, set) ? MAIN_RENDUE : undefined);
 }
 
 /** IA : si le combattant actif est PILOTÉ par l'IA (ennemi sans MJ, allié IA ou héros en Auto-combat),
@@ -9962,8 +9962,8 @@ export const TABLES = {
       const issue = applyOups(get, set, c, casse.reprise.weapon, casse.reprise.r, des, casse.reprise.coup);
       // La Maladresse appliquée, l'APRÈS-COUP du coup reprend au temps que le dé avait suspendu.
       // Rien ne suit que la conclusion du dé de casse : un après-coup qui tient la main emporte sa queue.
-      if (issue !== OPS_DIFFEREES && casse.reprise.coup) jouerFlowEntier(jouerLApresCoup(get, set, casse.reprise.coup) ? OPS_DIFFEREES : undefined);
-      return dit([], issue === OPS_DIFFEREES ? [] : issue.faits);
+      if (issue !== MAIN_RENDUE && casse.reprise.coup) jouerFlowEntier(jouerLApresCoup(get, set, casse.reprise.coup) ? MAIN_RENDUE : undefined);
+      return dit([], issue === MAIN_RENDUE ? [] : issue.faits);
     },
     /** Applier UNIQUE de l'étape « Blessure critique » (#1426) : le Critique est celui que le PLI post-dé a
      *  posé (ou celui du mint quand aucune table n'est déclarée). L'étape offrait-elle ses voies ?
@@ -10202,7 +10202,7 @@ export const TABLES = {
     )),
   ],
   clotures: {
-    apresCoup: (get, set, c) => { jouerFlowEntier(jouerLApresCoup(get, set, c.queue) ? OPS_DIFFEREES : undefined); },
+    apresCoup: (get, set, c) => { jouerFlowEntier(jouerLApresCoup(get, set, c.queue) ? MAIN_RENDUE : undefined); },
     // Clôture `reprendreFlowDeCombat` (#2689) : `combatEffects` ne peut pas importer `combat/triggeredTest`
     // (cycle) ; elle s'enregistre donc ICI, où `combatEffects` est entièrement initialisé.
     reprendreFlowDeCombat: (get, set, c) => {

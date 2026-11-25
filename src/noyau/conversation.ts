@@ -1,7 +1,7 @@
 /** Conversation : choix d'une réponse et clôture du dialogue. */
 import type { DialogueTransition } from './pendings';
 import { TIME_COST } from '../engine/timeCost';
-import { runFlow, jouerFlowEntier, cloturer } from './combatEffects';
+import { runFlow, cloturer } from './combatEffects';
 import { nomDeLInterlocuteur } from './dialogue';
 import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
@@ -64,15 +64,9 @@ function repondre(get: Get, set: Set, choix: string): void {
   set((s) => ({ dialogueHistory: recordTurn(s.dialogueHistory, turn) }));
   // Logique du choix (effets + branches) → runFlow ; objet/argent reçu = fenêtre d'attribution (titrée du donateur).
   if (choice.flow) {
-    const suspended = get().pendingTest;
-    const issue = runFlow(get, set, choice.flow, speaker ?? 'Butin');
-    // Le Flow a SUSPENDU sur un Test (`openSkillTest`) : l'avancée du dialogue est portée par le
-    // pending et appliquée par `jetValider('test')` — sinon le nœud suivant coexiste sous la modale de jet.
-    const pt = get().pendingTest;
-    if (pt && pt !== suspended) { set({ pendingTest: { ...pt, dialogueNext: transition } }); jouerFlowEntier(issue); return; }
-    // MÊME invariant pour un DÉ (#1508) : l'avancée du dialogue est une CLÔTURE — elle attend la
-    // conséquence au lieu de passer devant elle.
-    cloturer(get, set, issue, [{ verbe: 'dialogueSuivant', transition }]);
+    // L'avancée du dialogue est une CLÔTURE (#1508, #2689) : elle attend le dé ou le geste que le Flow a ouvert
+    // au lieu de passer devant lui — le nœud suivant ne coexiste jamais sous sa modale.
+    cloturer(get, set, runFlow(get, set, choice.flow, speaker ?? 'Butin'), [{ verbe: 'dialogueSuivant', transition }]);
     return;
   }
   applyDialogueTransition(get, set, transition);
@@ -81,14 +75,7 @@ function repondre(get: Get, set: Set, choix: string): void {
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   clotures: {
-    /** AVANCÉE du dialogue — verbe de CLÔTURE (#1508). Une modale de jet ENCORE ouverte (un Test que la
-     *  suite vient d'ouvrir) reprend la transition à son compte : « le dialogue n'avance jamais sous une
-     *  modale de jet » vaut du Test comme du dé — le dé, lui, est tenu par la mécanique de continuation
-     *  (une clôture ne se joue qu'à la validation de la DERNIÈRE étape de la grappe). */
-    dialogueSuivant: (get, set, c) => {
-      const pt = get().pendingTest;
-      if (pt) { set({ pendingTest: { ...pt, dialogueNext: c.transition } }); return; }
-      applyDialogueTransition(get, set, c.transition);
-    },
+    /** AVANCÉE du dialogue — verbe de CLÔTURE (#1508). */
+    dialogueSuivant: (get, set, c) => applyDialogueTransition(get, set, c.transition),
   },
 } satisfies FragmentDeTables;

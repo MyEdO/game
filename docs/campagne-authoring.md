@@ -199,11 +199,13 @@ L'état narratif d'une partie se partitionne par la FORME de ce que le récit re
   site de catalogue (à `porteur`) ne nomme jamais. L'onglet **États** édite l'identité (ancres, repères
   renommables — le renommage suit dans chaque ligne —, lignes et provenance de chaque valeur).
 
-**Un geste joueur ne coupe pas le Flow.** `designerHeros`, `document`, `extendedTest` et `forceDoor` sont des Effets
-SUSPENSIFS (`EffectHandler.suspensif`, `src/noyau/combatEffects.ts`) : comme un nœud `test`
-(`openSkillTest(..., after)`), leur pending porte la SUITE — le reste de la pile de `runFlow`, ou le reste
-du lot d'`applyEffects` — et sa clôture la rejoue (`reprendreLaSuite`) : choix du héros (ou, plus aucun
-vivant, clôture sans choix), document fermé, Test étendu atteint, épuisé ou abandonné, porte cédée ou abandonnée. Une
+**Un geste joueur ne coupe pas le Flow.** `designerHeros`, `document`, `extendedTest` et `forceDoor` ouvrent un PORTEUR
+qui tient la main, comme un nœud `test`, un `choix` ou un dé à la porte (`comptePorteursDeSuite`,
+`src/noyau/combatEffects.ts`) : tout ce qui reste à jouer lui est confié (`confierLaSuite`) — le reste de la pile de
+`runFlow`, le reste du lot d'`applyEffects`, puis ce que le verbe appelant enchaîne (horloge d'une fouille, avancée
+d'un dialogue, déclencheur suivant de la même case) — et sa clôture le rejoue dans cet ordre : choix du héros (ou, plus
+aucun vivant, clôture sans choix), document fermé, Test résolu, Test étendu atteint, épuisé ou abandonné, porte cédée
+ou abandonnée. Une
 étape posée APRÈS le geste s'exécute donc APRÈS lui, jamais avant ni jamais perdue : la fouille de Kastor
 déroule journal (EDO 02 l.89), désignation (l.91), Document 3 et le stade « veste » de l'indice « L'héritage »
 (l.93), Document 4 et son stade « poche » (l.95), puis le drapeau de fouille qui ouvre la route.

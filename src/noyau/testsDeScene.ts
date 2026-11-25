@@ -1,5 +1,5 @@
 /** Tests de scène hors combat : Test simple, Test étendu (LDB 12), enfoncer une porte (EDO Appendice 2). */
-import { reprendreLaSuite, runFlow, cloturer, comptePasDifferes, drainPendingLog, OPS_DIFFEREES } from './combatEffects';
+import { runFlow, cloturer, comptePorteursDeSuite, drainPendingLog, MAIN_RENDUE } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
 import { touchActors } from './combatOrParty';
@@ -24,7 +24,6 @@ import { chuteSurEchecDEscalade } from './monde/climbMove';
 import { campGain } from './combat/advantagePool';
 import { markActed } from './combatFlow';
 import { reprendreTestSubi } from './combat/triggeredTest';
-import { poursuivreLAccostage } from './seaVoyageFlow';
 import { avecLeTesteur, EMPTY_FLOW } from '../engine/flowCore';
 import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
@@ -47,13 +46,12 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // Par la PORTE (#1262 V2 L4). Le mint vérifie que `pendingExtendedTest` est posé — il vient de
       // l'être, ligne au-dessus. L'enjeu vit sur l'ÉTAPE, que `CascadeModal` lit (`cur.stake`, #1117).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'jetEtendu', jet: 'testEtendu', actorId: donnee.actorId, ...(stake ? { stake } : {}) }));
+      pousseSi(steps, hostStep(get, { id: idDansLaSequence(get, 'ext-jet', 'test'), kind: 'jetEtendu', jet: 'testEtendu', actorId: donnee.actorId, meta: { differeLaSuite: true }, ...(stake ? { stake } : {}) }));
       if (steps.length) openSequence(get, set, { title: donnee.label, icon: 'interface/cle', purpose: 'test', steps });
     },
     // Enfoncer une porte à plusieurs (EDO Appendice 2) : flux multi PARALLÈLE (objet BE/B).
     enfoncerLaPorte: (opts) => {
       set({ pendingForceDoor: { label: opts.label, doorBE: opts.doorBE, doorB: opts.doorB, doorBmax: opts.doorB, flag: opts.flag,
-        ...(opts.suite ? { suite: opts.suite } : {}),
         participants: opts.heroIds.map((id) => ({ id, interactive: true, result: null })) } });
       // « Une situation = une modale » : l'enfoncement est hôté dans la cascade (rendu par CascadeModal
       // via l'étape `jet:'enfoncerLaPorte'`). `pendingForceDoor` reste le porteur des données/participants ;
@@ -62,7 +60,7 @@ export function creerActionsDesTestsDeScene(get: Get, set: Set) {
       // #1262 V2 L4 : par la PORTE (`hostStep`, forme de GROUPE) — l'étape n'est plus un littéral, et le
       // mint vérifie que `pendingForceDoor` est posé (il vient de l'être).
       const steps: BuiltCascadeStep[] = [];
-      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'enfoncerLaPorte', jet: 'enfoncerLaPorte', groupOwner: true }));
+      pousseSi(steps, hostStep(get, { id: 'forceDoor', kind: 'enfoncerLaPorte', jet: 'enfoncerLaPorte', groupOwner: true, meta: { differeLaSuite: true } }));
       if (steps.length) openSequence(get, set, { title: t('store.forceDoorTitle'), icon: 'action/enfoncer', purpose: 'combat', steps });
     },
   } satisfies FabriqueDuNoyau;
@@ -155,7 +153,6 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
             const line = out?.consequences ? resultLine(out.consequences) : '';
             if (line) get().ecrireAuJournal(line);
           }
-          reprendreLaSuite(get, set, p.suite);
         });
         return;
       }
@@ -170,7 +167,6 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         sortirDeLHote(get, set, { pendingForceDoor: null }, () => { // la porte cède → ferme la situation (data + cascade hôte)
           get().ecrireAuJournal(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
           if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
-          reprendreLaSuite(get, set, p.suite);
         });
       } else {
         // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
@@ -207,12 +203,12 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
           if (c && pt.success && (c.advantage ?? 0) < ca.cap) campGain(get, c, 1);
           set({ battle: { ...markActed(get, set), action: null } });
         }
-        // Branche choisie PUIS continuation (suite du `sequence` parent d'un nœud `test`), jouées par le
-        // marcheur qui parle LEUR vocabulaire — même aiguillage que `reprendreFlow`/`reprendreFlowDeCombat` :
-        // un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez le marcheur d'ACTEUR ; un Test de
-        // scène parle `party`/`hero`/`testeur` et reste chez `runFlow` (butin de Test → fenêtre d'attribution),
-        // sa branche cuite sur son testeur (`avecLeTesteur`), jamais la continuation, qui est au parent.
-        const avant = comptePasDifferes(get());
+        // Branche choisie, jouée par le marcheur qui parle SON vocabulaire — même aiguillage que
+        // `reprendreFlow`/`reprendreFlowDeCombat` : un Test SUBI (`pt.subi`) parle `target`/`caster` et repart chez
+        // le marcheur d'ACTEUR ; un Test de scène parle `party`/`hero`/`testeur` et reste chez `runFlow` (butin de
+        // Test → fenêtre d'attribution), cuite sur son testeur (`avecLeTesteur`). La continuation du Flow parent est
+        // la suite confiée à l'étape-hôte : la sortie d'hôte la joue APRÈS les clôtures ci-dessous.
+        const avant = comptePorteursDeSuite(get());
         let branch = pt.success ? pt.onSuccess : pt.onFailure;
         if (pt.escalade) {
           const etat = get();
@@ -231,23 +227,20 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         }
         const issue = pt.subi
           ? reprendreTestSubi(get, set, pt, pt.success)
-          : runFlow(get, set, { kind: 'sequence', etapes: [avecLeTesteur(branch ?? EMPTY_FLOW, pt.actorId), pt.after ?? EMPTY_FLOW] }, pt.label, pt.sl);
+          : runFlow(get, set, avecLeTesteur(branch ?? EMPTY_FLOW, pt.actorId), pt.label, pt.sl);
         // CLÔTURES du Test (#1508) — elles suivent la branche, et attendent son dé s'il y en a un :
         //  · SEAM `onOwnTestFailed` (chemin modal JOUEUR — convergence des Tests de scène/compétence/combat,
         //    réf memory « JAMAIS rollTest inline chemin joueur ») : un Test RATÉ émet le trigger (Crampes
         //    abdominales → Sonné/À Terre/Inconscient par paliers de DR, MSRC 16 l.152). Réussite forcée
         //    (Résilience) exclue. RÉ-ENTRANCE : ce Test EST le sous-Test d'un `onOwnTestFailed` (FM de
-        //    palier 2) → il ne RÉ-ÉMET PAS.
-        //  · avancée de dialogue différée (un `choice.flow` avait suspendu ICI).
+        //    palier 2) → il ne RÉ-ÉMET PAS. Il suit l'échec même, avant ce qui suit le Test (MSRC 16 l.152).
         const clotures: Cloture[] = [];
         if (!pt.success && !pt.noOwnTestFailed) clotures.push({ verbe: 'testRateDeLActeur', actorId: pt.actorId, sl: pt.sl });
-        if (pt.dialogueNext) clotures.push({ verbe: 'dialogueSuivant', transition: pt.dialogueNext });
-        const suiteDeLHote = fermee?.participants[fermee.cursor]?.meta?.apresSuite ?? [];
-        clotures.push(...suiteDeLHote);
-        cloturer(get, set, comptePasDifferes(get()) > avant ? OPS_DIFFEREES : issue, clotures);
+        cloturer(get, set, comptePorteursDeSuite(get()) > avant ? MAIN_RENDUE : issue, clotures);
         // Le Test d'un événement d'escale se clôt par la sortie d'hôte, sans `dispatchCascadeDone` : l'accostage que portait la
-        // séquence qu'elle a fermée suit la branche, avant la reprise de la pile. Une séquence qui continue l'accoste à son dénouement.
-        if (fermee?.portArrival) poursuivreLAccostage(get, set, fermee.portArrival);
+        // séquence qu'elle a fermée suit la branche et la suite confiée au Test, avant la reprise de la pile. Une séquence
+        // qui continue l'accoste à son dénouement.
+        return fermee?.portArrival ? [{ verbe: 'finaliserLAccostage', arrival: fermee.portArrival }] : [];
       });
     },
   } satisfies Partial<CloturesDuJet>;

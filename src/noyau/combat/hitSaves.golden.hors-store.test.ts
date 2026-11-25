@@ -7,7 +7,7 @@ import { draineEtLit } from '../cascade.testkit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { emptyScene } from '../monde/scene';
-import { OPS_DIFFEREES } from '../combatEffects';
+import { MAIN_RENDUE } from '../combatEffects';
 import { blessuresDeBase, blessuresSurLeProfil } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -79,7 +79,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     const e = after.combatants.find((c) => c.id === 'e1')!;
     const lines = after.log.map((l) => `${l.kind}:${l.text}`);
     const rngProbe = battleRng().int(1, 100);
-    expect({ suspended: suspended === OPS_DIFFEREES, before, woundsAfter: e.wounds.current, lines, lues, rngProbe }).toMatchInlineSnapshot(`
+    expect({ suspended: suspended === MAIN_RENDUE, before, woundsAfter: e.wounds.current, lines, lues, rngProbe }).toMatchInlineSnapshot(`
       {
         "before": 20,
         "lines": [
@@ -114,7 +114,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     const t = after.combatants.find((c) => c.id === 'h1')!;
     const lines = after.log.map((l) => `${l.kind}:${l.text}`);
     const rngProbe = battleRng().int(1, 100);
-    expect({ suspended: suspended === OPS_DIFFEREES, before, woundsAfter: t.wounds.current, lines, lues, rngProbe }).toMatchInlineSnapshot(`
+    expect({ suspended: suspended === MAIN_RENDUE, before, woundsAfter: t.wounds.current, lines, lues, rngProbe }).toMatchInlineSnapshot(`
       {
         "before": 15,
         "lines": [
