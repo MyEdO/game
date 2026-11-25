@@ -198,7 +198,14 @@ const ATTENDU = {
     // exige de VRAIS fichiers à résoudre, et l'arbre du dépôt n'est jamais écrit : mesuré le
     // 2026-09-18, `git status --porcelain` identique avant/après, et `/tmp` sans résidu.
     'scripts/guards/lib/modulesFeuilles.test.mjs',
+    // +5 le 2026-11-25 (#5037) : la porte de plage scindée en cinq bancs et leur banc partagé ; leurs dépôts
+    // JETABLES (`instanceDeDepot` sous os.tmpdir(), `rmSync` en finally) ; l'arbre n'est jamais écrit.
+    'scripts/guards/lib/plageStock-eres.test.mjs',
+    'scripts/guards/lib/plageStock-fusions.test.mjs',
+    'scripts/guards/lib/plageStock-solde.test.mjs',
+    'scripts/guards/lib/plageStock-tronc.test.mjs',
     'scripts/guards/lib/plageStock.test.mjs',
+    'scripts/guards/lib/plageStock.testkit.mjs',
     // +1 le 2026-10-08 (#2503) : le banc de la porte d'une ÈRE forge des dépôts JETABLES
     // (`instanceDeDepot` sous os.tmpdir(), `rmSync` en finally) dont il charge l'ère ; l'arbre du dépôt
     // n'est jamais écrit.

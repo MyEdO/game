@@ -1,5 +1,5 @@
 // La porte d'une ÈRE (`porteDEre.mjs`, #2503) : le chargement par l'arbre du tronc. Les jugements de
-// plage qui en dépendent vivent dans `plageStock.test.mjs` et `stocksNominatifs.test.mjs`.
+// plage qui en dépendent vivent dans `plageStock-eres.test.mjs` et `stocksNominatifs.test.mjs`.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { rmSync, writeFileSync } from 'node:fs'
