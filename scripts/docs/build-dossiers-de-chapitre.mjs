@@ -10,6 +10,7 @@
 // (patron de `scripts/data/obtainability-graph.mts`).
 import { readFileSync } from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { chargerDossiers } from '../raw/lib/dossiers.mjs'
 import { paquetsDuCommun } from '../guards/lib/paquetsDuCommun.mjs'
@@ -18,7 +19,7 @@ import { entreesDeLaFiche, FAMILLES_DE_DOSSIER, LIBELLES_DE_FAMILLE, nomDeFiche 
 import { couverturesDuProjet, nommerPorteur } from '../../src/data/source/couvertures.ts'
 
 const OUT = 'docs/dossiers-de-chapitre.md'
-const RACINE = path.resolve(import.meta.dirname, '../..')
+const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
 /** Les paquets `chemins` (relatifs au dépôt), `{ paquet, lu }` : `paquet` = son chemin, `lu` = ses couvertures.
  *  Le disque suffit : `couvre` et `ecartes` ne sont pas de la prose adressée. */
