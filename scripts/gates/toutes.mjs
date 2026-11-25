@@ -603,7 +603,8 @@ export const ECRIT_LU = {
       'zones) puis joue chaque recette dans son processus : le navigateur épinglé (scripts/recette/navigateur.mjs, #5010), ' +
       'installé hors de l’arbre sous PLAYWRIGHT_BROWSERS_PATH, un contexte neuf par page, son profil sous os.tmpdir(), la ' +
       'construction de dist/roguelite/ servie par interception (`route`), les polices rejouées de ' +
-      'projets/roguelite/recette/polices.har.zip ; la recette d’images compare chaque écran à ' +
+      'projets/roguelite/recette/polices.har.zip et le rendu de texte de projets/roguelite/recette/polices.conf ' +
+      '(FONTCONFIG_FILE, polices DejaVu du système) ; la recette d’images compare chaque écran à ' +
       'projets/roguelite/recette/reference/ par `ecart` (scripts/recette/ecart.mjs). La partie fixe et ' +
       'les captures vont sous dist/roguelite-recette/, que git ignore et qu’aucune gate ne lit. Il LIT aussi ' +
       'dist/roguelite/, absent d’un checkout propre : c’est l’`ecritFerme` de `roguelite:construire`, qui le précède ' +

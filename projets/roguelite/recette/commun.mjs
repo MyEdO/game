@@ -22,8 +22,9 @@ const SAUVEGARDE = 'grisefosse-v1';
 /** Les erreurs de page de toutes les pages du script. */
 const erreurs = [];
 
-/** Le navigateur de la recette : le build épinglé (`lancerLeNavigateurEpingle`), celui de sa référence d'images. */
-const lancer = () => lancerLeNavigateurEpingle();
+/** Le navigateur de la recette : le build épinglé (`lancerLeNavigateurEpingle`), celui de sa référence d'images, sous
+ *  les polices système et le rendu de texte de `polices.conf`, ceux de tout poste. */
+const lancer = () => lancerLeNavigateurEpingle({ env: { ...process.env, FONTCONFIG_FILE: fileURLToPath(new URL('./polices.conf', import.meta.url)) } });
 
 /** Le stockage local de la page `p`, entrée par entrée (`{ clé: valeur }`). */
 async function stockage(p) {
