@@ -513,6 +513,9 @@ export interface PassiveMod {
    *  part émise, pas du porteur : elle s'agrège par `aPassifVisible` (engine/trauma) et se lit en
    *  Condition `visiblePassive` — une apparence qui suscite la sympathie du passant (LDB 09 l.97). */
   visible?: true;
+  /** Durée de l'émetteur qui en a une (effet actif) — posée à l'ÉMISSION, comme `src`. Elle dit la durée
+   *  d'un État que la réconciliation dérive de lui (`syncDerivedConditions`). */
+  duration?: Duration;
 }
 
 export interface OpsCtx {
@@ -554,12 +557,6 @@ export interface OpsCtx {
   onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence, difficulty?: Difficulty) => string[];
   /** Libellé de la source (sort/table) — ActiveEffect.label + journal ; se LIT par `nomDeSource`. */
   label?: string;
-  /** REJEU de fin de Round d'ops récurrentes portées par un effet actif : posé par `endOfRound`
-   *  (`engine/conditions.ts`), jamais par un site d'application. Seul ce drapeau distingue la POSE de
-   *  la RE-POSE — la FORME de l'op ne le dit pas (`LDB 16 l.117`). Il porte sur les ops LITTÉRALES
-   *  re-jouées, et sur elles seules : la dérivation `imbrique` l'ôte à toute descente (table, seuil,
-   *  forme, échelon). */
-  rejeuRecurrent?: boolean;
   /** ENTITÉ SOURCE des ops en cours (sort, talent, trait, objet, maladie, mutation…) — marquée sur TOUT
    *  `ActiveEffect` posé par cet `applyOps` (`ActiveEffect.source`). Ancrage de règle GÉNÉRAL : c'est
    *  elle qui donne sa fiche Codex à une pastille d'effet, quel que soit le TYPE de source (arbitrage
@@ -742,36 +739,22 @@ function sansDuree<T extends OpDuree>(o: T): T {
   return passif;
 }
 
-/**
- * CAUSE PERSISTANTE (`LDB 16 l.117`) : une op `condition` RÉCURRENTE gatée sur l'État qu'elle pose —
- * le porteur ne subit pas un État de plus par Round, il le REGAGNE tant que la cause dure. UNIQUE
- * définition du prédicat : l'application (journal) et les lecteurs du Codex (`noyau/codex/opRows.ts`,
- * `humanize.ts`, `registry.ts`) l'importent d'ici. Accepte aussi le dialecte miscast
- * (`data/miscast.json`, `engine/miscast.ts`), dont les champs portent les mêmes noms et la même forme.
- */
-export function estCausePersistante(o: { op?: unknown; perRound?: unknown }): boolean {
-  return o.perRound === true && estPoseDEtat(o) && o.unlessCondition?.id === o.id.id;
-}
-
-/** L'op pose-t-elle un État ? Une op `condition` du `GameOp` comme du dialecte miscast. */
-export const estPoseDEtat = (o: { op?: unknown }): o is { op: 'condition'; id: { id: string }; unlessCondition?: { id: string } } => o.op === 'condition';
-
 /** Message UNIQUE du refus « récurrence à l'horloge » — rendu au PARSE (`data/schemas/grammaire/mecanique.ts`)
  *  et à l'application (`applyOps`), mot pour mot. */
 export function messageRecurrenceHorloge(id: string): string {
   return t('op.err.recurrenceHorloge', { id });
 }
 
-/** Message UNIQUE du refus « État PORTÉ sans durée de contexte » (#1695) — rendu au PARSE du document
- *  de Sort (`data/schemas/defs/spells.ts`, quand la Durée est instantanée ou absente) et à l'application
- *  (`applyOps`, quand `durationFromCtx` rend `permanent`), mot pour mot. Jumeau de ci-dessus. */
+/** Message UNIQUE du refus « État PORTÉ sans durée » (#1695) — rendu au PARSE du document de Sort
+ *  (`data/schemas/defs/spells.ts`, quand l'op n'a pas de durée propre et que la Durée du sort est
+ *  instantanée ou absente) et à l'application (`applyOps`, quand `durationFromOp` rend `permanent`),
+ *  mot pour mot. Jumeau de ci-dessus. */
 export function messagePorteSansDuree(id: string): string {
   return t('op.err.porteSansDuree', { id });
 }
 
 /** Pose un effet actif porteur d'ops RÉCURRENTES (re-jouées chaque fin de Round par `endOfRound`).
- *  Durée : celle que l'op PORTE (`duration` — « un minimum de 1d10 Rounds » d'une rangée de table,
- *  `LDB 40 l.75`), sinon celle du sort (`ctx`), Surincantation de Durée incluse. Les `ops` doivent
+ *  Durée : celle que l'op PORTE (`duration`), sinon celle du sort (`ctx`), Surincantation de Durée incluse. Les `ops` doivent
  *  être round-safe (valeurs littérales) — pas de résolution de formule/`perSL` au tick. */
 function pushPerRound(target: Combatant, ops: GameOp[], ctx: OpsCtx, duration?: Duration): void {
   target.activeEffects = target.activeEffects ?? [];
@@ -830,7 +813,7 @@ function zoneDeGarde(ctx: OpsCtx, cible: Combatant, op: string): { rayonM: numbe
  */
 /** GELÉS : primitifs/données pures, portés VERBATIM par le `meta` de l'étape (sérialisables, coop). */
 export const OPS_CTX_GELES = [
-  'sourceSpell', 'sourceSpellId', 'conjureForm', 'label', 'rejeuRecurrent', 'source', 'effectId', 'blessuresAuTotal',
+  'sourceSpell', 'sourceSpellId', 'conjureForm', 'label', 'source', 'effectId', 'blessuresAuTotal',
   'defaultDurationRounds', 'defaultUntilTime', 'now', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
   'noReentryOwnTestFailed', 'woundsDealt', 'rolled', 'indice', 'stacks', 'engagedAdvantageGap',
   'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'affliction', 'cibleEnVue',
@@ -1051,16 +1034,14 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
     (!only || only.some((g) => groupMatch(g, groupesDe(target))))
     && (!except || !except.some((g) => groupMatch(g, groupesDe(target))));
   // CONTEXTE des ops IMBRIQUÉES (rangée de table, seuil franchi, forme, échelon d'aggravation) —
-  // DÉRIVATION UNIQUE, appelée à chaque descente : le drapeau de REJEU n'y descend pas. Il ne vaut que
-  // pour les ops LITTÉRALES re-jouées par `endOfRound` (`LDB 16 l.117`) ; ce qu'un dé atteint sous elles
-  // est une PREMIÈRE pose, qu'aucune fin de Round n'avait encore posée. Fonction et non constante : le
+  // DÉRIVATION UNIQUE, appelée à chaque descente. Fonction et non constante : le
   // ctx est vivant pendant la boucle (`ctx.woundsDealt`), un instantané pris ici le figerait.
   //  Les DÉS POSÉS n'y descendent pas non plus : leurs clés (`cleDeDe`) sont indexées sur le rang de
   //  l'op dans CE tableau, et le rang 0 d'une descente collisionnerait avec le rang 0 du parent.
   //  Le marquage des Blessures au total (`blessuresAuTotal`, #3060) y descend : la liste qui porte
   //  l'`attrMod` couvre ses descentes.
   const blessuresAuTotal = ctx.blessuresAuTotal ?? (ops.some((o) => o.op === 'attrMod' && o.attr === 'wounds' && o.auTotal) ? true : undefined);
-  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, blessuresAuTotal, ...extra, rejeuRecurrent: undefined, des: undefined });
+  const imbrique = (extra?: Partial<OpsCtx>): OpsCtx => ({ ...ctx, blessuresAuTotal, ...extra, des: undefined });
   // LE DÉ D'UNE OP (#1508), seul point de consommation du canal : la valeur POSÉE par la porte pour le
   // champ DÉCLARÉ (`DES_DUNE_OP`), à défaut le tirage — au même point du rng qu'avant le canal. Le
   // `case` ne connaît ni la clé ni sa graphie : il nomme son CHAMP, comme la déclaration.
@@ -1163,11 +1144,12 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         }
         const v = Math.max(1, formuleDuCtx(o.value ?? 1, ref, ctx) + slBonus(ctx.sl, o.valuePerSL));
         if (o.carried) {
-          // État PORTÉ (#1695, LDB 48 l.495) : UN effet porteur par op — deux lancers du même sort font
-          // deux effets, donc deux pions (LDB 16 l.11). L'op passive porte la valeur RÉSOLUE ; le pion,
-          // sa durée et son retrait sont l'affaire de la réconciliation (`syncDerivedConditions`, fin
-          // d'`applyOps`) — qui pousse AUSSI la ligne de journal et la notification de l'État.
-          const duree = durationFromCtx(ctx);
+          // État PORTÉ (#1695, LDB 48 l.495, LDB 16 l.117) : UN effet porteur par op — deux lancers du même
+          // sort font deux effets, donc deux pions (LDB 16 l.11). L'effet porteur dure ce que l'op déclare,
+          // à défaut ce que le contexte déclare. L'op passive porte la valeur RÉSOLUE ; le pion, sa durée
+          // et son retrait sont l'affaire de la réconciliation (`syncDerivedConditions`, fin d'`applyOps`)
+          // — qui pousse AUSSI la ligne de journal et la notification de l'État.
+          const duree = durationFromOp(o, ctx, ref);
           if (duree.scale === 'permanent') {
             // « Porté » sans source DATÉE n'a aucun sens : le pion serait PERMANENT, anonyme et hors de
             // portée de la Détermination. REFUS journalisé, aucun effet posé : une donnée fautive se VOIT au
@@ -1198,11 +1180,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           // gates compris. L'effet porteur dure ce que l'op déclare, sinon ce que le contexte déclare.
           const duree: Duration | undefined = rounds != null ? { scale: 'rounds', left: rounds } : undefined;
           pushPerRound(target, [{ op: 'condition', id: o.id, value: v, ...(o.onlyIfCondition ? { onlyIfCondition: o.onlyIfCondition } : {}), ...(o.unlessCondition ? { unlessCondition: o.unlessCondition } : {}), ...(escape != null ? { escapeStrength: escape } : {}), ...(threshold != null ? { escapeThreshold: threshold } : {}), ...(o.entangleOnFail ? { entangleOnFail: true } : {}), ...(struggleDamage != null ? { struggleDamage } : {}), ...(o.difficulte ? { difficulte: o.difficulte } : {}) }], ctx, duree);
-          // CAUSE PERSISTANTE (`LDB 16 l.117`) : l'op se gate sur l'État qu'elle pose — le porteur ne
-          // subit pas un État de plus par Round, il le REGAGNE s'il s'en débarrasse. Journal dédié.
           // L'annonce ne pose aucun État : son fait vaut 0, chaque pose de fin de Round dira le sien.
-          emettre(target, { genre: 'etat', ...sur(target), id, valeur: 0, duree: { parRound: v, ...(rounds != null ? { rounds } : {}) },
-            ...(estCausePersistante(o) ? { sauf: true } : {}) });
+          emettre(target, { genre: 'etat', ...sur(target), id, valeur: 0, duree: { parRound: v } });
         } else if (clockMin != null) {
           // État à durée d'HORLOGE (Belladone/Fleur de lune : sommeil « 1d10+4/5 heures ») — échéance
           // résolue MAINTENANT depuis ctx.now, purgée par purgeClockEffects (patron castPenalty.minutes).
@@ -1213,11 +1192,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           for (const f of faitsDesPoses(target, [id], () => addTimedCondition(target, id, v, rounds, escape, threshold, o.entangleOnFail, struggleDamage, o.difficulte)))
             emettre(target, { ...f, duree: { rounds } });
         } else {
-          // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
-          // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
-          // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.
           for (const f of faitsDesPoses(target, [id], () => addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte))) // verrous : prédicat d'état / acte de soin (LDB 18)
-            emettre(target, { ...f, ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
+            emettre(target, f);
         }
         if (avantageAvant > 0 && !target.advantage) emettre(target, { genre: 'avantage', ...sur(target), valeur: -avantageAvant, total: 0 }); // LDB 16 l.7
         // Empoignade (LDB 14 l.159) : le flag `grapple` pose la relation symétrique entre l'attaquant

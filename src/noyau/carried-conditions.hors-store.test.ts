@@ -307,12 +307,12 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
   };
   /** Une valeur NON NULLE plausible par champ exclu — la liste close est parcourue ENTIÈREMENT. */
   const valeurs: Record<(typeof CHAMPS_EXCLUS_DE_CARRIED)[number], unknown> = {
-    durationRounds: 3, durationMinutes: 10, durationHours: 2, perRound: true,
+    durationMinutes: 10, durationHours: 2, perRound: true,
     lockedUntil: { kind: 'always' }, unlockBy: 'medicalAid',
     escapeStrength: 40, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 2, difficulte: 'difficile', argDifficulty: true, grapple: true,
   };
 
-  it('chaque champ de `CHAMPS_EXCLUS_DE_CARRIED` est refusé en se NOMMANT — durées, verrous ET champs de lutte', () => {
+  it('chaque champ de `CHAMPS_EXCLUS_DE_CARRIED` est refusé en se NOMMANT — horloge, récurrence, verrous ET champs de lutte', () => {
     for (const champ of CHAMPS_EXCLUS_DE_CARRIED) {
       expect(refus({ op: 'condition', id: { id: 'empetre' }, carried: true, [champ]: valeurs[champ] })).toContain(`« ${champ} »`);
     }
@@ -321,8 +321,9 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
     expect(CHAMPS_EXCLUS_DE_CARRIED).toContain('grapple');
   });
 
-  it('« carried » seul passe, et une durée SANS « carried » passe (le refus ne mord que le cumul)', () => {
+  it('« carried » seul ou à durée propre en Rounds passe, et une durée SANS « carried » passe', () => {
     expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'sonne' }, carried: true }).success).toBe(true);
+    expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'sonne' }, carried: true, durationRounds: 3 }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'sonne' }, durationRounds: 3 }).success).toBe(true);
     expect(gameOpSchema.safeParse({ op: 'condition', id: { id: 'empetre' }, escapeStrength: 40 }).success).toBe(true);
   });
@@ -332,7 +333,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
     const lines = applyOps(c, [{ op: 'condition', id: { id: 'sonne' }, carried: true }], { idNeuf: idsDeTest, rng: deFixe(1) }).lignes;
     expect(stacks(c, 'sonne'), 'un État PORTÉ a été posé sans source à durée — il serait permanent').toBe(0);
     expect(c.activeEffects ?? [], 'un effet porteur PERMANENT a été posé').toHaveLength(0);
-    expect(lines.join(' | ')).toContain('« carried » exige une source à DURÉE');
+    expect(lines.join(' | ')).toContain('« carried » exige une DURÉE');
   });
 
   it('un Sort à Durée INSTANTANÉE portant un `carried` est refusé au parse du document', () => {
@@ -342,6 +343,17 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
     const instantane = { ...JSON.parse(JSON.stringify(base)), duration: { kind: 'instant' } };
     const ko = spellEntreeSchema.safeParse(instantane);
     expect(ko.success, 'un Sort instantané portant trois États « pour la durée du Sort » a été ACCEPTÉ').toBe(false);
-    expect(ko.success ? '' : ko.error.issues.map((i) => i.message).join(' | ')).toContain('« carried » exige une source à DURÉE');
+    expect(ko.success ? '' : ko.error.issues.map((i) => i.message).join(' | ')).toContain('op « condition » (aveugle) : « carried » exige une DURÉE');
+    const aDureePropre = { ...instantane, effects: JSON.parse(JSON.stringify(instantane.effects).replace(/"carried":true/g, '"carried":true,"durationRounds":2')) };
+    expect(spellEntreeSchema.safeParse(aDureePropre).success, 'un `carried` à durée propre se date lui-même').toBe(true);
+  });
+});
+
+describe('pose d’un État porté : la durée dite au journal (#4948)', () => {
+  it('deux porteurs du même État : la re-pose dit le reste du porteur le PLUS LONG', () => {
+    const c = mk('heros', 'deux');
+    for (const n of [2, 7]) applyOps(c, [{ op: 'condition', id: { id: 'inconscient' }, value: 1, carried: true, durationRounds: n }], { idNeuf: idsDeTest, rng: deFixe(1), label: 'Purifier la chair' });
+    c.conditions = c.conditions.filter((x) => x.id !== 'inconscient');
+    expect(syncDerivedConditions(c).lignes.join(' | ')).toContain('(7 Rounds)');
   });
 });

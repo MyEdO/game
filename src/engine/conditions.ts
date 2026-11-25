@@ -467,13 +467,15 @@ export function syncDerivedConditions(c: Combatant): Applique {
 }
 
 function reconcilierEtatsDerives(c: Combatant): Applique {
-  const cible = new Map<string, { stacks: number; src?: CodexTarget }>();
+  // `rounds` : le reste du porteur le plus long, `null` dès qu'un porteur ne dure pas en Rounds.
+  const cible = new Map<string, { stacks: number; src?: CodexTarget; rounds: number | null }>();
   for (const m of passiveMods(c)) {
     if (m.op.op !== 'condition') continue;
     const n = typeof m.op.value === 'number' ? m.op.value : 1;
+    const r = m.duration?.scale === 'rounds' ? m.duration.left : null;
     const e = cible.get(m.op.id.id);
-    if (e) e.stacks += n;
-    else cible.set(m.op.id.id, { stacks: n, ...(m.src ? { src: m.src } : {}) });
+    if (e) { e.stacks += n; e.rounds = e.rounds == null || r == null ? null : Math.max(e.rounds, r); }
+    else cible.set(m.op.id.id, { stacks: n, ...(m.src ? { src: m.src } : {}), rounds: r });
   }
   const sortie: Applique = { lignes: [], faits: [] };
   // `?? []` : un porteur FORGÉ (coque de navire, sonde de test) peut n'avoir aucune liste d'États — la
@@ -504,7 +506,9 @@ function reconcilierEtatsDerives(c: Combatant): Applique {
     if (cibleN > porteN) {
       c.conditions = portees; // la liste EXISTE dès qu'on y pose (porteur forgé sans `conditions`)
       poserEtat(c, id, cibleN - porteN, { derivedFrom: { stacks: cibleN, ...(src ? { src } : {}) } });
-      emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN });
+      // #4948
+      const r = voulu?.rounds;
+      emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN, ...(r != null ? { duree: { rounds: r } } : {}) });
       continue;
     }
     retireEtat(c, id, porteN - cibleN, true); // la réconciliation EST la source du pion marqué : rien ne l'arrête
@@ -889,7 +893,6 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveT
     // il ne se reconstruit pas.
     applyOps(c, e.opsPerRound, {
       label: e.label, rng, idNeuf, resolveTrapping, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId,
-      rejeuRecurrent: true, // SEUL site qui pose le drapeau : ce qui suit est une RE-pose (`LDB 16 l.117`)
     }).lignes.forEach((l) => log.push(l));
   }
   // Décrément des durées (effets/États de sort/contrecoups) — SOURCE UNIQUE extraite, même emplacement

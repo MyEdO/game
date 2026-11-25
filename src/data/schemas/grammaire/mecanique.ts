@@ -132,11 +132,13 @@ export const fenetreDeDeterminationSchema = z.union([
 ]);
 
 /** Champs de l'op `condition` qu'un État PORTÉ (#1695) ne peut PAS tenir — LISTE CLOSE, alignée sur ce
- *  que la branche `carried` d'`applyOps` transporte réellement (`id`/`value`/`resolveWindow`) :
- *  les DURÉES et la récurrence (l'effet porteur les tient), les VERROUS (la source EST le verrou), et
- *  les champs de LUTTE, figés par `addCondition` à la pose — que la réconciliation appelle NU. */
+ *  que la branche `carried` d'`applyOps` transporte réellement (`id`/`value`/`resolveWindow`, et la
+ *  durée en Rounds de l'op, que l'effet porteur prend) : la durée d'HORLOGE, que la réconciliation ne sait
+ *  pas dire au journal, la récurrence (l'effet porteur la tient), les VERROUS
+ *  (la source EST le verrou), et les champs de LUTTE, figés par `addCondition` à la pose — que la
+ *  réconciliation appelle NU. */
 export const CHAMPS_EXCLUS_DE_CARRIED = [
-  'durationRounds', 'durationMinutes', 'durationHours', 'perRound', 'lockedUntil', 'unlockBy',
+  'durationMinutes', 'durationHours', 'perRound', 'lockedUntil', 'unlockBy',
   'escapeStrength', 'escapeThreshold', 'entangleOnFail', 'struggleDamage', 'difficulte', 'argDifficulty', 'grapple',
 ] as const;
 
@@ -155,8 +157,8 @@ function refusDeLaPoseDEtat(v: Readonly<Record<string, unknown>> & { id: { id: s
         code: 'custom',
         path: [champ],
         message: `État « ${id} » : « carried » (porté par l'effet actif de la source, #1695) est EXCLUSIF de « ${champ} » `
-          + "— un État porté ne tient ni durée, ni verrou, ni champ de lutte en propre : sa durée est celle de l'effet porteur "
-          + '(`durationFromCtx`), sa source EST son verrou (un `unlockBy` y serait inerte, `releaseConditionLocks`), et le canal '
+          + "— un État porté ne tient ni durée d'horloge, ni récurrence, ni verrou, ni champ de lutte en propre : sa durée devient celle de l'effet porteur "
+          + '(`durationFromOp`), sa source EST son verrou (un `unlockBy` y serait inerte, `releaseConditionLocks`), et le canal '
           + 'passif ne transporte que `id`/`value`/`resolveWindow` — le reste serait PERDU à la pose. Retirer l’un des deux champs.',
       });
     }

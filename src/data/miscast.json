@@ -2141,18 +2141,8 @@
                 "id": {
                   "id": "inconscient"
                 },
-                "value": 1
-              },
-              {
-                "op": "condition",
-                "id": {
-                  "id": "inconscient"
-                },
                 "value": 1,
-                "perRound": true,
-                "unlessCondition": {
-                  "id": "inconscient"
-                },
+                "carried": true,
                 "durationRounds": {
                   "dice": {
                     "n": 1,
