@@ -74,12 +74,17 @@ function ramasser(avant: readonly Combatant[], apres: Combatant[], auSol: readon
   });
 }
 
-/** Joue le combat du `groupe` contre les créatures `ennemis` (ids du Bestiaire) à la graine `graine`.
+/** Les cases entre la ligne des ennemis et la tête du groupe. */
+const ECART = 10;
+
+/** Joue le combat du `groupe` contre les créatures `ennemis` (ids du Bestiaire) à la graine `graine`. Le noyau pose le
+ *  groupe dans son ordre en file depuis son départ (`formationDeCombat`) : l'arène tourne cette file vers la ligne des
+ *  ennemis, le premier du groupe en tête.
  *  `lumiere` : id d'un `lightLevels` (`jour`, `crepuscule`…), posé sur la scène (`ambientLight`) ; sans lui, l'arène suit
  *  l'horloge et le premier jour tombe de nuit. Une impasse rend le groupe tel qu'il est parti. */
 export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly string[], graine: number, lumiere = 'jour'): IssueDuCombat {
-  const largeur = 14;
-  const hauteur = Math.max(6, Math.max(groupe.length, ennemis.length) * 2);
+  const largeur = Math.max(6, Math.max(groupe.length, ennemis.length) * 2);
+  const hauteur = ECART + groupe.length + 2;
   let coups: Coup[] = [];
   let etats: EtatGagne[] = [];
   const pas: Pas[] = [];
@@ -87,11 +92,11 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
   const o = ouvrirEcoutee(
     graine,
     () => {
-      const scene = arena({ id: 'arene', label: 'Rencontre', w: largeur, h: hauteur, heroStart: { x: 2, y: Math.floor(hauteur / 2) } });
+      const scene = arena({ id: 'arene', label: 'Rencontre', w: largeur, h: hauteur, heroStart: { x: Math.floor(largeur / 2) + 1, y: ECART + 1 } });
       scene.ambientLight = lumiere;
       setEncounters(scene, [{
         id: 'rencontre',
-        enemies: ennemis.map((id, i) => ({ creature: { id }, pos: { x: largeur - 3, y: 1 + Math.round((i + 0.5) * (hauteur - 2) / ennemis.length - 0.5) }, facing: 'O' as const })),
+        enemies: ennemis.map((id, i) => ({ creature: { id }, pos: { x: 1 + Math.round((i + 0.5) * (largeur - 2) / ennemis.length - 0.5), y: 1 }, facing: 'S' as const })),
       }]);
       return { party: groupe.map((h) => structuredClone(h)), scene, projet: null, combatDirect: 'rencontre' };
     },
