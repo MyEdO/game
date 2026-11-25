@@ -124,7 +124,7 @@ const LIB_DU_DETECTEUR = 'src/lib';
 /** Le fichier est-il un module JavaScript de `LIB_DU_DETECTEUR` ? */
 const estModulePartage = (rel: string): boolean => rel.endsWith('.mjs');
 /** Ce que l'image apporte : `src/` (donnée ET schémas), `Source/` (les chapitres que mesure `SOURCE_FORMAT`),
- *  `docs/dossiers/` (les fiches que lit le registre `FICHIERS_DE_DOSSIER`, cible de code de `src/`) et ce que ses
+ *  `docs/dossiers/` (les fiches qu'importe le contenu du jeu de rôle, `src/scenes/campaign.ts`) et ce que ses
  *  générateurs lisent hors de `src/` (`LUS_PAR_LES_GENERATEURS`). */
 const DE_L_IMAGE = ['src', 'Source', 'docs/dossiers', ...LUS_PAR_LES_GENERATEURS];
 /** Les DÉCLARATIONS de la donnée de l'image que `scripts/` porte : la liste de découpe d'un livre (son grain, `sansFolio`)

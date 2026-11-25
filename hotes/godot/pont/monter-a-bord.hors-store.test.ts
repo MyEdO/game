@@ -12,7 +12,7 @@ import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
 import { CLIC_DU_CHAMP } from '../../../src/noyau/index';
 import { buildScene } from '../../../src/noyau/mapSpec';
 import { contenuDuJeuDeRole } from '../../../src/scenes/campaign';
-import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
 import { paquetDuJeu } from '../../../src/noyau/index';
 
 const COMMITES = await modelesCommites();

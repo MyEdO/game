@@ -9,7 +9,7 @@
  */
 import { fileURLToPath } from 'node:url';
 import { it, expect } from 'vitest';
-import { campagneDeTest } from './scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest, contenuDeTest } from './scenes/fixtures/campagneDeTest';
 import { paquetDuJeu } from './noyau/index';
 import {
   editer,
@@ -36,7 +36,7 @@ import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEdi
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { jeuDuFormulaire, marcher, type BancDuFormulaire } from './formulaireJoue.testkit';
 import { psychologies } from './data';
-import { ENTREES_DE_DOSSIER } from './data/dossiers';
+import { entreesDesFiches } from './data/dossiers';
 import { ouverts } from './data/schemas/grammaire/descente';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
@@ -54,9 +54,9 @@ function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
 }
 
 /** La session d'édition du paquet `paquet`, ouverte comme le pont l'ouvre (`hotes/godot/pont/pont.ts`, méthode
- *  `ouvrir`) : le manifeste du `Source/` versionné et les entrées de dossier servis. */
+ *  `ouvrir`) : le manifeste du `Source/` versionné et les entrées des fiches du contenu de test servis. */
 const ouvrir = (paquet: ReturnType<typeof paquetDuJeu>): SessionDEdition =>
-  ouvrirLEdition(paquet, false, undefined, manifesteDe(CORPUS_DISQUE), ENTREES_DE_DOSSIER.map((e) => e.id));
+  ouvrirLEdition(paquet, false, undefined, manifesteDe(CORPUS_DISQUE), entreesDesFiches(contenuDeTest.dossiers));
 
 /** Les zones d'une session réduites à son inspecteur (`inspecteurDeLaSession`), seul lu par le jeu de ses offres. */
 type Inspecteur = Pick<ZonesDeLEditeur, 'editeur.inspecteur'>;

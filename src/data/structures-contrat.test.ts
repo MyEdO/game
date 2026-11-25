@@ -4,7 +4,7 @@ import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { z } from 'zod';
 import { listerArbre } from '../../scripts/guards/lib/lister.mjs';
-import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { cheminsDesProjetsLivres, dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { tmpdir } from 'node:os';
 import { join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -92,15 +92,16 @@ const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
 /** Le paquet de test du commun (`defs-scenes/paquet-de-test.ts`), sous le nom que lui donne `defsDeDocument`. */
 const PAQUET_DE_TEST = 'paquet-de-test.json';
+/** Les paquets du jeu de rôle, que la garde mesure avec la donnée (`listerDocuments`). */
+const PAQUETS = cheminsDesProjetsLivres(ROOT);
 
 function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<string, unknown>>, defs: readonly SchemaDef[]) {
   const dossier = mkdtempSync(join(tmpdir(), nom));
   try {
     mkdirSync(join(dossier, 'src/data'), { recursive: true });
-    mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
     cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
     for (const [file, contenu] of Object.entries(documents)) writeFileSync(join(dossier, 'src/data', file), JSON.stringify(contenu));
-    return scannerDonnees(dossier, defs);
+    return scannerDonnees(dossier, defs, undefined, undefined, []);
   } finally {
     rmSync(dossier, { recursive: true, force: true });
   }
@@ -110,7 +111,7 @@ function scannerFixtureDeReferences(nom: string, documents: Readonly<Record<stri
  *  UN seul scan pour tout le fichier : le test consomme la mesure, il ne relit jamais les JSON. La
  *  composition defs + enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`), et c'est la
  *  MÊME que lisent `build-structures.mts` et `corpusDesComptes.mts`. */
-const { defs: DEFS, declares: DECLARES, choix: CHOIX, choixOps: CHOIX_OPS, scan } = scanDuCorpus(ROOT);
+const { defs: DEFS, declares: DECLARES, choix: CHOIX, choixOps: CHOIX_OPS, scan } = scanDuCorpus(ROOT, PAQUETS);
 const { redeclarations } = scannerRedeclarations(ROOT);
 /** L'INVENTAIRE de la dette que la donnée révèle (`inventaireDeDette.mts`), lu une fois. */
 const INVENTAIRE = inventaireDe({ scan, defs: DEFS, declares: DECLARES });
@@ -423,14 +424,13 @@ describe('structures de la donnée — stock nominatif décroissant (#1463 L0)',
     const dossier = mkdtempSync(join(tmpdir(), 'cases-de-reference-'));
     try {
       mkdirSync(join(dossier, 'src/data'), { recursive: true });
-      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
       cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
       writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
       writeFileSync(join(dossier, 'src/data/marins.json'), JSON.stringify([
         { id: 'm1', skills: [{ skillId: 'alpha' }, { skillId: 'beta' }] },
         { id: 'm2', competences: ['alpha', 'beta'] },
       ]));
-      const fixture = scannerDonnees(dossier, []);
+      const fixture = scannerDonnees(dossier, [], undefined, undefined, []);
       const mesure = COLLECTIONS_D_INVENTAIRE.find((c) => c.nom === 'CASES_DE_REFERENCE')!.mesure({ scan: fixture, defs: [], declares: [] });
       const parSite = new Map(mesure.map((l) => [l.site, l]));
       expect([...parSite.keys()].sort()).toEqual(['marins.json | competences', 'marins.json | skills']);
@@ -728,7 +728,7 @@ describe('les concepts de VALEUR sont reconnus à leur noyau (contrats positifs)
  */
 describe('le lexique reconnaît un concept à sa POSE de grammaire (#3012)', () => {
   const brutParNom = new Map<string, unknown>([
-    ...listerDocuments(ROOT).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))] as const),
+    ...listerDocuments(ROOT, PAQUETS).map((d) => [d.nom, JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8'))] as const),
     [PAQUET_DE_TEST, paquetDeTest],
   ]);
   const poses = posesDesObjets(DEFS, brutParNom);
@@ -875,7 +875,7 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
       if (Object.prototype.hasOwnProperty.call(o, 'texte')) porteurs.push({ site, objet: o });
       for (const [k, e] of Object.entries(o)) marche(e, `${site}.${k}`);
     };
-    for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')), d.chemin);
+    for (const d of listerDocuments(ROOT, PAQUETS)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')), d.chemin);
     expect(porteurs.length, 'aucun porteur brut de texte : la sonde ne mesurerait rien.').toBeGreaterThan(0);
     for (const { site, objet } of porteurs) {
       expect(typeof objet.texte, site).toBe('string');
@@ -945,10 +945,11 @@ describe('les concepts d’ENVELOPPE (strate `Document`) se reconnaissent au NOY
     "const url = (p) => pathToFileURL(join(R, p)).href;",
     "const SCAN = url('scripts/docs/lib/structures-scan.mjs');",
     "const lexique = await import(url('scripts/docs/lib/structures-lexique.mjs'));",
-    'const avec = (await import(SCAN)).scanDuCorpus(R).scan;',
+    "const P = (await import(url('scripts/guards/lib/projetsLivres.mjs'))).cheminsDesProjetsLivres(R);",
+    'const avec = (await import(SCAN)).scanDuCorpus(R, P).scan;',
     "const retires = lexique.CONCEPTS.filter((c) => c.strate === 'Document');",
     'for (const c of retires) lexique.CONCEPTS.splice(lexique.CONCEPTS.indexOf(c), 1);',
-    "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R).scan;",
+    "const sans = (await import(SCAN + '?sansDocument')).scanDuCorpus(R, P).scan;",
     "const site = (x) => x.dataset + ' › ' + x.champ;",
     "const kf = (f) => f.concept + ' | ' + site(f) + ' | ' + f.signature + ' | ' + f.occurrences;",
     "const ko = (o) => site(o) + ' | ' + o.signature + ' | ' + o.motif + ' | ' + o.occurrences;",
@@ -1166,7 +1167,7 @@ describe('l’enveloppe : ce qu’un document doit porter (contrats positifs)', 
       if (Object.prototype.hasOwnProperty.call(v, 'op')) objetsAOp += 1;
       Object.values(v).forEach(marche);
     };
-    for (const d of listerDocuments(ROOT)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
+    for (const d of listerDocuments(ROOT, PAQUETS)) marche(JSON.parse(readFileSync(join(ROOT, d.chemin), 'utf8')));
     expect(objetsAOp, 'la marche brute ne voit aucun `op` : l’égalité ci-dessous ne mesurerait rien.').toBeGreaterThan(0);
     expect(
       scan.totalConditionsAvecOp + scan.totalOps + scan.autresPorteursDOp.reduce((n, o) => n + (o.op === undefined ? 0 : o.occurrences), 0),
@@ -1240,7 +1241,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
         flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'setFlag', flag: 'croissance-2337' } }] },
       });
       writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
-      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS);
+      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS, PAQUETS);
       const site = (f: { dataset: string; champ: string; signature: string }) =>
         f.dataset === 'arene-projet.json' && f.champ === 'appearance' && f.signature === 'id-nu';
       expect(apres.formes.find(site)!.occurrences).toBe(scan.formes.find(site)!.occurrences + 1);
@@ -1274,7 +1275,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       const defs: SchemaDef[] = [...DEFS, { file: 'sonde.json', root: 'src/data', famille: 'entite', schema: sonde.schema }];
       const chemin = join(copie, 'src/data/sonde.json');
       writeFileSync(chemin, '[]', 'utf8');
-      const temoin = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS);
+      const temoin = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS, PAQUETS);
       const cleF = (f: { concept: string; dataset: string; champ: string; signature: string; statut: string; occurrences: number }) =>
         `${f.concept} | ${f.dataset} | ${f.champ} | ${f.signature} | ${f.statut} | ${f.occurrences}`;
       const cleO = (o: { dataset: string; champ: string; signature: string; motif: string }) =>
@@ -1301,7 +1302,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       axes[0].casses = [{ machinId: 'ceci-n-existe-pas' }]; // FK morte : clé …Id qui ne résout vers rien
       writeFileSync(chemin, JSON.stringify(axes), 'utf8');
 
-      const apres = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS);
+      const apres = scannerDonnees(copie, defs, CHOIX, CHOIX_OPS, PAQUETS);
       const formesNeuves = apres.formes.filter((f) => !temoin.formes.some((g) => cleF(g) === cleF(f))).map(cleF);
       const orphelinesNeuves = apres.orphelines.filter((o) => !temoin.orphelines.some((q) => cleO(q) === cleO(o))).map(cleO);
       const opsNeuves = apres.ops.filter((o) => !temoin.ops.some((q) => cleOpSonde(q) === cleOpSonde(o))).map(cleOpSonde);
@@ -1359,7 +1360,7 @@ describe('régime `valeurs` : le scan descend dans `entries` d’un record ENVEL
         }), 'utf8');
         return { file, root: 'src/data' as const, famille: 'record' as const, schema: sonde.schema };
       });
-      const apres = scannerDonnees(copie, [...DEFS, ...fixtures], CHOIX, CHOIX_OPS);
+      const apres = scannerDonnees(copie, [...DEFS, ...fixtures], CHOIX, CHOIX_OPS, PAQUETS);
       const collision = apres.index.collisions.find((c) => c.id === 'cle-de-charge');
       expect(collision?.datasets, 'la clé d’`entries` doit être indexée dans chaque record enveloppé.').toEqual([
         'sonde-record-a.json',
@@ -1400,7 +1401,6 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
   const dossier = mkdtempSync(join(tmpdir(), 'structures-collection-'));
   afterAll(() => rmSync(dossier, { recursive: true, force: true }));
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
-  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
   writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', type: 'alpha', label: 'Renvoi un', maison: 'sonde' }, { id: 'renvoi-deux', type: 'alpha', label: 'Renvoi deux', maison: 'sonde' }]));
   writeFileSync(
@@ -1416,7 +1416,7 @@ describe('collection à clé déclarée : la carte d’un record MARQUÉ n’est
       u: { fooId: 'renvoi-absent' },
     }),
   );
-  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE, undefined, undefined, []);
   const brut = fixture.brutParNom.get('x.json') as Record<string, object>;
   it('la carte marquée est une collection relevée et n’est pas invisible ; sa jumelle NON marquée l’est', () => {
     expect(fixture.collections.filter((c) => c.dataset === 'x.json').map((c) => c.cle)).toEqual(['x.json#t', 'x.json#r', 'x.json#u']);
@@ -1509,7 +1509,6 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
   const dossier = mkdtempSync(join(tmpdir(), 'structures-partielle-'));
   afterAll(() => rmSync(dossier, { recursive: true, force: true }));
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
-  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
   writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'renvoi-un', type: 'alpha', label: 'Renvoi un', maison: 'sonde' }]));
   writeFileSync(join(dossier, 'src/data/a.json'), JSON.stringify([{ id: 'a1', type: 'a', label: 'A1', maison: 'sonde' }]));
@@ -1517,7 +1516,7 @@ describe('formes : l’entrée PARTIELLE embarquée est mesurée comme une entr�
     join(dossier, 'src/data/b.json'),
     JSON.stringify({ pnjs: [{ id: 'p', profil: { liens: [{ cibleId: 'renvoi-un' }] } }], leurre: { liens: [{ cibleId: 'renvoi-un' }] } }),
   );
-  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE, undefined, undefined, []);
   const formesDesLiens = () =>
     fixture.formes.filter((f) => f.champ === 'liens').map((f) => `${f.concept} | ${f.dataset} | ${f.signature} | ${f.occurrences}`);
 
@@ -1560,7 +1559,6 @@ describe('signature projetée : une réf `{ id }` imbriquée qui résout reste u
   const dossier = mkdtempSync(join(tmpdir(), 'structures-signature-'));
   afterAll(() => rmSync(dossier, { recursive: true, force: true }));
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
-  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
   writeFileSync(join(dossier, 'src/data/alpha.json'), JSON.stringify([{ id: 'espece-un', maison: 'sonde' }, { id: 'tenue-un', maison: 'sonde' }]));
   const deuxScalaires = { species: 'espece-un', tenue: 'tenue-un' };
@@ -1574,7 +1572,7 @@ describe('signature projetée : une réf `{ id }` imbriquée qui résout reste u
       c: [{ species: { id: 'espece-un' }, tenue: { id: 'tenue-un' } }],
     }),
   );
-  const fixture = scannerDonnees(dossier, DEFS_FIXTURE);
+  const fixture = scannerDonnees(dossier, DEFS_FIXTURE, undefined, undefined, []);
   const sitesDe = (champ: string) =>
     fixture.formes.filter((f) => f.dataset === 'x.json' && f.champ === champ).map((f) => `${f.signature} | ${f.occurrences}`);
 

@@ -20,7 +20,7 @@ import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import type { WorldMap } from './worldMap';
 import { objetDeCampagne } from '../scenes/fixtures/objetDeCampagne.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
-import { campagneDeTest } from '../scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from '../scenes/fixtures/campagneDeTest';
 import { campagneDuJeu } from './campagneLivree';
 import { poserLaCampagne } from './campagne.testkit';
 import { applyEffects } from './combatEffects';

@@ -12,7 +12,7 @@ import type { Saison } from '../asset/element.ts';
 import { tableTotale } from '../../../src/lib/tableTotale';
 import type { Stockage } from '../../../src/lib/stockage';
 import { stockageEnMemoire } from '../../../src/lib/stockage.testkit';
-import { contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
+import { contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
 import type { ContenuDUnJeu } from '../../../src/hote/contenu';
 import { creerPont, type ReseauDuPont, type MondeDuPont, type MorceauxDuPont, type Pont, type Suite, type VueDuPont } from './pont';
 import { gestesDessines } from './dessines';

@@ -2,7 +2,7 @@
  * L'ÉDITEUR FIGÉ DU NAVIRE (#3772) : ce que la recette native de l'éditeur (`projet/recettes/editeur-navire.gd`) lit,
  * figé par la sonde (`construire.mjs --sonde`) dans la copie du projet qu'elle importe. L'atelier figé sur les véhicules
  * et les pièces d'Amélioration du dossier des modèles (`figerLAtelier`), la campagne de l'adresse (`parametres`), et sur
- * son pont, l'Arène ouverte, la caraque posée, puis la zone jouable tracée comme Godot les joue (`GESTES`,
+ * son pont, la campagne de test ouverte (`campagneDeTest`), une scène neuve ajoutée, la caraque posée, puis la zone jouable tracée comme Godot les joue (`GESTES`,
  * `GESTES_DE_LA_ZONE`) : chaque entrée de `editer` sous la clé
  * que la recette en calcule, sa réponse ; après chaque réponse qui sert un manifeste, l'entrée de `morceaux` que
  * l'éditeur envoie alors (source `edition`, les clés dont l'empreinte posée diffère, `VolumeDeScene.manquants`) sous sa
@@ -16,16 +16,18 @@ import type { MondeDuPont } from '../pont/pont';
 import { estObjet } from '../../../src/lib/objet.mjs';
 import { figerLAtelier, type Listage } from './atelier';
 import { cleDEntree } from './vehicule';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
 
 /** Un geste du pointeur `geste` sur la case `x`, `y`, au point de la carte `fx`, `fy`, hors des cases entières comme le
  *  monde touche. */
 const pointe = (geste: string, x: number, y: number, fx: number, fy: number) => ({ geste, point: { case: { x, y }, f: { x: fx, y: fy } } });
 
-/** Les gestes de la recette après l'ouverture de l'Arène, dans l'ordre : l'outil Navire, qui offre la caraque en tête,
+/** Les gestes de la recette après l'ouverture de la campagne de test, dans l'ordre : une scène neuve, l'outil Navire, qui offre la caraque en tête,
  *  le cap à l'est, l'appui qui la pose, l'outil de sélection, la caraque glissée de deux cases vers l'est par la case de
  *  son ancre, puis le pont du dessus, sa couche la plus haute. Un geste nommé est le `jeu` du bouton de cet id dans la
  *  réponse d'avant, que Godot a lu ; `couche/haute`, le dernier bouton du choix des couches. */
 const GESTES: readonly (string | ReturnType<typeof pointe>)[] = [
+  'scenes/ajouter',
   'outil/navire',
   'navire/cap/E',
   pointe('appui', 10, 6, 10.25, 6.25),
@@ -111,7 +113,7 @@ export function figerLEditeurDuNavire(listage: Listage) {
     for (const m of gardes) poses.set(m.cle, m);
     return r;
   };
-  const ouvrir = { ouvrir: 'arene' };
+  const ouvrir = { ouvrir: campagneDeTest.id };
   const reponses: [string, Reponse][] = [[cleDEntree(ouvrir), suivre(jouer(ouvrir))]];
   const derouler = (gestes: typeof GESTES) => {
     for (const geste of gestes) {
@@ -129,7 +131,7 @@ export function figerLEditeurDuNavire(listage: Listage) {
   if (!contour.length) throw new Error('éditeur figé : la zone jouable tracée sans contour servi');
   return {
     ...fige,
-    parametres: { campagne: 'arene' },
+    parametres: { campagne: campagneDeTest.id },
     editer: Object.fromEntries(reponses),
     morceaux,
     pointes: GESTES.filter((g) => typeof g !== 'string'),

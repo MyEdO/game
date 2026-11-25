@@ -58,7 +58,6 @@ describe('choix des payloads d’op : un enum se ferme À SA POSITION (op, champ
   const dossier = mkdtempSync(join(tmpdir(), 'choix-payloads-op-'));
   afterAll(() => rmSync(dossier, { recursive: true, force: true }));
   mkdirSync(join(dossier, 'src/data'), { recursive: true });
-  mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
   cpSync(fileURLToPath(new URL('./schemas/grammaire', import.meta.url)), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
   writeFileSync(join(dossier, 'src/data/axes.json'), JSON.stringify(ESPACES['axes.json'].map((id) => ({ id, maison: 'sonde' }))));
   writeFileSync(join(dossier, 'src/data/caracs.json'), JSON.stringify(ESPACES['caracs.json'].map((id) => ({ id, maison: 'sonde' }))));
@@ -68,7 +67,7 @@ describe('choix des payloads d’op : un enum se ferme À SA POSITION (op, champ
       ['un', 'deux', 'trois'].map((id) => ({ id, maison: 'sonde', passive: [{ op: 'sonde', mode: 'melee', characteristic: 'force', amount: 1 }] })),
     ),
   );
-  const fixture = scannerDonnees(dossier, [], new Map(), choixDesPayloadsDOp(OPS, ESPACES));
+  const fixture = scannerDonnees(dossier, [], new Map(), choixDesPayloadsDOp(OPS, ESPACES), []);
   const cles = (id: string) => {
     const porteur = (fixture.brutParNom.get('porteurs.json') as Array<{ id: string; passive: object[] }>).find((e) => e.id === id)!;
     return [...(fixture.referencesParPorteur.get(porteur.passive[0])?.keys() ?? [])];

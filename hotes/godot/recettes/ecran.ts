@@ -6,7 +6,7 @@
  * focus ou sa première valeur ouverte, chaque tour une charge ou une attaque sur la première cible, sinon la fin du tour) jusqu'au premier Coup
  * Critique, la fiche du premier héros de l'ordre du tour ouverte par le bouton de son rang, son statbloc, sa première possession choisie (ses gestes
  * refusés en combat), la fiche de la cible de la charge, le combat poursuivi de même jusqu'à sa fin (la fenêtre de sa
- * fin, sa sortie en focus), puis, chacun sur un pont neuf, le premier document de la liasse de `documents-edo` lu, et
+ * fin, sa sortie en focus), puis, chacun sur un pont neuf, le premier document de la liasse de `liasse-de-documents` lu, et
  * dans `magie` la Fléchette choisie parmi les sorts de l'actif, la fiche du lanceur, sa fenêtre d'incantation avant puis après le jet et un pas
  * de Surincantation alloué, la création d'un héros ouverte dans `marche-equipement` (la race avant puis après son d100,
  * la carrière tirée, les Caractéristiques en 100 points, chacune en liste), la carte du monde, la journée de route arrêtée aux jets des héros puis ces jets tombés, et le récit d'une arrivée dans `voyage`, puis dans `bataille-de-masse` l'entre-deux-aventures
@@ -30,7 +30,7 @@
 import { clicDuCombattant, creerPontFige, type MondeDuPont, type Suite } from '../pont/pont';
 import { enFocus, gestesDessines } from '../pont/dessines';
 import { CLIC_DU_CHAMP, horlogeVirtuelle } from '../../../src/noyau/index';
-import { contenuDuJeuDeRole } from '../../../src/scenes/campaign';
+import { contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
 import type { ZonesDeLaSuite, ZonesDeLEcran } from '../../../src/hote/ecran';
 import {
   elementsDesGestes,
@@ -182,7 +182,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
    *  repartent de zéro à chaque partie : seul le combat du dôme verse au journal des vues. `planche` rend la planche
    *  de la suite `s` de sa partie. */
   const unPont = (journal: Ligne[]) => {
-    const pont = creerPontFige(contenuDuJeuDeRole);
+    const pont = creerPontFige(contenuDeTest);
     let scenario = '';
     const appeler = (methode: string, entree: unknown): Suite => {
       const r = JSON.parse(pont.appeler(methode, JSON.stringify(entree))) as { ok: boolean } & Suite;
@@ -318,7 +318,7 @@ function figerLEcran(listage: Listage | null): { vues: VueFigee[]; planches: Pla
   };
 
   const liasse = unPont([]);
-  s = viderLesFenetres(liasse.jouer, liasse.jouer('demarrer', { scenario: 'documents-edo', graine: 7 }));
+  s = viderLesFenetres(liasse.jouer, liasse.jouer('demarrer', { scenario: 'liasse-de-documents', graine: 7 }));
   s = liasse.jouer('jouer', { type: CLIC_DU_CHAMP, args: [{ x: 2, y: 2 }] });
   s = liasse.jouer('jouer', s.vue.zones['exploration.gestes'].find((b) => b.libelle === 'Liasse de documents : Parcourir la liasse')!.jeu);
   const reponse = (debut: string) => s.vue.zones['dialogue.reponses'].find((b) => b.libelle.startsWith(debut))!.jeu;

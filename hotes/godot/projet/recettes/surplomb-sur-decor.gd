@@ -4,7 +4,7 @@ extends SceneTree
 ## tonneau au-dessous. Le morceau du sol de l'étage reçu en octets garde ses tranches et ses montants.
 
 const RECETTE_AUTONOME := true
-const PROJET := "arene"
+const PROJET := "paquet-de-test"
 const ETAGE := "sol/1/0/0"
 const POSE := "pose/0/0/0"
 const REZ_M := 1.0

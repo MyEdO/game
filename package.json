@@ -41,6 +41,7 @@
     "roguelite:tests": "node scripts/lancer-local.mjs vitest -- vitest run projets/roguelite",
     "roguelite:construire": "node projets/roguelite/construire.mjs",
     "roguelite:recette": "node projets/roguelite/recette/lot.mjs",
+    "jeu-de-role:dossiers": "node scripts/docs/build-dossiers-de-chapitre.mjs src/scenes/arene/arene-projet.json src/scenes/barge-du-sel/barge-du-sel-projet.json src/scenes/diligence/diligence-projet.json src/scenes/loup-et-saumure/loup-et-saumure-projet.json",
     "godot:valider": "node hotes/godot/asset/valider.mjs",
     "godot:maquettes": "node hotes/godot/cibles/propositions/sources/passe.mjs",
     "godot:maquettes:reference": "node scripts/maquettes/pixels.mjs --reference",

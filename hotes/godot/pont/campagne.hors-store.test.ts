@@ -7,7 +7,7 @@ import { afterEach, describe, it, expect, vi } from 'vitest';
 import { boursesDuGroupe, drainer, erreurDe, suiteDe, table } from './pont.testkit';
 import { t } from '../../../src/i18n';
 import { etatInitialDuJeu, pretiresOfferts } from '../../../src/noyau/index';
-import { campagneDeTest, contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest, contenuDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
 import type { Bouton, Element, Entite, Jet } from '../../../src/hote/elements';
 import type { Pont, VueDuPont } from './pont';
 

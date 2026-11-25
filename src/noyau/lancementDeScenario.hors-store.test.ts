@@ -9,7 +9,7 @@ import { seedBattleRng } from './battleRng';
 import { lancementDuProjet, lancerLeScenario, poserLeLancement } from './lancementDeScenario';
 import { lancementDuScenario } from '../scenes/test-scenarios/_shared';
 import { testScenarios } from '../scenes/test-scenarios';
-import { campagneDeTest } from '../scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from '../scenes/fixtures/campagneDeTest';
 import { campagneDuJeu } from './campagneLivree';
 import { PRETIRE_DE_TEST, poserLesPretires } from './creation/pretireDeTest.testkit';
 import { resetRule, setRule } from '../engine/policy';

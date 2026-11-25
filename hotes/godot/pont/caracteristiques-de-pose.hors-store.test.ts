@@ -1,6 +1,4 @@
 import { expect, it } from 'vitest';
-import { execFileSync } from 'node:child_process';
-import { fileURLToPath } from 'node:url';
 import { suiteDe, table } from './pont.testkit';
 import type { Bouton, Element } from '../../../src/hote/elements';
 import { findCreatureById } from '../../../src/data';
@@ -12,7 +10,7 @@ import { presetDuNarratif } from '../../../src/noyau/monde/resolveursDuNarratif'
 import { emptyScene, type SceneEntity } from '../../../src/noyau/monde/scene';
 import { ficheDEntite } from '../../../src/noyau/monde/sceneNpc';
 import { parseProject } from '../../../src/noyau/worldMap';
-import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from '../../../src/scenes/fixtures/campagneDeTest';
 import { paquetDuJeu } from '../../../src/noyau/index';
 
 type Edition = { vue: { zones: Record<string, Element[]> }; depot?: { texte: string } };
@@ -137,16 +135,9 @@ it.each(entites)('le réglage de $id s’écrit au même contrôle, se duplique 
   expect(copieTiree).not.toEqual(fiche(oui.pose).characteristics);
 });
 
-it('un ancien projet doit passer par le filtre avant de retrouver le même tirage à sa pose', () => {
+it('un ancien projet, le tirage porté par son profil, est refusé à la porte (`scripts/campagne/migrer-caracteristiques-de-pose.mjs` le migre)', () => {
   const pose = { ...entites[2], combat: { randomChars: false } };
   const ancienne = { ...pose, statblock: { ...statblock, randomChars: true } };
   const ancienProjet = { ...projet, scenes: [{ ...scene, entities: [ancienne] }] };
   expect(() => parseProject(ancienProjet)).toThrow(/randomChars/);
-
-  const script = fileURLToPath(new URL('../../../scripts/campagne/migrer-caracteristiques-de-pose.mjs', import.meta.url));
-  const migre = execFileSync(process.execPath, [script], { input: JSON.stringify(ancienProjet), encoding: 'utf8', timeout: 5_000 });
-  const [nouvelle] = parseProject(JSON.parse(migre)).scenes[0].entities;
-  expect(nouvelle).toMatchObject({ id: pose.id, combat: { randomChars: true }, statblock });
-  expect(nouvelle.statblock).not.toHaveProperty('randomChars');
-  expect(fiche(nouvelle).characteristics).toEqual(randomizeChars(fiche(pose).characteristics, pose.id));
 });

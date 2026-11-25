@@ -12,6 +12,7 @@ import { SCHEMA_DEFS_SCENES } from '../_registry-scenes.generated';
 import { DATASET_FICHIER_DERIVE } from '../exposition-derivee';
 import { DATASET_KEYS, datasetArray } from '../../overrides';
 import { scanDuCorpus } from '../../../../scripts/docs/lib/structures-scan.mjs';
+import { cheminsDesProjetsLivres } from '../../../../scripts/guards/lib/projetsLivres.mjs';
 import { projetSchema } from '../defs-scenes/projet';
 import { sceneSchema } from '../defs-scenes/scene';
 import { routePerilSchema } from '../defs-scenes/worldmap';
@@ -195,7 +196,7 @@ describe('`espace` — jamais sur une liste de RÉFÉRENCES', () => {
 });
 
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
-const { defs: DEFS, scan } = scanDuCorpus(ROOT);
+const { defs: DEFS, scan } = scanDuCorpus(ROOT, cheminsDesProjetsLivres(ROOT));
 const COLLECTIONS = scan.collections;
 const ESPACES = COLLECTIONS.filter((c) => c.marque.espace);
 const trie = (ids: readonly string[]) => [...ids].sort();
