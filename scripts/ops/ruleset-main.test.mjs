@@ -44,14 +44,17 @@ test('les contextes requis de l’ARBRE sont les checks de TOUS ses jobs, dans l
   assert.ok(blocs.length >= 2, 'moins de deux jobs : la garde ne mesure plus rien')
 })
 
-test('le job `suite` de l’ARBRE est une matrice : un check par partie, `WFRP_TEST_PARTIE` dérivée de la matrice', () => {
-  const suite = blocsDeJobs({ cwd: RACINE }).find((b) => b.job === 'suite')
-  const { cle, valeurs } = matriceDe(suite)
-  assert.ok(valeurs.length >= 2, `matrice de suite : ${valeurs.join(', ')}`)
-  assert.deepEqual(valeurs, valeurs.map((_, i) => String(i + 1)), 'les parties sont 1..K, dans l’ordre')
-  assert.deepEqual(contextesDuJob(suite), valeurs.map((v) => `suite ${v}/${valeurs.length}`))
-  assert.match(suite.texte, new RegExp(`^ {4}env:\\n {6}WFRP_TEST_PARTIE: \\$\\{\\{ matrix\\.${cle} \\}\\}/\\$\\{\\{ strategy\\.job-total \\}\\}$`, 'm'),
-    'la partie i/K vient de la plateforme, K déclaré une seule fois (la liste de la matrice)')
+test('les jobs matrices de l’ARBRE (`suite`, `godot-rendus`, `types-hooks`) : un check `<job> i/K` par partie, `WFRP_TEST_PARTIE` dérivée de la matrice', () => {
+  const matrices = blocsDeJobs({ cwd: RACINE }).filter((b) => matriceDe(b))
+  assert.deepEqual(matrices.map((b) => b.job).sort(), ['godot-rendus', 'suite', 'types-hooks'])
+  for (const bloc of matrices) {
+    const { cle, valeurs } = matriceDe(bloc)
+    assert.ok(valeurs.length >= 2, `matrice de ${bloc.job} : ${valeurs.join(', ')}`)
+    assert.deepEqual(valeurs, valeurs.map((_, i) => String(i + 1)), `${bloc.job} : les parties sont 1..K, dans l’ordre`)
+    assert.deepEqual(contextesDuJob(bloc), valeurs.map((v) => `${bloc.job} ${v}/${valeurs.length}`))
+    assert.match(bloc.texte, new RegExp(`^ {4}env:\\n {6}WFRP_TEST_PARTIE: \\$\\{\\{ matrix\\.${cle} \\}\\}/\\$\\{\\{ strategy\\.job-total \\}\\}$`, 'm'),
+      `${bloc.job} : la partie i/K vient de la plateforme, K déclaré une seule fois (la liste de la matrice)`)
+  }
 })
 
 /** Un `ci.yml` à un job `lot`, dont `entete` porte les lignes de niveau job. */

@@ -629,8 +629,9 @@ n'écrit dans l'arbre hors de sa porte (\`ecritFerme\`) :
 ${lignesLanes}
 
 Une lane est un job de \`ci.yml\` (\`lanesDeCi\`), ou plusieurs quand \`LANE_LOCALE_DE_JOB\`
-(\`scripts/gates/gatesDeCi.mjs\`) rattache un job à la lane d'un autre ; le job matrice \`suite\` joue la
-gate \`test\` en parties disjointes (\`WFRP_TEST_PARTIE\`), la lane locale la joue entière. \`ECRIT_LU\` (\`scripts/gates/toutes.mjs\`) dit ce
+(\`scripts/gates/gatesDeCi.mjs\`) rattache un job à la lane d'un autre ; les jobs matrices \`suite\`,
+\`godot-rendus\` et \`types-hooks\` jouent leur gate en parties disjointes (\`WFRP_TEST_PARTIE\`, tête pondérée
+\`TETES_DE_PARTIE\` de \`scripts/test/tetesDePartie.mjs\`), la lane locale la joue entière. \`ECRIT_LU\` (\`scripts/gates/toutes.mjs\`) dit ce
 que CHAQUE gate écrit et lit (${NB_GATES_MESUREES} gates mesurées, dont
 ${NB_ECRIVAINS} écrivain(s) — écriture de chaque run ou écriture POSSIBLE à porte nommée) ; c'est elle
 qui rend le classement vérifiable plutôt que déclaratif. La suite est BORNÉE par \`${BORNE_SUITE}\`

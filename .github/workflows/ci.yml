@@ -35,8 +35,9 @@ concurrency:
 # UN JOB VÉRIFIANT = UN GROUPE de gates qui tourne en PARALLÈLE des autres (#2178) ; le rejeu local
 # `npm run gates` en DÉRIVE ses lanes (`lanesDeCi`, scripts/gates/toutes.mjs) : un job par lane, sauf
 # ceux que `LANE_LOCALE_DE_JOB` (scripts/gates/gatesDeCi.mjs) rattache à la lane d'un autre, et la
-# table `ECRIT_LU` y verrouille qu'aucun groupe n'écrit ce qu'un autre lit (`conflitsEntreLanes`). Le
-# job matrice `suite` joue la gate `test` en parties disjointes ; le rejeu local la joue entière.
+# table `ECRIT_LU` y verrouille qu'aucun groupe n'écrit ce qu'un autre lit (`conflitsEntreLanes`). Les
+# jobs matrices `suite`, `godot-rendus` et `types-hooks` jouent leur gate en parties disjointes ; le rejeu local la
+# joue entière.
 #
 # AUCUN job vérifiant ne porte de `needs:` ni d'`if:` de niveau job : « A job that is skipped will
 # report its status as "Success". It will not prevent a pull request from merging, even if it is a
@@ -259,11 +260,19 @@ jobs:
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
   # `godot:rendus` (#3951) : les recettes rendues, en rendu réel sous chacun des deux rendus (Forward+ et
-  # compatibilité), sur un écran virtuel et le rendu logiciel de Mesa.
+  # compatibilité), sur un écran virtuel et le rendu logiciel de Mesa, leurs lancements en parties DISJOINTES
+  # (`WFRP_TEST_PARTIE`, `lancementsDeLaPartie` de hotes/godot/construire.mjs, tête `TETES_DE_PARTIE` de
+  # scripts/test/tetesDePartie.mjs, #5037).
   godot-rendus:
+    name: godot-rendus ${{ matrix.partie }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        partie: [1, 2, 3]
     env:
+      WFRP_TEST_PARTIE: ${{ matrix.partie }}/${{ strategy.job-total }}
       # Deux fils de rastérisation Mesa par recette, deux recettes de front sur quatre vCPU.
       LP_NUM_THREADS: '2'
     steps:
@@ -324,13 +333,21 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # `test:hooks` hors du chemin critique de `types` (#2178), sous garde des écritures d'arbre (#2489).
+  # `test:hooks` hors du chemin critique de `types` (#2178), sous garde des écritures d'arbre (#2489), en parties
+  # DISJOINTES (`WFRP_TEST_PARTIE`, scripts/test/node-tests.mjs, #5037).
   # `livraison:plage` (#2328, scripts/guards/livraison-plage.mjs) : la porte de PUBLICATION des
   # résolutions de fusion de `merge-base origin/main..HEAD` ; elle lit les soldes de `.claude/` dans
-  # l'histoire, elle n'est jamais sautée.
+  # l'histoire, elle n'est jamais sautée, et se joue dans la seule partie 1.
   types-hooks:
+    name: types-hooks ${{ matrix.partie }}/${{ strategy.job-total }}
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        partie: [1, 2]
+    env:
+      WFRP_TEST_PARTIE: ${{ matrix.partie }}/${{ strategy.job-total }}
     steps:
       - if: ${{ github.event_name == 'merge_group' }}
         uses: actions/checkout@v4
@@ -341,7 +358,7 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:hooks
-      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ matrix.partie == 1 && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run livraison:plage
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -371,7 +388,8 @@ jobs:
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
   # La suite : la seule gate à saturer la machine, en parties DISJOINTES dont l'union est la suite
-  # (`WFRP_TEST_PARTIE`, scripts/test/run.mjs), une par job de la matrice. K = la longueur de la liste.
+  # (`WFRP_TEST_PARTIE`, scripts/test/run.mjs), une par job de la matrice, sa tête pondérée d'abord
+  # (`TETES_DE_PARTIE`, scripts/test/tetesDePartie.mjs, #5037). K = la longueur de la liste.
   # `fail-fast: false` : un rouge n'annule pas ses sœurs (`matriceDe`, scripts/gates/gatesDeCi.mjs).
   suite:
     name: suite ${{ matrix.partie }}/${{ strategy.job-total }}
@@ -380,7 +398,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partie: [1, 2, 3]
+        partie: [1, 2, 3, 4]
     env:
       WFRP_TEST_PARTIE: ${{ matrix.partie }}/${{ strategy.job-total }}
     steps:

@@ -22,6 +22,7 @@ import {
   porteBilan,
   refusDePartie,
   trancher,
+  ligneDePartie,
   VARIABLE_PARTIE,
   resumeLancement,
   SENTINELLES,
@@ -31,6 +32,7 @@ import {
   ateliersMorts,
   nomDAtelier,
 } from './partition.mjs'
+import { TETES_DE_PARTIE } from './tetesDePartie.mjs'
 import { refusOutillageLocal } from '../outillage-local.mjs'
 import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 import { prendreVerrouAsync, tenantEnUneLigne } from './verrou.mjs'
@@ -278,10 +280,8 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
       observer(refus, true)
       return 1
     }
-    const tranche = trancher(suite, PARTIE)
-    const ligne =
-      `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${suite.length}` +
-      ` · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}\n`
+    const tranche = trancher(suite, PARTIE, TETES_DE_PARTIE.test.durees)
+    const ligne = `${ligneDePartie(PARTIE, tranche, suite.length)}\n`
     process.stdout.write(ligne)
     ecrireCapture(ligne)
     const suspects = cheminsGlobSuspects(tranche.fichiers)

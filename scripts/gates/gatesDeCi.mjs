@@ -80,7 +80,8 @@ export const LANE_LOCALE_DE_JOB = {
     lane: 'types',
     raison:
       '`test:hooks` (issuecomment-5924305772 de #2178) a son job pour raccourcir le ' +
-      'chemin critique de la CI ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` le porte',
+      'chemin critique de la CI, en parties disjointes (#5037) ; le rejeu local tient `PLAFOND_LANES` lanes, et ' +
+      '`types` le porte ENTIER',
   },
   godot: {
     lane: 'types',
@@ -91,8 +92,8 @@ export const LANE_LOCALE_DE_JOB = {
   'godot-rendus': {
     lane: 'types',
     raison:
-      '`godot:rendus` (#3951) a son job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient ' +
-      '`PLAFOND_LANES` lanes, et `types` le porte',
+      '`godot:rendus` (#3951) a son job pour raccourcir le chemin critique de la CI (#3412), en parties disjointes ' +
+      '(#5037) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` le porte ENTIER',
   },
   'godot-recette': {
     lane: 'types',

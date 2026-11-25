@@ -25,6 +25,8 @@ import { tmpdir } from 'node:os'
 import { join, relative, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { GATES, RACINES, couverture, listerTests, testsDe } from '../gates/testsParGate.mjs'
+import { VARIABLE_PARTIE, ligneDePartie, partieDe, trancher } from './partition.mjs'
+import { TETES_DE_PARTIE } from './tetesDePartie.mjs'
 import { prendreVerrouAsync } from './verrou.mjs'
 import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
@@ -124,12 +126,13 @@ export async function lancerGate({ gate, tests, drapeaux = [], racine = RACINE, 
 
 /**
  * L'ENTRÉE de la CLI sur `argv` (`<gate> [drapeaux…]`) : usage, couverture des tests de
- * `lister`, puis `lancer` (`lancerGate`). REND le code de sortie : 2 sur un usage, une répartition ou une gate vide
- * fautifs, et sur toute erreur levée, imprimée par `journal` préfixée `[node-tests]`, sa cause comprise (#2586).
+ * `lister`, la partie `VARIABLE_PARTIE` de `env` (`trancher` sous la tête `TETES_DE_PARTIE` de la gate, #5037), puis
+ * `lancer` (`lancerGate`). REND le code de sortie : 2 sur un usage, une répartition, une partie mal formée ou une gate
+ * vide fautifs, et sur toute erreur levée, imprimée par `journal` préfixée `[node-tests]`, sa cause comprise (#2586).
  * @param {string[]} argv
- * @param {{ lancer?: typeof lancerGate, lister?: () => string[], journal?: (ligne: string) => void }} [p]
+ * @param {{ lancer?: typeof lancerGate, lister?: () => string[], journal?: (ligne: string) => void, env?: NodeJS.ProcessEnv }} [p]
  */
-export async function entree(argv, { lancer = lancerGate, lister = () => listerTests(RACINE), journal = console.error } = {}) {
+export async function entree(argv, { lancer = lancerGate, lister = () => listerTests(RACINE), journal = console.error, env = process.env } = {}) {
   const gate = argv[0]
   const drapeaux = argv.slice(1)
   if (!gate || !GATES.includes(gate)) {
@@ -156,7 +159,15 @@ export async function entree(argv, { lancer = lancerGate, lister = () => listerT
       journal(`[tests] ${gate} : aucun test sous ses racines (${RACINES[gate].join(', ')}) — table ou arbre à revoir`)
       return 2
     }
-    return await lancer({ gate, tests, drapeaux })
+    const partie = partieDe(env[VARIABLE_PARTIE])
+    if (partie?.refus) {
+      journal(`[tests] REFUS — ${partie.refus}`)
+      return 2
+    }
+    if (!partie) return await lancer({ gate, tests, drapeaux })
+    const tranche = trancher(tests, partie, TETES_DE_PARTIE[gate]?.durees ?? {})
+    journal(ligneDePartie(partie, tranche, tests.length))
+    return await lancer({ gate, tests: tranche.fichiers, drapeaux })
   } catch (erreur) {
     const e = /** @type {any} */ (erreur)
     journal(`[node-tests] ${e?.message ?? String(e)}`)

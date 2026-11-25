@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
 import { jetonsDuVerrou, prendreVerrouAsync } from './verrou.mjs'
+import { TETES_DE_PARTIE } from './tetesDePartie.mjs'
 import { entree, lancerGate, reporterParDefaut, reportersDuLancement } from './node-tests.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
@@ -183,12 +184,32 @@ test('lancerGate : rapport des durées ABSENT, code rendu ; ILLISIBLE, il lève 
 test('entree : une erreur levée sort préfixée `[node-tests]`, sa cause imprimée, code 2 ; les drapeaux vont tels quels au lancement', async () => {
   const lignes = []
   const code = await entree(['test:runner'], {
-    lister: () => ['scripts/test/un.test.mjs'], journal: (l) => lignes.push(l),
+    lister: () => ['scripts/test/un.test.mjs'], journal: (l) => lignes.push(l), env: {},
     lancer: async () => { throw new Error('rapport des durées /d/durees.json illisible', { cause: new SyntaxError('JSON tronqué') }) },
   })
   assert.equal(code, 2)
   assert.deepEqual(lignes, ['[node-tests] rapport des durées /d/durees.json illisible', '[node-tests] cause : JSON tronqué'])
   const lances = []
-  assert.equal(await entree(['test:runner', '--x', '--test-concurrency=2'], { lister: () => ['scripts/test/un.test.mjs'], journal: () => {}, lancer: async (p) => { lances.push(p); return 0 } }), 0)
+  assert.equal(await entree(['test:runner', '--x', '--test-concurrency=2'], { lister: () => ['scripts/test/un.test.mjs'], journal: () => {}, env: {}, lancer: async (p) => { lances.push(p); return 0 } }), 0)
   assert.deepEqual(lances, [{ gate: 'test:runner', tests: ['scripts/test/un.test.mjs'], drapeaux: ['--x', '--test-concurrency=2'] }])
+})
+
+test('entree : sous `WFRP_TEST_PARTIE`, la gate joue SA tranche, sa tête pondérée d’abord ; les K tranches font la liste ; mal formée, code 2', async () => {
+  const durees = TETES_DE_PARTIE['test:hooks'].durees
+  const lourde = Object.keys(durees).sort((a, b) => durees[b] - durees[a])[0]
+  const liste = [...Array.from({ length: 40 }, (_, n) => `scripts/hooks/h${n}.test.mjs`), lourde].sort()
+  const tranches = []
+  for (const i of [1, 2]) {
+    const lances = []
+    const lignes = []
+    assert.equal(await entree(['test:hooks'], { lister: () => liste, journal: (l) => lignes.push(l), env: { WFRP_TEST_PARTIE: `${i}/2` }, lancer: async (p) => { lances.push(p); return 0 } }), 0)
+    assert.equal(lances.length, 1)
+    assert.match(lignes.join('\n'), new RegExp(`^\\[partie\\] ${i}/2 : ${lances[0].tests.length} fichier\\(s\\) sur ${liste.length} · empreinte [0-9a-f]{12} · liste [0-9a-f]{12}$`, 'm'))
+    tranches.push(lances[0].tests)
+  }
+  assert.deepEqual(tranches.flat().sort(), liste, 'les deux tranches ne font pas la liste')
+  assert.ok(tranches[0].includes(lourde), `${lourde}, la plus lourde de la tête, va à la part 1`)
+  const journal = []
+  assert.equal(await entree(['test:hooks'], { lister: () => liste, journal: (l) => journal.push(l), env: { WFRP_TEST_PARTIE: '3/2' }, lancer: async () => assert.fail('lancé malgré le refus') }), 2)
+  assert.match(journal.join(''), /REFUS — WFRP_TEST_PARTIE mal formée : « 3\/2 »/)
 })

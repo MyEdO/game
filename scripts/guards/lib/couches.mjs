@@ -77,7 +77,7 @@ export const COUCHES = Object.freeze({
     dossier: 'hotes/godot',
     ...DROITS_DES_HOTES,
     outillage: {
-      'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/fileBornee.mjs', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/test/verrou.mjs'],
+      'hotes/godot/construire.mjs': ['scripts/entree-d-hote.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/fileBornee.mjs', 'scripts/guards/lib/lister.mjs', 'scripts/guards/lib/pid.mjs', 'scripts/test/partition.mjs', 'scripts/test/tetesDePartie.mjs', 'scripts/test/verrou.mjs'],
       'hotes/godot/avis.mjs': ['scripts/guards/lib/lister.mjs'],
       'hotes/godot/cibles/propositions/sources/rendre.mjs': ['scripts/guards/lib/lister.mjs', 'scripts/recette/navigateur.mjs'],
       'hotes/godot/asset/charger.mjs': ['scripts/entree-d-hote.mjs'],

@@ -67,6 +67,8 @@ import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomiq
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
 import { estGroupeVivant } from '../../scripts/guards/lib/pid.mjs'
+import { VARIABLE_PARTIE, ligneDePartie, partieDe, trancher } from '../../scripts/test/partition.mjs'
+import { TETES_DE_PARTIE } from '../../scripts/test/tetesDePartie.mjs'
 import { prendreVerrouAsync } from '../../scripts/test/verrou.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { assetsDeLHote } from './asset/charger.mjs'
@@ -844,9 +846,26 @@ const COEURS_D_UNE_RECETTE_RENDUE = 2
  *  moteur et le processus de son parcours, qui sert son pont (#3412). */
 export const jeuxPilotesDeFront = () => lancementsDeFront(COEURS_D_UNE_RECETTE_RENDUE)
 
+/** Les lancements `{ recette, rendu }` des `recettes` sous chacun des `RENDUS`, dans cet ordre, restreints à la
+ *  `partie` (`partieDe`, `null` : tous) par `trancher` sur la clé `<recette>|<rendu>` et la tête
+ *  `TETES_DE_PARTIE['godot:rendus']`, avec la ligne de bilan de la partie (`ligneDePartie`, `null` hors partie). Une
+ *  partie peut n'en tenir aucun. PURE. #5037 */
+export function lancementsDeLaPartie(recettes, partie) {
+  const tous = recettes.flatMap((recette) => RENDUS.map((rendu) => ({ recette, rendu, cle: `${recette}|${rendu}` })))
+  if (!partie) return { lancements: tous.map(({ recette, rendu }) => ({ recette, rendu })), ligne: null }
+  const cles = tous.map((l) => l.cle)
+  const tranche = trancher(cles, partie, TETES_DE_PARTIE['godot:rendus'].durees)
+  const miens = new Set(tranche.fichiers)
+  return {
+    lancements: tous.filter((l) => miens.has(l.cle)).map(({ recette, rendu }) => ({ recette, rendu })),
+    ligne: ligneDePartie(partie, tranche, cles.length, 'lancement(s)'),
+  }
+}
+
 /** Le projet importé par l'éditeur `binaire`, les échantillons de l'atelier figés (`figerLeDecor`) sous
  *  `recettes/vues/decor.json` de la copie, que lit `aretes-en-instances.gd`, puis chaque recette déclarant
- *  `const RECETTE_RENDUE := true` jouée en
+ *  `const RECETTE_RENDUE := true` jouée — sous `VARIABLE_PARTIE`, les seuls lancements de sa partie
+ *  (`lancementsDeLaPartie`) — en
  *  rendu réel sous chacun des `RENDUS` (#3951), sur un écran (`ECRAN_VIRTUEL` sans lui), menées de front
  *  (`menerDeFront`), chacune tenant `COEURS_D_UNE_RECETTE_RENDUE` cœurs, avec les arguments du pont (`argumentsDuPont`). Une recette rendue dit son rendu (`rendu=<méthode>`) : un rendu demandé que la machine ne tient
  *  pas, et que Godot remplace, est une erreur. La recette imprime sa ligne de clôture (`erreurs=<n>`) après ses
@@ -859,8 +878,12 @@ function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins })
     const recettes = scriptsDe(copie).filter((script) => script.startsWith('res://recettes/') &&
       /^const RECETTE_RENDUE := true\s*$/m.test(sourceDe(copie, script)))
     if (!recettes.length) return [`aucune recette rendue sous ${PROJET}`]
+    const partie = partieDe(process.env[VARIABLE_PARTIE])
+    if (partie?.refus) return [partie.refus]
+    const { lancements, ligne } = lancementsDeLaPartie(recettes, partie)
+    if (ligne) console.log(ligne)
     const [commande, ...prefixe] = [...ECRAN_VIRTUEL, binaire]
-    const erreurs = await menerDeFront(copie, recettes.flatMap((recette) => RENDUS.map((rendu) => ({
+    const erreurs = await menerDeFront(copie, lancements.map(({ recette, rendu }) => ({
       commande,
       args: (donnees) => [...prefixe, '--path', copie, '--rendering-method', rendu, '--audio-driver', 'Dummy', '--script', recette, ...argumentsDuPont(donnees)],
       juger: ({ lignes, echec }) => {
@@ -873,8 +896,8 @@ function rendre(binaire, { DOSSIER_DES_MODELES, figerLeDecor, figerLesDessins })
           ...(lignes.some((l) => l.includes(` rendu=${rendu}`)) ? [] : [`${recette} : le rendu ${rendu} demandé n'est pas celui qui a rendu`]),
         ]
       },
-    }))), COEURS_D_UNE_RECETTE_RENDUE)
-    if (!erreurs.length) console.log(`[godot] ${recettes.length} recette(s) rendue(s) sous ${RENDUS.join(' et ')}`)
+    })), COEURS_D_UNE_RECETTE_RENDUE)
+    if (!erreurs.length) console.log(`[godot] ${lancements.length} lancement(s) de ${recettes.length} recette(s) rendue(s) sous ${RENDUS.join(' et ')}`)
     return erreurs
   })
 }

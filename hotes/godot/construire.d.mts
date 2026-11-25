@@ -23,3 +23,5 @@ export function ecartsDeLaCopie(avant: Readonly<Record<string, string>>, apres: 
 export function erreursDeLaRecette(recette: string, source: string, lignes: readonly string[]): string[];
 
 export function fichiersAuDelaDeGitHub(dossier: string): { fichier: string; taille: number }[];
+
+export function lancementsDeLaPartie(recettes: readonly string[], partie: { i: number; k: number } | null): { lancements: { recette: string; rendu: string }[]; ligne: string | null };

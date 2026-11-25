@@ -462,10 +462,33 @@ const parUniteDeCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
 /** Empreinte d'une liste de chemins TRIÉE : 12 hex de son SHA-1. */
 const empreinteDe = (chemins) => createHash('sha1').update(chemins.join('\n')).digest('hex').slice(0, 12)
 
-/** Tranche de la partie `{ i, k }` : les chemins relatifs POSIX dont `partieDuFichier` vaut `i`, triés
- *  par unité de code, l'empreinte de cette tranche, et celle de la liste ENTIÈRE (`empreinteListe`),
- *  commune aux K parties d'une même énumération. */
-export function trancher(chemins, { i, k }) {
-  const fichiers = chemins.filter((c) => partieDuFichier(c, k) === i).sort(parUniteDeCode)
+/** Parties (1..K) de la TÊTE pondérée : les clés de `tete` (clé → durée en ms, `TETES_DE_PARTIE`) PRÉSENTES dans
+ *  `chemins`, distribuées de la plus lourde à la plus légère (égalité de poids : ordre par unité de code), chacune
+ *  vers la part la moins chargée (égalité : le plus petit indice). Elle ne dépend que de la table et de la présence
+ *  de SES clés : une clé hors table n'y déplace rien. PURE. #5037 */
+export function partiesDeLaTete(chemins, k, tete) {
+  const presents = new Set(chemins)
+  const lourdes = Object.entries(tete).filter(([c]) => presents.has(c)).sort(([a, x], [b, y]) => y - x || parUniteDeCode(a, b))
+  const charges = Array(k).fill(0)
+  const parties = new Map()
+  for (const [c, ms] of lourdes) {
+    const j = charges.indexOf(Math.min(...charges))
+    parties.set(c, j + 1)
+    charges[j] += ms
+  }
+  return parties
+}
+
+/** Tranche de la partie `{ i, k }` : les clés de la tête pondérée `tete` que `partiesDeLaTete` donne à `i`, puis
+ *  les autres dont `partieDuFichier` vaut `i`, triées par unité de code, l'empreinte de cette tranche, et celle de
+ *  la liste ENTIÈRE (`empreinteListe`), commune aux K parties d'une même énumération. */
+export function trancher(chemins, { i, k }, tete) {
+  const parties = partiesDeLaTete(chemins, k, tete)
+  const fichiers = chemins.filter((c) => (parties.get(c) ?? partieDuFichier(c, k)) === i).sort(parUniteDeCode)
   return { fichiers, empreinte: empreinteDe(fichiers), empreinteListe: empreinteDe([...chemins].sort(parUniteDeCode)) }
 }
+
+/** Ligne de bilan d'une partie : `[partie] i/K : N <unite> sur T · empreinte … · liste …`, lue par
+ *  `scripts/test/dureesCi.mjs` (`PARTIE`) sur les jobs de la suite. PURE. */
+export const ligneDePartie = ({ i, k }, tranche, total, unite = 'fichier(s)') =>
+  `[partie] ${i}/${k} : ${tranche.fichiers.length} ${unite} sur ${total} · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}`

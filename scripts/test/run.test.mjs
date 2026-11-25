@@ -4,6 +4,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import os from 'node:os'
+import { fileURLToPath } from 'node:url'
 import {
   bornesWorkers,
   maxWorkersMono,
@@ -31,9 +32,12 @@ import {
   partieDe,
   refusDePartie,
   trancher,
+  partiesDeLaTete,
   ateliersMorts,
   nomDAtelier,
 } from './partition.mjs'
+import { SEUIL_DE_TETE_MS, TETES_DE_PARTIE } from './tetesDePartie.mjs'
+import { blocsDeJobs, matriceDe, nomDeGate, stepsCi } from '../gates/gatesDeCi.mjs'
 
 // `filterFiles` de Vitest résout ses filtres relatifs contre le CWD (`relative(dir, f)`) : la
 // racine du cas doit donc être celle d'où tourne le runner, comme en conditions réelles.
@@ -422,42 +426,90 @@ test('partie : un filtre de fichier, un drapeau restrictif ou global à un proce
   assert.match(refusDePartie({ filtres: [], argv: ['--regime=suite'] }), /combinée à --regime=suite/)
 })
 
-test('partie : pour K ∈ {1..5}, les K tranches sont DISJOINTES et leur union est la liste', () => {
+/** Une tête pondérée de fixture sur `listeDe` : trois clés lourdes, une légère, et une clé ABSENTE de la liste. */
+const TETE = { 'src/engine/f1.test.ts': 900, 'src/ui/f0.test.ts': 800, 'src/state/f2.test.ts': 800, 'src/ui/f3.test.ts': 100, 'absent/x.test.ts': 5000 }
+
+/** La partie (1..K) de chaque clé de `l` sous la tête `tete`. */
+const partieDeChacun = (l, k, tete) =>
+  new Map(Array.from({ length: k }, (_, i) => trancher(l, { i: i + 1, k }, tete).fichiers.map((f) => [f, i + 1])).flat())
+
+test('partie : pour K ∈ {1..5}, avec ou sans tête, les K tranches sont DISJOINTES et leur union est la liste', () => {
   const liste = listeDe(200)
-  for (let k = 1; k <= 5; k += 1) {
-    const tranches = Array.from({ length: k }, (_, i) => trancher(liste, { i: i + 1, k }).fichiers)
-    const union = tranches.flat()
-    assert.equal(union.length, liste.length, `K=${k} : un fichier joué deux fois ou jamais`)
-    assert.deepEqual([...union].sort(), [...liste].sort(), `K=${k} : union ≠ liste`)
-    for (const t of tranches) assert.ok(t.length > 0, `K=${k} : une tranche vide sur 200 fichiers`)
+  for (const tete of [{}, TETE])
+    for (let k = 1; k <= 5; k += 1) {
+      const tranches = Array.from({ length: k }, (_, i) => trancher(liste, { i: i + 1, k }, tete).fichiers)
+      const union = tranches.flat()
+      assert.equal(union.length, liste.length, `K=${k}, tête ${Object.keys(tete).length} : un fichier joué deux fois ou jamais`)
+      assert.deepEqual([...union].sort(), [...liste].sort(), `K=${k}, tête ${Object.keys(tete).length} : union ≠ liste`)
+      for (const t of tranches) assert.ok(t.length > 0, `K=${k} : une tranche vide sur 200 fichiers`)
+    }
+})
+
+test('partie : un fichier AJOUTÉ hors de la tête ne déplace aucun autre fichier de tranche', () => {
+  const liste = listeDe(120)
+  for (const tete of [{}, TETE])
+    for (let k = 2; k <= 5; k += 1) {
+      const avant = partieDeChacun(liste, k, tete)
+      for (const ajout of ['src/aaa/premier.test.ts', 'src/state/f60b.test.ts', 'zzz/dernier.test.ts']) {
+        const apres = partieDeChacun([...liste, ajout], k, tete)
+        const deplaces = liste.filter((f) => apres.get(f) !== avant.get(f))
+        assert.deepEqual(deplaces, [], `K=${k}, tête ${Object.keys(tete).length}, ajout de ${ajout} : fichiers déplacés`)
+      }
+    }
+})
+
+test('tête pondérée : de la plus lourde à la plus légère, chacune vers la part la MOINS chargée — égalités par unité de code, puis plus petit indice', () => {
+  const tete = { h5: 10, h4: 30, h3: 30, h2: 40, h1: 50 }
+  assert.deepEqual([...partiesDeLaTete(['h1', 'h2', 'h3', 'h4', 'h5', 'hors'], 2, tete)],
+    [['h1', 1], ['h2', 2], ['h3', 2], ['h4', 1], ['h5', 2]])
+  assert.deepEqual([...partiesDeLaTete(['b', 'a', 'c'], 3, { c: 7, b: 7, a: 7 })], [['a', 1], ['b', 2], ['c', 3]])
+  const liste = ['h1', 'h2', 'h3', 'h4', 'h5', ...listeDe(30)]
+  assert.deepEqual(trancher(liste, { i: 1, k: 2 }, tete).fichiers.filter((f) => f in tete), ['h1', 'h4'])
+  assert.deepEqual(trancher(liste, { i: 2, k: 2 }, tete).fichiers.filter((f) => f in tete), ['h2', 'h3', 'h5'])
+})
+
+test('tête pondérée : une clé de la table ABSENTE de la liste n’entre pas dans la tête, et ne pèse sur aucune part', () => {
+  const liste = listeDe(60)
+  const { 'absent/x.test.ts': _absente, ...presentes } = TETE
+  for (let k = 2; k <= 5; k += 1) {
+    assert.deepEqual(partieDeChacun(liste, k, TETE), partieDeChacun(liste, k, presentes), `K=${k}`)
+    assert.equal(partiesDeLaTete(liste, k, TETE).has('absent/x.test.ts'), false)
   }
 })
 
-test('partie : un fichier AJOUTÉ ne déplace aucun autre fichier de tranche', () => {
-  const liste = listeDe(120)
-  const partieDeChacun = (l, k) =>
-    new Map(Array.from({ length: k }, (_, i) => trancher(l, { i: i + 1, k }).fichiers.map((f) => [f, i + 1])).flat())
-  for (let k = 2; k <= 5; k += 1) {
-    const avant = partieDeChacun(liste, k)
-    for (const ajout of ['src/aaa/premier.test.ts', 'src/state/f60b.test.ts', 'zzz/dernier.test.ts']) {
-      const apres = partieDeChacun([...liste, ajout], k)
-      const deplaces = liste.filter((f) => apres.get(f) !== avant.get(f))
-      assert.deepEqual(deplaces, [], `K=${k}, ajout de ${ajout} : fichiers déplacés`)
-    }
+// Sonde du juge de #5037 (issuecomment-7157448028) : à l'empreinte seule, les têtes lourdes s'empilent dans une part.
+// Distribuée, chaque part de la tête committée tient sous la borne de Graham (somme / K + la plus lourde).
+test('tête pondérée committée : sa gate est jouée par un job matrice de ci.yml, et chaque part de la tête y tient sous somme / K + la plus lourde', () => {
+  const racine = fileURLToPath(new URL('../..', import.meta.url))
+  const blocs = blocsDeJobs({ cwd: racine })
+  for (const [gate, { mesure, durees }] of Object.entries(TETES_DE_PARTIE)) {
+    const jobs = stepsCi({ cwd: racine }).filter((st) => nomDeGate(st.commande) === gate).map((st) => st.job)
+    assert.equal(jobs.length, 1, `${gate} : jouée par ${jobs.length} job(s) de ci.yml`)
+    const matrice = matriceDe(blocs.find((b) => b.job === jobs[0]))
+    assert.ok(matrice, `${gate} : son job ${jobs[0]} n’est pas une matrice, sa tête ne sert à rien`)
+    assert.match(mesure.date, /^\d{4}-\d{2}-\d{2}$/, `${gate} : table non datée`)
+    assert.ok(Number.isSafeInteger(mesure.course), `${gate} : course de mesure absente`)
+    const poids = Object.values(durees)
+    assert.deepEqual(Object.entries(durees).filter(([, ms]) => !(ms >= SEUIL_DE_TETE_MS)), [], `${gate} : clé sous le seuil de tête`)
+    const k = matrice.valeurs.length
+    const charges = Array(k).fill(0)
+    for (const [c, p] of partiesDeLaTete(Object.keys(durees), k, durees)) charges[p - 1] += durees[c]
+    const borne = poids.reduce((a, b) => a + b, 0) / k + Math.max(...poids)
+    assert.ok(Math.max(...charges) <= borne, `${gate} K=${k} : charges ${charges.join(' | ')} > ${borne}`)
   }
 })
 
 test('partie : la tranche est triée par unité de code, son empreinte ne dépend que de son contenu', () => {
   const liste = listeDe(60)
-  const t = trancher(liste, { i: 2, k: 3 })
+  const t = trancher(liste, { i: 2, k: 3 }, {})
   assert.deepEqual(t.fichiers, [...t.fichiers].sort((a, b) => (a < b ? -1 : a > b ? 1 : 0)))
   assert.match(t.empreinte, /^[0-9a-f]{12}$/)
-  assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinte, t.empreinte, 'l’ordre d’énumération change l’empreinte')
+  assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }, {}).empreinte, t.empreinte, 'l’ordre d’énumération change l’empreinte')
   assert.match(t.empreinteListe, /^[0-9a-f]{12}$/)
   assert.notEqual(t.empreinteListe, t.empreinte, 'l’empreinte de la liste est celle de la liste ENTIÈRE')
-  for (const i of [1, 3]) assert.equal(trancher(liste, { i, k: 3 }).empreinteListe, t.empreinteListe, 'les K parties portent la même empreinte de liste')
-  assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'l’ordre d’énumération change l’empreinte de liste')
-  assert.notEqual(trancher(liste.slice(1), { i: 2, k: 3 }).empreinteListe, t.empreinteListe, 'une liste amputée garde son empreinte')
+  for (const i of [1, 3]) assert.equal(trancher(liste, { i, k: 3 }, {}).empreinteListe, t.empreinteListe, 'les K parties portent la même empreinte de liste')
+  assert.equal(trancher([...liste].reverse(), { i: 2, k: 3 }, {}).empreinteListe, t.empreinteListe, 'l’ordre d’énumération change l’empreinte de liste')
+  assert.notEqual(trancher(liste.slice(1), { i: 2, k: 3 }, {}).empreinteListe, t.empreinteListe, 'une liste amputée garde son empreinte')
 })
 
 // #2603

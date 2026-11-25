@@ -17,7 +17,8 @@ import { RELAY_URL_PROD } from '../../src/hote/coop/page';
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs';
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
-import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
+import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, lancementsDeLaPartie, signaturesDu } from './construire.mjs';
+import { TETES_DE_PARTIE } from '../../scripts/test/tetesDePartie.mjs';
 
 /** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
@@ -196,5 +197,27 @@ describe('la garde de l’export Web : aucun fichier au-delà de ce que GitHub t
       truncateSync(join(d, rel), taille);
     }
     expect(fichiersAuDelaDeGitHub(d)).toEqual([{ fichier: 'index.pck', taille: 104_857_601 }, { fichier: 'modeles/lourd.scn', taille: 200_000_000 }]);
+  });
+});
+
+describe('les lancements rendus d’une partie (`lancementsDeLaPartie`, #5037)', () => {
+  const durees: Record<string, number> = TETES_DE_PARTIE['godot:rendus'].durees;
+  const [recetteLourde, renduLourd] = Object.keys(durees).sort((a, b) => durees[b] - durees[a])[0].split('|');
+  const recettes = [...new Set([recetteLourde, ...Array.from({ length: 6 }, (_, n) => `res://recettes/r${n}.gd`)])].sort();
+  const cle = ({ recette, rendu }: { recette: string; rendu: string }) => `${recette}|${rendu}`;
+
+  it('hors partie, chaque recette sous chacun des deux rendus, dans cet ordre, sans ligne de bilan', () => {
+    const { lancements, ligne } = lancementsDeLaPartie(recettes, null);
+    expect(lancements.map(cle)).toEqual(recettes.flatMap((r) => [`${r}|forward_plus`, `${r}|gl_compatibility`]));
+    expect(ligne).toBeNull();
+  });
+
+  it('sous 3 parties : disjointes, leur union est la liste dans son ordre, le plus lourd lancement de la tête en partie 1', () => {
+    const tous = lancementsDeLaPartie(recettes, null).lancements.map(cle);
+    const parts = [1, 2, 3].map((i) => lancementsDeLaPartie(recettes, { i, k: 3 }));
+    expect(parts.flatMap((p) => p.lancements.map(cle)).sort()).toEqual([...tous].sort());
+    for (const p of parts) expect(p.lancements.map(cle)).toEqual(tous.filter((c) => p.lancements.map(cle).includes(c)));
+    expect(parts[0].lancements.map(cle)).toContain(`${recetteLourde}|${renduLourd}`);
+    expect(parts[1].ligne).toMatch(new RegExp(`^\\[partie\\] 2/3 : ${parts[1].lancements.length} lancement\\(s\\) sur ${tous.length} · empreinte [0-9a-f]{12} · liste [0-9a-f]{12}$`));
   });
 });

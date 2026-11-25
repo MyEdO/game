@@ -35,6 +35,16 @@ test('dureesDuJournal : la ligne de MODULE ✓ ou ❯ (jamais celle d’un test)
   assert.deepEqual(dureesDuJournal(''), { vitest: {}, node: {}, lus: 0, attendus: 0, parties: [], manquantes: [], illisibles: [] })
 })
 
+test('dureesDuJournal : les `[durees] node` des parties d’une gate (job matrice `types-hooks i/K`, #5037) se FUSIONNENT ; leur `[partie]` n’est pas celle de la suite', () => {
+  const partie = (i, fichiers) => [
+    `types-hooks ${i}/2\tUNKNOWN STEP\t2026-11-25T08:00:00.0000000Z [partie] ${i}/2 : 1 fichier(s) sur 2 · empreinte 0 · liste 0`,
+    `types-hooks ${i}/2\tUNKNOWN STEP\t2026-11-25T08:09:00.0000000Z [durees] node test:hooks ${JSON.stringify(fichiers)}`,
+  ]
+  const lu = dureesDuJournal([...partie(1, { 'scripts/hooks/a.test.mjs': 7 }), ...partie(2, { 'scripts/guards/b.test.mjs': 9 })].join('\n'))
+  assert.deepEqual(lu.node, { 'scripts/hooks/a.test.mjs': 7, 'scripts/guards/b.test.mjs': 9 })
+  assert.deepEqual([lu.parties, lu.manquantes, lu.attendus], [[], [], 0])
+})
+
 test('memoCiDe : la forme `{ run, attempt, sha, date, vitest, node }`, durées finies ≥ 0 ; toute autre forme rend {}', () => {
   const memo = { run: 7, attempt: 1, sha: 'abc', date: '2026-10-08T03:48:31Z', vitest: { 'src/a.test.ts': 5, 'src/b.test.ts': -1 }, node: { 'scripts/n.test.mjs': 'lent' } }
   assert.deepEqual(memoCiDe(memo), { ...memo, vitest: { 'src/a.test.ts': 5 }, node: {} })
