@@ -1,5 +1,5 @@
 // Équilibrage : joue des expéditions entières sous node, sans interface, avec une stratégie simple : recruter jusqu'à
-// quatre héros en état de partir (au-delà de huit, seulement sans solde : `engagementSansSolde`), soigner, loger, bâtir
+// quatre héros en état de partir (l'engagement est gratuit), soigner, loger, bâtir
 // dans `ORDRE_DES_BATIMENTS` sans entamer `RESERVE`, équiper (`equiper`), suivre le plan conseillé de carrière à chaque
 // retour, apprendre sa voie (`apprendreLaVoie`), partir avec les plus avancés vers la destination la plus lointaine dont
 // chacun a le niveau attendu (`attendu`), la première tant que le groupe n'est pas complet, avec des potions, prier et
@@ -19,7 +19,7 @@ import { apprendreLaVoie, attendu, equiper } from './balayage';
 const ORDRE_DES_BATIMENTS = ['salle', 'temple', 'peage', 'forge', 'relais', 'cartographe', 'memorial'] as const;
 const RESERVE = 60;
 /** Les postes de dépense d'une sortie, dans l'ordre où la stratégie les paie. */
-const POSTES = ['recrues', 'soins', 'chambres', 'batiments', 'equipement'] as const;
+const POSTES = ['soins', 'chambres', 'batiments', 'equipement'] as const;
 type Poste = (typeof POSTES)[number];
 /** Une sortie mesurée : son rang, son jour de retour, sa destination, l'or gagné au retour, l'or dépensé avant le
  *  départ par poste, la bourse au retour, les jours qu'elle a pris, les Blessures que l'hospice a rendues avant le
@@ -48,7 +48,7 @@ function equilibrer(graine0: number, expeditions: number, parties: number, rentr
       /** Paie `geste` au poste `poste` : ce qu'il ôte à la bourse. */
       const payer = (poste: Poste, geste: () => void) => { const avant = e.or; geste(); depense[poste] += avant - e.or; };
       voir(e);
-      payer('recrues', () => { while (e.candidats.length && e.roster.filter(partant).length < J.TAILLE_DU_GROUPE && (e.roster.length < 2 * J.TAILLE_DU_GROUPE || J.engagementSansSolde(e))) { const c = e.candidats[0]; if (J.recruter(e, 0)) break; compter(engages, `${e.batiments.relais}|${c.carriere}`); } });
+      while (e.candidats.length && e.roster.filter(partant).length < J.TAILLE_DU_GROUPE) { const c = e.candidats[0]; if (J.recruter(e, 0)) break; compter(engages, `${e.batiments.relais}|${c.carriere}`); }
       let blessures = 0;
       payer('soins', () => { for (const h of e.roster) { const avant = h.c.wounds.current; if (J.blesse(h) && !J.soignerAuTemple(e, h.c.id)) blessures += h.c.wounds.current - avant; } });
       payer('chambres', () => { for (const h of e.roster) if (!partant(h)) J.prendreUneChambre(e, h.c.id); });
