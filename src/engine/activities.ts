@@ -19,7 +19,7 @@ import type { PlayerText } from '../i18n/playerText';
 import { refCouvre, type RefDesignee, memeSpecialisation } from '../data/schemas/grammaire/ref';
 import { easeDifficulty, estJete, clampTarget, cibleDuTest, ECHEC_SANS_JET, type EchecSansJet } from './tests';
 import {
-  trappingsInstanciables,
+  trappingsEnVente,
   talents,
   levelsForCareer,
   skills,
@@ -811,9 +811,9 @@ export interface CraftOption {
  *  équipement de la base à prix chiffré ET dans le commerce ordinaire (`craftSpecOf` → null sinon).
  *  La source exige seulement « les Compétences Métier appropriées » (LDB 23 l.76), sans table
  *  d'adéquation Métier→objet — jeu sans MJ : catalogue non restreint (le Métier reste requis), point
- *  ouvert tranché en donnée. Trié par famille puis prix croissant. Lit `trappingsInstanciables`. */
+ *  ouvert tranché en donnée. Trié par famille puis prix croissant. Lit `trappingsEnVente`. */
 export function craftCatalog(): CraftOption[] {
-  return trappingsInstanciables()
+  return trappingsEnVente()
     .filter((t) => listedBrass(t.price) > 0)
     .flatMap((t) => {
       const spec = craftSpecOf(t);
@@ -890,9 +890,9 @@ export function orderBlockOf(t: Pick<TrappingData, 'price' | 'availability'>): '
 }
 
 /** Catalogue de « Passer commande » (LDB 23 l.178-184), payé à la commande — porte d'entrée
- *  `orderBlockOf` (partagée avec `orderItem`), sur `trappingsInstanciables`. */
+ *  `orderBlockOf` (partagée avec `orderItem`), sur `trappingsEnVente`. */
 export function orderCatalog(): { id: string; label: string; categorie: string; priceBrass: number }[] {
-  return trappingsInstanciables()
+  return trappingsEnVente()
     .filter((t) => orderBlockOf(t) === null)
     .map((t) => ({ id: t.id, label: t.label, categorie: t.categorie, priceBrass: listedBrass(t.price) }))
     .sort((a, b) => a.priceBrass - b.priceBrass);

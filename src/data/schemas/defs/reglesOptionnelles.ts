@@ -89,7 +89,7 @@ const doc = document(
     ...bornesSchema.shape,
     modificateur: enumNomme({ bonus: 'Bonus', malus: 'Malus' }).optional(),
     hint: z.string().optional(),
-    reprojetteArmement: z.boolean().optional(),
+    reprojetteEquipement: z.boolean().optional(),
     action: nommerChamps(z
       .strictObject({
         when: ruleValueSchema,
@@ -119,7 +119,7 @@ const doc = document(
     step: { label: 'Incrément de saisie' },
     modificateur: { label: 'Lecture signée', hint: 'Un nombre qui modifie un Test : un bonus se lit tel quel (+60), un malus en négatif (−30)' },
     hint: { label: 'Aide affichée', hint: 'Aide courte affichée sous le contrôle' },
-    reprojetteArmement: { label: 'Recalculer l’armement', hint: 'Applique le profil actif aux armes portées quand la valeur de cette règle change' },
+    reprojetteEquipement: { label: 'Recalculer l’équipement', hint: 'Applique le réglage actif à l’équipement possédé quand la valeur de cette règle change' },
     action: { label: 'Action liée', hint: 'Proposée sous la rangée quand la condition de déclenchement est remplie' },
   },
   {

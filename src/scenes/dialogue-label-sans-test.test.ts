@@ -28,6 +28,7 @@ import path from 'node:path';
 import { CHAR_LABELS, DIFFICULTY_LABELS } from '../engine/types';
 import { formatMoney, spellMoney } from '../engine/money';
 import { mesurerLibellesDeReponse } from '../../scripts/guards/lib/dialogueLabelTest.mjs';
+import { cheminsDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { avisLibelleRecopie, validateScene } from '../noyau/validateScene';
 import { testScenarios } from './test-scenarios';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
@@ -44,6 +45,9 @@ const fluxDeTest = (over: Record<string, unknown> = {}) => ({
   reussite: { kind: 'sequence', etapes: [] }, echec: { kind: 'sequence', etapes: [] },
 });
 
+/** Le document du dépôt jouet, relatif à sa racine. */
+const JOUET = 'src/scenes/jouet/jouet-projet.json';
+
 /** Dépôt JOUET hors dépôt (dossier temporaire) : un document de scène et son catalogue de
  *  Compétences. HORS `src/scenes` du dépôt réel — un document fautif posé en fixture y serait vu par
  *  la mesure ci-dessus (et par toutes les autres gardes qui scannent ce dossier). */
@@ -55,23 +59,23 @@ function depotJouet(label: string, flow: unknown = fluxDeTest(), cost?: Record<s
   const doc = {
     dialogues: [{ id: 'd', start: { id: 'n' }, nodes: [{ id: 'n', desc: '…', choices: [{ id: 'choix', label, flow, ...(cost ? { cost } : {}) }] }] }],
   };
-  fs.writeFileSync(path.join(racine, 'src/scenes/jouet/jouet-projet.json'), JSON.stringify(doc, null, 1));
+  fs.writeFileSync(path.join(racine, JOUET), JSON.stringify(doc, null, 1));
   return racine;
 }
 
 /** Le terme NOMMÉ par la garde pour ce libellé jouet, ou `null` si elle le laisse passer. */
 function trouvaille(label: string, flow?: unknown, cost?: Record<string, number>): string | null {
-  const trouves = mesurerLibellesDeReponse(VOC, depotJouet(label, flow, cost));
+  const trouves = mesurerLibellesDeReponse(VOC, depotJouet(label, flow, cost), [JOUET]);
   if (!trouves.length) return null;
   expect(trouves, 'un libellé fautif se nomme UNE fois').toHaveLength(1);
-  expect(trouves[0]).toContain('src/scenes/jouet/jouet-projet.json:');
+  expect(trouves[0]).toContain(`${JOUET}:`);
   return trouves[0].replace(/^.*\[/, '').replace(/\]$/, '');
 }
 
 describe('#1869 — le libellé d’une réponse ne dit pas le Test de son propre flux', () => {
-  it('aucun document de scène ne recopie ce que le tag dérivé dira déjà', () => {
+  it.each([['du commun', undefined], ['du jeu de rôle', cheminsDesProjetsLivres()]] as const)('aucun paquet %s ne recopie ce que le tag dérivé dira déjà', (_corpus, paquets) => {
     expect(
-      mesurerLibellesDeReponse(VOC),
+      mesurerLibellesDeReponse(VOC, undefined, paquets),
       'le tag « [Compétence — Difficulté] » et la puce de coût sont DÉRIVÉS de la donnée : retirer la mention du libellé',
     ).toEqual([]);
   });

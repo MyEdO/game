@@ -14,6 +14,7 @@ import {
   type Slot,
 } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, scannerDonnees } from '../../scripts/docs/lib/structures-scan.mjs';
+import { cheminsDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { ANGLES_MORTS_SLOTS, MANDAT_SLOTS } from '../../scripts/docs/lib/structures-lexique.mjs';
 import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
@@ -49,7 +50,7 @@ const DOC_STRUCTURES = await rendreCible('docs/structures-donnees.md');
 const ROOT = execFileSync('git', ['rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
 /** La composition defs → familles/enums → scan vit dans `scanDuCorpus` (`structures-scan.mts`) : la
  *  MÊME que lisent `structures-contrat.test.ts`, `build-structures.mts` et `inventaireDeDette.mts`. */
-const { defs: DEFS, scan } = scanDuCorpus(ROOT);
+const { defs: DEFS, scan } = scanDuCorpus(ROOT, cheminsDesProjetsLivres(ROOT));
 const SLOTS = slotsDuParse(scan, DEFS);
 const couple = (dataset: string, champ: string) => couplesDeReference(scan, SLOTS).find((c) => c.dataset === dataset && c.champ === champ);
 const slotsAuPath = (dataset: string, path: string) => SLOTS.filter((s) => s.dataset === dataset && s.path === path);
@@ -59,6 +60,11 @@ const PAQUET = paquetDeTest as unknown as {
   scenes: { layers: { tiles: string[] }[]; entities: { decor?: object }[]; dialogues: { nodes: { choices: { flow: { etapes: { effet: EffetDeTest }[] } }[] }[] }[] }[];
 };
 const slotsDuPaquet = (path: string) => slotsDuParse({ brutParNom: new Map([['paquet-de-test.json', PAQUET]]) }, DEFS).filter((s) => s.path === path);
+/** La mesure que rend `docs/structures-donnees.md` : le corpus par défaut de `scanDuCorpus`, celui du commun. */
+function mesureDuDoc() {
+  const { defs, scan: duDoc } = scanDuCorpus(ROOT);
+  return { scan: duDoc, slots: slotsDuParse(duDoc, defs) };
+}
 const couplesTouches = (slots: readonly Slot[]) => [...new Set([...occurrencesTouchees(scan, slots)].map((o) => `${o.dataset} | ${o.champ}`))].sort();
 
 describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', () => {
@@ -197,11 +203,10 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     const dossier = mkdtempSync(join(tmpdir(), 'slots-spec-'));
     try {
       mkdirSync(join(dossier, 'src/data'), { recursive: true });
-      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
       cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
       writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'savoir', label: 'Savoir' }, { id: 'art', label: 'Art' }]));
       writeFileSync(join(dossier, 'src/data/marins.json'), JSON.stringify([{ id: 'm1', skills: [{ id: 'savoir', spec: 'art' }] }, { id: 'm2', skills: [{ skillId: 'art' }] }]));
-      const fixture = scannerDonnees(dossier, []);
+      const fixture = scannerDonnees(dossier, [], undefined, undefined, []);
       expect(couplesDeReference(fixture, []).filter((c) => c.dataset === 'marins.json'), 'le témoin `skillId` se compte, la Spécialisation `art` non.').toEqual([{ dataset: 'marins.json', champ: 'skills', occurrences: 1, atteintes: 0 }]);
     } finally {
       rmSync(dossier, { recursive: true, force: true });
@@ -212,11 +217,10 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     const dossier = mkdtempSync(join(tmpdir(), 'slots-scalaire-'));
     try {
       mkdirSync(join(dossier, 'src/data'), { recursive: true });
-      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
       cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
       writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
       writeFileSync(join(dossier, 'src/data/ecoles.json'), JSON.stringify([{ id: 'e1', souffle: 'alpha' }, { id: 'e2', souffle: 'beta' }]));
-      const fixture = scannerDonnees(dossier, []);
+      const fixture = scannerDonnees(dossier, [], undefined, undefined, []);
       const ecoles = fixture.brutParNom.get('ecoles.json') as { souffle: string }[];
       const slots: Slot[] = ecoles.map((porteur) => ({ dataset: 'ecoles.json', path: '[].souffle', type: 'skill', porteur, cle: 'souffle', parCle: false }));
       expect([...new Set([...occurrencesTouchees(fixture, slots)].map((o) => `${o.dataset} | ${o.champ}`))]).toEqual(['ecoles.json | souffle']);
@@ -231,11 +235,10 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     const dossier = mkdtempSync(join(tmpdir(), 'slots-racine-'));
     try {
       mkdirSync(join(dossier, 'src/data'), { recursive: true });
-      mkdirSync(join(dossier, 'src/scenes'), { recursive: true });
       cpSync(join(ROOT, 'src/data/schemas/grammaire'), join(dossier, 'src/data/schemas/grammaire'), { recursive: true });
       writeFileSync(join(dossier, 'src/data/skills.json'), JSON.stringify([{ id: 'alpha', label: 'Alpha' }, { id: 'beta', label: 'Beta' }]));
       writeFileSync(join(dossier, 'src/data/grille.json'), JSON.stringify([[{ skillId: 'alpha' }, { skillId: 'beta' }], [{ skillId: 'beta' }]]));
-      const fixture = scannerDonnees(dossier, []);
+      const fixture = scannerDonnees(dossier, [], undefined, undefined, []);
       const grille = fixture.brutParNom.get('grille.json') as { skillId: string }[][];
       const slots: Slot[] = grille.flat().map((porteur) => ({
         dataset: 'grille.json',
@@ -253,10 +256,11 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     }
     const cles = registreDesSlots(scan, SLOTS).filter((l) => l.path.endsWith('{}'));
     expect(cles.length, 'aucun slot porté par une clé de record : le témoin ne dirait rien.').toBeGreaterThan(0);
-    for (const l of cles) {
-      expect(l.couples, `${l.dataset} › ${l.path} : une clé de record n’est jamais une case du scan.`).toEqual([]);
-      expect(DOC_STRUCTURES).toContain(`| \`${l.dataset}\` | \`${l.path}\` | \`${l.type}\` | ${l.valeurs} | — |`);
-    }
+    for (const l of cles) expect(l.couples, `${l.dataset} › ${l.path} : une clé de record n’est jamais une case du scan.`).toEqual([]);
+    const duDoc = mesureDuDoc();
+    const clesDuDoc = registreDesSlots(duDoc.scan, duDoc.slots).filter((l) => l.path.endsWith('{}'));
+    expect(clesDuDoc.length, 'aucun slot porté par une clé de record au doc : le témoin ne dirait rien.').toBeGreaterThan(0);
+    for (const l of clesDuDoc) expect(DOC_STRUCTURES).toContain(`| \`${l.dataset}\` | \`${l.path}\` | \`${l.type}\` | ${l.valeurs} | — |`);
   });
 
   it('le volet est ÉMIS dans `docs/structures-donnees.md` (le doc et la garde lisent la MÊME mesure)', () => {
@@ -264,7 +268,8 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(doc, 'le §6 du doc a disparu : le volet SLOTS n’aurait plus de face lisible.').toContain(
       '## 6. Slots DÉCLARÉS × réfs OBSERVÉES',
     );
-    expect(doc).toContain(`**${champsSansSlot(scan, SLOTS).length}** couples (dataset, champ) sans slot déclaré.`);
-    expect(doc).toContain(`Slots déclarés : **${SLOTS.length}**`);
+    const duDoc = mesureDuDoc();
+    expect(doc).toContain(`**${champsSansSlot(duDoc.scan, duDoc.slots).length}** couples (dataset, champ) sans slot déclaré.`);
+    expect(doc).toContain(`Slots déclarés : **${duDoc.slots.length}**`);
   });
 });

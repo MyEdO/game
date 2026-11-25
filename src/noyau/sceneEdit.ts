@@ -8,6 +8,7 @@
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
 import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
+import type { EntreeNommee } from '../data/source/dossier';
 import {
   ActionAuthoree,
   DEFAULT_TERRAIN,
@@ -1303,15 +1304,15 @@ interface EcritureDeScene<D> {
  *  retenu) ; celui où le porteur `id` est retiré ; celui où l'élément `de` de la sous-collection à clé du porteur `id`,
  *  adressé de même, prend l'identifiant `vers` ; celui où son élément `element` est retiré ; et ce
  *  qui refuse le retrait du porteur `id`, ou de son élément `element`, dit. Un renommage sous un identifiant vide ou déjà
- *  pris rend le projet tel quel. `entrees` : les identifiants des entrées des fiches de dossier que l'hôte sert à la
+ *  pris rend le projet tel quel. `entrees` : les entrées des fiches de dossier que l'hôte sert à la
  *  session (`SessionDEdition`, `entreesDeFiche`). #3606 */
 interface EcritureDuPorteur<D> {
   ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D) => EcritureDeValeur<ProjetDEdition>;
-  creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec: string | undefined, entrees: readonly string[]) => { projet: ProjetDEdition; id: string } | undefined;
+  creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec: string | undefined, entrees: readonly EntreeNommee[]) => { projet: ProjetDEdition; id: string } | undefined;
   refusDeCreer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => string | undefined;
-  avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, entrees: readonly string[]) => readonly string[];
-  renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string, entrees: readonly string[]) => ProjetDEdition;
-  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly string[], parent?: string) => string | null;
+  avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, entrees: readonly EntreeNommee[]) => readonly string[];
+  renommer?: (projet: ProjetDEdition, sceneId: string, de: string, vers: string, entrees: readonly EntreeNommee[]) => ProjetDEdition;
+  refusDeRenommer?: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, entrees: readonly EntreeNommee[], parent?: string) => string | null;
   retirer?: (projet: ProjetDEdition, sceneId: string, id: string) => ProjetDEdition;
   renommerElement?: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => ProjetDEdition;
   retirerElement?: (projet: ProjetDEdition, sceneId: string, id: string, element: string) => ProjetDEdition;
@@ -1344,7 +1345,7 @@ function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur
     ...(renommer && { renommer: (projet: ProjetDEdition, sceneId: string, de: string, vers: string) => releve(projet, sceneId, (sc) => renommer(sc, de, vers)) }),
     ...(retirer && { retirer: (projet: ProjetDEdition, sceneId: string, id: string) => releve(projet, sceneId, (sc) => retirer(sc, id)) }),
     ...(renommerElement && { renommerElement: (projet: ProjetDEdition, sceneId: string, id: string, de: string, vers: string, parent?: string) => releve(projet, sceneId, (sc) => renommerElement(sc, id, de, vers, parent)) }),
-    ...(refusDeRenommer && { refusDeRenommer: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, _entrees: readonly string[], parent?: string) => refusDeRenommer(DOCUMENTS.scene.lire(projet, sceneId)!, id, vers, element, parent) }),
+    ...(refusDeRenommer && { refusDeRenommer: (projet: ProjetDEdition, sceneId: string, id: string, vers: string, element: string | undefined, _entrees: readonly EntreeNommee[], parent?: string) => refusDeRenommer(DOCUMENTS.scene.lire(projet, sceneId)!, id, vers, element, parent) }),
   };
 }
 
@@ -1567,15 +1568,15 @@ const avecLesEcarts = (projet: ProjetDEdition, ecartes: NonNullable<NarratifBloc
 
 /** Les entrées `entrees` des fiches de dossier que l'hôte sert, qu'aucun écart du projet `projet` n'écarte encore
  *  (`NarratifEditor.tsx`, `EcartesForm`). */
-const entreesLibres = (projet: ProjetDEdition, entrees: readonly string[]): readonly string[] =>
-  entrees.filter((e) => !ecartsDe(projet).some((x) => x.entree === e));
+const entreesLibres = (projet: ProjetDEdition, entrees: readonly EntreeNommee[]): readonly string[] =>
+  entrees.map((e) => e.id).filter((e) => !ecartsDe(projet).some((x) => x.entree === e));
 
 /** Le refus de donner l'entrée `vers` à l'écart `id` du projet `projet` : une entrée hors des entrées `entrees` que
  *  l'hôte sert, ou qu'un autre écart écarte déjà ; `null` : retenue ou inchangée. */
-function refusDEntree(projet: ProjetDEdition, id: string, vers: string, entrees: readonly string[]): string | null {
+function refusDEntree(projet: ProjetDEdition, id: string, vers: string, entrees: readonly EntreeNommee[]): string | null {
   const entree = vers.trim();
   if (entree === id || entreesLibres(projet, entrees).includes(entree)) return null;
-  return entrees.includes(entree) ? tr('ecran.editeur.ecart.entreePrise', { entree }) : tr('ecran.editeur.ecart.entreeInconnue', { entree });
+  return entrees.some((e) => e.id === entree) ? tr('ecran.editeur.ecart.entreePrise', { entree }) : tr('ecran.editeur.ecart.entreeInconnue', { entree });
 }
 
 /** L'écriture d'un écart du narratif : son remplacement (`remplace`) ; sa création avec l'entrée `avec`, à motif vide,

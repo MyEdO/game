@@ -195,7 +195,7 @@ export function jouerUnReglage(
   stockage: Stockage | null,
   etat: Pick<Jeu, 'battle' | 'net'> | null,
   geste: { type: unknown; args: unknown },
-  partie?: Pick<Partie, 'reprojeterLArmement' | 'reprendreLaCadence'>,
+  partie?: Pick<Partie, 'reprojeterLEquipement' | 'reprendreLaCadence'>,
 ): void {
   const args = Array.isArray(geste.args) ? geste.args : [];
   const [id, valeur] = args;
@@ -221,6 +221,6 @@ export function jouerUnReglage(
   const jeu = etat ?? { battle: null, net: initialNet() };
   const verrou = reglesMaisonMutables(jeu);
   if (!verrou.mutable) return refuser('regle', verrou.reason);
-  if (geste.type === 'retablir') remettreUneRegleMaison(stockage, jeu, regle.id, partie?.reprojeterLArmement);
-  else if (conforme) reglerUneRegleMaison(stockage, jeu, regle.id, valeur, partie?.reprojeterLArmement);
+  if (geste.type === 'retablir') remettreUneRegleMaison(stockage, jeu, regle.id, partie?.reprojeterLEquipement);
+  else if (conforme) reglerUneRegleMaison(stockage, jeu, regle.id, valeur, partie?.reprojeterLEquipement);
 }
