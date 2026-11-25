@@ -12,6 +12,7 @@ import {
   OR_INITIAL,
   PRIX_DE_RECRUE,
   PROFILS,
+  PX_DE_MORR,
   Profil,
   SUPPLEMENT_PAR_NIVEAU,
   TypeDeSalle,
@@ -86,7 +87,7 @@ export function recrue(e: Etat, p: Profil): Heros {
   if (p.dotation) remettreLesObjets(e, h, p.dotation);
   prendreSesArmes(e, h);
   const morr = e.batiments.memorial;
-  if (morr) h.c.xp = (h.c.xp ?? 0) + Math.min(morr * 100, e.cimetiere.length * 10 * morr);
+  if (morr) h.c.xp = (h.c.xp ?? 0) + Math.min(morr * PX_DE_MORR.plafond, e.cimetiere.length * PX_DE_MORR.parMort * morr);
   return h;
 }
 

@@ -33,6 +33,9 @@ const apport = (picto: string, texte: string, chiffre?: string): Apport => (chif
  *  après une salle n'en rapporte qu'une part. Mesure MyEdO/game#4963. */
 export const PEAGE_PAR_SALLE: readonly number[] = [0, 3, 6, 12];
 const peageDuPalier = (palier: number): string => `+${PEAGE_PAR_SALLE[palier]} CO`;
+/** Les PX qu'une recrue reçoit par héros tombé, et leur plafond, multipliés par le palier du Jardin de Morr. */
+export const PX_DE_MORR = { parMort: 10, plafond: 100 } as const;
+const morrDuPalier = (palier: number): string => `${PX_DE_MORR.parMort * palier} PX par héros tombé (max ${PX_DE_MORR.plafond * palier})`;
 /** Prix des actes de l'hospice, avant la remise du dernier palier. */
 export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
 /** Le prix des Larmes de Shallya de l'hospice à chaque palier ; `null` : l'hospice ne les vend pas à ce palier. */
@@ -80,8 +83,8 @@ export const BATIMENTS: readonly Batiment[] = [
   ] },
   { id: 'memorial', nom: 'Jardin de Morr', role: 'Mémoire', paliers: [
     { cout: 0, trophees: 0, apports: [apport('croix', 'Un champ en friche')] },
-    { cout: 110, trophees: 0, apports: [apport('etoile', 'Chaque recrue arrive avec 10 PX par héros tombé (max 100)', '10 PX')] },
-    { cout: 300, trophees: 1, apports: [apport('etoile', '20 PX par héros tombé (max 200)', '20 PX')] },
+    { cout: 110, trophees: 0, apports: [apport('etoile', `Chaque recrue arrive avec ${morrDuPalier(1)}`, `${PX_DE_MORR.parMort} PX`)] },
+    { cout: 300, trophees: 1, apports: [apport('etoile', morrDuPalier(2), `${PX_DE_MORR.parMort * 2} PX`)] },
   ] },
 ];
 
@@ -213,19 +216,19 @@ export interface Destination {
   meutes: string[][]; elites: string[][]; boss: string[]; or: number; lumiere: string;
 }
 export const DESTINATIONS: readonly Destination[] = [
-  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 30, lumiere: 'jour',
+  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 45, lumiere: 'jour',
     recit: 'Des loups et des peaux-vertes rôdent le long de la route de la diligence.',
     meutes: [['gobelin', 'gobelin'], ['loup'], ['rat-geant', 'rat-geant'], ['brigand'], ['snotling', 'snotling', 'gobelin']],
     elites: [['orc'], ['brigand', 'loup']], boss: ['loup-funeste'] },
-  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 36, lumiere: 'crepuscule',
+  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 55, lumiere: 'crepuscule',
     recit: 'Les morts ne reposent plus sous les vieux tertres. Quelqu’un les réveille.',
     meutes: [['squelette', 'zombie'], ['zombie', 'zombie', 'zombie'], ['goule-de-crypte', 'zombie']],
     elites: [['squelette', 'squelette', 'goule-de-crypte'], ['chevalier-mort-vivant-revenant']], boss: ['necromancien', 'squelette', 'squelette'] },
-  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 50, lumiere: 'couvert',
+  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 75, lumiere: 'couvert',
     recit: 'Les hommes-bêtes se rassemblent autour d’une pierre de harde.',
     meutes: [['ungor', 'ungor'], ['gor', 'ungor'], ['ungor', 'ungor', 'ungor']],
     elites: [['gor', 'gor', 'ungor'], ['gor-combattant', 'ungor']], boss: ['minotaure', 'ungor'] },
-  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 70, lumiere: 'crepuscule',
+  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 100, lumiere: 'crepuscule',
     recit: 'Un culte a dressé un autel aux Puissances de la Ruine. Il faut l’abattre.',
     meutes: [['cultiste', 'cultiste'], ['mutant', 'cultiste'], ['cultiste', 'cultiste', 'mutant']],
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
@@ -304,9 +307,9 @@ export const CAMP = {
 export const BUTIN_DES_SALLES = { facteur: { combat: 1, elite: 2, boss: 4 }, ecart: { min: 75, max: 125 } } as const;
 /** Les trophées : la chance en pour cent qu'une élite en laisse un, ceux du maître, et celui de plus la première fois
  *  qu'il tombe. */
-export const TROPHEES = { elite: 35, boss: 1, premiereVictoire: 1 } as const;
+export const TROPHEES = { elite: 60, boss: 1, premiereVictoire: 1 } as const;
 /** PX gagnés par salle franchie, par type. */
-export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10 };
+export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 80, elite: 140, boss: 240, camp: 0, tresor: 20, rencontre: 20 };
 export const OR_INITIAL = 100;
 export const PRIX_DE_RECRUE = [15, 30, 50];
 /** Ce qu'une recrue coûte en plus par niveau de carrière au-delà du premier. */
