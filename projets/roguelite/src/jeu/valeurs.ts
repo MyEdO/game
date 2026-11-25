@@ -15,6 +15,7 @@ import {
   type FluxDEpreuve,
   type Designation,
   type QualiteDeRepos,
+  type DoctrineId,
 } from '../noyau';
 
 import { profil } from './outils';
@@ -120,6 +121,24 @@ export const ROLES: Record<Role, { nom: string; picto: string }> = {
   front: { nom: 'Ligne de front', picto: 'bouclier' }, tireur: { nom: 'Tireur', picto: 'arc' }, eclaireur: { nom: 'Éclaireur', picto: 'oeil' },
   soigneur: { nom: 'Soigneur', picto: 'soin' }, lanceur: { nom: 'Lanceur de sorts', picto: 'etoile' },
 };
+/** Le rang d'un héros à l'entrée d'une rencontre : la tête du groupe, face à l'ennemi, ou derrière elle. */
+export type Rang = 'devant' | 'derriere';
+export const RANGS: Record<Rang, { nom: string; bulle: string }> = {
+  devant: { nom: 'Devant', bulle: 'Entre en tête du groupe, face à l’ennemi.' },
+  derriere: { nom: 'Derrière', bulle: 'Entre derrière ceux qui vont devant.' },
+};
+/** Le rang d'un héros que le joueur n'a pas placé, selon le rôle de sa carrière. */
+export const RANG_DU_ROLE: Record<Role, Rang> = { front: 'devant', eclaireur: 'devant', tireur: 'derriere', soigneur: 'derriere', lanceur: 'derriere' };
+/** Les consignes de combat offertes au joueur : une doctrine de l'IA du noyau (`Combatant.aiDoctrine`), ou `null`, que
+ *  le noyau déduit du héros. `meute` (une bête), `horde` (un esprit absent), `embuscade` (la charge d'un embusqué) et
+ *  `standard` (le défaut neutre) ne décrivent pas un aventurier ; `artillerie`, que le noyau déduit d'un lanceur, double
+ *  `tirailleurs` pour un héros. */
+export const CONSIGNES: readonly { doctrine: DoctrineId | null; nom: string; bulle: string }[] = [
+  { doctrine: null, nom: 'À son idée', bulle: 'Combat selon ce qu’il porte et ce qu’il sait faire.' },
+  { doctrine: 'soldats', nom: 'Tenir la ligne', bulle: 'Cherche le contact et reste au coude à coude avec les siens.' },
+  { doctrine: 'tirailleurs', nom: 'Harceler', bulle: 'Garde ses distances, recule devant l’ennemi et vise les plus dangereux.' },
+  { doctrine: 'racaille', nom: 'Se ménager', bulle: 'Achève les blessés et se replie quand il est très entamé.' },
+];
 /** Une carrière du roster : son palier de relais, le niveau de carrière où elle s'engage, son rôle, ce qui la
  *  caractérise à la création, les objets du catalogue qu'elle reçoit en plus de sa dotation, sa voie de lanceur, et
  *  les dieux parmi lesquels se tire la spécialisation de son Talent d'identité (`beni`), qui fixe sa voie. */

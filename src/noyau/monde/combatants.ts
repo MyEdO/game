@@ -15,6 +15,8 @@ import type { Possession } from '../../engine/possession';
 import type { BattleState, Jeu } from '../etat';
 import type { Dir8 } from '../../geometry/dir8';
 import type { Pt } from './path';
+import { tablesPosees } from '../tablesPosees';
+import { ecrireLesBlessuresDeLaBete } from '../../engine/possession';
 
 /**
  * TAILLE MAXIMALE du groupe — les quatre aventuriers de la campagne. Constante CANONIQUE : toute
@@ -86,7 +88,8 @@ export function inBattleId(battle: Pick<BattleState, 'combatants'> | null, id: s
 }
 
 /**
- * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : les acteurs en jeu (`acteursEnJeu`) ET le groupe.
+ * Le porteur d'un dé, résolu par ID dans TOUT l'univers de jeu : les acteurs en jeu (`acteursEnJeu`), le groupe et, hors
+ * combat, les bêtes qui le suivent (`betesHorsRencontre`).
  * DISTINCT d'`actorIn`, qui s'en tient aux acteurs en jeu : un héros du
  * groupe resté HORS de la file d'un combat ouvert (allié en réserve, héros non engagé) y est
  * introuvable, et un porteur introuvable ne se surface pas — son dé se résoudrait d'office alors
@@ -98,7 +101,27 @@ export function inBattleId(battle: Pick<BattleState, 'combatants'> | null, id: s
  * et valeur d'un dé ne peuvent pas répondre depuis deux univers différents.
  */
 export function porteurParId(s: Jeu, id: string): Combatant | undefined {
-  return actorIn(s, id) ?? s.party.find((c) => c.id === id);
+  return actorIn(s, id) ?? s.party.find((c) => c.id === id) ?? betesHorsRencontre(s).find((c) => c.id === id);
+}
+
+/** Hors combat, les bêtes possédées qui suivent le groupe (`avec-le-groupe`, non détruites), chacune par sa projection
+ *  (`laBeteHorsRencontre`) : le repos les compte avec les héros. LDB 18 l.296 ; #4804 */
+export function betesHorsRencontre(s: Pick<Jeu, 'battle' | 'possessions'>): Combatant[] {
+  if (s.battle) return [];
+  const betes = s.possessions.filter((p): p is Possession & { nature: 'bete' } => p.nature === 'bete' && !p.destroyed && p.location.kind === 'avec-le-groupe');
+  return betes.length ? betes.map(tablesPosees().projeterLaBeteHorsRencontre) : [];
+}
+
+/** Le registre des possessions où chaque bête hors rencontre (`betesHorsRencontre`) a repris les Blessures de sa
+ *  projection (`ecrireLesBlessuresDeLaBete`) ; le même tableau si aucune n'a bougé. Écrit par `touchActors`. #4804 */
+export function possessionsDesBetesTouchees(s: Pick<Jeu, 'battle' | 'possessions'>): Possession[] {
+  const projections = new Map(betesHorsRencontre(s).map((c) => [c.id, c]));
+  if (!projections.size) return s.possessions;
+  const suivantes = s.possessions.map((p) => {
+    const c = p.nature === 'bete' ? projections.get(p.uid) : undefined;
+    return c && p.nature === 'bete' ? ecrireLesBlessuresDeLaBete(p, c) : p;
+  });
+  return suivantes.some((p, i) => p !== s.possessions[i]) ? suivantes : s.possessions;
 }
 
 /** La possession du registre que le combattant `id` projette en rencontre (`Combatant.id === Possession.uid`, #621). */

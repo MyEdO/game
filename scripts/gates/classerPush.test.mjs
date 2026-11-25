@@ -15,14 +15,18 @@ import { fileURLToPath } from 'node:url'
 import {
   ACTION_PROLOGUE,
   DOCUMENTAIRE,
-  CI_SEULEMENT_PRODUIT,
+  CI_SEULEMENT_DE_GATE,
   COMMANDE_CLASSER,
+  COMMANDE_SAUTEES,
   CONDITION_PRODUIT,
   ID_PROLOGUE,
   classer,
   classerPush,
   baseDuDiff,
+  conditionDeSaut,
+  DOSSIERS_HORS_DE_SRC,
   gatesSautables,
+  gatesSautees,
 } from './classerPush.mjs'
 import { envDeDepotForge, envGitFeint, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
@@ -73,23 +77,51 @@ const gates = gatesDeCi({ cwd: RACINE })
 
 const sautables = gatesSautables({ gates, ecritLu: ECRIT_LU })
 
-test('chaque gate porte la condition du classement SSI elle est sautable', () => {
+test('chaque gate porte la condition de saut SSI un push peut la sauter, et aucune ne lit `produit`', () => {
   const ecarts = []
   for (const { nom, si } of gates) {
-    const conditionnee = (si ?? '').includes(CONDITION_PRODUIT)
-    const sautable = sautables.has(nom)
+    const conditionnee = (si ?? '').includes(conditionDeSaut(nom))
+    const sautable = sautables.has(nom) || ECRIT_LU[nom]?.zones !== undefined
+    if ((si ?? '').includes(CONDITION_PRODUIT))
+      ecarts.push(`${nom} : lit \`produit\` dans son \`if\` ; une gate saute par « ${conditionDeSaut(nom)} »`)
     if (sautable && !conditionnee)
       ecarts.push(
-        `${nom} : ne lit RIEN de documentaire (${JSON.stringify(ECRIT_LU[nom]?.lit)}) mais joue toujours — ` +
-          `un coût payé sur chaque push de fiche ; ajoute « ${CONDITION_PRODUIT} » à son \`if\` dans ci.yml`,
+        `${nom} : un push peut ne rien toucher de ce qu'elle lit (${JSON.stringify(ECRIT_LU[nom]?.lit)}) mais elle joue toujours — ` +
+          `un coût payé pour rien ; ajoute « ${conditionDeSaut(nom)} » à son \`if\` dans ci.yml`,
       )
     if (!sautable && conditionnee)
       ecarts.push(
-        `${nom} : LIT un chemin documentaire (${JSON.stringify(ECRIT_LU[nom]?.lit)}) mais est sautée sur un ` +
-          'push documentaire — c’est un trou de garde ; retire la condition de son `if` dans ci.yml',
+        `${nom} : LIT un chemin documentaire (${JSON.stringify(ECRIT_LU[nom]?.lit)}) et ne déclare aucune \`zones\`, mais porte ` +
+          'la condition de saut — retire-la de son `if` dans ci.yml',
       )
   }
   assert.deepEqual(ecarts, [])
+})
+
+// Les gates sautées d'un push (#4903 L4), sur une table NOMMÉE : `affichage` et `projet` déclarent leurs `zones`,
+// `commun` lit toutes les zones sans les déclarer, `lecteurDeDoc` lit un chemin documentaire.
+const TABLE = {
+  affichage: { zones: ['godot'], lit: ['src/', 'hotes/godot/', 'scripts/', 'package.json'] },
+  projet: { zones: ['roguelite'], lit: ['src/', 'projets/roguelite/', 'package.json'] },
+  commun: { lit: ['src/', 'hotes/', 'projets/', 'scripts/', 'package.json'] },
+  lecteurDeDoc: { lit: ['src/', '.claude/'] },
+}
+const sauteesDe = (fichiers) => [...gatesSautees(fichiers, { gates: Object.keys(TABLE).map((nom) => ({ nom })), ecritLu: TABLE })].sort()
+
+for (const [cas, fichiers, attendues] of [
+  ['un diff du seul projet saute l’affichage', ['projets/roguelite/a.ts', 'projets/roguelite/b/c.css'], ['affichage']],
+  ['un diff du seul affichage saute le projet', ['hotes/godot/projet/a.gd'], ['projet']],
+  ['un diff du code commun ne saute rien', ['src/noyau/a.ts'], []],
+  ['un diff mêlé du projet et du code commun ne saute rien', ['projets/roguelite/a.ts', 'src/noyau/a.ts'], []],
+  ['un diff mêlé du projet et de l’affichage ne saute rien', ['projets/roguelite/a.ts', 'hotes/godot/a.ts'], []],
+  ['`package-lock.json` seul ne saute rien : il n’est ni documentaire ni dans un dossier de zone', ['package-lock.json'], []],
+  ['un diff documentaire saute chaque gate qui ne lit rien de documentaire', ['.claude/memory/x.md'], ['affichage', 'commun', 'projet']],
+  ['un diff du projet et d’un solde saute l’affichage', ['projets/roguelite/a.ts', '.claude/soldes/1.md'], ['affichage']],
+  ['un diff vide ne saute rien', [], []],
+]) test(`gatesSautees — ${cas}`, () => assert.deepEqual(sauteesDe(fichiers), attendues))
+
+test('gatesSautees — sur un push documentaire, les gates sautées sont les sautables de `ci.yml`', () => {
+  assert.deepEqual(gatesSautees(['.claude/memory/x.md'], { gates, ecritLu: ECRIT_LU }), sautables)
 })
 
 test('les entrées des rendus docs et du routage corpus couvrent les deux classes de push', () => {
@@ -129,17 +161,31 @@ test('le mur et la garde d’un mod jouent sur un push qui ne touche qu’un mod
   }
 })
 
-test('chaque step CI_SEULEMENT porte la condition SSI il est dans CI_SEULEMENT_PRODUIT', () => {
+// Une gate qui joue ne lit pas ce qu'une gate SAUTÉE de son job aurait écrit avant elle (`ecritFerme`) : sur un push
+// confiné à un dossier de zone, ou documentaire, les deux sautent ensemble.
+test('aucune gate sautée n’écrit ce que lit une gate de son job qui joue', () => {
+  const ecarts = []
+  for (const fichiers of [...DOSSIERS_HORS_DE_SRC.map((d) => [`${d}zz.ts`]), ['.claude/memory/x.md']]) {
+    const sautees = gatesSautees(fichiers, { gates, ecritLu: ECRIT_LU })
+    for (const ecrivain of gates.filter((g) => sautees.has(g.nom)))
+      for (const lecteur of gates.filter((g) => g.job === ecrivain.job && !sautees.has(g.nom)))
+        for (const chemin of Object.keys(ECRIT_LU[ecrivain.nom].ecritFerme ?? {}))
+          if ((ECRIT_LU[lecteur.nom].lit ?? []).some((lu) => lu.startsWith(chemin) || chemin.startsWith(lu)))
+            ecarts.push(`${fichiers[0]} : ${ecrivain.nom} saute mais écrit ${chemin}, que lit ${lecteur.nom}, qui joue (job ${ecrivain.job})`)
+  }
+  assert.deepEqual(ecarts, [])
+})
+
+test('chaque step CI_SEULEMENT saute avec la gate qu’il sert dans son job SSI il est dans CI_SEULEMENT_DE_GATE', () => {
   const ecarts = []
   for (const { job, commande, si } of stepsCi({ cwd: RACINE })) {
     if (!(commande in CI_SEULEMENT)) continue
-    const conditionnee = (si ?? '').includes(CONDITION_PRODUIT)
-    const produitSeulement = commande in CI_SEULEMENT_PRODUIT
-    if (produitSeulement !== conditionnee)
-      ecarts.push(
-        `${job} / « ${commande} » : condition ${conditionnee ? 'présente' : 'absente'} dans ci.yml, ` +
-          `${produitSeulement ? 'attendue' : 'non attendue'} par CI_SEULEMENT_PRODUIT`,
-      )
+    const servies = (CI_SEULEMENT_DE_GATE[commande]?.gates ?? []).filter((nom) => gates.some((g) => g.nom === nom && g.job === job))
+    const attendue = servies.length === 1 ? conditionDeSaut(servies[0]) : null
+    if (commande in CI_SEULEMENT_DE_GATE && attendue === null)
+      ecarts.push(`${job} / « ${commande} » : sert ${servies.length} gate(s) de son job (${servies.join(', ')}), il en faut une`)
+    else if (attendue === null ? /outputs\.(?:sautees|produit)/.test(si ?? '') : !(si ?? '').includes(attendue))
+      ecarts.push(`${job} / « ${commande} » : \`if: ${si}\`, ${attendue ? `attendu « ${attendue} »` : 'aucune condition de classement attendue'}`)
   }
   assert.deepEqual(ecarts, [])
 })
@@ -165,17 +211,21 @@ test('chaque job à check requis ouvre sur le PROLOGUE, et le rejeu des migratio
   )
 })
 
-test('le prologue classe le push AVANT `npm ci`, et expose ce classement en `produit`', () => {
+test('le prologue classe le push AVANT `npm ci`, en tire les gates sautées APRÈS, et les expose en `produit` et `sautees`', () => {
   const texte = readFileSync(join(RACINE, ACTION_PROLOGUE), 'utf8')
   const commandes = stepsCi({ fichier: join(RACINE, ACTION_PROLOGUE) }).map((s) => s.commande)
   const iClasser = commandes.indexOf(COMMANDE_CLASSER)
   const iInstall = commandes.indexOf('npm ci')
-  assert.ok(iClasser >= 0 && iInstall >= 0, `${ACTION_PROLOGUE} : classement ou installation absents (${commandes.join(' · ')})`)
+  const iSautees = commandes.indexOf(COMMANDE_SAUTEES)
+  assert.ok(iClasser >= 0 && iInstall >= 0 && iSautees >= 0, `${ACTION_PROLOGUE} : classement, installation ou gates sautées absents (${commandes.join(' · ')})`)
   assert.ok(
     iClasser < iInstall,
     'le classement doit précéder `npm ci` — ses imports n’atteignent aucun paquet, et c’est lui qui décide ' +
       'de ce que le reste du job paie',
   )
+  assert.ok(iInstall < iSautees, 'les gates sautées lisent `ECRIT_LU`, qui atteint des paquets : elles suivent `npm ci`')
+  assert.match(texte, /^ {2}sautees:\n(?: {4}.*\n)*? {4}value: \$\{\{ steps\.sautees\.outputs\.sautees \}\}$/m,
+    `${ACTION_PROLOGUE} n’expose plus les gates sautées : « ${conditionDeSaut('<gate>')} » lirait un output vide et TOUT jouerait`)
   assert.match(texte, /^ {2}produit:\n(?: {4}.*\n)*? {4}value: \$\{\{ steps\.classer\.outputs\.produit \}\}$/m,
     `${ACTION_PROLOGUE} n’expose plus le classement : « ${CONDITION_PRODUIT} » lirait un output vide et TOUT jouerait`)
 })
@@ -188,10 +238,10 @@ test('jetonNomme : un jeton se nomme comme SEGMENT de chemin entier — jamais d
   assert.equal(jetonNomme("'.codex-rows button.listrow'"), undefined)
 })
 
-test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_PRODUIT porte sa RAISON', () => {
+test('chaque entrée de DOCUMENTAIRE et de CI_SEULEMENT_DE_GATE porte sa RAISON', () => {
   for (const [chemin, raison] of Object.entries(DOCUMENTAIRE))
     assert.ok(typeof raison === 'string' && raison.length > 30, `« ${chemin} » sans raison lisible`)
-  for (const [commande, raison] of Object.entries(CI_SEULEMENT_PRODUIT)) {
+  for (const [commande, { raison }] of Object.entries(CI_SEULEMENT_DE_GATE)) {
     assert.ok(typeof raison === 'string' && raison.length > 30, `« ${commande} » sans raison lisible`)
     assert.ok(commande in CI_SEULEMENT, `« ${commande} » n’est pas un step CI_SEULEMENT de ci.yml`)
   }
@@ -303,6 +353,23 @@ test('CLI — une branche qui ne touche qu’un module de mod sort `produit=true
     const r = jouerCli(racine, { SHA: 'HEAD' })
     assert.equal(r.code, 0)
     assert.equal(r.stdout.trim(), 'produit=true')
+  } finally {
+    rmSync(racine, { recursive: true, force: true })
+  }
+})
+
+test('CLI des gates sautées — une branche du seul roguelite écrit `sautees= <nom> … ` avec les gates Godot', () => {
+  const { racine, git } = depotJetable()
+  try {
+    ecrire(racine, 'projets/roguelite/a.ts', 'export const a = 1\n')
+    git(['add', 'projets'])
+    git(['commit', '-q', '-m', 'roguelite'])
+    const vu = spawnSync(process.execPath, [join(RACINE, 'scripts', 'gates', 'sauteesDuPush.mjs')], { cwd: racine, encoding: 'utf8', env: { ...envDeDepotForge(), SHA: 'HEAD' }, timeout: 20000 })
+    assert.equal(vu.status, 0, vu.stderr)
+    const attendues = [...gatesSautees(['projets/roguelite/a.ts'], { gates, ecritLu: ECRIT_LU })]
+    assert.ok(attendues.includes('godot:rendus'), `le cas ne mesure rien : ${attendues}`)
+    assert.equal(vu.stdout, `sautees= ${attendues.join(' ')} \n`)
+    for (const nom of attendues) assert.ok(vu.stdout.includes(` ${nom} `), `« ${conditionDeSaut(nom)} » ne lirait pas ${nom}`)
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }

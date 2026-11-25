@@ -34,7 +34,7 @@
  */
 import type { Combatant } from './types';
 import { hasActiveFlag } from './activeFlags';
-import { addCondition, faitsDesPoses, hasCondition, loseWounds } from './conditions';
+import { addCondition, faitsDesPoses, loseWounds } from './conditions';
 import { emettreDans, type Applique } from './faits';
 import { bonus, effectiveChar } from './characteristics';
 import { rule } from './policy';
@@ -82,7 +82,7 @@ export function prepareBreathHold(c: Combatant): void {
 
 /** L'Inconscient de la suffocation, émis avec sa ligne dans `a` : LDB 18 l.346. */
 function perdreConnaissance(c: Combatant, a: Applique): void {
-  for (const f of faitsDesPoses(c, ['inconscient'], () => { if (!hasCondition(c, 'inconscient')) addCondition(c, 'inconscient'); })) emettreDans(a, c, f);
+  for (const f of faitsDesPoses(c, ['inconscient'], () => addCondition(c, 'inconscient'))) emettreDans(a, c, f);
 }
 
 /** Tick de fin de Round d'un combattant qui suffoque. Mute `c`, retourne le journal. */
