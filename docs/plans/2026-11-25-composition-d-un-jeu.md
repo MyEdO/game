@@ -147,6 +147,53 @@ Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-
 | L4 | Les ids en dur deviennent ops ou `Flow` (P1), et le reste passe par des emplois (P2). Par familles, dans l'ordre que donne L0. | L3 | Une composition « système seul », avec un livre de test, joue un combat par le noyau. Typecheck complet vert sans littéral d'id. |
 | L5 | Premier client : le roguelite. `valeurs.ts` ne garde rien de ce qui touche au noyau (verbatim 6) : ses sélections et ses modifications deviennent sa composition, et `MAIN_SECONDAIRE` et `MUNITION_DE_FAMILLE` passent au noyau. `.claude/rules/roguelite.md` est réécrite. `BATIMENTS`, `EPREUVES` et `CAMP` suivent quand le noyau a leur forme, ce qui est hors de ce plan. | L2 ; la famille d'armes de L4 | `npm run roguelite:recette` passe, avec des images identiques à la référence. `valeurs.ts` ne nomme plus aucun id de la bibliothèque. |
 
+### 5.1 Design de L1a : la donnée de `src/data` se recompose à chaud
+
+- **Invariant.** Verbatim de `src/data/versionDataset.ts:4-7`, posé par #1692 (overrides.ts : des clés d'ARRAYS ont
+  un index figé à l'import) : « `src/data/overrides.ts` remplace le CONTENU d'un dataset sans jamais réassigner son
+  binding (`arr.splice(0, arr.length, …)`) : l'identité du tableau ne dit donc RIEN d'une édition, et tout index
+  construit une fois à l'import sert l'ancien monde jusqu'au rechargement de la page. Ce module porte le compteur
+  qu'un lecteur indexé consulte pour savoir si son index est encore juste. »
+
+  Et `src/data/overrides.ts:1-6`, qui en fait l'« Unique point de branchement » de « l'éditeur de données in-app »
+  et de « la future couche de surcharges PAR CAMPAGNE (apply au chargement, reset à la sortie) ». La question à
+  laquelle il répondait : une entrée éditée au Codex doit être vue de tout lecteur, sans recharger. L1a ne change
+  pas l'invariant : il le rend vrai partout où L0 (§ 8.2) l'a trouvé faux.
+- **Qui possède quoi.**
+  - `overrides.ts` est le seul écrivain (`setDataset`, `setObjectDataset`, `setEnTete`, `resetData`).
+  - `versionDataset.ts` porte la version (`bumperDataset`, `:49`).
+  - Tout lecteur dérivé passe par `memoParVersion` (`:92`), `indexParChamp` (`:121`) ou `indexParId` (`:143`) :
+    c'est la forme de `TRAITS` ou de `indexDesTerrains`.
+  - La garde canonique `src/data/index-vivant-guard.test.ts`, sur `scripts/guards/lib/bindingsVivants.mjs`, refuse
+    le reste.
+- **Critère « N+1 = une ligne ».** Un dataset de plus, c'est une entrée d'`ARRAYS` ou d'`OBJECTS`. Un lecteur dérivé
+  de plus, c'est un `memoParVersion`, et la garde rougit s'il n'y passe pas.
+- **Décisions à juger.**
+  - **D1.** Entre deux fichiers de test (Vitest sous `isolate:false`, `vitest.config.ts:36`), la donnée se remet
+    par un `afterAll(resetData)` du fichier de setup, instance de « reset à la sortie ». L'option écartée est une
+    discipline par fichier, que 105 fichiers composent et 31 seulement remettent.
+  - **D2.** Les 7 datasets hors du seam entrent dans `ARRAYS` ou `OBJECTS` : `ACTIONS`, `merchantFamilies`,
+    `structureAppearances`, `lieuxServices`, `tablesDeLocalisation`, `ambiance`, `DEFAULT_RACE_ID`. H3 décide ce
+    qu'une composition peut retirer, pas ce qui est éditable : un dataset du socle reste éditable et vu à chaud
+    (doctrine `campagne-recreable-a-l-editeur`).
+  - **D3.** Une constante scalaire tirée d'un dataset au chargement (`WORK_PERIOD_HOURS`, `DEFAULT_TERRAIN`, `MER`,
+    `PLANCHER`, `PRIX_DU_LIVRE`) devient un `memoParVersion(cle, () => valeur)`, pas une lecture à l'usage
+    dispersée.
+  - **D4.** La garde canonique s'étend aux trous mesurés au lieu qu'une seconde garde naisse :
+    - les datasets hors des listes ;
+    - les appels au chargement d'une fonction qui lit un dataset en profondeur ;
+    - le périmètre `src/engine` et `projets/*/src`.
+
+    Un trou que l'AST ne peut pas fermer se déclare avec son exemple.
+- **Lots, par fichiers disjoints, menés en parallèle puis intégrés ensemble :**
+  - L1a-1 : la garde et le seam (`scripts/guards/lib/bindingsVivants.mjs`, `src/data/index-vivant-guard.test.ts`,
+    `src/data/overrides.ts`, `src/data/index.ts`).
+  - L1a-2 : les sites de `src/noyau` et `src/engine`.
+  - L1a-3 : la remise à zéro des tests et les sites du roguelite (le fichier de setup de Vitest,
+    `projets/roguelite/src/jeu/boutiques.ts`, `valeurs.ts`).
+
+  La garde n'est verte qu'une fois les trois intégrés.
+
 ## 6. Critère de fini du chantier
 
 1. `valeurs.ts` du roguelite ne nomme aucun id de la bibliothèque et ne porte aucune connaissance de règle.
