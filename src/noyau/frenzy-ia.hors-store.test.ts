@@ -42,14 +42,23 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
   return { enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [], ...extra };
 }
 
-describe('Frénésie IA — cible la plus proche (chooseEnemyAction, pur, LDB 21 l.33)', () => {
-  it('frenzied : vise le plus PROCHE en Ligne de Vue (pas le plus faible distant)', () => {
+describe('Frénésie IA — cible imposée (chooseEnemyAction, pur, LDB 21 l.33)', () => {
+  it('frenzied : vise la cible imposée (`cibleDeFrenesie`), pas le plus faible distant', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
     const near = mk('near', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // proche, costaud
     const far = mk('far', 'heros', { x: 5, y: 9 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable MAIS plus loin
-    const action = chooseEnemyAction(input(e, [near, far]));
+    const action = chooseEnemyAction(input(e, [near, far], { cibleDeFrenesie: near }));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('near');
+  });
+
+  it('frenzied sans cible imposée (aucun ennemi en vue) : aucun repli sur le plus proche, le vivier reste libre', () => {
+    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
+    const near = mk('near', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) });
+    const far = mk('far', 'heros', { x: 5, y: 7 }, { wounds: blessuresDeBase(10, 2) });
+    const action = chooseEnemyAction(input(e, [near, far]));
+    const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
+    expect(tid).toBe('far');
   });
 
   it('non frenzied : conserve le ciblage du plus faible (régression)', () => {

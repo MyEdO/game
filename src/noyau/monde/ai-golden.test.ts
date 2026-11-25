@@ -102,11 +102,11 @@ describe('GOLDEN parité Lot 2 — gardes RAW/psychologie (forcées, hors scorin
     expect(a.kind).toBe('deplacement');
   });
 
-  it('Frénésie → vise le plus PROCHE (LDB 21 l.33), pas le plus faible', () => {
+  it('Frénésie → vise la cible imposée (`cibleDeFrenesie`, LDB 21 l.33), pas le plus faible', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
     const near = mk('near', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // proche, costaud
     const weakFar = mk('weakFar', 'heros', { x: 5, y: 11 }, { wounds: blessuresDeBase(10, 1) }); // faible, loin
-    const a = chooseEnemyAction(input(e, [near, weakFar]));
+    const a = chooseEnemyAction(input(e, [near, weakFar], { cibleDeFrenesie: near }));
     expect(tidOf(a)).toBe('near');
   });
 

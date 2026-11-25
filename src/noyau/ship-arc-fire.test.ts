@@ -7,9 +7,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTes
 /**
  * INTÉGRATION bout-en-bout de la garde d'arc d'un poste : un canonnier (arme montée `mountSide`) servant un
  * navire ne peut tirer QUE dans l'arc de sa bordée, relatif au cap du navire (MDG 12-13). `firedAttackBlock`
- * (prédicat partagé réticule + clic) renvoie la raison `arc` hors-bordée, `null` dedans. KIND-AGNOSTIQUE :
- * `firedAttackBlock` ne s'arme que pour le héros (chemin joueur), mais la LOGIQUE (shipOfCrew/mountedWeaponBears)
- * ne regarde pas le kind — l'IA câblera le même prédicat.
+ * (prédicat partagé réticule + clic + IA) renvoie la raison `arc` hors-bordée, `null` dedans, quel que soit le kind.
  */
 const cannon = { name: 'Canon', type: 'distance' as const, damage: { plusBF: false, flat: 14 }, range: 75, qualities: [], mountSide: 'tribord' as const };
 

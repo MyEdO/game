@@ -1,6 +1,7 @@
 /** Déplacement sur grille : BFS pour cases atteignables et chemins. */
 import { Scene, isWalkable, edgeOf, surfaceLink, climbEdgeBetween, wallIsOpen } from './scene';
-import { hasTrait, hasAutoClimb, hasClimbFullSpeed } from '../../engine/traits/dispatch';
+import { hasAutoClimb, hasClimbFullSpeed } from '../../engine/traits/dispatch';
+import { mouvementDeVol } from '../../engine/encumbrance';
 import type { Combatant } from '../../engine/types';
 import { memoByRef } from './sceneMemo';
 import { chebyshev } from '../../engine/grid';
@@ -285,8 +286,7 @@ export interface MoveEnv {
 }
 
 /** `TraverseCapability` d'un mover, dérivée UNE fois de ses traits (Grimpant) — SOURCE UNIQUE consommée
- *  par `moveEnv` (combat) ET `buildAiInput` (`EnemyTurnInput.traverse`, ai.ts est pur). undefined = aucune
- *  capacité de traversée (le sol nu byte-identique à l'ancien `MoveEnv`). */
+ *  par `moveEnv`. undefined = aucune capacité de traversée (le sol nu byte-identique à l'ancien `MoveEnv`). */
 export function climbTraverseFor(traits: Combatant['traits']): TraverseCapability | undefined {
   return hasAutoClimb(traits) ? { climb: true, climbFullSpeed: hasClimbFullSpeed(traits) } : undefined;
 }
@@ -386,15 +386,14 @@ export function flyReachable(scene: Scene, start: Pt, range: number, env: MoveEn
 }
 
 /**
- * Portée de déplacement d'un combattant : VOL (trait « Vol » — natif OU accordé par un sort,
- * Envol Jalon 2.6) → `flyReachable` (survole murs/obstacles, l'atterrissage doit tenir) ; sinon
- * BFS au sol. Utilisé aussi bien par l'IA (ai.ts) que par les HÉROS volants.
+ * Portée de déplacement d'un combattant : VOL que ses États lui laissent (`mouvementDeVol`, trait natif OU
+ * accordé par un sort) → `flyReachable` (survole murs/obstacles, l'atterrissage doit tenir) ; sinon BFS au sol.
  */
 export function moveReachFor(
-  mover: Pick<Combatant, 'traits'>,
+  mover: Combatant,
   scene: Scene, start: Pt, range: number, env: MoveEnv,
 ): Map<string, number> {
-  return (hasTrait(mover.traits, 'vol') ? flyReachable : reachable)(scene, start, range, env);
+  return ((mouvementDeVol(mover) ?? 0) > 0 ? flyReachable : reachable)(scene, start, range, env);
 }
 
 /**

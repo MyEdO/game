@@ -26,14 +26,14 @@ import { Combatant, Weapon } from '../../engine/types';
 import { Scene, sceneMetresPerTile } from './scene';
 import { positionPosee } from './spawn';
 import { capEnCombat } from '../planDeNavire';
-import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
+import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type MoveEnv } from './path';
 import { chebyshev } from '../../engine/grid';
 import { corpsDe, footprintChebyshev, footprintN, distanceDeContact } from './footprint';
-import { combatGeomOfList, meleeWeaponInRangeList } from '../mount';
+import { attackGeomOfList, combatGeomOfList, meleeWeaponInRangeList } from '../mount';
 import { bouclierDuBinome, surnombreDeLAttaque } from '../combat/surnombre';
 import { couvertDuTir, makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
-import { rangeBandModifier, canFireWhileEngaged } from '../../engine/combat';
+import { rangeBandModifier } from '../../engine/combat';
 import { porteeDeTir, type TrappingResolver } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
@@ -127,12 +127,9 @@ export interface EnemyTurnInput {
    *  `engine/psychology.ts`) : ils rejoignent ses viviers de cible. ABSENT = aucun. #3045 */
   ciblesDePulsion?: Combatant[];
   scene: Scene;
-  /** Cases occupées par d'autres combattants (l'ennemi lui-même exclu) — bloquent le TRANSIT. */
-  blocked: Set<string>;
-  /** Cases TRAVERSABLES mais où l'ennemi ne peut pas FINIR son déplacement (créatures plus petites
-   *  dégagées du chemin, LDB 85 l.373-374 — on ne s'arrête jamais sur une autre créature). ABSENT =
-   *  aucune contrainte d'arrêt (tests purs). */
-  noStop?: Set<string>;
+  /** Contraintes de déplacement de la géométrie porteuse (`moveEnv`, la monture d'un cavalier, LDB 14 l.179) :
+   *  transit, empreinte, arrêt interdit (LDB 85 l.373-374), nage, Grimpant (LDB 85 l.160-162). */
+  env: MoveEnv;
   /** Mouvement effectif en cases (dérivé de l'Encombrement par l'appelant). */
   movement: number;
   /** TOUS les sorts connus de l'ennemi, RÉSOLUS + enrichis par l'appelant (couche impure qui a les
@@ -140,12 +137,14 @@ export interface EnemyTurnInput {
    *  des candidats `cast`/`castArea`/`focus` scorés par `spellActionValue`. Vide = aucun sort → aucun
    *  candidat de sort (comportement strictement inchangé pour les fixtures sans sort). */
   spells: CastableSpell[];
+  /** La porte du tir du joueur pour l'arme `arme` sur `cible` (`refusDuTirALArme`), posée par l'appelant : Engagé
+   *  (LDB 14 l.41), arme bannie (NADJ 06 l.181), Recharge (LDB 62 l.335), munition (LDB 62 l.106), portée minimale
+   *  (ADE II 08 l.251-253), arc. ABSENT = aucune porte (tests purs). */
+  tirPermis?: (arme: Weapon, cible: Combatant) => boolean;
+  /** Cible imposée par la Frénésie (`frenzyTarget`), posée par l'appelant. ABSENT = aucune : le vivier reste libre. LDB 21 l.33 */
+  cibleDeFrenesie?: Combatant;
   /** Vol (LDB 85 l.433) : le déplacement ignore terrains/obstacles/personnages traversés. */
   flying?: boolean;
-  /** Grimpant (LDB 85 l.160-162), patron de `flying` : capacité de traversée dérivée par l'appelant
-   *  (`climbTraverseFor`, ai.ts est pur) — arêtes `WallSeg.climb` franchies au pas normal. ABSENT/undefined
-   *  = aucune capacité (comportement historique, `reachable` inchangé). */
-  traverse?: TraverseCapability;
   /** Cases enfumées (Souffle (Fumée)) qui bloquent la Ligne de Vue. */
   smoke?: Pt[];
   /** Vision RÉCIPROQUE : cases (`"x,y,0"`) que CET ennemi perçoit réellement (Ligne de Vue + lumière,
@@ -472,16 +471,6 @@ function bestAreaCenter(
   return best && best.covered >= 2 ? best : null;
 }
 
-/** Frénésie (LDB 21 l.33) : le frénétique vise IMPÉRATIVEMENT l'ennemi le plus PROCHE de sa Ligne de
- *  Vue (pas le plus faible) ; à distance égale, le plus blessé (tri stable, déterministe). */
-function nearest(enemyPos: Pt, heroes: Combatant[]): Combatant {
-  return [...heroes].sort((a, b) => {
-    const da = manhattan(enemyPos, a.pos!), db = manhattan(enemyPos, b.pos!);
-    if (da !== db) return da - db;
-    return a.wounds.current - b.wounds.current;
-  })[0];
-}
-
 /**
  * Un CANDIDAT d'action discrétionnaire (Lot 3 — moteur Utility à score pondéré).
  * `kind` = type d'action (sert au BIAIS de palier dans le départage : à utilité égale, on garde l'ordre
@@ -584,7 +573,7 @@ function pousseeVersStructure(scene: Scene, chef: Combatant, cible: Combatant, a
 /** Choisit l'action d'un ennemi pour son tour. Pure et déterministe. */
 export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const resolveTrapping = input.resolveTrapping ?? findTrappingById;
-  const { enemy, scene, blocked, smoke, flying, facing, traverse } = input;
+  const { enemy, scene, smoke, flying, facing, env: envDeMarche } = input;
   // Tenue de formation (#196) : Mouvement effectif plafonné à 0 → tout le reste de la fonction (approche,
   // repositionnement/kiting, fallback anti-immobilisme) énumère seulement la case courante — un ennemi déjà
   // adjacent (`inMelee`/`withinMelee`, testés sur `pos` SANS passer par `reach`) reste attaquable normalement.
@@ -596,6 +585,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // groupe). `perceived` absent = aucun gate (comportement historique / tests purs).
   const adversaires = adversairesDe(input);
   const combattants = input.combatants ?? [...squad, ...adversaires.filter((c) => c.kind !== enemy.kind)];
+  // Géométrie de combat : la monture d'un cavalier porte portée, contact et empreinte. LDB 14 l.179
+  const corps = attackGeomOfList([...combattants], enemy, null);
   const heroes = input.perceived
     ? adversaires.filter((h) => h.pos && input.perceived!.has(`${h.pos.x},${h.pos.y},0`))
     : adversaires;
@@ -621,10 +612,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const mr = meleeReachTiles(enemy.weapons, mpt);
   // Au contact depuis la case candidate `a`, l'ennemi posé là (`positionPosee`), mesuré par `distanceDeContact`.
   const withinMelee = (a: Pt, h: Combatant) =>
-    distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, a) }, h) <= mr;
+    distanceDeContact(scene, { ...corps, pos: positionPosee(scene, a) }, h) <= mr;
   // Au CONTACT par empreinte (LDB 15 l.12) : un grand ennemi touche depuis n'importe quelle de ses tuiles.
   // `distanceDeContact` plie empreinte ET Δhauteur à l'échelle de la scène → s'aligne sur la grille d'engagement de la résolution.
-  const inMelee = (h: Combatant) => distanceDeContact(scene, enemy, h) <= mr;
+  const inMelee = (h: Combatant) => distanceDeContact(scene, corps, h) <= mr;
 
   // Possède-t-il un sort OFFENSIF jouable (data-driven : Projectile ou op de dégât/contrôle hostile) ? Si
   // oui, il LANCE plutôt que de tirer (parité avec l'ancien `offensiveSpell == null` du gate de tir).
@@ -656,7 +647,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // PORTÉE (parité avec le gate pré-clic du héros) : un tireur ne vise pas au-delà de la bande
   // Extrême (Portée ×3 — rangeBandModifier null), un lanceur pas au-delà de la portée du sort.
   // Sans portée chiffrée (arme sans `range`, sort spécial) : pas de gate (stubs/exotiques).
-  const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(enemy), h.pos!, footprintN(h));
+  const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(corps), h.pos!, footprintN(h));
   const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'distance' ? porteeDeTir(resolveTrapping, enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
   const shootPool = maxWeaponRange > 0 ? shootableHeroes.filter((h) => rangeBandModifier(fpDist(h), maxWeaponRange, mpt) != null) : shootableHeroes;
   // Cible dans une bande de portée de CETTE arme (sans portée chiffrée : pas de gate).
@@ -682,12 +673,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     if (sp.range == null) { castRange = null; break; }
     castRange = Math.max(castRange ?? 0, sp.range);
   }
-  // Tir en étant *Engagé* : IMPOSSIBLE sauf Atout d'arme Pistolet (`LDB 14 l.41`) — veto de RÈGLE, à côté
-  // de la préférence tactique « une arme de mêlée en main et un adversaire adjacent → on frappe ». MÊME
-  // porte que la voie joueur (`firedAttackBlock`, combatFlow).
-  const armesTirables = isEngaged(enemy, input.combatants ?? input.heroes) ? armesPretes.filter((w) => canFireWhileEngaged(w)) : armesPretes;
-  const tirPossible = armesTirables.length > 0 && !(adjacentFoes.length > 0 && hasMeleeWeapon);
-  const canShoot = !frenzied && tirPossible && shootPool.length > 0;
+  // Veto de RÈGLE par la porte du joueur, arme × cible (`tirPermis`), à côté de la préférence tactique « une arme
+  // de mêlée en main et un adversaire adjacent → on frappe ».
+  const peutTirer = (w: Weapon, cible: Combatant): boolean => !input.tirPermis || input.tirPermis(w, cible);
+  const tirPossible = armesPretes.length > 0 && !(adjacentFoes.length > 0 && hasMeleeWeapon);
+  const ciblesDeTir = shootPool.filter((h) => armesPretes.some((w) => peutTirer(w, h)));
+  const canShoot = !frenzied && tirPossible && ciblesDeTir.length > 0;
   // Structures que l'arme à distance peut viser, chargée ou non (AA 10 l.138) : FACE exposée en vue (on vise
   // le côté tireur, la case derrière la structure est masquée par son arête), arme qui l'ABÎME
   // (`structureImmune`, ADE II 08 l.296-300), en portée. Vivier de l'anti-immobilisme, de la recharge et du tir. `LDB 21 l.33`
@@ -718,7 +709,6 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // Cases atteignables ce tour (inclut la case de départ à distance 0). Vol (LDB 85 l.433) :
   // ligne directe, seules les cases d'atterrissage doivent être praticables et libres.
-  const envDeMarche = { blocked, foot: footprintN(enemy), noStop: input.noStop, traverse };
   const reach = (flying ? flyReachable : reachable)(scene, pos, movement, envDeMarche);
   const hereKey = tileKey(pos.x, pos.y, pos.z ?? 0);
 
@@ -740,7 +730,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     let mesure: ((k: string) => number | undefined) | null;
     if (isShooterOrCaster) mesure = (k) => manhattan(tileFromKey(k), t);
     else {
-      const ne = footprintN(enemy), nt = footprintN(target);
+      const ne = footprintN(corps), nt = footprintN(target);
       const contacts: Pt[] = [];
       for (const { z } of scene.layers)
         for (let y = t.y - mr - ne + 1; y <= t.y + nt - 1 + mr; y++)
@@ -884,13 +874,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, sourceCombattant(h), 'appartenance', enemy))) : []; // #3045
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */
   const restrict = (pool: Combatant[]): Combatant[] => { const hp = hatedOf(pool); return hp.length ? hp : pool; };
-  /** En Frénésie, la cible est IMPÉRATIVEMENT le plus proche en LdV (LDB 21 l.33) — on contraint le vivier
-   *  d'énumération à ce seul héros (le scoring ne peut donc choisir personne d'autre). */
-  const frenzyPick = (): Combatant | null => {
-    if (!frenzied) return null;
-    const visibleFoes = shootableHeroes.length ? shootableHeroes : heroes;
-    return visibleFoes.length ? nearest(pos, visibleFoes) : null;
-  };
+  /** En Frénésie, la cible imposée (`cibleDeFrenesie`) est le seul vivier d'énumération. LDB 21 l.33 */
+  const frenzyPick = (): Combatant | null => (frenzied ? input.cibleDeFrenesie ?? null : null);
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
   const outnumberEnvMelee = (target: Combatant) => {
@@ -1157,9 +1142,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Tir (hors Combat rapproché, cible visible) : UN candidat PAR cible tirable (Lot 3 — multi-cibles).
   // UN candidat par arme prête et par cible à sa portée : l'argmax départage les mains (LDB 14 l.78).
   if (canShoot) {
-    const pool = restrict(fpick ? [fpick].filter((h) => shootPool.includes(h)) : shootPool);
-    for (const w of armesTirables) for (const t of pool) {
-      if (!aPorteeDe(w, t)) continue;
+    const pool = restrict(fpick ? [fpick].filter((h) => ciblesDeTir.includes(h)) : ciblesDeTir);
+    for (const w of armesPretes) for (const t of pool) {
+      if (!aPorteeDe(w, t) || !peutTirer(w, t)) continue;
       candidates.push({ action: { kind: 'tir', targetId: t.id, ...(w.uid ? { weaponUid: w.uid } : {}) }, kind: 'tir', utility: attackUtility(t, { kind: 'distance', weapon: w, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
     }
   }
@@ -1175,7 +1160,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // l'inatteignable).
   const attackableNow = (t: Combatant): boolean =>
     (hasMeleeWeapon && !!meleeWeapon && inMelee(t))
-    || (canShoot && shootPool.includes(t))
+    || (canShoot && ciblesDeTir.includes(t))
     || (canCast && shootableHeroes.includes(t) && offensiveSingles.some((sp) => sp.range == null || fpDist(t) <= sp.range));
 
   // MÊLÉE + APPROCHE — UN vivier hate-restreint (LDB 21) ; MÊLÉE pour les cibles au contact, APPROCHE
@@ -1199,8 +1184,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   }
 
   // AA 10 l.94–98, l.138 ; ADE II 08 l.249, l.258, l.292, l.296–300.
-  if (tirPossible) for (const w of armesTirables) for (const st of shootableStructures) {
-    if (structureImmune(w, st) || !aPorteeDe(w, st)) continue;
+  if (tirPossible) for (const w of armesPretes) for (const st of shootableStructures) {
+    if (structureImmune(w, st) || !aPorteeDe(w, st) || !peutTirer(w, st)) continue;
     candidates.push({
       action: { kind: 'tir', targetId: st.id, ...(w.uid ? { weaponUid: w.uid } : {}) },
       kind: 'tir', utility: attackUtility(st, { kind: 'distance', weapon: w, dist: fpDist(st) }),
@@ -1231,7 +1216,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   if (paire) {
     const { principale, secondaire } = paire;
     const ciblesSecondaire = secondaire.type === 'distance'
-      ? shootPool.filter((t) => aPorteeDe(secondaire, t))
+      ? shootPool.filter((t) => aPorteeDe(secondaire, t) && peutTirer(secondaire, t))
       : heroes.filter(inMelee);
     const optsDe = (w: Weapon, t: Combatant) => (w.type === 'distance'
       ? { kind: 'distance' as const, distanceTiles: fpDist(t), metresPerTile: mpt, resolveTrapping }

@@ -158,7 +158,7 @@ import { sizeGap } from '../engine/size';
 import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { bouclierDuBinomeEnJeu, effectifAuContactParmi, surnombreDeLAttaque } from './combat/surnombre';
-import { corpsDe, distanceDeCombat, distanceDeContact, sizeFootprint, footprintN, footprintChebyshev } from './monde/footprint';
+import { corpsDe, distanceDeCombat, distanceDeContact, footprintN, footprintChebyshev } from './monde/footprint';
 import { isUnbreakable, hasQuality, dangerousNine, hasBladeTrap, strikesLast, reloadDRTarget } from '../engine/qualities/dispatch';
 import {
   applyTriggeredEffects,
@@ -190,7 +190,7 @@ import {
 } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
-  flyMeters, runMultiplier,
+  runMultiplier,
   isSkittishMount, immuneToSpellDomain, traitCapability,
 } from '../engine/traits/dispatch';
 import { isRation } from '../engine/provisions';
@@ -377,7 +377,7 @@ import {
 } from '../engine/items';
 import { crochetDuSol, lacherAuSol, lacherLeBouclierDuBinome } from './objetsAuSol';
 import { itemCapability } from '../engine/capabilities';
-import { effectiveMovement } from '../engine/encumbrance';
+import { effectiveMovement, mouvementDeVol } from '../engine/encumbrance';
 import {
   isOutOfAction,
   addCondition,
@@ -582,7 +582,7 @@ import {
 import { weatherExposure, type ExposureSeverity } from '../engine/exposure';
 import type { TravelRecapDay } from './travelFlow';
 import { groupeAPoudre, isThrownWeapon, maniementRetenu, weaponGroup } from '../engine/weaponGroup';
-import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt, climbTraverseFor } from './monde/path';
+import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt } from './monde/path';
 import { casesDansLaPortee, chebyshev } from '../engine/grid';
 import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
 import { expectedDamage, finite } from './monde/aiSpellValue';
@@ -593,7 +593,7 @@ import { emitCombatEvent } from './combatEvents';
 import { massBattleTrackHit } from './massBattleFlow';
 // Géométrie de combat (`combatGeometry`) et gestes de placement (`combatPlacement`) — usage interne.
 import {
-  occupied, cannotStopOn, moveEnv, inRect,
+  occupied, moveEnv, inRect,
   isFlankOrRear, seesInDark, smokeOf, porteeEnCases,
 } from './monde/combatGeometry';
 import { displaceSmaller, removeEntities, applyZoneCrossings } from './combatPlacement';
@@ -893,7 +893,7 @@ function effectifDeLArmeSuffisant(active: Combatant, arme: Weapon, combatants: C
 
 interface RefusDuTir { reason: 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'engaged'; detail: string; need?: string }
 
-/** Tir héros refusé — LÉGALITÉ de l'arme employée (tir en étant *Engagé*, `LDB 14 l.41` ; armes à distance
+/** Tir refusé — LÉGALITÉ de l'arme employée (tir en étant *Engagé*, `LDB 14 l.41` ; armes à distance
  *  bannies de la rencontre) ou RESSOURCE : arme à défaut Recharge non chargée (LDB 62 l.335) ou plus
  *  de munition compatible — `null` si le tir peut partir. Concern ORTHOGONAL à la géométrie (`attackPlan`),
  *  rejoué À L'IDENTIQUE par le clic (`cliquerLeCombattant`) ET le survol (`hoverTargeting`) pour que
@@ -901,7 +901,6 @@ interface RefusDuTir { reason: 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' |
  *  proposer une attaque qui se solderait par un log silencieux. Mêlée / pas d'arme à distance → `null`
  *  (la Recharge ne concerne que l'arme effectivement tirée, `firedWeapon`). */
 export function firedAttackBlock(get: Get, active: Combatant, target: Combatant, weaponUid?: string): RefusDuTir | null {
-  if (active.kind !== 'heros') return null;
   const b = get().battle;
   // Arme effectivement testée + distance PAR CETTE ARME (#BUG-A, poule-et-œuf) : choix EXPLICITE (poste
   // servi → `weaponUid`) sinon chaque candidate de mêlée évaluée avec SA PROPRE géométrie (`pickAttackWeapon`,
@@ -909,6 +908,12 @@ export function firedAttackBlock(get: Get, active: Combatant, target: Combatant,
   const w = b
     ? pickAttackWeaponList(get().scene, b.combatants, active, target, weaponUid)
     : (weaponUid ? active.weapons.find((x) => x.uid === weaponUid) : undefined) ?? assertAttackWeapon(active.weapons, distanceDeContact(get().scene, active, target) <= meleeReachTiles(active.weapons, sceneMetresPerTile(get().scene)));
+  return refusDuTirALArme(get, active, target, w);
+}
+
+/** `firedAttackBlock` pour l'arme `w` déjà choisie : le refus de l'attaque de `active` sur `target` à cette arme,
+ *  `null` si elle peut partir. Lu par l'IA, candidat par candidat (`buildAiInput`). */
+export function refusDuTirALArme(get: Get, active: Combatant, target: Combatant, w: Weapon): RefusDuTir | null {
   const refus = refusDeLArmeSansCible(get, active, w);
   if (refus || w.type !== 'distance') return refus;
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
@@ -2111,8 +2116,8 @@ export function aiApproachPlan(
 }
 
 /** Cible IMPOSÉE d'un combattant en Frénésie (LDB 21 l.33) : l'ennemi le plus proche dans sa Ligne
- *  de Vue (à distance égale, le plus blessé — même critère que l'IA). Null si pas frénétique ou
- *  aucun ennemi visible (alors pas de contrainte). */
+ *  de Vue (à distance égale, le plus blessé). Null si pas frénétique ou aucun ennemi visible (alors pas
+ *  de contrainte). Lue par le clic (`refusDAttaque`) et par l'IA (`buildAiInput`). */
 export function frenzyTarget(get: Get, c: Combatant): Combatant | null {
   const { battle, scene } = get();
   if (!battle || !scene || !isFrenzied(c) || !c.pos) return null;
@@ -6562,15 +6567,12 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   const pulsion = ciblesDePulsion(enemy, battle.combatants); // #3045
   // Géométrie porteuse (Combat monté, LDB 14) → empreinte + Mouvement + cases bloquées.
   const geom = mountOf(battle, enemy) ?? enemy;
-  const blocked = occupied(battle, geom);
   const auContact = isEngaged(enemy, battle.combatants);
   const cavalryCharge = !!enemy.mountId && !auContact; // cavalier non Engagé : portée de Course (2×)
   // Engagé sans départ libre ni Avantage à sacrifier : « cloué sur place » (LDB 15 l.49) ; le départ se joue à
   // l'exécution du déplacement (`partirDuContact`).
   const cloue = auContact && !departLibre({ active: enemy, battle }) && !peutSacrifierLAvantage({ active: enemy, battle });
-  let movement = cloue ? 0 : Math.floor(effectiveMovement(geom) * (cavalryCharge ? 2 * runMultiplier(geom.traits) : 1));
-  const flyM = flyMeters(enemy.traits); // Vol (Indice) (LDB 85 l.433) : remplace la Marche s'il porte plus loin
-  if (flyM != null && !cloue) movement = Math.max(movement, Math.floor(flyM / 2));
+  const movement = cloue ? 0 : Math.max(mountMovement(battle, enemy), Math.floor(effectiveMovement(geom) * (cavalryCharge ? 2 * runMultiplier(geom.traits) : 1)));
   const perceived = perceivedTiles(
     { scene, battle, party: get().party, meneurChoisi: get().meneurChoisi, partyPos: get().partyPos, gameTime: get().gameTime, lightLevel: get().lightLevel },
     enemy,
@@ -6610,9 +6612,11 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     && effectifDeLArmeSuffisant(enemy, arme, battle.combatants)) : [];
   const smoke = smokeOf(battle);
   const paire = paireDesDeuxArmes(get, enemy);
+  const cibleDeFrenesie = frenzyTarget(get, enemy);
   return {
-    enemy, heroes, resolveTrapping, ...(paire ? { paireDesDeuxArmes: paire } : {}), ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, blocked, noStop: cannotStopOn(battle, geom), movement, spells,
-    smoke, flying: flyM != null, traverse: climbTraverseFor(enemy.traits), perceived, facing: get().facing, squad,
+    enemy, heroes, resolveTrapping, ...(paire ? { paireDesDeuxArmes: paire } : {}), ...(cibleDeFrenesie ? { cibleDeFrenesie } : {}), ...(pulsion.length ? { ciblesDePulsion: pulsion } : {}), scene, env: moveEnv(battle, geom), movement, spells,
+    tirPermis: (arme, cible) => refusDuTirALArme(get, enemy, cible, arme) === null,
+    smoke, flying: (mouvementDeVol(geom) ?? 0) > 0, perceived, facing: get().facing, squad,
     combatants: battle.combatants,
     // Mémo de Ligne de Vue de CETTE décision : posé ici parce que c'est ici que la scène et les fumées de
     // la décision sont fixées, et repassé tel quel aux ré-énumérations d'`aiApproachPlan`.
@@ -8953,19 +8957,18 @@ function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<
   displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
   get().orienterSelonLeChemin(enemy.id, path);
   if (geom !== enemy) get().orienterSelonLeChemin(geom.id, path);
-  const parcours = path ?? [{ ...mv.vers }];
-  const apresDeplacement = emettreLApproche(enemy, geom, parcours);
-  applyZoneCrossings(get, set, enemy, parcours); // Mur de feu & co (L11) : traverser coûte
+  const apresDeplacement = emettreLApproche(enemy, geom, path);
+  applyZoneCrossings(get, set, enemy, path); // Mur de feu & co (L11) : traverser coûte
   // Grimpant (LDB 85 l.160-162) : le pathing IA franchit une arête `WallSeg.climb` SANS Test —
   // pas un jet silencieux, journalisé comme l'escalade du joueur (`franchirLArete`, #504, MÊME clé i18n).
-  if (path && path.some((p, i) => i > 0 && climbEdgeBetween(scene, path[i - 1], p)?.climb)) {
+  if (path.some((p, i) => i > 0 && climbEdgeBetween(scene, path[i - 1], p)?.climb)) {
     battle.log.push(ev('deplacement', tr('climb.auto', { name: nomDe(enemy) }), enemy.id));
   }
   // #527 : l'approche IA doit se TRACER comme le Mouvement joueur (BFS à pas uniforme, `pathTo` — même
   // coût que `cliquerLaCaseDuCombat`/`stepCost`) sinon un gate qui exige `movementUsed === 0` (Se cabrer,
   // LDB 85 l.314) laisse passer approche + piétinement-gratuit du même tour.
   const apres = get().battle!;
-  apres.movementUsed = (apres.movementUsed ?? 0) + Math.max(0, (path?.length ?? 1) - 1);
+  apres.movementUsed = (apres.movementUsed ?? 0) + Math.max(0, path.length - 1);
   approachFearTrigger(get, set, enemy, mv.depuis); // LDB 21 l.27
   set({ battle: { ...get().battle! } });
   bus.emit(EVT.SCENE_DIRTY);
@@ -9882,8 +9885,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const charge = !refusDeCharge(battle, enemy); // LDB 15 l.35 : verdict lu AVANT le déplacement
       const distBefore = distanceDeCombat(scene, enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
       const fromPos = { ...enemy.pos! }; // position AVANT déplacement (déclenchement de Peur à l'approche)
-      const path = pathTo(scene, enemy.pos!, mv.to, { blocked: input.blocked, foot: sizeFootprint(geom.size), traverse: input.traverse });
-      const pas = Math.max(0, (path?.length ?? 1) - 1);
+      const path = pathTo(scene, enemy.pos!, mv.to, input.env) ?? (input.flying ? [{ ...mv.to }] : null);
+      if (!path) return advanceTurn(get, set);
+      const pas = Math.max(0, path.length - 1);
       if (ran) {
         battle.log.push(ev('deplacement', traceLineOf({ who: nomDe(enemy), label: testTraceLabel(refLabel('skills', ran.test.skill), ran.test.difficulty), roll: ran.roll, target: ran.target, sl: ran.sl, success: ran.success }), enemy.id));
         battle.log.push(ev('deplacement', tr('cs.run', { name: nomDe(enemy), cost: pas, short: '' }), enemy.id));
@@ -9891,7 +9895,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       // Télégraphe de DÉPLACEMENT (parité héros) : montrer le chemin + la destination AVANT que l'ennemi
       // bouge (« où il va »), puis il glisse dessus. Le mouvement réel + la suite (attaque/fin de tour)
       // sont DIFFÉRÉS après la tenue (beatHold moveTelegraph) — mêmes effets, juste annoncés d'abord.
-      set({ actorMove: { id: enemy.id, path: path ?? [{ ...mv.to }] }, battle: { ...battle } });
+      set({ actorMove: { id: enemy.id, path }, battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, {
         kind: 'deplacer', vers: { ...mv.to }, chemin: path, thenTargetId: mv.thenTargetId, couru: !!ran, charge, distAvant: distBefore, depuis: fromPos, mouvementAvant: battle.movementUsed ?? 0,

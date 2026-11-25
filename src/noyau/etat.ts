@@ -107,7 +107,7 @@ export type GesteDeSuite =
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }
-  | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; couru: boolean; charge: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
+  | { kind: 'deplacer'; vers: Pt; chemin: Pt[]; thenTargetId: string; couru: boolean; charge: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
 
 /** Le tour en cours d'une clé : `decide` dit que l'IA l'a décidé (`runEnemyAI` seul le pose), `armements` compte ses
  *  armements, `suite.n` nomme celui qui est en attente, `parquee` dit qu'il a échu sur une main tenue. */
