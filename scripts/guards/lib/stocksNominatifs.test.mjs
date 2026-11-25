@@ -18,6 +18,7 @@ import {
 } from './stocksNominatifs.mjs';
 import { PORTE_DE_PLAGE, bilanDuCommit, refusDeLaPlage } from './plageStock.mjs';
 import { depotDe } from './gitPorte.mjs';
+import { porteDeTousLesProjets } from './porteDesProjets.mjs';
 import { fermetureSurDisque, jugeDeLEre } from './porteDEre.mjs';
 import { parUnitesDeCode } from './lister.mjs';
 
@@ -373,7 +374,7 @@ test('#2472 supprimer le fichier porteur retire toutes ses entrées', () => {
 
 // #2503 : chaque commit se juge par la porte de son ÈRE. Les témoins sont les trois commits de
 // `chantier/2400` acceptés avant `581b0be01` (#2472), relus depuis leurs objets git.
-const DEPOT = depotDe(fileURLToPath(new URL('../../..', import.meta.url)));
+const DEPOT = depotDe(fileURLToPath(new URL('../../..', import.meta.url)), { porte: porteDeTousLesProjets });
 const BALAYAGES = 'scripts/guards/balayages-non-resolus-stock.json';
 const ECRIVAINS = 'scripts/gates/ecrivainsAtteints.test.mjs';
 const ERE_NETTE = 'bf79a00ad07d45d1f15509461db7079fa81e4b30';
