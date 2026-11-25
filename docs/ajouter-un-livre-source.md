@@ -736,9 +736,14 @@ node scripts/raw/reconcile.mjs            # code ↔ Atlas : Sens A (règle cod�
 ```
 
 - `reanchor.mjs --apply` corrige les dérives **HIGH** (citation retrouvée de façon unique dans la
-  source) ; `--remap` (réservé aux réfs de *synthèse*, sans citation attachée, et aux
-  continuations nues `l.N` qui suivent une réf `<ABRÉV> NN l.X` sur leur ligne ou dans leur cellule)
-  les porte par la carte de lignes EXACTE du diff `git diff -U0` (`scripts/raw/lib/carte-lignes.mjs`) :
+  source) ; `--remap` (réservé aux réfs de *synthèse*, sans citation attachée, aux réfs du code — les
+  racines citantes de `scripts/raw/lib/fichiersCitants.mjs` — et aux continuations nues `l.N` qui
+  suivent une réf `<ABRÉV> NN l.X` sur leur ligne ou dans leur cellule ; chaque numéro d'une plage
+  `-Y`, d'un point `+n` ou d'une forme compacte `/n` se porte ; une continuation dont l'écart à sa
+  réf porte un chiffre hors de la forme multi-chapitres `/NN l.` — `; 14 l.3`, `Magic 07 l.30` — ou
+  nomme une source — un sigle, un dossier `Source/<livre>/`, la `VO` : `MDG 12 l.432 / VO l.315` — a un
+  rattachement incertain, que les continuations suivantes de sa ligne héritent : RAPPORTÉE dès qu'un de
+  ses chapitres candidats (l'hôte, la source nommée et ses numéros) bouge, jamais réécrite) les porte par la carte de lignes EXACTE du diff `git diff -U0` (`scripts/raw/lib/carte-lignes.mjs`) :
   dans un hunk, une nouvelle ligne s'apparie à l'ancienne qui lui est égale après `normalize`,
   sinon dont elle est l'amputée (mêmes jetons, moins certains, dont un d'au moins trois lettres) —
   rang à rang si le hunk garde son nombre de lignes et que chaque paire correspond, sinon à
@@ -844,7 +849,7 @@ Ce que chaque outil voit, et ce qu'il ne voit **pas** :
 | Outil | Ce qu'il juge | Son angle mort |
 |---|---|---|
 | `scripts/raw/check-code-refs.mjs` | qu'une réf `<ABRÉV> NN l.X` du code tient dans les bornes du chapitre, et que la ligne citée n'est pas vide | le **contenu** : une réf qui tombe sur un autre paragraphe de la bonne longueur passe |
-| `scripts/raw/reanchor.mjs` | les citations verbatim de l'Atlas, retrouvées à l'identique dans la Source courante | les réfs de *synthèse* (sans citation) — d'où `--remap`, et sa clause d'antériorité au commit |
+| `scripts/raw/reanchor.mjs` | les citations verbatim de l'Atlas, retrouvées à l'identique dans la Source courante | les réfs de *synthèse* (sans citation) et celles du code — d'où `--remap`, et sa clause d'antériorité au commit |
 | `src/data/prose-resolution.test.ts` | que toute `descRef` du dépôt rend son texte AUJOURD'HUI (empreintes comprises) | il nomme la rupture, il ne la répare pas |
 | `scripts/source/reparer-adresses.mjs` | où le texte d'origine a atterri, et le re-prouve à l'octet | il n'écrit que les `RECALÉE` — une source **réécrite** n'est pas un déplacement |
 
