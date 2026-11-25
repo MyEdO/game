@@ -863,6 +863,11 @@ const ATTENDU = {
   // `mkdtempSync` de `WFRP_MEMOIRE_DOSSIER` ou d'os.tmpdir()), supervisé par `superviserProcessus.mjs` ; l'arbre n'est jamais écrit.
   'test:corpus-isole': [
     "scripts/corpus-isole/guards/balayages-non-resolus.test.mjs",
+    // #5037 : le banc de la porte des comptes sur une copie du dépôt réel la forge sous un `mkdtempSync` d'os.tmpdir()
+    // (`forgerDepot`), effacé en finally ; ses enfants `tsx` posent chaque borne sous un `mkdtempSync` d'os.tmpdir(),
+    // effacé en finally. L'arbre n'est jamais écrit.
+    "scripts/corpus-isole/guards/comptes-plage-depot-reel.test.mjs",
+    "scripts/guards/lib/depotGabarit.mjs",
     "scripts/docs/build-all.mjs",
     "scripts/docs/lib/ecriture-derives.mjs",
     "scripts/docs/lib/fraicheur-docs.mjs",

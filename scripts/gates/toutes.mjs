@@ -280,7 +280,8 @@ export const ECRIT_LU = {
   'test:corpus-isole': {
     ecrit: [],
     lit: LIT_DES_AUDITS,
-    raison: 'Les audits du dépôt réel joués sans concurrence lisent leurs corpus ; leurs mémos et copies restent sous un `mkdtempSync` d’os.tmpdir(), retiré en finally, et leurs stocks se lisent sans réécriture.',
+    raison: 'Les audits du dépôt réel joués sans concurrence lisent leurs corpus ; leurs mémos et copies restent sous un `mkdtempSync` d’os.tmpdir(), retiré en finally, et leurs stocks se lisent sans réécriture ; ' +
+      'comptes-plage-depot-reel.test.mjs forge sa copie du dépôt réel sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants tsx (jugerLesComptes) posent chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally.',
   },
   'test:ops': {
     ecrit: [],

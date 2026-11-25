@@ -109,7 +109,7 @@ export const LANE_LOCALE_DE_JOB = {
   'docs-tests': {
     lane: 'docs',
     raison:
-      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178), et il porte `noyau:chargement`, ' +
+      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178), et il porte ' +
       '`test:corpus-isole`, `test:ops` et `test:runner` pour répartir la durée de la course de file entre les jobs ' +
       '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `docs` les porte',
   },
