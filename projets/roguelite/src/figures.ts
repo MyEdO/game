@@ -307,17 +307,17 @@ const COL = 'M-7,-57Q0,-52.4 7,-57L8.6,-53.2Q0,-47.6 -8.6,-53.2Z';
 function cuirasse(g: Gabarit): string {
   const mailles = (d: string) => trait(d, '#4a4e56', 1, 'stroke-dasharray="1.1 .9"');
   switch (g.armure?.poids) {
-    case 'legere': return p(HAUT, CUIR) + p(COL, assombrir(CUIR, 0.75)) + trait('M0,-52V-35', '#3a2414', 0.8) + trait('M-1.8,-49h3.6M-1.8,-45h3.6M-1.8,-41h3.6M-1.8,-37.4h3.6', '#e6d2a6', 0.7);
-    case 'moyenne': return p(JUPE, MAILLE) + p(HAUT, MAILLE) + p(COL, MAILLE)
+    case 'armure-legere': return p(HAUT, CUIR) + p(COL, assombrir(CUIR, 0.75)) + trait('M0,-52V-35', '#3a2414', 0.8) + trait('M-1.8,-49h3.6M-1.8,-45h3.6M-1.8,-41h3.6M-1.8,-37.4h3.6', '#e6d2a6', 0.7);
+    case 'armure-moyenne': return p(JUPE, MAILLE) + p(HAUT, MAILLE) + p(COL, MAILLE)
       + mailles('M-10.6,-50.6Q0,-48 10.6,-50.6M-11.6,-46.6Q0,-44 11.6,-46.6M-11.8,-42.6Q0,-40 11.8,-42.6M-11.4,-38.6Q0,-36 11.4,-38.6M-11.8,-30Q0,-27.6 11.8,-30M-12.2,-26Q0,-23.6 12.2,-26M-7.6,-55Q0,-50.6 7.6,-55');
-    case 'lourde': return (g.armure.jambes ? p(JUPE, '#8a8e96') + trait('M-4.4,-33.4L-5,-20.4M4.4,-33.4L5,-20.4M-12.2,-27Q0,-24.6 12.2,-27', '#3a3e46', 0.8) : '')
+    case 'armure-lourde': return (g.armure.jambes ? p(JUPE, '#8a8e96') + trait('M-4.4,-33.4L-5,-20.4M4.4,-33.4L5,-20.4M-12.2,-27Q0,-24.6 12.2,-27', '#3a3e46', 0.8) : '')
       + p(HAUT, ACIER) + p(COL, '#c6cad0') + trait('M0,-51V-35M-10.8,-41Q0,-39 10.8,-41', '#3a3e46', 0.8) + trait('M-6.6,-51C-7.8,-47 -7.6,-44 -7,-41.6', '#f4f6f8', 1, 'opacity=".7"');
     default: return '';
   }
 }
 
 /** L'armure aux épaules, par-dessus les bras, quand elle les couvre. */
-const epaulieres = (g: Gabarit): string => (!g.armure?.bras || g.armure.poids === 'moyenne' ? '' : p(EPAULES, g.armure.poids === 'lourde' ? ACIER : assombrir(CUIR, 0.8)));
+const epaulieres = (g: Gabarit): string => (!g.armure?.bras || g.armure.poids === 'armure-moyenne' ? '' : p(EPAULES, g.armure.poids === 'armure-lourde' ? ACIER : assombrir(CUIR, 0.8)));
 
 /** La perche du ratier, dressée dans son dos, ses prises pendues à la traverse. */
 const PERCHE = cerne('M-15.4,-8L-13,-89', '#8a6a44', 1.8) + cerne('M-20,-83.4L-5.4,-85', '#8a6a44', 1.5)
@@ -345,7 +345,7 @@ const HASTES: ReadonlySet<Arme> = new Set(['lance', 'hallebarde', 'baton']);
  *  la lame vers le haut ; l'arme à deux mains tenue des deux, la main gauche en travers du corps. */
 function enArmes(g: Gabarit): [string, string] {
   const dx = 10.5 * (g.carrure - 1), bras = g.armure?.bras;
-  const manche = bras ? { legere: CUIR, moyenne: MAILLE, lourde: '#b4b8c0' }[g.armure!.poids] : g.corps === 'torse-nu' ? g.peau : `url(#${g.tenue})`;
+  const manche = bras ? { 'armure-legere': CUIR, 'armure-moyenne': MAILLE, 'armure-lourde': '#b4b8c0' }[g.armure!.poids] : g.corps === 'torse-nu' ? g.peau : `url(#${g.tenue})`;
   const membre = (cote: 1 | -1, coude: [number, number], poing: [number, number]) => {
     const d = `M${cote * (10.5 + dx)},-52.5L${coude}L${poing}`;
     return trait(d, ENCRE, 6) + trait(d, manche, 4.4) + rond(poing[0], poing[1], 2.5, g.peau, C);
@@ -370,7 +370,7 @@ function enArmes(g: Gabarit): [string, string] {
 /** Le corps debout : `[derrière la tenue, la tenue, par-dessus la main armée]`. */
 function debout(g: Gabarit): [string, string, string] {
   const t = `url(#${g.tenue})`, a = (s: Signe) => g.signes?.includes(s), nu = g.corps === 'torse-nu', armure = g.corps === 'armure';
-  const chair = nu ? g.peau : t, sombre = TEINTES[g.tenue]?.[1] ?? '#2a1d14', greves = g.armure?.jambes && g.armure.poids !== 'legere';
+  const chair = nu ? g.peau : t, sombre = TEINTES[g.tenue]?.[1] ?? '#2a1d14', greves = g.armure?.jambes && g.armure.poids !== 'armure-legere';
   let dos = '';
   if (a('cape')) dos += p('M-10.6,-55C-18.6,-42 -19,-20 -16.4,-5Q0,-9.6 16.4,-5C19,-20 18.6,-42 10.6,-55Z', a('comete') ? '#7c1f14' : assombrir(sombre, 0.85));
   dos += auDos(g);

@@ -3,7 +3,7 @@
 import { writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import {
-  ARMES_DE_LA_FORGE, CHAMBRE_DU_RELAIS, COMPETENCES_UTILES, DESTINATIONS, GROUPES_SANS_COMPETENCE, PANOPLIES, PRIX_DU_SOIN_PAR_BLESSURE, PROFILS, REMEDES_DE_L_HOSPICE, ROLES,
+  ARMES_DE_LA_FORGE, CHAMBRE_DU_RELAIS, COMPETENCES_UTILES, DESTINATIONS, GROUPES_SANS_COMPETENCE, ARMURES_DE_LA_FORGE, PRIX_DU_SOIN_PAR_BLESSURE, PROFILS, REMEDES_DE_L_HOSPICE, ROLES,
   prixDUneChambre,
   SORTS_DES_VOIES, SORTS_MINEURS, TALENTS_HORS_DU_COMBAT, PRIERE_DE_SOIN,
 } from './src/jeu';
@@ -33,7 +33,6 @@ export function catalogue(): string {
     Object.entries(paliers).map(([niveau, ids]) => `niv. ${niveau} : ${ids.map(sort).join(', ')}`).join(' ; ')]));
   const forge = tableau(['Groupe', 'Armes'], Object.entries(ARMES_DE_LA_FORGE).map(([g, ids]) =>
     [`${nomme(nomDeGroupe(g), g)}${GROUPES_SANS_COMPETENCE.has(g as keyof typeof ARMES_DE_LA_FORGE) ? ', sans Compétence' : ''}`, ids.map(objet).join(', ')]));
-  const panoplies = tableau(['Panoplie', 'Pièces'], PANOPLIES.map((p) => [nomme(p.label, p.id), p.pieces.map(objet).join(', ')]));
   const destinations = tableau(['Destination', 'Palier', 'Salles', 'Meutes', 'Élites', 'Maître'], DESTINATIONS.map((d) => [
     nomme(d.nom, d.id), String(d.palier), String(d.salles), d.meutes.map(creatures).join(' ; '), d.elites.map(creatures).join(' ; '), creatures(d.boss),
   ]));
@@ -47,7 +46,7 @@ export function catalogue(): string {
     `Sorts mineurs d’un lanceur de Collège : ${SORTS_MINEURS.map(sort).join(', ')}. Prière entre deux salles : ${sort(PRIERE_DE_SOIN)}.`, '',
     '## Compétences utiles', '', [...COMPETENCES_UTILES].map(competence).join(', '), '',
     '## Talents de carrière écartés de la salle d’armes', '', [...TALENTS_HORS_DU_COMBAT].map((id) => talent({ id })).join(', '), '',
-    '## Forge', '', forge, '', panoplies, '',
+    '## Forge', '', forge, '', `Armures : ${ARMURES_DE_LA_FORGE.map(objet).join(', ')}.`, '',
     '## Auberge relais', '', tableau(['Palier', 'Chambre', 'Prix de la semaine'], CHAMBRE_DU_RELAIS.map((q, i) => [String(i), q, `${prixDUneChambre(q)} CO`])), '',
     '## Hospice', '', tableau(['Palier', 'Soin par Blessure rendue'], PRIX_DU_SOIN_PAR_BLESSURE.flatMap((p, i) => (p == null ? [] : [[String(i), `${p} CO`]]))), '', REMEDES_DE_L_HOSPICE.map(objet).join(', '), '',
     '## Destinations et adversaires', '', destinations, '',
