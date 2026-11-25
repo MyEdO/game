@@ -200,7 +200,7 @@ export function raisonDeRefusDePlage(refus) {
  * (`jugeesParLeurEre`) la lit, quelle que soit la classe `GitIndisponible` qu'il connaît (#2503).
  * @template T @param {() => T} cotes @returns {() => T}
  */
-export const cotesLisibles = (cotes) => () => {
+const cotesLisibles = (cotes) => () => {
   try {
     return cotes()
   } catch (e) {
