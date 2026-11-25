@@ -23,7 +23,7 @@ const du = (e: Etat, carriere: string) => herosDuGroupe(e).find((h) => h.carrier
 
 /** Une action d'une rencontre jouée à graine fixe par le héros de la carrière `carriere` : `reussie`, la graine où son
  *  Test réussit ; `marquee`, celle où il rate et où le noyau laisse sa marque (`attendu`) ; `indemne`, celle où il rate
- *  et où le Test du noyau (Exposition, Contraction) épargne le héros. */
+ *  et où le Test du noyau (Exposition, Contraction) laisse le héros indemne. */
 interface Cas { salle: SalleAJet; action: IdActionAJet; carriere: string; reussie: number; marquee: number; indemne?: number; attendu?: (v: Victime) => void }
 
 const corrompu = (v: Victime) => {
