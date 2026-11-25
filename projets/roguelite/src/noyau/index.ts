@@ -5,6 +5,7 @@
  */
 export type { Combatant, CharKey, ItemInstance } from '../../../../src/engine/types';
 export type { RNG } from '../../../../src/engine/dice';
+export type { Sexe } from '../../../../src/data/schemas/grammaire/valeurs';
 export { makeRNG } from '../../../../src/engine/dice';
 export { memeSpecialisation, refCouvre } from '../../../../src/data/schemas/grammaire/ref';
 export * from './heros';

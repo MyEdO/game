@@ -317,7 +317,7 @@ function uneJourneeDeMaladie(e: Etat): string[] {
 }
 
 function enterrer(e: Etat, h: Heros, ou: string): void {
-  e.cimetiere.unshift({ nom: h.c.label, carriere: h.carriere, expeditions: h.expeditions + 1, ou, jour: e.jour });
+  e.cimetiere.unshift({ nom: h.c.label, carriere: h.carriere, sexe: h.c.appearance?.sex, expeditions: h.expeditions + 1, ou, jour: e.jour });
   e.roster = e.roster.filter((x) => x !== h);
   if (e.expedition) e.expedition.groupe = e.expedition.groupe.filter((id) => id !== h.c.id);
 }

@@ -1,7 +1,7 @@
 /**
  * L'état d'une partie et sa création : la compagnie, les candidats, le hameau.
  */
-import { dotationDesNiveaux, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
+import { dotationDesNiveaux, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant, type Sexe } from '../noyau';
 
 import { ESPECES, estUtile, IdBatiment, type LieuDeSejour, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
 import { choisir, noter, tirer } from './outils';
@@ -11,7 +11,7 @@ import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques'
 export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
 export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; sejour?: Sejour }
 export interface Candidat extends Heros { prix: number }
-export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
+export interface Tombe { nom: string; carriere: string; sexe?: Sexe; expeditions: number; ou: string; jour: number }
 /** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`, `CAMP`) et attend le choix de son action ;
  *  `soignes` : les héros déjà soignés au camp. */
 export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; ouverte?: true; soignes?: string[] }

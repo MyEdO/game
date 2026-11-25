@@ -6,7 +6,7 @@
  * (relais, forge, hospice, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
-import { blessuresARendre, encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
+import { blessuresARendre, encombrement, maniement, nomDeCarriere, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
 import { medaillon, picto, plaque } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { progressionDuHeros } from './fiche';
@@ -293,7 +293,7 @@ const pageDuPeage = ({ e }: Lecture): Page => ({ classe: 'rangee', corps: palier
 const pageDuJardin = ({ e }: Lecture): Page => ({
   classe: 'tombes',
   corps: e.cimetiere.length
-    ? e.cimetiere.map((t) => `<article class="carte-service tombe">${medaillon('croix', 'moyen')}<div class="nom-propre petit gothique">${esc(t.nom)}</div><span class="sous-titre">${esc(J.nomDeCarriere(t.carriere))}</span>
+    ? e.cimetiere.map((t) => `<article class="carte-service tombe">${medaillon('croix', 'moyen')}<div class="nom-propre petit gothique">${esc(t.nom)}</div><span class="sous-titre">${esc(nomDeCarriere({ career: t.carriere, appearance: { sex: t.sexe } }))}</span>
       <span class="effet">${esc(t.ou)} · jour ${t.jour}</span><span class="effet">${pluriel(t.expeditions, 'expédition')}</span></article>`).join('')
     : placard('croix', 'Aucune tombe', 'Puisse-t-il en rester ainsi.'),
 });

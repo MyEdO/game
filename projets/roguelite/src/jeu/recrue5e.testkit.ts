@@ -30,7 +30,7 @@ export function recrue5e(xp: number): { e: Etat; h: Heros } {
 export function heros4e(carriere: string, graine: number, xp: number): Heros {
   const p = PROFILS.find((x) => x.id === carriere)!;
   const c = createHero({
-    idNeuf: fabriqueLocale(`v${graine}`), speciesId: 'humains-reiklander', careerId: carriere, label: p.nom, seed: graine, careerTalent: p.identite.talent,
+    idNeuf: fabriqueLocale(`v${graine}`), speciesId: 'humains-reiklander', careerId: carriere, label: carriere, seed: graine, careerTalent: p.identite.talent,
     ...(p.identite.sortsMineurs ? { pettySpells: [...p.identite.sortsMineurs] } : {}),
   });
   return { c: { ...c, xp }, carriere, espece: 'humains-reiklander', expeditions: 0, victoires: 0 };

@@ -30,7 +30,18 @@ import { bonusDe, effectiveChar, effectiveMaxWounds } from '../../../../src/engi
 import { peutTenter, testValue } from '../../../../src/engine/skills';
 import { weaponSkillId } from '../../../../src/engine/combat';
 import { competenceEnCarriere } from '../../../../src/engine/talentEffects';
-import { byId, characteristics, findSpellById, findTalentById, levelsForCareer, refLabel, spells } from '../../../../src/data';
+import {
+  byId,
+  characteristics,
+  displayLabelForSex,
+  findSpellById,
+  findTalentById,
+  levelsForCareer,
+  refLabel,
+  sexeDuPorteur,
+  spells,
+  type CareerLevelData,
+} from '../../../../src/data';
 import { CHAR_KEYS, type Combatant, type CharKey, type ItemInstance } from '../../../../src/engine/types';
 import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
 import { auHameau, type Geste } from './hameau';
@@ -102,9 +113,11 @@ export function progression(c: Combatant): Progression {
     return sl.options.filter((o) => o.optionId).map((o) => ({ id: o.optionId!, ...(o.spec ? { spec: o.spec } : {}), ...(sl.needsChoice && !o.spec ? { aSpecifier: true } : {}) }));
   });
   const prochain = niveaux.find((l) => l.level === niveau + 1);
+  const titre = (l: CareerLevelData) => displayLabelForSex(sexeDuPorteur(c), l.label, l.labelF);
+  const actuel = niveaux.find((l) => l.level === niveau);
   return {
-    niveau, titre: niveaux.find((l) => l.level === niveau)?.label ?? carriere, exigence: exigenceDuNiveau(c), complet: niveauValide(c, niveau, ctx),
-    suivant: prochain ? { niveau: prochain.level, titre: prochain.label, cout: coutDuChangement(c, true) } : null,
+    niveau, titre: actuel ? titre(actuel) : carriere, exigence: exigenceDuNiveau(c), complet: niveauValide(c, niveau, ctx),
+    suivant: prochain ? { niveau: prochain.level, titre: titre(prochain), cout: coutDuChangement(c, true) } : null,
     caracs: [...new Set(ctx.careerChars)].map((k) => ({ id: k, label: libelleDeCarac(k).label, valeur: effectiveChar(c, k), points: pointsDe(c, { genre: 'carac', id: k }), cout: prixDe(coutDeLAugmentation(c, { kind: 'caracteristique', char: k }, true)) })),
     competences: refs(ctx.skillSlots).filter((r) => !r.aSpecifier).map(({ aSpecifier: _a, ...ref }) => {
       const k = byId('skill', ref.id)?.characteristic as CharKey | undefined;
