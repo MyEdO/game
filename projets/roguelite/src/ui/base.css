@@ -21,6 +21,7 @@ button.plaque:disabled { cursor: not-allowed; }
 .parchemin .glose, .parchemin .sous-titre { color: var(--encre-2); }
 .parchemin .nom-propre { color: var(--sepia); text-shadow: none; }
 .lien { background: none; border: 0; padding: 4px 2px; font-family: "IM Fell English SC", serif; letter-spacing: 1px; color: var(--rouille); text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.lien:disabled { cursor: default; color: var(--encre-2); text-decoration: none; opacity: .6; }
 .gestes { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
 .gestes.colonne { flex-direction: column; align-items: stretch; }
 .etats { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }

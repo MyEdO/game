@@ -183,7 +183,7 @@ function salleAChoixEnCarton(e: J.Etat, choix: ChoixDeSalle | null): string {
   const piece = (o: Offre) => pieceDEpreuve(`action${o.savent === undefined ? ' passer' : ''}${choix?.action === o.id ? ' choisi' : ''}`, '', esc(o.rub),
     `<span class="titre-action"><span class="nom-propre moyen gothique">${picto(PICTO_D_ACTION[o.id], 18, 1.8)}${esc(o.libelle)}</span>${o.difficulte ? `<span class="difficulte">· ${esc(o.difficulte)}</span>` : ''}</span>
     <span class="enjeu">${o.gain ? `<span${o.picto ? ' class="gain"' : ''}>${o.picto ? picto(o.picto, 15, 1.8) : ''}${esc(o.gain)}</span>` : ''}${o.risque ? `<span class="risque">${esc(o.risque)}</span>` : ''}</span>`,
-    `data-a="action" data-k="${o.id}"${o.savent === undefined ? '' : ` title="${quiPeut(o.savent)}"`}${o.savent === 0 ? ' disabled' : ''}`);
+    `data-a="action" data-k="${o.id}"${o.savent === undefined ? '' : ` data-bulle="${quiPeut(o.savent)}"`}${o.savent === 0 ? ' disabled' : ''}`);
   return carton({
     ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], titre, surTitre: `${J.destinationCourante(e)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`,
     texte: `<div class="recit epreuve choix"><p>${esc(annonce)}</p><div class="pieces-epreuve">${offres.map(piece).join('')}</div></div>`,
@@ -230,8 +230,8 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
     cadres: carte ? titre + carte : service ? service.cadre : `${titre}
       ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe), { ruban: 'Sacs', classe: 'colonne-sacs' })}
       ${cadreA(CADRES['colonne-droite'], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
-        ${valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}
-        <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}${relire ? plaque('Relire la dernière salle', 'data-a="relire"', { icone: 'livre' }) : ''}</div>`, { classe: 'carte-salle' })}
+        ${valides && valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}
+        <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel', titre: valides ? '' : 'Tout le groupe est hors de combat.' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}${relire ? plaque('Relire la dernière salle', 'data-a="relire"', { icone: 'livre' }) : ''}</div>`, { classe: 'carte-salle' })}
       <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       <ol class="frise-route" ${place(CADRES.frise)}>${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}" data-bulle="${NOM_DE_SALLE[s.type]}">${medaillon(PICTO_DE_SALLE[s.type], 'petit', s.faite)}</li>`).join('')}</ol>`,
     socle,

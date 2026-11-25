@@ -69,6 +69,12 @@
 .progression .bourse-px { margin-top: 4px; }
 .progression .plan { margin-top: 8px; align-self: stretch; }
 .place-cadre > .cadre.progresser > .fond { padding-top: 34px; }
+/* le bloc de progression sur une page basse (la taille d'interface « grande ») se resserre pour tenir sans défiler */
+@container (max-height: 400px) {
+  .caracs { gap: 3px; }
+  .caracs .c { padding-bottom: 2px; }
+  .progression .colonne .rub { margin-top: 2px; }
+}
 @media (max-width: 899px) {
   .progression { grid-template-columns: minmax(0, 1fr); height: auto; overflow: visible; }
 }
