@@ -460,6 +460,7 @@ export const fr = {
   'valeur.pitance.ration': 'Ration',
   'valeur.pitance.rien': 'Rien',
   'valeur.test.guerison': 'Guérison',
+  'valeur.test.soin-aux-animaux': 'Soin aux animaux',
   'valeur.test.dexterite': 'Dextérité',
   ...parametres,
   // Le titre d'une fenêtre qui tient la main (`libelleDeLaFenetre`, `noyau/libelles.ts`), par sa clé (`CLES_DE_FENETRE`).
