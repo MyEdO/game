@@ -569,9 +569,9 @@ export const ECRIT_LU = {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `preparerLePilotage`) : ' +
         '`recupererModeles` n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par ' +
-        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
-        '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml, ' +
-        'où il suit les gates du jeu de rôle, qui le précèdent',
+        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde`, ' +
+        '`godot:rendus` et les gates du jeu de rôle dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une ' +
+        'SÉRIE, et a son job dans ci.yml, sur son runner (#5037)',
     },
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
@@ -597,8 +597,8 @@ export const ECRIT_LU = {
     ecritFerme: {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:recette` (`deposerLesAssets` par `preparerLePilotage`) : un `<id>.glb` absent ou de ' +
-        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` précède `godot:recette` dans le job ' +
-        '`godot-recette` de ci.yml, une SÉRIE',
+        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` précède `godot:recette` dans la lane ' +
+        '`types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE ; en CI, chacun a son job, sur son runner (#5037)',
     },
     ...lectureDesZones(['jeu-de-role'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
@@ -611,7 +611,7 @@ export const ECRIT_LU = {
     ecritFerme: {
       'dist/roguelite/':
         'la page du roguelite et ses feuilles sous la sortie ignorée par git ; sa seule gate lectrice, ' +
-        '`roguelite:recette`, le suit dans le job `godot-recette` de ci.yml, une SÉRIE',
+        '`roguelite:recette`, le suit dans le job `roguelite-recette` de ci.yml, une SÉRIE',
     },
     ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
     raison:
@@ -631,7 +631,7 @@ export const ECRIT_LU = {
       'projets/roguelite/recette/reference/ par `ecart` (scripts/recette/ecart.mjs). La partie fixe et ' +
       'les captures vont sous dist/roguelite-recette/, que git ignore et qu’aucune gate ne lit. Il LIT aussi ' +
       'dist/roguelite/, absent d’un checkout propre : c’est l’`ecritFerme` de `roguelite:construire`, qui le précède ' +
-      'dans le job `godot-recette` de ci.yml, une SÉRIE',
+      'dans le job `roguelite-recette` de ci.yml, une SÉRIE',
   },
   'personnage-3d:tests': {
     ecrit: [],
