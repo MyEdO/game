@@ -21,7 +21,7 @@ import type { Get, PatchDeFlux } from './flowTypes';
 import { currentTargetingMode, type OptionsDuClic } from './targetingModes';
 import { hoverTargeting } from './targeting';
 import { isOutOfAction } from '../engine/conditions';
-import { apresLeReport, inBattleId } from './monde/combatants';
+import { apresLeReport, inBattleId, possessionsDesBetesTouchees } from './monde/combatants';
 import { combatantAtTile } from './monde/combatGeometry';
 import { pointDeCase, type Pt } from './monde/path';
 import { champAttendSaFenetre } from './targetingHolder';
@@ -29,10 +29,12 @@ import { estLeNavireDeCampagne } from './monde/coqueDeCampagne';
 
 /** SEULE couture de re-rendu après mutation EN PLACE d'un acteur : notifie les ensembles que lit le jeu
  *  (`acteursEnJeu`) — la file de combat (`battle.combatants`) en combat, et le groupe après le report
- *  (`apresLeReport`, #4860) ; hors combat le groupe et la série d'attaques subies, l'hôte de ses combattants. */
+ *  (`apresLeReport`, #4860) ; hors combat le groupe, la série d'attaques subies, l'hôte de ses combattants, et les bêtes qui
+ *  suivent le groupe, dont la projection écrit ses Blessures (`possessionsDesBetesTouchees`, #4804). */
 export function touchActors(state: Jeu): PatchDeFlux {
   if (state.battle) return { battle: { ...state.battle, combatants: [...state.battle.combatants] }, ...(apresLeReport(state) ? { party: [...state.party] } : {}) };
-  return { party: [...state.party], ...(state.serieSubie ? { serieSubie: { ...state.serieSubie } } : {}) };
+  const possessions = possessionsDesBetesTouchees(state);
+  return { party: [...state.party], ...(state.serieSubie ? { serieSubie: { ...state.serieSubie } } : {}), ...(possessions !== state.possessions ? { possessions } : {}) };
 }
 
 /**
