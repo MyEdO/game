@@ -181,7 +181,7 @@ export const nomDEspece = (id: string): string => ESPECES[id]?.nom ?? id;
 /** La prière utilitaire d'un Béni entre deux salles, une fois par expédition. */
 export const PRIERE_DE_SOIN = 'benediction-de-guerison';
 
-export type TypeDeSalle = 'combat' | 'elite' | 'camp' | 'tresor' | 'rencontre' | 'boss';
+export type TypeDeSalle = 'combat' | 'elite' | 'camp' | 'tresor' | 'rencontre' | 'autel' | 'puits' | 'blesse' | 'boss';
 export interface Destination {
   id: string; nom: string; recit: string; palier: number; salles: number;
   meutes: string[][]; elites: string[][]; boss: string[]; or: number; lumiere: string;
@@ -226,8 +226,17 @@ const RIEN: FluxDEpreuve['echec'] = { kind: 'sequence', etapes: [] };
 const epreuve = (label: string, skill: string, difficulty: NonNullable<FluxDEpreuve['test']['difficulty']>, echec: FluxDEpreuve['echec'] = LAME): Epreuve =>
   ({ label, flux: { kind: 'test', test: { skill: { id: skill }, difficulty }, reussite: RIEN, echec } });
 
+/** Le contact d'un artefact profané : une Influence corruptrice d'Exposition Modérée, de `nature` physique ou
+ *  spirituelle, dont le noyau joue le Test. LDB 19 l.29 ; LDB 19 l.48-51 */
+const PROFANATION = (nature: 'physique' | 'spirituelle'): FluxDEpreuve['echec'] =>
+  ({ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'corruptionExposure', level: 'moderee', nature }] } });
+/** L'exposition à la `maladie` (`maladies.json`), dont le noyau joue le Test de Contraction. LDB 20 l.11 */
+const CONTAGION = (maladie: string): FluxDEpreuve['echec'] => ({ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'exposeDisease', disease: { id: maladie } }] } });
+
 const DECLENCHE = 'Une pierre bascule et une lame jaillit du mur : le piège se déclenche, la bourse reste hors d’atteinte.';
-/** Valeurs d'adaptation : la cache piégée de la salle `tresor`, les voyageurs de la salle `rencontre`. */
+/** Valeurs d'adaptation : la cache piégée de la salle `tresor` ; les rencontres (`RENCONTRES`) : les voyageurs de la
+ *  salle `rencontre`, l'autel profané, le puits souillé (Courante galopante, LDB 20 l.37-43) et le blessé contagieux
+ *  (Vérole urticante, LDB 20 l.116-121). MyEdO/game#4961. */
 export const EPREUVES = {
   tresor: {
     titre: 'Une cache piégée',
@@ -257,12 +266,58 @@ export const EPREUVES = {
     gain: { libelle: 'Bourse du colporteur', part: 0.5 },
     passer: { libelle: 'Ignorer', issue: 'ni gain ni risque', recit: 'Le groupe salue de loin et poursuit sa route.' },
   },
-} satisfies { tresor: SalleAChoix<'fouiller' | 'desarmer'>; rencontre: SalleAChoix<'parlementer' | 'intimider'> };
+  autel: {
+    titre: 'Un autel profané',
+    annonce: 'Une pierre noircie se dresse entre les arbres, couverte de signes impies. Des offrandes y luisent dans le sang séché.',
+    actions: {
+      purifier: { libelle: 'Purifier', question: 'Qui purifie l’autel ?', epreuves: [epreuve('Purifier l’autel', 'priere', 'intermediaire', PROFANATION('spirituelle'))],
+        reussite: 'La prière couvre les murmures : les signes s’effacent, et les offrandes ne sont plus que de l’or.',
+        echec: 'La prière se brise sur la pierre : les murmures s’insinuent dans l’esprit de qui priait.' },
+      piller: { libelle: 'Rafler les offrandes', question: 'Qui rafle les offrandes ?', epreuves: [epreuve('Rafler les offrandes', 'perception', 'difficile', PROFANATION('physique'))],
+        reussite: 'Seules les pièces que les signes n’ont pas touchées sont prises : la bourse est pleine, les mains nettes.',
+        echec: 'La main frôle la pierre souillée : un froid remonte le long du bras.' },
+    },
+    gain: { libelle: 'Offrandes de l’autel', part: 1 },
+    passer: { libelle: 'S’éloigner', issue: 'ni or ni souillure', recit: 'Le groupe contourne la pierre sans la regarder et poursuit sa route.' },
+  },
+  puits: {
+    titre: 'Un puits souillé',
+    annonce: 'Un vieux puits au bord du chemin, l’eau croupie à portée de bras. Au fond, sous la vase, brille la bourse d’un voyageur.',
+    actions: {
+      descendre: { libelle: 'Descendre', question: 'Qui descend dans le puits ?', epreuves: [epreuve('Descendre dans le puits', 'escalade', 'intermediaire', CONTAGION('courante-galopante'))],
+        reussite: 'Les pierres tiennent sous les pieds : la bourse remonte sans une goutte bue.',
+        echec: 'Une pierre cède : le héros tombe dans l’eau croupie et en avale une gorgée.' },
+      sonder: { libelle: 'Sonder à la perche', question: 'Qui sonde le puits ?', epreuves: [epreuve('Sonder le puits', 'perception', 'difficile', RIEN)],
+        reussite: 'La perche accroche la bourse et la ramène au bord.', echec: 'La perche remue la vase : rien ne remonte, que l’odeur.' },
+    },
+    gain: { libelle: 'Bourse du puits', part: 0.5 },
+    passer: { libelle: 'Passer son chemin', issue: 'ni bourse ni risque', recit: 'Le groupe laisse le puits à sa vase et poursuit sa route.' },
+  },
+  blesse: {
+    titre: 'Un blessé au bord du chemin',
+    annonce: 'Un homme gît contre une borne, le corps couvert de boursouflures. Il supplie qu’on le soigne et montre sa bourse.',
+    actions: {
+      panser: { libelle: 'Panser ses plaies', question: 'Qui panse le blessé ?', epreuves: [epreuve('Panser le blessé', 'guerison', 'intermediaire', CONTAGION('verole-urticante'))],
+        reussite: 'Des gestes sûrs, sans toucher les boursouflures : l’homme, soulagé, tend sa bourse.',
+        echec: 'Le pansement glisse, la main touche les boursouflures à vif.' },
+      questionner: { libelle: 'Le questionner', question: 'Qui le questionne ?', epreuves: [epreuve('Questionner le blessé', 'charme', 'intermediaire', CONTAGION('verole-urticante'))],
+        reussite: 'À distance, on gagne sa confiance : il dit où il a caché sa bourse avant de tomber.',
+        echec: 'Il se jette en suppliant au bras de qui l’approche.' },
+    },
+    gain: { libelle: 'Bourse du blessé', part: 0.5 },
+    passer: { libelle: 'Passer son chemin', issue: 'ni bourse ni contagion', recit: 'Le groupe presse le pas sans se retourner.' },
+  },
+} satisfies {
+  tresor: SalleAChoix<'fouiller' | 'desarmer'>; rencontre: SalleAChoix<'parlementer' | 'intimider'>; autel: SalleAChoix<'purifier' | 'piller'>;
+  puits: SalleAChoix<'descendre' | 'sonder'>; blesse: SalleAChoix<'panser' | 'questionner'>;
+};
 /** Les salles à choix dont les actions se jouent par un Test (`EPREUVES`). */
 export type SalleAJet = keyof typeof EPREUVES;
 export type IdActionAJet = { [S in SalleAJet]: keyof (typeof EPREUVES)[S]['actions'] }[SalleAJet];
 /** Toutes les actions à jet, par id. */
-export const ACTIONS_A_JET: Record<IdActionAJet, ActionAJet> = { ...EPREUVES.tresor.actions, ...EPREUVES.rencontre.actions };
+export const ACTIONS_A_JET = Object.assign({}, ...Object.values(EPREUVES).map((s) => s.actions)) as Record<IdActionAJet, ActionAJet>;
+/** Les rencontres : les salles à jet que tire le créneau de rencontre d'une expédition, une au plus (`partir`). */
+export const RENCONTRES: readonly SalleAJet[] = ['rencontre', 'autel', 'puits', 'blesse'];
 
 /** Valeurs d'adaptation : le camp, salle à choix. Chaque blessé y reçoit un soin au plus (`Salle.soignes`) ; le repos
  *  lève le camp. */
@@ -274,7 +329,7 @@ export const CAMP = {
 };
 
 /** PX gagnés par salle franchie, par type. */
-export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10 };
+export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10, autel: 10, puits: 10, blesse: 10 };
 export const OR_INITIAL = 100;
 export const PRIX_DE_RECRUE = [15, 30, 50];
 /** Ce qu'une recrue coûte en plus par niveau de carrière au-delà du premier. */

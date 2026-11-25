@@ -6,7 +6,7 @@
  * (relais, forge, hospice, salle d'armes), l'emmener (départ), ou ouvrir sa fiche (ailleurs).
  */
 import * as J from '../jeu';
-import { blessuresARendre, encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
+import { blessuresARendre, deElide, encombrement, maniement, nomDeCreature, protection, talentsAcquis, texteDuTalent, type Maniement } from '../noyau';
 import { medaillon, picto, plaque } from '../kit';
 import { CADRES_DE_L_HOTE, type Socle } from './ecran';
 import { progressionDuHeros } from './fiche';
@@ -179,7 +179,7 @@ function pageDeLaForge({ e, servi: h, emplacement }: Lecture): Page {
     const t = tenue?.id ? maniement(h.c, tenue.id) : undefined;
     const allonge = a.portee ? mesure('Portée', `${a.portee} m`, tenue?.portee ? a.portee - tenue.portee : undefined)
       : a.allonge ? mesure('Allonge', esc(a.allonge.toLowerCase()), t && !tenue?.portee && m.rangDAllonge != null && t.rangDAllonge != null ? m.rangDAllonge - t.rangDAllonge : undefined) : '';
-    return `${mesure('Attaque', m.attaque, t && m.attaque - t.attaque, { chiffre: true, bulle: `Test de ${m.test}${MAITRISE[m.maitrise]?.bulle ? ` — ${MAITRISE[m.maitrise]!.bulle}` : ''}` })}${mesure('Dégâts', m.degats, t && m.degats - t.degats, { chiffre: true })}${allonge}`;
+    return `${mesure('Attaque', m.attaque, t && m.attaque - t.attaque, { chiffre: true, bulle: `Test ${deElide(m.test)}${MAITRISE[m.maitrise]?.bulle ? ` — ${MAITRISE[m.maitrise]!.bulle}` : ''}` })}${mesure('Dégâts', m.degats, t && m.degats - t.degats, { chiffre: true })}${allonge}`;
   };
   const armure = protection(h.c);
   /** Les PA par zone : ceux du héros, ou ceux d'une panoplie `pa` face aux siens. */
