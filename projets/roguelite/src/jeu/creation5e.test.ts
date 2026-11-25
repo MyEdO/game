@@ -33,7 +33,7 @@ function recruesDe(p: Profil): Heros[] {
   const voulues = especesDe(p);
   const e = nouvellePartie(p.id.length * 97);
   const parEspece = new Map<string, Heros>();
-  for (let n = 0; n < 60 && parEspece.size < voulues.length; n++) {
+  for (let n = 0; n < 1000 && parEspece.size < voulues.length; n++) {
     const h = recrue(e, p);
     if (!parEspece.has(h.espece)) parEspece.set(h.espece, h);
   }
