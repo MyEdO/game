@@ -29,10 +29,17 @@ export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: 
 export const phraseDuPalier = (p: Batiment['paliers'][number]): string => p.apports.map((a) => a.texte).join(' ; ');
 const apport = (picto: string, texte: string, chiffre?: string): Apport => (chiffre ? { picto, chiffre, texte } : { picto, texte });
 
+/** Le revenu du péage à chaque palier, par salle que l'expédition franchit : il suit la longueur de la route, et rentrer
+ *  après une salle n'en rapporte qu'une part. Mesure MyEdO/game#4963. */
+export const PEAGE_PAR_SALLE: readonly number[] = [0, 3, 6, 12];
+const peageDuPalier = (palier: number): string => `+${PEAGE_PAR_SALLE[palier]} CO`;
 /** Prix des actes de l'hospice, avant la remise du dernier palier. */
 export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
-/** Le prix du soin de l'hospice par Point de Blessure rendu, à chaque palier ; `null` : l'hospice fermé. */
-export const PRIX_DU_SOIN_PAR_BLESSURE: readonly (number | null)[] = [null, 4, 2, 0];
+/** Le prix des Larmes de Shallya de l'hospice à chaque palier ; `null` : l'hospice ne les vend pas à ce palier. */
+export const PRIX_DES_LARMES: readonly (number | null)[] = [null, null, 40, 20];
+/** Le prix du soin de l'hospice par Point de Blessure rendu, à chaque palier ; `null` : l'hospice fermé. Mesure
+ *  MyEdO/game#4963. */
+export const PRIX_DU_SOIN_PAR_BLESSURE: readonly (number | null)[] = [null, 2, 1, 0];
 const soinsDuPalier = (palier: number): string => `Soins à ${PRIX_DU_SOIN_PAR_BLESSURE[palier]} CO la Blessure`;
 
 export const BATIMENTS: readonly Batiment[] = [
@@ -67,9 +74,9 @@ export const BATIMENTS: readonly Batiment[] = [
   ] },
   { id: 'peage', nom: 'Péage du pont', role: 'Revenu', paliers: [
     { cout: 0, trophees: 0, apports: [apport('pieces', 'Ruiné : aucun revenu')] },
-    { cout: 90, trophees: 0, apports: [apport('pieces', '+10 CO par expédition qui franchit une salle', '+10 CO')] },
-    { cout: 240, trophees: 1, apports: [apport('pieces', '+25 CO', '+25 CO')] },
-    { cout: 480, trophees: 2, apports: [apport('pieces', '+50 CO', '+50 CO')] },
+    { cout: 90, trophees: 0, apports: [apport('pieces', `${peageDuPalier(1)} par salle franchie en expédition`, peageDuPalier(1))] },
+    { cout: 240, trophees: 1, apports: [apport('pieces', peageDuPalier(2), peageDuPalier(2))] },
+    { cout: 480, trophees: 2, apports: [apport('pieces', peageDuPalier(3), peageDuPalier(3))] },
   ] },
   { id: 'memorial', nom: 'Jardin de Morr', role: 'Mémoire', paliers: [
     { cout: 0, trophees: 0, apports: [apport('croix', 'Un champ en friche')] },
@@ -292,6 +299,12 @@ export const CAMP = {
   soigner: { libelle: 'Soigner un blessé', titre: 'Les soins du camp', soigneur: 'Qui soigne ?', patient: 'Qui est soigné ?' },
 };
 
+/** Le butin d'une salle de combat : l'or de l'étape (`Destination.or`) multiplié par son type, puis par un tirage
+ *  entre `ecart.min` et `ecart.max` centièmes. */
+export const BUTIN_DES_SALLES = { facteur: { combat: 1, elite: 2, boss: 4 }, ecart: { min: 75, max: 125 } } as const;
+/** Les trophées : la chance en pour cent qu'une élite en laisse un, ceux du maître, et celui de plus la première fois
+ *  qu'il tombe. */
+export const TROPHEES = { elite: 35, boss: 1, premiereVictoire: 1 } as const;
 /** PX gagnés par salle franchie, par type. */
 export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10 };
 export const OR_INITIAL = 100;
