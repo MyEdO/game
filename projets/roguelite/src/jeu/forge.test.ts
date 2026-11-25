@@ -112,6 +112,8 @@ describe('les achats de la forge', () => {
 
 describe('armures de la forge', () => {
   const soldat = (e: Etat) => { const h = recrue(e, profilDe('soldat')); e.roster.push(h); return h; };
+  /** Un soldat sans armure : sa dotation laissée au sac des autres. */
+  const sansArmure = (e: Etat) => { const h = soldat(e); h.c = { ...h.c, items: h.c.items!.filter((i) => i.kind !== 'armor') }; return h; };
   const partout = (n: number) => ['Tête', 'Bras', 'Corps', 'Jambes'].map((zone) => ({ zone, pa: n }));
   const armuresDe = (h: ReturnType<typeof soldat>) => h.c.items!.filter((i) => i.kind === 'armor').map((i) => i.trappingId).sort();
   /** Un lanceur de sorts de la carrière `id`, sa Voie apprise au jeu (`acheter`), à la forge de palier 2. */
@@ -128,15 +130,15 @@ describe('armures de la forge', () => {
   };
 
   it('la forge vend exactement les trois armures de l’option, chacune au palier de sa Disponibilité (LDB 63 l.101-103)', () => {
-    expect([0, 1, 2, 3].map((palier) => { const e = auHameau(1, palier); return armuresEnVente(e, soldat(e)).map((a) => a.id); })).toEqual([
+    expect([0, 1, 2, 3].map((palier) => { const e = auHameau(1, palier); return armuresEnVente(e, sansArmure(e)).map((a) => a.id); })).toEqual([
       ['armure-legere'], ['armure-legere', 'armure-moyenne'], ['armure-legere', 'armure-moyenne', 'armure-lourde'], ['armure-legere', 'armure-moyenne', 'armure-lourde'],
     ]);
   });
 
-  it('l’achat laisse au forgeron l’armure par pièces et revêt l’armure d’une pièce sur toutes les Localisations', () => {
+  it('la recrue porte sa dotation lue en armure d’une pièce ; l’achat la remplace et la revêt sur toutes les Localisations', () => {
     const e = auHameau(4, 1);
     const h = soldat(e);
-    expect(h.c.items!.some((i) => i.trappingId === 'plastron-de-cuir')).toBe(true);
+    expect(armuresDe(h)).toEqual(['armure-legere']);
     const or = e.or;
     const moyenne = armuresEnVente(e, h).find((a) => a.id === 'armure-moyenne')!;
     expect(acheterUneArmure(e, h.c.id, 'armure-moyenne')).toBeNull();
@@ -153,7 +155,7 @@ describe('armures de la forge', () => {
 
   it('une armure Flexible se garde sous la lourde ; deux Flexibles ne se superposent pas (LDB 63 l.74)', () => {
     const porte = (ids: string[]) => {
-      const e = auHameau(2, 2), h = soldat(e);
+      const e = auHameau(2, 2), h = sansArmure(e);
       for (const id of ids) expect(acheterUneArmure(e, h.c.id, id)).toBeNull();
       return { armures: armuresDe(h), pa: protection(h.c) };
     };
