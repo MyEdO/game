@@ -17,8 +17,8 @@
  * Périmètre : tout `src/**` en `.ts(x)`, TESTS COMPRIS.
  * Vocabulaire IMPORTÉ du seam (`bindingsVivants`, dérivé des littéraux `ARRAYS` et `OBJECTS`
  * d'`overrides.ts`, des documents qui portent une clé de dataset — `documentsDesRacinesVivantes`, lus sur
- * le module généré `src/data/schemas/_racines-vivantes.generated.ts`, dont tout import direct est la
- * racine vivante — et des résolveurs de `src/data`), et un nom n'est retenu que s'il est IMPORTÉ par le
+ * le module généré `src/data/_racines-vivantes.generated.ts`, dont chaque import lié par `RACINES_VIVANTES`
+ * est la racine vivante — et des résolveurs de `src/data`), et un nom n'est retenu que s'il est IMPORTÉ par le
  * fichier (ou exporté par le module propriétaire) : un `props` local d'une scène n'est pas le dataset
  * `props`.
  */

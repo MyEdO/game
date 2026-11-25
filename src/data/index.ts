@@ -44,7 +44,7 @@ import {
   type CleDeDataset,
   type DatasetDeCategorie,
 } from './schemas/_cles-de-dataset.generated';
-import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from './_racines-vivantes.generated';
 import { INSTANCIABLE_PAR_ID } from './schemas/grammaire/sousListes';
 import type { ClasseDeQualite, DotationDeMention, DotationDePossession, QualiteDObjetRef, QualityRef, Somme, TrappingRef } from './schemas/grammaire/reference';
 import type { IdsParEspace } from './schemas/_ids.generated';

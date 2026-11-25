@@ -110,15 +110,18 @@ export function bindingsVivants() {
 }
 
 /** Les DOCUMENTS qui portent une clé de dataset, en chemins relatifs à la racine du dépôt : les imports
- *  du module généré `src/data/schemas/_racines-vivantes.generated.ts` (`scripts/gen-espaces.mts`, un
- *  import par document de l'image de `DATASET_FICHIER_DERIVE`), résolus depuis son dossier. */
+ *  du module généré `src/data/_racines-vivantes.generated.ts` (`scripts/gen-espaces.mts`, un import par
+ *  document de `SCHEMA_DEFS`) que lie `RACINES_VIVANTES` (l'image de `DATASET_FICHIER_DERIVE`), résolus
+ *  depuis son dossier. */
 let _documents = null;
-const MODULE_DES_RACINES = 'src/data/schemas/_racines-vivantes.generated.ts';
+const MODULE_DES_RACINES = 'src/data/_racines-vivantes.generated.ts';
 export function documentsDesRacinesVivantes() {
   if (_documents) return _documents;
   const src = readFileSync(join(RACINE, MODULE_DES_RACINES), 'utf8');
+  const imports = new Map([...src.matchAll(/^import\s+(r\d+)\s+from\s+'([^']+\.json)';$/gm)].map((m) => [m[1], m[2]]));
+  const racines = /^export const RACINES_VIVANTES\b[^{]*\{([^}]*)\};$/m.exec(src)?.[1] ?? '';
   const out = new Set();
-  for (const m of src.matchAll(/^import\s+r\d+\s+from\s+'([^']+\.json)';$/gm)) out.add(posix.join(posix.dirname(MODULE_DES_RACINES), m[1]));
+  for (const m of racines.matchAll(/^\s+'[^']+':\s+(r\d+),$/gm)) out.add(posix.join(posix.dirname(MODULE_DES_RACINES), imports.get(m[1])));
   if (out.size < 100) throw new Error(`documentsDesRacinesVivantes : ${out.size} documents lus, ${MODULE_DES_RACINES} a changé de forme`);
   _documents = out;
   return out;

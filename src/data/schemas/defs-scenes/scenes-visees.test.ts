@@ -9,7 +9,7 @@ import { describe, expect, it } from 'vitest';
 import { projetSchema } from './projet';
 import { mesureDuParse } from '../grammaire/ref';
 import { versDisque } from '../grammaire/prose';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Projet = typeof paquetDeTest;

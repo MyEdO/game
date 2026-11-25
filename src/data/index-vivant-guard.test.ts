@@ -68,7 +68,7 @@
  * PROPRIÉTAIRE d'un dataset l'atteint sans jamais nommer le seam) : l'IMPORT JSON DIRECT
  * (`import vehiclesJson from '../data/vehicles.json'` — le document importé EST la racine vivante que
  * le seam mute, dès qu'il porte une clé de dataset : `documentsDesRacinesVivantes`, lu sur le module
- * généré `src/data/schemas/_racines-vivantes.generated.ts`) et l'ALIAS NU de niveau module
+ * généré `src/data/_racines-vivantes.generated.ts`) et l'ALIAS NU de niveau module
  * (`const VEHICLES_LIST = vehiclesJson as VehicleData[]`, `export const IMPERIAL_MONTHS = calendarMonths`),
  * qui hérite du dataset (#1692).
  *

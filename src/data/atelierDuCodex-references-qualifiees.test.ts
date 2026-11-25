@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { enregistrerEntree } from './atelierDuCodex';
 import { datasetArray, setDataset, type DatasetKey } from './overrides';
-import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from './_racines-vivantes.generated';
 import { versDisque } from './schemas/grammaire/prose';
 import { specAuCatalogue } from './schemas/grammaire/ref';
 import { validateDataset } from './schemas/validate';

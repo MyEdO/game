@@ -18,7 +18,7 @@ import {
 import { ancetreDuDe, champDEnTete, datasetObject, entreesDuDataset, type EcritureDEnTete } from '../../data/overrides';
 import type { DiceSpec } from '../../engine/dice';
 import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
-import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from '../../data/_racines-vivantes.generated';
 import { champDeProvenanceEcarte, noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
 import { estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { apparencesDObjetsSchema, deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';

@@ -48,7 +48,7 @@ import { atteindre, elementDeLaListe, idsDeLEspace, lectureDeLEspace, renvoiDeLE
 import { estPrefixeDeSuite, lireCleDEspace, pasDeLaSuite, suiteAvecPas } from './schemas/grammaire/cle-d-espace';
 import { lectureDuVocabulaire } from './schemas/grammaire/vocabulaires';
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
-import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from './_racines-vivantes.generated';
 import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
 import { bumperDataset, memoParVersion } from './versionDataset';
 import type { EntreeVivante } from './datasets';

@@ -114,9 +114,11 @@ export const REGISTRIES = [
 
 /** Les sorties de la PHASE 2 (`scripts/gen-espaces.mts`, qui les lit ici). */
 export const SORTIES_DES_ESPACES = {
-  ids: 'src/data/schemas/_ids.generated.ts',
+  ids: 'src/data/_ids.generated.ts',
+  idsEtTypes: 'src/data/schemas/_ids.generated.ts',
   cles: 'src/data/schemas/_cles-de-dataset.generated.ts',
-  racines: 'src/data/schemas/_racines-vivantes.generated.ts',
+  racines: 'src/data/_racines-vivantes.generated.ts',
+  catalogue: 'src/data/schemas/_catalogue.generated.ts',
   atelier: 'src/data/schemas/_fichiers-de-l-atelier.generated.json',
 };
 

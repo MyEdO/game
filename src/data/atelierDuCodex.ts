@@ -23,7 +23,7 @@ import {
 import { z } from 'zod';
 import { CATEGORY_DATASET_DERIVE, OBJECT_CATEGORY_DERIVE } from './schemas/exposition-derivee';
 import { cheminLisible, fichiersLisantLeCatalogue, lieuDe, noeudsDesEntrees, schemaForFile, validateDataset, validateDocument } from './schemas/validate';
-import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from './_racines-vivantes.generated';
 import { DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE } from './schemas/_cles-de-dataset.generated';
 import { cleNichee, suiteAvecPas, suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { estFeuilleDId, reperesDuParse, TYPES, type CibleDeReference } from './schemas/grammaire/ref';

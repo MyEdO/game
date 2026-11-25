@@ -5,7 +5,7 @@
 import { describe, expect, it } from 'vitest';
 import { FOND_DEFS } from '.';
 import { VOCABULAIRES } from '../schemas/grammaire/vocabulaires';
-import { IDS_PAR_ESPACE } from '../schemas/_ids.generated';
+import { IDS_PAR_ESPACE } from '../_ids.generated';
 
 describe('le registre des fonds d’ambiance', () => {
   it('le vocabulaire des fonds porte ses ids et ses libellés', () => {

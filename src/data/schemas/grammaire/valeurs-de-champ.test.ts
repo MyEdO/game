@@ -16,7 +16,7 @@ import { DEFS_DE_DOCUMENT } from '../validate';
 import { capaciteDeCombatSchema, domaineDuChaosSchema, hasWhatSchema, OP_DEFS } from './mecanique';
 import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import { LIBELLES_DES_ICONES } from '../../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
 import { schema as schemaActivites } from '../defs/activities';

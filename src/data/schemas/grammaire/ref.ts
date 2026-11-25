@@ -16,7 +16,8 @@ import { nommerChamps, nommerNoeud, metasExtra, valeursDe, type MetaChamp, type 
  */
 import { z } from 'zod';
 import '../../../lib/zodEnFrancais';
-import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
+import type { IdsParEspace } from '../_ids.generated';
 import type { CategorieCodexDuFichier } from '../_cles-de-dataset.generated';
 import {
   baseDe,
