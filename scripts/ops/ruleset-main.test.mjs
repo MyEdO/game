@@ -289,6 +289,8 @@ test('la règle `merge_queue` porte les SEPT paramètres exigés par le schéma,
   assert.ok(parameters.check_response_timeout_minutes > TIMEOUT_JOB_MINUTES,
     'un délai de réponse sous le plafond d’un job tiendrait pour échoué un job encore dans sa borne')
   assert.equal(parameters.check_response_timeout_minutes, DELAI_DE_REPONSE_MINUTES)
+  assert.equal(parameters.max_entries_to_build, parameters.max_entries_to_merge,
+    'une entrée fusionnable hors de la fenêtre de construction sort en « invalid changes in the merge commit » (#5034)')
   assert.deepEqual(parameters, { ...PARAMETRES_DE_FILE })
 })
 
