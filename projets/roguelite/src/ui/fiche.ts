@@ -173,9 +173,8 @@ function sortsAApprendre(h: J.Heros): string {
   if (!voie) return '';
   const appris = h.c.talents.some((t) => t.talentId === voie.talent);
   const liste = !appris ? glose(`Au niveau 2, le Talent ${esc(voie.nom)} ouvre ces sorts.`) : J.sortsProposes(h).map((id) => {
-    const prix = prixDuSort(h.c, id);
-    return sort(id, 'À apprendre', prix == null ? plaque('Apprendre', '', { taille: 'petite', fermee: true, titre: 'Ce héros ne peut pas l’apprendre.' })
-      : achat({ verbe: 'Apprendre', prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, taille: 'petite' }));
+    const prix = prixDuSort(h.c, id)!;
+    return sort(id, 'À apprendre', achat({ verbe: 'Apprendre', prix, monnaie: 'PX', avoir: h.c.xp ?? 0, attrs: `data-a="sort" data-id="${h.c.id}" data-k="${id}"`, taille: 'petite' }));
   }).join('') || glose(voie.sorts.every((s) => (h.c.spells ?? []).includes(s.id)) ? 'Tout est appris.' : 'Rien d’autre à ce niveau de carrière.');
   return `<div class="rub">${esc(voie.nom)}</div><div class="deux-colonnes">${liste}</div>`;
 }
