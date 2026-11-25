@@ -34,8 +34,8 @@ import { estModule } from './lib/importGraph.mjs'
  *  (`survit`), hors des fichiers posés à même `src/` (`racine`). */
 export const ZONES = Object.freeze(Object.keys(COUCHES).filter((z) => z !== 'racine' && COUCHES[z].survit === true))
 
-/** Modules par lot d'un travailleur. */
-const TAILLE_DE_LOT = 12
+/** Modules par lot d'un travailleur : chaque lot paie son serveur Vite et la transformation de son graphe (#5037). */
+const TAILLE_DE_LOT = 40
 
 /** Borne d'un lot : son démarrage (serveur Vite, premier graphe transformé), puis chaque module. */
 const bornesDuLot = (n) => 90_000 + 20_000 * n
