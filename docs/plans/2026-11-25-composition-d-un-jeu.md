@@ -478,6 +478,25 @@ ferme le cycle les solde.
 | 12 | Compendium, hôtes, scènes, projets : atelier pur, `porteDeLHote.ts`, `src/hote/catalogue.ts`, règles maison chez l'hôte, sauvegarde et coop, `src/scenes` (15), `projets/roguelite/src/noyau` (6), `projets/jeu-de-role/campagnes/lib.mjs`, fossile 5 | ~35 | ~230 | — | 5 |
 | 13 | Bascule : `COUCHES` ferme `data` aux trois zones et pose `json` et `suitesSansDonnee` ; les suites de corpus partent sous `scripts/corpus/` ; le setup perd `overrides` et la garde de partage ; les défauts tombent ; la façade, `overrides.ts`, `versionDataset.ts`, les fossiles et les deux gardes meurent | — | — | — | 2, plus le reste de la sonde |
 
+Les tickets, sous #4919 (Choisir, par livre, le contenu proposé au jeu), ouverts le 2026-11-25 :
+
+| Famille | Ticket |
+|---|---|
+| 0, socle | #5069 |
+| 1, grammaire | #5070 |
+| 2, apparence | #5071 |
+| 3, monde et scènes | #5072 |
+| 4, repos, maladie et temps | #5073 |
+| 5, magie | #5074 |
+| 6, objets et commerce | #5075 |
+| 7, personnage et carrières | #5076 |
+| 8, maritime et fluviale | #5077 |
+| 9, combat | #5078 |
+| 10, codex et désignations | #5079 |
+| 11, transverses | #5080 |
+| 12, Compendium et hôtes | #5081 |
+| 13, bascule | #5068 |
+
 L'estimation est d'environ 80 lots, à 25 % près. Les familles 2 à 12 se partagent les suites d'`engine`, du `noyau` et de
 `scenes`, chacune celles de ses fichiers. Les suites qui passent par `src/hote` migrent avec la famille du fichier
 qu'elles testent.
