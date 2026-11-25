@@ -2,7 +2,7 @@
  * REJEU DES MIGRATIONS SUR UN EXPORT DE LA TÊTE (#1613) — `npm run migrations:replay:head [<sha>]`.
  *
  * `npm run migrations:replay` rejoue EN PLACE : sur l'arbre de travail partagé (sessions parallèles,
- * WIP permanent) il réécrit `src/data` et `src/scenes`, donc personne ne le joue, donc son rouge
+ * WIP permanent) il réécrit `src/data`, `src/scenes` et `projets`, donc personne ne le joue, donc son rouge
  * n'est vu qu'APRÈS le push, dans la CI. Cette porte-ci joue le MÊME rejeu sur une COPIE JETABLE de
  * l'arbre du sha, et laisse le dépôt intact.
  *

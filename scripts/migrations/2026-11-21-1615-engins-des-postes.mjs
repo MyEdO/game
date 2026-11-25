@@ -1,8 +1,8 @@
 /**
  * #1615 — les pièces des postes de scène désignent le catalogue des engins par `engin: { id }`. MDG 12 l.369-379.
  *
- * Entrées : src/scenes/barge-du-sel/barge-du-sel-projet.json et
- * src/scenes/loup-et-saumure/loup-et-saumure-projet.json (lus et écrits).
+ * Entrées : projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json et
+ * projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json (lus et écrits).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 
@@ -10,7 +10,7 @@ const projets = ['barge-du-sel', 'loup-et-saumure'];
 const ecritures = [];
 
 for (const nom of projets) {
-  const chemin = new URL(`../../src/scenes/${nom}/${nom}-projet.json`, import.meta.url);
+  const chemin = new URL(`../../projets/jeu-de-role/campagnes/${nom}/${nom}-projet.json`, import.meta.url);
   const brut = readFileSync(chemin, 'utf8');
   const doc = JSON.parse(brut);
   let gestes = 0;

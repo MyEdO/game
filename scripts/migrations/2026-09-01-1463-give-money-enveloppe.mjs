@@ -13,11 +13,11 @@
  *      recevant le corps TEL QUEL.
  *
  * ENTRÉES (aucun autre fichier n'est lu) :
- *   - `src/scenes/arene/arene-projet.json` — 36 effets
- *   - `src/scenes/barge-du-sel/barge-du-sel-projet.json` — 1 effet
- *   - `src/scenes/loup-et-saumure/loup-et-saumure-projet.json` — 7 effets
- *   - `scripts/arene/*.mjs`, `scripts/barge-du-sel/generate.mjs`,
- *     `scripts/loup-et-saumure/generate.mjs`, `scripts/campagne/lib.mjs` — les littéraux d'authoring
+ *   - `projets/jeu-de-role/campagnes/arene/arene-projet.json` — 36 effets
+ *   - `projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json` — 1 effet
+ *   - `projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json` — 7 effets
+ *   - `projets/jeu-de-role/campagnes/arene/*.mjs`, `projets/jeu-de-role/campagnes/barge-du-sel/generate.mjs`,
+ *     `projets/jeu-de-role/campagnes/loup-et-saumure/generate.mjs`, `projets/jeu-de-role/campagnes/lib.mjs` — les littéraux d'authoring
  *
  * CARDINAL ASSERTÉ par projet (36 + 1 + 7 = 44) et NON NUL par fichier d'authoring touché.
  * AUCUN CLAMP : les montants NÉGATIFS (perte scriptée, `drainGroup`) traversent inchangés — la
@@ -44,20 +44,20 @@ const DENOMINATIONS = ['gold', 'silver', 'brass'];
  *  ÉDITABLE, un effet de plus est un geste de campagne légitime (#1812). Ce que ce passage possède,
  *  c'est la FORME de chaque effet — charge plate XOR enveloppe `montant`. */
 const PROJETS = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ];
 
 /** Sources d'AUTHORING qui écrivent le littéral d'effet. */
 const AUTHORING = [
-  'scripts/arene/expeditions.mjs',
-  'scripts/arene/hub.mjs',
-  'scripts/arene/zones1-7.mjs',
-  'scripts/arene/zones8-13.mjs',
-  'scripts/barge-du-sel/generate.mjs',
-  'scripts/loup-et-saumure/generate.mjs',
-  'scripts/campagne/lib.mjs',
+  'projets/jeu-de-role/campagnes/arene/expeditions.mjs',
+  'projets/jeu-de-role/campagnes/arene/hub.mjs',
+  'projets/jeu-de-role/campagnes/arene/zones1-7.mjs',
+  'projets/jeu-de-role/campagnes/arene/zones8-13.mjs',
+  'projets/jeu-de-role/campagnes/barge-du-sel/generate.mjs',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/generate.mjs',
+  'projets/jeu-de-role/campagnes/lib.mjs',
 ];
 
 const anomalies = [];

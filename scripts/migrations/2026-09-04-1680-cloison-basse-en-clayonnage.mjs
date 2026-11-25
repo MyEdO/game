@@ -31,7 +31,7 @@
  *   4. `encLimit` 30 → absent : plus de Limite d'Encombrement (AA ne la donne pas au clayonnage) ;
  *      on ne pose plus d'arme sur cette cloison, là où le rebord de fenêtre d'AA 10 l.76 l'autorisait.
  *
- * ENTRÉES : `src/scenes/diligence/diligence-projet.json`, scène d'id `la-diligence` (seule donnée lue et
+ * ENTRÉES : `projets/jeu-de-role/campagnes/diligence/diligence-projet.json`, scène d'id `la-diligence` (seule donnée lue et
  * écrite). Six arêtes touchées.
  *
  * FORME D'AVANT SEULE : seule une des six arêtes nommées, portant l'apparence de cloison basse ET
@@ -47,7 +47,7 @@ import { fileURLToPath } from 'node:url';
 import { porteLaTranche } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const CIBLE = path.join(ROOT, 'src/scenes/diligence/diligence-projet.json');
+const CIBLE = path.join(ROOT, 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json');
 
 const APPARENCE = 'cloison-basse-a-ossature-en-bois';
 const STRUCTURE_AVANT = 'mur-a-ossature-en-bois';

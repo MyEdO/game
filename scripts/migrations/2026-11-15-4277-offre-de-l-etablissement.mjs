@@ -7,7 +7,7 @@
  *   `scenes[].rest` (scène d'un lieu     `{ auberge: true, … }`              sans `auberge` ni `quality` ; `rest` vide retiré
  *   à établissement d'hébergement)
  *
- * ENTRÉES : écrites — les quatre projets de `src/scenes/` ; lue — `src/data/lieux-services.json`.
+ * ENTRÉES : écrites — les quatre projets de `projets/jeu-de-role/campagnes/` ; lue — `src/data/lieux-services.json`.
  * CARDINAL ASSERTÉ : `PAR_PROJET` gestes au premier passage. Une scène qui porte une `quality` (arbitrage de l'auteur à
  * reporter sur l'établissement), un fichier hors de son formatage : ARRÊT nominatif (exit 1), AUCUNE écriture. Rejouée
  * sur l'arbre migré : 0 geste, rien ne s'écrit, sortie 0.
@@ -19,14 +19,14 @@ import { fileURLToPath } from 'node:url';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
 const PROJETS = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/diligence/diligence-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ];
 
 /** Gestes du premier passage par projet (les scènes `ls-quai-salzenmund` et `ls-quai-erengrad`), mesurés le 2026-11-15. */
-const PAR_PROJET = { 'src/scenes/loup-et-saumure/loup-et-saumure-projet.json': 2 };
+const PAR_PROJET = { 'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json': 2 };
 
 const serialiser = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 const hebergements = new Set(JSON.parse(readFileSync(join(ROOT, 'src/data/lieux-services.json'), 'utf8')).filter((e) => e.hebergement === true).map((e) => e.id));

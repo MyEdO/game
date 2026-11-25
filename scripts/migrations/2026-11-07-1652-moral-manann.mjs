@@ -20,7 +20,7 @@
  *
  * Le Prêtre de Manann (`pretre-manann`, MDG 15 l.246) n'est pas une entrée de cette migration.
  *
- * Entrées : src/data/sea-events.json, src/scenes/loup-et-saumure/loup-et-saumure-projet.json.
+ * Entrées : src/data/sea-events.json, projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json.
  *
  * FORME ASSERTÉE SUR LE RÉSULTAT : aucune rangée ne porte plus un genre migré, aucune ne porte à la fois
  * `consequence` et `kind`/`params`, aucun Effet `adjustManann` ne reste. Des `params` hors de la forme
@@ -34,7 +34,7 @@ import { serializeDataset } from '../../src/data/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SEA = join(ROOT, 'src/data/sea-events.json');
-const PROJET = join(ROOT, 'src/scenes/loup-et-saumure/loup-et-saumure-projet.json');
+const PROJET = join(ROOT, 'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json');
 const PRETRE_DE_MANANN = { kind: 'talent', id: 'beni', spec: 'manann' };
 const GENRES_MIGRES = new Set(['usure', 'coup-critique', 'presage', 'bonne-humeur', 'fete-manann']);
 

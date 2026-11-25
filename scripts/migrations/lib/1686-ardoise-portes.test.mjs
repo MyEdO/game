@@ -27,7 +27,7 @@ const MIGRATION = '2026-09-05-1686-ardoise-ids-composes.mjs';
 
 /** Le paquet de test du commun, et l'emplacement où la migration découvre un document de projet. */
 const PAQUET_DE_TEST = 'src/scenes/fixtures/paquet-de-test.json';
-const PROJET = 'src/scenes/paquet-de-test/paquet-de-test-projet.json';
+const PROJET = 'projets/paquet-de-test/paquet-de-test-projet.json';
 
 const DATASETS = ['src/data/materials.json', 'src/data/props.json'];
 

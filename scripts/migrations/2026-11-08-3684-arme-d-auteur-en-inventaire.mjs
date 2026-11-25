@@ -4,13 +4,13 @@
  * à la place de la clé. Une arme se tient par les sets d'armes : l'objet n'est pas porté.
  *
  * GESTE, sur la forme d'avant seule (#3080) : une entité qui porte `weapon` (chaîne) et aucun `inventaire`.
- * Entrées : `src/scenes/arene/arene-projet.json` et `src/scenes/loup-et-saumure/loup-et-saumure-projet.json` (lues et
+ * Entrées : `projets/jeu-de-role/campagnes/arene/arene-projet.json` et `projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json` (lues et
  * réécrites). Rejouée sur l'état final, rien ne s'écrit.
  */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
 
-const cibles = ['src/scenes/arene/arene-projet.json', 'src/scenes/loup-et-saumure/loup-et-saumure-projet.json'];
+const cibles = ['projets/jeu-de-role/campagnes/arene/arene-projet.json', 'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json'];
 
 /** `entite` où la clé `weapon` cède sa place, à son rang, à `inventaire`. */
 const migree = (entite) =>
