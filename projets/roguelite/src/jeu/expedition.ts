@@ -22,15 +22,18 @@ import {
 } from '../noyau';
 
 import {
+  BUTIN_DES_SALLES,
   DESTINATIONS,
   EPREUVES,
   type IdActionAJet,
   LIEUX_DE_SEJOUR,
   MUNITIONS,
+  PEAGE_PAR_SALLE,
   PRIERE_DE_SOIN,
   PX_PAR_SALLE,
   SEMAINE_DE_REPOS,
   TAILLE_DU_GROUPE,
+  TROPHEES,
   TypeDeSalle,
   ACTIONS_A_JET,
   CAMP,
@@ -297,9 +300,10 @@ export function avancer(e: Etat): RecitDeSalle | null {
   const rng = tirer(e);
   const c = combattre(e, salle.ennemis);
   if (c.fin) return c.fin;
-  const or = Math.round(d.or * (salle.type === 'boss' ? 4 : salle.type === 'elite' ? 2 : 1) * (0.75 + rng.int(0, 50) / 100));
+  const { facteur, ecart } = BUTIN_DES_SALLES;
+  const or = Math.round((d.or * facteur[salle.type as keyof typeof facteur] * rng.int(ecart.min, ecart.max)) / 100);
   x.or += or;
-  if (salle.type === 'elite') x.trophees += rng.int(1, 100) <= 35 ? 1 : 0;
+  if (salle.type === 'elite') x.trophees += rng.int(1, 100) <= TROPHEES.elite ? 1 : 0;
   const lignes = [`Butin : ${or} CO · ${PX_PAR_SALLE[salle.type]} PX chacun.`, ...c.lignes];
   return franchir(e, { titre: salle.type === 'boss' ? 'Le cœur du mal' : salle.type === 'elite' ? 'Un adversaire redoutable' : 'Embuscade', lignes, combat: c.issue });
 }
@@ -322,7 +326,7 @@ function franchir(e: Etat, recit: RecitDeSalle): RecitDeSalle {
     return recit;
   }
   if (salle.type === 'boss') {
-    x.trophees += 1 + (e.bossVaincus.includes(d.id) ? 0 : 1);
+    x.trophees += TROPHEES.boss + (e.bossVaincus.includes(d.id) ? 0 : TROPHEES.premiereVictoire);
     if (!e.bossVaincus.includes(d.id)) e.bossVaincus.push(d.id);
     recit.lignes.push(...rentrer(e, true));
     recit.fin = 'succes';
@@ -368,7 +372,7 @@ function terminerEnDeroute(e: Etat, destinDepense: Readonly<Record<string, numbe
 export function rentrer(e: Etat, reussie: boolean): string[] {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
-  const peage = x.index > 0 ? [0, 10, 25, 50][e.batiments.peage] : 0;
+  const peage = PEAGE_PAR_SALLE[e.batiments.peage] * x.index;
   e.or += x.or + peage; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
   ramasserLesMunitions(e);
