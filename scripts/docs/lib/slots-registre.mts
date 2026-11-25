@@ -10,7 +10,8 @@
 //
 // MANDAT et ANGLES MORTS de ce volet : SOURCES UNIQUES `MANDAT_SLOTS` / `ANGLES_MORTS_SLOTS`
 // (`scripts/docs/lib/structures-lexique.mts`) — ils ne se reformulent nulle part.
-import { SCHEMA_DEFS, SCHEMA_DEFS_SCENES } from './modules-generes.mjs';
+import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
+import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
 import { projetDoc } from '../../../src/data/schemas/defs-scenes/projet';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import { estFeuilleDId, mesureDuParse, reperesDuParse, type CibleDeReference } from '../../../src/data/schemas/grammaire/ref';

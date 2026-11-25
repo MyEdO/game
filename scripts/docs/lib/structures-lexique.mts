@@ -18,7 +18,7 @@
 // `cible` exige de toucher le stock — un mot du lexique ne solde plus des centaines d'occurrences.
 
 import { basename } from 'node:path';
-import { SCHEMA_DEFS_SCENES } from './modules-generes.mts';
+import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated.ts';
 import { REFERENCES_NARRATIVES } from '../../../src/data/schemas/defs-scenes/registres-narratifs.ts';
 import { exigeSource } from '../../../src/data/schemas/grammaire/sans-livre.ts';
 import type { conceptDe } from '../../../src/data/schemas/grammaire/concepts.ts';
