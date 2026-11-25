@@ -9,6 +9,7 @@
 // parmi les recrues engagées, par palier du relais.
 // Usage : npx tsx projets/roguelite/equilibrage.ts <graine> <expéditions> [parties] [rentrerApres]
 //         plusieurs parties : graines consécutives, sans journal, moyennes par sortie.
+import { tableTotale } from '../../src/lib/tableTotale';
 import * as J from './src/jeu';
 import { poserLesReglesDuRoguelite } from './src/noyau';
 import { apprendreLaVoie, attendu, equiper } from './balayage';
@@ -42,7 +43,7 @@ function equilibrer(graine0: number, expeditions: number, parties: number, rentr
     const atteints = new Set<string>(), partiesVers = new Set<string>();
     for (let exp = 0; exp < expeditions; exp++) {
       e = JSON.parse(JSON.stringify(e)) as J.Etat; // la sauvegarde relue entre deux expéditions
-      const depense = Object.fromEntries(POSTES.map((p) => [p, 0])) as Record<Poste, number>;
+      const depense = tableTotale(POSTES, () => 0);
       /** Paie `geste` au poste `poste` : ce qu'il ôte à la bourse. */
       const payer = (poste: Poste, geste: () => void) => { const avant = e.or; geste(); depense[poste] += avant - e.or; };
       voir(e);
