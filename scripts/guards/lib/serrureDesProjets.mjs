@@ -13,7 +13,7 @@ const DOSSIER_DES_PROJETS = join(DEPOT, 'projets');
 const MODULE_DE_LA_PORTE = join(ICI, 'porteDesProjets.mjs');
 
 /** Les passes frappées par le sceau ; une passe est un objet gelé `{ lit: 'tous' } | { lit: 'projet', projet } |
- *  { lit: 'suffixe', suffixe }`. @type {WeakSet<object>} */
+ *  `. @type {WeakSet<object>} */
 const PASSES = new WeakSet();
 
 /** Frappe une passe de lecture `lecture`. */
@@ -36,11 +36,16 @@ const relDuDepot = (abs) => relative(DEPOT, abs).split(sep).join('/');
 function admet(porte, rel) {
   if (!PASSES.has(porte)) return false;
   if (porte.lit === 'tous') return true;
-  if (!(rel === 'projets' || rel.startsWith('projets/'))) return false;
-  if (porte.lit === 'suffixe') return true;
   const dossier = `projets/${porte.projet}`;
   return rel === dossier || rel.startsWith(`${dossier}/`);
 }
+
+/** Le refus de la serrure, seule erreur que reconnaît `estRefusDeLaPorte`. */
+class RefusDeLaPorte extends Error {}
+
+/** L'erreur `erreur` est-elle un refus de la serrure ? Un lecteur qui se replie sur un refus le reconnaît ainsi,
+ *  jamais par son message. */
+export const estRefusDeLaPorte = (erreur) => erreur instanceof RefusDeLaPorte;
 
 /**
  * Refuse que `passerelle` lise `abs` (absolu) sans passe qui l'admette, quand `abs` est le dossier des projets, un
@@ -54,5 +59,5 @@ export function exigerLaPorte(abs, porte, passerelle, { ancetres = false } = {})
   if (!sous && !ancetre) return;
   const rel = relDuDepot(abs);
   if (admet(porte, rel)) return;
-  throw new Error(`${passerelle} : « ${rel || '.'} » couvre projets/ sans passe qui l'admette — un lecteur de projet passe par la porte (scripts/guards/lib/porteDesProjets.mjs, #5037)`);
+  throw new RefusDeLaPorte(`${passerelle} : « ${rel || '.'} » couvre projets/ sans passe qui l'admette — un lecteur de projet passe par la porte (scripts/guards/lib/porteDesProjets.mjs, #5037)`);
 }

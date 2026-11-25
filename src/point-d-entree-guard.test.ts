@@ -1,11 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { RACINE, sourcesSuivies } from '../scripts/guards/lib/modulesFeuilles.mjs';
 import { detectionsDePointDEntree } from '../scripts/guards/lib/pointDEntree.mjs';
 import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
+import { textesDesSourcesSuivies } from '../scripts/guards/lib/sourcesSuiviesLues.mjs';
 import type { CorpusFile } from '../scripts/guards/lib/sourceCorpus.mjs';
 
 /**
@@ -334,16 +334,7 @@ describe('garde de classe — le point d’entrée se lit à import.meta.main', 
     const suivies: string[] = sourcesSuivies();
     expect(suivies.length, 'le listage des sources suivies est vide').toBeGreaterThan(1000);
     const offenders: string[] = [];
-    const fichiers: Pick<CorpusFile, 'rel' | 'text'>[] = [];
-    for (const rel of suivies) {
-      let texte: string;
-      try {
-        texte = readFileSync(join(RACINE, rel), 'utf8');
-      } catch {
-        continue; // suivi mais supprimé de l'arbre : aucun code à lire
-      }
-      fichiers.push({ rel, text: texte });
-    }
+    const fichiers: Pick<CorpusFile, 'rel' | 'text'>[] = textesDesSourcesSuivies(suivies);
     for (const analyse of analyserCorpus(fichiers)) {
       const { fichier: { rel, text } } = analyse;
       for (const { ligne, extrait } of detectionsDePointDEntree(text, rel, analyse)) offenders.push(`${rel}:${ligne} → ${extrait}`);

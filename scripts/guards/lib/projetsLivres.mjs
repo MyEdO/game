@@ -5,13 +5,12 @@
 // documents de prose (`RACINES_PROSE`, `proseInline.mjs`) ; `cheminsDesProjetsLivres` en rend les chemins relatifs au
 // dépôt, dans l'ordre total de `lister.mjs`, le corpus qu'une suite du jeu passe aux mesures à paquets en paramètre
 // (`listerDocuments`, `scripts/docs/lib/structures-scan.mts`), et `listerProjetsLivres` les mêmes relatifs au dossier du
-// corpus. Il passe la porte des projets (`porteDesProjets.mjs`, #5037) sous la passe de son suffixe : sa liste ne dépend
-// que de l'ensemble des chemins `projets/**/*-projet.json`.
+// corpus. Il passe la porte des projets (`porteDesProjets.mjs`, #5037) sous la passe de tous les projets.
 import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { cheminsDuCorpus } from './lister.mjs';
-import { porteDuSuffixe } from './porteDesProjets.mjs';
+import { porteDeTousLesProjets } from './porteDesProjets.mjs';
 
 /** Racine du dépôt, déduite de l'emplacement de ce module (`scripts/guards/lib`). */
 const RACINE_DEPOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
@@ -30,14 +29,11 @@ export function dossierDesProjetsLivres(racine = RACINE_DEPOT) {
   return path.join(racine, PROJETS_LIVRES.dossier);
 }
 
-/** La passe de la porte que ce corpus présente : il ne lit, à travers les projets, que les fichiers de son suffixe. */
-const PORTE = porteDuSuffixe(PROJETS_LIVRES.suffixe);
-
 /** Les projets livrés en chemins RELATIFS à `racine` (`projets/jeu-de-role/campagnes/arene/arene-projet.json`), séparateur
  *  `/`, triés par unités de code ; le corpus que les suites du jeu passent aux gardes et aux mesures. Un dossier absent
  *  LÈVE : un corpus vide ne passe jamais pour un corpus propre.
  *  @param {string} [racine] racine du dépôt (le dépôt par défaut). @returns {string[]} */
-export const cheminsDesProjetsLivres = (racine = RACINE_DEPOT) => cheminsDuCorpus(PROJETS_LIVRES, racine, { porte: PORTE });
+export const cheminsDesProjetsLivres = (racine = RACINE_DEPOT) => cheminsDuCorpus(PROJETS_LIVRES, racine, { porte: porteDeTousLesProjets });
 
 /** Les mêmes chemins, RELATIFS au dossier du corpus (`jeu-de-role/campagnes/arene/arene-projet.json`).
  *  @param {string} [racine] racine du dépôt (le dépôt par défaut). @returns {string[]} */

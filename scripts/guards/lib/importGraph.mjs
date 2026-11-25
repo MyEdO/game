@@ -7,7 +7,8 @@
 import { readFileSync, existsSync, statSync } from 'node:fs';
 import { dirname, isAbsolute, relative, resolve, sep } from 'node:path';
 import { analyserCorpus, EXTENSIONS_DE_SCRIPT, typescript } from './dialecte.mjs';
-import { correspondGlob } from './lister.mjs';
+import { cheminAbsent, correspondGlob } from './lister.mjs';
+import { exigerLaPorte } from './serrureDesProjets.mjs';
 import { METHODES_VITEST, OBJETS_VITEST } from './arcsDImport.mjs';
 import { createRequire } from 'node:module';
 import { URL as NodeURL, fileURLToPath, pathToFileURL } from 'node:url';
@@ -441,13 +442,15 @@ const arbreDesCaches = new WeakMap();
  * `surSites(abs, sites, arbre)` reçoit les sites de chaque module analysé (`sitesDeModule`), ceux que la marche ne suit
  * pas compris (paquet, spécificateur calculé, chargeur non suivi), et son arbre syntaxique ; un module mémoïsé
  * (`specificateurs`) ne le rappelle pas.
+ * `porte` : la passe de la porte des projets (`porteDesProjets.mjs`, #5037) qu'exige une racine ou un module atteint sous
+ * `projets/` de ce dépôt, vérifiée avant le mémo (`cache`).
  * @param {string[]} roots
  * @param {{ racine?: string, retenir?: (abs: string) => boolean, cache?: Map<string, Arc[]|null>, typesEffaces?: boolean, dynamiques?: boolean, surSites?: (abs: string, sites: ReturnType<typeof sitesDeModule>, arbre: import('typescript/unstable/ast').SourceFile) => void,
  *   arbre?: { existe: (abs: string) => boolean, lire: (abss: string[]) => Map<string, string | null>, fichiers?: readonly string[] },
- *   tailleLot?: number, analyser?: typeof analyserEnLots, specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void } }} [options]
+ *   tailleLot?: number, analyser?: typeof analyserEnLots, specificateurs?: { lire: (abs: string, texte: string) => SiteNonResolu[] | undefined, ecrire: (abs: string, texte: string, sites: SiteNonResolu[]) => void }, porte?: object }} [options]
  * @returns {Set<string>} chemins POSIX relatifs à `racine`
  */
-export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots, surSites } = {}) {
+export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(), typesEffaces = false, dynamiques = true, arbre = ARBRE_DU_DISQUE, specificateurs, tailleLot = LOT_D_ANALYSE, analyser = analyserEnLots, surSites, porte } = {}) {
   if (!Number.isSafeInteger(tailleLot) || tailleLot <= 0) throw new Error(`clotureDImports : tailleLot positive entière attendue : ${tailleLot}`);
   const base = resolve(racine);
   const config = resolve(base, CHEMIN_TSCONFIG).split(sep).join('/');
@@ -478,6 +481,7 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
     const ajoutes = new Set();
     for (const { abs, importeur, spec } of frontiere) {
       relatif(abs, importeur, spec);
+      exigerLaPorte(resolve(abs), porte, 'clotureDImports');
       if (seen.has(relatif(abs)) || cache.has(abs) || ajoutes.has(abs)) continue;
       ajoutes.add(abs);
       if (!arbre.existe(abs)) { cache.set(abs, null); continue; }
@@ -518,9 +522,12 @@ export function clotureDImports(roots, { racine = '.', retenir, cache = new Map(
 
 /** @typedef {Omit<Arc, 'cible' | 'nature'> & { nature: Arc['nature'] | 'glob', motifs?: string[] }} SiteNonResolu */
 
-/** Les textes de `abss` (chemins absolus) sur le disque, `null` pour un illisible. */
+/** Les textes de `abss` (chemins absolus) sur le disque, `null` pour un absent ; toute autre erreur de lecture lève. */
 const lireDuDisque = (abss) => new Map(abss.map((abs) => {
-  try { return [abs, readFileSync(abs, 'utf8')]; } catch { return [abs, null]; }
+  try { return [abs, readFileSync(abs, 'utf8')]; } catch (erreur) {
+    if (cheminAbsent(erreur)) return [abs, null];
+    throw erreur;
+  }
 }));
 
 /** Le DISQUE comme ensemble de fichiers : le défaut de `clotureDImports`. */
