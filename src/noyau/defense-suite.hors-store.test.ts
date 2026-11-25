@@ -6,7 +6,7 @@ import type { AttackResult } from '../engine/combat';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -94,7 +94,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   // K1 — chaque producteur déclare EXACTEMENT ce que la fenêtre porte.
   it('K1 attaque principale de la machine : ses gratuites à la touche (LDB 10 l.72)', () => {
     const { enemy, hero } = setup(false);
-    expect(doAttack(banc.getState, banc.setState, enemy, hero)).toBe(OPS_DIFFEREES);
+    expect(doAttack(banc.getState, banc.setState, enemy, hero)).toBe(MAIN_RENDUE);
     expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { gratuitesALaTouche: true } });
   });
 
@@ -211,7 +211,7 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   // fenêtre du défenseur comprise), et la suite portée par la fenêtre reste celle de SA frappe.
   it('K7 balayage lancé par-dessus une fenêtre vivante : la porte REFUSE, la suite de la fenêtre ne bouge pas', () => {
     const { enemy, heros } = setup(false, 3);
-    expect(doAttack(banc.getState, banc.setState, enemy, heros[0])).toBe(OPS_DIFFEREES);
+    expect(doAttack(banc.getState, banc.setState, enemy, heros[0])).toBe(MAIN_RENDUE);
     const vivante = banc.getState().pendingDefense!;
     const suiteAvant = JSON.parse(JSON.stringify(vivante.suite));
     expect(() => autoCleave(banc.getState, banc.setState, enemy, heros[0], toucheQuiBalaie())).toThrow(/défense/i);

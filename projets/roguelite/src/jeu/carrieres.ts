@@ -3,8 +3,7 @@
  */
 import {
   butDuPas,
-  effetDesAugmentations,
-  ficheDeCompetence,
+  effetEnCombat,
   memeSpecialisation,
   planDuNiveau,
   pointsDe,
@@ -21,7 +20,7 @@ import {
 import { estUtile, TALENTS_HORS_DU_COMBAT, voieDe } from './valeurs';
 import { Etat, Heros } from './etat';
 import { auNoyau, heros } from './outils';
-import { prendreSesArmes } from './boutiques';
+import { panoplie, prendreSesArmes } from './boutiques';
 
 /** Le plus haut niveau de carrière que la salle d'armes ouvre (0 : fermée). */
 export const niveauMaximal = (e: Etat): number => (e.batiments.salle ? e.batiments.salle + 1 : 0);
@@ -115,15 +114,18 @@ export function acheterUnPas(e: Etat, heroId: string, cible: CibleDuPas): Achete
   return pas ? repeter(e, h, cible, pas.fois) : { fois: 0, cout: 0, refus: 'Sa carrière ne l’offre pas.' };
 }
 
-/** Ce qu'un pas de `cible` change au héros en combat, lu par le noyau (`effetDesAugmentations`) : le Test de la
- *  Compétence, ou ceux des Compétences utiles de sa carrière que la Caractéristique porte ; son Bonus et ses
- *  Blessures. `null` si sa carrière ne l'offre pas. */
-export function effetDuPas(h: Heros, cible: CibleDuPas) {
-  const pas = pasDe(h, cible);
-  if (!pas) return null;
-  const tests = cible.genre === 'competence' ? [cible.ref]
-    : offresDeCarriere(h).competences.filter((k) => k.utile && ficheDeCompetence(k.ref.id).carac === cible.id).map((k) => k.ref);
-  return effetDesAugmentations(h.c, cible, pas.but, tests);
+/** Un avancement à acheter : un pas d'une Caractéristique ou d'une Compétence de carrière, ou un Talent. */
+export type Avancement = CibleDuPas | { genre: 'talent'; ref: { id: string; spec?: string } };
+
+/** Ce qu'un avancement change au héros en combat, lu par le noyau (`effetEnCombat`) : le Test d'attaque de son arme
+ *  principale et de son arme à distance (`panoplie`), ses Compétences de combat, son Bonus et ses Blessures ; un pas
+ *  va jusqu'à son but (`pasDe`). `null` si sa carrière ne l'offre pas ou si le noyau le refuse. */
+export function effetDeLAvancement(h: Heros, a: Avancement) {
+  const { main, tir } = panoplie(h);
+  const armes = [main?.id, tir?.id].filter((id) => id !== undefined);
+  if (a.genre === 'talent') return effetEnCombat(h.c, a, armes);
+  const pas = pasDe(h, a);
+  return pas && effetEnCombat(h.c, { ...a, but: pas.but }, armes);
 }
 
 /** Les Compétences que la Salle d'armes montre : les utiles de la carrière, puis les autres que le plan conseillé

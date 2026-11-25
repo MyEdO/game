@@ -2,7 +2,7 @@
 import { poserLEpingle, marquerVus } from './monde/clues';
 import { decidingSeat } from './netOwnership';
 import { coupleDIdentite } from './monde/identites';
-import { reprendreLaSuite } from './combatEffects';
+import { jouerLesClotures, refuserUnSecondGeste } from './combatEffects';
 import { fenetreDuJeu } from './combatAuto';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
@@ -29,10 +29,14 @@ export function creerActionsDeCampagne(get: Get, set: Set) {
     },
     ouvrirLaDesignation: (p) => {
       if (!get().party.some((h) => !h.dead)) return false;
+      refuserUnSecondGeste(get(), 'pendingDesignationHeros');
       set({ pendingDesignationHeros: p });
       return true;
     },
-    remettreLeDocument: (doc) => set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 })),
+    remettreLeDocument: (doc) => {
+      refuserUnSecondGeste(get(), 'document');
+      set((s) => ({ document: { ...doc, remise: s.remisesDeDocument + 1 }, remisesDeDocument: s.remisesDeDocument + 1 }));
+    },
   } satisfies FabriqueDuNoyau;
 }
 
@@ -42,13 +46,13 @@ export function sortiesDeCampagne(get: Get, set: Set) {
     document: () => {
       const doc = garanti(get().document, 'document', 'document ouvert');
       set({ document: null });
-      reprendreLaSuite(get, set, doc.suite);
+      jouerLesClotures(get, set, doc.suite ?? []);
     },
     // Plus aucun héros vivant à désigner (`MODAL_DEFS.designationHeros.sortieFermee`) : la suite du Flow se joue.
     designationHeros: () => {
       const p = garanti(get().pendingDesignationHeros, 'designationHeros', 'désignation ouverte');
       set({ pendingDesignationHeros: null });
-      reprendreLaSuite(get, set, p.suite);
+      jouerLesClotures(get, set, p.suite ?? []);
     },
   } satisfies Partial<SortiesDeFenetre>;
 }
@@ -69,7 +73,7 @@ export function choixDeCampagne(get: Get, set: Set) {
             pendingDesignationHeros: null,
           };
         });
-        reprendreLaSuite(get, set, p.suite);
+        jouerLesClotures(get, set, p.suite ?? []);
       },
     },
   } satisfies Partial<CorpsDesChoix>;

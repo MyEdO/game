@@ -20,7 +20,7 @@ import {
 } from './index';
 import { blessures, devant, recit } from './salles.testkit';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 const MEDECIN = PROFILS.find((p) => p.id === 'medecin')!;
 const du = (e: Etat, carriere: string, n = 0): Heros => herosDuGroupe(e).filter((h) => h.carriere === carriere)[n];

@@ -60,7 +60,8 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     const casc = banc.getState().pendingCascade!;
     expect(casc.participants).toHaveLength(1);
     const st = casc.participants[0];
-    expect(Object.keys(st).sort(), 'la déclaration, et rien d’autre').toEqual(['groupOwner', 'id', 'jet', 'kind']);
+    expect(Object.keys(st).sort(), 'la déclaration, et rien d’autre').toEqual(['groupOwner', 'id', 'jet', 'kind', 'meta']);
+    expect(st.meta, 'l’étape-hôte porte la suite du Flow qui l’a ouverte (#2689)').toEqual({ differeLaSuite: true });
     expect(st.jet).toBe('enfoncerLaPorte');
     expect(st.groupOwner).toBe(true);
     expect(st.actorId, 'un jet de GROUPE n’a pas d’acteur unique').toBeUndefined();

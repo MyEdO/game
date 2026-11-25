@@ -5,7 +5,7 @@ import {
 } from './index';
 import { prixDuSejourALAuberge, reposer, poserLesReglesDuRoguelite } from '../noyau';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Une partie riche dont le quatrième héros est blessé. */
 function avecUnBlesse(graine: number): { e: Etat; id: string } {

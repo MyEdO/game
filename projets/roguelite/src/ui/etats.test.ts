@@ -5,7 +5,7 @@ import { causesDEtat, libelleDEtat, poserLesReglesDuRoguelite } from '../noyau';
 import { carteDeHeros, causeDEtat, etats } from './pieces';
 import { ecranDeLExpedition } from './lieux';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 const inconscient = (h: Heros) => h.c.conditions.find((x) => x.id === COND.inconscient)!;
 /** Les aperçus (`apercuDe`) d'un fragment, dans l'ordre, décodés. */

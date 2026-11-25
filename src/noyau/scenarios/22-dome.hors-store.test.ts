@@ -9,7 +9,7 @@ import { seedBattleRng } from '../../noyau/battleRng';
 import { draineEtLit } from '../../noyau/cascade.testkit';
 import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
-import { OPS_DIFFEREES } from '../../noyau/combatEffects';
+import { MAIN_RENDUE } from '../../noyau/combatEffects';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -81,7 +81,7 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
       protegee.wounds.current = avant;
       // Depuis #1508 le coup est SUSPENDU sur l'étape de dé : c'est la fenêtre qui jette le 1d10.
       const suspendu = applyAttackResult(banc.getState, banc.setState, archer, protegee, arc, tir());
-      expect(suspendu, 'le coup doit être suspendu sur sa sauvegarde, jamais résolu en silence').toBe(OPS_DIFFEREES);
+      expect(suspendu, 'le coup doit être suspendu sur sa sauvegarde, jamais résolu en silence').toBe(MAIN_RENDUE);
       sauve = draineEtLit(banc.getState).some((x) => /sauvegarde 1d10 : \d+ ≥ Protection \(6\+\) du Dôme\./.test(x));
     }
     expect(sauve, 'aucune sauvegarde du Dôme en 40 tirs : elle ne s’ouvre pas').toBe(true);

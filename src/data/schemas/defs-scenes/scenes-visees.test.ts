@@ -72,7 +72,11 @@ describe('#2968 L14 — scènes visées désignées par `ref(portee)`', () => {
     const complet = projet((c) => Object.assign(c.worldMap.routes[0], { perils: [{ label: 'Dérive', chancePct: 10, effects: [{ type: 'transition', scene: { id: 'scene-de-test-a' } }] }] }));
     expect(projetSchema.safeParse(complet).success).toBe(true);
     const reperes = mesureDuParse(projetSchema, complet).reperes.filter((r) => r.type === 'local:scenes').map((r) => r.path.join('.')).sort();
-    expect(reperes).toEqual([...PORTEURS.map((p) => `${p.chemin}.id`), 'worldMap.places.1.scene.id'].sort());
+    const duPaquet = [
+      ...complet.worldMap.places.flatMap((_, i) => (i ? [`worldMap.places.${i}.scene.id`] : [])),
+      ...complet.worldMap.routes.flatMap((r, i) => (i && 'ambush' in r ? [`worldMap.routes.${i}.ambush.scene.id`] : [])),
+    ];
+    expect(reperes, 'chaque porteur posé, et chaque scène que le paquet désigne déjà').toEqual([...PORTEURS.map((p) => `${p.chemin}.id`), ...duPaquet].sort());
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ avec }) => {
