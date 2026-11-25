@@ -186,9 +186,10 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
   const consequences: Applique = { lignes: [], faits: [] };
   loseWounds(c, dmg, consequences);
   log.push(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }), ...consequences.lignes);
-  if (kind === 'froid' && c.wounds.current <= 0 && !hasCondition(c, 'inconscient')) {
+  if (kind === 'froid' && c.wounds.current <= 0) {
+    const deja = hasCondition(c, 'inconscient');
     addCondition(c, 'inconscient');
-    log.push(t('exp.sinksFrozen', { name: nomDe(c) }));
+    if (!deja) log.push(t('exp.sinksFrozen', { name: nomDe(c) }));
   }
   return { log, wounds: dmg };
 }

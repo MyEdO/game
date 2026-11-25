@@ -32,6 +32,8 @@ import {
   removeActiveEffects,
   pionsRetirables,
   faitsDesPoses,
+  retirerHemorragie,
+  COND,
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
@@ -1022,11 +1024,17 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   // Ce qu'une application imbriquée ou un socle d'États a dit : ses lignes ET ses faits.
   const absorber = (a: Applique) => { lines.push(...a.lignes); sortie.faits.push(...a.faits); };
   // Soin par la SOURCE UNIQUE `applyHealWounds` : le fait dit les Blessures RÉELLEMENT regagnées (post-plafond).
-  const soigner = (qui: Combatant, n: number, vol?: true) => {
+  // `magique` : Sort ou Prière ; l'Hémorragie part avant le réveil. LDB 16 l.107 ; LDB 18 l.15
+  const soigner = (qui: Combatant, n: number, magique: boolean, vol?: true) => {
     const avant = qui.wounds.current;
-    const suite = applyHealWounds(qui, n, { wake: false, log: () => [] });
+    const saignement = magique ? retirerHemorragie(qui, cappedHealAmount(qui, n)) : null;
+    let reveil = false;
+    const suite = applyHealWounds(qui, n, { log: (_, reveille) => { reveil = reveille; return []; } });
     const regagnees = qui.wounds.current - avant;
     if (!vol || regagnees > 0) emettre(qui, { genre: 'blessures', ...sur(qui), valeur: regagnees, ...(vol ? { vol } : {}) });
+    if (saignement?.retires) emettre(qui, { genre: 'etat', ...sur(qui), id: COND.hemorragique, valeur: -saignement.retires });
+    if (saignement?.extenue) emettre(qui, { genre: 'etat', ...sur(qui), id: COND.extenue, valeur: 1 });
+    if (reveil) emettre(qui, { genre: 'etat', ...sur(qui), id: COND.inconscient, valeur: -1 });
     lines.push(...suite);
   };
   // DISSIPATION (LDB 46) : on retient les ActiveEffect PRÉ-EXISTANTS (par référence) pour ne marquer,
@@ -1109,10 +1117,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       }
       case 'heal': {
         const n = soinMagiqueOperant(target) ? Math.max(0, formuleDuCtx(o.amount, ref, ctx) + slBonus(ctx.sl, o.perSL)) : 0; // AA 10 l.134
-        // SOURCE UNIQUE `applyHealWounds` (`healing.ts`) : plafonné par munition Empaleuse logée (LDB
-        // 62 l.250) comme le reste ; ni verrou « soin de rencontre » (Guérison seulement) ni réveil
-        // ici — sort/potion inconscient géré par `receiveMedicalAid`/`releaseConditionLocks` ci-dessous.
-        soigner(target, n);
+        // Plafonné par munition Empaleuse logée (LDB 62 l.250) ; aucun verrou « soin de rencontre » (Guérison seulement).
+        soigner(target, n, ctx.sourceSpellId != null);
         lines.push(...receiveMedicalAid(target)); // sort/prière de soin = Aide Médicale (LDB 18 l.311)
         absorber(releaseConditionLocks(target, ctx.sourceSpellId != null ? 'magic' : 'medicalAid')); // verrous d'État (LDB 18) : soin d'un sort = magie (⊇ Aide Médicale) ; potion/objet = Aide Médicale
         break;
@@ -1120,7 +1126,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       case 'healCaster': {
         const who = ctx.caster ?? target;
         const n = Math.max(0, formuleDuCtx(o.amount, ref, ctx));
-        soigner(who, n);
+        soigner(who, n, true);
         lines.push(...receiveMedicalAid(who)); // sort/prière de soin = Aide Médicale (LDB 18 l.311)
         absorber(releaseConditionLocks(who, 'magic')); // healCaster = soin d'un sort → magie (lève aussi les verrous Aide Médicale, LDB 18)
         break;
@@ -1216,8 +1222,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           // REJEU d'une cause persistante (`LDB 16 l.117`) : c'est le DRAPEAU de rejeu qui le dit
           // (`ctx.rejeuRecurrent`, posé par `endOfRound` seul), jamais la forme de l'op — une première
           // pose gatée reste une pose. La ligne NOMME la cause, portée par le `ctx.label` relayé.
-          for (const f of faitsDesPoses(target, [id], () => addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte))) // verrous : prédicat d'état / acte de soin (LDB 18)
-            emettre(target, { ...f, ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
+          for (const f of faitsDesPoses(target, [id], () => addCondition(target, id, v, escape, threshold, o.entangleOnFail, struggleDamage, { lockedUntil: o.lockedUntil, unlockBy: o.unlockBy }, o.difficulte, o.finDeRencontre))) // verrous : prédicat d'état / acte de soin (LDB 18)
+            emettre(target, { ...f, ...(o.finDeRencontre ? { duree: { rencontre: true } } : {}), ...(ctx.rejeuRecurrent && o.unlessCondition?.id === id && ctx.label ? { regagne: true } : {}) });
         }
         if (avantageAvant > 0 && !target.advantage) emettre(target, { genre: 'avantage', ...sur(target), valeur: -avantageAvant, total: 0 }); // LDB 16 l.7
         // Empoignade (LDB 14 l.159) : le flag `grapple` pose la relation symétrique entre l'attaquant
@@ -2118,7 +2124,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           : Math.floor((dealt * o.num) / o.den);
         // SOURCE UNIQUE `applyHealWounds` — même plafond de munition logée (LDB 62 l.250) que le reste ;
         // le fait ne sort que si le drain rend RÉELLEMENT des PB (post-plafond).
-        if (healed > 0) soigner(who, healed, true);
+        if (healed > 0) soigner(who, healed, ctx.sourceSpellId != null, true);
         break;
       }
       case 'skillMod': {

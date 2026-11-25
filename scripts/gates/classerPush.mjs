@@ -9,9 +9,14 @@
 // `scripts/gates/toutes.mjs`, mesuré), jamais par un dossier deviné. La décision est FAIL-CLOSED
 // des deux côtés : un fichier hors `DOCUMENTAIRE` rend le push PRODUIT, une gate dont `lit` est
 // vide n'est jamais sautée, un diff vide est PRODUIT.
+//
+// Les gates SAUTÉES d'un push (#4903 L4, `gatesSautees`) se calculent après `npm ci` (`sauteesDuPush.mjs`,
+// qui lit `ECRIT_LU`) : une gate saute quand chaque fichier du diff est documentaire et qu'elle ne lit rien de
+// documentaire, ou est dans un dossier de zone que ses `zones` déclarées excluent.
 import { basename, join } from 'node:path'
 import { env, exit, stderr, stdout } from 'node:process'
 import { GitIndisponible, TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, refusDeGit, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
+import { COUCHES, couvre, dossierDe } from '../guards/lib/couches.mjs'
 import { SKILLS, racinesDeMods, racinesDeModsParmi } from '../mods/racines.mjs'
 import { COMMANDE_RENDU_LOGICIEL, COMMANDE_VERSION_PYTHON_3D } from './gatesDeCi.mjs'
 
@@ -46,17 +51,23 @@ export const DOCUMENTAIRE = {
 }
 
 /**
- * Steps `CI_SEULEMENT` de `ci.yml` (scripts/gates/gatesDeCi.mjs) qui ne jouent QUE sur un push
- * produit, chacun avec sa raison. Le prologue (`ACTION_PROLOGUE` : classement et `npm ci`) n'y est
- * pas : il joue toujours, puisque tout ce qui suit en dépend.
+ * Steps `CI_SEULEMENT` de `ci.yml` (scripts/gates/gatesDeCi.mjs) qui ne servent que des GATES, chacun avec sa raison et
+ * les gates qu'il sert : dans un job, le step saute avec la gate qu'il y sert (`conditionDeSaut`). Le prologue
+ * (`ACTION_PROLOGUE` : classement et `npm ci`) n'y est pas : il joue toujours, puisque tout ce qui suit en dépend.
  */
-export const CI_SEULEMENT_PRODUIT = {
-  'npm --prefix server ci':
-    'install du worker, prérequis du seul `server:typecheck` — inutile quand rien de server/ ne bouge',
-  [COMMANDE_VERSION_PYTHON_3D]:
-    'version de CPython du seul `personnage-3d:tests`, sautable sur un push documentaire',
-  [COMMANDE_RENDU_LOGICIEL]:
-    'écran virtuel et rendu logiciel du seul `godot:rendus`, sautable sur un push documentaire',
+export const CI_SEULEMENT_DE_GATE = {
+  'npm --prefix server ci': {
+    raison: 'install du worker, prérequis de `server:typecheck` et de `godot:coop` — inutile quand ils ne jouent pas',
+    gates: ['server:typecheck', 'godot:coop'],
+  },
+  [COMMANDE_VERSION_PYTHON_3D]: {
+    raison: 'version de CPython du seul `personnage-3d:tests`, sautable avec lui',
+    gates: ['personnage-3d:tests'],
+  },
+  [COMMANDE_RENDU_LOGICIEL]: {
+    raison: 'écran virtuel et rendu logiciel du seul `godot:rendus`, sautable avec lui',
+    gates: ['godot:rendus'],
+  },
 }
 
 /** Action composite du PROLOGUE de chaque job vérifiant de `ci.yml` (Node, classement, `npm ci`),
@@ -64,14 +75,23 @@ export const CI_SEULEMENT_PRODUIT = {
 export const ACTION_PROLOGUE = '.github/actions/prologue/action.yml'
 
 /** `id` du step qui appelle le prologue dans chaque job : c'est par lui que les steps lisent le
- *  classement (`outputs.produit`) et l'issue du prologue ENTIER — Node, classement, `npm ci` (`outcome`). */
+ *  classement (`outputs.produit`), les gates sautées (`outputs.sautees`) et l'issue du prologue ENTIER — Node,
+ *  classement, `npm ci`, gates sautées (`outcome`). */
 export const ID_PROLOGUE = 'prologue'
 
 /** Commande EXACTE du step de classement dans `ACTION_PROLOGUE` — une seule écriture, lue par la garde. */
 export const COMMANDE_CLASSER = 'node scripts/gates/classerPush.mjs >> "$GITHUB_OUTPUT"'
 
-/** Fragment de la condition `if` que porte tout step conditionné par le classement. */
+/** Commande EXACTE du step du prologue, après `npm ci`, qui écrit les gates sautées du push. */
+export const COMMANDE_SAUTEES = 'node scripts/gates/sauteesDuPush.mjs >> "$GITHUB_OUTPUT"'
+
+/** Fragment de la condition `if` d'un step conditionné par le classement qui n'est ni une gate ni au service d'une
+ *  gate (`caches-3d`, `setup-python`, rejeu des migrations). */
 export const CONDITION_PRODUIT = `steps.${ID_PROLOGUE}.outputs.produit != 'false'`
+
+/** Fragment de la condition `if` d'un step qui saute avec la gate `nom` : `outputs.sautees` est ` <nom> <nom> … `, un
+ *  output vide ou absent ne saute rien (fail-closed). */
+export const conditionDeSaut = (nom) => `!contains(steps.${ID_PROLOGUE}.outputs.sautees, ' ${nom} ')`
 
 /** Deux chemins CHEVAUCHENT quand l'un est préfixe de l'autre : `.claude/` et `.claude/memory/`. */
 const chevauche = (a, b) => a.startsWith(b) || b.startsWith(a)
@@ -102,6 +122,9 @@ export function classer(fichiers, { mods = [] } = {}) {
   return { produit: false, motifs: [`${fichiers.length} fichier(s), tous sous DOCUMENTAIRE`] }
 }
 
+/** `lit` chevauche-t-il une entrée de `DOCUMENTAIRE` ? */
+const litDuDocumentaire = (lit) => lit.some((chemin) => Object.keys(DOCUMENTAIRE).some((p) => chevauche(chemin, p)))
+
 /**
  * Les gates SAUTABLES sur un push documentaire : `lit` NON VIDE et sans chevauchement avec une
  * entrée de `DOCUMENTAIRE`. Une gate sans `lit` mesuré joue toujours — la borne est fail-closed.
@@ -109,14 +132,38 @@ export function classer(fichiers, { mods = [] } = {}) {
  * @returns {Set<string>}
  */
 export function gatesSautables({ gates, ecritLu }) {
-  const sautables = new Set()
+  return new Set(gates.map(({ nom }) => nom).filter((nom) => ecritLu[nom]?.lit?.length && !litDuDocumentaire(ecritLu[nom].lit)))
+}
+
+/** Le dossier de la zone `z`, fini par `/`, s'il est hors de `src/` (`hotes/<a>/`, `projets/<p>/`) ; `null` sinon. */
+export const dossierHorsDeSrc = (z) => (dossierDe(z).split('/')[0] === 'src' ? null : `${dossierDe(z)}/`)
+
+/** Les dossiers des zones de `COUCHES` hors de `src/`. */
+export const DOSSIERS_HORS_DE_SRC = Object.freeze(Object.keys(COUCHES).map(dossierHorsDeSrc).filter(Boolean))
+
+/**
+ * Les gates SAUTÉES d'un push (#4903 L4) : celles dont `lit` est NON VIDE et ne lit aucun fichier du diff. Une gate ne
+ * lit pas un fichier DOCUMENTAIRE quand son `lit` ne chevauche aucune entrée de `DOCUMENTAIRE` (`gatesSautables`) ; elle
+ * ne lit pas un fichier d'un dossier de zone hors de `src/` (`DOSSIERS_HORS_DE_SRC`) quand elle déclare ses `zones`
+ * (`ECRIT_LU`, dont le `lit` dérive alors de `COUCHES`) et qu'aucune entrée de son `lit` ne le couvre. Une gate sans
+ * `zones` lit tout dossier de zone : sa mesure n'a pas été confrontée à `COUCHES`. Un diff vide ne saute rien.
+ * @param {readonly string[]} fichiers chemins relatifs POSIX
+ * @param {{ gates: readonly {nom: string}[], ecritLu: Record<string, {lit?: readonly string[], zones?: readonly string[]}>, mods?: readonly string[] }} args
+ * @returns {Set<string>}
+ */
+export function gatesSautees(fichiers, { gates, ecritLu, mods = [] }) {
+  const racines = [...mods, ...racinesDeModsParmi(fichiers)]
+  const sautees = new Set()
   for (const { nom } of gates) {
-    const lit = ecritLu[nom]?.lit
-    if (!lit || lit.length === 0) continue
-    if (lit.some((chemin) => Object.keys(DOCUMENTAIRE).some((p) => chevauche(chemin, p)))) continue
-    sautables.add(nom)
+    const { lit = [], zones } = ecritLu[nom] ?? {}
+    if (lit.length === 0 || fichiers.length === 0) continue
+    const documentaireNonLu = !litDuDocumentaire(lit)
+    const nonLu = (f) =>
+      (documentaireNonLu && estDocumentaire(f, racines)) ||
+      (zones !== undefined && DOSSIERS_HORS_DE_SRC.some((d) => f.startsWith(d)) && !lit.some((c) => couvre(c, f)))
+    if (fichiers.every(nonLu)) sautees.add(nom)
   }
-  return sautables
+  return sautees
 }
 
 /** Un sha vide ou fait de zéros : `github.event.merge_group.base_sha` hors `merge_group`. */
@@ -155,10 +202,10 @@ export function baseDuDiff({ base, sha, cwd = process.cwd() } = {}) {
  *  (`BorneAbsente`, `ceQuiChange`). */
 export function classerPush({ base, sha, cwd = process.cwd() } = {}) {
   const socle = baseDuDiff({ base, sha, cwd })
-  if (socle.base === null) return { produit: true, base: null, fichiers: [], motifs: [socle.motif] }
+  if (socle.base === null) return { produit: true, base: null, fichiers: [], mods: [], motifs: [socle.motif] }
   const fichiers = ceQuiChange(depotDe(cwd), socle.base, sha).chemins()
   const mods = racinesDeMods(join(cwd, ...SKILLS.split('/'))).map((racine) => `${SKILLS}${basename(racine)}/`)
-  return { ...classer(fichiers, { mods }), base: socle.base, fichiers }
+  return { ...classer(fichiers, { mods }), base: socle.base, fichiers, mods }
 }
 
 if (import.meta.main) {
