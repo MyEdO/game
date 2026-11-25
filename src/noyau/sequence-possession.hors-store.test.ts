@@ -34,7 +34,7 @@ import { tickCombatAuto } from './combatAuto';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon, HitLocation, ArmourPoints } from '../engine/types';
 import type { AttackResult } from '../engine/combat';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -194,7 +194,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
 
     const suspendu = applyAttackResult(g, banc.setState, E[0], cible, hache, critHit('corps'));
 
-    expect(suspendu, 'la résolution est suspendue sur le choix').toBe(OPS_DIFFEREES);
+    expect(suspendu, 'la résolution est suspendue sur le choix').toBe(MAIN_RENDUE);
     expect(parKind('deviation')).toBeTruthy();
   });
 
@@ -207,7 +207,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
 
     const suspendu = applyAttackResult(g, banc.setState, E[0], cible, hache, critHit('corps'));
 
-    expect(suspendu, 'la résolution est suspendue sur SON choix').toBe(OPS_DIFFEREES);
+    expect(suspendu, 'la résolution est suspendue sur SON choix').toBe(MAIN_RENDUE);
     const dev = parKind('deviation');
     expect(dev, 'l’offre de Déviation existe pour la victime d’un autre siège').toBeTruthy();
     expect(dev!.actorId).toBe(cible.id);
@@ -264,7 +264,7 @@ describe('#1262 lot 5c — la Déviation Critique appartient à la VICTIME (LDB 
 
       const suspendu = applyAttackResult(g, banc.setState, E[0], cible, hache, critHit('corps'));
 
-      expect(suspendu, 'suspendu sur le choix, même en auto').toBe(OPS_DIFFEREES);
+      expect(suspendu, 'suspendu sur le choix, même en auto').toBe(MAIN_RENDUE);
       const dev = parKind('deviation');
       expect(dev, 'l’étape de Déviation EXISTE en cadence auto').toBeTruthy();
       expect(dev!.defaultChoice, 'c’est elle que la cadence retiendra').toBe('devier');

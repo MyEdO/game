@@ -232,7 +232,6 @@ import { difficulteDEntreeEnFrenesie } from '../engine/psychology';
 import { t } from '../i18n';
 import { libelleDeLaFermeture } from './libelles';
 import { influencesLocally } from './netOwnership';
-import { reprendreLaSuite } from './combatEffects';
 import { estOperation } from './acteDeSoin';
 import { lancerLActeDeSoin } from './medicFlow';
 import { APPRAISE_SKILL } from './merchantFlow';
@@ -1509,9 +1508,6 @@ export const FLOWS = paresseux({
    */
   testEtendu: () => makeRollFlow<PendingExtendedTest, ExtendedTestRound>({
     key: 'pendingExtendedTest',
-    // Renoncer CLÔT le Test (sans réussite) par la sortie d'hôte : la suite du Flow qui l'a ouvert se joue, comme après un
-    // Test raté, puis la pile reprend.
-    onCancel: (get, set, p) => sortirDeLHote(get, set, { pendingExtendedTest: null }, () => reprendreLaSuite(get, set, p.suite)),
     // Le Round porte {roll, sl, success} SANS cible (elle vit sur le pending) : accesseur explicite.
     die: {
       read: (r, _a, p) => (r.result && p ? { roll: r.result.roll, target: p.target, critable: false } : null),
@@ -1729,9 +1725,6 @@ export const FLOWS = paresseux({
    */
   enfoncerLaPorte: () => makeRollFlow<PendingForceDoor, ForceDoorParticipant>({
     key: 'pendingForceDoor',
-    // Renoncer CLÔT l'enfoncement (la porte tient) par la sortie d'hôte : la suite du Flow qui l'a ouvert se joue, puis la
-    // pile reprend.
-    onCancel: (get, set, p) => sortirDeLHote(get, set, { pendingForceDoor: null }, () => reprendreLaSuite(get, set, p.suite)),
     clotures: { valider: 'toujours', annuler: 'toujours' },
     die: roll3Die<ForceDoorParticipant, PendingForceDoor>((_s, r, actor) => actor && testDEnfoncement(actor, armeDEnfoncement(actor, r))),
     multi: { slots: (p) => p.participants, idOf: (r) => r.id, replace: (p, parts) => ({ ...p, participants: parts }) },

@@ -20,9 +20,8 @@ import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 type Route = Omit<(typeof paquetDeTest.worldMap.routes)[number], 'billets'> & { billets?: (typeof paquetDeTest.worldMap.routes)[number]['billets'] };
 type Carte = Omit<typeof paquetDeTest.worldMap, 'routes'> & { routes: Route[] };
 
-/** Rangs des routes de la carte de test : la première porte le billet, la dernière n'en porte aucun. */
+/** Rang de la route de la carte de test qui porte le billet. */
 const BILLETTEE = 0;
-const LIBRE = 2;
 
 const messages = (carte: unknown): string[] => {
   const r = worldMapSchema.safeParse(carte);
@@ -33,22 +32,26 @@ const messages = (carte: unknown): string[] => {
 /** Une route de `a` à `b` sans billet. */
 const route = (id: string, a: string, b: string, modes: string[]): Route => ({ id, a: { id: a }, b: { id: b }, km: 10, modes, provenances: { km: { maison: 'fixture de test' } } });
 
-/** La carte du paquet de test fermée en boucle par `lieu-c` (`route-b-c`, `route-c-a`, que le mode `diligence` parcourt aussi),
- *  retouchée par `retouche` sur une copie. */
+/** La carte du paquet de test où s'ajoutent le lieu `lieu-de-boucle` et deux routes que le mode `diligence` parcourt
+ *  aussi, `route-b-boucle` puis `route-boucle-a`, la route libre, qui ne porte aucun billet, retouchée par `retouche`
+ *  sur une copie. */
 const carte = (retouche: (copie: Carte) => void): Carte => {
   const copie: Carte = structuredClone(paquetDeTest.worldMap);
-  copie.places.push({ id: 'lieu-c', label: 'Lieu C', pos: { x: 50, y: 20 }, scene: { id: 'scene-de-test-b' } });
-  copie.routes.push(route('route-b-c', 'lieu-b', 'lieu-c', ['diligence']), route('route-c-a', 'lieu-c', 'lieu-a', ['pied', 'diligence']));
+  copie.places.push({ id: 'lieu-de-boucle', label: 'Lieu de boucle', pos: { x: 50, y: 80 }, scene: { id: 'scene-de-test-b' } });
+  copie.routes.push(route('route-b-boucle', 'lieu-b', 'lieu-de-boucle', ['diligence']), route('route-boucle-a', 'lieu-de-boucle', 'lieu-a', ['pied', 'diligence']));
   retouche(copie);
   return copie;
 };
+
+/** Rang de la route libre `route-boucle-a` dans la carte de test. */
+const LIBRE = carte(() => {}).routes.findIndex((r) => r.id === 'route-boucle-a');
 
 const billet = (c: Carte) => c.routes[BILLETTEE].billets!.diligence;
 
 const LIEUX = 'lieux de la carte';
 const PORTEURS = [
   {
-    porteur: 'worldMap.routes[].a', chemin: `routes.${LIBRE}.a`, connue: 'lieu-c',
+    porteur: 'worldMap.routes[].a', chemin: `routes.${LIBRE}.a`, connue: 'lieu-de-boucle',
     avec: (v: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { a: v })),
   },
   {
@@ -56,7 +59,7 @@ const PORTEURS = [
     avec: (v: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { b: v })),
   },
   {
-    porteur: 'worldMap.routes[].from', chemin: `routes.${LIBRE}.from`, connue: 'lieu-c',
+    porteur: 'worldMap.routes[].from', chemin: `routes.${LIBRE}.from`, connue: 'lieu-de-boucle',
     avec: (v: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { from: v })),
   },
   {
@@ -72,17 +75,16 @@ describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`
 
   it('chaque référence est un slot `local:places` / `local:routes` au parse de mesure, à son path', () => {
     const complete = carte((c) => {
-      Object.assign(c.routes[LIBRE], { from: { id: 'lieu-c' } });
-      Object.assign(billet(c), { suite: ['route-b-c', 'route-c-a'] });
+      Object.assign(c.routes[LIBRE], { from: { id: 'lieu-de-boucle' } });
+      Object.assign(billet(c), { suite: ['route-b-boucle', 'route-boucle-a'] });
     });
     expect(worldMapSchema.safeParse(complete).success).toBe(true);
     const reperes = mesureDuParse(worldMapSchema, complete).reperes;
     const paths = (type: string) => reperes.filter((r) => r.type === type).map((r) => r.path.join('.')).sort();
-    expect(paths('local:places')).toEqual([
-      `routes.${BILLETTEE}.a.id`, `routes.${BILLETTEE}.b.id`, `routes.${BILLETTEE}.billets.diligence.depuis.id`,
-      'routes.1.a.id', 'routes.1.b.id',
-      `routes.${LIBRE}.a.id`, `routes.${LIBRE}.b.id`, `routes.${LIBRE}.from.id`,
-    ]);
+    expect(paths('local:places'), 'les extrémités de chaque route, le départ du billet et le sens de la route libre').toEqual([
+      ...complete.routes.flatMap((_, i) => [`routes.${i}.a.id`, `routes.${i}.b.id`]),
+      `routes.${BILLETTEE}.billets.diligence.depuis.id`, `routes.${LIBRE}.from.id`,
+    ].sort());
     expect(paths('local:routes')).toEqual([`routes.${BILLETTEE}.billets.diligence.suite.0`, `routes.${BILLETTEE}.billets.diligence.suite.1`]);
   });
 
@@ -108,17 +110,17 @@ describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`
     const avecSuite = (suite: unknown) => carte((c) => Object.assign(billet(c), { suite }));
 
     it('une suite de routes connues parse', () => {
-      expect(worldMapSchema.safeParse(avecSuite(['route-b-c', 'route-c-a'])).success).toBe(true);
+      expect(worldMapSchema.safeParse(avecSuite(['route-b-boucle', 'route-boucle-a'])).success).toBe(true);
     });
 
     it('une route inconnue ou d’un autre projet est refusée à son rang, seule faute', () => {
-      expect(messages(avecSuite(['route-b-c', 'route-d-un-autre-projet']))).toEqual([
+      expect(messages(avecSuite(['route-b-boucle', 'route-d-un-autre-projet']))).toEqual([
         `routes.${BILLETTEE}.billets.diligence.suite.1 « route-d-un-autre-projet » est absent du catalogue des routes de la carte (collection « routes » du document).`,
       ]);
     });
 
     it('une route écrite en `{ id }` est refusée', () => {
-      expect(worldMapSchema.safeParse(avecSuite([{ id: 'route-b-c' }])).success).toBe(false);
+      expect(worldMapSchema.safeParse(avecSuite([{ id: 'route-b-boucle' }])).success).toBe(false);
     });
   });
 

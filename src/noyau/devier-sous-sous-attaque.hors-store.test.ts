@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { degatsSubis } from '../engine/repair';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { battleRng, seedBattleRng } from './battleRng';
@@ -180,7 +181,8 @@ describe('Marin tenu d’un Critique d’Équipage : sa fenêtre suspend son seu
     expect(recompte).toBe((touche.woundsLost ?? 0) + 1);
     expect(draineCascade(banc.getState, 200, undefined, choix('devier'))).toEqual(['deviation']);
     const m = enJeu('marin');
-    expect(m.armour[lieu as keyof typeof m.armour]).toBe(2);
+    expect(Object.values(m.items![0].usure ?? {}), 'la Déviation entame un seul Emplacement (LDB 63 l.19)').toEqual([1]);
+    expect(Object.values(m.armour).sort()).toEqual([2, 3, 3, 3, 3, 3]);
     expect(m.criticalWounds ?? 0).toBe(0);
     expect(m.wounds.current).toBe(20 - recompte);
     expect(enJeu('nav').criticalWounds ?? 0).toBe(critsCoque);
@@ -195,7 +197,7 @@ describe('Marin tenu d’un Critique d’Équipage : sa fenêtre suspend son seu
     expect(m.criticalWounds ?? 0).toBe(1);
     expect(m.critEntriesSuffered).toHaveLength(1);
     expect(banc.getState().battle!.log.map((l) => l.text)).toContain(`marin subit ${contre(att, marin).woundsLost} Blessure(s).`);
-    expect(m.items![0].damageTaken ?? 0).toBe(0);
+    expect(degatsSubis(m.items![0])).toBe(0);
     expect(enJeu('nav').criticalWounds ?? 0).toBe(critsCoque);
   });
 
@@ -206,7 +208,7 @@ describe('Marin tenu d’un Critique d’Équipage : sa fenêtre suspend son seu
     expect(draineCascade(banc.getState, 200, undefined, choix('devier'))).toEqual(['deviation', 'deviation']);
     const m = enJeu('marin');
     expect(m.criticalWounds ?? 0).toBe(0);
-    expect(m.items![0].damageTaken).toBe(2);
+    expect(degatsSubis(m.items![0])).toBe(2);
     expect(enJeu('nav').criticalWounds ?? 0).toBe(critsCoque);
   });
 });
@@ -244,7 +246,7 @@ describe('Projectile Coup Critique redirigé sur le marin : sa Localisation rela
     expect(draineCascade(banc.getState, 200, undefined, choix('devier'))).toEqual(['deviation']);
     const m = enJeu('marin');
     expect(m.criticalWounds ?? 0, 'Critique ignoré').toBe(0);
-    expect(Object.fromEntries(m.items!.map((i) => [i.uid, i.damageTaken ?? 0])), 'le recompte relit le lieu né avec le coup')
+    expect(Object.fromEntries(m.items!.map((i) => [i.uid, degatsSubis(i)])), 'le recompte relit le lieu né avec le coup')
       .toEqual({ 'pa-tete': 0, 'pa-brasG': 0, 'pa-brasD': 0, 'pa-corps': 0, 'pa-jambeG': 0, 'pa-jambeD': 1 });
   });
 });

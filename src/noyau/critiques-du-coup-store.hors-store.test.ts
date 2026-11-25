@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { degatsSubis } from '../engine/repair';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng, seedBattleRng } from './battleRng';
@@ -15,7 +16,7 @@ import { hasCondition } from '../engine/conditions';
 import { critTableRows, critTableKeyFor } from '../engine/critical';
 import { blessuresDeLaLigne } from '../engine/critical.testkit';
 import { findTableEntry } from '../engine/tables';
-import { recomputeLoadout } from '../engine/items';
+import { armureUtilisable, recomputeLoadout } from '../engine/items';
 import { testScene } from '../scenes/test-fixture';
 import { spawnEnemy } from './monde/spawn';
 import { t as tr } from '../i18n';
@@ -101,7 +102,7 @@ const piece = (qualites: string[], pa: number, locs: readonly string[] = LOCS): 
 
 const totalPA = (c: Combatant) => Object.values(c.armour ?? {}).reduce((t, n) => t + n, 0);
 const portee = (c: Combatant, uid: string) => c.items!.find((i) => i.uid === uid)!;
-const casse = (c: Combatant, uid: string) => (portee(c, uid).damageTaken ?? 0) > (portee(c, uid).pa ?? 0);
+const casse = (c: Combatant, uid: string) => !armureUtilisable(portee(c, uid));
 const journal = () => banc.getState().battle!.log.map((l) => l.text);
 
 describe('le store joue le compte des Blessures critiques du coup', () => {
@@ -275,7 +276,7 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
   it('une autre pièce dévie : elle perd 1 PA, la Bâclée casse', () => {
     const autre = { ...piece([], 2), uid: 'p2' } as ItemInstance;
     const { cible } = coup({ roll: 44, current: 20, pieces: [piece(['bacle'], 1), autre] });
-    expect(portee(cible, 'p2').damageTaken).toBe(1);
+    expect(degatsSubis(portee(cible, 'p2'))).toBe(1);
     expect(casse(cible, 'p1')).toBe(true);
     expect(cible.criticalWounds ?? 0).toBe(0);
   });
@@ -283,7 +284,7 @@ describe('Bâclée : la casse suit le Coup Critique, dévié, subi ou ignoré (L
   it('le dépassement seul ne casse rien (LDB 13 l.161)', () => {
     const { auJet, cible } = coup({ roll: 45, double: false, current: 1, pieces: [piece(['bacle'], 1)] });
     expect(auJet.critical, 'aucun double : pas de Coup Critique').toBe(false);
-    expect(portee(cible, 'p1').damageTaken, 'la Blessure critique du dépassement est déviée').toBe(1);
+    expect(degatsSubis(portee(cible, 'p1')), 'la Blessure critique du dépassement est déviée').toBe(1);
     expect(casse(cible, 'p1')).toBe(false);
   });
 

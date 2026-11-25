@@ -2,6 +2,7 @@
  * La boucle de jeu au banc du noyau : scène, combat, avancement par PX, fouille et butin, consommables, Chance,
  * Détermination, munitions, Destin et Résilience, horloge, marchand.
  */
+import { degatsSubis } from '../engine/repair';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { resetFields } from './stateFields';
@@ -39,7 +40,7 @@ import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import { ensureBourse, bourseInstanceOf, withBourseMoney } from '../engine/bourse';
 import { findTrappingById, talentConcrete } from '../data';
 import { baseWithTalents } from '../engine/talentEffects';
-import { entityPickables, OPS_DIFFEREES, applyEffects, applyEffectsLoot, runFlow } from './combatEffects';
+import { entityPickables, MAIN_RENDUE, applyEffects, applyEffectsLoot, runFlow } from './combatEffects';
 import { t } from '../i18n';
 import { ligneDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
@@ -198,7 +199,7 @@ describe('Boucle de jeu (store)', () => {
 
   it('Blessure critique (héros) : applyAttackResult SUSPEND sur UNE étape — tirage puis décision, sans effet de bord', () => {
     const { suspended } = mkDeviationSetup();
-    expect(suspended).toBe(OPS_DIFFEREES);
+    expect(suspended).toBe(MAIN_RENDUE);
     const avant = banc.getState().pendingCascade!.participants.filter((s) => s.kind === 'deviation');
     expect(avant).toHaveLength(1);
     expect(avant[0].table, 'la sévérité se tire DANS cette fenêtre').toBeTruthy();
@@ -3334,19 +3335,19 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeGreaterThan(0); // Hallebarde 2 CO × 10 %
   });
 
-  it('marchand.reparer : reset damageTaken contre 10 %/PA, débite la Bourse (#2d)', () => {
-    const h = hero(); h.items = [{ uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 2, qualities: [], enc: 1, equipped: true } as any];
+  it('marchand.reparer : remet en état contre 10 %/PA, débite la Bourse (#2d)', () => {
+    const h = hero(); h.items = [{ uid: 'a', trappingId: 'chemise-de-mailles', label: 'Chemise de mailles', kind: 'armor', pa: 3, locs: ['corps'], usure: { corps: 2 }, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().fenetreChoisir('marchand', 'reparer', 'a');
     const st = banc.getState();
-    expect(st.party[0].items!.find((i) => i.uid === 'a')!.damageTaken).toBe(0); // réparé
+    expect(degatsSubis(st.party[0].items!.find((i) => i.uid === 'a')!)).toBe(0); // réparé
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
   });
 
-  it('marchand.reparer : refuse une armure intacte (damageTaken 0) — pas de débit', () => {
-    const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, damageTaken: 0, qualities: [], enc: 1, equipped: true } as any];
+  it('marchand.reparer : refuse une armure intacte — pas de débit', () => {
+    const h = hero(); h.items = [{ uid: 'b', label: 'Chemise de mailles', kind: 'armor', pa: 3, qualities: [], enc: 1, equipped: true } as any];
     banc.setState({ party: [h], scene: merchantScene() }); seedBourse({ gold: 5, silver: 0, brass: 0 });
     banc.getState().ouvrirLeMarchand('pnj');
     const before = toBrass(partyMoneyTotal(banc.getState));
@@ -3361,7 +3362,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().fenetreChoisir('marchand', 'reparer', 'w');
     const st = banc.getState();
-    expect(st.party[0].items!.find((i) => i.uid === 'w')!.damageTaken).toBe(0); // réparée
+    expect(degatsSubis(st.party[0].items!.find((i) => i.uid === 'w')!)).toBe(0); // réparée
     expect(toBrass(partyMoneyTotal(banc.getState))).toBeLessThan(before); // débité
   });
 
