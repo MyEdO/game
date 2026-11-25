@@ -29,7 +29,6 @@ import {
   rollVariante,
   validatePointBuy,
   POINT_BUY_TOTAL,
-  speciesAllowed,
   rollInitialWealth,
   type TirageDeRichesse,
   tirerLesDetails,
@@ -89,6 +88,7 @@ import {
   type CareerData,
   type JetDeCarriere,
   type TrappingRef,
+  ouvertParSaRegle,
 } from '../../data';
 import { modeleDe, type CleDeProgression } from '../../engine/modeleDeProgression';
 import { procedureDe, type CharMode, type Gain, type MethodeTenue } from './procedure';
@@ -262,7 +262,7 @@ export function especeDuBrouillon(d: Pick<CreatorDraft, 'procedure'>, id: string
 export function especesOffertes(d: Pick<CreatorDraft, 'procedure'>): SpeciesData[] {
   const especes = procedureDe(d).especes;
   switch (especes.type) {
-    case 'ldb': return species.filter(speciesAllowed);
+    case 'ldb': return species.filter(ouvertParSaRegle);
     case 'crb': return especesCrb.flatMap((e) => especeDuBrouillon(d, e.id) ?? []);
   }
 }

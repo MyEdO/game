@@ -798,7 +798,7 @@ const demandeUnHeros = (e: ResultatDeLAppel['evenements'][number]): boolean => e
  *  il est rendu. */
 const enFile = (partie: Partie, verser: (resultat: ResultatDeLAppel) => ResultatDeLAppel): Partie => ({
   etat: partie.etat,
-  reprojeterLArmement: partie.reprojeterLArmement,
+  reprojeterLEquipement: partie.reprojeterLEquipement,
   reprendreLaCadence: () => verser(partie.reprendreLaCadence()),
   envoyer: (intention) => verser(partie.envoyer(intention)),
   lancer: (lancement) => verser(partie.lancer(lancement)),

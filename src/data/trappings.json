@@ -3587,6 +3587,143 @@
     }
   },
   {
+    "id": "armure-legere",
+    "type": "trappings",
+    "label": "Armure légère",
+    "categorie": "armor",
+    "subType": {
+      "id": "cuir-bouilli"
+    },
+    "enc": 1,
+    "availability": "commune",
+    "reach": null,
+    "loc": "Tous",
+    "pa": 1,
+    "damage": null,
+    "qualities": [
+      {
+        "id": "flexible"
+      }
+    ],
+    "price": {
+      "gold": 2,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 301,
+      "note": "LDB 63 l.101"
+    },
+    "shape": {
+      "id": "armure-complete"
+    },
+    "gatedByRule": {
+      "id": "armure-regles-rapides"
+    },
+    "remplace": [
+      "cuir-souple",
+      "cuir-bouilli"
+    ]
+  },
+  {
+    "id": "armure-moyenne",
+    "type": "trappings",
+    "label": "Armure moyenne",
+    "categorie": "armor",
+    "subType": {
+      "id": "mailles"
+    },
+    "enc": 5,
+    "availability": "limitee",
+    "reach": null,
+    "loc": "Tous",
+    "pa": 2,
+    "damage": null,
+    "qualities": [
+      {
+        "id": "flexible"
+      },
+      {
+        "id": "en-perception",
+        "value": -10
+      },
+      {
+        "id": "en-discretion",
+        "value": -10
+      }
+    ],
+    "price": {
+      "gold": 5,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 301,
+      "note": "LDB 63 l.102"
+    },
+    "shape": {
+      "id": "armure-complete"
+    },
+    "gatedByRule": {
+      "id": "armure-regles-rapides"
+    },
+    "remplace": [
+      "mailles"
+    ]
+  },
+  {
+    "id": "armure-lourde",
+    "type": "trappings",
+    "label": "Armure lourde",
+    "categorie": "armor",
+    "subType": {
+      "id": "plate"
+    },
+    "enc": 6,
+    "availability": "rare",
+    "reach": null,
+    "loc": "Tous",
+    "pa": 3,
+    "damage": null,
+    "qualities": [
+      {
+        "id": "impenetrable"
+      },
+      {
+        "id": "points-faibles"
+      },
+      {
+        "id": "en-perception",
+        "value": -20
+      },
+      {
+        "id": "en-discretion",
+        "value": -20
+      }
+    ],
+    "price": {
+      "gold": 30,
+      "silver": 0,
+      "brass": 0
+    },
+    "source": {
+      "book": "livre-de-base",
+      "page": 301,
+      "note": "LDB 63 l.103"
+    },
+    "shape": {
+      "id": "armure-complete"
+    },
+    "gatedByRule": {
+      "id": "armure-regles-rapides"
+    },
+    "remplace": [
+      "plate"
+    ]
+  },
+  {
     "id": "barde",
     "type": "trappings",
     "label": "Barde",
