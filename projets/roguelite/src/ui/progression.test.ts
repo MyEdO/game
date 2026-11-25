@@ -9,7 +9,7 @@ import { panneauDeService } from './services';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import { heros4e, recrue5e } from '../jeu/recrue5e.testkit';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Une partie à la salle d'armes au palier 1, le Soldat du roster riche de PX. */
 function salle() {

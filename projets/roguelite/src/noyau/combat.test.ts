@@ -3,7 +3,7 @@ import { annonceDuCoupSurUnAllie, jouerLeCombat, nouvelleRecrue, type Coup, type
 import { DESTINATIONS, estUtile, nouvellePartie, PROFILS, recrue as recrueDuHameau } from '../jeu';
 import { t } from '../../../../src/i18n';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 const recrue = (graine: number, carriere: string, nom: string) => ({ ...nouvelleRecrue(graine, carriere, 'humains-reiklander', PROFILS.find((p) => p.id === carriere)!.identite, estUtile), label: nom });
 const groupe = () => [recrue(31, 'soldat', 'Hans'), recrue(32, 'chasseur', 'Greta'), recrue(33, 'ratier', 'Ulli')];

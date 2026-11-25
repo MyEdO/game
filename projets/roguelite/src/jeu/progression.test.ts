@@ -21,7 +21,7 @@ import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import { heros4e, prixDuPlanAuNoyau, recrue5e } from './recrue5e.testkit';
 import type { Combatant } from '../../../../src/engine/types';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Une recrue de `carriere` portée au niveau `niveau`, la salle d'armes bâtie par le jeu (`ameliorer`) jusqu'à
  *  enseigner le niveau 3. */

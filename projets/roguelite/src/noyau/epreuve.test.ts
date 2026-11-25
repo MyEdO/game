@@ -3,7 +3,7 @@ import { epreuveTentable, jouerLeCombat, jouerLEpreuve, nouvelleRecrue, type Epr
 import { EPREUVES, estUtile, PROFILS } from '../jeu';
 import { addCondition, COND, hasCondition } from '../../../../src/engine/conditions';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 const { fouiller, desarmer } = EPREUVES.tresor.actions;
 const FOUILLE = fouiller.epreuves[0];

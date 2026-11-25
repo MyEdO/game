@@ -22,7 +22,7 @@ import type { Combatant } from '../../../../src/engine/types';
 /** Une sauvegarde de `nouvellePartie(5)` au code 2db8e5bd9b, d'avant la création 5e, ses candidats retirés. */
 import sauvegarde4e from './sauvegarde-4e.json?raw';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Les espèces que `tirerUneEspece` donne à la carrière de `p`, sur 300 tirages. */
 const especesDe = (p: Profil) => [...new Set(Array.from({ length: 300 }, (_, i) => tirerUneEspece(makeRNG(i), p.id, Object.keys(ESPECES))))];

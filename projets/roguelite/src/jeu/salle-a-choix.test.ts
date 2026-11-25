@@ -4,7 +4,7 @@ import { addCondition, COND, hasCondition } from '../../../../src/engine/conditi
 import { agirDansLaSalle, EPREUVES, herosDuGroupe, nouvellePartie, recrue, refusDAction, salleAChoisir, PROFILS } from './index';
 import { blessures, devant, recit } from './salles.testkit';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** La nonne de Shallya : ni la meilleure en Perception, ni la première du groupe. */
 const NONNE = 1;
