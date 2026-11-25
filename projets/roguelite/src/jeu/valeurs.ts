@@ -20,7 +20,7 @@ import {
 
 import { profil } from './outils';
 
-export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage' | 'memorial';
+export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage';
 
 /** Un apport d'un palier : son pictogramme (`PICTOS` de `../kit`), sa phrase, et le chiffre de la phrase à marquer. */
 export interface Apport { picto: string; chiffre?: string; texte: string }
@@ -84,11 +84,6 @@ export const BATIMENTS: readonly Batiment[] = [
     { cout: 90, trophees: 0, apports: [apport('pieces', `${peageDuPalier(1)} par salle franchie en expédition`, peageDuPalier(1))] },
     { cout: 240, trophees: 1, apports: [apport('pieces', peageDuPalier(2), peageDuPalier(2))] },
     { cout: 480, trophees: 2, apports: [apport('pieces', peageDuPalier(3), peageDuPalier(3))] },
-  ] },
-  { id: 'memorial', nom: 'Jardin de Morr', role: 'Mémoire', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('croix', 'Un champ en friche')] },
-    { cout: 110, trophees: 0, apports: [apport('etoile', 'Chaque recrue arrive avec 10 PX par héros tombé (max 100)', '10 PX')] },
-    { cout: 300, trophees: 1, apports: [apport('etoile', '20 PX par héros tombé (max 200)', '20 PX')] },
   ] },
 ];
 

@@ -23,7 +23,6 @@ export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
 /** `rang` : où le joueur l'a placé à l'entrée d'une rencontre (`rangDe`) ; sa consigne de combat est la doctrine de son
  *  combattant (`Combatant.aiDoctrine`). */
 export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; sejour?: Sejour; rang?: Rang }
-export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
 /** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`, `CAMP`) et attend le choix de son action ;
  *  `soignes` : les héros déjà soignés au camp. */
 export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; ouverte?: true; soignes?: string[] }
@@ -32,7 +31,7 @@ export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; o
 export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>> }
 
 export interface Etat {
-  version: 2;
+  version: 3;
   graine: number;
   jour: number;
   or: number;
@@ -40,7 +39,6 @@ export interface Etat {
   batiments: Record<IdBatiment, number>;
   roster: Heros[];
   candidats: Heros[];
-  cimetiere: Tombe[];
   expedition: Expedition | null;
   bossVaincus: string[];
   journal: string[];
@@ -49,9 +47,9 @@ export interface Etat {
 
 export function nouvellePartie(graine: number): Etat {
   const e: Etat = {
-    version: 2, graine, jour: 1, or: OR_INITIAL, trophees: 0,
-    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0, peage: 0, memorial: 0 },
-    roster: [], candidats: [], cimetiere: [], expedition: null, bossVaincus: [], journal: [],
+    version: 3, graine, jour: 1, or: OR_INITIAL, trophees: 0,
+    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0, peage: 0 },
+    roster: [], candidats: [], expedition: null, bossVaincus: [], journal: [],
   };
   for (const p of compagnieDeDepart(e)) e.roster.push(recrue(e, p));
   renouvelerLesCandidats(e);
@@ -83,8 +81,6 @@ export function recrue(e: Etat, p: Profil): Heros {
   tenirLesObjets(e, h, dotationDesNiveaux(h.c, p.niveau, e.graine++));
   if (p.dotation) remettreLesObjets(e, h, p.dotation);
   prendreSesArmes(e, h);
-  const morr = e.batiments.memorial;
-  if (morr) h.c.xp = (h.c.xp ?? 0) + Math.min(morr * 100, e.cimetiere.length * 10 * morr);
   return h;
 }
 

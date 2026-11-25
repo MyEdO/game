@@ -24,7 +24,7 @@ function partieFermee(ruines: boolean): J.Etat {
   return e;
 }
 
-const SERVICES: Service[] = ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'memorial', 'chronique'];
+const SERVICES: Service[] = ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'chronique'];
 const EMPLACEMENTS: Emplacement[] = ['main', 'secondaire', 'tir', 'armure'];
 const ONGLETS: Onglet[] = ['progression', 'talents', 'sorts', 'equipement'];
 

@@ -87,8 +87,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
     await image(p, '9-carton', l);
     if (l === 1280) constater((await p.textContent('.carton').catch(() => '')).includes('ne revient pas'), '9 : la mort se raconte au carton');
     if (await p.$('.carton')) await p.click('.carton [data-a="fermer"]');
-    await clic(p, 'button[data-a="batiment"][data-id="memorial"]'); await image(p, '9-jardin', l);
-    await clic(p, '[data-a="fermer-panneau"]'); await clic(p, 'button[data-a="batiment"][data-id="relais"]'); await image(p, '9-relais', l);
+    await clic(p, 'button[data-a="batiment"][data-id="relais"]'); await image(p, '9-relais', l);
     await p.context().close();
   }
   // 10. La fin : tous les maîtres vaincus, l'Autel compris.
