@@ -3,6 +3,7 @@ import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { join, posix } from 'node:path'
 import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
 import { clotureDImports } from '../guards/lib/importGraph.mjs'
@@ -23,7 +24,7 @@ export const BOOKS_JSON_PATH = 'src/data/books.json'
 export const APP_ROOT_MODULES = [
   'hotes/godot/pont/entree.ts',
   'hotes/godot/pont/entree-commune.ts',
-  ...listerDossier('projets').map((projet) => `projets/${projet}/godot.ts`).filter((entree) => existsSync(entree)),
+  ...listerDossier('projets', { porte: porteDeTousLesProjets }).map((projet) => `projets/${projet}/godot.ts`).filter((entree) => existsSync(entree)),
 ]
 
 /** La clôture d'imports de `APP_ROOT_MODULES` sous les racines du code (`RACINES_DU_CODE`) : un projet joue son contenu

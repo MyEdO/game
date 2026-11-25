@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { RACINES_PRESENTES } from '../../scripts/guards/lib/racinesPresentes.mjs';
+import { porteDeTousLesProjets } from '../../scripts/guards/lib/porteDesProjets.mjs';
 
 /**
  * CLIQUET — une AFFORDANCE D'INFLUENCE exportée a au moins UN consommateur de PRODUCTION (#1106).
@@ -31,7 +32,7 @@ export function nameOccurrences(src: string, name: string): number {
 
 describe('cliquet — toute affordance d’influence exportée a un consommateur de PRODUCTION (#1106)', () => {
   it('aucune affordance morte (déclarée, testée, jamais appelée par la production)', () => {
-    const prod = readCorpus(RACINES_PRESENTES);
+    const prod = readCorpus(RACINES_PRESENTES, { porte: porteDeTousLesProjets });
     const declared: { name: string; file: string }[] = [];
     for (const { rel, text } of prod) for (const n of scanAffordanceNames(text)) declared.push({ name: n, file: rel });
     const dead: string[] = [];

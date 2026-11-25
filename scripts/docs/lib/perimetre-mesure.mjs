@@ -7,6 +7,7 @@ import {
   nonSuivisIgnoresDe, politiqueExclusionsDe, racineDe, racineSurDisque,
 } from '../../guards/lib/gitPorte.mjs'
 import { cheminAbsent, listerArbre, listerEntrees } from '../../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 import { canoniser, dansLaMesure, EXCLUSIONS_FIXES, relatifSousRacine } from './chemin-mesure.mjs'
 import { estCiblePure } from './cibles-generees.mjs'
 
@@ -80,7 +81,7 @@ function empreinteDuPerimetre(racine, reperes) {
   for (const rel of reperes.parents) entree('parent', rel, contenuDe(path.join(reperes.racineGit, rel)))
   const exclus = new Set(reperes.exclus)
   const marcher = (rel) => {
-    for (const { nom, nature } of listerEntrees(rel ? path.join(racine, rel) : racine, { absent: 'vide' }).entrees) {
+    for (const { nom, nature } of listerEntrees(rel ? path.join(racine, rel) : racine, { absent: 'vide', porte: porteDeTousLesProjets }).entrees) {
       const enfant = rel ? `${rel}/${nom}` : nom
       if (rel && nom.toLowerCase() === '.git') throw new Error(`dépôt imbriqué : ${enfant}`)
       if (nature === 'link') throw new Error(`lien dans l'arbre : ${enfant}`)
@@ -181,6 +182,7 @@ function signatureGit(racine, base, depot, parMotif, racineGit) {
   const fichiers = listerArbre(racine, {
     filtre: (rel) => path.posix.basename(rel) === '.gitignore',
     descendre: (rel) => dansLaMesure(rel, dossiersExclus),
+    porte: porteDeTousLesProjets,
   })
   const politique = politiqueExclusionsDe(depot)
   const regles = [...new Set(['.gitignore', ...fichiers])].sort().map((rel) => {

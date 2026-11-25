@@ -801,6 +801,15 @@
     "verrou": "sourceCorpus.test.mjs"
   },
   {
+    "id": "porteDesProjets",
+    "type": "primitives.manifest",
+    "label": "porteDeTousLesProjets/porteDuProjet/porteDuSuffixe",
+    "fichier": "scripts/guards/lib/porteDesProjets.mjs",
+    "concept": "porte des projets (#5037) : la passe, frappée par le seul sceau que la serrure remet à la porte (`serrureDesProjets.mjs`), qu'exigent `listerDossier`, `listerEntrees`, `listerArbre`, `cheminsDuCorpus` et `readCorpus` (avant son mémo) pour lire sous `projets/` de ce dépôt ou une racine qui le contient ; chaque passe dit ce qu'elle lit : tous les projets, un projet, ou un suffixe à travers les projets ; les lecteurs d'un projet sont la clôture d'imports qui atteint la porte",
+    "perimetre": "tout lecteur hors d'un projet qui balaie `projets/` par une passerelle de `scripts/guards/lib/` : corpus des gardes, projets livrés, citants, mesure des docs dérivés",
+    "verrou": "porteDesProjets.test.mjs"
+  },
+  {
     "id": "grapheDImports",
     "type": "primitives.manifest",
     "label": "sitesDeModule/liaisonsDe/chargementsDe/specificateursDe/arcsDe/resolveImport/estModule/sourceALExecution/clotureDImports/globsDe/grapheInverse",

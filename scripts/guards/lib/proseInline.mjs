@@ -23,6 +23,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { listerArbre } from './lister.mjs';
 import { PROJETS_LIVRES } from './projetsLivres.mjs';
+import { porteDeTousLesProjets } from './porteDesProjets.mjs';
 import { CORPUS_DU_COMMUN } from './paquetsDuCommun.mjs';
 import { REGISTRE_LIVRES, estLivreExtrait } from '../../raw/_lib.mjs';
 import { fileURLToPath } from 'node:url';
@@ -69,6 +70,7 @@ function fichiersDe(dir, suffixe, recursif) {
     absent: 'vide',
     descendre: () => recursif,
     filtre: (rel) => rel.endsWith(suffixe),
+    porte: porteDeTousLesProjets,
   }).map((rel) => path.join(dir, rel));
 }
 

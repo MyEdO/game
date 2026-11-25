@@ -11,7 +11,9 @@ import { fileURLToPath } from 'node:url'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { chargerDossiers } from '../raw/lib/dossiers.mjs'
 import { dossiersDesProjets } from '../raw/lib/fichiersCitants.mjs'
-import { cheminsDuCorpus, PROJETS_LIVRES } from '../guards/lib/projetsLivres.mjs'
+import { PROJETS_LIVRES } from '../guards/lib/projetsLivres.mjs'
+import { cheminsDuCorpus } from '../guards/lib/lister.mjs'
+import { porteDuProjet } from '../guards/lib/porteDesProjets.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
 import { entreesDeLaFiche, FAMILLES_DE_DOSSIER, LIBELLES_DE_FAMILLE, nomDeFiche } from '../../src/data/source/dossier.ts'
 import { couverturesDuProjet, nommerPorteur } from '../../src/data/source/couvertures.ts'
@@ -102,7 +104,7 @@ function rendu(dossier) {
   const commande = `${path.posix.basename(projet)}:docs`
   const cible = `docs/${projet}/dossiers-de-chapitre.md`
   const fiches = chargerDossiers(dossier)
-  const out = rendreEtat(fiches, lirePaquets(cheminsDuCorpus({ ...PROJETS_LIVRES, dossier: projet }, RACINE)), { dossier, commande })
+  const out = rendreEtat(fiches, lirePaquets(cheminsDuCorpus({ ...PROJETS_LIVRES, dossier: projet }, RACINE, { porte: porteDuProjet(path.posix.basename(projet)) })), { dossier, commande })
   return {
     out,
     path: cible,

@@ -9,7 +9,9 @@
 // le même dépôt rend deux `.md` différents selon la machine.
 
 import { readdirSync } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join, resolve } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { exigerLaPorte } from './serrureDesProjets.mjs'
 
 /** Les comparateurs d'ordre total vivent dans `src/lib/ordre.mjs`, module pur ; ce lecteur les
  *  ré-exporte pour ses consommateurs. */
@@ -22,11 +24,13 @@ export const cheminAbsent = (erreur) => ['ENOENT', 'ENOTDIR', 'ENAMETOOLONG'].in
 /**
  * Noms des enfants DIRECTS de `dir`, triés par unités de code.
  * @param {string} dir
- * @param {{ absent?: 'lever' | 'vide' }} [options] `absent: 'vide'` rend `[]` quand le dossier est
- *   `cheminAbsent` ; toute AUTRE erreur lève (une lecture refusée n'est pas un dossier vide).
+ * @param {{ absent?: 'lever' | 'vide', porte?: object }} [options] `absent: 'vide'` rend `[]` quand le dossier est
+ *   `cheminAbsent` ; toute AUTRE erreur lève (une lecture refusée n'est pas un dossier vide). `porte` : la passe
+ *   (`porteDesProjets.mjs`) qu'exige un dossier sous `projets/` (`exigerLaPorte`).
  * @returns {string[]}
  */
-export function listerDossier(dir, { absent = 'lever' } = {}) {
+export function listerDossier(dir, { absent = 'lever', porte } = {}) {
+  exigerLaPorte(resolve(dir), porte, 'listerDossier')
   let noms
   try {
     noms = readdirSync(dir)
@@ -40,12 +44,13 @@ export function listerDossier(dir, { absent = 'lever' } = {}) {
 /**
  * Enfants DIRECTS de `dir` avec leur `nature` (lue du `Dirent`), triés par nom en unités de code.
  * @param {string} dir
- * @param {{ absent?: 'lever' | 'vide' }} [options] `absent: 'vide'` rend `entrees: []` quand le
+ * @param {{ absent?: 'lever' | 'vide', porte?: object }} [options] `absent: 'vide'` rend `entrees: []` quand le
  *   dossier est `cheminAbsent` — nature `other` pour un chemin qui n'est pas un dossier (ENOTDIR),
- *   `absent` sinon ; toute AUTRE erreur lève.
+ *   `absent` sinon ; toute AUTRE erreur lève. `porte` : comme `listerDossier`.
  * @returns {{ nature: 'directory' | 'absent' | 'other', entrees: { nom: string, nature: 'file' | 'directory' | 'link' | 'other' }[] }}
  */
-export function listerEntrees(dir, { absent = 'lever' } = {}) {
+export function listerEntrees(dir, { absent = 'lever', porte } = {}) {
+  exigerLaPorte(resolve(dir), porte, 'listerEntrees')
   let entrees
   try {
     entrees = readdirSync(dir, { withFileTypes: true })
@@ -115,14 +120,15 @@ export const couvertParPathspec = (chemin, spec) =>
  * (`getDirent`, `lib/internal/fs/utils.js`).
  * @param {string} dir
  * @param {{ filtre?: (rel: string) => boolean, descendre?: (rel: string) => boolean,
- *           absent?: 'lever' | 'vide' }} [options] `filtre` retient les FICHIERS, `descendre`
- *   autorise l'entrée dans un DOSSIER — les deux reçoivent le chemin relatif POSIX.
+ *           absent?: 'lever' | 'vide', porte?: object }} [options] `filtre` retient les FICHIERS, `descendre`
+ *   autorise l'entrée dans un DOSSIER — les deux reçoivent le chemin relatif POSIX. `porte` : la passe qu'exige
+ *   chaque dossier lu sous `projets/` (`listerEntrees`), racine comprise.
  * @returns {string[]}
  */
-export function listerArbre(dir, { filtre, descendre, absent = 'lever' } = {}) {
+export function listerArbre(dir, { filtre, descendre, absent = 'lever', porte } = {}) {
   const out = []
   const marcher = (rel) => {
-    for (const { nom, nature } of listerEntrees(rel ? join(dir, rel) : dir, { absent }).entrees) {
+    for (const { nom, nature } of listerEntrees(rel ? join(dir, rel) : dir, { absent, porte }).entrees) {
       const enfant = rel ? `${rel}/${nom}` : nom
       if (nature === 'directory') {
         if (!descendre || descendre(enfant)) marcher(enfant)
@@ -132,3 +138,18 @@ export function listerArbre(dir, { filtre, descendre, absent = 'lever' } = {}) {
   marcher('')
   return out.sort()
 }
+
+/** Racine du dépôt, déduite de l'emplacement de ce module (`scripts/guards/lib`). */
+const RACINE_DU_DEPOT = resolve(dirname(fileURLToPath(import.meta.url)), '../../..')
+
+/**
+ * Les documents d'un corpus en DESCRIPTEUR (dossier relatif à `racine`, suffixe, récursivité), en chemins RELATIFS à
+ * `racine` (`<dossier>/<rel>`), séparateur `/`, triés par unités de code (`listerArbre`). Un dossier absent LÈVE.
+ * @param {{ readonly dossier: string, readonly suffixe: string, readonly recursif: boolean }} corpus
+ * @param {string} [racine] racine du dépôt (le dépôt par défaut).
+ * @param {{ porte?: object }} [options] la passe qu'exige un dossier sous `projets/` (`listerArbre`).
+ * @returns {string[]}
+ */
+export const cheminsDuCorpus = (corpus, racine = RACINE_DU_DEPOT, { porte } = {}) =>
+  listerArbre(join(racine, corpus.dossier), { descendre: () => corpus.recursif, filtre: (rel) => rel.endsWith(corpus.suffixe), porte })
+    .map((rel) => `${corpus.dossier}/${rel}`)
