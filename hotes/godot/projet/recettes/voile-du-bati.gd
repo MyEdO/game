@@ -21,7 +21,7 @@ extends SceneTree
 ## pixels sombres. Sous l'éclairage d'un extérieur, le brouillard volumétrique de Forward+ reste allumé : sa brume
 ## diffuse la part de chaque case (`Lumiere.brume`, `_a_l_ombre`).
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")

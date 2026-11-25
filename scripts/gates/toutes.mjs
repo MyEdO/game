@@ -527,7 +527,8 @@ export const ECRIT_LU = {
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       '`godot --headless --import`, puis chaque recette sous `recettes/` déclarant `const RECETTE_RENDUE := true` jouée ' +
-      'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
+      'en rendu réel sous `--rendering-method gl_compatibility`, le rendu du Web (`--rendu`, #5037 : `forward_plus` se joue au canari, et ' +
+      '`npm run godot:rendus -- --rendu forward_plus` rejoue les deux), menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
       'sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, ' +
       'tirée de la copie importée de `godot:sonde`, hors de l’arbre (`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935), et sur un écran (`xvfb-run` sans `DISPLAY`) ; ' +
       'LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
