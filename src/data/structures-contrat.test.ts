@@ -518,6 +518,7 @@ describe('la référence est ANCRÉE sur l’index des ids (contrats positifs)',
     ['criticals.json', 'id', 'id', 'etats.json'],
     ['maladies.json', 'symptoms', 'symptomId', 'symptoms.json'],
     ['activities.json', 'table', 'id', 'tables.json'],
+    [PAQUET_DE_TEST, 'members', 'entityId+…', PAQUET_DE_TEST],
   ])('%s › %s {%s} est une occurrence de référence dont la cible résout vers %s', (dataset, champ, sig, cible) => {
     const f = occurrence(dataset, champ, sig);
     expect(f, `aucune occurrence de référence mesurée sous \`${dataset} › ${champ} {${sig}}\` — le champ porteur est MESURÉ, pas déclaré.`).toBeTruthy();
@@ -1265,6 +1266,29 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       ]);
       expect(orphelinesNeuves).toContain('sonde.json | copies | amount,id,op | identité non résolue');
       expect(apres.objets.invisibles).toBe(temoin.objets.invisibles + 3);
+    } finally {
+      rmSync(copie, { recursive: true, force: true });
+    }
+  });
+
+  it('un membre de rencontre de plus fait monter le site de l’inventaire du paquet de test, nommé avec sa cible', { timeout: 60_000 }, () => {
+    const copie = mkdtempSync(join(tmpdir(), 'structures-croissance-'));
+    try {
+      for (const racine of ['src/data', 'src/scenes']) cpSync(join(ROOT, racine), join(copie, racine), { recursive: true });
+      const chemin = join(copie, PAQUETS.find((rel) => rel.endsWith('/paquet-de-test.json'))!);
+      const paquet = JSON.parse(readFileSync(chemin, 'utf8'));
+      const [scene] = paquet.scenes;
+      const adversaire = scene.entities.find((e: { id: string }) => e.id === scene.encounters[0].members[0].entityId);
+      scene.entities.push({ ...adversaire, id: 'adversaire-de-croissance', pos: { x: adversaire.pos.x, y: adversaire.pos.y + 1 } });
+      scene.encounters[0].members.push({ ...scene.encounters[0].members[0], entityId: 'adversaire-de-croissance' });
+      writeFileSync(chemin, JSON.stringify(paquet), 'utf8');
+      const apres = scannerDonnees(copie, DEFS, CHOIX, CHOIX_OPS, PAQUETS);
+      const ligne = (inv: typeof INVENTAIRE) => inv.find((l) => l.collection === 'CASES_DE_REFERENCE' && l.site === 'paquet-de-test.json | members')!;
+      const hausse = ligne(inventaireDe({ scan: apres, defs: DEFS, declares: DECLARES }));
+      expect(hausse.occurrences, 'la hausse d’un site connu se lit à l’inventaire, sur la même ligne.').toBe(ligne(INVENTAIRE).occurrences! + 1);
+      expect(hausse.cible, 'le seul remède d’une hausse est la migration vers la CIBLE du site.').toContain('Migrer ce site vers une forme CIBLE du lexique (`id`');
+      const cleDOp = (o: { op: string; signature: string; dataset: string; occurrences: number }) => `${o.op} | ${o.signature} | ${o.dataset} | ${o.occurrences}`;
+      expect(apres.ops.map(cleDOp)).toEqual(scan.ops.map(cleDOp));
     } finally {
       rmSync(copie, { recursive: true, force: true });
     }

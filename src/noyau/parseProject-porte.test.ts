@@ -11,9 +11,10 @@ import { emptyScene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { materialiser } from '../../scripts/source/resoudre.mjs';
-import { ACTIVITIES } from '../data';
+import { ACTIVITIES, buildings } from '../data';
 import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 import { gele, refusDe } from './porteDuProjet.testkit';
+import { auChemin } from '../lib/objet.mjs';
 
 /** Un document au format courant, à carte dont le port est par RÉFÉRENCE : la porte le résout. */
 function documentAPort(): Record<string, unknown> {
@@ -109,5 +110,133 @@ describe('parseProject — le refus est une DONNÉE (`ProjetRefuse`)', () => {
     expect(refus.fautes.map((f) => f.chemin)).toEqual([['narratif', 'presetsPnj', 0, 'profil']]);
     expect(refus.message).toContain(`Bloc narratif › PNJ « ${pnj.id} » › profil`);
     expect(() => parseProject(materialiser(disque).racine), 'la forme SERVIE (`materialiser`) passe la porte').not.toThrow();
+  });
+});
+
+type Chemin = (string | number)[];
+type Noeud = Record<string | number, unknown>;
+const noeudA = (racine: unknown, chemin: Chemin): Noeud => auChemin(racine, chemin) as Noeud;
+
+/** Le paquet de test, porteur des sites que les mutations visent : un lanceur de sorts et un déclencheur de transition
+ *  dans sa première scène. */
+function paquetPorteur(): Noeud {
+  const doc = structuredClone(paquetDeTest) as unknown as { scenes: { entities: unknown[]; triggers: unknown[] }[] };
+  doc.scenes[0].entities.push({ id: 'lanceur-de-test', kind: 'personnage', pos: { x: 0, y: 2 }, creature: { id: 'humain' }, combat: { spells: ['flechette'] } });
+  doc.scenes[0].triggers.push({ id: 'transition-de-test', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'transition', scene: { id: 'scene-de-test-b' } } } });
+  return doc as unknown as Noeud;
+}
+
+/** Une mutation « ancien format », rendant le chemin muté. */
+type Mutation = (doc: Noeud) => Chemin;
+const LANCEUR: Chemin = ['scenes', 0, 'entities', 3, 'combat'];
+const TRANSITION: Chemin = ['scenes', 0, 'triggers', 1, 'flow'];
+
+/** Les INVERSES des formes que le dépôt a quittées (sonde du juge de design, #2404) : chacun est REFUSÉ par le
+ *  schéma, sans chaîne de migration. */
+const ANCIENS_FORMATS: [string, Mutation][] = [
+  ['scène `nom` pour `label` (#1467)', (d) => {
+    const s = noeudA(d, ['scenes', 0]);
+    s.nom = s.label;
+    delete s.label;
+    return ['scenes', 0];
+  }],
+  ['scène sans `reliefDefaults` (#1691)', (d) => {
+    delete noeudA(d, ['scenes', 0]).reliefDefaults;
+    return ['scenes', 0];
+  }],
+  ['sort fusionné « alarme » (#1897)', (d) => {
+    (noeudA(d, LANCEUR).spells as unknown[]).push('alarme');
+    return LANCEUR;
+  }],
+  ['op `grantTalent` à `talentId` (#1473)', (d) => {
+    noeudA(d, TRANSITION).effet = { type: 'ops', ops: [{ op: 'grantTalent', talentId: 'ambidextre' }] };
+    return TRANSITION;
+  }],
+  ['clé racine inconnue', (d) => {
+    d.foo = 1;
+    return [];
+  }],
+];
+
+describe('parseProject — un document d’un AUTRE FORMAT est refusé, jamais migré (#2404)', () => {
+  it('le paquet porteur passe la porte avant toute mutation', () => {
+    expect(() => parseProject(paquetPorteur())).not.toThrow();
+  });
+
+  it.each(ANCIENS_FORMATS)('%s : REFUSÉ, cause `schema`, faute sous le site muté', (_nom, muter) => {
+    const doc = paquetPorteur();
+    const site = muter(doc);
+    const refus = refusDe(doc);
+    expect(refus.cause).toBe('schema');
+    expect(refus.message).toMatch(/^Projet d’un autre format, ou mal formé — /);
+    const sous = (f: { chemin: readonly (string | number)[] }) => site.every((k, i) => f.chemin[i] === k);
+    expect(refus.fautes.some(sous), `aucune faute sous ${site.join('.')} : ${refus.message}`).toBe(true);
+  });
+});
+
+describe('parseProject — identité et corps d’architecture à la porte (#809, #1715)', () => {
+  /**
+   * CONTRE-PREUVE de la PORTE d'identité (`parseProject`, `src/noyau/worldMap.ts`), sur une enveloppe
+   * CONSTRUITE — aucun paquet livré n'en est le sujet. L'enveloppe est COMPLÈTE par ailleurs (`label`,
+   * `versionContenu`, provenance, narratif) : seule l'identité manque, et le refus porte une faute au
+   * chemin `id` — lue dans ses FAUTES, jamais dans le texte du rapport.
+   */
+  const ENVELOPPE = (identite: Record<string, unknown>) => ({
+    type: 'projet',
+    label: 'Fixture',
+    versionContenu: 1,
+    maison: 'fixture de test',
+    narratif: emptyNarratif(),
+    scenes: [{ ...emptyScene('fixture-scene', 4, 4), label: 'Fixture' }],
+    ...identite,
+  });
+
+  it('la même enveloppe AVEC son identité passe la porte — la contre-preuve ci-dessous ne mesure que l’identité', () => {
+    expect(() => parseProject(ENVELOPPE({ id: 'fixture-enveloppe' }))).not.toThrow();
+  });
+
+  it('CONTRE-PREUVE : un paquet SANS identité est REFUSÉ À LA PORTE, qui NOMME `id`', () => {
+    const refus = refusDe(ENVELOPPE({}));
+    expect(refus.cause).toBe('schema');
+    expect(refus.fautes.some((f) => f.chemin.join('.') === 'id'), 'une faute au chemin `id`').toBe(true);
+    expect(refus.message, 'le rapport des scripts nomme toujours le champ').toMatch(/^\s*- Identifiant: /m);
+  });
+
+  /**
+   * `ArchitectureBody.style` est une RÉFÉRENCE vers `buildings.json` (`ref('building')`, #1715) : la
+   * porte résout l'id, et un corps SANS type de bâtiment reste valide (bourg, hameau, corps
+   * composite). Le sujet est un paquet FABRIQUÉ ICI : un paquet livré est la CARTE de son auteur, que
+   * ce test laisse intacte — la contre-preuve porte sur une fixture, jamais sur `diligence-projet.json`.
+   */
+  const PAQUET_ARCHITECTURE = (styles: (string | undefined)[]) => {
+    return {
+      ...ENVELOPPE({ id: 'fixture-architecture' }),
+      scenes: [{
+        ...emptyScene('scene-test', 6, 6),
+        id: 'fixture-scene',
+        label: 'Fixture',
+        architecture: styles.map((style, i) => ({
+          id: `corps-${i}`,
+          ...(style === undefined ? {} : { style: { id: style } }),
+          storeys: [{ id: 'z0', z: 0, parts: [{ id: 'p', foot: { x: 0, y: 0, w: 2, h: 2 } }], roomZoneIds: [] }],
+          facades: [],
+          masses: [],
+        })),
+      }],
+    };
+  };
+  /** Un type de bâtiment RÉEL, dérivé du catalogue — aucun id récité ici. */
+  const TYPE_REEL = buildings[0].id;
+
+  it('un corps TYPÉ et un corps SANS type passent la porte ensemble', () => {
+    const doc = parseProject(PAQUET_ARCHITECTURE([TYPE_REEL, undefined]));
+    const corps = doc.scenes.flatMap((sc) => sc.architecture ?? []);
+    expect(corps.map((b) => b.style)).toEqual([{ id: TYPE_REEL }, undefined]);
+  });
+
+  it('CONTRE-PREUVE : un `style` hors de `buildings.json` est REFUSÉ À LA PORTE, qui NOMME le champ et la valeur', () => {
+    expect(buildings.map((b) => b.id), '« bourg » est devenu un type de bâtiment : la contre-preuve n’a plus de sujet.').not.toContain('bourg');
+    expect(() => parseProject(PAQUET_ARCHITECTURE(['bourg']))).toThrow(/style/);
+    expect(() => parseProject(PAQUET_ARCHITECTURE(['bourg']))).toThrow(/bourg/);
   });
 });

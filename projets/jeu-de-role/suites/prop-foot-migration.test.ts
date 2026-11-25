@@ -3,12 +3,9 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { findPropById } from '../../../src/data/index';
-import { normalizeScene, emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../../src/noyau/monde/scene';
+import { sceneMetresPerTile, type SceneEntity } from '../../../src/noyau/monde/scene';
 import { empreinteDuProp } from '../../../src/data/props.types';
-import { buildOperaFloorplan } from '../../../src/scenes/opera/floorplan';
-import { entityBlockedAt } from '../../../src/noyau/monde/sceneRules';
 import { parseProject } from '../../../src/noyau/worldMap';
-import { scenarioEntities } from '../../../src/scenes/opera/furnished';
 import type { AreneSceneFactory } from '../campagnes/arene/scenes.d.mts';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';
 
@@ -35,15 +32,12 @@ const entitesAvecFootDansLesJson = (): string[] =>
   sceneJsonFiles().flatMap((f) => entitesAvecFoot(JSON.parse(readFileSync(join(CORPUS, f), 'utf8')), f));
 
 const areneDoc = parseProject(lireProjetLivre('jeu-de-role/campagnes/arene/arene-projet.json'));
-const OPERA = 'opera/furnished';
-const entitiesOf = (scene: string): SceneEntity[] =>
-  scene === OPERA ? scenarioEntities() : areneDoc.scenes.find((s) => s.id === scene)!.entities;
+const entitiesOf = (scene: string): SceneEntity[] => areneDoc.scenes.find((s) => s.id === scene)!.entities;
 /** L'ÉCHELLE de la scène PORTEUSE : l'empreinte d'un décor à recette en dépend (#1509). Lue à sa
  *  source unique (`sceneMetresPerTile`), jamais écrite en littéral. */
-const mptDe = (scene: string): number =>
-  sceneMetresPerTile(scene === OPERA ? buildOperaFloorplan() : areneDoc.scenes.find((s) => s.id === scene));
+const mptDe = (scene: string): number => sceneMetresPerTile(areneDoc.scenes.find((s) => s.id === scene));
 
-/** Les vingt-quatre instances qui portaient une empreinte D'INSTANCE avant la migration. */
+/** Les instances de l'Arène qui portaient une empreinte D'INSTANCE avant la migration. */
 const LEGACY_AUTHORED_FOOT_SITES: [string, string][] = [
   ['arene-hub', 'p8'],
   ['arene-zone5', 'p9'],
@@ -56,25 +50,10 @@ const LEGACY_AUTHORED_FOOT_SITES: [string, string][] = [
   ['arene-exp-village', 'p1'],
   ['arene-exp-village', 'p2'],
   ['arene-route-embuscade', 'p0'],
-  [OPERA, 'rideau-0'],
-  [OPERA, 'rideau-1'],
-  [OPERA, 'rideau-2'],
-  [OPERA, 'rideau-3'],
-  [OPERA, 'rideau-4'],
-  [OPERA, 'rideau-5'],
-  [OPERA, 'sv-table'],
-  [OPERA, 'reg15-bureau'],
-  [OPERA, 'b22-bureau'],
-  [OPERA, 'b23-bureau'],
-  [OPERA, 'c25-table-1'],
-  [OPERA, 'c25-table-2'],
-  [OPERA, 'c26-etabli'],
 ];
 
-/** Empreinte EFFECTIVE d'une instance authorée : sa ref courante et les cases que le catalogue lui
- *  donne AU CAP ET À L'ÉCHELLE de sa scène — `foot` déclaré pour un billboard, corps tourné pour un
- *  décor à recette depuis #1509 (`empreinteDuProp`, la couture unique). Lire le seul `foot` rendrait
- *  1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */
+/** Empreinte EFFECTIVE d'une instance authorée : sa ref et les cases que le catalogue lui donne AU CAP ET À L'ÉCHELLE
+ *  de sa scène (`empreinteDuProp`, #1509) ; le contrat du type : `src/scenes/opera/empreinte-du-type.test.ts`. */
 function authoredPropFoot(scene: string, id: string): [string, number, number] {
   const ent = entitiesOf(scene).find((e) => e.id === id)!;
   const { w, h } = empreinteDuProp(findPropById(ent.decor?.id), ent.facing, mptDe(scene));
@@ -84,15 +63,7 @@ function authoredPropFoot(scene: string, id: string): [string, number, number] {
 const authoredPropFootTable = (): [string, string, string, number, number][] =>
   LEGACY_AUTHORED_FOOT_SITES.map(([scene, id]) => [scene, id, ...authoredPropFoot(scene, id)] as [string, string, string, number, number]);
 
-const sceneWithEntity = (ent: SceneEntity): Scene => ({ ...emptyScene('scene-test', 8, 8), entities: [ent] });
-
 describe('migration de l’empreinte : du legacy d’instance au catalogue de type', () => {
-  it('la physique d’un décor vient de son TYPE : la charrette couvre ses deux cases', () => {
-    const scene = normalizeScene(sceneWithEntity({ id: 'c', kind: 'prop', pos: { x: 2, y: 2 }, decor: { id: 'charrette' } }));
-    expect(entityBlockedAt(scene, scene.entities[0].pos.x + 1, scene.entities[0].pos.y, 0)).toBe(true);
-    expect(entityBlockedAt(scene, scene.entities[0].pos.x + 2, scene.entities[0].pos.y, 0)).toBe(false);
-  });
-
   it('conserve l’empreinte effective de chaque instance authorée', () => {
     expect(authoredPropFootTable()).toEqual([
       ['arene-hub', 'p8', 'tente', 2, 2],
@@ -106,28 +77,12 @@ describe('migration de l’empreinte : du legacy d’instance au catalogue de ty
       ['arene-exp-village', 'p1', 'abreuvoir', 2, 1],
       ['arene-exp-village', 'p2', 'charrette', 2, 1],
       ['arene-route-embuscade', 'p0', 'epave-carrosse', 2, 2],
-      [OPERA, 'rideau-0', 'rideau-scene', 3, 1],
-      [OPERA, 'rideau-1', 'rideau-scene', 3, 1],
-      [OPERA, 'rideau-2', 'rideau-scene', 3, 1],
-      [OPERA, 'rideau-3', 'rideau-scene', 3, 1],
-      [OPERA, 'rideau-4', 'rideau-scene', 3, 1],
-      [OPERA, 'rideau-5', 'rideau-scene', 3, 1],
-      [OPERA, 'sv-table', 'table-2x1', 2, 1],
-      [OPERA, 'reg15-bureau', 'bureau-2x1', 2, 1],
-      [OPERA, 'b22-bureau', 'bureau-2x1', 2, 1],
-      [OPERA, 'b23-bureau', 'bureau-2x1', 2, 1],
-      [OPERA, 'c25-table-1', 'table-2x1', 2, 1],
-      [OPERA, 'c25-table-2', 'table-2x1', 2, 1],
-      [OPERA, 'c26-etabli', 'etabli-2x1', 2, 1],
     ]);
-    expect(authoredPropFoot(OPERA, 'salon-d-table')).toEqual(['table', 1, 1]);
-    expect(authoredPropFoot(OPERA, 'salon-s-table')).toEqual(['table', 1, 1]);
   });
 
   /** Le JSON BRUT, jamais `parseProject` : le verrou juge le fichier tel qu'il est commité. */
   it('plus AUCUNE instance authorée ne porte d’empreinte propre — mesuré sur le JSON BRUT', () => {
     expect(entitesAvecFootDansLesJson()).toEqual([]);
-    expect(scenarioEntities().filter((e) => 'foot' in e).map((e) => `${OPERA}/${e.id}`)).toEqual([]);
   });
 
   it('le verrou MORD : un JSON sali est rapporté (il ne passe pas sous la normalisation)', () => {

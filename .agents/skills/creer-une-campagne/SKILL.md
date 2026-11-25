@@ -17,10 +17,10 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    `BuiltinCampaign.fichier`, au format du dépôt, libellé d'origine tant que le projet n'est pas renommé,
    ordre des scènes et scène d'entrée conservés.
    « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
-   copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`). Tout paquet neuf se déclare dans
-   `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` : le volet couverture de
+   copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`). Un paquet sans `generate.mjs` voisin est
+   manuscrit (`estManuscrit`, `scripts/guards/lib/projetsLivres.mjs`) : le volet couverture de
    `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts` exige que tout
-   `*-projet.json` soit produit par un générateur OU nommé manuscrit.
+   `*-projet.json` soit produit par son générateur OU manuscrit.
 2. **Scènes et cartes à l'éditeur** ; reproduire un plan de livre : skill `creer-une-map`.
 3. **Écrire des IDS stables** — `ref` de créature, `skill`, `spell`, `species`, `inventaire` (trappingId),
    `appearance.tenue`, trait `arg`. Aucun libellé : `validateScene` refuse une réf de créature ou de décor

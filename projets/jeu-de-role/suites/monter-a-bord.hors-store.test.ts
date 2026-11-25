@@ -1,7 +1,8 @@
 /**
  * « MONTER À BORD » PAR LE PONT DANS LA DILIGENCE (#4576, #4471) : l'action authorée sur la diligence posée
  * (`diligence-cour-diligence`, une coque terrestre que l'exploration ne nomme pas) s'offre au groupe à sa portée parmi
- * les boutons de `exploration.gestes`, et s'y joue jusqu'au départ (`edo-ch1-depart`).
+ * les boutons de `exploration.gestes`, et s'y joue jusqu'au départ (`edo-ch1-depart`). Le contrat du pont sur une coque
+ * fabriquée : `hotes/godot/pont/monter-a-bord.hors-store.test.ts`.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { drainer, enFocus, suiteDe, table } from '../../../hotes/godot/pont/pont.testkit';

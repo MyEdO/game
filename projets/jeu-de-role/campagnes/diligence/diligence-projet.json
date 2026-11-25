@@ -5,11 +5,7 @@
  "icon": "scenario/voyage",
  "desc": "Les Personnages se forment à l’auberge-relais La Diligence, à deux jours d’Altdorf, et cherchent une place à bord d’une diligence pour la capitale.",
  "versionContenu": 2,
- "source": {
-  "book": "ennemi-dans-l-ombre",
-  "page": 11,
-  "note": "EDO 01 l.5 · l.13"
- },
+ "maison": "présentation du chapitre rédigée pour le jeu, adaptée de EDO 01 l.5 · l.13",
  "narratif": {
   "affaires": [
    {

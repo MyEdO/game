@@ -1,4 +1,4 @@
-/** #1343 sur les paquets livrés : aucun décor volumique ne traverse une dalle ni un toit (`src/decorSousPlafond.testkit.ts`). */
+/** #1343 sur les paquets livrés : aucun décor volumique ne traverse une dalle ni un toit (`src/noyau/monde/decorSousPlafond.testkit.ts`). */
 import { describe, expect, it } from 'vitest';
 import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';

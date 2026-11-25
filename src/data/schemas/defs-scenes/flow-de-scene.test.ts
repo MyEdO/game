@@ -4,56 +4,38 @@
  * `flowSchema` est `Flow<EffectOp>` : sa feuille `effet` porte un `EffectOp` (`{ type: 'ops', ops }`),
  * le vocabulaire du MOTEUR. Le Flow de scène est `Flow<Effect>` : sa feuille porte l'union `Effect`
  * de `defs-scenes/effets.ts` (`startCombat`, `transition`, `journal`…). Réutiliser le premier pour valider
- * le second rejetterait TOUTES les feuilles authorées — ce test le mesure sur la donnée réelle, pour
+ * le second rejetterait TOUTES les feuilles authorées — ce test le mesure sur le paquet de test, pour
  * que le lot T3-b compose un `sceneFlowSchema` propre au lieu de recycler celui de la grammaire.
  * La `Condition`, elle, est bien PARTAGÉE (même algèbre des deux côtés).
  */
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { fileURLToPath } from 'node:url';
-import { listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
-import { flowSchema, effectOpSchema, conditionSchema } from '../../../src/data/schemas/grammaire/mecanique';
-import { effectSchema, sceneFlowSchema } from '../../../src/data/schemas/defs-scenes/effets';
+import { flowSchema, effectOpSchema, conditionSchema } from '../grammaire/mecanique';
+import { effectSchema, sceneFlowSchema } from './effets';
+import { feuillesDo } from './feuillesDo.testkit';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
-const RACINE = fileURLToPath(new URL('../../', import.meta.url));
-const PROJETS = listerProjetsLivres();
-
-/** Toutes les feuilles `{ kind:'effet', effet }` des Flows authorés des projets livrés. */
-function feuillesDo(projets: unknown[]): unknown[] {
-  const out: unknown[] = [];
-  const marche = (n: unknown): void => {
-    if (Array.isArray(n)) return void n.forEach(marche);
-    if (!n || typeof n !== 'object') return;
-    const o = n as Record<string, unknown>;
-    if (o.kind === 'effet' && o.effet) out.push(o.effet);
-    Object.values(o).forEach(marche);
-  };
-  projets.forEach(marche);
-  return out;
-}
-
-const projets = PROJETS.map((p) => JSON.parse(readFileSync(RACINE + p, 'utf8')));
-const croissance = structuredClone(projets);
-const paquet = croissance.find((p) => p.id === 'la-diligence');
-const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
-paquet.worldMap.places.push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: scene.id, icon: 'scenario/hameau' });
-scene.triggers.push({ id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'effet', effet: { type: 'setFlag', flag: 'croissance-2337' } } });
+const projets: unknown[] = [structuredClone(paquetDeTest)];
+const croissance = structuredClone(projets) as (typeof paquetDeTest)[];
+const [paquet] = croissance;
+const [scene] = paquet.scenes;
+(paquet.worldMap.places as unknown[]).push({ id: 'lieu-croissance-2337', label: 'Lieu de contrôle', pos: { x: 20, y: 20 }, scene: { id: scene.id }, icon: 'scenario/hameau' });
+(scene.triggers as unknown[]).push({ id: 'declencheur-croissance-2337', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'effet', effet: { type: 'setFlag', flag: 'croissance-2337' } } });
 
 describe.each([
-  { nom: 'corpus livré', corpus: projets, ajoute: false },
+  { nom: 'paquet de test', corpus: projets, ajoute: false },
   { nom: 'corpus avec un lieu et un déclencheur supplémentaires', corpus: croissance, ajoute: true },
 ])('grammaire — $nom : `flowSchema` (Flow<EffectOp>) ≠ Flow de scène (Flow<Effect>)', ({ corpus, ajoute }) => {
   const feuilles = feuillesDo(corpus);
 
-  it('le corpus réel reste branché : le départ de La Diligence est observé', () => {
-    expect(feuilles).toContainEqual({ type: 'setFlag', flag: 'edo-ch1-depart' });
+  it('le corpus reste branché : le journal du déclencheur de test est observé', () => {
+    expect(feuilles).toContainEqual({ type: 'journal', desc: 'Journal de test.' });
     if (ajoute) {
       expect(feuilles).toContainEqual({ type: 'setFlag', flag: 'croissance-2337' });
       expect(feuilles.length).toBe(feuillesDo(projets).length + 1);
     }
   });
 
-  it('POSITIF — les feuilles `do` réelles passent TOUTES `effectSchema` (le vocabulaire de scène)', () => {
+  it('POSITIF — les feuilles `do` authorées passent TOUTES `effectSchema` (le vocabulaire de scène)', () => {
     const refusees = feuilles
       .map((e, i) => ({ i, e, r: effectSchema.safeParse(e) }))
       .filter((x) => !x.r.success)
@@ -69,7 +51,7 @@ describe.each([
 
   it('seule la feuille `ops` (l’`EffectOp`, membre de l’union `Effect`) est commune : toute autre feuille `do` de scène est refusée par `effectOpSchema`', () => {
     const ops = feuilles.filter((e) => (e as { type?: unknown }).type === 'ops');
-    expect(ops.length, 'témoin : le corpus livré porte des feuilles `ops` (Loup et Saumure, cible `navire`)').toBeGreaterThan(0);
+    expect(ops.length, 'témoin : le paquet de test porte des feuilles `ops` (cible `navire`)').toBeGreaterThan(0);
     expect(ops.filter((e) => !effectOpSchema.safeParse(e).success), 'une feuille `ops` de scène refusée par la feuille MOTEUR').toEqual([]);
     const acceptees = feuilles.filter((e) => (e as { type?: unknown }).type !== 'ops' && effectOpSchema.safeParse(e).success);
     expect(acceptees, 'une feuille de scène hors `ops` acceptée par la feuille MOTEUR : vérifier le vocabulaire').toEqual([]);

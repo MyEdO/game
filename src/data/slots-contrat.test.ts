@@ -141,6 +141,8 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(new Set(tuiles.map((s) => s.type))).toEqual(new Set(['terrain']));
     for (const liste of listes) expect(tuiles.filter((s) => s.porteur === liste).map((s) => s.cle)).toEqual(liste.map((_, i) => i));
     expect(tuiles.length).toBe(listes.flat().length);
+    const c = couple('paquet-de-test.json', 'tiles')!;
+    expect(c.atteintes, 'chaque liste est UNE occurrence, atteinte par ses éléments').toBe(c.occurrences);
   });
 
   it('cas canonique `merchants.json › [].curated[]` : chaque occurrence atteinte, chaque valeur un slot de trapping', () => {
@@ -166,6 +168,10 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     expect(slotsDuPaquet('scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.skill.id').map((s) => [s.porteur, s.type])).toEqual(competences.map((c) => [c, 'skill']));
   });
 
+  it('PAYLOAD D’OP sous un flux de dialogue : le facteur de Manann est un slot de son catalogue (`paquet-de-test.json`, joint)', () => {
+    expect(new Set(slotsAuPath('paquet-de-test.json', 'scenes[].dialogues[].nodes[].choices[].flow.etapes[].effet.ops[].facteur.id').map((s) => s.type))).toEqual(new Set(['manannFactor']));
+  });
+
   it('PAYLOAD D’OP : une référence validée par le `superRefine` de `gameOpSchema` est un slot (`tables.json › of`, joint)', () => {
     expect(new Set(slotsAuPath('tables.json', '[].entries[].ops[].montant.brass.times.of.rule').map((s) => s.type))).toEqual(new Set(['regleOptionnelle']));
     const c = couple('tables.json', 'of')!;
@@ -176,6 +182,8 @@ describe('registre des SLOTS — déclaré × observé (#1466 L1a, volet A)', ()
     const decors = PAQUET.scenes.flatMap((sc) => sc.entities.flatMap((e) => (e.decor ? [e.decor] : [])));
     expect(decors.length).toBeGreaterThan(0);
     expect(slotsDuPaquet('scenes[].entities[].decor.id').map((s) => [s.porteur, s.type])).toEqual(decors.map((d) => [d, 'prop']));
+    const c = couple('paquet-de-test.json', 'decor')!;
+    expect(c.atteintes).toBe(c.occurrences);
   });
 
   it('fixture : une Spécialisation homonyme d’un id n’ouvre aucune référence (`CLES_DE_SPECIALISATION`, #1904)', () => {

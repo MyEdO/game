@@ -3,19 +3,29 @@
  * enchaîne attend sa clôture : le déclencheur suivant de la même case, l'horloge et le sort du décor d'une action
  * jouée, l'avancée d'un dialogue, le reste d'un lot qu'un effet programmé a interrompu. Chemins réels du noyau.
  */
-import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
+import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ouvrirLeBanc, type Banc } from '../../../src/noyau/banc.testkit';
-import { createHero } from '../../../src/engine/character';
-import { applyEffects, checkTriggers, runFlow } from '../../../src/noyau/combatEffects';
-import { flowFromEffects } from '../../../src/noyau/monde/flow';
-import { diligenceCampaign } from '../campagnes';
-import { paquetDuJeu } from '../../../src/noyau/campagneLivree';
-import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Dialogue, type Scene, type Trigger } from '../../../src/noyau/monde/scene';
-import type { FlowDeScene as Flow } from '../../../src/data/schemas/defs-scenes/effets';
-import type { Combatant } from '../../../src/engine/types';
+import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { createHero } from '../engine/character';
+import { applyEffects, checkTriggers, runFlow } from './combatEffects';
+import { flowFromEffects } from './monde/flow';
+import { campagneDeTest } from '../scenes/fixtures/contenuDuCommun';
+import { paquetDuJeu } from './campagneLivree';
+import { DEFAULT_RELIEF_DEFAULTS, DEFAULT_ROOF_DEFAULTS, type Dialogue, type Scene, type Trigger } from './monde/scene';
+import type { FlowDeScene as Flow } from '../data/schemas/defs-scenes/effets';
+import type { Combatant } from '../engine/types';
 
 let banc: Banc;
+/** Le narratif du paquet de test, et deux documents que la sonde A ouvre l'un après l'autre. */
+const narratifDeTest = paquetDuJeu(campagneDeTest).narratif;
+const NARRATIF = {
+  ...narratifDeTest,
+  documents: [
+    ...narratifDeTest.documents,
+    { id: 'document-a', titre: 'Document A', prose: 'Texte A.' },
+    { id: 'document-b', titre: 'Document B', prose: 'Texte B.' },
+  ],
+};
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const get = () => banc.getState();
@@ -51,23 +61,23 @@ beforeEach(() => {
     screen: 'campaign', battle: null, mode: 'exploration', party: [heros(1), heros(2)], partyPos: { x: 2, y: 2 },
     flags: {}, etats: {}, journal: [], dialogue: null, document: null, pendingTest: null, pendingDesignationHeros: null,
     pendingExtendedTest: null, pendingCascade: null, scheduledEffects: [],
-    campaignNarratif: paquetDuJeu(diligenceCampaign).narratif,
+    campaignNarratif: NARRATIF,
   });
   get().ensemencerLeTirage(7);
 });
 
 describe('déclencheurs de la même case (sonde A) : le suivant attend le geste du premier', () => {
-  it('document 3 puis drapeau, puis document 4 : le 4 ne recouvre pas le 3, la suite du premier n’est pas perdue', () => {
+  it('document A puis drapeau, puis document B : B ne recouvre pas A, la suite du premier n’est pas perdue', () => {
     banc.setState({ scene: scene([
-      declencheur('t1', sequence(effet({ type: 'document', documentId: 'edo-document-3-heritage' }), effet({ type: 'setFlag', flag: 'apres-3' }))),
-      declencheur('t2', effet({ type: 'document', documentId: 'edo-document-4-affidavit' })),
+      declencheur('t1', sequence(effet({ type: 'document', documentId: 'document-a' }), effet({ type: 'setFlag', flag: 'apres-a' }))),
+      declencheur('t2', effet({ type: 'document', documentId: 'document-b' })),
     ]) });
     checkTriggers(get, banc.setState);
-    expect(get().document?.documentId).toBe('edo-document-3-heritage');
-    expect(get().flags['apres-3']).toBeUndefined();
+    expect(get().document?.documentId).toBe('document-a');
+    expect(get().flags['apres-a']).toBeUndefined();
     get().fenetreFermer('document');
-    expect(get().flags['apres-3']).toBe(true);
-    expect(get().document?.documentId).toBe('edo-document-4-affidavit');
+    expect(get().flags['apres-a']).toBe(true);
+    expect(get().document?.documentId).toBe('document-b');
     get().fenetreFermer('document');
     expect(get().document).toBeNull();
   });

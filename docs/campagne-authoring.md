@@ -11,11 +11,11 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 
 - **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
   `user-doctrine-campagne-jamais-generee-par-script`), édité dans Godot ou comme document JSON.
-  Avec `npm run godot:editeur`, ouvre le projet livré dans l’atelier et utilise « Enregistrer ».
+  Avec `npm run jeu-de-role:editeur`, ouvre le projet livré dans l’atelier et utilise « Enregistrer ».
   Le geste valide le document par `parseProject`, produit sa forme dépôt par `texteDuDepot`
-  et transmet le texte au service local `depot/<id>`. L’atelier affiche le résultat de l’écriture. Tout paquet neuf se
-  déclare dans `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` (volet couverture de
-  `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`). Modèle :
+  et transmet le texte au service local `depot/<id>`. L’atelier affiche le résultat de l’écriture. Un paquet est
+  manuscrit quand aucun `generate.mjs` n'est son voisin (`estManuscrit`, `scripts/guards/lib/projetsLivres.mjs` ;
+  volet couverture de `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`). Modèle :
   `projets/jeu-de-role/campagnes/diligence/`.
 - **Chargement et validation** : `parseProject()` (`src/noyau/worldMap.ts`) est la porte UNIQUE — relit
   le JSON, résout les réfs sparse (ports, cf. §5), refuse un document mal formé. `validateScene()`
@@ -418,8 +418,8 @@ narratif: { affaires: Affaire[]; indices: Indice[]; presetsPnj: PresetPnj[]; obj
   `parseSceneDeProjet` (#2404, décision utilisateur du 2026-10-05). La fabrique UNIQUE du document est
   `documentDeProjet` (`src/noyau/worldMap.ts`) : l'éditeur y passe, et les générateurs y délèguent par
   `projectDoc` (`projets/jeu-de-role/campagnes/lib.mjs`). Les paquets committés (corpus `listerProjetsLivres`,
-  `scripts/guards/lib/projetsLivres.mjs`) sont produits par un générateur, sauf ceux nommés dans
-  `PROJETS_MANUSCRITS` du même module — « La Diligence »
+  `scripts/guards/lib/projetsLivres.mjs`) sont produits par le `generate.mjs` de leur dossier, sauf les manuscrits, sans générateur voisin
+  (`estManuscrit` du même module) — « La Diligence »
   (`projets/jeu-de-role/campagnes/diligence/diligence-projet.json`, doctrine `user-doctrine-campagne-jamais-generee-par-script`) ;
   tous passent `parseProject` et `validateScene` en CI (`projets/jeu-de-role/suites/bundled-projects.test.ts`).
   Un Effect `document` désigne son entrée du registre `narratif.documents` par `{ documentId }` (#679).
