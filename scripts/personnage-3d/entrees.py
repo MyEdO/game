@@ -2,16 +2,16 @@
 ou un modèle sans base (`<famille>/<modele>` : `vehicule/caraque`, `decor/arbre`, `arete/colombage`,
 `escalier/bois`, `toit/ardoise`), avec son
 dossier et les ids publiés qu'il
-lit sous `hotes/godot/projet/modeles/` (les siens, ceux qu'il contourne et celui dont il prend un emplacement). Un chemin du dépôt est une ENTRÉE d'un sujet (`est_entree`) s'il est sous une racine que
-lit la gate `personnage-3d:tests` (`ECRIT_LU`, `scripts/gates/toutes.mjs`), hors du dossier d'un autre sujet, et, sous les
+lit sous `hotes/godot/projet/modeles/` (les siens, ceux qu'il contourne et celui dont il prend un emplacement). Un chemin du dépôt est une ENTRÉE d'un sujet (`est_entree`) s'il est sous une racine de ce
+que lit une reconstruction (`racinesDesReconstructions`, `changements.mjs`, #5037), hors du dossier d'un autre sujet, et, sous les
 modèles publiés, hors des fichiers d'un id qu'un autre sujet publie et que lui ne lit pas. Tout le reste de ces racines est
-partagé : le code de la chaîne, la base, les licences, les matières.
+partagé : le code de la chaîne, la base, les licences, les données et les modules qu'elle lit.
 
 La file ne reconstruit un sujet que si une de ses entrées a changé depuis la base du diff (`changements`, par
 `changements.mjs`) ; sans base, sur une panne, ou sous `WFRP_3D_TOUT=1`, elle reconstruit tout. Chaque reconstruction se
 lance sous un relevé de ses lectures (`construire_en_relevant`) : un fichier du dépôt qu'elle ouvre hors de ses entrées est
 une erreur, si bien qu'une lecture neuve, qui ne naît qu'en changeant le sujet ou le partagé, se voit dans la course même
-qui le reconstruit."""
+qui le reconstruit ; les modules que rend un lanceur node lui échappent (`MODULES_EVALUES`, `changements.mjs`)."""
 import ast
 import json
 import os
