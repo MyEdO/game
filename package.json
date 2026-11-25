@@ -47,7 +47,7 @@
     "jeu-de-role:web": "node hotes/godot/construire.mjs --export --sortie dist/godot --entree projets/jeu-de-role/godot.ts",
     "jeu-de-role:editeur": "npm run jeu-de-role:web && node hotes/godot/servir.mjs --web dist/godot --depot",
     "jeu-de-role:bureau": "node hotes/godot/construire.mjs --bureau --sortie dist/bureau --entree projets/jeu-de-role/godot.ts",
-    "jeu-de-role:recette": "node hotes/godot/lot-de-recettes.mjs --natif --entree projets/jeu-de-role/godot.ts --lot projets/jeu-de-role/recettes/lot.mjs --captures dist/jeu-de-role-recettes",
+    "jeu-de-role:recette": "node projets/jeu-de-role/recettes/lot.mjs",
     "jeu-de-role:docs": "node scripts/docs/build-dossiers-de-chapitre.mjs && node scripts/docs/build-test-scenarios.mjs",
     "godot:valider": "node hotes/godot/asset/valider.mjs",
     "godot:maquettes": "node hotes/godot/cibles/propositions/sources/passe.mjs",

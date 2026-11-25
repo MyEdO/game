@@ -570,7 +570,8 @@ export const ECRIT_LU = {
         'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `preparerLePilotage`) : ' +
         '`recupererModeles` n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par ' +
         'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
-        '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml',
+        '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml, ' +
+        'où il suit les gates du jeu de rôle, qui le précèdent',
     },
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
@@ -585,24 +586,25 @@ export const ECRIT_LU = {
   },
   'jeu-de-role:construire': {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['jeu-de-role'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       'Le pont de Godot bâti sur l’entrée du jeu de rôle (`--pont-seul --entree projets/jeu-de-role/godot.ts`, #4936) : ' +
-      'ce que fait et lit `pont:godot`, bundle en mémoire, rien d’écrit',
+      'ce que fait `pont:godot`, bundle en mémoire, rien d’écrit ; LIT les zones que la sienne ouvre (`hotes/godot/` ' +
+      'compris), scripts/, Source/, tsconfig.json et package.json',
   },
   'jeu-de-role:recette': {
     ecrit: [],
     ecritFerme: {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:recette` (`deposerLesAssets` par `preparerLePilotage`) : un `<id>.glb` absent ou de ' +
-        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` suit `godot:recette` dans le job ' +
+        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` précède `godot:recette` dans le job ' +
         '`godot-recette` de ci.yml, une SÉRIE',
     },
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    ...lectureDesZones(['jeu-de-role'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
-      'Le lot natif de `godot:recette` (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) sur l’entrée du jeu de rôle ' +
-      '(`--entree projets/jeu-de-role/godot.ts`, #4936), réduit aux jeux qui ouvrent son contenu ; mêmes écritures ' +
-      'que `godot:recette`, ses journaux sous `dist/jeu-de-role-recettes/`, que git ignore et qu’aucune gate ne lit',
+      'Le lot du jeu de rôle (`projets/jeu-de-role/recettes/lot.mjs`, #4936) joue ses jeux par `jouerLeLot` ' +
+      '(`hotes/godot/lot-de-recettes.mjs`, #3945) en natif sur son entrée (`projets/jeu-de-role/godot.ts`) ; mêmes ' +
+      'écritures que `godot:recette`, ses journaux sous `dist/jeu-de-role-recettes/`, que git ignore et qu’aucune gate ne lit',
   },
   'roguelite:construire': {
     ecrit: [],

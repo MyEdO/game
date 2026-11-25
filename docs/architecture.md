@@ -735,7 +735,7 @@ projets/jeu-de-role/        Le jeu de rôle (`.claude/rules/jeu-de-role.md`, #49
                             `godot.ts` (son entrée du pont), `campagnes/<x>/<x>-projet.json` (les paquets, et le
                             `generate.mjs` voisin de ceux qui en ont un), `scenarios/`, `dossiers/<ABBR>/<NN>.json`
                             (fiches de dossier de chapitre), `cadrages/`, `recettes/lot.mjs` (ses jeux de recette Godot,
-                            `lot-de-recettes.mjs --lot`), `suites/`. L'Arène est l'octet du `build()` de
+                            joués par `jouerLeLot` de `lot-de-recettes.mjs`), `suites/`. L'Arène est l'octet du `build()` de
                             `campagnes/arene/generate.mjs` (`projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`),
                             une édition à l'éditeur est écrasée au prochain `generate`, ou refusée par cette garde.
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
