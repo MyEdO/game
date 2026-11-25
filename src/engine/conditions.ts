@@ -204,7 +204,7 @@ function durcirDifficulte(existing: ConditionInstance, difficulte: Difficulty | 
 }
 
 type PoseDEtat = Pick<ConditionInstance, 'escapeStrength' | 'escapeThreshold' | 'entangleOnFail' | 'struggleDamage' | 'difficulte' | 'derivedFrom'> & ConditionLocks;
-type DureeDEtat = { roundsLeft: number } | { untilTime: number };
+type DureeDEtat = { roundsLeft: number } | { untilTime: number } | { finDeRencontre: true };
 
 function poserEtat(c: Combatant, id: string, value: number, pose: PoseDEtat, duree?: DureeDEtat): void {
   etatExige(id);
@@ -221,7 +221,8 @@ function poserEtat(c: Combatant, id: string, value: number, pose: PoseDEtat, dur
     if (lockedUntil != null) existing.lockedUntil = lockedUntil;
     if (unlockBy != null) existing.unlockBy = unlockBy;
     if (derivedFrom) existing.derivedFrom = derivedFrom;
-    if (!duree) delete existing.roundsLeft;
+    if (!duree) { delete existing.roundsLeft; delete existing.finDeRencontre; }
+    else if ('finDeRencontre' in duree) { if (existing.roundsLeft != null) { delete existing.roundsLeft; existing.finDeRencontre = true; } }
     else if ('roundsLeft' in duree && existing.roundsLeft != null) existing.roundsLeft = Math.max(existing.roundsLeft, duree.roundsLeft);
     else if ('untilTime' in duree && existing.untilTime != null) existing.untilTime = Math.max(existing.untilTime, duree.untilTime);
   } else {
@@ -240,8 +241,8 @@ function poserEtat(c: Combatant, id: string, value: number, pose: PoseDEtat, dur
   onConditionGained?.(c, id);
 }
 
-export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks, difficulte?: Difficulty): void {
-  poserEtat(c, name, value, { escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, ...locks, difficulte });
+export function addCondition(c: Combatant, name: string, value = 1, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, locks?: ConditionLocks, difficulte?: Difficulty, finDeRencontre?: true): void {
+  poserEtat(c, name, value, { escapeStrength, escapeThreshold, entangleOnFail, struggleDamage, ...locks, difficulte }, finDeRencontre ? { finDeRencontre } : undefined);
 }
 
 export function addTimedCondition(c: Combatant, name: string, value: number, rounds: number, escapeStrength?: number, escapeThreshold?: number, entangleOnFail?: boolean, struggleDamage?: number, difficulte?: Difficulty): void {
@@ -269,7 +270,8 @@ export function isConditionLocked(inst: ConditionInstance, c: Combatant): boolea
  *  (`EtatData.lockedUntil`, dont la raison est la donnée `lockedReason`). `isConditionLocked` lit ce
  *  même verdict : une seule évaluation, jamais deux copies du OU. */
 export function raisonVerrouEtat(inst: ConditionInstance, c: Combatant): string | undefined {
-  if (inst.unlockBy != null) return t('cond.lockedByAct', { acte: libelleDeValeur(acteDeDeverrouillageSchema, inst.unlockBy) });
+  const acte = acteQuiLeve(inst);
+  if (acte != null) return t(inst.unlockBy == null ? 'cond.lockedJusquALaFinDeLaRencontre' : 'cond.lockedByAct', { acte: libelleDeValeur(acteDeDeverrouillageSchema, acte) });
   const type = findConditionById(inst.id);
   if (!inst.lockedUntil && !type?.lockedUntil) return undefined; // aucun prédicat : rien à projeter
   const vue = conditionLockCtx(c);
@@ -285,6 +287,10 @@ export function soinDeDetermination(c: Combatant, conditionId: string): number {
   return cappedHealAmount(c, findConditionById(conditionId)?.resolveHeals ?? 0);
 }
 
+/** L'acte de soin qui lève `inst` : son verrou d'acte, ou l'Aide médicale qui finit un État de rencontre. LDB 18 l.53 */
+const acteQuiLeve = (inst: ConditionInstance): import('./types').ConditionUnlock | undefined =>
+  inst.unlockBy ?? (inst.finDeRencontre ? 'medicalAid' : undefined);
+
 /** Un acte `act` LÈVE-t-il un verrou d'État `unlockBy` (LDB 18) ? Le soin magique compte AUSSI comme Aide
  *  Médicale (LDB 18 l.311) → `magic` lève `medicalAid` ET `magic` ; sinon l'acte ne lève que son homonyme
  *  (Aide Médicale ne lève pas un verrou de Chirurgie ; la Chirurgie ne lève pas un verrou magique). */
@@ -294,7 +300,7 @@ function actLifts(unlockBy: import('./types').ConditionUnlock, act: import('./ty
 
 /** `c` porte-t-il un État dont l'acte `act` lève le verrou (`releaseConditionLocks` en retirerait un) ? */
 export function aUnVerrouLevePar(c: Combatant, act: import('./types').ConditionUnlock): boolean {
-  return c.conditions.some((inst) => inst.unlockBy != null && actLifts(inst.unlockBy, act));
+  return c.conditions.some((inst) => { const acte = acteQuiLeve(inst); return acte != null && actLifts(acte, act); });
 }
 
 /** Applique un acte de soin `act` : RETIRE tout État dont le verrou `unlockBy` est levé par cet acte (LDB 18 :
@@ -303,8 +309,10 @@ export function aUnVerrouLevePar(c: Combatant, act: import('./types').ConditionU
 export function releaseConditionLocks(c: Combatant, act: import('./types').ConditionUnlock): Applique {
   const sortie: Applique = { lignes: [], faits: [] };
   for (const inst of [...c.conditions]) {
-    if (inst.unlockBy == null || !actLifts(inst.unlockBy, act)) continue;
+    const acte = acteQuiLeve(inst);
+    if (acte == null || !actLifts(acte, act)) continue;
     delete inst.unlockBy; // le verrou tombe → removeCondition n'est plus inerte
+    delete inst.finDeRencontre;
     const avant = inst.value;
     removeCondition(c, inst.id, avant); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
     const apres = c.conditions.find((x) => x.id === inst.id)?.value ?? 0;
@@ -1033,6 +1041,16 @@ export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { ba
   return [t('cond.nightmare', { name: nomDe(c) })];
 }
 
+/** Retire jusqu'à `n` États Hémorragique de `c` ; le dernier retiré pose 1 Exténué. LDB 16 l.105-109 */
+export function retirerHemorragie(c: Combatant, n: number): { retires: number; extenue: boolean } {
+  const avant = stacks(c, COND.hemorragique);
+  removeCondition(c, COND.hemorragique, n);
+  const reste = stacks(c, COND.hemorragique);
+  const extenue = avant > reste && reste === 0;
+  if (extenue) addCondition(c, COND.extenue);
+  return { retires: avant - reste, extenue };
+}
+
 /**
  * Mort par Hémorragique (LDB 16 l.105) : « À la fin du Round, vous avez 10 % de chance de mourir
  * par État Hémorragique que vous possédez » (3 pions → mort sur 1-30). « Si vous faites un double sur ce
@@ -1045,9 +1063,8 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
   if (!eligible) return { died: false, log: [] };
   const r = d100(rng);
   if (isDoubleRoll(r)) {
-    removeCondition(c, COND.hemorragique, 1); // coagulation (le double prime sur la mort)
-    const log = [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })];
-    if (!hasCondition(c, COND.hemorragique)) { addCondition(c, COND.extenue); log.push(t('cond.lastWoundExhausted', { name: nomDe(c) })); } // tous retirés → 1 Exténué
+    const log = [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })]; // le double prime sur la mort
+    if (retirerHemorragie(c, 1).extenue) log.push(t('cond.lastWoundExhausted', { name: nomDe(c) }));
     return { died: false, log };
   }
   if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n })] };
@@ -1190,9 +1207,10 @@ export function tickDeath(c: Combatant): string[] {
     return log;
   }
   c.roundsAtZero = (c.roundsAtZero ?? 0) + 1;
-  if (c.roundsAtZero > bonus(effectiveChar(c, 'endurance')) && !hasCondition(c, COND.inconscient)) {
-    addCondition(c, COND.inconscient);
-    log.push(t('cond.unconscious', { name: nomDe(c), rounds: c.roundsAtZero }));
+  if (c.roundsAtZero > bonus(effectiveChar(c, 'endurance'))) {
+    const avant = stacks(c, COND.inconscient);
+    addCondition(c, COND.inconscient); // sans durée : la cause dure au-delà de la rencontre
+    if (!avant) log.push(t('cond.unconscious', { name: nomDe(c), rounds: c.roundsAtZero }));
   }
   return log; // la mort (dead) est finalisée par le store (avec sauvetage par Destin)
 }

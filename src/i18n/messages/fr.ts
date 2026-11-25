@@ -1540,6 +1540,7 @@ export const fr = {
   'cond.spellCondExpire': "{name} : l'État {cond} (sort) se dissipe.",
   'cond.lockReleased': "{name} : l'État {cond} est levé par le soin (Blessure critique).",
   'cond.lockedByAct': 'l’État ne se lève que par {acte}',
+  'cond.lockedJusquALaFinDeLaRencontre': 'l’État ne se lève que par {acte} ou la fin de la rencontre',
   'cond.locked': 'l’État est verrouillé',
   // États PORTÉS par un canal passif (`syncDerivedConditions`) : la ligne NOMME le fait porteur.
   'cond.derivedGain': '{name} gagne l’État {cond} — {src}{duree}.',
@@ -1723,6 +1724,7 @@ export const fr = {
   'op.frag.passifDArme': 'maniement altéré',
   'op.frag.horsCombat': 'durée hors combat',
   'op.frag.plafondDeRounds': '{n} Round{s}',
+  'op.frag.finDeRencontre': 'jusqu’à la fin de la rencontre',
   'op.frag.minutes': '{n} min',
   'op.frag.heures': '{n} heure{s}',
   'op.frag.jours': '{n} jour{s}',

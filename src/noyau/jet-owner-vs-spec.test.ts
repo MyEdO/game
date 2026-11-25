@@ -47,6 +47,7 @@ const stateWith = (pendingKey: string, pending: unknown, ids: string[]): Jeu =>
   ({
     battle: null, // hors combat : `actorIn` résout dans le GROUPE
     party: ids.map((id) => ({ id, kind: 'heros' })),
+    possessions: [],
     [pendingKey]: pending,
   }) as unknown as Jeu;
 

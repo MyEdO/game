@@ -14,8 +14,9 @@ import { campOf, type Camp } from './relations';
 import type { CodexTarget } from './ruleRefs';
 import type { Combatant, ConditionId, HitLocation } from './types';
 
-/** La durée d'un État posé : Rounds, horloge (minutes), ou annonce d'une pose récurrente (pions par Round). */
-export type DureeDEtat = { rounds: number } | { minutes: number } | { parRound: number };
+/** La durée d'un État posé : Rounds, horloge (minutes), annonce d'une pose récurrente (pions par Round),
+ *  ou la rencontre. */
+export type DureeDEtat = { rounds: number } | { minutes: number } | { parRound: number } | { rencontre: true };
 
 /** Atténuation d'une perte de Blessures hors coup d'arme : `sans`, ou ce que la perte a déduit. */
 export type MitigationDesBlessures = 'sans' | { pa: 'touches' | 'ignores'; be: 'deduit' | 'ignore' };
@@ -149,7 +150,8 @@ export function nomDeSource(ctx: { label?: string } | undefined, nature: NatureD
 export interface Applique { lignes: string[]; faits: FaitApplique[] }
 
 /** Le fragment d'une durée bornée, en Rounds ou à l'horloge. */
-function texteDeDuree(d: { rounds: number } | { minutes: number }): string {
+function texteDeDuree(d: Exclude<DureeDEtat, { parRound: number }>): string {
+  if ('rencontre' in d) return t('op.frag.finDeRencontre');
   if ('minutes' in d) {
     const min = d.minutes;
     return min >= 60 ? t('op.frag.heures', { n: Math.round(min / 60), s: min >= 120 ? 's' : '' }) : t('op.frag.minutes', { n: min });

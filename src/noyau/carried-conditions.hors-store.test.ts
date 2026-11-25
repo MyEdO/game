@@ -307,7 +307,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
   };
   /** Une valeur NON NULLE plausible par champ exclu — la liste close est parcourue ENTIÈREMENT. */
   const valeurs: Record<(typeof CHAMPS_EXCLUS_DE_CARRIED)[number], unknown> = {
-    durationMinutes: 10, durationHours: 2, perRound: true,
+    durationMinutes: 10, durationHours: 2, finDeRencontre: true, perRound: true,
     lockedUntil: { kind: 'always' }, unlockBy: 'medicalAid',
     escapeStrength: 40, escapeThreshold: 3, entangleOnFail: true, struggleDamage: 2, difficulte: 'difficile', argDifficulty: true, grapple: true,
   };

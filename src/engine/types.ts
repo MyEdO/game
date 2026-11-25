@@ -531,6 +531,10 @@ export interface ConditionInstance {
    *  « 1d10 + 4 heures », LDB 72 l.18) — posée par `addClockCondition` (op `condition.durationHours`),
    *  purgée par `purgeClockEffects` (upkeep, à chaque avance d'horloge). Exclusif de `roundsLeft`. */
   untilTime?: number;
+  /** Durée de RENCONTRE : l'État tombe à la clôture du combat (`carryOverState`) ou à l'Aide médicale
+   *  (`releaseConditionLocks`), et ne se retire pas autrement ; une pose sans durée l'efface. Exclusif de `roundsLeft`
+   *  et `untilTime`. LDB 18 l.53 ; arbitrage #4948 */
+  finDeRencontre?: true;
   /** VERROU conditionnel (LDB 18 : Blessures critiques) : un État posé par un Critique ne peut être RETIRÉ
    *  que lorsque cette Condition (algèbre flowCore) est VRAIE. Ex. « Aveuglé qui ne peut pas être retiré
    *  tant que tous les États Hémorragique n'ont pas été éliminés » (Tête 46-50) ⇒ `compare {condition:
