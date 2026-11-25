@@ -159,9 +159,17 @@ Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-
 
 - Le concept de chronique ou de dynastie (« L'amour, le succès et l'argent ») et ses lacunes du système, dont
   l'amour, qui passera par une cérémonie d'arbitrage.
-- La possession à niveaux, forme générique du noyau (verbatim 1). Elle est cliente de ce chantier : sa forme au
-  noyau, ses instances comme contenu de projet. Les `BATIMENTS` du roguelite en dépendent ; ses `EPREUVES` et son
-  `CAMP` attendent de même une forme au noyau avant de quitter `valeurs.ts`.
+- Le contenu propre du roguelite qui ne quitte pas `valeurs.ts` dans L5, chacun avec ce qu'il demande au noyau :
+
+  | Point | Ce que le noyau a | Ce qu'il faut |
+  |---|---|---|
+  | `BATIMENTS` | Ce qu'un palier ouvre : qualité du repos, Disponibilité, soins | Une forme neuve, la possession à niveaux (verbatim 1). Elle est voisine des établissements de #4277 (Données de lieu : établissements nommés, qualité à trois niveaux), car le relais est une auberge dont la qualité monte avec le palier. |
+  | `EPREUVES`, `ACTIONS_A_JET`, `CAMP` | `usable.actions`, le `Flow` `test`, les Effets `startCombat` et `giveMoney` du schéma de scène | Aucune forme neuve. C'est un doublon à réécrire en scène, avec au plus une extension du vocabulaire (qui tente l'action). |
+  | `Voie` | Les sorts et leur domaine dans la bibliothèque ; la dotation par niveau de carrière (`dotationDesNiveaux`) | Aucune forme neuve : une sélection plus une modification en place, si la dotation d'un niveau peut porter un sort (à vérifier). |
+  | `identite`, `designations`, `dotation` des profils | La création choisit le talent et désigne les emplacements « au choix » (`designateSlot`, `skillSlots`, `src/engine/careerSlots.ts`) ; l'op `giveTrapping` | Une forme en donnée pour des choix de création tranchés d'avance, partagée avec les prétirés (#3884, Prétirés officiels à fiche figée) et l'Atelier des PNJ. |
+
+  `Epreuve`, `FluxDEpreuve`, `Identite` et `Designation` vivent dans `projets/roguelite/src/noyau/`, la couche
+  d'adaptation du roguelite, qui lit des internes du noyau hors de sa porte (`heros.ts:13-19`).
 - Les livres VO à autoriser comme sources (*Archives of the Empire Vol III*, *Deft Steps Light Fingers*…) :
   décision de l'utilisateur, livre par livre.
 - Les établissements de #4277 (Données de lieu : établissements nommés, qualité à trois niveaux), qui restent à
