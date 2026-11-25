@@ -4,11 +4,12 @@ extends SceneTree
 ## l'arbre, l'accueil (`scenes/Accueil.tscn`) publie ses entrées ; « Options » ouvre le panneau des réglages, où une
 ## préférence se règle, au curseur ou au bouton, et repose le volume des bus ; « Jouer » ouvre le combat sur une partie au groupe, sans
 ## scène, ses pré-tirés et ses campagnes montrés ; deux pré-tirés recrutés à leur bouton entrent au groupe, chacun en
-## carte avec son renvoi ; « Lancer » de la Diligence pose sa scène et sa pastille du menu de la partie ; « Sauvegardes »
+## carte avec son renvoi ; « Lancer » de la première campagne que le jeu remet au pont (`campagnes`) pose sa scène et
+## sa pastille du menu de la partie ; « Sauvegardes »
 ## du menu ouvre le panneau des emplacements, l'emplacement 1 écrit à son bouton se charge ensuite ; « Quitter la
 ## partie » du menu rend l'accueil ;
 ## « Reprendre » montre les sauvegardes, l'automatique gardée en quittant, et l'emplacement 1 chargé rend la partie, son
-## groupe et sa scène ; quittée, « Jouer » de nouveau, un pré-tiré recruté, l'Arène lancée, sans relancer le processus du
+## groupe et sa scène ; quittée, « Jouer » de nouveau, un pré-tiré recruté, la campagne relancée, sans relancer le processus du
 ## noyau ; quittée, « Jouer » montre au roster le héros créé et engagé par le pont avant le premier clic, « Recruter »
 ## de sa carte le fait entrer au groupe, « Supprimer » le retire du roster ; ni panne ni refus ne se signale. Le code
 ## de sortie dit le verdict : 0 tenu, 1 une faute.
@@ -37,10 +38,11 @@ func _recetter() -> void:
 	change_scene_to_file(ACCUEIL)
 	var ouvert := await _pont.rejoindre(func(message: String) -> void: _signales.append("refus : " + message), func(message: String) -> void: _signales.append("panne : " + message))
 	var cree := _creer_un_heros() if ouvert else ""
-	if cree != "" and await _regler_a_l_accueil() and await _jouer_une_campagne(2, "la-diligence") and await _sauvegarder_puis_reprendre():
+	var campagne: String = _pont.appeler("campagnes").campagnes[0] if cree != "" else ""
+	if cree != "" and await _regler_a_l_accueil() and await _jouer_une_campagne(2, campagne) and await _sauvegarder_puis_reprendre():
 		if await _presser_au_menu("quitter") and await _attendre(func() -> bool: return _au_menu(), "l'accueil après « Quitter la partie »"):
 			print("[campagne] partie quittée : l'accueil")
-			if await _jouer_une_campagne(1, "arene"):
+			if await _jouer_une_campagne(1, campagne):
 				if await _presser_au_menu("quitter"):
 					await _composer_du_roster(cree)
 	_fautes.append_array(_signales)

@@ -9,7 +9,7 @@
  * `lieux-services.json`. La clé garde son rang, les autres clés le leur. Les fonds (`backdrop`) sont déjà des
  * `ref('fond')`.
  *
- * ENTRÉES : écrites — `src/data/lieux-services.json` et les quatre projets de `src/scenes/` ; lues — les catalogues
+ * ENTRÉES : écrites — `src/data/lieux-services.json` et les quatre projets de `projets/jeu-de-role/campagnes/` ; lues — les catalogues
  * `src/data/merchants.json` et `src/data/lieux-services.json`.
  * CARDINAL ASSERTÉ : `CARDINAL` gestes au premier passage, `PAR_PORTEUR` par porteur.
  * IDEMPOTENT, FAIL-FAST et FORMATAGE : `lib/idNuEnRef.mjs` ; rejouée sur l'état final, rien ne s'écrit et la
@@ -29,10 +29,10 @@ const PROJET = {
 };
 
 const PROJETS = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/diligence/diligence-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ];
 
 /** Gestes du premier passage par porteur, mesurés le 2026-11-09 sur `ed802f1a72`. */

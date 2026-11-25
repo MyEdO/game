@@ -21,6 +21,10 @@ export const COMMANDE_VERSION_PYTHON_3D =
 export const COMMANDE_RENDU_LOGICIEL =
   'sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6'
 
+/** Commande EXACTE du step de `ci.yml` qui installe le navigateur épinglé de `roguelite:recette` (#5010) : le Chromium que
+ *  le Playwright des devDependencies nomme (`EPINGLE`, scripts/recette/navigateur.mjs). */
+export const COMMANDE_NAVIGATEUR_EPINGLE = 'npx playwright install chromium'
+
 /**
  * Steps de `ci.yml` qui ne sont PAS une gate locale, chacun avec sa raison. La liste est exhaustive
  * et EXACTE (ligne pour ligne) : c'est elle qui rend le classement fail-CLOSED — un step d'une autre
@@ -36,6 +40,9 @@ export const CI_SEULEMENT = {
   [COMMANDE_RENDU_LOGICIEL]:
     'installe sur le runner l’écran virtuel et le rendu logiciel que `godot:rendus` demande — localement, un poste à ' +
     'écran rend sur sa carte graphique, et un conteneur les installe une fois',
+  [COMMANDE_NAVIGATEUR_EPINGLE]:
+    'installe sur le runner le Chromium épinglé de `roguelite:recette` — localement, `lancerLeNavigateurEpingle` refuse ' +
+    'tout autre navigateur et nomme celui qu’il attend',
 }
 
 /** Le job de `ci.yml` qui joue la course de BRANCHE (#3412, en tête de `ci.yml`) ; tous les autres jouent la
@@ -87,11 +94,23 @@ export const LANE_LOCALE_DE_JOB = {
       '`godot:rendus` (#3951) a son job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient ' +
       '`PLAFOND_LANES` lanes, et `types` le porte',
   },
+  'jeu-de-role-recette': {
+    lane: 'types',
+    raison:
+      '`jeu-de-role:construire` et `jeu-de-role:recette` (#4936) ont leur job pour raccourcir le chemin critique de la ' +
+      'CI (#5037) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+  },
   'godot-recette': {
     lane: 'types',
     raison:
       '`godot:recette` (#3945) a son job pour raccourcir le chemin critique de la CI (#3412) ; le rejeu local tient ' +
       '`PLAFOND_LANES` lanes, et `types` le porte',
+  },
+  'roguelite-recette': {
+    lane: 'types',
+    raison:
+      '`roguelite:construire` et `roguelite:recette` (#4929) ont leur job pour raccourcir le chemin critique de la CI ' +
+      '(#5037) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
   },
   corpus: {
     lane: 'types',
@@ -102,7 +121,7 @@ export const LANE_LOCALE_DE_JOB = {
   'docs-tests': {
     lane: 'docs',
     raison:
-      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178), et il porte `noyau:chargement`, ' +
+      '`test:docs` a son job pour raccourcir le chemin critique de la CI (#2178), et il porte ' +
       '`test:corpus-isole`, `test:ops` et `test:runner` pour répartir la durée de la course de file entre les jobs ' +
       '(#3412) ; le rejeu local tient `PLAFOND_LANES` lanes, et `docs` les porte',
   },

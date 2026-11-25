@@ -14,7 +14,7 @@ extends SceneTree
 ## rend les mêmes pixels quelle que soit la couleur de ses sommets. L'empreinte des nappes seules s'imprime, à comparer
 ## d'un shader à l'autre.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")

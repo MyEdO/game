@@ -122,7 +122,7 @@ const lieAuPorteur = (s: SourcePsy, porteur: Combatant, lecture: Lecture): boole
 /** La lecture de chaque Groupe relatif (`GroupData.relatif`), rapportée au porteur. #3045 */
 const RELATIFS: Record<Relatif, (s: SourcePsy, porteur: Combatant, lecture: Lecture) => boolean> = {
   // LDB 85 l.282 ; Q12 B, #3045
-  engagesAvecPorteur: (s, porteur) => s.genre === 'combattant' && isEngagedWith(porteur, s.c.id),
+  engagesAvecPorteur: (s, porteur) => s.genre === 'combattant' && isEngagedWith(porteur, s.c),
   // Q15 A, #3045
   etrangersAuPorteur: (s, porteur, lecture) =>
     !lieAuPorteur(s, porteur, lecture) &&

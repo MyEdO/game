@@ -17,10 +17,11 @@
  * qualités : aucune mécanique ne s'applique, aucune erreur n'est levée.
  *
  * ENTRÉES (les trois strates de la MÊME donnée — l'artefact SEUL serait réécrit à la prochaine
- * passe d'auteur, `scripts/arene/generate.mjs` régénérant `arene-projet.json`) :
+ * passe d'auteur, `projets/jeu-de-role/campagnes/arene/generate.mjs` régénérant `arene-projet.json`) :
  *   - `src/data/**.json`               (racine de données)
- *   - `src/scenes/**.json`             (racine de scènes — dont l'artefact `arene/arene-projet.json`)
- *   - `scripts/arene/*.mjs`            (AUTHORING qui produit l'artefact ci-dessus)
+ *   - `src/scenes/**.json`             (racine de scènes)
+ *   - `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`)  (projets livrés — dont l'artefact `arene-projet.json`)
+ *   - `projets/jeu-de-role/campagnes/arene/*.mjs`            (AUTHORING qui produit l'artefact ci-dessus)
  *
  * RÉSOLUTION : par les CATALOGUES, jamais par une table figée dans ce script — `label` exact
  * (comparaison normalisée : accents, casse, apostrophes typographiques, espaces multiples).
@@ -36,6 +37,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const abs = (rel) => path.join(ROOT, rel);
@@ -232,11 +234,13 @@ function* fichiers(dir, ext) {
 
 for (const f of fichiers(abs('src/data'), '.json')) migrateJson(f);
 for (const f of fichiers(abs('src/scenes'), '.json')) migrateJson(f);
-for (const f of fichiers(abs('scripts/arene'), '.mjs')) migrateMjs(f);
+for (const rel of cheminsDesProjetsLivres(ROOT)) migrateJson(abs(rel));
+for (const f of fichiers(abs('projets/jeu-de-role/campagnes/arene'), '.mjs')) migrateMjs(f);
 
 for (const f of fichiers(abs('src/data'), '.json')) migrateJsonQualites(f);
 for (const f of fichiers(abs('src/scenes'), '.json')) migrateJsonQualites(f);
-for (const f of fichiers(abs('scripts/arene'), '.mjs')) migrateMjsQualites(f);
+for (const rel of cheminsDesProjetsLivres(ROOT)) migrateJsonQualites(abs(rel));
+for (const f of fichiers(abs('projets/jeu-de-role/campagnes/arene'), '.mjs')) migrateMjsQualites(f);
 
 // ── Bilan ────────────────────────────────────────────────────────────────────────────────────────
 console.log(`Fichiers réécrits : ${touches.length}`);

@@ -17,7 +17,7 @@ const GARDE = {
     '`node scripts/source/mesurer-prose-inline.mjs` avec lequel le stock se peuple : une seule sonde, ' +
     'jamais un chiffre recopié.',
   perimetre:
-    'Les documents authorés des deux racines (les `.json` de `src/data`, les `-projet.json` de `src/scenes`), ' +
+    'Les documents authorés du commun (les `.json` de `src/data`, son contenu `src/scenes/fixtures`), ' +
     'à TOUTE PROFONDEUR. MASQUE : « nœud portant un `desc` chaîne non vide dont la source EFFECTIVE — son ' +
     '`source.book` propre, sinon le `source.book` de l’ancêtre le plus proche qui en porte un — désigne un ' +
     'livre à `dir` dans `books.json`, `maison` ou pas » ; un nœud qui porte `adapteDe` coupe l’héritage. ' +

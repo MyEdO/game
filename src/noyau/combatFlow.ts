@@ -128,8 +128,10 @@ import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { ligneDeRegle, modDeRegle, testDeRegle, type TestNomme } from '../engine/reglesChiffrees';
 import {
   engage,
+  engagesDe,
   markAttacked,
   isEngaged,
+  isEngagedWith,
   decayEngagement,
   chargeAdvantage,
   disengageFrom,
@@ -183,6 +185,8 @@ import {
   fleeMovementBonus,
   attackModesFor,
   dualStrikeDefensePenalty,
+  retreatAdvantageCost,
+  keptAdvantageOnDisengage,
 } from '../engine/combatFeatures/dispatch';
 import {
   isStupid,
@@ -961,7 +965,7 @@ function refusDeLArmeSansCible(get: Get<Jeu>, active: Combatant, w: Weapon): Ref
   if (w.type !== 'distance') return null;
   // Tir en étant *Engagé* : impossible sauf Atout d'arme Pistolet (`LDB 14 l.41`, `LDB 62 l.284-285`).
   // Refus AVANT les gates de ressource : recharger ne débloquerait rien.
-  if (isEngaged(active) && !canFireWhileEngaged(w))
+  if (isEngaged(active, b?.combatants ?? []) && !canFireWhileEngaged(w))
     return { reason: 'engaged', detail: tr('cf.refusEngagePistolet', { name: nomDe(active), arme: w.label }) };
   // Restriction d'armes à distance de la rencontre (#471, NADJ 06 l.181) — même refus AVANT tout autre
   // gate de ressource (Recharge/munition), pour ne pas dire « recharger » à une arme de toute façon bannie.
@@ -980,9 +984,7 @@ function refusDeLArmeSansCible(get: Get<Jeu>, active: Combatant, w: Weapon): Ref
 export function strayShotVictim(res: AttackResult, attacker: Combatant, target: Combatant, battle: BattleState, rng: RNG): Combatant | null {
   if (res.hit || !res.attackerDetail) return null;
   if (!evaluateTest(res.attackerRoll, cibleBrute(res.attackerDetail) - modDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')).success) return null; // n'aurait pas touché même sans la pénalité
-  const allies = (target.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((c): c is Combatant => !!c && c.kind === attacker.kind && !isOutOfAction(c));
+  const allies = engagesDe(target, battle.combatants).filter((c) => c.kind === attacker.kind);
   return allies.length ? allies[rng.int(0, allies.length - 1)] : null;
 }
 
@@ -1277,10 +1279,7 @@ export function attackEnv(
     // Tir dans la mêlée (LDB 14 l.116) : la cible est Engagée avec un allié du tireur. Règle optionnelle
     // « Tir dans un corps à corps » (LDB 14 l.112-116) : si désactivée, ni pénalité NI artefact d'aperçu
     // (`inMelee` reste false → pas de tir égaré non plus).
-    const inMelee = !!rule('combat-tir-dans-la-melee') && (target.engagedWith ?? []).some((id) => {
-      const ally = inBattleId(battle, id);
-      return !!ally && ally.kind === attacker.kind;
-    });
+    const inMelee = !!rule('combat-tir-dans-la-melee') && engagesDe(target, battle.combatants).some((ally) => ally.kind === attacker.kind);
     if (inMelee && !opts?.dansLeTas) env.push(ligneDeRegle('tir-dans-un-combat-au-corps-a-corps', 'tir-dans-la-melee')); // « Tirer dans le tas » la REMPLACE par son bonus (l.116)
     env.push(...mountedAttackMods(battle, attacker, target, 'distance')); // LDB 14 l.180
     // « Tirer dans le tas » (LDB 14 l.106) : selon la taille du groupe serré.
@@ -1301,7 +1300,7 @@ export function attackEnv(
   // Flanc/dos (LDB 14 l.62) : attaquer un adversaire ENGAGÉ dans le dos ou sur les côtés —
   // orientation du défenseur AVANT cette attaque (il se retourne vers l'attaquant ENSUITE, applyAttackResult).
   const tFacing = capEnCombat(get(), target.id);
-  const flankRear = !!(tFacing && isEngaged(target) && attacker.pos && target.pos && isFlankOrRear(tFacing, facingToward(target.pos, attacker.pos)));
+  const flankRear = !!(tFacing && isEngaged(target, get().battle?.combatants ?? []) && attacker.pos && target.pos && isFlankOrRear(tFacing, facingToward(target.pos, attacker.pos)));
   if (flankRear) env.push(ligneDeRegle('attaque-de-flanc-ou-de-dos', 'flanc-ou-dos'));
   // En contrebas : LDB 14 l.67 ; seuil `STEP_MAX_M` (relief.ts) sur `pos.h`.
   if ((target.pos?.h ?? 0) - (attacker.pos?.h ?? 0) > STEP_MAX_M) env.push(ligneDeRegle('cible-en-contrebas', 'en-contrebas'));
@@ -1729,7 +1728,7 @@ export function mobileDuTour(s: Jeu, battle: BattleState):
   const active = activeCombatant(battle);
   if (!active?.pos) return { refus: 'sansActeur' };
   if (!controlsCombatant(s, active)) return { refus: 'nonControle', mobile: active };
-  if (isEngaged(active)) return { refus: 'engage', mobile: active };
+  if (isEngaged(active, battle.combatants)) return { refus: 'engage', mobile: active };
   if (!canMove(battle, active)) return { refus: 'mouvementEpuise', mobile: active };
   return { mobile: active, case: active.pos };
 }
@@ -1801,6 +1800,30 @@ export function castOutOfSightTargetIds(get: Get): Set<string> {
  *  une égalité parfaite (`egalite`) = statu quo (ni fuite, ni avantage à l'adversaire — LDB Tests). */
 export function disengageOutcome(winner: VainqueurOppose): IssueOpposee {
   return winner === 'attaquant' ? 'reussite' : winner === 'egalite' ? 'egalite' : 'echec';
+}
+
+/** Lève l'Engagement de `mover` par le sacrifice de l'Avantage : la réserve du camp en mode « Avantage de groupe »
+ *  (AA 11 l.37 ; AA 13 l.74), sinon l'Avantage ramené à 0, ou gardé par Impitoyable (LDB 10 l.591). LDB 15 l.47 */
+export function sacrifierLAvantagePourPartir(get: Get, mover: Combatant): void {
+  const foes = adversairesEngages({ active: mover, battle: get().battle! });
+  if (groupAdvantage()) campSpend(get, mover, retreatAdvantageCost(mover));
+  else mover.advantage = Math.min(mover.advantage, keptAdvantageOnDisengage(mover));
+  for (const f of foes) disengageFrom(mover, f);
+}
+
+/** Le départ du contact d'un combattant que l'IA conduit, par une voie qui ne coûte pas l'Action : départ libre
+ *  (LDB 85 l.373-374 ; LDB 85 l.253), sinon l'Avantage (`sacrifierLAvantagePourPartir`). Sa ligne de journal, `null`
+ *  s'il n'était Engagé avec personne. `buildAiInput` ne lui ouvre un Mouvement que si l'une des deux est ouverte. */
+function partirDuContact(get: Get, mover: Combatant): string | null {
+  const ctx = { active: mover, battle: get().battle! };
+  const foes = adversairesEngages(ctx);
+  if (!foes.length) return null;
+  if (!departLibre(ctx)) {
+    sacrifierLAvantagePourPartir(get, mover);
+    return tr('cs.disengageSacrifice', { name: nomDe(mover) });
+  }
+  for (const f of foes) disengageFrom(mover, f);
+  return tr('cf.ecarteLesPlusPetits', { name: nomDe(mover) });
 }
 
 /** Lance le Désengagement d'un combattant Engagé (LDB 15 l.43-49) : départ libre (LDB 85 l.253,
@@ -2058,7 +2081,7 @@ export function aiApproachPlan(
   const enemy = input.enemy;
   const none = { plan: action, ran: null };
   if (action.kind !== 'deplacement') return none;
-  if (refusDeCourseDuPorteur(enemy)) return none;
+  if (refusDeCourseDuPorteur(input.combatants ?? input.heroes, enemy)) return none;
   if (!enemy.weapons.some((w) => w.type === 'melee')) return none;
   const M = effectiveMovement(geom);
   if (M <= 0) return none;
@@ -2187,7 +2210,7 @@ export function attackPlan(get: Get, active: Combatant, target: Combatant, opts?
   // frapper est une ACTION délibérée, sans +1 Avantage ni `fromCharge` qui bloquerait « Renoncer »).
   // On refuse → le joueur s'approche par un clic-sol normal (undoable), puis frappe une fois au contact.
   if (isInanimate(target)) return { kind: 'bloque', reason: tr('cf.approcheToiPourFrapper') };
-  if (isEngaged(active)) return { kind: 'bloque', reason: tr('cf.desengageAvantDeRejoindre') };
+  if (isEngaged(active, battle.combatants)) return { kind: 'bloque', reason: tr('cf.desengageAvantDeRejoindre') };
   const env = moveEnv(battle, geom);
   if (!refusMouvementEntame(battle) && !refusRampe(active)) {
     // Charge (LDB 15 l.35-37) : manœuvre PLEINE, portée de Course (2M × Bond/Foulée), arrivée
@@ -4794,15 +4817,25 @@ function placerSurLaCaseLiberee(get: Get, attacker: Combatant, pos: Pt): void {
 
 /** REPREND une chaîne de balayage que le coup portait dans sa suite (`enchainement: 'chaine'`), une fois
  *  l'enchaînement appliqué : recalage sur la case d'une cible tuée (LDB 14 l.9) puis suite de la chaîne. */
-export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, defender: Combatant, chain: ChaineDeBalayage, restitution?: SuiteDeCoup['restitution']): boolean {
+export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, defender: Combatant, chain: ChaineDeBalayage, touche: boolean, restitution?: SuiteDeCoup['restitution']): boolean {
   const killed = isOutOfAction(defender);
   if (killed && defender.pos) placerSurLaCaseLiberee(get, attacker, defender.pos);
-  if (chain.fm && !killed) { // Frappe Mortelle : on ne poursuit qu'en TUANT (LDB 14 l.9)
+  if (!(chain.fm ? killed : touche)) { // le maillon suivant naît d'un coup qui tue (LDB 14 l.9), ou qui touche (LDB 85 l.362)
     set({ battle: { ...get().battle! } });
     bus.emit(EVT.SCENE_DIRTY);
     return false;
   }
   return runCleaveChain(get, set, attacker, chain, restitution);
+}
+
+/** Ouvre la chaîne de balayage du Tour de `attaquant` : `true` si la sienne s'y est déjà ouverte, alors aucune autre
+ *  ne naît. LDB 14 l.9 ; LDB 85 l.362 ; ADE II 02 l.576 ; arbitrage #5031 du 2026-11-25 */
+function ouvrirLeBalayageDuTour(get: Get, attaquant: Combatant): boolean {
+  const battle = get().battle;
+  if (!battle) return false;
+  if (battle.balayagesDuTour?.includes(attaquant.id)) return true;
+  battle.balayagesDuTour = [...(battle.balayagesDuTour ?? []), attaquant.id];
+  return false;
 }
 
 /** Balayage AUTOMATIQUE d'un attaquant conduit par l'IA après une touche de mêlée d'un plus grand
@@ -4817,7 +4850,7 @@ export function autoCleave(get: Get, set: SetFn, attacker: Combatant, primaryTar
   const sizeCleave = !!res.cleave; // Taille/Nuée : enchaîne sur une simple TOUCHE (LDB 85 l.362)
   // Frappe Mortelle (option, hors Taille) : enchaîner seulement après avoir TUÉ en un coup (LDB 14 l.9).
   const fm = !sizeCleave && !!rule('combat-frappe-mortelle') && isOutOfAction(primaryTarget);
-  if (!sizeCleave && !fm) return false;
+  if ((!sizeCleave && !fm) || ouvrirLeBalayageDuTour(get, attacker)) return false;
   const bcc = bonus(effectiveChar(attacker, 'capacite-de-combat'));
   if (bcc < 1) return false;
   // Cible primaire tuée → l'attaquant se déplace sur sa case avant d'enchaîner (l.10).
@@ -4843,7 +4876,7 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
   const sizeCleave = !!res.cleave; // Taille : enchaîne sur une simple TOUCHE (LDB 85 l.362)
   // Démarrage Frappe Mortelle (option, hors Taille) : la cible doit être TUÉE en un coup (LDB 14 l.9).
   const fmStart = !pc && !sizeCleave && !!rule('combat-frappe-mortelle') && isOutOfAction(target);
-  if (!pc && !sizeCleave && !fmStart) return false; // ni balayage en cours, ni déclenché par cette touche
+  if (!pc && ((!sizeCleave && !fmStart) || ouvrirLeBalayageDuTour(get, attacker))) return false; // ni balayage en cours, ni déclenché par cette touche
   const fm = pc ? !!pc.fm : fmStart; // mode porté par le pending (Taille vs Frappe Mortelle)
   const count = wasChain ? (pc?.count ?? 0) + 1 : pc?.count ?? 0; // un enchaînement résolu consomme une attaque
   const hitIds = pc ? [...new Set([...pc.hitIds, target.id])] : [target.id];
@@ -4852,7 +4885,7 @@ export function maybeHeroCleave(get: Get, set: SetFn, attacker: Combatant, targe
   const bcc = bonus(effectiveChar(attacker, 'capacite-de-combat'));
   const remaining = cleaveTargets(objetDuNarratif(get().campaignNarratif), get().scene, battle, attacker, hitIds);
   // Frappe Mortelle : la poursuite EXIGE d'avoir tué la cible enchaînée (LDB 14 l.9) ; la Taille enchaîne sur une touche.
-  const fmStop = fm && wasChain && !isOutOfAction(target);
+  const fmStop = wasChain && !(fm ? isOutOfAction(target) : res.hit);
   if (enAction && !battle.over && count < bcc && remaining.length && !fmStop) {
     // La chaîne garde la restitution du coup qui l'a ouverte : une gratuite qui la rejoint en cours
     // (Assaut féroce sur la cible primaire) ne la remplace pas.
@@ -4943,7 +4976,7 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
         portee = maybeHeroCleave(get, set, attacker, target, touche, enchainement.wasChain, restitution);
       }
       break;
-    case 'chaine': suspendu = resumeCleaveChain(get, set, attacker, target, enchainement, restitution); break; // la chaîne reprend où elle s'est arrêtée
+    case 'chaine': suspendu = resumeCleaveChain(get, set, attacker, target, enchainement, touche.hit, restitution); break; // la chaîne reprend où elle s'est arrêtée
     case 'bordee': // l'Action rendue APRÈS le `markActed` de l'application (MDG 14 l.37), puis le coup suivant
       { const b = get().battle; if (b) set({ battle: { ...b, acted: enchainement.actedAvant } }); }
       suspendu = jouerLesTirsDeBordee(get, set, enchainement);
@@ -6535,10 +6568,14 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   // Géométrie porteuse (Combat monté, LDB 14) → empreinte + Mouvement + cases bloquées.
   const geom = mountOf(battle, enemy) ?? enemy;
   const blocked = occupied(battle, geom);
-  const cavalryCharge = !!enemy.mountId && !isEngaged(enemy); // cavalier non Engagé : portée de Course (2×)
-  let movement = Math.floor(effectiveMovement(geom) * (cavalryCharge ? 2 * runMultiplier(geom.traits) : 1));
+  const auContact = isEngaged(enemy, battle.combatants);
+  const cavalryCharge = !!enemy.mountId && !auContact; // cavalier non Engagé : portée de Course (2×)
+  // Engagé sans départ libre ni Avantage à sacrifier : « cloué sur place » (LDB 15 l.49) ; le départ se joue à
+  // l'exécution du déplacement (`partirDuContact`).
+  const cloue = auContact && !departLibre({ active: enemy, battle }) && !peutSacrifierLAvantage({ active: enemy, battle });
+  let movement = cloue ? 0 : Math.floor(effectiveMovement(geom) * (cavalryCharge ? 2 * runMultiplier(geom.traits) : 1));
   const flyM = flyMeters(enemy.traits); // Vol (Indice) (LDB 85 l.433) : remplace la Marche s'il porte plus loin
-  if (flyM != null) movement = Math.max(movement, Math.floor(flyM / 2));
+  if (flyM != null && !cloue) movement = Math.max(movement, Math.floor(flyM / 2));
   const perceived = perceivedTiles(
     { scene, battle, party: get().party, meneurChoisi: get().meneurChoisi, partyPos: get().partyPos, gameTime: get().gameTime, lightLevel: get().lightLevel },
     enemy,
@@ -8457,10 +8494,10 @@ export function resumeSuspendedAI(get: Get, set: SetFn): void {
  *  (`advanceTurn`), la pause de début de Round (`enterRoundStartPause`), le premier Tour du Round après les
  *  tirs d'interruption (`ouvrirLeRound`) et le `turn` de recette (`devtools.ts`). Le site y ajoute ce qui
  *  lui est propre (index du Tour, Mouvement/Action déjà perdus, état de Round). Une valeur neuve par appel (`reachable`). */
-export function etatDeTourNeuf(): Pick<BattleState, 'action' | 'selectedAttack' | 'selectedSpellId' | 'movementUsed' | 'movedPreAction' | 'acted'
+export function etatDeTourNeuf(): Pick<BattleState, 'action' | 'selectedAttack' | 'selectedSpellId' | 'movementUsed' | 'movedPreAction' | 'acted' | 'balayagesDuTour'
   | 'loadoutSwapped' | 'stances' | 'reachable' | 'preview' | 'runBudget' | 'fearGate' | 'moveSnapshot'> {
   return {
-    action: null, selectedAttack: undefined, selectedSpellId: null, movementUsed: 0, movedPreAction: false, acted: false,
+    action: null, selectedAttack: undefined, selectedSpellId: null, movementUsed: 0, movedPreAction: false, acted: false, balayagesDuTour: undefined,
     loadoutSwapped: false, stances: {}, reachable: new Map(), preview: null, runBudget: null, fearGate: null, moveSnapshot: null,
   };
 }
@@ -8622,7 +8659,7 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   const swarms = battle.combatants.filter((s) => s.swarm && !isOutOfAction(s));
   if (swarms.length)
     for (const c of battle.combatants) {
-      if (c.swarm || isOutOfAction(c) || !(c.engagedWith ?? []).some((id) => swarms.some((s) => s.id === id))) continue;
+      if (c.swarm || isOutOfAction(c) || !swarms.some((s) => isEngagedWith(c, s))) continue;
       const consequences: LignesEtFaits = { lignes: [], faits: [] };
       loseWounds(c, 1, consequences);
       // Les faits d'État de `consequences` sont ceux qui portent une ligne (`emettreDans`), au même rang.
@@ -9136,10 +9173,7 @@ type SourceNeuve = { source: SourceEnVue; id: string; label: PlayerText; kind: s
 
 /** Plus grand Avantage des Engagés de `c`, que lit Belliqueux. LDB 85 l.51 ; LDB 13 l.169-171 */
 function avantageDesEngages(battle: BattleState, c: Combatant): number | undefined {
-  const adv = (c.engagedWith ?? [])
-    .map((id) => inBattleId(battle, id))
-    .filter((e): e is Combatant => !!e && !isOutOfAction(e))
-    .map((e) => e.advantage ?? 0);
+  const adv = engagesDe(c, battle.combatants).map((e) => e.advantage ?? 0);
   return adv.length ? Math.max(...adv) : undefined;
 }
 
@@ -9615,7 +9649,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // de l'enfourcher (aucun jet → simple Mouvement ; il pourra ensuite ATTAQUER, mais pas se déplacer en plus).
   // Le groupe choisit sa monture hors combat (#4804).
   let justMounted = false;
-  if (!enemy.mountId && !isEngaged(enemy) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
+  if (!enemy.mountId && !isEngaged(enemy, battle.combatants) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
     const freeMount = mountableNear(get(), battle, scene, enemy);
     if (freeMount) {
       mountUp(enemy, freeMount);
@@ -9848,9 +9882,8 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     }
     case 'deplacement': {
       if (action.fuite) lacherLeBouclierDuBinome(get, set, enemy); // ZI 13 l.193
-      // Simplification IA assumée (sévérité mineure, relevée par la revue de fidélité) :
-      //  • l'IA ne fait JAMAIS de Désengagement (option joueur, LDB 15 l.43-49) : un
-      //    ennemi Engagé qui se repositionne ne paie pas l'Esquive/le sacrifice d'Avantage.
+      const depart = partirDuContact(get, enemy); // LDB 15 l.43-49
+      if (depart) battle.log.push(ev('deplacement', depart, enemy.id));
       // PARITÉ d'approche (LDB 15 l.35-41) : Charge à portée de Course si la Marche ne suffit pas,
       // sinon Course (Test de `course` instantané, pas d'attaque ce tour) — cf. aiApproachPlan.
       const { plan, ran } = aiApproachPlan(input, geom, action, battleRng());

@@ -47,7 +47,7 @@ describe('onWoundLoss — TOUTE perte de PB (mêlée OU distance) ; le type voya
   const alive = (over: Partial<Combatant> = {}) => mk({ wounds: blessuresDeBase(10), ...over });
 
   it('Sang corrosif éclabousse les Engagés même sur une perte à DISTANCE (RAW LDB 85 l.310 : « chaque fois »)', () => {
-    const acid = alive({ id: 'ac', traits: [{ id: 'sang-corrosif' }] as never });
+    const acid = alive({ id: 'ac', traits: [{ id: 'sang-corrosif' }] as never, engagedWith: ['fo'] as never });
     const foe = alive({ id: 'fo', engagedWith: ['ac'] as never });
     const g = (() => ({ battle: { combatants: [acid, foe] } })) as never;
     const before = foe.wounds.current;

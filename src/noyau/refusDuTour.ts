@@ -40,8 +40,8 @@ export function refusCoque(c: Combatant): string | null {
 }
 
 /** Le porteur est déjà Engagé (LDB 15 l.43-49). */
-export function refusEngage(c: Combatant): string | null {
-  return isEngaged(c) ? t('agate.alreadyEngaged') : null;
+export function refusEngage(roster: readonly Combatant[], c: Combatant): string | null {
+  return isEngaged(c, roster) ? t('agate.alreadyEngaged') : null;
 }
 
 /** Aucun Mouvement à dépenser ce Tour (`mountMovement`, celui de la monture si cavalier). */
@@ -74,16 +74,16 @@ export function refusDuBinome(scene: Scene | null, battle: Pick<BattleState, 'co
 
 /** Ce que la Course exige du PORTEUR (LDB 15 l.41 ; Brisé : LDB 16 l.52), hors de l'économie du Tour : lu tel quel
  *  par le plan d'approche de l'IA (`aiApproachPlan`), qui décide avant d'avoir agi. */
-export function refusDeCourseDuPorteur(c: Combatant): string | null {
-  return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusEngage(c) ?? refusRampe(c) ?? refusSansCourse(c);
+export function refusDeCourseDuPorteur(roster: readonly Combatant[], c: Combatant): string | null {
+  return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusEngage(roster, c) ?? refusRampe(c) ?? refusSansCourse(c);
 }
 
 /** Verdict de la Course (LDB 15 l.41), lu par le gate `course-possible`, `ouvrirLaCourse` et `computeRunReach`. */
 export function refusDeCourse(scene: Scene | null, battle: BattleState, c: Combatant): string | null {
-  return refusActionDepensee(battle) ?? refusDeCourseDuPorteur(c) ?? refusDuBinome(scene, battle, c) ?? refusSansMouvement(battle, c);
+  return refusActionDepensee(battle) ?? refusDeCourseDuPorteur(battle.combatants, c) ?? refusDuBinome(scene, battle, c) ?? refusSansMouvement(battle, c);
 }
 
 /** Verdict de la Charge (LDB 15 l.35-37), lu par le gate `charge-possible`, `computeChargeReach` et `attackPlan`. */
 export function refusDeCharge(battle: BattleState, c: Combatant): string | null {
-  return refusEngage(c) ?? refusRampe(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusSansMouvement(battle, c) ?? refusMouvementEntame(battle);
+  return refusEngage(battle.combatants, c) ?? refusRampe(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusSansMouvement(battle, c) ?? refusMouvementEntame(battle);
 }

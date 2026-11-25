@@ -30,7 +30,7 @@ import { nommerNoeud } from './schemas/grammaire/meta';
  *     (`ref.ts#refusDeSpec`) ;
  *  3. un EMPLACEMENT (`choix: true`, joker « au choix ») ne vise jamais une entrée à pool vide
  *     (`LDB 09 l.40`) — garde `#1897` en fin de fichier (`choixSansPoolJoueur`). Pour un TALENT, des
- *     `specs` inline ne font pas un domaine groupé (`LDB 10 l.17` ; `attirant`, `EDOC 12 l.84`) ; une
+ *     `specs` inline ne font pas un domaine groupé (`LDB 10 l.17` ; `attirant`, `EDOC 12 l.83`) ; une
  *     COMPÉTENCE à `specs` est Groupée (`LDB 09 l.40`) et son pool vide est refusé par « aucune
  *     Compétence spécialisable n’a un pool VIDE » (describe `L2 #1548`, catalogue RÉSOLU, inline compris) ;
  *  4. CATALOGUE ⊇ POOL, par construction, sur chaque def.

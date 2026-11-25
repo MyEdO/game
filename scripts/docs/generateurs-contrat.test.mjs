@@ -6,6 +6,7 @@ import { statSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerArbre } from '../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 import { chargerGenerateur, GENERATORS } from './build-all.mjs'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
@@ -13,7 +14,7 @@ const HORS_ARBRE = new Set(['node_modules', '.git'])
 
 /** Chemin relatif → `taille:mtime` de chaque fichier de l'arbre de travail. */
 const instantane = () => new Map(
-  listerArbre(RACINE, { descendre: (rel) => !HORS_ARBRE.has(rel.slice(rel.lastIndexOf('/') + 1)) }).map((rel) => {
+  listerArbre(RACINE, { descendre: (rel) => !HORS_ARBRE.has(rel.slice(rel.lastIndexOf('/') + 1)), porte: porteDeTousLesProjets }).map((rel) => {
     const s = statSync(join(RACINE, rel))
     return [rel, `${s.size}:${s.mtimeMs}`]
   }),

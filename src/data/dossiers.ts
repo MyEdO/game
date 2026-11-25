@@ -5,9 +5,9 @@
  */
 import { entreesDeLaFiche, lireFicheDeDossier, type EntreeNommee, type FicheLue } from './source/dossier';
 
-/** Les fiches `fichiers` (chemin relatif à `docs/dossiers` → JSON de la fiche), lues dans leur ordre. */
-export const lireLesFiches = (fichiers: Readonly<Record<string, unknown>>): readonly FicheLue[] =>
-  Object.entries(fichiers).map(([rel, json]) => lireFicheDeDossier(`docs/dossiers/${rel}`, rel, json));
+/** Les fiches `fichiers` (chemin relatif au dossier `dossier` → JSON de la fiche), lues dans leur ordre. */
+export const lireLesFiches = (dossier: string, fichiers: Readonly<Record<string, unknown>>): readonly FicheLue[] =>
+  Object.entries(fichiers).map(([rel, json]) => lireFicheDeDossier(`${dossier}/${rel}`, rel, json));
 
 /** Les entrées des fiches `fiches`, par fiche puis par famille. */
 export const entreesDesFiches = (fiches: readonly FicheLue[]): readonly EntreeNommee[] =>

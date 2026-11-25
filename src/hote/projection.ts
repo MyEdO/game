@@ -8,6 +8,7 @@
 import { garanti } from '../lib/garanti';
 import {
   activeCombatant,
+  isEngagedWith,
   offreArmee,
   mouvementDuTour,
   fenetreDuJeu,
@@ -264,7 +265,7 @@ function combattant(etat: Jeu, c: Combatant, actif: Combatant | undefined): Comb
     avantage: c.advantage,
     pos: c.pos ? [c.pos.x, c.pos.y, c.pos.z ?? 0] : null,
     distance: Number.isFinite(d) ? d : null,
-    engage: !!actif && c.id !== actif.id && !!actif.engagedWith?.includes(c.id),
+    engage: !!actif && c.id !== actif.id && isEngagedWith(actif, c),
     etats: c.conditions.map((e) => ({ id: e.id, valeur: e.value })),
     horsCombat: horsCombat(c),
     portee: porteeDuCombattant(c),

@@ -43,6 +43,7 @@ import { fileURLToPath } from 'node:url'
 import { constructionsReserveesDuCorpus, recopieDeCanon } from './canonUnique.mjs'
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs'
 import { RACINES_PRESENTES } from './racinesPresentes.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 import { estRetenu, readCorpus, sAppliqueA, viderCorpus } from './sourceCorpus.mjs'
 
 /** La même racine que celle contre laquelle `sourceCorpus.mjs` normalise ses clés. */
@@ -365,7 +366,7 @@ const RECOPIES_DE_CORPUS_FILE = [{
 }]
 
 test('les types des fichiers de corpus dérivent de CorpusFile', () => {
-  const fichiers = readCorpus([...RACINES_PRESENTES, 'scripts'], { tests: true })
+  const fichiers = readCorpus([...RACINES_PRESENTES, 'scripts'], { tests: true, porte: porteDeTousLesProjets })
   assert.deepEqual(constructionsReserveesDuCorpus(fichiers, RECOPIES_DE_CORPUS_FILE), [])
 })
 

@@ -61,9 +61,6 @@ const ATTENDU = {
     // +1 le 2026-10-17 (#2586) : chaque banc de `spawnBorne` pose son fichier de sortie sous un `mkdtempSync`
     // d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/processusBorne.test.mjs',
-    // #2705 : le banc de la porte des comptes forge son dépôt sous un `mkdtempSync` d'os.tmpdir(), effacé en finally ; son
-    // enfant `tsx` pose chaque borne sous un `mkdtempSync` d'os.tmpdir(), effacé en finally. L'arbre n'est jamais écrit.
-    'scripts/guards/comptes-plage.test.mjs',
     // +1 le 2026-10-18 (#2586) : les fichiers de sortie de `spawnBorne` sous un `mkdtempSync` d'os.tmpdir(), retiré
     // par `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/fileBornee.test.mjs',
@@ -198,7 +195,6 @@ const ATTENDU = {
     // exige de VRAIS fichiers à résoudre, et l'arbre du dépôt n'est jamais écrit : mesuré le
     // 2026-09-18, `git status --porcelain` identique avant/après, et `/tmp` sans résidu.
     'scripts/guards/lib/modulesFeuilles.test.mjs',
-    'scripts/guards/lib/plageStock.test.mjs',
     // +1 le 2026-10-08 (#2503) : le banc de la porte d'une ÈRE forge des dépôts JETABLES
     // (`instanceDeDepot` sous os.tmpdir(), `rmSync` en finally) dont il charge l'ère ; l'arbre du dépôt
     // n'est jamais écrit.
@@ -461,7 +457,7 @@ const ATTENDU = {
     // (`ecrireFiche`, `dir` jetable) qui arme la table ; l'arbre n'est jamais écrit.
     'scripts/ops/workflows-joues.test.mjs',
     // +1 le 2026-10-05 (#2290) : le lanceur `workflow-args.mjs`, IMPORTÉ par le banc des workflows joués
-    // pour projeter les args ; son écriture sous `docs/dossiers/` vit dans sa seule CLI `ecrire-fiche`,
+    // pour projeter les args ; son écriture sous `projets/<projet>/dossiers/` vit dans sa seule CLI `ecrire-fiche`,
     // que la gate ne lance pas — le banc lui passe un `dir` jetable d'os.tmpdir().
     'scripts/raw/workflow-args.mjs',
     // +2 le 2026-10-05 (#2280) : `vigie.mjs` garde les verdicts `verte` sous `<arbre principal>/.git/vigie/`
@@ -721,6 +717,10 @@ const ATTENDU = {
     // DANS l'arbre, même classe que `anchor-fill.mjs` ci-dessus.
     'scripts/raw/lib/pdf-extract.mjs',
     'scripts/raw/reanchor-split.mjs',
+    // #4397 : le banc de `--remap` sur le code écrit un fichier source JETABLE (`mkdtempSync` + `writeFileSync`
+    // sous `os.tmpdir()`, `rmSync` en finally). Aucune écriture DANS l'arbre : même classe que
+    // `check-source-format.test.mjs` ci-dessus.
+    'scripts/raw/reanchor.test.mjs',
     'scripts/raw/reconcile.test.mjs',
     // +1 le 2026-09-21 (#1739 S1) : `recouper-source.test.mjs` importe le re-coupeur des `.md` en
     // service pour éprouver son cœur PUR (`recouper`, `planDe`, `contenuDe`, `indexDe`, `recalerStock`)
@@ -751,7 +751,7 @@ const ATTENDU = {
     // finally ; depuis #2290 il y fait aussi écrire les fiches de dossier par `ecrireFiche`.
     'scripts/raw/workflow-args.test.mjs',
     // +1 le 2026-10-05 (#2290) : le lanceur ÉCRIT la fiche d'un run de `dossier-de-chapitre`
-    // (`ecrireFiche`) — sous `docs/dossiers/` par sa seule CLI `ecrire-fiche`, que la gate ne lance
+    // (`ecrireFiche`) — sous `projets/<projet>/dossiers/` par sa seule CLI `ecrire-fiche`, que la gate ne lance
     // pas ; ses bancs lui passent un `dir` sous `mkdtempSync` de os.tmpdir(), et sa copie de garde
     // (`chargerDossiers` avant écriture) naît et meurt sous os.tmpdir(). L'arbre n'est jamais écrit.
     'scripts/raw/workflow-args.mjs',
@@ -891,6 +891,10 @@ const ATTENDU = {
   // lit `jeuxPilotesDeFront` de `construire.mjs`, et lance `recette.mjs --natif` en sous-processus, dont `piloter`
   // (`construire.mjs`) dépose les GLB (`ecritFerme`).
   'godot:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  // #4936, ECRIT_LU (`scripts/gates/toutes.mjs`) : `jeu-de-role:construire` est `pont:godot` sur l'entrée du jeu de rôle,
+  // `jeu-de-role:recette` le lot natif de `godot:recette` réduit à ses jeux.
+  'jeu-de-role:construire': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
+  'jeu-de-role:recette': ['scripts/guards/lib/protectionWorktree.mjs', 'hotes/godot/avis.mjs', 'hotes/godot/construire.mjs', 'hotes/godot/listage.mjs', 'hotes/godot/lot-de-recettes.mjs', 'hotes/godot/planches.mjs', 'hotes/godot/stockage.mjs', 'scripts/guards/lib/ecritureJsonAtomique.mjs', 'scripts/guards/lib/renommageResilient.mjs', 'scripts/test/verrou.mjs'],
   // #4929, ECRIT_LU (`scripts/gates/toutes.mjs`) : `construire.mjs` écrit la page et ses feuilles sous `dist/roguelite/`
   // (`ecritFerme`), que git ignore ; `lot.mjs` écrit la partie fixe et les captures sous `dist/roguelite-recette/`, que
   // git ignore et qu'aucune gate ne lit.

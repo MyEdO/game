@@ -460,6 +460,7 @@ export const fr = {
   'valeur.pitance.ration': 'Ration',
   'valeur.pitance.rien': 'Rien',
   'valeur.test.guerison': 'Guérison',
+  'valeur.test.soin-aux-animaux': 'Soin aux animaux',
   'valeur.test.dexterite': 'Dextérité',
   ...parametres,
   // Le titre d'une fenêtre qui tient la main (`libelleDeLaFenetre`, `noyau/libelles.ts`), par sa clé (`CLES_DE_FENETRE`).
@@ -3388,6 +3389,9 @@ export const fr = {
   'heal.raisonSansMunition': 'Aucune munition logée',
   'heal.raisonHorsCombat': 'Ce soin ne se pratique pas en combat.',
   'heal.raisonSansGuerison': 'Sans la Compétence Guérison',
+  'heal.raisonSansSoinAuxAnimaux': 'Sans la Compétence Soin aux animaux',
+  'heal.raisonPasUnAnimal': 'Soin aux animaux ne soigne que les animaux',
+  'heal.raisonSoinAuxAnimauxHorsActe': 'Soin aux animaux soigne les Blessures et stoppe une Hémorragie',
   'heal.raisonDexteriteSansFiche': 'Ce soigneur ne jette que sa Guérison',
   'heal.raisonDexteriteHorsHemorragie': 'La Dextérité n’arrête que l’Hémorragie',
   'heal.raisonDexteriteSansBandages': 'La Dextérité exige des Bandages',

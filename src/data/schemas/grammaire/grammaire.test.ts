@@ -10,6 +10,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { join, resolve } from 'node:path';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
+import { paquetsDuCommun } from '../../../../scripts/guards/lib/paquetsDuCommun.mjs';
 import { estModule } from '../../../../scripts/guards/lib/importGraph.mjs';
 import { z } from 'zod';
 import merchantsJson from '../../merchants.json';
@@ -1388,13 +1389,13 @@ describe('prose adressée — forme et verrous (#1389 Lot A, épique #1388)', ()
     expect(partielle.safeParse({ label: 'X' }).success, 'sans prose : rien n’est exigé').toBe(true);
   });
 
-  it('les profils de preset du disque passent les verrous de la partielle de créature (#2206)', () => {
-    const disque = JSON.parse(readFileSync(resolve(__dirname, '../../../scenes/diligence/diligence-projet.json'), 'utf8')) as { narratif: { presetsPnj: { id: string; profil?: unknown }[] } };
-    const profils = disque.narratif.presetsPnj.filter((p) => p.profil !== undefined);
+  it('les profils de preset du contenu du commun passent les verrous de la partielle de créature (#2206)', () => {
+    const profils = paquetsDuCommun()
+      .flatMap((rel) => (JSON.parse(readFileSync(rel, 'utf8')) as { narratif?: { presetsPnj?: { id: string; profil?: unknown }[] } }).narratif?.presetsPnj ?? [])
+      .filter((p) => p.profil !== undefined);
     expect(profils.length).toBeGreaterThan(0);
     expect(profils.filter((p) => !creaturePartielle.safeParse(p.profil).success).map((p) => p.id)).toEqual([]);
-    const adresse = profils.map((p) => (p.profil as { descRef?: unknown }).descRef).find((r) => r !== undefined);
-    expect(creaturePartielle.safeParse({ desc: 'Une prose.', descRef: adresse }).success, 'V1 sur la partielle de créature').toBe(false);
+    expect(creaturePartielle.safeParse({ desc: 'Une prose.', descRef: ADRESSE }).success, 'V1 sur la partielle de créature').toBe(false);
   });
 
   it('V2b — la `source` et l’adresse doivent citer le MÊME livre', () => {

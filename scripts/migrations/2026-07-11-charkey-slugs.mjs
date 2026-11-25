@@ -6,7 +6,7 @@
  * Réécrit via `serializeDataset` (2 espaces, PAS de newline final) — round-trip byte-fidèle.
  *
  * Entrées : `src/data/*.json` (tous les datasets, `readdirSync`) + les 3 projets de scène
- * (`src/scenes/{arene,barge-du-sel,loup-et-saumure}/*-projet.json`).
+ * (`projets/jeu-de-role/campagnes/{arene,barge-du-sel,loup-et-saumure}/*-projet.json`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -17,9 +17,9 @@ import { estObjet } from '../../src/lib/objet.mjs';
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
 const SCENES = [
-  'src/scenes/arene/arene-projet.json',
-  'src/scenes/barge-du-sel/barge-du-sel-projet.json',
-  'src/scenes/loup-et-saumure/loup-et-saumure-projet.json',
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json',
+  'projets/jeu-de-role/campagnes/barge-du-sel/barge-du-sel-projet.json',
+  'projets/jeu-de-role/campagnes/loup-et-saumure/loup-et-saumure-projet.json',
 ].map((p) => path.join(ROOT, p));
 
 const OLD_TO_NEW = {

@@ -290,7 +290,7 @@ const interiorCellsByScene = memoByRef((_scene: Pick<Scene, 'dimensions' | 'effe
  *
  *  `intérieur(z) = CLOS(z) (complément de `outdoorCells`) privé des cases déclarées `presentation:
  *  'exterior'` à cet étage.` L'ENCLOSURE SEULE (une boucle fermée de murs) NE SUFFIT PAS : une enceinte
- *  close n'est pas un bâtiment couvert. Mesuré sur `diligence-projet.json` (#881, la propriété entière
+ *  close n'est pas un bâtiment couvert. Mesuré sur un paquet livré (#881, la propriété entière
  *  est ceinte d'un mur d'enceinte) :
  *   rez    clos 1066 − exterior 472 = 594   (l'auteur avait déclaré 593 `interior` ; écart de 1 case
  *          dérivée sans déclaration, (10,36))

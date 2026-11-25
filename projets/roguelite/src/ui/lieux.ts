@@ -6,7 +6,7 @@
  * lieu ; un carton (récit d'une salle, Recommencer) n'y laisse que le cartouche et le socle.
  */
 import * as J from '../jeu';
-import { ficheDuSort, nomDeCreature, partiesDuTest, type Epreuve } from '../noyau';
+import { deElide, ficheDuSort, nomDeCreature, nomDeMaladie, partiesDuTest, type Epreuve } from '../noyau';
 import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
@@ -92,7 +92,7 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
       <div class="coins haut" ${place(CADRES_DE_L_HOTE['coins-du-hameau'])}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       ${actionDuHameau(e)}`,
     socle: !carte && service ? service.socle : socleDuHameau,
-    vide: 'La compagnie est vide. Engagez des voyageurs à l’auberge relais : quand la bourse est vide, l’un d’eux sert sans solde.',
+    vide: 'La compagnie est vide. Engagez des voyageurs à l’auberge relais : ils s’engagent sans frais.',
   });
   return `<div class="ecran hameau">
     <div class="panorama"><div class="toile">${sceneDuHameau(e.batiments)}${fiche || carte || service ? '' : J.BATIMENTS.map((b) => enseigne(e, b)).join('')}</div></div>
@@ -101,10 +101,17 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
   </div>`;
 }
 
-export const NOM_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'Embuscade', elite: 'Élite', camp: 'Camp', tresor: 'Cache', rencontre: 'Rencontre', boss: 'Maître' };
-export const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = { combat: 'duel', elite: 'bouclier', camp: 'tente', tresor: 'coffre', rencontre: 'balance', boss: 'couronne' };
-/** La gravure d'une salle : la rencontre se tient au campement des voyageurs. */
-export const VIGNETTE_DE_SALLE: Record<J.TypeDeSalle, Vignette> = { combat: 'combat', elite: 'elite', camp: 'camp', tresor: 'tresor', rencontre: 'camp', boss: 'boss' };
+export const NOM_DE_SALLE: Record<J.TypeDeSalle, string> = {
+  combat: 'Embuscade', elite: 'Élite', camp: 'Camp', tresor: 'Cache', rencontre: 'Rencontre', autel: 'Autel', puits: 'Puits', blesse: 'Blessé', boss: 'Maître',
+};
+export const PICTO_DE_SALLE: Record<J.TypeDeSalle, string> = {
+  combat: 'duel', elite: 'bouclier', camp: 'tente', tresor: 'coffre', rencontre: 'balance', autel: 'crane', puits: 'pot', blesse: 'soin', boss: 'couronne',
+};
+/** La gravure d'une salle : la rencontre et le blessé se tiennent au bord du chemin, l'autel et le puits gardent un
+ *  butin. */
+export const VIGNETTE_DE_SALLE: Record<J.TypeDeSalle, Vignette> = {
+  combat: 'combat', elite: 'elite', camp: 'camp', tresor: 'tresor', rencontre: 'camp', autel: 'tresor', puits: 'tresor', blesse: 'camp', boss: 'boss',
+};
 
 /** Les sacs du groupe : une rangée par héros ; un clic sur une case utilise l'objet ; la Bénédiction de Guérison d'un
  *  Béni est une case de plus, une fois par expédition, sur le plus blessé. */
@@ -125,14 +132,20 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[]) {
 const pieceDEpreuve = (classe: string, marque: string, rub: string, corps: string, geste = '') =>
   `<${geste ? `button type="button" ${geste}` : 'article'} class="piece-epreuve ${classe}">${marque}<span class="dit"><span class="rub">${rub}</span>${corps}</span></${geste ? 'button' : 'article'}>`;
 
-/** Les Blessures que coûte l'échec d'une épreuve : celles que sa branche d'échec inflige. */
-function blessuresDeLEchec(ep: Epreuve): number {
+/** Ce que coûte l'échec d'une épreuve, dit par les ops de sa branche d'échec : les Blessures qu'elle inflige, la
+ *  Corruption et la maladie auxquelles elle expose ; `undefined` si elle ne coûte rien. */
+function risqueDeLEchec(ep: Epreuve): string | undefined {
   const f = ep.flux.echec;
-  return f?.kind === 'effet' && f.effet.type === 'ops' ? f.effet.ops.reduce((n, o) => n + (o.op === 'wounds' && typeof o.amount === 'number' ? o.amount : 0), 0) : 0;
+  const ops = f?.kind === 'effet' && f.effet.type === 'ops' ? f.effet.ops : [];
+  const blessures = ops.reduce((n, o) => n + (o.op === 'wounds' && typeof o.amount === 'number' ? o.amount : 0), 0);
+  const risques = [...(blessures ? [`−${blessures} Blessures`] : []),
+    ...ops.flatMap((o) => (o.op === 'corruptionExposure' ? ['Corruption'] : o.op === 'exposeDisease' ? [nomDeMaladie(o.disease.id)] : []))];
+  return risques.length ? `Raté : ${risques.join(', ')}` : undefined;
 }
 
 const PICTO_D_ACTION: Record<J.ActionDeSalle, string> = {
-  fouiller: 'oeil', desarmer: 'systeme', parlementer: 'balance', intimider: 'duel', passer: 'route', reposer: 'lune', soigner: 'soin',
+  fouiller: 'oeil', desarmer: 'systeme', parlementer: 'balance', intimider: 'duel', purifier: 'croix', piller: 'pieces', descendre: 'route',
+  sonder: 'oeil', panser: 'soin', questionner: 'balance', passer: 'route', reposer: 'lune', soigner: 'soin',
 };
 
 /** L'action que la salle ouverte attend au socle : l'action à jet et son héros, ou le soin du camp, son soigneur puis
@@ -160,10 +173,9 @@ function offresDeLaSalle(e: J.Etat): { titre: string; annonce: string; offres: O
   const offre = (id: J.IdActionAJet): Offre => {
     const a = J.ACTIONS_A_JET[id];
     const parties = a.epreuves.map((ep) => partiesDuTest(ep.flux));
-    const blessures = blessuresDeLEchec(a.epreuves[0]);
     const c = a.consequence;
-    const risque = c?.type === 'combat' ? 'Raté : un combat' : c?.type === 'bourse' ? `Raté −${Math.round(c.part * d.or)} CO au plus` : blessures ? `Raté −${blessures} Blessures` : undefined;
-    return { id, libelle: a.libelle, rub: `Test de ${parties.map((p) => p.competence).join(' ou ')}`, difficulte: parties[0].difficulte, gain: s.gain.libelle, picto: 'pieces', risque, savent: groupe.filter((h) => !J.refusDAction(h, id)).length };
+    const risque = c?.type === 'combat' ? 'Raté : un combat' : c?.type === 'bourse' ? `Raté −${Math.round(c.part * d.or)} CO au plus` : risqueDeLEchec(a.epreuves[0]);
+    return { id, libelle: a.libelle, rub: `Test ${deElide(parties.map((p) => p.competence).join(' ou '))}`, difficulte: parties[0].difficulte, gain: s.gain.libelle, picto: 'pieces', risque, savent: groupe.filter((h) => !J.refusDAction(h, id)).length };
   };
   return { titre: s.titre, annonce: s.annonce, offres: [
     ...(Object.keys(s.actions) as J.IdActionAJet[]).map(offre),
@@ -241,15 +253,22 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
 }
 
 /** Le récit d'une épreuve en pièces : le Test (qui le passe, sa Compétence et sa Difficulté, son issue et ses DR au sceau
- *  de cire), chaque touché à son portrait (s'il est encore du groupe), ses Blessures avant et après et sa vie restante
- *  en jauge, la bourse prise ou perdue (s'il y en a une) en couronnes ; dessous, ce qu'il advient. */
+ *  de cire), chaque héros marqué à son portrait (s'il est encore du groupe) : touché, ses Blessures avant et après et sa
+ *  vie restante en jauge ; sa Corruption avant et après face au seuil, ses maladies contractées et ses mutations ; la
+ *  bourse prise ou perdue (s'il y en a une) en couronnes ; dessous, ce qu'il advient. */
 function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string {
   const dr = `${x.dr >= 0 ? '+' : '−'}${Math.abs(x.dr)}`;
-  let pieces = pieceDEpreuve(`test ${x.reussite ? 'reussi' : 'rate'}`, `<div class="marque-dr"><div class="sceau maitre${x.reussite ? ' reussite' : ''}"><b>${dr}</b></div><span class="rub">DR</span></div>`, `Test de ${esc(x.competence)}`,
+  let pieces = pieceDEpreuve(`test ${x.reussite ? 'reussi' : 'rate'}`, `<div class="marque-dr"><div class="sceau maitre${x.reussite ? ' reussite' : ''}"><b>${dr}</b></div><span class="rub">DR</span></div>`, esc(`Test ${deElide(x.competence)}`),
     `<span class="nom-propre moyen gothique">${esc(x.nom)}</span><span class="issue"><span class="etiquette rectangle cire">${x.reussite ? 'Réussi' : 'Raté'}</span>${x.difficulte ? `<span class="difficulte">${esc(x.difficulte)}</span>` : ''}</span>`);
   for (const v of x.victimes) {
     const h = heros.find((g) => g.c.id === v.id);
-    pieces += pieceDEpreuve('touche', h ? portrait(busteDuHeros(h), 'heros', 'moyen') : '', 'Touché·e', `<span class="nom-propre moyen gothique">${esc(v.nom)}</span>${jauge(v.apres / Math.max(1, v.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${v.avant} → ${v.apres} / ${v.max}</b> Blessures</span>`);
+    const { blessures: b, corruption: c } = v;
+    const marques = [
+      ...(b ? [`${jauge(b.apres / Math.max(1, b.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${b.avant} → ${b.apres} / ${b.max}</b> Blessures</span>`] : []),
+      ...(c ? [`<span class="reste"><b class="chiffres">${c.avant} → ${c.apres} / ${c.seuil}</b> Corruption</span>`] : []),
+      ...[...v.maladies, ...v.mutations].map((m) => `<span class="reste"><b>${esc(m)}</b></span>`),
+    ].join('');
+    pieces += pieceDEpreuve('touche', h ? portrait(busteDuHeros(h), 'heros', 'moyen') : '', b ? 'Touché·e' : 'Marqué·e', `<span class="nom-propre moyen gothique">${esc(v.nom)}</span>${marques}`);
   }
   if (x.or) pieces += pieceDEpreuve('bourse', '', esc(x.or > 0 ? x.bourse : 'Perdu'), `<span class="somme">${picto('pieces', 26, 1.7)}<b class="chiffres">${x.or > 0 ? '+' : '−'}${Math.abs(x.or)}</b> CO</span>`);
   return `<div class="recit epreuve"><div class="pieces-epreuve">${pieces}</div><p>${esc(x.dit)}</p></div>`;
@@ -284,7 +303,7 @@ export function recommencerEnCarton(): string {
   return carton({
     ruban: 'Recommencer', titre: 'Recommencer ?', surTitre: 'Grisefosse',
     vignette: 'recommencer',
-    texte: '<div class="recit"><p>Le hameau, la compagnie et le Jardin de Morr seront effacés.</p></div>',
+    texte: '<div class="recit"><p>Le hameau et la compagnie seront effacés.</p></div>',
     gestes: `${plaque('Garder ma partie', 'data-a="fermer"', { armee: true })}${plaque('Tout effacer', 'data-a="reset-ok"')}`,
   });
 }

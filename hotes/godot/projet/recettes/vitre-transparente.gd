@@ -14,7 +14,7 @@ extends SceneTree
 ## (`MontageDeVehicule.voiler`, `art/voile.gdshader`), les pixels de sa vitre gardent la part de lumière de l'exploré, à
 ## `TOLERANCE` près : la vitre se voile avec ce qu'elle montre.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")

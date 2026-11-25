@@ -25,21 +25,36 @@ import { isStructure } from './structures';
 import { possesses } from './skills';
 import { objetDuTrapping } from './items';
 import { nomDe } from './nom';
+import { groupMatch, groupesDe } from './groups';
 import type { Applique } from './faits';
 
 /** Id STABLE de la Compétence des actes de soin — source unique des sites qui la testent ou la lisent. */
 export const HEAL_SKILL = 'guerison';
 
+/** Id STABLE de la Compétence Soin aux animaux (LDB 09 l.521). */
+export const SOIN_AUX_ANIMAUX = 'soin-aux-animaux';
+
+/** `patient` est-il un animal, que soigne Soin aux animaux ? Le Groupe `animaux` (`groups.json`, maison #3045). LDB 09 l.535 */
+export function estUnAnimal(patient: Combatant): boolean {
+  return groupMatch('animaux', groupesDe(patient));
+}
+
+/** Les actes que Soin aux animaux traite. LDB 09 l.527-528 */
+const ACTES_DU_SOIN_AUX_ANIMAUX: readonly HealMode[] = ['blessures', 'hemorragie'];
+
 /** Id STABLE du trapping Bandages (LDB 74 l.41). */
 export const BANDAGES = 'bandages';
 
-/** Le Test d'un soin : Guérison (LDB 09 l.255-261) ou Dextérité sous Bandages (LDB 74 l.41). */
-export type TestDeSoin = 'guerison' | 'dexterite';
+/** Le Test d'un soin : Guérison (LDB 09 l.255-261), Soin aux animaux (LDB 09 l.521-528) ou Dextérité sous Bandages
+ *  (LDB 74 l.41). */
+export type TestDeSoin = 'guerison' | 'soin-aux-animaux' | 'dexterite';
 /** Les Tests de soin offerts au choix du soigneur, dans l'ordre de la fenêtre. */
-export const TESTS_DE_SOIN: readonly TestDeSoin[] = ['guerison', 'dexterite'];
+export const TESTS_DE_SOIN: readonly TestDeSoin[] = ['guerison', 'soin-aux-animaux', 'dexterite'];
 
 /** Les ids testés par chaque Test de soin. */
-export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = { guerison: { skill: { id: HEAL_SKILL } }, dexterite: { characteristic: 'dexterite' } };
+export const IDS_DU_TEST_DE_SOIN: Record<TestDeSoin, TestIds> = {
+  guerison: { skill: { id: HEAL_SKILL } }, 'soin-aux-animaux': { skill: { id: SOIN_AUX_ANIMAUX } }, dexterite: { characteristic: 'dexterite' },
+};
 
 /** Ce que le soigneur déclare avant le jet, lu à l'identique par l'annonce et par le résolveur. */
 export interface ParametresDeSoin { test: TestDeSoin; bandages: boolean }
@@ -60,28 +75,33 @@ export function retirerUnBandage(c: Combatant): boolean {
 /** Les actes où les Bandages agissent : LDB 09 l.260 (Blessures), LDB 74 l.41 (Hémorragie). */
 export const actePanse = (mode: HealMode): boolean => mode === 'blessures' || mode === 'hemorragie';
 
-/** Pourquoi le Test déclaré `p.test` est refusé au soigneur pour l'acte `mode`, `null` s'il s'offre. `soigneur` `null` :
- *  un PNJ soigneur, sans fiche, qui ne jette que sa Guérison imprimée. Dextérité : LDB 74 l.41 ; Hémorragie seule ;
+/** Pourquoi le Test déclaré `p.test` est refusé au soigneur pour l'acte `mode` sur `patient`, `null` s'il s'offre. `soigneur` `null` :
+ *  un PNJ soigneur, sans fiche, qui ne jette que sa Guérison imprimée. Soin aux animaux : LDB 09 l.527-528, l.535. Dextérité : LDB 74 l.41 ; Hémorragie seule ;
  *  décision de l'orchestrateur (2026-11-03, #3059) : ouverte à tout soigneur, Bandages exigés. VERDICT UNIQUE de
  *  l'ouverture (`soinDOuverture`), du choix du Test (réglage `soins.test`), du choix d'acte (réglage `soins.mode`) et de la fenêtre. */
-export function refusDuTestDeSoin(soigneur: Combatant | null, mode: HealMode, p: ParametresDeSoin): string | null {
+export function refusDuTestDeSoin(soigneur: Combatant | null, mode: HealMode, p: ParametresDeSoin, patient: Combatant): string | null {
   if (p.test === 'guerison') return soigneur && !possesses(soigneur, { id: HEAL_SKILL }) ? t('heal.raisonSansGuerison') : null;
+  if (p.test === 'soin-aux-animaux') {
+    if (!estUnAnimal(patient)) return t('heal.raisonPasUnAnimal');
+    if (!ACTES_DU_SOIN_AUX_ANIMAUX.includes(mode)) return t('heal.raisonSoinAuxAnimauxHorsActe');
+    return soigneur && possesses(soigneur, { id: SOIN_AUX_ANIMAUX }) ? null : t('heal.raisonSansSoinAuxAnimaux');
+  }
   if (!soigneur) return t('heal.raisonDexteriteSansFiche');
   if (mode !== 'hemorragie') return t('heal.raisonDexteriteHorsHemorragie');
   return p.bandages ? null : t('heal.raisonDexteriteSansBandages');
 }
 
-/** Le soin qu'un soigneur combattant ouvre pour l'acte `mode` : la Guérison s'il la possède, sinon la Dextérité sous SES
- *  Bandages ; `null` : aucun. */
-export function soinDOuverture(soigneur: Combatant, mode: HealMode): ParametresDeSoin | null {
-  const options: ParametresDeSoin[] = [{ test: 'guerison', bandages: false }, { test: 'dexterite', bandages: porteDesBandages(soigneur) }];
-  return options.find((p) => refusDuTestDeSoin(soigneur, mode, p) === null) ?? null;
+/** Le soin qu'un soigneur combattant ouvre pour l'acte `mode` sur `patient` : la Guérison s'il la possède, sinon Soin aux
+ *  animaux (LDB 09 l.527-528), sinon la Dextérité sous SES Bandages ; `null` : aucun. */
+export function soinDOuverture(soigneur: Combatant, mode: HealMode, patient: Combatant): ParametresDeSoin | null {
+  const options: ParametresDeSoin[] = [{ test: 'guerison', bandages: false }, { test: 'soin-aux-animaux', bandages: false }, { test: 'dexterite', bandages: porteDesBandages(soigneur) }];
+  return options.find((p) => refusDuTestDeSoin(soigneur, mode, p, patient) === null) ?? null;
 }
 
-/** Difficulté du Test de soin déclaré : Guérison, `healDifficulty` ; Dextérité, décision de l'orchestrateur (2026-11-03,
- *  #3059, maison) : Intermédiaire (+0). */
+/** Difficulté du Test de soin déclaré : Guérison, `healDifficulty` ; Soin aux animaux, `healDifficulty`, arbitrage
+ *  utilisateur (2026-11-25, #4804) ; Dextérité, décision de l'orchestrateur (2026-11-03, #3059, maison) : Intermédiaire (+0). */
 export function difficulteDuSoin(test: TestDeSoin, mode: HealMode): Difficulty {
-  return test === 'guerison' ? healDifficulty(mode) : 'intermediaire';
+  return test === 'dexterite' ? 'intermediaire' : healDifficulty(mode);
 }
 
 /** Le personnage possède-t-il le Talent Chirurgie (LDB 10) ? Prérequis pour opérer une blessure
@@ -166,7 +186,7 @@ export function raisonDeModeDeSoinEnCombat(target: Combatant, mode: HealMode): s
 /** Modes de soin qu'un soigneur combattant OUVRE sur `target` en combat (`soinDOuverture`) : lus par le ciblage-carte
  *  (mode par défaut) et par l'offre de la barre d'actions. */
 export function modesDOuverture(target: Combatant, soigneur: Combatant): HealMode[] {
-  return HEAL_MODES.filter((m) => raisonDeModeDeSoinEnCombat(target, m) === null && soinDOuverture(soigneur, m) !== null);
+  return HEAL_MODES.filter((m) => raisonDeModeDeSoinEnCombat(target, m) === null && soinDOuverture(soigneur, m, target) !== null);
 }
 
 /** Les cibles soignables de `pool` (`isHealable`) ; l'appelant borne `pool` à ce que `healer` atteint. */
@@ -174,18 +194,18 @@ export function healableTargets(pool: Combatant[]): Combatant[] {
   return pool.filter(isHealable);
 }
 
-/** Soin de Blessures (LDB 09 l.260) : succès ⇒ BI+DR (plancher 0) ; échec ⇒ si BI+DR<0, perte de
- *  |BI+DR| PB (sinon 0). Renvoie le delta de PB (positif = soin, négatif = dégât). */
-export function healWoundsDelta(intBonus: number, dr: number, success: boolean): number {
+/** Soin de Blessures du Test `test` (LDB 09 l.260, l.527) : succès ⇒ BI+DR (plancher 0) ; échec de Guérison (l.262) ⇒ si
+ *  BI+DR<0, perte de |BI+DR| PB (sinon 0). Renvoie le delta de PB (positif = soin, négatif = dégât). */
+export function healWoundsDelta(intBonus: number, dr: number, success: boolean, test: TestDeSoin): number {
   const total = intBonus + dr;
   if (success) return Math.max(0, total);
-  return total < 0 ? total : 0;
+  return test === 'guerison' && total < 0 ? total : 0;
 }
 
-/** Arrêt d'Hémorragie (LDB 09 l.261 / LDB 16 l.107 ; LDB 74 l.41). Décision de l'orchestrateur (2026-11-03,
- *  #3059) : la Dextérité sous Bandages retire 1 État. Rend les États retirés. */
+/** Arrêt d'Hémorragie (LDB 09 l.261 / LDB 16 l.107 ; LDB 74 l.41 ; LDB 09 l.528). Décision de l'orchestrateur
+ *  (2026-11-03, #3059) : la Dextérité sous Bandages retire 1 État. Rend les États retirés. */
 export function stopBleedOutcome(dr: number, stacks: number, success: boolean, p: ParametresDeSoin): number {
-  const bonus = p.test === 'dexterite' ? 0 : dr + (p.bandages ? 1 : 0);
+  const bonus = p.test === 'guerison' ? dr + (p.bandages ? 1 : 0) : 0;
   return recoveredStacks(bonus, stacks, success); // « 1 + bonus » borné, partagé avec Empêtré/En flammes
 }
 
@@ -268,18 +288,19 @@ export function plaieAPanser(c: Pick<Combatant, 'tookCriticalThisFight' | 'wound
   return !!c.tookCriticalThisFight && !c.woundDressed;
 }
 
-/** SOURCE UNIQUE de l'application d'un soin de Blessures (Guérison, mode `blessures`, en combat comme à
- *  l'infirmerie) : delta BI+DR appliqué (mutation), + Infection Mineure sur Échec Stupéfiant (DR ≤ −6, LDB 09) ;
- *  réussi sous Bandages, la Blessure Critique de la rencontre est pansée (`plaieAPanser`, LDB 09 l.260).
+/** SOURCE UNIQUE de l'application d'un soin de Blessures (mode `blessures`) : delta BI+DR appliqué (mutation).
+ *  Guérison (LDB 09 l.260-262) : l'échec peut blesser, Infection Mineure sur Échec Stupéfiant, réussi sous Bandages la
+ *  Blessure Critique de la rencontre est pansée (`plaieAPanser`). Soin aux animaux (LDB 09 l.527) : le succès seul.
  *  Renvoie le journal + le nombre de PB rendus. */
-export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: number, success: boolean, rng: RNG, bandages: boolean): { log: string[]; healed: number } {
+export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: number, success: boolean, rng: RNG, p: ParametresDeSoin): { log: string[]; healed: number } {
   // « Un patient ne peut bénéficier que d'UN JET de Guérison après chaque rencontre » (LDB 09
   // l.260) : le jet est consommé même raté — sans MJ, on relancerait gratuitement jusqu'au succès.
   target.soinRencontreUtilise = true;
-  const healed = healWoundsDelta(intBonus, sl, success);
+  const guerison = p.test === 'guerison';
+  const healed = healWoundsDelta(intBonus, sl, success, p.test);
   const log = applyHealWounds(target, healed);
-  if (success && bandages && plaieAPanser(target)) target.woundDressed = true;
-  if (isAstoundingFailure(success, sl)) {
+  if (guerison && success && p.bandages && plaieAPanser(target)) target.woundDressed = true;
+  if (guerison && isAstoundingFailure(success, sl)) {
     const dz = contractDisease('infection-mineure', rng);
     if (dz && !(target.diseases ?? []).some((d) => d.id === dz.id)) {
       target.diseases = [...(target.diseases ?? []), dz];
@@ -289,7 +310,7 @@ export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: numbe
   return { log, healed };
 }
 
-/** SOURCE UNIQUE de l'arrêt d'Hémorragie (Guérison) : applique si réussi, message d'échec sinon. */
+/** SOURCE UNIQUE de l'arrêt d'Hémorragie (Guérison, Soin aux animaux LDB 09 l.528, Dextérité) : applique si réussi, message d'échec sinon. */
 export function resolveBleedHeal(target: Combatant, sl: number, success: boolean, p: ParametresDeSoin): string[] {
   return success ? applyStopBleed(target, sl, p) : [t('heal.bleedResists', { name: nomDe(target) })];
 }

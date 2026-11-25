@@ -15,20 +15,22 @@
  *
  * Entrées : `src/data/skills.json`, `src/data/weaponGroups.json`, `src/data/domains.json`
  * (catalogues de résolution) + `src/data/*.json` (tous les datasets, `readdirSync`) +
- * `src/scenes/**.json` (marche récursive) + l'authoring TS `src/scenes/test-scenarios/96-presets-edo.ts`.
+ * `src/scenes/**.json` (marche récursive) + les projets livrés `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`)
+ * + l'authoring TS `projets/jeu-de-role/scenarios/96-presets-edo.ts`.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { SOURCES_DE_SPECS } from '../../src/data/schemas/grammaire/sourcesDeSpecs.ts';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');
 const J = (p) => JSON.parse(fs.readFileSync(p, 'utf8'));
 
 /** Fichiers d'AUTHORING TypeScript porteurs de `skills: [{ id, spec, value }]`. */
-const TS_AUTHORING = ['src/scenes/test-scenarios/96-presets-edo.ts'];
+const TS_AUTHORING = ['projets/jeu-de-role/scenarios/96-presets-edo.ts'];
 
 const norm = (s) => String(s).normalize('NFD').replace(/[̀-ͯ]/g, '')
   .toLowerCase().replace(/[’']/g, "'").replace(/\s+/g, ' ').trim();
@@ -133,6 +135,7 @@ const cibles = [
     else if (e.name.endsWith('.json')) cibles.push(path.relative(ROOT, p).replace(/\\/g, '/'));
   }
 })(path.join(ROOT, 'src/scenes'));
+cibles.push(...cheminsDesProjetsLivres(ROOT));
 
 const touches = [];
 for (const rel of cibles) if (migrateJson(rel)) touches.push(rel);

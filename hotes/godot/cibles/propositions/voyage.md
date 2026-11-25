@@ -85,12 +85,12 @@ Les phrases de récit sur les cartes des héros et sur l'image sont des exemples
 - Une seule entrée pour la diligence (audit §7) : la plaque du mode, sous « Partir » ; le cartouche « Lignes du
   Rochet » et son « Prendre un billet » sont retirés (le billet se paie au départ, `src/noyau/billetFlow.ts:1-9`).
   Sous le départ, ce que la diligence coûte : le billet de La Diligence s'arrête aux Sept Rayons (EDO 01 l.142, `suite`
-  du billet de `src/scenes/diligence/diligence-projet.json`), la place vers Altdorf se paie donc au tarif du livre,
+  du billet de `projets/jeu-de-role/campagnes/diligence/diligence-projet.json`), la place vers Altdorf se paie donc au tarif du livre,
   115 km à l'extérieur à –/1 par kilomètre (LDB 51 l.184, `billetImplicite`, `src/engine/travel.ts:170`) : 9/– 7 sc.
   Un seul départ : les routes de l'étape sont à sens unique (`from`, `src/noyau/worldMap.ts:176`), aucun retour vers
   La Diligence. Tarif par personne : chaque voyageur paie sa place de sa bourse (#3004), les bourses sont au
   bandeau.
-- Règle montrée : 75 km en diligence à 15 km/h (valeur maison de `src/scenes/diligence/diligence-projet.json`) ; à
+- Règle montrée : 75 km en diligence à 15 km/h (valeur maison de `projets/jeu-de-role/campagnes/diligence/diligence-projet.json`) ; à
   pied et en diligence, 6 h de route par jour (LDB 51 l.191-197) ; une maladie qui se déclare en pastille de cire.
 - Ce que l'image ne montre pas et que la plaque de mode ouvre : de nuit, la porte de départ (« Attendre l'aube »,
   `fV('depart')`, ou « Rester », `fF('depart')`, `src/noyau/modalArbiter.ts:362`, valeur maison

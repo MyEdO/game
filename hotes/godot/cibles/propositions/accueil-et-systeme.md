@@ -34,7 +34,7 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
   « Place libre ». L'écran se ferme par la croix.
 - Entrées : pré-tirés (`src/hote/groupe.ts:83`, `src/data/pregens.json`), onglets Pré-tirés et Mes personnages,
   « Créer un personnage », « Importer un personnage… » (`groupe.ts:89`), « Recruter », « Renvoyer », « Lancer » ;
-  campagnes (`groupe.ts:91-93`, `src/scenes/campaign.ts`) et campagne publiée (`src/hote/bibliotheque.ts`).
+  campagnes (`groupe.ts:91-93`, `projets/jeu-de-role/contenu.ts`) et campagne publiée (`src/hote/bibliotheque.ts`).
 - État `roster` : onglet « Mes personnages » ; sous « Recruter » du personnage pointé, deux
   pastilles « Exporter » et « Supprimer » (`{roster:{exporter}}`, `{roster:{retirer}}`, `src/hote/groupe.ts:86-90`).
 - État `coop` : la « Place libre » porte le choix de son siège
@@ -84,7 +84,7 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
 ## ouverture-de-chapitre
 - État `ouverture` de l'écran `chapitre`.
 - Carton plein écran : l'auberge-relais, les deux lunes, la diligence ; sur-titre, titre, tome, chapitre sur toile
-  rouge, texte du chapitre (`src/scenes/diligence/diligence-projet.json:3755-3775`) ; la compagnie au bandeau ;
+  rouge, texte du chapitre (`projets/jeu-de-role/campagnes/diligence/diligence-projet.json:3755-3775`) ; la compagnie au bandeau ;
   « Commencer ».
 - À valider : la compagnie affichée (le bloc d'ouverture ne la porte pas) ; la page source non mentionnée ; texte posé
   sur l'image plutôt que sur parchemin.
@@ -111,7 +111,7 @@ affiche et avis cloués ; feuillet de sauvegarde ; titre gothique en dégradé l
 
 ## fin-de-chapitre
 - État `fin` de l'écran `chapitre`, pendant de l'ouverture : Altdorf au petit matin, le titre de clôture sur toile rouge et son sous-titre
-  (`src/scenes/diligence/diligence-projet.json:3775-3789`), « Ce que la route retiendra » (les objectifs soldés et les
+  (`projets/jeu-de-role/campagnes/diligence/diligence-projet.json:3775-3789`), « Ce que la route retiendra » (les objectifs soldés et les
   PX du chapitre), « Lieux révélés », « Tombés en chemin » (`src/noyau/chapitreRecap.ts:34-68`, `chap.*`) ; dessous, la
   fin de séance que le récap ouvre : une colonne par héros et celle du groupe, les mêmes cases que `fin-de-seance` ;
   « Clore le chapitre » et « Plus tard ».

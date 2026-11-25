@@ -14,7 +14,7 @@
  *
  * Entrées : `src/data/materials.json` (les deux entrées homonymes, une par domaine — le catalogue
  * unique de matières que rend le lot 2), `src/data/props.json` (primitives de recette volumique) et
- * `src/scenes/<c>/<c>-projet.json` (masses de toit) — tous lus et écrits.
+ * `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`) (masses de toit) — tous lus et écrits.
  *
  * PORTE DE FORME, jamais un CARDINAL (#1812) : le décor, les recettes et les masses de toit
  * GRANDISSENT — une référence de plus à `toit-ardoise` est une croissance légitime, pas une anomalie.
@@ -32,6 +32,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const NOM = '2026-09-05-1686-ardoise-ids-composes';
@@ -61,12 +62,7 @@ const REGLES = {
 };
 const catalogue = lire('src/data/materials.json', 2, false);
 const props = lire('src/data/props.json', 2, false);
-const projets = fs
-  .readdirSync(path.join(ROOT, 'src/scenes'), { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => `src/scenes/${d.name}/${d.name}-projet.json`)
-  .filter((rel) => fs.existsSync(path.join(ROOT, rel)))
-  .map((rel) => lire(rel, 1, true));
+const projets = cheminsDesProjetsLivres(ROOT).map((rel) => lire(rel, 1, true));
 
 // ── PORTE DE LECTURE — cardinaux et états admis, avant toute écriture ────────────────────────────
 const mesure = { catalogueToit: 0, catalogueDecor: 0, primitives: 0, masses: 0 };

@@ -94,8 +94,8 @@ export type Document = { racine: string; chemin: string; nom: string };
 
 /**
  * NOM d'un document tel que le scan le key : son BASENAME. Les defs de `src/scenes` déclarent un
- * CHEMIN RELATIF à leur racine (`arene/arene-projet.json`) là où `listerDocuments` rend un basename
- * (`arene-projet.json`) : toute jointure DÉCLARÉ × OBSERVÉ passe par ici, jamais par `file` brut.
+ * CHEMIN RELATIF à leur racine (`<x>/<x>-projet.json`) là où `listerDocuments` rend un basename
+ * (`<x>-projet.json`) : toute jointure DÉCLARÉ × OBSERVÉ passe par ici, jamais par `file` brut.
  */
 export const nomDeDocument = (file: string): string => file.split(/[\\/]/).pop() ?? file;
 
@@ -124,7 +124,7 @@ const chargeRecord = (brut: unknown): unknown => {
   return estObjet(entries) ? entries : brut;
 };
 
-export const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
+const regimeEntrees = (brut: unknown, familleDeclaree?: string): 'elements' | 'valeurs' | 'racine' => {
   if (familleDeclaree?.startsWith('liste')) return 'elements';
   if (familleDeclaree?.startsWith('record')) return 'valeurs';
   if (familleDeclaree) return 'racine';
@@ -832,7 +832,7 @@ export function scannerDonnees(
   // ET vers quels datasets : c'est ce qui distingue une RÉFÉRENCE CASSÉE d'un DOCUMENT embarqué, et
   // c'est ce qui scope la résolution. Sous `creatures.json|skills`, la clé `id` résout partout vers
   // `skills.json` — un `{id:"zzz", value:10}` y est une référence orpheline, jamais un document, et
-  // un `id` qui ne résout QUE vers `careers.json` y est AMBIGU. Sous `arene-projet.json|entities`,
+  // un `id` qui ne résout QUE vers `careers.json` y est AMBIGU. Sous `<x>-projet.json|entities`,
   // c'est `ref` qui résout et jamais `id` — un pion de scène EST un document.
   type Site = { resolvent: number; total: number; cibles: Map<string, number> };
   /** Le champ sous lequel un objet est MESURÉ : `(racine)` pour une entrée de racine. */
@@ -1455,7 +1455,7 @@ export function scannerDonnees(
  * (`listerDocuments`).
  */
 export function scanDuCorpus(root: string, paquets?: readonly string[]) {
-  const defs = defsDeDocument();
+  const defs = defsDeDocument(paquets);
   const declares = introspecterDefs(defs);
   const choix = choixDeclares(defs);
   const choixOps = choixDesPayloadsDOp(OP_DEFS, IDS_PAR_ESPACE);

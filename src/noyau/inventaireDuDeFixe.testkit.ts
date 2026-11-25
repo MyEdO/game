@@ -137,7 +137,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: flatRead('pendingTest'),
   },
   activite: {
-    state: { pendingActivity: { teste: TESTE_DE_TEST, heroId: 'H', activityId: 'a', skillValue: T, difficulty: 'intermediaire', ...rate } },
+    state: { pendingActivity: { teste: TESTE_DE_TEST, heroId: 'H', activityId: 'a', skillValue: T, difficulty: 'intermediaire', ligne: { base: T, mods: [], target: T, difficulty: 'intermediaire' }, ...rate } },
     read: flatRead('pendingActivity'),
   },
   rechargement: {

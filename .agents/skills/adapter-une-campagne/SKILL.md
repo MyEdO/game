@@ -60,7 +60,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    ni code ni salve de tickets.
 2. **Trame des cinq tomes, avant tout chapitre** — fils transversaux, états et compteurs de campagne lus
    en aval, chapitre propriétaire de chaque état ; déclarés DANS le paquet de campagne.
-3. **Dossier de chapitre** — la moitié LIVRE, en donnée commitée : la fiche `docs/dossiers/<ABBR>/<NN>.json`,
+3. **Dossier de chapitre** — la moitié LIVRE, en donnée commitée : la fiche `projets/jeu-de-role/dossiers/<ABBR>/<NN>.json`,
    au schéma unique `ficheDeDossier` (`src/data/source/dossier.ts`).
    - Lecture : workflow `dossier-de-chapitre`, args projetés par
      `node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]`
@@ -88,7 +88,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
    - État des lieux : dans l'éditeur, chaque élément du paquet de campagne pose `couvre` (les entrées de
      fiche qu'il couvre, `<ABBR>-<NN>#<id>`), et le narratif tient `ecartes` (une entrée écartée, avec son
      motif : adaptation libre, jamais une dette). L'état couvert / écarté / non couvert se lit sur la
-     sortie standard de `npm run jeu-de-role:dossiers`.
+     sortie standard de `npm run jeu-de-role:docs`.
 4. **Table papier simulée** (chapitres à forte ambiguïté ; Tome 1 : 1, 2, 6, 8) — workflow
    `table-simulee`, APRÈS le dossier, qu'elle consomme : args
    `{ livre, chapitre, fichiers, dossier, typeDePointAuMJ, seed, maxEchanges?, personas?, worktree, date }`
@@ -164,16 +164,16 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
 ## Où vit quoi
 
 - **État du chantier** : le dernier commentaire de pilotage de l'épique.
-- **Dossiers de chapitre** : fiches commitées `docs/dossiers/<ABBR>/<NN>.json` ; leur état des lieux sur les
-  paquets du jeu de rôle, la sortie standard de `npm run jeu-de-role:dossiers`.
+- **Dossiers de chapitre** : fiches commitées `projets/jeu-de-role/dossiers/<ABBR>/<NN>.json` ; leur état des lieux sur les
+  paquets du jeu de rôle, la sortie standard de `npm run jeu-de-role:docs`.
 - **Journaux de table, verdicts de goût** : commentaires de ticket.
-- **Contenu** : le paquet de campagne manuscrit `src/scenes/<campagne>/<campagne>-projet.json`, états de
+- **Contenu** : le paquet de campagne manuscrit `projets/jeu-de-role/campagnes/<campagne>/<campagne>-projet.json`, états de
   campagne compris.
 
 ## Chapitre terminé
 
 - Entrées de la fiche couvertes (`couvre`), ou écartées avec motif (`ecartes`) : aucune « non couverte » dans
-  la sortie de `npm run jeu-de-role:dossiers`.
+  la sortie de `npm run jeu-de-role:docs`.
 - Média de chaque beat décidé.
 - Gardes et recette PREUVE vertes, console à 0 erreur.
 - 0 porte fermée en silence ; 0 thème « m'aurait fait quitter ».

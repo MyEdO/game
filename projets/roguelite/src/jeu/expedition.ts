@@ -21,6 +21,10 @@ import {
   type Applique,
   type IssueDuCombat,
   type Visee,
+  deElide,
+  maladies,
+  souillure,
+  type Combatant,
 } from '../noyau';
 
 import {
@@ -39,6 +43,7 @@ import {
   TypeDeSalle,
   ACTIONS_A_JET,
   CAMP,
+  RENCONTRES,
   type SalleAJet,
   CONSIGNES,
   RANG_DU_ROLE,
@@ -58,6 +63,7 @@ export const sejourDit = (h: Heros): string | null =>
 /** Pourquoi un héros ne peut pas partir, ou `null` s'il le peut. */
 export const refusDeDepart = (h: Heros): string | null => sejourDit(h) ?? (!valide(h) ? 'Hors de combat : il doit se remettre au hameau.' : null);
 
+const estUneRencontre = (t: TypeDeSalle): boolean => (RENCONTRES as readonly TypeDeSalle[]).includes(t);
 /** Le rang du héros à l'entrée d'une rencontre : celui où le joueur l'a placé, sinon celui du rôle de sa carrière. */
 export const rangDe = (h: Heros): Rang => h.rang ?? RANG_DU_ROLE[roleDe(h.carriere) ?? 'front'];
 /** Le groupe dans l'ordre où il entre en rencontre : ceux qui vont devant, puis ceux qui vont derrière. */
@@ -89,7 +95,7 @@ export function partir(e: Etat, destinationId: string, groupe: string[]): string
   for (let i = 0; i < d.salles - 1; i++) {
     const t = rng.int(1, 100);
     const type: TypeDeSalle = i === 0 ? 'combat' : t <= 50 ? 'combat' : t <= 70 ? 'elite' : t <= 85 ? 'camp'
-      : t <= 93 && !salles.some((s) => s.type === 'rencontre') ? 'rencontre' : 'tresor';
+      : t <= 93 && !salles.some((s) => estUneRencontre(s.type)) ? choisir(rng, RENCONTRES) : 'tresor';
     salles.push({ type, ennemis: type === 'combat' ? choisir(rng, d.meutes) : type === 'elite' ? choisir(rng, d.elites) : [], faite: false });
   }
   salles.push({ type: 'boss', ennemis: d.boss, faite: false });
@@ -143,12 +149,40 @@ export function prier(e: Etat, id: string, cibleId: string): string {
   return r.journal.slice(-2).join(' ');
 }
 
-/** Une épreuve jouée (`jouerLEpreuve`) : qui a jeté (id et nom), le Test, son issue et ses DR, chaque héros touché et
- *  ses Blessures avant et après, l'or pris (perdu, s'il est négatif) et le nom de la bourse, et ce que dit l'issue. */
+/** Ce qu'une épreuve laisse sur un héros : ses Blessures avant et après s'il en a perdu, sa Corruption avant et après
+ *  face à son seuil si elle a changé (`souillure`), les maladies qu'il a contractées (`maladies`) et les mutations qui
+ *  l'ont gagné. */
+export interface Victime {
+  id: string; nom: string; blessures?: { avant: number; apres: number; max: number };
+  corruption?: { avant: number; apres: number; seuil: number }; maladies: string[]; mutations: string[];
+}
+/** Une épreuve jouée (`jouerLEpreuve`) : qui a jeté (id et nom), le Test, son issue et ses DR, chaque héros qu'elle
+ *  marque (`Victime`), l'or pris (perdu, s'il est négatif) et le nom de la bourse, et ce que dit l'issue. */
 export interface EpreuveDuRecit {
   testeur: string; nom: string; competence: string; difficulte: string; reussite: boolean; dr: number;
-  victimes: { id: string; nom: string; avant: number; apres: number; max: number }[]; or: number; bourse: string; dit: string;
+  victimes: Victime[]; or: number; bourse: string; dit: string;
 }
+
+/** Ce que l'épreuve a laissé sur le héros, de `avant` à `apres`, s'il en garde une marque (`Victime`). */
+function marques(avant: Combatant, apres: Combatant): Victime | undefined {
+  const [s0, s1] = [souillure(avant), souillure(apres)];
+  const portees = new Set(maladies(avant).map((m) => m.label));
+  const manque = (c: Combatant) => c.wounds.max - c.wounds.current;
+  const v: Victime = {
+    id: apres.id, nom: apres.label,
+    ...(manque(apres) > manque(avant) ? { blessures: { avant: avant.wounds.current, apres: apres.wounds.current, max: apres.wounds.max } } : {}),
+    ...(s1.points !== s0.points ? { corruption: { avant: s0.points, apres: s1.points, seuil: s1.seuil } } : {}),
+    maladies: maladies(apres).map((m) => m.label).filter((l) => !portees.has(l)), mutations: s1.mutations.slice(s0.mutations.length),
+  };
+  return v.blessures || v.corruption || v.maladies.length || v.mutations.length ? v : undefined;
+}
+/** Les lignes du récit d'une `Victime`. */
+const lignesDeVictime = ({ nom, blessures: b, corruption: c, ...v }: Victime): string[] => [
+  ...(b ? [`${nom} est touché·e : ${b.apres}/${b.max} Blessures.`] : []),
+  ...(c ? [`${nom} : Corruption ${c.avant} → ${c.apres} / ${c.seuil}.`] : []),
+  ...v.maladies.map((m) => `${nom} contracte : ${m}.`),
+  ...v.mutations.map((m) => `${nom} mute : ${m}.`),
+];
 /** Le récit d'une salle ; `combatAVenir` : l'épreuve ratée tourne au combat, que la salle livre au prochain `avancer`. */
 export interface RecitDeSalle { titre: string; lignes: string[]; combat?: IssueDuCombat; fin?: 'defaite' | 'succes'; epreuve?: EpreuveDuRecit; combatAVenir?: true }
 
@@ -239,20 +273,20 @@ export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string
   if (refus) return refus;
   const a = ACTIONS_A_JET[id];
   const ep = epreuveTentable(h.c, a.epreuves)!;
-  const avant = h.c.wounds.current;
+  const avant = h.c;
   const r = jouerLEpreuve([h.c], ep, e.graine++);
   h.c = r.groupe[0];
   if ('refus' in r) return { titre: s.titre, lignes: r.journal.includes(r.refus) ? r.journal : [...r.journal, r.refus] };
   const { competence, difficulte } = partiesDuTest(ep.flux);
   const nom = h.c.label;
-  const victimes = h.c.wounds.current < avant ? [{ id: h.c.id, nom, avant, apres: h.c.wounds.current, max: h.c.wounds.max }] : [];
+  const victimes = [marques(avant, h.c)].filter((v): v is Victime => !!v);
   const d = destinationCourante(e)!;
   const perte = !r.reussite && a.consequence?.type === 'bourse' ? Math.min(x.or, Math.round(a.consequence.part * d.or)) : 0;
   const or = r.reussite ? Math.round(s.gain.part * (d.or + tirer(e).int(0, d.or))) : perte ? -perte : 0;
   x.or += or;
-  const ligneDuTest = `${nom} — Test de ${[competence, difficulte].filter(Boolean).join(' ')} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`;
+  const ligneDuTest = `${nom} — Test ${deElide([competence, difficulte].filter(Boolean).join(' '))} : ${r.reussite ? 'réussi' : 'raté'}, DR ${r.dr >= 0 ? '+' : '−'}${Math.abs(r.dr)}.`;
   const dit = r.reussite ? a.reussite : a.echec;
-  const lignes = [ligneDuTest, dit, ...victimes.map((v) => `${v.nom} est touché·e : ${v.apres}/${v.max} Blessures.`),
+  const lignes = [ligneDuTest, dit, ...victimes.flatMap(lignesDeVictime),
     ...(or > 0 ? [`${s.gain.libelle} : ${or} CO.`] : or < 0 ? [`Perdu : ${-or} CO.`] : [])];
   const epreuve: EpreuveDuRecit = { testeur: r.testeur, nom, competence, difficulte, reussite: r.reussite, dr: r.dr, victimes, or, bourse: s.gain.libelle, dit };
   if (r.reussite || a.consequence?.type !== 'combat') return franchir(e, { titre: s.titre, lignes, epreuve });
@@ -277,7 +311,7 @@ function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: 
   }
   if (issue.issue === 'defaite') return { issue, lignes: [], fin: { titre: 'Déroute', combat: issue, fin: 'defaite', lignes: terminerEnDeroute(e, issue.destinDepense) } };
   const morts = groupe.filter((h) => h.c.dead);
-  for (const h of morts) enterrer(e, h, d.nom);
+  for (const h of morts) enterrer(e, h);
   return { issue, lignes: morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`) };
 }
 
@@ -342,12 +376,11 @@ function uneJourneeDeMaladie(e: Etat): string[] {
   const groupe = herosDuGroupe(e);
   const soigne = groupe.some((g) => valide(g) && saitSoigner(g.c));
   const lignes = groupe.flatMap((h) => entretenirLesMaladies(h.c, e.graine++, 1, soigne));
-  for (const h of groupe.filter((g) => g.c.dead)) { lignes.push(`${h.c.label} succombe à sa maladie.`); enterrer(e, h, destinationCourante(e)!.nom); }
+  for (const h of groupe.filter((g) => g.c.dead)) { lignes.push(`${h.c.label} succombe à sa maladie.`); enterrer(e, h); }
   return lignes;
 }
 
-function enterrer(e: Etat, h: Heros, ou: string): void {
-  e.cimetiere.unshift({ nom: h.c.label, carriere: h.carriere, expeditions: h.expeditions + 1, ou, jour: e.jour });
+function enterrer(e: Etat, h: Heros): void {
   e.roster = e.roster.filter((x) => x !== h);
   if (e.expedition) e.expedition.groupe = e.expedition.groupe.filter((id) => id !== h.c.id);
 }
@@ -356,12 +389,11 @@ function enterrer(e: Etat, h: Heros, ou: string): void {
  *  Destin, il ne revient pas. Qui en a déjà brûlé un pendant la rencontre (« Meurs un autre jour ») ne paie pas deux
  *  fois. LDB 17 l.31. */
 function terminerEnDeroute(e: Etat, destinDepense: Readonly<Record<string, number>>): string[] {
-  const d = destinationCourante(e)!;
   const lignes = ['Le groupe est submergé. Le butin de l’expédition est perdu.'];
   for (const h of herosDuGroupe(e)) {
-    if (h.c.dead) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h, d.nom); continue; }
+    if (h.c.dead) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h); continue; }
     if ((destinDepense[h.c.id] ?? 0) > 0) { lignes.push(`${h.c.label} a échappé à la mort pendant le combat (Destin −1, reste ${h.c.fate}).`); continue; }
-    if ((h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label}, sans plus de Destin, ne revient pas.`); enterrer(e, h, d.nom); continue; }
+    if ((h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label}, sans plus de Destin, ne revient pas.`); enterrer(e, h); continue; }
     h.c.fate = (h.c.fate ?? 0) - 1;
     lignes.push(`${h.c.label} échappe de peu à la mort et rampe jusqu’au hameau (Destin −1, reste ${h.c.fate}).`);
   }
@@ -394,9 +426,6 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
 /** Quand personne n'est plus en état de partir (hors de combat, ou sous la moitié de ses Blessures), la compagnie
  *  attend une semaine : ceux en séjour s'y reposent. */
 export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => disponible(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
-/** Compagnie vide ou épuisée, et bourse sous le prix du moins cher des candidats : un voyageur s'engage sans solde. */
-export const engagementSansSolde = (e: Etat): boolean =>
-  (e.roster.length === 0 || compagnieEpuisee(e)) && e.or < Math.min(...e.candidats.map((c) => c.prix));
 export function attendreUneSemaine(e: Etat): string | null {
   if (!compagnieEpuisee(e)) return 'Il reste des héros en état de partir.';
   noter(e, 'Personne n’est en état de partir : la compagnie attend une semaine.');
@@ -420,14 +449,13 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
     const aLHospice = h.sejour?.ou === 'temple' ? Math.min(jours, h.sejour.reste) : 0;
     const maladie = [...entretenirLesMaladies(h.c, e.graine++, aLHospice, true), ...entretenirLesMaladies(h.c, e.graine++, jours - aLHospice, false)];
     if (maladie.length) noter(e, maladie.join(' '));
-    if (h.c.dead) { noter(e, `${h.c.label} succombe à sa maladie.`); enterrer(e, h, 'Grisefosse'); continue; }
+    if (h.c.dead) { noter(e, `${h.c.label} succombe à sa maladie.`); enterrer(e, h); continue; }
     if (!h.sejour) continue;
     reposer(h.c, e.graine++, Math.min(jours, h.sejour.reste));
     h.sejour.reste -= jours;
     if (h.sejour.reste <= 0) delete h.sejour;
   }
   renouvelerLesCandidats(e);
-  if (engagementSansSolde(e)) noter(e, 'Personne n’est en état de partir et la bourse est vide : un voyageur accepte de servir sans solde.');
 }
 
 export const victoireFinale = (e: Etat): boolean => e.bossVaincus.includes('autel');

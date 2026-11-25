@@ -462,10 +462,61 @@ const parUniteDeCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
 /** Empreinte d'une liste de chemins TRIÉE : 12 hex de son SHA-1. */
 const empreinteDe = (chemins) => createHash('sha1').update(chemins.join('\n')).digest('hex').slice(0, 12)
 
-/** Tranche de la partie `{ i, k }` : les chemins relatifs POSIX dont `partieDuFichier` vaut `i`, triés
- *  par unité de code, l'empreinte de cette tranche, et celle de la liste ENTIÈRE (`empreinteListe`),
- *  commune aux K parties d'une même énumération. */
-export function trancher(chemins, { i, k }) {
-  const fichiers = chemins.filter((c) => partieDuFichier(c, k) === i).sort(parUniteDeCode)
+/** Tête de la suite : chemin → durée en ms des fichiers mesurés à 30 s ou plus, lignes de module du reporter Vitest
+ *  des jobs `suite 1/3`..`suite 3/3` de la course `merge_group` 45646649257 (2026-11-25, 088fd92feb). Paramètre de
+ *  BANC (#5037) : les 26 fichiers portent 2 331 s des 3 700 s de la suite ; sous le seul `partieDuFichier`, la partie 2 en tenait 1 632 s
+ *  contre 1 029 et 1 039. Committée, jamais rapatriée au moment de trancher : les K jobs tranchent la même partition.
+ *  Une durée périmée ne coûte que de l'équilibre ; elle se relève au mémo `durees-ci.json` (`rapatrierDureesCi`). */
+export const TETE_DE_LA_SUITE = Object.freeze({
+  'src/compendium-field-editability-guard-5.test.ts': 177_494,
+  'hotes/godot/asset/evaluer.cli.hors-store.test.ts': 154_985,
+  'src/compendium-field-editability-guard-14.test.ts': 148_345,
+  'src/compendium-field-editability-guard-12.test.ts': 145_070,
+  'src/analyse-retention-guard.test.ts': 124_998,
+  'src/compendium-field-editability-guard-6.test.ts': 123_084,
+  'src/compendium-field-editability-guard-2.test.ts': 122_452,
+  'src/data/field-consumers.test.ts': 108_142,
+  'src/compendium-field-editability-guard-11.test.ts': 104_082,
+  'src/eslint-ordre-total-et-purete.test.ts': 101_967,
+  'src/compendium-field-editability-guard-13.test.ts': 99_302,
+  'src/compendium-field-editability-guard-3.test.ts': 93_806,
+  'src/compendium-field-editability-guard-1.test.ts': 92_412,
+  'src/carte-field-editability-guard.test.ts': 82_589,
+  'src/purete-hote-lint.test.ts': 78_837,
+  'src/narratif-field-editability-guard.test.ts': 70_811,
+  'hotes/godot/asset/tenue.hors-store.test.ts': 69_714,
+  'src/compendium-field-editability-guard-7.test.ts': 69_211,
+  'src/scene-field-editability-guard.test.ts': 64_676,
+  'src/compendium-field-editability-guard-10.test.ts': 63_047,
+  'src/noyau/built-brand-lint.test.ts': 56_329,
+  'src/data/structures-contrat.test.ts': 43_815,
+  'hotes/godot/construire.hors-store.test.ts': 39_159,
+  'src/noyau/navire-flow.hors-store.test.ts': 33_760,
+  'hotes/godot/pont/compendium.hors-store.test.ts': 32_182,
+  'src/data/atelierDuCodex.test.ts': 30_378,
+})
+
+/** Partie (1..K) de chaque fichier de `tete` (chemin → durée en ms) PRÉSENT dans `chemins` : du plus lourd au plus
+ *  léger (égalité : ordre par unité de code), chacun vers la partie la moins chargée (égalité : le plus petit
+ *  indice). Ne dépend que de `tete` et de la présence de ses clés. PURE. */
+function partiesDeLaTete(chemins, k, tete) {
+  const presents = new Set(chemins)
+  const lourds = Object.entries(tete).filter(([c]) => presents.has(c)).sort(([a, x], [b, y]) => y - x || parUniteDeCode(a, b))
+  const charges = Array(k).fill(0)
+  const parties = new Map()
+  for (const [chemin, ms] of lourds) {
+    const j = charges.indexOf(Math.min(...charges))
+    parties.set(chemin, j + 1)
+    charges[j] += ms
+  }
+  return parties
+}
+
+/** Tranche de la partie `{ i, k }` : les fichiers de la tête `tete` que `partiesDeLaTete` donne à `i`, puis les
+ *  autres chemins relatifs POSIX dont `partieDuFichier` vaut `i`, triés par unité de code, l'empreinte de cette
+ *  tranche, et celle de la liste ENTIÈRE (`empreinteListe`), commune aux K parties d'une même énumération. */
+export function trancher(chemins, { i, k }, tete = TETE_DE_LA_SUITE) {
+  const parties = partiesDeLaTete(chemins, k, tete)
+  const fichiers = chemins.filter((c) => (parties.get(c) ?? partieDuFichier(c, k)) === i).sort(parUniteDeCode)
   return { fichiers, empreinte: empreinteDe(fichiers), empreinteListe: empreinteDe([...chemins].sort(parUniteDeCode)) }
 }
