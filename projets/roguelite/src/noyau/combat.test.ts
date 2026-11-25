@@ -2,6 +2,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { annonceDuCoupSurUnAllie, jouerLeCombat, nouvelleRecrue, type Coup, type IssueDuCombat, poserLesReglesDuRoguelite } from './index';
 import { DESTINATIONS, estUtile, nouvellePartie, PROFILS, recrue as recrueDuHameau } from '../jeu';
 import { t } from '../../../../src/i18n';
+import { chebyshev } from '../../../../src/engine/grid';
 
 beforeAll(poserLesReglesDuRoguelite);
 
@@ -69,7 +70,7 @@ describe('le placement du groupe et la consigne de chaque héros (#4959)', () =>
       const depart = issue.pas[0].pions.find((p) => p.id === h.id)!;
       const ennemi = issue.pas[0].pions.find((p) => p.camp === 'ennemi')!;
       const apres = issue.pas.find((p) => p.pions.some((q) => q.id === h.id && (q.x !== depart.x || q.y !== depart.y)))!.pions.find((q) => q.id === h.id)!;
-      const distance = (p: { x: number; y: number }) => Math.max(Math.abs(p.x - ennemi.x), Math.abs(p.y - ennemi.y));
+      const distance = (p: { x: number; y: number }) => chebyshev(p, ennemi);
       return distance(apres) - distance(depart);
     };
     expect(premierPas()).toBeLessThan(0);
