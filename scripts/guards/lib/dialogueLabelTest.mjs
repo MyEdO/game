@@ -12,14 +12,14 @@
 // MASQUE : `termeRecopie` (`src/noyau/dialogueLibelle.ts`), le MÊME que la validation de scène rend à
 // l'éditeur — cette garde n'en porte que le parcours du corpus et le `fichier:ligne`.
 //
-// PORTÉE : les projets livrés (`projetsLivres.mjs`).
+// PORTÉE : les paquets que l'appelant passe, le contenu du commun de `root` par défaut (`paquetsDuCommun`).
 // Le `test.label` d'un `FlowTest` est EXCLU PAR CONSTRUCTION — il n'est pas un `choices[].label`, et
 // il NOMME légitimement la fenêtre de jet (« Intuition — quelque chose cloche chez Kramer »). Aucune
 // liste d'exceptions n'est donc nécessaire, et il n'y en a pas.
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_LIVRES } from './projetsLivres.mjs';
+import { paquetsDuCommun } from './paquetsDuCommun.mjs';
 import { termeRecopie } from '../../../src/noyau/dialogueLibelle';
 
 /** Racine du dépôt, déduite de l'emplacement de ce module (`scripts/guards/lib`). */
@@ -41,19 +41,17 @@ function libellesDeCompetence(root) {
  *   `src/engine/types.ts`), écritures canon de la monnaie (`formatMoney`, `spellMoney`,
  *   `src/engine/money.ts`) — INJECTÉS par l'appelant : la garde ne redéclare aucun vocabulaire, elle
  *   les reçoit de leur source. (Les Compétences, elles, sont une DONNÉE : `skills.json`, lue ici.)
+ * @param {string} [root] racine du dépôt (le dépôt par défaut).
+ * @param {readonly string[]} [paquets] les paquets mesurés, chemins relatifs à `root` (le contenu du commun par défaut).
  * @returns {string[]} trouvailles triées ; `[]` = la classe est éteinte.
  */
-export function mesurerLibellesDeReponse(vocabulaire, root = RACINE_DEPOT) {
+export function mesurerLibellesDeReponse(vocabulaire, root = RACINE_DEPOT, paquets = paquetsDuCommun(root)) {
   const skills = libellesDeCompetence(root);
   const voc = { ...vocabulaire, competence: (id) => skills.get(id) };
-  const dossier = dossierDesProjetsLivres(root);
-  const fichiers = listerProjetsLivres(root);
   const trouves = [];
-  for (const rel of fichiers) {
-    const abs = path.join(dossier, rel);
-    const texte = fs.readFileSync(abs, 'utf8');
+  for (const relatif of paquets) {
+    const texte = fs.readFileSync(path.join(root, relatif), 'utf8');
     const lignes = texte.split(/\r?\n/);
-    const relatif = `${PROJETS_LIVRES.dossier}/${rel}`;
     const visite = (v) => {
       if (Array.isArray(v)) { v.forEach(visite); return; }
       if (!v || typeof v !== 'object') return;

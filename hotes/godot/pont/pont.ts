@@ -140,8 +140,9 @@ import {
   visionDuMonde,
   type VisionDuMonde,
   projetEdite,
-  ENTREES_DE_DOSSIER,
+  entreesDesFiches,
   refusDuRenommage,
+  paquetDisqueDuJeu,
 } from '../../../src/noyau/index';
 import {
   ErreurDeGeste,
@@ -871,9 +872,6 @@ function calquesGardes(texte: string): unknown {
   }
 }
 
-/** Les identifiants des entrées des fiches de dossier commitées, que le pont sert à la session d'édition qu'il ouvre. */
-const ENTREES_SERVIES = ENTREES_DE_DOSSIER.map((e) => e.id);
-
 /** L'index des chapitres du `Source/` que porte `texte`, le texte que sert le poste (`servir.mjs`, `source/manifest.json`) :
  *  du JSON, par livre son sigle et ses chapitres, chacun sa graphie et son titre. */
 function manifesteServi(texte: unknown): NonNullable<SessionDEdition['source']['manifeste']> {
@@ -903,6 +901,8 @@ export function creerPontFige(contenu: ContenuDUnJeu) {
 export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null, contenu: ContenuDUnJeu, secoursDesDecors = true) {
   const catalogue = catalogueDeLaPartie(contenu.scenarios);
   const { campagnes } = contenu;
+  /** Les entrées des fiches de dossier que le jeu remet, servies à la session d'édition que le pont ouvre. */
+  const entreesServies = entreesDesFiches(contenu.dossiers);
   /** Les réglages du joueur reposés : ses préférences et ses règles maison persistées, que le scénario de test d'un
    *  `demarrer` ou la sauvegarde d'un `charger` remplacent en mémoire. */
   const reposerLesReglages = (): void => {
@@ -2071,6 +2071,16 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       return rendu;
     },
     /**
+     * aucune
+     *
+     * @returns `{ campagnes }` : l'id de chaque campagne que le jeu remet à `creerPont`, dans son ordre ; l'éditeur
+     * ouvre la première sans paramètre `campagne` ni projet manuscrit servi (section « Éditeur »)
+     */
+    campagnes(json) {
+      entreeDe('campagnes', json, []);
+      return { campagnes: campagnes.map((c) => c.id) };
+    },
+    /**
      * `{ ouvrir, projet?, calques?, manifeste? }` : l'id d'une campagne que le jeu remet à `creerPont`, le texte de
      * son projet que sert le dépôt, celui des calques que l'hôte garde, et celui de l'index des chapitres du
      * `Source/` que sert le poste ; ou `{ edition }` : un geste d'édition (`GesteDEdition`,
@@ -2115,7 +2125,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
         const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
         const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
-        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste, ENTREES_SERVIES) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes, manifeste, ENTREES_SERVIES);
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste, entreesServies) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes, manifeste, entreesServies);
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = edition!.session;
@@ -2205,7 +2215,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         const cible = e.categorie === undefined && e.id === undefined ? undefined : e;
         valider(cible === undefined || (typeof cible.categorie === 'string' && typeof cible.id === 'string' && (cible.instance === undefined || typeof cible.instance === 'string')), 'compendium : categorie et id, l’entrée où il s’ouvre, instance son libellé montré');
         const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
-        const paquets = campagnes.map((c) => ({ fichier: c.fichier, projet: c.paquet }));
+        const paquets = campagnes.map((c) => ({ fichier: c.fichier, projet: paquetDisqueDuJeu(c) }));
         reprise = null;
         codex = ouvrirLeCompendium(manifeste, paquets, cible && { categorie: cible.categorie as string, id: cible.id as string, ...(cible.instance === undefined ? {} : { instance: cible.instance as string }) });
         valider(!cible || codex.refus === null, `compendium : ${codex.refus}`);

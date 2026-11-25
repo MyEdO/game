@@ -30,6 +30,7 @@ import { readCorpus } from '../../scripts/guards/lib/sourceCorpus.mjs';
 import { fauteDEspece } from './schemas/grammaire/valeurs';
 import { opsDuParse } from '../../scripts/docs/lib/slots-registre.mjs';
 import { scanDuCorpus, listerDocuments } from '../../scripts/docs/lib/structures-scan.mjs';
+import { cheminsDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { extractedBooks, frenchSourceDirs, isSentinel, walkSkillRefs } from '../../scripts/data/lib/skillSpecWalk.mjs';
 import { norm } from '../lib/normalize';
 import { estObjet } from '../lib/objet.mjs';
@@ -40,7 +41,7 @@ const isObj = (x: unknown): x is Record<string, unknown> => typeof x === 'object
 const REPO_ROOT = fileURLToPath(new URL('../..', import.meta.url));
 
 /** Le corpus des DEUX racines (`scanDuCorpus`), lu UNE fois pour tout le fichier. */
-const CORPUS_SCANNE = scanDuCorpus(REPO_ROOT);
+const CORPUS_SCANNE = scanDuCorpus(REPO_ROOT, cheminsDesProjetsLivres(REPO_ROOT));
 
 describe('refs migrées — refs structurées par id, zéro libellé résiduel', () => {
   it('weaponGroups portent un id stable + kind valide', () => {
@@ -354,7 +355,7 @@ type TexteDInstance = { key: string; site: SiteDIntegrite };
 
 const empreinteIntegrite = (texte: string): string => createHash('sha256').update(texte).digest('hex');
 const siteIntegrite = (famille: string, fichier: string, owner: string, champ: string, id = '', texte = ''): SiteDIntegrite => ({ famille, fichier, ref: JSON.stringify([owner, champ, id, texte ? empreinteIntegrite(texte) : '']) });
-const fichiersDeSpecs = new Map(listerDocuments(REPO_ROOT).map((d) => [d.nom, d.chemin]));
+const fichiersDeSpecs = new Map(listerDocuments(REPO_ROOT, cheminsDesProjetsLivres(REPO_ROOT)).map((d) => [d.nom, d.chemin]));
 function ecartIntegrite(observe: readonly SiteDIntegrite[], stock: readonly EntreeDeSite[], observation = false): void {
   const normalise = sitesEnEntrees(observe);
   const ecart = ecartsDeStock({ observe: normalise, stock, cle: cleDeSite, remede: {

@@ -107,7 +107,7 @@
        "choices": [
         {
          "id": "choix-test-etendu",
-         "label": "Test étendu",
+         "label": "Escalader la paroi",
          "flow": {
           "kind": "sequence",
           "etapes": [

@@ -1,10 +1,10 @@
 /**
- * Une campagne livrée (`campagneLivree.ts`) : à l'import, son identité et son paquet NON PARSÉ (`campagneDuPaquet`) ;
+ * Une campagne livrée (`campagneLivree.ts`) : à l'import, son identité, son paquet NON PARSÉ gardé privé (`campagneDuPaquet`) ;
  * au geste, le paquet passe la porte (`paquetDuJeu`) et se lance par la projection unique (`campagneDuJeu`,
- * `campagneDuDocument`). #211 #1692 Paquet LITTÉRAL.
+ * `campagneDuDocument`) ; le Compendium le lit en forme disque (`paquetDisqueDuJeu`). #211 #1692 #4936 Paquet LITTÉRAL.
  */
 import { describe, it, expect } from 'vitest';
-import { campagneDuJeu, campagneDuPaquet, paquetDuJeu, type BuiltinCampaign } from './campagneLivree';
+import { campagneDuJeu, campagneDuPaquet, paquetDisqueDuJeu, paquetDuJeu } from './campagneLivree';
 import { documentDeProjet, parseProject, ProjetRefuse } from './worldMap';
 import { emptyScene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
@@ -27,14 +27,22 @@ function refusDuProjet(paquet: unknown): ProjetRefuse {
   throw new Error('Le projet devait être refusé.');
 }
 
-describe('campagneDuPaquet — l’identité à l’import, le paquet gardé tel quel', () => {
-  it('l’identité est lue à la racine du paquet, le paquet est l’objet reçu lui-même', () => {
+describe('campagneDuPaquet — l’identité à l’import, le paquet gardé privé', () => {
+  it('l’identité est lue à la racine du paquet ; le paquet ne se lit qu’en copie, en forme disque', () => {
     const campagne = campagneDuPaquet(paquetLitteral, fichier);
-    expect(campagne.paquet).toBe(paquetLitteral);
     expect(campagne).toEqual({
-      type: 'projet', id: 'banc', label: 'Campagne du banc', icon: 'scenario/arene', versionContenu: 2, maison: 'fixture de test',
-      paquet: paquetLitteral, fichier,
+      type: 'projet', id: 'banc', label: 'Campagne du banc', icon: 'scenario/arene', versionContenu: 2, maison: 'fixture de test', fichier,
     });
+    const disque = paquetDisqueDuJeu(campagne);
+    expect(disque).toEqual(paquetLitteral);
+    expect(disque).not.toBe(paquetLitteral);
+    expect(disque.scenes[0]).not.toBe(paquetLitteral.scenes[0]);
+  });
+
+  it('une copie de la campagne n’est pas une campagne livrée : aucun paquet ne la suit', () => {
+    const campagne = campagneDuPaquet(paquetLitteral, fichier);
+    expect(() => paquetDuJeu({ ...campagne })).toThrow(/aucun paquet livré/);
+    expect(() => paquetDisqueDuJeu({ ...campagne })).toThrow(/aucun paquet livré/);
   });
 
   const { label: _label, ...sansLabel } = paquetLitteral;
@@ -75,8 +83,8 @@ describe('campagneDuPaquet — l’identité à l’import, le paquet gardé tel
     };
     const campagne = campagneDuPaquet(paquet, fichier);
     expect(campagne.auteur).toBe('A');
-    expect(campagne.paquet).toBe(paquet);
     expect(campagne).not.toHaveProperty('scenes');
+    expect(campagne).not.toHaveProperty('paquet');
   });
 
   it('contrôle la cohérence de l’adresse de description, sans la garder', () => {
@@ -97,8 +105,8 @@ describe('paquetDuJeu et campagneDuJeu — le paquet passé par la porte au gest
   const campagne = campagneDuPaquet(paquetLitteral, fichier);
 
   it('`campagneDuJeu` lance la campagne sous son id, à la première scène du paquet, sous l’identité du document', () => {
-    const lancee = campagneDuJeu({ ...campagne, id: 'banc-livree' });
-    expect(lancee).toMatchObject({ id: 'banc-livree', label: 'Campagne du banc', startSceneId: 'banc-entree', worldMap: null, projet: { id: 'banc' } });
+    const lancee = campagneDuJeu(campagne);
+    expect(lancee).toMatchObject({ id: 'banc', label: 'Campagne du banc', startSceneId: 'banc-entree', worldMap: null, projet: { id: 'banc' } });
     expect(lancee.scenes.map((s) => s.id)).toEqual(['banc-entree', 'banc-suite']);
   });
 
@@ -111,10 +119,10 @@ describe('paquetDuJeu et campagneDuJeu — le paquet passé par la porte au gest
 
   it('un paquet que la porte refuse : `paquetDuJeu` et `campagneDuJeu` lèvent `ProjetRefuse`', () => {
     const [premiere, ...autres] = paquetLitteral.scenes;
-    const refusee: BuiltinCampaign = {
-      ...campagne,
-      paquet: { ...paquetLitteral, scenes: [{ ...premiere, entities: [{ id: 'x', kind: 'prop', decor: { id: 'decor-inconnu' }, pos: { x: 0, y: 0 } }] }, ...autres] },
-    };
+    const refusee = campagneDuPaquet(
+      { ...paquetLitteral, scenes: [{ ...premiere, entities: [{ id: 'x', kind: 'prop', decor: { id: 'decor-inconnu' }, pos: { x: 0, y: 0 } }] }, ...autres] },
+      fichier,
+    );
     expect(() => paquetDuJeu(refusee)).toThrow(ProjetRefuse);
     expect(() => campagneDuJeu(refusee)).toThrow(ProjetRefuse);
   });
@@ -125,7 +133,7 @@ describe('activeAxes — porté du paquet à la campagne lancée', () => {
   const axes = allAxes.filter((a) => !a.core).map((a) => a.id);
   const sansAxes = campagneDuPaquet(paquetLitteral, fichier);
   const paquetAvecAxes = { ...paquetLitteral, activeAxes: axes };
-  const avecAxes: BuiltinCampaign = { ...sansAxes, paquet: paquetAvecAxes };
+  const avecAxes = campagneDuPaquet(paquetAvecAxes, fichier);
 
   it('le registre porte des axes hors socle', () => {
     expect(axes.length).toBeGreaterThan(0);

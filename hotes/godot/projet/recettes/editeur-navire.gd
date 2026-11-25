@@ -3,7 +3,7 @@ extends SceneTree
 ## Le navire dans l'éditeur de carte (#3772, `hotes/godot/pont/CONTRAT.md`, section « Éditeur », `coques`) : l'éditeur
 ## (`scripts/editeur.gd`) ouvert sur un pont figé (`PontFige`, sur l'éditeur du navire figé par la sonde,
 ## `hotes/godot/recettes/editeur.ts`), qui sert le listage et les GLB du projet et répond à chaque entrée de `editer`
-## et de `morceaux` que la sonde a figée. L'outil Navire pressé offre la caraque, choisie en tête de sa liste ; le cap à l'est pressé,
+## et de `morceaux` que la sonde a figée. La campagne de test ouverte, une scène neuve ajoutée ; l'outil Navire pressé offre la caraque, choisie en tête de sa liste ; le cap à l'est pressé,
 ## l'appui sur le monde la pose : son modèle se monte (`MontageDesModeles`), son origine au point de la carte sous son
 ## centre servi, sa proue tournée vers l'est. Glissée à l'outil de sélection, la caraque se repose sous son centre
 ## déplacé, sans se recharger. Le pont du dessus choisi, sa plus haute couche, le monde touche le sol de chaque case de
@@ -13,8 +13,8 @@ extends SceneTree
 
 const RECETTE_AUTONOME := true
 const FIGE := "res://recettes/vues/editeur-navire.json"
-## Le fichier des calques que l'éditeur garde pour l'Arène : une ouverture sans lui envoie l'entrée figée.
-const CALQUES_DE_L_ARENE := "user://calques/arene.json"
+## Le fichier des calques que l'éditeur garde pour la campagne de test : une ouverture sans lui envoie l'entrée figée.
+const CALQUES_DE_LA_CAMPAGNE := "user://calques/paquet-de-test.json"
 ## Les images au plus qu'attend une réponse montrée ou un modèle posé.
 const IMAGES_D_ATTENTE := 600
 ## La hauteur d'où tombe le rayon qui cherche le sol d'une case, au-dessus de tout pont.
@@ -34,8 +34,8 @@ func _recetter() -> void:
 		push_error("[editeur-navire] %s : aucun éditeur figé" % FIGE)
 		quit(2)
 		return
-	if FileAccess.file_exists(CALQUES_DE_L_ARENE):
-		DirAccess.remove_absolute(CALQUES_DE_L_ARENE)
+	if FileAccess.file_exists(CALQUES_DE_LA_CAMPAGNE):
+		DirAccess.remove_absolute(CALQUES_DE_LA_CAMPAGNE)
 	var pont := PontFige.poser(self, lu)
 	var editeur: Node = (load("res://scenes/Editeur.tscn") as PackedScene).instantiate()
 	root.add_child(editeur)
@@ -52,7 +52,11 @@ func _recetter() -> void:
 
 ## Les gestes de la recette joués sur l'éditeur `editeur`, arrêtés à la première attente vaine.
 func _derouler(lu: Dictionary, editeur: Node) -> void:
-	if not await _attendre(func() -> bool: return not editeur.get("_vue").is_empty(), "l'Arène ouverte"):
+	if not await _attendre(func() -> bool: return not editeur.get("_vue").is_empty(), "la campagne de test ouverte"):
+		return
+	var ouverte: Dictionary = editeur.get("_vue")
+	_presser(editeur, "scenes/ajouter")
+	if not await _attendre(func() -> bool: return editeur.get("_vue") != ouverte, "la scène neuve ouverte"):
 		return
 	_presser(editeur, "outil/navire")
 	var liste := _liste(editeur, "navires")

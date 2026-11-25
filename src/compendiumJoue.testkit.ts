@@ -28,6 +28,7 @@ import {
   estChampDAdresse,
   formulaireDeLAtelier,
   ouvrirLeCompendium,
+  paquetDisqueDuJeu,
   type GesteDuCompendium,
   type Segment,
   type SessionDuCompendium,
@@ -67,7 +68,7 @@ import { coDescendre, defDe, noeudsAuChemin, ouverts } from './data/schemas/gram
 import { adressesDe } from './noyau/edition/adresseDeProse';
 import { datasetArray, datasetObject, entreesDuDataset, type DatasetKey } from './data/overrides';
 import { editableDataset, editableObjectDataset, enregistrerEntree } from './data/atelierDuCodex';
-import { campagneDeTest } from './scenes/fixtures/campagneDeTest.testkit';
+import { campagneDeTest } from './scenes/fixtures/contenuDuCommun';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { cheminsCreditesJoues, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
@@ -167,7 +168,7 @@ function jouerLeJeu(s: SessionDuCompendium, jeu: Jeu): SessionDuCompendium {
 
 /** Le manifeste du `Source/` versionné, servi comme le pont le sert, et le paquet de la campagne de test. */
 const MANIFESTE = manifesteDe(CORPUS_DISQUE);
-const PAQUETS = [{ fichier: campagneDeTest.fichier, projet: campagneDeTest.paquet }];
+const PAQUETS = [{ fichier: campagneDeTest.fichier, projet: paquetDisqueDuJeu(campagneDeTest) }];
 
 /** L'atelier de la catégorie `categorie` : ouvert sur l'entrée `id` d'un dataset-liste, comme le pont s'ouvre sur une
  *  entrée, puis « Modifier » ; d'un dataset-objet, sa famille puis sa catégorie choisies, puis « Modifier » ; sans

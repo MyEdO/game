@@ -1,7 +1,8 @@
 /**
  * CLI de la lentille « obtenabilité réelle » (#321 lentille 1) — mécanique dans
  * `scripts/data/lib/obtainabilityGraph.ts` (partagée avec la garde `src/data/obtainability-guard.test.ts`).
- * Sortie : JSON `scripts/data/.out/obtainability-report.json` + résumé console. Lancé via `tsx`.
+ * Sortie : JSON `scripts/data/.out/obtainability-report.json` + résumé console. Lancé via `tsx`, les paquets éprouvés
+ * en arguments (chemins relatifs au dépôt), le contenu du commun sans argument (`paquetsDuCommun`).
  */
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -10,7 +11,8 @@ import { talents, spells } from '../../src/data/index';
 import { computeObtainability } from './lib/obtainabilityGraph';
 
 const ROOT = fileURLToPath(new URL('../..', import.meta.url));
-const { talentNever, casterInfo, spellNever } = computeObtainability(ROOT);
+const paquets = process.argv.slice(2);
+const { talentNever, casterInfo, spellNever } = computeObtainability(ROOT, paquets.length ? paquets : undefined);
 
 const report = {
   talents: {
