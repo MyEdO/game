@@ -4,14 +4,14 @@
 // projet ne l'ouvre pas.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { spawnSync } from 'node:child_process'
-import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerArbre, listerDossier, listerEntrees } from './lister.mjs'
 import { entreeDe, readCorpus } from './sourceCorpus.mjs'
 import { INDEX, depotDe, lireEnLot, listerImage } from './gitPorte.mjs'
+import { envDeDepotForge, instanceDeDepot } from './depotGabarit.mjs'
 import { clotureDImports } from './importGraph.mjs'
 import { repoProgram } from './tsProgram.mjs'
 import { porteDeTousLesProjets, porteDuProjet } from './porteDesProjets.mjs'
@@ -118,14 +118,11 @@ test('lireEnLot refuse un chemin sous projets/ sans la passe du dépôt', () => 
 })
 
 test('un dépôt d\'une autre racine n\'a pas de projets à garder', () => {
-  const racine = mkdtempSync(join(tmpdir(), 'porte-des-projets-fixture-'))
+  const { racine } = instanceDeDepot({ fichiers: { 'projets/p/a.txt': 'a\n' } })
   try {
-    mkdirSync(join(racine, 'projets', 'p'), { recursive: true })
-    writeFileSync(join(racine, 'projets', 'p', 'a.txt'), 'a\n')
-    for (const args of [['init', '-q'], ['add', '.']]) assert.equal(spawnSync('git', args, { cwd: racine }).status, 0)
-    const fixture = depotDe(racine)
-    assert.deepEqual(listerImage(fixture, INDEX), ['projets/p/a.txt'])
-    assert.equal(lireEnLot(fixture, INDEX, ['projets/p/a.txt']).get('projets/p/a.txt'), 'a\n')
+    const fixture = depotDe(racine, { env: envDeDepotForge() })
+    assert.deepEqual(listerImage(fixture, 'HEAD'), ['projets/p/a.txt'])
+    assert.equal(lireEnLot(fixture, 'HEAD', ['projets/p/a.txt']).get('projets/p/a.txt'), 'a\n')
   } finally {
     rmSync(racine, { recursive: true, force: true })
   }
