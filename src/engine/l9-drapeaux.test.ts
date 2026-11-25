@@ -221,7 +221,7 @@ describe('Putréfaction — « le cuir se racornit (perdant 1 PA à 1 Localisati
   it('endommage de 1 PA une pièce de cuir portée (et re-dérive l’armure)', () => {
     const c = mk({ items: [leather()] });
     const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' }).lignes;
-    expect(c.items![0].damageTaken).toBe(1);
+    expect(c.items![0].usure).toEqual({ corps: 1 });
     expect(lines.join(' ')).toMatch(/racornit|pourrit/i);
   });
   it('sans cuir porté : rien d’endommagé, journal honnête', () => {

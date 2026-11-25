@@ -175,7 +175,7 @@ describe('mer — réparation temporaire de l’Entretien du soir (MDG 13 l.651,
       kind: 'test', reussite: EMPTY_FLOW, echec: EMPTY_FLOW,
       test: { crewTestType: 'manoeuvre', difficulty: 'difficile', stake: { key: { dataset: 'voyage', kind: 'equipage-affaler-ouragan', entryId: 'ouragan', entryCategory: 'seaBoardEvents' } } },
     } as unknown as Extract<Flow, { kind: 'test' }>;
-    expect(ouvrirLeTestDEquipage(get, set, noeud, EMPTY_FLOW, 'Manœuvre')).toBe(true);
+    expect(ouvrirLeTestDEquipage(get, set, noeud, 'Manœuvre')).toBe(true);
     expect(get().pendingCascade!.participants.map((s) => s.kind)).toEqual(['testDEquipage', 'mer-reparation-temporaire']);
   });
 });

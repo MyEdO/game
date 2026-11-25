@@ -3,7 +3,7 @@ import { poserLesReglesDuRoguelite } from '../noyau';
 import * as J from '../jeu';
 import { panneauDeService } from './services';
 
-beforeAll(poserLesReglesDuRoguelite);
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** L'hospice au palier 1 pour un héros à la déchirure mineure, la bourse à `or` CO. */
 function hospice(or: number) {

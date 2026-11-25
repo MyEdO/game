@@ -46,8 +46,6 @@ describe('dialogue.reponse — avancée différée pendant un Test', () => {
     // Le Test a suspendu ; le nœud N’A PAS avancé (pas de DialogueBox du nœud suivant sous la modale).
     expect(banc.getState().pendingTest).toBeTruthy();
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
-    // La transition est portée par le pending, en attente de reprise.
-    expect(banc.getState().pendingTest!.dialogueNext).toBeTruthy();
   });
 
   it('la réponse à Test ouvre la fenêtre de jet ORDINAIRE — pas une modale propre au dialogue (#1869)', () => {

@@ -127,7 +127,10 @@ function montrer(survols: Survols, cible: EventTarget | null) {
   const porteur = el?.closest<HTMLElement>('[data-apercu], [data-bulle]');
   cacher(survols);
   if (!porteur) return;
-  if (porteur.dataset.apercu) poserLApercu(survols.apercu, porteur, JSON.parse(porteur.dataset.apercu) as Apercu);
+  if (porteur.dataset.apercu) {
+    const a = JSON.parse(porteur.dataset.apercu) as Apercu;
+    poserLApercu(survols.apercu, porteur, porteur.dataset.bulle && !a.pied ? { ...a, pied: porteur.dataset.bulle } : a);
+  }
   else if (porteur.dataset.bulle) poserLaBulle(survols.bulle, porteur, porteur.dataset.bulle);
 }
 

@@ -157,7 +157,7 @@ describe('Souffle = la manœuvre `souffle` composée avec la règle de son Type'
 
     applyTriggeredEffects(get, mk({ id: 'a' }), souffle('ronge-fixture').effects ?? [], 'onHit',
       { victim: e, indice: 15, rng: makeRNG(2) });
-    expect(cotte.damageTaken).toBe(1);
+    expect(cotte.usure).toEqual({ corps: 1 });
     expect(sourceDuTraitA(e, 'corps')?.pa).toBe(1);
     recomputeLoadout(e);
     expect(armourPhysiqueAt(e, 'corps')).toBe(2);

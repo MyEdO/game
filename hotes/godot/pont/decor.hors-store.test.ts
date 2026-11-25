@@ -25,7 +25,7 @@ import type { DecorServi, MondeDuPont, MorceauxDuPont, SaisonOfferte } from './p
 import { figerUnePartie } from '../recettes/atelier';
 import { facadeFeatureViz } from '../../../src/noyau/monde/facades';
 import { findPropById } from '../../../src/data';
-import { scenario as scenarioDiligence } from '../../../src/scenes/test-scenarios/diligence';
+import { scenario as rueOrnee } from '../../../src/scenes/test-scenarios/rue-ornee';
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 
 const COMMITES = await modelesCommites();
@@ -107,11 +107,11 @@ describe('les décors de la scène en cours', () => {
 });
 
 describe('les ornements du bâti de la scène en cours (#4471)', () => {
-  it('sert la souche de chaque foyer et chaque enseigne des façades de la Diligence, l’une portée avec sa nappe', () => {
+  it('sert la souche de chaque foyer et chaque enseigne des façades de la rue ornée, l’une portée avec sa nappe', () => {
     const { appel: jeu } = table();
-    suiteDe(jeu('demarrer', { scenario: 'diligence', graine: 7 }));
+    suiteDe(jeu('demarrer', { scenario: 'rue-ornee', graine: 7 }));
     try {
-      const { architecture, entities } = scenarioDiligence.construire(idsDeTest).scene;
+      const { architecture, entities } = rueOrnee.construire(idsDeTest).scene;
       const enseignes = (architecture ?? []).flatMap((corps) => corps.facades.flatMap((section) =>
         (section.features ?? [])
           .filter((f) => {
@@ -125,7 +125,7 @@ describe('les ornements du bâti de la scène en cours (#4471)', () => {
       const { decors } = vueDe(jeu('vue')).corps;
       const servies = (prop: string) => (decors[prop]?.poses ?? []).filter((p) => /^(architecture|souche)\//.test(p.cle));
       for (const prop of ['cheminee', 'enseigne']) {
-        expect(deLaDonnee[prop].length, `${prop} : la donnée de la Diligence en porte`).toBeGreaterThan(0);
+        expect(deLaDonnee[prop].length, `${prop} : la rue ornée en porte`).toBeGreaterThan(0);
         expect(servies(prop).map((p) => p.cle).sort(), prop).toEqual(deLaDonnee[prop]);
       }
       const portees = [...servies('cheminee'), ...servies('enseigne')].filter((p) => p.nappe);
@@ -169,7 +169,7 @@ describe('l’échantillon d’un décor dans l’atelier', () => {
       expect(morceau.normales).toHaveLength(morceau.positions.length);
       expect(morceau.couleurs).toHaveLength(4 * morceau.positions.length / 3);
 
-      const partie = fige('demarrer', { scenario: 'diligence', graine: 7 }) as Parameters<typeof suiteDe>[0];
+      const partie = fige('demarrer', { scenario: 'rue-ornee', graine: 7 }) as Parameters<typeof suiteDe>[0];
       const { vue } = suiteDe(partie);
       expect(vue.corps.decors[prop]).toMatchObject({ element });
       expect(vue.plateau!.cleDuMonde).toMatch(/^[0-9a-z]+$/);

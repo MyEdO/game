@@ -1,4 +1,5 @@
 /** #2967 ; LDB 59 l.54, l.60, l.66 ; LDB 62 l.135 ; LDB 73 l.23 */
+import { degatsSubis } from '../engine/repair';
 import { describe, expect, it } from 'vitest';
 import { findTrappingById } from '../data';
 import { bourseOf } from '../engine/bourse';
@@ -79,7 +80,7 @@ describe('lectures marchandes des possessions de campagne (#2967)', () => {
     const avant = bourse();
     get().fenetreChoisir('marchand', 'reparer', abime.uid);
     expect(bourse()).toBe(avant - 48);
-    expect(item(bien.id).damageTaken).toBe(0);
+    expect(degatsSubis(item(bien.id))).toBe(0);
   });
 });
 

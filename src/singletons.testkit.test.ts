@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { rule, setRule, ruleDef } from './engine/policy';
 import { DES_FIXES_DEFAULT, desFixes, setDesFixes } from './engine/fixedDie';
+import { CADENCE_DEFAULT, cadence, setCadence } from './engine/cadence';
 import { TAVERN_FAST_RULE } from './engine/tavernGame';
 import { remettreLesSingletons } from './singletons.testkit';
 
@@ -12,12 +13,14 @@ import { remettreLesSingletons } from './singletons.testkit';
  * `--sequence.shuffle.files --sequence.seed=3` derrière `tavern-regime-rapide`).
  */
 describe('remise à zéro des singletons de module', () => {
-  it('rend la règle et les Dés fixés à leur départ', () => {
+  it('rend la règle, la cadence et les Dés fixés à leur départ', () => {
     setRule(TAVERN_FAST_RULE, !ruleDef(TAVERN_FAST_RULE)!.default);
     setDesFixes(!DES_FIXES_DEFAULT);
+    setCadence('auto');
     remettreLesSingletons();
     expect(rule(TAVERN_FAST_RULE)).toBe(ruleDef(TAVERN_FAST_RULE)!.default);
     expect(desFixes()).toBe(DES_FIXES_DEFAULT);
+    expect(cadence()).toBe(CADENCE_DEFAULT);
   });
 
   // Commentaires retirés : un appel commenté ne remet rien.

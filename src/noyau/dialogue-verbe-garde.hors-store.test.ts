@@ -60,7 +60,7 @@ describe('dialogue.reponse — la fenêtre de jet SUSPEND la conversation', () =
 
     const apres = banc.getState();
     expect(apres.dialogueHistory, 'un second tour archivé serait une réponse jouée deux fois').toHaveLength(1);
-    expect(apres.pendingTest, 'le pending — et son `dialogueNext` — ne doit pas être remplacé').toBe(pendingAvant);
+    expect(apres.pendingTest, 'le pending ne doit pas être remplacé').toBe(pendingAvant);
   });
 
 });

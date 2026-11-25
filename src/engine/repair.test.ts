@@ -3,17 +3,25 @@ import { repairCostBrass, repairWeaponCostBrass, isRepairable, itemRepairCostBra
 
 describe('repair — réparation armure (LDB 63 l.64)', () => {
   it('10 % du prix de base par PA perdu', () => {
-    expect(repairCostBrass({ pa: 2, damageTaken: 1 } as any, 120)).toBe(12); // 1 PA perdu × 10 % de 120
-    expect(repairCostBrass({ pa: 3, damageTaken: 2 } as any, 120)).toBe(24); // 2 PA × 10 %
+    expect(repairCostBrass({ pa: 2, usure: { corps: 1 } }, 120)).toBe(12);
+    expect(repairCostBrass({ pa: 3, usure: { corps: 2 } }, 120)).toBe(24);
+  });
+  it('les PA perdus de chaque Emplacement s’additionnent (LDB 63 l.64 : 1 au Corps et 1 aux Bras → 20 %)', () => {
+    expect(repairCostBrass({ pa: 2, usure: { corps: 1, brasG: 1 } }, 60)).toBe(12);
   });
   it('pièce brisée (PA nette < 0, LDB 63 l.21) → 30 % du prix de base', () => {
-    expect(repairCostBrass({ pa: 1, damageTaken: 2 } as any, 100)).toBe(30);
+    expect(repairCostBrass({ pa: 1, usure: { corps: 2 } }, 100)).toBe(30);
+    expect(repairCostBrass({ pa: 1, usure: { corps: 2, brasG: 1 } }, 100)).toBe(30);
+  });
+  it('un Dégât de plus ne fait jamais baisser le prix : 10 % par PA perdu au moins', () => {
+    expect(repairCostBrass({ pa: 2, usure: { brasG: 2, brasD: 2, corps: 2 } }, 1000)).toBe(600);
+    expect(repairCostBrass({ pa: 2, usure: { brasG: 2, brasD: 2, corps: 3 } }, 1000)).toBe(700);
   });
   it('pièce à 0 PA nette : encore utilisable, 10 % par PA perdu (LDB 63 l.19, l.64)', () => {
-    expect(repairCostBrass({ pa: 1, damageTaken: 1 } as any, 100)).toBe(10);
+    expect(repairCostBrass({ pa: 1, usure: { corps: 1 } }, 100)).toBe(10);
   });
   it('non endommagée → 0', () => {
-    expect(repairCostBrass({ pa: 2, damageTaken: 0 } as any, 100)).toBe(0);
+    expect(repairCostBrass({ pa: 2 }, 100)).toBe(0);
   });
 });
 
@@ -39,6 +47,6 @@ describe('repair — réparation arme (LDB 62 l.135)', () => {
   });
   it('itemRepairCostBrass : dispatch par kind (arme vs armure)', () => {
     expect(itemRepairCostBrass(sword(2), 200)).toBe(40); // arme : 2 × 10 %
-    expect(itemRepairCostBrass({ kind: 'armor', pa: 3, damageTaken: 2 } as any, 120)).toBe(24); // armure : 2 PA × 10 %
+    expect(itemRepairCostBrass({ kind: 'armor', pa: 3, usure: { corps: 2 } } as any, 120)).toBe(24); // armure : 2 PA × 10 %
   });
 });
