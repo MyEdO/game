@@ -28,6 +28,15 @@ Plan de cadrage du 2026-11-25. Épique parente : #4903 (Un noyau partagé, un do
 8. « Même si bon le mieux c'est que le jeu passe le maximum en ops plutot qu'en dure on ne va pas se mentir »
 9. « On commence par partir dans beaucoup de direction, et notre contexte va vite devenir notre ennemie. J'espere que tu affine ton plan »
 
+**Décision du 2026-11-25, par carte**, à la question « Dans le noyau, des index calculés à l'import d'un module ne
+voient pas une donnée modifiée ensuite (63 sites). Ta doctrine refuse une garde ; TypeScript ne peut pas interdire une
+lecture au moment de l'import. Comment fermer ces 63 index ? ». L'utilisateur a choisi « Catalogue passé en valeur
+(Recommandé) », dont la conséquence affichée était : « La base n'est plus exportée en tableaux globaux : une règle reçoit
+le catalogue composé en argument. Une lecture à l'import ne compile plus, et c'est déjà la composition par projet. C'est
+le plus cher : environ 235 lecteurs à migrer par familles, en avançant L2. » Les options écartées étaient « Donnée non
+posée à l'import » et « Étendre la garde existante ». Même carte : « Oui, crée-les (Recommandé) », pour un ticket par
+lot sous #4919, avec le brief du codeur en commentaire daté.
+
 Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-projets.md` :
 
 - **§ 11, le *Bestiaire non officiel*.** La piste écartée était une donnée propre à l'atelier, *refusée au
@@ -122,13 +131,8 @@ Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-
 
 **Hypothèses révisables, tranchées par L0.**
 
-- **H1 — Une composition par processus, posée par `overrides.ts` au chargement : tenue par L0 (§ 8.2).** Chaque
-  processus n'ouvre qu'un projet, et `entreeDHote` (`scripts/entree-d-hote.mjs`) charge déjà `overrides.ts` avant
-  l'hôte. Elle tient à trois conditions, portées par L1 :
-  - les 63 captures au niveau module passent par l'invalidation existante (`memoParVersion`, `indexParId`,
-    `src/data/versionDataset.ts`) ;
-  - `overrides.ts` couvre les 7 datasets qui lui échappent ;
-  - un test qui compose remet la donnée à zéro, car Vitest tourne sous `isolate:false`.
+- **H1 — Une composition par processus, posée par `overrides.ts` au chargement.** Mesurée tenable par L0 (§ 8.2), puis
+  écartée par la décision du § 2 : le catalogue passe en valeur (§ 5.1).
 - **H2 — Deux étages de choix.** Le projet fixe ce qui est disponible, la partie choisit parmi ce disponible
   (verbatim 5). Le choix de la partie voyage par les canaux qui portent déjà les règles : `SaveGame.rules` et
   `packHouseRules`, étendus à l'empreinte de la composition.
@@ -141,58 +145,38 @@ Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-
 | Lot | Contenu | Après | Preuve de fini |
 |---|---|---|---|
 | L0 | Mesure, en lecture seule. (a) Chaque id de donnée littéral de `src/engine` et `src/noyau`, classé : devient op/`Flow`, ou reste irréductible et passe par un emploi. (b) Qui charge quoi, par processus (H1). (c) Chaque export de `valeurs.ts`, classé. | — | Une annexe chiffrée à ce plan ; H1 et H2 tranchées ou remontées. |
-| L1 | Les conditions de H1 (§ 8.2). Puis le schéma de la composition, posé par `overrides.ts` dans `entreeDHote` (P3, P4, P7) : livres, éléments, modification en place, dérivation, livre du projet. L'édition et la langue de #1816 (WFRP 5e : édition sélectionnable et axe de langue VF/VO) en sont deux champs. | L0 | Tests sur un livre de test : retenir, exclure, modifier, dériver, ajouter. Un refus nomme la chaîne. Le Compendium crée, modifie et supprime une entrée du livre d'un projet. Aucune capture au niveau module ne survit à `setDataset` (banc sur les 63 sites). |
-| L2 | Chaque processus charge la composition de son projet. Elle voyage dans la sauvegarde et dans la coop (H2). Absorption de `gatedByRule`, des registres narratifs, des champs locaux des ports. Solde de #4919 (Choisir, par livre, le contenu proposé au jeu). | L1 | `npm test` complet et `npm run typecheck` verts. Le lot `npm run jeu-de-role:recette` passe, parcours `campagne` et `editeur` compris. La reprise d'une sauvegarde sous une autre composition est refusée, et l'invité d'une coop reçoit la composition de l'hôte. `git grep` des anciens porteurs vide. |
+| L1 | Le catalogue passé en valeur (§ 5.1) : un design jugé, puis la migration des lecteurs par familles. Le schéma de la composition (P3, P4, P7) produit ce catalogue : livres, éléments, modification en place, dérivation, livre du projet. L'édition et la langue de #1816 (WFRP 5e : édition sélectionnable et axe de langue VF/VO) en sont deux champs. | L0 | Le design est jugé ACCEPTER. Chaque famille migrée : typecheck complet, `npm run test:perimetre` vert, et une lecture de la base au chargement d'un module de la famille ne compile plus. Tests sur un livre de test : retenir, exclure, modifier, dériver, ajouter ; un refus nomme la chaîne. Le Compendium crée, modifie et supprime une entrée du livre d'un projet. |
+| L2 | La partie tient son catalogue composé. Il voyage dans la sauvegarde et dans la coop (H2). Absorption de `gatedByRule`, des registres narratifs et des champs locaux des ports. Solde de #4919 (Choisir, par livre, le contenu proposé au jeu). | L1 | `npm test` complet et `npm run typecheck` verts. Le lot `npm run jeu-de-role:recette` passe, parcours `campagne` et `editeur` compris. La reprise d'une sauvegarde sous une autre composition est refusée, et l'invité d'une coop reçoit la composition de l'hôte. `git grep` des anciens porteurs vide. |
 | L3 | `Id<T>` se ferme à la composition (P5). | L2 | Un id littéral dans une règle de `src/engine` ou de `src/noyau` ne compile pas (banc de typage). |
 | L4 | Les ids en dur deviennent ops ou `Flow` (P1), et le reste passe par des emplois (P2). Par familles, dans l'ordre que donne L0. | L3 | Une composition « système seul », avec un livre de test, joue un combat par le noyau. Typecheck complet vert sans littéral d'id. |
 | L5 | Premier client : le roguelite. `valeurs.ts` ne garde rien de ce qui touche au noyau (verbatim 6) : ses sélections et ses modifications deviennent sa composition, et `MAIN_SECONDAIRE` et `MUNITION_DE_FAMILLE` passent au noyau. `.claude/rules/roguelite.md` est réécrite. `BATIMENTS`, `EPREUVES` et `CAMP` suivent quand le noyau a leur forme, ce qui est hors de ce plan. | L2 ; la famille d'armes de L4 | `npm run roguelite:recette` passe, avec des images identiques à la référence. `valeurs.ts` ne nomme plus aucun id de la bibliothèque. |
 
-### 5.1 Design de L1a : la donnée de `src/data` se recompose à chaud
+### 5.1 L1 révisé par la décision du § 2 : le catalogue passé en valeur
 
-- **Invariant.** Verbatim de `src/data/versionDataset.ts:4-7`, posé par #1692 (overrides.ts : des clés d'ARRAYS ont
-  un index figé à l'import) : « `src/data/overrides.ts` remplace le CONTENU d'un dataset sans jamais réassigner son
-  binding (`arr.splice(0, arr.length, …)`) : l'identité du tableau ne dit donc RIEN d'une édition, et tout index
-  construit une fois à l'import sert l'ancien monde jusqu'au rechargement de la page. Ce module porte le compteur
-  qu'un lecteur indexé consulte pour savoir si son index est encore juste. »
+Le design de L1a (la donnée globale recomposée à chaud) a été jugé CORRIGER le 2026-11-25. Son point bloquant :
+étendre `src/data/index-vivant-guard.test.ts` est une garde, que la doctrine `user-doctrine-structure-avant-garde`
+refuse (« les gardes sont a éviter ABSOLUMENT »), et TypeScript ne peut pas interdire une lecture au chargement d'un
+module.
 
-  Et `src/data/overrides.ts:1-6`, qui en fait l'« Unique point de branchement » de « l'éditeur de données in-app »
-  et de « la future couche de surcharges PAR CAMPAGNE (apply au chargement, reset à la sortie) ». La question à
-  laquelle il répondait : une entrée éditée au Codex doit être vue de tout lecteur, sans recharger. L1a ne change
-  pas l'invariant : il le rend vrai partout où L0 (§ 8.2) l'a trouvé faux.
-- **Qui possède quoi.**
-  - `overrides.ts` est le seul écrivain (`setDataset`, `setObjectDataset`, `setEnTete`, `resetData`).
-  - `versionDataset.ts` porte la version (`bumperDataset`, `:49`).
-  - Tout lecteur dérivé passe par `memoParVersion` (`:92`), `indexParChamp` (`:121`) ou `indexParId` (`:143`) :
-    c'est la forme de `TRAITS` ou de `indexDesTerrains`.
-  - La garde canonique `src/data/index-vivant-guard.test.ts`, sur `scripts/guards/lib/bindingsVivants.mjs`, refuse
-    le reste.
-- **Critère « N+1 = une ligne ».** Un dataset de plus, c'est une entrée d'`ARRAYS` ou d'`OBJECTS`. Un lecteur dérivé
-  de plus, c'est un `memoParVersion`, et la garde rougit s'il n'y passe pas.
-- **Décisions à juger.**
-  - **D1.** Entre deux fichiers de test (Vitest sous `isolate:false`, `vitest.config.ts:36`), la donnée se remet
-    par un `afterAll(resetData)` du fichier de setup, instance de « reset à la sortie ». L'option écartée est une
-    discipline par fichier, que 105 fichiers composent et 31 seulement remettent.
-  - **D2.** Les 7 datasets hors du seam entrent dans `ARRAYS` ou `OBJECTS` : `ACTIONS`, `merchantFamilies`,
-    `structureAppearances`, `lieuxServices`, `tablesDeLocalisation`, `ambiance`, `DEFAULT_RACE_ID`. H3 décide ce
-    qu'une composition peut retirer, pas ce qui est éditable : un dataset du socle reste éditable et vu à chaud
-    (doctrine `campagne-recreable-a-l-editeur`).
-  - **D3.** Une constante scalaire tirée d'un dataset au chargement (`WORK_PERIOD_HOURS`, `DEFAULT_TERRAIN`, `MER`,
-    `PLANCHER`, `PRIX_DU_LIVRE`) devient un `memoParVersion(cle, () => valeur)`, pas une lecture à l'usage
-    dispersée.
-  - **D4.** La garde canonique s'étend aux trous mesurés au lieu qu'une seconde garde naisse :
-    - les datasets hors des listes ;
-    - les appels au chargement d'une fonction qui lit un dataset en profondeur ;
-    - le périmètre `src/engine` et `projets/*/src`.
+L'utilisateur a choisi le catalogue passé en valeur (§ 2). H1 tombe : le catalogue n'est plus un état du processus,
+c'est une valeur composée qu'une partie tient et qu'une règle reçoit. L2 se fond dans L1. La remise à zéro entre
+fichiers de test, la liste des 7 datasets hors du seam et les 63 captures deviennent sans objet une fois leurs lecteurs
+migrés : une capture à l'import ne compile plus.
 
-    Un trou que l'AST ne peut pas fermer se déclare avec son exemple.
-- **Lots, par fichiers disjoints, menés en parallèle puis intégrés ensemble :**
-  - L1a-1 : la garde et le seam (`scripts/guards/lib/bindingsVivants.mjs`, `src/data/index-vivant-guard.test.ts`,
-    `src/data/overrides.ts`, `src/data/index.ts`).
-  - L1a-2 : les sites de `src/noyau` et `src/engine`.
-  - L1a-3 : la remise à zéro des tests et les sites du roguelite (le fichier de setup de Vitest,
-    `projets/roguelite/src/jeu/boutiques.ts`, `valeurs.ts`).
+Les corrections du juge qui survivent, à reprendre au design neuf :
+- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1915`).
+- Un dataset se déclare par la route de son def, puis `npm run gen` (`CLES_DE_DATASET`, `RACINES_VIVANTES`,
+  `src/data/racines-vivantes.test.ts:29`).
+- Une lecture de champ est un accesseur, et le mémo sert un vrai calcul.
+- Le coût d'une remise de la base est d'environ 50 ms.
 
-  La garde n'est verte qu'une fois les trois intégrés.
+**L1, design du catalogue en valeur.** C'est un ticket, jugé avant le premier codeur. Il doit dire :
+- la forme du catalogue composé, et qui le tient (la partie, le pont, la page du roguelite) ;
+- comment le moteur pur le reçoit sans perdre sa pureté ;
+- ce que devient la façade `src/data/index.ts` (97 imports JSON, 182 exports) et la couture `overrides.ts` que le
+  Compendium écrit ;
+- le découpage de la migration des lecteurs par familles, chacune en lots par fichiers disjoints ;
+- la place des tests, qui composent leur catalogue en valeur (P6).
 
 ## 6. Critère de fini du chantier
 
