@@ -103,7 +103,7 @@ les scénarios et la coop avec un RNG à graine. **Vitest** en joue les suites.
 ```bash
 npm install            # pose les hooks git et les pilotes de fusion
 echo '{}' | node scripts/hooks/bootstrap-conteneur.mjs  # fil de projet claude.ai (hooks absents) : avant le 1er commit
-timeout <N> npm run godot:ouvrir # jeu Godot local
+timeout <N> npm run jeu-de-role:ouvrir # Godot local
 npm test               # tests Vitest
 npm run typecheck      # tsc --noEmit
 npm run typecheck:fast # typecheck incrémental (~7-10 s)
@@ -124,7 +124,7 @@ src/hote/     commun aux hôtes du noyau (projection, sauvegardes, coop, réglag
 hotes/        affichages : godot/ (pont JSON, CONTRAT.md), texte/ (MCP, sans écran)
 projets/      un dossier par projet (jeu ou outil), sa zone de COUCHES
 src/data/     base APP-OWNED (JSON commité, rien à régénérer après un clone) + exceptions manuscrites sourcées
-src/scenes/   documents de scène + campagne Arène
+src/scenes/   scénarios et fixtures du commun
 server/       Worker Cloudflare du relay
 ```
 

@@ -7,7 +7,7 @@
  * inchangée.
  *
  * ENTRÉES : `src/data/surincantation.json`, `src/data/calendarPhases.json`,
- * `src/scenes/diligence/diligence-projet.json` (les seules données lues et écrites).
+ * `projets/jeu-de-role/campagnes/diligence/diligence-projet.json` (les seules données lues et écrites).
  * IDEMPOTENT : un palier qui porte déjà `seuil` sans la clé d'avant n'a aucun geste ; rejouée sur
  * l'état final, rien ne s'écrit.
  * FAIL-FAST — sortie 1 avant toute écriture : fichier hors de son formatage, palier sans l'une ni
@@ -30,7 +30,7 @@ const CIBLES = [
   { rel: 'src/data/surincantation.json', avant: 'dr', paliers: (d) => d.entries, cardinal: { n: 7, ref: 'VDM 02 l.209-215' }, serialiser: serializeDataset },
   { rel: 'src/data/calendarPhases.json', avant: 'start', paliers: (d) => d, serialiser: serializeDataset },
   {
-    rel: 'src/scenes/diligence/diligence-projet.json',
+    rel: 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json',
     avant: 'drMin',
     paliers: (d) => (d.worldMap?.routes ?? []).flatMap((r) => Object.values(r.billets ?? {}).flatMap((b) => b.marchandage?.paliers ?? [])),
     cardinal: { n: 2, ref: 'EDO 01 l.142' },

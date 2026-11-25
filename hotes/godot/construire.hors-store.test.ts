@@ -26,8 +26,8 @@ const CONSTRUIRE = new URL('./construire.mjs', import.meta.url);
 /** L'environnement des enfants (`sansModeNiRelais`). */
 const ENV = sansModeNiRelais();
 
-/** L'entrée du jeu de rôle (`package.json`, scripts `godot:*`). */
-const ENTREE_DU_JEU_DE_ROLE = 'hotes/godot/pont/entree-jeu-de-role.ts';
+/** Une entrée autre que l'entrée commune : le pont sur un contenu vide. */
+const ENTREE_VIDE = 'hotes/godot/pont/entree-vide.ts';
 /** Une scène du paquet de test du commun (`src/scenes/fixtures/paquet-de-test.json`), que seul son contenu porte. */
 const SCENE_DU_COMMUN = 'scene-de-test-a';
 
@@ -70,7 +70,7 @@ writeFileSync(${JSON.stringify(join(dossier, 'production.js'))}, production);
 writeFileSync(${JSON.stringify(join(dossier, 'developpement.js'))}, developpement);
 process.stdout.write(JSON.stringify({ lectures: lecturesDuBundle(production), apres }));`;
   const d1 = await enfant(['--input-type=module', '-e', script]);
-  const d2 = await enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie, '--entree', ENTREE_DU_JEU_DE_ROLE]);
+  const d2 = await enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie, '--entree', ENTREE_VIDE]);
   if (d1.code !== 0) throw new Error(`l’enfant de D1 sort en ${d1.code} :\n${d1.stderr}`);
   const lu = JSON.parse(d1.stdout) as { lectures: Record<string, number>; apres: (string | null)[] };
   lectures = lu.lectures;

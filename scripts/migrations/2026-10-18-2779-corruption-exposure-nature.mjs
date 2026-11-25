@@ -8,8 +8,8 @@
  *
  * ENTRÉES (lues et écrites, rien d'autre) :
  *   - `src/data/activities.json`, `src/data/trappings.json` (ops, `JSON.stringify(doc, null, 2)`) ;
- *   - `src/scenes/arene/arene-projet.json` (effet de scène, `JSON.stringify(doc, null, 1)` + saut de
- *     ligne final ; sa source d'authoring `scripts/arene/zones8-13.mjs` porte déjà `nature`).
+ *   - `projets/jeu-de-role/campagnes/arene/arene-projet.json` (effet de scène, `JSON.stringify(doc, null, 1)` + saut de
+ *     ligne final ; sa source d'authoring `projets/jeu-de-role/campagnes/arene/zones8-13.mjs` porte déjà `nature`).
  *
  * IDEMPOTENT : un `corruptionExposure` sans `skill` est migré ou n'a rien à migrer ; rejouée sur
  * l'état final, la migration n'écrit rien et sort 0.
@@ -26,7 +26,7 @@ const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const FICHIERS = Object.freeze({
   'src/data/activities.json': { indent: 2, fin: '' },
   'src/data/trappings.json': { indent: 2, fin: '' },
-  'src/scenes/arene/arene-projet.json': { indent: 1, fin: '\n' },
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json': { indent: 1, fin: '\n' },
 });
 
 /** Compétence désignée → nature de l'Influence (LDB 19 l.29). */

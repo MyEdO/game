@@ -2,19 +2,13 @@
  * UN SEUL MODÈLE D'UTILISABILITÉ (#1687) — `estUtilisable(scene, ent) = actionsDe(scene, ent).length > 0`.
  *
  * Les scènes sont FABRIQUÉES ici (doctrine : jamais une scène de campagne UTILISÉE comme fixture).
- * Le dernier `describe` fait exception et LIT les paquets livrés, mais en PLANCHER : il n'asserte
- * aucun contenu ni aucun nombre récité — il asserte une ÉGALITÉ DÉRIVÉE (« aucune entité livrée ne
- * devient muette »), qui reste vraie quand l'auteur ajoute ou retire des entités.
  */
 import { describe, expect, it } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { emptyScene, type ActionAuthoree, type Scene, type SceneEntity } from './scene';
 import { placesJouables, seatSlotsOf } from './seating';
 import { actionsDe, actionsAuthorees, cleActionJouee, estUtilisable, ACTION_FOUILLER, ACTION_RAMASSER } from './usable';
 import type { ItemInstance } from '../../engine/types';
 import { t } from '../../i18n';
-import { listerDossier } from '../../../scripts/guards/lib/lister.mjs';
 
 /** Meuble de référence du catalogue app-owned : 4 places cardinales. */
 const TABLE = 'table-ronde-4-tabourets';
@@ -158,48 +152,5 @@ describe('actionsDe — les ACTIONS AUTHORÉES : origine, libellé, épuisement'
     const sc = scene([t]);
     expect(ids(sc, t)).toEqual([ACTION_FOUILLER, 'sasseoir']);
     expect(actionsDe(sc, t, { flags: { [cleActionJouee('table-1', ACTION_FOUILLER)]: true } }).map((a) => a.id)).toEqual(['sasseoir']);
-  });
-});
-
-/**
- * PLANCHER — aucune instance LIVRÉE ne devient muette (#1687, méthode de la sonde du juge).
- *
- * Lecture des 4 paquets livrés en PLANCHER, jamais en assertion de contenu : l'égalité comparée est
- * DÉRIVÉE des deux côtés (offre AVANT le lot = capacités d'instance + places du TYPE ; offre APRÈS =
- * `estUtilisable`). Aucun nombre n'est récité — ajouter une entité à une campagne ne rougit pas ce
- * test, retirer une offre à une entité livrée, si.
- */
-describe('PLANCHER — les entités des paquets livrés gardent leur offre', () => {
-  const RACINE = join(process.cwd(), 'src/scenes');
-  const PROJETS = listerDossier(RACINE)
-    .map((nom: string) => join(RACINE, nom, `${nom}-projet.json`))
-    .filter((p: string) => {
-      try { readFileSync(p); return true; } catch { return false; }
-    });
-
-  it('les paquets livrés sont lisibles (sans quoi le plancher ne mesure rien)', () => {
-    expect(PROJETS.length).toBeGreaterThan(0);
-  });
-
-  it.each(PROJETS)('%s : chaque entité qui offrait quelque chose AVANT offre encore', (chemin: string) => {
-    const doc = JSON.parse(readFileSync(chemin, 'utf8')) as { scenes: { id: string; entities?: SceneEntity[] }[] };
-    const muettes: string[] = [];
-    let offrantes = 0;
-    for (const sc of doc.scenes) {
-      const s = scene((sc.entities ?? []) as SceneEntity[]);
-      for (const e of s.entities) {
-        // L'offre d'AVANT le lot, telle que la sonde du juge la mesurait : les capacités d'instance,
-        // les gestes authorés, plus les places que le TYPE porte (l'assise était alors une propriété
-        // du TYPE seul). Le rôle `tavernGame` n'en est pas : sa table n'a jamais eu d'exécuteur hors
-        // du nœud de dialogue qui la sert (`openTavernGames`, mesuré).
-        const avant = !!e.dialogueId || !!e.merchant || !!e.usable?.actions?.length
-          || (e.kind === 'prop' && seatSlotsOf(s, e.id).length > 0);
-        if (!avant) continue;
-        offrantes++;
-        if (!estUtilisable(s, e)) muettes.push(`${sc.id} › ${e.id}`);
-      }
-    }
-    expect(offrantes, `${chemin} : aucune entité offrante — le plancher ne mesure rien`).toBeGreaterThan(0);
-    expect(muettes, 'entités livrées devenues MUETTES').toEqual([]);
   });
 });

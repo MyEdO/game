@@ -13,7 +13,7 @@ export interface SchemaDef {
   /** Désignation du document sous sa racine (`<root>/<file>`), telle qu'exportée par son module de
    *  def. La graphie SUIT LA RACINE : BASENAME pour `root: 'src/data'` (catalogues à plat,
    *  `characteristics.json`), CHEMIN RELATIF à la racine pour `root: 'src/scenes'` (documents en
-   *  sous-dossiers, `arene/arene-projet.json`). C'est la clé de `validateDataset`/`schemaForFile`. */
+   *  sous-dossiers, `fixtures/paquet-de-test.json`). C'est la clé de `validateDataset`/`schemaForFile`. */
   file: string;
   /** Racine du dataset — émise par `scripts/gen-registry.mjs`, jamais déclarée par le def. */
   root: RacineDocument;

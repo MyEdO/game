@@ -1,10 +1,11 @@
-// LE CORPUS DES PROJETS DE CAMPAGNE LIVRÉS — `src/scenes/**/<x>-projet.json`, déclaré UNE fois.
+// LE CORPUS DES PROJETS DE CAMPAGNE LIVRÉS — `projets/**/<x>-projet.json`, déclaré UNE fois (#4936).
 //
 // Gardes, tests et générateurs de docs lisent « les projets livrés » ICI, jamais dans une liste tenue à
 // la main : une liste manque le projet suivant en silence. Le DESCRIPTEUR (dossier + suffixe + récursivité) est composé tel quel par les racines de
 // documents de prose (`RACINES_PROSE`, `proseInline.mjs`) ; `listerProjetsLivres` en rend les chemins, dans l'ordre
 // total de `lister.mjs`, et `cheminsDesProjetsLivres` les mêmes relatifs au dépôt, le corpus qu'une suite du jeu passe
 // aux mesures à paquets en paramètre (`listerDocuments`, `scripts/docs/lib/structures-scan.mts`).
+import { existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listerArbre } from './lister.mjs';
@@ -13,14 +14,13 @@ import { listerArbre } from './lister.mjs';
 const RACINE_DEPOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
 /** Le corpus, en descripteur entier : dossier (relatif à la racine du dépôt), suffixe, récursivité. */
-export const PROJETS_LIVRES = Object.freeze({ dossier: 'src/scenes', suffixe: '-projet.json', recursif: true });
+export const PROJETS_LIVRES = Object.freeze({ dossier: 'projets', suffixe: '-projet.json', recursif: true });
 
-/** Les projets livrés AUTHORÉS à la main, par nom de fichier, chacun avec son motif : aucun générateur
- *  (`scripts/<dossier>/generate.mjs`) ne les produit, l'éditeur les écrit (`hotes/godot/servir.mjs`, `depot/`). Les
- *  autres sont les artefacts de leur générateur (`src/scenes/generateurs-byte-stables.test.ts`). */
-export const PROJETS_MANUSCRITS = Object.freeze({
-  'diligence-projet.json': 'authoré sans générateur (édité au studio, aucun script ne le réécrit)',
-});
+/** Le projet livré `rel` (relatif au dossier du corpus, tel que `listerProjetsLivres` le rend) est-il MANUSCRIT : aucun
+ *  générateur n'est son voisin (`generate.mjs` dans son dossier), l'éditeur l'écrit (`hotes/godot/servir.mjs`,
+ *  `depot/`) ; sinon il est l'artefact de son générateur. */
+export const estManuscrit = (rel, racine = RACINE_DEPOT) =>
+  !existsSync(path.join(dossierDesProjetsLivres(racine), path.dirname(rel), 'generate.mjs'));
 
 /** Dossier ABSOLU du corpus sous `racine` (le dépôt par défaut). */
 export function dossierDesProjetsLivres(racine = RACINE_DEPOT) {
@@ -28,7 +28,7 @@ export function dossierDesProjetsLivres(racine = RACINE_DEPOT) {
 }
 
 /**
- * Chemins des projets livrés, RELATIFS au dossier du corpus (`arene/arene-projet.json`), séparateur
+ * Chemins des projets livrés, RELATIFS au dossier du corpus (`jeu-de-role/campagnes/arene/arene-projet.json`), séparateur
  * `/`, triés par unités de code. Un dossier absent LÈVE : un corpus vide ne passe jamais pour un
  * corpus propre.
  * @param {string} [racine] racine du dépôt (le dépôt par défaut).
@@ -45,7 +45,7 @@ const listerLeCorpus = (corpus, racine) =>
 
 /**
  * Les documents du corpus `corpus` (descripteur entier : dossier relatif à la racine, suffixe, récursivité) en chemins
- * RELATIFS à `racine` (`src/scenes/arene/arene-projet.json`), dans l'ordre de `listerProjetsLivres`. Un dossier absent
+ * RELATIFS à `racine` (`projets/jeu-de-role/campagnes/arene/arene-projet.json`), dans l'ordre de `listerProjetsLivres`. Un dossier absent
  * LÈVE.
  * @param {{ readonly dossier: string, readonly suffixe: string, readonly recursif: boolean }} corpus
  * @param {string} [racine] racine du dépôt (le dépôt par défaut).

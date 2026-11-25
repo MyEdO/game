@@ -12,8 +12,6 @@ import { projetSchema } from '../defs-scenes/projet';
 import { mesureDuParse } from '../grammaire/ref';
 import { versDisque } from '../grammaire/prose';
 import lieuxServicesJson from '../../lieux-services.json';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
-import loupEtSaumureProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Entite = Record<string, unknown>;
@@ -60,7 +58,7 @@ const PORTEURS = [
 describe('#2968 L17 — archétype de marchand et service de lieu désignés par `ref(type)`', () => {
   it('les documents livrés parsent', () => {
     expect(schemaServices.safeParse(lieuxServicesJson).success).toBe(true);
-    for (const lu of [areneProjet, loupEtSaumureProjet]) expect(projetSchema.safeParse(versDisque(lu)).success).toBe(true);
+    for (const lu of [paquetDeTest]) expect(projetSchema.safeParse(versDisque(lu)).success).toBe(true);
   });
 
   it('chaque référence est un slot au parse de mesure, à son path', () => {

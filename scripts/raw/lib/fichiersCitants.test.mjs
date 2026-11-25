@@ -1,5 +1,6 @@
 // Les deux jeux de racines de `fichiersCitants.mjs` (node --test, `npm run test:raw`), jugés sur les
-// DÉFAUTS de leurs lecteurs : un arbre de fixture où `src/` et `projets/` citent un livre et `docs/dossiers/` un autre.
+// DÉFAUTS de leurs lecteurs : un arbre de fixture où `src/` et `projets/` citent un livre et le dossier de fiches d'un
+// projet (`projets/<projet>/dossiers/`) un autre. Les racines se lisent au chargement des scanners, chargés DANS l'arbre.
 // Les scanners CITANTS (`check-code-refs`, `citation-graphy-guard`, `rawRefIntegrity`) voient les trois ;
 // `reconcile` et `build-implemente` ne voient que le code, celui du commun et celui des projets (#2290, #4936).
 // Les réfs sont CONSTRUITES (`ref`) : une réf littérale ici serait lue comme une citation vivante.
@@ -8,11 +9,6 @@ import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { scanDeadCodeRefs, scanEmptyLineCodeRefs } from '../check-code-refs.mjs'
-import { scanTout } from '../citation-graphy-guard.mjs'
-import { scanBlindRefs } from '../../guards/lib/rawRefIntegrity.mjs'
-import { indexCode, rendre as rendreImplementation, RAPPORT as RAPPORT_IMPLEMENTATION, validerDette, registresDeFiches } from '../build-implemente.mjs'
-import { computeReconciliation } from '../reconcile.mjs'
 
 const CODE = 'EDOC'
 const DOSSIER = 'EDO'
@@ -22,13 +18,14 @@ const folio = (abbr) => [abbr, CH, 'p.3'].join(' ')
 const citant = (abbr) => `// voir ${ref(abbr, 2)}\n// voir ${ref(abbr, 9)}\n// voir ${folio(abbr)}\n`
 const FICHIER_CODE = 'src/a.ts'
 const FICHIER_PROJET = 'projets/p/a.ts'
-const FICHIER_DOSSIER = `docs/dossiers/${DOSSIER}/${CH}.json`
+const FICHIER_DOSSIER = `projets/p/dossiers/${DOSSIER}/${CH}.json`
 
 const depart = process.cwd()
 const chapitres = new Map()
 const chapitreDe = (abbr, nn) => nn === CH ? chapitres.get(abbr) ?? null : null
 let racine
-before(() => {
+let scanDeadCodeRefs, scanEmptyLineCodeRefs, scanTout, scanBlindRefs, indexCode, rendreImplementation, RAPPORT_IMPLEMENTATION, validerDette, registresDeFiches, computeReconciliation
+before(async () => {
   racine = mkdtempSync(join(tmpdir(), 'citants-'))
   for (const abbr of [CODE, DOSSIER]) {
     const dir = join(racine, 'Source', abbr)
@@ -45,6 +42,11 @@ before(() => {
   mkdirSync(join(racine, 'docs/raw'), { recursive: true })
   writeFileSync(join(racine, 'raw.manifest.json'), '[]')
   process.chdir(racine)
+  ;({ scanDeadCodeRefs, scanEmptyLineCodeRefs } = await import('../check-code-refs.mjs'))
+  ;({ scanTout } = await import('../citation-graphy-guard.mjs'))
+  ;({ scanBlindRefs } = await import('../../guards/lib/rawRefIntegrity.mjs'))
+  ;({ indexCode, rendre: rendreImplementation, RAPPORT: RAPPORT_IMPLEMENTATION, validerDette, registresDeFiches } = await import('../build-implemente.mjs'))
+  ;({ computeReconciliation } = await import('../reconcile.mjs'))
 })
 after(() => {
   process.chdir(depart)

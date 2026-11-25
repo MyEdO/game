@@ -20,7 +20,6 @@ import { idDe, ref, refs } from './data/schemas/grammaire/ref';
 import { nommerNoeud } from './data/schemas/grammaire/meta';
 import type { SchemaDef } from './data/schemas/types';
 import { lireDocuments, regimeEntrees } from '../scripts/docs/lib/structures-scan.mjs';
-import { cheminsDesProjetsLivres } from '../scripts/guards/lib/projetsLivres.mjs';
 import { introspecterDefs } from '../scripts/docs/lib/zod-introspect.mjs';
 import { defsDeDocument } from '../scripts/docs/lib/slots-registre.mjs';
 import { envDeDepotForge, forgerDepot } from '../scripts/guards/lib/depotGabarit.mjs';
@@ -420,7 +419,7 @@ describe('#2995 : ajouter ou retirer une donnée saine ne fait refuser aucune pl
       for (const rel of Object.keys(CHEMINS_EXPORTES))
         if (rel === 'Source') symlinkSync(join(ROOT, rel), join(dossier, rel), 'junction');
         else cpSync(join(ROOT, rel), join(dossier, rel), { recursive: true, filter: (p) => !p.includes('node_modules') && (!/\.[A-Za-z0-9]+$/.test(p) || estTexte(p)) });
-      const { docs: documents, brutParDocument } = lireDocuments(ROOT, cheminsDesProjetsLivres(ROOT));
+      const { docs: documents, brutParDocument } = lireDocuments(ROOT);
       const defs = defsDeDocument();
       const familles = new Map(introspecterDefs(defs).map((d) => [d.file, d.famille]));
       const code = readCorpus(['src'], { tests: true }).filter((f) => !f.rel.includes('.generated.')).map((f) => f.text);

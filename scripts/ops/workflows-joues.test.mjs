@@ -105,7 +105,7 @@ test('table-simulee : la fixture est une fiche au schéma, et la fiche du MJ en 
 
 test('table-simulee : un dossier absent ou incomplet ARRÊTE avant tout agent, et se nomme', async () => {
   const cas = [
-    [undefined, /^args\.dossier — l'objet de la fiche commitée du chapitre \(docs\/dossiers\/<livre>\/<chapitre>\.json, la fiche du MJ en est tirée\) : node scripts\/raw\/workflow-args\.mjs table-simulee /],
+    [undefined, /^args\.dossier — l'objet de la fiche commitée du chapitre \(projets\/<projet>\/dossiers\/<livre>\/<chapitre>\.json, la fiche du MJ en est tirée\) : node scripts\/raw\/workflow-args\.mjs table-simulee /],
     [{ ...DOSSIER_DU_CHAPITRE, declencheurs: undefined }, /^args\.dossier\.declencheurs absent — la fiche du chapitre vient du lanceur : node scripts\/raw\/workflow-args\.mjs table-simulee /],
     [{ ...DOSSIER_DU_CHAPITRE, beats: [] }, /^args\.dossier\.beats vide/],
   ];

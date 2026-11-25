@@ -10,7 +10,6 @@ import { schema as schemaSemences } from './semences-de-scene';
 import { sceneSchema } from '../defs-scenes/scene';
 import buildingsJson from '../../buildings.json';
 import semencesJson from '../../semences-de-scene.json';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Entree = Record<string, unknown>;
@@ -46,10 +45,10 @@ const PORTEURS = [
 ];
 
 describe('#2968 L12 — couverture, type de bâtiment et façade désignés par `ref(type)`', () => {
-  it('les documents réels parsent', () => {
+  it('le paquet de test parse', () => {
     expect(schemaBuildings.safeParse(buildingsJson).success).toBe(true);
     expect(schemaSemences.safeParse(semencesJson).success).toBe(true);
-    for (const scene of areneProjet.scenes) expect(sceneSchema.safeParse(scene).success, scene.id).toBe(true);
+    for (const scene of paquetDeTest.scenes) expect(sceneSchema.safeParse(scene).success, scene.id).toBe(true);
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ schema, doc, connue }) => {

@@ -7,7 +7,7 @@
  * (`DialogueTurn.choiceText`, `src/noyau/monde/dialogueHistory.ts`). Le nœud PORTEUR, lui, porte de la
  * prose et part en `desc` (migration `…-3a-prose-desc.mjs`) : deux rôles distincts, deux clés.
  *
- * ENTRÉES : les 4 `src/scenes/<campagne>/<campagne>-projet.json` (chemin
+ * ENTRÉES : les projets livrés `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`) (chemin
  * `scenes[].dialogues[].nodes[].choices[]` — les choix, jamais leurs nœuds).
  *
  * FORMATAGE PRÉSERVÉ : les documents de scène ont leur PROPRE sérialiseur
@@ -22,20 +22,17 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const RACINE = path.join(ROOT, 'src/scenes');
 const canonique = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 const renomme = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k === 'text' ? 'label' : k, v]));
 
 const echecs = [];
 const ecritures = [];
 
-for (const d of fs.readdirSync(RACINE, { withFileTypes: true })) {
-  if (!d.isDirectory()) continue;
-  const abs = path.join(RACINE, d.name, `${d.name}-projet.json`);
-  if (!fs.existsSync(abs)) continue;
-  const rel = path.relative(ROOT, abs).replace(/\\/g, '/');
+for (const rel of cheminsDesProjetsLivres(ROOT)) {
+  const abs = path.join(ROOT, rel);
   const brut = fs.readFileSync(abs, 'utf8');
   const doc = JSON.parse(brut);
   if (canonique(doc) !== brut) { echecs.push(`${rel} : FORME NON CANONIQUE (pas \`JSON.stringify(doc, null, 1) + '\\n'\`)`); continue; }

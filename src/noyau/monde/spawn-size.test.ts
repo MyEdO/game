@@ -12,15 +12,15 @@ describe('sizeFromTraits + dérivation de Taille au spawn (LDB 85)', () => {
     expect(sizeFromTraits([{ id: 'arme' }])).toBeNull();
   });
 
-  // #146 : `arene-projet.json` portait `arg:'Petite'`/`arg:'Monstrueuse'` (LIBELLÉ du livre, capitalisé)
+  // #146 : un paquet de campagne portait `arg:'Petite'`/`arg:'Monstrueuse'` (LIBELLÉ du livre, capitalisé)
   // au lieu de l'id du registre FERMÉ `sizes` (`petite`/`monstrueuse`) — `parseTraitInstance` (couture
   // d'édition, `engine/traits/dispatch.ts`) ne normalise QUE la clé du trait, jamais son `arg` (verbatim).
   // Ce test EXPOSE que `sizeFromTraits` n'en résout pas moins correctement : `parseSizeLabel` est un
   // parseur de texte tolérant (accents/casse), PAS le registre `SPEC_SOURCES.sizes` strict (par id
   // exact) que le parse oppose à l'`arg` (`refusDArgHorsRegistre`, `grammaire/reference.ts`) — un `arg` en libellé ne retombe donc PAS
   // silencieusement sur Moyenne (aucun bug de Taille en jeu), mais reste un LIBELLÉ pris pour un id à
-  // migrer (dette de forme, corrigée dans `arene-projet.json`).
-  it('#146 : un arg en LIBELLÉ capitalisé (« Petite »/« Monstrueuse », comme dans arene-projet.json avant migration) résout quand même — pas de repli silencieux sur Moyenne', () => {
+  // migrer (dette de forme, corrigée au paquet).
+  it('#146 : un arg en LIBELLÉ capitalisé (« Petite »/« Monstrueuse », la forme d’avant migration) résout quand même — pas de repli silencieux sur Moyenne', () => {
     expect(sizeFromTraits([{ id: 'taille', arg: 'Petite' }])).toBe('petite');
     expect(sizeFromTraits([{ id: 'taille', arg: 'Monstrueuse' }])).toBe('monstrueuse');
   });

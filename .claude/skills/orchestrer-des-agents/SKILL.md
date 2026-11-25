@@ -161,7 +161,7 @@ test:perimetre` avant commit et relire le diff. Pour un écran Godot, suivre `.c
   - Dataset ou champ retiré : rejouer chaque migration de `scripts/migrations/` qui le nomme (sortie 0,
     aucune donnée réécrite), et le corpus `scripts/corpus/migrations/`.
   - Artefact d'un générateur (`scripts/*/generate.mjs`) : modifier le générateur et le relancer, jamais
-    l'artefact ; `src/scenes/generateurs-byte-stables.test.ts`.
+    l'artefact ; `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`.
   - Dataset `src/data/*.json` : canonicaliser par `serializeDataset`.
   - Comportement changé : `git grep` les tests qui affirment l'ancien, hors de la liste du brief.
 - **Aucun créneau, file ni feu vert pour les gestes lourds** (fusion, `ops:chantier`, publication,

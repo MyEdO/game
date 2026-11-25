@@ -303,7 +303,7 @@
     "fichier": "src/data/schemas/grammaire/prose.ts",
     "concept": "composition d'une prose nommée et de sa provenance locale depuis le registre PROSES_NOMMEES, avec exclusivité automatique pour la narration et source seule pour un document ; lecture de la déclaration pendant la co-descente",
     "perimetre": "ouverture, stade d'indice, document narratif, terrain de bataille, introduction, refus de route, sous-titres d'ouverture et clôture, objectif, faveur, enjeu, narration d'op, invite de choix, réplique et journal ; porteurs folio ou adresse ; gardes des projets livrés et classifications locales des schémas",
-    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/scenes/bundled-projects.test.ts"
+    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/noyau/provenance-du-paquet.test.ts"
   },
   {
     "id": "identites",

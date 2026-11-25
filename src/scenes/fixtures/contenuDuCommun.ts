@@ -31,4 +31,4 @@ const ficheDeTest = {
 
 /** Le contenu d'un jeu qui ne remet que la campagne de test, aucun scénario hors du catalogue commun, et la fiche de
  *  test. */
-export const contenu = { campagnes: [campagneDeTest], scenarios: [], dossiers: lireLesFiches({ 'TEST/01.json': ficheDeTest }) };
+export const contenu = { campagnes: [campagneDeTest], scenarios: [], dossiers: lireLesFiches('src/scenes/fixtures', { 'TEST/01.json': ficheDeTest }) };
