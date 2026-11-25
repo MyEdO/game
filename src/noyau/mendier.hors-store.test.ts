@@ -13,9 +13,6 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { readFileSync } from 'node:fs';
-import { dossierDesProjetsLivres, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
-import { basename, join } from 'node:path';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
 import { createHero } from '../engine/character';
@@ -40,14 +37,13 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import type { WorldMap } from './worldMap';
 import { pratiquer } from './interlude.testkit';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /** Humains (Reiklander), « Affable *ou* Perspicace » (LDB 05 l.490) : Perspicace, la Sociabilité reste nue. */
 const PERSPICACE = { [adresseDeCreation.especeTalent(0)]: { id: 'perspicace' } };
-
-const ROOT = join(import.meta.dirname, '..', '..');
 
 /** Le gain RAW de Mendier, tel qu'authoré : (Bonus de Sociabilité × DR) × heures. */
 const GAIN: Formula = {
@@ -261,38 +257,20 @@ describe('Échec Stupéfiant (LDB 09 l.97 : « des ennuis ») — la bande RENVO
  * Les rues sont PARTOUT : l'Activité est proposable à tout lieu de la carte du monde, et hors carte.
  *
  * MUTATION : poser `"where": ["altdorf"]` sur l'entrée `mendier` d'`activities.json` — les deux `it`
- * de ce bloc tombent (hors carte refusé, et tout lieu livré autre qu'Altdorf perd l'Activité).
+ * de ce bloc tombent (hors carte refusé, et tout lieu du paquet de test perd l'Activité).
  */
 describe('Lieu — Mendier se fait « dans les rues » (LDB 09 l.97), donc PARTOUT', () => {
-  /** Les lieux de carte RÉELLEMENT livrés, DÉRIVÉS des projets de campagne — jamais une liste tenue
-   *  à la main : une campagne neuve entre dans la mesure sans toucher ce test. */
-  function lieuxLivres(): { projet: string; id: string }[] {
-    const scenes = dossierDesProjetsLivres(ROOT);
-    return listerProjetsLivres(ROOT)
-      .flatMap((rel) => {
-        const fichier = basename(rel);
-        const projet = JSON.parse(readFileSync(join(scenes, rel), 'utf8')) as
-          { worldMap?: { places?: { id: string }[] } };
-        return (projet.worldMap?.places ?? []).map((p) => ({ projet: fichier, id: p.id }));
-      });
-  }
-
   it('l’entrée authorée ne porte aucun gate de lieu, et hors carte l’Activité reste proposable', () => {
     const def = activityById('mendier')!;
     expect(def.where, 'aucun id de lieu ne conditionne Mendier').toBeUndefined();
     expect(activityAvailableAt(def, null)).toBe(true);
   });
 
-  it('proposable sur CHAQUE lieu des campagnes livrées (population DÉRIVÉE des projets)', () => {
+  it('proposable sur CHAQUE lieu du contenu du commun (population DÉRIVÉE de son paquet)', () => {
     const def = activityById('mendier')!;
-    const lieux = lieuxLivres();
-    // NON-VACUITÉ, jamais un cardinal : un lieu ajouté ou retiré à une campagne entre dans la mesure
-    // sans toucher ce test — seule une carte SANS aucun lieu le rendrait muet.
+    const lieux = paquetDeTest.worldMap.places.map((p) => p.id);
     expect(lieux.length, 'aucun lieu dérivé : la sonde ne mesurerait rien').toBeGreaterThan(0);
-    expect(
-      lieux.filter((l) => !activityAvailableAt(def, l.id)).map((l) => `${l.projet}/${l.id}`),
-      'lieu(x) livré(s) où Mendier n’est pas proposable',
-    ).toEqual([]);
+    expect(lieux.filter((id) => !activityAvailableAt(def, id)), 'lieu(x) où Mendier n’est pas proposable').toEqual([]);
   });
 });
 

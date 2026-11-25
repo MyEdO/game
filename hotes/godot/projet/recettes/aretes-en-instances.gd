@@ -18,7 +18,7 @@ extends SceneTree
 ## servi) ; témoin : les mêmes murs dans un seul bloc, un seul groupe, n'en ont que huit sous le rendu de
 ## compatibilité, sa borne (`rendering/limits/opengl/max_lights_per_object`), et tous sous Forward+, qui n'en a pas.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`. En `--headless`,
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`. En `--headless`,
 ## `MultiMesh.get_instance_transform` rend l'identité et le rendu ne peint aucune image : la sonde n'en contrôle que
 ## l'analyse.
 

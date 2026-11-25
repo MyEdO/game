@@ -52,8 +52,8 @@ const RACINES = {
   'src/data/vehicles.json': serializeDataset,
   'src/data/mass-battle.json': serializeDataset,
   'src/data/spells.json': serializeDataset,
-  'src/scenes/arene/arene-projet.json': serializeProjet,
-  'src/scenes/diligence/diligence-projet.json': serializeProjet,
+  'projets/jeu-de-role/campagnes/arene/arene-projet.json': serializeProjet,
+  'projets/jeu-de-role/campagnes/diligence/diligence-projet.json': serializeProjet,
 };
 /** Clés d'une liste de Traits posés. */
 const LISTES = new Set(['traits', 'optionals', 'addTraits']);

@@ -1,8 +1,8 @@
 /**
  * `MapSpec` — format DÉCLARATIF d'une carte, compilé en `Scene` par `buildScene` (headless-editor).
  *
- * PUR et Node-safe (aucun import d'hôte) : le générateur d'arène (`scripts/arene`, `tsx` en Node)
- * l'exécute sans tirer le rendu. `buildScene` ne fait que REJOUER les primitives pures de l'éditeur
+ * PUR et Node-safe (aucun import d'hôte) : un générateur de projet (`tsx` en Node) l'exécute sans
+ * tirer le rendu. `buildScene` ne fait que REJOUER les primitives pures de l'éditeur
  * (`noyau/sceneEdit`) dans un ORDRE FIXE — aucune logique ad hoc, chaque section = un appel de primitive.
  *
  * ORDRE DE COMPILATION (verrouillé par `mapSpec.test.ts`) :

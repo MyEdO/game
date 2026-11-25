@@ -3,31 +3,23 @@
  * attache chaque instance par `attachMutation` (`engine/corruption.ts`), une seule fois.
  * LDB 85 l.245 ; ZI 04 l.118 ; #1853.
  *
- * Garde de PROPRIÉTÉ sur TOUT statbloc livré qui porte un trait de mutation au spawn : bestiaire
- * (`creatures.json`), presets des projets livrés, statblocs et presets des scénarios de test.
+ * Garde de PROPRIÉTÉ (`spawnMutations.testkit.ts`) sur tout statbloc du commun qui porte un trait de mutation au
+ * spawn : bestiaire (`creatures.json`), paquet de test, statblocs et presets des scénarios de test ; un projet la
+ * joue sur ses paquets dans sa suite.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
-import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
-import { presetDuNarratif, resolvePresetCreature } from './monde/resolveursDuNarratif';
-import { creatureToCombatant, porteurDuProfil, statblockToCombatant } from './monde/spawn';
+import { statblockToCombatant } from './monde/spawn';
 import { parseProject } from './worldMap';
-import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
-import type { Scene } from './monde/scene';
 import type { CustomStatblock } from '../engine/statblock';
-import { creatures, findTalentById, findTraitById, mutations } from '../data';
-import { mutationById } from '../data/mutations';
+import { mutations } from '../data';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';
-import { mutationsAtSpawn, markMutationsAtSpawn } from '../engine/traits/dispatch';
-import { attachMutation } from '../engine/corruption';
-import { effectiveChar, effectiveMaxWounds } from '../engine/characteristics';
-import { weaponFromTrait } from '../engine/creatureEquip';
-import { makeRNG } from '../engine/dice';
-import { traitsDuPorteur, type TraitList, type TraitsDesignes } from '../engine/statEntry';
+import { effectiveChar } from '../engine/characteristics';
+import { type TraitList } from '../engine/statEntry';
 import { customStatblockSchema } from '../data/schemas/defs-scenes/communs';
-import type { Combatant } from '../engine/types';
-import { traitOctroye } from '../engine/psych/opsPsy';
+import { fautesDuPorteur, ORIGINE, porteursDuBestiaire, porteursDuPaquet, SPAWN_TRAITS, type Porteur } from './spawnMutations.testkit';
+import { file as PAQUET_DE_TEST } from '../data/schemas/defs-scenes/paquet-de-test';
+import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 
 /** Op-kinds du `passive` d'une mutation, classés. Un op-kind NEUF non classé rougit la garde. */
 const OPS_ACQUISITION = ['grantTrait', 'grantPsychTrait', 'grantTalent'] as const; // (c), (d)
@@ -46,116 +38,14 @@ function opsDe(node: unknown): string[] {
   return [...(typeof o.op === 'string' ? [o.op] : []), ...Object.values(o).flatMap(opsDe)];
 }
 
-type Porteur = { ou: string; traits: TraitList; nativeTalents: { talentId: string; times: number }[]; spawn: () => Combatant };
-
-const SPAWN_TRAITS = new Set(['mutation', 'corruption-mentale', 'marque-de-tzeentch']);
-const porteMutation = (traits: TraitsDesignes | undefined): boolean => (traits ?? []).some((t) => SPAWN_TRAITS.has(t.id));
-const ORIGINE = { x: 0, y: 0 };
-
-function talentsNatifs(refs: { id: string; times?: number }[] | undefined): { talentId: string; times: number }[] {
-  return (refs ?? []).flatMap((r) => (findTalentById(r.id) ? [{ talentId: r.id, times: r.times ?? 1 }] : []));
-}
-
-function porteursDuNarratif(ou: string, narratif: NarratifBlock): Porteur[] {
-  return narratif.presetsPnj.flatMap((preset) => {
-    const r = resolvePresetCreature(preset.id, presetDuNarratif(narratif));
-    if (!r || !porteMutation(r.creature.traits)) return [];
-    const creature = r.creature;
-    return [{ ou: `${ou} › preset ${preset.id}`, traits: traitsDuPorteur(creature.traits, porteurDuProfil(preset.id, creature.char)), nativeTalents: talentsNatifs(creature.talents), spawn: () => creatureToCombatant(creature, preset.id, ORIGINE) }];
-  });
-}
-
-function porteursDeScene(ou: string, scene: Scene): Porteur[] {
-  return scene.entities.flatMap((ent) => {
-    const sb = (ent as { statblock?: CustomStatblock }).statblock;
-    if (!sb || !porteMutation(sb.traits)) return [];
-    return [{ ou: `${ou} › ${scene.id} › ${ent.id}`, traits: traitsDuPorteur(sb.traits ?? [], porteurDuProfil(ent.id, sb.char)), nativeTalents: talentsNatifs(sb.talents), spawn: () => statblockToCombatant(sb, ent.id, ORIGINE, (ent as { appearance?: never }).appearance) }];
-  });
-}
-
+/** Les porteurs du commun : le bestiaire, les scénarios de test et le paquet de test ; un projet joue les siens dans sa suite. */
 function tousLesPorteurs(): Porteur[] {
-  const out: Porteur[] = [];
-  for (const c of creatures) if (porteMutation(c.traits)) out.push({ ou: `creatures.json › ${c.id}`, traits: traitsDuPorteur(c.traits, porteurDuProfil(`garde-${c.id}`, c.char)), nativeTalents: talentsNatifs(c.talents), spawn: () => creatureToCombatant(c, `garde-${c.id}`, ORIGINE) });
-  for (const rel of listerProjetsLivres()) {
-    const projet = parseProject(lireProjetLivre(rel));
-    out.push(...porteursDuNarratif(rel, projet.narratif));
-    for (const sc of projet.scenes) out.push(...porteursDeScene(rel, sc));
-  }
+  const out: Porteur[] = [...porteursDuBestiaire(), ...porteursDuPaquet(PAQUET_DE_TEST, parseProject(paquetDeTest))];
   for (const s of SCENARIOS) {
     const built = s.construire(idsDeTest);
-    if (built.narratif) out.push(...porteursDuNarratif(`scénario ${s.id}`, built.narratif));
-    for (const sc of [built.scene, ...(built.extraScenes ?? [])]) out.push(...porteursDeScene(`scénario ${s.id}`, sc));
+    out.push(...porteursDuPaquet(`scénario ${s.id}`, { narratif: built.narratif, scenes: [built.scene, ...(built.extraScenes ?? [])] }));
   }
   return out;
-}
-
-/** Bornes du NOMBRE d'instances au spawn, lues sur la DONNÉE : indice des traits de mutation (absent = 1)
- *  + Marque. */
-function bornesDuNombre(traits: TraitList): [number, number] {
-  const fixe = traits.filter((t) => findTraitById(t.id)?.capabilities?.mutationAtSpawn).reduce((n, t) => n + (t.value ?? 1), 0);
-  const mark = markMutationsAtSpawn(traits);
-  if (!mark) return [fixe, fixe];
-  return [fixe + Math.ceil(1 / mark.countDivide), fixe + Math.ceil(mark.countDie / mark.countDivide)];
-}
-
-const deLaMutation = (id: string) => (src: { kind: string; id: string } | undefined) => src?.kind === 'mutation' && src.id === id;
-
-function fautesDuPorteur(p: Porteur): string[] {
-  const fautes: string[] = [];
-  // (a) chaque arg résout ; seul l'arg ABSENT tire.
-  for (const s of mutationsAtSpawn(p.traits)) if (s.mutationId && !mutationById(s.mutationId)) fautes.push(`${p.ou} : (a) arg « ${s.mutationId} » irrésolu`);
-  let c: Combatant;
-  try {
-    c = p.spawn();
-  } catch (e) {
-    return [...fautes, `${p.ou} : le spawn lève (${String(e)})`];
-  }
-  const mutations = c.mutations ?? [];
-  // (b) nombre d'instances = indice.
-  const [min, max] = bornesDuNombre(p.traits);
-  if (mutations.length < min || mutations.length > max) fautes.push(`${p.ou} : (b) ${mutations.length} mutation(s), attendu ${min === max ? min : `${min}..${max}`}`);
-  // (c) chaque acquisition présente UNE fois par instance, avec sa provenance.
-  const instances = new Map<string, number>();
-  for (const m of mutations) instances.set(m.id, (instances.get(m.id) ?? 0) + 1);
-  for (const [id, k] of instances) {
-    const m = mutations.find((x) => x.id === id)!;
-    const estDeM = deLaMutation(id);
-    for (const op of m.passive ?? []) {
-      if (op.op === 'grantTrait') {
-        const attendu = k * (op.cible?.pick ?? 1);
-        const n = (c.traits ?? []).filter((t) => t.id === op.trait.id && estDeM(t.src)).length;
-        if (n !== attendu) fautes.push(`${p.ou} : (c) trait « ${op.trait.id} » de « ${id} » posé ${n} fois, attendu ${attendu}`);
-      } else if (op.op === 'grantPsychTrait') {
-        const { type } = traitOctroye(op);
-        const n = (c.psychTraits ?? []).filter((t) => t.type === type && estDeM(t.src)).length;
-        if (n !== k) fautes.push(`${p.ou} : (c) trait psy « ${type} » de « ${id} » posé ${n} fois, attendu ${k}`);
-      }
-    }
-  }
-  const acquis = new Map<string, number>();
-  for (const m of mutations) for (const ref of m.talentsAcquis ?? []) acquis.set(ref.id, (acquis.get(ref.id) ?? 0) + 1);
-  for (const m of mutations) for (const op of m.passive ?? []) {
-    if (op.op !== 'grantTalent') continue;
-    const natif = p.nativeTalents.filter((t) => t.talentId === op.talent.id).reduce((s, t) => s + t.times, 0);
-    const porte = (c.talents ?? []).filter((t) => t.talentId === op.talent.id).reduce((s, t) => s + (t.times ?? 1), 0);
-    const attendu = natif + (acquis.get(op.talent.id) ?? 0);
-    if (!attendu) fautes.push(`${p.ou} : (c) talent « ${op.talent.id} » ni acquis ni natif`);
-    else if (porte !== attendu) fautes.push(`${p.ou} : (c) talent « ${op.talent.id} » porté ${porte} fois, attendu ${attendu} (natif ${natif})`);
-  }
-  // (d) les armes des traits accordés sont dans `weapons`.
-  for (const t of c.traits ?? []) {
-    if (t.src?.kind !== 'mutation') continue;
-    const w = weaponFromTrait(t);
-    if (w && !c.weapons.some((x) => x.label === w.label)) fautes.push(`${p.ou} : (d) arme « ${w.label} » du trait « ${t.id} » absente de weapons`);
-  }
-  // (g) un plancher de `charMod` est résolu à l'attache : aucune instance ne le porte (EDO 11 l.190).
-  for (const m of mutations) for (const op of m.passive ?? []) {
-    if (op.op === 'charMod' && op.min != null) fautes.push(`${p.ou} : (g) charMod « ${op.characteristic} » de « ${m.id} » porte encore son plancher`);
-  }
-  // (e) Blessures dérivées.
-  if (c.wounds.max !== effectiveMaxWounds(c)) fautes.push(`${p.ou} : (e) wounds.max ${c.wounds.max} ≠ effectiveMaxWounds ${effectiveMaxWounds(c)}`);
-  if (c.wounds.current !== c.wounds.max) fautes.push(`${p.ou} : (e) né à ${c.wounds.current}/${c.wounds.max}`);
-  return fautes;
 }
 
 describe('mutations au spawn — garde de propriété sur les statblocs livrés (#1853)', () => {
@@ -166,9 +56,8 @@ describe('mutations au spawn — garde de propriété sur les statblocs livrés 
     expect(porteurs.flatMap(fautesDuPorteur)).toEqual([]);
   });
 
-  it('les sources du corpus sont toutes VUES (bestiaire, preset de projet, scénario)', () => {
+  it('les sources du corpus sont toutes VUES (bestiaire, scénario)', () => {
     expect(porteurs.some((p) => p.ou.startsWith('creatures.json'))).toBe(true);
-    expect(porteurs.some((p) => p.ou.includes('-projet.json › preset'))).toBe(true);
     expect(porteurs.some((p) => p.ou.startsWith('scénario '))).toBe(true);
   });
 
@@ -179,27 +68,6 @@ describe('mutations au spawn — garde de propriété sur les statblocs livrés 
     const declenches = new Set<string>(OPS_DECLENCHES);
     const kindsDEffet = new Set(mutations.flatMap((m) => opsDe(m.effects)));
     expect([...kindsDEffet].filter((k) => !declenches.has(k)), 'op-kinds d’`effects` hors classement').toEqual([]);
-  });
-
-  it('(f) le spawn n’attache jamais deux fois : Knud Cratinx, Écailles épineuses (EDO 02 ; EDO 11 l.192-196)', () => {
-    const knud = porteurs.find((p) => p.ou.includes('preset edo-knud-cratinx'))!;
-    const c = knud.spawn();
-    expect(effectiveChar(c, 'dexterite')).toBe(19);
-    expect(effectiveChar(c, 'sociabilite')).toBe(20);
-    attachMutation(c, mutationById('ecailles-epineuses-edoc')!, makeRNG(1));
-    expect(effectiveChar(c, 'dexterite'), 'contre-épreuve : une seconde attache se verrait').toBe(9);
-  });
-
-  it('Mikael, Tête bestiale (Chien) : Morsure, arme Morsure, Sens aiguisé, Int 20 (EDO 02 ; EDO 11)', () => {
-    const mikael = porteurs.find((p) => p.ou.includes('preset edo-mutant-mikael'))!;
-    const c = mikael.spawn();
-    const morsure = c.traits?.find((t) => t.id === 'morsure' && t.src?.id === 'tete-bestiale-chien');
-    expect(morsure).toMatchObject({ id: 'morsure', uid: expect.any(String), value: 5, src: { kind: 'mutation', id: 'tete-bestiale-chien' } });
-    expect(c.weapons).toContainEqual(expect.objectContaining({
-      uid: morsure?.uid, label: weaponFromTrait({ id: 'morsure', value: 5 })!.label,
-    }));
-    expect(c.talents).toContainEqual({ talentId: 'sens-aiguise', spec: 'odorat', times: 1 });
-    expect(effectiveChar(c, 'intelligence')).toBe(20);
   });
 
   it('Choses du Bois Mort : Totalement déséquilibré + 2 lancers, Mutation 3 (ZI 04 l.118)', () => {
@@ -219,9 +87,8 @@ describe('mutations au spawn — garde de propriété sur les statblocs livrés 
     expect(nuee.psychImmune).toBe(true);
   });
 
-  it('Terenz, Crétin : Int 30 − 40, jusqu’à un minimum de 10 (EDO 11 l.190 ; arbitrage #1853 du 2026-10-04)', () => {
+  it('Crétin : Int 30 − 40, jusqu’à un minimum de 10 (EDO 11 l.190 ; arbitrage #1853 du 2026-10-04)', () => {
     const cretins = porteurs.filter((p) => p.traits.some((t) => t.id === 'mutation' && t.arg === 'cretin'));
-    expect(cretins.some((p) => p.ou.includes('preset edo-mutant-terenz'))).toBe(true);
     expect(cretins.some((p) => p.ou.startsWith('scénario embuscade'))).toBe(true);
     for (const p of cretins) expect(effectiveChar(p.spawn(), 'intelligence'), p.ou).toBe(10);
   });

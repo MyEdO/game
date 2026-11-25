@@ -92,7 +92,7 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
       <div class="coins haut" ${place(CADRES_DE_L_HOTE['coins-du-hameau'])}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       ${actionDuHameau(e)}`,
     socle: !carte && service ? service.socle : socleDuHameau,
-    vide: 'La compagnie est vide. Engagez des voyageurs à l’auberge relais : quand la bourse est vide, l’un d’eux sert sans solde.',
+    vide: 'La compagnie est vide. Engagez des voyageurs à l’auberge relais : ils s’engagent sans frais.',
   });
   return `<div class="ecran hameau">
     <div class="panorama"><div class="toile">${sceneDuHameau(e.batiments)}${fiche || carte || service ? '' : J.BATIMENTS.map((b) => enseigne(e, b)).join('')}</div></div>
@@ -303,7 +303,7 @@ export function recommencerEnCarton(): string {
   return carton({
     ruban: 'Recommencer', titre: 'Recommencer ?', surTitre: 'Grisefosse',
     vignette: 'recommencer',
-    texte: '<div class="recit"><p>Le hameau, la compagnie et le Jardin de Morr seront effacés.</p></div>',
+    texte: '<div class="recit"><p>Le hameau et la compagnie seront effacés.</p></div>',
     gestes: `${plaque('Garder ma partie', 'data-a="fermer"', { armee: true })}${plaque('Tout effacer', 'data-a="reset-ok"')}`,
   });
 }

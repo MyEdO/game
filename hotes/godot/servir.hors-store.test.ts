@@ -19,18 +19,19 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { baseDeTest, deposerModeleDeTest, elementSchema3, GLB_D_ELEMENT, GLB_DE_BASE } from './asset/modeles.testkit.ts';
 import { empreinte } from './asset/empreinte.ts';
 import { ecrireGlb } from './asset/glb.ts';
 import { servir } from './servir.mjs';
 import { deposerLesModeles, LISTAGE } from './listage.mjs';
-import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { dossierDesProjetsLivres, estManuscrit } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { cheminDuDepot } from '../../scripts/source/adresses.mjs';
-import { books } from '../../src/data';
+import { ACTIVITIES, books } from '../../src/data';
+import paquetDeTest from '../../src/scenes/fixtures/paquet-de-test.json';
 import { hash32 } from '../../src/lib/hash';
 
 const racine = mkdtempSync(join(tmpdir(), 'servir-3086-'));
@@ -160,17 +161,27 @@ describe('servir', () => {
 describe('servir, le dépôt', () => {
   const depot = join(racine, 'depot');
   const corpus = dossierDesProjetsLivres(depot);
-  const [manuscrit, genere] = [true, false].map((m) => listerProjetsLivres().find((rel) => basename(rel) in PROJETS_MANUSCRITS === m)!);
+  /** Deux projets bâtis du paquet de test du commun : un manuscrit, dont un preset porte une prose adressée (l'adresse
+   *  d'une Activité du catalogue), et un généré, que son `generate.mjs` voisin désigne (`estManuscrit`). */
+  const [manuscrit, genere] = ['un-jeu/manuscrit/manuscrit-projet.json', 'un-jeu/genere/genere-projet.json'];
+  const adresse = ACTIVITIES.find((a) => a.descRef)!.descRef;
+  const [pnj, ...autres] = paquetDeTest.narratif.presetsPnj;
+  const projets = {
+    [manuscrit]: { ...paquetDeTest, id: 'manuscrit-de-test', narratif: { ...paquetDeTest.narratif, presetsPnj: [{ ...pnj, profil: { ...pnj.profil, descRef: adresse } }, ...autres] } },
+    [genere]: { ...paquetDeTest, id: 'genere-de-test' },
+  };
   const idDe = (rel: string) => (JSON.parse(readFileSync(join(corpus, rel), 'utf8')) as { id: string }).id;
   const disque = () => readFileSync(join(corpus, manuscrit), 'utf8');
   let url = '';
   let id = '';
 
   beforeAll(async () => {
-    for (const rel of [manuscrit, genere]) {
+    for (const [rel, doc] of Object.entries(projets)) {
       mkdirSync(dirname(join(corpus, rel)), { recursive: true });
-      cpSync(join(dossierDesProjetsLivres(), rel), join(corpus, rel));
+      writeFileSync(join(corpus, rel), `${JSON.stringify(doc, null, 2)}\n`);
     }
+    writeFileSync(join(corpus, dirname(genere), 'generate.mjs'), '');
+    expect([manuscrit, genere].map((rel) => estManuscrit(rel, depot))).toEqual([true, false]);
     const s = await servir({ web, modeles, depot });
     serveurs.push(s);
     url = s.url;

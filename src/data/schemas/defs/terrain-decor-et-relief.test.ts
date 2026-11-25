@@ -15,7 +15,6 @@ import defautsJson from '../../defauts-de-compilation.json';
 import semencesJson from '../../semences-de-scene.json';
 import terrainsJson from '../../terrains.json';
 import traitsJson from '../../traits.json';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Entree = Record<string, unknown>;
@@ -62,12 +61,12 @@ const PORTEURS = [
 ];
 
 describe('#2968 L11 — terrain, décor et matière de relief désignés par `ref(type)`', () => {
-  it('les documents réels parsent', () => {
+  it('le paquet de test parse', () => {
     expect(schemaDefauts.safeParse(defautsJson).success).toBe(true);
     expect(schemaSemences.safeParse(semencesJson).success).toBe(true);
     expect(schemaTerrains.safeParse(terrainsJson).success).toBe(true);
     expect(schemaTraits.safeParse(traitsJson).success).toBe(true);
-    for (const scene of areneProjet.scenes) expect(sceneSchema.safeParse(scene).success, scene.id).toBe(true);
+    for (const scene of paquetDeTest.scenes) expect(sceneSchema.safeParse(scene).success, scene.id).toBe(true);
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ schema, doc, connue }) => {

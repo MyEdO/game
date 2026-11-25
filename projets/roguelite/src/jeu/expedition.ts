@@ -309,7 +309,7 @@ function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: 
   }
   if (issue.issue === 'defaite') return { issue, lignes: [], fin: { titre: 'Déroute', combat: issue, fin: 'defaite', lignes: terminerEnDeroute(e, issue.destinDepense) } };
   const morts = groupe.filter((h) => h.c.dead);
-  for (const h of morts) enterrer(e, h, d.nom);
+  for (const h of morts) enterrer(e, h);
   return { issue, lignes: morts.map((h) => `${h.c.label} est tombé·e. Son corps est ramené au hameau.`) };
 }
 
@@ -374,12 +374,11 @@ function uneJourneeDeMaladie(e: Etat): string[] {
   const groupe = herosDuGroupe(e);
   const soigne = groupe.some((g) => valide(g) && saitSoigner(g.c));
   const lignes = groupe.flatMap((h) => entretenirLesMaladies(h.c, e.graine++, 1, soigne));
-  for (const h of groupe.filter((g) => g.c.dead)) { lignes.push(`${h.c.label} succombe à sa maladie.`); enterrer(e, h, destinationCourante(e)!.nom); }
+  for (const h of groupe.filter((g) => g.c.dead)) { lignes.push(`${h.c.label} succombe à sa maladie.`); enterrer(e, h); }
   return lignes;
 }
 
-function enterrer(e: Etat, h: Heros, ou: string): void {
-  e.cimetiere.unshift({ nom: h.c.label, carriere: h.carriere, expeditions: h.expeditions + 1, ou, jour: e.jour });
+function enterrer(e: Etat, h: Heros): void {
   e.roster = e.roster.filter((x) => x !== h);
   if (e.expedition) e.expedition.groupe = e.expedition.groupe.filter((id) => id !== h.c.id);
 }
@@ -388,12 +387,11 @@ function enterrer(e: Etat, h: Heros, ou: string): void {
  *  Destin, il ne revient pas. Qui en a déjà brûlé un pendant la rencontre (« Meurs un autre jour ») ne paie pas deux
  *  fois. LDB 17 l.31. */
 function terminerEnDeroute(e: Etat, destinDepense: Readonly<Record<string, number>>): string[] {
-  const d = destinationCourante(e)!;
   const lignes = ['Le groupe est submergé. Le butin de l’expédition est perdu.'];
   for (const h of herosDuGroupe(e)) {
-    if (h.c.dead) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h, d.nom); continue; }
+    if (h.c.dead) { lignes.push(`${h.c.label} ne revient pas.`); enterrer(e, h); continue; }
     if ((destinDepense[h.c.id] ?? 0) > 0) { lignes.push(`${h.c.label} a échappé à la mort pendant le combat (Destin −1, reste ${h.c.fate}).`); continue; }
-    if ((h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label}, sans plus de Destin, ne revient pas.`); enterrer(e, h, d.nom); continue; }
+    if ((h.c.fate ?? 0) <= 0) { lignes.push(`${h.c.label}, sans plus de Destin, ne revient pas.`); enterrer(e, h); continue; }
     h.c.fate = (h.c.fate ?? 0) - 1;
     lignes.push(`${h.c.label} échappe de peu à la mort et rampe jusqu’au hameau (Destin −1, reste ${h.c.fate}).`);
   }
@@ -425,9 +423,6 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
 /** Quand personne n'est plus en état de partir (hors de combat, ou sous la moitié de ses Blessures), la compagnie
  *  attend une semaine : ceux en séjour s'y reposent. */
 export const compagnieEpuisee = (e: Etat): boolean => e.roster.length > 0 && !e.roster.some((h) => disponible(h) && h.c.wounds.current * 2 >= h.c.wounds.max);
-/** Compagnie vide ou épuisée, et bourse sous le prix du moins cher des candidats : un voyageur s'engage sans solde. */
-export const engagementSansSolde = (e: Etat): boolean =>
-  (e.roster.length === 0 || compagnieEpuisee(e)) && e.or < Math.min(...e.candidats.map((c) => c.prix));
 export function attendreUneSemaine(e: Etat): string | null {
   if (!compagnieEpuisee(e)) return 'Il reste des héros en état de partir.';
   noter(e, 'Personne n’est en état de partir : la compagnie attend une semaine.');
@@ -449,14 +444,13 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
     const aLHospice = h.sejour?.ou === 'temple' ? Math.min(jours, h.sejour.reste) : 0;
     const maladie = [...entretenirLesMaladies(h.c, e.graine++, aLHospice, true), ...entretenirLesMaladies(h.c, e.graine++, jours - aLHospice, false)];
     if (maladie.length) noter(e, maladie.join(' '));
-    if (h.c.dead) { noter(e, `${h.c.label} succombe à sa maladie.`); enterrer(e, h, 'Grisefosse'); continue; }
+    if (h.c.dead) { noter(e, `${h.c.label} succombe à sa maladie.`); enterrer(e, h); continue; }
     if (!h.sejour) continue;
     reposer(h.c, e.graine++, Math.min(jours, h.sejour.reste));
     h.sejour.reste -= jours;
     if (h.sejour.reste <= 0) delete h.sejour;
   }
   renouvelerLesCandidats(e);
-  if (engagementSansSolde(e)) noter(e, 'Personne n’est en état de partir et la bourse est vide : un voyageur accepte de servir sans solde.');
 }
 
 export const victoireFinale = (e: Etat): boolean => e.bossVaincus.includes('autel');

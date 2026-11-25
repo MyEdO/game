@@ -199,7 +199,6 @@ import {
 import { designeGaranti, rollLine, type RollLineParts } from './ligneDeJet';
 import { armeDEnfoncement, degatsDEnfoncement, testDEnfoncement, valeurDEnfoncement } from './enfoncerUnePorte';
 import { TEST_DE_CHANSON, valeurDeChanson } from './shipCrew';
-import { activityModLines } from '../engine/activities';
 import { testValue, effectiveSkillCharKey, skillBaseValue, type TestDesigne } from '../engine/skills';
 import { skillDRBonus, charDRBonusOf, offTerrainTestDR } from '../engine/ops';
 import {
@@ -2346,16 +2345,10 @@ export const FLOWS = paresseux({
     // (`bestForcedRoll`, DR MAX) donne la meilleure issue (Succès Stupéfiant DR ≥ 6, l.208/217).
     caps: { forcer: true },
     resolve: (_s, p, actor, _get, forced) => {
-      // Cible EFFECTIVE d'un jet SIMPLE : compétence + Difficulté + Modificateur de SITUATION (Menace −20
-      // l.219 / Planification l.75). Les openers de BATAILLE la pré-cuisent dans `p.target` (mod fondu) ; les
-      // openers d'interlude ouvrent avec `target: 0` (rempli ici au 1ᵉʳ jet). On la (re)calcule pour NE JAMAIS
-      // relâcher le mod : IDENTIQUE à `p.target` en bataille, renseignée en interlude.
-      // `skillValue` est BAKÉE dans le pending (le Test d'Activité n'en porte pas les ids) — valeur
-      // déclarée étrangère ; le mod de situation pèse SUR LA CIBLE et se nomme.
-      const effTarget = rollLine({
-        valeur: p.skillValue, valeurEtrangere: true, difficulty: p.difficulty,
-        surLaCible: activityModLines(p.mod, p.modLabel),
-      }).target;
+      // Cible EFFECTIVE d'un jet SIMPLE : celle de la ligne montée à l'ouverture (`p.ligne`, `rollLine`), que la
+      // fenêtre rend — une source, bataille (`massBattleFlow.ts` `pendingDeBataille`) comme interlude
+      // (`interludeFlow.ts`, `preJetDActivite`).
+      const effTarget = p.ligne.target;
       if (p.ritualSpell) {
         // Rituel (Test étendu de Focalisation, `VDM 02 l.129-141`) : ce Round est un Round de
         // Focalisation — orchestré par `resolveFocus` (`engine/magic.ts`, malepierre/Talent/armure
@@ -2705,7 +2698,7 @@ export const FLOWS = paresseux({
     // Inversion (LDB 23 l.209/218 ; LDB 10 l.899) : le Test déclaré, sous le contexte `bandages` quand une Guérison
     // engage des Bandages ; le dé renversé s'évalue comme `resolve`.
     reverse: {
-      skillOf: (_s, p) => (p.test === 'dexterite' ? { characteristic: 'dexterite' } : { skill: { id: HEAL_SKILL }, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) }),
+      skillOf: (_s, p) => (p.test === 'guerison' ? { skill: { id: HEAL_SKILL }, ...(p.bandagesDe ? { contexte: 'bandages' as const } : {}) } : IDS_DU_TEST_DE_SOIN[p.test]),
       current: (p) => (p.roll != null ? { roll: p.roll, target: p.target } : null),
       evaluate: (s, p, actor, _get, tr) => {
         const issue = issueDuSoin(s, actor, p.test, tr);

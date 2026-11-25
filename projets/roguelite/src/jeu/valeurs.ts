@@ -3,7 +3,6 @@
  * leurs désignations, voies et sorts, Compétences utiles, forge, hospice, destinations et adversaires, prix, gains.
  */
 import {
-  nomDeCarriereDuLivre,
   nomDeTalent,
   COMPETENCES_DU_COMBAT,
   type Combatant,
@@ -20,7 +19,7 @@ import {
 
 import { profil } from './outils';
 
-export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage' | 'memorial';
+export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage';
 
 /** Un apport d'un palier : son pictogramme (`PICTOS` de `../kit`), sa phrase, et le chiffre de la phrase à marquer. */
 export interface Apport { picto: string; chiffre?: string; texte: string }
@@ -28,6 +27,13 @@ export interface Batiment { id: IdBatiment; nom: string; role: string; paliers: 
 /** Ce qu'apporte un palier, en une phrase : ses apports joints. */
 export const phraseDuPalier = (p: Batiment['paliers'][number]): string => p.apports.map((a) => a.texte).join(' ; ');
 const apport = (picto: string, texte: string, chiffre?: string): Apport => (chiffre ? { picto, chiffre, texte } : { picto, texte });
+
+export const TAILLE_DU_GROUPE = 4;
+/** Les voyageurs que le relais propose à son palier, tous engagés sans frais : de quoi monter un groupe entier, et un
+ *  de plus par palier. */
+export const candidatsAuPalier = (palier: number): number => TAILLE_DU_GROUPE + palier;
+const candidatsDuPalier = (palier: number, carrieres?: string): Apport =>
+  apport('chope', `${candidatsAuPalier(palier)} candidats engagés sans frais${carrieres ? `, ${carrieres}` : ''}`, String(candidatsAuPalier(palier)));
 
 /** Le revenu du péage à chaque palier, par salle que l'expédition franchit : il suit la longueur de la route, et rentrer
  *  après une salle n'en rapporte qu'une part. Mesure MyEdO/game#4963. */
@@ -44,9 +50,9 @@ const soinsDuPalier = (palier: number): string => `Soins à ${PRIX_DU_SOIN_PAR_B
 
 export const BATIMENTS: readonly Batiment[] = [
   { id: 'relais', nom: 'Auberge relais', role: 'Recrues', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('chope', '2 candidats', '2'), apport('lit', 'repos en chambre piètre')] },
-    { cout: 120, trophees: 0, apports: [apport('chope', '3 candidats, carrières d’aventure', '3'), apport('lit', 'repos en chambre normale')] },
-    { cout: 300, trophees: 1, apports: [apport('chope', '4 candidats, carrières d’élite', '4'), apport('lit', 'repos en chambre de grande qualité')] },
+    { cout: 0, trophees: 0, apports: [candidatsDuPalier(0), apport('lit', 'repos en chambre piètre')] },
+    { cout: 120, trophees: 0, apports: [candidatsDuPalier(1, 'carrières d’aventure'), apport('lit', 'repos en chambre normale')] },
+    { cout: 300, trophees: 1, apports: [candidatsDuPalier(2, 'carrières d’élite'), apport('lit', 'repos en chambre de grande qualité')] },
   ] },
   { id: 'temple', nom: 'Hospice de Shallya', role: 'Soins, chirurgie et remèdes', paliers: [
     { cout: 0, trophees: 0, apports: [apport('lit', 'Fermée : on ne se repose qu’en chambre à l’auberge')] },
@@ -77,11 +83,6 @@ export const BATIMENTS: readonly Batiment[] = [
     { cout: 90, trophees: 0, apports: [apport('pieces', `${peageDuPalier(1)} par salle franchie en expédition`, peageDuPalier(1))] },
     { cout: 240, trophees: 1, apports: [apport('pieces', peageDuPalier(2), peageDuPalier(2))] },
     { cout: 480, trophees: 2, apports: [apport('pieces', peageDuPalier(3), peageDuPalier(3))] },
-  ] },
-  { id: 'memorial', nom: 'Jardin de Morr', role: 'Mémoire', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('croix', 'Un champ en friche')] },
-    { cout: 110, trophees: 0, apports: [apport('etoile', 'Chaque recrue arrive avec 10 PX par héros tombé (max 100)', '10 PX')] },
-    { cout: 300, trophees: 1, apports: [apport('etoile', '20 PX par héros tombé (max 200)', '20 PX')] },
   ] },
 ];
 
@@ -149,7 +150,7 @@ export const CONSIGNES: readonly { doctrine: DoctrineId | null; nom: string; bul
 /** Une carrière du roster : son palier de relais, le niveau de carrière où elle s'engage, son rôle, ce qui la
  *  caractérise à la création, les objets du catalogue qu'elle reçoit en plus de sa dotation, sa voie de lanceur, et
  *  les dieux parmi lesquels se tire la spécialisation de son Talent d'identité (`beni`), qui fixe sa voie. */
-export interface Profil { id: string; nom: string; relais: number; niveau: number; role: Role; identite: Identite; devise: string; dotation?: readonly string[]; voie?: Voie; dieux?: readonly string[] }
+export interface Profil { id: string; relais: number; niveau: number; role: Role; identite: Identite; devise: string; dotation?: readonly string[]; voie?: Voie; dieux?: readonly string[] }
 
 /** La voie du Talent `talent` spécialisé en `spec` : son libellé et ses sorts choisis (`SORTS_DES_VOIES`). */
 const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, nom: nomDeTalent({ id: talent, spec }),
@@ -159,34 +160,33 @@ const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, no
 const cac = (niveau: number, spec: string): Designation => ({ niveau, id: 'corps-a-corps', spec });
 const tir = (niveau: number, spec: string): Designation => ({ niveau, id: 'projectiles', spec });
 /** Une carrière de Collège (VDM ch. 4 à 11) : lanceur, recrutée au niveau 1, sa voie la Magie des Arcanes de son domaine. */
-const college = (id: string, nom: string, relais: number, domaine: string, devise: string): Profil =>
-  ({ id, nom, relais, niveau: 1, role: 'lanceur', identite: MAGIE_MINEURE, devise, voie: voie('magie-des-arcanes', domaine) });
+const college = (id: string, relais: number, domaine: string, devise: string): Profil =>
+  ({ id, relais, niveau: 1, role: 'lanceur', identite: MAGIE_MINEURE, devise, voie: voie('magie-des-arcanes', domaine) });
 const MAGIE_MINEURE: Identite = { talent: { id: 'magie-mineure' }, sortsMineurs: SORTS_MINEURS };
 
 export const PROFILS: readonly Profil[] = [
-  { id: 'soldat', nom: 'Soldat', relais: 0, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'armes-d-hast'), tir(2, 'arc')] }, dotation: ['bouclier'], devise: 'Tient la ligne. Guerrier né.' },
-  { id: 'chasseur', nom: 'Chasseur', relais: 0, niveau: 1, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
-  { id: 'ratier', nom: 'Ratier', relais: 0, niveau: 1, role: 'eclaireur', identite: { talent: { id: 'coup-puissant' }, designations: [{ niveau: 1, id: 'discretion', spec: 'souterrains' }] }, devise: 'Fouille les caves, frappe fort. Coup puissant.' },
-  { id: 'nonne', nom: 'Nonne de Shallya', relais: 0, niveau: 1, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' }, designations: [cac(2, 'base')] }, devise: 'Soigne et protège. Bénie de Shallya.',
+  { id: 'soldat', relais: 0, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'armes-d-hast'), tir(2, 'arc')] }, dotation: ['bouclier'], devise: 'Tient la ligne. Guerrier né.' },
+  { id: 'chasseur', relais: 0, niveau: 1, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
+  { id: 'ratier', relais: 0, niveau: 1, role: 'eclaireur', identite: { talent: { id: 'coup-puissant' }, designations: [{ niveau: 1, id: 'discretion', spec: 'souterrains' }] }, devise: 'Fouille les caves, frappe fort. Coup puissant.' },
+  { id: 'nonne', relais: 0, niveau: 1, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' }, designations: [cac(2, 'base')] }, devise: 'Soigne et protège. Bénie de Shallya.',
     voie: voie('invocation', 'shallya') },
-  college('pyromancien', 'Pyromancien', 0, 'feu', 'Le Collège Flamboyant. Magie mineure.'),
-  college('hierophante', 'Hiérophante', 0, 'lumiere', 'Le Collège Lumineux. Magie mineure.'),
-  { id: 'tueur', nom: 'Tueur', relais: 1, niveau: 1, role: 'front', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
-  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, niveau: 2, role: 'tireur', identite: { talent: { id: 'determine' }, designations: [tir(2, 'poudre-noire')] }, devise: 'Traque l’hérétique. Déterminé.' },
-  { id: 'medecin', nom: 'Médecin', relais: 1, niveau: 2, role: 'soigneur', identite: { talent: { id: 'pansement-de-fortune' } }, devise: 'Recoud les plaies, tranche le mal. Pansement de fortune.' },
-  { id: 'voleur', nom: 'Voleur', relais: 1, niveau: 2, role: 'eclaireur', identite: { talent: { id: 'chat-de-gouttiere' } }, devise: 'Passe sans bruit par les toits. Chat de gouttière.' },
-  college('druide', 'Druide', 1, 'vie', 'Le Collège de Jade. Magie mineure.'),
-  college('chamane', 'Chamane', 1, 'bete', 'Le Collège d’Ambre. Magie mineure.'),
-  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'parade')] }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
-  { id: 'duelliste', nom: 'Duelliste', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'battement' }, designations: [cac(1, 'escrime'), cac(4, 'deux-mains')] }, devise: 'Bat le fer adverse. Battement.' },
-  { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
+  college('pyromancien', 0, 'feu', 'Le Collège Flamboyant. Magie mineure.'),
+  college('hierophante', 0, 'lumiere', 'Le Collège Lumineux. Magie mineure.'),
+  { id: 'tueur', relais: 1, niveau: 1, role: 'front', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
+  { id: 'repurgateur', relais: 1, niveau: 2, role: 'tireur', identite: { talent: { id: 'determine' }, designations: [tir(2, 'poudre-noire')] }, devise: 'Traque l’hérétique. Déterminé.' },
+  { id: 'medecin', relais: 1, niveau: 2, role: 'soigneur', identite: { talent: { id: 'pansement-de-fortune' } }, devise: 'Recoud les plaies, tranche le mal. Pansement de fortune.' },
+  { id: 'voleur', relais: 1, niveau: 2, role: 'eclaireur', identite: { talent: { id: 'chat-de-gouttiere' } }, devise: 'Passe sans bruit par les toits. Chat de gouttière.' },
+  college('druide', 1, 'vie', 'Le Collège de Jade. Magie mineure.'),
+  college('chamane', 1, 'bete', 'Le Collège d’Ambre. Magie mineure.'),
+  { id: 'joueur-d-epee', relais: 2, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'parade')] }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
+  { id: 'duelliste', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'battement' }, designations: [cac(1, 'escrime'), cac(4, 'deux-mains')] }, devise: 'Bat le fer adverse. Battement.' },
+  { id: 'chasseur-de-primes', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
   // careerLevels.json l.11637
-  { id: 'ingenieur', nom: 'Ingénieur', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'artilleur' } }, dotation: ['pistolet'], devise: 'La poudre et la mécanique. Artilleur.' },
-  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'beni' }, designations: [cac(1, 'base'), cac(2, 'deux-mains'), tir(2, 'arbalete')] }, devise: 'L’arme et la foi. Béni.', dieux: ['sigmar', 'ulric', 'myrmidia'] },
-  college('alchimiste', 'Alchimiste', 2, 'metal', 'Le Collège Doré. Magie mineure.'),
-  college('spirite', 'Spirite', 2, 'mort', 'Le Collège d’Améthyste. Magie mineure.'),
+  { id: 'ingenieur', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'artilleur' } }, dotation: ['pistolet'], devise: 'La poudre et la mécanique. Artilleur.' },
+  { id: 'pretre-guerrier', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'beni' }, designations: [cac(1, 'base'), cac(2, 'deux-mains'), tir(2, 'arbalete')] }, devise: 'L’arme et la foi. Béni.', dieux: ['sigmar', 'ulric', 'myrmidia'] },
+  college('alchimiste', 2, 'metal', 'Le Collège Doré. Magie mineure.'),
+  college('spirite', 2, 'mort', 'Le Collège d’Améthyste. Magie mineure.'),
 ];
-export const nomDeCarriere = (id: string): string => profil(id)?.nom ?? nomDeCarriereDuLivre(id);
 /** Le dieu d'un héros : la spécialisation de son Talent Béni. */
 export const dieuDe = (c: Pick<Combatant, 'talents'>): string | undefined => c.talents.find((t) => t.talentId === 'beni')?.spec;
 /** La voie de lanceur de la carrière `carriere` ; celle d'une carrière à dieu tiré suit le dieu du héros `c`. */
@@ -363,10 +363,6 @@ export const TROPHEES = { elite: 35, boss: 1, premiereVictoire: 1 } as const;
 /** PX gagnés par salle franchie, par type. */
 export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10, autel: 10, puits: 10, blesse: 10 };
 export const OR_INITIAL = 100;
-export const PRIX_DE_RECRUE = [15, 30, 50];
-/** Ce qu'une recrue coûte en plus par niveau de carrière au-delà du premier. */
-export const SUPPLEMENT_PAR_NIVEAU = 20;
-export const TAILLE_DU_GROUPE = 4;
 /** Le prix d'un objet au hameau : son prix au catalogue (CO) multiplié, à l'échelle du butin des expéditions. */
 export const ECHELLE_DES_PRIX = 10;
 /** Jours de repos accordés à tous quand personne n'est plus en état de partir ; durée d'un séjour à l'hospice. */

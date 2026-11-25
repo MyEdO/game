@@ -1,3 +1,4 @@
+import { setEngaged } from '../engine/engagement';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -82,7 +83,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
 
   it('Engagé → ouvrirLaCourse n’ouvre rien (il faut se désengager d’abord)', () => {
     const { H } = setup();
-    H.engagedWith = ['x'];
+    setEngaged(H, banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!);
     banc.setState({ battle: { ...banc.getState().battle! } });
     banc.getState().ouvrirLaCourse({ x: 16, y: 10 });
     expect(banc.getState().pendingRun).toBeNull();

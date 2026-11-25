@@ -303,7 +303,7 @@
     "fichier": "src/data/schemas/grammaire/prose.ts",
     "concept": "composition d'une prose nommée et de sa provenance locale depuis le registre PROSES_NOMMEES, avec exclusivité automatique pour la narration et source seule pour un document ; lecture de la déclaration pendant la co-descente",
     "perimetre": "ouverture, stade d'indice, document narratif, terrain de bataille, introduction, refus de route, sous-titres d'ouverture et clôture, objectif, faveur, enjeu, narration d'op, invite de choix, réplique et journal ; porteurs folio ou adresse ; gardes des projets livrés et classifications locales des schémas",
-    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/scenes/bundled-projects.test.ts"
+    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/noyau/provenance-du-paquet.test.ts"
   },
   {
     "id": "identites",
@@ -690,7 +690,7 @@
     "fichier": "scripts/guards/lib/corpusDesComptes.mts",
     "concept": "porte des comptes : volet STRUCTURES_REDECLARATIONS mesuré sur l’AST des defs, volet de un par site mesuré au schéma seul (DETTE_OPS : `OPS_NON_TYPEES` et refs à plat de `OP_DEFS`), volet STRUCTURES_LOCALES, volet SOURCE_FORMAT et plancher FEUILLES_D_ID (un chemin de schéma de document `idDe` à la base qui ne l’est plus à la tête, valeurs closes comprises, ou dont une alternative admet une valeur libre, refusé sans ligne de message qui l’admette), images de commits ou de l’index mesurées sous les détecteurs des deux bornes ; hausse et naissance refusées, un site né apparié à un disparu par le volet (`renommages`) n’est pas une naissance ; baisses dues au détecteur couvertes exactement par des trailers FAUX-POSITIF nommant collection, site canonique, ordinal et preuve",
     "perimetre": "évolution des redéclarations dans les defs, des structures locales, des feuilles idDe, des ops et du format du Source entre deux images Git",
-    "verrou": "scripts/guards/comptes-plage.test.mjs, src/comptes-plage.test.ts, scripts/hooks/stocks-nominatifs.test.mjs"
+    "verrou": "scripts/hooks/stocks-nominatifs.test.mjs"
   },
   {
     "id": "inventaireDeDette",
@@ -708,7 +708,7 @@
     "fichier": "scripts/guards/lib/structuresLocales.mts",
     "concept": "La mesure de dette de structure classe les nœuds objets, records ou non validants en D5, G, C, G1 et L. Le nom du schéma de document (`‹racine›#‹type›`, `nomDuDocument`) et le plus court chemin forment la clé, indépendamment du nombre de documents. Les branches sont nommées (`|<lazy>` en particulier) et la clé est injective. Une intersection ou un pipe et les enfants de même clé de leurs côtés forment des points conjoints (`pointsConjoints`). Chaque point se classe par ses objets et ses nœuds non validants ou, en leur absence, par ses records. G et C sont hors stock. La porte de `STRUCTURES_LOCALES` apparie les renommages par empreinte (`renommagesDeStructure` et `empreinteDeChamps` dans `occurrencesStock.mjs`).",
     "perimetre": "toute mesure de dette qui doit rester stable à l’ajout d’une donnée conforme (#2995) : elle ne lit que les defs",
-    "verrou": "src/data/structures-locales.test.ts, src/comptes-plage.test.ts"
+    "verrou": "src/data/structures-locales.test.ts"
   },
   {
     "id": "stockDeSites",

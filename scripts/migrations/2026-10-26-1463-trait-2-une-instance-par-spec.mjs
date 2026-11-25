@@ -9,7 +9,7 @@
  *     `{ id: trait, arg }` devient une instance par spec.
  *
  * ENTRÉES : écrites — `src/data/traits.json`, `src/data/creatures.json`,
- * `src/scenes/diligence/diligence-projet.json` ; aucun autre fichier n'est lu.
+ * `projets/jeu-de-role/campagnes/diligence/diligence-projet.json` ; aucun autre fichier n'est lu.
  * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : un hôte absent, une instance déjà éclatée ou révisée
  * après la migration, est laissé tel quel.
  * FAIL-FAST — avant toute écriture, sortie 1 : une instance d'un Trait à registre FERMÉ dont l'`arg` joint
@@ -29,7 +29,7 @@ const serializeProjet = (value) => `${JSON.stringify(value, null, 1)}\n`;
 
 const TRAITS = 'src/data/traits.json';
 const CREATURES = 'src/data/creatures.json';
-const DILIGENCE = 'src/scenes/diligence/diligence-projet.json';
+const DILIGENCE = 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json';
 
 /** Chaque fichier, avec son formatage et l'accès à une liste d'instances (`liste`) de l'hôte `hote`. */
 const FICHIERS = {

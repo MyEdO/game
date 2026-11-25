@@ -712,7 +712,7 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `godot`) : le pont
                             ports, son stockage et ses sorties. La file joue `combat`, `editeur` et `compendium`
                             (`npm run godot:recette`). Le canari joue le lot natif entier (`lot-de-recettes.mjs --natif`).
                             `--bureau --sortie <dossier>`
-                            (`npm run godot:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
+                            (`npm run jeu-de-role:bureau`, #3951) produit l'exécutable de bureau de la plateforme, son noyau
                             embarqué (`noyau/` : Node, le bundle, le point d'entrée), ses modèles en scène et ses avis
                             de licence, Node compris, puis lui
                             fait jouer une partie ; le workflow `bureau.yml`, lancé à la main, le fait sous Linux et
@@ -727,15 +727,18 @@ hotes/godot/                HÔTE GODOT du noyau (#2928, zone `godot`) : le pont
                             `?planche=<nom>`) est un dérivé de l'export, jamais commitée : `construire.mjs --export`
                             la dépose sous `<export>/planches/` (`planches.mjs`). `npm run godot:etalons` exporte le
                             jeu et refuse tout pixel d'écart entre une planche et son étalon, dans le seul Chromium
-                            épinglé (`EPINGLE`, `planches.mjs`) sous Linux x86-64 ; le canari le joue (#3935,
+                            épinglé (`EPINGLE`, `scripts/recette/navigateur.mjs`) sous Linux x86-64 ; le canari le joue (#3935,
                             `.claude/rules/ecrans-godot.md`).
-src/scenes/                 Documents de scène + campaign.ts (campagne = l'Arène, `arene/arene-projet.json`,
-                            projet {scenes, worldMap}, scènes listées par `build()` de `scripts/arene/generate.mjs`).
-                            Ce GÉNÉRATEUR (cartes ASCII → JSON) est le propriétaire EXCLUSIF du paquet : le JSON
-                            committé est l'octet de son `build()` (`src/scenes/generateurs-byte-stables.test.ts`),
+src/scenes/                 Scénarios de test et fixtures du commun (`fixtures/` : le paquet de test, `contenuDuCommun.ts`).
+                            + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
+projets/jeu-de-role/        Le jeu de rôle (`.claude/rules/jeu-de-role.md`, #4936) : `contenu.ts` (son `ContenuDUnJeu`),
+                            `godot.ts` (son entrée du pont), `campagnes/<x>/<x>-projet.json` (les paquets, et le
+                            `generate.mjs` voisin de ceux qui en ont un), `scenarios/`, `dossiers/<ABBR>/<NN>.json`
+                            (fiches de dossier de chapitre), `cadrages/`, `recettes/lot.mjs` (ses jeux de recette Godot,
+                            joués par `jouerLeLot` de `lot-de-recettes.mjs`), `suites/`. L'Arène est l'octet du `build()` de
+                            `campagnes/arene/generate.mjs` (`projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`),
                             une édition à l'éditeur est écrasée au prochain `generate`, ou refusée par cette garde.
                             L'Arène déroge ainsi à `user-doctrine-campagne-jamais-generee-par-script` : #1601.
-                            + test-fixture.ts (fabrique de scène neutre `testScene()` + rencontre `enc-mutants` des tests de combat)
 src/noyau/intentionsDeSiege.ts  Allowlist coop : la classe de chaque action du noyau (invité, hôte,
                             local), `GUEST_INTENTS` que `reseau.ts` enrobe chez l'invité, `refusChezLInvite`
                             que `Partie.envoyer` lit chez l'invité, et `appliquerLIntentionDUnSiege`, seul point
@@ -848,7 +851,7 @@ Deux restrictions posées en 0cd24a01 (#232/#91) sans ticket au moment du commit
   (scène+entry), startDialogue, **test** (compétence + difficulté + `onSuccess`/`onFailure`),
   endDialogue. Tout est appliqué par `applyEffects` dans le store. Les sites de Condition et d'Effet d'un paquet
   s'énumèrent par UN module (`defs-scenes/sites-de-paquet.ts`), que lisent les références narratives et la
-  garde « lu ⇒ produit » (`src/scenes/drapeau-lu-produit.test.ts`).
+  garde « lu ⇒ produit » (`projets/jeu-de-role/suites/drapeau-lu-produit.test.ts`).
 - **Moteur de campagne** : transitions de scènes (registre depuis `campaign`), tests de
   compétence interactifs (modal + branches), inventaire/argent/handouts (state party-level).
 - **Inventaire et équipement.** `recomputeLoadout` compose les armes actives et les PA des objets et mutations du

@@ -63,6 +63,6 @@ describe('Rampant : aucune Action de Course (MSRC 15 l.171)', () => {
   it('refusDeCourseDuPorteur et refusDeCourse le refusent, la Charge reste à son propre verdict', () => {
     const { c, battle } = porteur(4, []);
     c.traits = [{ id: 'rampant' }];
-    expect([refusDeCourseDuPorteur(c), refusDeCourse(null, battle, c), refusDeCharge(battle, c)]).toEqual([t('agate.cannotRun'), t('agate.cannotRun'), null]);
+    expect([refusDeCourseDuPorteur(battle.combatants, c), refusDeCourse(null, battle, c), refusDeCharge(battle, c)]).toEqual([t('agate.cannotRun'), t('agate.cannotRun'), null]);
   });
 });

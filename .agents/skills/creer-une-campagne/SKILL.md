@@ -7,30 +7,30 @@ description: À utiliser quand on crée ou modifie une CAMPAGNE (scènes reliée
 # Créer une campagne
 
 Un paquet de campagne est **MANUSCRIT** : posé à l'éditeur, ou édité comme document JSON, jamais produit
-par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèle : `src/scenes/diligence/`.
+par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèle : `projets/jeu-de-role/campagnes/diligence/`.
 
 ## Le chemin canonique en 6 étapes
 
-1. **Le paquet `src/scenes/<campagne>/<campagne>-projet.json`**, commité, MANUSCRIT, édité à l'éditeur
+1. **Le paquet `projets/jeu-de-role/campagnes/<campagne>/<campagne>-projet.json`**, commité, MANUSCRIT, édité à l'éditeur
    ou comme document JSON. « Ouvrir » une campagne du jeu en fait une COPIE de travail libellée « Copie de
    <label> » ; l'aller-retour vers le paquet est « Fichier → Exporter forme dépôt (dev) » : le fichier
    `BuiltinCampaign.fichier`, au format du dépôt, libellé d'origine tant que le projet n'est pas renommé,
    ordre des scènes et scène d'entrée conservés.
    « Fichier → Exporter JSON » télécharge l'export portable `<id du projet>-projet.json`, libellé de la
-   copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`). Tout paquet neuf se déclare dans
-   `PROJETS_MANUSCRITS` de `scripts/guards/lib/projetsLivres.mjs` : le volet couverture de
-   `src/scenes/generateurs-byte-stables.test.ts` exige que tout
-   `*-projet.json` soit produit par un générateur OU nommé manuscrit.
+   copie de travail. Les deux passent la porte UNIQUE du document (`parseProject`). Un paquet sans `generate.mjs` voisin est
+   manuscrit (`estManuscrit`, `scripts/guards/lib/projetsLivres.mjs`) : le volet couverture de
+   `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts` exige que tout
+   `*-projet.json` soit produit par son générateur OU manuscrit.
 2. **Scènes et cartes à l'éditeur** ; reproduire un plan de livre : skill `creer-une-map`.
 3. **Écrire des IDS stables** — `ref` de créature, `skill`, `spell`, `species`, `inventaire` (trappingId),
    `appearance.tenue`, trait `arg`. Aucun libellé : `validateScene` refuse une réf de créature ou de décor
-   inexistante, `src/scenes/bundled-projects.test.ts` une apparence, un nom ou un catalogue naval non résolu. `appearance.species`
+   inexistante, `projets/jeu-de-role/suites/bundled-projects.test.ts` une apparence, un nom ou un catalogue naval non résolu. `appearance.species`
    absent = Humain par défaut.
 4. **Identité et carte du monde** : l'identité (`id`, `label`, `versionContenu`) est PLATE à la racine.
    `worldMap.places[].scene` doit pointer un id du tableau `scenes` ; deux routes entre les mêmes lieux
    sont permises (seul `id` est une clé) et le moteur ne force PAS le sens : nommer `-aller`/`-retour`.
 5. **Validé par ce qui le lit, AUCUN test nominatif sur le paquet livré.** `parseProject`
-   (`src/noyau/worldMap.ts`) refuse un document mal formé. `src/scenes/bundled-projects.test.ts` prend tout `src/scenes/**/*-projet.json`
+   (`src/noyau/worldMap.ts`) refuse un document mal formé. `projets/jeu-de-role/suites/bundled-projects.test.ts` prend tout paquet livré (`listerProjetsLivres()`)
    au GLOB : `parseProject` sans lever, identité valide, apparence et nom résolus, aucune `error` de
    `validateScene` (`src/noyau/validateScene.ts`), prose sourcée confrontée au `Source/` à l'octet, refus
    du jargon technique dans un texte joueur. Un changement de forme réécrit les paquets commités dans le MÊME
@@ -38,17 +38,17 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    jamais sur la carte livrée.
 6. **Recette Godot** — charger le projet et dérouler son parcours complet dans le jeu. Voir `.claude/rules/hote-godot.md`.
 
-## `scripts/campagne/lib.mjs` et les générateurs
+## `projets/jeu-de-role/campagnes/lib.mjs` et les générateurs
 
 - `lib.mjs` porte les helpers des générateurs existants et les validateurs id-only (`creatureId`,
-  `skillId`, `spellId`, `speciesId`, `tenueId`, `inventaire` ; banc `src/scenes/arene/lib-validators.test.ts`).
+  `skillId`, `spellId`, `speciesId`, `tenueId`, `inventaire` ; banc `projets/jeu-de-role/campagnes/arene/lib-validators.test.ts`).
   `creatureId` accepte créature ∪ véhicule ; `poste(trappingId, side, crewIds?)` émet la référence de
   poste et lève si `trappingId` n'est pas une pièce POSABLE (sous-type `armes-de-siege`).
-  Consommateurs : `scripts/arene/`, `scripts/barge-du-sel/generate.mjs`, `scripts/loup-et-saumure/generate.mjs`
+  Consommateurs : `projets/jeu-de-role/campagnes/arene/`, `projets/jeu-de-role/campagnes/barge-du-sel/generate.mjs`, `projets/jeu-de-role/campagnes/loup-et-saumure/generate.mjs`
   et ce banc. Il ne sert à un contenu neuf que pour du contenu CALCULÉ non authorable à la main, jamais
   pour un projet de campagne ; « enrichir un JSON manuscrit par script » est interdit.
 - Les générateurs de `barge-du-sel` et `loup-et-saumure` sont la dette #1601 (« Campagnes possédées par un
-  GÉNÉRATEUR … statuer la migration vers MANUSCRIT ») ; `scripts/arene/generate.mjs`
+  GÉNÉRATEUR … statuer la migration vers MANUSCRIT ») ; `projets/jeu-de-role/campagnes/arene/generate.mjs`
   produit `arene-projet.json` sous le même régime (#1601). Aucun n'est un modèle.
 
 ## Narratif — frontière référence ⟂ narratif
@@ -68,7 +68,7 @@ valide ; un bloc mal formé fait échouer `parseProject`.
   RICHE porte `crewIds`, `upgrades` et `postes`. Un poste est une RÉFÉRENCE JSON
   `{ trappingId, side, crewIds?, ammo?, ammoUid? … }` (`AuthoredShipPoste`, `src/engine/types.ts`),
   hydratée au spawn par `hydratePoste` (`src/engine/items.ts`), qui lève sur un `trappingId` inconnu.
-  `src/scenes/bundled-projects.test.ts` contrôle l'équipage exposé (chaque `crewIds` de la coque = une
+  `projets/jeu-de-role/suites/bundled-projects.test.ts` contrôle l'équipage exposé (chaque `crewIds` de la coque = une
   entité de la scène), les améliorations (catalogue naval) et le coffre (`ammo` en munitions de quantité
   non nulle, `ammoUid` dans le coffre) ; rien ne contrôle qu'un `trappingId` de poste désigne une pièce
   POSABLE (sous-type `armes-de-siege`, Compendium → Objets, armes de siège) : le vérifier à l'écriture.
@@ -82,6 +82,6 @@ valide ; un bloc mal formé fait échouer `parseProject`.
   identifiant de code, ni tag d'auteur, ni citation RAW (garde de jargon de `bundled-projects.test.ts`).
 
 Renvois : `docs/campagne-effects.md` (Effects de scène, `npm run docs:effects`) · `docs/map-authoring.md`
-· `docs/test-scenarios.md` · gardes `src/scenes/arene/lib-validators.test.ts` (id-only) et
-`src/noyau/scenarios/arene-flow.hors-store.test.ts` (Trigger→Effect→transition). Campagne publiée à adapter : skill
+· `docs/test-scenarios.md` · gardes `projets/jeu-de-role/campagnes/arene/lib-validators.test.ts` (id-only) et
+`projets/jeu-de-role/suites/arene-flow.hors-store.test.ts` (Trigger→Effect→transition). Campagne publiée à adapter : skill
 `adapter-une-campagne`.

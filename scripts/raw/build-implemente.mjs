@@ -1,11 +1,11 @@
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { ancreDeTitre } from './lib/ancres.mjs'
 import { join, posix } from 'node:path'
-import { parUnitesDeCode } from '../guards/lib/lister.mjs'
+import { listerDossier, parUnitesDeCode } from '../guards/lib/lister.mjs'
 import { refRe, span, bookOf, BOOKS, estLivreExtrait, folioRange, allAbbrAlternation, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
-import { closureOf } from '../guards/lib/importGraph.mjs'
+import { clotureDImports } from '../guards/lib/importGraph.mjs'
 import { EXTS_IMPLEMENTANTES, RACINES_DU_CODE, fichiersCitants } from './lib/fichiersCitants.mjs'
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
@@ -17,10 +17,19 @@ export const RAWDIR = 'docs/raw'
 export const MANIFEST_EDITORIAL_RE = /^src\/data\/[^/]+\.manifest\.json$/
 export const MANIFEST_PATH = 'src/data/raw.manifest.json'
 export const BOOKS_JSON_PATH = 'src/data/books.json'
-/** Les racines de l'application, dont la clôture d'imports sous `src/` (`closureOf`) est le code joué (`⚠hors-app`
- *  hors d'elle) : le démarrage du pont et les deux contenus que ses entrées lui remettent, celui de test du commun et
- *  celui du jeu de rôle (#4936). */
-export const APP_ROOT_MODULES = ['hotes/godot/pont/entree.ts', 'hotes/godot/pont/entree-commune.ts', 'hotes/godot/pont/contenu-jeu-de-role.ts']
+/** Les racines de l'application, dont la clôture d'imports sous les racines du code (`closureDeLApplication`) est le
+ *  code joué (`⚠hors-app` hors d'elle) : le démarrage du pont et les entrées qui lui remettent un contenu, celle du
+ *  commun et celle de chaque projet, découverte à `projets/<projet>/godot.ts` (#4936). */
+export const APP_ROOT_MODULES = [
+  'hotes/godot/pont/entree.ts',
+  'hotes/godot/pont/entree-commune.ts',
+  ...listerDossier('projets').map((projet) => `projets/${projet}/godot.ts`).filter((entree) => existsSync(entree)),
+]
+
+/** La clôture d'imports de `APP_ROOT_MODULES` sous les racines du code (`RACINES_DU_CODE`) : un projet joue son contenu
+ *  par son entrée, et le code commun que ce contenu tire. */
+const closureDeLApplication = () =>
+  clotureDImports(APP_ROOT_MODULES, { retenir: (abs) => RACINES_DU_CODE.some((racine) => abs.includes(`/${racine}/`)) })
 // Fenêtre de match en lignes : comble le décalage folio↔fiche (ex. `MSRC 16 l.109-111` contre la
 // plage folio `l.65-105`) ; `renderBlock` accepte `ctx.tol`. Le bruit des pages-catalogues denses
 // vient de la plage FOLIO, pas de TOL (#434).
@@ -634,7 +643,7 @@ export function couvertureDe(entree, topics, dette) {
 /** Contexte complet (index code + closure + dette) + parse de toutes les fiches. */
 export function buildContext({ rawDir = RAWDIR, racines = RACINES_DU_CODE, manifestPath = MANIFEST_PATH, booksPath = BOOKS_JSON_PATH } = {}) {
   const index = indexCode(racines, loadAbbrMap(booksPath))
-  const closure = closureOf(APP_ROOT_MODULES)
+  const closure = closureDeLApplication()
   const fiches = pagesDeLAtlas(rawDir, { classes: CLASSES }).map(({ relatif: doc, chemin }) => {
     const content = readText(chemin)
     return { doc, content, parsed: parseFiche(doc, content) }

@@ -32,7 +32,7 @@ test('le module chargé en premier dont le cycle appelle une fonction avant ses 
   assert.deepEqual(echecs.map(({ module, erreur }) => [module, erreur]), [
     ['a.ts', "ReferenceError: Cannot access '__vite_ssr_import_1__' before initialization"],
   ])
-  assert.deepEqual(echecs[0].pile.slice(0, 2), ['at f (a.ts:3:31)', 'at eval (b.ts:3:26)'])
+  assert.deepEqual(echecs[0].pile.slice(0, 2), ['at f (a.ts:3:31)', 'at b.ts:3:26'])
   assert.match(rapportDe(echecs[0]), /^ {2}a\.ts : ReferenceError: .*\n {6}at f \(a\.ts:3:31\)\n/)
 })
 

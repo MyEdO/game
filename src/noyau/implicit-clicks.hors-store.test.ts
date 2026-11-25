@@ -1,3 +1,4 @@
+import { disengageFrom, setEngaged } from '../engine/engagement';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -261,9 +262,10 @@ describe('computeMoveReach / displayedReach — portée de Marche dérivée (mod
   it('vide si Engagé, si M-A-M scellé, ou si Mouvement épuisé', () => {
     const { H } = setup();
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    h.engagedWith = ['x'];
+    const e = banc.getState().battle!.combatants.find((c) => c.kind === 'ennemi')!;
+    setEngaged(h, e);
     expect(computeMoveReach(banc.getState).size).toBe(0);
-    h.engagedWith = [];
+    disengageFrom(h, e);
     banc.setState({ battle: { ...banc.getState().battle!, acted: true, movedPreAction: true } });
     expect(computeMoveReach(banc.getState).size).toBe(0);
     banc.setState({ battle: { ...banc.getState().battle!, acted: false, movedPreAction: false, movementUsed: effectiveMovement(H) } });

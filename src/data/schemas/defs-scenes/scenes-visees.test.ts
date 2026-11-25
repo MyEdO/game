@@ -10,10 +10,6 @@ import { projetSchema } from './projet';
 import { mesureDuParse } from '../grammaire/ref';
 import { versDisque } from '../grammaire/prose';
 import { IDS_PAR_ESPACE } from '../_ids.generated';
-import areneProjet from '../../../scenes/arene/arene-projet.json';
-import bargeDuSelProjet from '../../../scenes/barge-du-sel/barge-du-sel-projet.json';
-import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
-import loupEtSaumureProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Projet = typeof paquetDeTest;
@@ -64,8 +60,8 @@ const PORTEURS = [
 ];
 
 describe('#2968 L14 — scènes visées désignées par `ref(portee)`', () => {
-  it('les projets livrés parsent', () => {
-    for (const lu of [areneProjet, bargeDuSelProjet, diligenceProjet, loupEtSaumureProjet]) expect(projetSchema.safeParse(versDisque(lu)).success).toBe(true);
+  it('le paquet de test parse', () => {
+    for (const lu of [paquetDeTest]) expect(projetSchema.safeParse(versDisque(lu)).success).toBe(true);
   });
 
   it('chaque scène visée est un slot `local:scenes` au parse de mesure, à son path', () => {

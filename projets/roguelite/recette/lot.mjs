@@ -10,8 +10,8 @@ import { fileURLToPath } from 'node:url';
 const ici = fileURLToPath(new URL('.', import.meta.url));
 const CAPTURES = join(ici, '../../../dist/roguelite-recette');
 const FIXE = join(CAPTURES, 'partie-fixe.json');
-/** Les recettes du lot, chacune sur la partie fixe ; `images` attend sa référence (#4903 L6). */
-const RECETTES = ['parcours', 'partie', 'debords', 'rejeu', 'socle'];
+/** Les recettes du lot, chacune sur la partie fixe. */
+const RECETTES = ['parcours', 'partie', 'debords', 'rejeu', 'socle', 'images'];
 
 mkdirSync(CAPTURES, { recursive: true });
 const fixe = spawnSync(process.execPath, ['--import', 'tsx', join(ici, 'partie-fixe.ts')], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'inherit'] });

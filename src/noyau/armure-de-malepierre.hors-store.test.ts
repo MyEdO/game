@@ -81,7 +81,7 @@ describe('Armure de malepierre — MDG 16 l.506, arbitrage du 2026-11-16 (#4372)
     setEngaged(ancien, porteur());
     finDuDernierTour(banc);
     expect(expositions(banc)).toEqual([mineure(a.id), mineure(b.id)]);
-    expect(isEngagedWith(porteur(), ancien.id)).toBe(false);
+    expect(isEngagedWith(porteur(), ancien)).toBe(false);
 
     resister(banc, a.id);
     resister(banc, b.id);

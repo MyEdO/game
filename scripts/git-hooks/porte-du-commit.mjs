@@ -1197,7 +1197,7 @@ export function evaluateComptesDuCommit({ message, commentaire, fichiers, dispon
  * remplace les deux : son APPORT est jugé (`bilanDuCommit`).
  * @returns {{ reason: string } | null}
  */
-export function evaluateStocksQuiGrandissent({ message, commentaire, diff, images, fusion = null }) {
+function evaluateStocksQuiGrandissent({ message, commentaire, diff, images, fusion = null }) {
   const lu = lectureDeLaPorte({ message, commentaire })
   if (!fusion && !diff) return null
   const restantes = nonCouvertesDuBilan(bilanDuCommit({ diff, images, fusion }), lu.satisfactions)
