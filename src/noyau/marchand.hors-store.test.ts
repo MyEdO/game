@@ -4,6 +4,7 @@
  * ≤ Statut du groupe coûte 0 au débit ET au devis. La réparation débite `coutDeReparation`, le Troc
  * refusé dit le refus de `devisDeTroc`. LDB 59 l.9-11 ; LDB 59 l.43 ; LDB 59 l.64-76 ; LDB 62 l.135.
  */
+import { degatsSubis } from '../engine/repair';
 import { findTrappingById } from '../data';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
@@ -111,7 +112,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', 'abimee'] });
       expect(avant - bourseDuGroupe(partie)).toBe(cout);
-      expect(partie.etat().party[0].items!.find((i) => i.uid === 'abimee')!.damageTaken).toBe(0);
+      expect(degatsSubis(partie.etat().party[0].items!.find((i) => i.uid === 'abimee')!)).toBe(0);
     } finally {
       partie.fermer();
     }
@@ -139,7 +140,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       expect(ligne().refus).toBeNull();
       partie.envoyer({ type: 'fenetreChoisir', args: ['marchand', 'reparer', briseEpee.uid] });
       expect(avant - bourseDuGroupe(partie)).toBe(cout);
-      expect(partie.etat().party[0].items?.find((i) => i.uid === briseEpee.uid)?.damageTaken).toBe(0);
+      expect(degatsSubis(partie.etat().party[0].items!.find((i) => i.uid === briseEpee.uid)!)).toBe(0);
     } finally {
       partie.fermer();
     }

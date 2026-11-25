@@ -172,7 +172,10 @@ construction, sans dépendre de l'hôte web, et aucun module de la zone hors de 
 Les murs de couche la lisent (`scripts/guards/lib/couchesLint.mjs`), sous chaque racine des zones
 (`RACINES_DES_ZONES` : `src`, `hotes`, `projets`) : `murs/zone` refuse un fichier dont le dossier n'est celui
 d'aucune zone (un sous-dossier `godot` ou `racine` de `src/`, un dossier de `hotes/` ou de `projets/` sans ligne, un
-fichier posé à même `hotes/` ou `projets/` compris) ; `murs/purete-imports` refuse, à tout fichier d'une zone qui
+fichier posé à même `hotes/` ou `projets/` compris), et, à tout fichier de code que le lint voit hors de ces racines,
+celui qui n'est pas de l'outillage hors des zones (`scripts/guards/lib/horsDesZones.mjs` : `scripts/`, `server/`,
+`.claude/workflows/`, les configurations de la racine, et le code d'un mod sous `.claude/skills/<mod>/` dans
+`DOSSIERS_DE_CODE_DE_MOD`, #4903 L3) ; `murs/purete-imports` refuse, à tout fichier d'une zone qui
 n'est ni suite ni banc (`estFichierVitest`), un arc d'import qu'elle n'ouvre pas ou qui manque une porte, sur toutes
 les formes d'arc de `scripts/guards/lib/arcsDImport.mjs`, un paquet de l'hôte web, du JSX ou un module de code hors
 des zones et hors de son `outillage` dans une zone qui survit, et un motif d'`import.meta.glob` dont le dossier de

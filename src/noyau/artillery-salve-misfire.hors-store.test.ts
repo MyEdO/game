@@ -1,6 +1,6 @@
 import { describe, it, beforeEach, expect } from 'vitest';
 import { applyOups } from './combatFlow';
-import { OPS_DIFFEREES } from './combatEffects';
+import { MAIN_RENDUE } from './combatEffects';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { CascadeStep } from './pendings';
 import { draineCascade, poseSurDeNonTombe } from './cascade.testkit';
@@ -18,7 +18,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * GÉNÉRIQUE d'Arme d'équipe (MDG 12 l.464) déjà résolu par le même appelant.
  *
  * Le d10 de cette table PASSE PAR LA PORTE (#1508 T3b-4) : `applyOups` n'applique rien tant qu'il
- * n'est pas tombé (elle rend `OPS_DIFFEREES`), et c'est le JOUEUR qui le pose — d'où `poserLesDes`.
+ * n'est pas tombé (elle rend `MAIN_RENDUE`), et c'est le JOUEUR qui le pose — d'où `poserLesDes`.
  */
 
 /** L'étape COURANTE de la séquence en vol (celle que la fenêtre servirait). */
@@ -57,7 +57,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
     const chef = mkHero('chef');
     const { get, set } = setup(chef);
     const issue = applyOups(get, set, chef, { ...salveGun, chambered: 5 }, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' });
-    expect(issue, 'le d10 de la table part à la porte : rien n’est appliqué avant').toBe(OPS_DIFFEREES);
+    expect(issue, 'le d10 de la table part à la porte : rien n’est appliqué avant').toBe(MAIN_RENDUE);
     expect(chef.wounds.current, 'aucune Blessure tant que le dé n’est pas tombé').toBe(20);
     expect(etapeCourante()?.table?.tableId).toBe('artillerie-salve-incident');
     expect(poserLesDes(2), 'une seule étape : la table (l’arme n’est pas Solide)').toEqual(['casseDArme']);
@@ -72,7 +72,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
     const aide = mkHero('aide');
     const { get, set } = setup(chef, aide);
     const issue = applyOups(get, set, chef, { ...salveGun, chambered: 0 }, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' });
-    expect(issue).toBe(OPS_DIFFEREES);
+    expect(issue).toBe(MAIN_RENDUE);
     expect(aide.wounds.current, 'l’équipage n’encaisse rien avant le dé').toBe(20);
     poserLesDes(2);
     // Générique d'équipe (MDG 12 l.464) ET Table par Salve (AA) frappent tous deux l'aide au moins une fois.
@@ -83,7 +83,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
     const chef = mkHero('chef');
     const { get, set } = setup(chef);
     const sansLibelle = { ...salveGun, chambered: 5, label: undefined } as unknown as Weapon;
-    expect(applyOups(get, set, chef, sansLibelle, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' })).toBe(OPS_DIFFEREES);
+    expect(applyOups(get, set, chef, sansLibelle, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' })).toBe(MAIN_RENDUE);
     poserLesDes(2);
     expect(chef.wounds.current, 'le dé tombé est appliqué : l’arme est en jeu, libellé ou non').toBeLessThan(20);
   });
@@ -95,7 +95,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
     for (const [de, brisee] of [[9, false], [2, true]] as const) {
       const chef = mkHero('chef', { weapons: [piece] });
       const { get, set } = setup(chef);
-      expect(applyOups(get, set, chef, piece, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' })).toBe(OPS_DIFFEREES);
+      expect(applyOups(get, set, chef, piece, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' })).toBe(MAIN_RENDUE);
       expect(etapeCourante()?.de?.seuil?.indice, `dé ${de} : le 1ᵉʳ dé est LA Sauvegarde Solide`).toBe(9);
       expect(poserLesDes(de), `dé ${de} : la sauvegarde, puis la table — aucun second dé Solide`).toEqual(['casseDArme', 'casseDArme']);
       expect(!chef.weapons.includes(piece), `dé ${de} : la pièce brisée quitte les mains`).toBe(brisee);
@@ -129,7 +129,7 @@ describe('pièce SERVIE en poste, détruite par l’Incident de tir par Salve', 
     const piece = chef.weapons.find((w) => w.uid === poste.item.uid)!;
     expect(piece, 'le chef sert la pièce').toBeDefined();
     const { get, set } = setup(chef);
-    expect(applyOups(get, set, chef, piece, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' })).toBe(OPS_DIFFEREES);
+    expect(applyOups(get, set, chef, piece, { roll: 44, kind: 'misfire', label: 'Incident de Tir !' })).toBe(MAIN_RENDUE);
     poserLesDes(2);
     expect(poste.item.destroyed, 'la destruction persiste sur l’objet du poste').toBe(true);
     recomputeLoadout(chef);

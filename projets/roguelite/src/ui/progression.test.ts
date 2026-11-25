@@ -1,13 +1,15 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
 import * as J from '../jeu';
 import { testValue } from '../../../../src/engine/skills';
-import { libelleDeCarac, porterAuNiveau, progression } from '../noyau';
+import { articleDuCatalogue, chancesDeReussite, libelleDeCarac, maniement, porterAuNiveau, progression, poserLesReglesDuRoguelite } from '../noyau';
 import { byId } from '../../../../src/data';
 import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
 import { ecranDuHeros, progressionDuHeros } from './fiche';
 import { panneauDeService } from './services';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
-import { recrue5e } from '../jeu/recrue5e.testkit';
+import { heros4e, recrue5e } from '../jeu/recrue5e.testkit';
+
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** Une partie à la salle d'armes au palier 1, le Soldat du roster riche de PX. */
 function salle() {
@@ -15,6 +17,16 @@ function salle() {
   e.batiments.salle = 1;
   const h = e.roster.find((x) => x.carriere === 'soldat')!;
   h.c.xp = 900;
+  return { e, h };
+}
+
+/** Une partie à la salle d'armes au palier `palier`, un héros 4e de `carriere` (`heros4e`) au roster,
+ *  riche de `xp` PX. */
+function salle4e(carriere: string, palier: number, xp: number) {
+  const e = J.nouvellePartie(3);
+  e.batiments.salle = palier;
+  const h = heros4e(carriere, 3, xp);
+  e.roster.push(h);
   return { e, h };
 }
 
@@ -39,38 +51,62 @@ describe('un seul écran de progression', () => {
     expect(ecranDuHeros({ e, congediement: null }, h.c.id, 'progression')).toContain(bloc);
   });
 
-  it('l’aperçu du pas de CC dit le Test de Corps à corps avant et après, tel que le noyau le joue', () => {
+  it('l’aperçu du pas de CC dit le Test d’attaque de l’arme tenue et l’écart de ses chances, tels que le noyau les joue', () => {
     const { e, h } = salle();
-    const ref = { id: 'corps-a-corps', spec: 'base' };
-    const avant = testValue(h.c, { skill: ref });
+    const arme = J.panoplie(h).main!.id!;
+    const avant = maniement(h.c, arme);
     const { texte } = apercuDuPas(progressionDuHeros(e, h), 'capacite-de-combat');
     expect(J.acheterUnPas(e, h.c.id, { genre: 'carac', id: 'capacite-de-combat' }).refus).toBeNull();
-    const apres = testValue(h.c, { skill: ref });
-    expect(apres).toBeGreaterThan(avant);
-    expect(texte.split('\n')).toContain(`Corps à corps (Base) ${avant} → ${apres}`);
+    const apres = maniement(h.c, arme).attaque;
+    const ecart = chancesDeReussite(apres) - chancesDeReussite(avant.attaque);
+    expect(ecart).toBeGreaterThan(0);
+    expect(texte.split('\n')).toContain(`${articleDuCatalogue(arme).label} · ${avant.test} ${avant.attaque} → ${apres} : +${ecart} % de chances de toucher`);
   });
 
-  it('le bouton du pas et les étapes du plan disent le gain réel du pas, au prix de `pasDe`', () => {
+  it('l’aperçu d’un Talent dit l’écart de chances du Test qu’il change, tel que le noyau le joue (Imperturbable, Calme)', () => {
+    const { e, h } = salle4e('joueur-d-epee', 1, 900);
+    const i = J.offresDeCarriere(h).talents.findIndex((t) => t.ref.id === 'imperturbable');
+    expect(i).toBeGreaterThanOrEqual(0);
+    const bouton = progressionDuHeros(e, h).match(new RegExp(`<button[^>]*data-a="talent"[^>]*data-i="${i}"[^>]*>`))![0];
+    const calme = { skill: { id: 'calme' } };
+    const avant = testValue(h.c, calme);
+    expect(J.acheter(e, h.c.id, { genre: 'talent', ref: { id: 'imperturbable' } })).toBeNull();
+    const apres = testValue(h.c, calme);
+    const ecart = chancesDeReussite(apres) - chancesDeReussite(avant);
+    expect(ecart).toBeGreaterThan(0);
+    expect(apercuDe(bouton).texte.split('\n')).toContain(`Calme ${avant} → ${apres} : +${ecart} % de chances`);
+  });
+
+  it('un Talent qui ne change aucune valeur de combat n’a pas d’aperçu sur sa plaque (Tireur de précision sans arme à distance)', () => {
     const { e, h } = salle();
-    const vierge = J.offresDeCarriere(h).caracs.find((k) => k.points === 0)!.id;
-    const K = { genre: 'carac', id: vierge } as const;
-    const augs = () => h.c.charAdvances?.[vierge] ?? 0;
+    expect(J.panoplie(h).tir).toBeUndefined();
+    const i = J.offresDeCarriere(h).talents.findIndex((t) => t.ref.id === 'tireur-de-precision');
+    expect(i).toBeGreaterThanOrEqual(0);
+    const bouton = progressionDuHeros(e, h).match(new RegExp(`<button[^>]*data-a="talent"[^>]*data-i="${i}"[^>]*>`))![0];
+    expect(bouton).not.toContain('data-apercu');
+  });
+
+  it('4e : le bouton du pas et les étapes du plan disent le gain réel du pas, au prix de `pasDe`', () => {
+    const { e, h } = salle4e('soldat', 1, 900);
+    const cible = J.offresDeCarriere(h).caracs[0].id;
+    const K = { genre: 'carac', id: cible } as const;
+    const augs = () => h.c.charAdvances?.[cible] ?? 0;
     while (augs() % 5 !== 2) expect(J.acheter(e, h.c.id, K)).toBeNull();
     const entame = J.pasDe(h, K)!;
     expect(entame.fois).toBe(3);
     const html = progressionDuHeros(e, h);
-    expect(boutonDuPas(html, vierge).libelle).toBe(`+3 · ${entame.prix} PX`);
-    expect(apercuDe(html.match(/<div class="plan"[^>]*>/)![0]).texte.split('\n')).toContain(`${libelleDeCarac(vierge).abr} +3 · ${entame.prix} PX`);
+    expect(boutonDuPas(html, cible).libelle).toBe(`+3 · ${entame.prix} PX`);
+    expect(apercuDe(html.match(/<div class="plan"[^>]*>/)![0]).texte.split('\n')).toContain(`${libelleDeCarac(cible).abr} +3 · ${entame.prix} PX`);
     expect(J.acheterUnPas(e, h.c.id, K).refus).toBeNull();
     const plein = J.pasDe(h, K)!;
     expect(plein.fois).toBe(5);
-    expect(boutonDuPas(progressionDuHeros(e, h), vierge).libelle).toBe(`+5 · ${plein.prix} PX`);
+    expect(boutonDuPas(progressionDuHeros(e, h), cible).libelle).toBe(`+5 · ${plein.prix} PX`);
   });
 });
 
 describe('le panneau d’exigences suit le modèle de progression du héros', () => {
   it('4e : Caractéristiques de carrière, huit Compétences et un Talent, à 5 × niveau points (LDB 07 l.124-131)', () => {
-    const { e, h } = salle();
+    const { e, h } = salle4e('soldat', 1, 900);
     const html = progressionDuHeros(e, h);
     const n = J.offresDeCarriere(h).caracs.length;
     expect(html).toMatch(new RegExp(`: \\+5 chacune</span><span class="cpt chiffres">\\d+ / ${n}</span>`));
@@ -79,11 +115,8 @@ describe('le panneau d’exigences suit le modèle de progression du héros', ()
   });
 
   it('4e : « Passer » reste fermé tant que le noyau ne valide pas le niveau, même quand les comptes de la fiche sont pleins (LDB 07 l.124-131)', () => {
-    const e = J.nouvellePartie(3);
-    e.batiments.salle = 2;
-    const h = J.recrue(e, J.PROFILS.find((p) => p.id === 'alchimiste')!);
+    const { e, h } = salle4e('alchimiste', 2, 0);
     h.c = porterAuNiveau(h.c, 2, 5);
-    e.roster.push(h);
     const c = h.c;
     const p = progression(c);
     for (const k of p.caracs) c.charAdvances = { ...c.charAdvances, [k.id]: 10 };

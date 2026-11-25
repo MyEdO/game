@@ -28,7 +28,7 @@ export interface SourceDArmure { pa: number; matiere: MatiereDArmure | undefined
 /** Les sources de PA à `loc` : chaque pièce d'armure portée, et le Trait Armure. LDB 63 l.13 ; LDB 85 l.39 ;
  *  #1463 */
 export function sourcesDArmureA(c: Combatant, loc: HitLocation): SourceDArmure[] {
-  const pieces = piecesPorteesA(c, loc).map((i): SourceDArmure => ({ pa: paNette(i), matiere: matiereDuGroupe(i.subType), portee: true }));
+  const pieces = piecesPorteesA(c, loc).map((i): SourceDArmure => ({ pa: paNette(i, loc), matiere: matiereDuGroupe(i.subType), portee: true }));
   const trait = sourceDuTraitA(c, loc);
   return trait ? [...pieces, trait] : pieces;
 }

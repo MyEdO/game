@@ -38,7 +38,6 @@ import { planClimb } from './monde/climbMove';
 import { gesteDuPortail, poserLeGroupe, type GesteDuPortail } from './marcheDuGroupe';
 import { climbMovementCost } from '../engine/movement';
 import { ev } from './combatLog';
-import { EMPTY_FLOW } from '../engine/flowCore';
 import { rule } from '../engine/policy';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { effectiveTalents } from '../engine/talentEffects';
@@ -267,7 +266,7 @@ const CORPS_DU_FRANCHISSEMENT: Readonly<Record<GesteDeplacant, CorpsDuFranchisse
     if (plan.kind === 'test') {
       const contexte = battle ? combatConditionCtx(mover, {}) : condCtx(get);
       const { flow, escalade } = plan;
-      openSkillTest(get, set, flow.test, contexte, flow.reussite, flow.echec, EMPTY_FLOW, { ...(battle ? { actorId: mover.id } : {}), escalade });
+      openSkillTest(get, set, flow.test, contexte, flow.reussite, flow.echec, { ...(battle ? { actorId: mover.id } : {}), escalade });
     }
   },
   /** Chute VOLONTAIRE (LDB 15 l.82) : depuis `from` (case du sauteur) vers `to` (case cardinale plus

@@ -124,7 +124,7 @@ test('un push qui ne touche qu’un mod est PRODUIT ; un skill `SKILL.md` reste 
 test('le mur et la garde d’un mod jouent sur un push qui ne touche qu’un mod, en CI comme dans `npm run gates` (#2278)', () => {
   for (const nom of ['lint', 'mods:check']) {
     assert.ok(gates.some((g) => g.nom === nom), `${nom} absente de ci.yml, donc du rejeu local \`npm run gates\``)
-    assert.ok(ECRIT_LU[nom].lit.includes('.claude/skills/'), `${nom} : son \`lit\` couvre les mods`)
+    assert.ok(ECRIT_LU[nom].lit.some((chemin) => '.claude/skills/'.startsWith(chemin)), `${nom} : son \`lit\` couvre les mods`)
     assert.equal(sautables.has(nom), false, `${nom} n’est jamais sautée`)
   }
 })

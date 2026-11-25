@@ -1,6 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { beforeAll, describe, expect, it } from 'vitest';
+import { poserLesReglesDuRoguelite } from '../noyau';
 import * as J from '../jeu';
 import { panneauDeService } from './services';
+
+beforeAll(() => poserLesReglesDuRoguelite());
 
 /** L'hospice au palier 1 pour un héros à la déchirure mineure, la bourse à `or` CO. */
 function hospice(or: number) {

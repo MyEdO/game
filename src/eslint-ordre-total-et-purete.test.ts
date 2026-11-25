@@ -612,6 +612,29 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(obtenus).toEqual(['murs/zone', 'murs/zone', 'passe', 'passe', 'murs/zone', 'murs/zone', 'murs/zone', 'murs/zone']);
   });
 
+  it('HORS DES ZONES (#4903 L3) : un fichier de code hors des zones et de l’outillage déclaré est refusé, à même la racine, sous un dossier racine non déclaré, sous `.claude/` hors du code d’un mod et sous `public/` ; l’outillage déclaré passe', () => {
+    const code = 'export const a = 1;\n';
+    const cas: [string, string][] = [
+      ['zz-racine.mjs', 'murs/zone'],
+      ['zz-dossier/a.ts', 'murs/zone'],
+      ['zz-dossier/sous/b.test.ts', 'murs/zone'],
+      ['.claude/zz.mjs', 'murs/zone'],
+      ['.claude/skills/zz-mod/c.ts', 'murs/zone'],
+      ['.claude/agents/d.js', 'murs/zone'],
+      ['public/zz/e.js', 'murs/zone'],
+      ['docs/f.mjs', 'murs/zone'],
+      ['zz.config.mjs', 'murs/zone'],
+      ['scripts/zz/g.mjs', 'passe'],
+      ['server/zz/h.ts', 'passe'],
+      ['.claude/workflows/zz.js', 'passe'],
+      ['.claude/skills/zz-mod/hooks/i.ts', 'passe'],
+      ['.claude/skills/zz-mod/types/j.ts', 'passe'],
+      ['vitest.config.ts', 'passe'],
+    ];
+    const obtenus = verdicts(cas.map(([filePath]) => ({ filePath, code })), ['murs/zone']);
+    expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas));
+  });
+
   it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises, ni par un motif joker qui peut l’atteindre ; un projet lit ses ouvertures, de droit les affichages qu’il déclare, et ses propres jokers, pas un affichage qu’il ne déclare pas ni un joker qui peut atteindre une zone fermée, fichiers à même `src/` compris', () => {
     const declarant = ligneDeProjet('projets/zz', { engine: 1 }, { affichages: ['godot'], outillage: { 'projets/zz/x.mjs': ['scripts/y.mjs'] } });
     expect([declarant.importe, declarant.portes, declarant.ouvertures, declarant.affichages, declarant.outillage]).toEqual([

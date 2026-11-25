@@ -15,10 +15,12 @@ import areneProjet from '../../../scenes/arene/arene-projet.json';
 import bargeDuSelProjet from '../../../scenes/barge-du-sel/barge-du-sel-projet.json';
 import diligenceProjet from '../../../scenes/diligence/diligence-projet.json';
 import loupEtSaumureProjet from '../../../scenes/loup-et-saumure/loup-et-saumure-projet.json';
+import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
-type Carte = typeof diligenceProjet.worldMap;
+type Route = Omit<(typeof paquetDeTest.worldMap.routes)[number], 'billets'> & { billets?: (typeof paquetDeTest.worldMap.routes)[number]['billets'] };
+type Carte = Omit<typeof paquetDeTest.worldMap, 'routes'> & { routes: Route[] };
 
-/** Rangs des routes de la diligence : la première porte le billet et sa suite, la dernière n'en porte aucun. */
+/** Rangs des routes de la carte de test : la première porte le billet, la dernière n'en porte aucun. */
 const BILLETTEE = 0;
 const LIBRE = 2;
 
@@ -28,9 +30,15 @@ const messages = (carte: unknown): string[] => {
   return r.success ? [] : r.error.issues.map((i) => `${i.path.join('.')} ${i.message}`);
 };
 
-/** La carte de la diligence, retouchée par `retouche` sur une copie. */
+/** Une route de `a` à `b` sans billet. */
+const route = (id: string, a: string, b: string, modes: string[]): Route => ({ id, a: { id: a }, b: { id: b }, km: 10, modes, provenances: { km: { maison: 'fixture de test' } } });
+
+/** La carte du paquet de test fermée en boucle par `lieu-c` (`route-b-c`, `route-c-a`, que le mode `diligence` parcourt aussi),
+ *  retouchée par `retouche` sur une copie. */
 const carte = (retouche: (copie: Carte) => void): Carte => {
-  const copie = structuredClone(diligenceProjet.worldMap);
+  const copie: Carte = structuredClone(paquetDeTest.worldMap);
+  copie.places.push({ id: 'lieu-c', label: 'Lieu C', pos: { x: 50, y: 20 }, scene: { id: 'scene-de-test-b' } });
+  copie.routes.push(route('route-b-c', 'lieu-b', 'lieu-c', ['diligence']), route('route-c-a', 'lieu-c', 'lieu-a', ['pied', 'diligence']));
   retouche(copie);
   return copie;
 };
@@ -40,34 +48,42 @@ const billet = (c: Carte) => c.routes[BILLETTEE].billets!.diligence;
 const LIEUX = 'lieux de la carte';
 const PORTEURS = [
   {
-    porteur: 'worldMap.routes[].a', chemin: `routes.${LIBRE}.a`, connue: 'auberge-des-sept-rayons',
+    porteur: 'worldMap.routes[].a', chemin: `routes.${LIBRE}.a`, connue: 'lieu-c',
     avec: (v: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { a: v })),
   },
   {
-    porteur: 'worldMap.routes[].b', chemin: `routes.${LIBRE}.b`, connue: 'la-diligence',
+    porteur: 'worldMap.routes[].b', chemin: `routes.${LIBRE}.b`, connue: 'lieu-a',
     avec: (v: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { b: v })),
   },
   {
-    porteur: 'worldMap.routes[].from', chemin: `routes.${LIBRE}.from`, connue: 'auberge-des-sept-rayons',
+    porteur: 'worldMap.routes[].from', chemin: `routes.${LIBRE}.from`, connue: 'lieu-c',
     avec: (v: unknown) => carte((c) => Object.assign(c.routes[LIBRE], { from: v })),
   },
   {
-    porteur: 'worldMap.routes[].billets{}.depuis', chemin: `routes.${BILLETTEE}.billets.diligence.depuis`, connue: 'la-diligence',
+    porteur: 'worldMap.routes[].billets{}.depuis', chemin: `routes.${BILLETTEE}.billets.diligence.depuis`, connue: 'lieu-a',
     avec: (v: unknown) => carte((c) => Object.assign(billet(c), { depuis: v })),
   },
 ];
 
 describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`', () => {
-  it('les cartes réelles parsent, et leurs références sont des slots `local:places` / `local:routes` au parse de mesure', () => {
-    const compte = (projet: { worldMap: unknown }) => {
-      expect(worldMapSchema.safeParse(projet.worldMap).success).toBe(true);
-      const reperes = mesureDuParse(worldMapSchema, projet.worldMap).reperes;
-      return [reperes.filter((r) => r.type === 'local:places').length, reperes.filter((r) => r.type === 'local:routes').length];
-    };
-    expect(compte(areneProjet)).toEqual([4 + 4, 0]);
-    expect(compte(bargeDuSelProjet)).toEqual([1 + 1, 0]);
-    expect(compte(diligenceProjet)).toEqual([3 + 3 + 3, 1]);
-    expect(compte(loupEtSaumureProjet)).toEqual([2 + 2 + 2, 0]);
+  it('les cartes livrées parsent', () => {
+    for (const projet of [areneProjet, bargeDuSelProjet, diligenceProjet, loupEtSaumureProjet]) expect(worldMapSchema.safeParse(projet.worldMap).success).toBe(true);
+  });
+
+  it('chaque référence est un slot `local:places` / `local:routes` au parse de mesure, à son path', () => {
+    const complete = carte((c) => {
+      Object.assign(c.routes[LIBRE], { from: { id: 'lieu-c' } });
+      Object.assign(billet(c), { suite: ['route-b-c', 'route-c-a'] });
+    });
+    expect(worldMapSchema.safeParse(complete).success).toBe(true);
+    const reperes = mesureDuParse(worldMapSchema, complete).reperes;
+    const paths = (type: string) => reperes.filter((r) => r.type === type).map((r) => r.path.join('.')).sort();
+    expect(paths('local:places')).toEqual([
+      `routes.${BILLETTEE}.a.id`, `routes.${BILLETTEE}.b.id`, `routes.${BILLETTEE}.billets.diligence.depuis.id`,
+      'routes.1.a.id', 'routes.1.b.id',
+      `routes.${LIBRE}.a.id`, `routes.${LIBRE}.b.id`, `routes.${LIBRE}.from.id`,
+    ]);
+    expect(paths('local:routes')).toEqual([`routes.${BILLETTEE}.billets.diligence.suite.0`, `routes.${BILLETTEE}.billets.diligence.suite.1`]);
   });
 
   it.each(PORTEURS)('$porteur : une référence connue parse', ({ avec, connue }) => {
@@ -85,24 +101,24 @@ describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`
   });
 
   it.each(PORTEURS)('$porteur : le lieu d’un AUTRE projet est refusé', ({ avec }) => {
-    expect(messages(avec({ id: 'salzenmund' })).join(' ')).toContain(`« salzenmund » est absent du catalogue des ${LIEUX}`);
+    expect(messages(avec({ id: 'lieu-d-un-autre-projet' })).join(' ')).toContain(`« lieu-d-un-autre-projet » est absent du catalogue des ${LIEUX}`);
   });
 
   describe('worldMap.routes[].billets{}.suite : liste de routes (`refs(portee)`)', () => {
     const avecSuite = (suite: unknown) => carte((c) => Object.assign(billet(c), { suite }));
 
     it('une suite de routes connues parse', () => {
-      expect(worldMapSchema.safeParse(avecSuite(['route-route-principale-sept-rayons', 'route-sept-rayons-altdorf'])).success).toBe(true);
+      expect(worldMapSchema.safeParse(avecSuite(['route-b-c', 'route-c-a'])).success).toBe(true);
     });
 
     it('une route inconnue ou d’un autre projet est refusée à son rang, seule faute', () => {
-      expect(messages(avecSuite(['route-route-principale-sept-rayons', 'route-salzenmund-erengrad-aller']))).toEqual([
-        `routes.${BILLETTEE}.billets.diligence.suite.1 « route-salzenmund-erengrad-aller » est absent du catalogue des routes de la carte (collection « routes » du document).`,
+      expect(messages(avecSuite(['route-b-c', 'route-d-un-autre-projet']))).toEqual([
+        `routes.${BILLETTEE}.billets.diligence.suite.1 « route-d-un-autre-projet » est absent du catalogue des routes de la carte (collection « routes » du document).`,
       ]);
     });
 
     it('une route écrite en `{ id }` est refusée', () => {
-      expect(worldMapSchema.safeParse(avecSuite([{ id: 'route-route-principale-sept-rayons' }])).success).toBe(false);
+      expect(worldMapSchema.safeParse(avecSuite([{ id: 'route-b-c' }])).success).toBe(false);
     });
   });
 
@@ -112,10 +128,10 @@ describe('#2968 L13 — routes et lieux de la carte désignés par `ref(portee)`
       Object.assign(c.routes[LIBRE], { b: { id: 'lieu-neuf' } });
     });
     expect(worldMapSchema.safeParse(ajoute).success).toBe(true);
-    const sansAltdorf = carte((c) => {
-      c.places = c.places.filter((p) => p.id !== 'altdorf');
+    const sansLieuA = carte((c) => {
+      c.places = c.places.filter((p) => p.id !== 'lieu-a');
     });
-    expect(messages(sansAltdorf)).toContain(`routes.${LIBRE}.b.id « altdorf » est absent du catalogue des ${LIEUX} (collection « places » du document).`);
+    expect(messages(sansLieuA)).toContain(`routes.${LIBRE}.b.id « lieu-a » est absent du catalogue des ${LIEUX} (collection « places » du document).`);
   });
 
   it('un id local n’entre dans aucun espace de l’INDEX DES IDS', () => {
