@@ -9,8 +9,9 @@ const TAILLE = process.argv[4] ?? 'moyenne';
 /** Le rang du lanceur dans la compagnie de la partie fixe : le pyromancien. */
 const LANCEUR = 2;
 
-// À la taille `grande` (vue de 720 de haut), l'étal d'une forge agrandie défile : ses offres ne tiennent pas toutes.
-const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .tete-service, .corps-service, .porteur, ${TAILLE === 'grande' ? '' : '.etal, '}.corps-service .colonne, .pied-service, .bande > .fond`;
+// À la taille `grande` (vue de 720 de haut), l'étal d'une forge agrandie (plus de quatre offres) défile : ses offres ne
+// tiennent pas toutes.
+const DOIVENT_TENIR = `.cartouche-lieu-fixe > .fond, .socle-compagnie > .fond, .frise-route, .tete-service, .corps-service, .porteur, ${TAILLE === 'grande' ? '.etal:not(.forge > :not(.ample))' : '.etal'}, .corps-service .colonne, .pied-service, .bande > .fond`;
 
 (async () => {
   const b = await lancer();
