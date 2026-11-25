@@ -141,16 +141,16 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   constater(partirVisible, '« Partir » est visible au pied de son cadre');
   await p.click('[data-a="partir"]');
   constater(await p.isVisible('[data-a="avancer"]'), 'l’expédition commence');
-  // Un camp et une rencontre après la première salle, et un blessé à y soigner.
+  // Un camp, une rencontre et un autel profané après la première salle, et un blessé à y soigner.
   p = await recharger(p, (e) => {
-    e.expedition.salles.splice(1, 0, { type: 'camp', ennemis: [], faite: false }, { type: 'rencontre', ennemis: [], faite: false });
+    e.expedition.salles.splice(1, 0, { type: 'camp', ennemis: [], faite: false }, { type: 'rencontre', ennemis: [], faite: false }, { type: 'autel', ennemis: [], faite: false });
     const blesse = e.roster.find((h) => h.carriere === 'soldat');
     blesse.c.wounds.current = 2;
   }, '[data-a="avancer"]');
 
   let salles = 0;
   let aVuUnCarton = false;
-  for (let n = 0; n < 7; n++) {
+  for (let n = 0; n < 8; n++) {
     if (!(await p.$('[data-a="avancer"]:not([disabled])'))) break;
     await p.click('[data-a="avancer"]');
     let suite = '';
@@ -172,8 +172,13 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
           .map((el) => el.dataset.k ?? el.className);
       });
       constater(!debords.length, `${salle} : les choix tiennent dans le carton${debords.length ? ` (débordent : ${debords.join(', ')})` : ''}`);
-      // La cache se fouille, la rencontre s'intimide, le camp se lève par le repos.
-      const k = await p.$('.carton [data-a="action"][data-k="fouiller"]') ? 'fouiller' : await p.$('.carton [data-a="action"][data-k="intimider"]') ? 'intimider' : 'reposer';
+      // La cache se fouille, la rencontre s'intimide, l'autel se pille, le camp se lève par le repos.
+      const k = await p.$('.carton [data-a="action"][data-k="fouiller"]') ? 'fouiller' : await p.$('.carton [data-a="action"][data-k="intimider"]') ? 'intimider'
+        : await p.$('.carton [data-a="action"][data-k="piller"]') ? 'piller' : 'reposer';
+      if (k === 'piller') {
+        constater((await p.textContent('.carton [data-a="action"][data-k="piller"]')).includes('Raté : Corruption'), 'l’autel dit le risque de son échec : la Corruption');
+        await p.screenshot({ path: `${CAPTURES}/partie-autel.png` });
+      }
       if (k === 'intimider') {
         // Rejouée sur une autre graine tant qu'elle réussit : raté, le Test se raconte avant le combat qu'il déclenche.
         const avantLeTest = await sauvegarde(p);
@@ -213,6 +218,7 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
       }
     }
     if (await p.$('.carton')) {
+      if ((await p.textContent('.carton .ruban')) === 'Autel') await p.screenshot({ path: `${CAPTURES}/partie-autel-recit.png` });
       console.log('  salle :', await p.textContent('.carton .ruban'), '·', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 120));
       if (!aVuUnCarton) {
         aVuUnCarton = true;

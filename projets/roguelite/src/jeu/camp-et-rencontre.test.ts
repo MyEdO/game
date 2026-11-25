@@ -15,6 +15,7 @@ import {
   refusDuSoigneur,
   salleAChoisir,
   PROFILS,
+  RENCONTRES,
   type Etat,
   type Heros,
 } from './index';
@@ -163,21 +164,21 @@ describe('la rencontre, salle à choix', () => {
     expect(e.expedition!.index).toBe(1);
   });
 
-  it('le tirage des salles : une rencontre au plus par expédition, jamais en première ni en dernière salle', () => {
-    let vues = 0;
+  it('le tirage des salles : une rencontre (`RENCONTRES`) au plus par expédition, jamais en première ni en dernière salle, chacune tirée', () => {
+    const vues = new Set<string>();
     for (let g = 1; g <= 60; g++) {
       const e = nouvellePartie(g);
       e.batiments.cartographe = 3;
       for (const d of DESTINATIONS) {
         expect(partir(e, d.id, [e.roster[0].c.id])).toBeNull();
         const types = e.expedition!.salles.map((s) => s.type);
-        const n = types.filter((t) => t === 'rencontre').length;
-        expect(n).toBeLessThanOrEqual(1);
+        const rencontres = types.filter((t) => (RENCONTRES as readonly string[]).includes(t));
+        expect(rencontres.length).toBeLessThanOrEqual(1);
         expect([types[0], types[types.length - 1]]).toEqual(['combat', 'boss']);
-        vues += n;
+        rencontres.forEach((t) => vues.add(t));
         e.expedition = null;
       }
     }
-    expect(vues).toBeGreaterThan(0);
+    expect(vues).toEqual(new Set(RENCONTRES));
   });
 });
