@@ -1,6 +1,6 @@
 /**
  * La nouvelle partie (#4411) : composer le groupe et choisir la campagne, dans la salle commune d'une auberge-relais
- * (`src/hote/groupe.ts:83-93`, `src/data/pregens.json`, `projets/jeu-de-role/contenu.ts:171-182`) (`../../accueil-et-systeme.md`,
+ * (`src/hote/groupe.ts:83-93`, `src/data/pregens.json`, `projets/jeu-de-role/campagnes/index.ts`, `campagnes`) (`../../accueil-et-systeme.md`,
  * section `nouvelle-partie`). États : `pretires` ; `roster`, l'onglet « Mes personnages », « Exporter » et « Supprimer »
  * sous « Recruter » (`src/hote/groupe.ts:86-90`) ; `coop`, le siège de la place libre (`src/noyau/sieges.ts:143`).
  */

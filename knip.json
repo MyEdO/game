@@ -15,6 +15,7 @@
     "projets/roguelite/recette/*.{mjs,ts}",
     "projets/roguelite/{balayage,equilibrage,catalogue}.ts",
     "projets/jeu-de-role/{godot,contenu}.ts",
+    "projets/jeu-de-role/recettes/*.mjs",
     "projets/jeu-de-role/campagnes/*/generate.mjs"
   ],
   "project": [
