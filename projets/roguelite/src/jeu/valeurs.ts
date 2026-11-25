@@ -213,19 +213,19 @@ export interface Destination {
   meutes: string[][]; elites: string[][]; boss: string[]; or: number; lumiere: string;
 }
 export const DESTINATIONS: readonly Destination[] = [
-  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 30, lumiere: 'jour',
+  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 45, lumiere: 'jour',
     recit: 'Des loups et des peaux-vertes rôdent le long de la route de la diligence.',
     meutes: [['gobelin', 'gobelin'], ['loup'], ['rat-geant', 'rat-geant'], ['brigand'], ['snotling', 'snotling', 'gobelin']],
     elites: [['orc'], ['brigand', 'loup']], boss: ['loup-funeste'] },
-  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 36, lumiere: 'crepuscule',
+  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 55, lumiere: 'crepuscule',
     recit: 'Les morts ne reposent plus sous les vieux tertres. Quelqu’un les réveille.',
     meutes: [['squelette', 'zombie'], ['zombie', 'zombie', 'zombie'], ['goule-de-crypte', 'zombie']],
     elites: [['squelette', 'squelette', 'goule-de-crypte'], ['chevalier-mort-vivant-revenant']], boss: ['necromancien', 'squelette', 'squelette'] },
-  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 50, lumiere: 'couvert',
+  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 75, lumiere: 'couvert',
     recit: 'Les hommes-bêtes se rassemblent autour d’une pierre de harde.',
     meutes: [['ungor', 'ungor'], ['gor', 'ungor'], ['ungor', 'ungor', 'ungor']],
     elites: [['gor', 'gor', 'ungor'], ['gor-combattant', 'ungor']], boss: ['minotaure', 'ungor'] },
-  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 70, lumiere: 'crepuscule',
+  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 100, lumiere: 'crepuscule',
     recit: 'Un culte a dressé un autel aux Puissances de la Ruine. Il faut l’abattre.',
     meutes: [['cultiste', 'cultiste'], ['mutant', 'cultiste'], ['cultiste', 'cultiste', 'mutant']],
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
@@ -359,9 +359,9 @@ export const CAMP = {
 export const BUTIN_DES_SALLES = { facteur: { combat: 1, elite: 2, boss: 4 }, ecart: { min: 75, max: 125 } } as const;
 /** Les trophées : la chance en pour cent qu'une élite en laisse un, ceux du maître, et celui de plus la première fois
  *  qu'il tombe. */
-export const TROPHEES = { elite: 35, boss: 1, premiereVictoire: 1 } as const;
+export const TROPHEES = { elite: 60, boss: 1, premiereVictoire: 1 } as const;
 /** PX gagnés par salle franchie, par type. */
-export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10, autel: 10, puits: 10, blesse: 10 };
+export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 80, elite: 140, boss: 240, camp: 0, tresor: 20, rencontre: 20, autel: 20, puits: 20, blesse: 20 };
 export const OR_INITIAL = 100;
 /** Le prix d'un objet au hameau : son prix au catalogue (CO) multiplié, à l'échelle du butin des expéditions. */
 export const ECHELLE_DES_PRIX = 10;
