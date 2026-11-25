@@ -1,5 +1,7 @@
 # La composition d'un jeu : un système, une bibliothèque, ce que chaque projet en prend
 
+Ticket: #4919
+
 Plan de cadrage du 2026-11-25. Épique parente : #4903 (Un noyau partagé, un dossier par projet). Absorbe #4919
 (Choisir, par livre, le contenu proposé au jeu).
 
