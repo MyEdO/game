@@ -204,12 +204,12 @@ export const casesDuSac = (h: J.Heros, utilisable: boolean) => J.provisionsPorte
 })).join('');
 
 /** Le geste d'achat, seule forme d'un prix : une plaque « verbe · prix ». Faute de quoi payer, ou sur un `refus`,
- *  elle est fermée et dit pourquoi au survol. `offert` : ce qu'elle dit d'un prix nul ; `suite` : ce qui s'ajoute au
- *  prix (des trophées). */
-export function achat(o: { verbe: string; prix: number; avoir: number; attrs: string; monnaie?: 'CO' | 'PX'; refus?: string | null; offert?: string; suite?: string; icone?: string; taille?: 'petite' | 'moyenne' | 'appel' }) {
+ *  elle est fermée et dit pourquoi au survol ; un prix nul se dit « gratuit ». `suite` : ce qui s'ajoute au prix (des
+ *  trophées). */
+export function achat(o: { verbe: string; prix: number; avoir: number; attrs: string; monnaie?: 'CO' | 'PX'; refus?: string | null; suite?: string; icone?: string; taille?: 'petite' | 'moyenne' | 'appel' }) {
   const monnaie = o.monnaie ?? 'CO';
   const refus = o.refus ?? J.refusDuPrix(o.avoir, o.prix, monnaie);
-  const prix = [o.prix ? `${o.prix} ${monnaie}` : o.offert ?? 'gratuit', o.suite].filter(Boolean).join(' · ');
+  const prix = [o.prix ? `${o.prix} ${monnaie}` : 'gratuit', o.suite].filter(Boolean).join(' · ');
   return plaque(`${esc(o.verbe)} · ${esc(prix)}`, o.attrs, { armee: !refus, fermee: !!refus, taille: o.taille ?? 'moyenne', icone: o.icone ?? '', titre: refus ? esc(refus) : '' });
 }
 

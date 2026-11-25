@@ -4,16 +4,15 @@
 import { dotationDesNiveaux, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
 
 import {
+  candidatsAuPalier,
   ESPECES,
   estUtile,
   IdBatiment,
   type Rang,
   type LieuDeSejour,
   OR_INITIAL,
-  PRIX_DE_RECRUE,
   PROFILS,
   Profil,
-  SUPPLEMENT_PAR_NIVEAU,
   TypeDeSalle,
 } from './valeurs';
 import { choisir, noter, tirer } from './outils';
@@ -24,7 +23,6 @@ export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
 /** `rang` : où le joueur l'a placé à l'entrée d'une rencontre (`rangDe`) ; sa consigne de combat est la doctrine de son
  *  combattant (`Combatant.aiDoctrine`). */
 export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; sejour?: Sejour; rang?: Rang }
-export interface Candidat extends Heros { prix: number }
 /** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`, `CAMP`) et attend le choix de son action ;
  *  `soignes` : les héros déjà soignés au camp. */
 export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; ouverte?: true; soignes?: string[] }
@@ -40,7 +38,7 @@ export interface Etat {
   trophees: number;
   batiments: Record<IdBatiment, number>;
   roster: Heros[];
-  candidats: Candidat[];
+  candidats: Heros[];
   expedition: Expedition | null;
   bossVaincus: string[];
   journal: string[];
@@ -86,16 +84,16 @@ export function recrue(e: Etat, p: Profil): Heros {
   return h;
 }
 
-/** Les candidats du relais : chacun tiré à chance égale parmi les carrières ouvertes par le palier du relais dont le
+/** Les candidats du relais (`candidatsAuPalier`) : chacun tiré à chance égale parmi les carrières ouvertes par le palier du relais dont le
  *  rôle manque encore au tirage, et parmi toutes les carrières ouvertes quand chaque rôle y est déjà. */
 export function renouvelerLesCandidats(e: Etat): void {
   const ouvertes = PROFILS.filter((p) => p.relais <= e.batiments.relais);
   const rng = tirer(e);
   const tires: Profil[] = [];
-  e.candidats = Array.from({ length: 2 + e.batiments.relais }, () => {
+  e.candidats = Array.from({ length: candidatsAuPalier(e.batiments.relais) }, () => {
     const neuves = ouvertes.filter((x) => !tires.some((t) => t.role === x.role));
     const p = choisir(rng, neuves.length ? neuves : ouvertes);
     tires.push(p);
-    return { ...recrue(e, p), prix: PRIX_DE_RECRUE[p.relais] + SUPPLEMENT_PAR_NIVEAU * (p.niveau - 1) };
+    return recrue(e, p);
   });
 }

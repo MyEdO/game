@@ -37,7 +37,7 @@ describe('le rejeu d’un coup porté sur son propre camp', () => {
 
 describe('l’issue d’un combat joué par la couture de la rencontre (#4847)', () => {
   it('un héros que le Destin sauve n’est pas compté mort : la rencontre rend son Destin dépensé, lu après la fenêtre du Destin', () => {
-    const e = nouvellePartie(7000);
+    const e = nouvellePartie(7003);
     const groupe = [0, 1, 2, 3].map((k) => recrueDuHameau(e, PROFILS[k % PROFILS.length]).c);
     const hardes = DESTINATIONS.find((d) => d.id === 'hardes')!;
     const issue = jouerLeCombat(groupe, hardes.elites[1], 9000, hardes.lumiere);

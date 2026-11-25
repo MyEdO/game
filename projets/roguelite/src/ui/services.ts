@@ -128,7 +128,6 @@ const NOM_DE_QUALITE: Record<J.QualiteDeRepos, string> = { pietre: 'piètre', no
  *  rôle, sa carrière, le Collège ou le dieu que le sort lui a donné, le Talent qui la définit, et le geste qui
  *  l'engage. */
 function pageDuRelais({ e, servi, congediement }: Lecture): Page {
-  const gratuit = J.engagementSansSolde(e);
   const candidats = e.candidats.map((c, i) => {
     const role = J.roleDe(c.carriere);
     const r = role && J.ROLES[role];
@@ -140,7 +139,7 @@ function pageDuRelais({ e, servi, congediement }: Lecture): Page {
       <div class="sous-titre">${esc(carriereDe(c))} · ${esc(J.nomDEspece(c.espece))}</div>
       ${r ? `<div class="role">${picto(r.picto, 18, 1.8)}${esc(r.nom)}</div>` : ''}<p class="effet">${esc(J.deviseDe(c.carriere))}</p>
       <div class="traits">${voie ? `<span class="etiquette rectangle qualite voie"${apercuDe(voie.apercu)}>${voie.signe}${esc(voie.nom)}</span>` : ''}${talent ? `<span class="etiquette rectangle qualite"${apercuDe({ nom: talent.label, nature: 'Talent', texte: texteDuTalent(talent.id) })}>${esc(talent.label)}</span>` : ''}<span class="etiquette rectangle qualite neutre">${c.c.wounds.max} Blessures</span></div>
-      ${achat({ verbe: 'Engager', prix: gratuit ? 0 : c.prix, offert: 'sans solde', avoir: e.or, attrs: `data-a="recruter" data-i="${i}"` })}</article>`;
+      ${achat({ verbe: 'Engager', prix: 0, avoir: e.or, attrs: `data-a="recruter" data-i="${i}"` })}</article>`;
   }).join('');
   return { classe: 'rangee', corps: `${servi ? servicesDuRelais(e, servi, congediement) : ''}${candidats || placard('chope', 'Personne au relais', 'D’autres voyageurs arriveront avec la prochaine diligence.')}` };
 }
