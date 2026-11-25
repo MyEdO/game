@@ -1,13 +1,10 @@
 /**
  * LES PLANCHES ET LEURS ÉTALONS (#3935, `planches.mjs`) : `deposerLesPlanches` écrit chaque planche sous
  * `<sortie>/planches/<nom>.json`, et chaque jeu distinct de réponses communes sous
- * `<sortie>/planches/communes/`. Chaque planche désigne les réponses de son état par leur empreinte. `refusDuNavigateur` ne laisse passer que
- * le `Chrome/<version>` d'`EPINGLE` sous Linux x86-64, et nomme sinon ce qu'il a lu, ce qu'il attend et la commande
- * d'installation. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte. `coteACote` pose la maquette
+ * `<sortie>/planches/communes/`. Chaque planche désigne les réponses de son état par leur empreinte. `etalonsSansPlanche` rend les étalons qu'aucune planche ne porte. `coteACote` pose la maquette
  * déclarée, ramenée à la taille de la capture, au-dessus de la capture et de leur fondu, ou dit pourquoi il ne le peut.
  * La vue de base du projet est la vue de référence ramenée à 720 de haut : l'interface s'y dessine comme sur sa maquette
- * à toute fenêtre, plus large en ratio que la maquette ou non. `ecart` compte les pixels qui diffèrent entre deux PNG et
- * la boîte qui les contient ; d'une taille à l'autre, tous.
+ * à toute fenêtre, plus large en ratio que la maquette ou non.
  */
 import { createHash } from 'node:crypto';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -17,13 +14,13 @@ import { afterAll, describe, expect, it } from 'vitest';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs';
 import VUES_RECETTE from '../../scripts/recette/vues-recette.json';
-import { coteACote, deposerLesPlanches, ecart, encoderPng, EPINGLE, etalonsSansPlanche, MAQUETTES, refusDuNavigateur, VUE_DE_BASE } from './planches.mjs';
+import { encoderPng } from '../../scripts/qc/lib/pngEncode.mjs';
+import { coteACote, deposerLesPlanches, etalonsSansPlanche, MAQUETTES, VUE_DE_BASE } from './planches.mjs';
 
 const racine = mkdtempSync(join(tmpdir(), 'planches-3935-'));
 afterAll(() => rmSync(racine, { recursive: true, force: true }));
 
 const planche = (nom: string, scenario: string, communes: unknown) => ({ nom, titre: nom, parametres: { scenario }, reponses: { demarrer: { ok: true } }, communes });
-const LINUX = { plateforme: 'linux', architecture: 'x64' };
 
 describe('deposerLesPlanches', () => {
   it('partage les réponses identiques et garde les réponses distinctes des planches du même scénario', () => {
@@ -43,28 +40,6 @@ describe('deposerLesPlanches', () => {
     expect(lire(`communes/${a.communes}.json`)).toEqual({ m: 1 });
     expect(lire(`communes/${c.communes}.json`)).toEqual({ m: 2 });
     expect(listerDossier(join(dossier, 'communes'))).toHaveLength(2);
-  });
-});
-
-describe('refusDuNavigateur', () => {
-  it('laisse passer le Chrome épinglé sous Linux x86-64', () => {
-    expect(refusDuNavigateur(`Chrome/${EPINGLE.chrome}`, LINUX)).toBeNull();
-  });
-
-  it('refuse un autre binaire à la version épinglée', () => {
-    expect(refusDuNavigateur(`HeadlessChrome/${EPINGLE.chrome}`, LINUX)).toContain(`HeadlessChrome/${EPINGLE.chrome} sous linux-x64`);
-  });
-
-  it('refuse un autre build, en nommant ce qu’il a lu, ce qu’il attend et la commande d’installation', () => {
-    const refus = refusDuNavigateur('HeadlessChrome/152.0.7000.1', LINUX);
-    expect(refus).toContain('HeadlessChrome/152.0.7000.1 sous linux-x64');
-    expect(refus).toContain(`Chrome ${EPINGLE.chrome} sous linux-x64`);
-    expect(refus).toContain(`PLAYWRIGHT_BROWSERS_PATH=<dossier> npx -y playwright@${EPINGLE.playwright} install chromium`);
-  });
-
-  it('refuse le build épinglé sur une autre plateforme', () => {
-    expect(refusDuNavigateur(`Chrome/${EPINGLE.chrome}`, { plateforme: 'win32', architecture: 'x64' })).toContain(`Chrome/${EPINGLE.chrome} sous win32-x64`);
-    expect(refusDuNavigateur(`Chrome/${EPINGLE.chrome}`, { plateforme: 'linux', architecture: 'arm64' })).toContain('sous linux-arm64');
   });
 });
 
@@ -117,16 +92,5 @@ describe('la vue de base du projet', () => {
     const hauteur = 720;
     const reference = VUES_RECETTE.find((v) => v.nom === 'bureau')!;
     expect(VUE_DE_BASE).toEqual({ largeur: Math.floor((reference.largeur * hauteur) / reference.hauteur), hauteur });
-  });
-});
-
-describe('ecart', () => {
-  const png = (w: number, h: number, autres: number[] = []) => encoderPng({ w, h, data: Buffer.from(Array.from({ length: w * h }, (_, k) => (autres.includes(k) ? [200, 10, 10, 255] : [10, 20, 30, 255])).flat()) });
-  it('compte les pixels qui diffèrent et leur boîte, aucun entre deux images égales', () => {
-    expect(ecart(png(4, 3), png(4, 3))).toEqual({ pixels: 0, boite: '' });
-    expect(ecart(png(4, 3, [5, 11]), png(4, 3))).toEqual({ pixels: 2, boite: 'de (1, 1) à (3, 2)' });
-  });
-  it('compte tous les pixels d’une taille à l’autre', () => {
-    expect(ecart(png(4, 3), png(2, 2))).toEqual({ pixels: 12, boite: 'étalon 2×2, rendu 4×3' });
   });
 });
