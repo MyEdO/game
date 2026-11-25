@@ -144,7 +144,6 @@ import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
 import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { compagnonsDuHeros, heroCombatMount } from '../engine/mountTravel';
-import type { Possession } from '../engine/possession';
 import { freeTilesNear } from './summonFlow';
 import { accepteUnCavalier } from '../engine/traits/dispatch';
 import { ev, evLines, journaliser } from './combatLog';
@@ -244,7 +243,7 @@ import { treatTrauma, receiveMedicalAid } from '../engine/trauma';
 import { suspendSource } from '../engine/suspension';
 import { entreeEnRencontre } from '../engine/persistence';
 import { testValue, actorHasSkill, soutienDetail, type SupportDetail } from '../engine/skills';
-import { spawnEnemy, placeCombatant } from './monde/spawn';
+import { placeCombatant, projeterLaBete } from './monde/spawn';
 import { ficheDEntite } from './monde/sceneNpc';
 import {
   applyShipPostes,
@@ -1704,20 +1703,14 @@ export function createCombatSlice(get: Get, set: Set) {
           return c;
         })
         .filter((c): c is Combatant => !!c);
-      // Une bête possédée entre en rencontre à l'id de sa possession, alliée (writeback #618 dans `finalizeBattle`) ;
+      // Une bête possédée entre en rencontre par `projeterLaBete` (writeback #618 dans `finalizeBattle`) ;
       // `heroesAlive` ne la compte pas (`possessionEnJeu`, checkBattleOver, combatFlow.ts).
-      const enRencontre = (p: Possession & { nature: 'bete' }, pos: Pt | undefined): Combatant => {
-        const c = spawnEnemy('id' in p.ref ? { ref: p.ref.id } : { statblock: p.ref.custom }, p.uid, pos, { charsRolled: p.charsRolled, learnedTraits: p.learnedTraits });
-        c.kind = 'heros';
-        if (p.wounds) c.wounds.current = Math.min(p.wounds.current, c.wounds.max);
-        return c;
-      };
       // #621 — Montures-possession des héros (combat monté, LDB 14 l.179), appairées au cavalier.
       const mountCombatants: Combatant[] = [];
       for (const hero of heroes) {
         const mp = heroCombatMount(hero, get().possessions);
         if (!mp) continue;
-        const mount = enRencontre(mp, hero.pos ? { ...hero.pos } : { x: 0, y: 0 });
+        const mount = projeterLaBete(mp, hero.pos ? { ...hero.pos } : { x: 0, y: 0 });
         mount.mountable = true;
         mountUp(hero, mount); // câble mountId/riderId + partage la case (LDB 14 l.179)
         mountCombatants.push(mount);
@@ -1729,7 +1722,7 @@ export function createCombatSlice(get: Get, set: Set) {
       for (const hero of heroes) {
         if (!hero.pos) continue;
         for (const { bete, montable } of compagnonsDuHeros(hero, get().possessions)) {
-          const compagnon = enRencontre(bete, undefined);
+          const compagnon = projeterLaBete(bete, undefined);
           const pos = freeTilesNear(scene, { combatants: [...heroes, ...enemies, ...structures, ...mountCombatants, ...compagnons], zones }, hero.pos, 1, compagnon)[0];
           if (!pos) continue;
           compagnon.pos = pos;

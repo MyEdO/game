@@ -42,6 +42,7 @@ import {
   type TalentRef,
 } from '../../data';
 import { vehicleCombatant } from '../../engine/vehicle';
+import type { Possession } from '../../engine/possession';
 import { estNavire } from '../../engine/coque';
 import { inanimateCombatant } from '../../engine/inanimate';
 import { hullArmourBonus, hullNavalTraits } from '../../engine/navalTraits';
@@ -577,4 +578,25 @@ export function spawnEnemy(
     }
   }
   return structuredClone(c); // #2097
+}
+
+/** Une bête possédée en combattant allié, à l'id de sa possession (`Possession.uid`) : son tirage figé, ses Traits
+ *  appris, ses Blessures courantes bornées au maximum du profil. Source unique de la rencontre et du repos. #4804 */
+export function projeterLaBete(p: Possession & { nature: 'bete' }, pos: { x: number; y: number; z?: number } | undefined): Combatant {
+  const c = spawnEnemy('id' in p.ref ? { ref: p.ref.id } : { statblock: p.ref.custom }, p.uid, pos, { charsRolled: p.charsRolled, learnedTraits: p.learnedTraits });
+  c.kind = 'heros';
+  if (p.blessures !== undefined) c.wounds.current = Math.min(p.blessures, c.wounds.max);
+  return c;
+}
+
+const BETES_HORS_RENCONTRE = new WeakMap<Possession, Combatant>();
+
+/** La projection hors rencontre de la bête `p` (`projeterLaBete`, sans case), UNE par version de la possession : tant
+ *  que `p` n'est pas réécrite, chaque lecteur reçoit le même combattant. #4804 */
+export function laBeteHorsRencontre(p: Possession & { nature: 'bete' }): Combatant {
+  const deja = BETES_HORS_RENCONTRE.get(p);
+  if (deja) return deja;
+  const c = projeterLaBete(p, undefined);
+  BETES_HORS_RENCONTRE.set(p, c);
+  return c;
 }

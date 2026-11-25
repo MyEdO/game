@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { DOCUMENTAIRE, gatesSautables } from '../../gates/classerPush.mjs'
+import { DOCUMENTAIRE, DOSSIERS_HORS_DE_SRC, gatesSautables, gatesSautees } from '../../gates/classerPush.mjs'
 import { gatesDeCi } from '../../gates/gatesDeCi.mjs'
 import { corpusParGate, inerte } from '../../gates/ecrivainsAtteints.mjs'
 import { ECRIT_LU } from '../../gates/toutes.mjs'
@@ -49,6 +49,24 @@ test('aucune gate SAUTABLE ne nomme un chemin DOCUMENTAIRE dans le code qu’ell
       })
     }
   }
+  assert.deepEqual(trous, [])
+})
+
+// (c3) — #4903 L4 : chaque gate SAUTÉE sur un push confiné à un dossier de zone hors de `src/` confrontée à son CORPUS.
+// La protection est le mur : le code d'une zone n'importe que les zones qu'elle ouvre, et aucune zone n'importe un projet
+// (`murs/purete-imports`, `fermeParLeProjet`, scripts/guards/lib/couches.mjs), d'où la part de `lit` que `zones` dérive.
+// Ce cas ne voit que l'outillage de la fermeture statique (`scripts/`…) qui lirait un autre dossier : mesuré le
+// 2026-11-25, une soixantaine de fichiers par gate Godot, un seul par gate du roguelite (son `construire.mjs`, son `lot.mjs`). Mêmes ANGLES MORTS que (c1), plus les modules qu'une entrée de bundle charge
+// par chaîne (`entreeDHote`, hotes/godot/construire.mjs), hors de la fermeture statique, et les suites Vitest que
+// `hotes/godot/lot-de-recettes.mjs` lance pour le jeu `bord`, absent des `--jeux` de la CI.
+
+test('aucune gate sautée sur un push confiné à un dossier de zone n’atteint un module de ce dossier', () => {
+  const corpus = corpusParGate(RACINE)
+  const trous = []
+  for (const dossier of DOSSIERS_HORS_DE_SRC)
+    for (const gate of gatesSautees([`${dossier}zz.ts`], { gates, ecritLu: ECRIT_LU }))
+      for (const fichier of (corpus[gate] ?? []).filter((f) => f.startsWith(dossier)))
+        trous.push(`gate ${gate} est sautée sur un push confiné à ${dossier} mais atteint \`${fichier}\` : revois ses \`zones\` dans ECRIT_LU`)
   assert.deepEqual(trous, [])
 })
 

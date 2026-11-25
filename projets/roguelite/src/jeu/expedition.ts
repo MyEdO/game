@@ -38,6 +38,10 @@ import {
   ACTIONS_A_JET,
   CAMP,
   type SalleAJet,
+  CONSIGNES,
+  RANG_DU_ROLE,
+  type Rang,
+  roleDe,
 } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
@@ -51,6 +55,26 @@ export const sejourDit = (h: Heros): string | null =>
   (h.sejour ? `${LIEUX_DE_SEJOUR[h.sejour.ou].nom} encore ${h.sejour.reste} jour${h.sejour.reste > 1 ? 's' : ''}.` : null);
 /** Pourquoi un héros ne peut pas partir, ou `null` s'il le peut. */
 export const refusDeDepart = (h: Heros): string | null => sejourDit(h) ?? (!valide(h) ? 'Hors de combat : il doit se remettre au hameau.' : null);
+
+/** Le rang du héros à l'entrée d'une rencontre : celui où le joueur l'a placé, sinon celui du rôle de sa carrière. */
+export const rangDe = (h: Heros): Rang => h.rang ?? RANG_DU_ROLE[roleDe(h.carriere) ?? 'front'];
+/** Le groupe dans l'ordre où il entre en rencontre : ceux qui vont devant, puis ceux qui vont derrière. */
+export const ordreDEntree = (groupe: readonly Heros[]): Heros[] => [...groupe.filter((h) => rangDe(h) === 'devant'), ...groupe.filter((h) => rangDe(h) === 'derriere')];
+/** Place le héros `id` au rang `rang`. */
+export function placer(e: Etat, id: string, rang: Rang): void {
+  const h = heros(e, id);
+  if (h) h.rang = rang;
+}
+/** Donne au héros `id` la consigne de combat de doctrine `doctrine` (`CONSIGNES`) ; `null` rend la doctrine au noyau. */
+export function consigner(e: Etat, id: string, doctrine: string | null): void {
+  const h = heros(e, id);
+  const c = CONSIGNES.find((x) => x.doctrine === doctrine);
+  if (!h || !c) return;
+  if (c.doctrine) h.c.aiDoctrine = c.doctrine;
+  else delete h.c.aiDoctrine;
+}
+/** La consigne de combat du héros (`CONSIGNES`). */
+export const consigneDe = (h: Heros) => CONSIGNES.find((x) => x.doctrine === (h.c.aiDoctrine ?? null))!;
 
 export function partir(e: Etat, destinationId: string, groupe: string[]): string | null {
   const d = DESTINATIONS.find((x) => x.id === destinationId);
@@ -240,7 +264,7 @@ export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string
 function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: string[]; fin?: RecitDeSalle } {
   const d = destinationCourante(e)!;
   const groupe = herosDuGroupe(e);
-  const issue = jouerLeCombat(groupe.filter(valide).map((h) => h.c), ennemis, e.graine++, d.lumiere);
+  const issue = jouerLeCombat(ordreDEntree(groupe.filter(valide)).map((h) => h.c), ennemis, e.graine++, d.lumiere);
   for (const apres of issue.groupe) {
     const h = groupe.find((g) => g.c.id === apres.id);
     if (h) h.c = apres;

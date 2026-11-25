@@ -56,11 +56,15 @@ concurrency:
 # par défaut (depth 1), `git log --since` est vide et les shas anciens sont absents.
 #
 # Le PROLOGUE de chaque job vérifiant est l'action composite `.github/actions/prologue` : Node, le
-# CLASSEMENT du push (#1738, scripts/gates/classerPush.mjs) puis `npm ci`. POLARITÉ FAIL-CLOSED :
-# chaque step conditionné teste `steps.prologue.outputs.produit != 'false'`, donc un output vide,
-# absent ou en erreur fait JOUER. Un step joue toujours dès que ce qu'il LIT (`ECRIT_LU`,
-# scripts/gates/toutes.mjs) chevauche un chemin documentaire ; `scripts/gates/classerPush.test.mjs`
-# confronte cette DÉCISION à cette MESURE, dans les deux sens.
+# CLASSEMENT du push (#1738, scripts/gates/classerPush.mjs), `npm ci`, puis les GATES SAUTÉES du push
+# (#4903 L4, scripts/gates/sauteesDuPush.mjs). POLARITÉ FAIL-CLOSED : un step de gate, ou au service d'une
+# gate (`CI_SEULEMENT_DE_GATE`, `actions/setup-python`), teste
+# `!contains(steps.prologue.outputs.sautees, ' <gate> ')` ; les autres steps conditionnés testent
+# `steps.prologue.outputs.produit != 'false'` ; un output vide, absent ou en erreur fait JOUER. Une gate
+# saute quand chaque fichier du push est hors de ce qu'elle LIT (`ECRIT_LU`, scripts/gates/toutes.mjs) :
+# documentaire quand son `lit` ne chevauche aucun chemin documentaire, dans un dossier de zone hors de
+# `src/` quand elle déclare ses `zones` et ne le lit pas ; `scripts/gates/classerPush.test.mjs` confronte
+# cette DÉCISION à cette MESURE, dans les deux sens.
 #
 # Chaque gate se joue même si une précédente de son job est ROUGE : sans `!cancelled()`, le premier
 # rouge SKIPPE les suivants et un run ne rend qu'un verdict (runs 33717131460 et 33719038837). Le job
@@ -120,23 +124,23 @@ jobs:
         run: npm run agents:check
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:raw
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-refs ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-refs
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-code-refs ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-code-refs
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-ancres ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-ancres
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-folio-continuity ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-folio-continuity
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-source-tables ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-source-tables
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-source-format ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-source-format
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-source-puces ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-source-puces
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-renvois ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run raw:check-renvois
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' comptes:plage ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run comptes:plage
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -163,7 +167,7 @@ jobs:
       # `noyau:chargement` (#3058, scripts/guards/chargement-en-premier.mjs) : chaque module du noyau, du moteur, de la
       # donnée, des feuilles, des hôtes (hotes/ compris) et des scénarios chargé EN PREMIER dans un graphe neuf de
       # Vite.
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' noyau:chargement ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run noyau:chargement
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:corpus-isole
@@ -191,17 +195,17 @@ jobs:
         run: npm run test:agents
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run deps:unused
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' test:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:recette
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' typecheck ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run typecheck
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' pont:godot ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run pont:godot
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run lint
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' server:typecheck ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm --prefix server ci
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' server:typecheck ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run server:typecheck
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -229,26 +233,26 @@ jobs:
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
       - name: Godot — scripts et recettes autonomes
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:sonde ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:sonde
       - name: Export Web Godot
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:web ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:web
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:coop ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm --prefix server ci
       - name: Godot — coop à deux processus
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:coop ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:coop
       - id: python-3d
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: actions/setup-python@v6
         with:
           python-version: ${{ steps.python-3d.outputs.version }}
           cache: pip
           cache-dependency-path: scripts/personnage-3d/requirements.txt
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run personnage-3d:tests
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -272,10 +276,10 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:rendus ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
       - name: Godot — recettes rendues sous les deux rendus
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:rendus ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:rendus
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -299,13 +303,13 @@ jobs:
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
       - name: Godot — recettes natives
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:recette
       - name: Roguelite — construction
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' roguelite:construire ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run roguelite:construire
       - name: Roguelite — recettes
-        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' roguelite:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run roguelite:recette
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -380,7 +384,7 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
-      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' test ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm test
       # Pas de step `test:map` : `scripts/map/**/*.test.ts` est dans le `test.include` de
       # `vitest.config.ts`, donc `npm test` joue déjà `scripts/map/check.test.ts`. Les gardes qui
