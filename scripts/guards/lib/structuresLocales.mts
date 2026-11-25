@@ -49,8 +49,7 @@
  */
 import { join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { SCHEMA_DEFS } from '../../../src/data/schemas/_registry.generated';
-import { SCHEMA_DEFS_SCENES } from '../../../src/data/schemas/_registry-scenes.generated';
+import { SCHEMA_DEFS, SCHEMA_DEFS_SCENES } from '../../docs/lib/modules-generes.mjs';
 import type { SchemaDef } from '../../../src/data/schemas/types';
 import { declarationDEnfants, defDe, descendre, enfantsDe, ouverts, valeursAdmises } from '../../../src/data/schemas/grammaire/descente';
 import { CLES_ENVELOPPE } from '../../../src/data/schemas/grammaire/document';

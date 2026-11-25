@@ -16,8 +16,11 @@
 // Ce qui monte, naît ou cède sous l'un ou l'autre détecteur est le SCHÉMA (un `idDe` relâché se voit, `FEUILLES_D_ID`)
 // et refuse la plage. Aucune ligne de message n'admet une hausse ni un plancher qui cède ; une baisse du DÉTECTEUR, plancher
 // compris, se justifie par `FAUX-POSITIF:` (`baissesDuDetecteur`).
-// ANGLES MORTS : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711) ; une forme
-// générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher une mesure. Une
+// MODULES GÉNÉRÉS : sous les cibles de l'image, le détecteur lit chaque module généré au chemin que déclare l'image
+// (`CIBLES_DECLAREES` de son commit, `ENV_DECLARATION_DES_CIBLES`, modules-generes.mts) ; un module déplacé dans la
+// plage se lit aux deux bornes (#5083). Une forme générée que `src/` ET le détecteur lisent, changée des deux côtés de
+// la plage, peut empêcher une mesure.
+// ANGLES MORTS : au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711). Une
 // DÉCLARATION (`DECLARATIONS_DE_L_IMAGE`) qui tait une famille, `sansFolio` posé sur une liste existante, en retire la
 // dette comme une baisse de DONNÉE, sans `FAUX-POSITIF:`.
 // L’ordinal d’un compte n’est pas l’adresse d’une valeur. Un chemin RENOMMÉ dans la plage même où sa référence se
@@ -56,6 +59,7 @@ import { ecartsDeStock, remedeDeNaissance, sitesEnEntrees } from './stock.mjs';
 import { scanAll, SOURCE_FORMAT } from '../../raw/check-source-format.mjs';
 import { EXTENSIONS_DE_SCRIPT } from './dialecte.mjs';
 import { cheminsDeDocument, sitesDeStructure } from './structuresLocales.mts';
+import { ENV_DECLARATION_DES_CIBLES } from '../../docs/lib/modules-generes.mts';
 
 /** Les clés de PREMIER niveau du payload de chaque op de `opDefs` dont le schéma, ouvert de ses enveloppes
  *  (`ouverts`), est une feuille `idDe` (`estFeuilleDId`) : la référence À PLAT (`DETTE_OPS`). */
@@ -129,6 +133,10 @@ const DE_L_IMAGE = ['src', 'Source', ...LUS_PAR_LES_GENERATEURS];
 /** Les DÉCLARATIONS de la donnée de l'image que `scripts/` porte : la liste de découpe d'un livre (son grain, `sansFolio`)
  *  dit ce que SES chapitres de `Source/` impriment (#3884). Elles se posent de l'image PAR-DESSUS le détecteur. */
 const DECLARATIONS_DE_L_IMAGE = ['scripts/raw/decoupes'];
+/** La déclaration des chemins des modules générés (#5083) : celle de l'image se pose sous `COPIE_DES_CIBLES`, à côté de
+ *  celle du détecteur, que ses autres modules importent. */
+const CIBLES_DECLAREES = 'scripts/docs/lib/cibles-registres.mjs';
+const COPIE_DES_CIBLES = '.cibles-de-l-image';
 /** Les fichiers TEXTE que la mesure lit ; un fichier binaire ne se pose pas. */
 const EXTENSIONS_DE_TEXTE = [...EXTENSIONS_DE_SCRIPT, '.md', '.json', '.css', '.snap'];
 /** Le point d'entrée de la mesure, dans le code d'un détecteur. */
@@ -231,10 +239,11 @@ function genererLesCibles(dossier: string, configuration: string): void {
   if (vu.status !== 0) throw new MesureImpossible(`${configuration} : génération en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
 }
 
-/** Les comptes de l'image posée sous `dossier`, mesurés DANS l'image : ses defs, sa grammaire, son `OP_DEFS`. */
-function mesurerImage(dossier: string, configuration: string): Comptes {
+/** Les comptes de l'image posée sous `dossier`, mesurés DANS l'image : ses defs, sa grammaire, son `OP_DEFS`, ses
+ *  modules générés aux chemins de la `declaration` (`ENV_DECLARATION_DES_CIBLES`). */
+function mesurerImage(dossier: string, configuration: string, declaration: string): Comptes {
   const vu = spawnSync(process.execPath, [join(RACINE, 'node_modules/tsx/dist/cli.mjs'), POINT_D_ENTREE], {
-    cwd: dossier, encoding: 'utf8', maxBuffer: 1 << 28,
+    cwd: dossier, env: { ...process.env, [ENV_DECLARATION_DES_CIBLES]: declaration }, encoding: 'utf8', maxBuffer: 1 << 28,
   });
   if (vu.status !== 0) throw new MesureImpossible(`${configuration} : mesure en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
   return new Map(JSON.parse(vu.stdout) as [string, EntreeDeCompte[]][]);
@@ -271,7 +280,8 @@ function imageGeneree(depot: Depot, sha: string, configuration: string): ImageGe
 }
 
 /** Les comptes de `sha` sous les cibles de SON image (`imageGeneree`), le code du `detecteur` posé à la place du sien,
- *  sur le classement de l'image qu'une pose précédente a pu recouvrir. */
+ *  sur le classement de l'image qu'une pose précédente a pu recouvrir ; ses modules générés aux chemins que déclare
+ *  l'image (`CIBLES_DECLAREES`). */
 function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
   const configuration = `${sha.slice(0, 9)} sous les cibles de l’image`;
   const image = imageGeneree(depot, sha, configuration);
@@ -284,7 +294,8 @@ function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Dete
   ecrireDeLImage(depot, sha, dossier, [RACINE_DU_CLASSEMENT]);
   detecteur.poser(dossier);
   poserLesDeclarations(depot, sha, dossier);
-  const comptes = mesurerImage(dossier, configuration);
+  ecrireDeLImage(depot, sha, join(dossier, COPIE_DES_CIBLES), [CIBLES_DECLAREES]);
+  const comptes = mesurerImage(dossier, configuration, join(dossier, COPIE_DES_CIBLES, CIBLES_DECLAREES));
   image.derniereMesure = { empreinte, comptes };
   return comptes;
 }
@@ -298,7 +309,7 @@ function mesurerSousLesCiblesDuDetecteur(depot: Depot, sha: string, detecteur: D
     detecteur.poser(dossier);
     poserLesDeclarations(depot, sha, dossier);
     genererLesCibles(dossier, configuration);
-    return mesurerImage(dossier, configuration);
+    return mesurerImage(dossier, configuration, join(dossier, CIBLES_DECLAREES));
   } finally {
     rmSync(dossier, { recursive: true, force: true });
   }
