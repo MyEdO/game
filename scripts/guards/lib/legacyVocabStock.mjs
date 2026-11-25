@@ -455,13 +455,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/rollflow-outcome-invariant.hors-store.test.ts",
-    motif: "désormais",
-    ancre: "désormais sa fenêtre du succès de la LIGNE (`row.d.success`) : si une modale y pose une issue",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/monde/roomPortals.test.ts",
     motif: "désormais",
     ancre: "#1416 LOT 1 — l'accessibilité des sorties se lit désormais sur un ÉTIQUETAGE de composantes",
