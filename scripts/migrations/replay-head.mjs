@@ -63,7 +63,7 @@ export const CHEMINS_EXPORTES = {
   src: 'les deux racines de documents (`src/data`, `src/scenes`) ET le reste de `src/` : des migrations importent des modules de `src/` hors des deux racines (`src/lib/normalize.ts`)',
   scripts: 'les migrations elles-mêmes, leurs libs (`scripts/guards/lib`, `scripts/data/lib`, `scripts/raw`) et les générateurs d’authoring du périmètre',
   'docs/raw': 'l’Atlas RAW, lu par `scripts/raw/_lib.mjs` et par `scripts/raw/build-implemente.mjs`',
-  'docs/dossiers': 'les fiches de dossier, qu’importe le contenu du jeu de rôle (`src/scenes/campaign.ts`)',
+  projets: 'les projets : leurs paquets livrés, leurs générateurs et leurs fiches de dossier',
   ...tableTotale(LUS_PAR_LES_GENERATEURS, () => 'lu par un générateur que `preparerExport` rejoue (`LUS_PAR_LES_GENERATEURS`)'),
   Source: 'les livres, lus de façon non bornée : `scripts/raw/_lib.mjs` dérive les dossiers de `books.json`',
   'package.json': 'racine de projet (`type: module`) — sans lui, node refuse les `.mjs` relatifs du lot',

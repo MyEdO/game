@@ -1229,7 +1229,7 @@ describe('contrôle POSITIF côté DONNÉE : le détecteur MORD (#1465 F21)', ()
       const chemin = join(copie, 'src/scenes', relatif);
       const paquet = JSON.parse(readFileSync(chemin, 'utf8'));
       const scene = paquet.scenes.find((s: { id: string }) => s.id === 'la-diligence');
-      const cheminArene = join(copie, 'src/scenes/arene/arene-projet.json');
+      const cheminArene = join(copie, 'projets/jeu-de-role/campagnes/arene/arene-projet.json');
       const arene = JSON.parse(readFileSync(cheminArene, 'utf8'));
       type Facade = { appearance?: unknown };
       const chapelle = (f: Facade) => f.appearance === 'chapelle';

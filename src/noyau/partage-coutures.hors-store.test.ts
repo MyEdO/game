@@ -10,7 +10,7 @@ import { makeRNG, type RNG } from '../engine/dice';
 import { createHero } from '../engine/character';
 import type { Combatant } from '../engine/types';
 import { testScenarios } from '../scenes/test-scenarios';
-import { allBuiltinCampaigns } from '../scenes/campaign';
+import { campagneDeTest } from '../scenes/fixtures/contenuDuCommun';
 import { poserLaCampagne } from './campagne.testkit';
 import { campagneDuJeu, paquetDuJeu } from './campagneLivree';
 import { applyEffects, EFFECT_HANDLERS } from './combatEffects';
@@ -162,10 +162,7 @@ describe('coutures donnée → état (#2097)', () => {
       const b = s.construire(idsDeTest);
       return { nom: `scénario ${s.id}`, scenes: [b.scene, ...(b.extraScenes ?? [])], narratif: b.narratif ?? null };
     }),
-    ...allBuiltinCampaigns.map((c) => {
-      const p = paquetDuJeu(c);
-      return { nom: `campagne ${c.id}`, scenes: p.scenes, narratif: p.narratif ?? null };
-    }),
+    { nom: `campagne ${campagneDeTest.id}`, scenes: paquetDuJeu(campagneDeTest).scenes, narratif: paquetDuJeu(campagneDeTest).narratif ?? null },
   ];
   const heros = herosDeScenario(idsDeTest, 'soldat');
   let effets = 0;
@@ -211,9 +208,9 @@ describe('coutures donnée → état (#2097)', () => {
     expect(ops).toBeGreaterThan(0);
   });
 
-  it.each(allBuiltinCampaigns.map((c) => [c.id, c] as const))('campagne %s lancée par `poserLaCampagne` : rien de partagé, ouverture comprise', (_id, c) => {
+  it('la campagne de test lancée par `poserLaCampagne` : rien de partagé, ouverture comprise', () => {
     banc.setState({ party: [herosDeScenario(idsDeTest, 'soldat')] });
-    expect(poserLaCampagne(banc.getState, campagneDuJeu(c))).toBeNull();
+    expect(poserLaCampagne(banc.getState, campagneDuJeu(campagneDeTest))).toBeNull();
     expect(partagesDeLEtat(banc.getState(), scenesDuRegistre())).toEqual([]);
   });
 });

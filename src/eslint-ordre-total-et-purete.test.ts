@@ -195,7 +195,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
 
   it('CONTRAT : une zone qui survit à la bascule (`survit`) n’ouvre que des zones qui survivent, en valeur, en type et par porte', () => {
     const survivent = Object.keys(COUCHES).filter((z) => COUCHES[z].survit === true);
-    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'godot', 'hote', 'i18n', 'lib', 'noyau', 'racine', 'roguelite', 'scenes', 'texte']);
+    expect(survivent.sort()).toEqual(['data', 'engine', 'geometry', 'godot', 'hote', 'i18n', 'jeu-de-role', 'lib', 'noyau', 'racine', 'roguelite', 'scenes', 'texte']);
     expect(survivent).toHaveLength(Object.keys(COUCHES).length);
     for (const z of survivent) {
       const { importe, types = [], portes = {} } = COUCHES[z];
@@ -206,7 +206,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
 
   it('CONTRAT : la ligne d’un projet est celle de son constructeur, chacun de ses affichages un dossier de `hotes/`, aucune ligne hors de lui ne le nomme, aucune de ses ouvertures n’est morte, et toute autre zone le trouve fermé (#4903 H3)', () => {
     const projets = Object.keys(COUCHES).filter(estProjet);
-    expect(projets, 'les projets de la table').toEqual(['roguelite']);
+    expect(projets, 'les projets de la table').toEqual(['roguelite', 'jeu-de-role']);
     for (const p of projets) {
       const { ouvertures = {}, affichages = [], outillage } = COUCHES[p];
       expect(COUCHES[p], `${p} : la ligne de son constructeur`).toEqual(ligneDeProjet(dossierDe(p), ouvertures, { affichages, outillage }));

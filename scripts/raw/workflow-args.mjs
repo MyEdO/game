@@ -23,13 +23,13 @@
 // un défaut trancherait, en silence, une règle de jeu qui n'appartient pas au code.
 // `coeursDuRegistre` vit dans `_lib.mjs`, avec la lecture du registre : c'est la MÊME population
 // qui ouvre les dossiers de l'Atlas (`pagesDeLAtlas`) et les périmètres d'extraction.
-// DOSSIER DE CHAPITRE (#2290) — la fiche `docs/dossiers/<ABBR>/<NN>.json` a UNE définition,
+// DOSSIER DE CHAPITRE (#2290) — la fiche `projets/<projet>/dossiers/<ABBR>/<NN>.json` a UNE définition,
 // `ficheDeDossier` (`src/data/source/dossier.ts`) :
 //   node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]
 //     args de `.claude/workflows/dossier-de-chapitre.js` : ses familles, chacune avec le préfixe de ses
 //     ids, son minimum d'entrées et la forme JSON d'une entrée, PROJETÉS de `ficheDeDossier` par
 //     `z.toJSONSchema` ; `commit` = la tête de l'arbre lu ;
-//   node scripts/raw/workflow-args.mjs ecrire-fiche <rendu.json>
+//   node scripts/raw/workflow-args.mjs ecrire-fiche <rendu.json> <dossier des fiches du projet>
 //     la fiche qu'un run au verdict DOSSIER rend, écrite à son chemin après les gardes du chargeur
 //     (`chargerDossiers`, `scripts/raw/lib/dossiers.mjs`) : refusée sinon, et rien n'est écrit ;
 //   node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine> [--max-echanges <n>] [--personas a,b,c,d]
@@ -37,7 +37,7 @@
 // Les fichiers `Source/` d'un chapitre se dérivent de `chapterFile`.
 import { REGISTRE_LIVRES, chapterFile, coeursDuRegistre, domainesDe, estLivreExtrait, livreDuSigle } from './_lib.mjs'
 import { chargerDossiers } from './lib/dossiers.mjs'
-import { DOSSIERS_DIR } from './lib/fichiersCitants.mjs'
+import { dossiersDesProjets } from './lib/fichiersCitants.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { depotDe, shaDe } from '../guards/lib/gitPorte.mjs'
 import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, ficheDeDossier } from '../../src/data/source/dossier.ts'
@@ -214,15 +214,15 @@ export function argsDeDossierDeChapitre(livre, chapitre, { worktree, date, commi
  * Les `args` de `.claude/workflows/table-simulee.js` : `dossier` = l'OBJET de la fiche commitée du
  * chapitre, chargée et gardée par `chargerDossiers` ; `typeDePointAuMJ` = la forme projetée du `type` d'un
  * point au MJ (`famillesDeLaFiche`), d'où le workflow dérive ses catégories d'IMPRO. LÈVE sans fiche.
- * @param {{ worktree: string, date: string, seed: string, maxEchanges?: number, personas?: string[], dir?: string, fichierDe?: (abbr: string, nn: string) => string | null }} options
+ * @param {{ worktree: string, date: string, seed: string, maxEchanges?: number, personas?: string[], dir?: string | string[], fichierDe?: (abbr: string, nn: string) => string | null }} options
  */
-export function argsDeTableSimulee(livre, chapitre, { worktree, date, seed, maxEchanges, personas, dir = DOSSIERS_DIR, fichierDe = fichierDuChapitre }) {
+export function argsDeTableSimulee(livre, chapitre, { worktree, date, seed, maxEchanges, personas, dir = dossiersDesProjets(), fichierDe = fichierDuChapitre }) {
   exigerChapitre(livre, chapitre)
   exigerArbreEtDate(worktree, date)
   const fiches = chargerDossiers(dir)
   const charge = fiches.find((f) => f.abbr === livre && f.nn === chapitre)
   if (!charge)
-    throw new Error(`workflow-args: aucune fiche ${dir}/${livre}/${chapitre}.json — un dossier de chapitre se lit (\`dossier-de-chapitre\`) et s'écrit (\`ecrire-fiche\`) avant toute table ; fiches : ${fiches.map((f) => f.chemin).join(', ') || '(aucune)'}`)
+    throw new Error(`workflow-args: aucune fiche ${[dir].flat().map((d) => `${d}/${livre}/${chapitre}.json`).join(' ni ')} — un dossier de chapitre se lit (\`dossier-de-chapitre\`) et s'écrit (\`ecrire-fiche\`) avant toute table ; fiches : ${fiches.map((f) => f.chemin).join(', ') || '(aucune)'}`)
   return {
     livre, chapitre, fichiers: [fichierExige(livre, chapitre, fichierDe)], dossier: charge.fiche, typeDePointAuMJ: famillesDeLaFiche().pointsAuMJ.entree.properties.type, seed, worktree, date,
     ...(maxEchanges === undefined ? {} : { maxEchanges }),
@@ -238,10 +238,11 @@ export const ficheDuRun = (run) => tableTotale(['lecture', ...FAMILLES_DE_DOSSIE
  * ÉCRIT la fiche qu'un run de `dossier-de-chapitre` rend, à `<dir>/<livre>/<chapitre>.json` : seul un
  * run au verdict DOSSIER en porte une, et elle passe les gardes du chargeur (`chargerDossiers`, sur une
  * copie jetable) avant d'être écrite. LÈVE en nommant la cause ; rien n'est écrit sur un refus.
- * @param {object} rendu le rendu du run (ou celui du lanceur, `{ result }`) @param {{ dir?: string }} [options]
+ * @param {object} rendu le rendu du run (ou celui du lanceur, `{ result }`) @param {{ dir: string }} options `dir` : le
+ *   dossier des fiches du projet (`projets/<projet>/dossiers`)
  * @returns {string} le chemin écrit
  */
-export function ecrireFiche(rendu, { dir = DOSSIERS_DIR } = {}) {
+export function ecrireFiche(rendu, { dir }) {
   const run = estObjet(rendu) && estObjet(rendu.result) ? rendu.result : rendu
   if (!estObjet(run)) throw new Error('workflow-args: rendu de dossier non-objet — attendu : le rendu d\'un run de `dossier-de-chapitre`')
   if (run.verdict !== VERDICT_DE_FICHE) {
@@ -316,7 +317,7 @@ const COMMANDES_DE_DOSSIER = {
     commit: shaDe(depotDe(valeurDeDrapeau(reste, '--worktree') ?? '.'), 'HEAD'),
     compagnons: listeDuDrapeau(reste, '--compagnons'),
   }),
-  'ecrire-fiche': ([chemin]) => ({ ecrit: ecrireFiche(lireRenduDeRun(chemin, 'rendu de dossier')) }),
+  'ecrire-fiche': ([chemin, dir]) => ({ ecrit: ecrireFiche(lireRenduDeRun(chemin, 'rendu de dossier'), { dir }) }),
   'table-simulee': ([livre, chapitre, ...reste]) => {
     const maxEchanges = valeurDeDrapeau(reste, '--max-echanges')
     const personas = listeDuDrapeau(reste, '--personas')
@@ -331,7 +332,7 @@ const COMMANDES_DE_DOSSIER = {
 }
 const USAGE_DE_DOSSIER = [
   'usage: node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]',
-  '       node scripts/raw/workflow-args.mjs ecrire-fiche <rendu.json>',
+  '       node scripts/raw/workflow-args.mjs ecrire-fiche <rendu.json> <projets/<projet>/dossiers>',
   '       node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine> [--max-echanges <n>] [--personas a,b,c,d]',
 ].join('\n')
 

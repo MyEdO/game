@@ -1,6 +1,8 @@
 ---
 paths:
   - "src/scenes/**"
+  - "projets/jeu-de-role/campagnes/**"
+  - "projets/jeu-de-role/scenarios/**"
   - "src/noyau/monde/scene.ts"
   - "src/noyau/sceneEdit.ts"
   - "src/noyau/edition/**"

@@ -379,7 +379,7 @@ describe('garde-fou « branchement par identité dans du code générique » (#8
 
   it('MORSURE : l’outillage `scripts/**` en `.mjs` est parsable et scanné', () => {
     const mjs = ["export function compile(entry) {", "  if (entry.ref === 'auberge') return special();", '  return generic(entry);', '}'].join('\n');
-    expect(rules(mjs, 'scripts/arene/probe.mjs')).toEqual(['id-equality']);
+    expect(rules(mjs, 'projets/jeu-de-role/campagnes/arene/probe.mjs')).toEqual(['id-equality']);
   });
 
   it('CÂBLAGE : le scan de CORPUS consomme réellement le détecteur (sur fixture DISQUE)', () => {

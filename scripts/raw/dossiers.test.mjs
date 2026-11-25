@@ -1,37 +1,38 @@
-// Garde des fiches de dossier de chapitre (#2290, node --test, `npm run test:raw`) : chaque fiche
-// commitée `docs/dossiers/<ABBR>/<NN>.json` est au schéma `ficheDeDossier` (`src/data/source/dossier.ts`),
-// ses `id` sont uniques, son `<ABBR>` est un sigle de `src/data/books.json` et son chapitre a un fichier
-// (`chapterFile`), chaque élément de `ref` est UNE réf entière à la graphie `refRe`, tout `l.<ligne>` d'un champ
-// texte appartient à une telle réf entière ; bornes et ligne non aveugle
-// relèvent des scanners CITANTS (`scripts/raw/lib/fichiersCitants.mjs`).
+// Le chargeur des fiches de dossier de chapitre (#2290, node --test, `npm run test:raw`), sur une fiche de fixture :
+// une fiche hors schéma `ficheDeDossier` (`src/data/source/dossier.ts`) est refusée, chaque élément de `ref` est UNE réf
+// entière à la graphie `refRe`, tout `l.<ligne>` d'un champ texte appartient à une telle réf entière ; bornes et ligne
+// non aveugle relèvent des scanners CITANTS (`scripts/raw/lib/fichiersCitants.mjs`). Les fiches commitées d'un projet
+// se jugent dans sa suite (`projets/jeu-de-role/suites/dossiers.test.ts`).
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chargerDossiers } from './lib/dossiers.mjs'
-import { chapterFile, livreDuSigle } from './_lib.mjs'
 import { ficheDeDossier, idDEntree, ID_D_ENTREE } from '../../src/data/source/dossier.ts'
 
-const DOSSIERS = chargerDossiers()
-
-test('chaque fiche commitée est au schéma, sigle et chapitre résolus', () => {
-  const fautes = DOSSIERS.flatMap(({ chemin, abbr, nn }) => [
-    livreDuSigle(abbr) ? null : `${chemin} : « ${abbr} » n'est le sigle d'aucun livre de src/data/books.json`,
-    livreDuSigle(abbr) && !chapterFile(abbr, nn) ? `${chemin} : ${abbr} ${nn} n'a aucun fichier chapitre (chapterFile)` : null,
-  ]).filter(Boolean)
-  assert.deepEqual(fautes, [])
-})
-
-test('ids globaux uniques par fiche, au format `<ABBR>-<NN>#<id>`', () => {
-  for (const { chemin, ids } of DOSSIERS) {
-    assert.equal(new Set(ids).size, ids.length, `${chemin} : id en double`)
-    for (const id of ids) assert.match(id, ID_D_ENTREE, `${chemin} : ${id}`)
-  }
-})
+/** Une fiche de fixture au schéma : un beat, dont les réfs sont à la graphie `refRe`. */
+const FICHE = {
+  lecture: { date: '2026-11-24', commit: '0000000000000000000000000000000000000000' },
+  imperatifs: [],
+  beats: [{ id: 'b1', titre: 'Beat de fixture', statut: 'non-qualifie', preuveDuStatut: 'Fixture.', mediasCandidats: ['scene-jouee'], ref: ['EDO 01 l.9'] }],
+  pointsAuMJ: [],
+  indices: [],
+  secrets: [],
+  declencheurs: [],
+  pnj: [],
+  lieux: [],
+  textes: [],
+  tests: [],
+  rencontres: [],
+  recompenses: [],
+  etats: [],
+  dureeEtDifficulte: [],
+  matiereCompagnons: [],
+}
 
 test('un id en double dans la fiche est refusé', () => {
-  const [{ fiche }] = DOSSIERS
+  const fiche = FICHE
   const doublon = { ...fiche, beats: [...fiche.beats, { ...fiche.beats[0] }] }
   const lu = ficheDeDossier.safeParse(doublon)
   assert.equal(lu.success, false)
@@ -39,7 +40,7 @@ test('un id en double dans la fiche est refusé', () => {
 })
 
 test('un champ dérivable (livre, chapitre) ou une famille inconnue est refusé', () => {
-  const [{ fiche }] = DOSSIERS
+  const fiche = FICHE
   for (const intrus of [{ livre: 'X' }, { chapitre: '01' }, { besoins: [] }]) {
     assert.equal(ficheDeDossier.safeParse({ ...fiche, ...intrus }).success, false, JSON.stringify(intrus))
   }
@@ -56,11 +57,11 @@ test('le chargeur refuse un fichier hors de `<ABBR>/<NN>.json`', () => {
   }
 })
 
-/** Charge une fiche commitée dont la première entrée de `beats` porte `champs`, posée sous une racine jetable. */
+/** Charge la fiche de fixture dont la première entrée de `beats` porte `champs`, posée sous une racine jetable. */
 function chargerAvecBeat(champs) {
   const racine = mkdtempSync(join(tmpdir(), 'dossiers-'))
   try {
-    const [{ fiche }] = DOSSIERS
+    const fiche = FICHE
     mkdirSync(join(racine, 'EDO'))
     writeFileSync(join(racine, 'EDO', '01.json'), JSON.stringify({ ...fiche, beats: [{ ...fiche.beats[0], ...champs }, ...fiche.beats.slice(1)] }))
     return chargerDossiers(racine)

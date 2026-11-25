@@ -306,7 +306,7 @@ import { LISTAGE } from './listage.mjs'
 import { JEUX_DU_PARCOURS } from './lot-de-recettes.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { gestesDessines } from './pont/dessines.ts'
-import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs'
+import { dossierDesProjetsLivres, estManuscrit, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs'
 import { decodePng } from '../../scripts/qc/lib/pngDecode.mjs'
 import { SORTIES_DES_ESPACES } from '../../scripts/docs/lib/cibles-registres.mjs'
 import { chargerAssets, chargerEvaluateur } from './asset/charger.mjs'
@@ -333,7 +333,7 @@ if (o.parcours === 'combat' && !o.modeles !== !o.element) throw new Error('--par
 if (['atelier', 'composition', 'combat'].includes(o.parcours) && o.modeles && existsSync(o.modeles)) throw new Error(`--modeles ${o.modeles} existe : le parcours importe dans un dossier neuf`)
 
 /** Les projets manuscrits du dépôt, chacun par son chemin relatif au corpus (`listerProjetsLivres`). */
-const MANUSCRITS = listerProjetsLivres().filter((rel) => Object.hasOwn(PROJETS_MANUSCRITS, basename(rel)))
+const MANUSCRITS = listerProjetsLivres().filter((rel) => estManuscrit(rel))
 /** Les fichiers de l'atelier du Compendium, par nom leur chemin relatif au dépôt (phase 2 de `npm run gen`). */
 const FICHIERS_DE_L_ATELIER = JSON.parse(readFileSync(SORTIES_DES_ESPACES.atelier, 'utf8'))
 /** Le dépôt que sert le parcours `editeur` ou `compendium` : une copie neuve de ce que son enregistrement écrit, les

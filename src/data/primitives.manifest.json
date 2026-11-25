@@ -303,7 +303,7 @@
     "fichier": "src/data/schemas/grammaire/prose.ts",
     "concept": "composition d'une prose nommée et de sa provenance locale depuis le registre PROSES_NOMMEES, avec exclusivité automatique pour la narration et source seule pour un document ; lecture de la déclaration pendant la co-descente",
     "perimetre": "ouverture, stade d'indice, document narratif, terrain de bataille, introduction, refus de route, sous-titres d'ouverture et clôture, objectif, faveur, enjeu, narration d'op, invite de choix, réplique et journal ; porteurs folio ou adresse ; gardes des projets livrés et classifications locales des schémas",
-    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, src/scenes/bundled-projects.test.ts"
+    "verrou": "src/data/schemas/grammaire/prose-nommee.test.ts, projets/jeu-de-role/suites/bundled-projects.test.ts"
   },
   {
     "id": "identites",
@@ -429,7 +429,7 @@
     "fichier": "src/data/schemas/grammaire/collection-cle.ts",
     "concept": "une référence `{ id }` vers une entrée d'une collection du MÊME document (`ref(portee)`, `grammaire/ref.ts`), ou une liste de ses ids (`refs(portee)`), jugée au parse par l'objet qui porte cette liste à clé, au chemin pointé `portee.collection`, et OUVRE la portée (`ouvrirPortees`) ; une feuille `idDe(type, sousListe, { portee })` y juge un id absent de son catalogue (catalogue ∪ portée), en valeur ou en clé de record ; un document qui désigne la portée sans l'ouvrir l'ouvre VIDE (`ouvrirLesPorteesSansCollection`, `document()`) : la feuille y vaut son catalogue seul et refuse comme lui (`refusDeLaRefLocale`) ; `controlerSousPortee` déclare sur un nœud un contrôle que l'ouvreur exécute avec les entrées de la collection que leur propre nœud accepte ; un nœud qui rouvre la même portée sous un ouvreur est une frontière : ce qu'il porte, lui seul le juge ; `sitesDeLaPortee` rend, sur une valeur telle quelle, fautive ou non, les références que l'ouvreur ADMET, par la co-descente même de son jugement au parse (`entreesDeLaPortee` rend les entrées de la collection par id, `idsDeLaPortee` leurs ids ; le choix d'une référence locale à l'atelier les offre sous leur libellé, sinon leur id) ; un id local n'entre dans aucun espace de l'index des ids",
     "perimetre": "tables arcaniques d'un phénomène (`arcane-phenomena.json › phenomena[].fluxTableId`, `› tableId`), nœuds d'un dialogue (`scenes[].dialogues[].start`, `› nodes[].choices[].next`) et dialogues d'une scène (`scenes[].entities[].dialogueId`), lieux et routes d'une carte (`worldMap.routes[].a`, `› b`, `› from`, `› billets{}.depuis`, `› billets{}.suite`), scènes d'un projet ouvertes à sa racine (`worldMap.places[].scene`, `› poi[].sceneId`, `worldMap.routes[].ambush.scene`, effet `transition.scene`), objets de la campagne ouverts à la racine du projet (`OBJETS_DU_PROJET`, `narratif.objets` : effet et GameOp `giveTrapping.trappingId`, apparences par objet, inventaire d'auteur, dotation directe de preset, silhouette fixe `grantWeapon.form` et opérations exécutées à la touche d'un objet embarqué), clé d'une liste-clé qui est une référence, offerte au formulaire de l'atelier (`identiteTenue`), slots du parse de mesure (cible `local:<collection>`), migration d'un catalogue lu dans le document (`CibleLocale` de `scripts/migrations/lib/idNuEnRef.mjs`)",
-    "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, src/data/schemas/defs-scenes/dialogues-et-noeuds.test.ts, src/data/schemas/defs-scenes/routes-et-lieux.test.ts, src/data/schemas/defs-scenes/scenes-visees.test.ts, src/data/schemas/defs-scenes/projet-schema.test.ts, src/data/schemas/grammaire/apparences-objets.test.ts, src/data/schemas/espaces-contrat.test.ts"
+    "verrou": "src/data/schemas/defs/tables-arcaniques-portee-locale.test.ts, projets/jeu-de-role/suites/dialogues-et-noeuds.test.ts, src/data/schemas/defs-scenes/routes-et-lieux.test.ts, src/data/schemas/defs-scenes/scenes-visees.test.ts, src/data/schemas/defs-scenes/projet-schema.test.ts, src/data/schemas/grammaire/apparences-objets.test.ts, src/data/schemas/espaces-contrat.test.ts"
   },
   {
     "id": "dialoguesDeLaScene",
@@ -582,7 +582,7 @@
     "fichier": "src/noyau/combatEffects.ts",
     "concept": "suite d'un appelant qui rend la main (`MAIN_RENDUE`) : liste ordonnée de clôtures sérialisables, confiée en APPEND au porteur qui tient la main — dé à la porte, étape-hôte d'un geste (`differeLaSuite`) ou geste hors cascade (`PORTEURS_DE_GESTE`), lus à l'état par `comptePorteursDeSuite` — et rejouée à sa clôture dans l'ordre de la confidence",
     "perimetre": "hôtes d'`executerFlow` de scène et de combat, lots d'Effets, décisions de Flow (`ouvrirEtConfier`), déclencheurs, effets programmés, sorties d'hôte, clôtures de verbe (dialogue, horloge, victoire)",
-    "verrou": "src/noyau/chute-a-la-porte.hors-store.test.ts, src/noyau/appelants-sous-le-geste.hors-store.test.ts, src/noyau/roll-seam-exclusivity-guard.test.ts"
+    "verrou": "src/noyau/chute-a-la-porte.hors-store.test.ts, projets/jeu-de-role/suites/appelants-sous-le-geste.hors-store.test.ts, src/noyau/roll-seam-exclusivity-guard.test.ts"
   },
   {
     "id": "suiteDuCoup",

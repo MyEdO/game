@@ -133,7 +133,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/prop-foot-migration.test.ts",
+    fichier: "projets/jeu-de-role/suites/prop-foot-migration.test.ts",
     motif: "désormais",
     ancre: "désormais 1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */",
     lot: "L7 désormais",
@@ -546,7 +546,7 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "scripts/arene/zones1-7.mjs",
+    fichier: "projets/jeu-de-role/campagnes/arene/zones1-7.mjs",
     motif: "désormais",
     ancre: "// empreinte 3×3 : (24,4) chevaucherait les « Chapeaux moirés » (26,4), désormais bloquants",
     lot: "L7 désormais",

@@ -19,14 +19,14 @@
 import { execFileSync } from 'node:child_process';
 import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { basename, dirname, join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { baseDeTest, deposerModeleDeTest, elementSchema3, GLB_D_ELEMENT, GLB_DE_BASE } from './asset/modeles.testkit.ts';
 import { empreinte } from './asset/empreinte.ts';
 import { ecrireGlb } from './asset/glb.ts';
 import { servir } from './servir.mjs';
 import { deposerLesModeles, LISTAGE } from './listage.mjs';
-import { dossierDesProjetsLivres, listerProjetsLivres, PROJETS_MANUSCRITS } from '../../scripts/guards/lib/projetsLivres.mjs';
+import { dossierDesProjetsLivres, estManuscrit, listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 import { cheminDuDepot } from '../../scripts/source/adresses.mjs';
@@ -160,14 +160,14 @@ describe('servir', () => {
 describe('servir, le dépôt', () => {
   const depot = join(racine, 'depot');
   const corpus = dossierDesProjetsLivres(depot);
-  const [manuscrit, genere] = [true, false].map((m) => listerProjetsLivres().find((rel) => basename(rel) in PROJETS_MANUSCRITS === m)!);
+  const [manuscrit, genere] = [true, false].map((m) => listerProjetsLivres().find((rel) => estManuscrit(rel) === m)!);
   const idDe = (rel: string) => (JSON.parse(readFileSync(join(corpus, rel), 'utf8')) as { id: string }).id;
   const disque = () => readFileSync(join(corpus, manuscrit), 'utf8');
   let url = '';
   let id = '';
 
   beforeAll(async () => {
-    for (const rel of [manuscrit, genere]) {
+    for (const rel of [manuscrit, genere, join(dirname(genere), 'generate.mjs')]) {
       mkdirSync(dirname(join(corpus, rel)), { recursive: true });
       cpSync(join(dossierDesProjetsLivres(), rel), join(corpus, rel));
     }

@@ -27,7 +27,7 @@ const CONSTRUIRE = new URL('./construire.mjs', import.meta.url);
 const ENV = sansModeNiRelais();
 
 /** L'entrée du jeu de rôle (`package.json`, scripts `godot:*`). */
-const ENTREE_DU_JEU_DE_ROLE = 'hotes/godot/pont/entree-jeu-de-role.ts';
+const ENTREE_DU_JEU_DE_ROLE = 'projets/jeu-de-role/godot.ts';
 /** Une scène du paquet de test du commun (`src/scenes/fixtures/paquet-de-test.json`), que seul son contenu porte. */
 const SCENE_DU_COMMUN = 'scene-de-test-a';
 

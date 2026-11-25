@@ -1,7 +1,7 @@
 /**
  * L'éditeur de la carte du monde (#4411) : le même plan de travail, document « Carte du monde » ; les lieux, les routes
  * et leurs outils ; la carte « La route d'Altdorf », ses lieux à leur place du projet ; l'inspecteur du lieu choisi
- * (`src/scenes/diligence/diligence-projet.json`, `worldMap`) (`../../outils.md`, section `editeur-carte-du-monde`).
+ * (`projets/jeu-de-role/campagnes/diligence/diligence-projet.json`, `worldMap`) (`../../outils.md`, section `editeur-carte-du-monde`).
  */
 import { CADRE, VALIDATION } from './editeur.ts';
 import type { Ecran } from './maquette.ts';

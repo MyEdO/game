@@ -14,7 +14,6 @@ import { nommerChamps } from './grammaire/meta';
 import { schema as characteristicsSchema } from './defs/characteristics';
 import { projetSchema } from './defs-scenes/projet';
 import paquetDeTest from '../../scenes/fixtures/paquet-de-test.json';
-import areneProjet from '../../scenes/arene/arene-projet.json';
 
 const VALID_CHAR = [
   {
@@ -58,8 +57,6 @@ describe('validateDataset — point de validation partagé (#176)', () => {
   it('un document de la racine src/scenes est registré par son CHEMIN relatif', () => {
     expect(schemaForFile('fixtures/paquet-de-test.json')).toBe(projetSchema);
     expect(validateDataset('fixtures/paquet-de-test.json', paquetDeTest)).toBeNull();
-    expect(schemaForFile('arene/arene-projet.json')).toBe(projetSchema);
-    expect(validateDataset('arene/arene-projet.json', areneProjet)).toBeNull();
   });
 
   it('validateDocument — porte par SCHÉMA (le seam n\'a pas de nom de fichier) : rend les FAUTES', () => {

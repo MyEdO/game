@@ -6,7 +6,7 @@
  *
  * DEUX STRATES de la MÊME donnée, migrées ENSEMBLE — l'artefact seul serait réécrit à la prochaine
  * passe d'auteur, les trois projets étant régénérés À L'OCTET par leur `generate.mjs`
- * (`src/scenes/generateurs-byte-stables.test.ts`) :
+ * (`projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`) :
  *   1. les projets JSON, migrés STRUCTURELLEMENT (parse, nœuds `type:'giveMoney'`) ;
  *   2. l'AUTHORING `.mjs` qui les produit, migré TEXTUELLEMENT sur le littéral d'effet — la forme
  *      couvre le raccourci (`{ type: 'giveMoney', gold }`) et l'étalement (`…money`), l'enveloppe

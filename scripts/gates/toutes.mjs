@@ -234,10 +234,10 @@ export const ECRIT_LU = {
   },
   'comptes:plage': {
     ecrit: [],
-    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'docs/dossiers/', 'package.json', 'tsconfig.json'],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'package.json', 'tsconfig.json'],
     raison: RETRAIT_WORKTREE_FERME +
       'la porte des comptes (#2705, scripts/guards/lib/corpusDesComptes.mts) lit l’HISTOIRE par git — ' +
-      '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `docs/dossiers/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
+      '`merge-base origin/main..HEAD`, et les images de `src/`, `Source/`, `scripts/`, `package.json` et `tsconfig.json` aux deux bornes (`listerImage`, `lireEnLot`) — ' +
       'et pose chacune une fois sous un `mkdtempSync` d’os.tmpdir(), effacé à la sortie du processus, ' +
       '`node_modules` lié (`lierDependances`) et ses cibles de code produites par SON `genererCode` dans un processus fils (cwd = l’image), ' +
       'puis, son `scripts/` retiré, la mesure deux fois : avec une COPIE de `scripts/`, `package.json` et `tsconfig.json` de l’arbre (le détecteur de la tête), ' +
@@ -379,7 +379,7 @@ export const ECRIT_LU = {
       'parcourent en place) ' +
       'et scripts/guards/lib/ (`check-plans-anchors.test.mjs` lit le code de `lister.mjs` et importe ' +
       '`depotGabarit.mjs`), sans rien y écrire ; LIT les trois modules du lanceur local que `build-all.mjs` ' +
-      'ramène (sonde 2026-09-08, 50 lectures) ; LIT les fiches de docs/dossiers/ et les projets livrés sous src/scenes/ ' +
+      'ramène (sonde 2026-09-08, 50 lectures) ; LIT les fiches et les paquets livrés des projets sous projets/ ' +
       'quand `scripts/docs/build-dossiers-de-chapitre.test.mjs` rend leur état des lieux. ' +
       '`scripts/docs/lib/enregistreur-lectures.test.mjs` charge `src/lib/coupeAuMot.mjs` depuis une fixture ' +
       'pour vérifier la mesure d’un module préchauffé ; ' +
@@ -452,7 +452,7 @@ export const ECRIT_LU = {
         'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
         '`godot` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
         'qu’après l’écriture',
-      'src/scenes/':
+      'projets/jeu-de-role/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
         'écrit un projet manuscrit qu’à un `PUT depot/<id>`, que seul l’enregistrement de l’éditeur envoie (`_deposer`, ' +
@@ -470,7 +470,7 @@ export const ECRIT_LU = {
       'par `chargerAssets`, leurs catalogues et Source/ (prose adressée), tsconfig.json et package.json ; ' +
       'le contrat d’asset et ses écrivains sont chargés par l’entrée Vite, hors de la fermeture statique des imports. ' +
       'Chaque recette reçoit `--pont=<hotes/godot/vivant.mjs>`, qui bâtit le bundle en mémoire (`write: false`). ' +
-      'Écrit sous hotes/godot/projet/modeles/ les seuls GLB, et peut écrire sous src/scenes/ par le pont vivant ' +
+      'Écrit sous hotes/godot/projet/modeles/ les seuls GLB, et peut écrire sous projets/jeu-de-role/ par le pont vivant ' +
       '(`ecritFerme`) ; `deposerLesModeles` (hotes/godot/listage.mjs, #3778) n’écrit que sous `--export` et `--bureau`, ' +
       '`deposerLesPlanches` (hotes/godot/planches.mjs, #3935) que sous `--export`, `deposerLesAvis` (hotes/godot/avis.mjs, #4063) ' +
       'que sous `--export` et `--bureau`, dans leur `--sortie` ; le stockage du pont vivant ' +
@@ -559,6 +559,27 @@ export const ECRIT_LU = {
       '`editeur` et `compendium` servent chacun un dépôt temporaire pour leurs enregistrements. La préparation et les ' +
       'copies sont effacées. Les journaux vont sous `dist/godot-recettes/`, que git ignore et qu’aucune gate ne lit. ' +
       'LIT ce que lit `godot:sonde` et écrit sous hotes/godot/projet/modeles/ les seuls GLB (`ecritFerme`)',
+  },
+  'jeu-de-role:construire': {
+    ecrit: [],
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    raison:
+      'Le pont de Godot bâti sur l’entrée du jeu de rôle (`--pont-seul --entree projets/jeu-de-role/godot.ts`, #4936) : ' +
+      'ce que fait et lit `pont:godot`, bundle en mémoire, rien d’écrit',
+  },
+  'jeu-de-role:recette': {
+    ecrit: [],
+    ecritFerme: {
+      'hotes/godot/projet/modeles/':
+        'le même dépôt que `godot:recette` (`deposerLesAssets` par `preparerLePilotage`) : un `<id>.glb` absent ou de ' +
+        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` suit `godot:recette` dans le job ' +
+        '`godot-recette` de ci.yml, une SÉRIE',
+    },
+    lit: [...DOSSIERS_DES_ZONES, 'scripts/', 'Source/', 'tsconfig.json', 'package.json'],
+    raison:
+      'Le lot natif de `godot:recette` (`hotes/godot/lot-de-recettes.mjs --natif`, #3945) sur l’entrée du jeu de rôle ' +
+      '(`--entree projets/jeu-de-role/godot.ts`, #4936), réduit aux jeux qui ouvrent son contenu ; mêmes écritures ' +
+      'que `godot:recette`, ses journaux sous `dist/jeu-de-role-recettes/`, que git ignore et qu’aucune gate ne lit',
   },
   'roguelite:construire': {
     ecrit: [],

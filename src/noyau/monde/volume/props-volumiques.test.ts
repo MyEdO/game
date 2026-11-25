@@ -52,7 +52,7 @@ interface DecorAuthore { source: string; id: string; kind?: string; decor?: { id
 /**
  * TOUTES les instances de décor AUTHORÉES : les documents `.json` de `src/scenes` (récursif, toute
  * liste `entities` à n'importe quelle profondeur) ET le seul jeu de scènes écrit en TS (l'Opéra).
- * ANGLE MORT NOMMÉ : une scène TS de plus devrait être branchée ici — `src/data/prop-foot-migration.test.ts`
+ * ANGLE MORT NOMMÉ : une scène TS de plus devrait être branchée ici — `projets/jeu-de-role/suites/prop-foot-migration.test.ts`
  * a exactement la même frontière, pour la même raison.
  */
 const CORPUS_SCENES = () => readCorpus([dossierDe('scenes')], { exts: ['.json'], tests: true });

@@ -283,6 +283,8 @@ jobs:
 
   # `godot:recette` (#3945) : les jeux `combat`, `editeur` et `compendium` des recettes natives de l'hôte Godot
   # (`lot-de-recettes.mjs --natif`), sans export ni navigateur ; `canari.yml` joue le lot natif entier.
+  # `jeu-de-role:construire` puis `jeu-de-role:recette` (#4936) : le pont du jeu de rôle sur son entrée
+  # (`projets/jeu-de-role/godot.ts`), puis les jeux de son lot natif qui ouvrent son contenu.
   # `roguelite:construire` puis `roguelite:recette` (#4929) : le roguelite construit sous `dist/roguelite/`, et son lot de
   # recettes (`projets/roguelite/recette/lot.mjs`) dans le Chrome du runner, la page servie par interception, sans serveur.
   godot-recette:
@@ -301,6 +303,12 @@ jobs:
       - name: Godot — recettes natives
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:recette
+      - name: Jeu de rôle — construction
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run jeu-de-role:construire
+      - name: Jeu de rôle — recettes
+        if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run jeu-de-role:recette
       - name: Roguelite — construction
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run roguelite:construire

@@ -116,7 +116,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - À valider : le soigneur choisi dans le bandeau du jet, pas sur la page ; la Chirurgie entre héros non dessinée.
 
 ## designation-d-un-heros (2026-11-17, #4411)
-- Sur la route, l'invite de la donnée en parchemin (verbatim de `src/scenes/diligence/diligence-projet.json`), et
+- Sur la route, l'invite de la donnée en parchemin (verbatim de `projets/jeu-de-role/campagnes/diligence/diligence-projet.json`), et
   dans la fenêtre du bas les quatre héros, en liste (quatre choix), Aldric armé, plaque « Désigner ». Aucune sortie : la fenêtre reste
   tant qu'un héros vivant n'est pas désigné.
 - Verbe : `fenetreChoisir('designationHeros','heros', id)` (`src/noyau/campagne.ts:57-73`). Libellés

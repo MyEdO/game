@@ -649,12 +649,12 @@ export interface ProjectDoc extends ProjectIdentite {
  * bibliothèque, export d'une entrée. Il vit ICI, avec `ProjectDoc` et la porte `parseProject` : ce
  * qu'on écrit et ce qu'on relit ont un seul propriétaire.
  *
- * Les générateurs de campagne y DÉLÈGUENT aussi (`projectDoc`, `scripts/campagne/lib.mjs`) : une
+ * Les générateurs de campagne y DÉLÈGUENT aussi (`projectDoc`, `projets/jeu-de-role/campagnes/lib.mjs`) : une
  * seule fabrique de la forme (credo.md:3-4).
  *
  * ORDRE D'ÉCRITURE : `id`, `type`, `label`, le reste de l'identité, `narratif`, `scenes`,
  * puis `worldMap` et `activeAxes` — l'ordre des paquets GÉNÉRÉS, figé à l'octet par
- * `src/scenes/generateurs-byte-stables.test.ts`. Les clés optionnelles ne s'écrivent que FOURNIES :
+ * `projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`. Les clés optionnelles ne s'écrivent que FOURNIES :
  * un `worldMap: undefined` posé se lirait « carte effacée » au diff du document, là où son absence
  * dit « aucune carte ».
  */

@@ -67,7 +67,7 @@ export const JEUX_DU_PARCOURS = {
   vehicule: { vehicule: ['--scenario', 'caraque'] },
   cadrages: {
     cadrages: ['--scenario', 'a-bord-de-la-caraque', '--vues', 'hotes/godot/cadrages/a-bord-de-la-caraque.json'],
-    'cadrages-diligence': ['--scenario', 'diligence', '--vues', 'hotes/godot/cadrages/la-diligence.json'],
+    'cadrages-diligence': ['--scenario', 'diligence', '--vues', 'projets/jeu-de-role/cadrages/la-diligence.json'],
     'cadrages-coque-terrestre': ['--scenario', 'coque-terrestre', '--vues', 'hotes/godot/cadrages/coque-terrestre.json'],
   },
   bord: { bord: ['--scenario', 'a-bord-de-la-caraque', '--route', `${DOSSIER}/a-bord-de-la-caraque.json`] },
