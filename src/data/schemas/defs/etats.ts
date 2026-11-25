@@ -8,7 +8,7 @@ import { metaDesChamps, nommerChamps } from '../grammaire/meta';
 import { z } from 'zod';
 import { couleurHexSchema, difficultySchema, gatingDeStatutSchema, stakeFormSchema } from '../grammaire/valeurs';
 import { document } from '../grammaire/document';
-import { conditionSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
+import { conditionSchema, gameOpSchema, jetSchema, passifsDe, sujetsNonGarantis, triggeredEffectSchema } from '../grammaire/mecanique';
 import { ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { visuelDeLumiereSchema } from './lightTones';
@@ -44,6 +44,18 @@ const verrouDEtatSchema = conditionSchema.superRefine((v, ctx) => {
   }
 });
 
+/** Les champs de l'op `condition` qu'une sortie d'État lit (`sortirEtats`, engine/conditions.ts) : l'État posé, et
+ *  l'État dont le port l'écarte. */
+const CHAMPS_DE_LA_SORTIE: ReadonlySet<string> = new Set(['op', 'id', 'unlessCondition']);
+
+type PoseALaSortie = Extract<z.output<typeof gameOpSchema>, { op: 'condition' }>;
+
+/** Une pose de `EtatData.aLaSortie` : une op `condition` réduite aux champs que la sortie lit. */
+const poseALaSortieSchema = gameOpSchema.refine(
+  (o): o is PoseALaSortie => o.op === 'condition' && Object.keys(o).every((k) => CHAMPS_DE_LA_SORTIE.has(k)),
+  { message: `À la sortie : une op « condition » qui ne porte que ${[...CHAMPS_DE_LA_SORTIE].join(', ')}.` },
+);
+
 const doc = document(
   'etats',
   famille,
@@ -67,6 +79,8 @@ const doc = document(
     resolveHeals: z.number().int().min(1).optional(),
     /** LDB 16 l.56/70/84/92/107/117 ; LDB 62 l.250. */
     persistsAfterCombat: z.boolean().optional(),
+    /** LDB 16 l.58, l.78, l.109, l.119, l.129 ; AA 07 l.11. */
+    aLaSortie: z.array(poseALaSortieSchema).optional(),
     /** EDOC 12 l.170-197 ; #3045 */
     grantGroups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
     /** LDB 85 l.174 ; VDM 10 l.153 */
@@ -99,6 +113,7 @@ const doc = document(
       hint: 'Blessures regagnées quand un point de Détermination retire cet État (À Terre : 1)',
     },
     persistsAfterCombat: { label: 'Persiste hors combat' },
+    aLaSortie: { label: 'À la sortie', hint: 'États gagnés quand le dernier pion de cet État quitte son porteur, quelle que soit la voie' },
     grantGroups: { label: 'Groupes accordés', hint: 'Groupes du porteur tant qu’il porte l’État' },
     typeDeDegats: { label: 'Type de Dégâts', hint: 'Les effets déclenchés de l’État sont des Dégâts de ce Type : une Immunité à ce Type les annule' },
     marqueCouleur: { label: 'Teinte de la marque', hint: 'Teinte `#rrggbb` du nom de l’État au-dessus de son porteur et de son visuel' },

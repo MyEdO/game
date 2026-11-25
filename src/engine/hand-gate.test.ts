@@ -76,9 +76,9 @@ describe('removeCondition — l\'Hémorragique tombé à 0 PURGE les marqueurs d
   it('tant qu\'il reste des pions Hémorragique, le marqueur tient ; à 0, il est purgé', () => {
     const c = hero({ handGates: ['main', 'secondaire'] });
     addCondition(c, 'hemorragique', 2);
-    removeCondition(c, 'hemorragique', 1); // reste 1 pion
+    removeCondition(c, 'hemorragique', 1, { lignes: [], faits: [] }); // reste 1 pion
     expect(c.handGates).toEqual(['main', 'secondaire']);
-    removeCondition(c, 'hemorragique', 1); // 0 → purge
+    removeCondition(c, 'hemorragique', 1, { lignes: [], faits: [] }); // 0 → purge
     expect(c.handGates).toBeUndefined();
   });
 });

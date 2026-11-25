@@ -59,8 +59,8 @@ const CORPUS: Cas[] = [
     const c = heros();
     addCondition(c, COND.hemorragique, 1, undefined, undefined, undefined, undefined, { unlockBy: 'medicalAid' });
     return appliquer([{ op: 'heal', amount: 1 }], c);
-  }, lignes: ['Cobaye regagne 1 Blessure(s).', "Cobaye : l'État Hémorragique est levé par le soin (Blessure critique)."],
-  faits: [{ genre: 'blessures', ...sur, valeur: 1 }, { genre: 'etat', ...sur, id: COND.hemorragique, valeur: -1, verrouLeve: true }] },
+  }, lignes: ['Cobaye regagne 1 Blessure(s).', "Cobaye : l'État Hémorragique est levé par le soin (Blessure critique).", 'Cobaye reçoit 1 État Exténué.'],
+  faits: [{ genre: 'blessures', ...sur, valeur: 1 }, { genre: 'etat', ...sur, id: COND.hemorragique, valeur: -1, verrouLeve: true }, { genre: 'etat', ...sur, id: COND.extenue, valeur: 1 }] },
   { nom: 'gain d’Avantage', jouer: () => appliquer([{ op: 'gainAdvantage', amount: 2 }]),
     lignes: ['Cobaye gagne 2 Avantages.'], faits: [{ genre: 'avantage', ...sur, valeur: 2, total: 2 }] },
   { nom: 'gain d’un Avantage', jouer: () => appliquer([{ op: 'gainAdvantage', amount: 1 }]),
@@ -104,8 +104,8 @@ const CORPUS: Cas[] = [
     c.activeEffects = [{ label: 'Forme', effectId: 'forme', bonus: 0, duration: { scale: 'permanent' }, passive: [{ op: 'condition', id: { id: COND.sonne }, value: 1 }] }];
     syncDerivedConditions(c);
     return appliquer([{ op: 'endTransform', tag: 'forme' }], c);
-  }, lignes: ['Cobaye reprend sa forme (forme).', 'Cobaye perd l’État Sonné — un mal qu’il traîne ne le porte plus.'],
-  faits: [{ genre: 'etat', ...sur, id: COND.sonne, valeur: -1, porte: {} }] },
+  }, lignes: ['Cobaye reprend sa forme (forme).', 'Cobaye perd l’État Sonné — un mal qu’il traîne ne le porte plus.', 'Cobaye reçoit 1 État Exténué.'],
+  faits: [{ genre: 'etat', ...sur, id: COND.sonne, valeur: -1, porte: {} }, { genre: 'etat', ...sur, id: COND.extenue, valeur: 1 }] },
   { nom: 'tout l’État retiré', jouer: () => { const c = heros(); addCondition(c, COND.extenue, 3); return appliquer([{ op: 'removeCondition', id: { id: COND.extenue }, all: true }], c); },
     lignes: ["Cobaye retire tout l'État Exténué."], faits: [{ genre: 'etat', ...sur, id: COND.extenue, valeur: -3, tous: true }] },
   { nom: 'pions d’État retirés', jouer: () => { const c = heros(); addCondition(c, COND.extenue, 3); return appliquer([{ op: 'removeCondition', id: { id: COND.extenue }, value: 2 }], c); },

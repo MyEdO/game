@@ -338,7 +338,7 @@ describe('Groupes d’un fait de fiche, lus par `groupesDe` (EDOC 12 l.170-197 ;
     const c = combattantDeTest();
     addCondition(c, etat!.id);
     expect(groupesDe(c)).toEqual(etat!.grantGroups);
-    removeCondition(c, etat!.id, 99);
+    removeCondition(c, etat!.id, 99, { lignes: [], faits: [] });
     expect(groupesDe(c)).toEqual([]);
   });
 

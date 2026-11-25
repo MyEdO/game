@@ -60,9 +60,9 @@ describe('wake-sleeper (modifier de touche)', () => {
     expect(res.autoKill).toBe(true); // inchangé (le modifier n'est pas intervenu)
   });
 
-  it('wakeSleeper retire l’Inconscient de sommeil', () => {
+  it('wakeSleeper retire l’Inconscient de sommeil : le réveillé est À Terre et Exténué (LDB 16 l.119)', () => {
     const target = mk();
-    wakeSleeper(target);
-    expect(target.conditions).toHaveLength(0);
+    wakeSleeper(target, { lignes: [], faits: [] });
+    expect(target.conditions.map((c) => c.id).sort()).toEqual(['a-terre', 'extenue']);
   });
 });

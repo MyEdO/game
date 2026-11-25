@@ -28,7 +28,7 @@ const relire = (c: Combatant): Combatant => JSON.parse(JSON.stringify(c)) as Com
 describe('état des armes de Trait', () => {
   it('l’arme de profil lâchée ne revient ni au recompte ni au retour de rencontre (LDB 62 l.28)', () => {
     const ours = creatureToCombatant(findCreatureById('ours')!, 'ours');
-    const combat = entreeEnRencontre(ours);
+    const combat = entreeEnRencontre(ours, { lignes: [], faits: [] });
     const tenue = combat.weapons.find(estUneVraieArme)!;
     const morsure = combat.weapons.find((w) => w.attackKind === 'morsure')!;
     lacherLArme(combat, morsure);
@@ -36,7 +36,7 @@ describe('état des armes de Trait', () => {
 
     applyOps(combat, [{ op: 'disarm' }], contexte());
     expect(combat.weapons.some(estUneVraieArme)).toBe(false);
-    const sorti = sortieDeRencontre(ours, relire(combat));
+    const sorti = sortieDeRencontre(ours, relire(combat), { lignes: [], faits: [] });
     expect(sorti.weapons.some((w) => w.uid === tenue.uid)).toBe(false);
     recomputeLoadout(sorti);
     expect(sorti.weapons.some((w) => w.uid === tenue.uid)).toBe(false);
@@ -55,13 +55,13 @@ describe('état des armes de Trait', () => {
     h.items = [epee];
     recomputeLoadout(h);
 
-    const c = entreeEnRencontre(h);
+    const c = entreeEnRencontre(h, { lignes: [], faits: [] });
     const armeDeTrait = c.weapons.find((arme) => arme.uid !== epee.uid && estUneVraieArme(arme))!;
     const tenue = c.weapons.find((arme) => arme.uid === epee.uid)!;
     expect(laisserTomber(c, tenue, idsDeTest)?.uid).toBe(epee.uid);
     lacherLArme(c, armeDeTrait);
 
-    const sorti = sortieDeRencontre(h, c);
+    const sorti = sortieDeRencontre(h, c, { lignes: [], faits: [] });
     expect(sorti.items).toEqual([]);
     expect(sorti.weapons).toEqual([expect.objectContaining({ builtinId: 'mains-nues' })]);
   });

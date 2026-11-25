@@ -7,6 +7,8 @@ export type { Combatant, CharKey, ItemInstance } from '../../../../src/engine/ty
 export type { RNG } from '../../../../src/engine/dice';
 export type { DoctrineId } from '../../../../src/noyau/monde/ai';
 export { makeRNG } from '../../../../src/engine/dice';
+export { purgerEtats } from '../../../../src/engine/conditions';
+export type { Applique } from '../../../../src/engine/faits';
 export { memeSpecialisation, refCouvre } from '../../../../src/data/schemas/grammaire/ref';
 export { parseTable } from '../../../../src/data/source/decoupe';
 export * from './heros';

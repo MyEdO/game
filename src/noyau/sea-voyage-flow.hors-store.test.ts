@@ -5083,7 +5083,7 @@ describe('l’événement de bord tombe le jour où son compteur arrive à zéro
     expect(joursDEvenement()).toEqual([1, 1 + tirage]);
   });
 
-  it.each([{ graine: 20, tirage: 2 }, { graine: 3, tirage: 5 }])('premier événement d’une traversée : le tirage du départ ($tirage, graine $graine) le pose ce jour-là', ({ graine, tirage }) => {
+  it.each([{ graine: 20, tirage: 2 }, { graine: 10, tirage: 5 }])('premier événement d’une traversée : le tirage du départ ($tirage, graine $graine) le pose ce jour-là', ({ graine, tirage }) => {
     appareiller(graine);
     expect(get().vessel!.daysToEvent, 'le jour du départ est déjà décompté').toBe(tirage - 1);
     traverser(tirage);

@@ -3368,7 +3368,8 @@ function appliquerLaTouche(
   // joué pour CELLE-CI ; les suivantes n'en bénéficieront plus. Les attaques GRATUITES groupées d'une
   // créature (Morsure+Piétinement, `sousAttaque`) forment UN assaut-surprise : on garde l'État jusqu'à la
   // fin du Round (sinon la 2ᵉ attaque gratuite rouvrirait une défense en plein milieu).
-  if (standard && hasCondition(target, COND.surpris)) removeCondition(target, COND.surpris, 1);
+  const sortieDuSurpris: LignesEtFaits = { lignes: [], faits: [] };
+  if (standard && hasCondition(target, COND.surpris)) removeCondition(target, COND.surpris, 1, sortieDuSurpris);
   // Sauvegardes SYNCHRONES « après la touche » en registre ordonné (noyau/combat/hitModifiers) :
   // 5 réveil d'un dormeur → 8 Bouclier anti-flèches → 10 sauvegarde « 1d10 ≥ Indice », UNIQUE (traits
   // propres ET Trait octroyé par un Dôme, RNG) → 40 Martyr → 50 Perturbante.
@@ -3378,7 +3379,7 @@ function appliquerLaTouche(
   // ci-dessous. Les saves posent leur ligne dans `res.ajouts` (journalisé par `ligneDuCoup`
   // en fin de coup) → `sink` no-op ici. `encaisse` : ce qu'un TIERS a pris (Martyr) — l'interruption de
   // Focalisation du prêtre vit ici, le registre n'important rien de ce module.
-  const tiersLog: string[] = [];
+  const tiersLog: string[] = [...sortieDuSurpris.lignes];
   // La SAUVEGARDE « 1d10 ≥ Indice » (LDB 85 l.98 / l.278, LDB 47 l.410) ne se roule plus ici : le registre
   // la DÉCLARE, la porte la joue, et la résolution du coup est SUSPENDUE jusque-là — AUCUNE mutation de la
   // cible avant (ni Empoignade, ni mort-auto, ni Critique), exactement comme la fenêtre de Déviation
@@ -4648,12 +4649,14 @@ export function ouvrirLeNombreDAttaquesSubies(set: SetFn, op: Extract<GameOp, { 
  *  MDG 15 l.161-164, l.176-178 */
 export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
   const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
-  const enJeu = 'poste' in cible ? membreDuBord(cible.poste, get().forgerUnId('membre-du-bord')) : entreeEnRencontre(cible.heros);
+  const sortieALEntree: LignesEtFaits = { lignes: [], faits: [] };
+  const enJeu = 'poste' in cible ? membreDuBord(cible.poste, get().forgerUnId('membre-du-bord')) : entreeEnRencontre(cible.heros, sortieALEntree);
   const hote = 'poste' in cible ? { membre: { combattant: enJeu, poste: cible.poste } } : { avant: cible.heros };
   set((s: Jeu) => ({
     ...('avant' in hote ? { party: s.party.map((h) => (h.id === enJeu.id ? enJeu : h)) } : {}),
     serieSubie: { assaillant, cibleId: enJeu.id, restantes, ...(apresSuite ? { apresSuite } : {}), ...hote },
   }));
+  if (sortieALEntree.lignes.length) get().ecrireAuJournal(sortieALEntree.lignes);
   if ('membre' in hote) get().ecrireAuJournal(tr('eff.membreDuBordAttaque', { assaillant: nomDe(assaillant), role: nomDe(enJeu) }));
   return doAttack(get, set, assaillant, enJeu, { mode: 'subie' });
 }
@@ -4701,7 +4704,9 @@ export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   const { avant, membre } = serie;
   ouvrirLaFinDeRencontre(get, set, avant ? [cible, serie.assaillant] : [serie.assaillant]);
-  set((s: Jeu) => ({ ...(avant ? { party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(avant, h) : h)) } : {}), serieSubie: null }));
+  const sortieDuReport: LignesEtFaits = { lignes: [], faits: [] };
+  set((s: Jeu) => ({ ...(avant ? { party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(avant, h, sortieDuReport) : h)) } : {}), serieSubie: null }));
+  if (sortieDuReport.lignes.length) get().ecrireAuJournal(sortieDuReport.lignes);
   if (membre) rendreALEquipage(get, set, cible, membre.poste);
   else if (checkPartyWiped(get, set)) return;
   jouerLesClotures(get, set, serie.apresSuite ?? []);
@@ -8043,11 +8048,13 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   });
   // Couture de RETOUR complète (`REPORT_DE_COMBATTANT`, #2312) : ce qui est propre à la rencontre
   // (`outOfRencontre`, LDB 17 l.31) n'en sort pas.
+  const sortieDuReport: LignesEtFaits = { lignes: [], faits: [] };
   const newParty = party.map((h) => {
     const c = battle.combatants.find((x) => x.id === h.id && x.kind === 'heros');
-    return c ? sortieDeRencontre(h, c) : h;
+    return c ? sortieDeRencontre(h, c, sortieDuReport) : h;
   });
   set({ party: newParty });
+  endLines.push(...sortieDuReport.lignes);
   if (endLines.length) get().ecrireAuJournal(endLines);
   // #30/#296 — Blessures de COQUE persistantes : si une coque du combat EST le navire de campagne
   // son état de fin de combat est écrit sur `CampaignVessel.wounds` (SOURCE
@@ -9650,8 +9657,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
       const foe = inBattleId(battle, targetId);
       if (!foe) break;
       clearGrapple(enemy, foe);
-      removeCondition(enemy, COND.empetre, stacks(enemy, COND.empetre)); // se défait de l'*Empêtré* lié (LDB 14 l.161)
-      battle.log.push(ev('esquive', tr('cs.grappleBreak', { name: nomDe(enemy), foe: nomDe(foe) }), enemy.id, foe.id));
+      const sortie: LignesEtFaits = { lignes: [], faits: [] };
+      removeCondition(enemy, COND.empetre, stacks(enemy, COND.empetre), sortie); // se défait de l'*Empêtré* lié (LDB 14 l.161)
+      battle.log.push(ev('esquive', tr('cs.grappleBreak', { name: nomDe(enemy), foe: nomDe(foe) }), enemy.id, foe.id), ...evLines(sortie.lignes, 'etat', enemy.id));
       set({ battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
     } else if (action.kind === 'poussee') {
@@ -9809,13 +9817,14 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
         ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: enemy }).lignes
         : [];
       const removed = recoveredStacks(netSL, stacks(enemy, action.state), success);
-      if (removed > 0) removeCondition(enemy, action.state, removed);
+      const sortie: LignesEtFaits = { lignes: [], faits: [] };
+      if (removed > 0) removeCondition(enemy, action.state, removed, sortie);
       // Filets (Zoo Impérial p.29) : un échec de libération AGGRAVE l'Empêtré (≠ Immobilisante générique).
       if (!success && rt.entangleOnFail) addCondition(enemy, action.state, 1);
       const line = removed > 0
         ? (action.state === COND.empetre ? tr('cf.ennemiLibere', { name: nomDe(enemy), removed }) : tr('cf.ennemiEtouffeLesFlammes', { name: nomDe(enemy), removed }))
         : (action.state === COND.empetre ? tr('cf.ennemiResteEmpetre', { name: nomDe(enemy) }) : tr('cf.ennemiResteEnFlammes', { name: nomDe(enemy) }));
-      set({ battle: { ...battle, log: [...battle.log, ...struggleLines.map((l) => ev('degats', l, enemy.id)), evDEtat(action.state, line, enemy.id)] } });
+      set({ battle: { ...battle, log: [...battle.log, ...struggleLines.map((l) => ev('degats', l, enemy.id)), evDEtat(action.state, line, enemy.id), ...evLines(sortie.lignes, 'etat', enemy.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'afterMove'));
       return;

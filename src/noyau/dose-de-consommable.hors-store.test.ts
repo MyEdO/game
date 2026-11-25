@@ -60,17 +60,17 @@ describe('Dose — une par période et par buveur', () => {
   it('En combat : la seconde Potion de la rencontre est refusée, la dose suit le héros hors du combat, le combat suivant la rouvre', () => {
     const banc = avecDeuxDoses('potion-de-guerison', grandBlesse);
     const h = veteran(banc);
-    const H = { ...entreeEnRencontre(h), pos: { x: 1, y: 1 } };
-    const E = { ...entreeEnRencontre(h), id: 'ennemi', kind: 'ennemi' as const, items: [], pos: { x: 3, y: 1 } };
+    const H = { ...entreeEnRencontre(h, { lignes: [], faits: [] }), pos: { x: 1, y: 1 } };
+    const E = { ...entreeEnRencontre(h, { lignes: [], faits: [] }), id: 'ennemi', kind: 'ennemi' as const, items: [], pos: { x: 3, y: 1 } };
     banc.setState({ battle: { combatants: [H, E], order: [H.id, E.id], turn: 0, round: 1, acted: false, log: [], over: null } as never });
     banc.actions.utiliserLObjet('dose-1');
     banc.actions.utiliserLObjet('dose-2');
     expect(banc.getState().refus?.texte).toBe('Vétéran a déjà pris sa dose de Potion de guérison dans cette rencontre : l’objet est gardé.');
     const combattant = banc.getState().battle!.combatants.find((c) => c.id === h.id)!;
     expect(['dose-1', 'dose-2'].map((uid) => !!combattant.items?.some((i) => i.uid === uid)), 'la première bue, la seconde gardée').toEqual([false, true]);
-    const sorti = sortieDeRencontre(h, combattant);
+    const sorti = sortieDeRencontre(h, combattant, { lignes: [], faits: [] });
     expect(sorti.dosesDeRencontre, 'la dose suit le héros hors du combat').toEqual(['potion-de-guerison']);
-    expect(entreeEnRencontre(sorti).dosesDeRencontre, 'le combat suivant la rouvre').toEqual([]);
+    expect(entreeEnRencontre(sorti, { lignes: [], faits: [] }).dosesDeRencontre, 'le combat suivant la rouvre').toEqual([]);
   });
 
   it('Soude commune : une par rencontre', () => {

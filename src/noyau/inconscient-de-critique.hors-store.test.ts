@@ -79,14 +79,14 @@ describe('Inconscient d’une Critique (LDB 18 l.53)', () => {
     jouer([INCONSCIENT_DE_CRITIQUE]);
     clore();
     const h = auGroupe(id);
-    removeCondition(h, COND.inconscient, 1);
+    removeCondition(h, COND.inconscient, 1, { lignes: [], faits: [] });
     expect(stacks(h, COND.inconscient)).toBe(0);
   });
 
   it('retrait natif : l’Inconscient d’une Critique ne se retire pas avant la fin de la rencontre', () => {
     const id = enCombat();
     jouer([INCONSCIENT_DE_CRITIQUE]);
-    removeCondition(auCombat(id), COND.inconscient, 1);
+    removeCondition(auCombat(id), COND.inconscient, 1, { lignes: [], faits: [] });
     expect(stacks(auCombat(id), COND.inconscient)).toBe(1);
   });
 

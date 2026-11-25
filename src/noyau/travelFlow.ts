@@ -60,6 +60,7 @@ import { PERIPETIES, peripetieDie, peripetieSeuilDie } from '../data/peripeties'
 import { rollTest, testDetail } from '../engine/tests';
 import { partyAssisted, supportSplit, type SupportDetail, type TestDesigne } from '../engine/skills';
 import { addCondition, removeCondition, stacks } from '../engine/conditions';
+import type { Applique } from '../engine/faits';
 import { canAfford, formatMoney, type Money } from '../engine/money';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
 import { refuseSi } from './verrousDeFiche';
@@ -1417,7 +1418,11 @@ export const TABLES = {
             }));
           }
           const n = stacks(h, 'extenue');
-          if (n > 0) { removeCondition(h, 'extenue', n); j.push(t('tf.plusExtenue', { name: nomDe(h) })); }
+          if (n > 0) {
+            const sortie: Applique = { lignes: [t('tf.plusExtenue', { name: nomDe(h) })], faits: [] };
+            removeCondition(h, 'extenue', n, sortie);
+            j.push(...sortie.lignes);
+          }
         }
         set({ party: [...party] });
       } else if (entry.kind === 'ereintant') {

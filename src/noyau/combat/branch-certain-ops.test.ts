@@ -1,12 +1,12 @@
 /**
  * ORACLE PARTIEL du bloc « Réussite / Échec » (#1117) — `branchCertainOps` ne tranche un `si` que
- * lorsqu'il le PEUT, et se tait sinon. Mesuré sur des Flows RÉELS de la donnée (aucun flow forgé) :
+ * lorsqu'il le PEUT, et se tait sinon :
  *
- *  · récupération du Sonné (`etats.json`) — la branche de réussite retire des États PUIS teste, par
- *    `compare`, ce qu'il en reste : le sujet est muté par une op AMONT du même `sequence`, l'instantané
- *    d'affichage ne peut pas le lire. Un oracle TOTAL y répondrait « faux » et annoncerait le seul
- *    retrait, en OMETTANT l'octroi d'Exténué que le RAW impose (« Une fois débarrassé de tout État
- *    Sonné, gagnez 1 État Exténué », LDB 16 l.129) — une règle enseignée AMPUTÉE.
+ *  · récupération du Sonné, de l'Empoisonné, du Brisé (`etats.json`) — la branche de réussite est le seul
+ *    retrait, certain : la sortie de l'État (LDB 16 l.58, l.78, l.129) est `EtatData.aLaSortie`, posée par la
+ *    couture de retrait ;
+ *  · un `compare` sur un sujet muté par une op AMONT du même `sequence` : l'instantané d'affichage ne peut pas
+ *    le lire, l'oracle se tait ;
  *  · Cautériser (`spells.json`) — l'Inconscient dépend du DR du jet (`slThreshold ≤ −6`, LDB 48 l.219),
  *    qui n'existe pas avant qu'on lance.
  *  · Vigilance (`has talent`) — appartenance figée : elle, se tranche, et le site pilote en vit.
@@ -32,17 +32,20 @@ function recoverySuccess(id: string): Flow {
 }
 
 describe('#1117 — l’oracle d’affichage tranche ce qu’il SAIT, et se tait sur le reste', () => {
-  it('Sonné (LDB 16 l.129) : la réussite reste INCERTAINE — son `compare` porte sur un sujet muté en amont', () => {
-    const branch = recoverySuccess('sonne');
-    // Le flow contient bien les DEUX moitiés : le retrait, puis l'octroi conditionnel.
-    expect(JSON.stringify(branch)).toContain('extenue');
-    // Silence : annoncer le seul retrait enseignerait la règle sans son Exténué.
-    expect(branchCertainOps(branch, C({ conditions: [{ id: 'sonne', value: 2 }] as never }))).toBeUndefined();
+  it('Sonné, Empoisonné, Brisé : la réussite est le seul retrait 1 + DR, CERTAIN', () => {
+    for (const id of ['sonne', 'empoisonne', 'brise']) {
+      expect(branchCertainOps(recoverySuccess(id), C({ conditions: [{ id, value: 2 }] as never })), id)
+        .toEqual([{ op: 'removeCondition', id: { id }, value: 1, valuePerSL: { every: 1, amount: 1 } }]);
+    }
   });
 
-  it('Empoisonné / Brisé : même forme, même silence (aucune promesse amputée)', () => {
-    expect(branchCertainOps(recoverySuccess('empoisonne'), C())).toBeUndefined();
-    expect(branchCertainOps(recoverySuccess('brise'), C())).toBeUndefined();
+  it('un `compare` sur un sujet muté en amont du même `sequence` reste INCERTAIN', () => {
+    const retrait: Flow = { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'removeCondition', id: { id: 'sonne' }, value: 1 }] } };
+    const octroi: Flow = {
+      kind: 'si', condition: { kind: 'compare', subject: { who: 'target', condition: 'sonne' }, op: '<=', value: 0 },
+      alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'condition', id: { id: 'surpris' } }] } },
+    };
+    expect(branchCertainOps({ kind: 'sequence', etapes: [retrait, octroi] }, C({ conditions: [{ id: 'sonne', value: 2 }] as never }))).toBeUndefined();
   });
 
   it('Cautériser (LDB 48 l.219) : l’échec est INCERTAIN — l’Inconscient dépend du DR, connu à la seule résolution', () => {

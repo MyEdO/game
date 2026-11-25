@@ -112,7 +112,7 @@ describe('Fièvre (Grave) → l’État Inconscient est MATÉRIALISÉ (LDB 20 l.
    *  fait le reposerait de toute façon à la réconciliation (`LDB 20 l.188`, `LDB 16 l.117`). */
   it('`removeCondition` direct est INERTE sur le pion que la Fièvre porte', () => {
     const { c } = pneumoniqueGrave();
-    removeCondition(c, 'inconscient', 1);
+    removeCondition(c, 'inconscient', 1, { lignes: [], faits: [] });
     expect(stacks(c, 'inconscient'), 'le pion dérivé a été retiré à la main').toBe(1);
     expect(derivedStacks(c, 'inconscient')).toBe(1);
   });
@@ -154,7 +154,7 @@ describe('Fièvre (Grave) → l’État Inconscient est MATÉRIALISÉ (LDB 20 l.
   it('le REPOS réveille à PB > 0 (LDB 18 l.15), mais la Fièvre (Grave) le rendort aussitôt (« rester alité »)', () => {
     const { c } = pneumoniqueGrave();
     c.wounds.current = 3;
-    applyRecoveryDay(c, { sl: 1, success: true });
+    applyRecoveryDay(c, { sl: 1, success: true }, { lignes: [], faits: [] });
     expect(c.wounds.current, 'le repos soigne bien').toBeGreaterThan(3);
     expect(stacks(c, 'inconscient'), 'la fièvre tient toujours : l’Inconscient est de retour').toBe(1);
     expect(derivedStacks(c, 'inconscient')).toBe(1);
@@ -194,7 +194,7 @@ describe('Malaise → l’État Exténué est MATÉRIALISÉ et COLLANT (LDB 20 l
     const c = infecte();
     dailyDiseaseUpkeep(c, seq([10]), ignore);
     expect(stacks(c, 'extenue')).toBe(1);
-    applyRecoveryDay(c, null);
+    applyRecoveryDay(c, null, { lignes: [], faits: [] });
     expect(stacks(c, 'extenue'), 'la nuit l’a dissipé — il n’était pas collant').toBe(1);
   });
 
@@ -203,7 +203,7 @@ describe('Malaise → l’État Exténué est MATÉRIALISÉ et COLLANT (LDB 20 l
     dailyDiseaseUpkeep(c, seq([10]), ignore);
     addCondition(c, 'extenue', 2); // deux pions de fatigue ordinaire
     expect(stacks(c, 'extenue')).toBe(3);
-    applyRecoveryDay(c, null);
+    applyRecoveryDay(c, null, { lignes: [], faits: [] });
     expect(stacks(c, 'extenue')).toBe(1);
     expect(derivedStacks(c, 'extenue')).toBe(1);
   });

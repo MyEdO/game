@@ -62,7 +62,7 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
       traumas: [{ uid: 't2', label: 'x', location: 'tete', onHealGrant: { scar: 'cicatrice-spectaculaire', whenClear: ['hemorragique'] } }] });
     addCondition(c, 'hemorragique', 1);
     expect(c.traumas!.some((t) => t.onHealGrant)).toBe(true); // l'ajout d'État ne guérit pas
-    removeCondition(c, 'hemorragique', 1); // dernier État associé tombe → guérison
+    removeCondition(c, 'hemorragique', 1, { lignes: [], faits: [] }); // dernier État associé tombe → guérison
     expect(c.traumas!.some((t) => t.traumaId === 'cicatrice-spectaculaire')).toBe(true);
     expect(c.traumas!.some((t) => t.onHealGrant)).toBe(false);
   });
@@ -71,9 +71,9 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
     const c = C({ criticalWounds: 2, // 1 nez cassé (en cours) + 1 autre Blessure critique
       conditions: [{ id: 'hemorragique', value: 2 }, { id: 'sonne', value: 1 }],
       traumas: [{ uid: 't3', label: 'x', location: 'tete', onHealGrant: { scar: 'cicatrice-nez-casse', whenClear: ['hemorragique', 'sonne'] } }] });
-    removeCondition(c, 'hemorragique', 2);
+    removeCondition(c, 'hemorragique', 2, { lignes: [], faits: [] });
     expect(c.traumas!.some((t) => t.onHealGrant)).toBe(true); // Sonné encore porté
-    removeCondition(c, 'sonne', 1);
+    removeCondition(c, 'sonne', 1, { lignes: [], faits: [] });
     const scar = c.traumas!.find((t) => t.traumaId === 'cicatrice-nez-casse');
     expect(scar).toBeTruthy();
     expect(scar!.needsSurgery).toBe(true);
@@ -100,7 +100,7 @@ describe('#192 — séquelles POST-guérison (cicatrices) : marqueur onHealGrant
     expect(c.traumas.some((t) => t.onHealGrant)).toBe(true);
     // guérison : on retire l'Hémorragique → cicatrice octroyée automatiquement
     const hemo = c.conditions.find((x) => x.id === 'hemorragique')!;
-    removeCondition(c, 'hemorragique', hemo.value);
+    removeCondition(c, 'hemorragique', hemo.value, { lignes: [], faits: [] });
     expect(c.traumas.some((t) => t.traumaId === 'cicatrice-spectaculaire')).toBe(true);
     expect(c.criticalWounds).toBe(0);
   });

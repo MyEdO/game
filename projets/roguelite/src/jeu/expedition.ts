@@ -17,6 +17,8 @@ import {
   verdictDuSoin,
   viseeDeLEpreuve,
   viseeDuSoin,
+  purgerEtats,
+  type Applique,
   type IssueDuCombat,
   type Visee,
 } from '../noyau';
@@ -382,7 +384,8 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
   const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${peage ? `, +${peage} CO du péage` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);
   const partis = new Set(x.groupe);
-  for (const h of herosDuGroupe(e)) h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));
+  const sortie: Applique = { lignes, faits: [] };
+  for (const h of herosDuGroupe(e)) purgerEtats(h.c, (c) => !DURABLES.has(c.id), sortie);
   e.expedition = null;
   if (jours) passerDesJours(e, jours, partis);
   return lignes;
@@ -411,7 +414,9 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   e.jour += jours;
   for (const h of [...e.roster]) {
     if (absents.has(h.c.id)) continue;
-    h.c.conditions = h.c.conditions.filter((c) => DURABLES.has(c.id));
+    const sortie: Applique = { lignes: [], faits: [] };
+    purgerEtats(h.c, (c) => !DURABLES.has(c.id), sortie);
+    if (sortie.lignes.length) noter(e, sortie.lignes.join(' '));
     const aLHospice = h.sejour?.ou === 'temple' ? Math.min(jours, h.sejour.reste) : 0;
     const maladie = [...entretenirLesMaladies(h.c, e.graine++, aLHospice, true), ...entretenirLesMaladies(h.c, e.graine++, jours - aLHospice, false)];
     if (maladie.length) noter(e, maladie.join(' '));

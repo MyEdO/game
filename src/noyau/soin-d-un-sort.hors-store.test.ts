@@ -40,21 +40,22 @@ describe('Soin d’un sort (op heal) : réveil et Hémorragie', () => {
     expect(stacks(b, COND.inconscient)).toBe(1);
   });
 
-  it('le dernier État Hémorragique retiré pose Exténué, et le héros reprend connaissance (LDB 16 l.109)', () => {
+  it('le dernier État Hémorragique retiré pose Exténué, et le héros reprend connaissance : À Terre et Exténué (LDB 16 l.109, l.119)', () => {
     const b = soignerParLaBenediction((c) => { addCondition(c, COND.hemorragique, 1); poserInconscientDeSaignement(c); });
     expect(stacks(b, COND.hemorragique)).toBe(0);
     expect(stacks(b, COND.inconscient)).toBe(0);
-    expect(stacks(b, COND.extenue)).toBe(1);
+    expect(stacks(b, COND.extenue)).toBe(2);
+    expect(stacks(b, COND.aTerre)).toBe(1);
   });
 
-  it('les faits du soin : Blessures, Hémorragique, Exténué et réveil, chacun sa ligne', () => {
+  it('les faits du soin : Blessures, Hémorragique et sa sortie, réveil et sa sortie, chacun sa ligne', () => {
     const c = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'B', seed: 13 });
     c.wounds.current = 0;
     addCondition(c, COND.hemorragique, 1);
     poserInconscientDeSaignement(c);
     const { faits, lignes } = applyOps(c, [{ op: 'heal', amount: 2 }], { idNeuf: idsDeTest, rng: { int: () => 1 }, sourceSpellId: 'benediction-de-guerison' });
-    expect(faits.map((f) => (f.genre === 'etat' ? `${f.id} ${f.valeur}` : `${f.genre} ${f.valeur}`))).toEqual(['blessures 2', 'hemorragique -1', 'extenue 1', 'inconscient -1']);
-    expect(lignes).toHaveLength(4);
+    expect(faits.map((f) => (f.genre === 'etat' ? `${f.id} ${f.valeur}` : `${f.genre} ${f.valeur}`))).toEqual(['blessures 2', 'hemorragique -1', 'extenue 1', 'inconscient -1', 'a-terre 1', 'extenue 1']);
+    expect(lignes).toHaveLength(6);
   });
 
   it('une potion (heal hors sort) ne retire aucune Hémorragie (LDB 16 l.107)', () => {

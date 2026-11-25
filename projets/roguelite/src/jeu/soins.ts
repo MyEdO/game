@@ -1,7 +1,7 @@
 /**
  * L'hospice de Shallya : soins, plaies pansées, opération, Larmes de Shallya.
  */
-import { blessuresARendre, plaiesASoigner, panserLesPlaies, opererLesBlessures, soigner, guerirDesSequelles, sequelles } from '../noyau';
+import { blessuresARendre, plaiesASoigner, panserLesPlaies, opererLesBlessures, soigner, guerirDesSequelles, sequelles, purgerEtats } from '../noyau';
 
 import { GUERISON_DE_L_HOSPICE, PRIX_DE_L_HOSPICE, PRIX_DES_LARMES, PRIX_DU_SOIN_PAR_BLESSURE, SEMAINE_DE_REPOS } from './valeurs';
 import { Etat, Heros } from './etat';
@@ -27,7 +27,7 @@ export function soignerAuTemple(e: Etat, id: string): string | null {
   if (refus) return refus;
   e.or -= prix;
   soigner(h.c, h.c.wounds.max);
-  h.c.conditions = [];
+  purgerEtats(h.c, () => true, { lignes: [], faits: [] });
   if (e.batiments.temple >= 3 && (h.c.fate ?? 0) === 0) h.c.fate = 1;
   return null;
 }
