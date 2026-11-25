@@ -23,10 +23,10 @@ import { metaDesChamps } from '../../../src/data/schemas/grammaire/meta';
 import { raceKeySchema, sexeSchema } from '../../../src/data/schemas/grammaire/valeurs';
 
 /**
- * Garde TRANSVERSE (#809) : tout paquet bundlé `src/scenes/*.../*-projet.json` doit se relire dans
+ * Garde TRANSVERSE (#809) : tout paquet livré `projets/<projet>/…/<x>-projet.json` doit se relire dans
  * le modèle COURANT — `parseProject` sans lever, avec une IDENTITÉ valide (`id`/`label`/
- * `versionContenu`, plats à la racine depuis #1467 L1b). Couvre TOUT paquet présent OU futur (glob
- * récursif de `src/scenes`, jamais une liste de noms en dur), puis `validateScene` sans erreur. C'est
+ * `versionContenu`, plats à la racine depuis #1467 L1b). Couvre TOUT paquet présent OU futur (`listerProjetsLivres()`,
+ * jamais une liste de noms en dur), puis `validateScene` sans erreur. C'est
  * la garde du contenu COMMITÉ au format courant (#2404) : aucun chargement ne migre, un paquet d'une
  * autre forme rougit ici avant d'atteindre un joueur.
  */

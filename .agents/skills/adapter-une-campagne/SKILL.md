@@ -167,7 +167,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
 - **Dossiers de chapitre** : fiches commitées `projets/jeu-de-role/dossiers/<ABBR>/<NN>.json` ; leur état des lieux sur les
   paquets du jeu de rôle, la sortie standard de `npm run jeu-de-role:docs`.
 - **Journaux de table, verdicts de goût** : commentaires de ticket.
-- **Contenu** : le paquet de campagne manuscrit `src/scenes/<campagne>/<campagne>-projet.json`, états de
+- **Contenu** : le paquet de campagne manuscrit `projets/jeu-de-role/campagnes/<campagne>/<campagne>-projet.json`, états de
   campagne compris.
 
 ## Chapitre terminé

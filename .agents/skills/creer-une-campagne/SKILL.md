@@ -11,7 +11,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
 
 ## Le chemin canonique en 6 étapes
 
-1. **Le paquet `src/scenes/<campagne>/<campagne>-projet.json`**, commité, MANUSCRIT, édité à l'éditeur
+1. **Le paquet `projets/jeu-de-role/campagnes/<campagne>/<campagne>-projet.json`**, commité, MANUSCRIT, édité à l'éditeur
    ou comme document JSON. « Ouvrir » une campagne du jeu en fait une COPIE de travail libellée « Copie de
    <label> » ; l'aller-retour vers le paquet est « Fichier → Exporter forme dépôt (dev) » : le fichier
    `BuiltinCampaign.fichier`, au format du dépôt, libellé d'origine tant que le projet n'est pas renommé,
@@ -30,7 +30,7 @@ par un script (fiche `user-doctrine-campagne-jamais-generee-par-script`). Modèl
    `worldMap.places[].scene` doit pointer un id du tableau `scenes` ; deux routes entre les mêmes lieux
    sont permises (seul `id` est une clé) et le moteur ne force PAS le sens : nommer `-aller`/`-retour`.
 5. **Validé par ce qui le lit, AUCUN test nominatif sur le paquet livré.** `parseProject`
-   (`src/noyau/worldMap.ts`) refuse un document mal formé. `projets/jeu-de-role/suites/bundled-projects.test.ts` prend tout `src/scenes/**/*-projet.json`
+   (`src/noyau/worldMap.ts`) refuse un document mal formé. `projets/jeu-de-role/suites/bundled-projects.test.ts` prend tout paquet livré (`listerProjetsLivres()`)
    au GLOB : `parseProject` sans lever, identité valide, apparence et nom résolus, aucune `error` de
    `validateScene` (`src/noyau/validateScene.ts`), prose sourcée confrontée au `Source/` à l'octet, refus
    du jargon technique dans un texte joueur. Un changement de forme réécrit les paquets commités dans le MÊME

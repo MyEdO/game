@@ -48,7 +48,8 @@ const offreDeMonter = (vue: VueDuPont): Bouton | undefined =>
 
 describe('l’action authorée d’une coque terrestre s’offre et se joue par le pont (#4576)', () => {
   it('le groupe à portée de la coque voit le bouton, le presse, et l’action se joue', () => {
-    const { pont, appel } = table(stockageEnMemoire(), null, { ...contenu, scenarios: [MONTER_A_BORD] });
+    const stockage = stockageEnMemoire();
+    const { pont, appel } = table(stockage, null, { ...contenu, scenarios: [MONTER_A_BORD] });
     ouvert = pont;
     let s = drainer(appel, appel('demarrer', { scenario: 'monter-a-bord', graine: 7 })).suite;
     while (s.vue.projection.fenetre) s = drainer(appel, appel('jouer', (enFocus(s.vue) as Bouton).jeu)).suite;
@@ -62,5 +63,7 @@ describe('l’action authorée d’une coque terrestre s’offre et se joue par 
 
     s = drainer(appel, appel('jouer', offre!.jeu)).suite;
     expect(offreDeMonter(s.vue), 'l’action unique jouée ne s’offre plus').toBeUndefined();
+    expect(appel('sauvegarder', { sauvegarder: 1 }).ok).toBe(true);
+    expect([...stockage.contenu.values()].some((v) => v.includes('"a-bord":true')), 'son effet est posé').toBe(true);
   });
 });

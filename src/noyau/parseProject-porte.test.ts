@@ -206,7 +206,7 @@ describe('parseProject — identité et corps d’architecture à la porte (#809
    * `ArchitectureBody.style` est une RÉFÉRENCE vers `buildings.json` (`ref('building')`, #1715) : la
    * porte résout l'id, et un corps SANS type de bâtiment reste valide (bourg, hameau, corps
    * composite). Le sujet est un paquet FABRIQUÉ ICI : un paquet livré est la CARTE de son auteur, que
-   * ce test laisse intacte — la contre-preuve porte sur une fixture, jamais sur `diligence-projet.json`.
+   * ce test laisse intacte — la contre-preuve porte sur une fixture, jamais sur un paquet livré.
    */
   const PAQUET_ARCHITECTURE = (styles: (string | undefined)[]) => {
     return {

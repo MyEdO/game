@@ -9,7 +9,7 @@ est de l'affichage multilangue — AGENTS.md, encadré « id STABLE ») ; **pers
 
 ## 1. Pipeline
 
-- **Paquet MANUSCRIT** `src/scenes/<campagne>/<campagne>-projet.json`, commité (fiche
+- **Paquet MANUSCRIT** `projets/jeu-de-role/campagnes/<campagne>/<campagne>-projet.json`, commité (fiche
   `user-doctrine-campagne-jamais-generee-par-script`), édité dans Godot ou comme document JSON.
   Avec `npm run jeu-de-role:editeur`, ouvre le projet livré dans l’atelier et utilise « Enregistrer ».
   Le geste valide le document par `parseProject`, produit sa forme dépôt par `texteDuDepot`

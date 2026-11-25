@@ -3,7 +3,7 @@
  * `documentDeProjet`, `src/noyau/worldMap.ts`, via `projectDoc()` ci-dessous)
  * partagé par les générateurs `scripts/<dossier>/generate.mjs` (Arène, « Le Loup et la Saumure »,
  * « La Barge du sel »). Chaque générateur est le PROPRIÉTAIRE EXCLUSIF de son paquet
- * `src/scenes/<campagne>/<campagne>-projet.json` : l'artefact commité est l'octet de son `build()`
+ * `projets/jeu-de-role/campagnes/<campagne>/<campagne>-projet.json` : l'artefact commité est l'octet de son `build()`
  * (`projets/jeu-de-role/suites/generateurs-byte-stables.test.ts`, #1522), et une édition du JSON hors générateur rougit
  * cette garde. Migration de ces campagnes vers un paquet MANUSCRIT : #1601.
  *
