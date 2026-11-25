@@ -16,7 +16,7 @@ extends SceneTree
 ## au moins `RAMURE_LISIBLE`. Les images s'écrivent sous
 ## `--sortie=<dossier>` s'il est donné.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")

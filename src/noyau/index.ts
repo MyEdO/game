@@ -24,6 +24,7 @@ export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, t
 export { libelleDeDistance } from '../engine/travel';
 export { clockLabel } from '../engine/duration';
 export { currentSeason } from '../engine/travelStages';
+export { isEngagedWith } from '../engine/engagement';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export {

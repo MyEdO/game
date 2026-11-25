@@ -44,6 +44,7 @@ import {
   poserLeTestDeMain,
   poserLEtapeDAttaque,
   startDisengage,
+  sacrifierLAvantagePourPartir,
   completeFlee,
   startAuContact,
   startGrapple,
@@ -172,7 +173,7 @@ import { disengageFrom, isEngaged, setContact, setEngaged, clearContact, meleeRe
 import { clearGrapple, setGrapple } from '../engine/grapple';
 import { applyOps } from '../engine/ops';
 import { groupAdvantage, mirrorPools } from '../engine/advantagePool';
-import { avantageDiffere, campGain, campSpend, startAdvantagePools } from './combat/advantagePool';
+import { avantageDiffere, campGain, startAdvantagePools } from './combat/advantagePool';
 import { combatSubstitute, skillAdvantageCap } from '../engine/skillCombatApps';
 import { byId } from '../data/index';
 import { rule } from '../engine/policy';
@@ -197,7 +198,7 @@ import { spendResolveForPsychImmunity, calmeDAcquisition, ciblesDAnimositeAcquis
 import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel } from '../engine/items';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { canPushback } from '../engine/qualities/dispatch';
-import { talentFearIndice, hasCommandTeam, retreatAdvantageCost, keptAdvantageOnDisengage, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
+import { talentFearIndice, hasCommandTeam, hasFocusHarmony } from '../engine/combatFeatures/dispatch';
 import { teamCommandTargets } from './monde/commandTeam';
 import { consommableDe } from '../engine/consumables';
 import { consignerLaDose, refusDeConsommer, runConsumable } from './consumableFlow';
@@ -854,7 +855,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const battle = get().battle;
       if (!battle || battle.over) return; // option A (Sacrifier l'Avantage) reste possible même après avoir agi
       const active = activeCombatant(battle);
-      if (!active || !isEngaged(active)) return;
+      if (!active || !isEngaged(active, battle.combatants)) return;
       startDisengage(get, set, active);
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `disengage`) : foe (atk) figé, seule l'Esquive du mover se (re)joue.
@@ -908,7 +909,7 @@ export function createCombatSlice(get: Get, set: Set) {
       // Détermination) ne déplacent pas au clic-case → inertes ; seul le mode neutre (action null) marche.
       if (battle.action !== null) return;
       // Engagé : pas de déplacement libre (LDB 15 l.45) → le clic-sol route vers le Désengagement.
-      if (isEngaged(active)) {
+      if (isEngaged(active, battle.combatants)) {
         startDisengage(get, set, active);
         return;
       }
@@ -2455,16 +2456,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const { battle, scene, pendingDisengage: pd } = get();
         if (!battle || !scene || !pd) return;
         const mover = garanti(inBattleId(battle, pd.moverId), pd.moverId, 'désengagé');
-        const foes = (mover.engagedWith ?? [])
-          .map((id) => inBattleId(battle, id))
-          .filter((c): c is Combatant => !!c);
-        // « Ramener votre Avantage à 0 » (LDB 15 l.47) ; en mode « Avantage de groupe » c'est la
-        // Retraite stratégique (AA 11 l.37) : dépense FIXE de 2 Avantages de la réserve du camp (1 avec
-        // Impitoyable AA 13 l.74), débitée par `campSpend`. Mode LDB : Impitoyable (LDB 10 l.591) GARDE
-        // niveau Avantages au lieu de tomber à 0.
-        if (groupAdvantage()) campSpend(get, mover, retreatAdvantageCost(mover));
-        else mover.advantage = Math.min(mover.advantage, keptAdvantageOnDisengage(mover));
-        for (const f of foes) disengageFrom(mover, f); // LDB 15 l.47
+        sacrifierLAvantagePourPartir(get, mover); // LDB 15 l.47
         // L'hôte `desengagement` se clôt par la sortie d'hôte (#4255) : l'issue est sa suite.
         sortirDeLHote(get, set, { pendingDisengage: null }, () => {
           const b = get().battle!;

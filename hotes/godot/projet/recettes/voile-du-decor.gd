@@ -16,7 +16,7 @@ extends SceneTree
 ## l'inconnu et les décors à `LOIN` cases au moins de lui à la part du vu : chaque décor se voile à ses cases, jamais
 ## d'un état par modèle.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")

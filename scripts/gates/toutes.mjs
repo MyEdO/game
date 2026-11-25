@@ -161,7 +161,6 @@ export const ECRIT_LU = {
       'superviserProcessus.test.mjs écrit ses lanceurs, PID, battements et résultats JSON dans mkdtempSync de os.tmpdir(), puis rmSync en finally ; ses enfants écrivent ces seuls chemins temporaires ; ' +
       'operationsFs.test.mjs écrit sous deux mkdtempSync de os.tmpdir() (racine refusée par l’interception, dehors permis), vérifie la racine vide, puis rmSync en finally ; ' +
       'arbreProcessus.test.mjs et son suspendeur (scripts/test/suspendeurDeMesure.mjs) écrivent pilote, script PowerShell et témoin d’armement dans mkdtempSync de os.tmpdir(), puis rmSync en t.after ; ' +
-      'comptes-plage.test.mjs forge son dépôt sous mkdtempSync de os.tmpdir(), puis rmSync en finally ; son enfant tsx (jugerLesComptes) pose chaque borne sous mkdtempSync de os.tmpdir(), effacée en finally ; ' +
       'fraicheur-docs.mjs est atteint par build-all : les gardes lisent son code ou appellent ses fonctions sur leurs fixtures, jamais pour écrire le ledger de la racine réelle ; ' +
       'le registre d’écrans que `new-src-file-guard.test.mjs` éprouve est INJECTABLE (`WFRP_REGISTRE_ECRANS`, ' +
       '`cheminRegistre` de scripts/hooks/new-src-file-guard.mjs) et le test en écrit une COPIE sous os.tmpdir() ; ' +
@@ -528,7 +527,8 @@ export const ECRIT_LU = {
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
       '`godot --headless --import`, puis chaque recette sous `recettes/` déclarant `const RECETTE_RENDUE := true` jouée ' +
-      'en rendu réel sous `--rendering-method forward_plus` et `gl_compatibility`, menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
+      'en rendu réel sous `--rendering-method gl_compatibility`, le rendu du Web (`--rendu`, #5037 : `forward_plus` se joue au canari, et ' +
+      '`npm run godot:rendus -- --rendu forward_plus` rejoue les deux), menées de front deux cœurs chacune, son moteur et son pont (hotes/godot/construire.mjs, #3951, #3950), ' +
       'sur une COPIE du projet sous `os.tmpdir()`, que le mode efface, ' +
       'tirée de la copie importée de `godot:sonde`, hors de l’arbre (`~/.cache/wfrp-godot-copies/`, `surUneCopie`, #3935), et sur un écran (`xvfb-run` sans `DISPLAY`) ; ' +
       'LIT ce que lit `godot:sonde` : hotes/ (le projet et son ' +
@@ -569,9 +569,9 @@ export const ECRIT_LU = {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:sonde` (`deposerLesAssets`, hotes/godot/construire.mjs, par `preparerLePilotage`) : ' +
         '`recupererModeles` n’y écrit un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par ' +
-        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde` et ' +
-        '`godot:rendus` dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE, et a son job dans ci.yml, ' +
-        'où il suit les gates du jeu de rôle, qui le précèdent',
+        'temporaire exclusif puis renommage ; `godot:recette` suit `godot:sonde`, ' +
+        '`godot:rendus` et les gates du jeu de rôle dans la lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une ' +
+        'SÉRIE, et a son job dans ci.yml, sur son runner (#5037)',
     },
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
@@ -597,8 +597,8 @@ export const ECRIT_LU = {
     ecritFerme: {
       'hotes/godot/projet/modeles/':
         'le même dépôt que `godot:recette` (`deposerLesAssets` par `preparerLePilotage`) : un `<id>.glb` absent ou de ' +
-        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` précède `godot:recette` dans le job ' +
-        '`godot-recette` de ci.yml, une SÉRIE',
+        'somme fausse, par temporaire exclusif puis renommage ; `jeu-de-role:recette` précède `godot:recette` dans la lane ' +
+        '`types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE ; en CI, chacun a son job, sur son runner (#5037)',
     },
     ...lectureDesZones(['jeu-de-role'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
@@ -611,7 +611,7 @@ export const ECRIT_LU = {
     ecritFerme: {
       'dist/roguelite/':
         'la page du roguelite et ses feuilles sous la sortie ignorée par git ; sa seule gate lectrice, ' +
-        '`roguelite:recette`, le suit dans le job `godot-recette` de ci.yml, une SÉRIE',
+        '`roguelite:recette`, le suit dans le job `roguelite-recette` de ci.yml, une SÉRIE',
     },
     ...lectureDesZones(['roguelite'], ['tsconfig.json', 'package.json']),
     raison:
@@ -631,7 +631,7 @@ export const ECRIT_LU = {
       'projets/roguelite/recette/reference/ par `ecart` (scripts/recette/ecart.mjs). La partie fixe et ' +
       'les captures vont sous dist/roguelite-recette/, que git ignore et qu’aucune gate ne lit. Il LIT aussi ' +
       'dist/roguelite/, absent d’un checkout propre : c’est l’`ecritFerme` de `roguelite:construire`, qui le précède ' +
-      'dans le job `godot-recette` de ci.yml, une SÉRIE',
+      'dans le job `roguelite-recette` de ci.yml, une SÉRIE',
   },
   'personnage-3d:tests': {
     ecrit: [],
@@ -668,7 +668,9 @@ export const ECRIT_LU = {
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
       'dans la lane) ; tous comparent ' +
       'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/. Son `lit` déclare `src/` et `hotes/godot/` entiers, ' +
-      'par ses `zones` (#4903 L4) : elle saute avec `godot:sonde`, qui remplit ce cache, et seulement hors de ces dossiers',
+      'par ses `zones` (#4903 L4) : elle saute avec `godot:sonde`, qui remplit ce cache, et seulement hors de ces dossiers ; ' +
+      'ce que chaque test reconstruit se juge sur les entrées d’une reconstruction (`racinesDesReconstructions`, ' +
+      'scripts/personnage-3d/changements.mjs, #5037)',
     delegueeAuPerimetre:
       'le CPython de `environnement.mjs` et son venv de bpy (roue win_amd64 de 338 Mo à la première installation) : ' +
       'à venv chaud, 31 s de mur sur le poste, mesuré le 2026-10-29',

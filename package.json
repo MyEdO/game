@@ -26,7 +26,7 @@
     "godot:ouvrir": "node hotes/godot/construire.mjs --ouvrir",
     "godot:bureau": "node hotes/godot/construire.mjs --bureau --sortie dist/bureau",
     "godot:web": "node hotes/godot/construire.mjs --export --sortie dist/godot",
-    "godot:rendus": "node hotes/godot/construire.mjs --rendus",
+    "godot:rendus": "node hotes/godot/construire.mjs --rendus --rendu gl_compatibility",
     "godot:coop": "node hotes/godot/construire.mjs --coop",
     "godot:recette": "node hotes/godot/lot-de-recettes.mjs --natif --captures dist/godot-recettes --jeux combat,editeur,compendium",
     "godot:regarder": "node hotes/godot/lot-de-recettes.mjs --natif --rendu --captures dist/godot-regards --jeux",

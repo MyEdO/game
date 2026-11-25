@@ -90,9 +90,11 @@ function equilibrer(graine0: number, expeditions: number, parties: number, rentr
             if (soigneur) for (const h of g) if (!J.refusDuPatient(e, soigneur, h)) J.agirDansLaSalle(e, 'soigner', soigneur.c.id, h.c.id);
             return J.agirDansLaSalle(e, 'reposer') as J.RecitDeSalle;
           }
-          const [action, repli] = x.salles[x.index].type === 'rencontre' ? ['parlementer', 'parlementer'] as const : ['desarmer', 'fouiller'] as const;
-          const tenteur = g.find((h) => !J.refusDAction(h, action));
-          const r = tenteur ? J.agirDansLaSalle(e, action, tenteur.c.id) : J.agirDansLaSalle(e, repli, g.find(J.valide)?.c.id);
+          // Ailleurs : l'action et le héros aux meilleures chances (`viseeDAction`), sinon passer son chemin.
+          const actions = Object.keys(J.EPREUVES[x.salles[x.index].type as J.SalleAJet].actions) as J.IdActionAJet[];
+          const [meilleure] = actions.flatMap((a) => g.flatMap((h) => { const v = J.viseeDAction(h, a); return v ? [{ a, h, chances: v.chances }] : []; }))
+            .sort((u, v) => v.chances - u.chances);
+          const r = meilleure ? J.agirDansLaSalle(e, meilleure.a, meilleure.h.c.id) : 'Personne ne sait tenter.';
           return typeof r === 'string' ? J.agirDansLaSalle(e, 'passer') as J.RecitDeSalle : r;
         })();
         const g = J.herosDuGroupe(e);

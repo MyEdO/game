@@ -1,4 +1,4 @@
-"""Les entrées d'une reconstruction (`entrees.py`, #3412) : sur des sujets nommés, ce qui reconstruit un élément ou un modèle
+"""Les entrées d'une reconstruction (`entrees.py`, #3412) : sur des sujets nommés et les racines réelles (`changements.mjs`), ce qui reconstruit un élément ou un modèle
 de véhicule, et ce qui le laisse ; le relevé des lectures d'un processus."""
 import os
 import sys
@@ -14,7 +14,7 @@ from entrees import a_reconstruire, est_entree, sujet  # noqa: E402
 E = 'scripts/personnage-3d/element/humanoide/'
 V = 'scripts/personnage-3d/vehicule/'
 M = 'hotes/godot/projet/modeles/'
-RACINES = ('scripts/personnage-3d/', 'hotes/godot/projet/modeles/', 'src/data/materials.json')
+RACINES = entrees.changements()['racines']
 BURE = sujet(f'{E}vetement--bure/', {'humanoide--vetement--bure'})
 CORDELIERE = sujet(f'{E}accessoire--cordeliere/', {'humanoide--accessoire--cordeliere'}, {'humanoide--vetement--bure'})
 CARAQUE = sujet(f'{V}caraque/', {'vehicule--caraque', 'amelioration--sabord'})
@@ -35,7 +35,8 @@ class Decision(unittest.TestCase):
 
     def test_un_fichier_partage_reconstruit_tout(self):
         for partage in ('scripts/personnage-3d/habillage.py', 'scripts/personnage-3d/element/lame.py', 'src/data/materials.json',
-                        f'{M}humanoide.manifeste.json', f'{M}LICENSE-CC0-1.0-f6089cba01cb570a.txt'):
+                        'src/noyau/monde/relief.ts', 'src/geometry/dir8.ts', f'{M}humanoide.manifeste.json',
+                        f'{M}LICENSE-CC0-1.0-f6089cba01cb570a.txt'):
             with self.subTest(partage=partage):
                 self.assertEqual([a_reconstruire(s, SUJETS, change(partage)) for s in SUJETS], [True, True, True])
 
@@ -46,8 +47,9 @@ class Decision(unittest.TestCase):
         self.assertEqual([a_reconstruire(s, SUJETS, change(f'{M}amelioration--sabord.glb')) for s in SUJETS], [False, False, True])
 
     def test_hors_des_racines_ne_reconstruit_rien(self):
-        self.assertEqual([a_reconstruire(s, SUJETS, change('src/noyau/combat.ts', 'hotes/godot/projet/ecrans/menu.gd')) for s in SUJETS],
-                         [False, False, False])
+        for ailleurs in ('package.json', 'src/noyau/combat.ts', 'hotes/godot/projet/ecrans/menu.gd', 'scripts/gates/toutes.mjs'):
+            with self.subTest(ailleurs=ailleurs):
+                self.assertEqual([a_reconstruire(s, SUJETS, change(ailleurs)) for s in SUJETS], [False, False, False])
 
     def test_sans_base_tout_se_reconstruit(self):
         sans = {**change(), 'chemins': None}

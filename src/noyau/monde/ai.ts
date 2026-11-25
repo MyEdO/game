@@ -685,7 +685,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Tir en étant *Engagé* : IMPOSSIBLE sauf Atout d'arme Pistolet (`LDB 14 l.41`) — veto de RÈGLE, à côté
   // de la préférence tactique « une arme de mêlée en main et un adversaire adjacent → on frappe ». MÊME
   // porte que la voie joueur (`firedAttackBlock`, combatFlow).
-  const armesTirables = isEngaged(enemy) ? armesPretes.filter((w) => canFireWhileEngaged(w)) : armesPretes;
+  const armesTirables = isEngaged(enemy, input.combatants ?? input.heroes) ? armesPretes.filter((w) => canFireWhileEngaged(w)) : armesPretes;
   const tirPossible = armesTirables.length > 0 && !(adjacentFoes.length > 0 && hasMeleeWeapon);
   const canShoot = !frenzied && tirPossible && shootPool.length > 0;
   // Structures que l'arme à distance peut viser, chargée ou non (AA 10 l.138) : FACE exposée en vue (on vise
@@ -822,7 +822,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     if (!clearable) return null;
     const reachableFoe = adjacentFoes.length > 0 || shootableHeroes.length > 0
       || [...reach.keys()].some((k) => heroes.some((h) => withinMelee(tileFromKey(k), h)));
-    if (!isEngaged(enemy) && !reachableFoe) return null; // ni Engagé ni cible joignable → se cacher vaut mieux
+    if (!isEngaged(enemy, input.combatants ?? input.heroes) && !reachableFoe) return null; // ni Engagé ni cible joignable → se cacher vaut mieux
     return { kind: 'depenseDeRessource', resource: 'determination', via: 'retirerEtat', id: clearable.id };
   };
   // Verrouillage d'Action data-driven (`restrictsAction`, ex. Brisé LDB 16 l.52) : Mouvement + Action doivent
@@ -832,13 +832,13 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   if (isActionLocked(enemy)) {
     const spend = planProactiveSpend();
     if (spend) return forced(spend);
-    if (!isEngaged(enemy)) return forced(fleeMove(true)); // fuir hors de vue (cachette prioritaire)
+    if (!isEngaged(enemy, input.combatants ?? input.heroes)) return forced(fleeMove(true)); // fuir hors de vue (cachette prioritaire)
   }
   // Bestial (LDB 85 l.59) : « Si elle perd plus de la moitié de ses Blessures, elle tente de fuir »
   // — sauf Territorial (combat jusqu'à la mort) ou acculée/Engagée (elle reste — Frénésie gérée par
   // le drapeau frenzied de l'appelant).
   if (isBestial(enemy.traits) && !isTerritorial(enemy.traits) && !isFrenzied(enemy)
-      && enemy.wounds.current < enemy.wounds.max / 2 && !isEngaged(enemy)) return forced(fleeMove());
+      && enemy.wounds.current < enemy.wounds.max / 2 && !isEngaged(enemy, input.combatants ?? input.heroes)) return forced(fleeMove());
 
   // === DOCTRINE TACTIQUE (Lot 5) ===========================================================
   // La doctrine (déduite des signaux DATA ou forcée par `enemy.aiDoctrine`) module les POIDS du cœur
@@ -853,7 +853,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // case d'évasion et renverrait `end` (tour gâché). On NE déclenche donc PAS le repli « doctrine » pour
   // un Empêtré : le cœur discrétionnaire ne produira aucun candidat (Mouvement 0) et le fallback final
   // l'enverra sur `recover empetre` (se libérer) — le bon comportement, plutôt que passer son tour.
-  if (macro?.retreatBelow != null && !isBestial(enemy.traits) && !isFrenzied(enemy) && !isEngaged(enemy)
+  if (macro?.retreatBelow != null && !isBestial(enemy.traits) && !isFrenzied(enemy) && !isEngaged(enemy, input.combatants ?? input.heroes)
       && !hasCondition(enemy, 'empetre') && !bouclierDuBinome(input.scene, [enemy, ...squad], enemy) // ZI 13 l.193
       && enemy.wounds.current < enemy.wounds.max * macro.retreatBelow) {
     return forced(fleeMove());

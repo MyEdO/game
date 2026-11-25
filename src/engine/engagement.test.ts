@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Combatant } from './types';
-import { isEngaged, isEngagedWith, engage, disengageFrom, decayEngagement, chargeAdvantage } from './engagement';
+import { engagesDe, isEngaged, isEngagedWith, engage, disengageFrom, decayEngagement, chargeAdvantage } from './engagement';
 
 const mk = (id: string, wounds = 10): Combatant =>
   ({ id, name: id, kind: 'ennemi', wounds: { current: wounds, max: 10 }, conditions: [] }) as unknown as Combatant;
@@ -10,10 +10,10 @@ describe('Engagé — pose / levée (LDB 13 l.169-171)', () => {
     const a = mk('a');
     const b = mk('b');
     engage(a, b);
-    expect(isEngaged(a)).toBe(true);
-    expect(isEngaged(b)).toBe(true);
-    expect(isEngagedWith(a, 'b')).toBe(true);
-    expect(isEngagedWith(b, 'a')).toBe(true);
+    expect(isEngaged(a, [a, b])).toBe(true);
+    expect(isEngaged(b, [a, b])).toBe(true);
+    expect(isEngagedWith(a, b)).toBe(true);
+    expect(isEngagedWith(b, a)).toBe(true);
     engage(a, b); // idempotent
     expect(a.engagedWith).toEqual(['b']);
     expect(a.meleeThisRound).toEqual(['b']);
@@ -23,8 +23,20 @@ describe('Engagé — pose / levée (LDB 13 l.169-171)', () => {
     const b = mk('b');
     engage(a, b);
     disengageFrom(a, b);
-    expect(isEngaged(a)).toBe(false);
-    expect(isEngaged(b)).toBe(false);
+    expect(isEngaged(a, [a, b])).toBe(false);
+    expect(isEngaged(b, [a, b])).toBe(false);
+  });
+  it('un lien vers un adversaire hors de combat ne se lit pas, quel que soit le chemin qui l\'y a mis (LDB 13 l.169-171)', () => {
+    const a = mk('a');
+    const b = mk('b');
+    const c = mk('c');
+    engage(a, b);
+    engage(a, c);
+    c.conditions = [{ id: 'inconscient', value: 1 }];
+    expect(engagesDe(a, [a, b, c]).map((x) => x.id)).toEqual(['b']);
+    expect([isEngagedWith(a, b), isEngagedWith(a, c)]).toEqual([true, false]);
+    b.dead = true;
+    expect(isEngaged(a, [a, b, c])).toBe(false);
   });
   it('decayEngagement : un lien rafraîchi ce Round SURVIT, un lien non rafraîchi TOMBE', () => {
     const a = mk('a');

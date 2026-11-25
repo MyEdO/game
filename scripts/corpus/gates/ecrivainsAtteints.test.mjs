@@ -61,9 +61,6 @@ const ATTENDU = {
     // +1 le 2026-10-17 (#2586) : chaque banc de `spawnBorne` pose son fichier de sortie sous un `mkdtempSync`
     // d'os.tmpdir(), retiré par `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/processusBorne.test.mjs',
-    // #2705 : le banc de la porte des comptes forge son dépôt sous un `mkdtempSync` d'os.tmpdir(), effacé en finally ; son
-    // enfant `tsx` pose chaque borne sous un `mkdtempSync` d'os.tmpdir(), effacé en finally. L'arbre n'est jamais écrit.
-    'scripts/guards/comptes-plage.test.mjs',
     // +1 le 2026-10-18 (#2586) : les fichiers de sortie de `spawnBorne` sous un `mkdtempSync` d'os.tmpdir(), retiré
     // par `t.after` ; l'arbre n'est jamais écrit.
     'scripts/guards/lib/fileBornee.test.mjs',
@@ -198,7 +195,6 @@ const ATTENDU = {
     // exige de VRAIS fichiers à résoudre, et l'arbre du dépôt n'est jamais écrit : mesuré le
     // 2026-09-18, `git status --porcelain` identique avant/après, et `/tmp` sans résidu.
     'scripts/guards/lib/modulesFeuilles.test.mjs',
-    'scripts/guards/lib/plageStock.test.mjs',
     // +1 le 2026-10-08 (#2503) : le banc de la porte d'une ÈRE forge des dépôts JETABLES
     // (`instanceDeDepot` sous os.tmpdir(), `rmSync` en finally) dont il charge l'ère ; l'arbre du dépôt
     // n'est jamais écrit.

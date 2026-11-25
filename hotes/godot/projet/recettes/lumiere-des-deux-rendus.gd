@@ -9,7 +9,7 @@ extends SceneTree
 ## l'occlusion assombrit le sol au bord de l'écran. Sous le rendu de compatibilité, qui n'en porte aucun, le sol dans
 ## l'ombre d'un écran a le rouge d'un sol loin de toute lampe.
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const RECETTE_RENDUE := true
 const LARGEUR := 25

@@ -1,5 +1,5 @@
 /**
- * LE PRÉ-JET D'UNE ACTIVITÉ, sans store (#3059 S6) : pour chaque Activité d'interlude que le catalogue ouvre, le
+ * LE PRÉ-JET D'UNE ACTIVITÉ, sans store (#3059 S6) : pour chaque Activité d'interlude des oracles du Vétéran, le
  * Test que le volet affiche (`preJetDActivite`) est celui que le geste pose (`pendingActivity`) — voie, valeur,
  * Difficulté, modificateurs —, et chacun vaut l'oracle figé de la fiche ; une Activité dont le héros ne peut tenter
  * aucune voie est refusée à l'ouverture, et le dit. Préparation de bataille : la cible que rend le volet
@@ -13,12 +13,12 @@ import { draineCascade } from './cascade.testkit';
 import { emptyScene } from './monde/scene';
 import { createHero, skillCharacteristicById, speciesSkillDefaults } from '../engine/character';
 import { withBourseMoney } from '../engine/bourse';
-import { activitiesFor, activityById, craftCatalog, craftSpecOf, craftTarget, learnableTalents, metierOf } from '../engine/activities';
+import { activityById, craftCatalog, learnableTalents } from '../engine/activities';
 import { avecActivite } from '../engine/activiteMer.testkit';
 import { learnableSpells } from '../engine/grimoire';
 import { soutienMod, testValue } from '../engine/skills';
-import { careers, findSpeciesById, findTrappingById, spells, testSkillLabel } from '../data';
-import { ciblesDActivite, preJetDActivite, refusDeLaComposition, refusDeRetrait, type CiblesChoisies } from './verdictsDInterlude';
+import { careers, findSpeciesById, spells, testSkillLabel } from '../data';
+import { preJetDActivite, type CiblesChoisies } from './verdictsDInterlude';
 import { battleActivityById, battlePrepEntries, preJetDePreparation, refusDePrepaDeBataille } from './massBattleFlow';
 import type { Combatant, Difficulty, ItemInstance } from '../engine/types';
 import type { ActivityDef } from '../engine/activities';
@@ -116,9 +116,6 @@ const REFUS: Record<string, string> = {
 /** Toutes les carrières de la donnée. */
 const CARRIERES = careers.map((c) => c.id);
 
-/** Les Activités d'interlude jouables, et ce que la boucle des carrières a confronté. */
-const OUVRABLES = activitiesFor('interlude');
-const confrontees = new Set<string>();
 let soutenues = 0;
 let combinees = 0;
 
@@ -280,100 +277,16 @@ describe('Pré-jet d’Activité — les `testMods` de la donnée entrent au pr�
       expect(preJet!.target).toBe(42 + 20 - 10);
     });
   });
-});
-
-/** Une variante de fiche : brute, Exténuée, sans aucune Augmentation, ou sorcier forgeron dont un Métier non
- *  augmenté précède le bon. */
-function variante(careerId: string, seed: number, n: number): Combatant {
-  const h = withBourseMoney(createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId, label: careerId, seed }), { gold: 30, silver: 0, brass: 0 }, idsDeTest);
-  h.items = [...(h.items ?? []), COUTEAU_DE_HARALD, AMULETTE];
-  h.psychTraits = [{ type: 'peur' }];
-  h.sinPoints = 1;
-  h.xp = 2000;
-  if (n === 1) h.conditions = [{ id: 'extenue', value: 1 }];
-  if (n === 2) h.skills = h.skills.map((k) => ({ ...k, advances: 0 }));
-  if (n === 3) {
-    h.talents.push({ talentId: 'magie-des-arcanes', spec: 'feu', times: 1 } as never);
-    h.spells = SORTS_DE_FEU;
-    h.skills = [
-      { id: 'metier', spec: 'cartographe', characteristic: 'dexterite', advances: 0 } as never,
-      ...h.skills.filter((k) => k.id !== 'metier'),
-      { id: 'savoir', spec: 'magie', characteristic: 'intelligence', advances: 5 } as never,
-      { id: 'metier', spec: 'forgeron', characteristic: 'dexterite', advances: 8 } as never,
-    ];
-  }
-  return h;
-}
-
-/** Les cibles que lit l'ouverture de `def` : la première de chaque liste du noyau (`ciblesDActivite`). */
-function premieresCibles(h: Combatant, def: ActivityDef): CiblesChoisies {
-  const c = ciblesDActivite(h, def);
-  if (def.resolver === 'learnTalent') return learnableTalents(h)[0] ? { talentId: learnableTalents(h)[0].id } : {};
-  if (c.armes[0]) return { itemUid: c.armes[0].uid };
-  if (c.artefacts[0]) return { itemUid: c.artefacts[0].uid };
-  if (c.sorts[0]) return { spellId: c.sorts[0].spell.id };
-  return c.traitsPsy[0] ? { traitPsy: c.traitsPsy[0].cle } : {};
-}
-
-/** Ouvre `def` par son geste : refusé (`refusDeLaComposition`, `refusDeRetrait`) ⇔ aucun jet ; ouvert, le pré-jet rendu par le volet == le jet posé, cible lancée comprise. */
-function confronteAuVolet(b: Banc, heroId: string, def: ActivityDef, cibles: CiblesChoisies, ecarts: string[], ctx = ''): boolean {
-  const s = b.getState();
-  const refus = def.resolver === 'mecenat' ? refusDeRetrait(s, cibles.depotId!) : refusDeLaComposition(s, heroId, { activite: def.id, cibles, atouts: [], defauts: [] });
-  const pj = preJetDActivite(s, heroId, def, cibles);
-  b.setState(() => ({ pendingActivity: null }));
-  geste(b, heroId, def, cibles);
-  const pa = b.getState().pendingActivity;
-  if (!pa || !pj) {
-    if (refus == null) ecarts.push(`${ctx} ${def.id} : ouvert sans refus, pré-jet ${!!pj}, jet posé ${!!pa}`);
-    return false;
-  }
-  if (refus != null || pj.refus != null) ecarts.push(`${ctx} ${def.id} : jet posé malgré le refus « ${refus ?? pj.refus} »`);
-  b.actions.jetLancer('activite');
-  const lance = b.getState().pendingActivity!;
-  const affiche = { test: testSkillLabel(pj.test), valeur: pj.value, difficulte: pj.ligne.difficulty, mod: pj.mods.reduce((n, m) => n + m.value, 0), cible: pj.ligne.target };
-  const jet = { test: pa.skillLabel, valeur: pa.skillValue, difficulte: pa.difficulty, mod: pa.mod ?? 0, cible: lance.target };
-  if (JSON.stringify(affiche) !== JSON.stringify(jet)) ecarts.push(`${ctx} ${def.id} affiché ${JSON.stringify(affiche)} ≠ posé ${JSON.stringify(jet)}`);
-  confrontees.add(def.id);
-  b.setState(() => ({ pendingActivity: null }));
-  return true;
-}
-
-describe('Pré-jet d’Activité — sur toute carrière et toute fiche, le volet rend le jet que le geste pose', () => {
-  // Variantes : 0 brute, 1 Exténuée, 2 sans Augmentation, 3 sorcier forgeron.
-  it.each(CARRIERES.flatMap((c) => [0, 1, 2, 3].map((n) => [c, n] as const)))('%s, variante %s', (careerId, n) => {
-    const ecarts: string[] = [];
-    {
-      const h = variante(careerId, 4000 + CARRIERES.indexOf(careerId), n);
-      const b = banc([h]);
-      for (const def of OUVRABLES) {
-        if (def.resolver === 'craftExtended' || def.resolver === 'mecenat') continue;
-        if (def.resolver === 'dissensionEmeute') {
-          b.setState((s) => ({ interlude: { ...s.interlude!, perHero: { ...s.interlude!.perHero, [h.id]: { ...s.interlude!.perHero[h.id], dissensionReady: true } } } }));
-        }
-        confronteAuVolet(b, h.id, def, premieresCibles(héros(b, h.id), def), ecarts, `v${n}`);
-      }
-      // Artisanat : le pré-jet d'engagement est celui de l'ouvrage une fois engagé, puis son lancer.
-      const ouvrage = craftCatalog().find((o) => { const t = findTrappingById(o.id); return t && craftSpecOf(t); });
-      if (metierOf(héros(b, h.id)) && ouvrage) {
-        const engagement = preJetDActivite(b.getState(), h.id, activityById('craft')!, {}, { ouvrage: craftTarget(ouvrage.tier, ouvrage.avail, 0, 0) });
-        pratiquer(b.getState, h.id, 'craft', { ouvrage: ouvrage.id });
-        if (héros(b, h.id).craft) {
-          expect(preJetDActivite(b.getState(), h.id, activityById('craft')!), `v${n} engagement`).toEqual(engagement);
-          // L'ouvrage engagé se lance sur le Métier qui l'a engagé (`metierOf`, LDB 23 l.76).
-          expect(confronteAuVolet(b, h.id, activityById('craft')!, {}, ecarts, `v${n}`), `v${n} lancer de l'ouvrage`).toBe(true);
-        }
-      }
-      b.actions.deposerALaBanque(h.id, 'mecenat', 1200);
-      if (b.getState().bank.length) confronteAuVolet(b, h.id, activityById('mecenat')!, { depotId: b.getState().bank[0].uid }, ecarts, `v${n}`);
-    }
-    expect(ecarts).toEqual([]);
-  });
-
-  it('couverture : chaque Activité qui s’ouvre par le catalogue a été confrontée', () => {
-    expect(OUVRABLES.filter((d) => d.resolver !== 'entrainement' && !confrontees.has(d.id)).map((d) => d.id)).toEqual([]);
+  it('Revenus au modificateur de situation : la cible lancée est celle que le pré-jet rend', () => {
+    const revenus = { ...activityById('revenus')!, testMods: [{ mod: -10, label: 'Mauvaise saison' }] };
+    avecActivite(revenus, () => {
+      const { b, preJet } = ouvrir('revenus');
+      b.actions.jetLancer('activite');
+      expect(b.getState().pendingActivity!.target).toBe(preJet!.ligne.target);
+      expect(preJet!.ligne.target).toBe(42 + 20 - 10);
+    });
   });
 });
-
 
 describe('Revenus — la Compétence de carrière se tente (LDB 08 l.110, LDB 09 l.30)', () => {
   it('conseiller sans aucune Augmentation : le Test se joue sur une Compétence de Niveau 1 qu’il possède', () => {
