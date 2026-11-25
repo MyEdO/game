@@ -16,9 +16,9 @@
  * et `volee` : la réponse de `echantillon` sur le sol `SOL_A_MARCHES`, dont la recette des côtés de marches pose les
  * côtés (`projet/recettes/cotes-de-marches.gd`, #4471) ; et `toit` : par plateau de `PLATEAUX_DU_TOIT` mètres par case,
  * l'échantillon de la couverture `TOIT` à cette échelle (`echantillonDessine`), dont la recette des pièces de toit pose
- * les pièces sur les nappes (`projet/recettes/pieces-de-toit.gd`, #4471), et, sous la clé `diligence`, la scène
- * `la-diligence` (`diligenceCampaign`) dessinée de même sans ses morceaux, dont des arêtes voisines se joignent bout à
- * bout. L'atelier garde aussi chaque élément `escalier` et
+ * les pièces sur les nappes (`projet/recettes/pieces-de-toit.gd`, #4471), et, sous la clé `opera`, la scène du plan
+ * de l'Opéra (`buildOperaFloorplan`), dont les toits portent faîtières, noues et arêtiers, dessinée de même sans ses
+ * morceaux, dont des arêtes voisines se joignent bout à bout. L'atelier garde aussi chaque élément `escalier` et
  * `toit` du dossier.
  */
 import { figerLAtelier, type Listage } from './atelier';
@@ -28,8 +28,7 @@ import {
 } from '../../../src/noyau/index';
 import type { Dir4 } from '../../../src/geometry/dir8';
 import { tableTotale } from '../../../src/lib/tableTotale';
-import { diligenceCampaign } from '../../../src/scenes/campaign';
-import { paquetDuJeu } from '../../../src/noyau/index';
+import { buildOperaFloorplan } from '../../../src/scenes/opera/floorplan';
 
 /** Les entrées de `echantillon` que l'atelier envoie, dans l'ordre des gestes de la recette : un décor, la mer, une
  *  matière de relief, une matière de toit et `MUR_CRENELE`, dont la brèche abat la couronne et dont la case crénelée
@@ -159,7 +158,7 @@ export function figerLeDecor(listage: Listage) {
     volee: appel('echantillon', { famille: 'sol', id: SOL_A_MARCHES }),
     toit: {
       ...tableTotale(PLATEAUX_DU_TOIT.map(String), (_, i) => echantillonDessine({ ...sceneDEchantillon('toit', TOIT), metresPerTile: PLATEAUX_DU_TOIT[i] })),
-      diligence: sansMorceaux(echantillonDessine(paquetDuJeu(diligenceCampaign).scenes.find((s) => s.id === 'la-diligence')!)),
+      opera: sansMorceaux(echantillonDessine(buildOperaFloorplan())),
     },
   };
 }

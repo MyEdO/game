@@ -4,11 +4,11 @@ import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { applyMiscast } from '../combatFlow';
 import { seedBattleRng } from '../battleRng';
 import { avanceEtapeCascade } from '../cascade.testkit';
+import { jouerPurifierLaChair } from './purifierLaChair.testkit';
 import { createHero } from '../../engine/character';
 import { hasCondition } from '../../engine/conditions';
 
 import { testScene } from '../../scenes/test-fixture';
-import type { Combatant } from '../../engine/types';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -40,8 +40,6 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     banc.setState({ battle: { ...b }, pendingCascade: null, pendingLogQueue: [] });
     return { H, E };
   }
-
-  const live = (id: string): Combatant => banc.getState().battle!.combatants.find((x) => x.id === id)!;
 
   /** Cherche la graine de `battleRng` qui, sur une Colère de `who`, produit une entrée À TEST (« Purifier
    *  la chair », « Visions sacrées »…) → une étape `testDeclenche` apparaît dans la cascade. Renvoie la
@@ -83,36 +81,8 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
   });
 
   it('(a bis) « Purifier la chair » HÉROS : échec à −4 DR ou moins → Inconscient EN PLUS (onFailHard)', () => {
-    // On force l'entrée « Purifier la chair » (81-87, Résistance Difficile + palier onFailHard −4 DR).
-    let seed = -1;
-    for (let s = 0; s < 400 && seed < 0; s++) {
-      const { H } = setup();
-      seedBattleRng(s);
-      applyMiscast(banc.getState, banc.setState, H, 'colere');
-      avanceEtapeCascade(banc.getState);
-      const casc = banc.getState().pendingCascade;
-      const m = casc?.participants.find((p) => p.kind === 'incantationImparfaite');
-      if (m?.outcome?.some((l) => /Purifier la chair/.test(l.text)) && casc?.participants.some((p) => p.kind === 'testDeclenche')) seed = s;
-      banc.setState({ pendingCascade: null });
-    }
-    expect(seed).toBeGreaterThanOrEqual(0);
-
-    const { H } = setup();
-    seedBattleRng(seed);
-    applyMiscast(banc.getState, banc.setState, H, 'colere');
-    avanceEtapeCascade(banc.getState);
-    const p0 = banc.getState().pendingCascade!;
-    const stepIdx = p0.participants.findIndex((s) => s.kind === 'testDeclenche');
-    const step = p0.participants[stepIdx];
-    // FORCE un échec à −4 DR ou pire (déterministe, indépendant du RNG) : jet 99 ÉCHOUÉ, DR = −5 (≤ −4 →
-    // palier `slThreshold` honoré). `result` posé sur l'étape → l'applier joue la branche d'échec entière.
-    banc.setState({
-      pendingCascade: { ...p0, participants: p0.participants.map((s, k) => (k === stepIdx ? { ...s, result: { roll: 99, target: step.base ?? 30, sl: -5, success: false } } : s)) },
-    });
-    // Valide toutes les étapes (révélation Imparfaite committée, PUIS l'étape de Test déjà résultée) → la
-    // branche d'échec : Sonné, ET le palier `slThreshold ≤ −4` : Inconscient EN PLUS.
-    banc.getState().jetLancer('cascade');
-    const h = live(H.id);
+    // Test forcé à −5 DR (≤ −4 → palier `slThreshold` honoré) : la branche d'échec entière se joue.
+    const h = jouerPurifierLaChair(banc, () => setup().H);
     expect(hasCondition(h, 'sonne')).toBe(true);        // onFail : Sonné
     expect(hasCondition(h, 'inconscient')).toBe(true);  // onFailHard (slThreshold ≤ −4) : Inconscient EN PLUS
   });

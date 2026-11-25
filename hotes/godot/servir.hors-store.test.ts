@@ -7,7 +7,8 @@
  * `erreurs`, le serveur continue. `deposerLesModeles` (#3778, #3946) écrit sous `modeles/` de l'export les mêmes
  * fichiers sans les GLB ni leur fiche d'import, le même listage en forme `scene`, et fait fabriquer la scène de chaque
  * modèle listé ; servi en `statique`, l'export rend ce dépôt.
- * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
+ * Avec un dépôt (#3508, section « Éditeur ») : `GET depot/` rend les ids de ses projets manuscrits (#4936) ;
+ * `GET depot/<id>` rend un projet manuscrit, prose matérialisée ;
  * `PUT depot/<id>` écrit à sa place un texte en forme dépôt de ce projet, et refuse tout autre texte sans rien écrire ;
  * `GET source/manifest.json` et `GET source/<livre>/<NNN>.md` rendent l'index des chapitres et le texte d'un chapitre du
  * `Source/` de ce dépôt-ci (#3606 M2g), 404 sans dépôt, export statique ou non.
@@ -184,6 +185,12 @@ describe('servir, le dépôt', () => {
     expect((await fetch(`${url}depot/nulle-part`)).status).toBe(404);
   });
 
+  it('GET depot/ rend les ids des seuls projets manuscrits, en no-store ; une autre méthode reçoit 405', async () => {
+    const r = await fetch(`${url}depot/`);
+    expect([r.status, r.headers.get('cache-control'), await r.json()]).toEqual([200, 'no-store', [id]]);
+    expect((await fetch(`${url}depot/`, { method: 'PUT', body: '[]' })).status).toBe(405);
+  });
+
   it('sans export, seuls modeles/ et depot/ répondent, le reste reçoit 404', async () => {
     const s = await servir({ modeles, depot });
     serveurs.push(s);
@@ -192,7 +199,8 @@ describe('servir, le dépôt', () => {
   });
 
   it('sans dépôt, depot/ n’est pas servi', async () => {
-    expect((await fetch(`${await demarrer()}depot/${id}`)).status).toBe(404);
+    const sans = await demarrer();
+    expect([(await fetch(`${sans}depot/${id}`)).status, (await fetch(`${sans}depot/`)).status]).toEqual([404, 404]);
   });
 
   it('source/ sert l’index des chapitres et le texte d’un chapitre du Source/ de ce dépôt ; un chapitre absent reçoit 404', async () => {

@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { diligenceCampaign } from '../campaign';
-import { paquetDuJeu } from '../../noyau/index';
+import { paquetDisqueDuJeu, paquetDuJeu } from '../../noyau/index';
 import type { Characteristics, Combatant } from '../../engine/types';
 import { travelSpeed, travelPlanCalc } from '../../engine/travel';
 import { baseHoursPerDay } from '../../noyau/travelFlow';
@@ -96,7 +96,7 @@ describe('Chapitre 1 de jeu (EDO) — la chaîne La Diligence → Altdorf tient 
 });
 
 describe('provenance des valeurs de route, à la porte du chargement (#2533)', () => {
-  const doc = (): ProjectDoc => structuredClone(diligenceCampaign.paquet) as unknown as ProjectDoc;
+  const doc = (): ProjectDoc => paquetDisqueDuJeu(diligenceCampaign) as unknown as ProjectDoc;
   const refus = (d: ProjectDoc): string => {
     try { parseProject(d); return ''; } catch (e) { if (e instanceof ProjetRefuse) return e.message; throw e; }
   };

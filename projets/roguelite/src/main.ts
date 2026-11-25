@@ -178,6 +178,8 @@ function demarrer(): void {
         else panneau.choix.add(id);
         return rendre();
       }
+      case 'rang': J.placer(etat, id, k as J.Rang); J.sauver(etat); return rendre();
+      case 'consigne': J.consigner(etat, id, k || null); J.sauver(etat); return rendre();
       case 'partir': {
         if (panneau?.type !== 'depart') return;
         const p = panneau;

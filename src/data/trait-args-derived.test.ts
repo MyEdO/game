@@ -36,10 +36,12 @@ import areneProjetJson from '../scenes/arene/arene-projet.json';
 import type { Scene } from '../noyau/monde/scene';
 import { fileURLToPath } from 'node:url';
 import { scanDuCorpus } from '../../scripts/docs/lib/structures-scan.mjs';
+import { cheminsDesProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
 import { customStatblockSchema } from './schemas/defs-scenes/communs';
 
 /** Entrées partielles embarquées du corpus des DEUX racines (`scanDuCorpus`), mesurées UNE fois. */
-const ENTREES_PARTIELLES = scanDuCorpus(fileURLToPath(new URL('../..', import.meta.url))).scan.entreesPartielles;
+const RACINE = fileURLToPath(new URL('../..', import.meta.url));
+const ENTREES_PARTIELLES = scanDuCorpus(RACINE, cheminsDesProjetsLivres(RACINE)).scan.entreesPartielles;
 
 /** Forme BRUTE d'une instance. Typage local : un `TraitInstance` porte `id` ; un OPTIONNEL COMPOSÉ
  *  (`OptionalEntry`, #174) porte `note` (et jamais `id`/`value` de premier niveau) → accès via ce shape. */

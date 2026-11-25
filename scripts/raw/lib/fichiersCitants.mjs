@@ -22,8 +22,8 @@ export const EXTS_CITANTES = [...EXTENSIONS_DE_SCRIPT, '.json', '.css', '.md']
 /** `indexCode` (`build-implemente.mjs`) indexe les symboles TS/TSX et les références de folio des documents JSON. */
 export const EXTS_IMPLEMENTANTES = ['.ts', '.tsx', '.json']
 
-/** Les racines du CODE : lues par `reconcile.mjs` et `build-implemente.mjs`. */
-export const RACINES_DU_CODE = Object.freeze(['src'])
+/** Les racines du CODE, le commun et les projets (#4936) : lues par `reconcile.mjs` et `build-implemente.mjs`. */
+export const RACINES_DU_CODE = Object.freeze(['src', 'projets'])
 /** Les racines CITANTES : le code, plus les fiches de dossier de chapitre (#2290). Lues par
  *  `check-code-refs.mjs`, `citation-graphy-guard.mjs` et `rawRefIntegrity.mjs`. */
 export const RACINES_CITANTES = Object.freeze([...RACINES_DU_CODE, DOSSIERS_DIR])

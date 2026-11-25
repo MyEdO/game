@@ -128,6 +128,13 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
     const deborde = await p.$eval('.corps-service', (c) => c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1);
     constater(!deborde, 'les colonnes du départ tiennent sans ascenseur');
   }
+  // Au départ, chaque colonne place son héros et lui donne sa consigne : l'un et l'autre s'arment et se sauvegardent.
+  const place = await p.$eval('.emporte [data-a="rang"][data-k="derriere"]:not(.armee)', (x) => x.dataset.id);
+  await p.click(`[data-a="rang"][data-id="${place}"][data-k="derriere"]`);
+  await p.click(`[data-a="consigne"][data-id="${place}"][data-k="soldats"]`);
+  const lu = (await sauvegarde(p)).roster.find((h) => h.c.id === place);
+  constater(lu.rang === 'derriere' && lu.c.aiDoctrine === 'soldats' && await p.$(`[data-a="consigne"][data-id="${place}"][data-k="soldats"].armee`),
+    'le départ place un héros derrière et lui donne « Tenir la ligne » : la plaque s’arme, la sauvegarde garde son rang et sa doctrine');
   const partirVisible = await p.$eval('[data-a="partir"]', (el) => { const r = el.getBoundingClientRect(); const f = el.closest('.fond').getBoundingClientRect(); return r.bottom <= f.bottom && r.top >= f.top; });
   constater(partirVisible, '« Partir » est visible au pied de son cadre');
   await p.click('[data-a="partir"]');

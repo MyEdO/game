@@ -204,12 +204,13 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     }
   });
 
-  it('CONTRAT : la ligne d’un projet est celle de son constructeur, aucune ligne hors de lui ne le nomme, aucune de ses ouvertures n’est morte, et toute autre zone le trouve fermé (#4903 H3)', () => {
+  it('CONTRAT : la ligne d’un projet est celle de son constructeur, chacun de ses affichages un dossier de `hotes/`, aucune ligne hors de lui ne le nomme, aucune de ses ouvertures n’est morte, et toute autre zone le trouve fermé (#4903 H3)', () => {
     const projets = Object.keys(COUCHES).filter(estProjet);
     expect(projets, 'les projets de la table').toEqual(['roguelite']);
     for (const p of projets) {
-      const { ouvertures = {} } = COUCHES[p];
-      expect(COUCHES[p], `${p} : la ligne de son constructeur`).toEqual(ligneDeProjet(dossierDe(p), ouvertures));
+      const { ouvertures = {}, affichages = [], outillage } = COUCHES[p];
+      expect(COUCHES[p], `${p} : la ligne de son constructeur`).toEqual(ligneDeProjet(dossierDe(p), ouvertures, { affichages, outillage }));
+      for (const a of affichages) expect(estZone(a) && dossierDe(a).startsWith('hotes/'), `${p} déclare ${a} : un affichage`).toBe(true);
       for (const [z, ticket] of Object.entries(ouvertures)) {
         expect(Number.isInteger(ticket) && ticket > 0, `${p} ouvre ${z} : son ticket`).toBe(true);
         const libre = (DROITS_D_UN_PROJET.importe as readonly string[]).includes(z) && DROITS_D_UN_PROJET.portes?.[z] === undefined;
@@ -634,7 +635,11 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(Object.fromEntries(cas.map(([f], i) => [f, obtenus[i]]))).toEqual(Object.fromEntries(cas));
   });
 
-  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises, ni par un motif joker qui peut l’atteindre ; un projet lit ses ouvertures et ses propres jokers, pas un affichage ni un joker qui peut atteindre une zone fermée, fichiers à même `src/` compris', () => {
+  it('AFFICHAGES ET PROJETS (#4903 H3) : un dossier de `hotes/` ou de `projets/` sans ligne est refusé ; un affichage n’importe ni un autre affichage ni un module de `projets/`, un fichier de `src/` aucun module de `projets/`, suites comprises, ni par un motif joker qui peut l’atteindre ; un projet lit ses ouvertures, de droit les affichages qu’il déclare, et ses propres jokers, pas un affichage qu’il ne déclare pas ni un joker qui peut atteindre une zone fermée, fichiers à même `src/` compris', () => {
+    const declarant = ligneDeProjet('projets/zz', { engine: 1 }, { affichages: ['godot'], outillage: { 'projets/zz/x.mjs': ['scripts/y.mjs'] } });
+    expect([declarant.importe, declarant.portes, declarant.ouvertures, declarant.affichages, declarant.outillage]).toEqual([
+      [...DROITS_D_UN_PROJET.importe, 'godot', 'engine'], DROITS_D_UN_PROJET.portes, { engine: 1 }, ['godot'], { 'projets/zz/x.mjs': ['scripts/y.mjs'] },
+    ]);
     const obtenus = verdicts([
       { filePath: 'hotes/zz-inconnu/a.ts', code: 'export const a = 1;\n' },
       { filePath: 'hotes/zz-a.ts', code: 'export const a = 1;\n' },

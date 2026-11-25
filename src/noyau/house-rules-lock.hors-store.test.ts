@@ -16,7 +16,7 @@ import { resolveRoundBoundary } from './combatFlow';
 import { createHero } from '../engine/character';
 import { findTrappingById } from '../data';
 import { itemFromTrappingById, itemFromTrappingRef, loadedAmmo, loadWeapon, recomputeLoadout, weaponFromItem, weaponWithAmmo } from '../engine/items';
-import { patchDeLArmement } from './monde/carrier';
+import { patchDeLEquipement } from './monde/carrier';
 import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -125,7 +125,7 @@ describe('L’armement du groupe suit l’option Aux Armes', () => {
     banc.getState().fixerLeGroupe([hero]);
     const porteur = () => banc.getState().party[0];
     const tir = () => weaponWithAmmo(porteur().weapons[0], loadedAmmo(findTrappingById, porteur(), porteur().weapons[0])!);
-    const reprojeter = () => banc.setState(patchDeLArmement(banc.getState()) ?? {});
+    const reprojeter = () => banc.setState(patchDeLEquipement(banc.getState()) ?? {});
     const ajout = { id: 'a-poudre-noire' };
     expect(tir().qualities).toContainEqual({ id: 'a-explosion', value: 4 });
     expect(tir().qualities.filter((q) => q.id === ajout.id)).toEqual([ajout, ajout]);

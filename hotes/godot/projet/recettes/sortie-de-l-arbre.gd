@@ -19,8 +19,8 @@ const RECETTE_AUTONOME := true
 const ARETE := preload("res://recettes/arete-au-pied.gd")
 const FIGE := "res://recettes/vues/repos.json"
 const FIGE_DE_L_EDITEUR := "res://recettes/vues/editeur-navire.json"
-## Le fichier des calques que l'éditeur garde pour l'Arène : une ouverture sans lui envoie l'entrée figée.
-const CALQUES_DE_L_ARENE := "user://calques/arene.json"
+## Le fichier des calques que l'éditeur garde pour la campagne de test : une ouverture sans lui envoie l'entrée figée.
+const CALQUES_DE_LA_CAMPAGNE := "user://calques/paquet-de-test.json"
 ## Les zones vides du Compendium (`ZonesDuCompendium`), que sa réponse figée montre.
 const ZONES_DU_COMPENDIUM := {"compendium.familles": [], "compendium.categories": [], "compendium.recherche": [], "compendium.liste": [], "compendium.fiche": [], "compendium.atelier": [], "compendium.etat": []}
 ## Les images au plus qu'attend le montage, la préparation ou l'ouverture d'un écran.
@@ -198,8 +198,8 @@ func _modeles_poses(scene: Node3D) -> MontageDesModeles:
 ## L'éditeur ouvert sur le figé de `FIGE_DE_L_EDITEUR` sous un pont retenu qui ne retient rien, son écran publié
 ## (`IMAGES_APRES`), puis le dépôt d'une réponse de `editer` (`depot`, `_deposer`) écrit au pont, la scène changée pendant l'écriture, puis l'écriture relâchée.
 func _sortir_l_editeur_en_ecriture() -> void:
-	if FileAccess.file_exists(CALQUES_DE_L_ARENE):
-		DirAccess.remove_absolute(CALQUES_DE_L_ARENE)
+	if FileAccess.file_exists(CALQUES_DE_LA_CAMPAGNE):
+		DirAccess.remove_absolute(CALQUES_DE_LA_CAMPAGNE)
 	var pont := PontFige.new(JSON.parse_string(FileAccess.get_file_as_string(FIGE_DE_L_EDITEUR)))
 	PontDuNoyau.remplacer(self, pont)
 	var editeur: Node = (load("res://scenes/Editeur.tscn") as PackedScene).instantiate()
@@ -210,12 +210,12 @@ func _sortir_l_editeur_en_ecriture() -> void:
 			break
 		await process_frame
 	if editeur.get("_vue").is_empty():
-		_fautes.append("éditeur : l'Arène n'est pas ouverte")
+		_fautes.append("éditeur : la campagne de test n'est pas ouverte")
 		return
 	for i in IMAGES_APRES:
 		await process_frame
 	pont.retient = true
-	editeur._deposer({id = "arene", texte = "{}"})
+	editeur._deposer({id = "paquet-de-test", texte = "{}"})
 	await _sortir(pont, "éditeur", editeur, [0])
 
 

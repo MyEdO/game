@@ -89,6 +89,8 @@ Une case se coche entre deux niveaux de carrière à chaque Augmentation d'une C
 > - Gain a Talent from your Career
 > - Acquire a Trapping from the next level of your Career » — `CRB 018 l.23-25`
 
+Option « Armure, règles rapides » active, une armure d'une pièce coche la case de chaque pièce qu'elle remplace parmi les dotations du niveau suivant : heaume et plastron pour l'Armure lourde (#4208 c.7145490398, proposition 2).
+
 Le chapitre des carrières parle des dix cases ; l'Endeavour *Advance Career* précise le nombre par niveau (section suivante, `CRB 048 l.45`).
 
 > « When you have filled the ten boxes, you can take the Advance Career Endeavour on page 196 to move to the next Level. » — `CRB 018 l.27`

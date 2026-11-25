@@ -124,7 +124,7 @@ export interface DetailDAvantage {
 export interface DetailDEtat {
   /** Id de l'État. */
   id: ConditionId;
-  /** Durée de la pose : `rounds`, `minutes`, ou annonce `parRound` (pions par Round, Rounds de la cause). */
+  /** Durée de la pose : `rounds`, `minutes`, ou annonce `parRound` (pions par Round) ; d'un État porté, celle de son porteur. */
   duree?: DureeDEtat;
   /** État porté par un effet ; `src` : ce qui le porte. */
   porte?: { src?: CodexTarget };
@@ -132,10 +132,6 @@ export interface DetailDEtat {
   verrouLeve?: true;
   /** Tout l'État retiré. */
   tous?: true;
-  /** Re-pose d'une cause persistante. */
-  regagne?: true;
-  /** Annonce d'une cause persistante. */
-  sauf?: true;
 }
 
 /**

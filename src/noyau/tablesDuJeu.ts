@@ -15,6 +15,7 @@ import type { CombatHook } from './combatHooks';
 import type { HitModifier } from './combat/hitModifiers';
 import type { ClotureApplier, TablesDuJeu } from './tablesPosees';
 import { TABLES as authorPerils } from './authorPerils';
+import { laBeteHorsRencontre } from './monde/spawn';
 import { TABLES as merchantFlow } from './merchantFlow';
 import { TABLES as travelPostes } from './travelPostes';
 import { TABLES as triggeredTest } from './combat/triggeredTest';
@@ -96,6 +97,7 @@ function assembler() {
     clotures,
     lancerLeSort: combatFlow.lancerLeSort,
     lancerLeSortGaranti: combatFlow.lancerLeSortGaranti,
+    projeterLaBeteHorsRencontre: laBeteHorsRencontre,
     apresToucheDeManoeuvre: combatFlow.apresToucheDeManoeuvre,
     sequences: disjointes('sequences', tavernFlow.sequences, pursuitFlow.sequences) satisfies TablesDuJeu['sequences'],
     scoresDeSequence: sequenceCore.scoresDeSequence,

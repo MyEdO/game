@@ -3,13 +3,27 @@
  */
 import { dotationDesNiveaux, nouvelleRecrue, porterAuNiveau, tirerUneEspece, type Combatant } from '../noyau';
 
-import { ESPECES, estUtile, IdBatiment, type LieuDeSejour, OR_INITIAL, PRIX_DE_RECRUE, PROFILS, Profil, SUPPLEMENT_PAR_NIVEAU, TypeDeSalle } from './valeurs';
+import {
+  ESPECES,
+  estUtile,
+  IdBatiment,
+  type Rang,
+  type LieuDeSejour,
+  OR_INITIAL,
+  PRIX_DE_RECRUE,
+  PROFILS,
+  Profil,
+  SUPPLEMENT_PAR_NIVEAU,
+  TypeDeSalle,
+} from './valeurs';
 import { choisir, noter, tirer } from './outils';
 import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
 
 /** Un séjour au bâtiment `ou` : `reste` jours sur `total` ; le héros ne part pas en expédition. */
 export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
-export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; sejour?: Sejour }
+/** `rang` : où le joueur l'a placé à l'entrée d'une rencontre (`rangDe`) ; sa consigne de combat est la doctrine de son
+ *  combattant (`Combatant.aiDoctrine`). */
+export interface Heros { c: Combatant; carriere: string; espece: string; expeditions: number; victoires: number; sejour?: Sejour; rang?: Rang }
 export interface Candidat extends Heros { prix: number }
 export interface Tombe { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
 /** `ouverte` : le groupe est entré dans une salle à choix (`EPREUVES`, `CAMP`) et attend le choix de son action ;

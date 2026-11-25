@@ -35,10 +35,10 @@ import {
   findStarById,
   starDie,
   starSubDie,
+  ouvertParSaRegle,
 } from '../data';
 import { idsDeLaSousListe, type RefASpecialisation } from '../data/schemas/grammaire/ref';
 import { plageDeCouleur, type RaceKey } from '../data/schemas/grammaire/valeurs';
-import { rule } from './policy';
 import { garanti } from '../lib/garanti';
 import { bonus } from './characteristics';
 import { baseWithTalents } from './talentEffects';
@@ -52,19 +52,13 @@ export const XP_CHARS_KEPT = 50; // LDB 05 l.337
 export const XP_CHARS_REASSIGNED = 25; // LDB 05 l.339
 export const XP_STAR_ROLLED = 25; // ADE II 3 l.36 (signe astral tiré et accepté)
 
-/** Espèce OUVERTE au joueur : sans `gatedByRule`, ou sa règle optionnelle active. Lue par le tirage et la grille
- *  du créateur. NADJ 14 l.5 ; ADE II 02 l.110 */
-export function speciesAllowed(s: SpeciesData): boolean {
-  return !s.gatedByRule || !!rule(s.gatedByRule.id);
-}
-
 /** Une rangée du Tableau des Races aléatoires : sa fourchette, l'espèce nominale de sa race puis les autres
  *  espèces ouvertes de la même race, au choix du joueur. LDB 04 l.91 ; ADE I 02 l.257 */
 export interface RangeeDeRaces { min: number; max: number; ids: string[] }
 
 /** Le Tableau des Races aléatoires qui s'applique : la table dont les races égalent celles des espèces
  *  ouvertes (`tableDesRacesAleatoires`), et son dé. LDB 04 l.93-101 ; NADJ 14 l.66-75 ; ADE II 02 l.112-121 */
-export function randomSpeciesTable(ouvertes: readonly SpeciesData[] = allSpecies.filter(speciesAllowed)): { die: DeDeTable; entries: RangeeDeRaces[] } {
+export function randomSpeciesTable(ouvertes: readonly SpeciesData[] = allSpecies.filter(ouvertParSaRegle)): { die: DeDeTable; entries: RangeeDeRaces[] } {
   const table = tableDesRacesAleatoires(new Set(ouvertes.map((s) => s.refChar)));
   return {
     die: deDeLaTableTiree(table),

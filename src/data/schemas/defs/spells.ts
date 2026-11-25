@@ -216,8 +216,8 @@ const doc = document(
         }
         if (e.duration != null && e.duration.kind !== 'instant') return;
         // #1695
-        for (const op of opsRetenues(e.effects, (n) => n.op === 'condition' && n.carried === true)) {
-          ctx.addIssue({ code: 'custom', path: ['effects'], message: messagePorteSansDuree(String(op.id ?? '')) });
+        for (const op of opsRetenues(e.effects, (n) => n.op === 'condition' && n.carried === true && n.durationRounds == null)) {
+          ctx.addIssue({ code: 'custom', path: ['effects'], message: messagePorteSansDuree(String((op.id as { id?: unknown }).id)) });
         }
       }),
   },

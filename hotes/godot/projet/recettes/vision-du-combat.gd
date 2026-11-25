@@ -14,7 +14,7 @@ extends SceneTree
 ## vision reçue attend, l'ennemi rentré dans la vue regagne son modèle ; le fondu fini, la vision qui attendait se pose
 ## et se fond à son tour jusqu'à 1 ; un coup, une incantation et une zone sans auteur jouent leur arrivée ou leur nappe
 ## sans aucun départ ; un coup en vol et un déplacement en cours dont le combattant quitte l'arbre ne lèvent rien ; la
-## première vision d'une autre scène se pose sans fondu. `arene` (exploration) : un pas du groupe rappelle `vision`, ni
+## première vision d'une autre scène se pose sans fondu. `opera-plan` (exploration) : un pas du groupe rappelle `vision`, ni
 ## `monde` ni `morceaux`, une case vue puis quittée lit 128, les noms posés sont ceux des entités que la vue nomme, et
 ## sous chacun des trois regards chaque matière des morceaux porte la vision posée. Le volume ne fond que par
 ## `avancer_le_fondu` (`set_process(false)`). Le code de sortie dit le verdict : 0 tenu, 1 une faute.
@@ -27,7 +27,7 @@ const GOBELIN_CACHE := "personnage-5"
 const GOBELIN_PAR_LA_HERSE := "personnage-7"
 ## La case de `grimpant` dont le pas de l'actif fait sortir l'ennemi de la vue.
 const CASE_DU_PAS := Vector3i(5, 0, 0)
-## La case de `arene` où le pas du groupe le mène.
+## La case de `opera-plan` où le pas du groupe le mène.
 const CASE_DU_GROUPE := Vector3i(28, 24, 0)
 const VISUEL := "etincelles"
 var _fautes: Array[String] = []
@@ -44,7 +44,7 @@ func _recetter() -> void:
 	await _siege()
 	await _noir()
 	await _grimpant()
-	await _arene()
+	await _opera_plan()
 	for faute in _fautes:
 		push_error("[vision-du-combat] " + faute)
 	print("[vision-du-combat] erreurs=", _fautes.size())
@@ -220,8 +220,8 @@ func _autre_scene(combat: Node, volume: VolumeDeScene, pont: PontEspion) -> void
 	_verifier(pont.appels.slice(depuis) == ["vision", "vision"], "changement et retour de scène : appels au pont %s" % [pont.appels.slice(depuis)])
 
 
-func _arene() -> void:
-	var partie := await _demarrer("arene")
+func _opera_plan() -> void:
+	var partie := await _demarrer("opera-plan")
 	if partie.is_empty():
 		return
 	var pont: PontEspion = partie.pont
@@ -231,34 +231,34 @@ func _arene() -> void:
 	var volume: VolumeDeScene = monde.volume
 	volume.set_process(false)
 	_passer_les_fenetres(combat)
-	if not await _attendre(func() -> bool: return combat.get("_vue").champ != null, "arène : le champ cliquable"):
+	if not await _attendre(func() -> bool: return combat.get("_vue").champ != null, "opéra : le champ cliquable"):
 		await _clore(combat)
 		return
-	_verifier(_noms(monde) == _noms_de_la_vue(combat.get("_vue")), "arène : les noms posés ne sont pas ceux des entités de la vue")
+	_verifier(_noms(monde) == _noms_de_la_vue(combat.get("_vue")), "opéra : les noms posés ne sont pas ceux des entités de la vue")
 	var avant := _masque_servi(pont)
 	var largeur := int(pont.reponses.vision.largeur)
 	var depuis := pont.appels.size()
 	plateau.case_cliquee.emit(CASE_DU_GROUPE)
 	var au_pas := pont.appels.slice(depuis)
-	print("[vision-du-combat] arène, au pas : %s" % [au_pas])
-	_verifier(au_pas.count("vision") == 1, "arène : au pas, `vision` appelée %d fois, attendu une" % au_pas.count("vision"))
+	print("[vision-du-combat] opéra, au pas : %s" % [au_pas])
+	_verifier(au_pas.count("vision") == 1, "opéra : au pas, `vision` appelée %d fois, attendu une" % au_pas.count("vision"))
 	for methode in ["monde", "morceaux"]:
-		_verifier(not au_pas.has(methode), "arène : au pas, `%s` redemandé" % methode)
+		_verifier(not au_pas.has(methode), "opéra : au pas, `%s` redemandé" % methode)
 	var apres := _masque_servi(pont)
 	var quittee := -1
 	for i in apres.size():
 		if avant[i] == 255 and apres[i] == 128:
 			quittee = i
 			break
-	if _verifier(quittee != -1, "arène : aucune case vue puis quittée au masque d'après"):
+	if _verifier(quittee != -1, "opéra : aucune case vue puis quittée au masque d'après"):
 		var case := Vector2i(quittee % largeur, quittee / largeur)
-		_verifier(volume.etat_de_la_case(case, 0) == 128, "arène : la case quittée %s lit %d, attendu 128" % [case, volume.etat_de_la_case(case, 0)])
-	_verifier(_noms(monde) == _noms_de_la_vue(combat.get("_vue")), "arène : après le pas, les noms posés ne sont pas ceux des entités de la vue")
+		_verifier(volume.etat_de_la_case(case, 0) == 128, "opéra : la case quittée %s lit %d, attendu 128" % [case, volume.etat_de_la_case(case, 0)])
+	_verifier(_noms(monde) == _noms_de_la_vue(combat.get("_vue")), "opéra : après le pas, les noms posés ne sont pas ceux des entités de la vue")
 	for regard: String in ["tactique", "plateau", "immersion"]:
 		combat.call("_suivre", pont.appeler("regarder", {regard = regard}))
-		_verifier(monde.regard() == regard, "arène : regard %s, attendu %s" % [monde.regard(), regard])
+		_verifier(monde.regard() == regard, "opéra : regard %s, attendu %s" % [monde.regard(), regard])
 		var sans := _matieres_sans_la_vision(volume)
-		_verifier(sans.is_empty(), "arène : sous le regard %s, %d matières des morceaux sans la vision posée" % [regard, sans.size()])
+		_verifier(sans.is_empty(), "opéra : sous le regard %s, %d matières des morceaux sans la vision posée" % [regard, sans.size()])
 	await _clore(combat)
 
 
