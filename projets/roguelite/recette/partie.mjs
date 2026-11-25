@@ -86,17 +86,18 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   const px = await pxDe();
   await p.click('.page-service .c.carr [data-a="pas"]');
   constater((await pxDe()) < px, 'la salle d’armes augmente une Caractéristique d’un pas de +5 contre des PX');
+  await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
+  const pxDeLaFiche = await pxDe();
+  await p.click('.progression .achat [data-a="pas"]:not(:disabled)');
+  constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
+  await p.click('.croix-ecran'); await geste(p, 'batiment', 'salle');
   // « Suivre le plan » : un clic dépense des PX et coche des cases de carrière (CRB 048 l.45).
   const cases = () => p.$$eval('.page-service .exige', (e) => parseInt(e.find((x) => x.textContent.includes('Cases de carrière'))?.querySelector('.cpt')?.textContent ?? 'NaN', 10));
   const [pxAvantPlan, casesAvantPlan] = [await pxDe(), await cases()];
   await p.click('.page-service [data-a="plan"]');
   constater((await pxDe()) < pxAvantPlan && (await cases()) > casesAvantPlan, `« Suivre le plan » dépense des PX et coche des cases de carrière (${await p.textContent('#toast')})`);
-  await geste(p, 'fermer-panneau'); await p.click('.socle-compagnie .carte-heros');
-  const pxDeLaFiche = await pxDe();
-  await p.click('.progression .achat [data-a="pas"]:not(:disabled)');
-  constater((await pxDe()) < pxDeLaFiche, 'la fiche augmente une Compétence contre des PX, en deux clics depuis le hameau');
+  await geste(p, 'fermer-panneau');
 
-  await p.click('.croix-ecran');
   const blesse = (await sauvegarde(p)).roster[3].c.id;
   await geste(p, 'batiment', 'relais'); await geste(p, 'client', blesse);
   const orAvantChambre = await or();
