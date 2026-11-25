@@ -98,8 +98,8 @@ export function soinDOuverture(soigneur: Combatant, mode: HealMode, patient: Com
   return options.find((p) => refusDuTestDeSoin(soigneur, mode, p, patient) === null) ?? null;
 }
 
-/** Difficulté du Test de soin déclaré : Guérison, `healDifficulty` ; Soin aux animaux, `healDifficulty`, décision de
- *  l'orchestrateur (2026-11-24, #4804) ; Dextérité, décision de l'orchestrateur (2026-11-03, #3059, maison) : Intermédiaire (+0). */
+/** Difficulté du Test de soin déclaré : Guérison, `healDifficulty` ; Soin aux animaux, `healDifficulty`, arbitrage
+ *  utilisateur (2026-11-25, #4804) ; Dextérité, décision de l'orchestrateur (2026-11-03, #3059, maison) : Intermédiaire (+0). */
 export function difficulteDuSoin(test: TestDeSoin, mode: HealMode): Difficulty {
   return test === 'dexterite' ? 'intermediaire' : healDifficulty(mode);
 }
