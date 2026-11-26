@@ -1429,32 +1429,27 @@ test('titreDePr : aucun mot fermant — la fermeture appartient à `fermetures.y
 
 const etapePr = ETAPES.find((e) => e.nom === 'pr')
 
-test('#2626 pr absente créée puis armée avant toute lecture CI', () => {
+test('#5103 pr absente : créée, jamais armée — ni demande de fusion, ni lecture de file ou de CI', () => {
   const gestes = []
   let lectures = 0
   const ctx = {
     branche: 'chantier/2178',
     lirePr: () => ({ ok: true, prs: lectures++ === 0 ? [] : [prDeRest(REST())] }),
     ouvrirPr: (p) => { gestes.push(['ouvrir', p.titre]); return { ok: true } },
-    demanderFusion: (p) => { gestes.push(['armer', p]); return { ok: true, statut: 'armed' } },
-    coursesCi: () => assert.fail('pr arme avant toute attente de CI'),
+    demanderFusion: () => assert.fail('pr arme avant le vert de la course de branche'),
+    etatFileDePr: () => assert.fail('pr lit la file'),
+    coursesCi: () => assert.fail('pr lit la CI'),
   }
   const vu = etapePr.jouer(ctx, journalPush())
-  assert.deepEqual(gestes, [['ouvrir', 'publication chantier/2178'], ['armer', { numero: 7, sha: journalPush().tete }]])
-  assert.deepEqual(vu.detail, { pr: 7, armement: 'armed' })
+  assert.deepEqual(gestes, [['ouvrir', 'publication chantier/2178']])
+  assert.deepEqual(vu.detail, { pr: 7 })
 })
-test('#2626 pr existante non armée : reprise ; armée/en file/fusionnée même SHA : étape acquise', () => {
-  const avec = (plus = {}, statut) => ({
-    lirePr: () => ({ ok: true, prs: [prDeRest(REST(plus))] }),
-    etatFileDePr: () => ({ ok: true, statut }),
-  })
-  assert.equal(etapePr.dejaFaite(avec(), journalPush()), false)
-  for (const statut of ['armed', 'enqueued']) assert.equal(etapePr.dejaFaite(avec({}, statut), journalPush()), true)
+test('#5103 pr acquise dès que la PR de la tête est ouverte ou fusionnée, armée ou non', () => {
+  const avec = (plus = {}) => ({ lirePr: () => ({ ok: true, prs: [prDeRest(REST(plus))] }), etatFileDePr: () => assert.fail('pr lit la file') })
+  assert.equal(etapePr.dejaFaite(avec(), journalPush()), true)
   assert.equal(etapePr.dejaFaite(avec({ state: 'closed', merged_at: 'x', merge_commit_sha: 'f'.repeat(40) }), journalPush()), true)
-  assert.equal(etapePr.dejaFaite(avec({ head: { sha: 'autre' } }, 'armed'), journalPush()), false)
+  assert.equal(etapePr.dejaFaite(avec({ head: { sha: 'autre' } }), journalPush()), false)
   assert.equal(etapePr.dejaFaite({ lirePr: () => ({ ok: false, raison: 'x' }) }, journalPush()), false)
-  const refusee = { lirePr: () => ({ ok: true, prs: [prDeRest(REST())] }), demanderFusion: () => ({ ok: false, raison: 'refus serveur' }) }
-  assert.match(etapePr.jouer(refusee, journalPush()).raison, /armement.*REFUSÉ.*refus serveur/)
 })
 
 // ── étape `file` ─────────────────────────────────────────────────────────────────────────────
@@ -1510,11 +1505,11 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
   return { ctx, gestes, lignes, sommeils }
 }
 
-for (const differe of [false, true]) test(`#2626 pr conflit ${differe ? 'après refus calcul différé' : 'visible avant armement'} : fusion canonique puis relance`, () => {
+for (const differe of [false, true]) test(`#2626 file conflit ${differe ? 'après refus calcul différé' : 'visible avant armement'} : fusion canonique puis relance`, () => {
   const sale = REST({ mergeable_state: 'dirty' })
   const { ctx, gestes } = ctxFile({ prs: differe ? [REST({ mergeable_state: 'unknown' }), sale] : [sale], demande: { ok: false, raison: 'conflit calculé' } })
   const journal = journalPush()
-  const vu = etapePr.jouer(ctx, journal)
+  const vu = etapeFile.jouer(ctx, journal)
   assert.equal(vu.ok, true, vu.raison)
   assert.deepEqual(vu.relancer, ['push-branche', 'pr', 'file'])
   assert.deepEqual(gestes.map((g) => g[0]), differe ? ['demander', 'tronc', 'fusionner'] : ['tronc', 'fusionner'])
@@ -1637,6 +1632,19 @@ test('file : une course de BRANCHE rouge — aucune demande de fusion, et le tra
   assert.deepEqual(gestes, [['jobs', 41]], 'aucune demande de fusion')
 })
 
+for (const issue of ['verte', 'rouge']) test(`#5103 file : course de BRANCHE en vol puis ${issue} — ${issue === 'verte' ? 'une seule demande, après le vert, sur la tête' : 'aucune demande'}`, () => {
+  const enVol = { headSha: 'ttttttttt', status: 'in_progress', conclusion: null, databaseId: 41, workflowName: 'CI' }
+  const fin = { ...enVol, status: 'completed', conclusion: issue === 'verte' ? 'success' : 'failure' }
+  const { ctx, gestes } = ctxFile({ pr: REST(), branches: [[enVol], [enVol], [fin]], demande: { ok: true, statut: 'merged', fusion: 'f'.repeat(40) } })
+  const lire = ctx.coursesCi
+  ctx.coursesCi = (sha) => { const vu = lire(sha); gestes.push(['branche', vu.valeur[0].status]); return vu }
+  const vu = etapeFile.jouer(ctx, journalPush())
+  assert.equal(vu.ok, issue === 'verte', vu.raison)
+  const lus = gestes.filter((g) => g[0] !== 'jobs').map((g) => (g[0] === 'demander' ? ['demander', g[1].sha] : g))
+  assert.deepEqual(lus, [['branche', 'in_progress'], ['branche', 'in_progress'], ['branche', 'completed'], ...(issue === 'verte' ? [['demander', journalPush().tete]] : [])])
+  if (issue === 'rouge') assert.match(vu.raison, /course CI rouge de la branche sur ttttttttt.*n’entre pas dans la file/)
+})
+
 const courseDeBrancheAnnulee = (attempt) => ({ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 41, attempt, workflowName: 'CI' })
 const MOTIF_RUNNER = 'The job was not acquired by Runner of type hosted even after multiple attempts'
 
@@ -1691,7 +1699,7 @@ test('file : tête non armée → armement sur la tête jugée ; fusion confirm�
   assert.deepEqual(gestes, [['demander', { numero: 7, sha: 'ttttttttt' }]])
 })
 
-test('#2626 file : auto-merge armé avant CI est seulement observé jusqu’à fusion', () => {
+test('#2626 file : une PR déjà armée est seulement observée jusqu’à fusion', () => {
   const { ctx, gestes, lignes, sommeils } = ctxFile({ pr: REST() })
   let lectures = 0
   ctx.etatFileDePr = () => ++lectures === 1 ? { ok: true, statut: 'armed' } : { ok: true, statut: 'merged', fusion: 'f'.repeat(40) }
