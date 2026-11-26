@@ -1,4 +1,5 @@
 import type { SessionProgramme } from './tsProgram.mjs';
+import type { PasseDesProjets } from './serrureDesProjets.mjs';
 
 export interface FieldReadHit {
   field: string;
@@ -16,7 +17,7 @@ export interface FieldReadHit {
 }
 
 export function listProdFiles(dir: string): string[];
-export function programmeDesChamps(root: string, fichiers: readonly string[]): SessionProgramme;
+export function programmeDesChamps(root: string, fichiers: readonly string[], options?: { porte?: PasseDesProjets }): SessionProgramme;
 
 /** La cible d'un scan : le type NOMMÉ et le module qui le DÉCLARE (l'identité est la déclaration). */
 export interface FieldScanTarget {

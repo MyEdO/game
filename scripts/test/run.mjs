@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-// Lanceur de Vitest pour le dépôt. WFRP_TEST_PARTIE=i/K sélectionne une tranche disjointe (CI).
+// Lanceur de Vitest pour le dépôt. WFRP_TEST_PARTIE=i/K sélectionne une tranche disjointe (CI), prise dans la
+// sélection de la zone WFRP_TEST_ZONE quand elle est posée (#5037 L2).
 // Le régime demandé borne les workers par la mémoire disponible. La sortie et le verdict sont
 // enregistrés au fil de l’eau sous node_modules/.cache/vitest-run-<pid>.txt.
 import os from 'node:os'
@@ -23,6 +24,7 @@ import {
   refusDePartie,
   trancher,
   VARIABLE_PARTIE,
+  VARIABLE_ZONE,
   resumeLancement,
   SENTINELLES,
   separerArguments,
@@ -38,8 +40,9 @@ import { verrouGestesLourds } from './verrouGestesLourds.mjs'
 import { CODE_DIFFERE, codeEnfant } from '../guards/lib/codesDeSortie.mjs'
 import { PEREMPTION_MS, purgerPerimes } from '../guards/lib/purgerPerimes.mjs'
 import { suiteVitestDuDepot } from '../guards/lib/suiteVitest.mjs'
+import { selectionDeLaZone } from './selectionDeZone.mjs'
 
-export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, enumerer = suiteVitestDuDepot, enfant = spawn } = {}) {
+export async function lancerTests({ racine = fileURLToPath(new URL('../..', import.meta.url)), verrou: instance, env = process.env, argv = process.argv.slice(2), signal, enumerer = suiteVitestDuDepot, selectionner = selectionDeLaZone, enfant = spawn } = {}) {
   const RACINE = racine
   const VITEST = path.join(RACINE, 'node_modules/vitest/vitest.mjs')
   // Outillage LOCAL exigé AVANT tout lancement (#1679 L1c) : sans `node_modules/vitest` dans CET
@@ -278,12 +281,28 @@ export async function lancerTests({ racine = fileURLToPath(new URL('../..', impo
       observer(refus, true)
       return 1
     }
+    const zone = env[VARIABLE_ZONE]
+    if (zone) {
+      let selection
+      try {
+        selection = selectionner({ racine: RACINE, suite, zone, env: ENV })
+      } catch (e) {
+        selection = { fichiers: suite, entiere: `dérivation en échec : ${e.message}`, motifs: {} }
+      }
+      const ligneZone = selection.entiere === null
+        ? `[zone] ${zone} : ${selection.fichiers.length} fichier(s) sur ${suite.length} · ${Object.entries(selection.motifs).map(([m, n]) => `${m} ${n}`).join(', ')}\n`
+        : `[zone] ${zone} : suite entière — ${selection.entiere}\n`
+      process.stdout.write(ligneZone)
+      ecrireCapture(ligneZone)
+      suite = selection.fichiers
+    }
     const tranche = trancher(suite, PARTIE)
     const ligne =
       `[partie] ${PARTIE.i}/${PARTIE.k} : ${tranche.fichiers.length} fichier(s) sur ${suite.length}` +
       ` · empreinte ${tranche.empreinte} · liste ${tranche.empreinteListe}\n`
     process.stdout.write(ligne)
     ecrireCapture(ligne)
+    if (zone && !tranche.fichiers.length) return 0
     const suspects = cheminsGlobSuspects(tranche.fichiers)
     if (suspects.length) {
       const refus = `[partie] chemin à métacaractère de glob, tranche inexprimable en \`include\` : ${suspects[0]}`

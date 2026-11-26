@@ -70,7 +70,7 @@ const ADVERSAIRES_SEULS = [
 
 /** ZdE dont la source ne réserve RIEN (`LDB 47 l.28` : tout le monde dans la zone). */
 const SANS_FILTRE = [
-  'festin-des-damnes', // ADE II 02 l.765 « créatures de votre choix » — choix du lanceur, hors vocabulaire
+  'festin-des-damnes', // ADE II 02 l.812 « créatures de votre choix » — choix du lanceur, hors vocabulaire
 ];
 
 describe("`affects` — ZdE réservées aux ALLIÉS du lanceur", () => {

@@ -1,0 +1,95 @@
+name: Filet de main
+
+# Une entrée de file dont le push a une zone (`zone` du prologue, scripts/gates/sauteesDuPush.mjs) n'a joué que les
+# tests qui lisent son projet (#5037 L2, scripts/test/selectionDeZone.mjs). Après sa fusion, ce workflow rejoue la suite
+# ENTIÈRE sur `main`, en ses trois parties : un raté de sélection y rougit. Un push dont aucune entrée n'avait de zone ne
+# joue rien, la file ayant joué toute la suite (`filetDuPush`, scripts/gates/filetDeMain.mjs). Aucun de ses jobs n'est
+# requis : le ruleset n'exige que ceux de `ci.yml` (`contextesRequis`, scripts/gates/gatesDeCi.mjs).
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  zone:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    outputs:
+      filet: ${{ steps.filet.outputs.filet }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - id: filet
+        env:
+          AVANT: ${{ github.event.before }}
+          APRES: ${{ github.sha }}
+        run: node scripts/gates/filetDeMain.mjs >> "$GITHUB_OUTPUT"
+
+  # FERMÉ PAR DÉFAUT : un output vide (job `zone` rouge) joue la suite. Le nom de check diffère des parties `suite i/3`
+  # de `ci.yml` : `scripts/ops/checks-requis.mjs` lit les checks requis du sha de `main` par leur nom.
+  suite:
+    name: filet ${{ matrix.partie }}/${{ strategy.job-total }}
+    needs: zone
+    if: ${{ !cancelled() && needs.zone.outputs.filet != 'false' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        partie: [1, 2, 3]
+    env:
+      WFRP_TEST_PARTIE: ${{ matrix.partie }}/${{ strategy.job-total }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+          cache: npm
+      - run: npm ci
+      - uses: ./.github/actions/caches-3d
+      - run: npm test
+      - name: Arbre inchangé
+        if: ${{ !cancelled() }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # Ce workflow n'est pas la porte : il se NOMME en rougissant — registre scripts/gates/workflowsDuDepot.mjs (#1779).
+  signal:
+    needs: [zone, suite]
+    if: ${{ !cancelled() && needs.suite.result != 'skipped' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: package.json
+          check-latest: true
+      - name: Se nommer en rougissant
+        if: ${{ !cancelled() }}
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+          ZONE: ${{ needs.zone.result }}
+          SUITE: ${{ needs.suite.result }}
+          SHA: ${{ github.sha }}
+        run: |
+          RAPPORT="$RUNNER_TEMP/filet-rapport.md"
+          echo "Run $RUN_URL sur $SHA : zone \`$ZONE\`, suite \`$SUITE\`" > "$RAPPORT"
+          node scripts/ops/signaler-rouge.mjs \
+            --titre "Suite de main rouge" \
+            --label canari \
+            --corps "$RAPPORT" \
+            --verdict "$([ "$ZONE" = success ] && [ "$SUITE" = success ] && echo vert || echo rouge)"

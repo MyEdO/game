@@ -323,7 +323,7 @@ portés, pictogrammes) ; les états vivent dans `sources/combat/cour.js`.
   éteinte, et sa note du jeu (« Corde tenue : Immobilisante, Portée 20. ») ; à droite la cible du tir, sans dé.
 - Verbes : `jetRegler('attaque', 'sansLaCorde', bool)`, `jetRegler('attaque', 'localisation', lieu)`,
   `jetLancer('attaque')`, `jetForcerLaReussite('attaque')`, `jetAnnuler('attaque')`.
-- Réfs : ADE II 02 l.677 ; offerte au tir d'un héros dont l'arme porte `ropeMode` (`src/noyau/fenetreDAttaque.ts:182`,
+- Réfs : ADE II 02 l.724 ; offerte au tir d'un héros dont l'arme porte `ropeMode` (`src/noyau/fenetreDAttaque.ts:182`,
   `:244-246`, `src/data/trappings.json`, `lance-harpon`) ; libellés `reglage.attaque.sansLaCorde`,
   `attaque.sansLaCorde.noteTenue` (`src/i18n/messages/fr.ts:221`, `fr.ts:1204`).
 - À valider : le Lance-harpon, arme d'ogre, est hors de la fiche de Berta ; seuil 33 d'exemple (CT de Berta) ; la

@@ -20,8 +20,6 @@ import {
   APPEL_D_ACQUISITION,
   certifierLecture,
   evaluerLotDuDepot,
-  evaluer,
-  lecteurDExpressions,
   lectureDeModule,
   partiesDeRequete,
   encoderLecture,
@@ -35,6 +33,8 @@ import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { memosDe, PAQUETS_VERSIONNANTS, texteSiPresent } from '../guards/lib/memosDAnalyse.mjs'
 import { empreinteDe, fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { cheminAbsent } from '../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
+import { CONFIG_VITEST, setupFilesDe } from './setupDeVitest.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Les fichiers dont un changement invalide toute dérivation : la suite entière est retenue. */
 const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vitest.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
@@ -47,7 +47,6 @@ export const RANG_TOOLCHAIN = RANG_SETUP + 1
 const rangDe = (lien) => lien.nature === 'touché' ? 0 : lien.nature === 'racine balayée' ? 1
   : lien.nature === 'import' ? 1 + lien.distance : lien.nature === 'setup' ? RANG_SETUP : RANG_TOOLCHAIN
 /** La config Vitest d'où se lisent les `setupFiles`. */
-const CONFIG_VITEST = 'vitest.config.ts'
 
 /** Les VARIANTES gardées par évaluation de module (`evaluations`) : une par jeu de réponses, les tours du
  *  point fixe des lecteurs en posant plusieurs. */
@@ -98,22 +97,6 @@ function imagesDuDiff(depot, { base, tete } = {}) {
   return { base: borne, tete: null, touches, post, avant }
 }
 
-/** Les `setupFiles` de la config Vitest (`CONFIG_VITEST`), lus sur son arbre syntaxique (`analyser`). */
-function setupFilesDe(texte, analyser) {
-  if (texte === null) return []
-  const ts = typescript()
-  const [{ sourceFile }] = [...analyser([{ rel: CONFIG_VITEST, text: texte }])]
-  const { expr, lambdas } = lecteurDExpressions(CONFIG_VITEST, sourceFile)
-  const vus = []
-  const visiter = (n) => {
-    if (ts.isPropertyAssignment(n) && ts.isIdentifier(n.name) && n.name.text === 'setupFiles') vus.push(...evaluer(expr(n.initializer), { lambdas }))
-    n.forEachChild(visiter)
-  }
-  visiter(sourceFile)
-  const non = vus.find((v) => !('chemin' in v))
-  if (non) throw new Error(`perimetre : setupFiles de ${CONFIG_VITEST} illisible (${non.non ?? 'hors du dépôt'})`)
-  return vus.map((v) => v.chemin)
-}
 
 /** @typedef {{ site: string, fichier: string, helper: string, raison: string, moduleBalaieLeDepot: boolean }} NonResolu */
 
@@ -147,7 +130,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
   const cache = new Map()
   const optionsDImports = {
-    racine, typesEffaces: true, cache, analyser,
+    racine, typesEffaces: true, cache, analyser, porte: porteDeTousLesProjets,
     arbre: { existe: (a) => ensemble.has(rel(a)), lire: lireAbs, fichiers: [...ensemble].map(abs) },
     specificateurs: memos && {
       lire: (a, t) => memos.lire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`),
@@ -682,7 +665,7 @@ export function depuisDTO(dto) {
 }
 
 export function produireDTO({ racine, base, tete, dossierDesMemos = join(racine, CACHE), lectureSeule = false, mode = 'perimetre' }, stade = () => {}) {
-  const depot = depotDe(racine)
+  const depot = depotDe(racine, { porte: porteDeTousLesProjets })
   stade('images', null)
   const images = mode === 'balayages' ? { base: null, tete: null, touches: [], post: listerImage(depot, TRAVAIL), avant: [] } : imagesDuDiff(depot, { base, tete })
   const lire = images.tete ? (rels) => lireEnLot(depot, images.tete, rels) : lireDuDisque(racine)

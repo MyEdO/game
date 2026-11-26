@@ -23,13 +23,6 @@
       "date": "2026-11-16"
     },
     {
-      "fichier": "Source/Warhammer v4 - 3.0 Le Pouvoir Derriere le Trone/14 - CALENDRIER DES ATTRACTIONS PRINCIPALES.md",
-      "ref": "PDT 14 161→164",
-      "occurrence": 1,
-      "lot": "#4397",
-      "date": "2026-11-17"
-    },
-    {
       "fichier": "Source/Warhammer v4 - Aldorf la Couronne de l'Empire/01 - La Couronne de l'Empire.md",
       "ref": "ACE 1 17→19",
       "occurrence": 1,
@@ -74,13 +67,6 @@
     {
       "fichier": "Source/Warhammer v4 - Aldorf la Couronne de l'Empire/05 - La rive sud.md",
       "ref": "ACE 5 124→113",
-      "occurrence": 1,
-      "lot": "#1711",
-      "date": "2026-09-12"
-    },
-    {
-      "fichier": "Source/Warhammer v4 - Les archives de l'Empire volume 2/02 - Les ogres.md",
-      "ref": "ADE II 2 21→23",
       "occurrence": 1,
       "lot": "#1711",
       "date": "2026-09-12"

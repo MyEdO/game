@@ -30,7 +30,7 @@ export const APP_ROOT_MODULES = [
 /** La clôture d'imports de `APP_ROOT_MODULES` sous les racines du code (`RACINES_DU_CODE`) : un projet joue son contenu
  *  par son entrée, et le code commun que ce contenu tire. */
 const closureDeLApplication = () =>
-  clotureDImports(APP_ROOT_MODULES, { retenir: (abs) => RACINES_DU_CODE.some((racine) => abs.includes(`/${racine}/`)) })
+  clotureDImports(APP_ROOT_MODULES, { retenir: (abs) => RACINES_DU_CODE.some((racine) => abs.includes(`/${racine}/`)), porte: porteDeTousLesProjets })
 // Fenêtre de match en lignes : comble le décalage folio↔fiche (ex. `MSRC 16 l.109-111` contre la
 // plage folio `l.65-105`) ; `renderBlock` accepte `ctx.tol`. Le bruit des pages-catalogues denses
 // vient de la plage FOLIO, pas de TOL (#434).

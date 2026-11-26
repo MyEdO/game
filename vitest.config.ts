@@ -41,6 +41,7 @@ export default defineConfig({
     testTimeout: DELAI_DE_TEST_MS,
     setupFiles: [
       fileURLToPath(new URL('./scripts/gates/vitestSansEcriture.mjs', import.meta.url)),
+      fileURLToPath(new URL('./scripts/guards/lib/intercepterLecturesDesProjets.mjs', import.meta.url)),
       resolve(racine, 'src/test-setup-noyau.ts'),
     ],
   },

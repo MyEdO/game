@@ -12,6 +12,7 @@ import { lancerLint } from '../../guards/lib/lintStage.mjs'
 import configurationLint, { REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
 import { armeParUnMur, blocsDuMur, couvre, exempte, fichiersLus, fichiersSousUnMur, racinesDuRegistre } from '../../test/lib/bancLister.mjs'
 import { depotDe, listerImage, SUIVI } from '../../guards/lib/gitPorte.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 import { EXTENSIONS_DE_SCRIPT } from '../../guards/lib/dialecte.mjs'
 
 const RACINE_DEPOT = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
@@ -75,7 +76,7 @@ const estFichierDIgnore = (rel) => /(^|\/)\.[\w-]*ignore$/.test(rel)
 const entreeDeLaGate = (armes, suivis) => [...armes, ...suivis.filter(estFichierDIgnore)]
 
 test('IGNORES — la gate lint lit tout fichier de script suivi qu’arme un mur, et aucun autre dialecte', () => {
-  const suivis = listerImage(depotDe(RACINE_DEPOT), SUIVI)
+  const suivis = listerImage(depotDe(RACINE_DEPOT, { porte: porteDeTousLesProjets }), SUIVI)
   const armes = suivis.filter(armeParUnMur)
   const scripts = armes.filter(estScript)
   for (const temoin of ['scripts/docs/build-all.mjs', 'src/noyau/rollSeam.ts', 'server/src/rand.ts']) {

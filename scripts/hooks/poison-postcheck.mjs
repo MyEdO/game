@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url';
 import { contexteDeLaGarde, corpusDeLaGarde, estDansLeCorpus, scanLabelLogicFichier } from '../guards/lib/labelLogic.mjs';
 import { OUTILS_ECRITURE, cheminDEcriture, ecrituresDe, texteAvant, texteNeuf } from '../guards/lib/contratGarde.mjs';
 import { INDEX, depotDe, lireEnLot } from '../guards/lib/gitPorte.mjs';
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 
@@ -78,7 +79,7 @@ async function voletPoison(rel, reel) {
 function texteDeLIndex(chemin) {
   if (chemin.racine === null) return '';
   try {
-    return lireEnLot(depotDe(chemin.racine, { enPanne: () => {} }), INDEX, [chemin.relatif]).get(chemin.relatif) ?? '';
+    return lireEnLot(depotDe(chemin.racine, { enPanne: () => {}, porte: porteDeTousLesProjets }), INDEX, [chemin.relatif]).get(chemin.relatif) ?? '';
   } catch {
     return '';
   }

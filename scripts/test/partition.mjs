@@ -425,6 +425,10 @@ export const DRAPEAUX_RESTRICTIFS = [
  *  `suite` de `.github/workflows/ci.yml`. */
 export const VARIABLE_PARTIE = 'WFRP_TEST_PARTIE'
 
+/** La variable de la ZONE du push (#5037 L2, `zoneDuDiff`) : sous une partie, la tranche se prend dans la sélection de
+ *  la zone (`selectionDeLaZone`, scripts/test/selectionDeZone.mjs) ; absente ou vide, dans la suite entière. */
+export const VARIABLE_ZONE = 'WFRP_TEST_ZONE'
+
 /** Partie demandée : `null` quand la variable est ABSENTE, `{ i, k }` pour `i/K` avec 1 ≤ i ≤ K, sinon
  *  `{ refus }` nommé. Une valeur vide est MAL FORMÉE, jamais absente. */
 export function partieDe(valeur) {

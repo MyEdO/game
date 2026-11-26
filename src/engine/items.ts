@@ -286,7 +286,7 @@ export interface WeaponSpec extends ProprietesIntrinsequesDArme {
   attackKind?: string;
   /** id de trapping source d'une arme built-in (Mains nues) — porté sur `Weapon.builtinId`. */
   builtinId?: string;
-  /** Taille PRÉVUE pour l'arme (ADE II 2 l.706-710) — propagée vers `Weapon.sizeFor`. */
+  /** Taille PRÉVUE pour l'arme (ADE II 2 l.753-757) — propagée vers `Weapon.sizeFor`. */
   sizeFor?: import('./size').SizeCategory;
   /** Propagé vers `Weapon.sizeless` (exemption du mismatch de Taille, ≠ `natural`/rendu). */
   sizeless?: boolean;
@@ -330,7 +330,7 @@ export function buildWeapon(spec: WeaponSpec): Weapon {
 }
 
 /** L'entrée de catalogue `id` est-elle DÉCLARÉE « Bouclier » (`TrappingData.shield`) ? LDB 62 l.33-35 ;
- *  AA 08 l.156 ; ZI 13 l.911. ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.613). */
+ *  AA 08 l.156 ; ZI 13 l.911. ≠ l'Atout Protectrice (AA 08 l.290 ; ADE II 02 l.660). */
 export const isShieldTrapping = (id: string | undefined, resolveTrapping: TrappingResolver = findTrappingById): boolean =>
   !!(id && resolveTrapping(id)?.shield);
 
@@ -599,7 +599,7 @@ export function itemLabel(it: Pick<ItemInstance, 'trappingId' | 'label' | 'spec'
   return refLabel(categorie, { id: it.trappingId, spec: it.spec }, it.label);
 }
 
-/** Limite d'Encombrement = (Bonus de Force + Bonus d'Endurance) × facteur (ogre ADE II 2 l.708 :
+/** Limite d'Encombrement = (Bonus de Force + Bonus d'Endurance) × facteur (ogre ADE II 2 l.755 :
  *  ×2), +2 par niveau de Costaud (LDB ; talent Costaud : « Augmentez les Points d'Encombrement … de
  *  votre niveau × 2 » — le bonus de Costaud n'est PAS multiplié, il s'ajoute après). Le facteur JAMAIS
  *  cumulatif : le PLUS GRAND des Traits raciaux porteurs l'emporte (`traitEncumbranceFactor`, Ogre). */
@@ -617,7 +617,7 @@ export function maxEncumbrance(c: Combatant): number {
 export function itemsEncumbrance(items: ItemInstance[]): number {
   return (items ?? []).reduce((s, i) => {
     if (i.inside) return s; // rangé dans un contenant → absorbé par lui (LDB 64 l.5), ne compte pas
-    // Pas de doublement d'Enc à l'exécution (ADE II 2 l.708 : « la version ogre… vaut deux fois
+    // Pas de doublement d'Enc à l'exécution (ADE II 2 l.755 : « la version ogre… vaut deux fois
     // l'Encombrement classique »). Vérifié valeur par valeur contre les tables l.609-654 : le
     // catalogue ogre (`massue-ogre`, `grande-massue-ogre`, `pistolet-ogre`, `pansiere-ogre`…) est
     // DÉJÀ saisi à son Enc final (l.604 : « les points d'Encombrement n'ont donc pas besoin d'être
@@ -1084,7 +1084,7 @@ export type ProfilDArmePorte = Pick<Weapon, 'damage' | 'range' | 'traitsConferes
   ajustements?: TraitInstance['profilDArme'];
 };
 
-/** LDB 85 l.9, l.31 ; ADE II 02 l.710 ; ZI 13 l.224, l.240, l.242 ; Guide de Frenchy, chap. 26, ligne 882 */
+/** LDB 85 l.9, l.31 ; ADE II 02 l.757 ; ZI 13 l.224, l.240, l.242 ; Guide de Frenchy, chap. 26, ligne 882 */
 export function appliquerProfilDuTrait(arme: Weapon, profil?: ProfilDArmePorte): Weapon {
   if (!profil) return arme;
   const { damage, range, traitsConferes, ajustements } = profil;
@@ -1894,7 +1894,7 @@ export function libelleMunitionRequise(resolveTrapping: TrappingResolver, arme: 
 
 /** La munition `munition` charge-t-elle l'arme `arme` ? Une arme qui nomme ses munitions (`munitions`), celles-là
  *  seules ; toute autre arme, celles de sa famille (`ammoFamily`) qu'aucune arme ne nomme (`munitionsReservees`).
- *  LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; AA 10 l.150 ; MDG 12 l.410-424 ; ADE II 02 l.639-640, l.665, l.673 ; #4360 */
+ *  LDB 62 l.131 ; AA 08 l.517, l.521, l.534 ; AA 10 l.150 ; MDG 12 l.410-424 ; ADE II 02 l.686-687, l.712, l.720 ; #4360 */
 export function chargeLArme(resolveTrapping: TrappingResolver, munition: { trappingId?: string; subType?: string }, arme: ArmePourMunitions): boolean {
   const munitions = munitionsDeLArme(resolveTrapping, arme);
   if (typeof munitions !== 'string') return munition.trappingId !== undefined && munitions.includes(munition.trappingId);

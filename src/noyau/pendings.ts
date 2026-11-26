@@ -425,7 +425,7 @@ export interface PendingAttack {
    *  en bougeant » (LDB 14 l.70) MAIS consomme son Mouvement (cf. jetValider('attaque')). Proposé seulement s'il
    *  n'a pas déjà bougé. */
   tirImmobile?: boolean;
-  /** Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : le joueur choisit de tirer sans la
+  /** Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.724) : le joueur choisit de tirer sans la
    *  corde AVANT le jet — `weaponContextOf` en dérive `WeaponContext.harpoonRopeCut` (Portée 60, perte de
    *  l'Atout Immobilisante, cf. `effectiveWeapon`). Proposé seulement si l'arme tirée porte la capacité
    *  `ItemCapabilities.ropeMode` (arbitrage user « mode de tir choisi », #476). */

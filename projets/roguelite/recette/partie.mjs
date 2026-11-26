@@ -141,7 +141,7 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   constater(partirVisible, '« Partir » est visible au pied de son cadre');
   await p.click('[data-a="partir"]');
   constater(await p.isVisible('[data-a="avancer"]'), 'l’expédition commence');
-  // Un camp, une rencontre et un autel profané après la première salle, et un blessé à y soigner.
+  // Un camp, une rencontre et un autel profané après la première salle, et un blessé à soigner après le premier combat.
   p = await recharger(p, (e) => {
     e.expedition.salles.splice(1, 0, { type: 'camp', ennemis: [], faite: false }, { type: 'rencontre', ennemis: [], faite: false }, { type: 'autel', ennemis: [], faite: false });
     const blesse = e.roster.find((h) => h.carriere === 'soldat');
@@ -150,8 +150,20 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
 
   let salles = 0;
   let aVuUnCarton = false;
+  let soigne = false;
   for (let n = 0; n < 8; n++) {
     if (!(await p.$('[data-a="avancer"]:not([disabled])'))) break;
+    // Entre deux salles, après le premier combat : la Guérison d'un soigneur se choisit au sac, son blessé au socle.
+    if (salles && !soigne && await p.$('.sacs [data-a="soigneur"]:not([disabled])')) {
+      await p.click('.sacs [data-a="soigneur"]:not([disabled])');
+      const consigne = await p.textContent('.socle-compagnie').catch(() => '');
+      constater(consigne.includes('Qui est soigné'), 'la Guérison entre deux salles demande qui est soigné');
+      await p.click('.socle-compagnie .carte-heros:not([disabled])');
+      constater((await p.textContent('.carton').catch(() => '')).includes('Les soins de la route'), 'le soin de la route se raconte au carton');
+      console.log('  soin :', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 160));
+      await p.click('.carton [data-a="fermer"]');
+      soigne = true;
+    }
     await p.click('[data-a="avancer"]');
     let suite = '';
     if (await p.isVisible('#combat')) {
@@ -193,19 +205,6 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
         await p.click('.carton [data-a="avancer"]');
         constater(await p.isVisible('#combat'), '« Combattre » livre le combat de la rencontre');
         await p.waitForTimeout(400); await p.click('[data-v="0"]'); await p.click('#combat-fin');
-      } else if (k === 'reposer' && await p.$('.carton [data-a="action"][data-k="soigner"]:not([disabled])')) {
-        await p.click('.carton [data-a="action"][data-k="soigner"]');
-        const consigne = () => p.textContent('.socle-compagnie').catch(() => '');
-        constater((await consigne()).includes('Qui soigne'), 'le camp demande qui soigne');
-        const soigneurs = await chancesAuSocle();
-        constater(lesChancesSeDisent(soigneurs) && soigneurs.ouvertes.every((t) => t.startsWith('Guérison')), `chaque soigneur dit sa Guérison et ses chances (${soigneurs.ouvertes.join(' ; ')})`);
-        await p.click('.socle-compagnie .carte-heros:not([disabled])');
-        constater((await consigne()).includes('Qui est soigné'), 'puis qui est soigné');
-        await p.click('.socle-compagnie .carte-heros:not([disabled])');
-        console.log('  camp :', (await p.$$eval('.carton .recit p', (e) => e.map((x) => x.textContent))).join(' / ').slice(0, 160));
-        constater((await p.textContent('.carton').catch(() => '')).includes('Les soins du camp'), 'le soin du camp se raconte au carton');
-        await p.click('.carton [data-a="fermer"]');
-        constater(!!(await p.$('.carton [data-a="action"][data-k="reposer"]')), 'le camp reste dressé après le soin');
       }
       if (k !== 'intimider') {
         await p.click(`.carton [data-a="action"][data-k="${k}"]`);
@@ -237,6 +236,7 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
     if (c) { await c.click(); console.log('  sac :', await p.textContent('#toast')); }
   }
   constater(salles > 0, `${salles} salle(s) franchie(s)`);
+  constater(soigne, 'un soigneur a soigné un blessé entre deux salles');
   if (await p.$('[data-a="rentrer"]')) {
     await p.click('[data-a="rentrer"]');
     constater(await p.isVisible('.enseigne') === false && await p.isVisible('.carton [data-a="fermer"]'), 'le retour se raconte en carton au hameau');

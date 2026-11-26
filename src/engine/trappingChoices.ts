@@ -201,7 +201,7 @@ export const porteurDeLEspece = (sp: SpeciesData): PorteurDArme => ({ size: spec
 export const porteurDuProfil = (cr: Parameters<typeof tailleDuProfil>[0] & NonNullable<Parameters<typeof groupsFor>[0]['creature']>): PorteurDArme => ({ size: tailleDuProfil(cr), groups: groupsFor({ creature: cr }) });
 
 /** L'arme choisissable `a` s'offre-t-elle au porteur `p` : à sa Taille, et réservée à aucun Groupe ou à l'un des siens.
- *  ADE II 2 l.604 ; ADE II 2 l.710 ; arbitrages #4110 (2026-11-15, 2026-11-16) */
+ *  ADE II 2 l.651 ; ADE II 2 l.757 ; arbitrages #4110 (2026-11-15, 2026-11-16) */
 const offerteAuPorteur = (a: ReturnType<typeof armesChoisissables>[number], p: PorteurDArme): boolean =>
   possessionASaTaille(a.sizeFor, p.size) && (a.reserveeA === undefined || (p.groups ?? []).includes(a.reserveeA));
 

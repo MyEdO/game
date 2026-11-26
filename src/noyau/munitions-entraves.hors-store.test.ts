@@ -85,7 +85,7 @@ function ouvrirLeCombat(armeId: string, munitionId?: string, { ancienneSauvegard
   return { banc, arme, cible, tireur, munition, cliquerLaCible, resoudreLAttaque };
 }
 
-describe('Entraves sans projectile (LDB 62 l.74-76, l.101 ; ADE II 02 l.687 ; ZI 02 l.176)', () => {
+describe('Entraves sans projectile (LDB 62 l.74-76, l.101 ; ADE II 02 l.734 ; ZI 02 l.176)', () => {
   it('attaque sans munition', () => {
     const { cliquerLaCible, resoudreLAttaque } = ouvrirLeCombat(LIEN);
     cliquerLaCible();
@@ -103,7 +103,7 @@ describe('Entraves sans projectile (LDB 62 l.74-76, l.101 ; ADE II 02 l.687 ; ZI
   });
 });
 
-describe('Arme qui nomme un projectile (ADE II 02 l.639-640, l.673)', () => {
+describe('Arme qui nomme un projectile (ADE II 02 l.686-687, l.720)', () => {
   it.each([
     { stock: 'vide', munitionId: undefined, ancienneSauvegarde: false },
     { stock: 'du même groupe mais incompatible', munitionId: PLOMB, ancienneSauvegarde: false },

@@ -29,6 +29,7 @@ import { codeDePanne, paquetsDArgv } from '../guards/lib/porteSpawn.mjs';
 import { cheminsMalNormalises, raisonDeRefusEol } from '../guards/lib/eolStage.mjs';
 import { defautsDeForme, familleDe, raisonDeRefusDeForme } from '../guards/memoire-forme.mjs';
 import { INDEX, ceQuApporteLeCommit, depotDe, eolsDe, lireEnLot, racineDe, raisonCourte } from '../guards/lib/gitPorte.mjs';
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs';
 import { ecrireAvertissements, produireLesMiroirs } from './miroirs-d-agents.mjs';
 import { estFichierVitest } from '../guards/lib/fichierVitest.mjs';
 import { journaliserLeHook } from './journal.mjs';
@@ -54,7 +55,7 @@ const FORMES = Object.freeze({
 // git chdir dans la racine de la copie de travail avant d'invoquer un hook (githooks(5)) : `cwd` porte
 // l'arbre QUI COMMITTE, worktree compris (`core.hooksPath` relatif, #1679 L1c).
 const ROOT = resolve(racineDe(depotDe(process.cwd())) ?? process.cwd());
-const depot = depotDe(ROOT);
+const depot = depotDe(ROOT, { porte: porteDeTousLesProjets });
 // Périmètre de `scanHardcode` : celui de `combat-hardcode-guard.test.ts` (`SCAN_DIRS`).
 const hardcodeRe = /^src\/(?:engine|state)\//;
 const estJsonDeDonnee = (rel) => /^(src\/scenes|projets)\/.*\.json$/.test(rel) || /^src\/data\/[^/]+\.json$/.test(rel);

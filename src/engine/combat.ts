@@ -953,7 +953,7 @@ export function attackModifiers(
   // Frappe assommante (Tête + arme Assommante) / Tir mortel (distance) : pas de pénalité (LDB 10).
   if (opts.location && !(target && sizeGap(target.size, attacker.size) >= 2)
       && !ignoresCalledShotPenalty(attacker, opts.kind, opts.location, hasQuality(weapon, 'assommante'))) out.push(ligneDeRegle('viser-une-localisation', 'localisation'));
-  // ADE II 2 l.604 ; ADE II 2 l.710. Arme naturelle ou sizeless : jamais (`Weapon.natural`, `Weapon.sizeless`).
+  // ADE II 2 l.651 ; ADE II 2 l.757. Arme naturelle ou sizeless : jamais (`Weapon.natural`, `Weapon.sizeless`).
   if (!weapon.natural && !weapon.sizeless && !possessionASaTaille(weapon.sizeFor, attacker.size)) {
     out.push(ligneDeRegle('possession-pas-a-sa-taille', 'possession-pas-a-sa-taille'));
   }
@@ -1220,7 +1220,7 @@ export function armeDeMainPrincipale(c: Combatant): Weapon {
  *  gratuite lu par tous les écrans ; groupe d'armes (`def.subType`) ; Dégâts de la manœuvre (`def.damage`),
  *  sinon l'Indice de l'instance du trait (BF inclus). STAMPE `attackKind` → la pose/Condition lit le champ
  *  STABLE, pas le nom. SOURCE UNIQUE du résolveur, de l'application et de l'IA. Arme NATURELLE (`natural`) :
- *  ADE II 02 l.604-710. LDB 85 l.387 ; LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405 */
+ *  ADE II 02 l.651-757. LDB 85 l.387 ; LDB 85 l.237 ; LDB 85 l.47 ; LDB 85 l.405 */
 export function freeAttackWeapon(gratuite: CreatureAttack): Weapon {
   const { def } = gratuite;
   const w = buildWeapon({

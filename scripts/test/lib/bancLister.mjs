@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { correspondGlob } from '../../guards/lib/lister.mjs'
 import { depotDe, listerImage, TRAVAIL } from '../../guards/lib/gitPorte.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 import { lancerLint } from '../../guards/lib/lintStage.mjs'
 import { GENERATORS, NON_GENERATOR_CHECKS } from '../../docs/build-all.mjs'
 import { BLOCS_LINT as configEslint, REGLES_ORDRE_TOTAL } from '../../../oxlint.config.mjs'
@@ -29,7 +30,7 @@ const armeParUnMur = (rel) => configEslint.some((b) => Object.keys(b.rules ?? {}
 /** Les fichiers de l'image de travail (`TRAVAIL` : suivis et non suivis non ignorés, ce que la gate lint découvre),
  *  toutes extensions, qu'arme au moins un mur. */
 function fichiersSousUnMur(racine) {
-  return listerImage(depotDe(racine), TRAVAIL).filter(armeParUnMur)
+  return listerImage(depotDe(racine, { porte: porteDeTousLesProjets }), TRAVAIL).filter(armeParUnMur)
 }
 
 /** Ceux des `fichiers` (leurs `.gitignore` compris) que la gate `npm run lint` lit : copiés dans un dossier

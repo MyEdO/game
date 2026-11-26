@@ -232,7 +232,7 @@ describe('armement — la projection catalogue → arme est UNE, quel que soit l
     expect(weaponFromTrait(t({ id: 'a-distance', arg: 'lasso', value: 4 }))!.damage).toEqual({ plusBF: false, flat: 4 });
   });
 
-  it('Taille PRÉVUE d’une arme ogre (`sizeFor`, ADE II 2 l.706-710) : héritée par le canal TRAIT — un statbloc à massue ogre porte la même arme que la possession', () => {
+  it('Taille PRÉVUE d’une arme ogre (`sizeFor`, ADE II 2 l.753-757) : héritée par le canal TRAIT — un statbloc à massue ogre porte la même arme que la possession', () => {
     expect(weaponFromTrait(t({ id: 'arme', arg: 'massue-ogre', value: 7 }))!.sizeFor).toBe('grande');
     expect(parPossession('massue-ogre')!.sizeFor).toBe('grande');
   });

@@ -64,9 +64,10 @@ export function listProdFiles(dir) {
     .map((rel) => join(dir, rel))
 }
 
-/** Ouvre le vérificateur sur les scripts listés, y compris les lecteurs JavaScript typés par JSDoc ou import. */
-export function programmeDesChamps(root, fichiers) {
-  return repoProgram(root, () => fichiers.map((f) => resolve(f)), {}, { allowJs: true, checkJs: false })
+/** Ouvre le vérificateur sur les scripts listés, y compris les lecteurs JavaScript typés par JSDoc ou import. `porte` : la
+ *  passe de la porte des projets qu'exigent des scripts sous `projets/` (`repoProgram`). */
+export function programmeDesChamps(root, fichiers, { porte } = {}) {
+  return repoProgram(root, () => fichiers.map((f) => resolve(f)), {}, { allowJs: true, checkJs: false }, { porte })
 }
 
 /** Chemin en séparateurs `/`. La CASSE n'est pas repliée : les deux côtés de toute comparaison

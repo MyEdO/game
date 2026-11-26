@@ -16,9 +16,9 @@
 import { basename, join } from 'node:path'
 import { env, exit, stderr, stdout } from 'node:process'
 import { GitIndisponible, TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, refusDeGit, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
-import { COUCHES, couvre, dossierDe } from '../guards/lib/couches.mjs'
+import { COUCHES, couvre, dossierDe, estProjet } from '../guards/lib/couches.mjs'
 import { SKILLS, racinesDeMods, racinesDeModsParmi } from '../mods/racines.mjs'
-import { COMMANDE_NAVIGATEUR_EPINGLE, COMMANDE_RENDU_LOGICIEL, COMMANDE_VERSION_PYTHON_3D } from './gatesDeCi.mjs'
+import { COMMANDE_NAVIGATEUR_EPINGLE, COMMANDE_RENDU_LOGICIEL, COMMANDE_VERSION_PYTHON_3D, COMMANDE_ZONE_DU_PUSH } from './gatesDeCi.mjs'
 
 /**
  * Chemins NON EXÉCUTABLES, chacun avec sa raison. Un push dont TOUS les fichiers changés tombent
@@ -67,6 +67,10 @@ export const CI_SEULEMENT_DE_GATE = {
   [COMMANDE_RENDU_LOGICIEL]: {
     raison: 'écran virtuel et rendu logiciel du seul `godot:rendus`, sautable avec lui',
     gates: ['godot:rendus'],
+  },
+  [COMMANDE_ZONE_DU_PUSH]: {
+    raison: 'zone du push (`zone=`, #5037 L2) posée en environnement du seul `test`, dont la tranche s’y restreint, sautable avec lui',
+    gates: ['test'],
   },
   [COMMANDE_NAVIGATEUR_EPINGLE]: {
     raison: 'navigateur épinglé du seul `roguelite:recette`, sautable avec lui',
@@ -170,8 +174,39 @@ export function gatesSautees(fichiers, { gates, ecritLu, mods = [] }) {
   return sautees
 }
 
+/** Les projets de `COUCHES` (`estProjet`), chacun avec son dossier fini par `/`. */
+const DOSSIERS_DES_PROJETS = Object.freeze(Object.keys(COUCHES).filter(estProjet).map((z) => [z, `${dossierDe(z)}/`]))
+
+/**
+ * La ZONE d'un push (#5037 L2) : le projet dont le dossier contient CHAQUE fichier changé, `null` pour un diff vide,
+ * un fichier hors des projets ou un diff à cheval sur deux projets. `scripts/test/run.mjs` restreint sa tranche à la zone
+ * de `zoneDuPush` (`selectionDeLaZone`, scripts/test/selectionDeZone.mjs). PURE.
+ * @param {readonly string[]} fichiers chemins relatifs POSIX
+ * @returns {string | null}
+ */
+export function zoneDuDiff(fichiers) {
+  const zone = fichiers.length ? DOSSIERS_DES_PROJETS.find(([, dossier]) => fichiers[0].startsWith(dossier)) : undefined
+  return zone && fichiers.every((f) => f.startsWith(zone[1])) ? zone[0] : null
+}
+
+/** Le nom de la gate de la suite Vitest (`nomDeGate('npm test')`), la seule que la zone du push restreint. */
+export const GATE_DE_LA_SUITE = 'test'
+
+/**
+ * La ZONE du push pour la suite (#5037 L2) : `zoneDuDiff` des seuls fichiers que la gate `GATE_DE_LA_SUITE` LIT — un
+ * fichier qu'elle ne lit pas est celui sur lequel, seul, elle saute (`gatesSautees`, mesure `ECRIT_LU`), comme le solde
+ * `.claude/soldes/<N>.md` d'une PR de projet. PURE.
+ * @param {readonly string[]} fichiers chemins relatifs POSIX
+ * @param {{ ecritLu: Record<string, {lit?: readonly string[], zones?: readonly string[]}>, mods?: readonly string[] }} args
+ * @returns {string | null}
+ */
+export function zoneDuPush(fichiers, { ecritLu, mods = [] }) {
+  const gates = [{ nom: GATE_DE_LA_SUITE }]
+  return zoneDuDiff(fichiers.filter((f) => !gatesSautees([f], { gates, ecritLu, mods }).has(GATE_DE_LA_SUITE)))
+}
+
 /** Un sha vide ou fait de zéros : `github.event.merge_group.base_sha` hors `merge_group`. */
-const shaNul = (sha) => !sha || !/[^0]/.test(sha)
+export const shaNul = (sha) => !sha || !/[^0]/.test(sha)
 
 /**
  * La BASE du diff : ce contre quoi on classe. Sur un commit de file (`merge_group`), `base` est

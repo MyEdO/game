@@ -12,6 +12,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { clotureDImports, estModule } from '../guards/lib/importGraph.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 import { gatesDeCi } from './gatesDeCi.mjs'
 import { GATES, listerTests, testsDe } from './testsParGate.mjs'
 import { OPERATIONS_FS } from '../guards/lib/ecrituresFichiers.mjs'
@@ -39,7 +40,7 @@ function fichiersDe(commande, racine, gate, lister) {
 
 /** Fermeture transitive des imports locaux, depuis des graines relatives à la racine. */
 export function transitif(graines, racine, mesure = {}) {
-  return [...clotureDImports(graines, { racine, typesEffaces: true, ...mesure })]
+  return [...clotureDImports(graines, { racine, typesEffaces: true, porte: porteDeTousLesProjets, ...mesure })]
 }
 
 /** `true` si ce script porte au moins un appel d'écriture dans son CODE (`codeSeul` : commentaires et chaînes

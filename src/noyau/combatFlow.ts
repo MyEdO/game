@@ -858,7 +858,7 @@ export function weaponContextOf(attacker: Combatant, w: Weapon, target?: Combata
     groupSkillMode: weaponGroupSkillMode(attacker, w, w.type === 'distance' ? 'distance' : 'melee'), // LDB 62 l.184/188
     auContact: !!target && areInContact(attacker, target),
     improvised: !!target && ramVsNonDoor(w, target), // Bélier hors-porte → improvisée (ADE II 8 l.249)
-    // Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.677) : choix joueur (`opts`, #476) GATÉ sur
+    // Mode de tir « corde séparée » (Lance-harpon, ADE II 02 l.724) : choix joueur (`opts`, #476) GATÉ sur
     // la capacité de l'arme (`ItemCapabilities.ropeMode`) — jamais un id d'arme en dur.
     harpoonRopeCut: !!opts?.harpoonRopeCut && !!objetSource && itemCapability(objetSource, 'ropeMode'),
     maniement: maniementRetenu(attacker, w, w.hands), // AA 08 l.190 ; AA 08 l.343
@@ -4568,7 +4568,7 @@ export function poserLEtapeDAttaque(get: Get, set: SetFn, pa: PendingAttack, tit
 
 /** Le Test de Main ensanglantée raté de `attacker` : l'objet de la main `hand` glisse (op `disarm`). Rend les lignes, et
  *  `tient` quand rien n'a glissé (gantelet verrouillé, objet qu'on n'arrache pas) : l'Action se poursuit alors.
- *  AA 07 l.117 ; AA 08 l.236 ; ADE II 02 l.695 */
+ *  AA 07 l.117 ; AA 08 l.236 ; ADE II 02 l.742 */
 export function glisseDeLaMain(get: Get, set: SetFn, attacker: Combatant, hand: Main): { lignes: string[]; tient: boolean } {
   const tenues = attacker.weapons.flatMap((w) => (w.uid ? [w.uid] : []));
   const avant = [...(attacker.activeEffects ?? [])];
@@ -4829,7 +4829,7 @@ export function resumeCleaveChain(get: Get, set: SetFn, attacker: Combatant, def
 }
 
 /** Ouvre la chaîne de balayage du Tour de `attaquant` : `true` si la sienne s'y est déjà ouverte, alors aucune autre
- *  ne naît. LDB 14 l.9 ; LDB 85 l.362 ; ADE II 02 l.576 ; arbitrage #5031 du 2026-11-25 */
+ *  ne naît. LDB 14 l.9 ; LDB 85 l.362 ; ADE II 02 l.623 ; arbitrage #5031 du 2026-11-25 */
 function ouvrirLeBalayageDuTour(get: Get, attaquant: Combatant): boolean {
   const battle = get().battle;
   if (!battle) return false;
@@ -5553,7 +5553,7 @@ export function useSpellComponent(caster: Combatant, spellId: string, lines: str
 }
 
 /** Le lanceur à capacité `castingHunger` qui lance un Sort à composant sans en consumer un, et sans Vivres sur
- *  lui, perd 1 Blessure par NI du Sort (op `wounds`). ADE II 2 l.726 */
+ *  lui, perd 1 Blessure par NI du Sort (op `wounds`). ADE II 2 l.773 */
 function faimALIncantation(get: Get, caster: Combatant, spell: NonNullable<ReturnType<typeof findSpell>>, componentUsed: boolean, lines: string[]): void {
   if (componentUsed || !prendUnComposant(spell) || !traitCapability(caster.traits, 'castingHunger')) return;
   if ((caster.items ?? []).some(isRation)) return;

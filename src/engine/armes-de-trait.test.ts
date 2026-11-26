@@ -66,7 +66,7 @@ describe('état des armes de Trait', () => {
     expect(sorti.weapons).toEqual([expect.objectContaining({ builtinId: 'mains-nues' })]);
   });
 
-  it('le poing de fer résiste au désarmement comme objet et comme arme cataloguée de Trait (ADE II 02 l.695)', () => {
+  it('le poing de fer résiste au désarmement comme objet et comme arme cataloguée de Trait (ADE II 02 l.742)', () => {
     const sb = { type: 'statblock' as const, label: 'Ogre', char: { force: 50, endurance: 50 } };
     const parTrait = statblockToCombatant({ ...sb, traits: [{ id: 'arme', arg: 'poing-de-fer', value: 8 }] }, 'trait');
     const parObjet = statblockToCombatant(sb, 'objet');

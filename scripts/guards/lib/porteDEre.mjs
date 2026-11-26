@@ -27,6 +27,7 @@ import { dirname, extname, join, relative, resolve, sep } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { baseCommune, lireEnLot, listerImage } from './gitPorte.mjs'
 import { clotureDImports } from './importGraph.mjs'
+import { estRefusDeLaPorte } from './serrureDesProjets.mjs'
 import { parUnitesDeCode } from './lister.mjs'
 
 /** La racine du code qui tourne. */
@@ -228,6 +229,7 @@ async function chargerLaPorte(depot, ere, { racine, module, exports, vie }) {
   try {
     textes = fermetureDeLEre(depot, ere, racine, module)
   } catch (e) {
+    if (estRefusDeLaPorte(e)) throw e
     return inchargeable(`arbre illisible (${e.message})`)
   }
   if (!textes) return { juge: null, note: `${ere9} sans la porte \`${module}\` : jugé(s) par la porte actuelle`, source: null }

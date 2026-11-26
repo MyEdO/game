@@ -17,6 +17,7 @@ import { resolve } from 'node:path'
 import { cliquetsDuMessage, declarationLue, mesuresNonCouvertes } from './lib/stocksNominatifs.mjs'
 import { cheminDuModule, groupesParEre } from './lib/porteDEre.mjs'
 import { communeDesParents, depotDe, grapheDe, journalDe, ceQueFaitLeCommit, lireEnLot, listerImage, enfantsDirects, GitIndisponible } from './lib/gitPorte.mjs'
+import { porteDeTousLesProjets } from './lib/porteDesProjets.mjs'
 import { baseDuDiff } from '../gates/classerPush.mjs'
 import { lireRegle } from '../hooks/regles-projection-guard.mjs'
 
@@ -230,7 +231,7 @@ export async function controlerBudgetDeLaPlage({ cwd = process.cwd(), debut, fin
   }
   if (!debut || !fin) throw new Error('budget : base ou tête absente')
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison) })
+  const depot = depotDe(cwd, { enPanne: (raison) => pannes.push(raison), porte: porteDeTousLesProjets })
   const exigerLectures = () => {
     if (pannes.length) throw new GitIndisponible(pannes.join(' ; '))
   }
