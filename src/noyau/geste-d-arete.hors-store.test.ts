@@ -70,7 +70,7 @@ const CAS: readonly CasGeste[] = [
 ];
 
 /** La surface où le refus se dit (`refuserGeste`) : la bannière en combat, le journal hors combat. */
-const dernierMot = (): string | undefined => (g().battle ? g().refus?.texte : g().journal.slice(-1)[0]);
+const dernierMot = (): string | undefined => (g().battle ? g().refus?.texte : g().journal.map((e) => e.texte).slice(-1)[0]);
 const dit = (cle: MsgKey, vars: Record<string, string | number> = {}) => expect(dernierMot()).toBe(t(cle, vars));
 
 /** Combat : héros actif posté en `pos` sur `scene`, ennemis hors d'action (sauf `foe`, rendu vivant à la demande). */
@@ -164,7 +164,7 @@ describe('#2190, #3611 — la case de départ se lit dans l’état : une destin
     expect(g().battle!.combatants.find((x) => x.id === H.id)!.pos).toMatchObject(c.vers);
     expect(recus).toEqual([raison]);
     expect(g().refus).toBeNull();
-    expect(g().journal).not.toContain(raison);
+    expect(g().journal.map((e) => e.texte)).not.toContain(raison);
   });
 });
 

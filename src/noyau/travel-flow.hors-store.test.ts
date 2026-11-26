@@ -201,7 +201,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     const st = get();
     expect(st.lieu).toBe('pb');
     expect((st.party[0].items ?? []).length).toBe(1); // ration trouvée
-    const j = st.journal.join('\n');
+    const j = st.journal.map((e) => e.texte).join('\n');
     // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — succès sans effet PROPRE (le
     // gain de ration vient de l'agrégation de fin d'Étape) → aucune ligne de verdict (#295 Lot 5).
     expect(j).not.toContain('réussi (DR');
@@ -220,7 +220,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);
     // La conséquence est la lecture du fait que l'op `condition` a appliqué (#4574), jamais une chaîne
     // composée « Nom — Activité : Exténué. ».
-    expect(st.journal).toContain(`${h.label} reçoit 1 État Exténué.`);
+    expect(st.journal.map((e) => e.texte)).toContain(`${h.label} reçoit 1 État Exténué.`);
   });
 
   it('Exposition seed 2 : transi → escalade de froid (3 effets exposition-froid, rang 1)', () => {
@@ -234,7 +234,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     const eff = (st.party[0].activeEffects ?? []).map((e) => e.effectId);
     expect(eff.filter((e) => e === 'exposition-froid').length).toBe(3); // rang 1 : −10 CT/Ag/Dex
     // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
-    expect(st.journal.join('\n')).toContain("Exposition de fin d'Étape (Pluie) : transi par le froid.");
+    expect(st.journal.map((e) => e.texte).join('\n')).toContain("Exposition de fin d'Étape (Pluie) : transi par le froid.");
   });
 
   it('Péripétie seed 2 : « Voyage éreintant », Survie 29/70 réussie → pas de retard', () => {
@@ -246,7 +246,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     const st = get();
     expect(st.lieu).toBe('pb');
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(false); // Survie réussie → pas d'Exténué
-    const j = st.journal.join('\n');
+    const j = st.journal.map((e) => e.texte).join('\n');
     expect(j).toContain('Voyage éreintant');
     // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
     expect(j).toContain('Survie en extérieur (+20) : un itinéraire de substitution est trouvé.');
@@ -261,7 +261,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     const st = get();
     expect(st.lieu).toBe('pb');
     expect(st.party[0].wounds.current).toBe(12); // soin total (non-régression sans munition logée)
-    expect(st.journal.join('\n')).toContain('Hilda récupère toutes ses Blessures.');
+    expect(st.journal.map((e) => e.texte).join('\n')).toContain('Hilda récupère toutes ses Blessures.');
   });
 
   it('Péripétie seed 3 : « Voyage reposant », munition logée plafonne le soin (LDB 62 l.250)', () => {
@@ -272,7 +272,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     drainCascade();
     const st = get();
     expect(st.party[0].wounds.current).toBe(11); // plafonné à max−1
-    expect(st.journal.join('\n')).toContain('Hilda récupère des Blessures (munition logée bloque le reste).');
+    expect(st.journal.map((e) => e.texte).join('\n')).toContain('Hilda récupère des Blessures (munition logée bloque le reste).');
   });
 
   it('Rencontre seed 7 : Succès Impressionnant → « fullRecovery », soigne toutes les Blessures (routé par applyHealWounds, #473)', () => {
@@ -284,7 +284,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     drainCascade();
     const st = get();
     expect(st.party[0].wounds.current).toBe(12); // soin total (non-régression sans munition logée)
-    expect(st.journal.join('\n')).toContain('Voyage tranquille : le groupe récupère toutes ses Blessures et tous ses États Exténué.');
+    expect(st.journal.map((e) => e.texte).join('\n')).toContain('Voyage tranquille : le groupe récupère toutes ses Blessures et tous ses États Exténué.');
   });
 
   it('Rencontre seed 7 : « fullRecovery » avec munition logée → soin plafonné (LDB 62 l.250)', () => {
@@ -306,7 +306,7 @@ describe('GOLDEN — issues figées à graine égale', () => {
     get().partirEnVoyage('r1', 'pied');
     drainCascade();
     const territoire = encounterTable('dangereuses').find((e) => e.label === 'Territoire hostile')!;
-    expect(get().journal.filter((l) => l.includes(territoire.label)), 'une Rencontre = une ligne de journal').toEqual([`${territoire.label} — ${territoire.desc}`]);
+    expect(get().journal.map((e) => e.texte).filter((l) => l.includes(territoire.label)), 'une Rencontre = une ligne de journal').toEqual([`${territoire.label} — ${territoire.desc}`]);
   });
 });
 
@@ -474,7 +474,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     // (postes/périls du jour, non liés à l'attelage), soit aucune cascade du tout.
     const pc = get().pendingCascade;
     if (pc) expect(pc.participants.some((s) => s.kind === 'rythmeForceATerre')).toBe(false);
-    expect(get().journal.join('\n')).toMatch(/Conduite d'attelage \(allure forcée\)/);
+    expect(get().journal.map((e) => e.texte).join('\n')).toMatch(/Conduite d'attelage \(allure forcée\)/);
   });
 
   it('aucun conducteur ne peut tenter la Conduite d’attelage (Inconscient) → la journée suit la cadence de base (LDB 16 l.113)', () => {
@@ -488,7 +488,7 @@ describe('#270 — allure forcée (attelage) : gate contrôleur', () => {
     get().partirEnVoyage('r1', 'diligence', { allure: 'galop' });
     const pc = get().pendingCascade;
     if (pc) expect(pc.participants.some((s) => s.kind === 'rythmeForceATerre'), 'aucun km au pas de course').toBe(false);
-    expect(get().journal.join('\n'), 'aucun Test de Conduite d’attelage au pas de course').not.toMatch(/Conduite d'attelage \(allure forcée\)/);
+    expect(get().journal.map((e) => e.texte).join('\n'), 'aucun Test de Conduite d’attelage au pas de course').not.toMatch(/Conduite d'attelage \(allure forcée\)/);
   });
 });
 
@@ -532,7 +532,7 @@ describe('#341 — Résistance de traversée Neige/Blizzard (pas BATCH au démar
     get().jetValider('cascade');
     const st = get();
     expect(st.party[0].conditions.some((c) => c.id === 'extenue')).toBe(true);
-    expect(st.journal).toContain(`${h.label} reçoit 1 État Exténué.`); // #4574
+    expect(st.journal.map((e) => e.texte)).toContain(`${h.label} reçoit 1 État Exténué.`); // #4574
   });
 });
 
@@ -784,7 +784,7 @@ describe('péril d’auteur dont l’effet ouvre un nœud de scène sous la jour
     ] }), [h]);
     get().partirEnVoyage('r1', 'pied');
   };
-  const lignes = (texte: string) => get().journal.filter((l) => l.startsWith(texte)).length;
+  const lignes = (texte: string) => get().journal.filter((l) => l.texte.startsWith(texte)).length;
   const exaucee = () => lignes(t('eff.petitePriereExaucee', { name: 'Hilda', roll: '§', threshold: '§' }).split('§')[0]);
   const jours = () => get().travelPlan?.log?.length ?? 0;
 
@@ -1004,7 +1004,7 @@ describe('Rencontre d’Étape dont l’applier ouvre un nœud sous la journée 
   /** L'effet du nœud est joué : la branche du Test ou du choix, l'État du volontaire, le verdict de contagion. */
   const brancheJouee = (ouvreur: string) => {
     if (ouvreur === 'volontaires') return get().party[0]!.conditions.some((c) => c.id === 'extenue');
-    if (ouvreur === 'contagion') return get().journal.includes(t('cf.resisteALInfection', { name: 'Hilda' })) || (get().party[0]!.diseases ?? []).length > 0;
+    if (ouvreur === 'contagion') return get().journal.map((e) => e.texte).includes(t('cf.resisteALInfection', { name: 'Hilda' })) || (get().party[0]!.diseases ?? []).length > 0;
     return !!get().flags.branche;
   };
 
@@ -1021,7 +1021,7 @@ describe('Rencontre d’Étape dont l’applier ouvre un nœud sous la journée 
   });
 
   /** Le dénouement « arrivée », que le témoin sans nœud fixe : plan clos au lieu d'arrivée, sans halte. */
-  const arrivee = () => [get().travelPlan, get().lieu, get().pendingRest, get().scene?.id, get().journal[get().journal.length - 1]];
+  const arrivee = () => [get().travelPlan, get().lieu, get().pendingRest, get().scene?.id, get().journal.map((e) => e.texte).slice(-1)[0]];
   const ARRIVEE = [null, 'pb', null, 'lieu-a-scene', t('tf.arrivee', { to: 'B' })];
   it('témoin sans nœud, 12 km : le jour de la Rencontre finit sur l’arrivée', () => {
     const passages = rencontreQuiOuvre(null);
@@ -1053,7 +1053,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     ['h3', 'Elsa', 'recueillir-informations', 'ragot'],
     ['h4', 'Bruno', 'rester-aux-aguets', 'perception'],
   ] as const).map(([id, label, activityId, skill]) => hero({ id, label, travelRole: { activityId }, items: [ration(`${id}-r`)], skills: [{ id: skill, advances: 20 } as any] }));
-  const traceDe = (label: string) => get().journal.filter((l) => new RegExp(`^${label} — .+ : \\d+/\\d+, `).test(l));
+  const traceDe = (label: string) => get().journal.map((e) => e.texte).filter((l) => new RegExp(`^${label} — .+ : \\d+/\\d+, `).test(l));
   /** Route à « Attaqués ! » (graine 326, péripétie au d8) dont l'embuscade est configurée. */
   const routeAEmbuscade = () => map({ km: 30, perilDie: 8, ambush: { scene: { id: 'lieu-a-scene' }, encounter: 'enc-test' } });
   /** Draine la cascade de nuit ; s'arrête sur celle du jour suivant si elle s'ouvre. */
@@ -1092,8 +1092,8 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
     expect(get().pendingCascade, 'le Test de la péripétie n’ouvre aucune fenêtre').toBeNull();
     expect(get().lieu).toBe('pb');
-    expect(get().journal).toContain('Hilda — Survie en extérieur : 29/70, réussi (DR +5).');
-    expect(get().journal).toContain('Hilda — Survie en extérieur (+20) : un itinéraire de substitution est trouvé.');
+    expect(get().journal.map((e) => e.texte)).toContain('Hilda — Survie en extérieur : 29/70, réussi (DR +5).');
+    expect(get().journal.map((e) => e.texte)).toContain('Hilda — Survie en extérieur (+20) : un itinéraire de substitution est trouvé.');
   });
 
   it('une péripétie qui ouvre un combat arrête le jour par l’interruption de terre', () => {
@@ -1145,7 +1145,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     creditBourse(get, set, 'h', { gold: 500, silver: 0, brass: 0 });
     get().partirEnVoyage('r1', 'diligence', { allure: 'galop', cadence: 'commande' });
     expect(get().pendingCascade, 'aucune fenêtre ne s’ouvre dans la journée').toBeNull();
-    const kms = get().journal.filter((l) => l.includes('(allure forcée)')).length;
+    const kms = get().journal.filter((l) => l.texte.includes('(allure forcée)')).length;
     expect(kms, 'prémisse : des km au pas de course').toBeGreaterThan(0);
     expect(traceDe('Hilda').length, 'chaque km joué laisse sa ligne').toBe(kms);
   });
@@ -1298,7 +1298,7 @@ describe('Rester aux aguets, de l’Étape au combat (#4154)', () => {
     draineCascade(get, 40, poser(21));
     get().fenetreFermer('recitDeVoyage');
     expect(get().battle).not.toBeNull();
-    expect(get().battle!.log.map((e) => e.text)).toContainEqual(expect.stringMatching(/Hilda \(Discrétion\).*Brigand \(Perception — Surprise\) /));
+    expect(get().battle!.log.map((e) => e.entree.texte)).toContainEqual(expect.stringMatching(/Hilda \(Discrétion\).*Brigand \(Perception — Surprise\) /));
   });
 
   it('après la halte, la réussite de l’Étape précédente ne couvre plus le groupe', () => {
@@ -1357,8 +1357,8 @@ describe('#4804 — la route passe à pied en tête de la journée où un héros
     for (let i = 0; i < 40 && get().pendingCascade; i++) avanceEtapeCascade(get);
     expect(get().travelPlan?.mode).toBe('pied');
     expect(get().travelPlan?.interrupted ?? false).toBe(false);
-    expect(get().journal).toContain(t('tf.pasTousMontes'));
-    expect(get().journal).not.toContain(t('tf.surcharge'));
+    expect(get().journal.map((e) => e.texte)).toContain(t('tf.pasTousMontes'));
+    expect(get().journal.map((e) => e.texte)).not.toContain(t('tf.surcharge'));
     const log = get().travelPlan?.log ?? [];
     const jourDuLendemain = log[log.length - 1];
     expect(jourDuLendemain?.lines.map((l) => l.text)).toContain(t('tf.pasTousMontes'));

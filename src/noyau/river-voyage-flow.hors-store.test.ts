@@ -271,7 +271,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
   it('le jour affiche le vent + le Test de Navigation une fois la cascade déroulée', () => {
     get().partirEnVoyage('r-reik', 'barge-fluviale');
     draineCascade(get);
-    const j = get().journal.join('\n');
+    const j = get().journal.map((e) => e.texte).join('\n');
     expect(j).toContain('Vent du jour'); // table des vents (l.21)
     expect(j).toMatch(/cap|barre|contrôle/); // conséquence de Navigation de l'étape (l.15), #295 Lot 1
     expect(j).toContain('Progression du jour');
@@ -292,7 +292,7 @@ describe('cascade du JOUR fluvial — tous les jets sont influençables (purpose
     draineCascade(get);
     // #295 Lot 1 : la conséquence ne re-précise plus le montant du bonus (déjà intégré au jet visible
     // au-dessus) — elle NARRE l'effet (le Savoir rattrape la barre in extremis).
-    expect(get().journal.join('\n')).toContain('Savoir Voies fluviales');
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('Savoir Voies fluviales');
   });
 });
 
@@ -323,7 +323,7 @@ describe('GOLDEN — km / Dégâts de coque figés à graine égale', () => {
     const plan = get().travelPlan!;
     expect(plan.kmDone).toBe(12);
     expect(plan.vehicle!.wounds.current).toBe(40); // débris : 20 Dégâts (parité inline)
-    expect(get().journal.join('\n')).toContain('Débris flottants en aval');
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('Débris flottants en aval');
   });
 
   it('seed 3 / Très fort de côté → chavirage joué, dérive 12 km, coque 60/60, non coulé', () => {
@@ -337,7 +337,7 @@ describe('GOLDEN — km / Dégâts de coque figés à graine égale', () => {
     expect(plan.river!.sunk).toBeFalsy();
     expect(plan.kmDone).toBe(12); // dérive = 25 % de la vitesse de base
     expect(plan.vehicle!.wounds.current).toBe(60);
-    expect(get().journal.join('\n')).toMatch(/chavir|voile affalée/); // Navigation Accessible (+20), note 4
+    expect(get().journal.map((e) => e.texte).join('\n')).toMatch(/chavir|voile affalée/); // Navigation Accessible (+20), note 4
   });
 });
 
@@ -361,9 +361,9 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     expect(cur.kind).toBe('fleuveChoixDObstacle');
     expect(cur.options!.map((o) => o.key).sort()).toEqual(['deblayer', 'forcer']);
     expect(cur.defaultChoice, 'MSRC 7 l.128 : le choix revient aux Personnages').toBeUndefined();
-    expect(get().journal.some((l) => /^Progression du jour/.test(l)), 'le jour est suspendu au choix').toBe(false);
+    expect(get().journal.map((e) => e.texte).some((l) => /^Progression du jour/.test(l)), 'le jour est suspendu au choix').toBe(false);
     drainChoosing('forcer');
-    expect(get().journal.some((l) => /^Progression du jour/.test(l)), `journal :\n${get().journal.join('\n')}`).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /^Progression du jour/.test(l)), `journal :\n${get().journal.map((e) => e.texte).join('\n')}`).toBe(true);
   });
 
   it('cadence COMMANDÉE (#2545) : après la décision, la suite du jour (Débris) se résout d’un bloc — aucun jet n’attend le joueur', () => {
@@ -377,8 +377,8 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     get().jetRegler('cascade', 'choix', 'forcer', choix.id);
     get().jetValider('cascade'); // « Valider » : le geste du joueur qui tranche
     const apres = get().pendingCascade;
-    expect(apres?.purpose ?? null, `la fenêtre du JOUR s’est refermée — journal :\n${get().journal.join('\n')}`).not.toBe('travelDay');
-    expect(get().journal.some((l) => /^Progression du jour/.test(l)), 'le jour est allé à son terme').toBe(true);
+    expect(apres?.purpose ?? null, `la fenêtre du JOUR s’est refermée — journal :\n${get().journal.map((e) => e.texte).join('\n')}`).not.toBe('travelDay');
+    expect(get().journal.map((e) => e.texte).some((l) => /^Progression du jour/.test(l)), 'le jour est allé à son terme').toBe(true);
   });
 
   it('FORCER au bélier → +10 Dégâts à la coque (l.128), journal explicite', () => {
@@ -387,7 +387,7 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     get().partirEnVoyage('r-reik', 'barge-fluviale');
     drainChoosing('forcer');
     expect(get().travelPlan!.vehicle!.wounds.current).toBe(50); // 60 − 10 (ram, l.128)
-    expect(get().journal.join('\n')).toContain('forcé au bélier');
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('forcé au bélier');
   });
 
   it('DÉBLAYER à la main → coque INTACTE, objets/Enc déblayés, progression du jour amputée', () => {
@@ -396,7 +396,7 @@ describe('barrage fluvial (l.128) — forcer au bélier OU déblayer à la main'
     get().partirEnVoyage('r-reik', 'barge-fluviale');
     drainChoosing('deblayer');
     expect(get().travelPlan!.vehicle!.wounds.current).toBe(60); // coque non touchée par le barrage
-    const j = get().journal.join('\n');
+    const j = get().journal.map((e) => e.texte).join('\n');
     expect(j).toMatch(/déblayé à la main/);
     expect(j).toMatch(/objets/);
     expect(j).toMatch(/progression du jour −/);
@@ -485,7 +485,7 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
 
 describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur puis Test de Résistance par héros', () => {
   /** Lignes de dé du journal portées par le Test d'Exposition (`{qui} — Résistance : dé/cible, issue`). */
-  const lignesDeResistance = () => get().journal.filter((l) => new RegExp(` — ${byId('skill', 'resistance')!.label} : \\d+/\\d+, `).test(l));
+  const lignesDeResistance = () => get().journal.map((e) => e.texte).filter((l) => new RegExp(` — ${byId('skill', 'resistance')!.label} : \\d+/\\d+, `).test(l));
 
   it('route COMMANDÉE : tirage garanti → aucune fenêtre, une ligne de Résistance au journal par héros exposé', () => {
     launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
@@ -494,7 +494,7 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
     expect(get().pendingCascade, 'ni la fenêtre du jour, ni celle du dé, ni celle des Tests').toBeNull();
     const exposes = get().party.filter((h) => !h.dead);
     const lignes = lignesDeResistance();
-    expect(lignes.length, `journal :\n${get().journal.join('\n')}`).toBe(exposes.length);
+    expect(lignes.length, `journal :\n${get().journal.map((e) => e.texte).join('\n')}`).toBe(exposes.length);
     for (const h of exposes) expect(lignes.filter((l) => l.startsWith(`${h.label} — `)), h.label).toHaveLength(1);
   });
 
@@ -554,7 +554,7 @@ describe('entretien du jour de voyage — la Faim se résout À LA HALTE, après
     get().partirEnVoyage('r-reik', 'barge-fluviale');
     draineCascade(get); // draine la cascade du jour → halte de nuit
     expect(get().pendingRest).toBeTruthy();
-    expect(get().journal.join('\n')).not.toMatch(/Faim : Test de Résistance/);
+    expect(get().journal.map((e) => e.texte).join('\n')).not.toMatch(/Faim : Test de Résistance/);
     for (const h of get().party) expect(h.hunger?.days ?? 0).toBe(0);
   });
 
@@ -652,7 +652,7 @@ describe('#270 / #1657 B3-2 — Critique au gréement : le coup à l’équipage
     set({ pendingCascade: riggingFailStep(h.id) as never });
     get().jetValider('cascade');
     expect(get().pendingCascade).toBeNull(); // 1 seule étape, tout résolu inline → cascade close
-    const journal = get().journal.join('\n');
+    const journal = get().journal.map((e) => e.texte).join('\n');
     // La Localisation se LIT (« gréement »), elle ne s'affiche plus par son id de table (#1318 V8c₂) :
     // cette attente verrouillait la fuite de moteur-speak.
     expect(journal).toMatch(/Critique au gréement/);
@@ -1015,7 +1015,7 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
  */
 describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse SA ligne de dé (aucune fenêtre)', () => {
   /** Lignes du journal au patron du dériveur (`{qui —} libellé : dé/cible, issue`). */
-  const traceLines = () => get().journal.filter((l) => / : \d+\/\d+, /.test(l));
+  const traceLines = () => get().journal.map((e) => e.texte).filter((l) => / : \d+\/\d+, /.test(l));
 
   it('aucune fenêtre ne s’ouvre sur le jour, et ses jets sont TRACÉS (un par jet, zéro doublon)', () => {
     launch();
@@ -1025,7 +1025,7 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
     // (une halte de nuit peut suivre : c'est une AUTRE surface, elle ne montre pas les dés du jour).
     expect(get().pendingCascade?.purpose ?? null, 'aucune modale de JOUR').not.toBe('travelDay');
     const lignes = traceLines();
-    expect(lignes.length, `journal :\n${get().journal.join('\n')}`).toBeGreaterThanOrEqual(2);
+    expect(lignes.length, `journal :\n${get().journal.map((e) => e.texte).join('\n')}`).toBeGreaterThanOrEqual(2);
     expect(new Set(lignes).size, 'aucune ligne de dé en DOUBLE (le jet ne se redit pas)').toBe(lignes.length);
     // Chaque ligne porte le dé, la cible ET l'issue — jamais un dé nu.
     for (const l of lignes) expect(l, l).toMatch(/^.+ : \d+\/\d+, .+\.$/);

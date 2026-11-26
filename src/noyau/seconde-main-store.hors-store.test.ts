@@ -180,7 +180,7 @@ describe('la valeur de la 2ᵉ frappe hors table de Personnage et sous Sauvageri
     for (let i = 0; i < 20 && !banc.getState().pendingDualStrike; i++) avanceEtapeCascade(banc.getState);
     expect(res.critical).toBe(true);
     expect(vivant('cible').criticalWounds).toBe(1);
-    const journal = banc.getState().battle!.log.map((l) => l.text);
+    const journal = banc.getState().battle!.log.map((l) => l.entree.texte);
     expect(journal, 'la table de coque a tiré ce d10').toContain(rollShipCritical('coque', makeRNG(0), D10_DE_COQUE).log);
     expect(jet()).toBe(D100_NAVIRE);
     expect(jet()).not.toBe(D10_DE_COQUE);

@@ -119,7 +119,7 @@ describe('checkBattleOver — objectif de victoire authorable (#197)', () => {
       const resolved = banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!;
       expect(resolved.outOfRencontre).toBe(true);
       expect(resolved.exitReason).toBe('repousse');
-      expect(banc.getState().battle!.log.some((e) => e.text === t('cf.repousse', { name: nomDe(resolved) }))).toBe(true);
+      expect(banc.getState().battle!.log.some((e) => e.entree.texte === t('cf.repousse', { name: nomDe(resolved) }))).toBe(true);
     });
 
     it("seuil ATTEINT (Blessures = atOrBelowPercent%) → la cible sort (MDG 15 l.143 « tombe à la moitié »)", () => {

@@ -24,10 +24,11 @@ import { tablesDuJeu } from './tablesDuJeu';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { deDeLaTableTiree } from '../engine/tables';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
-/** Les lignes du journal de combat (`journaliser` : combat ouvert → `battle.log`). */
-const lignesDeCombat = (): string[] => (banc.getState().battle?.log ?? []).map((e) => e.text);
+/** Les entrées du journal de combat (`journaliser` : combat ouvert → `battle.log`). */
+const entreesDeCombat = () => (banc.getState().battle?.log ?? []).map((e) => e.entree);
 beforeEach(() => {
   banc = ouvrirLeBanc();
 });
@@ -114,11 +115,9 @@ describe('option ON + héros piloté — le dé se saisit AVANT et APRÈS le jet
   it('le journal de combat porte la mention « dé fixé »', () => {
     setupAttack();
     banc.getState().jetImposerLeResultat('attaque', 33);
-    const log = lignesDeCombat().join('\n');
-    expect(log).toContain('dé fixé');
     // La valeur JOURNALISÉE est celle RÉELLEMENT appliquée au jet, relue sur le slot après commit.
-    expect(log).toContain(String(attackRoll()));
-    expect(log).toContain('33');
+    expect(attackRoll()).toBe(33);
+    expect(entreesDeCombat()).toContainEqual({ ...ligneDeTexte(`Att : d100 à ${attackRoll()}.`), deFixe: true });
   });
 });
 
@@ -158,7 +157,7 @@ describe('option OFF — l’option gate l’AFFORDANCE de celui qui clique, pas
     banc.getState().jetImposerLeResultat('attaque', 33);
     expect(attackRoll()).toBe(33);
     expect(banc.getState().pendingAttack!.fixed).toBe(true);
-    expect(lignesDeCombat().join('\n')).toContain('dé fixé');
+    expect(entreesDeCombat()).toContainEqual({ ...ligneDeTexte('Att : d100 à 33.'), deFixe: true });
   });
 });
 
@@ -225,7 +224,7 @@ describe('provenance & re-dérivation — le dé courant fait foi (sonde `lens` 
     openHandGate();
     setDesFixes(true);
     banc.getState().jetImposerLeResultat('mainEnsanglantee', 41);
-    expect(lignesDeCombat().join('\n')).toMatch(/Héros : dé fixé à 41/);
+    expect(entreesDeCombat()).toContainEqual({ ...ligneDeTexte('Héros : d100 à 41.'), deFixe: true });
   });
 });
 
@@ -293,22 +292,14 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
     banc.setState({ journal: [] });
     // Le pending est ENCORE ouvert pendant que l'applicateur compose : c'est la fenêtre du marquage.
     banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
-    expect(banc.getState().journal.join('\n')).toContain('(dé fixé)');
+    expect(banc.getState().journal).toEqual([{ ...ligneDeTexte('Att touche Cible à la tête · CRITIQUE !'), deFixe: true }]);
   });
 
   it('un jet NATUREL ne marque rien', () => {
     setupAttack(); // aucun dé saisi
     banc.setState({ journal: [] });
     banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
-    expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');
-  });
-
-  it('aucun doublon : la ligne de fixation n’est pas re-marquée', () => {
-    setupAttack();
-    setDesFixes(true);
-    banc.getState().jetImposerLeResultat('attaque', 33);
-    const ligne = lignesDeCombat().find((l) => l.includes('dé fixé'))!;
-    expect(ligne).toBe('Att : dé fixé à 33.');
+    expect(banc.getState().journal).toEqual([ligneDeTexte('Att touche Cible à la tête · CRITIQUE !')]);
   });
 
   it('pending REFERMÉ (hors modale) : plus aucune ligne n’est marquée', () => {
@@ -317,7 +308,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
     banc.getState().jetImposerLeResultat('attaque', 33);
     banc.setState({ pendingAttack: null, journal: [] });
     banc.getState().ecrireAuJournal('Le Gobelin se relève.');
-    expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');
+    expect(banc.getState().journal).toEqual([ligneDeTexte('Le Gobelin se relève.')]);
   });
 });
 
@@ -352,16 +343,16 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
     banc.getState().jetImposerLeResultat('cascadeTirage', 33, 'e1');
     banc.setState({ journal: [] });
     banc.getState().jetValider('cascade'); // conséquence d'E1 : dé SAISI
-    const apresE1 = banc.getState().journal.join('\n');
-    expect(apresE1).toContain('conséquence de e1');
-    expect(apresE1, 'la ligne du dé posé a perdu sa mention').toContain('dé fixé');
+    const apresE1 = banc.getState().journal;
+    expect(apresE1.map((e) => e.texte).join('\n')).toContain('conséquence de e1');
+    expect(apresE1.some((e) => e.deFixe), 'la ligne du dé posé a perdu sa provenance').toBe(true);
     banc.setState({ journal: [] });
     banc.getState().jetLancer('cascadeTirage', 'e2'); // dé NATUREL
     expect(banc.getState().pendingCascade!.participants[1].fixed).toBeUndefined();
     banc.getState().jetValider('cascade'); // conséquence d'E2
-    const apresE2 = banc.getState().journal.join('\n');
-    expect(apresE2).toContain('conséquence de e2');
-    expect(apresE2, 'la marque d’E1 a contaminé la ligne d’E2').not.toContain('dé fixé');
+    const apresE2 = banc.getState().journal;
+    expect(apresE2.map((e) => e.texte).join('\n')).toContain('conséquence de e2');
+    expect(apresE2.some((e) => e.deFixe), 'la marque d’E1 a contaminé la ligne d’E2').toBe(false);
   });
 
   it('slot MULTI à participants : un seul dé saisi ne marque pas les lignes du lot', () => {
@@ -378,14 +369,14 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
       } as never,
     });
     banc.getState().ecrireAuJournal('La porte cède.');
-    expect(banc.getState().journal.join('\n')).not.toContain('dé fixé');
+    expect(banc.getState().journal).toEqual([ligneDeTexte('La porte cède.')]);
     // Le MONO reste le cas N=1 : seul participant, dé saisi → la ligne porte la mention.
     banc.setState({
       journal: [],
       pendingForceDoor: { participants: [{ id: 'A', interactive: true, fixed: true, result: { roll: 33, target: 45, sl: 1, success: true } }] } as never,
     });
     banc.getState().ecrireAuJournal('La porte cède.');
-    expect(banc.getState().journal.join('\n')).toContain('dé fixé');
+    expect(banc.getState().journal).toEqual([{ ...ligneDeTexte('La porte cède.'), deFixe: true }]);
     banc.setState({ pendingForceDoor: null });
   });
 });

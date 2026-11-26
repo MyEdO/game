@@ -34,7 +34,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
     banc.setState({ battle: { ...banc.getState().battle!, turn: banc.getState().battle!.order.length - 1 } });
     advanceTurn(banc.getState, banc.setState);
     const after = banc.getState().battle!;
-    const lines = after.log.slice(beforeLen).map((e) => `${e.kind}:${e.text}`);
+    const lines = after.log.slice(beforeLen).map((e) => `${e.kind}:${e.entree.texte}`);
     const rngProbe = battleRng().int(1, 100);
     expect({ lines, rngProbe }).toMatchInlineSnapshot(`
       {
@@ -64,7 +64,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
     seedBattleRng(424242);
     banc.setState({ battle: { ...banc.getState().battle!, turn: banc.getState().battle!.order.length - 1 } });
     advanceTurn(banc.getState, banc.setState);
-    expect(banc.getState().battle!.log.slice(beforeLen).map((e) => e.text)).toEqual([
+    expect(banc.getState().battle!.log.slice(beforeLen).map((e) => e.entree.texte)).toEqual([
       '— Round 2 —',
       'Dider Rudlos — Test de Résistance (Résistance au Sonné) Intermédiaire (+0) : 13/20, réussi (DR +1).',
       'Dider Rudlos retire 1 État Sonné.',

@@ -383,7 +383,7 @@ describe('Navire et climat en grammaire (#1652 lot 2 — MDG 15)', () => {
   it('Chance du navigateur sans Capitaine : personne ne la reçoit, et le journal le dit', () => {
     jour('chance-du-navigateur');
     expect(get().party.some((h) => (h.activeEffects ?? []).some((e) => e.grantedTalent?.talentId === 'chanceux'))).toBe(false);
-    expect(get().journal.some((l) => l.includes('Capitaine'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('Capitaine'))).toBe(true);
   });
 });
 
@@ -461,7 +461,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
   it('manne de Manann jouée en mer : des vivres frais entrent en cale et le Moral monte (l.235-236)', () => {
     set({ vessel: { ...get().vessel!, provisions: vivres({}) } });
     jour('manne-de-manann');
-    const ligne = get().journal.find((l) => l.startsWith('Provisions de bord'));
+    const ligne = get().journal.map((e) => e.texte).find((l) => l.startsWith('Provisions de bord'));
     expect(ligne).toContain('Nourriture, courses/journée');
     expect(get().vessel!.morale.score).toBeGreaterThan(75);
   });
@@ -520,7 +520,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
     expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 12 });
     applyEffects(get, set, [{ type: 'adjustVessel', vivre: { id: FRAIS }, provisions: 3 } as never]);
     expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 40, [FRAIS]: 3 });
-    expect(get().journal).toContain(t('eff.navireModifie', { parts: t('eff.navireProvisions', { n: 43 }) }));
+    expect(get().journal.map((e) => e.texte)).toContain(t('eff.navireModifie', { parts: t('eff.navireProvisions', { n: 43 }) }));
   });
 
   it('setVessel au lieu portuaire du groupe pose le navire à quai : l’embauche y est acceptée (MDG 15 l.129)', () => {
@@ -563,7 +563,7 @@ describe('Ressources de bord en grammaire (#1652 lot 3 — MDG 15)', () => {
   it('manne de Manann sans vivres d’équipage suivis : le journal le dit, le Moral monte quand même', () => {
     jour('manne-de-manann');
     expect(get().vessel!.provisions).toBeUndefined();
-    expect(get().journal).toContain(t('eff.provisionsSansSuivi'));
+    expect(get().journal.map((e) => e.texte)).toContain(t('eff.provisionsSansSuivi'));
     expect(get().vessel!.morale.score).toBeGreaterThan(75);
   });
 });
@@ -605,7 +605,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     applyEffects(get, set, [surLeNavire([{ op: 'equipage', delta: 1, role: { id: 'navigateur' }, sansSolde: 'jusquAuPort' }])]);
     expect(get().vessel!.crewLost ?? 0).toBe(0);
     expect(get().vessel!.recueillisSansSolde).toBeUndefined();
-    expect(get().journal).toContain(t('eff.equipageComplet'));
+    expect(get().journal.map((e) => e.texte)).toContain(t('eff.equipageComplet'));
   });
 
   it('recueil multiple : le registre reçoit seulement les marins qui ont pu embarquer', () => {
@@ -689,7 +689,7 @@ describe('Équipage recueilli et pertes au port (#1652 lot 3 — MDG 15, valeurs
     get().avancerLHorloge(1);
     draineCascade(get);
     expect(get().vessel!.crewLost).toBe(1);
-    expect(get().journal).toContain('vous découvrez sa présence');
+    expect(get().journal.map((e) => e.texte)).toContain('vous découvrez sa présence');
   });
 
   it('Gangs des quais : 2d10 Enc perdus au prochain déchargement, levés à l’accostage suivant (l.250)', () => {
@@ -715,7 +715,7 @@ describe('Périls et navires hostiles en grammaire (#1652 lot 4 — MDG 15, vale
   const consequence = (id: string) => BOARD_EVENTS.find((e) => e.id === id)?.consequence;
   const surLeNavire = (ops: unknown[]): Flow => ({ kind: 'effet', effet: { type: 'ops', on: 'navire', ops } as never });
   const hail = () => get().pendingCascade?.participants.find((s) => s.kind === 'merPiratesSommation');
-  const journal = () => get().journal.join('\n');
+  const journal = () => get().journal.map((e) => e.texte).join('\n');
 
   it('la donnée porte la RAW : tourbillons, Rocher, équipages et grands canons, Vents favorables M +1, Marsouin 1d10 jours', () => {
     expect(consequence('maelstrom')).toEqual(surLeNavire([{ op: 'perilDeMer', tourbillon: { id: 'maelstrom' } }])); // l.140-141
@@ -845,7 +845,7 @@ describe('Voyage rapide en grammaire (#1652 lot 5 — MDG 15 l.33-37, l.49-51)',
     set({ vessel: { ...get().vessel!, cargo: [{ uid: 'a', cargoId: 'bois-mer', enc: 100, basePriceGold: 1 }, { uid: 'b', cargoId: 'bois-mer', enc: 20, basePriceGold: 1 }] } });
     applyEffects(get, set, [surLeNavire([{ op: 'cargaison', perduePct: 25 }])]);
     expect(get().vessel!.cargo!.reduce((s, l) => s + l.enc, 0)).toBe(90);
-    expect(get().journal).toContain(t('eff.cargaisonPerdue', { pct: 25, enc: 30 }));
+    expect(get().journal.map((e) => e.texte)).toContain(t('eff.cargaisonPerdue', { pct: 25, enc: 30 }));
   });
 
   it('`{blessuresMax}` : les Blessures maximales de la coque visée, 75 % arrondis à l’inférieur', () => {
@@ -910,7 +910,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
     finance(10);
     applyEffects(get, set, [surLeGroupe([{ op: 'money', montant: { brass: -480 }, groupe: true }])]);
     expect(enSous()).toBe(10 * 240 - 480);
-    expect(get().journal).toContain(t('eff.bourseDuGroupe', { sens: '−', montant: '2 CO' }));
+    expect(get().journal.map((e) => e.texte)).toContain(t('eff.bourseDuGroupe', { sens: '−', montant: '2 CO' }));
     applyEffects(get, set, [surLeGroupe([{ op: 'money', montant: { brass: 240 }, groupe: true }])]);
     expect(enSous()).toBe(9 * 240);
   });
@@ -1170,7 +1170,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     expect(bande?.participants?.map((p) => p.id)).toEqual([WORLD_STEP_OWNER]);
     draineCascade(get, 20, (_e, rangee) => (rangee ? 100 : undefined));
     expect(maladiesDeLEquipage()).toEqual(['fievre-du-rongeur']);
-    expect(get().journal).not.toContain(t('eff.membreAuHasardMarin'));
+    expect(get().journal.map((e) => e.texte)).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
   it('un marin tiré, dé 1-30 : sa réussite le laisse sain (MDG 15 l.161)', () => {
@@ -1186,7 +1186,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     imposerLesD100(100, 31);
     feuilleAuHasard([fievreA30]);
     expect(get().pendingCascade).toBeNull();
-    expect(get().journal.slice(avant)).toEqual([]);
+    expect(get().journal.map((e) => e.texte).slice(avant)).toEqual([]);
   });
 
   it('aucune âme à bord : ni bande ni ligne « marin »', () => {
@@ -1195,7 +1195,7 @@ describe('Nœuds hors combat (#1652 lot 7 — MDG 15 l.159-164, l.174-178, l.194
     const avant = get().journal.length;
     feuilleAuHasard([fievreA30]);
     expect(get().pendingCascade).toBeNull();
-    expect(get().journal.slice(avant)).toEqual([]);
+    expect(get().journal.map((e) => e.texte).slice(avant)).toEqual([]);
   });
 
   it('une table à `addNegativeSL` se lit pareil sur un héros et sur l’équipage (MSRC 16 l.90)', () => {
@@ -1388,7 +1388,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
     const ecart = Math.abs(get().vessel!.manann!.score - avant);
     expect(ecart).toBeGreaterThanOrEqual(2);
     expect(ecart).toBeLessThanOrEqual(20);
-    expect(get().journal.join('\n')).toContain('Humeur');
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('Humeur');
   });
 
   it('Triton non vaincu (défaite) : l’Humeur ne bouge pas', () => {
@@ -1438,7 +1438,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
   it('sans navire de campagne en mer, aucun combat ne s’ouvre et le journal le dit', () => {
     jouerFlowEntier(runFlow(get, set, surLeNavire([{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }]), 'Monstre marin'));
     expect(get().battle).toBeNull();
-    expect(get().journal.join('\n')).toContain(t('sv.combatEnMerSansPont', { label: 'Monstre marin' }));
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain(t('sv.combatEnMerSansPont', { label: 'Monstre marin' }));
   });
 
   it('la fiche Codex dit le combat, le repli et la suite de la victoire', () => {
@@ -1499,7 +1499,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
       set({ journal: [] });
       jour('culte-de-la-personnalite');
       draineCascade(get);
-      const j = get().journal.join('\n');
+      const j = get().journal.map((e) => e.texte).join('\n');
       expect(['millénarisme', 'contrebande', 'Stromfels', 'Tzeentch'].some((mot) => j.includes(mot)), j).toBe(true);
     }
   });
@@ -1510,8 +1510,8 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
       set({ journal: [] });
       jour('culte-de-la-personnalite');
       draineCascade(get);
-      const annonces = get().journal.filter((l) => Array.from({ length: 10 }, (_, i) => t('op.nombreNarratif', { text: "combien d'initiés sensibles à ses paroles il a rassemblés", n: i + 1 })).some((a) => a === l));
-      expect(annonces, get().journal.join('\n')).toHaveLength(1);
+      const annonces = get().journal.map((e) => e.texte).filter((l) => Array.from({ length: 10 }, (_, i) => t('op.nombreNarratif', { text: "combien d'initiés sensibles à ses paroles il a rassemblés", n: i + 1 })).some((a) => a === l));
+      expect(annonces, get().journal.map((e) => e.texte).join('\n')).toHaveLength(1);
     }
   });
 
@@ -1634,7 +1634,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     const avant = cale();
     get().avitaillerLeNavire(commande({ [FRAIS]: 4 }), 0);
     expect(cale()).toEqual(avant);
-    expect(get().journal).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
+    expect(get().journal.map((e) => e.texte)).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
   });
 
   it('Avitaillement hors quai : refus nommé, rien ne change', () => {
@@ -1642,7 +1642,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     const avant = cale();
     get().avitaillerLeNavire(commande({ [PRESERVEE]: 5 }), 2);
     expect(cale()).toEqual(avant);
-    expect(get().journal).toEqual([t('port.pasAQuai')]);
+    expect(get().journal.map((e) => e.texte)).toEqual([t('port.pasAQuai')]);
   });
 
   it('Avitaillement à bourse courte : refus nommé, rien ne change', () => {
@@ -1652,7 +1652,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     const rations = Math.floor(avant.bourse / RATION_PRESERVEE) + 1;
     get().avitaillerLeNavire(commande({ [PRESERVEE]: rations }), 0);
     expect(cale()).toEqual(avant);
-    expect(get().journal).toEqual([t('port.avitaillementTropCher', { cost: formatMoney(fromBrass(rations * RATION_PRESERVEE)) })]);
+    expect(get().journal.map((e) => e.texte)).toEqual([t('port.avitaillementTropCher', { cost: formatMoney(fromBrass(rations * RATION_PRESERVEE)) })]);
   });
 
   it('Bonne pêche : le frais s’achète à 3 sous de cuivre la ration-jour à l’escale, plus après l’appareillage ; la préservée garde son prix (MDG 15 l.262)', () => {
@@ -1668,7 +1668,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     avant = cale();
     get().avitaillerLeNavire(commande({ [FRAIS]: 4 }), 0);
     expect(cale()).toEqual(avant);
-    expect(get().journal).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
+    expect(get().journal.map((e) => e.texte)).toEqual([t('port.vivreHorsVente', { vivre: 'Nourriture, courses/journée' })]);
   });
 
   it('l’accostage met le navire à quai, l’appareillage l’en retire', () => {
@@ -1777,7 +1777,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     set({ journal: [], pendingCascade: null });
     jour('collision-soudaine');
     draineCascade(get);
-    expect(get().journal.join('\n')).toContain(t('sv.perilEvite', { hazard: findSeaHazard('rocher')!.label, label: deBord('autres-voyageurs').label }));
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain(t('sv.perilEvite', { hazard: findSeaHazard('rocher')!.label, label: deBord('autres-voyageurs').label }));
   });
 
   it('un `navireMod` qui évite un péril jusqu’au prochain événement de bord est refusé à la donnée', () => {
@@ -1816,7 +1816,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
   it('hors escale, les colonnes ne changent nulle part et le journal le dit', () => {
     applyEffects(get, set, [{ type: 'ops', ops: [{ op: 'marcheDuPort', colonnes: 'saturation' }] } as never]);
     expect(get().alterationsDuMarche).toEqual([]);
-    expect(get().journal.join('\n')).toContain(t('eff.marcheHorsPort', { label: nomDeSource(undefined) }));
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain(t('eff.marcheHorsPort', { label: nomDeSource(undefined) }));
   });
 
   it('la fiche Codex dit chaque altération', () => {

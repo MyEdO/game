@@ -36,7 +36,7 @@ const sequence = (...etapes: Flow[]): Flow => ({ kind: 'sequence', etapes });
 const testDeForce = (): Flow => ({ kind: 'test', test: { characteristic: 'force', label: 'Force' }, reussite: journal('BRANCHE'), echec: journal('BRANCHE') });
 
 /** Les lignes du journal qui sont des marqueurs de ce banc, dans leur ordre. */
-const marqueurs = (): string[] => get().journal.filter((l) => /^[A-Z]+[0-9]?$/.test(l));
+const marqueurs = (): string[] => get().journal.map((e) => e.texte).filter((l) => /^[A-Z]+[0-9]?$/.test(l));
 
 function scene(triggers: Trigger[], entities: Scene['entities'] = []): Scene {
   return {

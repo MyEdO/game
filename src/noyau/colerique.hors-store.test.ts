@@ -193,7 +193,7 @@ describe('Colérique en combat', () => {
     castSpell(banc.getState, banc.setState, e0, S, 'colerique');
     reussirEtJouer(banc, 9);
     expect(accordes(S)).toEqual({ traits: [], echeances: [] });
-    expect(banc.getState().battle!.log.map((l) => l.text)).toContain('Colérique : aucune personne à désigner pour Soldat, sans effet.');
+    expect(banc.getState().battle!.log.map((l) => l.entree.texte)).toContain('Colérique : aucune personne à désigner pour Soldat, sans effet.');
   });
 });
 

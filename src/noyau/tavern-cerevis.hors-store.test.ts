@@ -247,13 +247,13 @@ describe('Le Cerevis — les deux lectures du MÊME dé', () => {
     // Dé ENTRE les deux cibles : le Pari passe (cible 95), l'Initiative lâche.
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: cibleInit + 1, target: 95, sl: 5 }, { roll: 10, sl: 1 }));
     expect(compte().echecs.joueur, 'l’échec de la seconde lecture est compté').toBe(1);
-    expect(get().journal.some((l) => l.includes(a.label) && l.includes('grosse gorgée'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes(a.label) && l.texte.includes('grosse gorgée'))).toBe(true);
 
     banc.setState({ tavernGames: null, journal: [], sequence: partie(a.id) });
     // Dé sous les DEUX cibles : rien à boire.
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: Math.max(1, cibleInit - 5), target: 95, sl: 5 }, { roll: 10, sl: 1 }));
     expect(compte().echecs.joueur, 'les deux lectures réussissent').toBe(0);
-    expect(get().journal.some((l) => l.includes('grosse gorgée'))).toBe(false);
+    expect(get().journal.some((l) => l.texte.includes('grosse gorgée'))).toBe(false);
   });
 
   it.each([0, 1])('avec %i échec préalable, une gorgée compte sans ouvrir de Test', (avant) => {
@@ -481,7 +481,7 @@ describe('Le Cerevis — la fin de partie (arbitrage maison assumé)', () => {
     addCondition(a, COND.inconscient);
     banc.setState({ party: [a], sequence: partie(a.id, { tour: 1 }, { joueur: 0, adversaire: 1 }) });
     closeSequenceRound(get, banc.setState, tour(a.id, { roll: 20, target: 90, sl: 5 }, { roll: 20, sl: 5 }));
-    expect(get().journal.some((l) => l.includes('sous la table'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('sous la table'))).toBe(true);
     expect(get().tavernGames!.result!.winner, 'et le compte des chouettes tranche quand même').toBe('joueur');
   });
 });

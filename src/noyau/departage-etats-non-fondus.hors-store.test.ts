@@ -159,7 +159,7 @@ function probeLandBuy(seed: number): { merchant: number; merchantSL: number; her
   return { merchant, merchantSL: evaluateTest(d100(rng), merchant).sl, heroRoll };
 }
 
-const bargainLineOf = (): string => get().journal.find((l) => /Marchandage \(/.test(l)) ?? '';
+const bargainLineOf = (): string => get().journal.map((e) => e.texte).find((l) => /Marchandage \(/.test(l)) ?? '';
 
 describe('#1153 L2 — MARCHÉ TERRESTRE : l’État ne se fond plus dans la grandeur du départage', () => {
   beforeEach(() => setRule('test-bandes-auto', 'off'));

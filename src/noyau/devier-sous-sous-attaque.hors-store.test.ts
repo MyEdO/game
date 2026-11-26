@@ -196,7 +196,7 @@ describe('Marin tenu d’un Critique d’Équipage : sa fenêtre suspend son seu
     const m = enJeu('marin');
     expect(m.criticalWounds ?? 0).toBe(1);
     expect(m.critEntriesSuffered).toHaveLength(1);
-    expect(banc.getState().battle!.log.map((l) => l.text)).toContain(`marin subit ${contre(att, marin).woundsLost} Blessure(s).`);
+    expect(banc.getState().battle!.log.map((l) => l.entree.texte)).toContain(`marin subit ${contre(att, marin).woundsLost} Blessure(s).`);
     expect(degatsSubis(m.items![0])).toBe(0);
     expect(enJeu('nav').criticalWounds ?? 0).toBe(critsCoque);
   });

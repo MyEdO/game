@@ -61,7 +61,7 @@ function tourDe(id: string, graine: number): void {
   banc.reprendreTout();
 }
 
-const lignes = () => g().battle!.log.map((l) => l.text);
+const lignes = () => g().battle!.log.map((l) => l.entree.texte);
 const ici = (id: string) => g().battle!.combatants.find((c) => c.id === id)!;
 
 /** Un ennemi `e` sous la Peur du héros `h` (LDB 21 l.27), sa Force Mentale `fm`. */

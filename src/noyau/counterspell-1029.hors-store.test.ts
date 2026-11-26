@@ -127,7 +127,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     // lieu, et APRÈS le choix : le moment du Contre-sort suit la résolution du Critique.
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound,
       'la Dissipation s’est jouée une fois le choix d’effet tranché').toBe(true);
-    expect(banc.getState().battle!.log.some((e) => e.text.includes('Contre-sort de'))).toBe(true);
+    expect(banc.getState().battle!.log.some((e) => e.entree.texte.includes('Contre-sort de'))).toBe(true);
   });
 
   it('HOSTILITÉ (arbitrage 2026-08-03) : un ennemi ne contre pas le Sort d’un ennemi ; le héros, si', () => {

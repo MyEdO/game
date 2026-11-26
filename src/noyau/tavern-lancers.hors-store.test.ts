@@ -315,7 +315,7 @@ describe('Les fléchettes — le total EXACT, et le dépassement qui TERMINE LE 
     expect(volley().manche, 'la manche a été jouée jusqu’au bout et la suivante s’ouvre').toBe(2);
     expect(volley().jet, 'ses deux fléchettes restantes n’ont pas été lancées').toBe(1);
     expect(volley().seat).toBe(0);
-    expect(get().journal.some((l) => l.includes('son tour est terminé'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('son tour est terminé'))).toBe(true);
   });
 
   it('marquer EXACTEMENT 501 remporte la partie — le gain libre se SAISIT (l.97)', () => {
@@ -405,7 +405,7 @@ describe('Les boules — la MEILLEURE boule décide, plafonnée à 6 DR (l.57)',
     }
     const res = get().tavernGames!.result!;
     expect(get().sequence, 'la partie s’est close d’elle-même').toBeNull();
-    expect(get().journal.some((l) => l.includes('sur sa borne')), 'aucune coupure par l’anti-boucle').toBe(false);
+    expect(get().journal.some((l) => l.texte.includes('sur sa borne')), 'aucune coupure par l’anti-boucle').toBe(false);
     expect(vus.length, 'les trois boules du héros ont bien été jouées une à une').toBe(3);
     expect(res.dr.joueur, 'le score final est le dernier montré au tableau').toBeGreaterThanOrEqual(0);
     expect(res.dr.joueur).toBeLessThanOrEqual(6);
