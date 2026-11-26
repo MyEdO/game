@@ -139,7 +139,7 @@ import { aretesA } from './monde/wallIndex';
 import type { Pt, EffectZoneSeed } from './sceneEdit';
 import { champsDuFormulaire, type CheminsOfferts, type FormeDuFormulaire, type Segment } from './edition/formulaire';
 import { tableTotale } from '../lib/tableTotale';
-import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { entreeDe, type Catalogue } from '../data/schemas/catalogue/catalogue';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { estUnNavireAPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/schemas/catalogue/poseDesPonts';
@@ -500,12 +500,21 @@ export function capsDeLaPose(scene: Scene, ent: SceneEntity, cat: Catalogue = ca
   };
 }
 
-/** Les fiches qu'un personnage posé peut nommer (#1882) : les créatures du bestiaire qui ont des Blessures
- *  (`char.B`), les profils standard (`LDB 77 l.7`, `profilsStandard`) en tête. */
+/** Une créature est une fiche de personnage si elle a des Blessures (`char.B`, #1882). */
+const estUneFiche = (c: CreatureData): boolean => typeof c.char.B === 'number';
+
+/** Les fiches qu'un personnage posé peut nommer (`estUneFiche`) : les créatures du bestiaire, les profils standard
+ *  (`LDB 77 l.7`, `profilsStandard`) en tête. */
 export function fichesDePersonnage(): CreatureData[] {
   const standard = new Set(profilsStandard());
-  const fiches = creatures.filter((c) => typeof c.char.B === 'number');
+  const fiches = creatures.filter(estUneFiche);
   return [...fiches.filter((c) => standard.has(c.id)), ...fiches.filter((c) => !standard.has(c.id))];
+}
+
+/** La fiche de personnage `id` de `cat` (`estUneFiche`), `undefined` si `cat` n'en porte pas. */
+export function ficheDePersonnage(id: string | undefined, cat: Catalogue): CreatureData | undefined {
+  const creature = entreeDe('creatures', id, cat);
+  return creature && estUneFiche(creature) ? creature : undefined;
 }
 
 /** Le segment de l'arête que la sélection `sel` désigne, `undefined` hors d'une arête sélectionnée. */

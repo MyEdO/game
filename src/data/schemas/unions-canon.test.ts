@@ -118,8 +118,8 @@ describe('unions partagées moteur ⇄ schémas de donnée (#1440)', () => {
    * GÉNÉRIQUE de `recopieDeCanon` (≥2 membres) ce canon rapporte 14 sites dont AUCUN ne re-déclare l'alphabet.
    * La raison est structurelle — il existe TROIS vocabulaires météo distincts dans l'arbre, et les deux
    * autres chevauchent celui-ci par exactement deux noms (`pluie`, `neige`) :
-   *  - la météo de SCÈNE `'clair'|'pluie'|'brouillard'|'neige'|'tempete'` (`noyau/monde/scene.ts:345`,
-   *    `defs-scenes/scene.ts:510`, ses lecteurs `engine/exposure.ts:42`, `defs/ambiance.ts`,
+   *  - la météo de SCÈNE `'clair'|'pluie'|'brouillard'|'neige'|'tempete'` (`noyau/monde/scene.ts:322`,
+   *    `defs-scenes/scene.ts:417`, ses lecteurs `engine/exposure.ts:42`, `defs/ambiance.ts`,
    *    `data/index.ts` (`WeatherFxId`), `gameIso/stage/weather-portes.test.tsx`) — AUTRE axe, migration
    *    possédée par #1585 ; une garde de CE canon qui la rougirait accuserait un innocent ;
    *  - les particules de RENDU `'pluie'|'averse'|'neige'` (`WeatherFxDef.particles`, `data/index.ts`).
