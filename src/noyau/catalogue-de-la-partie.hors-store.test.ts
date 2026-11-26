@@ -14,7 +14,7 @@ import { idDeFixture } from '../data/idDeFixture.testkit';
 /** Une règle booléenne de fixture, déclarée par la suite. */
 const REGLE_DE_FIXTURE: NonNullable<LivreDeTest['reglesOptionnelles.json']>[number] = {
   id: idDeFixture('regleOptionnelle', 'regle-de-fixture-du-catalogue'), type: 'reglesOptionnelles', label: 'Règle de fixture',
-  ref: 'LDB 01 l.1', source: { book: idDeFixture('book', 'livre-de-test'), page: 1 }, group: 'Test', kind: 'flag', default: false,
+  ref: 'LDB 12 l.127', source: { book: idDeFixture('book', 'livre-de-test'), page: 1 }, group: 'Test', kind: 'flag', default: false,
 };
 
 afterEach(() => resetData());
