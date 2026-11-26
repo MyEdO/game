@@ -1652,6 +1652,9 @@ export interface Combatant {
   /** Par objet (id de catalogue) à Dose datée, la marque de la période où sa dernière dose fut prise : jour de jeu,
    *  ou compte des Blessures Critiques subies (`prendreLaDose`). LDB 72 l.22, l.28 */
   marquesDeDose?: Record<string, number>;
+  /** Par Prière (id de sort) réussie cette rencontre, les ids des cibles qu'elle a visées (`consignerLaPriere`), vidé à
+   *  l'entrée en combat comme `soinRencontreUtilise`. LDB 41 l.17 ; #5056 */
+  prieresDeRencontre?: Record<string, string[]>;
   /** A déjà bénéficié d'un soin de Blessures (Guérison) cette rencontre (LDB 09 l.260).
    *  Réinitialisé au début de chaque combat (lancerLeCombat). N'affecte PAS l'arrêt d'Hémorragie. */
   soinRencontreUtilise?: boolean;

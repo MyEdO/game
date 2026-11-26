@@ -76,7 +76,8 @@ export const SI_DE_COURSE = Object.freeze({
 export const JOBS_HORS_REJEU_LOCAL = {
   [JOB_DE_BRANCHE]:
     'la course de branche rejoue un SOUS-ENSEMBLE des gates de la course de file : `typecheck` est déjà une gate ' +
-    'de la lane `types`, et `test:perimetre` est le geste local de l’agent',
+    'de la lane `types`, `raw:check-code-refs` une gate de la lane `docs`, `raw:reconcile` un générateur de ' +
+    '`docs:build`, et `test:perimetre` est le geste local de l’agent',
 }
 
 /**

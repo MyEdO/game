@@ -56,6 +56,7 @@ import {
 } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
+import { voir } from './tutoriel';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 /** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
@@ -439,6 +440,7 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
   for (const h of herosDuGroupe(e)) purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
   e.expedition = null;
   if (jours) passerDesJours(e, jours, partis);
+  voir(e, 'retour');
   return lignes;
 }
 

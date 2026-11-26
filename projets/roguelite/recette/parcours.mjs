@@ -21,8 +21,17 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
   // 1. Premier lancement : une partie neuve.
   {
     const p = await page(b, [l, h]);
-    if (l === 1280) constater((await p.textContent('.recit-lieu .but')).includes('Autel du Chaos'), '1 : le but est nommé au panneau Partir');
+    if (l === 1280) {
+      constater((await p.textContent('.recit-lieu .but')).includes('Autel du Chaos'), '1 : le but est nommé au panneau Partir');
+      constater((await p.textContent('.note-quete')).includes('Le hameau en ruine') && await p.isVisible('.enseigne.quete[data-id="relais"]'), '1 : la première quête du tutoriel mène à l’Auberge relais, marquée au hameau');
+    }
     await image(p, '1-lancement', l);
+    if (l === 1280) {
+      await clic(p, '.note-quete [data-a="batiment"]');
+      constater(await p.isVisible('.ecran-plein:not(.lieu)') || await p.isVisible('[data-a="fermer-panneau"]'), '1 : « Y aller » ouvre l’Auberge relais');
+      await clic(p, '[data-a="fermer-panneau"]');
+      constater((await p.textContent('.note-quete')).includes('S’équiper'), '1 : la quête suivante mène à la Forge');
+    }
     await p.context().close();
   }
   // 2, 6, 7, 8 : la compagnie au retour — un blessé, une séquelle, un héros à l'hospice, un sans PX.
