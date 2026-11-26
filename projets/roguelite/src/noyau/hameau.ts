@@ -2,8 +2,7 @@
  * Les actes hors combat, joués par le noyau dans une partie d'exploration : achats aux PX, niveau de carrière, objet
  * équipé ou utilisé, prière.
  */
-import { arena, gestesDeLObjet, gesteDeLaPanoplie, gesteDIncantation, type GesteDuNoyau, type Jeu } from '../../../../src/noyau';
-import type { Combatant, Main } from '../../../../src/engine/types';
+import { arena, gestesDeLObjet, gesteDeLaPanoplie, gesteDIncantation, type GesteDuNoyau, type Jeu, type Combatant, type Main } from '../../../../src/noyau';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
 /** Un geste du noyau : ce qu'une offre du noyau rend sur l'état de la partie au moment de le jouer, rien s'il n'y en a

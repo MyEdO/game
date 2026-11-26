@@ -16,15 +16,68 @@ export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant, ordreDuRoundSuivant } from './combatFlow';
-export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, locationLabel, type Difficulty, type FireArc } from '../engine/types';
-export { formatMoney, fromBrass, libelleDuStatut, type Money } from '../engine/money';
-export type { FaitApplique } from '../engine/faits';
+export {
+  AVAILABILITIES,
+  CHAR_KEYS,
+  DIFFICULTE_PAR_DEFAUT,
+  DIFFICULTY_LABELS,
+  FIRE_ARCS,
+  LOCALISATIONS_DE_COUP,
+  locationLabel,
+  type Difficulty,
+  type FireArc,
+} from '../engine/types';
+export { formatMoney, fromBrass, libelleDuStatut, PA_PER_CO, toBrass, type Money } from '../engine/money';
+export type { Applique, FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
-export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, toDate, type DayPhaseId, type ImperialDate } from '../engine/clock';
+export {
+  dayIndex,
+  dayPhase,
+  formatImperial,
+  formatJourImperial,
+  jourImperial,
+  MINUTES_PER_DAY,
+  toDate,
+  type DayPhaseId,
+  type ImperialDate,
+} from '../engine/clock';
 export { libelleDeDistance } from '../engine/travel';
 export { clockLabel } from '../engine/duration';
 export { currentSeason } from '../engine/travelStages';
 export { isEngagedWith } from '../engine/engagement';
+export { makeRNG, type RNG } from '../engine/dice';
+export { isConditionLocked, isOutOfAction, raisonVerrouEtat, refusDeDetermination } from '../engine/conditions';
+export {
+  CAREER_SKILLS_ADVANCED,
+  careerCompletionAdvances,
+  coutDeLAugmentation,
+  coutDuChangement,
+  coutDuTalent,
+  niveauValide,
+  talentSlotsAchetables,
+  type Chiffrage,
+  type ContexteDeCompletion,
+} from '../engine/advancement';
+export { modeleDe } from '../engine/modeleDeProgression';
+export { casesDuNiveau } from '../engine/casesDeCarriere';
+export { talentMaxReached } from '../engine/acquisitionTalents';
+export { spellCost, talentOuvre } from '../engine/grimoire';
+export { spellSupportOf } from '../engine/spellspec';
+export { castingKindOf } from '../engine/combatFeatures/dispatch';
+export { peutTenter, testValue, type TestDesigne } from '../engine/skills';
+export { evaluateTest } from '../engine/tests';
+export { TIME_COST } from '../engine/timeCost';
+export { encumbrancePenalties } from '../engine/encumbrance';
+export { qualityWearMods, wornArmourPenalty } from '../engine/wearPenalty';
+export { consommableDe, isConsumable } from '../engine/consumables';
+export { effectiveWeaponDamage } from '../engine/weaponDamage';
+export { ZONES_D_ARMURE } from '../engine/classementDeTrait';
+export { armourCastDRPenalty } from '../engine/magic';
+export { adresseDeCreation } from '../engine/adresseDeCreation';
+export { maladieDeclaree } from '../engine/passifsDeMaladie';
+export { corruptionThreshold } from '../engine/corruption';
+export { cappedHealAmount, HEAL_SKILL, type HealMode } from '../engine/healing';
+export { surgeryTraumas } from '../engine/trauma';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
@@ -74,7 +127,21 @@ export {
   structureAppearances,
   trappingRefLabel,
 } from '../data';
-export { isWearable, objetsDeLInventaire } from '../engine/items';
+export {
+  ammoFamily,
+  chargeLArme,
+  equipConflicts,
+  isOffHandEligible,
+  isShieldTrapping,
+  isWearable,
+  itemsEncumbrance,
+  maxEncumbrance,
+  objetsDeLInventaire,
+  reachRankOf,
+  totalEncumbrance,
+  weaponFromItem,
+  wornArmourPoints,
+} from '../engine/items';
 export {
   carriereActuelle,
   designationsDeCarriere,
@@ -84,7 +151,7 @@ export {
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
-export { candidatsDuSlot, parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
+export { availableChars, candidatsDuSlot, designationsFor, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers } from '../engine/careerSlots';
 export {
   dotationsDuPnj,
   emplacementsDeDotation,
@@ -93,12 +160,13 @@ export {
   porteurDuProfil,
   sousEmplacementActif,
   valeursDeLEmplacement,
+  type ChoixDeDotation,
   type EmplacementDeDotation,
 } from '../engine/trappingChoices';
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
 export { PARTS_RELIEF } from '../data/schemas/materials.types';
 export type { Cadence } from '../engine/cadence';
-export type { FabriqueDId, FabriqueDuRoster } from '../engine/fabriqueDId';
+export { fabriqueLocale, type FabriqueDId, type FabriqueDuRoster } from '../engine/fabriqueDId';
 export type { Equipe } from '../engine/relations';
 export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 export { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
@@ -149,14 +217,15 @@ export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
 export { distanceDeCombat, footprintN } from './monde/footprint';
-export { effectiveArmourAt } from '../engine/characteristics';
-export { effectiveTalents, reservesPropres } from '../engine/talentEffects';
+export { bonusDe, effectiveArmourAt, effectiveMaxWounds, forceDuPorteur } from '../engine/characteristics';
+export { competenceEnCarriere, reservesPropres } from '../engine/talentEffects';
+export { effectiveTalents } from '../engine/talentsPossedes';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY } from './combatAuto';
 export { conversationEnVue, libelleDuTestAnnonce, type ConversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
-export type { Combatant, ItemInstance } from '../engine/types';
-export type { ModLine } from '../engine/combat';
+export type { ArmourPoints, Availability, CharKey, Combatant, ConditionInstance, ItemInstance, Main, ModLine } from '../engine/types';
+export { attackTestOf, combatBaseValue, ligneDuCoup, weaponGroupSkillMode, weaponSkillId } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain, withActingSeat } from './netOwnership';

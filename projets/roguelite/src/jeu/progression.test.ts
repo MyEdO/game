@@ -16,10 +16,8 @@ import {
   type Heros,
 } from './index';
 import { porterAuNiveau, progression, poserLesReglesDuRoguelite } from '../noyau';
-import { coutDeLAugmentation } from '../../../../src/engine/advancement';
-import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
+import { casesDuNiveau, coutDeLAugmentation, type Combatant } from '../../../../src/noyau';
 import { heros4e, prixDuPlanAuNoyau, recrue5e } from './recrue5e.testkit';
-import type { Combatant } from '../../../../src/engine/types';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 

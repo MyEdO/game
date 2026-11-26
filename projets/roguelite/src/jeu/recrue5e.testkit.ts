@@ -6,11 +6,9 @@
 import { expect } from 'vitest';
 import { ameliorer, nouvellePartie, recrue, PROFILS, type Etat, type Heros } from './index';
 import type { EtapeDuPlan } from '../noyau';
-import { buyCharAdvance, buySkillAdvance, coutDeLAugmentation } from '../../../../src/engine/advancement';
-import { byId } from '../../../../src/noyau';
-import type { CharKey, Combatant } from '../../../../src/engine/types';
+import { buyCharAdvance, buySkillAdvance } from '../../../../src/engine/advancement';
 import { createHero } from '../../../../src/engine/character';
-import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
+import { byId, coutDeLAugmentation, fabriqueLocale, type CharKey, type Combatant } from '../../../../src/noyau';
 
 /** La partie et sa recrue 5e, `xp` PX à dépenser. */
 export function recrue5e(xp: number): { e: Etat; h: Heros } {

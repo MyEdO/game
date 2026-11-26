@@ -1,10 +1,10 @@
 /**
  * La carrière : ce que le niveau offre, les Talents qui agissent en combat, les sorts et miracles.
  */
+import { buyCharAdvance, buySkillAdvance, buyTalent } from '../../../../src/engine/advancement';
+import { resolveTrappingChoices } from '../../../../src/engine/trappingChoices';
+import { doterLePorteur } from '../../../../src/engine/bourse';
 import {
-  buyCharAdvance,
-  buySkillAdvance,
-  buyTalent,
   CAREER_SKILLS_ADVANCED,
   careerCompletionAdvances,
   coutDeLAugmentation,
@@ -14,23 +14,34 @@ import {
   talentSlotsAchetables,
   type Chiffrage,
   type ContexteDeCompletion,
-} from '../../../../src/engine/advancement';
-import { modeleDe } from '../../../../src/engine/modeleDeProgression';
-import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
-import { talentMaxReached } from '../../../../src/engine/acquisitionTalents';
-import { spellCost, talentOuvre } from '../../../../src/engine/grimoire';
-import { spellSupportOf } from '../../../../src/engine/spellspec';
-import { castingKindOf } from '../../../../src/engine/combatFeatures/dispatch';
-import { emplacementsDeDotation, resolveTrappingChoices, valeursDeLEmplacement, type ChoixDeDotation } from '../../../../src/engine/trappingChoices';
-import { doterLePorteur } from '../../../../src/engine/bourse';
-import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
-import { makeRNG } from '../../../../src/engine/dice';
-import { availableChars, skillSlots, designationsFor, parseRefKey, refKey } from '../../../../src/engine/careerSlots';
-import { bonusDe, effectiveChar, effectiveMaxWounds } from '../../../../src/engine/characteristics';
-import { peutTenter, testValue } from '../../../../src/engine/skills';
-import { weaponSkillId } from '../../../../src/engine/combat';
-import { competenceEnCarriere } from '../../../../src/engine/talentEffects';
-import {
+  modeleDe,
+  casesDuNiveau,
+  talentMaxReached,
+  spellCost,
+  talentOuvre,
+  spellSupportOf,
+  castingKindOf,
+  emplacementsDeDotation,
+  valeursDeLEmplacement,
+  type ChoixDeDotation,
+  fabriqueLocale,
+  makeRNG,
+  availableChars,
+  skillSlots,
+  designationsFor,
+  parseRefKey,
+  refKey,
+  bonusDe,
+  ficheDuCombattant,
+  effectiveMaxWounds,
+  peutTenter,
+  testValue,
+  weaponSkillId,
+  competenceEnCarriere,
+  CHAR_KEYS,
+  type Combatant,
+  type CharKey,
+  type ItemInstance,
   byId,
   characteristics,
   displayLabelForSex,
@@ -47,7 +58,6 @@ import {
   type GesteFermable,
   type Jeu,
 } from '../../../../src/noyau';
-import { CHAR_KEYS, type Combatant, type CharKey, type ItemInstance } from '../../../../src/engine/types';
 import { auHameau, type Geste } from './hameau';
 import { articleDuCatalogue, maniement } from './equipement';
 import { chancesDeReussite } from './epreuve';
@@ -119,10 +129,11 @@ export function progression(c: Combatant): Progression {
   const prochain = niveaux.find((l) => l.level === niveau + 1);
   const titre = (l: CareerLevelData) => displayLabelForSex(sexeDuPorteur(c), l.label, l.labelF);
   const actuel = niveaux.find((l) => l.level === niveau);
+  const fiche = ficheDuCombattant(c, () => undefined)!;
   return {
     niveau, titre: actuel ? titre(actuel) : carriere, exigence: exigenceDuNiveau(c), complet: niveauValide(c, niveau, ctx),
     suivant: prochain ? { niveau: prochain.level, titre: titre(prochain), cout: coutDuChangement(c, true) } : null,
-    caracs: [...new Set(ctx.careerChars)].map((k) => ({ id: k, label: libelleDeCarac(k).label, valeur: effectiveChar(c, k), points: pointsDe(c, { genre: 'carac', id: k }), cout: prixDe(coutDeLAugmentation(c, { kind: 'caracteristique', char: k }, true)) })),
+    caracs: [...new Set(ctx.careerChars)].map((k) => ({ id: k, label: libelleDeCarac(k).label, valeur: fiche.caracteristiques.find((x) => x.cle === k)!.valeur, points: pointsDe(c, { genre: 'carac', id: k }), cout: prixDe(coutDeLAugmentation(c, { kind: 'caracteristique', char: k }, true)) })),
     competences: refs(ctx.skillSlots).filter((r) => !r.aSpecifier).map(({ aSpecifier: _a, ...ref }) => {
       const k = byId('skill', ref.id)?.characteristic as CharKey | undefined;
       const { remise } = competenceEnCarriere(c, ctx.skillSlots, designations, ref.id, ref.spec);
