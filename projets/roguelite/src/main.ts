@@ -65,12 +65,12 @@ function agir(f: () => string | null | void) {
 /** Joue l'action choisie dans la salle ouverte (`J.agirDansLaSalle`) et raconte son récit en carton ; son refus, en
  *  toast. La salle, sa route et son rang se lisent avant l'action, qui peut ramener le groupe au hameau. Le combat
  *  qu'une épreuve ratée déclenche se livre ensuite, par « Combattre » au carton (`avancer`). */
-function raconterLAction(action: J.ActionDeSalle, herosId?: string, patientId?: string) {
+function raconterLAction(action: J.ActionDeSalle, herosId?: string) {
   const x = etat.expedition!;
   const type = x.salles[x.index].type;
   const terrain = x.destination;
   const route = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length}`;
-  const r = J.agirDansLaSalle(etat, action, herosId, patientId);
+  const r = J.agirDansLaSalle(etat, action, herosId);
   if (typeof r === 'string') return toast(r);
   choixDAction = null;
   J.sauver(etat);
@@ -191,13 +191,14 @@ function demarrer(): void {
         if (!etat.expedition) return;
         panneau = null;
         ouvert = null;
+        choixDAction = null;
         const x = etat.expedition;
         const terrain = x.destination;
         const type = x.salles[x.index].type;
         const surTitre = `${J.destinationCourante(etat)!.nom} · salle ${x.index + 1} sur ${x.salles.length} franchie`;
         const recit = J.avancer(etat);
         J.sauver(etat);
-        if (!recit) { choixDAction = null; return rendre(); }
+        if (!recit) return rendre();
         derniereSalle = { type: 'recit', recit, ruban: NOM_DE_SALLE[type], vignette: VIGNETTE_DE_SALLE[type], surTitre, terrain };
         const montrer = () => { ouvert = derniereSalle; rendre(); };
         if (!recit.combat) return montrer();
@@ -213,11 +214,18 @@ function demarrer(): void {
         choixDAction = choixDAction?.action === action ? null : { action };
         return rendre();
       }
+      case 'soigneur': {
+        choixDAction = choixDAction?.action === 'soigner' && choixDAction.soigneur === id ? null : { action: 'soigner', soigneur: id };
+        return rendre();
+      }
       case 'tenter': {
         if (!choixDAction || !id) return;
         if (choixDAction.action !== 'soigner') return raconterLAction(choixDAction.action, id);
-        if (choixDAction.soigneur) return raconterLAction('soigner', choixDAction.soigneur, id);
-        choixDAction = { action: 'soigner', soigneur: id };
+        const r = J.soignerEnRoute(etat, choixDAction.soigneur, id);
+        if (typeof r === 'string') return toast(r);
+        choixDAction = null;
+        J.sauver(etat);
+        ouvert = { type: 'recit', recit: r, ruban: J.SOIN_EN_ROUTE.libelle, vignette: VIGNETTE_DE_SALLE.camp, surTitre: J.destinationCourante(etat)!.nom, terrain: etat.expedition!.destination };
         return rendre();
       }
       case 'revoir': {
@@ -229,6 +237,7 @@ function demarrer(): void {
       case 'rentrer': {
         if (!etat.expedition) return;
         panneau = null;
+        choixDAction = null;
         const terrain = etat.expedition.destination;
         const surTitre = J.destinationCourante(etat)!.nom;
         const lignes = J.rentrer(etat, false);

@@ -6,7 +6,7 @@
  * lieu ; un carton (récit d'une salle, Recommencer) n'y laisse que le cartouche et le socle.
  */
 import * as J from '../jeu';
-import { deElide, ficheDuSort, nomDeCreature, nomDeMaladie, partiesDuTest, type Epreuve } from '../noyau';
+import { deElide, ficheDuSort, nomDeCreature, nomDeMaladie, partiesDuTest, saitSoigner, type Epreuve } from '../noyau';
 import { dessinerLaCour } from '../cour';
 import { figurine } from '../figures';
 import { ANCRES, HAUTEUR, LARGEUR, sceneDuHameau } from '../hameau';
@@ -113,9 +113,10 @@ export const VIGNETTE_DE_SALLE: Record<J.TypeDeSalle, Vignette> = {
   combat: 'combat', elite: 'elite', camp: 'camp', tresor: 'tresor', rencontre: 'camp', autel: 'tresor', puits: 'tresor', blesse: 'camp', boss: 'boss',
 };
 
-/** Les sacs du groupe : une rangée par héros ; un clic sur une case utilise l'objet ; la Bénédiction de Guérison d'un
- *  Béni est une case de plus, une fois par expédition, sur le plus blessé. */
-function sacsDuGroupe(e: J.Etat, groupe: J.Heros[]) {
+/** Les gestes d'un héros entre deux salles, en cases de son sac : chaque objet, qu'un clic utilise ; la Bénédiction de
+ *  Guérison d'un Béni, une fois par expédition, sur le plus blessé ; la Guérison de qui sait la tenter, dont le blessé
+ *  se choisit au socle (`choix`, un second clic y renonce). */
+function sacsDuGroupe(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle | null) {
   const plusBlesse = groupe.filter((x) => !x.c.dead).sort((a, b) => a.c.wounds.current / a.c.wounds.max - b.c.wounds.current / b.c.wounds.max)[0];
   const f = ficheDuSort('benediction-de-guerison');
   return `<div class="sacs">${groupe.map((h) => {
@@ -124,7 +125,14 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[]) {
       ...(plusBlesse ? { attrs: `data-a="prier" data-id="${h.c.id}" data-k="${plusBlesse.c.id}"` } : {}),
       refus: !J.peutPrier(e, h) ? 'Déjà priée pendant cette expédition, ou le Béni est hors de combat.' : !plusBlesse || plusBlesse.c.wounds.current >= plusBlesse.c.wounds.max ? 'Personne n’est blessé.' : null,
     }) : '';
-    return `<div class="sac-heros">${herosEnLigne(h)}<div class="cases-sac">${casesDuSac(h, true) + priere || glose('sac vide')}</div></div>`;
+    const visee = J.viseeDuSoigneur(e, h);
+    const guerison = saitSoigner(h.c) ? caseObjet({
+      icone: 'soin', nom: J.SOIN_EN_ROUTE.libelle,
+      apercu: { nom: J.SOIN_EN_ROUTE.libelle, nature: 'Test de Guérison', texte: visee ? `${visee.chances} % au mieux` : '' },
+      attrs: `data-a="soigneur" data-id="${h.c.id}"${choix?.action === 'soigner' && choix.soigneur === h.c.id ? ' aria-pressed="true"' : ''}`,
+      refus: J.refusDuSoigneur(e, h),
+    }) : '';
+    return `<div class="sac-heros">${herosEnLigne(h)}<div class="cases-sac">${casesDuSac(h, true) + priere + guerison || glose('sac vide')}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -145,12 +153,12 @@ function risqueDeLEchec(ep: Epreuve): string | undefined {
 
 const PICTO_D_ACTION: Record<J.ActionDeSalle, string> = {
   fouiller: 'oeil', desarmer: 'systeme', parlementer: 'balance', intimider: 'duel', purifier: 'croix', piller: 'pieces', descendre: 'route',
-  sonder: 'oeil', panser: 'soin', questionner: 'balance', passer: 'route', reposer: 'lune', soigner: 'soin',
+  sonder: 'oeil', panser: 'soin', questionner: 'balance', passer: 'route', reposer: 'lune',
 };
 
-/** L'action que la salle ouverte attend au socle : l'action à jet et son héros, ou le soin du camp, son soigneur puis
- *  son blessé. */
-export interface ChoixDeSalle { action: J.ActionDeSalle; soigneur?: string }
+/** Ce qui attend son héros au socle : l'action à jet de la salle ouverte, ou le blessé du soin de Guérison d'un
+ *  soigneur entre deux salles. */
+export type ChoixDeSalle = { action: J.ActionDeSalle } | { action: 'soigner'; soigneur: string };
 
 /** Une action de la salle ouverte, en pièce : son Test (rubrique, Difficulté), ce que rapporte sa réussite et ce que
  *  coûte son échec ; `savent` : combien du groupe peuvent la tenter, absent pour une action sans héros. */
@@ -161,13 +169,7 @@ function offresDeLaSalle(e: J.Etat): { titre: string; annonce: string; offres: O
   const x = e.expedition!;
   const groupe = J.herosDuGroupe(e);
   const type = x.salles[x.index].type;
-  if (type === 'camp') {
-    return { titre: J.CAMP.titre, annonce: J.CAMP.annonce, offres: [
-      { id: 'soigner', libelle: J.CAMP.soigner.libelle, rub: 'Test de Guérison',
-        gain: 'Blessures rendues', picto: 'soin', savent: groupe.filter((h) => !J.refusDuSoigneur(e, h)).length },
-      { id: 'reposer', libelle: J.CAMP.reposer.libelle, rub: 'Sans Test', gain: J.CAMP.reposer.issue },
-    ] };
-  }
+  if (type === 'camp') return { titre: J.CAMP.titre, annonce: J.CAMP.annonce, offres: [{ id: 'reposer', libelle: J.CAMP.reposer.libelle, rub: 'Sans Test', gain: J.CAMP.reposer.issue }] };
   const s = J.EPREUVES[type as J.SalleAJet];
   const d = J.destinationCourante(e)!;
   const offre = (id: J.IdActionAJet): Offre => {
@@ -203,25 +205,21 @@ function salleAChoixEnCarton(e: J.Etat, choix: ChoixDeSalle | null): string {
   });
 }
 
-/** Ce que le socle demande pour le `choix` en attente : qui tente l'action, qui soigne, puis qui est soigné ; chaque
- *  carte du testeur dit ce que son héros y viserait (`viseeDAction`, `viseeDuSoigneur`) ; celle d'un patient, ses
- *  Blessures. */
-function socleDuChoix(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle): Socle {
-  const base = { heros: groupe, geste: 'tenter', choisi: (h: J.Heros) => h.c.id === choix.soigneur };
-  if (choix.action !== 'soigner') {
-    const id = choix.action as J.IdActionAJet;
-    return { ...base, refus: (h) => J.refusDAction(h, id), visee: (h) => J.viseeDAction(h, id), consigne: J.ACTIONS_A_JET[id].question };
+/** Ce que le socle demande pour le `choix` en attente : qui tente l'action, chaque carte disant ce que son héros y
+ *  viserait (`viseeDAction`) ; ou qui reçoit le soin du soigneur, chaque carte fermée disant son refus. */
+function socleDuChoix(groupe: J.Heros[], choix: ChoixDeSalle): Socle {
+  if (choix.action === 'soigner') {
+    const soigneur = groupe.find((h) => h.c.id === choix.soigneur)!;
+    return { heros: groupe, geste: 'tenter', choisi: (h) => h === soigneur, refus: (h) => J.refusDuPatient(soigneur, h), consigne: J.SOIN_EN_ROUTE.patient };
   }
-  const soigneur = groupe.find((h) => h.c.id === choix.soigneur);
-  return soigneur
-    ? { ...base, refus: (h) => J.refusDuPatient(e, soigneur, h), consigne: J.CAMP.soigner.patient }
-    : { ...base, refus: (h) => J.refusDuSoigneur(e, h), visee: (h) => J.viseeDuSoigneur(e, h), consigne: J.CAMP.soigner.soigneur };
+  const id = choix.action as J.IdActionAJet;
+  return { heros: groupe, geste: 'tenter', choisi: () => false, refus: (h) => J.refusDAction(h, id), visee: (h) => J.viseeDAction(h, id), consigne: J.ACTIONS_A_JET[id].question };
 }
 
 /** L'expédition : la cour du terrain, et par-dessus sa scène (cartouche, sacs, salle, route, socle du groupe). Une
  *  salle à choix ouverte s'y pose en carton (`salleAChoixEnCarton`) ; sinon le panneau `service` ouvert (la
  *  chronique) s'y pose sur la salle, le socle restant au groupe. Tant qu'aucune action n'est prise, le socle
- *  ouvre les fiches ; puis il demande qui tente l'action `choix` (`socleDuChoix`), chaque carte fermée disant
+ *  ouvre les fiches ; puis il demande qui tente l'action `choix`, ou qui reçoit le soin (`socleDuChoix`), chaque carte fermée disant
  *  pourquoi elle l'est. `relire` : le récit de la dernière salle se rouvre, son combat compris. */
 export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeService | null, recit: string, choix: ChoixDeSalle | null, relire = false): string {
   const x = e.expedition!;
@@ -231,7 +229,7 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
   const valides = groupe.filter(J.valide).length;
   const aChoisir = !recit && J.salleAChoisir(e);
   const carte = aChoisir ? salleAChoixEnCarton(e, choix) : recit;
-  const socle: Socle = !aChoisir || !choix ? { heros: groupe, geste: 'heros', choisi: () => false } : socleDuChoix(e, groupe, choix);
+  const socle: Socle = recit || !choix ? { heros: groupe, geste: 'heros', choisi: () => false } : socleDuChoix(groupe, choix);
   const annonce = salle.ennemis.length ? `Devant : ${salle.ennemis.map(nomDeCreature).join(', ')}.`
     : salle.type === 'camp' ? J.CAMP.annonce : J.EPREUVES[salle.type as J.SalleAJet].annonce;
   const appel = salle.type === 'boss' ? 'Affronter le maître' : salle.ennemis.length ? 'Engager le combat' : salle.type === 'camp' ? 'Camper' : 'Approcher';
@@ -240,7 +238,7 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
   const scene = (!recit && fiche) || ecran({
     nom: d.nom, classe: 'lieu',
     cadres: carte ? titre + carte : service ? service.cadre : `${titre}
-      ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe), { ruban: 'Sacs', classe: 'colonne-sacs' })}
+      ${cadreA(CADRES['colonne-gauche'], sacsDuGroupe(e, groupe, choix), { ruban: 'Sacs', classe: 'colonne-sacs' })}
       ${cadreA(CADRES['colonne-droite'], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
         ${valides && valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}
         <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel', titre: valides ? '' : 'Tout le groupe est hors de combat.' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}${relire ? plaque('Relire la dernière salle', 'data-a="relire"', { icone: 'livre' }) : ''}</div>`, { classe: 'carte-salle' })}
