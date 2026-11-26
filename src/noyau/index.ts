@@ -406,6 +406,7 @@ export {
   entiteDeLaSelection,
   ficheEditee,
   FACES_D_ARETE,
+  ficheDePersonnage,
   fichesDePersonnage,
   libelleDeStructure,
   lumiereAllumee,

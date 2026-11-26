@@ -19,6 +19,7 @@ import {
   capsDeLaPose,
   entiteDeLaSelection,
   ficheEditee,
+  ficheDePersonnage,
   fichesDePersonnage,
   nomDEntite,
   presetDuNarratif,
@@ -989,7 +990,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
     ...(ent.postes?.length || ent.vehicule
       ? equipe(s, ent, 'equipage', ent.crewIds ?? [], (crewIds) => ({ geste: 'entite', patch: { crewIds } }))
       : []),
-    ...(ent.kind === 'personnage' ? [...inventaire(s, ent), ...carrieres(ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
+    ...(ent.kind === 'personnage' ? [...inventaire(s, ent), ...carrieres(s, ent), ...profilDeLEntite(s, ent), ...sorts(s, ent), ...rencontres(s, ent), formulaireDeLaTroupe()] : []),
     ...couverture(s, 'entite/couvre', ent.couvre, (couvre) => ({ geste: 'entite', patch: { couvre } })),
     ...formulaireDuPorteur(s, { sorte: 'entite', id: ent.id }, ent),
     boutonDEdition('entite/supprimer', t('ecran.editeur.inspecteur.supprimer'), { geste: 'supprimer' }),
@@ -1115,14 +1116,14 @@ function inventaire(s: SessionDEdition, ent: Scene['entities'][number]): (Choix 
   ];
 }
 
-/** Le parcours de carrière du personnage `ent`, s'il part d'une fiche du bestiaire (EDO 11 l.19) :
- *  chaque carrière, la dernière actuelle, à son Niveau ou à retirer ; les Talents choisis de chacun de ses Niveaux
- *  atteints ; la Compétence de chacun de ses emplacements à choix ; une carrière à ajouter, qui devient l'actuelle ;
- *  chaque emplacement de dotation de l'actuelle, l'emplacement de la branche choisie dessous. Ce que l'auteur ne choisit
- *  pas se tire au spawn (« Tiré »).
+/** Le parcours de carrière du personnage `ent`, s'il part d'une fiche du catalogue de la session `s`
+ *  (`ficheDePersonnage`, EDO 11 l.19), au porteur de son profil : chaque carrière, la dernière actuelle, à son Niveau
+ *  ou à retirer ; les Talents choisis de chacun de ses Niveaux atteints ; la Compétence de chacun de ses emplacements à
+ *  choix ; une carrière à ajouter, qui devient l'actuelle ; chaque emplacement de dotation de l'actuelle, l'emplacement
+ *  de la branche choisie dessous. Ce que l'auteur ne choisit pas se tire au spawn (« Tiré »).
  *  Chaque bouton écrit le parcours entier, retouché (`parcoursRetouche`). */
-function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
-  const fiche = fichesDePersonnage().find((f) => f.id === ent.creature?.id);
+function carrieres(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
+  const fiche = ficheDePersonnage(ent.creature?.id, s.catalogue);
   if (ent.statblock || ent.presetId || !fiche) return [];
   const p: ParcoursDeCarriere = parcoursDe(ent) ?? { carrieres: {} };
   const porteur = porteurDuProfil(fiche);
