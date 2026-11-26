@@ -49,7 +49,8 @@ import {
   type LecturesDuRaffinement,
   type Parmi,
 } from './ref';
-import { findTraitById, psychologies, psychologyLabel } from '../../index';
+import { findTraitById, psychologyLabel } from '../../index';
+import { entreeDe } from '../catalogue/catalogue';
 import { cibleDeLArg, estCibleType, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
 /**
@@ -146,8 +147,8 @@ function argDIndividu(id: string, arg: string): boolean {
 }
 
 export function lireLesCiblesPsy(lire: LecturesDuRaffinement) {
-  const racine = lire.racine('psychology', () => psychologies);
-  const cibles = (id: string) => racine().find((entree) => entree.id === id)?.cibles;
+  const cat = lire.catalogueLu('psychology');
+  const cibles = (id: string) => entreeDe('psychologies', id, cat())?.cibles;
   return {
     estCibleType: (id: string) => estCibleType(id, cibles),
     varianteAdmise: (id: string, variante: z.infer<typeof varianteDeCibleSchema>) => varianteAdmise(id, variante, cibles),

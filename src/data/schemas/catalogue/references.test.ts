@@ -12,7 +12,7 @@ import {
   refMorteLocale,
   refusDeLEntree,
   reperesDuParse,
-  sousLeLecteur,
+  sousLeCatalogue,
   type PorteeLocale,
 } from '../grammaire/ref';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
@@ -97,9 +97,9 @@ describe('parserSousCatalogue — le parse, chaque id jugé contre le catalogue 
     expect(parserSousCatalogue(feuille, GROUPE, CAT).success).toBe(true);
     expect(feuille.safeParse(GROUPE).success).toBe(false);
     const vide = catalogueDeTest({ 'groups.json': [] });
-    expect(sousLeLecteur(() => new Set([GROUPE]), () => [parserSousCatalogue(feuille, GROUPE, vide).success, feuille.safeParse(GROUPE).success])).toEqual([false, true]);
+    expect(sousLeCatalogue(() => new Set([GROUPE]), CAT, () => [parserSousCatalogue(feuille, GROUPE, vide).success, feuille.safeParse(GROUPE).success])).toEqual([false, true]);
     const indexe = [...idsDe('groupe')][0];
-    expect(() => sousLeLecteur(() => new Set(), () => { throw new Error('levée du livre de test'); })).toThrow('levée du livre de test');
+    expect(() => sousLeCatalogue(() => new Set(), CAT, () => { throw new Error('levée du livre de test'); })).toThrow('levée du livre de test');
     expect(feuille.safeParse(indexe).success, 'l’id de l’index est admis après la levée').toBe(true);
   });
 
@@ -136,7 +136,7 @@ describe('parserSousCatalogue — les lectures d’ids des defs et les décision
 
   it('hors fenêtre, `idsDe` lit l’index ; sous un lecteur, le lecteur', () => {
     expect(idsDe('groupe').has(GROUPE)).toBe(false);
-    expect(sousLeLecteur(() => new Set([GROUPE]), () => [...idsDe('groupe')])).toEqual([GROUPE]);
+    expect(sousLeCatalogue(() => new Set([GROUPE]), CAT, () => [...idsDe('groupe')])).toEqual([GROUPE]);
   });
 
   it('une feuille à `{ portee }` JUGE un id absent de l’index, présent au catalogue : il n’est pas pris pour local', () => {
@@ -153,6 +153,6 @@ describe('parserSousCatalogue — les lectures d’ids des defs et les décision
 
   it('`recordDIds(…, { portee })` pose le repère d’une clé absente de l’index, présente au lecteur', () => {
     const record = recordDIds('groupe', z.number(), undefined, { portee: ELEMENTS });
-    expect(sousLeLecteur(() => new Set([GROUPE]), () => reperesDuParse(record, { [GROUPE]: 1 }))).toEqual([{ path: [GROUPE], type: 'groupe', parCle: true }]);
+    expect(sousLeCatalogue(() => new Set([GROUPE]), CAT, () => reperesDuParse(record, { [GROUPE]: 1 }))).toEqual([{ path: [GROUPE], type: 'groupe', parCle: true }]);
   });
 });
