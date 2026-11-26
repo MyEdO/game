@@ -15,7 +15,11 @@ import {
   gesteDeDetermination,
   gesteDeSoins,
   gesteDIncantation,
+  gesteDeLaisserPasserLeTemps,
+  gesteDuRepos,
   gestesDeLObjet,
+  arena,
+  MINUTES_PER_DAY,
   VERBE_DE_VALIDATION,
   type EntreesDeLaPartie,
   type EtatDeJeu,
@@ -328,5 +332,83 @@ describe('VERBE_DE_VALIDATION — la validation d’une fenêtre, désignée san
     } finally {
       partie.fermer();
     }
+  });
+});
+
+describe('gesteDuRepos et gesteDeLaisserPasserLeTemps — la nuit et le jour qui passent, hors combat', () => {
+  /** Une Colique déclarée, `jours` jours de Durée. LDB 20 */
+  const colique = (jours: number) => ({ id: 'colique', phase: 'active' as const, symptoms: [{ symptomId: 'crampes-abdominales' }], minutesLeft: jours * MINUTES_PER_DAY, durationMinutes: jours * MINUTES_PER_DAY });
+  const malade = (): Combatant => ({ ...heros('soldat'), id: 'malade', diseases: [colique(10)] });
+  const soignant = (): Combatant => {
+    const h = { ...heros('soldat'), id: 'soignant' };
+    h.skills = [...h.skills, { id: 'guerison', characteristic: 'intelligence', advances: 10 }];
+    return h;
+  };
+  const dureeDe = (partie: Partie) => partie.etat().party.find((h) => h.id === 'malade')!.diseases![0].minutesLeft;
+  /** Une partie lancée sur une place dégagée, en exploration, fermée après `jouer`. */
+  function surLaPlace(party: Combatant[], jouer: (partie: Partie) => void): void {
+    const partie = creerPartie(etatInitialDuJeu(), ENTREES);
+    try {
+      partie.lancer({ party, scene: arena({ id: 'place', label: 'Place' }), projet: null });
+      jouer(partie);
+    } finally {
+      partie.fermer();
+    }
+  }
+
+  it('hors de toute scène, pas de repos : le refus de l’offre est celui du verbe, et rien ne s’ouvre', () => {
+    avecGroupe([malade()], (partie) => {
+      refuseCommeLeVerbe(partie, gesteDuRepos(partie.etat()));
+      expect(partie.etat().pendingRest).toBeFalsy();
+    });
+  });
+
+  it('joué sur une place, le geste offert ouvre la nuit au camp ; la nuit à régler ferme le repos et le temps qui passe', () => {
+    surLaPlace([malade()], (partie) => {
+      const offre = gesteDuRepos(partie.etat());
+      expect(offre.refus).toBeNull();
+      jouer(partie, offre.geste);
+      expect(partie.etat().pendingRest?.places.camp).toBe(true);
+      refuseCommeLeVerbe(partie, gesteDuRepos(partie.etat()));
+      refuseCommeLeVerbe(partie, gesteDeLaisserPasserLeTemps(partie.etat(), MINUTES_PER_DAY));
+    });
+  });
+
+  it('en combat, ni repos ni temps qui passe : chaque refus est celui que le verbe affiche', () => {
+    const partie = creerPartie(etatInitialDuJeu(), ENTREES);
+    try {
+      partie.lancer({ party: [heroDuDuel()], scene: testScene(), projet: null, combatDirect: 'enc-mutants' });
+      const heure = partie.etat().gameTime;
+      for (const offre of [gesteDuRepos(partie.etat()), gesteDeLaisserPasserLeTemps(partie.etat(), MINUTES_PER_DAY)]) {
+        expect(offre.refus, 'l’offre ne refuse pas').toBeTruthy();
+        jouer(partie, offre.geste);
+        expect(partie.etat().refus?.texte, 'l’offre et le verbe ne disent pas la même chose').toBe(offre.refus);
+      }
+      expect(partie.etat().pendingRest).toBeFalsy();
+      expect(partie.etat().gameTime).toBe(heure);
+    } finally {
+      partie.fermer();
+    }
+  });
+
+  it('un jour passe : l’horloge avance d’un jour, la maladie veillée par un autre que le patient perd deux jours (LDB 09 l.265, LDB 20)', () => {
+    surLaPlace([malade(), soignant()], (partie) => {
+      refuseCommeLeVerbe(partie, gesteDeLaisserPasserLeTemps(partie.etat(), 0));
+      refuseCommeLeVerbe(partie, gesteDeLaisserPasserLeTemps(partie.etat(), 1.5));
+      const [heure, duree] = [partie.etat().gameTime, dureeDe(partie)];
+      const offre = gesteDeLaisserPasserLeTemps(partie.etat(), MINUTES_PER_DAY);
+      expect(offre.refus).toBeNull();
+      jouer(partie, offre.geste);
+      expect(partie.etat().gameTime).toBe(heure + MINUTES_PER_DAY);
+      expect(dureeDe(partie)).toBe(duree - 2 * MINUTES_PER_DAY);
+    });
+  });
+
+  it('un jour passe pour le malade seul : il ne se soigne pas lui-même, sa maladie perd un jour', () => {
+    surLaPlace([{ ...malade(), skills: [...malade().skills, { id: 'guerison', characteristic: 'intelligence', advances: 10 }] }], (partie) => {
+      const duree = dureeDe(partie);
+      jouer(partie, gesteDeLaisserPasserLeTemps(partie.etat(), MINUTES_PER_DAY).geste);
+      expect(dureeDe(partie)).toBe(duree - MINUTES_PER_DAY);
+    });
   });
 });

@@ -449,7 +449,8 @@ export { recitEnVue, type RecitEnVue } from './recitEnVue';
 export { interludeEnVue, libelleDuDepot, type InterludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
 export { reposEnVue, type ReposEnVue } from './reposEnVue';
-export { TITRE_DE_LA_NUIT, prixDeLOffre } from './restFlow';
+export { TITRE_DE_LA_NUIT, gesteDuRepos, prixDeLOffre } from './restFlow';
+export { gesteDeLaisserPasserLeTemps } from './horloge';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeDetermination } from './determinationDuJet';
 export {

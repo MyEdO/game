@@ -51,7 +51,7 @@ export function refusDeChambre(e: Etat, h: Heros): string | null {
 }
 
 /** Loue au héros une chambre du relais pour une semaine : il ne part pas en expédition, et se repose au fil des jours
- *  (`reposer`, le jour de récupération de la nuit d'auberge du noyau). */
+ *  (`gesteDeDormir`, la nuit du noyau). */
 export function prendreUneChambre(e: Etat, id: string): string | null {
   const h = heros(e, id);
   if (!h) return 'Héros introuvable.';

@@ -347,7 +347,7 @@ export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Co
     const cible = p.niveau + 1;
     const plan = planDuNiveau(porte, p);
     const gestes: Geste[] = plan.flatMap((x) => Array.from({ length: x.fois }, (): Geste =>
-      (s) => offreDAchat(s, porte.id, x.genre === 'niveau' ? { genre: 'niveau', niveau: cible } : x)?.geste));
+      (s) => offreDAchat(s, porte.id, x.genre === 'niveau' ? { genre: 'niveau', niveau: cible } : x)));
     const cout = plan.reduce((s, x) => s + x.cout, 0);
     const xp = porte.xp ?? 0;
     const [rendu] = auHameau([{ ...porte, xp: xp + cout }], gestes, graine++).groupe;

@@ -89,6 +89,10 @@ Armures : Armure légère (armure-legere), Armure moyenne (armure-moyenne), Armu
 
 Cataplasme de guérison (cataplasme-de-guerison), Soude commune (soude-commune), Potion de guérison (potion-de-guerison), Potion de vitalité (potion-de-vitalite), Racine des tombes (racine-des-tombes), Faxtoryll (faxtoryll)
 
+## Départ
+
+Vivres pour la route : Vivres, 1 jour (ration), 1 CO.
+
 ## Péage du pont
 
 | Palier | Revenu par salle franchie |

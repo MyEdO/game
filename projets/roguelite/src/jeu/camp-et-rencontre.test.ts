@@ -6,13 +6,14 @@ import {
   CAMP,
   DESTINATIONS,
   EPREUVES,
+  herosDuGroupe,
   nouvellePartie,
   partir,
   RENCONTRES,
   salleAChoisir,
   type Etat,
 } from './index';
-import { devant, recit } from './salles.testkit';
+import { devant, enRoute, recit } from './salles.testkit';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -24,6 +25,25 @@ describe('le camp, salle à choix', () => {
     expect(r.lignes[0]).toBe(CAMP.reposer.recit);
     expect(e.expedition!.index).toBe(1);
     expect(salleAChoisir(e)).toBe(false);
+  });
+});
+
+describe('les journées de l’expédition, jouées par le noyau (MyEdO/game#5121)', () => {
+  it('la journée d’une salle passe quand le groupe repart ; le camp la passe à dormir, une seule : la convalescence perd un jour par jour (LDB 18 l.202-222)', () => {
+    const vide = (type: 'tresor' | 'camp') => ({ type, ennemis: [], faite: false });
+    const e = enRoute(1, [vide('tresor'), vide('camp'), vide('tresor')]);
+    const blesse = herosDuGroupe(e)[0];
+    blesse.c.traumas = [{ id: 'plaie-de-test', label: 'Plaie', recoveryDays: 10, recoveryTotal: 10 } as never];
+    const reste = () => herosDuGroupe(e).find((h) => h.c.id === blesse.c.id)!.c.traumas![0].recoveryDays;
+    expect(avancer(e)).toBeNull();
+    recit(agirDansLaSalle(e, 'passer'));
+    expect(reste(), 'la salle franchie, le groupe n’est pas reparti').toBe(10);
+    expect(avancer(e)).toBeNull();
+    expect(reste(), 'reparti vers le camp').toBe(9);
+    recit(agirDansLaSalle(e, 'reposer'));
+    expect(reste(), 'la nuit au camp').toBe(8);
+    expect(avancer(e)).toBeNull();
+    expect(reste(), 'reparti du camp : sa journée est passée à dormir').toBe(8);
   });
 });
 

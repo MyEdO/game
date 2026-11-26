@@ -35,8 +35,11 @@ export interface PartieEnAuto {
 /** Les règles optionnelles du noyau que le roguelite pose à son démarrage (`poserLesReglesDuRoguelite`), et sous
  *  lesquelles chacune de ses parties s'ouvre (`ouvrirEcoutee`) : création, combat, hameau et épreuve. MyEdO/game#4947.
  *  `creation-5e` : CRB 005, `src/noyau/creation/procedure.ts` ; `magie-vdm-incantation` : VDM 02 l.5-7,
- *  `src/engine/magic.ts` ; `armure-regles-rapides` : LDB 63 l.95-103, MyEdO/game#4966. */
-export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = { 'creation-5e': true, 'magie-vdm-incantation': true, 'armure-regles-rapides': true };
+ *  `src/engine/magic.ts` ; `armure-regles-rapides` : LDB 63 l.95-103, MyEdO/game#4966 ; `voyage-privation-de-sommeil`
+ *  écartée : un jour sans nuit de repos, une salle ou un jour au hameau, n'est pas une nuit blanche, MyEdO/game#5121. */
+export const REGLES_DU_ROGUELITE: Readonly<Record<string, unknown>> = {
+  'creation-5e': true, 'magie-vdm-incantation': true, 'armure-regles-rapides': true, 'voyage-privation-de-sommeil': false,
+};
 
 /** Pose `REGLES_DU_ROGUELITE` au registre des règles du noyau (`poserLesReglesMaisonPersistees`), aux `ecarts` près
  *  (une mesure qui compare le jeu avec et sans une règle) : le démarrage du roguelite, avant toute recrue. */
