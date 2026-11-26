@@ -20,7 +20,7 @@ import { analyserEnLots, arbreDuDisque, clotureDImports, grapheInverse } from '.
 import { dossierDe, estProjet, zoneDe } from '../guards/lib/couches.mjs'
 import { TRAVAIL, depotDe, listerImage } from '../guards/lib/gitPorte.mjs'
 import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
-import { CONFIG_VITEST, setupFilesDe } from './perimetreDerivation.mjs'
+import { CONFIG_VITEST, setupFilesDe } from './setupDeVitest.mjs'
 
 /** Les spécificateurs dont l'import fait d'un module un LANCEUR de processus ou de fil : `child_process`, `worker_threads`,
  *  `cluster`, et le transport stdio du SDK MCP, qui lance son serveur (`StdioClientTransport`). */
