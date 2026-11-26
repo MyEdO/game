@@ -196,6 +196,8 @@ import { isRation } from '../engine/provisions';
 import {
   isMagicMissile,
   prayerWrathTriggered,
+  ciblesDejaPriees,
+  consignerLaPriere,
   castBlockedBy,
   prayerSinLock,
   prayerTalentMissing,
@@ -7510,12 +7512,20 @@ export function applyCast(
     }
   }
 
-  // Péché et Colère Divine (LDB 40 l.44-45) : à CHAQUE Test de Prière, si le dé des
-  // unités ≤ Points de Péché → Colère des dieux, MÊME si le Test est réussi (la
-  // Maladresse, elle, a déjà déclenché la sienne ci-dessus).
+  // La Colère d'une Maladresse s'est jouée plus haut. LDB 40 l.36, l.46
   if (castInfoIsPrayer(spell) && !res.isFumble && res.roll > 0 && prayerWrathTriggered(res.roll, caster.sinPoints ?? 0)) {
     logLines.push(tr('cf.colereDeclenchee', { units: res.roll % 10, name: nomDe(caster), sin: String(caster.sinPoints) }));
     logLines.push(...contrecoup('colere'));
+  }
+  // Après la Colère de ce Test, qui lit le Péché d'avant. LDB 41 l.17 ; LDB 40 l.36 ; #5056
+  if (castInfoIsPrayer(spell) && res.cast) {
+    const cibleIds = targets.map((t) => t.id);
+    const peche = rule('priere-repetee-peche');
+    const repetees = ciblesDejaPriees(caster, spell.id, cibleIds);
+    if (peche > 0 && repetees.length) {
+      logLines.push(...applyOps(caster, repetees.map(() => ({ op: 'sinMod', amount: peche })), { idNeuf: get().forgerUnId, rng: battleRng() }).lignes);
+    }
+    consignerLaPriere(caster, spell.id, cibleIds);
   }
 
   // Effet déclenché « après incantation résolue » (réussie ou non) — dispatcher générique via le bus.
