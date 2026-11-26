@@ -9,7 +9,7 @@ import { aiCreatureFreeAttacks } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, ItemInstance } from '../engine/types';
-import { draineCascade, type ChoisitCle } from './cascade.testkit';
+import { avanceEtapeCascade, type ChoisitCle } from './cascade.testkit';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { reluDans } from './combatDeTest.testkit';
@@ -49,6 +49,12 @@ function monte() {
 
 const voie = (cle: 'devier' | 'subir'): ChoisitCle => (etape) => (etape.kind === 'deviation' ? cle : undefined);
 const etapesDeDeviation = () => (banc.getState().pendingCascade?.participants ?? []).filter((s) => s.kind === 'deviation');
+/** Le héros joue chaque fenêtre COMME LE JOUEUR : sa défense (Lancer → Appliquer), sinon l'étape de la séquence. */
+function jouerJusquAuBout(cle: 'devier' | 'subir'): void {
+  for (let i = 0; i < 200 && banc.getState().pendingCascade; i++) {
+    if (banc.getState().pendingDefense) { banc.getState().jetLancer('defense'); banc.getState().jetValider('defense'); } else avanceEtapeCascade(banc.getState, undefined, voie(cle));
+  }
+}
 
 describe('Gratuites de créature et Déviation (LDB 63 l.30, #1858)', () => {
   for (const cle of ['devier', 'subir'] as const) {
@@ -61,16 +67,15 @@ describe('Gratuites de créature et Déviation (LDB 63 l.30, #1858)', () => {
       expect(etapesDeDeviation(), 'une étape de Blessure critique est ouverte').toHaveLength(1);
       expect(reluDans(banc.getState, E).pendingFreeAttacks, 'Piétinement reste en tête de file pendant l’étape').toEqual(['pietinement']);
       expect(reluDans(banc.getState, E).freeAttacksThisTurn?.pietinement ?? 0, 'Piétinement ne part pas par-dessus l’étape').toBe(0);
+      expect(reluDans(banc.getState, H).conditions.some((c) => c.id === 'surpris'), 'la Morsure, première tentative, a ôté Surpris (LDB 16 l.139)').toBe(false);
 
-      draineCascade(banc.getState, 200, undefined, voie(cle));
+      jouerJusquAuBout(cle);
 
       const b = banc.getState().battle!;
       expect({ round: b.round, turn: b.turn }, 'toujours le tour de la créature').toEqual(tour);
       const e = b.combatants.find((c) => c.id === E.id)!;
       expect(e.freeAttacksThisTurn?.pietinement, 'Piétinement est parti une fois').toBe(1);
       expect(e.pendingFreeAttacks, 'la file du tour est épuisée : rien ne repart dans ce tour').toEqual([]);
-      const h = b.combatants.find((c) => c.id === H.id)!;
-      expect(h.conditions.some((c) => c.id === 'surpris'), `Surpris conservé après « ${cle} » (LDB 16 l.139)`).toBe(true);
     });
   }
 });

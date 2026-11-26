@@ -3267,8 +3267,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
           ...(pa.riposte != null ? { riposte: pa.riposte } : {}),
         };
-        // Attaque gratuite (`pa.freeKind`) : une SOUS-ATTAQUE (`ApplicationDuCoup.sousAttaque`), déclarée par le geste, jamais par son conducteur.
-        jouerFlowEntier(applyAttackResult(get, set, attacker, victim, weapon, lance, { suite, ...(pa.freeKind ? { sousAttaque: true } : {}) }));
+        jouerFlowEntier(applyAttackResult(get, set, attacker, victim, weapon, lance, { suite }));
       }
       // Séquence de combat (jet = étape 0) : enchaîner sur les conséquences empilées par applyAttackResult,
       // ou clore (resume) si aucune. La cascade RESTE ouverte tant qu'un enchaînement est en cours

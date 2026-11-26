@@ -3362,20 +3362,14 @@ function appliquerLaTouche(
   coup: ApplicationDuCoup,
 ): AttackResult | null {
   const { sousAttaque = false, critiques: decides = [], suite } = coup;
-  // Attaque STANDARD : ni sous-attaque, ni reprise d'une fenêtre de Blessure critique.
-  const standard = !sousAttaque && decides.length === 0;
   const deferAttackerAdvantage = suite?.deferAttackerAdvantage;
   // SEAM du télégraphe (#1143) : cette fonction est l'entonnoir UNIQUE de résolution d'une attaque —
   // toutes ses sorties écrivent la ligne de journal du geste, que le bandeau prend alors. Le réticule
   // d'intention de l'attaquant n'a donc plus lieu d'être ici, quel que soit le chemin qui a mené à l'application.
   clearActorAim(get, set, attacker.id);
-  // Surpris (LDB 16 l.139) : « après la première tentative effectuée pour vous toucher, vous perdez
-  // l'État Surpris ». On le retire après une attaque STANDARD — le +20 / l'absence de défense ont déjà
-  // joué pour CELLE-CI ; les suivantes n'en bénéficieront plus. Les attaques GRATUITES groupées d'une
-  // créature (Morsure+Piétinement, `sousAttaque`) forment UN assaut-surprise : on garde l'État jusqu'à la
-  // fin du Round (sinon la 2ᵉ attaque gratuite rouvrirait une défense en plein milieu).
+  // LDB 16 l.139 ; LDB 85 l.43. Une reprise de fenêtre de Blessure critique (`decides`) rejoue la même tentative.
   const sortieDuSurpris: LignesEtFaits = { lignes: [], faits: [] };
-  if (standard && hasCondition(target, COND.surpris)) removeCondition(target, COND.surpris, 1, sortieDuSurpris);
+  if (decides.length === 0 && hasCondition(target, COND.surpris)) removeCondition(target, COND.surpris, 1, sortieDuSurpris);
   // Sauvegardes SYNCHRONES « après la touche » en registre ordonné (noyau/combat/hitModifiers) :
   // 5 réveil d'un dormeur → 8 Bouclier anti-flèches → 10 sauvegarde « 1d10 ≥ Indice », UNIQUE (traits
   // propres ET Trait octroyé par un Dôme, RNG) → 40 Martyr → 50 Perturbante.
