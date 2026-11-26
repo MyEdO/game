@@ -471,9 +471,9 @@ export const ECRIT_LU = {
         '`~/.cache/wfrp-modeles-3d/` (hors de l’arbre), seulement s’il y manque ou n’a pas la somme de sa provenance commitée, ' +
         'par temporaire exclusif puis renommage (`ecrireTexteAtomique`) : un lecteur concurrent voit l’absent, l’ancien ou ' +
         'le GLB de somme épinglée, jamais un fichier partiel ; `/modeles/*.glb` est gitignoré (hotes/godot/projet/.gitignore) ' +
-        'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans le job ' +
-        '`godot` de ci.yml, donc dans la même lane, une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
-        'qu’après l’écriture',
+        'et sa seule autre gate lectrice du dossier, `personnage-3d:tests` (#3145, ses manifestes), suit `godot:sonde` dans la ' +
+        'lane `types` du rejeu local (`LANE_LOCALE_DE_JOB`), une SÉRIE dans l’ordre du fichier (`lanesDeCi`) : elle ne lit ' +
+        'qu’après l’écriture ; en CI, elle a le runner du job `migrations`, où `recuperer-modeles.mjs` la précède',
       'projets/':
         'le pont vivant (hotes/godot/vivant.mjs, #3945), que chaque recette reçoit en `--pont=` et que le pont natif lance ' +
         'à son premier `rejoindre`, sert le dépôt réel (`servir({ depot })`) : `servirLeDepot` (hotes/godot/servir.mjs) n’y ' +
@@ -522,7 +522,7 @@ export const ECRIT_LU = {
         'un `<id>.glb` que s’il y manque ou n’a pas la somme de sa provenance, par temporaire exclusif puis renommage ; ' +
         '`godot:rendus` a son job dans ci.yml, sur son runner, et suit `godot:sonde` dans la lane `types` du rejeu local ' +
         '(`LANE_LOCALE_DE_JOB`), une SÉRIE : il ne lui reste rien à écrire, et la gate lectrice du dossier, ' +
-        '`personnage-3d:tests`, suit `godot:sonde` dans son job comme dans la lane',
+        '`personnage-3d:tests`, suit `godot:sonde` dans la lane',
     },
     ...lectureDesZones(['godot'], ['scripts/', 'Source/', 'tsconfig.json', 'package.json']),
     raison:
@@ -666,7 +666,7 @@ export const ECRIT_LU = {
       'tous trois sous les gardes communes aux kits de pièces de `banc_des_kits.py`, et `test_element.py` les éléments ' +
       'sur base d’`element/`, sur les GLB ' +
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
-      'dans la lane) ; tous comparent ' +
+      'dans la lane `types`, et en CI par `recuperer-modeles.mjs` avant elle dans le job `migrations`, qui dépose aussi les textures épinglées que lit `habiller` de `rendu.py`) ; tous comparent ' +
       'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/. Son `lit` déclare `src/` et `hotes/godot/` entiers, ' +
       'par ses `zones` (#4903 L4) : elle saute avec `godot:sonde`, qui remplit ce cache, et seulement hors de ces dossiers ; ' +
       'ce que chaque test reconstruit se juge sur les entrées d’une reconstruction (`racinesDesReconstructions`, ' +
