@@ -15,6 +15,7 @@ import { t } from '../../src/i18n';
 import { formeEcrite, signature, type ParametreDeVerbe } from '../../src/hote/formes';
 import { VERBES } from '../../src/hote/verbes.generated';
 import { parametresDuGeste } from '../../src/hote/gestes';
+import { redigerLEntree } from '../../src/hote/journal';
 import {
   apercuDe,
   combattantsTries,
@@ -266,7 +267,7 @@ export function rendreLaVue(p: ProjectionTexte): string[] {
 }
 
 /** Le texte d'une ligne de journal. */
-const texteDe = (l: LigneNumerotee): string => (l.ligne.de === 'journal' ? l.ligne.texte : l.ligne.evenement.text);
+const texteDe = (l: LigneNumerotee): string => redigerLEntree(l.ligne.de === 'journal' ? l.ligne.entree : l.ligne.evenement.entree);
 
 /** Une page d'une liste : `BORNES.page` éléments depuis `depuis` (par défaut la fin, ou le début), et la suite. */
 function page<T>(liste: readonly T[], depuis: number | undefined, defaut: 'debut' | 'fin', suite: (k: number) => string): { elements: T[]; suite: string[] } {

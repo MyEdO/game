@@ -2,11 +2,12 @@
  * Événements de combat STRUCTURÉS — le journal ne porte JAMAIS de chaîne libre.
  *
  * Source unique de vérité pour le journal, le bandeau d'événements, et (à venir) le feedback
- * flottant et le cadrage caméra : `kind` (type d'événement) + `actorId`/`targetId` + texte FR
- * déjà composé. L'icône et l'importance se déduisent du `kind` (plus aucun devinage par mots-clés).
+ * flottant et le cadrage caméra : `kind` (type d'événement) + `actorId`/`targetId` + `entree`
+ * (`EntreeDuJournal`, rédigée par l'hôte). L'icône et l'importance se déduisent du `kind` (plus aucun devinage par mots-clés).
  */
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
-import { fixedJetOpen, markFixedDie } from './fixedDieMark';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
+import { fixedJetOpen } from './fixedDieMark';
 // Alias LOCAL du `set` de Zustand : ce fichier déclare déjà un `Set<CombatEventKind>` (le Set global),
 // que le nom importé masquerait.
 import type { Get, Set as SetFn } from './flowTypes';
@@ -19,7 +20,7 @@ export type CombatEventKind =
 
 export interface CombatEvent {
   kind: CombatEventKind;
-  text: string;
+  entree: EntreeDuJournal;
   actorId?: string;
   targetId?: string;
   /** L'État que nomme un évènement `condition`, par son id. #1330 */
@@ -38,12 +39,12 @@ export interface ActorAim {
 
 /** Construit un événement. */
 export function ev(kind: CombatEventKind, text: string, actorId?: string, targetId?: string): CombatEvent {
-  return { kind, text, actorId, targetId };
+  return { kind, entree: ligneDeTexte(text), actorId, targetId };
 }
 
 /** L'évènement `condition` de la ligne `text`, qui nomme l'État `etat`. */
 export function evDEtat(etat: string, text: string, actorId?: string): CombatEvent {
-  return { kind: 'etat', text, actorId, etat };
+  return { kind: 'etat', entree: ligneDeTexte(text), actorId, etat };
 }
 
 /**
@@ -58,7 +59,7 @@ export function evLines(
 ): CombatEvent[] {
   return lines.map((t) => ({
     kind: /^\s*↳/.test(t) ? 'detail' : mainKind,
-    text: t,
+    entree: ligneDeTexte(t),
     actorId,
     targetId,
   }));
@@ -75,7 +76,7 @@ export function evLines(
  * sorties de `noyau/combatFlow.ts` — `finishPlayerAction` (qui garde `markActed` / `action:null` au
  * site et passe le drain de `pendingLogQueue` en `extra`) et `castRefused`.
  *
- * MARQUE « dé fixé » sur les DEUX branches : `store.log` la pose pour le journal, `markFixedDie` la
+ * PROVENANCE `deFixe` sur les DEUX branches : `ecrireAuJournal` la pose pour le journal, ce puits la
  * pose ici pour le `battle.log` — une conséquence de dé POSÉ garde sa provenance, combat ouvert ou
  * non. Le DRAIN de `pendingLogQueue` n'est PAS fait ici (il vit dans `noyau/combatEffects.ts`,
  * module lourd) : le site qui en a besoin le passe en `extra`, écrit après `lines` sous le genre de chaque
@@ -92,10 +93,10 @@ export function journaliser(
   if (!evenements.length) return;
   const b = get().battle;
   if (!b) {
-    get().ecrireAuJournal(evenements.map((e) => e.text));
+    get().ecrireAuJournal(evenements.map((e) => e.entree.texte));
     return;
   }
-  const dits = fixedJetOpen(get()) ? evenements.map((e) => ({ ...e, text: markFixedDie(e.text) })) : evenements;
+  const dits = fixedJetOpen(get()) ? evenements.map((e) => ({ ...e, entree: { ...e.entree, deFixe: true as const } })) : evenements;
   set({ battle: { ...b, log: [...b.log, ...dits] } });
 }
 
@@ -124,7 +125,7 @@ const IMPORTANT: Set<CombatEventKind> = new Set([
  *  retrouve dans son texte (`conditionIdInText`, scan partagé avec la bannière, stock de
  *  `condition-event-counter.test.ts`, #1330). */
 function isImportantCondition(e: CombatEvent): boolean {
-  const id = e.etat ?? conditionIdInText(e.text);
+  const id = e.etat ?? conditionIdInText(e.entree.texte);
   return id !== undefined && conditionSeverity(id) >= 50;
 }
 

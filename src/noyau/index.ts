@@ -29,6 +29,7 @@ export {
 } from '../engine/types';
 export { formatMoney, fromBrass, libelleDuStatut, PA_PER_CO, toBrass, type Money } from '../engine/money';
 export type { Applique, FaitApplique } from '../engine/faits';
+export { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export {
   dayIndex,
