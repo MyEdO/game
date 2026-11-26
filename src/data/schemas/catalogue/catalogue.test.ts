@@ -8,7 +8,7 @@ const REGLE = idDeFixture('regleOptionnelle', 'regle-du-livre-de-test');
 const GROUPE = 'groupe-du-livre-de-test';
 
 const REGISTRE: LivreDeTest['reglesOptionnelles.json'] = [
-  { id: REGLE, type: 'reglesOptionnelles', label: 'Règle du livre de test', ref: 'LDT 01 l.1', source: { book: LIVRE, page: 1 }, group: 'Test', kind: 'flag', default: false },
+  { id: REGLE, type: 'reglesOptionnelles', label: 'Règle du livre de test', ref: 'LDB 01 l.1', source: { book: LIVRE, page: 1 }, group: 'Test', kind: 'flag', default: false },
 ];
 
 const GROUPES: LivreDeTest['weaponGroups.json'] = [

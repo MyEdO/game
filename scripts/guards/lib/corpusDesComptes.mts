@@ -43,7 +43,7 @@
 // sortir un nœud G1 sous les deux détecteurs ; c’est une forme partagée réelle, pas un re-classement (#3012).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, posix } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -292,8 +292,9 @@ const MODULES_GENERES_LUS = [
   'process.stdout.write(JSON.stringify([await lus(process.argv[1]), await lus(process.argv[2])]));',
 ].join('\n');
 
-/** Sous `dossier`, à chaque chemin d'un module généré (`MODULES_GENERES_LUS`) que déclare le détecteur posé, absent de
- *  l'image et autre que celui qu'elle déclare, un module de RENVOI vers celui de l'image (#5083). */
+/** Sous `dossier`, à chaque chemin d'un module généré (`MODULES_GENERES_LUS`) que déclare le détecteur posé, autre que
+ *  celui que l'image déclare sous le même nom, un RENVOI vers celui de l'image (#5083) : un module à lui seul si le
+ *  chemin est absent, ajouté en fin de la sortie que l'image y génère sous un autre nom (un module scindé, #5070). */
 function poserLesRenvois(dossier: string, configuration: string): void {
   const vu = spawnSync(process.execPath, ['--input-type=module', '-e', MODULES_GENERES_LUS,
     pathToFileURL(join(dossier, COPIE_DES_CIBLES, CIBLES_DECLAREES)).href, pathToFileURL(join(dossier, CIBLES_DECLAREES)).href], {
@@ -302,11 +303,16 @@ function poserLesRenvois(dossier: string, configuration: string): void {
   if (vu.status !== 0) throw new MesureImpossible(`${configuration} : lecture des modules générés en échec (${vu.status ?? vu.signal}) — ${premiereErreur(vu)}`);
   const [deLImage, duDetecteur] = JSON.parse(vu.stdout) as [[string, string][], [string, string][]];
   const viseParNom = new Map(deLImage);
+  const sortiesDeLImage = new Set(viseParNom.values());
   for (const [nom, chemin] of duDetecteur) {
     const vise = viseParNom.get(nom);
-    if (vise === undefined || chemin === vise || !/\.m?ts$/.test(chemin) || existsSync(join(dossier, chemin))) continue;
-    mkdirSync(dirname(join(dossier, chemin)), { recursive: true });
-    writeFileSync(join(dossier, chemin), `export * from './${posix.relative(posix.dirname(chemin), vise)}';\n`);
+    if (vise === undefined || chemin === vise || !/\.m?ts$/.test(chemin)) continue;
+    const cible = join(dossier, chemin);
+    const renvoi = `export * from './${posix.relative(posix.dirname(chemin), vise)}';\n`;
+    if (!existsSync(cible)) {
+      mkdirSync(dirname(cible), { recursive: true });
+      writeFileSync(cible, renvoi);
+    } else if (sortiesDeLImage.has(chemin)) appendFileSync(cible, renvoi);
   }
 }
 
