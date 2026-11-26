@@ -252,7 +252,7 @@ describe('#3839 — la suite du déplacement de combat appartient à l’hôte',
       for (const e of resultat.evenements) {
         if (e.type !== 'emis' || e.evt !== 'anim_move' || e.payload.id !== chargeur) continue;
         expect(e.payload.path.length).toBeGreaterThan(1);
-        expect(hote.etat().battle!.tourEnCours?.suite?.geste.kind).toBe('frappe');
+        expect(hote.etat().battle!.tourEnCours?.suite?.geste.kind).toBe('frappePilotee'); // la frappe de la Charge, suite du geste
         expect(frappesDuTour(chargeur, hote.etat().battle!.log)).toBe(0);
         const lies = programmes.filter((p) => 'apresDeplacement' in p);
         expect(lies).toEqual([expect.objectContaining({ apresDeplacement: [chargeur] })]);

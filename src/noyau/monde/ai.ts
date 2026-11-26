@@ -135,6 +135,18 @@ export interface EnemyTurnInput {
    *  une décision précédente du tour, ou qui rapproche d'une source de Peur après l'échec du Test (LDB 21 l.27).
    *  ABSENT = aucune. */
   deplacementRetenu?: (to: Pt) => boolean;
+  /** La cible que le geste d'attaque du joueur a refusée à une décision précédente du tour : ni mêlée ni tir sur elle.
+   *  ABSENT = aucune. */
+  attaqueRetenue?: (cibleId: string) => boolean;
+  /** Le tir de l'arme `w` sur `cible` que la porte du tir du joueur refuse (`firedAttackBlock` : munition, portée
+   *  minimale, arc, effectif). Posé par l'appelant ; ABSENT = aucun refus. */
+  tirRefuse?: (w: Weapon, cible: Combatant) => boolean;
+  /** L'Action de ce tour est déjà prise (`battle.acted`) : seuls les gestes qui ne la coûtent pas restent candidats
+   *  (`SANS_L_ACTION`). LDB 13 l.14. ABSENT = libre. */
+  actionPrise?: boolean;
+  /** La cible que la Frénésie impose au joueur (`frenzyTarget`, LDB 21 l.33), posée par l'appelant ; `null` ou ABSENT :
+   *  aucune contrainte. */
+  cibleDeFrenesie?: Combatant | null;
   /** Mouvement effectif en cases (dérivé de l'Encombrement par l'appelant). */
   movement: number;
   /** TOUS les sorts connus de l'ennemi, RÉSOLUS + enrichis par l'appelant (couche impure qui a les
@@ -171,7 +183,6 @@ export interface EnemyTurnInput {
   meleeDeStructure?: {
     cibles: Combatant[];
     combattants: Combatant[];
-    actionDepensee: boolean;
     profils: (cible: Combatant) => Weapon[];
     poussee?: { coque: Combatant; arrivees: ReadonlyMap<string, number> };
   };
@@ -470,16 +481,6 @@ function bestAreaCenter(
   return best && best.covered >= 2 ? best : null;
 }
 
-/** Frénésie (LDB 21 l.33) : le frénétique vise IMPÉRATIVEMENT l'ennemi le plus PROCHE de sa Ligne de
- *  Vue (pas le plus faible) ; à distance égale, le plus blessé (tri stable, déterministe). */
-function nearest(enemyPos: Pt, heroes: Combatant[]): Combatant {
-  return [...heroes].sort((a, b) => {
-    const da = manhattan(enemyPos, a.pos!), db = manhattan(enemyPos, b.pos!);
-    if (da !== db) return da - db;
-    return a.wounds.current - b.wounds.current;
-  })[0];
-}
-
 /**
  * Un CANDIDAT d'action discrétionnaire (Lot 3 — moteur Utility à score pondéré).
  * `kind` = type d'action (sert au BIAIS de palier dans le départage : à utilité égale, on garde l'ordre
@@ -512,6 +513,9 @@ const TIER = {
   poussee: 6,
   servirLePoste: 7, // servir une pièce de siège (préparation) — faute de mieux
 } as const;
+
+/** Les candidats qui ne coûtent pas l’Action du tour : le Mouvement (LDB 13 l.14), servir une pièce (LDB 13 l.106). */
+const SANS_L_ACTION: ReadonlySet<keyof typeof TIER> = new Set(['deplacement', 'servirLePoste']);
 
 /**
  * argmax déterministe (Lot 3) : meilleur candidat par UTILITÉ décroissante. Tie-break STABLE à utilité
@@ -703,7 +707,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const armes = (meleeDeStructure?.profils(cible) ?? enemy.weapons)
       .filter((arme) => arme.type === 'melee' && !structureImmune(arme, cible));
     const combattants = meleeDeStructure?.combattants ?? [];
-    const attaque = !priereImposee && canTakeAction(enemy) && !meleeDeStructure?.actionDepensee
+    const attaque = !priereImposee && canTakeAction(enemy) && !input.actionPrise
       ? meleeWeaponInRangeList(scene, combattants, enemy, cible, armes) : undefined;
     const armeServie = posteUid ? armes.find((arme) => arme.uid === posteUid) : undefined;
     const poussee = meleeDeStructure?.poussee;
@@ -826,13 +830,12 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     return { kind: 'depenseDeRessource', resource: 'determination', via: 'retirerEtat', id: clearable.id };
   };
   // Verrouillage d'Action data-driven (`restrictsAction`, ex. Brisé LDB 16 l.52) : Mouvement + Action doivent
-  // servir à fuir/se cacher. AVANT de fuir, l'IA tente de se RESSAISIR par la Détermination ; sinon, fuir si
-  // NON Engagé (un Brisé Engagé ne peut PAS récupérer par Test, LDB 16 l.54 → il retombe dans le scoring et se
-  // bat à −10). PLUS de nom d'État en dur.
+  // servir à fuir/se cacher, Engagé compris (son geste passe alors par le Désengagement, LDB 15 l.43-61). AVANT de
+  // fuir, l'IA tente de se RESSAISIR par la Détermination. PLUS de nom d'État en dur.
   if (isActionLocked(enemy)) {
     const spend = planProactiveSpend();
     if (spend) return forced(spend);
-    if (!isEngaged(enemy, input.combatants ?? input.heroes)) return forced(fleeMove(true)); // fuir hors de vue (cachette prioritaire)
+    return forced(fleeMove(true)); // fuir hors de vue (cachette prioritaire)
   }
   // Bestial (LDB 85 l.59) : « Si elle perd plus de la moitié de ses Blessures, elle tente de fuir »
   // — sauf Territorial (combat jusqu'à la mort) ou acculée/Engagée (elle reste — Frénésie gérée par
@@ -884,13 +887,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     hatedCibles.length ? pool.filter((h) => hatedCibles.some((cb) => vise(cb, sourceCombattant(h), 'appartenance', enemy))) : []; // #3045
   /** Restreint un vivier au groupe haï s'il y en a un présent, sinon le vivier brut. */
   const restrict = (pool: Combatant[]): Combatant[] => { const hp = hatedOf(pool); return hp.length ? hp : pool; };
-  /** En Frénésie, la cible est IMPÉRATIVEMENT le plus proche en LdV (LDB 21 l.33) — on contraint le vivier
-   *  d'énumération à ce seul héros (le scoring ne peut donc choisir personne d'autre). */
-  const frenzyPick = (): Combatant | null => {
-    if (!frenzied) return null;
-    const visibleFoes = shootableHeroes.length ? shootableHeroes : heroes;
-    return visibleFoes.length ? nearest(pos, visibleFoes) : null;
-  };
+  /** En Frénésie, la cible est celle que la porte du joueur impose (`cibleDeFrenesie`, LDB 21 l.33) — on contraint le
+   *  vivier d'énumération à ce seul héros (le scoring ne peut donc choisir personne d'autre). */
+  const frenzyPick = (): Combatant | null => (frenzied ? heroes.find((h) => h.id === input.cibleDeFrenesie?.id) ?? null : null);
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
   const outnumberEnvMelee = (target: Combatant) => {
@@ -1159,7 +1158,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   if (canShoot) {
     const pool = restrict(fpick ? [fpick].filter((h) => shootPool.includes(h)) : shootPool);
     for (const w of armesTirables) for (const t of pool) {
-      if (!aPorteeDe(w, t)) continue;
+      if (!aPorteeDe(w, t) || input.tirRefuse?.(w, t)) continue;
       candidates.push({ action: { kind: 'tir', targetId: t.id, ...(w.uid ? { weaponUid: w.uid } : {}) }, kind: 'tir', utility: attackUtility(t, { kind: 'distance', weapon: w, dist: fpDist(t) }), targetId: t.id, coord: t.pos ?? null });
     }
   }
@@ -1200,7 +1199,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // AA 10 l.94–98, l.138 ; ADE II 08 l.249, l.258, l.292, l.296–300.
   if (tirPossible) for (const w of armesTirables) for (const st of shootableStructures) {
-    if (structureImmune(w, st) || !aPorteeDe(w, st)) continue;
+    if (structureImmune(w, st) || !aPorteeDe(w, st) || input.tirRefuse?.(w, st)) continue;
     candidates.push({
       action: { kind: 'tir', targetId: st.id, ...(w.uid ? { weaponUid: w.uid } : {}) },
       kind: 'tir', utility: attackUtility(st, { kind: 'distance', weapon: w, dist: fpDist(st) }),
@@ -1290,7 +1289,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // --- ARGMAX : meilleur candidat (utilité pondérée + tie-break déterministe) ----------------
   // TRACE (DEV gated) : classement des candidats (top 8 par utilité décroissante) = l'« intention » du tour.
   if (AI_TRACE) _lastRanking = [...candidates].sort((a, b) => b.utility - a.utility).slice(0, 8).map((c) => ({ kind: c.kind, spell: (c.action as { spell?: string }).spell, targetId: c.targetId || undefined, utility: Math.round(c.utility * 100) / 100 }));
-  const chosen = argmax(priereImposee ? candidates.filter((c) => permisSousPriereImposee(c.action, spells)) : candidates);
+  const jouables = candidates.filter((c) => !((c.kind === 'melee' || c.kind === 'tir') && input.attaqueRetenue?.(c.targetId))
+    && (!input.actionPrise || SANS_L_ACTION.has(c.kind)));
+  const chosen = argmax(priereImposee ? jouables.filter((c) => permisSousPriereImposee(c.action, spells)) : jouables);
   if (chosen) return chosen.action;
 
   // Aucun candidat jouable : un Empêtré (Mouvement nul, LDB 16 l.64) se libère plutôt que perdre son

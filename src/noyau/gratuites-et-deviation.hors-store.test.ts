@@ -56,17 +56,19 @@ describe('Gratuites de créature et Déviation (LDB 63 l.30, #1858)', () => {
       banc.getState().ensemencerLeTirage(41); // la Morsure porte un Critique : la file garde Piétinement
       const { H, E } = monte();
       const tour = { round: banc.getState().battle!.round, turn: banc.getState().battle!.turn };
-      expect(aiCreatureFreeAttacks(banc.getState, banc.setState, E), 'la Morsure suspend sur son étape').toBe(true);
+      expect(aiCreatureFreeAttacks(banc.getState, banc.setState, E), 'la Morsure, frappe pilotée du geste, suspend le tour').toBe(true);
+      banc.jusquA(() => etapesDeDeviation().length > 0);
       expect(etapesDeDeviation(), 'une étape de Blessure critique est ouverte').toHaveLength(1);
-      expect(E.pendingFreeAttacks, 'Piétinement reste en tête de file pendant l’étape').toEqual(['pietinement']);
-      expect(E.freeAttacksThisTurn?.pietinement ?? 0, 'Piétinement ne part pas par-dessus l’étape').toBe(0);
+      expect(reluDans(banc.getState, E).pendingFreeAttacks, 'Piétinement reste en tête de file pendant l’étape').toEqual(['pietinement']);
+      expect(reluDans(banc.getState, E).freeAttacksThisTurn?.pietinement ?? 0, 'Piétinement ne part pas par-dessus l’étape').toBe(0);
 
       draineCascade(banc.getState, 200, undefined, voie(cle));
 
       const b = banc.getState().battle!;
       expect({ round: b.round, turn: b.turn }, 'toujours le tour de la créature').toEqual(tour);
-      expect(E.freeAttacksThisTurn?.pietinement, 'Piétinement est parti une fois').toBe(1);
-      expect(E.pendingFreeAttacks, 'la file du tour est épuisée : rien ne repart dans ce tour').toEqual([]);
+      const e = b.combatants.find((c) => c.id === E.id)!;
+      expect(e.freeAttacksThisTurn?.pietinement, 'Piétinement est parti une fois').toBe(1);
+      expect(e.pendingFreeAttacks, 'la file du tour est épuisée : rien ne repart dans ce tour').toEqual([]);
       const h = b.combatants.find((c) => c.id === H.id)!;
       expect(h.conditions.some((c) => c.id === 'surpris'), `Surpris conservé après « ${cle} » (LDB 16 l.139)`).toBe(true);
     });

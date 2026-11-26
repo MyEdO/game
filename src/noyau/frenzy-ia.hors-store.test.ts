@@ -42,12 +42,12 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
   return { enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [], ...extra };
 }
 
-describe('Frénésie IA — cible la plus proche (chooseEnemyAction, pur, LDB 21 l.33)', () => {
-  it('frenzied : vise le plus PROCHE en Ligne de Vue (pas le plus faible distant)', () => {
+describe('Frénésie IA — la cible imposée par la porte du joueur (chooseEnemyAction, pur, LDB 21 l.33)', () => {
+  it('frenzied : vise la cible imposée (`cibleDeFrenesie`), pas le plus faible distant', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { psychState: [{ type: 'frenesie' }], movement: 4 });
     const near = mk('near', 'heros', { x: 5, y: 6 }, { wounds: blessuresDeBase(10) }); // proche, costaud
     const far = mk('far', 'heros', { x: 5, y: 9 }, { wounds: blessuresDeBase(10, 2) }); // faible, atteignable MAIS plus loin
-    const action = chooseEnemyAction(input(e, [near, far]));
+    const action = chooseEnemyAction(input(e, [near, far], { cibleDeFrenesie: near }));
     const tid = (action as { targetId?: string; thenTargetId?: string }).targetId ?? (action as { thenTargetId?: string }).thenTargetId;
     expect(tid).toBe('near');
   });
@@ -156,21 +156,22 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(true);
   });
 
-  it('aiAvailableFreeAttack : attaque de mêlée LIBRE contre un héros → SA défense s’ouvre, puis l’Action reste intacte', () => {
+  it('aiAvailableFreeAttack : l’Action prise, la frappe LIBRE par le geste du joueur → la défense du héros s’ouvre, puis la gratuite est comptée', () => {
     banc.getState().ensemencerLeTirage(4);
     const { E, H } = setupBattle();
     (E.psychState ??= []).push({ type: 'frenesie' });
     E.weapons = [MELEE];
-    banc.setState({ battle: { ...banc.getState().battle!, acted: false } });
+    const b = banc.getState().battle!;
+    banc.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: true } });
     const logBefore = banc.getState().battle!.log.length;
-    aiAvailableFreeAttack(banc.getState, banc.setState, E);
+    expect(aiAvailableFreeAttack(banc.getState, E)).toBe(true);
     // #989 : la défense du héros est SURFACÉE — l'attaque gratuite ne la roule plus en silence.
     expect(banc.getState().pendingDefense?.defenderId).toBe(H.id);
     banc.getState().jetLancer('defense');
     banc.getState().jetValider('defense');
     const st = banc.getState();
     expect(st.battle!.log.length).toBeGreaterThan(logBefore); // une attaque a bien été résolue
-    expect(st.battle!.acted).toBe(false); // gratuite : l'Action n'est pas consommée
+    expect(st.battle!.combatants.find((c) => c.id === E.id)!.freeAttacksThisTurn?.arme).toBe(1); // LDB 21 l.33
   });
 
   it('aiAvailableFreeAttack : aucun adversaire adjacent → no-op', () => {
@@ -180,7 +181,7 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     E.weapons = [MELEE];
     banc.setState({ battle: { ...banc.getState().battle!, acted: false } });
     const logBefore = banc.getState().battle!.log.length;
-    aiAvailableFreeAttack(banc.getState, banc.setState, E);
+    aiAvailableFreeAttack(banc.getState, E);
     expect(banc.getState().battle!.log.length).toBe(logBefore);
   });
 });

@@ -591,6 +591,13 @@ function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
   if (apres.cursor !== apres.participants.length - 1) validerLEtape(get, set);
 }
 
+/** Le Désengagement clos par sa sortie d'hôte (#4255), puis le tour de l'IA qu'il tenait reprend sa suite parquée
+ *  (`maybeRunEnemyTurn`, #5042). */
+function sortirDuDesengagement(get: Get, set: Set, suite: Parameters<typeof sortirDeLHote>[3]): void {
+  sortirDeLHote(get, set, { pendingDisengage: null }, suite);
+  maybeRunEnemyTurn(get, set);
+}
+
 /** Lignes de dé (`traceLineOf`) des jets d'une fuite lancés et clos dans le même geste : aucune rangée ne
  *  les a montrés, le journal est leur seule surface. */
 function tracerLaFuite(get: Get, set: Set, mover: Combatant, foe: Combatant, jets: { dos: boolean; touche: boolean }): void {
@@ -2497,7 +2504,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const mover = garanti(inBattleId(battle, pd.moverId), pd.moverId, 'désengagé');
         sacrifierLAvantagePourPartir(get, mover); // LDB 15 l.47
         // L'hôte `desengagement` se clôt par la sortie d'hôte (#4255) : l'issue est sa suite.
-        sortirDeLHote(get, set, { pendingDisengage: null }, () => {
+        sortirDuDesengagement(get, set, () => {
           const b = get().battle!;
           set({
             battle: {
@@ -2729,7 +2736,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const mover = garanti(inBattleId(battle, pd.moverId), pd.moverId, 'désengagé');
       const foe = garanti(inBattleId(battle, pd.foeId), pd.foeId, 'adversaire du Désengagement');
       // L'hôte `desengagement` se clôt par la sortie d'hôte (#4255) : l'issue de l'Esquive est sa suite.
-      sortirDeLHote(get, set, { pendingDisengage: null }, () => {
+      sortirDuDesengagement(get, set, () => {
         const b = markActed(get, set); // le Test d'Esquive EST l'Action : scellé AVANT la copie du journal
         const log = [...b.log];
         if (pd.result === 'reussite') {
@@ -2778,7 +2785,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       }
       // L'hôte `desengagement` se clôt par la sortie d'hôte (#4255) : la modale se ferme AVANT l'application, qui
       // est sa suite (une conséquence peut ouvrir la sienne).
-      sortirDeLHote(get, set, { pendingDisengage: null }, () => {
+      sortirDuDesengagement(get, set, () => {
         const b = get().battle!;
         set({ battle: { ...b, log: [...b.log, ev('fuite', t('cs.fleeBackstab', { name: nomDe(mover), foe: nomDe(foe) }), mover.id, foe.id)] } });
         // Attaque GRATUITE (elle ne consomme pas l'Action du fuyard, dont c'est le tour) : l'Action rendue
@@ -3171,7 +3178,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // mesurée ICI parce qu'elle exclut le balayage que ce site déclare ci-dessous.
         const fumbled = attackerFumbled(lance, weapon, attacker);
         const off = isDualMain ? paireDesDeuxArmes(get, attacker)?.secondaire : undefined;
-        const coupPrincipal = attacker.kind === 'heros' && !wasChain && !isDualSecond && !pa.freeKind;
+        // L'enchaînement se déclare par le conducteur du frappeur, partition de `aiDriven` (#5042) : la machine joue
+        // son balayage et sa 2ᵉ frappe, le siège humain les choisit à la fenêtre.
+        const machine = aiDriven(get(), attacker);
+        const coupPrincipal = (attacker.kind === 'heros' || machine) && !wasChain && !isDualSecond && !pa.freeKind;
         // Frénésie (LDB 21 l.33), `grantFreeAttack{available}` : la suite rend l'Action (`restitution`) ;
         // plafond /Round via `freeAttacksThisTurn['arme']`.
         const frenesie = coupPrincipal && hasFreeWeaponAttack(attacker);
@@ -3218,8 +3228,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
           // L'ENCHAÎNEMENT se DÉCLARE, toujours : une Maladresse de l'attaquant ou une frappe du Maniement
           // de deux armes n'en ouvrent AUCUN (`aucun`) — sans déclaration, la queue partagée tomberait dans
           // le balayage de la machine (LDB 85 l.362), que ce site écarte. Manœuvre gratuite : LDB 14 l.9.
-          enchainement: !fumbled && !isDualMain && !isDualSecond ? { mode: 'heros', wasChain } : { mode: 'aucun' },
-          ...(isDualMain && off?.uid ? { dualMain: { offWeaponUid: off.uid, par: 'fenetre' as const } } : {}),
+          enchainement: fumbled || isDualMain || isDualSecond ? { mode: 'aucun' } : machine ? { mode: 'auto' } : { mode: 'heros', wasChain },
+          ...(isDualMain && off?.uid ? { dualMain: { offWeaponUid: off.uid, par: machine ? 'machine' as const : 'fenetre' as const } } : {}),
           ...(isDualSecond ? { secondeFrappe: true as const } : {}),
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
           ...(pa.riposte != null ? { riposte: pa.riposte } : {}),

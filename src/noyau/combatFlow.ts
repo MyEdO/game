@@ -8,6 +8,7 @@ import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import { porteurEnVue } from './visionDuGroupe';
 import type { Jeu, BattleState, ShootingStanceKey, GesteDeSuite, TourEnCours, AllureDeLIA } from './etat';
+import { cleDeTour, tourEnCoursDe } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import type {
   PendingCast,
@@ -154,7 +155,7 @@ import {
   roundEndAdvantageTransfer,
 } from './combat/advantagePool';
 import { sizeGap } from '../engine/size';
-import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusDuBinome, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
+import { budgetsDAllure, refusDeCharge, refusDeCourse, refusMouvementEntame, refusPriereImposee, refusRampe } from './refusDuTour';
 import { adversairesEngages, departLibre, peutFuir, peutSacrifierLAvantage, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { bouclierDuBinomeEnJeu, effectifAuContactParmi, surnombreDeLAttaque } from './combat/surnombre';
 import { corpsDe, distanceDeCombat, distanceDeContact, footprintN, footprintChebyshev } from './monde/footprint';
@@ -670,18 +671,14 @@ import {
   rollManeuverAttacker,
   maneuverAttackerDifficulty,
   resolveManeuver,
-  availableFreeAttackOps,
-  resolveBattement,
-  battementEligible,
-  resolveDistraire,
-  distraireEligible,
-  distraireAttackValue,
-  distraireDefenseValue,
-  distraireAttackBase,
-  distraireDefenseBase,
-  ATHLETISME_DU_DISTRAIRE,
-  CALME_DISTRAIT,
+  availableAttacks,
+  attaqueImmediate,
+  battementFoes,
+  distraireFoes,
+  type AttackOption,
 } from './combatManeuvers';
+import type { ArgumentsDuReglage } from './reglagesDuJet';
+import type { HostJet } from './slotsDeJet';
 import type { Effect, Flow } from '../data/schemas/defs-scenes/effets';
 import {
   runCascadeImmediate,
@@ -792,7 +789,7 @@ export function victimeDuCoup(battle: BattleState, target: Combatant, pa: Pendin
 }
 
 /** Arme d'une attaque gratuite de créature (`freeKind`) de `attacker` : celle du jet piloté
- *  (`attackWeaponOf`), de l'aperçu du geste (`apercuDuGeste`) et de l'IA (`applyFreeAttack`). `null` quand
+ *  (`attackWeaponOf`) et de l'aperçu du geste (`apercuDuGeste`). `null` quand
  *  l'attaque épingle une arme PORTÉE (`weaponUid`) : c'est alors elle qui frappe. LDB 85 l.387 */
 export function armeDeLaGratuite(attacker: Combatant, kind: string, weaponUid?: string): Weapon | null {
   if (weaponUid != null && attacker.weapons.some((w) => w.uid === weaponUid)) return null;
@@ -894,7 +891,7 @@ function effectifDeLArmeSuffisant(active: Combatant, arme: Weapon, combatants: C
 
 interface RefusDuTir { reason: 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' | 'portee-min' | 'armeBannie' | 'engaged'; detail: string; need?: string }
 
-/** Tir héros refusé — LÉGALITÉ de l'arme employée (tir en étant *Engagé*, `LDB 14 l.41` ; armes à distance
+/** Tir refusé, quel que soit le porteur — LÉGALITÉ de l'arme employée (tir en étant *Engagé*, `LDB 14 l.41` ; armes à distance
  *  bannies de la rencontre) ou RESSOURCE : arme à défaut Recharge non chargée (LDB 62 l.335) ou plus
  *  de munition compatible — `null` si le tir peut partir. Concern ORTHOGONAL à la géométrie (`attackPlan`),
  *  rejoué À L'IDENTIQUE par le clic (`cliquerLeCombattant`) ET le survol (`hoverTargeting`) pour que
@@ -902,7 +899,6 @@ interface RefusDuTir { reason: 'unloaded' | 'noammo' | 'arc' | 'sous-effectif' |
  *  proposer une attaque qui se solderait par un log silencieux. Mêlée / pas d'arme à distance → `null`
  *  (la Recharge ne concerne que l'arme effectivement tirée, `firedWeapon`). */
 export function firedAttackBlock(get: Get, active: Combatant, target: Combatant, weaponUid?: string): RefusDuTir | null {
-  if (active.kind !== 'heros') return null;
   const b = get().battle;
   // Arme effectivement testée + distance PAR CETTE ARME (#BUG-A, poule-et-œuf) : choix EXPLICITE (poste
   // servi → `weaponUid`) sinon chaque candidate de mêlée évaluée avec SA PROPRE géométrie (`pickAttackWeapon`,
@@ -1813,21 +1809,6 @@ export function sacrifierLAvantagePourPartir(get: Get, mover: Combatant): void {
   for (const f of foes) disengageFrom(mover, f);
 }
 
-/** Le départ du contact d'un combattant que l'IA conduit, par une voie qui ne coûte pas l'Action : départ libre
- *  (LDB 85 l.373-374 ; LDB 85 l.253), sinon l'Avantage (`sacrifierLAvantagePourPartir`). Sa ligne de journal, `null`
- *  s'il n'était Engagé avec personne. `buildAiInput` ne lui ouvre un Mouvement que si l'une des deux est ouverte. */
-function partirDuContact(get: Get, mover: Combatant): string | null {
-  const ctx = { active: mover, battle: get().battle! };
-  const foes = adversairesEngages(ctx);
-  if (!foes.length) return null;
-  if (!departLibre(ctx)) {
-    sacrifierLAvantagePourPartir(get, mover);
-    return tr('cs.disengageSacrifice', { name: nomDe(mover) });
-  }
-  for (const f of foes) disengageFrom(mover, f);
-  return tr('cf.ecarteLesPlusPetits', { name: nomDe(mover) });
-}
-
 /** Lance le Désengagement d'un combattant Engagé (LDB 15 l.43-49) : départ libre (LDB 85 l.253,
  *  l.373-374) résolu direct, sinon le MENU de ses options ouvertes — Avantage, Esquive opposée au foe le
  *  plus dangereux. Rouvre le mouvement si plus aucun foe vivant. Options : `noyau/combat/desengagement.ts`. */
@@ -2080,33 +2061,31 @@ export function displayedReach(get: Get<Jeu>): Map<string, number> {
 /**
  * L'ALLURE de l'approche de l'IA (LDB 15 l.35-41), sa DÉCISION seule : la Marche si elle amène au contact ; sinon une
  * CHARGE dans la zone du joueur (`budgets.charge`) qui y amène ; sinon une COURSE dans sa zone nominale
- * (`budgets.course`), dont le Test se joue au geste (`ouvrirLaCourse`), plus loin que la Marche. Pure.
+ * (`budgets.course`), dont le Test se joue au geste (`ouvrirLaCourse`), plus loin que la Marche. Un budget `null` :
+ * l'allure que la porte du joueur refuse (`budgetsDAllure`). `auContact` : le plan finit au contact de sa cible. Pure.
  */
 export function aiApproachPlan(
   input: EnemyTurnInput,
   action: EnemyAction,
-  budgets: { charge: number; course: number },
-): { plan: EnemyAction; allure: AllureDeLIA } {
+  budgets: { charge: number | null; course: number | null },
+): { plan: EnemyAction; allure: AllureDeLIA; auContact: boolean } {
   const enemy = input.enemy;
-  const none = { plan: action, allure: 'marche' as const };
-  if (action.kind !== 'deplacement' || input.movement <= 0) return none;
-  if (refusDeCourseDuPorteur(input.combatants ?? input.heroes, enemy)) return none;
-  if (!enemy.weapons.some((w) => w.type === 'melee')) return none;
   const adversaires = adversairesDe(input);
   const atContact = (a: EnemyAction): boolean =>
     a.kind === 'deplacement' && distanceDeContact(input.scene, { ...enemy, pos: positionPosee(input.scene, a.to) }, adversaires.find((h) => h.id === a.thenTargetId) ?? adversaires[0]) <= meleeReachTiles(enemy.weapons, sceneMetresPerTile(input.scene));
-  if (atContact(action)) return none; // la Marche suffit déjà
-  if (budgets.charge <= input.movement) return none;
+  const none = { plan: action, allure: 'marche' as const, auContact: atContact(action) };
+  if (action.kind !== 'deplacement' || input.movement <= 0) return none;
+  if (!enemy.weapons.some((w) => w.type === 'melee')) return none;
+  if (none.auContact) return none; // la Marche suffit déjà
   // Les deux ré-énumérations ci-dessous rejouent l'approche à un budget de mouvement SUPÉRIEUR sur la
   // MÊME géométrie : elles partagent les mémos de la décision, Ligne de Vue et distances à fermer (posés par
   // `buildAiInput` ; un appel PUR sans mémo en reçoit ici) — une case ou une cible n'est évaluée qu'une fois.
   const inp: EnemyTurnInput = { ...input, losMemo: input.losMemo ?? makeLosMemo(input.scene, input.smoke ?? []), memoDesApproches: input.memoDesApproches ?? new Map() };
-  const charge = chooseEnemyAction({ ...inp, movement: budgets.charge });
-  if (charge.kind === 'deplacement' && atContact(charge)) return { plan: charge, allure: 'charge' };
-  if (refusDuBinome(input.scene, { combatants: [enemy, ...(input.squad ?? [])] }, enemy)) return none; // ZI 13 l.193
-  const run = budgets.course > input.movement ? chooseEnemyAction({ ...inp, movement: budgets.course }) : action;
+  const charge = budgets.charge != null && budgets.charge > input.movement ? chooseEnemyAction({ ...inp, movement: budgets.charge }) : null;
+  if (charge?.kind === 'deplacement' && atContact(charge)) return { plan: charge, allure: 'charge', auContact: true };
+  const run = budgets.course != null && budgets.course > input.movement ? chooseEnemyAction({ ...inp, movement: budgets.course }) : action;
   if (run.kind === 'deplacement' && tileKey(run.to.x, run.to.y, run.to.z ?? 0) !== tileKey(action.to.x, action.to.y, action.to.z ?? 0))
-    return { plan: run, allure: 'course' };
+    return { plan: run, allure: 'course', auContact: atContact(run) };
   // La Course ne porte pas plus loin que le plan de Marche : marcher normalement (pas d'Action gâchée).
   return none;
 }
@@ -4779,7 +4758,7 @@ export function ciblesDuBalayage(s: Jeu): Combatant[] {
 }
 
 /** Poursuit la chaîne de balayage. Chaque enchaînement passe par la MÊME couture d'ouverture que l'attaque
- *  principale (`maybeOpenDefense`, patron `applyFreeAttack`) : le maillon SUIVANT est la suite que le coup
+ *  principale (`maybeOpenDefense`) : le maillon SUIVANT est la suite que le coup
  *  emporte, que la fenêtre du défenseur SURFACÉ s'interpose (`jetValider('defense')` la joue) ou non — la chaîne
  *  n'est jamais roulée en silence. La `restitution` du coup voyage dans chaque maillon. Rend `true` quand
  *  un maillon tient la main (fenêtre de défense, ou suspension de son propre coup). */
@@ -5003,27 +4982,22 @@ function jouerLaSuiteDuCoup(get: Get, set: SetFn, attacker: Combatant, target: C
 // Piétinement — action gratuite à 1 Avantage (LDB 85 - Traits de creature.md l.387)
 // ---------------------------------------------------------------------------
 
-/** Résolution IA des attaques d'Arme GRATUITES « disponibles » (`grantFreeAttack {when:'available'}` —
- *  aujourd'hui l'état Frénésie, LDB 21 l.33 : « un Test de CC gratuit chaque Round ») d'un combattant PILOTÉ
- *  PAR L'IA. Gate `!aiDriven` : ennemi OU héros en Auto-combat (un héros MANUEL la déclenche lui-même via
- *  l'affordance UI `hasFreeWeaponAttack`). DÉLÈGUE chaque op au MÊME résolveur que les attaques gratuites
- *  RÉACTIVES (`applyTalentFreeAttack` : plafond, coût d'Avantage, jet d'attaque, Action préservée) — un seul
- *  résolveur partagé, plus de chemin frenzy-spécifique ni de jet dupliqué. Cible = adversaire adjacent.
+/** L'attaque d'Arme GRATUITE « disponible » (`grantFreeAttack {when:'available'}`, la Frénésie, LDB 21 l.33) d'un
+ *  combattant que l'IA conduit (`aiDriven`), par le GESTE du joueur (#5042) : l'offre de l'arme tenue, sans coût
+ *  d'Action (`availableAttacks`), cliquée sur un adversaire au contact ; le joueur la joue lui-même.
  *
- *  REND SA SUSPENSION (#1852) : une frappe qui ouvre une fenêtre de défense ARRÊTE la file — une
- *  attaque gratuite est un Test d'attaque COMPLET (LDB 85 l.41-43), donc résolue entièrement, fenêtre
- *  du défenseur comprise, avant que la suivante soit déclarée. */
-export function aiAvailableFreeAttack(get: Get, set: SetFn, actor: Combatant): boolean {
-  if (!aiDriven(get(), actor) || isOutOfAction(actor)) return false;
+ *  REND SA SUSPENSION (#1852) : une frappe qui ouvre une fenêtre ARRÊTE la file — une attaque gratuite est un
+ *  Test d'attaque COMPLET (LDB 85 l.41-43), résolu entièrement avant que la suivante soit déclarée. */
+export function aiAvailableFreeAttack(get: Get, actor: Combatant): boolean {
+  if (!aiDriven(get(), actor) || isOutOfAction(actor) || !hasFreeWeaponAttack(actor)) return false;
   const battle = get().battle;
   if (!battle || battle.over || !actor.pos) return false;
   const target = battle.combatants.find(
     (t) => t.kind !== actor.kind && !isOutOfAction(t) && !!t.pos && distanceDeContact(get().scene, actor, t) <= 1,
   );
   if (!target) return false;
-  for (const { op, cap } of availableFreeAttackOps(actor))
-    if (applyTalentFreeAttack(get, set, actor, op, { targetId: target.id, key: 'arme', cap })) return true;
-  return false;
+  jouerSousLePiloteIA(get, actor, () => jouerLOffre(get, actor, offreDuGeste(get, actor, undefined), target), target.id);
+  return !get().battle!.over && (combatAdvanceBlocked(get()) || frappePiloteeEnAttente(get().battle!, actor.id));
 }
 
 /**
@@ -5043,9 +5017,9 @@ export function aiAvailableFreeAttack(get: Get, set: SetFn, actor: Combatant): b
  * LDB 13 l.14, LDB 85 l.43) : hors de son tour, la file reste intacte et l'appelant reprend sa suite.
  */
 export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant): boolean {
-  if (defenseEnCours(get())) return true; // une fenêtre est déjà vivante : la file attend sa fermeture
+  if (combatAdvanceBlocked(get())) return true; // une fenêtre tient la main (barre tenue) : la file attend sa fermeture
   const battle = get().battle;
-  if (battle?.acted && activeCombatant(battle)?.id === actor.id && aiAvailableFreeAttack(get, set, actor)) return true;
+  if (battle?.acted && activeCombatant(battle)?.id === actor.id && aiAvailableFreeAttack(get, actor)) return true;
   return aiCreatureFreeAttacks(get, set, actor);
 }
 
@@ -5085,8 +5059,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
   // (`jetValider('attaque')` → `hero`) ou à l'automate (`aiAttack` → `auto`), partition de `aiDriven`.
   const enchainement: EnchainementDuCoup = aiDriven(get(), actor) ? { mode: 'auto' } : { mode: 'heros', wasChain: false };
   const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind: fa.key }, enchainement };
-  // Défenseur SURFACÉ : la frappe passe par la MÊME couture d'ouverture que les autres gratuites
-  // (patron `applyFreeAttack`) — suspendue ici, appliquée à `jetValider('defense')` (Action restaurée).
+  // Défenseur SURFACÉ : la frappe passe par la MÊME couture d'ouverture que l'attaque (`maybeOpenDefense`) — suspendue ici, appliquée à `jetValider('defense')` (Action restaurée).
   // REND sa suspension (#1852) : l'appelant s'arrête, la frappe suivante attend la fermeture.
   if (maybeOpenDefense(get, set, actor, target, arme, suite)) return MAIN_RENDUE;
   const r = resolveAttack(get, actor, target, arme);
@@ -5166,53 +5139,25 @@ function freeAttackTarget(scene: Scene | null, battle: BattleState, c: Combatant
   return battle.combatants.find((t) => t.kind !== c.kind && !isOutOfAction(t) && !!t.pos && !!c.pos && distanceDeContact(scene, c, t) <= 1 && freeAttackTargetOk(scene, battle, c, kind, t));
 }
 
-/** Résout UNE attaque gratuite de `kind` contre `target`, OPPOSÉE et GRATUITE : ouvre la modale de
- *  défense (héros) → suspendu (`MAIN_RENDUE`) ; sinon résout instantanément (opposé auto, ou passif si Surpris),
- *  restaure l'Action et applique les effets. Dépense `cost` Avantage (coût RAW par type :
- *  Cornes/Tentacules 0, Morsure/Caudale/Piétinement 1). */
-function applyFreeAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, kind: string, cost = 1): Applique {
-  const prevActed = get().battle?.acted ?? false;
-  campSpend(get, attacker, cost); // réserve du camp en mode groupe (AA 11 l.30-38) / le combattant (LDB)
-  const weapon = armeDeLaGratuite(attacker, kind)!;
-  // La manœuvre entre AVEC sa suite (#1508) : ses effets authored attendent la touche RÉELLE et se jouent
-  // à la reprise sur la touche telle qu'elle a survécu (`toucheSauvee`) — le coup a bien eu lieu (LDB 13
-  // l.123), seul son EFFET est ignoré (LDB 85 l.98) ; l'Action, gratuite, est rendue par la reprise.
-  const suite: SuiteDeCoup = { restitution: { prevActed }, manoeuvre: { kind } };
-  if (maybeOpenDefense(get, set, attacker, target, weapon, suite)) return MAIN_RENDUE; // suspendu : resolve via défense
-  const res = resolveMelee(attacker, target, weapon, battleRng(), { defense: cannotDefend(target) ? 'aucune' : bestDefenseMode(target), bouclierDuBinome: bouclierDuBinomeEnJeu(get(), target) });
-  // Enchaînement absent = `auto` (LDB 85 l.362), joué par l'après-coup.
-  return applyAttackResult(get, set, attacker, target, weapon, res, { sousAttaque: true, suite });
+/** La cible du geste qui joue l'offre gratuite `offre` de `c` : un adversaire valide au contact (`freeAttackTarget`) ;
+ *  pour une manœuvre de zone, l'adversaire le plus proche, celui que vise `resolveManeuver` sans clic. */
+function cibleDeLaGratuite(scene: Scene | null, battle: BattleState, c: Combatant, offre: AttackOption): Combatant | undefined {
+  if (offre.targeting !== 'zone') return freeAttackTarget(scene, battle, c, offre.kind!);
+  const foes = battle.combatants.filter((t) => t.kind !== c.kind && !isOutOfAction(t) && !!t.pos && Number.isFinite(distanceDeContact(scene, c, t)));
+  return foes.reduce<Combatant | undefined>((p, t) => (!p || distanceDeContact(scene, c, t) < distanceDeContact(scene, c, p) ? t : p), undefined);
 }
 
+// ── Manœuvres résolues sans fenêtre d'attaquant (jet d'attaquant + RÉSOLVEUR GÉNÉRIQUE + clôture) : le sort
+//    Souffle et le Hurlement (`lancerLAttaqueDeZone`). Le flux de manœuvre (`FLOWS.manoeuvre`) appelle les MÊMES
+//    `rollManeuverAttacker` / `resolveManeuver`. ──
 
-// ── Wrappers IA des manœuvres (jet d'attaquant + RÉSOLVEUR GÉNÉRIQUE + clôture). Source UNIQUE du
-//    « rouler le jet d'attaquant PUIS résoudre PUIS checkBattleOver » pour l'IA : le flux JOUEUR
-//    passe par `FLOWS.manoeuvre` (modale différée) qui appelle les MÊMES `rollManeuverAttacker` /
-//    `resolveManeuver`. Les noms publics historiques sont conservés (tests + chemin du sort Souffle). ──
-
-/** Souffle / Vomissement (IA & sort) : roule le jet d'attaquant (CT, +40 pour le Vomi) puis résout la
+/** Souffle du sort (LDB 47) : roule le jet d'attaquant (CT, +40 pour le Vomi) puis résout la
  *  zone via le RÉSOLVEUR GÉNÉRIQUE. `centerOverride` = point d'impact imposé du sort « Souffle » (LDB 47).
  *  Clôt par `checkBattleOver`. */
 export function applyAreaAttack(get: Get, set: SetFn, attacker: Combatant, a: CreatureAttack, centerOverride?: Combatant): boolean {
   const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-tir', battleRng(), maneuverAttackerDifficulty(a.kind));
   const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, atk, a.avantage, centerOverride);
   if (!suspended) checkBattleOver(get, set); // la cascade de défense (héros) porte son propre checkBattleOver à la fermeture
-  return suspended;
-}
-
-/** Langue préhensile (IA) : jet CT puis résolution ; gratuit (Action préservée). L'entraînement de la proie
- *  (pull) est une conséquence POST-TOUCHE (`jouerLApresToucheDeManoeuvre`), jouée pour la voie silencieuse ET la voie
- *  cascade. Renvoie `true` si une défense de héros a suspendu (reprise à la fermeture). */
-export function applyTongue(get: Get, set: SetFn, attacker: Combatant, a: CreatureAttack): boolean {
-  const battle = get().battle;
-  if (!battle || !attacker.pos) return false;
-  // Cible = la plus proche (sélection IDENTIQUE à resolveManeuver pour une manœuvre à cible unique) ; on la
-  // PASSE explicitement (chosenTarget) → la proie tirée = la proie touchée, sans ré-dériver.
-  const foes = battle.combatants.filter((c) => c.kind !== attacker.kind && !isOutOfAction(c) && Number.isFinite(distanceDeContact(get().scene, attacker, c)));
-  const target = foes.length ? foes.reduce((p, c) => (distanceDeContact(get().scene, attacker, p) <= distanceDeContact(get().scene, attacker, c) ? p : c)) : undefined;
-  const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-tir', battleRng());
-  const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, atk, a.avantage, target);
-  if (!suspended) checkBattleOver(get, set);
   return suspended;
 }
 
@@ -5234,101 +5179,16 @@ function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant,
   return [tr('cs.tonguePull', { name: nomDe(attacker), foe: nomDe(tgt) })];
 }
 
-/** Hurlement fantomatique (IA) : PAS de jet d'attaquant ; dépense TOUS les Avantages (min 2, LDB 85
- *  l.135). Renvoie false si pas assez d'Avantage. Clôt par `checkBattleOver`. */
-export function applyWail(get: Get, set: SetFn, attacker: Combatant): boolean {
-  if (!attacker.pos || attacker.advantage < 2) return false;
+/** Hurlement fantomatique, geste `lancerLAttaqueDeZone` : PAS de jet d'attaquant ; dépense TOUS les Avantages
+ *  (min 2, LDB 85 l.135). Clôt par `checkBattleOver`. */
+export function applyWail(get: Get, set: SetFn, attacker: Combatant): void {
+  if (!attacker.pos || attacker.advantage < 2) return;
   const a = creatureAttacks(attacker.traits ?? []).find((x) => x.kind === 'hurlement');
-  if (!a) return false;
+  if (!a) return;
   // Pas de jet d'attaquant ; dépense TOUT (l.135). Le « Test de Résistance ou Brisé » (nœud Flow `test`)
   // ouvre une cascade influençable pour un héros MANUEL → SUSPEND (checkBattleOver déféré à sa fermeture).
   const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, null, attacker.advantage);
   if (!suspended) checkBattleOver(get, set);
-  return true; // « a agi » (creatureFreeAttacks.hors-store.test le vérifie en cadence auto) ; la suspension est lue via `maneuverCascadePending`
-}
-
-/** Regard pétrifiant (IA) : jet CT puis résolution ; l'IA dépense TOUT (min 1), +1 DR/Av (LDB 85 l.290).
- *  Consomme l'Action. Renvoie false si pas d'Avantage/cible. Clôt par `checkBattleOver`. */
-export function applyGaze(get: Get, set: SetFn, attacker: Combatant): boolean {
-  if (!attacker.pos || attacker.advantage < 1) return false;
-  const a = creatureAttacks(attacker.traits ?? []).find((x) => x.kind === 'regard');
-  if (!a) return false;
-  const spent = attacker.advantage; // l'IA met tout (min 1)
-  const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-tir', battleRng());
-  const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, atk, spent);
-  set({ battle: markActed(get, set) }); // Regard = Action de la créature (l.238)
-  if (!suspended) checkBattleOver(get, set); // héros influençable → checkBattleOver à la fermeture de la cascade
-  return true;
-}
-
-/** Étreinte glaciale (IA) : jet CC puis résolution ; 2 Av + Action (LDB 85 l.138). Renvoie false si pas
- *  assez d'Avantage / pas de cible adjacente. Clôt par `checkBattleOver`. */
-export function applyChillGrasp(get: Get, set: SetFn, attacker: Combatant): boolean {
-  if (!attacker.pos || attacker.advantage < 2) return false;
-  const battle = get().battle;
-  if (!battle || !battle.combatants.some((c) => c.kind !== attacker.kind && !isOutOfAction(c) && c.pos && distanceDeContact(get().scene, attacker, c) <= 1)) return false;
-  const a = creatureAttacks(attacker.traits ?? []).find((x) => x.kind === 'etreinte');
-  if (!a) return false;
-  const atk = rollManeuverAttacker(attacker, a.stat ?? 'capacite-de-combat', battleRng());
-  const suspended = resolveManeuver(get, set, attacker, a.def, a.indice, atk, a.avantage);
-  set({ battle: markActed(get, set) }); // Étreinte = Action de la créature (l.112)
-  if (!suspended) checkBattleOver(get, set); // héros influençable → checkBattleOver à la fermeture de la cascade
-  return true;
-}
-
-/** Attaque-ACTION spéciale de l'IA (Regard pétrifiant / Étreinte glaciale) à la place de l'attaque
- *  normale, si la créature en a le trait et l'Avantage requis. Renvoie true si elle a agi. */
-export function aiMaybeSpecialAction(get: Get, set: SetFn, enemy: Combatant): boolean {
-  if (enemy.kind !== 'ennemi' || isOutOfAction(enemy)) return false;
-  const atks = creatureAttacks(enemy.traits ?? []);
-  if (atks.some((a) => a.kind === 'regard') && enemy.advantage >= 1) return applyGaze(get, set, enemy);
-  if (atks.some((a) => a.kind === 'etreinte') && enemy.advantage >= 2) return applyChillGrasp(get, set, enemy);
-  // Battement (LDB 10 l.103 / AA 13 l.17) : un PNJ Engagé qui porte le Talent retire de l'Avantage à un
-  // adversaire ARMÉ pas plus grand que lui, quand la réserve/l'Avantage adverse est non nul (sinon inutile).
-  if (hasBattement(enemy)) {
-    const battle = get().battle;
-    const foe = battle?.combatants.find((c) => battementEligible(enemy, c) && spendableAdvantage(get().battle, c) > 0);
-    if (foe) return aiBattement(get, set, enemy, foe);
-  }
-  // Distraire (LDB 10 l.364 / AA 13 l.51) : à défaut d'attaque productive, un PNJ qui porte le Talent nie
-  // l'Avantage d'un adversaire adjacent (Mouvement) — cible non déjà distraite, avec de l'Avantage à nier.
-  if (hasDistraire(enemy) && enemy.pos) {
-    const battle = get().battle;
-    const foe = battle?.combatants.find(
-      (c) => distraireEligible(enemy, c) && !c.distractedRounds && spendableAdvantage(get().battle, c) > 0 && !!c.pos && distanceDeContact(get().scene, enemy, c) <= 1,
-    );
-    if (foe) return aiDistraire(get, set, enemy, foe);
-  }
-  return false;
-}
-
-/** L'IA exécute un Battement (Action, LDB 10 l.103) : jet de Corps à corps NON opposé (inline), retire de
- *  l'Avantage adverse via `resolveBattement`. Consomme l'Action. Clôt par `checkBattleOver`. */
-function aiBattement(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): boolean {
-  const battle = get().battle;
-  if (!battle) return false;
-  const atk = rollManeuverAttacker(enemy, 'capacite-de-combat', battleRng());
-  const line = resolveBattement(get, enemy, foe, atk);
-  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attaque', line, enemy.id, foe.id)] } });
-  bus.emit(EVT.SCENE_DIRTY);
-  checkBattleOver(get, set);
-  return true;
-}
-
-/** L'IA exécute un Distraire (Mouvement, LDB 10 l.364) : Test OPPOSÉ Athlétisme vs Calme (inline). Sur
- *  victoire, la cible est distraite (ne génère plus d'Avantage jusqu'à la fin du prochain Round). Consomme
- *  l'Action (l'IA renonce à attaquer ce tour). Clôt par `checkBattleOver`. */
-function aiDistraire(get: Get, set: SetFn, enemy: Combatant, foe: Combatant): boolean {
-  const battle = get().battle;
-  if (!battle) return false;
-  // LDB 10 l.364 ; départage LDB 12 l.160.
-  const atk = { ...rollSansPilote(get, enemy, ATHLETISME_DU_DISTRAIRE, distraireAttackValue(enemy), 'intermediaire', battleRng()), base: distraireAttackBase(enemy) };
-  const def = { ...rollTest({ porteur: foe.id, teste: CALME_DISTRAIT }, distraireDefenseValue(foe), 'intermediaire', battleRng()), base: distraireDefenseBase(foe) };
-  const line = resolveDistraire(enemy, foe, atk, def);
-  set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('attaque', line, enemy.id, foe.id)] } });
-  bus.emit(EVT.SCENE_DIRTY);
-  checkBattleOver(get, set);
-  return true;
 }
 
 /**
@@ -5442,7 +5302,7 @@ export function fileDesGratuites(enemy: Combatant): { zone: AttackKind[]; melee:
  *  Taille — les Indices d'abord), puis poursuivie après chaque modale de défense résolue. Retourne
  *  true si une modale s'est ouverte (tour SUSPENDU). */
 export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): boolean {
-  if (enemy.kind !== 'ennemi' || isOutOfAction(enemy)) { enemy.pendingFreeAttacks = undefined; return false; }
+  if (!aiDriven(get(), enemy) || isOutOfAction(enemy)) { enemy.pendingFreeAttacks = undefined; return false; }
   const battle = get().battle;
   if (!battle || battle.over) { enemy.pendingFreeAttacks = undefined; return false; }
   if (activeCombatant(battle)?.id !== enemy.id) return false; // LDB 13 l.14 ; LDB 85 l.43
@@ -5475,50 +5335,23 @@ export function aiCreatureFreeAttacks(get: Get, set: SetFn, enemy: Combatant): b
     // d'init sauté, on enchaîne l'unité suivante).
     const file = fileDesGratuites(enemy);
     enemy.chargedThisTurn = false; // consommée
-    enemy.chargeAvecAvantage = false;
     enemy.pendingFreeAttacks = [...file.zone, ...file.melee];
   }
   while (enemy.pendingFreeAttacks.length) {
-    const kind = enemy.pendingFreeAttacks[0];
     const b2 = get().battle; if (!b2 || b2.over) break;
-    if (defenseEnCours(get())) return true; // fenêtre vivante : l'unité reste EN TÊTE de file, reprise à la fermeture
-    // Manœuvres de ZONE/spéciales : résolveur propre (opposé) — une défense de HÉROS ouvre une cascade
-    // influençable et SUSPEND (return true → reprise à la fermeture via `resumeManeuverDefense`).
-    if (kind === 'souffle' || kind === 'vomi' || kind === 'langue' || kind === 'hurlement') {
-      enemy.pendingFreeAttacks.shift();
-      const a = creatureAttacks(enemy.traits ?? []).find((x) => x.kind === kind);
-      if (!a) continue;
-      let suspended = false;
-      // Hurlement : pas d'opposition, mais son « Test de Résistance ou Brisé » (nœud Flow `test`) ouvre une
-      // cascade influençable pour un héros MANUEL → SUSPEND aussi (lue via `maneuverCascadePending`).
-      if (kind === 'hurlement') { if (enemy.advantage >= 2) applyWail(get, set, enemy); suspended = maneuverCascadePending(get); }
-      else if (enemy.advantage >= a.avantage) suspended = kind === 'langue' ? applyTongue(get, set, enemy, a) : applyAreaAttack(get, set, enemy, a);
-      if (suspended) return true;
-      continue;
-    }
-    // Prix PAR TYPE : prédicat UNIQUE `freeAttackCost` (LDB 85 l.387 ; LDB 85 l.314). Une entrée
-    // inabordable est SAUTÉE (pas de break : des Tentacules à coût 0 restent jouables derrière une
-    // Morsure inabordable).
-    const attaque = attaqueNaturelle(enemy.traits ?? [], kind);
-    if (!attaque) { enemy.pendingFreeAttacks.shift(); continue; }
-    const prix = freeAttackCost(b2, enemy, attaque.def);
-    if (enemy.advantage < prix.advantage) { enemy.pendingFreeAttacks.shift(); continue; }
-    const target = freeAttackTarget(get().scene, b2, enemy, kind);
-    if (!target) { enemy.pendingFreeAttacks.shift(); continue; }
-    enemy.pendingFreeAttacks.shift();
-    enemy.freeAttacksThisTurn = { ...enemy.freeAttacksThisTurn, [kind]: (enemy.freeAttacksThisTurn?.[kind] ?? 0) + 1 }; // compteur partagé, dû à la déclaration
-    if (prix.movement) set({ battle: { ...get().battle!, movementUsed: mountMovement(get().battle!, enemy) } }); // LDB 85 l.314
-    if (applyFreeAttack(get, set, enemy, target, kind, prix.advantage)) return true; // modale ouverte → reprise via jetValider('defense')
+    if (activeCombatant(b2)?.id !== enemy.id) return true; // son tour a fini sous la gratuite précédente
+    // L'unité se joue par le GESTE du joueur sur son offre (`availableAttacks` : prix, plafond, Avantage minimal) ;
+    // sans offre ni cible, elle est sautée. LDB 85 l.387 ; LDB 85 l.314
+    const kind = enemy.pendingFreeAttacks.shift()!;
+    const offre = availableAttacks(get().scene, enemy, b2).find((o) => o.kind === kind);
+    const cible = offre && cibleDeLaGratuite(get().scene, b2, enemy, offre);
+    if (!offre || !cible?.pos) continue;
+    jouerSousLePiloteIA(get, enemy, () => jouerLOffre(get, enemy, offre, cible), cible.id);
+    // Une fenêtre ouverte (défense, cascade de manœuvre) : la reprise rappelle la file à sa fermeture.
+    if (!get().battle!.over && (combatAdvanceBlocked(get()) || frappePiloteeEnAttente(get().battle!, enemy.id))) return true;
   }
   enemy.pendingFreeAttacks = []; // file épuisée : posée pour ce tour, elle ne se repose qu'au suivant (`advanceTurn`)
   return false;
-}
-
-/** Une cascade de DÉFENSE à une manœuvre de zone IA est-elle ouverte (le tour de la créature est SUSPENDU) ?
- *  Testé après `aiMaybeSpecialAction` (Regard/Étreinte peuvent l'ouvrir) pour ne pas AVANCER le tour. */
-function maneuverCascadePending(get: Get): boolean {
-  const p = get().pendingCascade;
-  return !!p && p.purpose === 'combat' && !!p.maneuverResume;
 }
 
 /** Reprend le tour de la créature après la fermeture d'une cascade de DÉFENSE à sa manœuvre de zone
@@ -6566,12 +6399,17 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   // Géométrie porteuse (Combat monté, LDB 14) → empreinte + Mouvement + cases bloquées.
   const geom = mountOf(battle, enemy) ?? enemy;
   const auContact = isEngaged(enemy, battle.combatants);
-  // Engagé sans départ libre ni Avantage à sacrifier : « cloué sur place » (LDB 15 l.49) ; le départ se joue à
-  // l'exécution du déplacement (`partirDuContact`).
-  const cloue = auContact && !departLibre({ active: enemy, battle }) && !peutSacrifierLAvantage({ active: enemy, battle });
+  // Engagé sans départ libre ni Avantage à sacrifier : « cloué sur place » (LDB 15 l.49), sauf l'État qui le force à
+  // fuir (LDB 16 l.52) tant que l'Esquive ou la Fuite lui reste ouverte. Le départ se joue au geste de déplacement,
+  // par l'étape de Désengagement (`reglagesDuDesengagement`).
+  const ctxDuContact = { active: enemy, battle, scene };
+  const cloue = auContact && !departLibre(ctxDuContact) && !peutSacrifierLAvantage(ctxDuContact)
+    && !(isActionLocked(enemy) && (!refusDEsquiveDeDesengagement(ctxDuContact) || peutFuir(ctxDuContact)));
   // Le budget et la géométrie du geste du joueur (`mountMovement`, `moveEnv`) : Marche ou Vol sous les États, monture.
   const movement = cloue ? 0 : movementRemaining(battle, enemy);
-  const refuses = new Set(tourEnCoursDe(battle, enemy.id)?.casesRefusees ?? []);
+  const tour = tourEnCoursDe(battle, enemy.id);
+  const refuses = new Set(tour?.casesRefusees ?? []);
+  const ciblesRefusees = new Set(tour?.ciblesRefusees ?? []);
   const perceived = perceivedTiles(
     { scene, battle, party: get().party, meneurChoisi: get().meneurChoisi, partyPos: get().partyPos, gameTime: get().gameTime, lightLevel: get().lightLevel },
     enemy,
@@ -6616,6 +6454,12 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     // La case que le geste a refusée à une décision de ce tour, ou qui rapproche d'une source de Peur après l'échec
     // du Test (`retenuParLaPeur`, LDB 21 l.27).
     deplacementRetenu: (to) => refuses.has(tileKey(to.x, to.y, to.z ?? 0)) || (battle.fearGate === 'failed' && !!fearedSourceTowards(get, battle, enemy, to)),
+    attaqueRetenue: (id) => ciblesRefusees.has(id),
+    // Ce que la porte du joueur imposera au geste : le tir qu'elle refuse sur l'arme qu'elle teste pour l'offre que le
+    // geste arme (`offreDuGeste`), et sur l'arme décidée ; la cible de la Frénésie (LDB 21 l.33).
+    tirRefuse: (w, cible) => !!firedAttackBlock(get, enemy, cible, offreDuGeste(get, enemy, w.uid)?.weaponUid) || !!firedAttackBlock(get, enemy, cible, w.uid),
+    cibleDeFrenesie: frenzyTarget(get, enemy),
+    actionPrise: battle.acted,
     smoke, flying: mouvementDeVol(geom) != null, perceived, facing: get().facing, squad,
     combatants: battle.combatants,
     // Mémo de Ligne de Vue de CETTE décision : posé ici parce que c'est ici que la scène et les fumées de
@@ -6628,7 +6472,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     structures: enemy.kind === 'ennemi' && siegeActif(battle) ? cibles : undefined,
     ...(cibles.length ? {
       meleeDeStructure: {
-        cibles, combattants: battle.combatants, actionDepensee: battle.acted,
+        cibles, combattants: battle.combatants,
         profils: (cible) => armesDeMelee.map((arme) => arme.uid
           ? firedWeapon(resolveTrapping, scene, enemy, cible, arme.uid, battle.combatants)
           : effectiveWeapon(arme, weaponContextOf(enemy, arme, cible))),
@@ -8727,7 +8571,7 @@ export function lancerLeRound(get: Get, set: SetFn): void {
  *  il agit puis passe la main — cf. `aiDriven`. SEUL point de reprise d'un tour en cours (#1852, #3058, #3059) :
  *  rappelé par tout ce qui relance le combat (`reprendreLaCadence`, clôture d'une fenêtre, scrutation de recette), il
  *  réarme la frappe pilotée PARQUÉE du joueur, ne décide qu'un tour que l'IA n'a pas décidé, et ne réarme d'un tour
- *  décidé que sa suite PARQUÉE. */
+ *  décidé que sa suite PARQUÉE ; resté sans suite hors du jeu de son geste (`tourEnJeu`), il se re-décide, borné. */
 export function maybeRunEnemyTurn(get: Get, set: SetFn) {
   if (!detientLAutoriteDuJeu(get())) return;
   if (combatAdvanceBlocked(get(), { roundStart: true })) return;
@@ -8741,15 +8585,12 @@ export function maybeRunEnemyTurn(get: Get, set: SetFn) {
   const tour = tourEnCoursDe(battle, active.id);
   if (tour?.decide) {
     if (tour.parquee && tour.suite) reprendreLaSuite(get, set, active, tour);
+    // Tour décidé resté sans suite hors du jeu de son geste (frappe rendue à la main puis défaite ou jouée, Auto-combat
+    // remis, frappe pilotée caduque) : l'IA re-décide, bornée (`redeciderLeTour`).
+    else if (!tour.suite && !tourEnJeu) redeciderLeTour(get, set, active);
     return;
   }
   programmer(() => runEnemyAI(get, set, active.id), beatHold(get, 'turnHandoff'));
-}
-
-/** Le tour en cours de `id` s'il est celui du tour courant, sinon `undefined` (enregistrement périmé ou absent). */
-function tourEnCoursDe(battle: BattleState, id: string): TourEnCours | undefined {
-  const tour = battle.tourEnCours;
-  return tour?.cle === cleDeTour(battle, id) ? tour : undefined;
 }
 
 /** Le tour de ce combattant attend encore l’ouverture de sa frappe pilotée. */
@@ -8778,7 +8619,7 @@ const GENRES_DE_GESTE: Record<GesteDeSuite['kind'], { tenue: keyof typeof TEMPO;
 };
 
 /** Le budget que dépense `geste` l'est-il déjà ? L'Action : prise, ou que l'acteur ne peut prendre ; le Mouvement :
- *  parcouru depuis la décision. LDB 16 l.125 */
+ *  parcouru depuis la décision. LDB 13 l.14 */
 function budgetCaduc(battle: BattleState, acteur: Combatant, geste: GesteDeSuite): boolean {
   switch (GENRES_DE_GESTE[geste.kind].consomme) {
     case 'action': return battle.acted || !canTakeAction(acteur);
@@ -8836,7 +8677,7 @@ export function armerLaSuite(get: Get, set: SetFn, acteur: Combatant, geste: Ges
  *  `maybeRunEnemyTurn` le réarmera. Consommé AVANT d'être exécuté : un geste part au plus une fois. Un geste de l'IA
  *  dont l'acteur est hors de combat, ou dont le budget est déjà dépensé (`budgetCaduc`), finit le tour ; une frappe
  *  pilotée caduque (acteur hors de combat, cible morte ou absente, Action prise sans attaque gratuite qui reste)
- *  s'abandonne, et le tour du joueur reste le sien. Une frappe pilotée qui devançait un geste de l'IA le remet en
+ *  s'abandonne : le tour du joueur reste le sien, celui que l'IA conduit se re-décide (`maybeRunEnemyTurn`). Une frappe pilotée qui devançait un geste de l'IA le remet en
  *  suite PARQUÉE, numérotée, sans minuteur (`reprise`). */
 function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: number): void {
   const s = get();
@@ -8861,65 +8702,125 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
     advanceTurn(get, set);
     return;
   }
-  switch (geste.kind) {
-    case 'frappePilotee': {
-      if (geste.reprise) {
-        tour.suite = { geste: geste.reprise, n: ++tour.armements };
-        tour.parquee = true;
-      }
-      const cible = inBattleId(battle, geste.pa.targetId);
-      if (isOutOfAction(acteur) || !cible || cible.dead || (battle.acted && !geste.pa.freeKind && !hasFreeWeaponAttack(acteur))) {
-        maybeRunEnemyTurn(get, set);
+  const jouer = (): void => {
+    switch (geste.kind) {
+      case 'frappePilotee': {
+        if (geste.reprise) {
+          tour.suite = { geste: geste.reprise, n: ++tour.armements };
+          tour.parquee = true;
+        }
+        const cible = inBattleId(battle, geste.pa.targetId);
+        if (isOutOfAction(acteur) || !cible || cible.dead || (battle.acted && !geste.pa.freeKind && !hasFreeWeaponAttack(acteur))) {
+          maybeRunEnemyTurn(get, set); // celui du joueur reste le sien
+          return;
+        } // LDB 21 l.33
+        openAttackCascade(get, set, geste.pa, 'Attaque', 'action/attaquer');
+        jouerLesFenetresDuPiloteIA(get); // la fenêtre qu'ouvre la frappe d'un combattant que l'IA conduit (#5042)
         return;
-      } // LDB 21 l.33
-      openAttackCascade(get, set, geste.pa, 'Attaque', 'action/attaquer');
-      return;
+      }
+      case 'avancer':
+        advanceTurn(get, set);
+        return;
+      case 'frappe': {
+        const cible = inBattleId(battle, geste.cibleId);
+        if (!cible || isOutOfAction(cible)) { advanceTurn(get, set); return; }
+        frapperParLeGeste(get, set, acteur, cible, geste);
+        return;
+      }
+      case 'sort': {
+        const cible = inBattleId(battle, geste.cibleId);
+        if (!cible) { advanceTurn(get, set); return; }
+        castSpell(get, set, acteur, cible, geste.spellId);
+        // Étape tenue (ennemi `groupOwner`, héros en Auto-combat) : la modale d'incantation témoin (Lancer →
+        // Contre-sort → Appliquer) SUSPEND le tour de l'IA ; non tenue, elle se joue d'office (#3892). La reprise
+        // est portée par jetValider('incantation')/jetAnnuler('incantation') → resumeEnemyTurn. castSpell peut refuser (contrecoup bloquant,
+        // hors de portée…) → pas de modale → l'acteur passe.
+        if (!get().pendingCast) armerLaSuite(get, set, acteur, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'));
+        return;
+      }
+      case 'zone':
+        clearActorAoe(get, set, acteur.id);
+        lancerLaZone(get, set, acteur, geste.spellId, geste.centre);
+        return;
+      case 'deplacer':
+        clearActorMove(get, set, acteur.id);
+        deplacerPuisSuivre(get, set, acteur, geste);
+        return;
     }
-    case 'avancer':
-      advanceTurn(get, set);
-      return;
-    case 'frappe': {
-      const cible = inBattleId(battle, geste.cibleId);
-      if (!cible || isOutOfAction(cible)) { advanceTurn(get, set); return; }
-      frapperPuisAvancer(get, set, acteur, cible, geste.weaponUid, geste.deuxArmes);
-      return;
-    }
-    case 'sort': {
-      const cible = inBattleId(battle, geste.cibleId);
-      if (!cible) { advanceTurn(get, set); return; }
-      castSpell(get, set, acteur, cible, geste.spellId);
-      // Étape tenue (ennemi `groupOwner`, héros en Auto-combat) : la modale d'incantation témoin (Lancer →
-      // Contre-sort → Appliquer) SUSPEND le tour de l'IA ; non tenue, elle se joue d'office (#3892). La reprise
-      // est portée par jetValider('incantation')/jetAnnuler('incantation') → resumeEnemyTurn. castSpell peut refuser (contrecoup bloquant,
-      // hors de portée…) → pas de modale → l'acteur passe.
-      if (!get().pendingCast) armerLaSuite(get, set, acteur, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'));
-      return;
-    }
-    case 'zone':
-      clearActorAoe(get, set, acteur.id);
-      lancerLaZone(get, set, acteur, geste.spellId, geste.centre);
-      return;
-    case 'deplacer':
-      clearActorMove(get, set, acteur.id);
-      deplacerPuisSuivre(get, set, acteur, geste);
-      return;
-  }
+  };
+  // Le geste se joue dans le tour EN JEU : une reprise qu'il déclenche ne le re-décide pas (`maybeRunEnemyTurn`) ; la
+  // frappe pilotée caduque, rendue sans geste joué, le laisse re-décider.
+  if (geste.kind === 'frappePilotee') jouer();
+  else enJeu(jouer);
 }
 
-/** La frappe d'un tour d'IA, puis la fin de son tour. */
-function frapperPuisAvancer(get: Get, set: SetFn, acteur: Combatant, cible: Combatant, weaponUid?: string, deuxArmes?: true): void {
-  // Attaque-ACTION spéciale (Regard pétrifiant / Étreinte glaciale) à la place de l'attaque
-  // normale si la créature en a le trait + l'Avantage ; sinon attaque normale (opposée). Une manœuvre
-  // spéciale qui touche des HÉROS ouvre une cascade de défense influençable → tour SUSPENDU (reprise
-  // via `resumeManeuverDefense` à la fermeture), détectée par `maneuverCascadePending`.
-  const special = !(weaponUid && isStructure(cible)) && aiMaybeSpecialAction(get, set, acteur);
-  const suspended = special ? maneuverCascadePending(get) : doAttack(get, set, acteur, cible, undefined, weaponUid, deuxArmes);
-  // Si la modale de défense s'ouvre, la reprise est portée par jetValider('defense') → resumeEnemyTurn.
-  if (suspended) return;
-  // Attaques GRATUITES après l'attaque principale : d'Arme « disponibles » (Frénésie LDB 21 l.33 =
-  // seule source en donnée) puis de créature (Morsure/Caudale/Piétinement, OPPOSÉES). La file
-  // s'arrête à la première fenêtre ouverte ; ne PAS avancer alors (reprise via jetValider('defense')).
+/** La frappe d'un tour d'IA par le GESTE du joueur (#5042) : l'action spéciale de la créature d'abord, s'il y en a
+ *  une (`gesteSpecialDuTour`), puis l'attaque de l'offre (`armerLAttaque`) sur la cible, par le clic du joueur
+ *  (`cliquerLaCase`) sous le pilote IA, Charge armée (`charge`) ; la fenêtre d'attaque reçoit les réglages de la
+ *  décision (arme, deux armes). Refusé, rien n'a bougé : la cible est écartée et l'IA re-décide (`redeciderLeTour`).
+ *  Une fenêtre ouverte reprend le tour à sa fermeture ; sinon ses gratuites, puis la fin de son tour. */
+function frapperParLeGeste(get: Get, set: SetFn, acteur: Combatant, cible: Combatant, geste: Extract<GesteDeSuite, { kind: 'frappe' }>): void {
+  const special = geste.charge || (geste.weaponUid && isStructure(cible)) ? null : gesteSpecialDuTour(get, acteur, cible);
+  if (special) {
+    const avantLeSpecial = etatDuGeste(get, acteur);
+    jouerSousLePiloteIA(get, acteur, special.jouer, cible.id);
+    // Une fenêtre ouverte reprend le tour à sa fermeture ; refusé, le geste spécial laisse la frappe.
+    if (combatAdvanceBlocked(get()) || (special.action && !rienNaBouge(get, acteur, avantLeSpecial))) return poursuivreApresLaFrappe(get, set, acteur);
+  }
+  const avant = etatDuGeste(get, acteur);
+  const offre = offreDuGeste(get, acteur, geste.weaponUid);
+  const arme = offre?.weaponUid ? undefined : geste.weaponUid;
+  poserLesReglages(get, acteur, 'attaque', [
+    ...(arme ? [['attaque', 'arme', arme] satisfies ArgumentsDuReglage] : []),
+    ...(geste.deuxArmes ? [['attaque', 'deuxArmes', true] satisfies ArgumentsDuReglage] : []),
+  ]);
+  jouerSousLePiloteIA(get, acteur, () => jouerLOffre(get, acteur, offre, cible, geste.charge ? 'charge' : undefined), cible.id);
+  // L'IA ne défait jamais son approche : elle est irrévocable dès le geste joué (`sealApproachMoves`, LDB 21 l.27).
+  sealApproachMoves(get, set, inBattleId(get().battle!, acteur.id));
+  if (rienNaBouge(get, acteur, avant)) return redeciderLeTour(get, set, acteur, { cibleId: cible.id });
+  poursuivreApresLaFrappe(get, set, acteur);
+}
+
+/** L'offre d'attaque que le geste de l'IA arme pour frapper de `weaponUid` : celle qui porte cette arme (poste
+ *  servi, attaque naturelle armée), sinon l'attaque de l'arme tenue. Sa porte teste l'arme de l'offre. */
+function offreDuGeste(get: Get, acteur: Combatant, weaponUid: string | undefined): AttackOption | undefined {
+  const offres = availableAttacks(get().scene, acteur, get().battle!);
+  return offres.find((o) => !!weaponUid && o.weaponUid === weaponUid) ?? offres.find((o) => o.kind === 'arme');
+}
+
+/** Le geste du joueur qui joue l'offre `offre` de `acteur` sur `cible` (#5042) : l'attaque immédiate de zone se lance
+ *  (`lancerLAttaqueDeZone`) ; sinon l'offre s'arme (`armerLAttaque`) et la cible se clique, `intentionId` armée, et la
+ *  manœuvre à Avantage variable y met tout son Avantage (LDB 85 l.290). */
+function jouerLOffre(get: Get, acteur: Combatant, offre: AttackOption | undefined, cible: Combatant, intentionId?: 'charge'): void {
+  if (offre && attaqueImmediate(offre)) return get().lancerLAttaqueDeZone(offre.kind!);
+  if (offre && (get().battle!.selectedAttack ?? 'arme') !== offre.id) get().armerLAttaque(offre.id);
+  get().cliquerLaCase({ ...cible.pos! }, cible.id, { confirm: true, ...(intentionId ? { intentionId } : {}) });
+  if (offre?.modeDAvantage === 'variable' && get().pendingManeuver) get().jetRegler('manoeuvre', 'avantage', acteur.advantage);
+}
+
+/** La suite du tour après une frappe de l'IA : rien tant qu'une fenêtre la tient ou que sa frappe pilotée attend son
+ *  ouverture (leur fermeture reprend le tour) ; l'Action encore libre (frappe gratuite, LDB 21 l.33), le tour se
+ *  re-décide ; sinon ses gratuites (`drainerLesGratuites`), puis la fin de son tour. */
+function poursuivreApresLaFrappe(get: Get, set: SetFn, acteur: Combatant): void {
+  if (combatAdvanceBlocked(get()) || frappePiloteeEnAttente(get().battle!, acteur.id)) return;
+  if (!get().battle!.acted) return redeciderLeTour(get, set, acteur);
   if (!drainerLesGratuites(get, set, acteur)) armerLaSuite(get, set, acteur, { kind: 'avancer' }, beatHold(get, 'postAttack'));
+}
+
+/** L'action spéciale qu'une créature joue à la place de sa frappe (#5042), par l'offre ou le verbe du joueur : Regard
+ *  pétrifiant ou Étreinte glaciale sur `cible` (son Avantage : tout, LDB 85 l.290), Battement (LDB 10 l.103 ; AA 13
+ *  l.17) d'un adversaire armé qui a de l'Avantage, sinon Distraire (LDB 10 l.364 ; AA 13 l.51), qui coûte le Mouvement
+ *  et laisse l'Action. `action` : elle a pris l'Action du tour. `null` : aucune. */
+function gesteSpecialDuTour(get: Get, enemy: Combatant, cible: Combatant): { jouer: () => void; action: boolean } | null {
+  const battle = get().battle!;
+  const offres = availableAttacks(get().scene, enemy, battle);
+  const manoeuvre = offres.find((o) => o.targeting === 'zone' && (o.kind === 'regard' || (o.kind === 'etreinte' && distanceDeContact(get().scene, enemy, cible) <= 1)));
+  if (manoeuvre && cible.pos) return { action: true, jouer: () => jouerLOffre(get, enemy, manoeuvre, cible) };
+  const battu = hasBattement(enemy) ? battementFoes(enemy, battle).find((c) => spendableAdvantage(battle, c) > 0) : undefined;
+  if (battu) return { action: true, jouer: () => get().faireUnBattement(battu.id) };
+  const distrait = hasDistraire(enemy) ? distraireFoes(enemy, battle).find((c) => !c.distractedRounds && spendableAdvantage(battle, c) > 0 && distanceDeContact(get().scene, enemy, c) <= 1) : undefined;
+  if (distrait) return { action: false, jouer: () => get().tenterDeDistraire(distrait.id) };
+  return null;
 }
 
 /** Le sort de ZONE d'un tour d'IA (ZdE, LDB 47 l.28), au centre décidé par l'IA pure. */
@@ -8953,8 +8854,8 @@ export function emettreLApproche(acteur: Combatant, geom: Combatant, parcours: P
 }
 
 /** Grimpant (LDB 85 l.160-162) : le chemin de `mover` franchit une arête `WallSeg.climb` SANS Test — pas un jet
- *  silencieux, journalisé comme l'escalade d'arête (`franchirLArete`, #504, MÊME clé i18n). Le clic-sol et la Charge de
- *  l'IA l'écrivent. */
+ *  silencieux, journalisé comme l'escalade d'arête (`franchirLArete`, #504, MÊME clé i18n). Le clic-sol et l'approche
+ *  qui précède une frappe (`attackClickCommit`) l'écrivent. */
 export function journaliserLEscalade(get: Get, mover: Combatant, path: readonly Pt[]): void {
   const scene = get().scene;
   if (scene && path.some((p, i) => i > 0 && climbEdgeBetween(scene, path[i - 1], p)?.climb)) {
@@ -8962,52 +8863,113 @@ export function journaliserLEscalade(get: Get, mover: Combatant, path: readonly 
   }
 }
 
-/** Au plus autant de cases refusées par le geste avant que l'IA ne finisse son tour : sa re-décision est bornée. */
-const REFUS_DE_DEPLACEMENT_MAX = 3;
+/** Au plus autant de re-décisions d'un tour d'IA (geste refusé, tour resté sans suite) avant qu'il ne finisse. */
+const REDECISIONS_DU_TOUR_MAX = 3;
+
+/** Un tour est EN JEU : sa décision ou son geste, jusqu'à leur retour synchrone (#5042). La pile d'appels est celle
+ *  d'un seul état : le drapeau ne couvre qu'elle. */
+let tourEnJeu = false;
+
+/** Joue `jouer` dans le tour EN JEU (`tourEnJeu`) ; la plus externe des imbrications le referme. */
+function enJeu(jouer: () => void): void {
+  const externe = !tourEnJeu;
+  tourEnJeu = true;
+  try {
+    jouer();
+  } finally {
+    if (externe) tourEnJeu = false;
+  }
+}
 
 /** Joue `geste` au nom de l'IA qui conduit `acteur` (#5042) : au siège qui le tient (`siegeDe`), sous le PILOTE IA que
  *  `controlsCombatant` reconnaît, puis les fenêtres que ce geste ouvre à son porteur, jouées d'office
- *  (`jouerLesFenetresDuPiloteIA`) — continuations comprises, dans le même contexte synchrone. Un refus s'y tait : il se
- *  lit à l'état inchangé. */
-function jouerSousLePiloteIA(get: Get, acteur: Combatant, geste: () => void): void {
+ *  (`jouerLesFenetresDuPiloteIA`) — continuations comprises, dans le même contexte synchrone. La cible d'un couple
+ *  monté que demande le geste (LDB 14 l.181) est `cibleId`, celle de la décision. Un refus s'y tait : il se lit à l'état
+ *  inchangé (`rienNaBouge`). */
+function jouerSousLePiloteIA(get: Get, acteur: Combatant, geste: () => void, cibleId?: string): void {
   withActingSeat(siegeDe(get(), acteur.id), () => {
     geste();
     jouerLesFenetresDuPiloteIA(get);
+    if (!cibleId || !get().pendingMountTarget) return;
+    get().fenetreChoisir('cibleDeMonture', 'cible', cibleId);
+    jouerLesFenetresDuPiloteIA(get);
   }, { get, refuser: () => undefined, pilote: 'ia' });
+  const tour = tourEnCoursDe(get().battle!, acteur.id);
+  if (tour?.reglages && !combatAdvanceBlocked(get()) && !frappePiloteeEnAttente(get().battle!, acteur.id)) delete tour.reglages;
+}
+
+/** Les réglages `gestes` que la décision de l'IA pose sur l'étape-jet `jet` que son prochain geste ouvre à `acteur` :
+ *  le jeu d'office les joue avant sa paire (`prendreLesReglagesDeLaDecision`). */
+function poserLesReglages(get: Get, acteur: Combatant, jet: HostJet, gestes: readonly ArgumentsDuReglage[]): void {
+  const tour = tourEnCoursDe(get().battle!, acteur.id);
+  if (!tour) return;
+  if (gestes.length) tour.reglages = { [jet]: gestes };
+  else delete tour.reglages;
+}
+
+/** Ce qu'un geste de l'IA peut changer à son tour : armements, Action, Mouvement, position. */
+function etatDuGeste(get: Get, acteur: Combatant): { armements: number; acted: boolean; mouvement: number; pos: string } {
+  const battle = get().battle!;
+  const moi = inBattleId(battle, acteur.id) ?? acteur;
+  return { armements: tourEnCoursDe(battle, acteur.id)?.armements ?? 0, acted: battle.acted, mouvement: battle.movementUsed ?? 0, pos: moi.pos ? tileKey(moi.pos.x, moi.pos.y, moi.pos.z ?? 0) : '' };
+}
+
+/** Le geste de l'IA a-t-il été refusé ? Aucune fenêtre ne s'est ouverte et rien de son tour n'a bougé (#5042). */
+function rienNaBouge(get: Get, acteur: Combatant, avant: ReturnType<typeof etatDuGeste>): boolean {
+  if (combatAdvanceBlocked(get())) return false;
+  const apres = etatDuGeste(get, acteur);
+  return apres.armements === avant.armements && apres.acted === avant.acted && apres.mouvement === avant.mouvement && apres.pos === avant.pos;
+}
+
+/** La voie du Désengagement que la décision de l'IA prend au geste qui quitte le contact (LDB 15 l.43-61), en réglage
+ *  de l'étape `desengagement` : l'Avantage s'il est ouvert, sinon l'Esquive (la paire de l'étape), sinon la Fuite. */
+function reglagesDuDesengagement(get: Get, acteur: Combatant): ArgumentsDuReglage[] {
+  const ctx = { active: acteur, battle: get().battle!, scene: get().scene };
+  if (!adversairesEngages(ctx).length || departLibre(ctx)) return [];
+  if (peutSacrifierLAvantage(ctx)) return [['desengagement', 'sacrifier', true]];
+  return refusDEsquiveDeDesengagement(ctx) && peutFuir(ctx) ? [['desengagement', 'fuir', true]] : [];
 }
 
 /** Le déplacement d'un tour d'IA, puis sa suite. La Marche et la Course se jouent par le GESTE du joueur
- *  (`cliquerLaCase`, sous `jouerSousLePiloteIA`) : chemin et empreinte de la monture, Test de Course, Peur. Un geste
- *  refusé, où rien n'a bougé, écarte sa case et l'IA re-décide (`redeciderLeTour`). Arrivé au contact en Marchant, il
- *  frappe ; sinon son tour finit après le glissé. */
+ *  (`cliquerLaCase`, sous `jouerSousLePiloteIA`) : chemin et empreinte de la monture, Test de Course, Peur ; Engagé, le
+ *  geste ouvre le Désengagement, que la décision règle (`reglagesDuDesengagement`), puis le même clic le fait partir.
+ *  Un geste refusé, où rien n'a bougé, écarte sa case et l'IA re-décide (`redeciderLeTour`). Arrivé au contact en
+ *  Marchant, il frappe ; sinon son tour finit après le glissé. */
 function deplacerPuisSuivre(get: Get, set: SetFn, enemy: Combatant, mv: Extract<GesteDeSuite, { kind: 'deplacer' }>): void {
-  if (mv.allure === 'charge') return chargerPuisFrapper(get, set, enemy, mv);
-  const avant = get().battle!;
-  const geom = mountOf(avant, enemy) ?? enemy;
+  const geom = mountOf(get().battle!, enemy) ?? enemy;
   const depuis = { ...enemy.pos! };
-  const etatAvant = { mouvement: avant.movementUsed ?? 0, acted: avant.acted };
-  jouerSousLePiloteIA(get, enemy, () => get().cliquerLaCase({ ...mv.vers }, undefined, { confirm: true, ...(mv.allure === 'course' ? { intentionId: 'course' } : {}) }));
-  const apres = get().battle!;
-  const moi = inBattleId(apres, enemy.id) ?? enemy;
+  const avant = etatDuGeste(get, enemy);
+  const clic = () => get().cliquerLaCase({ ...mv.vers }, undefined, { confirm: true, ...(mv.allure === 'course' ? { intentionId: 'course' } : {}) });
+  const engage = isEngaged(enemy, get().battle!.combatants);
+  if (engage) poserLesReglages(get, enemy, 'desengagement', reglagesDuDesengagement(get, enemy));
+  jouerSousLePiloteIA(get, enemy, () => {
+    clic();
+    if (engage && !combatAdvanceBlocked(get()) && !isEngaged(enemy, get().battle!.combatants)) clic();
+  });
+  // Le Désengagement tenu (fenêtre ouverte) : le déplacement se parque et se rejoue à sa fermeture (`budgetCaduc`).
+  if (engage && combatAdvanceBlocked(get())) return void armerLaSuite(get, set, enemy, mv, 0);
+  const moi = inBattleId(get().battle!, enemy.id) ?? enemy;
   const bouge = !!moi.pos && (moi.pos.x !== depuis.x || moi.pos.y !== depuis.y || (moi.pos.z ?? 0) !== (depuis.z ?? 0));
   // L'IA ne défait jamais son déplacement : il est irrévocable dès le geste joué (`sealApproachMoves`, LDB 21 l.27).
   if (bouge) sealApproachMoves(get, set, moi);
-  else if (!combatAdvanceBlocked(get()) && (apres.movementUsed ?? 0) === etatAvant.mouvement && apres.acted === etatAvant.acted) return redeciderLeTour(get, set, moi, mv.vers);
+  else if (rienNaBouge(get, moi, avant)) return redeciderLeTour(get, set, moi, { case: mv.vers });
   armerLaFrappeOuAvancer(get, set, moi, mv, bouge ? porteursDuDeplacement(moi, geom) : undefined);
 }
 
-/** La re-décision du tour de l'IA quand le geste lui refuse `vers` : la case est écartée (`TourEnCours.casesRefusees`)
- *  et l'IA décide à nouveau, au plus `REFUS_DE_DEPLACEMENT_MAX` fois ; au-delà, son tour finit. */
-function redeciderLeTour(get: Get, set: SetFn, enemy: Combatant, vers: Pt): void {
+/** La re-décision du tour de l'IA : quand le geste lui refuse une case ou une cible, elle est écartée
+ *  (`TourEnCours.casesRefusees`, `ciblesRefusees`) ; le tour resté sans suite se re-décide tel quel. Au plus
+ *  `REDECISIONS_DU_TOUR_MAX` fois ; au-delà, son tour finit. */
+function redeciderLeTour(get: Get, set: SetFn, enemy: Combatant, refus?: { case: Pt } | { cibleId: string }): void {
   const tour = tourEnCoursDe(get().battle!, enemy.id);
-  const refusees = [...(tour?.casesRefusees ?? []), tileKey(vers.x, vers.y, vers.z ?? 0)];
-  if (!tour || refusees.length > REFUS_DE_DEPLACEMENT_MAX) return advanceTurn(get, set);
-  tour.casesRefusees = refusees;
+  if (!tour) return advanceTurn(get, set);
+  if (refus && 'case' in refus) tour.casesRefusees = [...(tour.casesRefusees ?? []), tileKey(refus.case.x, refus.case.y, refus.case.z ?? 0)];
+  else if (refus) tour.ciblesRefusees = [...(tour.ciblesRefusees ?? []), refus.cibleId];
+  tour.redecisions = (tour.redecisions ?? 0) + 1;
+  if (tour.redecisions > REDECISIONS_DU_TOUR_MAX) return advanceTurn(get, set);
   deciderLeTour(get, set, enemy, false);
 }
 
-/** La suite d'un déplacement de l'IA : la frappe s'il arrive au contact sans avoir Couru, Charge déclarée si elle est
- *  ouverte (LDB 16 l.35) ; sinon la fin de son tour. */
+/** La suite d'un déplacement de l'IA : la frappe s'il arrive au contact sans avoir Couru ; sinon la fin de son tour. */
 function armerLaFrappeOuAvancer(get: Get, set: SetFn, enemy: Combatant, mv: Extract<GesteDeSuite, { kind: 'deplacer' }>, apresDeplacement: readonly string[] | undefined): void {
   const tgt = inBattleId(get().battle!, mv.thenTargetId);
   // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; ni quand l'Action est due
@@ -9016,32 +8978,7 @@ function armerLaFrappeOuAvancer(get: Get, set: SetFn, enemy: Combatant, mv: Extr
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, 0, apresDeplacement);
     return;
   }
-  if (mv.charge) declarerLaCharge(get, set, enemy, tgt, chargeAdvantage(mouvementDeMarche(get().battle!, enemy), mv.distAvant)); // LDB 16 l.35
   armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: tgt.id }, TEMPO.preAttack, apresDeplacement);
-}
-
-/** La Charge d'un tour d'IA (LDB 15 l.35-37) : le couple se place au bout de son chemin, puis frappe. Sans chemin, rien
- *  ne bouge et l'IA re-décide (`redeciderLeTour`). */
-function chargerPuisFrapper(get: Get, set: SetFn, enemy: Combatant, mv: Extract<GesteDeSuite, { kind: 'deplacer' }>): void {
-  const battle = get().battle!;
-  const scene = get().scene!;
-  const geom = mountOf(battle, enemy) ?? enemy;
-  const path = mv.chemin;
-  if (!path) return redeciderLeTour(get, set, enemy, mv.vers);
-  placeCombatant(enemy, scene, mv.vers);
-  if (geom !== enemy) placeCombatant(geom, scene, mv.vers); // Combat monté : la monture suit le cavalier (couple solidaire)
-  displaceSmaller(get, geom); // un grand « dégage » les plus petits sous son empreinte (85 l.373-374)
-  get().orienterSelonLeChemin(enemy.id, path);
-  if (geom !== enemy) get().orienterSelonLeChemin(geom.id, path);
-  const apresDeplacement = emettreLApproche(enemy, geom, path);
-  applyZoneCrossings(get, set, enemy, path); // Mur de feu & co (L11) : traverser coûte
-  journaliserLEscalade(get, enemy, path);
-  const apres = get().battle!;
-  apres.movementUsed = (apres.movementUsed ?? 0) + Math.max(0, path.length - 1);
-  approachFearTrigger(get, set, enemy, mv.depuis); // LDB 21 l.27
-  set({ battle: { ...get().battle! } });
-  bus.emit(EVT.SCENE_DIRTY);
-  armerLaFrappeOuAvancer(get, set, enemy, mv, apresDeplacement);
 }
 
 /** `chargeur` Charge `cible`, `adv` = l'Avantage de sa course (`chargeAdvantage`) : SOURCE UNIQUE de la déclaration
@@ -9068,11 +9005,6 @@ export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur:
   const effets = emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
   if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'etat', charge.id)] } });
   return effets + resolveFreeAttacks(get, set, charge, 'onCharged', chargeur) > 0;
-}
-
-/** CLÉ d'un tour : CE combattant, à CE tour de CE Round — l'unité de `battle.tourEnCours`, que l'IA décide une fois. */
-function cleDeTour(battle: BattleState, id: string): string {
-  return `${battle.round}:${battle.turn}:${id}`;
 }
 
 /** LDB 21 (Psychologie) l.27, Test de la fiche `calme-d-approche`. L'unité de la règle est LE DÉPLACEMENT :
@@ -9726,6 +9658,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
  *  décision. Rejouée, sans les crochets de début de tour, quand le geste de déplacement est refusé (`redeciderLeTour`).
  *  `justMounted` : il vient d'enfourcher, son Mouvement est consommé (LDB 14). */
 function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: boolean): void {
+  if (!tourEnJeu) return enJeu(() => deciderLeTour(get, set, enemy, justMounted));
   const battle = get().battle!;
   const scene = get().scene!;
   // Combat monté (LDB 14 l.179) : géométrie porteuse (monture) pour le déplacement réel — empreinte +
@@ -9792,7 +9725,7 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
   const targetOf = (id: string) => inBattleId(battle, id)!;
   const canAct = canTakeAction(enemy); // Sonné : pas d'Action — déplacement seul (LDB 16 l.125)
 
-  // Attaque (mêlée ou tir, selon l'arme active) puis fin de tour, après le télégraphe — cadence préservée.
+  // Attaque (mêlée ou tir, selon l'arme active) par le geste du joueur, après le télégraphe — cadence préservée.
   const attackThenAdvance = (target: Combatant, weaponUid?: string, deuxArmes?: true) => { armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: target.id, ...(weaponUid ? { weaponUid } : {}), ...(deuxArmes ? { deuxArmes } : {}) }, TEMPO.aimTelegraph); };
 
   // Combat monté (LDB 14 l.182) : une monture MONTÉE est dirigée par son cavalier — elle ne se déplace
@@ -9800,8 +9733,9 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
   // Action à attaquer un adversaire au contact ; sinon elle passe son tour.
   if (enemy.riderId) {
     const skittish = isSkittishMount(enemy.traits); // Nerveux (LDB 14 l.182) → la monture passe son tour
-    const foe = skittish || !canAct ? undefined
-      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && distanceDeContact(get().scene, enemy, c) <= meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene)));
+    const refusees = tourEnCoursDe(battle, enemy.id)?.ciblesRefusees ?? [];
+    const foe = skittish ? undefined
+      : battle.combatants.find((c) => c.kind !== enemy.kind && !isOutOfAction(c) && !!c.pos && !refusees.includes(c.id) && distanceDeContact(get().scene, enemy, c) <= meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene)));
     if (foe) { attackThenAdvance(foe); return; }
     return advanceTurn(get, set);
   }
@@ -9869,13 +9803,11 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       if (!get().pendingFocus) advanceTurn(get, set);
       return;
     }
-    case 'tir': {
-      if (!canAct) return advanceTurn(get, set);
+    case 'tir':
       // Le télégraphe (réticule + ligne pointillée ~0,85 s) est porté par attackThenAdvance — même
       // affordance « qui va être frappé » que la mêlée et le sort (plus de double télégraphe).
       attackThenAdvance(targetOf(action.targetId), action.weaponUid, action.deuxArmes);
       return;
-    }
     case 'rechargement': {
       // Sans fenêtre ni Chance : le jet de `rechargerLArme`, jeté sur place. LDB 62 l.335
       if (!canAct) return advanceTurn(get, set);
@@ -9889,7 +9821,6 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       return;
     }
     case 'melee':
-      if (!canAct) return advanceTurn(get, set);
       attackThenAdvance(targetOf(action.targetId), action.weaponUid, action.deuxArmes);
       return;
     case 'liberation': {
@@ -9948,16 +9879,17 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
     }
     case 'deplacement': {
       if (action.fuite) lacherLeBouclierDuBinome(get, set, enemy); // ZI 13 l.193
-      const depart = partirDuContact(get, enemy); // LDB 15 l.43-49
-      if (depart) battle.log.push(ev('deplacement', depart, enemy.id));
-      const approche = aiApproachPlan(input, action, { charge: budgetDeCharge(battle, enemy), course: budgetDeCourse(battle, enemy) });
-      // La Charge se joue par `chargerPuisFrapper`, hors du geste : vers une source de Peur non bravée, l'IA joue son
-      // plan de Marche, que le geste retient derrière le Test (`retenuParLaPeur`, LDB 21 l.27).
-      const { plan, allure } = approche.allure === 'charge' && approche.plan.kind === 'deplacement' && battle.fearGate !== 'passed'
-        && fearedSourceTowards(get, battle, enemy, approche.plan.to) ? { plan: action, allure: 'marche' as const } : approche;
-      const mv = plan.kind === 'deplacement' ? plan : action;
-      const charge = !refusDeCharge(battle, enemy); // LDB 15 l.35 : verdict lu AVANT le déplacement
-      const distBefore = distanceDeCombat(scene, enemy, targetOf(mv.thenTargetId)); // distance de combat AVANT le déplacement
+      // Les verdicts du joueur bornent l'allure (`budgetsDAllure`). LDB 15 l.35-41
+      const approche = aiApproachPlan(input, action, budgetsDAllure(scene, battle, enemy, { charge: budgetDeCharge(battle, enemy), course: budgetDeCourse(battle, enemy) }));
+      const mv = approche.plan.kind === 'deplacement' ? approche.plan : action;
+      // Au contact au bout de l'approche, la Charge ouverte : le geste d'attaque du joueur, Charge armée, sur la cible
+      // (LDB 15 l.35-37) — son chemin, sa Peur (`retenuParLaPeur`) et son Vol sont ceux du joueur.
+      const cible = inBattleId(battle, mv.thenTargetId);
+      const refusees = tourEnCoursDe(battle, enemy.id)?.ciblesRefusees ?? [];
+      if (approche.allure !== 'course' && approche.auContact && !action.fuite && cible && !refusees.includes(cible.id) && !refusDeCharge(battle, enemy)) {
+        armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: cible.id, charge: true }, TEMPO.aimTelegraph);
+        return;
+      }
       const path = pathTo(scene, enemy.pos!, mv.to, moveEnv(battle, geom));
       // Télégraphe de DÉPLACEMENT (parité héros) : montrer le chemin + la destination AVANT que l'ennemi
       // bouge (« où il va »), puis il glisse dessus. Le mouvement réel + la suite (attaque/fin de tour)
@@ -9965,7 +9897,7 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       set({ actorMove: { id: enemy.id, path: path ?? [{ ...enemy.pos! }, { ...mv.to }] }, battle: { ...battle } });
       bus.emit(EVT.SCENE_DIRTY);
       armerLaSuite(get, set, enemy, {
-        kind: 'deplacer', vers: { ...mv.to }, chemin: path, thenTargetId: mv.thenTargetId, allure, charge, distAvant: distBefore, depuis: { ...enemy.pos! }, mouvementAvant: battle.movementUsed ?? 0,
+        kind: 'deplacer', vers: { ...mv.to }, thenTargetId: mv.thenTargetId, allure: approche.allure === 'course' ? 'course' : 'marche', mouvementAvant: battle.movementUsed ?? 0,
       }, beatHold(get, 'moveTelegraph'));
       return;
     }

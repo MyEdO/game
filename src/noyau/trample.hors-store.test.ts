@@ -385,7 +385,7 @@ describe('Piétinement en combat (store)', () => {
     expect(st.battle!.movementUsed).toBeGreaterThan(0);
   });
 
-  it('#527 IA Se cabrer : DÉJÀ adjacent (aucune approche) → movementUsed reste à 0, le Piétinement gratuit reste possible', () => {
+  it('#527 IA Se cabrer : DÉJÀ adjacent (aucune approche) → le Mouvement reste entier et paie le Piétinement gratuit', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.size = 'enorme';
@@ -402,7 +402,11 @@ describe('Piétinement en combat (store)', () => {
     runEnemyAI(banc.getState, banc.setState, E.id);
     banc.avancer(4000);
     const st = banc.getState();
-    expect(st.battle!.movementUsed).toBe(0); // aucune approche → l'Action de Mouvement reste entière
+    const e = st.battle!.combatants.find((c) => c.id === E.id)!;
+    // Avantage à 0 : seul un Mouvement encore entier paie le Piétinement (`freeAttackCost`, LDB 85 l.314).
+    const fenetre = st.pendingDefense?.suite;
+    expect(fenetre?.mode === 'pilotee' && fenetre.pa.freeKind, 'le Piétinement est joué : sa fenêtre de défense attend le héros').toBe('pietinement');
+    expect(st.battle!.movementUsed, 'payé par l’Action de Mouvement, aucune approche avant').toBe(mountMovement(st.battle!, e));
   });
 
   // LDB 85 l.387 ; LDB 85 l.237.

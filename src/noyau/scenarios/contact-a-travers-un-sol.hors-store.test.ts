@@ -38,6 +38,11 @@ const melee = (A: Combatant, B: Combatant): { offerte: boolean; aTraversLeSol: b
   return { offerte: true, aTraversLeSol: distanceDeContact(banc.getState().scene, arrivee, B) !== 1 };
 };
 const offert = (A: Combatant, B: Combatant) => melee(A, B).offerte;
+/** Le tour de `A`, son Action prise : celui où sa gratuite d'Arme de Frénésie part (LDB 21 l.33). */
+const sonTourActionPrise = (A: Combatant): void => {
+  const b = banc.getState().battle!;
+  banc.setState({ battle: { ...b, turn: b.order.indexOf(A.id), acted: true } });
+};
 
 describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () => {
   it('cale (4,8,0) et pont (4,8,1) : ni mêlée offerte, ni Surnombre, ni attaque gratuite', () => {
@@ -50,7 +55,8 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(0);
     E.aiControlled = true;
     (E.psychState ??= []).push({ type: 'frenesie' });
-    expect(aiAvailableFreeAttack(banc.getState, banc.setState, E)).toBe(false);
+    sonTourActionPrise(E);
+    expect(aiAvailableFreeAttack(banc.getState, E)).toBe(false);
     expect(banc.getState().pendingDefense).toBeFalsy();
   });
 
@@ -73,7 +79,8 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(effectifAuContactParmi(banc.getState().scene, banc.getState().battle!.combatants, E, 'heros')).toBe(1);
     E.aiControlled = true;
     (E.psychState ??= []).push({ type: 'frenesie' });
-    expect(aiAvailableFreeAttack(banc.getState, banc.setState, E)).toBe(true);
+    sonTourActionPrise(E);
+    expect(aiAvailableFreeAttack(banc.getState, E)).toBe(true);
   });
 
   it('l’attaque gratuite de la Frénésie va au héros légitime, pas à celui que le sol sépare et que la liste nomme d’abord', () => {
@@ -88,7 +95,8 @@ describe('#4090 — la barge d’embuscade-fluviale : la cale et le pont', () =>
     expect(distanceDeContact(banc.getState().scene, E, H2)).toBe(1);
     E.aiControlled = true;
     (E.psychState ??= []).push({ type: 'frenesie' });
-    expect(aiAvailableFreeAttack(banc.getState, banc.setState, E)).toBe(true);
+    sonTourActionPrise(E);
+    expect(aiAvailableFreeAttack(banc.getState, E)).toBe(true);
     expect(banc.getState().pendingDefense?.defenderId).toBe(H2.id);
   });
 

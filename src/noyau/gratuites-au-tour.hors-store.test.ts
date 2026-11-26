@@ -16,7 +16,8 @@ const g = () => banc.getState();
 
 /** Une créature Énorme au contact d'un héros Moyen, Avantage 3 : le Piétinement (LDB 85 l.387) lui est
  *  ouvert. `tourDe` pose le combattant actif ; la créature frappe ensuite une gratuite d'Arme (forme de
- *  `applyTalentFreeAttack`) dont la défense se résout par `jetLancer('defense')` puis `jetValider('defense')`.
+ *  `applyTalentFreeAttack`) dont la défense se résout par `jetLancer('defense')` puis `jetValider('defense')` ; à son tour,
+ *  son Action est prise, et sa file part par le geste du joueur à la fermeture de la fenêtre (le banc la joue).
  *  `fileEpuisee` : la file du tour déjà vidée, état que pose `aiCreatureFreeAttacks` en fin de file. */
 function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   const A = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'A', seed: 1 });
@@ -34,11 +35,13 @@ function frappeGratuite(tourDe: 'heros' | 'creature', fileEpuisee = false) {
   E.pos = { x: 6, y: 10 }; heros.pos = { x: 7, y: 10 };
   heros.wounds = blessuresDeBase(200, 200, heros);
   E.engagedWith = [heros.id]; heros.engagedWith = [E.id];
-  banc.setState({ battle: { ...b, turn: b.order.indexOf(tourDe === 'heros' ? heros.id : E.id), acted: false } });
-  const suite: SuiteDeCoup = { restitution: { prevActed: false }, manoeuvre: { kind: 'arme' }, enchainement: { mode: 'aucun' } };
+  const agi = tourDe === 'creature';
+  banc.setState({ battle: { ...b, turn: b.order.indexOf(agi ? E.id : heros.id), acted: agi } });
+  const suite: SuiteDeCoup = { restitution: { prevActed: agi }, manoeuvre: { kind: 'arme' }, enchainement: { mode: 'aucun' } };
   expect(maybeOpenDefense(g, banc.setState, E, heros, E.weapons[0], suite), 'la fenêtre de la gratuite d’Arme s’ouvre').toBe(true);
   g().jetLancer('defense');
   g().jetValider('defense');
+  banc.jusquA((s) => !!s.pendingDefense);
   const creature = g().battle!.combatants.find((c) => c.id === E.id)!;
   return { herosId: heros.id, creature };
 }
@@ -58,7 +61,7 @@ describe('Gratuites de créature : à son tour seulement (LDB 13 l.14, LDB 85 l.
     const pd = g().pendingDefense;
     expect(pd?.attackerId).toBe(creature.id);
     expect(pd?.defenderId).toBe(herosId);
-    expect(pd?.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined, 'la gratuite est le Piétinement').toBe('pietinement');
+    expect(pd?.suite.mode === 'pilotee' ? pd.suite.pa.freeKind : undefined, 'la gratuite est le Piétinement, frappe pilotée du geste').toBe('pietinement');
     expect(creature.pendingFreeAttacks, 'la file est initialisée et consommée').toEqual([]);
   });
 });

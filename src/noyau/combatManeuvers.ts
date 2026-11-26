@@ -58,12 +58,10 @@ import { defenseSurfaced } from './netOwnership';
 import { inBattleId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
 import type { CascadeStep } from './pendings';
-import type { GameOp } from '../engine/ops';
 import type { IconIdGenerated as IconId } from '../data/icones.generated';
 import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
-type GrantFreeAttackOp = Extract<GameOp, { op: 'grantFreeAttack' }>;
 import { distanceDeContact } from './monde/footprint';
 import { sceneMetresPerTile, type Scene } from './monde/scene';
 import { type Pt } from './monde/path';
@@ -183,7 +181,7 @@ export const MANEUVER_ICON: Record<AttackKind, IconId> = {
 /** Manœuvres de mêlée résolues comme un COUP D'ARME (via `pendingAttack` + `freeKind` →
  *  `applyAttackResult` : localisation/critique/FX/défense). Les autres (zone) passent par `pendingManeuver`
  *  (résolution propre). Classifieur partagé : `availableAttacks` (targeting melee/zone) + le survol. */
-export const MELEE_MANEUVER_KINDS: AttackKind[] = ['morsure', 'caudale', 'tentacules', 'pietinement'];
+export const MELEE_MANEUVER_KINDS: AttackKind[] = ['morsure', 'caudale', 'tentacules', 'pietinement', 'cornes'];
 
 /** ATTAQUE activable par le héros actif — descripteur UNIFIÉ (arme tenue + attaques gratuites/zone),
  *  SOURCE UNIQUE de la liste d'attaques (hotbar) ET de la résolution (`cliquerLeCombattant`). `targeting`
@@ -211,22 +209,19 @@ export interface AttackOption {
   modeDAvantage?: ManeuverDef['modeDAvantage'];
 }
 
-/** Sources DONNÉE d'une attaque d'Arme gratuite « DISPONIBLE » (`grantFreeAttack when:'available'`) sur SON
- *  tour — Talents ET États PSY. L'état Frénésie porte LUI-MÊME son `grantFreeAttack` (LDB 21 l.33) → HÉROS
- *  comme ENNEMI, MÊME donnée (pas de jaloux). Renvoie l'op + son plafond /Round (`cap` = niveau du talent,
- *  ou 1 pour un État). SOURCE UNIQUE lue par `hasFreeWeaponAttack` (affordance UI) ET la résolution IA
- *  (`aiAvailableFreeAttack`) → l'attaque libre du frénétique passe par le MÊME résolveur que les attaques
- *  RÉACTIVES (`applyTalentFreeAttack`), plus de chemin frenzy-spécifique ni de jet en double. */
-export function availableFreeAttackOps(c: Combatant): { op: GrantFreeAttackOp; cap: number }[] {
-  const out: { op: GrantFreeAttackOp; cap: number }[] = [];
+/** Plafonds /Round des sources DONNÉE d'une attaque d'Arme gratuite « DISPONIBLE » (`grantFreeAttack when:'available'`)
+ *  sur SON tour — Talents (`cap` = niveau du talent) ET États PSY (1). L'état Frénésie porte LUI-MÊME son
+ *  `grantFreeAttack` (LDB 21 l.33) → HÉROS comme ENNEMI, MÊME donnée ; le frappeur la joue par l'offre `arme`. */
+function plafondsDesGratuitesDArme(c: Combatant): number[] {
+  const out: number[] = [];
   for (const t of effectiveTalents(c))
     for (const op of findTalentById(t.talentId)?.passive ?? [])
       if (op.op === 'grantFreeAttack' && op.when === 'available' && (op.activeIf !== 'frenzied' || isFrenzied(c)))
-        out.push({ op, cap: t.times ?? 1 });
+        out.push(t.times ?? 1);
   for (const p of c.psychState ?? [])
     for (const op of findPsychologyById(p.type)?.passive ?? [])
       if (op.op === 'grantFreeAttack' && op.when === 'available')
-        out.push({ op, cap: 1 });
+        out.push(1);
   return out;
 }
 
@@ -234,7 +229,7 @@ export function availableFreeAttackOps(c: Combatant): { op: GrantFreeAttackOp; c
  *  ['arme']` < plafond de la source). Lue par `availableAttacks` + CombatConsole/IsoStage/turnEconomy. */
 export const hasFreeWeaponAttack = (c: Combatant): boolean => {
   const used = c.freeAttacksThisTurn?.['arme'] ?? 0;
-  return availableFreeAttackOps(c).some((s) => used < s.cap);
+  return plafondsDesGratuitesDArme(c).some((cap) => used < cap);
 };
 
 /** Adversaire de mêlée VALIDE pour l'action « Au Contact » d'un héros (LDB 62 l.176, Option « Longueur
@@ -273,17 +268,17 @@ export function availableAttacks(scene: Scene | null, active: Combatant, battle:
   if (actionDispo || freeWeapon)
     out.push({ id: 'arme', kind: 'arme', label: libelleDeValeur(attackKindSchema, 'arme'), icon: MANEUVER_ICON.arme, targeting: 'melee', cost: { action: !freeWeapon, advantage: 0 } });
   // (1) Attaques naturelles (`attaquesNaturelles`) : gratuites de MÊLÉE ou SPÉCIALES de zone. 'arme'
-  //     (ci-dessus) et 'charge' (Cornes, auto) exclues. Mêmes prédicats d'abordabilité (Avantage RAW ou 1 si
+  //     (ci-dessus) exclue ; celle de Charge (Cornes) seulement quand sa Charge a gagné l'Avantage (LDB 85 l.83). Mêmes prédicats d'abordabilité (Avantage RAW ou 1 si
   //     variable ; Action si trigger='action') ; une manœuvre d'écart de Taille exige sa cible au contact.
   for (const a of attaquesNaturelles(active.traits ?? [])) {
-    if (a.kind === 'arme' || a.trigger === 'charge') continue;
+    if (a.kind === 'arme' || (a.trigger === 'charge' && !active.chargeAvecAvantage)) continue;
     if (a.def.ecartDeTailleMin != null && !cibleDEcartDeTaille(scene, battle, active, a.def.ecartDeTailleMin)) continue; // LDB 85 l.387
     const cout = freeAttackCost(battle, active, a.def); // LDB 85 l.387 ; LDB 85 l.314
     const prix = cout.advantage;
     const minAdv = a.modeDAvantage === 'variable' ? 1 : prix;
     if (active.advantage < minAdv) continue;
     if (a.trigger === 'action' && !actionDispo) continue;
-    if (a.trigger === 'free' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405
+    if (a.trigger !== 'action' && gratuitesRestantes(active, a.kind, a) === 0) continue; // LDB 85 l.237 ; LDB 85 l.405 ; LDB 85 l.83
     const melee = MELEE_MANEUVER_KINDS.includes(a.kind);
     // LDB 85 l.405 ; #1765
     const repliTentacule = a.kind === 'tentacules' && !a.bfInclus;

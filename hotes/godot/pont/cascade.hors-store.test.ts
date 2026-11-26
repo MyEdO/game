@@ -15,7 +15,7 @@ const NAVIGATION = ['jetValider@cascade', 'jetLancer@cascade*', 'fenetreFermer@c
 
 describe('Entrée dans la cascade', () => {
   it('chaque rangée jetée puis l’étape validée ; le choix d’une étape attendu avant sa navigation ; le Coup Critique seul', () => {
-    let { suite } = drainer(appel, appel('demarrer', { scenario: 'bestiaire', graine: 2 }));
+    let { suite } = drainer(appel, appel('demarrer', { scenario: 'bestiaire', graine: 5 }));
     const vus = { batchValide: false, choix: false, critique: false };
     let meme = { cle: '', fois: 0 };
     for (let pas = 0; pas < 300 && !(vus.batchValide && vus.choix && vus.critique); pas++) {

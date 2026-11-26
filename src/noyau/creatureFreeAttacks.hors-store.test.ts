@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { aiCreatureFreeAttacks, applyGaze, applyChillGrasp, applyWail, resolveRoundBoundary } from './combatFlow';
+import { aiCreatureFreeAttacks, resolveRoundBoundary, runEnemyAI } from './combatFlow';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 
@@ -187,26 +187,26 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     expect(banc.getState().battle!.zones ?? []).toEqual([]); // épuisée → dissipée
   });
 
-  it('Regard pétrifiant : dépense tout l’Avantage, marge ≥ 6 DR → cible Pétrifiée', () => {
+  it('Regard pétrifiant, joué au tour de l’IA par le geste du joueur : dépense tout l’Avantage, marge ≥ 6 DR → cible Pétrifiée', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'regard-petrifiant' }]; E.advantage = 6; E.characteristics['capacite-de-tir'] = 90; // +6 DR d'Avantage + CT élevée
     H.characteristics.initiative = 1; H.skills = H.skills.filter((s) => s.id !== 'initiative');
-    const acted = applyGaze(banc.getState, banc.setState, E);
-    expect(acted).toBe(true);
+    runEnemyAI(banc.getState, banc.setState, E.id);
+    banc.avancer(4000);
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
     expect(h.conditions.some((c) => c.id === 'petrifie') || h.wounds.current === 0).toBe(true);
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0); // tout dépensé
   });
 
-  it('Étreinte glaciale : 2 Avantages, succès → 1d10+DR Blessures ignorant BE et PA', () => {
+  it('Étreinte glaciale, jouée au tour de l’IA par le geste du joueur : 2 Avantages, succès → 1d10+DR Blessures ignorant BE et PA', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'etreinte-glaciale' }]; E.advantage = 2; E.characteristics['capacite-de-combat'] = 90;
     H.armour = { tete: 6, brasG: 6, brasD: 6, corps: 6, jambeG: 6, jambeD: 6 }; // PA ignorés
     const before = H.wounds.current;
-    const acted = applyChillGrasp(banc.getState, banc.setState, E);
-    expect(acted).toBe(true);
+    runEnemyAI(banc.getState, banc.setState, E.id);
+    banc.avancer(4000);
     expect(banc.getState().battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before);
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.advantage).toBe(0); // 2 − 2
   });
@@ -240,15 +240,14 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     expect(eLive.wounds.current).toBeGreaterThan(10); // drainé (Vampirique)
   });
 
-  it('Hurlement fantomatique : zone vivante, 1d10 ignore BE+PA + 3 Assourdi, dépense tous les Av', () => {
+  it('Hurlement fantomatique, joué par la file des gratuites au geste du joueur (`lancerLAttaqueDeZone`) : zone vivante, 1d10 ignore BE+PA + 3 Assourdi, dépense tous les Av', () => {
     setCadence('auto'); // le Test de Résistance enfoui du héros passif se résout INLINE comme un monstre (pas de cascade joueur)
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     E.traits = [{ id: 'hurlement-fantomatique' }]; E.advantage = 4; E.characteristics.initiative = 40;
     H.armour = { tete: 6, brasG: 6, brasD: 6, corps: 6, jambeG: 6, jambeD: 6 }; // PA ignorés
     const before = H.wounds.current;
-    const acted = applyWail(banc.getState, banc.setState, E);
-    expect(acted).toBe(true);
+    aiCreatureFreeAttacks(banc.getState, banc.setState, E);
     const st = banc.getState();
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before);
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.conditions.filter((c) => c.id === 'assourdi').length >= 1).toBe(true);
@@ -297,20 +296,20 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
   });
 
   // LDB 85 l.213
-  it('Langue préhensile : touche ENTIÈREMENT absorbée (BE + PA ≥ Indice, 0 Blessure perdue) → Empêtré quand même', () => {
+  it('Langue préhensile : touche absorbée (BE + PA ≥ Indice + DR) → la Blessure minimale de la touche, et Empêtré quand même', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H, E } = setup();
     // 1 Av : celui de la Langue, aucun pour un Piétinement (LDB 85 l.387) sur la proie entraînée
-    E.traits = [{ id: 'langue-prehensile', value: 9 }]; E.advantage = 1; E.characteristics['capacite-de-tir'] = 95;
+    E.traits = [{ id: 'langue-prehensile', value: 1 }]; E.advantage = 1; E.characteristics['capacite-de-tir'] = 95;
     E.pos = { x: 10, y: 10 }; E.size = 'grande';
     H.pos = { x: 14, y: 10 }; H.size = 'moyenne';
     H.characteristics.agilite = 1; H.skills = H.skills.filter((s) => s.id !== 'esquive');
-    H.characteristics.endurance = 99; H.armour = { ...H.armour, corps: 5 }; // BE 9 + 5 PA ≥ Indice 9
+    H.characteristics.endurance = 99; H.armour = { ...H.armour, corps: 5 }; // BE 9 + PA ≥ Indice 1 + DR de la touche
     H.wounds = blessuresDeBase(50, 50, H);
     const before = H.wounds.current;
     aiCreatureFreeAttacks(banc.getState, banc.setState, E);
     const hLive = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;
-    expect(hLive.wounds.current, 'aucune Blessure perdue').toBe(before);
+    expect(before - hLive.wounds.current, 'la Blessure minimale d’une touche réussie (LDB 62 l.327)').toBe(1);
     expect(hLive.conditions.some((c) => c.id === 'empetre')).toBe(true);
   });
 

@@ -130,7 +130,7 @@ const DEFENDER_ROLL_SITES = new Set([
 ]);
 /** Ouvertures de fenêtre attendues sur les chemins d'attaque INSTANTANÉS (le brief #989 : le balayage
  *  et les attaques gratuites ne roulent plus de défense en silence). */
-const DEFENSE_OPENERS = ['runCleaveChain', 'applyFreeAttack', 'applyTalentFreeAttack', 'doAttack', 'runPreemptShots'];
+const DEFENSE_OPENERS = ['runCleaveChain', 'applyTalentFreeAttack', 'doAttack', 'runPreemptShots'];
 
 /** Nom de la fonction top-level ENGLOBANTE d'un index de caractère (déclarations `function`). */
 function enclosingFn(src: string, at: number): string {

@@ -82,7 +82,7 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePorteursDeSuite, MAIN_RENDUE } from './combatEffects';
 import { seatOwns, tenuParUnHumain } from './sieges';
-import { jouerLaPaireDuJet, jouerLeDrive, TOUT_RESOUDRE } from './combatAuto';
+import { jouerLaPaireDuJet, jouerLeDrive, prendreLesReglagesDeLaDecision, TOUT_RESOUDRE } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 import { noterAuProcesVerbal } from './voyageCadence';
 
@@ -2159,7 +2159,8 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
 /**
  * L'ÉTAPE HÔTE QU'AUCUN HUMAIN NE TIENT, parquée dans le slot (#3892) : elle se joue par les MÊMES verbes qu'un
  * humain sur sa fenêtre (`combatAuto.jouerLaPaireDuJet`), sur ce slot — `sieges.tenuParUnHumain` : « leur étape se
- * résout d'office et se montre au bilan ». Une paire par manche (Test étendu), tant qu'elle fait bouger l'état (le
+ * résout d'office et se montre au bilan ». Les réglages que la décision de l'IA a posés pour elle se jouent d'abord
+ * (`prendreLesReglagesDeLaDecision`, #5042). Une paire par manche (Test étendu), tant qu'elle fait bouger l'état (le
  * slot de la cascade ou celui du jet) et que le curseur reste sur cette étape non validée ; rien ne bouge : l'étape
  * reste parquée. Borne : `SEQUENCE_HARD_MAX_ROUNDS` manches.
  */
@@ -2167,6 +2168,7 @@ function jouerLHoteDOffice(get: Get, st: CascadeStep): void {
   const jet = st.jet;
   if (!jet || st.committed || porteursDeLEtape(st).some((id) => tenuParUnHumain(get(), id))) return;
   const slot = PENDING_BY_JET[jet];
+  for (const reglage of prendreLesReglagesDeLaDecision(get, jet, st.actorId)) get().jetRegler(...reglage);
   jouerTantQueCaBouge(() => {
     const avant = get();
     jouerLaPaireDuJet(get, jet);
