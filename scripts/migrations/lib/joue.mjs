@@ -98,14 +98,14 @@ export function rienTouche(racine, avant) {
 /** Par racine de dépôt jetable, les dépendances statiques que `joue` y a copiées de l'arbre. */
 const dependancesPosees = new Map();
 
-/** Les fichiers du dossier `dossier` (relatif à `racine`) qui ne sont ni au nombre des posés, ni une
- *  dépendance que `joue` y a copiée. */
+/** Les entrées du dossier `dossier` (relatif à `racine`) qui ne sont ni au nombre des posés, ni une
+ *  dépendance que `joue` y a copiée, ni le dossier qui en contient une. */
 export function crees(racine, avant, dossier) {
   const poses = new Set([...avant.keys(), ...(dependancesPosees.get(racine) ?? [])]);
   return fs
     .readdirSync(path.join(racine, dossier))
     .map((f) => path.posix.join(dossier, f))
-    .filter((rel) => !poses.has(rel))
+    .filter((rel) => !poses.has(rel) && ![...poses].some((pose) => pose.startsWith(`${rel}/`)))
     .map((rel) => `${rel} : fichier CRÉÉ`);
 }
 
