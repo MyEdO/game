@@ -116,17 +116,17 @@ const SANS_BATIMENT = (e) => { for (const k of Object.keys(e.batiments)) e.batim
   await geste(p, 'fermer-panneau');
   await geste(p, 'ouvrir-depart'); await p.click('[data-a="preparer"]');
   constater((await p.$$eval('.emporte .case-objet', (e) => e.length)) > 0, 'le héros part avec la potion achetée à l’hospice');
-  // Au départ, un héros emmené au sac vide achète une potion dans sa colonne : son sac la montre, la bourse baisse du
-  // prix, le départ reste ouvert.
+  // Au départ, un héros emmené au sac vide achète une provision dans sa colonne (vivres ou remède) : son sac la montre,
+  // la bourse baisse du prix, le départ reste ouvert.
   const auSacVide = await p.$$eval('.emporte:not(.libre)', (cs) => cs.find((c) => !c.querySelector('.case-objet'))?.querySelector('[data-a="provision"]:not([disabled])')?.dataset.id ?? null);
-  constater(!!auSacVide, 'la colonne d’un héros emmené au sac vide offre les potions de l’hospice');
+  constater(!!auSacVide, 'la colonne d’un héros emmené au sac vide offre ses provisions');
   if (auSacVide) {
-    const potion = `.emporte [data-a="provision"][data-id="${auSacVide}"]`;
-    const prix = Number((await p.textContent(potion)).match(/(\d+) CO/)[1]);
-    const orAvantPotion = await or();
-    await p.click(potion);
-    const sac = await p.$eval(potion, (x) => x.closest('.emporte').querySelectorAll('.cases-sac .case-objet').length);
-    constater(sac === 1 && (await or()) === orAvantPotion - prix && await p.isVisible('[data-a="partir"]'), `le héros emmené achète une potion au départ : son sac la montre, la bourse baisse de ${prix} CO (${orAvantPotion} → ${await or()})`);
+    const provision = `.emporte [data-a="provision"][data-id="${auSacVide}"]`;
+    const prix = Number((await p.textContent(provision)).match(/(\d+) CO/)[1]);
+    const orAvantProvision = await or();
+    await p.click(provision);
+    const sac = await p.$eval(provision, (x) => x.closest('.emporte').querySelectorAll('.cases-sac .case-objet').length);
+    constater(sac === 1 && (await or()) === orAvantProvision - prix && await p.isVisible('[data-a="partir"]'), `le héros emmené achète une provision au départ : son sac la montre, la bourse baisse de ${prix} CO (${orAvantProvision} → ${await or()})`);
     const deborde = await p.$eval('.corps-service', (c) => c.scrollHeight > c.clientHeight + 1 || c.scrollWidth > c.clientWidth + 1);
     constater(!deborde, 'les colonnes du départ tiennent sans ascenseur');
   }

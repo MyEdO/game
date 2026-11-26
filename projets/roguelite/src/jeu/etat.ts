@@ -28,7 +28,8 @@ export interface Heros { c: Combatant; carriere: string; espece: string; expedit
 export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; ouverte?: true }
 /** `prieres` : les Bénis qui ont déjà prié pour soigner pendant l'expédition. */
 /** `munitions` : les munitions de chaque héros au départ, par objet du catalogue ; elles sont ramassées au retour. */
-export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>> }
+/** `jourAPasser` : la journée de la dernière salle franchie, que le groupe passe en repartant ou en rentrant. */
+export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>>; jourAPasser?: true }
 
 /** `tutoriel` : les quêtes d'une partie neuve (`./tutoriel`), `null` une fois soldées ou passées. */
 export interface Etat {

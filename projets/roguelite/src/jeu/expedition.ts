@@ -12,6 +12,10 @@ import {
   refusDeDetermination,
   gesteDeDetermination,
   auHameau,
+  gesteDeDormir,
+  gesteDUnJour,
+  JOURNEE_AU_VILLAGE,
+  VILLAGE,
   gesteDeLObjet,
   gesteDIncanter,
   doter,
@@ -24,6 +28,8 @@ import {
   purgerEtats,
   type Applique,
   type IssueDuCombat,
+  type Place,
+  type Geste,
   type Visee,
   deElide,
   maladies,
@@ -151,7 +157,7 @@ export const refusDeSeRelever = (h: Heros): string | null => refusDeDeterminatio
 export function seRelever(e: Etat, id: string): string {
   const h = herosDuGroupe(e).find((x) => x.c.id === id);
   if (!h) return 'Héros introuvable.';
-  return refusDeSeRelever(h) ?? auNoyau(e, h, [(s) => gesteDeDetermination(s, id, 'retirerUnEtat', 'a-terre')?.geste]);
+  return refusDeSeRelever(h) ?? auNoyau(e, h, [(s) => gesteDeDetermination(s, id, 'retirerUnEtat', 'a-terre')]);
 }
 
 /** Le Béni `id` peut-il encore prier pour soigner pendant cette expédition ? */
@@ -279,8 +285,8 @@ export function agirDansLaSalle(e: Etat, action: ActionDeSalle, herosId?: string
   const groupe = herosDuGroupe(e);
   if (salle.type === 'camp') {
     if (action === 'reposer') {
-      const lignes = groupe.flatMap((h) => reposer(h.c, e.graine++, 1));
-      return franchir(e, { titre: CAMP.titre, lignes: [CAMP.reposer.recit, ...(lignes.length ? lignes : ['Personne n’a besoin de repos.'])] });
+      const r = auHameau(groupe.map((h) => h.c), [gesteDeDormir], e.graine++, { label: CAMP.titre });
+      return franchir(e, { titre: CAMP.titre, lignes: [CAMP.reposer.recit, ...r.journal, ...rendreAuGroupe(e, groupe, r.groupe)] }, 'nuit');
     }
     return 'Action inconnue ici.';
   }
@@ -339,10 +345,12 @@ function combattre(e: Etat, ennemis: string[]): { issue: IssueDuCombat; lignes: 
 /** Les salles à choix : le camp (`CAMP`) et celles de `EPREUVES`. */
 const SALLES_A_CHOIX: ReadonlySet<TypeDeSalle> = new Set<TypeDeSalle>(['camp', ...(Object.keys(EPREUVES) as SalleAJet[])]);
 
-/** Entre dans la salle courante et la franchit ; une salle à choix s'ouvre et attend son action (`agirDansLaSalle`) :
- *  rend alors `null` ; celle dont l'épreuve a tourné au combat livre ce combat, sans butin. Chaque salle prend une
- *  journée. */
+/** Entre dans la salle courante et la franchit, la journée de la précédente passée (`passerLaJournee`) ; une salle à
+ *  choix s'ouvre et attend son action (`agirDansLaSalle`) : rend alors `null` ; celle dont l'épreuve a tourné au combat
+ *  livre ce combat, sans butin. Chaque salle prend une journée. */
 export function avancer(e: Etat): RecitDeSalle | null {
+  passerLaJournee(e);
+  if (!herosDuGroupe(e).length) return { titre: destinationCourante(e)!.nom, lignes: rentrer(e, false), fin: 'defaite' };
   const x = e.expedition!;
   const d = destinationCourante(e)!;
   const salle = x.salles[x.index];
@@ -365,8 +373,9 @@ export function avancer(e: Etat): RecitDeSalle | null {
   return franchir(e, { titre: salle.type === 'boss' ? 'Le cœur du mal' : salle.type === 'elite' ? 'Un adversaire redoutable' : 'Embuscade', lignes, combat: c.issue });
 }
 
-/** La salle courante est franchie : ses PX, la suivante ; le maître vaincu ramène le groupe au hameau. */
-function franchir(e: Etat, recit: RecitDeSalle): RecitDeSalle {
+/** La salle courante est franchie : ses PX, la suivante ; le maître vaincu ramène le groupe au hameau. Sa journée passe
+ *  quand le groupe repart (`passerLaJournee`), sauf celle que le camp a passée à dormir (`nuit`). */
+function franchir(e: Etat, recit: RecitDeSalle, journee: 'a-passer' | 'nuit' = 'a-passer'): RecitDeSalle {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
   const salle = x.salles[x.index];
@@ -376,7 +385,7 @@ function franchir(e: Etat, recit: RecitDeSalle): RecitDeSalle {
   salle.faite = true;
   delete salle.ouverte;
   x.index++;
-  recit.lignes.push(...uneJourneeDeMaladie(e));
+  if (journee === 'a-passer') x.jourAPasser = true;
   if (!herosDuGroupe(e).length) {
     recit.lignes.push(...rentrer(e, false));
     recit.fin = 'defaite';
@@ -391,14 +400,25 @@ function franchir(e: Etat, recit: RecitDeSalle): RecitDeSalle {
   return recit;
 }
 
-/** La journée de la salle franchie passe pour les maladies du groupe (`entretenirLesMaladies`) : soignées si un héros
- *  valide du groupe sait tenter la Guérison (LDB 09 l.30). Un héros que sa maladie emporte est enterré. */
-function uneJourneeDeMaladie(e: Etat): string[] {
+/** La journée de la dernière salle franchie passe pour le groupe quand il repart vers la suivante ou rentre, après les
+ *  gestes d'entre-salles : un jour du noyau sans nuit de repos (`gesteDUnJour`), que la chronique raconte. MyEdO/game#5121 */
+function passerLaJournee(e: Etat): void {
+  const x = e.expedition!;
+  if (!x.jourAPasser) return;
+  delete x.jourAPasser;
   const groupe = herosDuGroupe(e);
-  const soigne = groupe.some((g) => valide(g) && saitSoigner(g.c));
-  const lignes = groupe.flatMap((h) => entretenirLesMaladies(h.c, e.graine++, 1, soigne));
-  for (const h of groupe.filter((g) => g.c.dead)) { lignes.push(`${h.c.label} succombe à sa maladie.`); enterrer(e, h); }
-  return lignes;
+  if (!groupe.length) return;
+  const r = auHameau(groupe.map((h) => h.c), [gesteDUnJour], e.graine++, { label: destinationCourante(e)!.nom });
+  const lignes = [...r.journal, ...rendreAuGroupe(e, groupe, r.groupe)];
+  if (lignes.length) noter(e, lignes.join(' '));
+}
+
+/** Chaque héros du `groupe` revient tel que le noyau le `rendu` ; ceux qui n'ont pas survécu sont enterrés, et dits. */
+function rendreAuGroupe(e: Etat, groupe: readonly Heros[], rendu: readonly Combatant[]): string[] {
+  for (const c of rendu) { const h = groupe.find((g) => g.c.id === c.id); if (h) h.c = c; }
+  const morts = groupe.filter((h) => h.c.dead);
+  for (const h of morts) enterrer(e, h);
+  return morts.map((h) => `${h.c.label} succombe.`);
 }
 
 function enterrer(e: Etat, h: Heros): void {
@@ -427,6 +447,7 @@ function terminerEnDeroute(e: Etat, destinDepense: Readonly<Record<string, numbe
  *  reposer ; ceux qui rentrent portent leurs blessures. Rentrer sans avoir franchi une salle ne fait passer aucun
  *  jour. */
 export function rentrer(e: Etat, reussie: boolean): string[] {
+  passerLaJournee(e);
   const x = e.expedition!;
   const d = destinationCourante(e)!;
   e.or += x.or; e.trophees += x.trophees;
@@ -457,9 +478,14 @@ export function attendreUneSemaine(e: Etat): string | null {
 /** Les États qui survivent à la rencontre une fois le héros ramené au hameau ; les autres retombent avec elle, sauf verrou qui tient (LDB 18 l.15). */
 const DURABLES = new Set(['extenue', 'inconscient']);
 
-/** `jours` journées passent : chez les héros restés au hameau (hors `absents`), les États de la rencontre retombent (verrou qui tient excepté, LDB 18 l.15) et
- *  les maladies avancent (`entretenirLesMaladies`), soignées par les sœurs le temps d'un séjour à l'hospice ; seuls ceux en séjour (chambre de l'auberge, hospice) se reposent (`reposer`), le temps qui reste à leur séjour.
- *  De nouveaux voyageurs arrivent. */
+/** La chambre de l'Auberge relais, où le héros en séjour dort chaque nuit, nourri. */
+const CHAMBRE: Place = { label: LIEUX_DE_SEJOUR.relais.nom, rest: { maison: true } };
+
+/** `jours` journées passent : chez les héros restés au hameau (hors `absents`), les États de la rencontre retombent
+ *  (verrou qui tient excepté, LDB 18 l.15). Le héros en chambre à l'Auberge relais y dort chaque nuit du noyau qui reste
+ *  à son séjour (`gesteDeDormir`) ; à l'hospice, ses maladies avancent soignées par les sœurs (`entretenirLesMaladies`)
+ *  et il s'y repose (`reposer`), MyEdO/game#4876 ; ses autres jours, il les passe au village (`JOURNEE_AU_VILLAGE`). De
+ *  nouveaux voyageurs arrivent. */
 function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   e.jour += jours;
   for (const h of [...e.roster]) {
@@ -467,12 +493,23 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
     const sortie: Applique = { lignes: [], faits: [] };
     purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
     if (sortie.lignes.length) noter(e, sortie.lignes.join(' '));
-    const aLHospice = h.sejour?.ou === 'temple' ? Math.min(jours, h.sejour.reste) : 0;
-    const maladie = [...entretenirLesMaladies(h.c, e.graine++, aLHospice, true), ...entretenirLesMaladies(h.c, e.graine++, jours - aLHospice, false)];
-    if (maladie.length) noter(e, maladie.join(' '));
-    if (h.c.dead) { noter(e, `${h.c.label} succombe à sa maladie.`); enterrer(e, h); continue; }
+    const sejour = Math.min(jours, h.sejour?.reste ?? 0);
+    const nuits = h.sejour?.ou === 'relais' ? sejour : 0;
+    const aLHospice = h.sejour?.ou === 'temple' ? sejour : 0;
+    const lignes: string[] = [];
+    const auNoyauSur = (gestes: Geste[], place: Place) => {
+      if (!gestes.length) return;
+      const r = auHameau([h.c], gestes, e.graine++, place);
+      h.c = r.groupe[0];
+      lignes.push(...r.journal);
+    };
+    auNoyauSur(Array.from({ length: nuits }, () => gesteDeDormir), CHAMBRE);
+    lignes.push(...entretenirLesMaladies(h.c, e.graine++, aLHospice, true));
+    auNoyauSur(Array.from({ length: jours - nuits - aLHospice }, () => JOURNEE_AU_VILLAGE).flat(), VILLAGE);
+    if (lignes.length) noter(e, lignes.join(' '));
+    if (h.c.dead) { noter(e, `${h.c.label} succombe.`); enterrer(e, h); continue; }
     if (!h.sejour) continue;
-    reposer(h.c, e.graine++, Math.min(jours, h.sejour.reste));
+    if (aLHospice) reposer(h.c, e.graine++, aLHospice);
     h.sejour.reste -= jours;
     if (h.sejour.reste <= 0) delete h.sejour;
   }

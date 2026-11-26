@@ -75,7 +75,7 @@ export function acheter(e: Etat, id: string, a: Achat): string | null {
   if (typeof achat === 'string') return achat;
   if (achat.genre === 'sort' && !sortsProposes(h).includes(achat.id)) return 'La salle d’armes n’enseigne pas ce sort à ce héros.';
   const lu: { offre?: ReturnType<typeof offreDAchat> } = {};
-  auNoyau(e, h, [(s) => { lu.offre = offreDAchat(s, h.c.id, achat); return lu.offre?.refus ? null : lu.offre?.geste; }]);
+  auNoyau(e, h, [(s) => (lu.offre = offreDAchat(s, h.c.id, achat))]);
   if (!lu.offre) return 'Sa carrière ne l’offre pas.';
   if (lu.offre.refus) return lu.offre.refus;
   if (a.genre === 'talent') prendreSesArmes(e, h);
