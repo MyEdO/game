@@ -78,7 +78,7 @@ import { FORMES_D_ETAT, etatDeclare, valeursDeclarees } from '../data/schemas/de
 import { collectionDe, entreesDeLaPortee, porteesOuvertes } from '../data/schemas/grammaire/collection-cle';
 import { libelleDeLElement } from '../data/schemas/grammaire/cle-d-espace';
 import { LIBELLE_AU_LABEL } from '../data/schemas/grammaire/sourcesDeSpecs';
-import { noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
+import { lecteurDesPoints, noeudsAuChemin, ouverts, pasDeDonnee } from '../data/schemas/grammaire/descente';
 import { declarationDeFeuilleDId, estRefEmboitee, idsDe, porteeDuJugementLocal } from '../data/schemas/grammaire/ref';
 import { entreeEmbarquee as trappingEntree } from '../data/schemas/defs/trappings';
 import { traitInstanceSchema } from '../data/schemas/grammaire/reference';
@@ -1331,7 +1331,7 @@ export function choixDeLaReferenceLocale(
 export function choixDuChamp<S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const cle = chemin[chemin.length - 1];
   const formulaire: FormulaireDuPorteur<DonneeDuPorteur[S]> = FORMULAIRES[sorte];
-  const deLAdresse = choixSousUneAdresse(formulaire.schema, donnee, chemin, cadre.source);
+  const deLAdresse = choixSousUneAdresse(lecteurDesPoints(formulaire.schema, donnee), chemin, cadre.source);
   if (deLAdresse) return deLAdresse;
   if (estReferenceNarrative(cle)) return entreesNarratives(cadre.projet.narratif, cle).map((e) => ({ valeur: e.id, libelle: e.label, refus: null }));
   const sous = estSousReference(cle) ? choixDeLaSousReference(donnee, chemin, cle, cadre.projet.narratif) : undefined;
