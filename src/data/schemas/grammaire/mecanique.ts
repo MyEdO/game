@@ -14,7 +14,8 @@ import { declarerEnfants, defDe } from './descente';
 import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './collection-cle';
 import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
-import { categorieDEntreeAPool, findTraitById, trousDeLEnjeu } from '../../index';
+import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
+import { entreeDe } from '../catalogue/catalogue';
 import { messageRecurrenceHorloge, SELF_REF, type Formula } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
@@ -836,7 +837,8 @@ const DECLARATIONS_D_OPS = {
     durationHours: formulaSchema.optional(),
   }, { op: { label: "opération" }, trait: { label: "Trait" }, choix: { label: "Choisir la spécialisation" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }, raffinementDeCatalogue((lire) => {
     const { specAuCatalogue } = lire.specialisations('trait');
-    const lireLeTrait = lire.racine('trait', (id: string) => findTraitById(id));
+    const cat = lire.catalogueLu('trait');
+    const lireLeTrait = (id: string) => entreeDe('traits', id, cat());
     return (o, ctx) => {
       const { id, arg } = o.trait as Pick<TraitPose, 'id' | 'arg'>;
       const cible = o.cible as TirageDeCible | undefined;

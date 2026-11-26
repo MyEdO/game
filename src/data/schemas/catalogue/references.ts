@@ -1,6 +1,7 @@
 /**
  * Le parse sous un CATALOGUE passé (#5070, `docs/plans/2026-11-25-composition-d-un-jeu.md` § 5.1, point 2) : le schéma
- * garde la forme, et chaque id se juge contre les documents de `cat` (`sousLeLecteur`, `grammaire/ref.ts`).
+ * garde la forme, et chaque id et chaque faute croisée se juge contre les documents de `cat` (`sousLeCatalogue`,
+ * `grammaire/ref.ts`).
  */
 import type { z } from 'zod';
 import type { Catalogue } from './catalogue';
@@ -8,7 +9,7 @@ import { SCHEMA_DEFS } from '../_registry.generated';
 import { idsDeLEspace, lectureDeLEspace, type AccesAuxDocuments, type LectureDEspace } from '../grammaire/collection-cle';
 import { lireCleDEspace, vocabulaireDuFichier } from '../grammaire/cle-d-espace';
 import { lectureDuVocabulaire } from '../grammaire/vocabulaires';
-import { sousLeLecteur, type LecteurDIds } from '../grammaire/ref';
+import { sousLeCatalogue, type LecteurDIds } from '../grammaire/ref';
 import { memoParIdentite } from '../../../lib/memoParIdentite';
 
 /** Schéma de chaque document de la bibliothèque : ses marques de collection guident la lecture d'un espace. */
@@ -45,6 +46,6 @@ const lecteurDe = memoParIdentite((cat: Catalogue): LecteurDIds => {
   };
 });
 
-/** Le parse de `valeur` par `schema`, chaque id jugé contre `cat` : le résultat de `safeParse`. */
+/** Le parse de `valeur` par `schema`, chaque id et chaque faute croisée jugés contre `cat` : le résultat de `safeParse`. */
 export const parserSousCatalogue = <S extends z.ZodType>(schema: S, valeur: unknown, cat: Catalogue): z.ZodSafeParseResult<z.output<S>> =>
-  sousLeLecteur(lecteurDe(cat), () => schema.safeParse(valeur));
+  sousLeCatalogue(lecteurDe(cat), cat, () => schema.safeParse(valeur));

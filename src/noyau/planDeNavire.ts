@@ -14,7 +14,8 @@
  */
 import type { NavalTraitRef } from '../engine/types';
 import { findNavalTrait } from '../data';
-import { aLEchelleDesPonts, rectangleDesPonts, rectangleDesPontsPoses } from '../data/poseDesPonts';
+import { aLEchelleDesPonts, rectangleDesPonts, rectangleDesPontsPoses } from '../data/schemas/catalogue/poseDesPonts';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { nextEntityId } from '../lib/entityId';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
 import { CAP_IDENTITE_PROP } from '../data/schemas/props.types';
@@ -110,7 +111,7 @@ interface PoseDeNavire extends NonNullable<ReturnType<typeof rectangleDesPonts>>
 function poseDe(scene: Pick<Scene, 'metresPerTile' | 'dimensions'>, ent: SceneEntity): PoseDeNavire | null {
   const ref = ent.kind === 'personnage' ? ent.vehicule?.id : undefined;
   if (ref === undefined) return null;
-  const rectangle = rectangleDesPontsPoses(scene, ent);
+  const rectangle = rectangleDesPontsPoses(scene, ent, catalogueDuProcessus());
   return rectangle && { ...rectangle, id: ent.id, ref, upgrades: ent.upgrades ?? [], z: ent.z ?? 0 };
 }
 
@@ -269,7 +270,7 @@ function casesDeFlottaison({ x, y, w, h, cap }: NonNullable<ReturnType<typeof re
 
 /** L'empreinte de flottaison du type et du cap de l'entité, y compris pour chercher où la reposer dans l'éditeur. */
 export function flottaisonDuNavire(scene: Pick<Scene, 'metresPerTile'>, entite: SceneEntity): Pt[] | undefined {
-  const rectangle = rectangleDesPonts(scene, entite);
+  const rectangle = rectangleDesPonts(scene, entite, catalogueDuProcessus());
   return rectangle ? casesDeFlottaison(rectangle, entite.z ?? 0) : undefined;
 }
 

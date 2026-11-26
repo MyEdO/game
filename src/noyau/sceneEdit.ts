@@ -159,6 +159,8 @@ import {
   accesDe,
 } from './sceneEditLecture';
 import { tableTotale } from '../lib/tableTotale';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 export type Pt = { x: number; y: number };
 
@@ -1264,9 +1266,9 @@ function patchEntre<T extends object>(avant: T, apres: T): Partial<T> {
 }
 
 /** La scène `scene` où l'entité `avant` devient `apres`, chaque champ de premier niveau qui change posé par sa porte
- *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas
- *  (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
-function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity): EcritureDeValeur<Scene> {
+ *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint sous `cat` l'entité écrite et que l'entité d'avant
+ *  n'enfreignait pas (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
+export function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity, cat: Catalogue = catalogueDuProcessus()): EcritureDeValeur<Scene> {
   const patch = patchEntre(avant, apres);
   let ecrite: Scene;
   try {
@@ -1275,8 +1277,8 @@ function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity):
     if (e instanceof TypeNonNomme) return { ok: false, refus: { regle: e.message } };
     throw e;
   }
-  const deja = new Set(refusDeLEntite(avant).map((f) => f.message));
-  const neuve = ecrite.entities.filter((e) => e.id === avant.id).flatMap(refusDeLEntite).find((f) => !deja.has(f.message));
+  const deja = new Set(refusDeLEntite(avant, cat).map((f) => f.message));
+  const neuve = ecrite.entities.filter((e) => e.id === avant.id).flatMap((e) => refusDeLEntite(e, cat)).find((f) => !deja.has(f.message));
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: ecrite };
 }
 

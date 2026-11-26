@@ -80,7 +80,7 @@ Ces verbatims révisent deux lectures du plan `2026-11-24-restructuration-multi-
   - `presetsPnj` dérive une entité *nouvelle* sous son propre id, depuis une créature de base laissée intacte
     (`resolvePresetCreature`).
   - S'y ajoutent `objets`, `etats` et les champs locaux des ports (`docs/campagne-authoring.md:118`).
-- **Les ids sont typés, mais pas fermés à la composition.** `Id<T>` (`src/data/schemas/grammaire/ref.ts:48`) est une
+- **Les ids sont typés, mais pas fermés à la composition.** `Id<T>` (`src/data/schemas/grammaire/ref.ts:51`) est une
   union fermée, générée depuis toute la base : un littéral `'esquive'` compile. Les références inverses existent
   (`src/noyau/codex/relations.ts`).
 - **Des ids écrits en dur dans les règles.** Sondage en *chaînes*, pas en ids de compétence : `perception` est aussi
@@ -164,7 +164,7 @@ fichiers de test, la liste des 7 datasets hors du seam et les 63 captures devien
 migrés : une capture à l'import ne compile plus.
 
 Les corrections du juge qui survivent, à reprendre au design neuf :
-- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1915`).
+- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1911`).
 - Un dataset se déclare par la route de son def, puis `npm run gen` (`CLES_DE_DATASET`, `RACINES_VIVANTES`,
   `src/data/racines-vivantes.test.ts:29`).
 - Une lecture de champ est un accesseur, et le mémo sert un vrai calcul.
@@ -242,7 +242,7 @@ hôte compose un catalogue, et il le remet à sa partie.
   - *Ouverture.* L'hôte compose avec les règles de son stockage. `loadRuleOverrides(entrees.reglesMaison)`
     (`src/noyau/proprietaireDuJeu.ts:96`) disparaît.
   - *Règle maison changée.* Les écrivains de la surface passent à `src/hote` : `surchargerUneRegleMaison`,
-    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:409`, `src/noyau/reglesMaison.ts`).
+    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:509`, `src/noyau/reglesMaison.ts`).
   - *Sauvegarde.* `snapshotSave` reçoit les règles du catalogue de la partie, et non plus `ruleOverrides()`
     (`hotes/godot/pont/pont.ts:1168`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
   - *Coop.* L'hôte envoie les règles de son catalogue (`src/noyau/coop.ts:39`). Chez l'invité, la réception ne charge
@@ -278,58 +278,75 @@ hôte compose un catalogue, et il le remet à sa partie.
     (`policy.ts:47`) disparaît, car les choix sont dans la composition.
 - **Les références.** Une référence ne se raffine plus contre un index global. Le schéma garde la forme : il est
   constant, et ne lit aucune donnée à sa construction. Le jugement d'un id lit un lecteur d'ids courant (`lecteurCourant`,
-  `src/data/schemas/grammaire/ref.ts:249`), l'index des ids par défaut. `parserSousCatalogue(schema, valeur, cat)`
-  (`src/data/schemas/catalogue/references.ts`) est le même `safeParse`, sous le lecteur de `cat` (`sousLeLecteur`,
-  `ref.ts:253`), bâti sur un `AccesAuxDocuments` (`src/data/schemas/grammaire/collection-cle.ts:705`).
+  `src/data/schemas/grammaire/ref.ts:260`), l'index des ids par défaut. `parserSousCatalogue(schema, valeur, cat)`
+  (`src/data/schemas/catalogue/references.ts`) est le même `safeParse`, sous la fenêtre `{ ids, cat }`
+  (`sousLeCatalogue(ids, cat, juger)`, `ref.ts:264`), dont le lecteur d'ids est bâti sur un `AccesAuxDocuments`
+  (`src/data/schemas/grammaire/collection-cle.ts:705`). La fenêtre ne se pose que le temps de l'appel, levée et
+  imbrication comprises, et aucun export ne lit son `cat`.
   - Ce lecteur juge l'existence d'un id dans son espace, sous-liste marquée ou discriminée comprise (recalage C5 du
     2026-11-26), aux messages et aux paths du parse : une union garde sa sémantique.
-- **Les raffinements croisés.** Certains raffinements croisent un champ du document et un champ de l'entrée visée :
-  le cap et les ponts (`defs-scenes/scene.ts:327`), la munition et la pièce (`scene.ts:330-332`), la carrière et le
-  profil (`scene.ts:226`). Ils deviennent des lectures `fautesDe…(document, cat)` de `schemas/catalogue`. Trois sites les
-  appellent :
-  - `parserSousCatalogue`, au chargement de la bibliothèque et au Compendium ;
-  - l'éditeur de scène ;
-  - le noyau, pour ses paquets et ses scènes.
+- **Les raffinements croisés : le design mixte** (jugé le 2026-11-26, #5070). Certains raffinements croisent un champ du
+  document et un champ de l'entrée visée : le cap et les ponts, la munition et la pièce, la carrière et le profil. La
+  mesure les place dans la grammaire des ops, des traits et des enjeux autant que dans les scènes : 15 nœuds porteurs,
+  qu'atteignent 40 documents sur 136 (`catalogStakeSchema` 36, `traitInstanceSchema` 33, les ops `grantTrait`,
+  `beginPsych`, `removePsychTrait` et `giveTrapping` 31 chacune). Les schémas porteurs restent donc exportés, et une
+  faute croisée vit dans son schéma :
+  - elle est une fonction pure à `cat` requis, par exemple `refusDeLEntite(ent, cat)` (`defs-scenes/scene.ts:320`) et
+    `refusDePoseDesPonts(scene, ent, cat)` (`src/data/schemas/catalogue/poseDesPonts.ts`) ;
+  - le raffinement porteur passe par `raffinementDeCatalogue` et l'appelle avec `catalogueLu(...types)()`
+    (`LecturesDuRaffinement`, `ref.ts:413`) : `catalogueLu` déclare les espaces lus, au registre que lit
+    `dependancesDuRaffinement`, et rend un accès paresseux au `cat` de la fenêtre (`scene.ts:350`, `scene.ts:1030`) ;
+  - l'éditeur appelle la même fonction hors parse, qui prend `cat` en paramètre, par exemple `sceneAvecLEntite`
+    (`src/noyau/sceneEdit.ts:1271`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1457,1460`) et
+    l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:496`). Le parse et l'éditeur suivent un
+    seul code. L'éditeur ne passe pas encore le `cat` de sa session : l'inspecteur appelle `capsDeLaPose(scene, ent)`
+    (`src/hote/editeur.ts:977`), l'écriture d'une entité pose `ecrire: sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1620`),
+    qui prend son défaut (fossile 2), et `editer` lit un `const cat = catalogueDuProcessus()` local
+    (`src/noyau/edition/session.ts:1454`), parce que les suites composent leurs gestes par `.reduce(editer)`. Le lot C3
+    passe le `cat` de la session jusqu'à l'éditeur.
 
-  Une seule porte de `schemas/catalogue` les sert : `parserSousCatalogue(schema, valeur, cat)`, qui parse puis juge les fautes
-  croisées sous `cat`. Pour les schémas à fautes croisées, elle remplace `validerFormeVivante`
-  (`src/data/schemas/validate.ts:408`). Les schémas à fautes croisées ne sont plus exportés hors de `schemas/catalogue` : un
-  site qui les parse sans `cat` ne compile plus. La famille 1 remplace chacun de leurs sites d'entrée :
+  Hors fenêtre, un `safeParse` nu lit, pendant les étapes C et D, le catalogue du processus : `catalogueDeLaFenetre`
+  rend `fenetre?.cat ?? catalogueDuProcessus()` (`ref.ts:276`). C'est le fossile 8, le catalogue hors fenêtre. À
+  l'étape E, il disparaît, et `catalogueLu` lève hors fenêtre. Le préalable de l'étape E : les 9 sites de production qui parsent sans
+  `parserSousCatalogue` passent par la porte (`miscast.ts`, `sceneEditLecture.ts`, `formulaire.ts` trois fois,
+  `navireOps.ts`, `mapSpec.ts`, `data/index.ts` et `campagnes/lib.mjs`), et les 4 sites de `structures-scan.mts`.
+  Aucun mémo d'un parse ou d'une faute ne se clé sans `cat`. `refusDuParcours` et `chargeLArme` (`munitionsReservees`,
+  `groupeDeSiege`) lisent encore le catalogue du processus dans la fenêtre, jusqu'à la famille du moteur.
+
+  Les sites d'entrée de la famille 1 passent `cat` à `parserSousCatalogue`, qui remplace `validerFormeVivante`
+  (`src/data/schemas/validate.ts:408`) pour les schémas à fautes croisées :
   - `parseProject` (`src/noyau/worldMap.ts:754`) et `parseSceneDeProjet` (`worldMap.ts:732`, autosave de l'éditeur et
     chargement de sauvegarde) ;
   - `src/noyau/persistance/save.ts:154` ;
   - `src/noyau/mapSpec.ts:999` ;
   - `src/noyau/validateScene.ts:127-128` ;
-  - `src/noyau/sceneEditLecture.ts:478` ;
+  - `src/noyau/sceneEditLecture.ts:479` ;
   - `src/noyau/campagneLivree.ts:90`.
-
-  `refusDeLEntite` (`scene.ts:313-319`) se scinde : sa forme reste à `schemas`, et ses fautes croisées passent à
-  `schemas/catalogue`.
 - **Le sort des 10 fichiers de `schemas` qui lisent la base.** Ils deviennent des fautes, ou des lectures
   `(…, cat)` de `schemas/catalogue` :
-  - `defs-scenes/scene.ts:60,64` (navire à ponts, `refusDePoseDesPonts`, munitions, carrière) ;
+  - `defs-scenes/scene.ts:60` (carrière, `findCreatureById`) ;
   - `narratif.ts:22` et `worldmap.ts:24` ;
   - `grammaire/reference.ts:52` (`psychologies`, `psychologyLabel`) ;
   - `grammaire/mecanique.ts:17,83` (`findTraitById`, `GROUPES_TIRABLES`) ;
   - `defs/presets-de-personnage.ts:36` ;
   - `defs-scenes/effets.ts:56` et `grammaire/valeurs.ts:16,46`, dont le libellé ou la saison passent au message de la
     faute ;
-  - `defs/especes-aleatoires.ts:9-10`, qui lit `species` et `reglesOptionnelles` dans `cat` ;
+  - `defs/especes-aleatoires.ts:74,95`, qui lit `species` et `reglesOptionnelles` dans `cat` ;
   - `grammaire/livres-extraits.ts:10-12`, qui lit `books` dans `cat`, sous `memoByRef(cat)`.
   - Le Compendium juge la bibliothèque *candidate* : une entrée créée, puis référencée par une autre, est acceptée sans
     `npm run gen`.
   - `lireLEspace`, `idsVivants`, `fige` et `poserRegimeVivant` meurent.
-  - Le lecteur de `cat` juge la sous-liste et le marqueur. Il remplace `idsDesignes` (`ref.ts:238`), que lisent par
-    défaut `refusDuMarqueur` et `refusDeLaDiscriminee` (`ref.ts:308-313`), et l'index de `ref.ts:214`.
+  - Le lecteur de `cat` juge la sous-liste et le marqueur. Il remplace `idsDesignes` (`ref.ts:240`), que lisent par
+    défaut `refusDuMarqueur` et `refusDeLaDiscriminee` (`ref.ts:323-328`), et l'index de `ref.ts:216`.
     Il couvre les 13 références à sous-liste (`idDe(type, sousListe)`, par exemple `defs/props.ts:35` et
     `grammaire/valeurs.ts:1156`).
-  - `porteLeMarqueur` (`ref.ts:365`) devient `porteLeMarqueur(type, marqueur, id, cat)` dans `schemas/catalogue`. Ses 14 sites
+  - `porteLeMarqueur` (`ref.ts:380`) devient `porteLeMarqueur(type, marqueur, id, cat)` dans `schemas/catalogue`. Ses 14 sites
     suivent leur famille : `scene.ts:125` va à la famille 1, `src/engine/weaponGroup.ts:16,20` à la famille 6.
   - Les 11 lectures `lire.catalogue(…)` des defs jugent sous le lecteur de `cat`, dans la famille 1 : `trappings.ts:83,413`,
     `careerLevels.ts:16`, `garde-robe.ts:188`, `merchants.ts:26`, `apparences.ts:66`, `cargaisons-aleatoires.ts:21`,
-    `grammaire/reference.ts:90-93,207`, `grammaire/ref.ts:654`, `especes-aleatoires`.
-  - La génération des ids émet deux modules. Le type littéral `IdsParEspace`, que lit `Id<T>`, va sous `schemas`. La
-    valeur `IDS_PAR_ESPACE` va sous `src/data/`. Aujourd'hui, les deux vivent ensemble (`_ids.generated.ts:514`).
+    `grammaire/reference.ts:90-93,207`, `grammaire/ref.ts:670`, `especes-aleatoires`.
+  - La génération des ids émet deux modules. Le type littéral `IdsParEspace`, que lit `Id<T>`, vit sous `schemas`
+    (`src/data/schemas/_ids.generated.ts`). La valeur `IDS_PAR_ESPACE` vit sous `src/data/` (`src/data/_ids.generated.ts`).
 
 **3. La structure qui ferme la classe.** La règle de couche `COUCHES` (`scripts/guards/lib/couches.mjs`) porte la
 fermeture. Le lint `murs/*` l'applique au job `types` (`npm run lint`, `ci.yml:205`). Dans `COUCHES`, le dossier le
@@ -443,6 +460,10 @@ compilateur.
 - **Fossile 6 : le catalogue optionnel d'un contexte.** `OpsCtx` et `ContexteDuTest` portent `catalogue?: Catalogue`,
   que lit un seul accesseur, `catalogueDu(ctx) = ctx.catalogue ?? catalogueDuProcessus()`. Le champ devient requis à
   la bascule. Ainsi, aucun littéral de contexte d'une autre famille ne casse dans un lot.
+- **Fossile 8 : le catalogue hors fenêtre.** Un raffinement croisé jugé hors de `parserSousCatalogue` lit
+  `catalogueDuProcessus()` (`catalogueDeLaFenetre`, `src/data/schemas/grammaire/ref.ts:276`, #5070). Il meurt à
+  l'étape E, où `catalogueLu` lève hors fenêtre. Son préalable est celui du § 5.1 : les sites de production qui parsent
+  sans `parserSousCatalogue`, et ceux de `structures-scan.mts`, passent par la porte.
 
 **6. Découpage.** Un ticket par famille. Un lot tient en environ 45 minutes de codeur : au plus 6 fichiers de
 production migrés et leurs suites, ou environ 15 fichiers en tout. Grâce aux fossiles 2 et 6, un lot ne touche que ses
