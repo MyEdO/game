@@ -1,3 +1,4 @@
+import { avecRencontres } from '../../../src/noyau';
 import type { FabriqueDId } from '../../../src/engine/fabriqueDId';
 import { contexteDeNaissanceDObjet, itemFromTrappingById, loadoutCreate, loadoutSetSlot, recomputeLoadout } from '../../../src/engine/items';
 import type { Combatant } from '../../../src/engine/types';
@@ -5,7 +6,6 @@ import { herosDeScenario } from '../../../src/scenes/test-scenarios/_heros';
 import { diligenceCampaign } from '../campagnes';
 import { paquetDuJeu } from '../../../src/noyau/index';
 import type { Scene } from '../../../src/noyau/monde/scene';
-import { setEncounters } from '../../../src/scenes/test-scenarios/_shared';
 import type { TestScenario } from '../../../src/scenes/test-scenarios/_shared';
 
 /**
@@ -46,8 +46,8 @@ function chasseurArme(idNeuf: FabriqueDId): Combatant {
 }
 
 function construireScene(): Scene {
-  const scene = poserDepart(structuredClone(paquetDuJeu(diligenceCampaign).scenes[0]));
-  setEncounters(scene, [
+  let scene = poserDepart(structuredClone(paquetDuJeu(diligenceCampaign).scenes[0]));
+  scene = avecRencontres(scene, [
     {
       id: 'enc-clayonnage',
       // Aucune mort n'est requise : la recette porte sur la LIGNE DE VUE. Le combat reste ouvert le

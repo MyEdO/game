@@ -1,9 +1,17 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as J from '../jeu';
 import { testValue } from '../../../../src/engine/skills';
-import { articleDuCatalogue, chancesDeReussite, libelleDeCarac, maniement, porterAuNiveau, progression, poserLesReglesDuRoguelite } from '../noyau';
-import { byId } from '../../../../src/data';
-import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
+import {
+  articleDuCatalogue,
+  chancesDeReussite,
+  libelleDeCarac,
+  maniement,
+  memeSpecialisation,
+  porterAuNiveau,
+  progression,
+  poserLesReglesDuRoguelite,
+} from '../noyau';
+import { byId } from '../../../../src/noyau';
 import { ecranDuHeros, progressionDuHeros } from './fiche';
 import { panneauDeService } from './services';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';

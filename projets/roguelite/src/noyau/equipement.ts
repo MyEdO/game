@@ -27,7 +27,7 @@ import {
   trappingsEnVente,
   trappingsInstanciables,
   weaponGroups,
-} from '../../../../src/data';
+} from '../../../../src/noyau';
 import type { ArmourPoints, Availability, Combatant, ItemInstance } from '../../../../src/engine/types';
 export { equipConflicts } from '../../../../src/engine/items';
 import type { TestDesigne } from '../../../../src/engine/skills';

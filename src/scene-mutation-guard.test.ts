@@ -20,9 +20,7 @@ import { detenteur } from './lib/detenteur.testkit';
  * CONSTRUISENT une `Scene` fraîche dans leur fabrique `construire` (`arena()`/`buildScene`) et la mutent
  * IMPÉRATIVEMENT pendant sa propre phase d'AUTHORING — avant toute exposition au store (elle n'est
  * rendue en `ContenuDeScenario.scene`, puis chargée via `set({ scene })`, qu'une fois COMPLÈTE).
- * `setEncounters` (`_shared.ts`) documente ce choix explicitement (« Mutation EN PLACE : les
- * scénarios construisent leur scène impérativement »). L'objet n'est donc JAMAIS un porteur de la
- * scène DU STORE au moment de la mutation — l'invariant ne s'y applique pas. Testé plus bas : si
+ * L'objet n'est donc JAMAIS un porteur de la scène DU STORE au moment de la mutation — l'invariant ne s'y applique pas. Testé plus bas : si
  * cette exclusion devenait un cimetière (plus aucune mutation réelle dedans), le test le signale.
  */
 

@@ -41,9 +41,9 @@ import {
   sexeDuPorteur,
   spells,
   type CareerLevelData,
-} from '../../../../src/data';
+  memeSpecialisation,
+} from '../../../../src/noyau';
 import { CHAR_KEYS, type Combatant, type CharKey, type ItemInstance } from '../../../../src/engine/types';
-import { memeSpecialisation } from '../../../../src/data/schemas/grammaire/ref';
 import { auHameau, type Geste } from './hameau';
 import { articleDuCatalogue, maniement } from './equipement';
 import { chancesDeReussite } from './epreuve';

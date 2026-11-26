@@ -9,6 +9,14 @@ import {
   rubriquesDeLaPage,
   type CreatorDraft,
   type GesteDuBrouillon,
+  careerLabelFor,
+  levelsForCareer,
+  characteristics,
+  conditionLabel,
+  refLabel,
+  skills,
+  type PorteurDeSexe,
+  type RefDesignee,
 } from '../../../../src/noyau';
 import { buildHero, carrieresOffertes, especesOffertes } from '../../../../src/noyau/creation/brouillon';
 import { randomSpeciesTable } from '../../../../src/engine/creation';
@@ -17,18 +25,8 @@ import { designateSlot, skillSlots, slotCovers } from '../../../../src/engine/ca
 import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
 import { effectiveChar } from '../../../../src/engine/characteristics';
 import { raisonVerrouEtat } from '../../../../src/engine/conditions';
-import {
-  careerLabelFor,
-  levelsForCareer,
-  characteristics,
-  conditionLabel,
-  refLabel,
-  skills,
-} from '../../../../src/data';
 import { makeRNG, type RNG } from '../../../../src/engine/dice';
-import type { PorteurDeSexe } from '../../../../src/data';
 import type { Combatant, CharKey, ConditionInstance } from '../../../../src/engine/types';
-import type { RefDesignee } from '../../../../src/data/schemas/grammaire/ref';
 
 /** La spécialisation `spec` de la Compétence `id` désignée à l'emplacement « (Au choix) » du niveau `niveau`. */
 export interface Designation { niveau: number; id: string; spec: string }

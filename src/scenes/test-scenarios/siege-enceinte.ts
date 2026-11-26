@@ -32,7 +32,7 @@ import { projForPiece, type TestScenario } from './_shared';
  *
  * TOUT est dans le `MapSpec` ci-dessous (grilles ASCII des 2 étages, recette `cells`, relief de rampe, binds de
  * marqueurs, entités à ids FIXES, rencontre). Les seules parts de code restantes = le `projForPiece` (Projectiles
- * dérivée de la pièce, `_shared.ts`) et le `groupe` (le SOLDAT reçoit les Spé de service). AUCUN push/setEncounters résiduel.
+ * dérivée de la pièce, `_shared.ts`) et le `groupe` (le SOLDAT reçoit les Spé de service). AUCUN push/avecRencontres résiduel.
  */
 
 // Servant de pièce (entité à id FIXE, référencé par le `crew` de l'emplacement) : une VRAIE créature du

@@ -27,10 +27,38 @@ export { currentSeason } from '../engine/travelStages';
 export { isEngagedWith } from '../engine/engagement';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
+export type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
+export { memeSpecialisation, refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+export type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
+export { parseTable } from '../data/source/decoupe';
+export { arena } from './mapSpec';
+export { avecRencontres } from './monde/encounterAuthoring';
 export {
   advancementLabel,
+  bandeDe,
+  byId,
+  careerLabelFor,
   careers,
+  characteristics,
   conditionLabel,
+  diseaseLabel,
+  displayLabelForSex,
+  findCreatureById,
+  findQualityById,
+  findSpeciesById,
+  findTalentById,
+  findTrappingById,
+  names,
+  sexeDuPorteur,
+  skills,
+  spells,
+  symptomLabel,
+  testSkillLabel,
+  trappingsEnVente,
+  trappingsInstanciables,
+  weaponGroups,
+  type CareerLevelData,
+  type PorteurDeSexe,
   findCareerById,
   findSpellById,
   levelsForCareer,

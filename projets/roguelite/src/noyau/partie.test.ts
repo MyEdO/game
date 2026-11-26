@@ -1,5 +1,5 @@
+import { arena } from '../../../../src/noyau';
 import { describe, expect, it } from 'vitest';
-import { arena } from '../../../../src/scenes/test-scenarios/_shared';
 import { loadRuleOverrides, rule } from '../../../../src/engine/policy';
 import { ouvrirEnAuto, poserLesReglesDuRoguelite, REGLES_DU_ROGUELITE } from './partie';
 
