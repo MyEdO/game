@@ -3,7 +3,7 @@
  * résolubilité des adresses de prose (`schemas/grammaire/livres-extraits.ts`) comme les lecteurs de `src/data/index.ts`.
  */
 import booksJson from './books.json';
-import { datasetDe } from './datasets';
+import { datasetDe } from './schemas/datasets';
 import type * as booksDef from './schemas/defs/books';
 
 /** Le registre VIVANT des livres, au type de son schéma. */

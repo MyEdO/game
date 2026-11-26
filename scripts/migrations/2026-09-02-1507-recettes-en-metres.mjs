@@ -1,7 +1,7 @@
 /**
  * Migration #1507 — UNITÉ des recettes de décor et des rayons de lumière : tout passe en MÈTRES.
  *
- * Une recette volumique (`PropData.volume`, `src/data/props.types.ts`) mêlait deux unités : `x`/`y`
+ * Une recette volumique (`PropData.volume`, `src/data/schemas/props.types.ts`) mêlait deux unités : `x`/`y`
  * en CASES, `h`/`heightM` en MÈTRES. Le monde multipliant `x`/`y` par le `metresPerTile` de la scène
  * à la cuisson (`gpToWorld`), un tonneau de 0,75 m de large mesurait 3,74 m sur une scène MER
  * (`metresPerTile: 10`). La recette devient donc MÉTRIQUE sur ses trois axes, et ce sont ses LECTEURS
@@ -56,7 +56,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const chemin = (f) => path.join(ROOT, 'src/data', f);

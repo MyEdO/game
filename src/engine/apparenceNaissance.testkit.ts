@@ -1,7 +1,7 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { apparences } from '../data';
 import { setDataset } from '../data/overrides';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { createHero } from './character';
 

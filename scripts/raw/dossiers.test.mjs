@@ -1,5 +1,5 @@
 // Le chargeur des fiches de dossier de chapitre (#2290, node --test, `npm run test:raw`), sur une fiche de fixture :
-// une fiche hors schéma `ficheDeDossier` (`src/data/source/dossier.ts`) est refusée, chaque élément de `ref` est UNE réf
+// une fiche hors schéma `ficheDeDossier` (`src/data/schemas/source/dossier.ts`) est refusée, chaque élément de `ref` est UNE réf
 // entière à la graphie `refRe`, tout `l.<ligne>` d'un champ texte appartient à une telle réf entière ; bornes et ligne
 // non aveugle relèvent des scanners CITANTS (`scripts/raw/lib/fichiersCitants.mjs`). Les fiches commitées d'un projet
 // se jugent dans sa suite.
@@ -9,7 +9,7 @@ import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { chargerDossiers } from './lib/dossiers.mjs'
-import { ficheDeDossier, idDEntree, ID_D_ENTREE } from '../../src/data/source/dossier.ts'
+import { ficheDeDossier, idDEntree, ID_D_ENTREE } from '../../src/data/schemas/source/dossier.ts'
 
 /** Une fiche de fixture au schéma : un beat, dont les réfs sont à la graphie `refRe`. */
 const FICHE = {

@@ -12,6 +12,7 @@ import {
   fenetreDuJeu,
   gesteDAchatDuSort,
   gesteDeLaPanoplie,
+  gesteDeDetermination,
   gesteDeSoins,
   gesteDIncantation,
   gestesDeLObjet,
@@ -33,6 +34,7 @@ import { eligibleTalent } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { nomDe } from '../engine/nom';
+import { poserLaDetermination } from '../engine/talentEffects';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -117,6 +119,44 @@ describe('buildAdvancementView — chaque rangée achetable est le geste de son 
       expect([h.xp, h.skills.find((s) => s.id === 'art' && s.spec === 'ecriture')?.advances]).toEqual([0, 1]);
     });
   });
+
+  it('la Compétence d’un emplacement à désigner, désigné ou non, pas encore apprise, est à acquérir : son geste l’achète', () => {
+    const soldat = heros('soldat', { careerLevel: 2, xp: 5000 });
+    const ouvert = buildAdvancementView({ battle: null, flags: {} }, soldat).skillSlotsOpen.find((r) => r.options.some((o) => !o.ownedAdvances))!;
+    const { skill, geste, refus } = ouvert.options.find((o) => !o.ownedAdvances)!;
+    const apprise = (h: Combatant) => h.skills.find((s) => s.id === skill.id && s.spec === skill.spec)?.advances;
+    expect(refus, 'témoin : l’option de l’emplacement non désigné est ouverte').toBeNull();
+    avecGroupe([soldat], (partie) => {
+      jouer(partie, geste);
+      expect(apprise(partie.etat().party[0]), 'l’option jouée n’a pas acheté sa Compétence').toBe(1);
+    });
+    const designe = { ...soldat, careerSlotChoices: { soldat: { [ouvert.slotKey]: `${skill.id}|${skill.spec}` } } };
+    avecGroupe([designe], (partie) => {
+      const vue = buildAdvancementView(partie.etat(), partie.etat().party[0]);
+      expect(vue.skillSlotsOpen.some((r) => r.slotKey === ouvert.slotKey), 'témoin : l’emplacement est désigné').toBe(false);
+      const rangee = vue.skills.find((s) => !s.known && s.skill.id === skill.id && s.skill.spec === skill.spec)!;
+      expect(rangee?.refus, 'la Compétence désignée n’est pas offerte').toBeNull();
+      jouer(partie, rangee.geste);
+      expect(apprise(partie.etat().party[0])).toBe(1);
+    });
+  });
+
+  it('un emplacement « A ou B » non désigné propose ses deux Compétences, et elles seules (Alchimiste, Métier (Forgeron) ou Métier (Orfèvre))', () => {
+    const alchimiste = heros('alchimiste', { careerLevel: 2, xp: 0 });
+    const emplacement = buildAdvancementView({ battle: null, flags: {} }, alchimiste).skillSlotsOpen.find((r) => r.options.some((o) => o.skill.id === 'metier'))!;
+    expect(emplacement.options.map((o) => o.skill)).toEqual([{ id: 'metier', spec: 'forgeron' }, { id: 'metier', spec: 'orfevre' }]);
+    avecGroupe([alchimiste], (partie) => refuseCommeLeVerbe(partie, emplacement.options[0]));
+  });
+
+  it('l’option d’un joker déjà possédée au bout de la table des coûts : son refus est celui que le verbe écrit (Érudit 5e, Savoir (Empire) à 75)', () => {
+    const base = heros('erudit-5e', { careerLevel: 4 });
+    const savant = { ...base, xp: 100000, progression: '5e' as const, skills: [...base.skills.filter((s) => s.id !== 'savoir'), { id: 'savoir', spec: 'empire', characteristic: 'intelligence' as const, advances: 75 }] };
+    avecGroupe([savant], (partie) => {
+      const option = buildAdvancementView(partie.etat(), partie.etat().party[0]).skillSlotsOpen.flatMap((r) => r.options).find((o) => o.skill.id === 'savoir' && o.skill.spec === 'empire');
+      refuseCommeLeVerbe(partie, option ?? null);
+    });
+  });
+
 });
 
 describe('gesteDAchatDuSort — apprendre un sort désigné', () => {
@@ -250,6 +290,27 @@ describe('gesteDIncantation — incanter hors combat sur une cible désignée', 
       expect(gesteDIncantation(partie.etat(), 'p', SORT, 'inconnu')!.refus).toBe(t('cs.cibleHorsDuGroupe', { spell: spell.label, id: 'inconnu' }));
       refuseCommeLeVerbe(partie, gesteDIncantation(partie.etat(), 'p', SORT, 'inconnu'));
       expect(partie.etat().pendingCast).toBeFalsy();
+    });
+  });
+});
+
+describe('gesteDeDetermination — dépenser la Détermination hors combat pour retirer un État désigné', () => {
+  const aTerre = (points: number): Combatant => {
+    const h = heros('soldat');
+    poserLaDetermination(h, points);
+    return { ...h, conditions: [...h.conditions, { id: 'a-terre', value: 1 }] };
+  };
+  const porteATerre = (h: Combatant) => h.conditions.some((c) => c.id === 'a-terre');
+  it('joué, le geste offert retire l’État contre un point ; sans Détermination, le refus de l’offre est celui du verbe (LDB 17 l.61)', () => {
+    avecGroupe([aTerre(1)], (partie) => {
+      const offre = gesteDeDetermination(partie.etat(), partie.etat().party[0].id, 'retirerUnEtat', 'a-terre')!;
+      expect(offre.refus).toBeNull();
+      jouer(partie, offre.geste);
+      expect(porteATerre(partie.etat().party[0]), 'le geste n’a pas retiré l’État').toBe(false);
+    });
+    avecGroupe([aTerre(0)], (partie) => {
+      refuseCommeLeVerbe(partie, gesteDeDetermination(partie.etat(), partie.etat().party[0].id, 'retirerUnEtat', 'a-terre'));
+      expect(porteATerre(partie.etat().party[0])).toBe(true);
     });
   });
 });

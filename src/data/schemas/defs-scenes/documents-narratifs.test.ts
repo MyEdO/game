@@ -15,11 +15,12 @@ import { REGISTRES_NARRATIFS, type CleDeRegistreNarratif } from './registres-nar
 import { cheminLisible, validateDocument } from '../validate';
 import { emptyNarratif } from '../../../noyau/monde/campaignNarratif';
 import { objetDeCampagne } from '../../../scenes/fixtures/objetDeCampagne.testkit';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 type Jouet = Record<string, unknown>;
 
 const fautes = (valeur: unknown, schema: typeof projetSchema | typeof narratifSchema = projetSchema): string[] =>
-  (validateDocument(schema, valeur) ?? []).map((f) => `${cheminLisible(f.lieu)} :: ${f.message}`);
+  (validateDocument(schema, valeur, catalogueDuProcessus()) ?? []).map((f) => `${cheminLisible(f.lieu)} :: ${f.message}`);
 
 /** Une entrée VALIDE de chaque registre, à l'id donné — son type exige une ligne par registre. */
 const ENTREE_DE: { readonly [K in CleDeRegistreNarratif]: (id: string) => Jouet } = {

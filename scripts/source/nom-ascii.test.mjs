@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { nomAscii } from './nom-ascii.mjs'
-import { estNomDExtraction, graphieDeChapitre, largeurDeChapitre } from '../../src/data/source/decoupe.ts'
+import { estNomDExtraction, graphieDeChapitre, largeurDeChapitre } from '../../src/data/schemas/source/decoupe.ts'
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url))
 const estAscii = (s) => [...s].every((c) => c.codePointAt(0) >= 0x20 && c.codePointAt(0) <= 0x7e)

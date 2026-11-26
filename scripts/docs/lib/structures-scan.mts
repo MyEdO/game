@@ -36,7 +36,7 @@ import { REGISTRIES } from './cibles-registres.mjs';
 import { defsDeDocument } from './slots-registre.mjs';
 import { choixDeclares, choixDesPayloadsDOp, introspecterDefs } from './zod-introspect.mjs';
 import { famillesConstruites, OP_DEFS } from '../../../src/data/schemas/grammaire/mecanique';
-import { IDS_PAR_ESPACE } from '../../../src/data/schemas/_ids.generated';
+import { IDS_PAR_ESPACE } from '../../../src/data/_ids.generated';
 import { collectionsDesDocuments } from '../../../src/data/schemas/grammaire/collection-cle';
 import { carteDuRecord, lireCleDEspace } from '../../../src/data/schemas/grammaire/cle-d-espace';
 import { conceptDe } from '../../../src/data/schemas/grammaire/concepts';

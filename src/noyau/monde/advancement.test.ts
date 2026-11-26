@@ -128,7 +128,7 @@ describe('buildAdvancementView — coûts & in-carrière depuis careerLevels.jso
 
   it('emplacement « (Au choix) » : Érudit propose un choix de spec de Savoir', () => {
     const v = buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'erudit' }));
-    const open = v.skillSlotsOpen.find((s) => s.group === 'Savoir');
+    const open = v.skillSlotsOpen.find((s) => s.options.some((o) => o.skill.id === 'savoir'));
     expect(open).toBeTruthy();
     expect(open!.options.length).toBeGreaterThan(0);
   });
@@ -176,9 +176,9 @@ describe('buildAdvancementView — match d\'entité possédée par id+spec (Issu
 
   it('Compétence à spec wildcard possédée : ownedAdvances lu par id+spec (Savoir (Empire))', () => {
     const v = buildAdvancementView({ battle: null, flags: {} }, hero({ career: 'erudit', careerLevel: 1, skills: [{ id: 'savoir', spec: 'empire', characteristic: 'intelligence', advances: 3 }] }));
-    const open = v.skillSlotsOpen.find((s) => s.group === 'Savoir');
+    const open = v.skillSlotsOpen.find((s) => s.options.some((o) => o.skill.id === 'savoir'));
     expect(open).toBeTruthy();
-    const empire = open!.options.find((o) => o.spec === 'empire');
+    const empire = open!.options.find((o) => o.skill.spec === 'empire');
     expect(empire).toBeTruthy();
     expect(empire!.ownedAdvances).toBe(3);
   });

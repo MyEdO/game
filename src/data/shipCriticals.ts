@@ -5,7 +5,7 @@ import type * as shipCriticalsDef from './schemas/defs/ship-criticals';
 import type * as riverCriticalsDef from './schemas/defs/river-criticals';
 import type { ShipLocation } from '../engine/combat';
 import type { GameOp } from '../engine/ops';
-import { datasetDe } from './datasets';
+import { datasetDe } from './schemas/datasets';
 
 const SHIP = datasetDe<typeof shipCriticalsDef>(shipCriticalsJson);
 const RIVER = datasetDe<typeof riverCriticalsDef>(riverCriticalsJson);

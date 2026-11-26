@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { effetsDeLAppel, SONS_DE_LA_PARTIE, TEINTE_DU_CRITIQUE, TEINTE_DU_FLOTTANT, type Effet } from './effetsDeLAppel';
-import { sonDEffet } from '../data/sons/registre';
+import { sonDEffet } from '../data/schemas/sons/registre';
 import type { ChargeDAttaque } from './bus';
 import type { Evenement } from './partie';
 import type { AttackResult } from '../engine/combat';

@@ -2,7 +2,7 @@
  *  (`ContenuDUnJeu`, `src/hote/contenu.ts`), que remettent son entrée du pont (`godot.ts`) et l'hôte texte de
  *  `.mcp.json` (`scripts/hote-texte.mjs --contenu`). */
 import type { ContenuDUnJeu } from '../../src/hote/contenu';
-import { lireLesFiches } from '../../src/data/dossiers';
+import { lireLesFiches } from '../../src/data/schemas/dossiers';
 import { campagnes } from './campagnes';
 import { scenario as arene } from './scenarios/arene';
 import { scenario as presetsEdo } from './scenarios/96-presets-edo';

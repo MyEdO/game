@@ -3,7 +3,7 @@
 pointeur). Son modèle se bâtit dans leur enveloppe convexe (`enveloppe`) : il garde l'encombrement de sa recette, sol
 compris, sans en recopier les primitives.
 
-Géométrie d'une primitive : `polygonesDePrimitive` de `src/data/props.types.ts`, la seule du catalogue, que
+Géométrie d'une primitive : `polygonesDePrimitive` de `src/data/schemas/props.types.ts`, la seule du catalogue, que
 `polygones.mjs` lance sur les primitives de la recette.
 
 Repère. La recette est en mètres, origine à l'ancre, `xM` à l'est, `yM` vers son front au cap d'identité
@@ -54,7 +54,7 @@ def vers_blender(x, y, h):
 VERSANTS = {"x+": vers_blender(1, 0, 0), "x-": vers_blender(-1, 0, 0), "y+": vers_blender(0, 1, 0),
             "y-": vers_blender(0, -1, 0)}
 """Le sens (x, y, z) de Blender où descend un prisme de la recette, par `slope` (`polygonesDePrimitive`,
-`src/data/props.types.ts`)."""
+`src/data/schemas/props.types.ts`)."""
 
 
 def boite(primitive):
@@ -75,7 +75,7 @@ def depuis_gltf(X, Y, Z):
 
 def polygones(primitives):
     """Les faces de chacune des `primitives`, chacune une liste de points `[xM, yM, hM]` : `polygonesDePrimitive` de
-    `src/data/props.types.ts`, lancé par `polygones.mjs`."""
+    `src/data/schemas/props.types.ts`, lancé par `polygones.mjs`."""
     return json.loads(lancer(ICI / "polygones.mjs", [], json.dumps(primitives)))
 
 

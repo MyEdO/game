@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import regles from './reglesOptionnelles.json';
 import { file } from './schemas/defs/reglesOptionnelles';
 import { validateDataset } from './schemas/validate';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 const regleSourcee = regles.find(({ source }) => source !== undefined)!;
 const { source, ...regleSansProvenance } = regleSourcee;
@@ -9,12 +10,12 @@ const maison = 'Motif d’arbitrage pour le test.';
 
 describe('Provenance des règles optionnelles', () => {
   it('accepte le dataset et une nouvelle entrée avec une raison maison seule', () => {
-    expect(validateDataset(file, regles)).toBeNull();
-    expect(validateDataset(file, [...regles, { ...regleSansProvenance, id: 'regle-maison-de-test', maison }])).toBeNull();
+    expect(validateDataset(file, regles, catalogueDuProcessus())).toBeNull();
+    expect(validateDataset(file, [...regles, { ...regleSansProvenance, id: 'regle-maison-de-test', maison }], catalogueDuProcessus())).toBeNull();
   });
 
   it('accepte une référence au livre seule', () => {
-    expect(validateDataset(file, [regleSourcee])).toBeNull();
+    expect(validateDataset(file, [regleSourcee], catalogueDuProcessus())).toBeNull();
   });
 
   it.each([
@@ -25,6 +26,6 @@ describe('Provenance des règles optionnelles', () => {
     ['un livre vide', { source: { ...source, book: '' } }, /Source › livre:/],
     ['un folio en chaîne', { source: { ...source, page: '150' } }, /Source › page:/],
   ] as const)('refuse %s', (_cas, provenance, diagnostic) => {
-    expect(validateDataset(file, [{ ...regleSansProvenance, ...provenance }])).toMatch(diagnostic);
+    expect(validateDataset(file, [{ ...regleSansProvenance, ...provenance }], catalogueDuProcessus())).toMatch(diagnostic);
   });
 });

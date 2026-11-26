@@ -3,7 +3,7 @@ import trappingsJson from './trappings.json';
 import siegeEnginesJson from './siege-engines.json';
 import { indexParId, memoParVersion } from './versionDataset';
 import type { TrappingData } from './index';
-import { datasetDe, type EntreeDe } from './datasets';
+import { datasetDe, type EntreeDe } from './schemas/datasets';
 import type * as apparencesDef from './schemas/defs/apparences';
 import type * as trappingsDef from './schemas/defs/trappings';
 import type * as siegeEnginesDef from './schemas/defs/siege-engines';

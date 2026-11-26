@@ -11,7 +11,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fenetreDIncantation, refusDuChoixCritique, refusDeLaForme, refusDuPasDeSurincantation, refusDeLaPose, refusDuReglage } from './fenetreDIncantation';
 import { castSpell } from './combatFlow';
 import { spells, findSpellById, type SpellData } from '../data/index';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { setDataset } from '../data/overrides';
 import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { createHero } from '../engine/character';

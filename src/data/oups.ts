@@ -7,7 +7,7 @@
  */
 import { oups } from './index';
 import oupsJson from './oups.json';
-import { deDeTirageDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, type RangeeDe } from './schemas/rangees';
 import type { DeDeTable } from '../engine/tables';
 import type * as tableauDesOups from './schemas/defs/oups';
 import { memoParVersion } from './versionDataset';

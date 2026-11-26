@@ -5,7 +5,7 @@
  * `postes` (cf. `monde/shipPostes.ts`). PUR.
  */
 import type { Equipe } from '../engine/relations';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import { isPosteManned } from './monde/shipPostes';
 import { battleSceneById } from './massBattleFlow';
 import type { Combatant, ShipPoste, FireArc } from '../engine/types';
@@ -23,7 +23,7 @@ export interface Station {
   kind: StationKind;
   pos: { x: number; y: number; z?: number };
   label: string;
-  /** id `ICON_DEFS` (registre `src/data/icons`) — pièce d'artillerie servie = `action/servir-l-engin`. */
+  /** id `ICON_DEFS` (registre `src/data/schemas/icons`) — pièce d'artillerie servie = `action/servir-l-engin`. */
   icon: IconId;
   /** Faction dérivée du `kind` de la coque : héros → allié, ennemi → ennemi, PNJ → neutre. */
   faction: Equipe | 'neutre';

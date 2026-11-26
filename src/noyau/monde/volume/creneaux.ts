@@ -3,9 +3,9 @@
  * qui ceinture une zone crénelée (`Layer.crenellated`), en faces du pivot, que le builder des murs
  * et le volume du monde (`./volume`) dessinent.
  */
-import type { WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/schemas/structureAppearance.types';
 import type { StructureAppearanceDef } from '../../../data';
-import type { EntreeVivante } from '../../../data/datasets';
+import type { EntreeVivante } from '../../../data/schemas/datasets';
 import { DIR4_ORDER, DIR8_DELTA } from '../../../geometry/dir8';
 import { isoPxToM } from '../iso';
 import { METRES_PER_LEVEL, gradeBetween } from '../relief';

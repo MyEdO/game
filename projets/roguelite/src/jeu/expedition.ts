@@ -10,8 +10,10 @@ import {
   isConditionLocked,
   isOutOfAction,
   refusDeDetermination,
+  gesteDeDetermination,
   auHameau,
   gesteDeLObjet,
+  gesteDIncanter,
   doter,
   saitSoigner,
   entretenirLesMaladies,
@@ -36,7 +38,6 @@ import {
   type IdActionAJet,
   LIEUX_DE_SEJOUR,
   MUNITIONS,
-  PEAGE_PAR_SALLE,
   PRIERE_DE_SOIN,
   PX_PAR_SALLE,
   SEMAINE_DE_REPOS,
@@ -55,6 +56,7 @@ import {
 } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
+import { voir } from './tutoriel';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 /** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
@@ -149,7 +151,7 @@ export const refusDeSeRelever = (h: Heros): string | null => refusDeDeterminatio
 export function seRelever(e: Etat, id: string): string {
   const h = herosDuGroupe(e).find((x) => x.c.id === id);
   if (!h) return 'Héros introuvable.';
-  return refusDeSeRelever(h) ?? auNoyau(e, h, [{ verbe: 'depenserLaDetermination', args: [id, 'retirerUnEtat', 'a-terre'] }]);
+  return refusDeSeRelever(h) ?? auNoyau(e, h, [(s) => gesteDeDetermination(s, id, 'retirerUnEtat', 'a-terre')?.geste]);
 }
 
 /** Le Béni `id` peut-il encore prier pour soigner pendant cette expédition ? */
@@ -162,7 +164,7 @@ export function prier(e: Etat, id: string, cibleId: string): string {
   const pretre = groupe.find((h) => h.c.id === id);
   if (!pretre || !peutPrier(e, pretre)) return 'Pas de prière possible.';
   e.expedition!.prieres.push(id);
-  const r = auHameau(groupe.map((h) => h.c), [{ verbe: 'incanterLeSort', args: [id, PRIERE_DE_SOIN, cibleId] }], e.graine++);
+  const r = auHameau(groupe.map((h) => h.c), [gesteDIncanter(id, PRIERE_DE_SOIN, cibleId)], e.graine++);
   for (const c of r.groupe) { const h = groupe.find((x) => x.c.id === c.id); if (h) h.c = c; }
   return r.journal.slice(-2).join(' ');
 }
@@ -427,18 +429,18 @@ function terminerEnDeroute(e: Etat, destinDepense: Readonly<Record<string, numbe
 export function rentrer(e: Etat, reussie: boolean): string[] {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
-  const peage = PEAGE_PAR_SALLE[e.batiments.peage] * x.index;
-  e.or += x.or + peage; e.trophees += x.trophees;
+  e.or += x.or; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
   ramasserLesMunitions(e);
   const jours = x.index;
-  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${peage ? `, +${peage} CO du péage` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
+  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);
   const partis = new Set(x.groupe);
   const sortie: Applique = { lignes, faits: [] };
   for (const h of herosDuGroupe(e)) purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
   e.expedition = null;
   if (jours) passerDesJours(e, jours, partis);
+  voir(e, 'retour');
   return lignes;
 }
 

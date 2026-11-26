@@ -38,7 +38,17 @@ import { porteeDeTir, type TrappingResolver } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
 import { effectiveChar } from '../../engine/characteristics';
-import { finite, expectedDamage, hitProbability, isNeutralized, spellActionValue, spellIsOffensive, spellTargetHarm, opValue } from './aiSpellValue';
+import {
+  finite,
+  expectedDamage,
+  hitProbability,
+  HORIZON_DE_BENEFICE,
+  isNeutralized,
+  spellActionValue,
+  spellIsOffensive,
+  spellTargetHarm,
+  opValue,
+} from './aiSpellValue';
 import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
 import { spellEffectOps } from '../../engine/flowCore';
 
@@ -55,7 +65,7 @@ import { groupMatch, groupesDe } from '../../engine/groups';
 import { isBestial, isTerritorial, isMindless, isStupid, degatsDeLEtatIgnores } from '../../engine/traits/dispatch';
 import { creatureAttacks } from '../../engine/creatureAttacks';
 import { ciblesAPulsion, isFrenzied, sourceCombattant, vise } from '../../engine/psychology';
-import { castInfoIsPrayer, prayerForActionBy } from '../../engine/magic';
+import { castInfoIsPrayer, prayerForActionBy, priereFeraitPecher } from '../../engine/magic';
 import { determinationDe } from '../../engine/talentEffects';
 
 // === TRACE DE DÉCISION IA (DEV uniquement, GATÉE) ============================================
@@ -1050,7 +1060,6 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // refEnemy : le héros le plus MENAÇANT visible (cible des buffs offensifs + opposition des Sorts de
   // Contact). Null si aucun héros visible → bénéfice marginal contre un mannequin neutre (aiSpellValue).
-  const HORIZON = 3; // K ≈ 3 Rounds : horizon de bénéfice d'un buff (borne le bénéfice marginal).
   const refEnemy: Combatant | null = shootableHeroes.length
     ? [...shootableHeroes].sort((a, b) => threatOf(b) - threatOf(a))[0]
     : (heroes[0] ?? null);
@@ -1065,7 +1074,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   for (const def of selfManeuversOf(enemy)) {
     if (!selfManeuverApplicable(enemy, def)) continue;
     let v = 0;
-    for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON });
+    for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON_DE_BENEFICE });
     if (v > 0) candidates.push({ action: { kind: 'manoeuvreSurSoi', maneuverId: def.id }, kind: 'manoeuvreSurSoi', utility: v, targetId: enemy.id, coord: pos });
   }
 
@@ -1077,7 +1086,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   if (!frenzied) {
     for (const sp of spells) {
       if (sp.active) continue; // Unicité : un effet/une invocation de CE sort est déjà actif → on ne le relance pas
-      const ctx = { landProb: sp.landProb, refEnemy, horizon: HORIZON };
+      const ctx = { landProb: sp.landProb, refEnemy, horizon: HORIZON_DE_BENEFICE };
       if (focalisable(sp) && sp.shape !== 'self' && spellIsOffensive(sp.data)) {
         // Focalisation (LDB 46 l.128-132) : le sort se lance au NI 0 après `rounds` Rounds. Son utilité (valeur et
         // menace de la cible, comme un coup) se répartit sur ces Rounds et celui de l'incantation, escomptée par la
@@ -1086,7 +1095,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
         const contactFallback = adjacentFoes.length > 0 && (hasMeleeWeapon || canShoot);
         if (!contactFallback && refEnemy) {
           const { rounds, landProbNI0 } = sp.focusState;
-          const full = spellActionValue(enemy, sp.data, { kind: 'unit', subject: refEnemy }, { landProb: landProbNI0, refEnemy, horizon: HORIZON });
+          const full = spellActionValue(enemy, sp.data, { kind: 'unit', subject: refEnemy }, { landProb: landProbNI0, refEnemy, horizon: HORIZON_DE_BENEFICE });
           const survival = Math.max(0.1, Math.min(1, 1 - dangerAt(pos) / Math.max(1, enemy.wounds.current)));
           const utility = (Weff.damageDealt * full + Weff.threat * threatOf(refEnemy)) * survival / (rounds + 1);
           candidates.push({ action: { kind: 'focalisation', spell: sp.id }, kind: 'focalisation', utility: Math.max(0, utility), targetId: '', coord: null });
@@ -1097,7 +1106,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       if (sp.shape === 'self') {
         // Sur soi (auto-buff / invocation centrée / auto-soin) : gardé par valeur > 0 (anti-spam naturel).
         const v = spellActionValue(enemy, sp.data, { kind: 'self' }, ctx);
-        if (v > 0) candidates.push({ action: { kind: 'incantation', targetId: enemy.id, spell: sp.id }, kind: 'incantation', utility: v, targetId: enemy.id, coord: pos });
+        if (v > 0 && !priereFeraitPecher(enemy, sp.id, enemy.id)) candidates.push({ action: { kind: 'incantation', targetId: enemy.id, spell: sp.id }, kind: 'incantation', utility: v, targetId: enemy.id, coord: pos });
       } else if (typeof sp.shape === 'object') {
         // ZdE : on choisit le CENTRE au meilleur NET. Une AoE pleut sur TOUS dans le rayon (indiscriminée,
         // RAW) → un sort OFFENSIF marque `Σ dégâts ENNEMIS − Σ TIR AMI` (alliés/soi pris dans le rayon) ;
@@ -1130,14 +1139,15 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
       } else if (spellIsOffensive(sp.data)) {
         // OFFENSIF mono-cible : UN candidat par cible visible + à portée. Le sort passe par
         // `attackUtility` (sa valeur + menace de la cible + killSecure − overkill, comme un tir/une mêlée).
-        for (const t of restrict(shootableHeroes).filter((h) => sp.range == null || fpDist(h) <= sp.range)) {
+        for (const t of restrict(shootableHeroes).filter((h) => (sp.range == null || fpDist(h) <= sp.range) && !priereFeraitPecher(enemy, sp.id, h.id))) {
           const v = spellActionValue(enemy, sp.data, { kind: 'unit', subject: t }, ctx);
           candidates.push({ action: { kind: 'incantation', targetId: t.id, spell: sp.id }, kind: 'incantation', utility: attackUtility(t, { kind: 'spell', value: v }), targetId: t.id, coord: t.pos ?? null });
         }
       } else {
         // BÉNÉFIQUE mono-cible (soin/buff sur un allié) : soi + escouade en portée + LdV ; gardé par valeur > 0.
+        // Une cible que la Prière ferait pécher est écartée (LDB 41 l.17).
         for (const f of [enemy, ...squad]) {
-          if (!f.pos) continue;
+          if (!f.pos || priereFeraitPecher(enemy, sp.id, f.id)) continue;
           if (f.id !== enemy.id && (!(sp.range == null || fpDist(f) <= sp.range) || !losAt(f.pos))) continue;
           const v = spellActionValue(enemy, sp.data, { kind: 'unit', subject: f }, ctx);
           if (v > 0) candidates.push({ action: { kind: 'incantation', targetId: f.id, spell: sp.id }, kind: 'incantation', utility: v, targetId: f.id, coord: f.pos });

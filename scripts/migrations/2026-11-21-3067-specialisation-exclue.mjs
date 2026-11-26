@@ -4,7 +4,7 @@
  * Entrées : src/data/talents.json (lue et écrite).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
 
 const chemin = new URL('../../src/data/talents.json', import.meta.url);

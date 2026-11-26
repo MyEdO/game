@@ -3,10 +3,11 @@
  * Blessures de porteur né sur ce profil (`blessuresPosees`), des listes de porteurs vides. Les coutures du moteur et la transition
  * de l'état réconcilient les Blessures de tout combattant qu'elles touchent (`blessuresReconciliees`,
  * `engine/characteristics.ts`) : une fixture qui omet une Caractéristique ou les Blessures n'est pas un
- * combattant. Aucune lecture du corpus de données.
+ * combattant. Aucune lecture du corpus de données, hors les États que pose `tombeDeTest`.
  */
 import { CHAR_KEYS, LOCALISATIONS_DE_COUP, type Characteristics, type Combatant } from './types';
 import { blessuresPosees } from './characteristics';
+import { applyZeroWounds } from './conditions';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Ce qu'un test fixe du combattant ; le profil se surcharge Caractéristique par Caractéristique. */
@@ -56,5 +57,12 @@ export function blessuresDeBase(base: number, current: number = base, porteur: O
 export function blesseDeTest(restantes: number, over: SurchargeDeCombattant = {}): Combatant {
   const c = combattantDeTest(over);
   c.wounds = { ...c.wounds, current: restantes };
+  return c;
+}
+
+/** Le combattant `c` tombé à 0 Point de Blessure, ses États posés par `applyZeroWounds`. LDB 18 l.15 */
+export function tombeDeTest(c: Combatant): Combatant {
+  c.wounds.current = 0;
+  applyZeroWounds(c, { lignes: [], faits: [] });
   return c;
 }

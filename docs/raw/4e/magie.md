@@ -328,7 +328,7 @@ Incanter à proximité d'une **source de Corruption** (voir LDB 19) rend le cont
 
 **Implémente :** [État calculé](../implemente.generated.md#4emagietableau-des-incantations-imparfaites-majeures-d100-verbatim)
 
-> **Note :** La table de la **Colère des dieux** (prières, LDB 40 l.52-101) est implémentée dans `WRATH` (`src/engine/miscast.ts` l.164-206) mais appartient au domaine **Religion** → voir `religion.md` (à construire).
+> **Note :** La table de la **Colère des dieux** (prières, LDB 40 l.52-101) est implémentée dans `src/data/miscast.json` (table `miscast-colere`, lue par `src/engine/miscast.ts`) mais appartient au domaine **Religion** → voir `religion.md`, « Table d100 — Colère des dieux (verbatim) ».
 
 ---
 
@@ -1724,7 +1724,7 @@ Table de synthèse des modificateurs (Incantation / Focalisation / Saturation) e
 
 - Tableau des Incantations Imparfaites Mineures (20 entrées, 01–00) — verbatim LDB 46 l.34-55.
 - Tableau des Incantations Imparfaites Majeures (20 entrées, 01–00) — verbatim LDB 46 l.58-80.
-- Tableau de la Colère des dieux (LDB 40 l.52-101) → **non transcrit ici** — appartient à `religion.md` (à construire). Implémenté dans `WRATH` (`src/engine/miscast.ts` l.164-206).
+- Tableau de la Colère des dieux (LDB 40 l.52-101) → **non transcrit ici** — appartient à `religion.md`, « Table d100 — Colère des dieux (verbatim) ». Implémenté dans `src/data/miscast.json` (table `miscast-colere`).
 
 ### Refs-code couvertes
 

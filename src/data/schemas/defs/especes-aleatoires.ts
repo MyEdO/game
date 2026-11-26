@@ -5,7 +5,7 @@ import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, plageSchema, raceKeySchema } from '../grammaire/valeurs';
 import type { DiceSpec } from '../../../engine/dice';
 import { raffinementDeCatalogue, ref, refMorte } from '../grammaire/ref';
-import { datasetDe, type DatasetDe } from '../../datasets';
+import { datasetDe, type DatasetDe } from '../datasets';
 import speciesJson from '../../species.json';
 import reglesJson from '../../reglesOptionnelles.json';
 import { valeurConforme, type FormeDeControle } from './reglesOptionnelles';

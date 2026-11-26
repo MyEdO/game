@@ -298,7 +298,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['hote', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
       ['godot', 'hote', 'src/hote/projection.ts', null], // aucune porte vers `hote`
       ['scenes', 'noyau', 'src/noyau/combatFlow.ts', null], // aucune porte pour `scenes`
-      ['roguelite', 'noyau', 'src/noyau/combatFlow.ts', null], // l'ouverture retire la porte (#4931)
+      ['roguelite', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'], // un projet lit le noyau par sa porte (#4931)
       ['constructor', 'noyau', 'src/noyau/x.ts', null],
     ];
     expect(portes.map(([de, vers, cible]) => porteManquee(de, vers, cible))).toEqual(portes.map(([, , , v]) => v));
@@ -670,7 +670,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       REGLE, REGLE, REGLE, REGLE,
       'passe',
       REGLE, INSTR, INSTR, REGLE, INSTR, REGLE,
-      'passe', REGLE, 'passe',
+      'passe', REGLE, REGLE,
       INSTR, INSTR, INSTR, INSTR, INSTR, INSTR,
       REGLE, 'passe',
       REGLE, INSTR,

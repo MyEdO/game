@@ -7,6 +7,7 @@ import { pregens } from './index';
 import { meta } from './schemas/defs/pregens';
 import { validateDataset } from './schemas/validate';
 import { versDisque } from './schemas/grammaire/prose';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 /** Un RNG qui rend toujours la borne basse (`'min'`) ou haute (`'max'`) du tirage demandé. */
 const borne = (cote: 'min' | 'max'): RNG => ({ int: (min, max) => (cote === 'min' ? min : max) });
@@ -40,9 +41,9 @@ describe('prétirés officiels — fiches imprimées figées (#3884)', () => {
 
   it('une entrée sans `source` est refusée au parse', () => {
     const disque = versDisque(pregens);
-    expect(validateDataset('pregens.json', disque)).toBeNull();
+    expect(validateDataset('pregens.json', disque, catalogueDuProcessus())).toBeNull();
     const sansSource = disque.map(({ source: _source, ...d }) => d);
-    expect(validateDataset('pregens.json', sansSource)).not.toBeNull();
+    expect(validateDataset('pregens.json', sansSource, catalogueDuProcessus())).not.toBeNull();
   });
 
   it('`GROUPE_VITRINE` désigne des prétirés, bâtis dans son ordre', () => {

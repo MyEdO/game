@@ -7,7 +7,7 @@
 import type { CascadeTableDone, RevealEntry } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
 import { toRecapLines } from './recapLine';
-import type { IconIdGenerated as IconId } from '../data/icones.generated';
+import type { IconIdGenerated as IconId } from '../data/schemas/icones.generated';
 import type { FaitApplique } from '../engine/faits';
 
 /** Icône d'une étape de révélation, PAR kind — exhaustif (ajouter un kind force son icône). */

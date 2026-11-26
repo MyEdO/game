@@ -48,7 +48,7 @@ import { STAKES, flowStakeRef, combatStakeRef, resolveStake, seaShanties, maladi
 import { traitLabelById } from '../engine/traits/dispatch';
 import { conditionIdInText, conditionSeverity } from '../engine/conditions';
 import { versionDuDataset } from '../data/versionDataset';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { deFixe } from '../engine/dice.testkit';
 
 const TRAITS_LIVRES = [...traits];

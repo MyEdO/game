@@ -40,7 +40,7 @@ import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import type { GesteFermable } from './actionsDuNoyau';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
 import {
-  libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDAugmentation, refusDAchatDuSort, prixDuSort,
+  refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDAugmentation, refusDAchatDuSort, prixDuSort,
 } from './depenseDePx';
 import {
   buyCharAdvance as engineBuyCharAdvance,
@@ -81,7 +81,7 @@ import { isSorceryDomain } from '../engine/domainAttributes';
 import { itemCapability } from '../engine/capabilities';
 import { eligibleTalent } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { levelsForCareer, byId, careerLabelFor, findApparenceById, findSpellById, refLabel, type SpellData } from '../data/index';
+import { levelsForCareer, careerLabelFor, findApparenceById, findSpellById, refLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
 import { decidingSeat, seatSlotsRemaining } from './netOwnership';
 import { rangDAjout, rangsDuGroupe, seatOwns } from './sieges';
@@ -437,15 +437,15 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const ctx = careerCtx(clone);
-    const skillLabel = byId('skill', skillId)?.label ?? skillId; // AFFICHAGE (messages) + conversion pour le moteur
+    const what = refLabel('skills', skill); // AFFICHAGE seul
     const known = clone.skills.some((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec));
     const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
     const inC = status != null;
     if (!known && !inC) {
-      msg = t('pf.skillNotAcquirable', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec) });
+      msg = t('pf.skillNotAcquirable', { name: nomDe(clone), what: what });
       return h;
     }
-    const refus = refusDAugmentation(get(), clone, { kind: 'competence', competence: skill }, inC, libelleAvecSpec(skillLabel, spec), discount);
+    const refus = refusDAugmentation(get(), clone, { kind: 'competence', competence: skill }, inC, what, discount);
     if (refus) {
       msg = refus;
       return h;
@@ -454,7 +454,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
     if (!known) clone.skills.push({ id: skillId, spec, characteristic: skillCharacteristicById(skillId), advances: 0 });
     const r = engineBuySkillAdvance(clone, skill, inC, discount);
     if (!r.ok) {
-      msg = t('pf.refused', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec), reason: r.reason ?? '' });
+      msg = t('pf.refused', { name: nomDe(clone), what: what, reason: r.reason ?? '' });
       return h;
     }
     // Première allocation via un slot joker libre → désignation automatique (LDB 09 l.38).
@@ -462,7 +462,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
       const slot = freeSlotFor(ctx.sSlots, ctx.designations, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       if (slot) designateSlot(clone, ctx.career, slot, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     }
-    msg = t('pf.advanceBought', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec), cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
+    msg = t('pf.advanceBought', { name: nomDe(clone), what: what, cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);

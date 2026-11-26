@@ -1,7 +1,7 @@
 /**
  * L'ADRESSE DE PROSE (`descRef`, #1389) d'un formulaire tiré du schéma (#3606 M2g) : ce que l'auteur en choisit, livre,
  * chapitre, section, genre de fragment, blocs, ou table, ligne et colonne d'une cellule, sur le chapitre que l'hôte a
- * chargé, et le scellement de chaque fragment écrit (`scelle`, `src/data/source/decoupe.ts`), seul point où naît une
+ * chargé, et le scellement de chaque fragment écrit (`scelle`, `src/data/schemas/source/decoupe.ts`), seul point où naît une
  * empreinte : l'auteur ne la saisit jamais.
  *
  * Le chapitre arrive par l'hôte, du `Source/` que sert le poste de développement (`/source/manifest.json` et
@@ -9,11 +9,11 @@
  * garde par `livre|chapitre` (`cleDuChapitre`), `null` s'il n'a pas pu se charger. Les libellés et les refus sont ceux
  * de l'éditeur web (`src/ui/compendium/DescRefField.tsx`).
  */
-import type { ChapitreManifeste, Manifeste } from '../../data/source/chapitres';
+import type { ChapitreManifeste, Manifeste } from '../../data/schemas/source/chapitres';
 import {
   MAX_FRAGMENTS, MIN_FRAGMENT, estErreur, estGraphieDeChapitre, fragmentBlocs, fragmentCellule, memeTexte, parseChapitre, resoudreAdresse, scelle, stripSpans, tablesDeLaLigne, tablesOf,
   type ChapitreParse, type CodeErreur, type DescRef, type ErreurResolution, type Fragment, type Section, type TableDeSection,
-} from '../../data/source/decoupe';
+} from '../../data/schemas/source/decoupe';
 import { estAdresseDeProse } from '../../data/schemas/grammaire/valeurs';
 import { coDescendre, noeudsAuChemin, ouverts, type PointDuChemin } from '../../data/schemas/grammaire/descente';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';

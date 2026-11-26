@@ -6,14 +6,14 @@
  *
  * ENTRÉE : `src/data/etats.json` — seul document qui porte `exceptSkills` (mesure du 2026-09-24 :
  * 1 op, État `brise`, 2 ids).
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`), sans saut de ligne final.
+ * FORMATAGE : `serializeDataset` (`src/data/schemas/serialize.ts`), sans saut de ligne final.
  * IDEMPOTENT : une valeur déjà objet traverse intacte ; rejouée sur l'état final, rien ne s'écrit.
  * FAIL-FAST : `exceptSkills` non-tableau, ou élément ni chaîne ni `{ id }` → rien n'est écrit, sortie 1.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/etats.json');

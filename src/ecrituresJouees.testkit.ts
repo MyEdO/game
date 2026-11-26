@@ -36,7 +36,7 @@ import { boutonDeLEdition, gesteDuFormulaire, inspecteurDeLaSession, zonesDeLEdi
 import type { Bouton, Choix, Formulaire, Jeu, Ligne } from './hote/elements';
 import { jeuDuFormulaire, marcher, type BancDuFormulaire } from './formulaireJoue.testkit';
 import { psychologies } from './data';
-import { entreesDesFiches } from './data/dossiers';
+import { entreesDesFiches } from './data/schemas/dossiers';
 import { ouverts } from './data/schemas/grammaire/descente';
 import { auChemin, estObjet } from './lib/objet.mjs';
 import { auditerLEditabilite, orphanFields, programmeDuPerimetre, RACINES, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';

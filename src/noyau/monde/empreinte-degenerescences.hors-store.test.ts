@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { idDeFixture } from '../../data/idDeFixture.testkit';
 import { props } from '../../data';
-import { empreinteDeriveeDuProp, type PropData } from '../../data/props.types';
+import { empreinteDeriveeDuProp, type PropData } from '../../data/schemas/props.types';
 import { DIR4_ORDER } from '../../geometry/dir8';
 import { propFootTiles } from './footprint';
 import { emptyScene, isWalkable, sceneMetresPerTile } from './scene';

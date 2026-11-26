@@ -20,7 +20,7 @@
  * sont les valeurs RAW citées, ou des choix documentés quand le canon est muet.
  */
 import { nomDe } from './nom';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import { Combatant } from './types';
 import type { Possession } from './possession';
 import { RNG } from './dice';
@@ -80,7 +80,7 @@ export function libelleDeDistance(d: Distance): string {
   return t('distance.valeur', { valeur: Math.round(d.valeur), unite: t(`distance.${d.unite}`) });
 }
 
-/** `IconId` du pictogramme d'un mode de voyage (registre `src/data/icons/`, famille `voyage/*`) :
+/** `IconId` du pictogramme d'un mode de voyage (registre `src/data/schemas/icons/`, famille `voyage/*`) :
  *  donnée `vehicle.icon` ; `'pied'`/`'monture'`/`'mer'` → id fixe, défaut véhicule → `voyage/diligence`. */
 export function travelModeIcon(mode: TravelMode): IconId {
   if (mode === 'pied') return 'voyage/a-pied';

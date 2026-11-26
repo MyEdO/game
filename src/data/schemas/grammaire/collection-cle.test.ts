@@ -36,6 +36,7 @@ import { schema as schemaDesTailles } from '../defs/sizes';
 import { idDe } from './ref';
 import { conditionSchema } from './mecanique';
 import { estListeSansCle, listeSansCle } from './liste-sans-cle';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const nomDeMarque = (m: MarqueDeCollection | undefined): string | undefined => (m?.forme === 'liste' ? m.nom : m?.sous);
 const nomDe = (n: unknown): string | undefined => nomDeMarque(collectionDe(n));
@@ -160,7 +161,7 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
 
   it.each(CAS)('%s en double : `projetSchema` et `parseProject` la refusent', (_nom, muter, liste) => {
     const doc = doublon(muter);
-    const fautes = validateDocument(projetSchema, doc);
+    const fautes = validateDocument(projetSchema, doc, catalogueDuProcessus());
     expect(fautes?.map((f) => `${cheminLisible(f.lieu)}: ${f.message}`)).toEqual([expect.stringMatching(new RegExp(`${liste} « [^»]+ »: « [^»]+ » dupliqué`))]);
     let refus: unknown;
     try {
@@ -174,7 +175,7 @@ describe('unicité PROUVÉE à la porte — un id répété dans une liste à cl
 
   it('`sceneSchema` seul refuse une entité répétée (la scène VIVANTE de l’éditeur passe par lui)', () => {
     const scene = doublon((d) => repete(d.scenes[0].entities)).scenes[0];
-    expect(validateDocument(sceneSchema, scene)?.map((f) => f.message)).toEqual([expect.stringMatching(/dupliqué : « id » identifie l’élément/)]);
+    expect(validateDocument(sceneSchema, scene, catalogueDuProcessus())?.map((f) => f.message)).toEqual([expect.stringMatching(/dupliqué : « id » identifie l’élément/)]);
   });
 });
 

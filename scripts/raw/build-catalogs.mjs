@@ -12,7 +12,7 @@ import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, chapterFile as chapterFileLib, coeursDuRegistre, livresDeCatalogue, pagesDeLAtlas, readText, classeDePage } from './_lib.mjs'
-import { titreDuFichier } from '../../src/data/source/decoupe.ts'
+import { titreDuFichier } from '../../src/data/schemas/source/decoupe.ts'
 import { lancerDepuisCLI } from '../docs/lib/ecriture-derives.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 

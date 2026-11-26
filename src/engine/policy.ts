@@ -15,10 +15,10 @@
  * quand le passage en porte une) ; les formes réelles sont mesurées au schéma de la donnée.
  */
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
-import { datasetDe, type EntreeDe } from '../data/datasets';
+import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import type * as reglesOptionnellesDef from '../data/schemas/defs/reglesOptionnelles';
 import { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
-import { bumperDataset, indexParId } from '../data/versionDataset';
+import { bumperLesRegles, indexParId } from '../data/versionDataset';
 import type { IdsParEspace, ValeurDeRegle } from '../data/schemas/_ids.generated';
 import { t } from '../i18n';
 
@@ -84,13 +84,13 @@ function surcharger(id: RegleOptionnelleId, value: RuleValue): void {
   const refus = refusDeSurcharge(id, value);
   if (refus) throw new Error(refus);
   overrides.set(id, value);
-  bumperDataset('reglesOptionnelles');
+  bumperLesRegles();
 }
 
 /** Retire la surcharge → retour au défaut. */
 export function resetRule(id: RegleOptionnelleId): void {
   regleExigee(id);
-  if (overrides.delete(id)) bumperDataset('reglesOptionnelles');
+  if (overrides.delete(id)) bumperLesRegles();
 }
 
 /** Un jeu de règles typé par id du registre, chaque valeur au type de SA règle (scénario, lancement). */
@@ -103,6 +103,10 @@ export const idsDuJeu = (regles: JeuDeRegles): RegleOptionnelleId[] => Object.ke
 export function poserLesRegles(regles: JeuDeRegles): void {
   for (const id of idsDuJeu(regles)) setRule(id, regles[id]!);
 }
+
+/** Deux jeux de règles maison portent-ils les mêmes valeurs ? */
+export const memesRegles = (a: Readonly<Record<string, unknown>>, b: Readonly<Record<string, unknown>>): boolean =>
+  Object.keys(a).length === Object.keys(b).length && Object.entries(a).every(([id, v]) => b[id] === v);
 
 /** Snapshot des surcharges (pour persistance). */
 export function ruleOverrides(): Record<string, RuleValue> {
@@ -138,9 +142,8 @@ export function refusDesSurcharges(o: Readonly<Record<string, unknown>>): RefusD
 export function loadRuleOverrides(o: Readonly<Record<string, unknown>>): void {
   const refus = refusDesSurcharges(o);
   if (refus.length) throw new Error(refus.map((r) => r.raison).join(' ; '));
-  const chargees = Object.entries(o);
-  if (chargees.length === overrides.size && chargees.every(([id, valeur]) => overrides.get(id) === valeur)) return;
+  if (memesRegles(o, ruleOverrides())) return;
   overrides.clear();
-  for (const [id, valeur] of chargees) overrides.set(id, valeur as RuleValue);
-  bumperDataset('reglesOptionnelles');
+  for (const [id, valeur] of Object.entries(o)) overrides.set(id, valeur as RuleValue);
+  bumperLesRegles();
 }

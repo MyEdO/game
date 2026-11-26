@@ -15,7 +15,7 @@ import {
 } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import type * as advancementCostsDef from '../data/schemas/defs/advancementCosts';
-import { datasetDe } from '../data/datasets';
+import { datasetDe } from '../data/schemas/datasets';
 import { findTableEntryIndex, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';
@@ -74,11 +74,6 @@ export function coutDeLAugmentation(hero: Combatant, cible: CibleDAugmentation, 
   const bande = table[i];
   const base = cible.kind === 'caracteristique' ? bande.coutCarac : bande.coutCompetence;
   return { ok: true, cout: inCareer ? Math.max(1, base - discount) : base * m.horsCarriere.coefficient };
-}
-
-/** Coût en PX de la 1re Augmentation, en carrière, d'une Compétence que `hero` ne connaît pas encore. */
-export function coutDeLaPremiereAugmentation(hero: Combatant): number {
-  return tablesDeCout()[cleDeProgression(hero)][0].coutCompetence;
 }
 
 /** Coût en PX de la prochaine prise du Talent (`talentId`, `spec`) par `hero` (`talentAcquisitions`). LDB 07 l.105,

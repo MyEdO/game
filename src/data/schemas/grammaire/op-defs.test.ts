@@ -22,6 +22,7 @@ const premiereCondition = (doc: typeof MISCAST_TABLES) => {
   return op;
 };
 import { blessuresSurLeProfil, blessuresDeBase } from '../../../engine/combattantDeTest.testkit';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 describe('OP_DEFS — payload strict par op, refus au site', () => {
   it('chaque famille garde les slots directs et confie les opérations imbriquées à leur propre entrée', () => {
@@ -123,18 +124,18 @@ describe('OP_DEFS — payload strict par op, refus au site', () => {
   });
 
   it('ops de miscast : un État hors du registre est refusé au chargement, par la référence d’État de l’op `condition` (#1473)', () => {
-    expect(validateDataset('miscast.json', MISCAST_TABLES)).toBeNull();
+    expect(validateDataset('miscast.json', MISCAST_TABLES, catalogueDuProcessus())).toBeNull();
     for (const op of ['condition', 'removeCondition']) {
       const doc = structuredClone(MISCAST_TABLES);
       Object.assign(premiereCondition(doc), { op, id: { id: 'etat-fantome' } });
-      expect(validateDataset('miscast.json', doc), op).toContain('« etat-fantome » est absent du catalogue des états (etats.json).');
+      expect(validateDataset('miscast.json', doc, catalogueDuProcessus()), op).toContain('« etat-fantome » est absent du catalogue des états (etats.json).');
     }
   });
 
   it('ops de miscast : une op `condition` sans État est refusée au chargement, par son payload canonique', () => {
     const doc = structuredClone(MISCAST_TABLES);
     Reflect.deleteProperty(premiereCondition(doc), 'id');
-    expect(validateDataset('miscast.json', doc)).toMatch(/GameOp « condition » .*id/s);
+    expect(validateDataset('miscast.json', doc, catalogueDuProcessus())).toMatch(/GameOp « condition » .*id/s);
   });
 
   it('une op inconnue est nommée au discriminant', () => {

@@ -10,7 +10,7 @@
 // O, l'ensemble des chiffres d'onglet d'un fichier, se tire de la DONNÉE `onglets` de sa liste de
 // découpe (`scripts/raw/decoupes/<id>.json`), jamais d'une devinette.
 import characteristics from '../../../src/data/characteristics.json' with { type: 'json' }
-import { cellulesDe, estSeparateur, stripSpans } from '../../../src/data/source/decoupe.ts'
+import { cellulesDe, estSeparateur, stripSpans } from '../../../src/data/schemas/source/decoupe.ts'
 import { nomsDeLaListe } from '../_lib.mjs'
 import { EXEMPTIONS_MOBILIER } from '../../guards/lib/mobilierExemptions.mjs'
 import { positionsDesAncres } from '../../guards/lib/stock.mjs'

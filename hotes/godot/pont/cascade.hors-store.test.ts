@@ -15,7 +15,7 @@ const NAVIGATION = ['jetValider@cascade', 'jetLancer@cascade*', 'fenetreFermer@c
 
 describe('Entrée dans la cascade', () => {
   it('chaque rangée jetée puis l’étape validée ; le choix d’une étape attendu avant sa navigation ; le Coup Critique seul', () => {
-    let { suite } = drainer(appel, appel('demarrer', { scenario: 'bestiaire', graine: 5 }));
+    let { suite } = drainer(appel, appel('demarrer', { scenario: 'bestiaire', graine: 4 }));
     const vus = { batchValide: false, choix: false, critique: false };
     let meme = { cle: '', fois: 0 };
     for (let pas = 0; pas < 300 && !(vus.batchValide && vus.choix && vus.critique); pas++) {
@@ -31,10 +31,13 @@ describe('Entrée dans la cascade', () => {
         }
         if (focus) jeu = focus.jeu;
         else {
-          const choix = suite.vue.zones['fenetre.reglages'].find((g): g is Choix => g.type === 'choix' && g.id === 'jetRegler@cascade#choix');
+          // Une fenêtre hors étape (le Destin d'un héros qui tombe, LDB 17 l.31) porte son choix parmi ses gestes.
+          const choix = fenetre.etape
+            ? suite.vue.zones['fenetre.reglages'].find((g): g is Choix => g.type === 'choix' && g.id === 'jetRegler@cascade#choix')
+            : gestes.find((g): g is Choix => g.type === 'choix');
           expect(choix, `sans focus, la fenêtre ${fenetre.cle} attend un choix`).toBeDefined();
           expect(gestes.map((g) => g.id).filter((id) => NAVIGATION.includes(id)), 'ni valider, ni tout résoudre, ni terminer avant le choix').toEqual([]);
-          vus.choix = true;
+          if (fenetre.etape) vus.choix = true;
           jeu = choix!.valeurs[0].jeu;
         }
         const cle = `${fenetre.etape?.id}/${JSON.stringify(jeu)}`;

@@ -144,7 +144,7 @@ export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
   defense: { mode: 'self', drive: paireDuJet('defense') },
   maladresse: { mode: 'self', drive: paireDuJet('maladresse') },
   test: { mode: 'self', drive: paireDuJet('test') },
-  incantation: { mode: 'choice', autoDrive: paireDuJet('incantation') }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante (sans surincanter)
+  incantation: { mode: 'choice', autoDrive: paireDuJet('incantation') }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante et surincante (`aiOvercastPlan`)
   desengagement: { mode: 'choice', autoDrive: paireDuJet('desengagement') }, // Rapide : le joueur choisit (Fuir / Esquiver / sacrifier) ; Auto-combat : la décision de l'IA l'a réglé
   testEtendu: { mode: 'choice' },   // multi-participant (rare en combat)
   enfoncerLaPorte: { mode: 'choice' },  // multi groupOwner (rare en combat)

@@ -22,7 +22,7 @@ geste ; un défaut du kit partagé, du pont ou d'une zone voisine revient à l'o
   un écart d'un ou deux pixels ne se poursuit pas. Une cote de maquette se convertit par le facteur de
   `maquettes.json`.
 - **Tout style vit dans le thème** : jetons `Dessin/colors/*` de `art/theme.tres`, thème de portée de `art/`,
-  cadres de `src/data/cadres/defs/`, matières `art/matiere--<m>.tres`, icônes de `src/data/icons/defs/`. Jamais
+  cadres de `src/data/schemas/cadres/defs/`, matières `art/matiere--<m>.tres`, icônes de `src/data/schemas/icons/defs/`. Jamais
   de `theme_override_*`, de `StyleBoxFlat` neuf ni de couleur littérale dans une scène ; l'arithmétique de
   disposition vit dans `hotes/godot/projet/scripts/mise_en_page.gd`. Une variante est une `forme` de sa zone, jamais un type neuf.
   Une pièce qui manque se dessine au catalogue, pour tous les écrans.

@@ -24,7 +24,7 @@
 // `coeursDuRegistre` vit dans `_lib.mjs`, avec la lecture du registre : c'est la MÊME population
 // qui ouvre les dossiers de l'Atlas (`pagesDeLAtlas`) et les périmètres d'extraction.
 // DOSSIER DE CHAPITRE (#2290) — la fiche `projets/<projet>/dossiers/<ABBR>/<NN>.json` a UNE définition,
-// `ficheDeDossier` (`src/data/source/dossier.ts`) :
+// `ficheDeDossier` (`src/data/schemas/source/dossier.ts`) :
 //   node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]
 //     args de `.claude/workflows/dossier-de-chapitre.js` : ses familles, chacune avec le préfixe de ses
 //     ids, son minimum d'entrées et la forme JSON d'une entrée, PROJETÉS de `ficheDeDossier` par
@@ -40,7 +40,7 @@ import { chargerDossiers } from './lib/dossiers.mjs'
 import { dossiersDesProjets } from './lib/fichiersCitants.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 import { depotDe, shaDe } from '../guards/lib/gitPorte.mjs'
-import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, ficheDeDossier } from '../../src/data/source/dossier.ts'
+import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, ficheDeDossier } from '../../src/data/schemas/source/dossier.ts'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'

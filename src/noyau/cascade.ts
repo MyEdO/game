@@ -17,7 +17,7 @@
  */
 import { nomDe } from '../engine/nom';
 import type { PlayerText } from '../i18n/playerText';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { Get, PatchDeFlux, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Applique, FaitApplique } from '../engine/faits';

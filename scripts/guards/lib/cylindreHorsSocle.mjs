@@ -1,6 +1,6 @@
 // GARDE « géométrie recalculée à la main » (#1343 lot C, design `.superpowers/sdd/1343-lot-c/
 // design-cylindre-couche.md`, décision 3) : aucun code de `src/**` ni de `scripts/**` ne BRANCHE sur
-// la valeur `cylinder` du discriminant `kind` hors du SOCLE, `src/data/props.types.ts`
+// la valeur `cylinder` du discriminant `kind` hors du SOCLE, `src/data/schemas/props.types.ts`
 // (`polygonesDePrimitive`, `empriseLocaleM`, `erreursDePrimitive`). Le schéma
 // (`src/data/schemas/defs/props.ts`) DÉCLARE la forme par `z.literal`, il ne branche pas dessus. Une
 // emprise, une hauteur ou une demi-largeur relue sur `radiusM`/`longueurM` suppose un axe ; elle se
@@ -9,7 +9,7 @@
 // LIMITE : garde LEXICALE — une comparaison portée par une variable (`p[k] === nom`) lui échappe.
 
 /** Le SOCLE : ce n'est pas une exemption, c'est l'endroit où la branche par forme a le droit de vivre. */
-export const SOCLE = ['src/data/props.types.ts'];
+export const SOCLE = ['src/data/schemas/props.types.ts'];
 
 /** Une BRANCHE par forme de cylindre : comparaison stricte d'égalité ou d'inégalité sur `kind` (avec
  *  ou sans chaînage optionnel), ou `case` d'un `switch`. */

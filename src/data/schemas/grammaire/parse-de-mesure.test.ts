@@ -15,7 +15,7 @@ import { INSTANCIABLE_PAR_ID } from './sousListes';
 import { famillesConstruites, gameOpSchema, refDEtatSchema } from './mecanique';
 import { OBJETS_DU_PROJET, ouReserve } from './valeurs';
 import { declarationDEnfants, descendre } from './descente';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import { DEFS_DE_DOCUMENT } from '../validate';
 import { conditionIds } from '../../index';
 import { lireDocuments } from '../../../../scripts/docs/lib/structures-scan.mjs';

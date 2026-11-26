@@ -1,7 +1,7 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { resolveStake } from './index';
 import { critiqueEntries } from './criticals';
-import { rangeesDe } from './rangees';
+import { rangeesDe } from './schemas/rangees';
 import { resetData, setDataset } from './overrides';
 import miscastRawJson from './miscast.json';
 import structureCriticalsJson from './structure-criticals.json';

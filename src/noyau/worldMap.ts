@@ -10,7 +10,7 @@
  * par jour + Effects), cible d'embuscade du « Attaqués ! », heures de voyage/jour et plafond de
  * marche forcée au niveau carte.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { Scene } from './monde/scene';
 import type { CampaignVessel } from './etat';
 import { milieuDeLaCoque } from '../engine/coque';
@@ -67,7 +67,7 @@ export interface MapPlace extends ChampsDAmarrage {
   scene: { id: string };
   /** Point d'arrivée nommé dans la scène (sinon heroStart). */
   entry?: string;
-  /** Icône du médaillon (id du registre src/data/icons), défaut `navigation/point-d-entree`. */
+  /** Icône du médaillon (id du registre src/data/schemas/icons), défaut `navigation/point-d-entree`. */
   icon?: IconId;
   /** Profil COMMERCIAL de port (Index des ports, MDG 15 l.439-506) — présent = ce lieu est un port
    *  maritime (commerce, événements d'escale, chantier). `ref` (#217) : id de
@@ -370,7 +370,7 @@ export type ServiceDHebergement = ServiceResolu & { category: 'auberge'; rest: R
  *  l'auberge : un établissement d'hébergement, ou un service sans repos. */
 export type ResolvedPlaceService = ServiceDHebergement | (ServiceResolu & { category: Exclude<PlaceServiceCategory, 'auberge'>; rest?: never });
 
-/** Icône (id du registre `src/data/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
+/** Icône (id du registre `src/data/schemas/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
  *  hub, le plan et l'aperçu d'éditeur. */
 export function serviceIcon(s: ResolvedPlaceService): IconId {
@@ -611,6 +611,8 @@ import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { versDisque } from '../data/schemas/grammaire/prose';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
  *  L1b, posée par l'enveloppe de `document()` depuis #1552. Le trio `id`/`label`/`versionContenu`
@@ -677,7 +679,7 @@ export function documentDeProjet(
 }
 
 /** Vue TS du document PROUVÉ par `projetSchema`. Le type se dérive par `DatasetDe`/`EntreeDe`
- *  (`data/datasets.ts`) ; la vue `ProjectDoc` reste parce qu'aucun sens d'assignation ne tient entre
+ *  (`data/schemas/datasets.ts`) ; la vue `ProjectDoc` reste parce qu'aucun sens d'assignation ne tient entre
  *  elle et le dérivé (`layers` optionnel au schéma, requis dans `Scene` ; `effectZones` divergent). */
 type CarteDuDocument = Omit<WorldMap, 'places'> & {
   places: (Omit<MapPlace, 'port'> & { port?: PortDuDocument })[];
@@ -727,8 +729,8 @@ export function refusDeForme(cause: CauseDeRefus, chemin: readonly (string | num
  *  FK intra-document de `projetSchema` (`entity.presetId` → `narratif.presetsPnj`, références narratives
  *  des Effects) restent à la porte du projet : une scène seule n'a pas de narratif. Ce qui suit la porte
  *  est une faute du jeu, et se propage. */
-export function parseSceneDeProjet(scene: unknown): Scene {
-  const refus = validerFormeVivante(sceneSchema, scene);
+export function parseSceneDeProjet(scene: unknown, cat: Catalogue = catalogueDuProcessus()): Scene {
+  const refus = validerFormeVivante(sceneSchema, scene, cat);
   if (refus) throw refusDeFormeVivante('Scène', refus);
   return normalizeScene(scene as Scene);
 }
@@ -747,10 +749,10 @@ function refusDeFormeVivante(sujet: 'Projet' | 'Scène', { cause, fautes }: Refu
  *  `naval-ports.json`, invariants du bloc narratif, FK intra-document `entity.presetId` →
  *  `narratif.presetsPnj`, invariant d'identité —, validé AVANT `resolvePortRef` et `normalizeScene`.
  *  Chaque scène ressort passée par `normalizeScene` (`scene.ts`), au SEUL point d'entrée. La porte
- *  n'altère JAMAIS ce qu'on lui passe. Ce qui suit la porte travaille sur un document PROUVÉ : une
+ *  juge chaque id sous `cat`. Elle n'altère JAMAIS ce qu'on lui passe. Ce qui suit la porte travaille sur un document PROUVÉ : une
  *  exception y est une faute du jeu, pas de l'auteur, et se propage. Inverse : `projetVersDepot`. */
-export function parseProject(data: unknown): ProjectDoc {
-  const refus = validerFormeVivante(projetSchema, data);
+export function parseProject(data: unknown, cat: Catalogue = catalogueDuProcessus()): ProjectDoc {
+  const refus = validerFormeVivante(projetSchema, data, cat);
   if (refus) throw refusDeFormeVivante('Projet', refus);
   // La porte VIENT de prouver la forme : le document se relit donc sous sa VUE TS, en une conversion
   // (`ProjetProuve`, ci-dessus) plutôt que par un aller-retour `unknown`. Les champs d'identité sortent

@@ -28,7 +28,7 @@ import { BOOKS, readText } from './_lib.mjs'
 // Cet instrument juge la FORME de tout ce qui est servi, l'index COMPRIS : son stock le nomme sous
 // son numéro d'extraction (`AA 0 folio -2`). D'où `estNomDExtraction` / `numeroDExtraction`, et non
 // le prédicat de CHAPITRE.
-import { estNomDExtraction, numeroDExtraction, plageDeLigne1 } from '../../src/data/source/decoupe.ts'
+import { estNomDExtraction, numeroDExtraction, plageDeLigne1 } from '../../src/data/schemas/source/decoupe.ts'
 import { cleDeSite, ecartDuVolet, sitesEnEntrees } from '../guards/lib/stock.mjs'
 import { DECROISSANT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'

@@ -6,7 +6,7 @@
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
-export type { ChargeDAttaque, TestJete } from './bus';
+export { EVT, type ChargeDAttaque, type TestJete } from './bus';
 export { lancementDuProjet, type LancementDeScenario } from './lancementDeScenario';
 export { campagneDuJeu, campagneDuPaquet, paquetDisqueDuJeu, paquetDuJeu, type BuiltinCampaign } from './campagneLivree';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
@@ -16,21 +16,74 @@ export type { Jeton } from './plateforme';
 export { horlogeVirtuelle, type Programme } from './horlogeVirtuelle';
 export { argsAvecIntentionLocale, porteesDuTour } from './localIntent';
 export { previewAttack, activeCombatant, ordreDuRoundSuivant } from './combatFlow';
-export { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, FIRE_ARCS, LOCALISATIONS_DE_COUP, locationLabel, type Difficulty, type FireArc } from '../engine/types';
-export { formatMoney, fromBrass, libelleDuStatut, type Money } from '../engine/money';
-export type { FaitApplique } from '../engine/faits';
+export {
+  AVAILABILITIES,
+  CHAR_KEYS,
+  DIFFICULTE_PAR_DEFAUT,
+  DIFFICULTY_LABELS,
+  FIRE_ARCS,
+  LOCALISATIONS_DE_COUP,
+  locationLabel,
+  type Difficulty,
+  type FireArc,
+} from '../engine/types';
+export { formatMoney, fromBrass, libelleDuStatut, PA_PER_CO, toBrass, type Money } from '../engine/money';
+export type { Applique, FaitApplique } from '../engine/faits';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
-export { dayIndex, dayPhase, formatImperial, formatJourImperial, jourImperial, toDate, type DayPhaseId, type ImperialDate } from '../engine/clock';
+export {
+  dayIndex,
+  dayPhase,
+  formatImperial,
+  formatJourImperial,
+  jourImperial,
+  MINUTES_PER_DAY,
+  toDate,
+  type DayPhaseId,
+  type ImperialDate,
+} from '../engine/clock';
 export { libelleDeDistance } from '../engine/travel';
 export { clockLabel } from '../engine/duration';
 export { currentSeason } from '../engine/travelStages';
 export { isEngagedWith } from '../engine/engagement';
+export { makeRNG, type RNG } from '../engine/dice';
+export { isConditionLocked, isOutOfAction, raisonVerrouEtat, refusDeDetermination } from '../engine/conditions';
+export {
+  CAREER_SKILLS_ADVANCED,
+  careerCompletionAdvances,
+  coutDeLAugmentation,
+  coutDuChangement,
+  coutDuTalent,
+  niveauValide,
+  talentSlotsAchetables,
+  type Chiffrage,
+  type ContexteDeCompletion,
+} from '../engine/advancement';
+export { modeleDe } from '../engine/modeleDeProgression';
+export { casesDuNiveau } from '../engine/casesDeCarriere';
+export { talentMaxReached } from '../engine/acquisitionTalents';
+export { spellCost, talentOuvre } from '../engine/grimoire';
+export { spellSupportOf } from '../engine/spellspec';
+export { castingKindOf } from '../engine/combatFeatures/dispatch';
+export { peutTenter, testValue, type TestDesigne } from '../engine/skills';
+export { evaluateTest } from '../engine/tests';
+export { TIME_COST } from '../engine/timeCost';
+export { encumbrancePenalties } from '../engine/encumbrance';
+export { qualityWearMods, wornArmourPenalty } from '../engine/wearPenalty';
+export { consommableDe, isConsumable } from '../engine/consumables';
+export { effectiveWeaponDamage } from '../engine/weaponDamage';
+export { ZONES_D_ARMURE } from '../engine/classementDeTrait';
+export { armourCastDRPenalty } from '../engine/magic';
+export { adresseDeCreation } from '../engine/adresseDeCreation';
+export { maladieDeclaree } from '../engine/passifsDeMaladie';
+export { corruptionThreshold } from '../engine/corruption';
+export { cappedHealAmount, HEAL_SKILL, type HealMode } from '../engine/healing';
+export { surgeryTraumas } from '../engine/trauma';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 export { memeSpecialisation, refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 export type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
-export { parseTable } from '../data/source/decoupe';
+export { parseTable } from '../data/schemas/source/decoupe';
 export { arena } from './mapSpec';
 export { avecRencontres } from './monde/encounterAuthoring';
 export {
@@ -74,7 +127,21 @@ export {
   structureAppearances,
   trappingRefLabel,
 } from '../data';
-export { isWearable, objetsDeLInventaire } from '../engine/items';
+export {
+  ammoFamily,
+  chargeLArme,
+  equipConflicts,
+  isOffHandEligible,
+  isShieldTrapping,
+  isWearable,
+  itemsEncumbrance,
+  maxEncumbrance,
+  objetsDeLInventaire,
+  reachRankOf,
+  totalEncumbrance,
+  weaponFromItem,
+  wornArmourPoints,
+} from '../engine/items';
 export {
   carriereActuelle,
   designationsDeCarriere,
@@ -84,7 +151,7 @@ export {
   type ParcoursDeCarriere,
 } from '../engine/pnjDeCarriere';
 export { listesDeSorts, sortsImprimes } from '../engine/sortsDuPnj';
-export { candidatsDuSlot, parseRefKey, prisParLesAutres, refKey, skillSlots } from '../engine/careerSlots';
+export { availableChars, candidatsDuSlot, designationsFor, parseRefKey, prisParLesAutres, refKey, skillSlots, slotCovers } from '../engine/careerSlots';
 export {
   dotationsDuPnj,
   emplacementsDeDotation,
@@ -93,12 +160,13 @@ export {
   porteurDuProfil,
   sousEmplacementActif,
   valeursDeLEmplacement,
+  type ChoixDeDotation,
   type EmplacementDeDotation,
 } from '../engine/trappingChoices';
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
-export { PARTS_RELIEF } from '../data/materials.types';
+export { PARTS_RELIEF } from '../data/schemas/materials.types';
 export type { Cadence } from '../engine/cadence';
-export type { FabriqueDId, FabriqueDuRoster } from '../engine/fabriqueDId';
+export { fabriqueLocale, type FabriqueDId, type FabriqueDuRoster } from '../engine/fabriqueDId';
 export type { Equipe } from '../engine/relations';
 export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
 export { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
@@ -106,12 +174,12 @@ export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre
 export { emplacementsRapides } from './emplacementsRapides';
 export { ACTIONS } from '../data/index';
 export { DESSINS_DES_PARTS } from '../data/schemas/defs/actions';
-export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/icons';
-export { CADRE_DES_CADRES, CADRES } from '../data/cadres';
-export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
-export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/paysages';
-export { entreesDesFiches } from '../data/dossiers';
-export type { FicheLue } from '../data/source/dossier';
+export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/schemas/icons';
+export { CADRE_DES_CADRES, CADRES } from '../data/schemas/cadres';
+export { CADRE_DES_FONDS, FONDS } from '../data/schemas/fonds';
+export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/schemas/paysages';
+export { entreesDesFiches } from '../data/schemas/dossiers';
+export type { FicheLue } from '../data/schemas/source/dossier';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { LigneDeGardeRobe } from '../data/index';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
@@ -148,15 +216,16 @@ export {
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
-export { distanceDeCombat } from './monde/footprint';
-export { effectiveArmourAt } from '../engine/characteristics';
-export { effectiveTalents, reservesPropres } from '../engine/talentEffects';
+export { distanceDeCombat, footprintN } from './monde/footprint';
+export { bonusDe, effectiveArmourAt, effectiveMaxWounds, forceDuPorteur } from '../engine/characteristics';
+export { competenceEnCarriere, reservesPropres } from '../engine/talentEffects';
+export { effectiveTalents } from '../engine/talentsPossedes';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY } from './combatAuto';
 export { conversationEnVue, libelleDuTestAnnonce, type ConversationEnVue } from './dialogue';
 export { documentEnVue } from './campagne';
 export { stepInteraction } from './cascade';
-export type { Combatant, ItemInstance } from '../engine/types';
-export type { ModLine } from '../engine/combat';
+export type { ArmourPoints, Availability, CharKey, Combatant, ConditionInstance, ItemInstance, Main, ModLine } from '../engine/types';
+export { attackTestOf, combatBaseValue, ligneDuCoup, weaponGroupSkillMode, weaponSkillId } from '../engine/combat';
 export { validTargets } from './targeting';
 export { endTurnArmed } from './endTurnGuard';
 export { quiTientLaMain, withActingSeat } from './netOwnership';
@@ -320,7 +389,7 @@ export {
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';
-export { allMusicDefs } from '../data/sons/musique';
+export { allMusicDefs } from '../data/schemas/sons/musique';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';
 export { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 export { libelleDuBord } from './monde/fireArc';
@@ -367,7 +436,7 @@ export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFich
 export { weaponStatParts } from '../engine/weaponStats';
 export { gestesDeLObjet, gesteDeLaPanoplie, type GesteAChoix } from './gestesDeLObjet';
 export { gesteDeSoins } from './medicFlow';
-export { gesteDIncantation } from './combatSlice';
+export { gesteDeDetermination, gesteDIncantation } from './combatSlice';
 export { buildAdvancementView, type TalentDesigne } from './monde/advancement';
 export { VERBE_DE_VALIDATION } from './validationDeFenetre';
 export { carteEnVue, trajetsDepuis, type CarteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
@@ -380,7 +449,7 @@ export { recitEnVue, type RecitEnVue } from './recitEnVue';
 export { interludeEnVue, libelleDuDepot, type InterludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
 export { reposEnVue, type ReposEnVue } from './reposEnVue';
-export { TITRE_DE_LA_NUIT } from './restFlow';
+export { TITRE_DE_LA_NUIT, prixDeLOffre } from './restFlow';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeDetermination } from './determinationDuJet';
 export {
@@ -426,7 +495,7 @@ export {
   type IntentionDEngagement,
 } from './creation/engagement';
 export { gesteDAchatDuSort, partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
-export type { CreatorDraft } from './creation/brouillon';
+export { buildHero, carrieresOffertes, especesOffertes, type CreatorDraft } from './creation/brouillon';
 export {
   apresLeGeste,
   brouillonDeLaPartie,
@@ -464,3 +533,7 @@ export {
   type SavedProject,
 } from './persistance/bibliotheque';
 export { ProjetRefuse, lieuDuGroupe, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';
+export { designeGaranti, rollLine } from './ligneDeJet';
+export { refusDeConsommer } from './consumableFlow';
+export { estOperation } from './acteDeSoin';
+export type { DoctrineId } from './monde/ai';

@@ -16,7 +16,7 @@ import { overcastAxesFor, type OvercastAxis } from '../engine/overcast';
 import { castAfterCrit, castOvercastBudget } from '../engine/magic';
 import { castOvercastAxes, aiOvercastPlan } from './combatFlow';
 import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -163,8 +163,8 @@ describe('Surincantation — budget sur le NI effectif du jet', () => {
       const L = p.etat().party.find((c) => c.id === pc.casterId)!;
       const ennemi = { ...L, id: 'E', label: 'E', kind: 'ennemi' as const, pos: { x: 1, y: 0 } };
       const lanceurPose = { ...L, pos: { x: 0, y: 0 } };
-      const plan = (r: typeof pc.result & object) => aiOvercastPlan(p.etat().scene, lanceurPose, 'X', FIXTURES.critique, r, [lanceurPose, ennemi], undefined, false);
-      expect(plan(pc.result!), 'témoin : le jet lancé a un plan').toHaveProperty('extraTargetIds', ['E']);
+      const plan = (r: typeof pc.result & object) => aiOvercastPlan(p.etat().scene, lanceurPose, { targetId: 'X', missile: false }, findSpellById(FIXTURES.critique.id)!, r, [lanceurPose, ennemi]);
+      expect(plan(pc.result!).overcast?.duration, 'témoin : le jet lancé a un plan').toBeGreaterThan(0);
       // Forme que pose l'issue d'un Contre-sort gagnant (`applyCounterspellOutcome`).
       const dissipe = { ...pc.result!, cast: false, dispelled: true };
       for (const choix of [undefined, 'puissance'] as const) {

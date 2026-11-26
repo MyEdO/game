@@ -1,12 +1,12 @@
 // LIEUX d'un texte dans son livre et PREUVE d'une adresse figée, par la relation de texte (`aligner`,
-// `src/data/source/decoupe.ts`) : un foyer, lu par `judge` (`derive-decoupes.mjs`, raison d'un ECHEC) et par
+// `src/data/schemas/source/decoupe.ts`) : un foyer, lu par `judge` (`derive-decoupes.mjs`, raison d'un ECHEC) et par
 // les migrations qui adressent une prose (`scripts/migrations/lib/adressesFigees.mjs`). Lecture du disque :
 // `lecteur-fs.mjs`.
 import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
 import {
   adresseDe, aligner, estDeContenu, estErreur, filDuChapitre, fragmentBlocs, intervalleDe, ouDeLAdresse, resoudreAdresse,
   tablesOf, unitesDe, unitesDeLAdresse, unitesDuBloc, unitesDuTexte,
-} from '../../src/data/source/decoupe.ts'
+} from '../../src/data/schemas/source/decoupe.ts'
 
 /** Mémo par livre : chaque chapitre, ses blocs au fil (`BlocDuFil`), leurs unités et la longueur de leur
  *  contenu hors habillage. */

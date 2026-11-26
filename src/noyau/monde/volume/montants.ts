@@ -4,7 +4,7 @@
  * surplomb) et la matière pleine qu’il encadre.
  */
 import type { StructureAppearanceDef } from '../../../data';
-import type { EntreeVivante } from '../../../data/datasets';
+import type { EntreeVivante } from '../../../data/schemas/datasets';
 import type { Face } from './types';
 
 /** ÉPAISSEUR MONDE (m) de la MATIÈRE PLEINE d'un mur — AUTHORÉE EN MÈTRES, comme toute autre épaisseur

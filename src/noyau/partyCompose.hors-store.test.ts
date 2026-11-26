@@ -7,7 +7,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet } from './etat';
 import { idDuPretire, richesseDuPretire } from '../data/pregens';
 import type { PregenDef } from '../data';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { makeRNG, rollDice } from '../engine/dice';
 import { battleRng, seedBattleRng } from './battleRng';

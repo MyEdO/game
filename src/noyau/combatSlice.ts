@@ -401,6 +401,21 @@ function refusDIncantation(s: Jeu, lanceur: Combatant, spell: SpellData, cibleId
 
 /** L'offre d'incanter le sort `spellId` de `lanceurId` sur `cibleId` (`incanterLeSort`), `null` sans le lanceur ou sans
  *  le sort : son refus, `refusDIncantation`. PUR. */
+/** Refus de dépenser la Détermination de `porteur` pour `option` (l'État `etat` à retirer) : verdict UNIQUE du verbe
+ *  `depenserLaDetermination` et de son offre `gesteDeDetermination`. LDB 17 l.59-61 */
+function refusDeDepenserLaDetermination(s: Jeu, porteur: Combatant, option: OptionDeDetermination, etat?: string): string | null {
+  return (option === 'immuniserALaPsychologie' ? refusDImmunite(s, porteur)
+    : refusDeDetermination(porteur, option === 'retirerUnEtat' ? etat : undefined)
+      ?? (option === 'retirerUnEtat' ? (etat ? undefined : t('agate.stateNotCarried')) : s.battle ? undefined : t('cs.determinationHorsCombat'))) ?? null;
+}
+
+/** L'offre de dépenser la Détermination du combattant `combattantId` pour `option` (l'État `etat` à retirer) : le geste
+ *  `depenserLaDetermination` et son refus ; `null` si le combattant est inconnu. */
+export function gesteDeDetermination(s: Jeu, combattantId: string, option: OptionDeDetermination, etat?: string): GesteFermable | null {
+  const porteur = actorIn(s, combattantId);
+  return porteur ? { geste: { verbe: 'depenserLaDetermination', args: etat === undefined ? [combattantId, option] : [combattantId, option, etat] }, refus: refusDeDepenserLaDetermination(s, porteur, option, etat) } : null;
+}
+
 export function gesteDIncantation(s: Jeu, lanceurId: string, spellId: string, cibleId?: string): GesteFermable | null {
   const lanceur = actorIn(s, lanceurId);
   const spell = findSpellById(spellId);
@@ -1567,9 +1582,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const s = get();
       const porteur = actorIn(s, combattantId);
       if (!porteur) return;
-      const refus = option === 'immuniserALaPsychologie' ? refusDImmunite(s, porteur)
-        : refusDeDetermination(porteur, option === 'retirerUnEtat' ? etat : undefined)
-          ?? (option === 'retirerUnEtat' ? (etat ? undefined : t('agate.stateNotCarried')) : s.battle ? undefined : t('cs.determinationHorsCombat'));
+      const refus = refusDeDepenserLaDetermination(s, porteur, option, etat);
       if (refus) {
         if (controlsCombatant(s, porteur)) refuserGesteDuSiege(get, set, refus);
         return;
@@ -2449,7 +2462,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const caster = pool.find((c) => c.id === pc.casterId);
         const spell = findSpellById(pc.spellId);
         if (!caster || !spell) return;
-        const eligibles = new Set(overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
+        const eligibles = new Set(overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
         const cap = extraTargetCapacity(overcastSourceOf(spell), pc.overcast?.targets ?? 0, spellTargetCount(spell, caster));
         const refus = ids.length > cap ? t('cast.refus.ciblesAuDela', { cap })
           : new Set(ids).size < ids.length ? t('cast.refus.cibleRepetee')

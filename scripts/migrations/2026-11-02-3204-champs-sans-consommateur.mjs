@@ -5,7 +5,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const retraits = {
   'localisation.json': (doc) => [doc.navire, doc['navire-fluvial']].map((v) => [v, 'rigs']),

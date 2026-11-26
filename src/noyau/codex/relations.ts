@@ -29,7 +29,7 @@ import { spellEffectOps, type TriggeredEffect } from '../../engine/flowCore';
 import type { Flow } from '../../data/schemas/defs-scenes/effets';
 import { memoParVersion } from '../../data/versionDataset';
 import { CLES_DE_DATASET, DATASET_DE_LA_CATEGORIE, DATASET_DE_L_ESPACE, type CleDeDataset } from '../../data/schemas/_cles-de-dataset.generated';
-import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from '../../data/_racines-vivantes.generated';
 import { SCHEMA_DEFS } from '../../data/schemas/_registry.generated';
 import { rangee as rangeeDeCorruption } from '../../data/schemas/defs/mutationTables';
 import { baseDe, lireCleDEspace } from '../../data/schemas/grammaire/cle-d-espace';

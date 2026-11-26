@@ -7,7 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
-import { serializeDataset } from './serialize';
+import { serializeDataset } from './schemas/serialize';
 
 const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json'));

@@ -1,12 +1,12 @@
 /**
  * Schéma de `materials.json` — LE dataset des matières du monde (#1686 lot 2), consommé comme
- * `MaterialEntry[]` (`src/data/materials.types.ts`), en cinq domaines : les matières de décor
+ * `MaterialEntry[]` (`src/data/schemas/materials.types.ts`), en cinq domaines : les matières de décor
  * volumique, celles de toiture (les couvertures et le « plan » vu du dessus, marqué `vueDeDessus`),
  * celles de relief, les palettes de teintes d’objet du domaine `objet` et les couleurs nommées du nuancier
  * (`couleur`).
  *
  * Le champ de charge `domain` porte l'identité : ses valeurs sont celles de `DOMAINES_MATIERE`
- * (`src/data/materials.types.ts`), tenues sous `satisfies` contre les domaines de `MaterialRef` plus
+ * (`src/data/schemas/materials.types.ts`), tenues sous `satisfies` contre les domaines de `MaterialRef` plus
  * `objet` et `couleur`, qui vivent hors du pivot de rendu du sol.
  *
  * UNE SEULE FORME D'ENTRÉE, la disjonction portée par la charge par domaine, que `document()` borne
@@ -23,7 +23,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { couleurHexSchema, enumNomme, surchargePaletteSchema } from '../grammaire/valeurs';
-import { type MaterialDomain } from '../../materials.types';
+import { type MaterialDomain } from '../materials.types';
 import { estObjet } from '../../../lib/objet.mjs';
 import { kitDeToitSchema } from './structureAppearance';
 

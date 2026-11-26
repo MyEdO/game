@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import artilleryMisfireJson from '../data/artillery-misfire.json';
 import { artilleryMisfireDie } from '../data/artilleryMisfire';
-import { deDeTirageDe } from '../data/rangees';
+import { deDeTirageDe } from '../data/schemas/rangees';
 import { RIVER_CRIT_SET } from '../data/shipCriticals';
 import { sousLeDe } from '../data/deDeLaTable.testkit';
 import { rollShipCritical } from '../engine/shipCritical';

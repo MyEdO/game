@@ -3,10 +3,15 @@
  * tient la main : son drive, à défaut sa validation.
  */
 import { ouvrirLeLancement, type PartieOuverte as PartieDuLancement } from '../../../../src/hote/partie';
-import { fenetreDuJeu } from '../../../../src/noyau/combatAuto';
-import { ruleOverrides } from '../../../../src/engine/policy';
-import type { Intention } from '../../../../src/noyau/partie';
-import { poserLesReglesMaisonPersistees, VERBE_DE_CHOIX, type GesteDuJeu } from '../../../../src/noyau';
+import {
+  fenetreDuJeu,
+  type Intention,
+  poserLesReglesMaisonPersistees,
+  ruleOverrides,
+  VERBE_DE_CHOIX,
+  VERBE_DE_VALIDATION,
+  type GesteDuJeu,
+} from '../../../../src/noyau';
 
 export type PartieOuverte = PartieDuLancement['partie'];
 export type Resultat = PartieDuLancement['lancement'];
@@ -90,7 +95,7 @@ const intentionDuGeste = (g: GesteDuJeu): Intention => ({ type: g.verbe, args: g
 function jouerLaFenetre(partie: PartieOuverte, recevoir: (r: Resultat) => void): boolean {
   const f = fenetreDuJeu(partie.etat() as never);
   if (!f) return false;
-  const suite = f.drive?.length ? f.drive : f.gestes.filter((g) => g.verbe === 'fenetreValider');
+  const suite = f.drive?.length ? f.drive : f.gestes.filter((g) => g.verbe === VERBE_DE_VALIDATION);
   if (!suite.length) return false;
   for (const g of suite) recevoir(partie.envoyer(intentionDuGeste(g)));
   return true;

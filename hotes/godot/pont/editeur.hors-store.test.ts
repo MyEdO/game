@@ -42,7 +42,7 @@ import { parseTraitInstance } from '../../../src/data/refFormatLivre';
 import { idsDeLaSousListe } from '../../../src/data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../../../src/data/schemas/grammaire/sousListes';
 import { VOCABULAIRES } from '../../../src/data/schemas/grammaire/vocabulaires';
-import type { Fragment } from '../../../src/data/source/decoupe';
+import type { Fragment } from '../../../src/data/schemas/source/decoupe';
 
 interface Edition {
   vue: { zones: ZonesDeLEditeur; couche: number };

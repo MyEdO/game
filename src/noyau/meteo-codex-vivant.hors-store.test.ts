@@ -19,6 +19,7 @@ import { tableStepDef } from './cascade';
 // La FAMILLE des tables de météo s'enregistre au chargement du module de voyage : on l'importe par ce
 // qu'on en LIT (le gabarit des rangées d'une saison), jamais par un import d'effet de bord.
 import { stageWeatherRows } from './travelFlow';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 type Range = Saison['entries'][number];
 type Saison = (typeof weather)[number];
@@ -37,7 +38,7 @@ const rangee = (id: string) => tableStepDef(TABLE)!.rows!.find((r) => r.id === i
 function sauver(saisons: Saison[]): string | null {
   const avant = [...datasetArray('weather')];
   setDataset('weather', saisons);
-  const err = validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'));
+  const err = validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'), catalogueDuProcessus());
   if (err) setDataset('weather', avant);
   return err;
 }
@@ -61,13 +62,13 @@ describe('météo éditée au Codex — refus transactionnel et table VIVANTE', 
     expect(rangee('pluie').max).toBe(maxAvant - 10);
 
     // La SOURCE ENTIÈRE ne parse plus : le d100 de la saison a un trou.
-    const err = validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'));
+    const err = validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'), catalogueDuProcessus());
     expect(err).toMatch(/couvert EXACTEMENT une fois/);
 
     // Reprise de l'état d'avant — l'app ne diverge pas du disque.
     setDataset('weather', SAISONS_LIVREES);
     expect(rangee('pluie').max).toBe(maxAvant);
-    expect(validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'))).toBeNull();
+    expect(validateDataset(datasetFile('weather'), datasetSerializeRoot('weather'), catalogueDuProcessus())).toBeNull();
     expect(tableStepDef(TABLE)!.rows).toEqual(stageWeatherRows(printemps().entries));
   });
 

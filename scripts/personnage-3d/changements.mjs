@@ -29,7 +29,7 @@ const LUS_PAR_LA_CHAINE = [
 const MODULES_EVALUES = [
   'src/noyau/monde/relief.ts',
   'src/noyau/monde/piecesDArete.ts',
-  'src/data/props.types.ts',
+  'src/data/schemas/props.types.ts',
   'src/lib/formesDeTete.ts',
   'hotes/godot/asset/silhouettes.ts',
 ]

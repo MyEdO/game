@@ -8,7 +8,7 @@
  * (lus et réécrits lorsqu’un de ces champs historiques est présent).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
 import { tableTotale } from '../../src/lib/tableTotale.ts';
 

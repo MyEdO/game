@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest';
 import { validateDataset } from '../validate';
 import trappingsJson from '../../trappings.json';
 import spellsJson from '../../spells.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 type Entree = { id: string; onHitEffects?: { flow: { effet: { ops: Record<string, unknown>[] } } }[]; effects?: unknown };
 const copie = <T>(doc: T): T => JSON.parse(JSON.stringify(doc)) as T;
@@ -31,14 +32,14 @@ function premiereZoneDeSort(n: unknown): Record<string, unknown> | undefined {
 
 describe('durée d’une op zone (#4202)', () => {
   it('les données livrées passent la règle de durée', () => {
-    expect(validateDataset('trappings.json', copie(trappingsJson)) ?? '').not.toContain('op « zone »');
-    expect(validateDataset('spells.json', copie(spellsJson)) ?? '').not.toContain('op « zone »');
+    expect(validateDataset('trappings.json', copie(trappingsJson), catalogueDuProcessus()) ?? '').not.toContain('op « zone »');
+    expect(validateDataset('spells.json', copie(spellsJson), catalogueDuProcessus()) ?? '').not.toContain('op « zone »');
   });
 
   it('hors sort : une zone sans « durationRounds » est refusée', () => {
     const doc = copie(trappingsJson) as Entree[];
     delete zoneDeLaFumigene(doc).durationRounds;
-    expect(validateDataset('trappings.json', doc)).toContain('op « zone » hors sort sans « durationRounds »');
+    expect(validateDataset('trappings.json', doc, catalogueDuProcessus())).toContain('op « zone » hors sort sans « durationRounds »');
   });
 
   it('sort : une zone avec « durationRounds » est refusée', () => {
@@ -46,6 +47,6 @@ describe('durée d’une op zone (#4202)', () => {
     const zone = premiereZoneDeSort(doc);
     if (!zone) throw new Error('aucune op zone dans spells.json');
     zone.durationRounds = D10;
-    expect(validateDataset('spells.json', doc)).toContain('« durationRounds » interdit');
+    expect(validateDataset('spells.json', doc, catalogueDuProcessus())).toContain('« durationRounds » interdit');
   });
 });

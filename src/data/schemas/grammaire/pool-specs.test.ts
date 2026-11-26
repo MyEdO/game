@@ -11,7 +11,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { listerDossier } from '../../../../scripts/guards/lib/lister.mjs';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import { entreeOuverte, lireLEspace, specRef, type TypeEntite } from './ref';
 import { SOURCES_DE_SPECS } from './sourcesDeSpecs';
 import { skills, talents, traits, creatures, specCatalogOf, type SpecsSource } from '../../index';

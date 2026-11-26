@@ -31,6 +31,7 @@ import { declarationDeFeuilleDId, mesureDuParse } from '../grammaire/ref';
 import { sitesDeLaPortee } from '../grammaire/collection-cle';
 import { OBJETS_DU_PROJET } from '../grammaire/valeurs';
 import { SCENES_DU_PROJET } from './communs';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 type Jouet = Record<string, unknown>;
 
@@ -71,7 +72,7 @@ const sans = (cle: string, over: Jouet = {}): Jouet => {
 /** LIEU + message des fautes, tels que la porte les rend (`validateDocument`) : l'erreur NOMME le
  *  fautif par son lieu, jamais par un préfixe recopié dans son message. */
 const fautes = (valeur: unknown, schema: typeof projetSchema | typeof narratifSchema = projetSchema) => {
-  const trouvees = validateDocument(schema, valeur);
+  const trouvees = validateDocument(schema, valeur, catalogueDuProcessus());
   expect(trouvees).not.toBeNull();
   return (trouvees ?? []).map((f) => `${cheminLisible(f.lieu)} :: ${f.message}`);
 };
@@ -1071,7 +1072,7 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
 /**
  * `couvre` (#2290, `couvreSchema` de `./communs.ts`) — le lien d'un élément du paquet vers les entrées de
  * fiche de dossier de chapitre, posé sur CHAQUE porteur du projet : une liste d'identifiants globaux
- * `ID_D_ENTREE` (`src/data/source/dossier.ts`), sans doublon, refusée au chemin du porteur.
+ * `ID_D_ENTREE` (`src/data/schemas/source/dossier.ts`), sans doublon, refusée au chemin du porteur.
  */
 describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
   const FLOW = { kind: 'sequence', etapes: [] };

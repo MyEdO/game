@@ -17,12 +17,12 @@
  * FAIL-FAST — sortie 1 avant toute écriture : fichier hors de son formatage, entrée à la fois `tests`
  * et `skills`/`char`, et, au RÉSULTAT, un Test qui ne nomme ni Compétence ni Caractéristique, ou une
  * Activité qui garde `tests` ET `difficulty`.
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`).
+ * FORMATAGE : `serializeDataset` (`src/data/schemas/serialize.ts`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const REL = 'src/data/activities.json';

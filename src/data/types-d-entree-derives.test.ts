@@ -5,7 +5,7 @@
  */
 import { describe, it, expect, expectTypeOf } from 'vitest';
 import { findPsychologyById, psychologies, type PsychologyData } from './index';
-import type { DatasetDe, EntreeDe } from './datasets';
+import type { DatasetDe, EntreeDe } from './schemas/datasets';
 import type * as psychologyDef from './schemas/defs/psychology';
 
 /** L'entrée du schéma de psychologie, `psychImmune` renommé : ce que le type dérivé deviendrait. */

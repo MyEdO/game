@@ -213,7 +213,7 @@ function rendu() {
   out += `  jamais un tableau positionnel) + \`alsoIn\` porte les emplacements SECONDAIRES, chacun une paire\n`
   out += `  \`(book, page)\` pleine + un \`quote?\` authoré (auto-attestation verbatim, pour le cas où le \`label\`\n`
   out += `  n'apparaît pas tel quel au folio déclaré — ex. une TABLE imprime un nom différent). Accessors SOURCE\n`
-  out += `  UNIQUE : \`allLocations(entry)\`/\`sourceBooks(entry)\` (\`src/data/sourceRefs.ts\`) — aucun futur lecteur\n`
+  out += `  UNIQUE : \`allLocations(entry)\`/\`sourceBooks(entry)\` (\`src/data/schemas/sourceRefs.ts\`) — aucun futur lecteur\n`
   out += `  n'inline \`alsoIn\`. **Enforced** par \`src/data/secondary-ref-integrity.test.ts\` : chaque \`alsoIn[i]\`\n`
   out += `  doit être **auto-attesté** (le \`label\` du porteur OU son \`quote\` retrouvé dans le SPAN du folio\n`
   out += `  déclaré — charge de la preuve sur l'auteur, jamais une réfutation par absence). Champ posé sur\n`
@@ -282,7 +282,7 @@ function rendu() {
   out += `  **objets à sous-catalogues** (\`mass-battle.json\`, \`sea-*.json\`, \`criticals.json\`…) ou des **tables d100\n`
   out += `  par fourchette** — lire la structure existante avant d'ajouter (cf. §A).\n`
   out += `- **Canonicalisation** : après édition manuelle, le fichier doit être **byte-identique** au round-trip de\n`
-  out += `  \`serializeDataset\` (\`src/data/serialize.ts\`), verrouillé par \`src/data/serialize.test.ts\` (2 espaces,\n`
+  out += `  \`serializeDataset\` (\`src/data/schemas/serialize.ts\`), verrouillé par \`src/data/serialize.test.ts\` (2 espaces,\n`
   out += `  **aucun** newline final). L'éditeur Codex l'applique à la sauvegarde ; en édition manuelle, ne **jamais**\n`
   out += `  reformater à la main ni via un \`JSON.stringify\` maison — passer par \`serializeDataset\`.\n\n`
 
@@ -415,9 +415,10 @@ function rendu() {
     "`src/noyau/codex/libelles-de-champs.hors-store.test.ts` — les CHIFFRES y sont, jamais recopiés ici.",
     "",
     "**Registres GÉNÉRÉS** — `_registry.generated.ts` et `_registry-scenes.generated.ts` par",
-    "`scripts/gen-registry.mjs` (phase 1 de `npm run gen`) ; `_ids.generated.ts` (l'INDEX DES IDS,",
-    "`IDS_PAR_ESPACE`), `_cles-de-dataset.generated.ts` (`CLES_DE_DATASET`) et",
-    "`_racines-vivantes.generated.ts` (`RACINES_VIVANTES`, l'image de `DATASET_FICHIER_DERIVE`) par",
+    "`scripts/gen-registry.mjs` (phase 1 de `npm run gen`) ; `src/data/_ids.generated.ts` (l'INDEX DES IDS,",
+    "`IDS_PAR_ESPACE`) et ses types `src/data/schemas/_ids.generated.ts` (`IdsParEspace`, `ValeurDeRegle`),",
+    "`_cles-de-dataset.generated.ts` (`CLES_DE_DATASET`), `_catalogue.generated.ts` (le type `Catalogue`) et",
+    "`src/data/_racines-vivantes.generated.ts` (`BIBLIOTHEQUE`, chaque document de `SCHEMA_DEFS`, et `RACINES_VIVANTES`, l'image de `DATASET_FICHIER_DERIVE`) par",
     "`scripts/gen-espaces.mts` (phase 2). Ne JAMAIS éditer à la main.",
     "`DEFS_DE_DOCUMENT` (`src/data/schemas/validate.ts`) est l'union des deux registres.",
     "",
@@ -428,9 +429,9 @@ function rendu() {
     "",
     "**Deux portes, une vérité** (`src/data/schemas/validate.ts`) :",
     "",
-    "- `validateDataset(file, value)` — porte par **FICHIER**, pour qui connaît le nom du document. Un",
+    "- `validateDataset(file, value, cat)` — porte par **FICHIER**, pour qui connaît le nom du document. Un",
     "  fichier NON registré est une **erreur nommée**, jamais un laissez-passer.",
-    "- `validateDocument(schema, value)` — porte par **SCHÉMA**, pour un seam SANS nom de fichier :",
+    "- `validateDocument(schema, value, cat)` — porte par **SCHÉMA**, pour un seam SANS nom de fichier :",
     "  `parseProject` (`src/noyau/worldMap.ts`) sert du JSON committé, du localStorage ET de l'import",
     "  utilisateur. C'est là que le projet est validé — forme ET sémantiques (FK `activeAxes`, invariants",
     "  du bloc narratif, FK intra-document `entity.presetId`, forme de `meta`).",

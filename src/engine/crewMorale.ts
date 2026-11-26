@@ -16,7 +16,7 @@
  */
 import crewMoraleJson from '../data/crew-morale.json';
 import type * as crewMoraleDef from '../data/schemas/defs/crew-morale';
-import { datasetDe, type DatasetDe } from '../data/datasets';
+import { datasetDe, type DatasetDe } from '../data/schemas/datasets';
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { tirerSigne, type RNG } from './dice';

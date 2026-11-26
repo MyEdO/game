@@ -3,7 +3,7 @@
 // Une adresse (`descRef`) peut vivre à toute profondeur de n'importe quel `.json` des deux racines
 // de documents AUTHORÉS (`src/data`, `src/scenes`). Qui veut les voir toutes — la garde de
 // re-résolution (`src/data/prose-resolution.test.ts`), la sonde de matérialisation
-// (`src/data/source/prose-source.test.ts`), l'outil de réparation (`reparer-adresses.mjs`) — les
+// (`src/data/schemas/source/prose-source.test.ts`), l'outil de réparation (`reparer-adresses.mjs`) — les
 // prend ICI : un second walk quelque part et le périmètre des deux diverge en silence.
 //
 // Le listage passe par la primitive d'ORDRE TOTAL `listerArbre` (`scripts/guards/lib/lister.mjs`) :

@@ -5,7 +5,7 @@
  * d'une route neuve vient de l'hôte (#2817).
  */
 import { lieuxServices, semencesDeScene } from '../data';
-import { uniqueSlugId } from '../data/slug';
+import { uniqueSlugId } from '../data/schemas/slug';
 import { offreDAubergeSchema } from '../data/schemas/grammaire/hebergement';
 import { choixDuNoeud } from './codex/editFields';
 import type { TravelMode } from '../engine/travel';

@@ -4120,11 +4120,12 @@ async function parcoursComposition() {
   const assets = await chargerAssets([
     "export { schema as schemaDesPresets } from '/src/data/schemas/defs/presets-de-personnage.ts';",
     "export { validateDocument } from '/src/data/schemas/validate.ts';",
+    "export { catalogueDuProcessus } from '/src/data/catalogueDuProcessus.ts';",
     "export { FEMININ, CORPULENCE } from '/hotes/godot/asset/silhouettes.ts';",
     "export { evaluer } from '/hotes/godot/asset/evaluateur/evaluer.ts';",
     "export { SOL_TOLERANCE_M } from '/hotes/godot/asset/evaluateur/gardes/piedsAuSol.ts';",
   ])
-  const { schemaDesPresets, validateDocument, FEMININ, CORPULENCE } = assets
+  const { schemaDesPresets, validateDocument, catalogueDuProcessus, FEMININ, CORPULENCE } = assets
   const p = production(o.base)
   const piece = production(o.piece)
   const base = p.manifeste.base
@@ -4175,7 +4176,7 @@ async function parcoursComposition() {
   try { entree = JSON.parse(copie) } catch {
     assert.fail(`Copier ne publie pas une entrée JSON de presetsDePersonnage : ${JSON.stringify(copie)}`)
   }
-  assert.deepEqual(validateDocument(schemaDesPresets, [entree]) ?? [], [], 'copie valide au schéma de la collection presetsDePersonnage côté Node')
+  assert.deepEqual(validateDocument(schemaDesPresets, [entree], catalogueDuProcessus()) ?? [], [], 'copie valide au schéma de la collection presetsDePersonnage côté Node')
   const soldat = JSON.parse(readFileSync(new URL('../../src/data/presets-de-personnage.json', import.meta.url), 'utf8')).find((x) => x.id === 'soldat')
   assert.ok(soldat, 'entrée Soldat présente dans les presets app-owned')
   assert.deepEqual(entree, soldat, 'Copier restitue exactement l’entrée Soldat app-owned')

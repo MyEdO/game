@@ -11,7 +11,7 @@
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { cleDuChapitre, type SourceDeLEdition } from './adresseDeProse';
-import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
+import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/schemas/source/decoupe';
 import type { PresetPnj } from '../../data/schemas/defs-scenes/narratif';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';

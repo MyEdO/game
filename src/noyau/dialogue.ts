@@ -13,7 +13,7 @@
  *    recopié dans la donnée), que `libelleDuTestAnnonce` résout en libellés au registre pour l'hôte qui
  *    l'affiche.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { CharKey, Difficulty } from '../engine/types';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import { canAfford, toMoney } from '../engine/money';

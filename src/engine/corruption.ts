@@ -21,7 +21,7 @@ import { talentCorruptionThreshold } from './combatFeatures/talents';
 import { findTableEntry } from './tables';
 import { findRegleById, natureDeMutationDe, type MutationData } from '../data';
 import { followsCharacterRules } from './relations';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { acquerirTalent, retirerTalent } from './acquisitionTalents';
 import { passiveCharSum } from './trauma';
 import { grantTrait, grantPsychTrait, removeGrantedTrait, dernierIndex } from './grantedTraits';

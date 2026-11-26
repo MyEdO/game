@@ -8,7 +8,7 @@
  * l'EXTÉRIEUR de la carte si elle est verticale (`orienterPoly`, `./worldTris.ts`).
  */
 import type { CellSide, FacadeFeature } from '../scene';
-import type { MaterialRef } from '../../../data/materials.types';
+import type { MaterialRef } from '../../../data/schemas/materials.types';
 
 /** Point MONDE : (x,y) en unités de GRILLE continues (coins de case à ±0.5), `h` en MÈTRES.
  *  Jamais de rotation ni d'écran ici — la cuisson le porte en mètres : `{ x·mpt, y·mpt, h }`

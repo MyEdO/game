@@ -22,7 +22,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual as egal } from 'node:util';
 import { emplacementsDesPieces, lireMatiere } from '../../src/engine/classementDeTrait.ts';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));

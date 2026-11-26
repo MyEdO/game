@@ -9,8 +9,8 @@
 import { tableOuverte, type DeDeTable } from '../engine/tables';
 import { garanti } from '../lib/garanti';
 import effectTablesJson from './tables.json';
-import { deDeTirageDe, type RangeeDe } from './rangees';
-import { datasetDe, type EntreeDe } from './datasets';
+import { deDeTirageDe, type RangeeDe } from './schemas/rangees';
+import { datasetDe, type EntreeDe } from './schemas/datasets';
 import { memoParVersion } from './versionDataset';
 import type * as tablesDEffets from './schemas/defs/tables';
 

@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { DECOUPES_DIR, decoupeDe, estLivreExtrait, livresDecoupes, ongletsDe, REGISTRE_LIVRES } from './_lib.mjs'
 import { nomAscii } from '../source/nom-ascii.mjs'
-import { titreDuFichier } from '../../src/data/source/decoupe.ts'
+import { titreDuFichier } from '../../src/data/schemas/source/decoupe.ts'
 import { ROLES_DE_GLYPHE } from './sonde-titres.mjs'
 
 const LIVRES_COUVERTS = new Map(REGISTRE_LIVRES.filter(estLivreExtrait).map((b) => [b.id, b]))

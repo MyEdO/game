@@ -1,8 +1,8 @@
 import type { HitLocation } from '../engine/types';
 import type { FlowTestNode } from '../engine/flowCore';
 import criticalsJson from './criticals.json';
-import { deDeTirageDe } from './rangees';
-import { datasetDe, type EntreeDe, type EntreeVivante } from './datasets';
+import { deDeTirageDe } from './schemas/rangees';
+import { datasetDe, type EntreeDe, type EntreeVivante } from './schemas/datasets';
 import type { DeDeTable } from '../engine/tables';
 import type * as critiquesDef from './schemas/defs/criticals';
 import type { critEscalationSchema } from './schemas/defs/criticals';
@@ -53,7 +53,7 @@ export const CRITIQUE_DOCS: CritDoc[] = datasetDe<typeof critiquesDef>(criticals
 
 /**
  * Rangées LIVE d'UN document-table, par id de DOCUMENT — FAIL-FAST : un id absent laisserait une
- * catégorie Codex sur un tableau vide, sans un mot (patron `rangeesDe`, `src/data/rangees.ts`).
+ * catégorie Codex sur un tableau vide, sans un mot (patron `rangeesDe`, `src/data/schemas/rangees.ts`).
  */
 export function critiqueEntries(docId: string): CritTable {
   const doc = CRITIQUE_DOCS.find((d) => d.id === docId);

@@ -1,6 +1,6 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { addCondition, COND } from '../../../../src/engine/conditions';
-import { HEAL_SKILL } from '../../../../src/engine/healing';
+import { HEAL_SKILL } from '../../../../src/noyau';
 import { poserLesReglesDuRoguelite, soignerUnCompagnon } from '../noyau';
 import {
   agirDansLaSalle,

@@ -8,11 +8,11 @@ import { terrainEntree } from '../terrain';
 import { matieresDe } from '../../../data';
 import { hash32 } from '../../../lib/hash';
 import type { TerrainDef } from '../../../data';
-import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef, RoofMaterialDef } from '../../../data/materials.types';
-import type { EntreeVivante } from '../../../data/datasets';
+import type { DetailRecipe, MaterialRef, PropMaterialData, ReliefMaterialDef, RoofMaterialDef } from '../../../data/schemas/materials.types';
+import type { EntreeVivante } from '../../../data/schemas/datasets';
 import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DARK } from './missing';
 import { facadeStructureAppearance, wallPartColor } from './structures';
-import type { WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/schemas/structureAppearance.types';
 
 /** Entrée de REPLI VISIBLE (#877) : un terrain au ton d'alarme, jamais l'apparence d'un autre terrain.
  *  `stops` VIDE : le repli ne porte aucun dégradé, son ton d'alarme suffit. Infranchissable et de priorité nulle : le

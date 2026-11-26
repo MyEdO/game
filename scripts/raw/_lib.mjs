@@ -15,19 +15,19 @@ import { basename, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import chapitresData from './chapitres.json' with { type: 'json' }
 import domainesData from './domaines.json' with { type: 'json' }
-// Normalisation de citation : SOURCE UNIQUE dans `src/data/source/normalize.ts` (module feuille en
+// Normalisation de citation : SOURCE UNIQUE dans `src/data/schemas/source/normalize.ts` (module feuille en
 // syntaxe effaçable, chargé tel quel par Node nu comme par vitest). Importée ICI parce que ce
 // fichier s'en sert lui-même (`findAnchor`, `sectionsOf`), et RÉ-EXPORTÉE plus bas.
-import { normalize, ELLIPSIS_SENTINEL } from '../../src/data/source/normalize.ts'
+import { normalize, ELLIPSIS_SENTINEL } from '../../src/data/schemas/source/normalize.ts'
 // Le NUMÉRO DE CHAPITRE (prédicat, regex de nom, résolution) vit dans sa maison unique
-// `src/data/source/decoupe.ts` — module PUR, chargé tel quel par Node nu comme par vitest.
-import { graphieDeChapitre, largeurDeChapitre, numeroDuFichier } from '../../src/data/source/decoupe.ts'
+// `src/data/schemas/source/decoupe.ts` — module PUR, chargé tel quel par Node nu comme par vitest.
+import { graphieDeChapitre, largeurDeChapitre, numeroDuFichier } from '../../src/data/schemas/source/decoupe.ts'
 import { nomAscii } from '../source/nom-ascii.mjs'
 import { cheminDuDepot } from '../source/adresses.mjs'
 import { cheminChapitre, readText } from '../source/lecteur-fs.mjs'
 import { livreExtraitDe, REGISTRE_LIVRES } from '../source/registre-livres.mjs'
-// « Livre EXTRAIT » : définition UNIQUE app/outillage, `src/data/source/livre-extrait.ts` (#1739).
-import { estLivreExtrait } from '../../src/data/source/livre-extrait.ts'
+// « Livre EXTRAIT » : définition UNIQUE app/outillage, `src/data/schemas/source/livre-extrait.ts` (#1739).
+import { estLivreExtrait } from '../../src/data/schemas/source/livre-extrait.ts'
 import { alternationDe } from '../../src/lib/regex.ts'
 
 // Un livre est-il EXTRAIT (donc adressable par l'outillage Atlas) ? Définition UNIQUE, partagée avec

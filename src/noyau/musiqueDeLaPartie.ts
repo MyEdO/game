@@ -3,8 +3,8 @@
  * piste précise, ou silence), sinon celles du contexte (exploration, intérieur, combat), et ses pistes telles qu'un
  * hôte les joue (`SonDEffet`), dont il joue une à son tour et qu'il boucle.
  */
-import { musicDefsFor, type MusicSelection } from '../data/sons/musique';
-import { sonDEffet, type SonDEffet } from '../data/sons/registre';
+import { musicDefsFor, type MusicSelection } from '../data/schemas/sons/musique';
+import { sonDEffet, type SonDEffet } from '../data/schemas/sons/registre';
 import type { Jeu } from './etat';
 import { isIndoor, type Scene } from './monde/scene';
 

@@ -8,7 +8,7 @@ import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs
 
 /**
  * Garde-fou anti-emoji (LOT 4) : aucun emoji dans le code, la donnée ni la prose affichée (journal, logs) — une
- * icône de donnée est un id du registre (`src/data/icons/`).
+ * icône de donnée est un id du registre (`src/data/schemas/icons/`).
  * Couverture EXHAUSTIVE par défaut : ce test de BUILD balaie TOUTES les racines des zones que l'arbre porte (`RACINES_PRESENTES`,
  * `racinesPresentes.mjs` : parcours récursif des scripts et des fichiers JSON) ; il n'y a PAS de liste opt-in de dossiers (tout nouveau dossier
  * naît couvert). Seules des EXCLUSIONS explicites et justifiées existent (ci-dessous), chacune par NATURE, jamais par
@@ -36,6 +36,6 @@ describe('garde-fou anti-emoji (affordances → registre d’icônes)', () => {
       const hits = emojisIn(text);
       if (hits.length) offenders.push(`${rel} → ${hits.join(' ')}`);
     }
-    expect(offenders, 'Emoji détecté — affordance : <Icon id> (src/data/icons/) ; log/prose/donnée : texte nu').toEqual([]);
+    expect(offenders, 'Emoji détecté — affordance : <Icon id> (src/data/schemas/icons/) ; log/prose/donnée : texte nu').toEqual([]);
   });
 });

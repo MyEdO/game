@@ -3,7 +3,7 @@
  * (combat, intérieur, exploration) ; une sélection rend ses pistes du registre sous sa clé.
  */
 import { describe, it, expect } from 'vitest';
-import { musicDefsFor } from '../data/sons/musique';
+import { musicDefsFor } from '../data/schemas/sons/musique';
 import { musiqueDeLaPartie, musiqueDeLaSelection, selectionDeLaMusique, type EtatDeLaMusique } from './musiqueDeLaPartie';
 
 const at = (over: Partial<EtatDeLaMusique>): EtatDeLaMusique => ({ mode: 'exploration', battle: null, scene: { ambiance: 'exterieur' }, ...over });

@@ -4,7 +4,7 @@
  * Entrées : src/data/mutationTables.json (écrite), src/data/mutations.json (lue).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const fichier = new URL('../../src/data/mutationTables.json', import.meta.url);
 const catalogue = new URL('../../src/data/mutations.json', import.meta.url);
