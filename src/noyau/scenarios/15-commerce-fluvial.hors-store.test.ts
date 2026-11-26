@@ -423,12 +423,12 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     const jours = journal.filter((l) => /^Progression du jour/.test(l)).length;
     expect(jours, `journal :\n${journal.join('\n')}`).toBeGreaterThan(1);
     // Un dé d'Exposition par jour, et un Test de Résistance par héros pour chaque exposition.
-    expect(journal.filter((l) => /^Exposition hydrique : \d+\/\d+ → /.test(l)).length).toBe(jours);
-    const expositions = journal.filter((l) => /^Exposition hydrique : \d+\/\d+ → exposition\.$/.test(l)).length;
+    expect(journal.filter((l) => /^Exposition hydrique : \d+\/\d+, /.test(l)).length).toBe(jours);
+    const expositions = journal.filter((l) => /^Exposition hydrique : \d+\/\d+, exposition\.$/.test(l)).length;
     expect(expositions).toBeGreaterThan(0);
-    expect(journal.filter((l) => / — Résistance : \d+\/\d+ → /.test(l)).length).toBe(expositions * get().party.length);
+    expect(journal.filter((l) => / — Résistance : \d+\/\d+, /.test(l)).length).toBe(expositions * get().party.length);
     // MSRC 5 l.13, l.17 ; #2588 (issuecomment-6124973279).
-    expect(journal.filter((l) => / — Agilité : \d+\/\d+ → /.test(l)), 'le barreur a Voile : aucune Agilité').toEqual([]);
+    expect(journal.filter((l) => / — Agilité : \d+\/\d+, /.test(l)), 'le barreur a Voile : aucune Agilité').toEqual([]);
   });
 
   it('graine 7, JOUR-PAR-JOUR : le même jour ouvre sa fenêtre', () => {

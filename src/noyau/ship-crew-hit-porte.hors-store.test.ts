@@ -253,7 +253,7 @@ describe('#1657 B3-2 — la porte SÉPARE : bande pour les sièges, inline JOURN
 
     // Le PNJ n'a AUCUNE rangée nulle part : le journal est sa seule surface, il PORTE le jet.
     expect(get().pendingLogQueue.map((l) => l.line)).toEqual([
-      'Marin — Test d’Initiative Intermédiaire (+0) : 63/31 → échec (DR -3).',
+      'Marin — Test d’Initiative Intermédiaire (+0) : 63/31, échec (DR -3).',
       'Marin subit 2 Blessure(s) (PA, BE déduit).',
       'Marin reçoit 1 État Empêtré.',
     ]);

@@ -4299,7 +4299,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     expect(pv.some((e) => e.id?.startsWith('mer-salissures')), 'le procès-verbal ne recopie pas le dé').toBe(false);
     const navire = get().travelPlan!.vehicle!.label;
     const libelle = testSkillLabel({ characteristic: 'endurance' })!;
-    const traces = get().journal.filter((x) => x.includes(t('sv.foulingTest')) && x.includes('→'));
+    const traces = get().journal.filter((x) => x.includes(t('sv.foulingTest')) && /\d+\/\d+, /.test(x));
     expect(traces, 'le dé du navire a UNE surface : sa trace au journal (#1291)').toHaveLength(1);
     expect(traces[0], 'la trace dit QUI lance (le navire) et QUOI (#1595)').toContain(navire);
     expect(traces[0]).toContain(libelle);
