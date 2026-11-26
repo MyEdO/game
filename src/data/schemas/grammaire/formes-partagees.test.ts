@@ -48,12 +48,13 @@ import { avecDotations, CARRIERE_FIXTURE } from '../../dotations.fixture';
 import { WATER_EXPOSURE, type CareerLevelData } from '../../index';
 import { CRITIQUE_DOCS } from '../../criticals';
 import { auChemin } from '../../../lib/objet.mjs';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 
 /** Les paths de DONNÉE des fautes de `valeur` au schéma de `fichier` — le LIEU rendu nomme un élément
  *  d'une collection à clé par sa clé (`schemas/validate.ts`), le path garde son rang. */
 const pathsRefuses = (fichier: string, valeur: unknown): string[] =>
-  (validateDocument(schemaForFile(fichier)!, valeur) ?? []).map((f) => f.chemin.join('.'));
+  (validateDocument(schemaForFile(fichier)!, valeur, catalogueDuProcessus()) ?? []).map((f) => f.chemin.join('.'));
 
 describe('trappingRefSchema — branches de TrappingRef', () => {
   it('une pièce décrite par le Trait Armure est une possession directe de créature', () => {
@@ -162,16 +163,16 @@ describe('classes.json — une Classe ne porte que des dotations sans texte', ()
   const classeDotee = (trappings: unknown[]) => [{ ...classe, trappings }];
 
   it('une Classe nommée qui porte un `{text}`, à la racine ou dans un `{pick, of}`, est refusée', () => {
-    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }]))).toBeNull();
-    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { text: 'Déjeuner' }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
-    expect(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ id: 'capuchon' }, { text: 'Masque' }] }]))).toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { pick: 1, of: [{ id: 'capuchon' }, { id: 'masque' }] }]), catalogueDuProcessus())).toBeNull();
+    expect(validateDataset('classes.json', classeDotee([{ id: 'dague' }, { text: 'Déjeuner' }]), catalogueDuProcessus())).toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ id: 'capuchon' }, { text: 'Masque' }] }]), catalogueDuProcessus())).toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 
   it('une Classe nommée qui porte un joker d’arme, simple, à Groupe ou à Atout, ou un lot dans un « 1 parmi », est refusée', () => {
-    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme' }])), 'joker simple').toEqual(expect.stringContaining(`« ${classe.id} »`));
-    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', groupe: { id: 'deux-mains' } }])), 'joker à Groupe').toEqual(expect.stringContaining(`« ${classe.id} »`));
-    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', qualityChoice: 'qualite' }])), 'joker à Atout').toEqual(expect.stringContaining(`« ${classe.id} »`));
-    expect.soft(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ lot: [{ id: 'arc' }, { id: 'fleche' }] }, { id: 'dague' }] }])), 'lot').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme' }]), catalogueDuProcessus()), 'joker simple').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', groupe: { id: 'deux-mains' } }]), catalogueDuProcessus()), 'joker à Groupe').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ wildcard: 'arme', qualityChoice: 'qualite' }]), catalogueDuProcessus()), 'joker à Atout').toEqual(expect.stringContaining(`« ${classe.id} »`));
+    expect.soft(validateDataset('classes.json', classeDotee([{ pick: 1, of: [{ lot: [{ id: 'arc' }, { id: 'fleche' }] }, { id: 'dague' }] }]), catalogueDuProcessus()), 'lot').toEqual(expect.stringContaining(`« ${classe.id} »`));
   });
 });
 
@@ -298,8 +299,8 @@ describe('plageSchema — fourchette PARTAGÉE des rangées de table', () => {
       const relatif = premiereFourchette(auChemin(data, sous));
       const chemin = relatif && [...sous, ...relatif];
       expect(chemin, `aucune rangée {min,max} trouvée dans ${fichier}`).not.toBeNull();
-      expect(validateDataset(fichier, data)).toBeNull();
-      const err = validateDataset(fichier, ampute(data, chemin!));
+      expect(validateDataset(fichier, data, catalogueDuProcessus())).toBeNull();
+      const err = validateDataset(fichier, ampute(data, chemin!), catalogueDuProcessus());
       expect(err, `${fichier} accepte une rangée sans borne basse`).not.toBeNull();
       expect(pathsRefuses(fichier, ampute(data, chemin!))).toContain([...chemin!, 'min'].join('.'));
     });
@@ -386,10 +387,10 @@ describe('plageOuverteSchema — la bande EXTRÊME reste OUVERTE', () => {
 
   it('advancementCosts.json : sa donnée réelle passe, la MÊME bande sans `min` est REFUSÉE', () => {
     const bandes = advancementCosts;
-    expect(validateDataset('advancementCosts.json', bandes)).toBeNull();
+    expect(validateDataset('advancementCosts.json', bandes, catalogueDuProcessus())).toBeNull();
     expect(bandes.filter((b) => b.max === null).length, 'plus aucune bande OUVERTE : la sonde ne mesure rien.').toBe(1);
     const { min: _absente, ...ampute } = bandes[0];
-    const err = validateDataset('advancementCosts.json', [ampute, ...bandes.slice(1)]);
+    const err = validateDataset('advancementCosts.json', [ampute, ...bandes.slice(1)], catalogueDuProcessus());
     expect(err, 'une bande sans borne basse est acceptée').not.toBeNull();
     expect(pathsRefuses('advancementCosts.json', [ampute, ...bandes.slice(1)])).toContain('0.min');
   });
@@ -420,7 +421,7 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
 
   it('reglesOptionnelles.json : sa donnée réelle passe, le MÊME réglage privé de `max` est REFUSÉ', () => {
     const regles: ReadonlyArray<Record<string, unknown>> = reglesOptionnelles;
-    expect(validateDataset('reglesOptionnelles.json', regles)).toBeNull();
+    expect(validateDataset('reglesOptionnelles.json', regles, catalogueDuProcessus())).toBeNull();
     const bornees = regles.filter((r) => typeof r.min === 'number' && typeof r.max === 'number');
     expect(bornees.length, 'plus aucun réglage borné : la sonde ne mesure rien.').toBeGreaterThan(0);
     expect(
@@ -429,7 +430,7 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
     ).toEqual([]);
     const i = regles.indexOf(bornees[0]);
     const { max: _absente, ...ampute } = bornees[0];
-    const err = validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
+    const err = validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)], catalogueDuProcessus());
     expect(err, 'un réglage à borne basse SEULE est accepté').not.toBeNull();
     expect(pathsRefuses('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)])).toContain(`${i}.max`);
   });
@@ -440,7 +441,7 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
       const i = regles.findIndex((r) => r.kind === kind);
       expect(i, `aucune règle \`${kind}\` : la sonde ne mesure rien`).toBeGreaterThanOrEqual(0);
       const ampute = Object.fromEntries(Object.entries(regles[i]).filter(([k]) => !champs.includes(k)));
-      return validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)]);
+      return validateDataset('reglesOptionnelles.json', [...regles.slice(0, i), ampute, ...regles.slice(i + 1)], catalogueDuProcessus());
     };
     expect(refus('param', ['min', 'max', 'step'])).toContain('un nombre (kind « param ») déclare ses bornes');
     expect(refus('mode', ['options'])).toContain('un choix (kind « mode ») propose au moins deux valeurs');
@@ -456,7 +457,7 @@ describe('bornesSchema — les deux bornes d’un réglage vont par paire', () =
 describe('water-exposure › auto.between — les deux bornes du prédicat', () => {
   it('sa donnée réelle passe, le MÊME prédicat sans `max` est REFUSÉ', () => {
     const doc = WATER_EXPOSURE;
-    expect(validateDataset('water-exposure.json', doc)).toBeNull();
+    expect(validateDataset('water-exposure.json', doc, catalogueDuProcessus())).toBeNull();
     const i = doc.modifiers.findIndex((m) => m.auto !== undefined && 'op' in m.auto && m.auto.op === 'between');
     expect(i, 'aucun prédicat `between` : la sonde ne mesure rien.').toBeGreaterThanOrEqual(0);
     const modifiers = doc.modifiers.map((m, j) => {
@@ -465,7 +466,7 @@ describe('water-exposure › auto.between — les deux bornes du prédicat', () 
       return { ...m, auto: ampute };
     });
     expect(
-      validateDataset('water-exposure.json', { ...doc, modifiers }),
+      validateDataset('water-exposure.json', { ...doc, modifiers }, catalogueDuProcessus()),
       'un prédicat `between` sans borne haute est accepté',
     ).not.toBeNull();
   });
@@ -507,41 +508,41 @@ describe('prix d’offre — les bandes couvrent leur domaine d’un seul tenant
   };
 
   it('sea-cargo.json › vente.prixDOffre : la donnée réelle passe ; TROU, CHEVAUCHEMENT et plafond sur la bande FINALE sont REFUSÉS', () => {
-    expect(validateDataset('sea-cargo.json', seaCargo)).toBeNull();
+    expect(validateDataset('sea-cargo.json', seaCargo, catalogueDuProcessus())).toBeNull();
 
-    const trou = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { min: 5 }));
+    const trou = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { min: 5 }), catalogueDuProcessus());
     expect(trou, 'un TROU entre deux bandes est accepté').not.toBeNull();
     expect(trou).toContain('commence à 5 au lieu de 4');
 
-    const chevauchement = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 1, { min: 1 }));
+    const chevauchement = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 1, { min: 1 }), catalogueDuProcessus());
     expect(chevauchement, 'un CHEVAUCHEMENT est accepté').not.toBeNull();
     expect(chevauchement).toContain('commence à 1 au lieu de 2');
 
-    const plafonnee = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { max: 9 }));
+    const plafonnee = validateDataset('sea-cargo.json', muter(seaCargo, 'prixDOffre', 3, { max: 9 }), catalogueDuProcessus());
     expect(plafonnee, 'la bande « 4 ou plus » accepte un plafond').not.toBeNull();
     expect(plafonnee).toContain('est la DERNIÈRE et porte un plafond');
   });
 
   it('land-cargo.json › vente.offreParRichesse : la donnée réelle passe ; TROU, CHEVAUCHEMENT, bande FINALE ouverte et débordement d’échelle sont REFUSÉS', () => {
-    expect(validateDataset('land-cargo.json', landCargo)).toBeNull();
+    expect(validateDataset('land-cargo.json', landCargo, catalogueDuProcessus())).toBeNull();
 
-    const trou = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 2, { min: 4 }));
+    const trou = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 2, { min: 4 }), catalogueDuProcessus());
     expect(trou, 'un TROU entre deux bandes est accepté').not.toBeNull();
     expect(trou).toContain('commence à 4 au lieu de 3');
 
-    const chevauchement = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 1, { min: 1 }));
+    const chevauchement = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 1, { min: 1 }), catalogueDuProcessus());
     expect(chevauchement, 'un CHEVAUCHEMENT est accepté').not.toBeNull();
     expect(chevauchement).toContain('commence à 1 au lieu de 2');
 
     // Côté TERRE, le livre n'écrit aucun « ou plus » : la borne haute est REQUISE (`plageSchema`),
     // et `max: null` est refusé AU TYPE, avant même la mesure de couverture.
-    const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: null }));
+    const ouverte = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: null }), catalogueDuProcessus());
     expect(ouverte, 'la dernière bande terrestre accepte une borne haute OUVERTE').not.toBeNull();
     expect(ouverte).toContain('Règles de vente › Mise à prix selon la Richesse 5 › Maximum');
     expect(pathsRefuses('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: null }))).toContain('vente.offreParRichesse.4.max');
 
     // Le domaine s'arrête à 5 (MSRC 13 l.52-60) : une bande qui déborde n'a aucun indice à couvrir.
-    const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: 6 }));
+    const deborde = validateDataset('land-cargo.json', muter(landCargo, 'offreParRichesse', 4, { max: 6 }), catalogueDuProcessus());
     expect(deborde, 'la table déborde l’échelle des indices imprimés').not.toBeNull();
     expect(deborde).toContain("s'arrête à 6 au lieu de 5");
   });

@@ -17,6 +17,7 @@ import { rangee } from '../../../src/data/schemas/defs/mutationTables';
 import { traitCapabilitiesSchema } from '../../../src/data/schemas/defs/traits';
 import { validateDataset } from '../../../src/data/schemas/validate';
 import { categoryByKey } from '../../../src/noyau/index';
+import { catalogueDuProcessus } from '../../../src/data/catalogueDuProcessus';
 
 /** Le libellé de fiche de l'entrée `id` de la catégorie `categorie`. */
 const libelleDe = (categorie: string, id: string): string => categoryByKey(categorie)!.items.find((i) => i.id === id)!.label;
@@ -206,7 +207,7 @@ describe('compendium', () => {
     const enregistre = appel('compendium', boutonDe(ecrit, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
     const exportees = JSON.parse(enregistre.donnees.texte);
     expect(enregistre.donnees.fichier).toBe('mutationTables.json');
-    expect(validateDataset(enregistre.donnees.fichier, exportees)).toBeNull();
+    expect(validateDataset(enregistre.donnees.fichier, exportees, catalogueDuProcessus())).toBeNull();
     expect(exportees.find((e: { id: string }) => e.id === document.id)).toEqual({
       ...document,
       entries: [{ id: mutations[1].id, ...bornes }],
@@ -234,7 +235,7 @@ describe('compendium', () => {
       const r = appel('compendium', boutonDe(zones, 'enregistrer').jeu) as unknown as { donnees: { fichier: string; texte: string } };
       expect(r.donnees.fichier).toBe('traits.json');
       const entrees = JSON.parse(r.donnees.texte) as typeof porteur[];
-      expect(validateDataset(r.donnees.fichier, entrees)).toBeNull();
+      expect(validateDataset(r.donnees.fichier, entrees, catalogueDuProcessus())).toBeNull();
       const entree = entrees.find((e) => e.id === porteur.id);
       expect(entree).toBeDefined();
       return entree?.capabilities;

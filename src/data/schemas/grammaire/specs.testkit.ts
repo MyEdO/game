@@ -1,12 +1,16 @@
 /**
  * Kit de test des spécialisations (#3081) — un régime vivant synthétique pose, pour les Compétences et
  * les Talents, une entrée OUVERTE (`specsOpen`), une FERMÉE et une SANS catalogue, les deux premières
- * au même catalogue (`SPEC`, libellé `LIBELLE`), puis repose le précédent. Un test qui juge une
+ * au même catalogue (`SPEC`, libellé `LIBELLE`), puis repose le précédent ; une porte qui juge sous un catalogue
+ * (#5070) reçoit celui qui porte ces fiches. Un test qui juge une
  * spécialisation le fait sur ces fiches fabriquées, jamais sur une entrée du corpus.
  */
 import { espaceDe, lireLEspace, type TypeEntite } from './ref';
 import { cleDesLibelles, cleDesSpecs, cleFiltree } from './cle-d-espace';
 import { poserRegimeVivant } from './idsVivants';
+import type { Catalogue } from '../catalogue/catalogue';
+import { catalogueAvec } from '../../catalogueAvec.testkit';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 export const OUVERTE = 'fixture-3081-ouverte';
 export const FERMEE = 'fixture-3081-fermee';
@@ -29,12 +33,18 @@ const espacesDe = (type: TypeEntite): [string, ReadonlySet<string>][] => {
   ];
 };
 
-/** Joue `verifier` sous le régime de la fixture, puis repose le régime précédent. */
-export function avecLesEntreesDeSpecs(verifier: () => void): void {
+/** Une fiche de chaque id de la fixture, sur la forme de la fiche `modele`. */
+const fiches = <E extends object>(modele: E): E[] => [OUVERTE, FERMEE, SANS].map((id) => ({ ...modele, id }));
+
+/** Joue `verifier` sous le régime de la fixture, avec le catalogue qui porte ses fiches (`catalogueAvec`), puis repose
+ *  le régime précédent. */
+export function avecLesEntreesDeSpecs(verifier: (cat: Catalogue) => void): void {
   const espaces = new Map([...espacesDe('skill'), ...espacesDe('talent')]);
+  const livree = catalogueDuProcessus();
+  const cat = catalogueAvec({ 'skills.json': fiches(livree['skills.json'][0]), 'talents.json': fiches(livree['talents.json'][0]) });
   const precedent = poserRegimeVivant((cle) => espaces.get(cle) ?? precedent?.(cle));
   try {
-    verifier();
+    verifier(cat);
   } finally {
     poserRegimeVivant(precedent);
   }

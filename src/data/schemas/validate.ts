@@ -1,9 +1,9 @@
 /**
  * Validation d'un document authoré contre son schéma zod — SOURCE UNIQUE, DEUX portes :
- *  - `validateDataset(file, value)` : porte par FICHIER, pour qui connaît le nom du document —
+ *  - `validateDataset(file, value, cat)` : porte par FICHIER, pour qui connaît le nom du document —
  *    contrat CI (`schema-contract.test.ts`), sauvegarde du Compendium (`validerMutation`, `src/data/atelierDuCodex.ts`).
  *    Le registre couvre les DEUX racines (`src/data` par basename, `src/scenes` par chemin relatif).
- *  - `validateDocument(schema, value)` : porte par SCHÉMA, pour un seam qui n'a PAS de nom de
+ *  - `validateDocument(schema, value, cat)` : porte par SCHÉMA, pour un seam qui n'a PAS de nom de
  *    fichier — `parseProject` sert du JSON committé, du localStorage et de l'import utilisateur.
  * Le format d'une faute a UNE source (`rapportDeFautes`) : `validateDataset` en dérive pour la porte
  * par fichier, `validateDocument` rend les fautes elles-mêmes (`Faute`). credo.md:7, 2ᵉ phrase.
@@ -24,6 +24,8 @@ import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE, OBJECT_CATEGORY_DERIVE } 
 import { valeursDe, metaDesChamps, nomDeNoeud, type MetaChamp } from './grammaire/meta';
 import { proseNonMaterialisee, versDisque } from './grammaire/prose';
 import { mecaniqueDe, regimesDuNoeud, type Regimes } from './grammaire/mecanique';
+import type { Catalogue } from './catalogue/catalogue';
+import { parserSousCatalogue } from './catalogue/references';
 
 /** Le registre des DEUX racines de documents (`src/data` + `src/scenes`). */
 export const DEFS_DE_DOCUMENT: readonly SchemaDef[] = [...SCHEMA_DEFS, ...SCHEMA_DEFS_SCENES];
@@ -276,16 +278,16 @@ export const noeudsDesEntrees = (dataset: string): readonly unknown[] => routeDe
  * discriminant dans `entree` (`ouverts`). LÈVE, en nommant fichier, dataset et suite, sur un dataset
  * sans route, une suite qui ne mène à aucune collection à clé, ou une rangée qui n'a pas UN nœud objet
  * (en nommant en plus la valeur des discriminants) — `RangeeSansNoeud` quand sa forme disque est
- * refusée par chacun des nœuds de son élément, qui en portent les FAUTES.
+ * refusée par chacun des nœuds de son élément, qui en portent les FAUTES, jugées sous `cat`.
  */
-export function noeudDeLEntree(dataset: string, entree: object): unknown {
+export function noeudDeLEntree(dataset: string, entree: object, cat: Catalogue): unknown {
   const { lieu, noeuds } = routeDesEntrees(dataset);
   const objets = ouverts(noeuds, entree).filter((n) => defDe(n)?.type === 'object');
   if (objets.length !== 1) {
     const discriminants = [...new Set(ouverts(noeuds).map((n) => defDe(n)?.discriminator).filter((d): d is string => d !== undefined))];
     const valeurs = discriminants.map((d) => `« ${d} » = ${String(JSON.stringify((entree as Record<string, unknown>)[d]))}`).join(', ');
     const message = `${lieu} — la rangée porte ${objets.length} nœuds objets, pas un${valeurs ? ` (discriminant ${valeurs})` : ''}.`;
-    const refus = noeuds.map((n) => validerFormeVivante(n as z.ZodType, entree)?.fautes ?? null);
+    const refus = noeuds.map((n) => validerFormeVivante(n as z.ZodType, entree, cat)?.fautes ?? null);
     if (refus.length > 0 && refus.every((f): f is readonly Faute[] => f !== null)) throw new RangeeSansNoeud(message, refus.flat());
     throw new Error(message);
   }
@@ -375,23 +377,23 @@ export function brouillonNeuf(file: string, entrees: readonly Record<string, unk
   return brouillon;
 }
 
-/** Valide `value` contre le schéma du fichier `file` : `null` si valide, message actionnable
+/** Valide `value` contre le schéma du fichier `file`, chaque id jugé sous `cat` : `null` si valide, message actionnable
  *  (champ-par-champ) si invalide. Un fichier NON REGISTRÉ est une ERREUR NOMMÉE, jamais un
  *  laissez-passer : tout document des deux racines a son def (`defs/`, `defs-scenes/`). */
-export function validateDataset(file: string, value: unknown): string | null {
+export function validateDataset(file: string, value: unknown, cat: Catalogue): string | null {
   const schema = schemaForFile(file);
   if (!schema) {
     return `${file} — aucun schéma registré : déposer son def dans src/data/schemas/defs/ (racine src/data) ou defs-scenes/ (racine src/scenes), puis \`npm run gen\`.`;
   }
-  const fautes = validateDocument(schema, value);
+  const fautes = validateDocument(schema, value, cat);
   return fautes ? rapportDeFautes(file, fautes) : null;
 }
 
-/** Valide `value` contre `schema` — porte du seam SANS nom de fichier (chargement d'un projet depuis
+/** Valide `value` contre `schema`, chaque id jugé sous `cat` (`parserSousCatalogue`) — porte du seam SANS nom de fichier (chargement d'un projet depuis
  *  le localStorage ou un import utilisateur). Rend les FAUTES (`null` si valide) : l'appelant en
  *  tire son rapport (`rapportDeFautes`) et sa surface les lit sans re-parser de texte. */
-export function validateDocument(schema: z.ZodType, value: unknown): readonly Faute[] | null {
-  const result = schema.safeParse(value);
+export function validateDocument(schema: z.ZodType, value: unknown, cat: Catalogue): readonly Faute[] | null {
+  const result = parserSousCatalogue(schema, value, cat);
   return result.success ? null : fautesDe(schema, value, result.error);
 }
 
@@ -403,8 +405,8 @@ export type RefusDeFormeVivante = { readonly cause: 'schema' | 'prose-non-materi
  * la complétude (`proseNonMaterialisee`) sur `value` reçue. Sites : `parseProject` et
  * `parseSceneDeProjet` (`noyau/worldMap.ts`), `validateScene` (`noyau/validateScene.ts`).
  */
-export function validerFormeVivante(schema: z.ZodType, value: unknown): RefusDeFormeVivante | null {
-  const fautes = validateDocument(schema, versDisque(value));
+export function validerFormeVivante(schema: z.ZodType, value: unknown, cat: Catalogue): RefusDeFormeVivante | null {
+  const fautes = validateDocument(schema, versDisque(value), cat);
   if (fautes) return { cause: 'schema', fautes };
   const nus = proseNonMaterialisee(value);
   if (nus.length === 0) return null;

@@ -27,6 +27,7 @@ import { projetDoc } from '../../data/schemas/defs-scenes/projet';
 import { enfantsDe } from '../../data/schemas/grammaire/descente';
 import { stripComments } from '../../../scripts/guards/lib/hardcode.mjs';
 import { lireExports } from '../../../scripts/gen-registry.mjs';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 const handleDemo = () => document(
   'demo', 'entite',
@@ -179,7 +180,7 @@ describe('canal registre → atelier (`metaPourFichier`)', () => {
   it('`oups.json`, document mono-table : le canal nomme sa racine, le nœud de sa rangée en nomme les champs', () => {
     expect(metaPourFichier('oups.json')?.die?.label).toBe('Dé de tirage');
     expect(metaPourFichier('oups.json')?.kind).toBeUndefined();
-    const rangee = noeudDeLEntree('oups', editableEntries('oups')[0] as object);
+    const rangee = noeudDeLEntree('oups', editableEntries('oups')[0] as object, catalogueDuProcessus());
     expect(libelleDuChamp('kind', { niveau: 'profondeur', noeud: rangee })).toBe('Effet mécanique');
   });
 

@@ -293,15 +293,15 @@ hôte compose un catalogue, et il le remet à sa partie.
 
   Une seule porte de `schemas/catalogue` les sert : `parserSousCatalogue(schema, valeur, cat)`, qui parse puis juge les fautes
   croisées sous `cat`. Pour les schémas à fautes croisées, elle remplace `validerFormeVivante`
-  (`src/data/schemas/validate.ts:406`). Les schémas à fautes croisées ne sont plus exportés hors de `schemas/catalogue` : un
+  (`src/data/schemas/validate.ts:408`). Les schémas à fautes croisées ne sont plus exportés hors de `schemas/catalogue` : un
   site qui les parse sans `cat` ne compile plus. La famille 1 remplace chacun de leurs sites d'entrée :
-  - `parseProject` (`src/noyau/worldMap.ts:752`) et `parseSceneDeProjet` (`worldMap.ts:730`, autosave de l'éditeur et
+  - `parseProject` (`src/noyau/worldMap.ts:754`) et `parseSceneDeProjet` (`worldMap.ts:732`, autosave de l'éditeur et
     chargement de sauvegarde) ;
-  - `src/noyau/persistance/save.ts:151` ;
-  - `src/noyau/mapSpec.ts:996` ;
-  - `src/noyau/validateScene.ts:125-126` ;
-  - `src/noyau/sceneEditLecture.ts:475` ;
-  - `src/noyau/campagneLivree.ts:88`.
+  - `src/noyau/persistance/save.ts:154` ;
+  - `src/noyau/mapSpec.ts:999` ;
+  - `src/noyau/validateScene.ts:127-128` ;
+  - `src/noyau/sceneEditLecture.ts:478` ;
+  - `src/noyau/campagneLivree.ts:90`.
 
   `refusDeLEntite` (`scene.ts:313-319`) se scinde : sa forme reste à `schemas`, et ses fautes croisées passent à
   `schemas/catalogue`.

@@ -29,6 +29,7 @@ import type { GenreDEtape } from './tablesPosees';
 import { tablesDuJeu } from './tablesDuJeu';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { fixtureText } from '../i18n/fixtureText';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -126,7 +127,7 @@ describe('Activités en mer non tentables', () => {
   });
 
   // Porte de `CodexEdit.save` : la racine sérialisée du dataset, validée contre le schéma de son fichier.
-  const enregistrement = () => validateDataset(datasetFile('activities'), datasetSerializeRoot('activities'));
+  const enregistrement = () => validateDataset(datasetFile('activities'), datasetSerializeRoot('activities'), catalogueDuProcessus());
 
   it('Compendium : l’enregistrement refuse une Activité de contexte mer à Compétence libre — `SeaActivityPick` ne porte aucune Compétence choisie (MDG 15 l.266-300)', () => {
     const { tests: _tests, difficulty: _difficulty, ...sansCompetence } = activiteMer();

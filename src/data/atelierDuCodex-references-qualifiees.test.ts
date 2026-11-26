@@ -6,6 +6,7 @@ import { versDisque } from './schemas/grammaire/prose';
 import { specAuCatalogue } from './schemas/grammaire/ref';
 import { validateDataset } from './schemas/validate';
 import { abonnerAuxDatasets } from './versionDataset';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 type Entree = Record<string, unknown>;
 
@@ -53,7 +54,7 @@ function verifierRefusPuisEdition(
   const index = catalogue.findIndex((e) => 'id' in e && e.id === origine.id);
   expect(index).toBeGreaterThanOrEqual(0);
   const racine = RACINES_VIVANTES[lecteur];
-  const relire = () => validateDataset(lecteur, versDisque(racine));
+  const relire = () => validateDataset(lecteur, versDisque(racine), catalogueDuProcessus());
   expect(relire()).toBeNull();
 
   const observations: (string | null)[] = [];

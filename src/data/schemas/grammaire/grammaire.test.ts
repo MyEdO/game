@@ -47,6 +47,7 @@ import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
 import { noeudObjet, validateDataset } from '../validate';
 import { estObjet } from '../../../lib/objet.mjs';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
 const UNE_COMPETENCE = skills[0];
@@ -1261,7 +1262,7 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
   it('une réf inventée est refusée AU CHARGEMENT par sa feuille, qui nomme le catalogue — `nue` ne change que le type de sortie (#1473)', () => {
     const copie = structuredClone(talentsJson);
     copie[0].source.book = 'livre-invente';
-    expect(validateDataset('talents.json', copie)).toContain('« livre-invente » est absent du catalogue des livres (books.json).');
+    expect(validateDataset('talents.json', copie, catalogueDuProcessus())).toContain('« livre-invente » est absent du catalogue des livres (books.json).');
     expectTypeOf(idDe('book', undefined, { nue: true }).parse(talentsJson[0].source.book)).toEqualTypeOf<string>();
   });
 

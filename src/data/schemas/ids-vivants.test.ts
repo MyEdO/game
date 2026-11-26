@@ -12,6 +12,7 @@ import { describe, it, expect, afterEach } from 'vitest';
 import { setDataset, datasetArray } from '../overrides';
 import { validateDataset } from './validate';
 import { props } from '../index';
+import { catalogueDuProcessus } from '../catalogueDuProcessus';
 
 const NEUVE = {
   id: 'sonde-matiere-neuve',
@@ -38,29 +39,29 @@ function propsAvecMatiere(id: string): unknown {
 describe('références — les ids se lisent sur la donnée EN MÉMOIRE (#1686)', () => {
   it('une matière CRÉÉE en mémoire est référençable AUSSITÔT, sans `npm run gen`', () => {
     expect(
-      validateDataset('props.json', propsAvecMatiere(NEUVE.id)),
+      validateDataset('props.json', propsAvecMatiere(NEUVE.id), catalogueDuProcessus()),
       'la matière neuve est déjà connue du registre GÉNÉRÉ — la sonde ne prouverait rien',
     ).toContain(NEUVE.id);
 
     setDataset('materials', [...AVANT, NEUVE] as never);
-    expect(validateDataset('props.json', propsAvecMatiere(NEUVE.id))).toBeNull();
+    expect(validateDataset('props.json', propsAvecMatiere(NEUVE.id), catalogueDuProcessus())).toBeNull();
   });
 
   it('une matière RETIRÉE de la mémoire cesse d’être référençable — nommément', () => {
     const [premiere] = AVANT.filter((m) => m.domain === 'prop');
     setDataset('materials', AVANT.filter((m) => m.id !== premiere.id) as never);
-    const refus = validateDataset('props.json', propsAvecMatiere(premiere.id));
+    const refus = validateDataset('props.json', propsAvecMatiere(premiere.id), catalogueDuProcessus());
     expect(refus, 'le registre figé a servi de laissez-passer').toContain(premiere.id);
     expect(refus).toContain('materials.json');
   });
 
   it('le DOMAINE reste discriminant en mémoire : une matière de TOITURE ne passe pas pour une matière de décor', () => {
     const toit = AVANT.find((m) => m.domain === 'roof')!;
-    expect(validateDataset('props.json', propsAvecMatiere(toit.id))).toContain('prop');
+    expect(validateDataset('props.json', propsAvecMatiere(toit.id), catalogueDuProcessus())).toContain('prop');
   });
 
   it('une référence INCONNUE des deux régimes reste refusée', () => {
     setDataset('materials', [...AVANT, NEUVE] as never);
-    expect(validateDataset('props.json', propsAvecMatiere('matiere-qui-n-existe-pas'))).toContain('matiere-qui-n-existe-pas');
+    expect(validateDataset('props.json', propsAvecMatiere('matiere-qui-n-existe-pas'), catalogueDuProcessus())).toContain('matiere-qui-n-existe-pas');
   });
 });

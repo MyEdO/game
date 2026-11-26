@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { validateDataset } from '../validate';
 import talentsJson from '../../talents.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 type Talent = { id: string; effects?: { flow: unknown }[] };
 const copie = (): Talent[] => JSON.parse(JSON.stringify(talentsJson)) as Talent[];
@@ -24,23 +25,23 @@ function avecLeFlow(flow: unknown): Talent[] {
 
 describe('une attaque gratuite est le dernier geste de son Flow (#4011)', () => {
   it('les Flows livrés (assaut-feroce onHit, frappe-reactive onCharged) passent', () => {
-    expect(validateDataset('talents.json', copie())).toBeNull();
+    expect(validateDataset('talents.json', copie(), catalogueDuProcessus())).toBeNull();
   });
 
   it('feuille [gratuite, op] : refusée, à l’op', () => {
-    const dit = validateDataset('talents.json', avecLeFlow(feuille([gratuite, autreOp])));
+    const dit = validateDataset('talents.json', avecLeFlow(feuille([gratuite, autreOp])), catalogueDuProcessus());
     expect(dit).toContain('attaque gratuite suivie d’une opération');
   });
 
   it('séquence [gratuite, nœud] : refusée, même si la gratuite est au bout d’une branche', () => {
     const branche = { kind: 'si', condition: { kind: 'always' }, alors: feuille([gratuite]) };
     for (const tete of [feuille([gratuite]), branche]) {
-      const dit = validateDataset('talents.json', avecLeFlow({ kind: 'sequence', etapes: [tete, feuille([autreOp])] }));
+      const dit = validateDataset('talents.json', avecLeFlow({ kind: 'sequence', etapes: [tete, feuille([autreOp])] }), catalogueDuProcessus());
       expect(dit).toContain('attaque gratuite suivie d’une étape');
     }
   });
 
   it('séquence [nœud, gratuite] : admise', () => {
-    expect(validateDataset('talents.json', avecLeFlow({ kind: 'sequence', etapes: [feuille([autreOp]), feuille([gratuite])] }))).toBeNull();
+    expect(validateDataset('talents.json', avecLeFlow({ kind: 'sequence', etapes: [feuille([autreOp]), feuille([gratuite])] }), catalogueDuProcessus())).toBeNull();
   });
 });

@@ -5,6 +5,7 @@ import { DATASET_KEYS, datasetEditable, datasetFile, datasetObject, datasetObjec
 import { validateDataset } from './schemas/validate';
 import { serializeDataset } from './schemas/serialize';
 import { versDisque } from './schemas/grammaire/prose';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 /**
  * Garde STRUCTURELLE « la SAUVEGARDE de l'éditeur passe » (#1467 L1b V-FLIP-TABLE, soldée #1530).
@@ -26,7 +27,7 @@ function scannees(): typeof DATASET_KEYS {
 function refus(): string[] {
   const out: string[] = [];
   for (const k of scannees()) {
-    const err = validateDataset(datasetFile(k), datasetSerializeRoot(k));
+    const err = validateDataset(datasetFile(k), datasetSerializeRoot(k), catalogueDuProcessus());
     if (err) out.push(`${k} → ${datasetFile(k)}`);
   }
   return out.sort();
@@ -111,8 +112,8 @@ describe('sauvegarde éditeur — chaque clé de dataset résout un fichier REGI
     expect(runtime[0].desc, 'la forme disque est une COPIE : la racine runtime garde sa prose').toBeTruthy();
 
     // MORDANT : sans ce passage, c'est la forme RUNTIME qui partirait au disque — et le schéma la refuse.
-    expect(validateDataset('psychology.json', disque)).toBeNull();
-    expect(validateDataset('psychology.json', runtime)).toMatch(/texte en double/);
+    expect(validateDataset('psychology.json', disque, catalogueDuProcessus())).toBeNull();
+    expect(validateDataset('psychology.json', runtime, catalogueDuProcessus())).toMatch(/texte en double/);
   });
 
   it('branche dataset-OBJET : la seconde porte de sauvegarde rend la FORME DISQUE, pas la racine vivante', () => {
@@ -134,6 +135,6 @@ describe('sauvegarde éditeur — chaque clé de dataset résout un fichier REGI
   });
 
   it('fail-closed : une racine délibérément fausse est REFUSÉE (l’instrument mord)', () => {
-    expect(validateDataset(datasetFile('montures'), { pas: 'un document' })).not.toBeNull();
+    expect(validateDataset(datasetFile('montures'), { pas: 'un document' }, catalogueDuProcessus())).not.toBeNull();
   });
 });

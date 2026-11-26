@@ -14,6 +14,7 @@ import { nommerChamps } from './grammaire/meta';
 import { schema as characteristicsSchema } from './defs/characteristics';
 import { projetSchema } from './defs-scenes/projet';
 import paquetDeTest from '../../scenes/fixtures/paquet-de-test.json';
+import { catalogueDuProcessus } from '../catalogueDuProcessus';
 
 const VALID_CHAR = [
   {
@@ -29,25 +30,25 @@ const VALID_CHAR = [
 
 describe('validateDataset — point de validation partagé (#176)', () => {
   it('une donnée conforme au schéma → null (pas de blocage)', () => {
-    expect(validateDataset('characteristics.json', VALID_CHAR)).toBeNull();
+    expect(validateDataset('characteristics.json', VALID_CHAR, catalogueDuProcessus())).toBeNull();
   });
 
   it('une clé inconnue → message ACTIONNABLE champ-par-champ (refus)', () => {
     const bad = [{ ...VALID_CHAR[0], inventedField: 'poison' }];
-    const err = validateDataset('characteristics.json', bad);
+    const err = validateDataset('characteristics.json', bad, catalogueDuProcessus());
     expect(err).not.toBeNull();
     expect(err).toContain('characteristics.json');
   });
 
   it('un champ requis manquant → chemin du champ dans le message', () => {
     const bad = [{ abr: 'CC', label: 'x', nature: 'roll', desc: 'x' }]; // pas de `source`
-    const err = validateDataset('characteristics.json', bad);
+    const err = validateDataset('characteristics.json', bad, catalogueDuProcessus());
     expect(err).not.toBeNull();
     expect(err).toContain('Source');
   });
 
   it('un fichier NON registré → erreur NOMMANT le fichier et le registre à peupler', () => {
-    const err = validateDataset('fichier-inexistant.json', { anything: true });
+    const err = validateDataset('fichier-inexistant.json', { anything: true }, catalogueDuProcessus());
     expect(err).toContain('fichier-inexistant.json');
     expect(err).toContain('aucun schéma registré');
     expect(err).toContain('defs-scenes/');
@@ -56,12 +57,12 @@ describe('validateDataset — point de validation partagé (#176)', () => {
 
   it('un document de la racine src/scenes est registré par son CHEMIN relatif', () => {
     expect(schemaForFile('fixtures/paquet-de-test.json')).toBe(projetSchema);
-    expect(validateDataset('fixtures/paquet-de-test.json', paquetDeTest)).toBeNull();
+    expect(validateDataset('fixtures/paquet-de-test.json', paquetDeTest, catalogueDuProcessus())).toBeNull();
   });
 
   it('validateDocument — porte par SCHÉMA (le seam n\'a pas de nom de fichier) : rend les FAUTES', () => {
-    expect(validateDocument(projetSchema, paquetDeTest)).toBeNull();
-    const fautes = validateDocument(projetSchema, { ...paquetDeTest, type: 'scene' });
+    expect(validateDocument(projetSchema, paquetDeTest, catalogueDuProcessus())).toBeNull();
+    const fautes = validateDocument(projetSchema, { ...paquetDeTest, type: 'scene' }, catalogueDuProcessus());
     expect(fautes?.map((f) => f.chemin)).toContainEqual(['type']);
     expect(rapportDeFautes('Projet', fautes!)).toContain('Projet — JSON invalide');
   });
@@ -70,8 +71,8 @@ describe('validateDataset — point de validation partagé (#176)', () => {
     const bad = [{ abr: 'CC' }];
     const res = characteristicsSchema.safeParse(bad);
     expect(res.success).toBe(false);
-    const fautes = validateDocument(characteristicsSchema, bad)!;
-    expect(validateDataset('characteristics.json', bad)).toBe(rapportDeFautes('characteristics.json', fautes));
+    const fautes = validateDocument(characteristicsSchema, bad, catalogueDuProcessus())!;
+    expect(validateDataset('characteristics.json', bad, catalogueDuProcessus())).toBe(rapportDeFautes('characteristics.json', fautes));
     expect(fautes.map((f) => f.message)).toEqual(res.error!.issues.map((i) => i.message));
   });
 
@@ -80,7 +81,7 @@ describe('validateDataset — point de validation partagé (#176)', () => {
   });
 
   it('validateDataset énumère chaque faute en « lieu: message »', () => {
-    const msg = validateDataset('characteristics.json', [{ abr: 'CC' }])!;
+    const msg = validateDataset('characteristics.json', [{ abr: 'CC' }], catalogueDuProcessus())!;
     expect(msg.startsWith('characteristics.json — JSON invalide contre son schéma :')).toBe(true);
     expect(msg).toContain('\n  - ');
   });
@@ -91,7 +92,7 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
   const doc = nommerChamps(z.strictObject({ items: listeCle(element, 'id').optional(), bruts: z.array(element).optional() }), { items: { label: 'objets' }, bruts: { label: 'bruts' } });
 
   it('un rang dans une liste à clé devient `liste « clé »`, le champ fautif suit ; le chemin reste BRUT', () => {
-    const [faute] = validateDocument(doc, { items: [{ id: 'a', n: 1 }, { id: 'b', label: 'Bé', n: 'x' }] })!;
+    const [faute] = validateDocument(doc, { items: [{ id: 'a', n: 1 }, { id: 'b', label: 'Bé', n: 'x' }] }, catalogueDuProcessus())!;
     expect(faute.chemin).toEqual(['items', 1, 'n']);
     expect(faute.lieu).toEqual([{ genre: 'element', liste: 'items', cle: 'b', nom: 'objets', libelle: 'Bé' }, { genre: 'champ', cle: 'n', nom: 'nombre', transparent: false }]);
     expect(cheminLisible(faute.lieu)).toBe('objets « b » › nombre');
@@ -99,12 +100,12 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
   });
 
   it('une liste SANS clé déclarée garde son rang : la clé ne se devine pas sur un champ `id`', () => {
-    const [faute] = validateDocument(doc, { bruts: [{ id: 'a', n: 'x' }] })!;
+    const [faute] = validateDocument(doc, { bruts: [{ id: 'a', n: 'x' }] }, catalogueDuProcessus())!;
     expect(cheminLisible(faute.lieu)).toBe('bruts 1 › nombre');
   });
 
   it('la clé DUPLIQUÉE est le SUJET du message ; le lieu nomme l’élément répété', () => {
-    const fautes = validateDocument(doc, { items: [{ id: 'a', n: 1 }, { id: 'a', n: 2 }] })!;
+    const fautes = validateDocument(doc, { items: [{ id: 'a', n: 1 }, { id: 'a', n: 2 }] }, catalogueDuProcessus())!;
     expect(fautes.map((f) => [f.chemin, cheminLisible(f.lieu), f.message])).toEqual([
       [['items', 1], 'objets « a »', '« a » dupliqué : « id » identifie l’élément dans sa liste, il y est unique.'],
     ]);
@@ -113,7 +114,7 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
   it('une clé COMPOSÉE nomme l’élément par sa graphie', () => {
     const arete = nommerChamps(z.strictObject({ x: z.number(), y: z.number(), door: z.boolean().optional() }), { x: { label: 'abscisse' }, y: { label: 'ordonnée' }, door: { label: 'porte' } });
     const murs = nommerChamps(z.strictObject({ walls: listeCle(arete, { nom: 'x,y', de: (w) => `${w.x},${w.y}` }) }), { walls: { label: 'murs' } });
-    const lus = (walls: unknown[]) => validateDocument(murs, { walls })!.map((f) => `${cheminLisible(f.lieu)}: ${f.message}`);
+    const lus = (walls: unknown[]) => validateDocument(murs, { walls }, catalogueDuProcessus())!.map((f) => `${cheminLisible(f.lieu)}: ${f.message}`);
     expect(lus([{ x: 1, y: 2 }, { x: 3, y: 4, door: 'oui' }])).toEqual(['murs « 3,4 » › porte: Entrée invalide : booléen attendu, chaîne de caractères reçu']);
     expect(lus([{ x: 1, y: 2 }, { x: 1, y: 2, door: true }])).toEqual([
       'murs « 1,2 »: « 1,2 » dupliqué : « x,y » identifie l’élément dans sa liste, il y est unique.',
@@ -124,7 +125,7 @@ describe('le LIEU d’une faute — un élément de liste à clé se nomme par s
     const brut = structuredClone(paquetDeTest) as { scenes: { id: string; entities: unknown[] }[] };
     const rang = brut.scenes[0].entities.length;
     brut.scenes[0].entities.push({ id: 'p-1', kind: 'prop', pos: { x: 1, y: 1 }, label: 'Tonneau' });
-    const rapport = rapportDeFautes('Projet', validateDocument(projetSchema, brut)!);
+    const rapport = rapportDeFautes('Projet', validateDocument(projetSchema, brut, catalogueDuProcessus())!);
     expect(rapport).toContain(`  - scène « ${brut.scenes[0].id} » › entité « p-1 » › décor: « decor » absent`);
     expect(rapport).not.toContain(`entities.${rang}`);
   });
