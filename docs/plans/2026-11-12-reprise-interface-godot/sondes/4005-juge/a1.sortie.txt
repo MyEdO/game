@@ -1,0 +1,250 @@
+
+===== graine 7 injection=false
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Temps sec.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 échec
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 échec
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 échec
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 28 échec
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 5 disposition=repos titre=Repos etape=null
+   [applier etapeRencontre] TEMOIN sans runFlow tiree=utile slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false
+   corps: À pied · 24 km sur 30
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Nuit à l’auberge — Weiler → Steinbruck
+   corps: Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   corps: Note 1 CO 4/– · Bourse 6 CO 10/–
+   journal+ État Exténué subi.
+   journal+ État Exténué subi.
+   journal+ Cartographie : 2/4 DR.
+   journal+ Voilà qui est utile ! : Les Personnages découvrent quelque chose d'important pour leur aventure, des ragots, un message égaré, une scène dont ils n'étaient pas censés être les témoins, etc.
+   >>> HALTE ouverte (vusTest=false)
+   FIN fenetre=true disposition=repos titre=Repos
+   ETAT FINAL slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false travelPlan=true pendingRest=true recapDays=undefined extenue=Bjorn (test):,Mira (test):1,Aldric (test):,Greta Hartmann:1
+   tablesPosees.etapeRencontre est le wrapper : true
+
+===== graine 7 injection=true
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Temps sec.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 échec
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 échec
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 28 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 échec
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 28 échec
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+--- pas 5 disposition=cascade/test titre=Survie en extérieur etape={"id":"test-jet-0","genre":"jetDeTestDeScene","interaction":"affichage","choix":[]}
+   [applier etapeRencontre] tiree=utile AVANT runFlow slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false
+   [applier etapeRencontre] APRÈS runFlow slot=test[Survie en extérieur] cursor=0/1 pile=[] pendingTest=true travelRecap=false
+   heros Bjorn (test): Survie en extérieur ≤ 99 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+   journal+ État Exténué subi.
+   journal+ État Exténué subi.
+   journal+ Cartographie : 2/4 DR.
+   journal+ Voilà qui est utile ! : Les Personnages découvrent quelque chose d'important pour leur aventure, des ragots, un message égaré, une scène dont ils n'étaient pas censés être les témoins, etc.
+--- pas 6 disposition=cascade/test titre=Survie en extérieur etape={"id":"test-jet-0","genre":"jetDeTestDeScene","interaction":"affichage","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 99 réussite
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · temps sec
+   corps: À pied · 24 km sur 30
+   FIN fenetre=false disposition=null titre=undefined
+   ETAT FINAL slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false travelPlan=true pendingRest=false recapDays=1 extenue=Bjorn (test):,Mira (test):1,Aldric (test):,Greta Hartmann:1
+   tablesPosees.etapeRencontre est le wrapper : true
+
+===== graine 2 injection=false
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Pluie.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 réussite
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 réussite
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 réussite
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 38 échec
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 5 disposition=repos titre=Repos etape=null
+   [applier etapeRencontre] TEMOIN sans runFlow tiree=temps-libre slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false
+   corps: À pied · 24 km sur 30
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Nuit à l’auberge — Weiler → Steinbruck
+   corps: Plein air réussi : aucun Test d’Exposition dû au mauvais temps cette nuit.
+   corps: Note 1 CO 4/– · Bourse 6 CO 10/–
+   journal+ État Exténué subi.
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Temps libre : le voyage est si détendu et sans encombre que les Personnages se retrouvent avec du temps libre. Chaque Personnage peut effectuer une Activité de voyage supplémentaire.
+   >>> HALTE ouverte (vusTest=false)
+   FIN fenetre=true disposition=repos titre=Repos
+   ETAT FINAL slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false travelPlan=true pendingRest=true recapDays=undefined extenue=Bjorn (test):,Mira (test):,Aldric (test):,Greta Hartmann:1
+   tablesPosees.etapeRencontre est le wrapper : true
+
+===== graine 2 injection=true
+--- pas 0 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+   journal+ Wellentag · 33 Jahrdrung 2512 CI
+   journal+ L’aubergiste essuie un verre en jaugeant le groupe. « La route du hameau (24 km) n’est pas sûre, mais le bourg (30 km) a ses relais et sa diligence — et depuis le hameau, la longue route d’Altdorf (96 km) vous prendra trois nuits. » Chacun tient déjà son poste de voyage : Bjorn au plein air, Mira aux aguets, Aldric cartographie, Greta fourrage. Le groupe part blessé : chaque nuit apportera son lot de récupération, de faim, de Vérole et de cauchemars. À Altdorf, un cercle au sol ouvrira le répit entre deux aventures. (Ouvrez la carte du monde pour voyager.)
+   journal+ — En route vers Steinbruck (30 km, à pied) —
+   journal+ Météo : Pluie.
+--- pas 1 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 2 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 réussite
+   heros Aldric (test): Métier (Cartographe) ≤ 99 
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 3 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 réussite
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 38 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 4 disposition=voyage titre=Journée de route etape={"id":"stage-postes","genre":"etapePosteEnBande","interaction":"batch","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 90 réussite
+   heros Mira (test): Perception ≤ 79 réussite
+   heros Aldric (test): Métier (Cartographe) ≤ 99 réussite
+   heros Greta Hartmann: Survie en extérieur ≤ 38 échec
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+--- pas 5 disposition=cascade/test titre=Survie en extérieur etape={"id":"test-jet-0","genre":"jetDeTestDeScene","interaction":"affichage","choix":[]}
+   [applier etapeRencontre] tiree=temps-libre AVANT runFlow slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false
+   [applier etapeRencontre] APRÈS runFlow slot=test[Survie en extérieur] cursor=0/1 pile=[] pendingTest=true travelRecap=false
+   heros Bjorn (test): Survie en extérieur ≤ 99 
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+   journal+ État Exténué subi.
+   journal+ La carte de l'itinéraire est ACHEVÉE (4/4 DR).
+   journal+ Temps libre : le voyage est si détendu et sans encombre que les Personnages se retrouvent avec du temps libre. Chaque Personnage peut effectuer une Activité de voyage supplémentaire.
+--- pas 6 disposition=cascade/test titre=Survie en extérieur etape={"id":"test-jet-0","genre":"jetDeTestDeScene","interaction":"affichage","choix":[]}
+   heros Bjorn (test): Survie en extérieur ≤ 99 réussite
+   corps: Wellentag · 33 Jahrdrung 2512 CI
+   corps: Après-midi · pluie
+   corps: À pied · 24 km sur 30
+   FIN fenetre=false disposition=null titre=undefined
+   ETAT FINAL slot=null[] cursor=undefined/undefined pile=[] pendingTest=false travelRecap=false travelPlan=true pendingRest=false recapDays=1 extenue=Bjorn (test):,Mira (test):,Aldric (test):,Greta Hartmann:1
+   tablesPosees.etapeRencontre est le wrapper : true
