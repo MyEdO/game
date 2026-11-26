@@ -12,6 +12,7 @@ import { choixDuChamp, formulaireDe, type CadreDuPorteur } from '../sceneEditLec
 import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/schemas/source/decoupe';
 import { cleDuChapitre, etatDeLAdresse, type SourceDeLEdition } from './adresseDeProse';
 import { editer, ouvrirLEdition, sceneEditee, texteAEnregistrer, type SessionDEdition } from './session';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 /** Un chapitre de fixture : un préambule, une section titrée à un paragraphe et une table légendée, une autre section. */
 const TEXTE = [
@@ -23,7 +24,7 @@ const CHAPITRE = parseChapitre(TEXTE);
 const LIVRE = 'livre-de-base';
 const MANIFESTE = { [LIVRE]: { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armes.md', titre: 'Les Armes', octets: TEXTE.length }, { ch: '02', fichier: '02 - Magie.md', titre: 'La Magie', octets: 1 }] } };
 const CHARGEE: SourceDeLEdition = { manifeste: MANIFESTE, chapitres: { [cleDuChapitre(LIVRE, '01')]: CHAPITRE } };
-const cadre = (source: SourceDeLEdition): CadreDuPorteur => ({ scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: emptyNarratif() }, source });
+const cadre = (source: SourceDeLEdition): CadreDuPorteur => ({ scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: emptyNarratif() }, source, catalogue: catalogueDuProcessus() });
 
 /** La cellule « Dague × Dégâts » de la table des armes, à sceller. */
 const DAGUE: Fragment = { kind: 'cellule', sec: 'les-armes', secOcc: 1, row: 'Dague', col: 'Dégâts', sum: '' };

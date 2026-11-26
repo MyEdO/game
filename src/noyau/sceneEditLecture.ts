@@ -542,8 +542,9 @@ export interface DonneeDuPorteur extends DonneeDesRegistres { zone: SceneEffectZ
 export type SorteDePorteur = keyof DonneeDuPorteur;
 
 /** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes, la carte du monde et le narratif de
- *  son projet, et le `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
-export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif' | 'worldMap'>; source: SourceDeLEdition }
+ *  son projet, le `Source/` que ses adresses de prose désignent (`SourceDeLEdition`) et le catalogue où se juge sa
+ *  fiche (`ficheEditee`). */
+export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif' | 'worldMap'>; source: SourceDeLEdition; catalogue: Catalogue }
 
 /** Le projet édité : le document que tient un cran de l'historique de l'éditeur. */
 export type ProjetDEdition = Omit<ProjectDoc, 'schema'>;
@@ -650,10 +651,10 @@ const SORTS_CHOISIS = ['combat', 'spells'] as const;
  *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule,
  *  ses Améliorations et ses postes (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
  *  et son apparence sans tenue (`APPARENCE_DU_PNJ_DE_CARRIERE`). */
-function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif } }: CadreDuPorteur): CheminsOfferts {
+function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif }, catalogue }: CadreDuPorteur): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
   const dialogue = ent.dialogueId !== undefined || dialoguesDeLaScene(scene).size ? [['dialogueId']] : [];
-  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, narratif);
+  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, narratif, catalogue);
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
   const coque = ent.vehicule ? [['vehicule'], ['upgrades'], ['postes']] : [];
   const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
@@ -664,10 +665,10 @@ function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif } }: C
 /** Les choix que le contexte d'un personnage pose à ses sorts choisis (`combat.spells`) : d'un élément au rang `rang`, ou
  *  de l'élément neuf qui suit le dernier, chaque sort d'une liste que sa fiche ouvre (`listesDeSorts`), hors des autres
  *  choisis, la courante restant offerte, refusé par ce que dit `refusDesSortsChoisis` des choisis où il prend ce rang ;
- *  sans fiche (`ficheEditee`), la courante seule. */
-function choixDesSorts(ent: SceneEntity, rang: number, narratif: NarratifBlock): readonly ChoixDuContexte[] {
+ *  sans fiche (`ficheEditee`, sous le catalogue `cat`), la courante seule. */
+function choixDesSorts(ent: SceneEntity, rang: number, narratif: NarratifBlock, cat: Catalogue): readonly ChoixDuContexte[] {
   const choisis = ent.combat?.spells ?? [];
-  const fiche = ficheEditee(ent, narratif);
+  const fiche = ficheEditee(ent, narratif, cat);
   const listes = fiche ? listesDeSorts(fiche) : [];
   const avec = (id: string) => [...choisis.slice(0, rang), id, ...choisis.slice(rang + 1)];
   return spells
@@ -787,7 +788,7 @@ function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: 
   }
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
-  return sorts ? choixDesSorts(ent, rang, narratif) : choixDesOptions(ent, chemin);
+  return sorts ? choixDesSorts(ent, rang, narratif, cadre.catalogue) : choixDesOptions(ent, chemin);
 }
 
 /** Les actions authorées d'un décor (`SceneEntity.usable`). */
