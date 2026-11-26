@@ -147,7 +147,7 @@ type ActionDuLexique = 'acheter' | 'actionner' | 'affecter' | 'aider' | 'annuler
   | 'cliquer' | 'commander' | 'creer' | 'debarquer' | 'depenser' | 'deplacer' | 'deposer' | 'desarmer' | 'designer'
   | 'dissiper' | 'ecrire' | 'effacer' | 'embarquer' | 'engager' | 'entrainer' | 'entrer' | 'epingler' | 'equiper'
   | 'evaluer' | 'faire' | 'fixer' | 'focaliser' | 'fouiller' | 'franchir' | 'gagner' | 'garnir'
-  | 'incanter' | 'installer' | 'jouer' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer'
+  | 'incanter' | 'installer' | 'jouer' | 'laisser' | 'lancer' | 'lever' | 'manoeuvrer' | 'marchander' | 'marquer'
   | 'mener' | 'mettre' | 'monter' | 'ouvrir' | 'partir' | 'pivoter' | 'poser' | 'pousser'
   | 'prendre' | 'quitter' | 'ramasser' | 'ranger' | 'recharger' | 'recruter' | 'recueillir' | 'recuperer'
   | 'relever' | 'remettre' | 'remiser' | 'remplacer' | 'renommer' | 'renvoyer' | 'reparer' | 'reprendre'

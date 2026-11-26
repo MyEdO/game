@@ -9,6 +9,11 @@ import { nightBands } from './nightBands';
 import * as restFlow from './restFlow';
 import { openSequence } from './rollSeam';
 import { checkPartyWiped } from './partyWipe';
+import { surfaceTientLaMain } from './modalArbiter';
+import { refuserGeste } from './refusVisible';
+import { t } from '../i18n';
+import type { Jeu } from './etat';
+import type { GesteFermable } from './actionsDuNoyau';
 import type { Get, Set, SetDesClesReservees } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables } from './tablesPosees';
@@ -50,8 +55,27 @@ function reprendreEntretienDeLHorloge(get: Get, set: Set, minutes: number, apres
   checkPartyWiped(get, set);
 }
 
+/** Refus du verbe `laisserPasserLeTemps` : en combat (le temps s'y compte en Rounds), sous une fenêtre qui tient la
+ *  main (`surfaceTientLaMain`), ou une durée qui n'est pas un nombre entier de minutes, au moins une ; `null` : le
+ *  temps passe. Verdict UNIQUE du verbe et de son offre (`gesteDeLaisserPasserLeTemps`). PUR. */
+function refusDeLaisserPasserLeTemps(s: Jeu, minutes: number): string | null {
+  if (s.battle) return t('temps.refus.enCombat');
+  if (surfaceTientLaMain(s)) return t('temps.refus.mainTenue');
+  return Number.isInteger(minutes) && minutes > 0 ? null : t('temps.refus.duree');
+}
+
+/** L'offre de laisser passer `minutes` minutes (`laisserPasserLeTemps`) : son refus, `refusDeLaisserPasserLeTemps`. PUR. */
+export function gesteDeLaisserPasserLeTemps(s: Jeu, minutes: number): GesteFermable {
+  return { geste: { verbe: 'laisserPasserLeTemps', args: [minutes] }, refus: refusDeLaisserPasserLeTemps(s, minutes) };
+}
+
 export function creerActionsDHorloge(get: Get, set: Set) {
   return {
+    laisserPasserLeTemps: (minutes) => {
+      const refus = refusDeLaisserPasserLeTemps(get(), minutes);
+      if (refus) return void refuserGeste(get, set, refus);
+      get().avancerLeTemps(minutes);
+    },
     avancerLeTemps: (minutes) => {
       if (minutes <= 0) return;
       const avant = comptePorteursDeSuite(get());
