@@ -1,6 +1,20 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { poserLesReglesDuRoguelite } from '../noyau';
-import { agirDansLaSalle, ameliorer, avancer, disponible, nouvellePartie, partir, passerLeTutoriel, queteEnCours, rentrer, solderLeTutoriel, TAILLE_DU_GROUPE, voir, type Etat } from './index';
+import {
+  agirDansLaSalle,
+  ameliorer,
+  avancer,
+  disponible,
+  nouvellePartie,
+  partir,
+  passerLeTutoriel,
+  queteEnCours,
+  rentrer,
+  solderLeTutoriel,
+  TAILLE_DU_GROUPE,
+  voir,
+  type Etat,
+} from './index';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
