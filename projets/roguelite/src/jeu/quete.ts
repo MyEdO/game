@@ -8,10 +8,11 @@ import type { Etat } from './etat';
 import { DESTINATIONS, type IdBatiment } from './valeurs';
 import { noter } from './outils';
 
-/** Un écran que le tutoriel demande d'ouvrir (un bâtiment, le départ préparé au Cartographe), ou le retour d'une
- *  expédition. */
-export type EcranVu = IdBatiment | 'depart' | 'retour';
-/** `vus` : les écrans que le joueur a ouverts et les retours qu'il a vécus depuis le début de la partie. */
+/** Un écran que le tutoriel demande d'ouvrir (un bâtiment, le départ préparé au Cartographe), l'achat de vivres au
+ *  départ, ou le retour d'une expédition. */
+export type EcranVu = IdBatiment | 'depart' | 'vivres' | 'retour';
+/** `vus` : les écrans que le joueur a ouverts, les achats de vivres et les retours qu'il a vécus depuis le début de la
+ *  partie. */
 export interface Tutoriel { vus: EcranVu[] }
 
 /** `quete` : le nom de la quête dont l'étape fait partie ; `mene` : l'écran que le geste de l'étape ouvre, sans lui
@@ -36,6 +37,9 @@ export const TUTORIEL: readonly Etape[] = ([
   { id: 'route', titre: 'Choisir une route', mene: 'cartographe',
     consigne: 'Le Cartographe connaît la lisière du Reikwald : préparez-y le départ.',
     soldee: (e) => vu(e, 'depart') || dejaParti(e) },
+  { id: 'vivres', titre: 'Emporter des vivres', mene: 'depart',
+    consigne: 'Sans vivres, un héros ne guérit plus et la faim l’affaiblit : achetez-lui des rations, une par jour de route.',
+    soldee: (e) => vu(e, 'vivres') || dejaParti(e) },
   { id: 'partir', titre: 'Partir', mene: 'depart',
     consigne: 'Choisissez quatre héros par rôle : front, tireur, soigneur, lanceur. Puis partez.',
     soldee: dejaParti },

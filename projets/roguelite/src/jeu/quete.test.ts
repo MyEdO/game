@@ -1,6 +1,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { poserLesReglesDuRoguelite } from '../noyau';
 import {
+  acheterUneProvision,
   agirDansLaSalle,
   ameliorer,
   avancer,
@@ -8,6 +9,7 @@ import {
   nouvellePartie,
   partir,
   passerLeTutoriel,
+  provisionsEnVente,
   etapeEnCours,
   rentrer,
   solderLeTutoriel,
@@ -31,6 +33,9 @@ describe('la quête d’une partie neuve : le tutoriel, puis les routes jusqu’
     voir(e, 'forge');
     expect(quete(e)).toBe('route');
     voir(e, 'depart');
+    expect(quete(e)).toBe('vivres');
+    expect(etapeEnCours(e)!.mene).toBe('depart');
+    expect(acheterUneProvision(e, groupe(e)[0], 'ration')).toBeNull();
     expect(quete(e)).toBe('partir');
     expect(partir(e, 'reikwald', groupe(e))).toBeNull();
     expect(quete(e)).toBe('salle');
@@ -57,6 +62,18 @@ describe('la quête d’une partie neuve : le tutoriel, puis les routes jusqu’
     voir(e, 'relais'); voir(e, 'forge');
     expect(partir(e, 'reikwald', groupe(e))).toBeNull();
     expect(quete(e)).toBe('salle');
+  });
+
+  it('« Emporter des vivres » se solde par l’achat d’une ration, pas par celui d’un remède', () => {
+    const e = nouvellePartie(7);
+    voir(e, 'relais'); voir(e, 'forge'); voir(e, 'depart');
+    e.or = 1000;
+    expect(ameliorer(e, 'temple')).toBeNull();
+    const [id] = groupe(e);
+    expect(acheterUneProvision(e, id, provisionsEnVente(e)[0].id)).toBeNull();
+    expect(quete(e)).toBe('vivres');
+    expect(acheterUneProvision(e, id, 'ration')).toBeNull();
+    expect(quete(e)).toBe('partir');
   });
 
   it('les réglages passent le tutoriel : la quête reprend aux routes', () => {
