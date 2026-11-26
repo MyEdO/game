@@ -99,7 +99,7 @@ import { ElementFlags, SymbolFlags, TypeFlags } from 'typescript/unstable/sync';
 // par les preuves virtuelles de `src/scene-field-editability-guard.test.ts`.
 import path from 'node:path';
 import * as ts from 'typescript/unstable/ast';
-import { repoProgram, libererSessions } from './tsProgram.mjs';
+import { repoProgram, libererSessions, membresDe } from './tsProgram.mjs';
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs';
 import { dossierDe, porteeDeGarde } from './couches.mjs';
 import { auChemin, estObjet } from '../../../src/lib/objet.mjs';
@@ -441,12 +441,6 @@ export function perimetreDeLaRacine(program, root, racine) {
   }
   return out;
 }
-
-/** Les membres d'une union ou d'une intersection : chaque `getTypes()` est un aller-retour vers `tsc --api`, que le
- *  client ne met pas en cache (`typescript/dist/api/sync/api.js`, `fetchTypes` sans poignées) ; un type est un objet
- *  stable de sa session, ses membres se lisent donc une fois. */
-const membres = new WeakMap();
-const membresDe = (type) => membres.get(type) ?? membres.set(type, type.getTypes()).get(type);
 
 function flatten(type, acc = []) {
   if (!type) return acc;
