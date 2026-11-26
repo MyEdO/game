@@ -19,6 +19,10 @@
 // MODULES GÉNÉRÉS : sous les cibles de l'image, chaque module généré que le détecteur importe (`MODULES_GENERES_LUS`)
 // à un chemin que l'image ne déclare pas et ne porte pas y est un RENVOI vers le module au chemin que déclare l'image
 // (`CIBLES_DECLAREES` de son commit, `poserLesRenvois`) ; un module déplacé dans la plage se lit aux deux bornes (#5083).
+// DÉPLACEMENTS : une image mesurée sous le détecteur de l'AUTRE borne porte, à chaque chemin que la plage renomme
+// (`ceQuiChange(…).renommages`) et qu'elle n'a pas, un LIEN vers son fichier (`poserLesLiens`), retiré après la mesure :
+// le détecteur lit et génère aux chemins de son commit (#5069). Un fichier déplacé et réécrit au-delà de la similarité
+// de `-M` n'est pas un renommage.
 // ANGLES MORTS : une forme générée que `src/` ET le détecteur lisent, changée des deux côtés de la plage, peut empêcher
 // une mesure. Au MÊME site, une hausse compensée par une baisse ne change pas le compte (#1711). Une
 // DÉCLARATION (`DECLARATIONS_DE_L_IMAGE`) qui tait une famille, `sansFolio` posé sur une liste existante, en retire la
@@ -39,7 +43,7 @@
 // sortir un nœud G1 sous les deux détecteurs ; c’est une forme partagée réelle, pas un re-classement (#3012).
 import { spawnSync, type SpawnSyncReturns } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { existsSync, mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, join, posix } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -50,7 +54,7 @@ import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mec
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
-import { GitIndisponible, INDEX, TRONC, baseCommune, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
+import { GitIndisponible, INDEX, TRONC, baseCommune, ceQuiChange, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
 import {
   DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, STRUCTURES_REDECLARATIONS, motifAPlat,
   type EntreeDeCompte, type SiteDeDetteDOp,
@@ -303,14 +307,34 @@ function poserLesRenvois(dossier: string, configuration: string): void {
   }
 }
 
+/** Les liens d'une mesure : chemin attendu par le détecteur et absent de l'image ↦ chemin du fichier dans l'image. */
+type Liens = readonly (readonly [string, string])[];
+
+/** Sous `dossier`, à chaque chemin absent des `liens`, un lien vers le fichier de l'image, ajouté à `poses` ; un
+ *  système qui refuse le lien (`EPERM` : Windows sans privilège de lien) rend la mesure impossible. */
+function poserLesLiens(dossier: string, liens: Liens, configuration: string, poses: string[]): void {
+  for (const [absent, present] of liens) {
+    const cible = join(dossier, absent);
+    if (existsSync(cible) || !existsSync(join(dossier, present))) continue;
+    mkdirSync(dirname(cible), { recursive: true });
+    try {
+      symlinkSync(posix.relative(posix.dirname(absent), present), cible);
+    } catch (e) {
+      if ((e as NodeJS.ErrnoException).code !== 'EPERM') throw e;
+      throw new MesureImpossible(`${configuration} : lien vers un chemin renommé refusé (EPERM) — ${absent}`);
+    }
+    poses.push(cible);
+  }
+}
+
 /** Les comptes de `sha` sous les cibles de SON image (`imageGeneree`), le code du `detecteur` posé à la place du sien,
  *  sur le classement de l'image qu'une pose précédente a pu recouvrir ; ses modules générés aux chemins que déclare
  *  l'image (`CIBLES_DECLAREES`). */
-function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
+function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Detecteur, liens: Liens): Comptes {
   const configuration = `${sha.slice(0, 9)} sous les cibles de l’image`;
   const image = imageGeneree(depot, sha, configuration);
-  const empreinte = detecteur.empreinte();
-  // Seule la dernière pose réussie est réutilisable : une pose intermédiaire peut laisser d’autres fichiers dans l’image.
+  const empreinte = `${detecteur.empreinte()}\u0000${JSON.stringify(liens)}`;
+  // Seule la dernière pose réussie est réutilisable, sous ses liens : une pose intermédiaire peut laisser d’autres fichiers dans l’image.
   if (image.derniereMesure?.empreinte === empreinte) return image.derniereMesure.comptes;
   delete image.derniereMesure;
   const { dossier } = image;
@@ -320,19 +344,26 @@ function mesurerSousLesCiblesDeLImage(depot: Depot, sha: string, detecteur: Dete
   poserLesDeclarations(depot, sha, dossier);
   ecrireDeLImage(depot, sha, join(dossier, COPIE_DES_CIBLES), [CIBLES_DECLAREES]);
   poserLesRenvois(dossier, configuration);
-  const comptes = mesurerImage(dossier, configuration);
-  image.derniereMesure = { empreinte, comptes };
-  return comptes;
+  const poses: string[] = [];
+  try {
+    poserLesLiens(dossier, liens, configuration, poses);
+    const comptes = mesurerImage(dossier, configuration);
+    image.derniereMesure = { empreinte, comptes };
+    return comptes;
+  } finally {
+    for (const lien of poses) rmSync(lien, { force: true });
+  }
 }
 
 /** Les comptes de `sha` sous les cibles des générateurs du `detecteur` : `DE_L_IMAGE` de `sha`, le code du `detecteur`. */
-function mesurerSousLesCiblesDuDetecteur(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
+function mesurerSousLesCiblesDuDetecteur(depot: Depot, sha: string, detecteur: Detecteur, liens: Liens): Comptes {
   const configuration = `${sha.slice(0, 9)} sous les cibles du détecteur`;
   const dossier = dossierDImage();
   try {
     ecrireDeLImage(depot, sha, dossier, DE_L_IMAGE);
     detecteur.poser(dossier);
     poserLesDeclarations(depot, sha, dossier);
+    poserLesLiens(dossier, liens, configuration, []);
     genererLesCibles(dossier, configuration);
     return mesurerImage(dossier, configuration);
   } finally {
@@ -343,17 +374,17 @@ function mesurerSousLesCiblesDuDetecteur(depot: Depot, sha: string, detecteur: D
 /** Les comptes du commit `sha` sous `detecteur`, une fois par processus : sous les cibles de l'image, sinon sous celles
  *  du détecteur ; les deux impossibles, les deux raisons. */
 const COMPTES_PAR_MESURE = new Map<string, Comptes>();
-function comptesDuCommit(depot: Depot, sha: string, detecteur: Detecteur): Comptes {
+function comptesDuCommit(depot: Depot, sha: string, detecteur: Detecteur, liens: Liens): Comptes {
   const cle = `${detecteur.cle}\u0000${sha}`;
   const connus = COMPTES_PAR_MESURE.get(cle);
   if (connus) return connus;
   let comptes: Comptes;
   try {
-    comptes = mesurerSousLesCiblesDeLImage(depot, sha, detecteur);
+    comptes = mesurerSousLesCiblesDeLImage(depot, sha, detecteur, liens);
   } catch (e) {
     if (!(e instanceof MesureImpossible)) throw e;
     try {
-      comptes = mesurerSousLesCiblesDuDetecteur(depot, sha, detecteur);
+      comptes = mesurerSousLesCiblesDuDetecteur(depot, sha, detecteur, liens);
     } catch (repli) {
       if (!(repli instanceof MesureImpossible)) throw repli;
       throw new MesureImpossible(`${e.message} ; ${repli.message}`);
@@ -369,10 +400,13 @@ type MesureDUnDetecteur = { readonly detecteur: string } & (
   | { readonly sautee: string }
 );
 
-/** La paire base/tête mesurée par `detecteur`, ou sautée quand elle ne se lie pas. */
-function mesurerLaPaire(depot: Depot, shaBase: string, shaTete: string, detecteur: Detecteur): MesureDUnDetecteur {
+/** La paire base/tête mesurée par `detecteur`, ou sautée quand elle ne se lie pas ; `renommages` : chemin de la base ↦
+ *  chemin de la tête. Une borne se mesure sous le détecteur de l'autre avec les liens vers ses chemins. */
+function mesurerLaPaire(depot: Depot, shaBase: string, shaTete: string, detecteur: Detecteur, renommages: ReadonlyMap<string, string>): MesureDUnDetecteur {
+  const versLaTete = [...renommages];
+  const liensDe = (sha: string): Liens => detecteur.cle === sha ? [] : sha === shaBase ? versLaTete.map(([b, t]) => [t, b]) : versLaTete;
   try {
-    return { detecteur: detecteur.nom, base: comptesDuCommit(depot, shaBase, detecteur), tete: comptesDuCommit(depot, shaTete, detecteur) };
+    return { detecteur: detecteur.nom, base: comptesDuCommit(depot, shaBase, detecteur, liensDe(shaBase)), tete: comptesDuCommit(depot, shaTete, detecteur, liensDe(shaTete)) };
   } catch (e) {
     if (!(e instanceof MesureImpossible)) throw e;
     return { detecteur: detecteur.nom, sautee: e.message };
@@ -465,10 +499,11 @@ export function jugerLesComptes({ depot, base = TRONC.suivi, tete = 'HEAD', mess
       : head ? journalDe(depot, [`^${shaBase}`, head, ...fusionnesEnCours(depot)]) : [];
     if (journal === null) throw new GitIndisponible('messages de la plage illisibles');
     if (index && message === undefined) return { ok: false, texte: `⛔ ${plage} : message du commit absent pour l’index.` };
+    const renommages: ReadonlyMap<string, string> = ceQuiChange(depot, shaBase, shaTete).renommages();
     return verdictDesDetecteurs(plage, [
-      mesurerLaPaire(depot, shaBase, shaTete, deLaTete),
+      mesurerLaPaire(depot, shaBase, shaTete, deLaTete, renommages),
       listerImage(depot, shaBase, POINT_D_ENTREE).length
-        ? mesurerLaPaire(depot, shaBase, shaTete, deLaBase)
+        ? mesurerLaPaire(depot, shaBase, shaTete, deLaBase, renommages)
         : { detecteur: deLaBase.nom, sautee: `\`${POINT_D_ENTREE}\` absent de la base` },
     ], [...journal.map((c) => c.message), ...(message === undefined ? [] : [message])].join('\n'));
   } catch (e) {
