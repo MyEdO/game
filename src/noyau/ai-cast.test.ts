@@ -1,5 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
-import { aiOvercastPlan } from './combatFlow';
+import { aiOvercastPlan, overcastTargetCandidates } from './combatFlow';
 import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from './monde/ai';
 import { opValue, spellActionValue, type SpellPlacement } from './monde/aiSpellValue';
 import { creatureToCombatant } from './monde/spawn';
@@ -16,8 +16,8 @@ import { idDeFixture } from '../data/idDeFixture.testkit';
  * IA — ÉVALUATEUR DE SORT op-driven (remplace `aiBestMissile`/`aiFocusPlan`/`aiAreaSpell`, supprimés).
  * Aucun planner par-catégorie : la valeur d'un sort = Σ valeur de ses `GameOp` (`opValue`/
  * `spellActionValue`, src/noyau/monde/aiSpellValue.ts) × fiabilité × opposition. `chooseEnemyAction` reçoit
- * `spells: CastableSpell[]` et en dérive des décisions `cast`/`castArea`/`focus`. `aiOvercastPlan`
- * (Surincantation auto, LDB 47) reste inchangé.
+ * `spells: CastableSpell[]` et en dérive des décisions `cast`/`castArea`/`focus`. `aiOvercastPlan` : Surincantation
+ * du lanceur conduit par le moteur (LDB 47 l.13-17, l.28 ; LDB 41 l.21-27 ; LDB 42 l.9-13).
  */
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -183,10 +183,34 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     expect(a.kind).toBe('incantationDeZone'); // le buff de zone couvre soi + l'allié armé → bénéfice marginal > 0
     if (a.kind === 'incantationDeZone') expect(a.spell).toBe('prouesses');
   });
+
+  // LDB 41 l.17 ; #5056
+  describe('cible principale d’une Prière : écarte celle qu’elle ferait pécher', () => {
+    afterEach(() => resetRule('priere-repetee-peche'));
+    const guerison = castable({ id: 'benediction-de-guerison', range: 1, data: findSpellById('benediction-de-guerison')! });
+    const choix = (consignees: string[]) => {
+      const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [], prieresDeRencontre: { 'benediction-de-guerison': consignees } });
+      const blesse = (id: string, x: number) => mk(id, 'ennemi', { x, y: 6 }, { weapons: [], wounds: blessuresDeBase(10, 4) });
+      return chooseEnemyAction(input(e, [mk('h', 'heros', { x: 5, y: 15 }, { weapons: [] })], { spells: [guerison], squad: [blesse('a1', 5), blesse('a2', 6)] }));
+    };
+
+    it('témoin : sans Prière consignée, le premier blessé', () => {
+      expect(choix([])).toEqual({ kind: 'incantation', targetId: 'a1', spell: 'benediction-de-guerison' });
+    });
+
+    it('règle à 1 : le blessé déjà prié est écarté', () => {
+      expect(choix(['a1'])).toEqual({ kind: 'incantation', targetId: 'a2', spell: 'benediction-de-guerison' });
+    });
+
+    it('règle à 0 : le blessé déjà prié reste retenu', () => {
+      setRule('priere-repetee-peche', 0);
+      expect(choix(['a1'])).toEqual({ kind: 'incantation', targetId: 'a1', spell: 'benediction-de-guerison' });
+    });
+  });
 });
 
 // ════════════════════════════════════════════════════════════════════════════════════════════════
-// aiOvercastPlan — Surincantation AUTOMATIQUE (LDB 47 l.28-31 : +1 Cible par +2 DR) — INCHANGÉ
+// aiOvercastPlan — Surincantation AUTOMATIQUE (LDB 47 l.28-31)
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 /** Jet d'incantation du Carreau tel que `evaluateCasting` le rend : son NI effectif figé (`niRequired`). */
 const jetDuCarreau = (cast: boolean, sl: number): CastResult =>
@@ -199,7 +223,7 @@ describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-3
   it('surplus de 4 DR au-dessus du NI → 2 cibles supplémentaires, les plus proches À PORTÉE', () => {
     const c = eusapia();
     const foes = [foeAt('h1', 1, 0), foeAt('h2', 3, 0), foeAt('h3', 5, 0), foeAt('h4', 90, 0)]; // h4 hors portée
-    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), foes, undefined, true); // 8 − NI 4 = +4 DR
+    const plan = aiOvercastPlan(null, c, { targetId: 'h1', missile: true }, carreau, jetDuCarreau(true, 8), foes); // 8 − NI 4 = +4 DR
     expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 2, damage: 0 });
     expect(plan.extraTargetIds).toEqual(['h2', 'h3']); // h1 = cible principale, exclue ; h4 trop loin
   });
@@ -207,13 +231,13 @@ describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-3
   it('DR juste au NI (pas de surplus) ou sort raté → aucun plan', () => {
     const c = eusapia();
     const foes = [foeAt('h1', 1, 0), foeAt('h2', 3, 0)];
-    expect(aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 5), foes, undefined, true)).toEqual({}); // surplus 1 < 2
-    expect(aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(false, 9), foes, undefined, true)).toEqual({});
+    expect(aiOvercastPlan(null, c, { targetId: 'h1', missile: true }, carreau, jetDuCarreau(true, 5), foes)).toEqual({}); // surplus 1 < 2
+    expect(aiOvercastPlan(null, c, { targetId: 'h1', missile: true }, carreau, jetDuCarreau(false, 9), foes)).toEqual({});
   });
 
   it('budget plafonné par les adversaires disponibles', () => {
     const c = eusapia();
-    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 12), [foeAt('h1', 1, 0), foeAt('h2', 2, 0)], undefined, true);
+    const plan = aiOvercastPlan(null, c, { targetId: 'h1', missile: true }, carreau, jetDuCarreau(true, 12), [foeAt('h1', 1, 0), foeAt('h2', 2, 0)]);
     expect(plan.extraTargetIds).toEqual(['h2']); // budget 4 mais une seule cible en plus
   });
 });
@@ -229,20 +253,83 @@ describe('aiOvercastPlan — axe Dégâts (VDM 02 l.198, option `magie-vdm-incan
   it('option ON, aucune cible neuve à portée → le reliquat ENTIER rejoint l’axe Dégâts (jamais gaspillé)', () => {
     setRule('magie-vdm-incantation', true);
     const c = eusapia();
-    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, true); // 8 − NI 4 = +4 DR, budget VDM = 4
+    const plan = aiOvercastPlan(null, c, { targetId: 'h1', missile: true }, carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)]); // 8 − NI 4 = +4 DR, budget VDM = 4
     expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 0, damage: 4 });
     expect(plan.extraTargetIds).toEqual([]);
   });
 
   it('option OFF (LDB) → aucun axe Dégâts, même sans cible neuve (aucun plan)', () => {
     const c = eusapia();
-    expect(aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, true)).toEqual({});
+    expect(aiOvercastPlan(null, c, { targetId: 'h1', missile: true }, carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)])).toEqual({});
   });
 
   it('sort NON-missile (`missile=false`) : l’axe Dégâts n’est JAMAIS proposé, même option ON', () => {
     setRule('magie-vdm-incantation', true);
     const c = eusapia();
-    const plan = aiOvercastPlan(null, c, 'h1', carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)], undefined, false);
+    const plan = aiOvercastPlan(null, c, { targetId: 'h1', missile: false }, carreau, jetDuCarreau(true, 8), [foeAt('h1', 1, 0)]);
     expect(plan).toEqual({}); // aucune cible neuve, et l'axe Dégâts fermé par `missile=false` → rien à allouer
+  });
+});
+
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+// aiOvercastPlan — toute source, polarité du sort (LDB 41 l.21-27 ; LDB 42 l.9-13 ; LDB 47 l.13-17)
+// ════════════════════════════════════════════════════════════════════════════════════════════════
+describe('aiOvercastPlan — Bénédictions, Miracles et sorts non Projectile', () => {
+  afterEach(() => resetRule('priere-repetee-peche'));
+  const guerison = findSpellById('benediction-de-guerison')!; // Contact, Cible 1, Instantanée
+  const jet = (sl: number): CastResult => ({ cast: true, sl, niRequired: 0, roll: 10, target: 60, isCritical: false, isFumble: false, log: '' });
+  const pose = (id: string, kind: 'heros' | 'ennemi', x: number, y = 0, manque = 3): Combatant => {
+    const c = { ...foeAt(id, x, y), kind };
+    return { ...c, wounds: { ...c.wounds, current: c.wounds.max - manque } };
+  };
+  const pretre = () => pose('p', 'heros', 0, 0, 0);
+  const planDe = (spell: SpellData, sl: number, pool: Combatant[], lanceur = pretre(), targetId = 'a1') =>
+    aiOvercastPlan(null, lanceur, { targetId, missile: false }, spell, jet(sl), [lanceur, ...pool]);
+
+  it('Guérison à +4 DR, trois alliés blessés et un ennemi au contact → trois soignés, jamais l’ennemi (LDB 41 l.27)', () => {
+    const plan = planDe(guerison, 4, [pose('a1', 'heros', 1), pose('a2', 'heros', 1, 1), pose('a3', 'heros', 0, 1), pose('e1', 'ennemi', -1)]);
+    expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 2, damage: 0 });
+    expect(plan.extraTargetIds).toEqual(['a2', 'a3']);
+  });
+
+  it('Guérison à +4 DR, alliés à 6 m → un pas Portée, un pas Cible : deux soignés (LDB 41 l.27)', () => {
+    const plan = planDe(guerison, 4, [pose('a1', 'heros', 3), pose('a2', 'heros', 3, 1), pose('a3', 'heros', 3, 2)]);
+    expect(plan.overcast).toEqual({ range: 1, zone: 0, duration: 0, targets: 1, damage: 0 });
+    expect(plan.extraTargetIds).toEqual(['a2']);
+  });
+
+  it('un allié intact n’est pas retenu (LDB 41 l.27)', () => {
+    const plan = planDe(guerison, 4, [pose('a1', 'heros', 1), pose('a2', 'heros', 1, 1, 0), pose('a3', 'heros', 0, 1)]);
+    expect(plan.extraTargetIds).toEqual(['a3']);
+  });
+
+  it('règle `priere-repetee-peche` à 1 : l’allié déjà prié est écarté ; à 0, retenu (LDB 41 l.17)', () => {
+    const lanceur = { ...pretre(), prieresDeRencontre: { 'benediction-de-guerison': ['a2'] } };
+    const pool = [pose('a1', 'heros', 1), pose('a2', 'heros', 1, 1), pose('a3', 'heros', 0, 1)];
+    expect(planDe(guerison, 4, pool, lanceur).extraTargetIds).toEqual(['a3']);
+    setRule('priere-repetee-peche', 0);
+    expect(planDe(guerison, 4, pool, lanceur).extraTargetIds).toEqual(['a2', 'a3']);
+  });
+
+  it('Miracle de Contact : aucun pas Portée, les alliés hors contact ne sont pas retenus (LDB 42 l.9)', () => {
+    const caresse = findSpellById('caresse-de-rhya')!; // Contact, Cible 1
+    const plan = planDe(caresse, 4, [pose('a1', 'heros', 1), pose('a2', 'heros', 1, 1), pose('a3', 'heros', 3)]);
+    expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 0, targets: 1, damage: 0 });
+    expect(plan.extraTargetIds).toEqual(['a2']);
+  });
+
+  it('Bénédiction en Rounds sans cible en plus → le reliquat va à la Durée (LDB 41 l.25)', () => {
+    const chasse = findSpellById('benediction-de-la-chasse')!; // 6 m, Cible 1, 6 Rounds
+    const plan = planDe(chasse, 4, [pose('a1', 'heros', 1)]);
+    expect(plan.overcast).toEqual({ range: 0, zone: 0, duration: 2, targets: 0, damage: 0 });
+    expect(plan.extraTargetIds).toEqual([]);
+  });
+
+  it('Choc, deux ennemis au contact : le second est retenu, par le joueur comme par l’IA (LDB 47 l.13-17)', () => {
+    const choc = findSpellById('choc')!; // Contact, Cible 1, État Sonné
+    const lanceur = pretre();
+    const pool = [lanceur, pose('e1', 'ennemi', 1), pose('e2', 'ennemi', 1, 1), pose('a1', 'heros', 0, 1)];
+    expect(overcastTargetCandidates(null, pool, lanceur, 'e1', choc, 'arcane', 0).map((c) => c.id)).toEqual(['e2']);
+    expect(aiOvercastPlan(null, lanceur, { targetId: 'e1', missile: false }, choc, jet(2), pool).extraTargetIds).toEqual(['e2']);
   });
 });

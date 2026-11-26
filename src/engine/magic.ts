@@ -560,6 +560,11 @@ export function ciblesDejaPriees(c: PorteurDePrieres, spellId: string, cibleIds:
   return cibleIds.filter((id) => deja.includes(id));
 }
 
+/** La Prière `spellId` de `c` sur `cibleId` lui vaudrait-elle du Péché ? Faux pour un sort d'arcane. LDB 41 l.17 ; #5056 */
+export function priereFeraitPecher(c: PorteurDePrieres, spellId: string, cibleId: string): boolean {
+  return rule('priere-repetee-peche') > 0 && ciblesDejaPriees(c, spellId, [cibleId]).length > 0;
+}
+
 /** Consigne sur `c` les cibles `cibleIds` de sa Prière réussie `spellId`. LDB 41 l.17 ; #5056 */
 export function consignerLaPriere(c: PorteurDePrieres, spellId: string, cibleIds: readonly string[]): void {
   const deja = c.prieresDeRencontre?.[spellId] ?? [];

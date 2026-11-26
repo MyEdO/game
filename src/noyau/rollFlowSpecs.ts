@@ -106,7 +106,7 @@ import { garanti } from '../lib/garanti';
 import { nomEnVue } from './visionDuGroupe';
 import {
   lancerLAttaque, lancerLIncantation, renoncerALIncantation, laisserPasserLeContreSort,
-  resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset, withPreRollFixedDie,
+  resolveAttack, attackWeaponOf, firedWeapon, effectiveSpellOf, disengageOutcome, castContextMods, counterspellDeclarePhase, counterspellRolls, counterspellSoutenu, counterspellSoutienFor, clearApproachMoves, overcastReset, surincantationDuMoteur, withPreRollFixedDie,
 } from './combatFlow';
 import {
   bestDefenseMode,
@@ -911,9 +911,12 @@ function refusDuJetDeChute(s: Jeu, pid: string): string | null {
 }
 
 /** Patch d'un jet d'incantation qui remplace `result` : le budget de Surincantation a changé, l'allocation
- *  retombe (`overcastReset`). */
+ *  retombe (`overcastReset`) et le moteur la refait pour le lanceur qu'il conduit (`surincantationDuMoteur`). */
 function castRelance(s: Jeu, p: PendingCast, result: CastResult): Partial<PendingCast> {
-  return { result, ...overcastReset(p, sceneMetresPerTile(s.scene)) };
+  const caster = actorIn(s, p.casterId);
+  const spell = effectiveSpellOf(p);
+  const plan = caster && spell ? surincantationDuMoteur(s, p, caster, spell, result, p.critChoice) : {};
+  return { result, ...overcastReset(p, sceneMetresPerTile(s.scene)), ...plan };
 }
 
 /** Table dont chaque entrée se CONSTRUIT au premier accès, puis se fige à sa valeur. `FLOWS`
@@ -1217,7 +1220,7 @@ export const FLOWS = paresseux({
 
   /**
    * Incantation / Prière. Tout jet qui remplace `result` change le budget de Surincantation : l'allocation
-   * retombe (`castRelance`, `overcastReset`). Le JET INITIAL reste métier (`jetLancer('incantation')` : wards journalisés,
+   * retombe (`castRelance`, `overcastReset`), celle du moteur se refait (`surincantationDuMoteur`). Le JET INITIAL reste métier (`jetLancer('incantation')` : wards journalisés,
    * Surincantation automatique de l'IA, déclaration de Contre-sort ennemi) — le cycle
    * Chance/Pacte/Résilience/dé choisi vit ici.
    */

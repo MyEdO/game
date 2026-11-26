@@ -516,7 +516,7 @@ function overcastAffordance(get: Get, _active: Combatant, target: Combatant): Ho
   const pool = s.battle?.combatants ?? s.party;
   const caster = pool.find((c) => c.id === pc.casterId);
   const spell = findSpellById(pc.spellId);
-  if (!caster || !spell || !overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
+  if (!caster || !spell || !overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).some((c) => c.id === target.id)) return { kind: 'none' };
   return { kind: 'ok', line: 'dashed', title: spell.label, skill: testSkillLabel(incantationArcane()), base: 0, mod: 0, dmg: null };
 }
 
@@ -827,7 +827,7 @@ const OVERCAST_MODE = {
     const caster = pc && pool.find((c) => c.id === pc.casterId);
     const spell = pc && findSpellById(pc.spellId);
     if (!pc || !caster || !spell) return [];
-    return overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
+    return overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get));
   },
   commitCombatant: (get, _set, _active, id) => { get().jetRegler('incantation', 'ciblesSupplementaires', ciblesBasculees(get().pendingCast?.extraTargetIds, id)); },
 } satisfies TargetingMode;
