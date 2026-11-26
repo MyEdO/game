@@ -206,7 +206,7 @@ export function zoneDuPush(fichiers, { ecritLu, mods = [] }) {
 }
 
 /** Un sha vide ou fait de zéros : `github.event.merge_group.base_sha` hors `merge_group`. */
-const shaNul = (sha) => !sha || !/[^0]/.test(sha)
+export const shaNul = (sha) => !sha || !/[^0]/.test(sha)
 
 /**
  * La BASE du diff : ce contre quoi on classe. Sur un commit de file (`merge_group`), `base` est
