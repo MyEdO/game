@@ -19,7 +19,7 @@ import {
   type EtatDeLaBarre,
 } from './actionRegistry';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
-import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup } from './pendings';
+import type { CounterParticipant, CounterDeclaration, IssueDEmpoignade, SuiteDeCoup, PendingAttack, EnchainementDuCoup, CascadeStep } from './pendings';
 import { fleeBackstab, fleeTouche, fleeToucheDu } from './pendings';
 import { SceneEntity, porteMasquee, structureIsDown } from './monde/scene';
 import * as travelFlow from './travelFlow';
@@ -593,14 +593,34 @@ function surLEtapeDeDefense(s: Jeu): boolean {
   return casc?.purpose === 'combat' && casc.participants[casc.cursor]?.jet === 'defense';
 }
 
+/**
+ * L'HÔTE AU CURSEUR REND SA DONNÉE (#1852) : son slot (`libere`) se vide et l'étape `jet` au curseur se marque validée
+ * (`committed`) dans le MÊME état — sans quoi l'état intermédiaire (slot vide, curseur encore posé dessus) est un hôte
+ * orphelin (`slotsDeJet.hoteOrphelin`) pour tout lecteur. Une autre étape au curseur (la défense déjà validée d'une
+ * ré-entrée d'attaque) n'est pas touchée : seul le slot se vide.
+ */
+function rendreLHoteAuCurseur(set: Set, jet: NonNullable<CascadeStep['jet']>, libere: Pick<Jeu, 'pendingAttack'> | Pick<Jeu, 'pendingDefense'>): void {
+  set((s) => {
+    const casc = s.pendingCascade;
+    if (casc?.participants[casc.cursor]?.jet !== jet) return libere;
+    return { ...libere, pendingCascade: { ...casc, participants: casc.participants.map((st, i) => (i === casc.cursor ? { ...st, committed: true } : st)) } };
+  });
+}
+
 /** FRAPPE SUIVANTE d'un enchaînement (balayage, 2ᵉ frappe du Maniement de deux armes) : elle se rend dans
- *  l'étape `attack` courante encore ouverte ; sinon (étape validée — la défense surfacée de la frappe
- *  précédente, #998 —, autre jet au curseur, ou aucune séquence de combat) elle reçoit SA propre étape,
+ *  l'étape `attack` au curseur, que la frappe précédente a rendue ; sinon (la défense surfacée de la frappe
+ *  précédente, #998, autre jet au curseur, ou aucune séquence de combat) elle reçoit SA propre étape,
  *  sur laquelle passe le curseur. */
 function poserLaFrappeSuivante(get: Get, set: Set, pa: PendingAttack): void {
   const seq = get().pendingCascade;
   const cur = seq?.purpose === 'combat' ? seq.participants[seq.cursor] : undefined;
-  if (cur?.jet === 'attaque' && !cur.committed) { set({ pendingAttack: pa }); return; }
+  // L'étape `attack` que la frappe précédente a rendue (`rendreLHoteAuCurseur`) se ROUVRE pour la suivante, dans le
+  // même état que son slot : validée avec un slot vivant, sa fenêtre ne la retiendrait plus (`hoteEnAttente`).
+  if (seq && cur?.jet === 'attaque') {
+    const { committed: _rendue, ...rouverte } = cur;
+    set({ pendingAttack: pa, pendingCascade: { ...seq, participants: seq.participants.map((st, i) => (i === seq.cursor ? rouverte : st)) } });
+    return;
+  }
   if (!poserLEtapeDAttaque(get, set, pa, seq?.title ?? 'Attaque', seq?.icon ?? 'action/attaquer')) return;
   const apres = get().pendingCascade!;
   if (apres.cursor !== apres.participants.length - 1) validerLEtape(get, set);
@@ -3132,7 +3152,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const victim = target && victimeDuCoup(battle, target, pa);
       const wasChain = !!pa.cleave; // cette attaque faisait-elle partie d'un balayage en cours ?
       const restitutionDeChaine = wasChain ? get().pendingCleave?.restitution : undefined;
-      set({ pendingAttack: null });
+      rendreLHoteAuCurseur(set, 'attaque', { pendingAttack: null });
       // Arme RÉELLEMENT employée (arme naturelle d'une manœuvre de trait comprise) : primitive
       // PARTAGÉE avec la modale d'attaque (#1026) — deux résolutions divergentes rendraient deux
       // verdicts d'interposition opposés pour le même `pa`.
@@ -3247,7 +3267,8 @@ export function cloturesDuCombat(get: Get, set: Set) {
           ...(pa.reaction ? { reaction: pa.reaction } : {}),
           ...(pa.riposte != null ? { riposte: pa.riposte } : {}),
         };
-        jouerFlowEntier(applyAttackResult(get, set, attacker, victim, weapon, lance, { suite }));
+        // Attaque gratuite (`pa.freeKind`) : une SOUS-ATTAQUE (`ApplicationDuCoup.sousAttaque`), déclarée par le geste, jamais par son conducteur.
+        jouerFlowEntier(applyAttackResult(get, set, attacker, victim, weapon, lance, { suite, ...(pa.freeKind ? { sousAttaque: true } : {}) }));
       }
       // Séquence de combat (jet = étape 0) : enchaîner sur les conséquences empilées par applyAttackResult,
       // ou clore (resume) si aucune. La cascade RESTE ouverte tant qu'un enchaînement est en cours
@@ -3268,18 +3289,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Hors bataille, l'assaillant est celui de la série d'attaques subies (`porteurParId`). MDG 15 l.163-164
       const attacker = porteurParId(get(), pd.attackerId);
       const defender = porteurParId(get(), pd.defenderId);
-      // LE SLOT SE VIDE ET L'ÉTAPE SE FERME DANS LE MÊME ÉTAT (#1852) : `committed` DIT à l'état que
-      // cette étape a rendu sa donnée. Sans lui, l'état intermédiaire (slot vide, curseur encore posé
-      // dessus) est un hôte ORPHELIN pour tout lecteur — le rendu, l'arbitre, la garde du curseur —,
-      // et seul le batching React le masquait. Le curseur, lui, quitte l'étape plus bas (`quitterLaDefense`),
-      // une fois les conséquences du coup appliquées.
-      set((s) => {
-        const casc = s.pendingCascade!;
-        return {
-          pendingDefense: null, // null AVANT la reprise → ré-entrance/double-advance impossibles
-          pendingCascade: { ...casc, participants: casc.participants.map((st, i) => (i === casc.cursor ? { ...st, committed: true } : st)) },
-        };
-      });
+      // Le slot se vide AVANT la reprise (ré-entrance, double avance impossibles) et l'étape se ferme dans le même
+      // état (`rendreLHoteAuCurseur`). Le curseur, lui, quitte l'étape plus bas (`quitterLaDefense`), une fois les
+      // conséquences du coup appliquées.
+      rendreLHoteAuCurseur(set, 'defense', { pendingDefense: null });
       /**
        * QUITTER L'ÉTAPE DE DÉFENSE (#1852) — SOURCE UNIQUE de « cette fenêtre a rendu sa donnée, le
        * curseur n'a plus rien à y faire », pour les sorties de `jetValider('defense')`. Un slot

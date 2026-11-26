@@ -11,6 +11,7 @@ import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { cliquerSurLeCombattant } from './combatOrParty';
+import { avanceEtapeCascade } from './cascade.testkit';
 
 // ---------------------------------------------------------------------------
 // Piétinement — attaque gratuite de mêlée, OPPOSÉE (LDB 85 l.387 ; LDB 13 l.123)
@@ -400,6 +401,11 @@ describe('Piétinement en combat (store)', () => {
     banc.setState({ battle: { ...banc.getState().battle!, movementUsed: 0 } });
     auTourDe(E.id);
     runEnemyAI(banc.getState, banc.setState, E.id);
+    banc.avancer(4000);
+    // Le Coup de Se cabrer porte un Critique au héros tenu : le choix de Dévier est le sien (LDB 63 l.30).
+    const pc = banc.getState().pendingCascade!;
+    expect(pc.participants[pc.cursor]?.kind, 'la fenêtre de Blessure critique attend le héros').toBe('deviation');
+    avanceEtapeCascade(banc.getState, undefined, (etape) => (etape.kind === 'deviation' ? 'devier' : undefined));
     banc.avancer(4000);
     const st = banc.getState();
     const e = st.battle!.combatants.find((c) => c.id === E.id)!;

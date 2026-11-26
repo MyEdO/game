@@ -33,9 +33,9 @@ import { runSetScan } from '../../scripts/guards/lib/setScan.mjs';
  * +1 set() légitime (#351 : `runCascadeImmediate` S'ARRÊTE et SURFACE `pendingCascade` sur un CHOIX sans
  * `defaultChoice` authoré — patron `resolveRemainingCascade`, jamais un `options[0]` silencieux) ; +1 reset
  * ad hoc (même site : pose directe de `pendingCascade`).
- * +1 set() légitime (#474a Se cabrer : `aiCreatureFreeAttacks` dépense l'Action de Mouvement
- * (`movementUsed = mountMovement`) AVANT `applyFreeAttack`, LDB 85 l.314 — coût distinct du `campSpend`
- * d'Avantage porté par `applyFreeAttack`, donc son propre `set()`).
+ * +1 set() légitime (#474a Se cabrer : l'offre de gratuite `targetingModes` dépense l'Action de Mouvement
+ * (`movementUsed = mountMovement`) quand son coût la déclare (`option.cost.movement`), LDB 85 l.314 — coût
+ * distinct du `campSpend` d'Avantage, donc son propre `set()`).
  * +1 set() légitime (#558 : réglage `incantation.jetsDeTable` pose `pendingCast.chosenTableRolls` — le jet sur
  * Tableau est DÉCLINABLE, EDOC 13 l.276 — même patron que réglage `cast.surincantation*` déjà compté).
  * +1 set() légitime (#942 L5 : l'applier `mutationTable` re-émet les acteurs — `touchActors` — quand la
