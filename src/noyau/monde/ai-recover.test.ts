@@ -16,7 +16,7 @@ function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number },
 }
 const scene = emptyScene('scene-test', 12, 12);
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
-  return { enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [], ...extra };
+  return { enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [], ...extra };
 }
 
 describe('IA — auto-récupération d’État (LDB 16 l.66/l.84)', () => {

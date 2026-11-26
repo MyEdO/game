@@ -24,6 +24,25 @@ function startGrimpant(): { spider: import('../../engine/types').Combatant } {
   return { spider };
 }
 
+/** Les tours de l'araignée, un par Round, jusqu'au plateau ou à son 2e tour libre (borne `TOURS_MAX`) : sa porte de Peur
+ *  se rouvre à chaque tour comme au changement de tour (`advanceTurn`). Source de Peur : LDB 85 l.59 ; retenue : LDB 21
+ *  l.27. */
+const TOURS_MAX = 40;
+function toursJusquAuPlateau(id: string): void {
+  let joues = 0;
+  let parLaPeur = 0;
+  for (let round = 0; round < TOURS_MAX && joues - parLaPeur < 2 && !banc.getState().battle!.over; round++) {
+    const b = banc.getState().battle!;
+    const sp = b.combatants.find((c) => c.id === id)!;
+    if (!sp.pos || sp.pos.y <= 2) break; // déjà sur le plateau
+    banc.setState({ battle: { ...b, round: b.round + round, turn: b.order.indexOf(id), acted: false, action: null, movementUsed: 0, fearGate: null } });
+    runEnemyAI(banc.getState, banc.setState, id);
+    banc.reprendreLesEnAttente();
+    joues++;
+    if (banc.getState().battle!.fearGate === 'failed') parLaPeur++;
+  }
+}
+
 describe('Grimpant — l’araignée escalade (grimpant)', () => {
 
   it('scène : plateau à 4 m, une seule arête climb au pied (5,3), Chasseur posté dessus (5,1)', () => {
@@ -34,35 +53,19 @@ describe('Grimpant — l’araignée escalade (grimpant)', () => {
     expect(banc.getState().party ?? scenario.construire(idsDeTest).party).toBeTruthy();
   });
 
-  it('l’araignée (Trait Grimpant) franchit la falaise SANS Test et atteint le plateau en ≤ 2 tours (anti-grind)', () => {
+  it('l’araignée (Trait Grimpant) franchit la falaise SANS Test et atteint le plateau en ≤ 2 tours où sa Peur ne la retient pas (anti-grind)', () => {
     const { spider } = startGrimpant();
     expect(spider.traits?.some((t) => t.id === 'grimpant')).toBe(true);
     expect(spider.pos!.y).toBeGreaterThan(2); // départ au sol, sous la falaise
 
-    for (let round = 0; round < 2 && !banc.getState().battle!.over; round++) {
-      const b = banc.getState().battle!;
-      const sp = b.combatants.find((c) => c.id === spider.id)!;
-      if (!sp.pos || sp.pos.y <= 2) break; // déjà sur le plateau
-      const turnIdx = b.order.indexOf(spider.id);
-      banc.setState({ battle: { ...b, round: b.round + round, turn: turnIdx, acted: false, action: null, movementUsed: 0 } }); // un tour par Round
-      runEnemyAI(banc.getState, banc.setState, spider.id);
-      banc.reprendreLesEnAttente();
-    }
+    toursJusquAuPlateau(spider.id);
     const after = banc.getState().battle!.combatants.find((c) => c.id === spider.id)!;
     expect(after.pos!.y).toBeLessThanOrEqual(2); // a grimpé sur le plateau
   });
 
   it('journalise le franchissement (climb.auto, #504) : le pathing IA n’est pas un jet silencieux', () => {
     const { spider } = startGrimpant();
-    for (let round = 0; round < 2 && !banc.getState().battle!.over; round++) {
-      const b = banc.getState().battle!;
-      const sp = b.combatants.find((c) => c.id === spider.id)!;
-      if (!sp.pos || sp.pos.y <= 2) break;
-      const turnIdx = b.order.indexOf(spider.id);
-      banc.setState({ battle: { ...b, round: b.round + round, turn: turnIdx, acted: false, action: null, movementUsed: 0 } }); // un tour par Round
-      runEnemyAI(banc.getState, banc.setState, spider.id);
-      banc.reprendreLesEnAttente();
-    }
+    toursJusquAuPlateau(spider.id);
     const log = banc.getState().battle!.log;
     expect(log.some((l) => l.text.includes('escalade la paroi sans effort'))).toBe(true);
   });

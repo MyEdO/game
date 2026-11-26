@@ -56,11 +56,12 @@ import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
 import { faitsDesConsequences, resultLines, surfaceOf } from './rollSeam';
-import { canFixDie, decidingSeat, influencesLocally, intentAllowedFor } from './netOwnership';
+import { aiDriven, canFixDie, decidingSeat, influencesLocally, intentAllowedFor } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
+import { modaleActive } from './modalArbiter';
 import { toRecapLines, type RecapLine } from './recapLine';
-import { actorIn } from './monde/combatants';
+import { actorIn, porteurParId } from './monde/combatants';
 import {
   rollTest,
   evaluateTest,
@@ -81,7 +82,7 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePorteursDeSuite, MAIN_RENDUE } from './combatEffects';
 import { seatOwns, tenuParUnHumain } from './sieges';
-import { jouerLaPaireDuJet, TOUT_RESOUDRE } from './combatAuto';
+import { jouerLaPaireDuJet, jouerLeDrive, TOUT_RESOUDRE } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 import { noterAuProcesVerbal } from './voyageCadence';
 
@@ -2166,15 +2167,38 @@ function jouerLHoteDOffice(get: Get, st: CascadeStep): void {
   const jet = st.jet;
   if (!jet || st.committed || porteursDeLEtape(st).some((id) => tenuParUnHumain(get(), id))) return;
   const slot = PENDING_BY_JET[jet];
-  for (let manche = 0; manche < SEQUENCE_HARD_MAX_ROUNDS; manche++) {
+  jouerTantQueCaBouge(() => {
     const avant = get();
     jouerLaPaireDuJet(get, jet);
     const apres = get();
-    if (apres.pendingCascade === avant.pendingCascade && (slot == null || apres[slot] === avant[slot])) return;
+    if (apres.pendingCascade === avant.pendingCascade && (slot == null || apres[slot] === avant[slot])) return false;
     const p = apres.pendingCascade;
     const courante = p?.participants[p.cursor];
-    if (courante?.id !== st.id || courante.committed) return;
-  }
+    return courante?.id === st.id && !courante.committed;
+  });
+}
+
+/**
+ * LA FENÊTRE À DRIVE qu'ouvre un geste du PILOTE IA (#5042) — `MODAL_DEFS[].auto` en `self` (Course, Approche…) dont le
+ * porteur est conduit par l'IA (`aiDriven`) : elle se joue d'office par ses MÊMES gestes (`jouerLeDrive`), toutes
+ * cadences, comme l'étape hôte qu'aucun humain ne tient (`jouerLHoteDOffice`) ; celle d'un humain reste à lui, Rapide
+ * compris. La fenêtre qu'ouvre ce drive suit la même loi ; rien ne bouge : elle reste.
+ */
+export function jouerLesFenetresDuPiloteIA(get: Get): void {
+  jouerTantQueCaBouge(() => {
+    const avant = get();
+    const def = modaleActive(avant);
+    const porteurId = def?.auto.mode === 'self' ? def.owner(avant) : undefined;
+    const porteur = porteurId ? porteurParId(avant, porteurId) : undefined;
+    if (def?.auto.mode !== 'self' || !porteur || !aiDriven(avant, porteur)) return false;
+    jouerLeDrive(get, def.auto.drive);
+    return get() !== avant;
+  });
+}
+
+/** Rejoue `manche` tant qu'elle le demande, au plus `SEQUENCE_HARD_MAX_ROUNDS` fois : la boucle du jeu d'office. */
+function jouerTantQueCaBouge(manche: () => boolean): void {
+  for (let i = 0; i < SEQUENCE_HARD_MAX_ROUNDS && manche(); i++);
 }
 
 /**

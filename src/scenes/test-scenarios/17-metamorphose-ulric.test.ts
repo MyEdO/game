@@ -25,7 +25,7 @@ const hero = (): Combatant => (blessuresSurLeProfil({
   skills: [], talents: [], movement: 4, weapons: [{ name: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }],
 }) as unknown as Combatant);
 const inputFor = (e: Combatant): EnemyTurnInput =>
-  ({ enemy: e, heroes: [hero()], scene, blocked: new Set(['6,5']), movement: e.movement ?? 4, spells: [] });
+  ({ enemy: e, heroes: [hero()], scene, env: { blocked: new Set(['6,5']) }, movement: e.movement ?? 4, spells: [] });
 
 describe('Scénario 17 — Métamorphose Enfant d’Ulric (records réels)', () => {
   it("la forme HUMAINE (enfant-d-ulric-humain) choisit de se métamorphoser", () => {

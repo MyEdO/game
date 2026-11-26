@@ -170,7 +170,7 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
       const data = findSpellById(id)!;
       return { id, data, cn: data.cn ?? 0, range: null, shape: 'single', landProb: 1, focusState: 'none', active: false };
     };
-    const base = { enemy: pretreIA, heroes: [proie], scene: emptyScene('scene-test', 8, 8), blocked: new Set<string>(), movement: 4 };
+    const base = { enemy: pretreIA, heroes: [proie], scene: emptyScene('scene-test', 8, 8), env: { blocked: new Set<string>() }, movement: 4 };
     const libre = chooseEnemyAction({ ...base, enemy: { ...pretreIA, activeEffects: [] }, spells: [] });
     expect(libre.kind).toBe('melee');
     const contraint = chooseEnemyAction({ ...base, spells: [sortDe('arme-aethyrique')] });

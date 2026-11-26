@@ -26,10 +26,10 @@ import { Combatant, Weapon } from '../../engine/types';
 import { Scene, sceneMetresPerTile } from './scene';
 import { positionPosee } from './spawn';
 import { capEnCombat } from '../planDeNavire';
-import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type TraverseCapability } from './path';
+import { reachable, flyReachable, distancesDeMarcheVers, manhattan, pointDeCase, Pt, tileKey, tileFromKey, type MoveEnv } from './path';
 import { chebyshev } from '../../engine/grid';
 import { corpsDe, footprintChebyshev, footprintN, distanceDeContact } from './footprint';
-import { combatGeomOfList, meleeWeaponInRangeList } from '../mount';
+import { attackGeomOfList, combatGeomOfList, meleeWeaponInRangeList } from '../mount';
 import { bouclierDuBinome, surnombreDeLAttaque } from '../combat/surnombre';
 import { couvertDuTir, makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
@@ -127,12 +127,14 @@ export interface EnemyTurnInput {
    *  `engine/psychology.ts`) : ils rejoignent ses viviers de cible. ABSENT = aucun. #3045 */
   ciblesDePulsion?: Combatant[];
   scene: Scene;
-  /** Cases occupées par d'autres combattants (l'ennemi lui-même exclu) — bloquent le TRANSIT. */
-  blocked: Set<string>;
-  /** Cases TRAVERSABLES mais où l'ennemi ne peut pas FINIR son déplacement (créatures plus petites
-   *  dégagées du chemin, LDB 85 l.373-374 — on ne s'arrête jamais sur une autre créature). ABSENT =
-   *  aucune contrainte d'arrêt (tests purs). */
-  noStop?: Set<string>;
+  /** Contraintes de déplacement de la géométrie porteuse, celles du geste du joueur (`moveEnv`, la monture d'un
+   *  cavalier, LDB 14 l.179) : transit, empreinte (LDB 15 l.12), arrêt interdit (LDB 85 l.373-374), nage, Grimpant
+   *  (LDB 85 l.160-162). */
+  env: MoveEnv;
+  /** La case `to` est-elle retenue à ce déplacement ? Posé par l'appelant : la case que le geste du joueur a refusée à
+   *  une décision précédente du tour, ou qui rapproche d'une source de Peur après l'échec du Test (LDB 21 l.27).
+   *  ABSENT = aucune. */
+  deplacementRetenu?: (to: Pt) => boolean;
   /** Mouvement effectif en cases (dérivé de l'Encombrement par l'appelant). */
   movement: number;
   /** TOUS les sorts connus de l'ennemi, RÉSOLUS + enrichis par l'appelant (couche impure qui a les
@@ -142,10 +144,6 @@ export interface EnemyTurnInput {
   spells: CastableSpell[];
   /** Vol (LDB 85 l.433) : le déplacement ignore terrains/obstacles/personnages traversés. */
   flying?: boolean;
-  /** Grimpant (LDB 85 l.160-162), patron de `flying` : capacité de traversée dérivée par l'appelant
-   *  (`climbTraverseFor`, ai.ts est pur) — arêtes `WallSeg.climb` franchies au pas normal. ABSENT/undefined
-   *  = aucune capacité (comportement historique, `reachable` inchangé). */
-  traverse?: TraverseCapability;
   /** Cases enfumées (Souffle (Fumée)) qui bloquent la Ligne de Vue. */
   smoke?: Pt[];
   /** Vision RÉCIPROQUE : cases (`"x,y,0"`) que CET ennemi perçoit réellement (Ligne de Vue + lumière,
@@ -584,7 +582,7 @@ function pousseeVersStructure(scene: Scene, chef: Combatant, cible: Combatant, a
 /** Choisit l'action d'un ennemi pour son tour. Pure et déterministe. */
 export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const resolveTrapping = input.resolveTrapping ?? findTrappingById;
-  const { enemy, scene, blocked, smoke, flying, facing, traverse } = input;
+  const { enemy, scene, smoke, flying, facing, env: envDeMarche } = input;
   // Tenue de formation (#196) : Mouvement effectif plafonné à 0 → tout le reste de la fonction (approche,
   // repositionnement/kiting, fallback anti-immobilisme) énumère seulement la case courante — un ennemi déjà
   // adjacent (`inMelee`/`withinMelee`, testés sur `pos` SANS passer par `reach`) reste attaquable normalement.
@@ -596,6 +594,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // groupe). `perceived` absent = aucun gate (comportement historique / tests purs).
   const adversaires = adversairesDe(input);
   const combattants = input.combatants ?? [...squad, ...adversaires.filter((c) => c.kind !== enemy.kind)];
+  // Géométrie de combat : la monture d'un cavalier porte portée, contact et empreinte. LDB 14 l.179
+  const corps = attackGeomOfList([...combattants], enemy, null);
   const heroes = input.perceived
     ? adversaires.filter((h) => h.pos && input.perceived!.has(`${h.pos.x},${h.pos.y},0`))
     : adversaires;
@@ -621,10 +621,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const mr = meleeReachTiles(enemy.weapons, mpt);
   // Au contact depuis la case candidate `a`, l'ennemi posé là (`positionPosee`), mesuré par `distanceDeContact`.
   const withinMelee = (a: Pt, h: Combatant) =>
-    distanceDeContact(scene, { ...enemy, pos: positionPosee(scene, a) }, h) <= mr;
+    distanceDeContact(scene, { ...corps, pos: positionPosee(scene, a) }, h) <= mr;
   // Au CONTACT par empreinte (LDB 15 l.12) : un grand ennemi touche depuis n'importe quelle de ses tuiles.
   // `distanceDeContact` plie empreinte ET Δhauteur à l'échelle de la scène → s'aligne sur la grille d'engagement de la résolution.
-  const inMelee = (h: Combatant) => distanceDeContact(scene, enemy, h) <= mr;
+  const inMelee = (h: Combatant) => distanceDeContact(scene, corps, h) <= mr;
 
   // Possède-t-il un sort OFFENSIF jouable (data-driven : Projectile ou op de dégât/contrôle hostile) ? Si
   // oui, il LANCE plutôt que de tirer (parité avec l'ancien `offensiveSpell == null` du gate de tir).
@@ -656,7 +656,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // PORTÉE (parité avec le gate pré-clic du héros) : un tireur ne vise pas au-delà de la bande
   // Extrême (Portée ×3 — rangeBandModifier null), un lanceur pas au-delà de la portée du sort.
   // Sans portée chiffrée (arme sans `range`, sort spécial) : pas de gate (stubs/exotiques).
-  const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(enemy), h.pos!, footprintN(h));
+  const fpDist = (h: Combatant) => footprintChebyshev(pos, footprintN(corps), h.pos!, footprintN(h));
   const maxWeaponRange = enemy.weapons.reduce((m, w) => { const r = w.type === 'distance' ? porteeDeTir(resolveTrapping, enemy, w) : null; return r != null ? Math.max(m, r) : m; }, 0);
   const shootPool = maxWeaponRange > 0 ? shootableHeroes.filter((h) => rangeBandModifier(fpDist(h), maxWeaponRange, mpt) != null) : shootableHeroes;
   // Cible dans une bande de portée de CETTE arme (sans portée chiffrée : pas de gate).
@@ -718,9 +718,9 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // Cases atteignables ce tour (inclut la case de départ à distance 0). Vol (LDB 85 l.433) :
   // ligne directe, seules les cases d'atterrissage doivent être praticables et libres.
-  const envDeMarche = { blocked, foot: footprintN(enemy), noStop: input.noStop, traverse };
   const reach = (flying ? flyReachable : reachable)(scene, pos, movement, envDeMarche);
   const hereKey = tileKey(pos.x, pos.y, pos.z ?? 0);
+  if (input.deplacementRetenu) for (const k of reach.keys()) if (k !== hereKey && input.deplacementRetenu(tileFromKey(k))) reach.delete(k);
 
   // Un combattant qui PORTE une arme à distance (ou un sort offensif) se positionne en TIREUR : il vise sa
   // PORTÉE de tir, pas le contact — même s'il garde une arme de mêlée de secours. La mêlée au contact (cible
@@ -740,7 +740,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     let mesure: ((k: string) => number | undefined) | null;
     if (isShooterOrCaster) mesure = (k) => manhattan(tileFromKey(k), t);
     else {
-      const ne = footprintN(enemy), nt = footprintN(target);
+      const ne = footprintN(corps), nt = footprintN(target);
       const contacts: Pt[] = [];
       for (const { z } of scene.layers)
         for (let y = t.y - mr - ne + 1; y <= t.y + nt - 1 + mr; y++)

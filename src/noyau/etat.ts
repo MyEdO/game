@@ -107,7 +107,11 @@ export type GesteDeSuite =
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }
-  | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; couru: boolean; charge: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
+  | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; allure: AllureDeLIA; charge: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
+
+/** L'allure que la décision de l'IA porte à son déplacement (`aiApproachPlan`) : la Marche ou la Course, jouées par le
+ *  geste du joueur, ou la Charge (LDB 15 l.35-41). */
+export type AllureDeLIA = 'marche' | 'course' | 'charge';
 
 /** Le tour en cours d'une clé : `decide` dit que l'IA l'a décidé (`runEnemyAI` seul le pose), `armements` compte ses
  *  armements, `suite.n` nomme celui qui est en attente, `parquee` dit qu'il a échu sur une main tenue. */
@@ -117,6 +121,8 @@ export interface TourEnCours {
   armements: number;
   suite?: { geste: GesteDeSuite; n: number };
   parquee?: true;
+  /** Les cases (`tileKey`) que le geste de déplacement a refusées à l'IA ce tour : sa re-décision les écarte (#5042). */
+  casesRefusees?: string[];
 }
 
 /** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). `apresSuite` : la suite que le dé `nombre` faisait
