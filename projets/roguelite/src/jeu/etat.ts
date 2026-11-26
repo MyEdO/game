@@ -17,7 +17,7 @@ import {
 } from './valeurs';
 import { choisir, noter, tirer } from './outils';
 import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
-import type { Tutoriel } from './tutoriel';
+import type { Tutoriel } from './quete';
 
 /** Un séjour au bâtiment `ou` : `reste` jours sur `total` ; le héros ne part pas en expédition. */
 export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
