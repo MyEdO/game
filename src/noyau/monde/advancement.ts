@@ -8,7 +8,6 @@ import { libelleDuStatut } from '../../engine/money';
 import { Combatant, CharKey, CHAR_KEYS, CHAR_LABELS } from '../../engine/types';
 import {
   coutDeLAugmentation,
-  coutDeLaPremiereAugmentation,
   coutDuTalent,
   niveauValide,
   coutDuChangement,
@@ -24,15 +23,16 @@ import {
   prisParLesAutres,
   refKey,
   parseRefKey,
+  candidatsDuSlot,
   talentMaxReached,
   wildcardSpecs,
 } from '../../engine/careerSlots';
 import { modeleDe } from '../../engine/modeleDeProgression';
 import { competenceEnCarriere, talentsAjoutesALaCarriere, baseWithTalents } from '../../engine/talentEffects';
-import { levelsForCareer, byId, findCareerById, refLabel, specLabel, displayLabelForSex } from '../../data';
+import { levelsForCareer, byId, findCareerById, refLabel, displayLabelForSex } from '../../data';
 import { memeSpecialisation, type RefDesignee } from '../../data/schemas/grammaire/ref';
 import {
-  libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDAugmentation,
+  refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDAugmentation,
   regleDeProgression,
 } from '../depenseDePx';
 import { refusDepensePx } from '../verrousDeFiche';
@@ -66,21 +66,25 @@ export interface SkillAdvanceRow extends GesteFermable {
   /** Refus de l'achat (`refusDAugmentation`) — le même que rend `acheterLaCompetence`. */
   refus: string | null;
 }
-/** Emplacement de Compétence « (Au choix) » non désigné : à apprendre/désigner via un choix de spec. */
+/** Une Compétence proposée par un emplacement à désigner : `skill` sa référence STABLE, `display` le texte montré
+ *  (résolu via `refLabel`, jamais l'id brut), `geste` son achat (`acheterLaCompetence`), qui désigne un emplacement
+ *  libre qui la couvre (`freeSlotFor`), et `refus` celui du verbe (`refusDAugmentation`). */
+export interface OptionDeCompetence extends GesteFermable {
+  skill: RefDesignee;
+  display: string;
+  ownedAdvances: number;
+  /** Coût de la prochaine Augmentation ; `null` au-delà de la table du modèle. */
+  nextCost: number | null;
+  refus: string | null;
+}
+/** Emplacement de Compétence à désigner (« (Au choix) », « A ou B ») non désigné : ce sont ses `options` qui portent
+ *  l'achat. */
 export interface SkillSlotRow {
   slotKey: string;
   entry: string;
-  /** Libellé D'AFFICHAGE du groupe (« Corps à corps »). */
-  group: string;
-  /** `id` STABLE du groupe — câblage (achat/désignation). */
-  groupId: string;
-  characteristic: CharKey;
-  /** Specs proposées (liste restreinte du slot ou specs de skills.json — VALEUR opaque : id de
-   *  Groupe d'arme ou texte FR selon le domaine), specs déjà prises exclues. `display` = texte
-   *  montré (résolu via `specLabel`, jamais l'id brut). */
-  options: { spec: string; display: string; ownedAdvances: number; refus: string | null }[];
-  /** Coût d'une 1re Augmentation (spec non possédée) — une spec possédée se désigne à 0 PX. */
-  nextCost: number;
+  /** Les Compétences de l'emplacement (ses options, ou les specs d'un joker), celles que d'autres emplacements
+   *  tiennent exclues. */
+  options: OptionDeCompetence[];
 }
 /** Ce qu'a toute rangée de Talent. */
 interface RangeeDeTalent {
@@ -189,56 +193,61 @@ export function buildAdvancementView(s: EtatDAvancement, hero: Combatant): Advan
   // distincte (LDB 09 l.44). In-carrière = slot explicite / désigné / joker libre, OU
   // compétence ajoutée par un talent (« à n'importe quelle Carrière », LDB 10).
   const skills: SkillAdvanceRow[] = hero.skills.map((s) => {
-    const sName = byId('skill', s.id)?.label ?? s.id; // AFFICHAGE seulement
     const { statut, remise: discount } = competenceEnCarriere(hero, sSlots, designations, s.id, s.spec);
     const inCareer = statut != null;
     const skill = { id: s.id, ...(s.spec ? { spec: s.spec } : {}) };
+    const label = refLabel('skills', skill); // AFFICHAGE seulement
     return {
       skill,
-      label: sName,
+      label,
       characteristic: s.characteristic,
       advances: s.advances,
       known: true,
       inCareer,
       geste: { verbe: 'acheterLaCompetence', args: [hero.id, skill] },
-      ...augmentation({ kind: 'competence', competence: skill }, inCareer, libelleAvecSpec(sName, s.spec), discount),
+      ...augmentation({ kind: 'competence', competence: skill }, inCareer, label, discount),
     };
   });
-  // Entrées EXPLICITES de carrière pas encore connues → acquérables à advances 0.
+  // Entrées de carrière EXPLICITES ou DÉSIGNÉES pas encore connues → acquérables à advances 0.
   const knows = (skillId: string, spec?: string) => hero.skills.some((s) => s.id === skillId && memeSpecialisation(s.spec, spec));
   for (const slot of sSlots) {
-    if (slot.needsChoice) continue;
     const o = slot.options[0];
-    if (!o.optionId) continue; // tirage aléatoire sans identité réelle : jamais acquérable ainsi
-    if (knows(o.optionId, o.spec)) continue;
-    if (skills.some((r) => !r.known && r.skill.id === o.optionId && memeSpecialisation(r.skill.spec, o.spec))) continue;
-    const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
-    const skill = { id: o.optionId, ...(o.spec ? { spec: o.spec } : {}) };
-    const { remise } = competenceEnCarriere(hero, sSlots, designations, o.optionId, o.spec);
+    const designee = slot.needsChoice ? designations[slot.key] : undefined;
+    if (slot.needsChoice && !designee) continue;
+    const ref = designee ? parseRefKey(designee) : o.optionId ? { id: o.optionId, spec: o.spec } : null;
+    if (!ref) continue; // tirage aléatoire sans identité réelle : jamais acquérable ainsi
+    if (knows(ref.id, ref.spec)) continue;
+    if (skills.some((r) => !r.known && r.skill.id === ref.id && memeSpecialisation(r.skill.spec, ref.spec))) continue;
+    const characteristic = byId('skill', ref.id)?.characteristic ?? 'intelligence';
+    const skill = { id: ref.id, ...(ref.spec ? { spec: ref.spec } : {}) };
+    const label = refLabel('skills', skill);
+    const { remise } = competenceEnCarriere(hero, sSlots, designations, ref.id, ref.spec);
     skills.push({
-      skill, label: o.label, characteristic, advances: 0, known: false, inCareer: true,
+      skill, label, characteristic, advances: 0, known: false, inCareer: true,
       geste: { verbe: 'acheterLaCompetence', args: [hero.id, skill] },
-      ...augmentation({ kind: 'competence', competence: skill }, true, o.label, remise),
+      ...augmentation({ kind: 'competence', competence: skill }, true, label, remise),
     });
   }
-  // Emplacements de Compétence « (Au choix) » non désignés → choix de spec (désigner/apprendre).
+  // Emplacements de Compétence à désigner, non désignés → leurs Compétences (`candidatsDuSlot`), chacune achetable.
   const skillSlotsOpen: SkillSlotRow[] = [];
-  const premiere = coutDeLaPremiereAugmentation(hero);
   for (const slot of sSlots) {
     if (!slot.needsChoice || designations[slot.key]) continue;
-    const o = slot.options[0];
-    if (!o.optionId) continue; // garde défensive (un joker a toujours un optionId en pratique)
     const pris = prisParLesAutres(slot, [...sSlots, ...tSlots], designations);
-    const options = wildcardSpecs(o, 'skill')
-      .filter((spec) => !pris.has(refKey(o.optionId!, spec)))
-      .map((spec) => ({
-        spec,
-        display: specLabel('skills', o.optionId!, spec),
-        ownedAdvances: hero.skills.find((s) => s.id === o.optionId && (s.spec ?? '') === spec)?.advances ?? 0,
-        refus: refusPx(premiere),
-      }));
-    const characteristic = byId('skill', o.optionId)?.characteristic ?? 'intelligence';
-    skillSlotsOpen.push({ slotKey: slot.key, entry: slot.entry, group: o.label, groupId: o.optionId, characteristic, options, nextCost: premiere });
+    const options = candidatsDuSlot(slot)
+      .filter((k) => !pris.has(k))
+      .map(parseRefKey)
+      .map((skill): OptionDeCompetence => {
+        const display = refLabel('skills', skill);
+        const { remise } = competenceEnCarriere(hero, sSlots, designations, skill.id, skill.spec);
+        return {
+          skill,
+          display,
+          ownedAdvances: hero.skills.find((s) => s.id === skill.id && memeSpecialisation(s.spec, skill.spec))?.advances ?? 0,
+          geste: { verbe: 'acheterLaCompetence', args: [hero.id, skill] },
+          ...augmentation({ kind: 'competence', competence: skill }, true, display, remise),
+        };
+      });
+    skillSlotsOpen.push({ slotKey: slot.key, entry: slot.entry, options });
   }
 
   // Talents : un rang par EMPLACEMENT achetable (`talentSlotsAchetables`).

@@ -4,10 +4,8 @@
  * écoutée du roguelite (`ouvrirEcoutee`, `./partie.ts`). L'hôte ne résout aucune règle : il relève à chaque résultat
  * le plateau et le journal pour le rejeu.
  */
-import { arena, avecRencontres, findCreatureById } from '../../../../src/noyau';
+import { arena, avecRencontres, findCreatureById, EVT, type ChargeDAttaque, footprintN } from '../../../../src/noyau';
 import { jouerLaRencontre, type LotAuSol } from '../../../../src/hote/rencontre';
-import { EVT, type ChargeDAttaque } from '../../../../src/noyau/bus';
-import { footprintN } from '../../../../src/noyau/monde/footprint';
 import { ligneDuCoup } from '../../../../src/engine/combat';
 import type { Combatant } from '../../../../src/engine/types';
 import { ouvrirEcoutee } from './partie';

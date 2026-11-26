@@ -10,8 +10,10 @@ import {
   isConditionLocked,
   isOutOfAction,
   refusDeDetermination,
+  gesteDeDetermination,
   auHameau,
   gesteDeLObjet,
+  gesteDIncanter,
   doter,
   saitSoigner,
   entretenirLesMaladies,
@@ -149,7 +151,7 @@ export const refusDeSeRelever = (h: Heros): string | null => refusDeDeterminatio
 export function seRelever(e: Etat, id: string): string {
   const h = herosDuGroupe(e).find((x) => x.c.id === id);
   if (!h) return 'Héros introuvable.';
-  return refusDeSeRelever(h) ?? auNoyau(e, h, [{ verbe: 'depenserLaDetermination', args: [id, 'retirerUnEtat', 'a-terre'] }]);
+  return refusDeSeRelever(h) ?? auNoyau(e, h, [(s) => gesteDeDetermination(s, id, 'retirerUnEtat', 'a-terre')?.geste]);
 }
 
 /** Le Béni `id` peut-il encore prier pour soigner pendant cette expédition ? */
@@ -162,7 +164,7 @@ export function prier(e: Etat, id: string, cibleId: string): string {
   const pretre = groupe.find((h) => h.c.id === id);
   if (!pretre || !peutPrier(e, pretre)) return 'Pas de prière possible.';
   e.expedition!.prieres.push(id);
-  const r = auHameau(groupe.map((h) => h.c), [{ verbe: 'incanterLeSort', args: [id, PRIERE_DE_SOIN, cibleId] }], e.graine++);
+  const r = auHameau(groupe.map((h) => h.c), [gesteDIncanter(id, PRIERE_DE_SOIN, cibleId)], e.graine++);
   for (const c of r.groupe) { const h = groupe.find((x) => x.c.id === c.id); if (h) h.c = c; }
   return r.journal.slice(-2).join(' ');
 }

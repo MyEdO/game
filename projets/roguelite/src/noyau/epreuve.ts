@@ -3,12 +3,10 @@
  * le geste d'exploration qui offre son action (`gestesDExploration`) en cadence automatique ; ses branches sont des
  * effets de scène du noyau.
  */
-import { arena, skills, type FlowDeScene, gestesDExploration, type Jeu } from '../../../../src/noyau';
-import { EVT, type TestJete } from '../../../../src/noyau/bus';
+import { arena, skills, type FlowDeScene, gestesDExploration, type Jeu, EVT, type TestJete, rollLine } from '../../../../src/noyau';
 import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Combatant } from '../../../../src/engine/types';
 import { evaluateTest } from '../../../../src/engine/tests';
 import { TIME_COST } from '../../../../src/engine/timeCost';
-import { rollLine } from '../../../../src/noyau/ligneDeJet';
 import { peutTenter } from '../../../../src/engine/skills';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 

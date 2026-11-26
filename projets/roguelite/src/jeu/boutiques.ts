@@ -6,6 +6,8 @@ import {
   qualitesDesPieces,
   doter,
   gesteDeLObjet,
+  gesteDeLaMain,
+  gesteDePrendreLaPanoplie,
   articleDuCatalogue,
   armureRapideDe,
   DISPONIBILITES,
@@ -18,6 +20,7 @@ import {
   protectionDesPieces,
   tenableEnMainSecondaire,
   type ArticleDuCatalogue,
+  type Geste,
   type ItemInstance,
   type ObjetEnRayon,
   type Qualite,
@@ -190,7 +193,7 @@ export function acheterUneArme(e: Etat, id: string, armeId: string): string | nu
   h.c = { ...h.c, items: [...(h.c.items ?? []).filter((i) => i.uid !== ancien), ...neufs] };
   // Hors du combat il garde en main son set de mêlée ; sans arme de mêlée, son set de tir.
   const enMain = tenue !== 'main' && !melee?.main && (tenue === 'tir' || tir?.main) ? tir : melee;
-  const ligne = lo && enMain ? auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, neufs[0].uid] }, { verbe: 'prendreLaPanoplie', args: [h.c.id, enMain.id] }]) : 'Ce héros n’a pas de panoplie.';
+  const ligne = lo && enMain ? auNoyau(e, h, [gesteDeLaMain(h.c.id, lo.id, slot, neufs[0].uid), gesteDePrendreLaPanoplie(h.c.id, enMain.id)]) : 'Ce héros n’a pas de panoplie.';
   if ((h.c.loadouts ?? []).some((l) => l[slot] === neufs[0].uid)) {
     if (tenue !== 'tir') reprendreLaMainSecondaire(e, h, lo!.id, armeId);
     return null;
@@ -214,7 +217,7 @@ function reprendreLaMainSecondaire(e: Etat, h: Heros, loadout: string, armeId: s
   if (!lo || lo.secondaire) return;
   const tenus = new Set((h.c.loadouts ?? []).flatMap((l) => [l.main, l.secondaire]));
   const libre = (h.c.items ?? []).find((i) => i.trappingId && estUneArme(i) && article(i.trappingId).tenue === 'secondaire' && !tenus.has(i.uid));
-  if (libre) auNoyau(e, h, [{ verbe: 'garnirLaPanoplie', args: [h.c.id, loadout, 'secondaire', libre.uid] }]);
+  if (libre) auNoyau(e, h, [gesteDeLaMain(h.c.id, loadout, 'secondaire', libre.uid)]);
 }
 
 /** Remet au héros les objets `ids` du catalogue et les lui fait tenir (`tenirLesObjets`). */
@@ -240,7 +243,7 @@ export function tenirLesObjets(e: Etat, h: Heros, neufs: readonly ItemInstance[]
     if (!lo) return [];
     const slot = tenue === 'secondaire' || (tenue === 'tir' && (lo.main || garnis.has(lo.id))) ? 'secondaire' : 'main';
     garnis.add(lo.id);
-    return [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, slot, it.uid] }];
+    return [gesteDeLaMain(h.c.id, lo.id, slot, it.uid)];
   });
   const armures = neufs.filter((i) => i.kind === 'armor').map((i) => gesteDeLObjet(h.c.id, i.uid, 'porter'));
   if (gestes.length || armures.length) auNoyau(e, h, [...gestes, ...armures]);
@@ -258,12 +261,12 @@ export function prendreSesArmes(e: Etat, h: Heros): void {
   const tenue = objetDe(h, lo.main);
   const nommee = tenue && !tenue.spec ? items.find((i) => i.trappingId === tenue.trappingId && i.spec && i.uid !== tenue.uid) : undefined;
   const main = nommee?.uid ?? lo.main;
-  const gestes = nommee ? [{ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, 'main', nommee.uid] }] : [];
+  const gestes: Geste[] = nommee ? [gesteDeLaMain(h.c.id, lo.id, 'main', nommee.uid)] : [];
   const secondaire = objetDe(h, lo.secondaire);
   if (manieDeuxArmes(h) && !(secondaire?.trappingId && estUnBouclier(secondaire.trappingId))) {
     const tenus = new Set((h.c.loadouts ?? []).flatMap((l) => (l.id === lo.id ? [main] : [l.main, l.secondaire])));
     const meilleure = items.filter((i) => i.kind === 'melee' && (i.hands ?? 1) === 1 && !tenus.has(i.uid)).sort((a, b) => degatsDe(b) - degatsDe(a))[0];
-    if (meilleure && (!secondaire || secondaire.uid === main || degatsDe(meilleure) > degatsDe(secondaire))) gestes.push({ verbe: 'garnirLaPanoplie', args: [h.c.id, lo.id, 'secondaire', meilleure.uid] });
+    if (meilleure && (!secondaire || secondaire.uid === main || degatsDe(meilleure) > degatsDe(secondaire))) gestes.push(gesteDeLaMain(h.c.id, lo.id, 'secondaire', meilleure.uid));
   }
   if (gestes.length) auNoyau(e, h, gestes);
 }

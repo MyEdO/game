@@ -6,7 +6,7 @@
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
-export type { ChargeDAttaque, TestJete } from './bus';
+export { EVT, type ChargeDAttaque, type TestJete } from './bus';
 export { lancementDuProjet, type LancementDeScenario } from './lancementDeScenario';
 export { campagneDuJeu, campagneDuPaquet, paquetDisqueDuJeu, paquetDuJeu, type BuiltinCampaign } from './campagneLivree';
 export { etatInitialDuJeu, initialNet, type EtatDeJeu, type Jeu } from './etat';
@@ -148,7 +148,7 @@ export {
 export type { Sexe } from '../data/schemas/grammaire/valeurs';
 export { SLOTS } from '../lib/palette';
 export { mouvementDuTour } from './mount';
-export { distanceDeCombat } from './monde/footprint';
+export { distanceDeCombat, footprintN } from './monde/footprint';
 export { effectiveArmourAt } from '../engine/characteristics';
 export { effectiveTalents, reservesPropres } from '../engine/talentEffects';
 export { fenetreDuJeu, CLES_DE_FENETRE, VERBES_D_INTERACTION, VERBES_DU_JET_PSY } from './combatAuto';
@@ -367,7 +367,7 @@ export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFich
 export { weaponStatParts } from '../engine/weaponStats';
 export { gestesDeLObjet, gesteDeLaPanoplie, type GesteAChoix } from './gestesDeLObjet';
 export { gesteDeSoins } from './medicFlow';
-export { gesteDIncantation } from './combatSlice';
+export { gesteDeDetermination, gesteDIncantation } from './combatSlice';
 export { buildAdvancementView, type TalentDesigne } from './monde/advancement';
 export { VERBE_DE_VALIDATION } from './validationDeFenetre';
 export { carteEnVue, trajetsDepuis, type CarteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
@@ -380,7 +380,7 @@ export { recitEnVue, type RecitEnVue } from './recitEnVue';
 export { interludeEnVue, libelleDuDepot, type InterludeEnVue } from './interludeEnVue';
 export { batailleEnVue } from './batailleEnVue';
 export { reposEnVue, type ReposEnVue } from './reposEnVue';
-export { TITRE_DE_LA_NUIT } from './restFlow';
+export { TITRE_DE_LA_NUIT, prixDeLOffre } from './restFlow';
 export { fenetreDuButin, REGLAGES_DU_BUTIN } from './fenetreDuButin';
 export { fenetreDeDetermination } from './determinationDuJet';
 export {
@@ -426,7 +426,7 @@ export {
   type IntentionDEngagement,
 } from './creation/engagement';
 export { gesteDAchatDuSort, partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
-export type { CreatorDraft } from './creation/brouillon';
+export { buildHero, carrieresOffertes, especesOffertes, type CreatorDraft } from './creation/brouillon';
 export {
   apresLeGeste,
   brouillonDeLaPartie,
@@ -464,3 +464,7 @@ export {
   type SavedProject,
 } from './persistance/bibliotheque';
 export { ProjetRefuse, lieuDuGroupe, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';
+export { designeGaranti, rollLine } from './ligneDeJet';
+export { refusDeConsommer } from './consumableFlow';
+export { estOperation } from './acteDeSoin';
+export type { DoctrineId } from './monde/ai';
