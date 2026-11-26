@@ -443,7 +443,7 @@ jobs:
   # critique du job `godot` (#5037) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
   # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
   # requirements.txt), après `recuperer-modeles.mjs`, qui dépose dans `CACHE_DES_MODELES` les GLB épinglés que
-  # `test_element.py` lit. Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner,
+  # `test_element.py` lit, et sous `hotes/godot/projet/textures/` les textures épinglées que lit `test_rendu.py`. Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner,
   # ne se cache pas.
   migrations:
     runs-on: ubuntu-latest

@@ -666,7 +666,7 @@ export const ECRIT_LU = {
       'tous trois sous les gardes communes aux kits de pièces de `banc_des_kits.py`, et `test_element.py` les éléments ' +
       'sur base d’`element/`, sur les GLB ' +
       'épinglés lus dans le cache `~/.cache/wfrp-modeles-3d/` (hors de l’arbre, rempli par `godot:sonde` avant elle ' +
-      'dans la lane `types`, et en CI par `recuperer-modeles.mjs` avant elle dans le job `migrations`) ; tous comparent ' +
+      'dans la lane `types`, et en CI par `recuperer-modeles.mjs` avant elle dans le job `migrations`, qui dépose aussi les textures épinglées que lit `habiller` de `rendu.py`) ; tous comparent ' +
       'leurs manifestes à ceux commités sous hotes/godot/projet/modeles/. Son `lit` déclare `src/` et `hotes/godot/` entiers, ' +
       'par ses `zones` (#4903 L4) : elle saute avec `godot:sonde`, qui remplit ce cache, et seulement hors de ces dossiers ; ' +
       'ce que chaque test reconstruit se juge sur les entrées d’une reconstruction (`racinesDesReconstructions`, ' +

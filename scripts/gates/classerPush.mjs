@@ -71,7 +71,7 @@ export const CI_SEULEMENT_DE_GATE = {
     gates: ['personnage-3d:tests'],
   },
   [COMMANDE_RECUPERER_MODELES]: {
-    raison: 'GLB épinglés du cache des modèles, que le seul `personnage-3d:tests` lit dans le job `migrations`, sautables avec lui',
+    raison: 'GLB épinglés du cache des modèles et textures épinglées, que le seul `personnage-3d:tests` lit dans le job `migrations`, sautables avec lui',
     gates: ['personnage-3d:tests'],
   },
   [COMMANDE_RENDU_LOGICIEL]: {

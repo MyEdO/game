@@ -46,7 +46,7 @@ export const CI_SEULEMENT = {
     'prépare `actions/setup-python` sur le runner — localement, `environnement.mjs` cherche lui-même cette version parmi ' +
     'ses `CANDIDATS`',
   [COMMANDE_RECUPERER_MODELES]:
-    'dépose sur le runner du job `migrations` les GLB épinglés que `personnage-3d:tests` lit dans le cache des modèles — ' +
+    'dépose sur le runner du job `migrations` les GLB épinglés que `personnage-3d:tests` lit dans le cache des modèles, et les textures épinglées du projet — ' +
     'localement, `godot:sonde` les y dépose avant lui dans la lane `types`',
   [COMMANDE_RENDU_LOGICIEL]:
     'installe sur le runner l’écran virtuel et le rendu logiciel que `godot:rendus` demande — localement, un poste à ' +
