@@ -11,6 +11,8 @@ import {
   PRIX_DU_SOIN_PAR_BLESSURE,
   PROFILS,
   REMEDES_DE_L_HOSPICE,
+  VIVRES_DU_DEPART,
+  prixDe,
   ROLES,
   prixDUneChambre,
   SORTS_DES_VOIES,
@@ -61,6 +63,7 @@ export function catalogue(): string {
     '## Forge', '', forge, '', `Armures : ${ARMURES_DE_LA_FORGE.map(objet).join(', ')}.`, '',
     '## Auberge relais', '', tableau(['Palier', 'Chambre', 'Prix de la semaine'], CHAMBRE_DU_RELAIS.map((q, i) => [String(i), q, `${prixDUneChambre(q)} CO`])), '',
     '## Hospice', '', tableau(['Palier', 'Soin par Blessure rendue'], PRIX_DU_SOIN_PAR_BLESSURE.flatMap((p, i) => (p == null ? [] : [[String(i), `${p} CO`]]))), '', REMEDES_DE_L_HOSPICE.map(objet).join(', '), '',
+    '## Départ', '', `Vivres pour la route : ${VIVRES_DU_DEPART.map((id) => `${objet(id)}, ${prixDe(id)} CO`).join(' ; ')}.`, '',
     '## Destinations et adversaires', '', destinations, '',
   ].join('\n');
 }
