@@ -2280,16 +2280,16 @@ export const fr = {
   // PATRON UNIQUE de la ligne de dé du journal (`engine/traceLine.ts`) — la fenêtre qui l'aurait
   // montré ne s'est pas ouverte : la ligne porte le dé, la cible, l'issue et le DR. `issue` vient de
   // `casc.autoRowHit|autoRowMiss` par défaut, du domaine quand il en a une plus précise.
-  'casc.autoRowTrace': '{who} — {label} : {roll}/{target} → {issue} (DR {dr}).',
+  'casc.autoRowTrace': '{who} — {label} : {roll}/{target}, {issue} (DR {dr}).',
   // Variante SANS porteur (le libellé nomme déjà qui lance) et variante SANS DR (le jet n'en porte pas).
-  'casc.rowTraceAnon': '{label} : {roll}/{target} → {issue} (DR {dr}).',
-  'casc.rowTraceNoDr': '{who} — {label} : {roll}/{target} → {issue}.',
-  'casc.rowTraceAnonNoDr': '{label} : {roll}/{target} → {issue}.',
+  'casc.rowTraceAnon': '{label} : {roll}/{target}, {issue} (DR {dr}).',
+  'casc.rowTraceNoDr': '{who} — {label} : {roll}/{target}, {issue}.',
+  'casc.rowTraceAnonNoDr': '{label} : {roll}/{target}, {issue}.',
   // PATRON UNIQUE de la ligne d'un DÉ NU résolu sans fenêtre (#1508) — le dé et le TOTAL qui fait la
   // conséquence, avec son unité quand la déclaration en porte une. Aucune cible, aucun DR : un dé nu
   // ne se réussit pas.
-  'casc.dieTrace': '{who} — {label} : dé {roll} → {total}.',
-  'casc.dieTraceAnon': '{label} : dé {roll} → {total}.',
+  'casc.dieTrace': '{who} — {label} : dé {roll}, soit {total}.',
+  'casc.dieTraceAnon': '{label} : dé {roll}, soit {total}.',
   'casc.dieTraceLabel': 'Tirage',
   'casc.autoRowHit': 'réussi',
   'casc.autoRowMiss': 'échec',

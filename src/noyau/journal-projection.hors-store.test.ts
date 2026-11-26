@@ -22,21 +22,21 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * l'issue se DÉCLARE au flux (`spec.issue`) et se journalise au VERBE TERMINAL `apply`, une fois.
  */
 describe('le dériveur — patron unique de la ligne de dé', () => {
-  it('porteur + DR : « qui — libellé : dé/cible → issue (DR ±n) »', () => {
+  it('porteur + DR : « qui — libellé : dé/cible, issue (DR ±n) »', () => {
     expect(traceLineOf({ who: fixtureText('Brawn'), label: 'Résistance', roll: 45, target: 60, sl: 2, success: true }))
-      .toBe('Brawn — Résistance : 45/60 → réussi (DR +2).');
+      .toBe('Brawn — Résistance : 45/60, réussi (DR +2).');
   });
 
   it('issue du DOMAINE quand il en a une plus précise que réussi/échec', () => {
     expect(traceLineOf({ who: fixtureText('Brawn'), label: 'Faim', roll: 78, target: 30, sl: -5, success: false, issue: 'ÉCHEC' }))
-      .toBe('Brawn — Faim : 78/30 → ÉCHEC (DR -5).');
+      .toBe('Brawn — Faim : 78/30, ÉCHEC (DR -5).');
   });
 
   it('sans porteur (le libellé nomme déjà qui lance) et sans DR (le jet n’en porte pas)', () => {
     expect(traceLineOf({ label: 'Contre-sort de Gunther', roll: 12, target: 55, sl: 4, success: true, issue: 'le Sort est DISSIPÉ' }))
-      .toBe('Contre-sort de Gunther : 12/55 → le Sort est DISSIPÉ (DR +4).');
+      .toBe('Contre-sort de Gunther : 12/55, le Sort est DISSIPÉ (DR +4).');
     expect(traceLineOf({ label: 'Épée — Disponibilité', roll: 33, target: 70, success: true, issue: 'disponible ×2' }))
-      .toBe('Épée — Disponibilité : 33/70 → disponible ×2.');
+      .toBe('Épée — Disponibilité : 33/70, disponible ×2.');
   });
 
   it('libellé absent → « Test » (repli du patron, jamais une ligne muette)', () => {
@@ -45,7 +45,7 @@ describe('le dériveur — patron unique de la ligne de dé', () => {
 
   it('Test résolu SANS fenêtre : le libellé porte la Compétence ET sa Difficulté (elle ne se lit nulle part ailleurs)', () => {
     expect(traceLineOf({ who: fixtureText('Brawn'), label: testTraceLabel('Résistance', 'difficile'), roll: 45, target: 60, sl: 2, success: true }))
-      .toBe('Brawn — Test de Résistance Difficile (−20) : 45/60 → réussi (DR +2).');
+      .toBe('Brawn — Test de Résistance Difficile (−20) : 45/60, réussi (DR +2).');
   });
 
   /** La PRÉPOSITION s'élide devant une voyelle (« Test d'Initiative », jamais « Test de Initiative ») —
@@ -108,7 +108,7 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     banc.getState().ensemencerLeTirage(3);
     const h = hero();
     runCascadeImmediate(banc.getState, banc.setState, [step('s1', h.id)]);
-    const traces = banc.getState().journal.filter((l) => /^Brawn — Résistance : \d+\/55 → (réussi|échec) \(DR [+-]\d+\)\.$/.test(l));
+    const traces = banc.getState().journal.filter((l) => /^Brawn — Résistance : \d+\/55, (réussi|échec) \(DR [+-]\d+\)\.$/.test(l));
     expect(traces, `journal:\n${banc.getState().journal.join('\n')}`).toHaveLength(1);
   });
 

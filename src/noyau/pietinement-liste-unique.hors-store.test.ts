@@ -58,7 +58,8 @@ function fileIA(H: Combatant, E: Combatant): { compteur: number; blessures: numb
   const avant = H.wounds.current;
   const avantageAvant = E.advantage;
   aiCreatureFreeAttacks(g, banc.setState, E);
-  return { compteur: E.freeAttacksThisTurn?.pietinement ?? 0, blessures: avant - H.wounds.current, avantagePaye: avantageAvant - E.advantage };
+  const [h, e] = [H, E].map((c) => g().battle!.combatants.find((x) => x.id === c.id)!);
+  return { compteur: e.freeAttacksThisTurn?.pietinement ?? 0, blessures: avant - h.wounds.current, avantagePaye: avantageAvant - e.advantage };
 }
 
 describe('Piétinement : une manœuvre, une liste de gratuites', () => {

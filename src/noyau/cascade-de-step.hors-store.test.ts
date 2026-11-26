@@ -107,7 +107,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     expect(tombes).toEqual([{ roll: 13, total: 13 }]);
     const lignes = banc.getState().journal.filter((l) => /Hauteur de chute/.test(l));
     expect(lignes, 'le journal est la SEULE surface de ce dé : il porte le dé ET le total en mètres').toEqual(
-      ['Hauteur de chute : dé 13 → 13 m.'],
+      ['Hauteur de chute : dé 13, soit 13 m.'],
     );
   });
 

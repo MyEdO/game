@@ -66,7 +66,7 @@ describe('un seul écran de progression', () => {
     const apres = maniement(h.c, arme).attaque;
     const ecart = chancesDeReussite(apres) - chancesDeReussite(avant.attaque);
     expect(ecart).toBeGreaterThan(0);
-    expect(texte.split('\n')).toContain(`${articleDuCatalogue(arme).label} · ${avant.test} ${avant.attaque} → ${apres} : +${ecart} % de chances de toucher`);
+    expect(texte.split('\n')).toContain(`${articleDuCatalogue(arme).label} · ${avant.test} de ${avant.attaque} à ${apres} : +${ecart} % de chances de toucher`);
   });
 
   it('l’aperçu d’un Talent dit l’écart de chances du Test qu’il change, tel que le noyau le joue (Imperturbable, Calme)', () => {
@@ -80,7 +80,7 @@ describe('un seul écran de progression', () => {
     const apres = testValue(h.c, calme);
     const ecart = chancesDeReussite(apres) - chancesDeReussite(avant);
     expect(ecart).toBeGreaterThan(0);
-    expect(apercuDe(bouton).texte.split('\n')).toContain(`Calme ${avant} → ${apres} : +${ecart} % de chances`);
+    expect(apercuDe(bouton).texte.split('\n')).toContain(`Calme de ${avant} à ${apres} : +${ecart} % de chances`);
   });
 
   it('un Talent qui ne change aucune valeur de combat n’a pas d’aperçu sur sa plaque (Tireur de précision sans arme à distance)', () => {

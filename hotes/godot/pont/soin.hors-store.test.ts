@@ -39,9 +39,11 @@ describe('le soin par le pont', () => {
 
     ({ suite } = drainer(appel, appel('jouer', offre(suite, 'soins').jeu)));
     const [patient] = suite.vue.projection.combat!.cibles.liste;
+    const nomDuPatient = suite.vue.projection.combat!.voisins.liste.find((c) => c.id === patient)?.nom;
+    expect(nomDuPatient, 'témoin : le patient cliqué est en vue, nommé').toBeTruthy();
     ({ suite } = drainer(appel, appel('jouer', clicDuCombattant(suite.vue, patient)!)));
     const corps = () => Object.fromEntries(suite.vue.zones['fenetre.corps'].map((e) => [e.id, e]));
-    expect(corps().soin, 'le patient ; le soigneur tient la fenêtre et jette').toMatchObject({ texte: 'Patient : Aelindra, Haute Sorcière' });
+    expect(corps().soin, 'le patient ; le soigneur tient la fenêtre et jette').toMatchObject({ texte: `Patient : ${nomDuPatient}` });
 
     const reglages = () => Object.fromEntries(suite.vue.zones['fenetre.reglages'].map((r) => [r.libelle, r as Choix]));
     const acte = reglages().Soin;

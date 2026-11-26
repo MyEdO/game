@@ -32,7 +32,7 @@ describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
     hero.psychState = [{ type: 'frenesie' } as never];   // frénétique → attaque libre d'Arme (LDB 21 l.33)
     foe.pos = { x: hero.pos!.x + 1, y: hero.pos!.y };      // ennemi AU CONTACT (cible de l'attaque gratuite)
     foe.wounds = blessuresDeBase(99, 99, foe);  // survit pour qu'on mesure l'attaque, pas la mort
-    banc.setState({ battle: { ...b } });
+    banc.setState({ battle: { ...b, turn: b.order.indexOf(hero.id), acted: true } }); // son tour, l'Action prise (LDB 21 l.33)
     return { heroId: hero.id, foeId: foe.id };
   }
 
@@ -49,13 +49,15 @@ describe('Frénésie — attaque gratuite d’un héros (Auto-combat)', () => {
     // MANUEL : aiDriven faux → aiAvailableFreeAttack ne fait RIEN (le héros la jouera via l'affordance UI)
     setCadence('manuel');
     const logManuel = banc.getState().battle!.log.length;
-    aiAvailableFreeAttack(banc.getState, banc.setState, hero());
+    aiAvailableFreeAttack(banc.getState, hero());
     expect(banc.getState().battle!.log.length).toBe(logManuel); // no-op
 
     // AUTO : aiDriven vrai → l'attaque gratuite est résolue (jet d'attaque journalisé)
     setCadence('auto');
     const logAuto = banc.getState().battle!.log.length;
-    aiAvailableFreeAttack(banc.getState, banc.setState, hero());
+    aiAvailableFreeAttack(banc.getState, hero());
+    banc.reprendreTout(); // l'Auto-combat joue la fenêtre que le geste ouvre
     expect(banc.getState().battle!.log.length).toBeGreaterThan(logAuto); // a frappé
+    expect(banc.getState().battle!.log.slice(logAuto).some((l) => l.kind === 'frenesie' && l.actorId === heroId)).toBe(true); // la gratuite (LDB 21 l.33)
   });
 });

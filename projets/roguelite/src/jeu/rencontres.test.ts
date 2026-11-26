@@ -87,7 +87,7 @@ describe.each(CAS)('$salle · $action, tenté par le $carriere', (cas) => {
     cas.attendu(v);
     if (v.corruption) {
       expect(v.corruption).toEqual({ avant: 0, apres: h.c.corruption, seuil: souillure(h.c).seuil });
-      expect(r.lignes).toContain(`${h.c.label} : Corruption 0 → ${h.c.corruption} / ${souillure(h.c).seuil}.`);
+      expect(r.lignes).toContain(`${h.c.label} : Corruption de 0 à ${h.c.corruption} / ${souillure(h.c).seuil}.`);
     }
     for (const m of v.maladies) expect(r.lignes).toContain(`${h.c.label} contracte : ${m}.`);
   });

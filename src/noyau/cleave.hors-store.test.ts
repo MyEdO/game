@@ -303,7 +303,8 @@ describe('Balayage en combat (store)', () => {
     expect(banc.getState().battle!.combatants.find((c) => c.id === h2.id)!.wounds.current).toBeLessThan(60);
   });
 
-  it('Héros plus grand : pendingCleave s’ouvre après la touche, l’enchaînement le ferme', () => {
+  /** Héros GRAND au contact de deux ennemis, à son tour : sa touche primaire sur E1 ouvre le balayage (graine 2). */
+  function balayageDuHerosOuvert() {
     banc.getState().ensemencerLeTirage(2);
     const b = setupBattle(1);
     const H = b.combatants.find((c) => c.kind === 'heros')!;
@@ -322,11 +323,15 @@ describe('Balayage en combat (store)', () => {
     }
     const turn = b.order.indexOf(H.id);
     banc.setState({ battle: { ...b, turn, action: null, movementUsed: 99, acted: false } });
-
-    // Touche primaire sur E1 → balayage déclenché (héros plus grand).
     cliquerSurLeCombattant(banc.getState, E1.id, { confirm: true });
     banc.getState().jetLancer('attaque');
     banc.getState().jetValider('attaque');
+    return { H, E1, E2 };
+  }
+
+  it('Héros plus grand : pendingCleave s’ouvre après la touche, l’enchaînement le ferme', () => {
+    // Touche primaire sur E1 → balayage déclenché (héros plus grand).
+    const { E1, E2 } = balayageDuHerosOuvert();
     const pc = banc.getState().pendingCleave;
     expect(pc).toBeTruthy();
     expect(pc!.hitIds).toEqual([E1.id]);
@@ -340,6 +345,22 @@ describe('Balayage en combat (store)', () => {
     banc.getState().jetValider('attaque');
     expect(banc.getState().pendingCleave).toBeNull();
     expect(banc.getState().battle!.combatants.find((c) => c.id === E2.id)!.wounds.current).toBeLessThan(e2Before);
+  });
+
+  it('la frappe suivante du balayage se rend dans la MÊME étape `attaque`, rouverte (#1852, `advanceCombatJet`)', () => {
+    const { E2 } = balayageDuHerosOuvert();
+    const avant = banc.getState().pendingCascade!;
+    const etape = avant.participants[avant.cursor];
+    const attaques = avant.participants.filter((st) => st.jet === 'attaque').length;
+    expect(etape, 'la frappe primaire a rendu son étape').toMatchObject({ jet: 'attaque', committed: true });
+    banc.getState().frapperEnBalayage(E2.id);
+    const apres = banc.getState().pendingCascade!;
+    const cur = apres.participants[apres.cursor];
+    expect(cur.id, 'la frappe suivante tient l’étape de la précédente').toBe(etape.id);
+    expect(cur.jet).toBe('attaque');
+    expect(cur.committed, 'l’étape est rouverte pour sa nouvelle donnée').toBeFalsy();
+    expect(banc.getState().pendingAttack, 'son slot porte la frappe suivante').toMatchObject({ targetId: E2.id, cleave: true });
+    expect(apres.participants.filter((st) => st.jet === 'attaque'), 'aucune étape `attaque` de plus').toHaveLength(attaques);
   });
 
   it('Héros plus grand, manœuvre gratuite (Morsure) : pendingCleave s’ouvre après la touche, comme pour une attaque (LDB 14 l.9, LDB 85 l.362)', () => {

@@ -666,7 +666,8 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     const coup = { ...touche(), cleave: true, attackerDetail: { roll: 30, target: 50, success: true, sl: 3 } } as AttackResult;
     banc.setState({ pendingAttack: { attackerId: heros.id, targetId: e1.id, location: 'corps', dualMode: true, result: coup } as never });
     banc.getState().jetValider('attaque');
-    expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe s’ouvre bien (la suite est jouée)').not.toBeNull();
+    expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe est celle de la machine (`aiDriven`) : aucune fenêtre').toBeNull();
+    expect((banc.getState().battle?.log ?? []).filter((l) => l.actorId === heros.id && l.targetId === e1.id && l.kind === 'attaque').length, 'la suite est jouée : deux frappes sur e1').toBe(2);
     expect(banc.getState().pendingCleave, 'aucun balayage interactif n’est armé').toBeNull();
     const vu = (banc.getState().battle?.log ?? []).map((l) => l.text);
     expect(vu.filter((x) => /e2/.test(x)), `e2 n’est pas touchée : ce coup ne déclare AUCUN enchaînement — ${vu.join(' | ')}`).toHaveLength(0);
@@ -676,7 +677,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
   it('(vi) MANŒUVRE GRATUITE d’une créature de Taille (IA, non suspendue) : effets posés, Action rendue, et le balayage de la machine suit', () => {
     // LDB 85 l.362 : « Toutes les frappes réussies activent la règle optionnelle Frappe Mortelle » — la
     // queue non suspendue d'une manœuvre gratuite est la MÊME écriture que celle de la reprise,
-    // enchaînement compris (la queue inline de `applyFreeAttack` n'en jouait, elle, que la moitié).
+    // enchaînement compris.
     const monte = (voisine: boolean): { ogre: Combatant; h1: Combatant; h2: Combatant } => {
       const ogre = mk('ennemi', 'ogre', {
         pos: { x: 5, y: 5 }, size: 'enorme', characteristics: { ...CHARS, 'capacite-de-combat': 90 },

@@ -1053,7 +1053,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     ['h3', 'Elsa', 'recueillir-informations', 'ragot'],
     ['h4', 'Bruno', 'rester-aux-aguets', 'perception'],
   ] as const).map(([id, label, activityId, skill]) => hero({ id, label, travelRole: { activityId }, items: [ration(`${id}-r`)], skills: [{ id: skill, advances: 20 } as any] }));
-  const traceDe = (label: string) => get().journal.filter((l) => new RegExp(`^${label} — .+ : \\d+/\\d+ → `).test(l));
+  const traceDe = (label: string) => get().journal.filter((l) => new RegExp(`^${label} — .+ : \\d+/\\d+, `).test(l));
   /** Route à « Attaqués ! » (graine 326, péripétie au d8) dont l'embuscade est configurée. */
   const routeAEmbuscade = () => map({ km: 30, perilDie: 8, ambush: { scene: { id: 'lieu-a-scene' }, encounter: 'enc-test' } });
   /** Draine la cascade de nuit ; s'arrête sur celle du jour suivant si elle s'ouvre. */
@@ -1092,7 +1092,7 @@ describe('#3935 — la route de terre se joue sous les ordres du trajet', () => 
     get().partirEnVoyage('r1', 'pied', { cadence: 'commande' });
     expect(get().pendingCascade, 'le Test de la péripétie n’ouvre aucune fenêtre').toBeNull();
     expect(get().lieu).toBe('pb');
-    expect(get().journal).toContain('Hilda — Survie en extérieur : 29/70 → réussi (DR +5).');
+    expect(get().journal).toContain('Hilda — Survie en extérieur : 29/70, réussi (DR +5).');
     expect(get().journal).toContain('Hilda — Survie en extérieur (+20) : un itinéraire de substitution est trouvé.');
   });
 

@@ -276,8 +276,8 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(live(E1.id).engagedWith).toEqual([]); // fuite complétée
     // Lancés et clos dans le même geste, aucune rangée ne les a montrés : le journal porte leurs dés.
     const textes = banc.getState().battle!.log.map((e) => e.text);
-    expect(textes.some((l) => l.startsWith(`${E2.label} — Corps à corps (dans le dos) : `) && /\d+\/\d+ → .* \(DR [+-]\d+\)\.$/.test(l)), 'le coup dans le dos').toBe(true);
-    expect(textes.some((l) => l.startsWith(`${E1.label} — `) && /\d+\/\d+ → .* \(DR [+-]\d+\)\.$/.test(l)), 'le Test `fuite`').toBe(true);
+    expect(textes.some((l) => l.startsWith(`${E2.label} — Corps à corps (dans le dos) : `) && /\d+\/\d+, .* \(DR [+-]\d+\)\.$/.test(l)), 'le coup dans le dos').toBe(true);
+    expect(textes.some((l) => l.startsWith(`${E1.label} — `) && /\d+\/\d+, .* \(DR [+-]\d+\)\.$/.test(l)), 'le Test `fuite`').toBe(true);
   });
 
   // LDB 14 l.9 ; LDB 85 l.362.

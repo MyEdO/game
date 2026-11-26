@@ -535,8 +535,10 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
    *  tienne. */
   const poursuivre = (id: string) => {
     for (let i = 0; i < 100 && aLaMain(id) && !g().pendingDefense; i++) {
-      if (g().pendingCascade) draineCascade(g, 1);
+      const avant = g();
+      if (avant.pendingCascade) draineCascade(g, 1);
       else if (!banc.jusquA((s) => !!s.pendingCascade || s.battle!.order[s.battle!.turn] !== id, 50)) break;
+      if (g() === avant && !banc.jusquALaProchaine()) break; // l'étape d'un héros en Auto-combat se joue au tick de la cadence
     }
   };
   const jouerLeTour = (id: string) => { runEnemyAI(g, banc.setState, id); poursuivre(id); };
@@ -579,7 +581,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
     arene(ennemiAuTalent(), ...deuxPistolets(), [mkHero({ pos: { x: 6, y: 5 }, wounds: blessuresDeBase(40) })], 1);
     jouerLeTour('e');
     const premiere = g().pendingDefense!;
-    expect(premiere.suite).toMatchObject({ mode: 'machine', coup: { dualMain: { offWeaponUid: 'p2', par: 'machine' } } });
+    expect([premiere.defenderId, premiere.suite], 'la 1re frappe, des deux armes, s’oppose dans la fenêtre du héros').toMatchObject(['h', { mode: 'pilotee', pa: { dualMode: true, weaponUid: 'p1' } }]);
     const jet = premiere.atk!.roll;
     g().jetLancer('defense');
     g().jetImposerLeResultat('defense', 100);

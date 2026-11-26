@@ -229,7 +229,7 @@ export interface TriggerSource { effects: TriggeredEffect[]; cap: number; key: s
 /** Sources d'attaque gratuite DÉCLENCHÉE = LES MÊMES sources que le dispatcher (`effectSourcesOf`, source
  *  unique, arme de la touche comprise) — `resolveFreeAttacks` joue celles qui portent un `grantFreeAttack`
  *  (`flowHasFreeAttack`), que le bus saute, quel que soit le KIND (Atout d'arme/Trait/Qualité/Talent/État/psy). NB : l'attaque libre « disponible » de la
- *  Frénésie vit dans son `passive` (`when:'available'`) → `availableFreeAttackOps`/`aiAvailableFreeAttack`, pas ici. */
+ *  Frénésie vit dans son `passive` (`when:'available'`) → `hasFreeWeaponAttack`/`aiAvailableFreeAttack`, pas ici. */
 export function freeAttackSourcesOf(actor: Combatant, resolveTrapping: TrappingResolver, weapon?: Weapon): TriggerSource[] {
   return effectSourcesOf(actor, resolveTrapping, weapon);
 }
