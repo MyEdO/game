@@ -7,9 +7,13 @@ import {
   jouerLEpreuve,
   partiesDuTest,
   reposer,
-  horsDeCombat,
+  isConditionLocked,
+  isOutOfAction,
+  refusDeDetermination,
+  gesteDeDetermination,
   auHameau,
   gesteDeLObjet,
+  gesteDIncanter,
   doter,
   saitSoigner,
   entretenirLesMaladies,
@@ -34,7 +38,6 @@ import {
   type IdActionAJet,
   LIEUX_DE_SEJOUR,
   MUNITIONS,
-  PEAGE_PAR_SALLE,
   PRIERE_DE_SOIN,
   PX_PAR_SALLE,
   SEMAINE_DE_REPOS,
@@ -53,9 +56,12 @@ import {
 } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
+import { voir } from './tutoriel';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
-export const valide = (h: Heros): boolean => !horsDeCombat(h.c);
+/** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
+export const aTerre = (h: Heros): boolean => h.c.conditions.some((x) => x.id === 'a-terre' && isConditionLocked(x, h.c));
+export const valide = (h: Heros): boolean => !isOutOfAction(h.c) && !aTerre(h);
 /** En état de partir : valide, et sans séjour en cours. */
 export const disponible = (h: Heros): boolean => valide(h) && !h.sejour;
 /** Le séjour en cours du héros, dit : le bâtiment et les jours qui restent ; `null` sans séjour. */
@@ -137,6 +143,17 @@ export function utiliserUneProvision(e: Etat, id: string, uid: string): string {
   return h ? auNoyau(e, h, [gesteDeLObjet(h.c.id, uid, 'utiliser')]) : 'Héros introuvable.';
 }
 
+/** Pourquoi le héros `h` ne peut pas se relever, ou `null` s'il le peut (`refusDeDetermination`). LDB 17 l.61 */
+export const refusDeSeRelever = (h: Heros): string | null => refusDeDetermination(h.c, 'a-terre') ?? null;
+
+/** Entre deux salles, le héros `id` dépense un point de Détermination pour retirer son À Terre
+ *  (`depenserLaDetermination`), ou dit pourquoi il ne le peut pas (`refusDeSeRelever`). LDB 17 l.61 */
+export function seRelever(e: Etat, id: string): string {
+  const h = herosDuGroupe(e).find((x) => x.c.id === id);
+  if (!h) return 'Héros introuvable.';
+  return refusDeSeRelever(h) ?? auNoyau(e, h, [(s) => gesteDeDetermination(s, id, 'retirerUnEtat', 'a-terre')?.geste]);
+}
+
 /** Le Béni `id` peut-il encore prier pour soigner pendant cette expédition ? */
 export const peutPrier = (e: Etat, h: Heros): boolean =>
   !!e.expedition && !e.expedition.prieres.includes(h.c.id) && valide(h) && (h.c.spells ?? []).includes(PRIERE_DE_SOIN);
@@ -147,7 +164,7 @@ export function prier(e: Etat, id: string, cibleId: string): string {
   const pretre = groupe.find((h) => h.c.id === id);
   if (!pretre || !peutPrier(e, pretre)) return 'Pas de prière possible.';
   e.expedition!.prieres.push(id);
-  const r = auHameau(groupe.map((h) => h.c), [{ verbe: 'incanterLeSort', args: [id, PRIERE_DE_SOIN, cibleId] }], e.graine++);
+  const r = auHameau(groupe.map((h) => h.c), [gesteDIncanter(id, PRIERE_DE_SOIN, cibleId)], e.graine++);
   for (const c of r.groupe) { const h = groupe.find((x) => x.c.id === c.id); if (h) h.c = c; }
   return r.journal.slice(-2).join(' ');
 }
@@ -412,18 +429,18 @@ function terminerEnDeroute(e: Etat, destinDepense: Readonly<Record<string, numbe
 export function rentrer(e: Etat, reussie: boolean): string[] {
   const x = e.expedition!;
   const d = destinationCourante(e)!;
-  const peage = PEAGE_PAR_SALLE[e.batiments.peage] * x.index;
-  e.or += x.or + peage; e.trophees += x.trophees;
+  e.or += x.or; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
   ramasserLesMunitions(e);
   const jours = x.index;
-  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${peage ? `, +${peage} CO du péage` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
+  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);
   const partis = new Set(x.groupe);
   const sortie: Applique = { lignes, faits: [] };
-  for (const h of herosDuGroupe(e)) purgerEtats(h.c, (c) => !DURABLES.has(c.id), sortie);
+  for (const h of herosDuGroupe(e)) purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
   e.expedition = null;
   if (jours) passerDesJours(e, jours, partis);
+  voir(e, 'retour');
   return lignes;
 }
 
@@ -437,10 +454,10 @@ export function attendreUneSemaine(e: Etat): string | null {
   return null;
 }
 
-/** Les États qui survivent à la rencontre une fois le héros ramené au hameau ; les autres retombent avec elle. */
+/** Les États qui survivent à la rencontre une fois le héros ramené au hameau ; les autres retombent avec elle, sauf verrou qui tient (LDB 18 l.15). */
 const DURABLES = new Set(['extenue', 'inconscient']);
 
-/** `jours` journées passent : chez les héros restés au hameau (hors `absents`), les États de la rencontre retombent et
+/** `jours` journées passent : chez les héros restés au hameau (hors `absents`), les États de la rencontre retombent (verrou qui tient excepté, LDB 18 l.15) et
  *  les maladies avancent (`entretenirLesMaladies`), soignées par les sœurs le temps d'un séjour à l'hospice ; seuls ceux en séjour (chambre de l'auberge, hospice) se reposent (`reposer`), le temps qui reste à leur séjour.
  *  De nouveaux voyageurs arrivent. */
 function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
@@ -448,7 +465,7 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   for (const h of [...e.roster]) {
     if (absents.has(h.c.id)) continue;
     const sortie: Applique = { lignes: [], faits: [] };
-    purgerEtats(h.c, (c) => !DURABLES.has(c.id), sortie);
+    purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
     if (sortie.lignes.length) noter(e, sortie.lignes.join(' '));
     const aLHospice = h.sejour?.ou === 'temple' ? Math.min(jours, h.sejour.reste) : 0;
     const maladie = [...entretenirLesMaladies(h.c, e.graine++, aLHospice, true), ...entretenirLesMaladies(h.c, e.graine++, jours - aLHospice, false)];

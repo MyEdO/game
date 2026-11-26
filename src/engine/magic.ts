@@ -545,20 +545,27 @@ export function spellTargetCount(spell: { target?: SpellTarget | null }, caster:
   return spell.target?.kind === 'count' ? Math.max(1, valeurSansTirage(spell.target.n, caster)) : 1;
 }
 
-/**
- * Péché et Colère Divine (LDB 40 l.44-45) : « Chaque fois que vous effectuez un
- * Test de Prière, si le dé des unités est inférieur ou égal à votre total actuel
- * de Points de Péché, vous subirez la Colère des dieux, même si le Test de Prière
- * est réussi. » La règle ne mord que si l'on A péché (section « Il est risqué de
- * faire appel à votre divinité quand vous avez agi de façon contraire à sa
- * volonté ») : à 0 Péché, aucun déclenchement. Le dé des unités d'un 100 (00) est 0.
- */
+/** Colère des dieux sur le dé des unités d'un Test de Prière, à Péché non nul ; le dé des unités d'un 100 (00) est 0.
+ *  LDB 40 l.36 */
 export function prayerWrathTriggered(roll: number, sinPoints: number): boolean {
   if (sinPoints <= 0) return false;
   return roll % 10 <= sinPoints;
 }
 
-/** Durée d'un sort exprimée en Rounds (« 6 rounds »), sinon null. */
+type PorteurDePrieres = Pick<Combatant, 'prieresDeRencontre'>;
+
+/** Les cibles de `cibleIds` que la Prière `spellId` réussie de `c` a déjà visées cette rencontre. LDB 41 l.17 ; #5056 */
+export function ciblesDejaPriees(c: PorteurDePrieres, spellId: string, cibleIds: readonly string[]): string[] {
+  const deja = c.prieresDeRencontre?.[spellId] ?? [];
+  return cibleIds.filter((id) => deja.includes(id));
+}
+
+/** Consigne sur `c` les cibles `cibleIds` de sa Prière réussie `spellId`. LDB 41 l.17 ; #5056 */
+export function consignerLaPriere(c: PorteurDePrieres, spellId: string, cibleIds: readonly string[]): void {
+  const deja = c.prieresDeRencontre?.[spellId] ?? [];
+  c.prieresDeRencontre = { ...c.prieresDeRencontre, [spellId]: [...new Set([...deja, ...cibleIds])] };
+}
+
 /**
  * Durée d'un sort à l'échelle de l'HORLOGE (LDB 47), en minutes à partir de `now`, depuis la durée
  * STRUCTURÉE : `{clock}` (« 1 heure », « (Bonus de FM) jours »…) résolu contre le lanceur, `{untilDawn}`

@@ -56,6 +56,7 @@ function toast(msg: string | null) {
 function agir(f: () => string | null | void) {
   const avant = etat.journal[0];
   const err = f();
+  J.solderLeTutoriel(etat);
   J.sauver(etat);
   rendre();
   const fin = etat.journal.indexOf(avant);
@@ -89,7 +90,7 @@ function serviceOuvert() {
 
 // ─── Écrans ─────────────────────────────────────────────────────────────────────────────────────────────────
 
-const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : ouvert.type === 'reglages' ? reglagesEnCarton() : recitEnCarton(ouvert.recit, ouvert, J.herosDuGroupe(etat)));
+const vueDuCarton = (): string => (!ouvert ? '' : ouvert.type === 'reset' ? recommencerEnCarton() : ouvert.type === 'reglages' ? reglagesEnCarton(etat) : recitEnCarton(ouvert.recit, ouvert, J.herosDuGroupe(etat)));
 
 function rendre() {
   const avant = document.querySelector<HTMLElement>('.panorama')?.scrollLeft;
@@ -105,6 +106,13 @@ function rendre() {
 }
 
 // ─── Gestes ─────────────────────────────────────────────────────────────────────────────────────────────────
+
+/** L'écran ouvert, noté pour le tutoriel (`J.voir`), puis rendu. */
+function voir(ecran: J.EcranVu) {
+  J.voir(etat, ecran);
+  J.sauver(etat);
+  rendre();
+}
 
 const basculer = (p: Panneau) => {
   const meme = !!panneau && panneau.type === p.type && (!('id' in p) || ('id' in panneau && panneau.id === p.id));
@@ -125,11 +133,11 @@ function demarrer(): void {
     if (!el || (el as HTMLButtonElement).disabled || (ouvert && !el.closest('.carton'))) return;
     const { a, id = '', i, k } = el.dataset;
     switch (a) {
-      case 'batiment': if (el.dataset.client) client = el.dataset.client; panneau = { type: 'batiment', id: id as J.IdBatiment }; congediement = null; return rendre();
+      case 'batiment': if (el.dataset.client) client = el.dataset.client; panneau = { type: 'batiment', id: id as J.IdBatiment }; congediement = null; return voir(id as J.IdBatiment);
       case 'heros': return basculer({ type: 'heros', id, onglet: (k as Onglet | undefined) ?? null });
       case 'onglet': if (panneau?.type === 'heros') panneau = { ...panneau, onglet: k as Onglet }; return rendre();
       case 'chronique': panneau = { type: 'chronique' }; return rendre();
-      case 'ouvrir-depart': panneau = { type: 'batiment', id: 'cartographe' }; return rendre();
+      case 'ouvrir-depart': panneau = { type: 'batiment', id: 'cartographe' }; return voir('cartographe');
       case 'fermer-panneau': panneau = null; congediement = null; return rendre();
       case 'ameliorer': return agir(() => J.ameliorer(etat, id as J.IdBatiment));
       case 'recruter': return agir(() => J.recruter(etat, Number(i)));
@@ -160,6 +168,7 @@ function demarrer(): void {
         return ref ? agir(() => J.acheter(etat, id, { genre: 'talent', ref })) : undefined;
       }
       case 'utiliser': { const ligne = J.utiliserUneProvision(etat, id, k!); J.sauver(etat); rendre(); return toast(ligne); }
+      case 'relever': { const ligne = J.seRelever(etat, id); J.sauver(etat); rendre(); return toast(ligne); }
       case 'prier': { const ligne = J.prier(etat, id, k!); J.sauver(etat); rendre(); return toast(ligne); }
       case 'congedier': congediement = id; return rendre();
       case 'congedier-non': congediement = null; return rendre();
@@ -169,7 +178,7 @@ function demarrer(): void {
         const etat_ = (h: J.Heros) => h.c.wounds.current / Math.max(1, h.c.wounds.max);
         const proposes = etat.roster.filter(J.disponible).sort((a, b) => etat_(b) - etat_(a)).slice(0, J.TAILLE_DU_GROUPE);
         panneau = { type: 'depart', dest: id, choix: new Set(proposes.map((h) => h.c.id)) };
-        return rendre();
+        return voir('depart');
       }
       case 'choisir': {
         if (panneau?.type !== 'depart') return;
@@ -250,6 +259,7 @@ function demarrer(): void {
       case 'relire': if (derniereSalle) ouvert = derniereSalle; return rendre();
       case 'reset': ouvert = { type: 'reset' }; return rendre();
       case 'reglages': ouvert = { type: 'reglages' }; return rendre();
+      case 'passer-tutoriel': J.passerLeTutoriel(etat); ouvert = null; J.sauver(etat); return rendre();
       case 'taille': choisirLaTaille(k as Taille); mettreALEchelle(); return rendre();
       case 'reset-ok': J.effacer(); etat = J.nouvellePartie(Date.now() % 100000); ouvert = null; panneau = null; congediement = null; return agir(() => null);
     }

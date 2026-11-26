@@ -64,8 +64,24 @@ function enseigne(e: J.Etat, b: J.Batiment) {
   const suivant = b.paliers[e.batiments[b.id] + 1];
   const peutBatir = !!suivant && e.or >= suivant.cout && e.trophees >= suivant.trophees;
   const ruine = J.enRuine(e.batiments, b.id);
-  return `<button type="button" class="enseigne${ruine ? ' ruine' : ''}" style="left:${(100 * x) / LARGEUR}%;top:${(100 * y) / HAUTEUR}%" data-a="batiment" data-id="${b.id}">
+  const quete = batimentDeQuete(e) === b.id ? J.queteEnCours(e)! : null;
+  return `<button type="button" class="enseigne${ruine ? ' ruine' : ''}${quete ? ' quete' : ''}"${quete ? ` data-bulle="${esc(quete.titre)}"` : ''} style="left:${(100 * x) / LARGEUR}%;top:${(100 * y) / HAUTEUR}%" data-a="batiment" data-id="${b.id}">
     ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', ruine)}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${ruine ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" data-bulle="Vous pouvez bâtir"></i>' : ''}${b.id === 'temple' && !ruine && e.roster.some(J.aSoigner) ? '<i class="pastille-soins" data-bulle="Des blessés à soigner"></i>' : ''}</button>`;
+}
+
+/** Le bâtiment où mène la quête en cours du tutoriel : le départ se prépare au Cartographe. */
+const batimentDeQuete = (e: J.Etat): J.IdBatiment | undefined => {
+  const mene = J.queteEnCours(e)?.mene;
+  return mene === 'depart' ? 'cartographe' : mene;
+};
+
+/** La quête en cours du tutoriel (`J.queteEnCours`), au cadre de la note : son titre, sa consigne, et le geste qui
+ *  ouvre son écran. */
+function noteDeQuete(e: J.Etat): string {
+  const q = J.queteEnCours(e);
+  if (!q) return '';
+  const geste = q.mene === 'depart' ? 'data-a="ouvrir-depart"' : q.mene ? `data-a="batiment" data-id="${q.mene}"` : '';
+  return cadreA(CADRES.note, `<div class="tete-quete"><span class="nom-propre moyen gothique">${esc(q.titre)}</span>${geste ? plaque('Y aller', geste, { icone: 'route', taille: 'petite' }) : ''}</div><p class="consigne">${esc(q.consigne)}</p>`, { ruban: 'Quête', classe: 'note-quete' });
 }
 
 /** Le but de la partie, sous le cartouche : l'Autel du Chaos et un losange par maître de route, plein une fois vaincu. */
@@ -90,6 +106,7 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
     cadres: carte ? titre + carte : service ? service.cadre : `${titre}
       <div class="recit-lieu" ${place(CADRES_DE_L_HOTE['carnet-du-hameau'])}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}${but(e)}<p>${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
       <div class="coins haut" ${place(CADRES_DE_L_HOTE['coins-du-hameau'])}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
+      ${noteDeQuete(e)}
       ${actionDuHameau(e)}`,
     socle: !carte && service ? service.socle : socleDuHameau,
     vide: 'La compagnie est vide. Engagez des voyageurs à l’auberge relais : ils s’engagent sans frais.',
@@ -114,7 +131,8 @@ export const VIGNETTE_DE_SALLE: Record<J.TypeDeSalle, Vignette> = {
 };
 
 /** Les gestes d'un héros entre deux salles, en cases de son sac : chaque objet, qu'un clic utilise ; la Bénédiction de
- *  Guérison d'un Béni, une fois par expédition, sur le plus blessé ; la Guérison de qui sait la tenter, dont le blessé
+ *  Guérison d'un Béni, une fois par expédition, sur le plus blessé ; « Se relever » d'un héros À Terre (`J.aTerre`), au
+ *  prix d'un point de Détermination (LDB 17 l.61) ; la Guérison de qui sait la tenter, dont le blessé
  *  se choisit au socle (`choix`, un second clic y renonce). */
 function sacsDuGroupe(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle | null) {
   const plusBlesse = groupe.filter((x) => !x.c.dead).sort((a, b) => a.c.wounds.current / a.c.wounds.max - b.c.wounds.current / b.c.wounds.max)[0];
@@ -132,7 +150,11 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle | null) 
       attrs: `data-a="soigneur" data-id="${h.c.id}"${choix?.action === 'soigner' && choix.soigneur === h.c.id ? ' aria-pressed="true"' : ''}`,
       refus: J.refusDuSoigneur(e, h),
     }) : '';
-    return `<div class="sac-heros">${herosEnLigne(h)}<div class="cases-sac">${casesDuSac(h, true) + priere + guerison || glose('sac vide')}</div></div>`;
+    const relever = J.aTerre(h) ? caseObjet({
+      icone: 'etoile', nom: 'Se relever', apercu: { nom: 'Se relever', nature: 'Détermination −1', texte: '' },
+      attrs: `data-a="relever" data-id="${h.c.id}"`, refus: J.refusDeSeRelever(h),
+    }) : '';
+    return `<div class="sac-heros">${herosEnLigne(h)}<div class="cases-sac">${casesDuSac(h, true) + priere + guerison + relever || glose('sac vide')}</div></div>`;
   }).join('')}</div>`;
 }
 
@@ -242,6 +264,7 @@ export function ecranDeLExpedition(e: J.Etat, fiche: string, service: PanneauDeS
       ${cadreA(CADRES['colonne-droite'], `${ressources(`${x.or} CO`, `${x.trophees} trophée${x.trophees > 1 ? 's' : ''}`, `${x.px} PX chacun`)}<div class="nom-propre grand gothique">${NOM_DE_SALLE[salle.type]}</div><p class="glose consigne">${esc(annonce)}</p>
         ${valides && valides < groupe.length ? glose(`${groupe.length - valides} héros hors de combat ne se battront pas tant qu’ils n’auront pas récupéré.`, 'avertissement') : ''}
         <div class="gestes colonne pied-salle">${plaque(appel, 'data-a="avancer"', { icone: PICTO_DE_SALLE[salle.type], armee: !!valides, fermee: !valides, taille: 'appel', titre: valides ? '' : 'Tout le groupe est hors de combat.' })}${plaque('Rentrer au hameau', 'data-a="rentrer"', { icone: 'route' })}${relire ? plaque('Relire la dernière salle', 'data-a="relire"', { icone: 'livre' }) : ''}</div>`, { classe: 'carte-salle' })}
+      ${noteDeQuete(e)}
       <div class="coins" ${place(CADRES.coins)}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       <ol class="frise-route" ${place(CADRES.frise)}>${x.salles.map((s, i) => `<li class="${s.faite ? 'faite' : ''}${i === x.index ? ' ici' : ''}" data-bulle="${NOM_DE_SALLE[s.type]}">${medaillon(PICTO_DE_SALLE[s.type], 'petit', s.faite)}</li>`).join('')}</ol>`,
     socle,
@@ -284,14 +307,14 @@ export function recitEnCarton(r: J.RecitDeSalle, o: { ruban: string; vignette: V
   });
 }
 
-/** Les réglages : la taille de l'interface, et Recommencer. */
-export function reglagesEnCarton(): string {
+/** Les réglages : la taille de l'interface, passer le tutoriel s'il court, et Recommencer. */
+export function reglagesEnCarton(e: J.Etat): string {
   const noms: Record<Taille, string> = { petite: 'Petite', moyenne: 'Moyenne', grande: 'Grande' };
   const actuelle = tailleChoisie();
   return carton({
     ruban: 'Réglages', vignette: 'reglages', titre: 'Réglages', surTitre: 'Grisefosse',
     texte: `<div class="rub">Taille de l’interface</div><div class="gestes">${(Object.keys(TAILLES) as Taille[]).map((t) => plaque(noms[t], `data-a="taille" data-k="${t}"`, { armee: t === actuelle, taille: 'petite' })).join('')}</div>
-      <div class="rub">La partie</div><div class="gestes">${plaque('Recommencer…', 'data-a="reset"', { icone: 'sablier', taille: 'petite' })}</div>`,
+      <div class="rub">La partie</div><div class="gestes">${e.tutoriel ? plaque('Passer le tutoriel', 'data-a="passer-tutoriel"', { icone: 'route', taille: 'petite' }) : ''}${plaque('Recommencer…', 'data-a="reset"', { icone: 'sablier', taille: 'petite' })}</div>`,
     gestes: plaque('Fermer', 'data-a="fermer"', { armee: true }),
   });
 }

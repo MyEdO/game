@@ -76,11 +76,6 @@ export function coutDeLAugmentation(hero: Combatant, cible: CibleDAugmentation, 
   return { ok: true, cout: inCareer ? Math.max(1, base - discount) : base * m.horsCarriere.coefficient };
 }
 
-/** Coût en PX de la 1re Augmentation, en carrière, d'une Compétence que `hero` ne connaît pas encore. */
-export function coutDeLaPremiereAugmentation(hero: Combatant): number {
-  return tablesDeCout()[cleDeProgression(hero)][0].coutCompetence;
-}
-
 /** Coût en PX de la prochaine prise du Talent (`talentId`, `spec`) par `hero` (`talentAcquisitions`). LDB 07 l.105,
  *  l.156 ; CRB 045 l.60 */
 export function coutDuTalent(hero: Combatant, talentId: string, spec?: string): number {

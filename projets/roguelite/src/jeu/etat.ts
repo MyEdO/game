@@ -17,6 +17,7 @@ import {
 } from './valeurs';
 import { choisir, noter, tirer } from './outils';
 import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
+import type { Tutoriel } from './tutoriel';
 
 /** Un séjour au bâtiment `ou` : `reste` jours sur `total` ; le héros ne part pas en expédition. */
 export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
@@ -29,8 +30,9 @@ export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; o
 /** `munitions` : les munitions de chaque héros au départ, par objet du catalogue ; elles sont ramassées au retour. */
 export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>> }
 
+/** `tutoriel` : les quêtes d'une partie neuve (`./tutoriel`), `null` une fois soldées ou passées. */
 export interface Etat {
-  version: 3;
+  version: 5;
   graine: number;
   jour: number;
   or: number;
@@ -41,14 +43,15 @@ export interface Etat {
   expedition: Expedition | null;
   bossVaincus: string[];
   journal: string[];
+  tutoriel: Tutoriel | null;
 }
 
 
 export function nouvellePartie(graine: number): Etat {
   const e: Etat = {
-    version: 3, graine, jour: 1, or: OR_INITIAL, trophees: 0,
-    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0, peage: 0 },
-    roster: [], candidats: [], expedition: null, bossVaincus: [], journal: [],
+    version: 5, graine, jour: 1, or: OR_INITIAL, trophees: 0,
+    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0 },
+    roster: [], candidats: [], expedition: null, bossVaincus: [], journal: [], tutoriel: { vus: [] },
   };
   for (const p of compagnieDeDepart(e)) e.roster.push(recrue(e, p));
   renouvelerLesCandidats(e);

@@ -5,6 +5,7 @@ import {
   butDuPas,
   effetEnCombat,
   memeSpecialisation,
+  offreDAchat,
   planDuNiveau,
   pointsDe,
   prixDuSort,
@@ -12,6 +13,7 @@ import {
   talentDeCombat,
   progression,
   refCouvre,
+  type AchatAuNoyau,
   type CibleDuPas,
   type EtapeDuPlan,
   type OffreDeCompetence,
@@ -55,30 +57,30 @@ export function peutProgresser(e: Etat, h: Heros): boolean {
   return couts.length > 0 && (h.c.xp ?? 0) >= Math.min(...couts);
 }
 
-export type Achat = { genre: 'carac'; id: string } | { genre: 'competence' | 'talent'; ref: { id: string; spec?: string } } | { genre: 'niveau' } | { genre: 'sort'; id: string };
+export type Achat = Exclude<AchatAuNoyau, { genre: 'niveau' }> | { genre: 'niveau' };
+
+/** Le niveau suivant de la carrière du héros, à acheter, si la salle d'armes l'enseigne ; sinon pourquoi pas. */
+function niveauEnseigne(e: Etat, h: Heros): AchatAuNoyau | string {
+  const suivant = progression(h.c).suivant;
+  if (!suivant) return 'Sommet de la carrière.';
+  return suivant.niveau > niveauMaximal(e) ? 'La salle d’armes n’enseigne pas encore ce niveau.' : { genre: 'niveau', niveau: suivant.niveau };
+}
 
 export function acheter(e: Etat, id: string, a: Achat): string | null {
   const h = heros(e, id);
   if (!h) return 'Héros introuvable.';
   if (!niveauMaximal(e)) return 'La salle d’armes est fermée.';
   if (e.expedition?.groupe.includes(id)) return 'Ce héros est en expédition.';
-  const verbe = { carac: 'acheterLaCaracteristique', competence: 'acheterLaCompetence', talent: 'acheterLeTalent', niveau: 'changerDeCarriere', sort: 'acheterLeSort' }[a.genre];
-  if (a.genre === 'niveau') {
-    const suivant = progression(h.c).suivant;
-    if (!suivant) return 'Sommet de la carrière.';
-    if (suivant.niveau > niveauMaximal(e)) return 'La salle d’armes n’enseigne pas encore ce niveau.';
-    return messageDuNoyau(auNoyau(e, h, [{ verbe, args: [h.c.id, h.carriere, suivant.niveau] }]), () => (h.c.careerLevel ?? 1) === suivant.niveau);
-  }
-  if (a.genre === 'sort' && !sortsProposes(h).includes(a.id)) return 'La salle d’armes n’enseigne pas ce sort à ce héros.';
-  const xp = h.c.xp ?? 0;
-  const args = a.genre === 'carac' || a.genre === 'sort' ? [h.c.id, a.id] : [h.c.id, a.ref];
-  const refus = messageDuNoyau(auNoyau(e, h, [{ verbe, args }]), () => (h.c.xp ?? 0) < xp);
-  if (!refus && a.genre === 'talent') prendreSesArmes(e, h);
-  return refus;
+  const achat = a.genre === 'niveau' ? niveauEnseigne(e, h) : a;
+  if (typeof achat === 'string') return achat;
+  if (achat.genre === 'sort' && !sortsProposes(h).includes(achat.id)) return 'La salle d’armes n’enseigne pas ce sort à ce héros.';
+  const lu: { offre?: ReturnType<typeof offreDAchat> } = {};
+  auNoyau(e, h, [(s) => { lu.offre = offreDAchat(s, h.c.id, achat); return lu.offre?.refus ? null : lu.offre?.geste; }]);
+  if (!lu.offre) return 'Sa carrière ne l’offre pas.';
+  if (lu.offre.refus) return lu.offre.refus;
+  if (a.genre === 'talent') prendreSesArmes(e, h);
+  return null;
 }
-
-/** `null` si le geste a pris (`pris`), sinon la ligne du noyau qui dit pourquoi. */
-const messageDuNoyau = (ligne: string, pris: () => boolean): string | null => (pris() ? null : ligne || 'Le geste n’a rien changé.');
 
 export type { CibleDuPas };
 /** Ce qu'une suite d'achats a pris : combien de fois, les PX débités, et le refus du noyau qui l'a arrêtée. */

@@ -1,34 +1,40 @@
 /**
  * Le repos, les soins et les séquelles, par les primitives du moteur ; le soin d'un compagnon par l'infirmerie du noyau.
  */
-import { arena, diseaseLabel, skills, symptomLabel, type QualiteDeRepos, verbeDeJetDe, type GesteDuJeu } from '../../../../src/noyau';
-import { rollTest } from '../../../../src/engine/tests';
-import { testValue } from '../../../../src/engine/skills';
-import { designeGaranti } from '../../../../src/noyau/ligneDeJet';
-import { makeRNG } from '../../../../src/engine/dice';
-import { restRecovery, dailyDiseaseUpkeep, applyDiseaseEnd } from '../../../../src/engine/rest';
-import { applyDiseaseGangrene, maladieDeclaree } from '../../../../src/engine/disease';
-import { applyOps, type GameOp } from '../../../../src/engine/ops';
-import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
-import { MINUTES_PER_DAY } from '../../../../src/engine/clock';
-import { corruptionThreshold } from '../../../../src/engine/corruption';
-import type { UpkeepDeferTest } from '../../../../src/engine/types';
-import { applyHealWounds, cappedHealAmount } from '../../../../src/engine/healing';
-import { PA_PER_CO, toBrass } from '../../../../src/engine/money';
-import { prixDeLOffre } from '../../../../src/noyau/restFlow';
 import {
-  tickTraumaRecovery,
-  applyFractureEnd,
-  cureCriticalWounds,
-  hasTreatableTrauma,
-  treatTrauma,
+  arena,
+  diseaseLabel,
+  skills,
+  symptomLabel,
+  type QualiteDeRepos,
+  verbeDeJetDe,
+  type GesteDuJeu,
+  designeGaranti,
+  prixDeLOffre,
+  estOperation,
+  gesteDeSoins,
+  testValue,
+  peutTenter,
+  makeRNG,
+  maladieDeclaree,
+  fabriqueLocale,
+  MINUTES_PER_DAY,
+  corruptionThreshold,
+  cappedHealAmount,
+  HEAL_SKILL,
+  type HealMode,
+  PA_PER_CO,
+  toBrass,
   surgeryTraumas,
-  removeSurgicalTrauma,
-} from '../../../../src/engine/trauma';
-import type { Combatant } from '../../../../src/engine/types';
-import { peutTenter } from '../../../../src/engine/skills';
-import { HEAL_SKILL, type HealMode } from '../../../../src/engine/healing';
-import { estOperation } from '../../../../src/noyau/acteDeSoin';
+  type Combatant,
+} from '../../../../src/noyau';
+import { rollTest } from '../../../../src/engine/tests';
+import { restRecovery, dailyDiseaseUpkeep, applyDiseaseEnd } from '../../../../src/engine/rest';
+import { applyDiseaseGangrene } from '../../../../src/engine/disease';
+import { applyOps, type GameOp } from '../../../../src/engine/ops';
+import type { UpkeepDeferTest } from '../../../../src/engine/types';
+import { applyHealWounds } from '../../../../src/engine/healing';
+import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds, hasTreatableTrauma, treatTrauma, removeSurgicalTrauma } from '../../../../src/engine/trauma';
 import { chancesDeReussite, type Visee } from './epreuve';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
@@ -166,7 +172,8 @@ function ouvrirLeSoin(soigneur: Combatant, patient: Combatant, graine: number) {
   );
   const rendre = (): Combatant[] => { const g = partie.etat().party.map((c) => structuredClone(c)); partie.fermer(); return g; };
   pomper();
-  envoyer('ouvrirLeMedecin', [patient.id]);
+  const { geste } = gesteDeSoins(partie.etat(), patient.id);
+  envoyer(geste.verbe, geste.args);
   pomper();
   const brouillon = partie.etat().pendingHeal;
   const verdict: VerdictDuSoin = refus || !brouillon

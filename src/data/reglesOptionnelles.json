@@ -1084,6 +1084,19 @@
     "hint": "Augmentation du seuil d’exaucement, en points de pourcentage par Avance de Prière."
   },
   {
+    "id": "priere-repetee-peche",
+    "type": "reglesOptionnelles",
+    "label": "Petits soucis : Péché d’une Prière répétée",
+    "ref": "LDB 41 l.17",
+    "maison": "Arbitrage utilisateur du 25 novembre 2026 (#5056) : « 1 Péché dès la 2e sur la cible ». Dès la 2e fois dans la rencontre, la même Prière sur la même cible donne 1 Point de Péché ; la Colère suit la règle du Péché (LDB 40 l.36).",
+    "group": "Prières",
+    "kind": "param",
+    "default": 1,
+    "min": 0,
+    "max": 3,
+    "hint": "Points de Péché du lanceur pour chaque cible qu’une même Prière réussie a déjà visée dans la rencontre. À 0, la répétition est sans conséquence."
+  },
+  {
     "id": "magie-sorcellerie",
     "type": "reglesOptionnelles",
     "label": "Sorcellerie",
