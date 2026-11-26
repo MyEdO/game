@@ -22,7 +22,7 @@ for (const [l, h] of [[1280, 720], [1920, 1080]]) {
   {
     const p = await page(b, [l, h]);
     if (l === 1280) {
-      constater((await p.textContent('.recit-lieu .but')).includes('Autel du Chaos'), '1 : le but est nommé au panneau Partir');
+      constater((await p.textContent('.note-quete .ruban')).includes('Relever Grisefosse') && (await p.textContent('.recit-lieu .but')).includes('Maîtres vaincus'), '1 : la première quête est nommée au ruban de la note, les maîtres vaincus au carnet');
       constater((await p.textContent('.note-quete')).includes('Le hameau en ruine') && await p.isVisible('.enseigne.quete[data-id="relais"]'), '1 : la première quête du tutoriel mène à l’Auberge relais, marquée au hameau');
     }
     await image(p, '1-lancement', l);

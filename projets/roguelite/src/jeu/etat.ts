@@ -17,7 +17,7 @@ import {
 } from './valeurs';
 import { choisir, noter, tirer } from './outils';
 import { prendreSesArmes, remettreLesObjets, tenirLesObjets } from './boutiques';
-import type { Tutoriel } from './tutoriel';
+import type { Tutoriel } from './quete';
 
 /** Un séjour au bâtiment `ou` : `reste` jours sur `total` ; le héros ne part pas en expédition. */
 export interface Sejour { ou: LieuDeSejour; reste: number; total: number }
@@ -31,7 +31,7 @@ export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; o
 /** `jourAPasser` : la journée de la dernière salle franchie, que le groupe passe en repartant ou en rentrant. */
 export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>>; jourAPasser?: true }
 
-/** `tutoriel` : les quêtes d'une partie neuve (`./tutoriel`), `null` une fois soldées ou passées. */
+/** `tutoriel` : les quêtes d'une partie neuve (`./quete`), `null` une fois soldées ou passées. */
 export interface Etat {
   version: 5;
   graine: number;

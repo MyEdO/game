@@ -43,6 +43,7 @@ import {
 import { Etat, Heros } from './etat';
 import { enRuine } from './village';
 import { auNoyau, heros, refusDuPrix } from './outils';
+import { voir } from './quete';
 
 export const prixDe = (id: string): number => Math.max(1, Math.round(articleDuCatalogue(id).prixCO * ECHELLE_DES_PRIX));
 
@@ -300,6 +301,7 @@ export function acheterUneProvision(e: Etat, id: string, objetId: string): strin
   const refus = payer(e, h, prixDe(objetId));
   if (refus || !h) return refus;
   h.c.items = [...(h.c.items ?? []), ...doter([objetId], `hospice${e.graine++}`)];
+  if (VIVRES_DU_DEPART.includes(objetId)) voir(e, 'vivres');
   return null;
 }
 

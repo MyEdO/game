@@ -64,30 +64,31 @@ function enseigne(e: J.Etat, b: J.Batiment) {
   const suivant = b.paliers[e.batiments[b.id] + 1];
   const peutBatir = !!suivant && e.or >= suivant.cout && e.trophees >= suivant.trophees;
   const ruine = J.enRuine(e.batiments, b.id);
-  const quete = batimentDeQuete(e) === b.id ? J.queteEnCours(e)! : null;
-  return `<button type="button" class="enseigne${ruine ? ' ruine' : ''}${quete ? ' quete' : ''}"${quete ? ` data-bulle="${esc(quete.titre)}"` : ''} style="left:${(100 * x) / LARGEUR}%;top:${(100 * y) / HAUTEUR}%" data-a="batiment" data-id="${b.id}">
+  const etape = batimentDeQuete(e) === b.id ? J.etapeEnCours(e)! : null;
+  return `<button type="button" class="enseigne${ruine ? ' ruine' : ''}${etape ? ' quete' : ''}"${etape ? ` data-bulle="${esc(etape.titre)}"` : ''} style="left:${(100 * x) / LARGEUR}%;top:${(100 * y) / HAUTEUR}%" data-a="batiment" data-id="${b.id}">
     ${medaillon(PICTO_DU_BATIMENT[b.id], 'petit', ruine)}<span><span class="nom gothique">${esc(b.nom)}</span><span class="sous">${ruine ? 'en ruine' : b.role}</span></span>${peutBatir ? '<i class="pastille-batir" data-bulle="Vous pouvez bâtir"></i>' : ''}${b.id === 'temple' && !ruine && e.roster.some(J.aSoigner) ? '<i class="pastille-soins" data-bulle="Des blessés à soigner"></i>' : ''}</button>`;
 }
 
-/** Le bâtiment où mène la quête en cours du tutoriel : le départ se prépare au Cartographe. */
+/** Le bâtiment où mène l'étape en cours de la quête : le départ se prépare au Cartographe. */
 const batimentDeQuete = (e: J.Etat): J.IdBatiment | undefined => {
-  const mene = J.queteEnCours(e)?.mene;
+  const mene = J.etapeEnCours(e)?.mene;
   return mene === 'depart' ? 'cartographe' : mene;
 };
 
-/** La quête en cours du tutoriel (`J.queteEnCours`), au cadre de la note : son titre, sa consigne, et le geste qui
- *  ouvre son écran. */
+/** La quête en cours, au cadre de la note : son nom au ruban, puis son étape en cours (`J.etapeEnCours`), son titre,
+ *  sa consigne et, au hameau, le geste qui ouvre son écran ; l'Autel tombé, plus rien n'attend. */
 function noteDeQuete(e: J.Etat): string {
-  const q = J.queteEnCours(e);
+  const q = J.etapeEnCours(e);
   if (!q) return '';
-  const geste = q.mene === 'depart' ? 'data-a="ouvrir-depart"' : q.mene ? `data-a="batiment" data-id="${q.mene}"` : '';
-  return cadreA(CADRES.note, `<div class="tete-quete"><span class="nom-propre moyen gothique">${esc(q.titre)}</span>${geste ? plaque('Y aller', geste, { icone: 'route', taille: 'petite' }) : ''}</div><p class="consigne">${esc(q.consigne)}</p>`, { ruban: 'Quête', classe: 'note-quete' });
+  const geste = e.expedition ? '' : q.mene === 'depart' ? 'data-a="ouvrir-depart"' : q.mene ? `data-a="batiment" data-id="${q.mene}"` : '';
+  const etape = `<div class="tete-quete"><span class="nom-propre moyen gothique">${esc(q.titre)}</span>${geste ? plaque('Y aller', geste, { icone: 'route', taille: 'petite' }) : ''}</div><p class="consigne">${esc(q.consigne)}</p>`;
+  return q ? cadreA(CADRES.note, etape, { ruban: esc(q.quete), classe: 'note-quete' }) : '';
 }
 
-/** Le but de la partie, sous le cartouche : l'Autel du Chaos et un losange par maître de route, plein une fois vaincu. */
-function but(e: J.Etat): string {
+/** L'avancée de la partie, au carnet : un losange par maître de route, plein une fois vaincu. */
+function maitres(e: J.Etat): string {
   const maitres = J.DESTINATIONS.map((d) => `<i class="${e.bossVaincus.includes(d.id) ? 'plein' : ''}" data-bulle="${esc(d.nom)}"></i>`).join('');
-  return `<div class="but"><span class="nom-propre petit gothique">${J.victoireFinale(e) ? 'L’Autel du Chaos est tombé' : 'Abattre l’Autel du Chaos'}</span><span class="niveaux" aria-label="${e.bossVaincus.length} sur ${J.DESTINATIONS.length} maîtres vaincus">${maitres}</span></div>`;
+  return `<div class="but"><span class="nom-propre petit gothique">${J.victoireFinale(e) ? 'L’Autel du Chaos est tombé' : 'Maîtres vaincus'}</span><span class="niveaux" aria-label="${e.bossVaincus.length} sur ${J.DESTINATIONS.length} maîtres vaincus">${maitres}</span></div>`;
 }
 
 /** L'action du coin : partir, ou, quand personne n'est en état de partir, attendre une semaine. */
@@ -104,7 +105,7 @@ export function ecranDuHameau(e: J.Etat, fiche: string, service: PanneauDeServic
   const scene = (!carte && fiche) || ecran({
     nom: 'Grisefosse', classe: 'lieu',
     cadres: carte ? titre + carte : service ? service.cadre : `${titre}
-      <div class="recit-lieu" ${place(CADRES_DE_L_HOTE['carnet-du-hameau'])}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}${but(e)}<p>${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
+      <div class="recit-lieu" ${place(CADRES_DE_L_HOTE['carnet-du-hameau'])}>${ressources(`${e.or} CO`, `${e.trophees} trophée${e.trophees > 1 ? 's' : ''}`)}${maitres(e)}<p>${esc(e.journal[0]?.replace(/^Jour \d+ — /, '') ?? '')}</p></div>
       <div class="coins haut" ${place(CADRES_DE_L_HOTE['coins-du-hameau'])}>${rondMuet('livre', 'Chronique', 'data-a="chronique"')}${rondMuet('systeme', 'Réglages', 'data-a="reglages"')}</div>
       ${noteDeQuete(e)}
       ${actionDuHameau(e)}`,

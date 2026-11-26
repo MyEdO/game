@@ -62,7 +62,7 @@ import {
 } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
-import { voir } from './tutoriel';
+import { voir } from './quete';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 /** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
