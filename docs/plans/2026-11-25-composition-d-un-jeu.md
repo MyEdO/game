@@ -438,10 +438,6 @@ compilateur.
   Il ne s'abonne à `abonnerAuxDatasets` que tant qu'il est branché. Le fossile 1 lit les règles du propriétaire
   branché, si bien qu'une partie suspendue ne reçoit jamais celles d'une autre. La repose vit jusqu'au lot du
   Compendium et des hôtes.
-- **Fossile 7 : l'ancien module des ids.** `src/data/schemas/_ids.generated.ts` reste émis à l'identique (valeur et
-  types), et `scripts/docs/lib/structures-scan.mts` y lit la valeur. La porte `comptes:plage` croise les détecteurs de
-  la base et de la tête (`scripts/guards/lib/corpusDesComptes.mts`, `jugerLesComptes`) : un module généré ne se
-  déplace pas en un commit. Il meurt à la grammaire (#5070), où le module ne garde que les types.
 - **Fossile 6 : le catalogue optionnel d'un contexte.** `OpsCtx` et `ContexteDuTest` portent `catalogue?: Catalogue`,
   que lit un seul accesseur, `catalogueDu(ctx) = ctx.catalogue ?? catalogueDuProcessus()`. Le champ devient requis à
   la bascule. Ainsi, aucun littéral de contexte d'une autre famille ne casse dans un lot.

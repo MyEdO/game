@@ -18,7 +18,7 @@ export interface Registre {
 
 export const RACINE_DES_CATALOGUES: 'src/data';
 export const REGISTRIES: readonly Registre[];
-export const SORTIES_DES_ESPACES: { readonly ids: string; readonly idsEtTypes: string; readonly cles: string; readonly racines: string; readonly catalogue: string; readonly atelier: string };
+export const SORTIES_DES_ESPACES: { readonly ids: string; readonly typesDesIds: string; readonly cles: string; readonly racines: string; readonly catalogue: string; readonly atelier: string };
 export const SORTIE_VOCABULAIRES_D_ART: string;
 export const SORTIES: readonly string[];
 export const SORTIE_FORMATS: string;

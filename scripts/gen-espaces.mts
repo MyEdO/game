@@ -1,8 +1,8 @@
 /**
  * PHASE 2 de `npm run gen` (#1463) — l'INDEX DES IDS (`src/data/_ids.generated.ts`,
- * `IDS_PAR_ESPACE`), keyé par CLÉ D'ESPACE (`src/data/schemas/grammaire/cle-d-espace.ts`), le même index et
- * ses TYPES (`src/data/schemas/_ids.generated.ts` : `IDS_PAR_ESPACE`, `IdsParEspace`, et le TYPE DE VALEUR de
- * chaque règle optionnelle, `ValeurDeRegle`), le type `Catalogue` (`src/data/schemas/_catalogue.generated.ts`, #5069), les CLÉS
+ * `IDS_PAR_ESPACE`), keyé par CLÉ D'ESPACE (`src/data/schemas/grammaire/cle-d-espace.ts`), ses TYPES
+ * (`src/data/schemas/_ids.generated.ts` : `IdsParEspace`, et le TYPE DE VALEUR de chaque règle optionnelle,
+ * `ValeurDeRegle`), le type `Catalogue` (`src/data/schemas/_catalogue.generated.ts`, #5069), les CLÉS
  * DE DATASET (`src/data/schemas/_cles-de-dataset.generated.ts`, `CLES_DE_DATASET`), le domaine de
  * `DATASET_FICHIER_DERIVE` (`src/data/schemas/exposition-derivee.ts`), avec la CATÉGORIE CODEX de chaque
  * fichier qui en déclare exactement une (`CATEGORIE_CODEX_DU_FICHIER`, lue sur l'`exposition.codex` des
@@ -57,7 +57,7 @@ import { RACINE_DES_CATALOGUES, REGISTRIES, SORTIES_DES_ESPACES } from './docs/l
 import { lireDefs } from './gen-registry.mjs';
 import { estObjet } from '../src/lib/objet.mjs';
 
-const { ids: SORTIE, idsEtTypes: SORTIE_IDS_ET_TYPES, cles: SORTIE_CLES, racines: SORTIE_RACINES, catalogue: SORTIE_CATALOGUE, atelier: SORTIE_ATELIER } = SORTIES_DES_ESPACES;
+const { ids: SORTIE, typesDesIds: SORTIE_TYPES_DES_IDS, cles: SORTIE_CLES, racines: SORTIE_RACINES, catalogue: SORTIE_CATALOGUE, atelier: SORTIE_ATELIER } = SORTIES_DES_ESPACES;
 
 /** Le registre des defs de document (`SCHEMA_DEFS`), dont le module de chaque def type sa collection du `Catalogue`. */
 const REGISTRE_DES_DOCUMENTS = REGISTRIES.find((r) => r.arrayName === 'SCHEMA_DEFS')!;
@@ -340,9 +340,12 @@ function specificateur(sortie: string, chemin: string): string {
 /** Les sorties de la phase 2, rendues sans écrire, et ce dont leurs statistiques sont faites. */
 async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string, readonly string[]>; clesDeDataset: string[]; racines: DocumentDeDataset[]; documents: DocumentDeLaBibliotheque[] }> {
   const { table, clesDeDataset, categories, clesCodex, collections, datasetsDeLEspace, racines, documents, fichiersDeLAtelier, valeursDeRegle } = await indexDesIds();
+  const GENERE = `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n`;
+  const banniere =
+    GENERE +
+    `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n`;
   const enTete =
-    `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
-    `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
+    banniere +
     `/**\n` +
     ` * INDEX DES IDS : les ids de chaque ESPACE DE NOMS de \`src/data\`, par CLÉ D'ESPACE\n` +
     ` * (\`grammaire/cle-d-espace.ts\`) — la cible de tout \`idDe\` (\`grammaire/ref.ts\`), qui refine l'id AU PARSE.\n` +
@@ -356,23 +359,19 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     ` */\n`;
   const entrees = [...table].map(([cle, ids]) => `  ${litteralJs(cle)}: [${ids.map(litteralJs).join(', ')}],\n`).join('');
   const body = enTete + `export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = {\n` + entrees + `};\n`;
-  // #5070
-  const idsEtTypes =
-    enTete +
-    `const IDS = {\n` +
-    entrees +
-    `} as const;\n\n` +
-    `export const IDS_PAR_ESPACE: Readonly<Record<string, readonly string[]>> = IDS;\n\n` +
-    `/** Union LITTÉRALE des ids de chaque espace, dérivée de \`IDS\` : un id absent de la donnée ne compile pas. */\n` +
-    `export type IdsParEspace = { readonly [E in keyof typeof IDS]: (typeof IDS)[E][number] };\n\n` +
+  const typesDesIds =
+    banniere +
+    `/** Union LITTÉRALE des ids de chaque espace : un id absent de la donnée ne compile pas. */\n` +
+    `export type IdsParEspace = {\n` +
+    [...table].map(([cle, ids]) => `  readonly ${litteralJs(cle)}: ${ids.length ? ids.map(litteralJs).join(' | ') : 'never'};\n`).join('') +
+    `};\n\n` +
     `/** TYPE DE VALEUR de chaque règle optionnelle (\`${FICHIER_DES_REGLES}\`), que rend \`rule(id)\` (\`engine/policy.ts\`) :\n` +
     ` *  \`boolean\` (flag), \`number\` (param), l'union littérale de ses \`options\` (mode). */\n` +
     `export type ValeurDeRegle = {\n` +
     valeursDeRegle.map(([id, type]) => `  readonly ${litteralJs(id)}: ${type};\n`).join('') +
     `};\n`;
   const cles =
-    `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
-    `// Régénérer : \`npm run gen\` (deux exécutions successives rendent le même octet).\n\n` +
+    banniere +
     TYPE_DATASET_DE_CATEGORIE +
     `/** CLÉS DE DATASET : le domaine de \`DATASET_FICHIER_DERIVE\` (\`exposition-derivee.ts\`), une clé par\n` +
     ` *  collection que le seam mute EN PLACE (\`src/data/overrides.ts\`). */\n` +
@@ -411,7 +410,7 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     `};\n`;
   const rang = new Map(documents.map((d, i) => [d.fichier, i]));
   const modRacines =
-    `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
+    GENERE +
     `// Régénérer : \`npm run gen\` (un import par document de \`SCHEMA_DEFS\`).\n` +
     documents.map((d, i) => `import r${i} from ${litteralJs(specificateur(SORTIE_RACINES, d.chemin))};\n`).join('') +
     `\n` +
@@ -426,7 +425,7 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     racines.map((r) => `  ${litteralJs(r.fichier)}: r${rang.get(r.fichier)},\n`).join('') +
     `};\n`;
   const catalogue =
-    `// GÉNÉRÉ par scripts/gen-espaces.mts (phase 2 de \`npm run gen\`) — NE PAS ÉDITER À LA MAIN.\n` +
+    GENERE +
     `// Régénérer : \`npm run gen\` (une collection par document de \`SCHEMA_DEFS\`).\n` +
     `import type { DatasetDe } from ${litteralJs(specificateur(SORTIE_CATALOGUE, 'src/data/datasets'))};\n` +
     `import type { RuleValue } from ${litteralJs(specificateur(SORTIE_CATALOGUE, 'src/engine/policy'))};\n` +
@@ -444,7 +443,7 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
     [...datasetsDeLEspace].sort(([, a], [, b]) => parUnitesDeCode(a.cle, b.cle)).map(([, { cle, fichier, chemin }]) => `  readonly ${litteralJs(cle)}: ${typeDuChemin(`Catalogue[${litteralJs(fichier)}]`, chemin)};\n`).join('') +
     `}\n`;
   const atelier = `${JSON.stringify(Object.fromEntries(fichiersDeLAtelier), null, 2)}\n`;
-  return { textes: new Map([[SORTIE, body], [SORTIE_IDS_ET_TYPES, idsEtTypes], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines], [SORTIE_CATALOGUE, catalogue], [SORTIE_ATELIER, atelier]]), table, clesDeDataset, racines, documents };
+  return { textes: new Map([[SORTIE, body], [SORTIE_TYPES_DES_IDS, typesDesIds], [SORTIE_CLES, cles], [SORTIE_RACINES, modRacines], [SORTIE_CATALOGUE, catalogue], [SORTIE_ATELIER, atelier]]), table, clesDeDataset, racines, documents };
 }
 
 /** Le texte d'un module de l'index des ids sur disque, `''` s'il n'existe pas encore. */
@@ -484,7 +483,7 @@ export function moduleChargeable(texte: string, amorce: string, existe: (relatif
 
 function amorcesNecessaires(): [string, string][] {
   const amorces: [string, string][] = [];
-  for (const chemin of [SORTIE, SORTIE_IDS_ET_TYPES]) if (!indexChargeable(indexSurDisque(chemin))) amorces.push([chemin, TABLE_VIDE]);
+  if (!indexChargeable(indexSurDisque(SORTIE))) amorces.push([SORTIE, TABLE_VIDE]);
   for (const { chemin, amorce } of AMORCES_DES_MODULES) {
     const present = existsSync(chemin) && moduleChargeable(readFileSync(chemin, 'utf8'), amorce, (relatif) => existsSync(join(dirname(chemin), relatif)));
     if (!present) amorces.push([chemin, amorce]);
