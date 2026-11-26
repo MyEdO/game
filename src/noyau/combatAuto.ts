@@ -91,7 +91,7 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
   testEtendu: { flux: 'testEtendu', rangees: (s) => s.pendingExtendedTest?.rounds },
   desengagement: {
     flux: 'desengagement',
-    reactives: [{ flux: 'fuite', rangees: (s) => s.pendingDisengage?.fuir?.participants.map((p) => ({ id: p.id, interactive: p.interactive, result: p.kind === 'backstab' ? p.result : p.jet })) }],
+    reactives: [{ flux: 'fuite', rangees: (s) => s.pendingDisengage?.fuir?.participants.map((p) => ({ id: p.id, interactive: p.interactive, result: p.kind === 'backstab' ? p.result : p.jet })), drive: [{ verbe: 'jetLancer', flux: 'fuite' }, { verbe: 'jetValider', flux: 'fuite' }] }],
   },
   enfoncerLaPorte: { flux: 'enfoncerLaPorte', rangees: (s) => s.pendingForceDoor?.participants },
 };
@@ -308,8 +308,8 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
 }
 
 /**
- * FENÊTRES RÉACTIVES à drive ouvertes DANS l'étape `jet:'incantation'` (Contre-sort #1028, opposition de cible #949,
- * `FENETRE_DU_JET.cast.reactives`) et leur drive d'auto-cadence (#1030). Le drive de l'ÉTAPE ne peut traverser ni l'une ni l'autre :
+ * FENÊTRES RÉACTIVES à drive ouvertes DANS une étape-jet (`FENETRE_DU_JET[…].reactives`) et leur drive d'auto-cadence (#1030) :
+ * celles de l'étape `jet:'incantation'` (Contre-sort #1028, opposition de cible #949), et la fuite du Désengagement (#5042). Le drive de l'ÉTAPE n'en traverse aucune :
  * `jetValider('incantation')` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
  * `jetValider('opposition')` refuse d'agréger tant qu'une rangée interactive n'a pas jeté — `autoDrive` y
  * re-tirait donc à vide (l'opposition allant jusqu'à se RÉOUVRIR à chaque passage, jets compris).

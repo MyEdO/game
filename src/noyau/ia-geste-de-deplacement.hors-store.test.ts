@@ -307,6 +307,24 @@ describe('#5044 — le héros en Auto-combat Brisé et Engagé se désengage PUI
   });
 });
 
+describe('#5042 — touché en fuyant, le héros en Auto-combat joue sa fenêtre de fuite (LDB 15 l.43-61)', () => {
+  it('Brisé, Engagé et sans Action : il fuit, son Test de Calme se joue, et le tour passe', () => {
+    banc = ouvrirLeBanc({ cadence: 'auto' });
+    const h = C('heros', 'h', 10, { engagedWith: ['e'] });
+    addCondition(h, 'brise');
+    poser([h, C('ennemi', 'e', 11, { engagedWith: ['h'] })], ['h', 'e']);
+    banc.setState({ party: [h], battle: { ...g().battle!, acted: true } });
+    seedBattleRng(1);
+    let fuite = false;
+    const unsub = banc.subscribe((s) => { if (s.pendingDisengage?.fuir?.participants.some((p) => p.kind === 'touche')) fuite = true; });
+    runEnemyAI(g, banc.setState, 'h');
+    jusquAuTourSuivant();
+    unsub();
+    expect(fuite, 'témoin : la fuite ouvre la rangée « Touché en fuyant » du héros').toBe(true);
+    expect([g().pendingDisengage, g().battle!.turn], 'la fenêtre de fuite est jouée, et le tour passe').toEqual([null, 1]);
+  });
+});
+
 describe('une seule règle de re-décision, bornée : le tour dont le geste retombe se redécide (`redeciderLeTour`)', () => {
   /** Le héros `h` en Auto-combat, à 4 cases de `e` : sa décision est une Charge. */
   function charge(): void {
