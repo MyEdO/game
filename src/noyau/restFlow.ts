@@ -493,9 +493,11 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
     } else {
       const before = h.wounds.current;
       const sans = constatSansRecuperation(h);
-      const { wokeUp } = applyRecoveryDay(h, null);
+      const sortie: Applique = { lignes: [], faits: [] };
+      const { wokeUp } = applyRecoveryDay(h, null, sortie);
       if (h.wounds.current - before > 0) log.push(t('rf.recovered', { name: nomDe(h), n: h.wounds.current - before }));
       if (wokeUp) log.push(t('heal.awake', { name: nomDe(h) }));
+      log.push(...sortie.lignes);
       if (sans) log.push(t(sans.cle, { ...sans.params, name: nomDe(h) }));
     }
     if (h.nightmares) {
@@ -935,12 +937,14 @@ export const TABLES = {
     ...tableTotale(EXPOSURE_BAND_KINDS, () => appliquerLExposition),
     recuperation: bandeDeNuit((_get, _set, _band, row, hero) => {
       const before = hero.wounds.current;
-      const { wokeUp } = applyRecoveryDay(hero, { sl: row.result!.sl, success: row.result!.success });
+      const sortie: Applique = { lignes: [], faits: [] };
+      const { wokeUp } = applyRecoveryDay(hero, { sl: row.result!.sl, success: row.result!.success }, sortie);
       const j: string[] = [];
       const healed = hero.wounds.current - before;
       if (healed > 0) j.push(t('rf.recovered', { name: nomDe(hero), n: healed }));
       else j.push(t('rf.noRecovery', { name: nomDe(hero) }));
       if (wokeUp) j.push(t('heal.awake', { name: nomDe(hero) }));
+      j.push(...sortie.lignes);
       return { consequences: freeCons(j) };
     }),
     cauchemar: bandeDeNuit((_get, _set, _band, row, hero) => {

@@ -6,6 +6,7 @@ import { applyLandCargoRaid } from './carriers';
 import { t } from '../i18n';
 import { flowFromEffects } from './monde/flow';
 import type { Get, Set } from './flowTypes';
+import { purgerEtats } from '../engine/conditions';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -73,9 +74,11 @@ export function sortiesDIssueDeCombat(get: Get, set: Set) {
      *  `combatLost` alimente le camp allié (Duel l.223 : −20 ; Percée l.175 : Charge), et la bataille CONTINUE. */
     repli: () => {
       get().denouerLeVol('defaite'); // combat perdu = le convoi est pillé (vol-terrestre-defaite-pct, #327)
-      const heal = (c: import('../engine/types').Combatant): import('../engine/types').Combatant => ({
-        ...c, wounds: { ...c.wounds, current: c.wounds.max }, conditions: [], criticalWounds: 0, dead: false, outOfRencontre: false,
-      });
+      const heal = (c: import('../engine/types').Combatant): import('../engine/types').Combatant => {
+        const soigne = { ...c, wounds: { ...c.wounds, current: c.wounds.max }, criticalWounds: 0, dead: false, outOfRencontre: false };
+        purgerEtats(soigne, () => true, { lignes: [], faits: [] });
+        return soigne;
+      };
       set({ party: get().party.map(heal), battle: null, mode: 'exploration' });
       massBattleFlow.massBattleResumeCombat(get, set, 0, 'defaite');
       resumeSuspendedCascade(get, set); // teardown de combat (couture universelle), comme la victoire

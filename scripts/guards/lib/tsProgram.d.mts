@@ -1,4 +1,4 @@
-import type { Program, Checker } from 'typescript/unstable/sync';
+import type { Program, Checker, Type } from 'typescript/unstable/sync';
 import type { PasseDesProjets } from './serrureDesProjets.mjs';
 
 export interface SessionProgramme {
@@ -17,3 +17,5 @@ export function repoProgram(
 ): SessionProgramme;
 export function virtualProgram(files: Record<string, string>, options?: Record<string, unknown>): SessionProgramme;
 export function syntaxProgram(files: Record<string, string>): SessionProgramme;
+/** Les membres d'une union ou d'une intersection, lus une fois par type. */
+export function membresDe(type: Type): readonly Type[];

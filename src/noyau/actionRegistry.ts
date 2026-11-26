@@ -62,6 +62,7 @@ import {
   refusMouvementEntame,
   refusPriereImposee,
   refusSansMouvement,
+  refusSetDejaChange,
 } from './refusDuTour';
 import { servablePostes, crewPosteOf, shipOfCrew, rechargeDuTour } from './monde/shipPostes';
 import { estPoseParSesPonts } from './planDeNavire';
@@ -220,12 +221,7 @@ export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> =
     hasFreeWeaponAttack(active) ? ok : no(t('agate.noFreeWeaponAttack')),
   'pietinement-gratuit': ({ active, battle, scene }) =>
     availableAttacks(scene, active, battle).some((o) => o.freeKind === 'pietinement') ? ok : no(t('agate.noTrample')),
-  'set-commutable': ({ active, battle }) =>
-    (active.loadouts?.length ?? 0) < 2
-      ? no(t('agate.singleLoadout'))
-      : battle.loadoutSwapped
-        ? no(t('agate.loadoutSwapped'))
-        : ok,
+  'set-commutable': ({ active, battle }) => ((active.loadouts?.length ?? 0) < 2 ? no(t('agate.singleLoadout')) : verdict(refusSetDejaChange(battle))),
   /** PERTINENCE d'un remède : le porteur a l'État que l'entrée déclare. */
   [GATE_ETAT_PORTE]: (ctx) => (instanceDeLEtat(ctx) ? ok : no(t('agate.stateNotCarried'))),
   /** REMÈDE ATTEIGNABLE : le porteur n'est pas hors d'état d'agir (`isOutOfAction`, lu aussi par

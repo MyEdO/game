@@ -55,6 +55,7 @@ import { fateSaveOptions } from '../engine/fortune';
 import { reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
 import { reglagesDuFlux, VERBE_DE_REGLAGE } from './reglagesDuJet';
 import { axesDeLaFenetre, VERBE_DE_CHOIX, type FenetreAChoix } from './choixDesFenetres';
+import { VERBE_DE_VALIDATION } from './validationDeFenetre';
 
 /** Une rangée d'une fenêtre réactive, vue par le pilote : son porteur, son état de jet, sa déclaration. */
 type RangeeReactive = RangeeDeFenetre & { declared?: string };
@@ -108,10 +109,15 @@ function jouerLeGeste(get: Get, g: GesteDuJeu): void {
   if (typeof fn === 'function') fn(g.flux, g.reglage, g.valeur);
 }
 
-/** Joue EN SYNCHRONE la paire de gestes d'une étape-jet (`paireDuJet`) : ce qu'un humain fait sur sa fenêtre, quand
- *  aucun humain ne la tient (`cascade.jouerLHoteDOffice`, #3892). */
+/** Joue EN SYNCHRONE les gestes `drive` d'une fenêtre : ce qu'un humain fait sur elle, quand aucun ne la tient
+ *  (`cascade.jouerLHoteDOffice`, #3892, #5042). */
+export function jouerLeDrive(get: Get, drive: readonly GesteDuJeu[]): void {
+  for (const g of drive) jouerLeGeste(get, g);
+}
+
+/** La paire de gestes d'une étape-jet (`paireDuJet`), jouée d'office (`jouerLeDrive`). */
 export function jouerLaPaireDuJet(get: Get, jet: HostJet): void {
-  for (const g of paireDuJet(jet)) jouerLeGeste(get, g);
+  jouerLeDrive(get, paireDuJet(jet));
 }
 
 /**
@@ -187,11 +193,11 @@ export const VERBES_D_INTERACTION: Record<ReturnType<typeof stepInteraction>, { 
 
 const gestesDuDrive = (pol: AutoPolicy): readonly GesteDuJeu[] => (pol.mode === 'self' ? pol.drive : pol.mode === 'choice' ? (pol.autoDrive ?? []) : []);
 
-/** Le geste de l'issue `issue` d'une fenêtre qui la déclare : sa validation (`fenetreValider`) ou sa sortie
+/** Le geste de l'issue `issue` d'une fenêtre qui la déclare : sa validation (`VERBE_DE_VALIDATION`) ou sa sortie
  *  (`fenetreFermer`), la fenêtre en argument. */
 const issueDe = (def: ModalDef | HorsModalDef | SurfaceHorsPendingDef, issue: IssueDeFenetre): GesteDuJeu[] => {
   if (!def[issue]) return [];
-  return [issue === 'validation' ? { verbe: 'fenetreValider', fenetre: def.key as FenetreAValider } : { verbe: 'fenetreFermer', fenetre: def.key as FenetreQuiSeFerme }];
+  return [issue === 'validation' ? { verbe: VERBE_DE_VALIDATION, fenetre: def.key as FenetreAValider } : { verbe: 'fenetreFermer', fenetre: def.key as FenetreQuiSeFerme }];
 };
 
 /** Les gestes d'issue d'une fenêtre qui les déclare : sa validation, puis sa sortie (`issueDe`). */

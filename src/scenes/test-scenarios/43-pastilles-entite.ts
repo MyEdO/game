@@ -2,7 +2,6 @@ import { herosDeScenario, idDuHerosDeScenario } from './_heros';
 import { flowFromEffects } from '../../noyau/monde/flow';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
 import { buildScene } from '../../noyau/mapSpec';
-import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -40,7 +39,7 @@ const SERVANT_SLOTS = crewFormationSlots({ pos: RAM_POS, footprint: 2 }, { crewI
   .filter((p) => !RESERVE.some((r) => r.x === p.x && r.y === p.y));
 
 function construireScene(): Scene {
-  const scene = buildScene({
+  return buildScene({
     id: 'pastilles-entite',
     label: 'Pastilles d’entité — les gestes vivent sur ce qui les offre',
     desc: 'Une cour de manœuvre : un bélier servi, un cheval libre, un coffre entrouvert.',
@@ -63,29 +62,28 @@ function construireScene(): Scene {
           ]) }] },
       },
     ],
+    encounters: [
+      {
+        id: 'enc-pastilles',
+        // Aucune mort n'est requise : la recette porte sur les AFFORDANCES. Le combat reste ouvert le temps
+        // de les exercer (`surviveRounds`, évalué sur `battle.round`).
+        victoryCondition: { type: 'surviveRounds', rounds: 3 },
+        enemies: [
+          // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
+          {
+            engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
+            postes: [{ engin: { id: 'belier-ade2' }, crewIds: [...RAM_CREW] }],
+          },
+          { creature: { id: 'cheval-de-monte' }, pos: { x: 5, y: 5 }, mount: true, side: 'allie', label: 'Cheval de manœuvre' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        ],
+      },
+    ],
   });
-  setEncounters(scene, [
-    {
-      id: 'enc-pastilles',
-      // Aucune mort n'est requise : la recette porte sur les AFFORDANCES. Le combat reste ouvert le temps
-      // de les exercer (`surviveRounds`, évalué sur `battle.round`).
-      victoryCondition: { type: 'surviveRounds', rounds: 3 },
-      enemies: [
-        // L'EMPLACEMENT du bélier — affût inerte 2×2, servi par l'Équipe `RAM_CREW` (le Soldat en tête).
-        {
-          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
-          postes: [{ engin: { id: 'belier-ade2' }, crewIds: [...RAM_CREW] }],
-        },
-        { creature: { id: 'cheval-de-monte' }, pos: { x: 5, y: 5 }, mount: true, side: 'allie', label: 'Cheval de manœuvre' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-      ],
-    },
-  ]);
-  return scene;
 }
 
 export const scenario: TestScenario = {

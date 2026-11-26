@@ -4,11 +4,11 @@
  * d'une fracture passe par la nuit du noyau (LDB 18 l.202) ; l'infirmerie dit toujours pourquoi elle ne soigne pas (LDB 09 l.260) et son soigneur se choisit
  * (réglage `soins.soigneur`, Soutien LDB 12).
  */
+import { arena } from './mapSpec';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import type { Combatant } from '../engine/types';
-import { arena } from '../scenes/test-scenarios/_shared';
 import { t } from '../i18n';
 import { fenetreDuSoin } from './soin';
 import { draineCascade } from './cascade.testkit';

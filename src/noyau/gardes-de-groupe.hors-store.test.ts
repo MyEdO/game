@@ -154,7 +154,7 @@ describe('récupération de nuit — `refusDeRecuperation` (LDB 18 l.338, LDB 16
     a.wounds = { ...a.wounds, current: 0 };
     addCondition(a, 'empoisonne', 1);
     addCondition(a, 'extenue', 1);
-    applyRecoveryDay(a, { sl: 3, success: true });
+    applyRecoveryDay(a, { sl: 3, success: true }, { lignes: [], faits: [] });
     expect(a.wounds.current).toBe(0);
     expect(hasCondition(a, 'extenue')).toBe(false);
   });

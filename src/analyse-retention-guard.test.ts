@@ -6,8 +6,7 @@ import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
 import { clotureDImports, estModule } from '../scripts/guards/lib/importGraph.mjs';
 import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs';
 import { fichiersDeLaSuite } from '../scripts/guards/lib/suiteVitest.mjs';
-import { analyserCorpus } from '../scripts/guards/lib/dialecte.mjs';
-import { fabriquesDuCorpus, retentionsDAnalyse } from '../scripts/guards/lib/analyseRetenue.mjs';
+import { retentionsDuCorpus } from '../scripts/guards/lib/analyseRetenue.mjs';
 
 /**
  * Garde de classe #1801 — aucun module que la suite charge ne range une structure d'ANALYSE
@@ -22,15 +21,8 @@ import { fabriquesDuCorpus, retentionsDAnalyse } from '../scripts/guards/lib/ana
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url));
 
-const scan = (fichiers: Record<string, string>) => {
-  const corpus = Object.entries(fichiers).map(([rel, text]) => ({ rel, text }));
-  const exportees = fabriquesDuCorpus(corpus);
-  const retentions: ReturnType<typeof retentionsDAnalyse> = [];
-  for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(corpus)) {
-    retentions.push(...retentionsDAnalyse(rel, text, exportees, sourceFile!, checker));
-  }
-  return retentions;
-};
+const scan = (fichiers: Record<string, string>) =>
+  retentionsDuCorpus(Object.entries(fichiers).map(([rel, text]) => ({ rel, text }))).retentions;
 const liaisons = (fichiers: Record<string, string>) => scan(fichiers).map((r) => `${r.rel}#${r.liaison} ${r.forme}`);
 
 // #1801
@@ -98,13 +90,13 @@ it('x', () => { sfs.set('a', arbreDe({ rel: 'a.ts', text: '' }, arbres)); });
 
 describe('garde de classe #1801 — une structure d’analyse ne vit pas en portée de collection', () => {
   it('le corpus vide rend un index vide et les fabriques transitives sont calculées pendant l’emprunt', () => {
-    expect(fabriquesDuCorpus([])).toEqual({ fabriques: new Set(), corpus: new Set(), ressources: new Map() });
+    expect(retentionsDuCorpus([])).toEqual({ exportees: { fabriques: new Set(), corpus: new Set(), ressources: new Map() }, retentions: [] });
     const fichiers = [
       { rel: 'scripts/guards/lib/troisieme.mjs', text: `import { seconde } from './seconde.mjs'; export const troisieme = () => seconde();` },
       { rel: 'scripts/guards/lib/seconde.mjs', text: `import { premiere } from './premiere.mjs'; export const seconde = () => premiere();` },
       { rel: 'scripts/guards/lib/premiere.mjs', text: `import { virtualProgram } from './tsProgram.mjs'; export const premiere = () => virtualProgram({});` },
     ];
-    const exportees = fabriquesDuCorpus(fichiers);
+    const { exportees } = retentionsDuCorpus(fichiers);
     expect([...exportees.fabriques].sort()).toEqual(['premiere', 'seconde', 'troisieme']);
     expect([...exportees.ressources.entries()].sort()).toEqual([
       ['scripts/guards/lib/premiere.mjs#premiere', 'dispose'],
@@ -629,15 +621,11 @@ it('x', () => lire());
         .map((rel) => ({ rel, text: readFileSync(join(ROOT, rel), 'utf8') })),
     ];
     expect(lus.length, 'la clôture de la suite porte des milliers de modules').toBeGreaterThan(3000);
-    const exportees = fabriquesDuCorpus(lus);
+    const { exportees, retentions } = retentionsDuCorpus(lus);
     // Non-vacuité : les fabriques partagées et un lecteur d'arbres consommateur sont vus.
     expect([...exportees.fabriques]).toEqual(
       expect.arrayContaining(['repoProgram', 'virtualProgram', 'syntaxProgram', 'analyserCorpus', 'programmeDuPerimetre', 'arbreDe']),
     );
-    const retentions: ReturnType<typeof retentionsDAnalyse> = [];
-    for (const { fichier: { rel, text }, sourceFile, checker } of analyserCorpus(lus)) {
-      retentions.push(...retentionsDAnalyse(rel, text, exportees, sourceFile!, checker));
-    }
     expect(retentions.map((r) => `${r.rel}:${r.line} ${r.liaison} (${r.forme})`)).toEqual([]);
   });
 });

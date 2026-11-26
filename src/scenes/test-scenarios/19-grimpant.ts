@@ -1,6 +1,5 @@
 import { groupeDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
-import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -16,7 +15,7 @@ import type { Scene } from '../../noyau/monde/scene';
  * tir de repli).
  */
 function construireScene(): Scene {
-  const scene = buildScene({
+  return buildScene({
     id: 'grimpant',
     label: 'Grimpant — l’araignée escalade',
     desc:
@@ -31,11 +30,10 @@ function construireScene(): Scene {
     startMessage:
       { texte: "Vous tenez le plateau : l'araignée géante, en contrebas, ne peut vous rejoindre qu'en escaladant " +
       "l'unique paroi praticable (Trait Grimpant : elle grimpe sans effort, à pleine vitesse)." },
+    encounters: [
+      { id: 'enc-grimpant', enemies: [{ creature: { id: 'araignee-geante' }, pos: { x: 5, y: 8 }, facing: 'N' }] },
+    ],
   });
-  setEncounters(scene, [
-    { id: 'enc-grimpant', enemies: [{ creature: { id: 'araignee-geante' }, pos: { x: 5, y: 8 }, facing: 'N' }] },
-  ]);
-  return scene;
 }
 
 export const scenario: TestScenario = {

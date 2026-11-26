@@ -82,7 +82,7 @@ describe('jouerLaRencontre (#4829)', () => {
   });
 
   it('trace le Destin que chaque héros a perdu pendant la rencontre (« Meurs un autre jour », LDB 17 l.31)', () => {
-    const { issue } = jouer(ouvrir(1, [heros('h1', 30, [], { wounds: { current: 1, max: 10 } as Combatant['wounds'] }), heros('h2', 70, ['epee-batarde'], { wounds: { current: 40, max: 40 } as Combatant['wounds'] })], ['troll']));
+    const { issue } = jouer(ouvrir(4, [heros('h1', 30, [], { wounds: { current: 1, max: 10 } as Combatant['wounds'] }), heros('h2', 70, ['epee-batarde'], { wounds: { current: 40, max: 40 } as Combatant['wounds'] })], ['troll']));
     const { destinDepense, groupe } = close(issue);
     expect(destinDepense).toEqual({ h1: 1, h2: 0 });
     expect(groupe.map((h) => h.fate)).toEqual([1, 2]);

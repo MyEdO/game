@@ -22,6 +22,7 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { INDEX, depotDe, listerImage } from './gitPorte.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 import { arcsDe, estModule } from './importGraph.mjs'
 import { analyserCorpus } from './dialecte.mjs'
 
@@ -48,7 +49,7 @@ export const FEUILLES = Object.freeze([
 /** Sources SUIVIES par git susceptibles de porter un import, chemins POSIX relatifs, triés.
  *  La source est GIT, pas le disque : ce que la CI joue, c'est ce qui est suivi. */
 export function sourcesSuivies(racine = RACINE) {
-  return listerImage(depotDe(racine), INDEX)
+  return listerImage(depotDe(racine, { porte: porteDeTousLesProjets }), INDEX)
     .filter(estModule)
     .sort()
 }

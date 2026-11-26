@@ -6,7 +6,7 @@
  */
 import type { Combatant, Weapon } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
-import { effectiveMovement } from '../engine/encumbrance';
+import { effectiveMovement, mouvementDeVol } from '../engine/encumbrance';
 import { sizeGap, type SizeCategory } from '../engine/size';
 import { fearSizeAsMount, runMovementBonus } from '../engine/combatFeatures/dispatch';
 import type { ModLine, AttackOptions } from '../engine/combat';
@@ -280,16 +280,23 @@ export function sweepDismountDeaths(battle: BattleState, scene: Scene): string[]
 const hasAcrobatiesEquestres = (c: Combatant): boolean =>
   effectiveTalents(c).some((t) => (t.times ?? 0) > 0 && t.talentId === 'acrobaties-equestres');
 
-/** Mouvement effectif d'un combattant : celui de sa MONTURE s'il est cavalier (LDB 14 l.179), sinon le sien. */
-export function mountMovement(battle: BattleState, c: Combatant): number {
-  const mount = mountOf(battle, c);
-  return effectiveMovement(mount ?? c);
+/** Le Mouvement (caractéristique) effectif d'un combattant : celui de sa MONTURE s'il est cavalier (LDB 14 l.179),
+ *  sinon le sien. Celui que lisent la Course et la Charge (LDB 15 l.18-31). */
+export function mouvementDeMarche(battle: BattleState, c: Combatant): number {
+  return effectiveMovement(mountOf(battle, c) ?? c);
 }
 
-/** Le Mouvement qui compte pour la Course : celui du Tour (`mountMovement`, LDB 14 l.179) + le Sprinter de celui
- *  qui agit (LDB 11 l.41-47). SOURCE UNIQUE de l'issue du Test (`rollFlowSpecs`) et de la zone (`computeRunReach`). */
+/** Le budget de Déplacement du Tour : la Marche (`mouvementDeMarche`), ou le Vol s'il porte plus loin
+ *  (`mouvementDeVol`). LDB 85 l.433 */
+export function mountMovement(battle: BattleState, c: Combatant): number {
+  return Math.max(mouvementDeMarche(battle, c), mouvementDeVol(mountOf(battle, c) ?? c) ?? 0);
+}
+
+/** Le Mouvement qui compte pour la Course : celui de la Marche (`mouvementDeMarche`, LDB 14 l.179) + le Sprinter de
+ *  celui qui agit (LDB 11 l.41-47). SOURCE UNIQUE de l'issue du Test (`rollFlowSpecs`) et de la zone
+ *  (`computeRunReach`). */
 export function mouvementDeCourse(battle: BattleState, c: Combatant): number {
-  return mountMovement(battle, c) + runMovementBonus(c);
+  return mouvementDeMarche(battle, c) + runMovementBonus(c);
 }
 
 /** Cases de Mouvement encore disponibles ce Tour : budget du Tour moins le Mouvement déjà parcouru

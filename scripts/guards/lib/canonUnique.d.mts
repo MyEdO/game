@@ -17,6 +17,8 @@ export interface ContexteImports {
   readonly declarationsDuScope: (scope: ts.Node) => ReadonlyMap<string, readonly EvenementDeNom[]>;
   readonly checker: () => Checker;
   readonly module: (spec: string) => string | null;
+  /** `origineImportee` de l'identifiant ou de l'expression ; mémo du contexte. */
+  readonly origine: (identifiant: string | ts.Expression) => { module: string; nom: string } | null;
 }
 
 export function contexteImports(sf: ts.SourceFile, checker?: Checker): ContexteImports;

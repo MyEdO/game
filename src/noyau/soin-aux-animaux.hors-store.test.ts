@@ -38,8 +38,8 @@ describe('Soin aux animaux (LDB 09 l.521-528)', () => {
   });
 
   it('il stoppe UN État Hémorragique, quel que soit le DR (l.528) ; la Guérison en retire un par DR (l.261)', () => {
-    expect(stopBleedOutcome(3, 4, true, { test: 'soin-aux-animaux', bandages: false }).removed).toBe(1);
-    expect(stopBleedOutcome(3, 4, true, { test: 'guerison', bandages: false }).removed).toBe(4);
+    expect(stopBleedOutcome(3, 4, true, { test: 'soin-aux-animaux', bandages: false })).toBe(1);
+    expect(stopBleedOutcome(3, 4, true, { test: 'guerison', bandages: false })).toBe(4);
   });
 });
 

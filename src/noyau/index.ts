@@ -1,7 +1,7 @@
 /**
  * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie et les événements de ses appels, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
- * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation. Chaque nom a un lecteur parmi les hôtes, leur module commun ou
+ * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation, les gestes hors combat (#4938). Chaque nom a un lecteur parmi les hôtes, leur module commun ou
  * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
  * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
@@ -27,10 +27,38 @@ export { currentSeason } from '../engine/travelStages';
 export { isEngagedWith } from '../engine/engagement';
 export type { Season } from '../engine/travelStages';
 export { saisonSchema } from '../data/schemas/grammaire/valeurs';
+export type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
+export { memeSpecialisation, refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
+export type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
+export { parseTable } from '../data/schemas/source/decoupe';
+export { arena } from './mapSpec';
+export { avecRencontres } from './monde/encounterAuthoring';
 export {
   advancementLabel,
+  bandeDe,
+  byId,
+  careerLabelFor,
   careers,
+  characteristics,
   conditionLabel,
+  diseaseLabel,
+  displayLabelForSex,
+  findCreatureById,
+  findQualityById,
+  findSpeciesById,
+  findTalentById,
+  findTrappingById,
+  names,
+  sexeDuPorteur,
+  skills,
+  spells,
+  symptomLabel,
+  testSkillLabel,
+  trappingsEnVente,
+  trappingsInstanciables,
+  weaponGroups,
+  type CareerLevelData,
+  type PorteurDeSexe,
   findCareerById,
   findSpellById,
   levelsForCareer,
@@ -337,7 +365,11 @@ export { difficultyText } from './difficultyText';
 export { fenetreDeDefense } from './fenetreDeDefense';
 export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFiche, type FicheDuPorteur, type Renvoyable } from './ficheDuPorteur';
 export { weaponStatParts } from '../engine/weaponStats';
-export { gestesDeLObjet, type GesteAChoix } from './gestesDeLObjet';
+export { gestesDeLObjet, gesteDeLaPanoplie, type GesteAChoix } from './gestesDeLObjet';
+export { gesteDeSoins } from './medicFlow';
+export { gesteDIncantation } from './combatSlice';
+export { buildAdvancementView, type TalentDesigne } from './monde/advancement';
+export { VERBE_DE_VALIDATION } from './validationDeFenetre';
 export { carteEnVue, trajetsDepuis, type CarteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
 export { lieuEnVue } from './lieuEnVue';
 export { marchandEnVue, type MarchandEnVue } from './marchandEnVue';
@@ -393,7 +425,7 @@ export {
   refusDUnNouveauHeros,
   type IntentionDEngagement,
 } from './creation/engagement';
-export { partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
+export { gesteDAchatDuSort, partieEnCours, refusDeLancer, refusDeRenvoyer } from './partyFlow';
 export type { CreatorDraft } from './creation/brouillon';
 export {
   apresLeGeste,

@@ -6,10 +6,10 @@
  * la VISIBILITÉ (`hidden`) est un choix explicite (défaut : visible — RAW, le groupe voit ses
  * adversaires, quitte à les manquer sur un Test de Perception opposé via `surprise`).
  *
- * Utilisé par les scènes de test (`src/scenes/**`). Les générateurs de campagne des projets
- * (Node pur) délèguent à `buildScene` (`tsx`, MÊME compilateur) — pas de mirroir JS séparé à maintenir.
+ * Les générateurs de campagne des projets (Node pur) délèguent à `buildScene` (`tsx`, MÊME compilateur) — pas de
+ * mirroir JS séparé à maintenir.
  */
-import type { AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
+import type { Scene, AuMoinsUnPorteurDeFiche, EncounterDef, EncounterMember, SceneEntity, VictoryCondition } from './scene';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { FlowDeScene } from '../../data/schemas/defs-scenes/effets';
 import type { OptionalDeScene } from '../../data/schemas/defs-scenes/scene';
@@ -137,4 +137,11 @@ export function buildEncounter(a: AuthoredEncounter): BuiltEncounter {
 export function buildEncounters(list: AuthoredEncounter[]): { entities: SceneEntity[]; encounters: EncounterDef[] } {
   const built = list.map(buildEncounter);
   return { entities: built.flatMap((b) => b.entities), encounters: built.map((b) => b.encounter) };
+}
+
+/** La scène `scene` augmentée des rencontres authored (terse) `list` : chaque liste d'ennemis expansée en entités
+ *  'personnage' + `members` canoniques, ajoutées aux entités de la scène, et ses rencontres posées. PURE. */
+export function avecRencontres(scene: Scene, list: AuthoredEncounter[]): Scene {
+  const built = buildEncounters(list);
+  return { ...scene, entities: [...scene.entities, ...built.entities], encounters: built.encounters };
 }

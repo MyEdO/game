@@ -21,6 +21,9 @@ import { activitesDuNavireEnResolution } from './seaActivities';
 import { interludeDrawPending } from './verdictsDInterlude';
 import { fermetureDuRoundSuivant } from './massBattleFlow';
 
+/** Le verbe qui valide une fenêtre (`ActionsDuNoyau.fenetreValider`). */
+export const VERBE_DE_VALIDATION = 'fenetreValider' as const satisfies keyof Pick<ActionsDuNoyau, 'fenetreValider'>;
+
 /** Le corps de la validation de chaque fenêtre qui se valide, que seul `fenetreValider` appelle : une fenêtre qui
  *  déclare sa `validation` sans corps ne compile pas. */
 export type ValidationsDeFenetre = { readonly [F in FenetreAValider]: () => void };

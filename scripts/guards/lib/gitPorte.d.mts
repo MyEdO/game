@@ -51,6 +51,7 @@ export function depotDe(
     spawn?: typeof import('node:child_process').spawnSync;
     attendre?: (ms: number) => void;
     enPanne?: (raison: string, vu: EchecGit) => void;
+    porte?: import('./serrureDesProjets.mjs').PasseDesProjets;
   },
 ): Depot;
 /** La racine de l'arbre de travail, `null` hors d'un arbre. */

@@ -64,7 +64,7 @@ describe('persistance', () => {
   it('carryOverState transporte les castPenalties (durées d\'horloge survivent au combat)', () => {
     const p = priest();
     p.castPenalties = [{ label: 'Pensez à vos actes', skill: 'priere', maxZeroDR: true, untilTime: 99999 }];
-    const carried = carryOverState(p);
+    const carried = carryOverState(p, { lignes: [], faits: [] });
     expect(carried.castPenalties).toHaveLength(1);
     expect(carried.castPenalties![0].label).toBe('Pensez à vos actes');
   });

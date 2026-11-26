@@ -21,7 +21,7 @@ import { estModule } from '../guards/lib/importGraph.mjs'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { PLAFOND_PAQUET_NODE_MS, maxWorkersMono } from '../test/partition.mjs'
 import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
-import { gatesDeCi } from '../gates/gatesDeCi.mjs'
+import { JOB_DE_BRANCHE, gatesDeCi } from '../gates/gatesDeCi.mjs'
 import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun, declencheursDe } from '../gates/workflowsDuDepot.mjs'
 import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
 import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
@@ -425,7 +425,7 @@ branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<s
 attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
 absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
 rend cette extraction pour une course nommée. Le train POUSSE la branche
-de chantier, ouvre sa PR vers \`main\` et ARME l’auto-merge à l’étape \`pr\` par \`gh pr merge --auto --match-head-commit <sha>\`, avant l’attente de la CI. \`ops:ruleset\` active \`allow_auto_merge: true\` sur le dépôt. Après un refus explicite d’auto-merge journalisé, le train utilise le repli \`enqueuePullRequest\`. La FILE DE FUSION du serveur la juge sur son commit de
+de chantier et ouvre sa PR vers \`main\` à l’étape \`pr\`. L’étape \`file\` attend que la course de branche de la tête soit verte, donc son job \`${JOB_DE_BRANCHE}\` conclu \`success\`, et que GitHub ait jugé sa fusionnabilité (\`mergeable_state\` connu), avant d’ARMER l’auto-merge par \`gh pr merge --auto --match-head-commit <sha>\` : une PR entrée en file avant l’un ou l’autre en ressort en \`INVALID_MERGE_COMMIT\` sans course (#5103, #5037), et une course de branche rouge n’arme rien. \`ops:ruleset\` active \`allow_auto_merge: true\` sur le dépôt. Après un refus explicite d’auto-merge journalisé, le train utilise le repli \`enqueuePullRequest\`. La FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). L'étape \`file\`
 journalise le compte qui demande la fusion ; une course de branche ANNULÉE s'attend, sa relance appartenant à
 la reprise serveur, jusqu'à son ${PLAFOND_RELANCES}ᵉ essai, où le train rend la main avec le geste
@@ -593,7 +593,10 @@ Dans la course de file, pour tout push documentaire, les ${NB_GATES_TOUJOURS} ga
 chevauche ce périmètre jouent (${listeCode(GATES_TOUJOURS)}) et les ${NB_GATES_SAUTABLES} autres sont sautées.
 Après \`npm ci\`, le prologue écrit les gates sautées du push (\`scripts/gates/sauteesDuPush.mjs\`) : en plus
 du cas documentaire, une gate qui déclare ses \`zones\` (\`ECRIT_LU\`) saute quand chaque fichier du diff est
-dans un dossier de zone hors de \`src/\` qu'elle ne lit pas, ou documentaire (#4903 L4).
+dans un dossier de zone hors de \`src/\` qu'elle ne lit pas, ou documentaire (#4903 L4). Il écrit aussi la zone
+du push (\`zoneDuPush\`) : quand chaque fichier changé que la suite lit est sous le dossier d'un seul projet, chaque tranche de la
+suite ne joue que les tests qui peuvent lire ce projet (\`scripts/test/selectionDeZone.mjs\`, #5037 L2) ; une
+tranche vide rend vert, et tout ce que la sélection ne sait pas classer joue.
 
 \`npm run ops:publier\` joue le train : push de la BRANCHE, PR armée, attente de la fusion
 par la file, pilotage. Il refuse à la première étape rouge en la nommant,

@@ -16,6 +16,10 @@ export const COMMANDE_ARBRE_INCHANGE = 'git status --porcelain && test -z "$(git
 export const COMMANDE_VERSION_PYTHON_3D =
   `node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"`
 
+/** Commande EXACTE du step du job `migrations` de `ci.yml` (#5037) qui dépose les GLB épinglés dans le cache des modèles
+ *  (`recupererModeles`, hotes/godot/asset/release.ts), celui que `personnage-3d:tests` lit. */
+export const COMMANDE_RECUPERER_MODELES = 'node hotes/godot/asset/recuperer-modeles.mjs'
+
 /** Commande EXACTE du step de `ci.yml` qui installe le rendu logiciel de `godot:rendus` (#3951) : l'écran virtuel, le
  *  rendu logiciel d'OpenGL (llvmpipe) et de Vulkan (lavapipe), et les bibliothèques X11 que Godot ouvre. */
 export const COMMANDE_RENDU_LOGICIEL =
@@ -24,6 +28,10 @@ export const COMMANDE_RENDU_LOGICIEL =
 /** Commande EXACTE du step de `ci.yml` qui installe le navigateur épinglé de `roguelite:recette` (#5010) : le Chromium que
  *  le Playwright des devDependencies nomme (`EPINGLE`, scripts/recette/navigateur.mjs). */
 export const COMMANDE_NAVIGATEUR_EPINGLE = 'npx playwright install chromium'
+
+/** Commande EXACTE du step du job `suite` de `ci.yml` (#5037 L2) : la zone du push (`outputs.zone` du prologue,
+ *  `scripts/gates/sauteesDuPush.mjs`) posée dans l'environnement des steps suivants, où `scripts/test/run.mjs` la lit. */
+export const COMMANDE_ZONE_DU_PUSH = 'echo "WFRP_TEST_ZONE=${{ steps.prologue.outputs.zone }}" >> "$GITHUB_ENV"'
 
 /**
  * Steps de `ci.yml` qui ne sont PAS une gate locale, chacun avec sa raison. La liste est exhaustive
@@ -37,9 +45,14 @@ export const CI_SEULEMENT = {
   [COMMANDE_VERSION_PYTHON_3D]:
     'prépare `actions/setup-python` sur le runner — localement, `environnement.mjs` cherche lui-même cette version parmi ' +
     'ses `CANDIDATS`',
+  [COMMANDE_RECUPERER_MODELES]:
+    'dépose sur le runner du job `migrations` les GLB épinglés que `personnage-3d:tests` lit dans le cache des modèles, et les textures épinglées du projet — ' +
+    'localement, `godot:sonde` les y dépose avant lui dans la lane `types`',
   [COMMANDE_RENDU_LOGICIEL]:
     'installe sur le runner l’écran virtuel et le rendu logiciel que `godot:rendus` demande — localement, un poste à ' +
     'écran rend sur sa carte graphique, et un conteneur les installe une fois',
+  [COMMANDE_ZONE_DU_PUSH]:
+    'pose la zone du push dans l’environnement de la tranche — localement, la variable absente joue la suite entière',
   [COMMANDE_NAVIGATEUR_EPINGLE]:
     'installe sur le runner le Chromium épinglé de `roguelite:recette` — localement, `lancerLeNavigateurEpingle` refuse ' +
     'tout autre navigateur et nomme celui qu’il attend',
@@ -64,10 +77,20 @@ export const JOBS_HORS_REJEU_LOCAL = {
   [JOB_DE_BRANCHE]:
     'la course de branche rejoue un SOUS-ENSEMBLE des gates de la course de file : `typecheck` est déjà une gate ' +
     'de la lane `types`, et `test:perimetre` est le geste local de l’agent',
-  migrations:
+}
+
+/**
+ * Steps de `ci.yml`, par commande EXACTE, qui ne se rejouent PAS localement, avec leur raison : les autres steps de
+ * leur job se rejouent. Nominatif : un step neuf est rejoué tant qu'il n'est pas nommé ici.
+ */
+export const STEPS_HORS_REJEU_LOCAL = {
+  'npm run migrations:replay':
     'rejeu EN PLACE des migrations : le jouer sur un arbre de travail réécrit src/data et src/scenes ' +
     'et rend un verdict faux (#1613) — localement, il se joue sur un EXPORT de la tête, ' +
     '`npm run migrations:replay:head`',
+  'npm run migrations:replay:croissance':
+    'sans argument, il juge l’arbre git de `HEAD`, pas l’arbre de travail que le rejeu local juge — localement, ' +
+    '`npm run migrations:replay:croissance -- --arbre`',
 }
 
 /**
@@ -85,8 +108,15 @@ export const LANE_LOCALE_DE_JOB = {
   godot: {
     lane: 'types',
     raison:
-      '`godot:sonde`, `godot:web` et `personnage-3d:tests` ont leur job pour raccourcir le chemin critique de la CI (#3412) ; le ' +
+      '`godot:sonde`, `godot:web` et `godot:coop` ont leur job pour raccourcir le chemin critique de la CI (#3412) ; le ' +
       'rejeu local tient `PLAFOND_LANES` lanes, et `types` les porte',
+  },
+  migrations: {
+    lane: 'types',
+    raison:
+      '`personnage-3d:tests` (#3145) suit le rejeu des migrations sur son runner pour raccourcir le chemin critique de la ' +
+      'CI (#5037) ; le rejeu local tient `PLAFOND_LANES` lanes, et `types` le porte, après `godot:sonde`, qui remplit le ' +
+      'cache des modèles qu’il lit',
   },
   'godot-rendus': {
     lane: 'types',
@@ -210,7 +240,8 @@ export function stepsCi({ cwd = process.cwd(), fichier } = {}) {
 }
 
 /**
- * Gates de `.github/workflows/ci.yml`, DANS L'ORDRE DU FICHIER, hors `JOBS_HORS_REJEU_LOCAL`. Aucun
+ * Gates de `.github/workflows/ci.yml`, DANS L'ORDRE DU FICHIER, hors `JOBS_HORS_REJEU_LOCAL` et
+ * `STEPS_HORS_REJEU_LOCAL`. Aucun
  * nom n'est recopié ici : un step ajouté à la CI devient rejouable localement sans qu'on touche au
  * lanceur. Un step qui n'est ni `npm test`/`npm run <x>` ni une entrée de `CI_SEULEMENT`, ou qui
  * porte une clé non inerte, LÈVE : le classement est une décision, pas un silence.
@@ -224,7 +255,7 @@ export function gatesDeCi({ cwd = process.cwd(), fichier } = {}) {
   const gates = []
   const vus = new Map()
   for (const { job, commande, cles, si } of stepsCi({ cwd, fichier })) {
-    if (job in JOBS_HORS_REJEU_LOCAL) continue
+    if (job in JOBS_HORS_REJEU_LOCAL || commande in STEPS_HORS_REJEU_LOCAL) continue
     const nom = nomDeGate(commande)
     const parasites = cles.filter((c) => !CLES_DE_STEP_INERTES.includes(c))
     if (nom && parasites.length)

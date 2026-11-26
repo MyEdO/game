@@ -16,7 +16,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { lancerTests } from './run.mjs'
 import { prendreVerrou } from './verrou.mjs'
-import { VARIABLE_PARTIE } from './partition.mjs'
+import { VARIABLE_PARTIE, VARIABLE_ZONE, partieDuFichier } from './partition.mjs'
 import { estPidVivantDepuis } from '../guards/lib/pid.mjs'
 import { IDENTITE_MESUREE } from './identiteMesuree.mjs'
 import { CODE_DIFFERE } from '../guards/lib/codesDeSortie.mjs'
@@ -41,6 +41,7 @@ const fixtureRun = (t) => {
   mkdirSync(traces)
   const env = { ...process.env, WFRP_TEST_COEURS: '4', WFRP_TEST_MEMOIRE_MO: '65536', TRACE_DOSSIER: traces }
   delete env[VARIABLE_PARTIE]
+  delete env[VARIABLE_ZONE]
   return { racine, traces, verrou: { chemin: join(racine, 'geste.verrou'), libelle: 'fixture' }, env }
 }
 
@@ -195,6 +196,41 @@ test('lancerTests : sous PARTIE, Vitest joue EXACTEMENT la tranche — les K par
     joues.push(...inclus)
   }
   assert.deepEqual(joues.sort(), [...suite].sort(), 'les parties jouées ne partitionnent pas la suite')
+})
+
+test('lancerTests : sous PARTIE et ZONE, Vitest joue la sélection de la zone ; une sélection en échec joue la suite (#5037 L2)', async (t) => {
+  const suite = Array.from({ length: 6 }, (_, n) => `moteur${n}.test.ts`)
+  const cas = [
+    ['sélection', () => ({ fichiers: suite.slice(0, 2), entiere: null, motifs: { lecteur: 2 } }), suite.slice(0, 2)],
+    ['échec', () => { throw new Error('graphe illisible') }, suite],
+  ]
+  for (const [nom, selectionner, attendus] of cas) {
+    const p = fixtureRun(t)
+    writeFileSync(join(p.racine, 'node_modules/vitest/vitest.mjs'), VITEST_DE_PARTIE)
+    for (const n of suite) writeFileSync(join(p.racine, n), 'export {}\n')
+    const demandes = []
+    const code = await lancerTests({ ...p, argv: [], enumerer: () => suite,
+      selectionner: (entree) => { demandes.push(entree); return selectionner() },
+      env: { ...p.env, WFRP_TEST_COEURS: '16', [VARIABLE_PARTIE]: '1/1', [VARIABLE_ZONE]: 'roguelite' } })
+    assert.equal(code, 0, nom)
+    assert.deepEqual(demandes.map(({ suite: s, zone }) => [s, zone]), [[suite, 'roguelite']], nom)
+    assert.deepEqual(lancementsDe(p.traces).flatMap(([, , include]) => include).sort(), [...attendus].sort(), nom)
+  }
+})
+
+test('lancerTests : sous ZONE, une tranche vide rend 0 sans lancer Vitest ; sans ZONE, la sélection n’est pas consultée (#5037 L2)', async (t) => {
+  const p = fixtureDeTranche(t)
+  const vus = []
+  let selections = 0
+  const code = await lancerTests({ ...p, argv: [], enfant: espionDe(vus, p.verrou.chemin),
+    selectionner: () => { selections++; return { fichiers: ['moteur.test.ts'], entiere: null, motifs: { lecteur: 1 } } },
+    env: { ...p.env, [VARIABLE_PARTIE]: `${3 - partieDuFichier('moteur.test.ts', 2)}/2`, [VARIABLE_ZONE]: 'roguelite' } })
+  assert.equal(code, 0)
+  assert.equal(selections, 1)
+  assert.deepEqual(vus, [])
+  const sans = fixtureDeTranche(t)
+  await lancerTests({ ...sans, argv: [], selectionner: () => { selections++; return { fichiers: [], entiere: null, motifs: {} } } })
+  assert.equal(selections, 1)
 })
 
 test('lancerTests : annulation avant principal interdit aussi énumération PARTIE', async (t) => {

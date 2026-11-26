@@ -27,7 +27,7 @@ function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number })
     advantage: 0, conditions: [], armour: {} as never, skills: [], talents: [], movement: 4 }) as Combatant;
 }
 function input(enemy: Combatant, heroes: Combatant[], squad: Combatant[]): EnemyTurnInput {
-  return { enemy, heroes, scene, blocked: new Set([...heroes, ...squad].map((c) => `${c.pos!.x},${c.pos!.y}`)), movement: enemy.movement, spells: [castable()], squad };
+  return { enemy, heroes, scene, env: { blocked: new Set([...heroes, ...squad].map((c) => `${c.pos!.x},${c.pos!.y}`)) }, movement: enemy.movement, spells: [castable()], squad };
 }
 
 describe('IA — tir ami d’une ZdE de contrôle', () => {

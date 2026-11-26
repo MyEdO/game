@@ -98,7 +98,7 @@ export const COUCHES = Object.freeze({
     },
     paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
   },
-  roguelite: ligneDeProjet('projets/roguelite', { engine: 4932, data: 4933, schemas: 4933, scenes: 4933, noyau: 4931 }, {
+  roguelite: ligneDeProjet('projets/roguelite', { engine: 4932, noyau: 4931 }, {
     outillage: {
       'projets/roguelite/recette/commun.mjs': ['scripts/recette/navigateur.mjs'],
       'projets/roguelite/recette/images.mjs': ['scripts/recette/ecart.mjs'],

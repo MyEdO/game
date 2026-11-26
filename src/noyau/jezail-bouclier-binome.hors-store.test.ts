@@ -48,7 +48,7 @@ function technomage(pos: { x: number; y: number }): Combatant {
 
 const tenu = (c: Combatant, trappingId: string): Weapon => c.weapons.find((w) => w.trappingId === trappingId)!;
 const adverse = (kind: Combatant['kind']): Combatant['kind'] => (kind === 'heros' ? 'ennemi' : 'heros');
-const combat = (combatants: Combatant[]) => ({ combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, movementUsed: 0, reachable: new Map(), log: [] }) as unknown as BattleState;
+const combat = (combatants: Combatant[]) => ({ combatants, order: combatants.map((c) => c.id), turn: 0, round: 1, acted: false, movementUsed: 0, action: null, reachable: new Map(), log: [] }) as unknown as BattleState;
 const ARC: Weapon = { label: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, range: 50, qualities: [] } as Weapon;
 const EPEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: false, flat: 12 }, qualities: [] } as Weapon;
 
@@ -146,16 +146,16 @@ describe.each([
       const P = porteur('partenaire', kind, { x: 2, y: 10 }, [BOUCLIER]);
       const T = tireur({ x: 2, y: 11 });
       const cible = combattantDeTest({ id: 'cible', label: 'cible', kind: adverse(kind), pos: { x: cibleX, y: 10 } });
-      const input: EnemyTurnInput = { enemy: P, heroes: [cible], scene, blocked: new Set([`${cibleX},10`, '2,11']), movement: 4, spells: [], squad: avecTireur ? [T] : [] };
+      const input: EnemyTurnInput = { enemy: P, heroes: [cible], scene, env: { blocked: new Set([`${cibleX},10`, '2,11']) }, movement: 4, spells: [], squad: avecTireur ? [T] : [] };
       const action = chooseEnemyAction(input);
-      return { action, ...aiApproachPlan(input, P, action, makeRNG(3)) };
+      return { action, ...aiApproachPlan(input, action, { charge: 8, course: 12 }) };
     };
     const charge = plan(8, true);
-    expect(charge.ran).toBeNull();
+    expect(charge.allure).toBe('charge');
     expect((charge.plan as { to: { x: number } }).to.x).toBe(7);
-    expect(plan(25, false).ran, 'hors binôme, il court').not.toBeNull();
+    expect(plan(25, false).allure, 'hors binôme, il court').toBe('course');
     const course = plan(25, true);
-    expect(course.ran).toBeNull();
+    expect(course.allure).toBe('marche');
     expect(course.plan).toBe(course.action);
   });
 });

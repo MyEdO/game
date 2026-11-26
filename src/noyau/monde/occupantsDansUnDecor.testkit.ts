@@ -3,7 +3,7 @@
  * décor SOLIDE de `props.json` couvre TOUTES ses cases dans TOUTE scène livrée, y compris
  * celles compilées par `MapSpec` — qui posent leurs entités sans passer par l'éditeur et n'ont donc
  * jamais porté d'empreinte d'instance. Personne ne doit naître DANS un décor : ce balayage affirme
- * qu'aucune entité NON-prop (héros, PNJ, ennemi de rencontre expansé par `setEncounters`) ne se tient
+ * qu'aucune entité NON-prop (héros, PNJ, ennemi de rencontre expansé par `avecRencontres`) ne se tient
  * sur une case couverte par l'empreinte effective d'un prop solide de la MÊME couche.
  *
  * Joué par le commun (`src/noyau/monde/prop-footprint-occupancy.test.ts`) et par chaque projet sur ses scènes.

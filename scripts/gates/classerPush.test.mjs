@@ -27,6 +27,8 @@ import {
   DOSSIERS_HORS_DE_SRC,
   gatesSautables,
   gatesSautees,
+  zoneDuDiff,
+  zoneDuPush,
 } from './classerPush.mjs'
 import { envDeDepotForge, envGitFeint, sousGitFeint } from '../guards/lib/depotGabarit.mjs'
 import { gatesDeCi, jobsRequis, stepsCi, CI_SEULEMENT } from './gatesDeCi.mjs'
@@ -212,7 +214,7 @@ test('chaque job à check requis ouvre sur le PROLOGUE, et le rejeu des migratio
   )
 })
 
-test('le prologue classe le push AVANT `npm ci`, en tire les gates sautées APRÈS, et les expose en `produit` et `sautees`', () => {
+test('le prologue classe le push AVANT `npm ci`, en tire les gates sautées et la zone APRÈS, et les expose en `produit`, `sautees` et `zone`', () => {
   const texte = readFileSync(join(RACINE, ACTION_PROLOGUE), 'utf8')
   const commandes = stepsCi({ fichier: join(RACINE, ACTION_PROLOGUE) }).map((s) => s.commande)
   const iClasser = commandes.indexOf(COMMANDE_CLASSER)
@@ -227,8 +229,32 @@ test('le prologue classe le push AVANT `npm ci`, en tire les gates sautées APR�
   assert.ok(iInstall < iSautees, 'les gates sautées lisent `ECRIT_LU`, qui atteint des paquets : elles suivent `npm ci`')
   assert.match(texte, /^ {2}sautees:\n(?: {4}.*\n)*? {4}value: \$\{\{ steps\.sautees\.outputs\.sautees \}\}$/m,
     `${ACTION_PROLOGUE} n’expose plus les gates sautées : « ${conditionDeSaut('<gate>')} » lirait un output vide et TOUT jouerait`)
+  assert.match(texte, /^ {2}zone:\n(?: {4}.*\n)*? {4}value: \$\{\{ steps\.sautees\.outputs\.zone \}\}$/m,
+    `${ACTION_PROLOGUE} n’expose plus la zone du push : la tranche de la suite jouerait la suite entière`)
   assert.match(texte, /^ {2}produit:\n(?: {4}.*\n)*? {4}value: \$\{\{ steps\.classer\.outputs\.produit \}\}$/m,
     `${ACTION_PROLOGUE} n’expose plus le classement : « ${CONDITION_PRODUIT} » lirait un output vide et TOUT jouerait`)
+})
+
+test('zoneDuDiff : le projet qui contient CHAQUE fichier du diff, sinon null (#5037 L2)', () => {
+  assert.equal(zoneDuDiff(['projets/roguelite/a.ts', 'projets/roguelite/b/c.json']), 'roguelite')
+  assert.equal(zoneDuDiff(['projets/jeu-de-role/a.ts']), 'jeu-de-role')
+  assert.equal(zoneDuDiff([]), null, 'un diff vide n’est d’aucune zone')
+  assert.equal(zoneDuDiff(['projets/roguelite/a.ts', 'src/noyau/b.ts']), null, 'un fichier hors du projet')
+  assert.equal(zoneDuDiff(['src/noyau/b.ts', 'projets/roguelite/a.ts']), null, 'le premier fichier hors du projet')
+  assert.equal(zoneDuDiff(['projets/roguelite/a.ts', 'projets/jeu-de-role/a.ts']), null, 'deux projets')
+  assert.equal(zoneDuDiff(['projets/roguelite-bis/a.ts']), null, 'un dossier qui ne fait que commencer comme un projet')
+  assert.equal(zoneDuDiff(['projets/a.md']), null, 'un fichier posé à même projets/')
+})
+
+test('zoneDuPush : la zone des seuls fichiers que la suite lit — un solde documentaire n’en sort pas le push (#5037 L2)', () => {
+  const ecritLu = { test: { lit: ['src/', 'projets/'] } }
+  assert.equal(zoneDuPush(['projets/roguelite/a.ts', '.claude/soldes/1.md'], { ecritLu }), 'roguelite')
+  assert.equal(zoneDuPush(['.claude/soldes/1.md'], { ecritLu }), null, 'rien que la suite lise')
+  assert.equal(zoneDuPush(['projets/roguelite/a.ts', '.claude/soldes/1.md'], { ecritLu: { test: { lit: ['projets/', '.claude/'] } } }), null,
+    'une suite qui lit le documentaire le compte')
+  assert.equal(zoneDuPush(['projets/roguelite/a.ts', '.claude/skills/m/hooks/x.ts'], { ecritLu, mods: ['.claude/skills/m/'] }), null,
+    'une racine de mod est produit')
+  assert.equal(zoneDuPush(['projets/roguelite/a.ts', '.claude/soldes/1.md'], { ecritLu: {} }), null, 'une suite sans `lit` mesuré lit tout')
 })
 
 test('jetonNomme : un jeton se nomme comme SEGMENT de chemin entier — jamais dans un sélecteur CSS', () => {
@@ -359,7 +385,7 @@ test('CLI — une branche qui ne touche qu’un module de mod sort `produit=true
   }
 })
 
-test('CLI des gates sautées — une branche du seul roguelite écrit `sautees= <nom> … ` avec les gates Godot', () => {
+test('CLI des gates sautées — une branche du seul roguelite écrit `sautees= <nom> … ` avec les gates Godot, puis `zone=roguelite`', () => {
   const { racine, git } = depotJetable()
   try {
     ecrire(racine, 'projets/roguelite/a.ts', 'export const a = 1\n')
@@ -369,7 +395,7 @@ test('CLI des gates sautées — une branche du seul roguelite écrit `sautees= 
     assert.equal(vu.status, 0, vu.stderr)
     const attendues = [...gatesSautees(['projets/roguelite/a.ts'], { gates, ecritLu: ECRIT_LU })]
     assert.ok(attendues.includes('godot:rendus'), `le cas ne mesure rien : ${attendues}`)
-    assert.equal(vu.stdout, `sautees= ${attendues.join(' ')} \n`)
+    assert.equal(vu.stdout, `sautees= ${attendues.join(' ')} \nzone=roguelite\n`)
     for (const nom of attendues) assert.ok(vu.stdout.includes(` ${nom} `), `« ${conditionDeSaut(nom)} » ne lirait pas ${nom}`)
   } finally {
     rmSync(racine, { recursive: true, force: true })

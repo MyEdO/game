@@ -76,6 +76,8 @@ import { readFileSync, statSync } from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileResilient } from '../guards/lib/spawnResilient.mjs'
+import { cheminAbsent } from '../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 import { estPorteurDeStock, nonCouvertesDuBilan, raisonDeRefus } from '../guards/lib/stocksNominatifs.mjs'
 import { bilanDuCommit, entreeDeFusion, lecturesDeFusion } from '../guards/lib/plageStock.mjs'
 import {
@@ -606,9 +608,12 @@ export function evaluate({ message, commentaire, today, readSoldes, soldeOnDisk 
 }
 
 /** Lecture du solde d'un ticket sur le DISQUE de `dir` — le répertoire où le commit s'exécute, comme
- *  tout ce que cette porte lit. `null` si absent/illisible. */
+ *  tout ce que cette porte lit. `null` s'il est absent (`cheminAbsent`) ; toute autre erreur de lecture lève. */
 export function readSoldeFile(n, dir = process.cwd()) {
-  try { return readFileSync(join(dir, cheminDuSolde(n)), 'utf8') } catch { return null }
+  try { return readFileSync(join(dir, cheminDuSolde(n)), 'utf8') } catch (erreur) {
+    if (cheminAbsent(erreur)) return null
+    throw erreur
+  }
 }
 
 /** Le chemin du solde du ticket `n`, relatif à la racine du dépôt. */
@@ -936,7 +941,7 @@ export function refusDesPannes(pannes, { cwd = null, horsDepot = false } = {}) {
  * @param {string} [dir]
  * @param {{ pannes?: string[], depot?: import('../guards/lib/gitPorte.mjs').Depot }} [options]
  */
-export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAuxPannes(dir, pannes) } = {}) {
+export function diffDuCommit(dir = process.cwd(), { pannes = [], depot = depotAuxPannes(dir, pannes, { porte: porteDeTousLesProjets }) } = {}) {
   let head
   /** Le sha de HEAD, lu une fois ; `null` sans premier commit (ou en panne, confiée à `pannes`). */
   const shaDeHead = () => (head === undefined ? (head = shaDe(depot, 'HEAD')) : head)

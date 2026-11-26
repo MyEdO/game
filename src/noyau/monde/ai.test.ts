@@ -52,7 +52,7 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
     enemy,
     heroes,
     scene,
-    blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)),
+    env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) },
     movement: enemy.movement,
     spells: [],
     ...extra,
@@ -171,7 +171,7 @@ describe("IA d'ennemi (chooseEnemyAction, pure)", () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { movement: 4 });
     const h = mk('h', 'heros', { x: 1, y: 1 });
     const blocked = new Set(['4,5', '6,5', '5,4', '5,6', '4,4', '6,4', '4,6', '6,6']); // 8 voisins bloqués (encerclement complet, grille 8-connexe)
-    expect(chooseEnemyAction(input(e, [h], { blocked })).kind).toBe('fin');
+    expect(chooseEnemyAction(input(e, [h], { env: { blocked } })).kind).toBe('fin');
   });
 });
 
@@ -202,7 +202,7 @@ describe('IA — vision réciproque (perceived)', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { movement: 4 });
     const h = mk('h', 'heros', { x: 1, y: 1 });
     const blocked = new Set(['4,5', '6,5', '5,4', '5,6', '4,4', '6,4', '4,6', '6,6']); // 8 voisins bloqués (encerclement complet, grille 8-connexe)
-    expect(chooseEnemyAction(input(e, [h], { perceived: new Set(), blocked })).kind).toBe('fin');
+    expect(chooseEnemyAction(input(e, [h], { perceived: new Set(), env: { blocked } })).kind).toBe('fin');
   });
   it('perçoit une cible au tir → la vise', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [RANGED] });

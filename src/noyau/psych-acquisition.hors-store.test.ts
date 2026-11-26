@@ -418,13 +418,13 @@ describe('#4056 — Trauma sur Ambition anéantie (Effet d’auteur `ambitionLos
 describe('#62 — persistance des Traits psy acquis + Terreurs subies (writeback de combat)', () => {
   it('carryOverState reporte psychTraits acquis SANS mutation + les Terreurs subies', () => {
     const h = hero({ psychTraits: [{ type: 'phobie', cible: ciblePsy.groupe('mort-vivant') }], terreursSubies: [{ brise: 2, groupes: ['skaven'] }] });
-    const co = carryOverState(h);
+    const co = carryOverState(h, { lignes: [], faits: [] });
     expect(co.psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('mort-vivant') }]);
     expect(co.terreursSubies).toEqual([{ brise: 2, groupes: ['skaven'] }]);
   });
 
   it('carryOverState : le combattant EST le héros — un compteur absent revient absent (#2312)', () => {
-    expect(carryOverState(hero({})).terreursSubies).toBeUndefined();
-    expect(carryOverState(hero({ psychTraits: [] })).psychTraits).toEqual([]);
+    expect(carryOverState(hero({}), { lignes: [], faits: [] }).terreursSubies).toBeUndefined();
+    expect(carryOverState(hero({ psychTraits: [] }), { lignes: [], faits: [] }).psychTraits).toEqual([]);
   });
 });

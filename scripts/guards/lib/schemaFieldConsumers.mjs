@@ -3,6 +3,7 @@ import { basename, dirname, join, relative, resolve } from 'node:path'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import { SymbolFlags, TypeFlags } from 'typescript/unstable/sync'
 import { programmeDesChamps } from './fieldConsumers.mjs'
+import { membresDe } from './tsProgram.mjs'
 import { estModule } from './importGraph.mjs'
 import { listerArbre } from './lister.mjs'
 import { RACINES_PRESENTES } from './racinesPresentes.mjs'
@@ -28,7 +29,7 @@ const PORTES = {
   deDeTirageDe: { module: 'src/data/schemas/rangees.ts', champ: 'die' },
   deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: 'die' },
 }
-const parts = type => type?.isUnionType() || type?.isIntersectionType() ? type.getTypes().flatMap(parts) : type ? [type] : []
+const parts = type => type?.isUnionType() || type?.isIntersectionType() ? membresDe(type).flatMap(parts) : type ? [type] : []
 const step = (checker, types, key, node) => types.flatMap(type => parts(type).flatMap(t => {
   if (key === '[]') return checker.isArrayType(t) || checker.isTupleType(t) ? checker.getTypeArguments(t) : checker.getIndexInfosOfType(t).filter(i => i.keyType.flags & TypeFlags.NumberLike).map(i => i.valueType)
   if (key === '{}') {
@@ -38,6 +39,11 @@ const step = (checker, types, key, node) => types.flatMap(type => parts(type).fl
   const prop = checker.getPropertyOfType(t, key)
   return prop && !prop.declarations.some(d => d.resolve().getSourceFile().fileName.endsWith('.json')) ? [checker.getTypeOfSymbolAtLocation(prop, node)] : []
 }))
+
+const estFonction = fn => !!fn && (ts.isArrowFunction(fn) || ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn))
+const renduDe = fn => fn?.body && (ts.isBlock(fn.body) ? fn.body.statements.find(ts.isReturnStatement)?.expression : fn.body)
+const rendJsonParse = fn => { const body = renduDe(fn); return !!body && ts.isCallExpression(body) && body.expression.getText() === 'JSON.parse' }
+const nomLitteral = name => name && (ts.isIdentifier(name) || ts.isPrivateIdentifier(name) || ts.isStringLiteralLikeNode(name) || ts.isNumericLiteral(name)) ? name.text : null
 
 const expandPath = path => path.reduce((paths, key) => paths.flatMap(p => (Array.isArray(key) ? key : [key]).map(k => [...p, k])), [[]])
 
@@ -152,8 +158,26 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
   const functionOf = expr => {
     const declaration = checker.getSymbolAtLocation(expr)?.declarations?.[0]?.resolve()
     const fn = declaration?.initializer ?? declaration
-    return fn && (ts.isArrowFunction(fn) || ts.isFunctionDeclaration(fn) || ts.isFunctionExpression(fn)) ? fn : null
+    return estFonction(fn) ? fn : null
   }
+  // Les noms des déclarations qui portent une fonction du Program rendant `JSON.parse(…)` (`null` : un nom non
+  // littéral) : `functionOf` d'un identifiant ou d'un accès `x.nom` rend la déclaration de son symbole, qui porte ce nom.
+  const nomsDesChargeurs = new Set()
+  for (const file of program.getSourceFileNames()) {
+    if (/\.d\.[cm]?ts$/.test(file)) continue
+    const sf = program.getSourceFile(file)
+    if (!sf.text.includes('JSON.parse')) continue
+    const visiter = node => {
+      if (estFonction(node) && rendJsonParse(node)) {
+        if (node.parent?.initializer === node) nomsDesChargeurs.add(nomLitteral(node.parent.name))
+        if (ts.isFunctionDeclaration(node) || (ts.isFunctionExpression(node) && node.name)) nomsDesChargeurs.add(nomLitteral(node.name))
+      }
+      node.forEachChild(visiter)
+    }
+    visiter(sf)
+  }
+  const chargeurPossible = callee => nomsDesChargeurs.has(null) || !(ts.isIdentifier(callee) || ts.isPropertyAccessExpression(callee))
+    || nomsDesChargeurs.has(ts.isIdentifier(callee) ? callee.text : callee.name.text)
   const porteDuDocument = call => {
     const nom = !ts.isCallExpression(call) ? null : ts.isIdentifier(call.expression) ? call.expression.text : ts.isPropertyAccessExpression(call.expression) ? call.expression.name.text : null
     const fn = nomsDeLaPorte.has(nom) && resolvedSymbol(call.expression)?.declarations?.[0]?.resolve()
@@ -247,10 +271,9 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
     if (ts.isCallExpression(node)) {
       const porte = porteDuDocument(node)
       if (porte) return porte.rendJson ? { file: porte.file, path: porte.path } : null
-      const fn = functionOf(node.expression)
-      const body = fn?.body && (ts.isBlock(fn.body) ? fn.body.statements.find(ts.isReturnStatement)?.expression : fn.body)
-      if (body && ts.isCallExpression(body) && body.expression.getText() === 'JSON.parse') {
-        const load = body.arguments[0]
+      const fn = chargeurPossible(node.expression) ? functionOf(node.expression) : null
+      if (rendJsonParse(fn)) {
+        const load = renduDe(fn).arguments[0]
         if (load && ts.isCallExpression(load) && isReadFile(load.expression)) {
           const bindings = new Map(fn.parameters.map((p, i) => [checker.getSymbolAtLocation(p.name), stringOf(node.arguments[i])]))
           const file = datasetAt(stringOf(load.arguments[0], new Set(), bindings))
@@ -259,6 +282,17 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
       }
     }
     return null
+  }
+  // Toute chaîne d'accès lue remonte à son identifiant de base : leurs symboles se demandent en un lot par fichier.
+  if (lectures) for (const file of program.getSourceFileNames()) {
+    if (!retained.has(norm(resolve(file)))) continue
+    const bases = []
+    const collect = node => {
+      if ((ts.isPropertyAccessExpression(node) || ts.isElementAccessExpression(node)) && ts.isIdentifier(node.expression)) bases.push(node.expression)
+      node.forEachChild(collect)
+    }
+    collect(program.getSourceFile(file))
+    if (bases.length) checker.getSymbolAtLocation(bases)
   }
     const scan = () => {
     for (const file of program.getSourceFileNames()) {
@@ -281,7 +315,7 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
         }
         if (ts.isCallExpression(node) && node.typeArguments?.length) {
           const fn = functionOf(node.expression)
-          const body = fn?.body && (ts.isBlock(fn.body) ? fn.body.statements.find(ts.isReturnStatement)?.expression : fn.body)
+          const body = renduDe(fn)
           if (body && ts.isAsExpression(body) && ts.isIdentifier(body.expression)) {
             const index = fn.parameters.findIndex(p => ts.isIdentifier(p.name) && p.name.text === body.expression.text)
             const o = index >= 0 && origin(node.arguments[index])
@@ -310,7 +344,7 @@ function relierChargements(root, session, { files, definitions = SCHEMA_DEFS, le
       if (!typedOrigins.has(type.id)) typedOrigins.set(type.id, o)
       else if (JSON.stringify(typedOrigins.get(type.id)) !== JSON.stringify(o)) typedOrigins.set(type.id, null)
       if (checker.isArrayType(type) || checker.isTupleType(type)) for (const element of checker.getTypeArguments(type)) addOrigin(element, { ...o, path: [...o.path, '[]'] }, seen)
-      if (type.isUnionType() || type.isIntersectionType()) for (const member of type.getTypes()) addOrigin(member, o, seen)
+      if (type.isUnionType() || type.isIntersectionType()) for (const member of membresDe(type)) addOrigin(member, o, seen)
     }
     for (const c of claims) addOrigin(c.type, { file: c.file, path: c.path })
     originCache.clear()

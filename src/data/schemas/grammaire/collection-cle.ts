@@ -117,7 +117,7 @@ export function marqueDeRecord(options: { readonly sous?: string; readonly espac
 }
 
 /** Les CARTES d'un record marqué parmi `noeuds` : les nœuds eux-mêmes, ou ceux de leur champ `sous`. */
-const cartesDuRecord = (noeuds: readonly unknown[], marque: Extract<MarqueDeCollection, { forme: 'record' }>): unknown[] =>
+const cartesDuRecord = (noeuds: readonly unknown[], marque: Extract<MarqueDeCollection, { forme: 'record' }>): readonly unknown[] =>
   marque.sous === undefined ? ouverts(noeuds) : ouverts(pasDeDonnee(ouverts(noeuds), marque.sous));
 
 /** Les nœuds de schéma d'un ÉLÉMENT de la collection marquée `marque` portée par `noeuds` : l'élément
@@ -128,7 +128,7 @@ export function noeudsDeLElement(noeuds: readonly unknown[], marque: MarqueDeCol
 }
 
 /** Les nœuds de schéma qui portent la CLÉ d'un élément de la collection marquée. */
-function noeudsDeCle(noeud: unknown, marque: MarqueDeCollection): unknown[] {
+function noeudsDeCle(noeud: unknown, marque: MarqueDeCollection): readonly unknown[] {
   if (marque.forme === 'liste') return ouverts(pasDeDonnee(ouverts(noeudsDeLElement([noeud], marque)), marque.nom));
   return cartesDuRecord([noeud], marque).flatMap((n) => enfantsDe(n).filter((e) => e.segment === '{clé}').map((e) => e.noeud));
 }

@@ -1,10 +1,10 @@
 /**
  * LES GESTES D'UN OBJET (#3328) — ce qu'un porteur peut faire d'un de ses objets depuis sa fiche, chaque geste écrit en
- * verbe du noyau, et ce qui le ferme maintenant : le porter (`equiperLObjet`), le tenir dans une main du set actif
+ * verbe du noyau, et ce qui le ferme maintenant : le porter (`equiperLObjet`), le tenir dans une main du set désigné ou actif
  * (`garnirLaPanoplie`), le ranger dans un contenant ou l'en sortir (`rangerLObjet`), le donner à un porteur à ses côtés
  * (`transmettreLObjet`), le poser au sol (`poserLObjet`), l'utiliser (`utiliserLObjet`), l'évaluer ou le détecter (`evaluerLObjet`). Chaque refus est le verdict
  * que le verbe applique. Lecteur PUR, lu par la fiche de personnage et par les
- * hôtes du noyau (`hote/ecran.ts`).
+ * hôtes du noyau (`hote/ecran.ts`). Prendre un set d'armes (`prendreLaPanoplie`) s'offre par `gesteDeLaPanoplie`.
  */
 import type { Jeu } from './etat';
 import type { GesteDuNoyau, GesteFermable } from './actionsDuNoyau';
@@ -22,6 +22,8 @@ import { refusDEvaluation } from './merchantFlow';
 import { dayIndex } from '../engine/clock';
 import { refusDePoser } from './objetsAuSol';
 import { nomDe } from '../engine/nom';
+import { actorIn } from './monde/combatants';
+import { refusDePrendreLaPanoplie } from './combatSlice';
 import type { SansMarqueNonAffichable } from '../i18n/playerText';
 
 /** Une main du set actif : si elle tient l'objet (son geste la vide alors). */
@@ -35,7 +37,7 @@ export interface GesteAChoix<T> { refus: string | null; choix: { cible: T; libel
 export interface GestesDeLObjet {
   /** Un objet porté sur le corps (`isWearable`), hors consommable : s'il est porté. */
   porter: (GesteFermable & { porte: boolean }) | null;
-  /** Une arme d'un héros : chaque main du set actif (`set`, son id). */
+  /** Une arme d'un héros : chaque main du set désigné, à défaut du set actif (`set`, son id). */
   mains: { set: string; main: MainDuSet; secondaire: MainDuSet } | null;
   /** Un objet en vrac qui tient dans un contenant du porteur (`canStow`) : chacun de ces contenants. */
   ranger: GesteAChoix<ItemInstance> | null;
@@ -57,8 +59,10 @@ export interface GestesDeLObjet {
 const porteurDit = (c: Carrier): [id: string, libelle: string] => (c.kind === 'heros' ? [c.hero.id, nomDe(c.hero)] : [c.possession.uid, possessionLabel(c.possession)]);
 
 /** Les gestes de l'objet `uid` du porteur `porteurId` (`resolveCarrier` : un héros du groupe ou une possession),
- *  `null` sans lui ou sans l'objet. PUR. */
-export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene' | 'campaignNarratif' | 'flags' | 'etats'>, porteurId: string, uid: string): GestesDeLObjet | null {
+ *  `null` sans lui ou sans l'objet ; `mains` vise le set `setId`, à défaut le set actif. PUR. */
+export function gestesDeLObjet(
+  s: Pick<Jeu, 'battle' | 'party' | 'possessions' | 'gameTime' | 'scene' | 'campaignNarratif' | 'flags' | 'etats'>, porteurId: string, uid: string, setId?: string,
+): GestesDeLObjet | null {
   const porteur = resolveCarrier(s, porteurId);
   const items = !porteur ? [] : porteur.kind === 'heros' ? (porteur.hero.items ?? []) : porteur.possession.items;
   const it = items.find((i) => i.uid === uid);
@@ -73,7 +77,10 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
     ...s.party.filter((h) => h.id !== porteurId).map((h): Carrier => ({ kind: 'heros', hero: h })),
     ...s.possessions.filter((p) => p.uid !== porteurId && !p.destroyed).map((p): Carrier => ({ kind: 'possession', possession: p })),
   ].filter((c) => carriersColocated(ici, porteurLocalise(c)));
-  const set = hero && (it.kind === 'melee' || it.kind === 'distance') ? ((hero.loadouts ?? []).find((l) => l.id === hero.activeLoadoutId) ?? hero.loadouts?.[0]) : undefined;
+  const loadouts = hero?.loadouts ?? [];
+  const set = hero && (it.kind === 'melee' || it.kind === 'distance')
+    ? (setId === undefined ? (loadouts.find((l) => l.id === hero.activeLoadoutId) ?? loadouts[0]) : loadouts.find((l) => l.id === setId))
+    : undefined;
   const main = (slot: Main): MainDuSet => {
     const tenue = set![slot] === uid;
     const vise = tenue ? null : uid;
@@ -94,4 +101,11 @@ export function gestesDeLObjet(s: Pick<Jeu, 'battle' | 'party' | 'possessions' |
     evaluer: inconnu ? sur('evaluerLObjet', [uid], refusDEvaluation(s.party, it, 'evaluation', dayIndex(s.gameTime))) : null,
     detecter: inconnu ? sur('evaluerLObjet', [uid, 'detection'], refusDEvaluation(s.party, it, 'detection', dayIndex(s.gameTime))) : null,
   };
+}
+
+/** L'offre de prendre le set d'armes `loadoutId` du héros `heroId` (`prendreLaPanoplie`), `null` sans lui : son refus,
+ *  `refusDePrendreLaPanoplie`. PUR. */
+export function gesteDeLaPanoplie(s: Jeu, heroId: string, loadoutId: string): GesteFermable | null {
+  const hero = actorIn(s, heroId);
+  return hero ? { geste: { verbe: 'prendreLaPanoplie', args: [heroId, loadoutId] }, refus: refusDePrendreLaPanoplie(s, hero, loadoutId) } : null;
 }

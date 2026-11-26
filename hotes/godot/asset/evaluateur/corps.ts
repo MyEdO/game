@@ -1,6 +1,6 @@
 import type { Bone, Mesh, Object3D, SkinnedMesh } from 'three';
 import type { SceneChargee } from './chargement.ts';
-import { COUCHES } from '../element.ts';
+import { COUCHES } from '../couches.ts';
 
 /** La zone d'un mesh de la base (`extras.zone`, sur le mesh ou son nœud), `undefined` hors zone. */
 export const zoneDe = (m: Object3D): unknown => m.userData.zone ?? (m.parent && !(m.parent as Bone).isBone ? m.parent.userData.zone : undefined);

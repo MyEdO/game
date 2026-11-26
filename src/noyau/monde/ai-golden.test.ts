@@ -48,7 +48,7 @@ function walledScene(w: number, walls: Record<string, string> = {}): Scene {
 }
 
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
-  return { enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [], ...extra };
+  return { enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [], ...extra };
 }
 
 /** Helper : id de cible quel que soit le kind d'action. */
@@ -238,7 +238,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
   it('LdV : cible derrière un mur → ne tire pas (move)', () => {
     const e = blessuresSurLeProfil({ id: 'E', name: 'T', kind: 'ennemi', characteristics: {} as never, wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } }) as unknown as Combatant;
     const h = { id: 'H', name: 'H', kind: 'heros', wounds: { current: 10, max: 10 }, conditions: [], pos: { x: 6, y: 0 } } as unknown as Combatant;
-    const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), blocked: new Set(), movement: 4, spells: [] });
+    const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), env: { blocked: new Set() }, movement: 4, spells: [] });
     expect(a.kind).not.toBe('tir');
   });
 
@@ -246,7 +246,7 @@ describe('GOLDEN parité Lot 2 — cœur discrétionnaire (enumerate → score �
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { movement: 4 });
     const h = mk('h', 'heros', { x: 1, y: 1 });
     const blocked = new Set(['4,5', '6,5', '5,4', '5,6', '4,4', '6,4', '4,6', '6,6']); // encerclement complet (8 voisins, grille 8-connexe)
-    expect(chooseEnemyAction(input(e, [h], { blocked })).kind).toBe('fin');
+    expect(chooseEnemyAction(input(e, [h], { env: { blocked } })).kind).toBe('fin');
   });
 });
 
@@ -274,7 +274,7 @@ describe('GOLDEN — extensions op-driven (attaquer prime / pas de move parasite
   it('tireur SANS LdV (cible derrière un mur) → se REPOSITIONNE (move), seule attaque indisponible déclenche le repli', () => {
     const e = blessuresSurLeProfil({ id: 'e', name: 'e', kind: 'ennemi', characteristics: {} as never, wounds: blessuresDeBase(10), advantage: 0, conditions: [], weapons: [RANGED], armour: {} as never, skills: [], talents: [], movement: 4, pos: { x: 0, y: 0 } }) as unknown as Combatant;
     const h = { id: 'h', name: 'h', kind: 'heros', wounds: { current: 10, max: 10 }, conditions: [], pos: { x: 6, y: 0 } } as unknown as Combatant;
-    const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), blocked: new Set(), movement: 4, spells: [] });
+    const a = chooseEnemyAction({ enemy: e, heroes: [h], scene: walledScene(8, { '3,0': 'mur' }), env: { blocked: new Set() }, movement: 4, spells: [] });
     expect(a.kind).not.toBe('tir'); // pas de LdV → ne tire pas
     expect(a.kind).toBe('deplacement'); // il bouge pour dégager la ligne / approcher
   });

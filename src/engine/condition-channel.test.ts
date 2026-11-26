@@ -60,13 +60,16 @@ describe("op 'removeCondition' → fait `etat` négatif, mesuré au retrait effe
       .toEqual([{ genre: 'etat', cible: 'h', camp: 'groupe', id: COND.extenue, valeur: -1 }]);
   });
 
-  // LDB 16 l.76
-  it('une demande de 2 sur UN seul pion : la ligne dit 1, le fait vaut −1', () => {
+  // LDB 16 l.76, l.78
+  it('une demande de 2 sur UN seul pion : la ligne dit 1, le fait vaut −1, puis la sortie de l’État', () => {
     const c = hero();
     addCondition(c, COND.empoisonne, 1);
     const { lignes, faits } = appliquer(c, [{ op: 'removeCondition', id: { id: COND.empoisonne }, value: 2 }]);
-    expect(lignes).toEqual(['Cobaye retire 1 État Empoisonné.']);
-    expect(faits).toEqual([{ genre: 'etat', cible: 'h', camp: 'groupe', id: COND.empoisonne, valeur: -1 }]);
+    expect(lignes).toEqual(['Cobaye retire 1 État Empoisonné.', 'Cobaye reçoit 1 État Exténué.']);
+    expect(faits).toEqual([
+      { genre: 'etat', cible: 'h', camp: 'groupe', id: COND.empoisonne, valeur: -1 },
+      { genre: 'etat', cible: 'h', camp: 'groupe', id: COND.extenue, valeur: 1 },
+    ]);
   });
 
   // LDB 18 l.15
@@ -90,12 +93,15 @@ describe('les autres sources de mouvement d’État', () => {
     expect(etats(appliquer(hero(), [{ op: 'wounds', amount: 2 }]).faits)).toEqual([]);
   });
 
-  // LDB 18
-  it('un verrou levé par un acte de soin rend la PERTE de son État', () => {
+  // LDB 18 ; LDB 16 l.109
+  it('un verrou levé par un acte de soin rend la PERTE de son État, puis sa sortie', () => {
     const c = hero();
     addCondition(c, COND.hemorragique, 1, undefined, undefined, undefined, undefined, { unlockBy: 'medicalAid' });
     const { lignes, faits } = releaseConditionLocks(c, 'medicalAid');
-    expect(lignes).toHaveLength(1);
-    expect(faits).toEqual([{ genre: 'etat', cible: 'h', camp: 'groupe', id: COND.hemorragique, valeur: -1, verrouLeve: true }]);
+    expect(lignes).toHaveLength(2);
+    expect(faits).toEqual([
+      { genre: 'etat', cible: 'h', camp: 'groupe', id: COND.hemorragique, valeur: -1, verrouLeve: true },
+      { genre: 'etat', cible: 'h', camp: 'groupe', id: COND.extenue, valeur: 1 },
+    ]);
   });
 });

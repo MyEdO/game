@@ -46,8 +46,9 @@ export function contexteImports(sf, verificateur) {
   const absent = [];
   const modules = new Map();
   const declarations = new Map();
+  const origines = new Map();
   const lireLiaisons = () => liaisons ??= liaisonsDe(sf.fileName, sf);
-  return {
+  const contexte = {
     get source() { return sf; },
     sites: () => sites ??= sitesDeModule(sf.fileName, sf),
     liaisons: lireLiaisons,
@@ -67,6 +68,10 @@ export function contexteImports(sf, verificateur) {
       if (!declarations.has(scope)) declarations.set(scope, declarationsDe(scope));
       return declarations.get(scope);
     },
+    origine: (identifiant) => {
+      if (!origines.has(identifiant)) origines.set(identifiant, origineCalculee(identifiant, sf, contexte));
+      return origines.get(identifiant);
+    },
     checker: () => {
       if (!verificateur) throw new TypeError('Vérificateur natif emprunté absent du contexte d’import');
       return verificateur;
@@ -84,6 +89,7 @@ export function contexteImports(sf, verificateur) {
       return modules.get(spec);
     },
   };
+  return contexte;
 }
 
 /** Les déclarations et affectations de chaque nom d'une portée, en pré-ordre, sans descendre dans une
@@ -1036,6 +1042,11 @@ function moduleDe(spec, sf) {
  */
 export function origineImportee(identifiant, sf, contexte) {
   exigerContexte(sf, contexte);
+  return contexte.origine(identifiant);
+}
+
+/** `origineImportee`, calculée hors du mémo du contexte. */
+function origineCalculee(identifiant, sf, contexte) {
   const l = typeof identifiant === 'string' ? liaisonDe(identifiant, sf, contexte) : origineConstruction(identifiant, sf, contexte);
   const module = l && (contexte.module(l.spec) ?? (/^typescript\/unstable\//.test(l.spec) ? l.spec : null));
   return module ? { module, nom: l.nom } : null;

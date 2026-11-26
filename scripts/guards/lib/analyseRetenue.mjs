@@ -11,7 +11,7 @@
 // ne l'est pas) ; un nom INITIALISÉ ou AFFECTÉ d'une fabrique (`const lire = P`, `let lire; lire = P`)
 // ou une propriété d'objet LITTÉRAL qui en reçoit une (`{ P: detenteur(…) }` : `K.P()` est teint) ;
 // toute fonction ou `const` EXPORTÉE de ce genre, jugée sur SA déclaration (ou sa place dans les
-// listes de base), que le fichier importe par son nom (`fabriquesDuCorpus`, point fixe sur le corpus
+// listes de base), que le fichier importe par son nom (`exporteesDuCorpus`, point fixe sur le corpus
 // entier).
 // CORPUS : l'appel d'une source (`SOURCES_DE_CORPUS`), un nom qui en reçoit un, une fonction nommée
 // dont le corps d'expression en rend un. Le corpus lui-même est l'exception documentée
@@ -55,7 +55,7 @@
 // (liste de constats, table de noms remplie hors des formes 3 et 4) n'est pas teint.
 import { posix, resolve } from 'node:path'
 import * as ts from 'typescript/unstable/ast'
-import { analyserCorpus, avecAnalyse } from './dialecte.mjs'
+import { analyserCorpus } from './dialecte.mjs'
 import { estSuiteVitest, MOTIF_D_EXTENSION } from './fichierVitest.mjs'
 import { contexteImports, origineImportee } from './canonUnique.mjs'
 
@@ -297,7 +297,7 @@ const porteeDe = (n) => {
 /** Contexte d'un fichier : fabriques et sources de corpus VISIBLES, et ses portées (fonction ou
  *  module) — noms DÉCLARÉS, noms TEINTS, noms de CORPUS, par point fixe sur les déclarations et les
  *  affectations de noms nus. `resoudre(id)` rend la portée qui déclare le nom (`undefined` : global). */
-function contexteDu(sf, fabriques, corpus, detentions, exportees, checker) {
+function contexteDu(sf, fabriques, corpus, detentions, exportees, imports) {
   const declares = new Map()
   const teints = new Map()
   const deCorpus = new Map()
@@ -347,7 +347,7 @@ function contexteDu(sf, fabriques, corpus, detentions, exportees, checker) {
     ressource: id => ressources.get(resoudre(id))?.get(id.text),
     conteneur: id => !!conteneurs.get(resoudre(id))?.has(id.text),
   }
-  const ctx = { sf, fabriques, corpus, detentions, portees, exportees, fonctions, importees, imports: contexteImports(sf, checker), enCours: new Set() }
+  const ctx = { sf, fabriques, corpus, detentions, portees, exportees, fonctions, importees, imports, enCours: new Set() }
   for (let change = true; change; ) {
     change = false
     marcher(sf, (n) => {
@@ -402,8 +402,8 @@ const qualiteDeFonction = (fn, ctx) =>
 /** Fonctions NOMMÉES du fichier qui rendent une valeur teinte (`fabriques`) ou un corpus (`corpus`),
  *  liaisons et propriétés d'objet littéral qui reçoivent une fabrique (`rendUneFabrique`) : leur
  *  appel en rend une (la liaison du lecteur, elle, n'est pas teinte). */
-function derivesDuFichier(sf, fabriques, corpus, checker) {
-  const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf), undefined, checker)
+function derivesDuFichier(sf, fabriques, corpus, imports) {
+  const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf), undefined, imports)
   const out = { fabriques: new Set(), corpus: new Set() }
   marcher(sf, (n) => {
     if (ts.isFunctionLikeDeclaration(n) && n.body) {
@@ -482,7 +482,7 @@ function detentionsDe(sf) {
 
 /** Fabriques et sources de corpus VISIBLES dans le fichier : celles de base, les EXPORTÉES du corpus
  *  que le fichier IMPORTE (sous leur nom local), puis ses propres fonctions, par point fixe. */
-function visiblesDansLeFichier(sf, exportees, checker) {
+function visiblesDansLeFichier(sf, exportees, imports) {
   const fabriques = new Set(FABRIQUES_D_ANALYSE)
   const corpus = new Set(SOURCES_DE_CORPUS)
   for (const st of sf.statements) {
@@ -496,7 +496,7 @@ function visiblesDansLeFichier(sf, exportees, checker) {
   }
   for (let avant = -1; avant !== fabriques.size + corpus.size; ) {
     avant = fabriques.size + corpus.size
-    const d = derivesDuFichier(sf, fabriques, corpus, checker)
+    const d = derivesDuFichier(sf, fabriques, corpus, imports)
     for (const nom of d.fabriques) fabriques.add(nom)
     for (const nom of d.corpus) if (!fabriques.has(nom)) corpus.add(nom)
   }
@@ -512,40 +512,29 @@ const termesDe = (exportees) => [
   ...exportees.corpus,
 ]
 
-/**
- * Fabriques et sources de corpus EXPORTÉES du corpus scanné, par point fixe à travers les imports.
- * Les AST vivent le temps de l'appel.
- * @param {readonly Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
- * @returns {{ fabriques: Set<string>, corpus: Set<string> }}
- */
-export function fabriquesDuCorpus(fichiers) {
+/** Fabriques et sources de corpus EXPORTÉES du corpus, par point fixe à travers les imports, sur ses
+ *  analyses `asts` (`rel` → arbre et contexte d'import). */
+function exporteesDuCorpus(fichiers, asts) {
   const exportees = { fabriques: new Set(), corpus: new Set(), ressources: new Map() }
-  const asts = new Map()
-  let compte = 0
-  for (const analyse of analyserCorpus(fichiers)) {
-    asts.set(analyse.fichier.rel, analyse)
-    if (++compte !== fichiers.length) continue
-    const taille = () => exportees.fabriques.size + exportees.corpus.size + exportees.ressources.size
-    for (let avant = -1; avant !== taille(); ) {
-      avant = taille()
-      for (const { rel, text } of fichiers) {
-        if (!mentionne(text, termesDe(exportees))) continue
-        const { sourceFile: sf, checker } = asts.get(rel)
-        const vus = visiblesDansLeFichier(sf, exportees, checker)
-        const ctx = contexteDu(sf, vus.fabriques, vus.corpus, detentionsDe(sf), exportees, checker)
-        for (const [nom, qualite] of exportes(sf, ctx)) if (qualite) exportees[qualite].add(nom)
-        for (const st of sf.statements) if (estExporte(st) && ts.isFunctionDeclaration(st) && st.name) {
-          const qualite = ressourceRendue(st, ctx)
-          if (qualite) exportees.ressources.set(cleRessource(rel, st.name.text), qualite)
-        }
-        for (const st of sf.statements) if (estExporte(st) && ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) {
-          if (!ts.isIdentifier(d.name) || !estFonction(d.initializer)) continue
-          const qualite = ressourceRendue(d.initializer, ctx)
-          if (qualite) exportees.ressources.set(cleRessource(rel, d.name.text), qualite)
-        }
+  const taille = () => exportees.fabriques.size + exportees.corpus.size + exportees.ressources.size
+  for (let avant = -1; avant !== taille(); ) {
+    avant = taille()
+    for (const { rel, text } of fichiers) {
+      if (!mentionne(text, termesDe(exportees))) continue
+      const { sf, imports } = asts.get(rel)
+      const vus = visiblesDansLeFichier(sf, exportees, imports)
+      const ctx = contexteDu(sf, vus.fabriques, vus.corpus, detentionsDe(sf), exportees, imports)
+      for (const [nom, qualite] of exportes(sf, ctx)) if (qualite) exportees[qualite].add(nom)
+      for (const st of sf.statements) if (estExporte(st) && ts.isFunctionDeclaration(st) && st.name) {
+        const qualite = ressourceRendue(st, ctx)
+        if (qualite) exportees.ressources.set(cleRessource(rel, st.name.text), qualite)
+      }
+      for (const st of sf.statements) if (estExporte(st) && ts.isVariableStatement(st)) for (const d of st.declarationList.declarations) {
+        if (!ts.isIdentifier(d.name) || !estFonction(d.initializer)) continue
+        const qualite = ressourceRendue(d.initializer, ctx)
+        if (qualite) exportees.ressources.set(cleRessource(rel, d.name.text), qualite)
       }
     }
-    return exportees
   }
   return exportees
 }
@@ -626,109 +615,118 @@ const estStatique = (n) =>
   (n.modifiers ?? []).some((m) => m.kind === ts.SyntaxKind.StaticKeyword)
 
 /**
- * Rétentions d'analyse d'un fichier.
- * @param {string} rel chemin POSIX depuis la racine
- * @param {string} texte
- * @param {{ fabriques: Set<string>, corpus: Set<string> }} [exportees] `fabriquesDuCorpus` du corpus scanné
- * @returns {{ rel: string, line: number, liaison: string, forme: string }[]}
+ * Rétentions d'analyse et fabriques et sources de corpus EXPORTÉES (`exporteesDuCorpus`) d'un corpus,
+ * sur UNE analyse : les AST vivent le temps de l'appel.
+ * @param {readonly Pick<import('./sourceCorpus.mjs').CorpusFile, 'rel' | 'text'>[]} fichiers
  */
-export function retentionsDAnalyse(rel, texte, exportees = { fabriques: new Set(), corpus: new Set() }, sourceFile, checker) {
-  if (!mentionne(texte, termesDe(exportees))) return []
-  return avecAnalyse({ rel, text: texte }, sourceFile, checker, (sf, checker) => {
-    const { fabriques, corpus } = visiblesDansLeFichier(sf, exportees, checker)
-    const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf), exportees, checker)
-    const { portees } = ctx
-    const libres = liberees(sf, portees)
-    const fermees = new Map()
-    const videes = new Map()
-    const hooks = new Set()
-    for (const st of sf.statements) {
-      if (!ts.isImportDeclaration(st) || st.moduleSpecifier.text !== 'vitest' || !ts.isNamedImports(st.importClause?.namedBindings ?? sf)) continue
-      for (const el of st.importClause.namedBindings.elements) if (LIBERATIONS.has((el.propertyName ?? el.name).text)) hooks.add(el.name.text)
-    }
-    marcher(sf, n => {
-      if (!ts.isCallExpression(n) || !ts.isIdentifier(n.expression) || !hooks.has(n.expression.text) || portees.resoudre(n.expression)) return
-      for (const fn of n.arguments) for (const appel of operationsDirectes(fn)) {
-        if (ts.isBinaryExpression(appel) && appel.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(appel.left)
-          && appel.left.name.text === 'length' && ts.isIdentifier(appel.left.expression) && ts.isNumericLiteral(appel.right) && appel.right.text === '0') {
-          const id = appel.left.expression
-          const p = portees.resoudre(id)
-          if (portees.conteneur(id)) {
-            if (!videes.has(p)) videes.set(p, new Set())
-            videes.get(p).add(id.text)
-          }
-        }
-        if (!ts.isCallExpression(appel)) continue
-        const e = appel.expression
-        let id, methode
-        if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression)) {
-          id = e.expression; methode = e.name.text
-          if (methode === 'clear' && portees.conteneur(id)) {
-            const p = portees.resoudre(id)
-            if (!videes.has(p)) videes.set(p, new Set())
-            videes.get(p).add(id.text)
-          }
-          if (portees.conteneur(id)) continue
-        }
-        else {
-          const origine = origineImportee(e, sf, ctx.imports)
-          if (origine?.module === moduleProgramme && origine.nom === 'libererSessions') {
-            const arg = appel.arguments[0]
-            id = arg && racineDe(ts.isCallExpression(arg) && ts.isPropertyAccessExpression(arg.expression) && arg.expression.name.text === 'values' ? arg.expression.expression : arg)
-            methode = 'dispose'
-          }
-        }
-        if (!id || methode === 'mixte' || portees.ressource(id) !== methode) continue
+export function retentionsDuCorpus(fichiers) {
+  const asts = new Map()
+  let compte = 0
+  for (const analyse of analyserCorpus(fichiers)) {
+    asts.set(analyse.fichier.rel, { sf: analyse.sourceFile, imports: contexteImports(analyse.sourceFile, analyse.checker) })
+    if (++compte !== fichiers.length) continue
+    const exportees = exporteesDuCorpus(fichiers, asts)
+    const retentions = fichiers.flatMap(({ rel, text }) => mentionne(text, termesDe(exportees)) ? retentionsDuFichier(rel, asts.get(rel), exportees) : [])
+    return { exportees, retentions }
+  }
+  return { exportees: { fabriques: new Set(), corpus: new Set(), ressources: new Map() }, retentions: [] }
+}
+
+/** Rétentions d'analyse du fichier `rel` (chemin POSIX depuis la racine), sur son arbre et son contexte d'import. */
+function retentionsDuFichier(rel, { sf, imports }, exportees) {
+  const { fabriques, corpus } = visiblesDansLeFichier(sf, exportees, imports)
+  const ctx = contexteDu(sf, fabriques, corpus, detentionsDe(sf), exportees, imports)
+  const { portees } = ctx
+  const libres = liberees(sf, portees)
+  const fermees = new Map()
+  const videes = new Map()
+  const hooks = new Set()
+  for (const st of sf.statements) {
+    if (!ts.isImportDeclaration(st) || st.moduleSpecifier.text !== 'vitest' || !ts.isNamedImports(st.importClause?.namedBindings ?? sf)) continue
+    for (const el of st.importClause.namedBindings.elements) if (LIBERATIONS.has((el.propertyName ?? el.name).text)) hooks.add(el.name.text)
+  }
+  marcher(sf, n => {
+    if (!ts.isCallExpression(n) || !ts.isIdentifier(n.expression) || !hooks.has(n.expression.text) || portees.resoudre(n.expression)) return
+    for (const fn of n.arguments) for (const appel of operationsDirectes(fn)) {
+      if (ts.isBinaryExpression(appel) && appel.operatorToken.kind === ts.SyntaxKind.EqualsToken && ts.isPropertyAccessExpression(appel.left)
+        && appel.left.name.text === 'length' && ts.isIdentifier(appel.left.expression) && ts.isNumericLiteral(appel.right) && appel.right.text === '0') {
+        const id = appel.left.expression
         const p = portees.resoudre(id)
-        if (!fermees.has(p)) fermees.set(p, new Set())
-        fermees.get(p).add(id.text)
-      }
-    })
-    const out = []
-    const poser = (n, liaison, forme) =>
-      out.push({ rel, line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, liaison, forme })
-    /** L'identifiant désigne-t-il une liaison de COLLECTION non libérée ? */
-    const retenue = (id) => {
-      const p = portees.resoudre(id)
-      const ferme = fermees.get(p)?.has(id.text) && (!portees.conteneur(id) || videes.get(p)?.has(id.text))
-      return estCollection(p) && !(portees.ressource(id) ? ferme : libres.get(p)?.has(id.text))
-    }
-    /** Liaisons (portée + nom) qui reçoivent un MÉMO (`MEMOS`). */
-    const memos = new Map()
-    const estMemo = (id) => !!memos.get(portees.resoudre(id))?.has(id.text)
-
-    marcher(sf, (n) => {
-      let id
-      let valeur
-      if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer) [id, valeur] = [n.name, n.initializer]
-      else if (ts.isBinaryExpression(n) && AFFECTATIONS.has(n.operatorToken.kind) && ts.isIdentifier(n.left)) [id, valeur] = [n.left, n.right]
-      const v = valeur && sansEnveloppe(valeur)
-      if (!v || !ts.isCallExpression(v) || !MEMOS.has(nomAppele(v))) return
-      const p = portees.resoudre(id)
-      if (!memos.has(p)) memos.set(p, new Set())
-      memos.get(p).add(id.text)
-    })
-
-    marcher(sf, (n) => {
-      if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && estCollection(porteeDe(n)) && teinte(n.initializer, ctx) && !(portees.ressource(n.name) && !retenue(n.name)))
-        poser(n, n.name.text, 'initialisée')
-      else if (ts.isPropertyDeclaration(n) && estStatique(n) && n.initializer && teinte(n.initializer, ctx) && estCollection(porteeDe(n.parent)))
-        poser(n, `${n.parent.name?.text ?? 'classe'}.${n.name.getText(sf)}`, 'initialisée')
-      else if (ts.isBinaryExpression(n) && AFFECTATIONS.has(n.operatorToken.kind) && teinte(n.right, ctx)) {
-        const gauche = sansEnveloppe(n.left)
-        const racine = racineDe(gauche)
-        if (racine && retenue(racine)) poser(n, racine.text, ts.isIdentifier(gauche) ? 'affectée' : 'propriété affectée')
-      } else if (ts.isCallExpression(n)) {
-        const appele = sansEnveloppe(n.expression)
-        if (ts.isPropertyAccessExpression(appele) && REMPLISSAGES.has(appele.name.text)) {
-          const racine = racineDe(appele.expression)
-          if (racine && retenue(racine) && n.arguments.some((a) => teinte(a, ctx))) poser(n, racine.text, `.${appele.name.text}(`)
-        } else if (ts.isIdentifier(appele) && estMemo(appele) && retenue(appele)) {
-          const nourri = n.arguments.some((a) => teinte(a, ctx) || corpusDe(a, ctx) || (estFonction(a) && rendTeinte(a, ctx)))
-          if (nourri) poser(n, appele.text, 'mémo nourri')
+        if (portees.conteneur(id)) {
+          if (!videes.has(p)) videes.set(p, new Set())
+          videes.get(p).add(id.text)
         }
       }
-    })
-    return out
+      if (!ts.isCallExpression(appel)) continue
+      const e = appel.expression
+      let id, methode
+      if (ts.isPropertyAccessExpression(e) && ts.isIdentifier(e.expression)) {
+        id = e.expression; methode = e.name.text
+        if (methode === 'clear' && portees.conteneur(id)) {
+          const p = portees.resoudre(id)
+          if (!videes.has(p)) videes.set(p, new Set())
+          videes.get(p).add(id.text)
+        }
+        if (portees.conteneur(id)) continue
+      }
+      else {
+        const origine = origineImportee(e, sf, ctx.imports)
+        if (origine?.module === moduleProgramme && origine.nom === 'libererSessions') {
+          const arg = appel.arguments[0]
+          id = arg && racineDe(ts.isCallExpression(arg) && ts.isPropertyAccessExpression(arg.expression) && arg.expression.name.text === 'values' ? arg.expression.expression : arg)
+          methode = 'dispose'
+        }
+      }
+      if (!id || methode === 'mixte' || portees.ressource(id) !== methode) continue
+      const p = portees.resoudre(id)
+      if (!fermees.has(p)) fermees.set(p, new Set())
+      fermees.get(p).add(id.text)
+    }
   })
+  const out = []
+  const poser = (n, liaison, forme) =>
+    out.push({ rel, line: sf.getLineAndCharacterOfPosition(n.getStart(sf)).line + 1, liaison, forme })
+  /** L'identifiant désigne-t-il une liaison de COLLECTION non libérée ? */
+  const retenue = (id) => {
+    const p = portees.resoudre(id)
+    const ferme = fermees.get(p)?.has(id.text) && (!portees.conteneur(id) || videes.get(p)?.has(id.text))
+    return estCollection(p) && !(portees.ressource(id) ? ferme : libres.get(p)?.has(id.text))
+  }
+  /** Liaisons (portée + nom) qui reçoivent un MÉMO (`MEMOS`). */
+  const memos = new Map()
+  const estMemo = (id) => !!memos.get(portees.resoudre(id))?.has(id.text)
+
+  marcher(sf, (n) => {
+    let id
+    let valeur
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer) [id, valeur] = [n.name, n.initializer]
+    else if (ts.isBinaryExpression(n) && AFFECTATIONS.has(n.operatorToken.kind) && ts.isIdentifier(n.left)) [id, valeur] = [n.left, n.right]
+    const v = valeur && sansEnveloppe(valeur)
+    if (!v || !ts.isCallExpression(v) || !MEMOS.has(nomAppele(v))) return
+    const p = portees.resoudre(id)
+    if (!memos.has(p)) memos.set(p, new Set())
+    memos.get(p).add(id.text)
+  })
+
+  marcher(sf, (n) => {
+    if (ts.isVariableDeclaration(n) && ts.isIdentifier(n.name) && n.initializer && estCollection(porteeDe(n)) && teinte(n.initializer, ctx) && !(portees.ressource(n.name) && !retenue(n.name)))
+      poser(n, n.name.text, 'initialisée')
+    else if (ts.isPropertyDeclaration(n) && estStatique(n) && n.initializer && teinte(n.initializer, ctx) && estCollection(porteeDe(n.parent)))
+      poser(n, `${n.parent.name?.text ?? 'classe'}.${n.name.getText(sf)}`, 'initialisée')
+    else if (ts.isBinaryExpression(n) && AFFECTATIONS.has(n.operatorToken.kind) && teinte(n.right, ctx)) {
+      const gauche = sansEnveloppe(n.left)
+      const racine = racineDe(gauche)
+      if (racine && retenue(racine)) poser(n, racine.text, ts.isIdentifier(gauche) ? 'affectée' : 'propriété affectée')
+    } else if (ts.isCallExpression(n)) {
+      const appele = sansEnveloppe(n.expression)
+      if (ts.isPropertyAccessExpression(appele) && REMPLISSAGES.has(appele.name.text)) {
+        const racine = racineDe(appele.expression)
+        if (racine && retenue(racine) && n.arguments.some((a) => teinte(a, ctx))) poser(n, racine.text, `.${appele.name.text}(`)
+      } else if (ts.isIdentifier(appele) && estMemo(appele) && retenue(appele)) {
+        const nourri = n.arguments.some((a) => teinte(a, ctx) || corpusDe(a, ctx) || (estFonction(a) && rendTeinte(a, ctx)))
+        if (nourri) poser(n, appele.text, 'mémo nourri')
+      }
+    }
+  })
+  return out
 }

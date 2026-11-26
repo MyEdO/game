@@ -90,19 +90,19 @@ describe('engine/healing — calculs DR (purs)', () => {
     expect(healWoundsDelta(3, -1, false, 'guerison')).toBe(0);  // échec mais BI+DR≥0 → rien
   });
 
-  it('stopBleedOutcome : retire 1+DR borné aux pions ; Exténué quand tout retiré ; échec = rien', () => {
+  it('stopBleedOutcome : retire 1+DR borné aux pions ; échec = rien', () => {
     const G = { test: 'guerison', bandages: false } as const;
-    expect(stopBleedOutcome(2, 5, true, G)).toEqual({ removed: 3, gainExtenue: false });
-    expect(stopBleedOutcome(2, 2, true, G)).toEqual({ removed: 2, gainExtenue: true });
-    expect(stopBleedOutcome(0, 3, true, G)).toEqual({ removed: 1, gainExtenue: false });
-    expect(stopBleedOutcome(5, 3, false, G)).toEqual({ removed: 0, gainExtenue: false });
+    expect(stopBleedOutcome(2, 5, true, G)).toBe(3);
+    expect(stopBleedOutcome(2, 2, true, G)).toBe(2);
+    expect(stopBleedOutcome(0, 3, true, G)).toBe(1);
+    expect(stopBleedOutcome(5, 3, false, G)).toBe(0);
   });
 
   it('stopBleedOutcome sous Bandages : Guérison 1 + DR + 1 (LDB 09 l.261, LDB 74 l.41) ; Dextérité 1', () => {
-    expect(stopBleedOutcome(1, 4, true, { test: 'guerison', bandages: true }).removed).toBe(3); // 4 − 3 = 1 restant
-    expect(stopBleedOutcome(1, 4, true, { test: 'guerison', bandages: false }).removed).toBe(2); // 4 − 2 = 2 restants
-    expect(stopBleedOutcome(3, 4, true, { test: 'dexterite', bandages: true }).removed).toBe(1); // 4 − 1 = 3 restants
-    expect(stopBleedOutcome(3, 4, false, { test: 'dexterite', bandages: true }).removed).toBe(0);
+    expect(stopBleedOutcome(1, 4, true, { test: 'guerison', bandages: true })).toBe(3); // 4 − 3 = 1 restant
+    expect(stopBleedOutcome(1, 4, true, { test: 'guerison', bandages: false })).toBe(2); // 4 − 2 = 2 restants
+    expect(stopBleedOutcome(3, 4, true, { test: 'dexterite', bandages: true })).toBe(1); // 4 − 1 = 3 restants
+    expect(stopBleedOutcome(3, 4, false, { test: 'dexterite', bandages: true })).toBe(0);
   });
 });
 

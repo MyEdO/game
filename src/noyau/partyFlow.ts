@@ -37,9 +37,10 @@ import {
 } from './monde/carrier';
 import { carriersColocated } from '../engine/cargo';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
+import type { GesteFermable } from './actionsDuNoyau';
 import { refusDepensePx, refusDInventaire, refusDuBackground, refuseSi } from './verrousDeFiche';
 import {
-  mentorRequis, libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDeCompetenceHorsCarriere,
+  libelleAvecSpec, refusDAcquerirLeTalent, refusDePx, refusDeChangerDeCarriere, contexteDeChangement, refusDAugmentation, refusDAchatDuSort, prixDuSort,
 } from './depenseDePx';
 import {
   buyCharAdvance as engineBuyCharAdvance,
@@ -48,10 +49,8 @@ import {
   changeCareer as engineChangeCareer,
   niveauValide,
   inCareerChar,
-  coutDeLAugmentation,
   coutDuTalent,
   talentSlotsAchetables,
-  type Chiffrage,
 } from '../engine/advancement';
 import { cocherUnAchat } from '../engine/casesDeCarriere';
 import {
@@ -80,7 +79,7 @@ import { toMoney, Money, formatMoney } from '../engine/money';
 import { prendUnComposant } from '../engine/magic';
 import { isSorceryDomain } from '../engine/domainAttributes';
 import { itemCapability } from '../engine/capabilities';
-import { eligibleTalent, spellCost, verdictApprentissage } from '../engine/grimoire';
+import { eligibleTalent } from '../engine/grimoire';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import { levelsForCareer, byId, careerLabelFor, findApparenceById, findSpellById, refLabel, type SpellData } from '../data/index';
 import { t } from '../i18n';
@@ -407,24 +406,14 @@ export function depenserPx(get: Get, set: Set, heroId: string, depense: (h: Comb
   return true;
 }
 
-/** Refus d'une Augmentation que son chiffrage ferme ou dont `hero` n'a pas les PX, ou `null`. */
-function refusDuChiffrage(hero: Combatant, what: string, c: Chiffrage): string | null {
-  return c.ok ? refusDePx(hero, c.cout) : t('pf.refused', { name: nomDe(hero), what, reason: c.raison });
-}
-
 export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, char: CharKey): void {
   let msg = '';
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const inC = inCareerChar(careerCtx(clone).careerChars, char);
-    if (mentorRequis(get(), clone, inC)) {
-      // LDB 07 l.89
-      msg = t('pf.charNeedsMentor', { name: nomDe(clone), what: CHAR_LABELS[char] });
-      return h;
-    }
-    const manque = refusDuChiffrage(clone, CHAR_LABELS[char], coutDeLAugmentation(clone, { kind: 'caracteristique', char }, inC));
-    if (manque) {
-      msg = manque;
+    const refus = refusDAugmentation(get(), clone, { kind: 'caracteristique', char }, inC, CHAR_LABELS[char]);
+    if (refus) {
+      msg = refus;
       return h;
     }
     const r = engineBuyCharAdvance(clone, char, inC);
@@ -452,30 +441,17 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
     const known = clone.skills.some((sk) => sk.id === skillId && memeSpecialisation(sk.spec, spec));
     const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
     const inC = status != null;
-    if (known && mentorRequis(get(), clone, inC)) {
-      // LDB 07 l.89
-      msg = t('pf.charNeedsMentor', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec) });
+    if (!known && !inC) {
+      msg = t('pf.skillNotAcquirable', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec) });
       return h;
     }
-    const fermee = refusDeCompetenceHorsCarriere(clone, skillId, libelleAvecSpec(skillLabel, spec), inC);
-    if (known && fermee) {
-      msg = fermee;
+    const refus = refusDAugmentation(get(), clone, { kind: 'competence', competence: skill }, inC, libelleAvecSpec(skillLabel, spec), discount);
+    if (refus) {
+      msg = refus;
       return h;
     }
-    if (!known) {
-      if (!inC) {
-        msg = t('pf.skillNotAcquirable', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec) });
-        return h;
-      }
-      // Acquérir la Compétence de carrière à advances 0, puis l'augmenter (l'Augmentation est payée).
-      const characteristic = skillCharacteristicById(skillId); // par id (≠ 2e lookup par libellé)
-      clone.skills.push({ id: skillId, spec, characteristic, advances: 0 });
-    }
-    const manque = refusDuChiffrage(clone, libelleAvecSpec(skillLabel, spec), coutDeLAugmentation(clone, { kind: 'competence', competence: skill }, inC, discount));
-    if (manque) {
-      msg = manque;
-      return h;
-    }
+    // Acquérir la Compétence de carrière à advances 0, puis l'augmenter (l'Augmentation est payée).
+    if (!known) clone.skills.push({ id: skillId, spec, characteristic: skillCharacteristicById(skillId), advances: 0 });
     const r = engineBuySkillAdvance(clone, skill, inC, discount);
     if (!r.ok) {
       msg = t('pf.refused', { name: nomDe(clone), what: libelleAvecSpec(skillLabel, spec), reason: r.reason ?? '' });
@@ -578,32 +554,17 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
   let msg = '';
   let result: { ok: boolean; chaos?: boolean } = { ok: false };
   if (!depenserPx(get, set, heroId, (h) => {
-    const sp = findSpellById(spellId); // accès UNIQUE par id stable (prod et tests)
-    if (!sp) {
-      msg = t('pf.spellNotFound', { id: spellId });
+    const refus = refusDAchatDuSort(h, spellId, opts);
+    if (refus) {
+      msg = refus;
       return h;
     }
+    const sp = findSpellById(spellId)!; // accès UNIQUE par id stable (prod et tests)
     const clone: Combatant = structuredClone(h);
-    const full = spellCost(clone, sp);
-    if (full == null) {
-      msg = t(verdictApprentissage(clone, sp) === 'dejaConnu' ? 'pf.spellAlreadyKnown' : 'pf.spellCannotLearn', { name: nomDe(clone), spell: sp.label });
-      return h;
-    }
-    // Recherche universitaire (ACE 12 l.55) : « mémoriser un sort pour 100PX de moins que
-    // son prix normal (pour un minimum de 100PX) » — remise sur CET achat seul, jamais au-dessus
-    // du prix normal (plancher inerte pour les sorts à moins de 100 PX).
-    const cost = opts.discountXp && full > 0 ? Math.min(full, Math.max(100, full - opts.discountXp)) : full;
-    const manque = refusDePx(clone, cost);
-    if (manque) {
-      msg = manque;
-      return h;
-    }
+    const { full, cout: cost } = prixDuSort(clone, sp, opts)!;
     const talent = eligibleTalent(clone, sp)!;
     const chaos = talent.kind === 'chaos';
-    if (chaos && full > 0 && !acquerirTalent(clone, { id: talent.talentId, spec: talent.spec })) {
-      msg = t('adv.talentMax');
-      return h;
-    }
+    if (chaos && full > 0) acquerirTalent(clone, { id: talent.talentId, spec: talent.spec });
     clone.xp = (clone.xp ?? 0) - cost;
     clone.spells = [...(clone.spells ?? []), sp.id]; // runtime = id de sort (pas le libellé)
     msg = cost > 0
@@ -614,6 +575,13 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
   })) return { ok: false };
   if (msg) get().ecrireAuJournal(msg);
   return result;
+}
+
+/** L'offre d'apprendre le sort `spellId` au héros `heroId` (`acheterLeSort`), `null` sans lui : son refus est celui de
+ *  toute dépense de PX (`refusDepensePx`), puis `refusDAchatDuSort`. PUR. */
+export function gesteDAchatDuSort(s: Jeu, heroId: string, spellId: string): GesteFermable | null {
+  const hero = actorIn(s, heroId);
+  return hero ? { geste: { verbe: 'acheterLeSort', args: [heroId, spellId] }, refus: refusDepensePx(s) ?? refusDAchatDuSort(hero, spellId) } : null;
 }
 
 /** Achète un composant d'incantation lié à un Sort d'Arcane/Domaine CONNU du héros, payé sur sa Bourse

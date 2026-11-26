@@ -1,30 +1,20 @@
 import { beforeAll, describe, expect, it } from 'vitest';
-import { addCondition, COND } from '../../../../src/engine/conditions';
-import { soignerUnCompagnon, poserLesReglesDuRoguelite } from '../noyau';
-import { HEAL_SKILL } from '../../../../src/engine/healing';
+import { poserLesReglesDuRoguelite } from '../noyau';
 import {
   agirDansLaSalle,
   avancer,
   CAMP,
   DESTINATIONS,
   EPREUVES,
-  herosDuGroupe,
   nouvellePartie,
   partir,
-  refusDuPatient,
-  refusDuSoigneur,
-  salleAChoisir,
-  PROFILS,
   RENCONTRES,
+  salleAChoisir,
   type Etat,
-  type Heros,
 } from './index';
-import { blessures, devant, recit } from './salles.testkit';
+import { devant, recit } from './salles.testkit';
 
 beforeAll(() => poserLesReglesDuRoguelite());
-
-const MEDECIN = PROFILS.find((p) => p.id === 'medecin')!;
-const du = (e: Etat, carriere: string, n = 0): Heros => herosDuGroupe(e).filter((h) => h.carriere === carriere)[n];
 
 describe('le camp, salle à choix', () => {
   it('entrer ouvre le camp sans repos d’office ; se reposer le lève', () => {
@@ -34,83 +24,6 @@ describe('le camp, salle à choix', () => {
     expect(r.lignes[0]).toBe(CAMP.reposer.recit);
     expect(e.expedition!.index).toBe(1);
     expect(salleAChoisir(e)).toBe(false);
-  });
-
-  it('soigner : le soigneur choisi soigne le blessé choisi par l’infirmerie du noyau ; seul le blessé change, le camp reste ouvert', () => {
-    let soigne = false;
-    for (let g = 1; g <= 20 && !soigne; g++) {
-      const e = devant('camp', g, [MEDECIN.id]);
-      const medecin = du(e, 'medecin');
-      const soldat = du(e, 'soldat');
-      soldat.c.wounds.current = 2;
-      const avant = blessures(e);
-      const r = recit(agirDansLaSalle(e, 'soigner', medecin.c.id, soldat.c.id));
-      expect(r.titre).toBe(CAMP.soigner.titre);
-      for (const [id, w] of blessures(e)) if (id !== soldat.c.id) expect(w, id).toBe(avant.get(id));
-      expect(salleAChoisir(e)).toBe(true);
-      expect(e.expedition!.salles[0].soignes).toEqual([soldat.c.id]);
-      expect(agirDansLaSalle(e, 'soigner', medecin.c.id, soldat.c.id)).toBe('Déjà soigné·e à ce camp.');
-      soigne = du(e, 'soldat').c.wounds.current > 2;
-    }
-    expect(soigne).toBe(true);
-  });
-
-  it('le noyau rend le soigneur, le patient et l’acte qu’il a joués', () => {
-    const e = devant('camp', 2, [MEDECIN.id]);
-    const medecin = du(e, 'medecin');
-    const soldat = du(e, 'soldat');
-    soldat.c.wounds.current = 2;
-    const r = soignerUnCompagnon(medecin.c, soldat.c, 5);
-    expect('refus' in r ? r.refus : [r.soigneur, r.patient, r.acte]).toEqual([medecin.c.id, soldat.c.id, 'blessures']);
-  });
-
-  it('deux soigneurs : le noyau confie le soin au meilleur en Guérison ; choisir l’autre est refusé sans jet', () => {
-    const e = devant('camp', 3, [MEDECIN.id, MEDECIN.id]);
-    const [a, b] = [du(e, 'medecin', 0), du(e, 'medecin', 1)];
-    a.c.wounds.current = 2; b.c.wounds.current = 2;
-    const essais = [agirDansLaSalle(e, 'soigner', a.c.id, b.c.id), agirDansLaSalle(e, 'soigner', b.c.id, a.c.id)];
-    const refuses = essais.filter((r): r is string => typeof r === 'string');
-    expect(refuses).toHaveLength(1);
-    expect(refuses[0]).toMatch(/ est meilleur·e en Guérison : à lui ou à elle de soigner\.$/);
-    expect(e.expedition!.salles[0].soignes).toHaveLength(1);
-  });
-
-  it('un patient meilleur en Guérison que son soigneur : la liste le refuse comme le noyau, sans jet', () => {
-    const e = devant('camp', 6, [MEDECIN.id, MEDECIN.id]);
-    const [soigneur, patient] = [du(e, 'medecin', 0), du(e, 'medecin', 1)];
-    patient.c.wounds.current = 2;
-    patient.c.skills.find((s) => s.id === HEAL_SKILL)!.advances += 40;
-    const refus = refusDuPatient(e, soigneur, patient);
-    expect(refus).toBe(`${patient.c.label} est meilleur·e en Guérison : à lui ou à elle de soigner.`);
-    expect(agirDansLaSalle(e, 'soigner', soigneur.c.id, patient.c.id)).toBe(refus);
-    expect(du(e, 'medecin', 1).c.wounds.current).toBe(2);
-    expect(e.expedition!.salles[0].soignes).toBeUndefined();
-  });
-
-  it('refus : qui n’a pas Guérison ne soigne pas ; un soigneur hors de combat non plus ; rien ne se joue', () => {
-    const e = devant('camp', 4, [MEDECIN.id]);
-    const soldat = du(e, 'soldat');
-    const medecin = du(e, 'medecin');
-    soldat.c.wounds.current = 2;
-    expect(refusDuSoigneur(e, soldat)).toBe('Ne sait pas tenter la Guérison.');
-    expect(agirDansLaSalle(e, 'soigner', soldat.c.id, medecin.c.id)).toBe('Ne sait pas tenter la Guérison.');
-    medecin.c.wounds.current = 2;
-    expect(agirDansLaSalle(e, 'soigner', medecin.c.id, medecin.c.id)).toBe('Le soigneur soigne un autre héros.');
-    medecin.c.wounds.current = medecin.c.wounds.max;
-    addCondition(medecin.c, COND.inconscient);
-    expect(agirDansLaSalle(e, 'soigner', medecin.c.id, soldat.c.id)).toBe('Hors de combat.');
-    expect(du(e, 'soldat').c.wounds.current).toBe(2);
-    expect(e.expedition!.salles[0].soignes).toBeUndefined();
-    expect(salleAChoisir(e)).toBe(true);
-  });
-  it('un soigneur sans autre héros à soigner n’en est pas un : seul blessé, il ne se propose pas', () => {
-    const e = devant('camp', 5, [MEDECIN.id]);
-    for (const h of herosDuGroupe(e)) h.c.wounds.current = h.c.wounds.max;
-    const medecin = du(e, 'medecin');
-    medecin.c.wounds.current = 2;
-    expect(refusDuSoigneur(e, medecin)).toBe('Personne à soigner.');
-    du(e, 'soldat').c.wounds.current = 2;
-    expect(refusDuSoigneur(e, medecin)).toBeNull();
   });
 });
 
@@ -164,7 +77,7 @@ describe('la rencontre, salle à choix', () => {
     expect(e.expedition!.index).toBe(1);
   });
 
-  it('le tirage des salles : une rencontre (`RENCONTRES`) au plus par expédition, jamais en première ni en dernière salle, chacune tirée', () => {
+  it('le tirage des salles : un combat d’abord, un camp avant le maître, une rencontre (`RENCONTRES`) au plus par expédition, chacune tirée', () => {
     const vues = new Set<string>();
     for (let g = 1; g <= 60; g++) {
       const e = nouvellePartie(g);
@@ -174,7 +87,7 @@ describe('la rencontre, salle à choix', () => {
         const types = e.expedition!.salles.map((s) => s.type);
         const rencontres = types.filter((t) => (RENCONTRES as readonly string[]).includes(t));
         expect(rencontres.length).toBeLessThanOrEqual(1);
-        expect([types[0], types[types.length - 1]]).toEqual(['combat', 'boss']);
+        expect([types[0], types[types.length - 2], types[types.length - 1]], `graine ${g}, ${d.id}`).toEqual(['combat', 'camp', 'boss']);
         rencontres.forEach((t) => vues.add(t));
         e.expedition = null;
       }

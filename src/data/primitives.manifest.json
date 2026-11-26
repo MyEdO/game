@@ -832,7 +832,7 @@
     "type": "primitives.manifest",
     "label": "porteDeTousLesProjets/porteDuProjet",
     "fichier": "scripts/guards/lib/porteDesProjets.mjs",
-    "concept": "porte des projets (#5037) : la passe, frappée par le seul sceau que la serrure remet à la porte (`serrureDesProjets.mjs`), qu'exigent `listerDossier`, `listerEntrees`, `listerArbre`, `cheminsDuCorpus` et `readCorpus` (avant son mémo) pour lire sous `projets/` de ce dépôt ou une racine qui le contient ; chaque passe dit ce qu'elle lit : tous les projets, ou un projet ; les lecteurs d'un projet sont la clôture d'imports qui atteint la porte",
+    "concept": "porte des projets (#5037) : la passe, frappée par le seul sceau que la serrure remet à la porte (`serrureDesProjets.mjs`), qu'exigent `listerDossier`, `listerEntrees`, `listerArbre`, `cheminsDuCorpus`, `readCorpus` et `entreeDe` (avant leur mémo), `clotureDImports`, `repoProgram`, et `listerImage` et `lireEnLot` par la passe du dépôt (`depotDe(cwd, { porte })`), pour lire sous `projets/` de ce dépôt ou une racine qui le contient ; sous les tests, une lecture `node:fs` brute que rien de sa pile n'admet est refusée (`intercepterLecturesDesProjets.mjs`) ; chaque passe dit ce qu'elle lit : tous les projets, ou un projet ; les lecteurs d'un projet sont la clôture d'imports qui atteint la porte",
     "perimetre": "tout lecteur hors d'un projet qui balaie `projets/` par une passerelle de `scripts/guards/lib/` : corpus des gardes, projets livrés, citants, mesure des docs dérivés",
     "verrou": "porteDesProjets.test.mjs"
   },
@@ -974,9 +974,9 @@
   {
     "id": "tsProgram",
     "type": "primitives.manifest",
-    "label": "repoProgram/virtualProgram/syntaxProgram/libererSessions/VIRTUAL_ROOT",
+    "label": "repoProgram/virtualProgram/syntaxProgram/libererSessions/membresDe/VIRTUAL_ROOT",
     "fichier": "scripts/guards/lib/tsProgram.mjs",
-    "concept": "sessions natives avec libération explicite et collective conservant toutes les erreurs : dépôt recouvert, vérification de types de sources virtuelles isolées ou analyse syntaxique d'un corpus fermé aux noms originaux",
+    "concept": "sessions natives avec libération explicite et collective conservant toutes les erreurs : dépôt recouvert, vérification de types de sources virtuelles isolées ou analyse syntaxique d'un corpus fermé aux noms originaux ; membres d'une union ou d'une intersection lus une fois par type (`membresDe`)",
     "perimetre": "toute garde ou tout générateur qui a besoin d'un vérificateur de types ; syntaxProgram pour les AST et diagnostics syntaxiques, avec deux chemins réservés et des références aux chemins originaux sans encodage, refus nommé des chemins contenant les deux guillemets ou un séparateur de ligne",
     "verrou": "ts-program-fabrique-guard.test.ts, analyse-retention-guard.test.ts, scripts/guards/lib/tsProgram.test.mjs, scripts/guards/lib/dialecte.test.mjs"
   },

@@ -118,6 +118,7 @@ Un État peut être annulé en dépensant un Point de Détermination.
 **Retrait** : en se **relevant** (action de mouvement).
 - **VERROU à 0 Point de Blessure** (`LDB 18 l.15`) : « Jusqu'à ce que vous puissiez au moins guérir 1 Point de Blessure, vous ne pourrez pas vous débarrasser de cet État ».
 - **Par un Point de Détermination** (`LDB 17 l.61`) : « Retirez un État : si vous retirez l'État à Terre, regagnez 1 Point de Blessure lorsque vous vous mettez debout. » — la Blessure rendue lève le verrou ci-dessus.
+- **Survit à la fin de la rencontre tant que le verrou tient** (`LDB 18 l.15`) : la fin de la rencontre ne le relève pas ; seul un État qui dure la rencontre (`LDB 18 l.53`) en tombe. Code : `etatsDeRencontre` (`src/engine/persistence.ts`).
 
 **Cumul** : **non** — soit on est À Terre, soit on ne l'est pas.
 

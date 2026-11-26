@@ -35,8 +35,10 @@ func _recetter() -> void:
 		_verifier(foyers[0], "feu", 2, "son-crepitement")
 		_verifier(foyers[1], "lueur", 1, "")
 		var lampe: OmniLight3D = foyers[0].get_children().filter(func(n: Node) -> bool: return n is OmniLight3D)[0]
+		await process_frame
 		var energies := [lampe.light_energy]
 		await create_timer(0.13).timeout
+		await process_frame
 		energies.append(lampe.light_energy)
 		if is_equal_approx(energies[0], energies[1]):
 			_fautes.append("la lampe du feu ne vacille pas : %s" % [energies])

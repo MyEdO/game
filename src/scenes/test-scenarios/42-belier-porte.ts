@@ -1,7 +1,6 @@
 import { groupeDeScenario, idDuHerosDeScenario } from './_heros';
 import { buildScene } from '../../noyau/mapSpec';
 import { crewFormationSlots } from '../../noyau/monde/shipPostes';
-import { setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -48,7 +47,7 @@ const SERVANT_SLOTS = crewFormationSlots({ pos: RAM_POS, footprint: 2 }, { crewI
   .filter((p) => p.x !== HERO_COLUMN_X); // écarte tout le flanc gauche (colonne des héros, dont le Soldat)
 
 function construireScene(): Scene {
-  const scene = buildScene({
+  return buildScene({
     id: 'belier-porte',
     label: 'Bélier — porte',
     desc: "Un petit fort de siège : une porte de ville barre le passage, gardée par un gobelin.",
@@ -60,36 +59,35 @@ function construireScene(): Scene {
     heroStart: [4, 8], // le Soldat (1er du groupe) atterrit en (3,8) — flanc gauche de la formation, à 3 cases de la porte
     startMessage: { texte: "Le Soldat sert le bélier (poste, Équipe de 6) : poussez-le jusqu'à la porte (Action « Pousser », mouvement simple) puis enfoncez-la (Test de Force) — la VICTOIRE se joue sur la porte ABATTUE, pas sur le défenseur qui la garde." },
     walls: [{ x: 5, y: 4, side: 'N', structure: 'porte-de-ville' }],
+    encounters: [
+      {
+        id: 'siege-belier',
+        // Objectif de victoire (#197) : la porte ABATTUE, pas la mort du gobelin — `checkBattleOver`
+        // consultait exclusivement les ennemis avant #197, ce qui déclarait la victoire dès le gobelin
+        // hors d'action alors que la porte tenait toujours (bug du ticket).
+        victoryCondition: { type: 'destroyStructure', edge: { x: 5, y: 4, side: 'N' } },
+        // Rencontre de SIÈGE déclarée — champ SÉPARÉ de `victoryCondition` : l'objectif ne l'active pas.
+        siege: true,
+        enemies: [
+          { creature: { id: 'gobelin' }, pos: { x: 5, y: 2 }, facing: 'S' }, // index 0 : défenseur
+          // index 1 : emplacement du bélier, trapping du sous-type `armes-de-siege`,
+          // orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
+          {
+            engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
+            postes: [{ engin: { id: 'belier-ade2' }, crewIds: [...RAM_CREW] }],
+          },
+          // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
+          // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais
+          // éparpillés), aucun sur la colonne des 3 autres héros ni sur l'affût.
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+          { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
+        ],
+      },
+    ],
   });
-  setEncounters(scene, [
-    {
-      id: 'siege-belier',
-      // Objectif de victoire (#197) : la porte ABATTUE, pas la mort du gobelin — `checkBattleOver`
-      // consultait exclusivement les ennemis avant #197, ce qui déclarait la victoire dès le gobelin
-      // hors d'action alors que la porte tenait toujours (bug du ticket).
-      victoryCondition: { type: 'destroyStructure', edge: { x: 5, y: 4, side: 'N' } },
-      // Rencontre de SIÈGE déclarée — champ SÉPARÉ de `victoryCondition` : l'objectif ne l'active pas.
-      siege: true,
-      enemies: [
-        { creature: { id: 'gobelin' }, pos: { x: 5, y: 2 }, facing: 'S' }, // index 0 : défenseur
-        // index 1 : emplacement du bélier, trapping du sous-type `armes-de-siege`,
-        // orienté vers la porte (facing 'N'), servi par l'Équipe `RAM_CREW`.
-        {
-          engin: { id: 'belier-ade2' }, pos: RAM_POS, facing: RAM_HEADING, side: 'allie',
-          postes: [{ engin: { id: 'belier-ade2' }, crewIds: [...RAM_CREW] }],
-        },
-        // index 2-6 : les 5 servants PNJ (IA, agissent seuls) qui complètent l'Équipe (le 6e membre = le
-        // Soldat, crewIds[0] ci-dessus) — en FORMATION autour de l'affût (`crewFormationSlots`, jamais
-        // éparpillés), aucun sur la colonne des 3 autres héros ni sur l'affût.
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[0], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[1], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[2], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[3], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-        { creature: { id: 'brute' }, pos: SERVANT_SLOTS[4], facing: 'N', side: 'allie', ai: true, label: 'Servant du bélier' },
-      ],
-    },
-  ]);
-  return scene;
 }
 
 export const scenario: TestScenario = {

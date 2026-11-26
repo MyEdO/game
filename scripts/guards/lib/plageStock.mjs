@@ -68,6 +68,7 @@ import {
   rangDuTronc,
   refusDeGit,
 } from './gitPorte.mjs'
+import { porteDeTousLesProjets } from './porteDesProjets.mjs'
 import {
   bilanDeFusion,
   bilanDesClesReelles,
@@ -392,7 +393,7 @@ function journalDesStocks(depot, tronc, chantier, texteA) {
  */
 export function lectureDeLaPlage({ cwd = process.cwd(), debut, fin, vers = null, origineConfirmee, dossierDesMemos } = {}) {
   const pannes = []
-  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)) })
+  const depot = depotDe(cwd, { enPanne: (_raison, vu) => pannes.push(refusDeGit(vu)), porte: porteDeTousLesProjets })
   const notes = []
   const avecLeTronc = (sha) => baseCommune(depot, sha, TRONC.suivi)
   if (debut === SHA_NUL) debut = null

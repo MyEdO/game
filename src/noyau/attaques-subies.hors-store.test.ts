@@ -88,7 +88,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(s.serieSubie!.assaillant).toMatchObject({ label: 'Rats géants', kind: 'ennemi' });
     expect(s.serieSubie!.assaillant.pos).toBeUndefined();
     expect(s.party[0]).not.toBe(H);
-    expect(s.party[0]).toEqual(entreeEnRencontre(H));
+    expect(s.party[0]).toEqual(entreeEnRencontre(H, { lignes: [], faits: [] }));
   });
 
   it('un seul univers des combattants de la série : `porteurParId`, `actorIn` et `sansCorps` voient l’assaillant, lui seul hors du groupe, jusqu’à la fermeture', () => {

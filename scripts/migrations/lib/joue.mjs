@@ -12,6 +12,8 @@ import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { clotureDImports } from '../../guards/lib/importGraph.mjs';
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs';
+import { exigerLaPorte } from '../../guards/lib/serrureDesProjets.mjs';
 
 const MIGRATIONS = fileURLToPath(new URL('../', import.meta.url));
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url));
@@ -68,11 +70,13 @@ const CORPUS = ['src/data', 'src/scenes', 'projets', 'scripts', 'src/lib/ordre.m
 /** Dépôt jetable sous `os.tmpdir()` portant une COPIE du `CORPUS` de l'arbre. REND sa racine. */
 export function copieDuCorpus() {
   const racine = fs.mkdtempSync(path.join(os.tmpdir(), 'migr-corpus-'));
-  for (const rel of CORPUS)
+  for (const rel of CORPUS) {
+    exigerLaPorte(path.join(RACINE, rel), porteDeTousLesProjets, 'copieDuCorpus', { ancetres: true });
     fs.cpSync(path.join(RACINE, rel), path.join(racine, rel), {
       recursive: true,
       filter: (src) => path.extname(src).toLowerCase() !== '.pdf',
     });
+  }
   return racine;
 }
 
@@ -122,7 +126,7 @@ export function joue(racine, migration) {
     if (!dependancesPosees.has(racine)) dependancesPosees.set(racine, new Set());
     dependancesPosees.get(racine).add(rel.split(path.sep).join('/'));
   }
-  const r = spawnSync(process.execPath, [cible], { encoding: 'utf8' });
+  const r = spawnSync(process.execPath, [cible], { cwd: racine, encoding: 'utf8' });
   const stdout = r.stdout ?? '';
   const stderr = r.stderr ?? '';
   return { code: r.status, stdout, stderr, sortie: `${stdout}${stderr}` };

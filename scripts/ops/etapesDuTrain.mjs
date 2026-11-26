@@ -494,17 +494,11 @@ export const ETAPES = [
     },
   },
   {
-    // #2626
+    // #2626 ; #5103 : l'étape ouvre la PR sans l'armer — l'armement attend la course de branche verte, à l'étape `file`.
     nom: 'pr',
     dejaFaite(ctx, journal) {
       const vu = ctx.lirePr()
-      if (!vu.ok) return false
-      const pr = prDeLaBranche(vu.prs, journal.tete)
-      const etat = etatDeLaPr(pr, journal.tete)
-      if (etat === 'fusionnee') return true
-      if (etat !== 'ouverte') return false
-      const file = ctx.etatFileDePr({ numero: pr.numero, sha: journal.tete })
-      return file.ok && ['armed', 'enqueued', 'merged'].includes(file.statut)
+      return vu.ok && ['fusionnee', 'ouverte'].includes(etatDeLaPr(prDeLaBranche(vu.prs, journal.tete), journal.tete))
     },
     jouer(ctx, journal) {
       const lu = ctx.lirePr()
@@ -523,15 +517,7 @@ export const ETAPES = [
       const etat = etatDeLaPr(pr, journal.tete)
       if (etat === 'fusionnee') return { ok: true, detail: { pr: pr.numero }, dit: `PR #${pr.numero} déjà fusionnée` }
       if (etat !== 'ouverte') return { ok: false, raison: `PR #${pr.numero} : ${etat}, tête publiée ${journal.tete}` }
-      if (pr.conflit === true) return reprendreEnConflit(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` })
-      const issue = ctx.demanderFusion({ numero: pr.numero, sha: journal.tete })
-      if (!issue.ok) {
-        const relu = ctx.lirePr()
-        const courante = relu.ok ? prDeLaBranche(relu.prs, journal.tete) : null
-        if (courante?.conflit === true) return reprendreEnConflit(ctx, journal, { raison: `PR #${courante.numero} en CONFLIT avec la base` })
-        return { ok: false, raison: `armement de la PR #${pr.numero} REFUSÉ : ${issue.raison}` }
-      }
-      return { ok: true, detail: { pr: pr.numero, armement: issue.statut }, dit: `PR #${pr.numero} : ${issue.statut} sur ${journal.tete.slice(0, 9)}` }
+      return { ok: true, detail: { pr: pr.numero }, dit: `PR #${pr.numero} ouverte sur ${journal.tete.slice(0, 9)}` }
     },
   },
   {
@@ -587,9 +573,20 @@ export const ETAPES = [
           if (branche) ctx.journaliser(`[publier] file — ${branche.dit}\n`)
           // #2525
           if (pr.conflit === true) return attendu(reprendreEnConflit(ctx, journal, { raison: `PR #${pr.numero} en CONFLIT avec la base` }))
+          // #5103 : la file éjecte une PR entrée avant que le job `branche` de sa tête ait conclu.
+          if (branche) {
+            patienter()
+            continue
+          }
           if (refus) {
             if (pr.conflit === false) return attendu({ ok: false, detail: { pr: refus.pr }, raison: refus.raison })
             ctx.journaliser(`[publier] file — PR #${pr.numero} : demande refusée, conflit avec la base pas encore jugé par GitHub\n`)
+            patienter()
+            continue
+          }
+          // #5037 : la file éjecte en INVALID_MERGE_COMMIT une PR armée avant que GitHub ait jugé sa fusionnabilité.
+          if (!demande && pr.conflit === null) {
+            ctx.journaliser(`[publier] file — PR #${pr.numero} : fusionnabilité pas encore jugée par GitHub\n`)
             patienter()
             continue
           }

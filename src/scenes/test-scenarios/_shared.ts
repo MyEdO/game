@@ -2,12 +2,8 @@ import { Combatant, type SkillInstance } from '../../engine/types';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { byId, findSiegeEngineById, type SkillRef } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
-import { Scene } from '../../noyau/monde/scene';
-import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ContenuDeScenario, LancementDeScenario } from '../../noyau/lancementDeScenario';
 import type { IconIdGenerated } from '../../data/schemas/icones.generated';
-import { buildEncounters, type AuthoredEncounter } from '../../noyau/monde/encounterAuthoring';
-import { buildScene } from '../../noyau/mapSpec';
 
 /** Ajoute ou renforce une Compétence d'un héros de scénario, à la Caractéristique de la donnée. Une
  *  Compétence groupée se possède par spécialisation, désignée par son id — LDB 09 l.40, LDB 09 l.44. */
@@ -28,15 +24,6 @@ export const projForPiece = (trappingId: string): SkillRef[] => {
   const g = findSiegeEngineById(trappingId)?.weaponGroup?.id;
   return g ? [{ id: 'projectiles', spec: g, value: 40 }] : [];
 };
-
-/** Attache des rencontres authored (terse) à une scène : expanse chaque liste d'ennemis en
- *  entités 'personnage' + `members` canoniques, pousse les entités dans la scène et pose les
- *  rencontres. Mutation EN PLACE (les scénarios construisent leur scène impérativement). */
-export function setEncounters(scene: Scene, list: AuthoredEncounter[]): void {
-  const built = buildEncounters(list);
-  scene.entities.push(...built.entities);
-  scene.encounters = built.encounters;
-}
 
 /** Sections du menu des scénarios de test : clé (portée par la donnée) → libellé + icône
  *  (id du registre src/data/schemas/icons), dans l'ordre d'affichage. */
@@ -83,27 +70,4 @@ export interface TestScenario {
  *  hôtes du noyau : le contenu construit à neuf aux ids de la partie (`idNeuf`), et les réglages de la fiche. */
 export function lancementDuScenario(sc: TestScenario, idNeuf: FabriqueDId): LancementDeScenario {
   return { ...sc.construire(idNeuf), projet: null, regles: sc.rules, bourse: sc.money, combatDirect: sc.autoCombat, semainesDInterlude: sc.interludeWeeks };
-}
-
-/** Arène dégagée + point de départ des héros (base des scénarios de combat direct). Preset MINCE
- *  au-dessus de `buildScene` (headless-editor) : mêmes défauts (16×10, 'herbe', départ à gauche-milieu). */
-export function arena(opts: {
-  id: string;
-  label: string;
-  w?: number;
-  h?: number;
-  terrain?: Terrain;
-  heroStart?: { x: number; y: number };
-}): Scene {
-  const w = opts.w ?? 16;
-  const h = opts.h ?? 10;
-  const hs = opts.heroStart ?? { x: 2, y: Math.floor(h / 2) };
-  return buildScene({
-    id: opts.id,
-    label: opts.label,
-    desc: 'Arène de test.',
-    size: [w, h],
-    terrain: opts.terrain ?? 'herbe',
-    heroStart: [hs.x, hs.y],
-  });
 }

@@ -31,7 +31,7 @@ function foe(over: Partial<Combatant>): Combatant {
 }
 const hero = (x: number, y: number): Combatant => (blessuresSurLeProfil({ id: 'h', kind: 'heros', name: 'H', pos: { x, y }, wounds: blessuresDeBase(10), conditions: [], characteristics: CHARS, traits: [], size: 'moyenne', advantage: 0, weapons: [], armour: {} }) as unknown as Combatant);
 const decide = (enemy: Combatant, heroes: Combatant[]) =>
-  chooseEnemyAction({ enemy, heroes, scene: scene(), blocked: new Set<string>(), movement: 4 } as never);
+  chooseEnemyAction({ enemy, heroes, scene: scene(), env: { blocked: new Set<string>() }, movement: 4 } as never);
 
 describe('IA Brisé — dépense PROACTIVE de Détermination (LDB 17 l.57-61), data-driven', () => {
   it('Engagé + Détermination suffisante → se RESSAISIT (spendResource resolve→removeCondition brise)', () => {

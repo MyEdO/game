@@ -5,12 +5,12 @@
  */
 export type { Combatant, CharKey, ItemInstance } from '../../../../src/engine/types';
 export type { RNG } from '../../../../src/engine/dice';
-export type { Sexe } from '../../../../src/data/schemas/grammaire/valeurs';
+export { type Sexe, memeSpecialisation, refCouvre, parseTable } from '../../../../src/noyau';
 export type { DoctrineId } from '../../../../src/noyau/monde/ai';
 export { makeRNG } from '../../../../src/engine/dice';
-export { memeSpecialisation, refCouvre } from '../../../../src/data/schemas/grammaire/ref';
+export { purgerEtats } from '../../../../src/engine/conditions';
+export type { Applique } from '../../../../src/engine/faits';
 export { deElide } from '../../../../src/i18n';
-export { parseTable } from '../../../../src/data/schemas/source/decoupe';
 export * from './heros';
 export * from './combat';
 export * from './hameau';

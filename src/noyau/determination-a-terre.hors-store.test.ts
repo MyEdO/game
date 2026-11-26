@@ -12,6 +12,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import { actionGate } from './actionRegistry';
+import { finalizeBattle } from './combatFlow';
 import { hasCondition, raisonRefusDetermination } from '../engine/conditions';
 import { findConditionById } from '../data/index';
 import { t } from '../i18n';
@@ -106,5 +107,20 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
     expect(hasCondition(apres, 'a-terre')).toBe(true);
     expect(apres.resolve).toBe(1);
     expect(apres.wounds.current).toBe(0);
+  });
+});
+
+describe('Détermination hors combat — À Terre à 0 Blessure sort de la rencontre (LDB 18 l.15, LDB 17 l.61)', () => {
+  it('sorti du combat à 0 PB et À Terre : l’État revient au groupe, la dépense le retire et rend 1 PB', () => {
+    const { H } = setup(0, 1);
+    finalizeBattle(() => banc.getState(), banc.setState);
+    banc.setState({ battle: null, mode: 'exploration' });
+    const groupe = () => banc.getState().party.find((h) => h.id === H.id)!;
+    expect(hasCondition(groupe(), 'a-terre'), 'le verrou tient : l’État ne tombe pas à la fin de la rencontre (LDB 18 l.15)').toBe(true);
+    banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'a-terre');
+    expect(banc.getState().refus?.texte).toBeUndefined();
+    expect(hasCondition(groupe(), 'a-terre')).toBe(false);
+    expect(groupe().wounds.current).toBe(1);
+    expect(groupe().resolve).toBe(0);
   });
 });

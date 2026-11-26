@@ -25,6 +25,7 @@ import { performance } from 'node:perf_hooks'
 import { paquetsDArgv } from '../guards/lib/porteSpawn.mjs'
 import { citeArgument } from '../guards/lib/commandeShell.mjs'
 import { depotDe, lireEnLot, racineDe } from '../guards/lib/gitPorte.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 import { selectionDesGenerateurs, sourcesMesurees } from '../git-hooks/selection-des-derives.mjs'
 import {
   DRAPEAU_REGIME,
@@ -847,7 +848,7 @@ export async function derivationBornee(entree, { limiteMs = 180_000, lancer = sp
  *  le disque (arbre de travail) ou dans `tete`, mémos sous `dossierDesMemos`. */
 export async function perimetreDuDepot(racine, { base, tete } = {}, { dossierDesMemos = join(racine, CACHE), lectureSeule = false, env, signal, retenir } = {}) {
   const derive = await derivationBornee({ racine, base, tete, dossierDesMemos, lectureSeule }, { env, signal, retenir })
-  const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine, { env }), derive.tete, rels) : lireDuDisque(racine)
+  const lire = derive.tete ? (rels) => lireEnLot(depotDe(racine, { env, porte: porteDeTousLesProjets }), derive.tete, rels) : lireDuDisque(racine)
   return { ...derive, lire }
 }
 

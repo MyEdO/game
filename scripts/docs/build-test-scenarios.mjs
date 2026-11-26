@@ -208,7 +208,7 @@ function rendu(DIR = DIR_DU_COMMUN) {
     'Dépose un fichier `src/scenes/test-scenarios/<NN>-<slug>.ts` exportant `scenario` :',
     '',
     '```ts',
-    "import { arena } from './_shared';",
+    "import { arena } from '../../noyau/mapSpec';",
     "import type { TestScenario } from './_shared';",
     "import type { Scene } from '../../noyau/monde/scene';",
     '// (+ createHero / pretire / itemFromTrappingById selon le groupe voulu)',

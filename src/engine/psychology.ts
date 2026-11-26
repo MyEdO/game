@@ -659,8 +659,7 @@ export interface PsychStake {
 
 /**
  * CONSÉQUENCES d'un Test de Psychologie, en `GameOp[]` — SOURCE UNIQUE des deux appliers (rencontre
- * et combat) ET de l'annonce d'issues (#1117 : `meta.onSuccess`/`onFail` → `branchCertainOps` → chips
- * codex-liées). DÉRIVÉE de l'entrée `psychology.json` (`resolution`/`failCondition`/`failAmount`/
+ * et combat). DÉRIVÉE de l'entrée `psychology.json` (`resolution`/`failCondition`/`failAmount`/
  * `becomes`) : aucune conséquence n'est rédigée par entrée.
  *
  * · résolution `'terreur'` (LDB 21 l.54-56) — échec : `failCondition` à la quantité déclarée (part
@@ -717,10 +716,7 @@ export function psychBranchOps(
 }
 
 /** Les MÊMES conséquences, en branche de Flow — ce que l'étape SÉRIALISE dans son `meta`
- *  (`onSuccess`/`onFail`) pour que la surface de jet dérive ses issues des ops effectives
- *  (`branchCertainOps` → chips codex-liées, #1117), avant comme après le jet. Ce que seule la
- *  résolution connaît (DR cumulé du Test étendu, n° de Round) en est absent : l'annonce ne porte
- *  que ce qui est certain. */
+ *  (`onSuccess`/`onFail`). */
 export function psychBranchFlow(stake: PsychStake, success: boolean): Flow {
   return { kind: 'effet', effet: { type: 'ops', on: 'target', ops: psychBranchOps(stake, { success }) } };
 }

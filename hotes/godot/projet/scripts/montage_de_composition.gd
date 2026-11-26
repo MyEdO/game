@@ -32,7 +32,7 @@ const FORMES := &"formes"
 const POIDS := &"poids_des_formes"
 ## La métadonnée du mesh d'une pièce skinnée : par surface, son maillage de la demande de pile (`_maillage`).
 const MAILLAGES := &"maillages_de_pile"
-## Le rang de la couche `peau` dans `couches` de `modeles` (`COUCHES`, `asset/element.ts`) : ses éléments montés qui
+## Le rang de la couche `peau` dans `couches` de `modeles` (`COUCHES`, `asset/couches.ts`) : ses éléments montés qui
 ## couvrent une zone sont de la peau de la tenue (`_empiler`, #3842).
 const RANG_DE_LA_PEAU := 0
 ## La métadonnée d'une pièce skinnée dont le skin est une copie aux liaisons compensées (`refondre`) : le skin du GLB.

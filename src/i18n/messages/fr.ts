@@ -1548,7 +1548,6 @@ export const fr = {
   'cond.derivedLoss': '{name} perd l’État {cond} — {src} ne le porte plus.',
   'cond.derivedSrcFallback': 'un mal qu’il traîne',
   'cond.refusDeterminationVerrou': '{cond} ne se lèvera pas avant la guérison ({src}).',
-  'cond.lastWoundExhausted': '{name} est Exténué (dernière plaie refermée).',
   'cond.coagulate': '{name} : une plaie coagule ({roll}, double) — un État Hémorragique en moins.',
   'cond.bleedDeath': "{name} succombe à l'hémorragie ({roll} ≤ {threshold}).",
   'cond.bleedSurvive': "{name} survit à l'hémorragie ({roll} > {threshold}).",
@@ -2142,6 +2141,7 @@ export const fr = {
   'cs.cannotFocus': 'Ce sort ne peut pas être focalisé.',
   'cs.focusBlocked': '{name} ne peut pas focaliser : {reason}.',
   'cs.magicMissileNeedsTarget': '{spell} est un Projectile magique — il faut une cible ennemie (en combat).',
+  'cs.cibleHorsDuGroupe': '{spell} : « {id} » n’est pas un héros du groupe.',
   'cs.sortIndisponible': '{spell} n’est pas disponible pour {name}.',
   // ── Phase C : narration du flux de combat (noyau/combatFlow). ──
   'cf.libelleDuCouvert': 'Couvert ({cover})',
@@ -3376,7 +3376,6 @@ export const fr = {
   'heal.awake': '{name} reprend connaissance.',
   'heal.bleedResists': "{name} : l'hémorragie ne cède pas.",
   'heal.bleedStopped': '{name} : {n} État(s) Hémorragique stoppé(s).',
-  'heal.bleedExtenue': "{name} est Exténué (après l'arrêt de l'hémorragie).",
   'heal.astoundingFail': '{name} : soin catastrophique — contracte une Infection Mineure (Échec Stupéfiant).',
   'heal.noLodged': '{name} : aucune munition logée à retirer.',
   'heal.lodgedResists': '{name} : la munition logée résiste au retrait.',

@@ -1048,3 +1048,26 @@ function assertAuthoredIds(spec: MapSpec, scene: Scene): void {
         inconnus.map((e) => `${e.source} : ${e.quoi} « ${e.id} » absent(e) de ${e.catalogue}`).join('\n  '),
     );
 }
+
+/** Arène dégagée + point de départ des héros. Preset MINCE
+ *  au-dessus de `buildScene` (headless-editor) : 16×10, départ à gauche-milieu, terrain par défaut de `buildScene`. */
+export function arena(opts: {
+  id: string;
+  label: string;
+  w?: number;
+  h?: number;
+  terrain?: Terrain;
+  heroStart?: { x: number; y: number };
+}): Scene {
+  const w = opts.w ?? 16;
+  const h = opts.h ?? 10;
+  const hs = opts.heroStart ?? { x: 2, y: Math.floor(h / 2) };
+  return buildScene({
+    id: opts.id,
+    label: opts.label,
+    desc: 'Arène de test.',
+    size: [w, h],
+    terrain: opts.terrain,
+    heroStart: [hs.x, hs.y],
+  });
+}

@@ -425,6 +425,10 @@ export const DRAPEAUX_RESTRICTIFS = [
  *  `suite` de `.github/workflows/ci.yml`. */
 export const VARIABLE_PARTIE = 'WFRP_TEST_PARTIE'
 
+/** La variable de la ZONE du push (#5037 L2, `zoneDuDiff`) : sous une partie, la tranche se prend dans la sélection de
+ *  la zone (`selectionDeLaZone`, scripts/test/selectionDeZone.mjs) ; absente ou vide, dans la suite entière. */
+export const VARIABLE_ZONE = 'WFRP_TEST_ZONE'
+
 /** Partie demandée : `null` quand la variable est ABSENTE, `{ i, k }` pour `i/K` avec 1 ≤ i ≤ K, sinon
  *  `{ refus }` nommé. Une valeur vide est MAL FORMÉE, jamais absente. */
 export function partieDe(valeur) {
@@ -463,37 +467,48 @@ const parUniteDeCode = (a, b) => (a < b ? -1 : a > b ? 1 : 0)
 const empreinteDe = (chemins) => createHash('sha1').update(chemins.join('\n')).digest('hex').slice(0, 12)
 
 /** Tête de la suite : chemin → durée en ms des fichiers mesurés à 30 s ou plus, lignes de module du reporter Vitest
- *  des jobs `suite 1/3`..`suite 3/3` de la course `merge_group` 45646649257 (2026-11-25, 088fd92feb). Paramètre de
- *  BANC (#5037) : les 26 fichiers portent 2 331 s des 3 700 s de la suite ; sous le seul `partieDuFichier`, la partie 2 en tenait 1 632 s
- *  contre 1 029 et 1 039. Committée, jamais rapatriée au moment de trancher : les K jobs tranchent la même partition.
+ *  des jobs `suite 1/3`..`suite 3/3` de la course `merge_group` 45743546851 (2026-11-26, #5106). Paramètre de
+ *  BANC (#5037) : les 37 fichiers portent 2 315 s des 3 717 s de la suite ; sous la tête précédente, la partie 3 en tenait 1 501 s
+ *  contre 1 049 et 1 166, sous celle-ci 1 243 contre 1 211 et 1 263. Committée, jamais rapatriée au moment de trancher : les K jobs tranchent la même partition.
  *  Une durée périmée ne coûte que de l'équilibre ; elle se relève au mémo `durees-ci.json` (`rapatrierDureesCi`). */
 export const TETE_DE_LA_SUITE = Object.freeze({
-  'src/compendium-field-editability-guard-5.test.ts': 177_494,
-  'hotes/godot/asset/evaluer.cli.hors-store.test.ts': 154_985,
-  'src/compendium-field-editability-guard-14.test.ts': 148_345,
-  'src/compendium-field-editability-guard-12.test.ts': 145_070,
-  'src/analyse-retention-guard.test.ts': 124_998,
-  'src/compendium-field-editability-guard-6.test.ts': 123_084,
-  'src/compendium-field-editability-guard-2.test.ts': 122_452,
-  'src/data/field-consumers.test.ts': 108_142,
-  'src/compendium-field-editability-guard-11.test.ts': 104_082,
-  'src/eslint-ordre-total-et-purete.test.ts': 101_967,
-  'src/compendium-field-editability-guard-13.test.ts': 99_302,
-  'src/compendium-field-editability-guard-3.test.ts': 93_806,
-  'src/compendium-field-editability-guard-1.test.ts': 92_412,
-  'src/carte-field-editability-guard.test.ts': 82_589,
-  'src/purete-hote-lint.test.ts': 78_837,
-  'src/narratif-field-editability-guard.test.ts': 70_811,
-  'hotes/godot/asset/tenue.hors-store.test.ts': 69_714,
-  'src/compendium-field-editability-guard-7.test.ts': 69_211,
-  'src/scene-field-editability-guard.test.ts': 64_676,
-  'src/compendium-field-editability-guard-10.test.ts': 63_047,
-  'src/noyau/built-brand-lint.test.ts': 56_329,
-  'src/data/structures-contrat.test.ts': 43_815,
-  'hotes/godot/construire.hors-store.test.ts': 39_159,
-  'src/noyau/navire-flow.hors-store.test.ts': 33_760,
-  'hotes/godot/pont/compendium.hors-store.test.ts': 32_182,
-  'src/data/atelierDuCodex.test.ts': 30_378,
+  'src/data/field-consumers.test.ts': 201_278,
+  'hotes/godot/asset/evaluer.cli.hors-store.test.ts': 154_311,
+  'src/eslint-ordre-total-et-purete.test.ts': 147_414,
+  'src/analyse-retention-guard.test.ts': 126_015,
+  'src/scene-field-editability-guard.test.ts': 90_609,
+  'src/purete-hote-lint.test.ts': 85_379,
+  'src/narratif-field-editability-guard.test.ts': 78_457,
+  'src/compendium-field-editability-guard-5.test.ts': 76_952,
+  'src/compendium-field-editability-guard-14.test.ts': 74_207,
+  'src/carte-field-editability-guard.test.ts': 70_787,
+  'src/compendium-field-editability-guard-3.test.ts': 68_689,
+  'src/compendium-field-editability-guard-13.test.ts': 60_628,
+  'src/compendium-field-editability-guard-2.test.ts': 59_561,
+  'src/compendium-field-editability-guard-6.test.ts': 58_421,
+  'src/compendium-field-editability-guard-12.test.ts': 57_167,
+  'hotes/godot/asset/tenue.hors-store.test.ts': 56_612,
+  'hotes/godot/pont/compendium.hors-store.test.ts': 56_050,
+  'src/noyau/built-brand-lint.test.ts': 50_013,
+  'src/compendium-field-editability-guard-1.test.ts': 49_280,
+  'src/noyau/navire-flow.hors-store.test.ts': 48_304,
+  'src/compendium-field-editability-guard-10.test.ts': 46_481,
+  'src/data/atelierDuCodex.test.ts': 43_621,
+  'src/point-d-entree-guard.test.ts': 41_002,
+  'src/data/seam-ecriture-guard.test.ts': 40_483,
+  'src/compendium-field-editability-guard-11.test.ts': 40_426,
+  'hotes/godot/construire.hors-store.test.ts': 40_064,
+  'src/coupe-au-caractere-guard.test.ts': 39_490,
+  'src/data/structures-contrat.test.ts': 39_200,
+  'scripts/personnage-3d/base/sources.test.ts': 38_488,
+  'src/noyau/transitionDuJeu.test.ts': 37_977,
+  'src/compendium-field-editability-guard-7.test.ts': 37_475,
+  'src/noyau/blessures-transition.hors-store.test.ts': 36_230,
+  'hotes/texte/exploration.hors-store.test.ts': 35_137,
+  'projets/roguelite/src/jeu/creation5e.test.ts': 34_127,
+  'src/noyau/roll-seam-exclusivity-guard.test.ts': 33_002,
+  'hotes/godot/vivant.hors-store.test.ts': 31_090,
+  'hotes/godot/pont/editeur.hors-store.test.ts': 30_761,
 })
 
 /** Partie (1..K) de chaque fichier de `tete` (chemin → durée en ms) PRÉSENT dans `chemins` : du plus lourd au plus
