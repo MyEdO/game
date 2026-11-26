@@ -12,5 +12,5 @@ export * from './carrieres';
 export * from './boutiques';
 export * from './expedition';
 export * from './sauvegarde';
-export * from './tutoriel';
+export * from './quete';
 export { refusDuPrix } from './outils';
