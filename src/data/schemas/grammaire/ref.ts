@@ -192,7 +192,7 @@ export function porteeDuJugementLocal(noeud: unknown, id?: string): PorteeLocale
   if (locale !== undefined) return locale;
   const declaration = declarationLue(noeud);
   if (declaration?.portee === undefined) return undefined;
-  return id === undefined || !idsDesignes(espaceDe(declaration.type), siteDuJugementLocal(declaration.type)).has(id) ? declaration.portee : undefined;
+  return id === undefined || !lecteurCourant(espaceDe(declaration.type), siteDuJugementLocal(declaration.type)).has(id) ? declaration.portee : undefined;
 }
 
 const siteDuJugementLocal = (type: TypeEntite): string => `idDe('${type}', …, { portee })`;
@@ -244,8 +244,8 @@ function idsDesignes(cle: string, site: string): ReadonlySet<string> {
 /** Lecture des ids d'un espace DÉSIGNÉ par sa clé, au nom du site qui le désigne : une clé absente LÈVE. */
 export type LecteurDIds = (cle: string, site: string) => ReadonlySet<string>;
 
-/** Le lecteur que lit le jugement d'une sous-liste et d'un id (`refusDe`) : l'INDEX DES IDS, sauf le temps d'un
- *  `sousLeLecteur`. */
+/** Le lecteur que lit le jugement d'une sous-liste et d'un id (`refusDe`), la décision de portée d'une feuille et
+ *  `idsDe` : l'INDEX DES IDS, sauf le temps d'un `sousLeLecteur`. */
 let lecteurCourant: LecteurDIds = idsDesignes;
 
 /** `juger()` sous le lecteur `ids`, rendu au précédent en sortie, levée comprise : la porte d'un parse sous un
@@ -349,9 +349,9 @@ export function idsDeLaSousListe(type: TypeEntite, sousListe: SousListe): readon
   return [...lecteurCourant(espaceDe(type), site)].filter((id) => refusDuMarqueur(type, sousListe, site, id) === null);
 }
 
-/** Ids admis de `type` — l'ensemble que juge `idDe(type)`. */
+/** Ids admis de `type` — l'ensemble que juge `idDe(type)`, lu au lecteur courant. */
 export function idsDe(type: TypeEntite): ReadonlySet<string> {
-  return idsDesignes(espaceDe(type), `idsDe('${type}')`);
+  return lecteurCourant(espaceDe(type), `idsDe('${type}')`);
 }
 
 /**
@@ -624,7 +624,7 @@ export function idDe<T extends TypeEntite, S extends SousListe | undefined = und
   return feuilleDId(type, sousListe, options?.portee, true);
 }
 
-/** Le site d'une feuille d'id, tel que l'écrit son appel : il désigne son espace (`idsDesignes`). */
+/** Le site d'une feuille d'id, tel que l'écrit son appel : il désigne son espace (`LecteurDIds`). */
 function siteDeFeuille(type: TypeEntite, sousListe: SousListe | undefined, portee: PorteeLocale | undefined): string {
   return (sousListe === undefined
     ? `idDe('${type}'`
@@ -639,7 +639,7 @@ function siteDeFeuille(type: TypeEntite, sousListe: SousListe | undefined, porte
 function feuilleDId<T extends TypeEntite, S extends SousListe | undefined>(type: T, sousListe: S | undefined, portee: PorteeLocale | undefined, avecRepere: boolean): z.ZodType<Id<T, S>, string> {
   const site = siteDeFeuille(type, sousListe, portee);
   const verifier = (refuser: (id: string) => string | null) => (v: string, ctx: z.RefinementCtx) => {
-    if (portee && !idsDesignes(espaceDe(type), site).has(v)) return;
+    if (portee && !lecteurCourant(espaceDe(type), site).has(v)) return;
     const refus = refuser(v);
     if (refus === null) {
       if (parseDeMesure && avecRepere) ctx.addIssue({ code: 'custom', message: `repère de ${site}`, params: { [REPERE]: type }, continue: true });
@@ -849,7 +849,7 @@ export function recordDIds<T extends TypeEntite, V extends z.ZodType, S extends 
     .superRefine((v, ctx) => {
       if (!parseDeMesure) return;
       for (const cle of Object.keys(v)) {
-        if (portee && !idsDesignes(espaceDe(type), site).has(cle)) continue;
+        if (portee && !lecteurCourant(espaceDe(type), site).has(cle)) continue;
         const repere: z.core.$ZodIssueCustom = { code: 'custom', path: [], message: `repère de recordDIds('${type}')`, params: { [REPERE]: type } };
         ctx.addIssue({ code: 'invalid_key', origin: 'record', path: [cle], input: cle, issues: [repere], continue: true });
       }
