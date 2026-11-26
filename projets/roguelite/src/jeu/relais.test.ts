@@ -3,7 +3,8 @@ import {
   ameliorer, attendreUneSemaine, PRIX_DU_SOIN_PAR_BLESSURE, prixDuSoin, soignerAuTemple, compagnieEpuisee, TAILLE_DU_GROUPE, ECHELLE_DES_PRIX, congedier, confierALHospice, disponible, nouvellePartie, partir, prendreUneChambre, prixDeLaChambre,
   qualiteDeLaChambre, recruter, refusDeDepart, rentrer, SEMAINE_DE_REPOS, type Etat, type QualiteDeRepos,
 } from './index';
-import { prixDuSejourALAuberge, reposer, poserLesReglesDuRoguelite } from '../noyau';
+import { prixDuSejourALAuberge, poserLesReglesDuRoguelite } from '../noyau';
+import { bonus, effectiveChar } from '../../../../src/engine/characteristics';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -28,7 +29,7 @@ describe('la chambre de l’Auberge relais', () => {
     expect(prix('normale')).toBeGreaterThan(prix('pietre'));
   });
 
-  it('retire le héros des départs une semaine, puis le rend reposé par le jour de récupération du noyau', () => {
+  it('retire le héros des départs une semaine, puis le rend reposé par les nuits du noyau, chacune au moins son Bonus d’Endurance (LDB 18 l.296)', () => {
     const { e, id } = avecUnBlesse(2);
     const h = e.roster.find((x) => x.c.id === id)!;
     const or = e.or;
@@ -38,14 +39,18 @@ describe('la chambre de l’Auberge relais', () => {
     expect(refusDeDepart(h)).toBe(`Auberge encore ${SEMAINE_DE_REPOS} jours.`);
     expect(partir(e, 'reikwald', [id])).toBe('Choisissez au moins un héros valide.');
     for (const x of e.roster) if (x !== h) x.c.wounds.current = 0;
-    const attendu = structuredClone(h.c);
-    const graine = e.graine;
+    const be = bonus(effectiveChar(h.c, 'endurance'));
     expect(attendreUneSemaine(e)).toBeNull();
-    reposer(attendu, graine, SEMAINE_DE_REPOS);
     expect(h.sejour).toBeUndefined();
     expect(disponible(h)).toBe(true);
-    expect(h.c.wounds.current).toBe(attendu.wounds.current);
-    expect(h.c.wounds.current).toBeGreaterThan(1);
+    expect(h.c.wounds.current).toBeGreaterThanOrEqual(Math.min(h.c.wounds.max, 1 + SEMAINE_DE_REPOS * be));
+  });
+
+  it('au hameau, la table commune nourrit chaque jour : sans vivres ni séjour, personne n’a faim après une semaine (LDB 18 l.337-343)', () => {
+    const { e } = avecUnBlesse(5);
+    for (const h of e.roster) { h.c.items = (h.c.items ?? []).filter((i) => i.trappingId !== 'ration'); h.c.wounds.current = 1; }
+    expect(attendreUneSemaine(e)).toBeNull();
+    for (const h of e.roster) expect(h.c.hunger?.days ?? 0, h.c.label).toBe(0);
   });
 
   it('sans chambre ni hospice, le blessé resté au hameau ne récupère pas en une semaine', () => {

@@ -376,6 +376,8 @@ export const GROUPE_DES_REMEDES = 'herbes-et-potions';
 /** Ce que l'hospice vend du Groupe des remèdes : ceux dont le combat et la route jouent l'effet, un au moins par
  *  Disponibilité. Arbitrage du 2026-11-23, MyEdO/game#4947. */
 export const REMEDES_DE_L_HOSPICE: readonly string[] = ['cataplasme-de-guerison', 'soude-commune', 'potion-de-guerison', 'potion-de-vitalite', 'racine-des-tombes', 'faxtoryll'];
+/** Les vivres que le départ d'une expédition vend pour la route. LDB 66 l.20 ; MyEdO/game#5121 */
+export const VIVRES_DU_DEPART: readonly string[] = ['ration'];
 /** Les Groupes d'armes que la forge vend. */
 export type GroupeDeLaForge = 'base' | 'escrime' | 'parade' | 'deux-mains' | 'armes-d-hast' | 'fleau' | 'arc' | 'arbalete' | 'fronde' | 'poudre-noire' | 'ingenierie' | 'lancer' | 'entraves';
 /** Les armes que la forge vend, par Groupe : une sélection qui couvre chaque Disponibilité, sans armes d'ogre ni

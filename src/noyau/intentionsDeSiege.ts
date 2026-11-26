@@ -142,7 +142,7 @@ export const CLASSE_DES_ACTIONS_DU_NOYAU = {
   // ── Décisions de GROUPE (taverne, poursuite) ──────────────────────────────────────────────────
   jouerALaTaverne: 'hôte', ouvrirLesJeux: 'hôte',
   // ── Repos / butin / victoire / défaite ────────────────────────────────────────────────────────
-  ouvrirLeRepos: 'hôte',
+  ouvrirLeRepos: 'hôte', laisserPasserLeTemps: 'hôte',
   // ── La Chance regagnée (règle optionnelle), la fin de séance ──
   restaurerLaFortune: 'hôte', ouvrirLaFinDeSeance: 'hôte',
   // L'armement d'une intention, verbe de la barre : n'écrit que `localIntent`, l'état local de l'émetteur.

@@ -177,12 +177,13 @@ import type { PendingBase } from './rollFlowFactory';
 import { dataLabel } from '../data';
 import { listeEt, t, type MsgKey } from '../i18n';
 import { lieuDuGroupe, offresDeLAubergeDeScene, type OffreDuRepos } from './worldMap';
-import { hebergementsDuLieu, refuserLeServiceFerme } from './lieuFlow';
+import { hebergementsDuLieu, refusDuServiceFerme } from './lieuFlow';
 import { refuserGeste } from './refusVisible';
 import { garanti } from '../lib/garanti';
 import { libelleDuLitteral } from './libelles';
 import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+import type { GesteFermable } from './actionsDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -735,10 +736,33 @@ export function reposDuLieu(get: Get, hebergementId?: string): OpenRestOpts | nu
   return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
 }
 
+/** Le repos ne s'ouvre ni en combat ni sur une nuit qui attend encore son règlement : la garde de toute ouverture
+ *  (`ouvrirLeRepos`), et le premier motif du refus du verbe (`refusDuRepos`). PUR. */
+const motifDuReposClos = (s: Pick<Jeu, 'battle' | 'pendingRest'>): MsgKey | null =>
+  (s.battle ? 'repos.refus.enCombat' : s.pendingRest ? 'repos.refus.nuitARegler' : null);
+
+/** Refus du verbe `ouvrirLeRepos` : le repos clos (`motifDuReposClos`), l'hébergement `hebergementId` fermé
+ *  (`refusDuServiceFerme`) ou inconnu au lieu de la carte, ou, hors lieu, aucun repos là où se tient le groupe
+ *  (`restPlacesHere`) ; `null` : il s'ouvre. Verdict UNIQUE du verbe et de son offre (`gesteDuRepos`). PUR. */
+function refusDuRepos(s: Jeu, hebergementId?: string): string | null {
+  const clos = motifDuReposClos(s);
+  if (clos) return t(clos);
+  const ferme = refusDuServiceFerme(s, hebergementId);
+  if (ferme) return ferme;
+  if (lieuDuGroupe(s)) return hebergementsDuLieu(s).some((svc) => svc.id === hebergementId) ? null : t('lieu.hebergementInconnu', { service: hebergementId ?? '' });
+  return restPlacesHere(s) ? null : t('repos.refus.aucunIci');
+}
+
+/** L'offre de dormir là où se tient le groupe, à l'hébergement `hebergementId` d'un lieu de la carte (`ouvrirLeRepos`) :
+ *  son refus, `refusDuRepos`. PUR. */
+export function gesteDuRepos(s: Jeu, hebergementId?: string): GesteFermable {
+  return { geste: { verbe: 'ouvrirLeRepos', args: hebergementId === undefined ? [] : [hebergementId] }, refus: refusDuRepos(s, hebergementId) };
+}
+
 /** Ouvre la modale de Repos avec une OFFRE de lieux (effet, halte de voyage, bouton de Repos). */
 export function ouvrirLeRepos(get: Get, set: Set, opts: OpenRestOpts): void {
   const st = get();
-  if (st.battle || st.pendingRest) return;
+  if (motifDuReposClos(st)) return;
   const places = { ...(opts.places ?? { maison: true, camp: true }) }; // #2097
   const nuit = { places, offres: places.auberge ? structuredClone(opts.offres ?? offresDeLAubergeDeScene()) : [] };
   // Le couchage par défaut : la chambre de troupe si la nuit en offre une, sinon le premier couchage hors chambre.
@@ -910,10 +934,9 @@ export function validationsDuRepos(get: Get, set: Set) {
 export function creerActionsDuRepos(get: Get, set: Set) {
   return {
     ouvrirLeRepos: (hebergementId) => {
-      if (refuserLeServiceFerme(get, set, hebergementId)) return;
-      const repos = reposDuLieu(get, hebergementId);
-      if (repos) ouvrirLeRepos(get, set, repos);
-      else if (lieuDuGroupe(get())) refuserGeste(get, set, t('lieu.hebergementInconnu', { service: hebergementId ?? '' }));
+      const refus = refusDuRepos(get(), hebergementId);
+      if (refus) return void refuserGeste(get, set, refus);
+      ouvrirLeRepos(get, set, garanti(reposDuLieu(get, hebergementId), hebergementId, 'repos du lieu'));
     },
     offrirLeRepos: (opts) => ouvrirLeRepos(get, set, opts),
     // « Dormir » : sommeil de `days` journée(s) (défaut 1) — récup. (Exténué/Blessures) + cauchemars (LDB 16/18/21).

@@ -35,6 +35,7 @@ import {
   MAIN_SECONDAIRE,
   MUNITIONS,
   REMEDES_DE_L_HOSPICE,
+  VIVRES_DU_DEPART,
   disponibilitesDuPalier,
   type ArmureDeLaForge,
   type GroupeDeLaForge,
@@ -42,6 +43,7 @@ import {
 import { Etat, Heros } from './etat';
 import { enRuine } from './village';
 import { auNoyau, heros, refusDuPrix } from './outils';
+import { voir } from './quete';
 
 export const prixDe = (id: string): number => Math.max(1, Math.round(articleDuCatalogue(id).prixCO * ECHELLE_DES_PRIX));
 
@@ -105,6 +107,8 @@ export function armuresEnVente(e: Etat, h: Pick<Heros, 'c'>): ArmureEnVente[] {
 }
 /** Les potions et remèdes de l'hospice, rien tant qu'il est en ruine. */
 export const provisionsEnVente = (e: Etat): Article[] => (enRuine(e.batiments, 'temple') ? [] : auPalier(RAYON_DE_L_HOSPICE, e.batiments.temple).map(article));
+/** Les vivres que le départ vend pour la route. */
+export const vivresEnVente = (): Article[] => VIVRES_DU_DEPART.map(article);
 
 const objetDe = (h: Pick<Heros, 'c'>, uid?: string) => (uid ? h.c.items?.find((i) => i.uid === uid) : undefined);
 
@@ -290,21 +294,23 @@ export function acheterUneArmure(e: Etat, id: string, armureId: string): string 
   return null;
 }
 
-/** Achète au héros la potion ou le remède `objetId` de l'hospice. */
+/** Achète au héros les vivres `objetId` du départ, ou la potion ou le remède `objetId` de l'hospice. */
 export function acheterUneProvision(e: Etat, id: string, objetId: string): string | null {
   const h = heros(e, id);
-  if (!provisionsEnVente(e).some((a) => a.id === objetId)) return 'L’hospice n’en vend pas encore.';
+  if (![...vivresEnVente(), ...provisionsEnVente(e)].some((a) => a.id === objetId)) return 'L’hospice n’en vend pas encore.';
   const refus = payer(e, h, prixDe(objetId));
   if (refus || !h) return refus;
   h.c.items = [...(h.c.items ?? []), ...doter([objetId], `hospice${e.graine++}`)];
+  if (VIVRES_DU_DEPART.includes(objetId)) voir(e, 'vivres');
   return null;
 }
 
-/** Les potions et remèdes qu'un héros porte, regroupés : une entrée par objet du catalogue, avec un uid à utiliser. */
+/** Les vivres, potions et remèdes qu'un héros porte, regroupés : une entrée par objet du catalogue, avec un uid à
+ *  utiliser. */
 export function provisionsPortees(h: Heros): { id: string; label: string; nombre: number; uid: string; refus: string | null }[] {
   const out = new Map<string, { id: string; label: string; nombre: number; uid: string; refus: string | null }>();
   for (const i of h.c.items ?? []) {
-    if (!i.trappingId || !REMEDES.has(i.trappingId)) continue;
+    if (!i.trappingId || !(REMEDES.has(i.trappingId) || VIVRES_DU_DEPART.includes(i.trappingId))) continue;
     const prev = out.get(i.trappingId);
     if (prev) prev.nombre += i.qty ?? 1;
     else out.set(i.trappingId, { id: i.trappingId, label: i.label, nombre: i.qty ?? 1, uid: i.uid, refus: refusDUsage(h.c, i.uid) });
