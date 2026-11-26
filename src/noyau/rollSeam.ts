@@ -1697,7 +1697,7 @@ export function openSequence(get: Get, set: Set, opts: {
   const steps = [...sequence.steps];
   if (!steps.length) return undefined;
   if (borne === undefined && surfaceDesEtapes(get, steps) === 'I') {
-    return runCascadeImmediate(get, set, steps, { title: sequence.title, purpose: sequence.purpose, ...(sequence.log ? { log: sequence.log } : {}) });
+    return runCascadeImmediate(get, set, steps, { title: sequence.title, purpose: sequence.purpose, arret: 'tenues', ...(sequence.log ? { log: sequence.log } : {}) });
   }
   startCascade(get, set, { ...sequence, steps, ...(borne === undefined ? {} : { [borne]: true }) });
   return undefined;
