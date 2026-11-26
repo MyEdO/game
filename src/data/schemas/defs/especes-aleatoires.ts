@@ -5,9 +5,7 @@ import { document } from '../grammaire/document';
 import { couvertureDuDeParDocument, plageSchema, raceKeySchema } from '../grammaire/valeurs';
 import type { DiceSpec } from '../../../engine/dice';
 import { raffinementDeCatalogue, ref, refMorte } from '../grammaire/ref';
-import { datasetDe, type DatasetDe } from '../datasets';
-import speciesJson from '../../species.json';
-import reglesJson from '../../reglesOptionnelles.json';
+import type { DatasetDe } from '../datasets';
 import { valeurConforme, type FormeDeControle } from './reglesOptionnelles';
 
 export const file = 'especes-aleatoires.json';
@@ -73,8 +71,7 @@ function jeuxDeRacesAtteignables(especes: Especes, regles: Regles, ctx: z.Refine
 
 const verifierLesJeuxDeRaces = raffinementDeCatalogue((lire) => {
   const { idsDeLaSousListe } = lire.catalogue('species');
-  const especes = lire.racine('species', datasetDe<typeof import('./species')>(speciesJson));
-  const regles = lire.racine('regleOptionnelle', datasetDe<typeof import('./reglesOptionnelles')>(reglesJson));
+  const cat = lire.catalogueLu('species', 'regleOptionnelle');
   return (v, ctx) => {
     const racesParEspece = new Map<string, Race>();
     for (const race of raceKeySchema.options)
@@ -95,7 +92,7 @@ const verifierLesJeuxDeRaces = raffinementDeCatalogue((lire) => {
       if (premier === undefined) premiers.set(cle, d.id);
       else ctx.addIssue({ code: 'custom', path: [i, 'entries'], message: `${file} › ${d.id} : le jeu de races « ${cle} » est déjà celui du document « ${premier} » : un seul document par jeu de races.` });
     }
-    for (const jeu of jeuxDeRacesAtteignables(especes, regles, ctx))
+    for (const jeu of jeuxDeRacesAtteignables(cat()['species.json'], cat()['reglesOptionnelles.json'], ctx))
       if (!premiers.has(jeu)) ctx.addIssue({ code: 'custom', message: `${file} : aucun document pour le jeu de races « ${jeu} ».` });
   };
 });

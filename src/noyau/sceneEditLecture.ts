@@ -143,6 +143,7 @@ import { tableTotale } from '../lib/tableTotale';
 import type { Catalogue } from '../data/schemas/catalogue/catalogue';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
+import { rectangleDesPonts, refusDePoseDesPonts } from '../data/schemas/catalogue/poseDesPonts';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
@@ -488,6 +489,16 @@ export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light
 export function capsOfferts(ent: SceneEntity): Dir8[] {
   if (ent.kind === 'personnage' && estUnNavireAPonts(ent.vehicule?.id)) return DIR8_ORDER.filter(estCardinal);
   return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
+}
+
+/** Les caps de l'entité `ent` de `scene` à l'inspecteur (`capsOfferts`), chacun avec le refus, sous `cat`, de ses ponts
+ *  posés à ce cap (`refusDePoseDesPonts`, `null` : admis) ; et le cap qu'elle tient : celui de ses ponts posés
+ *  (`rectangleDesPonts`), sinon le sien (`capDeLEntite`). */
+export function capsDeLaPose(scene: Scene, ent: SceneEntity, cat: Catalogue = catalogueDuProcessus()): { readonly tenu: Dir8; readonly caps: readonly { readonly cap: Dir8; readonly refus: string | null }[] } {
+  return {
+    tenu: rectangleDesPonts(scene, ent, cat)?.cap ?? capDeLEntite(ent),
+    caps: capsOfferts(ent).map((cap) => ({ cap, refus: refusDePoseDesPonts(scene, { ...ent, facing: cap }, cat) ?? null })),
+  };
 }
 
 /** Les fiches qu'un personnage posé peut nommer (#1882) : les créatures du bestiaire qui ont des Blessures

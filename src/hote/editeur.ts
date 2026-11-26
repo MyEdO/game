@@ -16,8 +16,7 @@ import {
   coinsDuCalque,
   planDuCalque,
   type CalquesStockes,
-  capDeLEntite,
-  capsOfferts,
+  capsDeLaPose,
   entiteDeLaSelection,
   ficheEditee,
   fichesDePersonnage,
@@ -157,8 +156,6 @@ import {
   listesDeSorts,
   sortsImprimes,
   aLEchelleDesPonts,
-  rectangleDesPonts,
-  refusDePoseDesPonts,
   CAPS_DES_PONTS,
   TYPES_DE_NAVIRE,
   vueDeLaScene,
@@ -968,7 +965,7 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
     .map((c) => boutonDEdition(`${id}/${c}`, t('ecran.editeur.couche', { z: c }), jeu(c), c === z)));
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
- *  bestiaire ; son cap parmi ceux que son type admet (`capsOfferts`) ; sa couche ; la lumière, les places et l'identifiant
+ *  bestiaire ; son cap parmi ceux que son type admet (`capsDeLaPose`) ; sa couche ; la lumière, les places et l'identifiant
  *  de chaque action d'un décor ;
  *  le poste d'un emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
  *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
@@ -977,10 +974,9 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
   const scene = sceneEditee(s);
-  const cap = rectangleDesPonts(scene, ent)?.cap ?? capDeLEntite(ent);
-  const caps = capsOfferts(ent).map((c) => boutonDEdition(
-    `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } },
-    c === cap, refusDePoseDesPonts(scene, { ...ent, facing: c }) ?? null,
+  const pose = capsDeLaPose(scene, ent);
+  const caps = pose.caps.map(({ cap: c, refus }) => boutonDEdition(
+    `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === pose.tenu, refus,
   ));
   return [
     formulaireDuNom(ent.label, true),

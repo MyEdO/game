@@ -38,6 +38,7 @@ import { declarationDeFeuilleDId as declarationLue, declarerFeuilleDId, estFeuil
 import { declarationDeFeuilleDeSpec as declarationDeSpecLue, declarerFeuilleDeSpec } from './interne/feuillesDeSpec';
 import { enfantsDe } from './descente';
 import { listeSansCle } from './liste-sans-cle';
+import type { Catalogue } from '../catalogue/catalogue';
 
 /** Clé générée (`IdsParEspace`) de la sous-liste DISCRIMINÉE `S` de l'espace de `T` (`<espace>?<champ>=<S>`), `never` pour
  *  une sous-liste que le type ne connaît pas (une chaîne non littérale, une `SousListeMarquee`). */
@@ -244,20 +245,47 @@ function idsDesignes(cle: string, site: string): ReadonlySet<string> {
 /** Lecture des ids d'un espace DÉSIGNÉ par sa clé, au nom du site qui le désigne : une clé absente LÈVE. */
 export type LecteurDIds = (cle: string, site: string) => ReadonlySet<string>;
 
-/** Le lecteur que lit le jugement d'une sous-liste et d'un id (`refusDe`), la décision de portée d'une feuille et
- *  `idsDe` : l'INDEX DES IDS, sauf le temps d'un `sousLeLecteur`. */
-let lecteurCourant: LecteurDIds = idsDesignes;
+/** La FENÊTRE d'un parse sous un catalogue : le lecteur des ids de `cat`, et `cat`, que lit `catalogueLu`. */
+interface Fenetre {
+  readonly ids: LecteurDIds;
+  readonly cat: Catalogue;
+}
 
-/** `juger()` sous le lecteur `ids`, rendu au précédent en sortie, levée comprise : la porte d'un parse sous un
- *  catalogue (`schemas/catalogue/references.ts`). */
-export function sousLeLecteur<T>(ids: LecteurDIds, juger: () => T): T {
-  const precedent = lecteurCourant;
-  lecteurCourant = ids;
+/** La fenêtre posée, le temps d'un `sousLeCatalogue` ; `undefined` hors de lui. */
+let fenetre: Fenetre | undefined;
+
+/** Le lecteur que lit le jugement d'une sous-liste et d'un id (`refusDe`), la décision de portée d'une feuille et
+ *  `idsDe` : celui de la fenêtre, sinon l'INDEX DES IDS. */
+const lecteurCourant: LecteurDIds = (cle, site) => (fenetre?.ids ?? idsDesignes)(cle, site);
+
+/** `juger()` sous la fenêtre `{ ids, cat }`, rendue à la précédente en sortie, levée comprise : la porte d'un parse sous
+ *  un catalogue (`schemas/catalogue/references.ts`). */
+export function sousLeCatalogue<T>(ids: LecteurDIds, cat: Catalogue, juger: () => T): T {
+  const precedente = fenetre;
+  fenetre = { ids, cat };
   try {
     return juger();
   } finally {
-    lecteurCourant = precedent;
+    fenetre = precedente;
   }
+}
+
+/** Le catalogue d'un parse hors de la fenêtre : celui que pose `src/data/catalogueDuProcessus.ts`
+ *  (`poserLeCatalogueHorsFenetre`), sinon aucun. */
+let catalogueHorsFenetre: (() => Catalogue) | undefined;
+
+/** FOSSILE de la fenêtre (#5070) : le catalogue du processus juge un parse hors de `parserSousCatalogue`. Il se pose
+ *  depuis `data`, dont l'import ici fermerait un cycle d'évaluation (`engine/policy` → `defs/reglesOptionnelles` →
+ *  `grammaire/valeurs` → `grammaire/ref`). */
+export function poserLeCatalogueHorsFenetre(lire: () => Catalogue): void {
+  catalogueHorsFenetre = lire;
+}
+
+/** Le catalogue que juge un raffinement : celui de la fenêtre, sinon celui du processus ; sans l'un ni l'autre, LÈVE. */
+function catalogueDeLaFenetre(): Catalogue {
+  if (fenetre) return fenetre.cat;
+  if (!catalogueHorsFenetre) throw new Error('catalogueLu : un raffinement croisé se juge sous un catalogue (`parserSousCatalogue`).');
+  return catalogueHorsFenetre();
 }
 
 /**
@@ -341,7 +369,7 @@ export function dansLaSousListe(sousListe: SousListeMarquee, entree: object): bo
 }
 
 /** Les ids ADMIS par `idDe(type, sousListe)`, dans l'ordre de la donnée, lus au lecteur courant (le registre,
- *  régime vivant compris, `lireLEspace`, hors d'un `sousLeLecteur`) — les options d'un sélecteur et les producteurs
+ *  régime vivant compris, `lireLEspace`, hors d'un `sousLeCatalogue`) — les options d'un sélecteur et les producteurs
  *  qui énumèrent la sous-liste. */
 export function idsDeLaSousListe(type: TypeEntite, sousListe: SousListe): readonly string[] {
   const site = `idsDeLaSousListe('${type}')`;
@@ -394,7 +422,8 @@ type LecturesDeLaSpecialisation = {
 
 export type LecturesDuRaffinement = {
   readonly catalogue: (type: TypeEntite, site?: string) => LecturesDeCatalogue;
-  readonly racine: <R extends object>(type: TypeEntite, racineVivante: R) => R;
+  /** Déclare les espaces de `types`, et rend l'accès PARESSEUX au catalogue jugé (`catalogueDeLaFenetre`). */
+  readonly catalogueLu: (...types: readonly TypeEntite[]) => () => Catalogue;
   readonly specialisations: (type: TypeEntite) => LecturesDeSpecialisations;
   readonly specialisation: (type: TypeEntite, id: string) => LecturesDeLaSpecialisation;
 };
@@ -424,9 +453,9 @@ export function raffinementDeCatalogue<V = unknown>(
         porteLeMarqueur: (marqueur) => porteLeMarqueur(type, marqueur),
       };
     },
-    racine: (type, racineVivante) => {
-      espaces.add(espaceDe(type));
-      return racineVivante;
+    catalogueLu: (...types) => {
+      for (const type of types) espaces.add(espaceDe(type));
+      return catalogueDeLaFenetre;
     },
     specialisations: (type) => {
       const espace = espaceDe(type);

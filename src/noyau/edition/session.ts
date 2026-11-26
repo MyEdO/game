@@ -130,7 +130,8 @@ import {
 import { cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { flottaisonDuNavire, poserLesNavires, poserUnNavire } from '../planDeNavire';
-import { refusDePoseDesPonts } from '../../data/poseDesPonts';
+import { refusDePoseDesPonts } from '../../data/schemas/catalogue/poseDesPonts';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
 import { groupeVitrine } from '../../data/pregens';
@@ -1450,12 +1451,13 @@ export function editer(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
   const suite = avecSonChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
   const apres = sceneEditee(suite);
   const avant = projetEdite(s).scenes.find((sc) => sc.id === apres.id);
+  const cat = catalogueDuProcessus();
   if (avant && avant !== apres && (avant.entities !== apres.entities || avant.dimensions !== apres.dimensions || avant.metresPerTile !== apres.metresPerTile)) {
     const debordementNeuf = apres.entities.some((entite) => {
-      const refus = refusDePoseDesPonts(apres, entite);
+      const refus = refusDePoseDesPonts(apres, entite, cat);
       if (!refus) return false;
       const precedente = avant.entities.find((e) => e.id === entite.id);
-      return !precedente || refus !== refusDePoseDesPonts(avant, precedente);
+      return !precedente || refus !== refusDePoseDesPonts(avant, precedente, cat);
     });
     if (debordementNeuf) return s;
   }

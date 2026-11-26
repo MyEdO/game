@@ -200,7 +200,7 @@ export {
   type SurchargesDEmblemes,
 } from './apparence/composition';
 export { porteeDuCombattant, vehiculeDuCombattant, type PosteDuVehicule, type VehiculeDuCombattant } from './apparence/combattant';
-export { aLEchelleDesPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/poseDesPonts';
+export { aLEchelleDesPonts } from '../data/schemas/catalogue/poseDesPonts';
 export {
   capEnCombat,
   CAPS_DES_PONTS,
@@ -401,6 +401,7 @@ export { isRoomZone } from './monde/rooms';
 export { sceneZoneTiles } from './monde/zones';
 export {
   capDeLEntite,
+  capsDeLaPose,
   capsOfferts,
   effectZoneRect,
   entiteDeLaSelection,

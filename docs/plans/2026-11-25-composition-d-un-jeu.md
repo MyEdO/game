@@ -278,36 +278,48 @@ hôte compose un catalogue, et il le remet à sa partie.
     (`policy.ts:47`) disparaît, car les choix sont dans la composition.
 - **Les références.** Une référence ne se raffine plus contre un index global. Le schéma garde la forme : il est
   constant, et ne lit aucune donnée à sa construction. Le jugement d'un id lit un lecteur d'ids courant (`lecteurCourant`,
-  `src/data/schemas/grammaire/ref.ts:249`), l'index des ids par défaut. `parserSousCatalogue(schema, valeur, cat)`
-  (`src/data/schemas/catalogue/references.ts`) est le même `safeParse`, sous le lecteur de `cat` (`sousLeLecteur`,
-  `ref.ts:253`), bâti sur un `AccesAuxDocuments` (`src/data/schemas/grammaire/collection-cle.ts:705`).
+  `src/data/schemas/grammaire/ref.ts:259`), l'index des ids par défaut. `parserSousCatalogue(schema, valeur, cat)`
+  (`src/data/schemas/catalogue/references.ts`) est le même `safeParse`, sous la fenêtre `{ ids, cat }`
+  (`sousLeCatalogue(ids, cat, juger)`, `ref.ts:263`), dont le lecteur d'ids est bâti sur un `AccesAuxDocuments`
+  (`src/data/schemas/grammaire/collection-cle.ts:705`). La fenêtre ne se pose que le temps de l'appel, levée et
+  imbrication comprises, et aucun export ne lit son `cat`.
   - Ce lecteur juge l'existence d'un id dans son espace, sous-liste marquée ou discriminée comprise (recalage C5 du
     2026-11-26), aux messages et aux paths du parse : une union garde sa sémantique.
-- **Les raffinements croisés.** Certains raffinements croisent un champ du document et un champ de l'entrée visée :
-  le cap et les ponts (`defs-scenes/scene.ts:327`), la munition et la pièce (`scene.ts:330-332`), la carrière et le
-  profil (`scene.ts:226`). Ils deviennent des lectures `fautesDe…(document, cat)` de `schemas/catalogue`. Trois sites les
-  appellent :
-  - `parserSousCatalogue`, au chargement de la bibliothèque et au Compendium ;
-  - l'éditeur de scène ;
-  - le noyau, pour ses paquets et ses scènes.
+- **Les raffinements croisés : le design mixte** (jugé le 2026-11-26, #5070). Certains raffinements croisent un champ du
+  document et un champ de l'entrée visée : le cap et les ponts, la munition et la pièce, la carrière et le profil. La
+  mesure les place dans la grammaire des ops, des traits et des enjeux autant que dans les scènes : 15 nœuds porteurs,
+  qu'atteignent 40 documents sur 136 (`catalogStakeSchema` 36, `traitInstanceSchema` 33, les ops `grantTrait`,
+  `beginPsych`, `removePsychTrait` et `giveTrapping` 31 chacune). Les schémas porteurs restent donc exportés, et une
+  faute croisée vit dans son schéma :
+  - elle est une fonction pure à `cat` requis, par exemple `refusDeLEntite(ent, cat)` (`defs-scenes/scene.ts:320`) et
+    `refusDePoseDesPonts(scene, ent, cat)` (`src/data/schemas/catalogue/poseDesPonts.ts`) ;
+  - le raffinement porteur passe par `raffinementDeCatalogue` et l'appelle avec `catalogueLu(...types)()`
+    (`LecturesDuRaffinement`, `ref.ts:426`) : `catalogueLu` déclare les espaces lus, au registre que lit
+    `dependancesDuRaffinement`, et rend un accès paresseux au `cat` de la fenêtre (`scene.ts:350`, `scene.ts:1030`) ;
+  - l'éditeur passe `cat` à la même fonction, en 8 appels hors parse, par exemple `sceneAvecLEntite`
+    (`src/noyau/sceneEdit.ts:1271`), `editer` (`src/noyau/edition/session.ts:1457,1460`) et l'inspecteur de l'hôte par
+    `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:497`). Le parse et l'éditeur suivent un seul code.
 
-  Une seule porte de `schemas/catalogue` les sert : `parserSousCatalogue(schema, valeur, cat)`, qui parse puis juge les fautes
-  croisées sous `cat`. Pour les schémas à fautes croisées, elle remplace `validerFormeVivante`
-  (`src/data/schemas/validate.ts:408`). Les schémas à fautes croisées ne sont plus exportés hors de `schemas/catalogue` : un
-  site qui les parse sans `cat` ne compile plus. La famille 1 remplace chacun de leurs sites d'entrée :
+  Hors fenêtre, un `safeParse` nu lit, pendant les étapes C et D, le catalogue du processus : `catalogueDuProcessus()`
+  se pose par `poserLeCatalogueHorsFenetre` (`ref.ts:280`). C'est le fossile de la fenêtre. À l'étape E, il disparaît, et
+  `catalogueLu` lève hors fenêtre. Le préalable de l'étape E : les 9 sites de production qui parsent sans
+  `parserSousCatalogue` passent par la porte (`miscast.ts`, `sceneEditLecture.ts`, `formulaire.ts` trois fois,
+  `navireOps.ts`, `mapSpec.ts`, `data/index.ts` et `campagnes/lib.mjs`), et les 4 sites de `structures-scan.mts`.
+  Aucun mémo d'un parse ou d'une faute ne se clé sans `cat`. `refusDuParcours` et `chargeLArme` (`munitionsReservees`,
+  `groupeDeSiege`) lisent encore le catalogue du processus dans la fenêtre, jusqu'à la famille du moteur.
+
+  Les sites d'entrée de la famille 1 passent `cat` à `parserSousCatalogue`, qui remplace `validerFormeVivante`
+  (`src/data/schemas/validate.ts:408`) pour les schémas à fautes croisées :
   - `parseProject` (`src/noyau/worldMap.ts:754`) et `parseSceneDeProjet` (`worldMap.ts:732`, autosave de l'éditeur et
     chargement de sauvegarde) ;
   - `src/noyau/persistance/save.ts:154` ;
   - `src/noyau/mapSpec.ts:999` ;
   - `src/noyau/validateScene.ts:127-128` ;
-  - `src/noyau/sceneEditLecture.ts:478` ;
+  - `src/noyau/sceneEditLecture.ts:479` ;
   - `src/noyau/campagneLivree.ts:90`.
-
-  `refusDeLEntite` (`scene.ts:313-319`) se scinde : sa forme reste à `schemas`, et ses fautes croisées passent à
-  `schemas/catalogue`.
 - **Le sort des 10 fichiers de `schemas` qui lisent la base.** Ils deviennent des fautes, ou des lectures
   `(…, cat)` de `schemas/catalogue` :
-  - `defs-scenes/scene.ts:60,64` (navire à ponts, `refusDePoseDesPonts`, munitions, carrière) ;
+  - `defs-scenes/scene.ts:60` (carrière, `findCreatureById`) ;
   - `narratif.ts:22` et `worldmap.ts:24` ;
   - `grammaire/reference.ts:52` (`psychologies`, `psychologyLabel`) ;
   - `grammaire/mecanique.ts:17,83` (`findTraitById`, `GROUPES_TIRABLES`) ;

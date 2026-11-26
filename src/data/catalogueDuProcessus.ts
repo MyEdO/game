@@ -7,6 +7,7 @@ import { versionDesDatasets } from './versionDataset';
 import { composer, type Catalogue } from './schemas/catalogue/catalogue';
 import { ruleOverrides } from '../engine/policy';
 import { memoByDeps } from '../lib/memoParIdentite';
+import { poserLeCatalogueHorsFenetre } from './schemas/grammaire/ref';
 
 const retenu = memoByDeps<Catalogue>();
 
@@ -14,3 +15,5 @@ const retenu = memoByDeps<Catalogue>();
  *  (`ruleOverrides`), mémoïsé par `versionDesDatasets`. */
 export const catalogueDuProcessus = (): Catalogue =>
   retenu([versionDesDatasets()], () => composer(BIBLIOTHEQUE, { regles: ruleOverrides() }));
+
+poserLeCatalogueHorsFenetre(catalogueDuProcessus);
