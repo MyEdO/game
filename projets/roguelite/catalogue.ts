@@ -8,7 +8,6 @@ import {
   COMPETENCES_UTILES,
   DESTINATIONS,
   GROUPES_SANS_COMPETENCE,
-  PEAGE_PAR_SALLE,
   PRIX_DU_SOIN_PAR_BLESSURE,
   PROFILS,
   REMEDES_DE_L_HOSPICE,
@@ -62,7 +61,6 @@ export function catalogue(): string {
     '## Forge', '', forge, '', `Armures : ${ARMURES_DE_LA_FORGE.map(objet).join(', ')}.`, '',
     '## Auberge relais', '', tableau(['Palier', 'Chambre', 'Prix de la semaine'], CHAMBRE_DU_RELAIS.map((q, i) => [String(i), q, `${prixDUneChambre(q)} CO`])), '',
     '## Hospice', '', tableau(['Palier', 'Soin par Blessure rendue'], PRIX_DU_SOIN_PAR_BLESSURE.flatMap((p, i) => (p == null ? [] : [[String(i), `${p} CO`]]))), '', REMEDES_DE_L_HOSPICE.map(objet).join(', '), '',
-    '## Péage du pont', '', tableau(['Palier', 'Revenu par salle franchie'], PEAGE_PAR_SALLE.flatMap((p, i) => (p ? [[String(i), `${p} CO`]] : []))), '',
     '## Destinations et adversaires', '', destinations, '',
   ].join('\n');
 }

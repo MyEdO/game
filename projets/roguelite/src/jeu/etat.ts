@@ -30,7 +30,7 @@ export interface Salle { type: TypeDeSalle; ennemis: string[]; faite: boolean; o
 export interface Expedition { destination: string; salles: Salle[]; index: number; groupe: string[]; or: number; trophees: number; px: number; prieres: string[]; munitions?: Record<string, Record<string, number>> }
 
 export interface Etat {
-  version: 3;
+  version: 4;
   graine: number;
   jour: number;
   or: number;
@@ -46,8 +46,8 @@ export interface Etat {
 
 export function nouvellePartie(graine: number): Etat {
   const e: Etat = {
-    version: 3, graine, jour: 1, or: OR_INITIAL, trophees: 0,
-    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0, peage: 0 },
+    version: 4, graine, jour: 1, or: OR_INITIAL, trophees: 0,
+    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0 },
     roster: [], candidats: [], expedition: null, bossVaincus: [], journal: [],
   };
   for (const p of compagnieDeDepart(e)) e.roster.push(recrue(e, p));
