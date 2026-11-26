@@ -164,7 +164,7 @@ fichiers de test, la liste des 7 datasets hors du seam et les 63 captures devien
 migrés : une capture à l'import ne compile plus.
 
 Les corrections du juge qui survivent, à reprendre au design neuf :
-- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1915`).
+- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1911`).
 - Un dataset se déclare par la route de son def, puis `npm run gen` (`CLES_DE_DATASET`, `RACINES_VIVANTES`,
   `src/data/racines-vivantes.test.ts:29`).
 - Une lecture de champ est un accesseur, et le mémo sert un vrai calcul.
@@ -242,7 +242,7 @@ hôte compose un catalogue, et il le remet à sa partie.
   - *Ouverture.* L'hôte compose avec les règles de son stockage. `loadRuleOverrides(entrees.reglesMaison)`
     (`src/noyau/proprietaireDuJeu.ts:96`) disparaît.
   - *Règle maison changée.* Les écrivains de la surface passent à `src/hote` : `surchargerUneRegleMaison`,
-    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:409`, `src/noyau/reglesMaison.ts`).
+    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:509`, `src/noyau/reglesMaison.ts`).
   - *Sauvegarde.* `snapshotSave` reçoit les règles du catalogue de la partie, et non plus `ruleOverrides()`
     (`hotes/godot/pont/pont.ts:1168`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
   - *Coop.* L'hôte envoie les règles de son catalogue (`src/noyau/coop.ts:39`). Chez l'invité, la réception ne charge
@@ -331,7 +331,7 @@ hôte compose un catalogue, et il le remet à sa partie.
   - `defs/presets-de-personnage.ts:36` ;
   - `defs-scenes/effets.ts:56` et `grammaire/valeurs.ts:16,46`, dont le libellé ou la saison passent au message de la
     faute ;
-  - `defs/especes-aleatoires.ts:9-10`, qui lit `species` et `reglesOptionnelles` dans `cat` ;
+  - `defs/especes-aleatoires.ts:74,95`, qui lit `species` et `reglesOptionnelles` dans `cat` ;
   - `grammaire/livres-extraits.ts:10-12`, qui lit `books` dans `cat`, sous `memoByRef(cat)`.
   - Le Compendium juge la bibliothèque *candidate* : une entrée créée, puis référencée par une autre, est acceptée sans
     `npm run gen`.
