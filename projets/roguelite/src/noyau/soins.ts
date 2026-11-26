@@ -172,8 +172,9 @@ function ouvrirLeSoin(soigneur: Combatant, patient: Combatant, graine: number) {
   );
   const rendre = (): Combatant[] => { const g = partie.etat().party.map((c) => structuredClone(c)); partie.fermer(); return g; };
   pomper();
-  const { geste } = gesteDeSoins(partie.etat(), patient.id);
-  envoyer(geste.verbe, geste.args);
+  const offre = gesteDeSoins(partie.etat(), patient.id);
+  if (offre.refus) refus = offre.refus;
+  else envoyer(offre.geste.verbe, offre.geste.args);
   pomper();
   const brouillon = partie.etat().pendingHeal;
   const verdict: VerdictDuSoin = refus || !brouillon

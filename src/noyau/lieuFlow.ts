@@ -36,11 +36,17 @@ export function refusDuService(s: Jeu, svc: ResolvedPlaceService): string | null
   return svc.acces ? refusDAcces(svc.acces, condCtx(() => s)) : null;
 }
 
-/** Refuse le geste qui ouvre le service `id` du lieu tant que son accès réservé le ferme (`refusDuService`) ; `true` :
- *  le refus est prononcé. Un id qu'aucun service du lieu ne porte est laissé au geste, qui le refuse à sa façon. */
+/** La raison de la fermeture du service `id` du lieu (`refusDuService`), ou `null`. Un id qu'aucun service du lieu ne
+ *  porte est laissé au geste, qui le refuse à sa façon. PUR. */
+export function refusDuServiceFerme(s: Jeu, id: string | undefined): string | null {
+  const svc = servicesDuLieu(s).find((x) => x.id === id);
+  return svc ? refusDuService(s, svc) : null;
+}
+
+/** Refuse le geste qui ouvre le service `id` du lieu tant que son accès réservé le ferme (`refusDuServiceFerme`) ;
+ *  `true` : le refus est prononcé. */
 export function refuserLeServiceFerme(get: Get, set: Set, id: string | undefined): boolean {
-  const svc = servicesDuLieu(get()).find((x) => x.id === id);
-  const refus = svc ? refusDuService(get(), svc) : null;
+  const refus = refusDuServiceFerme(get(), id);
   return refus !== null && refuserGeste(get, set, refus);
 }
 

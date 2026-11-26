@@ -294,6 +294,10 @@ export interface ActionsDuNoyau extends VerbesDeJet, VerbeDeReglage, VerbeDeChoi
    *  orthogonaux : on peut manger à l'auberge et dormir dehors), puis bilan globalisé ; le lieu de la nuit est celui où
    *  se tient le groupe (`reposDuLieu`) : à un lieu de la carte, son établissement d'hébergement `hebergementId`. */
   ouvrirLeRepos: (hebergementId?: IdDHebergementDuLieu) => void;
+  /** Le TEMPS PASSE hors combat de `minutes` minutes (noyau/horloge) : l'horloge avance, puis l'entretien de chaque
+   *  jour franchi (`avancerLeTemps`). Refus DIT en combat, sous une fenêtre qui tient la main, et d'une durée qui
+   *  n'est pas un nombre entier de minutes, au moins une (`refusDeLaisserPasserLeTemps`). */
+  laisserPasserLeTemps: (minutes: number) => void;
   /** Retire l'aperçu armé par un premier clic (`battle.preview`). */
   effacerLApercu: () => void;
   // (Psychologie de combat (LDB 21 l.9, l.25) : passes de Round openRoundStartPsych / openRoundEndCascade,

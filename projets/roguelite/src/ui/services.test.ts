@@ -32,7 +32,7 @@ describe('l’hospice dit avant le clic ce qu’il refuse', () => {
   });
 });
 
-describe('le départ vend les potions de l’hospice à chaque héros emmené', () => {
+describe('le départ vend les vivres de la route et les potions de l’hospice à chaque héros emmené', () => {
   /** L'hospice au palier `temple` ; l'interface sert le premier héros, le départ emmène le deuxième. */
   function depart(temple: number) {
     const e = J.nouvellePartie(3);
@@ -44,10 +44,10 @@ describe('le départ vend les potions de l’hospice à chaque héros emmené', 
     return { e, servi, emmene, achats };
   }
 
-  it('la colonne du héros emmené porte exactement l’achat de chaque potion à son id, et l’achat la met dans SON sac', () => {
+  it('la colonne du héros emmené porte exactement l’achat des vivres et de chaque potion à son id, et l’achat le met dans SON sac', () => {
     const { e, servi, emmene, achats } = depart(1);
-    const vente = J.provisionsEnVente(e);
-    expect(vente.length).toBeGreaterThan(0);
+    const vente = [...J.vivresEnVente(), ...J.provisionsEnVente(e)];
+    expect(J.provisionsEnVente(e).length).toBeGreaterThan(0);
     expect(achats).toEqual(vente.map((a) => `${emmene.c.id}:${a.id}`));
     const [a] = vente;
     const sacDuServi = structuredClone(servi.c.items);
@@ -58,7 +58,8 @@ describe('le départ vend les potions de l’hospice à chaque héros emmené', 
     expect(e.or).toBe(or - a.prix);
   });
 
-  it('l’hospice en ruine ne vend rien au départ', () => {
-    expect(depart(0).achats).toEqual([]);
+  it('l’hospice en ruine ne vend rien au départ : restent les vivres de la route', () => {
+    const { emmene, achats } = depart(0);
+    expect(achats).toEqual(J.vivresEnVente().map((a) => `${emmene.c.id}:${a.id}`));
   });
 });
