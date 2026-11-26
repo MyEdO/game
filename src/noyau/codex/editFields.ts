@@ -140,10 +140,13 @@ function echantillonDeForme(noeud: unknown): unknown {
   }
 }
 
-/** Échantillon de la valeur qu'admet `noeud`, lu sur sa fermeture canonique (`ouverts`) ; `SANS_FORME`
+/** Les échantillons des formes concrètes de la fermeture canonique (`ouverts`) du nœud, retenus par nœud (`memoByRef`). */
+const echantillonsDuNoeud = memoByRef((noeud: object): readonly unknown[] => ouverts([noeud]).filter((n) => !estTransparent(n)).map(echantillonDeForme));
+
+/** Échantillon de la valeur qu'admet `noeud`, lu sur sa fermeture canonique (`echantillonsDuNoeud`) ; `SANS_FORME`
  *  quand ses formes concrètes ne partagent pas un même kind, ou qu'aucune n'a de contrôle typé. */
 function echantillonDu(key: string, noeud: unknown): unknown {
-  const echantillons = ouverts([noeud]).filter((n) => !estTransparent(n)).map(echantillonDeForme);
+  const echantillons = noeud !== null && typeof noeud === 'object' ? echantillonsDuNoeud(noeud) : [];
   if (!echantillons.length || echantillons.includes(SANS_FORME)) return SANS_FORME;
   return new Set(echantillons.map((e) => kindOf(key, e))).size === 1 ? echantillons[0] : SANS_FORME;
 }
@@ -197,8 +200,11 @@ export function champsDeclares(noeud: unknown): (readonly [string, unknown])[] |
  *  littéraux membres ; sinon, de sa seule forme,
  *  les valeurs d'une énumération (`libelleDeValeur`), d'un littéral (`libelleDuLitteral`), faux et vrai d'un
  *  booléen ; de plusieurs formes qui sont chacune un choix (une union de littéraux), la réunion, sans doublon, de leurs
- *  valeurs ; `undefined` pour tout autre nœud. */
-export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
+ *  valeurs ; `undefined` pour tout autre nœud. Retenues par nœud (`memoByRef`). */
+export const choixDuNoeud = (noeud: unknown): readonly ValeurDuChoix[] | undefined =>
+  noeud !== null && typeof noeud === 'object' ? choixRetenus(noeud) : undefined;
+
+const choixRetenus = memoByRef((noeud: object): readonly ValeurDuChoix[] | undefined => {
   const formes = ouverts([noeud]);
   const feuilles = formes.map(declarationDeFeuilleDId).filter((d) => d !== undefined && !d.portee);
   const specs = formes.map(declarationDeFeuilleDeSpec).filter((d) => d !== undefined && !entreeOuverte(d.type, d.id));
@@ -228,7 +234,7 @@ export function choixDuNoeud(noeud: unknown): ValeurDuChoix[] | undefined {
     case 'boolean': return nommees([false, true], (v) => libelleDuLitteral(v)!);
     default: return undefined;
   }
-}
+});
 
 /** Le nœud ÉLÉMENT de rang `rang` du nœud quand sa seule forme est une liste (`[]`, le même à tout rang) ou un tuple
  *  (`[rang]`, `undefined` au-delà de son arité, `ariteDuNoeud`) ; `undefined` sinon. */
@@ -289,7 +295,7 @@ export function clesPosees(f: FieldDesc, ici: readonly (string | number)[]): boo
 export interface VarianteDuNoeud { readonly cle: string; readonly libelle: string; readonly noeud: unknown }
 
 /** Une union dont chaque variante est nommée : son nœud, son discriminant, ses variantes. */
-export interface UnionDuNoeud { noeud: unknown; discriminant: string; variantes: readonly VarianteDuNoeud[] }
+export interface UnionDuNoeud { readonly noeud: unknown; readonly discriminant: string; readonly variantes: readonly VarianteDuNoeud[] }
 
 /** Les branches d'union du nœud (`|N`). */
 const branchesDe = (n: unknown): unknown[] => enfantsDe(n).filter((e) => e.segment.startsWith('|')).map((e) => e.noeud);
@@ -366,23 +372,22 @@ function variantesDOperations(
   return variantes;
 }
 
-/** Les descriptions des opérations sont communes à toutes les valeurs du répartiteur. */
-const chargesNommees = new WeakMap<DeclarationDEnfants, readonly VarianteDuNoeud[]>();
-
 /** L'union du nœud, chacune de ses variantes nommée : d'une répartition d'ops (`payloads-op`), chaque op typée, nommée
  *  par son payload ; d'une union discriminée, chaque branche, de
  *  l'unique valeur de son discriminant (`libelleDeLaBranche`) ; d'une union à présence, de même, la branche qui ne porte
  *  pas son discriminant de clé vide, nommée par son nœud ; d'une union sans discriminant, chaque branche
- *  (`variantesSansDiscriminant`). `undefined` hors d'une union, ou si une variante est sans nom. */
-export function unionDuNoeud(noeud: unknown): UnionDuNoeud | undefined {
+ *  (`variantesSansDiscriminant`). `undefined` hors d'une union, ou si une variante est sans nom. Retenue par nœud
+ *  (`memoByRef`). */
+export const unionDuNoeud = (noeud: unknown): UnionDuNoeud | undefined =>
+  noeud !== null && typeof noeud === 'object' ? unionRetenue(noeud) : undefined;
+
+const unionRetenue = memoByRef((noeud: object): UnionDuNoeud | undefined => {
   const n = noeudDUnion(noeud);
   if (n === undefined) return undefined;
   const declaration = declarationDEnfants(n);
   if (declaration) {
-    const variantes = chargesNommees.get(declaration) ?? variantesDOperations(declaration);
-    if (!variantes) return undefined;
-    chargesNommees.set(declaration, variantes);
-    return { noeud: n, discriminant: 'op', variantes };
+    const variantes = variantesDOperations(declaration);
+    return variantes && { noeud: n, discriminant: 'op', variantes };
   }
   const presence = discriminantDePresence(n);
   const sansDiscriminant = presence !== undefined || defDe(n)!.discriminator !== undefined ? undefined : variantesSansDiscriminant(n);
@@ -396,7 +401,7 @@ export function unionDuNoeud(noeud: unknown): UnionDuNoeud | undefined {
   });
   const nommees = variantes.filter((v): v is VarianteDuNoeud => v.cle !== undefined && v.libelle !== undefined);
   return nommees.length === variantes.length ? { noeud: n, discriminant, variantes: nommees } : undefined;
-}
+});
 
 /** La variante de l'union `u` où se lit la valeur `valeur` : celle de son discriminant (absent : la variante de clé
  *  vide), que sa co-descente ouvre (`ouverts`) ; d'une union sans discriminant, la première, dans l'ordre du parse,
@@ -508,11 +513,10 @@ export function admetLAbsence(noeud: unknown): boolean | undefined {
  *  (`ouverts`) ? Son absence n'est alors pas admise, quoi qu'en dise son nœud (`admetLAbsence`). */
 export function exigeParSonPorteur(noeudsDuPrefixe: (j: number) => readonly unknown[], longueur: number): boolean {
   if (longueur < 2) return false;
-  const [porteurs, tests, champs] = [longueur - 2, longueur - 1, longueur].map((j) => ouverts(noeudsDuPrefixe(j)));
-  return porteurs.some((n) => {
-    const fixe = declarationDeTestFixe(n);
-    return fixe !== undefined && tests.includes(fixe.test) && ouverts(fixe.exiges).some((e) => champs.includes(e));
-  });
+  const fixes = ouverts(noeudsDuPrefixe(longueur - 2)).flatMap((n) => declarationDeTestFixe(n) ?? []);
+  if (!fixes.length) return false;
+  const [tests, champs] = [longueur - 1, longueur].map((j) => ouverts(noeudsDuPrefixe(j)));
+  return fixes.some((fixe) => tests.includes(fixe.test) && ouverts(fixe.exiges).some((e) => champs.includes(e)));
 }
 
 /** Le nœud admet-il une LISTE ? `undefined` sans nœud. */

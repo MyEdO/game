@@ -25,7 +25,7 @@ import {
 } from '../codex/editFields';
 import { valeurNeuveDe, variantesAChoisir } from '../valeursNeuves';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
-import { noeudsAuChemin } from '../../data/schemas/grammaire/descente';
+import { lecteurDesPoints, type PointDuChemin } from '../../data/schemas/grammaire/descente';
 import { auChemin, estObjet } from '../../lib/objet.mjs';
 import { adresseRecalee, adresseRescellee, adressesScellees, estCheminDerive, type SourceDeLEdition } from './adresseDeProse';
 
@@ -73,15 +73,15 @@ export function ecritureOfferte(offerts: CheminsOfferts, chemin: readonly Segmen
   return entrees.every(([cle, v]) => v === undefined || ecritureOfferte(offerts, [...chemin, cle], v));
 }
 
-/** La clé présente au bout du chemin `chemin` de la donnée `donnee` de l'objet de schéma `objet` est-elle exigée par le
+/** La clé présente au bout du chemin `chemin` de la donnée que lit `lire` (`lecteurDesPoints`) est-elle exigée par le
  *  record qui la porte : son retrait y pose une faute du parse de son nœud que le record ne portait pas (`fauteNeuve`,
  *  un nombre de clés au moins) ? */
-function cleExigeeParSonRecord(objet: unknown, donnee: unknown, chemin: readonly Segment[]): boolean {
+function cleExigeeParSonRecord(lire: (chemin: readonly Segment[]) => PointDuChemin, chemin: readonly Segment[]): boolean {
   const cle = chemin[chemin.length - 1];
-  const record = auChemin(donnee, chemin.slice(0, -1));
+  const { noeuds, valeur: record } = lire(chemin.slice(0, -1));
   if (typeof cle !== 'string' || !estObjet(record) || !(cle in record)) return false;
   const sans = Object.fromEntries(Object.entries(record).filter(([k]) => k !== cle));
-  return noeudsAuChemin(objet, donnee, chemin.slice(0, -1)).some((n) => recordDuNoeud(n) !== undefined && fauteNeuve(n, record, sans) !== undefined);
+  return noeuds.some((n) => recordDuNoeud(n) !== undefined && fauteNeuve(n, record, sans) !== undefined);
 }
 
 /** Le formulaire de forme `forme`, de donnée `donnee` : le champ de tête de chacun de ses champs offerts, décrit par
@@ -91,10 +91,11 @@ function cleExigeeParSonRecord(objet: unknown, donnee: unknown, chemin: readonly
  *  (`cleExigeeParSonRecord`), ses choix `choix` et le `Source/` `source` de ses adresses. */
 export function champsDuFormulaire({ noeud, champs }: FormeDuFormulaire, donnee: unknown, choix: ChoixDuFormulaire, source: SourceDeLEdition): FieldDesc[] {
   const decrits = inferFields([donnee as Record<string, unknown>], { noeud, niveau: 'profondeur' });
+  const lire = lecteurDesPoints(noeud, donnee);
   const contexte: ContexteDuChamp = {
     offert: (chemin) => cheminOffert(champs, chemin) && !estCheminDerive(noeud, donnee, chemin),
     ecrivable: (chemin, actuelle) => ecritureOfferte(champs, chemin, actuelle),
-    exige: (chemin) => exigeParSonPorteur((j) => noeudsAuChemin(noeud, donnee, chemin.slice(0, j)), chemin.length) || cleExigeeParSonRecord(noeud, donnee, chemin),
+    exige: (chemin) => exigeParSonPorteur((j) => lire(chemin.slice(0, j)).noeuds, chemin.length) || cleExigeeParSonRecord(lire, chemin),
     choix,
     source,
   };

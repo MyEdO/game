@@ -20,7 +20,7 @@ import type { DiceSpec } from '../../engine/dice';
 import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
 import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
 import { champDeProvenanceEcarte, noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
-import { estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
+import { lecteurDesPoints, noeudsAuChemin, type PointDuChemin } from '../../data/schemas/grammaire/descente';
 import { apparencesDObjetsSchema, deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../../data/apparencesObjets';
 import type { Manifeste } from '../../data/source/chapitres';
@@ -161,27 +161,24 @@ function formeDeLAtelier(a: AtelierDuCompendium): FormeDuFormulaire {
 function choixDeLAtelier(a: AtelierDuCompendium, noeud: unknown, source: SourceServie): ChoixDuFormulaire {
   const fichier = DATASET_FICHIER_DERIVE[datasetDe(a.categorie)];
   const ouvreurs = [[noeud, a.entree], [schemaForFile(fichier), RACINES_VIVANTES[fichier]]] as const;
+  const lire = lecteurDesPoints(noeud, a.entree);
   return (chemin) =>
-    choixSousUneAdresse(noeud, a.entree, chemin, source) ??
-    choixSousLesApparencesDObjets(noeud, a.entree, chemin) ??
-    choixDeLaReferenceLocale(noeudsAuChemin(noeud, a.entree, chemin), ouvreurs);
+    choixSousUneAdresse(lire, chemin, source) ??
+    choixSousLesApparencesDObjets(lire, a.entree, chemin) ??
+    choixDeLaReferenceLocale(lire(chemin).noeuds, ouvreurs);
 }
 
-/** Les choix que l'entrée `entree`, de nœud `noeud`, pose au chemin `chemin` sous la première apparence d'objets
- *  (`apparencesDObjetsSchema`) qu'il traverse ou désigne : ceux des armes de son profil (`armesDEntite`), comme un PNJ
- *  (`choixDuPreset`), par `choixDesApparencesDObjets` ; `undefined` hors d'elle. #2948 */
-function choixSousLesApparencesDObjets(noeud: unknown, entree: Entree, chemin: readonly Segment[]): ReturnType<ChoixDuFormulaire> {
-  let valeur: unknown = entree;
-  let noeuds = ouverts([noeud], valeur);
-  for (let k = 0; ; k++) {
-    if (noeuds.includes(apparencesDObjetsSchema)) {
+/** Les choix que l'entrée `entree`, que lit `lire` (`lecteurDesPoints`), pose au chemin `chemin` sous la première
+ *  apparence d'objets (`apparencesDObjetsSchema`) qu'il traverse ou désigne : ceux des armes de son profil
+ *  (`armesDEntite`), comme un PNJ (`choixDuPreset`), par `choixDesApparencesDObjets` ; `undefined` hors d'elle. #2948 */
+function choixSousLesApparencesDObjets(lire: (chemin: readonly Segment[]) => PointDuChemin, entree: Entree, chemin: readonly Segment[]): ReturnType<ChoixDuFormulaire> {
+  for (let k = 0; k <= chemin.length; k++) {
+    if (lire(chemin.slice(0, k)).noeuds.includes(apparencesDObjetsSchema)) {
       const { traits, char } = entree as NonNullable<Parameters<typeof armesDEntite>[2]>;
       return choixDesApparencesDObjets(() => armesDEntite(findTrappingById, undefined, { traits, char }), findTrappingById, chemin.slice(k));
     }
-    if (k === chemin.length) return undefined;
-    valeur = estConteneur(valeur) ? valeur[chemin[k]] : undefined;
-    noeuds = ouverts(pasDeDonnee(noeuds, chemin[k]), valeur);
   }
+  return undefined;
 }
 
 /** Ce dont l'hôte tire les éléments du formulaire de l'atelier (`elementsDuFormulaireTire`) : ses champs décrits

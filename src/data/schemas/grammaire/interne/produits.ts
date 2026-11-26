@@ -34,6 +34,9 @@ export interface ProduitDeFabrique {
 
 const PRODUITS = new WeakMap<object, ProduitDeFabrique>();
 
+/** La lecture de chaque nœud par `produitDe`, oubliée à chaque marque posée (`marquerProduit`). */
+let lus = new WeakMap<object, { readonly produit: ProduitDeFabrique | undefined }>();
+
 type Enfants = ReadonlyArray<readonly [string, unknown]>;
 type EnfantsDeProduit = { readonly enfants: Enfants; readonly produit: ProduitDeFabrique };
 
@@ -74,6 +77,7 @@ export function marquerProduit<N extends z.ZodType>(noeud: N, fabrique: string, 
     },
   };
   PRODUITS.set(noeud, produit);
+  lus = new WeakMap();
   const enfants = enfantsNommes(noeud);
   const premier = enfants[0]?.[1];
   if (premier !== null && typeof premier === 'object') {
@@ -90,6 +94,14 @@ export function marquerProduit<N extends z.ZodType>(noeud: N, fabrique: string, 
  */
 export function produitDe(noeud: unknown): ProduitDeFabrique | undefined {
   if (noeud === null || typeof noeud !== 'object') return undefined;
+  const lu = lus.get(noeud);
+  if (lu) return lu.produit;
+  const produit = lireLeProduit(noeud);
+  lus.set(noeud, { produit });
+  return produit;
+}
+
+function lireLeProduit(noeud: object): ProduitDeFabrique | undefined {
   const direct = PRODUITS.get(noeud);
   if (direct) return direct;
   if (defDe(noeud)?.type === 'lazy') return undefined;

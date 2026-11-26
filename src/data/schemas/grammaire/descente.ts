@@ -200,9 +200,13 @@ function brancheAdmet(option: unknown, discriminant: string, v: unknown): boolea
  * discriminant ABSENT d'un objet y vaut `undefined` quand une branche l'admet (`schemas.js:1171`) —,
  * TOUTES sans valeur lisible : la co-descente ne valide pas (`schemas.js:1171-1187`, zod ne se replie
  * pas). Une union simple garde toutes ses branches, sauf celles que sa métadonnée `retientBrancheDeLUnion` écarte.
- * Sans `valeur`, la fermeture est celle du schéma seul.
+ * Sans `valeur`, la fermeture est celle du schéma seul, retenue par nœud quand elle part d'un seul (`FERMETURES`).
  */
-export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[] {
+export function ouverts(noeuds: readonly unknown[], valeur?: unknown): readonly unknown[] {
+  const seul = valeur === undefined && noeuds.length === 1 && estConteneur(noeuds[0]) ? noeuds[0] : undefined;
+  const retenue = seul && FERMETURES.get(seul);
+  if (retenue) return retenue;
+  let complete = true;
   const vus = new Set<unknown>();
   const file = [...noeuds];
   for (let i = 0; i < file.length; i++) {
@@ -213,6 +217,7 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
     const discriminant = def?.discriminator;
     const declares = declarationDEnfants(n);
     const enfants = enfantsAvec(n, declares?.sansChargesNommees);
+    if (def?.type === 'lazy' && !enfants.some((e) => e.segment === '')) complete = false;
     const retient = def?.type === 'union' && valeur !== undefined ? (n as Noeud).meta?.()?.retientBrancheDeLUnion : undefined;
     if (declares) file.push(...(valeur === undefined ? declares.enfants.map(e => e.noeud) : declares.choisir(valeur)));
     const lu = discriminant !== undefined && estConteneur(valeur) ? valeur[discriminant] : undefined;
@@ -227,8 +232,14 @@ export function ouverts(noeuds: readonly unknown[], valeur?: unknown): unknown[]
       ) file.push(e.noeud);
     }
   }
-  return [...vus];
+  const fermeture = [...vus];
+  if (seul && complete) FERMETURES.set(seul, fermeture);
+  return fermeture;
 }
+
+/** La fermeture sans valeur de chaque nœud (`ouverts`) : un schéma construit ne change plus. Celle d'un `lazy` dont le
+ *  getter lève encore (`enfantsAvec`) n'est pas retenue. */
+const FERMETURES = new WeakMap<object, readonly unknown[]>();
 
 /** Les nœuds de l'enfant de donnée `cle` de `noeuds` : une clé de propriété passe par `.clé`, `{}` ou
  *  `.*` (clé hors `shape`) ; un rang `i` par `[]`, `[i]` ou `[...]` (rang hors des éléments du tuple). */
@@ -247,22 +258,52 @@ export function pasDeDonnee(noeuds: readonly unknown[], cle: string | number): u
   });
 }
 
-/** Les nœuds de schéma au chemin de DONNÉE `chemin` de `donnee` sous `schema` : à chaque pas, ceux de son enfant
- *  (`pasDeDonnee`), `ouverts` par sa valeur, absente comprise. */
+/** Un point d'une donnée sous son schéma : ses nœuds, `ouverts` par sa valeur, et sa valeur. */
+export interface PointDuChemin {
+  readonly noeuds: readonly unknown[];
+  readonly valeur: unknown;
+}
+
+/** Le point de l'enfant de donnée `pas` du point `p` : les nœuds de cet enfant (`pasDeDonnee`), `ouverts` par sa valeur,
+ *  absente comprise. */
+function pasDuPoint(p: PointDuChemin, pas: string | number): PointDuChemin {
+  const valeur = estConteneur(p.valeur) ? p.valeur[pas] : undefined;
+  return { noeuds: ouverts(pasDeDonnee(p.noeuds, pas), valeur), valeur };
+}
+
+/** Les nœuds de schéma au chemin de DONNÉE `chemin` de `donnee` sous `schema`, pas à pas (`pasDuPoint`). */
 export function noeudsAuChemin(
   schema: unknown,
   donnee: unknown,
   chemin: readonly (string | number)[],
   visiter?: (noeuds: readonly unknown[], valeur: unknown) => void,
-): unknown[] {
-  let valeur = donnee;
-  let noeuds = ouverts([schema], valeur);
+): readonly unknown[] {
+  let point: PointDuChemin = { noeuds: ouverts([schema], donnee), valeur: donnee };
   for (const pas of chemin) {
-    visiter?.(noeuds, valeur);
-    valeur = estConteneur(valeur) ? valeur[pas] : undefined;
-    noeuds = ouverts(pasDeDonnee(noeuds, pas), valeur);
+    visiter?.(point.noeuds, point.valeur);
+    point = pasDuPoint(point, pas);
   }
-  return noeuds;
+  return point.noeuds;
+}
+
+/** Le point de chaque chemin de DONNÉE de `donnee` sous `schema` (`noeudsAuChemin`), chaque préfixe lu une fois pour
+ *  tous les chemins qui le portent : `donnee` ne change pas tant que le lecteur sert. */
+export function lecteurDesPoints(schema: unknown, donnee: unknown): (chemin: readonly (string | number)[]) => PointDuChemin {
+  type Lu = PointDuChemin & { readonly suite: Map<string | number, Lu> };
+  const racine: Lu = { noeuds: ouverts([schema], donnee), valeur: donnee, suite: new Map() };
+  return (chemin) => {
+    let lu = racine;
+    for (const pas of chemin) {
+      const connu = lu.suite.get(pas);
+      if (connu) lu = connu;
+      else {
+        const neuf: Lu = { ...pasDuPoint(lu, pas), suite: new Map() };
+        lu.suite.set(pas, neuf);
+        lu = neuf;
+      }
+    }
+    return lu;
+  };
 }
 
 /** Ce que la co-descente présente à chaque point de la DONNÉE. */

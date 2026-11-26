@@ -15,7 +15,7 @@ import {
   type ChapitreParse, type CodeErreur, type DescRef, type ErreurResolution, type Fragment, type Section, type TableDeSection,
 } from '../../data/source/decoupe';
 import { estAdresseDeProse } from '../../data/schemas/grammaire/valeurs';
-import { coDescendre, estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
+import { coDescendre, noeudsAuChemin, ouverts, type PointDuChemin } from '../../data/schemas/grammaire/descente';
 import { coupeAuMot } from '../../lib/coupeAuMot.mjs';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { auChemin, estObjet } from '../../lib/objet.mjs';
@@ -351,15 +351,12 @@ export function choixDeLAdresse(source: SourceDeLEdition, adresse: DescRef | und
   return section ? choixDeLaCellule(section, f, champ) : [];
 }
 
-/** Les choix que la donnée `donnee`, de schéma `schema`, pose au chemin `chemin` sous la première adresse de prose qu'il
- *  traverse ou désigne (`choixDeLAdresse`), sur la source `source` ; `undefined` hors d'une adresse. */
-export function choixSousUneAdresse(schema: unknown, donnee: unknown, chemin: readonly Segment[], source: SourceDeLEdition): readonly ChoixDuContexte[] | undefined {
-  let valeur = donnee;
-  let noeuds = ouverts([schema], valeur);
-  for (let k = 0; ; k++) {
+/** Les choix que la donnée que lit `lire` (`lecteurDesPoints`) pose au chemin `chemin` sous la première adresse de prose
+ *  qu'il traverse ou désigne (`choixDeLAdresse`), sur la source `source` ; `undefined` hors d'une adresse. */
+export function choixSousUneAdresse(lire: (chemin: readonly Segment[]) => PointDuChemin, chemin: readonly Segment[], source: SourceDeLEdition): readonly ChoixDuContexte[] | undefined {
+  for (let k = 0; k <= chemin.length; k++) {
+    const { noeuds, valeur } = lire(chemin.slice(0, k));
     if (noeuds.some(estAdresseDeProse)) return choixDeLAdresse(source, estObjet(valeur) ? (valeur as unknown as DescRef) : undefined, chemin.slice(k));
-    if (k === chemin.length) return undefined;
-    valeur = estConteneur(valeur) ? valeur[chemin[k]] : undefined;
-    noeuds = ouverts(pasDeDonnee(noeuds, chemin[k]), valeur);
   }
+  return undefined;
 }
