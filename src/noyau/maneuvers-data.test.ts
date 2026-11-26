@@ -12,7 +12,7 @@ import { breathTypes, maneuvers, findManeuverById, findConditionById, combatStak
 import { DIFFICULTY_LABELS } from '../engine/types';
 import { souffleDuType } from '../engine/creatureAttacks';
 import { setDataset } from '../data/overrides';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { makeRNG } from '../engine/dice';
 import { idsDeTest } from '../engine/idsDeTest.testkit';

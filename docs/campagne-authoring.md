@@ -511,7 +511,7 @@ directement sur sa scène d'entrée et ne se ferme jamais — aucun paquet exist
 ## 10quinquies. Lien aux fiches de dossier de chapitre (`couvre` / `narratif.ecartes`, #2290)
 
 Une fiche de dossier de chapitre (`projets/jeu-de-role/dossiers/<ABBR>/<NN>.json`, schéma `ficheDeDossier` de
-`src/data/source/dossier.ts`) nomme chaque entrée par un identifiant GLOBAL `<ABBR>-<NN>#<id>`
+`src/data/schemas/source/dossier.ts`) nomme chaque entrée par un identifiant GLOBAL `<ABBR>-<NN>#<id>`
 (`ID_D_ENTREE`). Le paquet de campagne CITE ces entrées ; la fiche ne connaît pas le paquet.
 
 - **`couvre?: string[]`** (`couvreSchema`, `src/data/schemas/defs-scenes/communs.ts`) — les entrées de

@@ -3,7 +3,7 @@ import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { AttackKind } from './creatureAttacks';
 import type { HitLocation } from './localisations';
 import { t } from '../i18n';
-import type { EntreeDe } from '../data/datasets';
+import type { EntreeDe } from '../data/schemas/datasets';
 import type * as structuresDef from '../data/schemas/defs/structures';
 import type * as vehiclesDef from '../data/schemas/defs/vehicles';
 import type { NonAffichable, PlayerText } from '../i18n/playerText';

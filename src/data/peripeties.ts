@@ -14,7 +14,7 @@
  */
 import { peripeties } from './index';
 import peripetiesJson from './peripeties.json';
-import { deDeTirageDe } from './rangees';
+import { deDeTirageDe } from './schemas/rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import type * as tableDesPeripeties from './schemas/defs/peripeties';
 

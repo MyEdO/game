@@ -15,7 +15,7 @@ import {
 } from './careerSlots';
 import advancementCostsJson from '../data/advancementCosts.json';
 import type * as advancementCostsDef from '../data/schemas/defs/advancementCosts';
-import { datasetDe } from '../data/datasets';
+import { datasetDe } from '../data/schemas/datasets';
 import { findTableEntryIndex, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import { t } from '../i18n';

@@ -112,7 +112,7 @@
     "type": "primitives.manifest",
     "label": "DeDeTable/deDeLaTableTiree/deDeTirageDe/facesDuDe/bandeAuDe",
     "fichier": "src/engine/tables.ts",
-    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées), un `DiceSpec` NdM (`deDeTirageSchema`, `src/data/schemas/grammaire/valeurs.ts`) et jamais une expression ; `deDeTirageDe` (`src/data/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas ; une étape de cascade à table le lit sur `TableStepDef.die` (`src/noyau/cascade.ts`, `tableSpec`), son seul porteur : une `CascadeTableDecl` n'en porte aucun",
+    "concept": "dé d'une table tirée (#1667) : une marque de type (`DeDeTable`) que seul `deDeLaTableTiree` forge, depuis le `die` du nœud qui le porte (la table, ou le sous-tirage qui départage ses rangées), un `DiceSpec` NdM (`deDeTirageSchema`, `src/data/schemas/grammaire/valeurs.ts`) et jamais une expression ; `deDeTirageDe` (`src/data/schemas/rangees.ts`) le lit sur un document à rangées ; `facesDuDe` (plus grand total) et `bandeAuDe` (bande précédée de son dé) ne prennent que lui, un dé écrit en littéral ne compile pas ; une étape de cascade à table le lit sur `TableStepDef.die` (`src/noyau/cascade.ts`, `tableSpec`), son seul porteur : une `CascadeTableDecl` n'en porte aucun",
     "perimetre": "tout tirage, toute faces et toute bande d'une table qui porte son dé en donnée (moteur, flux, Codex, atelier)",
     "verrou": "tsc (src/engine/tables.test.ts, `@ts-expect-error`) ; murs/marques (src/noyau/built-brand-lint.test.ts)"
   },
@@ -120,7 +120,7 @@
     "id": "rangeesDe",
     "type": "primitives.manifest",
     "label": "rangeesDe/RangeeDe",
-    "fichier": "src/data/rangees.ts",
+    "fichier": "src/data/schemas/rangees.ts",
     "concept": "rangées VIVANTES d'un document à rangées (`options.rangee`), lues dans le module JSON de son fichier (racine que le seam mute en place) et, dans un fichier à plusieurs documents, par id de document — typées par le schéma de rangée que le def exporte",
     "perimetre": "tout lecteur d'une table de donnée (moteur, seam, Codex)",
     "verrou": "tsc : la rangée a le type dérivé du schéma du def (`z.output`), l'id de document est exigé pour la famille `entite` ; fail-fast à l'exécution sur un document absent"
@@ -129,7 +129,7 @@
     "id": "datasetDe",
     "type": "primitives.manifest",
     "label": "datasetDe/DatasetDe/EntreeDe",
-    "fichier": "src/data/datasets.ts",
+    "fichier": "src/data/schemas/datasets.ts",
     "concept": "dataset VIVANT d'un document entier, lu dans le module JSON de son fichier (racine que le seam mute en place) — typé par la sortie du schéma que le def exporte (`DatasetDuDocument`, `grammaire/document.ts`) ; `EntreeDe` en est l'entrée",
     "perimetre": "tout lecteur d'un dataset (registre `src/data/index.ts`, moteur, noyau) qui ne relit pas une table à rangées (`rangeesDe`)",
     "verrou": "tsc : un champ renommé au schéma du def rougit ses lecteurs"
@@ -525,19 +525,19 @@
     "id": "texteDUneAdresse",
     "type": "primitives.manifest",
     "label": "aligner/estDeContenu/unitesDe/unitesDeLAdresse/unitesDuBloc/unitesDuTexte/memeTexte/filDuChapitre/positionDuBloc/couvertureDe",
-    "fichier": "src/data/source/decoupe.ts",
+    "fichier": "src/data/schemas/source/decoupe.ts",
     "concept": "décideur de texte d'une adresse de prose : filDuChapitre est le fil d'un chapitre (le titre de chaque section en gras à son ouverture, puis ses blocs) et positionDuBloc la position d'un bloc sur ce fil ; unitesDe, unitesDeLAdresse et unitesDuBloc produisent les unités que le rendu d'un fragment (un intervalle du fil, titres intermédiaires compris), d'une adresse (la tête d'un fragment qui en suit un autre précédée d'une ligne vide) ou d'un bloc assemble (celles d'un bloc mémoïsées et gelées, la bannière absorbée et la légende d'une table marquées habillage) ; couvertureDe dit les positions qu'un fragment cite (et la case d'une cellule), que lisent le verrou de chevauchement et l'éditeur ; unitesDuTexte prépare un texte libre (un paragraphe découpé comme un bloc, une ligne de titre markdown traduite en titre du fil), aligner décide texte libre contre rendu sur le CONTENU des deux côtés (estDeContenu : la séparatrice de table est de la syntaxe), un habillage consommé entier ou sauté (égalité = ajoute vide, partie stricte sinon, témoin nommé, localisation jamais bornée par un habillage), memeTexte compare une clé ou un rendu à un rendu",
     "perimetre": "toute comparaison de deux textes au sens de normText : judge et verifier (scripts/source/derive-decoupes.mjs), résolution de cellule, éditeur d'adresse",
-    "verrou": "src/texte-normalise-guard.test.ts ; src/data/source/texte-d-adresse.test.ts ; src/data/source/aligner-oracle.test.ts"
+    "verrou": "src/texte-normalise-guard.test.ts ; src/data/schemas/source/texte-d-adresse.test.ts ; src/data/schemas/source/aligner-oracle.test.ts"
   },
   {
     "id": "constructeursDAdresse",
     "type": "primitives.manifest",
     "label": "fragmentBlocs/intervalleDe/fragmentCellule/scelle/adresseDe/ouDe/ouDeLAdresse/MIN_FRAGMENT/MAX_FRAGMENTS",
-    "fichier": "src/data/source/decoupe.ts",
+    "fichier": "src/data/schemas/source/decoupe.ts",
     "concept": "constructeurs d'une adresse de prose : fragmentBlocs et fragmentCellule bâtissent un fragment depuis un choix (section, bornes et section de fin d'un intervalle ; section, clé de ligne, colonne, table), intervalleDe l'intervalle du fil d'un bloc de départ à un bloc de fin, tous deux sous la forme canonique (une fin dans la section de départ ne s'écrit pas), scelle pose son empreinte au texte résolu (vide s'il ne résout pas), adresseDe adresse une section entière ou la légende et le bloc d'une table — le tableau entier —, et, sa fin posée, l'intervalle qu'elles ouvrent (erreur de résolution nommée sur une section sans bloc) ; ouDe et ouDeLAdresse désignent un fragment et une adresse ; MIN_FRAGMENT et MAX_FRAGMENTS sont les bornes uniques d'un fragment discriminant et d'un montage",
     "perimetre": "toute construction d'un fragment ou d'une adresse : éditeur d'adresse, renvois, chercheurs de judge, CLI de découpe, relocaliseur, migrations",
-    "verrou": "src/construction-de-fragment-guard.test.ts ; src/data/source/decoupe.test.ts"
+    "verrou": "src/construction-de-fragment-guard.test.ts ; src/data/schemas/source/decoupe.test.ts"
   },
   {
     "id": "lieuxDUnTexte",
@@ -546,7 +546,7 @@
     "fichier": "scripts/source/lieux.mjs",
     "concept": "lieux d'un texte dans son livre par la relation de texte (aligner) : les suites minimales de blocs contigus au fil qui le contiennent, un bloc seul compris ; plusPetiteUnite est l'adresse la plus petite qui contient un lieu (le tableau entier par adresseDe quand une table l'ouvre) ; prouver établit une adresse figée (résolution, contenance et ajoute consigné, unicité du lieu, plus petite unité)",
     "perimetre": "raison d'un ECHEC de judge (scripts/source/derive-decoupes.mjs) et migrations qui adressent une prose par table figée (scripts/migrations/lib/adressesFigees.mjs)",
-    "verrou": "src/data/regles-adresses-prouvees.test.ts ; src/data/source/aligner-oracle.test.ts"
+    "verrou": "src/data/regles-adresses-prouvees.test.ts ; src/data/schemas/source/aligner-oracle.test.ts"
   },
   {
     "id": "freeAttackWeapon",
@@ -623,11 +623,38 @@
   {
     "id": "memoByRef",
     "type": "primitives.manifest",
-    "label": "memoByRef/memoByRefDeps/memoByDeps",
+    "label": "memoByRef/memoByRefDeps",
     "fichier": "src/noyau/monde/sceneMemo.ts",
-    "concept": "mémoïsation par IDENTITÉ, sans invalidation manuelle : `memoByRef` par référence de la clé (gelée en développement), `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoByRefDeps` un `memoByDeps` par clé ; `memoByRef` et `memoByRefDeps` oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), un `memoByDeps` nu qui lit un catalogue reçoit cette version en dépendance",
-    "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web), et tout calcul qui reprend sa variante précédente",
+    "concept": "mémoïsation par IDENTITÉ datée par la version des datasets : `memoByRef` par référence de la clé (gelée en développement), `memoByRefDeps` un `memoByDeps` par clé ; tous deux oublient toute valeur retenue à une écriture au catalogue (`versionDesDatasets`), et composent le cœur sans version `memoParIdentite`/`memoParIdentiteEtDeps` (`src/lib/memoParIdentite.ts`)",
+    "perimetre": "tout cache dérivé de la `Scene` ou d'un objet de donnée (volume du monde, toits, arêtes, opacité, cuisson du rendu web)",
     "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
+  },
+  {
+    "id": "memoParIdentite",
+    "type": "primitives.manifest",
+    "label": "memoParIdentite/memoParIdentiteEtDeps/memoByDeps",
+    "fichier": "src/lib/memoParIdentite.ts",
+    "concept": "cœur de la mémoïsation par IDENTITÉ, sans version ni gel : `memoParIdentite` une valeur par référence de la clé, `memoByDeps` d'une variante par jeu de dépendances comparées par `===` position par position, dont le constructeur reçoit la variante précédente, `memoParIdentiteEtDeps` un `memoByDeps` par clé ; un `memoByDeps` nu qui lit un catalogue reçoit sa version en dépendance",
+    "perimetre": "tout calcul qui reprend sa variante précédente ; les lectures du catalogue passé en valeur (`src/data/schemas/catalogue/catalogue.ts`, `src/data/catalogueDuProcessus.ts`)",
+    "verrou": "src/noyau/monde/sceneMemo.test.ts ; mémo nourri d'un corpus refusé (`MEMOS`, `scripts/guards/lib/analyseRetenue.mjs`, `src/analyse-retention-guard.test.ts`)"
+  },
+  {
+    "id": "catalogue",
+    "type": "primitives.manifest",
+    "label": "composer/entreeDe/regle/ouvertParSaRegle/catalogueDeTest",
+    "fichier": "src/data/schemas/catalogue/catalogue.ts",
+    "concept": "le CATALOGUE passé en valeur (#5069) : `composer(bibliotheque, { regles })` rend une valeur neuve, entrées à variantes effectives sous les règles de la composition, sans retrait ; `entreeDe(cle, id, cat)` lit une entrée par id sur une clé de dataset-liste, au type généré de sa collection (`CollectionDuDataset`) ; `regle(id, cat)` le choix de la composition, sinon le défaut du registre de `cat` ; `ouvertParSaRegle(entree, cat)` le filtre d'offre ; `catalogueDeTest(livre)` (`catalogueDeTest.testkit.ts`) compose les seuls documents qu'une suite déclare, un document absent se lisant vide",
+    "perimetre": "toute règle qui lit la base en argument, et ses suites ; le pont vers la base vivante est `catalogueDuProcessus()` (`src/data/catalogueDuProcessus.ts`)",
+    "verrou": "src/data/schemas/catalogue/catalogue.test.ts ; src/data/catalogueDuProcessus.test.ts"
+  },
+  {
+    "id": "parserSousCatalogue",
+    "type": "primitives.manifest",
+    "label": "parserSousCatalogue/sousLeLecteur",
+    "fichier": "src/data/schemas/catalogue/references.ts",
+    "concept": "le parse d'une donnée sous un catalogue passé (#5070) : le même `safeParse`, sous le lecteur d'ids de `cat` (`sousLeLecteur`, `grammaire/ref.ts`, borné à l'appel, imbrication comprise), qui lit les documents de `cat` et les vocabulaires du moteur ; le jugement d'un id, de sa sous-liste marquée ou discriminée, garde ses messages, ses paths et la sémantique des unions ; un document que `cat` ne porte pas se lit vide",
+    "perimetre": "toute porte qui juge les ids d'une donnée (feuilles `idDe`, `ref`, `refs`, clés de `recordDIds`) contre une bibliothèque candidate ou le catalogue d'une partie, sans `npm run gen`",
+    "verrou": "src/data/schemas/catalogue/references.test.ts ; src/data/parserSousCatalogue-equivalence.test.ts"
   },
   {
     "id": "echapperRegex",

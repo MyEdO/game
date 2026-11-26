@@ -3,7 +3,7 @@ import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { species } from '../data';
 import { setDataset } from '../data/overrides';
-import { RACINES_VIVANTES } from '../data/schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from '../data/_racines-vivantes.generated';
 import { HEROS_DE_SCENARIO, herosDeScenario, type RoleDeScenario } from '../scenes/test-scenarios/_heros';
 import { applyOps, type GameOp } from '../engine/ops';
 import { makeRNG, type RNG } from '../engine/dice';

@@ -4,7 +4,7 @@
  *
  * L'APPUI d'un décor POSÉ SUR un autre (`SceneEntity.sur`) : une lettre sur un bureau, un chandelier sur une table, une
  * caisse sur une autre. Le plan du décor posé reste le sien (`pos`, `calage`) ; seul son PIED vient du support, le
- * DESSUS de celui-ci à l'aplomb de son ancre (`dessusSous`, `data/props.types.ts`). La grille n'en sait rien : l'appui ne
+ * DESSUS de celui-ci à l'aplomb de son ancre (`dessusSous`, `data/schemas/props.types.ts`). La grille n'en sait rien : l'appui ne
  * change ni empreinte, ni blocage, ni ligne de vue.
  *
  * Un appui TIENT quand le support est un décor de la scène, sur la même couche, qu'il porte un dessus sous l'ancre du
@@ -13,7 +13,7 @@
  * retombe sur le sol de sa case. PUR.
  */
 import { findPropById } from '../../data';
-import { calageDuDecalage, dessusSous, empreinteDuProp, offsetAncre, type Calage } from '../../data/props.types';
+import { calageDuDecalage, dessusSous, empreinteDuProp, offsetAncre, type Calage } from '../../data/schemas/props.types';
 import { ancreDuDecor } from './footprint';
 import { heightAt, sceneMetresPerTile, type Scene, type SceneDuVolume, type SceneEntity } from './scene';
 

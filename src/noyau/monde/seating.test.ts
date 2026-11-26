@@ -36,7 +36,7 @@ function seatingScene(opts: { propFacing?: Dir8; blocs?: { x: number; y: number 
 
 /**
  * Attendu LITTÉRAL par cap (jamais recalculé par la formule sous test) : la recette s'écrit FACE AU
- * NORD (cap d'identité, `data/props.types.ts`), chaque cran la tourne de 45° horaires. Pour la place
+ * NORD (cap d'identité, `data/schemas/props.types.ts`), chaque cran la tourne de 45° horaires. Pour la place
  * « nord » (ancre locale (0, −0,48), corps face au `S`, abord local (0, −1)) :
  * l'ancre décrit un cercle de rayon 0,48 et l'abord suit le cap lui-même.
  */
@@ -372,7 +372,7 @@ describe('pruneSeatAssignments — normalisation déterministe', () => {
 /**
  * PLACES EFFONDRÉES DANS UNE MÊME CASE — l'état de TOUT meuble à N places aux échelles grossières
  * (10 m/case : la barge du sel, le Loup & Saumure). Le catalogue ne le refuse pas — l'anomalie qu'il
- * nomme est l'abord AMBIGU, celui qui dessert deux sièges DISTINCTS (`data/props.types.ts`,
+ * nomme est l'abord AMBIGU, celui qui dessert deux sièges DISTINCTS (`data/schemas/props.types.ts`,
  * `validatePropCatalog`) —, et c'est ICI que se lit ce qu'un tel meuble donne au joueur : deux places
  * distinctes par leur id, toutes deux occupables, l'une après l'autre. L'abord partagé se DÉPARTAGE à
  * la résolution (`placesResolues`, 2ᵉ passe) : la première place garde l'abord déclaré, la seconde se

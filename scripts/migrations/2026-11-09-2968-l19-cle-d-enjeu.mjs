@@ -21,7 +21,7 @@
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const STAKES = fileURLToPath(new URL('../../src/data/stakes.json', import.meta.url));
 const SEA = fileURLToPath(new URL('../../src/data/sea-events.json', import.meta.url));

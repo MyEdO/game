@@ -46,7 +46,7 @@
 // pages de son fichier impriment PLUS de fois que son `.md` ne le porte (capitales : une fois au moins).
 // Le même comptage (zéro fois au moins), sur une légende de tableau, est `legende-absente`.
 // Un corps en tableau se juge par la ligne qui précède l'EN-TÊTE de son bloc ; sa légende est un
-// paragraphe `**X**` seul (`TableParse.titre`, `src/data/source/decoupe.ts`), jamais un titre :
+// paragraphe `**X**` seul (`TableParse.titre`, `src/data/schemas/source/decoupe.ts`), jamais un titre :
 //  — L : légende portée en ligne de titre `#` (`ligneLegende` : la même, `#` ôtés,
 //    ancres de page en tête), ou en BANNIÈRE (1re rangée de la table, une seule cellule pleine :
 //    `enTete` = `rangee`, la rangée suivante devient l'en-tête, ou `vide` quand une de ses cellules
@@ -57,7 +57,7 @@
 // Toute CIBLE (`cible`, `devant`) est le DÉBUT d'un bloc Markdown ; une ligne de tableau se remonte à
 // l'en-tête de son bloc ; sinon le site sort en `cible-invalide`, avec sa forme visée et la ligne visée.
 // `titreMd` : le texte EXACT du titre dans le `.md` (S, F, M, B, O), ce que la réparation déplace.
-// Les ancres `<span id="page-…"></span>` ne comptent pas (`stripSpans`, `src/data/source/decoupe.ts`).
+// Les ancres `<span id="page-…"></span>` ne comptent pas (`stripSpans`, `src/data/schemas/source/decoupe.ts`).
 //
 // STOCK NOMINATIF (`scripts/raw/sonde-titres-stock.json`, régime #1711) : une ENTRÉE par site émis hors
 // `colonne`, clé `fichier :: ref :: occurrence` (`guards/lib/stock.mjs`, `cleDeSite`) ; `fichier` = le
@@ -77,8 +77,8 @@ import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { decoupeDe, gabaritTitreDe, livreExtraitDe, livresATitres, nomsDeLaListe, normalize, pdfRequisDe, readText } from './_lib.mjs'
 import { lignes } from './lib/colonnes.mjs'
-import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/source/decoupe.ts'
-import { FOLIO_ATTR, foliosRoulants } from '../../src/data/source/ancre-vide.ts'
+import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/schemas/source/decoupe.ts'
+import { FOLIO_ATTR, foliosRoulants } from '../../src/data/schemas/source/ancre-vide.ts'
 import { grasOuvert, prosePrecedenteCoupee, recoller } from './lib/titres-soudes.mjs'
 import { canoniser, relatifSousRacine } from '../docs/lib/chemin-mesure.mjs'
 import { SOUS_LOT, comptesParFamille } from '../guards/lib/stockDeSites.mjs'

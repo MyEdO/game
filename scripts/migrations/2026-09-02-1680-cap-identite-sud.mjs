@@ -1,7 +1,7 @@
 /**
  * Migration #1680 ligne 16 — CAP D'IDENTITÉ des recettes volumiques de décor : `N` → `S`.
  *
- * Le repère d'auteur d'une recette (`PropData.volume`, `src/data/props.types.ts`) était le cap `N` ;
+ * Le repère d'auteur d'une recette (`PropData.volume`, `src/data/schemas/props.types.ts`) était le cap `N` ;
  * le défaut du monde pour une entité sans `facing` est `S` (`capVolumique`). Une recette sortait donc
  * en DEMI-TOUR à l'instance par défaut, et l'auteur devait tenir ce décalage de tête. Le cap
  * d'identité devient le défaut du monde : une recette s'authore telle qu'elle se voit à l'instance
@@ -48,7 +48,7 @@
  * Il vit sur la RECETTE (et non sur le document : `props.json` est un TABLEAU d'entrées, il n'a pas
  * d'enveloppe de document où le poser) et il est LU PAR LE CONTRAT : `propVolumeRecipeSchema`
  * (`src/data/schemas/defs/props.ts`) le déclare `z.literal('S')` REQUIS et `PropVolumeRecipe`
- * (`src/data/props.types.ts`) le déclare au compilateur — une recette ne peut plus être écrite sans
+ * (`src/data/schemas/props.types.ts`) le déclare au compilateur — une recette ne peut plus être écrite sans
  * dire dans quel repère elle l'est.
  *
  * ENTRÉES : `src/data/props.json` (seule donnée lue et écrite).
@@ -68,7 +68,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/props.json');

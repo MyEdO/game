@@ -74,7 +74,7 @@ import {
   numeroDuFichier,
   plageDeLigne1,
   titreDuFichier,
-} from '../../src/data/source/decoupe.ts'
+} from '../../src/data/schemas/source/decoupe.ts'
 import { estLigneDeTitre, ouvreSur } from './lib/titres.mjs'
 import { decoupeDe, livreDuDossier, livresATitres, livresDecoupes, nomsDeLaListe, ongletsDe, REGISTRE_LIVRES, sansFolioDe } from './_lib.mjs'
 import { exemptionsFausses, mobilierDuDossier } from './lib/mobilier.mjs'
@@ -278,7 +278,7 @@ export function sitesDuDossier(dir, fichiers, liste = null, sansFolio = false) {
   }
 
   // (8) LARGEUR de numéro hétérogène : dans un dossier, TOUT préfixe a la largeur du plus grand
-  // numéro du dossier (`largeurDeChapitre`, `src/data/source/decoupe.ts`). Mêlées (`07` et `100`
+  // numéro du dossier (`largeurDeChapitre`, `src/data/schemas/source/decoupe.ts`). Mêlées (`07` et `100`
   // côte à côte), le tri lexicographique de n'importe quel listeur ment sur l'ordre des chapitres.
   const numeros = chapitres.map((f) => numeroDuFichier(f.nom))
   if (numeros.length) {

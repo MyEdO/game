@@ -89,14 +89,6 @@ Armures : Armure légère (armure-legere), Armure moyenne (armure-moyenne), Armu
 
 Cataplasme de guérison (cataplasme-de-guerison), Soude commune (soude-commune), Potion de guérison (potion-de-guerison), Potion de vitalité (potion-de-vitalite), Racine des tombes (racine-des-tombes), Faxtoryll (faxtoryll)
 
-## Péage du pont
-
-| Palier | Revenu par salle franchie |
-|---|---|
-| 1 | 3 CO |
-| 2 | 6 CO |
-| 3 | 12 CO |
-
 ## Destinations et adversaires
 
 | Destination | Palier | Salles | Meutes | Élites | Maître |

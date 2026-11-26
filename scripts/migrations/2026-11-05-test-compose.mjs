@@ -19,13 +19,13 @@
  * FAIL-FAST — sortie 1 avant toute écriture : fichier hors de son formatage, porteur à la fois plat et
  * composé, ou ni l'un ni l'autre, et, au RÉSULTAT, un `test` qui ne nomme ni Compétence ni
  * Caractéristique, sans Difficulté, ou qui garde une clé plate.
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`).
+ * FORMATAGE : `serializeDataset` (`src/data/schemas/serialize.ts`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lignesDe } from './lib/monoTable.mjs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 

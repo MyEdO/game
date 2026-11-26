@@ -73,8 +73,9 @@ export const REPLI_SURCOUT_MS = Object.freeze({ vitest: 3749, node: 2911 })
  *  conteneur de 4 cœurs et 15,7 Go, Node 24.22.0, dérivation `balayages` sans mémos, par paliers de
  *  `--max-old-space-size` : l'arbre ea6f10e50e meurt à 580 et passe à 640 ; un seul test ajouté par le lot de #3080
  *  (`retrait-des-entrees-nommees.test.mjs`) décale les lots `LOT_D_ANALYSE` qui le suivent, l'arbre meurt alors à 640 et
- *  passe à 720 ; à 1024, 122 s et 1 193 Mo de mémoire résidente au pic (#3080). */
-export const TAS_DERIVATION_MO = 1024
+ *  passe à 720 ; à 1024, 122 s et 1 193 Mo de mémoire résidente au pic (#3080). Le 2026-11-26, sur la CI (Node
+ *  26.13.1, sans mémos), l'arbre 1783d74701 meurt à 1024 (1 014 Mo au dernier Mark-Compact) : borne à 1536 (#5070). */
+export const TAS_DERIVATION_MO = 1536
 
 /** Les POPULATIONS d'une durée de la CI, chacune son facteur (`facteursCi`). */
 const POPULATIONS = Object.freeze(['vitest-node', 'vitest-jsdom', 'node'])

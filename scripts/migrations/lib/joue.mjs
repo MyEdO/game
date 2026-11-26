@@ -62,7 +62,7 @@ export function depot(fichiers, copies = []) {
  *
  * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les PDF (lourds,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
- * Les defs d'un registre TS d'art (`src/data/fonds/defs`, sous `src/data`) sont le catalogue que lit une migration
+ * Les defs d'un registre TS d'art (`src/data/schemas/fonds/defs`, sous `src/data`) sont le catalogue que lit une migration
  * vers son type (#2968 P-art).
  */
 const CORPUS = ['src/data', 'src/scenes', 'projets', 'scripts', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/jsonCanonique.mjs', 'src/lib/objet.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];
@@ -98,14 +98,14 @@ export function rienTouche(racine, avant) {
 /** Par racine de dépôt jetable, les dépendances statiques que `joue` y a copiées de l'arbre. */
 const dependancesPosees = new Map();
 
-/** Les fichiers du dossier `dossier` (relatif à `racine`) qui ne sont ni au nombre des posés, ni une
- *  dépendance que `joue` y a copiée. */
+/** Les entrées du dossier `dossier` (relatif à `racine`) qui ne sont ni au nombre des posés, ni une
+ *  dépendance que `joue` y a copiée, ni le dossier qui en contient une. */
 export function crees(racine, avant, dossier) {
   const poses = new Set([...avant.keys(), ...(dependancesPosees.get(racine) ?? [])]);
   return fs
     .readdirSync(path.join(racine, dossier))
     .map((f) => path.posix.join(dossier, f))
-    .filter((rel) => !poses.has(rel))
+    .filter((rel) => !poses.has(rel) && ![...poses].some((pose) => pose.startsWith(`${rel}/`)))
     .map((rel) => `${rel} : fichier CRÉÉ`);
 }
 

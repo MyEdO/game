@@ -4,7 +4,7 @@
  *  (`scripts/hote-texte.mjs`), et que les suites du commun jouent. */
 import { campagneDuPaquet, type BuiltinCampaign } from '../../noyau/index';
 import { file } from '../../data/schemas/defs-scenes/paquet-de-test';
-import { lireLesFiches } from '../../data/dossiers';
+import { lireLesFiches } from '../../data/schemas/dossiers';
 import paquetDeTest from './paquet-de-test.json';
 
 export const campagneDeTest: BuiltinCampaign = campagneDuPaquet(paquetDeTest, file);

@@ -8,9 +8,9 @@
 import { findPropById, matieresDe, props, structureAppearances, terrains, semencesDeScene } from '../../data';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { structureAppearance } from './volume/structures';
-import { empreinteDuProp } from '../../data/props.types';
+import { empreinteDuProp } from '../../data/schemas/props.types';
 import { parLibelle } from '../../lib/ordre.mjs';
-import { PARTS_RELIEF } from '../../data/materials.types';
+import { PARTS_RELIEF } from '../../data/schemas/materials.types';
 import { roofProfileSchema, eaveSideSchema } from '../../data/schemas/defs-scenes/scene';
 import {
   addArchitectureBody,
@@ -26,7 +26,7 @@ import {
   setReliefDefault,
 } from '../sceneEdit';
 import { canonEdge, emptyScene, setStructureDown, type CellSide, type Scene, type WallSeg, type WallSide } from './scene';
-import { memoByDeps } from './sceneMemo';
+import { memoByDeps } from '../../lib/memoParIdentite';
 import { METRES_PER_LEVEL, STEP_MAX_M } from './relief';
 import { estAbsent, terrainBuilt, terrainKitDEscalier, terrainSolidHeightM } from './terrain';
 import { aretesDeLaScene, plateauDeLaScene, type AreteDessinee } from './aretes';

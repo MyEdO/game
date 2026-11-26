@@ -2,7 +2,7 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { poserLaDetermination } from '../../../../src/engine/talentEffects';
 import * as J from '../jeu';
-import { tomber } from '../jeu/salles.testkit';
+import { tombeDeTest } from '../../../../src/engine/combattantDeTest.testkit';
 import { poserLesReglesDuRoguelite } from '../noyau';
 import { installerLesSurvols } from './bulles';
 import { ecranDuHeros, type Onglet } from './fiche';
@@ -21,12 +21,12 @@ function partieFermee(ruines: boolean): J.Etat {
   e.trophees = 0;
   for (const k of Object.keys(e.batiments) as J.IdBatiment[]) e.batiments[k] = ruines ? 0 : 1;
   e.roster[1].sejour = { ou: 'temple', reste: 3, total: 7 };
-  tomber(e.roster[2].c);
+  tombeDeTest(e.roster[2].c);
   for (const h of e.roster) h.c.xp = 0;
   return e;
 }
 
-const SERVICES: Service[] = ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage', 'chronique'];
+const SERVICES: Service[] = ['relais', 'temple', 'salle', 'forge', 'cartographe', 'chronique'];
 const EMPLACEMENTS: Emplacement[] = ['main', 'secondaire', 'tir', 'armure'];
 const ONGLETS: Onglet[] = ['progression', 'talents', 'sorts', 'equipement'];
 
@@ -60,7 +60,7 @@ function ecransDeLExpedition(type: J.TypeDeSalle | null): [string, string][] {
   const x = e.expedition!;
   if (type) x.salles[x.index] = { type, ennemis: [], faite: false, ouverte: true };
   const groupe = J.herosDuGroupe(e);
-  tomber(groupe[3].c);
+  tombeDeTest(groupe[3].c);
   const actions: ChoixDeSalle[] = !type ? [{ action: 'soigner', soigneur: groupe[1].c.id }]
     : type === 'camp' ? [] : (Object.keys(J.EPREUVES[type as J.SalleAJet].actions) as J.IdActionAJet[]).map((action) => ({ action }));
   return [
@@ -142,7 +142,7 @@ describe('entre deux salles, « Se relever » sans Détermination dit la raison 
     const e = J.nouvellePartie(3);
     expect(J.partir(e, J.DESTINATIONS[0].id, e.roster.map((h) => h.c.id))).toBeNull();
     const h = J.herosDuGroupe(e)[0];
-    tomber(h.c);
+    tombeDeTest(h.c);
     poserLaDetermination(h.c, 0);
     const hote = document.createElement('div');
     document.body.append(hote);

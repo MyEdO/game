@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs'
 import { SUIVI, ceQuiChange, depotDe, imageDeHead, lireEnLot } from '../../guards/lib/gitPorte.mjs'
 import { hunksDe } from '../../guards/lib/hunks.mjs'
 import { normalize } from '../_lib.mjs'
-import { stripSpans } from '../../../src/data/source/decoupe.ts'
+import { stripSpans } from '../../../src/data/schemas/source/decoupe.ts'
 
 /** @typedef {import('../../guards/lib/hunks.mjs').Hunk} Hunk */
 /** @typedef {{ ligne: number } | { supprimee: true } | { ambigue: true, candidates: number[] }} Destin */

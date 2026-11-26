@@ -5,7 +5,7 @@ import { rollDice, type RNG } from './dice';
 import { findTableEntry } from './tables';
 import capricieuxJson from '../data/tableau-capricieux.json';
 import reactionAuStatutJson from '../data/reaction-au-statut.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/schemas/rangees';
 import type * as capricieux from '../data/schemas/defs/tableau-capricieux';
 import type * as reactionAuStatut from '../data/schemas/defs/reaction-au-statut';
 import { findCareerById, levelsForCareer } from '../data';

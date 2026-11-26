@@ -29,7 +29,7 @@
  * l'effectif minimal → Manque de bras (MDG 14 l.55). En combat, l'équipage est réel
  * (`battle.combatants`) et le Manque de bras s'applique aussi (`shipCrew.ts`).
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import { battleRng } from './battleRng';
 import { nomDuNavire } from './carriers';
 import { estLeNavireDeCampagne, estUneCoqueNavale, lierLaCoqueDeCampagne, uidDeCampagnePourLaCoque } from './monde/coqueDeCampagne';

@@ -9,7 +9,7 @@ import { z } from 'zod';
 import { schema } from './arcane-phenomena';
 import arcaneJson from '../../arcane-phenomena.json';
 import tablesJson from '../../tables.json';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { mesureDuParse, ref, type PorteeLocale } from '../grammaire/ref';
 

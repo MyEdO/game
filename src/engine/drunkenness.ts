@@ -31,7 +31,7 @@ import {
   removeActiveEffects,
 } from './conditions';
 import drunkennessJson from '../data/drunkenness.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/schemas/rangees';
 import type * as ivresse from '../data/schemas/defs/drunkenness';
 import { t } from '../i18n';
 import { nomDe } from './nom';

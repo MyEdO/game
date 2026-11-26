@@ -56,7 +56,7 @@ describe('#220 — archétype avitailleur (registre)', () => {
 });
 
 /**
- * Le contrat `curated` (« Articles garantis en stock […] Disponibilité ignorée », `data/merchants.types.ts`)
+ * Le contrat `curated` (« Articles garantis en stock […] Disponibilité ignorée », `data/schemas/merchants.types.ts`)
  * vaut pour TOUT mode de marché : le mode simplifié / sans-Disponibilité passe par `fullStock`, qui
  * excluait les Exotiques SANS regarder le `curated` — l'Avitailleur perdait sa mitraille (Exotique).
  */

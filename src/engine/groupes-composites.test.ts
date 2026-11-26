@@ -8,7 +8,7 @@ import { groupMatch, groupesDe } from './groups';
 import { sansPeurVs, sourceCombattant } from './psychology';
 import { groups, SPEC_SOURCES, talents, type GroupData } from '../data';
 import { datasetArray, resetData, setDataset } from '../data/overrides';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import type { Combatant } from './types';
 import { blessuresDeBase, combattantDeTest, type SurchargeDeCombattant } from './combattantDeTest.testkit';

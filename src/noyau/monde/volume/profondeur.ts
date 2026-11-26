@@ -10,7 +10,7 @@
  */
 import { facadeStructureAppearance, wallPartDepthM } from './structures';
 import { largeurDUnMontant, wallMatterM } from './montants';
-import type { WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/schemas/structureAppearance.types';
 import { roofFasciaThickM, roofMaterial } from './matieres';
 import type { Face } from './types';
 

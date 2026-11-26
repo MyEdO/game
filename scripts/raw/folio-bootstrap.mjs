@@ -19,7 +19,7 @@ import { writeFileSync } from 'node:fs'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { join, basename } from 'node:path'
 import { livreDuSigle, pdfDuSigle, readText } from './_lib.mjs'
-import { numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/source/decoupe.ts'
+import { numeroDuFichier, plageDeLigne1, titreDuFichier } from '../../src/data/schemas/source/decoupe.ts'
 import { lireBoites, pagesEnLignes, runBook } from './anchor-fill.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 

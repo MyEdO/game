@@ -13,7 +13,7 @@ import { projetSchema } from './schemas/defs-scenes/projet';
 import { versDisque } from './schemas/grammaire/prose';
 import { suivreLeChemin } from './schemas/grammaire/cle-d-espace';
 import { DATASET_DE_LA_CATEGORIE } from './schemas/_cles-de-dataset.generated';
-import { RACINES_VIVANTES } from './schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from './_racines-vivantes.generated';
 import paquetDeTest from '../scenes/fixtures/paquet-de-test.json';
 import { ancetreDuDe, champDEnTete, datasetArray, datasetObject, deDeLaTable, entreesDuDataset, resetData, setDataset, type DatasetKey } from './overrides';
 import { CATEGORY_DATASET_DERIVE } from './schemas/exposition-derivee';

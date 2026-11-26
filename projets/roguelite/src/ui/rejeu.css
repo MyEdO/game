@@ -81,7 +81,7 @@
 @keyframes apparait { from { opacity: 0; transform: scale(.9); } }
 #combat-fin { width: min(360px, 100%); }
 .suite-issue { margin: 0; font-size: 18px; color: var(--ivoire); text-shadow: 0 2px 4px #000; text-align: center; }
-@media (prefers-reduced-motion: reduce) { .fig, .fig .silhouette, .fig .pv-fig i { transition: none; } .fig .silhouette, .flottant, .trait, .pastille-batir, .fig.actif::before { animation: none !important; } .flottant { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .fig, .fig .silhouette, .fig .pv-fig i { transition: none; } .fig .silhouette, .flottant, .trait, .pastille-batir, .enseigne.quete, .fig.actif::before { animation: none !important; } .flottant { opacity: 1; } }
 @media (max-width: 900px) {
   .combat-pied { grid-template-columns: 1fr; }
   .ordre { order: 3; flex-basis: 100%; justify-content: flex-start; }

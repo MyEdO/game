@@ -16,7 +16,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { TAVERN_GAMES } from './index';
-import { stripSpans } from './source/decoupe';
+import { stripSpans } from './schemas/source/decoupe';
 
 const CHAPITRE = 'Source/Warhammer v4 - Nuits agitees & dures journees/16 - JEUX DE TAVERNE.md';
 

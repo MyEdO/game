@@ -3,7 +3,7 @@
  * Entrées : src/data/species.json (écrite), src/data/talents-aleatoires.json (lue).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const fichier = new URL('../../src/data/species.json', import.meta.url);
 const catalogue = new URL('../../src/data/talents-aleatoires.json', import.meta.url);

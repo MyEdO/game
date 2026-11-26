@@ -10,7 +10,7 @@
  * par jour + Effects), cible d'embuscade du « Attaqués ! », heures de voyage/jour et plafond de
  * marche forcée au niveau carte.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { Scene } from './monde/scene';
 import type { CampaignVessel } from './etat';
 import { milieuDeLaCoque } from '../engine/coque';
@@ -67,7 +67,7 @@ export interface MapPlace extends ChampsDAmarrage {
   scene: { id: string };
   /** Point d'arrivée nommé dans la scène (sinon heroStart). */
   entry?: string;
-  /** Icône du médaillon (id du registre src/data/icons), défaut `navigation/point-d-entree`. */
+  /** Icône du médaillon (id du registre src/data/schemas/icons), défaut `navigation/point-d-entree`. */
   icon?: IconId;
   /** Profil COMMERCIAL de port (Index des ports, MDG 15 l.439-506) — présent = ce lieu est un port
    *  maritime (commerce, événements d'escale, chantier). `ref` (#217) : id de
@@ -370,7 +370,7 @@ export type ServiceDHebergement = ServiceResolu & { category: 'auberge'; rest: R
  *  l'auberge : un établissement d'hébergement, ou un service sans repos. */
 export type ResolvedPlaceService = ServiceDHebergement | (ServiceResolu & { category: Exclude<PlaceServiceCategory, 'auberge'>; rest?: never });
 
-/** Icône (id du registre `src/data/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
+/** Icône (id du registre `src/data/schemas/icons`) d'un service résolu : le catalogue (`lieux-services.json`) fournit
  *  la sienne via `placeServices`, sinon un défaut générique. PUR (id → id), source unique partagée par le
  *  hub, le plan et l'aperçu d'éditeur. */
 export function serviceIcon(s: ResolvedPlaceService): IconId {
@@ -677,7 +677,7 @@ export function documentDeProjet(
 }
 
 /** Vue TS du document PROUVÉ par `projetSchema`. Le type se dérive par `DatasetDe`/`EntreeDe`
- *  (`data/datasets.ts`) ; la vue `ProjectDoc` reste parce qu'aucun sens d'assignation ne tient entre
+ *  (`data/schemas/datasets.ts`) ; la vue `ProjectDoc` reste parce qu'aucun sens d'assignation ne tient entre
  *  elle et le dérivé (`layers` optionnel au schéma, requis dans `Scene` ; `effectZones` divergent). */
 type CarteDuDocument = Omit<WorldMap, 'places'> & {
   places: (Omit<MapPlace, 'port'> & { port?: PortDuDocument })[];

@@ -17,7 +17,7 @@
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs'
 import { join } from 'node:path'
 import { folioGoverningWhy } from '../guards/lib/folioLineAlign.mjs'
-import { serializeDataset } from '../../src/data/serialize.ts'
+import { serializeDataset } from '../../src/data/schemas/serialize.ts'
 
 const CH = "Source/Warhammer v4 - 1.0 L'ennemi dans l'Ombre Compagnon"
 const files = readdirSync(CH)

@@ -19,7 +19,7 @@ import {
   type GesteDOutil,
   type Pt,
 } from '../sceneEdit';
-import { caseDe } from '../../data/props.types';
+import { caseDe } from '../../data/schemas/props.types';
 import {
   dansLaCarte,
   empriseDuPinceau,

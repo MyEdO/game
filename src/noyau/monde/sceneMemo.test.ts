@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { memoByDeps, memoByRef, memoByRefDeps } from './sceneMemo';
+import { memoByRef, memoByRefDeps } from './sceneMemo';
+import { memoByDeps } from '../../lib/memoParIdentite';
 import { emptyScene, type Scene } from './scene';
 import { seatSlotsOf } from './seating';
 import { bumperDataset } from '../../data/versionDataset';

@@ -24,7 +24,7 @@
 // (2026-09-07) : rien n'est publié tant que la question posée au pilotage #1388 n'est pas tranchée.
 // L'éditeur d'adresse est un outil de POSTE DE DÉVELOPPEMENT ; hors dev il ne trouve ni manifeste ni
 // chapitre, et `DescRefField` le dit en toutes lettres au lieu d'accuser l'adresse.
-// Garde : `src/data/source/prose-source.test.ts` « un build de production n'émet aucun asset `source/**` ».
+// Garde : `src/data/schemas/source/prose-source.test.ts` « un build de production n'émet aucun asset `source/**` ».
 import { basename } from 'node:path'
 import { cheminDuDepot } from './adresses.mjs'
 import { chapitresDe, cheminChapitre, lireChapitre, oublierChapitre } from './lecteur-fs.mjs'
@@ -38,7 +38,7 @@ import { estDocumentDeProse } from '../guards/lib/proseInline.mjs'
 const normalise = (chemin) => cheminDuDepot(chemin).split('\\').join('/')
 
 /** Route publique d'un chapitre : `/source/<livre>/<NNN>.md` — la graphie du chapitre, de la
- *  largeur de son livre (`graphieDeChapitre`, `src/data/source/decoupe.ts`). */
+ *  largeur de son livre (`graphieDeChapitre`, `src/data/schemas/source/decoupe.ts`). */
 const ROUTE = /^\/source\/([a-z0-9-]+)\/(\d+)\.md$/
 /** Route publique du manifeste : `/source/manifest.json`. */
 const ROUTE_MANIFESTE = '/source/manifest.json'

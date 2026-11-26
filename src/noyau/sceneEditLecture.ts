@@ -128,7 +128,7 @@ import { parcoursDe } from '../engine/pnjDeCarriere';
 import { entityAppearanceSchema, OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
 import { apparencesChoisissablesDObjet, objetsAApparenceChoisie } from '../data/apparencesObjets';
 import { armesDEntite, equipementDAuteurDe } from './equipementDessine';
-import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
+import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/schemas/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { actionNeuve } from './monde/usable';

@@ -30,12 +30,12 @@ import type { wallSideSchema } from '../../data/schemas/defs-scenes/communs';
 import { findStructureById, semencesDeScene } from '../../data';
 import type { Dir8 } from '../../geometry/dir8';
 import { sceneMetresPerTile as metresParCaseDeScene } from '../../geometry/grid';
-import type { Calage } from '../../data/props.types';
+import type { Calage } from '../../data/schemas/props.types';
 import type { Pt } from './path';
 import { estAbsent, terrainHorsGrille, terrainWalkable } from './terrain';
 import { entityBlockedAt } from './sceneRules';
 import { gradeBetween, STEP_MAX_M } from './relief';
-import type { Grade } from '../../data/materials.types';
+import type { Grade } from '../../data/schemas/materials.types';
 import { aretesA } from './wallIndex';
 
 export type EntityKind = z.infer<typeof entityKindSchema>;

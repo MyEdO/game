@@ -7,8 +7,8 @@
  * règle ne les chiffre. Repère des builders : X = est, Y = haut, Z = sud, en cases.
  */
 import { ambiance, DEFAULT_LIGHT_TONE_ID, findLightToneById, type LightToneDef, type VisuelDeLumiere } from '../data';
-import type { EntreeVivante } from '../data/datasets';
-import { sonDEffet, type SonDEffet } from '../data/sons/registre';
+import type { EntreeVivante } from '../data/schemas/datasets';
+import { sonDEffet, type SonDEffet } from '../data/schemas/sons/registre';
 import { parseHex } from '../lib/couleurHex';
 import type { Regard } from './monde/aretes';
 import { sceneBrume, sceneWeatherFx } from './monde/meteo';

@@ -5,7 +5,7 @@
  * ANCRAGE (point monde, cap, altitude du pied), d'où qu'il vienne ; `facesDuDecor` le lit au catalogue par sa ref.
  *
  * REPÈRE ET UNITÉS : la recette est authorée dans le repère LOCAL du type, en MÈTRES sur les trois axes
- * (origine à l'ancre, `hM` au-dessus du pied, cf. la RÈGLE D'UNITÉ de `data/props.types.ts`). Le monde,
+ * (origine à l'ancre, `hM` au-dessus du pied, cf. la RÈGLE D'UNITÉ de `data/schemas/props.types.ts`). Le monde,
  * lui, est en CASES : ce builder est la PREMIÈRE des deux coutures qui traduisent, par DIVISION du plan
  * par le `metresPerTile` de la scène (`mpt`) — la seconde est la résolution d'assise
  * (`noyau/monde/seating.ts`). La hauteur, elle, est métrique des deux côtés : rien à diviser.
@@ -13,7 +13,7 @@
  * `baseHeightM` s'ajoute UNE fois à chaque hauteur.
  *
  * GÉOMÉTRIE : les polygones locaux d'une primitive viennent de `polygonesDePrimitive`
- * (`data/props.types.ts`), leur SEULE définition — celle même que `validatePropCatalog` vérifie en
+ * (`data/schemas/props.types.ts`), leur SEULE définition — celle même que `validatePropCatalog` vérifie en
  * coquille close. Ce module n'y ajoute qu'une transformation rigide : rotation au cap, translation à
  * l'ancre, montée au pied.
  *
@@ -23,7 +23,7 @@
  * pour la carte d'ombre au lieu de le re-dériver du centre de la carte.
  */
 import { findPropById } from '../../../data';
-import { capVolumique, polygonesDePrimitive, rotatePropLocal, type PropData } from '../../../data/props.types';
+import { capVolumique, polygonesDePrimitive, rotatePropLocal, type PropData } from '../../../data/schemas/props.types';
 import type { Dir4, Dir8 } from '../../../geometry/dir8';
 import type { Face, GP } from './types';
 

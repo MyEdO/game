@@ -52,6 +52,20 @@ export function bumperDataset(cle: CleDeDataset): void {
   if (!notificationsRetenues) notifierLesAbonnes();
 }
 
+/** Écritures des RÈGLES MAISON (`engine/policy.ts`) : comptées sur `reglesOptionnelles`, sans écrire aucun document. */
+let ecrituresDeRegles = 0;
+
+/** Marque les règles maison comme changées : un bump de `reglesOptionnelles` hors de la bibliothèque. */
+export function bumperLesRegles(): void {
+  ecrituresDeRegles += 1;
+  bumperDataset('reglesOptionnelles');
+}
+
+/** Version des DOCUMENTS de la bibliothèque : les écritures au seam, hors celles des règles maison. */
+export function versionDeLaBibliotheque(): number {
+  return ecritures - ecrituresDeRegles;
+}
+
 const ABONNES = new Set<() => void>();
 let notificationsRetenues = false;
 

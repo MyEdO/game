@@ -4,7 +4,7 @@
  * Entrées : `src/data/domains.json`, `spells.json`, `talents.json`, `traits.json`, `trappings.json`.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
 
 const jeux = ['domains', 'spells', 'talents', 'traits', 'trappings'];

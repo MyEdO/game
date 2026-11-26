@@ -60,10 +60,10 @@ import { proseNommee } from '../grammaire/prose';
 import { estUnNavireAPonts, findCreatureById, findSiegeEngineById, findTrappingById } from '../../index';
 import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
-import { capDecorAdmis } from '../../props.types';
+import { capDecorAdmis } from '../props.types';
 import { refusDePoseDesPonts } from '../../poseDesPonts';
 import { estCardinal } from '../../../geometry/dir8';
-import { PARTS_RELIEF } from '../../materials.types';
+import { PARTS_RELIEF } from '../materials.types';
 import { posteSideSchema } from '../defs/vehicles';
 import { estUneCle } from '../../../i18n';
 
@@ -600,7 +600,7 @@ export const dialogueChoiceSchema = nommerChamps(z.strictObject({
   /** LIBELLÉ du choix — rôle libellé de l'enveloppe (`label`), pas de la prose : c'est l'étiquette
    *  du bouton que le joueur clique, et l'archive de dialogue la stocke comme telle. */
   label: z.string(),
-  /** Icône d'affordance (registre `src/data/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
+  /** Icône d'affordance (registre `src/data/schemas/icons/`, rendue par `<Icon>` dans `DialogueBox`) — jamais
    *  un emoji collé au `label` (#290, doctrine anti-emoji). */
   icon: idDIconeSchema.optional(),
   /** Condition d'AFFICHAGE du choix (algèbre `Condition`, cf. `evalCondition`). Absente = toujours visible. */

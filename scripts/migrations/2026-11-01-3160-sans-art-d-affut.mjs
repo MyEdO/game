@@ -4,7 +4,7 @@
  */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const chemin = fileURLToPath(new URL('../../src/data/trappings.json', import.meta.url));
 const avant = fs.readFileSync(chemin, 'utf8');

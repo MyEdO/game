@@ -6,11 +6,11 @@
 import { deDeLaTableTiree, findTableEntry, type DeDeTable } from './tables';
 import incidentsMonteJson from '../data/incidents-monture.json';
 import problemesVehiculeJson from '../data/problemes-vehicule.json';
-import { deDeTirageDe, rangeesDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe } from '../data/schemas/rangees';
 import type * as incidentsDeMonte from '../data/schemas/defs/incidents-monture';
 import type * as problemesDeVehicule from '../data/schemas/defs/problemes-vehicule';
 import rencontresJson from '../data/rencontres-edoc.json';
-import { datasetDe } from '../data/datasets';
+import { datasetDe } from '../data/schemas/datasets';
 import type * as rencontresDef from '../data/schemas/defs/rencontres-edoc';
 import type * as mecanique from '../data/schemas/grammaire/mecanique';
 import type { z } from 'zod';

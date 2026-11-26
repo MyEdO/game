@@ -6,7 +6,7 @@
  */
 import { ambiance, type WeatherBrumeDef, type WeatherFxDef, type WeatherPrecipDef } from '../../data';
 import type { Regard } from './aretes';
-import { sonDEffet, type SonDEffet } from '../../data/sons/registre';
+import { sonDEffet, type SonDEffet } from '../../data/schemas/sons/registre';
 import { heightAt, isIndoor, sceneMetresPerTile, type Scene } from './scene';
 import { shelterField, shelterSectionAt } from './volume/toits';
 

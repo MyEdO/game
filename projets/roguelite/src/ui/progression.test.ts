@@ -1,6 +1,5 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import * as J from '../jeu';
-import { testValue } from '../../../../src/engine/skills';
 import {
   articleDuCatalogue,
   chancesDeReussite,
@@ -11,10 +10,9 @@ import {
   progression,
   poserLesReglesDuRoguelite,
 } from '../noyau';
-import { byId } from '../../../../src/noyau';
+import { byId, casesDuNiveau, testValue } from '../../../../src/noyau';
 import { ecranDuHeros, progressionDuHeros } from './fiche';
 import { panneauDeService } from './services';
-import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import { heros4e, recrue5e } from '../jeu/recrue5e.testkit';
 
 beforeAll(() => poserLesReglesDuRoguelite());

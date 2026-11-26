@@ -8,7 +8,7 @@
  * L'id passe au slug canonique et le libellé d'affichage prend le champ qui lui revient.
  * `speciesRace.json` (`default`) désigne CES ids : sa valeur est convertie dans le même geste.
  *
- * SLUG : mécanique RECOPIÉE de `slugId` (`src/data/slug.ts:7-15`) — NFD + retrait des diacritiques,
+ * SLUG : mécanique RECOPIÉE de `slugId` (`src/data/schemas/slug.ts:7-15`) — NFD + retrait des diacritiques,
  * minuscules, œ/æ, `[^a-z0-9]+` → `-`, tirets de bord retirés. Recopiée et non importée : une
  * migration ne dépend d'aucun module du jeu (le TS n'est pas exécutable ici).
  *
@@ -31,7 +31,7 @@ import { fileURLToPath } from 'node:url';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
-/** `slugId` de `src/data/slug.ts:7-15`, recopié à l'identique (mécanique, pas paraphrase). */
+/** `slugId` de `src/data/schemas/slug.ts:7-15`, recopié à l'identique (mécanique, pas paraphrase). */
 const slugId = (label) =>
   label
     .normalize('NFD').replace(/[̀-ͯ]/g, '')

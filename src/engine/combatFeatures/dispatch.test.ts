@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { offHandPenalty, attackModesFor, hasInstinctiveDiction, hasFocusHarmony } from './dispatch';
-import { slugId } from '../../data/slug';
+import { slugId } from '../../data/schemas/slug';
 import type { Combatant } from '../types';
 import { modDeRegle } from '../reglesChiffrees';
 import { penaliteDeMainSecondaire } from '../combat';

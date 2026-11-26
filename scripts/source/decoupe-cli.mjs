@@ -3,7 +3,7 @@
 // section de fin d'un intervalle : `b` de `--blocks a-b` est alors un bloc de cette section.
 // usage: node scripts/source/decoupe-cli.mjs <book> <ch> [--sec <slug> [--occ N]
 //        [--blocks a-b [--fin <slug> [--fin-occ N]] | --row <clé> --col <en-tête>]]
-import { estErreur, fragmentBlocs, fragmentCellule, resoudreFragment } from '../../src/data/source/decoupe.ts'
+import { estErreur, fragmentBlocs, fragmentCellule, resoudreFragment } from '../../src/data/schemas/source/decoupe.ts'
 import { fichierChapitre, lireChapitre } from './lecteur-fs.mjs'
 
 const [book, ch, ...rest] = process.argv.slice(2)

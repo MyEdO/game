@@ -65,7 +65,7 @@ LDB compris ; la garde imprime le compte de dossiers hors format à chaque exéc
 | HTML | aucun, hors ancres et `<br>` | `html-residuel` |
 | `00 - Index.md` | liens relatifs tous vivants | `index-mort` |
 | Tables | chaque bloc a sa ligne de séparateur `\|---\|` | `table-sans-separateur` |
-| Numéro de chapitre | un **entier** ≥ 1, zéro-paddé à la largeur du **plus grand numéro du livre**, deux au minimum (`livre-de-base` : `21` ; un livre de 120 chapitres : `007`, `105`) — `largeurDeChapitre` / `graphieDeChapitre` (`src/data/source/decoupe.ts`) rendent cette graphie, et elle est la même pour tous les fichiers d'un dossier | `largeur-de-numero` |
+| Numéro de chapitre | un **entier** ≥ 1, zéro-paddé à la largeur du **plus grand numéro du livre**, deux au minimum (`livre-de-base` : `21` ; un livre de 120 chapitres : `007`, `105`) — `largeurDeChapitre` / `graphieDeChapitre` (`src/data/schemas/source/decoupe.ts`) rendent cette graphie, et elle est la même pour tous les fichiers d'un dossier | `largeur-de-numero` |
 | GRAIN | un fichier porte **UNE section** du livre et **OUVRE** sur le titre que la LISTE DE DÉCOUPE lui donne (`ouverture`) | livre AVEC liste : rouge nommé, sans stock — livre SANS liste : `sans-decoupe` |
 | Mobilier de page | aucun chiffre d'**onglet** de chapitre ni **folio** mêlé au texte | livre dont la liste porte des `onglets` : `mobilier`, rouge nommé, sans stock |
 | Titres d'entrée | aucun gras de tête soudé à une ligne, aucune ligne de titre à deux groupes gras | livre dont la liste porte un `gabaritTitre` : `titre-soude`, rouge nommé, sans stock |
@@ -251,7 +251,7 @@ des autres familles, S et F seuls, plus le S′ de capitales par COMPTAGE (impri
 fichier plus de fois que son `.md` ne le porte, une fois au moins ; restauré dans la forme de ses
 frères du `.md`). La LÉGENDE d'un tableau (légende UNIQUE de son bloc — plusieurs titres sur un bloc
 en sont les en-têtes de colonne) s'écrit en paragraphe `**X**` seul au-dessus de la table, jamais en
-titre de section : `tablesOf` (`src/data/source/decoupe.ts`) la lit `TableParse.titre`, comme la
+titre de section : `tablesOf` (`src/data/schemas/source/decoupe.ts`) la lit `TableParse.titre`, comme la
 bannière. En ligne de titre `#` ou en bannière de la table, forme **L** (`ligneLegende` ; bannière :
 en-tête suivant, ou VIDE quand la rangée suivante porte une phrase — trois mots au moins, ponctuation
 finale) ; absente du `.md` (même comptage,
@@ -665,7 +665,7 @@ Pour un SYSTÈME de règles (ses termes), trois outils enchaînés, sans agent j
   `### NNN l.X — titre [origines]`, tailles sur la sortie d'erreur. La forme **`--tri`** ne rend que
   `## Règle`, sans aucune adresse : une section à origine `mention` SEULE y est réduite à ses passages
   qui nomment un de ses termes (la phrase, bornée par `debutDePhrase`/`finDePhrase` de
-  `src/data/source/renvoi.ts` ; dans une table, ses lignes d'en-tête et celles qui nomment, jamais la
+  `src/data/schemas/source/renvoi.ts` ; dans une table, ses lignes d'en-tête et celles qui nomment, jamais la
   séparatrice), séparés par une ligne `[…]` là où du texte est élidé, par leur blanc d'origine sinon ;
   toute autre section est rendue entière.
   `--tri --consigne <système>` rend le prompt complet de l'agent de tri : la consigne
@@ -876,7 +876,7 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
 - `node scripts/raw/reanchor.mjs` (+ `--apply`, one-shot `--remap` avant commit de la Source) —
   citations verbatim de l'Atlas alignées sur la Source courante.
 - `npm test -- src/data/no-html-in-prose.test.ts` — aucune description collée en HTML. Son prédicat
-  `HTML_TAG` vit dans `src/data/source/normalize.ts` et sert AUSSI au volet E de
+  `HTML_TAG` vit dans `src/data/schemas/source/normalize.ts` et sert AUSSI au volet E de
   `src/data/prose-resolution.test.ts` : la prose **adressée** ne rend pas plus de HTML que la prose
   copiée — un `<br>` resté dans une cellule du `Source/` ne peut donc pas atteindre le joueur.
 - `node scripts/raw/check-source-tables.mjs` — tables cassées du `Source/` (cinq familles, stock
@@ -895,7 +895,7 @@ sert d'arbitre — jamais comme source de la donnée affichée, qui reste recoll
   invisibles à la garde ; ils se tranchent à la page, pas au stock.
   `npx tsx scripts/guards/lib/regenStock.mts scripts/raw/check-source-puces.mjs` régénère le stock après une correction.
 - `node scripts/raw/check-renvois.mjs` (#1393) — les renvois « page N » du texte, résolus en ADRESSE
-  par `src/data/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-englobante` — aucun
+  par `src/data/schemas/source/renvoi.ts` (niveaux `table`, `section-adjacente`, `section-englobante` — aucun
   titre dans la clause, un seul titre du folio la CONTIENT, plusieurs → `ambigu` —, `section-phrase`, `page`),
   pour tout livre extrait dont la `language` a ses motifs (`MOTIFS_DE_RENVOI`, construits par comptage
   du corpus — une langue neuve se mesure avant de s'y ajouter). Stock nominatif décroissant

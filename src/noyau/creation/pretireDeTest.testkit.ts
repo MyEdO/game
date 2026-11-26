@@ -4,7 +4,7 @@
 import { onTestFinished } from 'vitest';
 import { datasetArray, setDataset } from '../../data/overrides';
 import type { PregenDef } from '../../data';
-import type { EntreeVivante } from '../../data/datasets';
+import type { EntreeVivante } from '../../data/schemas/datasets';
 
 const ADRESSE_DE_TEST = { book: 'livre-de-test', ch: '01', parts: [{ kind: 'blocs', sec: 'test', secOcc: 1, b0: 0, b1: 1, sum: '0000000000000000' }] } as PregenDef['descRef'];
 

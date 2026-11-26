@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { gods, cultIds, blessingsOf, miraclesOf, findGodById, godLabel } from './index';
-import { slugId } from './slug';
+import { slugId } from './schemas/slug';
 
 /** Invariants STRUCTURELS du dataset (pas de longueurs figées : la donnée est éditable au Codex).
  *  Deux familles d'entrées : cultes À PRIÈRES (LDB 41-42 + NADJ — six Bénédictions chacun) et fiches

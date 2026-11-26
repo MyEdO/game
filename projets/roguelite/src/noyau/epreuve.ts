@@ -3,11 +3,22 @@
  * le geste d'exploration qui offre son action (`gestesDExploration`) en cadence automatique ; ses branches sont des
  * effets de scène du noyau.
  */
-import { arena, skills, type FlowDeScene, gestesDExploration, type Jeu, EVT, type TestJete, rollLine } from '../../../../src/noyau';
-import { DIFFICULTE_PAR_DEFAUT, DIFFICULTY_LABELS, type Combatant } from '../../../../src/engine/types';
-import { evaluateTest } from '../../../../src/engine/tests';
-import { TIME_COST } from '../../../../src/engine/timeCost';
-import { peutTenter } from '../../../../src/engine/skills';
+import {
+  arena,
+  skills,
+  type FlowDeScene,
+  gestesDExploration,
+  type Jeu,
+  EVT,
+  type TestJete,
+  rollLine,
+  DIFFICULTE_PAR_DEFAUT,
+  DIFFICULTY_LABELS,
+  evaluateTest,
+  peutTenter,
+  TIME_COST,
+  type Combatant,
+} from '../../../../src/noyau';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
 /** Le Flow d'une épreuve : un nœud Test de scène, ses branches de réussite et d'échec. */

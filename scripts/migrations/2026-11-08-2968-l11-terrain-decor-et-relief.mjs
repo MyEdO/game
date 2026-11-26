@@ -26,7 +26,7 @@ import { tableTotale } from '../../src/lib/tableTotale.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
-/** Parties de relief d'une scène (`PARTS_RELIEF`, `src/data/materials.types.ts`). */
+/** Parties de relief d'une scène (`PARTS_RELIEF`, `src/data/schemas/materials.types.ts`). */
 const RELIEF = { 'reliefDefaults.cliff': 'relief', 'reliefDefaults.ramp': 'relief', 'reliefDefaults.deck': 'relief', 'reliefDefaults.pilier': 'relief' };
 
 const PROJETS = {

@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import { chargerDossiers } from '../../../scripts/raw/lib/dossiers.mjs';
 // @ts-expect-error - module ESM JS (pas de types)
 import { chapterFile, livreDuSigle } from '../../../scripts/raw/_lib.mjs';
-import { ID_D_ENTREE } from '../../../src/data/source/dossier';
+import { ID_D_ENTREE } from '../../../src/data/schemas/source/dossier';
 
 const DOSSIERS = chargerDossiers(fileURLToPath(new URL('../dossiers', import.meta.url)));
 

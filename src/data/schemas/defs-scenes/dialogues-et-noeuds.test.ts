@@ -11,7 +11,7 @@ import { describe, expect, it } from 'vitest';
 import { sceneSchema } from './scene';
 import { lireBlocsAvances } from '../blocsAvances';
 import { mesureDuParse } from '../grammaire/ref';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 /** La première scène du paquet de test, à trois dialogues (dont un de marchand) et un marchand. */

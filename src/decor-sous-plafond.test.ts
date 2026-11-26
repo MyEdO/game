@@ -2,7 +2,7 @@ import { idsDeTest } from './engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
 import { findPropById, props } from './data';
 import { setDataset } from './data/overrides';
-import type { PropPrimitive } from './data/props.types';
+import type { PropPrimitive } from './data/schemas/props.types';
 import { emptyScene, heightAt, sceneMetresPerTile, type Scene, type SceneEntity } from './noyau/monde/scene';
 import { propFootTiles } from './noyau/monde/footprint';
 import { parseProject } from './noyau/worldMap';

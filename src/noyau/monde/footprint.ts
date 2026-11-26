@@ -14,7 +14,7 @@
  * vérité unique de l'empreinte d'un prop — ce module n'est donc pas sans dépendance de données.
  */
 import { findCreatureById, findPropById, findSiegeEngineById, findVehicleById, tailleDuProfil } from '../../data';
-import { decalageDuCalage, empreinteDuProp, offsetAncre } from '../../data/props.types';
+import { decalageDuCalage, empreinteDuProp, offsetAncre } from '../../data/schemas/props.types';
 import type { Dir8 } from '../../geometry/dir8';
 import { effectiveSize, sizeFootprintSide, type SizeCategory } from '../../engine/size';
 import type { Combatant } from '../../engine/types';
@@ -75,7 +75,7 @@ export function ancreDuDecor(ent: Pick<SceneEntity, 'pos' | 'decor' | 'facing' |
  * la COUTURE UNIQUE de l'empreinte effective d'un décor pour tous ses consommateurs de cases
  * (walkability `sceneRules`, Ligne de Vue `lineOfSight`, opacité de lumière `vision`, outillage).
  *
- * L'étendue vient de `empreinteDuProp` (`data/props.types.ts`) : le CORPS TOURNÉ de sa recette
+ * L'étendue vient de `empreinteDuProp` (`data/schemas/props.types.ts`) : le CORPS TOURNÉ de sa recette
  * (#1509 — une table 2×1 au cap E couvre 1×2). Ce que cette fonction rend, c'est une ÉTENDUE ; elle ne
  * dit RIEN de la porte de blocage (`sceneRules` `entityBlockedAt`).
  */
@@ -128,7 +128,7 @@ export function entiteFootTiles(ent: SceneEntity, mpt: number): Pt[] {
  *    à travers le mur, dans la pièce voisine.
  *  - `scale` = l'échelle du DESSIN, isotrope par nature : une vignette de billboard s'agrandit sans
  *    se déformer, donc au plus grand côté (`PropEl.echelle`).
- * Le décalage est LU à `data/props.types.ts` (`offsetAncre`), où le validateur de catalogue et la
+ * Le décalage est LU à `data/schemas/props.types.ts` (`offsetAncre`), où le validateur de catalogue et la
  * résolution des places le lisent aussi : `src/data` ne peut pas remonter jusqu'ici sans cycle.
  */
 export function decorFootGeometry(foot?: { w: number; h: number }): { offX: number; offY: number; sx: number; sy: number; scale: number } {

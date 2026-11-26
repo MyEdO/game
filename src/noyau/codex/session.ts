@@ -18,12 +18,12 @@ import {
 import { ancetreDuDe, champDEnTete, datasetObject, entreesDuDataset, type EcritureDEnTete } from '../../data/overrides';
 import type { DiceSpec } from '../../engine/dice';
 import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
-import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from '../../data/_racines-vivantes.generated';
 import { champDeProvenanceEcarte, noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
 import { lecteurDesPoints, noeudsAuChemin, type PointDuChemin } from '../../data/schemas/grammaire/descente';
 import { apparencesDObjetsSchema, deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../../data/apparencesObjets';
-import type { Manifeste } from '../../data/source/chapitres';
+import type { Manifeste } from '../../data/schemas/source/chapitres';
 import { t as tr } from '../../i18n';
 import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CibleDuCompendium, type CodexGroup, type CodexItem } from './registry';
 import { facetRows, filterItems, type FacetSelection } from './search';

@@ -12,7 +12,7 @@
  * vit dans l'applier `'psychologieDeRencontre'`, appliquée RANGÉE PAR RANGÉE. La Détermination (immunité,
  * LDB 17 l.59) est offerte dans la fenêtre de la bande (`fenetreDeDetermination`), jouée par `depenserLaDetermination`.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { PlayerText } from '../i18n/playerText';
 import type { Get, Set } from './flowTypes';
 import { Combatant } from '../engine/types';

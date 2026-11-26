@@ -34,7 +34,7 @@ import { FORMAT_JSON } from '../guards/lib/stockDeSites.mjs'
 import {
   estNomDExtraction, graphieDeChapitre, largeurDeChapitre, ligne1DePlage, numeroDuFichier,
   parseChapitre, plageDeLigne1, plageEnTexte, tablesOf,
-} from '../../src/data/source/decoupe.ts'
+} from '../../src/data/schemas/source/decoupe.ts'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 /** Les `.md` de CHAPITRE d'un dossier, dans l'ordre de leur numéro — le FLUX du livre. */

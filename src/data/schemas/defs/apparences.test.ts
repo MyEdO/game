@@ -8,7 +8,7 @@ import { schema } from './apparences';
 import { schema as schemaObjets } from './trappings';
 import apparencesJson from '../../apparences.json';
 import { poserRegimeVivant } from '../grammaire/idsVivants';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 
 type Entree = { id: string; type: string; label: string; [k: string]: unknown };
 const VARIANTE: Entree = { id: 'variante-de-fixture', type: 'apparences', label: 'Variante de fixture', forme: { id: 'epee' }, especes: ['humains-reiklander'], classes: ['courtisans'], qualites: ['raffine'] };

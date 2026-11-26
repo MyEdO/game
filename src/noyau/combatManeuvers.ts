@@ -59,7 +59,7 @@ import { inBattleId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
 import type { CascadeStep } from './pendings';
 import type { GameOp } from '../engine/ops';
-import type { IconIdGenerated as IconId } from '../data/icones.generated';
+import type { IconIdGenerated as IconId } from '../data/schemas/icones.generated';
 import { sizeGap } from '../engine/size';
 
 /** Op d'attaque gratuite (Frénésie/talent) — narrowing partagé. */
@@ -171,8 +171,8 @@ export function freeAttackTargetOk(scene: Scene | null, battle: BattleState, c: 
   return ecart == null || !!cibleDEcartDeTaille(scene, battle, c, ecart, target.id);
 }
 
-/** Icône par type de manœuvre (id du registre `src/data/icons/` — la hotbar rend `<Icon id>`).
- *  Typé par l'union GÉNÉRÉE `IconId` (`src/data/icones.generated.ts`, hors de `ui`). */
+/** Icône par type de manœuvre (id du registre `src/data/schemas/icons/` — la hotbar rend `<Icon id>`).
+ *  Typé par l'union GÉNÉRÉE `IconId` (`src/data/schemas/icones.generated.ts`, hors de `ui`). */
 export const MANEUVER_ICON: Record<AttackKind, IconId> = {
   arme: 'action/attaquer', morsure: 'creature/morsure', caudale: 'creature/caudale', cornes: 'creature/cornes',
   souffle: 'creature/souffle', vomi: 'creature/vomi', tentacules: 'creature/tentacules',
@@ -196,7 +196,7 @@ export interface AttackOption {
   id: string;
   kind?: AttackKind;
   label: string;
-  /** Id d'icône du registre `src/data/icons/` (la hotbar rend `<Icon id>`). */
+  /** Id d'icône du registre `src/data/schemas/icons/` (la hotbar rend `<Icon id>`). */
   icon: IconId;
   targeting: 'melee' | 'zone' | 'aucontact' | 'grapple';
   reach?: number;

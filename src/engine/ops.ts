@@ -16,6 +16,7 @@
 import type { z } from 'zod';
 import type { RegleOptionnelleId } from './policy';
 import type { FabriqueDId } from './fabriqueDId';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
 import { RNG, roll, type DiceSpec, rollDice, totalDuDe } from './dice';
 import { bonus, effectiveChar, effectiveArmourAt, blessuresReconciliees } from './characteristics';
 import { LOCALISATIONS_DE_COUP } from './localisations';
@@ -58,7 +59,7 @@ import { choixDuTrait, traitsOctroyes, type ChoixDuTrait } from './traitOctroye'
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps, recoitLaCorruption } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
-import { deDeTirageDe } from '../data/rangees';
+import { deDeTirageDe } from '../data/schemas/rangees';
 // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import {
   peutEtreEmpoigne,
@@ -521,6 +522,8 @@ export interface PassiveMod {
 
 export interface OpsCtx {
   rng: RNG;
+  /** Le catalogue de la partie (#5069), lu par `catalogueDu`. */
+  catalogue?: Catalogue;
   /** Forge les uids des objets donnés, des armes invoquées et des enchantements (#2907). */
   idNeuf: FabriqueDId;
   /** Résout les références d'objet à la création d'un don ou d'une arme invoquée. #4257 */
@@ -822,11 +825,11 @@ export const OPS_CTX_GELES = [
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
-/** REBÂTIS à la reprise par un chemin NOMMÉ (`noyau/combatEffects.ctxRepris`) : le rng et la fabrique d'ids de la partie,
+/** REBÂTIS à la reprise par un chemin NOMMÉ (`noyau/combatEffects.ctxRepris`) : le rng, la fabrique d'ids et le catalogue de la partie,
  *  le résolveur d'objets et les hooks de Corruption (`noyau/corruptionFlow.crochetsDeCorruption`), d'Avantage
  *  et du sol, qui reçoivent leur cible en argument (`onOpposingAdvantage` sur le porteur `caster`), et les dés eux-mêmes (relus sur les étapes
  *  sœurs — jamais recopiés). */
-export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'onChoixDeTrait', 'des'] as const;
+export const OPS_CTX_REBATIS = ['rng', 'idNeuf', 'catalogue', 'resolveTrapping', 'onCorruption', 'onCorruptionExposure', 'onGainAdvantage', 'onOpposingAdvantage', 'onLacher', 'onZone', 'onChoixDeTrait', 'des'] as const;
 
 type CleClassee =
   | (typeof OPS_CTX_GELES)[number] | (typeof OPS_CTX_PAR_REFERENCE)[number]

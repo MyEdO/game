@@ -93,7 +93,7 @@ describe('narratifSchema — cadre de campagne (#717)', () => {
 /**
  * Lien vers les fiches de dossier de chapitre (#2290) : `couvre` sur un preset PNJ et sur un indice
  * (`couvreSchema`, `./communs.ts`), et le registre `ecartes` — une entrée de fiche écartée par
- * l'adaptation, au format `ID_D_ENTREE` (`src/data/source/dossier.ts`), avec un motif non vide, une
+ * l'adaptation, au format `ID_D_ENTREE` (`src/data/schemas/source/dossier.ts`), avec un motif non vide, une
  * seule fois.
  */
 describe('narratifSchema — `couvre` et `ecartes` (#2290)', () => {

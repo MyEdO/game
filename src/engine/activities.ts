@@ -40,7 +40,7 @@ import { modeleDe } from './modeleDeProgression';
 import { competenceEnCarriere, talentEnCarriere } from './talentEffects';
 import { CHAR_KEYS, CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, estCharKey } from './types';
 import { isTradable } from './disponibilite';
-import type { EntreeDe, EntreeVivante } from '../data/datasets';
+import type { EntreeDe, EntreeVivante } from '../data/schemas/datasets';
 import type * as activitiesDef from '../data/schemas/defs/activities';
 import type { TestDOption } from '../data/schemas/defs/activities';
 import { parLibelle } from '../lib/ordre.mjs';

@@ -3,7 +3,7 @@
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
 import { nomDe } from '../engine/nom';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import { porteurEnVue } from './visionDuGroupe';
@@ -7524,7 +7524,7 @@ export function applyCast(
     const peche = rule('priere-repetee-peche');
     const repetees = ciblesDejaPriees(caster, spell.id, cibleIds);
     if (peche > 0 && repetees.length) {
-      logLines.push(...applyOps(caster, repetees.map(() => ({ op: 'sinMod', amount: peche })), { idNeuf: get().forgerUnId, rng: battleRng() }).lignes);
+      logLines.push(...applyOps(caster, repetees.map(() => ({ op: 'sinMod', amount: peche })), { idNeuf: get().forgerUnId, rng: battleRng(), sourceSpellId: spell.id }).lignes);
     }
     consignerLaPriere(caster, spell.id, cibleIds);
   }

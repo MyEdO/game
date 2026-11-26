@@ -55,7 +55,7 @@ import { seatAssignmentDefects } from './monde/seating';
 import { fauteDAppui, type FauteDAppui } from './monde/poseDuDecor';
 import { memoByRefDeps } from './monde/sceneMemo';
 import { poserLesNavires } from './planDeNavire';
-import { allMusicDefs } from '../data/sons/musique';
+import { allMusicDefs } from '../data/schemas/sons/musique';
 
 /** Ce que l'auteur lit d'un appui qui ne tient pas (`fauteDAppui`). */
 const DIT_DE_L_APPUI: Readonly<Record<FauteDAppui['faute'], (support: string) => string>> = {

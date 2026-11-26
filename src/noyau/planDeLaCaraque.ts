@@ -11,7 +11,7 @@ import type { MapSpec, WallSpec } from './mapSpec';
 import type { SceneEntity } from './monde/scene';
 import type { Dir4 } from '../geometry/dir8';
 import type { ApportAuxPonts } from './planDeNavire';
-import type { Calage } from '../data/props.types';
+import type { Calage } from '../data/schemas/props.types';
 import { MOTS_DES_PONTS } from '../data/schemas/grammaire/carte-ascii';
 import { garanti } from '../lib/garanti';
 import { pontsDeLaFiche } from './pontsDeLaFiche';

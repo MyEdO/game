@@ -44,8 +44,8 @@ import { libelleDeValeur } from './meta';
 import { descendre } from './descente';
 import { marquerProduit, produitDe } from './interne/produits';
 import { saisonParId } from '../../saisons';
-import { LIBELLES_DES_ICONES } from '../../icons';
-import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../../source/decoupe';
+import { LIBELLES_DES_ICONES } from '../icons';
+import { MAX_FRAGMENTS, estGraphieDeChapitre } from '../source/decoupe';
 
 export const blocageDeLivraison = nommerChamps(z.strictObject({ ticket: z.string(), raison: z.string() }), {
   ticket: { label: 'ticket' }, raison: { label: 'raison' },
@@ -90,7 +90,7 @@ export function enumNomme<const V extends Readonly<Record<string, string>>>(
   return noeud;
 }
 
-/** Id d'icône du registre `src/data/icons/` (`npm run gen`) : un id hors registre se refuse au parse. */
+/** Id d'icône du registre `src/data/schemas/icons/` (`npm run gen`) : un id hors registre se refuse au parse. */
 export const idDIconeSchema = enumNomme(LIBELLES_DES_ICONES);
 
 /** Équipe d'un combattant ou d'une armée (`Equipe`, `engine/relations.ts`). */
@@ -371,7 +371,7 @@ export type SecondaryRef = z.infer<typeof secondarySourceRefSchema>;
  * FRAGMENT DE BLOCS d'une adresse de prose : l'INTERVALLE du fil d'un chapitre qui va du bloc `b0` de
  * la section `sec#secOcc` au bloc `b1` de la section `finSec#finSecOcc` — par défaut la section de
  * départ, et alors ABSENTE —, plus l'empreinte du texte normalisé qu'il rend. Forme et sémantique du
- * parseur `src/data/source/decoupe.ts` (`FragmentBlocs`) — les deux définitions coïncident, et
+ * parseur `src/data/schemas/source/decoupe.ts` (`FragmentBlocs`) — les deux définitions coïncident, et
  * `grammaire.test.ts` le vérifie AU TYPE.
  */
 export const fragmentBlocsSchema = nommerChamps(z.strictObject({
@@ -442,7 +442,7 @@ export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GEN
     .strictObject({
       book: idDe('book', undefined, { nue: true }),
       /** Numéro de chapitre dans la GRAPHIE de son fichier d'extraction (`07`, `21`, `105`), jugée par
-       *  le prédicat de sa maison (`estGraphieDeChapitre`, `src/data/source/decoupe.ts`) : des
+       *  le prédicat de sa maison (`estGraphieDeChapitre`, `src/data/schemas/source/decoupe.ts`) : des
        *  chiffres, deux au minimum, et un numéro de chapitre — `00` désigne l'index. La largeur JUSTE
        *  pour le livre se juge contre le disque, là où le livre est connu
        *  (`src/data/prose-resolution.test.ts`, volet F). */
@@ -487,7 +487,7 @@ export function descRefSchemaDe(fragmentsAdmis: readonly GenreDeFragment[] = GEN
 /** L'adresse de prose qui admet tous les genres de fragment (`descRefSchemaDe`). */
 export const descRefSchema = descRefSchemaDe();
 
-/** Vue TS de `descRefSchema` — la MÊME forme que `DescRef` du parseur (`src/data/source/decoupe.ts`). */
+/** Vue TS de `descRefSchema` — la MÊME forme que `DescRef` du parseur (`src/data/schemas/source/decoupe.ts`). */
 export type DescRef = z.infer<typeof descRefSchema>;
 
 /** Le nœud `noeud` est-il une adresse de prose (`descRefSchemaDe`), quels que soient les genres de fragment qu'il admet ? */
@@ -724,7 +724,7 @@ export function variantOf<T extends z.ZodRawShape, K extends Extract<keyof T, st
 }
 
 /**
- * Recette de détail de surface (`DetailRecipe`, `src/data/materials.types.ts`) — portée par le champ
+ * Recette de détail de surface (`DetailRecipe`, `src/data/schemas/materials.types.ts`) — portée par le champ
  * optionnel `detail` de 2 datasets d'apparence (`terrains.json` et `structureAppearance.json`). Reflet
  * STRICT de l'interface TS (mêmes sous-objets/champs requis).
  */

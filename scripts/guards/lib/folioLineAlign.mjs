@@ -20,8 +20,8 @@ import { listerDossier } from './lister.mjs'
 import { livreDuSigle, sigleDe } from '../../raw/_lib.mjs'
 // Le NUMÉRO DE CHAPITRE (prédicat, motif, résolution) vient de sa maison PURE, jamais de la couche
 // `scripts/raw` — `guards/lib` n'en dépend pas.
-import { fichierDuChapitre } from '../../../src/data/source/decoupe.ts'
-import { FOLIO_ATTR } from '../../../src/data/source/ancre-vide.ts'
+import { fichierDuChapitre } from '../../../src/data/schemas/source/decoupe.ts'
+import { FOLIO_ATTR } from '../../../src/data/schemas/source/ancre-vide.ts'
 import { join } from 'node:path'
 import { estObjet } from '../../../src/lib/objet.mjs'
 

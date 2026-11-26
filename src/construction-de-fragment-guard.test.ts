@@ -1,6 +1,6 @@
 /**
  * Garde de la CONSTRUCTION D'UN FRAGMENT d'adresse de prose (#1887) : un fragment se bâtit par les
- * constructeurs de `src/data/source/decoupe.ts`, le foyer (`fragmentBlocs`, `fragmentCellule`,
+ * constructeurs de `src/data/schemas/source/decoupe.ts`, le foyer (`fragmentBlocs`, `fragmentCellule`,
  * `scelle`), qui posent son empreinte `sum`. Hors du foyer, dans le code de PRODUCTION de `src/` et
  * `scripts/` (`scripts/migrations/` compris), aucun objet littéral de `kind` `'blocs'` ou `'cellule'`,
  * ni recopie par propagation qui pose `sum`, ni recopie qui pose un champ de désignation hors argument
@@ -27,7 +27,7 @@ import { corpusDesGardes } from '../scripts/guards/lib/commentPoison.mjs';
 import { estFichierVitest, estKitDeTest } from '../scripts/guards/lib/fichierVitest.mjs';
 import { fragmentBlocsSchema, fragmentCelluleSchema } from './data/schemas/grammaire/valeurs';
 
-const FOYER = 'src/data/source/decoupe.ts';
+const FOYER = 'src/data/schemas/source/decoupe.ts';
 const SCHEMAS = [fragmentBlocsSchema, fragmentCelluleSchema];
 const NOM = 'construction de fragment';
 
@@ -43,7 +43,7 @@ const FRAGMENT = [{
   domaine: (rel: string) => !estFichierVitest(rel) && !estKitDeTest(rel),
 }];
 
-const IMPORTE = "import { fragmentBlocs, scelle } from '../data/source/decoupe';\n";
+const IMPORTE = "import { fragmentBlocs, scelle } from '../data/schemas/source/decoupe';\n";
 
 /** Les constructions reconnues dans un texte, par défaut un module de `src/noyau/`. */
 const vu = (text: string, rel = 'src/noyau/fixture.tsx') =>

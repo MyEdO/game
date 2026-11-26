@@ -15,7 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const REL = 'src/data/weaponGroups.json';
 const chemin = path.join(fileURLToPath(new URL('../../', import.meta.url)), REL);

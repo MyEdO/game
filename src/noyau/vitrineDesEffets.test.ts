@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { ambiance, breathTypes, domains, etats, lightTones, maneuvers, rendus, siegeEngines } from '../data';
-import { allMusicDefs } from '../data/sons/musique';
-import { sonDEffet, sonsDEffet } from '../data/sons/registre';
+import { allMusicDefs } from '../data/schemas/sons/musique';
+import { sonDEffet, sonsDEffet } from '../data/schemas/sons/registre';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { TEINTE_DU_FLOTTANT, vitrineDesEffets, type Effet, type GenreDeFlottant } from './effetsDeLAppel';
