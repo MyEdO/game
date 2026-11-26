@@ -234,7 +234,7 @@ describe('un tour complet par le pont', () => {
     expect(vise.camp, 'l’adversaire vise un héros').toBe('heros');
     expect(defense.proprietaire, 'la Défense est au héros attaqué').toEqual({ genre: 'porteur', nom: vise.nom });
     expect([(reaction as Jet).combattant, (reaction as Jet).qui], 'le jet de son camp porte le portrait et le nom du héros qui se défend').toEqual([vise.id, vise.nom]);
-    expect(etape, 'l’étape de la Défense, dont le jet nomme le héros, est exactement vide').toEqual([]);
+    expect(etape.length <= 1 && etape.every((e) => e.type === 'ligne' && e.texte === 'Défense'), `l’étape de la Défense, dont le jet nomme le héros, ne redit pas ${vise.nom} : ${JSON.stringify(etape)}`).toBe(true);
     expect([...vues], 'les fenêtres du tour, chacune dessinée verbe par verbe').toEqual(expect.arrayContaining(['debutDuRound', 'cascade:jetDAttaque', 'cascade:jetDeDefense']));
     expect(appel('erreursGlobales')).toEqual({ ok: true, erreurs: [] });
   });

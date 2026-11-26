@@ -90,10 +90,10 @@
 {"type":"fenetreValider","args":["debutDuRound"]}
 {"type":"terminerLeTour","args":[]}
 {"type":"terminerLeTour","args":[]}
-{"type":"jetImposerLeResultat","args":["cascadeTirage",95,"cons-deviation-sorciere-brasD-0"]}
+{"type":"jetImposerLeResultat","args":["cascadeTirage",95,"cons-deviation-sorciere-brasD-1"]}
 {"type":"jetValider","args":["cascade"]}
 {"type":"jetValider","args":["cascade"]}
-{"type":"jetLancer","args":["cascade","testDeclenche-sorciere-Résistance-2"]}
+{"type":"jetLancer","args":["cascade","testDeclenche-sorciere-Résistance-3"]}
 {"type":"jetValider","args":["cascade"]}
-{"type":"jetLancer","args":["cascade","testDeclenche-sorciere-Plaie d’amputation-Résistance-3"]}
+{"type":"jetLancer","args":["cascade","testDeclenche-sorciere-Plaie d’amputation-Résistance-4"]}
 {"type":"jetValider","args":["cascade"]}

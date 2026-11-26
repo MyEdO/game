@@ -173,7 +173,7 @@ describe('#1479 — `openSequence` ne rend JAMAIS un préfixe pour une séquence
     expect(parque.participants.map((s) => s.id), 'la séquence ENTIÈRE est parquée').toEqual(['s1', 's2']);
     expect(parque.cursor, 'le curseur est posé derrière l’étape jouée').toBe(1);
     expect(parque.participants[0].committed, 's1 est jouée avant le parcage').toBe(true);
-    expect(parque.piloteImmediat, 'le contexte de lancement voyage avec la séquence').toEqual({});
+    expect(parque.piloteImmediat, 'le contexte de lancement voyage avec la séquence').toEqual({ arret: 'tenues' });
 
     set({ battle: null } as never);
     expect(resumeSuspendedCascade(get, set)).toBe(true);
@@ -644,7 +644,7 @@ describe('#4075 — borne : au slot, une séquence hors du prédicat `sequenceDu
   const MONTAGES: { cas: string; poser: () => void; reprise: unknown }[] = [
     { cas: 'séquence sans pilote', reprise: undefined, poser: () => startCascade(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiQuitte()] }) },
     { cas: 'pilote sans contexte', reprise: { sansContexte: true }, poser: () => { runCascadeImmediate(get, set, [choixQuiQuitte()]); } },
-    { cas: 'pilote à contexte, en combat', reprise: {}, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiQuitte()] }); } },
+    { cas: 'pilote à contexte, en combat', reprise: { arret: 'tenues' }, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiQuitte()] }); } },
   ];
   for (const [geste, jouer] of [['Suivant', advanceCascade], ['Tout résoudre', resolveRemainingCascade]] as const) for (const { cas, poser, reprise } of MONTAGES) {
     it(`${cas}, par « ${geste} » : la séquence finie est rendue à l’appelant, la pile est vide`, () => {
@@ -667,7 +667,7 @@ describe('#4075 — borne : une révélation émise sous une séquence au slot h
   const MONTAGES: { cas: string; poser: () => void; reprise: unknown }[] = [
     { cas: 'séquence sans pilote', reprise: undefined, poser: () => startCascade(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] }) },
     { cas: 'pilote sans contexte', reprise: { sansContexte: true }, poser: () => { runCascadeImmediate(get, set, [choixQuiRevele()]); } },
-    { cas: 'pilote à contexte, en combat', reprise: {}, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] }); } },
+    { cas: 'pilote à contexte, en combat', reprise: { arret: 'tenues' }, poser: () => { set({ battle: COMBAT }); openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] }); } },
   ];
   for (const { cas, poser, reprise } of MONTAGES) {
     it(`${cas}, par « Suivant » : la révélation rejoint la séquence, elle n’ouvre pas la sienne`, () => {
@@ -684,7 +684,7 @@ describe('#4075 — borne : une révélation émise sous une séquence au slot h
   }
   it('pilote à contexte, hors combat, par « Suivant » : la révélation ouvre la sienne, la séquence attend en pile, finie', () => {
     openSequence(get, set, { title: 'Tenue', purpose: 'travelDay', steps: [choixQuiRevele()] });
-    expect(get().pendingCascade?.piloteImmediat, 'prémisse : le choix tient le slot, sous son pilote à contexte').toEqual({});
+    expect(get().pendingCascade?.piloteImmediat, 'prémisse : le choix tient le slot, sous son pilote à contexte').toEqual({ arret: 'tenues' });
     get().jetRegler('cascade', 'choix', 'a', 'q');
     advanceCascade(get, set);
     expect(slotsSousRevelation, 'la révélation tient le slot dès son émission').toEqual(['affichage']);
