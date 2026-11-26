@@ -101,7 +101,7 @@ const NARRATIF_VIDE = emptyNarratif();
 const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
 
 /** Le cadre d'un porteur d'une scène vide, au narratif `narratif`. */
-const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif }, source: SANS_SOURCE });
+const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif }, source: SANS_SOURCE, catalogue: catalogueDuProcessus() });
 
 const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -774,7 +774,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const projet = { scenes: [place, emptyScene('ruelle', 4, 4)] };
     const offerts = (effect: Effect, champ: string) => {
       const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence' as const, etapes: [{ kind: 'effet' as const, effet: effect }] } };
-      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: place, projet: { scenes: projet.scenes, narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
+      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: place, projet: { scenes: projet.scenes, narratif: NARRATIF_VIDE }, source: SANS_SOURCE, catalogue: catalogueDuProcessus() })!.map((c) => c.valeur);
     };
     expect(offerts({ type: 'transition', scene: { id: 'place' } }, 'scene')).toEqual(['place', 'ruelle']);
     expect(offerts({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, 'entityId')).toEqual(['medecin', 'badaud']);

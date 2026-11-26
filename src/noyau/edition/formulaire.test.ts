@@ -89,6 +89,7 @@ import { optionalEntrySchema } from '../../data/schemas/defs/creatures';
 import { trappingRefSchema } from '../../data/schemas/grammaire/reference';
 import { dialogueNodeSchema, dialogueSchema, encounterDefSchema, victoryConditionSchema } from '../../data/schemas/defs-scenes/scene';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 /** Un narratif vide : aucun preset de PNJ, aucune entrée à référencer. */
 const NARRATIF_VIDE = emptyNarratif();
@@ -97,7 +98,7 @@ const NARRATIF_VIDE = emptyNarratif();
 const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
 
 /** Le cadre d'un porteur d'une scène vide, au narratif vide. */
-const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE }, source: SANS_SOURCE };
+const CADRE_VIDE: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF_VIDE }, source: SANS_SOURCE, catalogue: catalogueDuProcessus() };
 
 type Zone = NonNullable<Scene['effectZones']>[number];
 type Declencheur = Scene['triggers'][number];
@@ -976,7 +977,7 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
     routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }],
   };
   const projet = { scenes: [SALLE], narratif: NARRATIF_VIDE, worldMap: CARTE } as unknown as ProjetDEdition;
-  const cadre: CadreDuPorteur = { scene: SALLE, projet, source: { manifeste: null, chapitres: {} } };
+  const cadre: CadreDuPorteur = { ...CADRE_VIDE, scene: SALLE, projet, source: { manifeste: null, chapitres: {} } };
   const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
 
   it('une sélection d’un lieu ou d’une route désigne son porteur ; sans sélection, la carte ouverte désigne la carte', () => {
@@ -1029,7 +1030,7 @@ describe('les porteurs du narratif : une entrée de chaque registre créable, un
     etats: [{ id: 'humeur', label: 'Humeur', maison: 'fixture', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }],
     ecartes: [{ entree: 'EDO-01#x', motif: 'm' }],
   } as typeof NARRATIF_VIDE;
-  const cadre: CadreDuPorteur = { scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: NARRATIF }, source: SANS_SOURCE };
+  const cadre: CadreDuPorteur = { ...CADRE_VIDE, projet: { scenes: [], narratif: NARRATIF } };
   const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
   const [lettre, sceau] = NARRATIF.indices;
   const valeurs = (sorte: Parameters<typeof choixDuChamp>[0], donnee: unknown, chemin: Segment[]) => choixDuChamp(sorte, donnee as never, chemin, cadre)?.map((c) => c.valeur);
@@ -1107,7 +1108,7 @@ describe('l’adresse de prose d’un porteur hors scène : le profil d’un PNJ
   };
   const ARMURES: Fragment = { kind: 'blocs', sec: 'les-armures', secOcc: 1, b0: 0, b1: 0, sum: '' };
   const preset = { id: 'pnj-1', base: { id: creatureSemee() } };
-  const cadre = (source: SourceDeLEdition): CadreDuPorteur => ({ scene: emptyScene('s', 4, 4), projet: { scenes: [], narratif: { ...NARRATIF_VIDE, presetsPnj: [preset] } }, source });
+  const cadre = (source: SourceDeLEdition): CadreDuPorteur => ({ ...CADRE_VIDE, projet: { scenes: [], narratif: { ...NARRATIF_VIDE, presetsPnj: [preset] } }, source });
 
   it('l’adresse écrite au profil d’un PNJ se scelle sur le chapitre chargé, comme sous un porteur de la scène ; sans lui, elle n’est pas offerte', () => {
     const vide = { ...preset, profil: { descRef: { book: LIVRE, ch: '01', parts: [] } } } as unknown as PresetPnj;

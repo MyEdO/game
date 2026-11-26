@@ -289,6 +289,7 @@ export {
   refusDeLaValeur,
   refusDeRetrait,
   refusDuRenommage,
+  sessionSousLeCatalogue,
   idDeLaSceneEditee,
   projetEdite,
   sceneEditee,

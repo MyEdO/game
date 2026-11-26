@@ -46,6 +46,7 @@ import {
   herosDuRosterOfferts,
   ouvrirLEdition,
   projetDuDepot,
+  sessionSousLeCatalogue,
   essaiDeLaScene,
   texteAEnregistrer,
   pagesDeCreation,
@@ -848,8 +849,8 @@ function entreeDe(methode: string, json: string | null | undefined, cles: readon
 }
 
 /** Le projet de la campagne `id` que porte `texte`, le texte que le dépôt sert (`servir.mjs`, `depot/<id>`) : du JSON,
- *  que la porte prouve (`projetDuDepot`), de cet `id`. */
-function projetServi(id: string, texte: unknown): ProjectDoc {
+ *  que la porte prouve sous le catalogue `cat` (`projetDuDepot`), de cet `id`. */
+function projetServi(id: string, texte: unknown, cat: Parameters<typeof projetDuDepot>[1]): ProjectDoc {
   valider(typeof texte === 'string', 'editer : projet, le texte du projet que sert le dépôt');
   let lu: unknown;
   try {
@@ -857,7 +858,7 @@ function projetServi(id: string, texte: unknown): ProjectDoc {
   } catch {
     throw new ErreurDeGeste('validation', 'editer : projet, JSON illisible');
   }
-  const passe = projetDuDepot(lu);
+  const passe = projetDuDepot(lu, cat);
   if (!passe.ok) throw new ErreurDeGeste('validation', `editer : ${passe.refus}`);
   valider(passe.valeur.id === id, `editer : projet, le projet ${passe.valeur.id} au lieu de ${id}`);
   return passe.valeur;
@@ -2118,6 +2119,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
     editer(json) {
       const e = entreeDe('editer', json, (e) => ('ouvrir' in e ? ['ouvrir', 'projet', 'calques', 'manifeste'] : 'type' in e ? ['type', 'args'] : ['edition']));
       const avant = 'ouvrir' in e ? null : edition?.session ?? null;
+      /** Le catalogue du jeu ouvert ; sans lui, celui du processus, au défaut de la session (fossile 9). */
+      const catalogue = ouverte?.partie.etat().catalogue;
       let session: SessionDEdition;
       let depot: { id: string; texte: string } | null = null;
       if ('ouvrir' in e) {
@@ -2126,10 +2129,10 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
         const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
         const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
-        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste, entreesServies) : ouvrirLEdition(projetServi(campagne!.id, e.projet), true, gardes, manifeste, entreesServies);
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste, entreesServies, catalogue) : ouvrirLEdition(projetServi(campagne!.id, e.projet, catalogue), true, gardes, manifeste, entreesServies, catalogue);
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
-        const s = edition!.session;
+        const s = sessionSousLeCatalogue(edition!.session, catalogue);
         const nomme = 'type' in e ? gesteDuFormulaire(zonesDeLEditeur(s), e) : undefined;
         if ('type' in e) {
           valider(nomme, 'editer : un formulaire des zones editeur.*, { type: nommer | identifier | decrire | drapeau, args: [texte] } ou { type: valeur, args: [porteur, chemin, valeur?] }');

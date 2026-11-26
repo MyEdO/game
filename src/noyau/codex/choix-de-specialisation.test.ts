@@ -18,6 +18,7 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene } from '../monde/scene';
 import { addTrigger, avecLaValeurDuPorteur } from '../sceneEdit';
 import { choixDuChamp } from '../sceneEditLecture';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import { avecLaValeur } from '../edition/formulaire';
 import { champsOfferts, choixDuNoeud, bornesDuNoeud, formeAuPoint } from './editFields';
 
@@ -121,7 +122,7 @@ describe('Condition de possession d’un objet', () => {
     const declencheur = { ...scene.triggers[0], when };
     const narratif = { ...emptyNarratif(), objets: [objet], cloture: { when, titre: 'Fin du chapitre' } };
     const projet = { type: 'projet', id: 'sonde', label: 'Projet de sonde', maison: 'Sonde', versionContenu: 1, scenes: [{ ...scene, triggers: [declencheur] }], narratif };
-    const cadre = { scene, projet, source: { manifeste: null, chapitres: {} } };
+    const cadre = { scene, projet, source: { manifeste: null, chapitres: {} }, catalogue: catalogueDuProcessus() };
 
     expect(projetSchema.safeParse(projet).success).toBe(true);
     expect(mesureDuParse(projetSchema, projet).reperes.filter((r) => r.type === 'local:narratif.objets').map((r) => r.path)).toEqual([

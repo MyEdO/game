@@ -974,7 +974,7 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
   const scene = sceneEditee(s);
-  const pose = capsDeLaPose(scene, ent);
+  const pose = capsDeLaPose(scene, ent, s.catalogue);
   const caps = pose.caps.map(({ cap: c, refus }) => boutonDEdition(
     `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === pose.tenu, refus,
   ));
@@ -1190,7 +1190,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
  *  Compétences à la valeur de leur Test, ses Talents, ses possessions et ses mentions, une ligne par nature. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
-  const porte = ficheEditee(ent, projetEdite(s).narratif);
+  const porte = ficheEditee(ent, projetEdite(s).narratif, s.catalogue);
   const fiche = porte && ficheDuCombattant(porte, (id) => {
     const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
@@ -1213,7 +1213,7 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
  *  imprime ; sinon, s'il a une liste de sorts (`listesDeSorts`), ses sorts au combat, choisis et tirés (`sortsDuPnj`).
  *  Les sorts choisis s'écrivent au formulaire tiré du schéma (`formulaireDe`). */
 function sorts(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
-  const fiche = ficheEditee(ent, projetEdite(s).narratif);
+  const fiche = ficheEditee(ent, projetEdite(s).narratif, s.catalogue);
   if (!fiche) return [];
   const liste = (ids: readonly string[]) => ids.map((id) => findSpellById(id)?.label ?? id).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);
