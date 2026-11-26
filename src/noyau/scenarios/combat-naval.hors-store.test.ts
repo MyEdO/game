@@ -39,7 +39,7 @@ function spawnRoster(): Combatant[] {
 }
 
 /**
- * La Scène est compilée par `buildScene(MapSpec)` (headless-editor) — plus aucun `arena()`+`setEncounters()`
+ * La Scène est compilée par `buildScene(MapSpec)` (headless-editor) — plus aucun `arena()`+`avecRencontres()`
  * impératif. Ce bloc verrouille l'ÉQUIVALENCE en jeu : mêmes dimensions, terrain 'planches', échelle 2 m/case
  * (metresPerTile non forcé → défaut), et un roster d'ennemis dont l'ORDRE d'index est load-bearing (la cogue
  * référence `enemy-enc-naval-1..3` ; la barge amie est l'index 4, côté 'allie', avec ses 2 postes de pierrier).

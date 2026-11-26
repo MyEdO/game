@@ -1,5 +1,6 @@
+import { arena } from '../../noyau/mapSpec';
 import { describe, it, expect } from 'vitest';
-import { arena, renforcerCompetence } from './_shared';
+import { renforcerCompetence } from './_shared';
 import type { Combatant } from '../../engine/types';
 import { isWalkable } from '../../noyau/monde/scene';
 

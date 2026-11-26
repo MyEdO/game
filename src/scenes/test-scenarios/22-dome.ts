@@ -1,7 +1,8 @@
+import { arena } from '../../noyau/mapSpec';
+import { avecRencontres } from '../../noyau/monde/encounterAuthoring';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { herosDeScenario } from './_heros';
 import { makeSorceress } from './_casters';
-import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -42,13 +43,13 @@ function groupe(idNeuf: FabriqueDId) {
 }
 
 function construireScene(): Scene {
-  const scene = arena({ id: 'test-dome', label: 'Dôme — la sauvegarde d’une zone', w: 20, h: 10, heroStart: HERO_START });
+  let scene = arena({ id: 'test-dome', label: 'Dôme — la sauvegarde d’une zone', w: 20, h: 10, heroStart: HERO_START });
   scene.startMessage =
     { texte: 'Ilyanwe lance le Dôme sur elle-même (console : alvéole « Dôme », cible « Vous ») : Berta, à côté, '
     + 'gagne le Trait Protection (6+) contre ce qui vient du DEHORS. Le tireur gobelin tire de loin — la '
     + 'sauvegarde tombe et le journal la nomme. L’orc, lui, entre sous la voûte et frappe au corps à '
     + 'corps : là, le dôme ne protège de rien.' };
-  setEncounters(scene, [
+  scene = avecRencontres(scene, [
     {
       id: 'enc-dome',
       enemies: [

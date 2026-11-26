@@ -1,6 +1,7 @@
 /**
  * Le repos, les soins et les séquelles, par les primitives du moteur ; le soin d'un compagnon par l'infirmerie du noyau.
  */
+import { arena, diseaseLabel, skills, symptomLabel, type QualiteDeRepos, verbeDeJetDe, type GesteDuJeu } from '../../../../src/noyau';
 import { rollTest } from '../../../../src/engine/tests';
 import { testValue } from '../../../../src/engine/skills';
 import { designeGaranti } from '../../../../src/noyau/ligneDeJet';
@@ -11,13 +12,10 @@ import { applyOps, type GameOp } from '../../../../src/engine/ops';
 import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
 import { MINUTES_PER_DAY } from '../../../../src/engine/clock';
 import { corruptionThreshold } from '../../../../src/engine/corruption';
-import { diseaseLabel, skills, symptomLabel } from '../../../../src/data';
 import type { UpkeepDeferTest } from '../../../../src/engine/types';
 import { applyHealWounds, cappedHealAmount } from '../../../../src/engine/healing';
 import { PA_PER_CO, toBrass } from '../../../../src/engine/money';
 import { prixDeLOffre } from '../../../../src/noyau/restFlow';
-import { verbeDeJetDe, type GesteDuJeu } from '../../../../src/noyau';
-import type { QualiteDeRepos } from '../../../../src/data/schemas/grammaire/valeurs';
 import {
   tickTraumaRecovery,
   applyFractureEnd,
@@ -32,7 +30,6 @@ import { peutTenter } from '../../../../src/engine/skills';
 import { HEAL_SKILL, type HealMode } from '../../../../src/engine/healing';
 import { estOperation } from '../../../../src/noyau/acteDeSoin';
 import { chancesDeReussite, type Visee } from './epreuve';
-import { arena } from '../../../../src/scenes/test-scenarios/_shared';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
 export type { QualiteDeRepos };

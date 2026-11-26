@@ -1,10 +1,11 @@
+import { arena } from '../../noyau/mapSpec';
+import { avecRencontres } from '../../noyau/monde/encounterAuthoring';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { createHero } from '../../engine/character';
 import { itemFromTrappingById, recomputeLoadout } from '../../engine/items';
 import { especeDApparence } from '../../data';
 import { herosDeScenario } from './_heros';
 import type { Combatant } from '../../engine/types';
-import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -38,8 +39,8 @@ function lameAethyrique(idNeuf: FabriqueDId): Combatant {
 }
 
 function construireScene(): Scene {
-  const scene = arena({ id: 'test-teinte-au-combat', label: 'Teinte au combat', w: 12, h: 8, heroStart: HERO_START });
-  setEncounters(scene, [{ id: 'enc-teinte', enemies: [{ creature: { id: 'orc' }, pos: { x: 7, y: 4 }, facing: 'O' }] }]);
+  let scene = arena({ id: 'test-teinte-au-combat', label: 'Teinte au combat', w: 12, h: 8, heroStart: HERO_START });
+  scene = avecRencontres(scene, [{ id: 'enc-teinte', enemies: [{ creature: { id: 'orc' }, pos: { x: 7, y: 4 }, facing: 'O' }] }]);
   return scene;
 }
 

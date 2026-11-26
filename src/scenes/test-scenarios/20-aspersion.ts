@@ -1,7 +1,8 @@
+import { arena } from '../../noyau/mapSpec';
+import { avecRencontres } from '../../noyau/monde/encounterAuthoring';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { herosDeScenario } from './_heros';
 import { contexteDeNaissanceDObjet, itemFromTrappingById } from '../../engine/items';
-import { arena, setEncounters } from './_shared';
 import type { TestScenario } from './_shared';
 import type { Scene } from '../../noyau/monde/scene';
 
@@ -33,14 +34,14 @@ function porteurDOutre(idNeuf: FabriqueDId) {
 
 const HERO_START = { x: 2, y: 4 };
 function construireScene(): Scene {
-  const scene = arena({ id: 'test-aspersion', label: 'Aspersion — créature marine hors de l’eau', heroStart: HERO_START });
+  let scene = arena({ id: 'test-aspersion', label: 'Aspersion — créature marine hors de l’eau', heroStart: HERO_START });
   scene.startMessage =
     { texte: "Une anguille mâcheprise s'est échouée sur la berge, loin de l'eau, ALLIÉE égarée du groupe : hors " +
     // MDG 16 l.19
     "de son terrain, elle suffoque (Trait Créature marine). Le Soldat porte une outre à " +
     "eau — l'Action « Asperger d'eau » l'immunise pour le Round où elle est posée ; sans elle, l'anguille " +
     "perd 1 Blessure par Round." };
-  setEncounters(scene, [
+  scene = avecRencontres(scene, [
     {
       id: 'enc-aspersion',
       enemies: [{ creature: { id: 'anguille-macheprise' }, pos: { ...HERO_START }, side: 'allie', ai: true }],

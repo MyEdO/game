@@ -1,3 +1,4 @@
+import { avecRencontres } from '../monde/encounterAuthoring';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { heroDuDuel, ouvrirLeDuel } from '../combatDeTest.testkit';
@@ -7,7 +8,6 @@ import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { distanceDeContact } from '../monde/footprint';
 import { isWalkable, wallOnSight, type Scene } from '../monde/scene';
 import { plancherGrimpable } from '../monde/escalade.testkit';
-import { setEncounters } from '../../scenes/test-scenarios/_shared';
 import { reachable, tileKey, type Pt } from '../monde/path';
 import { occupied } from '../monde/combatGeometry';
 import { placeCombatant } from '../monde/spawn';
@@ -123,8 +123,8 @@ describe('#4105 — approche de l’IA derrière un mur plein', () => {
 /** #4156 : `plancherGrimpable`, où l'araignée géante (Trait Grimpant, `creatures.json`) part du rez ; sa cible se tient au
  *  bout du plancher, hors de la case d'arrivée de l'escalade. */
 function sceneAuPlancherGrimpable(): Scene {
-  const s = plancherGrimpable();
-  setEncounters(s, [{ id: 'enc-plancher', enemies: [{ creature: { id: 'araignee-geante' }, pos: { x: 2, y: 3 }, facing: 'N' }] }]);
+  let s = plancherGrimpable();
+  s = avecRencontres(s, [{ id: 'enc-plancher', enemies: [{ creature: { id: 'araignee-geante' }, pos: { x: 2, y: 3 }, facing: 'N' }] }]);
   return s;
 }
 

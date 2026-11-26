@@ -4,12 +4,11 @@
  * écoutée du roguelite (`ouvrirEcoutee`, `./partie.ts`). L'hôte ne résout aucune règle : il relève à chaque résultat
  * le plateau et le journal pour le rejeu.
  */
-import { arena, setEncounters } from '../../../../src/scenes/test-scenarios/_shared';
+import { arena, avecRencontres, findCreatureById } from '../../../../src/noyau';
 import { jouerLaRencontre, type LotAuSol } from '../../../../src/hote/rencontre';
 import { EVT, type ChargeDAttaque } from '../../../../src/noyau/bus';
 import { footprintN } from '../../../../src/noyau/monde/footprint';
 import { ligneDuCoup } from '../../../../src/engine/combat';
-import { findCreatureById } from '../../../../src/data';
 import type { Combatant } from '../../../../src/engine/types';
 import { ouvrirEcoutee } from './partie';
 import { nomDeSort } from './carriere';
@@ -92,9 +91,9 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
   const o = ouvrirEcoutee(
     graine,
     () => {
-      const scene = arena({ id: 'arene', label: 'Rencontre', w: largeur, h: hauteur, heroStart: { x: Math.floor(largeur / 2) + 1, y: ECART + 1 } });
+      let scene = arena({ id: 'arene', label: 'Rencontre', w: largeur, h: hauteur, heroStart: { x: Math.floor(largeur / 2) + 1, y: ECART + 1 } });
       scene.ambientLight = lumiere;
-      setEncounters(scene, [{
+      scene = avecRencontres(scene, [{
         id: 'rencontre',
         enemies: ennemis.map((id, i) => ({ creature: { id }, pos: { x: 1 + Math.round((i + 0.5) * (largeur - 2) / ennemis.length - 0.5), y: 1 }, facing: 'S' as const })),
       }]);
