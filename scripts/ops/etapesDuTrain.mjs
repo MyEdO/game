@@ -584,6 +584,12 @@ export const ETAPES = [
             patienter()
             continue
           }
+          // #5037 : la file éjecte en INVALID_MERGE_COMMIT une PR armée avant que GitHub ait jugé sa fusionnabilité.
+          if (!demande && pr.conflit === null) {
+            ctx.journaliser(`[publier] file — PR #${pr.numero} : fusionnabilité pas encore jugée par GitHub\n`)
+            patienter()
+            continue
+          }
           let issue = ctx.etatFileDePr({ numero: pr.numero, sha: journal.tete })
           noterLeCompte(issue)
           if (!issue.ok || issue.statut === 'anomalie')

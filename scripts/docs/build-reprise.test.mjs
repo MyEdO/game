@@ -38,6 +38,6 @@ test('#2499 runbook rendu : geste local, lecteur de groupe et relance conservée
 
 test('#5103 runbook rendu : l’armement suit le vert du job de branche, à l’étape `file`', () => {
   const texte = rendre().get('docs/reprise-apres-pause.md')
-  assert.match(texte, new RegExp(`L’étape \`file\` attend que la course de branche de la tête soit verte, donc son job \`${JOB_DE_BRANCHE}\` conclu \`success\`, avant d’ARMER l’auto-merge`))
+  assert.match(texte, new RegExp(`L’étape \`file\` attend que la course de branche de la tête soit verte, donc son job \`${JOB_DE_BRANCHE}\` conclu \`success\`, et que GitHub ait jugé sa fusionnabilité \\(\`mergeable_state\` connu\\), avant d’ARMER l’auto-merge`))
   assert.doesNotMatch(texte, /ARME l’auto-merge à l’étape `pr`|avant l’attente de la CI/)
 })

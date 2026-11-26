@@ -1505,14 +1505,14 @@ const ctxFile = ({ pr, prs = [pr], branche = [courseDeBrancheVerte], branches = 
   return { ctx, gestes, lignes, sommeils }
 }
 
-for (const differe of [false, true]) test(`#2626 file conflit ${differe ? 'après refus calcul différé' : 'visible avant armement'} : fusion canonique puis relance`, () => {
+for (const differe of [false, true]) test(`#2626 file conflit ${differe ? 'jugé après un calcul différé, sans demande' : 'visible avant armement'} : fusion canonique puis relance`, () => {
   const sale = REST({ mergeable_state: 'dirty' })
   const { ctx, gestes } = ctxFile({ prs: differe ? [REST({ mergeable_state: 'unknown' }), sale] : [sale], demande: { ok: false, raison: 'conflit calculé' } })
   const journal = journalPush()
   const vu = etapeFile.jouer(ctx, journal)
   assert.equal(vu.ok, true, vu.raison)
   assert.deepEqual(vu.relancer, ['push-branche', 'pr', 'file'])
-  assert.deepEqual(gestes.map((g) => g[0]), differe ? ['demander', 'tronc', 'fusionner'] : ['tronc', 'fusionner'])
+  assert.deepEqual(gestes.map((g) => g[0]), ['tronc', 'fusionner'])
   assert.equal(journal.ejections, 1)
   assert.equal(journal.tete, ctx.tete)
 })
@@ -1645,7 +1645,17 @@ for (const issue of ['verte', 'rouge']) test(`#5103 file : course de BRANCHE en 
   if (issue === 'rouge') assert.match(vu.raison, /course CI rouge de la branche sur ttttttttt.*n’entre pas dans la file/)
 })
 
-const courseDeBrancheAnnulee = (attempt) => ({ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 41, attempt, workflowName: 'CI' })
+test('#5037 file : fusionnabilité pas encore jugée par GitHub — aucune demande avant le jugement', () => {
+  const { ctx, gestes, lignes } = ctxFile({ prs: [REST({ mergeable_state: 'unknown' }), REST({ mergeable_state: undefined }), REST()], demande: { ok: true, statut: 'merged', fusion: 'f'.repeat(40) } })
+  const lire = ctx.lirePr
+  ctx.lirePr = () => { const vu = lire(); gestes.push(['pr', vu.prs[0].conflit]); return vu }
+  const vu = etapeFile.jouer(ctx, journalPush())
+  assert.equal(vu.ok, true, vu.raison)
+  assert.deepEqual(gestes.filter((g) => g[0] !== 'jobs').map((g) => g[0] === 'demander' ? ['demander'] : g), [['pr', null], ['pr', null], ['pr', false], ['demander']])
+  assert.equal(lignes.filter((l) => l.includes('fusionnabilité pas encore jugée')).length, 2)
+})
+
+const courseDeBrancheAnnulee = (attempt) =>({ headSha: 'ttttttttt', status: 'completed', conclusion: 'failure', databaseId: 41, attempt, workflowName: 'CI' })
 const MOTIF_RUNNER = 'The job was not acquired by Runner of type hosted even after multiple attempts'
 
 test('#2392 file : une course de BRANCHE ANNULÉE (aucun job rouge) sous le plafond VEILLE, la dit, puis sa relance VERTE se demande', () => {
