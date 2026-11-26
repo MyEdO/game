@@ -2,10 +2,27 @@ import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
 import { parserSousCatalogue } from './references';
 import { catalogueDeTest, type LivreDeTest } from './catalogueDeTest.testkit';
-import { idDe, idsDe, recordDIds, ref, refs, refMorte, refusDeLEntree, sousLeLecteur } from '../grammaire/ref';
+import {
+  idDe,
+  idsDe,
+  recordDIds,
+  ref,
+  refs,
+  refMorte,
+  refMorteLocale,
+  refusDeLEntree,
+  reperesDuParse,
+  sousLeLecteur,
+  type PorteeLocale,
+} from '../grammaire/ref';
+import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { CIBLE_D_APPARTENANCE } from '../grammaire/sousListes';
 import { schema as schemaDesGroupes } from '../defs/groups';
+import { schema as schemaDesNiveaux } from '../defs/careerLevels';
+import { licencesDeGuildeSchema } from '../defs/merchants';
 import { idDeFixture } from '../../idDeFixture.testkit';
+import { catalogueAvec } from '../../catalogueAvec.testkit';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const LIVRE = idDeFixture('book', 'livre-de-test');
 const GROUPE = 'groupe-du-livre-de-test';
@@ -94,5 +111,48 @@ describe('parserSousCatalogue — le parse, chaque id jugé contre le catalogue 
     const candidate: LivreDeTest['groups.json'] = [...GROUPES, { id: 'groupe-composite-du-livre-de-test', type: 'groups', label: 'Composite', inclut: [idDeFixture('groupe', GROUPE)] }];
     expect(schemaDesGroupes.safeParse(candidate).success, 'l’index des ids généré ne connaît pas l’entrée neuve').toBe(false);
     expect(parserSousCatalogue(schemaDesGroupes, candidate, catalogueDeTest({ 'groups.json': candidate })).success).toBe(true);
+  });
+});
+
+const CARRIERE = 'carriere-du-livre-de-test';
+const OBJET = 'objet-du-livre-de-test';
+/** Les éléments d'une portée locale du livre de test. */
+const ELEMENTS: PorteeLocale = { collection: 'elements', catalogue: 'éléments du livre de test' };
+
+describe('parserSousCatalogue — les lectures d’ids des defs et les décisions de portée suivent le catalogue passé', () => {
+  it('`lire.catalogue(…).ids()` d’un def voit une carrière présente SEULEMENT au catalogue', () => {
+    const cat = catalogueAvec({ 'careers.json': [{ ...catalogueDuProcessus()['careers.json'][0], id: CARRIERE }] });
+    const fautesDeLaCarriere = (r: z.ZodSafeParseResult<unknown>) => (r.success ? [] : r.error.issues.filter((i) => i.message.includes(`« ${CARRIERE} »`)));
+    expect(fautesDeLaCarriere(parserSousCatalogue(schemaDesNiveaux, [], cat))).toHaveLength(1);
+    expect(fautesDeLaCarriere(schemaDesNiveaux.safeParse([])), 'hors fenêtre, l’index ignore la carrière').toEqual([]);
+  });
+
+  it('`lire.catalogue(…).ids()` d’un marchand voit un objet présent SEULEMENT au catalogue', () => {
+    const cat = catalogueAvec({ 'trappings.json': [{ ...catalogueDuProcessus()['trappings.json'][0], id: OBJET }] });
+    expect(fautes(parserSousCatalogue(licencesDeGuildeSchema, [{ id: OBJET }], cat))).toEqual([
+      { path: [0, 'id'], message: `« ${OBJET} » ne désigne pas une licence de Guilde identifiée.` },
+    ]);
+  });
+
+  it('hors fenêtre, `idsDe` lit l’index ; sous un lecteur, le lecteur', () => {
+    expect(idsDe('groupe').has(GROUPE)).toBe(false);
+    expect(sousLeLecteur(() => new Set([GROUPE]), () => [...idsDe('groupe')])).toEqual([GROUPE]);
+  });
+
+  it('une feuille à `{ portee }` JUGE un id absent de l’index, présent au catalogue : il n’est pas pris pour local', () => {
+    const feuille = idDe('groupe', CIBLE_D_APPARTENANCE, { portee: ELEMENTS });
+    expect(fautes(parserSousCatalogue(feuille, GROUPE_RELATIF, CAT))).toEqual([{ path: [], message: refusDeLEntree('groupe', CIBLE_D_APPARTENANCE, GROUPES[1]) }]);
+  });
+
+  it('l’ouvreur d’une portée laisse au catalogue un id absent de l’index, présent au catalogue', () => {
+    const element = z.strictObject({ id: z.string() });
+    const ouvert = ouvrirPortees(z.strictObject({ elements: listeCle(element, 'id'), cible: idDe('groupe', undefined, { portee: ELEMENTS }) }), [ELEMENTS]);
+    expect(parserSousCatalogue(ouvert, { elements: [], cible: GROUPE }, CAT).success).toBe(true);
+    expect(fautes(parserSousCatalogue(ouvert, { elements: [], cible: ID_MORT }, CAT))).toEqual([{ path: ['cible'], message: refMorteLocale(ELEMENTS, ID_MORT) }]);
+  });
+
+  it('`recordDIds(…, { portee })` pose le repère d’une clé absente de l’index, présente au lecteur', () => {
+    const record = recordDIds('groupe', z.number(), undefined, { portee: ELEMENTS });
+    expect(sousLeLecteur(() => new Set([GROUPE]), () => reperesDuParse(record, { [GROUPE]: 1 }))).toEqual([{ path: [GROUPE], type: 'groupe', parCle: true }]);
   });
 });
