@@ -296,6 +296,23 @@ describe('le SCHÉMA de scène se joue sur une scène VIVANTE (#877, #1897)', ()
   });
 });
 
+describe('un personnage qui veille les malades a Guérison sur sa fiche (LDB 09 l.265)', () => {
+  const veilleur = (skills: { id: string; value: number }[]): Scene => {
+    const s = scene();
+    s.entities.push({ id: 'soeur', kind: 'personnage', label: 'Sœur Hilda', pos: { x: 2, y: 2 }, veilleLesMalades: true, statblock: { type: 'statblock', label: 'Sœur Hilda', char: { intelligence: 40 }, skills } });
+    return s;
+  };
+  const erreurs = (s: Scene) => validateScene([s]).filter((w) => w.level === 'error');
+
+  it('sans Guérison sur sa fiche : une erreur rattachée à son entité', () => {
+    expect(erreurs(veilleur([{ id: 'calme', value: 50 }])).map((w) => [w.scope, w.refId])).toEqual([['entity', 'soeur']]);
+  });
+
+  it('avec Guérison : aucune erreur', () => {
+    expect(erreurs(veilleur([{ id: 'guerison', value: 55 }]))).toEqual([]);
+  });
+});
+
 describe('une réf que le SCHÉMA d’un effet prouve se dit UNE fois — aucun hook `refs` ne la redouble', () => {
   it('`castSpell` au sort mort : une seule erreur, celle du schéma', () => {
     const s = scene();

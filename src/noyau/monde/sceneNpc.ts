@@ -155,6 +155,15 @@ export function sceneNpc(scene: Scene | null | undefined, id: string, presetDe: 
   return ent && ficheDuPersonnage(ent, presetDe, resolveTrapping);
 }
 
+/** Les fiches des personnages de la scène qui veillent les malades (`SceneEntity.veilleLesMalades`) ; un veilleur sans
+ *  fiche n'en rend aucune (sa faute est dite par `validateScene`). LDB 09 l.265 */
+export function veilleursDeLaScene(scene: Scene | null | undefined, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant[] {
+  return (scene?.entities ?? []).flatMap((e) => {
+    const veilleur = e.kind === 'personnage' && e.veilleLesMalades ? ficheDuPersonnage(e, presetDe, resolveTrapping) : undefined;
+    return veilleur ? [veilleur] : [];
+  });
+}
+
 /** La fiche du `personnage` `ent`, la MÊME que `ficheDEntite` ; `undefined` hors d'un personnage, ou d'un personnage sans
  *  fiche. */
 export function ficheDuPersonnage(ent: SceneEntity, presetDe: ResolveurDePreset, resolveTrapping?: TrappingResolver): Combatant | undefined {

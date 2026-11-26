@@ -754,6 +754,9 @@ export interface EtatDeJeu {
   lieu: string | null;
   /** L'écran du lieu tient la main (`lieuEnVue`) ; « Explorer » le ferme sur la scène du lieu. */
   lieuOuvert: boolean;
+  /** Minute de jeu (`gameTime`) depuis laquelle le groupe se tient dans la scène courante ; `null` en route ou entré
+   *  en scène en plein voyage. Lue par `runDailyUpkeep` (`veilleursDeLaScene`). LDB 09 l.265 */
+  enSceneDepuis: number | null;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
   /** Billet payé dont il reste des tronçons (EDO 01 l.142) — consommé au départ de chacun, sans débit. */
@@ -831,6 +834,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     worldMapOpen: false,
     lieu: null,
     lieuOuvert: false,
+    enSceneDepuis: null,
     travelPlan: null,
     billetEnMain: null,
     marchandagesDeBillet: {},

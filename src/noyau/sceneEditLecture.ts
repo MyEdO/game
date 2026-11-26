@@ -621,8 +621,8 @@ interface FormulaireDuPorteur<D> {
 
 /** Les champs que le formulaire d'un personnage offre : de son rôle au combat, ses options, ses Compétences, le tirage de
  *  ses Caractéristiques et son embuscade ; son profil personnalisé ; sa contrepartie d'amateur des arts, son marchand, son
- *  jeu de taverne, son apparence, son animation. */
-const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['merchant'], ['tavernGame'], ['appearance'], ['anim']];
+ *  jeu de taverne, sa veille des malades, son apparence, son animation. */
+const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['merchant'], ['tavernGame'], ['veilleLesMalades'], ['appearance'], ['anim']];
 
 /** Les profils d'auteur qu'un PNJ de carrière ne porte pas (`refusDuPnjDeCarriere`) : son profil personnalisé et son preset. */
 const PROFILS_D_AUTEUR: readonly Segment[] = ['statblock', 'presetId'];

@@ -354,7 +354,7 @@ const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.Ref
  *  (`CLES_DU_CORPS`, #1882, #2968). Le `superRefine` d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', {}, {}),
-  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } }).superRefine(fautesDeLaBranche),
+  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional(), veilleLesMalades: z.literal(true).optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } }, veilleLesMalades: { label: "veille les malades" } }).superRefine(fautesDeLaBranche),
   brancheDuDecor.superRefine(fautesDeLaBranche),
 ]);
 
