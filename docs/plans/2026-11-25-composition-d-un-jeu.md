@@ -242,12 +242,12 @@ hôte compose un catalogue, et il le remet à sa partie.
   - *Ouverture.* L'hôte compose avec les règles de son stockage. `loadRuleOverrides(entrees.reglesMaison)`
     (`src/noyau/proprietaireDuJeu.ts:96`) disparaît.
   - *Règle maison changée.* Les écrivains de la surface passent à `src/hote` : `surchargerUneRegleMaison`,
-    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:509`, `src/noyau/reglesMaison.ts`).
+    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:510`, `src/noyau/reglesMaison.ts`).
   - *Sauvegarde.* `snapshotSave` reçoit les règles du catalogue de la partie, et non plus `ruleOverrides()`
-    (`hotes/godot/pont/pont.ts:1168`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
+    (`hotes/godot/pont/pont.ts:1169`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
   - *Coop.* L'hôte envoie les règles de son catalogue (`src/noyau/coop.ts:39`). Chez l'invité, la réception ne charge
     plus rien (`coop.ts:58-59`). L'hôte de l'invité tient l'instantané avant de le remettre à la partie
-    (`hotes/godot/pont/pont.ts:810,1949`). Il en lit les règles par `unpackHouseRules` (`src/noyau/persistance/save.ts:107`),
+    (`hotes/godot/pont/pont.ts:811,1950`). Il en lit les règles par `unpackHouseRules` (`src/noyau/persistance/save.ts:107`),
     exposé à la surface. Il recompose, appelle `Partie.recomposer`, puis `recevoir` : l'instantané s'applique sous les
     règles de l'hôte.
   - *Compendium.* Voir le point 4.
@@ -296,14 +296,28 @@ hôte compose un catalogue, et il le remet à sa partie.
   - le raffinement porteur passe par `raffinementDeCatalogue` et l'appelle avec `catalogueLu(...types)()`
     (`LecturesDuRaffinement`, `ref.ts:413`) : `catalogueLu` déclare les espaces lus, au registre que lit
     `dependancesDuRaffinement`, et rend un accès paresseux au `cat` de la fenêtre (`scene.ts:350`, `scene.ts:1030`) ;
-  - l'éditeur appelle la même fonction hors parse, qui prend `cat` en paramètre, par exemple `sceneAvecLEntite`
-    (`src/noyau/sceneEdit.ts:1271`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1457,1460`) et
+  - l'éditeur appelle la même fonction hors parse, sous le catalogue de sa session, par exemple `sceneAvecLEntite`
+    (`src/noyau/sceneEdit.ts:1271`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1467,1470`) et
     l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:496`). Le parse et l'éditeur suivent un
-    seul code. L'éditeur ne passe pas encore le `cat` de sa session : l'inspecteur appelle `capsDeLaPose(scene, ent)`
-    (`src/hote/editeur.ts:977`), l'écriture d'une entité pose `ecrire: sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1620`),
-    qui prend son défaut (fossile 2), et `editer` lit un `const cat = catalogueDuProcessus()` local
-    (`src/noyau/edition/session.ts:1454`), parce que les suites composent leurs gestes par `.reduce(editer)`. Le lot C3
-    passe le `cat` de la session jusqu'à l'éditeur.
+    seul code. La session porte le catalogue que l'hôte lui sert, reçu en dernier paramètre d'`ouvrirLEdition`
+    (`src/noyau/edition/session.ts:678`), et ces lectures le prennent :
+    - `editer` le lit pour la pose des ponts, et `projetAvecLaDonnee` le passe à la table d'écriture
+      (`src/noyau/edition/session.ts:1121`), dont `deLaScene` le passe à `sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1339`) ;
+    - `cadreDeLaSession` le pose au cadre d'un porteur (`src/noyau/edition/session.ts:1106`), où `champsDuPersonnage` et
+      `choixDesSorts` le passent à `ficheEditee` (`src/noyau/sceneEditLecture.ts:657,671`) ;
+    - `avertissementsDeLaSession` le passe à `validateScene` et clé sur lui son mémo (`src/noyau/edition/session.ts:257`) ;
+      `texteAEnregistrer` et `essaiDeLaScene` le passent à `parseProject` (`src/noyau/edition/session.ts:738,747`), et
+      `projetDuDepot` le reçoit du pont (`src/noyau/edition/session.ts:726`) ;
+    - l'inspecteur de l'hôte le passe à `capsDeLaPose` et à `ficheEditee` (`src/hote/editeur.ts:977,1193,1216`).
+
+    Le pont repose la session avant chaque geste (`sessionSousLeCatalogue`, `hotes/godot/pont/pont.ts:2135`) : c'est le
+    fossile 9.
+
+    La pose des navires reste sur le catalogue du processus : `poseDe` et `flottaisonDuNavire` le lisent dans leur corps,
+    sans paramètre `cat` (`src/noyau/planDeNavire.ts:114,273`). La session les atteint par `vueDeLaScene`, `flottaison`,
+    `coucheVue` et `poserUnNavire` (`src/noyau/edition/session.ts:653,658,662,906`), et `validateScene` par
+    `poserLesNavires` (`src/noyau/validateScene.ts:315`). Le lot de `planDeNavire.ts` les prend : famille 8, maritime et
+    fluviale (#5077).
 
   Hors fenêtre, un `safeParse` nu lit, pendant les étapes C et D, le catalogue du processus : `catalogueDeLaFenetre`
   rend `fenetre?.cat ?? catalogueDuProcessus()` (`ref.ts:276`). C'est le fossile 8, le catalogue hors fenêtre. À
@@ -464,6 +478,12 @@ compilateur.
   `catalogueDuProcessus()` (`catalogueDeLaFenetre`, `src/data/schemas/grammaire/ref.ts:276`, #5070). Il meurt à
   l'étape E, où `catalogueLu` lève hors fenêtre. Son préalable est celui du § 5.1 : les sites de production qui parsent
   sans `parserSousCatalogue`, et ceux de `structures-scan.mts`, passent par la porte.
+- **Fossile 9 : la repose de la session d'édition.** La session porte le catalogue que l'hôte lui sert
+  (`SessionDEdition`). Une écriture du Compendium change le catalogue du processus pendant qu'une édition est ouverte :
+  le pont repose donc la session avant chaque geste, sous le catalogue du jeu ouvert, sinon sous celui du processus
+  (`sessionSousLeCatalogue`, `src/noyau/edition/session.ts:690`). La repose vit, comme le fossile 5, jusqu'au lot du
+  Compendium et des hôtes. Son préalable : l'hôte remet à la session son catalogue recomposé à chaque écriture du
+  Compendium. Retirée sans lui, la repose laisserait la session sur un catalogue périmé.
 
 **6. Découpage.** Un ticket par famille. Un lot tient en environ 45 minutes de codeur : au plus 6 fichiers de
 production migrés et leurs suites, ou environ 15 fichiers en tout. Grâce aux fossiles 2 et 6, un lot ne touche que ses

@@ -157,7 +157,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   porte les options de l'outil : « Pinceau » (1×1, 3×3 armé, 5×5, « Rectangle ») et « Terrains », les vingt-cinq de
   `src/data/terrains.json`, « Pavés » armé. Sur le plan, le pinceau de 3×3 sous le pointeur et les cases déjà
   peintes ; au pied, « Case 10, 16 · couche 0 · Terre battue · 0 m » (`ecran.editeur.pointee`).
-- Gestes (`src/noyau/edition/session.ts:557-558`, `src/hote/editeur.ts:643-648`) : `{ geste: 'outil', outil: {
+- Gestes (`src/noyau/edition/session.ts:582-584`, `src/hote/editeur.ts:807-811`) : `{ geste: 'outil', outil: {
   mode: 'terrain', terrain } }`, `{ geste: 'pinceau', taille }` (`PINCEAUX` 1, 3, 5), `{ geste: 'rectangle',
   actif }`.
 - À valider : les options de l'outil à la place de l'inspecteur tant que rien n'est choisi, la même manière pour
@@ -166,9 +166,9 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 
 ## editeur-supprimer
 - État `supprimer` de l'écran `editeur-de-scene` : un personnage choisi sur le plan (« Gustav », nom d'exemple). Inspecteur de l'entité
-  (`inspecteurDEntite`, `src/hote/editeur.ts:807-828`) : « Nom », « Fiche », « Orientation », « Couche »,
+  (`inspecteurDEntite`, `src/hote/editeur.ts:973-997`) : « Nom », « Fiche », « Orientation », « Couche »,
   « Inventaire », « Poser une troupe » et ses « Copies » (`{ geste: 'troupe', nombre }`), puis « Supprimer » au
-  pied (`{ geste: 'supprimer' }`, `src/noyau/edition/session.ts:598`, `:1327`).
+  pied (`{ geste: 'supprimer' }`, `src/noyau/edition/session.ts:624`, `:1387`).
 - Sur le plan, « Retirer cette couche » est fermée pour le rez, sa raison au survol (« Le rez ne se retire pas »,
   `ecran.editeur.couche.rez`).
 - À valider : « Supprimer » au pied de l'inspecteur de toute sélection (entité, arête, zone, entrée,

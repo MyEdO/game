@@ -8,33 +8,27 @@ import { z } from 'zod';
 import { buildScene } from './mapSpec';
 import { sceneAvecLEntite } from './sceneEdit';
 import { capsDeLaPose } from './sceneEditLecture';
-import { catalogueAvec } from '../data/catalogueAvec.testkit';
+import { catalogueAvec, copie } from '../data/catalogueAvec.testkit';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
 import { entreeDe } from '../data/schemas/catalogue/catalogue';
 import { affinerAvecCatalogues, sousLeCatalogue } from '../data/schemas/grammaire/ref';
 import { sceneEntitySchema, sceneSchema } from '../data/schemas/defs-scenes/scene';
-import { garanti } from '../lib/garanti';
-import type { SceneEntity } from './monde/scene';
+import { NAVIRE, navire, navireDuLivreDeTest } from './navireDuLivreDeTest.testkit';
 
-const NAVIRE = 'navire-a-ponts-du-livre-de-test';
 const PIECE = 'piece-du-livre-de-test';
 const BOULET = 'boulet-du-livre-de-test';
 const FLECHE = 'fleche-du-livre-de-test';
 
 const base = catalogueDuProcessus();
-const copie = <E extends { id: string }>(entrees: readonly E[], id: string, neuf: string): E => ({ ...garanti(entrees.find((e) => e.id === id), id, 'entrée copiée'), id: neuf });
 /** La pièce copiée du canon moyen, sans liste de munitions : elle charge sa famille (`chargeLArme`). */
 const { munitions: _munitions, ...piece } = copie(base['siege-engines.json'], 'canon-moyen', PIECE);
 
 const CAT = catalogueAvec({
-  'vehicles.json': [copie(base['vehicles.json'], 'caraque', NAVIRE)],
+  'vehicles.json': [navireDuLivreDeTest()],
   'siege-engines.json': [piece],
   'trappings.json': [copie(base['trappings.json'], 'boulet-et-poudre', BOULET), copie(base['trappings.json'], 'fleche', FLECHE)],
 });
-
-const navire = (facing: SceneEntity['facing'], corps: Partial<SceneEntity> = {}): SceneEntity =>
-  ({ id: 'n', kind: 'personnage', pos: { x: 10, y: 2 }, vehicule: { id: NAVIRE }, facing, ...corps });
 
 const fautesCustom = (r: z.ZodSafeParseResult<unknown>) => (r.error?.issues ?? []).filter((i) => i.code === 'custom').map(({ path, message }) => ({ path, message }));
 
