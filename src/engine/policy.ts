@@ -17,7 +17,7 @@
 import reglesOptionnellesJson from '../data/reglesOptionnelles.json';
 import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import type * as reglesOptionnellesDef from '../data/schemas/defs/reglesOptionnelles';
-import { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
+import { valeurConforme } from '../data/schemas/grammaire/formeDeControle';
 import { bumperLesRegles, indexParId } from '../data/versionDataset';
 import type { IdsParEspace, ValeurDeRegle } from '../data/schemas/_ids.generated';
 import { t } from '../i18n';

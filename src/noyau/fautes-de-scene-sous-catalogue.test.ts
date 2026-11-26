@@ -7,6 +7,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildScene } from './mapSpec';
 import { sceneAvecLEntite } from './sceneEdit';
+import { capsDeLaPose } from './sceneEditLecture';
 import { catalogueAvec } from '../data/catalogueAvec.testkit';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
@@ -82,6 +83,14 @@ describe('l’éditeur juge l’entité écrite sous le catalogue reçu (`sceneA
     const scene = { ...buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau' }), entities: [avant] };
     expect(sceneAvecLEntite(scene, avant, { ...avant, facing: 'NE' }, CAT)).toEqual({ ok: false, refus: { regle: `navire « ${NAVIRE} » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` } });
     expect(sceneAvecLEntite(scene, avant, { ...avant, facing: 'NE' }, catalogueDuProcessus()).ok).toBe(true);
+  });
+});
+
+describe('l’inspecteur offre les caps sous le catalogue reçu (`capsDeLaPose`)', () => {
+  it('un navire à ponts du seul catalogue n’est offert qu’aux caps cardinaux', () => {
+    const ent = navire('N');
+    const scene = { ...buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau' }), entities: [ent] };
+    expect(capsDeLaPose(scene, ent, CAT).caps.map((c) => c.cap)).toEqual(['N', 'E', 'S', 'O']);
   });
 });
 

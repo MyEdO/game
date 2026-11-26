@@ -39,6 +39,7 @@ import { declarationDeFeuilleDeSpec as declarationDeSpecLue, declarerFeuilleDeSp
 import { enfantsDe } from './descente';
 import { listeSansCle } from './liste-sans-cle';
 import type { Catalogue } from '../catalogue/catalogue';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 /** Clé générée (`IdsParEspace`) de la sous-liste DISCRIMINÉE `S` de l'espace de `T` (`<espace>?<champ>=<S>`), `never` pour
  *  une sous-liste que le type ne connaît pas (une chaîne non littérale, une `SousListeMarquee`). */
@@ -270,23 +271,9 @@ export function sousLeCatalogue<T>(ids: LecteurDIds, cat: Catalogue, juger: () =
   }
 }
 
-/** Le catalogue d'un parse hors de la fenêtre : celui que pose `src/data/catalogueDuProcessus.ts`
- *  (`poserLeCatalogueHorsFenetre`), sinon aucun. */
-let catalogueHorsFenetre: (() => Catalogue) | undefined;
-
-/** FOSSILE de la fenêtre (#5070) : le catalogue du processus juge un parse hors de `parserSousCatalogue`. Il se pose
- *  depuis `data`, dont l'import ici fermerait un cycle d'évaluation (`engine/policy` → `defs/reglesOptionnelles` →
- *  `grammaire/valeurs` → `grammaire/ref`). */
-export function poserLeCatalogueHorsFenetre(lire: () => Catalogue): void {
-  catalogueHorsFenetre = lire;
-}
-
-/** Le catalogue que juge un raffinement : celui de la fenêtre, sinon celui du processus ; sans l'un ni l'autre, LÈVE. */
-function catalogueDeLaFenetre(): Catalogue {
-  if (fenetre) return fenetre.cat;
-  if (!catalogueHorsFenetre) throw new Error('catalogueLu : un raffinement croisé se juge sous un catalogue (`parserSousCatalogue`).');
-  return catalogueHorsFenetre();
-}
+/** Le catalogue que juge un raffinement : celui de la fenêtre ; hors d'elle, FOSSILE de la fenêtre (#5070), celui du
+ *  processus (`catalogueDuProcessus`). */
+const catalogueDeLaFenetre = (): Catalogue => fenetre?.cat ?? catalogueDuProcessus();
 
 /**
  * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant qui porte cette

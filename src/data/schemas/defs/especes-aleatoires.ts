@@ -6,7 +6,7 @@ import { couvertureDuDeParDocument, plageSchema, raceKeySchema } from '../gramma
 import type { DiceSpec } from '../../../engine/dice';
 import { raffinementDeCatalogue, ref, refMorte } from '../grammaire/ref';
 import type { DatasetDe } from '../datasets';
-import { valeurConforme, type FormeDeControle } from './reglesOptionnelles';
+import { valeurConforme, type FormeDeControle } from '../grammaire/formeDeControle';
 
 export const file = 'especes-aleatoires.json';
 export const famille = 'entite';

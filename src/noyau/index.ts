@@ -169,7 +169,7 @@ export type { Cadence } from '../engine/cadence';
 export { fabriqueLocale, type FabriqueDId, type FabriqueDuRoster } from '../engine/fabriqueDId';
 export type { Equipe } from '../engine/relations';
 export { OPTIONAL_RULES, refusDesSurcharges, ruleOverrides, type OptionalRule, type RegleOptionnelleId, type RuleValue } from '../engine/policy';
-export { valeurConforme } from '../data/schemas/defs/reglesOptionnelles';
+export { valeurConforme } from '../data/schemas/grammaire/formeDeControle';
 export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre, type EtatDeLaBarre, type ActionCtx, type Offre } from './actionRegistry';
 export { emplacementsRapides } from './emplacementsRapides';
 export { ACTIONS } from '../data/index';
@@ -400,9 +400,7 @@ export { crenellatedAt, tileAt, heightAt, idDuCorps, porteAuteur, reposDeScene, 
 export { isRoomZone } from './monde/rooms';
 export { sceneZoneTiles } from './monde/zones';
 export {
-  capDeLEntite,
   capsDeLaPose,
-  capsOfferts,
   effectZoneRect,
   entiteDeLaSelection,
   ficheEditee,
