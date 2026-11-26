@@ -471,7 +471,7 @@ export interface ZonesDeLEditeur {
    * rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques, son embuscade et, s'il en
    * porte ou si sa fiche ouvre une liste de sorts sans imprimer les siens, ses sorts choisis (`combat.spells`) ; son
    * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
-   * marchand (`merchant`), son jeu de taverne (`tavernGame`), son
+   * marchand (`merchant`), son jeu de taverne (`tavernGame`), sa veille des malades (`veilleLesMalades`), son
    * apparence (`appearance`), sans tenue pour un PNJ de carrière, ses couleurs par emplacement de palette, son
    * animation (`anim`) et, d'une coque, son véhicule (`vehicule`), ses Améliorations (`upgrades`) et ses postes (`postes`),
    * au contexte de sa fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative

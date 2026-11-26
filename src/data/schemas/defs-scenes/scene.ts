@@ -360,7 +360,7 @@ const avecSesFautes = <S extends z.ZodType<Parameters<typeof refusDeLEntite>[0]>
  *  (`CLES_DU_CORPS`, #1882, #2968). Le raffinement d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', {}, {}),
-  avecSesFautes(brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } })),
+  avecSesFautes(brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional(), veilleLesMalades: z.literal(true).optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } }, veilleLesMalades: { label: "veille les malades" } })),
   avecSesFautes(brancheDuDecor),
 ]);
 
