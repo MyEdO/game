@@ -20,15 +20,20 @@ import {
   buildHero,
   carrieresOffertes,
   especesOffertes,
+  adresseDeCreation,
+  skillSlots,
+  slotCovers,
+  fabriqueLocale,
+  ficheDuCombattant,
+  raisonVerrouEtat,
+  makeRNG,
+  type RNG,
+  type Combatant,
+  type CharKey,
+  type ConditionInstance,
 } from '../../../../src/noyau';
 import { randomSpeciesTable } from '../../../../src/engine/creation';
-import { adresseDeCreation } from '../../../../src/engine/adresseDeCreation';
-import { designateSlot, skillSlots, slotCovers } from '../../../../src/engine/careerSlots';
-import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
-import { effectiveChar } from '../../../../src/engine/characteristics';
-import { raisonVerrouEtat } from '../../../../src/engine/conditions';
-import { makeRNG, type RNG } from '../../../../src/engine/dice';
-import type { Combatant, CharKey, ConditionInstance } from '../../../../src/engine/types';
+import { designateSlot } from '../../../../src/engine/careerSlots';
 
 /** La spécialisation `spec` de la Compétence `id` désignée à l'emplacement « (Au choix) » du niveau `niveau`. */
 export interface Designation { niveau: number; id: string; spec: string }
@@ -114,7 +119,7 @@ export function tirerUneEspece(rng: RNG, carriere: string, especes: readonly str
 }
 
 /** Valeur courante d'une Caractéristique, Augmentations et effets compris. */
-export const carac = (c: Combatant, k: CharKey): number => effectiveChar(c, k);
+export const carac = (c: Combatant, k: CharKey): number => ficheDuCombattant(c, () => undefined)!.caracteristiques.find((x) => x.cle === k)!.valeur;
 
 
 /** Libellé de la carrière d'un porteur (`careers.json`), à la forme de son sexe. */

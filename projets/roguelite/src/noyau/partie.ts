@@ -3,8 +3,15 @@
  * tient la main : son drive, à défaut sa validation.
  */
 import { ouvrirLeLancement, type PartieOuverte as PartieDuLancement } from '../../../../src/hote/partie';
-import { fenetreDuJeu, type Intention, poserLesReglesMaisonPersistees, VERBE_DE_CHOIX, VERBE_DE_VALIDATION, type GesteDuJeu } from '../../../../src/noyau';
-import { ruleOverrides } from '../../../../src/engine/policy';
+import {
+  fenetreDuJeu,
+  type Intention,
+  poserLesReglesMaisonPersistees,
+  ruleOverrides,
+  VERBE_DE_CHOIX,
+  VERBE_DE_VALIDATION,
+  type GesteDuJeu,
+} from '../../../../src/noyau';
 
 export type PartieOuverte = PartieDuLancement['partie'];
 export type Resultat = PartieDuLancement['lancement'];

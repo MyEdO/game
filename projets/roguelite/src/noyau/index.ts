@@ -3,13 +3,18 @@
  * build compile à part (`dist/noyau.js`). Chaque domaine vit dans son module ; aucun autre module de l'hôte n'importe
  * un module de ce dossier directement.
  */
-export type { Combatant, CharKey, ItemInstance } from '../../../../src/engine/types';
-export type { RNG } from '../../../../src/engine/dice';
-export { type Sexe, memeSpecialisation, refCouvre, parseTable, gesteDeDetermination } from '../../../../src/noyau';
-export { type DoctrineId } from '../../../../src/noyau';
-export { makeRNG } from '../../../../src/engine/dice';
-export { purgerEtats, isConditionLocked, isOutOfAction, refusDeDetermination } from '../../../../src/engine/conditions';
-export type { Applique } from '../../../../src/engine/faits';
+export type { Applique, Combatant, CharKey, DoctrineId, ItemInstance, RNG, Sexe } from '../../../../src/noyau';
+export {
+  memeSpecialisation,
+  refCouvre,
+  parseTable,
+  gesteDeDetermination,
+  makeRNG,
+  isConditionLocked,
+  isOutOfAction,
+  refusDeDetermination,
+} from '../../../../src/noyau';
+export { purgerEtats } from '../../../../src/engine/conditions';
 export { deElide } from '../../../../src/i18n';
 export * from './heros';
 export * from './combat';

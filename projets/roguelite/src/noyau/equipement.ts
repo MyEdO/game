@@ -1,13 +1,7 @@
 /**
  * L'équipement : le catalogue et ce qu'il vend, l'encombrement (LDB 61).
  */
-import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
 import { doterLePorteur } from '../../../../src/engine/bourse';
-import { itemsEncumbrance, maxEncumbrance, totalEncumbrance, wornArmourPoints } from '../../../../src/engine/items';
-import { makeRNG } from '../../../../src/engine/dice';
-import { encumbrancePenalties } from '../../../../src/engine/encumbrance';
-import { qualityWearMods, wornArmourPenalty } from '../../../../src/engine/wearPenalty';
-import { consommableDe, isConsumable } from '../../../../src/engine/consumables';
 import {
   refusDeConsommer,
   etatInitialDuJeu,
@@ -19,19 +13,39 @@ import {
   trappingsEnVente,
   trappingsInstanciables,
   weaponGroups,
+  fabriqueLocale,
+  makeRNG,
+  itemsEncumbrance,
+  maxEncumbrance,
+  totalEncumbrance,
+  wornArmourPoints,
+  ammoFamily,
+  chargeLArme,
+  isOffHandEligible,
+  isShieldTrapping,
+  reachRankOf,
+  weaponFromItem,
+  encumbrancePenalties,
+  qualityWearMods,
+  wornArmourPenalty,
+  consommableDe,
+  isConsumable,
+  attackTestOf,
+  combatBaseValue,
+  weaponGroupSkillMode,
+  forceDuPorteur,
+  effectiveWeaponDamage,
+  ZONES_D_ARMURE,
+  armourCastDRPenalty,
+  castingKindOf,
+  effectiveTalents,
+  type ArmourPoints,
+  type Availability,
+  type Combatant,
+  type ItemInstance,
+  type TestDesigne,
 } from '../../../../src/noyau';
-import { attackTestOf, combatBaseValue, weaponGroupSkillMode } from '../../../../src/engine/combat';
-import { forceDuPorteur } from '../../../../src/engine/characteristics';
-import { ammoFamily, chargeLArme, isOffHandEligible, isShieldTrapping, reachRankOf, weaponFromItem } from '../../../../src/engine/items';
-import { effectiveWeaponDamage } from '../../../../src/engine/weaponDamage';
-import { ZONES_D_ARMURE } from '../../../../src/engine/classementDeTrait';
-import { armourCastDRPenalty } from '../../../../src/engine/magic';
-import { castingKindOf } from '../../../../src/engine/combatFeatures/dispatch';
-import { effectiveTalents } from '../../../../src/engine/talentsPossedes';
-import type { ArmourPoints, Availability, Combatant, ItemInstance } from '../../../../src/engine/types';
-export { equipConflicts } from '../../../../src/engine/items';
-import type { TestDesigne } from '../../../../src/engine/skills';
-export { AVAILABILITIES as DISPONIBILITES, type Availability as Disponibilite } from '../../../../src/engine/types';
+export { equipConflicts, AVAILABILITIES as DISPONIBILITES, type Availability as Disponibilite } from '../../../../src/noyau';
 
 /** L'armure d'une pièce (`armure-regles-rapides`) que l'objet `trappingId` est, ou dans laquelle il se lit (`bandeDe`) ;
  *  `undefined` hors de l'option, et pour une armure de monture ou ce qui n'est pas une armure. LDB 63 l.97 ; #4208 */

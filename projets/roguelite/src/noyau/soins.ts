@@ -13,31 +13,28 @@ import {
   prixDeLOffre,
   estOperation,
   gesteDeSoins,
+  testValue,
+  peutTenter,
+  makeRNG,
+  maladieDeclaree,
+  fabriqueLocale,
+  MINUTES_PER_DAY,
+  corruptionThreshold,
+  cappedHealAmount,
+  HEAL_SKILL,
+  type HealMode,
+  PA_PER_CO,
+  toBrass,
+  surgeryTraumas,
+  type Combatant,
 } from '../../../../src/noyau';
 import { rollTest } from '../../../../src/engine/tests';
-import { testValue } from '../../../../src/engine/skills';
-import { makeRNG } from '../../../../src/engine/dice';
 import { restRecovery, dailyDiseaseUpkeep, applyDiseaseEnd } from '../../../../src/engine/rest';
-import { applyDiseaseGangrene, maladieDeclaree } from '../../../../src/engine/disease';
+import { applyDiseaseGangrene } from '../../../../src/engine/disease';
 import { applyOps, type GameOp } from '../../../../src/engine/ops';
-import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
-import { MINUTES_PER_DAY } from '../../../../src/engine/clock';
-import { corruptionThreshold } from '../../../../src/engine/corruption';
 import type { UpkeepDeferTest } from '../../../../src/engine/types';
-import { applyHealWounds, cappedHealAmount } from '../../../../src/engine/healing';
-import { PA_PER_CO, toBrass } from '../../../../src/engine/money';
-import {
-  tickTraumaRecovery,
-  applyFractureEnd,
-  cureCriticalWounds,
-  hasTreatableTrauma,
-  treatTrauma,
-  surgeryTraumas,
-  removeSurgicalTrauma,
-} from '../../../../src/engine/trauma';
-import type { Combatant } from '../../../../src/engine/types';
-import { peutTenter } from '../../../../src/engine/skills';
-import { HEAL_SKILL, type HealMode } from '../../../../src/engine/healing';
+import { applyHealWounds } from '../../../../src/engine/healing';
+import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds, hasTreatableTrauma, treatTrauma, removeSurgicalTrauma } from '../../../../src/engine/trauma';
 import { chancesDeReussite, type Visee } from './epreuve';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 

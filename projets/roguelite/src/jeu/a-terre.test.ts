@@ -17,7 +17,8 @@ import {
   type Heros,
   type Salle,
 } from './index';
-import { enRoute, tomber } from './salles.testkit';
+import { enRoute } from './salles.testkit';
+import { tombeDeTest } from '../../../../src/engine/combattantDeTest.testkit';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -28,7 +29,7 @@ describe('À Terre à 0 Blessure, entre deux salles (LDB 18 l.15 ; LDB 17 l.61)'
   it('à 0 Blessure, le héros est À Terre et non valide ; « Se relever » coûte 1 Détermination, rend 1 Blessure, le rend valide', () => {
     const e = enRoute(1, ROUTE);
     const h = herosDuGroupe(e)[1];
-    tomber(h.c);
+    tombeDeTest(h.c);
     poserLaDetermination(h.c, 2);
     expect(aTerre(h)).toBe(true);
     expect(valide(h)).toBe(false);
@@ -44,7 +45,7 @@ describe('À Terre à 0 Blessure, entre deux salles (LDB 18 l.15 ; LDB 17 l.61)'
   it('sans Détermination, « Se relever » est refusé par le verdict du noyau et ne change rien', () => {
     const e = enRoute(2, ROUTE);
     const h = herosDuGroupe(e)[1];
-    tomber(h.c);
+    tombeDeTest(h.c);
     poserLaDetermination(h.c, 0);
     const raison = refusDeSeRelever(h);
     expect(raison).toBeTruthy();
@@ -69,7 +70,7 @@ describe('les purges du retour et des jours passés épargnent un À Terre verro
   it('au retour, le héros du groupe à 0 Blessure reste À Terre ; celui qui a des Blessures se relève', () => {
     const { e } = partieAvecUnResteAuHameau();
     const [tombe, debout] = herosDuGroupe(e);
-    tomber(tombe.c);
+    tombeDeTest(tombe.c);
     addCondition(debout.c, COND.aTerre);
     rentrer(e, false);
     expect(porteATerre(tombe)).toBe(true);
@@ -79,7 +80,7 @@ describe('les purges du retour et des jours passés épargnent un À Terre verro
 
   it('les jours passés au hameau ne relèvent pas le héros resté à 0 Blessure', () => {
     const { e, resteAuHameau } = partieAvecUnResteAuHameau();
-    tomber(resteAuHameau.c);
+    tombeDeTest(resteAuHameau.c);
     rentrer(e, false);
     expect(e.jour).toBeGreaterThan(1);
     expect(porteATerre(resteAuHameau)).toBe(true);

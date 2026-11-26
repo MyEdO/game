@@ -1,14 +1,13 @@
-import { arena } from '../../../../src/noyau';
+import { arena, poserLesReglesMaisonPersistees, ruleOverrides } from '../../../../src/noyau';
 import { describe, expect, it } from 'vitest';
-import { loadRuleOverrides, rule } from '../../../../src/engine/policy';
 import { ouvrirEnAuto, poserLesReglesDuRoguelite, REGLES_DU_ROGUELITE } from './partie';
 
-const regle = (id: string): unknown => rule(id as 'magie-vdm-incantation');
+const regle = (id: string): unknown => ruleOverrides()[id];
 const ouvrir = () => ouvrirEnAuto(1, () => ({ party: [], scene: arena({ id: 'regles', label: 'Règles', w: 4, h: 4 }), projet: null })).partie;
 
 describe('les règles optionnelles du roguelite', () => {
   it('une partie ouverte par ouvrirEnAuto joue sous REGLES_DU_ROGUELITE posées au démarrage, dont l’incantation VDM', () => {
-    loadRuleOverrides({});
+    poserLesReglesMaisonPersistees({});
     poserLesReglesDuRoguelite();
     const partie = ouvrir();
     expect(REGLES_DU_ROGUELITE).toMatchObject({ 'magie-vdm-incantation': true });
