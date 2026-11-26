@@ -18,6 +18,11 @@
 .pastille-soins { position: absolute; top: -5px; left: -5px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, #f08a6c, #9b2a18); box-shadow: 0 0 10px rgba(224,85,58,.7), 0 0 0 1px var(--contour); animation: pouls 1.6s ease-in-out infinite; }
 .pastille-batir { position: absolute; top: -5px; right: -5px; width: 13px; height: 13px; border-radius: 50%; background: radial-gradient(circle at 35% 30%, var(--or-eclat), var(--laiton)); box-shadow: 0 0 10px var(--halo-vif), 0 0 0 1px var(--laiton-ombre); animation: pouls 1.6s ease-in-out infinite; }
 @keyframes pouls { 50% { transform: scale(1.25); } }
+.enseigne.quete { outline: 2px solid var(--or-eclat); outline-offset: 3px; animation: appel-de-quete 1.6s ease-in-out infinite; }
+@keyframes appel-de-quete { 50% { box-shadow: 0 0 18px var(--halo-vif); } }
+.note-quete > .fond { padding: 12px 14px 8px; gap: 4px; }
+.note-quete .tete-quete { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.note-quete .consigne { margin: 0; font-size: 13.5px; line-height: 1.35; }
 .recit-lieu { font-style: italic; font-size: 14.5px; line-height: 1.4; color: var(--creme); }
 .recit-lieu[data-rect] { height: auto !important; }
 .bandeau-victoire { position: absolute; top: 18px; left: 50%; transform: translateX(-50%); padding: 8px 36px; font-size: 26px; color: var(--ivoire); background: linear-gradient(180deg, var(--lie), var(--lie-sombre)); box-shadow: inset 0 0 0 1px var(--filet-or); clip-path: polygon(0 0,100% 0,calc(100% - 12px) 50%,100% 100%,0 100%,12px 50%); z-index: 3; }

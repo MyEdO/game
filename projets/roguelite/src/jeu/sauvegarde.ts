@@ -1,5 +1,5 @@
 /**
- * La sauvegarde dans le navigateur, et la migration d'une sauvegarde des versions 1 et 2.
+ * La sauvegarde dans le navigateur, et la migration d'une sauvegarde des versions 1 à 3.
  */
 
 import { stockageWeb } from '../../../../src/hote/stockageWeb';
@@ -12,8 +12,10 @@ export function sauver(e: Etat): void {
 
 /** Une tombe du Jardin de Morr, que la version 3 retire (MyEdO/game#5032). */
 interface TombeV2 { nom: string; carriere: string; expeditions: number; ou: string; jour: number }
+/** Une sauvegarde de la version 3 : sans tutoriel. */
+interface EtatV3 extends Omit<Etat, 'version' | 'tutoriel'> { version: 3 }
 /** Une sauvegarde de la version 2 : le Jardin de Morr parmi les bâtiments, et son registre des morts. */
-interface EtatV2 extends Omit<Etat, 'version' | 'batiments'> {
+interface EtatV2 extends Omit<EtatV3, 'version' | 'batiments'> {
   version: 2; batiments: Etat['batiments'] & { memorial: number }; cimetiere: TombeV2[];
 }
 /** Une sauvegarde de la version 1 : sans forge, `semaine` pour le jour. */
@@ -32,7 +34,7 @@ function versLaV2(v1: EtatV1): EtatV2 {
 
 /** Ce qu'a coûté chaque palier bâti du Jardin de Morr, rendu à la bourse par la version 3. */
 const PALIERS_DU_JARDIN: readonly { cout: number; trophees: number }[] = [{ cout: 110, trophees: 0 }, { cout: 300, trophees: 1 }];
-function versLaV3(v2: EtatV2): Etat {
+function versLaV3(v2: EtatV2): EtatV3 {
   const { version: _v, cimetiere: _c, batiments: { memorial, ...batiments }, ...reste } = v2;
   const bati = PALIERS_DU_JARDIN.slice(0, memorial);
   return {
@@ -42,12 +44,16 @@ function versLaV3(v2: EtatV2): Etat {
   };
 }
 
+/** Une partie de la version 3 est déjà en cours : elle se poursuit sans tutoriel (MyEdO/game#5129). */
+const versLaV4 = (v3: EtatV3): Etat => ({ ...v3, version: 4, tutoriel: null });
+
 export function charger(): Etat | null {
   try {
     const brut = stockageWeb('localStorage')?.getItem(CLE);
-    const e = brut ? JSON.parse(brut) as Etat | EtatV2 | EtatV1 : null;
+    const e = brut ? JSON.parse(brut) as Etat | EtatV3 | EtatV2 | EtatV1 : null;
     if (!e || !Array.isArray(e.roster)) return null;
-    return e.version === 3 ? e : e.version === 2 ? versLaV3(e) : e.version === 1 ? versLaV3(versLaV2(e)) : null;
+    const v3 = e.version === 3 ? e : e.version === 2 ? versLaV3(e) : e.version === 1 ? versLaV3(versLaV2(e)) : null;
+    return e.version === 4 ? e : v3 && versLaV4(v3);
   } catch { return null; }
 }
 export function effacer(): void {
