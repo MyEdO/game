@@ -6,7 +6,7 @@ import type { Combatant, ConditionInstance } from './types';
 import { findConditionById } from '../data';
 import { synchroniserArmesDuProfil } from './creatureEquip';
 import { recomputeLoadout } from './items';
-import { purgerEtats, sansReactionAuxEtats } from './conditions';
+import { isConditionLocked, purgerEtats, sansReactionAuxEtats } from './conditions';
 import type { Applique } from './faits';
 
 /** Cet État suit-il le porteur hors du combat ? Drapeau DÉCLARÉ sur l'entrée d'`etats.json`
@@ -19,7 +19,7 @@ export function isPersistentCondition(id: string): boolean {
 /**
  * Report d'un champ de `Combatant` entre le héros du groupe et son combattant (#2312) :
  * - `sort: true` : le combattant EST le héros pendant le combat ; sa valeur revient au groupe ;
- * - `sort: 'etats-persistants'` : seuls les États `persistsAfterCombat` reviennent, et entrent ;
+ * - `sort: 'etats-persistants'` : les États que `etatsDeRencontre` ne purge pas reviennent, et entrent ;
  * - `sort: false` : propre à la rencontre ; le héros du groupe garde la sienne. `raison` : la raison
  *   d'ingénierie, ou `REGLE` pour une règle du livre dont la réf nue est en commentaire au site.
  * `entree` : la valeur posée à l'entrée en combat (`entreeEnRencontre`) ; absente, celle du groupe entre.
@@ -113,15 +113,18 @@ export const REPORT_DE_COMBATTANT = {
 
 const CHAMPS = Object.entries(REPORT_DE_COMBATTANT) as [keyof Combatant, Report][];
 
-/** Ce qui ne sort pas de la rencontre : un État transitoire, ou qui dure la rencontre (LDB 18 l.53). */
-const etatDeRencontre = (x: ConditionInstance): boolean => !isPersistentCondition(x.id) || !!x.finDeRencontre;
+/** Ce qui ne sort pas de la rencontre : un État qui dure la rencontre (LDB 18 l.53), ou transitoire et sans verrou qui tienne (LDB 18 l.15). */
+const etatsDeRencontre = (c: Combatant): ((x: ConditionInstance) => boolean) => {
+  const tient = new Set(c.conditions.filter((x) => isConditionLocked(x, c)));
+  return (x) => !!x.finDeRencontre || (!isPersistentCondition(x.id) && !tient.has(x));
+};
 
 /** Couture de RETOUR (fin de combat, `finalizeBattle`) : tout ce qui sort du combattant vers le héros du
  *  groupe, selon `REPORT_DE_COMBATTANT`, lu sur une copie dont les États de rencontre sont purgés (`purgerEtats`),
  *  leurs sorties émises dans `a`, sans réaction de combat. Copie défensive. */
 export function carryOverState(c: Combatant, a: Applique): Partial<Combatant> {
   const copie: Combatant = { ...c, conditions: c.conditions.map((x) => ({ ...x })) };
-  sansReactionAuxEtats(() => purgerEtats(copie, etatDeRencontre, a));
+  sansReactionAuxEtats(() => purgerEtats(copie, etatsDeRencontre(copie), a));
   const out: Record<string, unknown> = {};
   for (const [cle, r] of CHAMPS) {
     if (r.sort === 'etats-persistants') out[cle] = copie.conditions;
@@ -146,6 +149,6 @@ export function entreeEnRencontre(h: Combatant, a: Applique): Combatant {
   const c = structuredClone(h);
   const champs = c as unknown as Record<string, unknown>;
   for (const [cle, r] of CHAMPS) if (r.sort !== 'etats-persistants' && r.entree !== undefined) champs[cle] = structuredClone(r.entree);
-  sansReactionAuxEtats(() => purgerEtats(c, etatDeRencontre, a));
+  sansReactionAuxEtats(() => purgerEtats(c, etatsDeRencontre(c), a));
   return c;
 }
