@@ -59,9 +59,9 @@ function lignesDeLEffet(h: J.Heros, a: J.Avancement): string[] | null {
   const bouge = (x: { avant: number; apres: number }) => x.avant !== x.apres;
   const ecart = (x: { avant: number; apres: number }) => `${x.apres > x.avant ? '+' : '−'}${Math.abs(x.apres - x.avant)}`;
   return [
-    ...effet.tests.filter(bouge).map((t) => `${t.label} ${t.avant} → ${t.apres}${bouge(t.chances) ? ` : ${ecart(t.chances)} % de chances${t.attaque ? ' de toucher' : ''}` : ''}`),
-    ...effet.bonus.filter((b) => CARACS_A_BONUS.has(b.id) && bouge(b)).map((b) => `Bonus de ${libelleDeCarac(b.id).label} ${b.avant} → ${b.apres}`),
-    ...(bouge(effet.blessures) ? [`Blessures ${effet.blessures.avant} → ${effet.blessures.apres}`] : []),
+    ...effet.tests.filter(bouge).map((t) => `${t.label} de ${t.avant} à ${t.apres}${bouge(t.chances) ? ` : ${ecart(t.chances)} % de chances${t.attaque ? ' de toucher' : ''}` : ''}`),
+    ...effet.bonus.filter((b) => CARACS_A_BONUS.has(b.id) && bouge(b)).map((b) => `Bonus de ${libelleDeCarac(b.id).label} de ${b.avant} à ${b.apres}`),
+    ...(bouge(effet.blessures) ? [`Blessures de ${effet.blessures.avant} à ${effet.blessures.apres}`] : []),
   ];
 }
 

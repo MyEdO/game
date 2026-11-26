@@ -124,7 +124,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
       if (avant && !g().pendingDefense && !preuve) preuve = { suite: suite(), parquee: parquee(), reticule: g().actorAim?.fromId, attaques: attaques('h', 'e') };
     }
     expect(fenetre, 'chemin : la riposte ouvre SA fenêtre sur le chargeur').toBe(true);
-    expect(preuve, 'preuve d’instance : à la fermeture, la frappe est la SUITE armée du tour, réticule tenu, rien frappé').toEqual({ suite: 'frappe', parquee: false, reticule: 'h', attaques: 0 });
+    expect(preuve, 'preuve d’instance : à la fermeture, la frappe est la SUITE armée du tour, réticule tenu, rien frappé').toEqual({ suite: 'frappePilotee', parquee: false, reticule: 'h', attaques: 0 });
     expect(attaques('h', 'e'), 'une frappe').toBe(1);
     expect(decisions('h'), 'une décision').toBe(1);
     expect(b().turn, 'le tour a avancé').toBe(1);
@@ -141,7 +141,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     passerEnManuel(); // la fenêtre tient la main du joueur
     expect(() => banc.reprendreTout()).not.toThrow();
     expect(g().pendingDefense, 'la fenêtre de la riposte tient toujours la main').toBe(fenetreRiposte);
-    expect([suite(), parquee(), attaques('h', 'e')], 'la frappe échue sur la main tenue est PARQUÉE, rien frappé').toEqual(['frappe', true, 0]);
+    expect([suite(), parquee(), attaques('h', 'e')], 'la frappe échue sur la main tenue est PARQUÉE, rien frappé').toEqual(['frappePilotee', true, 0]);
     jouerLaSequence();
     remettreLAutoCombat();
     tantQue(auPremierTour);
@@ -191,7 +191,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     expect([g().actorAim, g().actorMove, g().actorAoe], 'ni après l’échéance de son geste').toEqual([null, null, null]);
   });
 
-  it('H (graine 3) : bascule en manuel pendant la suite parquée, le joueur frappe à la main, puis remet l’Auto-combat — une frappe, le tour avance', () => {
+  it('H (graine 3) : bascule en manuel pendant la suite parquée — la frappe de la charge s’ouvre au joueur, qui la joue à la main, puis remet l’Auto-combat — une frappe, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
     charge(banc, 3);
@@ -199,32 +199,33 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     tantQue(() => !g().pendingDefense);
     passerEnManuel();
     banc.reprendreTout();
-    expect([suite(), parquee()], 'chemin : la frappe est parquée').toEqual(['frappe', true]);
+    expect([suite(), parquee()], 'chemin : la frappe est parquée').toEqual(['frappePilotee', true]);
     jouerLaSequence();
-    cliquerSurLeCombattant(g, 'e', { confirm: true });
+    tantQue(() => !g().pendingAttack);
+    expect(g().pendingAttack?.attackerId, 'la frappe de SA charge s’ouvre au joueur, qui tient son jet').toBe('h');
     g().jetLancer('attaque');
     g().jetValider('attaque');
     jouerLaSequence();
     expect([attaques('h', 'e'), b().acted], 'le joueur a frappé à la main : son Action est dépensée').toEqual([1, true]);
     remettreLAutoCombat();
-    expect([suite(), g().actorAim], 'la frappe parquée, Action dépensée, se réarme en « avancer », sans réticule').toEqual(['avancer', null]);
+    expect(g().actorAim, 'la frappe jouée, aucun réticule ne reste').toBeNull();
     tantQue(auPremierTour);
     expect(attaques('h', 'e'), 'une frappe au total').toBe(1);
-    expect(decisions('h'), 'une décision').toBe(1);
+    expect(decisions('h'), 'la décision du tour, puis la re-décision du tour resté sans suite').toBe(2);
     expect(b().turn, 'le tour a avancé').toBe(1);
   });
 
-  it('H′ (graine 3) : bascule en manuel pendant la suite NON parquée, retour en Auto sans geste du joueur — la frappe part une fois', () => {
+  it('H′ (graine 3) : bascule en manuel pendant la suite NON parquée — la frappe de la charge s’ouvre au joueur ; retour en Auto sans geste du joueur — la frappe part une fois', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
     charge(banc, 3);
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !g().pendingDefense);
     tantQue(() => !!g().pendingDefense);
-    expect([suite(), parquee(), attaques('h', 'e')], 'chemin : la fenêtre est close, la frappe attend son échéance').toEqual(['frappe', false, 0]);
+    expect([suite(), parquee(), attaques('h', 'e')], 'chemin : la fenêtre est close, la frappe attend son échéance').toEqual(['frappePilotee', false, 0]);
     passerEnManuel();
     banc.reprendreTout();
-    expect([suite(), parquee(), attaques('h', 'e')], 'la frappe échue sans le siège est parquée, pas jouée').toEqual(['frappe', true, 0]);
+    expect([suite(), g().pendingAttack?.attackerId, attaques('h', 'e')], 'la frappe de SA charge s’ouvre au joueur, rien frappé').toEqual([undefined, 'h', 0]);
     remettreLAutoCombat();
     tantQue(auPremierTour);
     expect(attaques('h', 'e'), 'une frappe').toBe(1);
@@ -232,7 +233,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     expect(b().turn, 'le tour a avancé').toBe(1);
   });
 
-  it('H″ (graine 3) : l’Action dépensée à la main avant l’échéance — la suite consommée finit le tour, sans frapper', () => {
+  it('H″ (graine 3) : le joueur reprend la main avant l’échéance de la frappe de SA charge — son clic ne double pas la frappe, qui part une fois', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
     charge(banc, 3);
@@ -244,10 +245,10 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     g().jetLancer('attaque');
     g().jetValider('attaque');
     jouerLaSequence();
-    expect([suite(), parquee(), attaques('h', 'e'), b().acted], 'chemin : la frappe du joueur a devancé la suite, qui attend parquée ; l’Action est dépensée à la main').toEqual(['frappe', true, 1, true]);
+    expect([suite(), attaques('h', 'e')], 'chemin : la frappe de la charge est la suite du geste, le clic n’en ouvre pas une autre').toEqual(['frappePilotee', 0]);
     remettreLAutoCombat();
     tantQue(auPremierTour);
-    expect(attaques('h', 'e'), 'aucune frappe de plus').toBe(1);
+    expect(attaques('h', 'e'), 'une frappe').toBe(1);
     expect(b().turn, 'le tour a avancé').toBe(1);
   });
 
@@ -266,7 +267,7 @@ describe('#3058 — la charge du héros en Auto-combat sur un porteur de Frappe 
     remettreLAutoCombat();
     ouvrirUneFenetreNeutre('h');
     banc.reprendreTout();
-    expect([suite(), parquee(), b().acted, b().turn], 'chemin : la suite échue sur la fenêtre est parquée, l’Action dépensée').toEqual(['frappe', true, true, 0]);
+    expect([suite(), parquee(), b().acted, b().turn], 'chemin : la suite échue sur la fenêtre est parquée, l’Action dépensée').toEqual(['frappePilotee', true, true, 0]);
     fermerLaFenetreNeutre();
     tantQue(auPremierTour);
     expect(attaques('h', 'e'), 'aucune frappe').toBe(0);
@@ -293,7 +294,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     tantQue(() => !bandeOuverte());
     expect(bandeOuverte(), 'chemin : l’approche ouvre la bande de Peur').toBe(true);
     banc.avancer(3000);
-    expect([suite(), parquee(), attaques('e', 'h')], 'la frappe est parquée, rien frappé').toEqual(['frappe', true, 0]);
+    expect([suite(), parquee(), attaques('e', 'h')], 'la frappe est parquée, rien frappé').toEqual(['frappePilotee', true, 0]);
     g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     tantQue(() => !g().pendingDefense);
@@ -326,7 +327,7 @@ describe('#3058 — Peur à l’approche (LDB 21 l.27) : la bande tient la main 
     approche(banc, { x: 3, y: 0 });
     maybeRunEnemyTurn(g, banc.setState);
     tantQue(() => !bandeOuverte());
-    expect([bandeOuverte(), suite(), parquee()], 'chemin : la bande est ouverte, la frappe attend son échéance').toEqual([true, 'frappe', false]);
+    expect([bandeOuverte(), suite(), parquee()], 'chemin : la bande est ouverte, la frappe attend son échéance').toEqual([true, 'frappePilotee', false]);
     g().jetLancer('cascadeEnBande', 'h');
     g().jetValider('cascade');
     tantQue(() => !g().pendingDefense);
@@ -439,7 +440,7 @@ describe('#3058 — fenêtre neutre à l’échéance d’un geste : il est parq
   it('F-déplacer (graine 1) : le déplacement parqué se joue une fois', () => {
     banc = ouvrirLeBanc();
     clearAiTurnLog();
-    poser(banc, 1, [mk('e', 'ennemi', { x: 9, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('e', 'ennemi', { x: 12, y: 0 }), mk('h', 'heros', { x: 0, y: 0 })]); // hors de portée de Charge (LDB 15 l.35)
     let glisses = 0;
     const off = bus.on(EVT.ANIM_MOVE, (p: { id: string }) => { if (p.id === 'e') glisses++; });
     try {
@@ -492,7 +493,7 @@ describe('#3058 — un déplacement décidé par l’IA ne part pas par-dessus u
   it('H-déplacer (graine 1) : déplacement parqué sur une fenêtre, bascule en manuel, le joueur se déplace, retour en Auto — un seul déplacement, le tour avance', () => {
     banc = ouvrirLeBanc({ cadence: 'auto' });
     clearAiTurnLog();
-    poser(banc, 1, [mk('h', 'heros', { x: 9, y: 0 }), mk('e', 'ennemi', { x: 0, y: 0 })]);
+    poser(banc, 1, [mk('h', 'heros', { x: 12, y: 0 }), mk('e', 'ennemi', { x: 0, y: 0 })]); // hors de portée de Charge (LDB 15 l.35)
     let glisses = 0;
     const off = bus.on(EVT.ANIM_MOVE, (p: { id: string }) => { if (p.id === 'h') glisses++; });
     try {
@@ -504,7 +505,7 @@ describe('#3058 — un déplacement décidé par l’IA ne part pas par-dessus u
       banc.reprendreTout();
       expect([suite(), parquee(), glisses], 'chemin : le déplacement échu sur la fenêtre est parqué, rien joué').toEqual(['deplacer', true, 0]);
       fermerLaFenetreNeutre();
-      g().cliquerLaCase({ x: 8, y: 0 }, undefined, { confirm: true });
+      g().cliquerLaCase({ x: 11, y: 0 }, undefined, { confirm: true });
       expect(b().movementUsed, 'le joueur s’est déplacé à la main').toBeGreaterThan(0);
       const apresLeJoueur = glisses;
       remettreLAutoCombat();

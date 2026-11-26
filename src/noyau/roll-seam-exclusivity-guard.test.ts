@@ -1255,7 +1255,7 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 
 /** Les points d'application d'un COUP (#1765) : `applyAttackResult` et ses enveloppes, qui rendent
  *  `Applique` — leur suspension porte la suite du coup (`SuiteDeCoup`, `pendings.ts`). */
-const POINTS_DU_COUP = ['applyAttackResult', 'doAttack', 'applyFreeAttack', 'applyTalentFreeAttack'];
+const POINTS_DU_COUP = ['applyAttackResult', 'doAttack', 'applyTalentFreeAttack'];
 /** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`noyau/combatEffects` ; et
  *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `noyau/combatFlow`
  *  `applyOups`/`applyBladeTrap`, #1508 T3b-4), plus les points d'application d'un coup. */
@@ -1479,7 +1479,7 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
     expect(sonde('applyAttackResult(g, s, a, d, w, r);'), 'coup : instruction nue').toHaveLength(1);
     expect(sonde('cloturer(g, s, applyAttackResult(g, s, a, d, w, r), []);'), 'coup : `cloturer` refusé').toHaveLength(1);
     expect(sonde('nePeutPasDifferer(doAttack(g, s, a, d), "site");'), 'coup : `nePeutPasDifferer` refusé').toHaveLength(1);
-    expect(sonde('jouerFlowEntier(applyFreeAttack(g, s, a, d, k, 0));'), 'coup : rien ne suit').toEqual([]);
+    expect(sonde('jouerFlowEntier(applyTalentFreeAttack(g, s, a, op, fa));'), 'coup : rien ne suit').toEqual([]);
     expect(sonde('if (applyTalentFreeAttack(g, s, a, op, fa)) return true;'), 'coup : retour lu').toEqual([]);
   });
 
@@ -1506,7 +1506,7 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
     expect(sonde('console.log(c ? runFlow(g, s, f) : undefined);'), 'argument étranger sous ternaire').toHaveLength(1);
     expect(sonde('jouerFlowEntier((runFlow(g, s, f)));'), 'consommateur nommé sous parenthèse').toEqual([]);
     expect(sonde('return c ? runFlow(g, s, f) : undefined;'), 'retour propagé sous ternaire').toEqual([]);
-    expect(sonde('return c && applyFreeAttack(g, s, a, d, k, 0);'), 'retour propagé sous &&').toEqual([]);
+    expect(sonde('return c && applyTalentFreeAttack(g, s, a, op, fa);'), 'retour propagé sous &&').toEqual([]);
     expect(sonde('if (!applyTalentFreeAttack(g, s, a, op, fa)) return;'), 'négation lue').toEqual([]);
     expect(sonde('applyAttackResult(g, s, a, d, w, r) ? x() : y();'), 'condition de ternaire : lue').toEqual([]);
     expect(sonde('runFlow(g, s, f) && x();'), 'gauche de && : lue').toEqual([]);
@@ -1573,7 +1573,7 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     expect(relaisDe('function runPreemptShots() { for (const x of l) { return applyAttackResult(g, s, a, d, w, r, { suite }) === MAIN_RENDUE; } return false; }'), 'B — booléen comparé').toEqual(['runPreemptShots']);
     expect(relaisDe('function f() { const t = applyAttackResult(g, s, a, d, w, r); return t; }'), 'C — capturé puis rendu').toEqual(['f']);
     expect(relaisDe('function f() { let suspendu = false; suspendu = doAttack(g, s, a, d); if (suspendu) return true; return false; }'), 'affecté puis gardé').toEqual(['f']);
-    expect(relaisDe('function f() { return g(); } function h() { return f() || applyFreeAttack(g, s, a, d, k, 0); } function i() { return h(); }'), 'relais de relais').toEqual(['h', 'i']);
+    expect(relaisDe('function f() { return g(); } function h() { return f() || applyTalentFreeAttack(g, s, a, op, fa); } function i() { return h(); }'), 'relais de relais').toEqual(['h', 'i']);
     expect(relaisDe('const f = () => applyTalentFreeAttack(g, s, a, op, fa);'), 'flèche à corps expression').toEqual(['f']);
     expect(relaisDe('function f() { list.forEach(() => { return doAttack(g, s, a, d); }); return false; }'), 'le retour d’une fonction IMBRIQUÉE n’est pas celui de f').toEqual([]);
     expect(relaisDe('function f() { const t = applyAttackResult(g, s, a, d, w, r); use(t); return false; }'), 'capturé, jamais rendu').toEqual([]);
@@ -1587,13 +1587,10 @@ describe('#1508 — angles morts du scan, mesurés (alias local, appel par objet
     // (`combat/triggeredTest.ts:408`), et son appelant `resolveFreeAttacks` le redérive de l'état par
     // `defenseEnCours` (`combatFlow.ts:4107`, `:4114`).
     // Une seule représentation jusqu'au dispatcher : #2639.
-    expect(sondeVoit('function relais() { return applyFreeAttack(g, s, a, d, k, 0); } relais();'), 'le scan par NOM voit le point, pas le relais').toBe(1);
+    expect(sondeVoit('function relais() { return applyTalentFreeAttack(g, s, a, op, fa); } relais();'), 'le scan par NOM voit le point, pas le relais').toBe(1);
     expect(relaisDuCoup().sites, 'un relais NEUF d’un point du coup : son appelant doit consommer son retour').toEqual([
       'src/noyau/combatFlow.ts accorderLAttaqueGratuite',
-      'src/noyau/combatFlow.ts aiAvailableFreeAttack',
-      'src/noyau/combatFlow.ts aiCreatureFreeAttacks',
       'src/noyau/combatFlow.ts autoCleave',
-      'src/noyau/combatFlow.ts drainerLesGratuites',
       'src/noyau/combatFlow.ts frapperDeLaSecondeParLaMachine',
       'src/noyau/combatFlow.ts jouerLApresCoup',
       'src/noyau/combatFlow.ts jouerLaFrappePassive',

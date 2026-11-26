@@ -512,10 +512,13 @@
     "label": "Attaque de zone",
     "icon": "action/attaquer",
     "surface": "grille",
-    "gate": "action-libre",
+    "gate": [
+      "hors-verrou-d-etat",
+      "peut-agir"
+    ],
     "run": "lancerLAttaqueDeZone",
     "candidates": "attaques-de-zone",
-    "coutAction": "action"
+    "coutAction": "gratuit"
   },
   {
     "id": "determination-psychologie",

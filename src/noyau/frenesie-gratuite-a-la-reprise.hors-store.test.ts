@@ -47,8 +47,10 @@ function jouer(fenetre: Fenetre) {
 describe('Frénésie : la gratuite d’Arme part quelle que soit la fenêtre qui rend le tour (LDB 21 l.33)', () => {
   it.each<Fenetre>(['aucune', 'assommante', 'sauvegarde', 'deviation', 'assautFeroce'])('après la défense, fenêtre « %s » : la gratuite d’Arme est déclarée avant que le tour passe', (fenetre) => {
     const { E, tour } = jouer(fenetre);
-    expect(E.freeAttacksThisTurn?.['arme'] ?? 0, 'la gratuite d’Arme de la Frénésie est déclarée').toBe(1);
     expect(g().battle!.turn, 'le tour reste au Frénétique').toBe(tour);
-    expect(g().pendingDefense?.attackerId, 'sa défense est ouverte').toBe(E.id);
+    expect(g().pendingDefense?.attackerId, 'la défense de sa gratuite d’Arme est ouverte').toBe(E.id);
+    g().jetLancer('defense'); g().jetImposerLeResultat('defense', 97); g().jetValider('defense');
+    const frenetique = g().battle!.combatants.find((c) => c.id === E.id)!;
+    expect(frenetique.freeAttacksThisTurn?.['arme'] ?? 0, 'la gratuite d’Arme de la Frénésie est comptée à sa frappe').toBe(1);
   });
 });

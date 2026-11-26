@@ -484,8 +484,8 @@ describe('influence effective — Résilience sur un jet du jour fluvial', () =>
 });
 
 describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur puis Test de Résistance par héros', () => {
-  /** Lignes de dé du journal portées par le Test d'Exposition (`{qui} — Résistance : dé/cible → issue`). */
-  const lignesDeResistance = () => get().journal.filter((l) => new RegExp(` — ${byId('skill', 'resistance')!.label} : \\d+/\\d+ → `).test(l));
+  /** Lignes de dé du journal portées par le Test d'Exposition (`{qui} — Résistance : dé/cible, issue`). */
+  const lignesDeResistance = () => get().journal.filter((l) => new RegExp(` — ${byId('skill', 'resistance')!.label} : \\d+/\\d+, `).test(l));
 
   it('route COMMANDÉE : tirage garanti → aucune fenêtre, une ligne de Résistance au journal par héros exposé', () => {
     launch(false, 45, { riverExposure: { source: 'aval-grande-ville-8km', mode: 'ingestion', chancePct: 100 } });
@@ -1014,8 +1014,8 @@ describe('Navigation du jour — base NUE + Soutien NOMMÉ, cible invariante (#1
  * Règle de CADENCE : la cadence commandée supprime des INTERRUPTIONS, jamais des TRACES.
  */
 describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse SA ligne de dé (aucune fenêtre)', () => {
-  /** Lignes du journal au patron du dériveur (`{qui —} libellé : dé/cible → issue`). */
-  const traceLines = () => get().journal.filter((l) => / : \d+\/\d+ → /.test(l));
+  /** Lignes du journal au patron du dériveur (`{qui —} libellé : dé/cible, issue`). */
+  const traceLines = () => get().journal.filter((l) => / : \d+\/\d+, /.test(l));
 
   it('aucune fenêtre ne s’ouvre sur le jour, et ses jets sont TRACÉS (un par jet, zéro doublon)', () => {
     launch();
@@ -1028,7 +1028,7 @@ describe('#1262 V3 Lj — journée fluviale COMMANDÉE : chaque jet mono laisse 
     expect(lignes.length, `journal :\n${get().journal.join('\n')}`).toBeGreaterThanOrEqual(2);
     expect(new Set(lignes).size, 'aucune ligne de dé en DOUBLE (le jet ne se redit pas)').toBe(lignes.length);
     // Chaque ligne porte le dé, la cible ET l'issue — jamais un dé nu.
-    for (const l of lignes) expect(l, l).toMatch(/^.+ : \d+\/\d+ → .+\.$/);
+    for (const l of lignes) expect(l, l).toMatch(/^.+ : \d+\/\d+, .+\.$/);
   });
 
   it('cadence JOUR-PAR-JOUR (la fenêtre s’ouvre) : AUCUNE ligne de dé au journal — la rangée les montre', () => {

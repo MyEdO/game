@@ -274,8 +274,8 @@ describe('#4574 — la rangée d’Exposition prévoit le fait que son gain appl
 });
 
 describe('#1281 — une rangée RÉSOLUE D’OFFICE laisse SA ligne de dé (zéro jet silencieux)', () => {
-  /** Ligne de trace du socle : « porteur — libellé : dé/cible → issue (DR ±n). » */
-  const TRACE = /^(.+) — (.+) : (\d+)\/(\d+) → (réussi|échec) \(DR [+-]\d+\)\.$/;
+  /** Ligne de trace du socle : « porteur — libellé : dé/cible, issue (DR ±n). » */
+  const TRACE = /^(.+) — (.+) : (\d+)\/(\d+), (réussi|échec) \(DR [+-]\d+\)\.$/;
   /** CE QUE LE JOUEUR LIT : la bande de fin de combat se joue COMBAT OUVERT — ses lignes vont donc au
    *  journal de COMBAT (`combatLog.journaliser`), la seule surface ouverte alors ; `state.journal`
    *  reste lu pour le cas où le combat serait déjà refermé. */

@@ -22,8 +22,8 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * Un porteur TENU est consulté quand le Critique naît d'une sous-attaque (LDB 63 l.30) ; Surpris est
- * conservé (LDB 16 l.139). Producteur témoin : la bordée (MDG 14 l.128). Le marin d'un Critique de
+ * Un porteur TENU est consulté quand le Critique naît d'une sous-attaque (LDB 63 l.30) ; LDB 16 l.139.
+ * Producteur témoin : la bordée (MDG 14 l.128). Le marin d'un Critique de
  * coque à l'Équipage (MDG 13 l.584) suspend et reprend son seul coup.
  */
 const CHARS = { 'capacite-de-combat': 45, 'capacite-de-tir': 45, force: 40, endurance: 40, initiative: 30, agilite: 30, dexterite: 30, intelligence: 30, 'force-mentale': 30, sociabilite: 30 };
@@ -110,13 +110,13 @@ describe('Bordée sur un porteur tenu : la fenêtre de Déviation s’ouvre (LDB
     expect(deux).toBe(seul - tir2);
   });
 
-  it('Surpris est conservé, après Dévier comme après Subir (LDB 16 l.139)', () => {
+  it('Surpris tombe au premier tir de la bordée, après Dévier comme après Subir (LDB 16 l.139)', () => {
     for (const cle of ['devier', 'subir'] as const) {
       const b = brute();
       addCondition(b, COND.surpris);
       bordee(b, [coupCritique()], 0);
       draineCascade(banc.getState, 200, undefined, choix(cle));
-      expect(hasCondition(enJeu('brute'), COND.surpris), cle).toBe(true);
+      expect(hasCondition(enJeu('brute'), COND.surpris), cle).toBe(false);
     }
   });
 

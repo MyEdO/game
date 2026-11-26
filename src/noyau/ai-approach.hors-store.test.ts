@@ -8,6 +8,8 @@ import { seedBattleRng } from './battleRng';
 import { t } from '../i18n';
 import { addCondition } from '../engine/conditions';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { budgetsDAllure } from './refusDuTour';
+import type { BattleState } from './etat';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -31,12 +33,19 @@ const C = (kind: 'heros' | 'ennemi', id: string, x: number, over: Partial<Combat
     ...over,
   })) as unknown as Combatant;
 
+/** Les budgets `budgets` que la porte du joueur laisse à `enemy` face à `hero` (`refusDeCharge`, `refusDeCourse`), comme
+ *  le tour de l'IA les passe. */
+function budgetsDuJoueur(enemy: Combatant, hero: Combatant, budgets: { charge: number; course: number }) {
+  const battle = { combatants: [enemy, hero], order: [enemy.id], turn: 0, round: 1, acted: false, movementUsed: 0, reachable: new Map(), log: [] } as unknown as BattleState;
+  return budgetsDAllure(scene(), battle, enemy, budgets);
+}
+
 function planFor(heroX: number, over: Partial<Combatant> = {}) {
   const enemy = C('ennemi', 'e', 2, over);
   const hero = C('heros', 'h', heroX);
   const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set([`${heroX},10`]) }, movement: 4, spells: [] };
   const action = chooseEnemyAction(input);
-  return { enemy, hero, ...aiApproachPlan(input, action, BUDGETS_M4), action };
+  return { enemy, hero, ...aiApproachPlan(input, action, budgetsDuJoueur(enemy, hero, BUDGETS_M4)), action };
 }
 
 describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () => {
@@ -46,7 +55,7 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
     const hero = C('heros', 'h', 25);
     const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set(['25,10']) }, movement: 2, spells: [] };
     const action = chooseEnemyAction(input);
-    const { plan, allure } = aiApproachPlan(input, action, { charge: 4, course: 6 });
+    const { plan, allure } = aiApproachPlan(input, action, budgetsDuJoueur(enemy, hero, { charge: 4, course: 6 }));
     expect(allure).toBe('marche');
     expect(plan).toBe(action);
   });

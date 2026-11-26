@@ -23,7 +23,7 @@ import { mountUp } from './mount';
 import { buildScene } from './mapSpec';
 import { buildEncounters } from './monde/encounterAuthoring';
 import { groupeDeScenario } from '../scenes/test-scenarios/_heros';
-import { refusDeCourse, refusDuBinome } from './refusDuTour';
+import { budgetsDAllure, refusDeCourse, refusDuBinome } from './refusDuTour';
 import { peutFuir, refusDEsquiveDeDesengagement } from './combat/desengagement';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -148,7 +148,9 @@ describe.each([
       const cible = combattantDeTest({ id: 'cible', label: 'cible', kind: adverse(kind), pos: { x: cibleX, y: 10 } });
       const input: EnemyTurnInput = { enemy: P, heroes: [cible], scene, env: { blocked: new Set([`${cibleX},10`, '2,11']) }, movement: 4, spells: [], squad: avecTireur ? [T] : [] };
       const action = chooseEnemyAction(input);
-      return { action, ...aiApproachPlan(input, action, { charge: 8, course: 12 }) };
+      // Les budgets que la porte du joueur laisse (`budgetsDAllure`), comme le tour de l'IA les passe.
+      const battle = { combatants: [P, ...(avecTireur ? [T] : []), cible], acted: false, movementUsed: 0 } as unknown as BattleState;
+      return { action, ...aiApproachPlan(input, action, budgetsDAllure(scene, battle, P, { charge: 8, course: 12 })) };
     };
     const charge = plan(8, true);
     expect(charge.allure).toBe('charge');

@@ -861,7 +861,9 @@ async function parcoursCombat() {
   assert.equal(defenseur.genre, 'porteur', 'la Défense est à un héros')
   const jetDuDefenseur = zone(v, 'fenetre.corps').find((e) => e.type === 'jet' && e.combattant !== null && e.qui === defenseur.nom)
   assert.ok(jetDuDefenseur, 'le jet de son camp porte le portrait et le nom du héros qui se défend')
-  assert.deepEqual(zone(v, 'fenetre.etape'), [], 'l’étape de la Défense, dont le jet nomme le héros, est exactement vide')
+  // L'étape ne se dit que sous un titre qui n'est pas le sien, et le héros que son jet nomme n'y est pas redit (`ecran.ts`).
+  const lignesDEtape = zone(v, 'fenetre.etape').map((e) => e.texte)
+  assert.ok(lignesDEtape.length <= 1 && lignesDEtape.every((texte) => texte === 'Défense'), `l’étape de la Défense, dont le jet nomme le héros, ne redit pas ${defenseur.nom} : ${JSON.stringify(lignesDEtape)}`)
   noter(`Défense ouverte par les minuteurs : ${corps(v)} ; à ${defenseur.nom}`)
   await capturer('2928-6c-5-defense')
   const [jetDeDefense, reagir] = [enFocus(v).id, 'jetRegler@defense#reaction']

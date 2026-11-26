@@ -158,7 +158,7 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
 
     expect(etapeTest(), 'un porteur sans siège ne reçoit pas de fenêtre : la voie inline tranche').toBeFalsy();
     expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
-      'e — Test de Résistance Intermédiaire (+0) : 63/35 → échec (DR -3).', // valeur NUE de la porte, pas un calcul maison
+      'e — Test de Résistance Intermédiaire (+0) : 63/35, échec (DR -3).', // valeur NUE de la porte, pas un calcul maison
       'e reçoit 1 État Sonné.', // LDB 18 l.72 — la branche `echec`, appliquée sur l'issue de la porte
     ]);
     expect(stacks(enemy, 'sonne')).toBe(1);
@@ -261,11 +261,11 @@ describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre
     combat(mk('h', 'heros'), enemy);
     subirCritique(enemy, 'brasG', 95);
     expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
-      'e — Test de Résistance Difficile (−20) : 63/15 → échec (DR -5).',
+      'e — Test de Résistance Difficile (−20) : 63/15, échec (DR -5).',
       'e reçoit 1 État Sonné.',
       'e reçoit 1 État À Terre.',
       'e : Amputation et Main/bras amputé (Bras gauche).',
-      'e — Test de Résistance (Plaie d’amputation) Difficile (−20) : 1/5 → réussi (DR +1).',
+      'e — Test de Résistance (Plaie d’amputation) Difficile (−20) : 1/5, réussi (DR +1).',
     ]);
   });
 
@@ -281,16 +281,16 @@ describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre
     applyAttackResult(banc.getState, banc.setState, hero, enemy, POINGS, coup, { critiques: [{ crit, deviation: 'subir' }] });
     const journal = banc.getState().battle!.log.map(({ kind, text }) => ({ kind, text }));
     const critique = journal.findIndex((e) => e.text === 'Blessure critique (Bras gauche) — Main mutilée.');
-    const test = journal.findIndex((e) => e.text === 'e — Test de Résistance Difficile (−20) : 63/15 → échec (DR -5).');
+    const test = journal.findIndex((e) => e.text === 'e — Test de Résistance Difficile (−20) : 63/15, échec (DR -5).');
     expect(journal[0]).toEqual({ kind: 'attaque', text: 'h touche e.' });
     expect(journal[critique]?.kind).toBe('critique');
     expect(test, 'le Test du Critique suit sa ligne').toBeGreaterThan(critique);
     expect(journal.slice(test, test + 6)).toEqual([
-      { kind: 'detail', text: 'e — Test de Résistance Difficile (−20) : 63/15 → échec (DR -5).' },
+      { kind: 'detail', text: 'e — Test de Résistance Difficile (−20) : 63/15, échec (DR -5).' },
       { kind: 'detail', text: 'e reçoit 1 État Sonné.' },
       { kind: 'detail', text: 'e reçoit 1 État À Terre.' },
       { kind: 'detail', text: 'e : Amputation et Main/bras amputé (Bras gauche).' },
-      { kind: 'detail', text: 'e — Test de Résistance (Plaie d’amputation) Difficile (−20) : 1/5 → réussi (DR +1).' },
+      { kind: 'detail', text: 'e — Test de Résistance (Plaie d’amputation) Difficile (−20) : 1/5, réussi (DR +1).' },
       { kind: 'mort', text: 'e est mis hors de combat !' },
     ]);
   });
