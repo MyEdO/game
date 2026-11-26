@@ -11,7 +11,7 @@ export const HAUTEUR = 720;
 const ancre = (x: number, y: number): [number, number] => [(x - 100) * (LARGEUR / 1600), y];
 /** Où poser l'enseigne de chaque bâtiment, en coordonnées de toile. */
 export const ANCRES: Record<IdBatiment, [number, number]> = {
-  temple: ancre(426, 402), relais: ancre(668, 350), forge: ancre(940, 430), salle: ancre(1168, 402), cartographe: ancre(1353, 236), peage: ancre(1560, 420),
+  temple: ancre(426, 402), relais: ancre(668, 350), forge: ancre(940, 430), salle: ancre(1168, 402), cartographe: ancre(1353, 236),
 };
 
 const alea = (graine: number) => () => {
@@ -146,23 +146,6 @@ function cartographe(n: number): string {
   return s;
 }
 
-/** Le péage : la rivière, le pont de pierre, la tour de garde et sa barrière ; puis la seconde tour. */
-function peage(n: number): string {
-  let s = p('M1430,592C1520,584 1660,586 1800,590V660H1430Z', '#232a4a');
-  for (let k = 0; k < 10; k++) s += trait(`M${1450 + k * 34},${610 + (k % 3) * 11}h${18 + (k % 2) * 12}`, '#8a92d0', 1.5, 'opacity=".35"');
-  s += p('M1486,604V566H1790V604H1740Q1722,572 1680,572Q1638,572 1620,604H1596Q1580,580 1552,580Q1524,580 1508,604Z', '#2a2236', C) + trait('M1486,566H1790', LUNE, 2.5, 'opacity=".7"') + moellons(1486, 566, 300, 20, 41);
-  if (n === 0) {
-    return s + p('M1494,566V452L1508,438L1518,452L1532,434L1546,452L1558,444V566Z', OMBRE, C) + fenetre(1516, 486, 18, 24, false) + trait('M1566,572l64,14', BOIS, 6) + gravats(1466, 592, 60);
-  }
-  s += mur(1494, 438, 66, 128, PIERRE) + moellons(1494, 440, 66, 120, 43);
-  for (let k = 0; k < 4; k++) s += r(1490 + k * 19.5, 422, 13, 17, PIERRE, C);
-  s += fenetre(1517, 468, 20, 26, true) + porte(1527, 566, 28, 40, '#0c0910');
-  s += r(1562, 536, 8, 30, BOIS, C) + trait('M1566,546h104', '#c9a14a', 6) + trait('M1566,546h104', SANG, 6, 'stroke-dasharray="13 13" stroke-linecap="butt"') + lanterne(1566, 526);
-  if (n >= 2) { s += mur(1716, 466, 48, 100, PIERRE); for (let k = 0; k < 3; k++) s += r(1712 + k * 20, 452, 13, 15, PIERRE, C); s += fenetre(1731, 492, 18, 24, true); }
-  if (n >= 3) s += drapeau(1740, 452, 42) + lanterne(1700, 540);
-  return s;
-}
-
 /** La scène entière, bâtiments à leur palier. Chaque bâtiment est un groupe `data-batiment` cliquable. */
 export function sceneDuHameau(paliers: Record<IdBatiment, number>): string {
   const al = alea(17);
@@ -205,7 +188,6 @@ export function sceneDuHameau(paliers: Record<IdBatiment, number>): string {
   ${bat('forge', forge(paliers.forge))}
   ${bat('salle', salleDArmes(paliers.salle))}
   ${bat('cartographe', cartographe(paliers.cartographe))}
-  ${bat('peage', peage(paliers.peage))}
   ${trait(herbes, '#08060b', 1.2)}
   ${sapin(-30, 760, 420, '#040306')}${sapin(LARGEUR + 30, 770, 380, '#040306')}
 </svg>`;

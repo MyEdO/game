@@ -32,7 +32,7 @@ export interface Expedition { destination: string; salles: Salle[]; index: numbe
 
 /** `tutoriel` : les quêtes d'une partie neuve (`./tutoriel`), `null` une fois soldées ou passées. */
 export interface Etat {
-  version: 4;
+  version: 5;
   graine: number;
   jour: number;
   or: number;
@@ -49,8 +49,8 @@ export interface Etat {
 
 export function nouvellePartie(graine: number): Etat {
   const e: Etat = {
-    version: 4, graine, jour: 1, or: OR_INITIAL, trophees: 0,
-    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0, peage: 0 },
+    version: 5, graine, jour: 1, or: OR_INITIAL, trophees: 0,
+    batiments: { relais: 0, temple: 0, salle: 0, forge: 0, cartographe: 0 },
     roster: [], candidats: [], expedition: null, bossVaincus: [], journal: [], tutoriel: { vus: [] },
   };
   for (const p of compagnieDeDepart(e)) e.roster.push(recrue(e, p));

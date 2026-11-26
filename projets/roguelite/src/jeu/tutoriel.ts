@@ -40,7 +40,7 @@ export const QUETES: readonly Quete[] = [
     soldee: (e) => vu(e, 'retour') },
   { id: 'batir', titre: 'Relever une ruine', mene: 'temple',
     consigne: 'L’or rapporté relève les ruines : l’Hospice soigne, la Salle d’armes fait progresser.',
-    soldee: (e) => e.batiments.temple > 0 || e.batiments.salle > 0 || e.batiments.peage > 0 },
+    soldee: (e) => e.batiments.temple > 0 || e.batiments.salle > 0 },
 ];
 
 /** La quête en cours : la première que la partie n'a pas soldée ; `null` sans tutoriel. */
