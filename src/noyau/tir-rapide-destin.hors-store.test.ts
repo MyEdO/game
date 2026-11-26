@@ -33,7 +33,7 @@ const ARC = (): Weapon => ({ uid: 'arc', label: 'Arc', type: 'distance', damage:
 const g = () => banc.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
 /** Les marqueurs de Tir rapide de `id`, nommé comme le groupe le voit. */
-const tirsDe = (id: string) => g().battle!.log.filter((l) => l.actorId === id && l.text === t('cf.tirRapide', { name: nomEnVue(g(), id)! })).length;
+const tirsDe = (id: string) => g().battle!.log.filter((l) => l.actorId === id && l.entree.texte === t('cf.tirRapide', { name: nomEnVue(g(), id)! })).length;
 
 /** Deux héros, E1 (Tir rapide ×2) et, sur demande, E2 (×1), arcs à Bout portant ; H1 à 0 Blessure et 1 Destin. Fin du
  *  Round 1, puis le Round 2 lancé : E1 tire le premier sur H1 (LDB 11 l.103). */
@@ -97,7 +97,7 @@ describe('#4860 — le Destin ouvert par un Tir rapide de l’IA suspend la bouc
       expect(b.tirsRapidesSuspendus).toBeUndefined();
       const actif = issue === 'eviter' ? 'h1' : 'h2';
       expect(activeCombatant(b)?.id, 'le Round ouvert sur le premier combattant en action').toBe(actif);
-      const perteDuMouvement = b.log.filter((l) => l.actorId === actif && l.text === t('cf.perdLeMouvement', { name: nomEnVue(g(), actif)! })).length;
+      const perteDuMouvement = b.log.filter((l) => l.actorId === actif && l.entree.texte === t('cf.perdLeMouvement', { name: nomEnVue(g(), actif)! })).length;
       expect([perteDuMouvement, b.movementUsed > 0], 'le Round s’ouvre une fois : son dû pris, jamais remis à zéro').toEqual([1, true]);
     });
   }
@@ -128,7 +128,7 @@ describe('#4860 — le Destin ouvert par un Tir rapide de l’IA suspend la bouc
       expect(b.tirsRapidesSuspendus).toBeUndefined();
       expect(b.turn, 'le tour quitte E1').toBe(1);
       expect(activeCombatant(b)?.id, 'le Round ouvert sur le premier combattant en action').toBe('h2');
-      const perteDuMouvement = b.log.filter((l) => l.actorId === 'h2' && l.text === t('cf.perdLeMouvement', { name: nomEnVue(g(), 'h2')! })).length;
+      const perteDuMouvement = b.log.filter((l) => l.actorId === 'h2' && l.entree.texte === t('cf.perdLeMouvement', { name: nomEnVue(g(), 'h2')! })).length;
       expect([perteDuMouvement, b.movementUsed > 0], 'le Round s’ouvre une fois : son dû pris, jamais remis à zéro').toEqual([1, true]);
     });
   }

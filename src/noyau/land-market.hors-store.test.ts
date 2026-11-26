@@ -134,7 +134,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     acheterAuMarche(get, 'marcheDeTerre', CARRIER_ID, offer.cargoId, 200); // > 80 → refusé
     expect(carrierCargo().length).toBe(0);
     expect(partyMoneyTotal(get).gold).toBe(before);
-    expect(get().journal.some((l) => /ne peut plus charger/.test(l))).toBe(true);
+    expect(get().journal.some((l) => /ne peut plus charger/.test(l.texte))).toBe(true);
   });
 
   it('l’achat de cargaison REFUSE si le groupe n’a AUCUN porteur (bête/véhicule/navire)', () => {
@@ -146,7 +146,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     expect(acheterAuMarche(get, 'marcheDeTerre', CARRIER_ID, offer.cargoId, 20), 'aucun porteur à désigner').toBe(t('choix.refus.valeur'));
     get().fenetreChoisir('marcheDeTerre', 'acheter', true);
     expect(partyMoneyTotal(get).gold).toBe(before);
-    expect(get().journal.some((l) => /Aucune bête de somme ni véhicule/.test(l))).toBe(true);
+    expect(get().journal.some((l) => /Aucune bête de somme ni véhicule/.test(l.texte))).toBe(true);
   });
 
   it('la vente de cargaison trouve un acheteur et crédite la bourse (Demande = Taille×10 +30 Commerce)', () => {
@@ -172,7 +172,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     rng.int = (min, max) => (min === 1 && max === 100 && des.length ? des.shift()! : brut(min, max));
     const before = partyMoneyTotal(get).gold;
     acheterAuMarche(get, 'marcheDeTerre', CARRIER_ID, 'metal', 20);
-    expect(get().journal.some((l) => /remise de 30 %/.test(l)), get().journal.join('\n')).toBe(true);
+    expect(get().journal.some((l) => /remise de 30 %/.test(l.texte)), get().journal.map((e) => e.texte).join('\n')).toBe(true);
     expect(before - partyMoneyTotal(get).gold).toBe(140); // 20 Enc × 10 CO × 0,7
   });
 
@@ -188,7 +188,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     const des = [5, 70, 40]; // acheteur trouvé, le meneur (DR 1 au plus haut), le marchand (2d10+30)
     rng.int = (min, max) => (min === 1 && max === 100 && des.length ? des.shift()! : brut(min, max));
     vendre('lot-2');
-    expect(get().journal.some((l) => /Marchandage \(70 vs 40\) : \+20 %/.test(l)), get().journal.join('\n')).toBe(true);
+    expect(get().journal.some((l) => /Marchandage \(70 vs 40\) : \+20 %/.test(l.texte)), get().journal.map((e) => e.texte).join('\n')).toBe(true);
   });
 
   it('le bradage de cargaison brade à la moitié du prix de base (Lieu de Commerce, l.160)', () => {
@@ -294,7 +294,7 @@ describe('#58 — commerce de cargaison terrestre (MSRC 13)', () => {
     const wine = get().landMarket!.offers.find((o) => o.wine)!;
     set({ party: get().party.map((h) => ({ ...h, skills: h.skills.filter((sk) => sk.id !== 'evaluation') })) });
     get().evaluerLeVin(wine.cargoId);
-    expect(get().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
+    expect(get().journal.slice(-1)[0].texte).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
     expect(get().pendingCascade).toBeNull();
     expect(get().landMarket!.offers.find((o) => o.cargoId === wine.cargoId)!.vinEvalue).toBeUndefined();
   });

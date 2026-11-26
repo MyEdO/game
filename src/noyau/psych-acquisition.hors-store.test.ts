@@ -349,7 +349,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir hors combat (Terreur d’auteur `i
     expect(h.psychTraits).toEqual([{ type: 'phobie', cible: ciblePsy.groupe('skaven') }]);
     expect(h.terreursSubies).toEqual([]);
     const ligne = t('cf.phobieAcquise', { name: 'Hardi', groupe: groupLabel('skaven') });
-    expect(banc.getState().journal.some((l) => l.startsWith(ligne)), ligne).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.startsWith(ligne)), ligne).toBe(true);
   });
 });
 

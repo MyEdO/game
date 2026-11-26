@@ -111,7 +111,7 @@ describe('Armure de malepierre — MDG 16 l.506, arbitrage du 2026-11-16 (#4372)
     finDuDernierTour(banc);
     expect(expositions(banc)).toEqual([]);
     const lignes = banc.getState().battle!.log.filter((e) =>
-      e.actorId === porteur().id && e.text.includes(cible.label) && e.text.includes('Test de Résistance Intermédiaire (+0)'),
+      e.actorId === porteur().id && e.entree.texte.includes(cible.label) && e.entree.texte.includes('Test de Résistance Intermédiaire (+0)'),
     );
     expect(lignes).toHaveLength(1);
   });

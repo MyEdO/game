@@ -31,7 +31,7 @@ const produit = (banc: Banc) => banc.getState().party[0].items?.find((i) => i.ui
 function journalDe(banc: Banc, geste: () => void): string[] {
   const avant = banc.getState().journal.length;
   geste();
-  return banc.getState().journal.slice(avant);
+  return banc.getState().journal.slice(avant).map((e) => e.texte);
 }
 
 describe('Consommable — refusé sans objet, avant de le boire', () => {

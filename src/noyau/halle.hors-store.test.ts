@@ -53,7 +53,7 @@ function offre(partie: Partie, enc: number): string {
   return o!.cargoId;
 }
 
-const journalDit = (partie: Partie, texte: string) => partie.etat().journal.some((l) => l.includes(texte));
+const journalDit = (partie: Partie, texte: string) => partie.etat().journal.some((l) => l.texte.includes(texte));
 
 describe('#3059 — achat de cargaison : un seul refus pour l’écran et le geste', () => {
   it('lot sous le minimum : refusé par le devis, et le geste ne charge rien en le disant', () => {
@@ -137,8 +137,8 @@ describe('#3059 — siège invité : les gestes de la halle sur la bourse et la 
       partie.envoyer({ type: 'evaluerLeVin', args: ['metal'] });
       partie.envoyer({ type: 'deplacerLaCargaison', args: ['lot-1', 'convoi', 5] });
       expect(carrierById(partie.etat(), 'convoi')!.cargo).toEqual([lot]);
-      expect(partie.etat().journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'vente et bradage').toBe(2);
-      expect(partie.etat().journal.filter((l) => l === t('coop.hoteSeul')).length, 'évaluation et transfert').toBe(2);
+      expect(partie.etat().journal.filter((l) => l.texte.includes(t('choix.refus.hoteSeul'))).length, 'vente et bradage').toBe(2);
+      expect(partie.etat().journal.filter((l) => l.texte === t('coop.hoteSeul')).length, 'évaluation et transfert').toBe(2);
       expect(refusDeGesteSurLeGroupe(partie.etat()), 'le refus de groupe que lit l’écran').toBe(t('groupe.hoteSeul'));
     } finally {
       partie.fermer();

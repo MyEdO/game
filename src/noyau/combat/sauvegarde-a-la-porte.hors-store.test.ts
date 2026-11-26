@@ -115,7 +115,7 @@ function suitLAction(porteurId: string): { vu: { marquages: number; restitutions
 /** Les lignes que le joueur a lues sur les étapes de la séquence (captes + état courant + journal). */
 const lignesLues = (): string[] => {
   capter();
-  return [...lues, ...banc.getState().journal, ...(banc.getState().battle?.log ?? []).map((l) => l.text)];
+  return [...lues, ...banc.getState().journal.map((e) => e.texte), ...(banc.getState().battle?.log ?? []).map((l) => l.entree.texte)];
 };
 
 beforeEach(() => { lues = []; });
@@ -483,7 +483,7 @@ describe('une fenêtre DE PLUS sur le même coup ne perd pas la suite (sauvegard
     setBattle([ogre, h1, h2, h3, h4, temoin]);
     autoCleave(banc.getState, banc.setState, ogre, h1, { ...touche(), cleave: true } as AttackResult);
     derouler();
-    const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => /^ogre touche/.test(t));
+    const coups = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).filter((t) => /^ogre touche/.test(t));
     const vu = coups.join(' | ');
     // TROIS enchaînements (h2, h3, h4), aucun rejoué, puis la gratuite de créature du tour sur h1 : le
     // Piétinement (LDB 85 l.387), une fois la chaîne close, qui n'en rouvre pas (arbitrage #5031). Pas un coup de plus.
@@ -649,7 +649,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     expect(h2.wounds.current, 'le maillon suivant attend le dé du maillon courant').toBe(30);
     poser(5); // < 6 : le coup porte sur h1, puis la chaîne PARQUÉE reprend
     expect(h1.wounds.current, 'la sauvegarde a manqué : h1 encaisse').toBeLessThan(30);
-    const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
+    const coups = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).filter((x) => /^ogre touche/.test(x));
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne parquée reprend sur h2 — ${coups.join(' | ')}`).toBe(1);
   });
 
@@ -669,7 +669,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     expect(banc.getState().pendingDualStrike, 'la 2ᵉ frappe est celle de la machine (`aiDriven`) : aucune fenêtre').toBeNull();
     expect((banc.getState().battle?.log ?? []).filter((l) => l.actorId === heros.id && l.targetId === e1.id && l.kind === 'attaque').length, 'la suite est jouée : deux frappes sur e1').toBe(2);
     expect(banc.getState().pendingCleave, 'aucun balayage interactif n’est armé').toBeNull();
-    const vu = (banc.getState().battle?.log ?? []).map((l) => l.text);
+    const vu = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte);
     expect(vu.filter((x) => /e2/.test(x)), `e2 n’est pas touchée : ce coup ne déclare AUCUN enchaînement — ${vu.join(' | ')}`).toHaveLength(0);
     expect(e2.wounds.current, 'la 2ᵉ cible adjacente est intacte').toBe(30);
   });
@@ -693,14 +693,14 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
 
     // (a) SEULE cible : rien à balayer — l'Action gratuite est rendue et les effets de la manœuvre posés.
     const seul = monte(false);
-    const vuA = (banc.getState().battle?.log ?? []).map((l) => l.text).join(' | ');
+    const vuA = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).join(' | ');
     expect(banc.getState().battle!.acted, 'une manœuvre GRATUITE ne consomme pas l’Action').toBe(false);
     expect(seul.h1.wounds.current, `la manœuvre a porté — ${vuA}`).toBeLessThan(30);
     expect(seul.h1.conditions.find((c) => c.id === 'a-terre'), 'Attaque caudale (LDB 85 l.47) : À Terre sur une cible plus petite').toBeDefined();
 
     // (b) Une 2ᵉ cible adjacente : le balayage de la machine suit le coup, comme après tout coup de l'IA.
     const avecVoisine = monte(true);
-    const vuB = (banc.getState().battle?.log ?? []).map((l) => l.text).join(' | ');
+    const vuB = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).join(' | ');
     expect(avecVoisine.h2.wounds.current, `le balayage de la machine suit la manœuvre — ${vuB}`).toBeLessThan(30);
   });
 
@@ -726,7 +726,7 @@ describe('LE CHEMIN RÉEL : la queue du coup entre PAR LE HAUT dans `jetValider(
     // La chaîne est la SUITE du coup : elle vient APRÈS la Maladresse du défenseur (`APRES_COUP`).
     banc.getState().jetLancer('maladresse');
     banc.getState().jetValider('maladresse');
-    const coups = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((x) => /^ogre touche/.test(x));
+    const coups = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).filter((x) => /^ogre touche/.test(x));
     expect(coups.filter((x) => /h2/.test(x)).length, `la chaîne reprend tout de même sur h2 — ${coups.join(' | ')}`).toBe(1);
   });
 

@@ -49,7 +49,7 @@ function bordee(cible: Combatant, graine: number): string[] {
   const tirs = resolveVolley(ship, ship.postes!, 3, true, [artilleur('g1'), artilleur('g2')], fixe(34));
   jouerLesTirsDeBordee(banc.getState, banc.setState, { targetId: 'target', actedAvant: false, tirs: tirs.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, jet: s.jet })) });
   draineCascade(banc.getState);
-  return banc.getState().battle!.log.map((l) => l.text).filter((l) => l.includes(' touche Pirate'));
+  return banc.getState().battle!.log.map((l) => l.entree.texte).filter((l) => l.includes(' touche Pirate'));
 }
 
 describe('bordée : chaque coup naît sur la cible vivante (MDG 14 l.128)', () => {

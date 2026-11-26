@@ -240,7 +240,7 @@ describe('Entretien des États à l’horloge (LDB 13 l.45–47)', () => {
     const banc = decor([c]);
     avancer(banc, 6);
     expect(porteur(banc, c).activeEffects).toHaveLength(0);
-    expect(banc.getState().journal.filter((ligne) => ligne.includes('Bénédiction'))).toHaveLength(1);
+    expect(banc.getState().journal.filter((ligne) => ligne.texte.includes('Bénédiction'))).toHaveLength(1);
     expect(stacks(porteur(banc, c), 'aveugle')).toBe(2);
   });
 

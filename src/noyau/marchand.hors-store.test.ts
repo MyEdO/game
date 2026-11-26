@@ -162,7 +162,7 @@ describe('#3059 — réparation et Troc : le geste lit la fonction de l’écran
       expect(devisDeTroc(etat.merchant, etat.party, demande, findTrappingById).refus).toBe(texte);
       for (const args of choixDuTroc(etat, demande)) partie.envoyer({ type: 'fenetreChoisir', args });
       expect(partie.etat().merchant!.stock).toEqual([{ id: 'hallebarde', qty: 3 }]);
-      expect(partie.etat().journal.some((l) => l.includes(texte))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes(texte))).toBe(true);
     } finally {
       partie.fermer();
     }
@@ -218,7 +218,7 @@ describe('#3059 — siège invité : l’invité compose le panier, l’encaisse
       expect(apres.party[0].items!.find((i) => i.uid === 'abimee')!.damageTaken).toBe(2);
       expect(apres.party[0].items!.some((i) => i.uid === 'avendre')).toBe(true);
       expect(apres.merchant!.stock.find((l) => l.id === ligne.id)!.qty).toBe(ligne.qty);
-      expect(apres.journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length).toBe(4);
+      expect(apres.journal.filter((l) => l.texte.includes(t('choix.refus.hoteSeul'))).length).toBe(4);
     } finally {
       partie.fermer();
     }

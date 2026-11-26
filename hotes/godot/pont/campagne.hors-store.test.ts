@@ -53,7 +53,7 @@ describe('jouer une campagne par le pont', () => {
     const doublon = recruter(s.vue, 'harbull-piedvelu');
     expect(doublon.refus, 'le héros déjà au groupe ne se recrute plus').toBe(t('pf.partyDuplicate', { name: s.vue.zones['groupe.heros'][0].nom }));
     const refuse = suiteDe(appel('jouer', doublon.jeu));
-    expect(refuse.journal.map((l) => (l.de === 'journal' ? l.texte : null)), 'hors combat, le noyau dit son refus au journal').toEqual([doublon.refus]);
+    expect(refuse.journal.map((l) => (l.de === 'journal' ? l.entree.texte : null)), 'hors combat, le noyau dit son refus au journal').toEqual([doublon.refus]);
     expect(refuse.vue.zones['groupe.heros']).toEqual(s.vue.zones['groupe.heros']);
     expect(lancer(s.vue, campagneDeTest.id).refus).toBeNull();
     const renvoyer = bouton(s.vue.zones['groupe.heros'], 'heros/pretire-harbull-piedvelu', 'renvoyer');

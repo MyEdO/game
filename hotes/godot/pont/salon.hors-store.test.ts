@@ -61,7 +61,7 @@ const valeur = (z: ZonesDuSalon, id: string): Bouton => {
   if (!v) throw new Error(`aucune valeur ${id}`);
   return v;
 };
-const textesDuJournal = (journal: LigneDuJournal[]) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const textesDuJournal = (journal: LigneDuJournal[]) => journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 const RIEN = { ok: true, rien: true };
 
 /** Un pont dont la partie ouverte héberge la room `ABC234`, l'ouverture déjà dite. */

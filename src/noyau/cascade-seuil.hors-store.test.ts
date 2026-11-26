@@ -135,7 +135,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
   it('F1 — combat OUVERT : la ligne est dans `battle.log`, et PAS dans `state.journal`', () => {
     ouvrirCombat();
     jouerSauvegarde(6);
-    expect(logDeCombat().map((e) => e.text).join(' | '), 'la ligne du dé se lit là où le joueur regarde')
+    expect(logDeCombat().map((e) => e.entree.texte).join(' | '), 'la ligne du dé se lit là où le joueur regarde')
       .toMatch(/Ilyanwe la Voilée ignore le coup — sauvegarde 1d10 : 6 ≥ Protection \(6\+\) du Dôme\./);
     expect(banc.getState().journal, 'rien ne part au journal d’exploration pendant un combat').toEqual([]);
   });
@@ -149,20 +149,20 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
 
   it('F1 — HORS combat : la MÊME étape écrit au `journal` (il n’y a pas d’autre surface)', () => {
     jouerSauvegarde(6);
-    expect(banc.getState().journal.join(' | ')).toContain('ignore le coup');
+    expect(banc.getState().journal.map((e) => e.texte).join(' | ')).toContain('ignore le coup');
     expect(banc.getState().battle).toBeNull();
   });
 
-  it('F1’ — dé POSÉ en combat : la ligne de `battle.log` porte la mention « (dé fixé) »', () => {
+  it('F1’ — dé POSÉ en combat : l’entrée de `battle.log` porte `deFixe`', () => {
     ouvrirCombat();
     jouerSauvegarde(6);
-    expect(logDeCombat().find((e) => e.text.includes('sauvegarde'))!.text, 'la transparence du dé posé ne se perd pas en passant au journal de combat')
-      .toContain('(dé fixé)');
+    expect(logDeCombat().find((e) => e.entree.texte.includes('sauvegarde'))!.entree, 'la transparence du dé posé ne se perd pas en passant au journal de combat')
+      .toMatchObject({ deFixe: true });
   });
 
   it('F1’ — dé NATUREL : aucune mention (marquer à tort serait un mensonge)', () => {
     ouvrirCombat();
     jouerSauvegarde();
-    expect(logDeCombat()[0].text).not.toContain('dé fixé');
+    expect(logDeCombat()[0].entree.deFixe).toBeUndefined();
   });
 });

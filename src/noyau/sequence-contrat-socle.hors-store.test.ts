@@ -219,7 +219,7 @@ describe('#1479 — PARITÉ DE TRACE : le dé posé d’office par le curseur a 
     expect(finalisee!.participants[0].result?.roll, 'le BILAN montre le dé qui a été joué').toBe(de);
     // La ligne dérivée par le socle porte le couple dé/cible (`traceLineOf`) — assez précis pour
     // qu'une ligne de journal quelconque ne la simule pas.
-    const trace = get().journal.filter((l) => l.includes(`${de}/${pose.result!.target}`));
+    const trace = get().journal.filter((l) => l.texte.includes(`${de}/${pose.result!.target}`));
     expect(trace.length, `aucune ligne de journal pour le dé ${de} — un jet roulé par le socle serait muet`).toBe(1);
   });
 });
@@ -845,7 +845,7 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
     banc.getState().jetValider('incantation');
   }
 
-  const journal = () => banc.getState().battle!.log.map((l) => l.text);
+  const journal = () => banc.getState().battle!.log.map((l) => l.entree.texte);
   const etapes = () => banc.getState().pendingCascade!.participants.map((p) => `${p.kind}${p.committed ? '[C]' : ''}${p.table?.result ? '[R]' : ''}`);
 
   it('lanceur héros : l’étape d’incantation est validée et son Imparfaite reste montrée au joueur', () => {

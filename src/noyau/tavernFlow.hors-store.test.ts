@@ -146,7 +146,7 @@ describe('jouerALaTaverne', () => {
     banc.setState({ party: [a] });
     get().jouerALaTaverne(a.id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'humain' } });
     expect(get().sequence, 'aucune partie sans profil de coéquipier').toBeNull();
-    expect(get().journal.slice(-1)[0]).toContain('choisissez le profil de vos coéquipiers');
+    expect(get().journal.slice(-1)[0].texte).toContain('choisissez le profil de vos coéquipiers');
     get().jouerALaTaverne(a.id, { gameId: 'torchon', opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'elfe-haut-et-sylvain' });
     const p = activeSequence<{ opponentValue: number; allyValue: number }>(get)!.chargeUtile;
     expect([p.opponentValue, p.allyValue], 'Projectiles non acquis = CT : Humain 30 en face, Elfe 40 à vos côtés (LDB 77 l.13, l.45)').toEqual([30, 40]);
@@ -482,7 +482,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     get().jouerALaTaverne(a.id, { gameId: 'bras-de-fer', opponent: { kind: 'heros', id: b.id } });
     get().jetRegler('cascade', 'abandon', true);
     expect(get().tavernGames!.result!.detail).toBe(`${a.label} abandonne.`);
-    expect(get().journal[get().journal.length - 1]).toBe(`Le bras de fer — ${a.label} contre ${b.label}, perdu : ${a.label} abandonne.`);
+    expect(get().journal[get().journal.length - 1].texte).toBe(`Le bras de fer — ${a.label} contre ${b.label}, perdu : ${a.label} abandonne.`);
   });
 
   it('un État reçu en cours de partie fait perdre tout l’Avantage, et le journal le dit (LDB 16 l.7)', () => {
@@ -494,7 +494,7 @@ describe('Bras de fer (NADJ 16 l.34)', () => {
     const heros = get().party.find((h) => h.id === a.id)!;
     expect(hasCondition(heros, COND.extenue), 'Bonus d’Endurance 1 : Exténué à chaque tour sans vainqueur (NADJ 16 l.34)').toBe(true);
     expect(adv(a.id)).toBe(0);
-    expect(get().journal.some((l) => l.includes(`${a.label} perd tous ses Avantages.`))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes(`${a.label} perd tous ses Avantages.`))).toBe(true);
   });
 
   it('contre un HABITUÉ (sans fiche suivie) : son Avantage de camp entre dans SON jet figé, tenu par la même règle', () => {

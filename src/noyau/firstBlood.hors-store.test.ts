@@ -63,7 +63,7 @@ describe('Duel judiciaire — premier sang (#471, NADJ 06 l.175-177)', () => {
     const e = banc.getState().battle!.combatants.find((c) => c.id === E.id)!;
     expect(e.outOfRencontre).toBe(true);
     expect(e.exitReason).toBe('firstBlood');
-    expect(banc.getState().battle!.log.some((ev) => ev.text.includes('Premier sang'))).toBe(true);
+    expect(banc.getState().battle!.log.some((ev) => ev.entree.texte.includes('Premier sang'))).toBe(true);
     const over = checkBattleOver(banc.getState, banc.setState);
     draineCascade(banc.getState);
     expect(over).toBe(true);

@@ -144,7 +144,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     banc.getState().jetValider('cascade');
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.cible === ciblePsy.groupe('elfe') && p.active === true)).toBe(true);
-    expect(banc.getState().journal).toContain(t('out.cibleGrip', { name: nomDe(h), psych: psychologyLabel('animosite') }));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(t('out.cibleGrip', { name: nomDe(h), psych: psychologyLabel('animosite') }));
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -158,7 +158,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     const hero = banc.getState().party[0];
     expect((hero.psychState ?? []).some((p) => p.type === 'animosite' && p.active === true)).toBe(false);
     expect(hero.resilience).toBe(0);
-    expect(banc.getState().journal).toContain(t('out.cibleMaster', { name: nomDe(h), psych: psychologyLabel('animosite') }));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(t('out.cibleMaster', { name: nomDe(h), psych: psychologyLabel('animosite') }));
   });
 
   it('Détermination = immunité temporaire (LDB 17 l.59) : psychImmuneRoundsLeft posé, animosité inerte (≈ succès one-shot), -1 Détermination', () => {
@@ -232,7 +232,7 @@ describe('encounterPsychFlow — Psychologie à la rencontre HORS COMBAT (bandes
     expect((hb.psychState ?? []).some((p) => p.type === 'animosite' && p.active === true)).toBe(true);
     // Verdict PAR RANGÉE : chaque rangée porte SA conséquence (jamais un agrégat de bande).
     const done = banc.getState().journal;
-    expect(done.some((l) => /A .*insensible/.test(l))).toBe(true);
+    expect(done.some((l) => /A .*insensible/.test(l.texte))).toBe(true);
   });
 
   // Sonde du juge (L1) : une bande ne doit pas être SOURDE au seam `onOwnTestFailed` — MSRC 16 l.152-158

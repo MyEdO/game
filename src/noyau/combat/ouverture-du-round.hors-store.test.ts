@@ -55,7 +55,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     banc.getState().fenetreValider('debutDuRound');
     banc.reprendreLesEnAttente();
     const b = banc.getState().battle!;
-    expect(b.log.slice(avant).some((e) => /déclenche Tir rapide/.test(e.text)), 'les hooks de début de Round jouent').toBe(true);
+    expect(b.log.slice(avant).some((e) => /déclenche Tir rapide/.test(e.entree.texte)), 'les hooks de début de Round jouent').toBe(true);
     // Le tir d'interruption a pu ouvrir sa défense : on lit le tour posé, pas l'issue du tir.
     expect(b.order[b.turn]).toBe('protegee');
     expect(b.acted).toBe(false);
@@ -70,7 +70,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     const s = b.combatants.find((c) => c.id === sorciere.id)!;
     expect(s.wounds.current).toBe(0);
     expect(hasCondition(s, COND.inconscient)).toBe(true);
-    expect(b.log.some((e) => e.text === `${s.label} est mis hors de combat !`)).toBe(true);
+    expect(b.log.some((e) => e.entree.texte === `${s.label} est mis hors de combat !`)).toBe(true);
   });
 
   it('séquence en vol d’un autre `purpose` au franchissement : sa fermeture ouvre le Round, une fois', () => {

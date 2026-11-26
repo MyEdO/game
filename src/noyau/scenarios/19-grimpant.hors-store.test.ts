@@ -67,6 +67,6 @@ describe('Grimpant — l’araignée escalade (grimpant)', () => {
     const { spider } = startGrimpant();
     toursJusquAuPlateau(spider.id);
     const log = banc.getState().battle!.log;
-    expect(log.some((l) => l.text.includes('escalade la paroi sans effort'))).toBe(true);
+    expect(log.some((l) => l.entree.texte.includes('escalade la paroi sans effort'))).toBe(true);
   });
 });

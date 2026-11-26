@@ -124,7 +124,7 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
       expect(e.duration).toEqual({ scale: 'rounds', left: 3 });
       expect(e.spell!.spellId).toBe(CHAMON);
     }
-    expect(banc.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('gagne l’État Aveuglé');
+    expect(banc.getState().battle!.log.map((l) => l.entree.texte).join(' | ')).toContain('gagne l’État Aveuglé');
   });
 
   it('Mâchoires d’acier résolu automatiquement laisse le Sonné porté par Chamon', () => {
@@ -138,7 +138,7 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
 
     expect(stacks(vue(cible.id), 'sonne')).toBe(1);
     expect(derivedStacks(vue(cible.id), 'sonne')).toBe(1);
-    expect(banc.getState().battle!.log.map((l) => l.text).join(' | ')).toContain('Résistance');
+    expect(banc.getState().battle!.log.map((l) => l.entree.texte).join(' | ')).toContain('Résistance');
   });
 
   it('les trois tiennent Round après Round, puis partent TOUS le Round où le Sort expire', () => {

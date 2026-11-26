@@ -97,7 +97,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     banc.getState().jetValider('incantation');
 
     expect(banc.getState().pendingCascade).toBeNull();     // ennemi → jamais d'étape influençable
-    const log = banc.getState().battle!.log.map((e) => e.text).join('\n');
+    const log = banc.getState().battle!.log.map((e) => e.entree.texte).join('\n');
     expect(log).toMatch(/Dextérité/);                         // ligne de parité du Test (traceLineOf) — aucun jet silencieux
     expect(log).toMatch(/l’objet tenu tombe/);                // la branche ÉCHEC (narration) a bien été jouée inline
   });

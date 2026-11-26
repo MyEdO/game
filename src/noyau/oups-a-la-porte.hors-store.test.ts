@@ -39,7 +39,6 @@ import { serveChef } from './monde/shipPostes';
 import type { AttackResult } from '../engine/combat';
 import type { OupsResolved } from '../engine/oups';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { markFixedDie } from './fixedDieMark';
 import { battleRng, seedBattleRng } from './battleRng';
 import { makeRNG } from '../engine/dice';
 import { armeDePosteDeTest } from '../engine/objetsDeTest.testkit';
@@ -90,7 +89,7 @@ function poser(valeur: number): string {
 /** Ce que le joueur a lu — conséquences des étapes + journal de combat. */
 const lignesLues = (): string[] => [
   ...(banc.getState().pendingCascade?.participants ?? []).flatMap((s) => (s.outcome ?? []).map((l) => l.text)),
-  ...(banc.getState().battle?.log ?? []).map((l) => l.text),
+  ...(banc.getState().battle?.log ?? []).map((l) => l.entree.texte),
 ];
 
 /** Le héros `bretteur` rate son Test de Projectiles sur `jet` (LDB 14 l.19) contre `cible`, par le site de
@@ -255,7 +254,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
       lues.join(' | ')).toBe(true);
     // Le JOURNAL de combat, dans son ordre : la Maladresse, PUIS l'arme qu'elle brise (sans cette
     // seconde ligne, l'arme disparaît des mains du porteur sans qu'un mot ne le dise).
-    const journal = (banc.getState().battle?.log ?? []).map((l) => l.text);
+    const journal = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte);
     const iMaladresse = journal.findIndex((l) => /^bretteur — Maladresse !/.test(l));
     const iBrisee = journal.findIndex((l) => /Épée bâclée \(Bâclé\) se brise sur la Maladresse de bretteur\./.test(l));
     expect(iMaladresse, journal.join(' | ')).toBeGreaterThanOrEqual(0);
@@ -268,7 +267,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
     banc.getState().jetLancer('maladresse');
     banc.getState().jetValider('maladresse');
     poser(8);
-    const journal = (banc.getState().battle?.log ?? []).map((l) => l.text);
+    const journal = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte);
     const iSeuil = journal.findIndex((l) => /Épée bâclée ne résiste pas — Sauvegarde 1d10 : 8 < Solide \(9\+\)\./.test(l));
     const iMaladresse = journal.findIndex((l) => /^bretteur — Maladresse !/.test(l));
     const iBrisee = journal.findIndex((l) => /Épée bâclée \(Bâclé\) se brise sur la Maladresse de bretteur\./.test(l));
@@ -295,7 +294,7 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
       tirRateSur(44, arme);
       expect(etapesDeMaladresse(), 'aucune étape de Maladresse : le jet du tir décide').toEqual([]);
     };
-    const journal = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.text);
+    const journal = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.entree.texte);
     const detruite = (l: string): boolean => /se brise sur la Maladresse|arme détruite\.$/.test(l);
 
     it('dé RÉUSSI : l’arme tient contre les deux causes — une ligne de sauvegarde, aucune de destruction', () => {
@@ -318,7 +317,8 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
       expect([...vues.values()], 'UN dé, ouvert sur une arme encore entière — aucun sur une arme brisée').toEqual([false]);
       expect(brisee(arme)).toBe(true);
       expect(journal().filter((l) => /Sauvegarde 1d10/.test(l)), journal().join(' | ')).toHaveLength(1);
-      expect(journal().filter(detruite), journal().join(' | ')).toEqual([markFixedDie('Pistolet bâclé (Bâclé) se brise sur la Maladresse de bretteur.')]);
+      expect((banc.getState().battle?.log ?? []).map((l) => l.entree).filter((e) => detruite(e.texte)), journal().join(' | '))
+        .toEqual([{ sorte: 'ligne', texte: 'Pistolet bâclé (Bâclé) se brise sur la Maladresse de bretteur.', deFixe: true }]);
     });
   });
 
@@ -352,8 +352,8 @@ describe('Bâclé — le joueur applique sa Maladresse par le STORE (étape hôt
     banc.getState().jetValider('maladresse');
     expect(etapesDeCasse().length, 'sans Solide, aucun dé à la porte').toBe(0);
     expect(brisee(arme), 'Bâclé casse sur toute Maladresse (LDB 60 l.50)').toBe(true);
-    expect((banc.getState().battle?.log ?? []).map((l) => l.text).some((l) => /Épée bâclée \(Bâclé\) se brise sur la Maladresse de bretteur\./.test(l)),
-      (banc.getState().battle?.log ?? []).map((l) => l.text).join(' | ')).toBe(true);
+    expect((banc.getState().battle?.log ?? []).map((l) => l.entree.texte).some((l) => /Épée bâclée \(Bâclé\) se brise sur la Maladresse de bretteur\./.test(l)),
+      (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).join(' | ')).toBe(true);
     expect(banc.getState().pendingCascade, 'la Maladresse étant la seule étape, le curseur la referme').toBeNull();
   });
 });
@@ -393,7 +393,7 @@ describe('Incident de tir + Salve — la table est une ÉTAPE, servie après LA 
     poser(2); // ligne 1-4 : « La pièce d’artillerie est détruite » — une pièce DÉJÀ détruite
     expect(etapeCourante(), 'aucune 2ᵉ Sauvegarde Solide : `LDB 60 l.30` n’en accorde qu’une par cassure').toBeUndefined();
     expect(brisee(arme), 'la pièce est bien brisée').toBe(true);
-    const journal = (banc.getState().battle?.log ?? []).map((l) => l.text);
+    const journal = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte);
     expect(journal.filter((l) => /Sauvegarde 1d10/.test(l)).length, 'UNE seule ligne de seuil au journal').toBe(1);
   });
 
@@ -519,9 +519,9 @@ describe('la casse suspend le coup — mais la reprise rend EXACTEMENT ce que la
     banc.getState().jetLancer('maladresse');
     banc.getState().jetValider('maladresse');
     expect(banc.getState().battle!.acted, 'la reprise rend l’Action gratuite').toBe(false);
-    const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
+    const avant = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte);
     banc.getState().jetValider('cascade');
-    expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
+    expect((banc.getState().battle?.log ?? []).map((l) => l.entree.texte), 'une reprise de plus ne rejoue rien').toEqual(avant);
   });
 
   it('SANS siège MJ (partie solo) : la Maladresse et le dé de casse de la brute partent d’office, puis la Maladresse du héros, puis la suite, une fois', () => {
@@ -588,9 +588,9 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
       defenderDetail: { roll: 44, success: false, sl: -3 },
     } as unknown as AttackResult;
     const maladresses = (label: string): number =>
-      (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Maladresse !`)).length;
+      (banc.getState().battle?.log ?? []).filter((l) => l.entree.texte.startsWith(`${label} — Maladresse !`)).length;
     const sauvegardes = (label: string): number =>
-      (banc.getState().battle?.log ?? []).filter((l) => l.text.startsWith(`${label} — Sauvegarde Solide`)).length;
+      (banc.getState().battle?.log ?? []).filter((l) => l.entree.texte.startsWith(`${label} — Sauvegarde Solide`)).length;
     // Le frappeur piloté par l'IA ne voit pas : aucune case n'est vue du groupe, les lignes du rival le nomment du nom neutre (#4017).
     const nomDuRival = t('vision.horsDeVue');
 
@@ -623,9 +623,9 @@ describe('la SUITE du coup ne se joue qu’APRÈS le dé', () => {
     expect(journalDesEcritures[premiereSuite].maladressesDuDefenseur, 'la Maladresse du défenseur est écrite AVANT que la suite ne joue').toBe(1);
     expect(suitesJouees, 'la suite du coup s’exécute une seule fois').toBe(1);
 
-    const avant = (banc.getState().battle?.log ?? []).map((l) => l.text);
+    const avant = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte);
     banc.getState().jetValider('cascade');
-    expect((banc.getState().battle?.log ?? []).map((l) => l.text), 'une reprise de plus ne rejoue rien').toEqual(avant);
+    expect((banc.getState().battle?.log ?? []).map((l) => l.entree.texte), 'une reprise de plus ne rejoue rien').toEqual(avant);
     expect(maladresses(nomDuRival)).toBe(1);
     expect(suitesJouees, 'aucune seconde exécution de la suite').toBe(1);
     stop();
@@ -828,7 +828,7 @@ describe('Maladresse poussée sous le pilote immédiat : jamais validée sans so
     { id: 'coup', kind: cleDeFixture('coup'), actorId: heroId },
     { id: 'suite', kind: cleDeFixture('suite'), actorId: heroId },
   ];
-  const maladresses = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.text).filter((l) => /^bretteur — Maladresse !/.test(l));
+  const maladresses = (): string[] => (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).filter((l) => /^bretteur — Maladresse !/.test(l));
 
   it('héros TENU : la séquence parque sur la Maladresse non tirée ; lancer puis valider la franchit, tirage au journal', () => {
     banc.getState().ensemencerLeTirage(7);
