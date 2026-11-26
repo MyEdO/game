@@ -54,7 +54,10 @@ import { OP_DEFS, OPS_NON_TYPEES } from '../../../src/data/schemas/grammaire/mec
 import { enfantsDe, ouverts } from '../../../src/data/schemas/grammaire/descente';
 import { estFeuilleDId } from '../../../src/data/schemas/grammaire/ref';
 import { ENV_EPOQUE, ENV_TENU, gitDirContenant } from '../../docs/lib/ecrivain-derives.mjs';
-import { GitIndisponible, INDEX, TRONC, baseCommune, ceQuiChange, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe, type Depot } from './gitPorte.mjs';
+import {
+  GitIndisponible, INDEX, TRONC, baseCommune, ceQuiChange, fusionnesEnCours, journalDe, lireEnLot, listerImage, refusDeGit, shaDe,
+  type Depot,
+} from './gitPorte.mjs';
 import {
   DETTE_OPS, FEUILLES_D_ID, MOTIF_NON_TYPEE, SOUS_LA_PORTE, STRUCTURES_LOCALES, STRUCTURES_REDECLARATIONS, motifAPlat,
   type EntreeDeCompte, type SiteDeDetteDOp,

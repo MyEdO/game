@@ -719,16 +719,16 @@ export function fichiersSources() {
 }
 
 /** Le SEAM lui-même, DÉRIVÉ de ce que les fichiers DÉCLARENT — jamais une liste de chemins. Un
- *  fichier NON-test est le seam s'il DÉFINIT `bumperDataset` (le versionneur d'écriture) ou s'il
- *  l'IMPORTE (l'écrivain : muter en place et versionner est son métier). Ces deux-là PORTENT la
+ *  fichier NON-test est le seam s'il DÉFINIT un versionneur d'écriture (`bumperDataset`, `bumperLesRegles`) ou s'il
+ *  en IMPORTE un (l'écrivain : muter en place et versionner est son métier). Ces deux-là PORTENT la
  *  mécanique que les gardes d'index et d'écriture cherchent chez les autres : les y chercher rendrait
  *  la garde fausse. Un INSTRUMENT Vitest — suite ou banc, `estFichierVitest` — ou un kit (`estKitDeTest`) n'est jamais le
  *  seam : il en parle, il ne le porte pas. */
 let _seam = null;
 export function fichiersDuSeam() {
   if (_seam) return _seam;
-  const definit = /export\s+function\s+bumperDataset\b/;
-  const importe = /import\s*\{[^}]*\bbumperDataset\b[^}]*\}\s*from/;
+  const definit = /export\s+function\s+bumper(?:Dataset|LesRegles)\b/;
+  const importe = /import\s*\{[^}]*\bbumper(?:Dataset|LesRegles)\b[^}]*\}\s*from/;
   const out = new Set();
   for (const chemin of fichiersSources()) {
     if (estFichierVitest(chemin) || estKitDeTest(chemin)) continue;
