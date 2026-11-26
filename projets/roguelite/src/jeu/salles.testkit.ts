@@ -1,4 +1,6 @@
 import { expect } from 'vitest';
+import { applyZeroWounds } from '../../../../src/engine/conditions';
+import type { Combatant } from '../noyau';
 import { avancer, herosDuGroupe, nouvellePartie, partir, recrue, PROFILS, type Etat, type RecitDeSalle, type Salle, type TypeDeSalle } from './index';
 
 /** Une partie à la graine `graine` partie au Reikwald avec ses `renforts` (carrières du roster), ses premières salles
@@ -26,3 +28,6 @@ export const recit = (r: RecitDeSalle | string): RecitDeSalle => { if (typeof r 
 
 /** Les Blessures courantes de chaque héros du groupe, par id. */
 export const blessures = (e: Etat) => new Map(herosDuGroupe(e).map((h) => [h.c.id, h.c.wounds.current]));
+
+/** Le héros `c` tombé à 0 Blessure, par la couture du moteur. LDB 18 l.15 */
+export const tomber = (c: Combatant) => { c.wounds.current = 0; applyZeroWounds(c, { lignes: [], faits: [] }); };
