@@ -139,7 +139,7 @@ function schemasInferes(checker, decl) {
 
 /** Fichiers des MODULES de def dont la déclaration de la cible DÉRIVE son entrée : les `typeof d` d'un
  *  import d'espace de noms que porte le nœud de type d'un alias (`type StakeEntry = EntreeDe<typeof
- *  stakesDef>`, `src/data/datasets.ts`). Vide pour une `interface`/`class`. */
+ *  stakesDef>`, `src/data/schemas/datasets.ts`). Vide pour une `interface`/`class`. */
 function modulesDerives(checker, decl) {
   const out = new Set()
   if (!ts.isTypeAliasDeclaration(decl) || !decl.type) return out

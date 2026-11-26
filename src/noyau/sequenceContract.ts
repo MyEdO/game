@@ -20,7 +20,7 @@
  * vocabulaire (borne dure, issue réservée, `purpose` de fenêtre) — ce sur quoi les deux côtés
  * s'accordent.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { Get, Set } from './flowTypes';
 import type { PendingCascade } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';

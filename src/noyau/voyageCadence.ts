@@ -10,7 +10,7 @@
  * `rollTest` inline). Décision requise = modale/cascade ; routine = sa ligne, au journal (au PV pour les bandes d'un
  * jour de mer).
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import { findCrewRoleById, refLabel, type StakeRef } from '../data';

@@ -21,7 +21,7 @@
 import { writeFileSync } from 'node:fs'
 import { readText } from './_lib.mjs'
 import { estLigneDeTable, sansJeton } from './lib/mobilier.mjs'
-import { cellulesDe, estSeparateur } from '../../src/data/source/decoupe.ts'
+import { cellulesDe, estSeparateur } from '../../src/data/schemas/source/decoupe.ts'
 import { sitesDuLivre } from './sonde-mobilier.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 

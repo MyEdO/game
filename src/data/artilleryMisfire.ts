@@ -1,5 +1,5 @@
 import artilleryMisfireJson from './artillery-misfire.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './schemas/rangees';
 import type { DeDeTable } from '../engine/tables';
 import { formatDice } from '../engine/dice';
 import type * as incidentsDeSalve from './schemas/defs/artillery-misfire';

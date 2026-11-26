@@ -111,13 +111,15 @@ déclare les seules zones du dépôt.
 | Zone | Rôle | Importe |
 |---|---|---|
 | `lib`, `geometry`, `i18n` | feuilles | rien d'autre sous `src/` |
-| `engine` | règles WFRP pures | `data`, feuilles |
-| `data` | base app-owned et son chargement | `engine`, feuilles |
-| `noyau` | orchestration pure : (état, intention) → (état, journal, événements) ; modèle du monde (`noyau/monde/`) ; outils d'auteur purs que lisent le contenu et l'éditeur ; modèles-vues que tout hôte dessine | `engine`, `data`, feuilles |
-| `scenes` | contenu de campagne | `noyau`, `data`, `engine`, feuilles |
+| `engine` | règles WFRP pures | `data`, `schemas`, feuilles |
+| `data` | base app-owned et son chargement | `engine`, `schemas`, feuilles |
+| `schemas` (`src/data/schemas/`) | contrat de la donnée : grammaire, defs, types d'ids, catalogue, et les modules purs de `src/data` (dessins, sons, source, sérialisation, types de dataset) | `engine`, `data` (#5069), feuilles |
+| `noyau` | orchestration pure : (état, intention) → (état, journal, événements) ; modèle du monde (`noyau/monde/`) ; outils d'auteur purs que lisent le contenu et l'éditeur ; modèles-vues que tout hôte dessine | `engine`, `data`, `schemas`, feuilles |
+| `scenes` | contenu de campagne | `noyau`, `data`, `schemas`, `engine`, feuilles |
 | `hote` | module commun aux hôtes du noyau, et leurs services d'hôte : entropie, stockage web | la porte du noyau, `scenes`, feuilles |
 | `texte` (`hotes/texte/`), `godot` (`hotes/godot/`) | affichages : hôte texte (MCP), hôte Godot | les droits de `hote`, et `hote` |
-| `roguelite` (`projets/roguelite/`) | projet : le roguelite | les droits d'un projet (`DROITS_D_UN_PROJET` : ceux des affichages, sans `scenes`), plus ses ouvertures : `engine` (#4932), `data` et `scenes` (#4933), le `noyau` hors de sa porte (#4931) |
+| `roguelite` (`projets/roguelite/`) | projet : le roguelite | les droits d'un projet (`DROITS_D_UN_PROJET` : ceux des affichages, sans `scenes`), plus ses ouvertures : `engine` (#4932), `data`, `schemas` et `scenes` (#4933), le `noyau` hors de sa porte (#4931) |
+| `jeu-de-role` (`projets/jeu-de-role/`) | projet : le jeu de rôle | les droits d'un projet, plus l'affichage `godot`, plus ses ouvertures : le `noyau` hors de sa porte (#5005), `engine` (#5006), `data`, `schemas` et `scenes` (#5007) |
 | racine de `src/` | tests transverses et leur préparation | toutes les zones, hors des projets |
 
 - **Un projet est fermé** (#4903 H3) : aucune autre zone ne l'importe, ni en exécution ni en type, ni par
@@ -240,9 +242,6 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable au Co
                             mutations.ts (Tableaux de Corruption LDB 19). Les métadonnées de résolution
                             des sorts vivent dans SpellData (spells.json) — l'ancien registre spellspecs/
                             et le repli regex sont SUPPRIMÉS (Migration #5)
-                            UNION d'ids GÉNÉRÉE (`icones.generated.ts`, `IconIdGenerated`) : écrite par
-                            `npm run gen` à part du registre `src/data/icons/defs/`, par l'option
-                            `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
                             VOCABULAIRES D'ART GÉNÉRÉS (`_vocabulaires-d-art.generated.ts`) :
                             l'option `vocabulaire` d'un registre TS d'art (même fichier) projette ses
                             defs en table `id → libellé`, espace `vocabulaire:<nom>` de l'index des ids
@@ -258,12 +257,6 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable au Co
                             (#1692) ; deux gardes structurelles le tiennent : `index-vivant-guard.test.ts`
                             (aucun index figé à l'import sur un dataset du seam) et
                             `seam-ecriture-guard.test.ts` (aucun `push`/`splice` hors `overrides.ts`)
-                            VUES TS de dataset (`<dataset>.types.ts`) : elles portent aussi les types
-                            que la donnée compose sans dépendre du rendu
-                            (#2884) — `materials.types.ts` (`DetailRecipe`, `MaterialRef` lus par le
-                            rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
-                            `structureAppearance.types.ts` (`WALL_PARTS`),
-                            `ambiance.types.ts` (`Visibility`)
                             VALEURS NEUVES de l'atelier qui ne lisent que schémas et donnée
                             (`valeursNeuves.ts`) : le défaut d'une union fermée est son premier membre, lu au schéma
   schemas/                    CONTRAT de la donnée. Chaque dataset a UN def (`defs/<nom>.ts`,
@@ -280,24 +273,33 @@ src/data/                   NOTRE base APP-OWNED (JSON commité, éditable au Co
                               consommateurs — jamais un Record de libellés côté UI (cliquet
                               `grammaire/records-de-libelles.test.ts`).
                               Détail : `docs/donnees.md` §E-bis
-  source/                     Parseur de DÉCOUPE des chapitres de `Source/` (`decoupe.ts` : sections,
-                              blocs, folios, empreinte `sumOf`, résolution d'une adresse `DescRef`) +
-                              `normalize.ts` (normalisation de citation, source unique partagée avec
-                              `scripts/raw/_lib.mjs`). Module PUR : chargé tel quel par Node nu
-                              (`scripts/source/*.mjs`) et par vitest — d'où les imports internes à
-                              extension explicite ; sans entrée/sortie, donc chargeable par le navigateur.
-                              Le chemin JOUEUR ne résout RIEN : la prose adressée est MATÉRIALISÉE au
-                              build par le plugin Vite `scripts/source/prose-source-plugin.mjs`, qui
-                              l'injecte sous `desc` dans le module JSON servi. Invariant « hors Vite =
-                              forme disque » : un script Node lit une entrée adressée SANS `desc` — les
-                              consommateurs Node de prose sont inventoriés par
-                              `scripts/source/inventaire-consommateurs-prose.mjs` et câblés sur
-                              `materialiser` (`scripts/source/resoudre.mjs`) à la migration de leur famille.
-                              Godot sert les chapitres à son éditeur d’adresses.
+                              UNION d'ids GÉNÉRÉE (`icones.generated.ts`, `IconIdGenerated`) : écrite par
+                              `npm run gen` à part du registre `src/data/schemas/icons/defs/`, par l'option
+                              `idUnion.out` (`scripts/docs/lib/cibles-registres.mjs`), jamais éditée
+                              VUES TS de dataset (`<dataset>.types.ts`) : elles portent aussi les types
+                              que la donnée compose sans dépendre du rendu
+                              (#2884) — `materials.types.ts` (`DetailRecipe`, `MaterialRef` lus par le
+                              rendu ; `Grade`, lien vertical lu par le noyau pour le déplacement),
+                              `structureAppearance.types.ts` (`WALL_PARTS`),
+                              `ambiance.types.ts` (`Visibility`)
+    source/                     Parseur de DÉCOUPE des chapitres de `Source/` (`decoupe.ts` : sections,
+                                blocs, folios, empreinte `sumOf`, résolution d'une adresse `DescRef`) +
+                                `normalize.ts` (normalisation de citation, source unique partagée avec
+                                `scripts/raw/_lib.mjs`). Module PUR : chargé tel quel par Node nu
+                                (`scripts/source/*.mjs`) et par vitest — d'où les imports internes à
+                                extension explicite ; sans entrée/sortie, donc chargeable par le navigateur.
+                                Le chemin JOUEUR ne résout RIEN : la prose adressée est MATÉRIALISÉE au
+                                build par le plugin Vite `scripts/source/prose-source-plugin.mjs`, qui
+                                l'injecte sous `desc` dans le module JSON servi. Invariant « hors Vite =
+                                forme disque » : un script Node lit une entrée adressée SANS `desc` — les
+                                consommateurs Node de prose sont inventoriés par
+                                `scripts/source/inventaire-consommateurs-prose.mjs` et câblés sur
+                                `materialiser` (`scripts/source/resoudre.mjs`) à la migration de leur famille.
+                                Godot sert les chapitres à son éditeur d’adresses.
   hash.ts                     Hachage déterministe partagé (`hash32` FNV-1a, `seedStream`) : empreinte
                               de découpe et flux de graines.
 scripts/source/             Le côté NODE de la chaîne d'adressage de prose — entrées/sorties seulement,
-                            le parsing vit dans `src/data/source/decoupe.ts` (PUR). `lecteur-fs.mjs` rend
+                            le parsing vit dans `src/data/schemas/source/decoupe.ts` (PUR). `lecteur-fs.mjs` rend
                             le chemin d'un chapitre (`cheminChapitre`), le lit et le mémorise, résolu à la
                             racine du dépôt d'où que le processus soit lancé ; `resoudre.mjs` porte les deux
                             portes FAIL-CLOSED (`resoudreProse` pour UNE entrée, `materialiser` pour une

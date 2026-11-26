@@ -23,7 +23,7 @@ import { chebyshev } from '../../engine/grid';
 import { isHeld } from '../../engine/weaponLoad';
 import { effectiveTalents, type PorteurDeTalents } from '../../engine/talentEffects';
 import { findLightLevelById, findTraitById, findPropById } from '../../data';
-import { rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/props.types';
+import { rotatePropLocal, CAP_IDENTITE_PROP, type PropData } from '../../data/schemas/props.types';
 import { memoByRef } from './sceneMemo';
 
 /** Un observateur : sa case, son rayon de vue (cases éclairées qu'il distingue) et sa portée de
@@ -55,7 +55,7 @@ export interface LightSource {
    *  le rendu le résout. Absent = `flamme`. */
   tone?: string;
   /** FOYER de la source, RELATIF à `pos` : depuis l'ancre du décor (`ancreDuDecor`, calage compris), le centre de
-   *  la primitive que sa recette déclare émettrice (`PropPrimitive.emet`, `data/props.types.ts`), sinon l'ancre à la
+   *  la primitive que sa recette déclare émettrice (`PropPrimitive.emet`, `data/schemas/props.types.ts`), sinon l'ancre à la
    *  hauteur par défaut (`FLAME_LIFT_M`), surélevée de son appui (`piedDuDecor`). `x`/`y` en CASES, `h` en MÈTRES
    *  au-dessus du sol de la case — les mêmes unités que le MONDE, et il subit ICI la MÊME transformation rigide
    *  que la géométrie (division du plan par le `metresPerTile` de la scène, puis `rotatePropLocal` au cap
@@ -195,7 +195,7 @@ export const FLAME_LIFT_M = 1;
  *    une empreinte 2×2 la décale d'une demi-case sur chaque axe, et une lampe calée sur `pos` seul s'en détacherait
  *    de 1,414 m ;
  *  - son PIED (`piedDuDecor`) : une lampe posée sur une table éclaire depuis le dessus de la table ;
- *  - la ROTATION au cap de l'instance (`rotatePropLocal`, `data/props.types.ts`), l'unique définition
+ *  - la ROTATION au cap de l'instance (`rotatePropLocal`, `data/schemas/props.types.ts`), l'unique définition
  *    de ce que `SceneEntity.facing` fait subir à une géométrie de décor.
  * Aucun n'est recalculé ici : un second calcul d'offset divergerait au premier changement d'ancrage, et c'est
  * précisément ce que ce foyer ne doit pas pouvoir faire.

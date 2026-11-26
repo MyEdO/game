@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { propRefPatch } from './sceneEdit';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { findPropById } from '../data';
-import { empreinteDuProp } from '../data/props.types';
+import { empreinteDuProp } from '../data/schemas/props.types';
 
 describe('propRefPatch — l’action de FOUILLE pré-armée à la pose d’un décor `searchable`', () => {
   it('décor searchable sans action → pré-arme une action `fouiller` à Flow vide, jouable une fois', () => {

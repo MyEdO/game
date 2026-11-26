@@ -1,5 +1,5 @@
 import structureCriticalsJson from './structure-criticals.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './schemas/rangees';
 import type * as critiquesDeStructure from './schemas/defs/structure-criticals';
 import type { DeDeTable } from '../engine/tables';
 

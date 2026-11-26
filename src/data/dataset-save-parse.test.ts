@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { DATASET_KEYS, datasetEditable, datasetFile, datasetObject, datasetObjectSerializeRoot, datasetSerializeRoot, resetData } from './overrides';
 import { validateDataset } from './schemas/validate';
-import { serializeDataset } from './serialize';
+import { serializeDataset } from './schemas/serialize';
 import { versDisque } from './schemas/grammaire/prose';
 
 /**

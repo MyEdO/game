@@ -7,13 +7,13 @@
  * Une marche dupliquée entre le geste et sa garde, c'est une garde qui mesure autre chose que le geste.
  *
  * Module ESM chargé par Node nu — typé par `skillSpecWalk.d.mts`. Ses imports hors `node:` sont la
- * maison du NUMÉRO DE CHAPITRE (`src/data/source/decoupe.ts`) et le repli des libellés
+ * maison du NUMÉRO DE CHAPITRE (`src/data/schemas/source/decoupe.ts`) et le repli des libellés
  * (`src/lib/normalize.ts`), modules PURS à syntaxe effaçable que le dépôt charge tels quels sous Node
  * nu comme sous vitest.
  */
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { estNomDExtraction, numeroDuFichier } from '../../../src/data/source/decoupe.ts';
+import { estNomDExtraction, numeroDuFichier } from '../../../src/data/schemas/source/decoupe.ts';
 import { norm } from '../../../src/lib/normalize.ts';
 
 /** Sentinelle « (Au choix) » : un emplacement de spéc, pas une spéc. */

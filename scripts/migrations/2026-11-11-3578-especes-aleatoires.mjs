@@ -26,7 +26,7 @@
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const SPECIES = join(ROOT, 'src/data/species.json');

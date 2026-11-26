@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findSpellById, spells, type SpellData } from '../data';
 import { setDataset } from '../data/overrides';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { t } from '../i18n';

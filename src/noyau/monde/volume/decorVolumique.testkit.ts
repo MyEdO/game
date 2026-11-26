@@ -3,7 +3,7 @@
  * contrat de la donnée (`props-volumiques.test.ts`, ce dossier).
  */
 import { findPropById, props } from '../../../data';
-import { empriseLocaleM, placeAssiseDe, type PropPrimitive } from '../../../data/props.types';
+import { empriseLocaleM, placeAssiseDe, type PropPrimitive } from '../../../data/schemas/props.types';
 import { emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../scene';
 
 /** Les refs du catalogue, chacune à recette (#3198) : une recette de plus entre sous contrat par sa seule déclaration. */

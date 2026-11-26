@@ -3,7 +3,7 @@
 // exactement son texte (section disparue, bornes bougées, empreinte divergente…) LÈVE, jamais un
 // texte approchant ni un silence. `desc` et `descRef` sont EXCLUSIFS : les deux ensemble = adresse
 // et copie en concurrence, donc levée.
-import { resoudreAdresse } from '../../src/data/source/decoupe.ts'
+import { resoudreAdresse } from '../../src/data/schemas/source/decoupe.ts'
 import { cheminChapitre, lireChapitre } from './lecteur-fs.mjs'
 
 /**

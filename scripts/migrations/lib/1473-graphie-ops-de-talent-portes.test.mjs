@@ -4,7 +4,7 @@
  * réfs de Talent d'axe (`axes.json › [].talents[]`) de `{ talentId, spec? }` à `{ id, spec? }`.
  *
  * La migration est jouée sur un dépôt JETABLE (`./joue.mjs`), une fois par scénario, avec la primitive
- * qu'elle importe (`src/data/graphieOpsDeTalent.ts`, COPIÉE de l'arbre) : migration réelle, idempotence,
+ * qu'elle importe (`src/data/schemas/graphieOpsDeTalent.ts`, COPIÉE de l'arbre) : migration réelle, idempotence,
  * op à deux graphies, réf d'axe à deux graphies, formatage non canonique. Les rouges d'avant-écriture
  * exigent sortie 1, message NOMINATIF et ZÉRO fichier touché. FIXTURES FABRIQUÉES, état d'arrivée écrit
  * à la main.
@@ -18,7 +18,7 @@ import { FORME_DATA, serialise } from './croissance.mjs';
 import { depot, efface, joue, lireDans, refuse, rienTouche } from './joue.mjs';
 
 const MIGRATION = '2026-09-24-1473-graphie-ops-de-talent.mjs';
-const COPIES = ['src/data/graphieOpsDeTalent.ts'];
+const COPIES = ['src/data/schemas/graphieOpsDeTalent.ts'];
 const TRAITS = 'src/data/traits.json';
 const AXES = 'src/data/axes.json';
 

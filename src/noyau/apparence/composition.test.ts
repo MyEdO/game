@@ -30,7 +30,7 @@ import { resetData, setDataset } from '../../data/overrides';
 import { CLES_ENVELOPPE } from '../../data/schemas/grammaire/document';
 import { file as FICHIER_DES_PRESETS, meta as metaDesPresets } from '../../data/schemas/defs/presets-de-personnage';
 import { noeudDuChamp } from '../../data/schemas/validate';
-import { serializeDataset } from '../../data/serialize';
+import { serializeDataset } from '../../data/schemas/serialize';
 import { BUILD_NEUTRE } from '../../lib/corpulence';
 import { piecesDEnsemble } from './gardeRobe';
 

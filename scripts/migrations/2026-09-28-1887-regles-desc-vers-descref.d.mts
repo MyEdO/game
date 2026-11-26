@@ -1,4 +1,4 @@
-import type { DescRef } from '../../src/data/source/decoupe.ts';
+import type { DescRef } from '../../src/data/schemas/source/decoupe.ts';
 
 export interface CibleFigee { ch: string; parts: { sec: string; secOcc: number; b0: number; finSec?: string; finSecOcc?: number; b1: number }[] }
 export const FICHIER: string;

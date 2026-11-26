@@ -9,7 +9,7 @@
  * - sinon rien : une case à ciel ouvert n'a pas de plafond.
  */
 import { findPropById } from '../../data';
-import { empriseLocaleM } from '../../data/props.types';
+import { empriseLocaleM } from '../../data/schemas/props.types';
 import { heightAt, tileAt, sceneMetresPerTile, type Scene, type SceneEntity } from './scene';
 import { propFootTiles } from './footprint';
 import { fieldHeightAt, massCovers, resolveNappes } from './volume/toits';

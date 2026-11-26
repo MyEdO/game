@@ -15,8 +15,8 @@
 //          (paquet ou prompt sur la sortie standard, tailles sur la sortie d'erreur)
 import { readFileSync } from 'node:fs'
 import { ORIGINES, cleDAdresse, livreDuReleve, nomme, releve } from './releve.mjs'
-import { couvertureDe, estErreur, estSeparateur, resoudreAdresse, unitesDe } from '../../src/data/source/decoupe.ts'
-import { debutDePhrase, finDePhrase } from '../../src/data/source/renvoi.ts'
+import { couvertureDe, estErreur, estSeparateur, resoudreAdresse, unitesDe } from '../../src/data/schemas/source/decoupe.ts'
+import { debutDePhrase, finDePhrase } from '../../src/data/schemas/source/renvoi.ts'
 import { parUnitesDeCode } from '../../src/lib/ordre.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 

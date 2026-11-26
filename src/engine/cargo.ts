@@ -10,7 +10,7 @@
 import type { FabriqueDId } from './fabriqueDId';
 import type { SansMarqueNonAffichable } from '../i18n/playerText';
 import cargoesJson from '../data/cargoes.json';
-import { datasetDe, type EntreeDe } from '../data/datasets';
+import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import type * as cargoesDef from '../data/schemas/defs/cargoes';
 import { memoParVersion } from '../data/versionDataset';
 import { cargaisonsAleatoires, landCargo, seaCargo } from '../data';

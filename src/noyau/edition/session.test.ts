@@ -47,7 +47,7 @@ import { addArchitectureBody, addFacadeFeature, addFacadeSection, avecLaValeurDu
 import { peripetieNeuve, portNeuf } from '../worldMapEdit';
 import { ciblesDAncreDeBataille } from '../massBattleFlow';
 import { apparencesDeLOuverture } from '../monde/facades';
-import { allMusicDefs } from '../../data/sons/musique';
+import { allMusicDefs } from '../../data/schemas/sons/musique';
 import {
   capsOfferts,
   choixDuChamp,

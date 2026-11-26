@@ -427,7 +427,7 @@ async function rendu(): Promise<{ textes: Map<string, string>; table: Map<string
   const catalogue =
     GENERE +
     `// Régénérer : \`npm run gen\` (une collection par document de \`SCHEMA_DEFS\`).\n` +
-    `import type { DatasetDe } from ${litteralJs(specificateur(SORTIE_CATALOGUE, 'src/data/datasets'))};\n` +
+    `import type { DatasetDe } from ${litteralJs(specificateur(SORTIE_CATALOGUE, 'src/data/schemas/datasets'))};\n` +
     `import type { RuleValue } from ${litteralJs(specificateur(SORTIE_CATALOGUE, 'src/engine/policy'))};\n` +
     documents.map((d, i) => `import type * as d${i} from ${litteralJs(specificateur(SORTIE_CATALOGUE, d.def))};\n`).join('') +
     `\n` +

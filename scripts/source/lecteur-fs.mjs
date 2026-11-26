@@ -1,5 +1,5 @@
 // Lecteur de chapitres du `Source/` sur le DISQUE : la seule entrée/sortie de la chaîne de découpe.
-// Le parsing lui-même vient de `src/data/source/decoupe.ts` (source unique, pure) — ce module ne fait
+// Le parsing lui-même vient de `src/data/schemas/source/decoupe.ts` (source unique, pure) — ce module ne fait
 // que résoudre `bookId → dossier → fichier de chapitre`, lire le texte (CRLF-robuste, `readText`) et
 // mémoriser le chapitre parsé. Le `dir` d'un livre est relatif à la racine du dépôt (`books.json`) :
 // listages et lectures s'y résolvent, d'où que le processus soit lancé (#3120).
@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { livreExtraitDe } from './registre-livres.mjs'
-import { fichierDuChapitre, parseChapitre, prefixesDeChapitres } from '../../src/data/source/decoupe.ts'
+import { fichierDuChapitre, parseChapitre, prefixesDeChapitres } from '../../src/data/schemas/source/decoupe.ts'
 import { cheminDuDepot } from './adresses.mjs'
 
 // Lecture CRLF-robuste (#604) -- SOURCE UNIQUE de lecture texte pour tout fichier Source/**/docs/raw/** :
@@ -62,7 +62,7 @@ export function fichierChapitre(bookId, ch) {
 /**
  * Chapitre PARSÉ (avec cache), ou `null` si le livre ou le fichier n'existe pas.
  * @param {string} bookId @param {string|number} ch
- * @returns {import('../../src/data/source/decoupe.ts').ChapitreParse | null}
+ * @returns {import('../../src/data/schemas/source/decoupe.ts').ChapitreParse | null}
  */
 export function lireChapitre(bookId, ch) {
   const key = `${bookId}|${ch}`
@@ -75,8 +75,8 @@ export function lireChapitre(bookId, ch) {
 
 /**
  * Chapitres PARSÉS d'un livre, dans l'ordre des chapitres — la forme que `indexerLivre`
- * (`src/data/source/renvoi.ts`) indexe. @param {string} bookId
- * @returns {{ fichier: string, parse: import('../../src/data/source/decoupe.ts').ChapitreParse }[]}
+ * (`src/data/schemas/source/renvoi.ts`) indexe. @param {string} bookId
+ * @returns {{ fichier: string, parse: import('../../src/data/schemas/source/decoupe.ts').ChapitreParse }[]}
  */
 export const chapitresParses = (bookId) =>
   chapitresDe(bookId).map((ch) => ({ fichier: fichierChapitre(bookId, ch), parse: lireChapitre(bookId, ch) }))

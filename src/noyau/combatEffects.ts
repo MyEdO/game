@@ -1,4 +1,4 @@
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import { libelleEffet, type Effect, type Flow } from '../data/schemas/defs-scenes/effets';
 import { cibleDeFeuilleSchema } from '../data/schemas/grammaire/mecanique';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';

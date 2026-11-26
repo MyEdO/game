@@ -3,7 +3,7 @@
  *  (`campagneDuPaquet`) ; la jouer ou l'ouvrir dans l'éditeur fait passer le paquet entier par `parseProject` AU GESTE
  *  (#1692), comme une entrée de bibliothèque (`campagneDUneEntree`). */
 import { z } from 'zod';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import { parseProject, ProjetRefuse, type ProjectDoc, type ProjectIdentite } from './worldMap';
 import { campagneDuDocument, type CampagneLancee } from './persistance/bibliotheque';
 import { projetDoc } from '../data/schemas/defs-scenes/projet';

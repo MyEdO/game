@@ -14,7 +14,7 @@
  *    la nuit : l'abri insère les jets d'Exposition). RAW : « chaque Personnage bénéficie d'une Activité
  *    par Étape » (l.131) ; un échec octroie un Exténué (l.133).
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import { battleRng } from './battleRng';
 import {
   travelActivitySpec, aggregateActivityOutcomes, activityById,

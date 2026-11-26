@@ -1071,7 +1071,7 @@ describe('narratifSchema — un id VIDE est refusé dans les QUATRE registres, c
 /**
  * `couvre` (#2290, `couvreSchema` de `./communs.ts`) — le lien d'un élément du paquet vers les entrées de
  * fiche de dossier de chapitre, posé sur CHAQUE porteur du projet : une liste d'identifiants globaux
- * `ID_D_ENTREE` (`src/data/source/dossier.ts`), sans doublon, refusée au chemin du porteur.
+ * `ID_D_ENTREE` (`src/data/schemas/source/dossier.ts`), sans doublon, refusée au chemin du porteur.
  */
 describe('`couvre` (#2290) — sur chaque porteur du projet', () => {
   const FLOW = { kind: 'sequence', etapes: [] };

@@ -5,7 +5,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { findPropById } from '../../data/index';
-import { empreinteDuProp } from '../../data/props.types';
+import { empreinteDuProp } from '../../data/schemas/props.types';
 import { normalizeScene, emptyScene, sceneMetresPerTile, type Scene, type SceneEntity } from '../../noyau/monde/scene';
 import { entityBlockedAt } from '../../noyau/monde/sceneRules';
 import { buildOperaFloorplan } from './floorplan';

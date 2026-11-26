@@ -431,7 +431,7 @@ export const CONCEPTS: readonly Concept[] = [
   },
   // Les deux formes de l'ADRESSE de prose (#1389) passent AVANT `formule` et `source`, et l'ordre
   // décide : un fragment porte `sum` (l'empreinte du passage résolu, `sumOf` de
-  // `src/data/source/decoupe.ts`) que le concept `formule` réclamerait, et l'adresse porte `book`
+  // `src/data/schemas/source/decoupe.ts`) que le concept `formule` réclamerait, et l'adresse porte `book`
   // que le concept `source` réclamerait. Ni l'une ni l'autre n'est une divergence : c'est la forme
   // que le parseur PRODUIT et que `descRefSchema` (`grammaire/valeurs.ts`) refuse autrement.
   // Les deux noyaux sont EXHAUSTIFS (aucun `noyauMin`), donc rien d'autre ne s'y range : `book`,

@@ -16,7 +16,7 @@ import { overcastAxesFor, type OvercastAxis } from '../engine/overcast';
 import { castAfterCrit, castOvercastBudget } from '../engine/magic';
 import { castOvercastAxes, aiOvercastPlan } from './combatFlow';
 import { REGLAGE_DE_L_AXE } from './reglagesDuJet';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 

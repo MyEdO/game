@@ -236,7 +236,8 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
     },
     reprojeterLEquipement: () => {
       brancheePour('reprojeterLEquipement');
-      set(patchDeLEquipement(get()) ?? {});
+      const patch = patchDeLEquipement(get());
+      if (patch) set(patch);
     },
     recomposer: (catalogue) => {
       brancheePour('recomposer');

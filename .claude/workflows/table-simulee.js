@@ -24,7 +24,7 @@ const PERSONAS = Array.isArray(input.personas) ? input.personas.map(String) : ['
 const WORKTREE = String(input.worktree || '')
 const DATE = String(input.date || '')
 const DOSSIER = input.dossier && typeof input.dossier === 'object' ? input.dossier : null
-/** La forme projetée du `type` d'un point au MJ (`ficheDeDossier`, src/data/source/dossier.ts) : `{ enum, description }`. */
+/** La forme projetée du `type` d'un point au MJ (`ficheDeDossier`, src/data/schemas/source/dossier.ts) : `{ enum, description }`. */
 const TYPE_DE_POINT_AU_MJ = input.typeDePointAuMJ && typeof input.typeDePointAuMJ === 'object' && Array.isArray(input.typeDePointAuMJ.enum) ? input.typeDePointAuMJ : null
 
 /** Le jeu de chaque persona — la clé est l'id passé en `args.personas`. */
@@ -48,7 +48,7 @@ const DERNIERS_ECHANGES = 3
 /** Plafond par beat du dossier quand `args.maxEchanges` est absent. Mesure #1993 (EDO 01, 2026-09-29) : ≈2 échanges
  *  par beat atteint, MJ sans plafond ; 3 laisse la marge d'un beat qui en prend beaucoup plus. */
 const ECHANGES_PAR_BEAT = 3
-/** Ce que la fiche du MJ tire de la fiche de dossier du chapitre (`ficheDeDossier`, `src/data/source/dossier.ts`). */
+/** Ce que la fiche du MJ tire de la fiche de dossier du chapitre (`ficheDeDossier`, `src/data/schemas/source/dossier.ts`). */
 const CHAMPS_DE_LA_FICHE = ['imperatifs', 'beats', 'pnj', 'indices', 'secrets', 'pointsAuMJ', 'declencheurs']
 /** Le lanceur qui projette `args`, dont la fiche du chapitre. */
 const LANCEUR = 'node scripts/raw/workflow-args.mjs table-simulee <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> --seed <graine>'

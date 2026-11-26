@@ -2,12 +2,12 @@
  * Migration (train 2a du lot « ops à référence typées ») — la référence de Talent prend UNE graphie :
  *  - les ops `grantTalent` / `grantCareerTalent` passent de `{ op, talentId, spec? }` à
  *    `{ op, talent: { id, spec? } }` (`src/data/schemas/grammaire/mecanique.ts`, champ à choix `talent`),
- *    par la primitive `graphieOpsDeTalentDeep` (`src/data/graphieOpsDeTalent.ts`) ;
+ *    par la primitive `graphieOpsDeTalentDeep` (`src/data/schemas/graphieOpsDeTalent.ts`) ;
  *  - `axes.json › talents[]` passe de `{ talentId, spec? }` à `{ id, spec? }` (`refOuSpec('talent')`,
  *    `src/data/schemas/defs/axes.ts`).
  *
- * ENTRÉES : `src/data/*.json` ; `src/data/graphieOpsDeTalent.ts` (la primitive, chargée par Node nu).
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`), vérifié AVANT toute écriture — un document
+ * ENTRÉES : `src/data/*.json` ; `src/data/schemas/graphieOpsDeTalent.ts` (la primitive, chargée par Node nu).
+ * FORMATAGE : `serializeDataset` (`src/data/schemas/serialize.ts`), vérifié AVANT toute écriture — un document
  * non canonique fait sortir 1, jamais un reflow silencieux.
  * IDEMPOTENT : rejouée sur l'état final, la migration n'écrit rien et sort 0.
  * FAIL-FAST : une op de Talent qui porte À LA FOIS `talentId` et `talent`, ou une réf d'axe qui porte à la
@@ -16,8 +16,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
-import { estOpDeTalentAncienne, graphieOpsDeTalentDeep } from '../../src/data/graphieOpsDeTalent.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
+import { estOpDeTalentAncienne, graphieOpsDeTalentDeep } from '../../src/data/schemas/graphieOpsDeTalent.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA = path.join(ROOT, 'src/data');

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { idDeFixture } from '../../../data/idDeFixture.testkit';
 import { DIR4_ORDER, type Dir4, type Dir8 } from '../../../geometry/dir8';
 import { findPropById } from '../../../data';
-import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../../data/props.types';
+import { CAP_IDENTITE_PROP, capVolumique, type PropData } from '../../../data/schemas/props.types';
 import { polyNormal } from './worldTris';
 import { buildPropVolumes, type AncrageVolume } from './propVolumes';
 import type { Face } from './types';
@@ -99,7 +99,7 @@ describe('buildPropVolumes — la recette locale devient de la géométrie monde
   });
 
   /**
-   * CAP D'IDENTITÉ (contrat de donnée, `data/props.types.ts`) : une recette s'authore au cap `S`
+   * CAP D'IDENTITÉ (contrat de donnée, `data/schemas/props.types.ts`) : une recette s'authore au cap `S`
    * (`CAP_IDENTITE_PROP`), qui est AUSSI le défaut du monde — une instance SANS `facing` rend donc la
    * géométrie AUTHORÉE, non tournée. C'est tout le contrat de #1680 ligne 16 : ce que l'auteur écrit
    * est ce que la scène montre, sans demi-tour à tenir de tête.

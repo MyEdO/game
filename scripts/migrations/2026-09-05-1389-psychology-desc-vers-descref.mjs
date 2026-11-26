@@ -37,7 +37,7 @@ import { fileURLToPath } from 'node:url';
 import { sigleDe } from '../raw/_lib.mjs';
 import { lireChapitre } from '../source/lecteur-fs.mjs';
 import { jsonIndente, remplacerAncre } from '../source/reecriture-ancree.mjs';
-import { aligner, estErreur, fragmentBlocs, ouDeLAdresse, unitesDeLAdresse, unitesDuTexte } from '../../src/data/source/decoupe.ts';
+import { aligner, estErreur, fragmentBlocs, ouDeLAdresse, unitesDeLAdresse, unitesDuTexte } from '../../src/data/schemas/source/decoupe.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 export const FICHIER = 'src/data/psychology.json';

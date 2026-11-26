@@ -14,7 +14,7 @@
  * candidats (`Offre.gate`), plus
  * jamais par des closures anonymes publiées positionnellement.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { Combatant } from '../engine/types';
 import type { BattleState, Jeu } from './etat';
 import type { Scene } from './monde/scene';

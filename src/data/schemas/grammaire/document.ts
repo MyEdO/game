@@ -132,7 +132,7 @@ export type ChampsHorsEnveloppe<C> = { [K in keyof C]: K extends CleEnveloppe ? 
  * Vue TS de l'ENVELOPPE que la fabrique pose (`enveloppe()` ci-dessous), `type` élargi à `string`,
  * toutes clés exigibles optionnelles : la vue PARTAGÉE par tous les documents. Le dataset d'UN
  * document a, lui, son type exact au handle (`DatasetDuDocument`), que lit la porte `datasetDe`
- * (`src/data/datasets.ts`).
+ * (`src/data/schemas/datasets.ts`).
  */
 export type EnveloppeDocument = Omit<z.infer<z.ZodObject<ReturnType<typeof enveloppe>>>, 'type'> & { type: string };
 

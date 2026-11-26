@@ -28,9 +28,9 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   montre entière dès que le groupe en voit le bord. Un État : sa marque (`etats.json` : `marqueCouleur`, `marqueVisuel` de lumière, `marqueSon` en boucle).
   Une météo : ses valeurs (nombre, vitesse, sens, taille, teinte, opacité, couches de brume) et son `son` en boucle
   (`ambiance.json › iso.weather`), que le noyau rend par regard (`meteoDuRegard`, `src/noyau/monde/meteo.ts`).
-- Une musique : une définition `music: true` du registre (`src/data/sons/defs/`) ; le noyau la choisit
+- Une musique : une définition `music: true` du registre (`src/data/schemas/sons/defs/`) ; le noyau la choisit
   (`musiqueDeLaPartie`), la scène peut l'imposer (`music.combat`, `music.ambient`).
-- Un JSON édité à la main se réécrit par `serializeDataset` (`src/data/serialize.ts`) : le test de round-trip
+- Un JSON édité à la main se réécrit par `serializeDataset` (`src/data/schemas/serialize.ts`) : le test de round-trip
   l'exige à l'octet.
 
 ## 2. Le son
@@ -39,7 +39,7 @@ Contrat : `hotes/godot/pont/CONTRAT.md`, sections « Effets », « Musique » et
   [--filtre <filtres ffmpeg>] [--debut <s>] [--duree <s>]` le convertit en Ogg Vorbis mono 44,1 kHz, le dépose sous
   `hotes/godot/projet/sons/` (ignoré par git) et l'inscrit à `provenance.json` ; elle refuse une autre licence ou un nom
   déjà épinglé. Plusieurs variantes d'un même son : `souffle-1.ogg`, `souffle-2.ogg`…
-- Sa définition sous `src/data/sons/defs/<id>.ts` (`files` : ses variantes, `volume`, `canal` : `ambiance` pour une
+- Sa définition sous `src/data/schemas/sons/defs/<id>.ts` (`files` : ses variantes, `volume`, `canal` : `ambiance` pour une
   boucle d'ambiance, `interface` pour un son d'interface, absent pour un effet ; une `music` joue sur `musique`), puis
   `npm run gen`. Godot le joue sur le bus d'`AudioServer` nommé par son canal
   (`hotes/godot/projet/default_bus_layout.tres`, recette `mixage.gd`), au volume que le joueur y règle.

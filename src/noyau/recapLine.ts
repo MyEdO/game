@@ -1,5 +1,5 @@
 import type { Equipe } from '../engine/relations';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { FaitApplique } from '../engine/faits';
 /**
  * VOCABULAIRE PARTAGÉ d'une ligne de récap structurée (#349) — remplace le `string` brut des

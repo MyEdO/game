@@ -44,7 +44,7 @@ import { decoupeDe, livreExtraitDe, nomsDeLaListe, readText } from './_lib.mjs'
 import { grasOuvert, recoller } from './lib/titres-soudes.mjs'
 import { motsDe, ecartDeMots } from './reparer-mobilier.mjs'
 import { cle, enTete, sondeDuLivre } from './sonde-titres.mjs'
-import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/source/decoupe.ts'
+import { cellulesDe, estSeparateur, stripSpans } from '../../src/data/schemas/source/decoupe.ts'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 const FORMES = new Set(['S', 'F', 'M', 'B', 'glyphe-fuite', "S'", 'O', 'doublon', 'L', 'legende-absente'])

@@ -147,7 +147,7 @@ export const TYPES = {
   lightTone: { espace: 'lightTones.json', catalogue: 'tons de lumière' },
   // Effets visuels et sonores (#3771) : un Groupe d'arme, un objet, un Domaine désignent leur rendu.
   rendu: { espace: 'rendus.json', catalogue: 'rendus' },
-  // #3771 : registre `src/data/sons/defs`.
+  // #3771 : registre `src/data/schemas/sons/defs`.
   son: { espace: 'vocabulaire:sons', catalogue: 'sons' },
   // Catalogue des cargaisons (#1684) : sous-listes `mer`/`terre` par le discriminant `voie` de son def.
   cargo: { espace: 'cargoes.json', catalogue: 'cargaisons' },
@@ -157,7 +157,7 @@ export const TYPES = {
   sceneDeBataille: { espace: 'activities.json?sceneKind', catalogue: 'scènes de bataille' },
   location: { espace: 'locations.json', catalogue: 'lieux' },
   serviceDeLieu: { espace: 'lieux-services.json', catalogue: 'services de lieu' },
-  // #2968 P-art : registre `src/data/fonds/defs`.
+  // #2968 P-art : registre `src/data/schemas/fonds/defs`.
   fond: { espace: 'vocabulaire:fonds', catalogue: 'bandes d’ambiance' },
 } as const satisfies Record<string, DeclarationDeType>;
 

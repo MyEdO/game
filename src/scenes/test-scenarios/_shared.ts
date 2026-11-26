@@ -5,7 +5,7 @@ import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref'
 import { Scene } from '../../noyau/monde/scene';
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ContenuDeScenario, LancementDeScenario } from '../../noyau/lancementDeScenario';
-import type { IconIdGenerated } from '../../data/icones.generated';
+import type { IconIdGenerated } from '../../data/schemas/icones.generated';
 import { buildEncounters, type AuthoredEncounter } from '../../noyau/monde/encounterAuthoring';
 import { buildScene } from '../../noyau/mapSpec';
 
@@ -39,7 +39,7 @@ export function setEncounters(scene: Scene, list: AuthoredEncounter[]): void {
 }
 
 /** Sections du menu des scénarios de test : clé (portée par la donnée) → libellé + icône
- *  (id du registre src/data/icons), dans l'ordre d'affichage. */
+ *  (id du registre src/data/schemas/icons), dans l'ordre d'affichage. */
 export const SCENARIO_SECTIONS = [
   { key: 'combat', label: 'Combat', icon: 'action/attaquer' },
   { key: 'magie', label: 'Magie', icon: 'action/incanter' },
@@ -60,7 +60,7 @@ export interface TestScenario {
   id: string;
   order: number; // tri d'affichage dans la section
   category: ScenarioCategory; // section du menu
-  icon: IconIdGenerated; // icône de carte (registre src/data/icons, famille scenario/*)
+  icon: IconIdGenerated; // icône de carte (registre src/data/schemas/icons, famille scenario/*)
   title: string;
   tests: string; // une ligne : « ce que ça vérifie »
   partyNote: string; // ex. « Arbalétrier solo »

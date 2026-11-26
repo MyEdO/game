@@ -30,10 +30,10 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
-import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
+import { estNomDExtraction } from '../../src/data/schemas/source/decoupe.ts'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
-import { normText } from '../../src/data/source/decoupe.ts'
+import { normText } from '../../src/data/schemas/source/decoupe.ts'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-puces-stock.json')

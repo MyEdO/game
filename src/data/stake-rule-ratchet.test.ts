@@ -19,7 +19,7 @@ import { CATEGORY_BY_SOURCE_KIND } from '../engine/types';
 import { STRUCTURE_CRITICALS } from './structureCriticals';
 import { ARTILLERY_MISFIRE } from './artilleryMisfire';
 import miscastRawJson from './miscast.json';
-import { rangeesDe } from './rangees';
+import { rangeesDe } from './schemas/rangees';
 import type * as imparfaites from './schemas/defs/miscast';
 
 

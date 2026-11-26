@@ -1,6 +1,6 @@
 /** LDB 13 l.106. */
 import { z } from 'zod';
-import type { IconIdGenerated } from '../../icones.generated';
+import type { IconIdGenerated } from '../icones.generated';
 import { document } from '../grammaire/document';
 import { blocageDeLivraison, foyerDeRegleSchema } from '../grammaire/valeurs';
 import { ref } from '../grammaire/ref';
@@ -91,7 +91,7 @@ export type IdDeModeDeCiblage = (typeof MODES_DE_CIBLAGE)[number];
 /** Ce que l'acte consomme dans l'économie du Tour. */
 const coutActionSchema = z.enum(['action', 'mouvement', 'gratuit', 'aucun']);
 
-/** Le dessin de chaque part de l'économie du Tour qu'un écran montre en pastille (`src/data/icons`). */
+/** Le dessin de chaque part de l'économie du Tour qu'un écran montre en pastille (`src/data/schemas/icons`). */
 export const DESSINS_DES_PARTS = {
   mouvement: 'ressource/mouvement',
   gratuit: 'action/ramasser',

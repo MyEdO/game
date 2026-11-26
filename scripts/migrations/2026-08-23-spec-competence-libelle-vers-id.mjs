@@ -21,7 +21,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { SOURCES_DE_SPECS } from '../../src/data/schemas/grammaire/sourcesDeSpecs.ts';
 import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 

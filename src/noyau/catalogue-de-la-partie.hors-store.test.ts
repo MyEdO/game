@@ -1,6 +1,7 @@
 /**
  * LE CATALOGUE DE LA PARTIE (#5069, #5063) : la partie le possède (`CatalogueDeLaPartie`), son propriétaire le repose
- * à chaque branchement et à chaque écriture au seam tant qu'il est branché (fossile 5), `recomposer` le remplace.
+ * au branchement et à chaque écriture au seam tant qu'il est branché, si les documents ou les règles maison ont changé
+ * (fossile 5), `recomposer` le remplace.
  */
 import { afterEach, describe, expect, it } from 'vitest';
 import { creerPartie, etatInitialDuJeu } from './index';

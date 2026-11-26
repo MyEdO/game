@@ -60,7 +60,10 @@ export function regle(id: RegleOptionnelleId, cat: Catalogue): RuleValue {
 
 /** Entrée OUVERTE au joueur (carrière, espèce, objet) sous `cat` : sans `gatedByRule`, ou sa règle optionnelle active.
  *  ADE I 07 l.9 ; NADJ 14 l.5 ; ADE II 02 l.110 ; #4208 */
-export const ouvertParSaRegle = (entree: { readonly gatedByRule?: { readonly id: RegleOptionnelleId } }, cat: Catalogue): boolean =>
+export const ouvertParSaRegle = (
+  entree: Pick<EntreeDuDataset<'careers'> | EntreeDuDataset<'species'> | EntreeDuDataset<'trappings'>, 'gatedByRule'>,
+  cat: Catalogue,
+): boolean =>
   !entree.gatedByRule || !!regle(entree.gatedByRule.id, cat);
 
 /** L'entrée porte-t-elle des variantes réglées ? */

@@ -20,7 +20,7 @@ import {
   formatViolation,
   normTitle,
 } from '../../scripts/guards/lib/progressionSchemas.mjs';
-import { serializeDataset } from './serialize';
+import { serializeDataset } from './schemas/serialize';
 import careers from './careers.json';
 import careerLevels from './careerLevels.json';
 import artefact from './progression-schemas.derived.json';

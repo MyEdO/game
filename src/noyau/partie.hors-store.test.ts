@@ -523,7 +523,7 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
     });
   });
 
-  it('publie chaque bascule effective de l’armement à la coop, même sans porteur à reprojeter', () => {
+  it('publie chaque bascule effective d’une règle maison à la coop, même sans porteur à reprojeter', () => {
     const initial = etatInitialDuJeu();
     const partie = creerPartie({ ...initial, net: { ...initial.net, mode: 'hote' } }, ENTREES);
     const regle = 'combat-aa-armement';
@@ -535,12 +535,11 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
       expect(partie.etat().party).toEqual([]);
       reglerUneRegleMaison(null, partie.etat(), 'test-bandes-auto', 'off', partie.reprojeterLEquipement);
       remettreUneRegleMaison(null, partie.etat(), 'test-bandes-auto', partie.reprojeterLEquipement);
-      expect(publications).toEqual([]);
       reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLEquipement);
       reglerUneRegleMaison(null, partie.etat(), regle, true, partie.reprojeterLEquipement);
       remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLEquipement);
       remettreUneRegleMaison(null, partie.etat(), regle, partie.reprojeterLEquipement);
-      expect(publications).toEqual([{ [regle]: true }, {}]);
+      expect(publications).toEqual([{ 'test-bandes-auto': 'off' }, {}, { [regle]: true }, {}]);
     } finally {
       arreter();
       partie.fermer();

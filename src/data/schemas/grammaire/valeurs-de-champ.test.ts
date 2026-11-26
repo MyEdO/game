@@ -17,7 +17,7 @@ import { capaciteDeCombatSchema, domaineDuChaosSchema, hasWhatSchema, OP_DEFS } 
 import { descendre, noeudsAuChemin } from './descente';
 import { valeursDe } from './meta';
 import { IDS_PAR_ESPACE } from '../../_ids.generated';
-import { LIBELLES_DES_ICONES } from '../../icons';
+import { LIBELLES_DES_ICONES } from '../icons';
 import { traitCapabilitiesSchema } from '../defs/traits';
 import { schema as schemaActivites } from '../defs/activities';
 import { ACTIVITY_RESOLVERS } from '../../../engine/activities';

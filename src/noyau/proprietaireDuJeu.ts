@@ -22,7 +22,7 @@ import { stabiliserLesPlaiesDuPatient } from './acteDeSoin';
 import { patchAvecIdsNeufs } from './idsDuMonde';
 import { planifierLeTickAuto } from './combatAuto';
 import { battleRng, poserBattleRng, seedBattleRng } from './battleRng';
-import { loadRuleOverrides, ruleOverrides } from '../engine/policy';
+import { loadRuleOverrides, memesRegles, ruleOverrides } from '../engine/policy';
 import { cadence, setCadence, type Cadence } from '../engine/cadence';
 import { desFixes, setDesFixes } from '../engine/fixedDie';
 import type { RNG } from '../engine/dice';
@@ -31,7 +31,7 @@ import { poserLeRegistre, reposerPaquetDeCampagne, retirerLeRegistre } from './m
 import type { Scene } from './monde/scene';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import type { Catalogue } from '../data/schemas/catalogue/catalogue';
-import { abonnerAuxDatasets } from '../data/versionDataset';
+import { abonnerAuxDatasets, versionDeLaBibliotheque } from '../data/versionDataset';
 
 /** Un écrit de zustand : un objet, ou une fonction de l'état, fusionné au premier niveau. */
 export type Ecrit = Partial<JeuDuNoyau> | ((s: JeuDuNoyau) => Partial<JeuDuNoyau>);
@@ -95,6 +95,8 @@ export function ouvrirLeProprietaire(
   const actions = creerActionsDuNoyau(get, set);
   loadRuleOverrides(entrees.reglesMaison);
   let etat = preparerLaPublication({ ...etatInitial, ...patchDeLEquipement(etatInitial), ...actions, catalogue: catalogueDuProcessus() });
+  /** Ce dont le catalogue de la partie est composé : la version des documents et les règles maison. */
+  let composeSur = { bibliotheque: versionDeLaBibliotheque(), regles: ruleOverrides() };
 
   const plateforme: Plateforme = {
     programmer: (suite, delai, apresDeplacement) => {
@@ -109,9 +111,13 @@ export function ouvrirLeProprietaire(
   /** Les écoutes posées tant que le propriétaire est branché, et leurs coupures quand elles le sont. */
   const ecoutes: (() => () => void)[] = [];
   let coupures: (() => void)[] = [];
-  /** Le fossile 5 (#5069) : le catalogue du processus, reposé à chaque branchement et à chaque écriture au seam tant
-   *  que le propriétaire est branché. */
+  /** Le fossile 5 (#5069) : le catalogue du processus, reposé au branchement et à chaque écriture au seam tant que le
+   *  propriétaire est branché, si la version des documents ou les règles maison diffèrent de `composeSur`. */
   const reposerLeCatalogue = (): void => {
+    const bibliotheque = versionDeLaBibliotheque();
+    const regles = ruleOverrides();
+    if (bibliotheque === composeSur.bibliotheque && memesRegles(regles, composeSur.regles)) return;
+    composeSur = { bibliotheque, regles };
     const catalogue = catalogueDuProcessus();
     if (catalogue !== etat.catalogue) ecrire({ catalogue });
   };

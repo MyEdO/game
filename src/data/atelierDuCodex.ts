@@ -31,7 +31,7 @@ import { coDescendre, declarationDEnfants, noeudsAuChemin } from './schemas/gram
 import { projetSchema } from './schemas/defs-scenes/projet';
 import { versDisque } from './schemas/grammaire/prose';
 import { publierSiAcceptee, versionDesDatasets } from './versionDataset';
-import { serializeDataset } from './serialize';
+import { serializeDataset } from './schemas/serialize';
 import { entryKey } from './index';
 import { ecartsDeLaRegle } from './schemas/defs/reglesOptionnelles';
 import { auChemin, estObjet } from '../lib/objet.mjs';

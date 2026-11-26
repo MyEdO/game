@@ -132,7 +132,7 @@ export interface Bouton {
   detail: string | null;
   /** l'action d'entrée de l'hôte qui le joue comme un clic, imprimée sur lui ; `null` : aucune. */
   touche: Touche | null;
-  /** l'id de son dessin au registre des icônes (`src/data/icons`), absent sans dessin. */
+  /** l'id de son dessin au registre des icônes (`src/data/schemas/icons`), absent sans dessin. */
   icone?: string;
 }
 
@@ -155,7 +155,7 @@ export interface Choix {
   refus: string | null;
   /** ses valeurs. */
   valeurs: Bouton[];
-  /** l'id de son dessin au registre des icônes (`src/data/icons`), absent sans dessin. */
+  /** l'id de son dessin au registre des icônes (`src/data/schemas/icons`), absent sans dessin. */
   icone?: string;
 }
 
@@ -223,14 +223,14 @@ export interface Plan { type: 'plan'; id: string; points: PointDuPlan[]; traits:
 /** Le portrait d'un combattant : son corps, celui que l'hôte monte au plateau (`combattant`, son id), vu en buste. */
 export interface Portrait { type: 'portrait'; id: string; combattant: string }
 
-/** Une icône : son id au registre des icônes (`src/data/icons`), dont l'hôte tient le dessin. */
+/** Une icône : son id au registre des icônes (`src/data/schemas/icons`), dont l'hôte tient le dessin. */
 export interface Icone { type: 'icone'; id: string; icone: string }
 
-/** Un fond d'ambiance : son id au registre des fonds (`src/data/fonds`), dont l'hôte tient le dessin. */
+/** Un fond d'ambiance : son id au registre des fonds (`src/data/schemas/fonds`), dont l'hôte tient le dessin. */
 export interface Fond { type: 'fond'; id: string; fond: string }
 
 /** Un paysage : ses couches, de la plus lointaine à la plus proche, chacune l'id d'un dessin du registre des paysages
- *  (`src/data/paysages`), dont l'hôte tient le dessin et qu'il trace l'une sur l'autre. */
+ *  (`src/data/schemas/paysages`), dont l'hôte tient le dessin et qu'il trace l'une sur l'autre. */
 export interface Paysage { type: 'paysage'; id: string; paysage: IdDeCouche[] }
 
 /** Un élément de la vue. */

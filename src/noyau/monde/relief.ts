@@ -7,7 +7,7 @@
  * PORTEUSE (marchabilité / combat / chute), plus cosmétique.
  */
 
-import type { Grade } from '../../data/materials.types';
+import type { Grade } from '../../data/schemas/materials.types';
 
 /**
  * Référence ÉCRAN : un « niveau » de lift (= `iso.LEVEL_H` px à l'écran) représente 4 m de hauteur

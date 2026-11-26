@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { listerDossier } from '../../scripts/guards/lib/lister.mjs';
 // La balise HTML se DÉFINIT une seule fois, dans le module feuille du `Source/` : le volet E de
 // `prose-resolution.test.ts` juge la prose ADRESSÉE avec exactement ce prédicat.
-import { HTML_TAG } from './source/normalize.ts';
+import { HTML_TAG } from './schemas/source/normalize.ts';
 
 const DIR = __dirname;
 const files = listerDossier(DIR).filter((f) => f.endsWith('.json') && !f.startsWith('_'));

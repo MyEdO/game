@@ -72,7 +72,7 @@ const MODULES_DE_L_EVALUATEUR = new Set([
   '../silhouettes.ts',
   '../../../../scripts/personnage-3d/base/gabarit.ts',
   '../../../../scripts/personnage-3d/base/sources.ts',
-  '../../../../src/data/props.types.ts',
+  '../../../../src/data/schemas/props.types.ts',
   '../../../../src/lib/formesDeTete.ts',
   '../../../../src/lib/tableTotale.ts',
   '../../../../src/noyau/monde/piecesDArete.ts',

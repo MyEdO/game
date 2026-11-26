@@ -911,7 +911,7 @@ allume sur une pose qui éclaire (`MontageDesModeles._allumer`).
 
 **Gabarit.** Les primitives de la recette (`volume.primitives`) restent la seule source du gabarit de jeu (empreinte,
 dessus, assise, foyer, rayon du pointeur) : le modèle les lit par `decor/gabarit.py`, jamais une copie de leurs cotes ni
-de leur géométrie, que `decor/polygones.mjs` tire de `polygonesDePrimitive` (`src/data/props.types.ts`), et se bâtit
+de leur géométrie, que `decor/polygones.mjs` tire de `polygonesDePrimitive` (`src/data/schemas/props.types.ts`), et se bâtit
 dans leur enveloppe convexe (`gabarit.enveloppe`), dont il garde l'encombrement sans recopier les primitives ;
 `Gabarit.rentrer` y ramène le sommet qui en sortirait. Le modèle ne
 passe par aucune rotation de `mathutils` (`rotation_difference`, `Quaternion`, `Euler`, `Matrix.Rotation`), dont la
@@ -921,7 +921,7 @@ des modèles à l'empreinte de son manifeste) hors de cette enveloppe, sol compr
 change pas la recette. Chaque pièce est une coque close aux faces vers le dehors : `test_decor.py` refuse un nœud du GLB publié qui a une arête non appariée ou une coque soudée de volume négatif ou nul (`glb.coques_en_defaut`).
 
 **Repère et cap.** La recette est en mètres, origine à l'ancre, `xM` à l'est, `yM` vers son front au cap d'identité
-(`CAP_IDENTITE_PROP`, `src/data/props.types.ts`), `hM` vers le haut. En Blender, (x, y, z) = (xM, -yM, hM) : le front vers
+(`CAP_IDENTITE_PROP`, `src/data/schemas/props.types.ts`), `hM` vers le haut. En Blender, (x, y, z) = (xM, -yM, hM) : le front vers
 -y comme l'avant d'un véhicule ; l'export glTF le place en (X, Y, Z) = (xM, hM, yM), le front vers +Z. L'origine reste
 l'ancre, jamais recentrée : un décor au cap d'identité sort orienté et posé comme sa recette.
 

@@ -8,7 +8,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { detailRecipeSchema, enumNomme } from '../grammaire/valeurs';
-import { WALL_PARTS, type WallPart } from '../../structureAppearance.types';
+import { WALL_PARTS, type WallPart } from '../structureAppearance.types';
 
 export const file = 'structureAppearance.json';
 export const famille = 'entite';

@@ -1,6 +1,6 @@
-import type { WallPart } from '../../../data/structureAppearance.types';
+import type { WallPart } from '../../../data/schemas/structureAppearance.types';
 import type { StructureAppearanceDef } from '../../../data';
-import type { EntreeVivante } from '../../../data/datasets';
+import type { EntreeVivante } from '../../../data/schemas/datasets';
 import type { WallSeg } from '../scene';
 import { structureAppearances } from '../../../data';
 import { shade } from '../../../lib/ombrage';

@@ -52,8 +52,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
-import { slugId } from '../../src/data/slug.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
+import { slugId } from '../../src/data/schemas/slug.ts';
 import { tableTotale } from '../../src/lib/tableTotale.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));

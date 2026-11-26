@@ -213,7 +213,7 @@ function rendu() {
   out += `  jamais un tableau positionnel) + \`alsoIn\` porte les emplacements SECONDAIRES, chacun une paire\n`
   out += `  \`(book, page)\` pleine + un \`quote?\` authoré (auto-attestation verbatim, pour le cas où le \`label\`\n`
   out += `  n'apparaît pas tel quel au folio déclaré — ex. une TABLE imprime un nom différent). Accessors SOURCE\n`
-  out += `  UNIQUE : \`allLocations(entry)\`/\`sourceBooks(entry)\` (\`src/data/sourceRefs.ts\`) — aucun futur lecteur\n`
+  out += `  UNIQUE : \`allLocations(entry)\`/\`sourceBooks(entry)\` (\`src/data/schemas/sourceRefs.ts\`) — aucun futur lecteur\n`
   out += `  n'inline \`alsoIn\`. **Enforced** par \`src/data/secondary-ref-integrity.test.ts\` : chaque \`alsoIn[i]\`\n`
   out += `  doit être **auto-attesté** (le \`label\` du porteur OU son \`quote\` retrouvé dans le SPAN du folio\n`
   out += `  déclaré — charge de la preuve sur l'auteur, jamais une réfutation par absence). Champ posé sur\n`
@@ -282,7 +282,7 @@ function rendu() {
   out += `  **objets à sous-catalogues** (\`mass-battle.json\`, \`sea-*.json\`, \`criticals.json\`…) ou des **tables d100\n`
   out += `  par fourchette** — lire la structure existante avant d'ajouter (cf. §A).\n`
   out += `- **Canonicalisation** : après édition manuelle, le fichier doit être **byte-identique** au round-trip de\n`
-  out += `  \`serializeDataset\` (\`src/data/serialize.ts\`), verrouillé par \`src/data/serialize.test.ts\` (2 espaces,\n`
+  out += `  \`serializeDataset\` (\`src/data/schemas/serialize.ts\`), verrouillé par \`src/data/serialize.test.ts\` (2 espaces,\n`
   out += `  **aucun** newline final). L'éditeur Codex l'applique à la sauvegarde ; en édition manuelle, ne **jamais**\n`
   out += `  reformater à la main ni via un \`JSON.stringify\` maison — passer par \`serializeDataset\`.\n\n`
 

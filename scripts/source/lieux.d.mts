@@ -1,4 +1,4 @@
-import type { Ajout, BlocDuFil, ChapitreParse, DescRef, ErreurResolution } from '../../src/data/source/decoupe.ts';
+import type { Ajout, BlocDuFil, ChapitreParse, DescRef, ErreurResolution } from '../../src/data/schemas/source/decoupe.ts';
 
 /** Une adresse FIGÉE d'une table de migration : un intervalle d'une section, et l'`ajoute` consigné. */
 export interface CibleFigee { ch: string; sec: string; secOcc: number; b0: number; b1: number; ajoute?: readonly Ajout[] }

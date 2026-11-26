@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { materials, matieresDe } from '../../../data/index';
 import { setDataset, resetData } from '../../../data/overrides';
-import type { MaterialEntry } from '../../../data/materials.types';
-import type { EntreeVivante } from '../../../data/datasets';
+import type { MaterialEntry } from '../../../data/schemas/materials.types';
+import type { EntreeVivante } from '../../../data/schemas/datasets';
 import { editees } from '../../../data/materials.testkit';
 import { propMaterial } from './matieres';
 import { roofMaterial } from './matieres';

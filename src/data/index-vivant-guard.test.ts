@@ -112,7 +112,7 @@ describe('#1692 — aucun index figé à l’import sur un dataset mutable', () 
 
   it('une entrée du seam à valeur d’APPEL est surveillée sous sa CLÉ, jamais sous sa fabrique', () => {
     // `imparfaiteMineure: rangeesDe<…>(miscastRawJson, 'miscast-mineure')` : `rangeesDe` est la PORTE des
-    // rangées (`data/rangees.ts`), pas un dataset — la retenir comme binding posait un nom FANTÔME, et
+    // rangées (`data/schemas/rangees.ts`), pas un dataset — la retenir comme binding posait un nom FANTÔME, et
     // laissait le nom réellement exposé du dataset hors du vocabulaire des DEUX gardes.
     for (const cle of ['imparfaiteMineure', 'imparfaiteMajeure', 'colereDesDieux']) expect(parBinding.get(cle)).toBe(cle);
     expect(parBinding.has('rangeesDe'), 'la porte n’est pas un binding').toBe(false);

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { findPropById } from '../../../src/data/index';
 import { sceneMetresPerTile, type SceneEntity } from '../../../src/noyau/monde/scene';
-import { empreinteDuProp } from '../../../src/data/props.types';
+import { empreinteDuProp } from '../../../src/data/schemas/props.types';
 import { parseProject } from '../../../src/noyau/worldMap';
 import type { AreneSceneFactory } from '../campagnes/arene/scenes.d.mts';
 import { lireProjetLivre } from '../../../scripts/source/projetLivre.mjs';

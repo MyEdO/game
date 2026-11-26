@@ -5,7 +5,7 @@
  * murs devraient faire 1x2 ». La recette de `table-murale-2-tabourets` couvrait une seule case : son
  * corps (plateau + consoles) mesure 1,92 m le long du mur, soit moins d'une case à 2 m/case
  * (`sceneMetresPerTile` par défaut). L'empreinte se DÉRIVANT du corps depuis le train A de ce socle
- * (`empreinteDeriveeDuProp`, `src/data/props.types.ts`), la seule façon d'obtenir 1×2 est de
+ * (`empreinteDeriveeDuProp`, `src/data/schemas/props.types.ts`), la seule façon d'obtenir 1×2 est de
  * RÉ-AUTHORER la recette — pas de figer un `foot`, qui ne tournerait pas avec le cap.
  *
  * GESTE : le corps est ÉTIRÉ dans le sens du mur (l'axe `x` du repère local, celui qui devient l'axe
@@ -39,7 +39,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = path.join(ROOT, 'src/data/props.json');

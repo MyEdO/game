@@ -4,7 +4,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { ORIGINES, nomme, preparerLivre, releve } from './releve.mjs'
 import { ELISION, paquet, sectionsDuPaquet, taillesDuPaquet } from './paquet.mjs'
-import { parseChapitre } from '../../src/data/source/decoupe.ts'
+import { parseChapitre } from '../../src/data/schemas/source/decoupe.ts'
 
 const chapitre = (fichier, lignes) => ({ fichier, parse: parseChapitre(lignes.join('\n')) })
 

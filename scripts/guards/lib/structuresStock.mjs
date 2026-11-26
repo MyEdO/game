@@ -122,7 +122,7 @@ export const STRUCTURES_CIBLES = [
   { concept: "provenances-de-route", signature: "perilDie,speed", date: "2026-10-17" },
   { concept: "provenances-de-route", signature: "km,perilDie,speed", date: "2026-10-17" },
   // #1389 (épique #1388, 2026-09-07) — l'ADRESSE de prose et son FRAGMENT naissent CIBLES : ce sont
-  // les formes que le parseur `src/data/source/decoupe.ts` PRODUIT et que `descRefSchema`
+  // les formes que le parseur `src/data/schemas/source/decoupe.ts` PRODUIT et que `descRefSchema`
   // (`grammaire/valeurs.ts`) est seul à accepter — il n'y a rien à migrer vers une autre graphie.
   // Sans ces trois lignes, `book` les ferait classer `source` et `sum` `formule`, par MISCLASSEMENT.
   { concept: "adresse", signature: "book,ch,parts", date: "2026-09-07" },

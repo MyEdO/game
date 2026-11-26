@@ -51,7 +51,7 @@ import { SCHEMA_DEFS } from './schemas/_registry.generated';
 import { RACINES_VIVANTES } from './_racines-vivantes.generated';
 import { CLES_DE_DATASET, type CleDeDataset } from './schemas/_cles-de-dataset.generated';
 import { bumperDataset, memoParVersion } from './versionDataset';
-import type { EntreeVivante } from './datasets';
+import type { EntreeVivante } from './schemas/datasets';
 import { critiqueEntries, type CritEntry } from './criticals';
 import { SHIP_CRITICAL_TABLES, RIVER_CRIT_SET } from './shipCriticals';
 // #422 : famille RÈGLES LDB — Coût des Augmentations (07), % de Disponibilité (59), Accidents de
@@ -66,7 +66,7 @@ import { DRUNK_TABLE } from '../engine/drunkenness';
 // patron que `disponibilite`/`riverNavigation`), Incantations Imparfaites/Colère des dieux (LDB 46/40,
 // 3 tables NICHÉES dans `miscast.json`, même patron que `criticalsTete`/`aaCriticalsTete`).
 import miscastRawJson from './miscast.json';
-import { rangeesDe, type RangeeDe } from './rangees';
+import { rangeesDe, type RangeeDe } from './schemas/rangees';
 import type * as imparfaites from './schemas/defs/miscast';
 // Tailles (`sizes.json`) : ses 3 tables sont lues par `engine/size.ts` (dont deux via une référence
 // capturée sur la table NICHÉE) — d'où la fusion EN PLACE récursive de `setObjectDataset`.

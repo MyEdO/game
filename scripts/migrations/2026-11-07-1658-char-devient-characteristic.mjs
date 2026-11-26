@@ -17,12 +17,12 @@
  * FAIL-FAST — sortie 1 avant toute écriture : porteur qui porte à la fois `char` et `characteristic`,
  * valeur hors des 10 Caractéristiques, compte de gestes ≠ `CARDINAL`, fichier à réécrire hors de son
  * formatage, ou clé `char` à valeur chaîne restante hors des porteurs déclarés.
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`).
+ * FORMATAGE : `serializeDataset` (`src/data/schemas/serialize.ts`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
 import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 

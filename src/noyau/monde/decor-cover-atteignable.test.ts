@@ -8,7 +8,7 @@
  * `opaque` ET une classe autre que « totale » énonce donc une règle que le moteur n'applique nulle
  * part. Ce contrat le mesure SUR LE MOTEUR, jamais sur la donnée seule : c'est le rendu qui décide.
  *
- * `validatePropCatalog` (`data/props.types.ts`) porte la garde STRUCTURELLE du même invariant, en
+ * `validatePropCatalog` (`data/schemas/props.types.ts`) porte la garde STRUCTURELLE du même invariant, en
  * amont ; les deux se tiennent — l'une empêche d'écrire la donnée, l'autre prouve que le moteur la lit.
  */
 import { describe, expect, it } from 'vitest';

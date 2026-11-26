@@ -60,7 +60,7 @@ import { choixDuTrait, traitsOctroyes, type ChoixDuTrait } from './traitOctroye'
 import { rollMutation } from '../data/mutations';
 import { attachMutation, easeExposure, corruptionEaseSteps, recoitLaCorruption } from './corruption';
 import { effectTableDie, findEffectTableById } from '../data/effectTables';
-import { deDeTirageDe } from '../data/rangees';
+import { deDeTirageDe } from '../data/schemas/rangees';
 // cycle runtime (grapple→structures→…→conditions→ops) : appelés à l'application, jamais à l'init du module
 import {
   peutEtreEmpoigne,

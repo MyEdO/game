@@ -23,7 +23,7 @@ import { champDeProvenanceEcarte, noeudDeLEntree, noeudsDesEntrees, schemaForFil
 import { estConteneur, noeudsAuChemin, ouverts, pasDeDonnee } from '../../data/schemas/grammaire/descente';
 import { apparencesDObjetsSchema, deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../../data/apparencesObjets';
-import type { Manifeste } from '../../data/source/chapitres';
+import type { Manifeste } from '../../data/schemas/source/chapitres';
 import { t as tr } from '../../i18n';
 import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CibleDuCompendium, type CodexGroup, type CodexItem } from './registry';
 import { facetRows, filterItems, type FacetSelection } from './search';

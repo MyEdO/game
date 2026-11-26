@@ -7,7 +7,7 @@
 import type { MapSpec, ReliefSpec } from './mapSpec';
 import type { SceneEntity } from './monde/scene';
 import type { Dir4 } from '../geometry/dir8';
-import type { Calage } from '../data/props.types';
+import type { Calage } from '../data/schemas/props.types';
 import { garanti } from '../lib/garanti';
 import { pontsDeLaFiche } from './pontsDeLaFiche';
 

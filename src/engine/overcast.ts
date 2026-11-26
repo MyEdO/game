@@ -11,7 +11,7 @@ import type { SpellRange, SpellTarget } from './spellRange';
 import type { SpellDuration } from './spellDuration';
 import { rule } from './policy';
 import surincantationJson from '../data/surincantation.json';
-import { rangeesDe, type RangeeDe } from '../data/rangees';
+import { rangeesDe, type RangeeDe } from '../data/schemas/rangees';
 import { findTierEntry } from './tables';
 import type * as surincantation from '../data/schemas/defs/surincantation';
 

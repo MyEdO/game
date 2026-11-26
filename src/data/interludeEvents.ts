@@ -11,7 +11,7 @@
 import { facesDuDe, findTableEntry, type DeDeTable } from '../engine/tables';
 import { interludeEvents } from './index';
 import interludeEventsJson from './interludeEvents.json';
-import { deDeTirageDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, type RangeeDe } from './schemas/rangees';
 import type * as tableauDesEvenements from './schemas/defs/interludeEvents';
 
 /** Une rangée du Tableau des Événements (`interludeEvents.json`). */

@@ -5,7 +5,7 @@ import { BRANCHE_CYLINDRE, EXEMPTIONS, SOCLE, sitesFautifs, type ExemptionCylind
 
 /**
  * GARDE « géométrie recalculée à la main » (#1343, `scripts/guards/lib/cylindreHorsSocle.mjs`) :
- * la forme d'un cylindre ne se relit qu'au SOCLE (`src/data/props.types.ts`, schéma). Le corpus est
+ * la forme d'un cylindre ne se relit qu'au SOCLE (`src/data/schemas/props.types.ts`, schéma). Le corpus est
  * le périmètre des gardes, `corpusDesGardes()`, tests compris.
  */
 const CORPUS = corpusDesGardes();
@@ -70,7 +70,7 @@ describe('garde — aucune branche sur la forme cylindre hors du socle', () => {
       for (const ex of verdict.vues) vues.add(ex);
       for (const s of verdict.fautes) fautes.push(`${rel}:${s.ligne} ${s.texte}`);
     }
-    expect(fautes, 'forme de cylindre relue hors du socle — lire `empriseLocaleM`/`polygonesDePrimitive` (src/data/props.types.ts)').toEqual([]);
+    expect(fautes, 'forme de cylindre relue hors du socle — lire `empriseLocaleM`/`polygonesDePrimitive` (src/data/schemas/props.types.ts)').toEqual([]);
     expect(EXEMPTIONS.filter((e) => !vues.has(e)).map((e) => `${e.fichier} ${e.ancre}`), 'exemption périmée').toEqual([]);
   });
 

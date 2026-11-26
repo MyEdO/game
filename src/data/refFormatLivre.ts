@@ -32,7 +32,7 @@ import {
 } from './index';
 import { ARG_JOKER, traitAdmet } from './schemas/grammaire/reference';
 import { specAuCatalogue } from './schemas/grammaire/ref';
-import { slugId } from './slug';
+import { slugId } from './schemas/slug';
 import { parseStatEntry } from '../engine/statEntry';
 import { classerParenthese, lireMatiere } from '../engine/classementDeTrait';
 import type { TraitPose } from './schemas/grammaire/reference';

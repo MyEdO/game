@@ -7,7 +7,7 @@ import { readFileSync } from 'node:fs'
 import { livreDuReleve, preparerLivre } from './releve.mjs'
 import { CONSIGNE_DE_TRI, replier, sectionsDuPaquet } from './paquet.mjs'
 import { RAPPEL, adresseDeLaPreuve, fuitesDeLaConsigne, score, verifier } from './tri.mjs'
-import { estErreur, fragmentBlocs, intervalleDe, parseChapitre, resoudreAdresse } from '../../src/data/source/decoupe.ts'
+import { estErreur, fragmentBlocs, intervalleDe, parseChapitre, resoudreAdresse } from '../../src/data/schemas/source/decoupe.ts'
 
 const chapitre = (fichier, lignes) => ({ fichier, parse: parseChapitre(lignes.join('\n')) })
 const FIXTURE = preparerLivre({

@@ -65,7 +65,7 @@ import type { z } from 'zod';
 import type { traitCapabilitiesSchema } from './schemas/defs/traits';
 import type { authoredStakeSchema } from './schemas/grammaire/mecanique';
 import type { TriggeredEffect } from '../engine/flowCore';
-import { slugId } from './slug';
+import { slugId } from './schemas/slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { estObjet } from '../lib/objet.mjs';
 import { emplacementsDesPieces, localisationsDeLoc } from '../engine/classementDeTrait';
@@ -92,7 +92,7 @@ import mutationsJson from './mutations.json';
 import mutationTablesJson from './mutationTables.json';
 import { SHIP_CRIT_SET, RIVER_CRIT_SET } from './shipCriticals';
 import structureCriticalsJson from './structure-criticals.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './schemas/rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import { ouvertParSaRegle as ouvertSousLeCatalogue } from './schemas/catalogue/catalogue';
 import { catalogueDuProcessus } from './catalogueDuProcessus';
@@ -157,10 +157,10 @@ import type { symptomCapabilitiesSchema } from './schemas/defs/symptoms';
 import type { qualityCapabilitiesSchema } from './schemas/defs/qualities';
 import type * as tablesDeCorruption from './schemas/defs/mutationTables';
 import type * as activitiesDef from './schemas/defs/activities';
-import { datasetDe, type DatasetDe, type EntreeDe } from './datasets';
+import { datasetDe, type DatasetDe, type EntreeDe } from './schemas/datasets';
 import type * as pregensDef from './schemas/defs/pregens';
 import type * as trappingsDef from './schemas/defs/trappings';
-import type { MerchantArchetypeDef } from './merchants.types';
+import type { MerchantArchetypeDef } from './schemas/merchants.types';
 import type * as criticalsDef from './schemas/defs/criticals';
 import type * as miscastDef from './schemas/defs/miscast';
 import type * as structureCriticalsDef from './schemas/defs/structure-criticals';
@@ -188,7 +188,7 @@ import structuresJson from './structures.json';
 import structureAppearanceJson from './structureAppearance.json';
 import type * as structureAppearanceDef from './schemas/defs/structureAppearance';
 import materialsJson from './materials.json';
-import type { MaterialDomain, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet, CouleurNommee } from './materials.types';
+import type { MaterialDomain, MatiereDe, PropMaterialData, RoofMaterialDef, TeinteDObjet, CouleurNommee } from './schemas/materials.types';
 import type * as materialsDef from './schemas/defs/materials';
 import terrainsJson from './terrains.json';
 import type * as terrainsDef from './schemas/defs/terrains';
@@ -1003,7 +1003,7 @@ export interface TrappingData extends Pick<EntreeDe<typeof trappingsDef>, 'varia
   source: SourceRef;
   /** Emplacement SECONDAIRE (#563) — même objet réimprimé/à cheval prose⇄ligne-de-stats ailleurs
    *  (ex. Cimeterre : prose AA 90, ligne de stats AA 91). Accessors `allLocations`/`sourceBooks`
-   *  (`src/data/sourceRefs.ts`), aucun lecteur n'inline `alsoIn`. */
+   *  (`src/data/schemas/sourceRefs.ts`), aucun lecteur n'inline `alsoIn`. */
   alsoIn?: SecondaryRef[];
   /** Arme DÉRIVÉE conférée tant que l'objet est ÉQUIPÉ (prothèse-arme, LDB 73 : le Crochet « est
    *  considéré comme une Dague » en mêlée). Lue par recomputeLoadout : ajouter une prothèse-arme =
@@ -1528,7 +1528,7 @@ export const findLightToneById = (id: string): LightToneDef | undefined => light
 /** Ton SERVI à une source qui n'en nomme aucun — le feu, le cas du monde (brasero, feu de camp). */
 export const DEFAULT_LIGHT_TONE_ID = 'flamme';
 /** RENDU d'un coup, d'une incantation ou d'une zone d'effet (#3771, #3783) : couleur, et par phase (départ, impact,
- *  manque, parade, zone) le visuel que l'hôte dessine et le son du registre (`sons/defs`) ; le projectile, sa vitesse et
+ *  manque, parade, zone) le visuel que l'hôte dessine et le son du registre (`schemas/sons/defs`) ; le projectile, sa vitesse et
  *  sa cloche. Référencé par `rendu` (Groupe d'arme, objet, Domaine, Type de Souffle, manœuvre). Aucune conséquence de
  *  règle. Résolu par `effetsDeLAppel` (`src/noyau/effetsDeLAppel.ts`). */
 export type RenduDef = EntreeDe<typeof rendusDef>;
@@ -1536,7 +1536,7 @@ export type { VisuelDEffet, Projectile } from './schemas/defs/rendus';
 export type { VisuelDeLumiere } from './schemas/defs/lightTones';
 export const rendus = datasetDe<typeof rendusDef>(rendusJson);
 export const findRenduById = indexParId('rendus', rendus);
-export type { PropData } from './props.types';
+export type { PropData } from './schemas/props.types';
 export const props = datasetDe<typeof propsDef>(propsJson);
 /** Type de décor par id — `undefined` en entrée rend `undefined` : une entité qui ne NOMME aucun type
  *  n'en résout aucun, exactement comme une ref hors registre (#877). */

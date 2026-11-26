@@ -2,7 +2,7 @@
  * Le CATALOGUE d'une suite (#5069) : composé des seuls documents et règles qu'elle déclare. Un document absent se lit
  * comme une collection vide (`entreeDe`).
  */
-import type { EntreeVivante } from '../../datasets';
+import type { EntreeVivante } from '../datasets';
 import { composer, type Catalogue } from './catalogue';
 
 /** Un document déclaré par une suite : ses entrées nomment leurs propres ids (`EntreeVivante`). */

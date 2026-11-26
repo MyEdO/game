@@ -33,7 +33,7 @@ import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
-import type { DescRef as DescRefParseur } from '../../source/decoupe';
+import type { DescRef as DescRefParseur } from '../source/decoupe';
 import { ref, refs, specRef, refOuSpec, pick, tirageSurTable, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
 import { byId, skills, talents, traits, type SkillData, type TypeResolu } from '../../index';

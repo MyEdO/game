@@ -1,7 +1,7 @@
 /**
  * Migration #1343 lot C — le CYLINDRE d'une recette de décor porte son AXE.
  *
- * Le vocabulaire des volumes (`PropPrimitive`, `src/data/props.types.ts`) admet un cylindre
+ * Le vocabulaire des volumes (`PropPrimitive`, `src/data/schemas/props.types.ts`) admet un cylindre
  * COUCHÉ (roue, tonneau couché, rouleau) : `axis: 'h' | 'x' | 'y'` indexe la table `REPERE_D_AXE`,
  * patron de `BAS_DE_PENTE`. Le champ est REQUIS — une seule graphie du cylindre vertical — et la
  * longueur le long de l'axe s'appelle `longueurM` : `heightM` disait « hauteur » pour une cote qui,

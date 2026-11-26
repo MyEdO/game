@@ -60,7 +60,7 @@ export function depot(fichiers, copies = []) {
  *
  * Ce que les migrations lisent de `Source/`, ce sont les extractions `.md` ; les PDF (lourds,
  * gitignorés) sont écartés de la copie par leur EXTENSION — jamais par le nom de leur dossier.
- * Les defs d'un registre TS d'art (`src/data/fonds/defs`, sous `src/data`) sont le catalogue que lit une migration
+ * Les defs d'un registre TS d'art (`src/data/schemas/fonds/defs`, sous `src/data`) sont le catalogue que lit une migration
  * vers son type (#2968 P-art).
  */
 const CORPUS = ['src/data', 'src/scenes', 'projets', 'scripts', 'src/lib/ordre.mjs', 'src/lib/coupeAuMot.mjs', 'src/lib/jsonCanonique.mjs', 'src/lib/objet.mjs', 'src/lib/normalize.ts', 'src/lib/regex.ts', 'src/lib/tableTotale.ts', 'docs/raw', 'Source'];

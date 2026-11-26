@@ -55,7 +55,7 @@ import { memoByRef, memoByRefDeps } from '../sceneMemo';
 import { memoByDeps } from '../../../lib/memoParIdentite';
 import { mapLights } from '../vision';
 import type { Face } from './types';
-import type { MaterialRef } from '../../../data/materials.types';
+import type { MaterialRef } from '../../../data/schemas/materials.types';
 
 /**
  * @contrat Monde
@@ -405,7 +405,7 @@ export interface PoseDeDecor {
   /**
    * son cap cardinal résolu (`capVolumique` du `facing` d'une entité `prop`, `S` sans lui ; celui de `decorDuTerrain` pour
    * le décor du terrain, `OrnementDuBati.cap` pour un ornement du bâti), dans le repère de `rotatePropLocal`
-   * (`src/data/props.types.ts`) : `S` laisse la recette telle qu'authorée, chaque cran la tourne de 45° horaires.
+   * (`src/data/schemas/props.types.ts`) : `S` laisse la recette telle qu'authorée, chaque cran la tourne de 45° horaires.
    */
   cap: Dir4;
   /**

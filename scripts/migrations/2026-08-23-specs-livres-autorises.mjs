@@ -38,7 +38,7 @@ import { isSentinel, skillArraysOf, walkSkillRefs, extractedBooks } from '../dat
 import { isDeepStrictEqual as egal } from 'node:util';
 import { norm } from '../../src/lib/normalize.ts';
 import { porteLaTranche, remplacerLaFormeDAvant } from './lib/formeDAvant.mjs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA_DIR = path.join(ROOT, 'src/data');

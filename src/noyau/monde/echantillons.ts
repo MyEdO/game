@@ -8,9 +8,9 @@
 import { findPropById, matieresDe, props, structureAppearances, terrains, semencesDeScene } from '../../data';
 import { versionDesDatasets } from '../../data/versionDataset';
 import { structureAppearance } from './volume/structures';
-import { empreinteDuProp } from '../../data/props.types';
+import { empreinteDuProp } from '../../data/schemas/props.types';
 import { parLibelle } from '../../lib/ordre.mjs';
-import { PARTS_RELIEF } from '../../data/materials.types';
+import { PARTS_RELIEF } from '../../data/schemas/materials.types';
 import { roofProfileSchema, eaveSideSchema } from '../../data/schemas/defs-scenes/scene';
 import {
   addArchitectureBody,

@@ -30,7 +30,7 @@ const LIBELLES = {
   compendium: 'ecran.accueil.compendium',
 } as const satisfies Record<EntreeDeLAccueil, MsgKey>;
 
-/** Le dessin de chaque entrée, et celui d'« Options » (`src/data/icons`). */
+/** Le dessin de chaque entrée, et celui d'« Options » (`src/data/schemas/icons`). */
 const ICONES = {
   jouer: 'navigation/nouvelle-partie',
   reprendre: 'navigation/charger',

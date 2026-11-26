@@ -9,7 +9,7 @@ import { emptyScene, type Scene, type Trigger } from '../monde/scene';
 import { addTrigger, avecLAdresseRescellee, avecLaValeurDuPorteur, avecLElementMonte } from '../sceneEdit';
 import type { Segment } from './formulaire';
 import { choixDuChamp, formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
-import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/source/decoupe';
+import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/schemas/source/decoupe';
 import { cleDuChapitre, etatDeLAdresse, type SourceDeLEdition } from './adresseDeProse';
 import { editer, ouvrirLEdition, sceneEditee, texteAEnregistrer, type SessionDEdition } from './session';
 

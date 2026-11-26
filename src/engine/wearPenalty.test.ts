@@ -4,7 +4,7 @@ import { testValue, partyBest } from './skills';
 import { qualitySocMod } from './qualities/dispatch';
 import { totalEncumbrance } from './items';
 import { parseQualityInstance } from '../data/refFormatLivre';
-import { slugId } from '../data/slug';
+import { slugId } from '../data/schemas/slug';
 import type { Combatant, QualityInstance } from './types';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 

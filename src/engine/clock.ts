@@ -9,7 +9,7 @@
  * Les datasets-tableaux sont mutés EN PLACE (splice) → les réfs exportées (`IMPERIAL_MONTHS`,
  * `DAY_PHASES`, `WEEKDAYS`) restent valides et live.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { DureeEnJours } from '../data/schemas/grammaire/valeurs';
 import { calendarMonths, calendarIntercalary, calendarWeekdays, calendarPhases } from '../data';
 import { findTierEntry } from './tables';

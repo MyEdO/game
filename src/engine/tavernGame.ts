@@ -19,7 +19,7 @@ import { Difficulty, type Combatant } from './types';
 import { hasTalent } from './magic';
 import { rule } from './policy';
 import { TAVERN_GAMES } from '../data';
-import type { EntreeDe } from '../data/datasets';
+import type { EntreeDe } from '../data/schemas/datasets';
 import type * as tavernGamesDef from '../data/schemas/defs/tavernGames';
 import { indexParId } from '../data/versionDataset';
 

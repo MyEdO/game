@@ -3,7 +3,7 @@
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
 import { nomDe } from '../engine/nom';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import { porteurEnVue } from './visionDuGroupe';

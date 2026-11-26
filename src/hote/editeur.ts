@@ -200,7 +200,7 @@ import { tableTotale } from '../lib/tableTotale';
  * le dépôt (`GET depot/<id>`, ci-dessus), passé par la porte (`projetDuDepot`), qui s'y enregistre ; avec `calques`, le
  * texte des calques que l'hôte gardait pour cette campagne (`CalquesStockes`, `src/noyau/edition/calque.ts`), retirés
  * s'ils ne sont pas du format courant (`FORMAT_CALQUES`) ou pas du JSON ; avec `manifeste`, le texte de l'index des
- * chapitres du `Source/` que sert le poste (`GET source/manifest.json`, `Manifeste`, `src/data/source/chapitres.ts`).
+ * chapitres du `Source/` que sert le poste (`GET source/manifest.json`, `Manifeste`, `src/data/schemas/source/chapitres.ts`).
  *
  * Un geste d'édition est soit un geste du pointeur, `{ geste: 'appui' | 'glisse' | 'relache', point: { case: { x, y },
  * f: { x, y } } }` (la case touchée en entiers, le point de la carte touché en cases continues, une case centrée sur

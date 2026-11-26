@@ -9,7 +9,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { emboiterLesRefsDOps } from './lib/refsDOpsEmboitees.mjs';
 import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 

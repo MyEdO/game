@@ -16,7 +16,7 @@ import {
   type PropData,
   type PropPrimitive,
   type PropVolumeRecipe,
-} from './props.types';
+} from './schemas/props.types';
 import { sceneMetresPerTile } from '../noyau/monde/scene';
 
 /** Les polygones LOCAUX d'une primitive, réduits aux triplets que mesure `aretesNonAppariees` : la
