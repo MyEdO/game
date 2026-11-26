@@ -158,8 +158,8 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     expect(banc.getState().party[0].diseases?.[0]?.activeDaysElapsed, 'trois journées de cycle traitées').toBe(3);
 
     // La PROPRIÉTÉ qui compte : un jet résolu sans fenêtre n'est pas muet — sa ligne porte le dé ET la
-    // cible (forme `casc.autoRowTrace` : « Nom — Résistance : 99/42 → échec (DR -5). »). Une par Test.
-    const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
+    // cible (forme `casc.autoRowTrace` : « Nom — Résistance : 99/42, échec (DR -5). »). Une par Test.
+    const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+,[ ]/.test(l));
     expect(lignesDeJet.length, `aucune ligne de dé dans le journal : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(3);
     const [roll] = lignesDeJet[0].match(/(\d+)\/(\d+)/)!.slice(1).map(Number);
     expect(roll, 'le dé rendu est un d100').toBeGreaterThanOrEqual(1);
@@ -216,7 +216,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
 
     banc.getState().reposerLeGroupe(2);
 
-    const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+[ ]→[ ]/.test(l));
+    const lignesDeJet = journal.filter((l) => /[ ]:[ ]\d+[/]\d+,[ ]/.test(l));
     expect(lignesDeJet.length, `les DEUX nuits roulent leur Test : ${journal.join(' | ')}`).toBeGreaterThanOrEqual(2);
     expect(banc.getState().pendingCascade, 'le slot vivant à l’entrée reste le sien').toBe(vivant);
   });

@@ -286,8 +286,8 @@ function epreuveEnPieces(x: J.EpreuveDuRecit, heros: readonly J.Heros[]): string
     const h = heros.find((g) => g.c.id === v.id);
     const { blessures: b, corruption: c } = v;
     const marques = [
-      ...(b ? [`${jauge(b.apres / Math.max(1, b.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">${b.avant} → ${b.apres} / ${b.max}</b> Blessures</span>`] : []),
-      ...(c ? [`<span class="reste"><b class="chiffres">${c.avant} → ${c.apres} / ${c.seuil}</b> Corruption</span>`] : []),
+      ...(b ? [`${jauge(b.apres / Math.max(1, b.max), { taille: 'forte' })}<span class="reste"><b class="chiffres">de ${b.avant} à ${b.apres} / ${b.max}</b> Blessures</span>`] : []),
+      ...(c ? [`<span class="reste"><b class="chiffres">de ${c.avant} à ${c.apres} / ${c.seuil}</b> Corruption</span>`] : []),
       ...[...v.maladies, ...v.mutations].map((m) => `<span class="reste"><b>${esc(m)}</b></span>`),
     ].join('');
     pieces += pieceDEpreuve('touche', h ? portrait(busteDuHeros(h), 'heros', 'moyen') : '', b ? 'Touché·e' : 'Marqué·e', `<span class="nom-propre moyen gothique">${esc(v.nom)}</span>${marques}`);
