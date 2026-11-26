@@ -2455,7 +2455,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const caster = pool.find((c) => c.id === pc.casterId);
         const spell = findSpellById(pc.spellId);
         if (!caster || !spell) return;
-        const eligibles = new Set(overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, !!pc.missile, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
+        const eligibles = new Set(overcastTargetCandidates(get().scene, pool, caster, pc.targetId, spell, overcastSourceOf(spell), pc.overcast?.range ?? 0, spellSightOf(get)).map((c) => c.id));
         const cap = extraTargetCapacity(overcastSourceOf(spell), pc.overcast?.targets ?? 0, spellTargetCount(spell, caster));
         const refus = ids.length > cap ? t('cast.refus.ciblesAuDela', { cap })
           : new Set(ids).size < ids.length ? t('cast.refus.cibleRepetee')

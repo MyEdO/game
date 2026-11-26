@@ -97,6 +97,8 @@ const DUMMY_SANS_BLESSURES: Omit<Combatant, 'wounds'> = {
 const GENERIC_DUMMY: Combatant = { ...DUMMY_SANS_BLESSURES, wounds: blessuresPosees(DUMMY_SANS_BLESSURES) };
 
 /** Contexte de scoring d'UNE op : ennemi de référence (cible des buffs offensifs) + horizon de buff. */
+/** K ≈ 3 Rounds : horizon de bénéfice d'un buff (borne le bénéfice marginal). */
+export const HORIZON_DE_BENEFICE = 3;
 export interface OpEvalCtx { refEnemy: Combatant | null; horizon: number }
 /** Contexte de scoring d'UN sort lancé : ajoute la fiabilité d'incantation `landProb` (fournie). */
 export interface SpellEvalCtx extends OpEvalCtx { landProb: number }

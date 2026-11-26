@@ -70,13 +70,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-08-23",
   },
   {
-    fichier: "src/noyau/combatFlow.ts",
-    motif: "rétro-compat",
-    ancre: "DÉCLINABLE (l.276 « vous pouvez ») : `chosenTableRolls` (absent = tous les pas, IA/rétrocompat).",
-    lot: "L1c #1468",
-    date: "2026-08-23",
-  },
-  {
     fichier: "src/noyau/shipwreck.ts",
     motif: "legacy",
     ancre: "MDG 13 l.674 « corps et biens ») ; sans correspondance, la purge legacy `vessel:null` ci-dessus reste",

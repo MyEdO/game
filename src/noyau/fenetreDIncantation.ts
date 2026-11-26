@@ -193,7 +193,7 @@ function surincantationEnVue(s: Jeu): SurincantationEnVue | null {
     cibles: e.axes.includes('targets') && capacite > 0
       ? {
           capacite, designees: pc.extraTargetIds?.length ?? 0, surLaCarte: !!s.battle,
-          candidats: overcastTargetCandidates(s.scene, pool, lanceur, pc.targetId, sort, !!pc.missile, source, oc.range).map((c) => c.id),
+          candidats: overcastTargetCandidates(s.scene, pool, lanceur, pc.targetId, sort, source, oc.range).map((c) => c.id),
         }
       : null,
     bonusDeDegats: missileOvercastDamageBonus(source, oc.damage),
