@@ -8,7 +8,7 @@ import {
 import { ecrireGlb, lireConteneur, lireGlb } from '../glb.ts';
 import { chargerScene } from './chargement.ts';
 import { peauDeLaTenue } from './corps.ts';
-import { COUCHES, type Couche } from '../element.ts';
+import { COUCHES, type Couche } from '../couches.ts';
 import { echantillonner, instants, poseDeRepos } from './echantillonnage.ts';
 import { etendreLaPortee, evaluer, monter, poidsDesFormesDe } from './evaluer.ts';
 import {

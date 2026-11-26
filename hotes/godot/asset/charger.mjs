@@ -65,7 +65,7 @@ const MODULES_DE_L_EVALUATEUR = new Set([
   'glbFabrique.testkit.ts',
   'grilleDesAppuis.ts',
   'temoin.ts',
-  '../element.ts',
+  '../couches.ts',
   '../etatsDuGabarit.ts',
   '../gabarit.ts',
   '../manifesteDeBase.ts',
