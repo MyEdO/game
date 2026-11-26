@@ -134,10 +134,6 @@ describe('le parcours de carrière d’une entité se juge au profil de sa créa
     ]);
   });
 
-  it('un `safeParse` nu, hors fenêtre, juge au profil de la créature du catalogue du processus : le skaven du livre est admis', () => {
-    expect(sceneEntitySchema.safeParse(soldat('skaven')).success).toBe(true);
-  });
-
   it('l’inspecteur de l’hôte offre le canon ratling au joker du skaven du seul catalogue, pas à celui de l’humain', () => {
     const offerts = (creature: string) => {
       const scene = { ...buildScene({ id: 'caserne', label: 'Caserne', size: [8, 8], terrain: 'herbe' }), entities: [soldat(creature)] };

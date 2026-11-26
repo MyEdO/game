@@ -70,14 +70,14 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - État `porte` de l'écran `editeur-de-scene`.
 - Un plan de travail, pas un lieu. Barre : projet, documents « Scène », « Carte du monde », « Narratif », « Annuler »,
   « Rétablir », « Copier », « Coller », « Dupliquer », « Enregistrer », « Tester la scène »
-(`src/hote/editeur.ts:136-535`).
+(`src/hote/editeur.ts:346-366`).
 - À gauche, un volet à onglets « Scènes » et « Outil » (« Lieux », « Routes », « Outil » sur la carte) : « 4 scènes au projet » (les quatre du projet Diligence), « Nouvelle scène », « Dupliquer la scène »,
   « Retirer la scène » ; palette des quinze outils du jeu, « Sélection » armé.
 - Au centre : la scène vue de dessus, quadrillée, couches (« Couche 0 », « Couche 1 », « Ajouter une couche »), Nord ;
   une porte choisie, surlignée. Le plan est une esquisse, pas le relevé de la scène.
 - À droite, l'inspecteur de la porte : Type, Fermée au départ, Porte secrète, Difficulté de Perception, Découvrable
   depuis, Matériau, Apparence ; « Déclencheurs (1) », « Dialogues (0) », « Rencontres (0) » ; la validation.
-- Pied : « Arête 14, 8 E · couche 0 · Porte · Mur à ossature en bois » (`src/hote/editeur.ts:675`).
+- Pied : « Arête 14, 8 E · couche 0 · Porte · Mur à ossature en bois » (`src/hote/editeur.ts:841`).
 - À valider : l'éditeur dans les matières du jeu (bois, laiton, parchemin) plutôt qu'en outil neutre ; trois colonnes
   fixes (volet à onglets, plan, inspecteur) ; dans la barre, seul « Tester la scène » garde son libellé, les autres gestes
   leur pictogramme (« Coller » et « Dupliquer » neufs au kit) ; le Nord en bas à droite du plan ; les outils en palette
