@@ -215,10 +215,6 @@ jobs:
   # L'hôte Godot et la chaîne 3D en trois jobs menés de front, hors du chemin critique de `types` (#3412), dans la lane
   # locale `types` (`LANE_LOCALE_DE_JOB`). Chacun dépose les modèles, les textures et l'éditeur qu'il lit
   # (`deposerLesAssets`, hotes/godot/construire.mjs), depuis les caches de la chaîne 3D qui le précèdent.
-  # `personnage-3d:tests` (#3145) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
-  # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
-  # requirements.txt), après `godot:sonde`, qui tire dans `CACHE_DES_MODELES` les GLB épinglés que `test_element.py` lit.
-  # Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner, ne se cache pas.
   # `godot:coop` (#3009) : le relay local (`server/` installé pour lui seul) et la coop jouée par deux processus Godot.
   godot:
     runs-on: ubuntu-latest
@@ -244,17 +240,6 @@ jobs:
       - name: Godot — coop à deux processus
         if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:coop ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:coop
-      - id: python-3d
-        if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"
-      - if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
-        uses: actions/setup-python@v6
-        with:
-          python-version: ${{ steps.python-3d.outputs.version }}
-          cache: pip
-          cache-dependency-path: scripts/personnage-3d/requirements.txt
-      - if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run personnage-3d:tests
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
@@ -453,7 +438,13 @@ jobs:
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
   # Les migrations de donnée sont REJOUABLES : rejouées sur l'arbre courant, elles ne réécrivent
-  # RIEN. Job DÉDIÉ : il écrit dans l'arbre de SON runner, jamais dans celui d'un job de gates.
+  # RIEN. Elles se jouent dans l'arbre de CE runner, hors du rejeu local (`STEPS_HORS_REJEU_LOCAL`).
+  # `personnage-3d:tests` (#3145) les suit, dans la lane locale `types` (`LANE_LOCALE_DE_JOB`), hors du chemin
+  # critique du job `godot` (#5037) : `scripts/personnage-3d/tests.py` dans le venv épinglé de
+  # `scripts/personnage-3d/environnement.mjs`, sous le CPython de son `PYTHON` (marqueur `python_version` de
+  # requirements.txt), après `recuperer-modeles.mjs`, qui dépose dans `CACHE_DES_MODELES` les GLB épinglés que
+  # `test_element.py` lit. Le cache de pip est keyé par requirements.txt ; le venv, lié à l'interpréteur du runner,
+  # ne se cache pas.
   migrations:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -465,6 +456,8 @@ jobs:
       - id: prologue
         if: ${{ github.event_name == 'merge_group' }}
         uses: ./.github/actions/prologue
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
       - name: Rejeu des migrations (idempotence de la donnée)
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run migrations:replay
@@ -474,3 +467,19 @@ jobs:
       - name: Rejeu en CROISSANCE (+1 entrée ne coûte rien)
         if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run migrations:replay:croissance
+      - id: python-3d
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: node --input-type=module -e "import { PYTHON } from './scripts/personnage-3d/environnement.mjs'; console.log('version=' + PYTHON)" >> "$GITHUB_OUTPUT"
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ steps.python-3d.outputs.version }}
+          cache: pip
+          cache-dependency-path: scripts/personnage-3d/requirements.txt
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: node hotes/godot/asset/recuperer-modeles.mjs
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' personnage-3d:tests ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run personnage-3d:tests
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
