@@ -654,7 +654,7 @@ export const ECRIT_LU = {
       'de la caraque (`ponts` de sa fiche dans `src/data/vehicles.json`) et mesure les écarts entre la caraque bâtie et ses ' +
       'ponts, `test_decor.py` les décors de `decor/` et mesure chaque GLB publié d’un décor, lu dans le cache ci-dessous, dans ' +
       'le gabarit de sa recette (`volume.primitives` de sa fiche dans `src/data/props.json`, ses polygones par ' +
-      '`polygonesDePrimitive` de `src/data/props.types.ts`, qui importe `src/geometry/dir8.ts`, que lance ' +
+      '`polygonesDePrimitive` de `src/data/schemas/props.types.ts`, qui importe `src/geometry/dir8.ts`, que lance ' +
       '`decor/polygones.mjs`), `test_arete.py` les arêtes d’`arete/`, d’après la forme des apparences de ' +
       '`src/data/structureAppearance.json` et la hauteur d’un niveau (`METRES_PER_LEVEL` de ' +
       '`src/noyau/monde/relief.ts`, que lance `arete/niveau.mjs`) et les pièces d’une arête (`PIECES_D_ARETE` de ' +
@@ -791,13 +791,13 @@ export const ECRIT_LU = {
   },
   'raw:check-refs': {
     ecrit: [],
-    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/schemas/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
       'les écrivains acquis par le producteur pur d’Implémente (ecriture-derives.mjs, ecritureJsonAtomique.mjs, ' +
       'renommageResilient.mjs, test/verrou.mjs) ne sont pas appelés par rendreCible/renduDe ; ' +
       'la commande appelle ces lectures, sans exécution des générateurs ni certification ou copie ; ' +
       'LIT le registre de livres et le normaliseur de références ' +
-      '(src/data/books.json, src/data/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, absent quand il est soldé',
+      '(src/data/books.json, src/data/schemas/source/normalize.ts) et son stock scripts/raw/dead-refs-stock.json, absent quand il est soldé',
   },
   'raw:check-code-refs': {
     ecrit: [],
@@ -811,7 +811,7 @@ export const ECRIT_LU = {
   },
   'raw:check-ancres': {
     ecrit: [],
-    lit: ['docs/raw/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['docs/raw/', 'src/data/books.json', 'src/data/schemas/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
       'le lecteur de l’Atlas importe build-all.mjs et ses écrivains ; rendreCible/renduDe n’appellent ni ' +
       'executerLesGenerateurs ou genererCode, ni la certification, la copie ou le journal hérité ; ' +
@@ -823,7 +823,7 @@ export const ECRIT_LU = {
   },
   'raw:check-folio-continuity': {
     ecrit: [],
-    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['docs/raw/', 'Source/', 'src/data/books.json', 'src/data/schemas/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, le normaliseur de références, ' +
       'le stock NOMINATIF des sauts de folio (scripts/raw/folio-gaps-stock.json) et les deux stocks des ancres ' +
@@ -832,26 +832,26 @@ export const ECRIT_LU = {
   },
   'raw:check-source-tables': {
     ecrit: [],
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/schemas/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
-      'LIT le registre de livres, le parseur de tables (src/data/source/decoupe.ts), les dossiers à `dir` de ' +
+      'LIT le registre de livres, le parseur de tables (src/data/schemas/source/decoupe.ts), les dossiers à `dir` de ' +
       'Source/ et son stock nominatif scripts/raw/source-tables-stock.json ; aucune écriture ' +
       'n’est atteinte',
   },
   'raw:check-source-puces': {
     ecrit: [],
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/schemas/source/', 'src/lib/regex.ts', 'scripts/raw/', 'scripts/guards/lib/', 'scripts/port-dev.mjs'],
     raison: RETRAIT_WORKTREE_FERME +
-      'LIT le registre de livres, le normaliseur de citations (src/data/source/decoupe.ts), les dossiers ' +
+      'LIT le registre de livres, le normaliseur de citations (src/data/schemas/source/decoupe.ts), les dossiers ' +
       'à `dir` de Source/ et son stock nominatif scripts/raw/source-puces-stock.json ; aucune écriture ' +
       'n’est atteinte',
   },
   'raw:check-renvois': {
     ecrit: [],
-    lit: ['Source/', 'src/data/books.json', 'src/data/source/', 'src/lib/regex.ts', 'src/lib/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
+    lit: ['Source/', 'src/data/books.json', 'src/data/schemas/source/', 'src/lib/regex.ts', 'src/lib/hash.ts', 'scripts/raw/', 'scripts/source/', 'scripts/guards/lib/'],
     raison: RETRAIT_WORKTREE_FERME +
       'LIT le registre de livres, les chapitres des livres couverts par le lecteur fs (scripts/source/lecteur-fs.mjs), ' +
-      'le résolveur PUR src/data/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +
+      'le résolveur PUR src/data/schemas/source/renvoi.ts et son stock nominatif scripts/raw/renvois-stock.json ; aucune ' +
       'écriture n’est atteinte',
   },
   'raw:check-source-format': {

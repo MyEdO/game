@@ -19,7 +19,7 @@ import { findTableEntry } from './tables';
 import type { Combatant } from './types';
 import type { ModLine } from './combat';
 import ventsJson from '../data/vents-tourbillonnants.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/schemas/rangees';
 import type * as vents from '../data/schemas/defs/vents-tourbillonnants';
 import { effectiveTalents } from './talentEffects';
 

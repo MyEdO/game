@@ -18,6 +18,7 @@ import { join } from 'node:path';
 import { schema as characteristicsSchema } from './schemas/defs/characteristics';
 import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import type { RacineDocument } from './schemas/types';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 const DATA_DIR = __dirname;
 const SCENES_DIR = fileURLToPath(new URL('../scenes/', import.meta.url));
@@ -39,7 +40,7 @@ describe('contrat de donnée — les documents des deux racines valident leur sc
   for (const def of DEFS_DE_DOCUMENT) {
     it(`${def.root}/${def.file} valide ${def.schema === characteristicsSchema ? '(schéma characteristics)' : 'son schéma'}`, () => {
       const raw = JSON.parse(readFileSync(join(DIR_DE_RACINE[def.root], def.file), 'utf8'));
-      expect(validateDataset(def.file, raw)).toBeNull();
+      expect(validateDataset(def.file, raw, catalogueDuProcessus())).toBeNull();
     });
   }
 

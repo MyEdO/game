@@ -3,31 +3,31 @@ import { nommerChamps } from '../grammaire/meta';
  * Schéma de `props.json` — accessoires de scène : couche sémantique (solidité/opacité/couvert/lumière),
  * recette VOLUMIQUE locale, REQUISE (#3198, d'où les cases du décor se dérivent) et places assises. Les sous-schémas sont des exports
  * NOMMÉS de ce module (arbitrage vague mobilier), miroir de l'interface `PropData`
- * (`src/data/props.types.ts`) ; l'ENTRÉE elle-même est rendue par `document()`.
+ * (`src/data/schemas/props.types.ts`) ; l'ENTRÉE elle-même est rendue par `document()`.
  */
 import { z } from 'zod';
 import { cell2Schema, deckCoverSchema, dir8Schema } from '../grammaire/valeurs';
 import { idDe } from '../grammaire/ref';
 import { document } from '../grammaire/document';
-import { CAP_IDENTITE_PROP, PROP_CYLINDER_AXES, PROP_CYLINDER_SIDES } from '../../props.types';
+import { CAP_IDENTITE_PROP, PROP_CYLINDER_AXES, PROP_CYLINDER_SIDES } from '../props.types';
 
 export const file = 'props.json';
 export const famille = 'entite';
 
-/** `PropPoint3` / `PropSize3` (`src/data/props.types.ts`) — repère LOCAL d'une recette de décor, en
+/** `PropPoint3` / `PropSize3` (`src/data/schemas/props.types.ts`) — repère LOCAL d'une recette de décor, en
  *  MÈTRES sur les trois axes (#1507) : `xM`/`yM` depuis l'ancre du décor, `hM` depuis le sol de la case.
  *  `z.strictObject` : une recette qui porterait encore `x`/`y`/`h` (cases) n'entre pas — c'est le
  *  verrou d'unité, il n'a PAS d'alias. */
 export const propPoint3Schema = nommerChamps(z.strictObject({ xM: z.number().finite(), yM: z.number().finite(), hM: z.number().finite() }), { xM: { label: 'Abscisse (m)' }, yM: { label: 'Ordonnée (m)' }, hM: { label: 'Hauteur en mètres' } });
 export const propSize3Schema = nommerChamps(z.strictObject({ xM: z.number().finite(), yM: z.number().finite(), hM: z.number().finite() }), { xM: { label: 'Abscisse (m)' }, yM: { label: 'Ordonnée (m)' }, hM: { label: 'Hauteur en mètres' } });
 
-/** FOYER d'un décor qui éclaire (`PropPrimitive.emet`, `src/data/props.types.ts`). `true` SEUL est
+/** FOYER d'un décor qui éclaire (`PropPrimitive.emet`, `src/data/schemas/props.types.ts`). `true` SEUL est
  *  admis, comme au type : un `emet: false` dirait l'absence en une seconde graphie. Le CARDINAL (une
  *  primitive émettrice au plus) et sa cohérence avec `light` sont vérifiés par `validatePropCatalog` —
  *  ils portent sur la RECETTE ENTIÈRE, pas sur la primitive que ce schéma valide. */
 const emetSchema = z.literal(true).optional();
 
-/** `PropPrimitive` (`src/data/props.types.ts`) — volume élémentaire d'une recette : caisse droite,
+/** `PropPrimitive` (`src/data/schemas/props.types.ts`) — volume élémentaire d'une recette : caisse droite,
  *  cylindre à N faces, prisme en pente. `material` réfère un id de `materials.json` DU DOMAINE `prop` :
  *  la sous-liste discriminée (`idDe('material', 'prop')`) refuse AU PARSE une couverture de toit ou une
  *  matière de relief posée sur un volume de décor. */
@@ -44,7 +44,7 @@ export const propPrimitiveSchema = z.discriminatedUnion('kind', [
     // AXE REQUIS (#1343 lot C) : les clés de `REPERE_D_AXE` (`PROP_CYLINDER_AXES`) ; `longueurM` se mesure le long de lui.
     axis: z.literal(PROP_CYLINDER_AXES), radiusM: z.number().finite(), longueurM: z.number().finite(),
     // CÔTÉS ADMIS : la même source que le type et le validateur de catalogue (`PROP_CYLINDER_SIDES`,
-    // `src/data/props.types.ts`) — une union recopiée ici dériverait de l'union TS au premier ajout.
+    // `src/data/schemas/props.types.ts`) — une union recopiée ici dériverait de l'union TS au premier ajout.
     sides: z.literal(PROP_CYLINDER_SIDES), material: idDe('material', 'prop'), emet: emetSchema,
   }), {
     kind: { label: 'Type' },
@@ -66,14 +66,14 @@ export const propPrimitiveSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
-/** `PropVolumeRecipe` (`src/data/props.types.ts`) — la recette volumique d'un décor. `capIdentite`
+/** `PropVolumeRecipe` (`src/data/schemas/props.types.ts`) — la recette volumique d'un décor. `capIdentite`
  *  déclare le REPÈRE dans lequel la géométrie est écrite : le cap auquel elle sort telle qu'authorée,
  *  égal au défaut du monde (`CAP_IDENTITE_PROP`, même source que le type et `rotatePropLocal` — une
  *  chaîne recopiée ici dériverait au premier changement de repère). REQUIS : une recette écrite sous un
  *  autre repère ne peut pas entrer en silence (#1680 ligne 16). */
 export const propVolumeRecipeSchema = nommerChamps(z.strictObject({ capIdentite: z.literal(CAP_IDENTITE_PROP), primitives: z.array(propPrimitiveSchema).min(1) }), { capIdentite: { label: 'Identité visuelle' }, primitives: { label: 'Primitives' } });
 
-/** `PropSeatSlot` (`src/data/props.types.ts`) — place assise offerte par un décor : ancre MÉTRIQUE du
+/** `PropSeatSlot` (`src/data/schemas/props.types.ts`) — place assise offerte par un décor : ancre MÉTRIQUE du
  *  corps (`propPoint3Schema`), cap du corps assis (Dir8), et case d'ABORD relative à l'ancre de
  *  l'empreinte (`cell2Schema` : un offset de CASE, pas une longueur). */
 export const propSeatSlotSchema = nommerChamps(z.strictObject({
@@ -91,7 +91,7 @@ export const propSeatSlotSchema = nommerChamps(z.strictObject({
   approach: { label: 'Approche' },
 });
 
-/** `PropData` (`src/data/props.types.ts`) — type de décor app-owned : vérité UNIQUE de l'empreinte,
+/** `PropData` (`src/data/schemas/props.types.ts`) — type de décor app-owned : vérité UNIQUE de l'empreinte,
  *  de la physique, de la recette volumique et des places assises. Entrée de `props.json`, et contrat
  *  partagé par la règle (walkability, LdV, lumière) et le rendu. Le `label` de
  *  l'enveloppe est la seule source du libellé du décor. */

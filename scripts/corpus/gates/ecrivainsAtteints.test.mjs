@@ -992,7 +992,7 @@ test('le corpus de chaque gate ne compte que des FICHIERS', () => {
 
 test('les imports effacés n’entrent pas au corpus réel', () => {
   // `renvoi.ts` n'importe `valeurs.ts` que pour le TYPE `SourceRef`, et `decoupe.ts` pour du code.
-  const corpus = transitif(['src/data/source/renvoi.ts'], RACINE)
-  assert.ok(corpus.includes('src/data/source/decoupe.ts'))
+  const corpus = transitif(['src/data/schemas/source/renvoi.ts'], RACINE)
+  assert.ok(corpus.includes('src/data/schemas/source/decoupe.ts'))
   assert.ok(!corpus.includes('src/data/schemas/grammaire/valeurs.ts'))
 })

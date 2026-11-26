@@ -3,6 +3,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import { raceKeySchema } from '../grammaire/valeurs';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const FICHIER = 'mutation-nature.json';
 type Rangee = { id: string; min: number; max: number };
@@ -14,27 +15,27 @@ const toutes = () => raceKeySchema.options.map((race) => document(race, moitie))
 
 describe('mutation-nature.json — un document par race, son dé couvert', () => {
   it('accepte un document par race, chacun couvrant le d100 d’un seul tenant', () => {
-    expect(validateDataset(FICHIER, toutes())).toBeNull();
+    expect(validateDataset(FICHIER, toutes(), catalogueDuProcessus())).toBeNull();
   });
 
   it('REFUSE, en le nommant, un trou entre deux rangées', () => {
     const docs = toutes();
     docs[0] = document(docs[0].race, [{ id: 'physique', min: 1, max: 50 }, { id: 'mentale', min: 52, max: 100 }]);
-    expect(validateDataset(FICHIER, docs)).toMatch(/mutation-nature\.json › nature-humain : les rangées ne couvrent pas le 1d100 d'un seul tenant/);
+    expect(validateDataset(FICHIER, docs, catalogueDuProcessus())).toMatch(/mutation-nature\.json › nature-humain : les rangées ne couvrent pas le 1d100 d'un seul tenant/);
   });
 
   it('REFUSE, en la nommant, une race tirée par deux documents', () => {
     const docs = [...toutes(), { ...document('nain', moitie), id: 'nature-nain-bis' }];
-    expect(validateDataset(FICHIER, docs)).toMatch(/nature-nain-bis : la race « nain » est déjà celle du document « nature-nain »/);
+    expect(validateDataset(FICHIER, docs, catalogueDuProcessus())).toMatch(/nature-nain-bis : la race « nain » est déjà celle du document « nature-nain »/);
   });
 
   it('REFUSE, en la nommant, une race qu’aucun document ne tire', () => {
-    expect(validateDataset(FICHIER, toutes().filter((d) => d.race !== 'ogre'))).toMatch(/aucun document ne tire la nature de la mutation de la race « ogre »/);
+    expect(validateDataset(FICHIER, toutes().filter((d) => d.race !== 'ogre'), catalogueDuProcessus())).toMatch(/aucun document ne tire la nature de la mutation de la race « ogre »/);
   });
 
   it('REFUSE, en la nommant, une rangée qui tire un Tableau de Corruption hors des deux natures', () => {
     const docs = toutes();
     docs[0] = document(docs[0].race, [{ id: 'edoc-phys-khorne', min: 1, max: 50 }, { id: 'mentale', min: 51, max: 100 }]);
-    expect(validateDataset(FICHIER, docs)).toMatch(/nature-humain : la rangée 1-50 tire « edoc-phys-khorne », qui n'est pas une nature de mutation/);
+    expect(validateDataset(FICHIER, docs, catalogueDuProcessus())).toMatch(/nature-humain : la rangée 1-50 tire « edoc-phys-khorne », qui n'est pas une nature de mutation/);
   });
 });

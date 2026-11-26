@@ -20,7 +20,9 @@ on:
 #
 # DEUX COURSES (#3412, arbitrage du 2026-11-05 au ticket) : la course de FILE (`merge_group`) joue TOUTES
 # les gates, celle de BRANCHE (`push`) n'en joue qu'un sous-ensemble — le job `branche` : `typecheck`,
-# puis `test:perimetre` : lint des fichiers touchés et tests dérivés du diff sous son budget. Le
+# puis `test:perimetre` : lint des fichiers touchés et tests dérivés du diff sous son budget, puis les
+# gardes raw qui balaient le TEXTE de l'arbre, sans lien d'import au diff : `raw:check-code-refs` et
+# `raw:reconcile`, que `docs:build` joue en file (#5125). Le
 # partage se fait au niveau du STEP : le checkout et le prologue de chaque job portent la condition
 # d'événement de sa course (`SI_DE_COURSE`, scripts/gates/gatesDeCi.mjs), et chaque gate attend
 # `steps.prologue.outcome == 'success'` ; hors de sa course, un job saute tous ses steps et rend
@@ -97,6 +99,10 @@ jobs:
         run: npm run typecheck
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:perimetre
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' raw:check-code-refs ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run raw:check-code-refs
+      - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run raw:reconcile
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"

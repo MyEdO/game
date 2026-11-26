@@ -7,8 +7,8 @@ import { deepStrictEqual, ok } from 'node:assert/strict';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { norm } from '../../src/lib/normalize.ts';
 import { tableTotale } from '../../src/lib/tableTotale.ts';
-import { serializeDataset } from '../../src/data/serialize.ts';
-import { estDeContenu, estErreur, fragmentBlocs, resoudreAdresse, unitesDuTexte } from '../../src/data/source/decoupe.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
+import { estDeContenu, estErreur, fragmentBlocs, resoudreAdresse, unitesDuTexte } from '../../src/data/schemas/source/decoupe.ts';
 import { lireChapitre } from '../source/lecteur-fs.mjs';
 
 const dansData = (nom) => new URL(`../../src/data/${nom}.json`, import.meta.url);

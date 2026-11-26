@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { parseProject, refusDeForme, ProjetRefuse, type ProjectDoc } from '../worldMap';
 import type { EtatDeJeu } from '../etat';
 import { validateDocument, rapportDeFautes } from '../../data/schemas/validate';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import { nommerChamps } from '../../data/schemas/grammaire/meta';
 
 /** Ce qu'un écran LIT d'un projet de la bibliothèque SANS l'ouvrir (liste, détail, dédup d'import).
@@ -63,9 +64,9 @@ export function idDesignable(brut: unknown): string | null {
 }
 
 /** Une entrée relue : PROUVÉE, REFUSÉE (listée, refus au geste) si elle porte un `id`, sinon `null` —
- *  journalisée, jamais listée, et conservée par l'écriture (#2404). */
+ *  journalisée, jamais listée, et conservée par l'écriture (#2404). Son enveloppe ne porte aucun id. */
 function entreeRelue(brut: unknown): EntreeListee | null {
-  const fautes = validateDocument(savedProjectSchema, brut);
+  const fautes = validateDocument(savedProjectSchema, brut, catalogueDuProcessus());
   if (!fautes) return brut as SavedProject;
   const rapport = rapportDeFautes(SUJET_DU_REFUS_D_ENVELOPPE, fautes);
   console.error('[bibliotheque]', rapport);

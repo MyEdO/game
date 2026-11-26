@@ -4,7 +4,7 @@
  * P1 = Peur (Indice) / Terreur (Indice). Cf. spec :
  * docs/superpowers/specs/2026-06-07-psychologie-design.md
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, type Difficulty, type EffectSource, type TerreurSubie } from './types';
 import { idsDeLaSousListe, type Id, type RefDesignee } from '../data/schemas/grammaire/ref';
 import { CIBLE_D_APPARTENANCE } from '../data/schemas/grammaire/sousListes';

@@ -44,7 +44,6 @@ import {
   type IdActionAJet,
   LIEUX_DE_SEJOUR,
   MUNITIONS,
-  PEAGE_PAR_SALLE,
   PRIERE_DE_SOIN,
   PX_PAR_SALLE,
   SEMAINE_DE_REPOS,
@@ -63,6 +62,7 @@ import {
 } from './valeurs';
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
+import { voir } from './tutoriel';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 /** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
@@ -450,18 +450,18 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
   passerLaJournee(e);
   const x = e.expedition!;
   const d = destinationCourante(e)!;
-  const peage = PEAGE_PAR_SALLE[e.batiments.peage] * x.index;
-  e.or += x.or + peage; e.trophees += x.trophees;
+  e.or += x.or; e.trophees += x.trophees;
   for (const h of herosDuGroupe(e)) { h.expeditions++; if (reussie) h.victoires++; }
   ramasserLesMunitions(e);
   const jours = x.index;
-  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${peage ? `, +${peage} CO du péage` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
+  const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);
   const partis = new Set(x.groupe);
   const sortie: Applique = { lignes, faits: [] };
   for (const h of herosDuGroupe(e)) purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
   e.expedition = null;
   if (jours) passerDesJours(e, jours, partis);
+  voir(e, 'retour');
   return lignes;
 }
 

@@ -14,7 +14,7 @@ import { applyOps } from '../engine/ops';
 import { declarerLesSorties } from '../engine/sortiesDeTest.testkit';
 import { poserLeDataset } from '../data/datasetDeTest.testkit';
 import type { SpellData } from '../data';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });

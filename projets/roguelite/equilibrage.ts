@@ -18,7 +18,7 @@ import { poserLesReglesDuRoguelite } from './src/noyau';
 import { apprendreLaVoie, attendu, equiper } from './balayage';
 
 /** L'ordre où la stratégie bâtit, et l'or qu'elle garde pour soigner et loger après avoir bâti. */
-const ORDRE_DES_BATIMENTS = ['salle', 'temple', 'peage', 'forge', 'relais', 'cartographe'] as const;
+const ORDRE_DES_BATIMENTS = ['salle', 'temple', 'forge', 'relais', 'cartographe'] as const;
 const RESERVE = 60;
 /** Les postes de dépense d'une sortie, dans l'ordre où la stratégie les paie. */
 const POSTES = ['soins', 'chambres', 'batiments', 'equipement'] as const;
@@ -139,7 +139,7 @@ function equilibrer(graine0: number, expeditions: number, parties: number, rentr
   const hautes = sorties.filter((x) => x.hospice >= 2);
   console.log(`Hospice au palier 2 ou plus : ${hautes.length} sorties, ${moyenne(hautes.map((x) => x.blessures)).toFixed(0)} Blessures soignées et ${moyenne(hautes.map((x) => x.gagne)).toFixed(0)} CO gagnés par sortie ; le soin gratuit du palier 3 en offre ${J.PRIX_DU_SOIN_PAR_BLESSURE[2]} CO la Blessure.`);
   console.log('\n| Bâtiment | ' + [1, 2, 3].map((p) => `Palier ${p} (jour moyen, parties)`).join(' | ') + ' |\n|---|---|---|---|');
-  for (const b of ['relais', 'temple', 'salle', 'forge', 'cartographe', 'peage']) {
+  for (const b of ['relais', 'temple', 'salle', 'forge', 'cartographe']) {
     console.log(`| ${b} | ${[1, 2, 3].map((p) => { const j = paliers.get(`${b}|${p}`) ?? []; return j.length ? `${moyenne(j).toFixed(0)} (${j.length})` : '—'; }).join(' | ')} |`);
   }
   console.log('\n| Destination | Premier départ (jour moyen) | Niveau moyen du groupe (attendu) | Forge (attendue) | Parties |\n|---|---|---|---|---|');

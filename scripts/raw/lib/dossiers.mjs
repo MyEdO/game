@@ -1,13 +1,13 @@
 // Chargeur des fiches de dossier de chapitre commitées (#2290) : `projets/<projet>/dossiers/<ABBR>/<NN>.json`, chacune
-// lue par `lireFicheDeDossier` (`src/data/source/dossier.ts`), la lecture que partage le chargeur de l'app
-// (`src/data/dossiers.ts`). Côté NODE seulement : le module pur ne lit aucun fichier. S'y ajoutent les
+// lue par `lireFicheDeDossier` (`src/data/schemas/source/dossier.ts`), la lecture que partage le chargeur de l'app
+// (`src/data/schemas/dossiers.ts`). Côté NODE seulement : le module pur ne lit aucun fichier. S'y ajoutent les
 // gardes de graphie des réfs, qui composent `refRe` de l'outillage RAW.
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { listerArbre } from '../../guards/lib/lister.mjs'
 import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 import { refRe } from '../_lib.mjs'
-import { FAMILLES_DE_DOSSIER, lireFicheDeDossier } from '../../../src/data/source/dossier.ts'
+import { FAMILLES_DE_DOSSIER, lireFicheDeDossier } from '../../../src/data/schemas/source/dossier.ts'
 import { dossiersDesProjets } from './fichiersCitants.mjs'
 
 /** Un élément de `ref` est UNE réf à la graphie unique `refRe`, ENTIÈRE : ni préfixe, ni reste. */

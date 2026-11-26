@@ -26,7 +26,7 @@
  *
  * UNE définition par nature, rien n'est recopié ici : l'inventaire des adresses vient de
  * `adresses.mjs`, la résolution et le verdict de relocalisation du parseur PUR
- * `src/data/source/decoupe.ts`, la réécriture textuelle de `reecriture-ancree.mjs`.
+ * `src/data/schemas/source/decoupe.ts`, la réécriture textuelle de `reecriture-ancree.mjs`.
  */
 import { execFileSync } from 'node:child_process'
 import { readFileSync, writeFileSync } from 'node:fs'
@@ -34,7 +34,7 @@ import { join } from 'node:path'
 import {
   estErreur, findAllRuns, findCells, cellRefFor, normText, ouDe, ouDeLAdresse, parseChapitre,
   resoudreAdresse, resoudreFragment,
-} from '../../src/data/source/decoupe.ts'
+} from '../../src/data/schemas/source/decoupe.ts'
 import { RACINES_PAR_DEFAUT, RACINE_DEPOT, adressesDuDepot } from './adresses.mjs'
 import { cheminChapitre, lireChapitre } from './lecteur-fs.mjs'
 import { ancresDObjet, jsonIndente, remplacerAncre } from './reecriture-ancree.mjs'

@@ -9,7 +9,7 @@
 import { findTableEntry, tableOuverte } from './tables';
 import { memoParVersion } from '../data/versionDataset';
 import navalProgressionJson from '../data/naval-progression.json';
-import { rangeesDe, type RangeeDe } from '../data/rangees';
+import { rangeesDe, type RangeeDe } from '../data/schemas/rangees';
 import type * as progressionDeNavire from '../data/schemas/defs/naval-progression';
 
 /** La table de Progression VIVANTE — la collection que le Codex édite (`navalProgression`,

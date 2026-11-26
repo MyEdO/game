@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ambiance } from '../../data';
-import { sonDEffet } from '../../data/sons/registre';
+import { sonDEffet } from '../../data/schemas/sons/registre';
 import { MAX_PRECIP, meteoDuRegard, meteoSurLesBandes, openSkyRuns, sceneGroundSpan, scenePrecip, sceneWeatherFx } from './meteo';
 import { emptyScene, sceneMetresPerTile, type BuildingMass, type Scene } from './scene';
 import { isSheltered, shelterField } from './volume/toits';

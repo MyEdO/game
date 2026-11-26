@@ -366,7 +366,7 @@ const JOURNAL_DEPS = [
   "types\tUNKNOWN STEP\t2026-10-05T13:36:12.7863611Z > node scripts/ops/knip-exports-ratchet.mjs",
   "types\tUNKNOWN STEP\t2026-10-05T13:36:12.7863745Z ",
   "types\tUNKNOWN STEP\t2026-10-05T13:36:16.3735432Z EXPORT(S) MORT(S) NOUVEAU(X) — supprimer l’export, ou le consommer :",
-  "types\tUNKNOWN STEP\t2026-10-05T13:36:16.3735904Z   src/data/source/dossier.ts : LIBELLES_DE_FAMILLE",
+  "types\tUNKNOWN STEP\t2026-10-05T13:36:16.3735904Z   src/data/schemas/source/dossier.ts : LIBELLES_DE_FAMILLE",
   "types\tUNKNOWN STEP\t2026-10-05T13:36:16.3882740Z ##[error]Process completed with exit code 1.",
 ].join('\n')
 
@@ -388,7 +388,7 @@ test('echecsDuLog : sans ligne reconnue, le job nomme son ÉTAPE (colonne 2) et 
 test('echecsDuLog : colonne `UNKNOWN STEP` — l’étape est le dernier `##[group]Run …`, le contexte part de son ouverture', () => {
   const [types] = echecsDuLog(JOURNAL_DEPS)
   assert.equal(types.etape, 'Run npm run deps:unused')
-  assert.deepEqual(types.lignes.slice(-2), ['EXPORT(S) MORT(S) NOUVEAU(X) — supprimer l’export, ou le consommer :', 'src/data/source/dossier.ts : LIBELLES_DE_FAMILLE'])
+  assert.deepEqual(types.lignes.slice(-2), ['EXPORT(S) MORT(S) NOUVEAU(X) — supprimer l’export, ou le consommer :', 'src/data/schemas/source/dossier.ts : LIBELLES_DE_FAMILLE'])
   assert.ok(!types.lignes.some((l) => l.startsWith('# ')), 'rien de l’étape précédente (le résumé TAP)')
 })
 

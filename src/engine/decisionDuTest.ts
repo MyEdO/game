@@ -12,6 +12,7 @@ import { hasTalent } from './magic';
 import { easeDifficulty } from './tests';
 import type { RefDesignee } from '../data/schemas/grammaire/ref';
 import type { JetDecidable, SujetDuJet } from '../data/schemas/grammaire/mecanique';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
 
 /** Ce que la décision lit d'un Test : le jet et sa décision, son soutien. */
 type TestAResoudre = JetDecidable & Pick<FlowTest, 'noSupport'>;
@@ -20,6 +21,8 @@ type TestAResoudre = JetDecidable & Pick<FlowTest, 'noSupport'>;
 export interface ContexteDuTest {
   /** Évalue `gate` et chaque `difficultyBy[].cond`. */
   cc: ConditionCtx;
+  /** Le catalogue de la partie (#5069), lu par `catalogueDu`. */
+  catalogue?: Catalogue;
   /** Celui qui jette, quand la voie le connaît avant la décision : ses Groupes décident `onlyGroups`/`exceptGroups`.
    *  Absent : les Groupes ne ferment pas le Test. */
   sujet?: Combatant;

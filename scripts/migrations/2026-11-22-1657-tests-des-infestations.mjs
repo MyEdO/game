@@ -4,7 +4,7 @@
  * Entrée : src/data/sea-events.json.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { porteLaTranche } from './lib/formeDAvant.mjs';
 
 const chemin = new URL('../../src/data/sea-events.json', import.meta.url);

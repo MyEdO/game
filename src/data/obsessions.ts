@@ -9,7 +9,7 @@ import { rollDice, type RNG } from '../engine/dice';
 import { findTableEntry, type DeDeTable } from '../engine/tables';
 import type { TableDeCibles } from './schemas/grammaire/mecanique';
 import type * as obsessions from './schemas/defs/obsessions';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from './rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from './schemas/rangees';
 import obsessionsJson from './obsessions.json';
 
 /** Le Tableau des Obsessions : plage du dé de tirage → id du Groupe-Cible. */

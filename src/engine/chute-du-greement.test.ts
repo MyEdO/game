@@ -13,7 +13,7 @@ import type { Combatant } from './types';
 import { schema as shipCriticalsSchema } from '../data/schemas/defs/ship-criticals';
 import type * as shipCriticalsDef from '../data/schemas/defs/ship-criticals';
 import shipCriticalsJson from '../data/ship-criticals.json';
-import { datasetDe } from '../data/datasets';
+import { datasetDe } from '../data/schemas/datasets';
 import { setEnTete } from '../data/overrides';
 import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testkit';
 

@@ -28,6 +28,9 @@ import { elaguerLePersiste, rienDElague, type RetraitsDElagage } from './elagage
 import { FORMAT_SAVE } from './formats.generated';
 import { exigerUnRefus, parseSceneDeProjet } from '../worldMap';
 import { sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import type { Catalogue } from '../../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
+import { parserSousCatalogue } from '../../data/schemas/catalogue/references';
 import { EVT } from '../bus';
 import type { Evenement } from '../partie';
 
@@ -128,9 +131,9 @@ export function metaDeSave(save: SaveGame): SaveMeta {
 export const CAUSES_DE_REFUS_DE_SAVE = ['autreFormat', 'illisible', 'sceneInvalide'] as const;
 export type ObsoleteCause = (typeof CAUSES_DE_REFUS_DE_SAVE)[number];
 
-/** Un texte de save : la save au `FORMAT_SAVE`, ou la CAUSE de son refus. Source unique de la lecture d'un
- *  emplacement et de l'import. */
-export function lireSave(brut: string): SaveGame | ObsoleteCause {
+/** Un texte de save : la save au `FORMAT_SAVE`, ou la CAUSE de son refus, ses ids jugés sous `cat`. Source unique de la
+ *  lecture d'un emplacement et de l'import. */
+export function lireSave(brut: string, cat: Catalogue = catalogueDuProcessus()): SaveGame | ObsoleteCause {
   let parsed: unknown;
   try {
     parsed = JSON.parse(brut);
@@ -138,19 +141,19 @@ export function lireSave(brut: string): SaveGame | ObsoleteCause {
     return 'illisible';
   }
   if (!isValidSave(parsed)) return 'autreFormat';
-  if (scenesRefusees(parsed.data)) return 'sceneInvalide';
+  if (scenesRefusees(parsed.data, cat)) return 'sceneInvalide';
   return parsed;
 }
 
 /** Une scène de `data` (la courante, celles du paquet de campagne) est-elle refusée par la porte des scènes
  *  (`parseSceneDeProjet`), ou une entité qu'une instance de scène réinjecte (`SceneMutation.entitesChangees`) par la porte
  *  des entités (`sceneEntitySchema`) ? */
-function scenesRefusees(data: DonneesDeSave): boolean {
+function scenesRefusees(data: DonneesDeSave, cat: Catalogue): boolean {
   const scenes = [...(data.scene ? [data.scene] : []), ...(data.campaignDoc?.scenes ?? [])];
   const entites = Object.values(data.sceneInstances ?? {}).flatMap((m) => m.entitesChangees ?? []);
-  if (!entites.every((e) => sceneEntitySchema.safeParse(e).success)) return true;
+  if (!entites.every((e) => parserSousCatalogue(sceneEntitySchema, e, cat).success)) return true;
   try {
-    for (const s of scenes) parseSceneDeProjet(s);
+    for (const s of scenes) parseSceneDeProjet(s, cat);
     return false;
   } catch (e) {
     exigerUnRefus(e);

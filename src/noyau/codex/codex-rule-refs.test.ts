@@ -7,7 +7,7 @@
 import { describe, it, expect } from 'vitest';
 import { RULE_REF } from '../../engine/ruleRefs';
 import { CATEGORIE_CODEX_DU_FICHIER } from '../../data/schemas/_cles-de-dataset.generated';
-import { IDS_PAR_ESPACE } from '../../data/schemas/_ids.generated';
+import { IDS_PAR_ESPACE } from '../../data/_ids.generated';
 import { weatherRef } from '../../engine/travelStages';
 import { weatherIdSchema } from '../../data/schemas/defs/weather';
 import { windsModLine, windsModFromRoll } from '../../engine/windsOfMagic';

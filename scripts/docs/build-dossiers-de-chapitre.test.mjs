@@ -4,7 +4,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { rendreEtat, rendre } from './build-dossiers-de-chapitre.mjs'
-import { FAMILLES_DE_DOSSIER } from '../../src/data/source/dossier.ts'
+import { FAMILLES_DE_DOSSIER } from '../../src/data/schemas/source/dossier.ts'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
 const vide = tableTotale(FAMILLES_DE_DOSSIER, () => [])

@@ -3,7 +3,7 @@
  * Fonctions (get,set) : combat, magie, IA, desengagement, effets. RNG via ./battleRng.
  */
 import { nomDe } from '../engine/nom';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import { porteurEnVue } from './visionDuGroupe';
@@ -196,6 +196,10 @@ import { isRation } from '../engine/provisions';
 import {
   isMagicMissile,
   prayerWrathTriggered,
+  ciblesDejaPriees,
+  priereFeraitPecher,
+  spellTargetCount,
+  consignerLaPriere,
   castBlockedBy,
   prayerSinLock,
   prayerTalentMissing,
@@ -258,7 +262,6 @@ import {
   extraTargetCapacity,
   zoneDiameterMultiplier,
 } from '../engine/overcast';
-import type { SpellRange } from '../engine/spellRange';
 import {
   certainFlowOps,
   evalCondition,
@@ -585,7 +588,7 @@ import { groupeAPoudre, isThrownWeapon, maniementRetenu, weaponGroup } from '../
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt } from './monde/path';
 import { casesDansLaPortee, chebyshev } from '../engine/grid';
 import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
-import { expectedDamage, finite } from './monde/aiSpellValue';
+import { expectedDamage, finite, HORIZON_DE_BENEFICE, spellActionValue, spellIsOffensive } from './monde/aiSpellValue';
 import { chargeReach, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
@@ -5908,17 +5911,14 @@ export function lancerLIncantation(get: Get, set: SetFn): void {
     : resolveCasting(caster, spell, battleRng(), difficulty, ward, seaMagicContext(get()));
   if (sigmar) get().ecrireAuJournal(tr('cs.sigmarWard', { name: nomDe(caster) }));
   if (aqshy) get().ecrireAuJournal(tr('cs.aqshyBonus', { name: nomDe(caster), n: aqshy }));
-  // Lanceur ENNEMI : Surincantation automatique (LDB 47 l.28-31) — le surplus de DR alloué à
-  // l'axe Cible d'un Projectile (l'IA n'a pas de modale de choix ; ZdE déjà toutes-cibles).
+  // Lanceur conduit par le moteur : sa Surincantation se planifie (`aiOvercastPlan`). LDB 47 l.13-17 ; LDB 41 l.21-27 ; LDB 42 l.9-13
   // Lanceur CONDUIT PAR LE MOTEUR (IA, cadence auto) : il n'a pas de modale pour trancher son
   // Incantation Critique — sa politique (`defaultCritChoice`) est son CHOIX, et elle s'ÉCRIT ici
   // (LDB 46 l.28-32 : « vous pouvez aussi choisir »). Un lanceur piloté par un humain n'a aucun défaut.
   const critIA = aiDriven(get(), caster) && res.isCritical && !castInfoIsPrayer(spell)
     ? { critChoice: defaultCritChoice(res, sortInfligeDesDegats(spell)) }
     : {};
-  const auto = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(get().scene, caster, pc.targetId, spell, res, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, critIA.critChoice)
-    : {};
+  const auto = surincantationDuMoteur(get(), pc, caster, spell, res, critIA.critChoice);
   set({ pendingCast: { ...pc, result: res, ...auto, ...critIA } });
   // Dissipation (LDB 46 l.156) : le Contre-sort s'aiguille ICI, AU JET, pour TOUT lanceur (héros,
   // ennemi IA, ennemi du siège MJ) — l'objet du Test opposé est le Test d'Incantation, et le DR
@@ -6673,70 +6673,75 @@ export function overcastReset(pc: Pick<PendingCast, 'zone'>, mpt: number): Parti
   };
 }
 
-/** Surincantation AUTOMATIQUE d'un lanceur ENNEMI (LDB 47 l.28-31) : le surplus est alloué à l'axe
- *  CIBLE d'un Projectile — adversaires actifs les plus proches, à PORTÉE du Sort, hors cible
- *  principale. Sous VDM (#885), le reliquat non consommé par l'axe Cible rejoint l'axe Dégâts. Axes
- *  et budget : les MÊMES lectures que le joueur (`overcastAxesFor`, `castOvercastBudget`). Retourne
- *  le patch de pendingCast ({} si rien). */
+/** La Surincantation que le moteur dépense pour le lanceur `caster` qu'il conduit, sur le jet `res` de `pc` ({} pour un
+ *  lanceur piloté par un humain) : point d'entrée unique du jet, de sa relance et du Contre-sort. LDB 47 l.13-17 ;
+ *  LDB 41 l.21-27 ; LDB 42 l.9-13 */
+export function surincantationDuMoteur(
+  s: Jeu, pc: PendingCast, caster: Combatant, spell: SpellData, res: CastResult, critChoice: CritChoice | undefined,
+): ReturnType<typeof aiOvercastPlan> {
+  return aiDriven(s, caster) ? aiOvercastPlan(s.scene, caster, pc, spell, res, s.battle?.combatants ?? s.party, spellSightOf(() => s), critChoice) : {};
+}
+
+/** Surincantation d'un lanceur conduit par le moteur, pour toute source : le budget (`castOvercastBudget`) se
+ *  dépense sur les axes du joueur (`castOvercastAxes`), vers ses candidats (`overcastTargetCandidates`) dans sa
+ *  capacité (`extraTargetCapacity` × `spellTargetCount`). Cibles retenues : de valeur positive, hors celles que la
+ *  Prière ferait pécher (`priereFeraitPecher`), au plus proche. Le partage Portée/Cible couvre le plus de cibles
+ *  au moins de pas ; le reliquat va aux Dégâts, sinon à la Durée. Rend le patch du pendingCast ({} si rien).
+ *  LDB 47 l.13-17, l.28 ; LDB 41 l.21-27 ; LDB 42 l.9-13 ; VDM 02 l.198 ; #885 */
 export function aiOvercastPlan(
   scene: Scene | null,
   caster: Combatant,
-  targetId: string,
-  spell: OvercastSpell & { range: SpellRange | null },
+  pc: Pick<PendingCast, 'targetId' | 'zone' | 'missile'>,
+  spell: SpellData,
   res: CastResult,
-  combatants: Combatant[],
+  pool: Combatant[],
   sight?: SpellSight,
-  missile = false,
   critChoice?: CritChoice,
 ): { overcast?: { range: number; zone: number; duration: number; targets: number; damage: number }; extraTargetIds?: string[] } {
-  if (!caster.pos) return {};
   const source = overcastSourceOf(spell);
   const budget = castOvercastBudget(spell, res, critChoice);
   if (budget <= 0) return {};
-  const axes = overcastAxesFor(spell, missile);
-  const range = spellRangeTiles(spell.range, caster, sceneMetresPerTile(scene)) ?? Infinity;
-  const extras = !axes.includes('targets') ? [] : combatants
-    .filter((t) => t.kind !== caster.kind && t.id !== targetId && !isOutOfAction(t) && t.pos && distanceDeCombat(scene, caster, t) <= range && !spellSightBlocked(sight, caster, t))
-    .sort((a, b) => distanceDeCombat(scene, caster, a) - distanceDeCombat(scene, caster, b))
-    .slice(0, extraTargetCapacity(source, budget, 1))
-    .map((t) => t.id);
-  // Allocation MINIMALE couvrant les cibles retenues — indépendante du modèle (LDB : 1 pas = 1 cible
-  // pour une Cible initiale de 1 ; VDM : paliers du Tableau de Surincantation). 0 si aucune cible
-  // supplémentaire n'est à portée (le reliquat entier reste alors disponible pour l'axe Dégâts).
-  const targetSpend = extras.length
-    ? Array.from({ length: budget }, (_, i) => i + 1).find((n) => extraTargetCapacity(source, n, 1) >= extras.length) ?? budget
-    : 0;
-  // Reliquat → Dégâts (Projectile magique, VDM seulement, `VDM 02 l.198`) : un pas de plus sur l'axe
-  // Cible qui ne couvre AUCUNE cible neuve ne sert à rien — l'IA le redirige où le RAW l'autorise,
-  // au lieu de le laisser inerte (#885 : le nerf du Projectile sans jamais sa contrepartie).
-  const damageSpend = axes.includes('damage') ? budget - targetSpend : 0;
-  if (!extras.length && !damageSpend) return {};
-  return { overcast: { range: 0, zone: 0, duration: 0, targets: targetSpend, damage: damageSpend }, extraTargetIds: extras };
+  const axes = castOvercastAxes(pc, spell);
+  const initiales = spellTargetCount(spell, caster);
+  const evalCtx = { landProb: 1, refEnemy: null, horizon: HORIZON_DE_BENEFICE };
+  const retenues = (r: number): Combatant[] => !axes.includes('targets') ? [] : overcastTargetCandidates(scene, pool, caster, pc.targetId, spell, source, r, sight)
+    .filter((t) => spellActionValue(caster, spell, { kind: 'unit', subject: t }, evalCtx) > 0 && !priereFeraitPecher(caster, spell.id, t.id))
+    // Hors combat, sans position, l'écart est NaN : 0 garde l'ordre du groupe.
+    .sort((a, b) => distanceDeCombat(scene, caster, a) - distanceDeCombat(scene, caster, b) || 0);
+  let plan = { range: 0, targets: 0, extras: [] as Combatant[] };
+  for (let r = 0; r <= (axes.includes('range') ? budget : 0); r++) {
+    const extras = retenues(r).slice(0, extraTargetCapacity(source, budget - r, initiales));
+    const targets = extras.length
+      ? Array.from({ length: budget - r }, (_, i) => i + 1).find((n) => extraTargetCapacity(source, n, initiales) >= extras.length) ?? budget - r
+      : 0;
+    if (extras.length > plan.extras.length) plan = { range: r, targets, extras };
+  }
+  const reliquat = budget - plan.range - plan.targets;
+  const damage = axes.includes('damage') ? reliquat : 0;
+  const duration = !damage && axes.includes('duration') ? reliquat : 0;
+  if (!plan.extras.length && !damage && !duration) return {};
+  return { overcast: { range: plan.range, zone: 0, duration, targets: plan.targets, damage }, extraTargetIds: plan.extras.map((t) => t.id) };
 }
 
-/** Cibles SUPPLÉMENTAIRES proposables pour la Surincantation « Cible » (LDB 47 l.28-31), côté
- *  modale : hors cible principale, À PORTÉE du Sort (quand les positions existent — hors combat
- *  le groupe n'est pas sur un plateau), et surtout EN ÉTAT D'ÊTRE CIBLÉES — un Projectile vise un
- *  adversaire encore en combat (un figurant à 0 PB est mort, LDB 18 l.42-46) ; un sort bénéfique
- *  vise un allié non mort/évacué (l'Inconscient reste soignable). Aligné sur aiOvercastPlan/ZdE. */
+/** Cibles SUPPLÉMENTAIRES proposables pour la Surincantation « Cible », hors cible principale, à portée quand les
+ *  positions existent, en état d'être ciblées : un sort offensif (`spellIsOffensive`) vise un adversaire encore en
+ *  combat, un sort bénéfique un allié non mort ni évacué. LDB 47 l.28-31 ; LDB 18 l.42-46 */
 export function overcastTargetCandidates(
   scene: Scene | null,
   pool: Combatant[],
   caster: Combatant,
   targetId: string,
-  spell: { range: SpellRange | null },
-  missile: boolean,
-  // Surincantation (LDB 47/41/42) : SOURCE (×initial Sort/Miracle vs +6 m fixe Bénédiction) et pas de
-  // Portée alloués — EXPLICITES (aucun défaut caché qui pourrait mal-appliquer l'×initial à un sort divin).
-  // `rangeSteps` 0 = portée de base ; étendre la Portée élargit l'ensemble des cibles atteignables.
+  spell: SpellData,
+  // `rangeSteps` 0 = portée de base ; étendre la Portée élargit l'ensemble des cibles atteignables. LDB 47 ; LDB 41 ; LDB 42
   source: OvercastSource,
   rangeSteps: number,
   sight?: SpellSight,
 ): Combatant[] {
   const range = effectiveSpellRangeTiles(spell.range, caster, source, rangeSteps, sceneMetresPerTile(scene));
+  const offensif = spellIsOffensive(spell);
   return pool.filter((m) => {
     if (m.id === targetId) return false;
-    if (missile ? m.kind === caster.kind || isOutOfAction(m) : m.kind !== caster.kind || m.dead || m.outOfRencontre) return false;
+    if (offensif ? m.kind === caster.kind || isOutOfAction(m) : m.kind !== caster.kind || m.dead || m.outOfRencontre) return false;
     if (range != null && caster.pos && m.pos && distanceDeCombat(scene, caster, m) > range) return false;
     // Ligne de Vue (LDB 46 l.121) : une cible supplémentaire doit aussi être visible du lanceur.
     return !spellSightBlocked(sight, caster, m);
@@ -6798,9 +6803,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   }
   next = { ...next, slPropre: res.slPropre ?? res.sl };
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
-  const oc = aiDriven(get(), caster) && pc.missile && !pc.zone
-    ? aiOvercastPlan(get().scene, caster, pc.targetId, spell, next, get().battle?.combatants ?? [], spellSightOf(get), !!pc.missile, pc.critChoice)
-    : {};
+  const oc = surincantationDuMoteur(get(), pc, caster, spell, next, pc.critChoice);
   set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
   if (b) set({ battle: { ...b, log: [...b.log, ev('information', out.log, counter.id, caster.id)] } });
@@ -7185,7 +7188,7 @@ export function applyCast(
   const durationBonusRounds = Math.max(0, extras?.durationBonusRounds ?? 0);
   // Jets supplémentaires COUPLÉS au pas de Surincantation alloué à la Durée (EDOC 13 l.270-276) —
   // jamais au DR total du jet (`rollTable.extraRollsPerStep`, `OpsCtx.overcastDurationSteps`). Le jet est
-  // DÉCLINABLE (l.276 « vous pouvez ») : `chosenTableRolls` (absent = tous les pas, IA/rétrocompat).
+  // DÉCLINABLE (l.276 « vous pouvez ») : `chosenTableRolls` (absent = tous les pas).
   const overcastDurationSteps = Math.max(0, extras?.overcastDurationSteps ?? 0);
   // DR alloués à la colonne « Dégât en plus » du Tableau de Surincantation (`VDM 02 l.198`,
   // `missileOvercastDamageBonus`) — le jet est FIGÉ avant l'allocation (`pc.result`) : la
@@ -7510,12 +7513,20 @@ export function applyCast(
     }
   }
 
-  // Péché et Colère Divine (LDB 40 l.44-45) : à CHAQUE Test de Prière, si le dé des
-  // unités ≤ Points de Péché → Colère des dieux, MÊME si le Test est réussi (la
-  // Maladresse, elle, a déjà déclenché la sienne ci-dessus).
+  // La Colère d'une Maladresse s'est jouée plus haut. LDB 40 l.36, l.46
   if (castInfoIsPrayer(spell) && !res.isFumble && res.roll > 0 && prayerWrathTriggered(res.roll, caster.sinPoints ?? 0)) {
     logLines.push(tr('cf.colereDeclenchee', { units: res.roll % 10, name: nomDe(caster), sin: String(caster.sinPoints) }));
     logLines.push(...contrecoup('colere'));
+  }
+  // Après la Colère de ce Test, qui lit le Péché d'avant. LDB 41 l.17 ; LDB 40 l.36 ; #5056
+  if (castInfoIsPrayer(spell) && res.cast) {
+    const cibleIds = targets.map((t) => t.id);
+    const peche = rule('priere-repetee-peche');
+    const repetees = ciblesDejaPriees(caster, spell.id, cibleIds);
+    if (peche > 0 && repetees.length) {
+      logLines.push(...applyOps(caster, repetees.map(() => ({ op: 'sinMod', amount: peche })), { idNeuf: get().forgerUnId, rng: battleRng(), sourceSpellId: spell.id }).lignes);
+    }
+    consignerLaPriere(caster, spell.id, cibleIds);
   }
 
   // Effet déclenché « après incantation résolue » (réussie ou non) — dispatcher générique via le bus.

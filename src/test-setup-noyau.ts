@@ -7,14 +7,13 @@
  * test, la garde de partage (#2097) sur l'état du propriétaire branché (`jeuBranche`), lue avant le vidage du registre
  * des scènes, puis ce vidage. Les `afterEach` jouent avant les `onTestFinished` : le banc qui ferme à la fin de son test
  * (`src/noyau/banc.testkit.ts`) est encore branché ici. Après chaque FICHIER, le propriétaire qu'il a laissé ouvert se
- * ferme comme `fermer` le ferme (`ouvrirLeProprietaire`) : sa plateforme retirée, son jeu débranché. Le graphe est
+ * suspend (`suspendreLeJeuBranche`) : sa plateforme retirée, ses écoutes coupées, son jeu débranché. Le graphe est
  * partagé par worker (`isolate: false`, `vitest.config.ts`), et un fichier dont les tests jouent une même partie
  * (le pont, `hotes/godot/pont/`) la tient jusqu'à son dernier test.
  */
 import { afterAll, afterEach, beforeEach } from 'vitest';
 import './data/overrides';
-import { debrancherLeJeu, jeuBranche } from './noyau/branchement';
-import { retirerLaPlateforme } from './noyau/plateforme';
+import { jeuBranche, suspendreLeJeuBranche } from './noyau/branchement';
 import { resetSceneRegistry, scenesDuRegistre } from './noyau/monde/registreDesScenes';
 import { remettreLesSingletons } from './singletons.testkit';
 import { resetOwnTestFailedGuard } from './noyau/triggeredEffects';
@@ -34,7 +33,5 @@ afterEach(() => {
 
 afterAll(() => {
   remettreLesSingletons();
-  if (!jeuBranche()) return;
-  retirerLaPlateforme();
-  debrancherLeJeu();
+  suspendreLeJeuBranche();
 });

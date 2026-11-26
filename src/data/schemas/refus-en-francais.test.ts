@@ -21,6 +21,7 @@ import { readCorpus } from '../../../scripts/guards/lib/sourceCorpus.mjs';
 import { validateDataset } from './validate';
 import { lireBlocsAvances } from './blocsAvances';
 import weatherJson from '../weather.json';
+import { catalogueDuProcessus } from '../catalogueDuProcessus';
 
 /** Les mots que zod prononce en ANGLAIS, toutes familles d'issue confondues (sa locale `en`). */
 const ANGLAIS = /\bInvalid\b|\bToo small\b|\bToo big\b|\bUnrecognized keys?\b|\bexpected\b|\breceived\b/;
@@ -32,7 +33,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
     const doc = copie(weatherJson);
     doc.conditions[2].id = 'crachin';
 
-    const dit = validateDataset('weather.json', doc);
+    const dit = validateDataset('weather.json', doc, catalogueDuProcessus());
 
     expect(dit, 'le document corrompu doit être refusé').not.toBeNull();
     expect(dit).not.toMatch(ANGLAIS);
@@ -48,7 +49,7 @@ describe('les refus de schéma parlent français (#1588)', () => {
    * `advError`, et rien d'autre ne transforme le texte entre là et le `role="alert"`.
    */
   it('porte de la modale « Avancé » — un bloc au MAUVAIS TYPE : refus français, au chemin', () => {
-    const porte = lireBlocsAvances({ dialogues: 42 });
+    const porte = lireBlocsAvances({ dialogues: 42 }, catalogueDuProcessus());
 
     expect(porte.ok, 'un bloc au mauvais type doit être refusé').toBe(false);
     const dit = porte.ok ? '' : porte.rapport;

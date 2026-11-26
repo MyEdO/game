@@ -29,7 +29,7 @@ import { join } from 'node:path'
 import { jouerWorkflow } from '../guards/lib/jouer-workflow.mjs'
 import { z } from 'zod'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
-import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/source/dossier.ts'
+import { FAMILLES_DE_DOSSIER, ficheDeDossier } from '../../src/data/schemas/source/dossier.ts'
 import { argsDeTableSimulee, ecrireFiche, ficheDuRun } from '../raw/workflow-args.mjs'
 import {
   DOSSIER,

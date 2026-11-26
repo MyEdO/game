@@ -20,7 +20,7 @@ import {
 import { gameOpSchema } from './schemas/grammaire/mecanique';
 import type { SchemaDef } from './schemas/types';
 import { entreeOuverte, mesureDuParse, refusDeSpec, specAuCatalogue } from './schemas/grammaire/ref';
-import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
+import { IDS_PAR_ESPACE } from './_ids.generated';
 import { itemFromTrappingById } from '../engine/items';
 import { pretires } from './pregens';
 import { SCENARIOS } from '../scenes/test-scenarios/_registry.generated';

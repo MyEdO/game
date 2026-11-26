@@ -1,8 +1,8 @@
 import { describe, it, expect, afterEach } from 'vitest';
 import { materials, matieresDe, matieresCouvrantes, findPropMaterialById } from './index';
 import { setDataset, resetData } from './overrides';
-import type { MaterialEntry } from './materials.types';
-import type { EntreeVivante } from './datasets';
+import type { MaterialEntry } from './schemas/materials.types';
+import type { EntreeVivante } from './schemas/datasets';
 import { editees } from './materials.testkit';
 import { validateScene } from '../noyau/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';

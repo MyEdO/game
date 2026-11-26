@@ -34,7 +34,7 @@ import { buildScene } from '../../mapSpec';
 import { poserLesNavires, poserUnNavire, provenanceDesNavires } from '../../planDeNavire';
 import { buildOpaque } from '../vision';
 import { capsSolid } from './floors';
-import type { MaterialRef } from '../../../data/materials.types';
+import type { MaterialRef } from '../../../data/schemas/materials.types';
 
 function marche(): Scene {
   const s = emptyScene('scene-test', 2, 1);

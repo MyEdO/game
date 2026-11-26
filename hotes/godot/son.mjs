@@ -41,7 +41,7 @@ const { epinglerUnSon } = await chargerAssets(["export { epinglerUnSon } from '/
 try {
   const entree = epinglerUnSon(args.entree, args.nom, args.demande)
   console.log(`[son] ${args.nom} épinglé : ${JSON.stringify(entree)}`)
-  console.log('[son] ensuite : sa définition sous src/data/sons/defs/, `npm run gen`, puis son versement, `npm run godot:transfert -- <nom> hotes/godot/projet/sons/' + args.nom + '` (skill ajouter-un-effet)')
+  console.log('[son] ensuite : sa définition sous src/data/schemas/sons/defs/, `npm run gen`, puis son versement, `npm run godot:transfert -- <nom> hotes/godot/projet/sons/' + args.nom + '` (skill ajouter-un-effet)')
 } catch (e) {
   console.error(`[son] ${e.message}`)
   process.exit(1)

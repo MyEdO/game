@@ -3,7 +3,7 @@
  * ni teinte — les trois rendus (couleur de sommet three, voile CSS de l'iso, lumière d'ambiance POV) en
  * sont des APPLICATIONS, testées chez eux. Ce fichier tient la table de vérité et la FEUILLE (le module
  * n'importe rien à l'exécution, et son seul type vient d'une feuille de types de la donnée,
- * `src/data/ambiance.types.ts`, #2884 : c'est ce qui lui permet d'être partagé par les trois sans les coupler).
+ * `src/data/schemas/ambiance.types.ts`, #2884 : c'est ce qui lui permet d'être partagé par les trois sans les coupler).
  */
 import { describe, expect, it } from 'vitest';
 import { resolve } from 'node:path';
@@ -42,12 +42,12 @@ describe('visibilityOf — LA politique, sans caméra ni renderer', () => {
 
 describe('FEUILLE — la loi partagée ne dépend de personne', () => {
   const SRC = entreeDe(resolve(__dirname, 'visibility.ts')).text;
-  const TYPES = entreeDe(resolve(__dirname, '../data/ambiance.types.ts')).text;
+  const TYPES = entreeDe(resolve(__dirname, '../data/schemas/ambiance.types.ts')).text;
 
   it('`visibility.ts` n’importe que le TYPE `Visibility`, d’une feuille de types qui n’importe rien', () => {
     // Angle mort ASSUMÉ : lecture TEXTUELLE des deux sources, pas du graphe de modules — la garde vaut pour
     // ces deux fichiers seuls.
-    expect(SRC.match(/^import\s.*$/gm)).toEqual(["import type { Visibility } from '../data/ambiance.types';"]);
+    expect(SRC.match(/^import\s.*$/gm)).toEqual(["import type { Visibility } from '../data/schemas/ambiance.types';"]);
     expect(TYPES.match(/^import\s/gm)).toBeNull();
     for (const src of [SRC, TYPES]) {
       expect(src).not.toMatch(/\brequire\(/);

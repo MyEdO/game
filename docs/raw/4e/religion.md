@@ -21,6 +21,7 @@
 - [Bénédictions vs Miracles — différence mécanique](#bénédictions-vs-miracles--différence-mécanique)
 - [Effectuer une Bénédiction ou un Miracle — procédure](#effectuer-une-bénédiction-ou-un-miracle--procédure)
 - [Restrictions communes](#restrictions-communes)
+- [Petits soucis — règle optionnelle](#petits-soucis--règle-optionnelle)
 - [Degrés de Réussite — bénéfices bonus Bénédictions](#degrés-de-réussite--bénéfices-bonus-bénédictions)
 - [Degrés de Réussite — bénéfices bonus Miracles](#degrés-de-réussite--bénéfices-bonus-miracles)
 - [Manifestations divines — visible vs discret](#manifestations-divines--visible-vs-discret)
@@ -104,6 +105,19 @@ Les Bénédictions restent généralement discrètes : seuls ceux qui possèdent
 
 ---
 
+## Petits soucis — règle optionnelle
+
+**Sources RAW** : `LDB 41 l.15-17`
+
+> « Les dieux s'irritent quand les Bienheureux abusent de leurs privilèges. Si le MJ le souhaite, des utilisations multiples de Bénédictions ou de Miracles dans une même scène, sur une même blessure, sur une cible identique ou dans une situation similaire peut provoquer la Colère des dieux, et entraîner l'attribution de Points de Péché, en général entre 1 et 3. »
+> — LDB 41 l.17
+
+Arbitrage utilisateur du 25 novembre 2026 (#5056) : « 1 Péché dès la 2e sur la cible ». Dès la 2e fois dans la rencontre, la même Prière réussie sur la même cible donne au lanceur le Péché de la règle optionnelle `priere-repetee-peche` (défaut 1, de 0 à 3) ; la Colère suit la règle du Péché (`LDB 40 l.36`). La rencontre court d'une entrée en combat à la suivante (#4863, [`equipement.md`](equipement.md#effets)).
+
+**Implémente :** [État calculé](../implemente.generated.md#4ereligionpetits-soucis-regle-optionnelle)
+
+---
+
 ## Degrés de Réussite — bénéfices bonus Bénédictions
 
 **Sources RAW** : `LDB 41 l.20-27`
@@ -178,17 +192,17 @@ Règles précises :
 
 ## Colère des dieux — déclencheur Maladresse
 
-**Sources RAW** : `LDB 40 l.12-13`, `LDB 40 l.45-46`
+**Sources RAW** : `LDB 40 l.12-13`, `LDB 40 l.46`
 
 La Colère des dieux est déclenchée par **deux chemins distincts** :
 1. **Maladresse** (double raté) au Test de Prière — toujours, indépendamment du Péché.
 2. **Péché actif** — dé des unités ≤ sinPoints, même sur un Test réussi.
 
-Le MJ peut aussi utiliser la table ou y piocher des résultats chaque fois qu'un personnage insulte un dieu. `LDB 40 l.45-46`
+Le MJ peut aussi utiliser la table ou y piocher des résultats chaque fois qu'un personnage insulte un dieu. `LDB 40 l.46`
 
 **Modificateur au jet de Colère** : ajouter **+10 par Point de Péché** au jet d100 sur le tableau. `LDB 40 l.46`
 
-**Après le jet** : réduire les Points de Péché de 1 (minimum 0). `LDB 40 l.46-50`
+**Après le jet** : réduire les Points de Péché de 1 (minimum 0). `LDB 40 l.46`
 
 **Implémente :** [État calculé](../implemente.generated.md#4ereligioncolere-des-dieux-declencheur-maladresse)
 
@@ -314,8 +328,9 @@ Les commandements sont les préceptes spécifiques à chaque culte dont la viola
 | « Pensez à vos actes » (0 DR plafonné) | `src/engine/magic.ts` | `prayerMaxZeroDR(c)` |
 | Talent Prière (+1 DR / acquisition) | `src/engine/magic.ts` | `castTestTalentDR(c, 'Prière')` |
 | Table Colère des dieux (d100 + +10/Péché) | `src/engine/miscast.ts` | `rollMiscast('colere', rng, sinPoints)` |
-| Expiation Péché (−1 après jet Colère) | `src/noyau/combatFlow.ts` | `l.2134-2138` |
-| Déclenchement Colère (Maladresse + Péché) | `src/noyau/combatFlow.ts` | `l.2981-2984` |
+| Expiation Péché (−1 après jet Colère) | `src/noyau/combatFlow.ts` | `finishMiscast()` |
+| Déclenchement Colère (Maladresse + Péché) | `src/noyau/combatFlow.ts` | `applyCast()` : `contrecoup('colere')` |
+| Petits soucis (Péché d'une Prière répétée sur la même cible) | `src/engine/magic.ts`, `src/noyau/combatFlow.ts` | `ciblesDejaPriees()`, `consignerLaPriere()`, `applyCast()`, règle `priere-repetee-peche` |
 | sinPoints persisté | `src/data/types` → `Combatant.sinPoints` | — |
 | Dissipation (Miracles NON dissipables) | `src/engine/magic.ts` | `isDispellableSpell()` : `castInfoIsPrayer` → `false` |
 

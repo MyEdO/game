@@ -35,7 +35,7 @@
  * `SceneEntity.pos === approche résolue` est un invariant du document, gardé par `validateScene`.
  */
 import { findPropById } from '../../data';
-import { caseDe, cransDepuisCapIdentite, placesLocalesDuProp } from '../../data/props.types';
+import { caseDe, cransDepuisCapIdentite, placesLocalesDuProp } from '../../data/schemas/props.types';
 import { DIR8_DELTA, DIR8_ORDER, rotateDir8, type Dir8 } from '../../geometry/dir8';
 import { PARTY_MAX } from './combatants';
 import { solPraticable, sceneMetresPerTile, wallBetween, type Scene, type SceneEntity } from './scene';
@@ -128,7 +128,7 @@ function placesPartielles(scene: Scene): PlacePartielle[] {
   const out: PlacePartielle[] = [];
   // L'ÉCHELLE de la scène, passée à la règle des places : l'ancre d'une place est MÉTRIQUE au
   // catalogue, le plan de la scène est en CASES — la division vit avec la règle
-  // (`data/props.types.ts`, site déclaré par `noyau/monde/echelle-de-scene.test.ts`).
+  // (`data/schemas/props.types.ts`, site déclaré par `noyau/monde/echelle-de-scene.test.ts`).
   const mpt = sceneMetresPerTile(scene);
   for (const ent of scene.entities) {
     if (ent.kind !== 'prop') continue;
@@ -142,7 +142,7 @@ function placesPartielles(scene: Scene): PlacePartielle[] {
     // les deux ne répondent pas à la même question.
     const sol = piedDuDecor(scene, ent);
     // PLAN : ancre, siège et abord viennent de la règle UNIQUE `placesLocalesDuProp`
-    // (`data/props.types.ts`), en offsets depuis `ent.pos`, et le validateur de catalogue lit la
+    // (`data/schemas/props.types.ts`), en offsets depuis `ent.pos`, et le validateur de catalogue lit la
     // MÊME. Elle part de l'ancre du DÉCOR (`offsetAncre` décalé par son `calage`, celle d'`ancreDuDecor`),
     // celle de la géométrie et du foyer d'une lampe, jamais du coin NO : au-delà d'un meuble 1×1, une
     // place ancrée sur le coin se décale d'une demi-case par axe étendu et le corps assis quitte sa chaise dessinée.

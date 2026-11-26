@@ -36,7 +36,7 @@ import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual as egal } from 'node:util';
 import { walkSkillRefs } from '../data/lib/skillSpecWalk.mjs';
 import { porteLaTranche } from './lib/formeDAvant.mjs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const DATA = path.join(ROOT, 'src/data');

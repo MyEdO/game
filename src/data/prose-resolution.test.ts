@@ -7,9 +7,17 @@ import { RACINES_PAR_DEFAUT, adressesDuDepot, fichiersJsonDe } from '../../scrip
 import { cheminChapitre } from '../../scripts/source/lecteur-fs.mjs';
 // @ts-expect-error - résolveur ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { resoudreProse } from '../../scripts/source/resoudre.mjs';
-import { fragmentBlocs, fragmentCellule, graphieDuFichier, parseChapitre, type ChapitreParse, type Fragment, type FragmentBlocs } from './source/decoupe';
+import {
+  fragmentBlocs,
+  fragmentCellule,
+  graphieDuFichier,
+  parseChapitre,
+  type ChapitreParse,
+  type Fragment,
+  type FragmentBlocs,
+} from './schemas/source/decoupe';
 // Le prédicat de la règle 5, là où il est DÉFINI (partagé avec `no-html-in-prose.test.ts`).
-import { HTML_TAG } from './source/normalize';
+import { HTML_TAG } from './schemas/source/normalize';
 
 /**
  * EN-TÊTE STRUCTURÉ de la garde (#1475).
@@ -28,7 +36,7 @@ const GARDE = {
     'largeur JUSTE est celle du dossier résolu (`largeurDeChapitre`, #1739).',
   primitive:
     '`resoudreProse` (`scripts/source/resoudre.mjs`) — le résolveur FAIL-CLOSED, qui compose le parseur ' +
-    'PUR `src/data/source/decoupe.ts` et le lecteur fs `scripts/source/lecteur-fs.mjs`. Aucun second ' +
+    'PUR `src/data/schemas/source/decoupe.ts` et le lecteur fs `scripts/source/lecteur-fs.mjs`. Aucun second ' +
     'chemin de résolution : ce que la garde éprouve est exactement ce que le plugin `wfrp:prose-source` ' +
     'exécute au build et ce que les scripts Node exécutent par `materialiser`.',
   perimetre:

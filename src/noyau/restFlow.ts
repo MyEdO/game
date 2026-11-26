@@ -21,7 +21,7 @@
  *  - Faim (LDB 18 l.337-343) : un héros sans pitance ne récupère pas (engine/provisions).
  */
 import type { z } from 'zod';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { restPlacesSchema } from '../data/schemas/defs-scenes/scene';
 import type { Combatant } from '../engine/types';
 import { nomDe } from '../engine/nom';

@@ -7,7 +7,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { names, raceAppearance } from './index';
-import { slugId } from './slug';
+import { slugId } from './schemas/slug';
 import { raceKeySchema } from './schemas/grammaire/valeurs';
 
 /** Ids des 7 DOCUMENTS de banque (#1467 L1b V-FLIP-RECORD : `names.json` est une LISTE). */

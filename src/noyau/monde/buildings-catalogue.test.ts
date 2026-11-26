@@ -14,7 +14,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { buildings, props } from '../../data/index';
 import { resetData, setDataset } from '../../data/overrides';
-import { IDS_PAR_ESPACE } from '../../data/schemas/_ids.generated';
+import { IDS_PAR_ESPACE } from '../../data/_ids.generated';
 import { schema } from '../../data/schemas/defs/buildings';
 import type buildingsJson from '../../data/buildings.json';
 import { buildingsMeta, buildingFeatures } from './buildings';

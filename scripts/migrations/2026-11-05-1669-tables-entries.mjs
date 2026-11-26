@@ -1,7 +1,7 @@
 /**
  * Migration #1669 T1 — une table à fourchettes porte ses rangées sous `entries`, la clé que pose la
  * fabrique (`document(…, { rangee })`, `src/data/schemas/grammaire/document.ts`) et que lit la porte
- * `rangeesDe` (`src/data/rangees.ts`).
+ * `rangeesDe` (`src/data/schemas/rangees.ts`).
  *
  *   `tables.json`              `[].rows`                          → `[].entries`
  *   `arcane-phenomena.json`    `.tables[].rows`                   → `.tables[].entries`
@@ -21,7 +21,7 @@
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 

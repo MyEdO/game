@@ -25,7 +25,7 @@ import { chiffresDes, fenetreDe, mobilierDuDossier } from './lib/mobilier.mjs'
 import { EXEMPTIONS_MOBILIER } from '../guards/lib/mobilierExemptions.mjs'
 import { sitesImperatifSoude } from '../guards/lib/imperatifSoude.mjs'
 import { cleDeSite, naissanceDu, remedeDeNaissance, sitesEnEntrees } from '../guards/lib/stock.mjs'
-import { estSeparateur, ligne1DePlage, titreDuFichier } from '../../src/data/source/decoupe.ts'
+import { estSeparateur, ligne1DePlage, titreDuFichier } from '../../src/data/schemas/source/decoupe.ts'
 
 const DIR = 'Source/Livre'
 const familles = (fichiers) => sitesDuDossier(DIR, fichiers).map((s) => s.famille).sort()

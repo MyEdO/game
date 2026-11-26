@@ -17,7 +17,7 @@ import type { Combatant } from '../engine/types';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { blessuresSurLeProfil, blessuresDeBase, combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { creatures, mutationNature, regles, type CreatureData } from '../data';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { setDesFixes } from '../engine/fixedDie';
 import { tableStepDef } from './cascade';

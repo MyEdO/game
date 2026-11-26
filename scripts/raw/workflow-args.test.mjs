@@ -21,7 +21,7 @@ import {
   valeurDeDrapeau,
 } from './workflow-args.mjs'
 import { chargerDossiers } from './lib/dossiers.mjs'
-import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, STATUTS_DE_BEAT, ficheDeDossier } from '../../src/data/source/dossier.ts'
+import { FAMILLES_DE_DOSSIER, PREFIXES_D_ID, STATUTS_DE_BEAT, ficheDeDossier } from '../../src/data/schemas/source/dossier.ts'
 import { coeursDeDomaines, coeursDuRegistre, domainesDe } from './_lib.mjs'
 import { tableTotale } from '../../src/lib/tableTotale.ts'
 
@@ -312,7 +312,7 @@ test('ecrireFiche : la fiche d’un run au verdict DOSSIER s’écrit à `<dir>/
 test('ecrireFiche : un run hors verdict DOSSIER, une fiche hors schéma ou hors gardes du chargeur, un chapitre inconnu — REFUSÉS, rien n’est écrit', () => {
   const cas = [
     [{ ...RUN, verdict: 'LECTURE INCOMPLÈTE', trous: { ...RUN.trous, lentillesSansRendu: ['mecanique'] } }, /verdict « LECTURE INCOMPLÈTE » — seul un run au verdict DOSSIER porte une fiche ; trous : lentillesSansRendu \(mecanique\)/],
-    [{ ...RUN, beats: [] }, /fiche hors schéma \(ficheDeDossier, src\/data\/source\/dossier\.ts\)\n {2}beats/],
+    [{ ...RUN, beats: [] }, /fiche hors schéma \(ficheDeDossier, src\/data\/schemas\/source\/dossier\.ts\)\n {2}beats/],
     [{ ...RUN, lecture: undefined }, /fiche hors schéma[^\n]*\n {2}lecture/],
     [{ ...RUN, beats: [{ ...RUN.beats[0], ref: ['EDO 01 ligne 1'] }] }, /réf hors graphie/],
     [{ ...RUN, beats: [{ ...RUN.beats[0], preuveDuStatut: 'voir l.4' }] }, /ligne nue en prose/],

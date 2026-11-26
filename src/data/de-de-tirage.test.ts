@@ -1,6 +1,6 @@
 /**
  * Le DÉ DE TIRAGE d'un document-table (`options.deDeTirage`, `grammaire/document.ts`) : il vit dans le
- * document, et le lecteur le tire de là (`deDeTirageDe`, `src/data/rangees.ts`). #1667
+ * document, et le lecteur le tire de là (`deDeTirageDe`, `src/data/schemas/rangees.ts`). #1667
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import { z } from 'zod';
 import { META_CHARGE, tableTiree } from './schemas/grammaire/document';
-import { deDeTirageDe } from './rangees';
+import { deDeTirageDe } from './schemas/rangees';
 import type { DiceSpec } from '../engine/dice';
 import { estObjet } from '../lib/objet.mjs';
 import { weatherDie, type Season } from '../engine/travelStages';
@@ -18,6 +18,7 @@ import { massBattleHazardsDie, starSubDie, weather } from './index';
 import { peripetieSeuilDie } from './peripeties';
 import type * as obsessions from './schemas/defs/obsessions';
 import type * as miscast from './schemas/defs/miscast';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 /** Le dé IMPRIMÉ par le livre pour chaque document-table, à sa réf. */
 const LIVRE: Record<string, { die: DiceSpec; ref: string }> = {
@@ -216,8 +217,8 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
   it('un sous-tirage n’a qu’une forme, `{ die }` : le `Tirage` (`{ dice }`) est refusé à la porte du Codex', () => {
     for (const [fichier, cle] of [['stars.json', 'sub'], ['peripeties.json', 'tirageQuotidien']] as const) {
       const doc = JSON.parse(readFileSync(join(process.cwd(), 'src/data', fichier), 'utf8')) as Record<string, unknown>;
-      expect(validateDataset(fichier, { ...doc, [cle]: { die: { n: 1, sides: 10 } } }), `${fichier} › ${cle} en \`{ die }\``).toBeNull();
-      expect(validateDataset(fichier, { ...doc, [cle]: { dice: { n: 1, sides: 10 } } }), `${fichier} › ${cle} en \`Tirage\``).toContain('"dice"');
+      expect(validateDataset(fichier, { ...doc, [cle]: { die: { n: 1, sides: 10 } } }, catalogueDuProcessus()), `${fichier} › ${cle} en \`{ die }\``).toBeNull();
+      expect(validateDataset(fichier, { ...doc, [cle]: { dice: { n: 1, sides: 10 } } }, catalogueDuProcessus()), `${fichier} › ${cle} en \`Tirage\``).toContain('"dice"');
     }
   });
 

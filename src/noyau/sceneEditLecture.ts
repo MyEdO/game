@@ -128,7 +128,7 @@ import { parcoursDe } from '../engine/pnjDeCarriere';
 import { entityAppearanceSchema, OBJETS_DU_PROJET } from '../data/schemas/grammaire/valeurs';
 import { apparencesChoisissablesDObjet, objetsAApparenceChoisie } from '../data/apparencesObjets';
 import { armesDEntite, equipementDAuteurDe } from './equipementDessine';
-import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/props.types';
+import { CAP_IDENTITE_PROP, capDecorAdmis } from '../data/schemas/props.types';
 import { DIR8_ORDER, estCardinal, type Dir8 } from '../geometry/dir8';
 import { decorsEnCaseEtage, entitesEnCaseEtage } from './monde/decorIndex';
 import { actionNeuve } from './monde/usable';
@@ -140,6 +140,9 @@ import { aretesA } from './monde/wallIndex';
 import type { Pt, EffectZoneSeed } from './sceneEdit';
 import { champsDuFormulaire, type CheminsOfferts, type FormeDuFormulaire, type Segment } from './edition/formulaire';
 import { tableTotale } from '../lib/tableTotale';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { parserSousCatalogue } from '../data/schemas/catalogue/references';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
@@ -469,10 +472,10 @@ export function entiteDeLaSelection(scene: Scene, sel: Sel): SceneEntity | undef
 }
 
 /** La fiche du personnage `ent` (`ficheDuPersonnage`) avec le narratif du projet, s'il est de son schéma
- *  (`sceneEntitySchema`) : un brouillon du formulaire peut ne pas l'être, il ne se vérifie qu'à l'enregistrement et à
- *  l'essai. */
-export const ficheEditee = (ent: SceneEntity, narratif: NarratifBlock): Combatant | undefined =>
-  sceneEntitySchema.safeParse(ent).success ? ficheDuPersonnage(ent, presetDuNarratif(narratif), objetInstanciableDuNarratif(narratif)) : undefined;
+ *  (`sceneEntitySchema`, ids jugés sous `cat`) : un brouillon du formulaire peut ne pas l'être, il ne se vérifie qu'à
+ *  l'enregistrement et à l'essai. */
+export const ficheEditee = (ent: SceneEntity, narratif: NarratifBlock, cat: Catalogue = catalogueDuProcessus()): Combatant | undefined =>
+  parserSousCatalogue(sceneEntitySchema, ent, cat).success ? ficheDuPersonnage(ent, presetDuNarratif(narratif), objetInstanciableDuNarratif(narratif)) : undefined;
 
 /** Le cap de l'entité `ent` : le sien, sinon le cap d'identité (`CAP_IDENTITE_PROP`). */
 export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTITE_PROP;

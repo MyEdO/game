@@ -7,7 +7,7 @@
 import { RNG, d10, rollDice } from './dice';
 import { findTableEntry } from './tables';
 import drivingMishapJson from '../data/driving-mishap.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/schemas/rangees';
 import type * as accidents from '../data/schemas/defs/driving-mishap';
 
 /** Entrée du Tableau des accidents de Conduite d'attelage. */

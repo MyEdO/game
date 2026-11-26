@@ -4,13 +4,14 @@ import { findTableEntry } from '../engine/tables';
 import { tableDesCritiquesDeStructure } from '../engine/structureCritical';
 import { validateDataset } from './schemas/validate';
 import structureCriticalsJson from './structure-criticals.json';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 describe('Blessures critiques sur une Structure (AA 10 l.116-127) — 3ᵉ famille du modèle de coque', () => {
   it('le schéma accepte la table, et REFUSE une rangée du milieu sans plafond (AA 10 l.116-127)', () => {
-    expect(validateDataset('structure-criticals.json', structureCriticalsJson)).toBeNull();
+    expect(validateDataset('structure-criticals.json', structureCriticalsJson, catalogueDuProcessus())).toBeNull();
     const trouee = structuredClone(structureCriticalsJson);
     trouee.entries[1].max = null;
-    expect(validateDataset('structure-criticals.json', trouee)).toMatch(/la rangée « secouee » n'a pas de borne haute/);
+    expect(validateDataset('structure-criticals.json', trouee, catalogueDuProcessus())).toMatch(/la rangée « secouee » n'a pas de borne haute/);
   });
 
   it('dernière bande « 96 ou plus » sans plafond (AA 10 l.127), chaque entrée nommée + id + note', () => {

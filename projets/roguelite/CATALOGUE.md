@@ -93,14 +93,6 @@ Cataplasme de guérison (cataplasme-de-guerison), Soude commune (soude-commune),
 
 Vivres pour la route : Vivres, 1 jour (ration), 1 CO.
 
-## Péage du pont
-
-| Palier | Revenu par salle franchie |
-|---|---|
-| 1 | 3 CO |
-| 2 | 6 CO |
-| 3 | 12 CO |
-
 ## Destinations et adversaires
 
 | Destination | Palier | Salles | Meutes | Élites | Maître |

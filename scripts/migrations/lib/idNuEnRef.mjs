@@ -16,12 +16,12 @@
  * pour `objet`), clé hors de l'objet qui ouvre sa portée, valeur ni chaîne ni `{ id }` seul, id absent de son
  * catalogue, cible renommée sans destination ou à plusieurs, clé de destination déjà posée, compte de gestes ≠
  * `cardinal` ou ≠ `parPorteur`.
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`) ; un projet de campagne (`<x>-projet.json`), la forme
+ * FORMATAGE : `serializeDataset` (`src/data/schemas/serialize.ts`) ; un projet de campagne (`<x>-projet.json`), la forme
  * dépôt de `texteDuDepot` (`src/noyau/worldMap.ts`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { serializeDataset } from '../../../src/data/serialize.ts';
+import { serializeDataset } from '../../../src/data/schemas/serialize.ts';
 import { auChemin, estObjet } from '../../../src/lib/objet.mjs';
 
 /**

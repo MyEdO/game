@@ -3,15 +3,15 @@
  * livré (`listerProjetsLivres`), tout `couvre` et tout `narratif.ecartes[].entree` résout à une entrée d'une
  * fiche que remet le contenu du jeu de rôle (`contenu.dossiers`, `projets/jeu-de-role/contenu.ts`), et aucune entrée n'est à la fois couverte et
  * écartée dans le même paquet. Une entrée NON couverte n'est jamais une faute : un chapitre non adapté est un
- * état normal (`npm run jeu-de-role:docs` le mesure). Contrat de la lecture : `src/data/source/couvertures.test.ts`.
+ * état normal (`npm run jeu-de-role:docs` le mesure). Contrat de la lecture : `src/data/schemas/source/couvertures.test.ts`.
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it, expect } from 'vitest';
 import { dossierDesProjetsLivres, listerProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
-import { entreesDesFiches } from '../../../src/data/dossiers';
+import { entreesDesFiches } from '../../../src/data/schemas/dossiers';
 import { contenu } from '../contenu';
-import { couverturesDuProjet, fautesDeReference, type ProjetLu } from '../../../src/data/source/couvertures';
+import { couverturesDuProjet, fautesDeReference, type ProjetLu } from '../../../src/data/schemas/source/couvertures';
 
 /** Le disque suffit : `couvre` et `ecartes` ne sont pas de la prose adressée. */
 const PROJETS = listerProjetsLivres().map((rel) => [rel, JSON.parse(readFileSync(join(dossierDesProjetsLivres(), rel), 'utf8')) as ProjetLu] as const);

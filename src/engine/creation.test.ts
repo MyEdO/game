@@ -6,7 +6,7 @@ import { deMax, desEnSuite } from './dice.testkit';
 import { makeRNG } from './dice';
 import { findTableEntry } from './tables';
 import { loadRuleOverrides, ruleOverrides, setRule } from './policy';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { CHAR_KEYS, CharKey } from './types';
 import {
   randomSpeciesTable,

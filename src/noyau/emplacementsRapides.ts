@@ -9,7 +9,7 @@ import { garanti } from '../lib/garanti';
 import { t } from '../i18n';
 import { offreArmee, offresDeLActif, type Offre } from './actionRegistry';
 import { CLE_DE_SORT, CLE_D_OBJET, RANGS_RAPIDES } from './dispositionConsole';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { SelecteurDAction } from '../data/schemas/defs/actions';
 import type { Combatant, EntreeBarre } from '../engine/types';
 import type { GesteDuNoyau } from './actionsDuNoyau';

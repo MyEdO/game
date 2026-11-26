@@ -87,7 +87,7 @@ if (REPRISE !== null) {
 
 const dirOf = (ab) => (BOOKS.find((b) => b.ab === ab) || {}).dir
 // GRAMMAIRE d une ref, dite UNE SEULE fois et EMISE AVEC le mapping (#1873) : `<NN>` est le prefixe
-// du nom de FICHIER, de la largeur propre au livre (cf. `graphieDeChapitre`, src/data/source/
+// du nom de FICHIER, de la largeur propre au livre (cf. `graphieDeChapitre`, src/data/schemas/source/
 // decoupe.ts) ; a trois chiffres il se lit comme un numero de page, et un agent va chercher la
 // regle dans une page — ou dans une autre extraction — puis juge INFIDELE une fiche exacte au mot.
 const GRAMMAIRE_REFS = 'GRAMMAIRE DES REFS — « <ABBR> <NN> l.<X> » (ou « l.<X>-<Y> ») designe, dans le dossier du livre <ABBR>, le FICHIER .md dont le nom commence par « <NN> - », a sa LIGNE <X> (numerotation des lignes DE CE FICHIER, la premiere ligne etant 1 ; jusqu a la ligne <Y> incluse).'

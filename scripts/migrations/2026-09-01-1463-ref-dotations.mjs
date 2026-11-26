@@ -50,7 +50,7 @@
  *
  * ENTRÉES : `src/data/careerLevels.json` et `src/data/classes.json` — les seuls objets de la clé
  * `trappings` (y compris sous un `choice`) dont la clé `text` figure dans la TABLE CLOSE ci-dessous ;
- * `src/data/trappings.json` et `src/data/schemas/_ids.generated.ts` sont LUS (jamais écrits) pour
+ * `src/data/trappings.json` et `src/data/_ids.generated.ts` sont LUS (jamais écrits) pour
  * valider les ids produits et l'exhaustivité. Cardinal ASSERTÉ par sous-famille, total 51 :
  *  - 34 `{text:"Tête (Spéc.)"}` → `{id, spec}` (32 `careerLevels` + 2 `classes`) ;
  *  - 1 « Atelier (Ingénierie ou Magie) » → `{choice:[{id,spec},{id,spec}]}` (alchimiste-4) ;
@@ -122,7 +122,7 @@ const EXCLUSIONS = [
 
 /** Ids de `trappings.json` tels que `idDe('trapping')` les refine — le registre généré lui-même
  *  (`src/data/schemas/grammaire/ref.ts` › `idsDe`, `cibleDe('trapping') === 'trappings.json'`). */
-const registre = fs.readFileSync(path.join(ROOT, 'src/data/schemas/_ids.generated.ts'), 'utf8');
+const registre = fs.readFileSync(path.join(ROOT, 'src/data/_ids.generated.ts'), 'utf8');
 const ligneRegistre = /'trappings\.json':\s*\[([^\]]*)\]/.exec(registre);
 if (!ligneRegistre) {
   console.error("REGISTRE ILLISIBLE — `IDS_PAR_DATASET['trappings.json']` introuvable ; AUCUNE écriture.");

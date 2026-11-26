@@ -10,7 +10,7 @@ import { routePerilSchema, worldMapSchema } from './worldmap';
 import { DIALOGUES_DE_LA_SCENE } from './communs';
 import { idsDeLaPortee } from '../grammaire/collection-cle';
 import { mesureDuParse } from '../grammaire/ref';
-import { IDS_PAR_ESPACE } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
 
 type Route = Omit<(typeof paquetDeTest.worldMap.routes)[number], 'billets'> & { billets?: (typeof paquetDeTest.worldMap.routes)[number]['billets'] };

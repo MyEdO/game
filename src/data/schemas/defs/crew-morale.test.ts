@@ -2,20 +2,21 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import crewMoraleJson from '../../crew-morale.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const clone = () => structuredClone(crewMoraleJson);
 
 describe('crew-morale.json — les bandes de Moral couvrent le score d’un seul tenant', () => {
   it('le schéma accepte les bandes, et REFUSE une bande du milieu sans plafond', () => {
-    expect(validateDataset('crew-morale.json', crewMoraleJson)).toBeNull();
+    expect(validateDataset('crew-morale.json', crewMoraleJson, catalogueDuProcessus())).toBeNull();
     const trouee = clone();
     trouee.bands[1].max = null;
-    expect(validateDataset('crew-morale.json', trouee)).toMatch(/la bande « excellent-equipage » n'a pas de borne haute/);
+    expect(validateDataset('crew-morale.json', trouee, catalogueDuProcessus())).toMatch(/la bande « excellent-equipage » n'a pas de borne haute/);
   });
 
   it('REFUSE la bande « 50 ou moins » refermée par un plancher (MDG 14 l.199)', () => {
     const refermee = clone();
     refermee.bands[3].min = 0;
-    expect(validateDataset('crew-morale.json', refermee)).toMatch(/la bande « canailles » est la PREMIÈRE et porte un plancher \(0\)/);
+    expect(validateDataset('crew-morale.json', refermee, catalogueDuProcessus())).toMatch(/la bande « canailles » est la PREMIÈRE et porte un plancher \(0\)/);
   });
 });

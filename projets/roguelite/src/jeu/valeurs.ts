@@ -19,7 +19,7 @@ import {
 
 import { profil } from './outils';
 
-export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe' | 'peage';
+export type IdBatiment = 'relais' | 'temple' | 'salle' | 'forge' | 'cartographe';
 
 /** Un apport d'un palier : son pictogramme (`PICTOS` de `../kit`), sa phrase, et le chiffre de la phrase à marquer. */
 export interface Apport { picto: string; chiffre?: string; texte: string }
@@ -35,10 +35,6 @@ export const candidatsAuPalier = (palier: number): number => TAILLE_DU_GROUPE + 
 const candidatsDuPalier = (palier: number, carrieres?: string): Apport =>
   apport('chope', `${candidatsAuPalier(palier)} candidats engagés sans frais${carrieres ? `, ${carrieres}` : ''}`, String(candidatsAuPalier(palier)));
 
-/** Le revenu du péage à chaque palier, par salle que l'expédition franchit : il suit la longueur de la route, et rentrer
- *  après une salle n'en rapporte qu'une part. Mesure MyEdO/game#4963. */
-export const PEAGE_PAR_SALLE: readonly number[] = [0, 3, 6, 12];
-const peageDuPalier = (palier: number): string => `+${PEAGE_PAR_SALLE[palier]} CO`;
 /** Prix des actes de l'hospice, avant la remise du dernier palier. */
 export const PRIX_DE_L_HOSPICE = { panser: 20, operer: 60 } as const;
 /** Le prix des Larmes de Shallya de l'hospice à chaque palier ; `null` : l'hospice ne les vend pas à ce palier. */
@@ -77,12 +73,6 @@ export const BATIMENTS: readonly Batiment[] = [
     { cout: 150, trophees: 1, apports: [apport('carte', 'Ouvre les Tertres de Grisefosse')] },
     { cout: 320, trophees: 2, apports: [apport('carte', 'Ouvre la Clairière des hardes')] },
     { cout: 600, trophees: 3, apports: [apport('carte', 'Ouvre l’Autel du Chaos')] },
-  ] },
-  { id: 'peage', nom: 'Péage du pont', role: 'Revenu', paliers: [
-    { cout: 0, trophees: 0, apports: [apport('pieces', 'Ruiné : aucun revenu')] },
-    { cout: 90, trophees: 0, apports: [apport('pieces', `${peageDuPalier(1)} par salle franchie en expédition`, peageDuPalier(1))] },
-    { cout: 240, trophees: 1, apports: [apport('pieces', peageDuPalier(2), peageDuPalier(2))] },
-    { cout: 480, trophees: 2, apports: [apport('pieces', peageDuPalier(3), peageDuPalier(3))] },
   ] },
 ];
 

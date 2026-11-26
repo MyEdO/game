@@ -3,7 +3,7 @@ import { emptyScene, isWalkable, sceneMetresPerTile, type Scene, type SceneEntit
 import { seatSlotsOf, seatIsOccupiable, type ResolvedSeatSlot } from '../seating';
 import { ancreDuDecor } from '../footprint';
 import { findPropById } from '../../../data';
-import { capVolumique, empreinteDuProp, empriseLocaleM, placeAssiseDe, rotatePropLocal } from '../../../data/props.types';
+import { capVolumique, empreinteDuProp, empriseLocaleM, placeAssiseDe, rotatePropLocal } from '../../../data/schemas/props.types';
 import { buildPropVolumes } from './propVolumes';
 import { chebyshev } from '../../../engine/grid';
 
@@ -73,7 +73,7 @@ function propBounds(ent: SceneEntity): Boite {
 
 /**
  * AABB monde du CORPS d'un meuble — ses primitives moins ses TABOURETS (`placeAssiseDe`,
- * `data/props.types.ts`) : le seul volume qu'une recette autorise à déborder de sa case, vers l'abord
+ * `data/schemas/props.types.ts`) : le seul volume qu'une recette autorise à déborder de sa case, vers l'abord
  * de sa place (`props-volumiques.test.ts`, ce dossier).
  */
 function corpsBounds(ent: SceneEntity): Boite {

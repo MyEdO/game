@@ -18,12 +18,12 @@ import {
 import { ancetreDuDe, champDEnTete, datasetObject, entreesDuDataset, type EcritureDEnTete } from '../../data/overrides';
 import type { DiceSpec } from '../../engine/dice';
 import { DATASET_FICHIER_DERIVE } from '../../data/schemas/exposition-derivee';
-import { RACINES_VIVANTES } from '../../data/schemas/_racines-vivantes.generated';
+import { RACINES_VIVANTES } from '../../data/_racines-vivantes.generated';
 import { champDeProvenanceEcarte, noeudDeLEntree, noeudsDesEntrees, schemaForFile } from '../../data/schemas/validate';
 import { lecteurDesPoints, noeudsAuChemin, type PointDuChemin } from '../../data/schemas/grammaire/descente';
 import { apparencesDObjetsSchema, deDeTirageSchema } from '../../data/schemas/grammaire/valeurs';
 import { findTrappingById } from '../../data/apparencesObjets';
-import type { Manifeste } from '../../data/source/chapitres';
+import type { Manifeste } from '../../data/schemas/source/chapitres';
 import { t as tr } from '../../i18n';
 import { CODEX_GROUPS, categoryByKey, clustersIn, codexLookupById, type CibleDuCompendium, type CodexGroup, type CodexItem } from './registry';
 import { facetRows, filterItems, type FacetSelection } from './search';
@@ -55,6 +55,7 @@ import {
   sourceServie,
   type SourceServie,
 } from '../edition/adresseDeProse';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 type Entree = Record<string, unknown>;
 
@@ -146,7 +147,7 @@ export const CLE_D_IDENTITE = 'id';
  *  dérive (`estCheminDerive`), aucun retrait déclaré. */
 function formeDeLAtelier(a: AtelierDuCompendium): FormeDuFormulaire {
   const dataset = datasetDe(a.categorie);
-  const noeud = noeudDeLEntree(dataset, a.entree);
+  const noeud = noeudDeLEntree(dataset, a.entree, catalogueDuProcessus());
   const provenanceEcartee = champDeProvenanceEcarte(DATASET_FICHIER_DERIVE[dataset], a.entree);
   const champs = champsOfferts(noeud, a.entree, [CLE_D_IDENTITE])
     .filter((f) => f.key !== provenanceEcartee && !estCheminDerive(noeud, a.entree, [f.key]))

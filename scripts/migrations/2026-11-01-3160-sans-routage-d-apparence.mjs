@@ -4,7 +4,7 @@
  */
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const cibles = { 'mutations.json': 'appearance', 'traumas.json': 'rig', 'careers.json': 'tenue' };
 for (const [fichier, champ] of Object.entries(cibles)) {

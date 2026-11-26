@@ -33,7 +33,7 @@
  *     `aggregateOpposeSl`, `CascadeStepMeta`) ; par défaut 0/absent.
  */
 import { nomDe } from '../engine/nom';
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import type { Combatant, CharKey, Difficulty, Weapon, ContexteDeTest } from '../engine/types';

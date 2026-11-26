@@ -10,7 +10,7 @@ import { writeFileSync } from 'node:fs'
 import { execFileSync } from 'node:child_process'
 import { livreDuSigle, normalize, pagesDeLAtlas, readText } from './_lib.mjs'
 import { echapperRegex } from '../../src/lib/regex.ts'
-import { graphieDuFichier, numeroDuFichier } from '../../src/data/source/decoupe.ts'
+import { graphieDuFichier, numeroDuFichier } from '../../src/data/schemas/source/decoupe.ts'
 import { RAWDIR, CLASSES } from './check-refs.mjs'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 

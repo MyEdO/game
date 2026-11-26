@@ -14,7 +14,7 @@
  *
  * ENTRÉES : `src/data/creatures.json` — les seuls objets de la clé `trappings` (y compris sous un
  * `choice`) dont la clé `text` figure dans la TABLE CLOSE ci-dessous ; `src/data/trappings.json` et
- * `src/data/schemas/_ids.generated.ts` sont LUS (jamais écrits) pour valider l'id produit et
+ * `src/data/_ids.generated.ts` sont LUS (jamais écrits) pour valider l'id produit et
  * l'exhaustivité. Cardinal ASSERTÉ 1 — MESURÉ aux trois portes du contrat (libellé entier, SINGULIER
  * mot à mot, tête de parenthèse) sur les 43 `{text}` de dotation du fichier : un seul candidat.
  * EXHAUSTIVITÉ : après écriture, tout `{text}` de dotation restant dont le libellé — entier, tête de
@@ -45,7 +45,7 @@ const EXCLUSIONS = [];
 
 /** Ids de `trappings.json` tels que `idDe('trapping')` les refine — le registre généré lui-même
  *  (`src/data/schemas/grammaire/ref.ts` › `idsDe`, `cibleDe('trapping') === 'trappings.json'`). */
-const registre = fs.readFileSync(path.join(ROOT, 'src/data/schemas/_ids.generated.ts'), 'utf8');
+const registre = fs.readFileSync(path.join(ROOT, 'src/data/_ids.generated.ts'), 'utf8');
 const ligneRegistre = /'trappings\.json':\s*\[([^\]]*)\]/.exec(registre);
 if (!ligneRegistre) {
   console.error("REGISTRE ILLISIBLE — `IDS_PAR_DATASET['trappings.json']` introuvable ; AUCUNE écriture.");

@@ -26,6 +26,7 @@ import { cleDuChapitre } from '../edition/adresseDeProse';
 import { valeurNeuveDe } from '../valeursNeuves';
 import { apparencesChoisissablesDObjet, findTrappingById, objetsAApparenceChoisie } from '../../data/apparencesObjets';
 import { armesDEntite } from '../equipementDessine';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 /** La session `s` après chacun des gestes `gestes`, dans l'ordre. */
 const jouer = (s: SessionDuCompendium, ...gestes: GesteDuCompendium[]): SessionDuCompendium => gestes.reduce(compendium, s);
@@ -105,7 +106,7 @@ describe('atelier', () => {
     expect([index, idDOrigine]).toEqual([-1, null]);
     const discriminant = champsDeclares(noeudsDesEntrees('weaponGroups')[0])!.find(([cle]) => cle === 'kind')![1];
     expect(entree.kind).toBe(choixDuNoeud(discriminant)![0].valeur);
-    expect(() => noeudDeLEntree('weaponGroups', entree)).not.toThrow();
+    expect(() => noeudDeLEntree('weaponGroups', entree, catalogueDuProcessus())).not.toThrow();
     expect(formulaireDeLAtelier(s)!.champs.map((c) => c.key)).toContain('label');
   });
 

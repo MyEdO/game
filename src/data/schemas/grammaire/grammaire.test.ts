@@ -33,7 +33,7 @@ import { libelleDeValeur, metaDesChamps, valeursDe, nommerNoeud } from './meta';
 import { descRefSchema, enumNomme, sourceRefSchema } from './valeurs';
 import { proseAdressable, versDisque } from './prose';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
-import type { DescRef as DescRefParseur } from '../../source/decoupe';
+import type { DescRef as DescRefParseur } from '../source/decoupe';
 import { ref, refs, specRef, refOuSpec, pick, tirageSurTable, idDe, estSpecialisable, entreeOuverte, refusDeSpec, type Id } from './ref';
 import { flowTestSchema } from './mecanique';
 import { byId, skills, talents, traits, type SkillData, type TypeResolu } from '../../index';
@@ -41,11 +41,13 @@ import { avancement, talentDEspece } from './avancement';
 import { SANS_LIVRE_DEFINITIF } from './sans-livre';
 import { SCHEMA_DEFS } from '../_registry.generated';
 import { entreePartielle as creaturePartielle } from '../defs/creatures';
-import { IDS_PAR_ESPACE, type IdsParEspace } from '../_ids.generated';
+import { IDS_PAR_ESPACE } from '../../_ids.generated';
+import type { IdsParEspace } from '../_ids.generated';
 import { poserRegimeVivant } from './idsVivants';
 import { defDe, enfantsDe } from './descente';
 import { noeudObjet, validateDataset } from '../validate';
 import { estObjet } from '../../../lib/objet.mjs';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 type EntreeASpecs = { id: string; specs?: { id: string }[]; specsSource?: string };
 const UNE_COMPETENCE = skills[0];
@@ -1260,7 +1262,7 @@ describe('byId — la PORTE de résolution d’une entité par son id STABLE', (
   it('une réf inventée est refusée AU CHARGEMENT par sa feuille, qui nomme le catalogue — `nue` ne change que le type de sortie (#1473)', () => {
     const copie = structuredClone(talentsJson);
     copie[0].source.book = 'livre-invente';
-    expect(validateDataset('talents.json', copie)).toContain('« livre-invente » est absent du catalogue des livres (books.json).');
+    expect(validateDataset('talents.json', copie, catalogueDuProcessus())).toContain('« livre-invente » est absent du catalogue des livres (books.json).');
     expectTypeOf(idDe('book', undefined, { nue: true }).parse(talentsJson[0].source.book)).toEqualTypeOf<string>();
   });
 

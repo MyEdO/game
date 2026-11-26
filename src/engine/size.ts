@@ -9,7 +9,7 @@
  */
 import sizesJson from '../data/sizes.json';
 import type * as sizesDef from '../data/schemas/defs/sizes';
-import { datasetDe } from '../data/datasets';
+import { datasetDe } from '../data/schemas/datasets';
 import type { QualityId } from './qualities/ids';
 import type { TraitsDesignes } from './statEntry';
 import type { ActiveEffect } from './types';

@@ -521,7 +521,8 @@ C'est le signal qu'un geste manuel a dévié de ce que \`npm install\` pose seul
   (versionné), sur ${NB_HOOKS_SESSION} fichiers \`.mjs\` hors test sous \`scripts/hooks/\` — détail au § 5.
 - Les schémas de données : \`src/data/schemas/\` (\`src/data/schemas/types.ts\`,
   \`src/data/schemas/validate.ts\`, \`src/data/schemas/_registry.generated.ts\`,
-  \`src/data/schemas/_ids.generated.ts\`, \`src/data/schemas/grammaire/\` — le vocabulaire partagé —
+  \`src/data/schemas/_ids.generated.ts\` (les types des ids), \`src/data/schemas/_catalogue.generated.ts\`,
+  \`src/data/schemas/grammaire/\` — le vocabulaire partagé —
   \`src/data/schemas/defs/\` : ${NB_DEFS} fichiers, un par catalogue, et
   \`src/data/schemas/defs-scenes/\` : ${NB_DEFS_SCENES} fichiers pour les documents de scène).
 - \`scripts/art-ref/\` — le PIPELINE d'extraction d'images (${listeCode(ART_REF)}) : le code est

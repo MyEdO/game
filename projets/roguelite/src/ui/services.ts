@@ -22,7 +22,7 @@ export type Emplacement = J.Tenue | 'armure';
 export interface Contexte { e: J.Etat; client: string | null; emplacement: Emplacement; dest: string | null; choix: ReadonlySet<string>; congediement: string | null }
 export type Service = J.IdBatiment | 'depart' | 'chronique';
 
-export const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte', peage: 'pieces' };
+export const PICTO_DU_BATIMENT: Record<J.IdBatiment, string> = { relais: 'chope', temple: 'soin', salle: 'epee', forge: 'enclume', cartographe: 'carte' };
 const SERVENT_UN_HEROS: ReadonlySet<Service> = new Set(['relais', 'forge', 'temple', 'salle']);
 const niveaux = (n: number, max: number) => `<span class="niveaux" aria-label="palier ${n + 1} sur ${max}">${Array.from({ length: max }, (_, i) => `<i class="${i <= n ? 'plein' : ''}"></i>`).join('')}</span>`;
 const pluriel = (n: number, mot: string) => `${n} ${mot}${n > 1 ? 's' : ''}`;
@@ -40,10 +40,10 @@ function manqueAuPalier(e: J.Etat, b: J.Batiment): string | null {
   return manque.length ? `Il manque ${manque.join(' et ')}.` : null;
 }
 
-/** Ce qu'apporte un palier : un apport par ligne, son chiffre en marque ; `avecPicto` : son pictogramme l'ouvre. */
-const apports = (p: J.Batiment['paliers'][number], avecPicto = false) => p.apports.map(({ picto: icone, chiffre, texte }) => {
+/** Ce qu'apporte un palier : un apport par ligne, son pictogramme l'ouvre, son chiffre en marque. */
+const apports = (p: J.Batiment['paliers'][number]) => p.apports.map(({ picto: icone, chiffre, texte }) => {
   const marque = chiffre ? esc(texte).replace(esc(chiffre), () => `<b class="chiffres">${esc(chiffre)}</b>`) : esc(texte);
-  return `<span class="apport">${avecPicto ? picto(icone, 20, 1.6) : ''}<span>${marque}</span></span>`;
+  return `<span class="apport">${picto(icone, 20, 1.6)}<span>${marque}</span></span>`;
 }).join('');
 
 /** Le prix d'un palier en deux cases du tableau, ses couronnes puis ses trophées, chacune à son pictogramme ; `e` :
@@ -61,7 +61,7 @@ function apercuDesPaliers(e: J.Etat, b: J.Batiment) {
   const lignes = b.paliers.map((p, i) => {
     const etat = i < n ? 'bati' : i === n ? 'ici' : i === n + 1 ? 'prochain' : 'loin';
     return `<tr class="${etat}"${i === n ? ' aria-current="true"' : ''}><th scope="row">${niveaux(i, b.paliers.length)}<span class="rub">${{ bati: i ? 'Bâti' : 'Départ', ici: 'Ici', prochain: 'Prochain', loin: '' }[etat]}</span></th>
-      <td class="offre">${apports(p, true)}</td>
+      <td class="offre">${apports(p)}</td>
       ${i <= n ? `<td class="prix acquis" colspan="2">${i ? picto('coche', 20, 2) : ''}</td>` : prixDuPalier(p, etat === 'prochain' ? e : undefined)}</tr>`;
   }).join('');
   return apercuDe({
@@ -276,16 +276,6 @@ function pageDuCartographe({ e }: Lecture): Page {
   };
 }
 
-/** Les paliers d'un bâtiment en cartes : ceux qui sont bâtis, celui d'aujourd'hui, et le prochain avec son geste. */
-function paliers(e: J.Etat, id: J.IdBatiment): string {
-  const b = J.BATIMENTS.find((x) => x.id === id)!;
-  const n = e.batiments[id];
-  return b.paliers.map((p, i) => `<article class="carte-service palier${i === n ? ' courant' : i > n ? ' clos' : ''}">${vignette(PICTO_DU_BATIMENT[id], i > n)}${niveaux(i, b.paliers.length)}<p class="effet">${apports(p)}</p>
-    ${i <= n ? `<span class="sous-titre">${i === n ? 'aujourd’hui' : 'bâti'}</span>` : i === n + 1 ? batir(e, b) : `<span class="sous-titre">${p.cout} CO${p.trophees ? ` · ${pluriel(p.trophees, 'trophée')}` : ''}</span>`}</article>`).join('');
-}
-
-const pageDuPeage = ({ e }: Lecture): Page => ({ classe: 'rangee', corps: paliers(e, 'peage') });
-
 const pageDeLaChronique = ({ e }: Lecture): Page => ({ classe: 'annales', corps: `<ol class="chronique">${e.journal.map((l) => `<li>${esc(l)}</li>`).join('')}</ol>` });
 
 /** Le rang et la consigne de combat du héros `h`, chacun en plaques, l'actuel armé, ce qu'il fait au survol. */
@@ -314,7 +304,7 @@ function pageDuDepart({ e, choix }: Lecture): Page {
 /** Chaque service, sa page. */
 const PAGES: Record<Service, (l: Lecture) => Page> = {
   relais: pageDuRelais, forge: pageDeLaForge, temple: pageDeLaChapelle, salle: pageDeLaSalle, cartographe: pageDuCartographe,
-  peage: pageDuPeage, chronique: pageDeLaChronique, depart: pageDuDepart,
+  chronique: pageDeLaChronique, depart: pageDuDepart,
 };
 
 // ─── L'écran ────────────────────────────────────────────────────────────────────────────────────────────────
