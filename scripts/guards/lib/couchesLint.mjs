@@ -36,7 +36,7 @@
 import { extname, relative } from 'node:path';
 import picomatch from 'picomatch';
 import { cibleLexicale, posix } from './interneLint.mjs';
-import { nomDe, paquetDe, visiteurDArcs } from './arcsDImport.mjs';
+import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
 import {
   COUCHES,
   SURFACE_DU_NOYAU,
@@ -81,6 +81,13 @@ function dossierJoker(cibleRel, dossiers) {
 /** La cible `cibleRel` est-elle du CODE : sans extension (un module résolu), ou d'une extension de script
  *  (`EXTENSIONS_DE_SCRIPT`) ? Une donnée (`.json`…) n'importe rien et ne fait pont vers aucune zone. */
 const estCode = (cibleRel) => { const ext = extname(cibleRel); return ext === '' || [...EXTENSIONS_DE_SCRIPT].includes(ext); };
+
+/** Le nom de paquet d'un spécificateur nu (`@scope/nom/x` → `@scope/nom`), `null` pour un module de Node. */
+export function paquetDe(spec) {
+  if (spec.startsWith('node:')) return null;
+  const segments = spec.split('/');
+  return spec.startsWith('@') ? segments.slice(0, 2).join('/') : segments[0];
+}
 
 const zone = {
   meta: { type: 'problem' },
