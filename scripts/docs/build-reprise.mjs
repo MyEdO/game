@@ -21,7 +21,7 @@ import { estModule } from '../guards/lib/importGraph.mjs'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
 import { PLAFOND_PAQUET_NODE_MS, maxWorkersMono } from '../test/partition.mjs'
 import { ECRIT_LU, lanesDeCi } from '../gates/toutes.mjs'
-import { gatesDeCi } from '../gates/gatesDeCi.mjs'
+import { JOB_DE_BRANCHE, gatesDeCi } from '../gates/gatesDeCi.mjs'
 import { ETATS as ETATS_PORTE, PORTE, WORKFLOWS as REGISTRE_WORKFLOWS, corpsRun, declencheursDe } from '../gates/workflowsDuDepot.mjs'
 import { DOCUMENTAIRE, gatesSautables } from '../gates/classerPush.mjs'
 import { REGEN_RECIPE } from '../guards/lib/npmLockHoisted.mjs'
@@ -425,7 +425,7 @@ branche poussée s'attend de même, en fond : \`npm run ops:ci -- --attendre [<s
 attend la course \`CI\` du sha poussé et sort sur son verdict, un code par verdict (verte 0, rouge 1, annulée,
 absente, borne dépassée), en nommant sur un rouge les tests en échec de chaque job rouge ; \`--echecs <run>\`
 rend cette extraction pour une course nommée. Le train POUSSE la branche
-de chantier, ouvre sa PR vers \`main\` et ARME l’auto-merge à l’étape \`pr\` par \`gh pr merge --auto --match-head-commit <sha>\`, avant l’attente de la CI. \`ops:ruleset\` active \`allow_auto_merge: true\` sur le dépôt. Après un refus explicite d’auto-merge journalisé, le train utilise le repli \`enqueuePullRequest\`. La FILE DE FUSION du serveur la juge sur son commit de
+de chantier et ouvre sa PR vers \`main\` à l’étape \`pr\`. L’étape \`file\` attend que la course de branche de la tête soit verte, donc son job \`${JOB_DE_BRANCHE}\` conclu \`success\`, avant d’ARMER l’auto-merge par \`gh pr merge --auto --match-head-commit <sha>\` : une PR entrée en file avant ce vert en ressort en \`INVALID_MERGE_COMMIT\` sans course (#5103), et une course de branche rouge n’arme rien. \`ops:ruleset\` active \`allow_auto_merge: true\` sur le dépôt. Après un refus explicite d’auto-merge journalisé, le train utilise le repli \`enqueuePullRequest\`. La FILE DE FUSION du serveur la juge sur son commit de
 file et la fusionne, et le train attend cette fusion (borné par \`--file-timeout-min\`). L'étape \`file\`
 journalise le compte qui demande la fusion ; une course de branche ANNULÉE s'attend, sa relance appartenant à
 la reprise serveur, jusqu'à son ${PLAFOND_RELANCES}ᵉ essai, où le train rend la main avec le geste
