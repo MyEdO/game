@@ -17,8 +17,10 @@ import {
   skills,
   type PorteurDeSexe,
   type RefDesignee,
+  buildHero,
+  carrieresOffertes,
+  especesOffertes,
 } from '../../../../src/noyau';
-import { buildHero, carrieresOffertes, especesOffertes } from '../../../../src/noyau/creation/brouillon';
 import { randomSpeciesTable } from '../../../../src/engine/creation';
 import { adresseDeCreation } from '../../../../src/engine/adresseDeCreation';
 import { designateSlot, skillSlots, slotCovers } from '../../../../src/engine/careerSlots';

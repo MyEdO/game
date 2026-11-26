@@ -8,17 +8,9 @@ import { makeRNG } from '../../../../src/engine/dice';
 import { encumbrancePenalties } from '../../../../src/engine/encumbrance';
 import { qualityWearMods, wornArmourPenalty } from '../../../../src/engine/wearPenalty';
 import { consommableDe, isConsumable } from '../../../../src/engine/consumables';
-import { refusDeConsommer } from '../../../../src/noyau/consumableFlow';
-import { etatInitialDuJeu } from '../../../../src/noyau/etat';
-import { attackTestOf, combatBaseValue, weaponGroupSkillMode } from '../../../../src/engine/combat';
-import { forceDuPorteur } from '../../../../src/engine/characteristics';
-import { ammoFamily, chargeLArme, isOffHandEligible, isShieldTrapping, reachRankOf, weaponFromItem } from '../../../../src/engine/items';
-import { effectiveWeaponDamage } from '../../../../src/engine/weaponDamage';
-import { ZONES_D_ARMURE } from '../../../../src/engine/classementDeTrait';
-import { armourCastDRPenalty } from '../../../../src/engine/magic';
-import { castingKindOf } from '../../../../src/engine/combatFeatures/dispatch';
-import { effectiveTalents } from '../../../../src/engine/talentsPossedes';
 import {
+  refusDeConsommer,
+  etatInitialDuJeu,
   bandeDe,
   findQualityById,
   findTrappingById,
@@ -28,6 +20,14 @@ import {
   trappingsInstanciables,
   weaponGroups,
 } from '../../../../src/noyau';
+import { attackTestOf, combatBaseValue, weaponGroupSkillMode } from '../../../../src/engine/combat';
+import { forceDuPorteur } from '../../../../src/engine/characteristics';
+import { ammoFamily, chargeLArme, isOffHandEligible, isShieldTrapping, reachRankOf, weaponFromItem } from '../../../../src/engine/items';
+import { effectiveWeaponDamage } from '../../../../src/engine/weaponDamage';
+import { ZONES_D_ARMURE } from '../../../../src/engine/classementDeTrait';
+import { armourCastDRPenalty } from '../../../../src/engine/magic';
+import { castingKindOf } from '../../../../src/engine/combatFeatures/dispatch';
+import { effectiveTalents } from '../../../../src/engine/talentsPossedes';
 import type { ArmourPoints, Availability, Combatant, ItemInstance } from '../../../../src/engine/types';
 export { equipConflicts } from '../../../../src/engine/items';
 import type { TestDesigne } from '../../../../src/engine/skills';

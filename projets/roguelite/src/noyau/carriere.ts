@@ -25,7 +25,7 @@ import { emplacementsDeDotation, resolveTrappingChoices, valeursDeLEmplacement, 
 import { doterLePorteur } from '../../../../src/engine/bourse';
 import { fabriqueLocale } from '../../../../src/engine/fabriqueDId';
 import { makeRNG } from '../../../../src/engine/dice';
-import { availableChars, skillSlots, designationsFor, parseRefKey } from '../../../../src/engine/careerSlots';
+import { availableChars, skillSlots, designationsFor, parseRefKey, refKey } from '../../../../src/engine/careerSlots';
 import { bonusDe, effectiveChar, effectiveMaxWounds } from '../../../../src/engine/characteristics';
 import { peutTenter, testValue } from '../../../../src/engine/skills';
 import { weaponSkillId } from '../../../../src/engine/combat';
@@ -42,6 +42,10 @@ import {
   spells,
   type CareerLevelData,
   memeSpecialisation,
+  buildAdvancementView,
+  gesteDAchatDuSort,
+  type GesteFermable,
+  type Jeu,
 } from '../../../../src/noyau';
 import { CHAR_KEYS, type Combatant, type CharKey, type ItemInstance } from '../../../../src/engine/types';
 import { auHameau, type Geste } from './hameau';
@@ -304,6 +308,25 @@ export const prixDuSort = (c: Combatant, id: string): number | null => { const s
 /** Libellé d'un sort ou d'un miracle (`spells.json`). */
 export const nomDeSort = (id: string): string => findSpellById(id)?.label ?? id;
 
+/** Un achat que le noyau offre : une Augmentation de Caractéristique ou de Compétence, un Talent, le niveau `niveau` de
+ *  sa carrière, ou un sort. */
+export type AchatAuNoyau = { genre: 'carac'; id: string } | { genre: 'competence' | 'talent'; ref: { id: string; spec?: string } } | { genre: 'niveau'; niveau: number } | { genre: 'sort'; id: string };
+
+/** L'offre de l'achat `a` au héros `heroId` de l'état `s`, lue du noyau : la rangée de sa vue d'avancement
+ *  (`buildAdvancementView`) ou l'achat du sort (`gesteDAchatDuSort`) ; `null` si le noyau ne l'offre pas. */
+export function offreDAchat(s: Jeu, heroId: string, a: AchatAuNoyau): GesteFermable | null {
+  if (a.genre === 'sort') return gesteDAchatDuSort(s, heroId, a.id);
+  const c = s.party.find((h) => h.id === heroId);
+  if (!c) return null;
+  const vue = buildAdvancementView(s, c);
+  switch (a.genre) {
+    case 'carac': return vue.chars.find((r) => r.key === a.id) ?? null;
+    case 'competence': return [...vue.skills, ...vue.skillSlotsOpen.flatMap((r) => r.options)].find((r) => r.skill.id === a.ref.id && memeSpecialisation(r.skill.spec, a.ref.spec)) ?? null;
+    case 'talent': return vue.talents.flatMap((r): GesteFermable[] => (r.options ? r.options.filter((o) => o.refKey === refKey(a.ref.id, a.ref.spec)) : r.talentId === a.ref.id && memeSpecialisation(r.spec, a.ref.spec) ? [r] : []))[0] ?? null;
+    case 'niveau': return vue.targets.find((t) => t.level === a.niveau) ?? null;
+  }
+}
+
 /** La recrue `c` portée au niveau `niveau` de sa carrière par les achats du noyau (`auHameau`) : à chaque niveau, ce
  *  qu'il exige pour être complété (`planDuNiveau`), puis le niveau suivant, payés des seuls PX que ces achats coûtent. LDB 07 l.118-131 */
 export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Combatant {
@@ -312,11 +335,8 @@ export function porterAuNiveau(c: Combatant, niveau: number, graine: number): Co
     const p = progression(porte);
     const cible = p.niveau + 1;
     const plan = planDuNiveau(porte, p);
-    const gestes: Geste[] = plan.flatMap((x) => Array.from({ length: x.fois }, (): Geste => {
-      if (x.genre === 'carac') return { verbe: 'acheterLaCaracteristique', args: [porte.id, x.id] };
-      if (x.genre === 'niveau') return { verbe: 'changerDeCarriere', args: [porte.id, porte.career, cible] };
-      return { verbe: x.genre === 'talent' ? 'acheterLeTalent' : 'acheterLaCompetence', args: [porte.id, x.ref] };
-    }));
+    const gestes: Geste[] = plan.flatMap((x) => Array.from({ length: x.fois }, (): Geste =>
+      (s) => offreDAchat(s, porte.id, x.genre === 'niveau' ? { genre: 'niveau', niveau: cible } : x)?.geste));
     const cout = plan.reduce((s, x) => s + x.cout, 0);
     const xp = porte.xp ?? 0;
     const [rendu] = auHameau([{ ...porte, xp: xp + cout }], gestes, graine++).groupe;

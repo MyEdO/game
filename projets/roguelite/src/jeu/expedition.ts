@@ -10,6 +10,7 @@ import {
   horsDeCombat,
   auHameau,
   gesteDeLObjet,
+  gesteDIncanter,
   doter,
   saitSoigner,
   entretenirLesMaladies,
@@ -147,7 +148,7 @@ export function prier(e: Etat, id: string, cibleId: string): string {
   const pretre = groupe.find((h) => h.c.id === id);
   if (!pretre || !peutPrier(e, pretre)) return 'Pas de prière possible.';
   e.expedition!.prieres.push(id);
-  const r = auHameau(groupe.map((h) => h.c), [{ verbe: 'incanterLeSort', args: [id, PRIERE_DE_SOIN, cibleId] }], e.graine++);
+  const r = auHameau(groupe.map((h) => h.c), [gesteDIncanter(id, PRIERE_DE_SOIN, cibleId)], e.graine++);
   for (const c of r.groupe) { const h = groupe.find((x) => x.c.id === c.id); if (h) h.c = c; }
   return r.journal.slice(-2).join(' ');
 }

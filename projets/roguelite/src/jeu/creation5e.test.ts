@@ -14,8 +14,7 @@ import {
 } from './index';
 import { makeRNG, planDuNiveau, porterAuNiveau, poserLesReglesDuRoguelite, progression, tirerUneEspece } from '../noyau';
 import { prixDuPlanAuNoyau } from './recrue5e.testkit';
-import { brouillonDeLaPartie, findSpeciesById, names } from '../../../../src/noyau';
-import { especesOffertes } from '../../../../src/noyau/creation/brouillon';
+import { brouillonDeLaPartie, findSpeciesById, names, especesOffertes } from '../../../../src/noyau';
 import { modeleDe } from '../../../../src/engine/modeleDeProgression';
 import { casesDuNiveau } from '../../../../src/engine/casesDeCarriere';
 import type { Combatant } from '../../../../src/engine/types';

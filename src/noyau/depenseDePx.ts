@@ -34,11 +34,6 @@ function refusDeCompetenceHorsCarriere(hero: Combatant, skillId: string, what: s
   return fermee ? t('pf.advancedSkillOutOfCareer', { name: nomDe(hero), what }) : null;
 }
 
-/** Libellé d'affichage d'une Compétence/Talent concret : nom, et spécialisation entre parenthèses. */
-export function libelleAvecSpec(name: string, spec?: string): string {
-  return spec ? `${name} (${spec})` : name;
-}
-
 /** Refus d'acquérir le Talent (id, spec) propre au Talent : Maxi atteint (LDB 10), puis Domaine
  *  arcanique refusé (`arcaneDomainGate`, LDB 46 l.177). Verdict UNIQUE d'`acheterLeTalent` et de la vue
  *  d'avancement ; le combat et les PX se refusent à part (`refusDepensePx`). */
