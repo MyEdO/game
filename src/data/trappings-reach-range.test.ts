@@ -4,6 +4,7 @@ import { validateDataset } from './schemas/validate';
 import { AVAILABILITIES, REACH_LABELS, REACH_VARIABLE } from '../engine/types';
 import { isTradable } from '../engine/disponibilite';
 import { priceToMoney, toBrass } from '../engine/money';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 /**
  * Garde-fou de DONNÉE — verrouille l'invariant « Allonge ⊥ Portée » (LDB 62) et empêche le retour du
@@ -95,11 +96,11 @@ describe('trappings — vocabulaire d’Allonge FERMÉ au CHARGEMENT (fail-fast)
   const entry = (reach: unknown) => [{ ...rows.find((t) => t.id === 'hallebarde')!, reach }];
   it('un libellé de l’axe (LDB 62 l.158-164) ou « Variable » (l.31) passe', () => {
     for (const r of [...Object.values(REACH_LABELS), REACH_VARIABLE, null]) {
-      expect(validateDataset('trappings.json', entry(r))).toBeNull();
+      expect(validateDataset('trappings.json', entry(r), catalogueDuProcessus())).toBeNull();
     }
   });
   it('une Allonge HORS axe est REFUSÉE au chargement (elle ne se normalise pas en silence)', () => {
-    const err = validateDataset('trappings.json', entry('Gigantesque'));
+    const err = validateDataset('trappings.json', entry('Gigantesque'), catalogueDuProcessus());
     expect(err).not.toBeNull();
     expect(err).toContain('élément « hallebarde » › Allonge');
   });
@@ -124,10 +125,10 @@ describe('trappings — Disponibilité : les 4 classes, la marque « ND », ou r
 
   it('le schéma ACCEPTE « ND » et `null`, REFUSE toute autre marque (vocabulaire fermé, fail-fast)', () => {
     const gabarit = (availability: unknown) => [{ ...rows.find((t) => t.id === 'hallebarde')!, availability }];
-    expect(validateDataset('trappings.json', gabarit(null))).toBeNull();
-    expect(validateDataset('trappings.json', gabarit('rare'))).toBeNull();
-    expect(validateDataset('trappings.json', gabarit('ND'))).toBeNull();
-    const err = validateDataset('trappings.json', gabarit('Introuvable'));
+    expect(validateDataset('trappings.json', gabarit(null), catalogueDuProcessus())).toBeNull();
+    expect(validateDataset('trappings.json', gabarit('rare'), catalogueDuProcessus())).toBeNull();
+    expect(validateDataset('trappings.json', gabarit('ND'), catalogueDuProcessus())).toBeNull();
+    const err = validateDataset('trappings.json', gabarit('Introuvable'), catalogueDuProcessus());
     expect(err).not.toBeNull();
     expect(err).toContain('élément « hallebarde » › Disponibilité');
   });
@@ -198,10 +199,10 @@ describe('trappings — Prix : un montant, la marque « ND », ou rien', () => {
 
   it('le schéma ACCEPTE « ND », un montant et `null`, REFUSE toute autre marque (fail-fast)', () => {
     const gabarit = (price: unknown) => [{ ...rows.find((t) => t.id === 'hallebarde')!, price }];
-    expect(validateDataset('trappings.json', gabarit(null))).toBeNull();
-    expect(validateDataset('trappings.json', gabarit({ gold: 2, silver: 0, brass: 0 }))).toBeNull();
-    expect(validateDataset('trappings.json', gabarit('ND'))).toBeNull();
-    const err = validateDataset('trappings.json', gabarit('Variable'));
+    expect(validateDataset('trappings.json', gabarit(null), catalogueDuProcessus())).toBeNull();
+    expect(validateDataset('trappings.json', gabarit({ gold: 2, silver: 0, brass: 0 }), catalogueDuProcessus())).toBeNull();
+    expect(validateDataset('trappings.json', gabarit('ND'), catalogueDuProcessus())).toBeNull();
+    const err = validateDataset('trappings.json', gabarit('Variable'), catalogueDuProcessus());
     expect(err).not.toBeNull();
     expect(err).toContain('élément « hallebarde » › Prix');
   });

@@ -9,6 +9,7 @@ import { validateDataset } from '../validate';
 import spells from '../../spells.json';
 import presets from '../../presets-de-personnage.json';
 import creatures from '../../creatures.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const scene = (apparences: Record<string, string>) => ({
   ...emptyScene('scene-test', 2, 2),
@@ -87,19 +88,19 @@ describe('un catalogue désigne la portée des objets de la campagne sans l’ou
   it('spells.json : une GameOp `giveTrapping` vers un objet absent du catalogue est refusée', () => {
     const donnee = copie(spells);
     expect(avecPremierObjetDonne(donnee, FANTOME)).toBe(true);
-    expect(validateDataset('spells.json', donnee)).toContain(REFUS);
+    expect(validateDataset('spells.json', donnee, catalogueDuProcessus())).toContain(REFUS);
   });
 
   it('presets-de-personnage.json : une clé `apparencesObjets` absente du catalogue est refusée', () => {
     const donnee = copie(presets) as Record<string, unknown>[];
     donnee[0].apparencesObjets = { [FANTOME]: { id: 'epee' } };
-    expect(validateDataset('presets-de-personnage.json', donnee)).toContain(REFUS);
+    expect(validateDataset('presets-de-personnage.json', donnee, catalogueDuProcessus())).toContain(REFUS);
   });
 
   it('creatures.json : une clé `appearance.apparencesObjets` absente du catalogue est refusée', () => {
     const donnee = copie(creatures) as Record<string, unknown>[];
     const porteuse = donnee.find((e) => 'appearance' in e)!;
     (porteuse.appearance as Record<string, unknown>).apparencesObjets = { [FANTOME]: { id: 'epee' } };
-    expect(validateDataset('creatures.json', donnee)).toContain(REFUS);
+    expect(validateDataset('creatures.json', donnee, catalogueDuProcessus())).toContain(REFUS);
   });
 });

@@ -31,6 +31,7 @@ import { scatter } from '../engine/scatter';
 import { SIZE_RANGED_MOD } from '../engine/size';
 import { tirerLaReactionAuStatut, tirerLeCapricieux } from '../engine/social';
 import { auChemin } from '../lib/objet.mjs';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 type Entree = Record<string, unknown>;
 const traits = () => datasetArray('traits');
@@ -450,8 +451,8 @@ describe('mutationTables — références et couverture dans la transaction de l
     const index = datasetArray('mutationTables').length - 1;
     const avant = datasetArray('mutationTables')[index];
     const editee = { ...table, entries };
-    expect(validateDataset(fichier, [avant])).toBeNull();
-    expect(validateDataset(fichier, [editee])).toMatch(erreur);
+    expect(validateDataset(fichier, [avant], catalogueDuProcessus())).toBeNull();
+    expect(validateDataset(fichier, [editee], catalogueDuProcessus())).toMatch(erreur);
     const resultat = enregistrerEntree('mutationTables', editee, index);
     if (resultat.ok) resultat.reprendre();
     expect(resultat).toEqual({ ok: false, erreurs: expect.arrayContaining([expect.stringMatching(erreur)]) });

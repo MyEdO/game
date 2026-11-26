@@ -40,6 +40,7 @@ import { detailRecipeSchema, plageOuverteSchema, raceKeySchema } from './schemas
 import { validateDataset } from './schemas/validate';
 import { tableTotale } from '../lib/tableTotale';
 import { auChemin, estObjet } from '../lib/objet.mjs';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 /** Les DEUX racines de donnée du projet, comme le scan des structures (`scripts/docs/lib/structures-scan.mts`) :
  *  une graphie de bornes qui n'apparaîtrait que dans un document de SCÈNE échapperait sinon à la mesure.
@@ -174,7 +175,7 @@ function verifierLeRefusDuChevauchement(
     throw new Error(`${fichier} : aucune rangée adjacente identifiée avant ${minTerminal}`);
   }
   precedente.max = plafond;
-  const refus = validateDataset(fichier, mutant);
+  const refus = validateDataset(fichier, mutant, catalogueDuProcessus());
   expect(refus, `${precedente.id} atteint le résultat terminal ${minTerminal}`).toMatch(/chevauche la rangée/u);
   expect(refus).toContain(precedente.id);
 }
@@ -238,7 +239,7 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     const chemin = M.fichiers.get(fichier);
     if (chemin === undefined) throw new Error(`${fichier} est absent du corpus des plages`);
     const donnee: unknown = JSON.parse(readFileSync(chemin, 'utf8'));
-    expect(validateDataset(fichier, donnee), fichier).toBeNull();
+    expect(validateDataset(fichier, donnee, catalogueDuProcessus()), fichier).toBeNull();
 
     const bandes = M.bandesOuvertes.filter((site) => site.doc === fichier);
     for (const { adresse, min } of bandes) {
@@ -250,7 +251,7 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
       const plafonds = fichier === 'criticals.json' && bande.id === 'aa-bras-136' ? [min, PLAFOND_HISTORIQUE] : [min];
       for (const max of plafonds) {
         bande.max = max;
-        expect(validateDataset(fichier, mutant), `${lieu} avec max: ${max}`).toMatch(REFUS_DU_PLAFOND);
+        expect(validateDataset(fichier, mutant, catalogueDuProcessus()), `${lieu} avec max: ${max}`).toMatch(REFUS_DU_PLAFOND);
       }
       if (fichier !== 'criticals.json' && fichier !== 'miscast.json') continue;
       bande.max = null;
@@ -264,7 +265,7 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
     if (chemin === undefined) throw new Error(`${fichier} est absent du corpus des plages`);
     const mutant: unknown = JSON.parse(readFileSync(chemin, 'utf8'));
     const bras = Array.isArray(mutant) ? mutant.find((table) => estObjet(table) && table.id === 'criticals-ldb-bras') : undefined;
-    expect(validateDataset(fichier, mutant)).toBeNull();
+    expect(validateDataset(fichier, mutant, catalogueDuProcessus())).toBeNull();
     verifierLeRefusDuChevauchement(fichier, mutant, estObjet(bras) ? bras.entries : undefined, 100, PLAFOND_HISTORIQUE);
   });
 
@@ -275,11 +276,11 @@ describe('deux bornes : une seule graphie, et rien d’emboîté (#1463 L4, vagu
       source: { book: 'livre-de-base', page: 40 },
       die: { n: 1, sides: PLAFOND_HISTORIQUE }, entries: [rangee],
     };
-    expect(validateDataset('tables.json', [table])).toBeNull();
+    expect(validateDataset('tables.json', [table], catalogueDuProcessus())).toBeNull();
 
     const ouverte = { ...table, borneHauteOuverte: true };
-    expect(validateDataset('tables.json', [ouverte])).toMatch(REFUS_DU_PLAFOND);
-    expect(validateDataset('tables.json', [{ ...ouverte, entries: [{ ...rangee, max: null }] }])).toBeNull();
+    expect(validateDataset('tables.json', [ouverte], catalogueDuProcessus())).toMatch(REFUS_DU_PLAFOND);
+    expect(validateDataset('tables.json', [{ ...ouverte, entries: [{ ...rangee, max: null }] }], catalogueDuProcessus())).toBeNull();
   });
 
   it('F — aucun schéma de document n’admet une paire de nombres en TUPLE hors d’une recette de RENDU (`detailRecipeSchema`)', () => {
@@ -341,10 +342,10 @@ describe('Couverture des tables de création', () => {
   it('les repères des demeures couvrent 1 à 10 dans tout ordre (ADE II 03 l.504-512)', () => {
     const premieres = demeure('premieres', 1, 5);
     const suivantes = demeure('suivantes', 6, 10);
-    expect(validateDataset('astrology.json', [suivantes, premieres])).toBeNull();
-    expect(validateDataset('astrology.json', [premieres, { ...suivantes, min: 7 }])).toMatch(/astrology\.json/);
-    expect(validateDataset('astrology.json', [premieres, { ...suivantes, max: 11 }])).toMatch(/astrology\.json/);
-    expect(validateDataset('astrology.json', [{ ...premieres, max: 5.5 }, { ...suivantes, min: 6.5 }])).toMatch(/entier/i);
+    expect(validateDataset('astrology.json', [suivantes, premieres], catalogueDuProcessus())).toBeNull();
+    expect(validateDataset('astrology.json', [premieres, { ...suivantes, min: 7 }], catalogueDuProcessus())).toMatch(/astrology\.json/);
+    expect(validateDataset('astrology.json', [premieres, { ...suivantes, max: 11 }], catalogueDuProcessus())).toMatch(/astrology\.json/);
+    expect(validateDataset('astrology.json', [{ ...premieres, max: 5.5 }, { ...suivantes, min: 6.5 }], catalogueDuProcessus())).toMatch(/entier/i);
   });
 
   it.each(['eyes', 'hairs'])('%s exige le dé entier dans chaque colonne', (type) => {
@@ -354,7 +355,7 @@ describe('Couverture des tables de création', () => {
     const die = { n: 2, sides: 3 };
     const fichier = `${type}.json`;
     const table = { id: 'table-test', type, label: 'Table de test', source, die };
-    const erreurs = (entries: unknown[]) => validateDataset(fichier, { ...table, entries });
+    const erreurs = (entries: unknown[]) => validateDataset(fichier, { ...table, entries }, catalogueDuProcessus());
     const plageParRace = { gnome: { min: 5, max: 6 } };
     expect(erreurs([seconde, premiere])).toBeNull();
     expect(erreurs([premiere, { ...seconde, min: 3 }])).toMatch(/couvr/i);
@@ -366,7 +367,7 @@ describe('Couverture des tables de création', () => {
       { ...seconde, plageParRace: { gnome: { min: 4.5, max: 6 } } },
     ])).toMatch(/entier/i);
     expect(erreurs([premiere, { ...seconde, color: { humain: 'Brun' } }])).toMatch(/couleur/i);
-    expect(validateDataset(fichier, { ...table, die: { n: 2, sides: 4 }, entries: [premiere, seconde] })).toMatch(/couvr/i);
+    expect(validateDataset(fichier, { ...table, die: { n: 2, sides: 4 }, entries: [premiere, seconde] }, catalogueDuProcessus())).toMatch(/couvr/i);
   });
 
   const signe = (id: string, min: number, max: number) => ({
@@ -379,7 +380,7 @@ describe('Couverture des tables de création', () => {
   const table = {
     id: 'table-test', type: 'stars', label: 'Table de test', source, die: { n: 1, sides: 6 }, sub: { die: { n: 1, sides: 4 } },
   };
-  const erreursDesSignes = (entries: unknown[]) => validateDataset('stars.json', { ...table, entries });
+  const erreursDesSignes = (entries: unknown[]) => validateDataset('stars.json', { ...table, entries }, catalogueDuProcessus());
 
   it('un groupe à largeur et rattachement communs couvre le sous-dé, dans tout ordre', () => {
     expect(erreursDesSignes([varianteB, simple, varianteA])).toBeNull();

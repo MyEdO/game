@@ -153,11 +153,11 @@ describe('paquet de campagne — bloc narratif', () => {
 
   // LDB 09 l.40 ; LDB 08 l.140
   it('(k) preset PNJ : une Compétence OUVERTE admet une spécialisation créée et refuse le LIBELLÉ de son catalogue ; une FERMÉE refuse le hors-catalogue ; la sentinelle « Au choix » est REFUSÉE (un emplacement non désigné s’écrit « choix »)', () =>
-    avecLesEntreesDeSpecs(() => {
-      expect(parseProject(doc(presetSkill(CREEE, OUVERTE))).narratif.presetsPnj.length).toBe(2);
-      expect(() => parseProject(doc(presetSkill(LIBELLE, OUVERTE)))).toThrow(/est le LIBELLÉ d'une spécialisation/);
-      expect(() => parseProject(doc(presetSkill(CREEE, FERMEE)))).toThrow(/est absente des spécialisations/);
-      expect(() => parseProject(doc(presetSkill('Au choix', FERMEE)))).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné .* s'écrit « choix »/);
+    avecLesEntreesDeSpecs((cat) => {
+      expect(parseProject(doc(presetSkill(CREEE, OUVERTE)), cat).narratif.presetsPnj.length).toBe(2);
+      expect(() => parseProject(doc(presetSkill(LIBELLE, OUVERTE)), cat)).toThrow(/est le LIBELLÉ d'une spécialisation/);
+      expect(() => parseProject(doc(presetSkill(CREEE, FERMEE)), cat)).toThrow(/est absente des spécialisations/);
+      expect(() => parseProject(doc(presetSkill('Au choix', FERMEE)), cat)).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné .* s'écrit « choix »/);
     }));
 
   const presetTalent = (spec: string, id = 'savoir-vivre') => {
@@ -168,11 +168,11 @@ describe('paquet de campagne — bloc narratif', () => {
 
   // LDB 08 l.140
   it('(l) preset PNJ : la spec d’un TALENT est jugée par le même prédicat que la Compétence ; le littéral « Au choix » est refusé', () =>
-    avecLesEntreesDeSpecs(() => {
-      expect(parseProject(doc(presetTalent(CREEE, OUVERTE))).narratif.presetsPnj.length).toBe(2);
-      expect(() => parseProject(doc(presetTalent(LIBELLE, OUVERTE)))).toThrow(/est le LIBELLÉ d'une spécialisation/);
-      expect(() => parseProject(doc(presetTalent(CREEE, FERMEE)))).toThrow(/est absente des spécialisations/);
-      expect(() => parseProject(doc(presetTalent('Au choix', FERMEE)))).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné/);
+    avecLesEntreesDeSpecs((cat) => {
+      expect(parseProject(doc(presetTalent(CREEE, OUVERTE)), cat).narratif.presetsPnj.length).toBe(2);
+      expect(() => parseProject(doc(presetTalent(LIBELLE, OUVERTE)), cat)).toThrow(/est le LIBELLÉ d'une spécialisation/);
+      expect(() => parseProject(doc(presetTalent(CREEE, FERMEE)), cat)).toThrow(/est absente des spécialisations/);
+      expect(() => parseProject(doc(presetTalent('Au choix', FERMEE)), cat)).toThrow(/n'est pas une spécialisation mais un EMPLACEMENT non désigné/);
     }));
 
   it('(m) preset PNJ : un Talent SANS catalogue de spécs porte un texte d’instance, admis comme dans creatures.json (#1621)', () => {

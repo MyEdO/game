@@ -66,7 +66,7 @@ export function lancementDuProjet(projet: { scenes: Scene[]; worldMap?: WorldMap
 /** POSE du lancement : la porte du projet joué (`exigerUnProjetJouable`), avant toute écriture, puis règles, groupe,
  *  projet ou scène. */
 export function poserLeLancement(get: Get, l: LancementDeScenario): void {
-  exigerUnProjetJouable([l.scene, ...(l.extraScenes ?? [])], l.worldMap, l.narratif);
+  exigerUnProjetJouable([l.scene, ...(l.extraScenes ?? [])], l.worldMap, l.narratif, get().catalogue);
   if (l.regles) poserLesRegles(l.regles);
   get().fixerLeGroupe(l.party);
   if (l.projet || l.extraScenes?.length || l.worldMap || l.narratif) get().chargerLeProjet({ scenes: [l.scene, ...(l.extraScenes ?? [])], entryId: l.scene.id, worldMap: l.worldMap ?? null, narratif: l.narratif, projet: l.projet });

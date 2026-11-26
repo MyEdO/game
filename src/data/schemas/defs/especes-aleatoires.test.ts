@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import especesAleatoiresJson from '../../especes-aleatoires.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const FICHIER = 'especes-aleatoires.json';
 const clone = () => structuredClone(especesAleatoiresJson);
@@ -21,11 +22,11 @@ function avecBornesDuLdb(max: number, min: number) {
 
 describe('especes-aleatoires.json — couverture du dé', () => {
   it('accepte une table qui couvre le d100 d’un seul tenant', () => {
-    expect(validateDataset(FICHIER, avecBornesDuLdb(89, 90))).toBeNull();
+    expect(validateDataset(FICHIER, avecBornesDuLdb(89, 90), catalogueDuProcessus())).toBeNull();
   });
 
   it('REFUSE, en le nommant, un trou entre deux rangées', () => {
-    expect(validateDataset(FICHIER, avecBornesDuLdb(88, 90))).toMatch(
+    expect(validateDataset(FICHIER, avecBornesDuLdb(88, 90), catalogueDuProcessus())).toMatch(
       /especes-aleatoires\.json › races-ldb : les rangées ne couvrent pas le 1d100 d'un seul tenant/,
     );
   });
@@ -33,7 +34,7 @@ describe('especes-aleatoires.json — couverture du dé', () => {
 
 describe('especes-aleatoires.json — un seul document par jeu de races', () => {
   it('le schéma accepte la donnée RÉELLE', () => {
-    expect(validateDataset(FICHIER, especesAleatoiresJson)).toBeNull();
+    expect(validateDataset(FICHIER, especesAleatoiresJson, catalogueDuProcessus())).toBeNull();
   });
 
   it('REFUSE, en nommant le jeu et les deux documents, un second document au même jeu de races', () => {
@@ -41,7 +42,7 @@ describe('especes-aleatoires.json — un seul document par jeu de races', () => 
     const copie = nomme(docs, 'races-ldb');
     copie.id = 'races-ldb-bis';
     docs.push(copie);
-    expect(validateDataset(FICHIER, docs)).toMatch(
+    expect(validateDataset(FICHIER, docs, catalogueDuProcessus())).toMatch(
       /especes-aleatoires\.json › races-ldb-bis : le jeu de races « elfe-sylvain, halfling, haut-elfe, humain, nain » est déjà celui du document « races-ldb » : un seul document par jeu de races\./,
     );
   });
@@ -52,6 +53,6 @@ describe('especes-aleatoires.json — un seul document par jeu de races', () => 
     sansHalfling.id = 'races-sans-halfling';
     sansHalfling.entries = sansHalfling.entries.filter((r) => r.id !== 'halflings').map((r) => (r.id === 'humains-reiklander' ? { ...r, max: 94 } : r));
     docs.push(sansHalfling);
-    expect(validateDataset(FICHIER, docs)).toBeNull();
+    expect(validateDataset(FICHIER, docs, catalogueDuProcessus())).toBeNull();
   });
 });

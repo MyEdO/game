@@ -73,6 +73,7 @@ import { auChemin, estObjet } from './lib/objet.mjs';
 import { cheminsCreditesJoues, type EcritureJouee } from '../scripts/guards/lib/editabiliteDesChamps.mjs';
 // @ts-expect-error - plugin ESM JS (pas de types) — même convention que `vitest.config.ts`
 import { CORPUS_DISQUE, manifesteDe, texteDuChapitre } from '../scripts/source/prose-source-plugin.mjs';
+import { catalogueDuProcessus } from './data/catalogueDuProcessus';
 
 /** Les PANNES de la catégorie mesurée : chaque geste que la session lève, au lieu de l'écrire ou de le refuser, dit
  *  par son chemin et son message ; la session reste celle d'avant lui (`jouer`). */
@@ -105,7 +106,7 @@ const atelierDe = (s: SessionDuCompendium): ZonesDuCompendium['compendium.atelie
 /** Le nœud de l'entrée de l'atelier de chaque session (`noeudDeLEntree`), une session ne changeant pas. */
 const noeudsDesSessions = new WeakMap<SessionDuCompendium, { n: unknown }>();
 const noeudDeLAtelier = (s: SessionDuCompendium): unknown =>
-  (noeudsDesSessions.get(s) ?? noeudsDesSessions.set(s, { n: noeudDeLEntree(editableDataset(s.atelier!.categorie) ?? OBJECT_CATEGORY_DERIVE[s.atelier!.categorie].ds, s.atelier!.entree) }).get(s)!).n;
+  (noeudsDesSessions.get(s) ?? noeudsDesSessions.set(s, { n: noeudDeLEntree(editableDataset(s.atelier!.categorie) ?? OBJECT_CATEGORY_DERIVE[s.atelier!.categorie].ds, s.atelier!.entree, catalogueDuProcessus()) }).get(s)!).n;
 
 /** Les valeurs scalaires que porte le corpus de chaque catégorie éditable (`CATEGORIES_EDITABLES`), chaque entrée d'un
  *  dataset-liste et la racine d'un dataset-objet, à chaque nœud de son schéma (`noeudDeLEntree`, `coDescendre`), et les
@@ -118,7 +119,7 @@ function indexDuCorpus(): WeakMap<object, unknown[]> {
     const valeurs = index.get(n as object) ?? index.set(n as object, []).get(n as object)!;
     if (!valeurs.includes(valeur)) valeurs.push(valeur);
   };
-  const indexer = (ds: string, donnee: object): void => coDescendre(noeudDeLEntree(ds, donnee), donnee, ({ noeuds, valeur }) => {
+  const indexer = (ds: string, donnee: object): void => coDescendre(noeudDeLEntree(ds, donnee, catalogueDuProcessus()), donnee, ({ noeuds, valeur }) => {
     if (estObjet(valeur)) for (const n of noeuds) if (recordDuNoeud(n)) for (const cle of Object.keys(valeur)) ajouter(n, cle);
     if (valeur === null || typeof valeur === 'object') return;
     for (const n of noeuds) ajouter(n, valeur);
@@ -385,7 +386,7 @@ interface EntreeAJouer { id: string; noeud: unknown; formes: Set<string>; champs
 /** Les entrées du dataset-liste `ds` que le Compendium liste dans la catégorie `categorie` (`codexLookupById`). */
 const entreesDe = (categorie: string, ds: DatasetKey): EntreeAJouer[] =>
   (entreesDuDataset(ds) as Record<string, unknown>[]).filter((x) => codexLookupById(categorie, x.id as string)).map((e) => {
-    const noeud = noeudDeLEntree(ds, e);
+    const noeud = noeudDeLEntree(ds, e, catalogueDuProcessus());
     const s = () => compendium(ouvrirLeCompendium(MANIFESTE, PAQUETS, { categorie, id: e.id as string }), { geste: 'modifier' });
     return { id: e.id as string, noeud, ...casDe(noeud, e, s), taille: JSON.stringify(e).length };
   });
@@ -561,7 +562,7 @@ function mesurerLaCategorie(categorie: string): MesureDeLaCategorie {
   if (ds === undefined) jouerLAtelier(atelier(categorie), cas[0]);
   else {
     const neuve = atelier(categorie);
-    jouerLAtelier(neuve, noeudDeLEntree(ds, neuve.atelier!.entree));
+    jouerLAtelier(neuve, noeudDeLEntree(ds, neuve.atelier!.entree, catalogueDuProcessus()));
     let entrees = entreesDe(categorie, ds);
     /** Les formes que portent les entrées ouvertes, et les champs que portent celles ouvertes pour un champ. */
     const [formes, repris] = [new Set<string>(), new Set<string>()];

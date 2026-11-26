@@ -55,6 +55,7 @@ import {
   sourceServie,
   type SourceServie,
 } from '../edition/adresseDeProse';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 type Entree = Record<string, unknown>;
 
@@ -146,7 +147,7 @@ export const CLE_D_IDENTITE = 'id';
  *  dérive (`estCheminDerive`), aucun retrait déclaré. */
 function formeDeLAtelier(a: AtelierDuCompendium): FormeDuFormulaire {
   const dataset = datasetDe(a.categorie);
-  const noeud = noeudDeLEntree(dataset, a.entree);
+  const noeud = noeudDeLEntree(dataset, a.entree, catalogueDuProcessus());
   const provenanceEcartee = champDeProvenanceEcarte(DATASET_FICHIER_DERIVE[dataset], a.entree);
   const champs = champsOfferts(noeud, a.entree, [CLE_D_IDENTITE])
     .filter((f) => f.key !== provenanceEcartee && !estCheminDerive(noeud, a.entree, [f.key]))

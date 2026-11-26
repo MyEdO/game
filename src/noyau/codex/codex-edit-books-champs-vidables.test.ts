@@ -9,7 +9,7 @@
  * optionnel de plus y entre sans une ligne ici.
  *
  * Il juge le CHEMIN RÉEL, sur `books.json` réel et la porte que `CodexEdit` appelle vraiment
- * (`validateDataset`, `src/data/schemas/validate.ts:129`) — jamais un schéma forgé. Il vit ici, et
+ * (`validateDataset`, `src/data/schemas/validate.ts:383`) — jamais un schéma forgé. Il vit ici, et
  * non avec les tests de donnée (`src/data/book-source-integrity.test.ts`) ni avec ceux de
  * `validateDataset` (`src/data/schemas/validate.test.ts`), parce qu'il lui faut les DEUX côtés de la
  * couture : le noyau peut lire `src/data`, l'inverse serait une dépendance à contresens.
@@ -18,6 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { inferFields } from './editFields';
 import { metaPourFichier, noeudObjet, schemaForFile, validateDataset } from '../../data/schemas/validate';
 import { books } from '../../data/index';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 const FILE = 'books.json';
 const entrees = books as unknown as Record<string, unknown>[];
@@ -41,7 +42,7 @@ const datasetAvec = (cle: string, valeur: unknown): unknown[] => {
 
 describe('atelier — tout champ optionnel d’un livre se vide par le geste (#1825)', () => {
   it('le dataset committé, inchangé, passe la porte d’enregistrement', () => {
-    expect(validateDataset(FILE, entrees)).toBeNull();
+    expect(validateDataset(FILE, entrees, catalogueDuProcessus())).toBeNull();
   });
 
   it('le formulaire offre au moins un champ vidable, et chacun porte un libellé FR (jamais sa clé technique)', () => {
@@ -54,7 +55,7 @@ describe('atelier — tout champ optionnel d’un livre se vide par le geste (#1
 
   for (const cle of VIDABLES) {
     it(`VIDER « ${cle} » (\`null\`) est ACCEPTÉ par la porte d’enregistrement`, () => {
-      expect(validateDataset(FILE, datasetAvec(cle, null))).toBeNull();
+      expect(validateDataset(FILE, datasetAvec(cle, null), catalogueDuProcessus())).toBeNull();
     });
   }
 
@@ -62,7 +63,7 @@ describe('atelier — tout champ optionnel d’un livre se vide par le geste (#1
     const champ = CHAMPS.find((c) => c.key === 'teneur');
     expect(champ?.kind).toBe('select');
     expect(Object.keys(champ?.valeurs ?? {}).length).toBeGreaterThan(1);
-    expect(validateDataset(FILE, datasetAvec('teneur', 'valeur-hors-univers'))).not.toBeNull();
+    expect(validateDataset(FILE, datasetAvec('teneur', 'valeur-hors-univers'), catalogueDuProcessus())).not.toBeNull();
   });
 
   it('le NIVEAU DE SECTION se saisit en NOMBRE, et l’atelier ne connait AUCUNE propriété de chapitre', () => {
@@ -74,16 +75,16 @@ describe('atelier — tout champ optionnel d’un livre se vide par le geste (#1
 
   it('les clés d’ENVELOPPE laissées hors verdict sont NOMMÉES, et leur vide est un ticket (#1830)', () => {
     expect(HORS_VERDICT).toEqual(['desc']);
-    expect(validateDataset(FILE, datasetAvec('desc', null))).not.toBeNull();
+    expect(validateDataset(FILE, datasetAvec('desc', null), catalogueDuProcessus())).not.toBeNull();
   });
 
   it('une graphie de cœur NON normalisée reste REFUSÉE, et le message nomme la règle', () => {
-    const erreur = validateDataset(FILE, datasetAvec('coeur', '5E '));
+    const erreur = validateDataset(FILE, datasetAvec('coeur', '5E '), catalogueDuProcessus());
     expect(erreur).not.toBeNull();
     expect(erreur).toMatch(/graphie normalisée/);
   });
 
   it('la chaîne VIDE reste REFUSÉE sur un cœur — vider se dit `null`, pas `""`', () => {
-    expect(validateDataset(FILE, datasetAvec('coeur', ''))).not.toBeNull();
+    expect(validateDataset(FILE, datasetAvec('coeur', ''), catalogueDuProcessus())).not.toBeNull();
   });
 });

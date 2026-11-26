@@ -6,6 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { lireBlocsAvances } from './blocsAvances';
 import type { DescRef } from './grammaire/valeurs';
+import { catalogueDuProcessus } from '../catalogueDuProcessus';
 
 const DESC_REF = {
   book: 'ennemi-dans-l-ombre',
@@ -20,13 +21,13 @@ describe('la modale « Avancé » (`lireBlocsAvances`), la même porte', () => {
   const blocs = (noeud: Record<string, unknown>) => ({ dialogues: [{ id: 'dlg', start: { id: 'n1' }, nodes: [{ id: 'n1', choices: [], ...noeud }] }] });
 
   it('P1 : un nœud adressé MATÉRIALISÉ (la forme de l’éditeur) fait l’aller-retour, son texte gardé', () => {
-    const porte = lireBlocsAvances(blocs(MATERIALISE));
+    const porte = lireBlocsAvances(blocs(MATERIALISE), catalogueDuProcessus());
     expect(porte.ok).toBe(true);
     expect(porte.ok && porte.lu.dialogues?.[0].nodes[0]).toMatchObject(MATERIALISE);
   });
 
   it('P2 : la forme DISQUE (adresse sans texte) est refusée, au chemin du nœud', () => {
-    const porte = lireBlocsAvances(blocs({ descRef: DESC_REF }));
+    const porte = lireBlocsAvances(blocs({ descRef: DESC_REF }), catalogueDuProcessus());
     expect(porte.ok).toBe(false);
     expect(porte.ok ? '' : porte.rapport).toContain('passage adressé sans son texte.');
   });

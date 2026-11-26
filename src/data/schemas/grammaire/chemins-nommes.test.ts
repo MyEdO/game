@@ -17,6 +17,7 @@ import { defDe, ouverts } from './descente';
 import { fragmentBlocsSchema, fragmentCelluleSchema, descRefSchema, castingNumberModSchema, detailRecipeSchema, combatFeatureSchema } from './valeurs';
 import { effectSchema, libelleEffet } from '../defs-scenes/effets';
 import { placeServiceSchema } from '../defs-scenes/worldmap';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const sceneJouet = () => {
   const scene = emptyScene('scene-test', 4, 4);
@@ -68,14 +69,14 @@ describe('chemins nommés par leur schéma', () => {
   });
   it('porte le journal récursif, sans traduction locale', () => {
     const scene = { type: 'scene', id: 's', label: 'Scène', dimensions: { w: 1, h: 1 }, tiles: [], entities: [], triggers: [{ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'journal', desc: '' } }] } }] };
-    const faute = validateDocument(sceneSchema, scene)?.find(f => f.chemin[f.chemin.length - 1] === 'desc');
+    const faute = validateDocument(sceneSchema, scene, catalogueDuProcessus())?.find(f => f.chemin[f.chemin.length - 1] === 'desc');
     expect(faute).toBeDefined();
     expect(cheminLisible(faute!.lieu)).toBe('déclencheur « trig-0 » › étape 1 › effet Journal › texte');
   });
   const journalVide = () => ({ kind: 'effet', effet: { type: 'journal', desc: '' } });
   const lieuxDeJournaux = (flow: unknown) => {
     const scene = { type: 'scene', id: 's', label: 'Scène', dimensions: { w: 1, h: 1 }, tiles: [], entities: [], triggers: [{ id: 'trig-0', rect: { x: 0, y: 0, w: 1, h: 1 }, flow }] };
-    const fautes = validateDocument(sceneSchema, scene)!.filter(f => f.chemin[f.chemin.length - 1] === 'desc');
+    const fautes = validateDocument(sceneSchema, scene, catalogueDuProcessus())!.filter(f => f.chemin[f.chemin.length - 1] === 'desc');
     expect(fautes).toHaveLength(2);
     return fautes.map(f => cheminLisible(f.lieu));
   };
@@ -145,7 +146,7 @@ describe('chemins nommés par leur schéma', () => {
   });
   it('retrouve les vraies charges imbriquées des opérations', () => {
     const donnee = { op: 'transform', tag: 'transformation', ops: [{ op: 'heal' }] };
-    const fautes = validateDocument(gameOpSchema, donnee)!;
+    const fautes = validateDocument(gameOpSchema, donnee, catalogueDuProcessus())!;
     expect(fautes).toHaveLength(1);
     expect(fautes[0].chemin).toEqual(['ops', 0, 'amount']);
     expect(cheminLisible(fautes[0].lieu)).toBe('opérations 1 › quantité');

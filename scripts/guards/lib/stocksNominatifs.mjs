@@ -42,7 +42,8 @@
 // Les options imbriquées appartiennent à leur ARGUMENT. Un tableau scalaire joint avec '/' ou '\\'
 // et le descripteur canonique { dossier, suffixe, recursif } ne sont pas des collections nominatives.
 // Dans une suite, le littéral `fichiers` des options directement passées en argument 0 aux fabriques
-// de depotGabarit est une fixture jetable. L'appel est prouvé par `estAppelDeclare` ; les options
+// de depotGabarit est une fixture jetable, comme le livre passé en argument 0 aux fabriques de catalogue
+// de test (`FABRIQUES_DE_CATALOGUE`, #5070). L'appel est prouvé par `estAppelDeclare` ; les options
 // voisines et les collections déclarées séparément gardent leur mesure. Le checker n'est emprunté
 // que si un import candidat est présent, et reste vivant pendant tout le parcours.
 // Un ARGUMENT qui ne nomme AUCUN FICHIER est un PARAMÈTRE, pas un porteur : c'est une liste de
@@ -434,6 +435,12 @@ function importsDeType(ts, sf) {
 
 const FOYER_DEPOT_JETABLE = 'scripts/guards/lib/depotGabarit.mjs';
 const FABRIQUES_DE_DEPOT = { [FOYER_DEPOT_JETABLE]: ['instanceDeDepot', 'gabaritDeDepot'] };
+/** Les fabriques de catalogue de test : leur argument 0 est un livre de fixture, clé par document. */
+const FABRIQUES_DE_CATALOGUE = {
+  'src/data/schemas/catalogue/catalogueDeTest.testkit.ts': ['catalogueDeTest'],
+  'src/data/catalogueAvec.testkit.ts': ['catalogueAvec'],
+};
+const FOYERS_DE_FIXTURE = [FOYER_DEPOT_JETABLE, ...Object.keys(FABRIQUES_DE_CATALOGUE)].map((f) => f.split('/').pop().replace(/\.m?[jt]s$/, ''));
 
 /**
  * Les ENTRÉES de stock d'une IMAGE de fichier, par ligne croissante — ou `null` si le dialecte n'a
@@ -454,7 +461,7 @@ export function entreesNominatives(source, chemin) {
   const img = imageParsee(source, chemin);
   if (!img) return null;
   const candidat = estSuiteVitest(chemin) && img.sf.statements.some(st => img.ts.isImportDeclaration(st)
-    && st.moduleSpecifier.text?.includes('depotGabarit'));
+    && FOYERS_DE_FIXTURE.some((foyer) => st.moduleSpecifier.text?.includes(foyer)));
   if (!candidat) return entreesDeLAnalyse(img);
   for (const { sourceFile: sf, diagnostics, checker } of analyserCorpus([{ rel: chemin, text: source }], { inconnu: 'refus' })) {
     if (!sf) return null;
@@ -472,7 +479,13 @@ export function entreesNominatives(source, chemin) {
         && !typesSeuls.has((img.ts.isPropertyAccessExpression(appel.expression) ? appel.expression.expression : appel.expression).text)
         && estAppelDeclare(appel, sf, FABRIQUES_DE_DEPOT, contexte) !== null;
     };
-    return entreesDeLAnalyse(analyse, fichiersDeFixture);
+    const livreDeFixture = node => {
+      const appel = node.parent;
+      return !!appel && img.ts.isCallExpression(appel) && appel.arguments[0] === node
+        && !typesSeuls.has((img.ts.isPropertyAccessExpression(appel.expression) ? appel.expression.expression : appel.expression).text)
+        && estAppelDeclare(appel, sf, FABRIQUES_DE_CATALOGUE, contexte) !== null;
+    };
+    return entreesDeLAnalyse(analyse, (node) => fichiersDeFixture(node) || livreDeFixture(node));
   }
   return null;
 }

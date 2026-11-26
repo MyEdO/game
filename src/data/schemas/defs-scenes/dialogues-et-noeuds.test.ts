@@ -13,6 +13,7 @@ import { lireBlocsAvances } from '../blocsAvances';
 import { mesureDuParse } from '../grammaire/ref';
 import { IDS_PAR_ESPACE } from '../../_ids.generated';
 import paquetDeTest from '../../../scenes/fixtures/paquet-de-test.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 /** La première scène du paquet de test, à trois dialogues (dont un de marchand) et un marchand. */
 const HUB = {
@@ -133,10 +134,10 @@ describe('#2968 L15 — dialogues et nœuds désignés par `ref(portee)`', () =>
   });
 
   it('la modale « Avancé » juge les nœuds de chaque dialogue collé, sans la scène', () => {
-    expect(lireBlocsAvances({ dialogues: structuredClone(HUB.dialogues) }).ok).toBe(true);
+    expect(lireBlocsAvances({ dialogues: structuredClone(HUB.dialogues) }, catalogueDuProcessus()).ok).toBe(true);
     const casse = structuredClone(HUB.dialogues);
     casse[0].start = { id: 'ailleurs' };
-    const lu = lireBlocsAvances({ dialogues: casse });
+    const lu = lireBlocsAvances({ dialogues: casse }, catalogueDuProcessus());
     expect(lu.ok).toBe(false);
     expect(lu.ok ? '' : lu.rapport).toContain('« ailleurs » est absent du catalogue des nœuds du dialogue');
   });

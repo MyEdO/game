@@ -2,18 +2,19 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import calendarPhasesJson from '../../calendarPhases.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const reel = () => structuredClone(calendarPhasesJson);
 
 describe('calendarPhases — seuils distincts', () => {
   it('la donnée réelle passe', () => {
-    expect(validateDataset('calendarPhases.json', reel())).toBeNull();
+    expect(validateDataset('calendarPhases.json', reel(), catalogueDuProcessus())).toBeNull();
   });
   it('un clone au seuil répété est refusé, les deux phases nommées', () => {
     const doc = reel();
     const dernier = doc[doc.length - 1];
     const clone = { ...structuredClone(dernier), id: 'nuit-bis' };
-    expect(validateDataset('calendarPhases.json', [...doc, clone])).toContain(`« ${dernier.id} » et « nuit-bis » portent le même seuil ${dernier.seuil}`);
+    expect(validateDataset('calendarPhases.json', [...doc, clone], catalogueDuProcessus())).toContain(`« ${dernier.id} » et « nuit-bis » portent le même seuil ${dernier.seuil}`);
   });
 });
 
@@ -26,12 +27,12 @@ describe('calendarPhases — un seuil est une minute du jour', () => {
     return doc;
   };
   it('« nuit » à 1500 est refusée', () => {
-    expect(validateDataset('calendarPhases.json', nuitA(1500))).toContain('« nuit » commence à la minute 1500, hors de la minute du jour (0-1439)');
+    expect(validateDataset('calendarPhases.json', nuitA(1500), catalogueDuProcessus())).toContain('« nuit » commence à la minute 1500, hors de la minute du jour (0-1439)');
   });
   it('« nuit » à −60 est refusée', () => {
-    expect(validateDataset('calendarPhases.json', nuitA(-60))).toContain('« nuit » commence à la minute -60, hors de la minute du jour (0-1439)');
+    expect(validateDataset('calendarPhases.json', nuitA(-60), catalogueDuProcessus())).toContain('« nuit » commence à la minute -60, hors de la minute du jour (0-1439)');
   });
   it('« nuit » à 300.5 est refusée', () => {
-    expect(validateDataset('calendarPhases.json', nuitA(300.5))).toContain('élément « nuit » › Heure de début: Entrée invalide : entier attendu, nombre reçu');
+    expect(validateDataset('calendarPhases.json', nuitA(300.5), catalogueDuProcessus())).toContain('élément « nuit » › Heure de début: Entrée invalide : entier attendu, nombre reçu');
   });
 });

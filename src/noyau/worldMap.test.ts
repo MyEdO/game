@@ -20,11 +20,10 @@ import {
 } from './worldMap';
 import { findCargoEntryById } from '../engine/cargo';
 import { lieuxServices, navalPorts } from '../data';
-import { poserRegimeVivant } from '../data/schemas/grammaire/idsVivants';
-import { espaceDe } from '../data/schemas/grammaire/ref';
 import { validateScene } from './validateScene';
 import { emptyScene, type Scene } from './monde/scene';
 import { emptyNarratif } from './monde/campaignNarratif';
+import { catalogueAvec } from '../data/catalogueAvec.testkit';
 
 const scene = (id: string): Scene => ({ ...emptyScene('scene-test', 3, 3), id, label: id });
 
@@ -439,20 +438,15 @@ describe.each([
 describe('parseProject — offre de l’établissement', () => {
   const livre = 'livre-de-test';
   const typeDeService = 'hebergement-de-test';
-  const espaces = new Map([
-    [espaceDe('book'), new Set([livre])],
-    [espaceDe('serviceDeLieu'), new Set([typeDeService])],
-  ]);
+  const cat = catalogueAvec({
+    'books.json': [{ id: livre, type: 'books', label: 'Livre de test', abbr: 'LDT', language: 'VF', folder: null }],
+    'lieux-services.json': [{ id: typeDeService, type: 'lieux-services', label: 'Hébergement de test', icon: 'repos/lit', hebergement: true }],
+  });
 
   function lireLHebergement(rest: Record<string, unknown>) {
     const services = [{ id: 'auberge', kind: { id: typeDeService }, rest }];
     const worldMap = { ...wm, places: [{ ...place('s1'), services }] };
-    const precedent = poserRegimeVivant((cle) => espaces.get(cle) ?? precedent?.(cle));
-    try {
-      return parseProject(projet([scene('s1')], { worldMap })).worldMap?.places[0].services?.[0].rest;
-    } finally {
-      poserRegimeVivant(precedent);
-    }
+    return parseProject(projet([scene('s1')], { worldMap }), cat).worldMap?.places[0].services?.[0].rest;
   }
 
   it('préserve la qualité et les offres d’auberge sourcées', () => {

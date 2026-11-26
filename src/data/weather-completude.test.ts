@@ -20,6 +20,7 @@ import { weatherConditions } from './index';
 import { weatherCondition } from '../engine/travelStages';
 import { t } from '../i18n';
 import { weatherTestMods } from '../engine/weatherTestMod';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 const DIR = __dirname;
 /** Le document tel qu'il vit SUR DISQUE — immunisé aux mutations en mémoire d'un test antérieur du
@@ -30,19 +31,19 @@ function disque(): { conditions: { id: string }[] } {
 
 describe('weather.json — COMPLÉTUDE des conditions (l’alphabet vit au SCHÉMA)', () => {
   it('le document du disque passe son schéma', () => {
-    expect(validateDataset('weather.json', disque())).toBeNull();
+    expect(validateDataset('weather.json', disque(), catalogueDuProcessus())).toBeNull();
   });
 
   it('une condition SUPPRIMÉE est refusée, l’id manquant NOMMÉ — et la remise ré-accepte', () => {
     for (const id of weatherIdSchema.options) {
       const ampute = disque();
       ampute.conditions = ampute.conditions.filter((c) => c.id !== id);
-      const err = validateDataset('weather.json', ampute);
+      const err = validateDataset('weather.json', ampute, catalogueDuProcessus());
       expect(err, `suppression de « ${id} » acceptée — la météo n’aurait plus de libellé`).toBeTruthy();
       expect(err).toContain(`manquante(s) — ${id}.`);
       // REMISE : le refus tient à l'absence, pas à un état global de la sonde.
       ampute.conditions = disque().conditions;
-      expect(validateDataset('weather.json', ampute)).toBeNull();
+      expect(validateDataset('weather.json', ampute, catalogueDuProcessus())).toBeNull();
     }
   });
 
@@ -56,7 +57,7 @@ describe('weather.json — COMPLÉTUDE des conditions (l’alphabet vit au SCHÉ
     // patron de l'enveloppe (`grammaire/document.ts`, `label: z.string().min(1)`).
     const vide = disque();
     vide.conditions = vide.conditions.map((c) => (c.id === 'pluie' ? { ...c, label: '' } : c));
-    const err = validateDataset('weather.json', vide);
+    const err = validateDataset('weather.json', vide, catalogueDuProcessus());
     expect(err, 'label vide accepté — la tuile Météo afficherait une chaîne nue').toBeTruthy();
     expect(err).toContain('Conditions météo « pluie » › Libellé');
   });
@@ -66,7 +67,7 @@ describe('weather.json — COMPLÉTUDE des conditions (l’alphabet vit au SCHÉ
     // l'édition d'une météo au Codex resterait sans effet à l'écran — muet, jamais rouge.
     const double = disque();
     double.conditions = [...double.conditions, { ...double.conditions[0] }];
-    const err = validateDataset('weather.json', double);
+    const err = validateDataset('weather.json', double, catalogueDuProcessus());
     expect(err, 'doublon accepté — une fiche inerte, sans un mot').toBeTruthy();
     expect(err).toContain('Conditions météo « sec »');
     expect(err).toContain('« sec » dupliqué');

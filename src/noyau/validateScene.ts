@@ -34,6 +34,8 @@ import { z } from 'zod';
 import { metaNarratif, narratifSchema } from '../data/schemas/defs-scenes/narratif';
 import { worldMapSchema } from '../data/schemas/defs-scenes/worldmap';
 import { validerFormeVivante, cheminLisible, rapportDeFautes, type ElementDeLieu, type Faute, type SegmentDeLieu } from '../data/schemas/validate';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
@@ -116,14 +118,14 @@ export function architectureSelectionForWarning(warning: Warning): ArchitectureW
 }
 
 /** Verdict d'un SCHÉMA par objet validé (une scène, la carte), par le mémo CANONIQUE (`memoByRefDeps`),
- *  daté par la version des datasets : les éditions de l'éditeur sont IMMUABLES (`useSceneHistory`),
- *  seul l'objet modifié se re-parse, et une écriture au catalogue (Compendium) re-date tous les
- *  verdicts — les réfs se résolvent au catalogue VIVANT. */
+ *  daté par le catalogue `cat` : les éditions de l'éditeur sont IMMUABLES (`useSceneHistory`),
+ *  seul l'objet modifié se re-parse, et un catalogue neuf (Compendium) re-date tous les
+ *  verdicts — les réfs se jugent sous `cat`. */
 const verdictsDeSchema = memoByRefDeps<object, readonly Faute[] | null>();
-const fautesDeSchema = (schema: z.ZodType, objet: object, narratif?: NarratifBlock): readonly Faute[] | null =>
-  verdictsDeSchema(objet, [schema, narratif], () => {
-    if (!narratif) return validerFormeVivante(schema, objet)?.fautes ?? null;
-    const fautes = (validerFormeVivante(sousLesObjetsDuProjet(schema), { narratif: { objets: narratif.objets }, valeur: objet })?.fautes ?? [])
+const fautesDeSchema = (schema: z.ZodType, objet: object, cat: Catalogue, narratif?: NarratifBlock): readonly Faute[] | null =>
+  verdictsDeSchema(objet, [schema, cat, narratif], () => {
+    if (!narratif) return validerFormeVivante(schema, objet, cat)?.fautes ?? null;
+    const fautes = (validerFormeVivante(sousLesObjetsDuProjet(schema), { narratif: { objets: narratif.objets }, valeur: objet }, cat)?.fautes ?? [])
       .filter((f) => f.chemin[0] === 'valeur')
       .map((f) => ({ ...f, chemin: f.chemin.slice(1), lieu: f.lieu.slice(1) }));
     return fautes.length ? fautes : null;
@@ -195,19 +197,19 @@ function messageDeFaute(f: ReturnType<typeof fautifDe>, message: string): string
 
 /** Les fautes de FORME d'un projet lancé (les schémas de sa carte, de son narratif et de chaque scène, sous la portée
  *  des objets du narratif), situées dans le projet : ce que la porte `parseProject` refuse d'un document. */
-function fautesDeFormeDuProjet(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Faute[] {
+function fautesDeFormeDuProjet(project: Scene[], cat: Catalogue, worldMap?: WorldMap | null, narratif?: NarratifBlock): Faute[] {
   const sous = (racine: readonly (string | number)[], segment: SegmentDeLieu) => (f: Faute): Faute => ({ ...f, chemin: [...racine, ...f.chemin], lieu: [segment, ...f.lieu] });
   return [
-    ...(worldMap ? fautesDeSchema(worldMapSchema, worldMap, narratif) ?? [] : []).map(sous(['worldMap'], { genre: 'champ', cle: 'worldMap', nom: 'carte du monde' })),
-    ...(narratif ? fautesDeSchema(narratifSchema, narratif, narratif) ?? [] : []).map(sous(['narratif'], { genre: 'champ', cle: 'narratif', nom: 'Bloc narratif' })),
-    ...project.flatMap((scene, i) => (fautesDeSchema(sceneSchema, scene, narratif) ?? []).map(sous(['scenes', i], { genre: 'element', liste: 'scenes', cle: scene.id, nom: 'scène' }))),
+    ...(worldMap ? fautesDeSchema(worldMapSchema, worldMap, cat, narratif) ?? [] : []).map(sous(['worldMap'], { genre: 'champ', cle: 'worldMap', nom: 'carte du monde' })),
+    ...(narratif ? fautesDeSchema(narratifSchema, narratif, cat, narratif) ?? [] : []).map(sous(['narratif'], { genre: 'champ', cle: 'narratif', nom: 'Bloc narratif' })),
+    ...project.flatMap((scene, i) => (fautesDeSchema(sceneSchema, scene, cat, narratif) ?? []).map(sous(['scenes', i], { genre: 'element', liste: 'scenes', cle: scene.id, nom: 'scène' }))),
   ];
 }
 
 /** Refuse le lancement d'un projet `project` (ses scènes, sa carte, son narratif) d'une forme que la porte du projet
  *  refuserait, en `ProjetRefuse` de cause `schema` : un projet bâti hors du parse n'atteint pas l'exécution. */
-export function exigerUnProjetJouable(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): void {
-  const fautes = fautesDeFormeDuProjet(project, worldMap, narratif);
+export function exigerUnProjetJouable(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock, cat: Catalogue = catalogueDuProcessus()): void {
+  const fautes = fautesDeFormeDuProjet(project, cat, worldMap, narratif);
   if (fautes.length) throw new ProjetRefuse('schema', fautes, rapportDeFautes(PROJET_AUTRE_FORMAT, fautes));
 }
 
@@ -215,9 +217,9 @@ export function exigerUnProjetJouable(project: Scene[], worldMap?: WorldMap | nu
  * Vérifie un PROJET (liste de scènes + carte du monde et narratif optionnels) avant le runtime : réfs cassées
  * (dialogue / rencontre / scène / scène intérieure / nœud de dialogue / lieu et route de la carte), fautes du schéma
  * du narratif (portée `narratif`, sous la scène `narratif`),
- * zones hors-carte, ids dupliqués, musique inconnue du registre (`allMusicDefs`). PUR.
+ * zones hors-carte, ids dupliqués, musique inconnue du registre (`allMusicDefs`), chaque id jugé sous `cat`. PUR.
  */
-export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock): Warning[] {
+export function validateScene(project: Scene[], worldMap?: WorldMap | null, narratif?: NarratifBlock, cat: Catalogue = catalogueDuProcessus()): Warning[] {
   const presetDe = presetDuNarratif(narratif);
   const resolveTrapping = objetInstanciableDuNarratif(narratif);
   const out: Warning[] = [];
@@ -227,7 +229,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       out.push({ level: 'error', sceneId: worldMap.id, scope: 'worldMap', refId, message });
     // Le SCHÉMA de carte (`worldMapSchema`) : unicité des lieux, routes et POI, lieux et routes désignés,
     // cibles exclusives d'un POI — une carte VIVANTE de l'éditeur ne repasse pas par le parse, l'auteur l'apprend ici.
-    for (const faute of fautesDeSchema(worldMapSchema, worldMap, narratif) ?? []) {
+    for (const faute of fautesDeSchema(worldMapSchema, worldMap, cat, narratif) ?? []) {
       const f = fautifDe(faute.lieu, 'worldMap');
       out.push({ level: 'error', sceneId: worldMap.id, scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
     }
@@ -294,7 +296,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
   // Le SCHÉMA du narratif (`narratifSchema`) : un narratif VIVANT de l'éditeur ne repasse pas par le parse, l'auteur
   // l'apprend ici, comme pour la carte.
   if (narratif) {
-    for (const faute of fautesDeSchema(narratifSchema, narratif, narratif) ?? []) {
+    for (const faute of fautesDeSchema(narratifSchema, narratif, cat, narratif) ?? []) {
       const f = fautifDe(faute.lieu, 'narratif');
       out.push({ level: 'error', sceneId: 'narratif', scope: f.scope, refId: f.element?.cle, message: messageDeFaute(f, faute.message) });
     }
@@ -343,7 +345,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     // Le SCHÉMA de scène (`sceneSchema`) : il prouve au parse toutes les références de catalogue, la
     // forme de la scène et l'unicité des clés de ses listes ; une scène VIVANTE de l'éditeur ne repasse
     // pas par le parse, l'auteur l'apprend donc ici, rattaché à son fautif (#877, #1897).
-    for (const faute of fautesDeSchema(sceneSchema, s, narratif) ?? []) {
+    for (const faute of fautesDeSchema(sceneSchema, s, cat, narratif) ?? []) {
       const f = fautifDe(faute.lieu, 'scene');
       add('error', f.scope, f.element?.cle, messageDeFaute(f, faute.message), f.architectureRef);
     }
