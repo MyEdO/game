@@ -10,6 +10,7 @@ import {
   isConditionLocked,
   isOutOfAction,
   refusDeDetermination,
+  gesteDeDetermination,
   auHameau,
   gesteDeLObjet,
   gesteDIncanter,
@@ -150,7 +151,7 @@ export const refusDeSeRelever = (h: Heros): string | null => refusDeDeterminatio
 export function seRelever(e: Etat, id: string): string {
   const h = herosDuGroupe(e).find((x) => x.c.id === id);
   if (!h) return 'Héros introuvable.';
-  return refusDeSeRelever(h) ?? auNoyau(e, h, [{ verbe: 'depenserLaDetermination', args: [id, 'retirerUnEtat', 'a-terre'] }]);
+  return refusDeSeRelever(h) ?? auNoyau(e, h, [(s) => gesteDeDetermination(s, id, 'retirerUnEtat', 'a-terre')?.geste]);
 }
 
 /** Le Béni `id` peut-il encore prier pour soigner pendant cette expédition ? */

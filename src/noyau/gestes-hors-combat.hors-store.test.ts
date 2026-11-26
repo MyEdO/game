@@ -12,6 +12,7 @@ import {
   fenetreDuJeu,
   gesteDAchatDuSort,
   gesteDeLaPanoplie,
+  gesteDeDetermination,
   gesteDeSoins,
   gesteDIncantation,
   gestesDeLObjet,
@@ -33,6 +34,7 @@ import { eligibleTalent } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 import { nomDe } from '../engine/nom';
+import { poserLaDetermination } from '../engine/talentEffects';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
@@ -288,6 +290,27 @@ describe('gesteDIncantation — incanter hors combat sur une cible désignée', 
       expect(gesteDIncantation(partie.etat(), 'p', SORT, 'inconnu')!.refus).toBe(t('cs.cibleHorsDuGroupe', { spell: spell.label, id: 'inconnu' }));
       refuseCommeLeVerbe(partie, gesteDIncantation(partie.etat(), 'p', SORT, 'inconnu'));
       expect(partie.etat().pendingCast).toBeFalsy();
+    });
+  });
+});
+
+describe('gesteDeDetermination — dépenser la Détermination hors combat pour retirer un État désigné', () => {
+  const aTerre = (points: number): Combatant => {
+    const h = heros('soldat');
+    poserLaDetermination(h, points);
+    return { ...h, conditions: [...h.conditions, { id: 'a-terre', value: 1 }] };
+  };
+  const porteATerre = (h: Combatant) => h.conditions.some((c) => c.id === 'a-terre');
+  it('joué, le geste offert retire l’État contre un point ; sans Détermination, le refus de l’offre est celui du verbe (LDB 17 l.61)', () => {
+    avecGroupe([aTerre(1)], (partie) => {
+      const offre = gesteDeDetermination(partie.etat(), partie.etat().party[0].id, 'retirerUnEtat', 'a-terre')!;
+      expect(offre.refus).toBeNull();
+      jouer(partie, offre.geste);
+      expect(porteATerre(partie.etat().party[0]), 'le geste n’a pas retiré l’État').toBe(false);
+    });
+    avecGroupe([aTerre(0)], (partie) => {
+      refuseCommeLeVerbe(partie, gesteDeDetermination(partie.etat(), partie.etat().party[0].id, 'retirerUnEtat', 'a-terre'));
+      expect(porteATerre(partie.etat().party[0])).toBe(true);
     });
   });
 });

@@ -367,7 +367,7 @@ export { enTeteDuPorteur, ficheDuCombattant, ficheDuPorteur, type EntreeDeLaFich
 export { weaponStatParts } from '../engine/weaponStats';
 export { gestesDeLObjet, gesteDeLaPanoplie, type GesteAChoix } from './gestesDeLObjet';
 export { gesteDeSoins } from './medicFlow';
-export { gesteDIncantation } from './combatSlice';
+export { gesteDeDetermination, gesteDIncantation } from './combatSlice';
 export { buildAdvancementView, type TalentDesigne } from './monde/advancement';
 export { VERBE_DE_VALIDATION } from './validationDeFenetre';
 export { carteEnVue, trajetsDepuis, type CarteEnVue, type LieuDuPlan, type PlanDeLaCarte, type TrajetEnVue } from './carteEnVue';
