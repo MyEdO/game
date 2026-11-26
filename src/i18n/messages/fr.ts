@@ -2141,6 +2141,7 @@ export const fr = {
   'cs.cannotFocus': 'Ce sort ne peut pas être focalisé.',
   'cs.focusBlocked': '{name} ne peut pas focaliser : {reason}.',
   'cs.magicMissileNeedsTarget': '{spell} est un Projectile magique — il faut une cible ennemie (en combat).',
+  'cs.cibleHorsDuGroupe': '{spell} : « {id} » n’est pas un héros du groupe.',
   'cs.sortIndisponible': '{spell} n’est pas disponible pour {name}.',
   // ── Phase C : narration du flux de combat (noyau/combatFlow). ──
   'cf.libelleDuCouvert': 'Couvert ({cover})',

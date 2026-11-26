@@ -22,6 +22,11 @@ export function refusActionDepensee(battle: Pick<BattleState, 'acted'>): string 
   return battle.acted ? t('agate.actionSpent') : null;
 }
 
+/** Le set d'armes a déjà changé ce Tour (plafond MAISON de 1×/tour, `panoplie`, `actions.json`). */
+export function refusSetDejaChange(battle: Pick<BattleState, 'loadoutSwapped'>): string | null {
+  return battle.loadoutSwapped ? t('agate.loadoutSwapped') : null;
+}
+
 /** Le porteur ne peut pas effectuer d'Action (`canTakeAction`, LDB 16 l.125). */
 export function refusHorsDEtatDAgir(c: Combatant): string | null {
   return canTakeAction(c) ? null : t('agate.unableToAct');

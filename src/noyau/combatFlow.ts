@@ -5803,10 +5803,6 @@ export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: 
 
 // (Le sommeil de groupe vit dans noyau/restFlow — `sleepParty`, source unique de la nuit.)
 
-/** Refus d'un cast (sort introuvable, contrecoup bloquant, hors portée/LdV…) : EN COMBAT, poussé
- *  dans le FEED de combat (`battle.log`) — là où le joueur lit — au lieu du `journal` d'exploration
- *  (invisible pendant le combat). Hors combat (incantation hors combat, couture D), repli sur le
- *  journal. Sans ça, un cast refusé faisait un « clic muet » qui passait pour un bug (B4). */
 /**
  * Ce qui met la CIBLE hors d'atteinte d'un Sort (portée LDB 47, puis Ligne de Vue LDB 46 l.121 :
  * « vous devez toujours être capable de voir […] votre cible » — binaire, pas de malus de couvert),
@@ -5814,7 +5810,7 @@ export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: 
  * (`castClickCommit`) la DIT au point du geste. `range` null = portée non chiffrable (« le lanceur »,
  * « au toucher », spécial) → pas de gate. Un Souffle suit le TRAIT (BE+20 m, LDB 85), pas le champ Portée.
  */
-export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, target: Combatant): { reason: 'range' | 'los' | 'cible-invalide'; detail: PlayerText } | null {
+export function castTargetBlock(get: Get<Jeu>, caster: Combatant, spell: SpellData, target: Combatant): { reason: 'range' | 'los' | 'cible-invalide'; detail: PlayerText } | null {
   if (ancreDeLaZdE(spell) === 'target'
     && (!get().battle || !target.pos || isOutOfAction(target) || campOf(target) === 'neutre' || !effectivelyHostile(caster, target))) {
     return { reason: 'cible-invalide', detail: tr('cs.magicMissileNeedsTarget', { spell: spell.label }) };
@@ -5830,6 +5826,9 @@ export function castTargetBlock(get: Get, caster: Combatant, spell: SpellData, t
   return null;
 }
 
+/** Refus d'un cast (sort introuvable, contrecoup bloquant, hors portée/LdV…) : d'abord au siège qui agit, quand il
+ *  contrôle le lanceur (`refuserAuSiegeAgissant`) ; sinon au FEED de combat (`battle.log`) en combat, au journal hors
+ *  combat (`journaliser`). */
 export function castRefused(get: Get, set: SetFn, actor: Combatant, msg: string): void {
   const etat = get();
   if (controlsCombatant(etat, actor) && refuserAuSiegeAgissant(etat, msg)) return;
@@ -5970,7 +5969,15 @@ function refusDIncanter(caster: Combatant, spell: SpellData): string | null {
   return null;
 }
 
-/** Incante un sort/prière sur une cible (résolution via src/engine/magic). */
+/** Refus de lancer `spell` de `lanceur` sur `cible` : `refusDIncanter`, puis la lecture au grimoire (`canCastFromGrimoire`,
+ *  LDB 47 l.21), puis la cible hors d'atteinte (`castTargetBlock`) — ou `null`. Verdict UNIQUE de `castSpell` et de l'incantation hors combat (`refusDIncantation`, `combatSlice.ts`). */
+export function refusDuLancer(s: Jeu, lanceur: Combatant, cible: Combatant, spell: SpellData, fromGrimoire: boolean): string | null {
+  return refusDIncanter(lanceur, spell)
+    ?? (fromGrimoire && !canCastFromGrimoire(lanceur, spell) ? tr('cf.grimoireRefuse', { name: nomDe(lanceur), spell: spell.label }) : null)
+    ?? castTargetBlock(() => s, lanceur, spell, cible)?.detail
+    ?? null;
+}
+
 /** Ouvre la modale d'incantation (jet différé, façon attaque) : pose `pendingCast` sans lancer. */
 export function castSpell(
   get: Get,
@@ -5985,24 +5992,14 @@ export function castSpell(
     castRefused(get, set, caster, tr('cf.sortIntrouvable', { spell: spellId }));
     return;
   }
-  const refus = refusDIncanter(caster, spell);
+  const refus = refusDuLancer(get(), caster, target, spell, fromGrimoire);
   if (refus) {
     castRefused(get, set, caster, refus);
-    return;
-  }
-  // Lecture au grimoire (LDB 47 l.21) : sort NON mémorisé de son Domaine, NI doublé.
-  if (fromGrimoire && !canCastFromGrimoire(caster, spell)) {
-    castRefused(get, set, caster, tr('cf.grimoireRefuse', { name: nomDe(caster), spell: spell.label }));
     return;
   }
   // Sort « Souffle » (LDB 47 l.509) : délégué à l'attaque de ZONE du Trait — la portée suit le
   // TRAIT (BE+20 m, LDB 85), pas le champ Portée du sort ; résolu comme zone, pas comme Projectile.
   const breathSpell = !!spell.breathAttack;
-  const horsAtteinte = castTargetBlock(get, caster, spell, target);
-  if (horsAtteinte) {
-    castRefused(get, set, caster, horsAtteinte.detail);
-    return;
-  }
   set({
     pendingCast: {
       casterId: caster.id, targetId: target.id, spellId: spell.id, missile: breathSpell ? false : isMagicMissile(spell),
