@@ -491,6 +491,9 @@ const ATTENDU = {
     // +1 le 2026-10-08 (#2497) : `node-tests.mjs` écrit le rapport de durées de `dureesNodeTest.mjs` sous un
     // `mkdtempSync` d'os.tmpdir(), retiré par `rmSync` en finally ; l'arbre n'est jamais écrit.
     'scripts/test/node-tests.mjs',
+    // +1 le 2026-11-26 (#5037 L2) : le banc des lanceurs prouvés de la sélection d'une zone forge son dépôt JETABLE
+    // (`mkdtempSync` + `writeFileSync` sous os.tmpdir(), `forgerDepot`, `rmSync` en finally) ; l'arbre n'est jamais écrit.
+    'scripts/test/selectionDeZone.test.mjs',
     // +1 le 2026-10-07 (#2400) : `ecritureJsonAtomique.mjs`, l'écriture JSON atomique (temporaire puis renommage)
     // qu'atteint `perimetre.mjs` (mesures de la machine, par sa seule CLI) ; ses écritures visent le répertoire git COMMUN en usage réel, et des dossiers `mkdtempSync` d'os.tmpdir()
     // dans les bancs — l'arbre n'est jamais écrit.
