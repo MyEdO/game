@@ -12,7 +12,7 @@ if (entree.operation === 'silhouettes') {
   const { FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, NOMS_DES_SILHOUETTES } = await chargerEvaluateur('../silhouettes.ts')
   process.stdout.write(JSON.stringify({ FEMININ, CORPULENCE, CARRURE_MOINS, CARRURE_PLUS, NOMS_DES_SILHOUETTES }))
 } else if (entree.operation === 'couches') {
-  const { COUCHES, RANG_DU_CORPS } = await chargerEvaluateur('../element.ts')
+  const { COUCHES, RANG_DU_CORPS } = await chargerEvaluateur('../couches.ts')
   process.stdout.write(JSON.stringify({ COUCHES, RANG_DU_CORPS }))
 } else if (entree.operation === 'formesDeTete') {
   const { VISAGE_INVERSE, NEZ_FORT, ARCADES_MARQUEES, JOUES_CREUSES, VISAGE_LONG } = await chargerEvaluateur('../../../../src/lib/formesDeTete.ts')

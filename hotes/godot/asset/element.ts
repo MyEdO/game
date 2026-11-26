@@ -46,14 +46,9 @@ import { EMPREINTE, sha256 } from './empreinte.ts';
 import type { ContenuGlb } from './glb.ts';
 import type { ManifesteDeBase } from './manifesteDeBase.ts';
 import type { TableDeClips } from './clips.ts';
+import { COUCHES, type Couche } from './couches.ts';
 
 const VERSION_DU_SCHEMA_D_ELEMENT = 3;
-
-/** Les couches, de la plus intérieure à la plus extérieure. */
-export const COUCHES = ['peau', 'dessous', 'tenue', 'armure', 'manteau'] as const;
-export type Couche = (typeof COUCHES)[number];
-/** Le rang du corps, sous la couche la plus intérieure de `COUCHES`. */
-export const RANG_DU_CORPS = -1;
 
 export const LIAISONS = ['squelette', 'surface', 'rigide'] as const;
 export type ModeDeLiaison = (typeof LIAISONS)[number];

@@ -49,13 +49,16 @@ export function configPourFichier(fichier) {
 }
 /** Les blocs de la config qui activent `regle` : leurs `files` et les options de la règle. @param {string} regle */
 export const blocsDeRegle = (regle) => BLOCS_LINT.filter((b) => b.rules && regle in b.rules).map((b) => ({ files: b.files ?? [], options: [].concat(b.rules[regle]).slice(1) }))
-/** @param {{filePath:string,code:string}[]} fixtures @param {object} [configuration] */
+/** Les `fixtures` jugées en une passe d'oxlint sur leur dossier, un chemin chacune. @param {{filePath:string,code:string}[]} fixtures @param {object} [configuration] */
 export function lintFixtures(fixtures, configuration) {
-  const cwd = mkdtempSync(join(tmpdir(),'lint-contrat-'))
   const chemins = fixtures.map(f=>relative(RACINE,resolve(RACINE,f.filePath)).replaceAll('\\','/'))
+  const vus = new Set()
+  const doublon = chemins.find(c=>vus.size===vus.add(c).size)
+  if (doublon!==undefined) throw new Error(`lintFixtures : ${doublon} porte deux fixtures d'une passe, dont une seule serait lue`)
+  const cwd = mkdtempSync(join(tmpdir(),'lint-contrat-'))
   try {
     for (let i=0;i<fixtures.length;i++) { const dest=join(cwd,chemins[i]); mkdirSync(dirname(dest),{recursive:true}); writeFileSync(dest,fixtures[i].code) }
-    const resultat=lancerLint(RACINE,chemins,{cwd,configuration})
+    const resultat=lancerLint(RACINE,['.'],{cwd,configuration})
     if(resultat.defauts.some(d=>d.regle==='(outillage)')) throw new Error(resultat.brut||JSON.stringify(resultat.defauts))
     const rapport=JSON.parse(resultat.stdout)
     return chemins.map((rel)=>{
