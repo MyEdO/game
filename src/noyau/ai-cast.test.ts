@@ -84,7 +84,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
     }) as Combatant;
   }
   function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
-    return { enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [], ...extra };
+    return { enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [], ...extra };
   }
 
   it('missile FAISABLE (focusState none, en portée) → cast mono-cible', () => {

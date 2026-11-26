@@ -19,8 +19,8 @@ export function slowestMovement(membres: readonly Combatant[]): number {
   return membres.length ? Math.max(0, Math.min(...membres.map((c) => effectiveMovement(c)))) : 0;
 }
 
-/** Le Test de fiche que jette un cavalier (LDB 14 l.179), posé UNE fois par l'ouvreur de la Course (héros :
- *  `ouvrirLaCourse` ; IA : `aiApproachPlan`). Le saut et la chute volontaire ne se jouent pas montés : refus
+/** Le Test de fiche que jette un cavalier (LDB 14 l.179), posé UNE fois par l'ouvreur de la Course,
+ *  `ouvrirLaCourse`, que l'IA joue aussi par le geste du joueur. Le saut et la chute volontaire ne se jouent pas montés : refus
  *  `geste.refus.monte` (`noyau/gesteDArete.ts:89`), saut du groupe hors combat (`noyau/monde/jumpMove.ts`). */
 export function testDuCavalier<T extends { readonly skill: RefDesignee }>(actor: Pick<Combatant, 'mountId'>, test: T): T {
   return actor.mountId ? { ...test, skill: { id: 'chevaucher' } } : test;

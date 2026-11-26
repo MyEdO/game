@@ -230,7 +230,7 @@ describe('l’op psy de donnée : sa Cible est un Groupe, dans tout document', (
 describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', () => {
   const scene = emptyScene('scene-test', 12, 12);
   const input = (enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput => ({
-    enemy, heroes, scene, blocked: new Set([...heroes, ...(extra.ciblesDePulsion ?? [])].map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [], ...extra,
+    enemy, heroes, scene, env: { blocked: new Set([...heroes, ...(extra.ciblesDePulsion ?? [])].map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [], ...extra,
   });
 
   it('`ciblesDePulsion` rend les combattants en action visés par une affliction active à pulsion, alliés compris', () => {
@@ -262,10 +262,10 @@ describe('le vivier de l’IA : la pulsion vise l’individu, de tout `kind`', (
     const e = mk('e', 'ennemi', { characteristics, pos: { x: 5, y: 5 }, psychState: [{ type: pulsion!.id, cible: ciblePsy.individu('allie'), active: true }] });
     const allie = mk('allie', 'ennemi', { characteristics, pos: { x: 5, y: 12 } });
     const h = mk('h', 'heros', { characteristics, pos: { x: 30, y: 30 } });
-    const entree: EnemyTurnInput = { enemy: e, heroes: [h], ciblesDePulsion: [allie], scene: loin, blocked: new Set(['5,12', '30,30']), movement: 4, spells: [] };
-    const r = aiApproachPlan(entree, e, chooseEnemyAction(entree), makeRNG(1));
+    const entree: EnemyTurnInput = { enemy: e, heroes: [h], ciblesDePulsion: [allie], scene: loin, env: { blocked: new Set(['5,12', '30,30']) }, movement: 4, spells: [] };
+    const r = aiApproachPlan(entree, chooseEnemyAction(entree), { charge: 8, course: 12 });
     expect((r.plan as { thenTargetId?: string }).thenTargetId).toBe('allie');
-    expect(r.ran).toBeNull();
+    expect(r.allure).toBe('charge');
   });
 });
 

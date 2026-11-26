@@ -5,7 +5,6 @@ import { chebyshev } from '../../engine/grid';
 import { emptyScene, heightAt, type Scene } from './scene';
 import type { Terrain } from '../../data/schemas/defs-scenes/scene';
 import { aiApproachPlan } from '../combatFlow';
-import { makeRNG } from '../../engine/dice';
 import { tileKey, type Pt } from './path';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
@@ -29,7 +28,7 @@ const C = (kind: 'heros' | 'ennemi', id: string, pos: { x: number; y: number; z?
 function actionFor(heroH?: number) {
   const enemy = C('ennemi', 'e', { x: 2, y: 10 }); // sol (h = 0)
   const hero = C('heros', 'h', { x: 3, y: 10, ...(heroH ? { h: heroH } : {}) }); // 2D-adjacent
-  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set(['3,10']), movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set(['3,10']) }, movement: 4, spells: [] };
   return chooseEnemyAction(input);
 }
 
@@ -57,7 +56,7 @@ function approche(z: 0 | 1) {
   const h = z ? { z, h: 4 } : {};
   const enemy = C('ennemi', 'e', { x: 1, y: 1, ...h });
   const hero = C('heros', 'h', { x: 5, y: 1, ...h });
-  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: etage(), blocked: new Set([tileKey(5, 1, z)]), movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: etage(), env: { blocked: new Set([tileKey(5, 1, z)]) }, movement: 4, spells: [] };
   return { hero, action: chooseEnemyAction(input) };
 }
 
@@ -92,49 +91,52 @@ function estrade(plat: boolean): Scene {
   return s;
 }
 
+/** Les zones du joueur à M 4 (`budgetDeCharge`, `budgetDeCourse`) : Charge 2M, Course nominale M + 2M. */
+const BUDGETS_M4 = { charge: 8, course: 12 };
+
 function cibleChoisie(plat: boolean) {
   const sur = plat ? {} : { h: 4 };
   const enemy = C('ennemi', 'e', { x: 1, y: 2 });
   const haut = C('heros', 'haut', { x: 6, y: 2, ...sur });
   haut.wounds.current = 1;
   const bas = C('heros', 'bas', { x: 1, y: 4 });
-  const input: EnemyTurnInput = { enemy, heroes: [haut, bas], scene: estrade(plat), blocked: new Set(['6,2', '1,4']), movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [haut, bas], scene: estrade(plat), env: { blocked: new Set(['6,2', '1,4']) }, movement: 4, spells: [] };
   const action = chooseEnemyAction(input);
-  return { input, haut, action, ...aiApproachPlan(input, enemy, action, makeRNG(3)) };
+  return { input, haut, action, ...aiApproachPlan(input, action, BUDGETS_M4) };
 }
 
 describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)', () => {
   it('ennemi au sol : le héros sur l’estrade, joignable par la rampe, est frappable ce tour depuis le haut de la rampe', () => {
-    const { input, haut, action, plan, ran } = cibleChoisie(false);
+    const { input, haut, action, plan, allure } = cibleChoisie(false);
     expect(action).toMatchObject({ kind: 'deplacement', thenTargetId: 'haut' });
     const to = (action as { to: Pt }).to;
     expect(heightAt(input.scene, to.x, to.y, 0)).toBe(4);
     expect(chebyshev(to, haut.pos!)).toBe(1);
     // La Marche l'amène au contact sur l'estrade : ni Charge ni Course (LDB 15 l.35-41).
     expect(plan).toBe(action);
-    expect(ran).toBeNull();
+    expect(allure).toBe('marche');
   });
 
   it('opposé, sans relief : même choix sur la carte plate', () => {
-    const { haut, action, plan, ran } = cibleChoisie(true);
+    const { haut, action, plan, allure } = cibleChoisie(true);
     expect(action).toMatchObject({ kind: 'deplacement', thenTargetId: 'haut' });
     expect(chebyshev((action as { to: Pt }).to, haut.pos!)).toBe(1);
     expect(plan).toBe(action);
-    expect(ran).toBeNull();
+    expect(allure).toBe('marche');
   });
 });
 
 function chargeVersEstrade(plat: boolean) {
   const enemy = C('ennemi', 'e', { x: 0, y: 0 });
   const haut = C('heros', 'haut', { x: 6, y: 2, ...(plat ? {} : { h: 4 }) });
-  const input: EnemyTurnInput = { enemy, heroes: [haut], scene: estrade(plat), blocked: new Set(['6,2']), movement: 4, spells: [] };
-  return { input, haut, ...aiApproachPlan(input, enemy, chooseEnemyAction(input), makeRNG(3)) };
+  const input: EnemyTurnInput = { enemy, heroes: [haut], scene: estrade(plat), env: { blocked: new Set(['6,2']) }, movement: 4, spells: [] };
+  return { input, haut, ...aiApproachPlan(input, chooseEnemyAction(input), BUDGETS_M4) };
 }
 
 describe('aiApproachPlan — l’arrivée d’une Charge se mesure à la hauteur de SA case (#2139)', () => {
   it('héros sur l’estrade hors de portée de Marche : CHARGE au contact sur l’estrade, sans Course', () => {
-    const { input, haut, plan, ran } = chargeVersEstrade(false);
-    expect(ran).toBeNull();
+    const { input, haut, plan, allure } = chargeVersEstrade(false);
+    expect(allure).toBe('charge');
     const to = (plan as { to: Pt }).to;
     expect(plan.kind).toBe('deplacement');
     expect(heightAt(input.scene, to.x, to.y, 0)).toBe(4);
@@ -142,8 +144,8 @@ describe('aiApproachPlan — l’arrivée d’une Charge se mesure à la hauteur
   });
 
   it('opposé, sans relief : la même Charge, au contact', () => {
-    const { haut, plan, ran } = chargeVersEstrade(true);
-    expect(ran).toBeNull();
+    const { haut, plan, allure } = chargeVersEstrade(true);
+    expect(allure).toBe('charge');
     expect(plan.kind).toBe('deplacement');
     expect(chebyshev((plan as { to: Pt }).to, haut.pos!)).toBe(1);
   });

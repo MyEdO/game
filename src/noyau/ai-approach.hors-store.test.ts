@@ -1,18 +1,10 @@
-import { describe, it, beforeEach, expect, vi, afterEach } from 'vitest';
-import { fixtureText } from '../i18n/fixtureText';
+import { describe, it, beforeEach, expect } from 'vitest';
 import { aiApproachPlan, runEnemyAI } from './combatFlow';
 import { chooseEnemyAction, type EnemyTurnInput } from './monde/ai';
-import { makeRNG } from '../engine/dice';
 import type { Combatant } from '../engine/types';
 import { chebyshev } from '../engine/grid';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { battleRng, seedBattleRng } from './battleRng';
-import { testDeRegle } from '../engine/reglesChiffrees';
-import { testValue } from '../engine/skills';
-import { cibleDuTest, evaluateTest } from '../engine/tests';
-import { traceLineOf, testTraceLabel } from '../engine/traceLine';
-import { runFromTest } from '../engine/movement';
-import { refLabel } from '../data';
+import { seedBattleRng } from './battleRng';
 import { t } from '../i18n';
 import { addCondition } from '../engine/conditions';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -24,6 +16,9 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Parité héros/IA sur l'approche (LDB 15 l.35-41) : Charge à portée de Course (2M) quand la Marche
  * ne suffit pas à entrer au contact ; Course (Test `course`, pas d'attaque) au-delà.
  */
+/** Les zones du joueur à M 4 (`budgetDeCharge`, `budgetDeCourse`) : Charge 2M, Course nominale M + 2M. */
+const BUDGETS_M4 = { charge: 8, course: 12 };
+
 const scene = () =>
   ({ id: 's', label: '', dimensions: { w: 30, h: 21 }, layers: [{ z: 0, tiles: Array(630).fill('herbe') }], entities: [], dialogues: [], triggers: [], encounters: [], flags: {} } as never);
 
@@ -39,9 +34,9 @@ const C = (kind: 'heros' | 'ennemi', id: string, x: number, over: Partial<Combat
 function planFor(heroX: number, over: Partial<Combatant> = {}) {
   const enemy = C('ennemi', 'e', 2, over);
   const hero = C('heros', 'h', heroX);
-  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set([`${heroX},10`]), movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set([`${heroX},10`]) }, movement: 4, spells: [] };
   const action = chooseEnemyAction(input);
-  return { enemy, hero, ...aiApproachPlan(input, enemy, action, makeRNG(3)), action };
+  return { enemy, hero, ...aiApproachPlan(input, action, BUDGETS_M4), action };
 }
 
 describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () => {
@@ -49,68 +44,59 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
     const enemy = C('ennemi', 'e', 2);
     addCondition(enemy, 'a-terre');
     const hero = C('heros', 'h', 25);
-    const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), blocked: new Set(['25,10']), movement: 2, spells: [] };
+    const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set(['25,10']) }, movement: 2, spells: [] };
     const action = chooseEnemyAction(input);
-    const { plan, ran } = aiApproachPlan(input, enemy, action, makeRNG(3));
-    expect(ran).toBeNull();
+    const { plan, allure } = aiApproachPlan(input, action, { charge: 4, course: 6 });
+    expect(allure).toBe('marche');
     expect(plan).toBe(action);
   });
 
   it('Marche suffisante (cible à 3) : plan inchangé, pas de Course', () => {
-    const { plan, action, ran } = planFor(5);
+    const { plan, action, allure } = planFor(5);
     expect(plan).toBe(action);
-    expect(ran).toBeNull();
+    expect(allure).toBe('marche');
   });
 
   it('cible à 6 cases (M4) : CHARGE à portée de Course — arrive AU CONTACT, sans jet', () => {
-    const { plan, ran } = planFor(8); // distance 6 : marche (4) insuffisante, Course (8) au contact
-    expect(ran).toBeNull(); // une charge ne demande pas de Test
+    const { plan, allure } = planFor(8); // distance 6 : marche (4) insuffisante, Course (8) au contact
+    expect(allure).toBe('charge'); // une charge ne demande pas de Test
     expect(plan.kind).toBe('deplacement');
     const to = (plan as { to: { x: number; y: number } }).to;
     expect(chebyshev(to, { x: 8, y: 10 })).toBe(1); // adjacent au héros
   });
 
-  it('cible hors de portée de Course : COURT (Test `course`) et avance plus loin que la Marche', () => {
-    const { plan, ran, action } = planFor(25); // distance 23 : même la Course (8) n'atteint pas
-    expect(ran).not.toBeNull(); // jet de Course consommant l'Action
-    expect(ran!.budget).toBeGreaterThan(4); // Marche + Course + DR
+  it('cible hors de portée de Charge : COURT (Test `course` joué au geste) et vise plus loin que la Marche', () => {
+    const { plan, allure, action } = planFor(25); // distance 23 : même la Charge (8) n'atteint pas
+    expect(allure).toBe('course');
     const to = (plan as { to: { x: number; y: number } }).to;
     const toWalk = (action as { to: { x: number; y: number } }).to;
     expect(to.x).toBeGreaterThan(toWalk.x); // porte plus loin que le plan de Marche
   });
 
   it('Engagé : jamais de re-planification (ni Charge étendue ni Course)', () => {
-    const { plan, action, ran } = planFor(8, { engagedWith: ['h'] });
+    const { plan, action, allure } = planFor(8, { engagedWith: ['h'] });
     expect(plan).toBe(action);
-    expect(ran).toBeNull();
+    expect(allure).toBe('marche');
   });
 });
 
 describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
-  afterEach(() => { vi.restoreAllMocks(); });
-
-  it('contient EXACTEMENT la ligne du Test de `course` puis la Course, à la forme de celle du héros (`cs.run`, cases parcourues)', () => {
+  it('se joue par le geste du joueur : la Course, Test joué d’office, et sa ligne, celle du héros (`cs.run`, cases parcourues)', () => {
     const enemy = C('ennemi', 'e', 2, { label: 'Gobelin' } as Partial<Combatant>);
     // Héros à 11 cases : hors de la Charge (8), au contact par la Course — l'ennemi s'arrête AVANT
     // d'épuiser son budget (Marche + Course + DR), et la ligne dit les cases PARCOURUES, pas le budget.
     const hero = C('heros', 'h', 13);
     banc.setState({ scene: scene(), party: [], pendingCascade: null, actorMove: null,
-      battle: { combatants: [enemy, hero], order: ['e', 'h'], turn: 0, round: 1, log: [], over: null } as never });
+      battle: { combatants: [enemy, hero], order: ['e', 'h'], turn: 0, round: 1, log: [], over: null, action: null, reachable: new Map() } as never });
     seedBattleRng(3);
-    const des = vi.spyOn(battleRng(), 'int');
     const depart = { ...enemy.pos! };
     runEnemyAI(banc.getState, banc.setState, 'e');
     banc.reprendreLesEnAttente();
-    const d100 = des.mock.calls.flatMap((args, i) => (args[0] === 1 && args[1] === 100 ? [des.mock.results[i].value as number] : []));
-    expect(d100, 'un seul d100 au tour : celui de la Course').toHaveLength(1);
-    const course = testDeRegle('course', 'courir');
-    const jet = evaluateTest(d100[0], cibleDuTest(testValue(enemy, course), course.difficulty));
-    const lignes = banc.getState().battle!.log.filter((l) => l.actorId === 'e' && l.kind === 'deplacement').map((l) => l.text);
-    expect(chebyshev(depart, enemy.pos!), 'arrêt avant le budget').toBeLessThan(4 + runFromTest(jet, 4).bonusCases);
-    expect(lignes).toEqual([
-      traceLineOf({ who: fixtureText('Gobelin'), label: testTraceLabel(refLabel('skills', course.skill), course.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }),
-      t('cs.run', { name: 'Gobelin', cost: chebyshev(depart, enemy.pos!), short: '' }),
-    ]);
+    const b = banc.getState().battle!;
+    const lignes = b.log.filter((l) => l.actorId === 'e' && l.kind === 'deplacement').map((l) => l.text);
+    expect(chebyshev(depart, enemy.pos!), 'au-delà de la Marche').toBeGreaterThan(4);
+    expect(b.runBudget, 'le budget du Tour est celui de la Course jouée (LDB 15 l.41)').toBeGreaterThan(4);
+    expect(lignes).toEqual([t('cs.run', { name: 'Gobelin', cost: chebyshev(depart, enemy.pos!), short: '' })]);
   });
 });
 
@@ -120,7 +106,7 @@ describe('IA Engagée : le départ du contact paie sa voie du Désengagement (LD
     const enemy = C('ennemi', 'e', 2, { label: 'Gobelin', weapons: [arc], advantage: 2, engagedWith: ['h'] } as Partial<Combatant>);
     const hero = C('heros', 'h', 3, { engagedWith: ['e'] });
     banc.setState({ scene: scene(), party: [], pendingCascade: null, actorMove: null,
-      battle: { combatants: [enemy, hero], order: ['e', 'h'], turn: 0, round: 1, log: [], over: null } as never });
+      battle: { combatants: [enemy, hero], order: ['e', 'h'], turn: 0, round: 1, log: [], over: null, action: null, reachable: new Map() } as never });
     seedBattleRng(3);
     runEnemyAI(banc.getState, banc.setState, 'e');
     banc.reprendreLesEnAttente();

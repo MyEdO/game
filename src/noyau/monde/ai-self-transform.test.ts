@@ -23,7 +23,7 @@ function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number },
   }) as Combatant;
 }
 const input = (enemy: Combatant, heroes: Combatant[]): EnemyTurnInput =>
-  ({ enemy, heroes, scene, blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)), movement: enemy.movement, spells: [] });
+  ({ enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [] });
 
 describe('chooseEnemyAction — auto-transformation (forme de combat lycanthrope)', () => {
   it('Enfant d’Ulric NON transformé, foe au contact → adopte sa forme hybride (self-buff prioritaire)', () => {

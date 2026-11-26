@@ -5,8 +5,8 @@ import type { Combatant, Weapon } from '../../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 /**
- * Grimpant (LDB 85 l.160-162) : une créature à `traverse.climb`+`climbFullSpeed` (EnemyTurnInput,
- * dérivé de `climbTraverseFor` au site constructeur, `combatFlow.buildAiInput`) exploite AUTOMATIQUEMENT
+ * Grimpant (LDB 85 l.160-162) : une créature à `traverse.climb`+`climbFullSpeed` (`EnemyTurnInput.env`,
+ * le `moveEnv` du geste, posé par `combatFlow.buildAiInput`) exploite AUTOMATIQUEMENT
  * les cases atteignables par-delà une arête `WallSeg.climb` — aucun branchement par-nom, `chooseEnemyAction`
  * réutilise le MÊME `reach` que `path-climb.test.ts` valide au niveau BFS.
  */
@@ -33,7 +33,7 @@ function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number; h
 }
 
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
-  return { enemy, heroes, scene: cliffScene(), blocked: new Set(), movement: enemy.movement, spells: [], ...extra };
+  return { enemy, heroes, scene: cliffScene(), env: { blocked: new Set() }, movement: enemy.movement, spells: [], ...extra };
 }
 
 describe("IA — Grimpant exploite les cases atteignables par-delà la falaise", () => {
@@ -45,7 +45,7 @@ describe("IA — Grimpant exploite les cases atteignables par-delà la falaise",
   });
 
   it('AVEC traverse (Grimpant) : franchit la falaise et se rapproche sur le plateau', () => {
-    const action = chooseEnemyAction(input(enemy, [hero], { movement: 4, traverse: { climb: true, climbFullSpeed: true } }));
+    const action = chooseEnemyAction(input(enemy, [hero], { movement: 4, env: { blocked: new Set(), traverse: { climb: true, climbFullSpeed: true } } }));
     expect(action.kind).toBe('deplacement');
     if (action.kind !== 'deplacement') throw new Error('attendu move');
     expect(action.to.y).toBeLessThanOrEqual(1); // a grimpé sur le plateau, plus proche de la cible

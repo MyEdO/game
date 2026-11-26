@@ -12,9 +12,8 @@ import { reachable, tileKey, type Pt } from '../monde/path';
 import { occupied } from '../monde/combatGeometry';
 import { placeCombatant } from '../monde/spawn';
 import { chooseEnemyAction } from '../monde/ai';
-import { aiApproachPlan, bestAdjacentReachable, buildAiInput } from '../combatFlow';
+import { aiApproachPlan, bestAdjacentReachable, budgetDeCharge, budgetDeCourse, buildAiInput } from '../combatFlow';
 import { canMount } from '../mount';
-import { makeRNG } from '../../engine/dice';
 import type { Combatant, Weapon } from '../../engine/types';
 
 /**
@@ -53,10 +52,11 @@ function poserLaPaire(H: Combatant, E: Combatant, poser: (c: Combatant, p: Pt) =
 
 /** Un tour de l'ennemi par la chaîne réelle (`buildAiInput` → `chooseEnemyAction` → `aiApproachPlan`), son déplacement
  *  posé par `placeCombatant`. Rend l'action choisie et le Mouvement du tour. */
-function tourDeLEnnemi(E: Combatant, rng: ReturnType<typeof makeRNG>): { action: ReturnType<typeof chooseEnemyAction>['kind']; movement: number } {
+function tourDeLEnnemi(E: Combatant): { action: ReturnType<typeof chooseEnemyAction>['kind']; movement: number } {
   const input = buildAiInput(E, banc.getState);
   const action = chooseEnemyAction(input);
-  const { plan } = aiApproachPlan(input, E, action, rng);
+  const battle = banc.getState().battle!;
+  const { plan } = aiApproachPlan(input, action, { charge: budgetDeCharge(battle, E), course: budgetDeCourse(battle, E) });
   if (plan.kind === 'deplacement') placeCombatant(E, scene(), plan.to);
   return { action: action.kind, movement: input.movement };
 }
@@ -67,11 +67,10 @@ describe('#4105 — approche de l’IA derrière un mur plein', () => {
     for (const { h, e } of PAIRES_CONTOURNABLES) {
       const route = poserLaPaire(H, E, poser, { h, e });
       expect(route, `route de ${JSON.stringify(e)}`).toBeGreaterThanOrEqual(5);
-      const rng = makeRNG(3);
       let tours = 0;
       let borne = Infinity;
       while (contact(H, E) > 1 && tours < 20) {
-        const { action, movement } = tourDeLEnnemi(E, rng);
+        const { action, movement } = tourDeLEnnemi(E);
         expect(action, `H=${JSON.stringify(h)} E=${JSON.stringify(e)} tour ${tours + 1} : aucune frappe hors contact`).not.toBe('melee');
         borne = Math.ceil(route! / movement);
         tours++;
@@ -85,9 +84,8 @@ describe('#4105 — approche de l’IA derrière un mur plein', () => {
     const { H, E, poser } = duel();
     const paire = PAIRE_SANS_ROUTE;
     expect(poserLaPaire(H, E, poser, paire), 'aucune route').toBeNull();
-    const rng = makeRNG(3);
     for (let tour = 1; tour <= 4; tour++) {
-      expect(tourDeLEnnemi(E, rng).action, `tour ${tour}`).toBe('fin');
+      expect(tourDeLEnnemi(E).action, `tour ${tour}`).toBe('fin');
       expect(memeCase(E.pos, paire.e), `tour ${tour} : E en ${JSON.stringify(E.pos)}`).toBe(true);
     }
   });
@@ -98,7 +96,7 @@ describe('#4105 — approche de l’IA derrière un mur plein', () => {
     const paire = PAIRE_SANS_ROUTE;
     expect(poserLaPaire(H, E, poser, paire), 'aucune route').toBeNull();
     E.weapons = [ARC];
-    const { action } = tourDeLEnnemi(E, makeRNG(3));
+    const { action } = tourDeLEnnemi(E);
     expect(action).toBe('deplacement');
     expect(memeCase(E.pos, paire.e), 'le tireur a quitté sa case').toBe(false);
   });
@@ -136,10 +134,9 @@ describe('#4156 — l’ennemi grimpeur rejoint par l’arête escaladable sa ci
     const { H, E, poser } = ouvrirLeDuel(banc, { scene: sceneAuPlancherGrimpable(), party }, 'enc-plancher');
     poser(H, { x: 4, y: 0, z: 1 }); poser(E, { x: 2, y: 3, z: 0 });
     expect([memeCase(H.pos, { x: 4, y: 0, z: 1 }), memeCase(E.pos, { x: 2, y: 3, z: 0 })]).toEqual([true, true]);
-    const rng = makeRNG(3);
     const actions: string[] = [];
     while (contact(H, E) > 1 && actions.length < 4) {
-      const { action } = tourDeLEnnemi(E, rng);
+      const { action } = tourDeLEnnemi(E);
       expect(action, `tour ${actions.length + 1} : aucune frappe hors contact`).not.toBe('melee');
       actions.push(action);
     }

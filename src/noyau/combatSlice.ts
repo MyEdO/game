@@ -105,6 +105,7 @@ import {
   retenuParLaPeur,
   markActed,
   noteApproachMove,
+  journaliserLEscalade,
   clearApproachMoves,
   frenzyTarget,
   finishCombatEnd,
@@ -143,7 +144,7 @@ import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre } from './targetingHolder';
 import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
-import { mountMovement, movementRemaining, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
+import { mountMovement, mouvementDeMarche, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { compagnonsDuHeros, heroCombatMount } from '../engine/mountTravel';
 import { freeTilesNear } from './summonFlow';
 import { accepteUnCavalier } from '../engine/traits/dispatch';
@@ -320,7 +321,7 @@ import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
 import { refusDeLaForme, refusDeLaPose, refusDuChoixCritique, refusDuChoixDeCibles, refusDuPasDeSurincantation } from './fenetreDIncantation';
 import { findSpellById, type SpellData } from '../data/index';
 import { sortDeDomaineAccessibleParTrait, sortsDisponibles } from '../engine/sortsDuPnj';
-import { reachable, moveReachFor, tileKey, Pt } from './monde/path';
+import { moveReachFor, tileKey, Pt } from './monde/path';
 import { chebyshev } from '../engine/grid';
 import { distanceDeCombat, distanceDeContact } from './monde/footprint';
 import { combatOrder, rollInitiative } from './combatSetup';
@@ -965,6 +966,7 @@ export function createCombatSlice(get: Get, set: Set) {
       bus.emit(EVT.ANIM_MOVE, { id: active.id, path });
       if (geom !== active) bus.emit(EVT.ANIM_MOVE, { id: geom.id, path });
       applyZoneCrossings(get, set, active, path ?? [{ ...dest }]); // Mur de feu & co (L11) : traverser coûte
+      journaliserLEscalade(get, active, path);
       noteApproachMove(active, fromPos); // LDB 21 l.27 — événement EN ATTENTE : scellé à l'Action ou à la fin du tour
       // Mouvement décomposable : cumule le coût du segment ; reste en mode neutre → le joueur peut
       // re-cliquer une case (s'il reste du Mouvement) OU enchaîner une Action. Si ce segment précède
@@ -2867,12 +2869,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Combat monté : Course au Mouvement de la monture, empreinte/collisions de la monture (couple solidaire).
       const geom = mountOf(battle, c) ?? c;
       // LDB 15 l.41 : budget du Tour = Marche + (Course + DR) ; portée depuis la case courante = restant + (Course + DR).
-      const runBudget = mountMovement(battle, c) + lance.bonusCases;
-      const range = movementRemaining(battle, c) + lance.bonusCases;
+      const runBudget = mouvementDeMarche(battle, c) + lance.bonusCases;
+      const range = Math.max(0, runBudget - (battle.movementUsed ?? 0));
       const env = moveEnv(battle, geom);
       // Le jet peut porter MOINS loin que la destination demandée : on suit le chemin et on s'arrête au
       // dernier point que le budget permet (« au max qu'il puisse faire »).
-      const reach = reachable(scene, c.pos!, range, env);
+      const reach = moveReachFor(geom, scene, c.pos!, range, env);
       const fallback = pr.path ? null : resolveMovement(get, pr.dest);
       const path = pr.path ?? (fallback?.status === 'possible' ? fallback.path : []);
       let stopIdx = -1;

@@ -139,6 +139,9 @@ export function quorumAtteint(s: Pick<Jeu, 'party' | 'net'>, readyBySeat: Record
 interface RetourDuSiege {
   get: Get;
   refuser: (texte: string) => void;
+  /** Le PILOTE IA (#5042) : l'IA joue le geste d'un combattant qu'elle conduit (`aiDriven`), par le verbe du joueur.
+   *  Posé par le tour de l'IA au siège qui le tient (`siegeDe`), jamais par le transport (`appliquerLIntentionDUnSiege`). */
+  pilote?: 'ia';
 }
 
 let actionDuSiege: { siege: number; retour?: RetourDuSiege } | null = null;
@@ -160,8 +163,9 @@ export function withActingSeat<T>(seat: number, fn: () => T, retour?: RetourDuSi
 
 /** Confie le refus de ce jeu au contexte du siège distant qui y agit. */
 export function refuserAuSiegeAgissant(etat: Jeu, texte: string): boolean {
-  if (!actionDuSiege || actionDuSiege.siege === etat.net.mySeat) return false;
+  if (!actionDuSiege) return false;
   const { retour } = actionDuSiege;
+  if (actionDuSiege.siege === etat.net.mySeat && retour?.pilote !== 'ia') return false;
   if (retour && retour.get() !== etat) return false;
   retour?.refuser(texte);
   return true;
@@ -330,9 +334,11 @@ export function aiDriven(s: Jeu, c: Combatant): boolean {
  * Le siège LOCAL pilote-t-il À LA MAIN ce combattant MAINTENANT ? — prédicat UNIQUE des affordances de TOUR
  * (grille de déplacement, réticule, barre d'action, hotbar). Héros manuel → vrai ; héros Auto-combat →
  * faux ; PNJ `aiControlled` → faux ; ennemi sans MJ → faux ; ENNEMI quand le siège LOCAL porte le rôle MJ
- * → vrai (coop : `gmSeat === mySeat`) ; invocation alliée (`kind:'heros'`) → comme un héros.
+ * → vrai (coop : `gmSeat === mySeat`) ; invocation alliée (`kind:'heros'`) → comme un héros. Sous le PILOTE IA
+ * (`RetourDuSiege.pilote`), le combattant que l'IA conduit (`aiDriven`) → vrai, tout autre → faux (#5042).
  */
 export function controlsCombatant(s: Jeu, c: Combatant): boolean {
+  if (actionDuSiege?.retour?.pilote === 'ia') return aiDriven(s, c);
   if (!pilotedByHuman(s, c) || aiDriven(s, c)) return false;
   if (c.kind === 'heros') return true; // `pilotedByHuman` encode déjà `ownsLocal` (siège-aware)
   // Ennemi/monde conduit par le MJ : seul le siège MJ le pilote — comparé au siège qui DÉCIDE
