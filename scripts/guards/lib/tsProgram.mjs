@@ -26,8 +26,15 @@ const QUESTIONS_PURES = ['getTypeAtLocation', 'getSymbolAtLocation', 'getPropert
 function checkerMemoise(natif) {
   const tables = new Map(QUESTIONS_PURES.map(question => [question, new Map()]));
   const memoisees = tableTotale(QUESTIONS_PURES, question => (...args) => {
-    if (Array.isArray(args[0])) return natif[question](...args);
     let table = tables.get(question);
+    if (Array.isArray(args[0])) {
+      if (args.length !== 1) return natif[question](...args);
+      if (!table.has(1)) table.set(1, new Map());
+      const parNoeud = table.get(1);
+      const manquants = [...new Set(args[0])].filter(n => !parNoeud.has(n));
+      if (manquants.length) natif[question](manquants).forEach((reponse, i) => parNoeud.set(manquants[i], reponse));
+      return args[0].map(n => parNoeud.get(n));
+    }
     for (const cle of [args.length, ...args.slice(0, -1)]) {
       if (!table.has(cle)) table.set(cle, new Map());
       table = table.get(cle);
@@ -38,15 +45,54 @@ function checkerMemoise(natif) {
     table.set(derniere, reponse);
     return reponse;
   });
+  const proprietes = proprietesParTable(natif, memoisees);
   const checker = new Proxy(natif, {
     get: (cible, cle) => {
+      if (cle === 'getPropertyOfType') return proprietes.getPropertyOfType;
       if (Object.hasOwn(memoisees, cle)) return memoisees[cle];
       const valeur = Reflect.get(cible, cle);
       return typeof valeur === 'function' ? valeur.bind(cible) : valeur;
     },
   });
-  return { checker, vider: () => { for (const table of tables.values()) table.clear(); } };
+  return { checker, vider: () => { for (const table of tables.values()) table.clear(); proprietes.vider(); } };
 }
+
+const INTERFACES_AUGMENTANTES = ['Object', 'Function', 'CallableFunction', 'NewableFunction'];
+
+/** `getPropertyOfType` lu dans la table `getPropertiesOfType` du type, une question par type : la propriété du nom,
+ *  sinon, pour le nom d'un membre d'une interface globale de `INTERFACES_AUGMENTANTES`, la question native
+ *  (`getPropertyOfTypeEx`, typescript-go `internal/checker/checker.go`). Une union, une intersection, un type
+ *  instanciable, un espace de noms de module ou un nom en `__` (échappé par le vérificateur) vont à la question native. */
+function proprietesParTable(natif, memoisees) {
+  const { SymbolFlags, TypeFlags } = require('typescript/unstable/sync');
+  const tables = new Map();
+  let augmentes;
+  const membresAugmentants = () => augmentes ??= new Set(INTERFACES_AUGMENTANTES.flatMap((nom) => {
+    const symbole = natif.resolveName(nom, SymbolFlags.Type, undefined, false);
+    return symbole ? memoisees.getPropertiesOfType(natif.getDeclaredTypeOfSymbol(symbole)).map((p) => p.name) : [];
+  }));
+  const tableDe = (type) => {
+    if (!tables.has(type)) {
+      const native = type.flags & (TypeFlags.UnionOrIntersection | TypeFlags.Instantiable) || (type.flags & TypeFlags.Object && type.getSymbol()?.flags & SymbolFlags.ValueModule);
+      tables.set(type, native ? null : new Map(memoisees.getPropertiesOfType(type).map((p) => [p.name, p])));
+    }
+    return tables.get(type);
+  };
+  return {
+    getPropertyOfType: (type, nom) => {
+      const table = nom.startsWith('__') ? null : tableDe(type);
+      if (!table) return memoisees.getPropertyOfType(type, nom);
+      return table.get(nom) ?? (membresAugmentants().has(nom) ? memoisees.getPropertyOfType(type, nom) : undefined);
+    },
+    vider: () => { tables.clear(); augmentes = undefined; },
+  };
+}
+
+/** Les membres d'une union ou d'une intersection : chaque `getTypes()` est un aller-retour vers `tsc --api`, que le
+ *  client ne met pas en cache (`typescript/dist/api/sync/api.js`, `fetchTypes` sans poignées) ; un type est un objet
+ *  stable de sa session, ses membres se lisent donc une fois. */
+const membres = new WeakMap();
+export const membresDe = (type) => membres.get(type) ?? membres.set(type, type.getTypes()).get(type);
 
 /** Les `tsc --api` des sessions ouvertes, arrêtés par SIGKILL à la sortie du processus avant le SIGTERM de
  *  `liveChildren` (`typescript/dist/api/syncChannel.js:35-45`), #2753. */

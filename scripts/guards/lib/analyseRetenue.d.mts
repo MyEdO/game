@@ -23,8 +23,6 @@ export interface ExporteesDuCorpus {
   ressources?: Map<string, 'dispose' | 'close' | 'mixte'>;
 }
 
-/** Fabriques et sources de corpus EXPORTÉES, par point fixe à travers les imports. */
-export function fabriquesDuCorpus(fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[]): Required<ExporteesDuCorpus>;
-
-/** Rétentions d'analyse du fichier `rel`. */
-export function retentionsDAnalyse(rel: string, texte: string, exporteesDuCorpus?: ExporteesDuCorpus, sourceFile?: import('typescript/unstable/ast').SourceFile, checker?: import('typescript/unstable/sync').Checker): RetentionDAnalyse[];
+/** Rétentions d'analyse du corpus et ses fabriques et sources de corpus EXPORTÉES, par point fixe à
+ *  travers les imports, sur une seule analyse. */
+export function retentionsDuCorpus(fichiers: readonly Pick<CorpusFile, 'rel' | 'text'>[]): { exportees: Required<ExporteesDuCorpus>; retentions: RetentionDAnalyse[] };

@@ -53,7 +53,7 @@ import { estModule } from './importGraph.mjs'
 import { englobanteDe } from './canonUnique.mjs'
 import { listerArbre, parUnitesDeCode } from './lister.mjs'
 import { estFichierVitest, estKitDeTest } from './fichierVitest.mjs'
-import { repoProgram, libererSessions } from './tsProgram.mjs'
+import { repoProgram, libererSessions, membresDe } from './tsProgram.mjs'
 
 /** Scripts de PRODUCTION sous `dir`, hors instruments et kits de test (`fichierVitest.mjs`), en ORDRE TOTAL (`listerArbre`).
  *  L'ordre des RACINES décide de celui de `program.getSourceFileNames().map((file) => program.getSourceFile(file))`, donc de l'index des accès,
@@ -80,7 +80,7 @@ const norm = (p) => p.replace(/\\/g, '/')
 function constituants(type, out = new Set()) {
   if (!type || out.has(type)) return out
   out.add(type)
-  if (type.isUnionType() || type.isIntersectionType()) for (const t of type.getTypes()) constituants(t, out)
+  if (type.isUnionType() || type.isIntersectionType()) for (const t of membresDe(type)) constituants(t, out)
   for (const a of type.getAliasTypeArguments()) constituants(a, out)
   return out
 }
@@ -368,7 +368,7 @@ function champsDuPorteur(ctx, site, fields, toutes) {
   const expr = ts.isBindingElement(site.node) ? site.node.parent : site.node.expression
   const type = checker.getNonNullableType(checker.getTypeAtLocation(expr))
   // Membres d'union seuls : les arguments d'un alias (`Pick<T, 'a'>` → `T`) ne sont pas portés.
-  const membres = type.isUnionType() ? type.getTypes() : [type]
+  const membres = type.isUnionType() ? membresDe(type) : [type]
   site.champs = fields.filter((f) => {
     const attendues = toutes.get(f) ?? new Set()
     return membres.some((m) => (checker.getPropertyOfType(m, f)?.declarations ?? []).some((d) => attendues.has(d.resolve())))
