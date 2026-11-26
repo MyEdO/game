@@ -54,6 +54,7 @@ import {
   modificateursDeVisibiliteDuTir,
   openSurfacedDefense,
   castSpell,
+  refusDuLancer,
   applyCast,
   effectiveSpellOf,
   finishPlayerAction,
@@ -143,7 +144,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { EMPTY_FLOW, flowEffects } from '../engine/flowCore';
 import { pickActiveModalKey } from './modalArbiter';
 import { champAttendSaFenetre } from './targetingHolder';
-import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir } from './refusDuTour';
+import { refusActionDepensee, refusDeCourse, refusHorsDEtatDAgir, refusSetDejaChange } from './refusDuTour';
 import { mountMovement, mouvementDeMarche, mountUp, harnacher, dismount, mountOf, mountablesNear, isControlledMount, insertByInitiative } from './mount';
 import { compagnonsDuHeros, heroCombatMount } from '../engine/mountTravel';
 import { freeTilesNear } from './summonFlow';
@@ -154,6 +155,7 @@ import { traceLineOf, testTraceLabel } from '../engine/traceLine';
 import { libelleDeTest, libelleDuTestNomme } from './jetsEnVue';
 import { courseArmee, intentionDuClic, intentionDuProprietaire } from './localIntent';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
+import type { GesteFermable } from './actionsDuNoyau';
 import { refuseSi } from './verrousDeFiche';
 import { lacherLeBouclierDuBinome, ramasserDuSol, ramasserHorsCombat } from './objetsAuSol';
 import {
@@ -372,6 +374,38 @@ function barreDuGeste(s: Jeu): EtatDeLaBarre {
 function refusDuTourDe(s: Jeu, acteurId: string, horsDuTour: string): string | null {
   const barre = barreDuGeste(s);
   return barre.forme !== 'ouverte' ? barre.raison : barre.active.id !== acteurId ? horsDuTour : null;
+}
+
+/** Refus de prendre le set d'armes `loadoutId` de `hero` : en combat, le tour (`refusDuTourDe`), puis le set déjà
+ *  changé ce tour (`refusSetDejaChange`) ; puis le set introuvable. Verdict UNIQUE de `prendreLaPanoplie` et de son offre
+ *  (`gesteDeLaPanoplie`). LDB 13 l.106 */
+export function refusDePrendreLaPanoplie(s: Jeu, hero: Combatant, loadoutId: string): string | null {
+  const enCombat = s.battle ? refusDuTourDe(s, hero.id, t('cs.horsDuTour', { name: nomDe(hero) })) ?? refusSetDejaChange(s.battle) : null;
+  return enCombat ?? (hero.loadouts?.some((l) => l.id === loadoutId) ? null : t('pf.loadoutNotFound'));
+}
+
+/** Refus d'incanter `spell` de `lanceur`. En combat : le tour (`refusDuTourDe`), l'Action dépensée, le sort de
+ *  Domaine indisponible ; la cible s'y désigne au clic. Hors combat : un Projectile magique, le sort de Domaine
+ *  indisponible hors grimoire, la cible `cibleId` qui n'est pas un héros du groupe (absente : le lanceur), puis
+ *  `refusDuLancer`. Verdict UNIQUE d'`incanterLeSort` et de son offre (`gesteDIncantation`). LDB 46 */
+function refusDIncantation(s: Jeu, lanceur: Combatant, spell: SpellData, cibleId: string | undefined, fromGrimoire = false): string | null {
+  if (s.battle) {
+    return refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: nomDe(lanceur) })) ?? refusActionDepensee(s.battle) ?? refusDuSortDeDomaine(lanceur, spell);
+  }
+  if (isMagicMissile(spell)) return t('cs.magicMissileNeedsTarget', { spell: spell.label });
+  const domaine = fromGrimoire ? null : refusDuSortDeDomaine(lanceur, spell);
+  if (domaine) return domaine;
+  const cible = cibleId === undefined ? lanceur : s.party.find((c) => c.id === cibleId);
+  return cible ? refusDuLancer(s, lanceur, cible, spell, fromGrimoire) : t('cs.cibleHorsDuGroupe', { spell: spell.label, id: cibleId! });
+}
+
+/** L'offre d'incanter le sort `spellId` de `lanceurId` sur `cibleId` (`incanterLeSort`), `null` sans le lanceur ou sans
+ *  le sort : son refus, `refusDIncantation`. PUR. */
+export function gesteDIncantation(s: Jeu, lanceurId: string, spellId: string, cibleId?: string): GesteFermable | null {
+  const lanceur = actorIn(s, lanceurId);
+  const spell = findSpellById(spellId);
+  if (!lanceur || !spell) return null;
+  return { geste: { verbe: 'incanterLeSort', args: cibleId === undefined ? [lanceurId, spellId] : [lanceurId, spellId, cibleId] }, refus: refusDIncantation(s, lanceur, spell, cibleId) };
 }
 
 function refusDuSortDeDomaine(lanceur: Combatant, sort: SpellData): string | null {
@@ -1416,13 +1450,10 @@ export function createCombatSlice(get: Get, set: Set) {
       const s = get();
       const hero = actorIn(s, heroId);
       if (!hero) return;
-      if (s.battle) {
-        const refus = refusDuTourDe(s, heroId, t('cs.horsDuTour', { name: nomDe(hero) })) ?? (s.battle.loadoutSwapped ? t('agate.loadoutSwapped') : null);
-        if (refus) return void refuserGesteDuSiege(get, set, refus);
-      }
+      const refus = refusDePrendreLaPanoplie(s, hero, loadoutId);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       if (hero.activeLoadoutId === loadoutId) return;
-      const lo = hero.loadouts?.find((l) => l.id === loadoutId);
-      if (!lo) return;
+      const lo = hero.loadouts!.find((l) => l.id === loadoutId)!;
       loadoutSetActive(hero, loadoutId);
       recomputeLoadout(hero); // re-dérive les armes actives
       set(touchActors(get()));
@@ -1940,19 +1971,15 @@ export function createCombatSlice(get: Get, set: Set) {
       const lanceur = actorIn(s, lanceurId);
       const spell = findSpellById(spellId);
       if (!lanceur || !spell) return;
+      const refus = refusDIncantation(s, lanceur, spell, cibleId, fromGrimoire);
+      if (refus) return void refuserGesteDuSiege(get, set, refus);
       if (battle) {
-        const refus = refusDuTourDe(s, lanceur.id, t('cs.horsDuTour', { name: nomDe(lanceur) }))
-          ?? refusActionDepensee(battle) ?? refusDuSortDeDomaine(lanceur, spell);
-        if (refus) return void refuserGesteDuSiege(get, set, refus);
         set({ battle: { ...battle, action: 'incantation', selectedSpellId: spellId, reachable: new Map() } });
         castZoneSpell(get, set, lanceur, spellId); // no-op si le sort n'est pas une ZdE chiffrable
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
-      if (isMagicMissile(spell)) return void refuserGeste(get, set, t('cs.magicMissileNeedsTarget', { spell: spell.label }));
-      const refus = fromGrimoire ? null : refusDuSortDeDomaine(lanceur, spell);
-      if (refus) return void refuserGesteDuSiege(get, set, refus);
-      const cible = s.party.find((c) => c.id === cibleId) ?? lanceur;
+      const cible = cibleId === undefined ? lanceur : s.party.find((c) => c.id === cibleId)!;
       castSpell(get, set, lanceur, cible, spellId, fromGrimoire); // pose `pendingCast` (missile:false)
     },
 

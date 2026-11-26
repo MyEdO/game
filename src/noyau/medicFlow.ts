@@ -51,6 +51,7 @@ import { flowStakeRef } from '../data';
 import type { PendingHeal } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
+import type { GesteFermable } from './actionsDuNoyau';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -59,7 +60,7 @@ import { nomDe } from '../engine/nom';
 /** Refus d'ouvrir l'infirmerie, tenue par le PNJ `npc` s'il y en a un : la raison affichée, ou `null`. En combat, les
  *  soins passent par la console. Sur un patient DEMANDÉ (`heroId`), son refus (`refusDuPatient`) ; sinon, il faut un
  *  patient qui s'offre, et le refus dit pourquoi le premier blessé ne s'offre pas. Verdict UNIQUE du geste
- *  `ouvrirLeMedecin` et du bouton Soins de la fiche. */
+ *  `ouvrirLeMedecin` et de son offre (`gesteDeSoins`). */
 export function refusDeSoins(s: Pick<Jeu, 'battle' | 'party'>, heroId?: string, npc?: MedicNpc): string | null {
   const enCombat = refusEnCombat('medic.inCombat')(s);
   if (enCombat) return enCombat;
@@ -67,6 +68,11 @@ export function refusDeSoins(s: Pick<Jeu, 'battle' | 'party'>, heroId?: string, 
   if (patientParDefaut(s, npc)) return null;
   const blesse = s.party.find(isHealable);
   return blesse ? refusDuPatient(s, blesse.id, { npc }) : t('medic.personneASoigner');
+}
+
+/** L'offre de soigner le patient `patientId` (`ouvrirLeMedecin`) : son refus, `refusDeSoins`. PUR. */
+export function gesteDeSoins(s: Pick<Jeu, 'battle' | 'party'>, patientId: string): GesteFermable {
+  return { geste: { verbe: 'ouvrirLeMedecin', args: [patientId] }, refus: refusDeSoins(s, patientId) };
 }
 
 /** Le premier héros que l'infirmerie soigne (`refusDuPatient`). */
