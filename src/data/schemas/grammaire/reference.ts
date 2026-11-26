@@ -49,9 +49,8 @@ import {
   type LecturesDuRaffinement,
   type Parmi,
 } from './ref';
-import { findTraitById, psychologyLabel } from '../../index';
-import { entreeDe } from '../catalogue/catalogue';
-import { cibleDeLArg, estCibleType, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
+import { entreeDe, type Catalogue } from '../catalogue/catalogue';
+import { cibleDeLArgDuTrait, estCibleType, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
 /**
  * Trait POSÉ (`TraitPose`, la forme AUTHORÉE) — partagé entre le bestiaire (`creatures.json`
@@ -141,8 +140,8 @@ export function refuserLesIndividus(valeur: unknown, ctx: z.RefinementCtx, docum
 }
 
 /** L'`arg` du Trait `id` désigne-t-il un individu (`@id`) à la place d'une Cible psy (`specsSource: ciblesPsy`) ? */
-function argDIndividu(id: string, arg: string): boolean {
-  const cible = cibleDeLArg(id, arg);
+function argDIndividu(id: string, arg: string, cat: Catalogue): boolean {
+  const cible = cibleDeLArgDuTrait(entreeDe('traits', id, cat), arg);
   return cible !== undefined && varianteDe(cible) === 'individu';
 }
 
@@ -157,11 +156,12 @@ export function lireLesCiblesPsy(lire: LecturesDuRaffinement) {
 
 /** Refus de l'`arg` du Trait psy `id` dont le type (`capabilities.psychType`) n'admet pas la variante de Cible
  *  (`psychology.json`, `cibles`) — message nommé, sinon `null`. */
-function refusDeVarianteDeCible(id: string, arg: string, admetVariante: typeof varianteAdmise): string | null {
-  const type = findTraitById(id)?.capabilities?.psychType;
-  const cible = cibleDeLArg(id, arg);
+function refusDeVarianteDeCible(id: string, arg: string, admetVariante: typeof varianteAdmise, cat: Catalogue): string | null {
+  const trait = entreeDe('traits', id, cat);
+  const type = trait?.capabilities?.psychType;
+  const cible = cibleDeLArgDuTrait(trait, arg);
   if (!type || cible === undefined || admetVariante(type, varianteDe(cible))) return null;
-  return `Trait « ${id} » : ${psychologyLabel(type)} ne vise pas ${libelleDeValeur(varianteDeCibleSchema, varianteDe(cible))} (« ${arg} »).`;
+  return `Trait « ${id} » : ${entreeDe('psychologies', type, cat)?.label ?? type} ne vise pas ${libelleDeValeur(varianteDeCibleSchema, varianteDe(cible))} (« ${arg} »).`;
 }
 
 /** L'id d'un Trait posé : le moteur porte des ids nus (`TraitInstance.id`, `engine/statEntry.ts`). */
@@ -208,6 +208,7 @@ function refusDuTraitPose(lire: LecturesDuRaffinement, regime: RegimeDeCible) {
   const admet = declareLaCapacite(lire.catalogue('trait').porteLeMarqueur);
   const specialisations = lire.specialisations('trait');
   const { varianteAdmise } = lireLesCiblesPsy(lire);
+  const cat = lire.catalogueLu('trait', 'psychology');
   return (t: TraitPose, ctx: z.RefinementCtx): void => {
     const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
     if (valeurs.length > 1) ctx.addIssue({ code: 'custom', path: [valeurs[1]], message: `Trait « ${t.id} » : « ${valeurs.join(' » et « ')} » disent tous deux sa valeur — une seule de ces clés.` });
@@ -218,7 +219,7 @@ function refusDuTraitPose(lire: LecturesDuRaffinement, regime: RegimeDeCible) {
       if (refus) ctx.addIssue({ code: 'custom', path: [champ], message: refus });
     }
     if (t.profilDArme !== undefined) {
-      const source = findTraitById(t.id)?.specsSource;
+      const source = entreeDe('traits', t.id, cat())?.specsSource;
       if (source !== 'weaponsMelee' && source !== 'weaponsRanged')
         ctx.addIssue({ code: 'custom', path: ['profilDArme'], message: 'Ce Trait ne définit pas de profil d’arme.' });
       else if (source === 'weaponsRanged') {
@@ -230,8 +231,8 @@ function refusDuTraitPose(lire: LecturesDuRaffinement, regime: RegimeDeCible) {
     }
     if (t.arg === undefined) return;
     const refusDIndividu = regime === 'scene' ? null : `Trait « ${t.id} » : « ${t.arg} » désigne une personne de la scène ; hors d'une scène, sa Cible est un Groupe.`;
-    const refusDeRegistre = argDIndividu(t.id, t.arg) ? refusDIndividu : refusDArgHorsRegistre(t.id, t.arg, specialisations.refus);
-    for (const refus of [refusDArgDeTrait(t.id, t.arg, specialisations.marqueurDeLaForme), refusDeRegistre, refusDeVarianteDeCible(t.id, t.arg, varianteAdmise)]) {
+    const refusDeRegistre = argDIndividu(t.id, t.arg, cat()) ? refusDIndividu : refusDArgHorsRegistre(t.id, t.arg, specialisations.refus);
+    for (const refus of [refusDArgDeTrait(t.id, t.arg, specialisations.marqueurDeLaForme), refusDeRegistre, refusDeVarianteDeCible(t.id, t.arg, varianteAdmise, cat())]) {
       if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
     }
   };

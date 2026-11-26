@@ -65,10 +65,15 @@ export function ciblePsyLue(ecrite: string): CiblePsy | undefined {
   return findGroupById(id) ? ciblePsy.groupe(id) : undefined;
 }
 
-/** SEUL décodage de l'`arg` d'un Trait posé en Cible : celle qu'il écrit (`ciblePsyLue`) quand le Trait `traitId`
+/** SEUL décodage de l'`arg` d'un Trait posé en Cible : celle qu'il écrit (`ciblePsyLue`) quand le Trait `trait`
  *  tire son argument des Cibles psy (`specsSource: ciblesPsy`), sinon aucune. */
+export function cibleDeLArgDuTrait(trait: { readonly specsSource?: string | null } | undefined, arg: string): CiblePsy | undefined {
+  return trait?.specsSource === 'ciblesPsy' ? ciblePsyLue(arg.trim()) : undefined;
+}
+
+/** `cibleDeLArgDuTrait` du Trait `traitId` de la base. */
 export function cibleDeLArg(traitId: string, arg: string): CiblePsy | undefined {
-  return findTraitById(traitId)?.specsSource === 'ciblesPsy' ? ciblePsyLue(arg.trim()) : undefined;
+  return cibleDeLArgDuTrait(findTraitById(traitId), arg);
 }
 
 /** L'id de l'individu que vise une Cible, `undefined` pour un Groupe. */

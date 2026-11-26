@@ -349,25 +349,34 @@ hôte compose un catalogue, et il le remet à sa partie.
   `(…, cat)` de `schemas/catalogue` :
   - `defs-scenes/scene.ts`, sans lecture de la base : la carrière lit la créature sous `cat` (`scene.ts:226`) ;
   - `narratif.ts:22` et `worldmap.ts:24` ;
-  - `grammaire/reference.ts:52` (`psychologies`, `psychologyLabel`) ;
-  - `grammaire/mecanique.ts:17,83` (`findTraitById`, `GROUPES_TIRABLES`) ;
+  - `grammaire/reference.ts`, sans lecture de la base : le Trait posé lit le trait et le libellé de son type psy sous
+    `cat` (`entreeDe('traits', …)`, `entreeDe('psychologies', …)`, `reference.ts:144,160,164,222`), sous
+    `catalogueLu('trait', 'psychology')` (`reference.ts:211`) ; sa Cible se décode de l'entrée du trait
+    (`cibleDeLArgDuTrait`, `src/engine/psych/ciblage.ts:70`), dont `ciblePsyLue` lit encore les Groupes de la base ;
+  - `grammaire/mecanique.ts:17` (`categorieDEntreeAPool`, `trousDeLEnjeu`, les pools du Codex, #5079) ; la Cible tirée
+    de `grantTrait` lit les rangées de sa table dans `cat` (`GROUPES_TIRABLES`, `mecanique.ts:213,855`), sous le
+    `catalogueLu('trait')` du raffinement : aucun type d'entité ne désigne `obsessions.json`, l'espace n'est pas déclaré ;
   - `defs/presets-de-personnage.ts:36` ;
-  - `defs-scenes/effets.ts:56` et `grammaire/valeurs.ts:16,46`, dont le libellé ou la saison passent au message de la
-    faute ;
+  - `defs-scenes/effets.ts:56` et `grammaire/valeurs.ts:16,18,60`, dont le libellé ou la saison passent au message de la
+    faute : l'apparence d'un objet lit l'objet sous `cat` (`objetsDuCatalogue`, `catalogueLu('trapping')`,
+    `valeurs.ts:1184`), et `messageDApparenceDObjet` (`valeurs.ts:16`) lit encore les apparences de la base ;
+    `saisonParId` (`valeurs.ts:60`) indexe le `weather.json` livré pour les libellés de `parSaison`, des méta sans `cat` ;
   - `defs/especes-aleatoires.ts:74,95`, qui lit `species` et `reglesOptionnelles` dans `cat` ;
-  - `grammaire/livres-extraits.ts:10-12`, qui lit `books` dans `cat`, sous `memoByRef(cat)`.
+  - `grammaire/livres-extraits.ts:14`, sans lecture de la base : `estExtrait(bookId, cat)` lit le livre dans `cat`
+    (`entreeDe('books', …)`, mémo `[cat]`), sous le `catalogueLu('book')` des verrous de la prose
+    (`refineProse`, `grammaire/prose.ts:113`), que porte toute entrée de document.
   - Le Compendium juge la bibliothèque *candidate* : une entrée créée, puis référencée par une autre, est acceptée sans
     `npm run gen`.
   - `lireLEspace`, `idsVivants`, `fige` et `poserRegimeVivant` meurent.
   - Le lecteur de `cat` juge la sous-liste et le marqueur. Il remplace `idsDesignes` (`ref.ts:240`), que lisent par
     défaut `refusDuMarqueur` et `refusDeLaDiscriminee` (`ref.ts:323-328`), et l'index de `ref.ts:216`.
     Il couvre les 13 références à sous-liste (`idDe(type, sousListe)`, par exemple `defs/props.ts:35` et
-    `grammaire/valeurs.ts:1156`).
+    `grammaire/valeurs.ts:1170`).
   - `porteLeMarqueur` (`ref.ts:380`) devient `porteLeMarqueur(type, marqueur, id, cat)` dans `schemas/catalogue`. Ses 14 sites
     suivent leur famille : `scene.ts:125` va à la famille 1, `src/engine/weaponGroup.ts:16,20` à la famille 6.
   - Les 11 lectures `lire.catalogue(…)` des defs jugent sous le lecteur de `cat`, dans la famille 1 : `trappings.ts:83,413`,
     `careerLevels.ts:16`, `garde-robe.ts:188`, `merchants.ts:26`, `apparences.ts:66`, `cargaisons-aleatoires.ts:21`,
-    `grammaire/reference.ts:90-93,207`, `grammaire/ref.ts:670`, `especes-aleatoires`.
+    `grammaire/reference.ts:92-93,208`, `grammaire/ref.ts:670`, `especes-aleatoires`.
   - La génération des ids émet deux modules. Le type littéral `IdsParEspace`, que lit `Id<T>`, vit sous `schemas`
     (`src/data/schemas/_ids.generated.ts`). La valeur `IDS_PAR_ESPACE` vit sous `src/data/` (`src/data/_ids.generated.ts`).
 

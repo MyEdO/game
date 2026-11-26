@@ -15,7 +15,7 @@ import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './col
 import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
 import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
-import { entreeDe } from '../catalogue/catalogue';
+import { entreeDe, type Catalogue } from '../catalogue/catalogue';
 import { messageRecurrenceHorloge, SELF_REF, type Formula } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
@@ -81,7 +81,6 @@ import {
   type TypeEntite,
 } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from './sousListes';
-import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
 import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 
@@ -210,6 +209,10 @@ export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
 export const tablesDeCiblesSchema = enumNomme({ obsessions: 'le Tableau des Obsessions' });
 export type TableDeCibles = z.infer<typeof tablesDeCiblesSchema>;
 const tableDeCiblesSchema = nommerChamps(ref(tablesDeCiblesSchema), { id: { label: 'table' } });
+/** Les Groupes que chaque table de Cibles de `cat` peut tirer : ses rangées. */
+const GROUPES_TIRABLES: Readonly<Record<TableDeCibles, (cat: Catalogue) => readonly string[]>> = {
+  obsessions: (cat) => (cat['obsessions.json']?.entries ?? []).map((e) => e.id),
+};
 /** Tirage d'une Cible (`grantTrait.cible`) : `pick` tirages sur une table de Cibles. */
 const tirageDeCibleSchema = tirageSurTable(tableDeCiblesSchema);
 export type TirageDeCible = z.infer<typeof tirageDeCibleSchema>;
@@ -849,7 +852,7 @@ const DECLARATIONS_D_OPS = {
       if (arg !== undefined) {
         ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
       }
-      const absents = GROUPES_TIRABLES[cible.table.id]().filter((g) => !specAuCatalogue(id, g));
+      const absents = GROUPES_TIRABLES[cible.table.id](cat()).filter((g) => !specAuCatalogue(id, g));
       if (absents.length) {
         ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
       }

@@ -13,7 +13,7 @@ import { z } from 'zod';
 import { ECHELONS_DE_STATUT, libelleDEchelon, type Money, type Status } from '../../../engine/money';
 import { formatDice, totalDuDe, type DiceSpec } from '../../../engine/dice';
 import { deDeLaTableTiree, facesDuDe, type DeDeTable, type PorteurDeDe } from '../../../engine/tables';
-import { messageDApparenceDObjet, findTrappingById, type TrappingResolver } from '../../apparencesObjets';
+import { messageDApparenceDObjet, type TrappingResolver } from '../../apparencesObjets';
 import { estObjet } from '../../../lib/objet.mjs';
 import type { TrappingData } from '../../index';
 
@@ -35,7 +35,21 @@ import {
 import type { Slot } from '../../../lib/palette';
 import type { Sexe as SexeDApparence } from '../../../lib/sexe';
 import { ARCADES_MARQUEES, JOUES_CREUSES, NEZ_FORT, VISAGE_INVERSE, VISAGE_LONG, type FormeDeTete } from '../../../lib/formesDeTete';
-import { ref, refOuSpec, idDe, recordDIds, refs, specDe, refTypee, type PorteeLocale, type RefTypee, type TypeEntite } from './ref';
+import {
+  affinerAvecCatalogues,
+  ref,
+  refOuSpec,
+  idDe,
+  recordDIds,
+  refs,
+  specDe,
+  refTypee,
+  type LecturesDuRaffinement,
+  type PorteeLocale,
+  type RefTypee,
+  type TypeEntite,
+} from './ref';
+import { entreeDe } from '../catalogue/catalogue';
 import { TESTS_DE_REGLE } from '../../../engine/ruleRefs';
 import { COMPETENCE_DU_MODE } from '../../../engine/propulsion';
 import { controlerSousPortee, listeCle } from './collection-cle';
@@ -1163,8 +1177,14 @@ function fautesDApparence(trappingId: string | undefined, apparence: string, res
   return message ? [{ path, message }] : [];
 }
 
-/** L'objet de la campagne `entree(id)`, en résolveur d'objet. */
-const objetDeLaCampagne = (entree: (id: string) => unknown): TrappingResolver => (id) => entree(id) as TrappingData | undefined;
+/** L'objet `entree(id)` (de la campagne ou du catalogue), en résolveur d'objet. */
+const resolveurDObjet = (entree: (id: string) => unknown): TrappingResolver => (id) => entree(id) as TrappingData | undefined;
+
+/** Le résolveur des objets du catalogue jugé (`catalogueLu('trapping')`), lu à l'appel. */
+const objetsDuCatalogue = (lire: LecturesDuRaffinement): TrappingResolver => {
+  const cat = lire.catalogueLu('trapping');
+  return resolveurDObjet((id) => entreeDe('trappings', id, cat()));
+};
 
 const signaler = (ctx: z.RefinementCtx, fautes: readonly FauteDApparence[]): void => {
   for (const f of fautes) ctx.addIssue({ code: 'custom', path: [...f.path], message: f.message });
@@ -1173,14 +1193,17 @@ const signaler = (ctx: z.RefinementCtx, fautes: readonly FauteDApparence[]): voi
 /** OBJET DONNÉ (Effet et GameOp `giveTrapping`) : l'apparence d'un objet du catalogue ou `custom` se juge au catalogue ;
  *  celle d'un objet de la campagne, sous `OBJETS_DU_PROJET` (`controlerSousPortee`). */
 export function avecApparenceDObjetDonne<N extends z.ZodType<{ objet?: { id: string }; apparence?: { id: string } }>>(noeud: N): N {
-  const jugee = noeud.superRefine((v, ctx) => {
-    const id = v.objet?.id;
-    if (v.apparence && (id === undefined || findTrappingById(id))) signaler(ctx, fautesDApparence(id, v.apparence.id, findTrappingById, ['apparence', 'id']));
+  const jugee = affinerAvecCatalogues(noeud, (lire) => {
+    const objet = objetsDuCatalogue(lire);
+    return (v, ctx) => {
+      const id = v.objet?.id;
+      if (v.apparence && (id === undefined || objet(id))) signaler(ctx, fautesDApparence(id, v.apparence.id, objet, ['apparence', 'id']));
+    };
   });
   return controlerSousPortee(jugee, OBJETS_DU_PROJET, (valeur, entree) => {
     if (!estObjet(valeur) || !estObjet(valeur.objet) || typeof valeur.objet.id !== 'string' || entree(valeur.objet.id) === undefined) return [];
     const apparence = idDApparence(valeur.apparence);
-    return apparence === undefined ? [] : fautesDApparence(valeur.objet.id, apparence, objetDeLaCampagne(entree), ['apparence', 'id']);
+    return apparence === undefined ? [] : fautesDApparence(valeur.objet.id, apparence, resolveurDObjet(entree), ['apparence', 'id']);
   });
 }
 
@@ -1191,15 +1214,18 @@ const idDApparence = (apparence: unknown): string | undefined => (estObjet(appar
  *  `EntityAppearance.apparencesObjets`, presets de personnage (#3086). Ses clés sont celles d'un `recordDIds`, qui laisse
  *  la référence d'apparence jugée au parse de mesure. */
 export const apparencesDObjetsSchema: z.ZodType<Partial<Record<string, { id: string }>>, Partial<Record<string, { id: string }>>> = controlerSousPortee(
-  recordDIds('trapping', ref('apparence'), undefined, { portee: OBJETS_DU_PROJET }).superRefine((v, ctx) => {
-    for (const [trappingId, apparence] of Object.entries(v)) if (apparence && findTrappingById(trappingId)) signaler(ctx, fautesDApparence(trappingId, apparence.id, findTrappingById, [trappingId, 'id']));
+  affinerAvecCatalogues(recordDIds('trapping', ref('apparence'), undefined, { portee: OBJETS_DU_PROJET }), (lire) => {
+    const objet = objetsDuCatalogue(lire);
+    return (v, ctx) => {
+      for (const [trappingId, apparence] of Object.entries(v)) if (apparence && objet(trappingId)) signaler(ctx, fautesDApparence(trappingId, apparence.id, objet, [trappingId, 'id']));
+    };
   }),
   OBJETS_DU_PROJET,
   (valeur, entree) =>
     estObjet(valeur)
       ? Object.entries(valeur).flatMap(([trappingId, apparence]) => {
           const id = idDApparence(apparence);
-          return id !== undefined && entree(trappingId) !== undefined ? fautesDApparence(trappingId, id, objetDeLaCampagne(entree), [trappingId, 'id']) : [];
+          return id !== undefined && entree(trappingId) !== undefined ? fautesDApparence(trappingId, id, resolveurDObjet(entree), [trappingId, 'id']) : [];
         })
       : [],
 );

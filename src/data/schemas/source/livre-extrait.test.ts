@@ -1,16 +1,10 @@
 // Contrat de la définition UNIQUE de « livre EXTRAIT » (`livre-extrait.ts`, #1739) : son prédicat sur
-// une entrée du registre, et sa lecture VIVANTE par l'app (`estExtrait`) après une édition au seam.
-import { describe, it, expect, afterEach } from 'vitest';
+// une entrée du registre, et sa lecture par l'app (`estExtrait`) dans le registre du catalogue passé.
+import { describe, it, expect } from 'vitest';
 import { estLivreExtrait } from './livre-extrait';
 import { estExtrait } from '../grammaire/livres-extraits';
-import { books, type BookData } from '../../index';
-import { setDataset } from '../../overrides';
-
-const REGISTRE_LIVRE: BookData[] = [...books];
-
-afterEach(() => {
-  setDataset('books', REGISTRE_LIVRE);
-});
+import { catalogueAvec } from '../../catalogueAvec.testkit';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 describe('estLivreExtrait — `abbr` ET `dir` non vides', () => {
   it('une entrée porteuse d’un sigle et d’un dossier est extraite', () => {
@@ -31,17 +25,14 @@ describe('estLivreExtrait — `abbr` ET `dir` non vides', () => {
   });
 });
 
-describe('estExtrait — l’app lit le registre VIVANT', () => {
-  it('un livre extrait dont on vide le `dir` au seam cesse d’être extrait, et le redevient restauré', () => {
-    const extrait = REGISTRE_LIVRE.find((b) => estLivreExtrait(b));
+describe('estExtrait — l’app lit le registre du catalogue passé', () => {
+  it('un livre du seul catalogue est extrait, sa copie sans `dir` ne l’est pas', () => {
+    const extrait = catalogueDuProcessus()['books.json'].find((b) => estLivreExtrait(b));
     expect(extrait, 'aucun livre extrait au registre livré').toBeDefined();
-    const id = extrait!.id;
-    expect(estExtrait(id)).toBe(true);
-
-    setDataset('books', REGISTRE_LIVRE.map((b) => (b.id === id ? { ...b, dir: null } : b)));
-    expect(estExtrait(id)).toBe(false);
-
-    setDataset('books', REGISTRE_LIVRE);
-    expect(estExtrait(id)).toBe(true);
+    const cat = catalogueAvec({
+      'books.json': [{ ...extrait!, id: 'livre-extrait-de-test' }, { ...extrait!, id: 'livre-sans-dossier-de-test', dir: null }],
+    });
+    expect(estExtrait('livre-extrait-de-test', cat)).toBe(true);
+    expect(estExtrait('livre-sans-dossier-de-test', cat)).toBe(false);
   });
 });
