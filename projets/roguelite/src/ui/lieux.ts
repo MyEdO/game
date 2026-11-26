@@ -114,7 +114,8 @@ export const VIGNETTE_DE_SALLE: Record<J.TypeDeSalle, Vignette> = {
 };
 
 /** Les gestes d'un héros entre deux salles, en cases de son sac : chaque objet, qu'un clic utilise ; la Bénédiction de
- *  Guérison d'un Béni, une fois par expédition, sur le plus blessé ; la Guérison de qui sait la tenter, dont le blessé
+ *  Guérison d'un Béni, une fois par expédition, sur le plus blessé ; « Se relever » d'un héros À Terre (`J.aTerre`), au
+ *  prix d'un point de Détermination (LDB 17 l.61) ; la Guérison de qui sait la tenter, dont le blessé
  *  se choisit au socle (`choix`, un second clic y renonce). */
 function sacsDuGroupe(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle | null) {
   const plusBlesse = groupe.filter((x) => !x.c.dead).sort((a, b) => a.c.wounds.current / a.c.wounds.max - b.c.wounds.current / b.c.wounds.max)[0];
@@ -132,7 +133,11 @@ function sacsDuGroupe(e: J.Etat, groupe: J.Heros[], choix: ChoixDeSalle | null) 
       attrs: `data-a="soigneur" data-id="${h.c.id}"${choix?.action === 'soigner' && choix.soigneur === h.c.id ? ' aria-pressed="true"' : ''}`,
       refus: J.refusDuSoigneur(e, h),
     }) : '';
-    return `<div class="sac-heros">${herosEnLigne(h)}<div class="cases-sac">${casesDuSac(h, true) + priere + guerison || glose('sac vide')}</div></div>`;
+    const relever = J.aTerre(h) ? caseObjet({
+      icone: 'etoile', nom: 'Se relever', apercu: { nom: 'Se relever', nature: 'Détermination −1', texte: '' },
+      attrs: `data-a="relever" data-id="${h.c.id}"`, refus: J.refusDeSeRelever(h),
+    }) : '';
+    return `<div class="sac-heros">${herosEnLigne(h)}<div class="cases-sac">${casesDuSac(h, true) + priere + guerison + relever || glose('sac vide')}</div></div>`;
   }).join('')}</div>`;
 }
 

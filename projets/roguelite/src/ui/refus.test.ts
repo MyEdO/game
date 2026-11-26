@@ -1,6 +1,8 @@
 // @vitest-environment jsdom
 import { beforeAll, describe, expect, it } from 'vitest';
+import { poserLaDetermination } from '../../../../src/engine/talentEffects';
 import * as J from '../jeu';
+import { tomber } from '../jeu/salles.testkit';
 import { poserLesReglesDuRoguelite } from '../noyau';
 import { installerLesSurvols } from './bulles';
 import { ecranDuHeros, type Onglet } from './fiche';
@@ -19,7 +21,7 @@ function partieFermee(ruines: boolean): J.Etat {
   e.trophees = 0;
   for (const k of Object.keys(e.batiments) as J.IdBatiment[]) e.batiments[k] = ruines ? 0 : 1;
   e.roster[1].sejour = { ou: 'temple', reste: 3, total: 7 };
-  e.roster[2].c.wounds.current = 0;
+  tomber(e.roster[2].c);
   for (const h of e.roster) h.c.xp = 0;
   return e;
 }
@@ -58,7 +60,7 @@ function ecransDeLExpedition(type: J.TypeDeSalle | null): [string, string][] {
   const x = e.expedition!;
   if (type) x.salles[x.index] = { type, ennemis: [], faite: false, ouverte: true };
   const groupe = J.herosDuGroupe(e);
-  groupe[3].c.wounds.current = 0;
+  tomber(groupe[3].c);
   const actions: ChoixDeSalle[] = !type ? [{ action: 'soigner', soigneur: groupe[1].c.id }]
     : type === 'camp' ? [] : (Object.keys(J.EPREUVES[type as J.SalleAJet].actions) as J.IdActionAJet[]).map((action) => ({ action }));
   return [
@@ -131,6 +133,23 @@ describe('entre deux salles, la Guérison refusée dit la raison du noyau au sur
     const refuses = groupe.filter((h) => J.refusDuPatient(soigneur, h));
     expect(refuses.map((h) => h.c.id)).toEqual(groupe.filter((h) => h !== blesse).map((h) => h.c.id));
     for (const h of refuses) expect(survol(`.socle-compagnie [data-a="tenter"][data-id="${h.c.id}"]`), h.c.label).toBe(J.refusDuPatient(soigneur, h));
+    hote.remove();
+  });
+});
+
+describe('entre deux salles, « Se relever » sans Détermination dit la raison du noyau au survol (LDB 17 l.61)', () => {
+  it('la case du héros À Terre', () => {
+    const e = J.nouvellePartie(3);
+    expect(J.partir(e, J.DESTINATIONS[0].id, e.roster.map((h) => h.c.id))).toBeNull();
+    const h = J.herosDuGroupe(e)[0];
+    tomber(h.c);
+    poserLaDetermination(h.c, 0);
+    const hote = document.createElement('div');
+    document.body.append(hote);
+    hote.innerHTML = ecranDeLExpedition(e, '', null, '', null);
+    const raison = J.refusDeSeRelever(h);
+    expect(raison).toBeTruthy();
+    expect(ditAuSurvol(hote.querySelector<HTMLElement>(`.sacs [data-a="relever"][data-id="${h.c.id}"]:disabled`)!)).toBe(raison);
     hote.remove();
   });
 });

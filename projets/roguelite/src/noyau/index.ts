@@ -8,7 +8,7 @@ export type { RNG } from '../../../../src/engine/dice';
 export { type Sexe, memeSpecialisation, refCouvre, parseTable } from '../../../../src/noyau';
 export type { DoctrineId } from '../../../../src/noyau/monde/ai';
 export { makeRNG } from '../../../../src/engine/dice';
-export { purgerEtats } from '../../../../src/engine/conditions';
+export { purgerEtats, isConditionLocked, isOutOfAction, refusDeDetermination } from '../../../../src/engine/conditions';
 export type { Applique } from '../../../../src/engine/faits';
 export { deElide } from '../../../../src/i18n';
 export * from './heros';
