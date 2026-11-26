@@ -611,6 +611,8 @@ import { projetSchema } from '../data/schemas/defs-scenes/projet';
 import { sceneSchema } from '../data/schemas/defs-scenes/scene';
 import type { SourceRef } from '../data/schemas/grammaire/valeurs';
 import { versDisque } from '../data/schemas/grammaire/prose';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 /** Identité de campagne pour la bibliothèque (#766) — PLATE à la racine du document depuis #1467
  *  L1b, posée par l'enveloppe de `document()` depuis #1552. Le trio `id`/`label`/`versionContenu`
@@ -727,8 +729,8 @@ export function refusDeForme(cause: CauseDeRefus, chemin: readonly (string | num
  *  FK intra-document de `projetSchema` (`entity.presetId` → `narratif.presetsPnj`, références narratives
  *  des Effects) restent à la porte du projet : une scène seule n'a pas de narratif. Ce qui suit la porte
  *  est une faute du jeu, et se propage. */
-export function parseSceneDeProjet(scene: unknown): Scene {
-  const refus = validerFormeVivante(sceneSchema, scene);
+export function parseSceneDeProjet(scene: unknown, cat: Catalogue = catalogueDuProcessus()): Scene {
+  const refus = validerFormeVivante(sceneSchema, scene, cat);
   if (refus) throw refusDeFormeVivante('Scène', refus);
   return normalizeScene(scene as Scene);
 }
@@ -747,10 +749,10 @@ function refusDeFormeVivante(sujet: 'Projet' | 'Scène', { cause, fautes }: Refu
  *  `naval-ports.json`, invariants du bloc narratif, FK intra-document `entity.presetId` →
  *  `narratif.presetsPnj`, invariant d'identité —, validé AVANT `resolvePortRef` et `normalizeScene`.
  *  Chaque scène ressort passée par `normalizeScene` (`scene.ts`), au SEUL point d'entrée. La porte
- *  n'altère JAMAIS ce qu'on lui passe. Ce qui suit la porte travaille sur un document PROUVÉ : une
+ *  juge chaque id sous `cat`. Elle n'altère JAMAIS ce qu'on lui passe. Ce qui suit la porte travaille sur un document PROUVÉ : une
  *  exception y est une faute du jeu, pas de l'auteur, et se propage. Inverse : `projetVersDepot`. */
-export function parseProject(data: unknown): ProjectDoc {
-  const refus = validerFormeVivante(projetSchema, data);
+export function parseProject(data: unknown, cat: Catalogue = catalogueDuProcessus()): ProjectDoc {
+  const refus = validerFormeVivante(projetSchema, data, cat);
   if (refus) throw refusDeFormeVivante('Projet', refus);
   // La porte VIENT de prouver la forme : le document se relit donc sous sa VUE TS, en une conversion
   // (`ProjetProuve`, ci-dessus) plutôt que par un aller-retour `unknown`. Les champs d'identité sortent

@@ -13,6 +13,8 @@ import { metaDesChamps, nommerChamps } from '../data/schemas/grammaire/meta';
 import { refineProse } from '../data/schemas/grammaire/prose';
 import { noeudObjet, rapportDeFautes, validerFormeVivante } from '../data/schemas/validate';
 import { tableTotale } from '../lib/tableTotale';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 /** Le paquet d'une campagne livrée tel que commité, NON PARSÉ : seul le compte de ses scènes se lit
  *  sans la porte (liste de la bibliothèque, comme `SavedProject.project.scenes`). */
@@ -77,15 +79,15 @@ const identiteDuPaquetSchema = nommerChamps(
 );
 
 /** La campagne livrée du paquet `paquet`, commité sous le nom `fichier` : à l'import, seuls les nœuds d'identité du
- *  projet sont validés, un refus lève `ProjetRefuse` qui nomme `fichier`. L'adresse de la description sert au contrôle
+ *  projet sont validés, sous `cat`, un refus lève `ProjetRefuse` qui nomme `fichier`. L'adresse de la description sert au contrôle
  *  de la prose et le paquet original est gardé, privé, pour la lecture au geste. */
-export function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>>, fichier: string): BuiltinCampaign {
+export function campagneDuPaquet(paquet: PaquetDuJeu & Readonly<Record<string, unknown>>, fichier: string, cat: Catalogue = catalogueDuProcessus()): BuiltinCampaign {
   const projection: Partial<Record<(typeof CLES_IDENTITE_DU_PAQUET)[number], unknown>> = {};
   for (const cle of CLES_IDENTITE_DU_PAQUET) {
     const valeur = paquet[cle];
     if (valeur !== undefined) projection[cle] = valeur;
   }
-  const refus = validerFormeVivante(identiteDuPaquetSchema, projection);
+  const refus = validerFormeVivante(identiteDuPaquetSchema, projection, cat);
   if (refus) throw new ProjetRefuse(refus.cause, refus.fautes, rapportDeFautes(fichier, refus.fautes));
 
   const { descRef: _descRef, ...identite } = projection as ProjectIdentite & { icon: IconId; descRef?: unknown };

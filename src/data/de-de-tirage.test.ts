@@ -18,6 +18,7 @@ import { massBattleHazardsDie, starSubDie, weather } from './index';
 import { peripetieSeuilDie } from './peripeties';
 import type * as obsessions from './schemas/defs/obsessions';
 import type * as miscast from './schemas/defs/miscast';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 /** Le dé IMPRIMÉ par le livre pour chaque document-table, à sa réf. */
 const LIVRE: Record<string, { die: DiceSpec; ref: string }> = {
@@ -216,8 +217,8 @@ describe('dé de tirage — en donnée, lu par le lecteur (#1667)', () => {
   it('un sous-tirage n’a qu’une forme, `{ die }` : le `Tirage` (`{ dice }`) est refusé à la porte du Codex', () => {
     for (const [fichier, cle] of [['stars.json', 'sub'], ['peripeties.json', 'tirageQuotidien']] as const) {
       const doc = JSON.parse(readFileSync(join(process.cwd(), 'src/data', fichier), 'utf8')) as Record<string, unknown>;
-      expect(validateDataset(fichier, { ...doc, [cle]: { die: { n: 1, sides: 10 } } }), `${fichier} › ${cle} en \`{ die }\``).toBeNull();
-      expect(validateDataset(fichier, { ...doc, [cle]: { dice: { n: 1, sides: 10 } } }), `${fichier} › ${cle} en \`Tirage\``).toContain('"dice"');
+      expect(validateDataset(fichier, { ...doc, [cle]: { die: { n: 1, sides: 10 } } }, catalogueDuProcessus()), `${fichier} › ${cle} en \`{ die }\``).toBeNull();
+      expect(validateDataset(fichier, { ...doc, [cle]: { dice: { n: 1, sides: 10 } } }, catalogueDuProcessus()), `${fichier} › ${cle} en \`Tirage\``).toContain('"dice"');
     }
   });
 

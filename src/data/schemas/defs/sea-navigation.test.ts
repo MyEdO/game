@@ -3,13 +3,14 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import seaNavigationJson from '../../sea-navigation.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const clone = () => structuredClone(seaNavigationJson);
 type Doc = ReturnType<typeof clone>;
 
 describe('sea-navigation.json — chaque table couvre son domaine d’un seul tenant', () => {
   it('le schéma accepte le document RÉEL', () => {
-    expect(validateDataset('sea-navigation.json', seaNavigationJson)).toBeNull();
+    expect(validateDataset('sea-navigation.json', seaNavigationJson, catalogueDuProcessus())).toBeNull();
   });
 
   it.each([
@@ -21,40 +22,40 @@ describe('sea-navigation.json — chaque table couvre son domaine d’un seul te
   ])('REFUSE une rangée du milieu de %s sans plafond', (chemin, table) => {
     const trouee = clone();
     table(trouee)[1].max = null;
-    expect(validateDataset('sea-navigation.json', trouee)).toMatch(new RegExp(`${chemin.replace(/\./g, '\\.')} : .*la rangée n° 2 n'a pas de borne haute`));
+    expect(validateDataset('sea-navigation.json', trouee, catalogueDuProcessus())).toMatch(new RegExp(`${chemin.replace(/\./g, '\\.')} : .*la rangée n° 2 n'a pas de borne haute`));
   });
 
   it('REFUSE une table Ça va lâcher qui ne commence pas au-delà de M+4 (MDG 13 l.125)', () => {
     const decalee = clone();
     decalee.vitesseMax.table[0].min = 4;
-    expect(validateDataset('sea-navigation.json', decalee)).toMatch(/vitesseMax\.table : .*la rangée n° 1 commence à 4 au lieu de 5/);
+    expect(validateDataset('sea-navigation.json', decalee, catalogueDuProcessus())).toMatch(/vitesseMax\.table : .*la rangée n° 1 commence à 4 au lieu de 5/);
   });
 
   it('« 5 milles ou moins » (MDG 13 l.343) : la première bande de Voir la lumière reste OUVERTE en bas', () => {
     const refermee = clone();
     refermee.phares.voirLaLumiere[0].min = 0;
-    expect(validateDataset('sea-navigation.json', refermee)).toMatch(/phares\.voirLaLumiere : .*la rangée n° 1 est la PREMIÈRE et porte un plancher \(0\)/);
+    expect(validateDataset('sea-navigation.json', refermee, catalogueDuProcessus())).toMatch(/phares\.voirLaLumiere : .*la rangée n° 1 est la PREMIÈRE et porte un plancher \(0\)/);
   });
 
   it('REFUSE un trou dans Voir la lumière, bornée à 15 milles (MDG 13 l.345)', () => {
     const trouee = clone();
     trouee.phares.voirLaLumiere[1].min = 7;
-    expect(validateDataset('sea-navigation.json', trouee)).toMatch(/phares\.voirLaLumiere : .*la rangée n° 2 commence à 7 au lieu de 6/);
+    expect(validateDataset('sea-navigation.json', trouee, catalogueDuProcessus())).toMatch(/phares\.voirLaLumiere : .*la rangée n° 2 commence à 7 au lieu de 6/);
     const courte = clone();
     courte.phares.voirLaLumiere[2].max = 14;
-    expect(validateDataset('sea-navigation.json', courte)).toMatch(/phares\.voirLaLumiere : .*s'arrête à 14 au lieu de 15/);
+    expect(validateDataset('sea-navigation.json', courte, catalogueDuProcessus())).toMatch(/phares\.voirLaLumiere : .*s'arrête à 14 au lieu de 15/);
   });
 
   it('REFUSE un Changement de cap qui ne couvre pas son dé + 2 (MDG 13 l.320, l.326)', () => {
     const courte = clone();
     const cap = courte.orientation.changementDeCap.entries;
     cap[cap.length - 1].max = 11;
-    expect(validateDataset('sea-navigation.json', courte)).toMatch(/orientation\.changementDeCap\.entries : .*s'arrête à 11 au lieu de 12/);
+    expect(validateDataset('sea-navigation.json', courte, catalogueDuProcessus())).toMatch(/orientation\.changementDeCap\.entries : .*s'arrête à 11 au lieu de 12/);
   });
 
   it('la couverture du Changement de cap suit le dé de sa table (MDG 13 l.326)', () => {
     const autre = clone();
     autre.orientation.changementDeCap.die = { n: 1, sides: 8 };
-    expect(validateDataset('sea-navigation.json', autre)).toMatch(/orientation\.changementDeCap\.entries : .*au lieu de 10/);
+    expect(validateDataset('sea-navigation.json', autre, catalogueDuProcessus())).toMatch(/orientation\.changementDeCap\.entries : .*au lieu de 10/);
   });
 });

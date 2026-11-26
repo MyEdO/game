@@ -151,6 +151,21 @@ test('fixture dépôt : les vrais stocks voisins et les fausses fabriques resten
       'scripts/migrations/lib/fixture.test.ts', 1],
   ]) assert.equal(compter(source, chemin), attendu, source);
 });
+test('fixture de catalogue : le livre passé en argument 0 d’une fabrique de catalogue de test est jetable (#5070)', () => {
+  for (const [source, chemin] of [
+    ["import { catalogueAvec } from './catalogueAvec.testkit';\nconst CAT = catalogueAvec({ 'groups.json': [{ id: 'g' }] });", 'src/data/portes.test.ts'],
+    ["import { catalogueDeTest } from './catalogueDeTest.testkit';\nconst CAT = catalogueDeTest({ 'groups.json': [{ id: 'g' }] });", 'src/data/schemas/catalogue/x.test.ts'],
+  ]) assert.equal(compter(source, chemin), 0, source);
+});
+test('fixture de catalogue : le livre déclaré à part, une fausse fabrique et la production restent comptés', () => {
+  const entete = "import { catalogueAvec } from './catalogueAvec.testkit';\n";
+  for (const [source, chemin] of [
+    [entete + "const LIVRE = { 'groups.json': [{ id: 'g' }] };\nconst CAT = catalogueAvec(LIVRE);", 'src/data/portes.test.ts'],
+    ["function catalogueAvec() {}\nconst CAT = catalogueAvec({ 'groups.json': [{ id: 'g' }] });", 'src/data/portes.test.ts'],
+    ["import { catalogueAvec } from './autre';\nconst CAT = catalogueAvec({ 'groups.json': [{ id: 'g' }] });", 'src/data/portes.test.ts'],
+    [entete + "const CAT = catalogueAvec({ 'groups.json': [{ id: 'g' }] });", 'src/data/production.ts'],
+  ]) assert.equal(compter(source, chemin), 1, source);
+});
 test('occurrences originales : options de scan et trois chemins porteSpawn restent scalaires', () => {
   assert.equal(compter("reparerAdresses({ racines: ['src/data'] });", 'src/data/schemas/source/reparer-adresses.test.ts'), 0);
   for (const fragments of [

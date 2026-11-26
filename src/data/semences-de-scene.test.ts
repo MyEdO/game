@@ -15,6 +15,7 @@ import { describe, expect, it } from 'vitest';
 import { validateDataset } from './schemas/validate';
 import { semencesDeScene } from './index';
 import { emptyScene } from '../noyau/monde/scene';
+import { catalogueDuProcessus } from './catalogueDuProcessus';
 
 const FICHIER = 'semences-de-scene.json';
 /** Le document livré, tel qu'il est sur disque (enveloppe comprise) — base de chaque mutation. */
@@ -34,36 +35,36 @@ const LIVRE = {
 
 describe('semences-de-scene.json — le schéma refuse une semence qui mentirait à toutes les scènes (#1716)', () => {
   it('le document LIVRÉ parse (sans quoi les refus ci-dessous ne mesureraient rien)', () => {
-    expect(validateDataset(FICHIER, LIVRE)).toBeNull();
+    expect(validateDataset(FICHIER, LIVRE, catalogueDuProcessus())).toBeNull();
   });
 
   it('un TERRAIN hors du registre des sols est refusé, nommément', () => {
-    const erreur = validateDataset(FICHIER, { ...LIVRE, terrain: { id: 'lave-de-nulle-part' } });
+    const erreur = validateDataset(FICHIER, { ...LIVRE, terrain: { id: 'lave-de-nulle-part' } }, catalogueDuProcessus());
     expect(erreur).toContain('terrain');
     expect(erreur).toContain('lave-de-nulle-part');
   });
 
   it('un ÉCLAIRAGE qui n’est pas un palier de `lightLevels.json` est refusé — `auto` COMPRIS', () => {
-    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'plein-jour-inconnu' })).toContain('Éclairage');
+    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'plein-jour-inconnu' }, catalogueDuProcessus())).toContain('Éclairage');
     // La sentinelle « suit l'horloge » est l'ABSENCE du champ, jamais une valeur : `auto` n'est pas un
     // palier de `lightLevels.json`, et un champ typé `idDe('lightLevel')` le refuse comme tout autre
     // id mort — `emptyScene` rend `auto` sur la SCÈNE, dont le champ est une chaîne libre.
-    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'auto' })).toContain('Éclairage');
-    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'nuit' })).toBeNull();
+    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'auto' }, catalogueDuProcessus())).toContain('Éclairage');
+    expect(validateDataset(FICHIER, { ...LIVRE, ambientLight: 'nuit' }, catalogueDuProcessus())).toBeNull();
   });
 
   it('une PENTE de toiture hors de la plage du schéma de scène est refusée', () => {
-    const erreur = validateDataset(FICHIER, { ...LIVRE, roofDefaults: { ...LIVRE.roofDefaults, pitchDeg: 80 } });
+    const erreur = validateDataset(FICHIER, { ...LIVRE, roofDefaults: { ...LIVRE.roofDefaults, pitchDeg: 80 } }, catalogueDuProcessus());
     expect(erreur).toContain('Toiture par défaut › pente en degrés');
   });
 
   it('une MATIÈRE de relief hors de la sous-liste `relief` est refusée', () => {
-    const erreur = validateDataset(FICHIER, { ...LIVRE, reliefDefaults: { ...LIVRE.reliefDefaults, cliff: { id: 'toit-ardoise' } } });
+    const erreur = validateDataset(FICHIER, { ...LIVRE, reliefDefaults: { ...LIVRE.reliefDefaults, cliff: { id: 'toit-ardoise' } } }, catalogueDuProcessus());
     expect(erreur).toContain('Matières de relief › falaise');
   });
 
   it('une AMBIANCE hors du vocabulaire de la scène est refusée (même énumération que `Scene.ambiance`)', () => {
-    expect(validateDataset(FICHIER, { ...LIVRE, ambiance: 'souterrain' })).toContain('Ambiance');
+    expect(validateDataset(FICHIER, { ...LIVRE, ambiance: 'souterrain' }, catalogueDuProcessus())).toContain('Ambiance');
   });
 
   it('ÉCLAIRAGE absent de la semence → la scène neuve porte `auto` EN CLAIR (#841 FU-A tenu)', () => {

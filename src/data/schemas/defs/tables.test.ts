@@ -2,12 +2,13 @@
 import { describe, expect, it } from 'vitest';
 import { validateDataset } from '../validate';
 import tablesJson from '../../tables.json';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const clone = () => structuredClone(tablesJson);
 
 describe('tables.json — chaque table couvre son dé depuis 1', () => {
   it('le schéma accepte le document RÉEL', () => {
-    expect(validateDataset('tables.json', tablesJson)).toBeNull();
+    expect(validateDataset('tables.json', tablesJson, catalogueDuProcessus())).toBeNull();
   });
 
   it('REFUSE une rangée du milieu sans plafond dans une table ouverte en haut', () => {
@@ -15,26 +16,26 @@ describe('tables.json — chaque table couvre son dé depuis 1', () => {
     const ouverte = doc.find((t) => t.entries.some((r) => r.max === null));
     expect(ouverte, 'aucune table ouverte — la fixture ne mesure rien').toBeDefined();
     ouverte!.entries[2].max = null;
-    expect(validateDataset('tables.json', doc)).toMatch(new RegExp(`${ouverte!.id} : .*la rangée n° 3 n'a pas de borne haute`));
+    expect(validateDataset('tables.json', doc, catalogueDuProcessus())).toMatch(new RegExp(`${ouverte!.id} : .*la rangée n° 3 n'a pas de borne haute`));
   });
 
   it('REFUSE une table fermée qui ne couvre pas son dé', () => {
     const doc = clone();
     const fermee = doc.find((t) => t.die.n === 1 && t.die.sides === 10 && t.entries.every((r) => r.max !== null))!;
     fermee.entries[fermee.entries.length - 1].max = 9;
-    expect(validateDataset('tables.json', doc)).toMatch(new RegExp(`${fermee.id} : .*s'arrête à 9 au lieu de 10`));
+    expect(validateDataset('tables.json', doc, catalogueDuProcessus())).toMatch(new RegExp(`${fermee.id} : .*s'arrête à 9 au lieu de 10`));
   });
 
   it('la couverture se mesure sur l’étendue du dé : un 2d10 se couvre de 2 à 20', () => {
     const doc = clone();
     const fermee = doc.find((t) => t.die.n === 1 && t.die.sides === 10 && t.entries.every((r) => r.max !== null))!;
     fermee.die = { n: 2, sides: 10 };
-    expect(validateDataset('tables.json', doc)).toMatch(new RegExp(`${fermee.id} : les rangées ne couvrent pas le 2d10 d'un seul tenant`));
+    expect(validateDataset('tables.json', doc, catalogueDuProcessus())).toMatch(new RegExp(`${fermee.id} : les rangées ne couvrent pas le 2d10 d'un seul tenant`));
   });
 
   it('REFUSE un dé de tirage hors NdM', () => {
     const doc = clone();
     doc[0].die = { n: 0, sides: 10 };
-    expect(validateDataset('tables.json', doc)).toMatch(/Dé de tirage › nombre: Trop petit/);
+    expect(validateDataset('tables.json', doc, catalogueDuProcessus())).toMatch(/Dé de tirage › nombre: Trop petit/);
   });
 });

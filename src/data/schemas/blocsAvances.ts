@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { dialoguesSchema, triggersSchema, encountersSchema, sceneSchema } from './defs-scenes/scene';
 import { nommerChamps, metaDesChamps } from './grammaire/meta';
 import { rapportDeFautes, validerFormeVivante } from './validate';
+import type { Catalogue } from './catalogue/catalogue';
 
 /** Les TROIS blocs de logique que la modale « Avancé » édite en masse. Les LISTES sont celles du
  *  schéma de Scène (`dialoguesSchema`/`triggersSchema`/`encountersSchema`, clé comprise), pas une
@@ -18,9 +19,9 @@ const SCHEMA_BLOCS_AVANCES = nommerChamps(z.strictObject({
 /** Porte de la modale « Avancé » (`saveAdvanced`), hors de l'écran pour être mesurable hors montage : c'est
  *  elle qui rend le refus que l'auteur lit (#1588). Forme VIVANTE (`validerFormeVivante`, #2001) : le
  *  schéma prouve la forme disque, la valeur collée est relue sous sa vue TS, son texte gardé — patron
- *  de `parseProject`. */
-export function lireBlocsAvances(brut: unknown): { ok: true; lu: z.infer<typeof SCHEMA_BLOCS_AVANCES> } | { ok: false; rapport: string } {
-  const refus = validerFormeVivante(SCHEMA_BLOCS_AVANCES, brut);
+ *  de `parseProject`. Chaque id se juge sous `cat`. */
+export function lireBlocsAvances(brut: unknown, cat: Catalogue): { ok: true; lu: z.infer<typeof SCHEMA_BLOCS_AVANCES> } | { ok: false; rapport: string } {
+  const refus = validerFormeVivante(SCHEMA_BLOCS_AVANCES, brut, cat);
   if (refus) return { ok: false, rapport: rapportDeFautes('Blocs de logique', refus.fautes) };
   return { ok: true, lu: brut as z.infer<typeof SCHEMA_BLOCS_AVANCES> };
 }

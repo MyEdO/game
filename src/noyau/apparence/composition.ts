@@ -42,6 +42,9 @@ import { CLES_ENVELOPPE, type CleEnveloppe } from '../../data/schemas/grammaire/
 import { optionsDuNoeud } from '../../data/schemas/grammaire/meta';
 import { declarationDeFeuilleDId, type FeuilleDId, type Id } from '../../data/schemas/grammaire/ref';
 import { noeudDuChamp, validateDocument } from '../../data/schemas/validate';
+import type { Catalogue } from '../../data/schemas/catalogue/catalogue';
+import { parserSousCatalogue } from '../../data/schemas/catalogue/references';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import { BUILD_NEUTRE } from '../../lib/corpulence';
 import { t } from '../../i18n';
 import { tableTotale } from '../../lib/tableTotale';
@@ -74,25 +77,26 @@ export function compositionDuPreset(p: PresetDePersonnage): Composition {
   return partDuPreset(p, false) as Composition;
 }
 
-/** Une lecture de `brut` à un schéma : sa valeur, ou ses fautes (`validateDocument`), chacune à son chemin. */
+/** Une lecture de `brut` à un schéma, ses ids jugés sous `cat` : sa valeur, ou ses fautes (`validateDocument`), chacune
+ *  à son chemin. */
 export type LectureAuSchema<T> = { ok: true; valeur: T } | { ok: false; fautes: FauteDePreset[] };
 
-const lireAuSchema = <T>(schema: Parameters<typeof validateDocument>[0], brut: unknown): LectureAuSchema<T> => {
-  const fautes = validateDocument(schema, brut);
+const lireAuSchema = <T>(schema: Parameters<typeof validateDocument>[0], brut: unknown, cat: Catalogue): LectureAuSchema<T> => {
+  const fautes = validateDocument(schema, brut, cat);
   return fautes ? { ok: false, fautes: fautes.map(({ chemin, message }) => ({ chemin: [...chemin], message })) } : { ok: true, valeur: brut as T };
 };
 
-/** `brut` lu au schéma de la composition (`compositionSchema`, ses règles comprises). */
-export const lireComposition = (brut: unknown): LectureAuSchema<Composition> => lireAuSchema(compositionSchema, brut);
+/** `brut` lu au schéma de la composition (`compositionSchema`, ses règles comprises), sous `cat`. */
+export const lireComposition = (brut: unknown, cat: Catalogue = catalogueDuProcessus()): LectureAuSchema<Composition> => lireAuSchema(compositionSchema, brut, cat);
 
-/** `brut` lu au schéma de l'apparence d'auteur (`entityAppearanceSchema`). */
-export const lireApparenceDAuteur = (brut: unknown): LectureAuSchema<EntityAppearance> => lireAuSchema(entityAppearanceSchema, brut);
+/** `brut` lu au schéma de l'apparence d'auteur (`entityAppearanceSchema`), sous `cat`. */
+export const lireApparenceDAuteur = (brut: unknown, cat: Catalogue = catalogueDuProcessus()): LectureAuSchema<EntityAppearance> => lireAuSchema(entityAppearanceSchema, brut, cat);
 
 /** Par emplacement de montage, l'emblème choisi à l'atelier, `null` pour une surface sans emblème. */
 export type SurchargesDEmblemes = typeof surchargesDEmblemesSchema._output;
 
 /** `brut` lu au schéma des surcharges d'emblème (`surchargesDEmblemesSchema`). */
-export const lireSurchargesDEmblemes = (brut: unknown): LectureAuSchema<SurchargesDEmblemes> => lireAuSchema(surchargesDEmblemesSchema, brut);
+export const lireSurchargesDEmblemes = (brut: unknown, cat: Catalogue = catalogueDuProcessus()): LectureAuSchema<SurchargesDEmblemes> => lireAuSchema(surchargesDEmblemesSchema, brut, cat);
 
 /** La clé de l'élément qui monte une chose portée : son champ et son id ; une apparence variante porte aussi sa forme
  *  `racine` (`racineDesCandidats`), dont l'élément la monte à défaut du sien. */
@@ -364,7 +368,7 @@ function typeDuPreset(): PresetDePersonnage['type'] {
  * valide : le `type` de la collection, lu au schéma, l'enveloppe entière du preset `preset` s'il est donné (ses clés
  * de `CLES_ENVELOPPE`, hors `type`), puis la composition. `verdict` porte les fautes du schéma de la collection
  * (`validateDocument`), chemin dans l'entrée, vide si elle est valide : sa composition étant validée d'abord, ce sont
- * celles de l'enveloppe, `id`, `label` et `source` sans `preset`. Seule une entrée au verdict vide se copie dans le
+ * celles de l'enveloppe, `id`, `label` et `source` sans `preset`. Chaque id se juge sous `cat`. Seule une entrée au verdict vide se copie dans le
  * fichier.
  *
  * Un `preset` qu'aucune entrée ne porte est refusé, avec les ids des presets.
@@ -372,13 +376,14 @@ function typeDuPreset(): PresetDePersonnage['type'] {
 export function presetDeComposition(
   composition: Composition,
   preset?: string,
+  cat: Catalogue = catalogueDuProcessus(),
 ): { ok: true; entree: string; verdict: FauteDePreset[] } | { ok: false; presets: string[] } {
   const enveloppe = preset === undefined ? undefined : findPresetDePersonnageById(preset);
   if (preset !== undefined && !enveloppe) return { ok: false, presets: presetsDePersonnage.map((p) => p.id) };
   const { type: _type, ...enveloppeHorsType } = enveloppe ? partDuPreset(enveloppe, true) : {};
   const entree = { type: typeDuPreset(), ...enveloppeHorsType, ...composition };
-  const lu = schemaDesPresets.safeParse([entree]);
+  const lu = parserSousCatalogue(schemaDesPresets, [entree], cat);
   if (lu.success) return { ok: true, entree: serializeDataset((lu.data as unknown[])[0]), verdict: [] };
-  const fautes = validateDocument(schemaDesPresets, [entree]) ?? [];
+  const fautes = validateDocument(schemaDesPresets, [entree], cat) ?? [];
   return { ok: true, entree: serializeDataset(entree), verdict: fautes.map(({ chemin, message }) => ({ chemin: chemin.slice(1), message })) };
 }

@@ -23,6 +23,7 @@ import tavernGames from '../../tavernGames.json';
 import evenementsDeMer from '../../sea-events.json';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const champ = (noeud: unknown, cle: string): unknown => enfantsDe(noeudObjet(noeud)).find((e) => e.cle === cle)?.noeud;
 const CLES = ['skill', 'characteristic', 'difficulty'] as const;
@@ -35,12 +36,12 @@ describe('jetSchema — une forme, trois porteurs', () => {
   it('la récupération d’un État compose le jet', () => {
     const etat = etats.find((e) => e.recover);
     if (!etat) throw new Error('aucun État ne porte de récupération (`recover`)');
-    const recover = champ(noeudDeLEntree('etats', etat), 'recover');
+    const recover = champ(noeudDeLEntree('etats', etat, catalogueDuProcessus()), 'recover');
     for (const cle of CLES) expect(champ(recover, cle), cle).toBe(champ(jetSchema, cle));
   });
 
   it('la racine d’un jeu de taverne compose le jet', () => {
-    const racine = noeudDeLEntree('tavernGames', tavernGames[0]);
+    const racine = noeudDeLEntree('tavernGames', tavernGames[0], catalogueDuProcessus());
     for (const cle of CLES) expect(champ(racine, cle), cle).toBe(champ(jetSchema, cle));
   });
 });
@@ -107,11 +108,11 @@ describe('testFixeSchema — aucun champ de décision', () => {
   });
 
   it.each(PORTEURS_FIXES)('$fichier : le Test fixe d’un porteur réel refuse chaque champ de décision', ({ fichier, donnee, chemin }) => {
-    expect(validateDataset(fichier, donnee), 'témoin').toBeNull();
+    expect(validateDataset(fichier, donnee, catalogueDuProcessus()), 'témoin').toBeNull();
     for (const cle of CHAMPS_DE_DECISION) {
       const copie: unknown = structuredClone(donnee);
       Reflect.set(Object(auChemin(copie, chemin)), cle, DECISION_VALIDE[cle]);
-      expect(validateDataset(fichier, copie) ?? '', `${fichier} + ${cle}`).toContain(`"${cle}"`);
+      expect(validateDataset(fichier, copie, catalogueDuProcessus()) ?? '', `${fichier} + ${cle}`).toContain(`"${cle}"`);
     }
   });
 });
