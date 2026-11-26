@@ -16,7 +16,8 @@
  * la palette de cette saison (`paletteSelon`).
  */
 import { rangDeCase, type Attache, type EmplacementOffert, type Repere } from '../asset/attache';
-import { COUCHES, ETATS_AU_POSTE, RANG_DU_CORPS, noeudSelon, type Couche, type ManifesteDElement, type Saison } from '../asset/element';
+import { COUCHES, RANG_DU_CORPS, type Couche } from '../asset/couches';
+import { ETATS_AU_POSTE, noeudSelon, type ManifesteDElement, type Saison } from '../asset/element';
 import type { ManifesteDeBase } from '../asset/manifesteDeBase';
 import type { Surface } from '../asset/surfaces';
 import { fichiersDuModele, indexerModeles, type EntreeDeModele } from '../asset/modeles';
@@ -116,7 +117,7 @@ export interface ModelesDeLAtelier {
    *  ne pend à l'os d'une prise de la base (`seconde-prise-sans-prise`). */
   secondesPrises: Record<string, SecondePriseDeLAtelier>;
   /** pour chaque élément servi dont le manifeste déclare une `couche`, et pour eux seuls, le rang de sa couche dans
-   *  `COUCHES` (`asset/element.ts`, de `peau` à `manteau`), s'il est un accessoire, les zones de sa base qu'il couvre
+   *  `COUCHES` (`asset/couches.ts`, de `peau` à `manteau`), s'il est un accessoire, les zones de sa base qu'il couvre
    *  (`couvre`, aucune s'il n'en déclare pas) et les éléments servis qu'il masque (`masque`) : ceux dont la couche est
    *  plus intérieure, et ceux sans couche. */
   couches: Record<string, CoucheDeLAtelier>;

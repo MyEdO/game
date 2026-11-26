@@ -65,7 +65,8 @@ import {
 } from './gardes/membreDansUnVetement.ts';
 import { gardeMembres, mesurerMembres, troncDe, ZONES_DES_MEMBRES, ZONES_DU_TRONC, type MembreDansLeTronc } from './gardes/membres.ts';
 import { gardeRigideRangeAuRepos } from './gardes/rigideRange.ts';
-import { COUCHES, RANG_DU_CORPS, type CategorieDElement, type Couche } from '../element.ts';
+import { COUCHES, RANG_DU_CORPS, type Couche } from '../couches.ts';
+import type { CategorieDElement } from '../element.ts';
 import { meshesDuCorps, peauDeLaTenue, zoneDe, zoneDeLOs } from './corps.ts';
 import { poserLaPile } from './pile.ts';
 import { endroitDe, ordreDesCouches, type BilanDePile } from '../pile.ts';

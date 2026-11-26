@@ -289,7 +289,7 @@ export function dehorsDesSommets(surface: SurfaceDePile, endroit: ArrayLike<numb
 
 /** Ce que l'ordre des couches lit d'une pièce d'une tenue. */
 export interface CoucheDePile {
-  /** Le rang de sa couche dans `COUCHES` (`element.ts`), `RANG_DU_CORPS` pour le corps. */
+  /** Le rang de sa couche dans `COUCHES` (`couches.ts`), `RANG_DU_CORPS` pour le corps. */
   readonly rang: number;
   /** Vrai pour un accessoire : à couche égale, il se porte par-dessus ce qui n'en est pas un. */
   readonly accessoire: boolean;

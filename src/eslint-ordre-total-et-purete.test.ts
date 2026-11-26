@@ -518,10 +518,8 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       for (const [cle, modules] of Object.entries(outillage)) {
         const script = cle.endsWith('/') ? `${cle}zz-outil.mjs` : cle;
         const [autre] = sondes(z).filter((rel) => rel !== script);
-        for (const m of modules) {
-          cas.push([`${script} → ${m} (déclaré)`, script, `import * as x from '${relatif(script, m)}';\nexport const a = x;\n`, 'passe']);
-          cas.push([`${autre} → ${m} (déclaré pour un autre script)`, voisin(autre, cas.length), `import * as x from '${relatif(autre, m)}';\nexport const a = x;\n`, REGLE]);
-        }
+        cas.push([`${script} → ${modules.join(', ')} (déclarés)`, script, modules.map((m, i) => `import * as x${i} from '${relatif(script, m)}';\nexport const a${i} = x${i};\n`).join(''), 'passe']);
+        for (const m of modules) cas.push([`${autre} → ${m} (déclaré pour un autre script)`, voisin(autre, cas.length), `import * as x from '${relatif(autre, m)}';\nexport const a = x;\n`, REGLE]);
         scriptsSeuls.push([`${script} → scripts/zz-autre.mjs (non déclaré)`, script, `import * as x from '${relatif(script, 'scripts/zz-autre.mjs')}';\nexport const a = x;\n`, REGLE]);
       }
     }
@@ -780,26 +778,18 @@ const FORMES_LOCALE_NEUTRES: { nom: string; code: string }[] = [
   { nom: 'champ `o.Intl`', code: 'const o = { Intl: 1 };\nexport const a = o.Intl;\n' },
 ];
 
-/** Règles qui ont pris ce code au titre de l'ORDRE TOTAL (message porteur de la réf du mur). */
-async function prisOrdreTotal(code: string, filePath: string): Promise<string[]> {
-  const [res] = await eslint.lintText(code, { filePath });
-  const mur = selectionnerMessages(res, (m) => m.message.includes('Ordre total'));
-  for (const m of mur) {
-    expect(m.ruleId, `${filePath} : ruleId nul — la config n’a pas été résolue, tout serait faussement « pris »`).toBeTruthy();
-  }
-  return [...new Set(mur.map((m) => m.ruleId!))].sort();
-}
+/** La porte de lecture d'un corpus : le mur de l'ordre total ne la prend jamais. */
+const PAR_LA_PORTE = { nom: 'la porte `readCorpus`', code: "import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';\nexport const a = readCorpus(['src']);\n" };
 
 describe('ordre total dans les tests des zones — mur mesuré sur la config RÉSOLUE (#1709 C3c-1)', () => {
   for (const dir of SOUS_LE_MUR) {
-    it(`${dir} : les formes de marche brute sont prises, les formes neutres et \`readCorpus\` passent`, { timeout: 30_000 }, async () => {
+    it(`${dir} : les formes de marche brute sont prises, les formes neutres et \`readCorpus\` passent`, { timeout: 30_000 }, () => {
       const chemin = `${ROOT}/${sondeTest(dir)}`;
-      const table = tableLint(FORMES_MARCHE,chemin,m=>m.message.includes('Ordre total'));
-      expect(table, `sonde : ${chemin}`).toEqual(Object.fromEntries(FORMES_MARCHE.map((f) => [f.nom, f.regle])));
-      const neutres = tableLint(FORMES_NEUTRES,chemin,m=>m.message.includes('Ordre total'));
-      expect(neutres, `faux positif du mur — sonde : ${chemin}`).toEqual(Object.fromEntries(FORMES_NEUTRES.map((f) => [f.nom, 'passe'])));
-      const parLaPorte = "import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';\nexport const a = readCorpus(['src']);\n";
-      expect(await prisOrdreTotal(parLaPorte, chemin), 'la PORTE ne doit jamais mordre').toEqual([]);
+      const table = tableLint([...FORMES_MARCHE, ...FORMES_NEUTRES, PAR_LA_PORTE],chemin,m=>m.message.includes('Ordre total'));
+      const de = (formes: { nom: string }[]) => Object.fromEntries(formes.map((f) => [f.nom, table[f.nom]]));
+      expect(de(FORMES_MARCHE), `sonde : ${chemin}`).toEqual(Object.fromEntries(FORMES_MARCHE.map((f) => [f.nom, f.regle])));
+      expect(de(FORMES_NEUTRES), `faux positif du mur — sonde : ${chemin}`).toEqual(Object.fromEntries(FORMES_NEUTRES.map((f) => [f.nom, 'passe'])));
+      expect(table[PAR_LA_PORTE.nom], 'la PORTE ne doit jamais mordre').toBe('passe');
     });
   }
 

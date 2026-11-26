@@ -32,7 +32,7 @@ import { Triangle, Vector3, type Mesh, type SkinnedMesh } from 'three';
 import type { Ecart, LibelleDeMesh } from '../ecart.ts';
 import type { Echantillon, Pose } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
-import { RANG_DU_CORPS } from '../../element.ts';
+import { RANG_DU_CORPS } from '../../couches.ts';
 import {
   couvertureDe,
   croiserLaCouverture,

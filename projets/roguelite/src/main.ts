@@ -160,6 +160,7 @@ function demarrer(): void {
         return ref ? agir(() => J.acheter(etat, id, { genre: 'talent', ref })) : undefined;
       }
       case 'utiliser': { const ligne = J.utiliserUneProvision(etat, id, k!); J.sauver(etat); rendre(); return toast(ligne); }
+      case 'relever': { const ligne = J.seRelever(etat, id); J.sauver(etat); rendre(); return toast(ligne); }
       case 'prier': { const ligne = J.prier(etat, id, k!); J.sauver(etat); rendre(); return toast(ligne); }
       case 'congedier': congediement = id; return rendre();
       case 'congedier-non': congediement = null; return rendre();

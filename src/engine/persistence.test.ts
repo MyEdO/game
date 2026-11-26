@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
-import { isPersistentCondition, carryOverState } from './persistence';
+import { isPersistentCondition, carryOverState, entreeEnRencontre } from './persistence';
+import { releaseConditionLocks } from './conditions';
+import type { Condition } from './flowCore';
 import { etats, findConditionById } from '../data';
 import { traumaById, dechirureFractureFicheId, avecSequelles } from './trauma';
 import type { HitLocation } from './types';
@@ -81,5 +83,39 @@ describe('persistence — carryOverState', () => {
     const s = carryOverState(c, { lignes: [], faits: [] });
     expect(s.traumas!.length).toBe(1);
     expect(s.traumas![0].ops?.some((o) => o.op === 'moveScale')).toBe(true);
+  });
+});
+
+describe('persistence — un État dont le verrou tient sort de la rencontre (LDB 18 l.15, l.53)', () => {
+  const sansHemorragie: Condition = { kind: 'compare', subject: { who: 'target', condition: 'hemorragique' }, op: '==', value: 0 };
+  const sortie = (c: Combatant) => carryOverState(c, { lignes: [], faits: [] }).conditions!.map((x) => x.id);
+  const entree = (c: Combatant) => entreeEnRencontre(c, { lignes: [], faits: [] }).conditions.map((x) => x.id);
+  const auxDeuxCoutures = (c: Combatant, id: string, garde: boolean) => {
+    expect(sortie(c).includes(id), `retour : ${id}`).toBe(garde);
+    expect(entree(c).includes(id), `entrée : ${id}`).toBe(garde);
+  };
+
+  it('À Terre à 0 Blessure tient (LDB 18 l.15)', () => {
+    auxDeuxCoutures(baseCombatant({ wounds: blessuresDeBase(12, 0), conditions: [{ id: 'a-terre', value: 1 }] }), 'a-terre', true);
+  });
+  it('À Terre à 3 Blessures tombe (LDB 16 l.39)', () => {
+    auxDeuxCoutures(baseCombatant({ wounds: blessuresDeBase(12, 3), conditions: [{ id: 'a-terre', value: 1 }] }), 'a-terre', false);
+  });
+  it('Sonné jusqu’à l’Aide médicale tient, puis tombe une fois l’Aide reçue (LDB 18 l.120)', () => {
+    const c = baseCombatant({ conditions: [{ id: 'sonne', value: 1, unlockBy: 'medicalAid' }] });
+    auxDeuxCoutures(c, 'sonne', true);
+    releaseConditionLocks(c, 'medicalAid');
+    auxDeuxCoutures(c, 'sonne', false);
+  });
+  it('Aveuglé jusqu’à l’Aide médicale tient (LDB 18 l.70)', () => {
+    auxDeuxCoutures(baseCombatant({ conditions: [{ id: 'aveugle', value: 1, unlockBy: 'medicalAid' }] }), 'aveugle', true);
+  });
+  it('Aveuglé tant qu’un Hémorragique reste tient ; sans Hémorragique, il tombe (LDB 18 l.68)', () => {
+    const aveugle = { id: 'aveugle', value: 1, lockedUntil: sansHemorragie };
+    auxDeuxCoutures(baseCombatant({ conditions: [{ id: 'hemorragique', value: 2 }, { ...aveugle }] }), 'aveugle', true);
+    auxDeuxCoutures(baseCombatant({ conditions: [{ ...aveugle }] }), 'aveugle', false);
+  });
+  it('Inconscient jusqu’à la fin de la rencontre tombe malgré son verrou d’acte (LDB 18 l.53)', () => {
+    auxDeuxCoutures(baseCombatant({ conditions: [{ id: 'inconscient', value: 1, finDeRencontre: true }] }), 'inconscient', false);
   });
 });

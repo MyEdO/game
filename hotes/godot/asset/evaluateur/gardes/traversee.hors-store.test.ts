@@ -4,7 +4,7 @@ import { BufferAttribute, BufferGeometry, Mesh, SkinnedMesh } from 'three';
 import type { Echantillon } from '../echantillonnage.ts';
 import { ECART_DE_SUIVI_M } from './suiviDuCorps.ts';
 import { gardePercementAuRepos, gardeTraversee, lierLesCouches, mesurerTraversee, sansLesZonesMasquees } from './traversee.ts';
-import { RANG_DU_CORPS } from '../../element.ts';
+import { RANG_DU_CORPS } from '../../couches.ts';
 import { endroitDe, ordreDesCouches, PORTEE_DE_COUVERTURE_M } from '../../pile.ts';
 
 /** Un carré de 0,2 m de côté à la hauteur `z`, en grille 3 × 3, décalé de `dx` en X. */

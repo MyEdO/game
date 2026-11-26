@@ -224,7 +224,7 @@ def importer(bpy, glb):
 
 
 def couches_du_jeu():
-    """`COUCHES` et `RANG_DU_CORPS` (`hotes/godot/asset/element.ts`) : `{'COUCHES': [...], 'RANG_DU_CORPS': rang}`."""
+    """`COUCHES` et `RANG_DU_CORPS` (`hotes/godot/asset/couches.ts`) : `{'COUCHES': [...], 'RANG_DU_CORPS': rang}`."""
     return json.loads(lancer(Path(__file__).resolve().parent / 'base' / 'gabarit.mjs', [], json.dumps({'operation': 'couches'})))
 
 

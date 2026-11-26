@@ -117,9 +117,6 @@ export function tirerUneEspece(rng: RNG, carriere: string, especes: readonly str
 export const carac = (c: Combatant, k: CharKey): number => effectiveChar(c, k);
 
 
-/** Hors de combat : à 0 PB ou Inconscient. */
-export const horsDeCombat = (c: Combatant): boolean => !!c.dead || c.wounds.current <= 0 || c.conditions.some((e) => e.id === 'inconscient');
-
 /** Libellé de la carrière d'un porteur (`careers.json`), à la forme de son sexe. */
 export const nomDeCarriere = (c: { career?: string } & PorteurDeSexe): string => careerLabelFor(c);
 
