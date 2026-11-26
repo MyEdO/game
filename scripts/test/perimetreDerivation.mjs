@@ -20,8 +20,6 @@ import {
   APPEL_D_ACQUISITION,
   certifierLecture,
   evaluerLotDuDepot,
-  evaluer,
-  lecteurDExpressions,
   lectureDeModule,
   partiesDeRequete,
   encoderLecture,
@@ -36,6 +34,7 @@ import { memosDe, PAQUETS_VERSIONNANTS, texteSiPresent } from '../guards/lib/mem
 import { empreinteDe, fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { cheminAbsent } from '../guards/lib/lister.mjs'
 import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
+import { CONFIG_VITEST, setupFilesDe } from './setupDeVitest.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Les fichiers dont un changement invalide toute dérivation : la suite entière est retenue. */
 const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vitest.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
@@ -48,7 +47,6 @@ export const RANG_TOOLCHAIN = RANG_SETUP + 1
 const rangDe = (lien) => lien.nature === 'touché' ? 0 : lien.nature === 'racine balayée' ? 1
   : lien.nature === 'import' ? 1 + lien.distance : lien.nature === 'setup' ? RANG_SETUP : RANG_TOOLCHAIN
 /** La config Vitest d'où se lisent les `setupFiles`. */
-const CONFIG_VITEST = 'vitest.config.ts'
 
 /** Les VARIANTES gardées par évaluation de module (`evaluations`) : une par jeu de réponses, les tours du
  *  point fixe des lecteurs en posant plusieurs. */
@@ -99,22 +97,6 @@ function imagesDuDiff(depot, { base, tete } = {}) {
   return { base: borne, tete: null, touches, post, avant }
 }
 
-/** Les `setupFiles` de la config Vitest (`CONFIG_VITEST`), lus sur son arbre syntaxique (`analyser`). */
-function setupFilesDe(texte, analyser) {
-  if (texte === null) return []
-  const ts = typescript()
-  const [{ sourceFile }] = [...analyser([{ rel: CONFIG_VITEST, text: texte }])]
-  const { expr, lambdas } = lecteurDExpressions(CONFIG_VITEST, sourceFile)
-  const vus = []
-  const visiter = (n) => {
-    if (ts.isPropertyAssignment(n) && ts.isIdentifier(n.name) && n.name.text === 'setupFiles') vus.push(...evaluer(expr(n.initializer), { lambdas }))
-    n.forEachChild(visiter)
-  }
-  visiter(sourceFile)
-  const non = vus.find((v) => !('chemin' in v))
-  if (non) throw new Error(`perimetre : setupFiles de ${CONFIG_VITEST} illisible (${non.non ?? 'hors du dépôt'})`)
-  return vus.map((v) => v.chemin)
-}
 
 /** @typedef {{ site: string, fichier: string, helper: string, raison: string, moduleBalaieLeDepot: boolean }} NonResolu */
 

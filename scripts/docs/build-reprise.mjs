@@ -592,7 +592,10 @@ Dans la course de file, pour tout push documentaire, les ${NB_GATES_TOUJOURS} ga
 chevauche ce périmètre jouent (${listeCode(GATES_TOUJOURS)}) et les ${NB_GATES_SAUTABLES} autres sont sautées.
 Après \`npm ci\`, le prologue écrit les gates sautées du push (\`scripts/gates/sauteesDuPush.mjs\`) : en plus
 du cas documentaire, une gate qui déclare ses \`zones\` (\`ECRIT_LU\`) saute quand chaque fichier du diff est
-dans un dossier de zone hors de \`src/\` qu'elle ne lit pas, ou documentaire (#4903 L4).
+dans un dossier de zone hors de \`src/\` qu'elle ne lit pas, ou documentaire (#4903 L4). Il écrit aussi la zone
+du push (\`zoneDuPush\`) : quand chaque fichier changé que la suite lit est sous le dossier d'un seul projet, chaque tranche de la
+suite ne joue que les tests qui peuvent lire ce projet (\`scripts/test/selectionDeZone.mjs\`, #5037 L2) ; une
+tranche vide rend vert, et tout ce que la sélection ne sait pas classer joue.
 
 \`npm run ops:publier\` joue le train : push de la BRANCHE, PR armée, attente de la fusion
 par la file, pilotage. Il refuse à la première étape rouge en la nommant,

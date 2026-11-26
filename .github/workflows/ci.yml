@@ -436,6 +436,10 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
         uses: ./.github/actions/caches-3d
+      # La zone du push (#5037 L2) : sous elle, la tranche ne joue que les tests qui lisent ce projet
+      # (`selectionDeLaZone`, scripts/test/selectionDeZone.mjs) ; une tranche vide rend vert.
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' test ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: echo "WFRP_TEST_ZONE=${{ steps.prologue.outputs.zone }}" >> "$GITHUB_ENV"
       - if: ${{ !contains(steps.prologue.outputs.sautees, ' test ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm test
       # Pas de step `test:map` : `scripts/map/**/*.test.ts` est dans le `test.include` de

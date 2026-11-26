@@ -25,6 +25,10 @@ export const COMMANDE_RENDU_LOGICIEL =
  *  le Playwright des devDependencies nomme (`EPINGLE`, scripts/recette/navigateur.mjs). */
 export const COMMANDE_NAVIGATEUR_EPINGLE = 'npx playwright install chromium'
 
+/** Commande EXACTE du step du job `suite` de `ci.yml` (#5037 L2) : la zone du push (`outputs.zone` du prologue,
+ *  `scripts/gates/sauteesDuPush.mjs`) posée dans l'environnement des steps suivants, où `scripts/test/run.mjs` la lit. */
+export const COMMANDE_ZONE_DU_PUSH = 'echo "WFRP_TEST_ZONE=${{ steps.prologue.outputs.zone }}" >> "$GITHUB_ENV"'
+
 /**
  * Steps de `ci.yml` qui ne sont PAS une gate locale, chacun avec sa raison. La liste est exhaustive
  * et EXACTE (ligne pour ligne) : c'est elle qui rend le classement fail-CLOSED — un step d'une autre
@@ -40,6 +44,8 @@ export const CI_SEULEMENT = {
   [COMMANDE_RENDU_LOGICIEL]:
     'installe sur le runner l’écran virtuel et le rendu logiciel que `godot:rendus` demande — localement, un poste à ' +
     'écran rend sur sa carte graphique, et un conteneur les installe une fois',
+  [COMMANDE_ZONE_DU_PUSH]:
+    'pose la zone du push dans l’environnement de la tranche — localement, la variable absente joue la suite entière',
   [COMMANDE_NAVIGATEUR_EPINGLE]:
     'installe sur le runner le Chromium épinglé de `roguelite:recette` — localement, `lancerLeNavigateurEpingle` refuse ' +
     'tout autre navigateur et nomme celui qu’il attend',
