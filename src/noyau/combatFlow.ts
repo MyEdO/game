@@ -5177,7 +5177,7 @@ function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant,
 }
 
 /** Hurlement fantomatique, geste `lancerLAttaqueDeZone` : PAS de jet d'attaquant ; dépense TOUS les Avantages
- *  (min 2, LDB 85 l.135). Clôt par `checkBattleOver`. */
+ *  (min 2, LDB 85 l.170). Clôt par `checkBattleOver`. */
 export function applyWail(get: Get, set: SetFn, attacker: Combatant): void {
   if (!attacker.pos || attacker.advantage < 2) return;
   const a = creatureAttacks(attacker.traits ?? []).find((x) => x.kind === 'hurlement');
