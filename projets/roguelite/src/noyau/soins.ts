@@ -1,5 +1,6 @@
 /**
- * Le repos, les soins et les séquelles, par les primitives du moteur ; le soin d'un compagnon par l'infirmerie du noyau.
+ * Les soins, les maladies et les séquelles, par les primitives du moteur ; le soin d'un compagnon par l'infirmerie du
+ * noyau.
  */
 import {
   arena,
@@ -9,15 +10,12 @@ import {
   type QualiteDeRepos,
   verbeDeJetDe,
   type GesteDuJeu,
-  designeGaranti,
   prixDeLOffre,
   estOperation,
   gesteDeSoins,
-  testValue,
   peutTenter,
   makeRNG,
   maladieDeclaree,
-  fabriqueLocale,
   MINUTES_PER_DAY,
   corruptionThreshold,
   cappedHealAmount,
@@ -29,55 +27,12 @@ import {
   type Combatant,
 } from '../../../../src/noyau';
 import { rollTest } from '../../../../src/engine/tests';
-import { restRecovery, dailyDiseaseUpkeep, applyDiseaseEnd } from '../../../../src/engine/rest';
-import { applyDiseaseGangrene } from '../../../../src/engine/disease';
-import { applyOps, type GameOp } from '../../../../src/engine/ops';
-import type { UpkeepDeferTest } from '../../../../src/engine/types';
 import { applyHealWounds } from '../../../../src/engine/healing';
-import { tickTraumaRecovery, applyFractureEnd, cureCriticalWounds, hasTreatableTrauma, treatTrauma, removeSurgicalTrauma } from '../../../../src/engine/trauma';
+import { cureCriticalWounds, hasTreatableTrauma, treatTrauma, removeSurgicalTrauma } from '../../../../src/engine/trauma';
 import { chancesDeReussite, type Visee } from './epreuve';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
 export type { QualiteDeRepos };
-
-/** `jours` journées de repos (LDB 18 l.296) et de convalescence des Blessures critiques (LDB 18 l.202-222), par les
- *  primitives du moteur ; le Test de fin d'une fracture est lancé sur place. Mute `c`, rend le journal. */
-export function reposer(c: Combatant, graine: number, jours: number): string[] {
-  const rng = makeRNG(graine);
-  const lignes = restRecovery(c, rng, jours);
-  const fins: string[] = [];
-  const convalescence = tickTraumaRecovery(c, jours, (spec) => {
-    const m = spec.meta as { severity: string; location: string; traumaLabel: string };
-    const r = rollTest({ porteur: c.id, teste: designeGaranti(spec.test ?? {}, spec.kind) }, spec.test ? testValue(c, spec.test) : spec.base, spec.difficulty, rng);
-    fins.push(...applyFractureEnd(c, r.success, m.severity, m.location, m.traumaLabel));
-  });
-  return [...lignes, ...convalescence, ...fins];
-}
-
-/** `jours` journées de maladie (LDB 20, jours calendaires) par `dailyDiseaseUpkeep` ; `soigne` : un soignant veille le
- *  malade (LDB 09, Guérison). Chaque Test de cycle que le moteur diffère est jeté à la fin de sa journée et appliqué comme
- *  l'applique la cascade de nuit du noyau (`noyau/restFlow.ts`, appliers `maladie-*`). Mute `c`, rend le journal. */
-export function entretenirLesMaladies(c: Combatant, graine: number, jours: number, soigne: boolean): string[] {
-  const rng = makeRNG(graine);
-  const idNeuf = fabriqueLocale(`m${graine}`);
-  const lignes: string[] = [];
-  const differes: Parameters<UpkeepDeferTest>[0][] = [];
-  const appliquer = (spec: Parameters<UpkeepDeferTest>[0]) => {
-    const valeur = spec.base ?? testValue(c, spec.test!);
-    const r = rollTest({ porteur: c.id, teste: designeGaranti(spec.test ?? {}, spec.kind) }, valeur, spec.difficulty, rng, (spec.mods ?? []).reduce((n, m) => n + m.value, 0));
-    const maladie = String(spec.meta?.diseaseName ?? '');
-    if (spec.kind === 'maladie-persistance') lignes.push(...applyDiseaseEnd(c, maladie, r.success, r.sl, rng));
-    else if (spec.kind === 'maladie-gangrene') lignes.push(...applyDiseaseGangrene(c, maladie, r.success, Number(spec.meta?.be ?? 0)));
-    else if (spec.kind === 'maladie-test-quotidien' && !r.success) {
-      lignes.push(...applyOps(c, (spec.meta?.opsEchec ?? []) as GameOp[], { idNeuf, rng, sl: r.sl, source: { kind: 'maladie', id: maladie } }).lignes);
-    }
-  };
-  for (let j = 0; j < jours && !c.dead; j++) {
-    lignes.push(...dailyDiseaseUpkeep(c, rng, (spec) => { differes.push(spec); }, soigne));
-    for (const spec of differes.splice(0)) if (!c.dead) appliquer(spec);
-  }
-  return lignes;
-}
 
 /** Le nom d'une maladie de `maladies.json`. */
 export const nomDeMaladie = (id: string): string => diseaseLabel(id);
