@@ -648,6 +648,15 @@
     "verrou": "src/data/schemas/catalogue/catalogue.test.ts ; src/data/catalogueDuProcessus.test.ts"
   },
   {
+    "id": "parserSousCatalogue",
+    "type": "primitives.manifest",
+    "label": "parserSousCatalogue/sousLeLecteur",
+    "fichier": "src/data/schemas/catalogue/references.ts",
+    "concept": "le parse d'une donnée sous un catalogue passé (#5070) : le même `safeParse`, sous le lecteur d'ids de `cat` (`sousLeLecteur`, `grammaire/ref.ts`, borné à l'appel, imbrication comprise), qui lit les documents de `cat` et les vocabulaires du moteur ; le jugement d'un id, de sa sous-liste marquée ou discriminée, garde ses messages, ses paths et la sémantique des unions ; un document que `cat` ne porte pas se lit vide",
+    "perimetre": "toute porte qui juge les ids d'une donnée (feuilles `idDe`, `ref`, `refs`, clés de `recordDIds`) contre une bibliothèque candidate ou le catalogue d'une partie, sans `npm run gen`",
+    "verrou": "src/data/schemas/catalogue/references.test.ts ; src/data/parserSousCatalogue-equivalence.test.ts"
+  },
+  {
     "id": "echapperRegex",
     "type": "primitives.manifest",
     "label": "echapperRegex",

@@ -277,15 +277,17 @@ hôte compose un catalogue, et il le remet à sa partie.
   - `regle(id, cat)` remplace `rule(id)` (`src/engine/policy.ts:64`). La `Map` globale des surcharges
     (`policy.ts:47`) disparaît, car les choix sont dans la composition.
 - **Les références.** Une référence ne se raffine plus contre un index global. Le schéma garde la forme : il est
-  constant, et ne lit aucune donnée. Le parse relève ses repères, par `reperesDuParse` (`src/data/schemas/grammaire/ref.ts:799`).
-  Une seconde passe les juge contre un `AccesAuxDocuments` (`src/data/schemas/grammaire/collection-cle.ts:705`).
-  - Cette passe juge l'existence d'un id, et rien d'autre : un repère ne porte que `{ path, type, parCle }`
-    (`ref.ts:675-679`).
+  constant, et ne lit aucune donnée à sa construction. Le jugement d'un id lit un lecteur d'ids courant (`lecteurCourant`,
+  `src/data/schemas/grammaire/ref.ts:249`), l'index des ids par défaut. `parserSousCatalogue(schema, valeur, cat)`
+  (`src/data/schemas/catalogue/references.ts`) est le même `safeParse`, sous le lecteur de `cat` (`sousLeLecteur`,
+  `ref.ts:253`), bâti sur un `AccesAuxDocuments` (`src/data/schemas/grammaire/collection-cle.ts:705`).
+  - Ce lecteur juge l'existence d'un id dans son espace, sous-liste marquée ou discriminée comprise (recalage C5 du
+    2026-11-26), aux messages et aux paths du parse : une union garde sa sémantique.
 - **Les raffinements croisés.** Certains raffinements croisent un champ du document et un champ de l'entrée visée :
   le cap et les ponts (`defs-scenes/scene.ts:327`), la munition et la pièce (`scene.ts:330-332`), la carrière et le
   profil (`scene.ts:226`). Ils deviennent des lectures `fautesDe…(document, cat)` de `schemas/catalogue`. Trois sites les
   appellent :
-  - la seconde passe, au chargement de la bibliothèque et au Compendium ;
+  - `parserSousCatalogue`, au chargement de la bibliothèque et au Compendium ;
   - l'éditeur de scène ;
   - le noyau, pour ses paquets et ses scènes.
 
@@ -317,15 +319,15 @@ hôte compose un catalogue, et il le remet à sa partie.
   - Le Compendium juge la bibliothèque *candidate* : une entrée créée, puis référencée par une autre, est acceptée sans
     `npm run gen`.
   - `lireLEspace`, `idsVivants`, `fige` et `poserRegimeVivant` meurent.
-  - Le repère porte aussi sa sous-liste et son marqueur, et la seconde passe les juge contre `cat`. Ce jugement
-    remplace `idsDesignes`, `refusDuMarqueur`, `refusDeLaDiscriminee` (`ref.ts:283-295`) et l'index de `ref.ts:215`.
+  - Le lecteur de `cat` juge la sous-liste et le marqueur. Il remplace `idsDesignes` (`ref.ts:238`), que lisent par
+    défaut `refusDuMarqueur` et `refusDeLaDiscriminee` (`ref.ts:308-313`), et l'index de `ref.ts:214`.
     Il couvre les 13 références à sous-liste (`idDe(type, sousListe)`, par exemple `defs/props.ts:35` et
     `grammaire/valeurs.ts:1156`).
-  - `porteLeMarqueur` (`ref.ts:345`) devient `porteLeMarqueur(type, marqueur, id, cat)` dans `schemas/catalogue`. Ses 14 sites
+  - `porteLeMarqueur` (`ref.ts:365`) devient `porteLeMarqueur(type, marqueur, id, cat)` dans `schemas/catalogue`. Ses 14 sites
     suivent leur famille : `scene.ts:125` va à la famille 1, `src/engine/weaponGroup.ts:16,20` à la famille 6.
-  - Les 11 lectures `lire.catalogue(…)` des defs passent à la seconde passe, dans la famille 1 : `trappings.ts:83,413`,
+  - Les 11 lectures `lire.catalogue(…)` des defs jugent sous le lecteur de `cat`, dans la famille 1 : `trappings.ts:83,413`,
     `careerLevels.ts:16`, `garde-robe.ts:188`, `merchants.ts:26`, `apparences.ts:66`, `cargaisons-aleatoires.ts:21`,
-    `grammaire/reference.ts:90-93,207`, `grammaire/ref.ts:634`, `especes-aleatoires`.
+    `grammaire/reference.ts:90-93,207`, `grammaire/ref.ts:654`, `especes-aleatoires`.
   - La génération des ids émet deux modules. Le type littéral `IdsParEspace`, que lit `Id<T>`, va sous `schemas`. La
     valeur `IDS_PAR_ESPACE` va sous `src/data/`. Aujourd'hui, les deux vivent ensemble (`_ids.generated.ts:514`).
 
@@ -466,7 +468,7 @@ ferme le cycle les solde.
 | Ordre | Famille | Fichiers de production | Sites de la base | Fan-in hors famille | Lots estimés |
 |---|---|---|---|---|---|
 | 0 | Socle : zone `schemas` (ligne transitoire) et son dossier `catalogue/`, modules purs déplacés, type `Catalogue`, bibliothèque, `composer`, `entreeDe`, le cœur de `memoByRef` en feuille, `regle`, `ouvertParSaRegle(e, cat)`, `catalogueDeTest`, partie et `CatalogueDeLaPartie`, fossiles 1, 2 et 5 | ~25 déplacés | — | — | 4 |
-| 1 | Grammaire : seconde passe des références (sous-listes et marqueurs compris), `parserSousCatalogue` et ses 8 sites d'entrée, fautes croisées, 10 fichiers et 11 `lire.catalogue` de `schemas`, `IDS_PAR_ESPACE` sous `data`, 70 suites de `schemas` | ~30 | 24 imports | — | 7 |
+| 1 | Grammaire : références jugées sous le lecteur de `cat` (sous-listes et marqueurs compris), `parserSousCatalogue` et ses 8 sites d'entrée, fautes croisées, 10 fichiers et 11 `lire.catalogue` de `schemas`, `IDS_PAR_ESPACE` sous `data`, 70 suites de `schemas` | ~30 | 24 imports | — | 7 |
 | 2 | Apparence (`noyau/apparence/*`, `animation`) | 6 | 52 | 8 | 1 |
 | 3 | Monde et scènes (`noyau/monde/*`, `sceneEdit*`, `worldMap*`, `engine/structures`, `poseDesPonts`, `valeursNeuves`) | 30 | 116 | 145 | 5 |
 | 4 | Repos, maladie, temps (`clock`, `disease`, `rest`, `restFlow`, `innFlow`…) | 12 | 80 | 40 | 2 |

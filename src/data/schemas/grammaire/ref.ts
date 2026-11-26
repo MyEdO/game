@@ -241,6 +241,25 @@ function idsDesignes(cle: string, site: string): ReadonlySet<string> {
   return ids;
 }
 
+/** Lecture des ids d'un espace DÉSIGNÉ par sa clé, au nom du site qui le désigne : une clé absente LÈVE. */
+export type LecteurDIds = (cle: string, site: string) => ReadonlySet<string>;
+
+/** Le lecteur que lit le jugement d'une sous-liste et d'un id (`refusDe`) : l'INDEX DES IDS, sauf le temps d'un
+ *  `sousLeLecteur`. */
+let lecteurCourant: LecteurDIds = idsDesignes;
+
+/** `juger()` sous le lecteur `ids`, rendu au précédent en sortie, levée comprise : la porte d'un parse sous un
+ *  catalogue (`schemas/catalogue/references.ts`). */
+export function sousLeLecteur<T>(ids: LecteurDIds, juger: () => T): T {
+  const precedent = lecteurCourant;
+  lecteurCourant = ids;
+  try {
+    return juger();
+  } finally {
+    lecteurCourant = precedent;
+  }
+}
+
 /**
  * Clé d'espace de la sous-liste `valeur` d'un type discriminé : le CHAMP discriminant qui porte cette
  * valeur se lit aux clés de l'INDEX DES IDS (`<espace>?<champ>=<valeur>`), où la phase 2 l'écrit depuis le
@@ -287,12 +306,12 @@ const refusDeMarqueur = (type: TypeEntite, id: string, marqueur: string | undefi
 
 /** Le refus d'un id PRÉSENT dans l'espace de son type par une sous-liste marquée — `null` s'il est ADMIS. */
 function refusDuMarqueur(type: TypeEntite, sousListe: SousListeMarquee, site: string, id: string): string | null {
-  return refusDeMarqueur(type, id, sousListe.horsMarqueurs.find((m) => idsDesignes(cleDuMarqueur(type, m), site).has(id)));
+  return refusDeMarqueur(type, id, sousListe.horsMarqueurs.find((m) => lecteurCourant(cleDuMarqueur(type, m), site).has(id)));
 }
 
 /** Le refus d'un id par une sous-liste DISCRIMINÉE — `null` s'il est ADMIS. */
 const refusDeLaDiscriminee = (type: TypeEntite, sousListe: string, site: string, id: string): string | null =>
-  idsDesignes(cleDeSousListe(type, sousListe, site), site).has(id)
+  lecteurCourant(cleDeSousListe(type, sousListe, site), site).has(id)
     ? null
     : `« ${id} » est hors de la sous-liste « ${sousListe} » du catalogue des ${TYPES[type].catalogue} (${espaceDe(type)}).`;
 
@@ -308,7 +327,7 @@ export function refusDeLEntree(type: TypeEntite, sousListe: SousListe, entree: {
 /** Le refus d'un id par une feuille `idDe(type, sousListe?)` — `null` s'il est ADMIS —, lu à chaque validation. */
 function refusDe(type: TypeEntite, sousListe: SousListe | undefined, site: string, id: string): string | null {
   if (typeof sousListe === 'string') return refusDeLaDiscriminee(type, sousListe, site, id);
-  if (!idsDesignes(espaceDe(type), site).has(id)) return refMorte(type, id);
+  if (!lecteurCourant(espaceDe(type), site).has(id)) return refMorte(type, id);
   return sousListe === undefined ? null : refusDuMarqueur(type, sousListe, site, id);
 }
 
@@ -321,13 +340,13 @@ export function dansLaSousListe(sousListe: SousListeMarquee, entree: object): bo
   return marqueurPorte(sousListe, entree) === undefined;
 }
 
-/** Les ids ADMIS par `idDe(type, sousListe)`, dans l'ordre de la donnée, lus au registre (régime
- *  vivant compris, `lireLEspace`) — les options d'un sélecteur et les producteurs qui énumèrent la
- *  sous-liste. */
+/** Les ids ADMIS par `idDe(type, sousListe)`, dans l'ordre de la donnée, lus au lecteur courant (le registre,
+ *  régime vivant compris, `lireLEspace`, hors d'un `sousLeLecteur`) — les options d'un sélecteur et les producteurs
+ *  qui énumèrent la sous-liste. */
 export function idsDeLaSousListe(type: TypeEntite, sousListe: SousListe): readonly string[] {
   const site = `idsDeLaSousListe('${type}')`;
-  if (typeof sousListe === 'string') return [...idsDesignes(cleDeSousListe(type, sousListe, site), site)];
-  return [...idsDesignes(espaceDe(type), site)].filter((id) => refusDuMarqueur(type, sousListe, site, id) === null);
+  if (typeof sousListe === 'string') return [...lecteurCourant(cleDeSousListe(type, sousListe, site), site)];
+  return [...lecteurCourant(espaceDe(type), site)].filter((id) => refusDuMarqueur(type, sousListe, site, id) === null);
 }
 
 /** Ids admis de `type` — l'ensemble que juge `idDe(type)`. */
