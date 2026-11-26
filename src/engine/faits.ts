@@ -208,6 +208,12 @@ export function emettreDans(a: Applique, cible: Pick<Combatant, 'id' | 'label'>,
   a.lignes.push(texteDuFait(f, nomDe(cible), source));
 }
 
+/** Verse dans `a` les lignes et les faits de `b`, dans leur ordre. */
+export function absorberDans(a: Applique, b: Applique): void {
+  a.lignes.push(...b.lignes);
+  a.faits.push(...b.faits);
+}
+
 /** Pousse `f` dans `a` sans ligne : LA seule émission d'un fait que le journal ne dit pas, ou que son producteur dit
  *  par sa propre prose. */
 export function constaterDans(a: Applique, f: FaitApplique): void {

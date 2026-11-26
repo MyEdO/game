@@ -192,7 +192,7 @@ import { domainSeaFocusCritMiscastMajeure } from '../engine/domainAttributes';
 import { type OvercastAxis, overcastSourceOf, extraTargetCapacity, overcastDurationParts } from '../engine/overcast';
 import { resolveOpposed, ligneSansJet, cibleMesuree } from '../engine/tests';
 import { dispellableSpellsOn, dissipateSpell } from '../engine/dispel';
-import type { Applique } from '../engine/faits';
+import { lignesHorsDesFaits, type Applique, type FaitApplique } from '../engine/faits';
 import { effectiveChar, bonus } from '../engine/characteristics';
 import { spendResolveForPsychImmunity, calmeDAcquisition, ciblesDAnimositeAcquise, PSY } from '../engine/psychology';
 import { recomputeLoadout, loadWeapon, unloadWeapon, choisirLaMunition, loadoutSetActive, loadoutLabel } from '../engine/items';
@@ -623,7 +623,7 @@ const REFUS_DEPLACEMENT: Partial<Record<MovementBlockReason, (get: Get, active: 
  * déclare (LDB 17 l.61), rendues AVANT le retrait — c'est ce soin qui lève le verrou d'À Terre
  * (LDB 18 l.15). La dépense est ATOMIQUE : retrait non acquis, le soin est repris.
  */
-function retireEtatParDetermination(c: Combatant, conditionName: string, now: number): { retire: boolean; soigne: number } {
+function retireEtatParDetermination(c: Combatant, conditionName: string, now: number, a: Applique): { retire: boolean; soigne: number } {
   if (raisonRefusDetermination(c, conditionName)) return { retire: false, soigne: 0 };
   const avant = stacks(c, conditionName);
   const soigne = soinDeDetermination(c, conditionName);
@@ -634,9 +634,13 @@ function retireEtatParDetermination(c: Combatant, conditionName: string, now: nu
     // GRANULAIRE (#1695) : « Retirez un État » (LDB 17 l.61) — une source qui en porte PLUSIEURS
     // (Transmutation de Chamon : Aveuglé, Assourdi, Sonné) ne perd que celui que la dépense vise.
     suspendSource(c, src, fenetre, 'Détermination (conscience)', determinationWindowId(conditionName), conditionName);
-    syncDerivedConditions(c);
+    // Le retrait du pion porté est dit par `cs.determinationRemove` : la réconciliation n'en verse que le fait.
+    const r = syncDerivedConditions(c);
+    const dit = r.faits.find((f): f is Extract<FaitApplique, { genre: 'etat' }> => f.genre === 'etat' && f.id === conditionName && f.valeur < 0);
+    a.faits.push(...r.faits);
+    a.lignes.push(...(dit ? lignesHorsDesFaits({ lignes: r.lignes, faits: [dit] }, () => nomDe(c)) : r.lignes));
   }
-  if (stacks(c, conditionName) >= avant) removeCondition(c, conditionName, 1); // « Retirez un État » (un pion), LDB 17 l.61
+  if (stacks(c, conditionName) >= avant) removeCondition(c, conditionName, 1, a); // « Retirez un État » (un pion), LDB 17 l.61
   const retire = stacks(c, conditionName) < avant;
   // ATOMICITÉ : le point n'est pas débité quand rien n'est levé (appelants) — le soin ne doit pas rester
   // non plus. Reste ici le retrait qu'un PLANCHER de pions dérivés refuse (`retireEtat`).
@@ -650,20 +654,24 @@ function retireEtatParDetermination(c: Combatant, conditionName: string, now: nu
 /** Les trois options de la dépense d'un Point de Détermination (LDB 17 l.59-61). */
 export type OptionDeDetermination = 'immuniserALaPsychologie' | 'ignorerLesCritiques' | 'retirerUnEtat';
 
-/** Dépense d'un Point de Détermination de `c` pour `option`, l'État `etat` pour le retrait : la ligne du journal, ou
+/** Dépense d'un Point de Détermination de `c` pour `option`, l'État `etat` pour le retrait : les lignes du journal, ou
  *  `null` quand rien n'est levé et que le point n'est pas débité. Le verdict (`refusDeDetermination`) précède. */
-function depenseDeDetermination(c: Combatant, option: OptionDeDetermination, etat: string | undefined, now: number): string | null {
+function depenseDeDetermination(c: Combatant, option: OptionDeDetermination, etat: string | undefined, now: number): string[] | null {
   switch (option) {
-    case 'immuniserALaPsychologie': return spendResolveForPsychImmunity(c);
+    case 'immuniserALaPsychologie': {
+      const ligne = spendResolveForPsychImmunity(c);
+      return ligne ? [ligne] : null;
+    }
     case 'ignorerLesCritiques':
       poserLaDetermination(c, determinationDe(c) - 1);
       poseDeterminationCanceller(c, { scale: 'rounds', left: 1 }, 'Détermination (Critique)');
-      return t('cs.determinationCrit', { name: nomDe(c) });
+      return [t('cs.determinationCrit', { name: nomDe(c) })];
     case 'retirerUnEtat': {
-      const { retire, soigne } = retireEtatParDetermination(c, garanti(etat, c.id, 'État retiré par Détermination'), now);
+      const sortie: Applique = { lignes: [], faits: [] };
+      const { retire, soigne } = retireEtatParDetermination(c, garanti(etat, c.id, 'État retiré par Détermination'), now, sortie);
       if (!retire) return null;
       poserLaDetermination(c, determinationDe(c) - 1);
-      return t('cs.determinationRemove', { name: nomDe(c), cond: conditionLabel(etat!), extra: soigne > 0 ? t('cs.fragGettingUp') : '' });
+      return [t('cs.determinationRemove', { name: nomDe(c), cond: conditionLabel(etat!), extra: soigne > 0 ? t('cs.fragGettingUp') : '' }), ...sortie.lignes];
     }
     default: return option satisfies never;
   }
@@ -1233,8 +1241,9 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!active || isOutOfAction(active)) return;
       const inst = active.conditions.find((c) => c.id === COND.aTerre);
       if (!inst || isConditionLocked(inst, active)) return;
-      removeCondition(active, COND.aTerre);
-      set({ battle: { ...battle, movementUsed: mountMovement(battle, active), action: null, log: [...battle.log, ev('deplacement', t('cs.standUp', { name: nomDe(active) }), active.id)] } });
+      const sortie: Applique = { lignes: [], faits: [] };
+      removeCondition(active, COND.aTerre, 1, sortie);
+      set({ battle: { ...battle, movementUsed: mountMovement(battle, active), action: null, log: [...battle.log, ev('deplacement', t('cs.standUp', { name: nomDe(active) }), active.id), ...evLines(sortie.lignes, 'etat', active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1525,11 +1534,11 @@ export function createCombatSlice(get: Get, set: Set) {
         if (controlsCombatant(s, porteur)) refuserGesteDuSiege(get, set, refus);
         return;
       }
-      const ligne = depenseDeDetermination(porteur, option, etat, s.gameTime);
-      if (!ligne) return; // rien à lever : le point n'est pas débité
+      const lignes = depenseDeDetermination(porteur, option, etat, s.gameTime);
+      if (!lignes) return; // rien à lever : le point n'est pas débité
       const jet = option === 'immuniserALaPsychologie' ? jetImmunise(get(), porteur) : null;
       set({ ...jet?.patch, ...touchActors(get()) });
-      journaliser(get, set, [ligne, ...(jet?.ligne ? [jet.ligne] : [])], 'information', { actorId: porteur.id });
+      journaliser(get, set, [...lignes, ...(jet?.ligne ? [jet.ligne] : [])], 'information', { actorId: porteur.id });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1636,8 +1645,9 @@ export function createCombatSlice(get: Get, set: Set) {
       const formation = formationDeCombat(scene, partyPos, livingParty.length, prises);
       const { campaignNarratif } = get();
       const resolveTrapping = objetDuNarratif(campaignNarratif);
+      const sortieALEntree: Applique = { lignes: [], faits: [] };
       const heroes = livingParty.map((h, i) => {
-        const c: Combatant = { ...entreeEnRencontre(h), pos: formation[i] };
+        const c: Combatant = { ...entreeEnRencontre(h, sortieALEntree), pos: formation[i] };
         // Re-dérive les armes ACTIVES depuis les items persistés : une arme usée/détruite au combat
         // précédent (damageTaken/destroyed sur l'ItemInstance) reste usée/détruite (LDB 62 l.135).
         if (c.items?.length) recomputeLoadout(c);
@@ -1788,7 +1798,7 @@ export function createCombatSlice(get: Get, set: Set) {
         movementUsed: 0,
         movedPreAction: false,
         acted: false,
-        log: [ev('round', t('cs.combatStart'))],
+        log: [ev('round', t('cs.combatStart')), ...evLines(sortieALEntree.lignes, 'etat')],
         over: null,
         onVictory: victoire ?? enc.onVictory,
         victoryCondition: enc.victoryCondition,
@@ -2561,8 +2571,9 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         const foe = inBattleId(battle, pd.foeId);
         if (!actor || !foe) return set({ pendingGrapple: null });
         clearGrapple(actor, foe);
-        removeCondition(actor, COND.empetre, stacks(actor, COND.empetre)); // l'acteur se libère de l'*Empêtré* de l'Empoignade
-        const log = [...battle.log, ev('esquive', t('cs.grappleBreak', { name: nomDe(actor), foe: nomDe(foe) }), actor.id, foe.id)];
+        const sortie: Applique = { lignes: [], faits: [] };
+        removeCondition(actor, COND.empetre, stacks(actor, COND.empetre), sortie); // l'acteur se libère de l'*Empêtré* de l'Empoignade
+        const log = [...battle.log, ev('esquive', t('cs.grappleBreak', { name: nomDe(actor), foe: nomDe(foe) }), actor.id, foe.id), ...evLines(sortie.lignes, 'etat', actor.id)];
         set({ pendingGrapple: null, battle: { ...battle, log } }); // gratuit : pas d'`acted`
         bus.emit(EVT.SCENE_DIRTY);
       },
@@ -3045,13 +3056,14 @@ export function cloturesDuCombat(get: Get, set: Set) {
         ? applyOps(a, [{ op: 'wounds', amount: sr.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: a }).lignes
         : [];
       const removed = recoveredStacks(sr.netSL, stacks(a, sr.state), sr.success); // 1 + DR, borné
-      if (removed > 0) removeCondition(a, sr.state, removed);
+      const sortie: Applique = { lignes: [], faits: [] };
+      if (removed > 0) removeCondition(a, sr.state, removed, sortie);
       // Filets (Zoo Impérial p.29) : un échec de libération AGGRAVE l'Empêtré (≠ Immobilisante générique).
       if (!sr.success && sr.entangleOnFail) addCondition(a, sr.state, 1);
       // ISSUE dérivée par le goulot (`FLOWS.recuperation.apply`, canal COMBAT) : le pending est FOURNI (fermé
       // juste avant), les Dégâts de débattement restent la conséquence propre du site.
       const recoverIssue = FLOWS.recuperation.apply(get, { p: sr });
-      finishPlayerAction(get, set, [...struggleLines, ...recoverIssue], 'etat'); // consomme l'Action
+      finishPlayerAction(get, set, [...struggleLines, ...recoverIssue, ...sortie.lignes], 'etat'); // consomme l'Action
     },
     fuiteDeVapeur: () => {
       const p = get().pendingSteamSave;

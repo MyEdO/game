@@ -179,7 +179,7 @@ describe('coutures du héros en combat (#2312)', () => {
     h.advantage = 3; h.tookCriticalThisFight = true; h.woundDressed = true; h.roundsAtZero = 2; h.soinRencontreUtilise = true;
     h.dosesDeRencontre = ['potion-de-guerison']; h.marquesDeDose = { 'racine-de-terre': 3 };
     h.engagedWith = ['x']; h.conditions = [{ id: 'au-sol', value: 1 }, { id: 'extenue', value: 1 }] as never;
-    const c = entreeEnRencontre(h);
+    const c = entreeEnRencontre(h, { lignes: [], faits: [] });
     expect(c).toMatchObject({ advantage: 0, tookCriticalThisFight: false, woundDressed: false, roundsAtZero: 0, soinRencontreUtilise: false, dosesDeRencontre: [], marquesDeDose: { 'racine-de-terre': 3 }, engagedWith: [] });
     expect([isPersistentCondition('au-sol'), isPersistentCondition('extenue')]).toEqual([false, true]);
     expect(c.conditions.map((x) => x.id)).toEqual(['extenue']);
@@ -189,8 +189,8 @@ describe('coutures du héros en combat (#2312)', () => {
   it('le retour ne reporte que les champs classés comme sortant du combat', () => {
     const h = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     const sortants = Object.entries(REPORT_DE_COMBATTANT).filter(([, r]) => r.sort !== false).map(([k]) => k);
-    expect(Object.keys(carryOverState(h)).every((k) => sortants.includes(k))).toBe(true);
-    expect(carryOverState({ ...h, pos: { x: 9, y: 9 } })).not.toHaveProperty('pos');
+    expect(Object.keys(carryOverState(h, { lignes: [], faits: [] })).every((k) => sortants.includes(k))).toBe(true);
+    expect(carryOverState({ ...h, pos: { x: 9, y: 9 } }, { lignes: [], faits: [] })).not.toHaveProperty('pos');
   });
 
   it('touchActors est la seule couture qui recopie la file de combat pour la re-rendre', () => {

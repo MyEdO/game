@@ -44,7 +44,7 @@ describe('Verrou d’État de Critique — lockedUntil (LDB 18)', () => {
     addCondition(c, 'hemorragique', 2);
     addCondition(c, 'aveugle', 1, undefined, undefined, undefined, undefined, { lockedUntil: noHemo });
     expect(isConditionLocked(c.conditions.find((x) => x.id === 'aveugle')!, c)).toBe(true);
-    removeCondition(c, 'aveugle'); // auto-dissipation / soin : bloqué
+    removeCondition(c, 'aveugle', 1, { lignes: [], faits: [] }); // auto-dissipation / soin : bloqué
     expect(hasCondition(c, 'aveugle')).toBe(true);
   });
 
@@ -52,16 +52,16 @@ describe('Verrou d’État de Critique — lockedUntil (LDB 18)', () => {
     const c = mk();
     addCondition(c, 'hemorragique', 1);
     addCondition(c, 'aveugle', 1, undefined, undefined, undefined, undefined, { lockedUntil: noHemo });
-    removeCondition(c, 'hemorragique'); // Hémorragique = 0
+    removeCondition(c, 'hemorragique', 1, { lignes: [], faits: [] }); // Hémorragique = 0
     expect(isConditionLocked(c.conditions.find((x) => x.id === 'aveugle')!, c)).toBe(false);
-    removeCondition(c, 'aveugle');
+    removeCondition(c, 'aveugle', 1, { lignes: [], faits: [] });
     expect(hasCondition(c, 'aveugle')).toBe(false);
   });
 
   it('sans lockedUntil : aucun verrou (comportement inchangé)', () => {
     const c = mk();
     addCondition(c, 'sonne', 2);
-    removeCondition(c, 'sonne');
+    removeCondition(c, 'sonne', 1, { lignes: [], faits: [] });
     expect(stacks(c, 'sonne')).toBe(1);
   });
 });
@@ -76,7 +76,7 @@ describe('Verrou d’acte de soin — unlockBy (LDB 18 : medicalAid / surgery / 
   it('unlockBy verrouille l’État : removeCondition (récupération naturelle) inerte tant qu’il tient', () => {
     const c = withLock('sonne', 'medicalAid');
     expect(isConditionLocked(c.conditions[0], c)).toBe(true);
-    removeCondition(c, 'sonne'); // auto-dissipation / récupération par Round : bloquée
+    removeCondition(c, 'sonne', 1, { lignes: [], faits: [] }); // auto-dissipation / récupération par Round : bloquée
     expect(hasCondition(c, 'sonne')).toBe(true);
   });
 
@@ -193,11 +193,11 @@ describe('le verrou s’évalue contre la vue COMPLÈTE du porteur (#1599)', () 
     c.characteristics.force = 20;
     addCondition(c, 'sonne', 1, undefined, undefined, undefined, undefined, { lockedUntil: forceAuMoins30 });
     expect(isConditionLocked(c.conditions[0], c), 'Force 20 : le verrou doit TENIR').toBe(true);
-    removeCondition(c, 'sonne');
+    removeCondition(c, 'sonne', 1, { lignes: [], faits: [] });
     expect(hasCondition(c, 'sonne')).toBe(true);
     c.characteristics.force = 35;
     expect(isConditionLocked(c.conditions[0], c), 'Force 35 : le verrou doit TOMBER').toBe(false);
-    removeCondition(c, 'sonne');
+    removeCondition(c, 'sonne', 1, { lignes: [], faits: [] });
     expect(hasCondition(c, 'sonne')).toBe(false);
   });
 
@@ -256,11 +256,11 @@ describe('verrou de TYPE — une instance NUE de l’État en hérite', () => {
     c.wounds.current = 0;
     addCondition(c, 'a-terre', 1); // pose NUE : aucun verrou d'instance
     expect(isConditionLocked(c.conditions[0], c)).toBe(true);
-    removeCondition(c, 'a-terre');
+    removeCondition(c, 'a-terre', 1, { lignes: [], faits: [] });
     expect(hasCondition(c, 'a-terre'), 'À Terre retiré à 0 Blessure (LDB 18 l.15)').toBe(true);
     c.wounds.current = 1;
     expect(isConditionLocked(c.conditions[0], c)).toBe(false);
-    removeCondition(c, 'a-terre');
+    removeCondition(c, 'a-terre', 1, { lignes: [], faits: [] });
     expect(hasCondition(c, 'a-terre')).toBe(false);
   });
 

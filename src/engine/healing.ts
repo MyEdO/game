@@ -13,7 +13,7 @@ import {
   hasSurgeryLockedCondition,
   syncDerivedConditions,
   stacks,
-  retirerHemorragie,
+  faitsDesPoses,
 } from './conditions';
 import { hasTreatableTrauma, hasSurgeryTrauma, hasRecoverableTrauma, hasLimbAwaitingAid } from './trauma';
 import { contractDisease } from './disease';
@@ -202,12 +202,11 @@ export function healWoundsDelta(intBonus: number, dr: number, success: boolean, 
   return test === 'guerison' && total < 0 ? total : 0;
 }
 
-/** Arrêt d'Hémorragie (LDB 09 l.261 / LDB 16 l.107-109 ; LDB 74 l.41 ; LDB 09 l.528). Décision de l'orchestrateur
- *  (2026-11-03, #3059) : la Dextérité sous Bandages retire 1 État. Tous retirés ⇒ Exténué. */
-export function stopBleedOutcome(dr: number, stacks: number, success: boolean, p: ParametresDeSoin): { removed: number; gainExtenue: boolean } {
+/** Arrêt d'Hémorragie (LDB 09 l.261 / LDB 16 l.107 ; LDB 74 l.41 ; LDB 09 l.528). Décision de l'orchestrateur
+ *  (2026-11-03, #3059) : la Dextérité sous Bandages retire 1 État. Rend les États retirés. */
+export function stopBleedOutcome(dr: number, stacks: number, success: boolean, p: ParametresDeSoin): number {
   const bonus = p.test === 'guerison' ? dr + (p.bandages ? 1 : 0) : 0;
-  const removed = recoveredStacks(bonus, stacks, success); // « 1 + bonus » borné, partagé avec Empêtré/En flammes
-  return { removed, gainExtenue: removed > 0 && removed >= stacks };
+  return recoveredStacks(bonus, stacks, success); // « 1 + bonus » borné, partagé avec Empêtré/En flammes
 }
 
 /** Munitions Empaleuses logées (LDB 62 l.250) : nombre de flèches/carreaux/balles non retirés — pions de
@@ -224,8 +223,9 @@ export interface HealWoundsOptions {
    *  couvert ici) — `false` pour éviter un double traitement partiel. */
   wake?: boolean;
   /** Libellé de journal spécifique au chemin (reçoit le nombre de PB EFFECTIVEMENT rendus, déjà
-   *  plafonné, et le réveil) — sinon le libellé par défaut du chemin Guérison, réveil compris. */
-  log?: (healed: number, reveille: boolean) => string[];
+   *  plafonné, et la sortie de l'Inconscient au réveil, `undefined` sans réveil) — sinon le libellé par
+   *  défaut du chemin Guérison, réveil compris. */
+  log?: (healed: number, reveil: Applique | undefined) => string[];
 }
 
 /** Montant de PB effectivement rendus par un `delta` positif (plafond munitions Empaleuses logées,
@@ -251,15 +251,16 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
     const lost = loseWounds(target, -delta, consequences);
     return [t('heal.backfire', { name: nomDe(target), lost }), ...consequences.lignes];
   }
-  if (delta === 0) return customLog ? customLog(0, false) : [t('heal.nothing', { name: nomDe(target) })];
+  if (delta === 0) return customLog ? customLog(0, undefined) : [t('heal.nothing', { name: nomDe(target) })];
   const before = target.wounds.current;
   target.wounds.current = before + cappedHealAmount(target, delta);
   const healed = target.wounds.current - before;
-  const reveille = wake && target.wounds.current > 0 && reprendreConnaissance(target);
+  const sortie: Applique = { lignes: [], faits: [] };
+  const reveil = wake && target.wounds.current > 0 && reprendreConnaissance(target, sortie) ? sortie : undefined;
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
-  const log = customLog ? customLog(healed, reveille) : [
+  const log = customLog ? customLog(healed, reveil) : [
     healed > 0 ? t('heal.gain', { name: nomDe(target), n: healed, cur: target.wounds.current, max: target.wounds.max }) : t('heal.lodgedBlocks', { name: nomDe(target) }),
-    ...(reveille ? [t('heal.awake', { name: nomDe(target) })] : []),
+    ...(reveil ? [t('heal.awake', { name: nomDe(target) }), ...reveil.lignes] : []),
   ];
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
@@ -269,17 +270,17 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
 
 /** L'arrêt d'Hémorragie sur les États que `target` porte : SOURCE UNIQUE de l'application (`applyStopBleed`) et de
  *  l'annonce (`describeHeal`). */
-export function arretDHemorragie(target: Combatant, dr: number, success: boolean, p: ParametresDeSoin): { removed: number; gainExtenue: boolean } {
+export function arretDHemorragie(target: Combatant, dr: number, success: boolean, p: ParametresDeSoin): number {
   return stopBleedOutcome(dr, stacks(target, 'hemorragique'), success, p);
 }
 
 /** Applique l'arrêt d'Hémorragie (mutation). `dr` = DR du Test réussi. */
 export function applyStopBleed(target: Combatant, dr: number, p: ParametresDeSoin): string[] {
-  const { retires, extenue } = retirerHemorragie(target, arretDHemorragie(target, dr, true, p).removed);
+  const sortie: Applique = { lignes: [], faits: [] };
+  const [fait] = faitsDesPoses(target, ['hemorragique'], () => removeCondition(target, 'hemorragique', arretDHemorragie(target, dr, true, p), sortie));
+  const retires = -(fait?.valeur ?? 0);
   if (retires <= 0) return [t('heal.bleedResists', { name: nomDe(target) })];
-  const log = [t('heal.bleedStopped', { name: nomDe(target), n: retires })];
-  if (extenue) log.push(t('heal.bleedExtenue', { name: nomDe(target) }));
-  return log;
+  return [t('heal.bleedStopped', { name: nomDe(target), n: retires }), ...sortie.lignes];
 }
 
 /** `c` porte-t-il une Blessure Critique de la rencontre qu'aucun pansement ne couvre encore ? LDB 09 l.260, LDB 72 l.20 */
@@ -321,6 +322,7 @@ export function resolveExtractLodgedAmmo(target: Combatant, success: boolean): s
   const before = lodgedAmmoCount(target);
   if (before <= 0) return [t('heal.noLodged', { name: nomDe(target) })];
   if (!success) return [t('heal.lodgedResists', { name: nomDe(target) })];
-  removeCondition(target, 'munition-logee', 1);
-  return [t('heal.lodgedRemoved', { name: nomDe(target), left: before - 1 })];
+  const sortie: Applique = { lignes: [t('heal.lodgedRemoved', { name: nomDe(target), left: before - 1 })], faits: [] };
+  removeCondition(target, 'munition-logee', 1, sortie);
+  return sortie.lignes;
 }

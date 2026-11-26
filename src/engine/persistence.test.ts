@@ -48,7 +48,7 @@ describe('persistence — carryOverState', () => {
       conditions: [{ id: 'hemorragique', value: 2 }, { id: 'surpris', value: 1 }, { id: 'extenue', value: 1 }],
       criticalWounds: 1, roundsAtZero: 0, dead: false, outOfRencontre: false,
     });
-    const s = carryOverState(c);
+    const s = carryOverState(c, { lignes: [], faits: [] });
     expect(s.wounds!.current).toBe(4);
     expect(s.criticalWounds).toBe(1);
     expect(s.conditions!.find((x) => x.id === 'hemorragique')?.value).toBe(2);
@@ -56,29 +56,29 @@ describe('persistence — carryOverState', () => {
     expect(s.conditions!.some((x) => x.id === 'surpris')).toBe(false);
   });
   it('reporte la mort ; l’éjection de la RENCONTRE n’en fait pas partie (LDB 17 l.31/l.35)', () => {
-    expect(carryOverState(baseCombatant({ dead: true })).dead).toBe(true);
-    expect('outOfRencontre' in carryOverState(baseCombatant({ outOfRencontre: true }))).toBe(false);
+    expect(carryOverState(baseCombatant({ dead: true }), { lignes: [], faits: [] }).dead).toBe(true);
+    expect('outOfRencontre' in carryOverState(baseCombatant({ outOfRencontre: true }), { lignes: [], faits: [] })).toBe(false);
   });
   it('ne partage pas les références de conditions (copie défensive)', () => {
     const c = baseCombatant({ conditions: [{ id: 'hemorragique', value: 1 }] });
-    const s = carryOverState(c);
+    const s = carryOverState(c, { lignes: [], faits: [] });
     s.conditions![0].value = 99;
     expect(c.conditions[0].value).toBe(1);
   });
   it('reporte soinRencontreUtilise (limite 1 soin/rencontre survit au combat)', () => {
-    expect(carryOverState(baseCombatant({ soinRencontreUtilise: true })).soinRencontreUtilise).toBe(true);
-    expect(carryOverState(baseCombatant({})).soinRencontreUtilise).toBeUndefined();
+    expect(carryOverState(baseCombatant({ soinRencontreUtilise: true }), { lignes: [], faits: [] }).soinRencontreUtilise).toBe(true);
+    expect(carryOverState(baseCombatant({}), { lignes: [], faits: [] }).soinRencontreUtilise).toBeUndefined();
   });
   it('persiste la munition Empaleuse logée combat → hors-combat (LDB 62 l.250, #473)', () => {
     const c = baseCombatant({
       conditions: [{ id: 'munition-logee', value: 2 }, { id: 'surpris', value: 1 }],
     });
-    const s = carryOverState(c);
+    const s = carryOverState(c, { lignes: [], faits: [] });
     expect(s.conditions!.find((x) => x.id === 'munition-logee')?.value).toBe(2);
   });
   it('persiste les traumatismes', () => {
     const c = baseCombatant({ traumas: avecSequelles([], [tk('fracture', 'mineur', 'jambeG')]) });
-    const s = carryOverState(c);
+    const s = carryOverState(c, { lignes: [], faits: [] });
     expect(s.traumas!.length).toBe(1);
     expect(s.traumas![0].ops?.some((o) => o.op === 'moveScale')).toBe(true);
   });

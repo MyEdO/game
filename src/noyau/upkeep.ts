@@ -37,9 +37,9 @@ import { dailyFoodUpkeep, dailyWaterUpkeep, feedFromMeal, lotPerime, noterLeRepa
 import { peutTenter, testValue } from '../engine/skills';
 import { HEAL_SKILL } from '../engine/healing';
 import { effectiveChar, bonus } from '../engine/characteristics';
-import { loseWounds, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
+import { loseWounds, purgerEtats, removeActiveEffects, syncDerivedConditions } from '../engine/conditions';
 import { nomDe } from '../engine/nom';
-import { type Combatant, type Difficulty, type UpkeepDeferTest, type TestIds } from '../engine/types';
+import { type Combatant, type ConditionInstance, type Difficulty, type UpkeepDeferTest, type TestIds } from '../engine/types';
 import type { NightStakeId } from '../data/index';
 import { rollStep } from './rollSeam';
 import type { ModLine } from '../engine/combat';
@@ -87,11 +87,9 @@ export function purgeClockEffects(get: Get, set: Set): LigneDEntretien[] {
     lignes.push(...porte.lignes);
     // États à durée d'HORLOGE (op `condition.durationHours` — Belladone : sommeil « 1d10+4 heures ») :
     // dissipés à l'échéance, même canal de purge que les effets actifs (LDB 72 l.18).
-    const conds = (h.conditions ?? []).filter((x) => x.untilTime != null && x.untilTime <= now);
-    if (conds.length) {
-      for (const x of conds) lignes.push(t('upkeep.condFades', { name: nomDe(h), cond: conditionLabel(x.id) }));
-      h.conditions = h.conditions.filter((x) => !(x.untilTime != null && x.untilTime <= now));
-    }
+    const echu = (x: ConditionInstance) => x.untilTime != null && x.untilTime <= now;
+    for (const x of (h.conditions ?? []).filter(echu)) lignes.push(t('upkeep.condFades', { name: nomDe(h), cond: conditionLabel(x.id) }));
+    purgerEtats(h, echu, { lignes, faits: [] });
     // Un effet d'HORLOGE qui vient d'expirer peut avoir suspendu un fait source d'État dérivé : la fenêtre
     // de conscience de LDB 20 l.170 (Détermination) se referme ICI — l'État repart par la réconciliation.
     lignes.push(...syncDerivedConditions(h).lignes);

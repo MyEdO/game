@@ -32,7 +32,6 @@ import {
   removeActiveEffects,
   pionsRetirables,
   faitsDesPoses,
-  retirerHemorragie,
   COND,
 } from './conditions';
 import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
@@ -133,7 +132,7 @@ import {
   Weapon,
   locationLabel,
 } from './types';
-import { constaterDans, emettreDans, faitDArgent, faitDObjet, nomDeSource, type Applique, type FaitAvecLigne } from './faits';
+import { absorberDans, constaterDans, emettreDans, faitDArgent, faitDObjet, nomDeSource, type Applique, type FaitAvecLigne } from './faits';
 import { campOf } from './relations';
 import { formatWardSave, traitLisible } from './traits/dispatch';
 import { woundsFromHit } from './woundsCalc';
@@ -1005,19 +1004,23 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
   };
   const sur = (cible: Combatant) => ({ cible: cible.id, camp: campOf(cible) });
   // Ce qu'une application imbriquée ou un socle d'États a dit : ses lignes ET ses faits.
-  const absorber = (a: Applique) => { lines.push(...a.lignes); sortie.faits.push(...a.faits); };
+  const absorber = (a: Applique) => absorberDans(sortie, a);
   // Soin par la SOURCE UNIQUE `applyHealWounds` : le fait dit les Blessures RÉELLEMENT regagnées (post-plafond).
   // `magique` : Sort ou Prière ; l'Hémorragie part avant le réveil. LDB 16 l.107 ; LDB 18 l.15
   const soigner = (qui: Combatant, n: number, magique: boolean, vol?: true) => {
     const avant = qui.wounds.current;
-    const saignement = magique ? retirerHemorragie(qui, cappedHealAmount(qui, n)) : null;
-    let reveil = false;
+    const sortieDuSaignement: Applique = { lignes: [], faits: [] };
+    const saignement = magique ? faitsDesPoses(qui, [COND.hemorragique], () => removeCondition(qui, COND.hemorragique, cappedHealAmount(qui, n), sortieDuSaignement)) : [];
+    let reveil: Applique | undefined;
     const suite = applyHealWounds(qui, n, { log: (_, reveille) => { reveil = reveille; return []; } });
     const regagnees = qui.wounds.current - avant;
     if (!vol || regagnees > 0) emettre(qui, { genre: 'blessures', ...sur(qui), valeur: regagnees, ...(vol ? { vol } : {}) });
-    if (saignement?.retires) emettre(qui, { genre: 'etat', ...sur(qui), id: COND.hemorragique, valeur: -saignement.retires });
-    if (saignement?.extenue) emettre(qui, { genre: 'etat', ...sur(qui), id: COND.extenue, valeur: 1 });
-    if (reveil) emettre(qui, { genre: 'etat', ...sur(qui), id: COND.inconscient, valeur: -1 });
+    for (const f of saignement) emettre(qui, f);
+    absorber(sortieDuSaignement);
+    if (reveil) {
+      emettre(qui, { genre: 'etat', ...sur(qui), id: COND.inconscient, valeur: -1 });
+      absorber(reveil);
+    }
     lines.push(...suite);
   };
   // DISSIPATION (LDB 46) : on retient les ActiveEffect PRÉ-EXISTANTS (par référence) pour ne marquer,
@@ -1214,9 +1217,11 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ? (target.conditions.find((x) => x.id === id)?.value ?? 1)
           : Math.max(1, formuleDuCtx(o.value ?? 1, ref, ctx) + slBonus(ctx.sl, o.valuePerSL));
         const avant = target.conditions.find((x) => x.id === id)?.value ?? 0;
-        removeCondition(target, id, v);
+        const consequences: Applique = { lignes: [], faits: [] };
+        removeCondition(target, id, v, consequences);
         const retires = avant - (target.conditions.find((x) => x.id === id)?.value ?? 0);
         emettre(target, { genre: 'etat', ...sur(target), id, valeur: -retires, ...(o.all ? { tous: true } : {}) });
+        absorber(consequences);
         break;
       }
       case 'endPsych': {

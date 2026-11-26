@@ -191,8 +191,8 @@ describe('la fenêtre ne déborde jamais du symptôme dépensé (LDB 20 l.188)',
     banc.getState().depenserLaDetermination(h.id, 'retirerUnEtat', 'inconscient');
     const c0 = banc.getState().battle!.combatants[0];
     expect(stacks(c0, 'inconscient'), 'le fiévreux n’est pas revenu à lui').toBe(0);
-    expect(stacks(c0, 'extenue'), 'l’Exténué du Malaise est parti avec la fenêtre').toBe(1);
-    expect(derivedStacks(c0, 'extenue')).toBe(1);
+    expect(derivedStacks(c0, 'extenue'), 'l’Exténué du Malaise est parti avec la fenêtre').toBe(1);
+    expect(stacks(c0, 'extenue'), 'le réveil pose son propre Exténué (LDB 16 l.119)').toBe(2);
     expect(symptomSuppressed(c0, 'malaise'), 'le Malaise a été suspendu lui aussi').toBe(false);
   });
 

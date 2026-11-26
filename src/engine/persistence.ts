@@ -6,6 +6,8 @@ import type { Combatant, ConditionInstance } from './types';
 import { findConditionById } from '../data';
 import { synchroniserArmesDuProfil } from './creatureEquip';
 import { recomputeLoadout } from './items';
+import { purgerEtats, sansReactionAuxEtats } from './conditions';
+import type { Applique } from './faits';
 
 /** Cet État suit-il le porteur hors du combat ? Drapeau DÉCLARÉ sur l'entrée d'`etats.json`
  *  (`EtatData.persistsAfterCombat`) : le moteur lit le champ, il n'énumère aucun id. Un État absent du
@@ -111,39 +113,39 @@ export const REPORT_DE_COMBATTANT = {
 
 const CHAMPS = Object.entries(REPORT_DE_COMBATTANT) as [keyof Combatant, Report][];
 
-/** États persistants seuls, hors ceux qui durent la rencontre (LDB 18 l.53). Copie défensive. */
-function persistentConditions(c: Combatant): ConditionInstance[] {
-  return c.conditions.filter((x) => isPersistentCondition(x.id) && !x.finDeRencontre).map((x) => ({ ...x }));
-}
+/** Ce qui ne sort pas de la rencontre : un État transitoire, ou qui dure la rencontre (LDB 18 l.53). */
+const etatDeRencontre = (x: ConditionInstance): boolean => !isPersistentCondition(x.id) || !!x.finDeRencontre;
 
 /** Couture de RETOUR (fin de combat, `finalizeBattle`) : tout ce qui sort du combattant vers le héros du
- *  groupe, selon `REPORT_DE_COMBATTANT`. Copie défensive. */
-export function carryOverState(c: Combatant): Partial<Combatant> {
+ *  groupe, selon `REPORT_DE_COMBATTANT`, lu sur une copie dont les États de rencontre sont purgés (`purgerEtats`),
+ *  leurs sorties émises dans `a`, sans réaction de combat. Copie défensive. */
+export function carryOverState(c: Combatant, a: Applique): Partial<Combatant> {
+  const copie: Combatant = { ...c, conditions: c.conditions.map((x) => ({ ...x })) };
+  sansReactionAuxEtats(() => purgerEtats(copie, etatDeRencontre, a));
   const out: Record<string, unknown> = {};
   for (const [cle, r] of CHAMPS) {
-    if (r.sort === 'etats-persistants') out[cle] = persistentConditions(c);
-    else if (r.sort) out[cle] = structuredClone(c[cle]);
+    if (r.sort === 'etats-persistants') out[cle] = copie.conditions;
+    else if (r.sort) out[cle] = structuredClone(copie[cle]);
   }
   return out as Partial<Combatant>;
 }
 
-/** Le héros du groupe `h` au sortir de la rencontre où il a vécu en `c` (`carryOverState`) : la sortie d'une bataille
- *  (`finalizeBattle`) et celle d'une série d'attaques subies. */
-export function sortieDeRencontre(h: Combatant, c: Combatant): Combatant {
-  const sorti = { ...h, ...carryOverState(c) };
+/** Le héros du groupe `h` au sortir de la rencontre où il a vécu en `c` (`carryOverState`, sorties d'États dans `a`) :
+ *  la sortie d'une bataille (`finalizeBattle`) et celle d'une série d'attaques subies. */
+export function sortieDeRencontre(h: Combatant, c: Combatant, a: Applique): Combatant {
+  const sorti = { ...h, ...carryOverState(c, a) };
   if (sorti.loadouts?.length || sorti.items?.length || h.loadouts?.length || h.items?.length) recomputeLoadout(sorti);
   else synchroniserArmesDuProfil(sorti, h.traits);
   return sorti;
 }
 
-/** Couture d'ENTRÉE (`lancerLeCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`.
- *  Copie défensive ; la position reste à poser par l'appelant. */
-export function entreeEnRencontre(h: Combatant): Combatant {
+/** Couture d'ENTRÉE (`lancerLeCombat`) : le combattant né du héros du groupe, selon `REPORT_DE_COMBATTANT`, ses États
+ *  de rencontre purgés (`purgerEtats`), leurs sorties émises dans `a`, sans réaction de combat. Copie défensive ; la
+ *  position reste à poser par l'appelant. */
+export function entreeEnRencontre(h: Combatant, a: Applique): Combatant {
   const c = structuredClone(h);
   const champs = c as unknown as Record<string, unknown>;
-  for (const [cle, r] of CHAMPS) {
-    if (r.sort === 'etats-persistants') champs[cle] = persistentConditions(h);
-    else if (r.entree !== undefined) champs[cle] = structuredClone(r.entree);
-  }
+  for (const [cle, r] of CHAMPS) if (r.sort !== 'etats-persistants' && r.entree !== undefined) champs[cle] = structuredClone(r.entree);
+  sansReactionAuxEtats(() => purgerEtats(c, etatDeRencontre, a));
   return c;
 }

@@ -71,7 +71,7 @@ export function describeHeal(ph: PendingHeal, target: Combatant, name: string): 
     if (wounds) return t('out.healWounds', { name, n: preview });
     if (trauma) return t('out.healTrauma', { name, n: 1 + Math.max(0, ph.sl) });
     if (ammo) return t('out.healAmmo', { name });
-    return t('out.healBleed', { n: arretDHemorragie(target, ph.sl, true, parametresDuSoin(ph)).removed, name });
+    return t('out.healBleed', { n: arretDHemorragie(target, ph.sl, true, parametresDuSoin(ph)), name });
   }
   return wounds && ph.intBonus + ph.sl < 0
     ? t('out.healHarm', { name, n: ph.intBonus + ph.sl })
