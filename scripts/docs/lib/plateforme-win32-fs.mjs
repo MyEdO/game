@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { cheminAbsent, listerDossier } from '../../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 import { versPosix, versWindows } from './plateforme-win32-hooks.mjs'
 
 const lireOuAbsent = (lire, valeurAbsente) => {
@@ -26,10 +27,11 @@ const disqueHote = {
   readFile: (nom) => lireOuAbsent(() => decoderDisque(fs.readFileSync(nom)), null),
   fileExists: (nom) => lireOuAbsent(() => fs.statSync(nom).isFile(), false),
   directoryExists: (nom) => lireOuAbsent(() => fs.statSync(nom).isDirectory(), false),
+  // L'énumération de l'`include` du tsconfig descend dans `projets/` : l'hôte lit tous les projets (#5037).
   getAccessibleEntries: (nom) => lireOuAbsent(() => {
     const files = []
     const directories = []
-    for (const enfant of listerDossier(nom)) {
+    for (const enfant of listerDossier(nom, { porte: porteDeTousLesProjets })) {
       const stat = lireOuAbsent(() => fs.statSync(path.join(nom, enfant)), null)
       if (stat?.isFile()) files.push(enfant)
       else if (stat?.isDirectory()) directories.push(enfant)

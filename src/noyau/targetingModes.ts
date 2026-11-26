@@ -396,7 +396,7 @@ export function refusDAttaque(get: Get, active: Combatant, target: Combatant, op
   }
   if (plan.kind === 'bloque') {
     const p = previewAttack(get, active, target, undefined, { weaponUid: option.weaponUid });
-    return { reason: p.blocked ? 'los' : p.kind === 'melee' && isEngaged(active) ? 'engaged' : 'range', texte: plan.reason };
+    return { reason: p.blocked ? 'los' : p.kind === 'melee' && isEngaged(active, battle.combatants) ? 'engaged' : 'range', texte: plan.reason };
   }
   if (plan.kind === 'attaque' && !option.freeKind) {
     const block = firedAttackBlock(get, active, target, option.weaponUid);

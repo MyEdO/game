@@ -1,6 +1,7 @@
 import path from 'node:path';
 import { ChildProcess } from 'node:child_process';
 import { createRequire } from 'node:module';
+import { exigerLaPorte } from './serrureDesProjets.mjs';
 
 const require = createRequire(import.meta.url);
 // Clôture statique chargeable sous un Node refusé : scripts/node-requis.mjs (#1801).
@@ -94,8 +95,10 @@ function ouvrir(root, fs, configurer, choisirProjet = (snapshot, plan) => snapsh
   } catch (error) { libererSessions([{ dispose }], [error]); }
 }
 
-/** Ouvre un projet d'analyse qui hérite du tsconfig du dépôt et surcharge ses options localement. */
-export function repoProgram(root, choisirRootNames, recouvrement = {}, compilerOptions = {}) {
+/** Ouvre un projet d'analyse qui hérite du tsconfig du dépôt et surcharge ses options localement. `porte` : la passe de la
+ *  porte des projets (`porteDesProjets.mjs`, #5037) qu'exige une racine ou un module du programme sous `projets/` de ce
+ *  dépôt. */
+export function repoProgram(root, choisirRootNames, recouvrement = {}, compilerOptions = {}, { porte } = {}) {
   const key = norm(path.resolve(root));
   const config = `${key}/tsconfig.json`;
   const temporaire = `${key}/tsconfig.analyse-virtuelle.json`;
@@ -104,7 +107,7 @@ export function repoProgram(root, choisirRootNames, recouvrement = {}, compilerO
     readFile: name => files.get(norm(name)),
     fileExists: name => files.has(norm(name)) ? true : undefined,
   };
-  return ouvrir(key, fs, api => {
+  const session = ouvrir(key, fs, api => {
     const parsed = api.parseConfigFile(config);
     files.set(temporaire, JSON.stringify({
       extends: './tsconfig.json',
@@ -115,6 +118,11 @@ export function repoProgram(root, choisirRootNames, recouvrement = {}, compilerO
     }));
     return { openProjects: [temporaire] };
   });
+  // Les racines sont des modules du programme : un seul relevé refuse l'une comme l'autre.
+  try {
+    for (const module of session.program.getSourceFileNames()) exigerLaPorte(path.resolve(module), porte, 'repoProgram');
+  } catch (erreur) { libererSessions([session], [erreur]); }
+  return session;
 }
 
 export function virtualProgram(files, options = {}) {

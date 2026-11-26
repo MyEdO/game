@@ -167,6 +167,9 @@ export interface BattleState {
    *  Mouvement (pas de « Mouvement → Action → Mouvement », règle maison). Cf. `canMove`. */
   movedPreAction: boolean;
   acted: boolean;
+  /** Les attaquants dont une chaîne de Frappe Mortelle s'est ouverte ce Tour : il ne leur en naît pas d'autre avant
+   *  le Tour suivant. LDB 14 l.9 ; LDB 85 l.362 ; arbitrage #5031 du 2026-11-25. */
+  balayagesDuTour?: string[];
   /** Le TOUR EN COURS de la clé `round:turn:id` (#1852, #3058, #3059) : la décision de l'IA s'il l'a décidé
    *  (`decide`, posé par `runEnemyAI` seul) et le geste différé de ce tour, de l'IA ou du joueur. Une clé différente de
    *  celle du tour courant = un enregistrement périmé. `armerLaSuite` est le seul armeur de sa suite, `jouerLaSuite`

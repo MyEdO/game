@@ -1,6 +1,7 @@
 import type { Checker, Diagnostic } from 'typescript/unstable/sync';
 import type { Node, SourceFile } from 'typescript/unstable/ast';
 import type { AnalyseEmpruntee, FichierSource } from './dialecte.mjs';
+import type { PasseDesProjets } from './serrureDesProjets.mjs';
 
 export type NatureDeModule = 'statique' | 'dynamique' | 'type' | 'require';
 /** `chargeur` : un chargeur que la lecture ne suit pas (renommé, déstructuré, atteint par un espace, ou qui fuit), de nature `nonSuivi`. */
@@ -89,6 +90,7 @@ export function clotureDImports(
     tailleLot?: number;
     analyser?: typeof analyserEnLots;
     surSites?: (abs: string, sites: SiteDeModule[], arbre: SourceFile) => void;
+    porte?: PasseDesProjets;
   },
 ): Set<string>;
 /** Le disque, borné aux `fichiers` (chemins absolus POSIX) : un motif d'`import.meta.glob` y fait ses arcs. */

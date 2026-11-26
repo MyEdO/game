@@ -133,13 +133,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/data/prop-foot-migration.test.ts",
-    motif: "désormais",
-    ancre: "désormais 1×1 pour les trois tables d'Opéra, et ce contrat prouverait l'inverse de son titre. */",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/data/prose-resolution.test.ts",
     motif: "désormais",
     ancre: "entrer est désormais FERMÉE PAR LA LIB : une cellule résolue rend le saut de ligne IMPRIMÉ",
@@ -455,13 +448,6 @@ export const LEGACY_VOCAB_SITES = [
     date: "2026-09-26",
   },
   {
-    fichier: "src/noyau/rollflow-outcome-invariant.hors-store.test.ts",
-    motif: "désormais",
-    ancre: "désormais sa fenêtre du succès de la LIGNE (`row.d.success`) : si une modale y pose une issue",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
     fichier: "src/noyau/monde/roomPortals.test.ts",
     motif: "désormais",
     ancre: "#1416 LOT 1 — l'accessibilité des sorties se lit désormais sur un ÉTIQUETAGE de composantes",
@@ -542,13 +528,6 @@ export const LEGACY_VOCAB_SITES = [
     fichier: "src/noyau/vessel-morale.hors-store.test.ts",
     motif: "désormais",
     ancre: "inchangé ; en cadence manuelle un équipage salarié convoque désormais le Conseil de bord (#229, ci-dessous).",
-    lot: "L7 désormais",
-    date: "2026-09-26",
-  },
-  {
-    fichier: "scripts/arene/zones1-7.mjs",
-    motif: "désormais",
-    ancre: "// empreinte 3×3 : (24,4) chevaucherait les « Chapeaux moirés » (26,4), désormais bloquants",
     lot: "L7 désormais",
     date: "2026-09-26",
   },

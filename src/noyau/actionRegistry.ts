@@ -321,7 +321,7 @@ export const ACTION_GATES: Record<GateDAction, (ctx: ActionCtx) => ActionGate> =
   tireur: ({ active }) => (armesADistance(active).length > 0 ? ok : no(t('agate.noRangedWeapon'))),
   'arme-de-repousse': ({ active }) =>
     (active.weapons.some((w) => w.type === 'melee' && canPushback(w)) ? ok : no(t('agate.noPushbackWeapon'))),
-  engage: ({ active }) => (isEngaged(active) ? ok : no(t('agate.notEngaged'))),
+  engage: ({ active, battle }) => (isEngaged(active, battle.combatants) ? ok : no(t('agate.notEngaged'))),
   'battement-connu': ({ active }) => (hasBattement(active) ? ok : no(t('agate.noBattement'))),
   'distraire-connu': ({ active }) => (hasDistraire(active) ? ok : no(t('agate.noDistraire'))),
   'frenesie-possible': ({ active }) => (isFrenzyCapable(active) && !isFrenzied(active) ? ok : no(t('agate.noFrenzy'))),

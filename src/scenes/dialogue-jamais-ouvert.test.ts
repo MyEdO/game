@@ -4,31 +4,28 @@
  * Un dialogue s'ouvre par la capacité « parler » d'une entité (`dialogueId`, `noyau/interactionsDExploration.ts`) ou par un
  * effet dont le handler déclare `ouvreDialogue` (`combatEffects.ts`) ; le runtime le cherche dans la
  * scène COURANTE. Un dialogue qu'aucun ouvreur ne cite est injouable : `validateScene` en avertit
- * l'éditeur, et aucun contenu livré n'en porte.
+ * l'éditeur, et aucun contenu n'en porte (chaque projet le prouve sur ses paquets dans sa suite).
  *
  * ABSOLUE : aucun stock, aucune exemption — le compte attendu est ZÉRO, et la garde NOMME ses sites.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { listerProjetsLivres } from '../../scripts/guards/lib/projetsLivres.mjs';
-import { lireProjetLivre } from '../../scripts/source/projetLivre.mjs';
 import { parseProject } from '../noyau/worldMap';
 import { avisDialogueJamaisOuvert, validateScene, type Warning } from '../noyau/validateScene';
 import { emptyScene, type Scene } from '../noyau/monde/scene';
 import { flowFromEffects } from '../noyau/monde/flow';
 import { testScenarios } from './test-scenarios';
+import paquetDeTest from './fixtures/paquet-de-test.json';
 
 const jamaisOuverts = (ws: Warning[]) =>
   ws.filter((w) => w.refId && w.message === avisDialogueJamaisOuvert(w.refId)).map((w) => `${w.sceneId} › ${w.refId}`);
 
-const projetsLivres = listerProjetsLivres()
-  .map((rel) => parseProject(lireProjetLivre(rel)));
-
 describe('#1869 — un dialogue sans ouvreur est injouable', () => {
-  it('aucun scénario de test ni projet livré ne porte de dialogue jamais ouvert', () => {
+  it('aucun scénario de test ni le contenu du commun ne porte de dialogue jamais ouvert', () => {
+    const commun = parseProject(paquetDeTest);
     const trouves = [
       ...testScenarios.map((s) => s.construire(idsDeTest)).flatMap((c) => jamaisOuverts(validateScene([c.scene, ...(c.extraScenes ?? [])], c.worldMap))),
-      ...projetsLivres.flatMap((doc) => jamaisOuverts(validateScene(doc.scenes, doc.worldMap))),
+      ...jamaisOuverts(validateScene(commun.scenes, commun.worldMap)),
     ];
     expect(trouves, 'donner le dialogue à une entité, l’ouvrir par un effet, ou le supprimer').toEqual([]);
   });

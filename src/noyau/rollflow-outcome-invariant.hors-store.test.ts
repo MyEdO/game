@@ -188,7 +188,7 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
     composite: () => ({ battle: arena(), pendingTest: { sujet: TESTE_DE_TEST, actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, requireSL: 3, roll: 8, sl: 1, success: false } }),
   },
   fuiteDeVapeur: { make: (win) => ({ battle: arena(), pendingSteamSave: { actorId: 'A', skillValue: 40, difficulty: 'intermediaire', target: 40, scaldOps: [{ op: 'wounds', amount: 1, ignoreAP: true }], roll: win ? 8 : 95, sl: win ? 3 : -5, success: win } }) },
-  activite: { make: (win) => ({ battle: arena(), pendingActivity: { teste: TESTE_DE_TEST, heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
+  activite: { make: (win) => ({ battle: arena(), pendingActivity: { teste: TESTE_DE_TEST, heroId: 'A', kind: 'catalog', label: 'x', skillLabel: 'x', skillValue: 40, difficulty: 'intermediaire', ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, mod: 0, roll: win ? 8 : 95, target: 40, sl: win ? 3 : -5, success: win } }) },
   chansonDeMarin: { make: (win) => ({ battle: arena(), pendingShanty: { singerId: 'A', shantyId: 'x', result: win ? WIN : LOSE } }) },
   // ── Opposés « joueur vs figé » avec re-résolution dédiée (récupération / marchandage) ──
   recuperation: { jetPropre: (etat) => etat.pendingStateRecovery?.roll, make: (win) => ({ battle: arena(), pendingStateRecovery: { teste: TESTE_DE_TEST, actorId: 'A', skillValue: 40, difficulty: 'intermediaire', opposed: false, roll: win ? WIN : LOSE, netSL: win ? 3 : 0, success: win } }) },
@@ -294,7 +294,7 @@ describe('Issue canonique (outcome) — la Chance est gatée par l’issue RÉEL
  *
  * Pourquoi il fallait un second volet : le volet comportemental ci-dessus prouve que le SEAM gate la
  * Chance sur son issue canonique. Il ne dit rien de ce que la MODALE imprime. Or la coquille dérive
- * désormais sa fenêtre du succès de la LIGNE (`row.d.success`) : si une modale y pose une issue
+ * sa fenêtre du succès de la LIGNE (`row.d.success`) : si une modale y pose une issue
  * COMPOSÉE là où le seam lit le d100 propre, le bouton s'affiche et le verbe est INERTE — la classe
  * exacte qu'on vient de tuer (mesurée sur `cast`, qui posait `res.cast`, et sur `test`, qui posait
  * `success && meetsRequiredSL`).

@@ -162,13 +162,14 @@ test('le mur et la garde d’un mod jouent sur un push qui ne touche qu’un mod
 })
 
 // Une gate qui joue ne lit pas ce qu'une gate SAUTÉE de son job aurait écrit avant elle (`ecritFerme`) : sur un push
-// confiné à un dossier de zone, ou documentaire, les deux sautent ensemble.
-test('aucune gate sautée n’écrit ce que lit une gate de son job qui joue', () => {
+// confiné à un dossier de zone, ou documentaire, les deux sautent ensemble. Un job est une SÉRIE dans l'ordre de
+// ci.yml : seule une gate qui SUIT l'écrivain lit ce qu'il aurait écrit.
+test('aucune gate sautée n’écrit ce que lit une gate de son job qui joue après elle', () => {
   const ecarts = []
   for (const fichiers of [...DOSSIERS_HORS_DE_SRC.map((d) => [`${d}zz.ts`]), ['.claude/memory/x.md']]) {
     const sautees = gatesSautees(fichiers, { gates, ecritLu: ECRIT_LU })
     for (const ecrivain of gates.filter((g) => sautees.has(g.nom)))
-      for (const lecteur of gates.filter((g) => g.job === ecrivain.job && !sautees.has(g.nom)))
+      for (const lecteur of gates.filter((g, i) => i > gates.indexOf(ecrivain) && g.job === ecrivain.job && !sautees.has(g.nom)))
         for (const chemin of Object.keys(ECRIT_LU[ecrivain.nom].ecritFerme ?? {}))
           if ((ECRIT_LU[lecteur.nom].lit ?? []).some((lu) => lu.startsWith(chemin) || chemin.startsWith(lu)))
             ecarts.push(`${fichiers[0]} : ${ecrivain.nom} saute mais écrit ${chemin}, que lit ${lecteur.nom}, qui joue (job ${ecrivain.job})`)

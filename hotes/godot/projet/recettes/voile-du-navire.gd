@@ -27,7 +27,7 @@ extends SceneTree
 ## le reste inconnu, le plafond à la part 1. Les appels de dessin, voilé et sans voile, imprimés. La recette joue
 ## ensuite le geste Quitter et vérifie le retour à l'accueil après libération de Combat, avant `erreurs=<n>` (#4215).
 ##
-## Rendu réel, sous chacun des deux rendus : `npm run godot:rendus`.
+## Rendu réel, sous chacun des deux rendus : `node hotes/godot/construire.mjs --rendus`.
 
 const PIXELS := preload("res://recettes/lecture_des_pixels.gd")
 const COMBAT := "res://scenes/Combat.tscn"

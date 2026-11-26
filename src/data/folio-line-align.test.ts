@@ -37,12 +37,10 @@ import { estObjet } from '../lib/objet.mjs';
  * stock à la régénération
  * (`npx tsx scripts/guards/lib/regenStock.mts scripts/guards/lib/folioLineAlignAudit.ts`, second volet).
  *
- * COUVERTURE, pas confiance : sur les 54 folios posés à `reglesOptionnelles.json`, le détecteur en
- * verrouille **52**. Les 2 autres — `vents-tourbillonnants` (`LDB 46 l.179-190`, déclaré 238) et
- * `corruption-tables-edoc` (`EDOC 12 l.63`, déclaré 65) — tombent dans une zone SANS ancre
- * exploitable (`reason: 'queue-trouee'`) : leur folio a été relevé À LA MAIN et n'est pas
- * machine-vérifiable. Ils sont gelés nominativement dans `FOLIO_LINE_ALIGN_NON_JUGEABLE`, et le
- * dernier `it` de ce bloc empêche ce chiffre de dériver en silence.
+ * COUVERTURE, pas confiance : tout folio posé à `reglesOptionnelles.json` est machine-vérifié, hors
+ * ceux qu'une zone SANS ancre exploitable (`reason: 'queue-trouee'`) rend non jugeables : ceux-là sont
+ * gelés nominativement dans `FOLIO_LINE_ALIGN_NON_JUGEABLE`, et le `it` MESURE de ce bloc empêche
+ * leur compte de dériver en silence.
  */
 
 const DATA_DIR = __dirname;

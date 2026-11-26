@@ -40,7 +40,7 @@ import { isOutOfAction, combatTestPenalty, pionsRetirables } from '../engine/con
 import { stepPrecision, surfaceOf } from './rollSeam';
 import { porteurParId } from './monde/combatants';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
-import { isEngagedWith, isEngaged, resteEngageAuRoundSuivant } from '../engine/engagement';
+import { engagesDe, isEngagedWith, isEngaged, resteEngageAuRoundSuivant } from '../engine/engagement';
 import { SIZE_ORDER, effectiveSize } from '../engine/size';
 import { distanceDeCombat } from './monde/footprint';
 import { chebyshev } from '../engine/grid';
@@ -255,8 +255,8 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
       if (capacity === 0) return [];
       const selfSize = SIZE_ORDER[effectiveSize(actor.size)];
       const eligible = battle.combatants.filter((c) =>
-        c.id !== actor.id && c.kind !== actor.kind && !isOutOfAction(c)
-        && isEngagedWith(c, actor.id) && !held.includes(c.id)
+        c.id !== actor.id && c.kind !== actor.kind
+        && isEngagedWith(actor, c) && !held.includes(c.id)
         && (on.sizeAtMost !== 'soi' || SIZE_ORDER[effectiveSize(c.size)] <= selfSize));
       eligible.sort((a, b) => distanceDeCombat(get().scene, actor, a) - distanceDeCombat(get().scene, actor, b)); // les plus proches d'abord
       return eligible.slice(0, capacity);
@@ -277,7 +277,7 @@ function targetsFor(get: Get, actor: Combatant, on: TriggeredEffect['on'], victi
         && (inner === undefined || dist(c) > inner),
       (_ctr, c) => dist(c));
   }
-  return battle.combatants.filter((c) => c.id !== actor.id && isEngagedWith(c, actor.id)); // 'engages'
+  return engagesDe(actor, battle.combatants); // 'engages'
 }
 
 /** Contexte d'application d'effets déclenchés. `margin` (marge d'un Test opposé) alimente les échelles
@@ -400,7 +400,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
 function engagedAdvantageGap(get: Get, actor: Combatant): number {
   const battle = get().battle;
   if (!battle) return 0;
-  const foes = battle.combatants.filter((e) => e.kind !== actor.kind && !isOutOfAction(e) && isEngagedWith(e, actor.id));
+  const foes = engagesDe(actor, battle.combatants).filter((e) => e.kind !== actor.kind);
   if (!foes.length) return 0;
   return Math.max(0, Math.max(...foes.map((e) => e.advantage ?? 0)) - (actor.advantage ?? 0));
 }
@@ -412,7 +412,7 @@ function engagedAdvantageGap(get: Get, actor: Combatant): number {
 function engagedAdvantageLead(get: Get, actor: Combatant): number {
   const battle = get().battle;
   if (!battle) return 0;
-  const foes = battle.combatants.filter((e) => e.kind !== actor.kind && !isOutOfAction(e) && isEngagedWith(e, actor.id));
+  const foes = engagesDe(actor, battle.combatants).filter((e) => e.kind !== actor.kind);
   if (!foes.length) return 0;
   return (actor.advantage ?? 0) - Math.max(...foes.map((e) => e.advantage ?? 0));
 }
@@ -439,7 +439,7 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
   const foes = battle.combatants.filter((e) => e.kind !== actor.kind && !isOutOfAction(e) && e.pos);
   const hiddenFromFoes = !!scene && foes.length > 0 && !tileSeenByFoe(scene, foes, actor.pos, smokeOf(battle));
   const nearestFoeDist = foes.length ? Math.min(...foes.map((e) => chebyshev(actor.pos!, e.pos!))) : Infinity;
-  return { hiddenFromFoes, engaged: isEngaged(actor), nearestFoeDist };
+  return { hiddenFromFoes, engaged: isEngaged(actor, battle.combatants), nearestFoeDist };
 }
 
 /** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne

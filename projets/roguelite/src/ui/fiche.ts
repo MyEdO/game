@@ -11,6 +11,7 @@ import {
   ficheDeCompetence,
   ficheDuSort,
   libelleDeCarac,
+  nomDeCarriere,
   PAS,
   prixDuSort,
   protection,
@@ -79,7 +80,7 @@ function pasAAcheter(h: J.Heros, cible: J.CibleDuPas, nom: string): string {
 
 /** Les PX à dépenser, et le niveau de carrière où il en est. */
 const bourseDePX = (h: J.Heros, o: Offres) =>
-  `<div class="bourse-px"><div class="px laiton"><div class="chiffres">${h.c.xp ?? 0}</div></div><div><b>PX à dépenser</b>${glose(`${esc(J.nomDeCarriere(h.carriere))} · niveau ${o.niveau} : ${esc(o.titre)}`)}</div></div>`;
+  `<div class="bourse-px"><div class="px laiton"><div class="chiffres">${h.c.xp ?? 0}</div></div><div><b>PX à dépenser</b>${glose(`${esc(nomDeCarriere(h.c))} · niveau ${o.niveau} : ${esc(o.titre)}`)}</div></div>`;
 
 /** L'exigence du niveau selon le passage du modèle du héros (`Exigence`), une ligne cochée par condition, et où le
  *  héros en est. LDB 07 l.124-131 ; CRB 048 l.45 */

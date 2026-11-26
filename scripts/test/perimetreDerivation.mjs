@@ -35,6 +35,7 @@ import { ecrireJsonAtomique } from '../guards/lib/ecritureJsonAtomique.mjs'
 import { memosDe, PAQUETS_VERSIONNANTS, texteSiPresent } from '../guards/lib/memosDAnalyse.mjs'
 import { empreinteDe, fermetureSurDisque } from '../guards/lib/porteDEre.mjs'
 import { cheminAbsent } from '../guards/lib/lister.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 /** Les fichiers dont un changement invalide toute dérivation : la suite entière est retenue. */
 const TOOLCHAIN = Object.freeze([...LECTURES_DES_DEPENDANCES, 'vitest.config.ts', 'tsconfig.json', 'scripts/guards/lib/racinesDeLaSuite.mjs'])
@@ -147,7 +148,7 @@ export function deriverPerimetre({ racine, touches, post, avant, lire, lireAvant
   }
   const cache = new Map()
   const optionsDImports = {
-    racine, typesEffaces: true, cache, analyser,
+    racine, typesEffaces: true, cache, analyser, porte: porteDeTousLesProjets,
     arbre: { existe: (a) => ensemble.has(rel(a)), lire: lireAbs, fichiers: [...ensemble].map(abs) },
     specificateurs: memos && {
       lire: (a, t) => memos.lire('specificateurs', `${posix.extname(a)}:${blobDe(t)}`),

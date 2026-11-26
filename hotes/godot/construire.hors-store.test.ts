@@ -17,7 +17,7 @@ import { RELAY_URL_PROD } from '../../src/hote/coop/page';
 import { API_DU_NAVIGATEUR, HORS_DU_PROCESSUS, PONT, ecartsDesLectures, pontDuBundle } from './processus.mjs';
 import { sansModeNiRelais } from './processus.testkit';
 import { stockageDuProcessus } from './stockage.mjs';
-import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, signaturesDu } from './construire.mjs';
+import { ecartsDeLaCopie, erreursDeLaRecette, fichiersAuDelaDeGitHub, lireOptions, signaturesDu } from './construire.mjs';
 
 /** Deux bundles bâtis, l'un lu par `lecturesDuBundle`, puis `--pont-seul` : ~55 s. */
 const CONSTRUCTION_MS = 180_000;
@@ -26,8 +26,8 @@ const CONSTRUIRE = new URL('./construire.mjs', import.meta.url);
 /** L'environnement des enfants (`sansModeNiRelais`). */
 const ENV = sansModeNiRelais();
 
-/** L'entrée du jeu de rôle (`package.json`, scripts `godot:*`). */
-const ENTREE_DU_JEU_DE_ROLE = 'hotes/godot/pont/entree-jeu-de-role.ts';
+/** Une entrée autre que l'entrée commune : le pont sur un contenu vide. */
+const ENTREE_VIDE = 'hotes/godot/pont/entree-vide.ts';
 /** Une scène du paquet de test du commun (`src/scenes/fixtures/paquet-de-test.json`), que seul son contenu porte. */
 const SCENE_DU_COMMUN = 'scene-de-test-a';
 
@@ -70,7 +70,7 @@ writeFileSync(${JSON.stringify(join(dossier, 'production.js'))}, production);
 writeFileSync(${JSON.stringify(join(dossier, 'developpement.js'))}, developpement);
 process.stdout.write(JSON.stringify({ lectures: lecturesDuBundle(production), apres }));`;
   const d1 = await enfant(['--input-type=module', '-e', script]);
-  const d2 = await enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie, '--entree', ENTREE_DU_JEU_DE_ROLE]);
+  const d2 = await enfant([fileURLToPath(CONSTRUIRE), '--pont-seul', '--sortie', sortie, '--entree', ENTREE_VIDE]);
   if (d1.code !== 0) throw new Error(`l’enfant de D1 sort en ${d1.code} :\n${d1.stderr}`);
   const lu = JSON.parse(d1.stdout) as { lectures: Record<string, number>; apres: (string | null)[] };
   lectures = lu.lectures;
@@ -196,5 +196,21 @@ describe('la garde de l’export Web : aucun fichier au-delà de ce que GitHub t
       truncateSync(join(d, rel), taille);
     }
     expect(fichiersAuDelaDeGitHub(d)).toEqual([{ fichier: 'index.pck', taille: 104_857_601 }, { fichier: 'modeles/lourd.scn', taille: 200_000_000 }]);
+  });
+});
+
+describe('les rendus que joue `--rendus` (`--rendu`, #5037)', () => {
+  it('sans `--rendu`, les deux rendus du projet', () => {
+    expect(lireOptions(['--rendus']).options?.rendus).toEqual(['forward_plus', 'gl_compatibility']);
+  });
+  it('un `--rendu` : ce seul rendu ; deux : les deux, dans l’ordre dit', () => {
+    expect(lireOptions(['--rendus', '--rendu', 'gl_compatibility']).options?.rendus).toEqual(['gl_compatibility']);
+    expect(lireOptions(['--rendu', 'forward_plus', '--rendus', '--rendu', 'gl_compatibility']).options?.rendus).toEqual(['forward_plus', 'gl_compatibility']);
+  });
+  it('un rendu inconnu, absent ou en double est refusé, et `--rendu` hors de `--rendus` aussi', () => {
+    expect(lireOptions(['--rendus', '--rendu', 'vulkan']).erreur).toMatch(/^--rendu : .*: vulkan$/);
+    expect(lireOptions(['--rendus', '--rendu']).erreur).toMatch(/^--rendu : .*: \(rien\)$/);
+    expect(lireOptions(['--rendus', '--rendu', 'forward_plus', '--rendu', 'forward_plus']).erreur).toMatch(/^--rendu : .*: forward_plus$/);
+    expect(lireOptions(['--sonde', '--rendu', 'forward_plus']).erreur).toBe('--sonde : --rendu hors de propos');
   });
 });

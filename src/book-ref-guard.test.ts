@@ -5,9 +5,10 @@ import * as ts from 'typescript/unstable/ast';
 import type { Checker } from 'typescript/unstable/sync';
 import { contexteImports, liaisonImportee, type ContexteImports } from '../scripts/guards/lib/canonUnique.mjs';
 import { readCorpus } from '../scripts/guards/lib/sourceCorpus.mjs';
+import { porteDeTousLesProjets } from '../scripts/guards/lib/porteDesProjets.mjs';
 import { alternationDuRegistre, REGISTRE_LIVRES } from '../scripts/guards/lib/rawRefIntegrity.mjs';
 import { garanti } from './lib/garanti';
-import { HOTES_DU_NOYAU, dossierDe, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
+import { HOTES_DU_NOYAU, dossierDe, estProjet, porteeDeGarde } from '../scripts/guards/lib/couches.mjs';
 
 /**
  * Garde-fou « réf de livre hors surface Codex » (#601, même classe que #596).
@@ -60,6 +61,13 @@ const CODEX_DU_NOYAU = `${dossierDe('noyau')}/codex/`;
 const CLES_DU_CODEX = 'codex.fiche.';
 
 /**
+ * Le champ de PROVENANCE d'une donnée de scène (`provenances`, `provenancesDeRouteSchema`,
+ * `src/data/schemas/defs-scenes/worldmap.ts`) : son schéma exige qu'il cite le livre et la page, ou dise la
+ * raison maison. Il est lu par l'éditeur, surface d'authoring, jamais rendu au joueur.
+ */
+const CHAMP_DE_PROVENANCE = 'provenances';
+
+/**
  * PUITS DE DIAGNOSTIC — `throw`, `new …Error(…)`, `console.*(…)` et `garanti` (`src/lib/garanti.ts` : « un
  * défaut interne […] — jamais un affichage »). Leur texte n'est pas muet : un `throw` du noyau remonte
  * au CANAL DE DÉFAUT des hôtes — `envoyerLIntention` (`src/hote/geste.ts:184`) le relaie en
@@ -101,6 +109,7 @@ function renderedBookRefs(sf: ts.SourceFile, checker: Checker | undefined, horsD
   const visit = (node: ts.Node): void => {
     if (horsDiagnostic && estPuitsDeDiagnostic(node, sf)) return;
     if (ts.isPropertyAssignment(node) && ts.isStringLiteral(node.name) && node.name.text.startsWith(CLES_DU_CODEX)) return;
+    if (ts.isPropertyAssignment(node) && ts.isIdentifier(node.name) && node.name.text === CHAMP_DE_PROVENANCE) return;
     let text: string | null = null;
     if (ts.isStringLiteral(node) || ts.isNoSubstitutionTemplateLiteral(node)) text = node.text;
     else if (ts.isJsxText(node)) text = node.text;
@@ -130,15 +139,20 @@ function refsDuTexte(rel: string, text: string, horsDiagnostic = false) {
  * `src/noyau/**`, `src/engine/**` : les couches qui écrivent au journal (`ecrireAuJournal`, `tell`,
  * conséquences, détails d'option) sans passer par le catalogue ; leurs puits de diagnostic sont taillés.
  *
- * Les hôtes du noyau (`HOTES_DU_NOYAU` : les zones bâties sur les droits d'un hôte ou d'un projet) que l'arbre porte,
- * où le `throw new ErreurDeGeste` EST le texte rendu au joueur : aucun puits n'y est taillé.
+ * Les hôtes du noyau (`HOTES_DU_NOYAU`) que l'arbre porte, hors projets, où le `throw new ErreurDeGeste` EST le texte
+ * rendu au joueur : aucun puits n'y est taillé.
+ *
+ * Les projets (`estProjet`) : leur contenu et leurs générateurs écrivent le texte joueur (titres, `desc`, répliques)
+ * sans composer d'`ErreurDeGeste` ; leurs `throw` sont des violations d'invariant (au canal de défaut à l'exécution,
+ * au terminal de l'auteur à la génération) : leurs puits de diagnostic sont taillés, comme au noyau.
  *
  * `src/scenes/test-scenarios/**` : le menu « Scénarios de test » (le pont Godot) rend leurs titres et descriptions, c'est une surface de jeu.
  */
 const PERIMETRES_DE_JEU = [
   { nom: 'catalogue i18n', racines: [`${dossierDe('i18n')}/messages`], horsDiagnostic: false },
   { nom: 'noyau et moteur', racines: porteeDeGarde(['noyau', 'engine']), horsDiagnostic: true },
-  { nom: 'hôtes', racines: porteeDeGarde(HOTES_DU_NOYAU).filter((d) => existsSync(new URL(`../${d}`, import.meta.url))), horsDiagnostic: false },
+  { nom: 'hôtes', racines: porteeDeGarde(HOTES_DU_NOYAU.filter((z) => !estProjet(z))).filter((d) => existsSync(new URL(`../${d}`, import.meta.url))), horsDiagnostic: false },
+  { nom: 'projets', racines: porteeDeGarde(HOTES_DU_NOYAU.filter(estProjet)).filter((d) => existsSync(new URL(`../${d}`, import.meta.url))), horsDiagnostic: true },
   { nom: 'scénarios de test', racines: [`${dossierDe('scenes')}/test-scenarios`], horsDiagnostic: false },
 ] as const;
 
@@ -147,7 +161,7 @@ const CONSIGNE = 'retirer la réf (elle va en commentaire au site qui écrit le 
 describe('réfs de livre — réservées au Codex et aux surfaces d’authoring (#601)', () => {
   it.each(PERIMETRES_DE_JEU)('aucun texte joueur du périmètre $nom ne porte une référence de livre (#3059)', ({ racines, horsDiagnostic }) => {
     const offenders: string[] = [];
-    for (const { fichier: { rel }, sourceFile, checker } of analyserCorpus(readCorpus(racines))) {
+    for (const { fichier: { rel }, sourceFile, checker } of analyserCorpus(readCorpus(racines, { porte: porteDeTousLesProjets }))) {
       if (rel.startsWith(CODEX_DU_NOYAU)) continue;
       for (const h of renderedBookRefs(sourceFile!, checker, horsDiagnostic)) offenders.push(`${rel}:${h.line} — « ${h.text} »`);
     }
@@ -166,6 +180,18 @@ describe('réfs de livre — réservées au Codex et aux surfaces d’authoring 
     const lignes = (horsDiagnostic: boolean) => refsDuTexte('__probe.ts', texte, horsDiagnostic).map((h) => h.line);
     expect(lignes(true)).toEqual([1, 5]);
     expect(lignes(false)).toEqual([1, 2, 3, 4, 5]);
+  });
+
+  it('le champ de provenance d’une donnée de scène cite sa source ; le texte voisin reste vu', () => {
+    const sigle = REGISTRE_LIVRES.find((b) => b.abbr)!.abbr!;
+    const texte = [
+      `const route = {`,
+      `  perilDie: 7,`,
+      `  provenances: { perilDie: { maison: "seuil (${sigle} 51 l.208)" } },`,
+      `  desc: "La route traverse la tourbière (${sigle} 51 l.208).",`,
+      `};`,
+    ].join('\n');
+    expect(refsDuTexte('__route.ts', texte).map((h) => h.line)).toEqual([4]);
   });
 
   it('au catalogue, seule une clé de fiche du Codex (`codex.fiche.`) cite sa source (#3059)', () => {

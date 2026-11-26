@@ -65,7 +65,11 @@ export const COUCHES = Object.freeze({
   geometry: { importe: [], survit: true },
   i18n: { importe: [], survit: true },
   engine: { importe: ['data', ...FEUILLES], survit: true },
-  data: { importe: ['engine', ...FEUILLES], survit: true },
+  data: {
+    importe: ['engine', ...FEUILLES],
+    survit: true,
+    outillage: { 'src/data/specsNommees.testkit.ts': ['scripts/guards/lib/stock.mjs', 'scripts/data/lib/skillSpecWalk.mjs'] },
+  },
   noyau: {
     importe: ['engine', 'data', ...FEUILLES],
     survit: true,
@@ -93,17 +97,19 @@ export const COUCHES = Object.freeze({
     },
     paquetsDOutillage: { 'hotes/godot/asset/evaluateur/': ['three'] },
   },
-  roguelite: {
-    ...ligneDeProjet('projets/roguelite', { engine: 4932, data: 4933, scenes: 4933, noyau: 4931 }),
+  roguelite: ligneDeProjet('projets/roguelite', { engine: 4932, data: 4933, scenes: 4933, noyau: 4931 }, {
     outillage: {
       'projets/roguelite/recette/commun.mjs': ['scripts/recette/navigateur.mjs'],
       'projets/roguelite/recette/images.mjs': ['scripts/recette/ecart.mjs'],
     },
-  },
+  }),
+  'jeu-de-role': ligneDeProjet('projets/jeu-de-role', { noyau: 5005, engine: 5006, data: 5007, scenes: 5007 }, {
+    affichages: ['godot'],
+    outillage: { 'projets/jeu-de-role/suites/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
+  }),
   scenes: {
     importe: ['noyau', 'data', 'engine', ...FEUILLES],
     survit: true,
-    outillage: { 'src/scenes/projetsLivres.testkit.ts': ['scripts/guards/lib/projetsLivres.mjs'] },
   },
   racine: {
     dossier: 'src',

@@ -1,7 +1,8 @@
 import { analyserCorpus } from '../guards/lib/dialecte.mjs';
 /**
- * Génère `docs/test-scenarios.md` — catalogue des scénarios de test Godot.
- * Re-run : `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`).
+ * Génère `docs/test-scenarios.md` — catalogue des scénarios de test Godot du commun — et, pour chaque projet qui
+ * en livre (`projets/<projet>/scenarios`), `docs/projets/<projet>/test-scenarios.md`, son catalogue seul.
+ * Re-run : `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`, `npm run <projet>:docs`).
  * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
  * Objet (#903 suite) — la table « Catalogue actuel » recopiait à la main un sous-ensemble du
@@ -27,10 +28,14 @@ import { listerDossier } from '../guards/lib/lister.mjs'
 import { estFichierVitest, estKitDeTest } from '../guards/lib/fichierVitest.mjs'
 import { join } from 'node:path'
 import { lancerDepuisCLI } from './lib/ecriture-derives.mjs'
+import { dossiersDesProjets } from '../raw/lib/fichiersCitants.mjs'
+import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
 
-/** Le corps rendu et les messages du lanceur, sans rien écrire. */
-function rendu() {
-  const DIR = 'src/scenes/test-scenarios'
+const DIR_DU_COMMUN = 'src/scenes/test-scenarios'
+
+/** Le corps rendu des scénarios de `DIR` et les messages du lanceur, sans rien écrire : le document entier pour le
+ *  commun, le seul catalogue pour un projet (`projets/<projet>/scenarios`). */
+function rendu(DIR = DIR_DU_COMMUN) {
   const SECTIONS = [
     { key: 'combat', label: 'Combat' },
     { key: 'magie', label: 'Magie' },
@@ -44,7 +49,7 @@ function rendu() {
 
   /** Même filtre que `scripts/gen-registry.mjs` (entrée `test-scenarios`) — SOURCE UNIQUE du périmètre. */
   function scenarioFiles() {
-    return listerDossier(DIR)
+    return listerDossier(DIR, { porte: porteDeTousLesProjets })
       .filter((f) => /\.tsx?$/.test(f) && !f.startsWith('_') && !estFichierVitest(f) && !estKitDeTest(f) && !f.endsWith('.ascii.ts') && f !== 'index.ts')
   }
 
@@ -158,7 +163,16 @@ function rendu() {
     }))
   }
 
-  const lines = [
+  const projet = DIR === DIR_DU_COMMUN ? null : DIR.split('/').slice(0, 2).join('/')
+  const commande = projet ? `${projet.split('/')[1]}:docs` : 'docs:test-scenarios'
+  const lines = projet ? [
+    `# Scénarios de test — ${projet}`,
+    '',
+    `> GÉNÉRÉ par \`node scripts/docs/build-test-scenarios.mjs\` (\`npm run ${commande}\`) — NE PAS ÉDITER À LA MAIN.`,
+    `> Source : \`${DIR}/*.ts\`, que le contenu du projet (\`${projet}/contenu.ts\`) remet au catalogue de la partie. Écrire un`,
+    `> scénario : \`docs/test-scenarios.md\`.`,
+    '',
+  ] : [
     '# Scénarios de test',
     '',
     '> GÉNÉRÉ par `node scripts/docs/build-test-scenarios.mjs` (`npm run docs:test-scenarios`) — NE PAS ÉDITER À LA MAIN.',
@@ -236,6 +250,8 @@ function rendu() {
     '  `M 0`, beaucoup de Blessures).',
     '- Le moteur reste couvert par Vitest ; les scénarios sont des fixtures de vérif manuelle/visuelle.',
     '',
+  ]
+  lines.push(
     '## Catalogue actuel (par section)',
     '',
     'Chaque scénario est volontairement DENSE : il exerce une famille de systèmes liés plutôt qu\'une seule',
@@ -243,7 +259,7 @@ function rendu() {
     '',
     '| Section | Scénario | Vérifie | Groupe |',
     '|---|---|---|---|',
-  ]
+  )
 
   for (const { section, items } of groupBySection(scenarios)) {
     for (const sc of items) {
@@ -258,25 +274,25 @@ function rendu() {
   )
 
   const out = lines.join('\n') + '\n'
-  const path = 'docs/test-scenarios.md'
+  const path = projet ? `docs/${projet}/test-scenarios.md` : 'docs/test-scenarios.md'
   return {
     out,
     path,
-    staleMsg: `docs:test-scenarios — ${path} est PÉRIMÉ (diverge de src/scenes/test-scenarios/*.ts).`,
-    rerunMsg: '  → relancer `npm run docs:test-scenarios` (dérivé jamais commité, #2203).',
-    okMsg: `docs:test-scenarios — OK (${path} à jour, ${scenarios.length} scénarios)`,
+    staleMsg: `${commande} — ${path} est PÉRIMÉ (diverge de ${DIR}/*.ts).`,
+    rerunMsg: `  → relancer \`npm run ${commande}\` (dérivé jamais commité, #2203).`,
+    okMsg: `${commande} — OK (${path} à jour, ${scenarios.length} scénarios)`,
     writeMsg: `${path} : ${scenarios.length} scénarios`,
   }
 }
 
 /** Contrat `rendre()` de `GENERATORS` (scripts/docs/build-all.mjs) : cible → texte, sans écrire. */
 export function rendre() {
-  const { path, out } = rendu()
-  return new Map([[path, out]])
+  return new Map([...produire()].map(({ path, out }) => [path, out]))
 }
 
 export function* produire() {
   yield rendu()
+  for (const dir of dossiersDesProjets('.', 'scenarios')) yield rendu(dir)
 }
 
 if (import.meta.main) await lancerDepuisCLI(import.meta, produire)

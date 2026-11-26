@@ -3,7 +3,6 @@
  * leurs désignations, voies et sorts, Compétences utiles, forge, hospice, destinations et adversaires, prix, gains.
  */
 import {
-  nomDeCarriereDuLivre,
   nomDeTalent,
   COMPETENCES_DU_COMBAT,
   type Combatant,
@@ -151,7 +150,7 @@ export const CONSIGNES: readonly { doctrine: DoctrineId | null; nom: string; bul
 /** Une carrière du roster : son palier de relais, le niveau de carrière où elle s'engage, son rôle, ce qui la
  *  caractérise à la création, les objets du catalogue qu'elle reçoit en plus de sa dotation, sa voie de lanceur, et
  *  les dieux parmi lesquels se tire la spécialisation de son Talent d'identité (`beni`), qui fixe sa voie. */
-export interface Profil { id: string; nom: string; relais: number; niveau: number; role: Role; identite: Identite; devise: string; dotation?: readonly string[]; voie?: Voie; dieux?: readonly string[] }
+export interface Profil { id: string; relais: number; niveau: number; role: Role; identite: Identite; devise: string; dotation?: readonly string[]; voie?: Voie; dieux?: readonly string[] }
 
 /** La voie du Talent `talent` spécialisé en `spec` : son libellé et ses sorts choisis (`SORTS_DES_VOIES`). */
 const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, nom: nomDeTalent({ id: talent, spec }),
@@ -161,34 +160,33 @@ const voie = (talent: Voie['talent'], spec: string): Voie => ({ talent, spec, no
 const cac = (niveau: number, spec: string): Designation => ({ niveau, id: 'corps-a-corps', spec });
 const tir = (niveau: number, spec: string): Designation => ({ niveau, id: 'projectiles', spec });
 /** Une carrière de Collège (VDM ch. 4 à 11) : lanceur, recrutée au niveau 1, sa voie la Magie des Arcanes de son domaine. */
-const college = (id: string, nom: string, relais: number, domaine: string, devise: string): Profil =>
-  ({ id, nom, relais, niveau: 1, role: 'lanceur', identite: MAGIE_MINEURE, devise, voie: voie('magie-des-arcanes', domaine) });
+const college = (id: string, relais: number, domaine: string, devise: string): Profil =>
+  ({ id, relais, niveau: 1, role: 'lanceur', identite: MAGIE_MINEURE, devise, voie: voie('magie-des-arcanes', domaine) });
 const MAGIE_MINEURE: Identite = { talent: { id: 'magie-mineure' }, sortsMineurs: SORTS_MINEURS };
 
 export const PROFILS: readonly Profil[] = [
-  { id: 'soldat', nom: 'Soldat', relais: 0, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'armes-d-hast'), tir(2, 'arc')] }, dotation: ['bouclier'], devise: 'Tient la ligne. Guerrier né.' },
-  { id: 'chasseur', nom: 'Chasseur', relais: 0, niveau: 1, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
-  { id: 'ratier', nom: 'Ratier', relais: 0, niveau: 1, role: 'eclaireur', identite: { talent: { id: 'coup-puissant' }, designations: [{ niveau: 1, id: 'discretion', spec: 'souterrains' }] }, devise: 'Fouille les caves, frappe fort. Coup puissant.' },
-  { id: 'nonne', nom: 'Nonne de Shallya', relais: 0, niveau: 1, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' }, designations: [cac(2, 'base')] }, devise: 'Soigne et protège. Bénie de Shallya.',
+  { id: 'soldat', relais: 0, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'armes-d-hast'), tir(2, 'arc')] }, dotation: ['bouclier'], devise: 'Tient la ligne. Guerrier né.' },
+  { id: 'chasseur', relais: 0, niveau: 1, role: 'tireur', identite: { talent: { id: 'dur-a-cuire' } }, devise: 'Tire de loin, encaisse de près. Dur à cuire.' },
+  { id: 'ratier', relais: 0, niveau: 1, role: 'eclaireur', identite: { talent: { id: 'coup-puissant' }, designations: [{ niveau: 1, id: 'discretion', spec: 'souterrains' }] }, devise: 'Fouille les caves, frappe fort. Coup puissant.' },
+  { id: 'nonne', relais: 0, niveau: 1, role: 'soigneur', identite: { talent: { id: 'beni', spec: 'shallya' }, designations: [cac(2, 'base')] }, devise: 'Soigne et protège. Bénie de Shallya.',
     voie: voie('invocation', 'shallya') },
-  college('pyromancien', 'Pyromancien', 0, 'feu', 'Le Collège Flamboyant. Magie mineure.'),
-  college('hierophante', 'Hiérophante', 0, 'lumiere', 'Le Collège Lumineux. Magie mineure.'),
-  { id: 'tueur', nom: 'Tueur', relais: 1, niveau: 1, role: 'front', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
-  { id: 'repurgateur', nom: 'Répurgateur', relais: 1, niveau: 2, role: 'tireur', identite: { talent: { id: 'determine' }, designations: [tir(2, 'poudre-noire')] }, devise: 'Traque l’hérétique. Déterminé.' },
-  { id: 'medecin', nom: 'Médecin', relais: 1, niveau: 2, role: 'soigneur', identite: { talent: { id: 'pansement-de-fortune' } }, devise: 'Recoud les plaies, tranche le mal. Pansement de fortune.' },
-  { id: 'voleur', nom: 'Voleur', relais: 1, niveau: 2, role: 'eclaireur', identite: { talent: { id: 'chat-de-gouttiere' } }, devise: 'Passe sans bruit par les toits. Chat de gouttière.' },
-  college('druide', 'Druide', 1, 'vie', 'Le Collège de Jade. Magie mineure.'),
-  college('chamane', 'Chamane', 1, 'bete', 'Le Collège d’Ambre. Magie mineure.'),
-  { id: 'joueur-d-epee', nom: 'Joueur d’épée', relais: 2, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'parade')] }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
-  { id: 'duelliste', nom: 'Duelliste', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'battement' }, designations: [cac(1, 'escrime'), cac(4, 'deux-mains')] }, devise: 'Bat le fer adverse. Battement.' },
-  { id: 'chasseur-de-primes', nom: 'Chasseur de primes', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
+  college('pyromancien', 0, 'feu', 'Le Collège Flamboyant. Magie mineure.'),
+  college('hierophante', 0, 'lumiere', 'Le Collège Lumineux. Magie mineure.'),
+  { id: 'tueur', relais: 1, niveau: 1, role: 'front', identite: { talent: { id: 'tueur' } }, devise: 'Cherche une mort glorieuse. Tueur.' },
+  { id: 'repurgateur', relais: 1, niveau: 2, role: 'tireur', identite: { talent: { id: 'determine' }, designations: [tir(2, 'poudre-noire')] }, devise: 'Traque l’hérétique. Déterminé.' },
+  { id: 'medecin', relais: 1, niveau: 2, role: 'soigneur', identite: { talent: { id: 'pansement-de-fortune' } }, devise: 'Recoud les plaies, tranche le mal. Pansement de fortune.' },
+  { id: 'voleur', relais: 1, niveau: 2, role: 'eclaireur', identite: { talent: { id: 'chat-de-gouttiere' } }, devise: 'Passe sans bruit par les toits. Chat de gouttière.' },
+  college('druide', 1, 'vie', 'Le Collège de Jade. Magie mineure.'),
+  college('chamane', 1, 'bete', 'Le Collège d’Ambre. Magie mineure.'),
+  { id: 'joueur-d-epee', relais: 2, niveau: 1, role: 'front', identite: { talent: { id: 'guerrier-ne' }, designations: [cac(2, 'parade')] }, devise: 'Le zweihänder des Carroburg. Guerrier né.' },
+  { id: 'duelliste', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'battement' }, designations: [cac(1, 'escrime'), cac(4, 'deux-mains')] }, devise: 'Bat le fer adverse. Battement.' },
+  { id: 'chasseur-de-primes', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'frappe-assommante' } }, devise: 'Vivant, de préférence. Frappe assommante.' },
   // careerLevels.json l.11637
-  { id: 'ingenieur', nom: 'Ingénieur', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'artilleur' } }, dotation: ['pistolet'], devise: 'La poudre et la mécanique. Artilleur.' },
-  { id: 'pretre-guerrier', nom: 'Prêtre-guerrier', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'beni' }, designations: [cac(1, 'base'), cac(2, 'deux-mains'), tir(2, 'arbalete')] }, devise: 'L’arme et la foi. Béni.', dieux: ['sigmar', 'ulric', 'myrmidia'] },
-  college('alchimiste', 'Alchimiste', 2, 'metal', 'Le Collège Doré. Magie mineure.'),
-  college('spirite', 'Spirite', 2, 'mort', 'Le Collège d’Améthyste. Magie mineure.'),
+  { id: 'ingenieur', relais: 2, niveau: 2, role: 'tireur', identite: { talent: { id: 'artilleur' } }, dotation: ['pistolet'], devise: 'La poudre et la mécanique. Artilleur.' },
+  { id: 'pretre-guerrier', relais: 2, niveau: 2, role: 'front', identite: { talent: { id: 'beni' }, designations: [cac(1, 'base'), cac(2, 'deux-mains'), tir(2, 'arbalete')] }, devise: 'L’arme et la foi. Béni.', dieux: ['sigmar', 'ulric', 'myrmidia'] },
+  college('alchimiste', 2, 'metal', 'Le Collège Doré. Magie mineure.'),
+  college('spirite', 2, 'mort', 'Le Collège d’Améthyste. Magie mineure.'),
 ];
-export const nomDeCarriere = (id: string): string => profil(id)?.nom ?? nomDeCarriereDuLivre(id);
 /** Le dieu d'un héros : la spécialisation de son Talent Béni. */
 export const dieuDe = (c: Pick<Combatant, 'talents'>): string | undefined => c.talents.find((t) => t.talentId === 'beni')?.spec;
 /** La voie de lanceur de la carrière `carriere` ; celle d'une carrière à dieu tiré suit le dieu du héros `c`. */
@@ -209,25 +207,25 @@ export const nomDEspece = (id: string): string => ESPECES[id]?.nom ?? id;
 /** La prière utilitaire d'un Béni entre deux salles, une fois par expédition. */
 export const PRIERE_DE_SOIN = 'benediction-de-guerison';
 
-export type TypeDeSalle = 'combat' | 'elite' | 'camp' | 'tresor' | 'rencontre' | 'boss';
+export type TypeDeSalle = 'combat' | 'elite' | 'camp' | 'tresor' | 'rencontre' | 'autel' | 'puits' | 'blesse' | 'boss';
 export interface Destination {
   id: string; nom: string; recit: string; palier: number; salles: number;
   meutes: string[][]; elites: string[][]; boss: string[]; or: number; lumiere: string;
 }
 export const DESTINATIONS: readonly Destination[] = [
-  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 30, lumiere: 'jour',
+  { id: 'reikwald', nom: 'Lisière du Reikwald', palier: 0, salles: 4, or: 45, lumiere: 'jour',
     recit: 'Des loups et des peaux-vertes rôdent le long de la route de la diligence.',
     meutes: [['gobelin', 'gobelin'], ['loup'], ['rat-geant', 'rat-geant'], ['brigand'], ['snotling', 'snotling', 'gobelin']],
     elites: [['orc'], ['brigand', 'loup']], boss: ['loup-funeste'] },
-  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 36, lumiere: 'crepuscule',
+  { id: 'tertres', nom: 'Tertres de Grisefosse', palier: 1, salles: 5, or: 55, lumiere: 'crepuscule',
     recit: 'Les morts ne reposent plus sous les vieux tertres. Quelqu’un les réveille.',
     meutes: [['squelette', 'zombie'], ['zombie', 'zombie', 'zombie'], ['goule-de-crypte', 'zombie']],
     elites: [['squelette', 'squelette', 'goule-de-crypte'], ['chevalier-mort-vivant-revenant']], boss: ['necromancien', 'squelette', 'squelette'] },
-  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 50, lumiere: 'couvert',
+  { id: 'hardes', nom: 'Clairière des hardes', palier: 2, salles: 5, or: 75, lumiere: 'couvert',
     recit: 'Les hommes-bêtes se rassemblent autour d’une pierre de harde.',
     meutes: [['ungor', 'ungor'], ['gor', 'ungor'], ['ungor', 'ungor', 'ungor']],
     elites: [['gor', 'gor', 'ungor'], ['gor-combattant', 'ungor']], boss: ['minotaure', 'ungor'] },
-  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 70, lumiere: 'crepuscule',
+  { id: 'autel', nom: 'Autel du Chaos', palier: 3, salles: 6, or: 100, lumiere: 'crepuscule',
     recit: 'Un culte a dressé un autel aux Puissances de la Ruine. Il faut l’abattre.',
     meutes: [['cultiste', 'cultiste'], ['mutant', 'cultiste'], ['cultiste', 'cultiste', 'mutant']],
     elites: [['guerrier-du-chaos', 'cultiste'], ['mutant', 'mutant', 'cultiste']], boss: ['guerrier-du-chaos', 'troll'] },
@@ -254,8 +252,17 @@ const RIEN: FluxDEpreuve['echec'] = { kind: 'sequence', etapes: [] };
 const epreuve = (label: string, skill: string, difficulty: NonNullable<FluxDEpreuve['test']['difficulty']>, echec: FluxDEpreuve['echec'] = LAME): Epreuve =>
   ({ label, flux: { kind: 'test', test: { skill: { id: skill }, difficulty }, reussite: RIEN, echec } });
 
+/** Le contact d'un artefact profané : une Influence corruptrice d'Exposition Modérée, de `nature` physique ou
+ *  spirituelle, dont le noyau joue le Test. LDB 19 l.29 ; LDB 19 l.48-51 */
+const PROFANATION = (nature: 'physique' | 'spirituelle'): FluxDEpreuve['echec'] =>
+  ({ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'corruptionExposure', level: 'moderee', nature }] } });
+/** L'exposition à la `maladie` (`maladies.json`), dont le noyau joue le Test de Contraction. LDB 20 l.11 */
+const CONTAGION = (maladie: string): FluxDEpreuve['echec'] => ({ kind: 'effet', effet: { type: 'ops', ops: [{ op: 'exposeDisease', disease: { id: maladie } }] } });
+
 const DECLENCHE = 'Une pierre bascule et une lame jaillit du mur : le piège se déclenche, la bourse reste hors d’atteinte.';
-/** Valeurs d'adaptation : la cache piégée de la salle `tresor`, les voyageurs de la salle `rencontre`. */
+/** Valeurs d'adaptation : la cache piégée de la salle `tresor` ; les rencontres (`RENCONTRES`) : les voyageurs de la
+ *  salle `rencontre`, l'autel profané, le puits souillé (Courante galopante, LDB 20 l.37-43) et le blessé contagieux
+ *  (Vérole urticante, LDB 20 l.116-121). MyEdO/game#4961. */
 export const EPREUVES = {
   tresor: {
     titre: 'Une cache piégée',
@@ -285,12 +292,58 @@ export const EPREUVES = {
     gain: { libelle: 'Bourse du colporteur', part: 0.5 },
     passer: { libelle: 'Ignorer', issue: 'ni gain ni risque', recit: 'Le groupe salue de loin et poursuit sa route.' },
   },
-} satisfies { tresor: SalleAChoix<'fouiller' | 'desarmer'>; rencontre: SalleAChoix<'parlementer' | 'intimider'> };
+  autel: {
+    titre: 'Un autel profané',
+    annonce: 'Une pierre noircie se dresse entre les arbres, couverte de signes impies. Des offrandes y luisent dans le sang séché.',
+    actions: {
+      purifier: { libelle: 'Purifier', question: 'Qui purifie l’autel ?', epreuves: [epreuve('Purifier l’autel', 'priere', 'intermediaire', PROFANATION('spirituelle'))],
+        reussite: 'La prière couvre les murmures : les signes s’effacent, et les offrandes ne sont plus que de l’or.',
+        echec: 'La prière se brise sur la pierre : les murmures s’insinuent dans l’esprit de qui priait.' },
+      piller: { libelle: 'Rafler les offrandes', question: 'Qui rafle les offrandes ?', epreuves: [epreuve('Rafler les offrandes', 'perception', 'difficile', PROFANATION('physique'))],
+        reussite: 'Seules les pièces que les signes n’ont pas touchées sont prises : la bourse est pleine, les mains nettes.',
+        echec: 'La main frôle la pierre souillée : un froid remonte le long du bras.' },
+    },
+    gain: { libelle: 'Offrandes de l’autel', part: 1 },
+    passer: { libelle: 'S’éloigner', issue: 'ni or ni souillure', recit: 'Le groupe contourne la pierre sans la regarder et poursuit sa route.' },
+  },
+  puits: {
+    titre: 'Un puits souillé',
+    annonce: 'Un vieux puits au bord du chemin, l’eau croupie à portée de bras. Au fond, sous la vase, brille la bourse d’un voyageur.',
+    actions: {
+      descendre: { libelle: 'Descendre', question: 'Qui descend dans le puits ?', epreuves: [epreuve('Descendre dans le puits', 'escalade', 'intermediaire', CONTAGION('courante-galopante'))],
+        reussite: 'Les pierres tiennent sous les pieds : la bourse remonte sans une goutte bue.',
+        echec: 'Une pierre cède : le héros tombe dans l’eau croupie et en avale une gorgée.' },
+      sonder: { libelle: 'Sonder à la perche', question: 'Qui sonde le puits ?', epreuves: [epreuve('Sonder le puits', 'perception', 'difficile', RIEN)],
+        reussite: 'La perche accroche la bourse et la ramène au bord.', echec: 'La perche remue la vase : rien ne remonte, que l’odeur.' },
+    },
+    gain: { libelle: 'Bourse du puits', part: 0.5 },
+    passer: { libelle: 'Passer son chemin', issue: 'ni bourse ni risque', recit: 'Le groupe laisse le puits à sa vase et poursuit sa route.' },
+  },
+  blesse: {
+    titre: 'Un blessé au bord du chemin',
+    annonce: 'Un homme gît contre une borne, le corps couvert de boursouflures. Il supplie qu’on le soigne et montre sa bourse.',
+    actions: {
+      panser: { libelle: 'Panser ses plaies', question: 'Qui panse le blessé ?', epreuves: [epreuve('Panser le blessé', 'guerison', 'intermediaire', CONTAGION('verole-urticante'))],
+        reussite: 'Des gestes sûrs, sans toucher les boursouflures : l’homme, soulagé, tend sa bourse.',
+        echec: 'Le pansement glisse, la main touche les boursouflures à vif.' },
+      questionner: { libelle: 'Le questionner', question: 'Qui le questionne ?', epreuves: [epreuve('Questionner le blessé', 'charme', 'intermediaire', CONTAGION('verole-urticante'))],
+        reussite: 'À distance, on gagne sa confiance : il dit où il a caché sa bourse avant de tomber.',
+        echec: 'Il se jette en suppliant au bras de qui l’approche.' },
+    },
+    gain: { libelle: 'Bourse du blessé', part: 0.5 },
+    passer: { libelle: 'Passer son chemin', issue: 'ni bourse ni contagion', recit: 'Le groupe presse le pas sans se retourner.' },
+  },
+} satisfies {
+  tresor: SalleAChoix<'fouiller' | 'desarmer'>; rencontre: SalleAChoix<'parlementer' | 'intimider'>; autel: SalleAChoix<'purifier' | 'piller'>;
+  puits: SalleAChoix<'descendre' | 'sonder'>; blesse: SalleAChoix<'panser' | 'questionner'>;
+};
 /** Les salles à choix dont les actions se jouent par un Test (`EPREUVES`). */
 export type SalleAJet = keyof typeof EPREUVES;
 export type IdActionAJet = { [S in SalleAJet]: keyof (typeof EPREUVES)[S]['actions'] }[SalleAJet];
 /** Toutes les actions à jet, par id. */
-export const ACTIONS_A_JET: Record<IdActionAJet, ActionAJet> = { ...EPREUVES.tresor.actions, ...EPREUVES.rencontre.actions };
+export const ACTIONS_A_JET = Object.assign({}, ...Object.values(EPREUVES).map((s) => s.actions)) as Record<IdActionAJet, ActionAJet>;
+/** Les rencontres : les salles à jet que tire le créneau de rencontre d'une expédition, une au plus (`partir`). */
+export const RENCONTRES: readonly SalleAJet[] = ['rencontre', 'autel', 'puits', 'blesse'];
 
 /** Valeurs d'adaptation : le camp, salle à choix ; le repos lève le camp. */
 export const CAMP = {
@@ -298,7 +351,7 @@ export const CAMP = {
   annonce: 'Un abri se devine entre les arbres. Le groupe peut y passer la nuit.',
   reposer: { libelle: 'Se reposer', issue: 'Une nuit de repos pour tous, puis la route', recit: 'Le groupe établit un camp et monte la garde à tour de rôle.' },
 };
-/** Le soin de Guérison entre deux salles (`soignerEnRoute`) : le titre de son récit, la question au socle. */
+/** Le soin de Guérison entre deux salles (`soignerEnRoute`) : son libellé, le titre de son récit, la question au socle. */
 export const SOIN_EN_ROUTE = { libelle: 'Guérison', titre: 'Les soins de la route', patient: 'Qui est soigné ?' };
 
 /** Le butin d'une salle de combat : l'or de l'étape (`Destination.or`) multiplié par son type, puis par un tirage
@@ -306,9 +359,9 @@ export const SOIN_EN_ROUTE = { libelle: 'Guérison', titre: 'Les soins de la rou
 export const BUTIN_DES_SALLES = { facteur: { combat: 1, elite: 2, boss: 4 }, ecart: { min: 75, max: 125 } } as const;
 /** Les trophées : la chance en pour cent qu'une élite en laisse un, ceux du maître, et celui de plus la première fois
  *  qu'il tombe. */
-export const TROPHEES = { elite: 35, boss: 1, premiereVictoire: 1 } as const;
+export const TROPHEES = { elite: 60, boss: 1, premiereVictoire: 1 } as const;
 /** PX gagnés par salle franchie, par type. */
-export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 40, elite: 70, boss: 120, camp: 0, tresor: 10, rencontre: 10 };
+export const PX_PAR_SALLE: Record<TypeDeSalle, number> = { combat: 80, elite: 140, boss: 240, camp: 0, tresor: 20, rencontre: 20, autel: 20, puits: 20, blesse: 20 };
 export const OR_INITIAL = 100;
 /** Le prix d'un objet au hameau : son prix au catalogue (CO) multiplié, à l'échelle du butin des expéditions. */
 export const ECHELLE_DES_PRIX = 10;

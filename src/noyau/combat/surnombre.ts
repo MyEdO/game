@@ -36,7 +36,7 @@ function unitesDuSurnombre(combattants: readonly Combatant[], ...acteursDuDuel: 
 }
 
 function unitesEngagees(a: UniteDeCombat, b: UniteDeCombat): boolean {
-  return a.membres.some((c) => b.membres.some((autre) => isEngagedWith(c, autre.id)));
+  return a.membres.some((c) => b.membres.some((autre) => isEngagedWith(c, autre)));
 }
 
 interface Surnombre {

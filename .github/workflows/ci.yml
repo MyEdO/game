@@ -148,7 +148,7 @@ jobs:
 
   # `test:docs` hors du chemin critique de `docs` (#2178), sur l'arbre du COMMIT, sans `docs:build` :
   # un test qui lit une cible PURE la rend (`renduDe`, `rendreCible` de scripts/docs/build-all.mjs).
-  # `noyau:chargement`, `test:corpus-isole`, `test:ops` et `test:runner` n'écrivent pas dans l'arbre : ils se jouent
+  # `test:corpus-isole`, `test:ops` et `test:runner` n'écrivent pas dans l'arbre : ils se jouent
   # ici pour répartir la durée de la course de file entre les jobs (#3412), et le rejeu local les porte dans la lane
   # `docs` (`LANE_LOCALE_DE_JOB`).
   docs-tests:
@@ -164,11 +164,6 @@ jobs:
         uses: ./.github/actions/prologue
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:docs
-      # `noyau:chargement` (#3058, scripts/guards/chargement-en-premier.mjs) : chaque module du noyau, du moteur, de la
-      # donnée, des feuilles, des hôtes (hotes/ compris) et des scénarios chargé EN PREMIER dans un graphe neuf de
-      # Vite.
-      - if: ${{ !contains(steps.prologue.outputs.sautees, ' noyau:chargement ') && !cancelled() && steps.prologue.outcome == 'success' }}
-        run: npm run noyau:chargement
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run test:corpus-isole
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -179,7 +174,8 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # Lectures du graphe TypeScript : typecheck, pont Godot et lint.
+  # Lectures du graphe TypeScript : typecheck, chargement des modules en premier, pont Godot et lint ;
+  # `noyau:chargement` se joue ici pour répartir la durée de la course de file entre les jobs (#3412, #5037).
   types:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -199,6 +195,11 @@ jobs:
         run: npm run test:recette
       - if: ${{ !contains(steps.prologue.outputs.sautees, ' typecheck ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run typecheck
+      # `noyau:chargement` (#3058, scripts/guards/chargement-en-premier.mjs) : chaque module du noyau, du moteur, de la
+      # donnée, des feuilles, des hôtes (hotes/ compris) et des scénarios chargé EN PREMIER dans un graphe neuf de
+      # Vite.
+      - if: ${{ !contains(steps.prologue.outputs.sautees, ' noyau:chargement ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run noyau:chargement
       - if: ${{ !contains(steps.prologue.outputs.sautees, ' pont:godot ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run pont:godot
       - if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
@@ -258,8 +259,8 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # `godot:rendus` (#3951) : les recettes rendues, en rendu réel sous chacun des deux rendus (Forward+ et
-  # compatibilité), sur un écran virtuel et le rendu logiciel de Mesa.
+  # `godot:rendus` (#3951) : les recettes rendues, en rendu réel sous le rendu de compatibilité, celui du Web, sur un
+  # écran virtuel et le rendu logiciel de Mesa ; Forward+ se joue au canari (`godot-rendus-forward`, #5037).
   godot-rendus:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -278,18 +279,42 @@ jobs:
         uses: ./.github/actions/caches-3d
       - if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:rendus ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: sudo apt-get update && sudo apt-get install -y --no-install-recommends xvfb libgl1-mesa-dri mesa-vulkan-drivers libxcursor1 libxinerama1 libxrandr2 libxi6
-      - name: Godot — recettes rendues sous les deux rendus
+      - name: Godot — recettes rendues sous le rendu de compatibilité
         if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:rendus ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:rendus
       - name: Arbre inchangé
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
+  # Les recettes de l'hôte Godot et des projets, un job par famille (#5037) : chacun sur son runner, son arbre et ses
+  # caches ; aucun ne lit ce qu'un autre écrit.
+  # `jeu-de-role:construire` puis `jeu-de-role:recette` (#4936) : le pont du jeu de rôle sur son entrée
+  # (`projets/jeu-de-role/godot.ts`), puis les jeux de son lot (`projets/jeu-de-role/recettes/lot.mjs`), en natif.
+  jeu-de-role-recette:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
+        uses: ./.github/actions/prologue
+      - if: ${{ steps.prologue.outputs.produit != 'false' && !cancelled() && steps.prologue.outcome == 'success' }}
+        uses: ./.github/actions/caches-3d
+      - name: Jeu de rôle — construction
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' jeu-de-role:construire ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run jeu-de-role:construire
+      - name: Jeu de rôle — recettes
+        if: ${{ !contains(steps.prologue.outputs.sautees, ' jeu-de-role:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
+        run: npm run jeu-de-role:recette
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
   # `godot:recette` (#3945) : les jeux `combat`, `editeur` et `compendium` des recettes natives de l'hôte Godot
   # (`lot-de-recettes.mjs --natif`), sans export ni navigateur ; `canari.yml` joue le lot natif entier.
-  # `roguelite:construire` puis `roguelite:recette` (#4929) : le roguelite construit sous `dist/roguelite/`, et son lot de
-  # recettes (`projets/roguelite/recette/lot.mjs`) dans le Chromium épinglé (scripts/recette/navigateur.mjs), la page
-  # servie par interception, sans serveur.
   godot-recette:
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -306,6 +331,24 @@ jobs:
       - name: Godot — recettes natives
         if: ${{ !contains(steps.prologue.outputs.sautees, ' godot:recette ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run godot:recette
+      - name: Arbre inchangé
+        if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
+        run: git status --porcelain && test -z "$(git status --porcelain)"
+
+  # `roguelite:construire` puis `roguelite:recette` (#4929) : le roguelite construit sous `dist/roguelite/`, et son lot de
+  # recettes (`projets/roguelite/recette/lot.mjs`) dans le Chromium épinglé (scripts/recette/navigateur.mjs), la page
+  # servie par interception, sans serveur ; ni Godot ni modèles, donc sans `caches-3d`.
+  roguelite-recette:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - if: ${{ github.event_name == 'merge_group' }}
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: prologue
+        if: ${{ github.event_name == 'merge_group' }}
+        uses: ./.github/actions/prologue
       - name: Roguelite — construction
         if: ${{ !contains(steps.prologue.outputs.sautees, ' roguelite:construire ') && !cancelled() && steps.prologue.outcome == 'success' }}
         run: npm run roguelite:construire
@@ -347,8 +390,8 @@ jobs:
         if: ${{ !cancelled() && steps.prologue.outcome == 'success' }}
         run: git status --porcelain && test -z "$(git status --porcelain)"
 
-  # `test:corpus`, hors du chemin critique de `types` et de `types-hooks` (#3412) : ces jobs et ceux de Godot se
-  # partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
+  # `test:corpus`, hors du chemin critique de `types` et de `types-hooks` (#3412) : ces jobs, ceux de Godot et ceux des
+  # recettes se partagent la lane locale `types` (`LANE_LOCALE_DE_JOB`).
   # `mods:check` (#2278, scripts/mods/verifier.mjs) : la garde des mods Claude Code de .claude/skills/,
   # jouée sur des copies sous os.tmpdir() ; son `lit` chevauche `.claude/`, elle n'est jamais sautée.
   corpus:

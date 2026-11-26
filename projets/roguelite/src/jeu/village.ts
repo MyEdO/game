@@ -1,9 +1,9 @@
 /**
  * Le hameau : bâtir, engager, loger, renvoyer.
  */
-import { prixDuSejourALAuberge, type QualiteDeRepos } from '../noyau';
+import { nomDeCarriere, prixDuSejourALAuberge, type QualiteDeRepos } from '../noyau';
 
-import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, SEMAINE_DE_REPOS, nomDeCarriere, phraseDuPalier } from './valeurs';
+import { BATIMENTS, CHAMBRE_DU_RELAIS, ECHELLE_DES_PRIX, IdBatiment, SEMAINE_DE_REPOS, phraseDuPalier } from './valeurs';
 import { Etat, Heros, renouvelerLesCandidats } from './etat';
 import { blesse } from './soins';
 import { sejourDit } from './expedition';
@@ -32,7 +32,7 @@ export function recruter(e: Etat, i: number): string | null {
   const [h] = e.candidats.splice(i, 1);
   if (!h) return 'Candidat parti.';
   e.roster.push(h);
-  noter(e, `${h.c.label}, ${nomDeCarriere(h.carriere).toLowerCase()}, rejoint la compagnie.`);
+  noter(e, `${h.c.label}, ${nomDeCarriere(h.c).toLowerCase()}, rejoint la compagnie.`);
   return null;
 }
 

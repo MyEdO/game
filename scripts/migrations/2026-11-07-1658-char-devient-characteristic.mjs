@@ -10,7 +10,7 @@
  *  - `creatures.json › [].optionals[]` de `note: 'swap'` › `grant[]` (octroi d'une variante) ;
  *  - toute Condition `kind: 'compare'` › `subject` et `value` (référence de Caractéristique `CharRef`).
  *
- * ENTRÉES : `src/data/*.json`, `src/scenes/<projet>/*.json` (les seules données lues et écrites).
+ * ENTRÉES : `src/data/*.json`, `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`) (les seules données lues et écrites).
  * CARDINAL ASSERTÉ : `CARDINAL` porteurs renommés au premier passage, chacun de famille connue.
  * IDEMPOTENT : un porteur déjà en `characteristic` n'a aucun geste ; rejouée sur l'état final, rien ne
  * s'écrit et la sortie est 0.
@@ -24,6 +24,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { serializeDataset } from '../../src/data/serialize.ts';
 import { estObjet } from '../../src/lib/objet.mjs';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 
@@ -72,9 +73,7 @@ function renommer(porteur, ou, fautes) {
 
 const jsonDe = (dossier) => fs.readdirSync(path.join(ROOT, dossier), { withFileTypes: true })
   .filter((e) => e.isFile() && e.name.endsWith('.json')).map((e) => `${dossier}/${e.name}`);
-const projets = fs.readdirSync(path.join(ROOT, 'src/scenes'), { withFileTypes: true })
-  .filter((e) => e.isDirectory()).flatMap((e) => jsonDe(`src/scenes/${e.name}`));
-const ENTREES = [...jsonDe('src/data'), ...projets].sort();
+const ENTREES = [...jsonDe('src/data'), ...cheminsDesProjetsLivres(ROOT)].sort();
 
 const fautes = [];
 const aEcrire = [];

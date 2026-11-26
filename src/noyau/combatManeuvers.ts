@@ -242,7 +242,7 @@ export const hasFreeWeaponAttack = (c: Combatant): boolean => {
  *  l'un des deux porte une arme de mêlée plus longue que Courte (sinon « au contact » ne reclasse rien).
  *  Source UNIQUE de l'éligibilité (option de la hotbar + clic). Pure. */
 export function auContactEligible(mover: Combatant, foe: Combatant): boolean {
-  if (foe.kind === mover.kind || isOutOfAction(foe) || !isEngagedWith(mover, foe.id)) return false;
+  if (foe.kind === mover.kind || !isEngagedWith(mover, foe)) return false;
   const longer = (c: Combatant) => longerThanShort(c.weapons.find((x) => x.type === 'melee'));
   return longer(mover) || longer(foe);
 }
@@ -642,7 +642,7 @@ export function bestDefenseMode(defender: Combatant): 'parade' | 'esquive' {
 export function battementEligible(attacker: Combatant, foe: Combatant): boolean {
   if (foe.kind === attacker.kind || isOutOfAction(foe)) return false;
   const foeArmed = (foe.weapons ?? []).some((w) => w.type === 'melee' || w.type === 'distance');
-  return foeArmed && sizeGap(foe.size, attacker.size) < 1 && isEngagedWith(attacker, foe.id);
+  return foeArmed && sizeGap(foe.size, attacker.size) < 1 && isEngagedWith(attacker, foe);
 }
 
 /** Avantage retiré à l'adversaire par un Battement RÉUSSI de `dr` DR : LDB (l.103) « −1 et −1 par DR » ;

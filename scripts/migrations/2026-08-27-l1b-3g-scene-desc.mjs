@@ -9,7 +9,7 @@
  * APLATIE à la racine du document (#1467 L1b V-formeProjet) : ce script vise la forme d'ALORS,
  * c'est le sujet de sa mesure et il ne se « modernise » pas.
  *
- * ENTRÉES : les 4 `src/scenes/<campagne>/<campagne>-projet.json`.
+ * ENTRÉES : les projets livrés `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`).
  *
  * FORMATAGE PRÉSERVÉ : les documents de scène ont leur PROPRE sérialiseur —
  * `JSON.stringify(doc, null, 1) + '\n'` (indentation 1, précédent mesuré et déclaré par
@@ -28,9 +28,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
-const RACINE = path.join(ROOT, 'src/scenes');
 
 /** Forme canonique d'un document de scène. */
 const canonique = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
@@ -38,17 +38,13 @@ const canonique = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 /** Renomme `description` → `desc` EN PLACE (position de clé préservée, valeur inchangée). */
 const renomme = (o) => Object.fromEntries(Object.entries(o).map(([k, v]) => [k === 'description' ? 'desc' : k, v]));
 
-const cibles = fs
-  .readdirSync(RACINE, { withFileTypes: true })
-  .filter((d) => d.isDirectory())
-  .map((d) => path.join(RACINE, d.name, `${d.name}-projet.json`))
-  .filter((p) => fs.existsSync(p));
+const cibles = cheminsDesProjetsLivres(ROOT);
 
 const echecs = [];
 const rapports = [];
 
-for (const abs of cibles) {
-  const rel = path.relative(ROOT, abs).replace(/\\/g, '/');
+for (const rel of cibles) {
+  const abs = path.join(ROOT, rel);
   const brut = fs.readFileSync(abs, 'utf8');
   const doc = JSON.parse(brut);
 

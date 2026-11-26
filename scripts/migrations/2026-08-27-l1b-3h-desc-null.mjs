@@ -7,7 +7,7 @@
  * chaîne vide est vue « présente » par un lecteur et « absente » par un autre ; `null` force chaque lecteur à un `?? undefined`.
  *
  * ENTRÉES : les deux racines de documents — tout `src/data/*.json` et tout
- * `src/scenes/<campagne>/<campagne>-projet.json`. La purge est mesurée sur la DONNÉE, pas déclarée
+ * projet livré `<x>-projet.json` sous `projets/` (`cheminsDesProjetsLivres`). La purge est mesurée sur la DONNÉE, pas déclarée
  * par fichier : ce qui n'en porte pas est laissé intact.
  *
  * EMPIÈTEMENT L3 ASSUMÉ, déclaré : 24 des porteurs vivent dans les projets de scène sous
@@ -32,6 +32,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { cheminsDesProjetsLivres } from '../guards/lib/projetsLivres.mjs';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const echecs = [];
@@ -88,12 +89,7 @@ const canonScene = (doc) => `${JSON.stringify(doc, null, 1)}\n`;
 for (const f of fs.readdirSync(path.join(ROOT, 'src/data'))) {
   if (f.endsWith('.json')) traite(path.join(ROOT, 'src/data', f), canonData);
 }
-const RACINE_SCENES = path.join(ROOT, 'src/scenes');
-for (const d of fs.readdirSync(RACINE_SCENES, { withFileTypes: true })) {
-  if (!d.isDirectory()) continue;
-  const abs = path.join(RACINE_SCENES, d.name, `${d.name}-projet.json`);
-  if (fs.existsSync(abs)) traite(abs, canonScene);
-}
+for (const rel of cheminsDesProjetsLivres(ROOT)) traite(path.join(ROOT, rel), canonScene);
 
 if (echecs.length) {
   console.error(`ARBITRAGE REQUIS — ${echecs.length} anomalie(s), AUCUNE écriture :`);

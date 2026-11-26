@@ -7,7 +7,9 @@ description: À utiliser quand on doit vérifier une feature en jeu et qu'aucun 
 # Créer un scénario de test
 
 Lire **`docs/test-scenarios.md`** (catalogue complet + conventions + workflow). Un scénario = un
-fichier dans `src/scenes/test-scenarios/` enregistré au registre. TOUJOURS passer par le scénario
+fichier dans `src/scenes/test-scenarios/` enregistré au registre ; un scénario qui ouvre le contenu du jeu de rôle
+vit sous `projets/jeu-de-role/scenarios/`, listé par `projets/jeu-de-role/contenu.ts` (catalogue :
+`docs/projets/jeu-de-role/test-scenarios.md`, `npm run jeu-de-role:docs`). TOUJOURS passer par le scénario
 adapté pour une recette Godot — sinon en créer un, jamais bricoler un état à la main.
 
 **Anti-grind.** Un scénario de test DÉMONTRE, il ne fait pas durer :

@@ -12,7 +12,7 @@
  * - `liste` : la liste entière `avant` devient `apres`, celle du statbloc imprimé.
  *
  * ENTRÉES : écrites — `src/data/careerLevels.json`, `src/data/creatures.json`,
- * `src/scenes/diligence/diligence-projet.json` ; lues, quand un geste est à faire —
+ * `projets/jeu-de-role/campagnes/diligence/diligence-projet.json` ; lues, quand un geste est à faire —
  * `src/data/trappings.json`, `src/data/vehicles.json`.
  * FORME D'AVANT SEULE (`lib/formeDAvant.mjs`) : un hôte absent, une possession déjà en référence ou
  * révisée après la migration, est laissé tel quel.
@@ -33,7 +33,7 @@ const serializeProjet = (value) => `${JSON.stringify(value, null, 1)}\n`;
 
 const CARRIERES = 'src/data/careerLevels.json';
 const CREATURES = 'src/data/creatures.json';
-const DILIGENCE = 'src/scenes/diligence/diligence-projet.json';
+const DILIGENCE = 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json';
 
 /** Chaque fichier écrit, avec son formatage et l'accès à l'hôte `id`, porteur de `trappings`. */
 const FICHIERS = {

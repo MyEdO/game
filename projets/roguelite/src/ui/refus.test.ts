@@ -112,3 +112,25 @@ describe('chaque geste fermé dit sa raison une fois, au survol', () => {
     hote.remove();
   });
 });
+
+describe('entre deux salles, la Guérison refusée dit la raison du noyau au survol', () => {
+  it('la case du soigneur, puis chaque blessé que le noyau lui refuse', () => {
+    const e = J.nouvellePartie(3);
+    expect(J.partir(e, J.DESTINATIONS[0].id, e.roster.map((h) => h.c.id))).toBeNull();
+    const groupe = J.herosDuGroupe(e);
+    const soigneur = groupe.find((h) => J.refusDuSoigneur(e, h) === 'Personne à soigner.')!;
+    const hote = document.createElement('div');
+    document.body.append(hote);
+    const survol = (selecteur: string) => ditAuSurvol(hote.querySelector<HTMLElement>(`${selecteur}:disabled`)!);
+    hote.innerHTML = ecranDeLExpedition(e, '', null, '', null);
+    expect(survol(`.sacs [data-a="soigneur"][data-id="${soigneur.c.id}"]`)).toBe('Personne à soigner.');
+
+    const blesse = groupe.find((h) => h !== soigneur)!;
+    blesse.c.wounds.current = 1;
+    hote.innerHTML = ecranDeLExpedition(e, '', null, '', { action: 'soigner', soigneur: soigneur.c.id });
+    const refuses = groupe.filter((h) => J.refusDuPatient(soigneur, h));
+    expect(refuses.map((h) => h.c.id)).toEqual(groupe.filter((h) => h !== blesse).map((h) => h.c.id));
+    for (const h of refuses) expect(survol(`.socle-compagnie [data-a="tenter"][data-id="${h.c.id}"]`), h.c.label).toBe(J.refusDuPatient(soigneur, h));
+    hote.remove();
+  });
+});

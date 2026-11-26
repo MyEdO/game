@@ -80,7 +80,7 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
   });
 
   it('Engagé : jamais de re-planification (ni Charge étendue ni Course)', () => {
-    const { plan, action, ran } = planFor(8, { engagedWith: ['x'] });
+    const { plan, action, ran } = planFor(8, { engagedWith: ['h'] });
     expect(plan).toBe(action);
     expect(ran).toBeNull();
   });
@@ -111,5 +111,22 @@ describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
       traceLineOf({ who: fixtureText('Gobelin'), label: testTraceLabel(refLabel('skills', course.skill), course.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }),
       t('cs.run', { name: 'Gobelin', cost: chebyshev(depart, enemy.pos!), short: '' }),
     ]);
+  });
+});
+
+describe('IA Engagée : le départ du contact paie sa voie du Désengagement (LDB 15 l.47, #5030)', () => {
+  it('l’Avantage supérieur sacrifié lève l’Engagement avant le déplacement, une fois', () => {
+    const arc = { name: 'Arc', type: 'distance', damage: { plusBF: false, flat: 4 }, qualities: [], range: 50 } as never;
+    const enemy = C('ennemi', 'e', 2, { label: 'Gobelin', weapons: [arc], advantage: 2, engagedWith: ['h'] } as Partial<Combatant>);
+    const hero = C('heros', 'h', 3, { engagedWith: ['e'] });
+    banc.setState({ scene: scene(), party: [], pendingCascade: null, actorMove: null,
+      battle: { combatants: [enemy, hero], order: ['e', 'h'], turn: 0, round: 1, log: [], over: null } as never });
+    seedBattleRng(3);
+    runEnemyAI(banc.getState, banc.setState, 'e');
+    banc.reprendreLesEnAttente();
+    const e = banc.getState().battle!.combatants.find((c) => c.id === 'e')!;
+    expect(e.pos!.x, 'le tireur s’est écarté').not.toBe(2);
+    expect([e.advantage, e.engagedWith, hero.engagedWith]).toEqual([0, [], []]);
+    expect(banc.getState().battle!.log.filter((l) => l.text === t('cs.disengageSacrifice', { name: 'Gobelin' }))).toHaveLength(1);
   });
 });

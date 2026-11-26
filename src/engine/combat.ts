@@ -1507,7 +1507,7 @@ export function rangedDefenseModes(
 ): ('parade' | 'esquive')[] {
   if (cannotDefend(defender)) return []; // Surpris / À Terre… : pas de réaction (LDB 16)
   const modes = new Set<'parade' | 'esquive'>();
-  if (isEngagedWith(attacker, defender.id)) modes.add('parade'); // tireur Engagé (l.70) : toute Corps à corps
+  if (isEngagedWith(attacker, defender)) modes.add('parade'); // tireur Engagé (l.70) : toute Corps à corps
   else if (los && (rangedOpposeWeapon(defender.weapons) || pareLesTirs(bouclierDuBinome))) modes.add('parade'); // bouclier Protectrice 2+ en Ligne de Vue (l.307) ; ZI 13 l.193
   const rangeM = porteeDeTir(resolveTrapping, attacker, weapon);
   if (distanceTiles != null && rangeM != null && rangeBandId(distanceTiles, rangeM, metresPerTile) === 'bout-portant')

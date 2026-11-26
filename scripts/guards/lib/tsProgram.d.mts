@@ -1,4 +1,5 @@
 import type { Program, Checker } from 'typescript/unstable/sync';
+import type { PasseDesProjets } from './serrureDesProjets.mjs';
 
 export interface SessionProgramme {
   program: Program;
@@ -12,6 +13,7 @@ export function repoProgram(
   choisirRootNames: (fileNames: readonly string[], root: string) => string[],
   recouvrement?: Readonly<Record<string, string>>,
   compilerOptions?: Readonly<Record<string, unknown>>,
+  options?: { porte?: PasseDesProjets },
 ): SessionProgramme;
 export function virtualProgram(files: Record<string, string>, options?: Record<string, unknown>): SessionProgramme;
 export function syntaxProgram(files: Record<string, string>): SessionProgramme;

@@ -157,6 +157,11 @@ export const COMPETENCES_NUES = [
 ];
 
 export const TALENTS_TEXTES = [
+  { famille: 'talent-texte', fichier: 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json', ref: '["edo-ernst-heidlemann","talents","destinee","ec6768940c750d925bf93571550ddd5f3e61a98f4ff9ec38f2211d81d54bdb11"]', occurrence: 1 },
+  { famille: 'talent-texte', fichier: 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json', ref: '["edo-gustav-fondleburger","talents","destinee","5b7d4448de15e0393163b91443c320c3906780ccb00e8981703f04be4f23826b"]', occurrence: 1 },
+  { famille: 'talent-texte', fichier: 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json', ref: '["edo-isolde-von-strudeldorf","talents","destinee","808a41a792721e559004ca9619a576fb63cd8f752323fc3e5e250cad0d0dedf7"]', occurrence: 1 },
+  { famille: 'talent-texte', fichier: 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json', ref: '["edo-janna-elleiner","talents","destinee","9fa2024b946c8e323345f3411840634fdf8a1650d0b1d9b29714eb1abde80e58"]', occurrence: 1 },
+  { famille: 'talent-texte', fichier: 'projets/jeu-de-role/campagnes/diligence/diligence-projet.json', ref: '["edo-marie-schultz","talents","destinee","726eb3ec8362bc56eb05a2e0d059bca0be7e572e96c395c9fb0e57d11d5f66bd"]', occurrence: 1 },
   { famille: 'talent-texte', fichier: 'src/data/creatures.json', ref: '["andrea-bruhn","talents","destinee","081225fc90912319df831c7143f8993ddff067042f13410529926593d48624d4"]', occurrence: 1 },
   { famille: 'talent-texte', fichier: 'src/data/creatures.json', ref: '["beate-moser","talents","destinee","a4bc4b52ce933fb80379f3449a5e52ac81fe23688908a56e9e7f5db1ce9115d3"]', occurrence: 1 },
   { famille: 'talent-texte', fichier: 'src/data/creatures.json', ref: '["brigitte-schleigel","talents","destinee","3c3e3c214f2ad0757a3bb062c7a22d041520149d3d326bb04606d14aed0582ac"]', occurrence: 1 },
@@ -178,11 +183,6 @@ export const TALENTS_TEXTES = [
   { famille: 'talent-texte', fichier: 'src/data/creatures.json', ref: '["wulfric-tore","talents","destinee","a8cc1c35a7c89f2cabf301f6c871ff585cab6084b7d7172f9531e270a53f19ce"]', occurrence: 1 },
   { famille: 'talent-texte', fichier: 'src/data/creatures.json', ref: '["wulfrum-viert","talents","destinee","2e1faeb14d490af32b1be7f6a354f5877392f13e9fd181a2e6b29a7c66645f24"]', occurrence: 1 },
   { famille: 'talent-texte', fichier: 'src/data/creatures.json', ref: '["yanni-weber","talents","destinee","f7c75a8ba77152891c3411e9349c6df883b085148e6be4975d19806b5653442a"]', occurrence: 1 },
-  { famille: 'talent-texte', fichier: 'src/scenes/diligence/diligence-projet.json', ref: '["edo-ernst-heidlemann","talents","destinee","ec6768940c750d925bf93571550ddd5f3e61a98f4ff9ec38f2211d81d54bdb11"]', occurrence: 1 },
-  { famille: 'talent-texte', fichier: 'src/scenes/diligence/diligence-projet.json', ref: '["edo-gustav-fondleburger","talents","destinee","5b7d4448de15e0393163b91443c320c3906780ccb00e8981703f04be4f23826b"]', occurrence: 1 },
-  { famille: 'talent-texte', fichier: 'src/scenes/diligence/diligence-projet.json', ref: '["edo-isolde-von-strudeldorf","talents","destinee","808a41a792721e559004ca9619a576fb63cd8f752323fc3e5e250cad0d0dedf7"]', occurrence: 1 },
-  { famille: 'talent-texte', fichier: 'src/scenes/diligence/diligence-projet.json', ref: '["edo-janna-elleiner","talents","destinee","9fa2024b946c8e323345f3411840634fdf8a1650d0b1d9b29714eb1abde80e58"]', occurrence: 1 },
-  { famille: 'talent-texte', fichier: 'src/scenes/diligence/diligence-projet.json', ref: '["edo-marie-schultz","talents","destinee","726eb3ec8362bc56eb05a2e0d059bca0be7e572e96c395c9fb0e57d11d5f66bd"]', occurrence: 1 },
 ];
 
 export const TALENTS_SENTINELLES = [];

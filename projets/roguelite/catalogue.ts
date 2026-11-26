@@ -20,7 +20,7 @@ import {
   PRIERE_DE_SOIN,
   ARMURES_DE_LA_FORGE,
 } from './src/jeu';
-import { articleDuCatalogue, nomDeCarriereDuLivre, nomDeCompetence, nomDeCreature, nomDeGroupe, nomDeSort, nomDeTalent } from './src/noyau';
+import { articleDuCatalogue, nomDeCarriere, nomDeCompetence, nomDeCreature, nomDeGroupe, nomDeSort, nomDeTalent } from './src/noyau';
 
 export const CHEMIN_DU_CATALOGUE = fileURLToPath(new URL('./CATALOGUE.md', import.meta.url));
 
@@ -37,7 +37,7 @@ const tableau = (entete: readonly string[], lignes: readonly (readonly string[])
 /** Le contenu de `CATALOGUE.md`, produit des tables de `valeurs.ts`. */
 export function catalogue(): string {
   const carrieres = tableau(['Carrière', 'Relais', 'Niveau', 'Rôle', 'Identité', 'Dotation d’adaptation', 'Désignations', 'Voie'], PROFILS.map((p) => [
-    nomme(nomDeCarriereDuLivre(p.id), p.id), String(p.relais), String(p.niveau), ROLES[p.role].nom, talent(p.identite.talent),
+    nomme(nomDeCarriere({ career: p.id }), p.id), String(p.relais), String(p.niveau), ROLES[p.role].nom, talent(p.identite.talent),
     (p.dotation ?? []).map(objet).join(', '),
     (p.identite.designations ?? []).map((d) => `niv. ${d.niveau} : ${competence(`${d.id}:${d.spec}`)}`).join(', '),
     p.voie ? p.voie.nom : p.dieux ? `Invocation, dieu tiré : ${p.dieux.join(', ')}` : '',

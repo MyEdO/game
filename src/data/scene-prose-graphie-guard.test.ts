@@ -9,8 +9,7 @@
  * POURQUOI ELLE EXISTE : le contrat de donnée (`schema-contract.test.ts`) ne voit que les documents
  * COMMITTÉS. Un générateur resté à l'ancienne graphie est invisible pour lui — jusqu'au jour où un
  * auteur le relance et produit un document que `parseProject` REFUSE. C'est exactement le trou par
- * lequel `scripts/loup-et-saumure/generate.mjs` et `scripts/barge-du-sel/generate.mjs` sont passés :
- * migrés au geste du même lot, ils n'étaient gardés par rien.
+ * lequel deux générateurs de campagne sont passés : migrés au geste du même lot, ils n'étaient gardés par rien.
  *
  * PÉRIMÈTRE : `src/**` et `scripts/**`, tests COMPRIS (une fixture de test est un producteur comme
  * un autre — trois d'entre elles ont été trouvées à l'ancienne graphie par ce même lot). Les blocs
