@@ -8,7 +8,9 @@
 //    retenu, aucun mur ne ferme ses imports vers un projet ;
 //  - un test qui atteint un LANCEUR (un module qui importe un spécificateur de `LANCEURS`) sans passer par une
 //    passerelle gardée (un module qui importe la serrure, `serrureDesProjets.mjs`) est retenu : l'enfant lit hors de la
-//    clôture, et seule une passerelle gardée refuse ce qu'il lirait sous `projets/` ;
+//    clôture, et seule une passerelle gardée refuse ce qu'il lirait sous `projets/` — sauf le lanceur dont chaque
+//    lancement se prouve (`enfantsProuves`, scripts/guards/lib/entreesDesEnfants.mjs) : ses enfants sont ses arcs, et
+//    leur clôture se classe comme celle de tout module ;
 //  - un test dont la clôture compte un site que la marche ne suit pas (spécificateur calculé, relatif non résolu,
 //    chargeur non suivi) est retenu ;
 //  - des `setupFiles` dont la clôture atteint l'un de ces modules, une zone qui n'est pas un projet ou une sélection
@@ -16,7 +18,8 @@
 import { posix, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { readFileSync } from 'node:fs'
-import { analyserEnLots, arbreDuDisque, clotureDImports, grapheInverse } from '../guards/lib/importGraph.mjs'
+import { MODULES_ENFANTS, enfantsProuves, lecteurDuDepot } from '../guards/lib/entreesDesEnfants.mjs'
+import { analyserEnLots, clotureDImports, grapheInverse } from '../guards/lib/importGraph.mjs'
 import { dossierDe, estProjet, zoneDe } from '../guards/lib/couches.mjs'
 import { TRAVAIL, depotDe, listerImage } from '../guards/lib/gitPorte.mjs'
 import { porteDeTousLesProjets } from '../guards/lib/porteDesProjets.mjs'
@@ -47,25 +50,35 @@ export function selectionDeLaZone({ racine = fileURLToPath(new URL('../..', impo
   const base = resolve(racine).split('\\').join('/')
   const abs = (rel) => `${base}/${rel}`
   const rel = (a) => posix.relative(base, a)
-  const fichiers = listerImage(depotDe(racine, { env, porte: porteDeTousLesProjets }), TRAVAIL)
+  const image = new Set(listerImage(depotDe(racine, { env, porte: porteDeTousLesProjets }), TRAVAIL))
+  const { arbre, depot } = lecteurDuDepot(racine, image)
   const setup = setupFilesDe(readFileSync(abs(CONFIG_VITEST), 'utf8'), analyserEnLots)
   const cache = new Map()
   /** Module ↦ ce qui le marque : `lecteur` (le projet ou la porte), `lanceur`, `inclassable`. */
   const marques = new Map()
   const marquer = (a, marque) => marques.set(rel(a), marques.get(rel(a)) ?? marque)
   const lanceurs = []
+  /** Lanceur prouvé ↦ les entrées de ses enfants (relatives au dépôt). */
+  const enfants = new Map()
   /** Les sites relatifs au dépôt de chaque module, jugés résolus ou non une fois ses arcs posés au cache. */
   const relatifs = []
-  clotureDImports([...suite, ...setup], {
-    racine, typesEffaces: true, cache, porte: porteDeTousLesProjets, arbre: arbreDuDisque(fichiers.map(abs)),
-    surSites: (a, sites) => {
-      for (const { acquisition, genre, nature, spec } of sites) {
-        if (nature === 'nonSuivi' || genre === 'chargeur' || (acquisition && spec === null)) marquer(a, 'inclassable')
-        else if (acquisition && LANCEURS.includes(spec)) lanceurs.push(a)
-        else if (acquisition && relatifAuDepot(spec)) relatifs.push([a, spec])
-      }
-    },
-  })
+  const surSites = (a, sites, sourceFile) => {
+    const lances = sites.filter(({ acquisition, spec }) => acquisition && LANCEURS.includes(spec))
+    for (const { acquisition, genre, nature, spec } of sites) {
+      if (nature === 'nonSuivi' || genre === 'chargeur' || (acquisition && spec === null)) marquer(a, 'inclassable')
+      else if (acquisition && relatifAuDepot(spec)) relatifs.push([a, spec])
+    }
+    if (!lances.length) return
+    const prouves = lances.every(({ spec }) => MODULES_ENFANTS.includes(spec)) ? enfantsProuves(rel(a), sourceFile, sites, depot, racine, image) : null
+    if (prouves) enfants.set(a, prouves)
+    else lanceurs.push(a)
+  }
+  const marches = new Set()
+  for (let racines = [...suite, ...setup]; racines.length;) {
+    clotureDImports(racines, { racine, typesEffaces: true, cache, porte: porteDeTousLesProjets, arbre, surSites })
+    racines = [...new Set([...enfants.values()].flat())].filter((c) => !marches.has(c))
+    for (const c of racines) marches.add(c)
+  }
   for (const [a, spec] of relatifs) if (!(cache.get(a) ?? []).some((arc) => arc.spec === spec)) marquer(a, 'inclassable')
   for (const a of lanceurs) marquer(a, 'lanceur')
   /** Les passerelles gardées : les modules qui importent la serrure. Un lanceur ne se lit pas au travers d'elles. */
@@ -73,6 +86,7 @@ export function selectionDeLaZone({ racine = fileURLToPath(new URL('../..', impo
   for (const a of cache.keys()) if (rel(a) === PORTE || rel(a).startsWith(dossier)) marques.set(rel(a), 'lecteur')
   for (const t of suite) if (zoneDe(t) === null) marquer(abs(t), 'hors des zones')
   const inverse = grapheInverse(cache)
+  for (const [a, entrees] of enfants) for (const e of entrees) inverse.set(abs(e), [...(inverse.get(abs(e)) ?? []), { importeur: a }])
   const atteints = new Map()
   for (let vague = [...marques].map(([m, marque]) => [abs(m), marque]); vague.length;) {
     const suivante = []

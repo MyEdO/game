@@ -33,6 +33,13 @@ export const valeurDe = (source) => {
 
 export const nomDe = (noeud) => noeud?.name ?? noeud?.value ?? null;
 
+/** Le nom de paquet d'un spécificateur nu (`@scope/nom/x` → `@scope/nom`), `null` pour un module de Node. */
+export function paquetDe(spec) {
+  if (spec.startsWith('node:')) return null;
+  const segments = spec.split('/');
+  return spec.startsWith('@') ? segments.slice(0, 2).join('/') : segments[0];
+}
+
 /** `createRequire(…)` ou `module.createRequire(…)`. */
 const estCreateRequire = (appel) => appel?.type === 'CallExpression'
   && nomDe(appel.callee.type === 'MemberExpression' ? appel.callee.property : appel.callee) === 'createRequire';

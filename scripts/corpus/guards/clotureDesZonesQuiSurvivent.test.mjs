@@ -11,142 +11,26 @@
 // ne suit pas (`chargeur` de `sitesDeModule`), sont rouges. Mesuré sur l'arbre de travail, rouge sur des transits forgés.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
-import { dirname, join, relative, resolve } from 'node:path'
+import { dirname, join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { COUCHES, PAQUETS_DE_L_HOTE_WEB, estZone, fermeParLaSurvie, fermeParLeProjet, paquetFerme, zoneDe } from '../../guards/lib/couches.mjs'
-import { paquetDe } from '../../guards/lib/couchesLint.mjs'
+import { paquetDe } from '../../guards/lib/arcsDImport.mjs'
 import { cibleLexicale } from '../../guards/lib/interneLint.mjs'
-import { EXTENSIONS_DE_SCRIPT, analyserTexte, typescript } from '../../guards/lib/dialecte.mjs'
-import { ciblesDEcritureDeCommande, lancementDInterpreteur } from '../../guards/lib/ecrituresShell.mjs'
+import { EXTENSIONS_DE_SCRIPT } from '../../guards/lib/dialecte.mjs'
+import { entreesDesEnfants, lecteurDuDepot } from '../../guards/lib/entreesDesEnfants.mjs'
 import { forgerDepot } from '../../guards/lib/depotGabarit.mjs'
-import { evaluer, lecteurDExpressions, valeursDAcquisition } from '../../guards/lib/racinesBalayees.mjs'
+import { valeursDAcquisition } from '../../guards/lib/racinesBalayees.mjs'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 import { TRAVAIL, depotDe, fichiersIgnoresDe, listerImage } from '../../guards/lib/gitPorte.mjs'
-import { CHEMIN_TSCONFIG, aliasDe, arbreDuDisque, clotureDImports, estModule, grapheInverse, resolveImport } from '../../guards/lib/importGraph.mjs'
+import { clotureDImports, estModule, grapheInverse } from '../../guards/lib/importGraph.mjs'
 import { porteDeTousLesProjets } from '../../guards/lib/porteDesProjets.mjs'
 
 const RACINE = fileURLToPath(new URL('../../../', import.meta.url)).replace(/[\\/]$/, '')
 
-const EXTERIEURS_JS = new Set(['node', 'node.exe', 'tsx', 'npx'])
-const LANCEURS_NODE = new Set(['fork', 'spawn', 'spawnSync', 'execFile', 'execFileSync'])
-const LANCEURS_SHELL = new Set(['exec', 'execSync'])
-const MOT_OPAQUE = '\0'
 const PAQUETS_DE_L_OUTILLAGE = new Set(Object.values(COUCHES).flatMap((c) => Object.values(c.paquetsDOutillage ?? {}).flat()))
 const PAQUETS_FERMES_AUX_ENFANTS = new Set(PAQUETS_DE_L_HOTE_WEB.filter((p) => !PAQUETS_DE_L_OUTILLAGE.has(p)))
-
-/** Les entrées d'enfants bornées par leur lancement Node, depuis leur cwd. Le code en ligne, les
- *  options d'environnement, les relais et les argv indéterminés demandent une mesure distincte. */
-function entreesDesEnfants(rel, sourceFile, sites, depot, racine, image) {
-  const estModuleEnfant = (spec) => spec === 'node:child_process' || spec === 'child_process'
-  const estOutilLocal = (spec) => spec?.endsWith('/lancer-local.mjs') && depot.cible(rel, spec) === 'scripts/lancer-local.mjs'
-  if (!sites.some(({ spec }) => estModuleEnfant(spec) || estOutilLocal(spec))) return []
-
-  const ts = typescript()
-  const lire = lecteurDExpressions(rel, sourceFile)
-  const motDExpression = (e) => {
-    if (e.k === 'lit' && typeof e.v === 'string') return e.v
-    const valeurs = evaluer(e, { lambdas: lire.lambdas })
-    return valeurs.length === 1 && 'chemin' in valeurs[0] ? resolve(racine, valeurs[0].chemin) : MOT_OPAQUE
-  }
-  const mot = (n) => {
-    if (!n) return MOT_OPAQUE
-    if (ts.isStringLiteralLikeNode(n)) return n.text
-    const valeurs = valeursDAcquisition(rel, sourceFile, n, depot)
-    if (valeurs.length === 1) {
-      if ('specificateur' in valeurs[0]) return valeurs[0].specificateur
-      if ('fichier' in valeurs[0]) return resolve(racine, valeurs[0].fichier)
-    }
-    return motDExpression(lire.expr(n))
-  }
-  const argvDe = (n) => {
-    if (!n) return []
-    if (!ts.isArrayLiteralExpression(n)) {
-      const e = lire.expr(n)
-      return e.k === 'liste' ? e.v.map(motDExpression) : [MOT_OPAQUE]
-    }
-    const args = []
-    for (const e of n.elements) {
-      if (ts.isSpreadElement(e)) return [...args, MOT_OPAQUE]
-      args.push(mot(e))
-    }
-    return args
-  }
-  const option = (options, nom) => {
-    if (!options) return undefined
-    if (!ts.isObjectLiteralExpression(options)) return null
-    for (const p of [...options.properties].reverse()) {
-      if (ts.isSpreadAssignment(p) || ts.isComputedPropertyName(p.name)) return null
-      if (p.name.text !== nom) continue
-      if (ts.isShorthandPropertyAssignment(p)) return p.name
-      return ts.isPropertyAssignment(p) ? p.initializer : null
-    }
-  }
-  const estNode = (n) => n && ts.isPropertyAccessExpression(n) && ts.isIdentifier(n.expression)
-    && n.expression.text === 'process' && n.name.text === 'execPath'
-  const lancements = []
-  const relever = (n, scripts, cwd, opaque, paquets = []) => {
-    const cibles = scripts.flatMap((script) => {
-      if (!script || script.includes(MOT_OPAQUE) || cwd === MOT_OPAQUE) return []
-      const cible = relative(racine, resolve(racine, cwd, script)).split('\\').join('/')
-      return image.has(cible) && estModule(cible) ? [cible] : []
-    })
-    lancements.push({
-      site: rel + ':' + lire.ligneDe(n),
-      cibles,
-      paquets,
-      opaque: opaque || cibles.length < scripts.length,
-    })
-  }
-  const interpreter = (n, commande, argv, cwd) => {
-    const lancement = lancementDInterpreteur([commande, ...argv])
-    const scripts = lancement?.scripts ?? []
-    const paquets = (lancement?.prechargements ?? []).map(paquetDe).filter((p) => p !== null)
-    relever(n, scripts, cwd, !scripts.length || lancement.enLigne !== undefined, paquets)
-  }
-  const visiter = (n) => {
-    if (ts.isCallExpression(n)) {
-      const cible = lire.cibleAppele(n)
-      const [premier, args, options, quatrieme] = n.arguments
-      if (cible?.k === 'importe' && estOutilLocal(cible.spec) && cible.nom === 'sortieOutilLocal'
-        && mot(args) === 'tsx' && mot(options) === 'tsx') {
-        interpreter(n, 'tsx', argvDe(quatrieme), mot(premier))
-      } else if (cible?.k === 'importe' && estModuleEnfant(cible.spec) && LANCEURS_SHELL.has(cible.nom)) {
-        const commande = mot(premier)
-        const optionCwd = option(args, 'cwd')
-        const cwd = optionCwd === undefined ? racine : mot(optionCwd)
-        if (commande !== MOT_OPAQUE && cwd !== MOT_OPAQUE) {
-          const scripts = ciblesDEcritureDeCommande(commande, { scripts: true, base: resolve(racine, cwd), lireTexte: () => null })
-            .filter(({ operation }) => operation === 'script')
-          if (scripts.length) relever(n, scripts.map(({ chemin }) => chemin), racine, false)
-        }
-      } else if (cible?.k === 'importe' && estModuleEnfant(cible.spec) && LANCEURS_NODE.has(cible.nom)) {
-        const opt = args && ts.isObjectLiteralExpression(args) ? args : options
-        const optionCwd = option(opt, 'cwd')
-        const cwd = optionCwd === undefined ? racine : mot(optionCwd)
-        if (cible.nom === 'fork') {
-          const execPath = option(opt, 'execPath')
-          const execArgv = option(opt, 'execArgv')
-          if (execPath === undefined || estNode(execPath) || mot(execPath) === 'node') {
-            interpreter(n, 'node', [...(execArgv === null ? [MOT_OPAQUE] : argvDe(execArgv)), mot(premier)], cwd)
-          }
-        } else {
-          const commande = estNode(premier) ? 'node' : mot(premier)
-          const shell = option(opt, 'shell')
-          if (EXTERIEURS_JS.has(commande)) {
-            const argv = shell === undefined || shell?.kind === ts.SyntaxKind.FalseKeyword
-              ? argvDe(opt === args ? undefined : args) : [MOT_OPAQUE]
-            interpreter(n, commande, argv, cwd)
-          }
-        }
-      }
-    }
-    n.forEachChild(visiter)
-  }
-  visiter(sourceFile)
-  return lancements
-}
 
 /**
  * Les TRANSITS des zones qui survivent dans `fichiers` (chemins relatifs à `racine`, l'ensemble que la marche lit) : par
@@ -167,21 +51,7 @@ function transitsDesZonesQuiSurvivent(racine, fichiers, ignores = []) {
   const abs = (rel) => join(racine, rel).split('\\').join('/')
   const relDe = (a) => relative(racine, a).split('\\').join('/')
   const image = new Set([...fichiers, ...ignores])
-  const arbre = arbreDuDisque([...image].map(abs))
-  const alias = aliasDe(image.has(CHEMIN_TSCONFIG) ? readFileSync(abs(CHEMIN_TSCONFIG), 'utf8') : null, racine)
-  const cibleDe = (rel, spec) => {
-    const c = resolveImport(abs(rel), spec, arbre.existe, alias, 'dynamique', racine)
-    return c === null ? null : relDe(c)
-  }
-  const arbres = new Map()
-  const depot = {
-    arbreDe: (rel) => {
-      if (!image.has(rel) || !estModule(rel)) return null
-      if (!arbres.has(rel)) arbres.set(rel, analyserTexte({ rel, text: readFileSync(abs(rel), 'utf8') }).sourceFile)
-      return arbres.get(rel)
-    },
-    cible: (rel, spec) => { const c = cibleDe(rel, spec); return c !== null && image.has(c) ? c : null },
-  }
+  const { arbre, cibleDe, depot } = lecteurDuDepot(racine, image)
   const cache = new Map()
   const cloture = new Set()
   const transits = []
