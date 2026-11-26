@@ -147,6 +147,14 @@
       "page": 168
     },
     "persistsAfterCombat": true,
+    "aLaSortie": [
+      {
+        "op": "condition",
+        "id": {
+          "id": "extenue"
+        }
+      }
+    ],
     "restrictsAction": true,
     "passive": [
       {
@@ -173,52 +181,20 @@
             "kind": "hiddenFromFoes"
           },
           "alors": {
-            "kind": "sequence",
-            "etapes": [
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "on": "target",
-                  "ops": [
-                    {
-                      "op": "removeCondition",
-                      "id": {
-                        "id": "brise"
-                      },
-                      "value": 1
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "si",
-                "condition": {
-                  "kind": "compare",
-                  "subject": {
-                    "who": "target",
-                    "condition": "brise"
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "removeCondition",
+                  "id": {
+                    "id": "brise"
                   },
-                  "op": "<=",
-                  "value": 0
-                },
-                "alors": {
-                  "kind": "effet",
-                  "effet": {
-                    "type": "ops",
-                    "on": "target",
-                    "ops": [
-                      {
-                        "op": "condition",
-                        "id": {
-                          "id": "extenue"
-                        }
-                      }
-                    ]
-                  }
+                  "value": 1
                 }
-              }
-            ]
+              ]
+            }
           }
         }
       },
@@ -280,56 +256,24 @@
             ]
           },
           "reussite": {
-            "kind": "sequence",
-            "etapes": [
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "on": "target",
-                  "ops": [
-                    {
-                      "op": "removeCondition",
-                      "id": {
-                        "id": "brise"
-                      },
-                      "value": 1,
-                      "valuePerSL": {
-                        "every": 1,
-                        "amount": 1
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "si",
-                "condition": {
-                  "kind": "compare",
-                  "subject": {
-                    "who": "target",
-                    "condition": "brise"
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "removeCondition",
+                  "id": {
+                    "id": "brise"
                   },
-                  "op": "<=",
-                  "value": 0
-                },
-                "alors": {
-                  "kind": "effet",
-                  "effet": {
-                    "type": "ops",
-                    "on": "target",
-                    "ops": [
-                      {
-                        "op": "condition",
-                        "id": {
-                          "id": "extenue"
-                        }
-                      }
-                    ]
+                  "value": 1,
+                  "valuePerSL": {
+                    "every": 1,
+                    "amount": 1
                   }
                 }
-              }
-            ]
+              ]
+            }
           },
           "echec": {
             "kind": "sequence",
@@ -383,6 +327,14 @@
       "page": 168
     },
     "persistsAfterCombat": true,
+    "aLaSortie": [
+      {
+        "op": "condition",
+        "id": {
+          "id": "extenue"
+        }
+      }
+    ],
     "passive": [
       {
         "op": "testMod",
@@ -426,56 +378,24 @@
             "argDifficulty": true
           },
           "reussite": {
-            "kind": "sequence",
-            "etapes": [
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "on": "target",
-                  "ops": [
-                    {
-                      "op": "removeCondition",
-                      "id": {
-                        "id": "empoisonne"
-                      },
-                      "value": 1,
-                      "valuePerSL": {
-                        "every": 1,
-                        "amount": 1
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "si",
-                "condition": {
-                  "kind": "compare",
-                  "subject": {
-                    "who": "target",
-                    "condition": "empoisonne"
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "removeCondition",
+                  "id": {
+                    "id": "empoisonne"
                   },
-                  "op": "<=",
-                  "value": 0
-                },
-                "alors": {
-                  "kind": "effet",
-                  "effet": {
-                    "type": "ops",
-                    "on": "target",
-                    "ops": [
-                      {
-                        "op": "condition",
-                        "id": {
-                          "id": "extenue"
-                        }
-                      }
-                    ]
+                  "value": 1,
+                  "valuePerSL": {
+                    "every": 1,
+                    "amount": 1
                   }
                 }
-              }
-            ]
+              ]
+            }
           },
           "echec": {
             "kind": "sequence",
@@ -589,6 +509,14 @@
       "page": 169
     },
     "persistsAfterCombat": true,
+    "aLaSortie": [
+      {
+        "op": "condition",
+        "id": {
+          "id": "extenue"
+        }
+      }
+    ],
     "passive": [
       {
         "op": "testMod",
@@ -642,6 +570,20 @@
       "page": 169
     },
     "persistsAfterCombat": true,
+    "aLaSortie": [
+      {
+        "op": "condition",
+        "id": {
+          "id": "a-terre"
+        }
+      },
+      {
+        "op": "condition",
+        "id": {
+          "id": "extenue"
+        }
+      }
+    ],
     "gating": {
       "action": "none",
       "movement": "none",
@@ -687,70 +629,24 @@
             "label": "Résistance au Sonné"
           },
           "reussite": {
-            "kind": "sequence",
-            "etapes": [
-              {
-                "kind": "effet",
-                "effet": {
-                  "type": "ops",
-                  "on": "target",
-                  "ops": [
-                    {
-                      "op": "removeCondition",
-                      "id": {
-                        "id": "sonne"
-                      },
-                      "value": 1,
-                      "valuePerSL": {
-                        "every": 1,
-                        "amount": 1
-                      }
-                    }
-                  ]
-                }
-              },
-              {
-                "kind": "si",
-                "condition": {
-                  "kind": "all",
-                  "of": [
-                    {
-                      "kind": "compare",
-                      "subject": {
-                        "who": "target",
-                        "condition": "sonne"
-                      },
-                      "op": "<=",
-                      "value": 0
-                    },
-                    {
-                      "kind": "compare",
-                      "subject": {
-                        "who": "target",
-                        "condition": "extenue"
-                      },
-                      "op": "<=",
-                      "value": 0
-                    }
-                  ]
-                },
-                "alors": {
-                  "kind": "effet",
-                  "effet": {
-                    "type": "ops",
-                    "on": "target",
-                    "ops": [
-                      {
-                        "op": "condition",
-                        "id": {
-                          "id": "extenue"
-                        }
-                      }
-                    ]
+            "kind": "effet",
+            "effet": {
+              "type": "ops",
+              "on": "target",
+              "ops": [
+                {
+                  "op": "removeCondition",
+                  "id": {
+                    "id": "sonne"
+                  },
+                  "value": 1,
+                  "valuePerSL": {
+                    "every": 1,
+                    "amount": 1
                   }
                 }
-              }
-            ]
+              ]
+            }
           },
           "echec": {
             "kind": "sequence",
@@ -767,7 +663,18 @@
     "severity": 80,
     "aiThreat": 6,
     "marqueCouleur": "#e0d060",
-    "marqueVisuel": "flammeche"
+    "marqueVisuel": "flammeche",
+    "aLaSortie": [
+      {
+        "op": "condition",
+        "id": {
+          "id": "extenue"
+        },
+        "unlessCondition": {
+          "id": "extenue"
+        }
+      }
+    ]
   },
   {
     "id": "surpris",

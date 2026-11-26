@@ -112,7 +112,7 @@ describe('Inconscient du saignement : verrou et jet de mort (LDB 16 l.105 ; AA 0
     expect(c.wounds.current).toBe(2);
     expect(hasCondition(c, 'inconscient'), 'verrou : Hémorragique encore porté').toBe(true);
     expect(log).toEqual(['Ilyanwe : +2 PB (2/18).']);
-    removeCondition(c, 'hemorragique', 2);
+    removeCondition(c, 'hemorragique', 2, { lignes: [], faits: [] });
     expect(applyHealWounds(c, 1)).toContain('Ilyanwe reprend connaissance.');
     expect(hasCondition(c, 'inconscient')).toBe(false);
   });

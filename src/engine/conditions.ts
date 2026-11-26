@@ -23,7 +23,7 @@ import { indexParId } from '../data/versionDataset';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { acteDeDeverrouillageSchema, type GatingDeStatut } from '../data/schemas/grammaire/valeurs';
 import { t } from '../i18n';
-import { constaterDans, emettreDans, type Applique, type FaitDEtat } from './faits';
+import { absorberDans, constaterDans, emettreDans, type Applique, type FaitDEtat } from './faits';
 import { campOf } from './relations';
 import { rule } from './policy';
 import { groupAdvantage } from './advantagePool';
@@ -314,9 +314,11 @@ export function releaseConditionLocks(c: Combatant, act: import('./types').Condi
     delete inst.unlockBy; // le verrou tombe → removeCondition n'est plus inerte
     delete inst.finDeRencontre;
     const avant = inst.value;
-    removeCondition(c, inst.id, avant); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
+    const consequences: Applique = { lignes: [], faits: [] };
+    removeCondition(c, inst.id, avant, consequences); // l'acte SOIGNE l'État (LDB 18 : retiré par cet acte)
     const apres = c.conditions.find((x) => x.id === inst.id)?.value ?? 0;
     emettreDans(sortie, c, { genre: 'etat', cible: c.id, camp: campOf(c), id: inst.id, valeur: apres - avant, verrouLeve: true });
+    absorberDans(sortie, consequences);
   }
   return sortie;
 }
@@ -344,23 +346,56 @@ export function pionsRetirables(c: Combatant, name: string, parSaSource = false)
   return Math.max(0, existing.value - (parSaSource ? 0 : existing.derivedFrom?.stacks ?? 0));
 }
 
-function retireEtat(c: Combatant, name: string, value: number, parSaSource: boolean): void {
+function retireEtat(c: Combatant, name: string, value: number, parSaSource: boolean, a: Applique): void {
   const existing = c.conditions.find((x) => x.id === name);
   const n = Math.min(value, pionsRetirables(c, name, parSaSource));
   if (!existing || n <= 0) return;
   existing.value -= n;
-  if (existing.value <= 0) c.conditions = c.conditions.filter((x) => x.id !== name);
-  // Main ensanglantée (AA 07 l.117) : le Test de Dextérité par Action tient « tant que vous êtes sous
-  // l'effet de cet État » → l'Hémorragique épuisé (instance retirée) lève TOUS les gates de main (op
-  // `handGate`). LEVER machinerie UNIQUE de la durée du marqueur (l'Hémorragique ne s'empile qu'en 1 instance).
-  if (name === COND.hemorragique && existing.value <= 0) delete c.handGates;
+  if (existing.value <= 0) {
+    const avant = new Set(c.conditions.map((x) => x.id));
+    c.conditions = c.conditions.filter((x) => x.id !== name);
+    sortirEtats(c, [name], avant, () => true, a);
+  }
   // POINT UNIQUE de retrait d'État → une Blessure critique dont tous les États associés sont tombés
   // est GUÉRIE (LDB 18 l.304) : octroie la cicatrice post-guérison (Blessure spectaculaire / Nez cassé, l.61/72).
   settleHealedCriticals(c);
 }
 
-export function removeCondition(c: Combatant, name: string, value = 1): void {
-  retireEtat(c, name, value, false);
+/** Les États que la sortie de `id` pose à un porteur qui portait `portes` juste avant : `EtatData.aLaSortie`, hors
+ *  la pose dont l'`unlessCondition` est portée. #4993 */
+function posesDeSortie(id: string, portes: ReadonlySet<string>): string[] {
+  return (findConditionById(id)?.aLaSortie ?? []).flatMap((o) => (o.op === 'condition' && !(o.unlessCondition && portes.has(o.unlessCondition.id)) ? [o.id.id] : []));
+}
+
+/** LA SORTIE des États `ids`, dont la dernière instance vient de quitter `c`, qui portait `portesAvant` : la
+ *  conséquence que chacun déclare (`posesDeSortie`) est posée, chaque pose émise dans `a`, hors celle que `garde`
+ *  refuse au porteur. LDB 16 l.58, l.78, l.109, l.119, l.129 ; AA 07 l.11. */
+function sortirEtats(c: Combatant, ids: readonly string[], portesAvant: ReadonlySet<string>, garde: (x: ConditionInstance) => boolean, a: Applique): void {
+  for (const id of ids) {
+    // Main ensanglantée (AA 07 l.117) : les gates de main (op `handGate`) durent « tant que vous êtes sous
+    // l'effet de cet État ».
+    if (id === COND.hemorragique) delete c.handGates;
+    for (const pose of posesDeSortie(id, portesAvant)) {
+      if (!garde({ id: pose, value: 1 })) continue;
+      for (const f of faitsDesPoses(c, [pose], () => addCondition(c, pose))) emettreDans(a, c, f);
+    }
+  }
+}
+
+/** Retire `value` pions de l'État `name` ; la sortie de sa dernière instance est émise dans `a` (`sortirEtats`). */
+export function removeCondition(c: Combatant, name: string, value: number, a: Applique): void {
+  retireEtat(c, name, value, false, a);
+}
+
+/** PURGE : retire de `c` toute instance d'État que `pred` désigne, verrou compris, par la même sortie que
+ *  `removeCondition` ; une conséquence que `pred` désignerait n'est pas posée. */
+export function purgerEtats(c: Combatant, pred: (x: ConditionInstance) => boolean, a: Applique): void {
+  const sortis = (c.conditions ?? []).filter(pred).map((x) => x.id);
+  if (!sortis.length) return;
+  const avant = new Set(c.conditions.map((x) => x.id));
+  c.conditions = c.conditions.filter((x) => !pred(x));
+  sortirEtats(c, sortis, avant, (x) => !pred(x), a);
+  settleHealedCriticals(c);
 }
 
 export function hasCondition(c: Combatant, name: string): boolean {
@@ -519,10 +554,12 @@ function reconcilierEtatsDerives(c: Combatant): Applique {
       emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN, ...(r != null ? { duree: { rounds: r } } : {}) });
       continue;
     }
-    retireEtat(c, id, porteN - cibleN, true); // la réconciliation EST la source du pion marqué : rien ne l'arrête
+    const consequences: Applique = { lignes: [], faits: [] };
+    retireEtat(c, id, porteN - cibleN, true, consequences); // la réconciliation EST la source du pion marqué : rien ne l'arrête
     const apres = c.conditions.find((x) => x.id === id);
     if (apres) apres.derivedFrom = cibleN > 0 ? { stacks: cibleN, ...(src ? { src } : {}) } : undefined;
     emettreDans(sortie, c, { ...fait, valeur: cibleN - porteN });
+    absorberDans(sortie, consequences);
   }
   return sortie;
 }
@@ -538,9 +575,9 @@ export function isMagicallyAsleep(c: Combatant): boolean {
 
 /** Réveille un dormeur magique : retire son Inconscient de sommeil. Le dormeur, éveillé, encaisse
  *  l'attaque qui l'a réveillé (il n'a pas pu la défendre — il dormait). */
-export function wakeSleeper(c: Combatant): void {
+export function wakeSleeper(c: Combatant, a: Applique): void {
   const inc = c.conditions.find((x) => x.id === COND.inconscient);
-  if (inc) removeCondition(c, COND.inconscient, inc.value);
+  if (inc) removeCondition(c, COND.inconscient, inc.value, a);
 }
 
 /** Le `testMod` GLOBAL porté par UN effet actif — CRITÈRE UNIQUE. EXCLUT les mods char-QUALIFIÉS
@@ -885,10 +922,7 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveT
   // En Flammes : dégâts par-round MIGRÉS en données (etats.json `effects: onRoundEnd → wounds`,
   // amount {sum:[1d10, pions, −1]} − BE − PA de la Localisation la moins protégée, min 1 ; LDB 16 l.84),
   // joués par fireConditionEffects.
-  // Sonné : Test de Résistance Intermédiaire (+0) en fin de Round (retire 1+DR ; vidé → 1 Exténué « si pas
-  // déjà », LDB 16 l.125-129) MIGRÉ en DONNÉES — `etats.json` sonne `effects: onRoundEnd → {test → removeCondition
-  // 1+DR, `if` sonne∧extenue vidés → condition extenue}`, résolu par le DISPATCHER UNIQUE (cadence-aware en
-  // combat, inline hors-combat). Le −10 du Sonné s'applique au jet via `combatTestPenalty` (rawCombatTestBase).
+  // Sonné : LDB 16 l.127 en données (`etats.json` sonne `effects`), sa sortie l.129 en `aLaSortie` (`sortirEtats`).
   // Auto-dissipation en fin de Round (Aveuglé l.47 / Assourdi l.29 / Surpris l.139) MIGRÉE en données :
   // `effects: [{trigger:'onRoundEnd', flow:…removeCondition}]` dans etats.json, jouée par fireConditionEffects.
   // Effets RÉCURRENTS portés par un effet actif de sort (op `perRound`) — re-joués tant que l'effet
@@ -930,8 +964,7 @@ export function removeActiveEffects(c: Combatant, pred: (e: ActiveEffect) => boo
   // États PORTÉS par l'effet (#1695) : ils partent au MÊME geste. IDEMPOTENTE. La réconciliation est
   // INCONDITIONNELLE — un `log?.push(...sync())` l'aurait court-circuitée chez tout appelant sans journal.
   const portes = syncDerivedConditions(c);
-  recueil?.lignes.push(...portes.lignes);
-  recueil?.faits.push(...portes.faits);
+  if (recueil) absorberDans(recueil, portes);
   c.wounds = blessuresReconciliees(c);
   return removed;
 }
@@ -1004,9 +1037,10 @@ export function tickDurations(c: Combatant): string[] {
   // États à DURÉE posés par un sort (« qui dure N Rounds ») : décrément, dissipation à 0.
   if (c.conditions.some((x) => x.roundsLeft != null)) {
     for (const x of c.conditions) if (x.roundsLeft != null) x.roundsLeft -= 1;
-    const done = c.conditions.filter((x) => x.roundsLeft != null && x.roundsLeft <= 0);
-    for (const x of done) log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) }));
-    c.conditions = c.conditions.filter((x) => !(x.roundsLeft != null && x.roundsLeft <= 0));
+    const echu = (x: ConditionInstance) => x.roundsLeft != null && x.roundsLeft <= 0;
+    for (const x of c.conditions.filter(echu)) log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) }));
+    const sortie: Applique = { lignes: log, faits: [] };
+    purgerEtats(c, echu, sortie);
   }
   // Contrecoups d'incantation à durée en Rounds (tables d'Imparfaites/Colère, LDB 46/40).
   if (c.castPenalties?.some((p) => p.roundsLeft != null)) {
@@ -1041,16 +1075,6 @@ export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { ba
   return [t('cond.nightmare', { name: nomDe(c) })];
 }
 
-/** Retire jusqu'à `n` États Hémorragique de `c` ; le dernier retiré pose 1 Exténué. LDB 16 l.105-109 */
-export function retirerHemorragie(c: Combatant, n: number): { retires: number; extenue: boolean } {
-  const avant = stacks(c, COND.hemorragique);
-  removeCondition(c, COND.hemorragique, n);
-  const reste = stacks(c, COND.hemorragique);
-  const extenue = avant > reste && reste === 0;
-  if (extenue) addCondition(c, COND.extenue);
-  return { retires: avant - reste, extenue };
-}
-
 /**
  * Mort par Hémorragique (LDB 16 l.105) : « À la fin du Round, vous avez 10 % de chance de mourir
  * par État Hémorragique que vous possédez » (3 pions → mort sur 1-30). « Si vous faites un double sur ce
@@ -1063,9 +1087,9 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
   if (!eligible) return { died: false, log: [] };
   const r = d100(rng);
   if (isDoubleRoll(r)) {
-    const log = [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })]; // le double prime sur la mort
-    if (retirerHemorragie(c, 1).extenue) log.push(t('cond.lastWoundExhausted', { name: nomDe(c) }));
-    return { died: false, log };
+    const sortie: Applique = { lignes: [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })], faits: [] }; // le double prime sur la mort
+    removeCondition(c, COND.hemorragique, 1, sortie);
+    return { died: false, log: sortie.lignes };
   }
   if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n })] };
   return { died: false, log: [t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n })] };
@@ -1165,10 +1189,10 @@ export function faitsDesPoses(c: Combatant, ids: readonly ConditionId[], poser: 
 
 /** Reprendre connaissance (LDB 18 l.15) : retire l'Inconscient, sauf verrou (LDB 16 l.105). Vrai si le porteur
  *  s'est réveillé. SOURCE UNIQUE du réveil par les PB (soin `applyHealWounds`, repos `restDay`). */
-export function reprendreConnaissance(c: Combatant): boolean {
+export function reprendreConnaissance(c: Combatant, a: Applique): boolean {
   const inc = c.conditions.find((x) => x.id === COND.inconscient);
   if (!inc || isConditionLocked(inc, c)) return false;
-  removeCondition(c, COND.inconscient, inc.value);
+  removeCondition(c, COND.inconscient, inc.value, a);
   return true;
 }
 

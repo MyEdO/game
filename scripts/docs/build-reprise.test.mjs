@@ -2,6 +2,7 @@ import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { DELAI_FILE_MS } from '../guards/lib/fusionPr.mjs'
+import { JOB_DE_BRANCHE } from '../gates/gatesDeCi.mjs'
 import { PLAFOND_PAQUET_NODE_MS } from '../test/partition.mjs'
 import { rendre } from './build-reprise.mjs'
 
@@ -33,4 +34,10 @@ test('#2499 runbook rendu : geste local, lecteur de groupe et relance conservée
   assert.match(reprise, /lecture refusée ou non exhaustive reste indéterminée/)
   assert.match(texte, /rerun-failed-jobs.*10 minutes/)
   assert.doesNotMatch(texte, /\$\{DELAI|sondes espacées|reprise serveur.*enqueuePullRequest/)
+})
+
+test('#5103 runbook rendu : l’armement suit le vert du job de branche, à l’étape `file`', () => {
+  const texte = rendre().get('docs/reprise-apres-pause.md')
+  assert.match(texte, new RegExp(`L’étape \`file\` attend que la course de branche de la tête soit verte, donc son job \`${JOB_DE_BRANCHE}\` conclu \`success\`, avant d’ARMER l’auto-merge`))
+  assert.doesNotMatch(texte, /ARME l’auto-merge à l’étape `pr`|avant l’attente de la CI/)
 })

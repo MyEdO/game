@@ -5084,6 +5084,9 @@ describe('l’événement de bord tombe le jour où son compteur arrive à zéro
   });
 
   it.each([{ graine: 20, tirage: 2 }, { graine: 3, tirage: 5 }])('premier événement d’une traversée : le tirage du départ ($tirage, graine $graine) le pose ce jour-là', ({ graine, tirage }) => {
+    set({ gameTime: 160 * 1440 + 8 * 60, lastUpkeepDay: 160 } as never); // été : le froid ne coupe pas la traversée
+    // Le groupe tient la traversée sans vivres : LDB 18 l.15, l.342.
+    set({ party: get().party.map((h) => blessuresSurLeProfil({ ...h, wounds: blessuresDeBase(40) })) });
     appareiller(graine);
     expect(get().vessel!.daysToEvent, 'le jour du départ est déjà décompté').toBe(tirage - 1);
     traverser(tirage);

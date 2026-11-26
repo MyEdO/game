@@ -38,8 +38,10 @@ import {
   nightmareCheck,
   syncDerivedConditions,
   derivedStacks,
+  faitsDesPoses,
   TEST_DES_CAUCHEMARS,
 } from './conditions';
+import { absorberDans, emettreDans, type Applique } from './faits';
 import { tickDisease, diseaseBlesseCount, applyDiseasePersist, diseaseDefs, maladieDeclaree, type CycleDeFiche, type Disease } from './disease';
 import { MINUTES_PER_DAY } from './clock';
 import { isStarving, isThirsty, isDeprived } from './provisions';
@@ -203,10 +205,11 @@ export function needsRecoveryRoll(c: Combatant): boolean {
  * si aucun jet n'était requis (PB plein, affamé). Sépare le jet (différable/influençable en cascade)
  * de sa CONSÉQUENCE : dissipation d'Exténué (sommeil, 16 l.91), soin volet a (DR+BE sur réussite) +
  * volet b (+BE inconditionnel, LDB 18 l.296), plafond « blessé » (l.110), réveil (l.28). Mute `c` ; renvoie
- * `{ wokeUp }` (l'appelant journalise — `restRecovery` agrège, la cascade journalise par étape).
+ * `{ wokeUp }` (l'appelant journalise — `restRecovery` agrège, la cascade journalise par étape) ; les sorties
+ * d'États du jour sont émises dans `a`.
  * Partagé par `restRecovery` (eager) et l'applicateur de cascade « recuperation » — zéro duplication.
  */
-export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; success: boolean } | null): { wokeUp: boolean } {
+export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; success: boolean } | null, a: Applique): { wokeUp: boolean } {
   if (c.dead || c.outOfRencontre || unstable(c)) return { wokeUp: false };
   const be = bonus(effectiveChar(c, 'endurance'));
   // Faim & Soif (LDB 18 l.338) : un héros PRIVÉ (affamé OU assoiffé) ne récupère ni PB ni Exténué naturellement.
@@ -218,7 +221,7 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   const blesse = diseaseBlesseCount(c);
   const fat = stacks(c, 'extenue');
   const removable = starving ? 0 : Math.max(0, fat - derives);
-  if (removable > 0) removeCondition(c, 'extenue', removable);
+  if (removable > 0) removeCondition(c, 'extenue', removable, a);
   const dayStartPB = c.wounds.current;
   const soin = refusDeRecuperation(c) === null;
   // volet a : DR + BE sur réussite (une fois par jour). SOURCE UNIQUE `applyHealWounds` — plafonné
@@ -235,12 +238,12 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   let wokeUp = false;
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;
-    wokeUp = reprendreConnaissance(c);
-    if (hasCondition(c, 'a-terre')) removeCondition(c, 'a-terre', stacks(c, 'a-terre'));
+    wokeUp = reprendreConnaissance(c, a);
+    if (hasCondition(c, 'a-terre')) for (const f of faitsDesPoses(c, ['a-terre'], () => removeCondition(c, 'a-terre', stacks(c, 'a-terre'), a))) emettreDans(a, c, f);
   }
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170 — « vous obligeant à rester alité ») revient par la réconciliation.
-  syncDerivedConditions(c);
+  absorberDans(a, syncDerivedConditions(c));
   return { wokeUp };
 }
 
@@ -273,7 +276,9 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: R
       roll = { sl: res.sl, success: res.success };
     }
     // Conséquence du jour (dissipation + soin volets a/b + plafond blessé + réveil) — logique PARTAGÉE.
-    if (applyRecoveryDay(c, roll).wokeUp) wokeUp = true;
+    const sortie: Applique = { lignes: [], faits: [] };
+    if (applyRecoveryDay(c, roll, sortie).wokeUp) wokeUp = true;
+    journal.push(...sortie.lignes);
     // Cauchemars (LDB 21 l.95) : une nuit marquée peut regagner un Exténué.
     if (c.nightmares) {
       const before = stacks(c, 'extenue');

@@ -533,14 +533,14 @@
                 {
                   "op": "removeCondition",
                   "id": {
-                    "id": "extenue"
+                    "id": "hemorragique"
                   },
                   "value": 99
                 },
                 {
                   "op": "removeCondition",
                   "id": {
-                    "id": "hemorragique"
+                    "id": "extenue"
                   },
                   "value": 99
                 }

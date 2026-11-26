@@ -18,7 +18,13 @@ import { env, exit, stderr, stdout } from 'node:process'
 import { GitIndisponible, TRONC, baseCommune, ceQuiChange, depotDe, fetchOrigin, refusDeGit, reussi, shaDe } from '../guards/lib/gitPorte.mjs'
 import { COUCHES, couvre, dossierDe, estProjet } from '../guards/lib/couches.mjs'
 import { SKILLS, racinesDeMods, racinesDeModsParmi } from '../mods/racines.mjs'
-import { COMMANDE_NAVIGATEUR_EPINGLE, COMMANDE_RENDU_LOGICIEL, COMMANDE_VERSION_PYTHON_3D, COMMANDE_ZONE_DU_PUSH } from './gatesDeCi.mjs'
+import {
+  COMMANDE_NAVIGATEUR_EPINGLE,
+  COMMANDE_RECUPERER_MODELES,
+  COMMANDE_RENDU_LOGICIEL,
+  COMMANDE_VERSION_PYTHON_3D,
+  COMMANDE_ZONE_DU_PUSH,
+} from './gatesDeCi.mjs'
 
 /**
  * Chemins NON EXÉCUTABLES, chacun avec sa raison. Un push dont TOUS les fichiers changés tombent
@@ -62,6 +68,10 @@ export const CI_SEULEMENT_DE_GATE = {
   },
   [COMMANDE_VERSION_PYTHON_3D]: {
     raison: 'version de CPython du seul `personnage-3d:tests`, sautable avec lui',
+    gates: ['personnage-3d:tests'],
+  },
+  [COMMANDE_RECUPERER_MODELES]: {
+    raison: 'GLB épinglés du cache des modèles et textures épinglées, que le seul `personnage-3d:tests` lit dans le job `migrations`, sautables avec lui',
     gates: ['personnage-3d:tests'],
   },
   [COMMANDE_RENDU_LOGICIEL]: {
@@ -206,7 +216,7 @@ export function zoneDuPush(fichiers, { ecritLu, mods = [] }) {
 }
 
 /** Un sha vide ou fait de zéros : `github.event.merge_group.base_sha` hors `merge_group`. */
-const shaNul = (sha) => !sha || !/[^0]/.test(sha)
+export const shaNul = (sha) => !sha || !/[^0]/.test(sha)
 
 /**
  * La BASE du diff : ce contre quoi on classe. Sur un commit de file (`merge_group`), `base` est

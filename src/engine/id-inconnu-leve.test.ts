@@ -74,7 +74,7 @@ describe('conditions — un id d’État hors du registre lève', () => {
     ['addCondition', (c: Combatant) => addCondition(c, INCONNU)],
     ['addTimedCondition', (c: Combatant) => addTimedCondition(c, INCONNU, 1, 2)],
     ['addClockCondition', (c: Combatant) => addClockCondition(c, INCONNU, 1, 60)],
-    ['removeCondition', (c: Combatant) => removeCondition(c, INCONNU)],
+    ['removeCondition', (c: Combatant) => removeCondition(c, INCONNU, 1, { lignes: [], faits: [] })],
     ['hasCondition', (c: Combatant) => hasCondition(c, INCONNU)],
     ['stacks', (c: Combatant) => stacks(c, INCONNU)],
     ['derivedStacks', (c: Combatant) => derivedStacks(c, INCONNU)],
@@ -90,7 +90,7 @@ describe('conditions — un id d’État hors du registre lève', () => {
     addCondition(c, connu);
     expect(hasCondition(c, connu)).toBe(true);
     expect(stacks(c, connu)).toBe(1);
-    removeCondition(c, connu);
+    removeCondition(c, connu, 1, { lignes: [], faits: [] });
     expect(hasCondition(c, connu)).toBe(false);
   });
 

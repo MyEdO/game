@@ -154,15 +154,15 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     expect(lignes.join(' | '), 'les trois États sont tombés sans une ligne').toContain('perd l’État Sonné');
   });
 
-  it('la DISSIPATION (LDB 46 l.158-162) emporte les trois États, avec leur ligne et leur fait', () => {
+  it('la DISSIPATION (LDB 46 l.158-162) emporte les trois États, avec leur ligne et leur fait, et la sortie du Sonné (LDB 16 l.129)', () => {
     lancerChamon(mage, cible);
     const recueil: Applique = { lignes: [], faits: [] };
     expect(dissipateSpell([vue(cible.id)], CHAMON, mage.id, recueil)).toBe(1);
     const c = vue(cible.id);
     for (const id of ETATS) expect(stacks(c, id), `l’État ${id} a survécu à la Dissipation`).toBe(0);
     expect(recueil.lignes.join(' | ')).toContain('perd l’État Assourdi');
-    expect(recueil.lignes, 'la Dissipation retire trois États en silence').toHaveLength(3);
-    expect(recueil.faits.map((f) => (f.genre === 'etat' ? `${f.id}:${f.valeur}` : f.genre)).sort()).toEqual(['assourdi:-1', 'aveugle:-1', 'sonne:-1']);
+    expect(recueil.lignes, 'la Dissipation retire trois États en silence').toHaveLength(4);
+    expect(recueil.faits.map((f) => (f.genre === 'etat' ? `${f.id}:${f.valeur}` : f.genre)).sort()).toEqual(['assourdi:-1', 'aveugle:-1', 'extenue:1', 'sonne:-1']);
   });
 
   it('la Surincantation de Durée (+2 pas) fait tenir les pions ×3 Rounds (×(1+n), LDB 47)', () => {
@@ -294,7 +294,7 @@ describe('Verrou d’État (LDB 18) et source d’un pion dérivé', () => {
   it('un retrait NATIF reste INERTE sur un pion verrouillé (LDB 18) — le verrou ne protège que de LUI', () => {
     const c = mk('heros', 'blesse');
     addCondition(c, 'aveugle', 1, undefined, undefined, undefined, undefined, { unlockBy: 'medicalAid' });
-    removeCondition(c, 'aveugle', 1);
+    removeCondition(c, 'aveugle', 1, { lignes: [], faits: [] });
     expect(stacks(c, 'aveugle'), 'le verrou d’acte de soin n’a pas tenu contre un retrait natif').toBe(1);
   });
 });

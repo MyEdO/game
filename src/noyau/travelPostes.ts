@@ -28,6 +28,7 @@ import { applyOps, type GameOp } from '../engine/ops';
 import { applyHealWounds, cappedHealAmount } from '../engine/healing';
 import { bonusDe } from '../engine/characteristics';
 import { pionsRetirables, removeCondition, stacks } from '../engine/conditions';
+import type { Applique } from '../engine/faits';
 import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
 import {
@@ -502,8 +503,9 @@ export const TABLES = {
       const patient = garanti(get().party.find((h) => h.id === patientId), patientId, 'patient du camp');
       let lignes: string[];
       if (usage === 'extenue') {
-        removeCondition(patient, 'extenue', 1);
-        lignes = [t('tp.campCare', { name: nomDe(patient), n: 1 })];
+        const sortie: Applique = { lignes: [t('tp.campCare', { name: nomDe(patient), n: 1 })], faits: [] };
+        removeCondition(patient, 'extenue', 1, sortie);
+        lignes = sortie.lignes;
       } else {
         lignes = applyHealWounds(patient, soinDuCamp(campeur, patient, soignes));
       }
@@ -528,7 +530,9 @@ export const TABLES = {
           // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
           if (h.wounds.current < h.wounds.max) applyHealWounds(h, h.wounds.max - h.wounds.current, { wake: false, log: () => [] });
           const ex = stacks(h, 'extenue');
-          if (ex > 0) removeCondition(h, 'extenue', ex);
+          const sortie: Applique = { lignes: [], faits: [] };
+          if (ex > 0) removeCondition(h, 'extenue', ex, sortie);
+          j.push(...sortie.lignes);
         }
         set({ party: [...get().party] });
         j.push(t('tp.calmTravel'));

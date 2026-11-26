@@ -33,7 +33,7 @@ import {
   queue,
   refusDeCouverture,
 } from './toutes.mjs'
-import { LANE_LOCALE_DE_JOB, gatesDeCi } from './gatesDeCi.mjs'
+import { JOBS_HORS_REJEU_LOCAL, LANE_LOCALE_DE_JOB, STEPS_HORS_REJEU_LOCAL, gatesDeCi, nomDeGate, stepsCi } from './gatesDeCi.mjs'
 import { coeurs, maxWorkersMono } from '../test/partition.mjs'
 import { gitDe, lancerGit } from '../test/gitDeBanc.mjs'
 import { prendreVerrouAsync } from '../test/verrou.mjs'
@@ -456,6 +456,22 @@ test('les lanes SONT les jobs de ci.yml : chaque gate dans la lane de son job (o
   for (const [job, { raison }] of Object.entries(LANE_LOCALE_DE_JOB)) {
     assert.ok(GATES.some((g) => g.job === job), `LANE_LOCALE_DE_JOB nomme ${job}, qu’aucun job de gates de ci.yml ne porte`)
     assert.ok(raison.length > 40, `${job} : raison absente ou creuse`)
+  }
+})
+
+test('STEPS_HORS_REJEU_LOCAL n’écarte que ses steps : chacun est un step d’un job rejoué, dont les autres steps restent des gates', () => {
+  const steps = stepsCi({ cwd: RACINE })
+  for (const [commande, raison] of Object.entries(STEPS_HORS_REJEU_LOCAL)) {
+    const jobs = [...new Set(steps.filter((s) => s.commande === commande).map((s) => s.job))]
+    assert.ok(jobs.length, `« ${commande} » n’est plus un step de ci.yml`)
+    assert.deepEqual(jobs.filter((job) => job in JOBS_HORS_REJEU_LOCAL), [], `« ${commande} » : son job est déjà écarté entier`)
+    assert.ok(raison.length > 40, `« ${commande} » : raison absente ou creuse`)
+    for (const job of jobs)
+      assert.deepEqual(
+        GATES.filter((g) => g.job === job).map((g) => g.nom),
+        steps.filter((s) => s.job === job && !(s.commande in STEPS_HORS_REJEU_LOCAL)).map((s) => nomDeGate(s.commande)).filter(Boolean),
+        `${job} : ses steps hors STEPS_HORS_REJEU_LOCAL sont ses gates`,
+      )
   }
 })
 
