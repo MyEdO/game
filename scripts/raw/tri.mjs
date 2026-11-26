@@ -29,7 +29,7 @@ import {
   resoudreAdresse,
   unitesDuBloc,
   unitesDuTexte,
-} from '../../src/data/source/decoupe.ts'
+} from '../../src/data/schemas/source/decoupe.ts'
 
 /** Les rôles d'une ligne retenue, ceux de la consigne du rappel. */
 export const ROLES = ['définit', 'modifie', 'déclenche', 'consomme']

@@ -19,6 +19,7 @@ import type { OpenRestOpts } from './restFlow';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { BattleClickOpts, OptionsDuClic } from './targetingModes';
 import type { EtatDeJeu, Jeu, NetState, PaquetALancer, PendingInteract } from './etat';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
 
 export interface MachinerieDuNoyau {
   // ── Ids du monde ──
@@ -160,9 +161,14 @@ export interface MachinerieDuNoyau {
   poserLInteraction: (pending: PendingInteract | null) => void;
 }
 
-/** L'état, les verbes et la machinerie du noyau : ce que lit le `get` des fabriques et des flux qui appellent la
- *  machinerie. */
-export type JeuDuNoyau = Jeu & MachinerieDuNoyau;
+/** Le catalogue que la partie possède (#5063), posé par son propriétaire (`ouvrirLeProprietaire`). */
+export interface CatalogueDeLaPartie {
+  readonly catalogue: Catalogue;
+}
+
+/** L'état, les verbes, la machinerie et le catalogue du noyau : ce que lit le `get` des fabriques et des flux qui
+ *  appellent la machinerie. */
+export type JeuDuNoyau = Jeu & MachinerieDuNoyau & CatalogueDeLaPartie;
 
 /** Ce qu'une fabrique du noyau rend : une part des verbes et de la machinerie. */
 export type FabriqueDuNoyau = Partial<ActionsDuNoyau & MachinerieDuNoyau>;

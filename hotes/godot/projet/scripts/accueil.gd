@@ -14,7 +14,7 @@ extends Control
 ## suit l'entrée de l'accueil (`PontDuNoyau.entree`) ; « Combat » démarre un scénario de test, « Atelier », « Éditeur » et
 ## « Compendium » ouvrent leur scène, « Options » ouvre le panneau des réglages (`reglages`).
 
-## L'image du fond, au catalogue des dessins (`src/data/paysages/defs/accueil.ts`).
+## L'image du fond, au catalogue des dessins (`src/data/schemas/paysages/defs/accueil.ts`).
 const FOND := "accueil-couchant"
 
 ## La scène de chaque entrée de l'accueil (`EntreeDeLAccueil`).

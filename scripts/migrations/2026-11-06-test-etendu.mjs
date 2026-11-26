@@ -14,13 +14,13 @@
  * final, rien ne s'écrit.
  * FAIL-FAST — sortie 1 avant toute écriture : fichier hors de son formatage, porteur qui porte à la fois la
  * clé d'avant et `targetDR`, ou aucune des deux là où la cible est exigée, gabarit qui garde `{totalDR}`.
- * FORMATAGE : `serializeDataset` (`src/data/serialize.ts`).
+ * FORMATAGE : `serializeDataset` (`src/data/schemas/serialize.ts`).
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { lignesDe } from './lib/monoTable.mjs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const ROOT = fileURLToPath(new URL('../../', import.meta.url));
 const CIBLE = 'drCible';

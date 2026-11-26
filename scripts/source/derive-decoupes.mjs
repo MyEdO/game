@@ -1,6 +1,6 @@
 // Dérivation AUTOMATIQUE des adresses : chaque `desc` de `src/data/<dataset>.json` est-elle
 // retrouvable telle quelle dans le livre qu'elle cite, sous forme de suite contiguë de blocs ? Le
-// parsing et la résolution viennent ENTIÈREMENT de `src/data/source/decoupe.ts` (source unique), la
+// parsing et la résolution viennent ENTIÈREMENT de `src/data/schemas/source/decoupe.ts` (source unique), la
 // lecture du disque de `lecteur-fs.mjs` ; ce fichier n'est qu'un chercheur de correspondances + un
 // rapport.
 //
@@ -25,7 +25,7 @@ import { fileURLToPath } from 'node:url'
 import {
   MIN_FRAGMENT, aligner, cellRefFor, estDeContenu, estErreur, findCells, findRuns, joinNorm, unitesDeLAdresse,
   unitesDuBloc, unitesDuTexte,
-} from '../../src/data/source/decoupe.ts'
+} from '../../src/data/schemas/source/decoupe.ts'
 import { chapitresDe, lireChapitre } from './lecteur-fs.mjs'
 import { lieuxDe } from './lieux.mjs'
 import { sigleDe } from '../raw/_lib.mjs'
@@ -70,9 +70,9 @@ function montage(chapitre, unites) {
  * LA décision de `judge` : re-résout l'adresse en ses unités (`unitesDeLAdresse`), puis juge
  * l'ÉGALITÉ (`aligner`, `ajoute` vide) entre les unités de la desc et celles de l'adresse.
  * `undefined` si elle tient, la divergence sinon.
- * @param {import('../../src/data/source/decoupe.ts').ChapitreParse} chapitre
- * @param {import('../../src/data/source/decoupe.ts').DescRef} ref
- * @param {import('../../src/data/source/decoupe.ts').Unite[]} unites
+ * @param {import('../../src/data/schemas/source/decoupe.ts').ChapitreParse} chapitre
+ * @param {import('../../src/data/schemas/source/decoupe.ts').DescRef} ref
+ * @param {import('../../src/data/schemas/source/decoupe.ts').Unite[]} unites
  * @returns {string|undefined}
  */
 export function verifier(chapitre, ref, unites) {

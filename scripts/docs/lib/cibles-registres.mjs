@@ -34,19 +34,19 @@ export const REGISTRIES = [
   },
   {
     // Icônes UI SVG maison (24×24, currentColor — remplacent les emojis) : 1 famille = 1 fichier defs/.
-    // + union `IconIdGenerated` des ids déclarés, à part dans `src/data/` → `IconId` (types.ts) est un VRAI type fermé.
-    dir: 'src/data/icons/defs',
-    out: 'src/data/icons/_registry.generated.ts',
+    // + union `IconIdGenerated` des ids déclarés, à part dans `src/data/schemas/` → `IconId` (types.ts) est un VRAI type fermé.
+    dir: 'src/data/schemas/icons/defs',
+    out: 'src/data/schemas/icons/_registry.generated.ts',
     exportName: 'icons',
     arrayName: 'ICON_FAMILIES',
     type: 'IconFamily',
     typeFrom: './types',
-    idUnion: { typeName: 'IconIdGenerated', field: 'id', out: 'src/data/icones.generated.ts' },
+    idUnion: { typeName: 'IconIdGenerated', field: 'id', out: 'src/data/schemas/icones.generated.ts' },
   },
   {
     // Fonds d'ambiance (dessin SVG que chaque hôte trace à ses couleurs) : 1 illustration stylisée = 1 fichier defs/.
-    dir: 'src/data/fonds/defs',
-    out: 'src/data/fonds/_registry.generated.ts',
+    dir: 'src/data/schemas/fonds/defs',
+    out: 'src/data/schemas/fonds/_registry.generated.ts',
     exportName: 'fond',
     arrayName: 'FOND_DEFS',
     type: 'FondDef',
@@ -55,8 +55,8 @@ export const REGISTRIES = [
   },
   {
     // Cadres de panneau (dessin SVG en neuf tranches que l'hôte trace à ses couleurs) : 1 cadre = 1 fichier defs/.
-    dir: 'src/data/cadres/defs',
-    out: 'src/data/cadres/_registry.generated.ts',
+    dir: 'src/data/schemas/cadres/defs',
+    out: 'src/data/schemas/cadres/_registry.generated.ts',
     exportName: 'cadre',
     arrayName: 'CADRE_DEFS',
     type: 'CadreDef',
@@ -64,18 +64,18 @@ export const REGISTRIES = [
   },
   {
     // Couches de paysage (dessin SVG que l'hôte trace à ses couleurs, empilées en un paysage) : 1 famille = 1 fichier defs/.
-    dir: 'src/data/paysages/defs',
-    out: 'src/data/paysages/_registry.generated.ts',
+    dir: 'src/data/schemas/paysages/defs',
+    out: 'src/data/schemas/paysages/_registry.generated.ts',
     exportName: 'couches',
     arrayName: 'FAMILLES_DE_COUCHES',
     type: 'FamilleDeCouches',
     typeFrom: './types',
-    idUnion: { typeName: 'IdDeCoucheGenere', field: 'id', out: 'src/data/paysages.generated.ts' },
+    idUnion: { typeName: 'IdDeCoucheGenere', field: 'id', out: 'src/data/schemas/paysages.generated.ts' },
   },
   {
     // Sons (assets CC0) : 1 son (avec variantes) = 1 fichier defs/ ; vocabulaire `sons`, que désigne un effet.
-    dir: 'src/data/sons/defs',
-    out: 'src/data/sons/_registry.generated.ts',
+    dir: 'src/data/schemas/sons/defs',
+    out: 'src/data/schemas/sons/_registry.generated.ts',
     exportName: 'sound',
     arrayName: 'SOUND_DEFS',
     type: 'SoundDef',
@@ -114,9 +114,11 @@ export const REGISTRIES = [
 
 /** Les sorties de la PHASE 2 (`scripts/gen-espaces.mts`, qui les lit ici). */
 export const SORTIES_DES_ESPACES = {
-  ids: 'src/data/schemas/_ids.generated.ts',
+  ids: 'src/data/_ids.generated.ts',
+  typesDesIds: 'src/data/schemas/_ids.generated.ts',
   cles: 'src/data/schemas/_cles-de-dataset.generated.ts',
-  racines: 'src/data/schemas/_racines-vivantes.generated.ts',
+  racines: 'src/data/_racines-vivantes.generated.ts',
+  catalogue: 'src/data/schemas/_catalogue.generated.ts',
   atelier: 'src/data/schemas/_fichiers-de-l-atelier.generated.json',
 };
 

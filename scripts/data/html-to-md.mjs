@@ -9,7 +9,7 @@
  *   node scripts/data/html-to-md.mjs            # DRY-RUN : échantillon + compteurs, n'écrit rien
  *   node scripts/data/html-to-md.mjs --apply    # écrit les fichiers (format canonique JSON.stringify ,2)
  *
- * Écriture FIDÈLE au format sur disque (cf. src/data/serialize.ts) : `JSON.stringify(v, null, 2)`,
+ * Écriture FIDÈLE au format sur disque (cf. src/data/schemas/serialize.ts) : `JSON.stringify(v, null, 2)`,
  * sans newline final → le garde-fou round-trip `serialize.test.ts` reste vert.
  */
 import { readFileSync, writeFileSync, readdirSync } from 'node:fs';
@@ -21,7 +21,7 @@ import { gfm } from 'turndown-plugin-gfm';
 // chargé tel quel par Node nu — même convention que `scripts/raw/_lib.mjs`). Ce qui décide qu'une
 // chaîne EST du HTML doit être le même ici, dans `src/data/no-html-in-prose.test.ts` et dans le
 // volet E de `src/data/prose-resolution.test.ts` : trois copies auraient dérivé balise par balise.
-import { HTML_TAG } from '../../src/data/source/normalize.ts';
+import { HTML_TAG } from '../../src/data/schemas/source/normalize.ts';
 
 const DATA_DIR = join(dirname(fileURLToPath(import.meta.url)), '..', '..', 'src', 'data');
 const APPLY = process.argv.includes('--apply');

@@ -151,7 +151,7 @@ describe('quantité en Cité — règle éditable `marche-cite-stock` (LDB 59 l.
 });
 
 /**
- * `curated` (« Articles garantis en stock […] Disponibilité ignorée », `data/merchants.types.ts`) est
+ * `curated` (« Articles garantis en stock […] Disponibilité ignorée », `data/schemas/merchants.types.ts`) est
  * un contrat de l'ARCHÉTYPE, pas du mode de marché : les deux instantanés de stock l'honorent.
  */
 describe('fullStock — le stock garanti (`curated`) passe outre la Disponibilité', () => {

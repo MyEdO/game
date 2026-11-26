@@ -1,7 +1,7 @@
 /**
  * Schéma de `rendus.json` (#3771) : LE catalogue des rendus d'un coup, d'une incantation ou d'une zone d'effet
  * (#3783), éditable. Chaque phase (départ, impact, manque, parade, zone) nomme un visuel du vocabulaire fermé que
- * l'hôte sait dessiner et un son du registre (`src/data/sons/defs`) ; le trajet nomme un projectile du même régime, sa
+ * l'hôte sait dessiner et un son du registre (`src/data/schemas/sons/defs`) ; le trajet nomme un projectile du même régime, sa
  * vitesse et sa cloche. Un Groupe d'arme, un objet, un Domaine, un Type de Souffle, une manœuvre désignent le leur par
  * `rendu`.
  */

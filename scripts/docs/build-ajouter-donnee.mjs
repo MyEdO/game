@@ -147,7 +147,7 @@ function rendu() {
   const ROUTAGE = [
     { quoi: 'un **sort**, une Prière, une Bénédiction, un Miracle', skill: 'ajouter-un-sort', data: ['src/data/spells.json'] },
     { quoi: "l'**effet mécanique** d'un trait/talent/qualité/mutation/maladie/atout", skill: 'ajouter-une-mecanique', data: ['src/data/traits.json', 'src/data/talents.json', 'src/data/qualities.json'] },
-    { quoi: 'une **icône** d’affordance', skill: 'ajouter-une-icone', data: ['src/data/icons/_registry.generated.ts'] },
+    { quoi: 'une **icône** d’affordance', skill: 'ajouter-une-icone', data: ['src/data/schemas/icons/_registry.generated.ts'] },
     { quoi: 'un **livre source** entier', skill: 'ajouter-un-livre-source', data: ['src/data/books.json'] },
   ]
   for (const r of ROUTAGE) for (const d of r.data) ancre(d, `routage « ${r.skill} »`)
@@ -173,7 +173,7 @@ function rendu() {
   const GARDES_MESUREES = GARDES.map((p) => ({ p, quoi: intituleGarde(p) }))
 
   const REGLE = ancre('.claude/rules/donnees.md', 'règle de check-first')
-  const SERIALIZE = ancre('src/data/serialize.ts', 'canonicalisation')
+  const SERIALIZE = ancre('src/data/schemas/serialize.ts', 'canonicalisation')
   if (!/export function serializeDataset/.test(readFileSync(SERIALIZE, 'utf8'))) {
     abandon(`\`serializeDataset\` n'est plus exportée par ${SERIALIZE}`)
   }

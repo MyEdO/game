@@ -8,7 +8,7 @@
 import { findStructureById, structureAppearances } from '../../data';
 import { isDoorEdgeStructure } from '../../engine/structures';
 import type { FamilleDuKit, StructureAppearanceDef } from '../../data';
-import type { EntreeVivante } from '../../data/datasets';
+import type { EntreeVivante } from '../../data/schemas/datasets';
 import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
 import { apparenceDArete, edgeKey, facadeEdges } from './facades';
 import { walkNeighbors, type Pt } from './path';
@@ -54,7 +54,7 @@ import { aretesHorsDesNavires, provenanceDesNavires } from '../planDeNavire';
 import { outwardSide } from './volume/ornements';
 import { DIR8_DELTA } from '../../geometry/dir8';
 import { wallPartColor } from './volume/structures';
-import type { WallPart } from '../../data/structureAppearance.types';
+import type { WallPart } from '../../data/schemas/structureAppearance.types';
 import type { Slot } from '../../lib/palette';
 import type { PIECES_D_ARETE, POSITIONS_DANS_L_OUVERTURE } from './piecesDArete';
 

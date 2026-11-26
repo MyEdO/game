@@ -1,6 +1,6 @@
 /**
  * Le DÉ DE TIRAGE d'un document-table (`options.deDeTirage`, `grammaire/document.ts`) : il vit dans le
- * document, et le lecteur le tire de là (`deDeTirageDe`, `src/data/rangees.ts`). #1667
+ * document, et le lecteur le tire de là (`deDeTirageDe`, `src/data/schemas/rangees.ts`). #1667
  */
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
@@ -8,7 +8,7 @@ import { join } from 'node:path';
 import { DEFS_DE_DOCUMENT, validateDataset } from './schemas/validate';
 import { z } from 'zod';
 import { META_CHARGE, tableTiree } from './schemas/grammaire/document';
-import { deDeTirageDe } from './rangees';
+import { deDeTirageDe } from './schemas/rangees';
 import type { DiceSpec } from '../engine/dice';
 import { estObjet } from '../lib/objet.mjs';
 import { weatherDie, type Season } from '../engine/travelStages';

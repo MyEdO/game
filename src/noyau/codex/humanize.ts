@@ -48,7 +48,7 @@ import {
 } from '../../data';
 import { findFallTable } from '../../data/shipCriticals';
 import { effectTableDie, findEffectTableById } from '../../data/effectTables';
-import { deDeTirageDe } from '../../data/rangees';
+import { deDeTirageDe } from '../../data/schemas/rangees';
 import { facesDuDe, fourchette } from '../../engine/tables';
 import { deElide, t, type MsgKey } from '../../i18n';
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';

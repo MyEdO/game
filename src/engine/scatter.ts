@@ -3,7 +3,7 @@ import { RNG, d10, rollDice } from './dice';
 import { chebyshev } from './grid';
 import { findTableEntry } from './tables';
 import dispersionJson from '../data/dispersion.json';
-import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/rangees';
+import { deDeTirageDe, rangeesDe, type RangeeDe } from '../data/schemas/rangees';
 import type * as dispersion from '../data/schemas/defs/dispersion';
 
 export interface Pt {

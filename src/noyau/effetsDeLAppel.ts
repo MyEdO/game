@@ -6,7 +6,7 @@
  * celui d'un sort, celui de son Domaine ; une Prière a le sien ; celui d'une manœuvre de zone, le sien, celui d'un Souffle
  * celui de son Type. L'hôte ne décide rien : il dessine la phase et joue le son qu'il reçoit. Aucune conséquence de règle.
  */
-import { allMusicDefs } from '../data/sons/musique';
+import { allMusicDefs } from '../data/schemas/sons/musique';
 import { sceneWeatherSchema } from '../data/schemas/defs-scenes/scene';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import {
@@ -32,7 +32,7 @@ import {
   type RenduDef,
   type VisuelDEffet,
 } from '../data';
-import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/sons/registre';
+import { sonDEffet, sonsDEffet, type SonDEffet } from '../data/schemas/sons/registre';
 import { castInfoIsPrayer } from '../engine/magic';
 import type { Weapon } from '../engine/types';
 import { t as tr } from '../i18n';
@@ -176,7 +176,7 @@ export interface Flottant {
   critique: boolean;
 }
 
-/** Le son de chaque retour de la partie, par son id au registre (`src/data/sons/defs/`) : un pas, le heurt d'un pas
+/** Le son de chaque retour de la partie, par son id au registre (`src/data/schemas/sons/defs/`) : un pas, le heurt d'un pas
  *  refusé, la victoire, les dés que le joueur lance. */
 export const SONS_DE_LA_PARTIE = { pas: 'pas', heurt: 'heurt', victoire: 'gong-victoire', des: 'des' } as const;
 

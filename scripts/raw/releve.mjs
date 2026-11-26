@@ -1,7 +1,7 @@
 // RELEVÉ MÉCANIQUE des sections d'un livre de `Source/` qui portent un TERME (#1887, lot 7) : le
 // rappel, sans agent ; la précision appartient au tri qui lit le paquet (`paquet.mjs`).
 //
-// Quatre ORIGINES, chacune par la règle unique `nommes` (`src/data/source/renvoi.ts`) :
+// Quatre ORIGINES, chacune par la règle unique `nommes` (`src/data/schemas/source/renvoi.ts`) :
 //  - `index` : une entrée de l'index imprimé (`index-imprime.ts`) dont le terme NOMME le terme cherché,
 //    chaque page résolue comme un renvoi (`resoudreRenvoi`) ;
 //  - `titre` : une section dont le titre NOMME le terme ;
@@ -20,9 +20,9 @@ import { cheminDuDepot } from '../source/adresses.mjs'
 import { chapitresParses, cheminChapitre } from '../source/lecteur-fs.mjs'
 import {
   MOTIFS_DE_RENVOI, cle, indexerLivre, nommes, renvoisDuLivre, resoudreRenvoi, singulier,
-} from '../../src/data/source/renvoi.ts'
-import { lireIndexImprime } from '../../src/data/source/index-imprime.ts'
-import { adresseDe, estErreur, graphieDuFichier, numeroDuFichier, ouDeLAdresse, titreDuFichier } from '../../src/data/source/decoupe.ts'
+} from '../../src/data/schemas/source/renvoi.ts'
+import { lireIndexImprime } from '../../src/data/schemas/source/index-imprime.ts'
+import { adresseDe, estErreur, graphieDuFichier, numeroDuFichier, ouDeLAdresse, titreDuFichier } from '../../src/data/schemas/source/decoupe.ts'
 
 /** Les origines d'une section relevée, dans l'ordre du relevé. */
 export const ORIGINES = ['index', 'titre', 'mention', 'renvoi']

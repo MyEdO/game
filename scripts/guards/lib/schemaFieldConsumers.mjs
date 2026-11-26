@@ -19,14 +19,14 @@ import { creerProvenanceFs } from './provenanceFs.mjs'
 
 const norm = p => p.replaceAll('\\', '/')
 /** Les PORTES d'une table : un appel lit son champ du nœud JSON qu'il reçoit (et, par id de document, d'un
- *  fichier qui en porte plusieurs). `datasetDe` (`src/data/datasets.ts`) rend le nœud lui-même et `rangeesDe`
- *  (`src/data/rangees.ts`) son `entries`, au type dérivé du schéma ; `deDeTirageDe` (même module) lit `die`,
+ *  fichier qui en porte plusieurs). `datasetDe` (`src/data/schemas/datasets.ts`) rend le nœud lui-même et `rangeesDe`
+ *  (`src/data/schemas/rangees.ts`) son `entries`, au type dérivé du schéma ; `deDeTirageDe` (même module) lit `die`,
  *  et `deDeLaTableTiree` (`src/engine/tables.ts`) le `die` du nœud : tous deux rendent un `DeDeTable`,
  *  jamais une valeur JSON. Le type que rend une porte TYPE le nœud qu'elle lit (claim), ses champs compris. */
 const PORTES = {
-  datasetDe: { module: 'src/data/datasets.ts', champ: null, rendJson: true },
-  rangeesDe: { module: 'src/data/rangees.ts', champ: 'entries', rendJson: true },
-  deDeTirageDe: { module: 'src/data/rangees.ts', champ: 'die' },
+  datasetDe: { module: 'src/data/schemas/datasets.ts', champ: null, rendJson: true },
+  rangeesDe: { module: 'src/data/schemas/rangees.ts', champ: 'entries', rendJson: true },
+  deDeTirageDe: { module: 'src/data/schemas/rangees.ts', champ: 'die' },
   deDeLaTableTiree: { module: 'src/engine/tables.ts', champ: 'die' },
 }
 const parts = type => type?.isUnionType() || type?.isIntersectionType() ? membresDe(type).flatMap(parts) : type ? [type] : []
@@ -522,7 +522,7 @@ function aliasAdoptants(root, program, files) {
     }))
     for (const n of sf.statements) {
       if (!ts.isTypeAliasDeclaration(n)) continue
-      // Une entrée VIVANTE (`EntreeVivante<EntreeDe<…>>`, `src/data/datasets.ts`) adopte l'entrée qu'elle rouvre.
+      // Une entrée VIVANTE (`EntreeVivante<EntreeDe<…>>`, `src/data/schemas/datasets.ts`) adopte l'entrée qu'elle rouvre.
       const vivante = ts.isTypeReferenceNode(n.type) && n.type.typeName.getText() === 'EntreeVivante' ? n.type.typeArguments?.[0] : n.type
       if (!vivante || !ts.isTypeReferenceNode(vivante) || !['EntreeDe', 'DatasetDe', 'RangeeDe'].includes(vivante.typeName.getText())) continue
       const arg = vivante.typeArguments?.[0]

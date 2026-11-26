@@ -61,7 +61,7 @@ par les fiches ci-dessus. Elle ne se re-demande pas : une question qu'elle tranc
 2. **Trame des cinq tomes, avant tout chapitre** — fils transversaux, états et compteurs de campagne lus
    en aval, chapitre propriétaire de chaque état ; déclarés DANS le paquet de campagne.
 3. **Dossier de chapitre** — la moitié LIVRE, en donnée commitée : la fiche `projets/jeu-de-role/dossiers/<ABBR>/<NN>.json`,
-   au schéma unique `ficheDeDossier` (`src/data/source/dossier.ts`).
+   au schéma unique `ficheDeDossier` (`src/data/schemas/source/dossier.ts`).
    - Lecture : workflow `dossier-de-chapitre`, args projetés par
      `node scripts/raw/workflow-args.mjs dossier-de-chapitre <ABBR> <NN> --worktree <abs> --date <AAAA-MM-JJ> [--compagnons <ABBR>-<NN>,…]`
      (fichiers du chapitre, tête de l'arbre lu, familles, formes et définitions d'entrée de la fiche).

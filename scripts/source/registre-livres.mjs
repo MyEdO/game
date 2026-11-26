@@ -1,5 +1,5 @@
 import booksData from '../../src/data/books.json' with { type: 'json' }
-import { estLivreExtrait } from '../../src/data/source/livre-extrait.ts'
+import { estLivreExtrait } from '../../src/data/schemas/source/livre-extrait.ts'
 
 // Registre BRUT des livres, tel que `books.json` le porte — la lecture du fichier vit ICI et nulle
 // part ailleurs, pour que tout consommateur puisse recevoir un registre FIXTURE par injection.

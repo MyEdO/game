@@ -5,7 +5,7 @@
  */
 import { describe, expect, it } from 'vitest';
 import { findPropById } from '../../data';
-import { calageDuDecalage, decalageDuCalage, dessusSous } from '../../data/props.types';
+import { calageDuDecalage, decalageDuCalage, dessusSous } from '../../data/schemas/props.types';
 import { ancreDuDecor } from './footprint';
 import { tileBlocksSight } from './lineOfSight';
 import { appuiSous, emporterLesObjets, fauteDAppui, normaliserLesAppuis, piedDuDecor, poseDeLAncre } from './poseDuDecor';

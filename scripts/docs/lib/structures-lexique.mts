@@ -169,11 +169,11 @@ export const TERMES_COLLECTION_A_CLE: readonly (readonly [terme: string, definit
   ],
   [
     '`IDS_PAR_ESPACE`',
-    'l’INDEX DES IDS généré (`src/data/schemas/_ids.generated.ts`, `scripts/gen-espaces.mts`, phase 2 de `npm run gen`) : clé d’espace → ids, dans l’ORDRE DE LA DONNÉE, par `idsDeLEspace` (`src/data/schemas/grammaire/collection-cle.ts`) sur le JSON disque co-descendu, sans parse — un espace neuf et son premier désignateur entrent dans le même commit. Une entrée à `specsSource` y a pour espace de ses `specs` l’univers de sa source (`grammaire/sourcesDeSpecs.ts`).',
+    'l’INDEX DES IDS généré (`src/data/_ids.generated.ts`, `scripts/gen-espaces.mts`, phase 2 de `npm run gen`) : clé d’espace → ids, dans l’ORDRE DE LA DONNÉE, par `idsDeLEspace` (`src/data/schemas/grammaire/collection-cle.ts`) sur le JSON disque co-descendu, sans parse — un espace neuf et son premier désignateur entrent dans le même commit. Une entrée à `specsSource` y a pour espace de ses `specs` l’univers de sa source (`grammaire/sourcesDeSpecs.ts`).',
   ],
   [
     'racine vivante',
-    'la racine d’un document de `src/data` qui porte une clé de dataset, en mémoire : le module JSON singleton que le seam mute EN PLACE ; `RACINES_VIVANTES` (`src/data/schemas/_racines-vivantes.generated.ts`, phase 2 de `npm run gen`) la donne par fichier, un import statique par document de l’image de `DATASET_FICHIER_DERIVE`. Ce que le save sérialise, et ce que le régime vivant navigue le long d’une clé d’espace.',
+    'la racine d’un document de `src/data` qui porte une clé de dataset, en mémoire : le module JSON singleton que le seam mute EN PLACE ; `RACINES_VIVANTES` (`src/data/_racines-vivantes.generated.ts`, phase 2 de `npm run gen`) la donne par fichier, un import statique par document de l’image de `DATASET_FICHIER_DERIVE`. Ce que le save sérialise, et ce que le régime vivant navigue le long d’une clé d’espace.',
   ],
   [
     'régime vivant',
@@ -431,7 +431,7 @@ export const CONCEPTS: readonly Concept[] = [
   },
   // Les deux formes de l'ADRESSE de prose (#1389) passent AVANT `formule` et `source`, et l'ordre
   // décide : un fragment porte `sum` (l'empreinte du passage résolu, `sumOf` de
-  // `src/data/source/decoupe.ts`) que le concept `formule` réclamerait, et l'adresse porte `book`
+  // `src/data/schemas/source/decoupe.ts`) que le concept `formule` réclamerait, et l'adresse porte `book`
   // que le concept `source` réclamerait. Ni l'une ni l'autre n'est une divergence : c'est la forme
   // que le parseur PRODUIT et que `descRefSchema` (`grammaire/valeurs.ts`) refuse autrement.
   // Les deux noyaux sont EXHAUSTIFS (aucun `noyauMin`), donc rien d'autre ne s'y range : `book`,

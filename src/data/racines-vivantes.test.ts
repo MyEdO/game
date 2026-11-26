@@ -14,7 +14,7 @@ import { join } from 'node:path';
 import { collectionDuDataset, datasetArray, datasetObject, DATASET_KEYS, OBJECT_DATASET_KEYS, type DatasetKey, type ObjectDatasetKey } from './overrides';
 import { CLES_DE_DATASET } from './schemas/_cles-de-dataset.generated';
 import { DATASET_FICHIER_DERIVE, DATASET_SUITE_DERIVE } from './schemas/exposition-derivee';
-import { IDS_PAR_ESPACE } from './schemas/_ids.generated';
+import { IDS_PAR_ESPACE } from './_ids.generated';
 import { SCHEMA_DEFS } from './schemas/_registry.generated';
 import { idsVivants } from './schemas/grammaire/idsVivants';
 import { collectionALaCle } from './schemas/grammaire/collection-cle';

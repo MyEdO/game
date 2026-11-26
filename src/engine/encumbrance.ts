@@ -23,7 +23,7 @@ import { traumaMovementHalved, passiveMoveMod, prosthesisMoveRestore } from './t
 import { offTerrainMoveCap } from './ops';
 import { flyMeters } from './traits/dispatch';
 import encumbranceTiersJson from '../data/encumbranceTiers.json';
-import { datasetDe, type EntreeDe } from '../data/datasets';
+import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import type * as encumbranceTiersDef from '../data/schemas/defs/encumbranceTiers';
 
 export type EncumbrancePenalties = EntreeDe<typeof encumbranceTiersDef>;

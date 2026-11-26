@@ -1,6 +1,6 @@
 /**
  * LE PROPRIÉTAIRE DE L'ÉTAT DU JEU hors du web (#2817 D7, D8, #3058) : l'état et les actions du noyau
- * (`creerActionsDuNoyau`), l'écriture de zustand suivie de la transition du jeu (`transitionDuJeu`) et du tick
+ * (`creerActionsDuNoyau`), le catalogue de la partie (`CatalogueDeLaPartie`), l'écriture de zustand suivie de la transition du jeu (`transitionDuJeu`) et du tick
  * automatique (`planifierLeTickAuto`), l'abonnement, le branchement (`brancherLeJeu`), les entrées de D8 et une
  * plateforme dont l'appel différé rend un jeton, signalé à `surProgramme` et rejoué par `reprendre`. La partie
  * (`partie.ts`) et le banc de test (`banc.testkit.ts`) le composent. Plusieurs peuvent être ouverts dans un contexte
@@ -22,13 +22,16 @@ import { stabiliserLesPlaiesDuPatient } from './acteDeSoin';
 import { patchAvecIdsNeufs } from './idsDuMonde';
 import { planifierLeTickAuto } from './combatAuto';
 import { battleRng, poserBattleRng, seedBattleRng } from './battleRng';
-import { loadRuleOverrides, ruleOverrides } from '../engine/policy';
+import { loadRuleOverrides, memesRegles, ruleOverrides } from '../engine/policy';
 import { cadence, setCadence, type Cadence } from '../engine/cadence';
 import { desFixes, setDesFixes } from '../engine/fixedDie';
 import type { RNG } from '../engine/dice';
 import { patchDeLEquipement } from './monde/carrier';
 import { poserLeRegistre, reposerPaquetDeCampagne, retirerLeRegistre } from './monde/registreDesScenes';
 import type { Scene } from './monde/scene';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { abonnerAuxDatasets, versionDeLaBibliotheque } from '../data/versionDataset';
 
 /** Un écrit de zustand : un objet, ou une fonction de l'état, fusionné au premier niveau. */
 export type Ecrit = Partial<JeuDuNoyau> | ((s: JeuDuNoyau) => Partial<JeuDuNoyau>);
@@ -44,6 +47,8 @@ export interface ProprietaireDuJeu {
   reprendre: (jeton: Jeton) => boolean;
   /** Abandonne tous les jetons en attente, sans les rejouer. */
   abandonner: () => void;
+  /** Remplace le catalogue de la partie par `catalogue` (`CatalogueDeLaPartie`). */
+  recomposer: (catalogue: Catalogue) => void;
   /** Branche ce propriétaire, s'il ne l'est pas : suspend le branché, puis repose ce que celui-ci avait gardé. */
   brancher: () => void;
   /** Pose les écoutes que `poser` ouvre tant que ce propriétaire est branché ; `poser` rend leur coupure. */
@@ -89,7 +94,9 @@ export function ouvrirLeProprietaire(
   const set = ecrire as SetDesClesReservees;
   const actions = creerActionsDuNoyau(get, set);
   loadRuleOverrides(entrees.reglesMaison);
-  let etat = preparerLaPublication({ ...etatInitial, ...patchDeLEquipement(etatInitial), ...actions });
+  let etat = preparerLaPublication({ ...etatInitial, ...patchDeLEquipement(etatInitial), ...actions, catalogue: catalogueDuProcessus() });
+  /** Ce dont le catalogue de la partie est composé : la version des documents et les règles maison. */
+  let composeSur = { bibliotheque: versionDeLaBibliotheque(), regles: ruleOverrides() };
 
   const plateforme: Plateforme = {
     programmer: (suite, delai, apresDeplacement) => {
@@ -104,6 +111,17 @@ export function ouvrirLeProprietaire(
   /** Les écoutes posées tant que le propriétaire est branché, et leurs coupures quand elles le sont. */
   const ecoutes: (() => () => void)[] = [];
   let coupures: (() => void)[] = [];
+  /** Le fossile 5 (#5069) : le catalogue du processus, reposé au branchement et à chaque écriture au seam tant que le
+   *  propriétaire est branché, si la version des documents ou les règles maison diffèrent de `composeSur`. */
+  const reposerLeCatalogue = (): void => {
+    const bibliotheque = versionDeLaBibliotheque();
+    const regles = ruleOverrides();
+    if (bibliotheque === composeSur.bibliotheque && memesRegles(regles, composeSur.regles)) return;
+    composeSur = { bibliotheque, regles };
+    const catalogue = catalogueDuProcessus();
+    if (catalogue !== etat.catalogue) ecrire({ catalogue });
+  };
+  ecoutes.push(() => abonnerAuxDatasets(reposerLeCatalogue));
   const couper = (): void => {
     for (const c of coupures) c();
     coupures = [];
@@ -123,6 +141,7 @@ export function ouvrirLeProprietaire(
     poserLaPlateforme(plateforme);
     coupures = ecoutes.map((e) => e());
     brancherLeJeu(branchement, tablesDuJeu());
+    reposerLeCatalogue();
   };
   seedBattleRng(entrees.graine);
   setCadence(entrees.cadence);
@@ -146,6 +165,7 @@ export function ouvrirLeProprietaire(
       return true;
     },
     abandonner: () => enVol.clear(),
+    recomposer: (catalogue) => ecrire({ catalogue }),
     brancher: () => {
       if (jeuBranche() === branchement) return;
       if (!garde) throw new Error('[noyau] propriétaire débranché sans suspension : il ne se rebranche pas');

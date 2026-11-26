@@ -6,7 +6,7 @@
  * SEULE source de vérité du volume d'un canal et de la coupure : un hôte lit `volumeDuCanal` et `sonCoupe` à chaque son
  * qu'il joue.
  */
-import { CANAUX_DE_SON, type CanalDeSon } from '../data/sons/types';
+import { CANAUX_DE_SON, type CanalDeSon } from '../data/schemas/sons/types';
 import { tableTotale } from '../lib/tableTotale';
 
 /** Volume d'un canal tant que le joueur ne l'a pas réglé (0..1). */

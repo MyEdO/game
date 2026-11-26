@@ -4,7 +4,7 @@
  * `src/engine/magicEnvironment.ts`) ; régler un phénomène = éditer le JSON, jamais ce fichier.
  */
 import arcaneJson from './arcane-phenomena.json';
-import { datasetDe, type DatasetDe } from './datasets';
+import { datasetDe, type DatasetDe } from './schemas/datasets';
 import type * as arcaneDef from './schemas/defs/arcane-phenomena';
 
 /** Le document `arcane-phenomena.json` (VDM 14), au type de son schéma. */

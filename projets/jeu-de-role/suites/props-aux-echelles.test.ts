@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { cheminsDesProjetsLivres } from '../../../scripts/guards/lib/projetsLivres.mjs';
 import { props } from '../../../src/data';
-import { validatePropCatalog } from '../../../src/data/props.types';
+import { validatePropCatalog } from '../../../src/data/schemas/props.types';
 
 describe('props.json aux échelles des paquets livrés (#1509)', () => {
   const echelles = [...new Set(cheminsDesProjetsLivres().flatMap((rel) =>

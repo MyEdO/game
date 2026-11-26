@@ -14,7 +14,7 @@ import {
   type PropCylinderSides,
   type PropData,
   type PropPrimitive,
-} from '../../../data/props.types';
+} from '../../../data/schemas/props.types';
 import { buildPropVolumes } from './propVolumes';
 import { facePoly, polyNormal } from './worldTris';
 import { sceneMetresPerTile } from '../scene';
@@ -149,7 +149,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
    * L'exclusion des sièges EST le prédicat : un tabouret n'est pas un obstacle, c'est par lui qu'on
    * s'assoit — sans elle, la table ronde passerait de 1×1 à 2×2 solide et ses quatre abords
    * sauteraient. Le discriminant est STRUCTUREL, jamais un nom de ref (`placeAssiseDe`,
-   * `data/props.types.ts`) : la primitive dont l'emprise au plan CONTIENT l'ancre d'une place ET qui
+   * `data/schemas/props.types.ts`) : la primitive dont l'emprise au plan CONTIENT l'ancre d'une place ET qui
    * ne monte pas plus haut que cette assise ; un plateau qui survole l'ancre reste du corps.
    */
   /** Demi-empreinte DÉRIVÉE du type à ce cap, en cases — la borne du repère local (1×1 ⇒ 0,5 × 0,5). */
@@ -318,7 +318,7 @@ describe('décor volumique — chaque recette du catalogue et son corps monde', 
 
 /**
  * CAP CARDINAL — LA CHAÎNE ENTIÈRE, sur une seule donnée fautive (#1680 ligne 3). Un décor dont le
- * TYPE porte une recette ne prend qu'un cap cardinal : `data/props.types.ts` `capVolumique`. Quatre
+ * TYPE porte une recette ne prend qu'un cap cardinal : `data/schemas/props.types.ts` `capVolumique`. Quatre
  * verrous, du plus AMONT au dernier filet, et ce test les tient ENSEMBLE — la règle est celle du
  * CATALOGUE (`refEstVolumique`), donc un BILLBOARD au même cap reste licite à chaque étage :
  *   1. SCHÉMA (bloquant) : `sceneEntitySchema` refuse au parse, `parseProject` lève ;

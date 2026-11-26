@@ -27,7 +27,7 @@
  */
 import { riverNavigation, type RiverNavigationData } from '../data';
 import riverPerilsJson from '../data/river-perils.json';
-import { datasetDe } from '../data/datasets';
+import { datasetDe } from '../data/schemas/datasets';
 import type * as riverPerilsDef from '../data/schemas/defs/river-perils';
 import type { RiverWindDirId } from '../data/schemas/defs/river-navigation';
 import { RIVER_CRIT_SET, type ShipCritKey } from '../data/shipCriticals';

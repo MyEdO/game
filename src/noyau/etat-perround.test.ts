@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { fireConditionEffects } from './triggeredEffects';
 import { addCondition, hasCondition, stacks, COND } from '../engine/conditions';
-import { slugId } from '../data/slug';
+import { slugId } from '../data/schemas/slug';
 import type { Characteristics, Combatant } from '../engine/types';
 import { deFixe, desDuTest } from '../engine/dice.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';

@@ -9,7 +9,7 @@ import { heroDeFiche, type FicheDeHeros } from '../engine/heroDeFiche';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { IdDeHerosDuRoster } from '../lib/idDeHerosDuRoster';
 import type { CountSpec, PregenDef } from './index';
-import type { EntreeVivante } from './datasets';
+import type { EntreeVivante } from './schemas/datasets';
 import { pregens } from './index';
 
 /** La dotation à quantité tirée aux dés (`count.roll`) : elle se tire à l'engagement, jamais sur la fiche. */

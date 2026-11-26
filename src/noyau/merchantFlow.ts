@@ -59,8 +59,8 @@ import {
   type QualityRef,
   type TrappingData,
 } from '../data/index';
-import type { MerchantArchetypeDef } from '../data/merchants.types';
-import type { UniteAchetable } from '../data/merchants.types';
+import type { MerchantArchetypeDef } from '../data/schemas/merchants.types';
+import type { UniteAchetable } from '../data/schemas/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
 import { startCascade } from './cascade';
 import { choiceStep, dieStep, freeCons, monoStep, openPartyTest, stepDetail, worldStep } from './rollSeam';

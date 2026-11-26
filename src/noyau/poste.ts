@@ -8,7 +8,7 @@
  * d'équipage mutualisés) reste dans ses modules dédiés (`engine/activities`, `noyau/shipCrew`) — un Poste
  * ne fait qu'exposer l'identité assignable, jamais la mécanique de résolution. PUR.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { ActivityDef } from '../engine/activities';
 import type { Combatant } from '../engine/types';
 import type { CrewRoleData, ShipStationData } from '../data';

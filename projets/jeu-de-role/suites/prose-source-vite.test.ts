@@ -1,5 +1,5 @@
 /** Le plugin `wfrp:prose-source` sur un paquet livré, servi par un serveur Vite RÉEL sur le dépôt
- *  (`src/data/source/prose-source.test.ts` en tient le contrat sur fixture). */
+ *  (`src/data/schemas/source/prose-source.test.ts` en tient le contrat sur fixture). */
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';

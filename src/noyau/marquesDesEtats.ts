@@ -4,7 +4,7 @@
  * conséquence de règle.
  */
 import { conditionLabel, findConditionById, type VisuelDeLumiere } from '../data';
-import { sonDEffet, type SonDEffet } from '../data/sons/registre';
+import { sonDEffet, type SonDEffet } from '../data/schemas/sons/registre';
 import { t as tr } from '../i18n';
 
 /**

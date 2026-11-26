@@ -13,7 +13,7 @@ signal change
 ## Un geste de la partie que le panneau porte (l'action d'une règle), à jouer par l'écran qui le montre.
 signal joue(jeu: Dictionary)
 
-## Le fond du panneau, au catalogue des dessins (`src/data/paysages/defs/table.ts`).
+## Le fond du panneau, au catalogue des dessins (`src/data/schemas/paysages/defs/table.ts`).
 const LUEUR := "table-lueur"
 ## Le thème d'un signet fermé et celui du signet ouvert.
 const SIGNET := preload("res://art/signet.tres")

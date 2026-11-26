@@ -8,7 +8,7 @@
  * `./sceneEditLecture`. NE JAMAIS importer `../ui/` ni `../gameIso/` ici.
  */
 import type { RectDeCases } from '../data/schemas/grammaire/valeurs';
-import type { EntreeNommee } from '../data/source/dossier';
+import type { EntreeNommee } from '../data/schemas/source/dossier';
 import {
   ActionAuthoree,
   DEFAULT_TERRAIN,
@@ -121,7 +121,7 @@ import { sceneZoneTiles, zoneAreaTiles } from './monde/zones';
 import { tileKey, type Pt as ScenePt } from './monde/path';
 import { premiereCaseEnAnneaux, tientDebout } from './monde/combatGeometry';
 import { actionNeuve, aUnRoleEnJeu, sousLIdentifiant } from './monde/usable';
-import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/props.types';
+import { CAP_IDENTITE_PROP, capDecorAdmis, type Calage } from '../data/schemas/props.types';
 import { ancreDuDecor, entiteFootTiles } from './monde/footprint';
 import { appuiSous, emporterLesObjets, normaliserLesAppuis, poseDeLAncre } from './monde/poseDuDecor';
 import { entitesEnCaseEtage } from './monde/decorIndex';

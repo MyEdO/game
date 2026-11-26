@@ -2,7 +2,7 @@
  * Migration #1509 — `PropData.foot` MEURT sur les décors à RECETTE.
  *
  * Depuis ce lot, les cases qu'un décor à recette occupe se DÉRIVENT de son corps tourné
- * (`empreinteDeriveeDuProp`, `src/data/props.types.ts`) : son `foot` n'est plus lu par aucun
+ * (`empreinteDeriveeDuProp`, `src/data/schemas/props.types.ts`) : son `foot` n'est plus lu par aucun
  * consommateur de cases. Le laisser en donnée en ferait un CHAMP MORT que le prochain auteur
  * croirait porteur — et qui mentirait au premier cap E/O (le `foot` ne tourne pas, l'empreinte si).
  * `foot` redevient donc ce que le design #1509 point 6 tranche : la vérité d'un BILLBOARD seulement,

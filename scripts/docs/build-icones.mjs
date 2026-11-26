@@ -8,7 +8,7 @@
  *
  * Patron retenu : « éditorial EN DUR dans le générateur » (scripts/docs/build-sources-vf.mjs) —
  * aucun manifeste d'iconographie n'existe, et la charte de dessin est DÉJÀ écrite en tête de
- * `src/data/icons/defs/action.ts` : elle se cite depuis là, elle ne se recopie pas.
+ * `src/data/schemas/icons/defs/action.ts` : elle se cite depuis là, elle ne se recopie pas.
  *
  * Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
  *
@@ -75,23 +75,23 @@ function rendu(entree) {
   }
   const FAMILLES = [...PAR_FAMILLE.keys()].sort()
 
-  const FICHIERS_DEFS = listerDossier('src/data/icons/defs')
+  const FICHIERS_DEFS = listerDossier('src/data/schemas/icons/defs')
     .filter((f) => f.endsWith('.ts'))
     .map((f) => f.replace(/\.ts$/, ''))
   for (const f of FAMILLES) {
-    if (!FICHIERS_DEFS.includes(f)) abandon(`famille « ${f} » de l'union sans fichier src/data/icons/defs/${f}.ts`)
+    if (!FICHIERS_DEFS.includes(f)) abandon(`famille « ${f} » de l'union sans fichier src/data/schemas/icons/defs/${f}.ts`)
   }
 
   const TOUS_LES_IDS = new Set(IDS.map((i) => i.id))
 
   // ── Charte de dessin : bloc VERBATIM du fichier étalon ───────────────────────────────────────────
 
-  const ACTION = lire('src/data/icons/defs/action.ts')
+  const ACTION = lire('src/data/schemas/icons/defs/action.ts')
   const CHARTE = capture(
     ACTION,
     /\/\*\s*[═]+\s*CHARTE D'ICONOGRAPHIE[^\n]*\n([\s\S]*?)\n\s*[═]+\s*\*\//,
     "le bloc « CHARTE D'ICONOGRAPHIE »",
-    'src/data/icons/defs/action.ts',
+    'src/data/schemas/icons/defs/action.ts',
   )
     .split('\n')
     .map((l) => l.replace(/^\s{3}/, '').trimEnd())
@@ -102,18 +102,18 @@ function rendu(entree) {
     (m) => `// ${m[1].trim()}\n${m[2]}`,
   )
   if (CONSTANTES_TRAIT.length !== 3) {
-    abandon(`src/data/icons/defs/action.ts ne déclare plus les 3 constantes de trait K/KF/F (${CONSTANTES_TRAIT.length} vue(s))`)
+    abandon(`src/data/schemas/icons/defs/action.ts ne déclare plus les 3 constantes de trait K/KF/F (${CONSTANTES_TRAIT.length} vue(s))`)
   }
 
   // ── Nommage : la regex de la garde, jamais une recopie ───────────────────────────────────────────
 
-  const ICONS_TEST = lire('src/data/icons/icons.test.ts')
-  const KEBAB = capture(ICONS_TEST, /const kebab = (\/[^\n]+\/);/, 'la regex de nommage `kebab`', 'src/data/icons/icons.test.ts')
-  const COULEUR = capture(ICONS_TEST, /const couleur = (\/[^\n]+\/);/, 'la regex des couleurs admises `couleur`', 'src/data/icons/icons.test.ts')
+  const ICONS_TEST = lire('src/data/schemas/icons/icons.test.ts')
+  const KEBAB = capture(ICONS_TEST, /const kebab = (\/[^\n]+\/);/, 'la regex de nommage `kebab`', 'src/data/schemas/icons/icons.test.ts')
+  const COULEUR = capture(ICONS_TEST, /const couleur = (\/[^\n]+\/);/, 'la regex des couleurs admises `couleur`', 'src/data/schemas/icons/icons.test.ts')
 
   const TITRES_ICONS_TEST = [...ICONS_TEST.matchAll(/\bit\('([^']+)'/g)].map((m) => m[1])
-  const TYPES_TS = lire('src/data/icons/types.ts')
-  const ALIAS_ID = capture(TYPES_TS, /export type (IconId) =/, "l'alias `IconId`", 'src/data/icons/types.ts')
+  const TYPES_TS = lire('src/data/schemas/icons/types.ts')
+  const ALIAS_ID = capture(TYPES_TS, /export type (IconId) =/, "l'alias `IconId`", 'src/data/schemas/icons/types.ts')
 
   // ── Données JSON porteuses d'une icône ───────────────────────────────────────────────────────────
 
@@ -197,7 +197,7 @@ function rendu(entree) {
 
   const lignesFamilles = FAMILLES.map(
     (f) =>
-      `| \`${f}\` | \`src/data/icons/defs/${f}.ts\` | ${PAR_FAMILLE.get(f).length} | ${PAR_FAMILLE.get(f)
+      `| \`${f}\` | \`src/data/schemas/icons/defs/${f}.ts\` | ${PAR_FAMILLE.get(f).length} | ${PAR_FAMILLE.get(f)
         .slice(0, 3)
         .map((i) => `\`${i}\``)
         .join(', ')}${PAR_FAMILLE.get(f).length > 3 ? ' …' : ''} |`,
@@ -219,8 +219,8 @@ function rendu(entree) {
 
 **Périmètre mesuré / angles morts** — sont LUS aux fichiers réels : l'union \`${UNION}\` de
 \`${UNION_OUT}\` (familles, ids, comptes), la charte de dessin et les
-constantes de trait de \`src/data/icons/defs/action.ts\`, la regex de nommage et les couleurs admises
-de \`src/data/icons/icons.test.ts\`, l'entrée
+constantes de trait de \`src/data/schemas/icons/defs/action.ts\`, la regex de nommage et les couleurs admises
+de \`src/data/schemas/icons/icons.test.ts\`, l'entrée
 \`ICON_FAMILIES\` de \`scripts/docs/lib/cibles-registres.mjs\`, les valeurs \`"icon"\` des \`src/data/*.json\`, et le
 périmètre + les glyphes tolérés du garde anti-emoji
 (\`scripts/guards/lib/emojiAffordance.mjs\`, \`src/no-emoji-affordance.test.ts\`) — dont l'ABSENCE de
@@ -232,7 +232,7 @@ référencée sous un AUTRE nom de champ, ou depuis du TS, n'est pas comptée ic
 geste sont de l'ÉDITORIAL fixé dans le script.
 
 Toute AFFORDANCE de l'UI (bouton, badge, libellé d'action, icône de donnée JSON) passe par le
-**registre auto-collecté** \`src/data/icons/\` : 1 famille d'icônes = 1 fichier dans
+**registre auto-collecté** \`src/data/schemas/icons/\` : 1 famille d'icônes = 1 fichier dans
 \`${CHAMPS_ENTREE.dir}/<famille>.ts\`, ramassé par \`npm run gen\`.
 **Aucune table centrale à éditer.** Plus jamais d'emoji dans le code ou la donnée — garde
 \`src/no-emoji-affordance.test.ts\`.
@@ -248,7 +248,7 @@ ${lignesFamilles}
 
 ## 1. Choisir la famille et l'id
 
-Un id = \`famille/nom\` en kebab-case — la garde \`src/data/icons/icons.test.ts\` applique
+Un id = \`famille/nom\` en kebab-case — la garde \`src/data/schemas/icons/icons.test.ts\` applique
 \`${KEBAB}\`. Créer une NOUVELLE famille seulement si le concept ne rentre dans aucune des
 ${FAMILLES.length} existantes — sinon ajouter l'entrée au fichier de famille pertinent.
 
@@ -268,7 +268,7 @@ export const ${CHAMPS_ENTREE.exportName}: ${CHAMPS_ENTREE.type} = [
 ];
 \`\`\`
 
-**Charte de dessin** — bloc en tête de \`src/data/icons/defs/action.ts\`, référence pour toutes les
+**Charte de dessin** — bloc en tête de \`src/data/schemas/icons/defs/action.ts\`, référence pour toutes les
 familles, cité ici tel quel :
 
 > ${CHARTE.split('\n').join('\n> ')}
@@ -287,7 +287,7 @@ union de littéraux \`${UNION}\`, dérivée des champs \`id: '…'\` — script 
 \`scripts/gen-registry.mjs\`, entrée \`${CHAMPS_ENTREE.arrayName}\` de \`scripts/docs/lib/cibles-registres.mjs\`). Lancer la commande après un ajout pour vérifier le
 compteur de fichiers (\`${CHAMPS_ENTREE.arrayName} ← N fichiers\`) ; le fichier généré ne se committe pas (#2203).
 
-Le nouvel id devient un littéral du type fermé \`${ALIAS_ID}\` (\`src/data/icons/types.ts\`) — un id
+Le nouvel id devient un littéral du type fermé \`${ALIAS_ID}\` (\`src/data/schemas/icons/types.ts\`) — un id
 inventé côté TS ne compile pas.
 
 ## 4. Rendu Godot
@@ -345,7 +345,7 @@ Déclarer l’identifiant d’icône dans le modèle du contrôle.
 
 ## Gardes
 
-- \`npm test -- src/data/icons/icons.test.ts\` — ${TITRES_ICONS_TEST.map((t) => `${t}`).join(' ; ')}.
+- \`npm test -- src/data/schemas/icons/icons.test.ts\` — ${TITRES_ICONS_TEST.map((t) => `${t}`).join(' ; ')}.
 - \`npm test -- src/no-emoji-affordance.test.ts\` — zéro emoji dans tout \`${RACINE_SCAN}/\`,
   hors exclusions par nature.
 - \`npm test -- src/data/data-wellformed.test.ts\` — ${CAS_ICONE.length} cas résolvent une icône

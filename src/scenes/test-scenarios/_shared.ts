@@ -3,7 +3,7 @@ import type { FabriqueDId } from '../../engine/fabriqueDId';
 import { byId, findSiegeEngineById, type SkillRef } from '../../data';
 import { estSpecialisable, refusDeSpec } from '../../data/schemas/grammaire/ref';
 import type { ContenuDeScenario, LancementDeScenario } from '../../noyau/lancementDeScenario';
-import type { IconIdGenerated } from '../../data/icones.generated';
+import type { IconIdGenerated } from '../../data/schemas/icones.generated';
 
 /** Ajoute ou renforce une Compétence d'un héros de scénario, à la Caractéristique de la donnée. Une
  *  Compétence groupée se possède par spécialisation, désignée par son id — LDB 09 l.40, LDB 09 l.44. */
@@ -26,7 +26,7 @@ export const projForPiece = (trappingId: string): SkillRef[] => {
 };
 
 /** Sections du menu des scénarios de test : clé (portée par la donnée) → libellé + icône
- *  (id du registre src/data/icons), dans l'ordre d'affichage. */
+ *  (id du registre src/data/schemas/icons), dans l'ordre d'affichage. */
 export const SCENARIO_SECTIONS = [
   { key: 'combat', label: 'Combat', icon: 'action/attaquer' },
   { key: 'magie', label: 'Magie', icon: 'action/incanter' },
@@ -47,7 +47,7 @@ export interface TestScenario {
   id: string;
   order: number; // tri d'affichage dans la section
   category: ScenarioCategory; // section du menu
-  icon: IconIdGenerated; // icône de carte (registre src/data/icons, famille scenario/*)
+  icon: IconIdGenerated; // icône de carte (registre src/data/schemas/icons, famille scenario/*)
   title: string;
   tests: string; // une ligne : « ce que ça vérifie »
   partyNote: string; // ex. « Arbalétrier solo »

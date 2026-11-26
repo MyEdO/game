@@ -2,7 +2,7 @@
  * Entrées : src/data/criticals.json (écrite).
  */
 import { readFileSync, writeFileSync } from 'node:fs';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 
 const fichier = new URL('../../src/data/criticals.json', import.meta.url);
 const tables = JSON.parse(readFileSync(fichier, 'utf8'));

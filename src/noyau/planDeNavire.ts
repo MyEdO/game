@@ -17,7 +17,7 @@ import { findNavalTrait } from '../data';
 import { aLEchelleDesPonts, rectangleDesPonts, rectangleDesPontsPoses } from '../data/poseDesPonts';
 import { nextEntityId } from '../lib/entityId';
 import type { Terrain } from '../data/schemas/defs-scenes/scene';
-import { CAP_IDENTITE_PROP } from '../data/props.types';
+import { CAP_IDENTITE_PROP } from '../data/schemas/props.types';
 import { DIR4_ORDER, rotateDir8, type Dir4, type Dir8 } from '../geometry/dir8';
 import { garanti } from '../lib/garanti';
 import type { Scene, SceneEffectZone, SceneEntity, WallSeg } from './monde/scene';

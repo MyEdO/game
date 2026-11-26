@@ -32,8 +32,8 @@ import { CATEGORY_BY_SOURCE_KIND, type EffectSource, type EffectSourceKind } fro
 // AUCUNE dépendance runtime au store : les tables restent du moteur pur (`rollMiscast` testable seul).
 import { poserEnjeu, type Flow, type FlowTest } from './flowCore';
 import miscastJson from '../data/miscast.json';
-import { deDeTirageDe, type RangeeDe } from '../data/rangees';
-import { datasetDe, type EntreeDe } from '../data/datasets';
+import { deDeTirageDe, type RangeeDe } from '../data/schemas/rangees';
+import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import type * as miscastDef from '../data/schemas/defs/miscast';
 import { DATASET_DE_LA_CATEGORIE, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
 import { memoParVersion } from '../data/versionDataset';

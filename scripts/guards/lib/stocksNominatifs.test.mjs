@@ -152,7 +152,7 @@ test('fixture dépôt : les vrais stocks voisins et les fausses fabriques resten
   ]) assert.equal(compter(source, chemin), attendu, source);
 });
 test('occurrences originales : options de scan et trois chemins porteSpawn restent scalaires', () => {
-  assert.equal(compter("reparerAdresses({ racines: ['src/data'] });", 'src/data/source/reparer-adresses.test.ts'), 0);
+  assert.equal(compter("reparerAdresses({ racines: ['src/data'] });", 'src/data/schemas/source/reparer-adresses.test.ts'), 0);
   for (const fragments of [
     "[docs, 'architecture.md']", "[docs, 'raw', 'talents.md']", "[docs, 'plans', 'plan-fictif.md']",
   ]) assert.equal(compter("const docs = 'docs';\nconst chemin = " + fragments + ".join('/');", 'scripts/guards/lib/porteSpawn.test.mjs'), 0);

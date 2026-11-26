@@ -1,6 +1,6 @@
 import { describe, expect, it, onTestFinished } from 'vitest';
 import { apparences, spells, talents, type SpellData } from '../data';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { setDataset } from '../data/overrides';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { combattantDeTest } from '../engine/combattantDeTest.testkit';

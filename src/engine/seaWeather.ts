@@ -69,7 +69,7 @@ const DATA: SeaWeatherData = seaWeather;
 export const windForces = memoParVersion('seaWeather', (): string[] => DATA.vents.map((v) => v.id));
 
 /** Lookup STRICT d'une fiche de `sea-weather.json` — FAIL-FAST NOMINATIF (patron
- *  `data/rangees.ts::rangeesDe`, frère terrestre `travelStages.ts::weatherCondition`) : un `!`
+ *  `data/schemas/rangees.ts::rangeesDe`, frère terrestre `travelStages.ts::weatherCondition`) : un `!`
  *  rendait `undefined` puis plantait plus loin, sans dire QUEL id manquait ni dans quel volet. */
 function ficheMer<T extends { id: string }>(volet: string, liste: readonly T[], id: string): T {
   const trouve = liste.find((e) => e.id === id);

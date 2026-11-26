@@ -26,7 +26,7 @@ import {
 import type { HitLocation } from '../../engine/types';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import { entityAppearanceSchema, type Couleurs, type FormesDeTete } from '../../data/schemas/grammaire/valeurs';
-import { serializeDataset } from '../../data/serialize';
+import { serializeDataset } from '../../data/schemas/serialize';
 import { candidatsDApparenceDObjet } from '../../data/apparencesObjets';
 import { racineDesCandidats } from '../../engine/items';
 import type { TenueId } from '../../data/schemas/defs/garde-robe';

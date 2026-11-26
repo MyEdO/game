@@ -30,7 +30,7 @@ export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 export { memeSpecialisation, refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 export type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
-export { parseTable } from '../data/source/decoupe';
+export { parseTable } from '../data/schemas/source/decoupe';
 export { arena } from './mapSpec';
 export { avecRencontres } from './monde/encounterAuthoring';
 export {
@@ -96,7 +96,7 @@ export {
   type EmplacementDeDotation,
 } from '../engine/trappingChoices';
 export { PENTE_TOIT_DEG } from '../data/schemas/defs-scenes/scene';
-export { PARTS_RELIEF } from '../data/materials.types';
+export { PARTS_RELIEF } from '../data/schemas/materials.types';
 export type { Cadence } from '../engine/cadence';
 export type { FabriqueDId, FabriqueDuRoster } from '../engine/fabriqueDId';
 export type { Equipe } from '../engine/relations';
@@ -106,12 +106,12 @@ export { actionGate, offreArmee, offresDeLActif, offresParPorteur, etatDeLaBarre
 export { emplacementsRapides } from './emplacementsRapides';
 export { ACTIONS } from '../data/index';
 export { DESSINS_DES_PARTS } from '../data/schemas/defs/actions';
-export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/icons';
-export { CADRE_DES_CADRES, CADRES } from '../data/cadres';
-export { CADRE_DES_FONDS, FONDS } from '../data/fonds';
-export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/paysages';
-export { entreesDesFiches } from '../data/dossiers';
-export type { FicheLue } from '../data/source/dossier';
+export { CADRE_DES_ICONES, ICON_DEFS, type IconId } from '../data/schemas/icons';
+export { CADRE_DES_CADRES, CADRES } from '../data/schemas/cadres';
+export { CADRE_DES_FONDS, FONDS } from '../data/schemas/fonds';
+export { CADRE_DES_PAYSAGES, COUCHES_DE_PAYSAGE, type IdDeCouche } from '../data/schemas/paysages';
+export { entreesDesFiches } from '../data/schemas/dossiers';
+export type { FicheLue } from '../data/schemas/source/dossier';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { LigneDeGardeRobe } from '../data/index';
 export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
@@ -320,7 +320,7 @@ export {
 export { buildingsMeta } from './monde/buildings';
 export { FACADE_APPEARANCE_IDS, apparencesDeLOuverture } from './monde/facades';
 export { ciblesDAncreDeBataille } from './massBattleFlow';
-export { allMusicDefs } from '../data/sons/musique';
+export { allMusicDefs } from '../data/schemas/sons/musique';
 export { BORNES_D_OUVERTURE, DEFAUTS_D_OUVERTURE, toitureEffective } from './sceneEdit';
 export { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 export { libelleDuBord } from './monde/fireArc';

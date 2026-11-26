@@ -37,7 +37,7 @@ import {
   type TrappingRef,
 } from '../data/index';
 import { setDataset } from '../data/overrides';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 
 const dot = adresseDeCreation.dotation;
 const avecFixture = <T>(fn: () => T): T => avecDotations(CARRIERE_FIXTURE, DOTATIONS_FIXTURE, fn);

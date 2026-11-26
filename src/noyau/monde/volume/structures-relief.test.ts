@@ -1,9 +1,9 @@
 import { tableTotale } from '../../../lib/tableTotale';
 import { describe, expect, it } from 'vitest';
 import { wallPartDepthM, wallPartRelief, type WallPartRelief } from './structures';
-import { WALL_PARTS, type WallPart } from '../../../data/structureAppearance.types';
+import { WALL_PARTS, type WallPart } from '../../../data/schemas/structureAppearance.types';
 import type { StructureAppearanceDef } from '../../../data';
-import type { EntreeVivante } from '../../../data/datasets';
+import type { EntreeVivante } from '../../../data/schemas/datasets';
 import { structureAppearance } from './structures';
 import { FASCIA_THICK_M, roofFasciaThickM, roofMaterial } from './matieres';
 import { RELIEF_PART_KEYS, schema } from '../../../data/schemas/defs/structureAppearance';

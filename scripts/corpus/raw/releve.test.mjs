@@ -5,7 +5,7 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import { ORIGINES, cleDAdresse, livreDuReleve, releve, sortDeLEntree } from '../../raw/releve.mjs'
 import { estForte, paquet, passagesDe, releveDesTermes, sectionsDuPaquet, taillesDuPaquet, texteReduit } from '../../raw/paquet.mjs'
-import { estErreur, estSeparateur, graphieDuFichier, resoudreAdresse } from '../../../src/data/source/decoupe.ts'
+import { estErreur, estSeparateur, graphieDuFichier, resoudreAdresse } from '../../../src/data/schemas/source/decoupe.ts'
 import { tableTotale } from '../../../src/lib/tableTotale.ts'
 
 const CRB = livreDuReleve('core-rulebook-5e')

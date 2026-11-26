@@ -1,5 +1,5 @@
 // Garde des RENVOIS « page N » du texte des livres de `Source/` (#1393, épique #1388). Le résolveur
-// PUR `src/data/source/renvoi.ts` rend chaque renvoi en ADRESSE avec son niveau de preuve ; ce script
+// PUR `src/data/schemas/source/renvoi.ts` rend chaque renvoi en ADRESSE avec son niveau de preuve ; ce script
 // l'applique à tout livre EXTRAIT dont la `language` (`src/data/books.json`) a sa table de motifs
 // (`MOTIFS_DE_RENVOI`) — aucun livre n'est nommé ici.
 //
@@ -20,7 +20,7 @@ import { REGISTRE_LIVRES, livreExtraitDe } from './_lib.mjs'
 import { ecartDuVolet } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, comptesParFamille, lireEntreesDeSite } from '../guards/lib/stockDeSites.mjs'
 import { chapitresParses } from '../source/lecteur-fs.mjs'
-import { MOTIFS_DE_RENVOI, indexerLivre, renvoisDuLivre } from '../../src/data/source/renvoi.ts'
+import { MOTIFS_DE_RENVOI, indexerLivre, renvoisDuLivre } from '../../src/data/schemas/source/renvoi.ts'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'renvois-stock.json')
 
@@ -49,7 +49,7 @@ export const sitesDuLivre = (dir, livre) =>
 export const scanAll = (livres = livresCouverts()) => livres.flatMap((l) => sitesDuLivre(l.dir, livreIndexe(l)))
 
 const QUOI =
-  'Renvois « page N » du texte de `Source/` que le résolveur `src/data/source/renvoi.ts` ne départage ' +
+  'Renvois « page N » du texte de `Source/` que le résolveur `src/data/schemas/source/renvoi.ts` ne départage ' +
   'pas (#1393) : famille `ambigu` (plusieurs sections candidates au folio, ou table nommée qu’aucun ' +
   'titre ne porte) ou `introuvable` (aucun texte au folio). Livres couverts : extraits, dont la ' +
   '`language` a ses motifs (`MOTIFS_DE_RENVOI`). Une ENTRÉE par renvoi, clé ' +

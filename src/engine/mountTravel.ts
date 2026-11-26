@@ -35,7 +35,7 @@ import { refLabel, dataLabel, testSkillLabel } from '../data';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import monturesJson from '../data/montures.json';
 import type * as monturesDef from '../data/schemas/defs/montures';
-import { datasetDe, type EntreeDe } from '../data/datasets';
+import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import { nomDe } from './nom';
 
 export type Allure = 'pas' | 'trot' | 'galop';

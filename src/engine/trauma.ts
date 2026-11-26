@@ -48,7 +48,7 @@ import { wornSocialMods, qualityWearMods } from './wearPenalty';
 import type { GameOp, OpPassive, PairedSense, PassiveKind, PassiveMod } from './ops';
 import { resolveFormula, valeurSansTirage, type LectureDeCarac, type Referent } from './formule';
 import traumasJson from '../data/traumas.json';
-import { datasetDe, type EntreeDe } from '../data/datasets';
+import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import type * as traumasDef from '../data/schemas/defs/traumas';
 import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)

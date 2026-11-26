@@ -22,7 +22,7 @@ import { reachable, tileKey } from './monde/path';
 import { planClimb } from './monde/climbMove';
 import { ancreDuDecor, propFootTiles } from './monde/footprint';
 import { fauteDAppui, piedDuDecor, portePar } from './monde/poseDuDecor';
-import { emprisePlanTournee } from '../data/props.types';
+import { emprisePlanTournee } from '../data/schemas/props.types';
 import { sceneZoneTiles } from './monde/zones';
 import { findPropById, findVehicleById } from '../data';
 import { GRAMMAIRE_ASCII, MOTS_DES_PONTS, grilleDesPonts } from '../data/schemas/grammaire/carte-ascii';

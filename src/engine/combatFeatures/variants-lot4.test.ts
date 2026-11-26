@@ -14,7 +14,7 @@ import { itemFromTrappingById, weaponFromItem } from '../items';
 import { setRule, resetRule } from '../policy';
 import { effectiveEntry } from '../variants';
 import { findTalentById, talents } from '../../data';
-import { slugId } from '../../data/slug';
+import { slugId } from '../../data/schemas/slug';
 import type { Id } from '../../data/schemas/grammaire/ref';
 import { ALL_VARIANT_CARRIERS, ruleOf } from './variantesDeTalent.testkit';
 import {

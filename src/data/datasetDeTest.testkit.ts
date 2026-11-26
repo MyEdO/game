@@ -4,7 +4,7 @@
  */
 import { afterEach, beforeEach } from 'vitest';
 import { datasetArray, setDataset, type DatasetKey } from './overrides';
-import type { EntreeVivante } from './datasets';
+import type { EntreeVivante } from './schemas/datasets';
 
 type Entrees<K extends DatasetKey> = ReturnType<typeof datasetArray<K>>;
 

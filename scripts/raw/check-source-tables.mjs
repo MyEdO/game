@@ -10,7 +10,7 @@
 // lecteur ne lit ces lignes à l'état brut. Il ne bloque donc AUCUNE adresse, et l'ancre reste où la
 // page coupe : `Source/` ne se réécrit pas pour un défaut que la lib absorbe déjà.
 //
-// QUI POSSÈDE QUOI : le PARSEUR (`src/data/source/decoupe.ts`) définit la table — ce script importe
+// QUI POSSÈDE QUOI : le PARSEUR (`src/data/schemas/source/decoupe.ts`) définit la table — ce script importe
 // `parseChapitre`, `tablesOf`, `normText` et `estCleDePlage` (et lit, par `tablesOf`, ce que
 // `parseTable` a décidé : `titre` absorbé, `banniereRefusee`), il n'en redéfinit AUCUN ; il CONSOMME
 // et NOMME. La réparation, elle, vit dans `Source/` (geste `docs/ajouter-un-livre-source.md` §7) —
@@ -31,10 +31,10 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { listerDossier } from '../guards/lib/lister.mjs'
 import { BOOKS, readText } from './_lib.mjs'
-import { estNomDExtraction } from '../../src/data/source/decoupe.ts'
+import { estNomDExtraction } from '../../src/data/schemas/source/decoupe.ts'
 import { SEPARATEUR_DE_REMEDE, ecartDuVolet, sitesEnEntrees, cleDeSite, phraseDeNaissance } from '../guards/lib/stock.mjs'
 import { SOUS_LOT, comptesParFamille, lireEntreesDeSite, naissanceEnPlace } from '../guards/lib/stockDeSites.mjs'
-import { parseChapitre, tablesOf, normText, estCleDePlage, plageDeLigne1, lignesDesignees } from '../../src/data/source/decoupe.ts'
+import { parseChapitre, tablesOf, normText, estCleDePlage, plageDeLigne1, lignesDesignees } from '../../src/data/schemas/source/decoupe.ts'
 import { exigerRacineAtlas } from './lib/entree-atlas.mjs'
 
 export const STOCK_PATH = join(dirname(fileURLToPath(import.meta.url)), 'source-tables-stock.json')
@@ -102,7 +102,7 @@ export function titreAvalantUneTable(ligne) {
 
 /** RÉF d'une table : sa section et ses en-têtes NORMALISÉS — du contenu, jamais une position.
  *  Le `<br>` littéral y compte pour une ESPACE sans aucun traitement local : `normText` compose
- *  `sansBr` (`src/data/source/normalize.ts`, définition UNIQUE de la forme), donc une clé ne bouge
+ *  `sansBr` (`src/data/schemas/source/normalize.ts`, définition UNIQUE de la forme), donc une clé ne bouge
  *  pas le jour où le site se corrige à la main dans `Source/`. */
 export const refDeTable = (sec, occ, headers) =>
   `${sec}#${occ} :: ${headers.map((h) => normText(h)).join('|')}`
@@ -120,7 +120,7 @@ export function sitesDuChapitre(texte, fichier) {
   const out = []
   const chapitre = parseChapitre(texte)
   // Ligne BRUTE du heading (`section.line`) : le run gras y est encore lisible, là où `title` l'a
-  // déjà effacé (`cleanTitle`, `src/data/source/decoupe.ts`).
+  // déjà effacé (`cleanTitle`, `src/data/schemas/source/decoupe.ts`).
   const lignes = texte.replace(/\r\n?/g, '\n').split('\n')
   for (const section of chapitre.sections) {
     const avalee = section.level > 0 ? titreAvalantUneTable(lignes[section.line - 1] ?? '') : null
@@ -233,7 +233,7 @@ const PAGE_CITEE = /\bp\.\s*(\d+)/
  * contient N. C'est la seule mesure INDÉPENDANTE de la liste de découpe — elle tombe aussi bien sur
  * un `pageFin` faux DANS la liste que sur un re-keyage (`recouper-source.mjs#recalerStock`) qui
  * aurait posé la preuve sur le fichier voisin. La plage se lit par `plageDeLigne1`
- * (`src/data/source/decoupe.ts`, SEULE définition) : aucun motif `*Pages PDF*` ne vit ici.
+ * (`src/data/schemas/source/decoupe.ts`, SEULE définition) : aucun motif `*Pages PDF*` ne vit ici.
  *
  * PUR : le lecteur de ligne 1 est INJECTÉ. GÉNÉRAL : aucun livre n'est nommé, toute entrée à preuve
  * est jugée. Une preuve sans `p.N` n'est pas jugée ; un fichier dont la ligne 1 ne se lit pas ALORS

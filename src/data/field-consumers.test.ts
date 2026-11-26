@@ -430,7 +430,7 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
  *  une autre vue) ou par clé dynamique. Les clés d'ENVELOPPE sans lecteur, elles, sont classées par le
  *  rapport (`CLES_ENVELOPPE`). */
 const RAISONS_DES_ZEROS: Readonly<Record<string, string>> = {
-  'BookData.dir': 'lu sous la vue `EntreeDeLivre` par `estLivreExtrait` (`src/data/source/livre-extrait.ts`) et `scripts/raw/_lib.mjs`',
+  'BookData.dir': 'lu sous la vue `EntreeDeLivre` par `estLivreExtrait` (`src/data/schemas/source/livre-extrait.ts`) et `scripts/raw/_lib.mjs`',
   'BookData.language': 'lu par `scripts/docs/build-ajouter-donnee.mjs`, sur le registre JSON',
   'BookData.niveauDeSection': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#niveauxDeSectionDe`',
   'BookData.pdf': 'lu sous la vue `EntreeDeLivre` par `scripts/raw/_lib.mjs#pdfDe`',

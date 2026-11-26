@@ -15,7 +15,7 @@ import {
 } from '../guards/lib/stockDeSites.mjs'
 import { cleDeSite, ecartsDeStock, ecartDuVolet, naissanceDu } from '../guards/lib/stock.mjs'
 import { BOOKS } from './_lib.mjs'
-import { parseChapitre, tablesOf } from '../../src/data/source/decoupe.ts'
+import { parseChapitre, tablesOf } from '../../src/data/schemas/source/decoupe.ts'
 
 const FICHIER = 'Source/Livre/01 - Fixture.md'
 const familles = (texte) => sitesDuChapitre(texte, FICHIER).map((s) => s.famille).sort()

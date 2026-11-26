@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { roofProfileSchema } from '../../data/schemas/defs-scenes/scene';
 import { findPropById, matieresDe, props, semencesDeScene, structureAppearances, terrains } from '../../data';
 import { parLibelle } from '../../lib/ordre.mjs';
-import { PARTS_RELIEF } from '../../data/materials.types';
+import { PARTS_RELIEF } from '../../data/schemas/materials.types';
 import { buildFloors } from './volume/floors';
 import { cretesDePerimetre } from './volume/creneaux';
 import { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type FamilleDEchantillon } from './echantillons';

@@ -5,7 +5,7 @@
  * personnes déjà vues (#4017).
  */
 import type { Combatant } from '../engine/types';
-import type { Visibility } from '../data/ambiance.types';
+import type { Visibility } from '../data/schemas/ambiance.types';
 import { ambiance, dataLabel } from '../data';
 import { hash32AuMillieme } from '../lib/hash';
 import { campOf } from '../engine/relations';

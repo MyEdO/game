@@ -24,7 +24,7 @@ import {
   type SpecsSource,
 } from '../data';
 import { resetData, setDataset } from '../data/overrides';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { idDeFixture } from '../data/idDeFixture.testkit';
 import { schema as groupsSchema } from '../data/schemas/defs/groups';
 import groupsJson from '../data/groups.json';

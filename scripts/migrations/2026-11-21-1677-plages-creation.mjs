@@ -10,7 +10,7 @@ import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isDeepStrictEqual } from 'node:util';
-import { serializeDataset } from '../../src/data/serialize.ts';
+import { serializeDataset } from '../../src/data/schemas/serialize.ts';
 import { estMonoTable, lignesDe } from './lib/monoTable.mjs';
 
 const RACINE = fileURLToPath(new URL('../../', import.meta.url));

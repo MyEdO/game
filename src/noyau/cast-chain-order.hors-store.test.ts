@@ -1,7 +1,7 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
 import { findSpellById, spells, type SpellData } from '../data';
-import type { EntreeVivante } from '../data/datasets';
+import type { EntreeVivante } from '../data/schemas/datasets';
 import { setDataset } from '../data/overrides';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';

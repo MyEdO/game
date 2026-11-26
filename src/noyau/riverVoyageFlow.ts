@@ -21,7 +21,7 @@
  * Test d'Exposition par la couture de l'Effet de scène (`combatEffects.openWaterExposure`), sous le `kind`
  * propre à la descente (`fleuveExposition`) ; tables hydriques : `engine/waterExposure.ts`.
  */
-import type { IconId } from '../data/icons';
+import type { IconId } from '../data/schemas/icons';
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute, MINUTES_PER_DAY } from '../engine/clock';

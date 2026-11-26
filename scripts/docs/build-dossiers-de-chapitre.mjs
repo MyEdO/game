@@ -1,7 +1,7 @@
 // État des lieux des dossiers de chapitre (#2290), un par projet qui en a : pour chaque fiche commitée
 // `projets/<projet>/dossiers/<ABBR>/<NN>.json` (`chargerDossiers`, scripts/raw/lib/dossiers.mjs), chaque entrée est
 // couverte (par quel porteur de quel paquet), écartée (motif) ou non couverte. DÉRIVÉ des `couvre` et
-// `narratif.ecartes` des paquets livrés du même projet (`couverturesDuProjet`, src/data/source/couvertures.ts) — patron
+// `narratif.ecartes` des paquets livrés du même projet (`couverturesDuProjet`, src/data/schemas/source/couvertures.ts) — patron
 // du champ `Implémente` de l'Atlas (scripts/raw/build-implemente.mjs) : la fiche ne connaît pas le paquet, le paquet la cite.
 // Sortie : docs/projets/<projet>/dossiers-de-chapitre.md (cible pure, jamais commitée, #2203), régénérée par
 // `npm run <projet>:docs`. Le lanceur des dérivés applique le mode `--check` en CLI et depuis `build-all.mjs`.
@@ -15,8 +15,8 @@ import { PROJETS_LIVRES } from '../guards/lib/projetsLivres.mjs'
 import { cheminsDuCorpus } from '../guards/lib/lister.mjs'
 import { porteDuProjet } from '../guards/lib/porteDesProjets.mjs'
 import { coupeAuMot } from '../../src/lib/coupeAuMot.mjs'
-import { entreesDeLaFiche, FAMILLES_DE_DOSSIER, LIBELLES_DE_FAMILLE, nomDeFiche } from '../../src/data/source/dossier.ts'
-import { couverturesDuProjet, nommerPorteur } from '../../src/data/source/couvertures.ts'
+import { entreesDeLaFiche, FAMILLES_DE_DOSSIER, LIBELLES_DE_FAMILLE, nomDeFiche } from '../../src/data/schemas/source/dossier.ts'
+import { couverturesDuProjet, nommerPorteur } from '../../src/data/schemas/source/couvertures.ts'
 
 const RACINE = fileURLToPath(new URL('../..', import.meta.url))
 
@@ -68,7 +68,7 @@ export function rendreEtat(fiches, paquets, { dossier, commande }) {
 
   let out = `# Dossiers de chapitre — état des lieux\n\n`
   out += `> ⚠️ Fichier GÉNÉRÉ par \`node scripts/docs/build-dossiers-de-chapitre.mjs\` (\`npm run ${commande}\`) — NE PAS ÉDITER À LA MAIN.\n`
-  out += `> Sources : les fiches \`${dossier}/<ABBR>/<NN>.json\` (schéma \`ficheDeDossier\`, \`src/data/source/dossier.ts\`) et les\n`
+  out += `> Sources : les fiches \`${dossier}/<ABBR>/<NN>.json\` (schéma \`ficheDeDossier\`, \`src/data/schemas/source/dossier.ts\`) et les\n`
   out += `> champs \`couvre\` / \`narratif.ecartes\` des paquets mesurés (${paquets.map((p) => `\`${p.paquet}\``).join(', ') || 'aucun'}). Lien : \`docs/campagne-authoring.md\` § 10quinquies.\n\n`
   out += `**Périmètre mesuré / angles morts** — une entrée est « couverte » dès qu'un élément d'un paquet mesuré la cite\n`
   out += `dans \`couvre\`, « écartée » quand aucun ne la cite et qu'un paquet l'écarte avec motif, « non couverte » sinon.\n`

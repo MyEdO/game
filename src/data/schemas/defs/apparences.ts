@@ -1,6 +1,6 @@
 /**
  * Schéma de `apparences.json` — registre des racines d'identité et des variantes d'apparence (#2948, #4649), collection à
- * discriminant (patron des documents de `miscast.json`, `rangeesDe`, `src/data/rangees.ts` ; doctrine
+ * discriminant (patron des documents de `miscast.json`, `rangeesDe`, `src/data/schemas/rangees.ts` ; doctrine
  * `user-direction-fusion-json-par-type`).
  *
  * Une entrée SANS `forme` est une RACINE : elle identifie la forme et fournit son apparence par défaut.

@@ -14,7 +14,7 @@ import { talentTestSLBonus, talentSpellDRMod } from '../magic';
 import { attackModifiers, woundsFromHit } from '../combat';
 import { endOfRound } from '../conditions';
 import { makeRNG } from '../dice';
-import { slugId } from '../../data/slug';
+import { slugId } from '../../data/schemas/slug';
 import type { Combatant, Weapon } from '../types';
 import { modDeRegle, refDeRegle } from '../reglesChiffrees';
 import { ligneDe } from '../modLine.testkit';

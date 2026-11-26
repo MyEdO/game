@@ -13,7 +13,7 @@ import { listeCle } from '../grammaire/collection-cle';
 import { listeSansCle } from '../grammaire/liste-sans-cle';
 import type { SkillRefDesignee } from '../../index';
 import { profilChiffreSchema, sizeCategorySchema } from '../grammaire/valeurs';
-import { ID_D_ENTREE } from '../../source/dossier';
+import { ID_D_ENTREE } from '../source/dossier';
 
 /** Les scènes du projet, que désignent un lieu de la carte, son point d'intérêt, l'embuscade d'une route et
  *  l'effet `transition`. */
@@ -45,7 +45,7 @@ export type WallSide = z.infer<typeof wallSideSchema>;
 export const competenceChiffreeSchema: z.ZodType<SkillRefDesignee> = refOuSpec('skill', { value: nommerNoeud(z.number(), { nom: 'valeur' }) });
 
 /** Identifiant GLOBAL d'une entrée de fiche de dossier de chapitre (#2290) : format `ID_D_ENTREE`
- *  (`src/data/source/dossier.ts`). Feuille de `couvre` et de `narratif.ecartes[].entree`. */
+ *  (`src/data/schemas/source/dossier.ts`). Feuille de `couvre` et de `narratif.ecartes[].entree`. */
 export const entreeDeFicheSchema = z.string().regex(ID_D_ENTREE, 'entrée de fiche : « <ABBR>-<NN>#<id> » attendu.');
 
 /** `couvre` (#2290) — les entrées de fiche de dossier de chapitre qu'un élément du paquet de campagne

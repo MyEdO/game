@@ -60,7 +60,7 @@ import { tableDesCritiquesDeStructure } from '../../engine/structureCritical';
 import { bandeAuDe, deDeLaTableTiree, facesDuDe, fourchette, type DeDeTable, type PorteurDeDe } from '../../engine/tables';
 import { ARTILLERY_MISFIRE, artilleryMisfireDie } from '../../data/artilleryMisfire';
 import { structureCriticalsDie } from '../../data/structureCriticals';
-import { deDeTirageDe } from '../../data/rangees';
+import { deDeTirageDe } from '../../data/schemas/rangees';
 import drivingMishapJson from '../../data/driving-mishap.json';
 import dispersionJson from '../../data/dispersion.json';
 import capricieuxJson from '../../data/tableau-capricieux.json';
@@ -140,7 +140,7 @@ import { libelleDuChamp } from './editFields';
 // Ordre des arrêts d'une rampe de terrain : SOURCE UNIQUE partagée avec les émetteurs SVG — la fiche
 // Codex lit la rampe dans l'ordre où le rendu la peint, jamais dans l'ordre des clés du Record.
 import { terrainStopsOrdonnes } from '../monde/terrain';
-import { slugId } from '../../data/slug';
+import { slugId } from '../../data/schemas/slug';
 import { t as tr, type MsgKey } from '../../i18n'; // alias : `t` est un identifiant local très fréquent ici (traits, talents, tables)
 import type { EtatDeclare } from '../../data/schemas/defs-scenes/formes-d-etat';
 
@@ -1866,7 +1866,7 @@ const CODEX_SPECS = {
   calendarPhases: {
     label: 'codex.fiche.calendrierPhasesDuJour', group: 'tables', cluster: 'codex.fiche.calendrier',
     build: () => calendarPhases.map((p) => ({
-      id: p.id, label: p.label, // `p.icon` = id d'icône (time/*, registre src/data/icons), plus un glyphe affichable en préfixe
+      id: p.id, label: p.label, // `p.icon` = id d'icône (time/*, registre src/data/schemas/icons), plus un glyphe affichable en préfixe
 
       sub: tr('codex.fiche.des', { v: String(Math.floor(p.seuil / 60)).padStart(2, '0'), v2: String(p.seuil % 60).padStart(2, '0') }),
     })),

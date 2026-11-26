@@ -1,7 +1,7 @@
 /**
  * LE CATALOGUE DES DESSINS (#3935) : par type d'élément dessiné (`icone`, `fond`, `paysage`, `src/hote/elements.ts`), le
- * cadre de ses dessins et chaque dessin de son registre par son id (`src/data/icons`, `src/data/fonds`,
- * `src/data/paysages`) ; et les cadres de panneau (`src/data/cadres`), avec les tranches de chacun. La construction le
+ * cadre de ses dessins et chaque dessin de son registre par son id (`src/data/schemas/icons`, `src/data/schemas/fonds`,
+ * `src/data/schemas/paysages`) ; et les cadres de panneau (`src/data/schemas/cadres`), avec les tranches de chacun. La construction le
  * dépose une fois dans le projet (`construire.mjs`, `res://art/dessins.json`) : une vue ne nomme un dessin que par
  * son id, `projet/scripts/dessin.gd` le trace ; un style du thème nomme son cadre, `projet/scripts/cadre.gd` le trace.
  */

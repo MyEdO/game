@@ -146,7 +146,7 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
   pos: pointDuPlanSchema,
   scene: ref(SCENES_DU_PROJET),
   entry: z.string().optional(),
-  /** Icône du médaillon (id du registre `src/data/icons`), défaut `navigation/point-d-entree`. */
+  /** Icône du médaillon (id du registre `src/data/schemas/icons`), défaut `navigation/point-d-entree`. */
   icon: idDIconeSchema.optional(),
   /** Taille d'un lieu SANS port ; absente : le lieu n'est pas une agglomération. */
   taille: tailleDuLieuSchema.optional(),

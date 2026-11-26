@@ -368,7 +368,7 @@ def main():
         "livres": books,
         "schemas": schemas,
     }
-    # Forme canonique des datasets app-owned : `serializeDataset` (`src/data/serialize.ts`) =
+    # Forme canonique des datasets app-owned : `serializeDataset` (`src/data/schemas/serialize.ts`) =
     # `JSON.stringify(v, null, 2)`, SANS saut de ligne final. `src/data/serialize.test.ts` exige le
     # round-trip byte-identique sur TOUT `src/data/*.json` — un artefact généré n'y échappe pas.
     # `jsonable` ramène en plus les flottants entiers à des entiers : Python écrit `0.0` là où

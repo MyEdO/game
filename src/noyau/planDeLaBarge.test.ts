@@ -7,7 +7,7 @@ import { heightAt, idDuCorps, isWalkable, porteAuteur, sceneMetresPerTile, tileA
 import { estAbsent } from './monde/terrain';
 import { ancreDuDecor, propFootTiles } from './monde/footprint';
 import { piedDuDecor } from './monde/poseDuDecor';
-import { emprisePlanTournee } from '../data/props.types';
+import { emprisePlanTournee } from '../data/schemas/props.types';
 import { findPropById, findVehicleById } from '../data';
 import { grilleDesPonts } from '../data/schemas/grammaire/carte-ascii';
 

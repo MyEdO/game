@@ -70,7 +70,7 @@ import {
 export type { TrappingResolver } from '../data/apparencesObjets';
 import type { TrappingResolver } from '../data/apparencesObjets';
 import type { EntityAppearance } from './authoringAppearance';
-import { slugId } from '../data/slug';
+import { slugId } from '../data/schemas/slug';
 import { localisationsDeLoc } from './classementDeTrait';
 import { LOCALISATIONS_DE_COUP } from './localisations';
 import { dansLaSousListe } from '../data/schemas/grammaire/ref';
