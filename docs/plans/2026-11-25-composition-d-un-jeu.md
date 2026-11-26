@@ -300,7 +300,7 @@ hôte compose un catalogue, et il le remet à sa partie.
     (`src/noyau/sceneEdit.ts:1271`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1467,1470`) et
     l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:496`). Le parse et l'éditeur suivent un
     seul code. La session porte le catalogue que l'hôte lui sert, reçu en dernier paramètre d'`ouvrirLEdition`
-    (`src/noyau/edition/session.ts:678`), et chaque lecture le prend :
+    (`src/noyau/edition/session.ts:678`), et ces lectures le prennent :
     - `editer` le lit pour la pose des ponts, et `projetAvecLaDonnee` le passe à la table d'écriture
       (`src/noyau/edition/session.ts:1121`), dont `deLaScene` le passe à `sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1339`) ;
     - `cadreDeLaSession` le pose au cadre d'un porteur (`src/noyau/edition/session.ts:1106`), où `champsDuPersonnage` et
@@ -312,6 +312,12 @@ hôte compose un catalogue, et il le remet à sa partie.
 
     Le pont repose la session avant chaque geste (`sessionSousLeCatalogue`, `hotes/godot/pont/pont.ts:2135`) : c'est le
     fossile 9.
+
+    La pose des navires reste sur le catalogue du processus : `poseDe` et `flottaisonDuNavire` le lisent dans leur corps,
+    sans paramètre `cat` (`src/noyau/planDeNavire.ts:114,273`). La session les atteint par `vueDeLaScene`, `flottaison`,
+    `coucheVue` et `poserUnNavire` (`src/noyau/edition/session.ts:653,658,662,906`), et `validateScene` par
+    `poserLesNavires` (`src/noyau/validateScene.ts:315`). Le lot de `planDeNavire.ts` les prend : famille 8, maritime et
+    fluviale (#5077).
 
   Hors fenêtre, un `safeParse` nu lit, pendant les étapes C et D, le catalogue du processus : `catalogueDeLaFenetre`
   rend `fenetre?.cat ?? catalogueDuProcessus()` (`ref.ts:276`). C'est le fossile 8, le catalogue hors fenêtre. À
@@ -476,7 +482,8 @@ compilateur.
   (`SessionDEdition`). Une écriture du Compendium change le catalogue du processus pendant qu'une édition est ouverte :
   le pont repose donc la session avant chaque geste, sous le catalogue du jeu ouvert, sinon sous celui du processus
   (`sessionSousLeCatalogue`, `src/noyau/edition/session.ts:690`). La repose vit, comme le fossile 5, jusqu'au lot du
-  Compendium et des hôtes.
+  Compendium et des hôtes. Son préalable : l'hôte remet à la session son catalogue recomposé à chaque écriture du
+  Compendium. Retirée sans lui, la repose laisserait la session sur un catalogue périmé.
 
 **6. Découpage.** Un ticket par famille. Un lot tient en environ 45 minutes de codeur : au plus 6 fichiers de
 production migrés et leurs suites, ou environ 15 fichiers en tout. Grâce aux fossiles 2 et 6, un lot ne touche que ses

@@ -8,13 +8,13 @@ import { z } from 'zod';
 import { buildScene } from './mapSpec';
 import { sceneAvecLEntite } from './sceneEdit';
 import { capsDeLaPose } from './sceneEditLecture';
-import { catalogueAvec } from '../data/catalogueAvec.testkit';
+import { catalogueAvec, copie } from '../data/catalogueAvec.testkit';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
 import { entreeDe } from '../data/schemas/catalogue/catalogue';
 import { affinerAvecCatalogues, sousLeCatalogue } from '../data/schemas/grammaire/ref';
 import { sceneEntitySchema, sceneSchema } from '../data/schemas/defs-scenes/scene';
-import { NAVIRE, copie, navire, navireDuLivreDeTest } from './navireDuLivreDeTest.testkit';
+import { NAVIRE, navire, navireDuLivreDeTest } from './navireDuLivreDeTest.testkit';
 
 const PIECE = 'piece-du-livre-de-test';
 const BOULET = 'boulet-du-livre-de-test';

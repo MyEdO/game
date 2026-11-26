@@ -38,7 +38,7 @@ describe('le pont repose la session d’édition sous le catalogue courant', () 
     ]);
   });
 
-  it('une partie ouverte par l’essai de la scène éditée, le geste suivant de l’éditeur se juge sous le catalogue de la partie', () => {
+  it('une partie d’essai ouverte, le geste suivant de l’éditeur se juge encore sous le catalogue neuf', () => {
     const { appel } = table();
     appel('editer', { ouvrir: paquetDeTest.id, projet: JSON.stringify({ ...paquetDeTest, scenes: [bassinALaCaraque(), ...paquetDeTest.scenes] }) });
     const testee = appel('editer', { edition: { geste: 'tester' } });

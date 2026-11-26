@@ -6,14 +6,13 @@
  */
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
-import { catalogueAvec } from './catalogueAvec.testkit';
+import { catalogueAvec, copie } from './catalogueAvec.testkit';
 import { catalogueDuProcessus } from './catalogueDuProcessus';
 import { parserSousCatalogue } from './schemas/catalogue/references';
 import { gameOpSchema, mecaniqueDe } from './schemas/grammaire/mecanique';
 import { validateDataset } from './schemas/validate';
 import { refMorte } from './schemas/grammaire/ref';
 import especesAleatoiresJson from './especes-aleatoires.json';
-import { garanti } from '../lib/garanti';
 
 const TRAIT = 'trait-lanceur-du-livre-de-test';
 const PSY = 'psy-a-cible-du-livre-de-test';
@@ -21,7 +20,6 @@ const ESPECE = 'gnomes-du-livre-de-test';
 const REGLE: string = 'regle-du-livre-de-test';
 
 const base = catalogueDuProcessus();
-const copie = <E extends { id: string }>(entrees: readonly E[], id: string, neuf: string): E => ({ ...garanti(entrees.find((e) => e.id === id), id, 'entrée copiée'), id: neuf });
 type Espece = (typeof base)['species.json'][number];
 const especes = base['species.json'];
 /** L'espèce du livre de test, gardée par la règle du livre de test : un id hors de l'index des ids typés (`Id<T>`). */
