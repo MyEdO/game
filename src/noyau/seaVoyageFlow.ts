@@ -75,7 +75,8 @@ import { buildAuthorPerilSteps, applyPerilEffectsNow } from './authorPerils';
  *  contrats, jamais recopié en littéral. */
 export const SEA_PERIL_INTERRUPT = 'voyage-mer';
 import { sceneMetresPerTile, type Scene, type VictoryCondition } from './monde/scene';
-import { rectangleDesPonts } from '../data/poseDesPonts';
+import { rectangleDesPonts } from '../data/schemas/catalogue/poseDesPonts';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { buildScene } from './mapSpec';
 import type { AuthoredEnemy } from './monde/encounterAuthoring';
@@ -2279,7 +2280,7 @@ function sceneDuPont(coque: CoqueDuPont, label: string, debut: string, rencontre
     vehicule: { id: coque.ref }, pos: { x: 3, y: 6 }, side: 'allie', label: coque.nom, navireDeCampagne: coque.navireDeCampagne,
   };
   const apparitions = [...rencontre.ennemis, allie].map((entite) => ({
-    entite, ponts: rectangleDesPonts({ metresPerTile }, entite),
+    entite, ponts: rectangleDesPonts({ metresPerTile }, entite, catalogueDuProcessus()),
   }));
   // Le cadre englobe les ponts sans changer les distances entre les apparitions.
   const ponts = apparitions.flatMap((a) => a.ponts ?? []);

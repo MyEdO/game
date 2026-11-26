@@ -130,7 +130,9 @@ import {
 import { cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { flottaisonDuNavire, poserLesNavires, poserUnNavire } from '../planDeNavire';
-import { refusDePoseDesPonts } from '../../data/poseDesPonts';
+import { refusDePoseDesPonts } from '../../data/schemas/catalogue/poseDesPonts';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
+import type { Catalogue } from '../../data/schemas/catalogue/catalogue';
 import { jsonCanonique } from '../../lib/jsonCanonique.mjs';
 import { nextEntityId } from '../../lib/entityId';
 import { groupeVitrine } from '../../data/pregens';
@@ -241,8 +243,8 @@ export interface PatchDeScene {
 /** Les groupes que le lieu déclare (`Scene.groups`), chacun sa valeur et son libellé (`choixDuNoeud`). */
 export const groupesDuLieu = (): readonly ValeurDuChoix[] => choixDuNoeud(elementDuNoeud(sceneSchema.shape.groups))!;
 
-/** La validation du projet (`validateScene`), datée par la version des datasets qu'elle lit (`versionDesDatasets`), comme
- *  le mémo de schéma de `validateScene.ts`. */
+/** La validation du projet (`validateScene`), sous le catalogue de la session et datée par la version des datasets
+ *  qu'elle lit (`versionDesDatasets`), comme le mémo de schéma de `validateScene.ts`. */
 const validationDuProjet = memoByDeps<Warning[]>();
 
 /** Les portées des avertissements qui concernent le projet hors de toute scène : la carte du monde et le narratif. */
@@ -252,7 +254,7 @@ const PORTEES_DU_PROJET: readonly Warning['scope'][] = ['worldMap', 'narratif'];
  *  carte du monde et du narratif compris. */
 export function avertissementsDeLaSession(s: SessionDEdition): Warning[] {
   const { scenes, worldMap, narratif } = projetEdite(s);
-  return validationDuProjet([versionDesDatasets(), ...scenes, worldMap, narratif], () => validateScene(scenes, worldMap, narratif))
+  return validationDuProjet([versionDesDatasets(), s.catalogue, ...scenes, worldMap, narratif], () => validateScene(scenes, worldMap, narratif, s.catalogue))
     .filter((w) => w.sceneId === idDeLaSceneEditee(s) || PORTEES_DU_PROJET.includes(w.scope));
 }
 
@@ -534,6 +536,9 @@ export interface SessionDEdition {
   /** Les entrées des fiches de dossier que l'hôte sert, que l'écart du narratif écarte et que `couvre` désigne ; vides
    *  s'il n'en sert aucune, l'écart n'en offrant alors aucune. */
   entreesDeFiche: readonly EntreeNommee[];
+  /** Le catalogue que l'hôte sert, sous lequel la session juge chaque geste, sa validation et sa porte du projet ;
+   *  l'hôte le repose avant chaque geste (`sessionSousLeCatalogue`). */
+  catalogue: Catalogue;
   /** Les calques que l'hôte gardait étaient d'un autre format, retirés à l'ouverture. */
   ecartes: boolean;
   /** Le plan du lieu sélectionné de la carte du monde, ouvert : le pointeur y va (`planDuLieuOuvert`), et `poi` y est le
@@ -669,16 +674,21 @@ function avecLeLieuPatche(s: SessionDEdition, patch: (lieu: MapPlace) => PatchDe
  *  le projet est celui que le dépôt porte, où il s'enregistre ; `gardes`, s'il est donné, les calques que l'hôte
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format ; `manifeste`, l'index des chapitres du
  *  `Source/` que l'hôte sert, sans aucun chapitre chargé ; `entreesDeFiche`, les entrées des fiches de dossier que
- *  l'hôte sert. */
-export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null, entreesDeFiche: readonly EntreeNommee[] = []): SessionDEdition {
+ *  l'hôte sert ; `catalogue`, le catalogue que l'hôte sert. */
+export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null, entreesDeFiche: readonly EntreeNommee[] = [], catalogue: Catalogue = catalogueDuProcessus()): SessionDEdition {
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
     depot: duDepot ? { enregistre: projet, enCours: null } : null,
     calques: calques ?? {}, calage: { step: 'idle' }, chargement: null, ecartes: calques === null, defaut: null,
-    source: sourceServie(manifeste), entreesDeFiche, planDuLieu: null,
+    source: sourceServie(manifeste), entreesDeFiche, catalogue, planDuLieu: null,
   };
 }
+
+/** La session `s` sous le catalogue `cat` que l'hôte sert : `s` elle-même s'il est le sien. Le fossile 9 du plan
+ *  `docs/plans/2026-11-25-composition-d-un-jeu.md` (§ 5) : `cat`, à défaut, est le catalogue du processus. */
+export const sessionSousLeCatalogue = (s: SessionDEdition, cat: Catalogue = catalogueDuProcessus()): SessionDEdition =>
+  cat === s.catalogue ? s : { ...s, catalogue: cat };
 
 /** Le calage au repos. */
 const HORS_DU_CALAGE: CalibProgress = { step: 'idle' };
@@ -711,8 +721,9 @@ function aLaPorte<T>(geste: GesteDePorte, passer: () => T): { ok: true; valeur: 
   }
 }
 
-/** Le projet `lu` que sert le dépôt, prose matérialisée, passé par la porte, ou son refus. */
-export const projetDuDepot = (lu: unknown) => aLaPorte('ouverture', () => parseProject(lu));
+/** Le projet `lu` que sert le dépôt, prose matérialisée, passé par la porte sous le catalogue `cat` que l'hôte sert, ou
+ *  son refus. */
+export const projetDuDepot = (lu: unknown, cat: Catalogue = catalogueDuProcessus()) => aLaPorte('ouverture', () => parseProject(lu, cat));
 
 /** Le document du projet édité de la session `s` (`documentDeProjet`). */
 function documentEdite(s: SessionDEdition): ProjectDoc {
@@ -724,7 +735,7 @@ function documentEdite(s: SessionDEdition): ProjectDoc {
  *  dépôt (`texteDuDepot`) ; ou le refus de la porte. */
 export function texteAEnregistrer(s: SessionDEdition) {
   const doc = documentEdite(s);
-  return aLaPorte('export', () => (parseProject(doc), texteDuDepot(doc)));
+  return aLaPorte('export', () => (parseProject(doc, s.catalogue), texteDuDepot(doc)));
 }
 
 /** L'essai de la scène éditée de la session `s` : son projet édité, passé par la porte, et ce qui construit son
@@ -733,7 +744,7 @@ export function texteAEnregistrer(s: SessionDEdition) {
 export function essaiDeLaScene(s: SessionDEdition) {
   const doc = documentEdite(s);
   return aLaPorte('test', (): ((idNeuf: FabriqueDId) => LancementDeScenario) => {
-    const projet = parseProject(doc);
+    const projet = parseProject(doc, s.catalogue);
     return (idNeuf) => lancementDuProjet(projet, groupeVitrine(idNeuf), idDeLaSceneEditee(s), null);
   });
 }
@@ -1090,15 +1101,15 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
   return { ...s, historique, calques, z, sel: plan ? s.sel : null, geste: null, brouillon: null };
 }
 
-/** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet et le `Source/` que l'hôte
- *  sert. */
-export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: s.source });
+/** Le cadre où vit un porteur de formulaire de la session `s` : sa scène éditée, son projet, le `Source/` et le
+ *  catalogue que l'hôte sert. */
+export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: s.source, catalogue: s.catalogue });
 
 /** Ce qu'un geste écrit au formulaire d'un porteur, dans le cadre `cadre` : sa donnée écrite, ou son refus. */
 type EcritureDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
 
 /** Le projet édité de la session `s` où `ecriture` écrit au formulaire du porteur `porteur`, dans son cadre
- *  (`cadreDeLaSession`), par la table d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`) ; ou son refus, un porteur absent
+ *  (`cadreDeLaSession`), par la table d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`) sous son catalogue ; ou son refus, un porteur absent
  *  du projet (`porteurDuProjet`) n'offrant aucun chemin. */
 function projetAvecLaDonnee<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, ecriture: EcritureDuPorteur): EcritureDeValeur<ProjetDEdition> {
   const projet = projetEdite(s);
@@ -1106,8 +1117,8 @@ function projetAvecLaDonnee<S extends SorteDePorteur>(s: SessionDEdition, porteu
   const avant = porteurDuProjet(accesDe(porteur.sorte), projet, sceneId, porteur.id)?.donnee;
   if (!avant) return { ok: false, refus: 'nonOffert' };
   const ecrite = ecriture(porteur.sorte, avant, cadreDeLaSession(s));
-  const table: { ecrire: (projet: ProjetDEdition, sceneId: string, avant: DonneeDuPorteur[S], apres: DonneeDuPorteur[S]) => EcritureDeValeur<ProjetDEdition> } = ECRITURES_DES_PORTEURS[porteur.sorte];
-  return ecrite.ok ? table.ecrire(projet, sceneId, avant, ecrite.valeur) : ecrite;
+  const table: { ecrire: (projet: ProjetDEdition, sceneId: string, avant: DonneeDuPorteur[S], apres: DonneeDuPorteur[S], cat: Catalogue) => EcritureDeValeur<ProjetDEdition> } = ECRITURES_DES_PORTEURS[porteur.sorte];
+  return ecrite.ok ? table.ecrire(projet, sceneId, avant, ecrite.valeur, s.catalogue) : ecrite;
 }
 
 /** La session `s` où le projet `projet`, qu'une écriture au porteur de sorte `sorte` rend, s'écrit sur un cran neuf si
@@ -1450,12 +1461,13 @@ export function editer(s: SessionDEdition, g: GesteDEdition): SessionDEdition {
   const suite = avecSonChapitreDemande(avecSonPlanDuLieu(editerLaCouche(s, g)));
   const apres = sceneEditee(suite);
   const avant = projetEdite(s).scenes.find((sc) => sc.id === apres.id);
+  const cat = s.catalogue;
   if (avant && avant !== apres && (avant.entities !== apres.entities || avant.dimensions !== apres.dimensions || avant.metresPerTile !== apres.metresPerTile)) {
     const debordementNeuf = apres.entities.some((entite) => {
-      const refus = refusDePoseDesPonts(apres, entite);
+      const refus = refusDePoseDesPonts(apres, entite, cat);
       if (!refus) return false;
       const precedente = avant.entities.find((e) => e.id === entite.id);
-      return !precedente || refus !== refusDePoseDesPonts(avant, precedente);
+      return !precedente || refus !== refusDePoseDesPonts(avant, precedente, cat);
     });
     if (debordementNeuf) return s;
   }

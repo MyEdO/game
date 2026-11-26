@@ -81,7 +81,7 @@ function nomsDeLaDefense(): Map<string, string> {
     g().jetValider('defense');
     banc.reprendreTout();
     const pd = g().pendingDefense;
-    const kind = pd?.suite.mode === 'machine' ? pd.suite.coup.manoeuvre?.kind : undefined;
+    const kind = pd?.suite.mode === 'pilotee' ? pd.suite.pa.freeKind : undefined;
     if (pd && kind) noms.set(kind, pd.weapon.label);
   }
   return noms;

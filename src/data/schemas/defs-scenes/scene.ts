@@ -50,18 +50,19 @@ import {
   wallSideSchema,
 } from './communs';
 import { sceneFlowSchema } from './effets';
-import { idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
+import { affinerAvecCatalogues, idDe, porteLeMarqueur, recordDIds, ref, refOuSpec, refs, type PorteeLocale } from '../grammaire/ref';
 import { champsDeChoix } from '../grammaire/choixDeCreation';
 import { parcoursDe, refusDuParcours, type ParcoursDeCarriere } from '../../../engine/pnjDeCarriere';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { listeSansCle } from '../grammaire/liste-sans-cle';
 import { proseNommee } from '../grammaire/prose';
-import { estUnNavireAPonts, findCreatureById, findSiegeEngineById, findTrappingById } from '../../index';
+import { findCreatureById } from '../../index';
 import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../props.types';
-import { refusDePoseDesPonts } from '../../poseDesPonts';
+import { estUnNavireAPonts, refusDePoseDesPonts } from '../catalogue/poseDesPonts';
+import { entreeDe, type Catalogue } from '../catalogue/catalogue';
 import { estCardinal } from '../../../geometry/dir8';
 import { PARTS_RELIEF } from '../materials.types';
 import { posteSideSchema } from '../defs/vehicles';
@@ -310,13 +311,13 @@ type EntityKindId = z.infer<typeof entityKindSchema>;
 /** Une faute CROISÉE d'une entité de scène : le champ où elle se dit, et ce qu'elle dit. */
 export interface FauteDEntite { chemin: readonly (string | number)[]; message: string }
 
-/** Les fautes CROISÉES de l'entité `ent`, que le `superRefine` de sa branche de `sceneEntitySchema` dit au parse, et que
- *  l'éditeur refuse à l'écriture (`sceneAvecLaValeur`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un personnage,
- *  un corps au plus, le parcours de carrière (`refusDuPnjDeCarriere`) et le cap
- *  cardinal d'un navire à ponts (`estUnNavireAPonts`, #3772) ; d'un
- *  décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au
- *  registre généré, `porteLeMarqueur`). Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] }): FauteDEntite[] {
+/** Les fautes CROISÉES de l'entité `ent` sous `cat`, que le raffinement de sa branche de `sceneEntitySchema` dit au parse,
+ *  et que l'éditeur refuse à l'écriture (`sceneAvecLEntite`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un
+ *  personnage, un corps au plus, le parcours de carrière (`refusDuPnjDeCarriere`), le cap cardinal d'un navire à ponts
+ *  de `cat` (`estUnNavireAPonts`, #3772) et chaque munition du coffre d'un poste que sa pièce de `cat` charge
+ *  (`chargeLArme`) ; d'un décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 :
+ *  `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au registre généré, `porteLeMarqueur`). Source unique. */
+export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] }, cat: Catalogue): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
@@ -324,12 +325,13 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
     if (corps.length > 1) fautes.push({ chemin: [corps[1]], message: `corps EXCLUSIFS — ${corps.map((k) => `« ${k} »`).join(', ')} : un personnage en porte un au plus` });
     const carriere = refusDuPnjDeCarriere(ent);
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
-    if (estUnNavireAPonts(ent.vehicule?.id) && ent.facing && !estCardinal(ent.facing))
+    if (estUnNavireAPonts(ent.vehicule?.id, cat) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
+    const objetDe = (id: string) => entreeDe('trappings', id, cat);
     ent.postes?.forEach((p, rang) => {
-      const piece = { trappingId: p.engin.id, subType: findSiegeEngineById(p.engin.id)?.subType?.id };
+      const piece = { trappingId: p.engin.id, subType: entreeDe('siegeEngines', p.engin.id, cat)?.subType?.id };
       for (const id of Object.keys(p.ammo ?? {})) {
-        if (!chargeLArme(findTrappingById, { trappingId: id, subType: findTrappingById(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.engin.id} » ne charge pas` });
+        if (!chargeLArme(objetDe, { trappingId: id, subType: objetDe(id)?.subType?.id }, piece)) fautes.push({ chemin: ['postes', rang, 'ammo', id], message: `munition « ${id} » que la pièce « ${p.engin.id} » ne charge pas` });
       }
       if (p.selectedAmmo && !(p.selectedAmmo.id in (p.ammo ?? {}))) fautes.push({ chemin: ['postes', rang, 'selectedAmmo'], message: `munition choisie « ${p.selectedAmmo.id} » hors du coffre du poste` });
     });
@@ -344,18 +346,22 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
   return fautes;
 }
 
-/** Le `superRefine` d'une branche d'entité : chaque faute de `refusDeLEntite`, dite à son champ. */
-const fautesDeLaBranche = (ent: Parameters<typeof refusDeLEntite>[0], ctx: z.RefinementCtx) => {
-  for (const f of refusDeLEntite(ent)) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
-};
+/** La branche d'entité `branche`, raffinée de chaque faute de `refusDeLEntite` sous le catalogue jugé, dite à son champ. */
+const avecSesFautes = <S extends z.ZodType<Parameters<typeof refusDeLEntite>[0]>>(branche: S): S =>
+  affinerAvecCatalogues(branche, (lire) => {
+    const cat = lire.catalogueLu('vehicle', 'engin', 'trapping');
+    return (ent, ctx) => {
+      for (const f of refusDeLEntite(ent, cat())) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
+    };
+  });
 
 /** `SceneEntity` (`noyau/monde/scene.ts`). `id` = identité STABLE partagée avec le `Combatant` au spawn.
  *  Union DISCRIMINÉE par `kind` : un DÉCOR désigne son type (`decor`, #877), un personnage son corps
- *  (`CLES_DU_CORPS`, #1882, #2968). Le `superRefine` d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
+ *  (`CLES_DU_CORPS`, #1882, #2968). Le raffinement d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', {}, {}),
-  brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional(), veilleLesMalades: z.literal(true).optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } }, veilleLesMalades: { label: "veille les malades" } }).superRefine(fautesDeLaBranche),
-  brancheDuDecor.superRefine(fautesDeLaBranche),
+  avecSesFautes(brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional(), veilleLesMalades: z.literal(true).optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } }, veilleLesMalades: { label: "veille les malades" } })),
+  avecSesFautes(brancheDuDecor),
 ]);
 
 // ── Architecture ────────────────────────────────────────────────────────────────────────────────
@@ -936,7 +942,7 @@ export const encountersSchema = listeCle(encounterDefSchema, 'id');
  */
 export const messageIntroductionSchema = proseNommee(nommerChamps(z.strictObject({}), {}), 'scenes[].startMessage.texte');
 
-export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
+export const sceneSchema = nommerChamps(ouvrirPortees(affinerAvecCatalogues(z.strictObject({
   type: z.literal('scene'),
   id: z.string(),
   label: z.string(),
@@ -999,37 +1005,40 @@ export const sceneSchema = nommerChamps(ouvrirPortees(z.strictObject({
   couvre: couvreSchema.optional(),
   /** Groupes que porte le lieu, source psychologique de la scène (`etiquetteDeScene`). #3045 */
   groups: refs('groupe', { sousListe: DECLARABLE_PAR_UN_PORTEUR }).optional(),
-}).superRefine((scene, ctx) => {
-  // CARDINAL de la grille (#1789) : chaque tableau PARALLÈLE d'une couche porte EXACTEMENT `w×h`
-  // entrées — la grille est aplatie, indexée `y·w+x` (`tiles`, et quand ils sont présents `height`
-  // et `crenellated`) ; un tableau plus court rendrait des trous que les lectures devraient replier,
-  // et le repli masquerait le document malformé. C'est ce qui permet à `tileAt` de n'avoir AUCUN
-  // repli de tuile (`noyau/monde/scene.ts`) et à `heightAt` de ne replier que l'absence du tableau ENTIER.
-  const attendu = scene.dimensions.w * scene.dimensions.h;
-  (scene.layers ?? []).forEach((l, i) => {
-    const paralleles: [string, number | undefined][] = [['tiles', l.tiles.length], ['height', l.height?.length], ['crenellated', l.crenellated?.length]];
-    for (const [champ, n] of paralleles) {
-      if (n === undefined || n === attendu) continue;
+}), (lire) => {
+  const cat = lire.catalogueLu('vehicle');
+  return (scene, ctx) => {
+    // CARDINAL de la grille (#1789) : chaque tableau PARALLÈLE d'une couche porte EXACTEMENT `w×h`
+    // entrées — la grille est aplatie, indexée `y·w+x` (`tiles`, et quand ils sont présents `height`
+    // et `crenellated`) ; un tableau plus court rendrait des trous que les lectures devraient replier,
+    // et le repli masquerait le document malformé. C'est ce qui permet à `tileAt` de n'avoir AUCUN
+    // repli de tuile (`noyau/monde/scene.ts`) et à `heightAt` de ne replier que l'absence du tableau ENTIER.
+    const attendu = scene.dimensions.w * scene.dimensions.h;
+    (scene.layers ?? []).forEach((l, i) => {
+      const paralleles: [string, number | undefined][] = [['tiles', l.tiles.length], ['height', l.height?.length], ['crenellated', l.crenellated?.length]];
+      for (const [champ, n] of paralleles) {
+        if (n === undefined || n === attendu) continue;
+        ctx.addIssue({
+          code: 'custom',
+          path: ['layers', i, champ],
+          message: `\`${champ}\` porte ${n} entrée(s) pour une grille ${scene.dimensions.w}×${scene.dimensions.h} — il en faut EXACTEMENT ${attendu}`,
+        });
+      }
+    });
+    (scene.entities ?? []).forEach((entite, i) => {
+      if (entite.kind !== 'personnage') return;
+      const message = refusDePoseDesPonts(scene, entite, cat());
+      if (message) ctx.addIssue({ code: 'custom', path: ['entities', i, 'pos'], message });
+    });
+    const zone = scene.zoneJouable;
+    if (zone && (zone.x + zone.w > scene.dimensions.w || zone.y + zone.h > scene.dimensions.h)) {
       ctx.addIssue({
         code: 'custom',
-        path: ['layers', i, champ],
-        message: `\`${champ}\` porte ${n} entrée(s) pour une grille ${scene.dimensions.w}×${scene.dimensions.h} — il en faut EXACTEMENT ${attendu}`,
+        path: ['zoneJouable'],
+        message: `la zone jouable (${zone.x},${zone.y}) ${zone.w}×${zone.h} sort de la grille ${scene.dimensions.w}×${scene.dimensions.h}`,
       });
     }
-  });
-  (scene.entities ?? []).forEach((entite, i) => {
-    if (entite.kind !== 'personnage') return;
-    const message = refusDePoseDesPonts(scene, entite);
-    if (message) ctx.addIssue({ code: 'custom', path: ['entities', i, 'pos'], message });
-  });
-  const zone = scene.zoneJouable;
-  if (zone && (zone.x + zone.w > scene.dimensions.w || zone.y + zone.h > scene.dimensions.h)) {
-    ctx.addIssue({
-      code: 'custom',
-      path: ['zoneJouable'],
-      message: `la zone jouable (${zone.x},${zone.y}) ${zone.w}×${zone.h} sort de la grille ${scene.dimensions.w}×${scene.dimensions.h}`,
-    });
-  }
+  };
 }), [...PORTEES_DE_LA_SCENE, PIECES_DE_LA_SCENE]), { type: { label: "type"  }, id: { label: "identifiant" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, desc: { label: "texte" , texte: { regime: "atelier",usage: "description de scène réservée à l’atelier"} }, dimensions: { label: "dimensions" }, metresPerTile: { label: "mètres par case" }, ambiance: { label: "ambiance"  }, zoneJouable: { label: "zone jouable" }, environment: { label: "environnement"  }, weather: { label: "météo"  }, ambientLight: { label: "éclairage ambiant" , texte: { regime: "technique"} }, northDeg: { label: "orientation du nord" }, rest: { label: "repos" }, restZones: { label: "zones de repos" }, effectZones: { label: "zones d’effet" }, music: { label: "musique" }, reliefDefaults: { label: "relief par défaut" }, roofDefaults: { label: "toit par défaut" }, layers: { label: "couches" }, walls: { label: "murs" }, entities: { label: "entités" }, seatAssignments: { label: "places assignées" , texte: { regime: "technique"} }, architecture: { label: "bâtiments" }, dialogues: { label: "dialogues" }, triggers: { label: "déclencheur" }, encounters: { label: "rencontres" }, stations: { label: "présences" }, flags: { label: "drapeaux" , texte: { regime: "technique"} }, entryPoints: { label: "points d’entrée" , texte: { regime: "technique"} }, startMessage: { label: "message de départ" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, groups: { label: "groupes du lieu" , texte: { regime: "technique"} } });
 
 nommerNoeud(sceneSchema, { element: 'scène' });

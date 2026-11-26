@@ -159,6 +159,8 @@ import {
   accesDe,
 } from './sceneEditLecture';
 import { tableTotale } from '../lib/tableTotale';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 export type Pt = { x: number; y: number };
 
@@ -1264,9 +1266,9 @@ function patchEntre<T extends object>(avant: T, apres: T): Partial<T> {
 }
 
 /** La scène `scene` où l'entité `avant` devient `apres`, chaque champ de premier niveau qui change posé par sa porte
- *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint l'entité écrite et que l'entité d'avant n'enfreignait pas
- *  (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
-function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity): EcritureDeValeur<Scene> {
+ *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint sous `cat` l'entité écrite et que l'entité d'avant
+ *  n'enfreignait pas (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
+export function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity, cat: Catalogue = catalogueDuProcessus()): EcritureDeValeur<Scene> {
   const patch = patchEntre(avant, apres);
   let ecrite: Scene;
   try {
@@ -1275,19 +1277,19 @@ function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity):
     if (e instanceof TypeNonNomme) return { ok: false, refus: { regle: e.message } };
     throw e;
   }
-  const deja = new Set(refusDeLEntite(avant).map((f) => f.message));
-  const neuve = ecrite.entities.filter((e) => e.id === avant.id).flatMap(refusDeLEntite).find((f) => !deja.has(f.message));
+  const deja = new Set(refusDeLEntite(avant, cat).map((f) => f.message));
+  const neuve = ecrite.entities.filter((e) => e.id === avant.id).flatMap((e) => refusDeLEntite(e, cat)).find((f) => !deja.has(f.message));
   return neuve ? { ok: false, refus: { regle: neuve.message } } : { ok: true, valeur: ecrite };
 }
 
-/** Ce qu'une table d'écriture déclare d'un porteur de la scène : la scène où sa donnée `avant` devient `apres`, ou son
- *  refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
+/** Ce qu'une table d'écriture déclare d'un porteur de la scène : la scène où sa donnée `avant` devient `apres`, sous le
+ *  catalogue `cat`, ou son refus ; et, pour la sorte qui les a, la scène où un porteur neuf est créé, sous son identifiant ; celle où le porteur
  *  `de` prend l'identifiant `vers`, propagé à ce qui le désigne dans la scène ; celle où le porteur `id` est retiré ;
  *  celle où l'élément `de` de la sous-collection à clé du porteur `id`, adressé par son parent `parent` quand sa clé n'est
  *  unique que dans lui, prend l'identifiant `vers`, et ce qui refuse de donner l'identifiant `vers` à cet élément, dit
  *  (`null` : retenu). Un renommage sous un identifiant vide ou déjà pris rend la scène telle quelle. */
 interface EcritureDeScene<D> {
-  ecrire: (scene: Scene, avant: D, apres: D) => EcritureDeValeur<Scene>;
+  ecrire: (scene: Scene, avant: D, apres: D, cat: Catalogue) => EcritureDeValeur<Scene>;
   creer?: (scene: Scene) => { scene: Scene; id: string };
   renommer?: (scene: Scene, de: string, vers: string) => Scene;
   retirer?: (scene: Scene, id: string) => Scene;
@@ -1296,7 +1298,7 @@ interface EcritureDeScene<D> {
 }
 
 /** Ce que la table d'écriture d'une sorte de porteur déclare, sur le projet `projet` où la scène `sceneId` est
- *  montrée : le projet où sa donnée `avant` devient `apres`, ou son refus ; et, pour la sorte qui les a, le projet où un
+ *  montrée : le projet où sa donnée `avant` devient `apres`, sous le catalogue `cat`, ou son refus ; et, pour la sorte qui les a, le projet où un
  *  porteur neuf est créé depuis la sélection `depuis`, avec l'identifiant `avec` qu'elle offre (`avecs`), sous son
  *  identifiant (`undefined` : refusé), et ce qui refuse cette création, dit ; celui où le porteur `de` prend
  *  l'identifiant `vers`, propagé à ce qui le désigne, et ce qui refuse de donner l'identifiant `vers` au porteur `id`, ou
@@ -1307,7 +1309,7 @@ interface EcritureDeScene<D> {
  *  pris rend le projet tel quel. `entrees` : les entrées des fiches de dossier que l'hôte sert à la
  *  session (`SessionDEdition`, `entreesDeFiche`). #3606 */
 interface EcritureDuPorteur<D> {
-  ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D) => EcritureDeValeur<ProjetDEdition>;
+  ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D, cat: Catalogue) => EcritureDeValeur<ProjetDEdition>;
   creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec: string | undefined, entrees: readonly EntreeNommee[]) => { projet: ProjetDEdition; id: string } | undefined;
   refusDeCreer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => string | undefined;
   avecs?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, entrees: readonly EntreeNommee[]) => readonly string[];
@@ -1332,9 +1334,9 @@ function deLaScene<D>(e: Partial<EcritureDeScene<D>>): Partial<EcritureDuPorteur
   };
   const { ecrire: ecrireLaScene, creer, renommer, retirer, renommerElement, refusDeRenommer } = e;
   return {
-    ...(ecrireLaScene && { ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D): EcritureDeValeur<ProjetDEdition> => {
+    ...(ecrireLaScene && { ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D, cat: Catalogue): EcritureDeValeur<ProjetDEdition> => {
       const { lire, ecrire } = DOCUMENTS.scene;
-      const ecrite = ecrireLaScene(lire(projet, sceneId)!, avant, apres);
+      const ecrite = ecrireLaScene(lire(projet, sceneId)!, avant, apres, cat);
       return ecrite.ok ? { ok: true, valeur: ecrire(projet, sceneId, ecrite.valeur) } : ecrite;
     } }),
     ...(creer && { creer: (projet: ProjetDEdition, sceneId: string) => {
@@ -1540,7 +1542,7 @@ function ecritureDuRegistre<R extends RegistreCreable>(registre: R): EcritureDuP
   };
   const reecrite = (REECRITURES[registre] ?? ((entree) => entree)) as (entree: DonneeDuPorteur[R]) => DonneeDuPorteur[R];
   return {
-    ecrire: (projet, sceneId, avant, apres) => remplace(registre)(projet, sceneId, avant, reecrite(apres)),
+    ecrire: (projet, sceneId, avant, apres, cat) => remplace(registre)(projet, sceneId, avant, reecrite(apres), cat),
     creer: (projet) => {
       const corps = CORPS_NEUFS[registre](projet.narratif);
       if (typeof corps === 'string') return undefined;

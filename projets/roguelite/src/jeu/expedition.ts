@@ -205,7 +205,7 @@ function marques(avant: Combatant, apres: Combatant): Victime | undefined {
 /** Les lignes du récit d'une `Victime`. */
 const lignesDeVictime = ({ nom, blessures: b, corruption: c, ...v }: Victime): string[] => [
   ...(b ? [`${nom} est touché·e : ${b.apres}/${b.max} Blessures.`] : []),
-  ...(c ? [`${nom} : Corruption ${c.avant} → ${c.apres} / ${c.seuil}.`] : []),
+  ...(c ? [`${nom} : Corruption de ${c.avant} à ${c.apres} / ${c.seuil}.`] : []),
   ...v.maladies.map((m) => `${nom} contracte : ${m}.`),
   ...v.mutations.map((m) => `${nom} mute : ${m}.`),
 ];

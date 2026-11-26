@@ -72,6 +72,7 @@ import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { refusDeForme } from '../narratifEdit';
 import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
 import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import {
   creatures,
   findCreatureById,
@@ -100,7 +101,7 @@ const NARRATIF_VIDE = emptyNarratif();
 const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
 
 /** Le cadre d'un porteur d'une scène vide, au narratif `narratif`. */
-const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif }, source: SANS_SOURCE });
+const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif }, source: SANS_SOURCE, catalogue: catalogueDuProcessus() });
 
 const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
@@ -773,7 +774,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     const projet = { scenes: [place, emptyScene('ruelle', 4, 4)] };
     const offerts = (effect: Effect, champ: string) => {
       const declencheur = { id: 't', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'sequence' as const, etapes: [{ kind: 'effet' as const, effet: effect }] } };
-      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: place, projet: { scenes: projet.scenes, narratif: NARRATIF_VIDE }, source: SANS_SOURCE })!.map((c) => c.valeur);
+      return choixDuChamp('declencheur', declencheur, ['flow', 'etapes', 0, 'effet', champ, 'id'], { scene: place, projet: { scenes: projet.scenes, narratif: NARRATIF_VIDE }, source: SANS_SOURCE, catalogue: catalogueDuProcessus() })!.map((c) => c.valeur);
     };
     expect(offerts({ type: 'transition', scene: { id: 'place' } }, 'scene')).toEqual(['place', 'ruelle']);
     expect(offerts({ type: 'medicalAid', acts: [{ act: 'blessures' }], entityId: { id: 'medecin' } }, 'entityId')).toEqual(['medecin', 'badaud']);
@@ -843,7 +844,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
   it('un PNJ de carrière ne se voit offrir ni profil personnalisé, ni preset, ni tenue, qu’il ne porte pas ; le reste de son apparence, si (#3606 M1b, M1c)', () => {
     const narratif = { ...NARRATIF_VIDE, presetsPnj: [{ id: 'aubergiste', base: { id: 'humain' }, profil: { label: 'Aubergiste' } }] } as typeof NARRATIF_VIDE;
     const pnj = { id: 'p', kind: 'personnage', pos: { x: 1, y: 1 }, creature: { id: 'humain' }, carrieres: { medecin: 3 } } as const;
-    expect(refusDeLEntite(pnj)).toEqual([]);
+    expect(refusDeLEntite(pnj, catalogueDuProcessus())).toEqual([]);
     const champs = formulaireDe('entite', pnj, cadre(narratif)).map((f) => f.key);
     expect([champs.includes('statblock'), champs.includes('presetId')]).toEqual([false, false]);
     const s = ouverteSur({ ...emptyScene('m1b', 4, 4), entities: [pnj] }, false, narratif);
@@ -880,7 +881,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, calage: { x: 2, y: 0 } },
     admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } },
     } as const;
-    const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0]);
+    const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0], catalogueDuProcessus());
     expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['creature']]);
     expect(fautes(fixtures.deuxCorps).map((f) => f.chemin)).toEqual([['vehicule']]);
     expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
@@ -1119,7 +1120,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     expect(choix(jouer(ajoute, valeur(['postes', postes.length, 'engin', 'id'], 'belier-ade2')), ['postes', postes.length, 'ammo']), 'bélier → aucune').toEqual([]);
     expect(refusDeLaValeur(cogue, valeur(['postes', 0, 'ammo', 'carreau-de-baliste'], 2)), 'un carreau n’est pas offert au coffre d’un canon').toBe('nonOffert');
     const canonACarreaux = { ...coque(cogue), postes: [{ engin: { id: 'canon-moyen' }, ammo: { 'carreau-de-baliste': 2, 'boulet-et-poudre': 4 } }] };
-    expect(refusDeLEntite(canonACarreaux as Parameters<typeof refusDeLEntite>[0]), 'le parse refuse un carreau au coffre d’un canon')
+    expect(refusDeLEntite(canonACarreaux as Parameters<typeof refusDeLEntite>[0], catalogueDuProcessus()), 'le parse refuse un carreau au coffre d’un canon')
       .toEqual([{ chemin: ['postes', 0, 'ammo', 'carreau-de-baliste'], message: expect.stringContaining('ne charge pas') }]);
     const dote = jouer(cogue, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 3));
     expect(coque(dote).postes![0].ammo).toMatchObject({ 'mitraille-et-poudre': 3 });

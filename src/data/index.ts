@@ -1861,10 +1861,6 @@ export const especesCrb = datasetDe<typeof especesCrbDef>(especesCrbJson);
 export function profilsStandard(): string[] {
   return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
 }
-/** Le véhicule `id` d'un PERSONNAGE (sa clé `vehicule`) est-il un navire à ponts (`vehicles.json › ponts`, #3686) ? Ses
- *  ponts ne se posent qu'à un cap cardinal : le schéma de scène refuse les autres (`refusDeLEntite`), l'éditeur ne les
- *  offre pas (`capsOfferts`). */
-export const estUnNavireAPonts = (id: string | undefined): boolean => id !== undefined && findVehicleById(id)?.ponts !== undefined;
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  catalogue des engins de siège (AA 10, ADE II 08), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */

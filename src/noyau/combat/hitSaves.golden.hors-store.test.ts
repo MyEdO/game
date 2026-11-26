@@ -83,12 +83,12 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
       {
         "before": 20,
         "lines": [
-          "information:Démon — Sauvegarde : dé 8 → 8.",
+          "information:Démon — Sauvegarde : dé 8, soit 8.",
           "attaque:Hardi touche le Démon.",
           "information:Démon ignore le coup — sauvegarde 1d10 : 8 ≥ Démoniaque (8+).",
         ],
         "lues": [
-          "Démon — Sauvegarde : dé 8 → 8.",
+          "Démon — Sauvegarde : dé 8, soit 8.",
           "Hardi touche le Démon.",
           "Démon ignore le coup — sauvegarde 1d10 : 8 ≥ Démoniaque (8+).",
         ],

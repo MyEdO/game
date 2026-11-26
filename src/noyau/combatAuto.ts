@@ -17,6 +17,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
+import { tourEnCoursDe } from './etat';
 import type { CascadeStep } from './pendings';
 import {
   pickActiveModalKey,
@@ -53,7 +54,7 @@ import { beatHold } from './combatDirector';
 import { programmer, enAttente, type Jeton } from './plateforme';
 import { fateSaveOptions } from '../engine/fortune';
 import { reglageDeLaQuantite, reglageDuChoix, type Reglage } from './reglages';
-import { reglagesDuFlux, VERBE_DE_REGLAGE } from './reglagesDuJet';
+import { reglagesDuFlux, VERBE_DE_REGLAGE, type ArgumentsDuReglage } from './reglagesDuJet';
 import { axesDeLaFenetre, VERBE_DE_CHOIX, type FenetreAChoix } from './choixDesFenetres';
 import { VERBE_DE_VALIDATION } from './validationDeFenetre';
 
@@ -90,7 +91,7 @@ export const FENETRE_DU_JET: Record<NonNullable<CascadeStep['jet']>, { flux: Flo
   testEtendu: { flux: 'testEtendu', rangees: (s) => s.pendingExtendedTest?.rounds },
   desengagement: {
     flux: 'desengagement',
-    reactives: [{ flux: 'fuite', rangees: (s) => s.pendingDisengage?.fuir?.participants.map((p) => ({ id: p.id, interactive: p.interactive, result: p.kind === 'backstab' ? p.result : p.jet })) }],
+    reactives: [{ flux: 'fuite', rangees: (s) => s.pendingDisengage?.fuir?.participants.map((p) => ({ id: p.id, interactive: p.interactive, result: p.kind === 'backstab' ? p.result : p.jet })), drive: [{ verbe: 'jetLancer', flux: 'fuite' }, { verbe: 'jetValider', flux: 'fuite' }] }],
   },
   enfoncerLaPorte: { flux: 'enfoncerLaPorte', rangees: (s) => s.pendingForceDoor?.participants },
 };
@@ -115,6 +116,18 @@ export function jouerLeDrive(get: Get, drive: readonly GesteDuJeu[]): void {
   for (const g of drive) jouerLeGeste(get, g);
 }
 
+/** Les réglages que la DÉCISION de l'IA pose sur l'étape-jet `jet` de `porteurId` (`TourEnCours.reglages`, #5042) :
+ *  rendus une fois, puis retirés du tour. */
+export function prendreLesReglagesDeLaDecision(get: Get, jet: HostJet, porteurId: string | undefined): readonly ArgumentsDuReglage[] {
+  const battle = get().battle;
+  const tour = battle && porteurId ? tourEnCoursDe(battle, porteurId) : undefined;
+  const gestes = tour?.reglages?.[jet];
+  if (!tour?.reglages || !gestes) return [];
+  const { [jet]: _pris, ...reste } = tour.reglages;
+  tour.reglages = reste;
+  return gestes;
+}
+
 /** La paire de gestes d'une étape-jet (`paireDuJet`), jouée d'office (`jouerLeDrive`). */
 export function jouerLaPaireDuJet(get: Get, jet: HostJet): void {
   jouerLeDrive(get, paireDuJet(jet));
@@ -132,7 +145,7 @@ export const JET_AUTO: Record<NonNullable<CascadeStep['jet']>, AutoPolicy> = {
   maladresse: { mode: 'self', drive: paireDuJet('maladresse') },
   test: { mode: 'self', drive: paireDuJet('test') },
   incantation: { mode: 'choice', autoDrive: paireDuJet('incantation') }, // Rapide : le joueur décide (surincantation) ; Auto-combat : l'IA incante et surincante (`aiOvercastPlan`)
-  desengagement: { mode: 'choice' },  // menu d'options (Fuir / Esquiver) — initié par le joueur, n'arrive pas en Auto
+  desengagement: { mode: 'choice', autoDrive: paireDuJet('desengagement') }, // Rapide : le joueur choisit (Fuir / Esquiver / sacrifier) ; Auto-combat : la décision de l'IA l'a réglé
   testEtendu: { mode: 'choice' },   // multi-participant (rare en combat)
   enfoncerLaPorte: { mode: 'choice' },  // multi groupOwner (rare en combat)
 };
@@ -295,8 +308,8 @@ export function fenetreDuJeu(s: Jeu): FenetreDuJeu | null {
 }
 
 /**
- * FENÊTRES RÉACTIVES à drive ouvertes DANS l'étape `jet:'incantation'` (Contre-sort #1028, opposition de cible #949,
- * `FENETRE_DU_JET.cast.reactives`) et leur drive d'auto-cadence (#1030). Le drive de l'ÉTAPE ne peut traverser ni l'une ni l'autre :
+ * FENÊTRES RÉACTIVES à drive ouvertes DANS une étape-jet (`FENETRE_DU_JET[…].reactives`) et leur drive d'auto-cadence (#1030) :
+ * celles de l'étape `jet:'incantation'` (Contre-sort #1028, opposition de cible #949), et la fuite du Désengagement (#5042). Le drive de l'ÉTAPE n'en traverse aucune :
  * `jetValider('incantation')` s'abstient sous Contre-sort (la Dissipation se résout AVANT, `LDB 46 l.156`) et
  * `jetValider('opposition')` refuse d'agréger tant qu'une rangée interactive n'a pas jeté — `autoDrive` y
  * re-tirait donc à vide (l'opposition allant jusqu'à se RÉOUVRIR à chaque passage, jets compris).
@@ -381,7 +394,9 @@ function autoResolveCascade(get: Get, set: Set, siege: number): void {
   }
   const cur = pc.participants[pc.cursor];
   if (cur.jet) {
-    const pol = JET_AUTO[cur.jet];
+    const jet = cur.jet;
+    for (const reglage of prendreLesReglagesDeLaDecision(get, jet, cur.actorId)) jouerPourLeSiege(get(), siege, () => get().jetRegler(...reglage));
+    const pol = JET_AUTO[jet];
     if (pol.mode === 'self') { driveSelf(get, set, siege, pol.drive); return; }
     // 'choice' (cast/disengage/…) : en Auto-combat, l'IA résout via `autoDrive` (incantation) ; en Rapide,
     // on LAISSE la modale au joueur (surincantation = vrai choix). Une fenêtre RÉACTIVE ouverte dans

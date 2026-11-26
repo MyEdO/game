@@ -7,6 +7,7 @@ import { seedBattleRng } from './battleRng';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { MAIN_RENDUE } from './combatEffects';
+import { avanceEtapeCascade } from './cascade.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -108,18 +109,23 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
       .toEqual({ mode: 'chaine', hitIds: [heros[0].id, heros[1].id], n: 1, bcc: 9, fm: false });
   });
 
-  it('K1 gratuite de créature : sa nature et l’Action à rendre', () => {
+  it('K1 gratuite de créature : le geste du joueur, sa nature portée par l’attaque pilotée', () => {
     const { enemy } = setup(true);
     enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
     aiCreatureFreeAttacks(banc.getState, banc.setState, enemy);
-    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { restitution: { prevActed: true }, manoeuvre: { kind: 'morsure' } } });
+    const suite = suiteDeLaFenetre();
+    expect(suite.mode === 'pilotee' && suite.pa.freeKind).toBe('morsure');
   });
 
-  it('K1 gratuite d’Arme (Frénésie LDB 21 l.33) : clé `arme`', () => {
-    const { enemy } = setup(false);
+  it('K1 gratuite d’Arme (Frénésie LDB 21 l.33) : le geste du joueur, comptée à la clé `arme`', () => {
+    const { enemy } = setup(true);
     (enemy.psychState ??= []).push({ type: 'frenesie' });
-    aiAvailableFreeAttack(banc.getState, banc.setState, enemy);
-    expect(suiteDeLaFenetre()).toEqual({ mode: 'machine', coup: { restitution: { prevActed: false }, manoeuvre: { kind: 'arme' }, enchainement: { mode: 'auto' } } });
+    aiAvailableFreeAttack(banc.getState, enemy);
+    const suite = suiteDeLaFenetre();
+    expect(suite.mode === 'pilotee' && !suite.pa.freeKind).toBe(true);
+    banc.getState().jetLancer('defense');
+    banc.getState().jetValider('defense');
+    expect(banc.getState().battle!.combatants.find((c) => c.id === enemy.id)!.freeAttacksThisTurn?.arme).toBe(1);
   });
 
   it('K1 attaque PILOTÉE : l’attaque figée, marquée défendue', () => {
@@ -135,12 +141,12 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
   });
 
   // K4 — ISOLATION : une fenêtre ne porte QUE ce que sa frappe a déclaré.
-  it('K4 la fenêtre d’une gratuite ne porte AUCUN balayage, celle d’un maillon d’Action AUCUNE gratuite', () => {
+  it('K4 la fenêtre d’une gratuite porte sa seule attaque pilotée, celle d’un maillon d’Action AUCUNE gratuite', () => {
     const { enemy } = setup(false, 2);
     enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
     aiCreatureFreeAttacks(banc.getState, banc.setState, enemy);
     const gratuite = suiteDeLaFenetre();
-    expect(gratuite.mode === 'machine' && gratuite.coup.enchainement).toBeUndefined();
+    expect(gratuite.mode === 'pilotee' && gratuite.pa.freeKind).toBe('morsure');
     const { enemy: e2, heros } = setup(false, 2);
     autoCleave(banc.getState, banc.setState, e2, heros[0], toucheQuiBalaie());
     const maillon = suiteDeLaFenetre();
@@ -178,10 +184,10 @@ describe('Suite de la fenêtre de défense — UNE valeur, posée à l’ouvertu
 
   // K3 — la fenêtre voyage au siège invité par le snapshot coop : JSON PUR, les deux variantes.
   it('K3 les deux variantes survivent à l’aller-retour JSON du snapshot coop', () => {
-    const { enemy } = setup(false);
-    enemy.traits = [{ id: 'morsure', value: 14 }]; enemy.advantage = 1;
-    aiCreatureFreeAttacks(banc.getState, banc.setState, enemy);
+    const { enemy, heros } = setup(false, 2);
+    autoCleave(banc.getState, banc.setState, enemy, heros[0], toucheQuiBalaie());
     const machine = suiteDeLaFenetre();
+    expect(machine.mode).toBe('machine');
     expect(JSON.parse(JSON.stringify(machine))).toEqual(machine);
     const { enemy: e2, hero } = setup(false, 1, 0);
     const g = banc.getState;
@@ -273,6 +279,10 @@ describe('Gratuite qui balaie : l’Action d’origine au bout de la chaîne (#1
     enemy.pendingFreeAttacks = ['morsure']; // file réduite à la Morsure : ce qui suit vient de SA chaîne
     expect(aiCreatureFreeAttacks(banc.getState, banc.setState, enemy)).toBe(true);
     expect(banc.getState().pendingDefense!.defenderId).toBe(heros[1].id);
+    const maillon = suiteDeLaFenetre();
+    expect(maillon.mode === 'machine' && maillon.coup.enchainement && maillon.coup.enchainement.mode, 'la fenêtre est celle du maillon').toBe('chaine');
+    // La séquence du maillon s'ouvre sur son jet d'attaque, puis la défense : la table la joue étape par étape.
+    for (let i = 0; i < 5 && banc.getState().pendingCascade?.participants[banc.getState().pendingCascade!.cursor]?.jet !== 'defense'; i++) avanceEtapeCascade(banc.getState);
     banc.getState().jetLancer('defense');
     banc.getState().jetValider('defense');
     const st = banc.getState();

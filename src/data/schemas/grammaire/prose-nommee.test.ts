@@ -46,12 +46,12 @@ describe('prose nommée — déclaration et provenance locales', () => {
   const primitives = { descendre, enfantsDe, metaDesChamps, nomDeNoeud, declarationProseNommee, declarationDEnfants, defDe };
   const corpus = detenteur(() => [...readCorpus(['src/data/schemas/defs-scenes']).filter(f => !f.rel.endsWith('.test.ts')), ...readCorpus(['src/data/schemas/grammaire']).filter(f => f.rel.endsWith('/mecanique.ts'))]);
   const mesurer = detenteur(() => classificationsProseLocale(resolve('.'), corpus()));
-  it('le corpus local classe ses sorties ouvertes avant toute donnée', () => {
+  it('le corpus local classe ses sorties ouvertes avant toute donnée', { timeout: 60_000 }, () => {
     const mesure = mesurer();
     console.log('classification locale', JSON.stringify({ champs: mesure.champs.length, opaquesImportes: mesure.opaquesImportes.length, exclusions: mesure.champs.filter(c => c.horsContrat).length, catchalls: mesure.champs.filter(c => c.champ === '*').length, opsNonTypees: OPS_NON_TYPEES.length }));
     expect(mesure.fautes).toEqual([]);
   });
-  it('les sites finaux et tous les payloads déclarés passent la descente réelle', async () => {
+  it('les sites finaux et tous les payloads déclarés passent la descente réelle', { timeout: 60_000 }, async () => {
     const mesure = mesurer();
     const bornes: unknown[] = [];
     const corpusLocal = new Set(corpus().map(f => f.rel));

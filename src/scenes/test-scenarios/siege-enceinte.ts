@@ -38,14 +38,15 @@ import { projForPiece, type TestScenario } from './_shared';
 // Servant de pièce (entité à id FIXE, référencé par le `crew` de l'emplacement) : une VRAIE créature du
 // bestiaire (a une CT pour viser), SANS arme propre → sa seule arme à distance est la PIÈCE servie (l'IA tire
 // donc la baliste/le canon, pas un arc). Posté à CÔTÉ de l'affût (x-1). On lui DONNE la Projectiles du Groupe de
-// SA pièce → il compte comme membre d'équipe qualifié (sinon effectif 0). `ref` brute (défenseur) /
+// SA pièce → il compte comme membre d'équipe qualifié (sinon effectif 0) ; un servant allié porte une `munition` de sa
+// pièce, que la porte du tir exige (`firedAttackBlock`). `ref` brute (défenseur) /
 // wolfgard-hohmann (assaillant).
 const gunner = (
   id: string,
   pos: { x: number; y: number },
   trappingId: string,
   label: string,
-  opts: { z?: number; facing?: SceneEntity['facing']; creature?: string } = {},
+  opts: { z?: number; facing?: SceneEntity['facing']; creature?: string; munition?: string } = {},
 ): SceneEntity => ({
   id,
   kind: 'personnage',
@@ -54,6 +55,7 @@ const gunner = (
   creature: { id: opts.creature ?? 'brute' },
   ...(opts.z ? { z: opts.z } : {}),
   ...(opts.facing ? { facing: opts.facing } : {}),
+  ...(opts.munition ? { inventaire: { [opts.munition]: false } } : {}),
   combat: { skills: projForPiece(trappingId) },
 });
 
@@ -208,8 +210,8 @@ export function spec(): MapSpec {
     //    générerait un frais). Tout le RESTE (pièces, archers, gobelins, décor du camp) est posé PAR L'ASCII. ──────
     entities: [
       // Servants de pièce DE REMPART (z1, côté défenseur) — postés à x-1 de leur affût (B(8,38)→(7,38), K(21,37)→(20,37)).
-      gunner('crew-baliste', { x: 7, y: 38 }, 'baliste', 'Servant de baliste', { z: 1 }),
-      gunner('crew-canon', { x: 20, y: 37 }, 'canon-petit', 'Servant de canon', { z: 1 }),
+      gunner('crew-baliste', { x: 7, y: 38 }, 'baliste', 'Servant de baliste', { z: 1, munition: 'carreau-de-baliste' }),
+      gunner('crew-canon', { x: 20, y: 37 }, 'canon-petit', 'Servant de canon', { z: 1, munition: 'boulet-et-poudre' }),
       // Servants de la BATTERIE assaillante (z0, côté assaut, facing S) — à x-1 de leur affût (k(21,15)→(20,15), p(8,2)→(7,2)).
       gunner('brg-canon', { x: 20, y: 15 }, 'canon-petit', 'Canonnier de siège', { facing: 'S', creature: 'wolfgard-hohmann' }),
       gunner('brg-cata', { x: 7, y: 2 }, 'catapulte-petite', 'Servant de catapulte', { facing: 'S', creature: 'wolfgard-hohmann' }),
@@ -221,12 +223,12 @@ export function spec(): MapSpec {
       '@': 'heroStart',
       // Archers défenseurs (z1, arcs) : PNJ alliés-IA (agissent seuls).
       A: {
-        entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1, label: 'Archer du guet' },
+        entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false, fleche: false }, facing: 'N', z: 1, label: 'Archer du guet' },
         member: { enc: 'assaut', side: 'allie', ai: true },
       },
       // Guetteur au-dessus du tunnel de la porte (chemin de ronde continu au-dessus de la brèche).
       G: {
-        entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false }, facing: 'N', z: 1 },
+        entity: { kind: 'personnage', creature: { id: 'brute' }, inventaire: { arc: false, fleche: false }, facing: 'N', z: 1 },
         member: { enc: 'assaut', side: 'allie', ai: true },
       },
       // Pièces de REMPART : affûts INERTES (pas d'`ai`), servis par leur équipage QUALIFIÉ (crew), sur le chemin de ronde (z1).

@@ -28,7 +28,7 @@ import { refusActionDepensee, refusHorsDEtatDAgir, refusPriereImposee } from './
 import { isEngaged, reachTiles } from '../engine/engagement';
 import { avantageApresDepense, campSpend } from './combat/advantagePool';
 import { hasActiveFlag } from '../engine/activeFlags';
-import { isFrenzied } from '../engine/psychology';
+import { ciblesDePulsion, isFrenzied } from '../engine/psychology';
 import { healableTargets, modesDOuverture, soinDOuverture } from '../engine/healing';
 import { libelleDeTest } from './jetsEnVue';
 import { garanti } from '../lib/garanti';
@@ -55,7 +55,7 @@ import { chargeArmee, intentionLocale } from './localIntent';
 import { t, type MsgKey } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import { bus, EVT } from './bus';
-import type { Jeu } from './etat';
+import type { BattleState, Jeu } from './etat';
 import {
   attackPlan,
   previewAttack,
@@ -83,6 +83,7 @@ import {
   armerLaSuite,
   declarerLaCharge,
   emettreLApproche,
+  journaliserLEscalade,
   frappePiloteeEnAttente,
   type AttackPreview,
   type AttackPlan,
@@ -412,6 +413,12 @@ function planDuGeste(get: Get, active: Combatant, target: Combatant, option: Att
     : null;
 }
 
+/** `target` est-il une cible d'attaque de `active` : le camp ADVERSE (camp relatif ; soin et sort ont leurs modes), ou un
+ *  combattant que vise sa pulsion d'attaque (`ciblesDePulsion`). LDB 21 l.21 ; #3045 */
+function cibleDAttaque(battle: Pick<BattleState, 'combatants'>, active: Combatant, target: Combatant): boolean {
+  return target.kind !== active.kind || ciblesDePulsion(active, battle.combatants).some((c) => c.id === target.id);
+}
+
 function attackAffordance(get: Get, active: Combatant, target: Combatant): HoverTargeting {
   const battle = get().battle!;
   // Pièce de siège SERVABLE (poste, MDG 12 / AA 10 l.232) : un poste-porteur qu'on peut REJOINDRE (chef si non
@@ -425,7 +432,7 @@ function attackAffordance(get: Get, active: Combatant, target: Combatant): Hover
   }
   const option = selectedAttackOption(get().scene, active, battle);
   if (!option) return { kind: 'none' }; // mode non-attaque (cast/heal/…) ou aucune attaque abordable
-  if (target.kind === active.kind || isOutOfAction(target)) return { kind: 'none' };
+  if (!cibleDAttaque(battle, active, target) || isOutOfAction(target)) return { kind: 'none' };
   // Structure (mur/porte) : le réticule tombe (none) quand AUCUNE arme du porteur ne peut l'abîmer
   // (`structureImmune` — Impénétrable / Résistant, `ADE II 08 l.296-300` ; même filtre que l'IA, `ai.ts`) :
   // le survol retombe alors sur le déplacement (monter au rempart) au lieu d'un « hors de portée » absurde.
@@ -570,7 +577,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   // maneuver/tentacle mappent sur leur option).
   const option = selectedAttackOption(get().scene, active, battle);
   if (!option || !scene) return;
-  if (target.kind === active.kind) return; // camp RELATIF : on ne frappe que le camp ADVERSE (soin/sort via leurs modes)
+  if (!cibleDAttaque(battle, active, target)) return;
   const plan = planDuGeste(get, active, target, option);
   const refus = refusDAttaque(get, active, target, option, plan, { approche: chargeArmee(opts?.intentionId ?? null) });
   if (refus) {
@@ -653,6 +660,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
     if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
     apresDeplacement = emettreLApproche(active, geom, approachPath);
     applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11) : charger À TRAVERS coûte
+    journaliserLEscalade(get, active, approachPath);
     noteApproachMove(active, chargeFrom); // LDB 21 l.27 — événement EN ATTENTE : purgé si la charge est annulée avant le jet
     set({ battle: { ...get().battle!, movementUsed: mountMovement(battle, active), action: null, preview: null } });
     const repondu = declarerLaCharge(get, set, active, target, plan.adv); // LDB 10 l.500
@@ -673,6 +681,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
       if (geom !== active) get().orienterSelonLeChemin(geom.id, approachPath);
       apresDeplacement = emettreLApproche(active, geom, approachPath);
       applyZoneCrossings(get, set, active, approachPath); // Mur de feu & co (L11)
+      journaliserLEscalade(get, active, approachPath);
       noteApproachMove(active, moveFrom); // LDB 21 l.27 — événement EN ATTENTE, scellé par l'attaque qui suit
       set({ battle: { ...b, moveSnapshot: snapshot, movementUsed: (b.movementUsed ?? 0) + plan.cost, movedPreAction: b.movedPreAction || !b.acted, action: null, reachable: new Map(), preview: null } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -697,8 +706,7 @@ function attackClickCommit(get: Get, set: Set, active: Combatant, id: string, op
   }
   // Cible Inconsciente (LDB 16 l.113) : l'attaquant gagne « Je ne faillirai pas ! » SANS dépenser de
   // Résilience → réutilise le MÊME picker de Localisation (`pa.forcee`/CritLocationPicker, LDB 17 l.68)
-  // que le Critique forcé par Résilience. Réservé au joueur qui PILOTE ; l'IA (doAttack) résout hors de
-  // ce chemin (pendingAttack), donc ne voit jamais ce choix.
+  // que le Critique forcé par Résilience. Réservé au joueur humain qui PILOTE (`pilotedByHuman`).
   if (isHelplessTarget(target) && pilotedByHuman(get(), active)) pa = { ...pa, forcee: true };
   if (coutPaye) pa = { ...pa, coutPaye };
   if (active.chargedThisTurn) pa = { ...pa, fromCharge: true }; // LDB 15 l.35

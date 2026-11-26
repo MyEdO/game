@@ -78,6 +78,8 @@ import type { PendingCouncil, PosteDuBord } from './shipCrew';
 import type { Scene, VictoryCondition } from './monde/scene';
 import type { DialogueTurn } from './monde/dialogueHistory';
 import type { Pt } from './monde/path';
+import type { HostJet } from './slotsDeJet';
+import type { ArgumentsDuReglage } from './reglagesDuJet';
 import { initialFields } from './stateFields';
 import type { NarratifBlock, OuvertureBlock } from '../data/schemas/defs-scenes/narratif';
 import type { ChapitreDepuis, ChapterRecap } from './chapitreRecap';
@@ -103,14 +105,14 @@ export type ShootingStanceKey = keyof ShootingStance;
  *  (`frappePilotee`), qui porte en `reprise` le geste de l'IA qu'elle a devancé dans un tour décidé. */
 export type GesteDeSuite =
   | { kind: 'frappePilotee'; pa: PendingAttack; reprise?: GesteDeSuite }
-  | { kind: 'frappe'; cibleId: string; weaponUid?: string; deuxArmes?: true }
+  | { kind: 'frappe'; cibleId: string; weaponUid?: string; deuxArmes?: true; charge?: true }
   | { kind: 'avancer' }
   | { kind: 'sort'; spellId: string; cibleId: string }
   | { kind: 'zone'; spellId: string; centre: Pt }
-  | { kind: 'deplacer'; vers: Pt; chemin: Pt[] | null; thenTargetId: string; allure: AllureDeLIA; charge: boolean; distAvant: number; depuis: Pt; mouvementAvant: number };
+  | { kind: 'deplacer'; vers: Pt; thenTargetId: string; allure: Exclude<AllureDeLIA, 'charge'>; mouvementAvant: number };
 
-/** L'allure que la décision de l'IA porte à son déplacement (`aiApproachPlan`) : la Marche ou la Course, jouées par le
- *  geste du joueur, ou la Charge (LDB 15 l.35-41). */
+/** L'allure que la décision de l'IA porte à son approche (`aiApproachPlan`) : la Marche ou la Course, jouées par le
+ *  geste de déplacement du joueur, ou la Charge, jouée par son geste d'attaque (`frappe.charge`). LDB 15 l.35-41 */
 export type AllureDeLIA = 'marche' | 'course' | 'charge';
 
 /** Le tour en cours d'une clé : `decide` dit que l'IA l'a décidé (`runEnemyAI` seul le pose), `armements` compte ses
@@ -123,6 +125,25 @@ export interface TourEnCours {
   parquee?: true;
   /** Les cases (`tileKey`) que le geste de déplacement a refusées à l'IA ce tour : sa re-décision les écarte (#5042). */
   casesRefusees?: string[];
+  /** Les cibles que le geste d'attaque a refusées à l'IA ce tour : sa re-décision ne les frappe plus (#5042). */
+  ciblesRefusees?: string[];
+  /** Les re-décisions de ce tour (`redeciderLeTour`), bornées. */
+  redecisions?: number;
+  /** Les réglages que la décision de l'IA pose, par étape-jet, sur celle que son geste ouvre à l'acteur du tour (arme,
+   *  deux armes, voie du Désengagement), joués avant sa paire par le jeu d'office (`cascade.jouerLHoteDOffice`) ou
+   *  l'Auto-combat (`combatAuto.autoResolveCascade`), puis consommés. */
+  reglages?: Partial<Record<HostJet, readonly ArgumentsDuReglage[]>>;
+}
+
+/** CLÉ d'un tour : CE combattant, à CE tour de CE Round — l'unité de `battle.tourEnCours`, que l'IA décide une fois. */
+export function cleDeTour(battle: Pick<BattleState, 'round' | 'turn'>, id: string): string {
+  return `${battle.round}:${battle.turn}:${id}`;
+}
+
+/** Le tour en cours de `id` s'il est celui du tour courant, sinon `undefined` (enregistrement périmé ou absent). */
+export function tourEnCoursDe(battle: BattleState, id: string): TourEnCours | undefined {
+  const tour = battle.tourEnCours;
+  return tour?.cle === cleDeTour(battle, id) ? tour : undefined;
 }
 
 /** La série d'attaques subies hors bataille (`EtatDeJeu.serieSubie`). `apresSuite` : la suite que le dé `nombre` faisait

@@ -95,7 +95,6 @@ import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
 import {
   creatures,
-  estUnNavireAPonts,
   navalPorts,
   findCreatureById,
   choixDeLaFeuilleDId,
@@ -143,6 +142,7 @@ import { tableTotale } from '../lib/tableTotale';
 import type { Catalogue } from '../data/schemas/catalogue/catalogue';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
+import { estUnNavireAPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/schemas/catalogue/poseDesPonts';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
@@ -478,16 +478,26 @@ export const ficheEditee = (ent: SceneEntity, narratif: NarratifBlock, cat: Cata
   parserSousCatalogue(sceneEntitySchema, ent, cat).success ? ficheDuPersonnage(ent, presetDuNarratif(narratif), objetInstanciableDuNarratif(narratif)) : undefined;
 
 /** Le cap de l'entité `ent` : le sien, sinon le cap d'identité (`CAP_IDENTITE_PROP`). */
-export const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTITE_PROP;
+const capDeLEntite = (ent: SceneEntity): Dir8 => ent.facing ?? CAP_IDENTITE_PROP;
 
 /** La lumière que l'entité `ent` prend quand l'auteur l'allume : la sienne, ou un rayon de 6 m. */
 export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light']> => ({ ...ent.light, radiusM: ent.light?.radiusM ?? 6 });
 
 /** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet, les
  *  cardinaux seuls pour un décor volumique (`capDecorAdmis`) ou un navire à ponts (`estUnNavireAPonts`). */
-export function capsOfferts(ent: SceneEntity): Dir8[] {
-  if (ent.kind === 'personnage' && estUnNavireAPonts(ent.vehicule?.id)) return DIR8_ORDER.filter(estCardinal);
+export function capsOfferts(ent: SceneEntity, cat: Catalogue = catalogueDuProcessus()): Dir8[] {
+  if (ent.kind === 'personnage' && estUnNavireAPonts(ent.vehicule?.id, cat)) return DIR8_ORDER.filter(estCardinal);
   return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
+}
+
+/** Les caps de l'entité `ent` de `scene` à l'inspecteur (`capsOfferts`), chacun avec le refus, sous `cat`, de ses ponts
+ *  posés à ce cap (`refusDePoseDesPonts`, `null` : admis) ; et le cap qu'elle tient : celui de ses ponts posés
+ *  (`rectangleDesPonts`), sinon le sien (`capDeLEntite`). */
+export function capsDeLaPose(scene: Scene, ent: SceneEntity, cat: Catalogue = catalogueDuProcessus()): { readonly tenu: Dir8; readonly caps: readonly { readonly cap: Dir8; readonly refus: string | null }[] } {
+  return {
+    tenu: rectangleDesPonts(scene, ent, cat)?.cap ?? capDeLEntite(ent),
+    caps: capsOfferts(ent, cat).map((cap) => ({ cap, refus: refusDePoseDesPonts(scene, { ...ent, facing: cap }, cat) ?? null })),
+  };
 }
 
 /** Les fiches qu'un personnage posé peut nommer (#1882) : les créatures du bestiaire qui ont des Blessures
@@ -532,8 +542,9 @@ export interface DonneeDuPorteur extends DonneeDesRegistres { zone: SceneEffectZ
 export type SorteDePorteur = keyof DonneeDuPorteur;
 
 /** Le cadre où vit un porteur de formulaire tiré du schéma : sa scène, les scènes, la carte du monde et le narratif de
- *  son projet, et le `Source/` que ses adresses de prose désignent (`SourceDeLEdition`). */
-export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif' | 'worldMap'>; source: SourceDeLEdition }
+ *  son projet, le `Source/` que ses adresses de prose désignent (`SourceDeLEdition`) et le catalogue où se juge sa
+ *  fiche (`ficheEditee`). */
+export interface CadreDuPorteur { scene: Scene; projet: Pick<ProjectDoc, 'scenes' | 'narratif' | 'worldMap'>; source: SourceDeLEdition; catalogue: Catalogue }
 
 /** Le projet édité : le document que tient un cran de l'historique de l'éditeur. */
 export type ProjetDEdition = Omit<ProjectDoc, 'schema'>;
@@ -640,10 +651,10 @@ const SORTS_CHOISIS = ['combat', 'spells'] as const;
  *  ouvre une liste de sorts (`listesDeSorts`) sans imprimer les siens (`sortsImprimes`) ; d'une coque, son véhicule,
  *  ses Améliorations et ses postes (MDG 12) ; d'un PNJ de carrière (`parcoursDe`), aucun de ses profils d'auteur (`PROFILS_D_AUTEUR`),
  *  et son apparence sans tenue (`APPARENCE_DU_PNJ_DE_CARRIERE`). */
-function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif } }: CadreDuPorteur): CheminsOfferts {
+function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif }, catalogue }: CadreDuPorteur): CheminsOfferts {
   const preset = ent.presetId !== undefined || narratif.presetsPnj.length ? [['presetId']] : [];
   const dialogue = ent.dialogueId !== undefined || dialoguesDeLaScene(scene).size ? [['dialogueId']] : [];
-  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, narratif);
+  const fiche = ent.combat?.spells?.length ? undefined : ficheEditee(ent, narratif, catalogue);
   const sorts = ent.combat?.spells?.length || (fiche && !sortsImprimes(fiche.porteurDeFiche).length && listesDeSorts(fiche).length) ? [SORTS_CHOISIS] : [];
   const coque = ent.vehicule ? [['vehicule'], ['upgrades'], ['postes']] : [];
   const champs = [...preset, ...dialogue, ...CHAMPS_DU_PERSONNAGE, ...sorts, ...coque];
@@ -654,10 +665,10 @@ function champsDuPersonnage(ent: SceneEntity, { scene, projet: { narratif } }: C
 /** Les choix que le contexte d'un personnage pose à ses sorts choisis (`combat.spells`) : d'un élément au rang `rang`, ou
  *  de l'élément neuf qui suit le dernier, chaque sort d'une liste que sa fiche ouvre (`listesDeSorts`), hors des autres
  *  choisis, la courante restant offerte, refusé par ce que dit `refusDesSortsChoisis` des choisis où il prend ce rang ;
- *  sans fiche (`ficheEditee`), la courante seule. */
-function choixDesSorts(ent: SceneEntity, rang: number, narratif: NarratifBlock): readonly ChoixDuContexte[] {
+ *  sans fiche (`ficheEditee`, sous le catalogue `cat`), la courante seule. */
+function choixDesSorts(ent: SceneEntity, rang: number, narratif: NarratifBlock, cat: Catalogue): readonly ChoixDuContexte[] {
   const choisis = ent.combat?.spells ?? [];
-  const fiche = ficheEditee(ent, narratif);
+  const fiche = ficheEditee(ent, narratif, cat);
   const listes = fiche ? listesDeSorts(fiche) : [];
   const avec = (id: string) => [...choisis.slice(0, rang), id, ...choisis.slice(rang + 1)];
   return spells
@@ -777,7 +788,7 @@ function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: 
   }
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
-  return sorts ? choixDesSorts(ent, rang, narratif) : choixDesOptions(ent, chemin);
+  return sorts ? choixDesSorts(ent, rang, narratif, cadre.catalogue) : choixDesOptions(ent, chemin);
 }
 
 /** Les actions authorées d'un décor (`SceneEntity.usable`). */

@@ -41,7 +41,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
         "lines": [
           "round:— Round 2 —",
           "etat:Dider Rudlos subit 1 Blessure(s) (ignorant BE et PA).",
-          "etat:Dider Rudlos — Test de Résistance (Résistance à l’Empoisonné) Intermédiaire (+0) : 13/20 → réussi (DR +1).",
+          "etat:Dider Rudlos — Test de Résistance (Résistance à l’Empoisonné) Intermédiaire (+0) : 13/20, réussi (DR +1).",
           "etat:Dider Rudlos retire 1 État Empoisonné.",
           "etat:Dider Rudlos reçoit 1 État Exténué.",
         ],
@@ -66,7 +66,7 @@ describe('GOLDEN — séquence de franchissement de Round (advanceTurn)', () => 
     advanceTurn(banc.getState, banc.setState);
     expect(banc.getState().battle!.log.slice(beforeLen).map((e) => e.text)).toEqual([
       '— Round 2 —',
-      'Dider Rudlos — Test de Résistance (Résistance au Sonné) Intermédiaire (+0) : 13/20 → réussi (DR +1).',
+      'Dider Rudlos — Test de Résistance (Résistance au Sonné) Intermédiaire (+0) : 13/20, réussi (DR +1).',
       'Dider Rudlos retire 1 État Sonné.',
       'Dider Rudlos reçoit 1 État Exténué.',
     ]);

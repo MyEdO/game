@@ -6,7 +6,7 @@
 import { describe, it, expect } from 'vitest';
 import { addCondition, conditionGating } from '../engine/conditions';
 import { effectiveMovement } from '../engine/encumbrance';
-import { refusDeCharge, refusDeCourse, refusDeCourseDuPorteur, refusRampe } from './refusDuTour';
+import { refusDeCharge, refusDeCourse, refusRampe } from './refusDuTour';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { BattleState } from './etat';
@@ -60,9 +60,9 @@ describe('Mouvement entamé : la Charge se ferme, la Course non (LDB 15 l.35-41)
 });
 
 describe('Rampant : aucune Action de Course (MSRC 15 l.171)', () => {
-  it('refusDeCourseDuPorteur et refusDeCourse le refusent, la Charge reste à son propre verdict', () => {
+  it('refusDeCourse le refuse, la Charge reste à son propre verdict', () => {
     const { c, battle } = porteur(4, []);
     c.traits = [{ id: 'rampant' }];
-    expect([refusDeCourseDuPorteur(battle.combatants, c), refusDeCourse(null, battle, c), refusDeCharge(battle, c)]).toEqual([t('agate.cannotRun'), t('agate.cannotRun'), null]);
+    expect([refusDeCourse(null, battle, c), refusDeCharge(battle, c)]).toEqual([t('agate.cannotRun'), null]);
   });
 });

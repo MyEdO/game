@@ -78,7 +78,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - En haut à droite, le cartouche « Regard » : « Isométrique », « Dessus », « Première personne », le regard tenu doré,
   et sa touche (V, exemple : la touche par défaut de `changer_de_regard`, `hotes/godot/projet/project.godot:52`).
 - Verbes : ceux de `exploration-gestes`. Le regard se change par la méthode du pont `regarder({ regard })`
-  (`hotes/godot/pont/pont.ts:1432`), l'un de `REGARDS` = `tactique`, `plateau`, `immersion`
+  (`hotes/godot/pont/pont.ts:1667`), l'un de `REGARDS` = `tactique`, `plateau`, `immersion`
   (`src/noyau/monde/aretes.ts:125`) ; la touche joue `plateau.regardSuivant` (`src/noyau/monde/aretes.ts:269`,
   `hotes/godot/projet/scripts/combat.gd:464`). Aucun verbe à créer : le regard est un état de l'hôte, pas du noyau
   (à l'hôte web : `toggleViewMode`, `togglePov`, `src/state/store.ts:248`).

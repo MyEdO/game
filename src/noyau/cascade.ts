@@ -55,7 +55,7 @@ import { libelleDeLaFermeture } from './libelles';
 import type { StakeRef } from '../data';
 import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { faitsDesConsequences, resultLines, surfaceOf } from './rollSeam';
+import { faitsDesConsequences, resultLines, surfaceDesEtapes, surfaceOf } from './rollSeam';
 import { aiDriven, canFixDie, decidingSeat, influencesLocally, intentAllowedFor } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
@@ -82,7 +82,7 @@ import { journaliser } from './combatLog';
 import { tablesPosees } from './tablesPosees';
 import { cloturer, comptePorteursDeSuite, MAIN_RENDUE } from './combatEffects';
 import { seatOwns, tenuParUnHumain } from './sieges';
-import { jouerLaPaireDuJet, jouerLeDrive, TOUT_RESOUDRE } from './combatAuto';
+import { jouerLaPaireDuJet, jouerLeDrive, prendreLesReglagesDeLaDecision, TOUT_RESOUDRE } from './combatAuto';
 import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 import { noterAuProcesVerbal } from './voyageCadence';
 
@@ -1862,7 +1862,7 @@ function avanceUnPas(get: Get, set: Set, suiteDeLHote: (() => void) | undefined)
  * qu'un pilote LANCÉ n'a pas. `null` : reparquée, ou interrompue par la clôture hors combat.
  */
 function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: ReprisePilote): PendingCascade | null {
-  const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, rowSurface: reprise.rowSurface, auxVraisChoix: reprise.auxVraisChoix };
+  const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, rowSurface: reprise.rowSurface, arret: reprise.arret };
   const r = piloteImmediat(get, set, p.participants, ctx, p.cursor, p.seq, fusionnerLesBornes({ log: [] }, p));
   if (!r) return null;
   if (!r.clos) { assertBornesPortees(r.collectees); return null; }
@@ -2008,6 +2008,10 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * journal (procès-verbal structuré de traversée) — le socle n'en trace alors pas les dés (#1291) et écrit
  * chaque bande au compte rendu du trajet à son commit (`noterAuProcesVerbal`). Les étapes MONO du même
  * tableau gardent leur ligne : elles n'ont pas de rangée au PV.
+ *
+ * `ctx.arret` : l'étape où le pilote rend la main, parquée au curseur (`curseurPose`) avant tout jet ou défaut —
+ * `'vraisChoix'` (`attendUnVraiChoix`, #3534), `'tenues'` : la surface de CETTE étape n'est pas `'I'`
+ * (`rollSeam.surfaceDesEtapes`, #5042), la loi qui a jugé l'ouverture, rejouée à chaque étape de la séquence.
  */
 export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: ContexteDuPilote): CascadeStep[] | undefined {
   const r = piloteImmediat(get, set, steps, ctx, 0, steps.length, { log: ctx?.log ?? [] }); // un tableau à LUI : son compteur part de sa longueur
@@ -2016,12 +2020,12 @@ export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ct
   return r.clos ? r.steps : undefined;
 }
 
-type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface; auxVraisChoix?: true };
+type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface; arret?: ReprisePilote['arret'] };
 
 /** Le contexte de lancement que la séquence parquée emporte (`ReprisePilote`). */
 function repriseDe(ctx: ContexteDuPilote | undefined): ReprisePilote {
   if (!ctx) return { sansContexte: true };
-  return { ...(ctx.rowSurface ? { rowSurface: ctx.rowSurface } : {}), ...(ctx.auxVraisChoix ? { auxVraisChoix: true as const } : {}) };
+  return { ...(ctx.rowSurface ? { rowSurface: ctx.rowSurface } : {}), ...(ctx.arret ? { arret: ctx.arret } : {}) };
 }
 
 /**
@@ -2051,7 +2055,7 @@ function attendUnVraiChoix(get: Get, st: CascadeStep): boolean {
  * journée reprise après un arrêt.
  */
 export function jouerLaJournee(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteDuPilote, commandee: boolean): void {
-  const c: ContexteDuPilote = commandee ? ctx : { ...ctx, auxVraisChoix: true };
+  const c: ContexteDuPilote = commandee ? ctx : { ...ctx, arret: 'vraisChoix' };
   const r = piloteImmediat(get, set, steps, c, 0, steps.length, { log: ctx.log ?? [] });
   if (!r?.clos) return;
   clotureDeCascade({ title: ctx.title, purpose: ctx.purpose, ...fusionnerLesBornes({ log: ctx.log ?? [] }, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length, piloteImmediat: repriseDe(c) });
@@ -2085,7 +2089,7 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
 
   for (let i = depuis; i < cur.length; i++) {
     const st = cur[i];
-    if (ctx?.auxVraisChoix && attendUnVraiChoix(get, st)) {
+    if (ctx?.arret && (ctx.arret === 'vraisChoix' ? attendUnVraiChoix(get, st) : surfaceDesEtapes(get, [st]) !== 'I')) {
       parquer(curseurPose(get, parquee(i, ctx.title), i));
       return undefined;
     }
@@ -2159,7 +2163,8 @@ function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteD
 /**
  * L'ÉTAPE HÔTE QU'AUCUN HUMAIN NE TIENT, parquée dans le slot (#3892) : elle se joue par les MÊMES verbes qu'un
  * humain sur sa fenêtre (`combatAuto.jouerLaPaireDuJet`), sur ce slot — `sieges.tenuParUnHumain` : « leur étape se
- * résout d'office et se montre au bilan ». Une paire par manche (Test étendu), tant qu'elle fait bouger l'état (le
+ * résout d'office et se montre au bilan ». Les réglages que la décision de l'IA a posés pour elle se jouent d'abord
+ * (`prendreLesReglagesDeLaDecision`, #5042). Une paire par manche (Test étendu), tant qu'elle fait bouger l'état (le
  * slot de la cascade ou celui du jet) et que le curseur reste sur cette étape non validée ; rien ne bouge : l'étape
  * reste parquée. Borne : `SEQUENCE_HARD_MAX_ROUNDS` manches.
  */
@@ -2167,6 +2172,7 @@ function jouerLHoteDOffice(get: Get, st: CascadeStep): void {
   const jet = st.jet;
   if (!jet || st.committed || porteursDeLEtape(st).some((id) => tenuParUnHumain(get(), id))) return;
   const slot = PENDING_BY_JET[jet];
+  for (const reglage of prendreLesReglagesDeLaDecision(get, jet, st.actorId)) get().jetRegler(...reglage);
   jouerTantQueCaBouge(() => {
     const avant = get();
     jouerLaPaireDuJet(get, jet);

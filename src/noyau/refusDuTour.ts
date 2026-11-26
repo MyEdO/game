@@ -77,9 +77,8 @@ export function refusDuBinome(scene: Scene | null, battle: Pick<BattleState, 'co
   return t(c.weapons.includes(bouclier) ? 'agate.binomeTientLeBouclier' : 'agate.binomeCouvert', { bouclier: bouclier.label });
 }
 
-/** Ce que la Course exige du PORTEUR (LDB 15 l.41 ; Brisé : LDB 16 l.52), hors de l'économie du Tour : lu tel quel
- *  par le plan d'approche de l'IA (`aiApproachPlan`), qui décide avant d'avoir agi. */
-export function refusDeCourseDuPorteur(roster: readonly Combatant[], c: Combatant): string | null {
+/** Ce que la Course exige du PORTEUR (LDB 15 l.41 ; Brisé : LDB 16 l.52), hors de l'économie du Tour. */
+function refusDeCourseDuPorteur(roster: readonly Combatant[], c: Combatant): string | null {
   return refusCoque(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusEngage(roster, c) ?? refusRampe(c) ?? refusSansCourse(c);
 }
 
@@ -91,4 +90,10 @@ export function refusDeCourse(scene: Scene | null, battle: BattleState, c: Comba
 /** Verdict de la Charge (LDB 15 l.35-37), lu par le gate `charge-possible`, `computeChargeReach` et `attackPlan`. */
 export function refusDeCharge(battle: BattleState, c: Combatant): string | null {
   return refusEngage(battle.combatants, c) ?? refusRampe(c) ?? refusHorsDEtatDAgir(c) ?? refusPriereImposee(c) ?? refusSansMouvement(battle, c) ?? refusMouvementEntame(battle);
+}
+
+/** Les budgets d'allure `budgets` que la porte du joueur laisse à `c` : la Charge et la Course, `null` quand elle les
+ *  refuse (`refusDeCharge`, `refusDeCourse`). LDB 15 l.35-41 */
+export function budgetsDAllure(scene: Scene | null, battle: BattleState, c: Combatant, budgets: { charge: number; course: number }): { charge: number | null; course: number | null } {
+  return { charge: refusDeCharge(battle, c) ? null : budgets.charge, course: refusDeCourse(scene, battle, c) ? null : budgets.course };
 }

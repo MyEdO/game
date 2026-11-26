@@ -16,8 +16,7 @@ import {
   coinsDuCalque,
   planDuCalque,
   type CalquesStockes,
-  capDeLEntite,
-  capsOfferts,
+  capsDeLaPose,
   entiteDeLaSelection,
   ficheEditee,
   fichesDePersonnage,
@@ -157,8 +156,6 @@ import {
   listesDeSorts,
   sortsImprimes,
   aLEchelleDesPonts,
-  rectangleDesPonts,
-  refusDePoseDesPonts,
   CAPS_DES_PONTS,
   TYPES_DE_NAVIRE,
   vueDeLaScene,
@@ -968,7 +965,7 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
     .map((c) => boutonDEdition(`${id}/${c}`, t('ecran.editeur.couche', { z: c }), jeu(c), c === z)));
 
 /** L'inspecteur de l'entité sélectionnée de la session `s` : son nom ; le type d'un décor, la fiche d'un personnage du
- *  bestiaire ; son cap parmi ceux que son type admet (`capsOfferts`) ; sa couche ; la lumière, les places et l'identifiant
+ *  bestiaire ; son cap parmi ceux que son type admet (`capsDeLaPose`) ; sa couche ; la lumière, les places et l'identifiant
  *  de chaque action d'un décor ;
  *  le poste d'un emplacement de siège et l'équipage exposé d'une coque ; l'inventaire d'un personnage, son parcours de carrière, son
  *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
@@ -977,10 +974,9 @@ function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): 
   const fiches = fichesDePersonnage();
   const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
   const scene = sceneEditee(s);
-  const cap = rectangleDesPonts(scene, ent)?.cap ?? capDeLEntite(ent);
-  const caps = capsOfferts(ent).map((c) => boutonDEdition(
-    `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } },
-    c === cap, refusDePoseDesPonts(scene, { ...ent, facing: c }) ?? null,
+  const pose = capsDeLaPose(scene, ent, s.catalogue);
+  const caps = pose.caps.map(({ cap: c, refus }) => boutonDEdition(
+    `entite/cap/${c}`, t(`ecran.editeur.cap.${c}`), { geste: 'entite', patch: { facing: c } }, c === pose.tenu, refus,
   ));
   return [
     formulaireDuNom(ent.label, true),
@@ -1194,7 +1190,7 @@ function carrieres(ent: Scene['entities'][number]): (Choix | Ligne | Bouton)[] {
  *  Compétences à la valeur de leur Test, ses Talents, ses possessions et ses mentions, une ligne par nature. */
 function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
   const scene = sceneEditee(s);
-  const porte = ficheEditee(ent, projetEdite(s).narratif);
+  const porte = ficheEditee(ent, projetEdite(s).narratif, s.catalogue);
   const fiche = porte && ficheDuCombattant(porte, (id) => {
     const e = scene.entities.find((x) => x.id === id);
     return e && nomALEcran(s, e);
@@ -1217,7 +1213,7 @@ function profilDeLEntite(s: SessionDEdition, ent: Scene['entities'][number]): Li
  *  imprime ; sinon, s'il a une liste de sorts (`listesDeSorts`), ses sorts au combat, choisis et tirés (`sortsDuPnj`).
  *  Les sorts choisis s'écrivent au formulaire tiré du schéma (`formulaireDe`). */
 function sorts(s: SessionDEdition, ent: Scene['entities'][number]): Ligne[] {
-  const fiche = ficheEditee(ent, projetEdite(s).narratif);
+  const fiche = ficheEditee(ent, projetEdite(s).narratif, s.catalogue);
   if (!fiche) return [];
   const liste = (ids: readonly string[]) => ids.map((id) => findSpellById(id)?.label ?? id).join(', ') || t('ecran.editeur.profil.aucun');
   const imprimes = sortsImprimes(fiche.porteurDeFiche);
