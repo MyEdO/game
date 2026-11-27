@@ -1276,12 +1276,8 @@ export const CHAMPS_RESERVES: readonly ChampReserve[] = champsDeclares<ChampRese
 
 /** Les Conditions RÉSERVÉES à un porteur, admises par le régime `condition.<kind>` de sa famille et refusées
  *  nommément partout ailleurs. `cibleEnVue` ne se lit qu'au contexte d'une affliction psychologique ; `allieAuContact`
- *  qu'au relevé de Round des effets de Trait (`releveDeRound`, `DECLENCHEURS_DU_RELEVE_DE_ROUND`). */
+ *  qu'au début du Round, dans les effets de Trait (`onRoundStart`, relevé `releveDeRound`). LDB 85 l.335 */
 export const CONDITIONS_RESERVEES = ['cibleEnVue', 'allieAuContact'] as const;
-
-/** Les déclencheurs où le dispatcher pose le relevé d'arène du Round (`releveDeRound`, `noyau/triggeredEffects.ts`) :
- *  le seul contexte où `allieAuContact` se résout. */
-export const DECLENCHEURS_DU_RELEVE_DE_ROUND = ['onRoundStart', 'onRoundEnd'] as const;
 
 /** La valeur `v` (Flow, Condition, op) porte-t-elle, à quelque profondeur que ce soit, une Condition de `kind` réservé ? */
 export function porteLaCondition(v: unknown, kind: ConditionReservee): boolean {

@@ -31,6 +31,8 @@ import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
 import { drainPendingLog } from '../combatEffects';
+import { emitCombatEvent } from '../combatEvents';
+import { inBattleId } from '../monde/combatants';
 import { collectRoundEndTestSteps } from './triggeredTest';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
@@ -44,6 +46,7 @@ import { avantageApresPerte } from '../../engine/advantage';
 import { combatStakeRef } from '../../data';
 import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
+import type { BattleState } from '../etat';
 import type { CascadeStep } from '../pendings';
 import type { Get, Set as SetFn } from '../flowTypes';
 import { dataLabel, testSkillLabel } from '../../data';
@@ -62,15 +65,15 @@ const RESISTANCE: TestDesigne = { skill: { id: 'resistance' } };
 // `roundBoundary.golden.hors-store.test.ts` fige (ordre et tirages).
 // ============================================================================================
 
-/** Effets « début de Round » authorés (`onRoundStart` : Régénération, Stupide…) du Round qui s'ouvre au franchissement,
- *  pour chaque combattant en action (le Round 1 les émet par le bus, `lancerLeCombat`). Un hors-combat n'y réagit pas :
- *  le dispatcher autorise `on:'soi'` sur un hors-combat. Les lignes qu'un Flow joué par le marcheur de combat met en
- *  file différée (`enfilerAuJournal`) partent au même `sink`. */
-function fireRoundStartTriggers(get: Get, set: SetFn, combatants: readonly Combatant[], sink: (line: string, c: Combatant) => void): void {
-  for (const c of combatants) {
+/** DÉBUT DE ROUND, chemin UNIQUE du Round 1 (`lancerLeCombat`) et du franchissement (crochet `fire-round-start-triggers`) :
+ *  pour chaque combattant en action, `onRoundStart` émis par le bus (#316) pour lui seul, puis les lignes que ses Flows ont
+ *  mises en file différée (`enfilerAuJournal`) — le journal suit l'ordre des porteurs. Un hors-combat n'y réagit pas : le
+ *  dispatcher autorise `on:'soi'` sur un hors-combat. */
+export function fireRoundStartTriggers(get: Get, set: SetFn, battle: BattleState, sink: (line: string, c?: Combatant) => void): void {
+  for (const c of battle.combatants) {
     if (isOutOfAction(c)) continue;
-    for (const line of fireTriggers(get, c, 'onRoundStart', { rng: battleRng(), set })) sink(line, c);
-    for (const e of drainPendingLog(get, set)) sink(e.entree.texte, combatants.find((x) => x.id === e.actorId) ?? c);
+    emitCombatEvent('onRoundStart', { get, set, battle, audience: [c], sink, triggerCtx: { rng: battleRng() } });
+    for (const e of drainPendingLog(get, set)) sink(e.entree.texte, inBattleId(battle, e.actorId ?? '') ?? c);
   }
 }
 
@@ -317,7 +320,7 @@ export const TABLES = {
       id: 'fire-round-start-triggers', // effets « début de Round » authorés du Round qui s'ouvre (`fireRoundStartTriggers`)
       phase: 'onRoundEnd',
       order: 25,
-      run: ({ get, set, battle, sink }) => fireRoundStartTriggers(get, set, battle.combatants, sink),
+      run: ({ get, set, battle, sink }) => fireRoundStartTriggers(get, set, battle, sink),
     },
     {
       // Auras de combat — machinerie GÉOMÉTRIQUE GÉNÉRIQUE : projette les `passive` de toute `TraitData.aura`

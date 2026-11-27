@@ -82,8 +82,7 @@ describe('jouerLaRencontre (#4829)', () => {
   });
 
   it('trace le Destin que chaque héros a perdu pendant la rencontre (« Meurs un autre jour », LDB 17 l.31)', () => {
-    // h1 entre mourant (Inconscient à 0 PB, plus de Blessures critiques que son Bonus d'Endurance, LDB 18 l.34) : sa
-    // mort lente se résout au franchissement du Round, par son Destin.
+    // h1 entre mourant, sa mort lente se résout par son Destin au franchissement du Round. LDB 18 l.34
     const mourant = { wounds: { current: 0, max: 10 } as Combatant['wounds'], conditions: [{ id: 'inconscient', value: 1 }], criticalWounds: 9 };
     const { issue } = jouer(ouvrir(4, [heros('h1', 30, [], mourant), heros('h2', 70, ['epee-batarde'], { wounds: { current: 40, max: 40 } as Combatant['wounds'] })], ['troll']));
     const { destinDepense, groupe } = close(issue);

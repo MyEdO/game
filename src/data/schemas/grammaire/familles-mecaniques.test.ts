@@ -133,23 +133,26 @@ describe('fin d’une affliction ciblée — `endPsych.instance` et Condition `c
   });
 });
 
-describe('Condition `allieAuContact` réservée aux `effects` de Trait, aux déclencheurs du relevé de Round (LDB 85 l.335)', () => {
+describe('Condition `allieAuContact` réservée aux `effects` de Trait, au début du Round (LDB 85 l.335)', () => {
   const guide = { kind: 'allieAuContact', tel: { kind: 'not', of: { kind: 'has', who: 'target', what: 'trait', ref: { id: 'stupide' } } } };
   const effet = (trigger: string) =>
     [{ trigger, on: 'soi', flow: { kind: 'si', condition: { kind: 'not', of: guide }, alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } } } }];
+  const stupide = (traitsJson as { id: string }[]).find((t) => t.id === 'stupide')!;
+  const parse = (trigger: string) => schemaForFile('traits.json')!.safeParse([{ ...stupide, effects: effet(trigger) }]);
 
-  it('contrat positif : ADMISE dans les `effects` d’un Trait au début et à la fin du Round', () => {
-    for (const trigger of ['onRoundStart', 'onRoundEnd']) expect(noeud('traits.json', 'effects').safeParse(effet(trigger)).success).toBe(true);
+  it('contrat positif : ADMISE dans les `effects` d’un Trait sur `onRoundStart`', () => {
+    expect(parse('onRoundStart').success).toBe(true);
   });
 
-  it('test opposé : REFUSÉE sur un autre déclencheur du Trait (refus nommé de l’entrée), par la famille fermée et hors des Traits', () => {
-    const stupide = (traitsJson as { id: string }[]).find((t) => t.id === 'stupide')!;
-    const entree = (trigger: string) => ({ ...stupide, effects: effet(trigger) });
-    const parse = (trigger: string) => schemaForFile('traits.json')!.safeParse([entree(trigger)]);
-    expect(parse('onRoundStart').success).toBe(true);
-    const refus = parse('onHit');
-    expect(refus.success).toBe(false);
-    expect(refus.error?.issues.some((i) => i.message.includes('allieAuContact'))).toBe(true);
+  for (const trigger of ['onRoundEnd', 'onHit']) {
+    it(`test opposé : REFUSÉE sur \`${trigger}\`, par un refus qui la nomme`, () => {
+      const refus = parse(trigger);
+      expect(refus.success).toBe(false);
+      expect(refus.error?.issues.some((i) => i.message.includes('allieAuContact') && i.message.includes(trigger))).toBe(true);
+    });
+  }
+
+  it('test opposé : REFUSÉE par la famille fermée et hors des Traits', () => {
     expect(conditionSchema.safeParse(guide).success).toBe(false);
     for (const file of ['talents.json', 'psychology.json']) expect(noeud(file, 'effects').safeParse(effet('onRoundStart')).success).toBe(false);
   });

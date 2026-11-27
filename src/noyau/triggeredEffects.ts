@@ -72,7 +72,6 @@ import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { alliesAuContactParmi } from './combat/surnombre';
-import { DECLENCHEURS_DU_RELEVE_DE_ROUND } from '../data/schemas/grammaire/mecanique';
 import { buildActorView } from '../engine/actorView';
 import { crochetsDeCorruption } from './corruptionFlow';
 import { routeTriggeredTest, runCombatFlow, sujetDeTrace } from './combat/triggeredTest';
@@ -430,25 +429,36 @@ export function hasFoeInLoS(get: Get, actor: Combatant): boolean {
   return !sourcesEnVue(battle, scene, actor, (f) => f.kind !== actor.kind && !isOutOfAction(f)).next().done;
 }
 
-/** RELEVÉ D'ARÈNE DU ROUND pour `actor`, partagé par le dispatcher (aux `DECLENCHEURS_DU_RELEVE_DE_ROUND`) et le
- *  collecteur des Tests de fin de Round (`collectRoundEndTestSteps`). Géométrie de RÉCUPÉRATION du Brisé (LDB 16
- *  l.54-58), alimentant les Conditions `hiddenFromFoes`/`engaged`/`nearestFoe` (auto-retrait caché, gate du Test,
- *  difficulté par proximité), et alliés au contact (`allieAuContact`, LDB 85 l.335) :
- *  - `hiddenFromFoes` : AUCUN adversaire vivant ne voit l'acteur (sens foe→acteur, `tileSeenByFoe`) — « caché
- *    hors de vue de tout ennemi » (l.56). Faux s'il n'y a aucun adversaire (rien à fuir → pas de « caché »).
- *  - `engaged` : l'acteur est-il Engagé (l.57 : aucun Test si Engagé) ;
- *  - `nearestFoeDist` : distance (cases) à l'adversaire vivant le plus proche (l.58 : Très difficile si ≤3).
- *  - `alliesAuContact` : les alliés au contact (`alliesAuContactParmi`), en vues d'acteur À PLAT (sans accesseur),
- *    portables par le `meta` d'une étape différée.
+/** Les déclencheurs où le dispatcher pose le relevé d'arène du Round (`releveDeRound`) : `onRoundStart` (Condition
+ *  `allieAuContact`, LDB 85 l.335) et `onRoundEnd` (géométrie du Brisé, LDB 16 l.54-58). */
+const DECLENCHEURS_DU_RELEVE_DE_ROUND: readonly EffectTrigger[] = ['onRoundStart', 'onRoundEnd'];
+
+/** GÉOMÉTRIE DE RÉCUPÉRATION du Brisé pour `actor`, lue par les Conditions `hiddenFromFoes`, `engaged` et `nearestFoe`
+ *  (auto-retrait caché, gate du Test, difficulté par proximité ; LDB 16 l.54-58), partagée par le dispatcher et le
+ *  collecteur des Tests de fin de Round (`collectRoundEndTestSteps`) :
+ *  - `hiddenFromFoes` : aucun adversaire vivant ne voit l'acteur (sens foe→acteur, `tileSeenByFoe`), faux sans
+ *    adversaire. LDB 16 l.56
+ *  - `engaged` : l'acteur est Engagé. LDB 16 l.57
+ *  - `nearestFoeDist` : distance (cases) à l'adversaire vivant le plus proche. LDB 16 l.58
  *  RNG-free → identique côté inline (ennemi/auto) et côté cascade (héros). Hors combat / sans position = neutre. */
-export function releveDeRound(get: Get, actor: Combatant): { hiddenFromFoes: boolean; engaged: boolean; nearestFoeDist: number; alliesAuContact: ActorView[] } {
+export function geometrieDuBrise(get: Get, actor: Combatant): { hiddenFromFoes: boolean; engaged: boolean; nearestFoeDist: number } {
   const { battle, scene } = get();
-  if (!battle || !actor.pos) return { hiddenFromFoes: false, engaged: false, nearestFoeDist: Infinity, alliesAuContact: [] };
+  if (!battle || !actor.pos) return { hiddenFromFoes: false, engaged: false, nearestFoeDist: Infinity };
   const foes = battle.combatants.filter((e) => e.kind !== actor.kind && !isOutOfAction(e) && e.pos);
   const hiddenFromFoes = !!scene && foes.length > 0 && !tileSeenByFoe(scene, foes, actor.pos, smokeOf(battle));
   const nearestFoeDist = foes.length ? Math.min(...foes.map((e) => chebyshev(actor.pos!, e.pos!))) : Infinity;
-  const alliesAuContact = alliesAuContactParmi(scene, battle.combatants, actor).flatMap((a) => { const vue = buildActorView(a); return vue ? [{ ...vue }] : []; });
-  return { hiddenFromFoes, engaged: isEngaged(actor, battle.combatants), nearestFoeDist, alliesAuContact };
+  return { hiddenFromFoes, engaged: isEngaged(actor, battle.combatants), nearestFoeDist };
+}
+
+/** RELEVÉ D'ARÈNE DU ROUND pour `actor`, que le dispatcher pose aux `DECLENCHEURS_DU_RELEVE_DE_ROUND` : la géométrie du
+ *  Brisé (`geometrieDuBrise`) et les alliés au contact (`alliesAuContactParmi`) de la Condition `allieAuContact`, en vues
+ *  d'acteur À PLAT (sans accesseur), portables par le `meta` d'une étape différée. LDB 85 l.335 */
+export function releveDeRound(get: Get, actor: Combatant): ReturnType<typeof geometrieDuBrise> & { alliesAuContact: ActorView[] } {
+  const { battle, scene } = get();
+  const alliesAuContact = battle && actor.pos
+    ? alliesAuContactParmi(scene, battle.combatants, actor).flatMap((a) => { const vue = buildActorView(a); return vue ? [{ ...vue }] : []; })
+    : [];
+  return { ...geometrieDuBrise(get, actor), alliesAuContact };
 }
 
 /** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne
@@ -522,7 +532,7 @@ export function applyTriggeredEffects(
   // Relevé d'arène du Round (Brisé caché/Engagé/proximité, alliés au contact) — battle-aware, calculé UNE fois pour le
   // porteur, et SEULEMENT aux déclencheurs de Round, les seuls qui le consomment (LDB 16 l.54-58 ; LDB 85 l.335 : la
   // grammaire y borne `allieAuContact`), pour ne pas peser sur les déclencheurs d'attaque.
-  const geom = (DECLENCHEURS_DU_RELEVE_DE_ROUND as readonly EffectTrigger[]).includes(trigger) ? releveDeRound(get, actor) : undefined;
+  const geom = DECLENCHEURS_DU_RELEVE_DE_ROUND.includes(trigger) ? releveDeRound(get, actor) : undefined;
   // Verdict de l'instance sur sa Cible en vue (Condition `cibleEnVue`), mesuré au premier effet qui joue.
   let verdict: { v: CibleEnVue | undefined } | undefined;
   const cibleEnVueDeLInstance = (): CibleEnVue | undefined => (verdict ??= { v: mesurerCibleEnVue(get, actor, ctx.affliction) }).v;

@@ -26,6 +26,11 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 afterEach(() => setCadence('manuel'));
 
 const g = () => banc.getState();
+/** Ce que le journal porte pour le porteur : la ligne de son Test, celle de sa perte (`loseTurn`), et les deux que
+ *  l'ouverture de son tour écrit en la repliant (Mouvement, Action perdus). */
+const LIGNE_DU_TEST = 1;
+const LIGNE_DE_LA_PERTE = 1;
+const LIGNES_DU_TOUR_PERDU = 2;
 /** Le d100 qui réussit ou échoue tout Test. */
 const DE = { reussite: 1, echec: 100 } as const;
 const relu = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
@@ -83,11 +88,11 @@ describe('Stupide au début du Round : même Test, même perte, quel que soit le
       lancerLeRoundDu(banc);
       const perdu = !guide && issue === 'echec';
       expect(budgetDe(P.id)).toEqual(attendu(P.id, perdu));
-      // Le Test joué sans fenêtre s'écrit à l'entretien du franchissement, au journal de combat (`etat`), pour le porteur ;
-      // guidé, rien ne se passe.
-      const ecrit = g().battle!.log.some((l) => l.actorId === P.id && l.kind === 'etat');
-      if (guide) expect(ecrit).toBe(false);
-      else if (porteur !== 'heros-manuel' && porteur !== 'ennemi-du-mj') expect(ecrit).toBe(true);
+      // Joué sans fenêtre, le Test s'écrit UNE fois à l'entretien du franchissement (`etat`), suivi de sa perte sur un
+      // échec ; guidé, rien ne se passe.
+      const lignes = g().battle!.log.filter((l) => l.actorId === P.id && l.kind === 'etat').length;
+      if (guide) expect(lignes).toBe(0);
+      else if (porteur !== 'heros-manuel' && porteur !== 'ennemi-du-mj') expect(lignes).toBe(LIGNE_DU_TEST + (perdu ? LIGNE_DE_LA_PERTE : 0));
       if (!perdu) return;
       // Le tour perdu ne joue rien : ni Mouvement ni Action, puis la main passe.
       banc.jusquA((s) => s.battle!.order[s.battle!.turn] !== P.id, 20);
@@ -142,7 +147,9 @@ describe('Stupide à l’ouverture du Round 1 : le héros premier de l’ordre (
       banc.abandonner();
       expect(g().battle!.round).toBe(1);
       expect(budgetDe(h.id)).toEqual(attendu(h.id, issue === 'echec'));
-      if (porteur !== 'heros-manuel') expect(g().battle!.log.some((l) => l.actorId === h.id && l.kind === 'detail')).toBe(true); // le Test joué sans fenêtre, au journal de combat
+      // Joué sans fenêtre, le Test s'écrit UNE fois (`detail`), suivi sur un échec de sa perte puis des deux pertes que
+      // l'ouverture de son tour replie (Mouvement, Action).
+      if (porteur !== 'heros-manuel') expect(g().battle!.log.filter((l) => l.actorId === h.id && l.kind === 'detail').length).toBe(LIGNE_DU_TEST + (issue === 'echec' ? LIGNE_DE_LA_PERTE + LIGNES_DU_TOUR_PERDU : 0));
     });
   }
 });
@@ -210,5 +217,36 @@ describe('Stupide : l’IA qui perd son tour ne joue aucun geste de son budget (
     banc.jusquA((s) => s.battle!.order[s.battle!.turn] !== P.id, 30);
     expect(g().battle!.order[g().battle!.turn]).not.toBe(P.id);
     expect(relu(P.id).mountId).toBeUndefined();
+  });
+});
+
+describe('Stupide : le journal du début de Round suit l’ordre des porteurs, au Round 1 comme au franchissement', () => {
+  /** Les porteurs des lignes `kind` écrites depuis le rang `depuis`, regroupés par suite : un porteur par bloc. */
+  const blocs = (depuis: number, kind: 'detail' | 'etat', ids: readonly string[]): string[] =>
+    g().battle!.log.slice(depuis).filter((l) => l.kind === kind && ids.includes(l.actorId ?? '')).map((l) => l.actorId!).filter((id, i, t) => id !== t[i - 1]);
+
+  it('deux héros Crétins régénérants en Rapide, en échec : les lignes de chacun se suivent', () => {
+    setCadence('rapide');
+    seedBattleRng(11);
+    // La Régénération écrit sa ligne sur-le-champ, le Test de Stupide par la file différée : un seul vidage en fin
+    // d'émission les entrelacerait d'un porteur à l'autre.
+    const regenerant = (): Combatant => {
+      const h = herosCretin();
+      h.traits = [...(h.traits ?? []), { id: 'regeneration' }];
+      h.wounds = { ...h.wounds, current: h.wounds.max - 5 };
+      return h;
+    };
+    const [a, b] = [regenerant(), regenerant()];
+    banc.setState({ screen: 'campaign', party: [a, b] });
+    g().lancerLaScene(testScene());
+    deDeCombat(DE.echec);
+    g().lancerLeCombat('enc-mutants');
+    const ids = [a.id, b.id];
+    expect(blocs(0, 'detail', ids)).toHaveLength(2);
+    lancerLeRoundDu(banc);
+    banc.abandonner();
+    const avant = g().battle!.log.length;
+    franchirLeRound(banc, ids);
+    expect(blocs(avant, 'etat', ids)).toHaveLength(2);
   });
 });
