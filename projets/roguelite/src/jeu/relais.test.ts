@@ -5,6 +5,7 @@ import {
 } from './index';
 import { prixDuSejourALAuberge, poserLesReglesDuRoguelite } from '../noyau';
 import { bonus, effectiveChar } from '../../../../src/engine/characteristics';
+import { t } from '../../../../src/i18n';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -45,6 +46,42 @@ describe('la chambre de l’Auberge relais', () => {
     expect(disponible(h)).toBe(true);
     expect(h.c.wounds.current).toBeGreaterThanOrEqual(Math.min(h.c.wounds.max, 1 + SEMAINE_DE_REPOS * be));
   });
+
+  /** Une semaine en chambre du relais au palier `palier` sur la graine `graine` : le blessé, ce que la chambre a coûté et
+   *  son prix affiché, le journal de la semaine. */
+  function uneSemaineEnChambre(palier: number, graine: number) {
+    const { e, id } = avecUnBlesse(graine);
+    e.trophees = 10;
+    for (let p = 0; p < palier; p++) expect(ameliorer(e, 'relais')).toBeNull();
+    e.or = 1000;
+    for (const x of e.roster) if (x.c.id !== id) x.c.wounds.current = 0;
+    const h = e.roster.find((x) => x.c.id === id)!;
+    const prix = prixDeLaChambre(e);
+    expect(prendreUneChambre(e, id)).toBeNull();
+    const paye = 1000 - e.or;
+    e.journal = [];
+    expect(attendreUneSemaine(e)).toBeNull();
+    return { h, paye, prix, journal: e.journal.join('\n') };
+  }
+  const GRAINES = Array.from({ length: 20 }, (_, k) => k + 1);
+  const courante = (h: { c: { diseases?: { id: string }[] } }) => (h.c.diseases ?? []).some((d) => d.id === 'courante-galopante');
+
+  it('la chambre piètre expose à la Courante galopante de son repas (LDB 66 l.5)', () => {
+    expect(GRAINES.some((g) => courante(uneSemaineEnChambre(0, g).h))).toBe(true);
+  }, 60_000);
+
+  it('la grande chambre n’expose jamais à la Courante galopante (LDB 66 l.5)', () => {
+    for (const g of GRAINES) expect(courante(uneSemaineEnChambre(2, g).h), `graine ${g}`).toBe(false);
+  }, 60_000);
+
+  it('à tout palier, la semaine payée en or du hameau couvre chambre et repas : ni note refusée ni faim', () => {
+    for (const palier of [0, 1, 2]) for (const g of GRAINES.slice(0, 5)) {
+      const { h, paye, prix, journal } = uneSemaineEnChambre(palier, g);
+      expect(paye).toBe(prix);
+      expect(journal).not.toContain(t('jet.ferme.noteNonCouverte'));
+      expect(h.c.hunger?.days ?? 0, `palier ${palier}, graine ${g}`).toBe(0);
+    }
+  }, 60_000);
 
   it('au hameau, la table commune nourrit chaque jour : sans vivres ni séjour, personne n’a faim après une semaine (LDB 18 l.337-343)', () => {
     const { e } = avecUnBlesse(5);
