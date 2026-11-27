@@ -13,6 +13,9 @@ import { garanti } from '../lib/garanti';
 import { refuserGesteDuSiege } from './refusVisible';
 import { t } from '../i18n';
 
+/** Pourquoi la désignation d'un héros (`ouvrirLaDesignation`) ne s'ouvre pas : aucun héros vivant ; `null` sinon. PUR. */
+export const refusDeLaDesignation = (s: Pick<Jeu, 'party'>): string | null => (s.party.some((h) => !h.dead) ? null : t('eff.designationSansHeros'));
+
 export function creerActionsDeCampagne(get: Get, set: Set) {
   return {
     epinglerLIndice: (indiceId, epingle) => {
@@ -28,7 +31,7 @@ export function creerActionsDeCampagne(get: Get, set: Set) {
       if (clues !== s.clues) set({ clues });
     },
     ouvrirLaDesignation: (p) => {
-      if (!get().party.some((h) => !h.dead)) return false;
+      if (refusDeLaDesignation(get())) return false;
       refuserUnSecondGeste(get(), 'pendingDesignationHeros');
       set({ pendingDesignationHeros: p });
       return true;

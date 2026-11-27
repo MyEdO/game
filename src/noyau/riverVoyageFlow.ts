@@ -929,7 +929,7 @@ const APPLIERS = {
     if (!step.result.success) return { consequences: freeCons([{ text: t('fleuve.sansExposition'), tone: 'neutre' }]) };
     const mode = step.meta?.exposureMode as import('../data').WaterExposureMode;
     const source = step.meta?.exposureSource as string | undefined;
-    openWaterExposure(get, set, effectTargets(get, 'groupe'), { mode, source }, 'fleuveExposition');
+    openWaterExposure(get, set, effectTargets(get(), 'groupe'), { mode, source }, 'fleuveExposition');
     marqueExpositionDuJour(get, set);
     return {};
   },

@@ -12,6 +12,7 @@ import { openEncounterPsych } from './encounterPsychFlow';
 import { pushReveal } from './combatEffects';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { t } from '../i18n';
+import { garanti } from '../lib/garanti';
 import { refuserGeste } from './refusVisible';
 import { suspendActiveCascade, dropSceneEntrySteps } from './cascade';
 import * as partyFlow from './partyFlow';
@@ -22,6 +23,11 @@ import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import { placeOfScene } from './worldMap';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
+
+/** Pourquoi le groupe ne quitte pas la scène pour `sceneId` : elle n'est pas au registre ; `null` sinon. Verdict de
+ *  `quitterLaScene` et de l'effet `transition`. PUR. */
+export const refusDeQuitterLaScene = (sceneId: string): string | null =>
+  (sceneDuRegistre(sceneId) ? null : t('store.sceneMissing', { scene: sceneId }));
 
 export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
   return {
@@ -91,8 +97,9 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
     /** Transition vers une autre scène (conserve groupe, flags, inventaire, argent).
      *  `pos` force la case d'arrivée (utilisé par `transitionBack`). */
     quitterLaScene: (sceneId, entry, pos) => {
-      const target = sceneDuRegistre(sceneId);
-      if (!target) return void refuserGeste(get, set, t('store.sceneMissing', { scene: sceneId }));
+      const refus = refusDeQuitterLaScene(sceneId);
+      if (refus) return void refuserGeste(get, set, refus);
+      const target = garanti(sceneDuRegistre(sceneId), sceneId, 'scène d’arrivée');
       const heroStart = target.entities.find((e) => e.kind === 'heroStart');
       const start = pos || (entry && target.entryPoints?.[entry]) || startOf(target) || findFreeTile(target);
       // Orientation d'ENTRÉE : authorée SEULEMENT si on spawne réellement au heroStart (ni `pos` forcé

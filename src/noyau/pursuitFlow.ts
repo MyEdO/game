@@ -158,8 +158,8 @@ export function pursuitOf(s: Jeu): PursuitPayload | null {
 }
 
 /** Héros du groupe ENCORE en course (vivants, dans la rencontre, non retirés par une décision de l.94). */
-function runners(get: Get, retires: readonly string[] = []): Combatant[] {
-  return get().party.filter((h) => !h.dead && !h.outOfRencontre && !retires.includes(h.id));
+function runners(s: Pick<Jeu, 'party'>, retires: readonly string[] = []): Combatant[] {
+  return s.party.filter((h) => !h.dead && !h.outOfRencontre && !retires.includes(h.id));
 }
 
 /** Mouvement d'un héros DANS la course (LDB 15 l.104-108) : son Mouvement effectif, +1 pour la Cible
@@ -196,7 +196,7 @@ function pursuitRow(get: Get, h: Combatant, skill: string, label: string): Batch
  *  (l.92, « tout participant » — sans elle l'arbitre rend `undefined` et l'invité ne verrait jamais la
  *  manche où se tient son Test), un seul coureur → SON `actorId`. */
 function pursuitRoundBand(get: Get, p: PursuitPayload, label: string): BuiltCascadeStep | undefined {
-  const participants = runners(get, p.retires).map((h) => pursuitRow(get, h, p.skill, label));
+  const participants = runners(get(), p.retires).map((h) => pursuitRow(get, h, p.skill, label));
   return bandStep({
     // L'id est une ADRESSE (rang dans la séquence) ; la MANCHE, elle, voyage sur `meta.round` (#1852).
     id: idDansLaSequence(get, 'pursuit'),
@@ -217,9 +217,14 @@ function resolvePursuitFoe(ref: LivingRef, index: number, skillId: string): Purs
   return { id, label: nomDe(fiche), movement: effectiveMovement(fiche), skill: testValue(fiche, { skill: { id: skillId } }) };
 }
 
+/** Pourquoi la poursuite ne démarre pas : aucun adversaire ou aucun coureur ; `null` sinon. PUR. */
+export const refusDeLaPoursuite = (s: Pick<Jeu, 'party'>, foes: readonly unknown[]): string | null =>
+  (foes.length && runners(s).length ? null : t('pursuit.none'));
+
 /** Démarre une poursuite terrestre (Effet `startPursuit`) : instancie le socle puis ouvre la 1ʳᵉ manche. */
 export function startGroundPursuit(get: Get, set: Set, spec: PursuitSpec): void {
-  if (!spec.foes.length || !runners(get).length) { get().ecrireAuJournal(t('pursuit.none')); return; }
+  const refus = refusDeLaPoursuite(get(), spec.foes);
+  if (refus) return void get().ecrireAuJournal(refus);
   const escapeAt = spec.escapeAt ?? PURSUIT_ESCAPE_DISTANCE;
   // Distance de départ bornée dans la course (1 .. escapeAt−1) — hors bornes = déjà rattrapé/semé.
   const distance = Math.max(1, Math.min(escapeAt - 1, Math.round(spec.distance)));
@@ -272,7 +277,7 @@ function pursuitRoundFactory(get: Get, seq: PursuitSequence): SequenceRound<Purs
 /** DÉCISION (a) des poursuivis, l.94 — portée par un coureur du camp AUTRE que le retardataire (on ne
  *  demande pas à l'abandonné de décider de son sort). */
 function choixFuyards(get: Get, p: PursuitPayload, pris: PursuitPris): BuiltCascadeStep | undefined {
-  const camp = runners(get, p.retires);
+  const camp = runners(get(), p.retires);
   const porteur = camp.find((h) => h.id !== pris.laggard.id) ?? camp[0];
   if (!porteur) return undefined;
   return choiceStep({
@@ -292,7 +297,7 @@ function choixFuyards(get: Get, p: PursuitPayload, pris: PursuitPris): BuiltCasc
 /** DÉCISIONS (b)+(c) des poursuivants, l.94 — une voie par poursuivant qui peut s'arrêter, plus
  *  l'abandon pur et simple du retardataire. */
 function choixPoursuivants(get: Get, p: PursuitPayload, pris: PursuitPris): BuiltCascadeStep | undefined {
-  const camp = runners(get, p.retires);
+  const camp = runners(get(), p.retires);
   if (!camp.length) return undefined;
   return choiceStep({
     id: `pursuit-${p.manche}-poursuivants`,
@@ -347,7 +352,7 @@ function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: 
     .filter((s) => s.kind === PURSUIT_MOVE_KIND)
     .flatMap((s) => (s.participants ?? []).map((r) => ({ actorId: r.id, sl: r.result?.sl ?? 0 })));
   const skillLabel = byId('skill', p.skill)?.label ?? p.skill;
-  const heros = runners(get, p.retires).map((h) => ({ id: h.id, label: nomDe(h), m: pursuedMovement(h, p.partyRole) }));
+  const heros = runners(get(), p.retires).map((h) => ({ id: h.id, label: nomDe(h), m: pursuedMovement(h, p.partyRole) }));
   // Plus lent de la course = min des Mouvements de TOUS les participants (héros + adversaires).
   const slowest = Math.min(...heros.map((h) => h.m), ...p.foes.map((f) => f.movement));
   const party: PursuitRunner[] = heros.map((h) => ({

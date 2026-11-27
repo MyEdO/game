@@ -9,6 +9,7 @@ import { scenario } from '../../scenes/test-scenarios/piege-caveau';
 import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
 import { condCtx } from '../bourseFlow';
 import { lancerLeScenario } from '../lancementDeScenario';
+import { draineCascade } from '../cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -61,6 +62,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
 
   it('le levier pose son drapeau (runtime)', () => {
     lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scenario, idsDeTest));
+    expect(draineCascade(banc.getState), 'la séquence d’entrée en scène, avant tout geste').toEqual(['entreeEnScene']);
     banc.setState({ partyPos: { x: 2, y: 3 } });
     banc.getState().jouerAction('levier', 'fouiller');
     expect(banc.getState().flags.levier_tire).toBe(true);
@@ -73,6 +75,7 @@ describe('Scénario « Le Caveau piégé » : vitrine Flow + Condition', () => {
     lancerLeScenario(banc.getState, banc.setState, { ...lancement, narratif: { ...narratif, objets: [cleRenommee] } });
     expect(banc.getState().campaignNarratif?.objets).toContainEqual(cleRenommee);
     expect(evalCondition(herse.when!, condCtx(banc.getState))).toBe(false);
+    expect(draineCascade(banc.getState), 'la séquence d’entrée en scène, avant tout geste').toEqual(['entreeEnScene']);
 
     banc.setState({ partyPos: { x: 2, y: 7 } });
     banc.getState().jouerAction('cle', 'fouiller');

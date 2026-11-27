@@ -96,9 +96,9 @@ export function plaiesNommees(s: Jeu): { uid: IdDePlaieDeLOperation; libelle: st
 
 /** APPLIQUE une passe de l'opération étendue (calque `jetValider('testEtendu')`) : prend le jet FIGÉ de `pendingSurgery`
  *  (déjà roulé + influencé en modale) et cumule le DR (repart à 0 sous 0, LDB 12 l.174).
- *  - `kind:'chirurgie'` : chaque passe inflige 1d10 PB + 1 Hémorragie (LDB 10 l.184) ; à 0 PB → interruption.
- *    Cible atteinte → Blessure Critique réparée + Test d'infection du PATIENT (LDB 10 l.184) DIFFÉRÉ en ÉTAPE de
- *    cascade INFLUENÇABLE (`maladieDeFinDeCombat`, jumeau de fin de combat).
+ *  - `kind:'chirurgie'` : chaque passe inflige 1d10 PB + 1 Hémorragie (LDB 10 l.184). Cible atteinte, même à 0 PB →
+ *    Blessure Critique réparée + Test d'infection du PATIENT (LDB 10 l.184) DIFFÉRÉ en ÉTAPE de cascade INFLUENÇABLE
+ *    (`maladieDeFinDeCombat`, jumeau de fin de combat) ; cible manquée à 0 PB → interruption (#5173).
  *  - `kind:'reeducation'` (« Épaule luxée »/« Genou démis », LDB 18 l.120/179) : AUCUN dégât. Cible DR 6 atteinte →
  *    usage du membre rendu (séquelle « membre désactivé » retirée) + `recoveryPenalty` posé à la cible avec une
  *    durée d'horloge PARTAGÉE de 1d10 jours (charMod −10 / `moveScale` jambe) ; pas de Test d'infection.
@@ -120,12 +120,6 @@ function appliquerLaPasse(get: Get, set: Set): void {
     for (const f of faitsDesPoses(patient, ['hemorragique'], () => addCondition(patient, 'hemorragique'))) constaterDans(consequences, f);
   }
   const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: nomDe(patient), dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) }), ...consequences.lignes];
-  if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
-    log.push(t('medic.patientSinks', { patient: nomDe(patient) }));
-    set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-    finishPlayerAction(get, set, log, 'soin');
-    return;
-  }
   if (cum >= sg.drCible) { // cible atteinte
     if (recovery) {
       const { penalty, log: recLog } = recoverDisabledLimb(patient, sg.traumaUid);
@@ -149,6 +143,12 @@ function appliquerLaPasse(get: Get, set: Set): void {
     // Chance/Résilience + auto-succès Résistance (Menace : Maladie), LDB 17/10). La contraction
     // (`applyContraction`) est appliquée à la VALIDATION de l'étape, jamais avant l'influence.
     openContractionCascade(get, set, patient, 'infection-mineure', 'accessible', t('medic.afterSurgery'));
+    return;
+  }
+  if (!recovery && patient.wounds.current <= 0) { // #5173
+    log.push(t('medic.patientSinks', { patient: nomDe(patient) }));
+    set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
+    finishPlayerAction(get, set, log, 'soin');
     return;
   }
   // Passe intermédiaire : cumule (medic.surgery), journalise, et RÉOUVRE la passe suivante (FLOWS.chirurgie).

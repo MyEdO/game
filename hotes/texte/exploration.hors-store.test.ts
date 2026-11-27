@@ -13,6 +13,8 @@ import { nouvelEntete } from '../../src/hote/partieDeTest';
 import { fermerLaTable, table, verbe } from './hote.testkit';
 import { gestesDExploration } from '../../src/noyau/index';
 import { catalogueDeLaPartie } from '../../src/hote/contenu';
+import type { Jeu } from '../../src/noyau/etat';
+import { t as message } from '../../src/i18n';
 
 const CATALOGUE = catalogueDeLaPartie([]);
 
@@ -22,36 +24,62 @@ afterEach(fermerLaTable);
 const DOSSIER = fileURLToPath(new URL('.', import.meta.url));
 const fixture = (nom: string): string => readFileSync(join(DOSSIER, nom), 'utf8');
 
-/** Les gestes d'exploration de la partie que ce texte rejoue. */
-function gestesDuTexte(texte: string) {
+/** L'état de la partie que ce texte rejoue, lu par `lire`. */
+function lireLeTexte<T>(texte: string, lire: (etat: Jeu) => T): T {
   const { entete, gestes } = lireLeFichier(CATALOGUE, texte);
   const r = rejouer(CATALOGUE, entete, gestes);
   try {
-    return gestesDExploration(r.partie.etat());
+    return lire(r.partie.etat());
   } finally {
     r.partie.fermer();
   }
+}
+
+/** Les gestes d'exploration de la partie que ce texte rejoue. */
+const gestesDuTexte = (texte: string) => lireLeTexte(texte, gestesDExploration);
+
+/** L'étape d'entrée en scène tient-elle la main ? */
+const enEntreeEnScene = (etat: Jeu): boolean => etat.pendingCascade?.participants[etat.pendingCascade.cursor]?.kind === 'entreeEnScene';
+
+/** Le texte de la partie, sa séquence d'entrée en scène validée (`jetValider('cascade')`) : la main au groupe. */
+function apresLEntreeEnScene(texte: string): string {
+  const t = table(texte);
+  for (let i = 0; i < 10 && lireLeTexte(t.fichier() || texte, enEntreeEnScene); i++) t.jouer(verbe('jetValider', 'cascade'));
+  const fichier = t.fichier() || texte;
+  fermerLaTable();
+  return fichier;
 }
 
 /** Les parties à l'ouverture de chaque scénario de test sans combat d'entrée, et la croisée des écuries. */
 const PARTIES = [
   ...CATALOGUE.filter((s) => !s.autoCombat).map((s) => [s.id, ligneDuFichier(nouvelEntete(CATALOGUE, s.id, {}))] as const),
   ['croisee-ecuries', fixture('croisee-ecuries.jsonl')] as const,
-];
+].map(([id, texte]) => [id, apresLEntreeEnScene(texte)] as const);
 
 describe('chaque geste d’exploration que la vue donne se joue tel qu’écrit', () => {
   it.each(PARTIES)('%s', { timeout: 120_000 }, (_, texte) => {
     for (const g of gestesDuTexte(texte)) {
       const t = table(texte);
       const r = t.jouer(...g.gestes.map((x) => verbe(x.verbe, ...x.args)));
-      expect(r.erreur, `${g.libelle} : ${r.texte}`).toBeNull();
+      if (!g.refus) expect(r.erreur, `${g.libelle} : ${r.texte}`).toBeNull();
+      else expect([r.erreur, r.texte.includes(g.refus)], `${g.libelle} : le refus de l’offre est celui du verbe : ${r.texte}`).toEqual(['regle', true]);
     }
   });
 
+  it('au moins une offre `jouerAction` s’ouvre, une fois la main au groupe, et se joue sans erreur', () => {
+    const ouvertes = PARTIES.flatMap(([, texte]) => gestesDuTexte(texte).filter((g) => !g.refus && g.gestes[0]?.verbe === 'jouerAction').map((g) => [texte, g] as const));
+    expect(ouvertes.length).toBeGreaterThan(0);
+    const [texte, g] = ouvertes[0];
+    const r = table(texte).jouer(...g.gestes.map((x) => verbe(x.verbe, ...x.args)));
+    expect(r.erreur, `${g.libelle} : ${r.texte}`).toBeNull();
+  });
+
   it('témoin : la croisée des écuries offre le saut par la fenêtre, et la vue l’écrit prêt à jouer', () => {
-    const [saut] = gestesDuTexte(fixture('croisee-ecuries.jsonl')).filter((g) => g.gestes.length === 1 && g.gestes[0].args.length === 2);
+    const croisee = apresLEntreeEnScene(fixture('croisee-ecuries.jsonl'));
+    const [saut] = gestesDuTexte(croisee).filter((g) => !g.refus && g.gestes.length === 1 && g.gestes[0].verbe === 'franchirLArete');
     expect(saut, 'aucun geste d’arête depuis la croisée').toBeDefined();
-    const t = table(fixture('croisee-ecuries.jsonl'));
+    expect(saut.libelle, 'le saut par la fenêtre').toMatch(/^Sauter en bas/);
+    const t = table(croisee);
     const vue = t.lire('vue').texte.split('\n  ').join(' ');
     expect(vue).toContain(`${saut.libelle} : \`jouer {"gestes":[`);
     expect(vue).toMatch(/groupe \(7,2\) étage 1 · cap /);
@@ -106,10 +134,9 @@ describe('le groupe en exploration', () => {
   });
 
   it('la fenêtre qui tient la main se lit hors combat, avec ses verbes', () => {
-    const [saut] = gestesDuTexte(fixture('croisee-ecuries.jsonl')).filter((g) => g.gestes.length === 1 && g.gestes[0].args.length === 2);
-    const t = table(fixture('croisee-ecuries.jsonl'));
-    const r = t.jouer(...saut.gestes.map((x) => verbe(x.verbe, ...x.args)));
+    const r = table(fixture('croisee-ecuries.jsonl')).lire('vue');
     expect(r.erreur, r.texte).toBeNull();
+    expect(r.texte.split('\n  ').join(' '), 'une offre refusée se lit fermée, avec son refus').toContain(`(fermé : ${message('jouerAction.refus.mainTenue')})`);
     expect(r.texte).toMatch(/^fenêtre \S+ \(à /m);
     expect(r.texte).toMatch(/^verbes/m);
   });

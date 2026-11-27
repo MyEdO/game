@@ -43,7 +43,7 @@ describe('événements du noyau — lus par la seule surface', () => {
       usable: { actions: [{ id: 'contempler', label: 'Contempler', flow: { kind: 'test', test: { skill: { id: 'calme' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } }] },
     } as never);
     const heros = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, pos: { x: 0, y: 0 } }));
-    const partie = creerPartie({ ...etatInitialDuJeu(), party: heros, scene }, ENTREES);
+    const partie = creerPartie({ ...etatInitialDuJeu(), screen: 'campaign', party: heros, scene }, ENTREES);
     try {
       expect(testsJetes(partie.envoyer({ type: 'jouerAction', args: ['autel', 'contempler'] })), 'ouvrir la fenêtre ne jette rien').toEqual([]);
       const jetes = testsJetes(partie.envoyer({ type: 'jetLancer', args: ['test'] }));
@@ -211,7 +211,7 @@ describe('événements du noyau — lus par la seule surface', () => {
       usable: { actions: [{ id: 'contempler', label: 'Contempler', flow: { kind: 'test', test: { skill: { id: 'calme' }, difficulty: 'intermediaire' }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } }] },
     } as never);
     const heros = tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => ({ ...h, pos: { x: 0, y: 0 } }));
-    const partie = creerPartie({ ...etatInitialDuJeu(), party: heros, scene }, ENTREES);
+    const partie = creerPartie({ ...etatInitialDuJeu(), screen: 'campaign', party: heros, scene }, ENTREES);
     try {
       partie.envoyer({ type: 'jouerAction', args: ['autel', 'contempler'] });
       const jetes = [

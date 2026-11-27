@@ -25,7 +25,7 @@ import type {
 import { WORLD_STEP_OWNER } from './pendings';
 import { ouvrirDialogue } from './dialogue';
 import { revealToStep } from './revealStep';
-import { Combatant, type DiseaseExposure, type ModLine } from '../engine/types';
+import { Combatant, type Difficulty, type DiseaseExposure, type ModLine } from '../engine/types';
 import { RULE_REF } from '../engine/ruleRefs';
 import { battleRng } from './battleRng';
 import { d10, d100, type RNG } from '../engine/dice';
@@ -54,11 +54,12 @@ import {
   socialPsychLabel,
   socialPsychLines,
   testValue,
+  refusPersonneNePeutTenter,
 } from '../engine/skills';
 import { actorStatus, estUneCompetenceDeStatut, ligneDeStatut, tirerLeCapricieux, tirerLaReactionAuStatut } from '../engine/social';
 import { restoreFortune } from '../engine/fortune';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
-import { calmeDAcquisition } from '../engine/psychology';
+import { acquisitionPsychoActive, calmeDAcquisition } from '../engine/psychology';
 import { ouvrirLeTrauma } from './cibleAcquise';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import { contexteDeNaissanceDObjet, itemFromGive, giveTrappingLabel, avecObjet, type TrappingResolver } from '../engine/items';
@@ -95,21 +96,29 @@ import { applySummon } from './summonFlow';
 import { contractDisease, contractDiseaseOnce, exposerALaMaladie, applyContraction, diseaseDefs } from '../engine/disease';
 import { memoParVersion } from '../data/versionDataset';
 import { HEAL_SKILL } from '../engine/healing';
-import { ouvrirLeMedecin } from './medicFlow';
-import { contagionsDues, crochetDeZone, ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions } from './combatFlow';
+import { ouvrirLeMedecin, refusDeSoins } from './medicFlow';
+import { pratiqueLActe, type MedicNpc } from './acteDeSoin';
+import { contagionsDues, crochetDeZone, ouvrirLeNombreDAttaquesSubies, ouvrirLesContagions, refusDuLancer } from './combatFlow';
 import { activeSeaPrecipitation, openPortAt, setVesselHull } from './seaVoyageFlow';
 import { placeById, quaiDuGroupe } from './worldMap';
-import { openScriptedPsych } from './encounterPsychFlow';
+import { exposesALaPsychologie, openScriptedPsych } from './encounterPsychFlow';
 import { refusDOuvrirLaTaverne, tavernNpcOffers } from './tavernFlow';
-import { ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
+import { motifDuReposClos, ouvrirLeRepos, placesOfKind, sceneLieu } from './restFlow';
+import { refusDeLInterlude } from './interludeFlow';
+import { refusDeQuitterLaScene } from './entreeEnScene';
+import { refusDOuvrirLaCarte } from './travelFlow';
+import { refusDeLancerLeCombat } from './combatSlice';
+import { refusDAmorcerLaBataille } from './massBattleFlow';
+import { refusDuMarchand } from './merchantFlow';
+import { refusDeLaDesignation } from './campagne';
 import { avecSequelles, traumaById, dechirureFractureFicheId, permanentAmputations } from '../engine/trauma';
 import { DAY_PHASES, MINUTES_PER_DAY, dayIndex, minutesUntilNext, scheduleAt, semainesCompletes } from '../engine/clock';
 import { TIME_COST } from '../engine/timeCost';
 import { feedFromMeal, applyFaimTest, applySoifTest, embarquerDesVivres, rationsDeCale, rationsDuVivre, retirerDuVivre } from '../engine/provisions';
 import { isWeatherWarded, exposureTarget, exposureCoatMods, type ExposureKind } from '../engine/exposure';
-import { findSpellById } from '../data/index';
+import { findSpellById, type SpellData } from '../data/index';
 import { toBrass, fromBrass, toMoney, formatMoney } from '../engine/money';
-import { mouvementDeLaBourseDuGroupe, condCtx, partyMoneyTotal } from './bourseFlow';
+import { mouvementDeLaBourseDuGroupe, condCtx, conditionCtxDe, partyMoneyTotal } from './bourseFlow';
 import { alterLeMarche } from './portFlow';
 import { groupePosable, setDoorOpen, setDoorRevealed, setDoorTentee } from './monde/scene';
 import { triggersEnJeu, type TriggerEnJeu } from './monde/decouvertePorteSecrete';
@@ -151,7 +160,7 @@ import {
 import { exposureWaveBand } from './nightBands';
 import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openBand, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { startGroundPursuit } from './pursuitFlow';
+import { refusDeLaPoursuite, startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
 import { loseWounds, inDeathCondition } from '../engine/conditions';
 import { touchActors } from './combatOrParty';
@@ -166,7 +175,7 @@ import {
   meneurDuMonde,
   rencontreEngagee,
 } from './monde/combatants';
-import { appliquerAuNavire, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
+import { appliquerAuNavire, navireVise, ouvrirLeTestDEquipage, referentDuNavire } from './navireOps';
 import type { Referent } from '../engine/formule';
 import { marinsDuRole } from '../engine/shipCritical';
 import { garanti } from '../lib/garanti';
@@ -924,8 +933,8 @@ export function cloturer(get: Get, set: SetFn, applique: Applique, suite: Suite)
 /** Cibles d'un EffectOp de scène (`ops` on=party/hero) : les héros vivants concernés,
  *  dans le bon ensemble (`acteursEnJeu`). `hero` = celui désigné par
  *  `heroId` (défaut : 1er vivant) ; `party` = tous les héros vivants. SOURCE UNIQUE (pas de dup). */
-export function effectTargets(get: Get, target: 'groupe' | 'heros', heroId?: string): Combatant[] {
-  const pool = acteursEnJeu(get());
+export function effectTargets(s: Jeu, target: 'groupe' | 'heros', heroId?: string): Combatant[] {
+  const pool = acteursEnJeu(s);
   if (target === 'heros') {
     const id = heroId || pool.find((c) => c.kind === 'heros' && !c.dead)?.id;
     return pool.filter((c) => c.id === id);
@@ -1038,7 +1047,7 @@ export const indiceDeMembreDuBord = (rng: RNG, postes: number): number => rng.in
  *  bord. Un seul tirage sur les âmes fois les `postesDuTirage` : chaque héros en tient autant que de postes, chaque
  *  poste autant que l'effectif présent. MDG 15 l.161, l.176 ; MDG 14 l.15 */
 function membreDuBordAuHasard(get: Get, set: SetFn, rng: RNG): { heros: Combatant } | { equipage: PorteurABord; poste: PosteDuBord } | null {
-  const heros = effectTargets(get, 'groupe');
+  const heros = effectTargets(get(), 'groupe');
   const presents = shipboardSouls(get()).crew;
   if (!heros.length && !presents) return null;
   const postes = postesDuTirage(get());
@@ -1427,7 +1436,7 @@ function ccDuTesteur(cc: ConditionCtx, h: Combatant): ConditionCtx {
  * `false` sans héros vivant : la feuille ne vise personne. MDG 15 l.196
  */
 function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: string, label: string, sl?: number): boolean {
-  const heros = effectTargets(get, 'groupe');
+  const heros = effectTargets(get(), 'groupe');
   if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
   const meta = { differeLaSuite: true as const, choiceYes: { kind: 'effet' as const, effet: e }, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
@@ -1486,7 +1495,7 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): Effec
     label,
     log: (line) => get().ecrireAuJournal(line),
     pushReveal: (entry) => pushReveal(set, entry),
-    targets: (on, heroId) => effectTargets(get, on, heroId),
+    targets: (on, heroId) => effectTargets(get(), on, heroId),
     hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
     mutateHero: (heroId, mutate, pick) => {
       const chosen = choisirHeros(get(), heroId, pick);
@@ -1548,8 +1557,8 @@ export interface EffectRefIssue {
  * Un effet = UN handler portant TOUTES ses facettes (fin des Records parallèles `EFFECT_LABEL`/
  * `EFFECT_ICON`/`EFFECT_GROUPS`/`newEffect` + du switch `checkEffect`) : son APPLICATION (`apply`), ses
  * métadonnées d'auteur (`label`/`icon`/`group` pour le picker de l'éditeur), sa FABRIQUE par défaut
- * (`make`) et sa VALIDATION de réfs (`refs`). Le RENDU des champs (`EffectFields`) et le `summary`
- * restent dans l'UI (`EffectList`) car ils dépendent de React / `opSummary` (sib. éditeur) : l'inverser
+ * (`make`), sa VALIDATION de réfs (`refs`) et son REFUS D'OUVERTURE (`refusDOuverture`). Le RENDU des champs
+ * (`EffectFields`) et le `summary` restent dans l'UI (`EffectList`) car ils dépendent de React / `opSummary` (sib. éditeur) : l'inverser
  * tirerait l'UI dans le moteur (cycle). `T` = la variante d'Effet narrowée (apply/make typés sur elle).
  */
 export interface EffectHandler<T extends Effect = Effect> {
@@ -1565,6 +1574,10 @@ export interface EffectHandler<T extends Effect = Effect> {
   apply(e: T, env: EffectEnv): void;
   /** Réfs cassées / valeurs invalides. Absent = rien à valider. */
   refs?(e: T, ctx: EffectRefCtx): EffectRefIssue[];
+  /** Pourquoi cet effet ne s'ouvrirait pas sur l'état `s`, `null` s'il s'ouvre : le verdict que son application lit
+   *  aussi, et que l'offre d'un Flow lit avant de le jouer (`refusDOuvrirLeFlow`). `sansRefus` : l'effet s'ouvre
+   *  toujours, ou n'ouvre rien. PUR. */
+  refusDOuverture(e: T, s: Jeu): string | null;
   /** Le dialogue de la scène que cet effet OUVRE — `validateScene` avertit d'un dialogue qu'aucun
    *  ouvreur ne cite. Absent = l'effet n'en ouvre aucun. */
   ouvreDialogue?(e: T): string;
@@ -1580,6 +1593,130 @@ type EffectHandlerMap = {
 };
 
 
+/** Le refus d'ouverture d'un effet qui s'ouvre toujours, ou qui n'ouvre rien. */
+const sansRefus = (): null => null;
+
+/** Une affliction sans cible ne fait rien : son refus. PUR. */
+const refusSansCible = (cibles: readonly Combatant[]): string | null => (cibles.length ? null : t('eff.aucuneCible'));
+
+/** Un effet sur le héros `heroId` (`choisirHeros`, celui que lit son `apply`) ne fait rien sans lui : son refus. PUR. */
+const refusSansHeros = (s: Jeu, heroId?: string): string | null => (choisirHeros(s, heroId) ? null : t('eff.aucuneCible'));
+
+/** Le refus des ops de scène `e`, quand aucune ne trouve sa cible : ni op du monde jouée par le meneur
+ *  (`resoudreLesOpsDuMonde`), ni navire visé (`navireVise`), ni titulaire du rôle (`marinsDuRole`), ni groupe ou héros
+ *  visé (`effectTargets`). PUR. */
+function refusDesOps(s: Jeu, e: EffectOp): string | null {
+  if (meneurDuMonde(s) && e.ops.some(estOpDuMonde)) return null;
+  const on = e.on ?? 'groupe';
+  if (on === 'navire') return navireVise(s) ? null : t('eff.navireAbsent');
+  if (typeof on === 'object' && 'role' in on) return marinsDuRole(effectTargets(s, 'groupe'), on.role.id).length ? null : t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) });
+  return on === 'groupe' || on === 'heros' ? refusSansCible(effectTargets(s, on, e.heroId)) : null;
+}
+
+/** L'apprenti du sort de l'effet `learnSpell` (`verdictApprentissage`), ou la raison qu'il n'y en ait pas ; `null` sans
+ *  sort au catalogue. LDB 46 l.14-20 ; PUR. */
+function apprentiDuSort(s: Jeu, e: Extract<Effect, { type: 'learnSpell' }>): { sp: SpellData; who: Combatant } | { refus: string } | null {
+  const sp = findSpellById(e.sort.id);
+  if (!sp) return null;
+  const who = choisirHeros(s, e.heroId, (heros) => heros.findIndex((h) => verdictApprentissage(h, sp) === 'eligible'));
+  if (!who) return { refus: e.heroId ? t('eff.herosInconnu', { id: e.heroId }) : t('eff.sortSansApprenti', { spell: sp.label }) };
+  const verdict = verdictApprentissage(who, sp);
+  if (verdict === 'eligible') return { sp, who };
+  return { refus: t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : 'pf.spellCannotLearn', { name: nomDe(who), spell: sp.label }) };
+}
+
+/** Les cibles du souffle `e` dans le disque (Chebyshev, `combatantsWithinRadius`) : en combat par position de chaque
+ *  combattant ; hors combat, le groupe entier est à partyPos. PUR. */
+function ciblesDuSouffle(s: Jeu, e: Extract<Effect, { type: 'zoneBlast' }>): Combatant[] {
+  const pp = s.partyPos;
+  // Hors combat : on positionne virtuellement les héros à partyPos pour la géométrie d'aire partagée.
+  const pool: Combatant[] = s.battle ? s.battle.combatants : s.party.filter((c) => c.kind === 'heros').map((c) => ({ ...c, pos: pp }));
+  // `Effect.zoneBlast.center` n'authore que `{x,y}` (pas d'étage éditable) — hors combat, le pool
+  // entier est virtuellement à `pp` (ligne ci-dessus) : le centre du souffle DOIT porter le même
+  // étage que `pp`, sinon le défaut z-aware de `combatantsWithinRadius` (`center.z ?? 0`) exclut
+  // le groupe dès que `pp.z` n'est pas 0 (bombe posée à l'étage, #opera). En combat, le centre
+  // reste tel qu'authoré (les combattants réels portent chacun leur propre étage).
+  const center = s.battle ? e.center : { ...e.center, z: pp.z };
+  return combatantsWithinRadius(center, e.radius, pool, (c) => !c.dead);
+}
+
+/** Le héros de l'effet `inflictDisease` porte-t-il déjà la maladie ? */
+const porteLaMaladie = (h: Combatant, disease: string): boolean => (h.diseases ?? []).some((d) => d.id === disease);
+
+/** Le refus d'ouverture du Flow `flow` sur l'état `s` : celui de son effet (`refusDOuverture`) ; une `sequence` n'est
+ *  refusée que si CHACUNE de ses étapes l'est, et dit le refus de la première ; `null` quand il s'ouvre, ou pour une
+ *  décision (`si`, `choix`, `test`) qui se tranche au jeu. Une étape refusée ne change pas l'état : aucune ne rend
+ *  jouable la suivante. PUR. */
+export function refusDOuvrirLeFlow(s: Jeu, flow: Flow): string | null {
+  if (flow.kind === 'sequence') {
+    const refus = flow.etapes.map((etape) => refusDOuvrirLeFlow(s, etape));
+    return refus.length && refus.every((r) => r !== null) ? refus[0] : null;
+  }
+  return flow.kind === 'effet' ? (EFFECT_HANDLERS[flow.effet.type] as EffectHandler).refusDOuverture(flow.effet, s) : null;
+}
+
+/** Le lanceur, le sort et la cible de l'effet `castSpell`, ou la raison qui l'empêche. PUR. */
+function lancerDeLEffet(s: Jeu, e: Extract<Effect, { type: 'castSpell' }>): { caster: Combatant; spell: SpellData; target: Combatant } | { refus: string } {
+  const caster = actorIn(s, e.casterId);
+  if (!caster) return { refus: t('eff.lanceurAbsent', { id: e.casterId }) };
+  const spell = findSpellById(e.sort.id);
+  if (!spell) return { refus: t('eff.sortAbsent', { id: e.sort.id }) };
+  return { caster, spell, target: (e.targetId ? actorIn(s, e.targetId) : undefined) ?? caster };
+}
+
+/** Un Projectile magique hors combat n'a pas de cible à viser. PUR. */
+const refusDuMissileHorsCombat = (s: Pick<Jeu, 'battle'>, spell: SpellData): string | null =>
+  (!s.battle && isMagicMissile(spell) ? t('cs.magicMissileNeedsTarget', { spell: spell.label }) : null);
+
+/** Le meneur du Test étendu `e`, soutenu par les autres héros capables, et sa Difficulté, ou la raison qu'il ne se joue
+ *  pas : personne ne peut le tenter, ou sa `gate` le ferme (`resoudreFlowTest`). LDB 12 l.187-200 ; PUR. */
+function meneurDuTestEtendu(s: Jeu, e: Extract<Effect, { type: 'extendedTest' }>): { best: NonNullable<ReturnType<typeof partyAssisted>>; difficulty: Difficulty } | { refus: string } {
+  const pool = acteursEnJeu(s).filter((c) => c.kind === 'heros');
+  const leader = partyBest(pool, e)?.actor;
+  const best = leader ? partyAssisted(pool, e, undefined, adjacentAuMeneur(s, leader)) : null;
+  if (!best) return { refus: refusPersonneNePeutTenter(e.skill ? { skill: e.skill } : { characteristic: garanti(e.characteristic, e.label, 'Caractéristique du Test étendu') }) };
+  const { joue, difficulty } = resoudreFlowTest(e, { cc: conditionCtxDe(s), sujet: best.actor, groupe: s.party });
+  return joue ? { best, difficulty } : { refus: t('eff.testEtenduFerme', { label: e.label }) };
+}
+
+/** Les héros vivants qui enfoncent la porte de l'effet `forceDoor`. EDO Append. 2 */
+const enfonceursDeLaPorte = (s: Pick<Jeu, 'party'>): string[] => s.party.filter((h) => !h.dead).map((h) => h.id);
+
+/** Le lieu de la carte où l'effet `openPort` ouvre le port. */
+const lieuDuPort = (s: Pick<Jeu, 'worldMap'>, placeId: string) => (s.worldMap ? placeById(s.worldMap, placeId) : undefined);
+
+/** L'atterrissage de la chute `e` refusé : un `to` où le groupe ne se pose pas. PUR. */
+const refusDeLaChute = (s: Pick<Jeu, 'scene'>, e: Extract<Effect, { type: 'fall' }>): string | null =>
+  (e.to && s.scene && !groupePosable(s.scene, e.to) ? t('eff.chuteAtterrissageRefuse') : null);
+
+const estBeni = (h: Combatant) => effectiveTalents(h).some((x) => x.talentId === 'beni' && (x.times ?? 1) >= 1);
+
+/** Le héros qui fait la Petite Prière `e`, ou la raison qu'elle ne se fasse pas : option éteinte, personne pour prier,
+ *  ou un Béni, qui prie normalement (`dite` : seul refus que l'effet dit au journal). LDB 25 l.22-24 ; PUR. */
+function priantDeLaPetitePriere(s: Pick<Jeu, 'party'>, e: Extract<Effect, { type: 'petitePriere' }>): { priant: Combatant } | { refus: string; dite?: true } {
+  if (!rule('priere-petites')) return { refus: t('eff.petitePriereOptionEteinte') };
+  const priant = e.heroId ? s.party.find((h) => h.id === e.heroId && !h.dead) : s.party.find((h) => !h.dead && !estBeni(h));
+  if (!priant) return { refus: t('eff.petitePriereSansPriant') };
+  return estBeni(priant) ? { refus: t('eff.petitePriereBeni', { name: nomDe(priant) }), dite: true } : { priant };
+}
+
+/** Le soigneur de l'effet `medicalAid` : sa fiche, sa Guérison, son Bonus d'Intelligence et les actes qu'il pratique
+ *  (`pratiqueLActe`), ou la raison qu'il ne soigne pas. LDB 09 l.30 ; LDB 10 l.184 ; LDB 75 ; PUR. */
+function soigneurDuSoinPayant(s: Pick<Jeu, 'scene' | 'campaignNarratif'>, e: Extract<Effect, { type: 'medicalAid' }>): MedicNpc | { refus: string } {
+  const npc = sceneNpc(s.scene, e.entityId.id, presetDuNarratif(s.campaignNarratif), objetDuNarratif(s.campaignNarratif));
+  if (!npc) return { refus: t('eff.medecinSansPnj', { id: e.entityId.id || '(aucun)' }) };
+  if (!possesses(npc, { id: HEAL_SKILL })) return { refus: t('eff.medecinSansCompetenceDeSoin', { name: nomDe(npc) }) };
+  const acts = (e.acts ?? []).filter((a) => pratiqueLActe(npc, a.act));
+  if (!acts.length) return { refus: t('eff.medecinSansActe', { name: nomDe(npc) }) };
+  return {
+    id: e.entityId.id,
+    label: nomDe(npc),
+    skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
+    intBonus: bonus(effectiveChar(npc, 'intelligence')),
+    acts,
+  };
+}
+
 /**
  * REGISTRE des effets — source unique des fabriques, de leur application et de la validation des références.
  */
@@ -1588,11 +1725,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   journal: {
     group: 'Narration', label: libelleEffet('journal'), icon: 'journal/detail',
     make: () => ({ type: 'journal', desc: undefined, descRef: undefined, adapteDe: undefined }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => { if (e.desc) env.log(e.desc); },
   },
   document: {
     group: 'Narration', label: libelleEffet('document'), icon: 'fichier/document',
     make: () => ({ type: 'document', documentId: '' }),
+    refusDOuverture: (e, s) => (documentDuNarratif(s.campaignNarratif)(e.documentId) ? null : t('eff.documentInconnu', { id: e.documentId })),
     // EDO 02 l.89-95 : chaque document remis se lit avant la suite, refermé par sa sortie (`fenetreFermer('document')`) qui la rejoue.
     apply: (e, env) => {
       const doc = documentDuNarratif(env.get().campaignNarratif)(e.documentId);
@@ -1603,6 +1742,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   revealClue: {
     group: 'Narration', label: libelleEffet('revealClue'), icon: 'interface/rechercher',
     make: () => ({ type: 'revealClue', indiceId: '' }),
+    refusDOuverture: (e, s) => {
+      const ind = indiceDuNarratif(s.campaignNarratif)(e.indiceId);
+      return ind && revealClue(s.clues, ind, s.gameTime, e.stade) === s.clues ? t('eff.indiceSansNouveau', { titre: ind.titre }) : null;
+    },
     apply: (e, env) => {
       const ind = indiceDuNarratif(env.get().campaignNarratif)(e.indiceId);
       if (!ind) { console.warn(`revealClue : indice inconnu « ${e.indiceId} ».`); return; }
@@ -1617,6 +1760,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   discreditClue: {
     group: 'Narration', label: libelleEffet('discreditClue'), icon: 'interface/interdit',
     make: () => ({ type: 'discreditClue', indiceId: '' }),
+    refusDOuverture: (e, s) => {
+      const ind = indiceDuNarratif(s.campaignNarratif)(e.indiceId);
+      return ind && discreditClue(s.clues, ind, s.gameTime) === s.clues ? t('eff.indiceSansNouveau', { titre: ind.titre }) : null;
+    },
     apply: (e, env) => {
       const ind = indiceDuNarratif(env.get().campaignNarratif)(e.indiceId);
       if (!ind) { console.warn(`discreditClue : indice inconnu « ${e.indiceId} ».`); return; }
@@ -1629,6 +1776,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   startDialogue: {
     group: 'Narration', label: libelleEffet('startDialogue'), icon: 'journal/dialogue',
     make: () => ({ type: 'startDialogue', dialogue: { id: '' } }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       const scene = env.get().scene;
       const dlg = scene && dialoguesDeLaScene(scene).get(e.dialogue.id);
@@ -1639,6 +1787,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   endDialogue: {
     group: 'Narration', label: libelleEffet('endDialogue'), icon: 'interface/fermer',
     make: () => ({ type: 'endDialogue' }),
+    refusDOuverture: (_e, s) => (s.dialogue ? null : t('eff.aucunDialogue')),
     apply: (_e, env) => {
       if (env.get().dialogue) env.get().avancerLeTemps(TIME_COST.dialogue); // clôture d'une conversation ≈ dialogue min
       env.set({ dialogue: null });
@@ -1647,12 +1796,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   setFlag: {
     group: 'Narration', label: libelleEffet('setFlag'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'setFlag', flag: '', value: true }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => ecrireEntree(env, 'flags', e.flag, e.value ?? true),
   },
   // États de campagne (#2539, registre `narratif.etats`) : forme et valeur contrôlées au chargement.
   poserEtat: {
     group: 'Narration', label: libelleEffet('poserEtat'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'poserEtat', etat: '', valeur: '' }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => ecrireEntree(env, 'etats', e.etat, e.valeur),
   },
   designerHeros: {
@@ -1660,11 +1811,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'designerHeros', etat: '' }),
     // EDO 02 l.91 : décision de GROUPE (`pendingDesignationHeros`, modale `designationHeros`) refermée
     // par son choix (`designationHeros.heros`) ou, sans héros vivant, par sa sortie, qui rejouent la suite.
+    refusDOuverture: (_e, s) => refusDeLaDesignation(s),
     apply: (e, env) => { env.get().ouvrirLaDesignation({ etat: e.etat, ...(e.invite ? { invite: e.invite } : {}) }); },
   },
   setObjective: {
     group: 'Narration', label: libelleEffet('setObjective'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'setObjective', id: '', desc: '' }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       const texte = garanti(e.desc, e.id, 'texte de l’objectif matérialisé');
       // Pile keyée par id STABLE : re-poser le même id MET À JOUR le texte (et le remonte en tête), sinon
@@ -1681,6 +1834,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   clearObjective: {
     group: 'Narration', label: libelleEffet('clearObjective'), icon: 'interface/fermer',
     make: () => ({ type: 'clearObjective' }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       const before = env.get().objectives;
       const done = e.id ? before.find((o) => o.id === e.id) : undefined;
@@ -1701,11 +1855,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   setLight: {
     group: 'Narration', label: libelleEffet('setLight'), icon: 'scene/lumiere',
     make: () => ({ type: 'setLight', level: 0.3 }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => { env.set({ lightLevel: Math.max(0, Math.min(1, e.level)) }); }, // mise en scène (Lot L) : niveau borné [0,1]
   },
   setDoor: {
     group: 'Narration', label: libelleEffet('setDoor'), icon: 'outil-de-carte/porte',
     make: () => ({ type: 'setDoor', x: 0, y: 0, side: 'N', open: true }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       env.set((s: Jeu) => {
         if (!s.scene) return {};
@@ -1719,6 +1875,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   moveEntity: {
     group: 'Narration', label: libelleEffet('moveEntity'), icon: 'voyage/a-pied',
     make: () => ({ type: 'moveEntity', id: '' }),
+    refusDOuverture: (e, s) => (s.scene?.entities.some((x) => x.id === e.id) ? null : t('eff.entiteAbsente', { id: e.id })),
     apply: (e, env) => {
       const sc = env.get().scene;
       if (!sc) return;
@@ -1732,6 +1889,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   playSfx: {
     group: 'Narration', label: libelleEffet('playSfx'), icon: 'son/volume',
     make: () => ({ type: 'playSfx', id: '' }),
+    refusDOuverture: sansRefus,
     // Le son est un ÉVÉNEMENT (`EVT.SFX`) que l'hôte joue (`state/audioWiring`). Coop : `applyEffects`
     // tourne côté HÔTE, le son ponctuel scripté ne sonne donc que chez lui.
     apply: (e) => { bus.emit(EVT.SFX, { id: e.id }); },
@@ -1741,6 +1899,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   giveTrapping: {
     group: 'Récompenses', label: libelleEffet('giveTrapping'), icon: 'objet/divers',
     make: () => ({ type: 'giveTrapping', custom: '' }),
+    refusDOuverture: (e, s) => refusSansHeros(s, e.heroId),
     apply: (e, env) => {
       // Résolveur campagne-D'ABORD (`objetDuNarratif`) : un objet de `narratif.objets` gagne (#767).
       const destinataire = env.hero(e.heroId);
@@ -1759,6 +1918,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   givePossession: {
     group: 'Récompenses', label: libelleEffet('givePossession'), icon: 'objet/divers',
     make: () => ({ type: 'givePossession', nature: 'bete', ref: { id: creatureSemee(), type: 'creature' } }),
+    refusDOuverture: (e, s) => refusSansHeros(s, e.heroId),
     apply: (e, env) => {
       const owner = env.hero(e.heroId);
       if (!owner) return;
@@ -1793,6 +1953,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   giveMoney: {
     group: 'Récompenses', label: libelleEffet('giveMoney'), icon: 'ressource/bourse',
     make: () => ({ type: 'giveMoney', montant: { gold: 0, silver: 0, brass: 0 } }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       // Argent de GROUPE sans bénéficiaire unique (`mouvementDeLaBourseDuGroupe`) : une perte > total du
       // groupe vide tout à 0, jamais esquivée par le tout-ou-rien de `payFromGroup`.
@@ -1805,6 +1966,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   giveXp: {
     group: 'Récompenses', label: libelleEffet('giveXp'), icon: 'ressource/experience',
     make: () => ({ type: 'giveXp', amount: 50 }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));
       env.log(t('eff.px', { amount: e.amount }));
@@ -1813,40 +1975,27 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   learnSpell: {
     group: 'Récompenses', label: libelleEffet('learnSpell'), icon: 'magie/puissance',
     make: () => ({ type: 'learnSpell', sort: { id: '' }, heroId: '' }),
+    refusDOuverture: (e, s) => { const a = apprentiDuSort(s, e); return a && 'refus' in a ? a.refus : null; },
     apply: (e, env) => {
-      // LDB 46 l.14-20, #1702, #2312.
-      const sp = findSpellById(e.sort.id);
-      if (!sp) return;
-      const learnable = (h: Combatant) => verdictApprentissage(h, sp) === 'eligible';
-      const who = env.mutateHero(
-        e.heroId,
-        (h) => (learnable(h) ? { ...h, spells: [...(h.spells ?? []), sp.id] } : h),
-        (heros) => heros.findIndex(learnable),
-      );
-      if (!who) { env.log(e.heroId ? t('eff.herosInconnu', { id: e.heroId }) : t('eff.sortSansApprenti', { spell: sp.label })); return; }
-      const verdict = verdictApprentissage(who, sp);
-      env.log(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.sortAppris', { name: nomDe(who), spell: sp.label }));
+      // #1702, #2312.
+      const a = apprentiDuSort(env.get(), e);
+      if (!a) return;
+      if ('refus' in a) return void env.log(a.refus);
+      const { sp, who } = a;
+      env.mutateHero(who.id, (h) => ({ ...h, spells: [...(h.spells ?? []), sp.id] }));
+      env.log(t('eff.sortAppris', { name: nomDe(who), spell: sp.label }));
     },
   },
   petitePriere: {
     group: 'Récompenses', label: libelleEffet('petitePriere'), icon: 'foi/priere',
     make: () => ({ type: 'petitePriere', reward: EMPTY_FLOW }),
+    refusDOuverture: (e, s) => { const p = priantDeLaPetitePriere(s, e); return 'refus' in p ? p.refus : null; },
     apply: (e, env) => {
       // « Petites Prières » (LDB 25 l.22-24, option `priere-petites`) : un NON-Béni prie dans un site
       // sacré → 1d100 secret, exaucé sur 01 (pourcentage relevé s'il a la Compétence Prière).
-      if (!rule('priere-petites')) return; // option désactivée → ignorée
-      const pool = env.get().party;
-      const isBeni = (h: Combatant) => effectiveTalents(h).some((t) => t.talentId === 'beni' && (t.times ?? 1) >= 1);
-      const target = e.heroId
-        ? pool.find((h) => h.id === e.heroId && !h.dead)
-        : pool.find((h) => !h.dead && !isBeni(h));
-      if (!target) return;
-      // Un Bienheureux prie NORMALEMENT (Miracle/Bénédiction) — les Petites Prières sont la voie des
-      // non-Bénis (LDB 25 l.24).
-      if (isBeni(target)) {
-        env.log(t('eff.petitePriereBeni', { name: nomDe(target) }));
-        return;
-      }
+      const p = priantDeLaPetitePriere(env.get(), e);
+      if ('refus' in p) return void (p.dite && env.log(p.refus));
+      const target = p.priant;
       // Seuil : « exaucé sur 01 » ; LDB 25 l.22-24 — silence, valeur maison (règle
       // `priere-petites-bonus-par-avance`) pour le « le MJ peut augmenter ce pourcentage ».
       const priereAdv = target.skills.find((sk) => sk.id === 'priere')?.advances ?? 0;
@@ -1863,16 +2012,19 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   sessionEnd: {
     group: 'Récompenses', label: libelleEffet('sessionEnd'), icon: 'journal/detail',
     make: () => ({ type: 'sessionEnd' }),
+    refusDOuverture: sansRefus,
     apply: (_e, env) => { ouvrirLaFinDeSeance(env.set); }, // la fin de séance (`fenetreValider('finDeSeance')`)
   },
   openCharacterCreator: {
     group: 'Récompenses', label: libelleEffet('openCharacterCreator'), icon: 'interface/ajouter',
     make: () => ({ type: 'openCharacterCreator' }),
+    refusDOuverture: sansRefus,
     apply: () => { bus.emit(EVT.HEROS_A_CREER); }, // l'hôte ouvre son assistant de création, nouveau héros
   },
   restoreFortune: {
     group: 'Récompenses', label: libelleEffet('restoreFortune'), icon: 'ressource/chance',
     make: () => ({ type: 'restoreFortune' }),
+    refusDOuverture: sansRefus,
     apply: (_e, env) => {
       // Début de session (LDB 17 l.41) : Chance regagnée jusqu'au maximum = Destin actuel.
       env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => restoreFortune([h])[0]));
@@ -1882,6 +2034,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   grantFavor: {
     group: 'Récompenses', label: libelleEffet('grantFavor'), icon: 'interface/balance',
     make: () => ({ type: 'grantFavor', level: 'mineure', owedTo: '', desc: '' }),
+    refusDOuverture: (e, s) => refusSansCible(effectTargets(s, 'heros', e.heroId)),
     apply: (e, env) => {
       // Faveur de départ de campagne ou octroi narratif (#509) — cible : héros désigné, sinon le
       // premier héros vivant (`env.targets` : même défaut que les autres Effets `hero`).
@@ -1894,6 +2047,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   ops: {
     group: 'Afflictions', label: libelleEffet('ops'), icon: 'mecanique/modificateur',
     make: () => ({ type: 'ops', on: 'groupe', ops: [{ op: 'wounds', amount: 5 }] }),
+    refusDOuverture: (e, s) => refusDesOps(s, e),
     apply: (feuilleAuthoree, env) => {
       // EffectOp : applique les GameOps (vocabulaire mécanique des sorts) à la cible de SCÈNE
       // (`party`/`hero`, défaut `party`). `applyLeafOps` = SOURCE UNIQUE : contexte de FEUILLE
@@ -1955,23 +2109,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   zoneBlast: {
     group: 'Afflictions', label: libelleEffet('zoneBlast'), icon: 'magie/zone',
     make: () => ({ type: 'zoneBlast', center: { x: 0, y: 0 }, radius: 2, ops: [{ op: 'wounds', amount: { dice: { n: 1, sides: 10, plus: 15 } } }] }),
+    refusDOuverture: (e, s) => refusSansCible(ciblesDuSouffle(s, e)),
     apply: (e, env) => {
-      // Cibles dans le disque (Chebyshev, `combatantsWithinRadius`) : en combat par position de chaque
-      // combattant ; hors combat, le groupe entier est à partyPos. Chaque cible encaisse les `ops`
-      // (vocabulaire unique, jet PAR cible pour les Dégâts à dés) via `applyOps`.
-      const inBattle = !!env.get().battle;
-      const pp = env.get().partyPos;
-      // Hors combat : on positionne virtuellement les héros à partyPos pour la géométrie d'aire partagée.
-      const pool: Combatant[] = inBattle
-        ? env.get().battle!.combatants
-        : env.get().party.filter((c) => c.kind === 'heros').map((c) => ({ ...c, pos: pp }));
-      // `Effect.zoneBlast.center` n'authore que `{x,y}` (pas d'étage éditable) — hors combat, le pool
-      // entier est virtuellement à `pp` (ligne ci-dessus) : le centre du souffle DOIT porter le même
-      // étage que `pp`, sinon le défaut z-aware de `combatantsWithinRadius` (`center.z ?? 0`) exclut
-      // le groupe dès que `pp.z` n'est pas 0 (bombe posée à l'étage, #opera). En combat, le centre
-      // reste tel qu'authoré (les combattants réels portent chacun leur propre étage).
-      const center = inBattle ? e.center : { ...e.center, z: pp.z };
-      const targets = combatantsWithinRadius(center, e.radius, pool, (c) => !c.dead);
+      const targets = ciblesDuSouffle(env.get(), e);
       if (!targets.length) return;
       const resolveTrapping = objetDuNarratif(env.get().campaignNarratif);
       // La géométrie se lit sur le pool ci-dessus ; les Effets s'appliquent à l'acteur en jeu par id (`actorIn`, #4860).
@@ -1993,6 +2133,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   fall: {
     group: 'Afflictions', label: libelleEffet('fall'), icon: 'journal/chute',
     make: () => ({ type: 'fall', target: 'groupe', metres: 4 }),
+    refusDOuverture: (e, s) => refusDeLaChute(s, e),
     apply: (e, env) => {
       // Chute (LDB 15 l.80-84) : 3 Dégâts/mètre + 1d10, réduits par le Bonus d'Endurance mais
       // PAS par les PA ; si les Blessures subies > BE → État À Terre. `to` repose le groupe (hors
@@ -2003,8 +2144,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // `to` pose le groupe hors combat ou les combattants ciblés en combat.
       // Hors combat, l'atterrissage du groupe est une POSE : `poserLeGroupe` (déclencheurs, cap du groupe).
       // Un `to` où le groupe ne se pose pas (faute d'authoring, levée par `refs`) REFUSE l'Effet entier.
+      const refus = refusDeLaChute(env.get(), e);
+      if (refus) return void refuserGeste(env.get, env.set, refus);
       const sc = env.get().scene;
-      if (e.to && sc && !groupePosable(sc, e.to)) return void refuserGeste(env.get, env.set, t('eff.chuteAtterrissageRefuse'));
       const surLaFile = !!env.get().battle && !apresLeReport(env.get());
       if (e.to && surLaFile && sc) for (const c of targets) placeCombatant(c, sc, e.to);
       if (e.to && !surLaFile) poserLeGroupe(env.get, env.set, e.to);
@@ -2024,10 +2166,15 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   inflictDisease: {
     group: 'Afflictions', label: libelleEffet('inflictDisease'), icon: 'medical/infection',
     make: () => ({ type: 'inflictDisease', disease: diseaseNames()[0] ?? '', heroId: '' }),
+    refusDOuverture: (e, s) => {
+      const cible = choisirHeros(s, e.heroId);
+      if (!cible) return t('eff.aucuneCible');
+      return porteLaMaladie(cible, e.disease) ? t('eff.maladieDejaPortee', { name: nomDe(cible), disease: e.disease }) : null;
+    },
     apply: (e, env) => {
       // Maladie (LDB 20) infligée par l'auteur (nourriture avariée, contact infecté…). Incubation/durée
       // tirées à la contraction ; les symptômes se déclareront au repos. Dédoublonnée par nom.
-      const porte = (h: Combatant) => (h.diseases ?? []).some((d) => d.id === e.disease);
+      const porte = (h: Combatant) => porteLaMaladie(h, e.disease);
       const cible = env.hero(e.heroId);
       if (!cible || porte(cible)) return;
       const dz = contractDisease(e.disease, battleRng());
@@ -2045,6 +2192,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   inflictHunger: {
     group: 'Afflictions', label: libelleEffet('inflictHunger'), icon: 'drapeau/affame',
     make: () => ({ type: 'inflictHunger', days: 1, target: 'groupe' }),
+    refusDOuverture: (e, s) => refusSansCible(effectTargets(s, e.target ?? 'groupe', e.heroId)),
     apply: (e, env) => {
       // Faim (LDB 18 l.337-343) posée par l'auteur (siège, cachot, traversée sans vivres) : `days`
       // échecs de Test de Faim encaissés d'affilée, via la fonction PURE `applyFaimTest` (1ᵉʳ → −10 F/E ;
@@ -2072,6 +2220,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   inflictThirst: {
     group: 'Afflictions', label: libelleEffet('inflictThirst'), icon: 'drapeau/affame',
     make: () => ({ type: 'inflictThirst', days: 1, target: 'groupe' }),
+    refusDOuverture: (e, s) => refusSansCible(effectTargets(s, e.target ?? 'groupe', e.heroId)),
     apply: (e, env) => {
       // Soif (LDB 18 l.340, miroir de la Faim) posée par l'auteur — via la fonction PURE partagée
       // `applySoifTest` (1ᵉʳ → −10 Int/FM/Soc ; 2ᵉ+ → −10 autres + 1d10 Dégâts ignorant les PA, min 1).
@@ -2096,6 +2245,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   exposureNight: {
     group: 'Afflictions', label: libelleEffet('exposureNight'), icon: 'repos/froid',
     make: () => ({ type: 'exposureNight', kind: 'froid', count: 2, target: 'groupe' }),
+    refusDOuverture: (e, s) => refusSansCible(effectTargets(s, e.target ?? 'groupe', e.heroId)),
     apply: (e, env) => {
       // Exposition (LDB 18 l.326-334) posée par l'auteur (nuit glaciale, désert, tempête) : `count` Tests
       // de Résistance PAR HÉROS, chacun une ÉTAPE de cascade INFLUENÇABLE (Chance/Résilience) — jamais de
@@ -2132,6 +2282,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   inflictTrauma: {
     group: 'Afflictions', label: libelleEffet('inflictTrauma'), icon: 'journal/critique',
     make: () => ({ type: 'inflictTrauma', kind: 'fracture', severity: 'mineur', location: 'brasD', heroId: '' }),
+    refusDOuverture: (e, s) => refusSansHeros(s, e.heroId),
     apply: (e, env) => {
       // Blessure Critique posée rétroactivement par l'éditeur (LDB 18) : déchirure/fracture via `traumaById`
       // (fiche `traumas.json` résolue par `dechirureFractureFicheId`, effets en-combat + convalescence),
@@ -2159,6 +2310,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   inflictNightmares: {
     group: 'Afflictions', label: libelleEffet('inflictNightmares'), icon: 'drapeau/peur',
     make: () => ({ type: 'inflictNightmares', heroId: '' }),
+    refusDOuverture: (e, s) => refusSansHeros(s, e.heroId),
     apply: (e, env) => {
       // Trauma « Cauchemars » (LDB 21 l.95) posé sur un héros (défaut : le premier).
       const who = env.mutateHero(e.heroId, (h) => ({ ...h, nightmares: true }));
@@ -2168,6 +2320,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   ambitionLost: {
     group: 'Afflictions', label: libelleEffet('ambitionLost'), icon: 'journal/ambition-brisee',
     make: () => ({ type: 'ambitionLost', heroId: '' }),
+    refusDOuverture: (e, s) => (acquisitionPsychoActive() ? refusSansHeros(s, e.heroId) : t('eff.ambitionOptionEteinte')),
     apply: (e, env) => {
       // ADE II 09 l.21
       const cible = env.hero(e.heroId);
@@ -2184,6 +2337,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   inflictPsychology: {
     group: 'Afflictions', label: libelleEffet('inflictPsychology'), icon: 'drapeau/peur',
     make: () => ({ type: 'inflictPsychology', kind: 'peur', indice: 1, label: 'Une vision terrifiante', target: 'groupe' }),
+    refusDOuverture: (e, s) => refusSansCible(exposesALaPsychologie(effectTargets(s, e.target ?? 'groupe', e.heroId))),
     apply: (e, env) => {
       // Source de Peur/Terreur SCÉNIQUE (apparition, présage) : MÊME cascade de Tests de Calme que la
       // Psychologie de rencontre (`openScriptedPsych`, applier 'psychologieDeRencontre' partagé) — jamais un jet
@@ -2195,6 +2349,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   corruptionExposure: {
     group: 'Afflictions', label: libelleEffet('corruptionExposure'), icon: 'navigation/mutation',
     make: () => ({ type: 'corruptionExposure', level: 'mineure', nature: 'physique', heroId: '' }),
+    refusDOuverture: (e, s) => (corruptionTarget(s, e.heroId) ? null : t('eff.aucuneCible')),
     apply: (e, env) => {
       // Influence corruptrice (LDB 19 l.23-75) : ouvre le Test différé par modale
       // (Lancer → Chance → Appliquer) ; le gain dépendra du niveau et du DR.
@@ -2210,6 +2365,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   giveSin: {
     group: 'Afflictions', label: libelleEffet('giveSin'), icon: 'interface/balance',
     make: () => ({ type: 'giveSin', amount: 1, heroId: '' }),
+    refusDOuverture: (e, s) => refusSansHeros(s, e.heroId),
     apply: (e, env) => {
       // Points de Péché (LDB 40 l.36) : sanction d'auteur, 1 à 3 selon la gravité — appliquée par
       // l'op `sinMod` (COUTURE UNIQUE du Péché, partagée avec les issues d'Activité ACE).
@@ -2229,6 +2385,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   waterExposure: {
     group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'voyage/vague',
     make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'heros' }),
+    refusDOuverture: (e, s) => refusSansCible(effectTargets(s, e.target ?? 'heros', e.heroId)),
     apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'heros', e.heroId), e, 'expositionHydrique'),
   },
 
@@ -2236,6 +2393,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   rest: {
     group: 'Temps & repos', label: libelleEffet('rest'), icon: 'repos/lit',
     make: () => ({ type: 'rest', days: 1 }),
+    refusDOuverture: (_e, s) => { const clos = motifDuReposClos(s); return clos && t(clos); },
     apply: (e, env) => {
       // Repos déclenché par l'éditeur (trigger/dialogue) : ouvre la MODALE DE NUIT (couchage +
       // pitance par héros, prix RAW, bilan globalisé). `lodging` non renseigné dans l'effet ⇒
@@ -2246,6 +2404,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   mealParty: {
     group: 'Temps & repos', label: libelleEffet('mealParty'), icon: 'repos/ragout',
     make: () => ({ type: 'mealParty' }),
+    refusDOuverture: sansRefus,
     apply: (_e, env) => {
       // Repas (#T2) : tout le groupe est nourri pour la journée sans consommer de ration —
       // compteurs/malus de Faim remis à zéro (LDB 18 l.337-343 ; prix éventuel porté par le choix).
@@ -2261,6 +2420,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   interlude: {
     group: 'Temps & repos', label: libelleEffet('interlude'), icon: 'temps/calendrier',
     make: () => ({ type: 'interlude', weeks: 1 }),
+    refusDOuverture: (_e, s) => refusDeLInterlude(s),
     apply: (e, env) => {
       // « Entre deux aventures » (LDB 22-23) — via l'action store (pas d'import direct : cycle).
       env.get().ouvrirLInterlude(e.weeks ?? 1);
@@ -2269,6 +2429,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   setTime: {
     group: 'Temps & repos', label: libelleEffet('setTime'), icon: 'temps/heure',
     make: () => ({ type: 'setTime', phase: 'nuit' }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       // Saut EN AVANT jusqu'à la prochaine occurrence de la phase/heure visée (le temps ne recule jamais).
       // `phase` ⊕ `hour` (XOR porté par `setTimeSchema`, defs-scenes/effets.ts).
@@ -2281,6 +2442,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   delayedEffect: {
     group: 'Temps & repos', label: libelleEffet('delayedEffect'), icon: 'interface/attendre',
     make: () => ({ type: 'delayedEffect', afterMinutes: 60, flow: EMPTY_FLOW, cancelFlag: '' }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       // Échéance absolue (minute `gameTime`), résolue par `scheduleAt` (engine/clock — source unique).
       const now = env.get().gameTime;
@@ -2293,9 +2455,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   transition: {
     group: 'Navigation', label: libelleEffet('transition'), icon: 'navigation/point-d-entree',
     make: () => ({ type: 'transition', scene: { id: '' }, entry: '' }),
+    refusDOuverture: (e) => refusDeQuitterLaScene(e.scene.id),
     apply: (e, env) => {
       const cur = env.get();
-      if (cur.scene) env.set({ previousScene: { id: cur.scene.id, pos: { ...cur.partyPos } } });
+      if (cur.scene && !refusDeQuitterLaScene(e.scene.id)) env.set({ previousScene: { id: cur.scene.id, pos: { ...cur.partyPos } } });
       env.get().quitterLaScene(e.scene.id, e.entry);
     },
     refs: (e, ctx) => ctx.sceneIds.has(e.scene.id) ? [] : [{ level: 'error', message: `Effet → scène inexistante « ${e.scene.id} »` }],
@@ -2303,6 +2466,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   transitionBack: {
     group: 'Navigation', label: libelleEffet('transitionBack'), icon: 'interface/revenir',
     make: () => ({ type: 'transitionBack' }),
+    refusDOuverture: (_e, s) => (s.previousScene ? null : t('eff.aucuneSceneDOrigine')),
     apply: (_e, env) => {
       const prev = env.get().previousScene;
       if (prev) {
@@ -2314,15 +2478,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   openWorldMap: {
     group: 'Navigation', label: libelleEffet('openWorldMap'), icon: 'voyage/cosmopolite',
     make: () => ({ type: 'openWorldMap' }),
-    apply: (_e, env) => {
-      // « Partir en voyage » depuis une porte/route de la scène (#T2) — l'action est déjà gardée
-      // (no-op sans carte ou en combat).
-      env.get().ouvrirLaCarte();
-    },
+    refusDOuverture: (_e, s) => refusDOuvrirLaCarte(s),
+    apply: (_e, env) => { env.get().ouvrirLaCarte(); }, // « Partir en voyage » depuis une porte/route de la scène (#T2)
   },
   setVessel: {
     group: 'Navigation', label: libelleEffet('setVessel'), icon: 'voyage/ancre',
     make: () => ({ type: 'setVessel', navire: { id: navireSeme() }, morale: moraleBase() }),
+    refusDOuverture: sansRefus,
     apply: (e, env) => {
       // Pose le NAVIRE DE CAMPAGNE (`state.vessel`) — comme le champ de scénario `ContenuDeScenario.vessel`,
       // mais authorable. Moral neuf par défaut (`moraleBase`) ; coque intacte sauf `hull*` authoré.
@@ -2348,6 +2510,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   adjustVessel: {
     group: 'Navigation', label: libelleEffet('adjustVessel'), icon: 'voyage/ancre',
     make: () => ({ type: 'adjustVessel' }),
+    refusDOuverture: (_e, s) => (s.vessel ? null : t('eff.sansNavire')),
     apply: (e, env) => {
       const vessel = env.get().vessel;
       if (!vessel) { env.log(t('eff.sansNavire')); return; }
@@ -2382,11 +2545,13 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   startCombat: {
     group: 'Combat & social', label: libelleEffet('startCombat'), icon: 'action/attaquer',
     make: () => ({ type: 'startCombat', encounter: { id: '' } }),
+    refusDOuverture: (e, s) => refusDeLancerLeCombat(s, e.encounter.id),
     apply: (e, env) => { env.get().lancerLeCombat(e.encounter.id); },
   },
   startPursuit: {
     group: 'Combat & social', label: libelleEffet('startPursuit'), icon: 'voyage/a-pied',
     make: () => ({ type: 'startPursuit', partyRole: 'fleeing', distance: 4, skill: { id: 'athletisme' }, foes: [{ id: creatureSemee() }] }),
+    refusDOuverture: (e, s) => refusDeLaPoursuite(s, e.foes),
     apply: (e, env) => { startGroundPursuit(env.get, env.set, { partyRole: e.partyRole, distance: e.distance, escapeAt: e.escapeAt, skill: e.skill.id, foes: e.foes, encounter: e.encounter?.id, policy: e.policy }); },
     refs: (e) => {
       const issues: EffectRefIssue[] = [];
@@ -2404,20 +2569,22 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   startMassBattle: {
     group: 'Combat & social', label: libelleEffet('startMassBattle'), icon: 'outil-de-carte/depart',
     make: () => ({ type: 'startMassBattle', battle: { puissanceAlliee: 50, puissanceEnnemie: 50, plannedRounds: 3 } }),
+    refusDOuverture: (_e, s) => refusDAmorcerLaBataille(s),
     apply: (e, env) => { env.get().amorcerLaBataille(e.battle); }, // ouvre l'écran de bataille sur le spec authoré (ADE II 08)
   },
   openMerchant: {
     group: 'Combat & social', label: libelleEffet('openMerchant'), icon: 'marchand/panier',
     make: () => ({ type: 'openMerchant', entityId: { id: '' } }),
+    refusDOuverture: (e, s) => refusDuMarchand(s, e.entityId.id),
     apply: (e, env) => { env.get().ouvrirLeMarchand(e.entityId.id); }, // ouvre la boutique de l'entité (Marchand inclus dans un dialogue, #2)
   },
   openPort: {
     group: 'Navigation', label: libelleEffet('openPort'), icon: 'voyage/ancre',
     make: () => ({ type: 'openPort', placeId: '' }),
+    refusDOuverture: (e, s) => (lieuDuPort(s, e.placeId) ? null : t('eff.portInconnu', { lieu: e.placeId })),
     apply: (e, env) => {
       // SOURCE UNIQUE avec l'accostage en mer (`finishSeaDay`) : `openPortAt` (noyau/seaVoyageFlow).
-      const wm = env.get().worldMap;
-      const place = wm ? placeById(wm, e.placeId) : undefined;
+      const place = lieuDuPort(env.get(), e.placeId);
       if (!place) return;
       openPortAt(env.get, env.set, place);
     },
@@ -2426,6 +2593,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   openTavernGames: {
     group: 'Combat & social', label: libelleEffet('openTavernGames'), icon: 'navigation/des',
     make: () => ({ type: 'openTavernGames' }),
+    refusDOuverture: (_e, s) => refusDOuvrirLaTaverne(s),
     // Option facultative : sans effet si éteinte (comme interlude). Le PROPOSEUR est celui qui PARLE
     // (`state.dialogue.speakerId`, posé par l'interaction ou `startDialogue`) quand son entité offre
     // une partie (`SceneEntity.tavernGame`) : la table s'ouvre alors sur SON offre. Aucun PNJ n'est
@@ -2442,6 +2610,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     group: 'Combat & social', label: libelleEffet('medicalAid'), icon: 'medical/soins-payants',
     // tarif par défaut : « aide médicale 4-6 pistoles » (LDB 75) → 5 pa
     make: () => ({ type: 'medicalAid', acts: [{ act: 'blessures', cost: { silver: 5 } }], entityId: { id: '' } }),
+    refusDOuverture: (e, s) => { const soigneur = soigneurDuSoinPayant(s, e); return 'refus' in soigneur ? soigneur.refus : refusDeSoins(s, undefined, soigneur); },
     apply: (e, env) => { openMedicalAidEffect(env.get, env.set, e); }, // soins payants d'un PNJ : ouvre son infirmerie (actes tarifés)
     // Le soigneur PORTE ses stats (LDB 09 l.30) ; un soigneur absent de la scène, le parse le refuse
     // (`PERSONNAGES_DE_LA_SCENE`).
@@ -2449,29 +2618,33 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!ctx.entityIds.has(e.entityId.id)) return [];
       const npc = ctx.npcSheet(e.entityId.id);
       if (!npc) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId.id} » n'a aucune fiche (ni réf de bestiaire, ni profil, ni preset)` }];
-      return possesses(npc, { id: HEAL_SKILL }) ? [] : [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId.id} » ne possède pas la Compétence Guérison` }];
+      if (!possesses(npc, { id: HEAL_SKILL })) return [{ level: 'error', message: `Soins payants → le PNJ « ${e.entityId.id} » ne possède pas la Compétence Guérison` }];
+      return (e.acts ?? []).filter((a) => !pratiqueLActe(npc, a.act)).map((a) => ({ level: 'error', message: `Soins payants → le PNJ « ${e.entityId.id} » ne pratique pas l'acte « ${a.act} » (Talent Chirurgie)` }));
     },
   },
   castSpell: {
     group: 'Combat & social', label: libelleEffet('castSpell'), icon: 'magie/puissance',
     make: () => ({ type: 'castSpell', casterId: '', sort: { id: '' }, mode: 'jet' }),
+    // Le lancer garanti ne passe pas par `refusDuLancer` (`lancerLeSortGaranti`). #98
+    refusDOuverture: (e, s) => {
+      const lancer = lancerDeLEffet(s, e);
+      if ('refus' in lancer) return lancer.refus;
+      if (e.mode === 'forcerLaReussite') return null;
+      return refusDuMissileHorsCombat(s, lancer.spell) ?? refusDuLancer(s, lancer.caster, lancer.target, lancer.spell, false);
+    },
     apply: (e, env) => {
       const { get, set } = env;
-      const caster = actorIn(get(), e.casterId);
-      if (!caster) { env.log(t('eff.lanceurAbsent', { id: e.casterId })); return; }
-      const spell = findSpellById(e.sort.id);
-      if (!spell) { env.log(t('eff.sortAbsent', { id: e.sort.id })); return; }
-      const target = (e.targetId ? actorIn(get(), e.targetId) : undefined) ?? caster;
+      const lancer = lancerDeLEffet(get(), e);
+      if ('refus' in lancer) return void env.log(lancer.refus);
+      const { caster, spell, target } = lancer;
       if (e.mode === 'forcerLaReussite') {
         // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
         for (const line of tablesPosees().lancerLeSortGaranti(get, set, caster, target, spell.id)) env.log(line);
         env.log(t('eff.rituelGaranti', { name: nomDe(caster), sort: spell.label }));
         return;
       }
-      if (!get().battle && isMagicMissile(spell)) {
-        refuserGeste(get, set, t('cs.magicMissileNeedsTarget', { spell: spell.label }));
-        return;
-      }
+      const missile = refusDuMissileHorsCombat(get(), spell);
+      if (missile) return void refuserGeste(get, set, missile);
       tablesPosees().lancerLeSort(get, set, caster, target, spell.id);
     },
     refs: (e) => (e.casterId ? [] : [{ level: 'error', message: 'Effet Incanter : lanceur manquant' }]),
@@ -2481,16 +2654,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   extendedTest: {
     group: 'Tests', label: libelleEffet('extendedTest'), icon: 'interface/cle',
     make: () => ({ type: 'extendedTest', skill: { id: 'crochetage' }, difficulty: 'intermediaire', label: 'Crocheter la serrure', drCible: 5, flag: '', stake: flowStakeRef('test-etendu') }),
+    refusDOuverture: (e, s) => { const meneur = meneurDuTestEtendu(s, e); return 'refus' in meneur ? meneur.refus : null; },
     apply: (e, env) => {
       // Test ÉTENDU (LDB 12 l.187-200) : le meilleur du groupe enchaîne les Rounds, SOUTENU par les autres
       // membres capables (+10 chacun, plafond Bonus de Carac — `partyAssisted`). Pool et adjacence (l.196) :
       // ceux d'`openSkillTest` (`acteursEnJeu`, `adjacentAuMeneur`).
-      const pool = acteursEnJeu(env.get()).filter((c) => c.kind === 'heros');
-      const leader = partyBest(pool, e)?.actor;
-      const best = leader ? partyAssisted(pool, e, undefined, adjacentAuMeneur(env.get(), leader)) : null;
-      if (!best) return;
-      const { joue, difficulty } = resoudreFlowTest(e, { cc: condCtx(env.get), sujet: best.actor, groupe: env.get().party });
-      if (!joue) return;
+      const meneur = meneurDuTestEtendu(env.get(), e);
+      if ('refus' in meneur) return;
+      const { best, difficulty } = meneur;
       // Cible montée par le MONTEUR CANONIQUE : la valeur SOUTENUE de `partyAssisted` se déclare avec
       // son Soutien, l'écrêtage est celui de `rollTest` (`clampTarget`), plus une borne recopiée ici.
       const { target } = rollStep({
@@ -2503,9 +2674,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   forceDoor: {
     group: 'Tests', label: libelleEffet('forceDoor'), icon: 'action/enfoncer',
     make: () => ({ type: 'forceDoor', label: 'Porte', doorBE: 3, doorB: 10, flag: '' }),
+    refusDOuverture: (_e, s) => (enfonceursDeLaPorte(s).length ? null : t('eff.porteSansHeros')),
     apply: (e, env) => {
       // Enfoncer une PORTE/objet à plusieurs (EDO Append. 2) : tout le groupe vivant frappe.
-      const heroes = env.get().party.filter((h) => !h.dead).map((h) => h.id);
+      const heroes = enfonceursDeLaPorte(env.get());
       if (!heroes.length) return;
       env.get().enfoncerLaPorte({ label: e.label, doorBE: e.doorBE, doorB: e.doorB, heroIds: heroes, flag: e.flag });
     },
@@ -2605,22 +2777,9 @@ export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: numbe
  * introuvable pour un PNJ → boutons inertes).
  */
 function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: 'medicalAid' }>): void {
-  const acts = e.acts ?? [];
-  if (!acts.length) return;
-  // LE soigneur est une entité de la scène, et sa FICHE est la source unique de ce qu'il vaut : sa
-  // valeur de Guérison et son Bonus d'Intelligence s'y LISENT. Sans fiche, ou sans la Compétence
-  // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
-  const { scene, campaignNarratif } = get();
-  const npc = sceneNpc(scene, e.entityId.id, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif));
-  if (!npc) { get().ecrireAuJournal(t('eff.medecinSansPnj', { id: e.entityId.id || '(aucun)' })); return; }
-  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medecinSansCompetenceDeSoin', { name: nomDe(npc) })); return; }
-  ouvrirLeMedecin(get, set, undefined, {
-    id: e.entityId.id,
-    label: nomDe(npc),
-    skill: { id: HEAL_SKILL, value: testValue(npc, { skill: { id: HEAL_SKILL } }) },
-    intBonus: bonus(effectiveChar(npc, 'intelligence')),
-    acts,
-  });
+  const soigneur = soigneurDuSoinPayant(get(), e);
+  if ('refus' in soigneur) return void get().ecrireAuJournal(soigneur.refus);
+  ouvrirLeMedecin(get, set, undefined, soigneur);
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */

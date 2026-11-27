@@ -124,7 +124,7 @@ describe('#4911 — les États posés à 0 Blessure ont leur ligne', () => {
 });
 
 describe('#4911 — la passe de Chirurgie dit son Hémorragique par sa prose, une fois (LDB 10 l.184)', () => {
-  it('patient à 1 PB porteur d’1 Hémorragique : la passe le met à 0, Hémorragique nommé une fois, À Terre et Inconscient une fois chacun', () => {
+  it('patient à 1 PB porteur d’1 Hémorragique : la passe manquée le met à 0, Hémorragique nommé une fois, À Terre et Inconscient une fois chacun', () => {
     const docteur = combattant({ id: 'doc', label: 'Doc', kind: 'heros', skills: [{ id: 'guerison', advances: 30, characteristic: 'intelligence' }], talents: [{ talentId: 'chirurgie', times: 1 }] } as Partial<Combatant>);
     const patient = combattant({ id: 'p', label: 'Patient', kind: 'heros', pos: { x: 1, y: 0 }, wounds: blessuresDeBase(12, 1), conditions: [{ id: 'hemorragique', value: 1, unlockBy: 'surgery' }] } as Partial<Combatant>);
     banc.setState({ mode: 'exploration', battle: null, party: [docteur, patient], pendingHeal: null, pendingSurgery: null, medic: null, journal: [] });
@@ -132,10 +132,11 @@ describe('#4911 — la passe de Chirurgie dit son Hémorragique par sa prose, un
     banc.getState().jetRegler('soins', 'mode', 'chirurgie');
     banc.getState().jetLancer('soins');
     banc.getState().jetLancer('chirurgie');
+    banc.getState().jetImposerLeResultat('chirurgie', 85); // la cible manquée
     banc.getState().jetValider('chirurgie');
     expect(banc.getState().party.find((c) => c.id === 'p')!.conditions.find((c) => c.id === 'hemorragique')?.value, 'la passe pose son Hémorragique').toBe(2);
-    expect(banc.getState().journal).toEqual([
-      'Doc opère Patient — passe : DR +7 (total 7/7), 6 PB + 1 Hémorragie.',
+    expect(banc.getState().journal.slice(1), 'après la ligne du dé imposé').toEqual([
+      'Doc opère Patient — passe : DR -2 (total 0/7), 6 PB + 1 Hémorragie.',
       'Patient reçoit 1 État À Terre.',
       'Patient reçoit 1 État Inconscient.',
       'Patient sombre sur la table — l\'opération est interrompue (stabilisez-le d\'abord).',

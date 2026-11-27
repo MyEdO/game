@@ -8,7 +8,8 @@ import { placesJouables, RANG_MENEUR, seatPoseOf, releaseSeat, memeCase, type Se
 import { meneurDuMonde, poserCapDuGroupe } from './monde/combatants';
 import { t } from '../i18n';
 import { bus, EVT } from './bus';
-import { cloturer, runFlow, flowRestant, openSkillTest } from './combatEffects';
+import { cloturer, runFlow, flowRestant, openSkillTest, refusDOuvrirLeFlow } from './combatEffects';
+import { garanti } from '../lib/garanti';
 import { condCtx } from './bourseFlow';
 import { EMPTY_FLOW } from '../engine/flowCore';
 import { peutTenter, refusNePeutTenter, refusPersonneNePeutTenter } from '../engine/skills';
@@ -18,7 +19,7 @@ import { ficheDEntite, nomDEntite } from './monde/sceneNpc';
 import { nomDe } from '../engine/nom';
 import { entityBlockedAt } from './monde/sceneRules';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
-import { enEmbuscade, entiteConnue, type EntreesDeLaConnaissance } from './visionDuGroupe';
+import { enEmbuscade, entiteConnue } from './visionDuGroupe';
 import { TIME_COST } from '../engine/timeCost';
 import { refuserGeste } from './refusVisible';
 import { refusDeDecisionDeGroupe } from './netOwnership';
@@ -63,15 +64,33 @@ function placesLibres(scene: Scene, entityId: string) {
   return placesDe(scene, entityId).filter((p) => !scene.seatAssignments?.[entityId]?.[p.slotId]);
 }
 
-/** Verdict d'une offre d'exploration : la pastille le peint, le clic s'en sert pour savoir ce qu'il peut jouer sans
- *  rien demander. Ouverte par défaut (`actionsDe` a déjà retiré l'injouable) ; seule l'assise sans place libre se
- *  refuse, avec sa raison (arbitrage 2026-08-24 : la raison au survol). */
+/** Verdict d'assise d'une offre d'exploration : le clic s'en sert pour choisir l'offre qu'il joue sans rien demander,
+ *  dont le verbe dit ensuite le refus (`refusDeJouerAction`) ; la pastille le peint après ce refus. Ouverte par défaut
+ *  (`actionsDe` a déjà retiré l'injouable) ; seule l'assise sans place libre se refuse, avec sa raison (arbitrage
+ *  2026-08-24 : la raison au survol). */
 export function porteDOffre(scene: Scene, ent: SceneEntity, origine: ActionOfferte['origine']): ActionGate {
   if (origine !== 'assise' || placesLibres(scene, ent.id).length) return { ok: true };
   return { ok: false, reason: t('seating.occupied') };
 }
 
-/** Une offre d'exploration : l'offre d'`actionsDe` et son verdict (`porteDOffre`). */
+/** Pourquoi l'offre `actionId` de l'entité `entityId` ne se joue pas (`jouerAction`), dans l'ordre : une fenêtre tient
+ *  la main, le combat, l'offre absente (hors des offres d'`actionsDe`, d'une entité en embuscade, ou pendant un dialogue),
+ *  hors de portée (`aPorteeDe`, sauf l'assise, mesurée à l'abord de sa place), puis le refus d'ouverture du Flow que
+ *  l'action authorée joue (`refusDOuvrirLeFlow`) ; `null` : elle se joue. Verdict UNIQUE du verbe et de son offre
+ *  (`offresDExploration`). PUR. */
+function refusDeJouerAction(s: Jeu, entityId: string, actionId: string): string | null {
+  if (surfaceTientLaMain(s)) return t('jouerAction.refus.mainTenue');
+  if (s.battle || s.mode !== 'exploration') return t('jouerAction.refus.enCombat');
+  const ent = s.scene?.entities.find((e) => e.id === entityId);
+  const offre = s.scene && ent && !s.dialogue && !enEmbuscade(ent) ? actionsDe(s.scene, ent, s).find((o) => o.id === actionId) : undefined;
+  if (!ent || !offre) return t('jouerAction.refus.offreAbsente', { action: actionId });
+  if (offre.origine !== 'assise' && !aPorteeDe(s.partyPos, ent)) return t('jouerAction.refus.horsDePortee', { action: offre.label });
+  const action = offre.origine === 'authoree' ? ent.usable?.actions?.find((a) => a.id === actionId) : undefined;
+  return action ? refusDOuvrirLeFlow(s, flowRestant(ent.id, action, s.flags)) : null;
+}
+
+/** Une offre d'exploration : l'offre d'`actionsDe` et son verdict, le refus de la jouer (`refusDeJouerAction`), sinon
+ *  celui de son assise (`porteDOffre`). */
 interface OffreDExploration extends ActionOfferte {
   gate: ActionGate;
 }
@@ -86,13 +105,16 @@ interface OffresDExplorationParPorteur {
 /** Les offres d'exploration du champ : un porteur par entité qui offre quelque chose (`actionsDe`) à portée du groupe
  *  (`aPorteeDe`, la portée de `jouerAction`), hors embuscade ; aucune pendant un dialogue. Le porteur d'une entité que
  *  le groupe ne connaît pas (`entiteConnue`) porte le nom neutre `vision.horsDeVue`. */
-export function offresDExploration(s: Pick<Jeu, 'scene' | 'dialogue' | 'partyPos' | 'flags' | 'objetsAuSol' | 'campaignNarratif'> & EntreesDeLaConnaissance): OffresDExplorationParPorteur[] {
+export function offresDExploration(s: Jeu): OffresDExplorationParPorteur[] {
   const { scene } = s;
   if (!scene || s.dialogue) return [];
   const porteurs: OffresDExplorationParPorteur[] = [];
   for (const ent of scene.entities) {
     if (enEmbuscade(ent) || !aPorteeDe(s.partyPos, ent)) continue;
-    const offres = actionsDe(scene, ent, s).map((o) => ({ ...o, gate: porteDOffre(scene, ent, o.origine) }));
+    const offres = actionsDe(scene, ent, s).map((o) => {
+      const refus = refusDeJouerAction(s, ent.id, o.id);
+      return { ...o, gate: refus ? { ok: false as const, reason: refus } : porteDOffre(scene, ent, o.origine) };
+    });
     const porteurLabel = entiteConnue(s, ent) ? nomDEntite(ent, presetDuNarratif(s.campaignNarratif)) : t('vision.horsDeVue');
     if (offres.length) porteurs.push({ porteurId: ent.id, porteurLabel, offres });
   }
@@ -142,7 +164,7 @@ export function intentionDuClicDExploration(s: Jeu, tuile: Pt, entiteId: string 
     if (plan && place) return { kind: 'rejoindre', plan, pending: { id: ent.id, at: plan.dest } };
   }
   if (ent && estUtilisable(sc, ent, s)) {
-    // Les offres OUVERTES, au verdict de la pastille (`porteDOffre`) : UNE se joue, N se servent à la pastille.
+    // Les offres OUVERTES à l'assise (`porteDOffre`) : UNE se joue, et le verbe dit son refus ; N se servent à la pastille.
     const offres = actionsDe(sc, ent, s).filter((o) => porteDOffre(sc, ent, o.origine).ok);
     const seule = offres.length === 1 ? offres[0] : null;
     if (aPorteeDe(s.partyPos, ent)) return seule ? { kind: 'jouer', id: ent.id, actionId: seule.id } : null;
@@ -289,21 +311,16 @@ export function creerActionsDInteraction(get: Get, set: Set) {
      * son id. Une action authorée N+1 ne coûte AUCUNE ligne ici ; une capacité d'instance N+1 coûte une
      * ligne de `JOUER_CAPACITE`, que la table TOTALE exige pour compiler.
      *
-     * Une offre inconnue ou épuisée ne fait RIEN : l'offre est recalculée ICI sur l'état courant, donc un
-     * clic arrivé en retard (coop, marche-puis-geste) ne rejoue pas une action fermée entre-temps.
+     * Une offre refusée (`refusDeJouerAction`, recalculé ICI sur l'état courant) ne joue RIEN et dit son refus : un
+     * clic arrivé en retard (coop, marche-puis-geste) ne rejoue pas une action fermée entre-temps, et une action
+     * refusée ne coûte ni horloge ni usage.
      */
     jouerAction: (entityId, actionId) => {
-      const { scene } = get();
-      if (!scene) return;
-      const ent = scene.entities.find((e) => e.id === entityId);
-      if (!ent) return;
-      const offre = actionsDe(scene, ent, get()).find((o) => o.id === actionId);
-      if (!offre) return;
-      // PORTÉE, même source unique que la pastille et le clic (`exploreNav.aPorteeDe`, étage compris) :
-      // un ordre arrivé de loin (coop, clic en retard, marche interrompue) ne joue rien sur place.
-      // L'assise est dehors : sa portée se mesure à l'ABORD de la place (`slot.approach`), qui peut
-      // tomber hors du voisinage de la case d'ancrage.
-      if (offre.origine !== 'assise' && !aPorteeDe(get().partyPos, ent)) return;
+      const refus = refusDeJouerAction(get(), entityId, actionId);
+      if (refus) return void refuserGeste(get, set, refus);
+      const scene = garanti(get().scene, entityId, 'scène de l’offre');
+      const ent = garanti(scene.entities.find((e) => e.id === entityId), entityId, 'porteur de l’offre');
+      const offre = garanti(actionsDe(scene, ent, get()).find((o) => o.id === actionId), actionId, 'offre jouée');
       if (offre.origine === 'capacite') {
         if (estCapacite(actionId)) JOUER_CAPACITE[actionId](get, set, ent, scene);
         return;
@@ -313,8 +330,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
         return;
       }
       if (offre.origine === 'objet-pose') return ramasserHorsCombat(get, set, entityId, objetDuSol(ent, get().objetsAuSol)[0].key);
-      const action = (ent.usable?.actions ?? []).find((a) => a.id === actionId);
-      if (!action) return;
+      const action = garanti((ent.usable?.actions ?? []).find((a) => a.id === actionId), actionId, 'action authorée jouée');
       const nom = nomDEntite(ent, presetDuNarratif(get().campaignNarratif));
       get().ecrireAuJournal(t('store.actionJouee', { what: nom ?? t('store.searchPlaceFallback'), action: offre.label }));
       // Logique authorée (Flow) : butin → fenêtre d'attribution, test → geste à risque (modale).

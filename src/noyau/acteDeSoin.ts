@@ -86,11 +86,14 @@ export interface MedicState {
 
 const GUERISON = { skill: { id: HEAL_SKILL } } as const;
 
+/** Le soigneur `c`, héros ou PNJ, pratique-t-il l'acte `act` ? Opérer exige le Talent Chirurgie (`hasSurgerySkill`) ;
+ *  la récupération d'usage est un simple Test étendu de Guérison. LDB 10 l.184 ; LDB 18 l.120/179 */
+export const pratiqueLActe = (c: Combatant, act: HealMode): boolean => act !== 'chirurgie' || hasSurgerySkill(c);
+
 /** Le soigneur du groupe pour un acte, soutenu par les autres (LDB 12) : le héros `soigneurId` s'il le peut, sinon le
- *  meilleur. Opérer exige AUSSI le Talent Chirurgie (LDB 10) ; la récupération d'usage est un simple Test étendu de
- *  Guérison, sans Chirurgie (LDB 18 l.120/179). */
+ *  meilleur, parmi ceux qui pratiquent l'acte (`pratiqueLActe`). */
 export function bestHealerFor(party: Combatant[], act: HealMode, soigneurId?: IdDeHeros): { actor: Combatant; value: number; support: SupportDetail } | null {
-  const pool = act === 'chirurgie' ? party.filter(hasSurgerySkill) : party;
+  const pool = party.filter((h) => pratiqueLActe(h, act));
   if (soigneurId === undefined) return partyAssisted(pool, GUERISON);
   const choisi = pool.find((h) => h.id === soigneurId && peutTenter(h, GUERISON));
   return choisi ? soutenuPar(pool, { actor: choisi, value: testValue(choisi, GUERISON) }, GUERISON) : null;
@@ -102,9 +105,9 @@ export const HEAL_STAKE: Record<HealMode, FlowStakeId> = {
   chirurgie: 'chirurgie-test', reeducation: 'chirurgie-reeducation',
 };
 
-/** L'acte arme-t-il une opération étendue (`medic.surgery`) ? */
 /** Les actes de soin qui arment une opération au long cours (`MedicState['surgery']`). */
 export type ActeOperatoire = Extract<HealMode, 'chirurgie' | 'reeducation'>;
+/** L'acte arme-t-il une opération étendue (`medic.surgery`) ? */
 export const estOperation = (act: HealMode): act is ActeOperatoire => act === 'chirurgie' || act === 'reeducation';
 
 /** Le soigneur d'un acte : `actor`, le soigneur JOUEUR, absent pour un PNJ payant (aucune fiche) — c'est lui qui

@@ -554,8 +554,15 @@ function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype
   set({ merchant: { entityId, archetype, settlement, resaleRate, buyMarkup, backdrop, stock: prev.stock, cart: [], bargainLocked: prev.bargainLocked ?? false } });
 }
 
+/** L'entité marchande `entityId` de la scène, `undefined` si la scène n'en porte pas. */
+const marchandDeLaScene = (s: Pick<Jeu, 'scene'>, entityId: string) => s.scene?.entities.find((e) => e.id === entityId && e.merchant);
+
+/** Pourquoi la boutique de l'entité `entityId` ne s'ouvre pas : la scène n'a pas ce marchand ; `null` sinon. PUR. */
+export const refusDuMarchand = (s: Pick<Jeu, 'scene'>, entityId: string): string | null =>
+  (marchandDeLaScene(s, entityId) ? null : msg('mf.marchandAbsent', { id: entityId }));
+
 export function ouvrirLeMarchand(get: Get, set: Set, entityId: string): void {
-  const ent = get().scene?.entities.find((e) => e.id === entityId);
+  const ent = marchandDeLaScene(get(), entityId);
   if (!ent?.merchant) return;
   openMerchantByArchetype(get, set, entityId, ent.merchant.archetype.id, lieuDeLaScene(get().worldMap, get().scene?.id), ent);
 }
