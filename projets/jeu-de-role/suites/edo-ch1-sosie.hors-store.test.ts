@@ -5,7 +5,7 @@
  */
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ouvrirLeBanc, type Banc } from '../../../src/noyau/banc.testkit';
+import { ouvrirLeBanc, type Banc, documentDAuteur } from '../../../src/noyau/banc.testkit';
 import { createHero } from '../../../src/engine/character';
 import { pickActiveModalKey } from '../../../src/noyau/modalArbiter';
 import { evalCondition } from '../../../src/engine/flowCore';
@@ -91,9 +91,9 @@ describe('EDO 02 l.93-127 — les Documents 3 et 4 nomment le sosie, l’indice 
 
   it('naine désignée : son identité se fige, le Document 3 lui est remis ; fermé, le Document 4', () => {
     expect(get().identitesFigees[SOSIE]).toEqual({ espece: 'nain', sexe: 'F' });
-    expect(get().document?.documentId).toBe('edo-document-3-heritage');
+    expect(documentDAuteur(get())?.documentId).toBe('edo-document-3-heritage');
     get().fenetreFermer('document');
-    expect(get().document?.documentId).toBe('edo-document-4-affidavit');
+    expect(documentDAuteur(get())?.documentId).toBe('edo-document-4-affidavit');
     get().fenetreFermer('document');
     expect(get().document).toBeNull();
     expect(get().flags['edo-ch1-corps-kastor-fouille']).toBe(true);

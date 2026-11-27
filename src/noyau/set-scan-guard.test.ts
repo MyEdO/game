@@ -21,8 +21,8 @@ import { runSetScan } from '../../scripts/guards/lib/setScan.mjs';
  * +1 set() légitime (#341 : l'applier `resistanceALaMeteo` ré-émet le groupe après l'Exténué de traversée
  * Neige/Blizzard — MÊME patron que `etapePosteEnBande`).
  * +3 set() légitimes (#344 : l'Exposition hydrique fluviale surfacée APRÈS le jour DIFFÈRE la halte de
- * nuit — `continueRiverDayAfterCascade` re-tague la cascade en `riverExposure` + fige la progression du
- * jour ; `continueRiverDayAfterExposure` efface ce transient puis reprend la fin du jour) ; +1 reset ad hoc
+ * nuit — `continueRiverDayAfterCascade` fige la journée close et joue l'Exposition sous le purpose
+ * `riverExposure` ; `continueRiverDayAfterExposure` efface ce transient puis reprend la fin du jour) ; +1 reset ad hoc
  * (`travelPlan: null` de garde quand la route/destination a disparu à la reprise post-Exposition).
  * +1 set() légitime (abordage GÉNÉRIQUE dérivé d'un navire hostile : `openGenericBoarding` INTERROMPT la
  * traversée + efface `sea.boarding` avant de transitionner vers la Scène d'abordage construite à la volée).

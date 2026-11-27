@@ -20,6 +20,7 @@ import { proprietaireDeLaFenetre, type ProprietaireDeLaFenetre } from './project
 import type { Valeur } from './elements';
 import type { Forme, ParametreDeVerbe } from './formes';
 import { parametresDeLAxe } from './geste';
+import { redigerLeDocument } from './document';
 import { VERBES } from './verbes.generated';
 
 /** Le nom du paramètre qui reçoit l'id que la fenêtre désigne (`argumentsPosesDuGeste`). */
@@ -256,5 +257,6 @@ export function fenetreADessiner(etat: Jeu): FenetreADessiner | null {
   const pc = fenetre.etape ? etat.pendingCascade : null;
   const etape = fenetre.etape ? (fenetre.etape.label ?? (fenetre.etape.jet ? libelleDuJet(fenetre.etape.jet) : null)) : null;
   const disposition = fenetre.etape?.jet ? `${fenetre.cle}/${fenetre.etape.jet}` : fenetre.etape && voyageEnVue(etat) ? DISPOSITION_DU_VOYAGE : fenetre.cle;
-  return { disposition, titre: pc?.title ?? documentEnVue(etat)?.titre ?? lieuEnVue(etat)?.nom ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
+  const doc = documentEnVue(etat);
+  return { disposition, titre: pc?.title ?? (doc && redigerLeDocument(doc).titre) ?? lieuEnVue(etat)?.nom ?? garanti(libelleDeLaFenetre(fenetre.cle), fenetre.cle, 'titre de la fenêtre'), etape, proprietaire: proprietaireDeLaFenetre(etat, fenetre.proprietaire), gestes };
 }
