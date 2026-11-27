@@ -3,6 +3,7 @@
  * (`ActionsDuNoyau`) : ni `Intention`, ni `VERBES`, ni `GesteDuNoyau` ne les nomment. Seul un `Get<JeuDuNoyau>` les
  * atteint, celui des fabriques (`creerActionsDuNoyau`) et des flux qui les appellent.
  */
+import type { DocumentRemis } from './campagne';
 import type { Combatant, CharKey } from '../engine/types';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { SupportDetail } from '../engine/skills';
@@ -117,7 +118,7 @@ export interface MachinerieDuNoyau {
   // ── Effets de scène ──
   ouvrirLeMarchand: (entityId: IdDEntiteDeScene) => void;
   /** Remet un document : l'estampille d'une remise neuve (`remise`). */
-  remettreLeDocument: (doc: import('./campagne').DocumentRemis) => void;
+  remettreLeDocument: (doc: DocumentRemis) => void;
   /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
    *  à désigner, la suite se joue sans suspension. */
   ouvrirLaDesignation: (p: PendingDesignationHeros) => boolean;

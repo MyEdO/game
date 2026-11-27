@@ -1,3 +1,4 @@
+import type { DocumentRemis } from './campagne';
 import type { PlayerText } from '../i18n/playerText';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Cadence } from '../engine/cadence';
@@ -728,7 +729,7 @@ export interface EtatDeJeu {
   pendingLoot: PendingLoot | null;
   /** Le document remis (`DocumentRemis`) ; `suite` = ce qu'on lui a confié (`confierLaSuite`, #2689), rejoué par sa
    *  sortie (`fenetreFermer('document')`). */
-  document: (import('./campagne').DocumentRemis & { suite?: Suite; remise: number }) | null;
+  document: (DocumentRemis & { suite?: Suite; remise: number }) | null;
   /** Compteur des remises de `document` : chaque pose l'estampille (`remise`), le masque de l'invité s'y keye. */
   remisesDeDocument: number;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */
