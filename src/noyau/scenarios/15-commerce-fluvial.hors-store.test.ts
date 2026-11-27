@@ -198,6 +198,8 @@ describe('Scénario Commerce fluvial — réparation permanente à la cale sèch
     expect(get().travelPlan).toBeNull();
     expect(get().lieu).toBe('p-altdorf');
     expect(get().vessel?.escale).toBe('p-altdorf');
+    expect(get().travelRecap?.status, 'le récit de la descente tient la main à l’accostage').toBe('arrived');
+    get().fenetreFermer('recitDeVoyage');
     expect(gestesDeLaCale().map(({ geste, refus }) => [geste, refus])).toEqual(
       REPARATIONS.map((verbe) => [{ verbe, args: [] }, null]),
     );
@@ -288,6 +290,7 @@ describe('Scénario Commerce fluvial — réparation permanente à la cale sèch
     expect(get().vessel).toMatchObject({
       uid, escale: 'p-grunburg', wounds: apresConstructeur.coque, criticals: [CRITIQUE],
     });
+    get().fenetreFermer('recitDeVoyage');
     expect(gestesDeLaCale()).toEqual([]);
   });
 

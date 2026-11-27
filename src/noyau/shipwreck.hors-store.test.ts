@@ -14,9 +14,11 @@ import { addCondition } from '../engine/conditions';
 import type { WorldMap } from './worldMap';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
+import type { DocumentDeNaufrage } from './shipwreck';
 import type { Possession } from '../engine/possession';
 import { resetCadence, setCadence } from '../engine/cadence';
 import { draineCascade } from './cascade.testkit';
+import { garanti } from '../lib/garanti';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -57,6 +59,12 @@ function knockedOut(h: Combatant): Combatant {
  *  sert à driver les scénarios PILOTÉS PAR UN HUMAIN (défaut des tests) jusqu'au dénouement. */
 function drainSwimCascade(): void {
   draineCascade(get, 20);
+}
+
+/** Les faits du document de naufrage remis, sans son estampille de remise ; `null` sans lui. */
+function documentDeNaufrage(): DocumentDeNaufrage | null {
+  const d = get().document;
+  return d?.genre === 'naufrage' ? { genre: d.genre, navire: d.navire, cargaison: d.cargaison, heros: d.heros, rivage: d.rivage } : null;
 }
 
 /** Étape de Natation dont le jet est POSÉ en RÉUSSITE : l'issue du Test ne dépend d'aucun dé ambiant
@@ -116,11 +124,10 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     expect(get().pendingCascade).toBeNull();
     expect(get().party[0].dead).toBeFalsy();          // F 200 → rejoint la côte
     expect(get().party[2].dead).toBeFalsy();
-    expect(get().document?.title).toBe('Naufrage');   // dénouement à l’écran (modale document)
-    // Le rapport est du Markdown (`Prose`) : chaque ligne du journal est un PARAGRAPHE, jamais un saut simple.
-    const rapport = get().document?.text ?? '';
-    expect(rapport.split('\n\n').length).toBeGreaterThan(1);
-    expect(rapport).not.toMatch(/[^\n]\n[^\n]/);
+    // Dénouement à l'écran : le document porte l'issue de CHAQUE héros à bord, dans l'ordre du groupe, et le rivage.
+    const [a, b, c] = get().party;
+    expect(documentDeNaufrage()?.heros.map((h) => [h.id, h.issue])).toEqual([[a.id, 'nage'], [b.id, 'inconscient'], [c.id, 'nage']]);
+    expect(documentDeNaufrage()?.rivage).not.toBeNull();
     expect(get().journal.map((e) => e.texte).join('\n')).toContain('— NAUFRAGE —');
     expect(get().partyWiped).toBeFalsy();             // au moins un rescapé
   });
@@ -148,7 +155,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     expect(get().party[0].dead).toBeFalsy(); // la Chance a transformé la noyade en survie
     // Chemin RÉEL de clôture : échouage au rivage, dénouement à l'écran, rien de parqué.
     expect(get().lieuOuvert).toBe(true);
-    expect(get().document?.title).toBe('Naufrage');
+    expect(documentDeNaufrage()?.genre).toBe('naufrage');
     expect(get().suspendedCascades).toHaveLength(0);
   });
 
@@ -167,7 +174,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     expect(get().suspendedCascades).toHaveLength(0);
     expect(get().pendingCascade).toBeNull();
     expect(get().lieuOuvert, 'le rescapé se tient au rivage, son écran ouvert').toBe(true);
-    expect(get().document?.title).toBe('Naufrage');
+    expect(documentDeNaufrage()?.genre).toBe('naufrage');
     expect(get().party[0].dead).toBeFalsy();
   });
 
@@ -297,7 +304,7 @@ describe('beginShipwreck — repli IA/rafale (aucun pilote humain à bord) : inl
 
     expect(get().pendingCascade).toBeNull(); // pas de cascade : résolu inline, comme aujourd'hui
     expect(get().party[0].dead).toBeFalsy();
-    expect(get().document?.title).toBe('Naufrage');
+    expect(documentDeNaufrage()?.genre).toBe('naufrage');
     expect(get().journal.map((e) => e.texte).join('\n')).toContain('— NAUFRAGE —');
   });
 });
@@ -313,7 +320,7 @@ describe('voyage — une coque à 0 Blessure navigue (MDG 13 l.656, l.674)', () 
     set({ travelPlan: plan });
     runSeaDay(get, set);
     expect(get().vessel).not.toBeNull();
-    expect(get().document?.title).not.toBe('Naufrage');
+    expect(documentDeNaufrage()).toBeNull();
     expect(get().journal.map((e) => e.texte).join('\n')).not.toContain('— NAUFRAGE —');
     expect(get().travelPlan, 'la traversée continue').not.toBeNull();
   });
@@ -384,7 +391,7 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
     set({ party: heroes, battle } as never);
     checkBattleOver(get, set);
     expect(get().vessel).not.toBeNull();
-    expect(get().document?.title).not.toBe('Naufrage');
+    expect(documentDeNaufrage()).toBeNull();
     expect(heroes.every((h) => !h.outOfRencontre)).toBe(true);
   });
 
@@ -405,7 +412,44 @@ describe('détection en combat — coque de campagne coulée → naufrage (pas d
     expect(over).toBe(true);
     expect(get().battle).toBeNull();               // combat clos par le naufrage, pas par la défaite
     expect(get().vessel).toBeNull();               // navire de campagne perdu
-    expect(get().document?.title).toBe('Naufrage'); // dénouement à l’écran
+    expect(documentDeNaufrage()?.genre).toBe('naufrage'); // dénouement à l’écran
     expect(get().party.every((h) => !h.dead)).toBe(true); // rescapés (F 200)
+  });
+});
+
+describe('document du naufrage (#4574) : les faits du naufrage, les mêmes par chaque chemin', () => {
+  /** Coule le navire de `freshState` avec trois héros à bord, le deuxième Inconscient, sur la graine 1 : `direct` sans
+   *  pilote humain (cadence auto), `etapes` par la cascade de Natation, `mixte` le troisième conduit par l'IA ; `avant`
+   *  lignes de journal antérieures. Rend le document remis. */
+  function couler(chemin: 'direct' | 'etapes' | 'mixte', avant = 0): DocumentDeNaufrage {
+    freshState();
+    setRule('mer-naufrage-natation', 'intermediaire');
+    const [a, b, c] = get().party;
+    set({ party: [a, knockedOut(b), chemin === 'mixte' ? { ...c, aiControlled: true } : c] } as never);
+    set({ travelPlan: { routeId: 'r1', fromPlaceId: 'A', toPlaceId: 'B', mode: 'mer', km: 550, kmDone: 500, hoursPerDay: 24, interrupted: false } as never });
+    if (chemin === 'direct') setCadence('auto');
+    if (avant) get().ecrireAuJournal(Array.from({ length: avant }, (_, i) => `ligne antérieure ${i}`));
+    seedBattleRng(1);
+    beginShipwreck(get, set);
+    expect(!!get().pendingCascade, `chemin ${chemin}`).toBe(chemin !== 'direct');
+    drainSwimCascade();
+    return garanti(documentDeNaufrage(), chemin, 'document du naufrage');
+  }
+
+  it('le chemin direct et le chemin par étapes rendent le MÊME document, l’issue de chaque héros à bord comprise', () => {
+    const direct = couler('direct');
+    const etapes = couler('etapes');
+    expect(etapes).toEqual(direct);
+    expect(direct.heros.map((h) => [h.id, h.issue === 'inconscient' ? 'inconscient' : 'test'])).toEqual(get().party.map((h, k) => [h.id, k === 1 ? 'inconscient' : 'test']));
+  });
+
+  it('chemin mixte IA/joueur : chaque nageur, le dernier compris, porte l’issue de son Test, celle de son sort', () => {
+    const doc = couler('mixte');
+    const nageurs = get().party.filter((_, k) => k !== 1);
+    expect(doc.heros.filter((h) => h.issue !== 'inconscient').map((h) => [h.id, h.issue])).toEqual(nageurs.map((h) => [h.id, h.dead ? 'noye' : 'nage']));
+  });
+
+  it('des lignes de journal antérieures, au-delà de sa fenêtre, ne changent pas le document', () => {
+    expect(couler('etapes', 45)).toEqual(couler('etapes'));
   });
 });

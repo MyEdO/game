@@ -6,7 +6,7 @@
  */
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { ouvrirLeBanc, type Banc, documentDAuteur } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/liasse-de-documents';
 
 let banc: Banc;
@@ -48,7 +48,7 @@ describe('liasse-de-documents — la liasse sert le registre du scénario', () =
       expect(chapitre, `${doc.id} offert par un chapitre`).toBeDefined();
       banc.getState().fenetreChoisir('dialogue', 'reponse', chapitre!.id);
       banc.getState().fenetreChoisir('dialogue', 'reponse', `lire-${doc.id}`);
-      expect([banc.getState().document?.title, banc.getState().document?.text]).toEqual([doc.titre, doc.prose]);
+      expect([documentDAuteur(banc.getState())?.title, documentDAuteur(banc.getState())?.text]).toEqual([doc.titre, doc.prose]);
       expect(banc.getState().dialogue?.nodeId, 'le dialogue n’avance pas sous le document (#2689)').toBe(chapitre!.next!.id);
       banc.getState().fenetreFermer('document');
       expect(banc.getState().dialogue?.nodeId).toBe('liasse');

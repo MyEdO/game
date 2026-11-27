@@ -90,6 +90,7 @@ import { garanti } from '../lib/garanti';
 import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
 import { redigerLEntree } from './journal';
+import { redigerLeDocument } from './document';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import type { ContenuDUnJeu } from './contenu';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
@@ -959,7 +960,7 @@ function patientDuSoin(etat: Jeu): Element[] {
 /** Le texte du document remis (`documentEnVue`) ; son titre est celui de la fenêtre. */
 function texteDuDocument(etat: Jeu): Element[] {
   const doc = documentEnVue(etat);
-  return doc ? [ligne('lecture', doc.texte)] : [];
+  return doc ? [ligne('lecture', redigerLeDocument(doc).texte)] : [];
 }
 
 /** La victoire en attente : l'Expérience gagnée et l'argent pris en puces, puis chaque adversaire vaincu et chaque

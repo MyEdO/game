@@ -7,10 +7,11 @@ import { emptyScene, tileAt, type Scene } from '../monde/scene';
 import { setEdgeWall } from '../sceneEdit';
 import type { Layers, Tool } from '../sceneEditLecture';
 import { appuyer, areteVisee, glisser, planDuPointeur, relacher, saisirLaPoignee, type ContexteDuPointeur, type PointDeCarte } from './pointeur';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 const TOUT: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 const ctx = (tool: Tool, plus: Partial<ContexteDuPointeur> = {}): ContexteDuPointeur => ({
-  tool, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture: null, ...plus,
+  tool, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture: null, catalogue: catalogueDuProcessus(), ...plus,
 });
 const au = (x: number, y: number, f = { x, y }): PointDeCarte => ({ case: { x, y }, f });
 const vide = (): Scene => emptyScene('pointeur', 6, 4);

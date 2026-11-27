@@ -22,6 +22,7 @@ import type { EntreesDeLaPartie } from './partie';
 import type { Jeton } from './plateforme';
 import { gesteDeLOffre, offreDeId, type ContexteDOffre } from './actionRegistry';
 import { garanti } from '../lib/garanti';
+import type { DocumentDAuteur } from './campagne';
 
 /** Les entrées d'un banc : l'état de départ fusionné à `etatInitialDuJeu()` sur l'écran de la campagne, où se joue la
  *  partie (la barre de l'actif n'est ouverte que là, `etatDeLaBarre`), et les entrées de D8 (`EntreesDeLaPartie`), par
@@ -130,3 +131,6 @@ function poserLeBanc({ etat, ...entrees }: EntreesDuBanc): BancPose {
   };
   return { banc, fermer: proprietaire.fermer };
 }
+
+/** Le document d'auteur remis (`DocumentDAuteur`) ; `null` sans document, ou pour un document de naufrage. */
+export const documentDAuteur = (s: Pick<Jeu, 'document'>): DocumentDAuteur | null => (s.document?.genre === 'auteur' ? s.document : null);

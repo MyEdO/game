@@ -6,10 +6,9 @@
  * Le schéma de la famille n'admet que des fragments `blocs` (`fragmentsAdmis`, `schemas/defs/regles.ts`).
  */
 import { describe, it, expect } from 'vitest';
-import { regles } from './index';
+import { books, regles } from './index';
 import { schema } from './schemas/defs/regles';
 import { readFileSync } from 'node:fs';
-import { books } from './livres';
 
 /** Le fichier tel que sur le disque : l'import JSON le rend matérialisé (`desc` résolue). */
 const DISQUE: unknown = JSON.parse(readFileSync(new URL('./regles.json', import.meta.url), 'utf8'));

@@ -1,24 +1,28 @@
 /**
  * Les PORTES de la donnée jugent sous le catalogue qu'elles reçoivent (#5070, étape B) : une donnée qui désigne une
  * entrée absente de l'index des ids, présente au catalogue passé, passe chaque porte ; un id mort y est refusé.
+ * Fixtures : un Groupe, un livre et un dieu DÉCLARÉS par la suite, seuls au catalogue (`catalogueDeTest`).
  */
 import { describe, it, expect } from 'vitest';
-import { catalogueAvec } from './catalogueAvec.testkit';
-import { BIBLIOTHEQUE } from './_racines-vivantes.generated';
+import { catalogueDeTest } from './schemas/catalogue/catalogueDeTest.testkit';
+import { idDeFixture } from './idDeFixture.testkit';
 import { validateDataset, validateDocument, validerFormeVivante } from './schemas/validate';
 import { lireBlocsAvances } from './schemas/blocsAvances';
 import { refs } from './schemas/grammaire/ref';
-import { versDisque } from './schemas/grammaire/prose';
 
 const GROUPE = 'groupe-du-catalogue-des-portes';
 const MORT = 'id-mort-du-catalogue-des-portes';
-const CAT = catalogueAvec({ 'groups.json': [{ id: GROUPE, type: 'groups', label: 'Groupe du catalogue des portes' }] });
+const ID_DU_LIVRE = 'livre-du-catalogue-des-portes';
+const LIVRE = idDeFixture('book', ID_DU_LIVRE);
+const CAT = catalogueDeTest({
+  'groups.json': [{ id: GROUPE, type: 'groups', label: 'Groupe du catalogue des portes' }],
+  'books.json': [{ id: ID_DU_LIVRE, type: 'books', label: 'Livre du catalogue des portes', abbr: 'LCP', language: null, folder: null }],
+});
 
-/** `gods.json` en forme disque, plus un dieu qui accorde le groupe `groupe`. */
-const dieux = (groupe: string) => {
-  const livres = versDisque(BIBLIOTHEQUE['gods.json']) as readonly Record<string, unknown>[];
-  return [...livres, { ...livres[0], id: 'dieu-du-catalogue-des-portes', label: 'Dieu du catalogue des portes', grantGroups: [groupe] }];
-};
+/** Un `gods.json` d'un seul dieu, qui accorde le groupe `groupe`. */
+const dieux = (groupe: string) => [
+  { id: 'dieu-du-catalogue-des-portes', type: 'gods', label: 'Dieu du catalogue des portes', blessings: [], miracles: [], grantGroups: [groupe], source: { book: LIVRE, page: 1 } },
+];
 
 /** Les blocs « Avancé » d'un déclencheur dont la condition lit le groupe `groupe`. */
 const blocs = (groupe: string) => ({

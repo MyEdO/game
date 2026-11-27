@@ -30,7 +30,7 @@ describe('campagnes — registre des campagnes exposées au picker', () => {
 
 /** Le texte qu'écrit l'enregistrement de l'éditeur ouvert sur la campagne `c` (`texteAEnregistrer`), sans geste. */
 function texteEnregistre(c: BuiltinCampaign): string {
-  const passe = texteAEnregistrer(ouvrirLEdition(paquetDuJeu(c), false));
+  const passe = texteAEnregistrer(ouvrirLEdition(paquetDuJeu(c), { duDepot: false }));
   if (!passe.ok) throw new Error(passe.refus);
   return passe.valeur;
 }

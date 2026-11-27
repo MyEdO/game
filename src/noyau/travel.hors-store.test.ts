@@ -328,7 +328,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
       issue: 'arrivee', depart: 'pa', arrivee: 'pb', route: 'r1', de: 'Village A', vers: 'Bourg B', mode: { id: 'pied', nom: 'À pied' },
       distance: { valeur: 12, unite: 'km' }, reste: null, dureeMin: 180,
       journees: [{
-        depuis: 0, jusqua: r.days[0].kmTo, heures: r.days[0].hours, meteo: null, lignes: r.days[0].lines, evenements: [], entrees: r.days[0].entries ?? [], mer: null,
+        depuis: 0, jusqua: r.days[0].kmTo, heures: r.days[0].hours, meteo: null, lignes: r.days[0].lines, evenements: [], entrees: r.days[0].entries ?? [], mer: null, fleuve: null,
       }],
     });
     banc.getState().fenetreFermer('recitDeVoyage');

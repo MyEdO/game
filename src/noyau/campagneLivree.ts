@@ -74,7 +74,7 @@ const noeudsDIdentite = tableTotale(CLES_IDENTITE_DU_PAQUET, cle => {
 const identiteDuPaquetSchema = nommerChamps(
   z.strictObject({ ...noeudsDIdentite, icon: noeudsDIdentite.icon.nonoptional() })
     .superRefine((valeur, ctx) => refuserSansProvenance(valeur, ctx, 'de l’entrée'))
-    .superRefine(refineProse({ type: projetDoc.type, exigeProse: projetDoc.exiges.includes('desc') })),
+    .check(refineProse({ type: projetDoc.type, exigeProse: projetDoc.exiges.includes('desc') })),
   tableTotale(CLES_IDENTITE_DU_PAQUET, cle => metaDuProjet[cle]),
 );
 

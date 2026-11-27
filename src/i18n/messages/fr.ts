@@ -654,6 +654,7 @@ export const fr = {
   'ecran.editeur.engins': 'Engins de siège',
   'ecran.editeur.navires': 'Navire à poser',
   'ecran.editeur.navire.echelle': 'Ses ponts ne se posent pas dans une scène à {m} m par case',
+  'ecran.editeur.personnage.sansFiche': 'Aucune fiche de personnage ne se pose : le catalogue n’en porte pas',
   'ecran.editeur.decors': 'Décor à poser',
   'ecran.editeur.fiches': 'Fiche du personnage à poser',
   'ecran.editeur.entite': '{sorte} « {nom} » · case {x}, {y} · couche {z}',

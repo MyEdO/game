@@ -6,6 +6,7 @@
  * l'hôte repasse au pas suivant.
  */
 import type { RectDeCases } from '../../data/schemas/grammaire/valeurs';
+import type { Catalogue } from '../../data/schemas/catalogue/catalogue';
 import { canonEdge, sceneMetresPerTile, type Scene, type CellSide } from '../monde/scene';
 import { ancreDuDecor } from '../monde/footprint';
 import {
@@ -38,8 +39,9 @@ import { deplacerPoi, majLieu } from '../worldMapEdit';
 import { lieuNeuf, poiNeuf, routeLiee } from '../sceneEdit';
 
 /** Ce que l'éditeur tient autour du geste : l'outil, la couche, le pinceau, la rencontre que l'outil de rencontre
- *  complète et la fiche qu'il pose, les calques visibles, la sélection, le rectangle du terrain, et le mode
- *  architecture (`null` hors de lui) avec la couche de ses arêtes, son action et son corps. */
+ *  complète et la fiche qu'il pose, les calques visibles, la sélection, le rectangle du terrain, le mode
+ *  architecture (`null` hors de lui) avec la couche de ses arêtes, son action et son corps, et le catalogue sous lequel
+ *  la pose juge sa fiche (`appliquerOutil`). */
 export interface ContexteDuPointeur {
   tool: Tool;
   z: number;
@@ -50,6 +52,7 @@ export interface ContexteDuPointeur {
   sel: Sel;
   terrainRect: boolean;
   architecture: { z: number; action: 'selection' | 'facade'; bodyId: string | null } | null;
+  catalogue: Catalogue;
 }
 
 /** Un point du plan du document ouvert : la case visée et ses coordonnées fractionnaires de case. Sur la scène, le plan
@@ -128,7 +131,7 @@ const gesteDOutil = (ctx: ContexteDuPointeur): GesteDOutil => ({ z: ctx.z, brush
  *  zone. */
 function peindre(scene: Scene, ctx: ContexteDuPointeur, trait: Extract<GesteEnCours, { sorte: 'trait' }>, p: Pt): EffetDuPointeur {
   if (trait.trace.some((t) => memeCase(t, p))) return { geste: trait };
-  const out = appliquerOutil(scene, ctx.tool, p, gesteDOutil(ctx));
+  const out = appliquerOutil(scene, ctx.tool, p, gesteDOutil(ctx), ctx.catalogue);
   if (!out || out.scene === scene) return { geste: trait };
   const emprise = ctx.tool.mode === 'gomme' || ctx.tool.mode === 'casesDeZone' ? 1 : ctx.brush;
   const trace = [...trait.trace, ...empriseDuPinceau(scene.dimensions, p, emprise).filter((c) => !trait.trace.some((t) => memeCase(t, c)))];
@@ -194,7 +197,7 @@ export function appuyer(scene: Scene, ctx: ContexteDuPointeur, pt: PointDeCarte)
     case 'rencontre':
     case 'arete': {
       const cible = tool.mode === 'arete' ? areteDuPoint(pt.f) : { p: caseDe(pt.f.x, pt.f.y), side: undefined };
-      const out = appliquerOutil(scene, tool, cible.p, { ...gesteDOutil(ctx), side: cible.side, point: pt.f });
+      const out = appliquerOutil(scene, tool, cible.p, { ...gesteDOutil(ctx), side: cible.side, point: pt.f }, ctx.catalogue);
       if (!out) return { geste: null };
       return {
         geste: null,

@@ -1205,7 +1205,7 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
    * `.int()` de schéma zod ne porte rien et ne tire rien. Les deux formes réelles du dépôt sont
    * reprises à l'octet : `src/noyau/combatSetup.ts:31` (`rng.int(1, 10)` d'Initiative) et
    * `src/noyau/monde/etalLot.ts:60` (`base.int(min, max)` de peuplement d'étal) restent VUS ; la forme zod de
-   * `src/data/schemas/grammaire/valeurs.ts:85` ne compte pas.
+   * `src/data/schemas/grammaire/valeurs.ts:394` ne compte pas.
    */
   it('CRITÈRE : un `.int()` de schéma zod n’est pas un dé, un `.int(min, max)` de RNG en est un', () => {
     const zod = "import { z } from 'zod';\nexport const s = z.strictObject({ n: z.number().int().min(1), m: z.number().int().positive() });\n";

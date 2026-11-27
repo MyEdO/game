@@ -2370,10 +2370,10 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    *  journée (`continueSeaDayAfterScorbut`/`continueSeaDayAfterExhaustion`) ;
    *  'seaActivities' (MDG 15 l.268) — `continueSeaActivitiesAfterCascade` enchaîne les Activités.
    *  En mer, la halte de nuit reprend après la dernière. Au port, la fenêtre se ferme.
-   *  'riverExposure' (MSRC 16 : Exposition hydrique de
-   *  la descente fluviale surfacée APRÈS le jour, avant la halte — la clôture enchaîne
-   *  `continueRiverDayAfterExposure`, `riverVoyageFlow.ts`, pour DIFFÉRER la halte de nuit le temps du
-   *  Test de Résistance, cf. #344). 'upkeep' (entretien quotidien d'une AVANCE D'HORLOGE hors repos/voyage
+   *  'riverExposure' (MSRC 16 : le dé d'Exposition hydrique de
+   *  la descente fluviale et ses Tests, puis les Tests de Contraction, joués APRÈS le jour, avant la halte — la
+   *  clôture enchaîne `continueRiverDayAfterExposure`, `riverVoyageFlow.ts`, pour DIFFÉRER la halte de nuit le
+   *  temps de ces Tests, cf. #344). 'upkeep' (entretien quotidien d'une AVANCE D'HORLOGE hors repos/voyage
    *  — Faim/Soif/maladie/convalescence/dessoûlage différés ; clôture sans suite propre, `dispatchCascadeDone`
    *  n'a qu'à vérifier l'anéantissement). 'interlude' (#942 L7 : les d100 d'Événement « Entre deux
    *  aventures » restés à poser, un par héros, puis le dénouement de GROUPE des bourses en étape

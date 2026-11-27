@@ -21,8 +21,6 @@ import { schema as schemaDesGroupes } from '../defs/groups';
 import { schema as schemaDesNiveaux } from '../defs/careerLevels';
 import { licencesDeGuildeSchema } from '../defs/merchants';
 import { idDeFixture } from '../../idDeFixture.testkit';
-import { catalogueAvec } from '../../catalogueAvec.testkit';
-import { catalogueDuProcessus } from '../../catalogueDuProcessus';
 
 const LIVRE = idDeFixture('book', 'livre-de-test');
 const GROUPE = 'groupe-du-livre-de-test';
@@ -121,14 +119,14 @@ const ELEMENTS: PorteeLocale = { collection: 'elements', catalogue: 'éléments 
 
 describe('parserSousCatalogue — les lectures d’ids des defs et les décisions de portée suivent le catalogue passé', () => {
   it('`lire.catalogue(…).ids()` d’un def voit une carrière présente SEULEMENT au catalogue', () => {
-    const cat = catalogueAvec({ 'careers.json': [{ ...catalogueDuProcessus()['careers.json'][0], id: CARRIERE }] });
+    const cat = catalogueDeTest({ 'careers.json': [{ id: CARRIERE, type: 'careers', label: 'Carrière du livre de test', class: { id: idDeFixture('classe', 'classe-du-livre-de-test') }, source: { book: LIVRE, page: 1 } }] });
     const fautesDeLaCarriere = (r: z.ZodSafeParseResult<unknown>) => (r.success ? [] : r.error.issues.filter((i) => i.message.includes(`« ${CARRIERE} »`)));
     expect(fautesDeLaCarriere(parserSousCatalogue(schemaDesNiveaux, [], cat))).toHaveLength(1);
     expect(fautesDeLaCarriere(schemaDesNiveaux.safeParse([])), 'hors fenêtre, l’index ignore la carrière').toEqual([]);
   });
 
   it('`lire.catalogue(…).ids()` d’un marchand voit un objet présent SEULEMENT au catalogue', () => {
-    const cat = catalogueAvec({ 'trappings.json': [{ ...catalogueDuProcessus()['trappings.json'][0], id: OBJET }] });
+    const cat = catalogueDeTest({ 'trappings.json': [{ id: OBJET, type: 'trappings', label: 'Objet du livre de test', categorie: 'trapping', subType: null, availability: null, qualities: [], price: null, source: { book: LIVRE, page: 1 } }] });
     expect(fautes(parserSousCatalogue(licencesDeGuildeSchema, [{ id: OBJET }], cat))).toEqual([
       { path: [0, 'id'], message: `« ${OBJET} » ne désigne pas une licence de Guilde identifiée.` },
     ]);

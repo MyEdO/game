@@ -5,7 +5,7 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { ouvrirLeBanc, type Banc, documentDAuteur } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { applyEffects, checkTriggers, runFlow } from './combatEffects';
 import { flowFromEffects } from './monde/flow';
@@ -73,11 +73,11 @@ describe('déclencheurs de la même case (sonde A) : le suivant attend le geste 
       declencheur('t2', effet({ type: 'document', documentId: 'document-b' })),
     ]) });
     checkTriggers(get, banc.setState);
-    expect(get().document?.documentId).toBe('document-a');
+    expect(documentDAuteur(get())?.documentId).toBe('document-a');
     expect(get().flags['apres-a']).toBeUndefined();
     get().fenetreFermer('document');
     expect(get().flags['apres-a']).toBe(true);
-    expect(get().document?.documentId).toBe('document-b');
+    expect(documentDAuteur(get())?.documentId).toBe('document-b');
     get().fenetreFermer('document');
     expect(get().document).toBeNull();
   });
@@ -183,8 +183,8 @@ describe('le porteur qui s’ouvre dans une séquence d’un autre `purpose` la 
 
 describe('un geste hors cascade ne s’ouvre pas sur un autre', () => {
   it('un second document remis pendant qu’un premier tient la main lève au lieu de l’écraser', () => {
-    get().remettreLeDocument({ title: 'A', text: 'a' });
-    expect(() => get().remettreLeDocument({ title: 'B', text: 'b' })).toThrow(/tient la main/);
-    expect(get().document?.title).toBe('A');
+    get().remettreLeDocument({ genre: 'auteur', title: 'A', text: 'a' });
+    expect(() => get().remettreLeDocument({ genre: 'auteur', title: 'B', text: 'b' })).toThrow(/tient la main/);
+    expect(documentDAuteur(get())?.title).toBe('A');
   });
 });

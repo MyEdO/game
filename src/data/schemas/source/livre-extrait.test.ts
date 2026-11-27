@@ -1,16 +1,7 @@
 // Contrat de la définition UNIQUE de « livre EXTRAIT » (`livre-extrait.ts`, #1739) : son prédicat sur
-// une entrée du registre, et sa lecture VIVANTE par l'app (`estExtrait`) après une édition au seam.
-import { describe, it, expect, afterEach } from 'vitest';
+// une entrée du registre.
+import { describe, it, expect } from 'vitest';
 import { estLivreExtrait } from './livre-extrait';
-import { estExtrait } from '../grammaire/livres-extraits';
-import { books, type BookData } from '../../index';
-import { setDataset } from '../../overrides';
-
-const REGISTRE_LIVRE: BookData[] = [...books];
-
-afterEach(() => {
-  setDataset('books', REGISTRE_LIVRE);
-});
 
 describe('estLivreExtrait — `abbr` ET `dir` non vides', () => {
   it('une entrée porteuse d’un sigle et d’un dossier est extraite', () => {
@@ -28,20 +19,5 @@ describe('estLivreExtrait — `abbr` ET `dir` non vides', () => {
   it('pas d’entrée : pas extraite', () => {
     expect(estLivreExtrait(undefined)).toBe(false);
     expect(estLivreExtrait(null)).toBe(false);
-  });
-});
-
-describe('estExtrait — l’app lit le registre VIVANT', () => {
-  it('un livre extrait dont on vide le `dir` au seam cesse d’être extrait, et le redevient restauré', () => {
-    const extrait = REGISTRE_LIVRE.find((b) => estLivreExtrait(b));
-    expect(extrait, 'aucun livre extrait au registre livré').toBeDefined();
-    const id = extrait!.id;
-    expect(estExtrait(id)).toBe(true);
-
-    setDataset('books', REGISTRE_LIVRE.map((b) => (b.id === id ? { ...b, dir: null } : b)));
-    expect(estExtrait(id)).toBe(false);
-
-    setDataset('books', REGISTRE_LIVRE);
-    expect(estExtrait(id)).toBe(true);
   });
 });

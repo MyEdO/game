@@ -70,14 +70,14 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - État `porte` de l'écran `editeur-de-scene`.
 - Un plan de travail, pas un lieu. Barre : projet, documents « Scène », « Carte du monde », « Narratif », « Annuler »,
   « Rétablir », « Copier », « Coller », « Dupliquer », « Enregistrer », « Tester la scène »
-(`src/hote/editeur.ts:346-366`).
+(`src/hote/editeur.ts:347-367`).
 - À gauche, un volet à onglets « Scènes » et « Outil » (« Lieux », « Routes », « Outil » sur la carte) : « 4 scènes au projet » (les quatre du projet Diligence), « Nouvelle scène », « Dupliquer la scène »,
   « Retirer la scène » ; palette des quinze outils du jeu, « Sélection » armé.
 - Au centre : la scène vue de dessus, quadrillée, couches (« Couche 0 », « Couche 1 », « Ajouter une couche »), Nord ;
   une porte choisie, surlignée. Le plan est une esquisse, pas le relevé de la scène.
 - À droite, l'inspecteur de la porte : Type, Fermée au départ, Porte secrète, Difficulté de Perception, Découvrable
   depuis, Matériau, Apparence ; « Déclencheurs (1) », « Dialogues (0) », « Rencontres (0) » ; la validation.
-- Pied : « Arête 14, 8 E · couche 0 · Porte · Mur à ossature en bois » (`src/hote/editeur.ts:841`).
+- Pied : « Arête 14, 8 E · couche 0 · Porte · Mur à ossature en bois » (`src/hote/editeur.ts:842`).
 - À valider : l'éditeur dans les matières du jeu (bois, laiton, parchemin) plutôt qu'en outil neutre ; trois colonnes
   fixes (volet à onglets, plan, inspecteur) ; dans la barre, seul « Tester la scène » garde son libellé, les autres gestes
   leur pictogramme (« Coller » et « Dupliquer » neufs au kit) ; le Nord en bas à droite du plan ; les outils en palette
@@ -146,7 +146,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 - Gestes de l'atelier (`GesteDuCompendium`, `src/noyau/codex/session.ts:94-111` ; `atelierDe`,
   `src/hote/compendium.ts:162-181`) : `valeur { chemin, valeur }` par champ, `identifier { id }`, `enregistrer`
   (plaque pleine, à gauche), `abandonner`, `supprimer`. « Supprimer » est fermée, sa raison au survol
-  (`ecran.compendium.refus.designee`, `fr.ts:912`).
+  (`ecran.compendium.refus.designee`, `fr.ts:945`).
 - À valider : les désignations en liens dans la colonne des renvois, la raison au survol de « Supprimer » qui les
   compte ; les champs absents en puces plutôt qu'en champs vides ; « Supprimer » ouvert se joue en deux pressions sur
   place (« Confirmer la suppression », « Annuler »), comme l'abandon d'une possession : le compendium n'a pas
@@ -157,7 +157,7 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
   porte les options de l'outil : « Pinceau » (1×1, 3×3 armé, 5×5, « Rectangle ») et « Terrains », les vingt-cinq de
   `src/data/terrains.json`, « Pavés » armé. Sur le plan, le pinceau de 3×3 sous le pointeur et les cases déjà
   peintes ; au pied, « Case 10, 16 · couche 0 · Terre battue · 0 m » (`ecran.editeur.pointee`).
-- Gestes (`src/noyau/edition/session.ts:582-584`, `src/hote/editeur.ts:808-812`) : `{ geste: 'outil', outil: {
+- Gestes (`src/noyau/edition/session.ts:583-585`, `src/hote/editeur.ts:809-813`) : `{ geste: 'outil', outil: {
   mode: 'terrain', terrain } }`, `{ geste: 'pinceau', taille }` (`PINCEAUX` 1, 3, 5), `{ geste: 'rectangle',
   actif }`.
 - À valider : les options de l'outil à la place de l'inspecteur tant que rien n'est choisi, la même manière pour
@@ -166,9 +166,9 @@ inspecteur de l'éditeur ; feuillets de liste et de fiche du registre.
 
 ## editeur-supprimer
 - État `supprimer` de l'écran `editeur-de-scene` : un personnage choisi sur le plan (« Gustav », nom d'exemple). Inspecteur de l'entité
-  (`inspecteurDEntite`, `src/hote/editeur.ts:974-998`) : « Nom », « Fiche », « Orientation », « Couche »,
+  (`inspecteurDEntite`, `src/hote/editeur.ts:980-1004`) : « Nom », « Fiche », « Orientation », « Couche »,
   « Inventaire », « Poser une troupe » et ses « Copies » (`{ geste: 'troupe', nombre }`), puis « Supprimer » au
-  pied (`{ geste: 'supprimer' }`, `src/noyau/edition/session.ts:624`, `:1387`).
+  pied (`{ geste: 'supprimer' }`, `src/noyau/edition/session.ts:625`, `:1388`).
 - Sur le plan, « Retirer cette couche » est fermée pour le rez, sa raison au survol (« Le rez ne se retire pas »,
   `ecran.editeur.couche.rez`).
 - À valider : « Supprimer » au pied de l'inspecteur de toute sélection (entité, arête, zone, entrée,

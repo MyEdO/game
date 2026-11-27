@@ -787,14 +787,14 @@ export function dispatchCascadeDone(get: Get, set: Set, done: ReturnType<typeof 
   else if (done?.purpose === 'travel' && done.travelHalt) { travelFlow.continueTravelAfterNight(get, set); handled = true; }
   else if (done?.purpose === 'travelDay') {
     handled = true;
-    if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set);
+    if (get().travelPlan?.river) continueRiverDayAfterCascade(get, set, done);
     else if (get().travelPlan?.sea) continueSeaDayAfterCascade(get, set);
     else travelFlow.continueTravelDayAfterCascade(get, set, done);
   }
   // Exposition hydrique fluviale (MSRC 16) surfacée APRÈS le jour (#344) : la clôture reprend la fin du
   // jour (halte de nuit / arrivée), DIFFÉRÉE le temps du Test de Résistance — sinon le Repos et l'Exposition
   // se court-circuitent et la journée suivante ne se ré-arme jamais (patron du sibling `seaScorbut`).
-  else if (done?.purpose === 'riverExposure') { continueRiverDayAfterExposure(get, set); handled = true; }
+  else if (done?.purpose === 'riverExposure') { continueRiverDayAfterExposure(get, set, done); handled = true; }
   else if (done?.purpose === 'sequence') { closeSequenceRound(get, set, done); handled = true; } // manche de SÉQUENCE close → le socle résout puis rouvre/dénoue (noyau/sequenceCore)
   // Entretien-survie maritime surfacé au MJ (#272 résiduel, seam #275) : la clôture enchaîne la phase suivante de la journée.
   else if (done?.purpose === 'seaScorbut') { continueSeaDayAfterScorbut(get, set, done.participants); handled = true; }

@@ -10,7 +10,7 @@ import { cleDesLibelles, cleDesSpecs, cleFiltree } from './cle-d-espace';
 import { poserRegimeVivant } from './idsVivants';
 import type { Catalogue } from '../catalogue/catalogue';
 import { catalogueAvec } from '../../catalogueAvec.testkit';
-import { catalogueDuProcessus } from '../../catalogueDuProcessus';
+import { idDeFixture } from '../../idDeFixture.testkit';
 
 export const OUVERTE = 'fixture-3081-ouverte';
 export const FERMEE = 'fixture-3081-fermee';
@@ -33,18 +33,21 @@ const espacesDe = (type: TypeEntite): [string, ReadonlySet<string>][] => {
   ];
 };
 
-/** Une fiche de chaque id de la fixture, sur la forme de la fiche `modele`. */
-const fiches = <E extends object>(modele: E): E[] => [OUVERTE, FERMEE, SANS].map((id) => ({ ...modele, id }));
+const IDS = [OUVERTE, FERMEE, SANS];
+const SOURCE = { book: idDeFixture('book', 'livre-de-la-fixture-3081'), page: 1 };
 
-/** Joue `verifier` sous le régime de la fixture, avec le catalogue qui porte ses fiches (`catalogueAvec`), puis repose
- *  le régime précédent. */
+/** Une Compétence et un Talent DÉCLARÉS de chaque id de la fixture, ajoutés à la base vivante (`catalogueAvec`) : le
+ *  verdict d'une spécialisation ne lit que le régime posé et ces ids, la base porte le reste d'un projet jugé. */
+const COMPETENCES = IDS.map((id) => ({ id, type: 'skills' as const, label: id, characteristic: 'dexterite' as const, acces: 'base' as const, source: SOURCE }));
+const TALENTS = IDS.map((id) => ({ id, type: 'talents' as const, label: id, max: null, test: null, source: SOURCE }));
+const CAT = catalogueAvec({ 'skills.json': COMPETENCES, 'talents.json': TALENTS });
+
+/** Joue `verifier` sous le régime de la fixture, avec le catalogue qui porte ses fiches, puis repose le régime précédent. */
 export function avecLesEntreesDeSpecs(verifier: (cat: Catalogue) => void): void {
   const espaces = new Map([...espacesDe('skill'), ...espacesDe('talent')]);
-  const livree = catalogueDuProcessus();
-  const cat = catalogueAvec({ 'skills.json': fiches(livree['skills.json'][0]), 'talents.json': fiches(livree['talents.json'][0]) });
   const precedent = poserRegimeVivant((cle) => espaces.get(cle) ?? precedent?.(cle));
   try {
-    verifier(cat);
+    verifier(CAT);
   } finally {
     poserRegimeVivant(precedent);
   }

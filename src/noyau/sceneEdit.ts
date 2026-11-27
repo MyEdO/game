@@ -157,6 +157,7 @@ import {
   selPos,
   selRect,
   accesDe,
+  ficheDePersonnage,
 } from './sceneEditLecture';
 import { tableTotale } from '../lib/tableTotale';
 import type { Catalogue } from '../data/schemas/catalogue/catalogue';
@@ -884,21 +885,24 @@ export function changePropRef(scene: Scene, propId: string, ref: string): Scene 
  *  (`borneALaCarte`). Les props appliquent leurs défauts de catalogue
  *  (empreinte, interactif si fouillable) et se posent au point visé `point` (`poseAuPoint` : case, calage, appui) ;
  *  un personnage porte sa fiche en `creature` et le libellé de la fiche, son apparence se dérive du record (#1882). Une
- *  fiche absente du bestiaire lève. */
-export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p): { scene: Scene; id: string } {
+ *  fiche que `cat` ne porte pas (`ficheDePersonnage`), ou nulle, lève. */
+export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p, cat: Catalogue = catalogueDuProcessus()): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
   const base: SceneEntity = { id, kind: outil.kind, pos: borneALaCarte(scene, p, outil.kind === 'heroStart') };
-  if (outil.kind === 'personnage' && !findCreatureById(outil.ref))
-    throw new Error(`placeEntity : « ${outil.ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
   // #1463 S3 · #1882 : `nomDEntite`.
   const decor = (ref: string): SceneEntity => {
     const ent: SceneEntity = { ...base, ...propRefPatch(ref, undefined), label: findPropById(ref)?.label, ...(z ? { z } : {}) };
     return { ...ent, ...poseAuPoint(scene, ent, point) };
   };
+  const personnage = (ref: string | null): SceneEntity => {
+    if (ref === null || !ficheDePersonnage(ref, cat))
+      throw new Error(`placeEntity : « ${ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
+    return { ...base, creature: { id: ref } };
+  };
   const ent: SceneEntity = outil.kind === 'prop'
     ? decor(outil.ref)
     : outil.kind === 'personnage'
-      ? { ...base, creature: { id: outil.ref } }
+      ? personnage(outil.ref)
       : { ...base, label: libelleDeValeur(entityKindSchema, outil.kind) };
   return { scene: addEntity(scene, ent, z), id }; // l'étage se pose à la porte d'ajout
 }
@@ -1268,7 +1272,7 @@ function patchEntre<T extends object>(avant: T, apres: T): Partial<T> {
 /** La scène `scene` où l'entité `avant` devient `apres`, chaque champ de premier niveau qui change posé par sa porte
  *  (`editEntity`) ; ou son refus, dit : la règle qu'enfreint sous `cat` l'entité écrite et que l'entité d'avant
  *  n'enfreignait pas (`TypeNonNomme`, `refusDeLEntite`), une entité déjà fautive restant éditable. */
-export function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity, cat: Catalogue = catalogueDuProcessus()): EcritureDeValeur<Scene> {
+export function sceneAvecLEntite(scene: Scene, avant: SceneEntity, apres: SceneEntity, cat: Catalogue): EcritureDeValeur<Scene> {
   const patch = patchEntre(avant, apres);
   let ecrite: Scene;
   try {
@@ -1308,7 +1312,7 @@ interface EcritureDeScene<D> {
  *  qui refuse le retrait du porteur `id`, ou de son élément `element`, dit. Un renommage sous un identifiant vide ou déjà
  *  pris rend le projet tel quel. `entrees` : les entrées des fiches de dossier que l'hôte sert à la
  *  session (`SessionDEdition`, `entreesDeFiche`). #3606 */
-interface EcritureDuPorteur<D> {
+export interface EcritureDuPorteur<D> {
   ecrire: (projet: ProjetDEdition, sceneId: string, avant: D, apres: D, cat: Catalogue) => EcritureDeValeur<ProjetDEdition>;
   creer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel, avec: string | undefined, entrees: readonly EntreeNommee[]) => { projet: ProjetDEdition; id: string } | undefined;
   refusDeCreer?: (projet: ProjetDEdition, sceneId: string, depuis: Sel) => string | undefined;
@@ -2794,11 +2798,12 @@ export type GesteDOutil = { z: number; brush: number; encId: string; encRef: str
 /** Ce qu'un geste rend : la scène, la sélection qu'il désigne, et la rencontre qu'il a complétée. */
 export type EffetDOutil = { scene: Scene; sel?: Sel; encId?: string };
 
-/** Applique l'outil `tool` à la case `p` — routine unique de l'appui et du glissé. null hors de la carte,
+/** Applique l'outil `tool` à la case `p`, la fiche d'un personnage jugée sous `cat` (`placeEntity`) — routine unique de
+ *  l'appui et du glissé. null hors de la carte,
  *  pour un outil qui n'écrit pas à la case (sélection, zone au rectangle, tracé de volée), ou quand la pose
  *  est refusée. Un décor se pose toujours, au point visé, parmi ce que la case porte déjà ; sur une entité déjà posée,
  *  les autres outils de pose la désignent sans rien écrire. */
-export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOutil): EffetDOutil | null {
+export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOutil, cat: Catalogue): EffetDOutil | null {
   if (!dansLaCarte(scene, p)) return null;
   const { z, brush } = geste;
   switch (tool.mode) {
@@ -2815,7 +2820,7 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
       }
       const existing = entityAt(scene, p, z, geste.point);
       if (existing) return { scene, sel: { type: 'entity', id: existing.id } };
-      const out = tool.mode === 'entite' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
+      const out = tool.mode === 'entite' ? placeEntity(scene, tool, p, z, p, cat) : placeEmplacement(scene, tool.trappingId, p, z);
       return out && { scene: out.scene, sel: { type: 'entity', id: out.id } };
     }
     case 'entree': {
