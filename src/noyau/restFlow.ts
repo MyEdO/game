@@ -30,7 +30,7 @@ import type { RecapTone } from './recapLine';
 import { battleRng } from './battleRng';
 import { betesHorsRencontre } from './monde/combatants';
 import { touchActors } from './combatOrParty';
-import { reposDeScene } from './monde/scene';
+import { reposDeLaScene } from './monde/scene';
 import { partyAssisted } from '../engine/skills';
 import { designeGaranti } from './ligneDeJet';
 import { soberUpDissipate, soberUpHangover } from '../engine/drunkenness';
@@ -691,18 +691,18 @@ export function restCost(p: PendingRest, party: Combatant[]): Money {
   return fromBrass(Object.values(partsDuRepos(p, party)).reduce((n, m) => n + toBrass(m), 0));
 }
 
-/** Offre de repos À LA POSITION DU GROUPE : zone de repos (rect d'auteur) prioritaire, sinon
- *  réglage de scène, sinon camp (défaut). PARAMÉTRABLE SUR LA ZONE dans l'éditeur. */
-export function restPlacesHere(st: Jeu): { places: RestPlaces; quality: QualiteDeRepos } | null {
+/** Offre de repos À LA POSITION DU GROUPE : la scène résolue (`reposDeLaScene`) à la zone de repos (rect d'auteur)
+ *  qui l'y couvre, prioritaire, sinon à la scène entière. PARAMÉTRABLE SUR LA ZONE dans l'éditeur. */
+export function restPlacesHere(st: Jeu): ReturnType<typeof reposDeLaScene> | null {
   const sc = st.scene;
   if (!sc) return null;
   const pos = st.partyPos;
   const zone = pos ? [...(sc.restZones ?? [])].reverse().find((z) =>
     pos.x >= z.rect.x && pos.x < z.rect.x + z.rect.w && pos.y >= z.rect.y && pos.y < z.rect.y + z.rect.h
     && (z.rect.z ?? 0) === (pos.z ?? 0)) : undefined;
-  const places = zone?.places ?? reposDeScene(sc);
-  if (!places.auberge && !places.maison && !places.camp) return null; // repos interdit ici
-  return { places, quality: zone?.quality ?? sc.rest?.quality ?? 'normale' };
+  const repos = reposDeLaScene(sc, zone);
+  const { places } = repos;
+  return places.auberge || places.maison || places.camp ? repos : null;
 }
 
 /** Options d'`ouvrirLeRepos` : l'APPELANT dit où le groupe dort (`places` = l'offre, `lieu` = où). */
@@ -710,8 +710,8 @@ export interface OpenRestOpts {
   lieu: LieuDuRepos;
   places?: RestPlaces;
   quality?: QualiteDeRepos;
-  /** Les offres d'auberge de la nuit, celles de l'établissement résolues par `placeServices` ; absentes : celles d'une
-   *  auberge de scène (`offresDeLAubergeDeScene`). */
+  /** Les offres d'auberge de la nuit : celles de l'établissement résolues par `placeServices`, ou celles que la scène
+   *  déclare (`Scene.rest.offres`, `restPlacesHere`) ; absentes : celles d'une auberge de scène (`offresDeLAubergeDeScene`). */
   offres?: readonly OffreDuRepos[];
   days?: number;
   travelHalt?: boolean;
@@ -733,7 +733,7 @@ export function reposDuLieu(get: Get, hebergementId?: string): OpenRestOpts | nu
     return { ...etablissement.rest, lieu: { nom } };
   }
   const scene = restPlacesHere(s);
-  return scene && { places: scene.places, lieu: sceneLieu(get), quality: scene.quality };
+  return scene && { ...scene, lieu: sceneLieu(get) };
 }
 
 /** Le repos ne s'ouvre ni en combat ni sur une nuit qui attend encore son règlement : la garde de toute ouverture

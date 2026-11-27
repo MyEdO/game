@@ -410,6 +410,12 @@ describe('restPlacesHere — offre paramétrable sur la ZONE', () => {
     expect(restPlacesHere({ scene: sc, partyPos: { x: 5, y: 5 } } as never)).toBeNull();
   });
 
+  it('les lieux de repos sont ceux de l’offre, sans sa qualité ni ses offres d’auberge (#5149)', () => {
+    const sc = emptyScene('scene-test', 10, 10);
+    sc.rest = { auberge: true, quality: 'pietre', offres: [{ id: 'repas', prix: { brass: 0 }, source: { book: 'livre-de-base', page: 302 } }] };
+    expect(restPlacesHere({ scene: sc, partyPos: { x: 5, y: 5 } } as never)?.places).toStrictEqual({ auberge: true });
+  });
+
   it('#803 — zone de repos au rez (z absent/0) inactive quand le groupe campe à l’étage 1', () => {
     const sc = emptyScene('scene-test', 10, 10);
     sc.rest = { camp: true };
