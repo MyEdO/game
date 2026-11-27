@@ -26,7 +26,7 @@ export function reluDans(getState: () => JeuDuNoyau, c: Combatant): Combatant {
 /** Les entrées de Contre-sort au `battle.log` contre le Sort de `casterId` : portées par un contre-lanceur, visant
  *  le lanceur (`applyCounterspellOutcome`). */
 export function entreesDuContreSort(getState: () => JeuDuNoyau, casterId: string): CombatEvent[] {
-  return (getState().battle?.log ?? []).filter((e) => e.kind === 'information' && e.targetId === casterId && !!e.actorId && e.actorId !== casterId);
+  return (getState().battle?.log ?? []).filter((e) => e.kind === 'sort' && e.targetId === casterId && !!e.actorId && e.actorId !== casterId);
 }
 
 /** Le héros du duel. */
