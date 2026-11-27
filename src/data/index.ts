@@ -1856,11 +1856,11 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
 }
 /** La création du livre de base 5e de chaque espèce du CRB, keyée par l'id de son espèce (`especesCrb.json`). CRB 008-012 */
 export const especesCrb = datasetDe<typeof especesCrbDef>(especesCrbJson);
-/** Les profils standard (`LDB 77 l.7`) : les fiches que `species.json` désigne par `profilStandard`,
- *  sans doublon, dans l'ordre du dataset. */
-export function profilsStandard(): string[] {
-  return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
-}
+/** Les profils standard (`LDB 77 l.7`) des espèces `especes` : les fiches qu'elles désignent par `profilStandard`,
+ *  sans doublon, dans leur ordre. */
+export const profilsStandardDe = (especes: readonly SpeciesData[]): string[] => [...new Set(especes.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
+/** Les profils standard (`profilsStandardDe`) de `species.json`. */
+export const profilsStandard = (): string[] => profilsStandardDe(species);
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  catalogue des engins de siège (AA 10, ADE II 08), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */

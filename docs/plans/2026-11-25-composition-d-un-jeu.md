@@ -244,10 +244,10 @@ hôte compose un catalogue, et il le remet à sa partie.
   - *Règle maison changée.* Les écrivains de la surface passent à `src/hote` : `surchargerUneRegleMaison`,
     `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:511`, `src/noyau/reglesMaison.ts`).
   - *Sauvegarde.* `snapshotSave` reçoit les règles du catalogue de la partie, et non plus `ruleOverrides()`
-    (`hotes/godot/pont/pont.ts:1169`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
+    (`hotes/godot/pont/pont.ts:1170`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
   - *Coop.* L'hôte envoie les règles de son catalogue (`src/noyau/coop.ts:39`). Chez l'invité, la réception ne charge
     plus rien (`coop.ts:58-59`). L'hôte de l'invité tient l'instantané avant de le remettre à la partie
-    (`hotes/godot/pont/pont.ts:811,1950`). Il en lit les règles par `unpackHouseRules` (`src/noyau/persistance/save.ts:107`),
+    (`hotes/godot/pont/pont.ts:812,1951`). Il en lit les règles par `unpackHouseRules` (`src/noyau/persistance/save.ts:107`),
     exposé à la surface. Il recompose, appelle `Partie.recomposer`, puis `recevoir` : l'instantané s'applique sous les
     règles de l'hôte.
   - *Compendium.* Voir le point 4.
@@ -291,41 +291,42 @@ hôte compose un catalogue, et il le remet à sa partie.
   qu'atteignent 40 documents sur 136 (`catalogStakeSchema` 36, `traitInstanceSchema` 33, les ops `grantTrait`,
   `beginPsych`, `removePsychTrait` et `giveTrapping` 31 chacune). Les schémas porteurs restent donc exportés, et une
   faute croisée vit dans son schéma :
-  - elle est une fonction pure à `cat` requis, par exemple `refusDeLEntite(ent, cat)` (`defs-scenes/scene.ts:320`) et
+  - elle est une fonction pure à `cat` requis, par exemple `refusDeLEntite(ent, cat)` (`defs-scenes/scene.ts:326`) et
     `refusDePoseDesPonts(scene, ent, cat)` (`src/data/schemas/catalogue/poseDesPonts.ts`) ;
   - le raffinement porteur passe par `raffinementDeCatalogue` et l'appelle avec `catalogueLu(...types)()`
     (`LecturesDuRaffinement`, `ref.ts:413`) : `catalogueLu` déclare les espaces lus, au registre que lit
-    `dependancesDuRaffinement`, et rend un accès paresseux au `cat` de la fenêtre (`scene.ts:352`, `scene.ts:1030`) ;
+    `dependancesDuRaffinement`, et rend un accès paresseux au `cat` de la fenêtre (`scene.ts:358`, `scene.ts:1036`) ;
     la carrière et le profil en sont une instance : `refusDuPnjDeCarriere(ent, cat)` lit la créature sous `cat`
-    (`entreeDe('creatures', …, cat)`, `defs-scenes/scene.ts:226`), et la branche d'entité déclare son espace
-    (`catalogueLu('vehicle', 'engin', 'trapping', 'creature')`, `scene.ts:352`). Aucune racine vivante n'atteint
+    (`entreeDe('creatures', …, cat)`, `defs-scenes/scene.ts:229`), et la branche d'entité déclare son espace
+    (`catalogueLu('vehicle', 'engin', 'trapping', 'creature')`, `scene.ts:358`). Aucune racine vivante n'atteint
     `sceneEntitySchema` : la déclaration n'ajoute aucun lecteur à `fichiersLisantLeCatalogue('creatures.json')`
     (`src/data/schemas/validate.ts:176`) ;
   - une lecture non déclarée reste exprimable : `catalogueLu(...)()` rend le `Catalogue` entier. La fermeture par
     structure revient au lot des pools d'enjeu (#5079), son deuxième cas réel : `catalogueLu` y rend un `Pick` du
     `Catalogue` sur les seuls fichiers déclarés ;
   - l'éditeur appelle la même fonction hors parse, sous le catalogue de sa session, par exemple `sceneAvecLEntite`
-    (`src/noyau/sceneEdit.ts:1271`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1467,1470`) et
-    l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:496`). Le parse et l'éditeur suivent un
+    (`src/noyau/sceneEdit.ts:1273`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1468,1471`) et
+    l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:494`). Le parse et l'éditeur suivent un
     seul code. La session porte le catalogue que l'hôte lui sert, reçu en dernier paramètre d'`ouvrirLEdition`
-    (`src/noyau/edition/session.ts:678`), et ces lectures le prennent :
+    (`src/noyau/edition/session.ts:679`), et ces lectures le prennent :
     - `editer` le lit pour la pose des ponts, et `projetAvecLaDonnee` le passe à la table d'écriture
-      (`src/noyau/edition/session.ts:1121`), dont `deLaScene` le passe à `sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1339`) ;
-    - `cadreDeLaSession` le pose au cadre d'un porteur (`src/noyau/edition/session.ts:1106`), où `champsDuPersonnage` et
-      `choixDesSorts` le passent à `ficheEditee` (`src/noyau/sceneEditLecture.ts:666,680`) ;
-    - `avertissementsDeLaSession` le passe à `validateScene` et clé sur lui son mémo (`src/noyau/edition/session.ts:257`) ;
-      `texteAEnregistrer` et `essaiDeLaScene` le passent à `parseProject` (`src/noyau/edition/session.ts:738,747`), et
-      `projetDuDepot` le reçoit du pont (`src/noyau/edition/session.ts:726`) ;
-    - l'inspecteur de l'hôte le passe à `capsDeLaPose` et à `ficheEditee` (`src/hote/editeur.ts:978,1194,1217`), et
+      (`src/noyau/edition/session.ts:1122`), dont `deLaScene` le passe à `sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1341`) ;
+    - `cadreDeLaSession` le pose au cadre d'un porteur (`src/noyau/edition/session.ts:1107`), où `champsDuPersonnage` et
+      `choixDesSorts` le passent à `ficheEditee` (`src/noyau/sceneEditLecture.ts:664,678`) ;
+    - `avertissementsDeLaSession` le passe à `validateScene` et clé sur lui son mémo (`src/noyau/edition/session.ts:258`) ;
+      `texteAEnregistrer` et `essaiDeLaScene` le passent à `parseProject` (`src/noyau/edition/session.ts:739,748`), et
+      `projetDuDepot` le reçoit du pont (`src/noyau/edition/session.ts:727`) ;
+    - l'inspecteur de l'hôte le passe à `capsDeLaPose` et à `ficheEditee` (`src/hote/editeur.ts:984,1200,1223`), et
       `carrieres` lit sous lui la fiche dont il bâtit le porteur du parcours (`ficheDePersonnage`,
-      `src/hote/editeur.ts:1126`, `src/noyau/sceneEditLecture.ts:515`).
+      `src/hote/editeur.ts:1132`, `src/noyau/sceneEditLecture.ts:513`) ; l'inspecteur et la palette y lisent les fiches
+      offertes au choix « Fiche » (`fichesDePersonnage`, `src/hote/editeur.ts:805,981,2162`).
 
-    Le pont repose la session avant chaque geste (`sessionSousLeCatalogue`, `hotes/godot/pont/pont.ts:2135`) : c'est le
+    Le pont repose la session avant chaque geste (`sessionSousLeCatalogue`, `hotes/godot/pont/pont.ts:2137`) : c'est le
     fossile 9.
 
     La pose des navires reste sur le catalogue du processus : `poseDe` et `flottaisonDuNavire` le lisent dans leur corps,
     sans paramètre `cat` (`src/noyau/planDeNavire.ts:114,273`). La session les atteint par `vueDeLaScene`, `flottaison`,
-    `coucheVue` et `poserUnNavire` (`src/noyau/edition/session.ts:653,658,662,906`), et `validateScene` par
+    `coucheVue` et `poserUnNavire` (`src/noyau/edition/session.ts:654,659,663,907`), et `validateScene` par
     `poserLesNavires` (`src/noyau/validateScene.ts:315`). Le lot de `planDeNavire.ts` les prend : famille 8, maritime et
     fluviale (#5077).
 
@@ -346,19 +347,19 @@ hôte compose un catalogue, et il le remet à sa partie.
   - `src/noyau/persistance/save.ts:154` ;
   - `src/noyau/mapSpec.ts:999` ;
   - `src/noyau/validateScene.ts:127-128` ;
-  - `src/noyau/sceneEditLecture.ts:479` ;
+  - `src/noyau/sceneEditLecture.ts:476` ;
   - `src/noyau/campagneLivree.ts:90`.
 - **Le sort des 10 fichiers de `schemas` qui lisent la base.** Ils deviennent des fautes, ou des lectures
   `(…, cat)` de `schemas/catalogue` :
-  - `defs-scenes/scene.ts`, sans lecture de la base : la carrière lit la créature sous `cat` (`scene.ts:226`) ;
+  - `defs-scenes/scene.ts`, sans lecture de la base : la carrière lit la créature sous `cat` (`scene.ts:229`) ;
   - `narratif.ts:22` et `worldmap.ts:24` ;
-  - `grammaire/reference.ts` : le Trait posé lit le trait, le libellé de son type psy et le
-    Groupe de sa Cible sous `cat` (`entreeDe('traits', …)`, `entreeDe('psychologies', …)`, `entreeDe('groups', …)`,
-    `reference.ts:143,163,167,225`), sous `catalogueLu('trait', 'psychology', 'groupe')` (`reference.ts:214`) ; sa
-    Cible se décode par `cibleDeLArg` (`src/engine/psych/ciblage.ts:79`), dont les lecteurs du Trait et du Groupe
-    s'injectent : le moteur lit la base par défaut, la grammaire le catalogue jugé. Reste une lecture de la base :
-    `refuserLesIndividus` (`reference.ts:137`) lit le Trait par `individusNommes` (`ciblage.ts:97`), au défaut de
-    `cibleDeLArg` ;
+  - `grammaire/reference.ts`, sans lecture de la base : le Trait posé lit le trait et le libellé de son type psy sous
+    `cat` (`entreeDe('traits', …)`, `entreeDe('psychologies', …)`, `reference.ts:159,163,220`), sous
+    `catalogueLu('trait', 'psychology', 'groupe')` (`reference.ts:209`) ; sa Cible se décode par `cibleDeLArg`
+    (`src/engine/psych/ciblage.ts:72`), qui lit le Trait et le Groupe sous le `cat` de son dernier paramètre, au
+    défaut du fossile 2 pour les appelants du moteur ; `refuserLesIndividus` reçoit le `cat` du raffinement de la
+    péripétie de route (`catalogueLu('trait', 'groupe')`, `worldmap.ts:185`) et le passe à `individusNommes`
+    (`ciblage.ts:83`) ;
   - `grammaire/mecanique.ts:17` (`categorieDEntreeAPool`, `trousDeLEnjeu`, les pools du Codex, #5079) ; la Cible tirée
     de `grantTrait` lit les rangées de sa table dans `cat` (`GROUPES_TIRABLES`, `collectionDuCatalogue`,
     `mecanique.ts:213,855`), sous `catalogueLu('trait', 'obsessions.json')` (`mecanique.ts:843`) : `catalogueLu`
@@ -366,16 +367,16 @@ hôte compose un catalogue, et il le remet à sa partie.
   - `defs/presets-de-personnage.ts:36` ;
   - `defs-scenes/effets.ts:56`, dont le libellé passe au message de la faute ;
   - `grammaire/valeurs.ts:16,18,60` : l'apparence d'un objet lit l'objet sous `cat` (`objetsDuCatalogue`,
-    `catalogueLu('trapping')`, `valeurs.ts:1184`). Restent trois lectures de la base :
+    `catalogueLu('trapping')`, `valeurs.ts:1185`). Restent trois lectures de la base :
     - `messageDApparenceDObjet` (`valeurs.ts:16`, `src/data/apparencesObjets.ts:59`), dont le message de la faute lit
       encore les apparences de la base : étape E de #5070, la découpe du C5-b ne nommant pas `apparencesObjets.ts` ;
     - l'`import type` de `TrappingData` (`valeurs.ts:18`) : étape E ;
     - `saisonParId` (`valeurs.ts:60`), qui indexe le `weather.json` livré pour les seuls libellés de `parSaison`, des
       méta sans `cat` : étape E ;
   - `defs/especes-aleatoires.ts:74,95`, qui lit `species` et `reglesOptionnelles` dans `cat` ;
-  - `grammaire/livres-extraits.ts:14`, sans lecture de la base : `estExtrait(bookId, cat)` lit le livre dans `cat`
-    (`entreeDe('books', …)`, mémo `[cat]`), sous le `catalogueLu('book')` des verrous de la prose
-    (`refineProse`, `grammaire/prose.ts:113`), que porte toute entrée de document.
+  - `grammaire/prose.ts`, sans lecture de la base : les verrous de la prose lisent le livre dans `cat`
+    (`estLivreExtrait(entreeDe('books', …))`), sous leur `catalogueLu('book')` (`refineProse`, `prose.ts:114`), que
+    porte toute entrée de document.
   - Le Compendium juge la bibliothèque *candidate* : une entrée créée, puis référencée par une autre, est acceptée sans
     `npm run gen`.
   - `lireLEspace`, `idsVivants`, `fige` et `poserRegimeVivant` meurent.
@@ -510,7 +511,7 @@ compilateur.
 - **Fossile 9 : la repose de la session d'édition.** La session porte le catalogue que l'hôte lui sert
   (`SessionDEdition`). Une écriture du Compendium change le catalogue du processus pendant qu'une édition est ouverte :
   le pont repose donc la session avant chaque geste, sous le catalogue du jeu ouvert, sinon sous celui du processus
-  (`sessionSousLeCatalogue`, `src/noyau/edition/session.ts:690`). La repose vit, comme le fossile 5, jusqu'au lot du
+  (`sessionSousLeCatalogue`, `src/noyau/edition/session.ts:691`). La repose vit, comme le fossile 5, jusqu'au lot du
   Compendium et des hôtes. Son préalable : l'hôte remet à la session son catalogue recomposé à chaque écriture du
   Compendium. Retirée sans lui, la repose laisserait la session sur un catalogue périmé.
 

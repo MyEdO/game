@@ -14,7 +14,8 @@ import { z } from 'zod';
 import { descRefSchemaDe, sourceRefSchema, type GenreDeFragment } from './valeurs';
 import { enfantsDe, type PointDeDonnee } from './descente';
 import { marquerProduit } from './interne/produits';
-import { estExtrait } from './livres-extraits';
+import { entreeDe } from '../catalogue/catalogue';
+import { estLivreExtrait } from '../source/livre-extrait';
 import { raffinementDeCatalogue } from './ref';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import { PROSES_NOMMEES, type CheminProseDeScene, type ProseNommee } from './champs-prose-de-scene';
@@ -125,7 +126,7 @@ export function refineProse(ctx: ContexteProse): z.core.$ZodCheck<unknown> {
           message: 'texte en double : saisi ici et adressé au livre — garde l’un ou l’autre.',
         });
       }
-      if (adresse !== undefined && !estExtrait(livreAdresse, cat())) {
+      if (adresse !== undefined && !estLivreExtrait(entreeDe('books', livreAdresse, cat()))) {
         refine.addIssue({
           code: 'custom',
           path: ['descRef', 'book'],
@@ -139,7 +140,7 @@ export function refineProse(ctx: ContexteProse): z.core.$ZodCheck<unknown> {
           message: `la source cite « ${livreSource} », le passage adressé « ${String(livreAdresse)} » : une autre localisation va aux emplacements secondaires.`,
         });
       }
-      if (aDesc && estExtrait(livreSource, cat()) && !(type in PROSE_INLINE_TOLEREE)) {
+      if (aDesc && estLivreExtrait(entreeDe('books', livreSource, cat())) && !(type in PROSE_INLINE_TOLEREE)) {
         refine.addIssue({
           code: 'custom',
           path: ['desc'],

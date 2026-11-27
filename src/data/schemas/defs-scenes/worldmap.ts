@@ -16,7 +16,7 @@ import { conditionCondCtxSchema } from '../grammaire/campagne';
 import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
 import { offresDAubergeSchema } from '../grammaire/hebergement';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema, travelModeSchema } from '../grammaire/route';
-import { idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
+import { affinerAvecCatalogues, idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
 import { listeSansCle } from '../grammaire/liste-sans-cle';
@@ -177,13 +177,16 @@ export const mapPlaceSchema = ouvrirPortees(proseNommee(nommerChamps(z.strictObj
 
 /** `RoutePeril` — péripétie d'AUTEUR tirée chaque jour de voyage à `chancePct` %. Hors de toute scène, elle en ouvre
  *  les portées VIDES (`ouvrirPortees`, source `'vide'`) : aucune référence locale de la scène n'y résout. */
-export const routePerilSchema = nommerChamps(ouvrirPortees(z.strictObject({
+export const routePerilSchema = nommerChamps(ouvrirPortees(affinerAvecCatalogues(z.strictObject({
   label: z.string(),
   chancePct: z.number(),
   effects: listeSansCle(z.array(effectSchema)),
-}).superRefine((peril, ctx) => {
-  refuserLesIndividus(peril.effects, ctx, 'une péripétie de route');
-  refuserLeTesteurHorsDuTest(peril.effects, ctx, 'effects');
+}), (lire) => {
+  const cat = lire.catalogueLu('trait', 'groupe');
+  return (peril, ctx) => {
+    refuserLesIndividus(peril.effects, ctx, 'une péripétie de route', cat());
+    refuserLeTesteurHorsDuTest(peril.effects, ctx, 'effects');
+  };
 }), PORTEES_DE_LA_SCENE, 'vide'), { label: { label: "libellé" , texte: { regime: "designation"} }, chancePct: { label: "probabilité" }, effects: { label: "effets" } });
 
 /** Une référence à un lieu de la carte (`ref(LIEUX_DE_LA_CARTE)`). */

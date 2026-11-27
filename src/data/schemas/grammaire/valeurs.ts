@@ -1183,7 +1183,7 @@ const resolveurDObjet = (entree: (id: string) => unknown): TrappingResolver => (
 /** Le résolveur des objets du catalogue jugé (`catalogueLu('trapping')`), lu à l'appel. */
 const objetsDuCatalogue = (lire: LecturesDuRaffinement): TrappingResolver => {
   const cat = lire.catalogueLu('trapping');
-  return resolveurDObjet((id) => entreeDe('trappings', id, cat()));
+  return (id) => entreeDe('trappings', id, cat());
 };
 
 const signaler = (ctx: z.RefinementCtx, fautes: readonly FauteDApparence[]): void => {

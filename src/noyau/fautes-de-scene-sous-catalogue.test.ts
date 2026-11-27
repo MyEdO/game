@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildScene } from './mapSpec';
 import { sceneAvecLEntite } from './sceneEdit';
-import { capsDeLaPose } from './sceneEditLecture';
+import { capsDeLaPose, type ProjetDEdition } from './sceneEditLecture';
 import { catalogueAvec, copie } from '../data/catalogueAvec.testkit';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
@@ -138,7 +138,7 @@ describe('le parcours de carrière d’une entité se juge au profil de sa créa
     const offerts = (creature: string) => {
       const scene = { ...buildScene({ id: 'caserne', label: 'Caserne', size: [8, 8], terrain: 'herbe' }), entities: [soldat(creature)] };
       const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'catalogue', scenes: [scene], narratif: emptyNarratif() };
-      const s = editer(ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, null, [], CAT), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'r' } });
+      const s = editer(ouvrirLEdition(projet as ProjetDEdition, { duDepot: true }, CAT), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'r' } });
       const dotation = inspecteurDeLaSession(s).find((el) => el.id === `carriere/dotation/${joker.adresse}`);
       return dotation && 'valeurs' in dotation ? dotation.valeurs.map((v) => v.id).filter((id) => id.endsWith('/canon-ratling')) : undefined;
     };

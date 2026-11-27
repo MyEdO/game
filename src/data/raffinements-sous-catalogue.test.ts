@@ -1,6 +1,7 @@
 /**
  * Les raffinements croisés de la grammaire et des defs se jugent contre le catalogue passé (#5070, `catalogueLu`) : le
- * trait octroyé (`grantTrait`) et sa Cible tirée, la Cible d'un état psy posé (`beginPsych`), le Trait posé, la prose
+ * trait octroyé (`grantTrait`) et sa Cible tirée, la Cible d'un état psy posé (`beginPsych`), le Trait posé, la Cible
+ * d'individu d'une péripétie de route (`refuserLesIndividus`), la prose
  * d'un livre extrait, l'apparence d'un objet, les jeux de races (`especes-aleatoires.json`).
  * Fixtures : des traits, des états psy, un Groupe, un livre, un objet, une rangée d'obsessions, une espèce et une règle
  * optionnelle présents SEULEMENT dans le catalogue de la suite (`catalogueAvec`).
@@ -15,6 +16,7 @@ import { fichiersLisantLeCatalogue, validateDataset } from './schemas/validate';
 import { renvoiDeLEspaceVivant } from './overrides';
 import { refMorte } from './schemas/grammaire/ref';
 import { traitInstanceSchema } from './schemas/grammaire/reference';
+import { routePerilSchema } from './schemas/defs-scenes/worldmap';
 import { proseAdressable, refineProse } from './schemas/grammaire/prose';
 import { apparencesDObjetsSchema } from './schemas/grammaire/valeurs';
 import { estLivreExtrait } from './schemas/source/livre-extrait';
@@ -105,6 +107,17 @@ describe('le Trait posé (`traitInstanceSchema`) se lit dans le catalogue passé
 
   it('un Trait à distance du seul catalogue refuse l’Allonge de son profil d’arme', () => {
     expect(messages(traitInstanceSchema, { id: TRAIT_A_DISTANCE, profilDArme: { allonge: 'Longue' } })).toContain('L’Allonge se pose sur un profil de mêlée.');
+  });
+});
+
+describe('la Cible d’individu d’une péripétie de route (`refuserLesIndividus`) se lit dans le catalogue passé', () => {
+  /** L'entrée minimale qui fait de l'`arg` d'un Trait une Cible psy, sa `specsSource`, et les champs qu'exige son type. */
+  const TRAIT_A_CIBLE = 'trait-a-cible-du-livre-de-test';
+  const CAT_AU_TRAIT_A_CIBLE = catalogueAvec({ 'traits.json': [{ id: TRAIT_A_CIBLE, type: 'traits', label: 'Trait à Cible', specsSource: 'ciblesPsy', source: { book: LIVRE, page: 1 } }] });
+  const peril = { label: 'Péril', chancePct: 10, effects: [{ type: 'givePossession', nature: 'bete', ref: { custom: { type: 'statblock', label: 'Chien', char: {}, traits: [{ id: TRAIT_A_CIBLE, arg: '@p' }] } } }] };
+
+  it('un statbloc qui nomme un individu par un Trait à Cible du seul catalogue est refusé', () => {
+    expect(messages(routePerilSchema, peril, CAT_AU_TRAIT_A_CIBLE)).toContain('Cible psy « p » : une péripétie de route n\'a pas de personnages de scène, sa Cible est un Groupe.');
   });
 });
 

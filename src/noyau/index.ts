@@ -539,3 +539,4 @@ export { designeGaranti, rollLine } from './ligneDeJet';
 export { refusDeConsommer } from './consumableFlow';
 export { estOperation } from './acteDeSoin';
 export type { DoctrineId } from './monde/ai';
+export type { Catalogue } from '../data/schemas/catalogue/catalogue';

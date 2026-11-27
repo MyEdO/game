@@ -43,6 +43,7 @@ import {
   supprimerEntree,
   transactionDemandee,
   type SessionDuCompendium,
+  type Catalogue,
   herosDuRosterOfferts,
   ouvrirLEdition,
   projetDuDepot,
@@ -849,8 +850,8 @@ function entreeDe(methode: string, json: string | null | undefined, cles: readon
 }
 
 /** Le projet de la campagne `id` que porte `texte`, le texte que le dépôt sert (`servir.mjs`, `depot/<id>`) : du JSON,
- *  que la porte prouve sous le catalogue `cat` (`projetDuDepot`), de cet `id`. */
-function projetServi(id: string, texte: unknown, cat: Parameters<typeof projetDuDepot>[1]): ProjectDoc {
+ *  que la porte prouve sous le catalogue `cat` (`projetDuDepot`, celui du processus sans lui), de cet `id`. */
+function projetServi(id: string, texte: unknown, cat: Catalogue | undefined): ProjectDoc {
   valider(typeof texte === 'string', 'editer : projet, le texte du projet que sert le dépôt');
   let lu: unknown;
   try {
@@ -2129,7 +2130,8 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
         valider(e.calques === undefined || typeof e.calques === 'string', 'editer : calques, le texte des calques que l’hôte garde');
         const gardes = e.calques === undefined ? undefined : calquesGardes(e.calques as string);
         const manifeste = e.manifeste === undefined ? null : manifesteServi(e.manifeste);
-        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), false, gardes, manifeste, entreesServies, catalogue) : ouvrirLEdition(projetServi(campagne!.id, e.projet, catalogue), true, gardes, manifeste, entreesServies, catalogue);
+        const servis = { gardes, manifeste, entreesDeFiche: entreesServies };
+        session = e.projet === undefined ? ouvrirLEdition(paquetDuJeu(campagne!), { ...servis, duDepot: false }, catalogue) : ouvrirLEdition(projetServi(campagne!.id, e.projet, catalogue), { ...servis, duDepot: true }, catalogue);
       } else {
         valider(edition !== null, 'editer : aucune carte ouverte, editer { ouvrir } d’abord');
         const s = sessionSousLeCatalogue(edition!.session, catalogue);

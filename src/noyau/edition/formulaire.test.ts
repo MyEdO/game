@@ -344,7 +344,7 @@ describe('le geste `valeur` de la session', () => {
   const ouverte = (): { s: SessionDEdition; id: string; trig: string } => {
     const { scene } = addEffectZone(emptyScene('s', 4, 4), { x: 0, y: 0, w: 2, h: 2 });
     const avecTrig = addTrigger(scene, { x: 3, y: 3, w: 1, h: 1 });
-    return { s: ouvrirLEdition({ scenes: [avecTrig.scene], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0], false), id: scene.effectZones![0].id, trig: avecTrig.id };
+    return { s: ouvrirLEdition({ scenes: [avecTrig.scene], narratif: NARRATIF_VIDE } as ProjetDEdition, { duDepot: false }), id: scene.effectZones![0].id, trig: avecTrig.id };
   };
   const { s: depart, id, trig } = ouverte();
   const porteur = { sorte: 'zone' as const, id };
@@ -599,7 +599,7 @@ describe('le formulaire d’un dialogue (#3606 M3b1a)', () => {
   });
 
   describe('le geste `valeur` sur un dialogue', () => {
-    const depart = ouvrirLEdition({ scenes: [SCENE_DU_DIALOGUE], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+    const depart = ouvrirLEdition({ scenes: [SCENE_DU_DIALOGUE], narratif: NARRATIF_VIDE } as ProjetDEdition, { duDepot: false });
     const jouer = (s: SessionDEdition, chemin: Segment[], ...valeur: unknown[]): SessionDEdition =>
       editer(s, { geste: 'valeur', porteur: { sorte: 'dialogue', id: 'd' }, chemin, ...(valeur.length ? { valeur: valeur[0] } : {}) });
     const leDialogue = (s: SessionDEdition) => sceneEditee(s).dialogues[0];

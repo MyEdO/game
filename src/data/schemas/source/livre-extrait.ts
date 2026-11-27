@@ -1,4 +1,4 @@
-// LIVRE EXTRAIT (#1389, #1739) — définition UNIQUE, pour l'app (`schemas/grammaire/livres-extraits.ts`)
+// LIVRE EXTRAIT (#1389, #1739) — définition UNIQUE, pour l'app (`schemas/grammaire/prose.ts`)
 // comme pour l'outillage (`scripts/raw/_lib.mjs`, qui la ré-exporte).
 //
 // Module PUR, sans aucun import : chargé tel quel par Node nu (retrait de types natif) comme par

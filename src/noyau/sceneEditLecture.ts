@@ -94,14 +94,13 @@ import { walkFlow } from '../engine/flowCore';
 import { isDoorEdgeStructure, isWallEdgeStructure } from '../engine/structures';
 import type { Combatant, StructureData } from '../engine/types';
 import {
-  creatures,
   navalPorts,
   findCreatureById,
   choixDeLaFeuilleDId,
   findSiegeEngineById,
   findTrappingById,
   libelleDAuteur,
-  profilsStandard,
+  profilsStandardDe,
   refEstVolumique,
   siegeEngines,
   spells,
@@ -139,20 +138,19 @@ import { aretesA } from './monde/wallIndex';
 import type { Pt, EffectZoneSeed } from './sceneEdit';
 import { champsDuFormulaire, type CheminsOfferts, type FormeDuFormulaire, type Segment } from './edition/formulaire';
 import { tableTotale } from '../lib/tableTotale';
-import { entreeDe, type Catalogue } from '../data/schemas/catalogue/catalogue';
+import { collectionDuCatalogue, entreeDe, type Catalogue } from '../data/schemas/catalogue/catalogue';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
-import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { estUnNavireAPonts, rectangleDesPonts, refusDePoseDesPonts } from '../data/schemas/catalogue/poseDesPonts';
 
 /** Outil actif (rail de la Palette). `ref` permet la pose DIRECTE d'un décor ou d'une fiche précise.
  *  L'outil d'ENTITÉ est SCINDÉ par `kind` (#877, #1882) : un décor NOMME son type au catalogue, un
- *  personnage NOMME sa fiche au bestiaire — `ref` y est REQUISE, comme au schéma de scène
- *  (`PORTEURS_DU_TYPE`) — et le départ des héros n'a rien à référencer. */
+ *  personnage NOMME sa fiche au bestiaire — `ref` y est REQUISE à la pose, comme au schéma de scène (`PORTEURS_DU_TYPE`),
+ *  `null` sous un catalogue sans fiche, où la pose lève — et le départ des héros n'a rien à référencer. */
 export type Tool =
   | { mode: 'selection' }
   | { mode: 'terrain'; terrain: Terrain }
   | { mode: 'entite'; kind: 'prop'; ref: string }
-  | { mode: 'entite'; kind: 'personnage'; ref: string }
+  | { mode: 'entite'; kind: 'personnage'; ref: string | null }
   | { mode: 'entite'; kind: 'heroStart' }
   | { mode: 'zone'; zone: ZoneVariant }
   // EMPRISE d'une zone d'effet au PINCEAU (`SceneEffectZone.tiles`) : `zoneId` = id STABLE de la zone
@@ -474,7 +472,7 @@ export function entiteDeLaSelection(scene: Scene, sel: Sel): SceneEntity | undef
 /** La fiche du personnage `ent` (`ficheDuPersonnage`) avec le narratif du projet, s'il est de son schéma
  *  (`sceneEntitySchema`, ids jugés sous `cat`) : un brouillon du formulaire peut ne pas l'être, il ne se vérifie qu'à
  *  l'enregistrement et à l'essai. */
-export const ficheEditee = (ent: SceneEntity, narratif: NarratifBlock, cat: Catalogue = catalogueDuProcessus()): Combatant | undefined =>
+export const ficheEditee = (ent: SceneEntity, narratif: NarratifBlock, cat: Catalogue): Combatant | undefined =>
   parserSousCatalogue(sceneEntitySchema, ent, cat).success ? ficheDuPersonnage(ent, presetDuNarratif(narratif), objetInstanciableDuNarratif(narratif)) : undefined;
 
 /** Le cap de l'entité `ent` : le sien, sinon le cap d'identité (`CAP_IDENTITE_PROP`). */
@@ -485,7 +483,7 @@ export const lumiereAllumee = (ent: SceneEntity): NonNullable<SceneEntity['light
 
 /** Les caps que l'entité `ent` peut prendre, dans l'ordre horaire (`DIR8_ORDER`) : ceux que son type admet, les
  *  cardinaux seuls pour un décor volumique (`capDecorAdmis`) ou un navire à ponts (`estUnNavireAPonts`). */
-export function capsOfferts(ent: SceneEntity, cat: Catalogue = catalogueDuProcessus()): Dir8[] {
+export function capsOfferts(ent: SceneEntity, cat: Catalogue): Dir8[] {
   if (ent.kind === 'personnage' && estUnNavireAPonts(ent.vehicule?.id, cat)) return DIR8_ORDER.filter(estCardinal);
   return DIR8_ORDER.filter((cap) => capDecorAdmis(refEstVolumique(ent.decor?.id), cap));
 }
@@ -493,7 +491,7 @@ export function capsOfferts(ent: SceneEntity, cat: Catalogue = catalogueDuProces
 /** Les caps de l'entité `ent` de `scene` à l'inspecteur (`capsOfferts`), chacun avec le refus, sous `cat`, de ses ponts
  *  posés à ce cap (`refusDePoseDesPonts`, `null` : admis) ; et le cap qu'elle tient : celui de ses ponts posés
  *  (`rectangleDesPonts`), sinon le sien (`capDeLEntite`). */
-export function capsDeLaPose(scene: Scene, ent: SceneEntity, cat: Catalogue = catalogueDuProcessus()): { readonly tenu: Dir8; readonly caps: readonly { readonly cap: Dir8; readonly refus: string | null }[] } {
+export function capsDeLaPose(scene: Scene, ent: SceneEntity, cat: Catalogue): { readonly tenu: Dir8; readonly caps: readonly { readonly cap: Dir8; readonly refus: string | null }[] } {
   return {
     tenu: rectangleDesPonts(scene, ent, cat)?.cap ?? capDeLEntite(ent),
     caps: capsOfferts(ent, cat).map((cap) => ({ cap, refus: refusDePoseDesPonts(scene, { ...ent, facing: cap }, cat) ?? null })),
@@ -503,11 +501,11 @@ export function capsDeLaPose(scene: Scene, ent: SceneEntity, cat: Catalogue = ca
 /** Une créature est une fiche de personnage si elle a des Blessures (`char.B`, #1882). */
 const estUneFiche = (c: CreatureData): boolean => typeof c.char.B === 'number';
 
-/** Les fiches qu'un personnage posé peut nommer (`estUneFiche`) : les créatures du bestiaire, les profils standard
- *  (`LDB 77 l.7`, `profilsStandard`) en tête. */
-export function fichesDePersonnage(): CreatureData[] {
-  const standard = new Set(profilsStandard());
-  const fiches = creatures.filter(estUneFiche);
+/** Les fiches qu'un personnage posé peut nommer sous `cat` (`estUneFiche`) : les créatures de son bestiaire, les profils
+ *  standard de ses espèces (`LDB 77 l.7`, `profilsStandardDe`) en tête. */
+export function fichesDePersonnage(cat: Catalogue): CreatureData[] {
+  const standard = new Set(profilsStandardDe(collectionDuCatalogue('species', cat)));
+  const fiches = collectionDuCatalogue('creatures', cat).filter(estUneFiche);
   return [...fiches.filter((c) => standard.has(c.id)), ...fiches.filter((c) => !standard.has(c.id))];
 }
 

@@ -3,7 +3,9 @@
  * la lit, la compare et l'affiche dans le moteur. Deux variantes : un Groupe de `groups.json` (id nu), ou un
  * individu, un combattant par son `Combatant.id` (`@id`). Le préfixe ne se lit qu'ici. #1463 #3045
  */
-import { dataLabel, findGroupById, findPsychologyById, findTraitById, groupLabel, psychologyLabel } from '../../data';
+import { dataLabel, groupLabel, psychologyLabel } from '../../data';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
+import { entreeDe, type Catalogue } from '../../data/schemas/catalogue/catalogue';
 import type { VarianteDeCible } from '../../data/schemas/grammaire/valeurs';
 import { t } from '../../i18n';
 import type { NonAffichable, PlayerText, SansMarqueNonAffichable } from '../../i18n/playerText';
@@ -58,26 +60,17 @@ export function selonCible<R>(cible: CiblePsy, lecteurs: { groupe: (id: string) 
 }
 
 /** La Cible qu'écrit une chaîne de donnée (`arg` d'un Trait, spécialisation, Cible persistée) : `@id` donne
- *  l'individu, un id de Groupe que connaît `groupe` (par défaut `groups.json` de la base) le Groupe ; sinon aucune. */
-export function ciblePsyLue(ecrite: string, groupe: (id: string) => unknown = findGroupById): CiblePsy | undefined {
+ *  l'individu, un id de Groupe de `cat` le Groupe ; sinon aucune. */
+export function ciblePsyLue(ecrite: string, cat: Catalogue = catalogueDuProcessus()): CiblePsy | undefined {
   const { variante, id } = formeDe(ecrite);
   if (variante === 'individu') return estIdDIndividu(id) ? ciblePsy.individu(id) : undefined;
-  return groupe(id) ? ciblePsy.groupe(id) : undefined;
+  return entreeDe('groups', id, cat) ? ciblePsy.groupe(id) : undefined;
 }
 
-/** Les lectures dont se décode l'`arg` d'un Trait posé : le Trait par son id, le Groupe par son id. */
-export type LecteursDeCible = {
-  readonly trait: (id: string) => { readonly specsSource?: string | null } | undefined;
-  readonly groupe: (id: string) => unknown;
-};
-
-const LECTEURS_DE_LA_BASE: LecteursDeCible = { trait: findTraitById, groupe: findGroupById };
-
 /** SEUL décodage de l'`arg` d'un Trait posé en Cible : celle qu'il écrit (`ciblePsyLue`) quand le Trait `traitId`
- *  tire son argument des Cibles psy (`specsSource: ciblesPsy`), sinon aucune. Le moteur lit la base (défaut), la
- *  grammaire injecte le catalogue jugé. */
-export function cibleDeLArg(traitId: string, arg: string, lire: LecteursDeCible = LECTEURS_DE_LA_BASE): CiblePsy | undefined {
-  return lire.trait(traitId)?.specsSource === 'ciblesPsy' ? ciblePsyLue(arg.trim(), lire.groupe) : undefined;
+ *  de `cat` tire son argument des Cibles psy (`specsSource: ciblesPsy`), sinon aucune. */
+export function cibleDeLArg(traitId: string, arg: string, cat: Catalogue = catalogueDuProcessus()): CiblePsy | undefined {
+  return entreeDe('traits', traitId, cat)?.specsSource === 'ciblesPsy' ? ciblePsyLue(arg.trim(), cat) : undefined;
 }
 
 /** L'id de l'individu que vise une Cible, `undefined` pour un Groupe. */
@@ -86,18 +79,19 @@ export function individuDe(cible: CiblePsy): string | undefined {
 }
 
 /** Les ids d'individu qu'une valeur de DONNÉE nomme en Cible psy, à toute profondeur : l'`arg` d'un Trait posé
- *  (`cibleDeLArg`). #3045 */
-export function individusNommes(valeur: unknown, out: string[] = []): string[] {
-  if (Array.isArray(valeur)) {
-    for (const v of valeur) individusNommes(v, out);
-    return out;
-  }
-  if (valeur === null || typeof valeur !== 'object') return out;
-  const o = valeur as Record<string, unknown>;
-  const deLArg = typeof o.id === 'string' && typeof o.arg === 'string' ? cibleDeLArg(o.id, o.arg) : undefined;
-  const individu = deLArg && individuDe(deLArg);
-  if (individu !== undefined) out.push(individu);
-  for (const v of Object.values(o)) individusNommes(v, out);
+ *  (`cibleDeLArg`) sous `cat`. #3045 */
+export function individusNommes(valeur: unknown, cat: Catalogue = catalogueDuProcessus()): string[] {
+  const out: string[] = [];
+  const parcourir = (v: unknown): void => {
+    if (Array.isArray(v)) return v.forEach(parcourir);
+    if (v === null || typeof v !== 'object') return;
+    const o = v as Record<string, unknown>;
+    const deLArg = typeof o.id === 'string' && typeof o.arg === 'string' ? cibleDeLArg(o.id, o.arg, cat) : undefined;
+    const individu = deLArg && individuDe(deLArg);
+    if (individu !== undefined) out.push(individu);
+    Object.values(o).forEach(parcourir);
+  };
+  parcourir(valeur);
   return out;
 }
 
@@ -120,12 +114,10 @@ export function varianteDe(cible: CiblePsy): VarianteDeCible {
   return selonCible<VarianteDeCible>(cible, { groupe: () => 'groupe', individu: () => 'individu' });
 }
 
-/** Le type de psychologie `type` admet-il la `variante` (`psychology.json`, `cibles`) ? */
-export function varianteAdmise(type: string, variante: VarianteDeCible, lire = ciblesDuType): boolean {
-  return !!lire(type)?.includes(variante);
+/** Le type de psychologie `type` de `cat` admet-il la `variante` (`psychology.json`, `cibles`) ? */
+export function varianteAdmise(type: string, variante: VarianteDeCible, cat: Catalogue = catalogueDuProcessus()): boolean {
+  return !!entreeDe('psychologies', type, cat)?.cibles?.includes(variante);
 }
-
-const ciblesDuType = (type: string): readonly VarianteDeCible[] | undefined => findPsychologyById(type)?.cibles;
 
 /** Identité d'un Trait psy ou d'une affliction : son type, et sa Cible s'il en porte une. Deux entrées de même
  *  identité sont la même entrée. */
@@ -154,7 +146,7 @@ export function libelleDePsy(type: string, cible?: CiblePsy, nomDIndividu?: NomD
   return cible === undefined ? psy : t('step.sujetPrecision', { sujet: psy, precision: libelleDeCible(cible, nomDIndividu) });
 }
 
-/** Le type de psychologie vise-t-il une Cible (`psychology.json`, `cibles`) ? */
-export function estCibleType(type: string, lire = ciblesDuType): boolean {
-  return lire(type) !== undefined;
+/** Le type de psychologie `type` de `cat` vise-t-il une Cible (`psychology.json`, `cibles`) ? */
+export function estCibleType(type: string, cat: Catalogue = catalogueDuProcessus()): boolean {
+  return entreeDe('psychologies', type, cat)?.cibles !== undefined;
 }

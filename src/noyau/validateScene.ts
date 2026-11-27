@@ -327,9 +327,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
     const dialoguesOuverts = new Set(s.entities.flatMap((e) => (e.dialogueId ? [e.dialogueId.id] : [])));
     // Cible d'individu : un personnage de CETTE scène (EDOC 11 l.648 ; #3045).
     const individuAbsent = (id: string) => !refCtx.entityIds.has(id);
-    for (const e of s.entities) for (const id of individusNommes(e).filter(individuAbsent))
+    for (const e of s.entities) for (const id of individusNommes(e, cat).filter(individuAbsent))
       add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
-    for (const id of individusNommes({ ...s, entities: [] }).filter(individuAbsent))
+    for (const id of individusNommes({ ...s, entities: [] }, cat).filter(individuAbsent))
       add('error', 'scene', undefined, `Cible psy « ${id} » : aucun personnage de la scène ne porte cet id.`);
     // La colonne de Disponibilité d'un marchand se résout (`colonneDeDisponibiliteDuMarchand`) au lieu où se tient la scène.
     const lieuDeLaSceneValidee = lieuDeLaScene(worldMap, s.id);

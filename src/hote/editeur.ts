@@ -298,7 +298,8 @@ export interface ZonesDeLEditeur {
   /**
    * un choix des outils : sélection, terrain, hauteur, murs, volée, crénelage, décor, personnage, navire, emplacement
    * de siège, départ des héros, entrée, architecture, zone, gomme ; l'actif pressé ; le navire refusé, la raison dite,
-   * dans une scène qui n'est pas à l'échelle des ponts (`aLEchelleDesPonts`). Sur la carte du monde ouverte, ceux de
+   * dans une scène qui n'est pas à l'échelle des ponts (`aLEchelleDesPonts`), et le personnage sous un catalogue sans
+   * fiche (`refusDuPersonnage`), sa référence `null` faute d'outil personnage en main. Sur la carte du monde ouverte, ceux de
    * son plan (`OUTILS_DE_LA_CARTE`) : `outil/select`, l'appui sur un lieu le sélectionne et son glissé le déplace
    * (`majLieu`, borné, un cran pour le glissé), sur une route la sélectionne ; `outil/lieu`, l'appui sur le fond pose
    * un lieu neuf au point (`ajouterLieu`), sélectionné ; `outil/chemin`, l'appui sur un lieu tire une route que le
@@ -801,7 +802,7 @@ function options(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
   }
   if (outil.mode === 'entite') {
     const kind = outil.kind;
-    const offerts = kind === 'prop' ? props : fichesDePersonnage();
+    const offerts = kind === 'prop' ? props : fichesDePersonnage(s.catalogue);
     return [choix(kind === 'prop' ? 'decors' : 'fiches', t(kind === 'prop' ? 'ecran.editeur.decors' : 'ecran.editeur.fiches'),
       offerts.map((o) => boutonDEdition(`${kind}/${o.id}`, o.label, { geste: 'outil', outil: { mode: 'entite', kind, ref: o.id } }, outil.ref === o.id)), 'liste')];
   }
@@ -957,6 +958,11 @@ const couverture = (s: SessionDEdition, id: string, couvre: readonly string[] | 
 const refusDuNavire = (scene: Scene): string | null =>
   aLEchelleDesPonts(scene) ? null : t('ecran.editeur.navire.echelle', { m: sceneMetresPerTile(scene) });
 
+/** Pourquoi l'outil ne pose pas de personnage sous le catalogue de la session `s` : il ne porte aucune fiche
+ *  (`fichesDePersonnage`) ; `null` s'il en porte. */
+const refusDuPersonnage = (s: SessionDEdition): string | null =>
+  fichesDePersonnage(s.catalogue).length ? null : t('ecran.editeur.personnage.sansFiche');
+
 /** Les couches de la vue de la scène éditée de `s` (`vueDeLaScene`), dans l'ordre. */
 const couchesDeLaVue = (s: SessionDEdition): number[] => vueDeLaScene(s).layers.map((l) => l.z).sort((a, b) => a - b);
 
@@ -972,7 +978,7 @@ const choixDeLaCouche = (s: SessionDEdition, id: string, z: number, jeu: (z: num
  *  profil porté, ses sorts, ses rencontres, et le formulaire qui en pose une troupe ; les entrées de fiche qu'elle
  *  couvre ; le formulaire tiré du schéma de son type (`formulaireDe`) ; la supprimer. */
 function inspecteurDEntite(s: SessionDEdition, ent: Scene['entities'][number]): (Choix | Ligne | Bouton | Formulaire)[] {
-  const fiches = fichesDePersonnage();
+  const fiches = fichesDePersonnage(s.catalogue);
   const types = ent.kind === 'prop' ? props : fiches.some((f) => f.id === ent.creature?.id) ? fiches : [];
   const scene = sceneEditee(s);
   const pose = capsDeLaPose(scene, ent, s.catalogue);
@@ -2153,6 +2159,7 @@ function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
   const kindDeLOutil = (kind: 'prop' | 'personnage') => (outil.mode === 'entite' && outil.kind === kind ? outil.ref : undefined);
   const etages = couchesDeLaVue(s);
   const navire = outil.mode === 'navire' ? outil : { ref: TYPES_DE_NAVIRE[0].id, cap: CAPS_DES_PONTS[0] };
+  const fiche = kindDeLOutil('personnage') ?? fichesDePersonnage(s.catalogue)[0]?.id ?? null;
   const outils = [
     boutonDEdition('outil/select', t('ecran.editeur.outil.select'), { geste: 'outil', outil: { mode: 'selection' } }, s.outil.mode === 'selection'),
     boutonDEdition('outil/tile', t('ecran.editeur.outil.tile'), { geste: 'outil', outil: { mode: 'terrain', terrain } }, s.outil.mode === 'terrain'),
@@ -2161,7 +2168,7 @@ function zonesDeLaScene(s: SessionDEdition): Partial<ZonesDeLEditeur> {
     boutonDEdition('outil/stair', t('ecran.editeur.outil.stair'), { geste: 'outil', outil: { mode: 'escalier', toZ: etages.find((z) => z > s.z) ?? s.z } }, s.outil.mode === 'escalier'),
     boutonDEdition('outil/crenellated', t('ecran.editeur.outil.crenellated'), { geste: 'outil', outil: { mode: 'crenelage', structure: apparencesCrenelables()[0]?.id ?? null } }, s.outil.mode === 'crenelage'),
     boutonDEdition('outil/prop', t('ecran.editeur.outil.prop'), { geste: 'outil', outil: { mode: 'entite', kind: 'prop', ref: kindDeLOutil('prop') ?? props[0].id } }, kindDeLOutil('prop') !== undefined),
-    boutonDEdition('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: kindDeLOutil('personnage') ?? fichesDePersonnage()[0].id } }, kindDeLOutil('personnage') !== undefined),
+    boutonDEdition('outil/personnage', t('ecran.editeur.outil.personnage'), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: fiche } }, kindDeLOutil('personnage') !== undefined, refusDuPersonnage(s)),
     boutonDEdition('outil/navire', t('ecran.editeur.outil.navire'), { geste: 'outil', outil: { mode: 'navire', ref: navire.ref, cap: navire.cap } }, outil.mode === 'navire', refusDuNavire(scene)),
     boutonDEdition('outil/emplacement', t('ecran.editeur.outil.emplacement'), { geste: 'outil', outil: { mode: 'emplacement', trappingId: outil.mode === 'emplacement' ? outil.trappingId : siegeEngines()[0].id } }, outil.mode === 'emplacement'),
     boutonDEdition('outil/heroStart', t('ecran.editeur.outil.heroStart'), { geste: 'outil', outil: { mode: 'entite', kind: 'heroStart' } }, s.outil.mode === 'entite' && s.outil.kind === 'heroStart'),

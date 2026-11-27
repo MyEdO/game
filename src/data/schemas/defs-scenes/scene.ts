@@ -214,11 +214,14 @@ export const marchandDeSceneSchema = nommerChamps(z.strictObject({
 export const inventaireDAuteurSchema = recordDIds('trapping', nommerNoeud(z.boolean(), { nom: 'porté' }), INSTANCIABLE_PAR_ID, { portee: OBJETS_DU_PROJET });
 export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
+/** Le personnage que juge `refusDuPnjDeCarriere` : son parcours de carrière et ce qui le contredit. */
+type PnjAJuger = Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string }; appearance?: { tenue?: string } };
+
 /** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
  *  pas : un parcours part d'un profil du Bestiaire (`creature`), sans statbloc ni preset, et la carrière actuelle
  *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`, au porteur du profil de la créature de `cat`
  *  (`porteurDuProfil`). Des choix de carrière sans carrière sont refusés. */
-export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string }; appearance?: { tenue?: string } }, cat: Catalogue): string | undefined {
+export function refusDuPnjDeCarriere(ent: PnjAJuger, cat: Catalogue): string | undefined {
   const parcours = parcoursDe(ent);
   if (!parcours) return ent.talentsDeCarriere || ent.competencesDeCarriere || ent.dotationsDeCarriere ? 'choix de carrière sans carrière' : undefined;
   if (ent.statblock || ent.presetId || !ent.creature) return 'un PNJ de carrière part d’un profil du Bestiaire (« creature »), sans statbloc ni preset';
@@ -310,6 +313,9 @@ type EntityKindId = z.infer<typeof entityKindSchema>;
 /** Une faute CROISÉE d'une entité de scène : le champ où elle se dit, et ce qu'elle dit. */
 export interface FauteDEntite { chemin: readonly (string | number)[]; message: string }
 
+/** L'entité que jugent les fautes croisées (`refusDeLEntite`). */
+export type EntiteAJuger = PnjAJuger & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] };
+
 /** Les fautes CROISÉES de l'entité `ent` sous `cat`, que le raffinement de sa branche de `sceneEntitySchema` dit au parse,
  *  et que l'éditeur refuse à l'écriture (`sceneAvecLEntite`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un
  *  personnage, un corps au plus, le parcours de carrière au profil de sa créature de `cat` (`refusDuPnjDeCarriere`), le
@@ -317,7 +323,7 @@ export interface FauteDEntite { chemin: readonly (string | number)[]; message: s
  *  pièce de `cat` charge (`chargeLArme`) ; d'un décor, son calage dans sa case (#3731), le cap d'un décor volumique
  *  (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au registre généré, `porteLeMarqueur`).
  *  Source unique. */
-export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] }, cat: Catalogue): FauteDEntite[] {
+export function refusDeLEntite(ent: EntiteAJuger, cat: Catalogue): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
@@ -347,7 +353,7 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
 }
 
 /** La branche d'entité `branche`, raffinée de chaque faute de `refusDeLEntite` sous le catalogue jugé, dite à son champ. */
-const avecSesFautes = <S extends z.ZodType<Parameters<typeof refusDeLEntite>[0]>>(branche: S): S =>
+const avecSesFautes = <S extends z.ZodType<EntiteAJuger>>(branche: S): S =>
   affinerAvecCatalogues(branche, (lire) => {
     const cat = lire.catalogueLu('vehicle', 'engin', 'trapping', 'creature');
     return (ent, ctx) => {

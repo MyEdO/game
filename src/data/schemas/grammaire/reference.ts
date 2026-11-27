@@ -50,7 +50,7 @@ import {
   type Parmi,
 } from './ref';
 import { entreeDe, type Catalogue } from '../catalogue/catalogue';
-import { cibleDeLArg, estCibleType, individusNommes, varianteAdmise, varianteDe, type LecteursDeCible } from '../../../engine/psych/ciblage';
+import { cibleDeLArg, estCibleType, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
 
 /**
  * Trait POSÉ (`TraitPose`, la forme AUTHORÉE) — partagé entre le bestiaire (`creatures.json`
@@ -132,38 +132,34 @@ export function refusDArgHorsRegistre(
  *  Groupes, une scène a aussi ses personnages. #3045 */
 type RegimeDeCible = 'catalogue' | 'scene';
 
-/** Refus de toute Cible d'individu (`individusNommes`) de `valeur`, dans un `document` sans personnages de scène.
- *  EDOC 11 l.648 ; #3045 */
-export function refuserLesIndividus(valeur: unknown, ctx: z.RefinementCtx, document: string): void {
-  for (const id of new Set(individusNommes(valeur)))
+/** Refus de toute Cible d'individu (`individusNommes` sous `cat`) de `valeur`, dans un `document` sans personnages
+ *  de scène. EDOC 11 l.648 ; #3045 */
+export function refuserLesIndividus(valeur: unknown, ctx: z.RefinementCtx, document: string, cat: Catalogue): void {
+  for (const id of new Set(individusNommes(valeur, cat)))
     ctx.addIssue({ code: 'custom', message: `Cible psy « ${id} » : ${document} n'a pas de personnages de scène, sa Cible est un Groupe.` });
 }
 
-/** Les lectures de la Cible d'un `arg` sous le catalogue jugé `cat`. */
-const lecteursDeCible = (cat: Catalogue): LecteursDeCible => ({ trait: (id) => entreeDe('traits', id, cat), groupe: (id) => entreeDe('groups', id, cat) });
-
 /** L'`arg` du Trait `id` désigne-t-il un individu (`@id`) à la place d'une Cible psy (`specsSource: ciblesPsy`) ? */
 function argDIndividu(id: string, arg: string, cat: Catalogue): boolean {
-  const cible = cibleDeLArg(id, arg, lecteursDeCible(cat));
+  const cible = cibleDeLArg(id, arg, cat);
   return cible !== undefined && varianteDe(cible) === 'individu';
 }
 
 export function lireLesCiblesPsy(lire: LecturesDuRaffinement) {
   const cat = lire.catalogueLu('psychology');
-  const cibles = (id: string) => entreeDe('psychologies', id, cat())?.cibles;
   return {
-    estCibleType: (id: string) => estCibleType(id, cibles),
-    varianteAdmise: (id: string, variante: z.infer<typeof varianteDeCibleSchema>) => varianteAdmise(id, variante, cibles),
+    estCibleType: (id: string) => estCibleType(id, cat()),
+    varianteAdmise: (id: string, variante: z.infer<typeof varianteDeCibleSchema>) => varianteAdmise(id, variante, cat()),
   };
 }
 
 /** Refus de l'`arg` du Trait psy `id` dont le type (`capabilities.psychType`) n'admet pas la variante de Cible
  *  (`psychology.json`, `cibles`) — message nommé, sinon `null`. */
-function refusDeVarianteDeCible(id: string, arg: string, admetVariante: typeof varianteAdmise, cat: Catalogue): string | null {
+function refusDeVarianteDeCible(id: string, arg: string, cat: Catalogue): string | null {
   const trait = entreeDe('traits', id, cat);
   const type = trait?.capabilities?.psychType;
-  const cible = cibleDeLArg(id, arg, lecteursDeCible(cat));
-  if (!type || cible === undefined || admetVariante(type, varianteDe(cible))) return null;
+  const cible = cibleDeLArg(id, arg, cat);
+  if (!type || cible === undefined || varianteAdmise(type, varianteDe(cible), cat)) return null;
   return `Trait « ${id} » : ${entreeDe('psychologies', type, cat)?.label ?? type} ne vise pas ${libelleDeValeur(varianteDeCibleSchema, varianteDe(cible))} (« ${arg} »).`;
 }
 
@@ -210,7 +206,6 @@ const CHAMPS_DU_TRAIT_POSE = { id: { label: "identifiant" }, value: { label: "va
 function refusDuTraitPose(lire: LecturesDuRaffinement, regime: RegimeDeCible) {
   const admet = declareLaCapacite(lire.catalogue('trait').porteLeMarqueur);
   const specialisations = lire.specialisations('trait');
-  const { varianteAdmise } = lireLesCiblesPsy(lire);
   const cat = lire.catalogueLu('trait', 'psychology', 'groupe');
   return (t: TraitPose, ctx: z.RefinementCtx): void => {
     const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
@@ -235,7 +230,7 @@ function refusDuTraitPose(lire: LecturesDuRaffinement, regime: RegimeDeCible) {
     if (t.arg === undefined) return;
     const refusDIndividu = regime === 'scene' ? null : `Trait « ${t.id} » : « ${t.arg} » désigne une personne de la scène ; hors d'une scène, sa Cible est un Groupe.`;
     const refusDeRegistre = argDIndividu(t.id, t.arg, cat()) ? refusDIndividu : refusDArgHorsRegistre(t.id, t.arg, specialisations.refus);
-    for (const refus of [refusDArgDeTrait(t.id, t.arg, specialisations.marqueurDeLaForme), refusDeRegistre, refusDeVarianteDeCible(t.id, t.arg, varianteAdmise, cat())]) {
+    for (const refus of [refusDArgDeTrait(t.id, t.arg, specialisations.marqueurDeLaForme), refusDeRegistre, refusDeVarianteDeCible(t.id, t.arg, cat())]) {
       if (refus) ctx.addIssue({ code: 'custom', path: ['arg'], message: refus });
     }
   };
