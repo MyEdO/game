@@ -55,7 +55,7 @@ describe('marchand.troquer', () => {
     banc.setState({ party: [hero], merchant: merchant([{ id: 'hallebarde', qty: 5 }]) });
     troquer(banc.getState, { giveHeroId: hero.id, giveTrappingId: 'dague', getStockId: 'hallebarde', getCount: 1 });
     expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'hallebarde')).toBe(false);
-    expect(banc.getState().journal.join('\n')).toMatch(/il faut \d+ × Dague à céder \(1 disponible/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/il faut \d+ × Dague à céder \(1 disponible/);
   });
 
   it('le troc conclu vide son brouillon ; sans bien cédé, l’échange ne s’offre pas', () => {
@@ -63,7 +63,7 @@ describe('marchand.troquer', () => {
     hero.items = [itemFromTrappingById('hallebarde', idsDeTest)!];
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     banc.getState().fenetreChoisir('marchand', 'troquer', true);
-    expect(banc.getState().journal[banc.getState().journal.length - 1]).toBe(t('choix.refus.valeur'));
+    expect(banc.getState().journal[banc.getState().journal.length - 1].texte).toBe(t('choix.refus.valeur'));
     troquer(banc.getState, { giveHeroId: hero.id, giveTrappingId: 'hallebarde', getStockId: 'dague', getCount: 1 });
     expect(banc.getState().merchant!.troc).toBeNull();
   });
@@ -107,7 +107,7 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     banc.setState({ party: [hero], merchant: merchant([]) });
     banc.getState().fenetreChoisir('marchand', 'ajouterALaVente', hero.items[0].uid);
     expect(banc.getState().merchant!.sellCart ?? []).toHaveLength(0);
-    expect(banc.getState().journal.join('\n')).toMatch(/Vente refusée.*Licence de Guilde/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Vente refusée.*Licence de Guilde/);
   });
 
   it('VENTE : contre-épreuve — un objet ordinaire entre bien au panier', () => {
@@ -130,6 +130,6 @@ describe('hors commerce — VENTE et TROC refusés, avec leur raison', () => {
     banc.setState({ party: [hero], merchant: merchant([{ id: 'dague', qty: 5 }]) });
     banc.getState().fenetreChoisir('marchand', 'trocCeder', hero.items[0].uid);
     expect((banc.getState().party[0].items ?? []).some((i) => i.trappingId === 'dague')).toBe(false);
-    expect(banc.getState().journal.join('\n')).toMatch(/Troc impossible.*Licence de Guilde/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Troc impossible.*Licence de Guilde/);
   });
 });

@@ -1,5 +1,6 @@
 /** Journal de la partie : son puits unique (#319, #939). */
-import { fixedJetOpen, markFixedDie } from './fixedDieMark';
+import { ligneDeTexte } from '../engine/journal';
+import { fixedJetOpen } from './fixedDieMark';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import { bus, EVT } from './bus';
@@ -7,12 +8,12 @@ import { bus, EVT } from './bus';
 export function creerActionsDuJournal(get: Get, set: SetDesClesReservees) {
   return {
     // PUITS UNIQUE du journal : c'est ici — et nulle part ailleurs — qu'un jet dont le joueur a SAISI la
-    // valeur laisse sa trace écrite (arbitrage #939 : marqué PARTOUT, rangée ET journal).
+    // valeur laisse sa provenance (arbitrage #939 : marqué PARTOUT, rangée ET journal).
     ecrireAuJournal: (msg) => {
-      const brutes = Array.isArray(msg) ? msg : [msg];
-      const lignes = fixedJetOpen(get()) ? brutes.map(markFixedDie) : brutes;
-      set((s) => ({ journal: [...s.journal.slice(-40), ...lignes], lignesAuJournal: s.lignesAuJournal + lignes.length }));
-      for (const texte of lignes) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte });
+      const deFixe = fixedJetOpen(get());
+      const entrees = (Array.isArray(msg) ? msg : [msg]).map((texte) => (deFixe ? { ...ligneDeTexte(texte), deFixe } : ligneDeTexte(texte)));
+      set((s) => ({ journal: [...s.journal.slice(-40), ...entrees], lignesAuJournal: s.lignesAuJournal + entrees.length }));
+      for (const entree of entrees) bus.emit(EVT.LIGNE_AU_JOURNAL, { entree });
     },
   } satisfies FabriqueDuNoyau;
 }

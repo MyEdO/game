@@ -133,7 +133,7 @@ describe('Stock de munitions du poste (MDG 12 l.410-424)', () => {
     expect(poste.loaded).toBe(false); // … mais la pièce a fait feu : déchargée
     expect(poste.reloadProgress).toBe(0);
     expect(poste.ammo![0].qty).toBe(1); // … et son boulet est parti (2 → 1)
-    expect(banc.getState().journal.join('\n')).toMatch(/MANQUE/i); // aucun jet silencieux : le journal le DIT
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/MANQUE/i); // aucun jet silencieux : le journal le DIT
   });
 });
 

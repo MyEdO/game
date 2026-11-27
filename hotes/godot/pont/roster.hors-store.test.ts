@@ -97,7 +97,7 @@ describe('le roster par le pont', () => {
     expect(erreurDe(appel('jouer', { suite: [recrutement.jeu, { type: 'inconnu' }] })).categorie).toBe('validation');
     retirerDuRoster(stockage, alda);
     expect(erreurDe(appel('roster', boutonDe(s, alda, 'exporter').jeu)).categorie, 'le héros exporté n’est plus au stockage').toBe('interne');
-    expect(suiteDe(appel('regarder', { regard: 'tactique' })).journal.map((l) => ('texte' in l ? l.texte : null)))
+    expect(suiteDe(appel('regarder', { regard: 'tactique' })).journal.map((l) => ('entree' in l ? l.entree.texte : null)))
       .toEqual([expect.stringContaining(pretire.nom)]);
   });
 

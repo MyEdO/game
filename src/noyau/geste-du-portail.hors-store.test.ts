@@ -56,7 +56,7 @@ describe('le geste d’un accès : une source pour le noyau et l’écran', () =
     const { fermee } = enExploration();
     expect(g().actionnerLaPorte(fermee.id)).toBe(true);
     expect(g().actionnerLaPorte('porte-inconnue')).toBe(false);
-    expect(g().journal.slice(-1)[0]).toBe(t('porte.refus.inconnue', { id: 'porte-inconnue' }));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('porte.refus.inconnue', { id: 'porte-inconnue' }));
   });
 
   it('les gestes d’exploration offrent exactement ces deux gestes pour les deux portes', () => {

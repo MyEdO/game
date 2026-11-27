@@ -34,7 +34,7 @@ const porte = (banc: Banc, uid: string) => !!veteran(banc).items?.some((i) => i.
 function journalDe(banc: Banc, geste: () => void): string[] {
   const avant = banc.getState().journal.length;
   geste();
-  return banc.getState().journal.slice(avant);
+  return banc.getState().journal.slice(avant).map((e) => e.texte);
 }
 
 /** Retouche la fiche du Vétéran. */

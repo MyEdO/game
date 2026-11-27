@@ -182,7 +182,7 @@ describe('après-coup — le cas suspendu rejoint le témoin (#1508 T3b-4)', () 
     monte('maladresseEnnemiMJ', null);
     const trace = jouer();
     expect(trace.filter((t) => t.startsWith('jetDeMaladresse:')), trace.join(' | ')).toEqual(['jetDeMaladresse:e(Dague)']);
-    const log = g().battle!.log.map((l) => l.text);
+    const log = g().battle!.log.map((l) => l.entree.texte);
     expect(log.filter((l) => l.startsWith('e — Maladresse !')), log.join(' | ')).toHaveLength(1);
   });
 
@@ -239,7 +239,7 @@ describe('Maladresse de l’ATTAQUANT : une écriture, au temps `oupsAttaquant` 
     g().jetLancer('maladresse');
     g().jetValider('maladresse');
     expect(g().battle!.acted, 'la suite (Action de la manœuvre gratuite rendue) joue après la Maladresse').toBe(false);
-    const log = g().battle!.log.map((l) => l.text);
+    const log = g().battle!.log.map((l) => l.entree.texte);
     expect(log.filter((l) => l.startsWith('h — Maladresse !')), log.join(' | ')).toHaveLength(1);
   });
 });
@@ -418,6 +418,6 @@ describe('deux Maladresses du même porteur dans une séquence', () => {
       avanceEtapeCascade(g);
       expect(g().pendingCascade?.participants.find((s) => s.id === attendu)?.committed ?? true, `${attendu} résolue`).toBe(true);
     }
-    expect(g().battle!.log.filter((l) => l.text.startsWith('e — Maladresse !'))).toHaveLength(2);
+    expect(g().battle!.log.filter((l) => l.entree.texte.startsWith('e — Maladresse !'))).toHaveLength(2);
   });
 });

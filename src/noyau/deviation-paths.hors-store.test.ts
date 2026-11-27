@@ -432,7 +432,7 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
     const touche = evaluateMissile(caster, t, missileSpell(), jet).location!;
     castMissile(caster, t, missileSpell(), { critical: critique });
     draineCascade(banc.getState);
-    return { touche, journal: banc.getState().battle!.log.map((l) => l.text) };
+    return { touche, journal: banc.getState().battle!.log.map((l) => l.entree.texte) };
   }
   const critiqueA = (journal: string[], loc: HitLocation) => journal.some((l) => l.startsWith('Blessure critique') && l.includes(`(${locationLabel(loc, 'humanoide')})`));
 
@@ -492,7 +492,7 @@ describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18
     expect(dev.mode === 'projectile' && dev.touche.critLocation, 'la décision voyage sur la touche').toBe(relancee);
     resolveDeviation(banc.getState, banc.setState, tiree.id, dev, false);
     draineCascade(banc.getState);
-    const journal = banc.getState().battle!.log.map((l) => l.text);
+    const journal = banc.getState().battle!.log.map((l) => l.entree.texte);
     expect(live('h-cible').criticalWounds).toBe(1);
     expect(critiqueA(journal, relancee), 'le Critique au lieu né').toBe(true);
   });

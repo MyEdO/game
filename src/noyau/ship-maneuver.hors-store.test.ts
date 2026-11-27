@@ -358,8 +358,8 @@ describe('avancerLeNavire (action store) — avance coque + équipage le long du
       const res = rollShipManeuver(() => banc.getState(), 'ship', imposee)!;
       expect(res.refus).toBe(attendu);
       applyShipManeuver(() => banc.getState(), banc.setState, 'ship', res, 2);
-      expect(banc.getState().journal).toContain(attendu);
-      expect(banc.getState().journal).toContain(t('shipManv.failLine', { helmsman: imposee ? nomDe(sansVoile) : t('shipManv.crewFallback'), ship: nomDe(ship2()), dr: res.dr }));
+      expect(banc.getState().journal.map((e) => e.texte)).toContain(attendu);
+      expect(banc.getState().journal.map((e) => e.texte)).toContain(t('shipManv.failLine', { helmsman: imposee ? nomDe(sansVoile) : t('shipManv.crewFallback'), ship: nomDe(ship2()), dr: res.dr }));
     }
   });
 

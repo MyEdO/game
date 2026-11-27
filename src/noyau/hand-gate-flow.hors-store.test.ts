@@ -102,7 +102,7 @@ describe('openAttackCascade — point PARTAGÉ des déclarations d\'attaque (jou
     expect(s.pendingAttack).toBeNull(); // l'attaque n'a pas lieu
     const hero = s.battle!.combatants.find((c) => c.id === 'h')!;
     expect(hero.loadouts![0].main).toBeUndefined(); // arme lâchée
-    expect(s.battle!.log.some((l) => /lâche/i.test(l.text))).toBe(true);
+    expect(s.battle!.log.some((l) => /lâche/i.test(l.entree.texte))).toBe(true);
   });
 
   it('jetAnnuler@mainEnsanglantee referme sans coût (avant le jet)', () => {
@@ -122,7 +122,7 @@ describe('doAttack — l\'IA gatée joue le MÊME Test inline (résolution forc�
     const s = banc.getState();
     // Aucune modale ouverte pour l'IA ; le gate a été JOUÉ inline (une des deux lignes de journal).
     expect(s.pendingHandGate).toBeNull();
-    expect(s.battle!.log.some((l) => /Main ensanglantée/i.test(l.text))).toBe(true);
+    expect(s.battle!.log.some((l) => /Main ensanglantée/i.test(l.entree.texte))).toBe(true);
   });
 
   it('sur un ÉCHEC du Test, l\'IA lâche son arme (disarm) et renonce au coup', () => {
@@ -149,7 +149,7 @@ describe('doAttack — l\'IA gatée joue le MÊME Test inline (résolution forc�
     const { h, f } = setup(mkHero(), foe);
     doAttack(banc.getState, banc.setState, f, h);
     const s = banc.getState();
-    expect(s.battle!.log.some((l) => /Main ensanglantée/i.test(l.text))).toBe(false); // arme employée (off) ≠ main gatée → aucun Test
+    expect(s.battle!.log.some((l) => /Main ensanglantée/i.test(l.entree.texte))).toBe(false); // arme employée (off) ≠ main gatée → aucun Test
   });
 });
 
@@ -171,7 +171,7 @@ describe('runPreemptShots — le Tir rapide de l\'IA joue le MÊME Test de Main 
     runPreemptShots(banc.getState, banc.setState);
     const s = banc.getState();
     expect(s.pendingHandGate).toBeNull();
-    expect(s.battle!.log.some((l) => /Main ensanglantée/i.test(l.text))).toBe(true);
+    expect(s.battle!.log.some((l) => /Main ensanglantée/i.test(l.entree.texte))).toBe(true);
   });
 
   it('sur un ÉCHEC, le tireur lâche son arc (disarm) et RENONCE au Tir rapide (pas de tir)', () => {
@@ -207,7 +207,7 @@ describe('runPreemptShots — le Tir rapide de l\'IA joue le MÊME Test de Main 
     seedBattleRng(6); // seed où le Test PASSE : le 2ᵉ candidat n'est pas re-gaté (une seule ligne)
     runPreemptShots(banc.getState, banc.setState);
     const s = banc.getState();
-    expect(s.battle!.log.filter((l) => /Main ensanglantée/i.test(l.text)).length).toBe(1);
+    expect(s.battle!.log.filter((l) => /Main ensanglantée/i.test(l.entree.texte)).length).toBe(1);
     expect(s.battle!.combatants.find((c) => c.id === 'f')!.loseNextAction).toBe(true); // il a bien tiré (sur la cible dégagée)
   });
 });

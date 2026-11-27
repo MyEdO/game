@@ -77,7 +77,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     const lues = draineEtLit(banc.getState); // la fenêtre est jouée : c'est LÀ que le 1d10 tombe
     const after = banc.getState().battle!;
     const e = after.combatants.find((c) => c.id === 'e1')!;
-    const lines = after.log.map((l) => `${l.kind}:${l.text}`);
+    const lines = after.log.map((l) => `${l.kind}:${l.entree.texte}`);
     const rngProbe = battleRng().int(1, 100);
     expect({ suspended: suspended === MAIN_RENDUE, before, woundsAfter: e.wounds.current, lines, lues, rngProbe }).toMatchInlineSnapshot(`
       {
@@ -112,7 +112,7 @@ describe('GOLDEN — sauvegardes post-touche (applyAttackResult)', () => {
     const lues = draineEtLit(banc.getState); // la fenêtre est jouée : c'est LÀ que le 1d10 tombe
     const after = banc.getState().battle!;
     const t = after.combatants.find((c) => c.id === 'h1')!;
-    const lines = after.log.map((l) => `${l.kind}:${l.text}`);
+    const lines = after.log.map((l) => `${l.kind}:${l.entree.texte}`);
     const rngProbe = battleRng().int(1, 100);
     expect({ suspended: suspended === MAIN_RENDUE, before, woundsAfter: t.wounds.current, lines, lues, rngProbe }).toMatchInlineSnapshot(`
       {

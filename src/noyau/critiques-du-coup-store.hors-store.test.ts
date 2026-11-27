@@ -23,7 +23,7 @@ import { t as tr } from '../i18n';
 import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { markFixedDie } from './fixedDieMark';
+import { ligneDeTexte } from '../engine/journal';
 import { talentCritExtraWounds } from '../engine/combatFeatures/dispatch';
 import { nomDe } from '../engine/nom';
 
@@ -103,7 +103,7 @@ const piece = (qualites: string[], pa: number, locs: readonly string[] = LOCS): 
 const totalPA = (c: Combatant) => Object.values(c.armour ?? {}).reduce((t, n) => t + n, 0);
 const portee = (c: Combatant, uid: string) => c.items!.find((i) => i.uid === uid)!;
 const casse = (c: Combatant, uid: string) => !armureUtilisable(portee(c, uid));
-const journal = () => banc.getState().battle!.log.map((l) => l.text);
+const journal = () => banc.getState().battle!.log.map((l) => l.entree.texte);
 
 describe('le store joue le compte des Blessures critiques du coup', () => {
   it("'ldb' : Coup Critique ET dépassement — deux Blessures critiques, à la même Localisation (LDB 18 l.17, l.53)", () => {
@@ -167,7 +167,7 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
     expect(kinds).toEqual([]);
-    expect(banc.getState().battle!.log.map((l) => l.text)).not.toContain(tr('cf.critiqueDevieSurLArmure', { name: nomDe(cible) }));
+    expect(banc.getState().battle!.log.map((l) => l.entree.texte)).not.toContain(tr('cf.critiqueDevieSurLArmure', { name: nomDe(cible) }));
   });
 
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
@@ -750,7 +750,7 @@ describe('`critiques` compte les Blessures critiques INFLIGÉES, jamais les dév
     } finally { lache(); }
     const apres = banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
     expect(kinds).toContain('deviation');
-    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: nomDe(apres) })));
+    expect(banc.getState().battle!.log.map((l) => l.entree)).toContainEqual({ ...ligneDeTexte(tr('cf.critiqueDevieSurLArmure', { name: nomDe(apres) })), deFixe: true });
     expect(apres.criticalWounds ?? 0).toBe(0);
     expect(emis).toEqual([0]);
   });
@@ -837,7 +837,7 @@ describe('Projectile magique : une seule ligne de touche, celle du coup APPLIQU�
 
   it('Critique dévié : une ligne, à la Localisation et aux Blessures appliquées, sans marque Critique', () => {
     const r = carreau('critique', { choix: 'devier' });
-    expect(journal()).toContain(markFixedDie(tr('cf.critiqueDevieSurLArmure', { name: nomDe(r.apres) })));
+    expect(banc.getState().battle!.log.map((l) => l.entree)).toContainEqual({ ...ligneDeTexte(tr('cf.critiqueDevieSurLArmure', { name: nomDe(r.apres) })), deFixe: true });
     expect(r.finale.critiques).toBe(0);
     expect(r.lignes).toHaveLength(1);
     expect(r.lignes[0]).toContain(`(${tr('touche.nouvelleLocalisation', { lieu: locationLabel(r.finale.location!, r.apres.bodyShape) })})`);

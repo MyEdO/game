@@ -121,7 +121,7 @@ describe('PendingApproach — l’issue d’une Approche nomme sa source par `no
     s.banc.setState({ pendingApproach: { combatantId: heros.id, test: testDeRegle('calme-d-approche', 'se-rapprocher'), sourceId: s[source].id, intent: { kind: 'tile', pt: { x: 0, y: 0 } }, result: { success: false, roll: 95, target: 30, sl: -6 } } });
     s.banc.getState().jetValider('approche');
     const log = (s.banc.getState() as unknown as Jeu).battle!.log;
-    return { ligne: log[log.length - 1].text, nom: s[source].label };
+    return { ligne: log[log.length - 1].entree.texte, nom: s[source].label };
   }
 
   it('hors de vue : « Inconnu »', () => {
@@ -146,7 +146,7 @@ describe('actorName — l’issue d’un jet nomme son acteur par `nomEnVue`', (
     const pr = { ...jetDeRecharge(findTrappingById, jeu.scene, c, arme, jeu.battle!.combatants), reload: 3, roll: 40, sl: 1, success: true };
     appliquerLaRecharge(s.banc.getState, s.banc.setState, pr, arme);
     const log = (s.banc.getState() as unknown as Jeu).battle!.log;
-    return { ligne: log[log.length - 1].text, nom: c.label };
+    return { ligne: log[log.length - 1].entree.texte, nom: c.label };
   }
 
   it('hors de vue : « Inconnu »', () => {
@@ -241,7 +241,7 @@ describe('ManeuverResult.helmsman — l’échec de manœuvre d’un navire enne
     expect(combattantEnVue(banc.getState() as unknown as Jeu, navire), 'le navire garde la vue de sa case').toBe(combattantEnVue(banc.getState() as unknown as Jeu, c));
     const avant = banc.getState().journal.length;
     applyShipManeuver(banc.getState, banc.setState, navire.id, rollShipManeuver(banc.getState, navire.id, navire.id)!, 2);
-    return { lignes: banc.getState().journal.slice(avant), navire };
+    return { lignes: banc.getState().journal.slice(avant).map((e) => e.texte), navire };
   }
   const tete = (nom: string) => t('shipManv.failLine', { helmsman: nom, ship: nom, dr: 0 }).split(' (DR')[0];
 
@@ -299,7 +299,7 @@ describe('cf.traverseeDeZone — la traversée d’une zone par un combattant (`
     banc.setState({ battle: { ...b, zones: [...(b.zones ?? []), flaque] } });
     const avant = banc.getState().battle!.log.length;
     applyZoneCrossings(banc.getState, banc.setState, c, [{ ...c.pos! }]);
-    return banc.getState().battle!.log.slice(avant).map((l) => l.text).join('\n');
+    return banc.getState().battle!.log.slice(avant).map((l) => l.entree.texte).join('\n');
   }
 
   it('hors de vue : « Inconnu »', () => {

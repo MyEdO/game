@@ -102,7 +102,7 @@ describe('Course ennemie — le journal du tour (LDB 15 l.41)', () => {
     runEnemyAI(banc.getState, banc.setState, 'e');
     banc.reprendreLesEnAttente();
     const b = banc.getState().battle!;
-    const lignes = b.log.filter((l) => l.actorId === 'e' && l.kind === 'deplacement').map((l) => l.text);
+    const lignes = b.log.filter((l) => l.actorId === 'e' && l.kind === 'deplacement').map((l) => l.entree.texte);
     expect(chebyshev(depart, enemy.pos!), 'au-delà de la Marche').toBeGreaterThan(4);
     expect(b.runBudget, 'le budget du Tour est celui de la Course jouée (LDB 15 l.41)').toBeGreaterThan(4);
     expect(lignes).toEqual([t('cs.run', { name: 'Gobelin', cost: chebyshev(depart, enemy.pos!), short: '' })]);
@@ -122,6 +122,6 @@ describe('IA Engagée : le départ du contact paie sa voie du Désengagement (LD
     const e = banc.getState().battle!.combatants.find((c) => c.id === 'e')!;
     expect(e.pos!.x, 'le tireur s’est écarté').not.toBe(2);
     expect([e.advantage, e.engagedWith, hero.engagedWith]).toEqual([0, [], []]);
-    expect(banc.getState().battle!.log.filter((l) => l.text === t('cs.disengageSacrifice', { name: 'Gobelin' }))).toHaveLength(1);
+    expect(banc.getState().battle!.log.filter((l) => l.entree.texte === t('cs.disengageSacrifice', { name: 'Gobelin' }))).toHaveLength(1);
   });
 });

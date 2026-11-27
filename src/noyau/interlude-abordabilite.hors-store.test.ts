@@ -52,7 +52,7 @@ function jouer(banc: Banc, geste: () => void): { journal: string[]; deRoule: boo
   banc.actions.ensemencerLeTirage(GRAINE_DU_GESTE);
   const avant = banc.getState().journal.length;
   geste();
-  return { journal: banc.getState().journal.slice(avant), deRoule: battleRng().int(1, 1e9) !== makeRNG(GRAINE_DU_GESTE).int(1, 1e9) };
+  return { journal: banc.getState().journal.map((e) => e.texte).slice(avant), deRoule: battleRng().int(1, 1e9) !== makeRNG(GRAINE_DU_GESTE).int(1, 1e9) };
 }
 
 /** Vide la bourse du héros par la couture de débit. */
@@ -105,7 +105,7 @@ describe('Apprentissage particulier — PX et tuteur', () => {
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party[0].talents, banc.getState().party[0].xp]);
     const journal = banc.getState().journal.length;
     confirmerReussi(banc);
-    expect(banc.getState().journal.slice(journal)).toEqual(['Vétéran : le tuteur demande 11/–, la bourse ne suit pas.']);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual(['Vétéran : le tuteur demande 11/–, la bourse ne suit pas.']);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().party[0].talents, banc.getState().party[0].xp]), 'Talent appris, PX ou Activité dépensés').toBe(avant);
     expect(banc.getState().pendingActivity).toBeNull();
   });
@@ -142,7 +142,7 @@ describe('Réputation — la dépense débitée à la confirmation', () => {
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party[0].activeEffects]);
     const journal = banc.getState().journal.length;
     confirmerReussi(banc);
-    expect(banc.getState().journal.slice(journal)).toEqual(['Vétéran : la bourse ne couvre pas la dépense de Réputation requise (10/–).']);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual(['Vétéran : la bourse ne couvre pas la dépense de Réputation requise (10/–).']);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().party[0].activeEffects]), 'Statut ou Activité dépensés').toBe(avant);
     expect(banc.getState().pendingActivity).toBeNull();
   });
@@ -170,7 +170,7 @@ describe('Apprentissage particulier — seul un Talent de la liste du volet s’
     banc.actions.jetLancer('activite');
     banc.setState((s) => ({ pendingActivity: { ...s.pendingActivity!, roll: 10, success: true, sl: 3 } }));
     banc.actions.jetValider('activite');
-    expect(banc.getState().journal.slice(journal)).toEqual(['Vétéran ne peut pas apprendre Chanceux par Apprentissage particulier (Talent de carrière, au Maxi, ou à spécialisation).']);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual(['Vétéran ne peut pas apprendre Chanceux par Apprentissage particulier (Talent de carrière, au Maxi, ou à spécialisation).']);
     expect(horsDuJet(), 'bourse, PX ou Activité dépensés').toBe(avant);
   });
 });
@@ -185,7 +185,7 @@ describe('Apprentissage particulier — l’achat jugé avant tout débit', () =
     const avant = horsDuJet();
     const journal = banc.getState().journal.length;
     confirmerReussi(banc);
-    expect(banc.getState().journal.slice(journal)).toEqual(['Vétéran : PX insuffisants (100).']);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual(['Vétéran : PX insuffisants (100).']);
     expect(horsDuJet(), 'Talent, bourse ou Activité dépensés').toBe(avant);
   });
 });
@@ -251,7 +251,7 @@ describe('Réputation — le Standing se pose à la clôture, pour l’aventure 
     expect(banc.getState().party[0].activeEffects?.filter((e) => e.statusMod).map((e) => e.label)).toEqual(['Réputation']);
     const journal = banc.getState().journal.length;
     banc.actions.ouvrirLInterlude(1);
-    expect(banc.getState().journal.slice(journal)).toContain('Vétéran : Réputation se dissipe (fin de l\'aventure).');
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toContain('Vétéran : Réputation se dissipe (fin de l\'aventure).');
   });
 
   it('Échec Stupéfiant : après la clôture, Argent 1 devient Bronze 5 pendant l’aventure (LDB 08 l.101)', () => {

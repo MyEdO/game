@@ -82,7 +82,7 @@ describe('(a) le clic-SOL au-delà de la Marche exige la Course ARMÉE', () => {
     const refus = refusAffiche();
     expect(refus, 'le refus est MUET — rien dans le canal visible').not.toBeNull();
     expect(refus!.texte, 'le refus ne dit pas COMMENT le débloquer').toContain('Course');
-    expect(get().battle!.log.filter((e) => e.text === refus!.texte), 'un refus a persisté dans le journal de COMBAT').toEqual([]);
+    expect(get().battle!.log.filter((e) => e.entree.texte === refus!.texte), 'un refus a persisté dans le journal de COMBAT').toEqual([]);
   });
 
   it('Course ARMÉE : la même case commet bien la Course', () => {

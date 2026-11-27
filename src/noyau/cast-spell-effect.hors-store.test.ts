@@ -50,7 +50,7 @@ describe('Effet castSpell (#98)', () => {
       const { A } = setup();
       applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: 'inconnu', sort: { id: 'chute' }, targetId: A.id }]);
       expect(banc.getState().pendingCast).toBeNull();
-      expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);
+      expect(banc.getState().journal.some((l) => /introuvable/i.test(l.texte))).toBe(true);
     });
 
     it('lanceur ENNEMI (IA) : le jet est auto-roulé (`pendingCast.result` posé), comme un cast d’IA normal', () => {
@@ -92,7 +92,7 @@ describe('Effet castSpell (#98)', () => {
       banc.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
       applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: 'pnj-rituel', sort: { id: 'chute' } }]);
       expect(banc.getState().pendingCast).toBeNull();
-      expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);
+      expect(banc.getState().journal.some((l) => /introuvable/i.test(l.texte))).toBe(true);
     });
 
     it('mode "forcerLaReussite" HORS COMBAT : applique les effets du sort directement (aucun `pendingCast`)', () => {
@@ -114,6 +114,6 @@ describe('Effet castSpell (#98)', () => {
     const wiz = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', careerTalent: { id: 'magie-mineure' }, seed: 707 });
     banc.setState({ party: [wiz], battle: null, pendingCast: null, journal: [] });
     applyEffects(banc.getState, banc.setState, [{ type: 'castSpell', casterId: wiz.id, sort: { id: 'inexistant' } }]);
-    expect(banc.getState().journal.some((l) => /introuvable/i.test(l))).toBe(true);
+    expect(banc.getState().journal.some((l) => /introuvable/i.test(l.texte))).toBe(true);
   });
 });

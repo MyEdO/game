@@ -2478,7 +2478,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   ), revealPurpose('travelDay', false));
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
-  const lignes = drainPendingLog(get, set).map((e) => e.text);
+  const lignes = drainPendingLog(get, set).map((e) => e.entree.texte);
   if (lignes.length) { set({ party: [...get().party] }); tell(get, set, lignes); }
 }
 

@@ -169,7 +169,7 @@ describe('Main ensanglantée : le gantelet porté retient l’arme et l’Action
       expect(graine, 'une graine d’échec').toBeLessThan(50);
       seedBattleRng(graine);
       const poursuit = aiHandGate(banc.getState, banc.setState, ennemi());
-      if (!banc.getState().battle!.log.some((e) => e.text.includes('→ échec'))) continue;
+      if (!banc.getState().battle!.log.some((e) => e.entree.texte.includes('→ échec'))) continue;
       expect(poursuit).toBe(true);
       expect(ennemi().weapons.map((w) => w.uid)).toEqual(armes);
       return;

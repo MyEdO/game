@@ -155,7 +155,7 @@ describe('Middenball — les camps, le tour, la somme (NADJ 16 l.117-119)', () =
     expect(p.last).toEqual({ dr: { joueur: 33, adversaire: 11 } });
     expect(get().sequence!.cumuls, 'total ≥ 25 pour le camp le plus haut : un but').toEqual({ joueur: 1, adversaire: 0 });
     for (const h of party) expect(get().party.find((x) => x.id === h.id)!.advantage, '+1 Avantage pour le tour suivant').toBe(1);
-    expect(get().journal.some((l) => l.includes('BUT'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('BUT'))).toBe(true);
   });
 
   /**

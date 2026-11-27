@@ -21,6 +21,7 @@ import { engage } from './creation/engagement.testkit';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
+import type { LigneDuJournal } from './partie';
 
 let banc: Banc;
 
@@ -52,7 +53,7 @@ function poser(party: Combatant[], net: Partial<NetState> = {}, scene: Scene = s
   banc.setState({ net: { ...initialNet(), seatNames: { 0: 'Hôte', 1: 'Invité' }, ...net } });
 }
 
-const journal = () => banc.getState().journal;
+const journal = () => banc.getState().journal.map((e) => e.texte);
 const BORNES = { autres: 9, offres: 9, cibles: 9, gestes: 99, entites: 9 };
 const gestesDeMarche = () => gestesDExploration(banc.getState()).filter((g) => g.gestes.some((x) => x.verbe === 'cliquerLaCase'));
 const gestesDuMeneur = () => gestesDExploration(banc.getState()).filter((g) => g.gestes.some((x) => x.verbe === 'designerLeMeneur'));
@@ -192,7 +193,7 @@ describe('le siège du monde désigne le meneur — geste local de la partie', (
     ouverture.fermer();
     return creerPartie({ ...garde, net: { ...initialNet(), seatNames: { 0: 'Hôte', 1: 'Invité' }, ...net } }, ENTREES);
   }
-  const textes = (r: { journal: { de: string; texte?: string }[] }) => r.journal.map((l) => l.texte);
+  const textes = (r: { journal: LigneDuJournal[] }) => r.journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
   const refusAuMJ = t('groupe.refus.siege', { siege: 'Invité' });
 
   it('l’hôte, quand un siège MJ existe : désigner et marcher hors combat sont refusés, et le refus est dit', () => {

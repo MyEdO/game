@@ -104,7 +104,7 @@ describe('Événements de GROUPE tirés par A : ils valent pour B', () => {
   it('Émeutes : le Courtisan B ne peut pas entreprendre Revenus, et le dépôt investi déjà en banque vérifie sa faillite (LDB 22 l.111)', () => {
     const { banc, b } = tirage(DE.emeutes, 'artiste', DE.sansEffet, (_a, b) => [{ uid: 'depot-b', heroId: b, kind: 'investir', brass: 500, rate: 10 }]);
     expect(blocageDeRevenus(banc.getState(), b)).toBe('B ne peut pas entreprendre Revenus (événement : Émeutes).');
-    expect(banc.getState().journal.filter((l) => l.startsWith('Vérification de faillite') || l.includes('la banque a fait faillite')), 'la vérification de faillite est dite au dénouement').toHaveLength(1);
+    expect(banc.getState().journal.filter((l) => l.texte.startsWith('Vérification de faillite') || l.texte.includes('la banque a fait faillite')), 'la vérification de faillite est dite au dénouement').toHaveLength(1);
   });
 
   it('Suspect : A et B renoncent chacun à une Activité (LDB 22 l.123)', () => {

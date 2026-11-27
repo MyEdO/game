@@ -113,12 +113,12 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
     banc.setState({ pendingCast: { ...pc, result: okCast(4) as never } });
     banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 12, y: 12 }); // 10 cases > 4 → refus
-    expect(banc.getState().journal.join('\n')).toMatch(/hors de portée/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/hors de portée/);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // toujours en pose
     banc.getState().cliquerLaCase({ x: 4, y: 4 }); // dans la portée, PERSONNE dans le rayon
     expect(banc.getState().pendingCast).toBeNull();
     // La zone vide se résout par `applyCast`, sans cible (LDB 47 l.28).
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/la zone ne touche personne/);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/la zone ne touche personne/);
     expect(banc.getState().battle!.acted).toBe(true);
   });
 

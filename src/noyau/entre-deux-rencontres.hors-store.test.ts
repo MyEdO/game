@@ -52,7 +52,7 @@ describe('le repos sur une scène générée récupère, ou dit pourquoi', () =>
     surLArene([blesse('a')]);
     dormir();
     expect(g().party[0].wounds.current).toBe(4);
-    expect(g().journal).toContain(t('rest.deprived', { name: 'a', etat: t('rest.deprivedHunger') }));
+    expect(g().journal.map((e) => e.texte)).toContain(t('rest.deprived', { name: 'a', etat: t('rest.deprivedHunger') }));
   });
 
   it('le dormeur qui saigne sans soins : les Rounds de la nuit le font coaguler ou mourir (LDB 16 l.105)', () => {
@@ -84,7 +84,7 @@ describe('le repos sur une scène générée récupère, ou dit pourquoi', () =>
     surLArene([heros('a', { traumas: [fracture] as Combatant['traumas'], criticalWounds: 1 })], { maison: true });
     dormir();
     expect(g().party[0].criticalWounds).toBe(0);
-    expect(g().journal.some((l) => l === t('tra.fractureHealed', { name: 'a', label: fracture.label }) || l === t('tra.fractureSequela', { name: 'a', label: fracture.label }))).toBe(true);
+    expect(g().journal.map((e) => e.texte).some((l) => l === t('tra.fractureHealed', { name: 'a', label: fracture.label }) || l === t('tra.fractureSequela', { name: 'a', label: fracture.label }))).toBe(true);
   });
 });
 
@@ -93,14 +93,14 @@ describe('l’infirmerie dit toujours pourquoi elle ne soigne pas', () => {
     surLArene([heros('doc', { skills: guerison(20) }), blesse('p', { soinRencontreUtilise: true })]);
     g().ouvrirLeMedecin('p');
     expect(g().medic).toBeNull();
-    expect(g().journal[g().journal.length - 1]).toBe(t('heal.raisonSoinDejaRecu'));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('heal.raisonSoinDejaRecu'));
   });
 
   it('sans patient désigné ni personne à soigner : le refus le dit', () => {
     surLArene([heros('doc', { skills: guerison(20) }), blesse('p', { soinRencontreUtilise: true })]);
     g().ouvrirLeMedecin();
     expect(g().medic).toBeNull();
-    expect(g().journal[g().journal.length - 1]).toBe(t('heal.raisonSoinDejaRecu'));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('heal.raisonSoinDejaRecu'));
   });
 
   it('sans patient désigné : l’infirmerie s’ouvre sur le premier blessé qu’elle soigne', () => {
@@ -128,7 +128,7 @@ describe('le soigneur de l’infirmerie se choisit (réglage `soins.soigneur`)',
     g().ouvrirLeMedecin('p');
     g().jetRegler('soins', 'soigneur', 'p');
     expect(g().pendingHeal?.healerId).toBe('doc');
-    expect(g().journal[g().journal.length - 1]).toBe(t('medic.soigneurSansActe', { name: 'p' }));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('medic.soigneurSansActe', { name: 'p' }));
     expect(fenetreDuSoin(g())?.soigneur?.options.map((o) => o.valeur)).toEqual(['doc']);
   });
 });

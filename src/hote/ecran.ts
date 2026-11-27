@@ -89,6 +89,7 @@ import { elision, estUneCle, pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
+import { redigerLEntree } from './journal';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import type { ContenuDUnJeu } from './contenu';
 import { zonesDeLaPartie, type ZonesDeLaPartie } from './groupe';
@@ -1509,7 +1510,7 @@ const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
 export function lignesDuJournal(etat: Jeu, avant: number, journal: readonly LigneDuJournal[], veille: number | null): { lignes: Ligne[]; jour: number | null } {
   let jour = veille;
   const lignes = journal.reduce<Ligne[]>((lignes, l, i) => {
-    const texte = l.de === 'journal' ? l.texte : l.evenement.text;
+    const texte = redigerLEntree(l.de === 'journal' ? l.entree : l.evenement.entree);
     if (!texte) return lignes;
     const precedente = lignes[lignes.length - 1] as Ligne | undefined;
     if (l.de === 'combat' && l.evenement.kind === 'detail' && precedente) {

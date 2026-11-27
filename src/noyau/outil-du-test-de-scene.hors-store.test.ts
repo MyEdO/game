@@ -129,7 +129,7 @@ describe('l’outil d’un Test de scène compte à son dé imposé (LDB 60 l.22
       expect(partie.etat().pendingTest).toMatchObject({ roll: de, success: false, isDouble: true });
       partie.envoyer({ type: 'jetValider', args: ['test'] });
       expect(marteauDe(partie).destroyed).toBe(true);
-      expect(partie.etat().journal.some((l) => l.includes('se brise'))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes('se brise'))).toBe(true);
     } finally {
       partie.fermer();
     }

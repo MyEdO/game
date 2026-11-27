@@ -32,7 +32,7 @@ describe('gates d\'incantation', () => {
     banc.setState({ party: [p] as Combatant[] });
     banc.getState().incanterLeSort(p.id, 'benediction-de-guerison', p.id);
     expect(banc.getState().pendingCast).toBeNull();
-    expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas prier/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/ne peut pas prier/);
   });
 
   it('blocage de Focalisation → focaliserLeSort refuse', () => {
@@ -56,7 +56,7 @@ describe('purge par l\'horloge (avancerLeTemps)', () => {
     expect(banc.getState().party[0].castPenalties).toHaveLength(1); // pas encore
     banc.getState().avancerLeTemps(10);
     expect(banc.getState().party[0].castPenalties).toHaveLength(0);
-    expect(banc.getState().journal.join('\n')).toMatch(/Drain de puissance se dissipe/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Drain de puissance se dissipe/);
   });
 });
 

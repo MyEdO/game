@@ -114,7 +114,7 @@ describe('runCombatFlow — test enfoui + continuation after (combat)', () => {
     banc.getState().jetValider('cascade');
 
     expect(banc.getState().pendingLogQueue).toEqual([]);
-    expect(banc.getState().battle!.log.map((e) => e.text).slice(-2)).toEqual([
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).slice(-2)).toEqual([
       'H subit 5 Blessure(s) (ignorant BE et PA).',
       'H subit 7 Blessure(s) (ignorant BE et PA).',
     ]);

@@ -117,7 +117,7 @@ describe('partirEnVoyage — à pied', () => {
     expect(st.travelPlan).toBeNull();
     expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(180); // 12 km ÷ 4 km/h = 3 h (l.222)
-    expect(st.journal.some((l) => l.includes('Arrivée à Bourg B'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('Arrivée à Bourg B'))).toBe(true);
   });
 
   it('trajet multi-jours (30 km à M4) : 6 h/jour (LDB 51 l.195), HALTE de nuit (modale de Repos), rations consommées', () => {
@@ -134,7 +134,7 @@ describe('partirEnVoyage — à pied', () => {
     expect(st.lieu).toBe('pb');
     // Jour 1 : 6 h de marche (24 km) + nuit jusqu'à l'aube ; jour 2 : 1 h 30 (6 km) → > 17 h au total.
     expect(st.gameTime - t0).toBeGreaterThan(17 * 60);
-    expect(st.journal.some((l) => /dort jusqu|aube/i.test(l))).toBe(true);
+    expect(st.journal.some((l) => /dort jusqu|aube/i.test(l.texte))).toBe(true);
     // L'entretien quotidien a consommé une ration au franchissement de jour.
     expect(rationCount(st.party[0])).toBe(2);
   });
@@ -180,7 +180,7 @@ describe('partirEnVoyage — à pied', () => {
     expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(450); // 30 km ÷ 4 km/h = 7 h 30, d'une traite
     // Marche forcée (LDB 51 l.195) : Tests de Résistance journalisés.
-    expect(st.journal.some((l) => l.includes('marche forcée'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('marche forcée'))).toBe(true);
   });
 });
 
@@ -202,7 +202,7 @@ describe('partirEnVoyage — transports payants (LDB 51 l.178-189)', () => {
     expect(st.scene?.id).toBe('lieu-a-scene'); // pas parti
     expect(st.travelPlan).toBeNull();
     expect(toBrass(partyMoneyTotal(() => st))).toBe(60); // rien débité
-    expect(st.journal.some((l) => l.includes('dépasse les moyens'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('dépasse les moyens'))).toBe(true);
   });
 
   it('vitesse d’auteur sur la route (EiS ch.1 : diligence à 3 km/h) respectée', () => {
@@ -227,7 +227,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     expect(st.travelRecap?.then?.kind).toBe('effects');
     expect(st.travelPlan?.interrupted).toBe(true);
     expect(st.travelPlan!.kmDone).toBeGreaterThan(0);
-    expect(st.journal.some((l) => l.includes('Brigands sur la route'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('Brigands sur la route'))).toBe(true);
     // Pas d'esquive : la reprise est REFUSÉE tant que l'embuscade attend son acquittement.
     banc.getState().reprendreLeVoyage();
     expect(banc.getState().travelRecap?.then).toBeTruthy();
@@ -285,7 +285,7 @@ describe('péripéties d’auteur — interruption et reprise', () => {
     drainCascade(); // péripétie narrative en cascade travelDay → drainer, puis arrivée
     const st = banc.getState();
     expect(st.lieu).toBe('pb'); // arrivé malgré la péripétie
-    expect(st.journal.some((l) => l.includes('colporteur'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('colporteur'))).toBe(true);
   });
 });
 
@@ -301,7 +301,7 @@ describe('nourriture en voyage (LDB 18 l.337-343)', () => {
     expect(st.lieu).toBe('pb');
     const h = st.party[0];
     expect(h.hunger?.days).toBeGreaterThanOrEqual(2); // plusieurs jours sans manger
-    expect(st.journal.some((l) => l.includes('affamé'))).toBe(true); // récup bloquée journalisée (rest.ts)
+    expect(st.journal.some((l) => l.texte.includes('affamé'))).toBe(true); // récup bloquée journalisée (rest.ts)
   });
 
   it('ouvrirLaCarte et sa sortie : overlay piloté par le store (pas en combat)', () => {
@@ -380,7 +380,7 @@ describe('refus de départ (#3059) — `partirEnVoyage` refuse en le disant', ()
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.travelRecap).toBeNull();
-    expect(st.journal[st.journal.length - 1]).toBe('Le groupe est trop chargé pour avancer — allégez les sacs.');
+    expect(st.journal[st.journal.length - 1].texte).toBe('Le groupe est trop chargé pour avancer — allégez les sacs.');
   });
 
   it('siège invité : le départ est refusé, « L’hôte décide des départs. »', () => {
@@ -390,7 +390,7 @@ describe('refus de départ (#3059) — `partirEnVoyage` refuse en le disant', ()
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.scene?.id).toBe('lieu-a-scene');
-    expect(st.journal[st.journal.length - 1]).toBe('L’hôte décide des départs.');
+    expect(st.journal[st.journal.length - 1].texte).toBe('L’hôte décide des départs.');
   });
 
   it('bourse insuffisante : rien débité, le refus nomme le passage et son prix', () => {
@@ -399,7 +399,7 @@ describe('refus de départ (#3059) — `partirEnVoyage` refuse en le disant', ()
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(toBrass(partyMoneyTotal(() => st))).toBe(60);
-    expect(st.journal[st.journal.length - 1]).toBe('Le passage (diligence, 5 CO) dépasse les moyens du groupe.');
+    expect(st.journal[st.journal.length - 1].texte).toBe('Le passage (diligence, 5 CO) dépasse les moyens du groupe.');
   });
 
   it('offre absente (véhicule sans tarif) : aucun voyage, le refus au journal', () => {
@@ -408,7 +408,7 @@ describe('refus de départ (#3059) — `partirEnVoyage` refuse en le disant', ()
     const st = banc.getState();
     expect(st.travelPlan).toBeNull();
     expect(st.scene?.id).toBe('lieu-a-scene');
-    expect(st.journal[st.journal.length - 1]).toBe('Aucun passage n’est proposé pour ce mode sur cette route.');
+    expect(st.journal[st.journal.length - 1].texte).toBe('Aucun passage n’est proposé pour ce mode sur cette route.');
   });
 });
 
@@ -449,11 +449,11 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     // Comportement de base : arrive le jour même (12 km à M4 = 3 h), comme le test de référence.
     expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(180);
-    expect(st.journal.some((l) => l.includes('Arrivée à Bourg B'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('Arrivée à Bourg B'))).toBe(true);
     // Aucune trace du sous-système d'Étapes (la règle est éteinte → chemin court-circuité).
-    expect(st.journal.some((l) => l.includes('Météo'))).toBe(false);
-    expect(st.journal.some((l) => l.includes('Approvisionnement'))).toBe(false);
-    expect(st.journal.some((l) => l.includes("Exposition de fin d'Étape"))).toBe(false);
+    expect(st.journal.some((l) => l.texte.includes('Météo'))).toBe(false);
+    expect(st.journal.some((l) => l.texte.includes('Approvisionnement'))).toBe(false);
+    expect(st.journal.some((l) => l.texte.includes("Exposition de fin d'Étape"))).toBe(false);
   });
 
   it('ON : la Météo du jour est journalisée (libellé seul — le d100 est un tirage de MONDE, pas montré)', () => {
@@ -463,7 +463,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     drainCascade(); // cascade travelDay (postes) → drainer, puis arrivée
     const st = banc.getState();
     expect(st.lieu).toBe('pb'); // arrive toujours (l'enrichissement ne bloque pas la route)
-    const weatherLine = st.journal.find((l) => l.includes('Météo'));
+    const weatherLine = st.journal.find((l) => l.texte.includes('Météo'))?.texte;
     expect(weatherLine).toBeDefined();
     expect(weatherLine).not.toMatch(/\(\d+\)/); // aucun d100 dans la prose (« y'a que le MJ qui voit le jet »)
   });
@@ -477,9 +477,9 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Récupérer) → drainer
     const st = banc.getState();
-    expect(st.journal.some((l) => l.includes("Exposition de fin d'Étape"))).toBe(false);
+    expect(st.journal.some((l) => l.texte.includes("Exposition de fin d'Étape"))).toBe(false);
     // Le poste assigné (Récupérer) a bien été résolu pour l'Étape (EDOC 8 l.131 : un héros = une Activité).
-    expect(st.journal.some((l) => l.includes('Récupérer'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('Récupérer'))).toBe(true);
   });
 
   it('ON : un héros au poste Approvisionnement fourrage (Test de Survie en extérieur, EDOC 8 l.145)', () => {
@@ -511,7 +511,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       banc.setState({ gameTime: winter });
       banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade(); // cascade travelDay (poste + Exposition insérée) → drainer
-      if (banc.getState().journal.some((l) => l.includes("Exposition de fin d'Étape"))) exposed = true;
+      if (banc.getState().journal.some((l) => l.texte.includes("Exposition de fin d'Étape"))) exposed = true;
     }
     expect(exposed).toBe(true);
   });
@@ -535,7 +535,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     // en place du reste d'incubation, ligne au journal.
     expect(sick!.phase).toBe('active');
     expect(sick!.minutesLeft).toBe(sick!.durationMinutes);
-    expect(banc.getState().journal.some((l) => l.includes('les symptômes de « Rhume commun » se déclarent'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('les symptômes de « Rhume commun » se déclarent'))).toBe(true);
   });
 
   it('ré-exposition d’un héros déjà enrhumé : la durée du Rhume est PROLONGÉE de 1d10 jours (EDOC 8 l.122)', () => {
@@ -560,7 +560,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     expect(jours).toBeGreaterThanOrEqual(1);
     expect(jours).toBeLessThanOrEqual(10);
     expect(Number.isInteger(jours)).toBe(true);
-    expect(banc.getState().journal.some((l) => /de nouveau exposé, « Rhume commun » traîne/.test(l))).toBe(true);
+    expect(banc.getState().journal.some((l) => /de nouveau exposé, « Rhume commun » traîne/.test(l.texte))).toBe(true);
   });
 
   it('porte « Plein air » : un héros réussit Plein air → le groupe SAUTE le Test d’Exposition (EDOC 8 l.141)', () => {
@@ -580,7 +580,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       // Plein air joué et réussi (aucun Exténué — l'échec en porte un, #295 Lot 5 : le Test lui-même
       // est DÉJÀ affiché par la rangée de l'étape), et aucune Exposition cette Étape.
       const exhausted = st.party[0].conditions.some((c) => c.id === 'extenue');
-      if (!exhausted && !j.some((l) => l.includes("Exposition de fin d'Étape"))) suppressed = true;
+      if (!exhausted && !j.some((l) => l.texte.includes("Exposition de fin d'Étape"))) suppressed = true;
     }
     expect(suppressed).toBe(true);
   });
@@ -592,7 +592,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
     banc.getState().partirEnVoyage('r1', 'pied');
     drainCascade(); // cascade travelDay (poste Établir des cartes, Test étendu) → drainer
     const j = banc.getState().journal;
-    expect(j.some((l) => l.includes('Cartographie') || l.includes("carte de l'itinéraire est ACHEVÉE"))).toBe(true);
+    expect(j.some((l) => l.texte.includes('Cartographie') || l.texte.includes("carte de l'itinéraire est ACHEVÉE"))).toBe(true);
   });
 
   it('véhicule à coque : `plan.vehicle` est bâti depuis la facette hull (Diligence E45/B50)', () => {
@@ -626,7 +626,7 @@ describe('Voyage par Étapes (EDOC 8, règle optionnelle)', () => {
       setup(map({ km: 12, perilDie: 0 }), [h]);
       banc.getState().partirEnVoyage('r1', 'pied');
       drainCascade(); // cascade travelDay (échec de poste → Rencontre tirée après l'agrégation) → drainer
-      if (banc.getState().journal.some((l) => LIGNES_DE_RENCONTRE.includes(l))) met = true;
+      if (banc.getState().journal.some((l) => LIGNES_DE_RENCONTRE.includes(l.texte))) met = true;
     }
     expect(met).toBe(true);
   });
@@ -681,7 +681,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     const st = banc.getState();
     expect(st.lieu).toBe('pb');
     expect(st.gameTime - t0).toBe(Math.round((12 / 17.5) * 60)); // 41 min
-    expect(st.journal.some((l) => l.includes('en selle') && l.includes('trot'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('en selle') && l.texte.includes('trot'))).toBe(true);
   });
 
   it('une route réservée aux montures permet un départ en selle', () => {
@@ -728,7 +728,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     setup(map({ km: 80 }), [h], [chienDeTraitDresse('m1', h.id)]);
     banc.getState().partirEnVoyage('r1', 'monture', { allure: 'galop' });
     const j = banc.getState().journal;
-    expect(j.some((l) => l.includes('Incident de monte') || l.includes('s’effondre') || l.includes("s'effondre"))).toBe(true);
+    expect(j.some((l) => l.texte.includes('Incident de monte') || l.texte.includes('s’effondre') || l.texte.includes("s'effondre"))).toBe(true);
   });
 
   it('bête perdue en route (Boiteux/Patte brisée/morte) : la route continue à pied', () => {
@@ -743,7 +743,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
       // La bascule à pied se joue en tête de la journée suivante (#4804).
       if (banc.getState().pendingRest) banc.getState().fenetreValider('repos');
       const st = banc.getState();
-      if (st.journal.some((l) => l.includes('la route continue à pied'))) {
+      if (st.journal.some((l) => l.texte.includes('la route continue à pied'))) {
         degraded = true;
         // Le plan (s'il court encore) est repassé à pied.
         if (st.travelPlan) expect(st.travelPlan.mode).toBe('pied');
@@ -761,7 +761,7 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
     expect(st.lieu).toBe('pb');
     const mount = st.possessions.find((p) => p.uid === 'm1')!;
     expect(mount.nature === 'bete' ? mount.mountInjury : undefined).toBeUndefined();
-    expect(st.journal.some((l) => l.includes('remise en état'))).toBe(true);
+    expect(st.journal.some((l) => l.texte.includes('remise en état'))).toBe(true);
   });
 
   it('la séquelle déclarée HORS de portée des soins (Patte brisée) survit à l’arrivée — le boiteux du même voyage, lui, est soigné', () => {
@@ -823,8 +823,8 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
       drainCascade(); // #270 : le Test de Conduite d'attelage au km est une étape influençable (conducteur piloté par un humain)
       const st = banc.getState();
       // La coque est créée dès que l'allure est forcée (les Dégâts du Problème doivent porter).
-      expect(st.journal.some((l) => l.includes("Conduite d'attelage (allure forcée)"))).toBe(true);
-      if (st.journal.some((l) => l.includes('Problème de véhicule'))) problem = true;
+      expect(st.journal.some((l) => l.texte.includes("Conduite d'attelage (allure forcée)"))).toBe(true);
+      if (st.journal.some((l) => l.texte.includes('Problème de véhicule'))) problem = true;
       // Fin de trajet propre : arrivé, ou dégradé à pied (véhicule hors d'usage), ou halte de nuit.
       while (banc.getState().pendingRest && banc.getState().travelPlan) sleepThroughHalt();
     }
@@ -848,6 +848,6 @@ describe('Montures & attelages (EDOC 7, règle optionnelle voyage-allures)', () 
       }
     }
     expect(lame).toBe(true);
-    expect(banc.getState().journal.some((l) => l.includes('Endommagé'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('Endommagé'))).toBe(true);
   });
 });

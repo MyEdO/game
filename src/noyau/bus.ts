@@ -5,6 +5,7 @@ import type { AttackKind } from '../engine/creatureAttacks';
 import type { CastResult, MissileResult } from '../engine/magic';
 import type { Weapon } from '../engine/types';
 import type { ReferenceDeJet } from './jetsEnVue';
+import type { EntreeDuJournal } from '../engine/journal';
 
 type Handler<E extends NomDuBus> = (payload: ChargesDuBus[E]) => void;
 
@@ -108,5 +109,5 @@ export interface ChargesDuBus {
   test_jete: TestJete;
   heros_a_creer: undefined;
   arrivee_en_scene: { sceneId: string; neuve: boolean };
-  ligne_au_journal: { texte: string };
+  ligne_au_journal: { entree: EntreeDuJournal };
 }

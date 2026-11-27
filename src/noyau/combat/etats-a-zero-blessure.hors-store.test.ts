@@ -12,6 +12,7 @@ import type { Combatant, Weapon } from '../../engine/types';
 import type { AttackResult } from '../../engine/combat';
 import { emptyScene } from '../monde/scene';
 import { hasCondition } from '../../engine/conditions';
+import { ligneDeTexte } from '../../engine/journal';
 import { blessuresDeBase, blessuresSurLeProfil, combattantDeTest } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -55,7 +56,7 @@ describe('#4911 — les États posés à 0 Blessure ont leur ligne', () => {
     const coup: AttackResult = { hit: true, attackerRoll: 30, netSL: 3, location: 'corps', damage: 6, woundsLost: 4, critical: false, advantageTo: null, defenderDefeated: false, log: 'Hardi touche le Gobelin.' };
     applyAttackResult(banc.getState, banc.setState, h, g, GRIFFES, coup);
     draineEtLit(banc.getState);
-    const journal = banc.getState().battle!.log.map((l) => l.text);
+    const journal = banc.getState().battle!.log.map((l) => l.entree.texte);
     const rang = (ligne: string) => journal.indexOf(ligne);
     expect(journal.filter((l) => l === 'Gobelin reçoit 1 État À Terre.'), 'À Terre une fois').toHaveLength(1);
     expect(journal.filter((l) => l === 'Gobelin reçoit 1 État Inconscient.'), 'Inconscient une fois').toHaveLength(1);
@@ -77,7 +78,7 @@ describe('#4911 — les États posés à 0 Blessure ont leur ligne', () => {
     const gobelin = banc.getState().battle!.combatants.find((c) => c.id === 'e1')!;
     expect(hasCondition(gobelin, 'inconscient')).toBe(true);
     expect(hasCondition(gobelin, 'a-terre'), 'À Terre posé malgré l’Inconscient').toBe(true);
-    expect(banc.getState().battle!.log.filter((l) => l.text === 'Gobelin reçoit 1 État À Terre.'), 'À Terre dit une fois').toHaveLength(1);
+    expect(banc.getState().battle!.log.filter((l) => l.entree.texte === 'Gobelin reçoit 1 État À Terre.'), 'À Terre dit une fois').toHaveLength(1);
   });
 
   it('chute : la ligne de chute, puis les lignes de ses États, une fois chacune (LDB 15 l.84)', () => {
@@ -138,6 +139,6 @@ describe('#4911 — la passe de Chirurgie dit son Hémorragique par sa prose, un
       'Patient reçoit 1 État À Terre.',
       'Patient reçoit 1 État Inconscient.',
       'Patient sombre sur la table — l\'opération est interrompue (stabilisez-le d\'abord).',
-    ]);
+    ].map(ligneDeTexte));
   });
 });

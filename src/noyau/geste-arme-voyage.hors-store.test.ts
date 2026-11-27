@@ -227,7 +227,7 @@ describe('(C) le REFUS est un canal LOCAL — et ne se tait jamais', () => {
     banc.setState({ battle: null, refus: null, journal: [] } as never);
     refuserGeste(get, banc.setState, 'Geste impossible ici.');
     expect(get().refus, 'hors combat il n’y a pas de bannière : rien ne doit rester en attente').toBeNull();
-    expect(get().journal.join('\n'), 'le refus s’est tu').toContain('Geste impossible ici.');
+    expect(get().journal.map((e) => e.texte).join('\n'), 'le refus s’est tu').toContain('Geste impossible ici.');
   });
 
   it('EN COMBAT, il ne touche NI le journal de partie NI le journal de combat', () => {

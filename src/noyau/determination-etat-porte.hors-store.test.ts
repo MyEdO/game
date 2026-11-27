@@ -45,7 +45,7 @@ function preparer(): Combatant {
 }
 
 const vivant = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
-const journal = (): string[] => banc.getState().battle!.log.map((e) => e.text);
+const journal = (): string[] => banc.getState().battle!.log.map((e) => e.entree.texte);
 
 /** Joue les hooks de fin de Round et rend les lignes de journal émises. */
 function finDeRound(): string[] {

@@ -208,6 +208,6 @@ describe('Structure d’orchestrateur — instanciable par une crise NAVALE (2 m
     expect(manches).toBe(SEQUENCE_MAX_ROUNDS);
     // La borne se COMPTE en manches ouvertes par le socle ; elle se DIT en tours, parce que la
     // manche n'a pas le même prix partout (un lancer de dés autour d'une table en est une aussi).
-    expect(banc.getState().journal.some((l) => l.includes('borne de 50 tours'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('borne de 50 tours'))).toBe(true);
   });
 });

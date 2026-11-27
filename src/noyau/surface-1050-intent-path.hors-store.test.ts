@@ -250,7 +250,7 @@ describe('#3327 — Maladresse et dé d’étape : leurs verbes de jet se jouent
     expect(applyIntent(1, 'jetValider', ['maladresse'])).toBe('refusee');
     expect(applyIntent(0, 'jetValider', ['maladresse'])).toBe('appliquee');
     expect(banc.getState().pendingCascade, 'la Maladresse appliquée clôt l’étape').toBeNull();
-    expect(banc.getState().battle!.log.map((e) => e.text).join(' | '), 'les Oups ! tirés sont écrits au journal de combat').toMatch(/^e1 — Maladresse/);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join(' | '), 'les Oups ! tirés sont écrits au journal de combat').toMatch(/^e1 — Maladresse/);
   });
 
   it('jetLancer@cascadeTirage et jetImposerLeResultat@cascadeTirage : le dé de l’étape d’un héros se joue à SON siège', () => {

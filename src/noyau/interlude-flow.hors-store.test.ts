@@ -51,7 +51,7 @@ describe('Interlude — flux start/end', () => {
       // Activités : 2 semaines → 2, moins l'éventuelle perte d'événement (cohérence roll↔fx).
       expect(st.left).toBe(Math.max(0, 2 - (ev.fx?.loseActivity ? 1 : 0)));
       // Le journal porte l'événement (verbatim).
-      expect(banc.getState().journal.join('\n')).toContain(ev.label);
+      expect(banc.getState().journal.map((e) => e.texte).join('\n')).toContain(ev.label);
     }
   });
 
@@ -105,7 +105,7 @@ describe('Interlude — flux start/end', () => {
     banc.getState().fenetreValider('interlude'); // 21 jours — sans le couvert, la Faim RAW tuerait le groupe
     const party = banc.getState().party;
     party.forEach((h, i) => expect(h.wounds.current, h.label).toBeGreaterThanOrEqual(before[i]));
-    expect(banc.getState().journal.join('\n')).not.toMatch(/dépérit|Faim :/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toMatch(/dépérit|Faim :/);
   });
 
   it('« Avec le pouvoir » : Niveau 3 sans Revenus → retombe au Niveau 2 (LDB 23 l.33)', () => {
@@ -115,7 +115,7 @@ describe('Interlude — flux start/end', () => {
     hero.careerLevel = 3;
     banc.getState().fenetreValider('interlude');
     expect(banc.getState().party[0].careerLevel).toBe(2);
-    expect(banc.getState().journal.join('\n')).toMatch(/néglig/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/néglig/);
   });
 
   it('Effet d’éditeur interlude : applyEffects ouvre l’interlude', () => {

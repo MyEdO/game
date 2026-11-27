@@ -67,7 +67,7 @@ afterEach(() => {
 
 const zonesDe = (appel: Appel): ZonesDuSalon => (appel('salon') as unknown as { zones: ZonesDuSalon }).zones;
 const gestes = (z: ZonesDuSalon) => z['salon.gestes'].map((g) => g.id);
-const textesDuJournal = (journal: LigneDuJournal[]) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const textesDuJournal = (journal: LigneDuJournal[]) => journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 /** Les lignes de la `quittee` de `r`. */
 const lignesDeQuittee = (r: Reponse): Ligne[] => {
   const q = (r as unknown as { quittee?: { lignes: Ligne[] } }).quittee;

@@ -65,12 +65,12 @@ function doneRound(rows: { id: string; sl: number }[]): MancheClose {
 /** Les variations de Distance journalisées : celle de la manche, puis celle du recalcul (l.100-102). */
 function deltas(): { manche: number; recalcul: number } {
   const j = banc.getState().journal;
-  const manche = j.find((l) => l.startsWith('Manche '));
-  const recalc = j.find((l) => l.includes('Distance recalculée'));
+  const manche = j.find((l) => l.texte.startsWith('Manche '));
+  const recalc = j.find((l) => l.texte.includes('Distance recalculée'));
   const nb = (l: string | undefined, re: RegExp) => Number(re.exec(l ?? '')?.[1] ?? NaN);
   return {
-    manche: nb(manche, /\(([+-]?\d+) →/),
-    recalcul: nb(recalc, /: ([+-]?\d+) →/),
+    manche: nb(manche?.texte, /\(([+-]?\d+) →/),
+    recalcul: nb(recalc?.texte, /: ([+-]?\d+) →/),
   };
 }
 
@@ -109,7 +109,7 @@ describe('Poursuite — l’exemple canonique du Source (LDB 15 l.98-102)', () =
     // Étape 3 : 0 − 3 = −3 → Distance −1, les Personnages rattrapent (l.100).
     expect(deltas().manche).toBe(-3);
     // Le camp PNJ poursuivi sacrifie son plus lent (DR 0) — pas de fenêtre : il est tenu par le jeu.
-    expect(banc.getState().journal.some((l) => l.includes('abandonnent Cultiste 1'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('abandonnent Cultiste 1'))).toBe(true);
     // (b) le GROUPE poursuit : c'est LUI qui décide qui s'arrête — Sigrid, comme au Source.
     const choix = banc.getState().pendingCascade!.participants[0];
     expect(choix.options?.map((o) => o.key)).toEqual([`arreter:${sigrid.id}`, `arreter:${eichengard.id}`, 'ignorer']);
@@ -172,7 +172,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     banc.getState().jetValider('cascade');
     const p = pursuitOf(banc.getState())!;
     expect(p.foes.map((f) => f.label), 'le poursuivant le plus lent quitte la chasse').toEqual(['Cavalier vif']);
-    expect(banc.getState().journal.some((l) => l.includes('Trainard s’arrête pour affronter Alix'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('Trainard s’arrête pour affronter Alix'))).toBe(true);
   });
 
   it('(c) le retardataire qui n’est PAS une cible prioritaire est purement et simplement IGNORÉ', () => {
@@ -191,7 +191,7 @@ describe('Poursuite — sacrifier le plus lent (LDB 15 l.94)', () => {
     const p = pursuitOf(banc.getState())!;
     expect(p.foes, 'aucun poursuivant ne s’arrête pour un retardataire sans intérêt').toHaveLength(1);
     expect(p.retires).toEqual([a.id]);
-    expect(banc.getState().journal.some((l) => l.includes('n’est pas une cible prioritaire'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('n’est pas une cible prioritaire'))).toBe(true);
   });
 
   it('(b)+(c) quand c’est le GROUPE qui poursuit, la décision est une FENÊTRE : qui s’arrête, ou ignorer', () => {

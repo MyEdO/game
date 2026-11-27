@@ -60,7 +60,7 @@ import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { STAKES, findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
 import { resultLine, buildBand } from './rollSeam';
 import { rollLine } from './ligneDeJet';
-import { markFixedDie } from './fixedDieMark';
+import { ligneDeTexte } from '../engine/journal';
 import { t } from '../i18n';
 import { checkBattleOver } from './combatFlow';
 import { BOARD_EVENTS, seaBoardEventById } from '../engine/seaVoyage';
@@ -496,9 +496,9 @@ describe('Carte marine (MDG 15) — Orientation & Planque (#147)', () => {
       expect(etape.participants!.find((r) => r.id === navigateur.id))
         .toMatchObject({ roleId: 'navigateur', essential: true, teste: { skill: { id: 'orientation' } } });
       avanceEtapeCascade(get, () => 29);
-      const bilan = get().journal.find((l) => l.startsWith('Orientation (DR '));
+      const bilan = get().journal.find((l) => l.texte.startsWith('Orientation (DR '));
       expect(bilan).toBeDefined();
-      return Number(bilan!.match(/DR ([+-]\d+)/)?.[1]);
+      return Number(bilan!.texte.match(/DR ([+-]\d+)/)?.[1]);
     }
     expect(orienter(true) - orienter(false)).toBe(bonus);
   });
@@ -724,10 +724,10 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
 
     expect(etapes).toContain('equipage-extermination');
     expect(get().travelPlan).toBeNull();
-    expect(get().journal).toContain(t('sv.arrive', { to: seaMap.places[1].label }));
+    expect(get().journal.map((e) => e.texte)).toContain(t('sv.arrive', { to: seaMap.places[1].label }));
     expect(get().gameTime - depart).toBe(MINUTES_PER_DAY);
-    const duree = markFixedDie(t('sv.dureeHeures', { n: 5 }));
-    expect(get().journal.filter((ligne) => ligne === duree)).toHaveLength(1);
+    const duree = t('sv.dureeHeures', { n: 5 });
+    expect(get().journal.filter((e) => e.texte === duree)).toEqual([{ ...ligneDeTexte(duree), deFixe: true }]);
   });
 
   /** Les étapes de dé `nombre` d'attaques subies, en avant-plan comme derrière (`suspendedCascades`). */
@@ -752,7 +752,7 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     expect(s.travelPlan!.kmDone).toBeGreaterThan(0);
     expect(s.pendingRest).toBeTruthy();
     expect(s.vessel!.infestation!.assaillie).toBeUndefined();
-    expect(s.journal).toContain(t('eff.cargaisonPerdueEnc', { enc: 0 }));
+    expect(s.journal.map((e) => e.texte)).toContain(t('eff.cargaisonPerdueEnc', { enc: 0 }));
     expect(s.pendingCascade).toMatchObject({ purpose: 'sequence' });
     const [etape, ...autres] = etapesDAttaques(s);
     expect(autres).toEqual([]);
@@ -822,8 +822,8 @@ describe('Infestation — les rats attaquent sur une étape d’Extermination à
     expect(etape).toMatchObject({ worldOwner: true, meta: { roleDuMembre: 'mousse' } });
     expect(etape.actorId).toBeUndefined();
     expect(draineCascade(get, 40, (e) => (e.kind === 'nombreDAttaquesSubies' ? 1 : undefined))).toContain('nombreDAttaquesSubies');
-    expect(get().journal.join('\n')).toContain(t('eff.membreDuBordAttaque', { assaillant: 'Rats géants', role: 'Mousse' }));
-    expect(get().journal.join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain(t('eff.membreDuBordAttaque', { assaillant: 'Rats géants', role: 'Mousse' }));
+    expect(get().journal.map((e) => e.texte).join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
   it('le marqueur `assaillie` et `surDRNegatif` traversent une sauvegarde puis un chargement (MDG 15 l.161, l.176)', () => {
@@ -980,11 +980,11 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
       expect(orientation.kind).toBe('equipage-orientation');
       expect(orientation.participants!.map((part) => [part.roleId, part.essential])).toEqual([['vigie', false], ['navigateur', true]]);
       avanceEtapeCascade(get, () => 29);
-      const compteRendu = get().journal.find((l) => l.startsWith('Orientation (DR '));
+      const compteRendu = get().journal.find((l) => l.texte.startsWith('Orientation (DR '));
       expect(compteRendu).toBeDefined();
       return {
         mods: orientation.meta?.aggregateDRMods ?? [],
-        dr: Number(compteRendu!.match(/DR ([+-]\d+)/)?.[1]),
+        dr: Number(compteRendu!.texte.match(/DR ([+-]\d+)/)?.[1]),
         cibles: orientation.participants!.map((part) => part.target),
       };
     }
@@ -1228,16 +1228,16 @@ describe('progression — message « Encalminé »/« Voiles affalées » pilot�
     planAtProgression(false);
     runSeaDay(get, set);
     const journal = get().journal;
-    expect(journal.some((l) => l.includes('Encalminé'))).toBe(true);
-    expect(journal.some((l) => l.includes('affalées'))).toBe(false);
+    expect(journal.some((l) => l.texte.includes('Encalminé'))).toBe(true);
+    expect(journal.some((l) => l.texte.includes('affalées'))).toBe(false);
   });
 
   it('voiles affalées (sailsDown), MÊME mer calme → message « Voiles affalées » (la structure prime sur le libellé du vent)', () => {
     planAtProgression(true);
     runSeaDay(get, set);
     const journal = get().journal;
-    expect(journal.some((l) => l.includes('affalées'))).toBe(true);
-    expect(journal.some((l) => l.includes('Encalminé'))).toBe(false);
+    expect(journal.some((l) => l.texte.includes('affalées'))).toBe(true);
+    expect(journal.some((l) => l.texte.includes('Encalminé'))).toBe(false);
   });
 });
 
@@ -1248,7 +1248,7 @@ describe('voiles affalées sans ancre : la dérive est créditée le long du tra
     const vehicle = upgrades ? { ...plan.vehicle!, upgrades } : plan.vehicle!;
     set({ travelPlan: { ...plan, vehicle, kmDone: 100, sea: { ...plan.sea!, windFrom, sailsDown: true } } });
     runSeaDay(get, set);
-    return { miles: get().travelPlan!.sea!.milesToday, ligne: get().journal.find((l) => l.includes('affalées')) };
+    return { miles: get().travelPlan!.sea!.milesToday, ligne: get().journal.map((e) => e.texte).find((l) => l.includes('affalées')) };
   }
 
   it('cap est : vent d’ouest → vers l’avant, vent d’est → vers l’arrière, vent du nord → nul ; même dérive', () => {
@@ -1466,8 +1466,8 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     expect(get().travelPlan!.procesVerbal!.map((e) => e.id), 'à l’arrêt, le compte rendu du trajet ne porte pas les bandes déjà jouées, et elles seules').toEqual([
       'mer-equipage-progression-0-sorcier-de-test-0', 'mer-equipage-embuscade-0-sorcier-de-test-0',
     ]);
-    expect(resumesDR(get().journal), 'à l’arrêt, une bande jouée n’a pas son résumé DR au journal').toHaveLength(2);
-    expect(resumesDR(get().travelPlan!.sea!.lines), 'à l’arrêt, une bande jouée n’a pas son résumé DR aux lignes du jour').toEqual(resumesDR(get().journal));
+    expect(resumesDR(get().journal.map((e) => e.texte)), 'à l’arrêt, une bande jouée n’a pas son résumé DR au journal').toHaveLength(2);
+    expect(resumesDR(get().travelPlan!.sea!.lines), 'à l’arrêt, une bande jouée n’a pas son résumé DR aux lignes du jour').toEqual(resumesDR(get().journal.map((e) => e.texte)));
 
     const battle = get().battle!;
     for (const c of battle.combatants) if (c.kind === 'ennemi') c.dead = true;
@@ -1482,13 +1482,13 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     const jourClos = get().travelPlan!.log!.slice(-1)[0]!;
     expect(jourClos.entries, 'le jour clos ne garde pas les rangées d’avant le combat puis celles du reste, chacune une fois, telles qu’à la base').toEqual(JOUR_CLOS_RELEVE);
     expect(get().travelPlan!.procesVerbal ?? [], 'le jour clos n’a pas emporté le compte rendu du trajet').toEqual([]);
-    const auJournal = resumesDR(get().journal);
+    const auJournal = resumesDR(get().journal.map((e) => e.texte));
     expect(auJournal, 'un Test d’équipage n’a pas son résumé DR au journal').toHaveLength(new Set(jourClos.entries!.map((e) => e.group)).size);
     expect(new Set(auJournal).size, `un résumé DR est écrit deux fois au journal :\n${auJournal.join('\n')}`).toBe(auJournal.length);
     expect(resumesDR(jourClos.lines.map((l) => l.text)).sort(), 'un Test d’équipage n’a pas son résumé DR aux lignes du jour clos, une fois').toEqual([...auJournal].sort());
     for (const e of jourClos.entries!) {
       const de = `${e.d!.roll}/${e.d!.target}`;
-      expect(get().journal.filter((l) => l.includes(de)), `le dé d’une bande au compte rendu est redit au journal (${e.id}, ${de})`).toEqual([]);
+      expect(get().journal.filter((l) => l.texte.includes(de)), `le dé d’une bande au compte rendu est redit au journal (${e.id}, ${de})`).toEqual([]);
     }
   });
 
@@ -1702,7 +1702,7 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
       if (!get().pendingCascade) break;
       stepCascade();
     }
-    expect(get().journal.some((l) => l.includes('Péripétie : Récif affleurant'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('Péripétie : Récif affleurant'))).toBe(true);
   });
 
   it('un péril d’auteur `transition` INTERROMPT la traversée (comme l’embuscade)', () => {
@@ -1722,7 +1722,7 @@ describe('Périls d’AUTEUR lus au fil des jours en mer — C.22 (route.perils)
     for (let i = 0; i < 30 && get().pendingCascade && !get().travelPlan!.interrupted; i++) stepCascade();
     expect(get().travelPlan!.interrupted).toBe(true); // la traversée s’arrête sur le péril d’auteur
     expect(get().scene!.id).toBe('ilot'); // la mer applique ses effets sur-le-champ
-    expect(get().journal.some((l) => l.includes('Péripétie : Îlot en vue'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('Péripétie : Îlot en vue'))).toBe(true);
   });
 });
 
@@ -1903,7 +1903,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       // 3 jours de frais pour l'équipage (45) et 2 pour les héros (6), puis 10 préservées et 10 biscuits, le reste à court ;
       // au 3e jour, les 149 frais pourris partent.
       expect(quantitesDeCale(get().vessel!.provisions)).toEqual({});
-      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 149, vivre: 'Nourriture, courses/journée', total: 20 }));
+      expect(get().journal.map((e) => e.texte)).toContain(t('eff.provisionsPourries', { perdues: 149, vivre: 'Nourriture, courses/journée', total: 20 }));
     });
 
     it('à quai, la durée suit la règle : posée à 1 jour, le frais de la veille est jeté, la préservée et les biscuits restent', () => {
@@ -1911,7 +1911,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       set({ vessel: { ...get().vessel!, provisions: cale({ [FRAIS]: 12, [PRESERVEE]: 5, [BISCUITS]: 7 }) }, journal: [] });
       get().avancerLeTemps(24 * 60);
       expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [PRESERVEE]: 5, [BISCUITS]: 7 });
-      expect(get().journal).toContain(t('eff.provisionsPourries', { perdues: 12, vivre: 'Nourriture, courses/journée', total: 12 }));
+      expect(get().journal.map((e) => e.texte)).toContain(t('eff.provisionsPourries', { perdues: 12, vivre: 'Nourriture, courses/journée', total: 12 }));
     });
   });
 
@@ -2032,8 +2032,8 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       expect(get().travelPlan).toBeNull();
       expect(sacs()).toEqual([5, 5, 5]);
       expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 500 - 18 * 7 });
-      expect(get().journal).toContain(t('upkeep.holdUsed', { n: 3, left: 500 - 18 * 7, s: 's' }));
-      expect(get().journal.some((l) => l === t('upkeep.rationsUsed', { n: 3, s: 's' }))).toBe(false);
+      expect(get().journal.map((e) => e.texte)).toContain(t('upkeep.holdUsed', { n: 3, left: 500 - 18 * 7, s: 's' }));
+      expect(get().journal.map((e) => e.texte).some((l) => l === t('upkeep.rationsUsed', { n: 3, s: 's' }))).toBe(false);
     });
 
     it('un vivre frais de la cale remet à zéro le compte des jours sans vivre frais', () => {
@@ -2064,7 +2064,7 @@ describe('Traversée RAPIDE — un seul Test de Rude épreuve (MDG 15 l.21-37, C
       get().avancerLeTemps(MINUTES_PER_DAY);
       expect(sacs()).toEqual([1, 1, 1]);
       expect(quantitesDeCale(get().vessel!.provisions)).toEqual({ [BISCUITS]: 50 });
-      expect(get().journal).toContain(t('upkeep.rationsUsed', { n: 3, s: 's' }));
+      expect(get().journal.map((e) => e.texte)).toContain(t('upkeep.rationsUsed', { n: 3, s: 's' }));
     });
 
     it('à terre après une arrivée tonneaux à sec : l’eau du pays désaltère, aucune Soif (LDB 18 l.340)', () => {
@@ -2215,8 +2215,8 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     expect(get().travelPlan!.sea!.fast!.pendingFinalize).toBe(true); // le palier reste à appliquer
     // Timing (docs/plans/…) : à l'interruption, seule la narration d'embuscade part — le texte du palier
     // (« Voyage rapide — … ») ne doit PAS précéder son application (l'écran de combat le démentirait).
-    expect(get().journal.some((l) => l.includes('voile hostile surgit'))).toBe(true);
-    expect(get().journal.some((l) => l.startsWith('Voyage rapide —'))).toBe(false);
+    expect(get().journal.some((l) => l.texte.includes('voile hostile surgit'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.startsWith('Voyage rapide —'))).toBe(false);
     // Combat gagné → reprise : la traversée s’achève en rapide (arrivée), sans rejouer l’embuscade.
     set({ battle: null });
     get().reprendreLeVoyage();
@@ -2225,7 +2225,7 @@ describe('Traversée rapide × embuscade ANCRÉE (#212) : interruption puis repr
     draineEtapes(get);
     expect(get().travelPlan).toBeNull();
     expect(get().pendingShoreLeave).toBeTruthy();
-    expect(get().journal.filter((l) => l.startsWith('Voyage rapide —'))).toHaveLength(1);
+    expect(get().journal.filter((l) => l.texte.startsWith('Voyage rapide —'))).toHaveLength(1);
   });
 
   it.each([0, 23])('rapide interrompu : les 121 min contagieuses commencent à H+%i, après l’abordage', (heuresAvantSymptomes) => {
@@ -2329,7 +2329,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     expect(cur.options?.map((o) => o.key)).toEqual(['fuir', 'combattre', 'soumettre']); // les 3 choix présentés
     // Rien de tranché AVANT le choix : ni fuite (Poursuite), ni pillage — le joueur décide.
     expect(get().travelPlan!.sea!.crisis).toBeFalsy();
-    expect(get().journal.some((l) => l.includes('prend la fuite'))).toBe(false);
+    expect(get().journal.some((l) => l.texte.includes('prend la fuite'))).toBe(false);
   });
 
   it('branche PRÉSENTÉE « fuir » (défaut) → Poursuite (mute la crise, aucune perte silencieuse)', () => {
@@ -2349,8 +2349,8 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     expect(get().travelPlan!.sea!.crisis?.kind).toBe('poursuite');
     draineCascade(get);
     const prefixeManche = t('sv.chase', { label: '§', issue: '', gain: '', distance: '', escapeAt: '' }).split('§')[0];
-    expect(get().journal.filter((l) => l.startsWith(prefixeManche)), 'la manche de Poursuite se joue dans le jour de la sommation').toHaveLength(1);
-    expect(get().journal.filter((l) => l.startsWith(t('sv.weatherOfDay', { weather: '§', from: '', heading: '' }).split('§')[0])), 'le jour n’est bâti qu’une fois').toHaveLength(1);
+    expect(get().journal.filter((l) => l.texte.startsWith(prefixeManche)), 'la manche de Poursuite se joue dans le jour de la sommation').toHaveLength(1);
+    expect(get().journal.filter((l) => l.texte.startsWith(t('sv.weatherOfDay', { weather: '§', from: '', heading: '' }).split('§')[0])), 'le jour n’est bâti qu’une fois').toHaveLength(1);
     expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
     expect(get().pendingRest, 'le jour se dénoue sur la halte').toBeTruthy();
   });
@@ -2486,7 +2486,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     runSeaDay(get, set);
     const etape = evenementDeBordTire();
     const def = BOARD_EVENTS.find((e) => e.id === etape.table!.result!.id)!;
-    const portantes = get().journal.filter((l) => l.includes(def.label));
+    const portantes = get().journal.map((e) => e.texte).filter((l) => l.includes(def.label));
     expect(portantes).toHaveLength(1);
     expect(portantes[0]).toBe(`${def.label} — ${def.desc}`); // texte VERBATIM, pas le titre nu
     expect(etape.committed, 'précondition : l’étape a bien été validée').toBe(true);
@@ -2534,7 +2534,7 @@ describe('services portuaires (#30)', () => {
     // Bourse insuffisante → refus (il ne reste que 10 CO, la réparation de 40 Blessures en coûte 40).
     set({ vessel: { ...get().vessel!, wounds: { current: 10, max: 50 } } });
     expect(portRepairVessel(get, set)).toEqual([]);
-    expect(get().journal).toContain(t('sv.yardTooExpensive', { cost: 40 }));
+    expect(get().journal.map((e) => e.texte)).toContain(t('sv.yardTooExpensive', { cost: 40 }));
   });
 
   it('pose d’une Amélioration : coût par bande de Taille (MDG 12) — Nid-de-pie sur une cogue (25 m, Moyenne) = 5 CO', () => {
@@ -2546,7 +2546,7 @@ describe('services portuaires (#30)', () => {
     expect(get().vessel!.upgrades).toEqual([{ id: 'nid-de-pie' }]);
     // Un Trait de CONSTRUCTION ne se pose pas après coup (ch.12 l.169).
     expect(installerLAmelioration(get, set, 'renforce')).toEqual([]);
-    expect(get().journal.some((l) => l.includes('Trait de construction'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('Trait de construction'))).toBe(true);
   });
 });
 
@@ -2604,7 +2604,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     moodMinus1();
     resolvePortArrival(get, set, undefined, seq(1, 1, 1, 1), false);
     expect(get().vessel!.crewLost ?? 0).toBe(0);
-    expect(get().journal.some((l) => l.includes('n\'a pas lieu'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('n\'a pas lieu'))).toBe(true);
   });
 
   it('relâche ACCORDÉE (défaut) : Embrigadement se produit normalement (2d10 marins perdus, MDG 15 l.245)', () => {
@@ -2618,7 +2618,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     // Humeur neutre (mod 0) : 2d10 = 9+9 = 18 → « Fête de Manann » (min 18 max 18, sea-events.json).
     const drapeaux = get().flags;
     resolvePortArrival(get, set, undefined, seq(9, 9, 1, 1), false);
-    expect(get().journal.some((l) => l.includes('« Fête de Manann » n\'a pas lieu'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('« Fête de Manann » n\'a pas lieu'))).toBe(true);
     expect(get().vessel!.manann?.score ?? 0).toBe(0);
     expect(get().flags, 'la relâche se lit sur la rangée, aucun drapeau de monde').toEqual(drapeaux);
   });
@@ -2637,11 +2637,11 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     draineCascade(get); // Mal de mer du premier jour : sa bande se joue avant l'accostage (#1479)
     expect(get().pendingShoreLeave).toBeTruthy();
     expect(get().pendingShoreLeave!.to.id).toBe('B');
-    expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // pas encore tiré
+    expect(get().journal.some((l) => l.texte.includes('Événement de port'))).toBe(false); // pas encore tiré
     get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingShoreLeave).toBeNull();
     draineCascade(get); // le dé de Désertion se joue dans SA fenêtre (siège du monde), puis la suite s'enchaîne
-    expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(true); // tiré APRÈS le choix
+    expect(get().journal.some((l) => l.texte.includes('Événement de port'))).toBe(true); // tiré APRÈS le choix
   });
 
   /**
@@ -2656,9 +2656,9 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     draineCascade(get); // Mal de mer du premier jour : sa bande se joue avant l'accostage (#1479)
     get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingCascade, 'le siège local possède le monde : son dé se joue, il ne se tire pas en silence').toBeTruthy();
-    expect(get().journal.some((l) => l.includes('Événement de port')), 'la suite attend le geste').toBe(false);
+    expect(get().journal.some((l) => l.texte.includes('Événement de port')), 'la suite attend le geste').toBe(false);
     draineCascade(get);
-    expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('Événement de port'))).toBe(true);
   });
 
   it('seam de jet (#275 Ronde 1, delta 1) — Désertion : AVEC siège MJ ≠ hôte, l\'étape SURFACE et est OWNÉE par le MJ', () => {
@@ -2670,7 +2670,7 @@ describe('Relâche à terre — #185 (choix joueur AVANT événement de port, MD
     continueSeaDayAfterCascade(get, set);
     get().fenetreChoisir('relacheATerre', 'accorder', true);
     expect(get().pendingCascade).toBeTruthy(); // 'V' — surfacé au siège MJ, pas résolu d'office
-    expect(get().journal.some((l) => l.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
+    expect(get().journal.some((l) => l.texte.includes('Événement de port'))).toBe(false); // suspendu AVANT la suite
     const owner = modalOwnerOf(get());
     expect(seatOwns(get(), 1, owner ?? undefined)).toBe(true);
     expect(seatOwns(get(), 0, owner ?? undefined)).toBe(false);
@@ -2705,7 +2705,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     continueSeaDayAfterCascade(get, set);
   }
   const scorbutDeLEquipage = () => (get().vessel!.porteurDeLEquipage?.diseases ?? []).map((d) => d.id);
-  const ligneDeLEquipage = () => get().journal.some((l) => l === t('sv.scurvyGot', { name: t('crew.lEquipage'), soup: '' }));
+  const ligneDeLEquipage = () => get().journal.map((e) => e.texte).some((l) => l === t('sv.scurvyGot', { name: t('crew.lEquipage'), soup: '' }));
 
   it('Scorbut : au 30e jour de biscuits, l’équipage collectif teste à 40 ; l’échec lui donne le scorbut (MDG 14 l.230 ; #4243)', () => {
     journeeDeLEquipage(29, { [BISCUITS]: 500 }, 41);
@@ -2809,7 +2809,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     expect(bande.participants!.every((r) => r.interactive), 'chaque porteur tient SA rangée').toBe(true);
     draineCascade(get);
     expect(get().pendingRest, 'la journée reprend une fois la bande jouée').toBeTruthy();
-    expect(get().journal.some((l) => l.toLowerCase().includes('scorbut'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.toLowerCase().includes('scorbut'))).toBe(true);
   });
 
   it('Scorbut : sous ORDRES COMMANDÉS, aucune fenêtre — la journée va d’un trait jusqu’à la halte', () => {
@@ -2819,7 +2819,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     continueSeaDayAfterCascade(get, set);
     expect(get().pendingCascade, 'traversée commandée = sans fenêtre (attendu validé en recette #1426)').toBeNull();
     expect(get().pendingRest).toBeTruthy();
-    expect(get().journal.some((l) => l.toLowerCase().includes('scorbut')), 'jamais moins de TRACES').toBe(true);
+    expect(get().journal.some((l) => l.texte.toLowerCase().includes('scorbut')), 'jamais moins de TRACES').toBe(true);
   });
 
   it('Scorbut : AVEC siège MJ, l’étape SURFACE (V) — plus d’auto-résolution silencieuse ; la journée reprend après résolution', () => {
@@ -2834,7 +2834,7 @@ describe('Entretien-survie maritime — #272 résiduel (Scorbut/Épuisement : la
     let guard = 0;
     while (get().pendingCascade?.purpose === 'seaScorbut' && guard++ < 10) stepCascade();
     expect(get().pendingRest).toBeTruthy(); // jamais résolue en silence — la journée reprend malgré tout
-    expect(get().journal.some((l) => l.toLowerCase().includes('scorbut'))).toBe(true); // parité recap/journal avec le chemin inline
+    expect(get().journal.some((l) => l.texte.toLowerCase().includes('scorbut'))).toBe(true); // parité recap/journal avec le chemin inline
   });
 });
 
@@ -2947,7 +2947,7 @@ describe('Épuisement — les impliqués testent à la fin de la Période de tra
     expect(bandeDuJour({ cadence: 'commande' })).toBeUndefined();
     expect(get().pendingCascade).toBeNull();
     expect(get().pendingRest).toBeTruthy();
-    const resistance = (h: Combatant) => get().journal.filter((l) => l.startsWith(`${h.label} — Résistance`)).length;
+    const resistance = (h: Combatant) => get().journal.filter((l) => l.texte.startsWith(`${h.label} — Résistance`)).length;
     expect([timonier, mousse, vigie].map(resistance)).toEqual([1, 1, 0]);
   });
 
@@ -3213,8 +3213,8 @@ describe('Périls en mer — collision routée par la DONNÉE (#444, MDG 13 l.47
       const plan = buildSeaPlan(get, 'r1', 'A', 'B', seaMap.routes[0])!;
       set({ travelPlan: { ...plan, sea: { ...plan.sea!, forcedEventId: 'collision-soudaine' } } });
       runSeaDay(get, set);
-      expect(get().journal.some((l) => l.includes('Rocher IC 5'))).toBe(true);
-      expect(get().journal.some((l) => l.includes('IC 47'))).toBe(false);
+      expect(get().journal.some((l) => l.texte.includes('Rocher IC 5'))).toBe(true);
+      expect(get().journal.some((l) => l.texte.includes('IC 47'))).toBe(false);
     } finally {
       rocher.ic = originalIc;
     }
@@ -3229,7 +3229,7 @@ describe('Périls en mer — collision routée par la DONNÉE (#444, MDG 13 l.47
       const before = get().travelPlan!.vehicle!.wounds.current;
       runSeaDay(get, set);
       const hazard = findSeaHazard(id)!;
-      expect(get().journal.some((l) => l.includes(`${hazard.label} IC ${hazard.ic}`))).toBe(true);
+      expect(get().journal.some((l) => l.texte.includes(`${hazard.label} IC ${hazard.ic}`))).toBe(true);
       expect(get().travelPlan!.vehicle!.wounds.current).toBeLessThanOrEqual(before);
     }
   });
@@ -3367,7 +3367,7 @@ describe('Échouage/Empêtrement — dégagement par Test de Force (#444, applie
     set({ travelPlan: { ...plan, sea: { ...plan.sea!, stranded: { hazardId: 'rocher', label: 'Rocher' } } } });
     runSeaDay(get, set);
     expect(get().travelPlan!.sea!.milesToday).toBe(0);
-    expect(get().journal.some((l) => l.includes('ÉCHOUÉ'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('ÉCHOUÉ'))).toBe(true);
   });
 
   it('ÉCHOUÉ, cargaison de 18 Enc : le Test de Force de dégagement reste Intermédiaire et porte −18 sur la cible (MDG 13 l.473)', () => {
@@ -4093,7 +4093,7 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
     });
     runSeaDay(get, set);
 
-    const journal = get().journal.join(' | ');
+    const journal = get().journal.map((e) => e.texte).join(' | ');
     expect(journal, 'la Progression du jour n’est pas journalisée au plancher').toMatch(/Progression du jour[^|]*DR d'équipage -2/);
     const etapes: CascadeStep[] = get().pendingCascade?.participants ?? [];
     expect(etapes.some((e) => e.kind === 'equipage-progression'), 'une étape de Progression a été posée sans PJ apte').toBe(false);
@@ -4119,7 +4119,7 @@ describe('aucun PJ apte : la journée se joue au plancher de Manque de bras (MDG
     expect(get().travelPlan, 'le voyage a survécu à la défaite').toBeNull();
     // La défaite PRÉCÈDE le dénouement du jour, comme à la clôture d'une cascade (`dispatchCascadeDone`) :
     // l'entretien du bord (`continueSeaDayAfterCascade`) n'est pas joué par un groupe qui n'est plus viable.
-    expect(get().journal.join(' | '), 'l’entretien du jour s’est joué après la défaite').not.toMatch(/Résistance/);
+    expect(get().journal.map((e) => e.texte).join(' | '), 'l’entretien du jour s’est joué après la défaite').not.toMatch(/Résistance/);
   });
 });
 
@@ -4299,7 +4299,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
     expect(pv.some((e) => e.id?.startsWith('mer-salissures')), 'le procès-verbal ne recopie pas le dé').toBe(false);
     const navire = get().travelPlan!.vehicle!.label;
     const libelle = testSkillLabel({ characteristic: 'endurance' })!;
-    const traces = get().journal.filter((x) => x.includes(t('sv.foulingTest')) && /\d+\/\d+, /.test(x));
+    const traces = get().journal.map((e) => e.texte).filter((x) => x.includes(t('sv.foulingTest')) && /\d+\/\d+, /.test(x));
     expect(traces, 'le dé du navire a UNE surface : sa trace au journal (#1291)').toHaveLength(1);
     expect(traces[0], 'la trace dit QUI lance (le navire) et QUOI (#1595)').toContain(navire);
     expect(traces[0]).toContain(libelle);
@@ -4341,7 +4341,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
     }
     expect(get().pendingRest, 'le jour se dénoue sur la halte').toBeTruthy();
     expect(get().travelPlan!.sea!.daysAtSea).toBe(1);
-    expect(get().journal.filter((l) => l.includes(t('tf.perilDAuteur', { label: 'Froid mordant' }))), 'le jour n’est bâti qu’une fois').toHaveLength(1);
+    expect(get().journal.filter((l) => l.texte.includes(t('tf.perilDAuteur', { label: 'Froid mordant' }))), 'le jour n’est bâti qu’une fois').toHaveLength(1);
   });
 
   it('Ouragan nommé d’avance : la bande du coup à l’équipage (MDG 13 l.763) se joue dans le Test de l’événement, ouvert sous le jour en vol, que la pile rend ensuite à sa Progression', () => {
@@ -4407,7 +4407,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
   const pile = () => get().suspendedCascades.map((c) => c.purpose);
   const lignesDuJournal = (cle: Parameters<typeof t>[0], params: Record<string, string>) => {
     const prefixe = t(cle, params).split('§')[0];
-    return get().journal.filter((l) => l.startsWith(prefixe)).length;
+    return get().journal.filter((l) => l.texte.startsWith(prefixe)).length;
   };
   /** Joue la cascade jusqu'au slot libre ; rend la suite des `purpose` tenus au slot, sans répétition, et les
    *  `kind` des étapes jouées à la fenêtre. */
@@ -4671,7 +4671,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
         const etape = jour!.participants[rang]!;
         const releve = {
           rang, etape, slot: etapeAuSlot(), pile: pile(), curseur: jour!.cursor,
-          lignes: get().journal.filter((l) => l.startsWith(ligneDeLEvenement)),
+          lignes: get().journal.filter((l) => l.texte.startsWith(ligneDeLEvenement)),
           events: (get().travelPlan!.evenements ?? []).map((e) => ({ title: e.title, jet: e.jet })),
           forcedEventId: get().travelPlan!.sea!.forcedEventId,
           tirages: [battleRng().int(1, 1000), battleRng().int(1, 1000), battleRng().int(1, 1000)],
@@ -5003,7 +5003,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       runSeaDay(get, set);
     };
     /** Le dénouement « arrivée au port », que le témoin sans nœud fixe : plan clos, relâche à terre en attente, sans halte. */
-    const accostage = () => [get().travelPlan, get().pendingShoreLeave?.to.id, get().pendingRest, get().journal[get().journal.length - 1]];
+    const accostage = () => [get().travelPlan, get().pendingShoreLeave?.to.id, get().pendingRest, get().journal.map((e) => e.texte).slice(-1)[0]];
     const ACCOSTAGE = [null, 'B', null, t('sv.arrive', { to: 'Erengrad' })];
     for (const cadence of CADENCES) it(`témoin sans nœud, ${cadence} : le jour de l’événement de bord finit sur l’accostage`, () => {
       const passages = evenementQuiOuvre(false);

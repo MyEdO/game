@@ -115,7 +115,7 @@ describe('sauvegarder et reprendre par le pont', () => {
     save.data.party[0].conditions = [...(save.data.party[0].conditions ?? []), { id: 'etat-inconnu', value: 1 }];
     stockage.setItem(cleDEmplacement(1), JSON.stringify(save));
     const charge = suiteDe(appel('charger', { charger: 1, graine: 7 }));
-    expect(charge.journal.map((l) => ('texte' in l ? l.texte : null))).toEqual([t('saveload.elague', { liste: t('elagage.etats', { ids: 'etat-inconnu' }) })]);
+    expect(charge.journal.map((l) => ('entree' in l ? l.entree.texte : null))).toEqual([t('saveload.elague', { liste: t('elagage.etats', { ids: 'etat-inconnu' }) })]);
   });
 
   it('une sauvegarde d’un autre format est retirée du stockage à la lecture, et dite une fois', () => {

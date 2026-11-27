@@ -105,7 +105,7 @@ describe('Étape à DÉ NU — le tirage dont le total est la conséquence (#150
     const out = runCascadeImmediate(banc.getState, banc.setState, [chute('d3', { forcedRoll: 13 })])!;
     expect(out[0].de!.result).toEqual({ roll: 13, total: 13 });
     expect(tombes).toEqual([{ roll: 13, total: 13 }]);
-    const lignes = banc.getState().journal.filter((l) => /Hauteur de chute/.test(l));
+    const lignes = banc.getState().journal.map((e) => e.texte).filter((l) => /Hauteur de chute/.test(l));
     expect(lignes, 'le journal est la SEULE surface de ce dé : il porte le dé ET le total en mètres').toEqual(
       ['Hauteur de chute : dé 13, soit 13 m.'],
     );

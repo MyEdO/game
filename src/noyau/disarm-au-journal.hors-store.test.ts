@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget, aiHandGate } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -81,7 +82,7 @@ describe('Main ensanglantée (aiHandGate) : l’arme qui glisse est nommée au j
       if (seed > 50) throw new Error('aucune graine d’échec');
     }
     const log = banc.getState().battle!.log;
-    expect(log[log.length - 1], 'la ligne de l’arme lâchée est une conséquence du Test (#4911)').toMatchObject({ kind: 'detail', text: 'Orque lâche Hachoir.' });
+    expect(log[log.length - 1], 'la ligne de l’arme lâchée est une conséquence du Test (#4911)').toMatchObject({ kind: 'detail', entree: ligneDeTexte('Orque lâche Hachoir.') });
     expect(orque.weapons.some((w) => w.uid === 's1')).toBe(false);
   });
 });

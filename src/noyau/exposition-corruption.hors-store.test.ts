@@ -87,8 +87,8 @@ describe('Exposition à la Corruption en combat — LDB 19 l.29', () => {
     banc.setState({ journal: [] });
     frapper('onHit', H, combattant(E.id), arme('pistolet-a-malepierre'));
     expect(get().pendingCorruption).toBeNull();
-    const trace = get().journal.find((l) => l.includes(E.label) && /Résistance/.test(l));
-    expect(trace, get().journal.join('\n')).toBeTruthy();
+    const trace = get().journal.map((e) => e.texte).find((l) => l.includes(E.label) && /Résistance/.test(l));
+    expect(trace, get().journal.map((e) => e.texte).join('\n')).toBeTruthy();
     const echec = /échec/i.test(trace!);
     expect(combattant(E.id).corruption ?? 0).toBe(echec ? 1 : 0);
   });
@@ -109,7 +109,7 @@ describe('Exposition à la Corruption en combat — LDB 19 l.29', () => {
     frapper('onHit', H, E, arme('pistolet-a-malepierre'));
     expect(get().pendingCorruption).toBeNull();
     expect(combattant(E.id).corruption).toBe(avant);
-    expect(get().journal.filter((l) => l.includes(E.label))).toEqual([]);
+    expect(get().journal.filter((l) => l.texte.includes(E.label))).toEqual([]);
   });
 });
 
@@ -141,8 +141,8 @@ describe('Exposition à la Difficulté imprimée par la source (ZI 13 l.197, l.2
     banc.setState({ journal: [] });
     frapper('onHit', H, combattant(E.id), arme('canon-ratling'));
     expect(get().pendingCorruption).toBeNull();
-    const trace = get().journal.find((l) => l.includes(E.label) && /Résistance/.test(l));
-    expect(trace, get().journal.join('\n')).toContain(DIFFICULTY_LABELS.accessible);
+    const trace = get().journal.map((e) => e.texte).find((l) => l.includes(E.label) && /Résistance/.test(l));
+    expect(trace, get().journal.map((e) => e.texte).join('\n')).toContain(DIFFICULTY_LABELS.accessible);
   });
 
   it('héros touché et blessé par un lance-maleflamme : En flammes, puis Test de Corruption Modérée à la Difficulté du Test', () => {

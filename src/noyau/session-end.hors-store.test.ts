@@ -62,11 +62,11 @@ describe('fenetreValider(\'finDeSeance\') (LDB 05 / LDB 17)', () => {
     banc.setState({ party: [herosDeScenario(idsDeTest, 'soldat')], mode: 'battle' });
     banc.getState().ouvrirLaFinDeSeance();
     expect(banc.getState().finDeSeance).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('gameMenu.finDeSeance.horsExploration'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('gameMenu.finDeSeance.horsExploration'));
     banc.setState({ mode: 'exploration', net: { ...initialNet(), mode: 'invite', mySeat: 1 } });
     banc.getState().ouvrirLaFinDeSeance();
     expect(banc.getState().finDeSeance).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('gameMenu.finDeSeance.invite'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('gameMenu.finDeSeance.invite'));
   });
 });
 
@@ -82,9 +82,9 @@ describe('les cases de la fin de séance : celles du groupe sans héros, celles 
   it('une case de héros sans héros, une case du groupe sur un héros : refusées et dites', () => {
     const { a } = seance();
     banc.getState().fenetreChoisir('finDeSeance', 'motivation', true);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.rangee'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('choix.refus.rangee'));
     banc.getState().fenetreChoisir('finDeSeance', 'ambitionCourte', true, a);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.rangee'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('choix.refus.rangee'));
     expect(banc.getState().finDeSeance).toEqual({ heros: {}, groupe: {} });
   });
 
@@ -96,7 +96,7 @@ describe('les cases de la fin de séance : celles du groupe sans héros, celles 
     expect(banc.getState().finDeSeance?.heros[b]).toEqual({ motivation: true });
     banc.setState({ net: { ...banc.getState().net, mode: 'invite', mySeat: 1 } });
     banc.getState().fenetreChoisir('finDeSeance', 'motivation', false, b);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.hoteSeul'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('choix.refus.hoteSeul'));
     expect(banc.getState().finDeSeance?.heros[b]).toEqual({ motivation: true });
   });
 
@@ -104,9 +104,9 @@ describe('les cases de la fin de séance : celles du groupe sans héros, celles 
     seance();
     banc.setState({ pendingChapterRecap: { titre: 'C', px: 0, chronique: [], tombes: [], lieux: [] } });
     banc.getState().fenetreValider('finDeSeance');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(libelleDeLaFermeture('seanceDuChapitre'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(libelleDeLaFermeture('seanceDuChapitre'));
     banc.getState().fenetreFermer('finDeSeance');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(libelleDeLaFermeture('seanceDuChapitre'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(libelleDeLaFermeture('seanceDuChapitre'));
     expect(banc.getState().finDeSeance, 'la fin de séance reste ouverte').toEqual({ heros: {}, groupe: {} });
     banc.getState().fenetreFermer('finDeChapitre');
     expect(banc.getState().finDeSeance, 'ajourner le récap ajourne sa séance').toBeNull();

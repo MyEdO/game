@@ -189,7 +189,7 @@ describe('le verdict de relance naît sur la cible au compte', () => {
       resolveCastChain(banc.getState, banc.setState);
       draineCascade(banc.getState, 200, () => 1);
       return {
-        journal: banc.getState().battle!.log.map((l) => l.text).join('\n'),
+        journal: banc.getState().battle!.log.map((l) => l.entree.texte).join('\n'),
         touche: locationLabel(hitLocationByShape(reverseRoll(jet.roll), cible.bodyShape), cible.bodyShape),
       };
     }
@@ -242,7 +242,7 @@ function devieePuisApplication(cas: 'tas' | 'melee') {
   const viseeApres = inBattleId(bataille, cible.id)!;
   const ligneAppliquee = bataille.log.slice(debutDuJournal).find((evenement) =>
     evenement.kind === 'tir' && evenement.actorId === H.id && evenement.targetId === victime.id
-  )?.text;
+  )?.entree.texte;
   const applique = {
     critiques: (victimeApres.criticalWounds ?? 0) - (avant.criticalWounds ?? 0),
     blessures: res.woundsLost ?? 0,

@@ -211,7 +211,7 @@ function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimme
     : t('wreck.noSurvivor'));
   // #686
   if (survivors.length && shore) arriverAuLieu(set, shore);
-  get().remettreLeDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark), ...lines].join('\n\n') });
+  get().remettreLeDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark).map((e) => e.texte), ...lines].join('\n\n') });
   // Aucun survivant → défaite hors combat (écran unique `checkPartyWiped`).
   checkPartyWiped(get, set);
   return lines;

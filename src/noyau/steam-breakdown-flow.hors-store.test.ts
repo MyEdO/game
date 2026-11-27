@@ -94,7 +94,7 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
     const jBefore = get().journal.length;
     applySteamBreakdown(get, set, entry('perte-de-pression'), battleRng());
     expect(get().pendingSteamSave).toBeNull(); // pas de sauvegarde d'Initiative ici
-    expect(get().journal.slice(jBefore).some((l) => /relancé/i.test(l))).toBe(true); // Métier (Ingénieur) de redémarrage exécuté
+    expect(get().journal.slice(jBefore).some((l) => /relancé/i.test(l.texte))).toBe(true); // Métier (Ingénieur) de redémarrage exécuté
     // Mise en pression de 5 − DR Rounds : à l'échelle voyage (24 h), quelques Rounds ≈ 0 mille perdu.
     expect(get().travelPlan!.sea!.milesToday).toBeLessThanOrEqual(80);
   });
@@ -107,7 +107,7 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
   it('« Feu éteint » (Test étendu de Force + Métier) : les DEUX Tests de redémarrage sont roulés', () => {
     const jBefore = get().journal.length;
     applySteamBreakdown(get, set, entry('feu-eteint'), battleRng());
-    const lines = get().journal.slice(jBefore).join('\n');
+    const lines = get().journal.slice(jBefore).map((e) => e.texte).join('\n');
     expect(/Test étendu/i.test(lines)).toBe(true); // Force étendu (10 DR)
     expect(/relancé/i.test(lines)).toBe(true); // Métier (Ingénieur) de redémarrage
   });
@@ -127,7 +127,7 @@ describe('Panne de Vapeur — résolution first-class (MDG 12 l.313-352)', () =>
     const jBefore = get().journal.length;
     applySteamBreakdown(get, set, entry('feu-eteint'), makeRNG(seed!));
     const attendue = t(issue(seed!, cumul) ? 'sv.engineCleared' : 'sv.engineStruggling');
-    expect(get().journal.slice(jBefore).some((l) => l.includes('Test étendu') && l.endsWith(attendue))).toBe(true);
+    expect(get().journal.slice(jBefore).some((l) => l.texte.includes('Test étendu') && l.texte.endsWith(attendue))).toBe(true);
   });
 
   it('« Explosion » (compartmentDamage + engineDestroyed + hullCritical) : la personne au moteur est frappée, la vapeur est perdue, la coque encaisse un Critique', () => {
@@ -172,6 +172,6 @@ describe('Panne de Vapeur — déclenchée par le Test de Progression (MDG 12 l.
     set({ pendingCascade: { ...p, participants: poses } });
     get().jetValider('cascade');
     const panne = t('sv.steamBreakdown', { label: '' }).split(' —')[0];
-    expect(get().journal.some((l) => l.includes(panne)), 'la table de panne de vapeur est tirée').toBe(true);
+    expect(get().journal.some((l) => l.texte.includes(panne)), 'la table de panne de vapeur est tirée').toBe(true);
   });
 });

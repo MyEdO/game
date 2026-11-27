@@ -86,7 +86,7 @@ describe('Gratuites de créature : une file épuisée ne repart pas dans le mêm
     E.engagedWith = [heros.id]; heros.engagedWith = [E.id];
     banc.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: true } });
     imposerLesD100(...Array(30).fill(0).flatMap(() => [5, 90]));
-    const souffles = () => (g().battle?.log ?? []).filter((l) => /Souffle/.test(l.text)).length;
+    const souffles = () => (g().battle?.log ?? []).filter((l) => /Souffle/.test(l.entree.texte)).length;
     const creature = () => g().battle!.combatants.find((c) => c.id === E.id)!;
     expect(drainerLesGratuites(g, banc.setState, creature()), 'le Souffle ne suspend pas : défenseur non tenu').toBe(false);
     const apresLaFile = { souffles: souffles(), avantage: creature().advantage };

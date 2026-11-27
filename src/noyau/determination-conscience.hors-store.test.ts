@@ -138,7 +138,7 @@ describe('Détermination et État porté par un passif (LDB 20 l.170)', () => {
     const c0 = banc.getState().party[0];
     expect(c0.activeEffects?.some((e) => e.effectId === determinationWindowId('inconscient')) ?? false, 'la fenêtre a survécu à son échéance').toBe(false);
     expect(stacks(c0, 'inconscient'), 'l’Inconscient n’est pas revenu à l’échéance').toBe(1);
-    expect(banc.getState().journal.join(' | '), 'la dissipation n’est pas journalisée').toMatch(/Inconscient|Fièvre|Malade/);
+    expect(banc.getState().journal.map((e) => e.texte).join(' | '), 'la dissipation n’est pas journalisée').toMatch(/Inconscient|Fièvre|Malade/);
   });
 
   it('sur un État NON dérivé, la dépense reste le retrait d’UN pion (LDB 17 l.61) — aucune fenêtre', () => {

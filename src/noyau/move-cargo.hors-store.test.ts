@@ -62,7 +62,7 @@ describe('deplacerLaCargaison — transfert entre porteurs co-localisés', () =>
     const refus = t('cg.ciblePleine', { porteur: carrierById(get(), 'cart')!.label });
     get().deplacerLaCargaison('lot-1', 'cart', 6);
     expect(carrierById(get(), 'mule')!.cargo).toEqual([vin('lot-1', 10)]); // inchangé
-    expect(get().journal.some((l) => l.includes(refus)), 'la cible pleine est nommée').toBe(true);
+    expect(get().journal.some((l) => l.texte.includes(refus)), 'la cible pleine est nommée').toBe(true);
   });
 
   it('porteur inconnu = no-op', () => {

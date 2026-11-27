@@ -8,6 +8,7 @@
  */
 import { horlogeVirtuelle, type Jeu, type LigneDuJournal, type Partie, type ResultatDeLAppel } from '../../src/noyau/index';
 import { ErreurDeGeste, valider, type TenueDesJetons } from '../../src/hote/partie';
+import { redigerLEntree } from '../../src/hote/journal';
 import { nouvelEntete, ouvrirLaPartie, type Entete } from '../../src/hote/partieDeTest';
 import type { TestScenario } from '../../src/scenes/test-scenarios/_shared';
 import { envoyerLIntention, gesteDuVerbe, intentionDuGeste, lireGeste, type Geste, type PistesDeLecture } from '../../src/hote/geste';
@@ -145,7 +146,7 @@ const empreinteDesFaits = (etat: Jeu): string => empreinte({ ...etat, ...tableTo
  *  informatifs émis (`move_blocked`). */
 function ceQueDitLeJeu(refusAvant: Jeu['refus'], apres: Jeu, resultat: ResultatDeLAppel): string {
   if (apres.refus && apres.refus !== refusAvant) return ` : ${apres.refus.texte}`;
-  const dites = resultat.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+  const dites = resultat.journal.flatMap((l) => (l.de === 'journal' ? [redigerLEntree(l.entree)] : []));
   if (dites.length) return ` : ${dites.join(' ')}`;
   const emis = resultat.evenements.flatMap((e) => (e.type === 'emis' ? [e.evt] : []));
   return emis.length ? ` : ${[...new Set(emis)].join(', ')}` : '';

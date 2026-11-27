@@ -7,6 +7,7 @@ import { poserCapDuGroupe } from './monde/combatants';
 import { etatInitialDuJeu } from './etat';
 import * as possessionsFlow from './possessionsFlow';
 import { bus, EVT } from './bus';
+import { ligneDeTexte } from '../engine/journal';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { pushReveal } from './combatEffects';
 import { emptyNarratif } from './monde/campaignNarratif';
@@ -34,7 +35,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // PUIS la lancer ne doit pas dissoudre le salon — Jalon 7). L'interface se remet chez son hôte, à
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
       const { screen, party, net, prochainId, lignesAuJournal, combatsOuverts } = get();
-      const journal = scene.startMessage ? [scene.startMessage.texte] : [];
+      const journal = scene.startMessage ? [ligneDeTexte(scene.startMessage.texte)] : [];
       const capEntrant = start?.facing ?? spawnFacing(pos, rectJouable(scene));
       const neuf = etatInitialDuJeu();
       set({
@@ -53,7 +54,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         journal,
         campaignNarratif: narratif ?? null,
       });
-      if (scene.startMessage) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte: scene.startMessage.texte });
+      for (const entree of journal) bus.emit(EVT.LIGNE_AU_JOURNAL, { entree });
       bus.emit(EVT.ARRIVEE_EN_SCENE, { sceneId: scene.id, neuve: true });
       // Semis des Possessions de dotation (#617/#618) — ICI, jamais `loadGame` (qui restaure
       // `data.possessions` de la save) : `lancerLaScene` est le SEUL seam qui repart d'un registre
