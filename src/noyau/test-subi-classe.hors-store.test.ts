@@ -142,7 +142,8 @@ type Jouee = { jouee: boolean; poses: readonly string[] };
  *  Le SUJET reçoit ce que le nœud PRÉSUPPOSE, lu dans sa donnée : les Groupes que ses `onlyGroups`
  *  exigent (Test ou op) et les États que ses ops `removeCondition` retirent. */
 function preparerPorte(n: Noeud): { opsCtx: OpsCtx; poses: readonly string[] } {
-  const opsCtx: OpsCtx = { rng: battleRng(), idNeuf: idsDeTest, label: n.entryId, sl: -10, ...(n.source ? { source: n.source } : {}) };
+  // `alliesAuContact` : le relevé que le dispatcher pose hors combat (`applyTriggeredEffects`, aucune bataille → aucun allié).
+  const opsCtx: OpsCtx = { rng: battleRng(), idNeuf: idsDeTest, label: n.entryId, sl: -10, alliesAuContact: [], ...(n.source ? { source: n.source } : {}) };
   const ops = [...opsDesBranches(n.node.reussite), ...opsDesBranches(n.node.echec)];
   const groupes = [...(n.node.test.onlyGroups ?? []), ...ops.flatMap((o) => (o as { onlyGroups?: string[] }).onlyGroups ?? [])];
   const aRetirer = ops.flatMap((o) => (o.op === 'removeCondition' ? [o.id] : []));

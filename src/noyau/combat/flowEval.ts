@@ -25,6 +25,7 @@ export function combatConditionCtx(c: Combatant | undefined, ctx: Omit<OpsCtx, '
     location: ctx.location, woundsDealt: ctx.woundsDealt, engagedAdvantageGap: ctx.engagedAdvantageGap, engagedAdvantageLead: ctx.engagedAdvantageLead,
     attackKind: ctx.attackKind, startleCause: ctx.startleCause,
     foeInLoS: ctx.foeInLoS, hiddenFromFoes: ctx.hiddenFromFoes, engaged: ctx.engaged, nearestFoeDist: ctx.nearestFoeDist,
+    alliesAuContact: ctx.alliesAuContact,
     cibleEnVue: ctx.cibleEnVue,
     target: buildActorView(c), caster: buildActorView(ctx.caster),
   };

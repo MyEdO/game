@@ -30,6 +30,7 @@ import { zonesRoundTick } from '../monde/zones';
 import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
+import { drainPendingLog } from '../combatEffects';
 import { collectRoundEndTestSteps } from './triggeredTest';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
@@ -44,7 +45,7 @@ import { combatStakeRef } from '../../data';
 import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
 import type { CascadeStep } from '../pendings';
-import type { Get } from '../flowTypes';
+import type { Get, Set as SetFn } from '../flowTypes';
 import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
@@ -61,6 +62,18 @@ const RESISTANCE: TestDesigne = { skill: { id: 'resistance' } };
 // tel quel, `ctx.sink` remplaçant la `tickLine` locale, `ctx.get` le `get`). Les `order` reflètent la
 // position d'origine → ordre + RNG préservés (golden byte-pour-byte).
 // ============================================================================================
+
+/** Effets « début de Round » authorés (`onRoundStart` : Régénération, Stupide…) de chaque combattant en action —
+ *  émetteur UNIQUE, joué au franchissement de Round (hook `fire-round-start-triggers`) et à l'ouverture du Round 1
+ *  (`lancerLeCombat`). Un hors-combat n'y réagit pas : le dispatcher autorise `on:'soi'` sur un hors-combat. Les lignes
+ *  qu'un Flow joué par le marcheur de combat met en file différée (`enfilerAuJournal`) partent au même `sink`. */
+export function fireRoundStartTriggers(get: Get, set: SetFn, combatants: readonly Combatant[], sink: (line: string, c: Combatant) => void): void {
+  for (const c of combatants) {
+    if (isOutOfAction(c)) continue;
+    for (const line of fireTriggers(get, c, 'onRoundStart', { rng: battleRng(), set })) sink(line, c);
+    for (const e of drainPendingLog(get, set)) sink(e.text, combatants.find((x) => x.id === e.actorId) ?? c);
+  }
+}
 
 /** Aux Armes (AA 07 l.5) : un combattant à 0 PB porteur de l'État Hémorragique (et pas déjà Inconscient / hors
  *  d'action) doit tester sa Résistance chaque Round sous peine de tomber Inconscient. Prédicat PARTAGÉ par le
@@ -302,15 +315,10 @@ export const TABLES = {
       },
     },
     {
-      id: 'fire-round-start-triggers', // effets « début de Round » authorés (Régénération…) — dispatcher générique (RNG)
+      id: 'fire-round-start-triggers', // effets « début de Round » authorés du Round qui s'ouvre (`fireRoundStartTriggers`)
       phase: 'onRoundEnd',
       order: 25,
-      run: ({ get, set, battle, sink }) => {
-        for (const c of battle.combatants) {
-          if (isOutOfAction(c)) continue; // pas de réaction « début de Round » pour un hors-combat (le dispatcher
-          for (const line of fireTriggers(get, c, 'onRoundStart', { rng: battleRng(), set })) sink(line, c); // autorise on:'self' sur un hors-combat → filtré ici)
-        }
-      },
+      run: ({ get, set, battle, sink }) => fireRoundStartTriggers(get, set, battle.combatants, sink),
     },
     // Instable (LDB 85 l.199) MIGRÉ en DONNÉES : trait `instable` effects onRoundEnd — `if engagedAdvantageGap
     // > 0` → wounds {engagedAdvantageGap} (perd la différence d'Avantage) puis `if woundsCurrent<=0` → banish

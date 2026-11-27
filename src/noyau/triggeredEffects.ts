@@ -29,6 +29,7 @@ import {
   reecrireFlow,
   reecrireLesOps,
   type TriggeredEffect,
+  type ActorView,
 } from '../engine/flowCore';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { armureUtilisable, ficheDObjetPorte, weaponIdentity, type TrappingResolver } from '../engine/items';
@@ -70,6 +71,8 @@ import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
+import { auContactParmi } from './combat/surnombre';
+import { buildActorView } from '../engine/actorView';
 import { crochetsDeCorruption } from './corruptionFlow';
 import { routeTriggeredTest, runCombatFlow, sujetDeTrace } from './combat/triggeredTest';
 
@@ -442,6 +445,13 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
   return { hiddenFromFoes, engaged: isEngaged(actor, battle.combatants), nearestFoeDist };
 }
 
+/** Les alliés (même `kind`) au contact de `actor` dans la bataille, en vues d'acteur (Condition `allieAuContact`). LDB 85 l.335 */
+function alliesAuContactDe(get: Get, actor: Combatant): ActorView[] {
+  const { battle, scene } = get();
+  if (!battle || !actor.pos) return [];
+  return auContactParmi(scene, battle.combatants, actor, actor.kind).filter((a) => a.id !== actor.id).flatMap((a) => buildActorView(a) ?? []);
+}
+
 /** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne
  *  de Vue, étiquette de la scène) ; `undefined` hors combat, sans instance ou sans Cible. */
 function mesurerCibleEnVue(get: Get, actor: Combatant, affliction: PsychAffliction | undefined): CibleEnVue | undefined {
@@ -517,6 +527,9 @@ export function applyTriggeredEffects(
   // Verdict de l'instance sur sa Cible en vue (Condition `cibleEnVue`), mesuré au premier effet qui joue.
   let verdict: { v: CibleEnVue | undefined } | undefined;
   const cibleEnVueDeLInstance = (): CibleEnVue | undefined => (verdict ??= { v: mesurerCibleEnVue(get, actor, ctx.affliction) }).v;
+  // Alliés au contact du porteur (Condition `allieAuContact`), relevés au premier effet qui joue.
+  let allies: ActorView[] | undefined;
+  const alliesAuContact = (): ActorView[] => (allies ??= alliesAuContactDe(get, actor));
   for (const eff of effects) {
     if (flowHasFreeAttack(eff.flow)) continue;
     for (const t of ciblesDeLEffet(get, actor, eff, trigger, ctx)) {
@@ -527,7 +540,7 @@ export function applyTriggeredEffects(
       // fournit `set`. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `si`.
-      const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, resolveTrapping, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+      const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, resolveTrapping, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), alliesAuContact: alliesAuContact(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
         ...(ctx.set ? crochetsDeCorruption(get, ctx.set) : {}),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).

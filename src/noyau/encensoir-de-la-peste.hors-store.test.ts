@@ -12,6 +12,7 @@ import { applyTriggeredEffects } from './triggeredEffects';
 import { createHero } from '../engine/character';
 import { itemFromTrappingById } from '../engine/items';
 import { makeRNG } from '../engine/dice';
+import { emptyScene } from './monde/scene';
 import type { Combatant } from '../engine/types';
 import type { TriggeredEffect } from '../engine/flowCore';
 import type { PendingCorruption } from './pendings';
@@ -73,7 +74,8 @@ function touches(on: TriggeredEffect['on'], mpt = 2): string[] {
   const porteur = mk('porteur', 0);
   const cibles = [1, 2, 3, 4, 5].map((x) => mk(`x${x}`, x));
   const combatants = [porteur, ...cibles];
-  const get = () => ({ battle: { combatants }, scene: { metresPerTile: mpt } }) as never;
+  const scene = { ...emptyScene('encensoir', 8, 2), metresPerTile: mpt };
+  const get = () => ({ battle: { combatants }, scene }) as never;
   applyTriggeredEffects(get, porteur, [blesse(on)], 'onRoundStart', { rng: makeRNG(1) });
   return combatants.filter((c) => c.wounds.current < 20).map((c) => `${c.id}×${20 - c.wounds.current}`);
 }

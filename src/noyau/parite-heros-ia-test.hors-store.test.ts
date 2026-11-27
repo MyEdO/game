@@ -7,7 +7,8 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng, battleRng } from './battleRng';
-import { aiHandGate, attackWardGate, openAttackCascade, runEnemyAI } from './combatFlow';
+import { aiHandGate, attackWardGate, openAttackCascade } from './combatFlow';
+import { franchirLeRound, lancerLeRoundDu } from './ouvertureDuTour.testkit';
 import { aiMaybeFrenzy } from './combat/turnHooks';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
@@ -100,16 +101,18 @@ describe('Test d’un seul conducteur, Sonné ×3 : la valeur de Test (LDB 16 l.
     expect(tavernGameValue(H, findTavernGameById('bras-de-fer')!)).toBe(tavernGameValue(sansEtat, findTavernGameById('bras-de-fer')!) - 30);
   });
 
-  /** L'ennemi Stupide, sans allié à ses côtés, ouvre son tour au dé `de` : perd-il son tour ? */
+  /** L'ennemi Stupide, sans allié à ses côtés, passe le début du Round au dé `de` : son tour s'ouvre-t-il sans Action ? */
   function stupidePerdSonTour(de: number): boolean {
     const { E } = jumeauxSonnes();
     E.traits = [{ id: 'stupide' }];
     E.characteristics = { ...E.characteristics, intelligence: 40 };
-    const b = g().battle!;
-    banc.setState({ battle: { ...b, turn: b.order.indexOf(E.id), log: [] } });
     deDeCombat(de);
-    runEnemyAI(g, banc.setState, E.id);
-    return JSON.stringify(g().battle!.log).includes('(Stupide)');
+    franchirLeRound(banc, [E.id]);
+    lancerLeRoundDu(banc);
+    banc.abandonner();
+    const b = g().battle!;
+    expect(b.order[b.turn], 'le tour de l’ennemi Stupide s’ouvre').toBe(E.id);
+    return b.acted;
   }
   it('Stupide (LDB 85 l.335) : Test d’Intelligence Facile, cible 40 −30 Sonné +40 = 50', () => {
     expect(stupidePerdSonTour(50), 'dé 50 : réussite').toBe(false);

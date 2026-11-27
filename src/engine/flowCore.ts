@@ -224,6 +224,9 @@ export interface ConditionCtx {
   engaged?: boolean;
   /** Distance (cases) à l'adversaire vivant le plus proche — lue par `nearestFoe`. +∞ si aucun. */
   nearestFoeDist?: number;
+  /** Les alliés au contact du porteur — lus par `allieAuContact`, dont `tel` s'évalue avec l'allié pour `target`.
+   *  Précalculés sur la `battle` par l'appelant. */
+  alliesAuContact?: ActorView[];
   /** Le Test courant est-il un TEST D'ÉQUIPAGE à bord (MDG 14) — lu par la Condition `crewTest`
    *  (Commandant émérite : « à bord de votre bateau ou impliquant votre équipage », MDG 09 l.54). */
   crewTest?: boolean;
@@ -322,6 +325,10 @@ export function evalCondition(cond: Condition, ctx: ConditionCtx): boolean {
     case 'cibleEnVue': return !!(cond.hostiles ? ctx.cibleEnVue?.hostile : ctx.cibleEnVue?.present);
     case 'hiddenFromFoes': return !!ctx.hiddenFromFoes;
     case 'engaged': return !!ctx.engaged;
+    case 'allieAuContact': {
+      if (!ctx.alliesAuContact) throw new Error('Condition « allieAuContact » : aucun relevé des alliés au contact dans le contexte — seul le dispatcher de combat (`applyTriggeredEffects`) la résout.');
+      return ctx.alliesAuContact.some((allie) => evalCondition(cond.tel, { ...ctx, target: allie }));
+    }
     case 'crewTest': return !!ctx.crewTest;
     case 'roundDeCombat': return !!ctx.roundDeCombat;
     case 'nearestFoe': return applyCompareOp(ctx.nearestFoeDist ?? Infinity, cond.op, cond.value);

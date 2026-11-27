@@ -317,6 +317,7 @@ import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat, refuserAuSiegeAgissant } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
+import { fireRoundStartTriggers } from './combat/roundHooks';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglageNomme, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
@@ -1912,6 +1913,8 @@ export function createCombatSlice(get: Get, set: Set) {
       // Éclairs de la pluie diluvienne (EDOC 8 l.82, #341) : les montures Nerveuses non Dressées (Guerre)
       // sont effrayées à l'ouverture d'une embuscade sous l'orage — MÊME dispatcher onStartled/'noise'.
       startleOnStormAtCombatStart(get, set);
+      // Effets « début de Round » du Round 1 (Régénération, Stupide…) : même émetteur qu'au franchissement de Round.
+      fireRoundStartTriggers(get, set, battle.combatants, (line, c) => battle.log.push(ev('detail', line, c.id)));
       // Surprise APRÈS la pose du `battle` : le Test du guetteur est cadence-aware (héros manuel → cascade
       // influençable, qui s'OUVRE par-dessus la pause d'ouverture ; embusqué ennemi → inline dans le journal).
       // COUCHE MER : la Surprise ne pose PAS l'État Surpris (une coque n'a ni Action ni psychologie — ce serait un

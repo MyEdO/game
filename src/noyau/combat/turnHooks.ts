@@ -9,8 +9,8 @@
  * passes de Round (`openRoundStartPsych`, `openRoundEndCascade`, LDB 21 l.9, l.25), pas ici. Le golden
  * `turnStart.golden.hors-store.test.ts` fige l'ordre + les tirages RNG byte-pour-byte.
  *
- * Ces hooks ne tournent que pour l'ENNEMI actif (`runEnemyAI` est enemy-only) ; les fonctions ont en
- * plus leurs propres gardes `kind`/capacité internes (no-op pour un héros), comportement conservé.
+ * Ces hooks tournent pour tout combattant que l'IA conduit (`runEnemyAI`, `aiDriven` : héros en Auto-combat
+ * compris) ; chacun porte ses propres gardes de capacité (`hasRage`, `aiMaybeFrenzy`).
  */
 import { nomDe } from '../../engine/nom';
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';

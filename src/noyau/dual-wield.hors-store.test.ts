@@ -9,6 +9,7 @@ import { isOutOfAction } from '../engine/conditions';
 import { makeRNG } from '../engine/dice';
 import { seedBattleRng } from './battleRng';
 import { avanceEtapeCascade, draineCascade } from './cascade.testkit';
+import { lancerLeRoundDu } from './ouvertureDuTour.testkit';
 import { emptyScene } from './monde/scene';
 import type { Combatant, Weapon, Main } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -302,7 +303,10 @@ describe('purge du −10 au début du prochain Tour du porteur', () => {
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
     advanceTurn(banc.getState, banc.setState); banc.abandonner(); // → f2 : conservé
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
-    advanceTurn(banc.getState, banc.setState); // franchissement de Round → h (order[0]) : purgé
+    advanceTurn(banc.getState, banc.setState); // franchissement de Round : la pause de début de Round n'est pas son Tour
+    expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBe(-10);
+    lancerLeRoundDu(banc); // le Round s'ouvre sur h (order[0]) : purgé
+    expect(banc.getState().battle!.order[banc.getState().battle!.turn]).toBe('h');
     expect(banc.getState().battle!.combatants.find((c) => c.id === 'h')!.dualStrikeDefensePenalty).toBeUndefined();
   });
 });
