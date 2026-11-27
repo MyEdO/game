@@ -655,7 +655,7 @@ function runTravelDays(get: Get, set: Set): void {
       const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: plan.kmDone, hours: 0, lines: [], entries: [] };
       recap?.days.push(recapDay);
       if (recap) set({ travelPlan: { ...get().travelPlan!, recap } });
-      const daySteps = buildTravelDayCascade(get, set, route, recapDay, [], { toLabel: to.label, destLabel: to.label });
+      const daySteps = buildTravelDayCascade(get, set, route, [], { toLabel: to.label, destLabel: to.label });
       jouerLaJournee(get, set, [premierKm, ...daySteps], { title: t('tf.titreDuJourForce'), purpose: 'travelDay' }, traverseeCommandee(get()));
       return; // la clôture de la cascade (continueTravelDayAfterCascade) finalise le jour
     }
@@ -720,7 +720,7 @@ function runTravelDays(get: Get, set: Set): void {
     // d'Étape, Survie/Perception des péripéties) sont des ÉTAPES d'une CASCADE influençable
     // (`purpose:'travelDay'`, Chance/Pacte/Résilience) — plus d'auto-résolution inline. Ordre RAW (l.10)
     // : Météo (tirée ici, ambiance) → activités → péripéties.
-    const daySteps = buildTravelDayCascade(get, set, route, recapDay, marchHeroes, {
+    const daySteps = buildTravelDayCascade(get, set, route, marchHeroes, {
       toLabel: to.label, destLabel: to.label,
     }, contagion);
     // Récap du SEGMENT posé sur le plan : la cascade suspend le `while`, donc son `recap`/`recapDay`
@@ -790,7 +790,7 @@ const tablesDeMeteo = memoParVersion('weather', () => new Map<string, TableStepD
 ));
 
 function buildTravelDayCascade(
-  get: Get, set: Set, route: MapRoute, recapDay: TravelRecapDay, marchHeroes: string[],
+  get: Get, set: Set, route: MapRoute, marchHeroes: string[],
   dest: { toLabel: string; destLabel: string }, contagion: readonly BuiltCascadeStep[] = [],
 ): CascadeStep[] {
   const steps: BuiltCascadeStep[] = [];
@@ -835,7 +835,6 @@ function buildTravelDayCascade(
   set({ travelPlan: { ...get().travelPlan!, land: {
     toLabel: dest.toLabel, destLabel: dest.destLabel, marchHeroes: [...marchHeroes],
   } } });
-  void recapDay; // le récap du jour (plan.recap.days[dernier]) reçoit la tranche de journal à la clôture
   return steps;
 }
 
@@ -1459,7 +1458,7 @@ export const TABLES = {
      *  +1 Exténué chacun (`applyEreintant`). */
     perilATerreSurvie: (get, set, step, hero) => {
       if (!step.result) return;
-      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
+      // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence, l'échec parle par son effet (`applyEreintant`).
       if (step.result.success) return { consequences: freeCons([t('tf.survieReussie', { who: nomDe(garanti(hero, step.actorId, 'survivant du péril')) })]) };
       return applyEreintant(get, set);
@@ -1470,7 +1469,7 @@ export const TABLES = {
       if (!step.result) return;
       const configured = !!step.meta?.configured;
       const destLabel = String(step.meta?.destLabel ?? '');
-      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
+      // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5) ;
       // échec sans embuscade configurée (rien à ajouter) → aucune conséquence.
       const j: string[] = step.result.success
         ? [t('tf.perceptionReussie', { who: nomDe(garanti(hero, step.actorId, 'guetteur du péril')) })]
@@ -1503,7 +1502,7 @@ export const TABLES = {
       const walkKmh = veh.movement;
       if (step.result.success) {
         km += 1; hours += 1 / gallopKmh;
-        // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+        // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
         const j = [t('tf.marcheForceeReussie', { name })];
         if (hours < plan.hoursPerDay - 1e-9 && km < kmLeft - 1e-9 && step.actorId && hero && driver) {
           const suivant = buildForcedPaceStep(driver, kmLeft, galloped + 1, km, hours);
@@ -1512,7 +1511,7 @@ export const TABLES = {
         return finalizeForcedPace(get, set, { km: Math.min(km, kmLeft), hours, vehicleOut: false, vehicleLame: false }, j);
       }
       const stupefiant = step.result.sl <= -6; // Échec Stupéfiant (EDOC 07 l.253)
-      // Le jet du conducteur est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print
+      // Le jet du conducteur est DÉJÀ affiché par la rangée de l'étape — pas de re-print
       // (#295 Lot 5) ; les bêtes de l'attelage n'ont AUCUNE rangée dédiée — le journal les porte seul.
       const j: string[] = [t('tf.marcheForceeRatee', { name, stupefiant: stupefiant ? t('tf.fragmentStupefiant') : '' })];
       // MÊME résolveur pur que le repli synchrone (`forcedPaceBeastCheck`) : le Test de Résistance de
@@ -1572,7 +1571,7 @@ export const TABLES = {
       const m = step.meta!;
       const finalKm = Number(m.finalKm), finalHours = Number(m.finalHours);
       const name = nomDe(garanti(hero, step.actorId, 'conducteur'));
-      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+      // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
       const j = [t('tf.controleRepris', { name, issue: t(step.result.success ? 'tf.controleTenuPoint' : 'tf.controlePerduExclamation') })];
       if (step.result.success) return finalizeForcedPace(get, set, { km: finalKm, hours: finalHours, vehicleOut: false, vehicleLame: false }, j);
       const entry = rollVehicleProblem(96); // 96-00 = Accident (table verbatim)

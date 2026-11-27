@@ -9,7 +9,7 @@ import { setDesFixes } from '../engine/fixedDie';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
-import { reluDans } from './combatDeTest.testkit';
+import { entreesDuContreSort, reluDans } from './combatDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -113,7 +113,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     expect(opened, 'aucun contre-lanceur possédé → pas de fenêtre').toBe(false);
     expect(banc.getState().pendingCounterspell).toBeNull();
     const inline = banc.getState().pendingCast!.result;
-    expect(inline!.log, 'le Contre-sort a bien été chanté par l’IA').toContain('Contre-sort');
+    expect(entreesDuContreSort(banc.getState, H.id).map((e) => e.actorId), 'le Contre-sort a bien été chanté par l’IA').toEqual([E.id]);
     expect(E.dispelledThisRound).toBe(true);
 
     // (2) MÊME jet, chemin FENÊTRE (siège MJ) : la rangée est jouée puis agrégée. À dés égaux, l'issue

@@ -765,7 +765,7 @@ export interface PendingFrenzy {
 }
 /** CHARGE d'une étape d'AFFICHAGE de cascade (`CascadeStep.reveal`) : un jet SUBI / sur table /
  *  d'entretien dont le résultat (graine fixe) est montré au joueur après coup — il MONTRE le dé puis
- *  acquitte (pas de Chance). Le `kind` route le RENDU (`ui/RevealBody.tsx`). */
+ *  acquitte (pas de Chance). Le `kind` route le RENDU. */
 export interface RevealEntry {
   kind: 'incantationImparfaite' | 'critique' | 'round' | 'mutation' | 'effet' | 'entreeEnScene';
   title: string;
@@ -1858,8 +1858,7 @@ export interface CascadeRoll {
  * détermine la CONSÉQUENCE (appliée à la validation par `applierDe(kind)`, cf. noyau/cascade.ts) ;
  * le jet lui-même est kind-agnostique (Test de `base`+difficulté sur `target`). `meta` porte les
  * paramètres sérialisables de la conséquence (ex. `days`, `count`) — PAS de closure (coop : le pending
- * est snapshoté/transmis). Une étape SANS `target` est un simple passage (rare) ; les notes en clair
- * vont dans `PendingCascade.log`, pas en étapes.
+ * est snapshoté/transmis). Une étape SANS `target` est un simple passage (rare).
  */
 /** Sentinel d'owner d'une étape `worldOwner` (seam de jet #275 Décision 3 — désertion, Moral) : aucun
  *  `actorId` à router — `sieges.seatOwns` le reconnaît pour router au siège MJ (`gmSeat`) quand
@@ -2077,7 +2076,7 @@ export type CascadeTableDone = CascadeTableDecl & { result: CascadeTableResult }
  * définition DÉRIVÉE, non déclarable : un slot est passif quand son jet est POSÉ et que son porteur
  * n'est pas SURFACÉ (`rollSeam.surfaceOf`) — plus de booléen qu'un producteur pourrait oublier, ni
  * contredire. Le reste des lectures visait déjà des RANGÉES (`stepReady` batch, `interactiveOf` des
- * modales, `CascadeModal.rollAllRows`), la surface d'une étape se décidant par sa POSSESSION
+ * fenêtres, « Tout lancer »), la surface d'une étape se décidant par sa POSSESSION
  * (`modalArbiter`) et son INTERACTION (`stepInteraction`). Plus personne ne le lit ni ne l'écrit :
  * une sauvegarde de la version courante n'en porte plus.
  * Les RANGÉES gardent le leur (`BatchParticipant`, homonyme mais autre champ : il dit qui JOUE, et
@@ -2123,9 +2122,7 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   actorId?: string;
   icon?: IconId;
   /** Étape-JET : le jet d'attaque/défense/magie/Test/désengagement/porte EST l'étape 0 de
-   *  la séquence, rendu par `CascadeModal` via le hook ou la modale correspondante (`useAttackJetProps`/
-   *  `useDefenseJetProps`/`useTestJetProps`/`useExtendedTestJetProps`/`CastModal`/
-   *  `DisengageModal`/`ForceDoorModal`) → une seule fenêtre. Les données vivent dans `pendingAttack`/
+   *  la séquence, rendu dans la fenêtre de la cascade → une seule fenêtre. Les données vivent dans `pendingAttack`/
    *  `pendingDefense`/`pendingCast`/`pendingTest`/`pendingExtendedTest`/`pendingDisengage`/
    *  `pendingForceDoor` (coexistants — comme l'attaque), résolus par leur `jetValider(flux)` qui ferme la cascade. */
   jet?: 'attaque' | 'defense' | 'maladresse' | 'incantation' | 'test' | 'testEtendu' | 'desengagement' | 'enfoncerLaPorte';
@@ -2198,12 +2195,12 @@ interface CascadeStepCore extends Omit<RollParticipant, 'interactive'> {
   /** Étape déjà validée (conséquence appliquée). */
   committed?: boolean;
   /** Conséquence appliquée à la validation (journal) — gardée pour rester lisible dans la pile.
-   *  Ligne STRUCTURÉE (#349) : `RecapLine[]`, rendue par le renderer partagé `ui/RecapLine.tsx`. */
+   *  Ligne STRUCTURÉE (#349) : `RecapLine[]`. */
   outcome?: RecapLine[];
   /** Les faits appliqués dont `outcome` est la lecture (#4574), posés avec lui à la validation. */
   faits?: FaitApplique[];
   /** Charge RICHE d'une étape d'affichage (Coup Critique, entretien de Round, mutation, effet
-   *  d'auteur, entrée de zone) — rendue par le panneau partagé `ui/RevealBody.tsx`, routé par `kind`. */
+   *  d'auteur, entrée de zone) — rendue par un panneau partagé, routé par `kind`. */
   reveal?: RevealEntry;
   /** Étape de CHOIX « déviation » (folding P3a) : porte le Critique pré-tiré + le contexte d'attaque
    *  (JSON-sérialisable) ; l'applier appelle `resolveDeviation(step.deviation, chosen)`. */
@@ -2315,7 +2312,7 @@ export type CascadeTestStep = Extract<CascadeRollStep, { evaluation?: 'test' }>;
 /**
  * UNE étape de cascade : elle LANCE (cible + libellé de ligne) ou elle ne lance pas (affichage, choix,
  * table, batch — ni l'un ni l'autre). Le lien est porté par le TYPE, pas par un repli d'affichage :
- * `CascadeModal` n'a plus de « Jet » de secours à écrire quand un constructeur oublie le libellé —
+ * l'hôte n'a pas de « Jet » de secours à écrire quand un constructeur oublie le libellé —
  * l'oubli ne compile pas (#1078 LOT C1).
  */
 export type CascadeStep = CascadeRollStep | (CascadeStepBase & { target?: undefined; rollLabel?: undefined; teste?: undefined });
@@ -2337,7 +2334,7 @@ export type ReprisePilote = { sansContexte?: true; rowSurface?: RowSurface; arre
  * CASCADE séquentielle influençable (régime choisi par l'utilisateur pour les jets de NUIT et de
  * VOYAGE — cf. docs/superpowers/specs/2026-06-14-multi-roll-modal-design.md, Étape 3) : on présente
  * UNE étape à la fois, chacune avec son cycle Chance/+1 DR/Pacte/Résilience, on valide, on enchaîne.
- * `participants` = les seules étapes INFLUENÇABLES (les notes en clair vont dans `log`). `cursor` =
+ * `participants` = les étapes de la séquence. `cursor` =
  * l'étape courante. À la validation d'une étape, sa conséquence est appliquée (`applierDe`) et
  * elle peut INSÉRER des étapes suivantes (dépendance : abri → nombre de jets d'Exposition). `purpose`
  * pilote la FINALISATION (reprise de voyage…). Même fabrique que le Test Étendu — seule la sémantique
@@ -2361,8 +2358,6 @@ export interface PendingCascade extends MultiPending<CascadeStep> {
    * écrit — c'est ce qui le garde monotone sur les trois pilotes.
    */
   seq: number;
-  /** Journal de la cascade (entretien, conséquences validées) — affiché sous l'étape courante. */
-  log: string[];
   /** Finalisation : 'night' (bilan de repos), 'travel' (halte → reprise), 'travelDay' (jets du JOUR de
    *  voyage — fluvial/… : à la clôture, le store recalcule la progression du jour puis enchaîne halte/
    *  arrivée via le handler du domaine), 'test' (autonome), 'combat' (conséquences d'un jet de combat —

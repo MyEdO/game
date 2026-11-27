@@ -10,7 +10,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { reluDans } from './combatDeTest.testkit';
+import { entreesDuContreSort, reluDans } from './combatDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -126,7 +126,7 @@ describe('#1030 — Contre-sort : politique d’auto-résolution de la cadence A
     const ref = banc.getState().pendingCast!.result;
     const refChanted = manual.cibles.map((c) => !!c.dispelledThisRound);
     expect(refChanted.some(Boolean), 'référence non vide : au moins une rangée a chanté').toBe(true);
-    expect(ref!.log, 'la référence porte bien une issue de Contre-sort').toContain('Contre-sort');
+    expect(entreesDuContreSort(banc.getState, manual.H.id), 'la référence porte bien une issue de Contre-sort').toHaveLength(1);
 
     // (2) MÊME jet, résolu par la CADENCE AUTO : même issue déposée dans `pendingCast`.
     banc.getState().ensemencerLeTirage(3);

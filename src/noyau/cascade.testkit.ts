@@ -23,7 +23,7 @@ export function cascadeDeTest(
   participants: CascadeStep[],
   champs: Partial<Omit<PendingCascade, 'participants' | 'seq'>> = {},
 ): PendingCascade {
-  return { title: 'Test', purpose: 'test', cursor: 0, log: [], ...champs, participants, seq: participants.length };
+  return { title: 'Test', purpose: 'test', cursor: 0, ...champs, participants, seq: participants.length };
 }
 
 /** Ce qu'il faut porter pour être JUGEABLE par `inexplique` — les quatre grandeurs d'une ligne de jet,

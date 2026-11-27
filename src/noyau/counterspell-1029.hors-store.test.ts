@@ -11,7 +11,7 @@ import { testScene } from '../scenes/test-fixture';
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { reluDans } from './combatDeTest.testkit';
+import { entreesDuContreSort, reluDans } from './combatDeTest.testkit';
 import { nomDe } from '../engine/nom';
 
 let banc: Banc;
@@ -178,7 +178,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     banc.getState().jetValider('contreSort');
     const res = banc.getState().pendingCast!.result!;
     expect(res.dispelled, 'un succès quelconque dissipe (LDB 46 l.156)').toBe(true);
-    expect(res.log).toContain('DISSIPÉ');
+    expect(entreesDuContreSort(banc.getState, h1.id).map((e) => [e.actorId, e.entree.texte])).toEqual([[E2.id, 'DISSIPÉ']]);
   });
 
   it('« Laisser passer » APRÈS un chant GAGNANT est INERTE : le Sort dissipé ne se résout pas quand même', () => {
@@ -281,7 +281,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     // Phase de déclaration CLOSE (#1042/#1059) : « Laisser passer » n'existe qu'ensuite.
     banc.getState().jetAnnuler('contreSort');
     expect(banc.getState().pendingCounterspell).toBeNull();
-    expect(banc.getState().pendingCast!.result!.log, 'l’IA a chanté à leur place').toContain('Contre-sort de');
+    expect(entreesDuContreSort(banc.getState, h1.id).map((e) => e.actorId), 'l’IA a chanté à leur place').toEqual([E.id]);
     expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound).toBe(true);
   });
 });

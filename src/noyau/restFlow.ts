@@ -408,10 +408,10 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
 /**
  * Construit la cascade d'UNE nuit (single-night INTERACTIVE) : avance l'horloge à l'aube, applique
  * l'entretien et la récupération sans jet, puis monte les étapes influençables. Réutilise les calculs
- * et les bandes de Contraction communs avec `sleepParty`. Renvoie les étapes, le journal et l'horloge
- * avant et après le repos.
+ * et les bandes de Contraction communs avec `sleepParty`. Renvoie les étapes et l'horloge avant et
+ * après le repos.
  */
-export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fedDaily?: boolean; extraContagion?: ContagionSpec[] } = {}): { steps: BuiltCascadeStep[]; log: string[]; slept: { from: number; to: number } } {
+export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fedDaily?: boolean; extraContagion?: ContagionSpec[] } = {}): { steps: BuiltCascadeStep[]; slept: { from: number; to: number } } {
   const log: string[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
@@ -425,12 +425,8 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // TOUT Test de Résistance (Faim LDB 18 l.342, maladie l.110/135/162, convalescence LDB 18 l.202) est DIFFÉRÉ en
   // étape influençable (sinon il serait pré-résolu dans le journal AVANT que le joueur n'agisse).
   const deferred: DeferredUpkeepTest[] = [];
-  // `runDailyUpkeep` journalise DÉJÀ ses propres lignes (upkeep.ts, source unique anti-double-comptage,
-  // #216) : on les garde dans `log` (retourné pour le bilan/la modale de cascade) SANS les re-journaliser
-  // plus bas — `upkeepCount` marque la frontière entre ce qui est déjà écrit et le reste de cette fonction.
-  const upkeep = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
-  log.push(...upkeep.map(({ text }) => text));
-  const upkeepCount = upkeep.length;
+  // `runDailyUpkeep` journalise ses propres lignes (#216) : `log` ne porte que ce qui suit l'entretien.
+  runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (t) => deferred.push(t) });
   // `party` lu APRÈS l'entretien : `runDailyUpkeep` a pu débiter les gages (`tickCampaignVesselWeek` → clone
   // `withBourseMoney` du/des héros ponctionnés) — toute la suite (mutations eager de récupération/
   // cauchemars, `expireOnRespite`) doit opérer sur ces réfs à jour, pas sur celles PÉRIMÉES
@@ -518,9 +514,9 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Journal : le titre de nuit + tout ce qui s'est ajouté APRÈS l'entretien (tente, récupération sans
   // jet…) — l'entretien lui-même est déjà dans le journal (`runDailyUpkeep`, écriture unique, #216).
   set({ party: [...get().party] });
-  get().ecrireAuJournal([t('rf.titleNight'), ...log.slice(upkeepCount)]);
+  get().ecrireAuJournal([t('rf.titleNight'), ...log]);
   bus.emit(EVT.SCENE_DIRTY);
-  return { steps: banded, log, slept: { from, to: get().gameTime } };
+  return { steps: banded, slept: { from, to: get().gameTime } };
 }
 
 /** Prix RAW de l'hébergement et du repas d'auberge (LDB 66 l.12-16) — SOURCE UNIQUE le catalogue
@@ -892,7 +888,7 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
       return;
     }
   }
-  const { steps, log } = buildNightCascade(get, set, p, { extraContagion });
+  const { steps } = buildNightCascade(get, set, p, { extraContagion });
   const remaining = nightsLeft - 1;
   // La halte de voyage (travelHalt) reprend la route à la clôture — SEULEMENT sur la DERNIÈRE nuit du
   // séjour (`remaining === 0`) : une nuit intermédiaire d'un repos multi-jours ne doit PAS re-déclencher
@@ -901,7 +897,7 @@ export function openRestNight(get: Get, set: Set, p: PendingRest, nightsLeft: nu
   if (steps.length) {
     startCascade(get, set, {
       title: t(TITRE_DE_LA_NUIT[toitDeLaNuit(p, get().party)]), icon: 'temps/nuit', purpose: isLast && p.travelHalt ? 'travel' : 'night',
-      travelHalt: isLast ? p.travelHalt : undefined, steps, log, restNights: { p, nightsLeft: remaining },
+      travelHalt: isLast ? p.travelHalt : undefined, steps, restNights: { p, nightsLeft: remaining },
     });
   } else if (checkPartyWiped(get, set)) {
     return;
