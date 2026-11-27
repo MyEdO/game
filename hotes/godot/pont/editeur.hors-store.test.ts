@@ -923,6 +923,29 @@ describe('l’éditeur de carte par le pont, la scène', () => {
     expect(boutonDe(presser(camp), 'scene/repos/camp').presse).toBe(!camp.presse);
     expect((['grande', 'pietre', 'normale'] as const).map((q) => valeursDeLInspecteur(presser(boutonDe(pente, `scene/repos/qualite/${q}`)), 'scene/repos/qualite').filter((b) => b.presse).map((b) => b.id)),
       'l’auteur pose chacune des trois qualités de la scène (LDB 66 l.5)').toEqual([['scene/repos/qualite/grande'], ['scene/repos/qualite/pietre'], ['scene/repos/qualite/normale']]);
+    const offresAuBouton = (e: Edition) => inspecteur(e).map((el) => el.id).filter((id) => id.startsWith('scene/repos/offre/'));
+    const auberge = boutonDe(pente, 'scene/repos/auberge');
+    const [sansAuberge, aubergiste] = auberge.presse ? [presser(auberge), pente] : [pente, presser(auberge)];
+    expect(offresAuBouton(sansAuberge), 'sans auberge, la scène ne vend rien').toEqual([]);
+    expect(offresAuBouton(aubergiste), 'l’auberge de la scène vend celles du catalogue (#5149)').toEqual(['commune', 'chambre', 'grande', 'repas'].map((o) => `scene/repos/offre/${o}/retirer`));
+    const sansRepas = presser(boutonDe(aubergiste, 'scene/repos/offre/repas/retirer'));
+    expect([offresAuBouton(sansRepas), valeursDeLInspecteur(sansRepas, 'scene/repos/offre/ajouter').map((b) => b.id)])
+      .toEqual([[...['commune', 'chambre', 'grande'].map((o) => `scene/repos/offre/${o}/retirer`), 'scene/repos/offre/ajouter'], ['scene/repos/offre/ajouter/repas']]);
+    const revendu = presser(valeursDeLInspecteur(sansRepas, 'scene/repos/offre/ajouter')[0]);
+    expect(offresAuBouton(revendu), 'le repas revendu, la liste d’ajout se retire').toEqual(['commune', 'chambre', 'grande', 'repas'].map((o) => `scene/repos/offre/${o}/retirer`));
+    const auCatalogue = (e: Edition) => inspecteur(e).some((el) => el.id === 'scene/repos/offres/retirer');
+    expect([auCatalogue(aubergiste), auCatalogue(sansRepas)], 'le retour au catalogue n’apparaît qu’avec des offres déclarées').toEqual([false, true]);
+    const sansLAuberge = presser(boutonDe(sansRepas, 'scene/repos/auberge'));
+    expect([offresAuBouton(sansLAuberge), auCatalogue(sansLAuberge)], 'sans auberge, ses offres déclarées se retirent encore').toEqual([[], true]);
+    const rendue = presser(boutonDe(sansLAuberge, 'scene/repos/offres/retirer'));
+    expect([auCatalogue(rendue), offresAuBouton(presser(boutonDe(rendue, 'scene/repos/auberge')))], 'retirées, l’auberge revend celles du catalogue')
+      .toEqual([false, ['commune', 'chambre', 'grande', 'repas'].map((o) => `scene/repos/offre/${o}/retirer`)]);
+    const videe = ['commune', 'chambre', 'grande', 'repas'].reduce((e, o) => presser(boutonDe(e, `scene/repos/offre/${o}/retirer`)), aubergiste);
+    expect([offresAuBouton(videe), auCatalogue(videe)], 'vidée par clics, la liste déclarée se retire encore')
+      .toEqual([['scene/repos/offre/ajouter'], true]);
+    const sansListe = presser(boutonDe(videe, 'scene/repos/offres/retirer'));
+    expect([auCatalogue(sansListe), offresAuBouton(sansListe)], 'retirée, le champ quitte la scène : celles du catalogue reviennent')
+      .toEqual([false, ['commune', 'chambre', 'grande', 'repas'].map((o) => `scene/repos/offre/${o}/retirer`)]);
 
     const drapeau = editionDe(appel('editer', { type: 'drapeau', args: ['pont-leve'] }));
     expect(boutonDe(drapeau, 'scene/drapeau/pont-leve').presse).toBe(true);

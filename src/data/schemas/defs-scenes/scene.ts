@@ -22,6 +22,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { estIdDEtiquetteDObjet } from '../../../lib/entityId';
 import { z } from 'zod';
 import { OBJETS_DU_PROJET, ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
+import { reposDAubergeSchema } from '../grammaire/hebergement';
 import {
   amateurSchema,
   cell2Schema,
@@ -967,8 +968,8 @@ export const sceneSchema = nommerChamps(ouvrirPortees(affinerAvecCatalogues(z.st
   /** NORD de la carte — rotation horaire en degrés `[0,360[` du nord réel (posé par `setNorthDeg`). */
   northDeg: z.number().optional(),
   rest: nommerChamps(
-    z.strictObject({ ...restPlacesSchema.shape, quality: qualiteDeReposSchema.optional() }),
-    { ...metaDesChamps(restPlacesSchema, { exigees: true }), quality: { label: "qualité" } },
+    z.strictObject({ ...restPlacesSchema.shape, ...reposDAubergeSchema.shape }),
+    { ...metaDesChamps(restPlacesSchema, { exigees: true }), ...metaDesChamps(reposDAubergeSchema, { exigees: true }) },
   ).optional(),
   /** Offre de repos PAR ZONE — prioritaire sur `rest` là où le groupe se tient. */
   restZones: z
