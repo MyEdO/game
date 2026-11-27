@@ -80,7 +80,7 @@ describe('Cascade séquentielle influençable', () => {
     banc.getState().jetValider('cascade');
     expect(applied).toHaveLength(2);
     expect(banc.getState().pendingCascade).toBeNull(); // finalisée
-    expect(banc.getState().journal.some((l) => l.startsWith('s1'))).toBe(true); // journal des conséquences
+    expect(banc.getState().journal.some((l) => l.texte.startsWith('s1'))).toBe(true); // journal des conséquences
   });
 
   it('« Étape suivante » est un no-op tant que l’étape courante n’est pas lancée', () => {
@@ -398,7 +398,7 @@ describe('Cascade séquentielle influençable', () => {
     banc.getState().jetValider('cascade'); // agrège (essentiel ×2, MDG 14 l.19) puis applique
     expect(applied).toHaveLength(1);
     expect(banc.getState().pendingCascade).toBeNull();
-    expect(banc.getState().journal.some((l) => l.startsWith('Progression → DR'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.startsWith('Progression → DR'))).toBe(true);
   });
 
   /**
@@ -414,7 +414,7 @@ describe('Cascade séquentielle influençable', () => {
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: cleDeFixture('deja'), actorId: h.id }] });
     banc.getState().jetValider('cascade');
-    expect(banc.getState().journal.filter((l) => l === 'la conclusion, dite par l’applier'),
+    expect(banc.getState().journal.map((e) => e.texte).filter((l) => l === 'la conclusion, dite par l’applier'),
       'le goulot ne la ré-écrit pas').toHaveLength(1);
   });
 
@@ -719,7 +719,7 @@ describe('reprise du pilote immédiat : le contexte de lancement voyage avec la 
   const bande = (h: Combatant, label: string) => buildBand(g, { id: `bande-${label}`, kind: cleDeFixture('repriseNeutre'), label: fixtureText(label), difficulty: 'intermediaire', porteurs: [{ actor: h, ligne }] })!;
   /** Les bandes au compte rendu du trajet, nommées par leur rubrique. */
   const auProcesVerbal = () => (g().travelPlan!.procesVerbal ?? []).map((e) => String(e.group));
-  const desDeBrawnAuJournal = () => g().journal.filter((l) => l.includes('Brawn'));
+  const desDeBrawnAuJournal = () => g().journal.filter((l) => l.texte.includes('Brawn'));
   const combat = (): CascadeStep => ({ id: 'combat', kind: cleDeFixture('repriseCombat'), label: fixtureText('Combat') });
 
   it('`rowSurface` déclarée au lancement, parquée au slot sur un choix sans défaut : « Suivant » écrit la bande au compte rendu du trajet à son commit, sans redire ses dés au journal', () => {

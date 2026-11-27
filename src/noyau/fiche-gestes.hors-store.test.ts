@@ -23,7 +23,7 @@ import { nomDe } from '../engine/nom';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
-const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 
 /** Une partie ouverte sur `etat`, fermée après `jouer`. */
 function avecPartie(etat: EtatDeJeu, jouer: (partie: Partie) => void, entrees: EntreesDeLaPartie = ENTREES): void {

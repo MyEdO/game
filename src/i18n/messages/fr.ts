@@ -4348,8 +4348,11 @@ export const fr = {
   // ── #1318 V8c₅ — SOCLE DU JET (`noyau/rollFlowFactory.ts`) : relance offerte (LDB 12/41) et dé fixé.
   'roll.freeReroll': '{name} relance sans dépenser de Chance ({src}).',
   'roll.blessingFallback': 'Bénédiction de Chance',
-  'roll.dieFixedBy': '{name} : dé fixé à {n}.',
-  'roll.dieFixed': 'Dé fixé à {n}.',
+  'roll.dieFixedBy': '{name} : d100 à {n}.',
+  'roll.dieFixed': 'd100 à {n}.',
+
+  // ── #4574 — JOURNAL rédigé par l'hôte (`hote/journal.ts`) : provenance d'une entrée (#939).
+  'journal.deFixe': '(dé fixé)',
 
   // ── #1318 V8c₅ — MANŒUVRE DE NAVIRE ratée (`noyau/shipManeuver.ts`, MDG 13).
   'shipManv.failLine': '{helmsman} rate la manœuvre de {ship} (DR {dr}) — le cap tient.',

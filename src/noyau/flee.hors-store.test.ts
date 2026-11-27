@@ -275,7 +275,7 @@ describe('Fuir — coup dans le dos : flux canonique à 2 slots (LDB 15 l.63-66)
     expect(banc.getState().battle!.log.some((e) => e.kind === 'attaque' && e.actorId === E2.id)).toBe(true);
     expect(live(E1.id).engagedWith).toEqual([]); // fuite complétée
     // Lancés et clos dans le même geste, aucune rangée ne les a montrés : le journal porte leurs dés.
-    const textes = banc.getState().battle!.log.map((e) => e.text);
+    const textes = banc.getState().battle!.log.map((e) => e.entree.texte);
     expect(textes.some((l) => l.startsWith(`${E2.label} — Corps à corps (dans le dos) : `) && /\d+\/\d+, .* \(DR [+-]\d+\)\.$/.test(l)), 'le coup dans le dos').toBe(true);
     expect(textes.some((l) => l.startsWith(`${E1.label} — `) && /\d+\/\d+, .* \(DR [+-]\d+\)\.$/.test(l)), 'le Test `fuite`').toBe(true);
   });

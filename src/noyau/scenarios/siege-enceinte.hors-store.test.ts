@@ -155,7 +155,7 @@ describe('Siège — défendre la muraille (siege-enceinte)', () => {
 
   it('annonce au lancement que les assaillants doivent abattre la herse pour forcer le passage', () => {
     lancerLeScenario(banc.getState, banc.setState, lancementDuScenario(scenario, idsDeTest));
-    expect(banc.getState().journal).toContainEqual(expect.stringContaining(
+    expect(banc.getState().journal.map((e) => e.texte)).toContainEqual(expect.stringContaining(
       "les assaillants ne peuvent forcer le passage — le tunnel de la porte — qu'une fois la herse abattue.",
     ));
   });

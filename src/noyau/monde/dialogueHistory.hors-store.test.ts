@@ -14,6 +14,7 @@ import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { createHero } from '../../engine/character';
 import { testScene } from '../../scenes/test-fixture';
 import { chargerSurLeBanc, sansLaCleDeJeu, sauverLeBanc } from '../persistance/save.testkit';
+import { ligneDeTexte } from '../../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -147,7 +148,7 @@ describe('dialogueHistory / journal — survie cross-scène (quitterLaScene)', (
     banc.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
     banc.getState().quitterLaScene(testScene().id);
     expect(banc.getState().dialogueHistory.length).toBe(1);
-    expect(banc.getState().journal).toContain('événement récent');
+    expect(banc.getState().journal.map((e) => e.texte)).toContain('événement récent');
   });
 });
 
@@ -156,11 +157,11 @@ describe('lancerLaScene (nouvelle partie) — reset', () => {
     banc.setState({
       party: [hero()],
       dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }],
-      journal: ['un vieux message'],
+      journal: [ligneDeTexte('un vieux message')],
     });
     banc.getState().lancerLaScene(testScene());
     expect(banc.getState().dialogueHistory).toEqual([]);
-    expect(banc.getState().journal).not.toContain('un vieux message');
+    expect(banc.getState().journal.map((e) => e.texte)).not.toContain('un vieux message');
   });
 });
 

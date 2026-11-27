@@ -5,7 +5,8 @@ import { lignesDuJournal, TETE_DU_ROUND_SUIVANT, zonesDeLEcran } from './ecran';
 import { SANS_ROSTER } from './roster';
 import { fenetreADessiner } from './gestes';
 import { projeter } from './projection';
-import { ACTIONS, dayIndex, formatJourImperial, type Jeu, type LigneDuJournal } from '../noyau/index';
+import { ACTIONS, dayIndex, formatJourImperial, ligneDeTexte, type Jeu, type LigneDuJournal } from '../noyau/index';
+import { ev } from '../noyau/combatLog';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { turnEconomyStamp } from '../noyau/endTurnGuard';
 import { choixPiegeLame, finishVictory } from '../noyau/combatFlow';
@@ -53,9 +54,9 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
       const jour = dayIndex(etat.gameTime);
       const heure = etat.gameTime;
       const combat = (kind: Extract<LigneDuJournal, { de: 'combat' }>['evenement']['kind'], text: string, actorId?: string, targetId?: string, h = heure): LigneDuJournal =>
-        ({ de: 'combat', evenement: { kind, text, actorId, targetId }, heure: h });
+        ({ de: 'combat', evenement: ev(kind, text, actorId, targetId), heure: h });
       const { lignes, jour: dernier } = lignesDuJournal(etat, 3, [
-        { de: 'journal', texte: 'Vous entrez.', heure },
+        { de: 'journal', entree: ligneDeTexte('Vous entrez.'), heure },
         combat('round', 'Round 2'),
         combat('attaque', 'Coup porté.', heros.id, ennemi.id),
         combat('detail', 'Tête, 4 Blessures'),
@@ -74,7 +75,7 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
       expect(dernier, 'le jour de la dernière ligne').toBe(jour);
       expect(lignesDuJournal(etat, 0, [combat('detail', 'Seule')], jour).lignes, 'une sous-ligne sans ligne avant elle dans l’appel reste une ligne').toMatchObject([{ texte: 'Seule', detail: null }]);
       const lendemain = heure + MINUTES_PER_DAY;
-      expect(lignesDuJournal(etat, 0, [{ de: 'journal', texte: 'Premier mot.', heure }, { de: 'journal', texte: 'Au matin.', heure: lendemain }], null), 'chaque jour s’ouvre sur sa date, le premier compris').toMatchObject({
+      expect(lignesDuJournal(etat, 0, [{ de: 'journal', entree: ligneDeTexte('Premier mot.'), heure }, { de: 'journal', entree: ligneDeTexte('Au matin.'), heure: lendemain }], null), 'chaque jour s’ouvre sur sa date, le premier compris').toMatchObject({
         lignes: [
           { id: `journal/jour/${jour}`, ton: 'alerte', texte: formatJourImperial(heure) },
           { id: 'journal/0', texte: 'Premier mot.' },

@@ -7,6 +7,7 @@ import { poserCapDuGroupe } from './monde/combatants';
 import { etatInitialDuJeu } from './etat';
 import * as possessionsFlow from './possessionsFlow';
 import { bus, EVT } from './bus';
+import { ligneDeTexte } from '../engine/journal';
 import { openEncounterPsych } from './encounterPsychFlow';
 import { pushReveal } from './combatEffects';
 import { emptyNarratif } from './monde/campaignNarratif';
@@ -17,6 +18,7 @@ import * as partyFlow from './partyFlow';
 import { captureMutation, applyMutation as applySceneMutation } from './monde/sceneInstance';
 import { resetFields } from './stateFields';
 import { TIME_COST } from '../engine/timeCost';
+import { dayIndex, MINUTES_PER_DAY } from '../engine/clock';
 import { placeOfScene } from './worldMap';
 import type { Get, SetDesClesReservees } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
@@ -33,10 +35,12 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
       // PUIS la lancer ne doit pas dissoudre le salon — Jalon 7). L'interface se remet chez son hôte, à
       // l'entrée en scène (`EVT.ARRIVEE_EN_SCENE`).
       const { screen, party, net, prochainId, lignesAuJournal, combatsOuverts } = get();
-      const journal = scene.startMessage ? [scene.startMessage.texte] : [];
+      const journal = scene.startMessage ? [ligneDeTexte(scene.startMessage.texte)] : [];
       const capEntrant = start?.facing ?? spawnFacing(pos, rectJouable(scene));
+      const neuf = etatInitialDuJeu();
       set({
-        ...etatInitialDuJeu(),
+        ...neuf,
+        enSceneDepuis: dayIndex(neuf.gameTime) * MINUTES_PER_DAY,
         screen, party, net, prochainId, combatsOuverts,
         lignesAuJournal: lignesAuJournal + journal.length,
         scene: JSON.parse(JSON.stringify(scene)),
@@ -50,7 +54,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         journal,
         campaignNarratif: narratif ?? null,
       });
-      if (scene.startMessage) bus.emit(EVT.LIGNE_AU_JOURNAL, { texte: scene.startMessage.texte });
+      for (const entree of journal) bus.emit(EVT.LIGNE_AU_JOURNAL, { entree });
       bus.emit(EVT.ARRIVEE_EN_SCENE, { sceneId: scene.id, neuve: true });
       // Semis des Possessions de dotation (#617/#618) — ICI, jamais `loadGame` (qui restaure
       // `data.possessions` de la save) : `lancerLaScene` est le SEUL seam qui repart d'un registre
@@ -140,6 +144,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         dialogue: null,
         battle: null,
         campaignSceneId: target.id,
+        enSceneDepuis: s.travelPlan ? null : s.gameTime,
       }));
       if (target.startMessage) get().ecrireAuJournal(target.startMessage.texte);
       get().avancerLeTemps(TIME_COST.sceneTransition); // seam « tout est horodaté » : 0 en intérieur (paramétrable, #T2 extérieur/voyage)

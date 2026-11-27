@@ -103,7 +103,7 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     banc.setState({ party: [c], gameTime: t0, lastUpkeepDay: 0 });
     banc.getState().reposerLeGroupe(); // le repos pose gameTime directement (pas avancerLeTemps)
     expect(banc.getState().party[0].castPenalties ?? []).toHaveLength(0);
-    expect(banc.getState().journal.join(' ')).toMatch(/Pensez à vos actes se dissipe/);
+    expect(banc.getState().journal.map((e) => e.texte).join(' ')).toMatch(/Pensez à vos actes se dissipe/);
   });
 
   it('un buff de sort à durée d’HORLOGE (« 1 heure ») expire à son échéance, pas à 9999 Rounds (A4)', () => {
@@ -118,6 +118,6 @@ describe('#T3 — cascade d’horloge (maladies/convalescence/purge sur franchis
     expect(banc.getState().party[0].activeEffects).toHaveLength(1);
     banc.getState().avancerLeTemps(31); // 61 min : échéance dépassée → dissipé
     expect(banc.getState().party[0].activeEffects ?? []).toHaveLength(0);
-    expect(banc.getState().journal.join(' ')).toMatch(/Tour de force se dissipe/);
+    expect(banc.getState().journal.map((e) => e.texte).join(' ')).toMatch(/Tour de force se dissipe/);
   });
 });

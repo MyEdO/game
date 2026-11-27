@@ -69,7 +69,7 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
     runEnemyAI(banc.getState, banc.setState, archer.id);
     banc.reprendreLesEnAttente();
     const lignes = banc.getState().battle!.log.slice(avant);
-    expect(lignes.some((l) => l.kind === 'tir'), `premier acte du tireur : ${lignes.map((l) => l.text).join(' | ')}`).toBe(true);
+    expect(lignes.some((l) => l.kind === 'tir'), `premier acte du tireur : ${lignes.map((l) => l.entree.texte).join(' | ')}`).toBe(true);
   });
 
   it('TIR de l’extérieur sur la protégée : la sauvegarde s’ouvre À LA PORTE et nomme le Trait', () => {
@@ -117,7 +117,7 @@ describe('Dôme — la sauvegarde qu’une zone OCTROIE (LDB 47 l.410)', () => {
       lues.push(...draineEtLit(banc.getState));
     }
     expect(
-      [...banc.getState().battle!.log.map((l) => l.text), ...lues].some((x) => x.includes('du Dôme')),
+      [...banc.getState().battle!.log.map((l) => l.entree.texte), ...lues].some((x) => x.includes('du Dôme')),
       'le dôme ne couvre pas le corps à corps',
     ).toBe(false);
   });

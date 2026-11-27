@@ -317,7 +317,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
     banc.getState().cliquerLaCase({ x: 8, y: 10 }, undefined, { confirm: true });
     finishPlayerAction(banc.getState, banc.setState, ['LIGNE-ACTION']);
     expect(brise(E.id)).toBe(1);
-    const txt = banc.getState().battle!.log.map((l) => (typeof l === 'string' ? l : l.text)).join('\n');
+    const txt = banc.getState().battle!.log.map((l) => l.entree.texte).join('\n');
     expect(txt).toMatch(/LIGNE-ACTION/);
     expect(txt).toContain(refLabel('skills', testDeRegle('calme-d-approche', 'source-se-rapproche').skill));
     expect(txt).toMatch(/Brisé/);

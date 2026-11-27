@@ -550,7 +550,7 @@ describe('Guérison — infirmerie (hors combat)', () => {
     banc.getState().ouvrirLeMedecin('p');
     expect(banc.getState().medic, 'aucun acte ne s’offre : l’infirmerie ne s’ouvre pas').toBeNull();
     const journal = banc.getState().journal;
-    expect(journal[journal.length - 1], 'le refus dit l’Aide Médicale requise').toBe(t('medic.aidRequired'));
+    expect(journal[journal.length - 1].texte, 'le refus dit l’Aide Médicale requise').toBe(t('medic.aidRequired'));
   });
 
   it('acte ammo hors combat : proposé seulement si munition logée, retire au succès (LDB 62 l.250, #494)', () => {

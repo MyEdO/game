@@ -50,7 +50,7 @@ function coqueMoyenne(): Combatant {
 
 /** CE QUE LE JOUEUR LIT : une chute jouée COMBAT OUVERT va au journal de COMBAT
  *  (`combatLog.journaliser`, seule surface ouverte alors) ; hors combat, au journal d'exploration. */
-const lu = (): string[] => [...(get().battle?.log ?? []).map((e) => e.text), ...get().journal];
+const lu = (): string[] => [...(get().battle?.log ?? []).map((e) => e.entree.texte), ...get().journal.map((e) => e.texte)];
 
 /** Le nœud RÉEL de « Mât brisé » (MDG 13 l.718) — jamais un littéral. */
 const noeudMatBrise = () => rollShipCritical('greement', makeRNG(1), 10, SHIP_CRIT_SET).crewHit!.test!;

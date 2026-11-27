@@ -37,7 +37,7 @@ const HERITAGE = (heroId: string) => ({
 function journalDe(banc: Banc, geste: () => void): string[] {
   const avant = banc.getState().journal.length;
   geste();
-  return banc.getState().journal.slice(avant);
+  return banc.getState().journal.slice(avant).map((e) => e.texte);
 }
 
 /** Un banc ouvert sur un interlude d'une semaine, ses dés d'Événement NON posés (`'tirage'`). */

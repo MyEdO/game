@@ -327,7 +327,7 @@ describe('aiCreatureFreeAttacks — attaques gratuites de créature (RAW)', () =
     const st = banc.getState();
     expect(st.battle!.acted).toBe(false); // résolution GRATUITE : la créature CONSERVE son Action (PAS verrouillée)
     expect(st.battle!.combatants.find((c) => c.id === H.id)!.wounds.current).toBeLessThan(before); // Dégâts d'Empoignade (BF+DR, PA ignorés)
-    expect(st.battle!.log.some((l) => l.text.includes('écrase'))).toBe(true); // ligne du Test opposé GAGNÉ
+    expect(st.battle!.log.some((l) => l.entree.texte.includes('écrase'))).toBe(true); // ligne du Test opposé GAGNÉ
   });
 
   // LDB 85 l.405 : « Gagnez une Action d'Attaque gratuite par tentacule » ; la résolution en consomme une.

@@ -484,7 +484,7 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
   if (!sunk) log(get, set, [t('fleuve.progression', { km: Math.round(kmDay), note: ctx?.forceDrift ? t('fleuve.fragmentDeDerive') : (ctx?.pourcentageDuVent ? t('fleuve.fragmentDeVent', { pct: `${ctx.pourcentageDuVent >= 0 ? '+' : ''}${ctx.pourcentageDuVent}` }) : t('fleuve.fragmentDePoint')) })]);
 
   // RÉCAP du jour (affiché en tête de la halte de nuit) = la tranche de journal écrite depuis le repère.
-  const dayLines = ctx ? get().journal.slice(ctx.journalMark) : [];
+  const dayLines = ctx ? get().journal.slice(ctx.journalMark).map((e) => e.texte) : [];
 
   // Efface le contexte transitoire du jour (jamais persisté au-delà de la journée).
   set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: undefined, dayAgilityFactor: undefined } } });
@@ -539,7 +539,7 @@ export function continueRiverDayAfterExposure(get: Get, set: Set): void {
   set({ travelPlan: { ...plan, river: { ...river, pendingFinish: undefined } } });
   if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to); return; }
 
-  fin.recap.lines.push(...toRecapLines(get().journal.slice(fin.journalMark)));
+  fin.recap.lines.push(...toRecapLines(get().journal.slice(fin.journalMark).map((e) => e.texte)));
   // MDG 03 l.71
   const places = { ...placesOfKind(route.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
   ouvrirLeRepos(get, set, { places, lieu: routeLieu(plan), travelHalt: true, travelDay: fin.recap });
@@ -657,7 +657,7 @@ function applyBoatCritical(get: Get, set: Set, plan: TravelPlan, river: RiverVoy
       if (bande) insert.push(bande);
       // Voie INLINE (marin sans siège) : ses lignes partent dans la file différée — le voyage n'a pas
       // de `battle.log`, on les déverse dans SON journal (source unique `drainPendingLog`).
-      const lignes = drainPendingLog(get, set).map((e) => e.text);
+      const lignes = drainPendingLog(get, set).map((e) => e.entree.texte);
       if (lignes.length) { set({ party: [...get().party] }); tell(lignes); }
     }
   }

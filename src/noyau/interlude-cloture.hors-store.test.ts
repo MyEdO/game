@@ -98,7 +98,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
     banc.actions.fenetreValider('interlude');
-    expect(banc.getState().journal.slice(journal)).toEqual([t('validation.refus.hoteSeul')]);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual([t('validation.refus.hoteSeul')]);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime])).toBe(avant);
   });
 
@@ -110,7 +110,7 @@ describe('Clôture — le devis est ce que le geste applique', () => {
     const avant = JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime]);
     const journal = banc.getState().journal.length;
     banc.actions.fenetreValider('interlude');
-    expect(banc.getState().journal.slice(journal)).toEqual(['L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.']);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual(['L’interlude ne se clôt pas tant que les Événements de la période ne sont pas tirés.']);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().party, banc.getState().gameTime])).toBe(avant);
   });
 

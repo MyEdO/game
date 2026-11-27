@@ -10,6 +10,7 @@
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { Combatant } from '../engine/types';
 import type { CombatEvent } from './combatLog';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { EtatDeJeu } from './etat';
 import type { Get } from './flowTypes';
 import type { Jeton } from './plateforme';
@@ -55,7 +56,7 @@ export interface EntreesDeLaPartie {
 /** Une ligne écrite pendant un appel : au journal de la partie (`journal`), ou au journal du combat
  *  (`battle.log`) ; `heure` : le temps de jeu (`gameTime`) où elle s'écrit. */
 export type LigneDuJournal =
-  | { de: 'journal'; texte: string; heure: number }
+  | { de: 'journal'; entree: EntreeDuJournal; heure: number }
   | { de: 'combat'; evenement: CombatEvent; heure: number };
 
 /** L'issue d'un appel : celle d'une intention de siège (`appliquerLIntentionDUnSiege`), `'appliquee'`
@@ -146,7 +147,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
   proprietaire.abonner(capter);
   proprietaire.ecouterBranche(() => {
     const desabonnements = [
-      bus.on(EVT.LIGNE_AU_JOURNAL, ({ texte }: { texte: string }) => lignes.push({ de: 'journal', texte, heure: get().gameTime })),
+      bus.on(EVT.LIGNE_AU_JOURNAL, ({ entree }: { entree: EntreeDuJournal }) => lignes.push({ de: 'journal', entree, heure: get().gameTime })),
       ...Object.values(EVT).flatMap((evt) => (evt === EVT.LIGNE_AU_JOURNAL ? [] : [bus.on(evt, (payload) => tampon.push({ type: 'emis', evt, payload } as Evenement))])),
     ];
     return () => { for (const desabonner of desabonnements) desabonner(); };
@@ -223,7 +224,7 @@ export function creerPartie(etatInitial: EtatDeJeu, entrees: EntreesDeLaPartie):
       return { neuve, autreScene };
     }
     const ecart = Math.min(etat.lignesAuJournal - precedent.lignesAuJournal, etat.journal.length);
-    for (const texte of etat.journal.slice(etat.journal.length - ecart)) lignes.push({ de: 'journal', texte, heure: etat.gameTime });
+    for (const entree of etat.journal.slice(etat.journal.length - ecart)) lignes.push({ de: 'journal', entree, heure: etat.gameTime });
     const depuis = etat.combatsOuverts === precedent.combatsOuverts ? precedent.longueurDuCombat : 0;
     for (const evenement of combat.slice(depuis)) lignes.push({ de: 'combat', evenement, heure: etat.gameTime });
     return { neuve, autreScene };

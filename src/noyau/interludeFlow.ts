@@ -1090,7 +1090,7 @@ function appliquerLActivite(get: Get, set: Set): void {
   // ouverte ici SURVIT à l'écriture interlude/party finale (clés disjointes). PNJ/auto → inline (early-out sinon).
   if (!pa.success) {
     lines.push(...fireOwnTestFailed(get, pa.heroId, { sl: pa.sl, rng: battleRng(), set }));
-    lines.push(...drainPendingLog(get, set).map((e) => e.text));
+    lines.push(...drainPendingLog(get, set).map((e) => e.entree.texte));
   }
   // Écriture UNIQUE : consomme l'Activité + fusionne closeOps différés + patch des résolveurs.
   itl.perHero[pa.heroId] = {

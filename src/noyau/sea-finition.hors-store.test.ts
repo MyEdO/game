@@ -164,7 +164,7 @@ describe('#28 Température en mer (MDG 13 l.203-225) — câblée au jour', () =
     await runOneSeaDay();
     // Une journée entière est passée : l'eau a été consommée (crew × litres de la bande).
     expect(get().vessel!.waterLitres).toBeLessThan(500);
-    expect(get().journal.join('\n')).toMatch(/Eau douce|À SEC/);
+    expect(get().journal.map((e) => e.texte).join('\n')).toMatch(/Eau douce|À SEC/);
   });
 });
 
@@ -222,7 +222,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(dep!.brass).toBe(50 * PA_PER_CO);
     expect(dep!.rate).toBe(50); // seuil de découverte MDG (au lieu de 10, ch.23 l.170)
     expect(toBrass(bourseOf(get().party[0]))).toBe(before - 50 * PA_PER_CO);
-    expect(get().journal.join('\n')).toMatch(/Planque : 50 CO cachés sur la carte/);
+    expect(get().journal.map((e) => e.texte).join('\n')).toMatch(/Planque : 50 CO cachés sur la carte/);
   });
 
   it('Cartographie sans mise de Planque (stashGold absent) → aucun dépôt créé', async () => {
@@ -258,7 +258,7 @@ describe('#29 Activités en mer (MDG 15 l.266-306)', () => {
     expect(get().pendingExtendedTest).toBeNull();
     expect(get().pendingRest).toBeTruthy();
     expect(get().pendingSeaActivities).toBeNull();
-    expect(get().journal.join('\n')).toMatch(/Commerce d'opportunité.*mise.*retour/);
+    expect(get().journal.map((e) => e.texte).join('\n')).toMatch(/Commerce d'opportunité.*mise.*retour/);
   });
 });
 
@@ -304,7 +304,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     // jamais cassé.
     expect(get().pendingCascade).toBeNull();
     expect((get().vessel!.cargo ?? []).length).toBeLessThanOrEqual(cargoLen);
-    expect(get().journal.some((l) => /vendus|intéressé|Ragot/.test(l))).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /vendus|intéressé|Ragot/.test(l))).toBe(true);
   });
 
   it('#243 — headroom nominal vs plafond dur de surcharge (Cogue : Contenance 300, dur 450)', () => {
@@ -331,7 +331,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     const enc = (get().vessel!.cargo ?? []).reduce((s, l) => s + l.enc, 0);
     expect(enc).toBeLessThanOrEqual(450); // jamais au-delà du maximum absolu (150 %)
     expect(enc).toBeGreaterThan(300); // a bien SURchargé (au-delà de la Contenance nominale)
-    expect(get().journal.some((l) => /SURCHARG/i.test(l))).toBe(true); // achat en zone de surcharge → avertissement
+    expect(get().journal.map((e) => e.texte).some((l) => /SURCHARG/i.test(l))).toBe(true); // achat en zone de surcharge → avertissement
   });
 
   it('le bradage de cargaison brade à ¼ du prix de base dans un port « commerce »', () => {
@@ -365,7 +365,7 @@ describe('#30 Écran Port — commerce maritime (MDG 15 l.309-399)', () => {
     acheterAuMarche(get, 'port', 'pos-mule', offer.cargoId, Math.min(10, offer.enc));
     expect(get().vessel!.cargo ?? []).toEqual([]);
     expect(partyMoneyTotal(get).gold).toBe(before);
-    expect(get().journal.slice(-1)[0]).toBe(t('port.horsDuNavire'));
+    expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('port.horsDuNavire'));
   });
 
   it('le bradage de cargaison au port : deux lots du même bien, seul le lot désigné quitte la cale, à SON prix', () => {

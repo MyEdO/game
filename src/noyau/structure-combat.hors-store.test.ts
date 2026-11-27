@@ -421,7 +421,7 @@ describe('Structures de siège — retrait à UNE couture, filet compris (AA 10 
 describe('Structures de siège — Projectile magique (AA 10 l.114 ; LDB 18 l.17 ; AA 07 l.36)', () => {
   const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: false, isFumble: false, log: '' };
   const critiquesAuJournal = (): number =>
-    (banc.getState().battle?.log ?? []).filter((e) => (typeof e === 'string' ? e : (e as { text?: string }).text ?? '').includes('Critique de Structure')).length;
+    (banc.getState().battle?.log ?? []).filter((e) => e.entree.texte.includes('Critique de Structure')).length;
   const lancer = (H: Combatant, S: Combatant, lost: number): void => {
     const spell = findSpellById('flechette')!;
     applyCast(banc.getState, banc.setState, H, [S], spell, { ...evaluateMissile(H, S, spell, cr), hit: true, woundsLost: lost }, true);

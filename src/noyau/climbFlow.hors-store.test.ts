@@ -46,7 +46,7 @@ describe('franchirLArete, escalade — aucun grimpeur (#1906)', () => {
     for (const climb of [{ kind: 'surface', requiresGrimpeur: true }, { kind: 'ladder' }] as WallClimb[]) {
       banc.setState({ battle: null, party: [hero], mode: 'exploration', partyPos: foot, scene: cliffScene(climb), journal: [] });
       expect(() => banc.getState().franchirLArete(top)).not.toThrow();
-      expect(banc.getState().journal.slice(-1)[0]).toBe(t('geste.refus.personne'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('geste.refus.personne'));
       expect(banc.getState().partyPos).toEqual(foot);
     }
   });
@@ -106,7 +106,7 @@ describe('franchirLArete, escalade — exploration', () => {
     expect(banc.getState().partyPos).toEqual(foot);
     const plan = planFranchissement(s, foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t(REFUS_FRANCHISSEMENT[plan.raison]));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t(REFUS_FRANCHISSEMENT[plan.raison]));
   });
 });
 
@@ -173,7 +173,7 @@ describe('franchirLArete, escalade — combat', () => {
     expect(hc.pos).toMatchObject({ x: 2, y: 0 });
     expect(b.acted).toBe(false); // pas de Test → pas d'Action consommée
     expect(b.movementUsed).toBe(1); // coût NORMAL (1 case), pas la ½ vitesse du Talent joueur
-    expect(b.log.some((e) => e.text.includes('Grimpant'))).toBe(true);
+    expect(b.log.some((e) => e.entree.texte.includes('Grimpant'))).toBe(true);
   });
 
   it('un échec à −4 DR en montée depuis le pied laisse le héros au sol sans dé de dégâts', () => {

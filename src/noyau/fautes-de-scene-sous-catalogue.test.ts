@@ -1,7 +1,8 @@
 /**
  * Les fautes CROISÉES d'une scène sous le catalogue passé (#5070, `docs/plans/2026-11-25-composition-d-un-jeu.md`
- * § 5.1, point 2) : le cap d'un navire à ponts, la munition et la pièce d'un poste, la pose des ponts. Fixtures : un
- * navire à ponts, une pièce, deux munitions, présents SEULEMENT dans le catalogue de la suite (`catalogueAvec`).
+ * § 5.1, point 2) : le cap d'un navire à ponts, la munition et la pièce d'un poste, la pose des ponts, la carrière et le
+ * profil. Fixtures : un navire à ponts, une pièce, deux munitions, deux créatures (le skaven et l'humain copiés), présents
+ * SEULEMENT dans le catalogue de la suite (`catalogueAvec`).
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -15,10 +16,17 @@ import { entreeDe } from '../data/schemas/catalogue/catalogue';
 import { affinerAvecCatalogues, sousLeCatalogue } from '../data/schemas/grammaire/ref';
 import { sceneEntitySchema, sceneSchema } from '../data/schemas/defs-scenes/scene';
 import { NAVIRE, navire, navireDuLivreDeTest } from './navireDuLivreDeTest.testkit';
+import { ouvrirLEdition, editer } from './edition/session';
+import { emptyNarratif } from './monde/campaignNarratif';
+import type { SceneEntity } from './monde/scene';
+import { inspecteurDeLaSession } from '../hote/editeur';
+import { dotationsDuPnj, emplacementsDeDotation } from '../engine/trappingChoices';
 
 const PIECE = 'piece-du-livre-de-test';
 const BOULET = 'boulet-du-livre-de-test';
 const FLECHE = 'fleche-du-livre-de-test';
+const SKAVEN = 'skaven-du-livre-de-test';
+const HUMAIN = 'humain-du-livre-de-test';
 
 const base = catalogueDuProcessus();
 /** La pièce copiée du canon moyen, sans liste de munitions : elle charge sa famille (`chargeLArme`). */
@@ -28,6 +36,7 @@ const CAT = catalogueAvec({
   'vehicles.json': [navireDuLivreDeTest()],
   'siege-engines.json': [piece],
   'trappings.json': [copie(base['trappings.json'], 'boulet-et-poudre', BOULET), copie(base['trappings.json'], 'fleche', FLECHE)],
+  'creatures.json': [copie(base['creatures.json'], 'skaven', SKAVEN), copie(base['creatures.json'], 'humain', HUMAIN)],
 });
 
 const fautesCustom = (r: z.ZodSafeParseResult<unknown>) => (r.error?.issues ?? []).filter((i) => i.code === 'custom').map(({ path, message }) => ({ path, message }));
@@ -109,5 +118,31 @@ describe('la fenêtre `{ ids, cat }` est bornée à son appel', () => {
   it('une levée sous la fenêtre la rend à la précédente', () => {
     expect(() => sousLeCatalogue(aucunId, CAT, () => { throw new Error('levée du livre de test'); })).toThrow('levée du livre de test');
     expect(voit(sonde.safeParse('x'))).toBe(false);
+  });
+});
+
+describe('le parcours de carrière d’une entité se juge au profil de sa créature du catalogue passé', () => {
+  /** Le joker nu du Soldat de Niveau 2 : le canon ratling y est une valeur pour un skaven, pas pour un humain
+   *  (arbitrage #4110, 2026-11-16, `src/engine/pnjDeCarriere.test.ts`). */
+  const joker = emplacementsDeDotation(dotationsDuPnj('soldat', 2)).find((e) => e.sorte === 'joker' && e.ref.groupe === undefined)!;
+  const soldat = (creature: string): SceneEntity => ({ id: 'r', kind: 'personnage', creature: { id: creature }, pos: { x: 1, y: 1 }, carrieres: { soldat: 2 }, dotationsDeCarriere: { [joker.adresse]: 'canon-ratling' } });
+
+  it('le canon ratling du joker est admis au skaven du seul catalogue, refusé à l’humain du seul catalogue', () => {
+    expect(parserSousCatalogue(sceneEntitySchema, soldat(SKAVEN), CAT).success).toBe(true);
+    expect(fautesCustom(parserSousCatalogue(sceneEntitySchema, soldat(HUMAIN), CAT))).toEqual([
+      { path: ['carrieres'], message: `« canon-ratling » n’est pas une valeur de l’emplacement de dotation « ${joker.adresse} ».` },
+    ]);
+  });
+
+  it('l’inspecteur de l’hôte offre le canon ratling au joker du skaven du seul catalogue, pas à celui de l’humain', () => {
+    const offerts = (creature: string) => {
+      const scene = { ...buildScene({ id: 'caserne', label: 'Caserne', size: [8, 8], terrain: 'herbe' }), entities: [soldat(creature)] };
+      const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'catalogue', scenes: [scene], narratif: emptyNarratif() };
+      const s = editer(ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, null, [], CAT), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'r' } });
+      const dotation = inspecteurDeLaSession(s).find((el) => el.id === `carriere/dotation/${joker.adresse}`);
+      return dotation && 'valeurs' in dotation ? dotation.valeurs.map((v) => v.id).filter((id) => id.endsWith('/canon-ratling')) : undefined;
+    };
+    expect(offerts(SKAVEN)).toEqual([`carriere/dotation/${joker.adresse}/canon-ratling`]);
+    expect(offerts(HUMAIN)).toEqual([]);
   });
 });

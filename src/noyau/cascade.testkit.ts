@@ -193,7 +193,7 @@ export function draineEtLit(get: () => Jeu, max = 200): string[] {
   };
   capte();
   for (let i = 0; i < max && get().pendingCascade; i++) { avanceEtapeCascade(get); capte(); }
-  return [...get().journal, ...(get().battle?.log ?? []).map((e) => e.text), ...[...parEtape.values()].flat()];
+  return [...get().journal.map((e) => e.texte), ...(get().battle?.log ?? []).map((e) => e.entree.texte), ...[...parEtape.values()].flat()];
 }
 
 /**

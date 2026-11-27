@@ -153,6 +153,6 @@ describe('Entraînement (LDB 23 l.130-136)', () => {
     pratiquer(banc.getState, heroId, 'entrainement', { entrainement: cleDEntrainement(opt) });
     expect(hero().skills.find((s) => s.id === opt.id && memeSpecialisation(s.spec, opt.spec))).toBeUndefined();
     expect(st(heroId).left).toBe(0);
-    expect(banc.getState().journal.slice(-1)[0]).toBe('H n’a plus d’Activité d’interlude.');
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe('H n’a plus d’Activité d’interlude.');
   });
 });

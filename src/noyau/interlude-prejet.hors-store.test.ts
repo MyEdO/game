@@ -141,7 +141,7 @@ function ouvrir(id: string, prepare?: (b: Banc) => void, seed?: number, instruit
   const preJet = preJetDActivite(b.getState(), h.id, def, cibles);
   const journal = b.getState().journal.length;
   geste(b, h.id, def, cibles);
-  return { b, h: héros(b, h.id), preJet, pa: b.getState().pendingActivity, dit: b.getState().journal.slice(journal) };
+  return { b, h: héros(b, h.id), preJet, pa: b.getState().pendingActivity, dit: b.getState().journal.map((e) => e.texte).slice(journal) };
 }
 
 /** Le jet posé et le pré-jet confrontés à l'oracle : Test, valeur, Difficulté et modificateurs. */

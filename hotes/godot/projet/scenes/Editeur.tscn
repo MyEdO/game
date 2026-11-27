@@ -119,7 +119,7 @@ ids = PackedStringArray("valeur/combat", "valeur/combat/", "valeur/statblock", "
 [node name="Zone" type="Node" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur/Rôles"]
 script = ExtResource("3_zone")
 source = "editeur.inspecteur"
-ids = PackedStringArray("valeur/dialogueId", "valeur/dialogueId/", "valeur/merchant", "valeur/merchant/", "valeur/tavernGame", "valeur/tavernGame/", "valeur/amateur", "valeur/amateur/", "valeur/usable", "valeur/usable/", "identifier/action/")
+ids = PackedStringArray("valeur/dialogueId", "valeur/dialogueId/", "valeur/merchant", "valeur/merchant/", "valeur/tavernGame", "valeur/tavernGame/", "valeur/veilleLesMalades", "valeur/veilleLesMalades/", "valeur/amateur", "valeur/amateur/", "valeur/usable", "valeur/usable/", "identifier/action/")
 
 [node name="Apparence" type="VBoxContainer" parent="Interface/Ossature/Outils/Defilement/Pile/Inspecteur"]
 

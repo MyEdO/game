@@ -65,7 +65,7 @@ const frapper = (cible: Combatant, roll: number, seed: number, autres: Combatant
   applyAttackResult(banc.getState, banc.setState, t, cible, w, toucheAuJetPose(t, cible, w, jet(roll), 2, { rng: makeRNG(1) }));
   return banc.getState().battle!.combatants.find((c) => c.id === cible.id)!;
 };
-const journal = (): string[] => banc.getState().battle!.log.map((e) => (typeof e === 'string' ? e : (e as { text: string }).text));
+const journal = (): string[] => banc.getState().battle!.log.map((e) => e.entree.texte);
 const testsDEndurance = (): string[] => journal().filter((l) => /Test d’Endurance/.test(l)).map((l) => (/Difficile/.test(l) ? 'difficile' : /Complexe/.test(l) ? 'complexe' : l));
 
 describe('Naufrageuse (MDG 16 l.327) — coque ennemie, jets résolus', () => {

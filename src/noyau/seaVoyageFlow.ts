@@ -38,7 +38,7 @@ import { preparerLEntretienQuotidien } from './horloge';
 import { jouerLEntretienDesRoundsEcoules } from './outOfCombatUpkeep';
 import { calculerLePasDExposition } from './expositionAMaladie';
 import { bandesDeContagion } from './contagion';
-import { arriverAuLieu } from './lieuFlow';
+import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
 import {
   caleSecheDuLieu,
   estBateauFluvial,
@@ -1339,7 +1339,7 @@ export function startFastVoyage(
   if (!plan) return false;
   const days = dureeDeTraversee(plan.km, mDeCroisiere(navireDeLaCoque(plan.vehicle!)));
   const weeks = semainesCompletes(days); // « par semaine passée en mer » (l.28)
-  set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
+  set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null, ...quitterLeLieu });
   log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: nomDuLieu(get().worldMap, toPlaceId), days, km: plan.km })]);
   const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'equipage-voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'voyage/vague', purpose: 'test', steps: [st] }); return true; }
@@ -2478,7 +2478,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   ), revealPurpose('travelDay', false));
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
-  const lignes = drainPendingLog(get, set).map((e) => e.text);
+  const lignes = drainPendingLog(get, set).map((e) => e.entree.texte);
   if (lignes.length) { set({ party: [...get().party] }); tell(get, set, lignes); }
 }
 

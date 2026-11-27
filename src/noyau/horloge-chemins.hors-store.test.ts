@@ -145,7 +145,7 @@ describe('l’équipage collectif avance avec l’horloge (#4243)', () => {
     navire({ diseases: [contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 2 })!] }, escale);
     get().avancerLeTemps(3 * MINUTES_PER_DAY);
     expect(get().vessel!.porteurDeLEquipage?.diseases ?? []).toEqual([]);
-    expect(get().journal).toContain(t('dz.cured', { name: t('crew.lEquipage'), disease: diseaseLabel('verole-urticante') }));
+    expect(get().journal.map((e) => e.texte)).toContain(t('dz.cured', { name: t('crew.lEquipage'), disease: diseaseLabel('verole-urticante') }));
   });
 
   it('à quai, son scorbut décompte sa Durée ; en mer aux biscuits, non (MDG 14 l.232)', () => {

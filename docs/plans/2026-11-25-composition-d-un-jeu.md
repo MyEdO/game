@@ -242,7 +242,7 @@ hôte compose un catalogue, et il le remet à sa partie.
   - *Ouverture.* L'hôte compose avec les règles de son stockage. `loadRuleOverrides(entrees.reglesMaison)`
     (`src/noyau/proprietaireDuJeu.ts:96`) disparaît.
   - *Règle maison changée.* Les écrivains de la surface passent à `src/hote` : `surchargerUneRegleMaison`,
-    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:510`, `src/noyau/reglesMaison.ts`).
+    `retablirUneRegleMaison` et `poserLesReglesMaisonPersistees` (`src/noyau/index.ts:511`, `src/noyau/reglesMaison.ts`).
   - *Sauvegarde.* `snapshotSave` reçoit les règles du catalogue de la partie, et non plus `ruleOverrides()`
     (`hotes/godot/pont/pont.ts:1169`). Au chargement, l'hôte compose avec `SaveGame.rules`, puis ouvre.
   - *Coop.* L'hôte envoie les règles de son catalogue (`src/noyau/coop.ts:39`). Chez l'invité, la réception ne charge
@@ -295,7 +295,12 @@ hôte compose un catalogue, et il le remet à sa partie.
     `refusDePoseDesPonts(scene, ent, cat)` (`src/data/schemas/catalogue/poseDesPonts.ts`) ;
   - le raffinement porteur passe par `raffinementDeCatalogue` et l'appelle avec `catalogueLu(...types)()`
     (`LecturesDuRaffinement`, `ref.ts:413`) : `catalogueLu` déclare les espaces lus, au registre que lit
-    `dependancesDuRaffinement`, et rend un accès paresseux au `cat` de la fenêtre (`scene.ts:350`, `scene.ts:1030`) ;
+    `dependancesDuRaffinement`, et rend un accès paresseux au `cat` de la fenêtre (`scene.ts:352`, `scene.ts:1030`) ;
+    la carrière et le profil en sont une instance : `refusDuPnjDeCarriere(ent, cat)` lit la créature sous `cat`
+    (`entreeDe('creatures', …, cat)`, `defs-scenes/scene.ts:226`), et la branche d'entité déclare son espace
+    (`catalogueLu('vehicle', 'engin', 'trapping', 'creature')`, `scene.ts:352`). Aucune racine vivante n'atteint
+    `sceneEntitySchema` : la déclaration n'ajoute aucun lecteur à `fichiersLisantLeCatalogue('creatures.json')`
+    (`src/data/schemas/validate.ts:176`) ;
   - l'éditeur appelle la même fonction hors parse, sous le catalogue de sa session, par exemple `sceneAvecLEntite`
     (`src/noyau/sceneEdit.ts:1271`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1467,1470`) et
     l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:496`). Le parse et l'éditeur suivent un
@@ -304,11 +309,13 @@ hôte compose un catalogue, et il le remet à sa partie.
     - `editer` le lit pour la pose des ponts, et `projetAvecLaDonnee` le passe à la table d'écriture
       (`src/noyau/edition/session.ts:1121`), dont `deLaScene` le passe à `sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1339`) ;
     - `cadreDeLaSession` le pose au cadre d'un porteur (`src/noyau/edition/session.ts:1106`), où `champsDuPersonnage` et
-      `choixDesSorts` le passent à `ficheEditee` (`src/noyau/sceneEditLecture.ts:657,671`) ;
+      `choixDesSorts` le passent à `ficheEditee` (`src/noyau/sceneEditLecture.ts:666,680`) ;
     - `avertissementsDeLaSession` le passe à `validateScene` et clé sur lui son mémo (`src/noyau/edition/session.ts:257`) ;
       `texteAEnregistrer` et `essaiDeLaScene` le passent à `parseProject` (`src/noyau/edition/session.ts:738,747`), et
       `projetDuDepot` le reçoit du pont (`src/noyau/edition/session.ts:726`) ;
-    - l'inspecteur de l'hôte le passe à `capsDeLaPose` et à `ficheEditee` (`src/hote/editeur.ts:977,1193,1216`).
+    - l'inspecteur de l'hôte le passe à `capsDeLaPose` et à `ficheEditee` (`src/hote/editeur.ts:978,1194,1217`), et
+      `carrieres` lit sous lui la fiche dont il bâtit le porteur du parcours (`ficheDePersonnage`,
+      `src/hote/editeur.ts:1126`, `src/noyau/sceneEditLecture.ts:515`).
 
     Le pont repose la session avant chaque geste (`sessionSousLeCatalogue`, `hotes/godot/pont/pont.ts:2135`) : c'est le
     fossile 9.
@@ -324,8 +331,10 @@ hôte compose un catalogue, et il le remet à sa partie.
   l'étape E, il disparaît, et `catalogueLu` lève hors fenêtre. Le préalable de l'étape E : les 9 sites de production qui parsent sans
   `parserSousCatalogue` passent par la porte (`miscast.ts`, `sceneEditLecture.ts`, `formulaire.ts` trois fois,
   `navireOps.ts`, `mapSpec.ts`, `data/index.ts` et `campagnes/lib.mjs`), et les 4 sites de `structures-scan.mts`.
-  Aucun mémo d'un parse ou d'une faute ne se clé sans `cat`. `refusDuParcours` et `chargeLArme` (`munitionsReservees`,
-  `groupeDeSiege`) lisent encore le catalogue du processus dans la fenêtre, jusqu'à la famille du moteur.
+  Aucun mémo d'un parse ou d'une faute ne se clé sans `cat`. `refusDuParcours` (`levelsForCareer`, `careerSlots`) et
+  le porteur du profil (`porteurDuProfil`, `groupsFor`) lisent encore le catalogue du processus dans la fenêtre, sur la
+  créature que la carrière lit sous `cat`, jusqu'à #5076 ; `chargeLArme` (`munitionsReservees`, `groupeDeSiege`) de
+  même, jusqu'à #5075.
 
   Les sites d'entrée de la famille 1 passent `cat` à `parserSousCatalogue`, qui remplace `validerFormeVivante`
   (`src/data/schemas/validate.ts:408`) pour les schémas à fautes croisées :
@@ -338,7 +347,7 @@ hôte compose un catalogue, et il le remet à sa partie.
   - `src/noyau/campagneLivree.ts:90`.
 - **Le sort des 10 fichiers de `schemas` qui lisent la base.** Ils deviennent des fautes, ou des lectures
   `(…, cat)` de `schemas/catalogue` :
-  - `defs-scenes/scene.ts:60` (carrière, `findCreatureById`) ;
+  - `defs-scenes/scene.ts`, sans lecture de la base : la carrière lit la créature sous `cat` (`scene.ts:226`) ;
   - `narratif.ts:22` et `worldmap.ts:24` ;
   - `grammaire/reference.ts:52` (`psychologies`, `psychologyLabel`) ;
   - `grammaire/mecanique.ts:17,83` (`findTraitById`, `GROUPES_TIRABLES`) ;

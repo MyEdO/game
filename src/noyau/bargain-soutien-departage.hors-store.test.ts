@@ -207,7 +207,7 @@ function setupLand(nue: number): Combatant {
   return leader;
 }
 
-const bargainLineOf = (): string => get().journal.find((l) => /Marchandage \(/.test(l)) ?? '';
+const bargainLineOf = (): string => get().journal.map((e) => e.texte).find((l) => /Marchandage \(/.test(l)) ?? '';
 
 describe('Marchandage TERRESTRE soutenu : `resolveOpposed` est le seul juge (MSRC 13 l.127)', () => {
   beforeEach(() => setRule('test-bandes-auto', 'off'));

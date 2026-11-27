@@ -45,6 +45,6 @@ describe('acheterLeTalent — ajouts de carrière d’un Trait (EDOC 13 l.524)',
     const apres = banc.getState().party[0];
     expect(apres.talents.some((t) => t.talentId === 'magie-des-arcanes')).toBe(false);
     expect(apres.xp).toBe(500);
-    expect(banc.getState().journal.join('\n')).toMatch(/hors carrière/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/hors carrière/);
   });
 });

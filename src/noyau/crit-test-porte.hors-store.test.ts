@@ -279,7 +279,7 @@ describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre
     const crit = resolveCritique('ldb', enemy, 'brasG', battleRng(), { forcedRoll: 95 });
     const coup: AttackResult = { hit: true, attackerRoll: 33, netSL: 3, location: 'brasG', damage: 20, woundsLost: 20, critical: false, advantageTo: null, defenderDefeated: false, log: 'h touche e.' };
     applyAttackResult(banc.getState, banc.setState, hero, enemy, POINGS, coup, { critiques: [{ crit, deviation: 'subir' }] });
-    const journal = banc.getState().battle!.log.map(({ kind, text }) => ({ kind, text }));
+    const journal = banc.getState().battle!.log.map(({ kind, entree }) => ({ kind, text: entree.texte }));
     const critique = journal.findIndex((e) => e.text === 'Blessure critique (Bras gauche) — Main mutilée.');
     const test = journal.findIndex((e) => e.text === 'e — Test de Résistance Difficile (−20) : 63/15, échec (DR -5).');
     expect(journal[0]).toEqual({ kind: 'attaque', text: 'h touche e.' });

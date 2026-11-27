@@ -19,7 +19,7 @@ describe('Effets setObjective / clearObjective', () => {
   it('pose un objectif (et l’archive au journal)', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'setObjective', id: 'a', desc: 'Trouver Gustav' }] as Effect[]);
     expect(banc.getState().objectives).toEqual([{ id: 'a', text: 'Trouver Gustav' }]);
-    expect(banc.getState().journal.join('\n')).toContain('Trouver Gustav');
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toContain('Trouver Gustav');
   });
 
   it('re-poser le même id MET À JOUR le texte et le remonte en tête (pas de doublon)', () => {

@@ -48,7 +48,7 @@ describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509
     const { caster, T } = setup();
     const souffle = findSpellById('souffle')!;
     applyCast(banc.getState, banc.setState, caster, [T], souffle, okRes(6), false);
-    const log = banc.getState().battle!.log.map((e) => e.text).join('\n');
+    const log = banc.getState().battle!.log.map((e) => e.entree.texte).join('\n');
     expect(log).toMatch(/déclenche Souffle \(Feu\)/);
   });
 

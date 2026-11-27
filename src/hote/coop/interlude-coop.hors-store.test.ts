@@ -108,7 +108,7 @@ describe('Interlude en coop : l’invité est refusé sur le héros d’un autre
     guest.sendIntent('solderLaFaveur', [hote.id, `faveur-${hote.id}`]);
     guest.sendIntent('menerLActionDeBataille', [hote.id, prepaDe(hote)]);
     expect(JSON.stringify([banc.getState().interlude, banc.getState().favors, banc.getState().pendingActivity])).toBe(avant);
-    expect(banc.getState().journal.slice(journal)).toEqual([]);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual([]);
     expect(refusRecus).toEqual(Array(5).fill(t('coop.intentRefused')));
   });
 });
@@ -122,6 +122,6 @@ describe('Interlude en coop : la table de taverne est celle de l’hôte', () =>
     banc.actions.jouerALaTaverne(b.id, { gameId: 'dominos', opponent: { kind: 'heros', id: a.id } });
     expect(banc.getState().tavernGames).toBeNull();
     expect(banc.getState().sequence ?? null).toBeNull();
-    expect(banc.getState().journal.slice(journal)).toEqual([HOTE_SEUL, HOTE_SEUL]);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual([HOTE_SEUL, HOTE_SEUL]);
   });
 });

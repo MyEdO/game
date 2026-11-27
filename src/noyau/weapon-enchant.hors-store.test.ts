@@ -97,7 +97,7 @@ describe('Invocation et forme d’arme fixée à la naissance', () => {
       expect(instance().enchants).toEqual(enchantements);
       expect(armeTenue()?.shape?.id).toBe(forme);
       expect(armeTenue()?.qualities.map((q) => q.id)).toEqual(qualites);
-      expect(getState().journal.slice(debut)).toEqual([t('pf.apparenceNonAdmise', { item: ARME.label })]);
+      expect(getState().journal.map((e) => e.texte).slice(debut)).toEqual([t('pf.apparenceNonAdmise', { item: ARME.label })]);
     }
     if (forme === 'pertuisane_lance') {
       getState().poserLApparence(uid, 'pertuisane_lance_test');

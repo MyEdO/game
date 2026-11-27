@@ -134,7 +134,7 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     banc.setState({ party: [wiz] as Combatant[], pendingCast: { casterId: wiz.id, targetId: wiz.id, spellId: 'armure-aethyrique', missile: false, result: null } });
     banc.getState().jetRegler('incantation', 'surincantationDuree', 1);
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.jetNonLance'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('jet.ferme.jetNonLance'));
   });
 
   it('les pas de Surincantation respectent le budget (+2 DR par allocation, au-delà du NI)', () => {
@@ -173,6 +173,6 @@ describe('Surincantation (LDB 47 l.28-31)', () => {
     const a = banc.getState().party.find((h) => h.id === ally.id)!;
     expect(p.activeEffects?.[0]).toMatchObject({ characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // 6 ×2
     expect(a.activeEffects?.[0]).toMatchObject({ characteristic: 'capacite-de-combat', bonus: 10, duration: { scale: 'rounds', left: 12 } }); // cible étendue
-    expect(banc.getState().journal.join('\n')).toMatch(/Surincantation/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Surincantation/);
   });
 });

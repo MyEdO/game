@@ -5,6 +5,7 @@
  * le plateau et le journal pour le rejeu.
  */
 import { arena, avecRencontres, findCreatureById, EVT, type ChargeDAttaque, footprintN, ligneDuCoup, type Combatant } from '../../../../src/noyau';
+import { redigerLEntree } from '../../../../src/hote/journal';
 import { jouerLaRencontre, type LotAuSol } from '../../../../src/hote/rencontre';
 import { ouvrirEcoutee } from './partie';
 import { nomDeSort } from './carriere';
@@ -109,7 +110,7 @@ export function jouerLeCombat(groupe: readonly Combatant[], ennemis: readonly st
   function releve() {
     const b = o.partie.etat().battle;
     if (!b) return;
-    const lignes = b.log.slice(vus).map((l) => l.text).filter((t): t is string => !!t);
+    const lignes = b.log.slice(vus).map((l) => redigerLEntree(l.entree)).filter((t) => !!t);
     vus = b.log.length;
     const montee = (c: Combatant) => !!c.riderId && b.combatants.some((r) => r.id === c.riderId && !r.dead);
     const pions = b.combatants.filter((c) => c.pos && !montee(c)).map((c): PionDuPlateau => ({

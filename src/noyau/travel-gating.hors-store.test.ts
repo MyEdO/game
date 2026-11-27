@@ -16,6 +16,7 @@ import { beginShipwreck } from './shipwreck';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { emptyScene, type Scene } from './monde/scene';
 import { campaignStart } from '../engine/clock';
+import { ligneDeTexte } from '../engine/journal';
 import type { TravelPlan } from './travelFlow';
 import type { WorldMap } from './worldMap';
 
@@ -79,20 +80,20 @@ describe('`partirEnVoyage` — le trajet FERMÉ est refusé au départ, au même
   it('route prise à CONTRESENS (`from`) : aucun voyage ne démarre, le refus se dit', () => {
     get().partirEnVoyage('retour', 'pied');
     expect(get().travelPlan).toBeNull();
-    expect(get().journal).toEqual(['Cette route ne se prend pas dans ce sens.']);
+    expect(get().journal).toEqual([ligneDeTexte('Cette route ne se prend pas dans ce sens.')]);
   });
 
   it('route FERMÉE par le récit (`when` faux) : aucun voyage ne démarre, la raison part au journal', () => {
     auDepart({ 'ch1-clos': true });
     get().partirEnVoyage('jumelle-fermable', 'pied');
     expect(get().travelPlan).toBeNull();
-    expect(get().journal).toEqual([REFUS]);
+    expect(get().journal).toEqual([ligneDeTexte(REFUS)]);
   });
 
   it('la MÊME route, chapitre ouvert : le départ a lieu (le refus vient du `when`, pas de la route)', () => {
     get().partirEnVoyage('jumelle-fermable', 'pied');
-    expect(get().journal.join('\n')).toContain('Altdorf');
-    expect(get().journal.join('\n')).not.toContain(REFUS);
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('Altdorf');
+    expect(get().journal.map((e) => e.texte).join('\n')).not.toContain(REFUS);
   });
 });
 

@@ -33,7 +33,7 @@ describe('refusDeRevenus — le geste Revenus d’un héros dont la Classe est b
     const avant = JSON.stringify(banc.getState().interlude);
     const journal = banc.getState().journal.length;
     pratiquer(banc.getState, heroId, 'revenus');
-    expect(banc.getState().journal.slice(journal)).toEqual([raison]);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual([raison]);
     expect(JSON.stringify(banc.getState().interlude), 'une Activité a été consommée').toBe(avant);
     expect(banc.getState().pendingActivity).toBeNull();
   });

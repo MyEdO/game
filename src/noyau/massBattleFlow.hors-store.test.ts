@@ -220,7 +220,7 @@ describe('Activités de bataille pré-combat (l.79-106)', () => {
 });
 
 describe('Meneur qui ne peut pas tenter (LDB 09 l.30, ADE II 8 l.65, l.116) : refus NOMMÉ, jamais un remplaçant', () => {
-  const lastLine = () => banc.getState().journal.slice(-1)[0];
+  const lastLine = () => banc.getState().journal.map((e) => e.texte).slice(-1)[0];
   /** Met un héros hors d'action par la couture des États (LDB 16 l.113). */
   const ko = (h: Combatant): Combatant => { const c = structuredClone(h); addCondition(c, 'inconscient'); return c; };
 
@@ -775,9 +775,9 @@ describe('Activité SOUTENABLE — Planification (l.81 : « peut aider au Test �
     expect(mbState().assignment).toEqual({ planification: [b] });
     banc.getState().fenetreFermer('batailleDeMasse');
     expect(banc.getState().massBattle).not.toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.preparationDeBataille'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('jet.ferme.preparationDeBataille'));
     banc.getState().fenetreValider('batailleDeMasse');
-    expect([mbState().phase, banc.getState().journal.slice(-1)[0]]).toEqual(['prep', t('jet.ferme.preparationDeBataille')]);
+    expect([mbState().phase, banc.getState().journal.map((e) => e.texte).slice(-1)[0]]).toEqual(['prep', t('jet.ferme.preparationDeBataille')]);
   });
 
   it('aucun autre PJ posté → meneur SEUL', () => {
@@ -924,7 +924,7 @@ describe('Budget PARTAGÉ (C2b) — ADE II 8 l.65 : « comme à l\'accoutumée, 
     // …et une Activité d'interlude normale l'est aussi (source de budget UNIQUE), refus dit.
     pratiquer(banc.getState, hero, 'revenus');
     expect(pending()).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(`${banc.getState().party[0].label} n’a plus d’Activité d’interlude.`);
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(`${banc.getState().party[0].label} n’a plus d’Activité d’interlude.`);
   });
 
   it('les Scènes de Round (`battle === \'round\'`) ne consomment PAS le budget d\'interlude', () => {
@@ -1045,7 +1045,7 @@ describe('Aléa & fermeture', () => {
     enRound();
     banc.getState().fenetreChoisir('batailleDeMasse', 'alea', 'peur');
     geste();
-    expect([mbState().hazard?.label, banc.getState().journal.slice(-1)[0]]).toEqual(['Peur', raison()]);
+    expect([mbState().hazard?.label, banc.getState().journal.map((e) => e.texte).slice(-1)[0]]).toEqual(['Peur', raison()]);
   });
 
   it('coop : le choix de l’aléa est à l’hôte, refusé à l’invité, dans son état comme à la route', () => {
@@ -1060,7 +1060,7 @@ describe('Aléa & fermeture', () => {
   it('refuse et le dit : un tirage hors Round', () => {
     start();
     banc.getState().fenetreChoisir('batailleDeMasse', 'alea', null);
-    expect([mbState().hazard, banc.getState().journal.slice(-1)[0]]).toEqual([undefined, t('mbf.aleaHorsRound')]);
+    expect([mbState().hazard, banc.getState().journal.map((e) => e.texte).slice(-1)[0]]).toEqual([undefined, t('mbf.aleaHorsRound')]);
   });
 
   it('la sortie de la bataille de masse la ferme', () => {
@@ -1077,7 +1077,7 @@ describe('Aléa & fermeture', () => {
     banc.getState().fenetreFermer('batailleDeMasse');
     expect(banc.getState().massBattle, 'le Test lit la bataille jusqu’à son issue').not.toBeNull();
     expect(pending()).toEqual(pa);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(`Le Test « ${pa.label} » est en cours : terminez-le avant de clore la bataille.`);
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(`Le Test « ${pa.label} » est en cours : terminez-le avant de clore la bataille.`);
   });
 });
 

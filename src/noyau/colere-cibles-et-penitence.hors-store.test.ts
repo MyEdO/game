@@ -89,7 +89,7 @@ describe('Colère des dieux — 41-45 « Votre cause est indigne » (LDB 40 l.64
     banc.setState({ journal: [] });
     benir(pretre.id, allie.id, 45);
     expect(heros(allie.id).wounds.current).toBe(avant);
-    expect(banc.getState().journal.join('\n')).toMatch(/échoue automatiquement/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/échoue automatiquement/);
 
     // Autre divinité : la Bénédiction passe.
     const ulric = structuredClone(heros(pretre.id));
@@ -147,7 +147,7 @@ describe('Colère des dieux — 76-80 « Vous avez péché contre moi » (LDB 40
 
     castSpell(banc.getState, banc.setState, reluDans(banc.getState, H), reluDans(banc.getState, E), 'arme-aethyrique');
     expect(banc.getState().pendingCast).toBeNull();
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/Test de Prière pour son Action/);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/Test de Prière pour son Action/);
     castSpell(banc.getState, banc.setState, reluDans(banc.getState, H), reluDans(banc.getState, H), GUERISON);
     expect(banc.getState().pendingCast?.spellId).toBe(GUERISON);
   });

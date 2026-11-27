@@ -29,7 +29,7 @@ const worldMap: WorldMap = {
 
 let banc: Banc;
 const g = () => banc.getState();
-const dernier = () => g().journal[g().journal.length - 1];
+const dernier = () => g().journal[g().journal.length - 1]?.texte;
 const gestes = () => lieuEnVue(g())?.services.map((s) => [s.id, s.gestes.map((x) => [x.geste.verbe, x.refus])]);
 
 beforeEach(() => {

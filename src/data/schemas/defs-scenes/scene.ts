@@ -57,7 +57,6 @@ import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, INSTANCIABLE_PAR_ID } 
 import { listeCle, ouvrirPortees } from '../grammaire/collection-cle';
 import { listeSansCle } from '../grammaire/liste-sans-cle';
 import { proseNommee } from '../grammaire/prose';
-import { findCreatureById } from '../../index';
 import { porteurDuProfil } from '../../../engine/trappingChoices';
 import { chargeLArme } from '../../../engine/items';
 import { capDecorAdmis } from '../props.types';
@@ -217,14 +216,14 @@ export type InventaireDAuteur = z.input<typeof inventaireDAuteurSchema>;
 
 /** La faute d'un personnage porté à un parcours de carrière (`parcoursDe`), `undefined` s'il est admis ou n'en porte
  *  pas : un parcours part d'un profil du Bestiaire (`creature`), sans statbloc ni preset, et la carrière actuelle
- *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`, au porteur du profil (`porteurDuProfil`).
- *  Des choix de carrière sans carrière sont refusés. */
-export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string }; appearance?: { tenue?: string } }): string | undefined {
+ *  l'habille, sans tenue d'auteur (EDO 11 l.19) ; puis `refusDuParcours`, au porteur du profil de la créature de `cat`
+ *  (`porteurDuProfil`). Des choix de carrière sans carrière sont refusés. */
+export function refusDuPnjDeCarriere(ent: Partial<ParcoursDeCarriere> & { statblock?: unknown; presetId?: string; creature?: { id: string }; appearance?: { tenue?: string } }, cat: Catalogue): string | undefined {
   const parcours = parcoursDe(ent);
   if (!parcours) return ent.talentsDeCarriere || ent.competencesDeCarriere || ent.dotationsDeCarriere ? 'choix de carrière sans carrière' : undefined;
   if (ent.statblock || ent.presetId || !ent.creature) return 'un PNJ de carrière part d’un profil du Bestiaire (« creature »), sans statbloc ni preset';
   if (ent.appearance?.tenue) return 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur';
-  return refusDuParcours(parcours, porteurDuProfil(findCreatureById(ent.creature.id) ?? {}));
+  return refusDuParcours(parcours, porteurDuProfil(entreeDe('creatures', ent.creature.id, cat) ?? {}));
 }
 
 /** Un élément de `combat.optionals` d'une entité de scène (`LDB 76 l.45`) : un Trait posé, ou une note « swap » du
@@ -313,17 +312,18 @@ export interface FauteDEntite { chemin: readonly (string | number)[]; message: s
 
 /** Les fautes CROISÉES de l'entité `ent` sous `cat`, que le raffinement de sa branche de `sceneEntitySchema` dit au parse,
  *  et que l'éditeur refuse à l'écriture (`sceneAvecLEntite`) : le type NOMMÉ (`porteurAbsent`, #877, #1882) ; d'un
- *  personnage, un corps au plus, le parcours de carrière (`refusDuPnjDeCarriere`), le cap cardinal d'un navire à ponts
- *  de `cat` (`estUnNavireAPonts`, #3772) et chaque munition du coffre d'un poste que sa pièce de `cat` charge
- *  (`chargeLArme`) ; d'un décor, son calage dans sa case (#3731), le cap d'un décor volumique (#1680 ligne 3 :
- *  `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au registre généré, `porteLeMarqueur`). Source unique. */
+ *  personnage, un corps au plus, le parcours de carrière au profil de sa créature de `cat` (`refusDuPnjDeCarriere`), le
+ *  cap cardinal d'un navire à ponts de `cat` (`estUnNavireAPonts`, #3772) et chaque munition du coffre d'un poste que sa
+ *  pièce de `cat` charge (`chargeLArme`) ; d'un décor, son calage dans sa case (#3731), le cap d'un décor volumique
+ *  (#1680 ligne 3 : `capDecorAdmis`, la sous-liste lue au régime vivant, sinon au registre généré, `porteLeMarqueur`).
+ *  Source unique. */
 export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] & Pick<z.output<typeof baseDEntiteSchema>, 'facing'> & Partial<Record<CorpsDuPersonnage | 'decor', { id: string }>> & { kind: string; calage?: { x: number; y: number }; postes?: readonly Pick<z.input<typeof authoredShipPosteSchema>, 'engin' | 'ammo' | 'selectedAmmo'>[] }, cat: Catalogue): FauteDEntite[] {
   const absence = porteurAbsent(ent);
   const fautes: FauteDEntite[] = absence ? [{ chemin: [regleDuType(ent.kind)!.porteurs[0]], message: absence }] : [];
   if (ent.kind === 'personnage') {
     const corps = CLES_DU_CORPS.filter((k) => ent[k] !== undefined);
     if (corps.length > 1) fautes.push({ chemin: [corps[1]], message: `corps EXCLUSIFS — ${corps.map((k) => `« ${k} »`).join(', ')} : un personnage en porte un au plus` });
-    const carriere = refusDuPnjDeCarriere(ent);
+    const carriere = refusDuPnjDeCarriere(ent, cat);
     if (carriere) fautes.push({ chemin: ['carrieres'], message: carriere });
     if (estUnNavireAPonts(ent.vehicule?.id, cat) && ent.facing && !estCardinal(ent.facing))
       fautes.push({ chemin: ['facing'], message: `navire « ${ent.vehicule?.id} » au cap ${ent.facing} — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` });
@@ -349,7 +349,7 @@ export function refusDeLEntite(ent: Parameters<typeof refusDuPnjDeCarriere>[0] &
 /** La branche d'entité `branche`, raffinée de chaque faute de `refusDeLEntite` sous le catalogue jugé, dite à son champ. */
 const avecSesFautes = <S extends z.ZodType<Parameters<typeof refusDeLEntite>[0]>>(branche: S): S =>
   affinerAvecCatalogues(branche, (lire) => {
-    const cat = lire.catalogueLu('vehicle', 'engin', 'trapping');
+    const cat = lire.catalogueLu('vehicle', 'engin', 'trapping', 'creature');
     return (ent, ctx) => {
       for (const f of refusDeLEntite(ent, cat())) ctx.addIssue({ code: 'custom', path: [...f.chemin], message: f.message });
     };
@@ -360,7 +360,7 @@ const avecSesFautes = <S extends z.ZodType<Parameters<typeof refusDeLEntite>[0]>
  *  (`CLES_DU_CORPS`, #1882, #2968). Le raffinement d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', {}, {}),
-  avecSesFautes(brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } })),
+  avecSesFautes(brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional(), veilleLesMalades: z.literal(true).optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } }, veilleLesMalades: { label: "veille les malades" } })),
   avecSesFautes(brancheDuDecor),
 ]);
 

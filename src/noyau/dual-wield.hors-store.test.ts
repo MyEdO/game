@@ -549,7 +549,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
   const charges = (id: string) => { const c = vivant(id); return c.weapons.filter((w) => w.type === 'distance').map((w) => weaponLoaded(c, w)); };
 
   const deuxPistolets = () => [objet('pistolet', 'p1'), objet('pistolet', 'p2')] as const;
-  const coupsPortes = (id: string) => g().battle!.log.filter((l) => l.actorId === id && /touche|manque|rate son attaque/.test(l.text));
+  const coupsPortes = (id: string) => g().battle!.log.filter((l) => l.actorId === id && /touche|manque|rate son attaque/.test(l.entree.texte));
 
   it('ennemi à deux pistolets contre des héros non surfacés : deux tirs, les deux pistolets déchargés, −10 aux défenses, +1 Avantage quand les deux touchent', () => {
     arene(ennemiAuTalent(), ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 1);
@@ -559,14 +559,14 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
     expect(g().pendingDualStrike, 'la machine ne tient aucune fenêtre').toBeNull();
     expect(charges('e')).toEqual([false, false]);
     expect(e.dualStrikeDefensePenalty).toBe(-10);
-    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(coupsPortes('e').map((l) => /touche/.test(l.entree.texte))).toEqual([true, true]);
     expect(e.advantage).toBe(1);
   });
 
   it('la 2e frappe manque : aucun Avantage (LDB 10 l.773)', () => {
     arene(ennemiAuTalent(), ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 5);
     jouerLeTour('e');
-    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, false]);
+    expect(coupsPortes('e').map((l) => /touche/.test(l.entree.texte))).toEqual([true, false]);
     expect(charges('e')).toEqual([false, false]);
     expect(vivant('e').advantage).toBe(0);
   });
@@ -574,7 +574,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
   it('la 1re frappe manque : pas de 2e frappe, le pistolet secondaire reste chargé, −10 aux défenses quand même', () => {
     arene(ennemiAuTalent(), ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 36);
     jouerLeTour('e');
-    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([false]);
+    expect(coupsPortes('e').map((l) => /touche/.test(l.entree.texte))).toEqual([false]);
     expect(charges('e')).toEqual([false, true]);
     expect(vivant('e').dualStrikeDefensePenalty).toBe(-10);
     expect(aLaMain('e')).toBe(false);
@@ -608,7 +608,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
   it('épée et pistolet : la mêlée, puis le tir de la main secondaire', () => {
     arene(ennemiAuTalent(), objet('arme-simple', 'e1'), objet('pistolet', 'p2'), [herosAuto('h1', { x: 6, y: 5 }), herosAuto('h2', { x: 5, y: 8 })], 2);
     jouerLeTour('e');
-    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(coupsPortes('e').map((l) => /touche/.test(l.entree.texte))).toEqual([true, true]);
     expect(charges('e'), 'le pistolet secondaire a tiré').toEqual([false]);
     expect(vivant('e').dualStrikeDefensePenalty).toBe(-10);
     expect(vivant('e').advantage).toBe(1);
@@ -629,7 +629,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
         g().jetValider('defense');
         poursuivre('e');
       }
-      expect(coupsPortes('e').map((l) => /touche/.test(l.text)), surface ? 'surfacé' : 'non surfacé').toEqual([true, true, true]);
+      expect(coupsPortes('e').map((l) => /touche/.test(l.entree.texte)), surface ? 'surfacé' : 'non surfacé').toEqual([true, true, true]);
       expect(aLaMain('e')).toBe(false);
     }
   });
@@ -640,7 +640,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
     h.conditions = [{ id: 'sonne', stacks: 1 } as any];
     arene(ennemiAuTalent(), objet('arme-simple', 'e1'), objet('dague', 'd2'), [h], 2);
     jouerLeTour('e');
-    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(coupsPortes('e').map((l) => /touche/.test(l.entree.texte))).toEqual([true, true]);
     expect(vivant('e').advantage, 'Sonnée ×2, les deux touchent ×1').toBe(3);
   });
 
@@ -650,7 +650,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
     arene(e, ...deuxPistolets(), [herosAuto('h1', { x: 5, y: 8 }), herosAuto('h2', { x: 6, y: 8 })], 2);
     vivant('e').characteristics.dexterite = 0;
     jouerLeTour('e');
-    expect(coupsPortes('e').map((l) => /touche/.test(l.text))).toEqual([true]);
+    expect(coupsPortes('e').map((l) => /touche/.test(l.entree.texte))).toEqual([true]);
     expect(vivant('e').loadouts![0].secondaire).toBeUndefined();
     expect(aLaMain('e')).toBe(false);
   });
@@ -663,7 +663,7 @@ describe('Maniement de deux armes de la machine (LDB 10 l.767-773 ; LDB 14 l.138
     arene(mkHero({ pos: { x: 5, y: 5 } }), ...deuxPistolets(), [f1, f2], 1, [objet('balle-et-poudre', 'bp', { equipped: false, qty: 5 })]);
     jouerLeTour('h');
     expect(g().pendingDualStrike).toBeNull();
-    expect(coupsPortes('h').map((l) => /touche/.test(l.text))).toEqual([true, true]);
+    expect(coupsPortes('h').map((l) => /touche/.test(l.entree.texte))).toEqual([true, true]);
     expect(charges('h')).toEqual([false, false]);
     expect(vivant('h').items!.find((i) => i.uid === 'bp')?.qty).toBe(3);
   });

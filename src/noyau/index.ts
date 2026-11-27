@@ -29,6 +29,7 @@ export {
 } from '../engine/types';
 export { formatMoney, fromBrass, libelleDuStatut, PA_PER_CO, toBrass, type Money } from '../engine/money';
 export type { Applique, FaitApplique } from '../engine/faits';
+export { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export {
   dayIndex,
@@ -406,6 +407,7 @@ export {
   entiteDeLaSelection,
   ficheEditee,
   FACES_D_ARETE,
+  ficheDePersonnage,
   fichesDePersonnage,
   libelleDeStructure,
   lumiereAllumee,
@@ -534,7 +536,7 @@ export {
   type SavedProject,
 } from './persistance/bibliotheque';
 export { ProjetRefuse, lieuDuGroupe, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';
-export { designeGaranti, rollLine } from './ligneDeJet';
+export { rollLine } from './ligneDeJet';
 export { refusDeConsommer } from './consumableFlow';
 export { estOperation } from './acteDeSoin';
 export type { DoctrineId } from './monde/ai';

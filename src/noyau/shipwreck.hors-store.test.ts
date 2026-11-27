@@ -121,7 +121,7 @@ describe('beginShipwreck — cascade de survie (héros pilotés par un humain, d
     const rapport = get().document?.text ?? '';
     expect(rapport.split('\n\n').length).toBeGreaterThan(1);
     expect(rapport).not.toMatch(/[^\n]\n[^\n]/);
-    expect(get().journal.join('\n')).toContain('— NAUFRAGE —');
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('— NAUFRAGE —');
     expect(get().partyWiped).toBeFalsy();             // au moins un rescapé
   });
 
@@ -298,7 +298,7 @@ describe('beginShipwreck — repli IA/rafale (aucun pilote humain à bord) : inl
     expect(get().pendingCascade).toBeNull(); // pas de cascade : résolu inline, comme aujourd'hui
     expect(get().party[0].dead).toBeFalsy();
     expect(get().document?.title).toBe('Naufrage');
-    expect(get().journal.join('\n')).toContain('— NAUFRAGE —');
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('— NAUFRAGE —');
   });
 });
 
@@ -314,7 +314,7 @@ describe('voyage — une coque à 0 Blessure navigue (MDG 13 l.656, l.674)', () 
     runSeaDay(get, set);
     expect(get().vessel).not.toBeNull();
     expect(get().document?.title).not.toBe('Naufrage');
-    expect(get().journal.join('\n')).not.toContain('— NAUFRAGE —');
+    expect(get().journal.map((e) => e.texte).join('\n')).not.toContain('— NAUFRAGE —');
     expect(get().travelPlan, 'la traversée continue').not.toBeNull();
   });
 

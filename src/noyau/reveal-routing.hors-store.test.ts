@@ -83,7 +83,7 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
     expect(steps).toHaveLength(0);
     // Dégâts d'Hémorragique data-driven (effects onRoundEnd → wounds) : le journal porte la ligne
     // générique « subit N Blessure(s) (ignorant BE et PA) ».
-    expect(banc.getState().battle!.log.some((e) => /subit \d+ Blessure/i.test(e.text))).toBe(true);
+    expect(banc.getState().battle!.log.some((e) => /subit \d+ Blessure/i.test(e.entree.texte))).toBe(true);
   });
 
   it('État récurrent sur un HÉROS → modale de Round avec SA ligne, sans les lignes ennemies', () => {

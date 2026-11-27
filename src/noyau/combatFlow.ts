@@ -3253,7 +3253,7 @@ function delierLeHorsDeCombat(get: Get, cible: Combatant): void {
 function journaliserLeCoup(get: Get, set: SetFn, battle: BattleState | null, lignes: CombatEvent[], acted: boolean): void {
   if (battle) set({ battle: { ...battle, acted, action: null, log: [...battle.log, ...lignes] } });
   else {
-    journaliser(get, set, lignes.map((l) => l.text));
+    journaliser(get, set, lignes.map((l) => l.entree.texte));
     set(touchActors(get()));
   }
 }
@@ -6776,7 +6776,7 @@ function runCastFlow(get: Get, set: SetFn, target: Combatant, caster: Combatant,
   const certaines = certainFlowOps(flow);
   const sansObjet = certaines ? reussiteSansObjet(target, certaines, withSpell) : null;
   runCombatFlow({ get, set, target, caster, label: withSpell.label ?? nomDe(caster), opsCtx: withSpell }, flow);
-  return [...(sansObjet ? [sansObjet] : []), ...drainPendingLog(get, set).map((e) => e.text)];
+  return [...(sansObjet ? [sansObjet] : []), ...drainPendingLog(get, set).map((e) => e.entree.texte)];
 }
 
 /** L'ÉTAT DE FENÊTRE d'une touche de Projectile (#1508) — ce que l'appelant doit savoir pour décider
@@ -7741,7 +7741,7 @@ function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Comb
     if (c.dead) continue;
     for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { idNeuf: get().forgerUnId, rng: battleRng(), label: a.label });
   }
-  inlineLines.push(...drainPendingLog(get, set).map((e) => e.text));
+  inlineLines.push(...drainPendingLog(get, set).map((e) => e.entree.texte));
   for (const c of combattants) {
     if (!followsCharacterRules(c) || c.dead) continue; // #143 : RAW « Personnage » (LDB 18 l.5, LDB 20 l.14/206) — les créatures génériques et les défaits n'ont pas de jet de maladie/Corruption de fin de combat
     const decided = decideCombatEndHeroTests(c, corr?.level ?? null);

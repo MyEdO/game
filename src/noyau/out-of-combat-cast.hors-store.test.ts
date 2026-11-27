@@ -58,7 +58,7 @@ describe('Incantation hors combat (couture D)', () => {
     expect(after).toBe(before + 1); // +1 PB (effet modélisé : parseHeal)
     expect(banc.getState().pendingCast).toBeNull();
     expect(banc.getState().battle).toBeNull(); // resté hors combat
-    expect(banc.getState().journal.some((l) => /Bénédiction de Guérison|Blessure/.test(l))).toBe(true);
+    expect(banc.getState().journal.some((l) => /Bénédiction de Guérison|Blessure/.test(l.texte))).toBe(true);
   });
 
   it('un Projectile magique (« Fléchette ») est refusé hors combat (offensif → combat-only)', () => {
@@ -97,6 +97,6 @@ describe('Incantation hors combat (couture D)', () => {
     expect(after.focus?.spell).toBe('arme-aethyrique'); // accumulation enregistrée sur le héros (id stable)
     expect(banc.getState().pendingFocus).toBeNull();
     expect(banc.getState().battle).toBeNull();
-    expect(banc.getState().journal.some((l) => /Focalis/i.test(l))).toBe(true);
+    expect(banc.getState().journal.some((l) => /Focalis/i.test(l.texte))).toBe(true);
   });
 });

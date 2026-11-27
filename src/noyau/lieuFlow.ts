@@ -21,8 +21,8 @@ export function arriverAuLieu(set: Set, to: MapPlace): void {
   set({ lieu: to.id, lieuOuvert: true });
 }
 
-/** Le groupe quitte son lieu pour la route. */
-export const quitterLeLieu = { lieu: null, lieuOuvert: false } as const;
+/** Le groupe quitte son lieu et sa scène pour la route. */
+export const quitterLeLieu = { lieu: null, lieuOuvert: false, enSceneDepuis: null } as const;
 
 /** Les services du lieu où se tient le groupe (`placeServices`, à l'offre de repos de la scène du lieu) ; aucun hors de
  *  tout lieu. */
@@ -100,13 +100,14 @@ export function choixDuLieu(get: Get, set: Set) {
   } satisfies Partial<CorpsDesChoix>;
 }
 
-/** « Explorer » : l'écran se ferme sur la scène du lieu, où le groupe entre s'il n'y est pas. */
+/** « Explorer » : l'écran se ferme sur la scène du lieu, où le groupe entre s'il n'y est pas, ou se tient de nouveau. */
 export function sortiesDuLieu(get: Get, set: Set) {
   return {
     ecranDuLieu: () => {
       const ici = lieuDuGroupe(get());
-      set({ lieuOuvert: false });
-      if (ici && get().scene?.id !== ici.scene.id) get().quitterLaScene(ici.scene.id, ici.entry);
+      const resteIci = !!ici && get().scene?.id === ici.scene.id;
+      set({ lieuOuvert: false, ...(resteIci ? { enSceneDepuis: get().enSceneDepuis ?? get().gameTime } : {}) });
+      if (ici && !resteIci) get().quitterLaScene(ici.scene.id, ici.entry);
     },
   } satisfies Partial<SortiesDeFenetre>;
 }

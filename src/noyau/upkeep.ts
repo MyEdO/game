@@ -1,15 +1,17 @@
 /**
  * Entretien QUOTIDIEN du groupe (#T2/#T3) — source unique, anti-double-comptage.
  *
- * « Tout est horodaté » : chaque chemin qui avance l'horloge (avancerLeTemps, repos, voyage) appelle
- * `runDailyUpkeep`, qui traite les FRANCHISSEMENTS DE JOUR entre `lastUpkeepDay` et le jour courant
- * — une journée n'est jamais comptée deux fois, quel que soit le chemin emprunté.
+ * « Tout est horodaté » : `runDailyUpkeep` traite les FRANCHISSEMENTS DE JOUR entre `lastUpkeepDay` et le jour
+ * courant — une journée n'est jamais comptée deux fois, quel que soit le chemin emprunté. Ses appelants : le pas
+ * d'horloge (`preparerLEntretienQuotidien`, `horloge.ts`), la nuit (`buildNightCascade`) et le sommeil d'office
+ * (`sleepParty`, `restFlow.ts`) ; le voyage DIFFÈRE l'entretien à la cascade de nuit (plus bas).
  *
  * Par journée écoulée et par héros (#T3 — cascade RAW) :
  *  1. repas sur le garde-manger du jour, la cale du navire à bord en mer, le sac (LDB 66 l.20) sinon, ou faim
  *     (LDB 18 l.337-343) — cf. `engine/provisions` ;
  *  2. progression des MALADIES (LDB 20 : incubation/durée en jours CALENDAIRES, repos ou pas) —
- *     `dailyDiseaseUpkeep` (+ soins d'un soignant du groupe, LDB 09 l.265) ;
+ *     `dailyDiseaseUpkeep` (+ soins d'un soignant du groupe ou d'un veilleur de la scène où le groupe se tient
+ *     depuis le début de la journée soldée, `enSceneDepuis`, `veilleursDeLaScene`, LDB 09 l.265) ;
  *  3. CONVALESCENCE des Blessures critiques (LDB 18 l.222 : « un nombre de jours égal à 30 – votre Bonus d'Endurance »,
  *     calendaire) — `tickTraumaRecovery`.
  *  4. effets déclenchés d'HORLOGE authorés en DONNÉE (`onDayStart`, et `onWake` le jour d'une nuit
@@ -25,7 +27,8 @@
  * de nuit.
  *
  * Importe le moteur, les données, l'i18n et, du noyau : `battleRng`, `rollSeam`, le bus d'horloge (`clockHooks`, `bus`,
- * `flowTypes`), les porteurs à bord (`shipCrew`) et `pendings`.
+ * `flowTypes`), les porteurs à bord (`shipCrew`), `pendings` et les PNJ de la scène (`monde/sceneNpc`,
+ * `monde/resolveursDuNarratif`).
  */
 import { battleRng } from './battleRng';
 import { porteursABord, tickCampaignVesselWeek } from './shipCrew';
@@ -51,6 +54,8 @@ import { rule } from '../engine/policy';
 import { tickTraumaRecovery } from '../engine/trauma';
 import { applyOps } from '../engine/ops';
 import { fireClockTriggers } from './clockHooks';
+import { veilleursDeLaScene } from './monde/sceneNpc';
+import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { bus, EVT } from './bus';
 
 import type { Get, Set } from './flowTypes';
@@ -167,11 +172,6 @@ export function purgeAdventureEffects(get: Get, set: Set): string[] {
   return expiredLog;
 }
 
-/** Traite les journées écoulées depuis le dernier entretien (rations/faim, maladies, convalescence)
- *  + purge des effets d'horloge. No-op (hors purge) si aucun franchissement de jour. Appelé par
- *  avancerLeTemps, le repos et le voyage.
- *  RENVOIE les lignes du bilan : chaque appelant les AFFICHE (révélation témoin / bilan de nuit /
- *  recap de voyage) — le journal seul ne suffit pas (personne ne le lit). */
 /** Un Test de Résistance d'entretien DIFFÉRÉ, prêt à devenir une étape de cascade de nuit. */
 export interface DeferredUpkeepTest {
   heroId: string;
@@ -197,6 +197,11 @@ export interface DeferredUpkeepTest {
   meta?: Record<string, unknown>; // p.ex. { diseaseName, opsEchec: GameOp[] } — porté tel quel jusqu'à l'applier
 }
 
+/** Traite les journées écoulées depuis le dernier entretien (rations/faim, maladies, convalescence)
+ *  + purge des effets d'horloge. No-op (hors purge) si aucun franchissement de jour. Appelé par le pas
+ *  d'horloge (`preparerLEntretienQuotidien`), la nuit (`buildNightCascade`) et le sommeil d'office (`sleepParty`).
+ *  RENVOIE les lignes du bilan : chaque appelant les AFFICHE (révélation témoin / bilan de nuit /
+ *  recap de voyage) — le journal seul ne suffit pas (personne ne le lit). */
 export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; onDeferTest: (t: DeferredUpkeepTest) => void }): LigneDEntretien[] {
   // Dissipations d'effets d'horloge : au FRANCHISSEMENT de jour, elles font partie du rapport
   // visible (hors franchissement — rythme combat — le journal et les icônes d'État suffisent).
@@ -208,8 +213,13 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
   const last = get().lastUpkeepDay;
   if (today <= last) return [];
   const party = get().party;
+  const { scene, campaignNarratif, enSceneDepuis } = get();
+  const veilleurs = veilleursDeLaScene(scene, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif));
   // LDB 09 l.265
-  const soigne = (patient: Combatant) => party.some((h) => h !== patient && peutTenter(h, { skill: { id: HEAL_SKILL } }));
+  const soigne = (patient: Combatant, d: number) => {
+    const present = enSceneDepuis !== null && enSceneDepuis <= (d - 1) * MINUTES_PER_DAY;
+    return [...party, ...(present ? veilleurs : [])].some((h) => h !== patient && peutTenter(h, { skill: { id: HEAL_SKILL } }));
+  };
   const lines: LigneDEntretien[] = [];
   let rations = 0;
   // À bord en mer, l'eau vient des tonneaux du navire (`vessel.waterLitres`) et les vivres de sa cale
@@ -274,7 +284,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
       // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (maladie-mode off).
       if (rule('maladie-mode') !== 'off') {
         const peutDeclarer = incubation && ((maladieId: string) => incubation(h.id, maladieId));
-        lines.push(...lignesDEntretien(dailyDiseaseUpkeep(h, battleRng(), defer, soigne(h), peutDeclarer), h.id));
+        lines.push(...lignesDEntretien(dailyDiseaseUpkeep(h, battleRng(), defer, soigne(h, d), peutDeclarer), h.id));
       }
       // 3. Convalescence des Blessures critiques (LDB 18 — jours calendaires, #T3).
       lines.push(...lignesDEntretien(tickTraumaRecovery(h, 1, defer), h.id));

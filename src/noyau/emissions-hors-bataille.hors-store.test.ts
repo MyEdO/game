@@ -9,7 +9,7 @@ import { testScene } from '../scenes/test-fixture';
 import { armeDeTest } from '../engine/objetsDeTest.testkit';
 import { addCondition, hasCondition } from '../engine/conditions';
 import { resetRule, setRule } from '../engine/policy';
-import { markFixedDie } from './fixedDieMark';
+import { ligneDeTexte } from '../engine/journal';
 import { t as tr } from '../i18n';
 import { nomDe } from '../engine/nom';
 
@@ -52,6 +52,6 @@ describe('émissions du coup encaissé hors bataille (#3984)', () => {
     const s = banc.getState();
     expect(s.battle).toBeNull();
     expect(s.party.find((c) => c.id === demon.id)!.dead).toBe(true);
-    expect(s.journal).toContain(markFixedDie(tr('op.bannissement', { name: nomDe(demon) })));
+    expect(s.journal).toContainEqual({ ...ligneDeTexte(tr('op.bannissement', { name: nomDe(demon) })), deFixe: true });
   });
 });

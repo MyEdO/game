@@ -88,7 +88,7 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
           .toMatchObject({ type: 'bouton', refus: motif, jeu: { type: 'jetLancer', args: ['cascade'] } });
       }
       get().jetLancer('cascade');
-      expect(get().journal.slice(-1), 'refus local').toEqual([motif]);
+      expect(get().journal.map((e) => e.texte).slice(-1), 'refus local').toEqual([motif]);
       const refus: string[] = [];
       appliquerLIntentionDUnSiege(get, 1, 'jetLancer', ['cascade'], (texte) => refus.push(texte));
       expect(refus, 'refus rendu à l’invité').toEqual([motif]);
@@ -122,9 +122,9 @@ describe('Enfoncer une porte à plusieurs (objet BE/B, jets indépendants)', () 
     expect(fenetreADessiner(avant)?.gestes.find((geste) => geste.cle === cle)?.raison).toBe(motifDeSiege);
     expect(fenetreADessiner(invite)?.gestes.find((geste) => geste.cle === cle)?.raison).toBe(motifDAttente);
     get().jetLancer('cascade');
-    expect(get().journal.slice(-1), 'refus de l’appel local direct').toEqual([motifDeSiege]);
+    expect(get().journal.map((e) => e.texte).slice(-1), 'refus de l’appel local direct').toEqual([motifDeSiege]);
     expect(appliquerLIntentionDUnSiege(get, 0, 'jetLancer', ['cascade'])).toBe('refusee');
-    expect(get().journal.slice(-2)).toEqual([motifDeSiege, motifDeSiege]);
+    expect(get().journal.map((e) => e.texte).slice(-2)).toEqual([motifDeSiege, motifDeSiege]);
     const refus: string[] = [];
     appliquerLIntentionDUnSiege(get, 1, 'jetLancer', ['cascade'], (texte) => refus.push(texte));
     expect(refus).toEqual([motifDAttente]);

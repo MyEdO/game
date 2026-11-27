@@ -22,6 +22,7 @@ import { stripBookMarker, hasBookMarker } from '../data/bookMarker';
 import { combatStakeRef, resolveStake } from '../data';
 import { findTableEntry, deDeLaTableTiree } from '../engine/tables';
 import { setDesFixes, resetDesFixes } from '../engine/fixedDie';
+import { ligneDeTexte } from '../engine/journal';
 import { intentAllowedFor } from './netOwnership';
 import { setDataset, datasetArray } from '../data/overrides';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
@@ -270,10 +271,10 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     banc.getState().jetImposerLeResultat('cascadeTirage', 48, 'tm');
     expect(curStep().table!.result).toMatchObject({ roll: 48, die: 58, id: 'haute' });
     expect(curStep().fixed, 'la provenance « dé fixé » vit sur l’étape (rangée + journal)').toBe(true);
-    // JOURNAL : la mention suit le jet tant que le slot est ouvert (couture unique `fixedDieMark`).
+    // JOURNAL : l’entrée écrite tant que le slot est ouvert porte `deFixe`.
     banc.getState().ecrireAuJournal('Conséquence du tirage');
     const journal = banc.getState().journal;
-    expect(journal[journal.length - 1]).toContain('(dé fixé)');
+    expect(journal[journal.length - 1]).toEqual({ ...ligneDeTexte('Conséquence du tirage'), deFixe: true });
   });
 
   it('une SAISIE que la table ne peut pas résoudre est ramenée à ses faces utiles (jamais une levée en pleine modale)', () => {

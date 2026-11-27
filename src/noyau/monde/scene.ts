@@ -93,6 +93,8 @@ export interface SceneEntity {
   creature?: { id: string };
   vehicule?: { id: string };
   engin?: { id: string };
+  /** PERSONNAGE : soignant de la scène pour les malades du groupe qui s'y tiennent (`veilleursDeLaScene`). LDB 09 l.265 */
+  veilleLesMalades?: true;
   /** Profil personnalisé (sinon on utilise le corps). */
   statblock?: CustomStatblock;
   /** Id d'un preset de PNJ nommé du bloc `narratif.presetsPnj` (#671). Présent = l'entité est

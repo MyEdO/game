@@ -78,7 +78,7 @@ describe('Approche sous Peur (store)', () => {
     const battle = banc.getState().battle!;
     expect(battle.combatants.find((c) => c.id === H.id)?.pos).toEqual({ x: 11, y: 10 });
     expect(battle.fearGate).toBe('passed');
-    expect(battle.log.some((ligne) => ligne.kind === 'peur' && ligne.text?.includes(sceau.label) && !ligne.targetId)).toBe(true);
+    expect(battle.log.some((ligne) => ligne.kind === 'peur' && ligne.entree.texte?.includes(sceau.label) && !ligne.targetId)).toBe(true);
   });
 
   it('le déplacement du porteur ouvre une seule bande et cesse d’en ouvrir le symbole rangé', () => {
