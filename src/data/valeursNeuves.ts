@@ -44,6 +44,7 @@ export function recast(cond: Condition, kind: Condition['kind']): Condition {
     case 'navire': return cond.kind === 'navire' ? cond : { kind: 'navire', who: ACTEUR };
     case 'hiddenFromFoes': return { kind: 'hiddenFromFoes' };
     case 'engaged': return { kind: 'engaged' };
+    case 'allieAuContact': return cond.kind === 'allieAuContact' ? cond : { kind: 'allieAuContact', tel: CONDITION_TOUJOURS };
     case 'crewTest': return { kind: 'crewTest' };
     case 'roundDeCombat': return { kind: 'roundDeCombat' };
     case 'nearestFoe': return cond.kind === 'nearestFoe' ? cond : { kind: 'nearestFoe', op: '<=', value: 3 };

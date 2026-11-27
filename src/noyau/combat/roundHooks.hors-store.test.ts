@@ -25,7 +25,7 @@ const ctx = (combatants: Combatant[]): CombatHookCtx => {
   // sans tirer le RNG (pas de condition/Brisé/zone) → se-fatiguer obtient bien le 1ᵉʳ tirage seedé.
   const battle = { combatants, zones: [], round: 1 } as never;
   const net = { mode: 'local', mySeat: 0 }; // `humanControlled` (se-fatiguer) lit `pilotedByHuman` (mode local → contrôlé)
-  return { get: (() => ({ battle, scene: undefined, net })) as never, set: (() => {}) as never, battle, sink: () => {} };
+  return { get: (() => ({ battle, scene: undefined, net, pendingLogQueue: [] })) as never, set: (() => {}) as never, battle, sink: () => {} };
 };
 
 beforeEach(() => { ouvrirLeBanc(); });

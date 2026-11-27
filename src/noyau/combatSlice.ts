@@ -66,6 +66,7 @@ import {
   advanceTurn,
   resolveRoundBoundary,
   enterRoundStartPause,
+  bornerLaSequenceOuverte,
   lancerLeRound,
   inFiringBand,
   maybeRunEnemyTurn,
@@ -317,6 +318,7 @@ import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat, refuserAuSiegeAgissant } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
+import { fireRoundStartTriggers } from './combat/roundHooks';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglageNomme, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
@@ -1886,20 +1888,19 @@ export function createCombatSlice(get: Get, set: Set) {
       };
       if (battle.advantagePools) mirrorPools(battle.advantagePools, all); // projette la réserve de départ sur chaque combattant
       // Repart d'aucune modale de jet héritée d'un combat/contexte précédent.
-      // Ouverture = pause de début du Round 1 (pendingRoundStart) : champ visible, ordre d'Initiative dans la
-      // frise, pré-emption « agir en premier » (Chance, #12a) — IA gelée. Un seul bouton « Commencer le combat »
-      // (pas de phase « plan d'ensemble » séparée : c'était redondant avec la pause de Round).
       // Un combat MET DEBOUT ceux qu'il enrôle : un PNJ attablé qui devient combattant ne peut pas
       // rester assis sur sa place — ni le MENEUR, qui entre au combat depuis sa chaise. Fondu dans
       // l'écriture de pose du combat — donc avant toute capture de mutation, et sans une seconde
       // écriture de scène. `all` = tous les participants, groupe compris.
       const deboutScene = releaseSeatsOfCombatants(get().scene, all, get().party);
       get().marquerUnCombatOuvert();
-      set({ ...resetFields('combatStart'), battle, mode: 'battle', pendingRoundStart: { round: battle.round }, scene: deboutScene });
+      set({ ...resetFields('combatStart'), battle, mode: 'battle', scene: deboutScene });
+      // Les lignes des effets d'ouverture partent au journal de combat.
+      const auJournal = (line: string, c?: Combatant) => { battle.log.push(ev('detail', line, c?.id)); };
       // Effets « début de combat » authorés de chaque combattant (inerte tant qu'aucune donnée ne porte
-      // un effet `onCombatStart`) — APRÈS la pose du `battle`, journalisés dans le journal de combat.
+      // un effet `onCombatStart`) — APRÈS la pose du `battle`.
       emitCombatEvent('onCombatStart', {
-        get, set, battle, sink: (line, c) => battle.log.push(ev('detail', line, c?.id)),
+        get, set, battle, sink: auJournal,
         audience: battle.combatants.filter((c) => !isOutOfAction(c)),
         triggerCtx: { rng: battleRng() },
       });
@@ -1913,11 +1914,18 @@ export function createCombatSlice(get: Get, set: Set) {
       // sont effrayées à l'ouverture d'une embuscade sous l'orage — MÊME dispatcher onStartled/'noise'.
       startleOnStormAtCombatStart(get, set);
       // Surprise APRÈS la pose du `battle` : le Test du guetteur est cadence-aware (héros manuel → cascade
-      // influençable, qui s'OUVRE par-dessus la pause d'ouverture ; embusqué ennemi → inline dans le journal).
+      // influençable, qui s'ouvre AVANT la pause d'ouverture ; embusqué ennemi → inline dans le journal).
       // COUCHE MER : la Surprise ne pose PAS l'État Surpris (une coque n'a ni Action ni psychologie — ce serait un
       // « tour gratuit de créature ») ; elle se traduit en AVANTAGE DE POSITION (l'assaillant a eu le temps de se
       // placer : entrée plus PRÈS + bord déjà aligné). Repérés (Perception réussie) → placement authoré (~150 m).
       if (doSurprise) { if (isMerScene(scene)) applyNavalSurprisePosition(get, set, enc.surprise!); else applySurprise(get, set, enc.surprise!); }
+      // Début du Round 1, après la Surprise (LDB 13 l.21-23) : effets « début de Round » (Régénération, Stupide…), par le
+      // chemin du franchissement (`fireRoundStartTriggers`). La pause de début de Round (LDB 17 l.25 :
+      // frise d'Initiative, pré-emption) n'est posée qu'une fois la séquence d'ouverture close (borne `roundBoundary`),
+      // comme aux Rounds suivants.
+      fireRoundStartTriggers(get, set, battle, auJournal);
+      bornerLaSequenceOuverte(get, set, 'roundBoundary');
+      if (!get().pendingCascade) enterRoundStartPause(get, set);
       get().orienterLesCombattants();
       bus.emit(EVT.SCENE_DIRTY);
     },

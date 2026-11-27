@@ -6,7 +6,8 @@
 import { describe, expect, it } from 'vitest';
 import type { z } from 'zod';
 import { CHAMPS_A_CHOIX, CHAMPS_RESERVES, conditionSchema, gameOpSchema, mecaniqueDe, OPS_NON_TYPEES } from './mecanique';
-import { noeudDuChamp } from '../validate';
+import { noeudDuChamp, schemaForFile } from '../validate';
+import traitsJson from '../../traits.json';
 import { rangee as signeAstrologique } from '../defs/stars';
 
 /** Le tableau d'ops du champ `passive` de `talents.json`, tel que son def le déclare. */
@@ -129,5 +130,30 @@ describe('fin d’une affliction ciblée — `endPsych.instance` et Condition `c
     const effets = noeud('psychology.json', 'effects');
     expect(effets.safeParse(siPlusEnVue({ kind: 'cibleEnVue' }, { ...finDInstance, type: { id: 'haine' } })).success).toBe(false);
     expect(effets.safeParse(siPlusEnVue({ kind: 'cibleEnVue' }, { op: 'endPsych' })).success).toBe(false);
+  });
+});
+
+describe('Condition `allieAuContact` réservée aux `effects` de Trait, au début du Round (LDB 85 l.335)', () => {
+  const guide = { kind: 'allieAuContact', tel: { kind: 'not', of: { kind: 'has', who: 'target', what: 'trait', ref: { id: 'stupide' } } } };
+  const effet = (trigger: string) =>
+    [{ trigger, on: 'soi', flow: { kind: 'si', condition: { kind: 'not', of: guide }, alors: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'loseTurn' }] } } } }];
+  const stupide = (traitsJson as { id: string }[]).find((t) => t.id === 'stupide')!;
+  const parse = (trigger: string) => schemaForFile('traits.json')!.safeParse([{ ...stupide, effects: effet(trigger) }]);
+
+  it('contrat positif : ADMISE dans les `effects` d’un Trait sur `onRoundStart`', () => {
+    expect(parse('onRoundStart').success).toBe(true);
+  });
+
+  for (const trigger of ['onRoundEnd', 'onHit']) {
+    it(`test opposé : REFUSÉE sur \`${trigger}\`, par un refus qui la nomme`, () => {
+      const refus = parse(trigger);
+      expect(refus.success).toBe(false);
+      expect(refus.error?.issues.some((i) => i.message.includes('allieAuContact') && i.message.includes(trigger))).toBe(true);
+    });
+  }
+
+  it('test opposé : REFUSÉE par la famille fermée et hors des Traits', () => {
+    expect(conditionSchema.safeParse(guide).success).toBe(false);
+    for (const file of ['talents.json', 'psychology.json']) expect(noeud(file, 'effects').safeParse(effet('onRoundStart')).success).toBe(false);
   });
 });

@@ -30,6 +30,9 @@ import { zonesRoundTick } from '../monde/zones';
 import { objetDuNarratif } from '../monde/resolveursDuNarratif';
 import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
+import { drainPendingLog } from '../combatEffects';
+import { emitCombatEvent } from '../combatEvents';
+import { inBattleId } from '../monde/combatants';
 import { collectRoundEndTestSteps } from './triggeredTest';
 import { touchActors } from '../combatOrParty';
 import { traitAuras } from '../../engine/traits/dispatch';
@@ -43,8 +46,9 @@ import { avantageApresPerte } from '../../engine/advantage';
 import { combatStakeRef } from '../../data';
 import { t, deElide } from '../../i18n';
 import type { Combatant, ActiveEffect } from '../../engine/types';
+import type { BattleState } from '../etat';
 import type { CascadeStep } from '../pendings';
-import type { Get } from '../flowTypes';
+import type { Get, Set as SetFn } from '../flowTypes';
 import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
@@ -57,10 +61,21 @@ const PERCEPTION: TestDesigne = { skill: { id: 'perception' } };
 const RESISTANCE: TestDesigne = { skill: { id: 'resistance' } };
 
 // ============================================================================================
-// Séquence RAW de franchissement de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés
-// tel quel, `ctx.sink` remplaçant la `tickLine` locale, `ctx.get` le `get`). Les `order` reflètent la
-// position d'origine → ordre + RNG préservés (golden byte-pour-byte).
+// Séquence de franchissement de Round : crochets `onRoundEnd` ordonnés par `order`, que le golden
+// `roundBoundary.golden.hors-store.test.ts` fige (ordre et tirages).
 // ============================================================================================
+
+/** DÉBUT DE ROUND, chemin UNIQUE du Round 1 (`lancerLeCombat`) et du franchissement (crochet `fire-round-start-triggers`) :
+ *  pour chaque combattant en action, `onRoundStart` émis par le bus (#316) pour lui seul, puis les lignes que ses Flows ont
+ *  mises en file différée (`enfilerAuJournal`) — le journal suit l'ordre des porteurs. Un hors-combat n'y réagit pas : le
+ *  dispatcher autorise `on:'soi'` sur un hors-combat. */
+export function fireRoundStartTriggers(get: Get, set: SetFn, battle: BattleState, sink: (line: string, c?: Combatant) => void): void {
+  for (const c of battle.combatants) {
+    if (isOutOfAction(c)) continue;
+    emitCombatEvent('onRoundStart', { get, set, battle, audience: [c], sink, triggerCtx: { rng: battleRng() } });
+    for (const e of drainPendingLog(get, set)) sink(e.entree.texte, inBattleId(battle, e.actorId ?? '') ?? c);
+  }
+}
 
 /** Aux Armes (AA 07 l.5) : un combattant à 0 PB porteur de l'État Hémorragique (et pas déjà Inconscient / hors
  *  d'action) doit tester sa Résistance chaque Round sous peine de tomber Inconscient. Prédicat PARTAGÉ par le
@@ -302,21 +317,11 @@ export const TABLES = {
       },
     },
     {
-      id: 'fire-round-start-triggers', // effets « début de Round » authorés (Régénération…) — dispatcher générique (RNG)
+      id: 'fire-round-start-triggers', // effets « début de Round » authorés du Round qui s'ouvre (`fireRoundStartTriggers`)
       phase: 'onRoundEnd',
       order: 25,
-      run: ({ get, set, battle, sink }) => {
-        for (const c of battle.combatants) {
-          if (isOutOfAction(c)) continue; // pas de réaction « début de Round » pour un hors-combat (le dispatcher
-          for (const line of fireTriggers(get, c, 'onRoundStart', { rng: battleRng(), set })) sink(line, c); // autorise on:'self' sur un hors-combat → filtré ici)
-        }
-      },
+      run: ({ get, set, battle, sink }) => fireRoundStartTriggers(get, set, battle, sink),
     },
-    // Instable (LDB 85 l.199) MIGRÉ en DONNÉES : trait `instable` effects onRoundEnd — `if engagedAdvantageGap
-    // > 0` → wounds {engagedAdvantageGap} (perd la différence d'Avantage) puis `if woundsCurrent<=0` → banish
-    // {narration:'unravel'} (« se délite »). La valeur relationnelle est calculée par le dispatcher, sans hook dédié.
-    // Bestial (LDB 85 l.59) « peur du feu → gagne Brisé » MIGRÉ en données : trait `bestial` effects
-    // onRoundEnd (if En Flammes ∧ pas déjà Brisé → condition Brisé), dispatché par le dispatcher unique.
     {
       // Auras de combat — machinerie GÉOMÉTRIQUE GÉNÉRIQUE : projette les `passive` de toute `TraitData.aura`
       // (Perturbant : −20 aux Tests à BE mètres, LDB 85 l.260-262) sur les combattants à portée, accumulés dans

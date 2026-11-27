@@ -2329,7 +2329,6 @@ export const fr = {
   // Cible d'individu sans nom connu (`libelleDeCible`, `engine/psych/ciblage.ts`).
   'cible.personneDeLaScene': 'une personne de la scène',
   'cible.personneChoisie': 'une personne choisie',
-  'cf.stupidite': '{name} (Stupide) bave et regarde dans le vide — Mouvement et Action perdus.',
   'cs.focusCrit': '{name} — Focalisation CRITIQUE : {spell} est lançable au prochain Round (NI 0) !',
   'cs.focusHarmonized': "Harmonisation aethyrique : le contrecoup est maîtrisé (pas d'Imparfaite).",
   'cs.focusEnough': '{name} a focalisé assez de magie pour lancer {spell} (NI 0).',
@@ -4826,6 +4825,8 @@ export const fr = {
   'codex.c.hiddenFromFoes.non': "la cible n'est pas cachée de l'ennemi",
   'codex.c.engaged': 'la cible est engagée avec un ennemi',
   'codex.c.engaged.non': "la cible n'est pas engagée avec un ennemi",
+  'codex.c.allieAuContact': 'un allié au contact vérifie : {tel}',
+  'codex.c.allieAuContact.non': "aucun allié au contact ne vérifie : {tel}",
   'codex.c.crewTest': "il s'agit d'un Test d'équipage",
   'codex.c.crewTest.non': "ce n'est pas un Test d'équipage",
   'codex.c.roundDeCombat': 'pendant un Round de combat',

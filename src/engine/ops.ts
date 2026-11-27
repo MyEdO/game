@@ -120,7 +120,7 @@ import { gainAdvantage as gainAvantage, avantageApresGain, avantageApresPerte } 
 // Type-only (effacé à la compilation) : la FORME unifiée des effets « à la touche » d'une arme
 // enchantée/invoquée = un `TriggeredEffect` (feuille EffectOp — noyau engine pur, jamais de transition),
 // dispatché par `noyau/triggeredEffects` (pas ici).
-import type { TriggeredEffect } from './flowCore';
+import type { ActorView, TriggeredEffect } from './flowCore';
 import {
   EffectSource,
   CHAR_LABELS,
@@ -650,6 +650,8 @@ export interface OpsCtx {
    *  ne voit l'acteur (`hiddenFromFoes`), acteur Engagé (`engaged`), distance au plus proche (`nearestFoeDist`).
    *  Résolvent les Conditions `hiddenFromFoes`/`engaged`/`nearestFoe`. */
   hiddenFromFoes?: boolean;
+  /** Les alliés au contact du porteur — résolvent la Condition `allieAuContact`. Précalculés par le dispatcher de combat. */
+  alliesAuContact?: ActorView[];
   engaged?: boolean;
   nearestFoeDist?: number;
   /** Gain de Corruption de `cible` AVEC seuil → mutation (`noyau/corruptionFlow.crochetsDeCorruption`) ;
@@ -821,7 +823,7 @@ export const OPS_CTX_GELES = [
   'defaultDurationRounds', 'defaultUntilTime', 'now', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
   'noReentryOwnTestFailed', 'woundsDealt', 'rolled', 'indice', 'stacks', 'engagedAdvantageGap',
   'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'affliction', 'cibleEnVue',
-  'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'weapon', 'centreDeZone',
+  'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'alliesAuContact', 'weapon', 'centreDeZone',
 ] as const;
 /** PAR RÉFÉRENCE : des Combattants — leur ID voyage, l'état les redonne (`actorIn`/`coqueParId`). */
 export const OPS_CTX_PAR_REFERENCE = ['caster', 'hull', 'crew'] as const;
