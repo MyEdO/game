@@ -1,6 +1,6 @@
 /**
  * L'ÉDITEUR DE CAMPAGNE (#4411) : son cadre commun aux deux documents, le projet de La Diligence, ses documents, les
- * gestes de sa barre ; sa validation (`src/hote/editeur.ts:190-689`). Pas d'écran : `editeur-de-scene.ts` et
+ * gestes de sa barre ; sa validation (`src/hote/editeur.ts:190-690`). Pas d'écran : `editeur-de-scene.ts` et
  * `editeur-carte-du-monde.ts` le composent.
  */
 import type { Editeur } from './maquette.ts';

@@ -32,7 +32,7 @@ const DATASET_DE_LA_CLE = new Map(Object.values(DATASET_DE_L_ESPACE).map((d) => 
 
 /** La collection du dataset `K` dans `cat`, au bout de son chemin (`suivreLeChemin`) ; un document absent se lit comme
  *  une collection vide. */
-function collectionDe<K extends CleDeListe>(cle: K, cat: Catalogue): CollectionDuDataset[K] {
+export function collectionDuCatalogue<K extends CleDeListe>(cle: K, cat: Catalogue): CollectionDuDataset[K] {
   const { fichier, chemin } = DATASET_DE_LA_CLE.get(cle)!;
   return (suivreLeChemin(Reflect.get(cat, fichier), chemin) ?? AUCUNE) as CollectionDuDataset[K];
 }
@@ -44,7 +44,7 @@ const indexDe = memoParIdentiteEtDeps<readonly { readonly id: string }[], Readon
 /** L'entrée `id` du dataset `cle` de `cat`, `undefined` si aucune. */
 export function entreeDe<K extends CleDeListe>(cle: K, id: string | null | undefined, cat: Catalogue): EntreeDuDataset<K> | undefined {
   if (id == null) return undefined;
-  const collection: readonly EntreeDuDataset<K>[] = collectionDe(cle, cat);
+  const collection: readonly EntreeDuDataset<K>[] = collectionDuCatalogue(cle, cat);
   const index = indexDe(collection, [cat], () => new Map(collection.map((e) => [e.id, e])));
   return index.get(id) as EntreeDuDataset<K> | undefined;
 }

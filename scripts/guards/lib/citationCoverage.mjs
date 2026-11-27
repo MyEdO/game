@@ -12,10 +12,10 @@ const { SANS_LIVRE_DEFINITIF } = await import('../../../src/data/schemas/grammai
 // Module ESM pur, exécutable par `node` nu — consommé par `scripts/data/audit-citations.mjs`
 // (rapport) ET par `src/data/citation-coverage-guard.test.ts` (verrou cliquet).
 
-/** Une entrée cite sa source si `source.book` (forme `sourceRefSchema`, `src/data/schemas/grammaire/valeurs.ts:38`),
+/** Une entrée cite sa source si `source.book` (forme `sourceRefSchema`, `src/data/schemas/grammaire/valeurs.ts:339`),
  *  le champ `maison` non vide top-level (il porte SA justification : rationale +
  *  réfs dans le texte même, ex. `proue-idole-de-stromfels` #221, EST la source de l'entrée), ou
- *  `alsoIn` porte au moins un emplacement bien formé (forme `secondarySourceRefSchema`, `src/data/schemas/grammaire/valeurs.ts:66`
+ *  `alsoIn` porte au moins un emplacement bien formé (forme `secondarySourceRefSchema`, `src/data/schemas/grammaire/valeurs.ts:375`
  *  — #563 : l'ancre `source` reste la forme retenue, mais un `alsoIn` seul ne doit JAMAIS compter
  *  « non cité » si un futur schéma le rend co-porteur ; réfuté par `!Array.isArray(rec.source)` qui
  *  ne voit QUE l'ancre — trou permissif inverse : une entrée sans ancre valide mais avec des
@@ -82,7 +82,7 @@ function estTableTiree(v) {
  *   `ranges` imbriqués ne comptent pas). Une propriété DIRECTE nœud `{ die, entries }` compte ses
  *   `entries` comme une telle catégorie (`land-cargo.json.rumeurs`).
  * - `single` : objet de config unique — cité si sa RACINE porte `source` (convention
- *   documentée `src/data/schemas/grammaire/valeurs.ts:49-54` : "à la racine quand le dataset est un objet de config unique
+ *   documentée `src/data/schemas/grammaire/valeurs.ts:350-355` : "à la racine quand le dataset est un objet de config unique
  *   plutôt qu'une liste" — couvre alors TOUT le fichier, y compris les tableaux/sous-tables
  *   imbriqués, ex. `river-criticals.json.tables`). Sans racine citée ET sans
  *   tableau à convention par-entrée, le fichier entier est UNE entrée non citée.
@@ -118,7 +118,7 @@ export function auditDataset(data) {
     return { total, cited, missing, shape: 'array' };
   }
   if (estObjet(data)) {
-    // La RACINE citée prime (convention documentée `src/data/schemas/grammaire/valeurs.ts:49-54`) : elle couvre tout le
+    // La RACINE citée prime (convention documentée `src/data/schemas/grammaire/valeurs.ts:350-355`) : elle couvre tout le
     // fichier, y compris les tableaux/sous-tables imbriqués (`river-criticals.json.tables`…) — même quand une valeur scalaire annexe (`crew-morale.json.base`) est la seule
     // réellement visée par cette réf précise, le fichier est considéré couvert.
     if (isCitedItem(data)) return { total: 1, cited: 1, missing: [], shape: 'single' };

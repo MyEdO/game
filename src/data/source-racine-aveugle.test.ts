@@ -9,7 +9,7 @@ import { auditDataset } from '../../scripts/guards/lib/citationCoverage.mjs';
  * `auditDataset` (`scripts/guards/lib/citationCoverage.mjs:83`) donne la PRIORITÉ à la racine : dès
  * qu'un objet racine porte `source`/`_source`/`maison`, le verdict est `{ total: 1, cited: 1 }` et le
  * fichier ENTIER est réputé couvert — sous-tables comprises. C'est la convention documentée pour un
- * objet de config unique (`src/data/schemas/grammaire/valeurs.ts:49-54`), et c'est exactement ce qui
+ * objet de config unique (`src/data/schemas/grammaire/valeurs.ts:350-355`), et c'est exactement ce qui
  * la rend dangereuse pour un dataset dont les VRAIES citations vivent PAR ENTRÉE : poser une source
  * racine sur l'un d'eux ferait sortir toutes ses sous-entrées du dénominateur de la garde de
  * couverture, sans qu'aucun test ne rougisse.

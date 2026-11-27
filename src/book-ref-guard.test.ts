@@ -72,7 +72,7 @@ const CHAMP_DE_PROVENANCE = 'provenances';
  * défaut interne […] — jamais un affichage »). Leur texte n'est pas muet : un `throw` du noyau remonte
  * au CANAL DE DÉFAUT des hôtes — `envoyerLIntention` (`src/hote/geste.ts:150`) le relaie en
  * `ErreurDeGeste` « `<verbe>` a levé : … », que le serveur texte (`hotes/texte/serveur.ts:84`) et le
- * pont Godot (`hotes/godot/pont/pont.ts:2360`) rendent. Ce canal porte une VIOLATION D'INVARIANT (un
+ * pont Godot (`hotes/godot/pont/pont.ts:2362`) rendent. Ce canal porte une VIOLATION D'INVARIANT (un
  * producteur qui manque à sa garantie, une forme impossible), pas une phrase de jeu : le refus qu'un
  * joueur doit lire passe par le catalogue (`t()`, balayé sans dispense) ou par l'`ErreurDeGeste` que
  * l'hôte compose lui-même (périmètre `hôtes`, balayé sans dispense). La dispense est donc juste pour

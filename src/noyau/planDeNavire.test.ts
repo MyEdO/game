@@ -20,6 +20,7 @@ import { piedDuDecor } from './monde/poseDuDecor';
 import { facesDuDecor } from './monde/volume/propVolumes';
 import { walkReachableFrom } from './monde/path';
 import { vehicles } from '../data';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 import { estAbsent, terrainAbsent } from './monde/terrain';
 import { edgeKey } from './monde/facades';
 import { aretesDeLaCouche, aretesDeLaScene, masqueDuRegard, plateauDeLaScene } from './monde/aretes';
@@ -74,8 +75,8 @@ describe('les ponts se dérivent de l’entité du navire (#3686)', () => {
   });
 
   it('un navire à ponts n’est offert qu’aux caps cardinaux, à toute échelle : changer d’échelle ne fait pas un navire de biais', () => {
-    expect(capsOfferts(authored('O').entities[0])).toEqual(['N', 'E', 'S', 'O']);
-    expect(capsOfferts(authored('O', 10).entities[0])).toEqual(['N', 'E', 'S', 'O']);
+    expect(capsOfferts(authored('O').entities[0], catalogueDuProcessus())).toEqual(['N', 'E', 'S', 'O']);
+    expect(capsOfferts(authored('O', 10).entities[0], catalogueDuProcessus())).toEqual(['N', 'E', 'S', 'O']);
     expect(() => authored('NE', 10)).toThrow(/navire « caraque » au cap NE/);
   });
 

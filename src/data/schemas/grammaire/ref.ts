@@ -409,11 +409,18 @@ type LecturesDeLaSpecialisation = {
 
 export type LecturesDuRaffinement = {
   readonly catalogue: (type: TypeEntite, site?: string) => LecturesDeCatalogue;
-  /** Déclare les espaces de `types`, et rend l'accès PARESSEUX au catalogue jugé (`catalogueDeLaFenetre`). */
-  readonly catalogueLu: (...types: readonly TypeEntite[]) => () => Catalogue;
+  /** Déclare les espaces de `lus` (un type d'entité, ou un document du `Catalogue` qu'aucun type ne désigne), et rend
+   *  l'accès PARESSEUX au catalogue jugé (`catalogueDeLaFenetre`). */
+  readonly catalogueLu: (...lus: readonly (TypeEntite | DocumentDuCatalogue)[]) => () => Catalogue;
   readonly specialisations: (type: TypeEntite) => LecturesDeSpecialisations;
   readonly specialisation: (type: TypeEntite, id: string) => LecturesDeLaSpecialisation;
 };
+
+/** Un document du `Catalogue` par sa clé de fichier, inscrite telle quelle au registre (`lireCleDEspace`). */
+type DocumentDuCatalogue = Extract<keyof Catalogue, `${string}.json`>;
+
+/** Aucun `TypeEntite` ne finit par `.json`. */
+const estDocumentDuCatalogue = (lu: TypeEntite | DocumentDuCatalogue): lu is DocumentDuCatalogue => lu.endsWith('.json');
 
 type SpecialisationsLues = { readonly espace: string; readonly id?: string };
 type DependancesDuRaffinement = {
@@ -440,8 +447,8 @@ export function raffinementDeCatalogue<V = unknown>(
         porteLeMarqueur: (marqueur) => porteLeMarqueur(type, marqueur),
       };
     },
-    catalogueLu: (...types) => {
-      for (const type of types) espaces.add(espaceDe(type));
+    catalogueLu: (...lus) => {
+      for (const lu of lus) espaces.add(estDocumentDuCatalogue(lu) ? lu : espaceDe(lu));
       return catalogueDeLaFenetre;
     },
     specialisations: (type) => {

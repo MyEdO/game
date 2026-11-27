@@ -78,7 +78,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
 - En haut à droite, le cartouche « Regard » : « Isométrique », « Dessus », « Première personne », le regard tenu doré,
   et sa touche (V, exemple : la touche par défaut de `changer_de_regard`, `hotes/godot/projet/project.godot:52`).
 - Verbes : ceux de `exploration-gestes`. Le regard se change par la méthode du pont `regarder({ regard })`
-  (`hotes/godot/pont/pont.ts:1667`), l'un de `REGARDS` = `tactique`, `plateau`, `immersion`
+  (`hotes/godot/pont/pont.ts:1668`), l'un de `REGARDS` = `tactique`, `plateau`, `immersion`
   (`src/noyau/monde/aretes.ts:125`) ; la touche joue `plateau.regardSuivant` (`src/noyau/monde/aretes.ts:269`,
   `hotes/godot/projet/scripts/combat.gd:464`). Aucun verbe à créer : le regard est un état de l'hôte, pas du noyau
   (à l'hôte web : `toggleViewMode`, `togglePov`, `src/state/store.ts:248`).
@@ -120,7 +120,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
   dans la fenêtre du bas les quatre héros, en liste (quatre choix), Aldric armé, plaque « Désigner ». Aucune sortie : la fenêtre reste
   tant qu'un héros vivant n'est pas désigné.
 - Verbe : `fenetreChoisir('designationHeros','heros', id)` (`src/noyau/campagne.ts:57-73`). Libellés
-  `fenetre.designationHeros`, `verbe.designationHeros.heros` (`src/i18n/messages/fr.ts:451`, `:302`).
+  `fenetre.designationHeros`, `verbe.designationHeros.heros` (`src/i18n/messages/fr.ts:470`, `:319`).
 - RAW : EDO 02 l.89-91.
 - À valider : carte puis plaque, quand le verbe désigne d'un seul geste ; le bandeau à cartes repris du combat.
 
@@ -138,7 +138,7 @@ document en carton au-dessus du bandeau ; la carte dessinée à la plume.
   « Indice » et « Nouveau », « Épingler », la dernière lecture (« L'affidavit ») et les lectures précédentes
   (« L'héritage », manuscrite), prose verbatim du paquet (EDO 02, Documents 3 et 4) ; croix de sortie.
 - Verbes : `epinglerLIndice(indiceId, epingle)`, `marquerLesIndices(affiches)` (`src/noyau/campagne.ts:13-29`) ;
-  `carnet.nouveau` (`src/i18n/messages/fr.ts:1811`).
+  `carnet.nouveau` (`src/i18n/messages/fr.ts:1814`).
 - À créer : un lecteur `carnetEnVue` (affaires, indices visibles, stades, épingle, nouveauté), aucun lecteur d'hôte
   ne sert le carnet ; `relireLeDocument(documentId)` pour la boîte « Documents remis ».
 - À valider : rail et page de parchemin plutôt que le livre ouvert du Compendium (son gabarit vit dans

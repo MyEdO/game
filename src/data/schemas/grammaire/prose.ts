@@ -14,7 +14,9 @@ import { z } from 'zod';
 import { descRefSchemaDe, sourceRefSchema, type GenreDeFragment } from './valeurs';
 import { enfantsDe, type PointDeDonnee } from './descente';
 import { marquerProduit } from './interne/produits';
-import { estExtrait } from './livres-extraits';
+import { entreeDe } from '../catalogue/catalogue';
+import { estLivreExtrait } from '../source/livre-extrait';
+import { raffinementDeCatalogue } from './ref';
 import { PROSE_INLINE_TOLEREE } from './prose-inline';
 import { PROSES_NOMMEES, type CheminProseDeScene, type ProseNommee } from './champs-prose-de-scene';
 import { nommerChamps, metaDesChamps, type MetaDesChamps } from './meta';
@@ -46,7 +48,7 @@ export function proseNommee<S extends z.ZodRawShape, C extends CheminProseDeScen
     ...(definition.regime === 'narration' ? champAdapteDe() : {}),
   }) as ChampsNommes<C>;
   const compose = marquerProduit(schema.extend(champs), 'proseNommee', chemin, schema.shape);
-  const avecProse = definition.porteur === 'adresse' ? compose.superRefine(refineProse({ type: 'projet', exigeProse: true })) : compose;
+  const avecProse = definition.porteur === 'adresse' ? compose.check(refineProse({ type: 'projet', exigeProse: true })) : compose;
   const resultat = definition.regime === 'narration' ? avecProse.superRefine(refineAdapteDe) : avecProse;
   nommerChamps(resultat, { ...metaDesChamps(schema, { exigees: true }), ...(definition.porteur === 'adresse' ? META_PROSE : { source: { label: 'source' } }), [definition.champ]: { label: definition.label, texte: { regime: definition.regime } }, ...(definition.regime === 'narration' ? META_ADAPTE_DE : {}) } as MetaDesChamps<typeof resultat.shape>);
   declarationsNommees.add(resultat, { chemin });
@@ -90,7 +92,7 @@ interface NoeudProse {
 }
 
 /**
- * Les cinq verrous de la prose, à poser en `superRefine` PRÉ-sceau sur le nœud qui la porte.
+ * Les cinq verrous de la prose, contrôle de catalogue (`raffinementDeCatalogue`, livres de `cat`) à poser en `check` PRÉ-sceau sur le nœud qui la porte.
  *
  * V1 EXCLUSIVITÉ — `desc` et `descRef` ensemble : deux porteurs pour un texte.
  * V2 RÉSOLUBILITÉ — une adresse dans un livre sans extraction FR sur disque ne rend rien.
@@ -106,58 +108,61 @@ interface NoeudProse {
  * V5 PORTEUR — un site qui n'admet pas `desc` (`porteurs`) refuse toute prose inline, quel que soit le
  *     livre cité, extrait ou non.
  */
-export function refineProse(ctx: ContexteProse): (v: unknown, refine: z.RefinementCtx) => void {
+export function refineProse(ctx: ContexteProse): z.core.$ZodCheck<unknown> {
   const { type, exigeProse, porteurs } = ctx;
-  return (v, refine) => {
-    const n = (v ?? {}) as NoeudProse;
-    const aDesc = typeof n.desc === 'string' && n.desc.length > 0;
-    const adresse = n.descRef;
-    const livreAdresse = typeof adresse?.book === 'string' ? adresse.book : undefined;
-    const livreSource = typeof n.source?.book === 'string' ? n.source.book : undefined;
-
-    if (aDesc && adresse !== undefined) {
-      refine.addIssue({
-        code: 'custom',
-        path: ['descRef'],
-        message: 'texte en double : saisi ici et adressé au livre — garde l’un ou l’autre.',
-      });
-    }
-    if (adresse !== undefined && !estExtrait(livreAdresse)) {
-      refine.addIssue({
-        code: 'custom',
-        path: ['descRef', 'book'],
-        message: `passage introuvable : le livre « ${String(livreAdresse)} » n’est pas extrait.`,
-      });
-    }
-    if (adresse !== undefined && livreSource !== undefined && livreSource !== livreAdresse) {
-      refine.addIssue({
-        code: 'custom',
-        path: ['descRef', 'book'],
-        message: `la source cite « ${livreSource} », le passage adressé « ${String(livreAdresse)} » : une autre localisation va aux emplacements secondaires.`,
-      });
-    }
-    if (aDesc && estExtrait(livreSource) && !(type in PROSE_INLINE_TOLEREE)) {
-      refine.addIssue({
-        code: 'custom',
-        path: ['desc'],
-        message: 'texte recopié d’un livre extrait : adresse le passage au lieu de le recopier.',
-      });
-    }
-    if (aDesc && porteurs !== undefined && !porteurs.includes('desc')) {
-      refine.addIssue({
-        code: 'custom',
-        path: ['desc'],
-        message: 'texte saisi refusé : ce document adresse sa prose au livre, jamais inline.',
-      });
-    }
-    if (exigeProse && n.desc === undefined && adresse === undefined) {
-      refine.addIssue({
-        code: 'custom',
-        path: ['desc'],
-        message: 'texte obligatoire.',
-      });
-    }
-  };
+  return raffinementDeCatalogue((lire) => {
+    const cat = lire.catalogueLu('book');
+    return (v, refine) => {
+      const n = (v ?? {}) as NoeudProse;
+      const aDesc = typeof n.desc === 'string' && n.desc.length > 0;
+      const adresse = n.descRef;
+      const livreAdresse = typeof adresse?.book === 'string' ? adresse.book : undefined;
+      const livreSource = typeof n.source?.book === 'string' ? n.source.book : undefined;
+  
+      if (aDesc && adresse !== undefined) {
+        refine.addIssue({
+          code: 'custom',
+          path: ['descRef'],
+          message: 'texte en double : saisi ici et adressé au livre — garde l’un ou l’autre.',
+        });
+      }
+      if (adresse !== undefined && !estLivreExtrait(entreeDe('books', livreAdresse, cat()))) {
+        refine.addIssue({
+          code: 'custom',
+          path: ['descRef', 'book'],
+          message: `passage introuvable : le livre « ${String(livreAdresse)} » n’est pas extrait.`,
+        });
+      }
+      if (adresse !== undefined && livreSource !== undefined && livreSource !== livreAdresse) {
+        refine.addIssue({
+          code: 'custom',
+          path: ['descRef', 'book'],
+          message: `la source cite « ${livreSource} », le passage adressé « ${String(livreAdresse)} » : une autre localisation va aux emplacements secondaires.`,
+        });
+      }
+      if (aDesc && estLivreExtrait(entreeDe('books', livreSource, cat())) && !(type in PROSE_INLINE_TOLEREE)) {
+        refine.addIssue({
+          code: 'custom',
+          path: ['desc'],
+          message: 'texte recopié d’un livre extrait : adresse le passage au lieu de le recopier.',
+        });
+      }
+      if (aDesc && porteurs !== undefined && !porteurs.includes('desc')) {
+        refine.addIssue({
+          code: 'custom',
+          path: ['desc'],
+          message: 'texte saisi refusé : ce document adresse sa prose au livre, jamais inline.',
+        });
+      }
+      if (exigeProse && n.desc === undefined && adresse === undefined) {
+        refine.addIssue({
+          code: 'custom',
+          path: ['desc'],
+          message: 'texte obligatoire.',
+        });
+      }
+    };
+  });
 }
 
 /**
@@ -215,7 +220,7 @@ export function sourceHeritee(p: PointDeDonnee): Record<string | number, unknown
  * prose vit en rangée, AU MOMENT de sa migration (`defs/criticals.ts`, Lot C).
  */
 export function proseAdressable<S extends z.ZodObject<z.ZodRawShape>>(schema: S, ctx: ContexteProse): z.ZodObject<z.ZodRawShape> {
-  return marquerProduit(schema.extend(champsProse()), 'proseAdressable', ctx.type, schema.shape).superRefine(refineProse(ctx)) as unknown as z.ZodObject<z.ZodRawShape>;
+  return marquerProduit(schema.extend(champsProse()), 'proseAdressable', ctx.type, schema.shape).check(refineProse(ctx)) as unknown as z.ZodObject<z.ZodRawShape>;
 }
 
 /**

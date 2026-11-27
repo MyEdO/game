@@ -99,6 +99,7 @@ import {
   removeStation,
   setSceneMusic,
   setZoneJouable,
+  type EcritureDuPorteur,
   type PatchDeZone,
   type Pt,
 } from '../sceneEdit';
@@ -686,7 +687,7 @@ function avecLeLieuPatche(s: SessionDEdition, patch: (lieu: MapPlace) => PatchDe
  *  gardait pour lui (`calquesLus`), retirés s'ils sont d'un autre format ; `manifeste`, l'index des chapitres du
  *  `Source/` que l'hôte sert, sans aucun chapitre chargé ; `entreesDeFiche`, les entrées des fiches de dossier que
  *  l'hôte sert ; `catalogue`, le catalogue que l'hôte sert. */
-export function ouvrirLEdition(projet: ProjetDEdition, duDepot: boolean, gardes?: unknown, manifeste: Manifeste | null = null, entreesDeFiche: readonly EntreeNommee[] = [], catalogue: Catalogue = catalogueDuProcessus()): SessionDEdition {
+export function ouvrirLEdition(projet: ProjetDEdition, { duDepot, gardes, manifeste = null, entreesDeFiche = [] }: { duDepot: boolean; gardes?: unknown; manifeste?: Manifeste | null; entreesDeFiche?: readonly EntreeNommee[] }, catalogue: Catalogue = catalogueDuProcessus()): SessionDEdition {
   const calques = gardes === undefined ? {} : calquesLus(gardes);
   return {
     historique: historiqueDe({ projet, sceneId: projet.scenes[0].id }), document: 'scene', outil: { mode: 'selection' }, z: 0, pinceau: 1, rectangle: false, sel: null, geste: null, volee: [], brouillon: null, pointee: null, presse: null,
@@ -790,7 +791,7 @@ export const etageActif = (s: SessionDEdition): ArchitectureStorey | null => cor
 function contexte(s: SessionDEdition): ContexteDuPointeur {
   const outil = s.outil;
   const architecture = outil.mode === 'architecture' ? { z: s.z, action: outil.action === 'facade' ? 'facade' as const : 'selection' as const, bodyId: corpsActif(s)?.id ?? null } : null;
-  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' || outil.mode === 'lieu' || outil.mode === 'chemin' || outil.mode === 'epingler' ? { mode: 'selection' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
+  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' || outil.mode === 'lieu' || outil.mode === 'chemin' || outil.mode === 'epingler' ? { mode: 'selection' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture, catalogue: s.catalogue };
 }
 
 /** Si le clic de la session `s` tire une exclusion de toiture du corps actif. */
@@ -1117,18 +1118,18 @@ function revenir(s: SessionDEdition, sens: 'annuler' | 'retablir'): SessionDEdit
 export const cadreDeLaSession = (s: SessionDEdition): CadreDuPorteur => ({ scene: sceneEditee(s), projet: projetEdite(s), source: s.source, catalogue: s.catalogue });
 
 /** Ce qu'un geste écrit au formulaire d'un porteur, dans le cadre `cadre` : sa donnée écrite, ou son refus. */
-type EcritureDuPorteur = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
+type EcritureAuFormulaire = <S extends SorteDePorteur>(sorte: S, donnee: DonneeDuPorteur[S], cadre: CadreDuPorteur) => EcritureDeValeur<DonneeDuPorteur[S]>;
 
 /** Le projet édité de la session `s` où `ecriture` écrit au formulaire du porteur `porteur`, dans son cadre
  *  (`cadreDeLaSession`), par la table d'écriture de sa sorte (`ECRITURES_DES_PORTEURS`) sous son catalogue ; ou son refus, un porteur absent
  *  du projet (`porteurDuProjet`) n'offrant aucun chemin. */
-function projetAvecLaDonnee<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, ecriture: EcritureDuPorteur): EcritureDeValeur<ProjetDEdition> {
+function projetAvecLaDonnee<S extends SorteDePorteur>(s: SessionDEdition, porteur: { sorte: S; id: string }, ecriture: EcritureAuFormulaire): EcritureDeValeur<ProjetDEdition> {
   const projet = projetEdite(s);
   const sceneId = idDeLaSceneEditee(s);
   const avant = porteurDuProjet(accesDe(porteur.sorte), projet, sceneId, porteur.id)?.donnee;
   if (!avant) return { ok: false, refus: 'nonOffert' };
   const ecrite = ecriture(porteur.sorte, avant, cadreDeLaSession(s));
-  const table: { ecrire: (projet: ProjetDEdition, sceneId: string, avant: DonneeDuPorteur[S], apres: DonneeDuPorteur[S], cat: Catalogue) => EcritureDeValeur<ProjetDEdition> } = ECRITURES_DES_PORTEURS[porteur.sorte];
+  const table: EcritureDuPorteur<DonneeDuPorteur[S]> = ECRITURES_DES_PORTEURS[porteur.sorte];
   return ecrite.ok ? table.ecrire(projet, sceneId, avant, ecrite.valeur, s.catalogue) : ecrite;
 }
 
