@@ -6644,7 +6644,7 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   const oc = surincantationDuMoteur(get(), pc, caster, spell, next, pc.critChoice);
   set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
-  if (b) set({ battle: { ...b, log: [...b.log, ev('information', out.log, counter.id, caster.id)] } });
+  if (b) set({ battle: { ...b, log: [...b.log, ev('sort', out.log, counter.id, caster.id)] } });
   return true;
 }
 

@@ -86,7 +86,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     const journal = banc.getState().battle!.log;
     const [entree, ...autres] = entreesDuContreSort(banc.getState, H.id);
     expect(autres).toEqual([]);
-    expect(entree).toMatchObject({ kind: 'information', actorId: E.id, targetId: H.id });
+    expect(entree).toMatchObject({ kind: 'sort', actorId: E.id, targetId: H.id });
     expect(journal.filter((e) => e.entree.texte.includes(entree.entree.texte)), 'aucune autre entrée ne la recopie').toHaveLength(1);
     expect(journal.filter((e) => e.entree.texte.includes(ligneDuSort)), 'le Sort se dit une fois, sauf dissipé').toHaveLength(dissipe ? 0 : 1);
   });
