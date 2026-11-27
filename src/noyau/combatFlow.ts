@@ -9593,9 +9593,9 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
     if (checkBattleOver(get, set)) return;
     if (!ciblesDeStructureIA(get().battle!, enemy).length) return advanceTurn(get, set);
   }
-  // Combat monté (LDB 14 l.175-187) : un PNJ à pied, non Engagé, adjacent à une monture libre de son camp l'enfourche,
-  // au prix de son Mouvement entier, comme le verbe du joueur (`monterEnSelle`). Le groupe choisit sa monture hors
-  // combat (#4804).
+  // Combat monté (LDB 14 l.175-187) : un PNJ à pied, non Engagé, au Mouvement encore entier, adjacent à une monture
+  // libre de son camp, l'enfourche (`mountUp`) ; sa décision le tient ensuite pour sans Mouvement (`justMounted`). Le
+  // groupe choisit sa monture hors combat (#4804).
   let justMounted = false;
   if (!enemy.mountId && get().battle!.movementUsed === 0 && !isEngaged(enemy, battle.combatants) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
     const freeMount = mountableNear(get(), battle, scene, enemy);

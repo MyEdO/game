@@ -6,7 +6,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { idDe, ref, refs } from '../grammaire/ref';
 import { DECLARABLE_PAR_UN_PORTEUR } from '../grammaire/sousListes';
 import { document } from '../grammaire/document';
-import { mecaniqueDe, passifsDe, triggeredEffectSchema } from '../grammaire/mecanique';
+import { DECLENCHEURS_DU_RELEVE_DE_ROUND, mecaniqueDe, passifsDe, porteLaCondition } from '../grammaire/mecanique';
 
 export const file = 'traits.json';
 export const famille = 'entite';
@@ -181,7 +181,8 @@ const doc = document(
     specsOpen: z.boolean().optional(),
     /** LDB 48 l.23 */
     nonTransferable: z.boolean().optional(),
-    effects: z.array(triggeredEffectSchema).optional(),
+    /** `allieAuContact` (Stupide, LDB 85 l.335) n'y est admise qu'aux déclencheurs du relevé de Round (`affinerEntree`). */
+    effects: z.array(mecaniqueDe({ 'condition.allieAuContact': 'admis' }).triggeredEffect).optional(),
     grantsManeuvers: z.array(ref('maneuver')).optional(),
     /** Désignateur : `careerTalentAdditions` (`engine/talentEffects.ts`), déplié à l'avancement (`noyau/monde/advancement.ts`). */
     passive: passifsDe(mecaniqueDe({ 'grantCareerTalent.talent': 'specOuChoixFacultatifs' }).gameOp).optional(),
@@ -254,7 +255,17 @@ const doc = document(
     edit: { dataset: 'traits' },
   },
   /** LDB 85 l.94 ; LDB 85 l.209 ; LDB 85 */
-  { exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen', 'attaque', 'bfInclus', 'difficulte'] } },
+  {
+    exiges: ['desc', 'source'], variantes: VARIANT_RESOLVED_FIELDS, espace: { marqueurs: ['indice', 'parLocalisation', 'range', 'specsOpen', 'attaque', 'bfInclus', 'difficulte'] },
+    affinerEntree: (entree) =>
+      entree.superRefine((v, ctx) => {
+        for (const e of (v as { effects?: { trigger: string; flow: unknown }[] }).effects ?? []) {
+          if (porteLaCondition(e.flow, 'allieAuContact') && !(DECLENCHEURS_DU_RELEVE_DE_ROUND as readonly string[]).includes(e.trigger)) {
+            ctx.addIssue({ code: 'custom', message: `Condition « allieAuContact » sur le déclencheur « ${e.trigger} » : elle ne se résout qu'au relevé de Round (${DECLENCHEURS_DU_RELEVE_DE_ROUND.join(', ')}).` });
+          }
+        }
+      }),
+  },
 );
 
 export const schema = doc.schema;

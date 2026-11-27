@@ -3,13 +3,15 @@
  * (`advanceTurn`) et le premier tour d'un Round neuf (franchissement, pause de début de Round, `ouvrirLeRound`).
  */
 import type { Banc } from './banc.testkit';
+import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { advanceTurn } from './combatFlow';
 import { battleRng } from './battleRng';
 import { draineCascade } from './cascade.testkit';
 
-/** Tous les dés de combat (`battleRng`) au minimum (réussite) ou au maximum (échec). */
-export function desDeCombat(issue: 'reussite' | 'echec'): void {
-  battleRng().int = (min: number, max: number) => (issue === 'echec' ? max : min);
+/** Tous les dés de combat (`battleRng`) posés sur `n`, ramené à l'étendue de chaque dé (1 : réussite d'un d100, 100 :
+ *  échec). */
+export function deDeCombat(n: number): void {
+  battleRng().int = (min: number, max: number) => Math.min(max, Math.max(min, n));
 }
 
 /** Passe la main de `actifId` au combattant qui le suit dans l'ordre du Round, `suivantId` : le tour suivant du même
@@ -34,7 +36,7 @@ export function franchirLeRound(banc: Banc, ordre: readonly string[]): void {
 
 /** Joue la séquence due jusqu'à sa clôture (`draineCascade`), puis valide la pause de début de Round si elle est due : le
  *  premier tour du Round s'ouvre. */
-export function lancerLeRoundDu(banc: Banc): void {
-  draineCascade(banc.getState);
-  if (banc.getState().pendingRoundStart) banc.getState().fenetreValider('debutDuRound');
+export function lancerLeRoundDu(p: { getState: () => JeuDuNoyau }): void {
+  draineCascade(p.getState);
+  if (p.getState().pendingRoundStart) p.getState().fenetreValider('debutDuRound');
 }

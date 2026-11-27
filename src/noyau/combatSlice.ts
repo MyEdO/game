@@ -318,7 +318,6 @@ import { aPorteeDe } from './monde/exploreNav';
 import { aiDriven, controlsCombatant, influencesLocally, decidingSeat, refuserAuSiegeAgissant } from './netOwnership';
 import { batteryBlock, currentTargetingMode, type BattleClickOpts, type OptionsDuClic } from './targetingModes';
 import { resolveRecoverTest } from './combat/recover';
-import { fireRoundStartTriggers } from './combat/roundHooks';
 import { conjureFormOptions } from '../engine/conjuredWeapons';
 import { declarationDuReglageNomme, type CorpsDesReglages } from './reglagesDuJet';
 import type { ChoixDesFenetres, CorpsDesChoix } from './choixDesFenetres';
@@ -1919,11 +1918,12 @@ export function createCombatSlice(get: Get, set: Set) {
       // « tour gratuit de créature ») ; elle se traduit en AVANTAGE DE POSITION (l'assaillant a eu le temps de se
       // placer : entrée plus PRÈS + bord déjà aligné). Repérés (Perception réussie) → placement authoré (~150 m).
       if (doSurprise) { if (isMerScene(scene)) applyNavalSurprisePosition(get, set, enc.surprise!); else applySurprise(get, set, enc.surprise!); }
-      // Début du Round 1, après la Surprise (LDB 13 l.21-23) : effets « début de Round » (Régénération, Stupide…), même
-      // émetteur qu'au franchissement de Round. La pause de début de Round (LDB 17 l.25 : frise d'Initiative,
-      // pré-emption) n'est posée qu'une fois la séquence d'ouverture close (borne `roundBoundary`), comme aux Rounds
-      // suivants.
-      fireRoundStartTriggers(get, set, battle.combatants, auJournal);
+      // Début du Round 1, après la Surprise (LDB 13 l.21-23) : effets « début de Round » (Régénération, Stupide…) par le
+      // bus (#316), et les lignes que leurs Flows ont mises en file différée. La pause de début de Round (LDB 17 l.25 :
+      // frise d'Initiative, pré-emption) n'est posée qu'une fois la séquence d'ouverture close (borne `roundBoundary`),
+      // comme aux Rounds suivants.
+      emitCombatEvent('onRoundStart', { get, set, battle, sink: auJournal, audience: battle.combatants.filter((c) => !isOutOfAction(c)), triggerCtx: { rng: battleRng() } });
+      for (const e of drainPendingLog(get, set)) auJournal(e.entree.texte, inBattleId(battle, e.actorId ?? ''));
       bornerLaSequenceOuverte(get, set, 'roundBoundary');
       if (!get().pendingCascade) enterRoundStartPause(get, set);
       get().orienterLesCombattants();

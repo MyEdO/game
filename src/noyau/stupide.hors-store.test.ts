@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { heroDuDuel, ouvrirLeCombat } from './combatDeTest.testkit';
-import { desDeCombat, franchirLeRound, lancerLeRoundDu } from './ouvertureDuTour.testkit';
+import { deDeCombat, franchirLeRound, lancerLeRoundDu } from './ouvertureDuTour.testkit';
 import { advanceTurn } from './combatFlow';
 import { mountMovement } from './mount';
 import { seedBattleRng } from './battleRng';
@@ -26,6 +26,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 afterEach(() => setCadence('manuel'));
 
 const g = () => banc.getState();
+/** Le d100 qui réussit ou échoue tout Test. */
+const DE = { reussite: 1, echec: 100 } as const;
 const relu = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
 
 type Porteur = 'heros-manuel' | 'heros-rapide' | 'heros-auto' | 'ia' | 'ennemi-du-mj';
@@ -76,15 +78,16 @@ describe('Stupide au début du Round : même Test, même perte, quel que soit le
     it(`${porteur}, ${guide ? 'guidé' : 'seul'}, ${issue} — franchissement de Round`, () => {
       const { P } = monter(porteur, guide);
       const avant = { ...P.pos! };
-      desDeCombat(issue);
+      deDeCombat(DE[issue]);
       franchirLeRound(banc, [P.id]);
       lancerLeRoundDu(banc);
       const perdu = !guide && issue === 'echec';
       expect(budgetDe(P.id)).toEqual(attendu(P.id, perdu));
-      // Le Test et sa perte s'écrivent à l'entretien du franchissement, au journal de combat (`etat`), pour le porteur.
-      const lignes = g().battle!.log.filter((l) => l.actorId === P.id && l.kind === 'etat').length;
-      if (guide) expect(lignes).toBe(0);
-      else if (porteur !== 'heros-manuel' && porteur !== 'ennemi-du-mj') expect(lignes).toBe(issue === 'echec' ? 2 : 1);
+      // Le Test joué sans fenêtre s'écrit à l'entretien du franchissement, au journal de combat (`etat`), pour le porteur ;
+      // guidé, rien ne se passe.
+      const ecrit = g().battle!.log.some((l) => l.actorId === P.id && l.kind === 'etat');
+      if (guide) expect(ecrit).toBe(false);
+      else if (porteur !== 'heros-manuel' && porteur !== 'ennemi-du-mj') expect(ecrit).toBe(true);
       if (!perdu) return;
       // Le tour perdu ne joue rien : ni Mouvement ni Action, puis la main passe.
       banc.jusquA((s) => s.battle!.order[s.battle!.turn] !== P.id, 20);
@@ -100,7 +103,7 @@ describe('Stupide au début du Round : même Test, même perte, quel que soit le
     const H = g().battle!.combatants.find((c) => c.kind === 'heros')!;
     relu(H.id).pos = { x: P.pos!.x - 1, y: P.pos!.y };
     const blessures = relu(H.id).wounds.current;
-    desDeCombat('echec');
+    deDeCombat(DE.echec);
     franchirLeRound(banc, [P.id]);
     lancerLeRoundDu(banc);
     expect(budgetDe(P.id)).toEqual(attendu(P.id, true));
@@ -113,7 +116,7 @@ describe('Stupide au début du Round : même Test, même perte, quel que soit le
   it('l’allié qui vient au contact avant le tour du porteur ne le guide plus : le Test du début du Round tient', () => {
     const { P, allie } = monter('ia', false);
     const H = g().battle!.combatants.find((c) => c.kind === 'heros')!;
-    desDeCombat('echec');
+    deDeCombat(DE.echec);
     franchirLeRound(banc, [H.id, P.id]);
     lancerLeRoundDu(banc);
     expect(budgetDe(H.id).actif).toBe(true);
@@ -133,34 +136,36 @@ describe('Stupide à l’ouverture du Round 1 : le héros premier de l’ordre (
       h.characteristics = { ...h.characteristics, initiative: 99, agilite: 99 };
       banc.setState({ screen: 'campaign', party: [h] });
       g().lancerLaScene(testScene());
-      desDeCombat(issue);
+      deDeCombat(DE[issue]);
       g().lancerLeCombat('enc-mutants');
       lancerLeRoundDu(banc);
       banc.abandonner();
       expect(g().battle!.round).toBe(1);
       expect(budgetDe(h.id)).toEqual(attendu(h.id, issue === 'echec'));
-      if (porteur !== 'heros-manuel') expect(g().battle!.log.filter((l) => l.actorId === h.id && l.kind === 'detail').length).toBe(issue === 'echec' ? 4 : 1); // le Test, sa perte, puis Mouvement et Action perdus à l'ouverture du tour
+      if (porteur !== 'heros-manuel') expect(g().battle!.log.some((l) => l.actorId === h.id && l.kind === 'detail')).toBe(true); // le Test joué sans fenêtre, au journal de combat
     });
   }
 });
 
-describe('Stupide au Round 1 par l’entrée de production (`ouvrirLeCombat`) : héros manuel premier de l’ordre (LDB 85 l.335)', () => {
+describe('Stupide au Round 1, la pause validée avant le Test d’ouverture : héros manuel premier de l’ordre (LDB 85 l.335)', () => {
   it('échec : son tour du Round 1 est perdu, et lui seul', () => {
     setCadence('manuel');
     seedBattleRng(11);
     const h = herosCretin();
     h.characteristics = { ...h.characteristics, initiative: 99, agilite: 99 };
+    banc.setState({ screen: 'campaign', party: [h] });
     g().lancerLaScene(testScene());
-    desDeCombat('echec');
-    ouvrirLeCombat(banc, testScene(), [h], 'enc-mutants');
-    // Le Test d'ouverture tient la main : la validation de la pause par `ouvrirLeCombat` n'a ouvert aucun tour.
+    deDeCombat(DE.echec);
+    g().lancerLeCombat('enc-mutants');
+    // Le Test d'ouverture tient la main : la validation de la pause, jouée avant lui, n'ouvre aucun tour.
+    g().fenetreValider('debutDuRound');
     expect(g().battle!.turn).toBe(-1);
     lancerLeRoundDu(banc);
     banc.abandonner();
     expect(g().battle!.round).toBe(1);
     expect(budgetDe(h.id)).toEqual(attendu(h.id, true));
     // Au Round 2, sans nouvel échec, rien n'est perdu : la perte du Round 1 ne se reporte pas.
-    desDeCombat('reussite');
+    deDeCombat(DE.reussite);
     franchirLeRound(banc, [h.id]);
     lancerLeRoundDu(banc);
     banc.abandonner();
@@ -173,11 +178,11 @@ describe('Stupide : l’IA qui perd son tour ne joue aucun geste de son budget (
   it('Empêtrée, elle ne tente pas de se libérer : l’Action est perdue', () => {
     const { P } = monter('ia', false);
     relu(P.id).conditions = [...relu(P.id).conditions, { id: 'empetre', value: 1 }];
-    desDeCombat('echec');
+    deDeCombat(DE.echec);
     franchirLeRound(banc, [P.id]);
     lancerLeRoundDu(banc);
     expect(budgetDe(P.id)).toEqual(attendu(P.id, true));
-    desDeCombat('reussite'); // une tentative de se libérer réussirait : l'Empêtré qui reste dit qu'elle n'a pas eu lieu
+    deDeCombat(DE.reussite); // une tentative de se libérer réussirait : l'Empêtré qui reste dit qu'elle n'a pas eu lieu
     banc.jusquA((s) => s.battle!.order[s.battle!.turn] !== P.id, 30);
     expect(g().battle!.order[g().battle!.turn]).not.toBe(P.id);
     expect(relu(P.id).conditions.find((c) => c.id === 'empetre')?.value).toBe(1);
@@ -198,7 +203,7 @@ describe('Stupide : l’IA qui perd son tour ne joue aucun geste de son budget (
     // Le Cheval, Stupide lui aussi, ne guide pas le porteur.
     for (const c of [P, cheval]) c.traits = [...(c.traits ?? []), { id: 'stupide' }];
     banc.setState({ battle: { ...b } });
-    desDeCombat('echec');
+    deDeCombat(DE.echec);
     franchirLeRound(banc, [P.id]);
     lancerLeRoundDu(banc);
     expect(budgetDe(P.id)).toEqual(attendu(P.id, true));

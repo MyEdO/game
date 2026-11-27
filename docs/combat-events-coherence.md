@@ -78,7 +78,7 @@ spécifique.
 
 **FAIT (#316) — le bus est l'UNIQUE porte.** Tous les sites de dispatch DIRECT de production ont migré
 vers `emitCombatEvent` (`onHit`/`onCrit`/`onWoundLoss`/`onSlain`/`onKill`/`onStartled`/`onGainCondition` ;
-`onRoundEnd`/`onTurnStart` au site MÉTIER). Les boucles internes `fireTriggers` par combattant des
+`onRoundEnd`/`onTurnStart`, et `onRoundStart` du Round 1 dans `lancerLeCombat`, au site MÉTIER). Les boucles internes `fireTriggers` par combattant des
 événements de CYCLE (`combat/roundHooks.ts`, `combat/turnHooks.ts`) sont la MACHINERIE DU BUS : elles
 restent des hooks ordonnés (interleave par `order`, y compris le cross-phase `onRoundStart`-depuis-un-hook-
 `onRoundEnd`) et sont whitelistées « bus-owned ». Verrous :

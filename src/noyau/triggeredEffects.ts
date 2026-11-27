@@ -72,6 +72,7 @@ import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
 import { alliesAuContactParmi } from './combat/surnombre';
+import { DECLENCHEURS_DU_RELEVE_DE_ROUND } from '../data/schemas/grammaire/mecanique';
 import { buildActorView } from '../engine/actorView';
 import { crochetsDeCorruption } from './corruptionFlow';
 import { routeTriggeredTest, runCombatFlow, sujetDeTrace } from './combat/triggeredTest';
@@ -429,28 +430,25 @@ export function hasFoeInLoS(get: Get, actor: Combatant): boolean {
   return !sourcesEnVue(battle, scene, actor, (f) => f.kind !== actor.kind && !isOutOfAction(f)).next().done;
 }
 
-/** Géométrie d'arène de RÉCUPÉRATION du Brisé (LDB 16 l.54-58) pour `actor`, alimentant les Conditions
- *  `hiddenFromFoes`/`engaged`/`nearestFoe` (auto-retrait caché, gate du Test, difficulté par proximité) :
+/** RELEVÉ D'ARÈNE DU ROUND pour `actor`, partagé par le dispatcher (aux `DECLENCHEURS_DU_RELEVE_DE_ROUND`) et le
+ *  collecteur des Tests de fin de Round (`collectRoundEndTestSteps`). Géométrie de RÉCUPÉRATION du Brisé (LDB 16
+ *  l.54-58), alimentant les Conditions `hiddenFromFoes`/`engaged`/`nearestFoe` (auto-retrait caché, gate du Test,
+ *  difficulté par proximité), et alliés au contact (`allieAuContact`, LDB 85 l.335) :
  *  - `hiddenFromFoes` : AUCUN adversaire vivant ne voit l'acteur (sens foe→acteur, `tileSeenByFoe`) — « caché
  *    hors de vue de tout ennemi » (l.56). Faux s'il n'y a aucun adversaire (rien à fuir → pas de « caché »).
  *  - `engaged` : l'acteur est-il Engagé (l.57 : aucun Test si Engagé) ;
  *  - `nearestFoeDist` : distance (cases) à l'adversaire vivant le plus proche (l.58 : Très difficile si ≤3).
+ *  - `alliesAuContact` : les alliés au contact (`alliesAuContactParmi`), en vues d'acteur À PLAT (sans accesseur),
+ *    portables par le `meta` d'une étape différée.
  *  RNG-free → identique côté inline (ennemi/auto) et côté cascade (héros). Hors combat / sans position = neutre. */
-export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: boolean; engaged: boolean; nearestFoeDist: number } {
+export function releveDeRound(get: Get, actor: Combatant): { hiddenFromFoes: boolean; engaged: boolean; nearestFoeDist: number; alliesAuContact: ActorView[] } {
   const { battle, scene } = get();
-  if (!battle || !actor.pos) return { hiddenFromFoes: false, engaged: false, nearestFoeDist: Infinity };
+  if (!battle || !actor.pos) return { hiddenFromFoes: false, engaged: false, nearestFoeDist: Infinity, alliesAuContact: [] };
   const foes = battle.combatants.filter((e) => e.kind !== actor.kind && !isOutOfAction(e) && e.pos);
   const hiddenFromFoes = !!scene && foes.length > 0 && !tileSeenByFoe(scene, foes, actor.pos, smokeOf(battle));
   const nearestFoeDist = foes.length ? Math.min(...foes.map((e) => chebyshev(actor.pos!, e.pos!))) : Infinity;
-  return { hiddenFromFoes, engaged: isEngaged(actor, battle.combatants), nearestFoeDist };
-}
-
-/** Les alliés au contact de `actor` dans la bataille (`alliesAuContactParmi`), en vues d'acteur : le relevé de la
- *  Condition `allieAuContact`. */
-function alliesAuContactDe(get: Get, actor: Combatant): ActorView[] {
-  const { battle, scene } = get();
-  if (!battle || !actor.pos) return [];
-  return alliesAuContactParmi(scene, battle.combatants, actor).flatMap((a) => buildActorView(a) ?? []);
+  const alliesAuContact = alliesAuContactParmi(scene, battle.combatants, actor).flatMap((a) => { const vue = buildActorView(a); return vue ? [{ ...vue }] : []; });
+  return { hiddenFromFoes, engaged: isEngaged(actor, battle.combatants), nearestFoeDist, alliesAuContact };
 }
 
 /** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne
@@ -521,16 +519,13 @@ export function applyTriggeredEffects(
   const gap = ctx.engagedAdvantageGap ?? engagedAdvantageGap(get, actor);
   const lead = ctx.engagedAdvantageLead ?? engagedAdvantageLead(get, actor);
   const foeInLoS = ctx.foeInLoS ?? hasFoeInLoS(get, actor);
-  // Géométrie de récupération du Brisé (caché/Engagé/proximité) — battle-aware, calculée UNE fois pour le
-  // porteur, et SEULEMENT à la frontière de Round (seul moment où un État la consomme : LDB 16 l.54-58),
-  // pour ne pas peser sur les déclencheurs d'attaque. Neutre hors `onRoundEnd` (Conditions → false/+∞).
-  const geom = trigger === 'onRoundEnd' ? recoveryGeometry(get, actor) : undefined;
+  // Relevé d'arène du Round (Brisé caché/Engagé/proximité, alliés au contact) — battle-aware, calculé UNE fois pour le
+  // porteur, et SEULEMENT aux déclencheurs de Round, les seuls qui le consomment (LDB 16 l.54-58 ; LDB 85 l.335 : la
+  // grammaire y borne `allieAuContact`), pour ne pas peser sur les déclencheurs d'attaque.
+  const geom = (DECLENCHEURS_DU_RELEVE_DE_ROUND as readonly EffectTrigger[]).includes(trigger) ? releveDeRound(get, actor) : undefined;
   // Verdict de l'instance sur sa Cible en vue (Condition `cibleEnVue`), mesuré au premier effet qui joue.
   let verdict: { v: CibleEnVue | undefined } | undefined;
   const cibleEnVueDeLInstance = (): CibleEnVue | undefined => (verdict ??= { v: mesurerCibleEnVue(get, actor, ctx.affliction) }).v;
-  // Alliés au contact du porteur (Condition `allieAuContact`), relevés au premier effet qui joue.
-  let allies: ActorView[] | undefined;
-  const alliesAuContact = (): ActorView[] => (allies ??= alliesAuContactDe(get, actor));
   for (const eff of effects) {
     if (flowHasFreeAttack(eff.flow)) continue;
     for (const t of ciblesDeLEffet(get, actor, eff, trigger, ctx)) {
@@ -541,7 +536,7 @@ export function applyTriggeredEffects(
       // fournit `set`. Un Flow `test` non routé (pas de `set`) atteindrait
       // `runPureFlowLines`, qui LÈVE (jamais de branche succès muette). Le contexte de la touche
       // (`woundsDealt`/`margin→sl`/`location`/`attackKind`) voyage dans l'opsCtx pour les Conditions `si`.
-      const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, resolveTrapping, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), alliesAuContact: alliesAuContact(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
+      const flowCtx: OpsCtx = { rng, idNeuf: get().forgerUnId, resolveTrapping, caster: actor, sl: ctx.margin, source: eff.source, woundsDealt: ctx.woundsDealt, indice: ctx.indice, stacks: ctx.stacks, engagedAdvantageGap: gap, engagedAdvantageLead: lead, foeInLoS, affliction: ctx.affliction, cibleEnVue: cibleEnVueDeLInstance(), location: ctx.location, attackKind: ctx.attackKind, startleCause: ctx.startleCause, hiddenFromFoes: geom?.hiddenFromFoes, engaged: geom?.engaged, nearestFoeDist: geom?.nearestFoeDist, alliesAuContact: geom?.alliesAuContact, onOpposingAdvantage: ctx.onOpposingAdvantage, ...campAdvantageHooks(get),
         ...(ctx.set ? crochetsDeCorruption(get, ctx.set) : {}),
         // Tampon de ré-entrance : un sous-Test (FM de palier 2 des Crampes) routé en cascade ne ré-émettra
         // pas `onOwnTestFailed` (son étape porte `meta.noOwnTestFailed`, cf. resolveFlowTest/commitStep).

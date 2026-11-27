@@ -6,9 +6,8 @@
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { seedBattleRng, battleRng } from './battleRng';
 import { aiHandGate, attackWardGate, openAttackCascade } from './combatFlow';
-import { franchirLeRound, lancerLeRoundDu } from './ouvertureDuTour.testkit';
+import { deDeCombat, franchirLeRound, lancerLeRoundDu } from './ouvertureDuTour.testkit';
 import { aiMaybeFrenzy } from './combat/turnHooks';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
@@ -22,8 +21,6 @@ let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const g = () => banc.getState();
-/** Le dé de combat (`battleRng`) posé sur `n`. */
-function deDeCombat(n: number): void { seedBattleRng(1); battleRng().int = () => n; }
 
 /** Héros et ennemi au contact, mêmes caractéristiques et mêmes talents, Sonné ×3 l'un et l'autre. */
 function jumeauxSonnes(): { H: Combatant; E: Combatant } {

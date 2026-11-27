@@ -7,7 +7,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { heroDuDuel } from './combatDeTest.testkit';
 import { draineCascade } from './cascade.testkit';
-import { desDeCombat } from './ouvertureDuTour.testkit';
+import { deDeCombat } from './ouvertureDuTour.testkit';
 import { seedBattleRng } from './battleRng';
 import { attachMutation } from '../engine/corruption';
 import { mutationById } from '../data/mutations';
@@ -45,7 +45,7 @@ describe('Round 1 : la Surprise se joue avant la pause (embuscade, héros manuel
     const { scene, party } = scenario.construire(idsDeTest);
     banc.setState({ screen: 'campaign', party });
     g().lancerLaScene(scene);
-    desDeCombat('echec');
+    deDeCombat(100);
     g().lancerLeCombat('enc-mutants');
     expect(g().pendingCascade?.participants.map((p) => p.kind)).toEqual(['testDeclencheEnBande']);
     expect(g().pendingCascade?.roundBoundary).toBe(true);
@@ -72,7 +72,7 @@ describe('Round 1 : la Surprise se joue avant la pause (embuscade, héros manuel
     attachMutation(party[0], mutationById('cretin')!, makeRNG(1));
     banc.setState({ screen: 'campaign', party: [party[0]] });
     g().lancerLaScene(scene);
-    desDeCombat('echec');
+    deDeCombat(100);
     g().lancerLeCombat('enc-mutants');
     expect(g().pendingCascade?.participants.map((p) => [p.kind, p.actorId === party[0].id || p.participants?.some((r) => r.id === party[0].id)])).toEqual([
       ['testDeclencheEnBande', true],

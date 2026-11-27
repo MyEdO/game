@@ -41,15 +41,15 @@ const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
  *  unique (`ouvrirLeTour`, combatFlow). Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
  *  Journalisé en `detail` (kind agnostique — l'IA comme le héros). No-op si hors d'action. Il matérialise d'abord la
  *  barre du combattant (`materialiserLaBarre`), avant tout rendu de son tour. */
-export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant | undefined): void {
-  if (c && !isOutOfAction(c)) {
+export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant): void {
+  if (!isOutOfAction(c)) {
     const { barre } = materialiserLaBarre(c, objetDuNarratif(get().campaignNarratif));
     if (barre !== c.barre) c.barre = barre;
   }
   fireTurnEdgeTriggers(get, set, c, 'onTurnStart');
   // Mode « Avantage de groupe » : l'op `topUpAdvantage` (Redoutable) écrit sur la projection, la réserve du camp
   // se relève d'elle. AA 11 l.30-38
-  if (c) reconcileAdvantageToPool(get, c);
+  reconcileAdvantageToPool(get, c);
 }
 
 /** Effets « fin de tour » authorés du combattant qui CESSE d'être actif (`onTurnEnd`) — appelé par

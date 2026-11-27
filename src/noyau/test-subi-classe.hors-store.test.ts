@@ -19,6 +19,7 @@ import { routeTriggeredTest, bandeTriggeredTest, runCombatFlow } from './combat/
 import { combatConditionCtx } from './combat/flowEval';
 import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { pushCombatStep } from './combatEffects';
+import { releveDeRound } from './triggeredEffects';
 import { draineCascade } from './cascade.testkit';
 import { itemFromTrappingById } from '../engine/items';
 import { decorHorsCombat, noeudsDeTest, porteDeMaladie, rendreMalade, nuitDuMalade, type Noeud } from './noeudsDeTest.testkit';
@@ -142,8 +143,8 @@ type Jouee = { jouee: boolean; poses: readonly string[] };
  *  Le SUJET reçoit ce que le nœud PRÉSUPPOSE, lu dans sa donnée : les Groupes que ses `onlyGroups`
  *  exigent (Test ou op) et les États que ses ops `removeCondition` retirent. */
 function preparerPorte(n: Noeud): { opsCtx: OpsCtx; poses: readonly string[] } {
-  // `alliesAuContact` : le relevé que le dispatcher pose hors combat (`applyTriggeredEffects`, aucune bataille → aucun allié).
-  const opsCtx: OpsCtx = { rng: battleRng(), idNeuf: idsDeTest, label: n.entryId, sl: -10, alliesAuContact: [], ...(n.source ? { source: n.source } : {}) };
+  // Le relevé d'arène du Round que le dispatcher pose (`releveDeRound`), ici hors combat.
+  const opsCtx: OpsCtx = { rng: battleRng(), idNeuf: idsDeTest, label: n.entryId, sl: -10, ...releveDeRound(get, get().party[2]), ...(n.source ? { source: n.source } : {}) };
   const ops = [...opsDesBranches(n.node.reussite), ...opsDesBranches(n.node.echec)];
   const groupes = [...(n.node.test.onlyGroups ?? []), ...ops.flatMap((o) => (o as { onlyGroups?: string[] }).onlyGroups ?? [])];
   const aRetirer = ops.flatMap((o) => (o.op === 'removeCondition' ? [o.id] : []));

@@ -7,7 +7,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
-import { desDeCombat, franchirLeRound, lancerLeRoundDu, ouvrirLeTourSuivant } from './ouvertureDuTour.testkit';
+import { deDeCombat, franchirLeRound, lancerLeRoundDu, ouvrirLeTourSuivant } from './ouvertureDuTour.testkit';
 import { mountMovement } from './mount';
 import { seedBattleRng } from './battleRng';
 import { setCadence } from '../engine/cadence';
@@ -59,7 +59,7 @@ function ouvrir(ouverture: 'round' | 'suivant', du: Du, premierHorsDeCombat = fa
   const { H, E } = heroFaceAUnEnnemi(banc, testScene());
   const mort = g().battle!.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
   poser(H, du);
-  desDeCombat('echec');
+  deDeCombat(100);
   if (ouverture === 'suivant') ouvrirLeTourSuivant(banc, E.id, H.id);
   else {
     franchirLeRound(banc, premierHorsDeCombat ? [mort.id, H.id] : [H.id]);

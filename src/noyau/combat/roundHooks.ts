@@ -62,11 +62,11 @@ const RESISTANCE: TestDesigne = { skill: { id: 'resistance' } };
 // `roundBoundary.golden.hors-store.test.ts` fige (ordre et tirages).
 // ============================================================================================
 
-/** Effets « début de Round » authorés (`onRoundStart` : Régénération, Stupide…) de chaque combattant en action —
- *  émetteur UNIQUE, joué au franchissement de Round (hook `fire-round-start-triggers`) et à l'ouverture du Round 1
- *  (`lancerLeCombat`). Un hors-combat n'y réagit pas : le dispatcher autorise `on:'soi'` sur un hors-combat. Les lignes
- *  qu'un Flow joué par le marcheur de combat met en file différée (`enfilerAuJournal`) partent au même `sink`. */
-export function fireRoundStartTriggers(get: Get, set: SetFn, combatants: readonly Combatant[], sink: (line: string, c: Combatant) => void): void {
+/** Effets « début de Round » authorés (`onRoundStart` : Régénération, Stupide…) du Round qui s'ouvre au franchissement,
+ *  pour chaque combattant en action (le Round 1 les émet par le bus, `lancerLeCombat`). Un hors-combat n'y réagit pas :
+ *  le dispatcher autorise `on:'soi'` sur un hors-combat. Les lignes qu'un Flow joué par le marcheur de combat met en
+ *  file différée (`enfilerAuJournal`) partent au même `sink`. */
+function fireRoundStartTriggers(get: Get, set: SetFn, combatants: readonly Combatant[], sink: (line: string, c: Combatant) => void): void {
   for (const c of combatants) {
     if (isOutOfAction(c)) continue;
     for (const line of fireTriggers(get, c, 'onRoundStart', { rng: battleRng(), set })) sink(line, c);

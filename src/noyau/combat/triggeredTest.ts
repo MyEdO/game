@@ -70,7 +70,7 @@ import {
 } from '../rollSeam';
 import { designeGaranti, rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
-import { recoveryGeometry, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
+import { releveDeRound, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
 import { emitCombatEvent } from '../combatEvents';
 import { inBattleId, actorIn, coqueParId, rencontreEngagee, porteurParId } from '../monde/combatants';
 import { objetDuNarratif } from '../monde/resolveursDuNarratif';
@@ -383,9 +383,9 @@ export function simpleBatchTestStep(
 export function collectRoundEndTestSteps(get: Get, c: Combatant): BuiltCascadeStep[] {
   const steps: BuiltCascadeStep[] = [];
   const optional: BuiltCascadeStep[] = [];
-  // `ConditionCtx` de combat (géométrie d'arène : caché/Engagé/proximité du Brisé) — MÊME géométrie que
-  // celle injectée par le dispatcher dans la voie inline, pour évaluer GATE et difficulté DYNAMIQUE.
-  const cc = combatConditionCtx(c, { caster: c, ...recoveryGeometry(get, c) });
+  // `ConditionCtx` de combat (relevé d'arène du Round : caché/Engagé/proximité du Brisé, alliés au contact) — MÊME
+  // relevé que celui injecté par le dispatcher dans la voie inline, pour évaluer GATE et difficulté DYNAMIQUE.
+  const cc = combatConditionCtx(c, { caster: c, ...releveDeRound(get, c) });
   for (const src of effectSourcesOf(c, objetDuNarratif(get().campaignNarratif))) {
     for (const eff of src.effects) {
       if (eff.trigger !== 'onRoundEnd' || eff.flow.kind !== 'test') continue;

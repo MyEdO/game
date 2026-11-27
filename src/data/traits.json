@@ -1833,43 +1833,46 @@
         "trigger": "onRoundStart",
         "on": "soi",
         "flow": {
-          "kind": "test",
-          "test": {
-            "characteristic": "intelligence",
-            "difficulty": "facile",
-            "label": "Stupide",
-            "gate": {
-              "kind": "not",
-              "of": {
-                "kind": "allieAuContact",
-                "tel": {
-                  "kind": "not",
-                  "of": {
-                    "kind": "has",
-                    "who": "target",
-                    "what": "trait",
-                    "ref": {
-                      "id": "stupide"
-                    }
+          "kind": "si",
+          "condition": {
+            "kind": "not",
+            "of": {
+              "kind": "allieAuContact",
+              "tel": {
+                "kind": "not",
+                "of": {
+                  "kind": "has",
+                  "who": "target",
+                  "what": "trait",
+                  "ref": {
+                    "id": "stupide"
                   }
                 }
               }
             }
           },
-          "reussite": {
-            "kind": "sequence",
-            "etapes": []
-          },
-          "echec": {
-            "kind": "effet",
-            "effet": {
-              "type": "ops",
-              "on": "target",
-              "ops": [
-                {
-                  "op": "loseTurn"
-                }
-              ]
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "intelligence",
+              "difficulty": "facile",
+              "label": "Stupide"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "loseTurn"
+                  }
+                ]
+              }
             }
           }
         }

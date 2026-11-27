@@ -1275,8 +1275,20 @@ export const CHAMPS_A_CHOIX: readonly ChampAChoix[] = champsDeclares<ChampAChoix
 export const CHAMPS_RESERVES: readonly ChampReserve[] = champsDeclares<ChampReserve>(ChampReserveDeclare);
 
 /** Les Conditions RÉSERVÉES à un porteur, admises par le régime `condition.<kind>` de sa famille et refusées
- *  nommément partout ailleurs. `cibleEnVue` ne se lit qu'au contexte d'une affliction psychologique. */
-export const CONDITIONS_RESERVEES = ['cibleEnVue'] as const;
+ *  nommément partout ailleurs. `cibleEnVue` ne se lit qu'au contexte d'une affliction psychologique ; `allieAuContact`
+ *  qu'au relevé de Round des effets de Trait (`releveDeRound`, `DECLENCHEURS_DU_RELEVE_DE_ROUND`). */
+export const CONDITIONS_RESERVEES = ['cibleEnVue', 'allieAuContact'] as const;
+
+/** Les déclencheurs où le dispatcher pose le relevé d'arène du Round (`releveDeRound`, `noyau/triggeredEffects.ts`) :
+ *  le seul contexte où `allieAuContact` se résout. */
+export const DECLENCHEURS_DU_RELEVE_DE_ROUND = ['onRoundStart', 'onRoundEnd'] as const;
+
+/** La valeur `v` (Flow, Condition, op) porte-t-elle, à quelque profondeur que ce soit, une Condition de `kind` réservé ? */
+export function porteLaCondition(v: unknown, kind: ConditionReservee): boolean {
+  if (Array.isArray(v)) return v.some((x) => porteLaCondition(x, kind));
+  if (!v || typeof v !== 'object') return false;
+  return (v as { kind?: unknown }).kind === kind || Object.values(v).some((x) => porteLaCondition(x, kind));
+}
 type ConditionReservee = (typeof CONDITIONS_RESERVEES)[number];
 
 /** Régime d'une Condition réservée. */
@@ -1445,6 +1457,15 @@ export const conditionCibleEnVueSchema = nommerChamps(z.strictObject({
 }), { kind: { label: 'type' }, hostiles: { label: 'hostiles seulement' } }, { typeNomme: 'ConditionCibleEnVue' });
 export type ConditionCibleEnVue = z.output<typeof conditionCibleEnVueSchema>;
 
+/** Condition réservée `allieAuContact` : un allié au contact du porteur vérifie `tel`, évaluée avec cet allié pour
+ *  `target`. Seuls les `effects` de Trait l'admettent, aux déclencheurs du relevé de Round. LDB 85 l.335 */
+export const conditionAllieAuContactSchema = nommerChamps(z.strictObject({
+  kind: z.literal('allieAuContact'),
+  // Le renvoi récursif de l'algèbre (`LienRecursif`, refermé par `ConditionDans`) : `tel` est une Condition fermée.
+  tel: z.lazy((): z.ZodType => conditionSchema) as unknown as z.ZodType<LienRecursif>,
+}), { kind: { label: 'type' }, tel: { label: 'tel que' } }, { typeNomme: 'ConditionAllieAuContact' });
+export type ConditionAllieAuContact = Extract<Condition, { kind: 'allieAuContact' }>;
+
 /** Les branches de Condition composent leurs opérandes et un renvoi vers la même algèbre. */
 function branchesDeCondition<R>(renvoi: z.ZodType<R>, admises: readonly ConditionReservee[]) {
   const reservee = <T extends z.ZodType>(kind: ConditionReservee, branche: T) => {
@@ -1493,7 +1514,7 @@ function branchesDeCondition<R>(renvoi: z.ZodType<R>, admises: readonly Conditio
     variante('Ennemi en Ligne de Vue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('foeInLoS') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.foeInLoS')),
     variante('Caché de l’ennemi (hors de vue)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hiddenFromFoes') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.hiddenFromFoes')),
     variante('Engagé avec un ennemi', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('engaged') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.engaged')),
-    variante('Allié au contact', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('allieAuContact'), tel: renvoi }), { kind: { label: "type"  }, tel: { label: "tel que" } }), 'conditionDe', 'condition.allieAuContact')),
+    variante('Allié au contact', reservee('allieAuContact', conditionAllieAuContactSchema)),
     variante('Au sein d’un Test d’équipage (à bord)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('crewTest') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.crewTest')),
     variante('Pendant un Round de combat', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('roundDeCombat') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.roundDeCombat')),
     variante('Distance à l’ennemi le plus proche', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('nearestFoe'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.nearestFoe')),
@@ -1540,7 +1561,8 @@ function conditionDe(regimes: RegimesDeCondition): z.ZodType<Condition> {
   const cle = admises.join(',');
   const deja = ALGEBRES_DE_CONDITION.get(cle);
   if (deja) return deja;
-  const condition: z.ZodType<Condition> = z.lazy(() => branchesDeCondition(condition, admises));
+  // Le renvoi de `conditionAllieAuContactSchema` est le `LienRecursif`, que `ConditionDans` referme en `Condition`.
+  const condition = z.lazy(() => branchesDeCondition(condition, admises)) as unknown as z.ZodType<Condition>;
   ALGEBRES_DE_CONDITION.set(cle, condition);
   return condition;
 }
