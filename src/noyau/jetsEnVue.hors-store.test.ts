@@ -53,7 +53,7 @@ const COUP: AttackResult = {
 const ATTAQUE: PendingAttack = { attackerId: H.id, targetId: E.id, location: null, result: COUP };
 
 /** Une cascade d'une étape. */
-const cascade = (step: CascadeStep, cursor = 0): PendingCascade => ({ title: 'Témoin', cursor, seq: 1, log: [], purpose: 'combat', participants: [step] });
+const cascade = (step: CascadeStep, cursor = 0): PendingCascade => ({ title: 'Témoin', cursor, seq: 1, purpose: 'combat', participants: [step] });
 const etapeHote = (jetHote: HostJet, extra: Pick<CascadeStep, 'maladresse' | 'groupOwner'> = {}): CascadeStep => ({ id: `hote-${jetHote}`, kind: 'testDeclenche', actorId: H.id, jet: jetHote, label: fixtureText(`hote-${jetHote}`), ...extra });
 
 /** `patch` en thunk quand il lit une table du jeu, posée à l'ouverture de la partie. */

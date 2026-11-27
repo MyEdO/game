@@ -74,7 +74,7 @@ describe('`jetsEnVue` annonce le verdict du résolveur', () => {
   it('Test de scène 97 contre 99 : la ligne est ratée', () => {
     const h = testPose(97, 99);
     // Le Test de scène est une cascade-hôte à une étape (`testsDeScene`) : la fenêtre est la cascade.
-    banc.setState({ pendingCascade: { title: 'Test', cursor: 0, seq: 1, log: [], purpose: 'combat', participants: [{ id: 'hote-test', kind: 'testDeclenche', actorId: h.id, jet: 'test', label: fixtureText('Test') }] } });
+    banc.setState({ pendingCascade: { title: 'Test', cursor: 0, seq: 1, purpose: 'combat', participants: [{ id: 'hote-test', kind: 'testDeclenche', actorId: h.id, jet: 'test', label: fixtureText('Test') }] } });
     expect(reussiDe(jetsEnVue(get()).find((j) => j.flux === 'test')?.lignes[0])).toBe(false);
   });
 

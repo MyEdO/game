@@ -146,7 +146,7 @@ describe('un argument qui désigne une ligne se choisit parmi les lignes que sa 
       const [h1, h2] = etat.party;
       const sansPoint = { ...etat, battle: { ...etat.battle!, combatants: etat.battle!.combatants.map((c) => (c.id === h2.id ? { ...c, resolve: 0 } : c)) } };
       const rangee = (id: string, result: unknown = null) => ({ id, interactive: true, base: 50, target: 50, result });
-      const bande = (rangees: unknown[]): Jeu => ({ ...sansPoint, pendingRoundStart: null, pendingCascade: { title: 'Peur', cursor: 0, seq: 1, log: [], purpose: 'test', participants: [{
+      const bande = (rangees: unknown[]): Jeu => ({ ...sansPoint, pendingRoundStart: null, pendingCascade: { title: 'Peur', cursor: 0, seq: 1, purpose: 'test', participants: [{
         id: 'bande-peur', kind: 'psychologieDeCombat', label: 'Peur', aggregate: 'none', groupOwner: true, result: null, participants: rangees,
         psychologieDeCombat: { kind: 'peur', sourceId: 'e1', sourceName: fixtureText('Bête'), indice: 2, round: 1 },
       }] } } as never);

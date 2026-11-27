@@ -466,14 +466,13 @@ describe('Cascade séquentielle influençable', () => {
       expect(banc.getState().suspendedCascades).toHaveLength(0);
     });
 
-    it('MÊME purpose : les bornes de dénouement et le journal des deux fragments sont RÉUNIS', () => {
+    it('MÊME purpose : les bornes de dénouement des deux fragments sont RÉUNIES', () => {
       const h = hero();
-      startCascade(banc.getState, banc.setState, { title: 'Voyage', purpose: 'travelDay', steps: [step('s1', h.id)], log: ['a'], travelHalt: true });
-      startCascade(banc.getState, banc.setState, { title: 'Fin de Round', purpose: 'travelDay', steps: [step('s2', h.id)], log: ['b'], roundBoundary: true });
+      startCascade(banc.getState, banc.setState, { title: 'Voyage', purpose: 'travelDay', steps: [step('s1', h.id)], travelHalt: true });
+      startCascade(banc.getState, banc.setState, { title: 'Fin de Round', purpose: 'travelDay', steps: [step('s2', h.id)], roundBoundary: true });
       const p = banc.getState().pendingCascade!;
       expect(p.travelHalt).toBe(true);
       expect(p.roundBoundary).toBe(true); // la borne du fragment appendu survit
-      expect(p.log).toEqual(['a', 'b']);
     });
 
     it('MÊME purpose sur un BILAN : la séquence est RÉOUVERTE (append), son dénouement n’est pas jeté', () => {
@@ -600,10 +599,10 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
       startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id, kind: cleDeFixture('fenF'), label: fixtureText('F') }] });
     },
     fenF: (_g, _s, step) => { joues.push(step.id); },
-    // `fenB` ouvre, sous applier, un fragment qui porte une BORNE et une ligne de `log`.
+    // `fenB` ouvre, sous applier, un fragment qui porte une BORNE.
     fenB: (get, set, step) => {
       joues.push(step.id);
-      startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id: 'borne', kind: cleDeFixture('fenF'), label: fixtureText('F') }], roundBoundary: true, log: ['ligne du fragment'] });
+      startCascade(get, set, { title: 'T', purpose: 'test', steps: [{ id: 'borne', kind: cleDeFixture('fenF'), label: fixtureText('F') }], roundBoundary: true });
     },
   };
   beforeEach(() => {
@@ -644,7 +643,7 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
     expect(erreurs).not.toHaveBeenCalled();
   });
 
-  it('la BORNE et le `log` d’un fragment ouvert sous applier arrivent au slot : interactif, « Tout résoudre », immédiat ARRÊTÉ sur un choix', () => {
+  it('la BORNE d’un fragment ouvert sous applier arrive au slot : interactif, « Tout résoudre », immédiat ARRÊTÉ sur un choix', () => {
     const avecBorne = (): CascadeStep[] => [
       { id: 'x', kind: cleDeFixture('fenB'), label: fixtureText('x') },
       { id: 'fin', kind: cleDeFixture('fenF'), label: fixtureText('fin'), options: [{ key: 'o', label: fixtureText('o') }] },
@@ -652,22 +651,19 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
     startCascade(g, s, { title: 'T', purpose: 'test', steps: avecBorne() });
     advanceCascade(g, s);
     expect(g().pendingCascade!.roundBoundary, 'interactif').toBe(true);
-    expect(g().pendingCascade!.log).toContain('ligne du fragment');
 
     s({ pendingCascade: null });
     startCascade(g, s, { title: 'T', purpose: 'test', steps: avecBorne() });
     resolveRemainingCascade(g, s);
     expect(g().pendingCascade!.roundBoundary, '« Tout résoudre »').toBe(true);
-    expect(g().pendingCascade!.log).toContain('ligne du fragment');
 
     s({ pendingCascade: null });
     runCascadeImmediate(g, s, avecBorne(), { title: 'T', purpose: 'test' });
     expect(g().pendingCascade!.roundBoundary, 'immédiat (arrêté sur le choix sans défaut)').toBe(true);
-    expect(g().pendingCascade!.log).toContain('ligne du fragment');
     expect(erreurs).not.toHaveBeenCalled();
   });
 
-  it('immédiat REPRIS après une décision : la borne, le `log` et le compteur que la reprise collecte arrivent à la séquence finalisée', () => {
+  it('immédiat REPRIS après une décision : la borne et le compteur que la reprise collecte arrivent à la séquence finalisée', () => {
     const steps: CascadeStep[] = [
       { id: 'decision', kind: cleDeFixture('fenF'), label: fixtureText('d'), options: [{ key: 'o', label: fixtureText('o') }] },
       { id: 'x', kind: cleDeFixture('fenB'), label: fixtureText('x') },
@@ -677,7 +673,6 @@ describe('startCascade pendant une application : la fenêtre, comme pushStep', (
     const done = advanceCascade(g, s)!;
     expect(done.participants.map((x) => x.id)).toEqual(['decision', 'x', 'borne']);
     expect(done.roundBoundary, 'la borne collectée à la reprise n’arrive pas au dénouement').toBe(true);
-    expect(done.log).toContain('ligne du fragment');
     expect(done.seq, 'le compteur rendu ignore l’étape ouverte à la reprise').toBe(3);
     expect(erreurs).not.toHaveBeenCalled();
   });
