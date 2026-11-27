@@ -627,7 +627,7 @@ describe('les offres déclarées de la scène se retirent dès qu’elles existe
   const BOURG = emptyScene('bourg', 6, 6);
   const HEBERGEMENT: PlaceService[] = [{ id: 'auberge', kind: { id: 'auberge' } }];
   const monde = (services?: typeof HEBERGEMENT): WorldMap => ({ ...emptyWorldMap('monde'), places: [{ id: 'x', label: 'X', pos: { x: 50, y: 50 }, scene: { id: 'bourg' }, ...(services ? { services } : {}) }], routes: [] });
-  const ouvrirSur = (scene: Scene, worldMap: WorldMap) => ouvrirLEdition({ scenes: [scene], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const ouvrirSur = (scene: Scene, worldMap: WorldMap) => ouvrirLEdition({ scenes: [scene], narratif: NARRATIF_VIDE, worldMap } as ProjetDEdition, { duDepot: false });
   /** Les erreurs R3 des offres : celles d'une scène de lieu à hébergement qui porte `rest.offres`. */
   const fautesDesOffres = (s: SessionDEdition) => validateScene(projetEdite(s).scenes, projetEdite(s).worldMap, NARRATIF_VIDE)
     .filter((w) => w.level === 'error' && w.message.includes('les offres d’auberge se règlent sur l’établissement'));
