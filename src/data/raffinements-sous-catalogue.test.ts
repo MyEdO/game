@@ -3,13 +3,14 @@
  * trait octroyé (`grantTrait`) et sa Cible tirée, la Cible d'un état psy posé (`beginPsych`), le Trait posé, la Cible
  * d'individu d'une péripétie de route (`refuserLesIndividus`), la prose
  * d'un livre extrait, l'apparence d'un objet, les jeux de races (`especes-aleatoires.json`).
- * Fixtures : des traits, des états psy, un Groupe, un livre, un objet, une rangée d'obsessions, une espèce et une règle
- * optionnelle présents SEULEMENT dans le catalogue de la suite (`catalogueAvec`).
+ * Fixtures : des traits, des états psy, un Groupe, un livre, un objet et son apparence, un Tableau des Obsessions, des
+ * espèces et une règle optionnelle DÉCLARÉS par la suite, seuls au catalogue (`catalogueDeTest`).
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
-import { catalogueAvec, copie } from './catalogueAvec.testkit';
-import { catalogueDuProcessus } from './catalogueDuProcessus';
+import { catalogueDeTest, type LivreDeTest } from './schemas/catalogue/catalogueDeTest.testkit';
+import { idDeFixture } from './idDeFixture.testkit';
+import { CHAR_KEYS, type CharKey } from '../engine/types';
 import { parserSousCatalogue } from './schemas/catalogue/references';
 import { gameOpSchema, mecaniqueDe } from './schemas/grammaire/mecanique';
 import { fichiersLisantLeCatalogue, validateDataset } from './schemas/validate';
@@ -19,51 +20,66 @@ import { traitInstanceSchema } from './schemas/grammaire/reference';
 import { routePerilSchema } from './schemas/defs-scenes/worldmap';
 import { proseAdressable, refineProse } from './schemas/grammaire/prose';
 import { apparencesDObjetsSchema } from './schemas/grammaire/valeurs';
-import { estLivreExtrait } from './schemas/source/livre-extrait';
-import especesAleatoiresJson from './especes-aleatoires.json';
 
+const ID_DU_LIVRE = 'livre-extrait-de-test';
+const LIVRE = idDeFixture('book', ID_DU_LIVRE);
+const SOURCE = { book: LIVRE, page: 1 };
 const TRAIT = 'trait-lanceur-du-livre-de-test';
+const TRAIT_A_CIBLE_TIREE = 'trait-a-cible-tiree-du-livre-de-test';
 const PSY = 'psy-a-cible-du-livre-de-test';
+const PSY_AMOUR = 'psy-amour-du-livre-de-test';
 const PSY_D_AMOUR = 'psy-d-amour-du-livre-de-test';
 const TRAIT_DE_L_AMOUR_DU_LIVRE = 'trait-de-l-amour-du-livre-de-test';
 const GROUPE = 'groupe-du-livre-de-test';
 const ESPECE = 'gnomes-du-livre-de-test';
+const ESPECE_OUVERTE = 'humains-du-livre-de-test';
 const TRAIT_D_AMOUR = 'amour-du-livre-de-test';
 const TRAIT_A_DISTANCE = 'a-distance-du-livre-de-test';
-const LIVRE = 'livre-extrait-de-test';
-const OBJET = 'hallebarde-du-livre-de-test';
-const GROUPE_TIRE: string = 'groupe-tire-du-livre-de-test';
-const REGLE: string = 'regle-du-livre-de-test';
+const OBJET = 'objet-du-livre-de-test';
+const APPARENCE = 'apparence-du-livre-de-test';
+const GROUPE_TIRE = idDeFixture('groupe', 'groupe-tire-du-livre-de-test');
+const REGLE = 'regle-du-livre-de-test';
 
-const base = catalogueDuProcessus();
-type Espece = (typeof base)['species.json'][number];
-const especes = base['species.json'];
-/** Une rangée du Tableau des Obsessions : son Groupe est un id hors de l'index des ids typés (`Id<T>`). */
-type Rangee = (typeof base)['obsessions.json']['entries'][number];
-/** L'espèce du livre de test, gardée par la règle du livre de test : un id hors de l'index des ids typés (`Id<T>`). */
-const espece: Espece = { ...copie(especes, 'gnomes', ESPECE), gatedByRule: { id: REGLE } as Espece['gatedByRule'] };
+/** Les champs d'une espèce que les jeux de races ne lisent pas. */
+const PROFIL_D_ESPECE = { family: 'Livre de test', refCareer: 'humain' as const, movement: 4, fate: { fate: 0, resilience: 0, extra: 0 }, baseChar: Object.fromEntries(CHAR_KEYS.map((c) => [c, 0])) as Record<CharKey, number>, skills: [], talents: [], grantGroups: [], source: SOURCE };
+/** Une espèce ouverte (humaine) et une espèce gnome gardée par la règle du livre de test. */
+const ESPECES: LivreDeTest['species.json'] = [
+  { ...PROFIL_D_ESPECE, id: ESPECE_OUVERTE, type: 'species', label: 'Humains du livre de test', refChar: 'humain' },
+  { ...PROFIL_D_ESPECE, id: ESPECE, type: 'species', label: 'Gnomes du livre de test', refChar: 'gnome', gatedByRule: { id: idDeFixture('regleOptionnelle', REGLE) } },
+];
+/** Les Tableaux des Races aléatoires des deux jeux de races atteignables : sans la règle, et avec. */
+const TABLEAUX_DES_RACES = [
+  { id: 'races-du-livre-de-test', type: 'especes-aleatoires', label: 'Races', die: { n: 1, sides: 100 }, source: SOURCE, entries: [{ id: ESPECE_OUVERTE, min: 1, max: 100 }] },
+  { id: 'races-gnome-du-livre-de-test', type: 'especes-aleatoires', label: 'Races avec le Gnome', die: { n: 1, sides: 100 }, source: SOURCE, entries: [{ id: ESPECE_OUVERTE, min: 1, max: 99 }, { id: ESPECE, min: 100, max: 100 }] },
+];
 
-const livre = { ...base['books.json'].find((b) => estLivreExtrait(b))!, id: LIVRE };
-type Trait = (typeof base)['traits.json'][number];
-const amour = copie(base['traits.json'], 'amour', TRAIT_DE_L_AMOUR_DU_LIVRE);
-/** Un Trait d'Amour dont le type est l'état psy du livre de test : un id hors de l'index des ids typés (`Id<T>`). */
-const traitDeLAmourDuLivre: Trait = { ...amour, capabilities: { ...amour.capabilities, psychType: PSY_D_AMOUR as NonNullable<Trait['capabilities']>['psychType'] } };
+const LIVRES: LivreDeTest['books.json'] = [{ id: ID_DU_LIVRE, type: 'books', label: 'Livre extrait de test', abbr: 'LDT', dir: 'Source/livre-de-test', language: null, folder: null }];
 
-const CAT = catalogueAvec({
-  'traits.json': [copie(base['traits.json'], 'lanceur-de-sorts', TRAIT), copie(base['traits.json'], 'amour', TRAIT_D_AMOUR), copie(base['traits.json'], 'a-distance', TRAIT_A_DISTANCE), traitDeLAmourDuLivre],
-  'psychology.json': [copie(base['psychology.json'], 'haine', PSY), { ...copie(base['psychology.json'], 'amour', PSY_D_AMOUR), label: 'Amour du livre' }],
-  'groups.json': [copie(base['groups.json'], 'nain', GROUPE)],
-  'species.json': [espece],
-  'books.json': [livre],
-  'trappings.json': [copie(base['trappings.json'], 'hallebarde', OBJET)],
+const CAT = catalogueDeTest({
+  'traits.json': [
+    { id: TRAIT, type: 'traits', label: 'Lanceur du livre', capabilities: { spellcaster: true }, source: SOURCE },
+    { id: TRAIT_A_CIBLE_TIREE, type: 'traits', label: 'Trait à Cible tirée', specsSource: 'ciblesPsy', source: SOURCE },
+    { id: TRAIT_D_AMOUR, type: 'traits', label: 'Amour du livre de test', specsSource: 'ciblesPsy', capabilities: { psychType: idDeFixture('psychology', PSY_AMOUR) }, source: SOURCE },
+    { id: TRAIT_DE_L_AMOUR_DU_LIVRE, type: 'traits', label: 'Trait de l’Amour du livre', specsSource: 'ciblesPsy', capabilities: { psychType: idDeFixture('psychology', PSY_D_AMOUR) }, source: SOURCE },
+    { id: TRAIT_A_DISTANCE, type: 'traits', label: 'À distance du livre de test', specsSource: 'weaponsRanged', source: SOURCE },
+  ],
+  'psychology.json': [
+    { id: PSY, type: 'psychology', label: 'Haine du livre', cibles: ['groupe'], source: SOURCE },
+    { id: PSY_AMOUR, type: 'psychology', label: 'Amour', cibles: ['individu'], source: SOURCE },
+    { id: PSY_D_AMOUR, type: 'psychology', label: 'Amour du livre', cibles: ['individu'], source: SOURCE },
+  ],
+  'groups.json': [{ id: GROUPE, type: 'groups', label: 'Groupe du livre de test' }],
+  'species.json': ESPECES,
+  'books.json': LIVRES,
+  'trappings.json': [{ id: OBJET, type: 'trappings', label: 'Objet du livre de test', categorie: 'trapping', subType: null, availability: null, qualities: [], price: null, source: SOURCE }],
+  'apparences.json': [{ id: APPARENCE, type: 'apparences', label: 'Apparence du livre de test' }],
+  'obsessions.json': { id: 'obsessions', type: 'obsessions', label: 'Obsessions', die: { n: 1, sides: 10 }, source: SOURCE, entries: [{ id: GROUPE_TIRE, min: 1, max: 10 }] },
+  'reglesOptionnelles.json': [],
 });
-/** Le Tableau des Obsessions augmenté d'une rangée qui tire un Groupe hors du catalogue de spécialisations de la Haine. */
-const CAT_A_L_OBSESSION = catalogueAvec({
-  'obsessions.json': { ...base['obsessions.json'], entries: [{ id: GROUPE_TIRE, min: 21, max: 21 } as Rangee] },
-});
-const CAT_AVEC_LA_REGLE = catalogueAvec({
-  'species.json': [espece],
-  'reglesOptionnelles.json': [copie(base['reglesOptionnelles.json'], 'creation-gnome-jouable', REGLE)],
+const CAT_AVEC_LA_REGLE = catalogueDeTest({
+  'books.json': LIVRES,
+  'species.json': ESPECES,
+  'reglesOptionnelles.json': [{ id: REGLE, type: 'reglesOptionnelles', label: 'Règle du livre de test', ref: 'LDT 1', group: 'Test', kind: 'flag', default: false, source: SOURCE }],
 });
 
 const messages = (schema: z.ZodType, op: unknown, cat = CAT) => parserSousCatalogue(schema, op, cat).error?.issues.map((i) => i.message) ?? [];
@@ -78,8 +94,8 @@ describe('le trait octroyé (`grantTrait`) se lit dans le catalogue passé', () 
 
 describe('la Cible tirée d’un trait octroyé (`grantTrait.cible`) se lit dans les rangées du catalogue passé', () => {
   it('une rangée du seul catalogue qui tire un Groupe hors des spécialisations du Trait est refusée', () => {
-    expect(messages(gameOpSchema, { op: 'grantTrait', trait: { id: 'haine' }, cible: { pick: 1, table: { id: 'obsessions' } } }, CAT_A_L_OBSESSION)).toContain(
-      `GameOp « grantTrait » : Trait « haine » : la table de Cibles « obsessions » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${GROUPE_TIRE} »…).`,
+    expect(messages(gameOpSchema, { op: 'grantTrait', trait: { id: TRAIT_A_CIBLE_TIREE }, cible: { pick: 1, table: { id: 'obsessions' } } })).toContain(
+      `GameOp « grantTrait » : Trait « ${TRAIT_A_CIBLE_TIREE} » : la table de Cibles « obsessions » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${GROUPE_TIRE} »…).`,
     );
   });
 
@@ -89,16 +105,12 @@ describe('la Cible tirée d’un trait octroyé (`grantTrait.cible`) se lit dans
 });
 
 describe('le Trait posé (`traitInstanceSchema`) se lit dans le catalogue passé', () => {
-  it('un Trait psy du seul catalogue refuse la variante de Cible que son type n’admet pas', () => {
-    expect(messages(traitInstanceSchema, { id: TRAIT_D_AMOUR, arg: 'nain' })).toContain(`Trait « ${TRAIT_D_AMOUR} » : Amour ne vise pas un Groupe (« nain »).`);
-  });
-
   it('un Trait psy refuse la variante de Cible d’un Groupe du seul catalogue que son type n’admet pas', () => {
     expect(messages(traitInstanceSchema, { id: TRAIT_D_AMOUR, arg: GROUPE })).toContain(`Trait « ${TRAIT_D_AMOUR} » : Amour ne vise pas un Groupe (« ${GROUPE} »).`);
   });
 
   it('le refus de variante de Cible nomme l’état psy du seul catalogue par son libellé', () => {
-    expect(messages(traitInstanceSchema, { id: TRAIT_DE_L_AMOUR_DU_LIVRE, arg: 'nain' })).toContain(`Trait « ${TRAIT_DE_L_AMOUR_DU_LIVRE} » : Amour du livre ne vise pas un Groupe (« nain »).`);
+    expect(messages(traitInstanceSchema, { id: TRAIT_DE_L_AMOUR_DU_LIVRE, arg: GROUPE })).toContain(`Trait « ${TRAIT_DE_L_AMOUR_DU_LIVRE} » : Amour du livre ne vise pas un Groupe (« ${GROUPE} »).`);
   });
 
   it('un Trait psy du seul catalogue refuse, hors d’une scène, la Cible d’un individu', () => {
@@ -113,7 +125,7 @@ describe('le Trait posé (`traitInstanceSchema`) se lit dans le catalogue passé
 describe('la Cible d’individu d’une péripétie de route (`refuserLesIndividus`) se lit dans le catalogue passé', () => {
   /** L'entrée minimale qui fait de l'`arg` d'un Trait une Cible psy, sa `specsSource`, et les champs qu'exige son type. */
   const TRAIT_A_CIBLE = 'trait-a-cible-du-livre-de-test';
-  const CAT_AU_TRAIT_A_CIBLE = catalogueAvec({ 'traits.json': [{ id: TRAIT_A_CIBLE, type: 'traits', label: 'Trait à Cible', specsSource: 'ciblesPsy', source: { book: LIVRE, page: 1 } }] });
+  const CAT_AU_TRAIT_A_CIBLE = catalogueDeTest({ 'traits.json': [{ id: TRAIT_A_CIBLE, type: 'traits', label: 'Trait à Cible', specsSource: 'ciblesPsy', source: SOURCE }] });
   const peril = { label: 'Péril', chancePct: 10, effects: [{ type: 'givePossession', nature: 'bete', ref: { custom: { type: 'statblock', label: 'Chien', char: {}, traits: [{ id: TRAIT_A_CIBLE, arg: '@p' }] } } }] };
 
   it('un statbloc qui nomme un individu par un Trait à Cible du seul catalogue est refusé', () => {
@@ -138,28 +150,28 @@ describe('la prose d’un livre extrait (`refineProse`) se lit dans le registre 
 });
 
 describe('l’apparence d’un objet se lit dans le catalogue passé', () => {
-  const refus = `L’objet « ${OBJET} » n’admet pas l’apparence « arc ».`;
+  const refus = `L’objet « ${OBJET} » n’admet pas l’apparence « ${APPARENCE} ».`;
   it('un objet donné du seul catalogue refuse une apparence qu’il n’admet pas', () => {
-    expect(messages(gameOpSchema, { op: 'giveTrapping', objet: { id: OBJET }, apparence: { id: 'arc' } })).toContain(`GameOp « giveTrapping » : ${refus}`);
+    expect(messages(gameOpSchema, { op: 'giveTrapping', objet: { id: OBJET }, apparence: { id: APPARENCE } })).toContain(`GameOp « giveTrapping » : ${refus}`);
   });
 
   it('une apparence par objet porté, sur un objet du seul catalogue, refuse une apparence qu’il n’admet pas', () => {
-    expect(messages(apparencesDObjetsSchema, { [OBJET]: { id: 'arc' } })).toContain(refus);
+    expect(messages(apparencesDObjetsSchema, { [OBJET]: { id: APPARENCE } })).toContain(refus);
   });
 });
 
 describe('la Cible d’un état psy posé (`beginPsych`) se lit dans le catalogue passé', () => {
   it('un état du seul catalogue qui vise un Groupe en admet un', () => {
-    expect(messages(gameOpSchema, { op: 'beginPsych', type: { id: PSY }, cible: { id: 'nain' } })).toEqual([]);
+    expect(messages(gameOpSchema, { op: 'beginPsych', type: { id: PSY }, cible: { id: GROUPE } })).toEqual([]);
   });
 });
 
 describe('les jeux de races (`especes-aleatoires.json`) se lisent dans le catalogue passé', () => {
   it('une espèce du seul catalogue, gardée par une règle qu’il ne porte pas, est refusée', () => {
-    expect(validateDataset('especes-aleatoires.json', especesAleatoiresJson, CAT)).toContain(refMorte('regleOptionnelle', REGLE));
+    expect(validateDataset('especes-aleatoires.json', TABLEAUX_DES_RACES, CAT)).toContain(refMorte('regleOptionnelle', REGLE));
   });
 
   it('la même espèce, gardée par une règle du seul catalogue, est admise', () => {
-    expect(validateDataset('especes-aleatoires.json', especesAleatoiresJson, CAT_AVEC_LA_REGLE)).toBeNull();
+    expect(validateDataset('especes-aleatoires.json', TABLEAUX_DES_RACES, CAT_AVEC_LA_REGLE)).toBeNull();
   });
 });

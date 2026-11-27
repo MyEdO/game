@@ -1,16 +1,20 @@
 /**
  * Les fautes CROISÉES d'une scène sous le catalogue passé (#5070, `docs/plans/2026-11-25-composition-d-un-jeu.md`
  * § 5.1, point 2) : le cap d'un navire à ponts, la munition et la pièce d'un poste, la pose des ponts, la carrière et le
- * profil, la Cible d'individu. Fixtures : un navire à ponts, une pièce, deux munitions, deux créatures (le skaven et
- * l'humain copiés), un Trait à Cible, présents SEULEMENT dans le catalogue de la suite (`catalogueAvec`).
+ * profil, la Cible d'individu. Fixtures déclarées par la suite, présentes SEULEMENT dans son catalogue : un navire à
+ * ponts, une pièce et deux munitions de familles d'armes forgées, deux créatures, l'une au Groupe skaven, un Trait à
+ * Cible.
  */
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { buildScene } from './mapSpec';
 import { sceneAvecLEntite } from './sceneEdit';
 import { capsDeLaPose, type ProjetDEdition } from './sceneEditLecture';
-import { catalogueAvec, copie } from '../data/catalogueAvec.testkit';
+import { catalogueAvec } from '../data/catalogueAvec.testkit';
 import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
+import { catalogueDeTest, type LivreDeTest } from '../data/schemas/catalogue/catalogueDeTest.testkit';
+import { idDeFixture } from '../data/idDeFixture.testkit';
+import { datasetArray, resetData, setDataset } from '../data/overrides';
 import { parserSousCatalogue } from '../data/schemas/catalogue/references';
 import { entreeDe } from '../data/schemas/catalogue/catalogue';
 import { affinerAvecCatalogues, sousLeCatalogue } from '../data/schemas/grammaire/ref';
@@ -26,22 +30,38 @@ import type { CustomStatblock } from '../engine/statblock';
 import { inspecteurDeLaSession } from '../hote/editeur';
 import { dotationsDuPnj, emplacementsDeDotation } from '../engine/trappingChoices';
 
+afterEach(() => resetData());
+
 const PIECE = 'piece-du-livre-de-test';
 const BOULET = 'boulet-du-livre-de-test';
 const FLECHE = 'fleche-du-livre-de-test';
 const SKAVEN = 'skaven-du-livre-de-test';
 const HUMAIN = 'humain-du-livre-de-test';
+/** La famille d'armes de la pièce et de sa munition, et une autre famille. */
+const FAMILLE = idDeFixture('weaponGroup', 'famille-du-livre-de-test');
+const AUTRE_FAMILLE = idDeFixture('weaponGroup', 'autre-famille-du-livre-de-test');
+const SOURCE = { book: 'livre-du-catalogue-de-test', page: 1 };
+/** Le Groupe auquel le canon ratling est réservé. */
+const GROUPE_SKAVEN = idDeFixture('groupe', 'skaven');
 
-const base = catalogueDuProcessus();
-/** La pièce copiée du canon moyen, sans liste de munitions : elle charge sa famille (`chargeLArme`). */
-const { munitions: _munitions, ...piece } = copie(base['siege-engines.json'], 'canon-moyen', PIECE);
+/** La pièce, sans liste de munitions : elle charge sa famille (`chargeLArme`). */
+const piece: NonNullable<LivreDeTest['siege-engines.json']>[number] = { id: PIECE, type: 'siege-engines', label: 'Pièce', categorie: 'distance', subType: { id: FAMILLE }, qualities: [], availability: 'commune', price: { gold: 0, silver: 0, brass: 0 }, source: SOURCE };
+/** La munition `id` de la famille `famille`. */
+const munition = (id: string, famille: typeof FAMILLE): NonNullable<LivreDeTest['trappings.json']>[number] => ({ id, type: 'trappings', label: id, categorie: 'ammunition', subType: { id: famille }, qualities: [], availability: 'commune', price: { gold: 0, silver: 0, brass: 0 }, source: SOURCE });
 
-const CAT = catalogueAvec({
+const CAT = catalogueDeTest({
   'vehicles.json': [navireDuLivreDeTest()],
   'siege-engines.json': [piece],
-  'trappings.json': [copie(base['trappings.json'], 'boulet-et-poudre', BOULET), copie(base['trappings.json'], 'fleche', FLECHE)],
-  'creatures.json': [copie(base['creatures.json'], 'skaven', SKAVEN), copie(base['creatures.json'], 'humain', HUMAIN)],
+  'trappings.json': [munition(BOULET, FAMILLE), munition(FLECHE, AUTRE_FAMILLE)],
 });
+/** La créature `id` à Blessures (`char.B`), aux Groupes `groupes`. */
+const creatureAuxGroupes = (id: string, groupes: (typeof GROUPE_SKAVEN)[]): NonNullable<LivreDeTest['creatures.json']>[number] => ({
+  id, type: 'creatures', label: id, source: SOURCE, title: null, folder: null, char: { B: 10 },
+  traits: [], optionals: [], skills: [], talents: [], trappings: [], spells: [], grantGroups: groupes, appearance: { species: 'humain' },
+});
+/** Les deux créatures déclarées, l'une au Groupe skaven, l'autre sans Groupe, sur la base vivante, qui porte encore la carrière du Soldat et le canon ratling
+ *  (`levelsForCareer`, `dotationsDuPnj`, #5076). */
+const SOUS_LES_CREATURES = catalogueAvec({ 'creatures.json': [creatureAuxGroupes(SKAVEN, [GROUPE_SKAVEN]), creatureAuxGroupes(HUMAIN, [])] });
 
 const fautesCustom = (r: z.ZodSafeParseResult<unknown>) => (r.error?.issues ?? []).filter((i) => i.code === 'custom').map(({ path, message }) => ({ path, message }));
 
@@ -61,23 +81,22 @@ describe('les fautes croisées d’une entité de scène se jugent contre le cat
     ]);
   });
 
-  it('un `safeParse` nu, hors fenêtre, juge contre le catalogue du processus : la caraque au cap diagonal est refusée', () => {
-    expect(fautesCustom(sceneEntitySchema.safeParse(navire('NE', { vehicule: { id: 'caraque' } })))).toEqual([
-      { path: ['facing'], message: "navire « caraque » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)" },
+  it('un `safeParse` nu, hors fenêtre, juge contre le catalogue du processus : le navire posé au seam, au cap diagonal, est refusé', () => {
+    setDataset('vehicles', [...datasetArray('vehicles'), navireDuLivreDeTest()]);
+    expect(fautesCustom(sceneEntitySchema.safeParse(navire('NE')))).toEqual([
+      { path: ['facing'], message: `navire « ${NAVIRE} » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` },
     ]);
   });
 });
 
 describe('la pose des ponts d’une scène se juge contre le catalogue passé', () => {
-  /** Le bassin, son navire du seul catalogue au cap O, en (`x`, 2) : la case 7 est le bord exact, la case 6 déborde (#3994). */
-  const bassin = (x: number) => {
-    const scene = buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau', entities: [{ id: 'c1', kind: 'personnage', vehicule: { id: 'caraque' }, pos: { x: 7, y: 2 }, facing: 'O' }] });
-    return { ...scene, entities: scene.entities.map((e) => ({ ...e, vehicule: { id: NAVIRE }, pos: { x, y: 2 } })) };
-  };
+  /** Le bassin, son navire du seul catalogue au cap O, en (`x`, 2) : la case 7 est le bord exact, la case 6 déborde,
+   *  par son pont de 17 cases sur l'empreinte 3 de sa coque (#3994). */
+  const bassin = (x: number) => ({ ...emptyScene('bassin', 24, 24), entities: [navire('O', { pos: { x, y: 2 } })] });
   const pontsHorsDeLaCarte = (r: z.ZodSafeParseResult<unknown>) => fautesCustom(r).filter((f) => f.message.startsWith('ponts du navire hors de la carte'));
 
   it('au bord exact les ponts se posent, une case de trop les fait déborder, dit à la position du navire', () => {
-    expect(parserSousCatalogue(sceneSchema, bassin(7), CAT).success).toBe(true);
+    expect(pontsHorsDeLaCarte(parserSousCatalogue(sceneSchema, bassin(7), CAT))).toEqual([]);
     expect(pontsHorsDeLaCarte(parserSousCatalogue(sceneSchema, bassin(6), CAT))).toEqual([
       { path: ['entities', 0, 'pos'], message: expect.stringContaining('carte 24×24') },
     ]);
@@ -87,7 +106,7 @@ describe('la pose des ponts d’une scène se juge contre le catalogue passé', 
 describe('l’éditeur juge l’entité écrite sous le catalogue reçu (`sceneAvecLEntite`)', () => {
   it('le cap diagonal d’un navire à ponts du seul catalogue est refusé sous lui, admis sous le catalogue du processus', () => {
     const avant = navire('N');
-    const scene = { ...buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau' }), entities: [avant] };
+    const scene = { ...emptyScene('bassin', 24, 24), entities: [avant] };
     expect(sceneAvecLEntite(scene, avant, { ...avant, facing: 'NE' }, CAT)).toEqual({ ok: false, refus: { regle: `navire « ${NAVIRE} » au cap NE — un navire à ponts ne prend qu'un cap cardinal (N/E/S/O)` } });
     expect(sceneAvecLEntite(scene, avant, { ...avant, facing: 'NE' }, catalogueDuProcessus()).ok).toBe(true);
   });
@@ -96,7 +115,7 @@ describe('l’éditeur juge l’entité écrite sous le catalogue reçu (`sceneA
 describe('l’inspecteur offre les caps sous le catalogue reçu (`capsDeLaPose`)', () => {
   it('un navire à ponts du seul catalogue n’est offert qu’aux caps cardinaux', () => {
     const ent = navire('N');
-    const scene = { ...buildScene({ id: 'bassin', label: 'Bassin', size: [24, 24], terrain: 'eau' }), entities: [ent] };
+    const scene = { ...emptyScene('bassin', 24, 24), entities: [ent] };
     expect(capsDeLaPose(scene, ent, CAT).caps.map((c) => c.cap)).toEqual(['N', 'E', 'S', 'O']);
   });
 });
@@ -115,7 +134,7 @@ describe('la fenêtre `{ ids, cat }` est bornée à son appel', () => {
   it('hors fenêtre le catalogue du processus, sous elle le sien, l’imbrication rendue à l’englobante', () => {
     expect(voit(sonde.safeParse('x'))).toBe(false);
     expect(voit(parserSousCatalogue(sonde, 'x', CAT))).toBe(true);
-    expect(sousLeCatalogue(aucunId, CAT, () => [voit(sonde.safeParse('x')), voit(parserSousCatalogue(sonde, 'x', base)), voit(sonde.safeParse('x'))])).toEqual([true, false, true]);
+    expect(sousLeCatalogue(aucunId, CAT, () => [voit(sonde.safeParse('x')), voit(parserSousCatalogue(sonde, 'x', catalogueDeTest({}))), voit(sonde.safeParse('x'))])).toEqual([true, false, true]);
     expect(voit(sonde.safeParse('x'))).toBe(false);
   });
 
@@ -132,8 +151,8 @@ describe('le parcours de carrière d’une entité se juge au profil de sa créa
   const soldat = (creature: string): SceneEntity => ({ id: 'r', kind: 'personnage', creature: { id: creature }, pos: { x: 1, y: 1 }, carrieres: { soldat: 2 }, dotationsDeCarriere: { [joker.adresse]: 'canon-ratling' } });
 
   it('le canon ratling du joker est admis au skaven du seul catalogue, refusé à l’humain du seul catalogue', () => {
-    expect(parserSousCatalogue(sceneEntitySchema, soldat(SKAVEN), CAT).success).toBe(true);
-    expect(fautesCustom(parserSousCatalogue(sceneEntitySchema, soldat(HUMAIN), CAT))).toEqual([
+    expect(parserSousCatalogue(sceneEntitySchema, soldat(SKAVEN), SOUS_LES_CREATURES).success).toBe(true);
+    expect(fautesCustom(parserSousCatalogue(sceneEntitySchema, soldat(HUMAIN), SOUS_LES_CREATURES))).toEqual([
       { path: ['carrieres'], message: `« canon-ratling » n’est pas une valeur de l’emplacement de dotation « ${joker.adresse} ».` },
     ]);
   });
@@ -142,7 +161,7 @@ describe('le parcours de carrière d’une entité se juge au profil de sa créa
     const offerts = (creature: string) => {
       const scene = { ...buildScene({ id: 'caserne', label: 'Caserne', size: [8, 8], terrain: 'herbe' }), entities: [soldat(creature)] };
       const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'catalogue', scenes: [scene], narratif: emptyNarratif() };
-      const s = editer(ouvrirLEdition(projet as ProjetDEdition, { duDepot: true }, CAT), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'r' } });
+      const s = editer(ouvrirLEdition(projet as ProjetDEdition, { duDepot: true }, SOUS_LES_CREATURES), { geste: 'selectionner', porteur: { sorte: 'entite', id: 'r' } });
       const dotation = inspecteurDeLaSession(s).find((el) => el.id === `carriere/dotation/${joker.adresse}`);
       return dotation && 'valeurs' in dotation ? dotation.valeurs.map((v) => v.id).filter((id) => id.endsWith('/canon-ratling')) : undefined;
     };

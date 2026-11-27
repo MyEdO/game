@@ -6,7 +6,6 @@ import { BIBLIOTHEQUE } from './_racines-vivantes.generated';
 import { catalogueDuProcessus } from './catalogueDuProcessus';
 import { composer, type Catalogue } from './schemas/catalogue/catalogue';
 import type { LivreDeTest } from './schemas/catalogue/catalogueDeTest.testkit';
-import { garanti } from '../lib/garanti';
 
 /** Les rangées d'un document à rangées (`entries`). */
 type DocumentARangees = { readonly entries: readonly unknown[] };
@@ -24,6 +23,3 @@ export function catalogueAvec(ajouts: Omit<LivreDeTest, 'regles'>): Catalogue {
   }
   return composer(documents, { regles: catalogueDuProcessus().regles });
 }
-
-/** La copie de l'entrée `id` des entrées `entrees` sous l'id `neuf`. */
-export const copie = <E extends { id: string }>(entrees: readonly E[], id: string, neuf: string): E => ({ ...garanti(entrees.find((e) => e.id === id), id, 'entrée copiée'), id: neuf });
