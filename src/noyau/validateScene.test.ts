@@ -859,6 +859,12 @@ describe('validateScene — l’offre de repos d’un lieu à hébergement a un 
     expect(w.map((x) => [x.scope, x.sceneId, x.message])).toEqual([['scene', s.id, `Scène « ${s.label} » → le lieu « Lieu » déclare l’hébergement « L’asile » : la qualité du repos se règle sur l’établissement, retire-la de la scène`]]);
   });
 
+  it('les offres d’auberge de la scène du lieu sont refusées, à la scène (#5149)', () => {
+    const s = { ...base(), rest: { offres: [{ id: 'repas' as const, prix: { brass: 0 }, source: ACE }] } };
+    const w = validateScene([s], carte(asile)).filter((x) => x.level === 'error');
+    expect(w.map((x) => [x.scope, x.sceneId, x.message])).toEqual([['scene', s.id, `Scène « ${s.label} » → le lieu « Lieu » déclare l’hébergement « L’asile » : les offres d’auberge se règlent sur l’établissement, retire-les de la scène`]]);
+  });
+
   it('l’auberge de la scène du lieu est refusée, à la scène', () => {
     const s = { ...base(), rest: { auberge: true } };
     expect(erreurs(s, asile)).toEqual([`Scène « ${s.label} » → le lieu « Lieu » déclare l’hébergement « L’asile » : l’auberge est celle de l’établissement, retire-la de la scène`]);

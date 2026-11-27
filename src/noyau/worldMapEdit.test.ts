@@ -5,9 +5,19 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { resetData, setObjectDataset } from '../data/overrides';
 import { semencesDeScene } from '../data';
-import { offresDuType, routesFrom, type MapPlace, type OffreDAuberge, type PlaceService, type MapRoute, type WorldMap } from './worldMap';
+import { emptyScene, type Scene } from './monde/scene';
 import {
-  BORNES_DE_CARTE, ajouterLieu, basculerMode, ciblerPoi, etablissementAjoute, etablissementRetire, lierLieux, majCarte, majLieu, majRoute, offreAjoutee, offresDeLEtablissement, offreRetiree, supprimerLieu, supprimerRoute, typesDEtablissement,
+  offresDeLAubergeDeScene,
+  offresDuType,
+  routesFrom,
+  type MapPlace,
+  type OffreDAuberge,
+  type PlaceService,
+  type MapRoute,
+  type WorldMap,
+} from './worldMap';
+import {
+  BORNES_DE_CARTE, ajouterLieu, basculerMode, ciblerPoi, etablissementAjoute, etablissementRetire, lierLieux, majCarte, majLieu, majRoute, offreAjoutee, offresAuChoix, offresChangees, offresDeLaScene, offresDeLEtablissement, offreRetiree, supprimerLieu, supprimerRoute, typesDEtablissement,
 } from './worldMapEdit';
 
 const lieu = (id: string, x: number, y = 50): MapPlace => ({ id, label: id, pos: { x, y }, scene: { id: 's' } });
@@ -226,5 +236,28 @@ describe('offres d’auberge d’un établissement (#4277)', () => {
       { id: 'repas', libelle: 'Repas', vendue: true },
     ]);
     expect(offresDeLEtablissement(avec(auberge), 'auberge')?.every((o) => o.vendue), 'sans déclaration, les offres du livre').toBe(true);
+  });
+});
+
+describe('offres d’auberge d’une scène (#5149)', () => {
+  const scene = (rest?: Scene['rest'], restZones?: Scene['restZones']): Scene => ({ ...emptyScene('s', 4, 4), ...(rest ? { rest } : {}), ...(restZones ? { restZones } : {}) });
+  const NOTE_NULLE: OffreDAuberge = { id: 'chambre', prix: { brass: 0 }, source: { book: 'livre-de-base', page: 302 } };
+
+  it('une scène sans auberge, ni en entier ni en zone, ne vend rien', () => {
+    expect([offresDeLaScene(scene()), offresDeLaScene(scene({ camp: true, offres: [NOTE_NULLE] }))]).toEqual([undefined, undefined]);
+  });
+
+  it('sans déclaration, l’auberge de la scène vend celles de l’auberge de scène ; une zone d’auberge suffit', () => {
+    const attendu = { vendues: offresDeLAubergeDeScene(), duType: offresDeLAubergeDeScene() };
+    expect(offresDeLaScene(scene({ auberge: true }))).toEqual(attendu);
+    expect(offresDeLaScene(scene(undefined, [{ rect: { x: 0, y: 0, w: 1, h: 1 }, places: { auberge: true } }]))).toEqual(attendu);
+  });
+
+  it('ses offres déclarées se vendent, se disent au choix, s’augmentent à la source du type et se retirent jusqu’à la liste vide', () => {
+    const h = offresDeLaScene(scene({ auberge: true, offres: [NOTE_NULLE] }))!;
+    expect(offresAuChoix(h).filter((o) => o.vendue).map((o) => o.id)).toEqual(['chambre']);
+    expect(offresChangees(h, { ajouter: 'repas' })).toEqual([NOTE_NULLE, { id: 'repas', source: offresDeLAubergeDeScene().find((o) => o.id === 'repas')!.source }]);
+    expect(offresChangees(h, { retirer: 'chambre' })).toEqual([]);
+    expect([offresChangees(h, { ajouter: 'chambre' }), offresChangees(h, { retirer: 'repas' })], 'déjà vendue, ou pas vendue : sans objet').toEqual([undefined, undefined]);
   });
 });

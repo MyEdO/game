@@ -127,7 +127,7 @@ import {
   type Tool,
   type DocumentDuProjet,
 } from '../sceneEditLecture';
-import { cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
+import { champ, cheminOffert, type EcritureDeValeur, type RefusDeValeur, type Segment } from './formulaire';
 import { applyStairFlight, planStairFlight, type StairFlightPlan } from '../stairFlight';
 import { flottaisonDuNavire, poserLesNavires, poserUnNavire } from '../planDeNavire';
 import { refusDePoseDesPonts } from '../../data/schemas/catalogue/poseDesPonts';
@@ -168,7 +168,10 @@ import {
   etablissementAjoute,
   type CibleDuPoi,
   majLieu,
+  type ChangementDOffre,
   offreAjoutee,
+  offresChangees,
+  offresDeLaScene,
   offreRetiree,
   orienterRoute,
   type PatchDeLieu,
@@ -222,7 +225,9 @@ export type Ouvrage = (typeof OUVRAGES)[number];
 
 /** Ce que l'inspecteur de la scène écrit, sans sélection : ses champs scalaires (`null` retire le champ), sa grille,
  *  son nord (`null` : vers le haut du plan), les matières de son relief, sa toiture par défaut, son repos sur place
- *  (lieux offerts, sa qualité (`QUALITES_DE_REPOS`)), ses drapeaux de départ (`null` retire le drapeau) ; une piste de sa musique
+ *  (lieux offerts, sa qualité (`QUALITES_DE_REPOS`), une offre de son auberge ajoutée ou retirée (`offresDeLaScene`,
+ *  `offresChangees`, refusée sans auberge ou sans objet), ses offres déclarées retirées, celles du catalogue revenant
+ *  (`offres: null`, sans objet sans offres déclarées)), ses drapeaux de départ (`null` retire le drapeau) ; une piste de sa musique
  *  (`setSceneMusic` : `id` absent, la piste du contexte ; `null`, le silence) ; ses ancres de bataille, une ajoutée vers la Scène de
  *  Round `ajouter`, celle de rang `rang` patchée, ou celle de rang `retirer` retirée ; sa zone jouable retirée (`null` : toute
  *  la carte se joue, `setZoneJouable`). */
@@ -233,7 +238,7 @@ export interface PatchDeScene {
   nord?: number | null;
   relief?: Partial<ReliefDefaults>;
   toiture?: Partial<SceneRoofDefaults>;
-  repos?: { lieux?: PatchDeZone['lieux']; qualite?: QualiteDeRepos };
+  repos?: { lieux?: PatchDeZone['lieux']; qualite?: QualiteDeRepos; offre?: ChangementDOffre; offres?: null };
   drapeaux?: Record<string, boolean | null>;
   musique?: { piste: keyof NonNullable<Scene['music']>; id?: string | null };
   stations?: { ajouter: string } | { rang: number; sceneId?: string; pos?: SceneStationAnchor['pos'] } | { retirer: number };
@@ -394,7 +399,13 @@ function scenePatchee(scene: Scene, patch: PatchDeScene): Scene {
     if (matiere) sc = setReliefDefault(sc, part, matiere);
   }
   if (patch.toiture) sc = patchSceneRoofDefaults(sc, patch.toiture);
-  if (patch.repos) sc = setSceneRest(sc, { ...patch.repos.lieux, ...(patch.repos.qualite && { quality: patch.repos.qualite }) });
+  if (patch.repos) {
+    const { lieux, qualite, offre } = patch.repos;
+    const h = offre && offresDeLaScene(sc);
+    const offres = offre && h && offresChangees(h, offre);
+    if (lieux || qualite || offres) sc = setSceneRest(sc, { ...lieux, ...(qualite && { quality: qualite }), ...(offres && { offres }) });
+    if (patch.repos.offres === null && sc.rest?.offres) sc = { ...sc, rest: champ(sc.rest, 'offres', undefined) };
+  }
   for (const [cle, valeur] of Object.entries(patch.drapeaux ?? {})) sc = valeur === null ? removeSceneFlag(sc, cle) : setSceneFlags(sc, { [cle]: valeur });
   if (patch.musique) sc = setSceneMusic(sc, patch.musique.piste, patch.musique.id);
   if (patch.stations) sc = stationsPatchees(sc, patch.stations);
