@@ -50,7 +50,7 @@ import {
   type Parmi,
 } from './ref';
 import { entreeDe, type Catalogue } from '../catalogue/catalogue';
-import { cibleDeLArgDuTrait, estCibleType, individusNommes, varianteAdmise, varianteDe } from '../../../engine/psych/ciblage';
+import { cibleDeLArg, estCibleType, individusNommes, varianteAdmise, varianteDe, type LecteursDeCible } from '../../../engine/psych/ciblage';
 
 /**
  * Trait POSÉ (`TraitPose`, la forme AUTHORÉE) — partagé entre le bestiaire (`creatures.json`
@@ -139,9 +139,12 @@ export function refuserLesIndividus(valeur: unknown, ctx: z.RefinementCtx, docum
     ctx.addIssue({ code: 'custom', message: `Cible psy « ${id} » : ${document} n'a pas de personnages de scène, sa Cible est un Groupe.` });
 }
 
+/** Les lectures de la Cible d'un `arg` sous le catalogue jugé `cat`. */
+const lecteursDeCible = (cat: Catalogue): LecteursDeCible => ({ trait: (id) => entreeDe('traits', id, cat), groupe: (id) => entreeDe('groups', id, cat) });
+
 /** L'`arg` du Trait `id` désigne-t-il un individu (`@id`) à la place d'une Cible psy (`specsSource: ciblesPsy`) ? */
 function argDIndividu(id: string, arg: string, cat: Catalogue): boolean {
-  const cible = cibleDeLArgDuTrait(entreeDe('traits', id, cat), arg);
+  const cible = cibleDeLArg(id, arg, lecteursDeCible(cat));
   return cible !== undefined && varianteDe(cible) === 'individu';
 }
 
@@ -159,7 +162,7 @@ export function lireLesCiblesPsy(lire: LecturesDuRaffinement) {
 function refusDeVarianteDeCible(id: string, arg: string, admetVariante: typeof varianteAdmise, cat: Catalogue): string | null {
   const trait = entreeDe('traits', id, cat);
   const type = trait?.capabilities?.psychType;
-  const cible = cibleDeLArgDuTrait(trait, arg);
+  const cible = cibleDeLArg(id, arg, lecteursDeCible(cat));
   if (!type || cible === undefined || admetVariante(type, varianteDe(cible))) return null;
   return `Trait « ${id} » : ${entreeDe('psychologies', type, cat)?.label ?? type} ne vise pas ${libelleDeValeur(varianteDeCibleSchema, varianteDe(cible))} (« ${arg} »).`;
 }
@@ -208,7 +211,7 @@ function refusDuTraitPose(lire: LecturesDuRaffinement, regime: RegimeDeCible) {
   const admet = declareLaCapacite(lire.catalogue('trait').porteLeMarqueur);
   const specialisations = lire.specialisations('trait');
   const { varianteAdmise } = lireLesCiblesPsy(lire);
-  const cat = lire.catalogueLu('trait', 'psychology');
+  const cat = lire.catalogueLu('trait', 'psychology', 'groupe');
   return (t: TraitPose, ctx: z.RefinementCtx): void => {
     const valeurs = (['value', 'plage', 'parLocalisation'] as const).filter((k) => t[k] !== undefined);
     if (valeurs.length > 1) ctx.addIssue({ code: 'custom', path: [valeurs[1]], message: `Trait « ${t.id} » : « ${valeurs.join(' » et « ')} » disent tous deux sa valeur — une seule de ces clés.` });

@@ -58,22 +58,26 @@ export function selonCible<R>(cible: CiblePsy, lecteurs: { groupe: (id: string) 
 }
 
 /** La Cible qu'écrit une chaîne de donnée (`arg` d'un Trait, spécialisation, Cible persistée) : `@id` donne
- *  l'individu, un id de Groupe connu de `groups.json` le Groupe ; sinon aucune. */
-export function ciblePsyLue(ecrite: string): CiblePsy | undefined {
+ *  l'individu, un id de Groupe que connaît `groupe` (par défaut `groups.json` de la base) le Groupe ; sinon aucune. */
+export function ciblePsyLue(ecrite: string, groupe: (id: string) => unknown = findGroupById): CiblePsy | undefined {
   const { variante, id } = formeDe(ecrite);
   if (variante === 'individu') return estIdDIndividu(id) ? ciblePsy.individu(id) : undefined;
-  return findGroupById(id) ? ciblePsy.groupe(id) : undefined;
+  return groupe(id) ? ciblePsy.groupe(id) : undefined;
 }
 
-/** SEUL décodage de l'`arg` d'un Trait posé en Cible : celle qu'il écrit (`ciblePsyLue`) quand le Trait `trait`
- *  tire son argument des Cibles psy (`specsSource: ciblesPsy`), sinon aucune. */
-export function cibleDeLArgDuTrait(trait: { readonly specsSource?: string | null } | undefined, arg: string): CiblePsy | undefined {
-  return trait?.specsSource === 'ciblesPsy' ? ciblePsyLue(arg.trim()) : undefined;
-}
+/** Les lectures dont se décode l'`arg` d'un Trait posé : le Trait par son id, le Groupe par son id. */
+export type LecteursDeCible = {
+  readonly trait: (id: string) => { readonly specsSource?: string | null } | undefined;
+  readonly groupe: (id: string) => unknown;
+};
 
-/** `cibleDeLArgDuTrait` du Trait `traitId` de la base. */
-export function cibleDeLArg(traitId: string, arg: string): CiblePsy | undefined {
-  return cibleDeLArgDuTrait(findTraitById(traitId), arg);
+const LECTEURS_DE_LA_BASE: LecteursDeCible = { trait: findTraitById, groupe: findGroupById };
+
+/** SEUL décodage de l'`arg` d'un Trait posé en Cible : celle qu'il écrit (`ciblePsyLue`) quand le Trait `traitId`
+ *  tire son argument des Cibles psy (`specsSource: ciblesPsy`), sinon aucune. Le moteur lit la base (défaut), la
+ *  grammaire injecte le catalogue jugé. */
+export function cibleDeLArg(traitId: string, arg: string, lire: LecteursDeCible = LECTEURS_DE_LA_BASE): CiblePsy | undefined {
+  return lire.trait(traitId)?.specsSource === 'ciblesPsy' ? ciblePsyLue(arg.trim(), lire.groupe) : undefined;
 }
 
 /** L'id de l'individu que vise une Cible, `undefined` pour un Groupe. */

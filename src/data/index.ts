@@ -139,7 +139,7 @@ import type * as qualityTypesDef from './schemas/defs/qualityTypes';
 import type * as weatherDef from './schemas/defs/weather';
 import type * as planDeBestiaireDef from './schemas/defs/planDeBestiaire';
 import type * as booksDef from './schemas/defs/books';
-import { books } from './livres';
+import booksJson from './books.json';
 import type * as vehiclesDef from './schemas/defs/vehicles';
 import type * as qualitiesDef from './schemas/defs/qualities';
 import type * as tavernGamesDef from './schemas/defs/tavernGames';
@@ -1705,7 +1705,7 @@ const lieuParId = indexParId('locations', locations);
 export function findLocationById(id: string | null | undefined): LocationData | undefined {
   return lieuParId(id);
 }
-export { books };
+export const books = datasetDe<typeof booksDef>(booksJson);
 const livreParId = indexParId('books', books);
 /** Résout un Livre par son `id` STABLE (cible de `source.book`) — `abbr`/`label` ne servent qu'à l'affichage. */
 export function findBookById(id: string | null | undefined): BookData | undefined {

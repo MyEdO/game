@@ -301,6 +301,9 @@ hôte compose un catalogue, et il le remet à sa partie.
     (`catalogueLu('vehicle', 'engin', 'trapping', 'creature')`, `scene.ts:352`). Aucune racine vivante n'atteint
     `sceneEntitySchema` : la déclaration n'ajoute aucun lecteur à `fichiersLisantLeCatalogue('creatures.json')`
     (`src/data/schemas/validate.ts:176`) ;
+  - une lecture non déclarée reste exprimable : `catalogueLu(...)()` rend le `Catalogue` entier. La fermeture par
+    structure revient au lot des pools d'enjeu (#5079), son deuxième cas réel : `catalogueLu` y rend un `Pick` du
+    `Catalogue` sur les seuls fichiers déclarés ;
   - l'éditeur appelle la même fonction hors parse, sous le catalogue de sa session, par exemple `sceneAvecLEntite`
     (`src/noyau/sceneEdit.ts:1271`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1467,1470`) et
     l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:496`). Le parse et l'éditeur suivent un
@@ -349,18 +352,26 @@ hôte compose un catalogue, et il le remet à sa partie.
   `(…, cat)` de `schemas/catalogue` :
   - `defs-scenes/scene.ts`, sans lecture de la base : la carrière lit la créature sous `cat` (`scene.ts:226`) ;
   - `narratif.ts:22` et `worldmap.ts:24` ;
-  - `grammaire/reference.ts`, sans lecture de la base : le Trait posé lit le trait et le libellé de son type psy sous
-    `cat` (`entreeDe('traits', …)`, `entreeDe('psychologies', …)`, `reference.ts:144,160,164,222`), sous
-    `catalogueLu('trait', 'psychology')` (`reference.ts:211`) ; sa Cible se décode de l'entrée du trait
-    (`cibleDeLArgDuTrait`, `src/engine/psych/ciblage.ts:70`), dont `ciblePsyLue` lit encore les Groupes de la base ;
+  - `grammaire/reference.ts` : le Trait posé lit le trait, le libellé de son type psy et le
+    Groupe de sa Cible sous `cat` (`entreeDe('traits', …)`, `entreeDe('psychologies', …)`, `entreeDe('groups', …)`,
+    `reference.ts:143,163,167,225`), sous `catalogueLu('trait', 'psychology', 'groupe')` (`reference.ts:214`) ; sa
+    Cible se décode par `cibleDeLArg` (`src/engine/psych/ciblage.ts:79`), dont les lecteurs du Trait et du Groupe
+    s'injectent : le moteur lit la base par défaut, la grammaire le catalogue jugé. Reste une lecture de la base :
+    `refuserLesIndividus` (`reference.ts:137`) lit le Trait par `individusNommes` (`ciblage.ts:97`), au défaut de
+    `cibleDeLArg` ;
   - `grammaire/mecanique.ts:17` (`categorieDEntreeAPool`, `trousDeLEnjeu`, les pools du Codex, #5079) ; la Cible tirée
-    de `grantTrait` lit les rangées de sa table dans `cat` (`GROUPES_TIRABLES`, `mecanique.ts:213,855`), sous le
-    `catalogueLu('trait')` du raffinement : aucun type d'entité ne désigne `obsessions.json`, l'espace n'est pas déclaré ;
+    de `grantTrait` lit les rangées de sa table dans `cat` (`GROUPES_TIRABLES`, `collectionDuCatalogue`,
+    `mecanique.ts:213,855`), sous `catalogueLu('trait', 'obsessions.json')` (`mecanique.ts:843`) : `catalogueLu`
+    déclare un document du `Catalogue` qu'aucun type d'entité ne désigne par sa clé de fichier (`ref.ts:414`) ;
   - `defs/presets-de-personnage.ts:36` ;
-  - `defs-scenes/effets.ts:56` et `grammaire/valeurs.ts:16,18,60`, dont le libellé ou la saison passent au message de la
-    faute : l'apparence d'un objet lit l'objet sous `cat` (`objetsDuCatalogue`, `catalogueLu('trapping')`,
-    `valeurs.ts:1184`), et `messageDApparenceDObjet` (`valeurs.ts:16`) lit encore les apparences de la base ;
-    `saisonParId` (`valeurs.ts:60`) indexe le `weather.json` livré pour les libellés de `parSaison`, des méta sans `cat` ;
+  - `defs-scenes/effets.ts:56`, dont le libellé passe au message de la faute ;
+  - `grammaire/valeurs.ts:16,18,60` : l'apparence d'un objet lit l'objet sous `cat` (`objetsDuCatalogue`,
+    `catalogueLu('trapping')`, `valeurs.ts:1184`). Restent trois lectures de la base :
+    - `messageDApparenceDObjet` (`valeurs.ts:16`, `src/data/apparencesObjets.ts:59`), dont le message de la faute lit
+      encore les apparences de la base : étape E de #5070, la découpe du C5-b ne nommant pas `apparencesObjets.ts` ;
+    - l'`import type` de `TrappingData` (`valeurs.ts:18`) : étape E ;
+    - `saisonParId` (`valeurs.ts:60`), qui indexe le `weather.json` livré pour les seuls libellés de `parSaison`, des
+      méta sans `cat` : étape E ;
   - `defs/especes-aleatoires.ts:74,95`, qui lit `species` et `reglesOptionnelles` dans `cat` ;
   - `grammaire/livres-extraits.ts:14`, sans lecture de la base : `estExtrait(bookId, cat)` lit le livre dans `cat`
     (`entreeDe('books', …)`, mémo `[cat]`), sous le `catalogueLu('book')` des verrous de la prose
