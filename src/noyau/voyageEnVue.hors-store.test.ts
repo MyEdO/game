@@ -48,7 +48,7 @@ describe('les journées closes d’un trajet en vue (#4574)', () => {
     } });
     expect(voyageEnVue(banc.getState())!.journees).toEqual([{
       depuis: 0, jusqua: 12.5, heures: 6.5, meteo: { id: 'pluie', nom: weatherCondition('pluie').label },
-      lignes: [ligne], evenements: [{ ...evenement, de: { n: 1, sides: 100 } }], entrees: [], mer: null,
+      lignes: [ligne], evenements: [{ ...evenement, de: { n: 1, sides: 100 } }], entrees: [], mer: null, fleuve: null,
     }]);
   });
 });
