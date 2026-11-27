@@ -5,13 +5,14 @@
  */
 import { describe, it, expect } from 'vitest';
 import { appuyer, type ContexteDuPointeur, type PointDeCarte } from './pointeur';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import { addArchitectureBody, addFacadeSection } from '../sceneEdit';
 import { emptyScene } from '../monde/scene';
 import type { Layers } from '../sceneEditLecture';
 
 const TOUT: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 const ctx = (architecture: ContexteDuPointeur['architecture']): ContexteDuPointeur => ({
-  tool: { mode: 'selection' }, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture,
+  tool: { mode: 'selection' }, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture, catalogue: catalogueDuProcessus(),
 });
 const au = (x: number, y: number, f: { x: number; y: number }): PointDeCarte => ({ case: { x, y }, f });
 

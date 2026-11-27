@@ -780,7 +780,7 @@ export const etageActif = (s: SessionDEdition): ArchitectureStorey | null => cor
 function contexte(s: SessionDEdition): ContexteDuPointeur {
   const outil = s.outil;
   const architecture = outil.mode === 'architecture' ? { z: s.z, action: outil.action === 'facade' ? 'facade' as const : 'selection' as const, bodyId: corpsActif(s)?.id ?? null } : null;
-  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' || outil.mode === 'lieu' || outil.mode === 'chemin' || outil.mode === 'epingler' ? { mode: 'selection' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture };
+  return { tool: outil.mode === 'architecture' || outil.mode === 'navire' || outil.mode === 'lieu' || outil.mode === 'chemin' || outil.mode === 'epingler' ? { mode: 'selection' } : outil, z: s.z, brush: s.pinceau, encId: '', encRef: '', layers: TOUS_LES_CALQUES, sel: s.sel, terrainRect: s.rectangle, architecture, catalogue: s.catalogue };
 }
 
 /** Si le clic de la session `s` tire une exclusion de toiture du corps actif. */

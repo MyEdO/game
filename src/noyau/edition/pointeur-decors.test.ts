@@ -10,10 +10,11 @@ import { piedDuDecor } from '../monde/poseDuDecor';
 import { validateScene } from '../validateScene';
 import type { Layers, Tool } from '../sceneEditLecture';
 import { appuyer, glisser, relacher, type ContexteDuPointeur, type PointDeCarte } from './pointeur';
+import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 
 const TOUT: Layers = { triggers: true, spawns: true, roofs: true, entries: true, rest: true, zones: true };
 const ctx = (tool: Tool): ContexteDuPointeur => ({
-  tool, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture: null,
+  tool, z: 0, brush: 1, encId: '', encRef: 'mutant', layers: TOUT, sel: null, terrainRect: false, architecture: null, catalogue: catalogueDuProcessus(),
 });
 const au = (x: number, y: number): PointDeCarte => ({ case: { x: Math.round(x), y: Math.round(y) }, f: { x, y } });
 const outil = (ref: string): Tool => ({ mode: 'entite', kind: 'prop', ref });

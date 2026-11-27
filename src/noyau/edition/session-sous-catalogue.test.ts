@@ -1,8 +1,9 @@
 /**
  * La session d'édition juge chaque lecture sous le catalogue qu'elle porte (#5070, plan
  * `docs/plans/2026-11-25-composition-d-un-jeu.md` § 5.1, point 2, et fossile 9) : la table d'écriture, la pose des
- * ponts d'`editer`, l'inspecteur de l'hôte, la fiche d'un personnage, les fiches que la palette et l'inspecteur offrent,
- * la validation et la porte du projet. Fixtures : un navire à ponts présent SEULEMENT dans le catalogue de la suite
+ * ponts d'`editer`, l'inspecteur de l'hôte, la fiche d'un personnage, les fiches que la palette et l'inspecteur offrent
+ * et que l'outil pose, la fiche que le profil personnalisé copie et dont une option offre les notes, la validation et la
+ * porte du projet. Fixtures : un navire à ponts présent SEULEMENT dans le catalogue de la suite
  * (`navireDuLivreDeTest`), un catalogue où la caraque n'a pas de ponts, un catalogue privé de toute créature, où la fiche
  * se juge par son absence, des créatures à Blessures déclarées par la suite, et une espèce déclarée dont l'une est le
  * profil standard.
@@ -129,6 +130,34 @@ describe('les fiches qu’un personnage nomme se lisent sous le catalogue de la 
     expect(auChoixFiche(SOUS_LA_FICHE)).toBe(true);
     expect(palette(undefined)).not.toContain(`personnage/${FICHE}`);
     expect(auChoixFiche(undefined)).toBe(false);
+  });
+
+  it('l’outil Personnage pose la fiche du seul catalogue de la session, que la palette offre', () => {
+    const point = { case: { x: 2, y: 2 }, f: { x: 2, y: 2 } };
+    const enMain = editer(ouverteSous(SOUS_LA_FICHE, bassin()), { geste: 'outil', outil: { mode: 'entite', kind: 'personnage', ref: FICHE } });
+    const posee = editer(editer(enMain, { geste: 'appui', point }), { geste: 'relache', point });
+    expect(sceneEditee(posee).entities.map((e) => e.creature)).toEqual([{ id: FICHE }]);
+  });
+
+  it('le profil personnalisé offre la copie de la fiche du seul catalogue de la session ; sous le processus, le profil neuf seul', () => {
+    const profils = (cat: Catalogue | undefined) => {
+      const s = ouverteSous(cat, bassin(posee), 'f');
+      return choixDuChamp('entite', entite(s), ['statblock'], cadreDeLaSession(s))!.map((c) => c.libelle);
+    };
+    expect(profils(SOUS_LA_FICHE)).toEqual([t('ecran.editeur.profil.neuf'), t('ecran.editeur.profil.copie', { fiche: FICHE })]);
+    expect(profils(undefined)).toEqual([t('ecran.editeur.profil.neuf')]);
+  });
+
+  it('une option offre les notes de la fiche du seul catalogue de la session ; sous le processus, la courante seule', () => {
+    const note = { note: 'swap' as const, label: 'Note de la fiche de la suite', remove: [], grant: [{ characteristic: 'sociabilite' as const, value: 20 }] };
+    const SOUS_LA_FICHE_A_NOTE = catalogueAvec({ 'creatures.json': [{ ...fiche(FICHE), optionals: [note] }] });
+    const aLaNote: SceneEntity = { ...posee, combat: { optionals: [{ ...note, label: 'Note de la scène' }] } };
+    const notes = (cat: Catalogue | undefined) => {
+      const s = ouverteSous(cat, bassin(aLaNote), 'f');
+      return choixDuChamp('entite', entite(s), ['combat', 'optionals', 0], cadreDeLaSession(s))!.map((c) => c.libelle).filter((l) => l.startsWith('Note '));
+    };
+    expect(notes(SOUS_LA_FICHE_A_NOTE)).toEqual(['Note de la fiche de la suite', 'Note de la scène']);
+    expect(notes(undefined)).toEqual(['Note de la scène']);
   });
 });
 

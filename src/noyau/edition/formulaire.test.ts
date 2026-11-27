@@ -936,7 +936,7 @@ describe('l’accès d’un porteur à son document du projet (#3606)', () => {
   const MURS = [{ x: 1, y: 2, side: 'N' as const }, { x: 3, y: 0, side: 'E' as const, z: 1 }];
   const SCENE: Scene = { ...emptyScene('salle', 4, 4), walls: MURS };
   const CARTE: WorldMap = { ...emptyWorldMap('carte'), routes: [{ id: 'route', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }] };
-  const projet = (worldMap?: WorldMap) => ({ scenes: [SCENE], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) }) as unknown as ProjetDEdition;
+  const projet = (worldMap?: WorldMap) => ({ scenes: [SCENE], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) }) as ProjetDEdition;
   type Route = WorldMap['routes'][number];
   type Mur = NonNullable<Scene['walls']>[number];
   const ROUTES: AccesDuPorteur<Route> = { document: 'carte', collection: 'routes' };
@@ -976,7 +976,7 @@ describe('les porteurs de la carte du monde : lieu, route et carte (#3606 M5)', 
     places: [{ id: 'x', label: 'X', pos: { x: 20, y: 20 }, scene: { id: 'salle' }, poi: [POI] }, { id: 'y', label: 'Y', pos: { x: 60, y: 20 }, scene: { id: 'salle' } }],
     routes: [{ id: 'r', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'] }],
   };
-  const projet = { scenes: [SALLE], narratif: NARRATIF_VIDE, worldMap: CARTE } as unknown as ProjetDEdition;
+  const projet = { scenes: [SALLE], narratif: NARRATIF_VIDE, worldMap: CARTE } as ProjetDEdition;
   const cadre: CadreDuPorteur = { ...CADRE_VIDE, scene: SALLE, projet, source: { manifeste: null, chapitres: {} } };
   const cles = (fs: FieldDesc[]) => fs.map((f) => f.key);
 

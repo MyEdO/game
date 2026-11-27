@@ -72,7 +72,7 @@ import { projetSchema } from '../../data/schemas/defs-scenes/projet';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { refusDeForme } from '../narratifEdit';
 import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
-import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import { refusDeLEntite, sceneEntitySchema, type EntiteAJuger } from '../../data/schemas/defs-scenes/scene';
 import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import {
   creatures,
@@ -882,7 +882,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, calage: { x: 2, y: 0 } },
     admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } },
     } as const;
-    const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0], catalogueDuProcessus());
+    const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as EntiteAJuger, catalogueDuProcessus());
     expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['creature']]);
     expect(fautes(fixtures.deuxCorps).map((f) => f.chemin)).toEqual([['vehicule']]);
     expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
@@ -1121,7 +1121,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     expect(choix(jouer(ajoute, valeur(['postes', postes.length, 'engin', 'id'], 'belier-ade2')), ['postes', postes.length, 'ammo']), 'bélier → aucune').toEqual([]);
     expect(refusDeLaValeur(cogue, valeur(['postes', 0, 'ammo', 'carreau-de-baliste'], 2)), 'un carreau n’est pas offert au coffre d’un canon').toBe('nonOffert');
     const canonACarreaux = { ...coque(cogue), postes: [{ engin: { id: 'canon-moyen' }, ammo: { 'carreau-de-baliste': 2, 'boulet-et-poudre': 4 } }] };
-    expect(refusDeLEntite(canonACarreaux as Parameters<typeof refusDeLEntite>[0], catalogueDuProcessus()), 'le parse refuse un carreau au coffre d’un canon')
+    expect(refusDeLEntite(canonACarreaux as EntiteAJuger, catalogueDuProcessus()), 'le parse refuse un carreau au coffre d’un canon')
       .toEqual([{ chemin: ['postes', 0, 'ammo', 'carreau-de-baliste'], message: expect.stringContaining('ne charge pas') }]);
     const dote = jouer(cogue, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 3));
     expect(coque(dote).postes![0].ammo).toMatchObject({ 'mitraille-et-poudre': 3 });

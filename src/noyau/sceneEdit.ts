@@ -157,9 +157,11 @@ import {
   selPos,
   selRect,
   accesDe,
+  ficheDePersonnage,
 } from './sceneEditLecture';
 import { tableTotale } from '../lib/tableTotale';
 import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 
 export type Pt = { x: number; y: number };
 
@@ -883,8 +885,8 @@ export function changePropRef(scene: Scene, propId: string, ref: string): Scene 
  *  (`borneALaCarte`). Les props appliquent leurs défauts de catalogue
  *  (empreinte, interactif si fouillable) et se posent au point visé `point` (`poseAuPoint` : case, calage, appui) ;
  *  un personnage porte sa fiche en `creature` et le libellé de la fiche, son apparence se dérive du record (#1882). Une
- *  fiche absente du bestiaire, ou nulle, lève. */
-export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p): { scene: Scene; id: string } {
+ *  fiche que `cat` ne porte pas (`ficheDePersonnage`), ou nulle, lève. */
+export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point: Pt = p, cat: Catalogue = catalogueDuProcessus()): { scene: Scene; id: string } {
   const id = nextEntityId(outil.kind, scene.entities.map((e) => e.id));
   const base: SceneEntity = { id, kind: outil.kind, pos: borneALaCarte(scene, p, outil.kind === 'heroStart') };
   // #1463 S3 · #1882 : `nomDEntite`.
@@ -893,7 +895,7 @@ export function placeEntity(scene: Scene, outil: EntityTool, p: Pt, z = 0, point
     return { ...ent, ...poseAuPoint(scene, ent, point) };
   };
   const personnage = (ref: string | null): SceneEntity => {
-    if (ref === null || !findCreatureById(ref))
+    if (ref === null || !ficheDePersonnage(ref, cat))
       throw new Error(`placeEntity : « ${ref} » n'est pas une fiche du bestiaire — un personnage NOMME sa fiche par id STABLE (#1882)`);
     return { ...base, creature: { id: ref } };
   };
@@ -2796,11 +2798,12 @@ export type GesteDOutil = { z: number; brush: number; encId: string; encRef: str
 /** Ce qu'un geste rend : la scène, la sélection qu'il désigne, et la rencontre qu'il a complétée. */
 export type EffetDOutil = { scene: Scene; sel?: Sel; encId?: string };
 
-/** Applique l'outil `tool` à la case `p` — routine unique de l'appui et du glissé. null hors de la carte,
+/** Applique l'outil `tool` à la case `p`, la fiche d'un personnage jugée sous `cat` (`placeEntity`) — routine unique de
+ *  l'appui et du glissé. null hors de la carte,
  *  pour un outil qui n'écrit pas à la case (sélection, zone au rectangle, tracé de volée), ou quand la pose
  *  est refusée. Un décor se pose toujours, au point visé, parmi ce que la case porte déjà ; sur une entité déjà posée,
  *  les autres outils de pose la désignent sans rien écrire. */
-export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOutil): EffetDOutil | null {
+export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOutil, cat: Catalogue): EffetDOutil | null {
   if (!dansLaCarte(scene, p)) return null;
   const { z, brush } = geste;
   switch (tool.mode) {
@@ -2817,7 +2820,7 @@ export function appliquerOutil(scene: Scene, tool: Tool, p: Pt, geste: GesteDOut
       }
       const existing = entityAt(scene, p, z, geste.point);
       if (existing) return { scene, sel: { type: 'entity', id: existing.id } };
-      const out = tool.mode === 'entite' ? placeEntity(scene, tool, p, z) : placeEmplacement(scene, tool.trappingId, p, z);
+      const out = tool.mode === 'entite' ? placeEntity(scene, tool, p, z, p, cat) : placeEmplacement(scene, tool.trappingId, p, z);
       return out && { scene: out.scene, sel: { type: 'entity', id: out.id } };
     }
     case 'entree': {

@@ -1,8 +1,8 @@
 /**
  * Les fautes CROISÉES d'une scène sous le catalogue passé (#5070, `docs/plans/2026-11-25-composition-d-un-jeu.md`
  * § 5.1, point 2) : le cap d'un navire à ponts, la munition et la pièce d'un poste, la pose des ponts, la carrière et le
- * profil. Fixtures : un navire à ponts, une pièce, deux munitions, deux créatures (le skaven et l'humain copiés), présents
- * SEULEMENT dans le catalogue de la suite (`catalogueAvec`).
+ * profil, la Cible d'individu. Fixtures : un navire à ponts, une pièce, deux munitions, deux créatures (le skaven et
+ * l'humain copiés), un Trait à Cible, présents SEULEMENT dans le catalogue de la suite (`catalogueAvec`).
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -18,7 +18,11 @@ import { sceneEntitySchema, sceneSchema } from '../data/schemas/defs-scenes/scen
 import { NAVIRE, navire, navireDuLivreDeTest } from './navireDuLivreDeTest.testkit';
 import { ouvrirLEdition, editer } from './edition/session';
 import { emptyNarratif } from './monde/campaignNarratif';
-import type { SceneEntity } from './monde/scene';
+import { emptyScene, type Scene, type SceneEntity } from './monde/scene';
+import { flowFromEffects } from './monde/flow';
+import { validateScene } from './validateScene';
+import type { Catalogue } from '../data/schemas/catalogue/catalogue';
+import type { CustomStatblock } from '../engine/statblock';
 import { inspecteurDeLaSession } from '../hote/editeur';
 import { dotationsDuPnj, emplacementsDeDotation } from '../engine/trappingChoices';
 
@@ -144,5 +148,35 @@ describe('le parcours de carrière d’une entité se juge au profil de sa créa
     };
     expect(offerts(SKAVEN)).toEqual([`carriere/dotation/${joker.adresse}/canon-ratling`]);
     expect(offerts(HUMAIN)).toEqual([]);
+  });
+});
+
+describe('la Cible d’individu d’une scène (`individusNommes`) se lit dans le catalogue passé', () => {
+  /** L'entrée minimale qui fait de l'`arg` d'un Trait une Cible psy, sa `specsSource`, et les champs qu'exige son type. */
+  const TRAIT_A_CIBLE = 'trait-a-cible-du-livre-de-test';
+  const SOUS_LE_TRAIT = catalogueAvec({ 'traits.json': [{ id: TRAIT_A_CIBLE, type: 'traits', label: 'Trait à Cible', specsSource: 'ciblesPsy', source: { book: 'livre-extrait-de-test', page: 1 } }] });
+  /** Un statbloc dont le Trait à Cible porte l'argument `arg`. */
+  const statbloc = (label: string, arg: string): CustomStatblock => ({ type: 'statblock', label, char: {}, traits: [{ id: TRAIT_A_CIBLE, arg }] });
+  const nomme: SceneEntity = { id: 'p', kind: 'personnage', pos: { x: 2, y: 1 }, statblock: { type: 'statblock', label: 'Nommé', char: {} } };
+  /** La scène où le PNJ `pnj` nomme `arg` par son Trait, avec le personnage `p`. */
+  const parLEntite = (arg: string): Scene => ({ ...emptyScene('s', 6, 6), entities: [{ id: 'pnj', kind: 'personnage', pos: { x: 1, y: 1 }, statblock: statbloc('PNJ', arg) }, nomme] });
+  /** La scène où un déclencheur donne une bête qui nomme `arg` par son Trait, avec le personnage `p`. */
+  const parLaScene = (arg: string): Scene => ({
+    ...emptyScene('s', 6, 6),
+    entities: [nomme],
+    triggers: [{ id: 'don', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: flowFromEffects([{ type: 'givePossession', nature: 'bete', ref: { custom: statbloc('Chien', arg) } }]) }],
+  });
+  const individus = (s: Scene, cat: Catalogue) => validateScene([s], undefined, undefined, cat)
+    .filter((w) => w.level === 'error' && w.message.includes('aucun personnage de la scène ne porte cet id'))
+    .map((w) => `${w.refId ?? w.scope} | ${w.message}`);
+
+  it('un individu absent nommé par l’entité, par un Trait à Cible du seul catalogue, est refusé sous lui', () => {
+    expect(individus(parLEntite('@absent'), SOUS_LE_TRAIT)).toEqual(['pnj | PNJ → Cible psy « absent » : aucun personnage de la scène ne porte cet id.']);
+    expect(individus(parLEntite('@p'), SOUS_LE_TRAIT)).toEqual([]);
+  });
+
+  it('un individu absent nommé hors des entités de la scène, par un Trait à Cible du seul catalogue, est refusé sous lui', () => {
+    expect(individus(parLaScene('@absent'), SOUS_LE_TRAIT)).toEqual(['scene | Cible psy « absent » : aucun personnage de la scène ne porte cet id.']);
+    expect(individus(parLaScene('@p'), SOUS_LE_TRAIT)).toEqual([]);
   });
 });

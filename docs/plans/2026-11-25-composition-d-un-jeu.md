@@ -305,12 +305,12 @@ hôte compose un catalogue, et il le remet à sa partie.
     structure revient au lot des pools d'enjeu (#5079), son deuxième cas réel : `catalogueLu` y rend un `Pick` du
     `Catalogue` sur les seuls fichiers déclarés ;
   - l'éditeur appelle la même fonction hors parse, sous le catalogue de sa session, par exemple `sceneAvecLEntite`
-    (`src/noyau/sceneEdit.ts:1273`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1468,1471`) et
+    (`src/noyau/sceneEdit.ts:1275`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1468,1471`) et
     l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:494`). Le parse et l'éditeur suivent un
     seul code. La session porte le catalogue que l'hôte lui sert, reçu en dernier paramètre d'`ouvrirLEdition`
     (`src/noyau/edition/session.ts:679`), et ces lectures le prennent :
     - `editer` le lit pour la pose des ponts, et `projetAvecLaDonnee` le passe à la table d'écriture
-      (`src/noyau/edition/session.ts:1122`), dont `deLaScene` le passe à `sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1341`) ;
+      (`src/noyau/edition/session.ts:1122`), dont `deLaScene` le passe à `sceneAvecLEntite` (`src/noyau/sceneEdit.ts:1343`) ;
     - `cadreDeLaSession` le pose au cadre d'un porteur (`src/noyau/edition/session.ts:1107`), où `champsDuPersonnage` et
       `choixDesSorts` le passent à `ficheEditee` (`src/noyau/sceneEditLecture.ts:664,678`) ;
     - `avertissementsDeLaSession` le passe à `validateScene` et clé sur lui son mémo (`src/noyau/edition/session.ts:258`) ;

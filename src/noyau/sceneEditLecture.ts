@@ -697,13 +697,13 @@ function rangDOffreDuTrait(fiche: CreatureData | undefined): (id: unknown) => nu
   };
 }
 
-/** Les choix que le contexte d'un personnage pose à ses options (`combat.optionals`, LDB 76) : d'un élément présent, sa variante,
+/** Les choix que le contexte d'un personnage pose à ses options (`combat.optionals`, LDB 76), sa fiche lue sous `cat` : d'un élément présent, sa variante,
  *  le Trait, ou l'une des notes du Bestiaire de sa fiche, posée entière, verbatim (la courante restant offerte) ; de
  *  l'identifiant d'un Trait, tous les Traits, dans leur rang d'offre (`rangDOffreDuTrait`). */
-function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly ChoixDuContexte[] | undefined {
+function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[], cat: Catalogue): readonly ChoixDuContexte[] | undefined {
   const [combat, optionals, rang, cle, ...reste] = chemin;
   if (combat !== 'combat' || optionals !== 'optionals' || typeof rang !== 'number' || rang >= (ent.combat?.optionals?.length ?? 0) || reste.length) return undefined;
-  const fiche = findCreatureById(ent.creature?.id);
+  const fiche = entreeDe('creatures', ent.creature?.id, cat);
   if (cle === 'id') {
     const rangDOffre = rangDOffreDuTrait(fiche);
     return choixDuNoeud(noeudDuTrait())!.map((o) => ({ valeur: o.valeur, libelle: o.libelle, refus: null })).sort((a, b) => rangDOffre(a.valeur) - rangDOffre(b.valeur));
@@ -719,10 +719,10 @@ function choixDesOptions(ent: SceneEntity, chemin: readonly Segment[]): readonly
 }
 
 /** Les profils personnalisés qu'un personnage reçoit (`statblock`) : un profil neuf à son nom (`emptyStatblock`), puis la
- *  copie de sa créature du Bestiaire (`statblockDeLaCreature`), s'il en porte une, refusée du premier message de son
+ *  copie de sa créature de `cat` (`statblockDeLaCreature`), s'il en porte une, refusée du premier message de son
  *  schéma (`customStatblockSchema`) qu'elle viole. */
-function choixDuProfil(ent: SceneEntity, presetDe: ResolveurDePreset): readonly ChoixDuContexte[] {
-  const creature = findCreatureById(ent.creature?.id);
+function choixDuProfil(ent: SceneEntity, presetDe: ResolveurDePreset, cat: Catalogue): readonly ChoixDuContexte[] {
+  const creature = entreeDe('creatures', ent.creature?.id, cat);
   const copie = creature && statblockDeLaCreature(creature);
   const lue = copie && customStatblockSchema.safeParse(copie);
   return [
@@ -787,7 +787,7 @@ function choixDesPostes(ent: SceneEntity, reste: readonly Segment[], { scene, pr
  *  (`choixDesOptions`). */
 function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: CadreDuPorteur): readonly ChoixDuContexte[] | undefined {
   const { narratif } = cadre.projet;
-  if (chemin.length === 1 && chemin[0] === 'statblock') return choixDuProfil(ent, presetDuNarratif(narratif));
+  if (chemin.length === 1 && chemin[0] === 'statblock') return choixDuProfil(ent, presetDuNarratif(narratif), cadre.catalogue);
   if (chemin[0] === 'postes') return choixDesPostes(ent, chemin.slice(1), cadre);
   if (APPARENCES_D_OBJETS.every((cle, i) => chemin[i] === cle)) {
     const objet = objetDuNarratif(narratif);
@@ -795,7 +795,7 @@ function choixDuPersonnage(ent: SceneEntity, chemin: readonly Segment[], cadre: 
   }
   const [rang, ...reste] = chemin.slice(SORTS_CHOISIS.length);
   const sorts = SORTS_CHOISIS.every((cle, i) => chemin[i] === cle) && typeof rang === 'number' && !reste.length;
-  return sorts ? choixDesSorts(ent, rang, narratif, cadre.catalogue) : choixDesOptions(ent, chemin);
+  return sorts ? choixDesSorts(ent, rang, narratif, cadre.catalogue) : choixDesOptions(ent, chemin, cadre.catalogue);
 }
 
 /** Les actions authorées d'un décor (`SceneEntity.usable`). */
