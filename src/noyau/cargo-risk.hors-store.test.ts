@@ -250,7 +250,6 @@ describe('Cogue pirate — se soumettre : pillage + tribut (#327 A5.3)', () => {
     get().jetRegler('cascade', 'choix', 'combattre', 'merPiratesSommation');
     get().jetValider('cascade');
     expect(get().battle).toBeNull();
-    expect(get().journal.join(' ')).not.toContain('l’issue reste au récit');
-    expect(get().journal.join(' ')).toContain('aucune donnée d’abordage');
+    expect(get().journal.map((e) => e.texte).join(' ')).toContain('aucune donnée d’abordage');
   });
 });

@@ -100,7 +100,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
     const refus = vi.fn();
     expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'jetAnnuler', ['contreSort'], refus)).toBe('appliquee');
     expect(banc.getState().pendingCounterspell).toBeNull();
-    expect(banc.getState().journal).toContainEqual(expect.stringMatching(/^Explosion : zone hors de portée/));
+    expect(banc.getState().journal.map((e) => e.texte)).toContainEqual(expect.stringMatching(/^Explosion : zone hors de portée/));
     expect(refus).not.toHaveBeenCalled();
   });
 

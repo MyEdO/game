@@ -46,8 +46,8 @@ function poser(pos: { x: number; y: number }, seatAssignments?: Scene['seatAssig
 }
 
 const poseDuMeneur = () => seatPoseOf(banc.getState().scene!, MENEUR);
-const dernierJournal = () => { const j = banc.getState().journal; return j[j.length - 1] ?? ''; };
-const journalEntier = () => banc.getState().journal.join(' | ');
+const dernierJournal = () => { const j = banc.getState().journal; return j[j.length - 1]?.texte ?? ''; };
+const journalEntier = () => banc.getState().journal.map((e) => e.texte).join(' | ');
 const occupants = (sc: Scene) => Object.values(sc.seatAssignments ?? {}).flatMap((m) => Object.values(m));
 
 describe('interagirAvecLEntite sur un meuble à places — bascule s’asseoir / se relever', () => {

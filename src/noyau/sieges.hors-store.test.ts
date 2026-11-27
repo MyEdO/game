@@ -11,6 +11,7 @@ import { creerPartie, type EntreesDeLaPartie } from './partie';
 import { CLASSE_DES_ACTIONS_DU_NOYAU } from './intentionsDeSiege';
 import { createHero } from '../engine/character';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import type { Combatant } from '../engine/types';
 import { t } from '../i18n';
 
@@ -220,7 +221,7 @@ describe('siegesOfferts (#3009)', () => {
             expect(offerts, cas).not.toContain(`emplacement/${e.rang}`);
             const partie = creerPartie(etat, ENTREES);
             try {
-              expect(partie.envoyer({ type: 'affecterLEmplacementAuSiege', args: [e.rang, 0] }).journal, cas).toEqual([{ de: 'journal', texte: t('coop.assign.slotTaken'), heure: etat.gameTime }]);
+              expect(partie.envoyer({ type: 'affecterLEmplacementAuSiege', args: [e.rang, 0] }).journal, cas).toEqual([{ de: 'journal', entree: ligneDeTexte(t('coop.assign.slotTaken')), heure: etat.gameTime }]);
             } finally {
               partie.fermer();
             }

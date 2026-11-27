@@ -28,7 +28,7 @@ function auBord(m: number) {
   banc.setState({ mode: 'exploration', scene: gouffre(), party: [heros], partyPos: { x: 1, y: 1, z: 1 }, dialogue: null, battle: null } as never);
 }
 const depart = { x: 1, y: 1, z: 1 };
-const derniereLigne = () => banc.getState().journal[banc.getState().journal.length - 1];
+const derniereLigne = () => banc.getState().journal[banc.getState().journal.length - 1]?.texte;
 
 describe('sauter — LDB 15 l.76', () => {
   it('dans la portée libre (Mouvement/3 m) : le groupe franchit d’office, sans Test', () => {

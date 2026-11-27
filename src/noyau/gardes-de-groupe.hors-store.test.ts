@@ -31,7 +31,7 @@ import type { Combatant } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { poserLesPretires(); banc = ouvrirLeBanc(); seedBattleRng(7); });
 const get = () => banc.getState();
-const dernier = () => get().journal[get().journal.length - 1];
+const dernier = () => get().journal[get().journal.length - 1]?.texte;
 
 const heros = (n: number): Combatant[] =>
   groupeDeScenario(idsDeTest, 'soldat', 'tueur', 'sorcier', 'pretre', 'chasseur').slice(0, n).map((h) => ensureBourse(h, idsDeTest));

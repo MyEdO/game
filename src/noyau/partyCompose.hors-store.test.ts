@@ -49,7 +49,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     banc.getState().recruterLeHeros({ brouillon: newDraft(4242), id: 'a' });
     const { party, journal } = banc.getState();
     expect(party).toEqual([]);
-    expect(journal[journal.length - 1]).toBe('Choisissez votre race.');
+    expect(journal[journal.length - 1].texte).toBe('Choisissez votre race.');
   });
 
   it('recruterLeHeros : un pré-tiré se désigne par son id, le noyau le bâtit de la donnée et tire sa Richesse au RNG du jeu', () => {
@@ -145,7 +145,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     const s = banc.getState();
     expect(s.party.map((h) => h.id)).toEqual(['g1']);
     expect(s.net.ownership['g1']).toBe(1);
-    expect(s.journal.slice(journal)).toEqual([t('pf.heroOfAnotherSeat'), t('pf.heroOfAnotherSeat')]);
+    expect(s.journal.map((e) => e.texte).slice(journal)).toEqual([t('pf.heroOfAnotherSeat'), t('pf.heroOfAnotherSeat')]);
     expect(refusDeComposerLeHeros(s, 'g1', 0)).toBe(t('pf.heroOfAnotherSeat'));
     expect(refusDeComposerLeHeros(s, 'g1', 1)).toBeNull();
   });
@@ -176,7 +176,7 @@ describe('composition d’équipe (partyFlow + net.slots)', () => {
     expect(banc.getState().party.map((h) => h.id)).toEqual(['a', 'b']);
     banc.getState().remplacerLeHeros('a', engage('b'));
     expect(banc.getState().party.map((h) => h.id)).toEqual(['a', 'b']);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('pf.partyDuplicate', { name: 'Héros b' }));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('pf.partyDuplicate', { name: 'Héros b' }));
   });
 
   it('ecrireLHistorique : édite Motivation + Ambitions sur le héros du groupe (hors combat)', () => {

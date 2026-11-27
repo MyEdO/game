@@ -48,7 +48,7 @@ function desDUneTouche(attaquant: Combatant, cible: Combatant): number[] {
 }
 
 /** Le texte du journal du combat du banc. */
-const journal = (banc: ReturnType<typeof siege>['banc']): string[] => banc.getState().battle!.log.map((l) => (typeof l === 'string' ? l : l.entree.texte));
+const journal = (banc: ReturnType<typeof siege>['banc']): string[] => banc.getState().battle!.log.map((l) => l.entree.texte);
 
 describe('siege-enceinte — la touche d’un assaillant', () => {
   it('hors de vue : « Inconnu touche … » dans la ligne d’issue et au journal', () => {

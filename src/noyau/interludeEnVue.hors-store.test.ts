@@ -28,7 +28,7 @@ const activiteDe = (resolver: string): string => ACTIVITIES.find((a) => a.resolv
 function forge(carriere = 'artisan') {
   const { banc, id } = bancDeLInterlude(carriere);
   const vue = () => interludeEnVue(banc.getState())!.heros[0];
-  const dernier = () => banc.getState().journal.slice(-1)[0];
+  const dernier = () => banc.getState().journal.map((e) => e.texte).slice(-1)[0];
   return { banc, id, vue, dernier };
 }
 

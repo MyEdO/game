@@ -36,7 +36,7 @@ function relais() {
   const banc = ouvrirLeBanc({ graine: 7, etat: { party: [a, b] } });
   banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Le relais') }, places: { auberge: true } });
   const vue = () => reposEnVue(banc.getState())!;
-  const dernier = () => banc.getState().journal.slice(-1)[0];
+  const dernier = () => banc.getState().journal.map((e) => e.texte).slice(-1)[0];
   return { banc, a, b, vue, dernier };
 }
 

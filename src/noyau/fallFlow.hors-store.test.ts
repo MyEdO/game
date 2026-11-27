@@ -81,29 +81,29 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
     expect(g().pendingFall).toBeNull();
     const plan = planFranchissement(cliffScene(), foot, top);
     if (plan.kind !== 'none') throw new Error('le sens ascendant doit être un plan `none`');
-    expect(g().journal.slice(-1)[0]).toBe(t(REFUS_FRANCHISSEMENT[plan.raison]));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t(REFUS_FRANCHISSEMENT[plan.raison]));
   });
 
   it('sans scène, le saut est refusé EN LE DISANT (porteur du geste, `gesteDArete`)', () => {
     banc.setState({ scene: null, journal: [] });
     g().franchirLArete(foot);
     expect(g().pendingFall).toBeNull();
-    expect(g().journal.slice(-1)[0]).toBe(t('geste.refus.aucuneScene'));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('geste.refus.aucuneScene'));
   });
 
   it('une déclaration PÉRIMÉE (double clic coop, saut résolu, tombant étranger) est refusée EN LE DISANT', () => {
     banc.setState({ journal: [] });
     g().jetRegler('chute', 'tenter', true, H);
-    expect(g().journal.slice(-1)[0], 'aucun saut en attente').toBe(t('jet.ferme.sansJet'));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0], 'aucun saut en attente').toBe(t('jet.ferme.sansJet'));
 
     g().franchirLArete(foot);
     g().jetRegler('chute', 'tenter', true, 'etranger');
-    expect(g().journal.slice(-1)[0], 'id hors des rangées, les tombants nommés avec leur id').toMatch(new RegExp(`^Déclaration refusée : etranger ne prend pas part à ce saut ; tombants : .*\\(${H}\\)`));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0], 'id hors des rangées, les tombants nommés avec leur id').toMatch(new RegExp(`^Déclaration refusée : etranger ne prend pas part à ce saut ; tombants : .*\\(${H}\\)`));
 
     g().jetRegler('chute', 'tenter', true, H);
     const declare = g().pendingFall;
     g().jetRegler('chute', 'tenter', false, H);
-    expect(g().journal.slice(-1)[0], 'rangée déjà déclarée').toBe(t('fall.refus.dejaDeclare'));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0], 'rangée déjà déclarée').toBe(t('fall.refus.dejaDeclare'));
     expect(g().pendingFall, 'la seconde déclaration ne touche rien').toBe(declare);
   });
 
@@ -138,7 +138,7 @@ describe('franchirLArete, chute — exploration, un tombant', () => {
     expect(g().partyPos).toEqual({ ...foot, z: 0 });
     expect(drainerChutes(), 'aucun 1d10 de chute ouvert').toEqual([]);
     expect(g().party[0].wounds.current).toBe(before);
-    expect(g().journal.slice(-1)[0]).toBe(t('fall.jumpSafe', { name: 'H' }));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('fall.jumpSafe', { name: 'H' }));
   });
 
   it('Test réussi, réduction partielle → la chute de `effectiveMetres`, pas la hauteur pleine', () => {
@@ -219,7 +219,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
     expect(drainerChutes()).toEqual([[B, 4]]);
     expect(g().party[0].wounds.current).toBe(avant[0]);
     expect(g().party[1].wounds.current).toBeLessThan(avant[1]);
-    expect(g().journal).toContain(t('fall.jumpSafe', { name: 'A' }));
+    expect(g().journal.map((e) => e.texte)).toContain(t('fall.jumpSafe', { name: 'A' }));
   });
 
   it('les deux sautent sans Test → résolution IMMÉDIATE, deux chutes pleines', () => {
@@ -234,7 +234,7 @@ describe('franchirLArete, chute — exploration, le groupe tombe (EDO 01 l.231)'
     banc.setState({ party: g().party.map((h) => (h.id === B ? blessuresSurLeProfil({ ...h, wounds: { ...h.wounds, current: 0 } }) : h)) });
     g().franchirLArete(foot);
     expect(g().pendingFall).toBeNull();
-    expect(g().journal.slice(-1)[0]).toBe(t('fall.refus.nonDebout', { name: 'B' }));
+    expect(g().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('fall.refus.nonDebout', { name: 'B' }));
     expect(g().partyPos).toEqual(top);
   });
 

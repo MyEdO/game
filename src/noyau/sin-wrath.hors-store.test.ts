@@ -63,7 +63,7 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     const { priest, ally, party } = priestParty(3);
     banc.setState({ party });
     confirmPrayerWithRoll(priest.id, ally.id, 45); // unités 5 > 3
-    expect(banc.getState().journal.join('\n')).not.toMatch(/Colère des dieux/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toMatch(/Colère des dieux/);
     expect(banc.getState().party.find((h) => h.id === priest.id)!.sinPoints).toBe(3);
   });
 
@@ -71,7 +71,7 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     const { priest, ally, party } = priestParty(0);
     banc.setState({ party });
     confirmPrayerWithRoll(priest.id, ally.id, 30); // unités 0, 0 Péché
-    expect(banc.getState().journal.join('\n')).not.toMatch(/Colère des dieux/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toMatch(/Colère des dieux/);
   });
 
   it('Maladresse de Prière : UNE seule Colère (pas de double déclenchement unités+Maladresse), Péché −1', () => {
@@ -84,7 +84,7 @@ describe('Péché et Colère Divine (LDB 40)', () => {
     banc.getState().jetValider('incantation');
     draineEtLit(banc.getState);
     // Le journal dit chaque jet de table une fois, que la révélation le montre ou non (#4787).
-    expect(banc.getState().journal.join('\n').match(/Colère des dieux \(/g)?.length).toBe(1); // un seul JET de table
+    expect(banc.getState().journal.map((e) => e.texte).join('\n').match(/Colère des dieux \(/g)?.length).toBe(1); // un seul JET de table
     expect(banc.getState().party.find((h) => h.id === priest.id)!.sinPoints).toBe(1);
   });
 
@@ -127,7 +127,7 @@ describe('Petits soucis : la même Prière réussie sur la même cible dans la r
     expect(peche(priest.id)).toBe(0);
     confirmPrayerWithRoll(priest.id, ally.id, 45);
     expect(peche(priest.id)).toBe(1);
-    expect(banc.getState().journal.join('\n')).toMatch(/a péché contre son dieu : \+1 Point\(s\) de Péché/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/a péché contre son dieu : \+1 Point\(s\) de Péché/);
   });
 
   it('le décompte se fait par cible', () => {
@@ -153,7 +153,7 @@ describe('Petits soucis : la même Prière réussie sur la même cible dans la r
     banc.setState({ party });
     confirmPrayerWithRoll(priest.id, ally.id, 45);
     confirmPrayerWithRoll(priest.id, ally.id, 42); // unités 2 > 1 Péché d'avant, ≤ 2 d'après
-    expect(banc.getState().journal.join('\n')).not.toMatch(/Colère des dieux/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toMatch(/Colère des dieux/);
     expect(peche(priest.id)).toBe(2);
   });
 
@@ -174,7 +174,7 @@ describe('Petits soucis : la même Prière réussie sur la même cible dans la r
     confirmPrayerWithRoll(priest.id, ally.id, 45);
     confirmPrayerWithRoll(priest.id, ally.id, 45);
     confirmPrayerWithRoll(priest.id, priest.id, 41); // unités 1 ≤ 1 Péché
-    expect(banc.getState().journal.join('\n')).toMatch(/Colère des dieux/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Colère des dieux/);
   });
 
   it('à la rencontre suivante, le compteur repart de zéro', () => {

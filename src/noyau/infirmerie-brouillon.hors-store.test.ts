@@ -113,7 +113,7 @@ describe('le brouillon ne s’annule pas : l’annulation fermée se dit', () =>
     g().jetAnnuler('soins');
     expect(g().pendingHeal).toBe(brouillon);
     expect(g().medic).toBe(medic);
-    expect(g().journal[g().journal.length - 1]).toBe(libelleDeLaFermeture('acteAChanger'));
+    expect(g().journal[g().journal.length - 1].texte).toBe(libelleDeLaFermeture('acteAChanger'));
   });
 });
 
@@ -182,6 +182,6 @@ describe('le premier jet du brouillon, quel que soit le geste qui le pose, passe
     } finally { setDesFixes(false); }
     expect(g().pendingHeal).toMatchObject({ mode: 'reeducation', roll: null });
     expect(g().medic?.surgery).toBeUndefined();
-    expect(g().journal[g().journal.length - 1]).toBe(libelleDeLaFermeture('jetNonLance'));
+    expect(g().journal[g().journal.length - 1].texte).toBe(libelleDeLaFermeture('jetNonLance'));
   });
 });
