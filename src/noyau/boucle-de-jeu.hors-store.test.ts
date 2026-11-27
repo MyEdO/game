@@ -599,7 +599,7 @@ describe('Boucle de jeu (store)', () => {
     // L'action est consommée, l'incantation journalisée, et la modale fermée.
     expect(st.battle!.acted).toBe(true);
     expect(st.battle!.action).toBeNull();
-    expect(st.battle!.log.some((l) => l.text.includes('Fléchette'))).toBe(true);
+    expect(st.battle!.log.some((l) => l.entree.texte.includes('Fléchette'))).toBe(true);
     expect(st.pendingCast).toBeNull();
   });
 
@@ -620,7 +620,7 @@ describe('Boucle de jeu (store)', () => {
     banc.getState().jetValider('incantation'); // « Appliquer »
     st = banc.getState();
     const after = st.battle!.combatants.find((c) => c.id === heroC.id)!;
-    const failed = st.battle!.log.some((l) => l.text.includes('échoue'));
+    const failed = st.battle!.log.some((l) => l.entree.texte.includes('échoue'));
     if (!failed) {
       expect(after.activeEffects?.some((e) => e.characteristic === 'capacite-de-combat' && e.bonus === 10)).toBe(true);
     }
@@ -1717,7 +1717,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
   it('le journal NOMME le geste joué (et non « Vous fouillez » pour toute action)', () => {
     poser([{ id: 'ouvrir', label: 'Ouvrir', flow: don(1) }]);
     banc.getState().jouerAction('coffre', 'ouvrir');
-    expect(banc.getState().journal.join(' ')).toContain('Coffre : Ouvrir…');
+    expect(banc.getState().journal.map((e) => e.texte).join(' ')).toContain('Coffre : Ouvrir…');
   });
 
   /**
@@ -1893,7 +1893,7 @@ describe('Fenêtre de loot (pendingLoot) — capture, attribution, révélation'
     expect([line.effect.detectTriedBy, line.effect.identified]).toEqual([['a'], false]);
     banc.getState().evaluerLObjet(uid, 'detection');
     expect(banc.getState().pendingAppraise).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('mf.detectionDejaTentee', { label: line.label }));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('mf.detectionDejaTentee', { label: line.label }));
   });
 
   it('Détection d’artefact (LDB 10 l.336) : un second détecteur tente le même artefact ; DR≥1 → identifié', () => {
@@ -2402,7 +2402,7 @@ describe('Chance — 3e usage : pré-emption d’initiative en début de Round (
     const e1 = st.battle!.combatants.find((c) => c.id === E.id)!;
     expect(e1.loseNextAction).toBe(true);      // a tiré → tour normal épuisé (Action + Mouvement)
     expect(e1.loseNextMovement).toBe(true);
-    expect(st.battle!.log.some((l) => /Tir rapide/.test(l.text))).toBe(true); // interruption journalisée
+    expect(st.battle!.log.some((l) => /Tir rapide/.test(l.entree.texte))).toBe(true); // interruption journalisée
   });
 });
 
@@ -2681,7 +2681,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // Voie IA : même pending, même DR réalisé, même nom d'arme → ligne IDENTIQUE (aucun 2ᵉ rédacteur).
     const progress = Math.max(0, pr.progressBefore + pr.sl);
     const ia = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: progress, weapon: 'Arbalète' } });
-    expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].text]);
+    expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].entree.texte]);
   });
 
   it('jetValider@rechargement : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
@@ -3485,7 +3485,7 @@ describe('Marchand — ouvrirLeMarchand / achat et vente au panier (#2)', () => 
     banc.getState().ouvrirLeMarchand('pnj');
     banc.getState().evaluerLObjet('m');
     expect(banc.getState().pendingAppraise).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe('Personne dans le groupe ne peut tenter le Test d’Évaluation.');
   });
 
   it('jetValider@evaluation : succès → identified=true (révèle l’objet) (#2e)', () => {

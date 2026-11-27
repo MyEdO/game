@@ -72,7 +72,7 @@ function poserLeDe(actorId: string, n: number): void {
   banc.getState().jetImposerLeResultat('cascadeTirage', n, st!.id);
 }
 
-const lu = (): string => (banc.getState().battle?.log ?? []).map((e) => e.text).join(' | ');
+const lu = (): string => (banc.getState().battle?.log ?? []).map((e) => e.entree.texte).join(' | ');
 const rebonds = (): number => lu().match(/rebondit sur/g)?.length ?? 0;
 
 describe('LDB 47 l.340 — le rebond attend la fenêtre de SAUVEGARDE de la cible', () => {

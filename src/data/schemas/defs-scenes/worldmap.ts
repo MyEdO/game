@@ -13,8 +13,8 @@ import { proseNommee } from '../grammaire/prose';
 import { champsDAcces, META_DE_L_ACCES, refuserLAccesMuet } from '../grammaire/acces';
 import { effectSchema, refuserLeTesteurHorsDuTest, waterExposureModeSchema } from './effets';
 import { conditionCondCtxSchema } from '../grammaire/campagne';
-import { enumNomme, idDIconeSchema, pointDuPlanSchema, qualiteDeReposSchema } from '../grammaire/valeurs';
-import { offresDAubergeSchema } from '../grammaire/hebergement';
+import { enumNomme, idDIconeSchema, pointDuPlanSchema } from '../grammaire/valeurs';
+import { reposDAubergeSchema } from '../grammaire/hebergement';
 import { LIEUX_DE_LA_CARTE, ROUTES_DE_LA_CARTE, routeBilletSchema, provenancesDeRouteSchema, travelModeSchema } from '../grammaire/route';
 import { affinerAvecCatalogues, idDe, recordDIds, ref, refs, type PorteeLocale } from '../grammaire/ref';
 import { refuserLesIndividus } from '../grammaire/reference';
@@ -96,12 +96,7 @@ export const placeServiceSchema = nommerChamps(z.strictObject({
   id: z.string(),
   kind: ref('serviceDeLieu'),
   label: z.string().optional(),
-  rest: nommerChamps(z
-    .strictObject({
-      quality: qualiteDeReposSchema.optional(),
-      offres: offresDAubergeSchema.optional(),
-  }), { quality: { label: "qualité" }, offres: { label: "offres" } })
-    .optional(),
+  rest: reposDAubergeSchema.optional(),
   ...champsDAcces,
 }).superRefine((service, ctx) => refuserLAccesMuet(service, ctx, 'un établissement')), { id: { label: "identifiant" , texte: { regime: "technique"} }, kind: { label: "type" , texte: { regime: "technique"} }, label: { label: "libellé" , texte: { regime: "designation"} }, rest: { label: "repos" }, ...META_DE_L_ACCES });
 

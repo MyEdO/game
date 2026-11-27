@@ -422,16 +422,14 @@ export function openSequenceRound(get: Get, set: Set): void {
   // Résolue sur place (manche `immediate`, ou porte rendue en branche I) : la manche se CLÔT ici ; une
   // fenêtre ouverte ou un pilote interrompu (`undefined`) laisse la clôture à `dispatchCascadeDone`.
   const resolues = manche.immediate
-    ? runCascadeImmediate(get, set, [...manche.steps], { title: manche.title, purpose: SEQUENCE_PURPOSE, log: manche.log })
+    ? runCascadeImmediate(get, set, [...manche.steps], { title: manche.title, purpose: SEQUENCE_PURPOSE })
     : openSequence(get, set, {
       title: manche.title,
       ...(manche.icon ? { icon: manche.icon } : {}),
       purpose: SEQUENCE_PURPOSE,
       steps: manche.steps,
-      ...(manche.log ? { log: manche.log } : {}),
     });
   if (!resolues) return;
-  for (const l of manche.log ?? []) get().ecrireAuJournal(l);
   closeSequenceRound(get, set, { participants: resolues });
 }
 

@@ -8,7 +8,7 @@ import { acquerirTalent } from '../engine/careerSlots';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { reluDans } from './combatDeTest.testkit';
+import { entreesDuContreSort, reluDans } from './combatDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -58,16 +58,37 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     banc.getState().jetLancer('incantation');
     const pc = banc.getState().pendingCast!;
     if (!pc.result!.isCritical) {
-      expect(pc.result!.log).toContain('Contre-sort de');
+      expect(entreesDuContreSort(banc.getState, H.id).map((e) => e.actorId)).toEqual([E.id]);
       expect(banc.getState().battle!.combatants.find((c) => c.id === E.id)!.dispelledThisRound).toBe(true);
     }
     // 2e incantation du même Round : l'essai est consommé, plus de Contre-sort. (La 1re situation se
     // referme à la main — après le jet, `jetAnnuler('incantation')` REFUSE de renoncer, #1031.)
+    const chants = entreesDuContreSort(banc.getState, H.id).length;
     banc.setState({ pendingCast: null, pendingCascade: null, pendingCounterspell: null });
     castSpell(banc.getState, banc.setState, H, E, 'flechette');
     banc.getState().jetLancer('incantation');
-    const pc2 = banc.getState().pendingCast!;
-    expect(pc2.result!.log).not.toContain('Contre-sort de');
+    expect(entreesDuContreSort(banc.getState, H.id), 'l’essai du Round est consommé').toHaveLength(chants);
+  });
+
+  it.each([
+    { graine: 1, dissipe: true },
+    { graine: 3, dissipe: false },
+  ])('UNE entrée de Contre-sort au journal de combat, du contre-lanceur vers le lanceur (graine $graine, dissipé : $dissipe)', ({ graine, dissipe }) => {
+    banc.getState().ensemencerLeTirage(graine);
+    const { H, E } = setup();
+    H.spells = ['tendre-l-oreille']; // sans Projectile : la ligne du Sort va au journal à sa résolution
+    castSpell(banc.getState, banc.setState, H, E, 'tendre-l-oreille');
+    banc.getState().jetLancer('incantation');
+    const { dispelled, log: ligneDuSort } = banc.getState().pendingCast!.result!;
+    expect(!!dispelled, 'le dé de la graine').toBe(dissipe);
+    for (let k = 0; k < 4 && banc.getState().pendingCast; k++) banc.getState().jetValider('incantation');
+    draineCascade(banc.getState);
+    const journal = banc.getState().battle!.log;
+    const [entree, ...autres] = entreesDuContreSort(banc.getState, H.id);
+    expect(autres).toEqual([]);
+    expect(entree).toMatchObject({ kind: 'sort', actorId: E.id, targetId: H.id });
+    expect(journal.filter((e) => e.entree.texte.includes(entree.entree.texte)), 'aucune autre entrée ne la recopie').toHaveLength(1);
+    expect(journal.filter((e) => e.entree.texte.includes(ligneDuSort)), 'le Sort se dit une fois, sauf dissipé').toHaveLength(dissipe ? 0 : 1);
   });
 
   it('routage : c’est le JET qui ouvre le Contre-sort, pas l’aboutissement du Sort (LDB 46 l.156)', () => {
@@ -139,6 +160,6 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     hero.spells = ['benediction-de-guerison'];
     castSpell(banc.getState, banc.setState, hero, hero, 'benediction-de-guerison');
     banc.getState().jetLancer('incantation');
-    expect(banc.getState().pendingCast!.result!.log).not.toContain('Contre-sort');
+    expect(entreesDuContreSort(banc.getState, hero.id), 'une Prière ne se dissipe pas').toEqual([]);
   });
 });

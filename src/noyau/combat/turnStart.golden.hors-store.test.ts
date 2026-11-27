@@ -60,7 +60,7 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
       b.turn = b.order.indexOf(id);
       runEnemyAI(banc.getState, banc.setState, id);
       // Portion synchrone seulement : les jetons d'attaque ne sont PAS repris (horloge virtuelle du banc).
-      return banc.getState().battle!.log.slice(before).map((e) => `${e.kind}:${e.text}`);
+      return banc.getState().battle!.log.slice(before).map((e) => `${e.kind}:${e.entree.texte}`);
     };
 
     const rageLines = captureTurnStart(rageE.id);

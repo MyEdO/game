@@ -29,6 +29,7 @@ export {
 } from '../engine/types';
 export { formatMoney, fromBrass, libelleDuStatut, PA_PER_CO, toBrass, type Money } from '../engine/money';
 export type { Applique, FaitApplique } from '../engine/faits';
+export { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 export { formatSpellDuration, formatSpellRange, formatSpellTarget } from '../engine/spellRangeFormat';
 export {
   dayIndex,
@@ -317,7 +318,7 @@ export {
   type SessionDEdition,
 } from './edition/session';
 export { OUTILS_DE_LA_CARTE, OUTILS_DU_PLAN_DU_LIEU, UNITES_DU_PLAN_DE_CARTE, type OutilDeLaCarte, type OutilDuPlanDuLieu } from './edition/pointeur';
-export { offresDeLEtablissement, orienterRoute, typesDEtablissement } from './worldMapEdit';
+export { offresAuChoix, offresDeLaScene, offresDeLEtablissement, orienterRoute, typesDEtablissement, type ChangementDOffre } from './worldMapEdit';
 export { refusDeForme } from './narratifEdit';
 export { FORMES_D_ETAT, type FormeDEtatKind } from '../data/schemas/defs-scenes/formes-d-etat';
 export { SOUS_ENTREES } from '../data/schemas/defs-scenes/ecritures-du-narratif';
@@ -535,7 +536,7 @@ export {
   type SavedProject,
 } from './persistance/bibliotheque';
 export { ProjetRefuse, lieuDuGroupe, nomDuPoi, placeServices, type ProjectDoc } from './worldMap';
-export { designeGaranti, rollLine } from './ligneDeJet';
+export { rollLine } from './ligneDeJet';
 export { refusDeConsommer } from './consumableFlow';
 export { estOperation } from './acteDeSoin';
 export type { DoctrineId } from './monde/ai';

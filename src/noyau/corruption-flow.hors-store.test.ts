@@ -62,7 +62,7 @@ describe('Effet corruptionExposure → modale → jetValider@corruption', () => 
     banc.getState().jetValider('corruption');
     expect(banc.getState().pendingCorruption).toBeNull();
     expect(banc.getState().party.find((h) => h.id === a.id)!.corruption).toBe(1);
-    expect(banc.getState().journal.join('\n')).toMatch(/Corruption/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Corruption/);
   });
 
   it('nature IMPOSÉE par la source → figée, réglage corruption.nature sans effet', () => {
@@ -240,7 +240,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     banc.setState({ pendingCorruption: { ...banc.getState().pendingCorruption!, roll: 3, target: 30, sl: 2, success: true } });
     banc.getState().jetValider('corruption');
     expect(banc.getState().party.find((h) => h.id === a.id)!.mutations ?? []).toHaveLength(0);
-    expect(banc.getState().journal.join('\n')).toMatch(/contient sa Corruption/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/contient sa Corruption/);
   });
 
   it('limites dépassées → damné + hors-jeu (dead)', () => {

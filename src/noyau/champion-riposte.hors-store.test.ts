@@ -56,7 +56,7 @@ describe('Défense du champion / Riposte — contre-attaque (PINNING avant migra
     applyAttackResult(banc.getState, banc.setState, hero, enemy, hero.weapons[0], { ...defenderWins, parryWeapon: enemy.weapons[0] });
     const h = banc.getState().battle!.combatants.find((c) => c.id === hero.id)!;
     expect(h.wounds.current).toBeLessThan(before); // l'attaquant a encaissé la contre-attaque
-    expect(banc.getState().battle!.log.some((e) => /riposte|champion|contre/i.test(e.text))).toBe(true);
+    expect(banc.getState().battle!.log.some((e) => /riposte|champion|contre/i.test(e.entree.texte))).toBe(true);
   });
 
   it('sans le Trait Champion → AUCUNE contre-attaque (l’attaquant est intact)', () => {

@@ -28,7 +28,7 @@ import { fixtureText } from '../i18n/fixtureText';
 
 let banc: Banc;
 const g = () => banc.getState();
-const dernier = () => g().journal[g().journal.length - 1];
+const dernier = () => g().journal[g().journal.length - 1]?.texte;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function heros(id: string, p: Partial<Combatant> = {}): Combatant {

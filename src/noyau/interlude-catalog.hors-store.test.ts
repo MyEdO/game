@@ -59,7 +59,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     const journal = banc.getState().journal.length;
     pratiquer(banc.getState, hero().id, 'penitence');
     expect(banc.getState().pendingActivity).toBeNull();
-    expect(banc.getState().journal.slice(journal)).toEqual([t('choix.refus.valeur')]);
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual([t('choix.refus.valeur')]);
   });
 
   it('Pénitence — succès : −1 Péché (−2 dès +4 DR), Activité consommée, note VERBATIM à l’écran', () => {
@@ -72,7 +72,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(5, true, 4);
     expect(hero().sinPoints).toBe(1); // « ou 2 sur un Succès Impressionnant (+4 DR) ou mieux »
     expect(st().left).toBe(2);
-    expect(banc.getState().journal.join('\n')).toMatch(/Point\(s\) de Péché/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Point\(s\) de Péché/);
   });
 
   it('Pénitence — échec : Exténué DIFFÉRÉ à la clôture (posé APRÈS le repos, « premier jour de la prochaine aventure »)', () => {
@@ -85,7 +85,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     const avant = banc.getState().journal.length;
     banc.getState().fenetreValider('interlude');
     expect(hasCondition(hero(), 'extenue')).toBe(true); // posé après les nuits de clôture
-    expect(banc.getState().journal.slice(avant)).toContain('A reçoit 1 État Exténué.');
+    expect(banc.getState().journal.map((e) => e.texte).slice(avant)).toContain('A reçoit 1 État Exténué.');
   });
 
   it('Pénitence — Maladresse : Colère des dieux « à la place » (table LDB 40, −1 Péché expié), pas d’Exténué', () => {
@@ -99,7 +99,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     expect(banc.getState().suspendedCascades.length, 'le contrecoup a parqué une séquence hors combat').toBe(parquees);
     draineCascade(banc.getState);
     expect(banc.getState().suspendedCascades.length).toBe(parquees);
-    const journal = banc.getState().journal.join('\n');
+    const journal = banc.getState().journal.map((e) => e.texte).join('\n');
     expect(journal).toMatch(/Colère/);
     expect(st().closeOps).toBeUndefined(); // « à la place » : l'issue d'échec ne tombe pas
     expect(hero().sinPoints).toBe(1); // « réduisez vos Points de Péché de 1 » (LDB 40 l.46)
@@ -181,7 +181,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     const h = hero();
     banc.getState().deposerALaBanque(h.id, 'mecenat', 100); // < 5 CO → refus
     expect(banc.getState().bank).toHaveLength(0);
-    expect(banc.getState().journal.join('\n')).toMatch(/mise minimale/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/mise minimale/);
     const stake = 5 * PA_PER_CO;
     banc.getState().deposerALaBanque(h.id, 'mecenat', stake);
     expect(banc.getState().bank).toEqual([{ uid: expect.any(String), heroId: h.id, kind: 'mecenat', brass: stake, rate: 0 }]);
@@ -208,7 +208,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(97, false, -1);
     expect(banc.getState().bank).toHaveLength(0);
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(before); // rien ne revient
-    expect(banc.getState().journal.join('\n')).toMatch(/perd son investissement/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/perd son investissement/);
   });
 
   // ── Recherche universitaire ────────────────────────────────────────────────────────────────────
@@ -227,7 +227,7 @@ describe('Catalogue d’Activités d’interlude (ACE Annexe I, data-driven)', (
     forceRoll(10, true, 1); // +1 DR → remise 100 : 200 − 100 = 100 PX
     expect(hero().spells).toContain(feu[4]);
     expect(hero().xp).toBe(400);
-    expect(banc.getState().journal.join('\n')).toMatch(/remise de 100 PX/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/remise de 100 PX/);
     expect(st().left).toBe(2);
   });
 

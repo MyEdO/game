@@ -37,7 +37,7 @@ describe('l’horloge des maladies entre les expéditions', () => {
     expect(e.journal.join(' ')).toMatch(/Fièvre du Rongeur/);
   });
 
-  it('un séjour à l’hospice raccourcit la maladie déclarée d’un jour par jour soigné', () => {
+  it('une semaine à l’hospice : la maladie veillée par les sœurs perd deux jours par jour (LDB 09 l.265), les Blessures se récupèrent chaque nuit (LDB 18 l.296), nourri', () => {
     const base = nouvellePartie(6);
     contracter(base.roster[0].c, 'fievre-du-rongeur', 0, 20);
     base.batiments.temple = 2;
@@ -50,8 +50,10 @@ describe('l’horloge des maladies entre les expéditions', () => {
     expect(soigne.sejour?.ou).toBe('temple');
     expect(attendreUneSemaine(base)).toBeNull();
     expect(attendreUneSemaine(temoin)).toBeNull();
-    expect(joursRestants(temoin.roster[0])).toBe(20 - SEMAINE_DE_REPOS);
-    expect(joursRestants(soigne)).toBe(20 - 2 * SEMAINE_DE_REPOS);
+    expect(joursRestants(temoin.roster[0]), 'au village, sans veilleur').toBe(20 - SEMAINE_DE_REPOS);
+    expect(joursRestants(soigne), 'à l’hospice, veillé par les sœurs').toBe(20 - 2 * SEMAINE_DE_REPOS);
+    expect(soigne.c.wounds.current, 'les nuits de l’hospice récupèrent des Blessures').toBeGreaterThan(temoin.roster[0].c.wounds.current);
+    expect(soigne.c.hunger?.days ?? 0, 'les sœurs nourrissent leurs patients').toBe(0);
   });
 });
 

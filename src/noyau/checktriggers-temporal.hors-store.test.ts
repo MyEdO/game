@@ -25,7 +25,7 @@ describe('temporalCondition — intégration checkTriggers (proximité ET fenêt
   function run(gameTime: number, partyPos = { x: 2, y: 2 }) {
     banc.setState({ scene: sceneWith(spotTrigger), partyPos, gameTime, journal: [], flags: {} });
     checkTriggers(banc.getState, banc.setState);
-    return banc.getState().journal.join('|');
+    return banc.getState().journal.map((e) => e.texte).join('|');
   }
 
   it('dans la zone mais AVANT la fenêtre (21:29) → ne se déclenche pas', () => {
@@ -58,7 +58,7 @@ describe('Trigger.rect.z — étage (#803)', () => {
   function run(trigger: Trigger, partyPos: { x: number; y: number; z?: number }) {
     banc.setState({ scene: sceneWith(trigger), partyPos, journal: [], flags: {} });
     checkTriggers(banc.getState, banc.setState);
-    return banc.getState().journal.join('|');
+    return banc.getState().journal.map((e) => e.texte).join('|');
   }
 
   it('trigger au rez (z absent) + groupe au rez (z absent) → se déclenche', () => {

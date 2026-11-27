@@ -152,7 +152,7 @@ describe('#1595 — relâche à terre résolue sur place : un groupe à terre n�
     get().fenetreChoisir('relacheATerre', 'accorder', true);
 
     expect(get().partyWiped).toBe(true);
-    expect(get().journal.some((l) => l.includes('Événement de port')), 'aucun événement de port sous l’écran de défaite').toBe(false);
+    expect(get().journal.some((l) => l.texte.includes('Événement de port')), 'aucun événement de port sous l’écran de défaite').toBe(false);
     expect(get().scene?.id, 'aucune transition vers le port').toBe('port-a');
   });
 });

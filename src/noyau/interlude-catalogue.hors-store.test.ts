@@ -67,7 +67,7 @@ function refuse(banc: Banc, geste: () => void): string[] {
   geste();
   expect(empreinte(banc), 'Activité consommée, jet en attente ou fiche changée').toBe(avant);
   expect(banc.getState().pendingActivity).toBeNull();
-  return banc.getState().journal.slice(journal);
+  return banc.getState().journal.map((e) => e.texte).slice(journal);
 }
 
 const heros = (banc: Banc, heroId: string): Combatant => banc.getState().party.find((h) => h.id === heroId)!;
@@ -93,7 +93,7 @@ describe('Catalogue — aucune Activité d’interlude n’est muette', () => {
     if (verdict == null) expect(s.pendingActivity?.activityId, 'les verdicts ouvrent, le geste ouvre').toBe(def.id);
     else {
       expect(s.pendingActivity, 'un verdict refuse, le geste refuse').toBeNull();
-      expect(s.journal.slice(journal)).toEqual([verdict]);
+      expect(s.journal.map((e) => e.texte).slice(journal)).toEqual([verdict]);
     }
   });
 });
@@ -192,7 +192,7 @@ describe('Convalescence — le Trait psychologique est une cible choisie (ADE II
     const avant = banc.getState().journal.length;
     confirmer(banc, true, 1);
     expect(heros(banc, heroId).psychTraits, 'la Frénésie, non choisie, reste').toEqual([{ type: 'frenesie' }]);
-    expect(banc.getState().journal.slice(avant)).toContain("Vétéran n'a aucun Trait psychologique à retirer.");
+    expect(banc.getState().journal.map((e) => e.texte).slice(avant)).toContain("Vétéran n'a aucun Trait psychologique à retirer.");
   });
 
   it('échec : les Traits restent, un jeton inverse UN Test de Calme qui résiste à un Trait Psychologique, l’Activité est consommée', () => {

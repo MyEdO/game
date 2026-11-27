@@ -154,6 +154,6 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     banc.getState().depenserLaDetermination(H.id, 'retirerUnEtat', 'brise');
     const apres = banc.getState().battle!.combatants.find((x) => x.id === H.id)!;
     expect(portes(apres)).toEqual({ aveugle: 1 });
-    expect(banc.getState().battle!.log.map((e) => e.text)).toContain(ligneDePose(apres, 'aveugle'));
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte)).toContain(ligneDePose(apres, 'aveugle'));
   });
 });

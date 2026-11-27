@@ -4,7 +4,7 @@
  */
 import {
   arena, gestesDExploration, gestesDeLObjet, gesteDeLaPanoplie, gesteDIncantation, gesteDuRepos, gesteDeLaisserPasserLeTemps, MINUTES_PER_DAY,
-  fenetreDuJeu, type GesteDuJeu, type GesteFermable, type Jeu, type Combatant, type Main,
+  fenetreDuJeu, type GesteDuJeu, type GesteFermable, type Jeu, type Combatant, type Main, type Scene,
 } from '../../../../src/noyau';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
 
@@ -35,8 +35,8 @@ const DEPART = { x: 2, y: 4 };
 const TABLE_COMMUNE = {
   id: 'table-commune', kind: 'prop', decor: { id: 'table' }, pos: { x: DEPART.x + 1, y: DEPART.y },
   usable: { actions: [{ id: 'manger', label: 'Manger', flow: { kind: 'effet', effet: { type: 'mealParty' } }, minutes: 60 }] },
-} as const;
-const [REPAS] = TABLE_COMMUNE.usable.actions;
+} satisfies Scene['entities'][number];
+const REPAS = TABLE_COMMUNE.usable.actions[0];
 /** Le geste qui fait manger le groupe à la table commune, lu des gestes d'exploration du noyau (`gestesDExploration`). */
 export const gesteDuRepas: Geste = (s) => {
   const g = gestesDExploration(s).find((x) => x.gestes.length === 1 && x.gestes[0].args[0] === TABLE_COMMUNE.id && x.gestes[0].args[1] === REPAS.id);
@@ -46,12 +46,12 @@ export const gesteDuRepas: Geste = (s) => {
 export const JOURNEE_AU_VILLAGE: readonly Geste[] = [gesteDuRepas, (s) => gesteDeLaisserPasserLeTemps(s, MINUTES_PER_DAY - REPAS.minutes)];
 
 export interface IssueAuHameau { groupe: Combatant[]; journal: string[] }
-/** Où la partie se tient : le nom de la place, le repos qu'elle offre (`Scene.rest`, le camp s'il est absent), et la
- *  table commune du village (`TABLE_COMMUNE`) si elle y est mise. */
-export interface Place { label: string; rest?: ReturnType<typeof arena>['rest']; table?: true }
+/** Où la partie se tient : le nom de la place, le repos qu'elle offre (`Scene.rest`, le camp s'il est absent), et les
+ *  entités qui s'y tiennent avec le groupe (`Scene.entities`). */
+export interface Place { label: string; rest?: Scene['rest']; entites?: Scene['entities'] }
 const HAMEAU: Place = { label: 'Grisefosse' };
 /** Le hameau, la table commune mise : où le héros passe ses jours hors séjour (`JOURNEE_AU_VILLAGE`). */
-export const VILLAGE: Place = { ...HAMEAU, table: true };
+export const VILLAGE: Place = { ...HAMEAU, entites: [TABLE_COMMUNE] };
 
 /** Joue `gestes` sur le `groupe` dans une partie du noyau ouverte hors combat sur la `place` (dégagée, en
  *  exploration) : achats aux PX, changement de niveau de carrière, objet utilisé, prière ou sort lancé, nuit de repos,
@@ -60,7 +60,7 @@ export const VILLAGE: Place = { ...HAMEAU, table: true };
 export function auHameau(groupe: readonly Combatant[], gestes: readonly Geste[], graine: number, place: Place = HAMEAU): IssueAuHameau {
   const journal: string[] = [];
   const place0 = arena({ id: 'hameau', label: place.label, w: 8, h: 8, heroStart: DEPART });
-  const scene = { ...place0, ...(place.rest ? { rest: place.rest } : {}), ...(place.table ? { entities: [...place0.entities, structuredClone(TABLE_COMMUNE) as never] } : {}) };
+  const scene = { ...place0, ...(place.rest ? { rest: place.rest } : {}), ...(place.entites ? { entities: [...place0.entities, ...structuredClone(place.entites)] } : {}) };
   const { partie, envoyer, pomper, jouerDansLaFenetre } = ouvrirEnAuto(
     graine,
     () => ({ party: groupe.map((h) => structuredClone(h)), scene, projet: null }),

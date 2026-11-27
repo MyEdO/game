@@ -146,7 +146,7 @@ describe('Scénario Voyage maritime — traversée JOUABLE de bout en bout', () 
     expect(kinds).toContain('equipage-orientation');
     // La coque partie endommagée a fait l’objet d’un entretien du soir (Test d’équipage d’entretien).
     expect(kinds).toContain('equipage-entretien');
-    expect(get().journal.join('\n')).toMatch(/Accostage|Marienburg/);
+    expect(get().journal.map((e) => e.texte).join('\n')).toMatch(/Accostage|Marienburg/);
   });
 
   it('MDG 14 l.238 — la cale part fraîche : aucun lot n’a pourri à l’heure du lancement', () => {

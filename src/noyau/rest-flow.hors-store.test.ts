@@ -217,7 +217,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     banc.getState().fenetreValider('repos');
     const cas = banc.getState().pendingCascade!;
     expect(cas.participants.some((s) => s.kind === 'exposition-nocturne')).toBe(false); // tente → 0 Test difficile
-    expect(cas.log.some((l) => /tente/i.test(l))).toBe(true); // « La tente est montée… »
+    expect(banc.getState().journal.filter((e) => /tente/i.test(e.texte)), 'la note de campement, une fois au journal').toHaveLength(1);
   });
 });
 
@@ -408,6 +408,12 @@ describe('restPlacesHere — offre paramétrable sur la ZONE', () => {
     // Repos interdit (tout à false).
     sc.rest = { camp: false };
     expect(restPlacesHere({ scene: sc, partyPos: { x: 5, y: 5 } } as never)).toBeNull();
+  });
+
+  it('les lieux de repos sont ceux de l’offre, sans sa qualité ni ses offres d’auberge (#5149)', () => {
+    const sc = emptyScene('scene-test', 10, 10);
+    sc.rest = { auberge: true, quality: 'pietre', offres: [{ id: 'repas', prix: { brass: 0 }, source: { book: 'livre-de-base', page: 302 } }] };
+    expect(restPlacesHere({ scene: sc, partyPos: { x: 5, y: 5 } } as never)?.places).toStrictEqual({ auberge: true });
   });
 
   it('#803 — zone de repos au rez (z absent/0) inactive quand le groupe campe à l’étage 1', () => {

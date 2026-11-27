@@ -197,7 +197,7 @@ describe('Poursuite terrestre (#95)', () => {
     banc.setState({ sequence: pursuitSeq({ partyRole: 'fleeing', distance: 8, foes: [{ label: fixtureText('Bandit'), movement: 4, skill: 1 }] }) });
     closeSequenceRound(banc.getState, banc.setState, doneRound(party, 6));
     expect(pursuitOf(banc.getState())).toBeNull(); // dénoué
-    expect(banc.getState().journal.some((l) => l.includes('semé'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('semé'))).toBe(true);
   });
 
   it('manche gagnée par les poursuivants (proie lente) → Distance ≤ 0 : le camp poursuivi DÉCIDE (l.94)', () => {
@@ -215,7 +215,7 @@ describe('Poursuite terrestre (#95)', () => {
     banc.getState().jetRegler('cascade', 'choix', 'affronter', choix.id);
     banc.getState().jetValider('cascade');
     expect(pursuitOf(banc.getState())).toBeNull();
-    expect(banc.getState().journal.some((l) => l.includes('Rattrapés'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('Rattrapés'))).toBe(true);
   });
 
   it('manche indécise → une nouvelle manche s’ouvre (la poursuite continue)', () => {
@@ -236,7 +236,7 @@ describe('Poursuite terrestre (#95)', () => {
     expect([0, 1].filter((siege) => intentAllowedFor(banc.getState(), siege, 'jetRegler', ['cascade', 'abandon', true])), 'l’hôte seul').toEqual([0]);
     banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
     banc.getState().jetRegler('cascade', 'abandon', true);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.refus.hoteSeul'));
+    expect(banc.getState().journal.slice(-1)[0].texte).toBe(t('jet.refus.hoteSeul'));
     expect(pursuitOf(banc.getState()), 'la poursuite continue').not.toBeNull();
   });
 
@@ -245,7 +245,7 @@ describe('Poursuite terrestre (#95)', () => {
     startGroundPursuit(banc.getState, banc.setState, { partyRole: 'pursuing', distance: 5, skill: 'athletisme', foes: [{ id: 'humain' }] });
     banc.getState().jetRegler('cascade', 'abandon', true);
     expect(pursuitOf(banc.getState())).toBeNull();
-    expect(banc.getState().journal.some((l) => l.includes('abandonne'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('abandonne'))).toBe(true);
   });
 
   it.each(['manuel', 'auto'] as const)('abandon d’une poursuite ouverte PAR-DESSUS une cascade hôte (%s) : la cascade parquée reprend — l’abandon immédiat sort par la même queue de clôture que l’abandon demandé', (mode) => {
@@ -283,8 +283,8 @@ describe('Poursuite terrestre (#95)', () => {
     expect(sequenceAbandonOf(banc.getState), 'manche résolue : abandon offert').not.toBeNull();
     banc.getState().jetRegler('cascade', 'abandon', true);
     const journal = banc.getState().journal;
-    const manche = journal.findIndex((l) => l.startsWith('Manche 1 :'));
-    const renonce = journal.indexOf('Le groupe cesse de fuir et fait face.');
+    const manche = journal.findIndex((l) => l.texte.startsWith('Manche 1 :'));
+    const renonce = journal.findIndex((l) => l.texte === 'Le groupe cesse de fuir et fait face.');
     expect(manche, 'la manche tirée est appliquée').toBeGreaterThanOrEqual(0);
     expect(renonce, 'puis le groupe renonce').toBeGreaterThan(manche);
     expect(pursuitOf(banc.getState())).toBeNull();
@@ -300,7 +300,7 @@ describe('Poursuite terrestre (#95)', () => {
     banc.getState().jetRegler('cascade', 'abandon', true);
     expect(banc.getState().partyWiped, 'checkPartyWiped constate la défaite').toBe(true);
     expect(pursuitOf(banc.getState())).toBeNull();
-    expect(banc.getState().journal.includes('Le groupe cesse de fuir et fait face.'), 'aucun abandon raconté').toBe(false);
+    expect(banc.getState().journal.some((l) => l.texte === 'Le groupe cesse de fuir et fait face.'), 'aucun abandon raconté').toBe(false);
   });
 
   it('manche MANUELLE à jet posé mais incomplète : ni offert, ni accepté', () => {

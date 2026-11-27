@@ -39,6 +39,8 @@ import { catalogueDuProcessus } from '../data/catalogueDuProcessus';
 // Registre des effets : les réfs que chaque handler valide (`handler.refs`).
 import { EFFECT_HANDLERS, type EffectHandler, type EffectRefCtx } from './combatEffects';
 import { nomDEntite, sceneNpc } from './monde/sceneNpc';
+import { possesses } from '../engine/skills';
+import { HEAL_SKILL } from '../engine/healing';
 import { refusDesSortsChoisis } from '../engine/sortsDuPnj';
 import { objetInstanciableDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import {
@@ -246,6 +248,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         const nom = hebergement.label ?? hebergement.id;
         const addScene = (message: string) => out.push({ level: 'error', sceneId: sceneDuLieu.id, scope: 'scene', refId: sceneDuLieu.id, message });
         if (sceneDuLieu.rest?.quality) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la de la scène`);
+        if (sceneDuLieu.rest?.offres) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : les offres d’auberge se règlent sur l’établissement, retire-les de la scène`);
         if ((sceneDuLieu.restZones ?? []).some((z) => z.quality)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la des zones de repos`);
         if (sceneAubergeOffer(sceneDuLieu)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : l’auberge est celle de l’établissement, retire-la de la scène`);
       }
@@ -372,6 +375,9 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
       const npc = e.combat?.spells?.length ? sceneNpc(s, e.id, presetDe, resolveTrapping) : undefined;
       const refusDesSorts = npc && refusDesSortsChoisis(npc, e.combat?.spells ?? []);
       if (refusDesSorts) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} → ${refusDesSorts}`);
+      // LDB 09 l.265 ; un veilleur sans fiche a déjà la faute de tout personnage sans fiche (#1882)
+      const veilleur = e.kind === 'personnage' && e.veilleLesMalades ? sceneNpc(s, e.id, presetDe, resolveTrapping) : undefined;
+      if (veilleur && !possesses(veilleur, { id: HEAL_SKILL })) add('error', 'entity', e.id, `${nomDEntite(e, presetDe) ?? e.id} veille les malades sans la Compétence Guérison sur sa fiche.`);
     }
     // Point d'entrée hors de la convention de pose du noyau (`borneALaCarte`) : une scène chargée, importée
     // ou écrite à la main n'est pas passée par `editEntry`.

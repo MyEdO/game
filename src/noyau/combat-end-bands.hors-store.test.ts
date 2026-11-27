@@ -269,7 +269,7 @@ describe('#4574 — la rangée d’Exposition prévoit le fait que son gain appl
     g().jetValider('cascade');
     expect(bande.participants!.find((r) => r.id === H[0].id)!.faits, 'le fait appliqué est le fait prévu').toEqual([fait]);
     expect(porteur.corruption).toBe(1);
-    expect([...g().battle!.log.map((e) => e.text), ...g().journal]).toContain(texteDuFait(fait, nomDe(porteur)));
+    expect([...g().battle!.log.map((e) => e.entree.texte), ...g().journal.map((e) => e.texte)]).toContain(texteDuFait(fait, nomDe(porteur)));
   });
 });
 
@@ -279,7 +279,7 @@ describe('#1281 — une rangée RÉSOLUE D’OFFICE laisse SA ligne de dé (zér
   /** CE QUE LE JOUEUR LIT : la bande de fin de combat se joue COMBAT OUVERT — ses lignes vont donc au
    *  journal de COMBAT (`combatLog.journaliser`), la seule surface ouverte alors ; `state.journal`
    *  reste lu pour le cas où le combat serait déjà refermé. */
-  const lu = (): string[] => [...(g().battle?.log ?? []).map((e) => e.text), ...g().journal];
+  const lu = (): string[] => [...(g().battle?.log ?? []).map((e) => e.entree.texte), ...g().journal.map((e) => e.texte)];
   const traces = () => lu().filter((l) => TRACE.test(l));
 
   it('cadence RAPIDE, fin de combat : chaque rangée auto-résolue porte SA ligne de dé au journal', () => {

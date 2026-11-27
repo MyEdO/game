@@ -54,7 +54,7 @@ function testsJetes(partie: Partie, ...resultats: ResultatDeLAppel[]): TestJete[
 }
 
 /** Les lignes écrites au journal par `resultat`. */
-const lignesDuJournal = (resultat: ResultatDeLAppel): string[] => resultat.journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const lignesDuJournal = (resultat: ResultatDeLAppel): string[] => resultat.journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 
 describe('tenterLeTest : un Test de Compétence par un verbe public', () => {
   it.each(['auto', 'manuel'] as const)('cadence %s : le héros désigné jette, son issue est l’événement du Test', (cadence) => {

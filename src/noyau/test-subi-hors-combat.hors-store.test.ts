@@ -284,7 +284,7 @@ describe('#1874 C0 — un Test SUBI hors combat : la conséquence tombe sur SON 
     const avant = JSON.stringify(get().party);
     acquitter({ success: false, sl: -3 });
     expect(JSON.stringify(get().party), 'la branche d’un sujet mort a touché quelqu’un').toBe(avant);
-    expect(get().journal, 'la conséquence perdue doit se NOMMER, avec sa source')
+    expect(get().journal.map((e) => e.texte), 'la conséquence perdue doit se NOMMER, avec sa source')
       .toContain(t('cascade.cibleDisparue', { label: rangee.label }));
   });
 

@@ -92,7 +92,7 @@ describe('#1882 — réf. de personnage MORTE : aucun mannequin, nulle part', ()
     pose([MORT]);
     applyEffects(get, set, [{ type: 'medicalAid', entityId: { id: 'fantome' }, acts: [{ act: 'blessures', cost: { silver: 5 } }] }]);
     expect(get().medic).toBeFalsy();
-    expect(get().journal.some((l) => String(l).includes('« fantome »'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('« fantome »'))).toBe(true);
   });
 });
 

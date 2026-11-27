@@ -7,14 +7,15 @@
  * Aucune scène n'est codée « en dur » : la campagne est de la donnée.
  */
 import type { AuthoredShipPoste, NavalTraitRef } from '../../engine/types';
-import type { RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
+import type { QualiteDeRepos, RectDeCases, RoleAmbiant } from '../../data/schemas/grammaire/valeurs';
+import type { offresDAubergeSchema } from '../../data/schemas/grammaire/hebergement';
 import type { EntityAppearance } from '../../engine/authoringAppearance';
 import type { FlowDeScene, TestDeScene } from '../../data/schemas/defs-scenes/effets';
 // Les FORMES de la scène : le schéma zod (`data/schemas/defs-scenes/scene.ts`) les DÉCLARE — champs,
 // optionalités, mécanique, réfs RAW —, les types ci-dessous les nomment par `z.infer`. Import de TYPE
 // seul — aucun cycle runtime.
 import type { z } from 'zod';
-import type { InventaireDAuteur, OptionalDeScene, ReliefDefaults, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
+import type { InventaireDAuteur, OptionalDeScene, ReliefDefaults, restPlacesSchema, SceneRoofDefaults, Terrain } from '../../data/schemas/defs-scenes/scene';
 import type { ParcoursDeCarriere } from '../../engine/pnjDeCarriere';
 import type {
   ambianceSchema, architectureBodySchema, architectureEdgeRefSchema, architecturePartSchema,
@@ -93,6 +94,8 @@ export interface SceneEntity {
   creature?: { id: string };
   vehicule?: { id: string };
   engin?: { id: string };
+  /** PERSONNAGE : soignant de la scène pour les malades du groupe qui s'y tiennent (`veilleursDeLaScene`). LDB 09 l.265 */
+  veilleLesMalades?: true;
   /** Profil personnalisé (sinon on utilise le corps). */
   statblock?: CustomStatblock;
   /** Id d'un preset de PNJ nommé du bloc `narratif.presetsPnj` (#671). Présent = l'entité est
@@ -330,7 +333,8 @@ export interface Scene {
    *  gagnent des ombres cohérentes entre elles. Posé par `setNorthDeg` (qui le ramène dans `[0,360[`). */
   northDeg?: number;
   /** OFFRE DE REPOS de la scène (bouton de Repos en exploration → modale de Repos) : lieux disponibles
-   *  (auberge/chez soi/camp, combinables) + qualité (`QUALITE_DU_REPOS`, LDB 66 l.5).
+   *  (auberge/chez soi/camp, combinables) + qualité (`QUALITE_DU_REPOS`, LDB 66 l.5) + offres d'auberge (`offres`,
+   *  pour toute auberge de la scène ; absentes : celles du catalogue, `reposDeLaScene`).
    *  Absent = camp seulement ; tout à false = repos interdit ici. La météo ci-dessus donne la
    *  sévérité d'Exposition d'une nuit dehors (engine/exposure). */
   rest?: z.output<typeof sceneSchema.shape.rest>;
@@ -445,6 +449,29 @@ export function sceneMetresPerTile(scene: { metresPerTile?: number } | null | un
  *  (`noyau/sceneEdit.addRestZone`). PUR. */
 export function reposDeScene(scene: { rest?: Scene['rest'] }): NonNullable<Scene['rest']> {
   return scene.rest ?? { camp: true };
+}
+
+/** Le repos d'une scène résolu à la zone de repos `zone` (aucune : la scène entière) : ses lieux de repos, sa qualité
+ *  (celle de la zone, sinon celle de la scène) et ses offres d'auberge (`rest.offres`, pour toute auberge de la scène ;
+ *  absentes : celles du catalogue). Source UNIQUE du repos de scène : le repos à la position du groupe
+ *  (`noyau/restFlow.restPlacesHere`) et l'auberge de lieu dérivée de la scène (`noyau/worldMap.sceneAubergeOffer`). PUR.
+ *  LDB 66 l.5 #5149 */
+export function reposDeLaScene(scene: Pick<Scene, 'rest'>, zone?: NonNullable<Scene['restZones']>[number]): ReposDeLaScene {
+  const source = zone?.places ?? reposDeScene(scene);
+  const places: ReposDeLaScene['places'] = {};
+  for (const lieu of LIEUX_DE_REPOS) if (source[lieu] !== undefined) places[lieu] = source[lieu];
+  const offres = scene.rest?.offres;
+  return { places, quality: zone?.quality ?? scene.rest?.quality ?? 'normale', ...(offres ? { offres } : {}) };
+}
+
+/** Les lieux de repos d'une offre de scène. */
+const LIEUX_DE_REPOS = ['auberge', 'maison', 'camp'] as const satisfies readonly (keyof z.output<typeof restPlacesSchema>)[];
+
+/** Le repos d'une scène résolu (`reposDeLaScene`). */
+interface ReposDeLaScene {
+  places: z.output<typeof restPlacesSchema>;
+  quality: QualiteDeRepos;
+  offres?: z.output<typeof offresDAubergeSchema>;
 }
 
 /** La scène est-elle à l'échelle MER (combat naval OPÉRATIONNEL : navire-unité, équipage abstrait/passager) ?

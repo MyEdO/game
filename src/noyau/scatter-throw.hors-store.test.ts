@@ -53,7 +53,7 @@ function setBattle(combatants: Combatant[]) {
   banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 12 * 60, pendingCascade: null, pendingFateSave: null });
 }
 
-const logText = () => banc.getState().battle!.log.map((e: { text: string }) => e.text).join(' | ');
+const logText = () => banc.getState().battle!.log.map((e) => e.entree.texte).join(' | ');
 
 describe('Dispersion — câblage d’un raté de Lancer (LDB 14 l.144-151)', () => {
   beforeEach(() => { seedBattleRng(20260627); });

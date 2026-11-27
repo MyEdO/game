@@ -125,7 +125,7 @@ describe('#1279 S4-b — l’adversaire de taverne à FICHE', () => {
     jouerALaTaverne(get, set, challenger.id, { gameId: 'dominos', opponent: { kind: 'pnj', id: 'pnj-fantome' } });
 
     expect(activeSequence(get)).toBeNull();
-    expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: findTavernGameById('dominos')!.label }));
+    expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: findTavernGameById('dominos')!.label }));
   });
 });
 
@@ -136,19 +136,19 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
   it('jeu inconnu', () => {
     jouerALaTaverne(get, set, get().party[0]!.id, { gameId: 'jeu-fantome', opponent: { kind: 'profil', id: 'humain' } });
     expect(activeSequence(get)).toBeNull();
-    expect(get().journal.slice(-1)[0]).toBe(t('tavern.jeuInconnu', { id: 'jeu-fantome' }));
+    expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('tavern.jeuInconnu', { id: 'jeu-fantome' }));
   });
 
   it('challenger sorti du groupe', () => {
     jouerALaTaverne(get, set, 'heros-parti', { gameId: 'dominos', opponent: { kind: 'profil', id: 'humain' } });
     expect(activeSequence(get)).toBeNull();
-    expect(get().journal.slice(-1)[0]).toBe(t('tavern.challengerAbsent', { jeu: dominos() }));
+    expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('tavern.challengerAbsent', { jeu: dominos() }));
   });
 
   it('adversaire héros sorti du groupe', () => {
     jouerALaTaverne(get, set, get().party[0]!.id, { gameId: 'dominos', opponent: { kind: 'heros', id: 'heros-parti' } });
     expect(activeSequence(get)).toBeNull();
-    expect(get().journal.slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: dominos() }));
+    expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('tavern.adversaireAbsent', { jeu: dominos() }));
   });
 
   it('socle : un challenger disparu en cours de séquence LÈVE, jamais un tableau muet', () => {
@@ -168,7 +168,7 @@ describe('#1906 — une partie REFUSÉE le dit au journal, jamais un retour muet
     const jeu = findTavernGameById('middenball')!;
     jouerALaTaverne(get, set, get().party[0]!.id, { gameId: jeu.id, opponent: { kind: 'profil', id: 'humain' }, allyProfil: 'profil-fantome' });
     expect(activeSequence(get)).toBeNull();
-    expect(get().journal.slice(-1)[0]).toBe(t('tavern.coequipierSansProfil', { jeu: jeu.label, profil: 'profil-fantome' }));
+    expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('tavern.coequipierSansProfil', { jeu: jeu.label, profil: 'profil-fantome' }));
   });
 });
 

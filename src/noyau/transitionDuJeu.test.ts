@@ -10,6 +10,7 @@ import type { CustomStatblock } from '../engine/statblock';
 import type { Combatant } from '../engine/types';
 import { ALDO, BRUNA, CORA, etatAttable, rangsAssis, taverneAttablee } from './taverneAttablee.testkit';
 import { effectiveMaxWounds } from '../engine/characteristics';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Transition du jeu (#2817 D7) : la chaise suit le corps, observée sur l'état avant/après. */
 describe('transitionDuJeu — occupation des sièges', () => {
@@ -122,7 +123,7 @@ describe('transitionDuJeu — le maximum des Blessures suit ses porteurs', () =>
     const c = blesse();
     const prev = { ...etatInitialDuJeu(), party: [c] };
     PORTEURS[0][2](c, plus3());
-    expect(transitionDuJeu(prev, { ...prev, journal: ['x'] })).toBeNull();
+    expect(transitionDuJeu(prev, { ...prev, journal: [ligneDeTexte('x')] })).toBeNull();
     expect(c.wounds).toMatchObject({ max: 12, current: 10 });
   });
 

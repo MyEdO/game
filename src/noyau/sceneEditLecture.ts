@@ -639,8 +639,8 @@ interface FormulaireDuPorteur<D> {
 
 /** Les champs que le formulaire d'un personnage offre : de son rôle au combat, ses options, ses Compétences, le tirage de
  *  ses Caractéristiques et son embuscade ; son profil personnalisé ; sa contrepartie d'amateur des arts, son marchand, son
- *  jeu de taverne, son apparence, son animation. */
-const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['merchant'], ['tavernGame'], ['appearance'], ['anim']];
+ *  jeu de taverne, sa veille des malades, son apparence, son animation. */
+const CHAMPS_DU_PERSONNAGE: CheminsOfferts = [['combat', 'optionals'], ['combat', 'skills'], ['combat', 'randomChars'], ['combat', 'hiddenUntilCombat'], ['statblock'], ['amateur'], ['merchant'], ['tavernGame'], ['veilleLesMalades'], ['appearance'], ['anim']];
 
 /** Les profils d'auteur qu'un PNJ de carrière ne porte pas (`refusDuPnjDeCarriere`) : son profil personnalisé et son preset. */
 const PROFILS_D_AUTEUR: readonly Segment[] = ['statblock', 'presetId'];
@@ -864,6 +864,10 @@ const champsSauf = (schema: unknown, exclues: readonly string[]): CheminsOfferts
 const CHAMPS_DE_LA_CALE_SECHE = ['constructeurDeBateaux', 'materiauxCaleSeche'] as const;
 const CHAMPS_DU_LIEU = champsSauf(mapPlaceSchema, ['id', 'pos', 'services', 'poi', ...CHAMPS_DE_LA_CALE_SECHE]);
 const CHAMPS_DE_L_OFFRE = champsSauf(offreDAubergeSchema, ['id']);
+/** De chacune des offres d'auberge déclarées `offres` d'un repos au chemin `repos`, à son rang, chaque champ hors de son
+ *  identifiant (`CHAMPS_DE_L_OFFRE`) : celles d'un établissement (`champsDuLieu`) et celles de la scène. #4277 #5149 */
+const champsDesOffres = (repos: Segment[], offres: readonly unknown[] | undefined): CheminsOfferts =>
+  (offres ?? []).flatMap((_, j) => CHAMPS_DE_L_OFFRE.map(([cle]) => [...repos, 'offres', j, cle]));
 const champsDuLieu = (lieu: MapPlace): CheminsOfferts => [
   ...CHAMPS_DU_LIEU,
   ...(lieu.amarrage === 'cale-seche' ? CHAMPS_DE_LA_CALE_SECHE.map((champ) => [champ]) : []),
@@ -871,7 +875,7 @@ const champsDuLieu = (lieu: MapPlace): CheminsOfferts => [
     ['services', i, 'label'],
     ['services', i, 'when'],
     ['services', i, 'refus'],
-    ...(estUnHebergement(sv) ? [['services', i, 'rest', 'quality'], ...(sv.rest?.offres ?? []).flatMap((_, j) => CHAMPS_DE_L_OFFRE.map(([cle]) => ['services', i, 'rest', 'offres', j, cle]))] : []),
+    ...(estUnHebergement(sv) ? [['services', i, 'rest', 'quality'], ...champsDesOffres(['services', i, 'rest'], sv.rest?.offres)] : []),
   ]),
   ...(lieu.poi ?? []).flatMap((p, i) => [...(p.sceneId ? [['poi', i, 'label']] : []), ['poi', i, 'icon']]),
 ];
@@ -1115,7 +1119,8 @@ const FORMULAIRE_DU_TYPE: { readonly [K in EntityKind]: Omit<FormulaireDuPorteur
  *  condition d'entrée et son flux ; d'une entité, celui de son type (`FORMULAIRE_DU_TYPE`) ; d'un dialogue, son nœud de
  *  départ, ses nœuds et les entrées qu'il couvre, aux choix de son contexte (`choixDuDialogue`) ; d'une rencontre, ses
  *  circonstances, sa fin et les entrées qu'elle couvre, et de ses membres leur seule monture (`CHAMPS_DE_LA_RENCONTRE`) ;
- *  de la scène, porteur singulier de son document, son message de départ ; d'un lieu, ses champs (`champsDuLieu`), aux
+ *  de la scène, porteur singulier de son document, son message de départ et les champs de ses offres d'auberge déclarées
+ *  (`champsDesOffres`), l'offre s'ajoutant et se retirant par son écrivain (`PatchDeScene.repos.offre`) ; d'un lieu, ses champs (`champsDuLieu`), aux
  *  choix de son contexte (`choixDuLieu`) ; d'une route, les siens (`CHAMPS_DE_LA_ROUTE`), aux choix de son contexte
  *  (`choixDeLaRoute`) ; de la carte, porteur singulier de son document, son libellé, son fond et ses réglages ; de ses
  *  réglages, porteur singulier de leur document, ses axes actifs ; d'une entrée de chaque registre créable du narratif,
@@ -1135,7 +1140,7 @@ export const FORMULAIRES: { readonly [S in SorteDePorteur]: FormulaireDuPorteur<
   },
   dialogue: { acces: { document: 'scene', collection: 'dialogues' }, sel: 'dialogue', schema: dialogueSchema, portee: 'dialogue', logique: true, champs: () => [['start'], ['nodes'], ['couvre']], choix: choixDuDialogue },
   rencontre: { acces: { document: 'scene', collection: 'encounters' }, sel: 'encounter', schema: encounterDefSchema, portee: 'encounter', logique: true, champs: champsDeLaRencontre },
-  scene: { acces: { document: 'scene' }, schema: sceneSchema, champs: () => [['startMessage']] },
+  scene: { acces: { document: 'scene' }, schema: sceneSchema, champs: (scene) => [['startMessage'], ...champsDesOffres(['rest'], scene.rest?.offres)] },
   lieu: { acces: { document: 'carte', collection: 'places' }, sel: 'place', schema: mapPlaceSchema, portee: 'worldMap', logique: true, champs: champsDuLieu, choix: choixDuLieu },
   route: { acces: { document: 'carte', collection: 'routes' }, sel: 'route', schema: mapRouteSchema, portee: 'worldMap', logique: true, champs: () => CHAMPS_DE_LA_ROUTE, choix: choixDeLaRoute },
   carte: { acces: { document: 'carte' }, schema: worldMapSchema, portee: 'worldMap', champs: () => [['label'], ['background'], ['params']] },

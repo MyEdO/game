@@ -24,7 +24,7 @@ describe('fenetreFermer', () => {
 
     banc.getState().fenetreFermer('cascade');
     expect(banc.getState().pendingCascade?.cursor, 'la séquence reste à sa première étape').toBe(0);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.etapesDues'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('jet.ferme.etapesDues'));
 
     banc.getState().jetLancer('cascade');
     expect(banc.getState().pendingCascade?.cursor, 'bilan').toBe(TROIS_ETAPES.length);
@@ -36,9 +36,9 @@ describe('fenetreFermer', () => {
   it('une fenêtre qui ne se ferme pas, ou qui n’est pas ouverte, se refuse et le dit', () => {
     const banc = ouvrirLeBanc();
     banc.getState().fenetreFermer('destin' as never);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('sortie.refus.inconnue'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('sortie.refus.inconnue'));
     banc.getState().fenetreFermer('conseil');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('sortie.refus.fermee'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('sortie.refus.fermee'));
   });
 
   it('la sortie de l’hôte reste à l’hôte : refusée dans l’état d’un invité, et au siège d’un invité', () => {
@@ -46,7 +46,7 @@ describe('fenetreFermer', () => {
     banc.setState({ pendingChapterRecap: { titre: 'C', px: 0, chronique: [], tombes: [], lieux: [] }, net: { ...banc.getState().net, mode: 'invite' } });
     banc.getState().fenetreFermer('finDeChapitre');
     expect(banc.getState().pendingChapterRecap).not.toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('sortie.refus.hoteSeul'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('sortie.refus.hoteSeul'));
 
     banc.setState({ net: { ...banc.getState().net, mode: 'hote' } });
     expect(intentAllowedFor(banc.getState(), 1, 'fenetreFermer', ['finDeChapitre'])).toBe(false);
@@ -61,7 +61,7 @@ describe('fenetreFermer', () => {
     expect(fermeturesDeLaFenetre(banc.getState()).get('fenetreFermer@infirmerie')).toBe('soinEnCours');
     banc.getState().fenetreFermer('infirmerie');
     expect(banc.getState().medic, 'l’infirmerie reste ouverte').not.toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.soinEnCours'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('jet.ferme.soinEnCours'));
   });
 
   it('la sortie du propriétaire suit son siège : l’infirmerie, à tous, se ferme d’un invité ; une fenêtre inconnue, de personne', () => {

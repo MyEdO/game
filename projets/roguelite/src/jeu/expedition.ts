@@ -6,7 +6,6 @@ import {
   jouerLeCombat,
   jouerLEpreuve,
   partiesDuTest,
-  reposer,
   isConditionLocked,
   isOutOfAction,
   refusDeDetermination,
@@ -20,7 +19,6 @@ import {
   gesteDIncanter,
   doter,
   saitSoigner,
-  entretenirLesMaladies,
   soignerUnCompagnon,
   verdictDuSoin,
   viseeDeLEpreuve,
@@ -42,7 +40,9 @@ import {
   DESTINATIONS,
   EPREUVES,
   type IdActionAJet,
+  GUERISON_DE_L_HOSPICE,
   LIEUX_DE_SEJOUR,
+  type LieuDeSejour,
   MUNITIONS,
   PRIERE_DE_SOIN,
   PX_PAR_SALLE,
@@ -63,6 +63,7 @@ import {
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 import { voir } from './quete';
+import { qualiteDeLaChambre } from './village';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 /** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
@@ -478,14 +479,35 @@ export function attendreUneSemaine(e: Etat): string | null {
 /** Les États qui survivent à la rencontre une fois le héros ramené au hameau ; les autres retombent avec elle, sauf verrou qui tient (LDB 18 l.15). */
 const DURABLES = new Set(['extenue', 'inconscient']);
 
-/** La chambre de l'Auberge relais, où le héros en séjour dort chaque nuit, nourri. */
-const CHAMBRE: Place = { label: LIEUX_DE_SEJOUR.relais.nom, rest: { maison: true } };
+/** La source des offres de la chambre de l'Auberge relais. LDB 66 l.12-16 */
+const SOURCE_DE_LA_CHAMBRE = { book: 'livre-de-base', page: 302 };
+/** Où dort le héros en séjour `ou` : la chambre de l'Auberge relais à la qualité du palier (`qualiteDeLaChambre`), sa
+ *  chambre et son repas à prix nul, la semaine payée en or du hameau par `prendreUneChambre` (valeur d'adaptation,
+ *  MyEdO/game#5121) ; ou l'hospice, où les sœurs nourrissent leurs patients (valeur d'adaptation, MyEdO/game#5121) et
+ *  où une sœur de Shallya à Guérison `GUERISON_DE_L_HOSPICE` veille les malades. LDB 66 l.5 ; LDB 09 l.265 */
+function placeDuSejour(e: Etat, ou: LieuDeSejour): Place {
+  if (ou === 'relais') {
+    return {
+      label: LIEUX_DE_SEJOUR.relais.nom,
+      rest: {
+        auberge: true, quality: qualiteDeLaChambre(e),
+        offres: [{ id: 'chambre', prix: { brass: 0 }, source: SOURCE_DE_LA_CHAMBRE }, { id: 'repas', prix: { brass: 0 }, source: SOURCE_DE_LA_CHAMBRE }],
+      },
+    };
+  }
+  return {
+    label: LIEUX_DE_SEJOUR.temple.nom, rest: { maison: true },
+    entites: [{
+      kind: 'personnage', id: 'soeur-de-shallya', pos: { x: 4, y: 4 }, veilleLesMalades: true,
+      statblock: { type: 'statblock', label: 'Sœur de Shallya', char: {}, skills: [{ id: 'guerison', value: GUERISON_DE_L_HOSPICE }] },
+    }],
+  };
+}
 
 /** `jours` journées passent : chez les héros restés au hameau (hors `absents`), les États de la rencontre retombent
- *  (verrou qui tient excepté, LDB 18 l.15). Le héros en chambre à l'Auberge relais y dort chaque nuit du noyau qui reste
- *  à son séjour (`gesteDeDormir`) ; à l'hospice, ses maladies avancent soignées par les sœurs (`entretenirLesMaladies`)
- *  et il s'y repose (`reposer`), MyEdO/game#4876 ; ses autres jours, il les passe au village (`JOURNEE_AU_VILLAGE`). De
- *  nouveaux voyageurs arrivent. */
+ *  (verrou qui tient excepté, LDB 18 l.15). Le héros en séjour dort chaque nuit du noyau qui reste à son séjour
+ *  (`gesteDeDormir`) à sa place (`placeDuSejour`) ; ses autres jours, il les passe au village (`JOURNEE_AU_VILLAGE`).
+ *  De nouveaux voyageurs arrivent. */
 function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   e.jour += jours;
   for (const h of [...e.roster]) {
@@ -493,9 +515,7 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
     const sortie: Applique = { lignes: [], faits: [] };
     purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
     if (sortie.lignes.length) noter(e, sortie.lignes.join(' '));
-    const sejour = Math.min(jours, h.sejour?.reste ?? 0);
-    const nuits = h.sejour?.ou === 'relais' ? sejour : 0;
-    const aLHospice = h.sejour?.ou === 'temple' ? sejour : 0;
+    const nuits = Math.min(jours, h.sejour?.reste ?? 0);
     const lignes: string[] = [];
     const auNoyauSur = (gestes: Geste[], place: Place) => {
       if (!gestes.length) return;
@@ -503,13 +523,11 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
       h.c = r.groupe[0];
       lignes.push(...r.journal);
     };
-    auNoyauSur(Array.from({ length: nuits }, () => gesteDeDormir), CHAMBRE);
-    lignes.push(...entretenirLesMaladies(h.c, e.graine++, aLHospice, true));
-    auNoyauSur(Array.from({ length: jours - nuits - aLHospice }, () => JOURNEE_AU_VILLAGE).flat(), VILLAGE);
+    if (h.sejour) auNoyauSur(Array.from({ length: nuits }, () => gesteDeDormir), placeDuSejour(e, h.sejour.ou));
+    auNoyauSur(Array.from({ length: jours - nuits }, () => JOURNEE_AU_VILLAGE).flat(), VILLAGE);
     if (lignes.length) noter(e, lignes.join(' '));
     if (h.c.dead) { noter(e, `${h.c.label} succombe.`); enterrer(e, h); continue; }
     if (!h.sejour) continue;
-    if (aLHospice) reposer(h.c, e.graine++, aLHospice);
     h.sejour.reste -= jours;
     if (h.sejour.reste <= 0) delete h.sejour;
   }

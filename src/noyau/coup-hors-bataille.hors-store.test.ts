@@ -28,7 +28,7 @@ describe('coup encaissé hors bataille, assaillant par valeur (#3892)', () => {
     const res = frapper(banc, E, H, [23, 95]);
     expect(res.hit && !!res.woundsLost).toBe(true);
     expect(H.wounds.current).toBe(avant - res.woundsLost!);
-    expect(banc.getState().journal).toContain(ligneDuCoup(res));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(ligneDuCoup(res));
     expect(banc.getState().party).not.toBe(groupe);
   });
 
@@ -99,7 +99,7 @@ describe('coup encaissé hors bataille, assaillant par valeur (#3892)', () => {
     expect(H.wounds.current).toBe(hAvant);
     const encaisse = pAvant - pretre.wounds.current;
     expect(encaisse).toBeGreaterThan(0);
-    expect(banc.getState().journal.join(' ')).toContain(tr('cf.martyrEncaisse', { priest: nomDe(pretre), name: nomDe(H), taken: encaisse }));
+    expect(banc.getState().journal.map((e) => e.texte).join(' ')).toContain(tr('cf.martyrEncaisse', { priest: nomDe(pretre), name: nomDe(H), taken: encaisse }));
   });
 });
 

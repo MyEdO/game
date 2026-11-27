@@ -147,7 +147,7 @@ describe('Pratiquer une Compétence : du rôle épinglé à la rangée de l’É
   it('Compétence choisie que le héros ne peut pas tenter : la rangée naît sans jet, n’arrête pas la journée, et son refus nommé va au journal (#3534)', () => {
     expect(rangeeAuDepart({ activityId: 'pratiquer-competence', freeSkill: { id: 'evaluation' } }), 'aucune rangée à jouer ne retient la journée').toBeUndefined();
     const refus = refusNePeutTenter(banc.getState().party[0], { skill: { id: 'evaluation' } });
-    expect(banc.getState().journal.some((l) => l.includes(refus)), 'le refus nommé, au journal').toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes(refus)), 'le refus nommé, au journal').toBe(true);
   });
 });
 
@@ -158,7 +158,7 @@ describe('Poste tenu : une seule source (`postingTenu`)', () => {
     banc.getState().affecterAuRoleDeMarche('h', { activityId: 'recuperer' });
     banc.getState().affecterAuRoleDeMarche('h', { activityId: 'pratiquer-competence' });
     expect(banc.getState().party[0].travelRole).toEqual({ activityId: 'recuperer' });
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('tp.refusPosteNonTenu', { label: activityById('pratiquer-competence')!.label }));
+    expect(banc.getState().journal.slice(-1)[0].texte).toBe(t('tp.refusPosteNonTenu', { label: activityById('pratiquer-competence')!.label }));
   });
 
   it('un rôle épinglé que l’édition du catalogue rend non tenu n’est plus épinglé : l’Étape retombe sur le rôle inféré', () => {

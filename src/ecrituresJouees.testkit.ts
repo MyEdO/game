@@ -370,6 +370,8 @@ export function ecrituresJouees(): EcritureJouee[] {
   let s = sceneNeuve();
   out.push(...ecrituresDesOutilsDeScene(s, { presser, cliquer, poserUnNavire }));
   jouerLInspecteur(s, out);
+  const aubergiste = consigner(consigner(presser(s, 'scene/repos/auberge'), 'scene/repos/offre/repas/retirer', ['rest'], out), 'scene/repos/offre/ajouter/repas', ['rest'], out);
+  consigner(jouerLInspecteur(aubergiste, out, ['valeur/rest/']), 'scene/repos/offres/retirer', ['rest'], out);
   for (const [sorte, de, a, boutons] of ZONES) {
     s = presser(presser(s, 'outil/zone'), `zone/${sorte}`);
     const zone = boutons.reduce(presser, jouer(jouer(s, { geste: 'appui', point: point(de, de) }), { geste: 'relache', point: point(a, a) }));

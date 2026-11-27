@@ -75,7 +75,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     expect(porteTentee(banc.getState().scene!, seg(A))).toBe(true);
     resoudre(true);
     expect(porteEnJeu(banc.getState().scene!, seg(A))).toBe(true);
-    expect(banc.getState().journal).toContain(t('eff.porteSecreteTrouvee'));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(t('eff.porteSecreteTrouvee'));
   });
 
   it('échec → re-Fouiller ne relance rien, et l’horloge avance quand même', () => {
@@ -87,7 +87,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     fouiller();
     expect(banc.getState().pendingTest).toBeNull();
     expect(banc.getState().gameTime).toBe(avant + DUREE);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('fouille.journal'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('fouille.journal'));
   });
 
   it('deux portes → deux Tests en séquence, chacun sa difficulté ; l’horloge avance UNE fois', () => {
@@ -119,7 +119,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     fouiller();
     expect(banc.getState().pendingTest).toBeNull();
     expect(porteTentee(banc.getState().scene!, seg(C))).toBe(false);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('fouille.journal'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('fouille.journal'));
     expect(banc.getState().gameTime).toBe(avant + DUREE);
   });
 
@@ -143,7 +143,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     const avant = banc.getState().gameTime;
     fouiller();
     expect(banc.getState().pendingTest).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('fouille.refus.horsPiece'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('fouille.refus.horsPiece'));
     expect(banc.getState().gameTime).toBe(avant);
   });
 
@@ -152,7 +152,7 @@ describe('Fouiller la pièce — le second déclencheur de la découverte', () =
     banc.setState({ dialogue: { entityId: 'x', nodeId: 'n' } as never });
     fouiller();
     expect(banc.getState().pendingTest).toBeNull();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('geste.refus.dialogue'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('geste.refus.dialogue'));
   });
 });
 

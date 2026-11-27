@@ -66,7 +66,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     banc.setState({ party: [w] as Combatant[] });
     const armure = findSpellById('armure-aethyrique')!; // NI 2 — DR 0 insuffisant
     applyCast(banc.getState, banc.setState, w, [w], armure, critRes(false, 0), false, 'puissance');
-    expect(banc.getState().journal.join('\n')).toMatch(/Puissance totale/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Puissance totale/);
   });
 
   it('une PRIÈRE critique ne déclenche pas la mécanique (règle du ch.46, Tests de Langue)', () => {

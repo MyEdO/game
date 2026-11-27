@@ -23,7 +23,7 @@ export function cascadeDeTest(
   participants: CascadeStep[],
   champs: Partial<Omit<PendingCascade, 'participants' | 'seq'>> = {},
 ): PendingCascade {
-  return { title: 'Test', purpose: 'test', cursor: 0, log: [], ...champs, participants, seq: participants.length };
+  return { title: 'Test', purpose: 'test', cursor: 0, ...champs, participants, seq: participants.length };
 }
 
 /** Ce qu'il faut porter pour être JUGEABLE par `inexplique` — les quatre grandeurs d'une ligne de jet,
@@ -193,7 +193,7 @@ export function draineEtLit(get: () => Jeu, max = 200): string[] {
   };
   capte();
   for (let i = 0; i < max && get().pendingCascade; i++) { avanceEtapeCascade(get); capte(); }
-  return [...get().journal, ...(get().battle?.log ?? []).map((e) => e.text), ...[...parEtape.values()].flat()];
+  return [...get().journal.map((e) => e.texte), ...(get().battle?.log ?? []).map((e) => e.entree.texte), ...[...parEtape.values()].flat()];
 }
 
 /**

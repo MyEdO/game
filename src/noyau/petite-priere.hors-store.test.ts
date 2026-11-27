@@ -37,7 +37,7 @@ describe('Petites Prières (LDB 25) — effet de scène', () => {
     banc.getState().ensemencerLeTirage(1);
     applyEffects(banc.getState, banc.setState, [{ type: 'petitePriere', heroId: p.id, reward }]);
     expect(banc.getState().party[0].xp).toBe(50); // reward (giveXp) exécuté
-    expect(banc.getState().journal.join('\n')).toMatch(/entendent/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/entendent/);
   });
 
   it('option désactivée : aucun effet (rien n’est joué)', () => {
@@ -57,6 +57,6 @@ describe('Petites Prières (LDB 25) — effet de scène', () => {
     banc.setState({ party: [beni], journal: [] });
     applyEffects(banc.getState, banc.setState, [{ type: 'petitePriere', heroId: beni.id, reward: EMPTY_FLOW }]);
     expect(banc.getState().party[0].xp).toBe(0);
-    expect(banc.getState().journal.join('\n')).toMatch(/est Béni/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/est Béni/);
   });
 });

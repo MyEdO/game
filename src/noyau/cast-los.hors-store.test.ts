@@ -63,8 +63,8 @@ describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {
     expect(banc.getState().pendingCast).toBeNull();
     // EN COMBAT, le refus est VISIBLE dans le feed (battle.log) — pas dans le journal d'exploration
     // invisible pendant le combat (B4 : un refus muet passe pour un bug).
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/pas de ligne de vue/i);
-    expect(banc.getState().journal.join('\n')).not.toMatch(/pas de ligne de vue/i);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/pas de ligne de vue/i);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toMatch(/pas de ligne de vue/i);
   });
 
   it('ligne dégagée (brèche) → la modale s’ouvre', () => {
@@ -81,7 +81,7 @@ describe('castSpell — Ligne de Vue (LDB 46 l.121)', () => {
     banc.setState({ battle: { ...b, combatants: [...b.combatants, ally] } });
     castSpell(banc.getState, banc.setState, w, ally, 'carreau');
     expect(banc.getState().pendingCast).toBeNull();
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/pas de ligne de vue/i);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/pas de ligne de vue/i);
   });
 
   it('sur SOI-MÊME : jamais bloqué par la LdV', () => {
@@ -97,8 +97,8 @@ describe('castSpell — Portée (LDB 47) : refus VISIBLE en combat (B4)', () => 
     w.characteristics['force-mentale'] = 2; // Carreau = FM/2 → 1 case ; e-vu est à 14 cases (LdV dégagée en y=0)
     castSpell(banc.getState, banc.setState, w, seen, 'carreau');
     expect(banc.getState().pendingCast).toBeNull();
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/hors de portée/i);
-    expect(banc.getState().journal.join('\n')).not.toMatch(/hors de portée/i);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/hors de portée/i);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toMatch(/hors de portée/i);
   });
 });
 
@@ -113,7 +113,7 @@ describe('ZdE « jet puis pose » — LdV vers la case centre À LA POSE', () =>
     banc.setState({ pendingCast: { ...pc, result: { cast: true, roll: 11, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'lancé' } as never } });
     banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 16, y: 4 }); // centre masqué par le mur
-    expect(banc.getState().journal.join('\n')).toMatch(/pas de ligne de vue/i);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/pas de ligne de vue/i);
     expect(banc.getState().pendingCast?.zone?.placing).toBe(true); // la pose continue
     banc.getState().cliquerLaCase({ x: 16, y: 0 }); // brèche : e-vu dans le rayon → appliqué
     expect(banc.getState().pendingCast).toBeNull();

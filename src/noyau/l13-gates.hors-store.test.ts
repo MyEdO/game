@@ -81,7 +81,7 @@ describe('L13 — gates & redirections', () => {
     const suspended = doAttack(banc.getState, banc.setState, E, hero);
     expect(suspended).toBeUndefined();
     expect(hero.wounds.current).toBe(before);
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/Bénédiction de Protection/);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/Bénédiction de Protection/);
   });
 
   it('B. de Protection (héros attaquant) : le clic DIFFÈRE l’attaque derrière un Test de FM influençable', () => {
@@ -113,7 +113,7 @@ describe('L13 — gates & redirections', () => {
     banc.getState().jetValider('protection');
     expect(banc.getState().pendingWard).toBeNull();
     expect(banc.getState().pendingCascade).not.toBeNull(); // l’attaque a été relancée
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/surmonte sa honte/);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/surmonte sa honte/);
   });
 
   it('B. de Protection (héros) : Test raté → l’attaque n’a pas lieu, rien n’est consommé', () => {
@@ -131,7 +131,7 @@ describe('L13 — gates & redirections', () => {
     expect(banc.getState().pendingAttack).toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
     expect(banc.getState().battle!.acted).toBe(false); // l’Action n’est PAS consommée
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toMatch(/ne peut se résoudre/);
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toMatch(/ne peut se résoudre/);
   });
 
   it('Martyr : le prêtre encaisse les Dégâts bruts à 2×BE, la cible ne perd rien', () => {
@@ -164,7 +164,7 @@ describe('L13 — gates & redirections', () => {
       hit: true, woundsLost: 5, damage: 10, location: 'corps', defenderDefeated: false,
     };
     applyCast(banc.getState, banc.setState, hero, [E1], findSpellById('attaques-en-chaine')!, res, true);
-    const log = banc.getState().battle!.log.map((e) => e.text).join('\n');
+    const log = banc.getState().battle!.log.map((e) => e.entree.texte).join('\n');
     expect(E1.wounds.current).toBe(0);
     expect(log).toMatch(/rebondit sur/);
     expect(E2.wounds.current).toBeLessThan(e2Before); // le rebond a frappé

@@ -241,7 +241,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.setState({ journal: [] });
     pratiquer(banc.getState, party[0].id, 'revenus');
     expect(banc.getState().pendingActivity, 'Activité ouverte pendant le tirage').toBeNull();
-    expect(banc.getState().journal.join('\n')).toMatch(/ne peut rien entreprendre tant que les Événements/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/ne peut rien entreprendre tant que les Événements/);
     // Les autres portes d'Activité tiennent le même garde (le budget se dépense partout ailleurs aussi).
     banc.getState().commanderLObjet(party[0].id, 'dague');
     banc.getState().deposerALaBanque(party[0].id, 'planque', 100);
@@ -258,7 +258,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.setState({ journal: [] });
     pratiquer(banc.getState, party[0].id, 'revenus');
     expect(banc.getState().pendingActivity).toBeNull();
-    expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
   });
 
   it('SAUVEGARDE en plein tirage : la séquence est restaurée à SON étape, et la reprise dénoue', () => {
@@ -319,9 +319,9 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.getState().jetValider('cascade');
     banc.setState({ journal: [] });
     banc.getState().jetValider('cascade'); // étape des bourses : conséquence journalisée
-    const bourse = banc.getState().journal.join('\n');
+    const bourse = banc.getState().journal.map((e) => e.texte).join('\n');
     expect(bourse).toContain('La bourse de A perd 30 %');
     expect(bourse).toContain('La bourse de B perd 30 %');
-    expect(bourse, 'la marque d’un dé posé a fui sur une ligne sans dé').not.toContain('dé fixé');
+    expect(banc.getState().journal.some((e) => e.deFixe), 'la marque d’un dé posé a fui sur une ligne sans dé').toBe(false);
   });
 });

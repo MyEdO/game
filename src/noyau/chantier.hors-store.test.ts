@@ -98,8 +98,8 @@ describe('#3059 — chantier naval : un seul devis pour l’écran et le geste',
       partie.envoyer({ type: 'reparerLeNavire', args: [] });
       partie.envoyer({ type: 'carenerLeNavire', args: [] });
       const journal = partie.etat().journal;
-      expect(journal.some((l) => l.includes(devis.refusReparation!))).toBe(true);
-      expect(journal.some((l) => l.includes(devis.refusCarenage!))).toBe(true);
+      expect(journal.some((l) => l.texte.includes(devis.refusReparation!))).toBe(true);
+      expect(journal.some((l) => l.texte.includes(devis.refusCarenage!))).toBe(true);
       expect(partie.etat().vessel!.wounds!.current).toBe(B - 4);
     } finally {
       partie.fermer();
@@ -152,7 +152,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
       const refus = devisDAmelioration(partie.etat().vessel, trait.id, 1, vide, null, undefined).refus;
       expect(refus).toBe(t('sv.upgradeTooExpensive', { label: trait.label, gold }));
       partie.envoyer({ type: 'installerLAmelioration', args: [trait.id, 1] });
-      expect(partie.etat().journal.some((l) => l.includes(refus!))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes(refus!))).toBe(true);
       expect(partie.etat().vessel!.upgrades ?? []).toEqual([]);
     } finally {
       partie.fermer();
@@ -174,7 +174,7 @@ describe('#3059 — Amélioration et entrée au port : le geste applique le verd
       expect(refus).toBe(t('port.sansNavire'));
       partie.envoyer({ type: 'ouvrirLePort', args: [] });
       expect(partie.etat().port).toBeNull();
-      expect(partie.etat().journal.some((l) => l.includes(refus!))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes(refus!))).toBe(true);
     } finally {
       partie.fermer();
     }
@@ -197,7 +197,7 @@ describe('#3059 — siège invité : les dépenses du chantier sont à l’hôte
       expect(v.fouling!.level).toBe(2);
       expect(v.upgrades ?? []).toEqual([]);
       expect(v.crew ?? []).toEqual([]);
-      expect(partie.etat().journal.filter((l) => l === t('coop.hoteSeul')).length).toBe(4);
+      expect(partie.etat().journal.map((e) => e.texte).filter((l) => l === t('coop.hoteSeul')).length).toBe(4);
       expect(refusDeGesteSurLeGroupe(partie.etat())).toBe(t('groupe.hoteSeul'));
     } finally {
       partie.fermer();
@@ -222,7 +222,7 @@ describe('#3059 — siège invité : vente, bradage et Conseil disent le refus d
       expect(s.vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
       expect(s.pendingCouncil?.phase).toBe('choix');
-      expect(s.journal.filter((l) => l.includes(t('choix.refus.hoteSeul'))).length, 'vente, bradage et paie').toBe(3);
+      expect(s.journal.filter((l) => l.texte.includes(t('choix.refus.hoteSeul'))).length, 'vente, bradage et paie').toBe(3);
     } finally {
       partie.fermer();
     }
@@ -241,7 +241,7 @@ describe('#3059 — bradage au port : refusé sans « commerce » ni Demande pou
       partie.envoyer({ type: 'fenetreChoisir', args: ['port', 'jeter', 'lot-3'] });
       expect(partie.etat().vessel!.cargo).toEqual([lot]);
       expect(bourseDuGroupe(partie)).toBe(avant);
-      expect(partie.etat().journal.some((l) => l.includes('Bois : ce port ne rachète pas les cargaisons à brader (ni « commerce » ni Demande).'))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes('Bois : ce port ne rachète pas les cargaisons à brader (ni « commerce » ni Demande).'))).toBe(true);
     } finally {
       partie.fermer();
     }
@@ -254,7 +254,7 @@ describe('#3059 — escale : embauche et débarquement jugés au noyau', () => {
     try {
       partie.envoyer({ type: 'renvoyerLEquipage', args: ['timonier', 1] });
       expect(partie.etat().vessel!.crew ?? []).toEqual([]);
-      expect(partie.etat().journal.some((l) => l.includes('Aucun Timonier à bord.'))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes('Aucun Timonier à bord.'))).toBe(true);
     } finally {
       partie.fermer();
     }
@@ -265,7 +265,7 @@ describe('#3059 — escale : embauche et débarquement jugés au noyau', () => {
     try {
       partie.envoyer({ type: 'recruterLEquipage', args: ['role-inexistant', 1] });
       expect(partie.etat().vessel!.crew ?? []).toEqual([]);
-      expect(partie.etat().journal.some((l) => l.includes('role-inexistant : aucun barème de solde, rôle non recrutable.'))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes('role-inexistant : aucun barème de solde, rôle non recrutable.'))).toBe(true);
     } finally {
       partie.fermer();
     }
@@ -292,7 +292,7 @@ describe('#3059 — Activités en mer : valider la semaine est une décision d�
       expect(fenetres()).toEqual(avant);
       expect(s.pendingSeaActivities?.opportunityQueue, 'aucune Activité résolue').toBeUndefined();
       expect(s.party.map((h) => toBrass(bourseOf(h)))).toEqual([24000, 24000]); // 100 CO × 240 sous
-      expect(s.journal.some((l) => l.includes(t('validation.refus.hoteSeul')))).toBe(true);
+      expect(s.journal.some((l) => l.texte.includes(t('validation.refus.hoteSeul')))).toBe(true);
     } finally {
       partie.fermer();
     }
@@ -349,7 +349,7 @@ describe('#4052 — le Blindage ne s’installe que sur un chantier naval spéci
     try {
       const avant = bourseDuGroupe(partie);
       partie.envoyer({ type: 'installerLAmelioration', args: [traitId, 1] });
-      expect(partie.etat().journal.some((l) => l.includes(refus))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes(refus))).toBe(true);
       expect(partie.etat().vessel!.upgrades ?? []).toEqual([]);
       expect(bourseDuGroupe(partie)).toBe(avant);
     } finally {
@@ -397,7 +397,7 @@ describe('#4214 — un geste à quai porte sur le navire à quai au lieu du grou
     try {
       const avant = { bourse: bourseDuGroupe(partie), vessel: partie.etat().vessel };
       partie.envoyer({ type, args: [...args] } as never);
-      expect(partie.etat().journal.some((l) => l.includes(t('port.pasAQuai')))).toBe(true);
+      expect(partie.etat().journal.some((l) => l.texte.includes(t('port.pasAQuai')))).toBe(true);
       expect(bourseDuGroupe(partie)).toBe(avant.bourse);
       expect(partie.etat().vessel).toEqual(avant.vessel);
       expect(partie.etat().port).toBeNull();
@@ -411,7 +411,7 @@ describe('#4214 — un geste à quai porte sur le navire à quai au lieu du grou
     try {
       const avant = partie.etat().vessel;
       partie.envoyer({ type, args: [...args] } as never);
-      expect(partie.etat().journal.some((l) => l.includes(t('port.pasAQuai')))).toBe(false);
+      expect(partie.etat().journal.some((l) => l.texte.includes(t('port.pasAQuai')))).toBe(false);
       if (type === 'ouvrirLePort') expect(partie.etat().port?.placeId).toBe('D');
       else expect(partie.etat().vessel).not.toEqual(avant);
     } finally {
@@ -495,7 +495,7 @@ describe('#4239 — le groupe répare lui-même la coque au chantier (MDG 13 l.6
     expect(refus(get)).toBe(t('sv.sansReparateur'));
     get().reparerParLeGroupe();
     expect(get().pendingCascade).toBeNull();
-    expect(get().journal.some((l) => l.includes(t('sv.sansReparateur')))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes(t('sv.sansReparateur')))).toBe(true);
   });
 
   it('hors quai : refus du quai', () => {

@@ -156,7 +156,7 @@ describe('LDB 47 l.410 — le Dôme couvre contre les attaques MAGIQUES, et son 
     const demon = mk('ennemi', 'demon', { traits: [{ id: 'demoniaque', value: 11 }] as never });
     setBattle([mage, demon]);
     castMissile(mage, demon);
-    const lu = banc.getState().battle!.log.map((e) => e.text).join(' | ');
+    const lu = banc.getState().battle!.log.map((e) => e.entree.texte).join(' | ');
     expect(demon.wounds.current, 'aucun 1d10 n’atteint 11 : le coup porte').toBeLessThan(30);
     expect(lu, 'le dé raté se lit').toContain('n’ignore pas le coup');
     expect(lu, 'et le dénouement de la touche AUSSI — la reprise ne le perd pas').toMatch(/Blessure/);

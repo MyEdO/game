@@ -138,7 +138,7 @@ export function effectiveTarget(actor: Combatant | undefined, test: RollRequest[
 
 /**
  * LE LIBELLÉ DU CÔTÉ ATTAQUANT d'un Test opposé à jet FIGÉ (`meta.opposed`) — SOURCE UNIQUE des trois
- * surfaces qui le nomment : la rangée témoin et l'en-tête A→B de la fenêtre (`CascadeModal`), et la
+ * surfaces qui le nomment : la rangée témoin et l'en-tête A→B de la fenêtre, et la
  * ligne de JOURNAL (jet inline de combat, manche de séquence). Un ordre, une vérité :
  *  1. le libellé AUTHORÉ, quand la donnée en porte un qu'aucune structure n'exprime (« Force/
  *     Athlétisme », une alternative — `FlowTest.opposed.attackerLabel` ; le nom d'une manœuvre) ;
@@ -224,7 +224,7 @@ export function stepSansPeur(skill: PlayerText): PlayerText {
 /**
  * TITRE d'un jet — SOURCE UNIQUE (#295 Lot 0, Décision 1a ; réduit au fix de classe #352). C'est
  * `req.actionLabel` SEUL — jamais recomposé avec acteur/compétence/difficulté : ce détail vit DÉJÀ
- * dans `step.label` (`buildMonoStep`, via `composeRollLabel`), rendu en SOUS-TITRE par `CascadeModal`.
+ * dans `step.label` (`buildMonoStep`, via `composeRollLabel`), rendu en SOUS-TITRE par la fenêtre.
  * Un titre composé comme `step.label` produirait un DOUBLE RENDU exact (#352 — bug rapporté : la même
  * ligne « Héros — Action (Compétence Difficulté) » deux fois dans la modale).
  */
@@ -1686,7 +1686,6 @@ export function openSequence(get: Get, set: Set, opts: {
   icon?: IconId;
   purpose: PendingCascade['purpose'];
   steps: readonly BuiltCascadeStep[];
-  log?: string[];
   borne?: 'roundBoundary' | 'combatEndBoundary';
   travelHalt?: never;
   restNights?: never;
@@ -1697,7 +1696,7 @@ export function openSequence(get: Get, set: Set, opts: {
   const steps = [...sequence.steps];
   if (!steps.length) return undefined;
   if (borne === undefined && surfaceDesEtapes(get, steps) === 'I') {
-    return runCascadeImmediate(get, set, steps, { title: sequence.title, purpose: sequence.purpose, arret: 'tenues', ...(sequence.log ? { log: sequence.log } : {}) });
+    return runCascadeImmediate(get, set, steps, { title: sequence.title, purpose: sequence.purpose, arret: 'tenues' });
   }
   startCascade(get, set, { ...sequence, steps, ...(borne === undefined ? {} : { [borne]: true }) });
   return undefined;

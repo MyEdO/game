@@ -293,7 +293,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     banc.getState().jetValider('cascade');
     expect(200 - par('h1').wounds.current).toBe(3 * 4 + 8 - BE);
     expect(hasCondition(par('h1'), 'a-terre'), 'perte (17) > BE (3), LDB 15 l.84').toBe(true);
-    const lu = JSON.stringify(banc.getState().journal);
+    const lu = JSON.stringify(banc.getState().journal.map((e) => e.texte));
     expect(lu.indexOf('h1 reçoit 1 État À Terre.'), `la ligne d’À Terre suit la ligne de chute : ${lu}`).toBeGreaterThan(lu.indexOf('h1 — chute de 4 m : 17 Blessure(s).'));
     expect(lu.indexOf('h1 — chute de 4 m : 17 Blessure(s).'), lu).toBeGreaterThanOrEqual(0);
   });
@@ -312,7 +312,7 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     banc.setState({ party: banc.getState().party.filter((c) => c.id !== 'h1') } as never);
     banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id);
     banc.getState().jetValider('cascade');
-    const lu = [...banc.getState().journal, ...draineCascade(banc.getState)].join(' | ');
+    const lu = [...banc.getState().journal.map((e) => e.texte), ...draineCascade(banc.getState)].join(' | ');
     expect(lu, `la conséquence est morte en silence : ${lu}`).toMatch(/n’est plus en jeu/);
     expect(banc.getState().pendingCascade, 'la séquence se referme').toBeNull();
   });
@@ -334,8 +334,8 @@ describe('(iv) une chute de hauteur CONNUE ouvre AUSSI son dé (`chuteDe`)', () 
     banc.getState().jetImposerLeResultat('cascadeTirage', 8, st.id); // 3×4 + 8 − BE 3 = 17
     banc.getState().jetValider('cascade');
     const j = banc.getState().journal;
-    const iChute = j.findIndex((l) => l.includes('17 Blessure(s)'));
-    const iSoin = j.findIndex((l) => l.includes('27 Blessure(s)'));
+    const iChute = j.findIndex((l) => l.texte.includes('17 Blessure(s)'));
+    const iSoin = j.findIndex((l) => l.texte.includes('27 Blessure(s)'));
     expect(iChute, `la ligne de chute annonce SA perte (17) — journal : ${JSON.stringify(j)}`).toBeGreaterThanOrEqual(0);
     expect(iSoin, 'le soin a bien été rejoué').toBeGreaterThanOrEqual(0);
     expect(iSoin, 'la cause est dite AVANT la suite qu’elle a fait attendre').toBeGreaterThan(iChute);
@@ -650,8 +650,8 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     const s = banc.getState();
     expect(s.gameTime, 'la clôture d’horloge a joué').toBeGreaterThan(1000);
     expect(s.scheduledEffects, 'l’événement programmé a été consommé APRÈS').toHaveLength(0);
-    const iChute = s.journal.findIndex((l) => l.includes('17 Blessure(s)'));
-    const iEvt = s.journal.findIndex((l) => l.includes('événement programmé'));
+    const iChute = s.journal.findIndex((l) => l.texte.includes('17 Blessure(s)'));
+    const iEvt = s.journal.findIndex((l) => l.texte.includes('événement programmé'));
     expect(iChute).toBeGreaterThanOrEqual(0);
     expect(iEvt, 'la cause avant la clôture qu’elle a fait attendre').toBeGreaterThan(iChute);
   });
@@ -668,11 +668,11 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       partyPos: { x: 1, y: 1, z: 0 } as never, gameTime: 1000, party: [marinBlesse('h1')],
     });
     checkTriggers(banc.getState, banc.setState);
-    expect(banc.getState().journal.some((l) => l.includes('second déclencheur')), 'il attend le dé').toBe(false);
+    expect(banc.getState().journal.some((l) => l.texte.includes('second déclencheur')), 'il attend le dé').toBe(false);
     poseLeDe(8);
     const s = banc.getState();
     expect(s.party[0].wounds.current).toBe(190 - 17);
-    expect(s.journal.some((l) => l.includes('second déclencheur')), 'joué APRÈS').toBe(true);
+    expect(s.journal.some((l) => l.texte.includes('second déclencheur')), 'joué APRÈS').toBe(true);
     expect(s.flags['__trigger_t2'], 'son marquage `once` a suivi son Flow').toBe(true);
   });
 
@@ -701,9 +701,9 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     confierLaSuite(banc.setState, [{ verbe: 'reprendreFlow', flow: DIT('LOT-B') }]);
     poseLeDe(8);
     const j = banc.getState().journal;
-    expect(j.some((l) => l.includes('LOT-A')), 'la 1re suite confiée a joué').toBe(true);
-    expect(j.findIndex((l) => l.includes('LOT-B')), 'et la 2e APRÈS elle')
-      .toBeGreaterThan(j.findIndex((l) => l.includes('LOT-A')));
+    expect(j.some((l) => l.texte.includes('LOT-A')), 'la 1re suite confiée a joué').toBe(true);
+    expect(j.findIndex((l) => l.texte.includes('LOT-B')), 'et la 2e APRÈS elle')
+      .toBeGreaterThan(j.findIndex((l) => l.texte.includes('LOT-A')));
   });
 
   it('#2689 (8) — une clôture PUIS un Flow confiés au même porteur se jouent dans l’ordre de la confidence', () => {
@@ -715,8 +715,8 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
       flow: { kind: 'si', condition: { kind: 'flag', expr: cleActionJouee('e', 'a') }, alors: DIT('VU'), sinon: DIT('PAS-VU') } as Flow }]);
     poseLeDe(8);
     const j = banc.getState().journal;
-    expect(j.some((l) => l.includes('PAS-VU')), 'le Flow confié APRÈS la clôture la voit jouée').toBe(false);
-    expect(j.some((l) => l.includes('VU'))).toBe(true);
+    expect(j.some((l) => l.texte.includes('PAS-VU')), 'le Flow confié APRÈS la clôture la voit jouée').toBe(false);
+    expect(j.some((l) => l.texte.includes('VU'))).toBe(true);
   });
 
   it('#2689 (8b) — setTime tire deux effets programmés dont une chute : l’effet du même pas passe AVANT la suite du lot', () => {
@@ -728,9 +728,9 @@ describe('(x) CLÔTURE DU VERBE : ce que le site allait faire APRÈS son Flow at
     expect(banc.getState().pendingCascade, 'la chute programmée a ouvert son dé').not.toBeNull();
     poseLeDe(8);
     const j = banc.getState().journal;
-    const e2 = j.findIndex((l) => l.includes('E2-MEME-PAS'));
+    const e2 = j.findIndex((l) => l.texte.includes('E2-MEME-PAS'));
     expect(e2, 'l’effet du même pas d’horloge a joué').toBeGreaterThanOrEqual(0);
-    expect(j.findIndex((l) => l.includes('X-SUITE-DU-LOT')), 'la suite du lot APRÈS lui').toBeGreaterThan(e2);
+    expect(j.findIndex((l) => l.texte.includes('X-SUITE-DU-LOT')), 'la suite du lot APRÈS lui').toBeGreaterThan(e2);
   });
 
   it('#2689 (9) — un lot de butin qui rend la main confie son équipement, offert à la fenêtre APRÈS le dé', () => {
@@ -823,8 +823,8 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     ], cleDeFixture('terre'));
     expect(draineCascade(banc.getState)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
-    const iChute = j.findIndex((l) => l.includes('Blessure'));
-    const iP2 = j.findIndex((l) => l.includes('PERIL-2'));
+    const iChute = j.findIndex((l) => l.texte.includes('Blessure'));
+    const iP2 = j.findIndex((l) => l.texte.includes('PERIL-2'));
     expect(iChute, 'la chute a bien encaissé').toBeGreaterThanOrEqual(0);
     expect(iP2, 'le péril 2 a joué').toBeGreaterThanOrEqual(0);
     expect(iP2, 'et il joue APRÈS la conséquence du péril 1').toBeGreaterThan(iChute);
@@ -844,8 +844,8 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     const p = banc.getState().pendingCascade!;
     expect(p.participants.map((s) => s.kind)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
-    expect(j.findIndex((l) => l.includes('PERIL-2')))
-      .toBeGreaterThan(j.findIndex((l) => l.includes('Blessure')));
+    expect(j.findIndex((l) => l.texte.includes('PERIL-2')))
+      .toBeGreaterThan(j.findIndex((l) => l.texte.includes('Blessure')));
     expect(banc.getState().party[0].wounds.current, 'la chute a encaissé').toBeLessThan(190);
   });
 
@@ -868,8 +868,8 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
       buildAuthorPerilSteps(r, 'Ubersreik', cleDeFixture('terre')) as never, { title: 'Périls', purpose: 'sequence' })!;
     expect(joues.map((s) => s.kind)).toEqual(['perilDeScene', 'chuteDe', 'perilDeScene']);
     const j = banc.getState().journal;
-    expect(j.findIndex((l) => l.includes('PERIL-2')))
-      .toBeGreaterThan(j.findIndex((l) => l.includes('Blessure')));
+    expect(j.findIndex((l) => l.texte.includes('PERIL-2')))
+      .toBeGreaterThan(j.findIndex((l) => l.texte.includes('Blessure')));
     expect(banc.getState().party[0].wounds.current, 'la chute a encaissé').toBeLessThan(190);
     expect(banc.getState().pendingCascade, 'aucune cascade parallèle laissée pendante').toBeNull();
   });
@@ -886,7 +886,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     ] }];
     const etatFinal = (): { pv: number; fin: string | undefined } => ({
       pv: banc.getState().party[0].wounds.current,
-      fin: banc.getState().journal[banc.getState().journal.length - 1],
+      fin: banc.getState().journal.map((e) => e.texte).slice(-1)[0],
     });
 
     monte(deuxChutes, cleDeFixture('terre'));
@@ -973,7 +973,7 @@ describe('(xi) SÉQUENCE de cascade : un dé ouvert par un applier s’INSÈRE, 
     ], SEA_PERIL_INTERRUPT);
     const joues = draineCascade(banc.getState);
     expect(joues, 'le dé survit à la troncature ; le péril suivant, non').toEqual(['perilDeScene', 'chuteDe']);
-    expect(banc.getState().journal.some((l) => l.includes('PERIL-APRES-ARRET')), 'trajet arrêté').toBe(false);
+    expect(banc.getState().journal.some((l) => l.texte.includes('PERIL-APRES-ARRET')), 'trajet arrêté').toBe(false);
     expect(banc.getState().party[0].wounds.current, 'la chute a encaissé').toBeLessThan(190);
   });
 });
@@ -1120,9 +1120,9 @@ describe('(xii) ROUTE RÉELLE : la chute d’un Test RATÉ passe par la porte, d
     draineCascade(banc.getState); // les deux dés de chute sont LANCÉS, jamais posés
     // La chute est jouée EN COMBAT : sa ligne se lit au journal de COMBAT (`combatLog.journaliser`),
     // seule surface ouverte au joueur pendant un combat — pas au journal d'exploration.
-    const ligne = banc.getState().battle!.log.map((e) => e.text).find((l) => l.includes('Blessure'));
+    const ligne = banc.getState().battle!.log.map((e) => e.entree).find((l) => l.texte.includes('Blessure'));
     expect(ligne, 'la chute a bien été dite').toBeDefined();
-    expect(ligne, 'aucun dé de LA CHUTE n’a été saisi : la mention serait un mensonge').not.toContain('dé fixé');
+    expect(ligne!.deFixe, 'aucun dé de LA CHUTE n’a été saisi : la provenance serait un mensonge').toBeUndefined();
   });
 });
 
@@ -1251,7 +1251,7 @@ describe('(xvi) #2689 — la suite d’une pile de COMBAT repart avec SA cible e
     banc.setState({ party: banc.getState().party.filter((x) => x.id !== 'T') });
     poseLeDe(4);
     const j = banc.getState().journal;
-    expect(j.some((l) => l.includes(t('cascade.cibleDisparue', { label: 'sonde' }))), 'la perte se dit').toBe(true);
-    expect(j.some((l) => l.includes('MAILLON-SUIVANT')), 'le maillon suivant a joué').toBe(true);
+    expect(j.some((l) => l.texte.includes(t('cascade.cibleDisparue', { label: 'sonde' }))), 'la perte se dit').toBe(true);
+    expect(j.some((l) => l.texte.includes('MAILLON-SUIVANT')), 'le maillon suivant a joué').toBe(true);
   });
 });

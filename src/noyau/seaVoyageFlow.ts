@@ -38,7 +38,7 @@ import { preparerLEntretienQuotidien } from './horloge';
 import { jouerLEntretienDesRoundsEcoules } from './outOfCombatUpkeep';
 import { calculerLePasDExposition } from './expositionAMaladie';
 import { bandesDeContagion } from './contagion';
-import { arriverAuLieu } from './lieuFlow';
+import { arriverAuLieu, quitterLeLieu } from './lieuFlow';
 import {
   caleSecheDuLieu,
   estBateauFluvial,
@@ -1339,7 +1339,7 @@ export function startFastVoyage(
   if (!plan) return false;
   const days = dureeDeTraversee(plan.km, mDeCroisiere(navireDeLaCoque(plan.vehicle!)));
   const weeks = semainesCompletes(days); // « par semaine passée en mer » (l.28)
-  set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null });
+  set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null, ...quitterLeLieu });
   log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: nomDuLieu(get().worldMap, toPlaceId), days, km: plan.km })]);
   const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'equipage-voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'voyage/vague', purpose: 'test', steps: [st] }); return true; }
@@ -1451,9 +1451,8 @@ function jouerLesBandesDeSanteEnMer(
   steps: BuiltCascadeStep[],
   purpose: 'seaExposure' | 'seaHealth',
   title: string,
-  log?: string[],
 ): CascadeStep[] | undefined {
-  const sequence = { title, purpose, log };
+  const sequence = { title, purpose };
   return traverseeCommandee(get())
     ? runCascadeImmediate(get, set, steps, sequence)
     : openSequence(get, set, { ...sequence, icon: purpose === 'seaExposure' ? 'repos/froid' : 'medical/infection', steps });
@@ -1486,7 +1485,7 @@ function terminerLePasEnMer(get: Get, set: Set, borneDuPas: number, minutes: num
     const entretien = preparerLEntretienQuotidien(get, set, minutes);
     const steps = [...entretien.steps, ...(jourFranchi ? buildScurvySteps(get, set) : [])];
     if (steps.length
-      && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', t('sv.fastTitle'), entretien.log)) return false;
+      && !jouerLesBandesDeSanteEnMer(get, set, steps, 'seaHealth', t('sv.fastTitle'))) return false;
   } else if (plan && sea?.tempsEnMer && borneDuPas >= sea.tempsEnMer.fin && accosteAujourdhui(plan, sea)) {
     const avant = joursSansFraisABord(get, set);
     const entretien = preparerLEntretienQuotidien(get, set, minutes);
@@ -2208,7 +2207,7 @@ function openSteamSave(get: Get, set: Set, failDamage: Tirage, rng: RNG): void {
  *  s'était fermée SANS insérer la suite du jour, cf. son applier — `pendingSteamSave` suspendait). */
 export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void {
   const eng = get().party.find((h) => h.id === p.actorId);
-  // Le jet est DÉJÀ affiché par la rangée de `SteamSaveModal` (`p.roll`/`p.target`) — pas de re-print (#295 Lot 5).
+  // Le jet est DÉJÀ affiché par la rangée de sa fenêtre (`p.roll`/`p.target`) — pas de re-print (#295 Lot 5).
   if (eng && !p.success) {
     const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime }).lignes;
     set({ party: [...get().party] });
@@ -2478,7 +2477,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   ), revealPurpose('travelDay', false));
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
-  const lignes = drainPendingLog(get, set).map((e) => e.text);
+  const lignes = drainPendingLog(get, set).map((e) => e.entree.texte);
   if (lignes.length) { set({ party: [...get().party] }); tell(get, set, lignes); }
 }
 
@@ -3138,8 +3137,8 @@ export const TABLES = {
       if (!event) return {};
       // UNE ligne par événement, et c'est la CONSÉQUENCE de l'étape (titre + texte VERBATIM de
       // `sea-events.json`, AGENTS.md règle 5) : `commitStep` la journalise ET la garde en `outcome`, donc
-      // la rangée reste lisible dans la pile après validation (« on ne perd pas les conséquences »,
-      // `CascadeModal`). Même patron que la Météo d'Étape (`travelFlow`, applier `etape-meteo`), qui rend
+      // la rangée reste lisible dans la pile après validation (« on ne perd pas les conséquences »).
+      // Même patron que la Météo d'Étape (`travelFlow`, applier `etape-meteo`), qui rend
       // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la
       // RANGÉE (`table.result.lines`) et ne se re-verse pas au journal : une seule voix par étape.
       return { consequences: freeCons([resolveBoardEvent(get, set, event, tiree)]) };
@@ -3153,7 +3152,7 @@ export const TABLES = {
       const forcePace = Number(step.meta?.forcePace ?? 0);
       patchSea(get, set, { paceToday: won ? 'reussite' : 'echec' });
       noteManieurs(get, set, step);
-      // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+      // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
       const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];
       noteSeaLine(get, set, j);
       return { consequences: freeCons(j) };
@@ -3168,7 +3167,7 @@ export const TABLES = {
         if (!aLui || !row.result) continue;
         const { porteur } = aLui;
         if (porteur.regimeDeBord) porteur.regimeDeBord = { ...porteur.regimeDeBord, joursDeSoupe: 0 };
-        // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+        // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
         if (applyContraction(porteur, 'scorbut', row.result.success, battleRng()).length) {
           lignes.push({ text: t('sv.scurvyGot', { name: nomDuPorteurDeMaladies(porteur), soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
         }
@@ -3216,7 +3215,7 @@ export const TABLES = {
       const lignes: FreeConsLine[] = [];
       for (const row of step.participants ?? []) {
         const hero = actorIn(get(), row.id);
-        // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5).
+        // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
         // Succès sans effet (rien à ajouter) → aucune conséquence.
         if (!hero || !row.result || row.result.success) continue;
         addCondition(hero, 'extenue');

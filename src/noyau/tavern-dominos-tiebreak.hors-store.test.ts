@@ -110,7 +110,7 @@ describe('Les dominos — NADJ 16 l.105', () => {
   it('le départage se DIT : le résultat et le journal nomment le dé d’unités de chacun', () => {
     expect(issue('units-lowest', { roll: 22, nue: 30, sl: 2 }, { roll: 27, nue: 60, sl: 2 })).toBe('joueur');
     expect(get().tavernGames?.result?.detail).toBe('DR 2 contre 2 — À DR égal, dé d’unités 2 contre 7 : le plus bas l’emporte');
-    expect(get().journal.some((l) => l.includes('dé d’unités 2 contre 7')), 'le journal le dit').toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('dé d’unités 2 contre 7')), 'le journal le dit').toBe(true);
   });
 
   it('à DR ÉGAL et unités égales, la valeur ne départage pas : la manche reste nulle', () => {

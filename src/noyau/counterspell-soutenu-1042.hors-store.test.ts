@@ -217,7 +217,7 @@ describe('#1042/#1059 — Contre-sort : phase de déclaration puis Test Soutenu 
     declare(h2.id, 'passer');
     expect(banc.getState().pendingCounterspell, 'fenêtre close d’office : plus personne ne lance').toBeNull();
     for (const h of [h1, h2]) expect(live(h.id).dispelledThisRound, 'passer ne coûte rien').toBeFalsy();
-    expect(banc.getState().battle!.log.some((e) => e.text.includes('Contre-sort de')),
+    expect(banc.getState().battle!.log.some((e) => e.entree.texte.includes('Contre-sort de')),
       'aucun Contre-sort chanté : la fenêtre ne portait aucun repli IA').toBe(false);
   });
 

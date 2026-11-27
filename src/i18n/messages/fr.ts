@@ -1102,8 +1102,9 @@ export const fr = {
   'ecran.editeur.lieu.etablissement': '{nom} — {type}',
   'ecran.editeur.lieu.etablissement.retirer': 'Retirer {nom}',
   'ecran.editeur.lieu.etablissement.ajouter': 'Ajouter un établissement',
-  'ecran.editeur.lieu.offre.retirer': 'Ne plus vendre : {offre}',
-  'ecran.editeur.lieu.offre.ajouter': 'Vendre une offre',
+  'ecran.editeur.offre.retirer': 'Ne plus vendre : {offre}',
+  'ecran.editeur.offre.ajouter': 'Vendre une offre',
+  'ecran.editeur.offre.retirerDeclarees': 'Retirer les offres déclarées',
   'ecran.editeur.lieu.etablissement.vise': 'Le point d’intérêt « {poi} » mène à cet établissement : retirez-le ou changez sa cible d’abord.',
   'ecran.editeur.scenes': '{n} scène(s) au projet',
   'ecran.editeur.scenes.ajouter': 'Nouvelle scène',
@@ -4350,8 +4351,11 @@ export const fr = {
   // ── #1318 V8c₅ — SOCLE DU JET (`noyau/rollFlowFactory.ts`) : relance offerte (LDB 12/41) et dé fixé.
   'roll.freeReroll': '{name} relance sans dépenser de Chance ({src}).',
   'roll.blessingFallback': 'Bénédiction de Chance',
-  'roll.dieFixedBy': '{name} : dé fixé à {n}.',
-  'roll.dieFixed': 'Dé fixé à {n}.',
+  'roll.dieFixedBy': '{name} : d100 à {n}.',
+  'roll.dieFixed': 'd100 à {n}.',
+
+  // ── #4574 — JOURNAL rédigé par l'hôte (`hote/journal.ts`) : provenance d'une entrée (#939).
+  'journal.deFixe': '(dé fixé)',
 
   // ── #1318 V8c₅ — MANŒUVRE DE NAVIRE ratée (`noyau/shipManeuver.ts`, MDG 13).
   'shipManv.failLine': '{helmsman} rate la manœuvre de {ship} (DR {dr}) — le cap tient.',

@@ -50,7 +50,7 @@ describe('la fenêtre de Corruption prévoit le gain que sa validation applique 
   function valideEtCompare(h: Combatant, prevu: FaitDeCorruption): void {
     const avant = h.corruption ?? 0;
     get().jetValider('corruption');
-    expect(get().journal, 'la ligne du fait prévu est celle que l’application journalise').toContain(texteDuFait(prevu, 'Sigmund'));
+    expect(get().journal.map((e) => e.texte), 'la ligne du fait prévu est celle que l’application journalise').toContain(texteDuFait(prevu, 'Sigmund'));
     expect(h.corruption ?? 0).toBe('total' in prevu ? prevu.total : avant);
   }
 
@@ -82,7 +82,7 @@ describe('la fenêtre de Corruption prévoit le gain que sa validation applique 
     expect(consequences()).toEqual([]);
     get().jetValider('corruption');
     expect(sansRegles.corruption ?? 0).toBe(0);
-    expect(get().journal.filter((l) => l.includes('Corruption'))).toEqual([]);
+    expect(get().journal.filter((l) => l.texte.includes('Corruption'))).toEqual([]);
   });
 });
 

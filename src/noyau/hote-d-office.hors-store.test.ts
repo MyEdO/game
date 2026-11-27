@@ -89,7 +89,7 @@ describe('Étape hôte hors bataille : tenue, elle parque ; non tenue, ses verbe
     banc.getState().ouvrirLeTestEtendu({ actorId: c.id, label: 'Enfoncer la porte', skillLabel: 'Force', characteristic: 'force', target: 70, drCible: 100, tentativesMax: 3 });
     expect(banc.getState().pendingExtendedTest, 'trois Rounds joués : la borne d’essais clôt le Test').toBeNull();
     expect(banc.getState().pendingCascade).toBeNull();
-    expect(banc.getState().journal.some((l) => l.startsWith('Enfoncer la porte : échoué'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.startsWith('Enfoncer la porte : échoué'))).toBe(true);
   });
 
   for (const m of MEMBRES) {

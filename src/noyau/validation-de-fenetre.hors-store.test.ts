@@ -41,9 +41,9 @@ describe('fenetreValider', () => {
   it('une fenêtre qui ne se valide pas, ou qui n’est pas ouverte, se refuse et le dit', () => {
     const banc = ouvrirLeBanc();
     banc.getState().fenetreValider('cascade' as never);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.inconnue'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('validation.refus.inconnue'));
     banc.getState().fenetreValider('finDeChapitre');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.fermee'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('validation.refus.fermee'));
     expect(intentAllowedFor({ ...banc.getState(), net: { ...banc.getState().net, mode: 'hote' } }, 0, 'fenetreValider', ['finDeChapitre']), 'fenêtre fermée : aucun siège').toBe(false);
   });
 
@@ -52,7 +52,7 @@ describe('fenetreValider', () => {
     banc.setState({ ...ouverte, net: { ...banc.getState().net, mode: 'invite' } } as never);
     const avant = banc.getState();
     banc.getState().fenetreValider(fenetre);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.hoteSeul'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('validation.refus.hoteSeul'));
     for (const cle of Object.keys(ouverte)) expect((banc.getState() as unknown as Record<string, unknown>)[cle], 'la fenêtre reste ouverte').toBe((avant as unknown as Record<string, unknown>)[cle]);
 
     banc.setState({ net: { ...banc.getState().net, mode: 'hote' } });
@@ -85,7 +85,7 @@ describe('la fenêtre à quorum : chaque siège requis se dit prêt, le dernier 
     expect(banc.getState().pendingVictory?.readyBySeat, 'l’hôte forçait la fermeture sans le quorum').toEqual({ 0: true });
     expect(fermetureDeLaSortie(banc.getState(), 'victoire')).toBe('quorumAttendu');
     banc.getState().fenetreFermer('victoire');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('jet.ferme.quorumAttendu'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('jet.ferme.quorumAttendu'));
     expect(intentAllowedFor(banc.getState(), 1, 'fenetreFermer', ['victoire'])).toBe(true);
     expect(appliquerLIntentionDUnSiege(banc.getState, 1, 'fenetreFermer', ['victoire'])).toBe('appliquee');
     expect(banc.getState().pendingVictory, 'quorum atteint : la victoire se ferme').toBeNull();

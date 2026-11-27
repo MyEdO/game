@@ -19,6 +19,7 @@ import type { MassBattleState } from './massBattleFlow';
 import type { SceneMutation } from './monde/sceneInstance';
 import type { ClueState } from './monde/clues';
 import type { CombatEvent, ActorAim } from './combatLog';
+import type { EntreeDuJournal } from '../engine/journal';
 import { campaignStart, dayIndex } from '../engine/clock';
 import type { NavalPossessionState, Possession } from '../engine/possession';
 import type { MerchantState, MerchantStocks } from './merchantFlow';
@@ -527,7 +528,7 @@ export interface EtatDeJeu {
   /** Journal d'événements RÉCENTS (fenêtre glissante de 40, `ecrireAuJournal`) — CAMPAGNE-scopé : survit aux
    *  transitions de scène (comme `clues`/`explored`), vidé en nouvelle partie (`lancerLaScene`). Verbatim
    *  des dialogues (non borné à 40) : `dialogueHistory`, slot séparé (ne pas greffer ici). */
-  journal: string[];
+  journal: EntreeDuJournal[];
   /** Lignes écrites au `journal` depuis l'ouverture de la partie : clé réservée, augmentée par `ecrireAuJournal`
    *  (`journal.ts`) et par `lancerLaScene` (`entreeEnScene.ts`), jamais remise. Un invité compte par elle ce qu'un
    *  instantané lui apporte (`Partie.recevoir`). #3009 */
@@ -775,6 +776,9 @@ export interface EtatDeJeu {
   lieu: string | null;
   /** L'écran du lieu tient la main (`lieuEnVue`) ; « Explorer » le ferme sur la scène du lieu. */
   lieuOuvert: boolean;
+  /** Minute de jeu (`gameTime`) depuis laquelle le groupe se tient dans la scène courante ; `null` en route ou entré
+   *  en scène en plein voyage. Lue par `runDailyUpkeep` (`veilleursDeLaScene`). LDB 09 l.265 */
+  enSceneDepuis: number | null;
   /** Voyage en cours/interrompu (progression km — « Reprendre le voyage » après une embuscade). */
   travelPlan: import('./travelFlow').TravelPlan | null;
   /** Billet payé dont il reste des tronçons (EDO 01 l.142) — consommé au départ de chacun, sans débit. */
@@ -852,6 +856,7 @@ export function etatInitialDuJeu(): EtatDeJeu {
     worldMapOpen: false,
     lieu: null,
     lieuOuvert: false,
+    enSceneDepuis: null,
     travelPlan: null,
     billetEnMain: null,
     marchandagesDeBillet: {},

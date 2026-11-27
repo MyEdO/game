@@ -60,7 +60,7 @@ function ecouterLesTestsDInitiative(): { vus: string[]; fin: () => void } {
   const noter = (l: string) => { if (/Initiative/.test(l) && !vus.includes(l)) vus.push(l); };
   const fin = banc.subscribe((s) => {
     for (const x of s.pendingLogQueue ?? []) noter(x.line);
-    for (const e of s.battle?.log ?? []) noter(e.text);
+    for (const e of s.battle?.log ?? []) noter(e.entree.texte);
   });
   return { vus, fin };
 }

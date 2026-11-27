@@ -22,6 +22,7 @@ import { tableTotale } from '../../../lib/tableTotale';
 import { estIdDEtiquetteDObjet } from '../../../lib/entityId';
 import { z } from 'zod';
 import { OBJETS_DU_PROJET, ouReserve, qualiteDeReposSchema, rectDeCasesSchema, roleAmbiantSchema } from '../grammaire/valeurs';
+import { reposDAubergeSchema } from '../grammaire/hebergement';
 import {
   amateurSchema,
   cell2Schema,
@@ -366,7 +367,7 @@ const avecSesFautes = <S extends z.ZodType<EntiteAJuger>>(branche: S): S =>
  *  (`CLES_DU_CORPS`, #1882, #2968). Le raffinement d'une branche dit ses fautes CROSS-CHAMP (`refusDeLEntite`). */
 export const sceneEntitySchema = z.discriminatedUnion('kind', [
   brancheDEntite('heroStart', {}, {}),
-  avecSesFautes(brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } } })),
+  avecSesFautes(brancheDEntite('personnage', { creature: ref('creature').optional(), vehicule: ref('vehicle').optional(), engin: ref('engin').optional(), veilleLesMalades: z.literal(true).optional() }, { creature: { label: "créature", texte: { regime: 'technique' } }, vehicule: { label: "coque", texte: { regime: 'technique' } }, engin: { label: "engin de siège", texte: { regime: 'technique' } }, veilleLesMalades: { label: "veille les malades" } })),
   avecSesFautes(brancheDuDecor),
 ]);
 
@@ -973,8 +974,8 @@ export const sceneSchema = nommerChamps(ouvrirPortees(affinerAvecCatalogues(z.st
   /** NORD de la carte — rotation horaire en degrés `[0,360[` du nord réel (posé par `setNorthDeg`). */
   northDeg: z.number().optional(),
   rest: nommerChamps(
-    z.strictObject({ ...restPlacesSchema.shape, quality: qualiteDeReposSchema.optional() }),
-    { ...metaDesChamps(restPlacesSchema, { exigees: true }), quality: { label: "qualité" } },
+    z.strictObject({ ...restPlacesSchema.shape, ...reposDAubergeSchema.shape }),
+    { ...metaDesChamps(restPlacesSchema, { exigees: true }), ...metaDesChamps(reposDAubergeSchema, { exigees: true }) },
   ).optional(),
   /** Offre de repos PAR ZONE — prioritaire sur `rest` là où le groupe se tient. */
   restZones: z

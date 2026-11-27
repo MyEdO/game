@@ -64,7 +64,7 @@ describe('Rage → Haine (LDB 85 l.282, branche « minimum 1 »)', () => {
     expect(haines[0].active).toBe(true);
     expect(haines[0].cible).toBe(ciblePsy.groupe(engages!.id));
     expect(psychDRAdjust(E, H)).toBe(1);
-    expect(banc.getState().battle!.log.some((l) => l.text.includes('Haine'))).toBe(true);
+    expect(banc.getState().battle!.log.some((l) => l.entree.texte.includes('Haine'))).toBe(true);
   });
 
   it('la Haine vise tout adversaire Engagé tant qu’elle dure, et lui seul (Q12 B)', () => {

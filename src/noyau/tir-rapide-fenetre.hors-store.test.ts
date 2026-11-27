@@ -26,7 +26,7 @@ const g = () => banc.getState();
 const de = (id: string): Combatant => g().battle!.combatants.find((c) => c.id === id)!;
 /** Les Tirs rapides déclenchés par `id`, comptés à leur marqueur de journal. */
 /** Les marqueurs de Tir rapide de `id`, nommé comme le groupe le voit (#4017). */
-const tirsDe = (id: string) => g().battle!.log.filter((l) => l.actorId === id && l.text === t('cf.tirRapide', { name: nomEnVue(g(), id)! })).length;
+const tirsDe = (id: string) => g().battle!.log.filter((l) => l.actorId === id && l.entree.texte === t('cf.tirRapide', { name: nomEnVue(g(), id)! })).length;
 const etape = () => { const c = g().pendingCascade; return c?.participants[c.cursor]; };
 
 /** Deux héros surfacés, deux tireurs de l'IA à Bout Portant (LDB 14 l.62 : la défense est permise).

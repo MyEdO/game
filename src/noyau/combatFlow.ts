@@ -1097,7 +1097,7 @@ export function nuitDispenseeParPleinAir(get: Get<Jeu>): boolean {
 
 /** Sévérité d'Exposition du lieu où le groupe passe la nuit : la météo du JOUR de voyage
  *  (`activeDayWeather`, convertie par `stageWeatherExposure`) quand elle existe, sinon la météo
- *  authored de la scène. SOURCE unique de l'Exposition de nuit (`buildNightCascade`, `RestBody`). */
+ *  authored de la scène. SOURCE unique de l'Exposition de nuit (`buildNightCascade`). */
 export function activeExposureSeverity(get: Get<Jeu>): ExposureSeverity {
   if (nuitDispenseeParPleinAir(get)) return 'clement';
   const w = activeDayWeather(get);
@@ -1596,8 +1596,8 @@ export function ligneDeDefense(
 }
 
 /** Pré-jet d'INCANTATION pour le panneau de jet (même rôle que previewAttack/previewDefense) : valeur
- *  du Test = compétence nue + Avantage (LDB 46 l.123-125) / Contrecoup actif en chips = cible. La CastModal
- *  ne fait que poser cette ligne `pending` dans le RollPanel partagé (pas de calcul inline). */
+ *  du Test = compétence nue + Avantage (LDB 46 l.123-125) / Contrecoup actif en chips = cible. La fenêtre
+ *  d'incantation ne fait que poser cette ligne `pending` (pas de calcul inline). */
 export function previewCast(
   caster: Combatant,
   spell: NonNullable<ReturnType<typeof findSpell>>,
@@ -1852,7 +1852,7 @@ export function startDisengage(get: Get, set: SetFn, mover: Combatant): void {
       result: null,
     },
   });
-  // « Une situation = une modale » : le Désengagement est hôté dans la cascade (rendu par CascadeModal
+  // « Une situation = une modale » : le Désengagement est hôté dans la cascade (rendu par sa fenêtre
   // via l'étape `jet:'desengagement'`). `pendingDisengage` reste le porteur de données/phases ; les
   // résolveurs ferment LES DEUX. La ligne d'attaque figée du foe et les portraits restent inchangés.
   const step = hostStep(get, { id: 'disengage', kind: 'desengagement', jet: 'desengagement', actorId: mover.id });
@@ -2644,7 +2644,7 @@ export function applyStructureCriticalToTarget(
   if (outcome.note) log.push(`  ↳ ${outcome.note}`); // effets verbatim sur les personnes (débris/Tests), non simulés
   if (target.kind === 'heros' || ctx.attackerKind === 'heros') {
     // Étape à TABLE de la séquence : `table` DÉCLARE le tirage (id de ligne stable, dé naturel/effectif),
-    // `reveal` porte le rendu détaillé partagé (`CriticalBody` : qui inflige → arme → victime).
+    // `reveal` porte le rendu détaillé partagé (qui inflige → arme → victime).
     const entry: RevealEntry = {
       kind: 'critique', title: tr('step.critiqueStructure'), dice: rolled.roll, lines: rolled.lines,
       subjectId: target.id, actorId: ctx.attackerId, weapon: ctx.weapon, details: [],
@@ -3255,7 +3255,7 @@ function delierLeHorsDeCombat(get: Get, cible: Combatant): void {
 function journaliserLeCoup(get: Get, set: SetFn, battle: BattleState | null, lignes: CombatEvent[], acted: boolean): void {
   if (battle) set({ battle: { ...battle, acted, action: null, log: [...battle.log, ...lignes] } });
   else {
-    journaliser(get, set, lignes.map((l) => l.text));
+    journaliser(get, set, lignes.map((l) => l.entree.texte));
     set(touchActors(get()));
   }
 }
@@ -5916,7 +5916,7 @@ export function counterspellSoutienFor(s: Jeu, pcs: PendingCounterspell | null |
 
 /** Cette rangée LANCE-t-elle le dé de la fenêtre ? — déclarée `solo`, ou MENEUR du groupe uni (le
  *  Soutenu n'a qu'un jet, `LDB 12 l.189`). `passer` ne lance jamais. Prédicat UNIQUE, lu par la garde
- *  du jet (`counterspellEngage`) ET par l'affordance de la rangée (`CastModal`). */
+ *  du jet (`counterspellEngage`) ET par l'affordance de la rangée. */
 export function counterspellRolls(s: Jeu, pcs: PendingCounterspell | null | undefined, part: CounterParticipant): boolean {
   if (part.declared === 'solo') return true;
   if (part.declared !== 'soutenu') return false;
@@ -6044,7 +6044,7 @@ export function shareCastStep(get: Get, set: SetFn, playedIds: string[], casterI
  *  Int) : chaque cible (vivante) oppose son Test à l'incantation FIGÉE, DANS la modale de cast.
  *  Cible dont un siège tient le jet (`jetSurfaced`) = rangée INTERACTIVE ; toute autre = rangée TÉMOIN
  *  (jet auto-roulé ici). MÊME table de vérité que le gate d'affichage de la rangée
- *  (`influencesLocally`, CastModal) : une rangée marquée interactive que personne ne peut jouer ne
+ *  (`influencesLocally`) : une rangée marquée interactive que personne ne peut jouer ne
  *  serait NI cliquable NI auto-roulée, et `jetValider('opposition')` refuserait d'avancer. Renvoie false (→ le
  *  Sort s'applique normalement) si le Sort n'oppose pas ou s'il n'y a aucune cible. GARDE `pendingCast`. */
 export function openCastOpposition(get: Get, set: SetFn, pc: PendingCast, targets: Combatant[]): boolean {
@@ -6184,7 +6184,7 @@ export function castZoneSpell(get: Get, set: SetFn, caster: Combatant, label: st
  *  ferment LES DEUX au point terminal. La cascade reste OUVERTE pour TOUTE la situation. Lanceur
  *  ENNEMI → `groupOwner:true` (l'arbitre `cascade` met l'owner à '*' : moment partagé + Contre-sort
  *  multi en coop) ; HÉROS → owner dérivé de `actorId` (le lanceur). Hôte aussi l'incantation HORS
- *  COMBAT (couture D) : `CascadeModal` lit `battle?.combatants ?? party`, l'owner = le héros lanceur,
+ *  COMBAT (couture D) : la fenêtre lit `battle?.combatants ?? party`, l'owner = le héros lanceur,
  *  et les résolveurs de cast ferment le pending directement (jamais la sortie du bilan → pas de reprise IA).
  *
  *  RENVOIE si la fenêtre s'est ouverte : le mint refuse l'étape sans `pendingCast`, et l'appelant reste
@@ -6620,7 +6620,8 @@ export function counterspellCandidates(
  *  échoue ; sinon l'incantation se re-détermine au DR NET (Projectile compris) et la Surincantation
  *  de l'IA est re-planifiée. SOURCE UNIQUE de l'application — partagée par le Contre-sort INLINE
  *  (aucun contre-lanceur possédé, `applyCounterspell`) et la FENÊTRE (chaque rangée a son jet déjà influencé,
- *  `jetValider('contreSort')`). N'effectue PAS le jet (déjà fait) ni la consommation d'essai (à l'appelant). */
+ *  `jetValider('contreSort')`). Écrit l'UNIQUE entrée du Contre-sort au `battle.log`. N'effectue PAS le jet
+ *  (déjà fait) ni la consommation d'essai (à l'appelant). */
 export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatant, out: CounterspellOutcome): boolean {
   const pc = get().pendingCast;
   if (!pc?.result || pc.result.dispelled) return false;
@@ -6634,17 +6635,16 @@ export function applyCounterspellOutcome(get: Get, set: SetFn, counter: Combatan
   const unplacedZone = !!pc.zone && !pc.zone.center;
   let next: typeof pc.result;
   if (out.dispelled) {
-    next = { ...res, cast: false, dispelled: true, hit: false, damage: undefined, woundsLost: undefined, defenderDefeated: false, log: `${out.log}` };
+    next = { ...res, cast: false, dispelled: true, hit: false, damage: undefined, woundsLost: undefined, defenderDefeated: false };
   } else {
     next = rederiveCastSL(caster, target, spell, res, pc.missile && !unplacedZone, out.casterNetSL - res.sl);
-    next.log = `${out.log} ${next.log}`;
   }
   next = { ...next, slPropre: res.slPropre ?? res.sl };
   // Surincantation : le surplus a changé — re-plan IA (lanceur ennemi), remise à zéro sinon.
   const oc = surincantationDuMoteur(get(), pc, caster, spell, next, pc.critChoice);
   set({ pendingCast: { ...pc, result: next, ...overcastReset(pc, sceneMetresPerTile(get().scene)), ...oc } });
   const b = get().battle;
-  if (b) set({ battle: { ...b, log: [...b.log, ev('information', out.log, counter.id, caster.id)] } });
+  if (b) set({ battle: { ...b, log: [...b.log, ev('sort', out.log, counter.id, caster.id)] } });
   return true;
 }
 
@@ -6770,7 +6770,7 @@ function runCastFlow(get: Get, set: SetFn, target: Combatant, caster: Combatant,
   const certaines = certainFlowOps(flow);
   const sansObjet = certaines ? reussiteSansObjet(target, certaines, withSpell) : null;
   runCombatFlow({ get, set, target, caster, label: withSpell.label ?? nomDe(caster), opsCtx: withSpell }, flow);
-  return [...(sansObjet ? [sansObjet] : []), ...drainPendingLog(get, set).map((e) => e.text)];
+  return [...(sansObjet ? [sansObjet] : []), ...drainPendingLog(get, set).map((e) => e.entree.texte)];
 }
 
 /** L'ÉTAT DE FENÊTRE d'une touche de Projectile (#1508) — ce que l'appelant doit savoir pour décider
@@ -7068,7 +7068,7 @@ export function applyCast(
         : { ...full, log: tr('cf.puissanceTotaleCritique', { name: nomDe(caster), sort: spell.label }) };
     }
   }
-  const logLines: string[] = res.touche ? [] : [res.log];
+  const logLines: string[] = res.touche || res.dispelled ? [] : [res.log];
   if (res.cast && !ancre) logLines.push(tr('cf.zoneSansCible', { spell: spell.label })); // LDB 47 l.28
   // LDB 46 l.111 ; LDB 46 l.113
   const componentUsed = isSort && useSpellComponent(caster, spell.id, logLines);
@@ -7735,7 +7735,7 @@ function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Comb
     if (c.dead) continue;
     for (const a of prendreAmputationsDifferees(c)) routeTriggeredTest(get, set, c, c, a.flow, { idNeuf: get().forgerUnId, rng: battleRng(), label: a.label });
   }
-  inlineLines.push(...drainPendingLog(get, set).map((e) => e.text));
+  inlineLines.push(...drainPendingLog(get, set).map((e) => e.entree.texte));
   for (const c of combattants) {
     if (!followsCharacterRules(c) || c.dead) continue; // #143 : RAW « Personnage » (LDB 18 l.5, LDB 20 l.14/206) — les créatures génériques et les défaits n'ont pas de jet de maladie/Corruption de fin de combat
     const decided = decideCombatEndHeroTests(c, corr?.level ?? null);
@@ -8286,8 +8286,8 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
 
 /** Fin des TÉLÉGRAPHES d'intention (`actorAim`, `actorMove`, `actorAoe`) — chacun appartient au GESTE de son
  *  AUTEUR : posé quand l'IA déclare son geste, effacé au SEAM où naît la ligne de journal de ce geste
- *  (`applyAttackResult`, entonnoir UNIQUE de résolution d'attaque — c'est cette ligne que le bandeau prend ensuite,
- *  `ui/CombatBanner.tsx`), à l'exécution du geste ou à son AVORTEMENT, et par son seul auteur (#1143, #3058). Tant
+ *  (`applyAttackResult`, entonnoir UNIQUE de résolution d'attaque — c'est cette ligne que le bandeau prend ensuite),
+ *  à l'exécution du geste ou à son AVORTEMENT, et par son seul auteur (#1143, #3058). Tant
  *  qu'une fenêtre suspend le tour sans rien résoudre, il TIENT. Idempotents. */
 function clearActorAim(get: Get, set: SetFn, auteurId: string): void {
   if (get().actorAim?.fromId === auteurId) set({ actorAim: null });
@@ -9281,7 +9281,7 @@ function psychDueFor(get: Get, c: Combatant, t: PsychDue, round: number): Combat
   const skillLabel = refLabel('skills', skill);
   // Peur de combat = Test ÉTENDU (LDB 21 l.25) : le cumul `prevDR`→`indice` voyage SUR LA RANGÉE
   // (`extendedDrTarget`/`extendedDrDone` de `BatchParticipant`) — SOURCE UNIQUE de la présentation
-  // « barre de DR cumulé » avec la cartographie de voyage (`travelPostes.ts`) : `CascadeModal` ne
+  // « barre de DR cumulé » avec la cartographie de voyage (`travelPostes.ts`) : la fenêtre ne
   // recalcule rien depuis `psychologieDeCombat` (aucune arithmétique dupliquée, #329 marque 9).
   const extended = psychResolution(t.kind).mode === 'etendu';
   return {
@@ -9526,7 +9526,7 @@ function aiSelectLoadout(scene: Scene | null, set: SetFn, enemy: Combatant, batt
 
 // ── IA DE COQUE (couche MER, navire-unité — MDG 13-14) ─────────────────────────────────────────────
 /** Cap le plus court (crans signés d'octant) de `from` vers `to`, BORNÉ à ±2 (90°/manœuvre — RAW-sober : un navire
- *  ne pivote pas de 180° en un seul Test ; parité avec les options de `ShipManeuverModal`). PUR. */
+ *  ne pivote pas de 180° en un seul Test). PUR. */
 function shipTurnToward(from: Dir8, to: Dir8): number {
   const d = (DIR8_ORDER.indexOf(to) - DIR8_ORDER.indexOf(from) + 8) % 8; // 0..7
   const signed = d <= 4 ? d : d - 8; // −3..4

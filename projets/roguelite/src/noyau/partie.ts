@@ -2,6 +2,7 @@
  * La partie du noyau ouverte par l'hôte en cadence automatique, la pompe de ses jetons programmés, et la fenêtre qui
  * tient la main : son drive, à défaut sa validation.
  */
+import { redigerLEntree } from '../../../../src/hote/journal';
 import { ouvrirLeLancement, type PartieOuverte as PartieDuLancement } from '../../../../src/hote/partie';
 import {
   fenetreDuJeu,
@@ -20,7 +21,7 @@ type Programme = ReturnType<PartieDuLancement['jetons']['programmes']>[number];
 
 /** Les lignes qu'un résultat écrit au journal, celles du journal et le texte des évènements. */
 export const lignesDuJournal = (r: Resultat): string[] =>
-  r.journal.flatMap((l) => { const t = l.de === 'journal' ? l.texte : l.evenement.text; return t ? [t] : []; });
+  r.journal.flatMap((l) => { const t = redigerLEntree(l.de === 'journal' ? l.entree : l.evenement.entree); return t ? [t] : []; });
 
 /** Une partie ouverte par `ouvrirEnAuto`. `envoyer` joue une intention et en file les jetons ; `pomper` reprend les
  *  jetons en file et joue la fenêtre qui tient la main jusqu'à ce qu'il n'y ait plus rien à jouer. */

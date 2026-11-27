@@ -23,7 +23,7 @@ import { t } from '../i18n';
 
 let banc: Banc;
 const g = () => banc.getState();
-const dernier = () => g().journal[g().journal.length - 1];
+const dernier = () => g().journal[g().journal.length - 1]?.texte;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const objet = (over: Partial<ItemInstance>): ItemInstance => ({ uid: 'x', label: 'X', kind: 'misc', qualities: [], enc: 0, equipped: false, ...over } as ItemInstance);

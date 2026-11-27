@@ -169,7 +169,10 @@ import {
   type FormeDEtatKind,
   planDuLieuOuvert,
   nomDuPoi,
+  offresAuChoix,
+  offresDeLaScene,
   offresDeLEtablissement,
+  type ChangementDOffre,
   placeServices,
   typesDEtablissement,
   type OutilDeLaCarte,
@@ -403,14 +406,19 @@ export interface ZonesDeLEditeur {
    * départ (`startMessage`), son texte en `saisieMultiligne`, vidé le retirant avec sa provenance, la matière de
    * chaque partie de relief (`PARTS_RELIEF`) en liste parmi `matieresDe('relief')`,
    * sa toiture par défaut, couverture en liste, pente et comble à la réglette, son repos sur place, ses lieux et sa
-   * qualité (`QUALITES_DE_REPOS`), ses drapeaux de départ, chacun pressé s'il est vrai, que sa pression bascule, puis en liste, à
+   * qualité (`QUALITES_DE_REPOS`), et, quand la scène offre l'auberge (`offresDeLaScene`),
+   * `scene/repos/offre/<offre>/retirer` par offre qu'elle vend puis `scene/repos/offre/ajouter`, en liste,
+   * `scene/repos/offre/ajouter/<offre>` par offre qu'elle ne vend pas (`boutonsDesOffres`), et, dès qu'elle déclare ses
+   * offres, auberge ou non, `scene/repos/offres/retirer`, qui les retire, celles du catalogue revenant,
+   * ses drapeaux de départ, chacun pressé s'il est vrai, que sa pression bascule, puis en liste, à
    * retirer, et le formulaire qui en ajoute un, vrai, puis ses ancres de bataille : de chacune sa Scène de Round en
    * liste (`ciblesDAncreDeBataille`), sa case, la poser à la case pointée, refusé sans case pointée, la retirer, puis
    * en liste chaque Scène de Round à ancrer.
    *
    * Chaque bouton joue `{ geste: 'scene', patch }` (`PatchDeScene`), `patch` portant `scalaires` (`desc`, `ambiance`,
    * `weather`, `couvre`, `groups`, `metresPerTile`, `ambientLight`, `environment`, `null` retirant le champ),
-   * `dimensions` (`{ w, h, decalage? }`), `nord` (`null` : vers le haut du plan), `relief`, `toiture`, `repos` (`lieux`, `qualite`), `drapeaux`
+   * `dimensions` (`{ w, h, decalage? }`), `nord` (`null` : vers le haut du plan), `relief`, `toiture`,
+   * `repos` (`lieux`, `qualite`, `offre` : `{ ajouter }` ou `{ retirer }`, `offres: null`), `drapeaux`
    * (`null` retirant le drapeau), `musique` (`{ piste, id }`, `id` `null` : silence, absent : automatique) ou `stations` (`{ ajouter }`, `{ rang, sceneId?, pos? }`
    * ou `{ retirer }`, refusé à un rang absent). `zoneJouable: null` (option de l'outil zone jouable) retire la zone jouable.
    *
@@ -472,7 +480,7 @@ export interface ZonesDeLEditeur {
    * rôle au combat (`combat`) ses options, ses Compétences, le tirage de ses Caractéristiques, son embuscade et, s'il en
    * porte ou si sa fiche ouvre une liste de sorts sans imprimer les siens, ses sorts choisis (`combat.spells`) ; son
    * profil personnalisé (`statblock`), champ par champ ; puis sa contrepartie d'amateur des arts (`amateur`), son
-   * marchand (`merchant`), son jeu de taverne (`tavernGame`), son
+   * marchand (`merchant`), son jeu de taverne (`tavernGame`), sa veille des malades (`veilleLesMalades`), son
    * apparence (`appearance`), sans tenue pour un PNJ de carrière, ses couleurs par emplacement de palette, son
    * animation (`anim`) et, d'une coque, son véhicule (`vehicule`), ses Améliorations (`upgrades`) et ses postes (`postes`),
    * au contexte de sa fiche (`choixDuChamp`) : un preset, chacun de ceux que le narratif déclare, par son nom (toute référence narrative
@@ -1763,6 +1771,18 @@ function sensDeLaRoute(s: SessionDEdition, route: DonneeDuPorteur['route']): Cho
   return [choix('route/sens', t('ecran.editeur.route.sens'), sens)];
 }
 
+/** Les boutons des offres d'auberge `offres` d'un hébergement sous l'id `prefixe` (`offresAuChoix`) : `<prefixe>/offre/<offre>/retirer`
+ *  par offre qu'il vend, puis `<prefixe>/offre/ajouter`, en liste, `<prefixe>/offre/ajouter/<offre>` par offre qu'il ne vend
+ *  pas, chacun jouant `geste(changement)` : ceux d'un établissement de lieu (`propresDuLieu`) et ceux de la scène
+ *  (`inspecteurDeScene`). #4277 #5149 */
+function boutonsDesOffres(prefixe: string, offres: ReturnType<typeof offresAuChoix>, geste: (c: ChangementDOffre) => GesteDEdition): (Choix | Bouton)[] {
+  const aAjouter = offres.filter((o) => !o.vendue);
+  return [
+    ...offres.filter((o) => o.vendue).map((o) => boutonDEdition(`${prefixe}/offre/${o.id}/retirer`, t('ecran.editeur.offre.retirer', { offre: o.libelle }), geste({ retirer: o.id }))),
+    ...(aAjouter.length ? [choix(`${prefixe}/offre/ajouter`, t('ecran.editeur.offre.ajouter'), aAjouter.map((o) => boutonDEdition(`${prefixe}/offre/ajouter/${o.id}`, o.libelle, geste({ ajouter: o.id }))), 'liste')] : []),
+  ];
+}
+
 /** Les éléments propres du lieu `lieu` de la session `s` : « Plan du lieu », pressé quand son plan est ouvert, qui
  *  l'ouvre ou le ferme (`{ geste: 'planDuLieu', lieu }`) ; son plan ouvert, « Retirer le point d'intérêt » désigné,
  *  refusé sans lui (`{ geste: 'retirerPoi' }`), et la cible de ce point, chaque scène du projet et chaque service résolu
@@ -1772,13 +1792,6 @@ function sensDeLaRoute(s: SessionDEdition, route: DonneeDuPorteur['route']): Cho
  *  (`offresDeLEtablissement`), puis un bouton par type d'établissement (`typesDEtablissement`, `{ geste: 'ajouterEtablissement',
  *  kind }`). #3606 #4277 */
 function propresDuLieu(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): (Choix | Ligne | Bouton)[] {
-  const offresDuLieu = (etablissement: string, offres: NonNullable<ReturnType<typeof offresDeLEtablissement>>): (Choix | Bouton)[] => {
-    const aAjouter = offres.filter((o) => !o.vendue);
-    return [
-      ...offres.filter((o) => o.vendue).map((o) => boutonDEdition(`lieu/etablissement/${etablissement}/offre/${o.id}/retirer`, t('ecran.editeur.lieu.offre.retirer', { offre: o.libelle }), { geste: 'retirerOffre', etablissement, offre: o.id })),
-      ...(aAjouter.length ? [choix(`lieu/etablissement/${etablissement}/offre/ajouter`, t('ecran.editeur.lieu.offre.ajouter'), aAjouter.map((o) => boutonDEdition(`lieu/etablissement/${etablissement}/offre/ajouter/${o.id}`, o.libelle, { geste: 'ajouterOffre', etablissement, offre: o.id })), 'liste')] : []),
-    ];
-  };
   const plan = planDuLieuOuvert(s);
   const ouvert = plan?.lieu.id === lieu.id;
   const services = placeServices(lieu);
@@ -1798,7 +1811,7 @@ function propresDuLieu(s: SessionDEdition, lieu: DonneeDuPorteur['lieu']): (Choi
       return [
         ligne(`lieu/etablissement/${e.id}`, t('ecran.editeur.lieu.etablissement', { nom, type: nomDuType(e.kind.id) })),
         boutonDEdition(`lieu/etablissement/${e.id}/retirer`, t('ecran.editeur.lieu.etablissement.retirer', { nom }), { geste: 'supprimer', element: e.id }, false, refusDeRetrait(s, e.id)),
-        ...offresDuLieu(e.id, offresDeLEtablissement(lieu, e.id) ?? []),
+        ...boutonsDesOffres(`lieu/etablissement/${e.id}`, offresDeLEtablissement(lieu, e.id) ?? [], (c) => ('ajouter' in c ? { geste: 'ajouterOffre', etablissement: e.id, offre: c.ajouter } : { geste: 'retirerOffre', etablissement: e.id, offre: c.retirer })),
       ];
     }),
     choix('lieu/etablissement/ajouter', t('ecran.editeur.lieu.etablissement.ajouter'), typesDEtablissement().map((sv) => boutonDEdition(`lieu/etablissement/ajouter/${sv.id}`, sv.label, { geste: 'ajouterEtablissement', kind: sv.id })), 'liste'),
@@ -1954,7 +1967,9 @@ function ancresDeBataille(s: SessionDEdition): (Choix | Ligne | Bouton)[] {
  *  sa grille, largeur et hauteur à la réglette ; les entrées de fiche qu'elle couvre ; les groupes du lieu
  *  (`groupesDuLieu`) ; son ambiance, son échelle, sa lumière ambiante, son nord, son environnement et sa météo ; sa
  *  musique ; le formulaire tiré du schéma de son porteur singulier (`formulaireDe`), son message de départ ; la matière de chaque partie de son relief ; sa toiture par
- *  défaut ; son repos sur place ; ses drapeaux de départ, et le formulaire qui en ajoute un ; ses ancres de bataille. */
+ *  défaut ; son repos sur place, et, s'il offre l'auberge, ses offres (`boutonsDesOffres`), ses offres déclarées à retirer ;
+ *  ses drapeaux de départ, et le
+ *  formulaire qui en ajoute un ; ses ancres de bataille. */
 function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formulaire)[] {
   const scene = sceneEditee(s);
   const sur = (patch: PatchDeScene): GesteDEdition => ({ geste: 'scene', patch });
@@ -1963,6 +1978,7 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
   const echelle = sceneMetresPerTile(scene);
   const toit = scene.roofDefaults;
   const repos = reposDeScene(scene);
+  const aubergeDeScene = offresDeLaScene(scene);
   const nonDit = t('ecran.editeur.scene.nonDit');
   return [
     formulaireDuNom(scene.label, false),
@@ -2000,6 +2016,8 @@ function inspecteurDeScene(s: SessionDEdition): (Choix | Ligne | Bouton | Formul
     ...reglette('scene/toiture/comble', t('ecran.editeur.toiture.comble', { v: toit.riseMaxStoreys }), toit.riseMaxStoreys, PAS_D_ETAGE, (v) => sur({ toiture: { riseMaxStoreys: v } })),
     choix('scene/repos', t('ecran.editeur.scene.repos'), LIEUX.map((l) => boutonDEdition(`scene/repos/${l}`, t(`ecran.editeur.zone.lieu.${l}`), sur({ repos: { lieux: { [l]: !repos[l] } } }), !!repos[l]))),
     choix('scene/repos/qualite', t('ecran.editeur.zone.qualite'), QUALITES_DE_REPOS.map(([q, libelle]) => boutonDEdition(`scene/repos/qualite/${q}`, libelle, sur({ repos: { qualite: q } }), (repos.quality ?? 'normale') === q))),
+    ...(aubergeDeScene ? boutonsDesOffres('scene/repos', offresAuChoix(aubergeDeScene), (offre) => sur({ repos: { offre } })) : []),
+    ...(scene.rest?.offres === undefined ? [] : [boutonDEdition('scene/repos/offres/retirer', t('ecran.editeur.offre.retirerDeclarees'), sur({ repos: { offres: null } }))]),
     ...(Object.keys(scene.flags).length ? [
       choix('scene/drapeau', t('ecran.editeur.scene.drapeaux'), Object.entries(scene.flags).map(([cle, valeur]) => boutonDEdition(`scene/drapeau/${cle}`, cle, sur({ drapeaux: { [cle]: !valeur } }), valeur))),
       choix('scene/drapeau/retirer', t('ecran.editeur.scene.drapeau.retirer'), Object.keys(scene.flags).map((cle) => boutonDEdition(`scene/drapeau/retirer/${cle}`, cle, sur({ drapeaux: { [cle]: null } }))), 'liste'),

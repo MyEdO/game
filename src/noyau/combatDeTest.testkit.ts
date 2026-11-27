@@ -9,6 +9,7 @@ import { createHero } from '../engine/character';
 import type { Combatant, Weapon } from '../engine/types';
 import type { CastResult } from '../engine/magic';
 import type { EtatDeJeu } from './etat';
+import type { CombatEvent } from './combatLog';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
 import type { Scene } from './monde/scene';
 import type { Pt } from './monde/path';
@@ -20,6 +21,12 @@ import { placeCombatant } from './monde/spawn';
  *  des Blessures bouge (`transitionDuJeu.ts`), une référence prise avant elle désigne l'ancien objet. */
 export function reluDans(getState: () => JeuDuNoyau, c: Combatant): Combatant {
   return actorIn(getState(), c.id)!;
+}
+
+/** Les entrées de Contre-sort au `battle.log` contre le Sort de `casterId` : portées par un contre-lanceur, visant
+ *  le lanceur (`applyCounterspellOutcome`). */
+export function entreesDuContreSort(getState: () => JeuDuNoyau, casterId: string): CombatEvent[] {
+  return (getState().battle?.log ?? []).filter((e) => e.kind === 'sort' && e.targetId === casterId && !!e.actorId && e.actorId !== casterId);
 }
 
 /** Le héros du duel. */

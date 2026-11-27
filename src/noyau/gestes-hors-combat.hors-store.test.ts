@@ -36,13 +36,18 @@ import { herosDeScenario } from '../scenes/test-scenarios/_heros';
 import { chaosSpellsOf, findSpellById, spells } from '../data';
 import { eligibleTalent } from '../engine/grimoire';
 import type { Combatant } from '../engine/types';
+import type { SceneEntity } from './monde/scene';
+import type { WorldMap } from './worldMap';
+import { ouvrirLeBanc } from './banc.testkit';
+import { draineCascade } from './cascade.testkit';
+import { dayIndex } from '../engine/clock';
 import { t } from '../i18n';
 import { nomDe } from '../engine/nom';
 import { poserLaDetermination } from '../engine/talentEffects';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
-const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 
 /** Une partie ouverte sur le groupe `party`, fermée après `jouer`. */
 function avecGroupe(party: Combatant[], jouer: (partie: Partie) => void): void {
@@ -345,11 +350,13 @@ describe('gesteDuRepos et gesteDeLaisserPasserLeTemps — la nuit et le jour qui
     return h;
   };
   const dureeDe = (partie: Partie) => partie.etat().party.find((h) => h.id === 'malade')!.diseases![0].minutesLeft;
-  /** Une partie lancée sur une place dégagée, en exploration, fermée après `jouer`. */
-  function surLaPlace(party: Combatant[], jouer: (partie: Partie) => void): void {
+  /** Une partie lancée sur une place dégagée, en exploration, ses `entites` posées et son offre de repos `rest`, fermée
+   *  après `jouer`. */
+  function surLaPlace(party: Combatant[], jouer: (partie: Partie) => void, entites: SceneEntity[] = [], rest?: { maison: true }): void {
     const partie = creerPartie(etatInitialDuJeu(), ENTREES);
+    const place = arena({ id: 'place', label: 'Place' });
     try {
-      partie.lancer({ party, scene: arena({ id: 'place', label: 'Place' }), projet: null });
+      partie.lancer({ party, scene: { ...place, entities: [...place.entities, ...entites], ...(rest ? { rest } : {}) }, projet: null });
       jouer(partie);
     } finally {
       partie.fermer();
@@ -402,6 +409,144 @@ describe('gesteDuRepos et gesteDeLaisserPasserLeTemps — la nuit et le jour qui
       expect(partie.etat().gameTime).toBe(heure + MINUTES_PER_DAY);
       expect(dureeDe(partie)).toBe(duree - 2 * MINUTES_PER_DAY);
     });
+  });
+
+  /** Un personnage de la scène à Guérison sur sa fiche, qui veille les malades si `veille`. */
+  const soeur = (veille: boolean): SceneEntity => ({
+    kind: 'personnage', id: 'soeur', pos: { x: 8, y: 5 }, ...(veille ? { veilleLesMalades: true as const } : {}),
+    statblock: { type: 'statblock', label: 'Sœur Hilda', char: { intelligence: 40 }, skills: [{ id: 'guerison', value: 55 }] },
+  });
+
+  it('un jour passe pour le malade seul, veillé par un personnage de la scène : sa maladie perd deux jours (LDB 09 l.265)', () => {
+    surLaPlace([malade()], (partie) => {
+      const duree = dureeDe(partie);
+      jouer(partie, gesteDeLaisserPasserLeTemps(partie.etat(), MINUTES_PER_DAY).geste);
+      expect(dureeDe(partie)).toBe(duree - 2 * MINUTES_PER_DAY);
+    }, [soeur(true)]);
+  });
+
+  it('un personnage de la scène à Guérison qui ne veille pas les malades ne les soigne pas : la maladie perd un jour', () => {
+    surLaPlace([malade()], (partie) => {
+      const duree = dureeDe(partie);
+      jouer(partie, gesteDeLaisserPasserLeTemps(partie.etat(), MINUTES_PER_DAY).geste);
+      expect(dureeDe(partie)).toBe(duree - MINUTES_PER_DAY);
+    }, [soeur(false)]);
+  });
+
+  it('une nuit à l’hospice, veillé par un personnage de la scène : la maladie perd deux jours (LDB 09 l.265)', () => {
+    surLaPlace([malade()], (partie) => {
+      const duree = dureeDe(partie);
+      jouer(partie, gesteDuRepos(partie.etat()).geste);
+      expect(partie.etat().pendingRest?.places.maison).toBe(true);
+      for (let n = 0; n < 50 && fenetreDuJeu(partie.etat() as never); n++) {
+        const fenetre = fenetreDuJeu(partie.etat() as never)!;
+        const validation = fenetre.gestes.find((g) => g.verbe === VERBE_DE_VALIDATION)!;
+        partie.envoyer({ type: validation.verbe, args: [validation.fenetre] } as unknown as Intention);
+      }
+      expect(fenetreDuJeu(partie.etat() as never), 'la nuit n’est pas réglée jusqu’au bout').toBeFalsy();
+      expect(dureeDe(partie)).toBe(duree - 2 * MINUTES_PER_DAY);
+    }, [soeur(true)], { maison: true });
+  });
+
+  /** Un projet de deux scènes, la place `place` (entrée) et l'hospice `hospice` veillé par la sœur, chacune au lieu de sa
+   *  carte, reliées par une route de `km` kilomètres, à pied ou par `mer` (le groupe à bord d'une cogue) ; chargé sur le
+   *  banc pour le groupe `party`, la partie ouverte sur `entree`. */
+  function projetDeLHospice(party: Combatant[], entree: 'place' | 'hospice', km = 12, mode: 'pied' | 'mer' = 'pied') {
+    const banc = ouvrirLeBanc();
+    const place = arena({ id: 'place', label: 'Place' });
+    const hospice = arena({ id: 'hospice', label: 'Hospice' });
+    const carte: WorldMap = {
+      id: 'c', label: 'c',
+      places: [
+        { id: 'pa', label: 'A', pos: { x: 20, y: 50 }, scene: { id: 'hospice' } },
+        { id: 'pb', label: 'B', pos: { x: 70, y: 40 }, scene: { id: 'place' } },
+      ],
+      routes: [{ id: 'r1', a: { id: 'pa' }, b: { id: 'pb' }, km, modes: [mode], perilDie: 0, ...(mode === 'mer' ? { sea: true, seaHeading: 'est' as const } : {}) }],
+    };
+    banc.setState({ party });
+    banc.getState().chargerLeProjet({ scenes: [place, { ...hospice, entities: [...hospice.entities, soeur(true)] }], entryId: entree, worldMap: carte, projet: null });
+    if (mode === 'mer') banc.setState({ vessel: { uid: 'navire-1', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, waterLitres: 1000 } });
+    const duree = () => banc.getState().party.find((h) => h.id === 'malade')!.diseases![0].minutesLeft;
+    const unJour = () => { banc.getState().laisserPasserLeTemps(MINUTES_PER_DAY); draineCascade(banc.getState); };
+    return { banc, duree, unJour };
+  }
+
+  it('entré à l’hospice en cours de journée : le jour partiel n’est pas veillé, le jour complet l’est (LDB 09 l.265)', () => {
+    const { banc, duree, unJour } = projetDeLHospice([malade()], 'place');
+    banc.getState().quitterLaScene('hospice');
+    expect(banc.getState().enSceneDepuis).toBe(banc.getState().gameTime);
+    const d0 = duree();
+    unJour();
+    expect(duree(), 'le jour de l’entrée n’est pas complet').toBe(d0 - MINUTES_PER_DAY);
+    unJour();
+    expect(duree(), 'le jour suivant passé entier à l’hospice').toBe(d0 - 3 * MINUTES_PER_DAY);
+  });
+
+  it('les jours rattrapés d’avant l’entrée à l’hospice ne sont pas veillés', () => {
+    const { banc, duree, unJour } = projetDeLHospice([malade()], 'place');
+    banc.setState({ lastUpkeepDay: banc.getState().lastUpkeepDay - 2 });
+    banc.getState().quitterLaScene('hospice');
+    const d0 = duree();
+    unJour();
+    expect(duree()).toBe(d0 - 3 * MINUTES_PER_DAY);
+  });
+
+  it('parti de l’hospice sur la route : le groupe ne s’y tient plus, la maladie ne perd qu’un jour par jour de route', () => {
+    const { banc, duree } = projetDeLHospice([malade()], 'hospice', 40);
+    expect(banc.getState().enSceneDepuis).not.toBeNull();
+    const [d0, jour] = [duree(), dayIndex(banc.getState().gameTime)];
+    banc.getState().partirEnVoyage('r1', 'pied');
+    expect(banc.getState().enSceneDepuis).toBeNull();
+    draineCascade(banc.getState);
+    expect(banc.getState().pendingRest, 'la marche du jour finit au camp').toBeTruthy();
+    banc.getState().fenetreValider('repos');
+    draineCascade(banc.getState);
+    expect(dayIndex(banc.getState().gameTime) - jour, 'la nuit au camp franchit un jour').toBe(1);
+    expect(duree()).toBe(d0 - MINUTES_PER_DAY);
+  });
+
+  it('parti de l’hospice en traversée rapide : le groupe ne s’y tient plus, la maladie ne perd qu’un jour par jour de mer', () => {
+    const { banc, duree } = projetDeLHospice([malade()], 'hospice', 550, 'mer');
+    expect(banc.getState().enSceneDepuis).not.toBeNull();
+    const [d0, jour] = [duree(), dayIndex(banc.getState().gameTime)];
+    banc.getState().partirEnVoyage('r1', 'mer', { fast: true });
+    expect(banc.getState().travelPlan?.sea?.fast, 'la traversée rapide n’a pas appareillé').toBeTruthy();
+    expect(banc.getState().enSceneDepuis).toBeNull();
+    draineCascade(banc.getState);
+    const jours = dayIndex(banc.getState().gameTime) - jour;
+    expect(jours, 'la traversée franchit plusieurs jours').toBeGreaterThan(1);
+    expect(duree()).toBe(d0 - jours * MINUTES_PER_DAY);
+  });
+
+  it('entré à l’hospice en pleine route : la scène traversée ne tient pas le groupe, la maladie ne perd qu’un jour par jour de route', () => {
+    const { banc, duree } = projetDeLHospice([malade()], 'place', 200);
+    banc.getState().partirEnVoyage('r1', 'pied');
+    banc.getState().quitterLaScene('hospice');
+    expect(banc.getState().travelPlan, 'le groupe n’est plus en route').toBeTruthy();
+    expect(banc.getState().scene?.id).toBe('hospice');
+    expect(banc.getState().enSceneDepuis).toBeNull();
+    const [d0, jour] = [duree(), dayIndex(banc.getState().gameTime)];
+    for (let n = 0; n < 4 && banc.getState().travelPlan; n++) {
+      draineCascade(banc.getState);
+      if (banc.getState().pendingRest) banc.getState().fenetreValider('repos');
+      draineCascade(banc.getState);
+    }
+    const jours = dayIndex(banc.getState().gameTime) - jour;
+    expect(jours, 'la route franchit au moins un jour').toBeGreaterThan(0);
+    expect(duree()).toBe(d0 - jours * MINUTES_PER_DAY);
+  });
+
+  it('revenu au lieu de l’hospice sans être entré ailleurs, « Explorer » l’y tient de nouveau : le jour complet est veillé (LDB 09 l.265)', () => {
+    const { banc, duree, unJour } = projetDeLHospice([malade()], 'hospice');
+    banc.setState({ lieu: 'pa', lieuOuvert: true, enSceneDepuis: null, travelPlan: null });
+    banc.getState().fenetreFermer('ecranDuLieu');
+    expect(banc.getState().scene?.id).toBe('hospice');
+    expect(banc.getState().enSceneDepuis).toBe(banc.getState().gameTime);
+    const d0 = duree();
+    unJour();
+    expect(duree(), 'le jour du retour n’est pas complet').toBe(d0 - MINUTES_PER_DAY);
+    unJour();
+    expect(duree(), 'le jour suivant passé entier à l’hospice').toBe(d0 - 3 * MINUTES_PER_DAY);
   });
 
   it('un jour passe pour le malade seul : il ne se soigne pas lui-même, sa maladie perd un jour', () => {

@@ -17,7 +17,16 @@ import type { SourceDeLEdition } from './adresseDeProse';
 import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, heightAt, isWalkable, type Scene } from '../monde/scene';
 import { buildScene, type MapSpec } from '../mapSpec';
-import { emptyWorldMap, parseProject, parseSceneDeProjet, placeServices, resolvePortRef, type WorldMap } from '../worldMap';
+import {
+  emptyWorldMap,
+  offresDeLAubergeDeScene,
+  parseProject,
+  parseSceneDeProjet,
+  placeServices,
+  resolvePortRef,
+  type PlaceService,
+  type WorldMap,
+} from '../worldMap';
 import {
   avertissementsDeLaSession,
   cadreDeLaSession,
@@ -585,6 +594,77 @@ describe('session d’édition, les écrivains dédiés de la scène (#3606)', (
     expect(jouer(habillee, { geste: 'baie', id: 'absente', patch: { apparence: apparence.id } })).toBe(habillee);
     const decor = (['sign', 'belfry', 'faitage'] as const).find((k) => !apparencesDeLOuverture(k).some((a) => a.id === apparence.id))!;
     expect('appearance' in ouverture(jouer(habillee, { geste: 'baie', id: pose.id, patch: { sorte: decor } })), 'une sorte d’un autre catalogue retire l’apparence').toBe(false);
+  });
+});
+
+describe('les offres d’auberge de la scène (#5149)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const sur = (patch: Extract<GesteDEdition, { geste: 'scene' }>['patch']): GesteDEdition => ({ geste: 'scene', patch });
+  const offres = (s: SessionDEdition) => sceneEditee(s).rest?.offres?.map((o) => o.id);
+
+  it('l’auberge de la scène cesse de vendre le repas puis le revend, chacun sur un cran ; vidée, sa liste reste ; ses champs s’écrivent par le geste valeur, sauf l’identifiant ; sans auberge ou sans objet, la session reste', () => {
+    const sansAuberge = ouverteSur(emptyScene('session', 4, 4));
+    expect(jouer(sansAuberge, sur({ repos: { offre: { retirer: 'repas' } } })), 'sans auberge : sans objet').toBe(sansAuberge);
+    const s = jouer(sansAuberge, sur({ repos: { lieux: { auberge: true } } }));
+    const sansRepas = jouer(s, sur({ repos: { offre: { retirer: 'repas' } } }));
+    expect([offres(sansRepas), sansRepas.historique.passe.length]).toEqual([['commune', 'chambre', 'grande'], s.historique.passe.length + 1]);
+    const revendu = jouer(sansRepas, sur({ repos: { offre: { ajouter: 'repas' } } }));
+    expect(sceneEditee(revendu).rest?.offres?.[3]).toEqual({ id: 'repas', source: offresDeLAubergeDeScene().find((o) => o.id === 'repas')!.source });
+    expect([jouer(revendu, sur({ repos: { offre: { ajouter: 'repas' } } })), jouer(sansRepas, sur({ repos: { offre: { retirer: 'repas' } } }))], 'déjà vendue, ou pas vendue : sans objet').toEqual([revendu, sansRepas]);
+    const vide = (['commune', 'chambre', 'grande', 'repas'] as const).reduce((x, offre) => jouer(x, sur({ repos: { offre: { retirer: offre } } })), revendu);
+    expect(offres(vide), 'la liste vidée reste, qui ne retombe pas sur celles du catalogue').toEqual([]);
+    const porteur = porteurDeLaSel(revendu.sel, 'scene', idDeLaSceneEditee(revendu))!;
+    const prix = (...cle: string[]) => ['rest', 'offres', 3, 'prix', ...cle];
+    const note = jouer(revendu, { geste: 'valeur', porteur, chemin: prix(), valeur: {} }, { geste: 'valeur', porteur, chemin: prix('brass'), valeur: 0 });
+    expect(sceneEditee(note).rest?.offres?.[3].prix).toEqual({ brass: 0 });
+    expect(refusDeLaValeur(revendu, { geste: 'valeur', porteur, chemin: ['rest', 'offres', 3, 'id'], valeur: 'commune' }), 'son identifiant ne s’écrit que par son écrivain').toBe('nonOffert');
+  });
+});
+
+describe('les offres déclarées de la scène se retirent dès qu’elles existent, celles du catalogue revenant (#5149, R3)', () => {
+  const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
+  const sur = (patch: Extract<GesteDEdition, { geste: 'scene' }>['patch']): GesteDEdition => ({ geste: 'scene', patch });
+  const BOURG = emptyScene('bourg', 6, 6);
+  const HEBERGEMENT: PlaceService[] = [{ id: 'auberge', kind: { id: 'auberge' } }];
+  const monde = (services?: typeof HEBERGEMENT): WorldMap => ({ ...emptyWorldMap('monde'), places: [{ id: 'x', label: 'X', pos: { x: 50, y: 50 }, scene: { id: 'bourg' }, ...(services ? { services } : {}) }], routes: [] });
+  const ouvrirSur = (scene: Scene, worldMap: WorldMap) => ouvrirLEdition({ scenes: [scene], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  /** Les erreurs R3 des offres : celles d'une scène de lieu à hébergement qui porte `rest.offres`. */
+  const fautesDesOffres = (s: SessionDEdition) => validateScene(projetEdite(s).scenes, projetEdite(s).worldMap, NARRATIF_VIDE)
+    .filter((w) => w.level === 'error' && w.message.includes('les offres d’auberge se règlent sur l’établissement'));
+  const auberge = (oui: boolean) => sur({ repos: { lieux: { auberge: oui } } });
+  const retirer = (offre: 'commune' | 'chambre' | 'grande' | 'repas') => sur({ repos: { offre: { retirer: offre } } });
+  const auCatalogue = sur({ repos: { offres: null } });
+  const offres = (s: SessionDEdition) => sceneEditee(s).rest?.offres?.map((o) => o.id);
+
+  it('(a) l’auberge d’une scène de lieu à hébergement retire sa dernière offre : la liste vide fautive se retire, sur un cran', () => {
+    const vide = jouer(ouvrirSur(BOURG, monde(HEBERGEMENT)), auberge(true), retirer('commune'), retirer('chambre'), retirer('grande'), retirer('repas'));
+    expect([offres(vide), fautesDesOffres(vide).length]).toEqual([[], 1]);
+    const retiree = jouer(vide, auCatalogue);
+    expect(['offres' in sceneEditee(retiree).rest!, fautesDesOffres(retiree), retiree.historique.passe.length]).toEqual([false, [], vide.historique.passe.length + 1]);
+    expect(jouer(retiree, auCatalogue), 'sans offres déclarées : sans objet').toBe(retiree);
+  });
+
+  it('(b) les offres écrites survivent au retrait de l’auberge, de la scène ou de sa zone de repos ; elles se retirent sans elle', () => {
+    const sansAuberge = jouer(ouvrirSur(BOURG, monde(HEBERGEMENT)), auberge(true), retirer('repas'), auberge(false));
+    expect([offres(sansAuberge), fautesDesOffres(sansAuberge).length]).toEqual([['commune', 'chambre', 'grande'], 1]);
+    expect(fautesDesOffres(jouer(sansAuberge, auCatalogue))).toEqual([]);
+    const enZone = jouer(ouvrirSur({ ...BOURG, restZones: [{ rect: { x: 0, y: 0, w: 2, h: 2 }, places: { auberge: true } }] }, monde(HEBERGEMENT)), retirer('repas'));
+    const zoneRetiree = jouer({ ...enZone, sel: { type: 'restZone', idx: 0 } }, { geste: 'supprimer' });
+    expect([sceneEditee(zoneRetiree).restZones ?? [], offres(zoneRetiree), fautesDesOffres(zoneRetiree).length]).toEqual([[], ['commune', 'chambre', 'grande'], 1]);
+    expect(fautesDesOffres(jouer(zoneRetiree, auCatalogue))).toEqual([]);
+  });
+
+  it('(c) des offres écrites sur la scène, puis un hébergement ajouté à son lieu : elles se retirent de la scène', () => {
+    const ecrites = jouer(ouvrirSur(BOURG, monde()), auberge(true), retirer('repas'), auberge(false));
+    expect(fautesDesOffres(ecrites), 'sans hébergement au lieu, aucune faute').toEqual([]);
+    const heberge = jouer(ecrites, { geste: 'document', document: 'carte' }, { geste: 'selectionner', porteur: { sorte: 'lieu', id: 'x' } }, { geste: 'ajouterEtablissement', kind: 'auberge' });
+    expect(fautesDesOffres(heberge)).toHaveLength(1);
+    expect(fautesDesOffres(jouer(heberge, { geste: 'document', document: 'scene' }, auCatalogue))).toEqual([]);
+  });
+
+  it('les offres écrites survivent à la qualité changée puis au camp basculé', () => {
+    const s = jouer(ouvrirSur(BOURG, monde()), auberge(true), retirer('repas'), sur({ repos: { qualite: 'pietre' } }), sur({ repos: { lieux: { camp: false } } }));
+    expect([offres(s), sceneEditee(s).rest?.quality, sceneEditee(s).rest?.camp]).toEqual([['commune', 'chambre', 'grande'], 'pietre', false]);
   });
 });
 
