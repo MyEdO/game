@@ -8,7 +8,7 @@ import { emptyNarratif } from '../monde/campaignNarratif';
 import { emptyScene, type Scene, type Trigger } from '../monde/scene';
 import { addTrigger, avecLAdresseRescellee, avecLaValeurDuPorteur, avecLElementMonte } from '../sceneEdit';
 import type { Segment } from './formulaire';
-import { choixDuChamp, formulaireDe, type CadreDuPorteur } from '../sceneEditLecture';
+import { choixDuChamp, formulaireDe, type CadreDuPorteur, type ProjetDEdition } from '../sceneEditLecture';
 import { empreinteDe, parseChapitre, type DescRef, type Fragment } from '../../data/schemas/source/decoupe';
 import { cleDuChapitre, etatDeLAdresse, type SourceDeLEdition } from './adresseDeProse';
 import { editer, ouvrirLEdition, sceneEditee, texteAEnregistrer, type SessionDEdition } from './session';
@@ -136,7 +136,7 @@ describe('la prose d’une adresse suit son adresse, à tout chemin', () => {
     const avecTrig = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 });
     const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'adresse', scenes: [{ ...avecTrig.scene, triggers: [DEUX] }], narratif: emptyNarratif() };
     const porteur = { sorte: 'declencheur' as const, id: TRIG.id };
-    const sansAdresse = editer(ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, null), { geste: 'valeur', porteur, chemin: ['flow', 'etapes', 1, 'effet', 'descRef'] });
+    const sansAdresse = editer(ouvrirLEdition(projet as ProjetDEdition, { duDepot: true }), { geste: 'valeur', porteur, chemin: ['flow', 'etapes', 1, 'effet', 'descRef'] });
     expect(texteAEnregistrer(sansAdresse).ok, 'le journal sans texte ne s’enregistre pas').toBe(false);
     const saisie = editer(sansAdresse, { geste: 'valeur', porteur, chemin: ['flow', 'etapes', 1, 'effet', 'desc'], valeur: 'Texte saisi.' });
     const texte = texteAEnregistrer(saisie);
@@ -155,7 +155,7 @@ describe('la prose d’une adresse suit son adresse, à tout chemin', () => {
   it('choisie à la session, une cellule de table s’enregistre scellée, sa table comprise, sans la prose qu’elle résout', () => {
     const avecTrig = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 });
     const projet = { id: 'p', type: 'projet', label: 'P', versionContenu: 1, maison: 'adresse', scenes: [{ ...avecTrig.scene, triggers: [avecJournal({ book: LIVRE, ch: '01', parts: [] })] }], narratif: emptyNarratif() };
-    const ouverte = ouvrirLEdition(projet as unknown as Parameters<typeof ouvrirLEdition>[0], true, undefined, MANIFESTE);
+    const ouverte = ouvrirLEdition(projet as ProjetDEdition, { duDepot: true, manifeste: MANIFESTE });
     const demande = editer(ouverte, { geste: 'appui', point: { case: { x: 0, y: 0 }, f: { x: 0, y: 0 } } });
     const chargee = editer(demande, { geste: 'chapitre', book: LIVRE, ch: '01', texte: TEXTE });
     const cellule = choixDuChamp('declencheur', sceneEditee(chargee).triggers[0], [...ICI, 'parts', 0], cadre(CHARGEE))!.find((c) => c.libelle === 'cellule')!.valeur;
@@ -173,7 +173,7 @@ describe('le chapitre que la session demande', () => {
   const avecTrig = addTrigger(emptyScene('s', 4, 4), { x: 0, y: 0, w: 1, h: 1 });
   const ouverte = (manifeste: typeof MANIFESTE | null): SessionDEdition => {
     const scene = { ...avecTrig.scene, triggers: [avecJournal({ book: LIVRE, ch: '01', parts: [] })] };
-    return ouvrirLEdition({ scenes: [scene], narratif: emptyNarratif() } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, manifeste);
+    return ouvrirLEdition({ scenes: [scene], narratif: emptyNarratif() } as ProjetDEdition, { duDepot: false, manifeste });
   };
   const selectionne = (s: SessionDEdition) => editer(s, { geste: 'appui', point: { case: { x: 0, y: 0 }, f: { x: 0, y: 0 } } });
 

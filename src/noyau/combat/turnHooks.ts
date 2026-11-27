@@ -1,16 +1,13 @@
 /**
- * Hooks de DÉBUT DE TOUR ENNEMI (`turnStart`), déclarés dans la table `crochetsDeCombat` (`TABLES`,
- * lue par `combatHooks`) : la séquence de début de tour de l'IA vit ICI, chaque étape étant un hook ordonné par `order`. N'importe RIEN de combatFlow → pas de cycle (les
- * fonctions déplacées ne dépendent que des modules feuilles `engine/*`, `combatLog`, `combatGeometry`,
- * `lineOfSight`, `battleRng`, `cascade`, `rollSeam` — ce dernier porte la PORTE d'ouverture de jet
- * (`surfaceOf`, `pushMono`, `choiceStep`, #1262).
+ * DÉBUT ET FIN DE TOUR : les effets de bord de tour authorés (`fireTurnStartTriggers`, `fireTurnEndTriggers`), le gate
+ * d'action par Round (`resolveActGates`) et les crochets `onTurnStart` de la table `crochetsDeCombat` (`TABLES`, lue par
+ * `combatHooks`), ordonnés par `order` : Rage (20), entrée en Frénésie de l'IA (30). Le golden
+ * `turnStart.golden.hors-store.test.ts` fige l'ordre et les tirages des crochets. La psychologie de combat se joue aux
+ * passes de Round (`openRoundStartPsych`, `openRoundEndCascade`, LDB 21 l.9, l.25).
  *
- * Ordre encodé par `order` : Rage (20) → tentative de Frénésie IA (30). La psychologie de combat se joue aux
- * passes de Round (`openRoundStartPsych`, `openRoundEndCascade`, LDB 21 l.9, l.25), pas ici. Le golden
- * `turnStart.golden.hors-store.test.ts` fige l'ordre + les tirages RNG byte-pour-byte.
- *
- * Ces hooks ne tournent que pour l'ENNEMI actif (`runEnemyAI` est enemy-only) ; les fonctions ont en
- * plus leurs propres gardes `kind`/capacité internes (no-op pour un héros), comportement conservé.
+ * Les crochets tournent pour tout combattant que l'IA conduit (`runEnemyAI`, `aiDriven` : héros en Auto-combat
+ * compris) ; chacun porte ses gardes de capacité (`hasRage`, `aiMaybeFrenzy`). `aiJetteraitUnSort` vient de combatFlow,
+ * lu à l'appel seulement.
  */
 import { nomDe } from '../../engine/nom';
 import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
@@ -40,21 +37,19 @@ import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 /** La Cible de la Haine de Rage : le Groupe relatif des adversaires Engagés. LDB 85 l.282 ; Q12 B, #3045 */
 const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
 
-/** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`) — point unique
- *  appelé par `advanceTurn` (tour suivant du Round) ET `lancerLeRound` (1ᵉʳ combattant du Round),
- *  pour ne pas dupliquer le déclenchement. Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
+/** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`), joués par l'ouverture de tour
+ *  unique (`ouvrirLeTour`, combatFlow). Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
  *  Journalisé en `detail` (kind agnostique — l'IA comme le héros). No-op si hors d'action. Il matérialise d'abord la
  *  barre du combattant (`materialiserLaBarre`), avant tout rendu de son tour. */
-export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant | undefined): void {
-  if (c && !isOutOfAction(c)) {
+export function fireTurnStartTriggers(get: Get, set: SetFn, c: Combatant): void {
+  if (!isOutOfAction(c)) {
     const { barre } = materialiserLaBarre(c, objetDuNarratif(get().campaignNarratif));
     if (barre !== c.barre) c.barre = barre;
   }
   fireTurnEdgeTriggers(get, set, c, 'onTurnStart');
-  // Mode « Avantage de groupe » : un octroi d'Avantage par OP au début du tour (Redoutable, ZI : complète
-  // jusqu'à l'Indice — op `topUpAdvantage`) écrit sur la projection ; on relève la réserve du camp (adverse
-  // pour une créature) en conséquence. No-op hors mode groupe.
-  if (c) reconcileAdvantageToPool(get, c);
+  // Mode « Avantage de groupe » : l'op `topUpAdvantage` (Redoutable) écrit sur la projection, la réserve du camp
+  // se relève d'elle. AA 11 l.30-38
+  reconcileAdvantageToPool(get, c);
 }
 
 /** Effets « fin de tour » authorés du combattant qui CESSE d'être actif (`onTurnEnd`) — appelé par
@@ -76,15 +71,12 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
 }
 
 // ============================================================================================
-// GATE D'ACTION PAR ROUND (op `testDAgir` — Racine de mandragore, LDB 71 l.35 : « Les utilisateurs
-// doivent réussir un Test de Force Mentale à chaque Round pour effectuer une Action ou un Mouvement
-// (un au choix) »). Résolu au DÉBUT du tour du porteur, cadence-aware :
-//  - porteur SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient, cadence manuelle) → étape de
-//    cascade `testDAgir` INFLUENÇABLE ; sur un échec, l'applier INSÈRE une étape
-//    de CHOIX `choixDAgir` (garder l'Action ou le Mouvement) dont l'issue est appliquée directement
-//    sur la battle COURANTE (le tour vient de commencer) ;
-//  - IA / cadence auto → jet inline ; échec = l'Action est GARDÉE (défaut rationnel), le Mouvement est
-//    perdu — FOLDÉ par l'appelant (advanceTurn/lancerLeRound) dans le budget du tour.
+// GATE D'ACTION PAR ROUND (op `testDAgir`, Racine de mandragore, LDB 71 l.35), résolu au début du tour du
+// porteur, cadence-aware :
+//  - porteur SURFACÉ (`surfaceOf`) → étape de cascade `testDAgir` INFLUENÇABLE ; sur un échec, l'applier INSÈRE
+//    l'étape de CHOIX `choixDAgir`, dont l'issue s'applique sur la battle COURANTE (le tour vient de commencer) ;
+//  - personne ne le tient → jet inline ; sur un échec, l'Action est gardée (choix de l'IA), le Mouvement perdu,
+//    replié par `ouvrirLeTour` dans le budget du tour.
 // ============================================================================================
 
 export interface ActGateOutcome { loseMovement: boolean; lines: string[] }
@@ -124,23 +116,19 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
 }
 
 // ============================================================================================
-// Fonctions de cycle de tour ennemi. Elles journalisent ELLES-MÊMES (kinds `frenzy`/`fear` via `ev`) —
-// le `sink` du ctx n'est pas requis ici (contrairement à roundHooks).
+// Crochets de début de tour de l'IA. Ils journalisent eux-mêmes (`ev`), sans le `sink` du ctx.
 // ============================================================================================
 
 const FORCE_MENTALE: TestDesigne = { characteristic: 'force-mentale' };
 
-/** L'IA tente d'entrer en Frénésie au début de son tour (LDB 21 l.31) : combattant capable, pas déjà
- *  frénétique ni immunisé à la Psychologie, avec un adversaire vivant en Ligne de Vue → Test de Force
- *  Mentale ; sur un succès, il entre en Frénésie (état psy `frenesie` posé en `psychState`). La SORTIE est
- *  un effet déclenché `onTurnStart` en DONNÉES (`psychology.json`), jamais un hook `end-frenzy` par-nom. */
+/** L'IA tente d'entrer en Frénésie au début de son tour : combattant capable (`peutEntrerEnFrenesie`), sans immunité
+ *  psychologique, un adversaire vivant en Ligne de Vue. La sortie est un effet `onTurnStart` en donnée
+ *  (`psychology.json`). LDB 21 l.31, l.35 */
 export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   if (!aiDriven(get(), enemy) || enemy.psychImmune || isOutOfAction(enemy) || !peutEntrerEnFrenesie(enemy)) return;
-  if (!hasFoeInLoS(get, enemy)) return; // adversaire vivant en Ligne de Vue (primitive partagée, sens acteur→foe)
-  // RAW : l'entrée en Frénésie est un CHOIX (psychologie.md l.170) → l'IA la DIFFÈRE tant que sa meilleure
-  // action est de PRÉPARER un sort (buff/invocation/dégâts). L'Unicité les retire un à un ; quand il ne reste
-  // que charger, la Frénésie passe au tour suivant. Peek déterministe, sans RNG (avant le test FM) → aucune
-  // perturbation du flux `battleRng` quand on diffère, golden RNG préservé sinon.
+  if (!hasFoeInLoS(get, enemy)) return;
+  // L'IA diffère ce choix tant que sa meilleure action est de préparer un sort (`aiJetteraitUnSort`, sans RNG).
+  // LDB 21 l.31
   if (aiJetteraitUnSort(get, enemy.id)) return;
   if (resolveFrenzyEntry({ porteur: enemy.id, teste: FORCE_MENTALE }, testValue(enemy, FORCE_MENTALE), battleRng()).success) {
     (enemy.psychState ??= []).push({ type: PSY.frenesie });
@@ -148,19 +136,13 @@ export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
   }
 }
 
-// ============================================================================================
-// Hooks `turnStart` : la séquence RAW de début de tour ennemi, migrée ISO-COMPORTEMENT depuis la tête
-// de `runEnemyAI`. Les `order` encodent la dépendance d'ordre.
-// Chaque `run()` appelle au RUNTIME la fonction/le bloc correspondant (pas de souci de cycle à l'import).
-// ============================================================================================
-
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = ['testDAgir', 'choixDAgir'] as const;
 
 /** Les tables que ce module déclare au jeu (`noyau/tablesDuJeu.ts`). */
 export const TABLES = {
   appliers: {
-    // Étape `testDAgir` (héros manuel) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
+    // Étape `testDAgir` (porteur surfacé) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
     testDAgir: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       if (step.result.success) return { consequences: freeCons([t('turn.testDAgirReussi', { name: nomDe(hero) })]) };
@@ -179,7 +161,7 @@ export const TABLES = {
         ...(choix ? { insert: [choix] } : {}),
       };
     },
-    // Étape `choixDAgir` : applique l'issue sur la battle COURANTE (le tour du héros vient de démarrer).
+    // Étape `choixDAgir` : applique l'issue sur la battle COURANTE (le tour du porteur vient de démarrer).
     choixDAgir: (get, set, step, hero) => {
       if (!hero) return;
       const battle = get().battle;

@@ -42,17 +42,47 @@ import type { PlayerText } from '../i18n/playerText';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
- *  la policy `mer-naufrage-natation`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade). */
-const swimTestLabel = (diff: Difficulty): PlayerText =>
+ *  la policy `mer-naufrage-natation`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade) et
+ *  pour le document que l'hôte rédige. */
+export const swimTestLabel = (diff: Difficulty): PlayerText =>
   t('step.sujetPrecision', { sujet: refLabel('skills', { id: 'natation' }), precision: DIFFICULTY_LABELS[diff] });
 
-/** Lieu le plus proche d'un point de la carte (distance euclidienne sur `pos`) — pris dans la liste
- *  fournie par l'appelant, jamais dans `map.places` brut (un naufrage n'échoue pas le groupe sur un
- *  lieu que le récit n'a pas révélé, #684). */
 /** Le Test du nageur d'un naufrage, et ce qu'il teste. LDB 18 l.344 */
 const SUJET_NATATION = { skill: { id: 'natation' }, characteristic: 'force' } as const;
 const NATATION: TestDesigne = { skill: SUJET_NATATION.skill };
 
+/** Ce que devient un héros à bord du navire qui sombre : hors d'état, il sombre sans jet ; sinon son Test de Natation
+ *  le fait nager jusqu'à la côte ou le noie. LDB 18 l.344 */
+export type IssueDuNaufrage =
+  | { issue: 'inconscient' }
+  | { issue: 'nage' | 'noye'; test: { roll: number; target: number; sl: number; difficulty: Difficulty } };
+
+/** Le document d'un naufrage (MDG 13 l.674) : ses FAITS, les noms vus gelés à l'écriture (`nomDe`), que l'hôte
+ *  rédige. `cargaison` : la Possession qui sombre avec la coque ; `rivage` : le lieu où les rescapés s'échouent,
+ *  `null` sans carte. */
+export interface DocumentDeNaufrage {
+  genre: 'naufrage';
+  navire: { nom: string };
+  cargaison: { nom: string } | null;
+  heros: ({ id: string; nom: string } & IssueDuNaufrage)[];
+  rivage: { id: string; nom: string } | null;
+}
+
+/** Ce qu'un naufrage sait dès qu'il coule, porté jusqu'à sa clôture (`finishShipwreck`) : le navire, sa cargaison,
+ *  les héros hors d'état qui sombrent sans jet, et le rivage. */
+interface NaufrageEnCours {
+  navire: DocumentDeNaufrage['navire'];
+  cargaison: DocumentDeNaufrage['cargaison'];
+  inconscients: string[];
+  rivage: MapPlace | undefined;
+}
+
+/** Le Test de Natation d'un nageur, résolu. */
+interface Nage { id: string; roll: number; target: number; sl: number; success: boolean }
+
+/** Lieu le plus proche d'un point de la carte (distance euclidienne sur `pos`) — pris dans la liste
+ *  fournie par l'appelant, jamais dans `map.places` brut (un naufrage n'échoue pas le groupe sur un
+ *  lieu que le récit n'a pas révélé, #684). */
 function nearestPlaceTo(places: MapPlace[], pos: { x: number; y: number }): MapPlace | undefined {
   let best: MapPlace | undefined;
   let bestD = Infinity;
@@ -91,15 +121,15 @@ function shorePlace(get: Get): MapPlace | undefined {
  */
 export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] } = {}): void {
   const vessel = get().vessel;
-  const shipName = vessel ? nomDuNavire(vessel) : nomDe(garanti(get().travelPlan?.vehicle, get().travelPlan?.routeId, 'navire qui sombre'));
+  const navire = { nom: vessel ? nomDuNavire(vessel) : nomDe(garanti(get().travelPlan?.vehicle, get().travelPlan?.routeId, 'navire qui sombre')) };
   const diff = rule('mer-naufrage-natation') as Difficulty;
   const shore = shorePlace(get);
   const aboardSet = opts.aboardIds ? new Set(opts.aboardIds) : null;
   const isAboard = (h: Combatant) => (aboardSet ? aboardSet.has(h.id) : !h.dead);
 
-  const journalMark = get().journal.length;
   // MDG 13 l.674
-  const opening: string[] = [t('wreck.sinks', { ship: shipName })];
+  const opening: string[] = [t('wreck.sinks', { ship: navire.nom })];
+  let cargaison: DocumentDeNaufrage['cargaison'] = null;
   // Cascade Possession (#618 SOCLE POSSESSIONS) : `CampaignVessel` et `Possession{nature:'navire'}`
   // n'ont pas de `uid` partagé — la clé de jointure est `vehicleId` (`NavalPossessionState` miroite déjà
   // `CampaignVessel`, `engine/possession.ts`). Navire trouvé au registre → sa Possession et toute
@@ -116,10 +146,12 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
           return p;
         }),
       });
-      opening.push(t('wreck.cargoSinks', { label: possessionLabel(sunk) }));
+      cargaison = { nom: possessionLabel(sunk) };
+      opening.push(t('wreck.cargoSinks', { label: cargaison.nom }));
     }
   }
   const swimmerIds: string[] = [];
+  const inconscients: string[] = [];
   const party = get().party.map((h) => {
     if (!isAboard(h) || h.dead) return h;
     // Un héros HORS D'ÉTAT ne peut pas nager (LDB 18 l.344 : suffocation) → il sombre — prédicat de
@@ -129,6 +161,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     // donc écarté du prédicat ; dead/inconscient/Mort Subite restent des voies RÉELLES d'incapacité.
     if (isOutOfAction({ ...h, outOfRencontre: false })) {
       opening.push(t('wreck.unconscious', { name: nomDe(h) }));
+      inconscients.push(h.id);
       return { ...h, dead: true };
     }
     swimmerIds.push(h.id);
@@ -139,7 +172,8 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   set({ party, vessel: null, travelPlan: null, travelRecap: null, worldMapOpen: false });
   get().ecrireAuJournal([t('wreck.banner'), ...opening]);
 
-  if (!swimmerIds.length) { emitShipwreckLines(get, finishShipwreck(get, set, shore, [], journalMark)); return; }
+  const naufrage: NaufrageEnCours = { navire, cargaison, inconscients, rivage: shore };
+  if (!swimmerIds.length) { emitShipwreckLines(get, finishShipwreck(get, set, naufrage, [], diff)); return; }
 
   const swimmers = swimmerIds.map((id) => get().party.find((h) => h.id === id)!);
   const rng = battleRng();
@@ -148,6 +182,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // `corruptionFlow` — un pilote humain remonte en modale, sinon on résout et on journalise).
   if (!swimmers.some((h) => humanControlled(get(), h))) {
     const lines: string[] = [];
+    const nages: Nage[] = [];
     for (const h of swimmers) {
       // Aucune rangée nulle part sur ce chemin (repli sans pilote humain, aucune cascade démarrée) —
       // le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`) comme toute ligne de dé.
@@ -158,10 +193,11 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
         // LDB 18 l.344
         issue: tr.success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
       }));
+      nages.push({ id: h.id, roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success });
       if (tr.success) { h.outOfRencontre = false; h.exitReason = undefined; } else h.dead = true;
     }
     set({ party: [...get().party] });
-    emitShipwreckLines(get, [...lines, ...finishShipwreck(get, set, shore, swimmerIds, journalMark)]);
+    emitShipwreckLines(get, [...lines, ...finishShipwreck(get, set, naufrage, nages, diff)]);
     return;
   }
 
@@ -171,7 +207,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // drapeau d'étape. La clôture (dernière étape validée) exécute `finishShipwreck` —
   // `purpose:'test'` : aucun crochet dédié requis dans le store (générique, `dispatchCascadeDone`
   // n'a rien à router).
-  const meta = { shoreId: shore?.id ?? '', journalMark };
+  const meta = { shoreId: shore?.id ?? '', navire: navire.nom, cargaison: cargaison?.nom, inconscients };
   const steps: CascadeStep[] = swimmers.map((h) => {
     const value = testValue(h, SUJET_NATATION);
     const human = humanControlled(get(), h);
@@ -195,23 +231,28 @@ function emitShipwreckLines(get: Get, lines: string[]): void {
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
-/** Clôture commune (inline ET cascade) : rescapés déduits de `swimmerIds` (les vivants parmi eux),
- *  échouage au rivage le plus proche (`arriverAuLieu`), modale document (texte = la tranche de journal
- *  DÉJÀ écrite depuis `journalMark`, complétée des lignes renvoyées ICI), puis `checkPartyWiped`.
- *  Renvoie les lignes à journaliser par l'appelant (dans le BON ordre — cascade : via le retour
- *  d'applier ; inline : via `emitShipwreckLines`). */
-function finishShipwreck(get: Get, set: Set, shore: MapPlace | undefined, swimmerIds: string[], journalMark: number): string[] {
-  const survivors = swimmerIds
-    .map((id) => get().party.find((h) => h.id === id))
-    .filter((h): h is Combatant => !!h && !h.dead)
-    .map(nomDe);
+/** Clôture commune (inline ET cascade) : rescapés = les nageurs dont le Test de Natation a réussi, échouage au
+ *  rivage le plus proche (`arriverAuLieu`), document du naufrage (`DocumentDeNaufrage`, l'issue de chaque héros dans
+ *  l'ordre du groupe), puis `checkPartyWiped`. Renvoie les lignes à journaliser par l'appelant (dans le BON ordre —
+ *  cascade : via le retour d'applier ; inline : via `emitShipwreckLines`). */
+function finishShipwreck(get: Get, set: Set, naufrage: NaufrageEnCours, nages: Nage[], difficulty: Difficulty): string[] {
+  const shore = naufrage.rivage;
+  const heros = get().party.flatMap((h): DocumentDeNaufrage['heros'] => {
+    const nage = nages.find((n) => n.id === h.id);
+    if (nage) return [{ id: h.id, nom: nomDe(h), issue: nage.success ? 'nage' : 'noye', test: { roll: nage.roll, target: nage.target, sl: nage.sl, difficulty } }];
+    return naufrage.inconscients.includes(h.id) ? [{ id: h.id, nom: nomDe(h), issue: 'inconscient' }] : [];
+  });
+  const survivors = heros.filter((h) => h.issue === 'nage').map((h) => h.nom);
   const lines: string[] = [];
   if (shore) lines.push(survivors.length
     ? t('wreck.survivors', { names: survivors.join(', '), place: shore.label })
     : t('wreck.noSurvivor'));
   // #686
   if (survivors.length && shore) arriverAuLieu(set, shore);
-  get().remettreLeDocument({ title: t('wreck.title'), text: [...get().journal.slice(journalMark).map((e) => e.texte), ...lines].join('\n\n') });
+  get().remettreLeDocument({
+    genre: 'naufrage', navire: naufrage.navire, cargaison: naufrage.cargaison, heros,
+    rivage: shore ? { id: shore.id, nom: shore.label } : null,
+  });
   // Aucun survivant → défaite hors combat (écran unique `checkPartyWiped`).
   checkPartyWiped(get, set);
   return lines;
@@ -237,11 +278,20 @@ export const TABLES = {
       if (success) { hero.outOfRencontre = false; hero.exitReason = undefined; } else hero.dead = true;
       set({ party: [...get().party] });
       if (ctx.index !== ctx.steps.length - 1) return { consequences: freeCons([line]) };
-      const shoreId = String(step.meta?.shoreId ?? '');
-      const journalMark = Number(step.meta?.journalMark ?? 0);
-      const swimmerIds = ctx.steps.filter((s) => s.kind === 'naufrageNatation').map((s) => s.actorId!);
-      const shore = shoreId ? placeById(get().worldMap as WorldMap, shoreId) : undefined;
-      return { consequences: freeCons([line, ...finishShipwreck(get, set, shore, swimmerIds, journalMark)]) };
+      const m = step.meta ?? {};
+      const shoreId = String(m.shoreId ?? '');
+      const naufrage: NaufrageEnCours = {
+        navire: { nom: String(m.navire) },
+        cargaison: m.cargaison ? { nom: String(m.cargaison) } : null,
+        inconscients: (m.inconscients as string[] | undefined) ?? [],
+        rivage: shoreId ? placeById(get().worldMap as WorldMap, shoreId) : undefined,
+      };
+      // L'étape en cours porte SON résultat ; les nageurs précédents, le leur (`ctx.steps`).
+      const nages = ctx.steps.filter((s) => s.kind === 'naufrageNatation').map((s) => {
+        const r = garanti(s.id === step.id ? step.result : s.result, s.id, 'Test de Natation résolu');
+        return { id: s.actorId!, roll: garanti(r.roll, s.id, 'dé de Natation'), target: garanti(r.target, s.id, 'cible de Natation'), sl: r.sl, success: r.success };
+      });
+      return { consequences: freeCons([line, ...finishShipwreck(get, set, naufrage, nages, diff)]) };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

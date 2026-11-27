@@ -16,6 +16,7 @@ import type { Pt } from './monde/path';
 import { actorIn } from './monde/combatants';
 import { footprintN } from './monde/footprint';
 import { placeCombatant } from './monde/spawn';
+import { lancerLeRoundDu } from './ouvertureDuTour.testkit';
 
 /** L'acteur `c` relu par son id dans l'état de `getState` : une écriture copie le combattant dont le maximum
  *  des Blessures bouge (`transitionDuJeu.ts`), une référence prise avant elle désigne l'ancien objet. */
@@ -53,13 +54,13 @@ export interface ProprietaireDuDuel {
   abandonner: () => void;
 }
 
-/** Ouvre chez `p` le combat `encId` de `scene` avec le groupe `party` : la scène, le combat, la manche confirmée, les
- *  suites programmées abandonnées. */
+/** Ouvre chez `p` le combat `encId` de `scene` avec le groupe `party` : la scène, le combat, ses Tests d'ouverture joués
+ *  et le Round 1 lancé (`lancerLeRoundDu`), les suites programmées abandonnées. */
 export function ouvrirLeCombat(p: ProprietaireDuDuel, scene: Scene, party: JeuDuNoyau['party'], encId: string): void {
   p.setState({ screen: 'campaign', party });
   p.getState().lancerLaScene(scene);
   p.getState().lancerLeCombat(encId);
-  p.getState().fenetreValider('debutDuRound');
+  lancerLeRoundDu(p);
   p.abandonner();
 }
 

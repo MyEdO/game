@@ -1,5 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { describe, it, expect, beforeEach } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { shipboardSouls } from './shipCrew';
@@ -24,7 +24,16 @@ import { skillBaseValue, testValue, partyAssisted } from '../engine/skills';
 import { DIFFICULTY_MODIFIERS } from '../engine/types';
 import { buildScene } from './mapSpec';
 import type { Combatant, SkillInstance } from '../engine/types';
-import type { CascadeStep } from './pendings';
+import type { CascadeStep, PendingCascade } from './pendings';
+import type { RecapLine } from './recapLine';
+import type { TravelRecapDay } from './travelFlow';
+import * as cascadeNs from './cascade';
+import { setClotureDeCascade } from './cascade';
+import { dispatchCascadeDone } from './combatSlice';
+import { jeuBranche } from './branchement';
+import { contractDisease } from '../engine/disease';
+import { deFixe } from '../engine/dice.testkit';
+import { garanti } from '../lib/garanti';
 import type { Possession } from '../engine/possession';
 import type { MapRoute, MapRouteTrace, WorldMap } from './worldMap';
 
@@ -506,11 +515,12 @@ describe('exposition hydrique de la descente (MSRC 16 l.5-13) — dé d’auteur
     while (get().pendingCascade?.purpose === 'travelDay' && g++ < 200) avanceEtapeCascade(get);
     const chance = get().pendingCascade!;
     expect(chance.participants[chance.cursor].kind, 'le dé d’auteur est joué par le siège du monde (#1426)').toBe('fleuveExpositionTirage');
+    expect(chance.purpose, 'purpose dédié : sa clôture reprend la fin du jour (#344)').toBe('riverExposure');
     avanceEtapeCascade(get);
+    // Le dé réussi insère dans SA cascade un Test d'Exposition par héros : une seule clôture pour le dé et ses Tests.
     const pc = get().pendingCascade;
-    expect(pc?.purpose, 'purpose dédié : sa clôture reprend la fin du jour (#344)').toBe('riverExposure');
-    expect(pc?.participants.every((s) => s.kind === 'fleuveExposition')).toBe(true);
-    expect(pc?.participants.length).toBe(get().party.filter((h) => !h.dead).length);
+    expect(pc?.purpose).toBe('riverExposure');
+    expect(pc?.participants.slice(pc.cursor).map((s) => s.kind)).toEqual(get().party.filter((h) => !h.dead).map(() => 'fleuveExposition'));
     expect(lignesDeResistance(), 'la fenêtre montre les dés : le journal ne les redit pas').toEqual([]);
   });
 
@@ -1115,5 +1125,75 @@ describe('#1341 — la spec d’un Test se demande par ID (la donnée en stocke 
     expect(attendu.value, 'la fixture a bien un réparateur compétent').toBeGreaterThan(45);
     expect(repair!.base, 'Niveau de Compétence NU du réparateur (jamais la carac nue)')
       .toBe(skillBaseValue(attendu.actor, { skill: { id: 'metier', spec: 'construction-de-bateaux' } }));
+  });
+});
+
+describe('chronique fluviale (#4574) : chaque jour clos pousse son `TravelRecapDay`, fait des étapes closes du jour', () => {
+  /** Les lignes d'une cascade close, rangée par rangée (`stepRecapLines`, sans phase hors catalogue). */
+  const lignesDeLEtape = (st: CascadeStep): RecapLine[] => (st.participants ? st.participants.flatMap((p) => p.outcome ?? []) : (st.outcome ?? []));
+  const lignesDeLaCascade = (c: PendingCascade): RecapLine[] => c.participants.flatMap(lignesDeLEtape);
+  /** Une cascade close du jour où une étape du genre `kind` a des conséquences. */
+  const aDesConsequences = (clos: PendingCascade[], kind: string) => clos.some((c) => c.participants.some((st) => st.kind === kind && lignesDeLEtape(st).length > 0));
+
+  /** Joue la descente de `km` à la cadence `cadence` jusqu'à l'accostage, après 45 lignes de journal antérieures, en vidant
+   *  le journal à chaque clôture de cascade : rend chaque journée poussée (halte, puis récit d'arrivée) avec les cascades
+   *  closes depuis la précédente et l'état fluvial lu à la clôture de son `travelDay`. Les clôtures passent par la
+   *  clôture injectée (journée jouée d'un trait) et par la validation d'étape (fenêtre, `advanceCascade`). */
+  function descendre(km: number, cadence: 'commande' | 'jourParJour', contagieux: boolean, trace: Partial<MapRouteTrace>) {
+    launch(false, km, trace);
+    if (contagieux) set({ party: get().party.map((h, k) => (k === 0 ? { ...h, diseases: [contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!] } : h)) });
+    get().ecrireAuJournal(Array.from({ length: 45 }, (_, i) => `ligne antérieure ${i}`));
+    const clos: PendingCascade[] = [];
+    const vents: { vent: { force: string; direction: string }; pourcentageDuVent: number; derive: boolean }[] = [];
+    const avantLaFin = (done: PendingCascade | null | undefined) => {
+      if (!done) return;
+      const river = get().travelPlan?.river;
+      if (done.purpose === 'travelDay' && river) vents.push({ vent: { force: river.windForce, direction: river.windDir }, pourcentageDuVent: river.day?.pourcentageDuVent ?? 0, derive: !!river.day?.forceDrift });
+      clos.push(done);
+      set({ journal: [] });
+    };
+    const b = garanti(jeuBranche(), 'banc', 'jeu branché');
+    setClotureDeCascade((done) => { avantLaFin(done); dispatchCascadeDone(b.get, b.set, done); });
+    const ns = cascadeNs as unknown as Record<string, unknown>;
+    const avancer = ns.advanceCascade as typeof cascadeNs.advanceCascade;
+    vi.spyOn(ns, 'advanceCascade', 'get').mockReturnValue(((g, s) => { const d = avancer(g, s); avantLaFin(d); return d; }) as typeof cascadeNs.advanceCascade);
+    const journees: { jour: TravelRecapDay; clos: PendingCascade[] }[] = [];
+    let depuis = 0;
+    banc.subscribe((s, p) => {
+      const neuves = (s.travelPlan?.log ?? []).length > (p.travelPlan?.log ?? []).length ? s.travelPlan!.log!.slice((p.travelPlan?.log ?? []).length)
+        : s.travelRecap && s.travelRecap !== p.travelRecap ? s.travelRecap.days : [];
+      for (const jour of neuves) { journees.push({ jour, clos: clos.slice(depuis) }); depuis = clos.length; }
+    });
+    try {
+      seedBattleRng(1);
+      get().partirEnVoyage('r-reik', 'barge-fluviale', { cadence });
+      for (let jour = 0; jour < 8 && get().travelPlan; jour++) {
+        draineCascade(get, 400);
+        if (get().pendingRest) { get().fenetreValider('repos'); draineCascade(get, 400); }
+      }
+    } finally { vi.restoreAllMocks(); }
+    expect(get().lieu, 'la descente a accosté').toBe('B');
+    return { journees, vents };
+  }
+
+  for (const cadence of ['commande', 'jourParJour'] as const) {
+    it(`${cadence} : la journée porte EXACTEMENT les conséquences de ses cascades closes, Exposition et contagion comprises, et le vent du jour`, () => {
+      const { journees, vents } = descendre(60, cadence, true, { riverPerils: [{ perilId: 'debris', chancePct: 100 }], riverExposure: { source: 'grande-ville-marais', mode: 'ingestion', chancePct: 100 } });
+      expect(journees.length, 'deux jours : une halte, puis l’accostage').toBe(2);
+      journees.forEach(({ jour, clos }, k) => {
+        expect(clos.map((c) => c.purpose), `jour ${k + 1}`).toEqual(expect.arrayContaining(['travelDay', 'riverExposure']));
+        expect(aDesConsequences(clos, 'fleuveExposition'), `jour ${k + 1} : l’Exposition a des conséquences`).toBe(true);
+        expect(jour.lines.map(({ text, tone }) => ({ text, tone })), `jour ${k + 1}`).toEqual(clos.flatMap(lignesDeLaCascade).map(({ text, tone }) => ({ text, tone })));
+        expect(jour.river, `jour ${k + 1}`).toEqual(vents[k]);
+      });
+      expect(aDesConsequences(journees[0].clos, 'contagion'), 'la contagion du premier soir').toBe(true);
+    });
+  }
+
+  it('un trajet de trois jours et plus pousse une journée non vide par jour, celle de l’accostage comprise', () => {
+    const { journees } = descendre(150, 'commande', false, {});
+    expect(journees.length).toBeGreaterThanOrEqual(3);
+    for (const [k, { jour }] of journees.entries()) expect(jour.lines.length, `jour ${k + 1}`).toBeGreaterThan(0);
+    expect(journees[journees.length - 1].jour.kmTo, 'la dernière journée finit à l’accostage').toBe(150);
   });
 });

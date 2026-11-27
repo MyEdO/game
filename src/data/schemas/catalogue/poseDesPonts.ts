@@ -45,7 +45,7 @@ export function refusDePoseDesPonts(scene: GrilleDesPonts, entite: AncreDesPonts
 }
 
 /** Les bornes hautes sont exclusives : le rectangle peut toucher les quatre bords. */
-export const rectangleDansLaGrille = (grille: GrilleDesPonts['dimensions'], r: NonNullable<ReturnType<typeof rectangleDesPonts>>): boolean =>
+const rectangleDansLaGrille = (grille: GrilleDesPonts['dimensions'], r: NonNullable<ReturnType<typeof rectangleDesPonts>>): boolean =>
   r.x >= 0 && r.y >= 0 && r.x + r.w <= grille.w && r.y + r.h <= grille.h;
 
 /** Le rectangle des ponts que la scène pose pour `entite` : ses ponts à l'échelle, contenus dans la carte, sinon `null`. */

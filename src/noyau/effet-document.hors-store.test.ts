@@ -5,7 +5,7 @@
  * sa fermeture (`fenetreFermer('document')`, EDO 02 l.89-95, #686).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { ouvrirLeBanc, type Banc, documentDAuteur } from './banc.testkit';
 import { runFlow, applyEffects } from './combatEffects';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { emptyScene, type Scene } from './monde/scene';
@@ -49,7 +49,7 @@ describe('Effect `document` — le registre narratif atteint la modale', () => {
       documents: [{ ...narratif.documents[0], source: { book: 'livre-de-base', page: 90 } }],
     }, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'document', documentId: 'doc-affiche' }]);
-    expect(banc.getState().document?.source).toEqual({ book: 'livre-de-base', page: 90 });
+    expect(documentDAuteur(banc.getState())?.source).toEqual({ book: 'livre-de-base', page: 90 });
   });
 
   it('id INCONNU : aucune modale, un avertissement nommé', () => {
@@ -67,9 +67,9 @@ describe('Effect `document` — le registre narratif atteint la modale', () => {
 describe('Effect `document` — chaque document se lit avant la suite', () => {
   it('`seq [3, 4]` : le 3 s’affiche ; le 4 après sa fermeture ; la suite après le 4', () => {
     runFlow(get, banc.setState, { kind: 'sequence', etapes: [remettre('doc-heritage'), remettre('doc-affidavit'), { kind: 'effet', effet: { type: 'setFlag', flag: 'lus' } }] });
-    expect(get().document?.title).toBe('Document 3 : L’héritage');
+    expect(documentDAuteur(get())?.title).toBe('Document 3 : L’héritage');
     get().fenetreFermer('document');
-    expect(get().document?.title).toBe('Document 4 : L’affidavit');
+    expect(documentDAuteur(get())?.title).toBe('Document 4 : L’affidavit');
     expect(get().flags.lus).toBeUndefined();
     get().fenetreFermer('document');
     expect(get().document).toBeNull();
@@ -87,7 +87,7 @@ describe('Effect `document` — chaque document se lit avant la suite', () => {
     runFlow(get, banc.setState, { kind: 'sequence', etapes: [remettre('doc-heritage'), { kind: 'effet', effet: { type: 'setFlag', flag: 'suite' } }] });
     banc.setState({ net: { ...get().net, mode: 'invite' } });
     get().fenetreFermer('document');
-    expect(get().document?.title).toBe('Document 3 : L’héritage');
+    expect(documentDAuteur(get())?.title).toBe('Document 3 : L’héritage');
     expect(get().flags.suite).toBeUndefined();
   });
 });

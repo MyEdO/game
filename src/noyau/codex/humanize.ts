@@ -318,6 +318,7 @@ export function humanizeCondition(c: Condition, etats: readonly EtatDeclare[], n
       : (c.hostiles ? 'codex.c.cibleEnVue.hostile' : 'codex.c.cibleEnVue'));
     case 'hiddenFromFoes': return t(neg ? 'codex.c.hiddenFromFoes.non' : 'codex.c.hiddenFromFoes');
     case 'engaged': return t(neg ? 'codex.c.engaged.non' : 'codex.c.engaged');
+    case 'allieAuContact': return t(neg ? 'codex.c.allieAuContact.non' : 'codex.c.allieAuContact', { tel: humanizeCondition(c.tel, etats) });
     case 'crewTest': return t(neg ? 'codex.c.crewTest.non' : 'codex.c.crewTest');
     case 'roundDeCombat': return t(neg ? 'codex.c.roundDeCombat.non' : 'codex.c.roundDeCombat');
     case 'nearestFoe': return t('codex.c.nearestFoe', { op: opWord(c.op, neg), valeur: c.value });

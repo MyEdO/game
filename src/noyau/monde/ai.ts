@@ -1304,8 +1304,8 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const chosen = argmax(priereImposee ? jouables.filter((c) => permisSousPriereImposee(c.action, spells)) : jouables);
   if (chosen) return chosen.action;
 
-  // Aucun candidat jouable : un Empêtré (Mouvement nul, LDB 16 l.64) se libère plutôt que perdre son
-  // tour (Test opposé de Force contre la source, l.66). Sinon, passe la main.
-  if (hasCondition(enemy, 'empetre') && !priereImposee) return { kind: 'liberation', state: 'empetre' };
+  // Aucun candidat jouable : un Empêtré (Mouvement nul, LDB 16 l.64) se libère par son Action, s'il l'a encore,
+  // plutôt que perdre son tour (Test opposé de Force contre la source, l.66). Sinon, passe la main.
+  if (hasCondition(enemy, 'empetre') && !priereImposee && !input.actionPrise) return { kind: 'liberation', state: 'empetre' };
   return { kind: 'fin' };
 }

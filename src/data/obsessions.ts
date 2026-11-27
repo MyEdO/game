@@ -22,8 +22,3 @@ export const obsessionsDie = (): DeDeTable => deDeTirageDe<typeof obsessions>(ob
 export const TIRAGE_DE_CIBLE: Readonly<Record<TableDeCibles, (rng: RNG) => string>> = {
   obsessions: (rng) => findTableEntry(OBSESSIONS, rollDice(obsessionsDie(), rng)).id,
 };
-
-/** Les Groupes que chaque table de Cibles peut tirer : ses rangées, lues à l'appel. */
-export const GROUPES_TIRABLES: Readonly<Record<TableDeCibles, () => readonly string[]>> = {
-  obsessions: () => OBSESSIONS.map((e) => e.id),
-};

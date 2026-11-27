@@ -734,7 +734,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
   const noms = { ...nomsEntree, ...tableTotale(clesPosees, k => META_CHARGE[k]), ...(declarees.length ? { variants: { label: LIBELLES_ENVELOPPE.variants } } : {}) };
   // PROSE de la partielle : les verrous de `avecProse` ci-dessous, sans obligation (#2206). Une
   // surcharge ne porte pas l'identité de ce qu'elle surcharge : l'`id` n'est pas un champ du patch.
-  const partielle = marquerProduit(corps.omit({ id: true }).partial(),'document', 'entreePartielle', champsDuDef).superRefine(
+  const partielle = marquerProduit(corps.omit({ id: true }).partial(),'document', 'entreePartielle', champsDuDef).check(
     refineProse({ type, exigeProse: false, porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   const { id: _identite, ...nomsDuPatch } = noms;
@@ -754,7 +754,7 @@ export function document<T extends string, F extends FamilleDocument, C extends 
     : corps;
   // PROSE : les verrous du texte et de son adresse (`grammaire/prose.ts`, V1-V5), au même stade et
   // pour la même raison que le refine de provenance ci-dessus — PRÉ-sceau, sur l'entrée entière.
-  const avecProse = avecProvenance.superRefine(
+  const avecProse = avecProvenance.check(
     refineProse({ type, exigeProse: exiges.includes('desc'), porteurs: porteursDeProse }),
   ) as z.ZodObject<z.ZodRawShape>;
   // CHARGE par discriminant (`espace.chargeParDiscriminant`) : bornée au parse de l'entrée d'une liste,

@@ -25,7 +25,7 @@ import type { IconId } from '../data/schemas/icons';
 import type { PlayerText } from '../i18n/playerText';
 import { battleRng } from './battleRng';
 import { minutesUntilNext, duskMinute, MINUTES_PER_DAY } from '../engine/clock';
-import { effectTargets, openWaterExposure } from './combatEffects';
+import { effectTargets, etapesDExpositionHydrique } from './combatEffects';
 import { ouvrirLeRepos, placesOfKind, routeLieu } from './restFlow';
 import { estBateauFluvial, placeById, type MapPlace, type MapRoute, type WorldMap } from './worldMap';
 import { arriverAuLieu } from './lieuFlow';
@@ -44,9 +44,8 @@ import {
   poserLaReparationTemporaire,
 } from './seaVoyageFlow';
 import { rule } from '../engine/policy';
-import { baseHoursPerDay } from './travelFlow';
+import { baseHoursPerDay, finishRecap, segmentDuVoyage, stepRecapLines } from './travelFlow';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
-import { toRecapLines } from './recapLine';
 import type { TravelMode } from '../engine/travel';
 import { vehicleCombatant } from '../engine/vehicle';
 import { propulsionDuNavire, type PropulsionDuNavire } from '../engine/shipBuild';
@@ -84,7 +83,7 @@ import {
   refusePorte,
   surfaceOf,
   pousseSi,
-  openWorldTest,
+  worldStep,
   type Consequence,
   type LigneNommee,
 } from './rollSeam';
@@ -92,7 +91,7 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { actorIn, equipageApte } from './monde/combatants';
 import { garanti } from '../lib/garanti';
 import { traverseeCommandee, DEFAULT_VOYAGE_ORDERS, type VoyageCadence, type VoyageOrders } from './voyageCadence';
-import { WORLD_STEP_OWNER, type CascadeStep, type CascadeStepMeta } from './pendings';
+import { WORLD_STEP_OWNER, type CascadeStep, type CascadeStepMeta, type PendingCascade } from './pendings';
 import type { Get, Set } from './flowTypes';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
@@ -149,8 +148,19 @@ export interface RiverVoyageState {
   /** Facteur de progression du jour EN COURS (déblaiement d'un barrage, MSRC 7 l.128), posé par l'applier
    *  `fleuveChoixDObstacle`, lu à la clôture pour les km — transitoire comme `day`. Défaut 1. */
   dayAgilityFactor?: number;
-  /** Progression figée pendant le Test hydrique, puis récapitulatif de la journée pendant les Tests de Contraction. */
-  pendingFinish?: { kmDay: number; dayLines: string[] } | { recap: TravelRecapDay; journalMark: number };
+  /** La journée close, figée pendant l'Exposition hydrique (`exposition`) puis pendant les Tests de Contraction
+   *  (`contagion`) : chaque cascade close du jour y verse ses lignes (`stepRecapLines`). */
+  pendingFinish?: { etape: 'exposition' | 'contagion'; jour: TravelRecapDay };
+}
+
+/** Instantané d'un jour fluvial clos (#4574) : le vent du jour (MSRC 7 l.21), sa part de vitesse ou la dérive qui a
+ *  fait ses km, et le barreur ou le réparateur de gréement qui ont manqué. */
+export interface RiverRecapChrome {
+  vent: { force: string; direction: RiverWindDirId };
+  pourcentageDuVent: number;
+  derive: boolean;
+  sansBarreur?: true;
+  sansReparateur?: true;
 }
 
 /** Entrées de VITESSE d'une journée fluviale, figées au build de la cascade du jour (vent) et
@@ -166,9 +176,10 @@ export interface RiverDayContext {
   forceDrift: boolean;
   /** Le vent impose un louvoyage (Modéré/Fort de côté) : le `pourcentageDuVent` n'est acquis qu'avec `fleuveVirementDeBord` réussi. */
   louvoyage?: boolean;
-  /** Longueur du journal au DÉBUT du jour (repère) : le RÉCAP de la halte (`TravelRecapDay.lines`,
-   *  affiché en tête de la modale de nuit) = la tranche de journal écrite depuis ce repère. */
-  journalMark: number;
+  /** Personne ne peut tenter la Navigation du jour. LDB 09 l.30 */
+  sansBarreur?: true;
+  /** Gréement ou avirons brisés sans personne pour les réparer. MSRC 7 l.78-82 */
+  sansReparateur?: true;
 }
 
 const log = (get: Get, _set: Set, lines: string[]) => {
@@ -243,15 +254,18 @@ export function runRiverDays(get: Get, set: Set): void {
   const route = worldMap?.routes.find((r) => r.id === plan.routeId);
   const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
   if (!route || !to) { set({ travelPlan: null }); return; }
-  if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to); return; }
+  if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to, []); return; }
   resolveRiverDay(get, set, route);
 }
 
-function arriveRiver(get: Get, set: Set, to: MapPlace): void {
+/** L'accostage à `to` : le récit du segment (`finishRecap`) porte ses journées `jours`, comme une arrivée à terre. */
+function arriveRiver(get: Get, set: Set, to: MapPlace, jours: TravelRecapDay[]): void {
   const { travelPlan, vessel } = get();
-  const accoste = vessel && estBateauFluvial(vessel) && estLeNavireDeCampagne(travelPlan?.vehicle, vessel);
+  const plan = garanti(travelPlan, to.id, 'descente qui accoste');
+  const accoste = vessel && estBateauFluvial(vessel) && estLeNavireDeCampagne(plan.vehicle, vessel);
   set({ travelPlan: null, ...(accoste ? { vessel: { ...vessel, escale: to.id } } : {}) });
   log(get, set, [t('fleuve.accostage', { to: to.label })]);
+  finishRecap(get, set, segmentDuVoyage(plan, jours), 'arrived');
   arriverAuLieu(set, to);
 }
 
@@ -357,7 +371,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   // % de vent, louvoyage requis. Les appliers le complètent (perte de contrôle, chavirage → dérive).
   const dayCtx: RiverDayContext = {
     baseKm, pourcentageDuVent: eff.pourcentage ?? 0, forceDrift: !!eff.derive || !!river.horsDeControle || !!river.broken,
-    louvoyage: !!eff.louvoyage, journalMark: get().journal.length,
+    louvoyage: !!eff.louvoyage,
   };
   set({ travelPlan: { ...get().travelPlan!, river: { ...river, day: dayCtx } } });
 
@@ -377,7 +391,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
     if (repair) pousseSi(steps, riverStep('river-repair', 'fleuveReparationDeCommande', repair.actor, t('step.riverRepair'), 'voyage/reparer',
       refLabel('skills', { id: 'metier' }), repair.ligne, reparationTemporaireDifficulty(), undefined,
       { stake: voyageStakeRef('fleuve-reparation-greement', { malusDeDerive: driftNavPenalty(), malusHorsDeControle: OUT_OF_CONTROL.navPenalty }) }));
-    else logs.push(t('fleuve.greementSansReparateur'));
+    else { logs.push(t('fleuve.greementSansReparateur')); patchDay(get, set, { sansReparateur: true }); }
   }
 
   // 2. NAVIGATION de l'étape (l.15) : barreur seul (Voile) / meilleur rameur (Ramer), +Savoir (l.13).
@@ -391,8 +405,7 @@ export function buildRiverDayCascade(get: Get, set: Set, route: MapRoute): { ste
   } else {
     // Personne ne peut tenter la Navigation : ÉCHEC sans jet, conséquence de l'échec (LDB 09 l.30 ; #2588 Q1).
     logs.push(refusPersonneNePeutTenter({ skill: competence }), t('fleuve.sansBarreur'));
-    dayCtx.forceDrift = !riverControlKept(ECHEC_SANS_JET.success, ECHEC_SANS_JET.sl, 0);
-    set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: { ...dayCtx } } } });
+    patchDay(get, set, { forceDrift: !riverControlKept(ECHEC_SANS_JET.success, ECHEC_SANS_JET.sl, 0), sansBarreur: true });
   }
 
   // 3. LOUVOYAGE (note 3, l.39) : le +% de vent de côté Modéré/Fort n'est acquis qu'avec un Test réussi.
@@ -460,13 +473,18 @@ function applyBoatCriticalNoPilot(get: Get, set: Set, coque: Combatant, tell: (l
   return insert;
 }
 
+/** Les lignes de la cascade close `done` (`stepRecapLines`) ; aucune sans elle. */
+const lignesDuJour = (done: PendingCascade | undefined) => done?.participants.flatMap(stepRecapLines) ?? [];
+
 /**
  * Clôture de la CASCADE du jour (finalisation `purpose:'travelDay'`, appelée par le store) : recalcule
  * la PROGRESSION du jour à partir du contexte de vitesse (`river.day`, alimenté par les étapes/appliers)
- * par `riverDriftKm` / `riverDayKm` (helpers PURS, source unique) — puis résout l'exposition hydrique et
- * enchaîne halte de nuit / arrivée (`finishRiverDay`). Efface le contexte transitoire.
+ * par `riverDriftKm` / `riverDayKm` (helpers PURS, source unique), fige la journée (`TravelRecapDay` : les lignes
+ * de `done` et son instantané `RiverRecapChrome`) — puis résout l'exposition hydrique et enchaîne halte de nuit /
+ * arrivée (`finishRiverDay`). Efface le contexte transitoire. `done` : la cascade `travelDay` close, absente quand
+ * le jour n'a produit aucune étape.
  */
-export function continueRiverDayAfterCascade(get: Get, set: Set): void {
+export function continueRiverDayAfterCascade(get: Get, set: Set, done?: PendingCascade): void {
   const plan = get().travelPlan;
   if (!plan?.river) return;
   const river = plan.river;
@@ -483,46 +501,23 @@ export function continueRiverDayAfterCascade(get: Get, set: Set): void {
     : riverDayKm(baseKm, ctx?.pourcentageDuVent ?? 0, river.dayAgilityFactor ?? 1);
   if (!sunk) log(get, set, [t('fleuve.progression', { km: Math.round(kmDay), note: ctx?.forceDrift ? t('fleuve.fragmentDeDerive') : (ctx?.pourcentageDuVent ? t('fleuve.fragmentDeVent', { pct: `${ctx.pourcentageDuVent >= 0 ? '+' : ''}${ctx.pourcentageDuVent}` }) : t('fleuve.fragmentDePoint')) })]);
 
-  // RÉCAP du jour (affiché en tête de la halte de nuit) = la tranche de journal écrite depuis le repère.
-  const dayLines = ctx ? get().journal.slice(ctx.journalMark).map((e) => e.texte) : [];
-
-  // Efface le contexte transitoire du jour (jamais persisté au-delà de la journée).
-  set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: undefined, dayAgilityFactor: undefined } } });
-
-  // Exposition hydrique du jour (MSRC 16) — dé d'auteur puis Test (`openWaterExposure`, `fleuveExposition`).
-  // Si elle SURFACE, on DIFFÈRE la halte de nuit à sa clôture : sinon la cascade d'Exposition et la modale
-  // de Repos coexistent, le Repos reprend la route AVANT la résolution de l'Exposition, et celle-ci
-  // (purpose générique `test`) n'a plus de continuation → la journée suivante ne se ré-arme jamais (#344).
-  // Patron du sibling maritime (`seaScorbut`/`seaExhaustion`) : un purpose DÉDIÉ (`riverExposure`) dont la
-  // clôture (`dispatchCascadeDone`) reprend la fin du jour (`continueRiverDayAfterExposure`).
-  // La progression du jour est FIGÉE avant le dé d'Exposition : celui-ci peut ouvrir une FENÊTRE (siège
-  // qui possède le monde, option « Dés fixés ») aussi bien que se résoudre d'un trait, et dans les deux
-  // cas la halte/l'arrivée se rejoue depuis ce point figé (`continueRiverDayAfterExposure`).
-  set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, pendingFinish: { kmDay, dayLines } } } });
-  openRiverExposureChance(get, set, route, sunk);
-  // Quelque chose s'est SURFACÉ (la fenêtre du dé, ou l'Effet d'Exposition qu'il vient d'ouvrir) : la fin
-  // de jour est DIFFÉRÉE à la clôture de cette cascade — sans ce report, la modale de Repos et celle
-  // d'Exposition coexistent et la journée suivante ne se ré-arme jamais (#344).
-  if (marqueExpositionDuJour(get, set)) return;
-  continueRiverDayAfterExposure(get, set);
+  const jour: TravelRecapDay = {
+    kmFrom: plan.kmDone, kmTo: Math.min(plan.km, plan.kmDone + kmDay), hours: 24, lines: lignesDuJour(done),
+    river: {
+      vent: { force: river.windForce, direction: river.windDir }, pourcentageDuVent: ctx?.pourcentageDuVent ?? 0, derive: !!ctx?.forceDrift,
+      ...(ctx?.sansBarreur ? { sansBarreur: true } : {}), ...(ctx?.sansReparateur ? { sansReparateur: true } : {}),
+    },
+  };
+  // La journée est FIGÉE avant le dé d'Exposition, et le contexte transitoire du jour effacé (jamais persisté au-delà
+  // de la journée) : la halte ou l'arrivée se rejoue depuis ce point figé (`continueRiverDayAfterExposure`), que le dé
+  // ouvre une fenêtre ou se résolve d'un trait (#344).
+  set({ travelPlan: { ...get().travelPlan!, river: { ...get().travelPlan!.river!, day: undefined, dayAgilityFactor: undefined, pendingFinish: { etape: 'exposition', jour } } } });
+  if (!ouvrirLExpositionDuJour(get, set, route, sunk)) continueRiverDayAfterExposure(get, set);
 }
 
-/**
- * Marque la cascade ouverte par l'Exposition du purpose DÉDIÉ `riverExposure` — c'est lui qui rend la
- * fin du jour à `continueRiverDayAfterExposure` (#344) au lieu du purpose générique `test`, sans
- * continuation. Posé aux DEUX endroits où l'Exposition peut ouvrir une fenêtre : le dé d'auteur
- * lui-même (dé de MONDE, joué par le siège qui possède le monde) et l'Effet que sa réussite ouvre.
- * Rend `false` quand rien n'est ouvert : la fin du jour se joue alors tout de suite.
- */
-function marqueExpositionDuJour(get: Get, set: Set): boolean {
-  const pc = get().pendingCascade;
-  if (!pc) return false;
-  set({ pendingCascade: { ...pc, purpose: 'riverExposure' } });
-  return true;
-}
-
-/** Reprise après l'Exposition hydrique, puis après les Tests de Contraction si la journée en comporte. */
-export function continueRiverDayAfterExposure(get: Get, set: Set): void {
+/** Reprise après l'Exposition hydrique (`exposition`), puis après les Tests de Contraction (`contagion`) : la
+ *  cascade close `done` verse ses lignes à la journée figée. */
+export function continueRiverDayAfterExposure(get: Get, set: Set, done?: PendingCascade): void {
   const plan = get().travelPlan;
   const river = plan?.river;
   const fin = river?.pendingFinish;
@@ -531,39 +526,42 @@ export function continueRiverDayAfterExposure(get: Get, set: Set): void {
   const route = worldMap?.routes.find((r) => r.id === plan.routeId);
   const to = worldMap ? placeById(worldMap, plan.toPlaceId) : undefined;
   if (!route || !to) { set({ travelPlan: null }); return; }
-  if ('kmDay' in fin) {
-    finishRiverDay(get, set, fin.kmDay, fin.dayLines);
+  const jour: TravelRecapDay = { ...fin.jour, lines: [...fin.jour.lines, ...lignesDuJour(done)] };
+  if (fin.etape === 'exposition') {
+    finishRiverDay(get, set, jour);
     return;
   }
 
   set({ travelPlan: { ...plan, river: { ...river, pendingFinish: undefined } } });
-  if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to); return; }
+  if (plan.km - plan.kmDone < 1e-9) { arriveRiver(get, set, to, [jour]); return; }
 
-  fin.recap.lines.push(...toRecapLines(get().journal.slice(fin.journalMark).map((e) => e.texte)));
   // MDG 03 l.71
   const places = { ...placesOfKind(route.inns ? 'auberge' : 'camp'), ...(get().vessel ? { bord: true } : {}) };
-  ouvrirLeRepos(get, set, { places, lieu: routeLieu(plan), travelHalt: true, travelDay: fin.recap });
+  ouvrirLeRepos(get, set, { places, lieu: routeLieu(plan), travelHalt: true, travelDay: jour });
 }
 
 /**
- * EXPOSITION HYDRIQUE d'une étape (MSRC 16, l.5-13) : tirage d'auteur (`MapRoute.riverExposure`) qui
- * pose le Test d'Exposition (`openWaterExposure`, kind `fleuveExposition`) sur TOUT le groupe. Sautée si
- * le bateau a coulé.
+ * EXPOSITION HYDRIQUE d'une étape (MSRC 16, l.5-13) : tirage d'auteur (`MapRoute.riverExposure`) dont la réussite
+ * insère le Test d'Exposition (kind `fleuveExposition`) de TOUT le groupe dans sa cascade. Sautée si le bateau a
+ * coulé ; rend `false` quand rien ne se tire.
  *
- * Le d100 d'auteur est un dé de MONDE : il DÉCIDE si l'Exposition a lieu, et se pose donc comme les
- * autres (`worldStep`, évaluation `'seuil'` : `dé ≤ chancePct`, ni bande ni DR). Il est poussé EN FIN
- * de la cascade du jour, là où il se tirait — sa conséquence ouvre l'Effet et pose `river.pendingFinish`.
- * La chaîne halte/arrivée ne change PAS de forme : elle reste le différé de clôture
- * (`continueRiverDayAfterExposure`, fix #344), jamais une interruption de trajet.
+ * Le d100 d'auteur est un dé de MONDE (`worldStep`, évaluation `'seuil'` : `dé ≤ chancePct`, ni bande ni DR) : il
+ * DÉCIDE si l'Exposition a lieu. Il se joue après la cascade du jour comme une journée de route (`jouerLaJournee`),
+ * sous le purpose `riverExposure` dont la clôture (`dispatchCascadeDone`) reprend la fin du jour
+ * (`continueRiverDayAfterExposure`, #344), jamais une interruption de trajet.
  */
-function openRiverExposureChance(get: Get, set: Set, route: MapRoute, sunk: boolean): void {
+function ouvrirLExpositionDuJour(get: Get, set: Set, route: MapRoute, sunk: boolean): boolean {
   const ex = route.riverExposure;
-  if (!ex || sunk) return;
-  openWorldTest(get, set, {
-    actionLabel: t('fleuve.libelleDExposition'),
+  if (!ex || sunk) return false;
+  const actionLabel = t('fleuve.libelleDExposition');
+  jouerLaJournee(get, set, [worldStep({
+    id: RIVER_EXPOSURE_KIND, kind: RIVER_EXPOSURE_KIND,
+    label: composeRollLabel(undefined, actionLabel, {}), rollLabel: actionLabel,
     cible: Math.max(0, Math.min(100, ex.chancePct)),
     verdict: { reussite: t('seuil.expose'), echec: t('seuil.nonExpose') },
-  }, RIVER_EXPOSURE_KIND, { exposureMode: ex.mode, exposureSource: ex.source });
+    meta: { exposureMode: ex.mode, exposureSource: ex.source },
+  })], { title: actionLabel, purpose: 'riverExposure' }, traverseeCommandee(get()));
+  return true;
 }
 
 const RIVER_EXPOSURE_KIND = 'fleuveExpositionTirage';
@@ -573,8 +571,8 @@ function controlLabel(kept: boolean, success: boolean): string {
   return t(kept ? 'fleuve.controleRattrape' : 'fleuve.controlePerdu');
 }
 
-/** Patche le contexte de vitesse du jour (`river.day`) — SOURCE UNIQUE des mutations d'entrée de km
- *  depuis un applier (perte de contrôle, louvoyage manqué, chavirage → dérive). */
+/** Patche le contexte du jour (`river.day`) — SOURCE UNIQUE de ses mutations, depuis la construction du jour
+ *  (personne à la barre ni pour réparer) et depuis un applier (perte de contrôle, louvoyage manqué, chavirage → dérive). */
 function patchDay(get: Get, set: Set, patch: Partial<RiverDayContext>): void {
   const river = get().travelPlan?.river;
   if (!river?.day) return;
@@ -838,7 +836,7 @@ function applyEchouageSteps(get: Get, set: Set, idPrefix: string, j: import('./r
 }
 
 /** LDB 20 l.206 ; MDG 14 l.208 */
-function finishRiverDay(get: Get, set: Set, kmDay: number, dayLines: string[]): void {
+function finishRiverDay(get: Get, set: Set, jour: TravelRecapDay): void {
   const plan = get().travelPlan!;
   const river = plan.river!;
 
@@ -852,7 +850,7 @@ function finishRiverDay(get: Get, set: Set, kmDay: number, dayLines: string[]): 
 
   // Vent de demain : 4 tirages (aube/midi/crépuscule/minuit, l.21).
   const nextForce = tickRiverWindDay(river.windForce, battleRng());
-  const kmDone = Math.min(plan.km, plan.kmDone + kmDay);
+  const kmDone = jour.kmTo;
   const arrived = plan.km - kmDone < 1e-9;
   // Horloge : à l'ARRIVÉE, la journée entière passe (+24 h) — l'entretien du jour est rattrapé par le
   // prochain `runDailyUpkeep`. Sinon (HALTE de nuit) la navigation s'arrête au crépuscule : le canon MSRC
@@ -866,13 +864,12 @@ function finishRiverDay(get: Get, set: Set, kmDay: number, dayLines: string[]): 
   const voyageurs = porteursABord(get, set).filter(({ id }) => navireDeCampagne || id !== WORLD_STEP_OWNER);
   const dus = calculerLesTestsDExposition(get, set, minutes, [voyageurs]);
   get().avancerLHorloge(minutes);
-  const recap: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(dayLines) };
   set({
     travelPlan: {
       ...get().travelPlan!, kmDone,
       river: {
         ...river, windForce: nextForce, daysAfloat: river.daysAfloat + 1,
-        pendingFinish: { recap, journalMark: get().journal.length },
+        pendingFinish: { etape: 'contagion', jour },
       },
     },
   });
@@ -924,14 +921,12 @@ export const GENRES_D_ETAPE = [
 ] as const;
 
 const APPLIERS = {
-  [RIVER_EXPOSURE_KIND]: (get, set, step) => {
+  [RIVER_EXPOSURE_KIND]: (get, _set, step) => {
     if (!step.result) return {};
     if (!step.result.success) return { consequences: freeCons([{ text: t('fleuve.sansExposition'), tone: 'neutre' }]) };
     const mode = step.meta?.exposureMode as import('../data').WaterExposureMode;
     const source = step.meta?.exposureSource as string | undefined;
-    openWaterExposure(get, set, effectTargets(get(), 'groupe'), { mode, source }, 'fleuveExposition');
-    marqueExpositionDuJour(get, set);
-    return {};
+    return { insert: etapesDExpositionHydrique(effectTargets(get(), 'groupe'), { mode, source }, 'fleuveExposition') };
   },
   /** Réparation du gréement/avirons (l.78-82 / note 5) : Test de Métier réussi → rend le contrôle. */
   fleuveReparationDeCommande: (get, set, step, hero) => {

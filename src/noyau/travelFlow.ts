@@ -107,6 +107,8 @@ export interface TravelRecapDay {
   events?: import('./recapLine').RecapEvent[];
   /** MER (route COMMANDÉE) : l'instantané du jour clos. */
   sea?: import('./seaVoyageFlow').SeaRecapChrome;
+  /** FLEUVE : l'instantané du jour clos. */
+  river?: import('./riverVoyageFlow').RiverRecapChrome;
   /** MÉTÉO d'Étape (EDOC 8 l.50) = CONTEXTE DU JOUR (arbitrage user 2026-07-11 : « elle doit juste
    *  s'afficher dans un écart lié à la journée », plus de pas de cascade). `id` = la météo du jour, publiée
    *  (`journeeEnVue`) ; `roll` = d100 INTERNE, jamais publié (« y'a que le MJ qui voit le jet de météo »). */
@@ -558,8 +560,13 @@ export function reprendreLeVoyage(get: Get, set: Set): void {
   runTravelDays(get, set);
 }
 
+/** Le récapitulatif du segment de voyage qui part de `plan`, ses journées `days`. PUR. */
+export function segmentDuVoyage(plan: TravelPlan, days: TravelRecapDay[]): TravelRecap {
+  return { depart: plan.fromPlaceId, arrivee: plan.toPlaceId, route: plan.routeId, mode: plan.mode, status: 'arrived', km: plan.km, kmDone: plan.kmDone, days };
+}
+
 /** Clôt le récapitulatif du segment de voyage : statut, distance parcourue, suite du trajet. */
-function finishRecap(get: Get, set: Set, recap: TravelRecap | null | undefined, status: TravelRecap['status'], then?: TravelThen, dureeMin?: number): void {
+export function finishRecap(get: Get, set: Set, recap: TravelRecap | null | undefined, status: TravelRecap['status'], then?: TravelThen, dureeMin?: number): void {
   if (!recap) return;
   recap.status = status;
   recap.kmDone = get().travelPlan?.kmDone ?? recap.km;
@@ -575,11 +582,8 @@ function runTravelDays(get: Get, set: Set): void {
   // Empreinte des maladies DÉJÀ portées au départ — posée une seule fois par trajet (une reprise
   // après interruption retrouve celle du départ). Lue par la Phase d'arrivée (EDOC 09 l.21).
   if (plan0 && !plan0.diseasesAtStart) set({ travelPlan: { ...plan0, diseasesAtStart: diseaseKeys(get().party) } });
-  const recap: TravelRecap | null = plan0 ? {
-    depart: plan0.fromPlaceId, arrivee: plan0.toPlaceId, route: plan0.routeId,
-    mode: plan0.mode, status: 'arrived', km: plan0.km, kmDone: plan0.kmDone,
-    days: [], // SEGMENT courant seulement — les journées passées ont été lues à leur halte du soir
-  } : null;
+  // SEGMENT courant seulement — les journées passées ont été lues à leur halte du soir.
+  const recap: TravelRecap | null = plan0 ? segmentDuVoyage(plan0, []) : null;
   let guard = 0;
   let aPied = false;
   while (true) {
@@ -842,7 +846,7 @@ function buildTravelDayCascade(
  *  BATCH déplie ses PARTICIPANTS (chacun porte SA conséquence, `etapePosteEnBande`/`resistanceALaMeteo`) ;
  *  un pas MONO lit `step.outcome`. `phaseOfKind` (`noyau/recapLine.ts`) rattache la ligne à sa phase — `undefined`
  *  pour un `kind` hors catalogue (silencieux). */
-function stepRecapLines(step: CascadeStep): RecapLine[] {
+export function stepRecapLines(step: CascadeStep): RecapLine[] {
   const phase = phaseOfKind(step.kind);
   const raw = step.participants ? step.participants.flatMap((p) => p.outcome ?? []) : (step.outcome ?? []);
   return phase ? raw.map((l) => ({ ...l, phase })) : raw;

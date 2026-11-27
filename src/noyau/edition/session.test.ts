@@ -66,6 +66,7 @@ import {
   porteurDeLaSel,
   segmentDeLaSelection,
   type CadreDuPorteur,
+  type ProjetDEdition,
   type SorteDePorteur,
 } from '../sceneEditLecture';
 import { champsDeclares, champsDuRecord, choixDuNoeud, elementDuNoeud, recordDuNoeud } from '../codex/editFields';
@@ -80,7 +81,7 @@ import { projetSchema } from '../../data/schemas/defs-scenes/projet';
 import { objetDeCampagne } from '../../scenes/fixtures/objetDeCampagne.testkit';
 import { refusDeForme } from '../narratifEdit';
 import { clotureSchema, ouvertureSchema } from '../../data/schemas/grammaire/campagne';
-import { refusDeLEntite, sceneEntitySchema } from '../../data/schemas/defs-scenes/scene';
+import { refusDeLEntite, sceneEntitySchema, type EntiteAJuger } from '../../data/schemas/defs-scenes/scene';
 import { catalogueDuProcessus } from '../../data/catalogueDuProcessus';
 import {
   creatures,
@@ -112,7 +113,7 @@ const SANS_SOURCE: SourceDeLEdition = { manifeste: null, chapitres: {} };
 /** Le cadre d'un porteur d'une scène vide, au narratif `narratif`. */
 const cadre = (narratif = NARRATIF_VIDE): CadreDuPorteur => ({ scene: emptyScene('c', 4, 4), projet: { scenes: [], narratif }, source: SANS_SOURCE, catalogue: catalogueDuProcessus() });
 
-const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], duDepot);
+const ouverteSur = (scene: Scene, duDepot = false, narratif = NARRATIF_VIDE): SessionDEdition => ouvrirLEdition({ scenes: [scene], narratif } as ProjetDEdition, { duDepot });
 const ouverte = (duDepot = false): SessionDEdition => ouverteSur(emptyScene('session', 4, 4), duDepot);
 const point = (x: number, y: number) => ({ case: { x, y }, f: { x, y } });
 /** Une rade : la cogue `cogue-pirate` (Amélioration `renforce` 1, un canon moyen chargé de boulets), une autre coque, deux
@@ -417,7 +418,7 @@ describe('session d’édition', () => {
         presetsPnj: [{ id: 'pnj-du-relais', base: { id: 'humain' }, profil: { trappings: [{ id: objet.id }] } }],
       },
     });
-    let s = editer(ouvrirLEdition(projet, false), { geste: 'document', document: 'narratif' });
+    let s = editer(ouvrirLEdition(projet, { duDepot: false }), { geste: 'document', document: 'narratif' });
     const porteur = { sorte: 'objets', id: objet.id } as const;
     s = editer(s, { geste: 'selectionner', porteur });
     s = editer(s, { geste: 'valeur', porteur, chemin: ['service'], valeur: true });
@@ -427,7 +428,7 @@ describe('session d’édition', () => {
     const narratif = projetEdite(s).narratif;
     expect(narratif.objets[0].service).toBe(true);
     const entite = entiteDeLaSelection(sceneEditee(s), s.sel)!;
-    const fiche = ficheEditee(entite, narratif);
+    const fiche = ficheEditee(entite, narratif, catalogueDuProcessus());
     expect(fiche?.label).toBeTruthy();
     expect(fiche?.items?.every((item) => item.trappingId !== objet.id) ?? true).toBe(true);
     expect(avertissementsDeLaSession(s).some((w) => w.level === 'error' && w.message.includes(objet.id))).toBe(true);
@@ -459,7 +460,7 @@ describe('session d’édition', () => {
     expect(narratif.objets[0].formChoices).toBeUndefined();
     const entite = entiteDeLaSelection(sceneEditee(s), s.sel)!;
     expect(entite.appearance?.apparencesObjets?.[objet.id]).toEqual(apparence);
-    const objetProjete = ficheEditee(entite, narratif)?.items?.find((item) => item.trappingId === objet.id);
+    const objetProjete = ficheEditee(entite, narratif, catalogueDuProcessus())?.items?.find((item) => item.trappingId === objet.id);
     expect(objetProjete).toMatchObject({ shape: objet.shape });
     expect(objetProjete?.apparence).toBeUndefined();
     expect(inspecteurDeLaSession(s).length).toBeGreaterThan(0);
@@ -626,7 +627,7 @@ describe('les offres déclarées de la scène se retirent dès qu’elles existe
   const BOURG = emptyScene('bourg', 6, 6);
   const HEBERGEMENT: PlaceService[] = [{ id: 'auberge', kind: { id: 'auberge' } }];
   const monde = (services?: typeof HEBERGEMENT): WorldMap => ({ ...emptyWorldMap('monde'), places: [{ id: 'x', label: 'X', pos: { x: 50, y: 50 }, scene: { id: 'bourg' }, ...(services ? { services } : {}) }], routes: [] });
-  const ouvrirSur = (scene: Scene, worldMap: WorldMap) => ouvrirLEdition({ scenes: [scene], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const ouvrirSur = (scene: Scene, worldMap: WorldMap) => ouvrirLEdition({ scenes: [scene], narratif: NARRATIF_VIDE, worldMap } as ProjetDEdition, { duDepot: false });
   /** Les erreurs R3 des offres : celles d'une scène de lieu à hébergement qui porte `rest.offres`. */
   const fautesDesOffres = (s: SessionDEdition) => validateScene(projetEdite(s).scenes, projetEdite(s).worldMap, NARRATIF_VIDE)
     .filter((w) => w.level === 'error' && w.message.includes('les offres d’auberge se règlent sur l’établissement'));
@@ -961,7 +962,7 @@ describe('le porteur `entite` du geste `valeur` (#3606 M1a à M1d)', () => {
     decorHorsDeSaCase: { id: 'd', kind: 'prop', pos: { x: 0, y: 0 }, decor: { id: 'brasero' }, calage: { x: 2, y: 0 } },
     admise: { id: 'p', kind: 'personnage', pos: { x: 0, y: 0 }, creature: { id: 'humain' } },
     } as const;
-    const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as Parameters<typeof refusDeLEntite>[0], catalogueDuProcessus());
+    const fautes = (ent: (typeof fixtures)[keyof typeof fixtures]) => refusDeLEntite(ent as EntiteAJuger, catalogueDuProcessus());
     expect(fautes(fixtures.sansPorteur).map((f) => f.chemin)).toEqual([['creature']]);
     expect(fautes(fixtures.deuxCorps).map((f) => f.chemin)).toEqual([['vehicule']]);
     expect(fautes(fixtures.carriereSurStatbloc)).toEqual([{ chemin: ['carrieres'], message: 'un PNJ de carrière porte la tenue de sa carrière actuelle, sans tenue d’auteur' }]);
@@ -1076,7 +1077,7 @@ describe('le navire de la scène éditée (#3772)', () => {
   it('le formulaire tiré du schéma n’écrit pas le cap d’un navire : seul le choix du cap le tourne, aux cardinaux', () => {
     const s = poserLaCaraque(ouverteSur(bassin()));
     expect(refusDeLaValeur(s, { geste: 'valeur', porteur: { sorte: 'entite', id: 'navire-0' }, chemin: ['facing'], valeur: 'NE' })).toBe('nonOffert');
-    expect(capsOfferts(garanti(sceneEditee(s).entities[0], 'navire', 'entité'))).toEqual(['N', 'E', 'S', 'O']);
+    expect(capsOfferts(garanti(sceneEditee(s).entities[0], 'navire', 'entité'), s.catalogue)).toEqual(['N', 'E', 'S', 'O']);
   });
 
   it('la validation lit le monde sur la vue : un départ, une empreinte, une chute, un appui sur un pont de la caraque, sans faux avertissement', () => {
@@ -1200,7 +1201,7 @@ describe('les postes d’une coque au formulaire tiré du schéma (#3606 M1f)', 
     expect(choix(jouer(ajoute, valeur(['postes', postes.length, 'engin', 'id'], 'belier-ade2')), ['postes', postes.length, 'ammo']), 'bélier → aucune').toEqual([]);
     expect(refusDeLaValeur(cogue, valeur(['postes', 0, 'ammo', 'carreau-de-baliste'], 2)), 'un carreau n’est pas offert au coffre d’un canon').toBe('nonOffert');
     const canonACarreaux = { ...coque(cogue), postes: [{ engin: { id: 'canon-moyen' }, ammo: { 'carreau-de-baliste': 2, 'boulet-et-poudre': 4 } }] };
-    expect(refusDeLEntite(canonACarreaux as Parameters<typeof refusDeLEntite>[0], catalogueDuProcessus()), 'le parse refuse un carreau au coffre d’un canon')
+    expect(refusDeLEntite(canonACarreaux as EntiteAJuger, catalogueDuProcessus()), 'le parse refuse un carreau au coffre d’un canon')
       .toEqual([{ chemin: ['postes', 0, 'ammo', 'carreau-de-baliste'], message: expect.stringContaining('ne charge pas') }]);
     const dote = jouer(cogue, valeur(['postes', 0, 'ammo', 'mitraille-et-poudre'], 3));
     expect(coque(dote).postes![0].ammo).toMatchObject({ 'mitraille-et-poudre': 3 });
@@ -1338,7 +1339,7 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
     ...emptyWorldMap('carte'),
     routes: [{ id: 'route-bois', a: { id: 'x' }, b: { id: 'y' }, km: 1, modes: ['pied'], ambush: { scene: { id: 'clairiere' }, encounter: 'enc-bois' } }],
   } satisfies WorldMap;
-  const ouverteSurLaCarte = (worldMap: WorldMap) => ouvrirLEdition({ scenes: [CLAIRIERE], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const ouverteSurLaCarte = (worldMap: WorldMap) => ouvrirLEdition({ scenes: [CLAIRIERE], narratif: NARRATIF_VIDE, worldMap } as ProjetDEdition, { duDepot: false });
   const choisie = (id: string, worldMap: WorldMap = CARTE) => jouer(ouverteSurLaCarte(worldMap), { geste: 'selectionner', porteur: { sorte: 'rencontre', id } });
   const ids = (s: SessionDEdition) => sceneEditee(s).encounters.map((e) => e.id);
 
@@ -1482,15 +1483,15 @@ describe('les rencontres de la scène éditée, par la table d’écriture de le
 
 describe('la validation de la session ne se refait que quand le projet change (#3993)', () => {
   it('deux sessions au même projet rendent les mêmes avertissements ; une scène écrite ou un dataset re-daté les refait, au contenu de `validateScene`', () => {
-    const projet = { scenes: [{ ...emptyScene('valide', 4, 4), walls: [{ x: 1, y: 1, side: 'N' }] }], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
+    const projet = { scenes: [{ ...emptyScene('valide', 4, 4), walls: [{ x: 1, y: 1, side: 'N' }] }], narratif: NARRATIF_VIDE } as ProjetDEdition;
     const direct = (s: SessionDEdition) => validateScene([sceneEditee(s)], undefined, NARRATIF_VIDE).filter((w) => w.sceneId === idDeLaSceneEditee(s) || w.scope === 'worldMap');
-    const a = avertissementsDeLaSession(ouvrirLEdition(projet, false));
+    const a = avertissementsDeLaSession(ouvrirLEdition(projet, { duDepot: false }));
     expect(a.length, 'le mur en impasse est averti').toBeGreaterThan(0);
-    const b = avertissementsDeLaSession(ouvrirLEdition(projet, false));
+    const b = avertissementsDeLaSession(ouvrirLEdition(projet, { duDepot: false }));
     b.forEach((w, i) => expect(w).toBe(a[i]));
-    expect(b).toEqual(direct(ouvrirLEdition(projet, false)));
+    expect(b).toEqual(direct(ouvrirLEdition(projet, { duDepot: false })));
 
-    const ecrite = editer(ouvrirLEdition(projet, false), { geste: 'ajouterCouche' });
+    const ecrite = editer(ouvrirLEdition(projet, { duDepot: false }), { geste: 'ajouterCouche' });
     const c = avertissementsDeLaSession(ecrite);
     expect(c[0]).not.toBe(a[0]);
     expect(c).toEqual(direct(ecrite));
@@ -1503,7 +1504,7 @@ describe('la validation de la session ne se refait que quand le projet change (#
 });
 
 describe('l’historique de l’éditeur tient le projet et sa scène montrée (#3606)', () => {
-  const projet = { scenes: [emptyScene('a', 4, 4), emptyScene('b', 4, 4)], narratif: NARRATIF_VIDE } as unknown as Parameters<typeof ouvrirLEdition>[0];
+  const projet = { scenes: [emptyScene('a', 4, 4), emptyScene('b', 4, 4)], narratif: NARRATIF_VIDE } as ProjetDEdition;
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
   const vers = (id: string): GesteDEdition => ({ geste: 'scenes', quoi: 'aller', id });
   const couches = (s: SessionDEdition, id: string) => projetEdite(s).scenes.find((sc) => sc.id === id)!.layers.map((l) => l.z);
@@ -1512,7 +1513,7 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
   const COUCHE: GesteDEdition = { geste: 'ajouterCouche' };
 
   it('écrire dans A, aller en B sans cran, écrire, annuler deux fois rend le projet d’origine, chaque cran montrant sa scène ; rétablir aussi', () => {
-    const ouv = ouvrirLEdition(projet, false);
+    const ouv = ouvrirLEdition(projet, { duDepot: false });
     const enB = jouer(ouv, COUCHE, vers('b'));
     expect([enB.historique.passe.length, idDeLaSceneEditee(enB), enB.z], 'aller est une navigation').toEqual([1, 'b', 0]);
     const ecrite = jouer(enB, COUCHE, { geste: 'outil', outil: { mode: 'terrain', terrain: 'pierre' } });
@@ -1529,7 +1530,7 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
   });
 
   it('annuler depuis A un cran posé sur B montre B ; rétablir aussi', () => {
-    const depuisA = jouer(ouvrirLEdition(projet, false), vers('b'), COUCHE, vers('a'));
+    const depuisA = jouer(ouvrirLEdition(projet, { duDepot: false }), vers('b'), COUCHE, vers('a'));
     const annule = jouer(depuisA, ANNULER);
     expect([idDeLaSceneEditee(annule), couches(annule, 'b')]).toEqual(['b', [0]]);
     const retabli = jouer(jouer(annule, vers('a')), RETABLIR);
@@ -1537,7 +1538,7 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
   });
 
   it('ajouter, dupliquer et retirer une scène posent un cran ; annulés, la scène montrée est au projet', () => {
-    const ouv = ouvrirLEdition(projet, false);
+    const ouv = ouvrirLEdition(projet, { duDepot: false });
     const ids = (s: SessionDEdition) => projetEdite(s).scenes.map((sc) => sc.id);
     for (const quoi of ['ajouter', 'dupliquer'] as const) {
       const neuve = jouer(ouv, { geste: 'scenes', quoi });
@@ -1555,28 +1556,28 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
   });
 
   it('l’enregistrement voit une écriture faite sur une scène quittée', () => {
-    const enCours = jouer(ouvrirLEdition(projet, true), COUCHE, vers('b'), { geste: 'enregistrer' });
+    const enCours = jouer(ouvrirLEdition(projet, { duDepot: true }), COUCHE, vers('b'), { geste: 'enregistrer' });
     expect(enCours.depot!.enCours!.scenes.find((sc) => sc.id === 'a')!.layers.map((l) => l.z)).toEqual([0, 1]);
   });
 
   it('renommer la scène réécrit chaque cran, sa scène montrée comprise ; un id d’un cran se refuse', () => {
-    const renommee = jouer(ouvrirLEdition(projet, false), vers('b'), COUCHE, vers('a'), { geste: 'identifier', id: 'aa' });
+    const renommee = jouer(ouvrirLEdition(projet, { duDepot: false }), vers('b'), COUCHE, vers('a'), { geste: 'identifier', id: 'aa' });
     expect(projetEdite(renommee).scenes.map((sc) => sc.id)).toEqual(['aa', 'b']);
     const annule = jouer(renommee, ANNULER);
     expect([idDeLaSceneEditee(annule), projetEdite(annule).scenes.map((sc) => sc.id)]).toEqual(['b', ['aa', 'b']]);
-    const sansB = jouer(ouvrirLEdition(projet, false), { geste: 'scenes', quoi: 'retirer' }, vers('b'));
+    const sansB = jouer(ouvrirLEdition(projet, { duDepot: false }), { geste: 'scenes', quoi: 'retirer' }, vers('b'));
     expect(jouer(sansB, { geste: 'identifier', id: 'a' }), 'a vit dans un cran passé').toBe(sansB);
   });
 
   it('renommée, la scène qu’un cran passé ou futur montrait revient sous son nouvel id', () => {
-    const passee = jouer(ouvrirLEdition(projet, false), COUCHE, { geste: 'identifier', id: 'aa' }, ANNULER);
+    const passee = jouer(ouvrirLEdition(projet, { duDepot: false }), COUCHE, { geste: 'identifier', id: 'aa' }, ANNULER);
     expect([idDeLaSceneEditee(passee), sceneEditee(passee).id, couches(passee, 'aa')], 'annuler').toEqual(['aa', 'aa', [0]]);
-    const future = jouer(ouvrirLEdition(projet, false), COUCHE, ANNULER, { geste: 'identifier', id: 'aa' }, RETABLIR);
+    const future = jouer(ouvrirLEdition(projet, { duDepot: false }), COUCHE, ANNULER, { geste: 'identifier', id: 'aa' }, RETABLIR);
     expect([idDeLaSceneEditee(future), sceneEditee(future).id, couches(future, 'aa')], 'rétablir').toEqual(['aa', 'aa', [0, 1]]);
   });
 
   it('agrandie par son bord ouest et nord, la scène pousse sa grille et ses calques d’autant (#4392)', () => {
-    const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
+    const calee = jouer(ouvrirLEdition(projet, { duDepot: true }), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
     const agrandie = jouer(calee, { geste: 'scene', patch: { dimensions: { w: 6, h: 5, decalage: { x: 2, y: 1 } } } });
     const avant = calqueDeLaCouche(calee)!.calage;
     expect([sceneEditee(agrandie).dimensions, calqueDeLaCouche(agrandie)!.calage]).toEqual([{ w: 6, h: 5 }, { ...avant, tx: avant.tx + 2, ty: avant.ty + 1 }]);    expect(calqueDeLaCouche(jouer(agrandie, ANNULER))!.calage, 'annuler l’agrandissement rend le calage').toEqual(avant);
@@ -1586,7 +1587,7 @@ describe('l’historique de l’éditeur tient le projet et sa scène montrée (
   });
 
   it('les calques d’une scène retirée ressuscitent avec elle ; l’enregistrement réussi les oublie', () => {
-    const calee = jouer(ouvrirLEdition(projet, true), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
+    const calee = jouer(ouvrirLEdition(projet, { duDepot: true }), { geste: 'planche' }, { geste: 'chargement', image: { largeur: 20, hauteur: 10 } });
     expect(calqueDeLaCouche(calee)).toBeDefined();
     const retiree = jouer(calee, { geste: 'scenes', quoi: 'retirer' });
     expect(calqueDeLaCouche(jouer(retiree, ANNULER)), 'annuler le retrait rend le calque').toBe(calqueDeLaCouche(calee));
@@ -1642,7 +1643,7 @@ describe('les renommages de scène, d’entrée et de dialogue du projet (#3483)
     type: 'projet', id: 'campagne-renommage', label: 'Les deux rives', versionContenu: 1, maison: 'Campagne de test',
     scenes: [bourg, val], worldMap: monde, narratif: { ...NARRATIF_VIDE, objets: [objet] },
   };
-  const ouverte = () => ouvrirLEdition(parseProject(campagne), false);
+  const ouverte = () => ouvrirLEdition(parseProject(campagne), { duDepot: false });
   const valider = (s: SessionDEdition) => {
     const { scenes, worldMap, narratif } = parseProject(projetEdite(s));
     expect(validateScene(scenes, worldMap, narratif)).toEqual([]);
@@ -1727,7 +1728,7 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
   const BOURG: Scene = { ...emptyScene('bourg', 6, 6), entryPoints: { porte: { x: 0, y: 0 }, quai: { x: 1, y: 0 } }, encounters: [{ id: 'enc-a', members: [] }, { id: 'enc-b', members: [] }] };
   const VAL: Scene = emptyScene('val', 6, 6);
-  const ouvert = (worldMap?: WorldMap) => ouvrirLEdition({ scenes: [BOURG, VAL], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const ouvert = (worldMap?: WorldMap) => ouvrirLEdition({ scenes: [BOURG, VAL], narratif: NARRATIF_VIDE, ...(worldMap ? { worldMap } : {}) } as ProjetDEdition, { duDepot: false });
   const valeur = (sorte: SorteDePorteur, id: string, chemin: Segment[], v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> =>
     ({ geste: 'valeur', porteur: { sorte, id }, chemin, ...(v === undefined ? {} : { valeur: v }) });
   const carte = (s: SessionDEdition) => projetEdite(s).worldMap!;
@@ -1946,7 +1947,7 @@ describe('la carte du monde, document ouvert du menu Fichier, ses lieux et ses r
 describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte du monde (#3606 M5)', () => {
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
   const BOURG: Scene = emptyScene('bourg', 6, 6);
-  const ouvert = (worldMap: WorldMap) => ouvrirLEdition({ scenes: [BOURG, emptyScene('val', 6, 6)], narratif: NARRATIF_VIDE, worldMap } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+  const ouvert = (worldMap: WorldMap) => ouvrirLEdition({ scenes: [BOURG, emptyScene('val', 6, 6)], narratif: NARRATIF_VIDE, worldMap } as ProjetDEdition, { duDepot: false });
   const carte = (s: SessionDEdition) => projetEdite(s).worldMap!;
   const pt = (x: number, y: number) => ({ case: { x: Math.floor(x), y: Math.floor(y) }, f: { x, y } });
   /** `x`, au point d'intérêt `forge` (20, 30) de son plan, et `y`, à la position (20, 30) de la carte. */
@@ -2093,7 +2094,7 @@ describe('les points d’intérêt d’un lieu, sur le plan du lieu de la carte 
 describe('les axes actifs du projet, réglés sur l’écran de la carte du monde (#3606 M5, #409)', () => {
   const jouer = (s: SessionDEdition, ...gestes: GesteDEdition[]) => gestes.reduce(editer, s);
   const axes = (v?: unknown): Extract<GesteDEdition, { geste: 'valeur' }> => ({ geste: 'valeur', porteur: { sorte: 'projet', id: 'projet' }, chemin: ['activeAxes'], ...(v === undefined ? {} : { valeur: v }) });
-  const surLaCarte = () => jouer(ouvrirLEdition({ id: 'p', scenes: [emptyScene('bourg', 4, 4)], narratif: NARRATIF_VIDE, worldMap: emptyWorldMap('monde') } as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'carte' });
+  const surLaCarte = () => jouer(ouvrirLEdition({ id: 'p', scenes: [emptyScene('bourg', 4, 4)], narratif: NARRATIF_VIDE, worldMap: emptyWorldMap('monde') } as ProjetDEdition, { duDepot: false }), { geste: 'document', document: 'carte' });
 
   it('ils s’écrivent au projet parmi les axes du catalogue, chacun sur un cran, la carte gardée ; un axe hors catalogue est refusé', () => {
     const s = surLaCarte();
@@ -2130,13 +2131,13 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     label: 'Le relais',
     triggers: [{ id: 't0', rect: { x: 0, y: 0, w: 1, h: 1 }, once: true, flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'revealClue', indiceId: 'ind-lettre', stade: 'dechiffree' } }] } }],
   } as Scene;
-  const ouvert = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'narratif' });
+  const ouvert = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as ProjetDEdition, { duDepot: false }), { geste: 'document', document: 'narratif' });
   const narratif = (s: SessionDEdition) => projetEdite(s).narratif;
   const revele = (s: SessionDEdition) => (projetEdite(s).scenes[0].triggers[0].flow as { etapes: { effet: unknown }[] }).etapes[0].effet;
   const choisir = (s: SessionDEdition, sorte: SorteDePorteur, id: string) => jouer(s, { geste: 'selectionner', porteur: { sorte, id } });
 
   it('ouvrir le narratif navigue sans cran, son singulier édité sans sélection ; revenir à la scène la rend', () => {
-    const s = ouvrirLEdition({ scenes: [RELAIS], narratif: NARRATIF } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+    const s = ouvrirLEdition({ scenes: [RELAIS], narratif: NARRATIF } as ProjetDEdition, { duDepot: false });
     const sur = jouer(s, { geste: 'document', document: 'narratif' });
     expect([sur.document, sur.historique, porteurDeLaSel(sur.sel, sur.document, idDeLaSceneEditee(sur))]).toEqual(['narratif', s.historique, { sorte: 'narratif', id: 'narratif' }]);
     const retour = jouer(choisir(sur, 'affaires', 'aff'), { geste: 'document', document: 'scene' });
@@ -2215,7 +2216,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
   /** Les entrées de fiche que l'hôte sert à la session, comme il sert le manifeste du `Source/`. */
   const ENTREES = ['EDO-01#i1', 'EDO-01#i2'];
   const SERVIES = ENTREES.map((id) => ({ famille: 'indices' as const, id, libelle: `Indice ${id}` }));
-  const servie = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, null, SERVIES), { geste: 'document', document: 'narratif' });
+  const servie = (narratif = NARRATIF) => jouer(ouvrirLEdition({ scenes: [RELAIS], narratif } as ProjetDEdition, { duDepot: false, entreesDeFiche: SERVIES }), { geste: 'document', document: 'narratif' });
 
   it('un écart s’ajoute avec son entrée parmi les entrées libres que l’hôte sert, écrit son motif, change d’entrée vers une libre, se retire', () => {
     const [premiere, seconde] = ENTREES;
@@ -2242,7 +2243,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
   it('sélectionner un PNJ dont le profil porte une adresse à chapitre demande ce chapitre, comme un porteur de la scène', () => {
     const manifeste = { 'livre-de-base': { abbr: 'LDB', chapitres: [{ ch: '01', fichier: '01 - Armures.md', titre: 'Les Armures', octets: 1 }] } };
     const avecPnj = { ...NARRATIF, presetsPnj: [{ id: 'pnj-1', base: { id: creatures[0].id }, profil: { descRef: { book: 'livre-de-base', ch: '01', parts: [] } } }] } as unknown as typeof NARRATIF;
-    const s = jouer(ouvrirLEdition({ scenes: [RELAIS], narratif: avecPnj } as unknown as Parameters<typeof ouvrirLEdition>[0], false, undefined, manifeste), { geste: 'document', document: 'narratif' });
+    const s = jouer(ouvrirLEdition({ scenes: [RELAIS], narratif: avecPnj } as ProjetDEdition, { duDepot: false, manifeste }), { geste: 'document', document: 'narratif' });
     expect([s.source.chapitreEnAttente, choisir(s, 'presetsPnj', 'pnj-1').source.chapitreEnAttente]).toEqual([null, { book: 'livre-de-base', ch: '01' }]);
   });
 
@@ -2255,7 +2256,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
     const avecIdentite = jouer(heros, valeur('etats', 'humeur', ['forme', 'identite'], identiteNeuve()));
     expect([refusDeForme(projetEdite(avecIdentite), 'humeur'), jouer(avecIdentite, { geste: 'forme', kind: 'enum' })]).toEqual(['Retirez d’abord l’identité de l’état : une autre forme n’en porte pas.', avecIdentite]);
     const pose: Scene = { ...RELAIS, triggers: [{ ...RELAIS.triggers[0], id: 't1', flow: { kind: 'sequence', etapes: [{ kind: 'effet', effet: { type: 'poserEtat', etat: 'humeur', valeur: 'calme' } }] } }] } as Scene;
-    const designe = choisir(jouer(ouvrirLEdition({ scenes: [pose], narratif: NARRATIF } as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'narratif' }), 'etats', 'humeur');
+    const designe = choisir(jouer(ouvrirLEdition({ scenes: [pose], narratif: NARRATIF } as ProjetDEdition, { duDepot: false }), { geste: 'document', document: 'narratif' }), 'etats', 'humeur');
     expect(refusDeForme(projetEdite(designe), 'humeur')).toMatch(/^Encore désigné par : scène « Le relais »/);
     expect(jouer(designe, { geste: 'forme', kind: 'heros' })).toBe(designe);
   });
@@ -2324,7 +2325,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
   it('une faute du narratif se lit à la validation de la session avant l’enregistrement et mène à son porteur : son document ouvert, lui sélectionné', () => {
     const [premiere] = ENTREES;
     const fautif = { ...NARRATIF, etats: [{ id: 'humeur', label: 'Humeur', forme: { kind: 'enum', valeurs: [{ id: 'calme', label: 'Calme' }] } }], ecartes: [{ entree: premiere, motif: ' ' }] } as typeof NARRATIF;
-    const s = ouvrirLEdition({ scenes: [RELAIS], narratif: fautif } as unknown as Parameters<typeof ouvrirLEdition>[0], false);
+    const s = ouvrirLEdition({ scenes: [RELAIS], narratif: fautif } as ProjetDEdition, { duDepot: false });
     const fautes = avertissementsDeLaSession(s).filter((w) => w.scope === 'narratif');
     expect(fautes.map((w) => [w.level, w.refId])).toEqual([['error', 'humeur'], ['error', premiere]]);
     const vers = (refId: string) => jouer(s, { geste: 'avertissement', rang: avertissementsDeLaSession(s).findIndex((w) => w.scope === 'narratif' && w.refId === refId) });
@@ -2373,7 +2374,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
       { id: 'pnj', kind: 'personnage', creature: { id: 'humain' }, pos: { x: 2, y: 2 }, appearance: { apparencesObjets: apparencesVers(OBJET.id) } },
     ] }],
   };
-  const campagne = () => jouer(ouvrirLEdition(structuredClone(CAMPAGNE) as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'narratif' });
+  const campagne = () => jouer(ouvrirLEdition(structuredClone(CAMPAGNE) as ProjetDEdition, { duDepot: false }), { geste: 'document', document: 'narratif' });
   /** Les fautes du projet de la session `s` au parse de son schéma, sous l'enveloppe de `CAMPAGNE`. */
   const fautesDuProjet = (s: SessionDEdition) => {
     const r = projetSchema.safeParse({ ...CAMPAGNE, ...projetEdite(s) });
@@ -2416,7 +2417,7 @@ describe('le narratif, document ouvert du menu Fichier, ses registres par la tab
   it('le sélecteur d’objet d’un Effet `giveTrapping` d’un déclencheur offre le catalogue des possessions puis les objets de la campagne, chacun sous son libellé, sinon son id (#4171)', () => {
     const SANS_NOM = { ...OBJET, id: 'objet-sans-nom', label: '' };
     const avecSansNom = { ...CAMPAGNE, narratif: { ...CAMPAGNE.narratif, objets: [OBJET, SANS_NOM] } };
-    const s = jouer(ouvrirLEdition(structuredClone(avecSansNom) as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'document', document: 'scene' });
+    const s = jouer(ouvrirLEdition(structuredClone(avecSansNom) as ProjetDEdition, { duDepot: false }), { geste: 'document', document: 'scene' });
     const declencheur = { id: 'don', rect: { x: 0, y: 0, w: 1, h: 1 }, flow: { kind: 'effet', effet: { type: 'giveTrapping', objet: { id: OBJET.id } } } } as Scene['triggers'][number];
     const offerts = choixDuChamp('declencheur', declencheur, ['flow', 'effet', 'objet', 'id'], cadreDeLaSession(s))!;
     expect(offerts.find((c) => c.valeur === 'arme-simple')?.libelle, 'une entrée du catalogue, sous son libellé').toBe('Arme simple');

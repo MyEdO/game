@@ -56,7 +56,7 @@ function jouer(s: SessionDEdition, geste: GesteDEdition): SessionDEdition {
 /** La session d'édition du paquet `paquet`, ouverte comme le pont l'ouvre (`hotes/godot/pont/pont.ts`, méthode
  *  `ouvrir`) : le manifeste du `Source/` versionné et les entrées des fiches du contenu de test servis. */
 const ouvrir = (paquet: ReturnType<typeof paquetDuJeu>): SessionDEdition =>
-  ouvrirLEdition(paquet, false, undefined, manifesteDe(CORPUS_DISQUE), entreesDesFiches(contenu.dossiers));
+  ouvrirLEdition(paquet, { duDepot: false, manifeste: manifesteDe(CORPUS_DISQUE), entreesDeFiche: entreesDesFiches(contenu.dossiers) });
 
 /** Les zones d'une session réduites à son inspecteur (`inspecteurDeLaSession`), seul lu par le jeu de ses offres. */
 type Inspecteur = Pick<ZonesDeLEditeur, 'editeur.inspecteur'>;

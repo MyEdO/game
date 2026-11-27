@@ -139,7 +139,7 @@ import type * as qualityTypesDef from './schemas/defs/qualityTypes';
 import type * as weatherDef from './schemas/defs/weather';
 import type * as planDeBestiaireDef from './schemas/defs/planDeBestiaire';
 import type * as booksDef from './schemas/defs/books';
-import { books } from './livres';
+import booksJson from './books.json';
 import type * as vehiclesDef from './schemas/defs/vehicles';
 import type * as qualitiesDef from './schemas/defs/qualities';
 import type * as tavernGamesDef from './schemas/defs/tavernGames';
@@ -1705,7 +1705,7 @@ const lieuParId = indexParId('locations', locations);
 export function findLocationById(id: string | null | undefined): LocationData | undefined {
   return lieuParId(id);
 }
-export { books };
+export const books = datasetDe<typeof booksDef>(booksJson);
 const livreParId = indexParId('books', books);
 /** Résout un Livre par son `id` STABLE (cible de `source.book`) — `abbr`/`label` ne servent qu'à l'affichage. */
 export function findBookById(id: string | null | undefined): BookData | undefined {
@@ -1856,11 +1856,11 @@ export function findSpeciesById(id: string | undefined): SpeciesData | undefined
 }
 /** La création du livre de base 5e de chaque espèce du CRB, keyée par l'id de son espèce (`especesCrb.json`). CRB 008-012 */
 export const especesCrb = datasetDe<typeof especesCrbDef>(especesCrbJson);
-/** Les profils standard (`LDB 77 l.7`) : les fiches que `species.json` désigne par `profilStandard`,
- *  sans doublon, dans l'ordre du dataset. */
-export function profilsStandard(): string[] {
-  return [...new Set(species.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
-}
+/** Les profils standard (`LDB 77 l.7`) des espèces `especes` : les fiches qu'elles désignent par `profilStandard`,
+ *  sans doublon, dans leur ordre. */
+export const profilsStandardDe = (especes: readonly SpeciesData[]): string[] => [...new Set(especes.flatMap((s) => (s.profilStandard ? [s.profilStandard.id] : [])))];
+/** Les profils standard (`profilsStandardDe`) de `species.json`. */
+export const profilsStandard = (): string[] => profilsStandardDe(species);
 /** La fiche spawnable non créature que désigne `id` : coque de `vehicles.json` (facette `hull`, MDG 13) ou engin du
  *  catalogue des engins de siège (AA 10, ADE II 08), réduite à son libellé et sa source ; la clé `definition` d'un élément 3D
  *  `vehicule` la nomme (#2987). */

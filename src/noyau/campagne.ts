@@ -12,6 +12,15 @@ import type { SortiesDeFenetre } from './sortieDeFenetre';
 import { garanti } from '../lib/garanti';
 import { refuserGesteDuSiege } from './refusVisible';
 import { t } from '../i18n';
+import type { SourceRef } from '../data/schemas/grammaire/valeurs';
+import type { DocumentDeNaufrage } from './shipwreck';
+
+/** Le document d'auteur remis (Effet `document`) : `text` = Markdown, un paragraphe par bloc séparé d'une ligne vide ;
+ *  `documentId` = l'entrée de `narratif.documents` remise, dont le texte est la prose du paquet. */
+export interface DocumentDAuteur { genre: 'auteur'; title: string; text: string; source?: SourceRef; documentId?: string }
+
+/** Le document remis : celui d'un auteur, ou les faits d'un naufrage que l'hôte rédige. */
+export type DocumentRemis = DocumentDAuteur | DocumentDeNaufrage;
 
 /** Pourquoi la désignation d'un héros (`ouvrirLaDesignation`) ne s'ouvre pas : aucun héros vivant ; `null` sinon. PUR. */
 export const refusDeLaDesignation = (s: Pick<Jeu, 'party'>): string | null => (s.party.some((h) => !h.dead) ? null : t('eff.designationSansHeros'));
@@ -82,7 +91,14 @@ export function choixDeCampagne(get: Get, set: Set) {
   } satisfies Partial<CorpsDesChoix>;
 }
 
-/** Le document remis quand sa fenêtre tient la main : son titre et son texte, le Markdown verbatim de la donnée. */
-export function documentEnVue(s: Jeu): { titre: string; texte: string } | null {
-  return s.document && fenetreDuJeu(s)?.cle === 'document' ? { titre: s.document.title, texte: s.document.text } : null;
+/** Un document en vue : celui d'un auteur, son titre et son texte, le Markdown verbatim de la donnée ; ou les faits
+ *  d'un naufrage tels quels. */
+export type DocumentEnVue = { genre: 'auteur'; titre: string; texte: string } | DocumentDeNaufrage;
+
+/** Le document remis quand sa fenêtre tient la main (`DocumentEnVue`). */
+export function documentEnVue(s: Jeu): DocumentEnVue | null {
+  const doc = s.document;
+  if (!doc || fenetreDuJeu(s)?.cle !== 'document') return null;
+  if (doc.genre === 'naufrage') return { genre: doc.genre, navire: doc.navire, cargaison: doc.cargaison, heros: doc.heros, rivage: doc.rivage };
+  return { genre: 'auteur', titre: doc.title, texte: doc.text };
 }

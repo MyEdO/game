@@ -1,5 +1,5 @@
 /**
- * L'éditeur de scène (#4411) : un plan de travail, pas un lieu (`src/hote/editeur.ts:190-689`) (`../../outils.md`,
+ * L'éditeur de scène (#4411) : un plan de travail, pas un lieu (`src/hote/editeur.ts:190-690`) (`../../outils.md`,
  * sections `editeur-scene`, `editeur-outil-terrain`, `editeur-supprimer`). États : `porte`, une porte choisie et son
  * inspecteur ; `outil-terrain`, l'outil « Terrain » armé, ses options à la place de l'inspecteur ; `supprimer`, un
  * personnage choisi et son « Supprimer », « Retirer cette couche » fermée pour le rez. Le plan est une esquisse.

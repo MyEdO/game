@@ -6,7 +6,7 @@
  */
 import { idsDeTest } from '../../../src/engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ouvrirLeBanc, type Banc } from '../../../src/noyau/banc.testkit';
+import { ouvrirLeBanc, type Banc, documentDAuteur } from '../../../src/noyau/banc.testkit';
 import { documentDuNarratif } from '../../../src/noyau/monde/resolveursDuNarratif';
 import { walkFlow } from '../../../src/engine/flowCore';
 import { diligenceCampaign } from '../campagnes';
@@ -107,7 +107,7 @@ describe('documents-edo — la liasse sert le registre du paquet EDO', () => {
     expect(chemin, `${id} offert par la liasse`).toBeDefined();
     banc.getState().fenetreChoisir('dialogue', 'reponse', chemin!.chapitre);
     banc.getState().fenetreChoisir('dialogue', 'reponse', chemin!.reponse);
-    const ouvert = banc.getState().document;
+    const ouvert = documentDAuteur(banc.getState());
     expect(ouvert?.title).toBe(doc!.titre);
     expect(ouvert?.text).toBe(doc!.prose);
     expect(banc.getState().dialogue?.nodeId, 'le dialogue n’avance pas sous le document (#2689)').toBe(chemin!.chapitre);

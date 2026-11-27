@@ -12,7 +12,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
  * GOLDEN du CYCLE DE TOUR ENNEMI (phase `turnStart`) : fige byte-pour-byte la séquence de début de
- * tour de `runEnemyAI` (Rage → tentative de Frénésie IA), AVANT le test Stupide inline et l'action IA.
+ * tour de `runEnemyAI` (Rage → tentative de Frénésie IA), AVANT l'action IA.
  * Ces hooks `turnStart` ordonnés DOIVENT garder ce snapshot identique (ordre + tirages RNG préservés).
  *
  * - Ennemi RAGE (Rage + Avantage ≥ 3) → entre en Frénésie SANS RNG (journal).

@@ -15,7 +15,7 @@ import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './col
 import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
 import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
-import { entreeDe } from '../catalogue/catalogue';
+import { collectionDuCatalogue, entreeDe, type Catalogue } from '../catalogue/catalogue';
 import { messageRecurrenceHorloge, SELF_REF, type Formula } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
 import {
@@ -81,7 +81,6 @@ import {
   type TypeEntite,
 } from './ref';
 import { CIBLE_D_APPARTENANCE, DECLARABLE_PAR_UN_PORTEUR, RACINE_D_APPARENCE } from './sousListes';
-import { GROUPES_TIRABLES } from '../../obsessions';
 import { customStatblockSchema } from '../defs-scenes/communs';
 import { VIVRES_DE_CALE } from '../../../engine/seaNavigation';
 
@@ -210,6 +209,10 @@ export const senseSchema = enumNomme({ vue: 'la vue', ouie: "l'ouïe" });
 export const tablesDeCiblesSchema = enumNomme({ obsessions: 'le Tableau des Obsessions' });
 export type TableDeCibles = z.infer<typeof tablesDeCiblesSchema>;
 const tableDeCiblesSchema = nommerChamps(ref(tablesDeCiblesSchema), { id: { label: 'table' } });
+/** Les Groupes que chaque table de Cibles de `cat` peut tirer : ses rangées. */
+const GROUPES_TIRABLES: Readonly<Record<TableDeCibles, (cat: Catalogue) => readonly string[]>> = {
+  obsessions: (cat) => collectionDuCatalogue('obsessions', cat).map((e) => e.id),
+};
 /** Tirage d'une Cible (`grantTrait.cible`) : `pick` tirages sur une table de Cibles. */
 const tirageDeCibleSchema = tirageSurTable(tableDeCiblesSchema);
 export type TirageDeCible = z.infer<typeof tirageDeCibleSchema>;
@@ -837,7 +840,7 @@ const DECLARATIONS_D_OPS = {
     durationHours: formulaSchema.optional(),
   }, { op: { label: "opération" }, trait: { label: "Trait" }, choix: { label: "Choisir la spécialisation" }, cible: { label: "Cible tirée" }, indicePerSL: { label: "Indice par DR" }, onlyGroups: { label: "groupes autorisés" , texte: { regime: "technique"} }, durationRounds: { label: "durée en Rounds" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationMinutes: { label: "durée en minutes" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} }, durationHours: { label: "durée en heures" , texte: { regime: "technique",usage: "formule mécanique résolue par la grammaire"} } }, raffinementDeCatalogue((lire) => {
     const { specAuCatalogue } = lire.specialisations('trait');
-    const cat = lire.catalogueLu('trait');
+    const cat = lire.catalogueLu('trait', 'obsessions.json');
     const lireLeTrait = (id: string) => entreeDe('traits', id, cat());
     return (o, ctx) => {
       const { id, arg } = o.trait as Pick<TraitPose, 'id' | 'arg'>;
@@ -849,7 +852,7 @@ const DECLARATIONS_D_OPS = {
       if (arg !== undefined) {
         ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : sa Cible est posée (« trait.arg ») ou tirée (« cible »), jamais les deux.` });
       }
-      const absents = GROUPES_TIRABLES[cible.table.id]().filter((g) => !specAuCatalogue(id, g));
+      const absents = GROUPES_TIRABLES[cible.table.id](cat()).filter((g) => !specAuCatalogue(id, g));
       if (absents.length) {
         ctx.addIssue({ code: 'custom', path: ['cible'], message: `Trait « ${id} » : la table de Cibles « ${cible.table.id} » tire un Groupe absent du catalogue de spécialisations de ce Trait (« ${absents[0]} »…).` });
       }
@@ -1275,8 +1278,16 @@ export const CHAMPS_A_CHOIX: readonly ChampAChoix[] = champsDeclares<ChampAChoix
 export const CHAMPS_RESERVES: readonly ChampReserve[] = champsDeclares<ChampReserve>(ChampReserveDeclare);
 
 /** Les Conditions RÉSERVÉES à un porteur, admises par le régime `condition.<kind>` de sa famille et refusées
- *  nommément partout ailleurs. `cibleEnVue` ne se lit qu'au contexte d'une affliction psychologique. */
-export const CONDITIONS_RESERVEES = ['cibleEnVue'] as const;
+ *  nommément partout ailleurs. `cibleEnVue` ne se lit qu'au contexte d'une affliction psychologique ; `allieAuContact`
+ *  qu'au début du Round, dans les effets de Trait (`onRoundStart`, relevé `releveDeRound`). LDB 85 l.335 */
+export const CONDITIONS_RESERVEES = ['cibleEnVue', 'allieAuContact'] as const;
+
+/** La valeur `v` (Flow, Condition, op) porte-t-elle, à quelque profondeur que ce soit, une Condition de `kind` réservé ? */
+export function porteLaCondition(v: unknown, kind: ConditionReservee): boolean {
+  if (Array.isArray(v)) return v.some((x) => porteLaCondition(x, kind));
+  if (!v || typeof v !== 'object') return false;
+  return (v as { kind?: unknown }).kind === kind || Object.values(v).some((x) => porteLaCondition(x, kind));
+}
 type ConditionReservee = (typeof CONDITIONS_RESERVEES)[number];
 
 /** Régime d'une Condition réservée. */
@@ -1445,6 +1456,15 @@ export const conditionCibleEnVueSchema = nommerChamps(z.strictObject({
 }), { kind: { label: 'type' }, hostiles: { label: 'hostiles seulement' } }, { typeNomme: 'ConditionCibleEnVue' });
 export type ConditionCibleEnVue = z.output<typeof conditionCibleEnVueSchema>;
 
+/** Condition réservée `allieAuContact` : un allié au contact du porteur vérifie `tel`, évaluée avec cet allié pour
+ *  `target`. Seuls les `effects` de Trait l'admettent, aux déclencheurs du relevé de Round. LDB 85 l.335 */
+export const conditionAllieAuContactSchema = nommerChamps(z.strictObject({
+  kind: z.literal('allieAuContact'),
+  // Le renvoi récursif de l'algèbre (`LienRecursif`, refermé par `ConditionDans`) : `tel` est une Condition fermée.
+  tel: z.lazy((): z.ZodType => conditionSchema) as unknown as z.ZodType<LienRecursif>,
+}), { kind: { label: 'type' }, tel: { label: 'tel que' } }, { typeNomme: 'ConditionAllieAuContact' });
+export type ConditionAllieAuContact = Extract<Condition, { kind: 'allieAuContact' }>;
+
 /** Les branches de Condition composent leurs opérandes et un renvoi vers la même algèbre. */
 function branchesDeCondition<R>(renvoi: z.ZodType<R>, admises: readonly ConditionReservee[]) {
   const reservee = <T extends z.ZodType>(kind: ConditionReservee, branche: T) => {
@@ -1493,6 +1513,7 @@ function branchesDeCondition<R>(renvoi: z.ZodType<R>, admises: readonly Conditio
     variante('Ennemi en Ligne de Vue', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('foeInLoS') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.foeInLoS')),
     variante('Caché de l’ennemi (hors de vue)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('hiddenFromFoes') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.hiddenFromFoes')),
     variante('Engagé avec un ennemi', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('engaged') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.engaged')),
+    variante('Allié au contact', reservee('allieAuContact', conditionAllieAuContactSchema)),
     variante('Au sein d’un Test d’équipage (à bord)', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('crewTest') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.crewTest')),
     variante('Pendant un Round de combat', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('roundDeCombat') }), { kind: { label: "type"  } }), 'conditionDe', 'condition.roundDeCombat')),
     variante('Distance à l’ennemi le plus proche', marquerProduit(nommerChamps(z.strictObject({ kind: z.literal('nearestFoe'), op: compareOpSchema, value: z.number() }), { kind: { label: "type"  }, op: { label: "opération"  }, value: { label: "valeur" } }), 'conditionDe', 'condition.nearestFoe')),
@@ -1539,7 +1560,8 @@ function conditionDe(regimes: RegimesDeCondition): z.ZodType<Condition> {
   const cle = admises.join(',');
   const deja = ALGEBRES_DE_CONDITION.get(cle);
   if (deja) return deja;
-  const condition: z.ZodType<Condition> = z.lazy(() => branchesDeCondition(condition, admises));
+  // Le renvoi de `conditionAllieAuContactSchema` est le `LienRecursif`, que `ConditionDans` referme en `Condition`.
+  const condition = z.lazy(() => branchesDeCondition(condition, admises)) as unknown as z.ZodType<Condition>;
   ALGEBRES_DE_CONDITION.set(cle, condition);
   return condition;
 }

@@ -12,6 +12,7 @@ import { spawnFacing } from './monde/exploreNav';
 import { addEnemyMember, addStation, borneALaCarte, editEntry, moveSel, pasteEntity, patchStation, placeEntity, placeEntry } from './sceneEdit';
 import { validateScene } from './validateScene';
 import { avertissementsDeLaSession, editer, ouvrirLEdition } from './edition/session';
+import type { ProjetDEdition } from './sceneEditLecture';
 import { emptyNarratif } from './monde/campaignNarratif';
 import { actionNeuve, aUnRoleEnJeu } from './monde/usable';
 import { unreachableDescriptiveZones } from './mapQC';
@@ -168,7 +169,7 @@ describe('zone jouable — pose de l’auteur et validation', () => {
 
   it('l’avertissement d’un point d’entrée ou d’une ancre hors zone mène l’auteur au fautif', () => {
     const s = dehors({ entryPoints: { quai: { x: 11, y: 7 } }, stations: [{ sceneId: 'ailleurs', pos: { x: 0, y: 7 } }] });
-    const ouverte = editer(ouvrirLEdition({ scenes: [s], narratif: emptyNarratif() } as unknown as Parameters<typeof ouvrirLEdition>[0], false), { geste: 'outil', outil: { mode: 'zone', zone: 'room' } });
+    const ouverte = editer(ouvrirLEdition({ scenes: [s], narratif: emptyNarratif() } as ProjetDEdition, { duDepot: false }), { geste: 'outil', outil: { mode: 'zone', zone: 'room' } });
     const ws = avertissementsDeLaSession(ouverte);
     const aller = (fautif: string) => editer(ouverte, { geste: 'avertissement', rang: ws.findIndex((w) => w.message.includes(fautif) && w.message.includes('zone jouable')) });
     expect([aller('quai').sel, aller('quai').outil]).toEqual([{ type: 'entry', id: 'quai' }, { mode: 'selection' }]);

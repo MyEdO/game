@@ -1827,7 +1827,57 @@
     },
     "capabilities": {
       "stupid": true
-    }
+    },
+    "effects": [
+      {
+        "trigger": "onRoundStart",
+        "on": "soi",
+        "flow": {
+          "kind": "si",
+          "condition": {
+            "kind": "not",
+            "of": {
+              "kind": "allieAuContact",
+              "tel": {
+                "kind": "not",
+                "of": {
+                  "kind": "has",
+                  "who": "target",
+                  "what": "trait",
+                  "ref": {
+                    "id": "stupide"
+                  }
+                }
+              }
+            }
+          },
+          "alors": {
+            "kind": "test",
+            "test": {
+              "characteristic": "intelligence",
+              "difficulty": "facile",
+              "label": "Stupide"
+            },
+            "reussite": {
+              "kind": "sequence",
+              "etapes": []
+            },
+            "echec": {
+              "kind": "effet",
+              "effet": {
+                "type": "ops",
+                "on": "target",
+                "ops": [
+                  {
+                    "op": "loseTurn"
+                  }
+                ]
+              }
+            }
+          }
+        }
+      }
+    ]
   },
   {
     "id": "taille",
