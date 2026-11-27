@@ -559,6 +559,38 @@ export function adversairesDe(input: Pick<EnemyTurnInput, 'heroes' | 'ciblesDePu
   return [...input.heroes, ...(input.ciblesDePulsion ?? []).filter((c) => c.pos && !input.heroes.some((h) => h.id === c.id))];
 }
 
+/** Les combattants que lit le Surnombre d'une décision (LDB 14 l.110) : ceux de la bataille, à défaut l'escouade et
+ *  les adversaires. */
+function combattantsDeLaDecision(input: EnemyTurnInput): readonly Combatant[] {
+  return input.combatants ?? [...(input.squad ?? []), ...adversairesDe(input).filter((c) => c.kind !== input.enemy.kind)];
+}
+
+/** Les Blessures espérées de la frappe d'`arme` de `attaquant` sur `cible` (`expectedDamage`) : au tir à `tir.dist`
+ *  cases, sinon en mêlée, Surnombre compris (LDB 14 l.110). Seul estimateur de la frappe de l'IA. */
+export function degatsDeLaFrappe(
+  ctx: { combattants: readonly Combatant[]; mpt: number; resolveTrapping: TrappingResolver },
+  attaquant: Combatant, cible: Combatant, arme: Weapon, tir?: { dist: number },
+): number {
+  if (tir) return finite(expectedDamage(attaquant, cible, arme, { kind: 'distance', distanceTiles: tir.dist, metresPerTile: ctx.mpt, resolveTrapping: ctx.resolveTrapping }), 0);
+  const mod = surnombreDeLAttaque(ctx.combattants, attaquant, cible);
+  return finite(expectedDamage(attaquant, cible, arme, { kind: 'melee', env: mod ? [mod] : undefined }), 0);
+}
+
+/** Les Blessures espérées de la frappe que porte `action` (mêlée, tir), l'attaquant posé en `depuis` (sa case à
+ *  défaut), à l'arme de la décision (`weaponUid`, sinon la première de mêlée ou de tir) ; 0 pour une action sans
+ *  frappe. */
+export function frappeEsperee(input: EnemyTurnInput, action: EnemyAction, depuis?: Pt): number {
+  if (action.kind !== 'melee' && action.kind !== 'tir') return 0;
+  const attaquant = depuis ? { ...input.enemy, pos: depuis } : input.enemy;
+  const cible = [...adversairesDe(input), ...(input.meleeDeStructure?.cibles ?? input.structures ?? [])].find((c) => c.id === action.targetId);
+  const type = action.kind === 'tir' ? 'distance' : 'melee';
+  const arme = attaquant.weapons.find((w) => (action.weaponUid ? w.uid === action.weaponUid : w.type === type)) ?? (type === 'melee' ? attaquant.weapons[0] : undefined);
+  if (!cible?.pos || !attaquant.pos || !arme) return 0;
+  const ctx = { combattants: combattantsDeLaDecision(input), mpt: sceneMetresPerTile(input.scene), resolveTrapping: input.resolveTrapping ?? findTrappingById };
+  const tir = type === 'distance' ? { dist: footprintChebyshev(attaquant.pos, footprintN(attaquant), cible.pos, footprintN(cible)) } : undefined;
+  return degatsDeLaFrappe(ctx, attaquant, cible, arme, tir);
+}
+
 /** Le candidat reste-t-il permis quand l'Action est due à une Prière (`prayerForActionBy`) ? L'incantation
  *  d'une Prière (`castInfoIsPrayer`), le Mouvement (l'attaque d'après est gardée à l'exécution) et la
  *  Détermination, qui ne sont pas l'Action. LDB 40 l.74 */
@@ -607,7 +639,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Vision réciproque : l'ennemi ne cible/poursuit que les héros qu'il PERÇOIT (LoS + lumière, comme le
   // groupe). `perceived` absent = aucun gate (comportement historique / tests purs).
   const adversaires = adversairesDe(input);
-  const combattants = input.combatants ?? [...squad, ...adversaires.filter((c) => c.kind !== enemy.kind)];
+  const combattants = combattantsDeLaDecision(input);
   // Géométrie de combat : la monture d'un cavalier porte portée, contact et empreinte. LDB 14 l.179
   const corps = attackGeomOfList([...combattants], enemy, null);
   const heroes = input.perceived
@@ -918,9 +950,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   ): number => {
     const dmg = src.kind === 'spell'
       ? src.value
-      : src.kind === 'distance'
-        ? finite(expectedDamage(enemy, target, src.weapon, { kind: 'distance', distanceTiles: src.dist, metresPerTile: mpt, resolveTrapping }), 0)
-        : finite(expectedDamage(enemy, target, src.weapon, { kind: 'melee', env: outnumberEnvMelee(target) }), 0);
+      : degatsDeLaFrappe({ combattants, mpt, resolveTrapping }, enemy, target, src.weapon, src.kind === 'distance' ? { dist: src.dist } : undefined);
     const threat = threatOf(target);
     const securesKill = dmg >= target.wounds.current && target.wounds.current > 0 ? Weff.killSecure : 0;
     const overkill = isNeutralized(target) ? Weff.overkill : 0;

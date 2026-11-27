@@ -25,11 +25,7 @@
 //
 // Entrées PROPRES à ce garde (au-delà de la whitelist sœur), portant leur dette #370 en propre :
 //  - `combatSlice.ts` (cf. ci-dessus) ;
-//  - `combat/turnHooks.ts` — SORTI du stock #918 (phase 2a : son unique `rollTest(` inline est routé
-//    par `rollSansPilote`), mais son site LATENT `resolveFrenzyEntry` avec `battleRng()` relève de
-//    #370, pas de #918 :
-//    la dette CHANGE de liste, elle ne disparaît pas. `shipwreck.ts`, sorti du même coup, ne produit
-//    AUCUN offender ici (mesuré) — pas d'entrée.
+//  - `shipwreck.ts`, sorti du stock #918 (phase 2a), ne produit AUCUN offender ici (mesuré) — pas d'entrée.
 
 import { RACINE_DU_SEAM, ROLL_SEAM_FILE_WHITELIST } from './rollSeamWhitelist.mjs';
 
@@ -37,7 +33,6 @@ import { RACINE_DU_SEAM, ROLL_SEAM_FILE_WHITELIST } from './rollSeamWhitelist.mj
 export const BATTLE_RNG_ENGINE_LEAK_WHITELIST = new Set([
   ...ROLL_SEAM_FILE_WHITELIST,
   'src/noyau/combatSlice.ts',
-  'src/noyau/combat/turnHooks.ts',
 ]);
 
 /** @param {string} rel @returns {boolean} */

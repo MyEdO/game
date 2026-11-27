@@ -232,6 +232,13 @@ export const hasFreeWeaponAttack = (c: Combatant): boolean => {
   return plafondsDesGratuitesDArme(c).some((cap) => used < cap);
 };
 
+/** L'attaque d'Arme de `c` est-elle jouable : l'Action du Tour disponible et utilisable (`refusDuTour.ts`), ou une
+ *  attaque d'Arme gratuite qui reste. Prédicat de l'offre `arme` et du budget de la frappe de l'IA. LDB 13 l.14 ;
+ *  LDB 21 l.33 */
+export function frappeDArmeJouable(battle: BattleState, c: Combatant): boolean {
+  return !(refusActionDepensee(battle) ?? refusHorsDEtatDAgir(c)) || hasFreeWeaponAttack(c);
+}
+
 /** Adversaire de mêlée VALIDE pour l'action « Au Contact » d'un héros (LDB 62 l.176, Option « Longueur
  *  d'arme ») : ennemi vivant Engagé avec `mover` ET tel qu'une différence d'allonge soit PERTINENTE —
  *  l'un des deux porte une arme de mêlée plus longue que Courte (sinon « au contact » ne reclasse rien).
@@ -264,9 +271,8 @@ export function availableAttacks(scene: Scene | null, active: Combatant, battle:
   // (0) ARME du Set actif — attaque-Action de base ET attaque CC GRATUITE de Frénésie (l.34), tant que
   //     l'Action OU la libre de Frénésie est dispo. `reach` absent → attackPlan lit l'arme tenue (Allonge,
   //     branche distance pour une arme à distance).
-  const freeWeapon = hasFreeWeaponAttack(active);
-  if (actionDispo || freeWeapon)
-    out.push({ id: 'arme', kind: 'arme', label: libelleDeValeur(attackKindSchema, 'arme'), icon: MANEUVER_ICON.arme, targeting: 'melee', cost: { action: !freeWeapon, advantage: 0 } });
+  if (frappeDArmeJouable(battle, active))
+    out.push({ id: 'arme', kind: 'arme', label: libelleDeValeur(attackKindSchema, 'arme'), icon: MANEUVER_ICON.arme, targeting: 'melee', cost: { action: !hasFreeWeaponAttack(active), advantage: 0 } });
   // (1) Attaques naturelles (`attaquesNaturelles`) : gratuites de MÊLÉE ou SPÉCIALES de zone. 'arme'
   //     (ci-dessus) exclue ; celle de Charge (Cornes) seulement quand sa Charge a gagné l'Avantage (LDB 85 l.83). Mêmes prédicats d'abordabilité (Avantage RAW ou 1 si
   //     variable ; Action si trigger='action') ; une manœuvre d'écart de Taille exige sa cible au contact.
