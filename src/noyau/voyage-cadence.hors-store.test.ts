@@ -159,7 +159,7 @@ describe('traversée COMMANDÉE (mer) — routine auto-résolue, PV du jour, auc
     banc.setState({ party: get().party.map((h, i) => (i === 0 ? { ...h, skills: [...h.skills, { id: 'voile', characteristic: 'agilite' as const, advances: 10 }] } : h)) });
     get().partirEnVoyage('r1', 'mer', { cadence: 'commande', seaPace: 1 });
     const day = get().travelPlan!.log!.slice(-1)[0]!;
-    const journal = get().journal;
+    const journal = get().journal.map((e) => e.texte);
     const rows = (day.entries ?? []).filter((e) => e.d);
     expect(rows.length).toBeGreaterThan(0);
     for (const e of rows) {
@@ -243,7 +243,7 @@ describe('descente FLUVIALE COMMANDÉE (#91) — routine sans modale par jet', (
     runRiverDays(get, set);
     expect(get().pendingCascade).toBeNull(); // #91 : plus de modale par jet en route commandée
     expect(get().pendingRest).toBeTruthy(); // la journée s’est jouée puis la halte de nuit s’ouvre
-    expect(get().journal.some((l) => /Progression du jour/.test(l))).toBe(true); // trace du jour au PV
+    expect(get().journal.map((e) => e.texte).some((l) => /Progression du jour/.test(l))).toBe(true); // trace du jour au PV
   });
 
   it('en JOUR-PAR-JOUR la même journée ouvre la cascade influençable (comportement historique)', () => {

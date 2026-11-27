@@ -108,8 +108,8 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     banc.getState().ensemencerLeTirage(3);
     const h = hero();
     runCascadeImmediate(banc.getState, banc.setState, [step('s1', h.id)]);
-    const traces = banc.getState().journal.filter((l) => /^Brawn — Résistance : \d+\/55, (réussi|échec) \(DR [+-]\d+\)\.$/.test(l));
-    expect(traces, `journal:\n${banc.getState().journal.join('\n')}`).toHaveLength(1);
+    const traces = banc.getState().journal.filter((l) => /^Brawn — Résistance : \d+\/55, (réussi|échec) \(DR [+-]\d+\)\.$/.test(l.texte));
+    expect(traces, `journal:\n${banc.getState().journal.map((e) => e.texte).join('\n')}`).toHaveLength(1);
   });
 
   it('« Tout lancer » (modale ouverte sur le BILAN, chaque rangée montre son dé) : AUCUNE ligne de dé', () => {
@@ -117,14 +117,14 @@ describe('partition anti-doublon — la ligne de dé n’existe QUE sans fenêtr
     const h = hero();
     startCascade(banc.getState, banc.setState, { title: 'Nuit', purpose: 'test', steps: [step('s1', h.id)] });
     banc.getState().jetLancer('cascade');
-    expect(banc.getState().journal.filter((l) => /Résistance : \d+\/55/.test(l))).toEqual([]);
+    expect(banc.getState().journal.filter((l) => /Résistance : \d+\/55/.test(l.texte))).toEqual([]);
   });
 
   it('étape qui ARRIVE déjà résolue (son dé a été montré ailleurs) : aucune ligne de dé au pilote immédiat', () => {
     const h = hero();
     const resolved: CascadeStep = { ...step('s1', h.id), result: { roll: 12, target: 55, sl: 4, success: true } };
     runCascadeImmediate(banc.getState, banc.setState, [resolved]);
-    expect(banc.getState().journal.filter((l) => /Résistance : 12\/55/.test(l))).toEqual([]);
+    expect(banc.getState().journal.filter((l) => /Résistance : 12\/55/.test(l.texte))).toEqual([]);
   });
 });
 
@@ -138,8 +138,8 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
     } as unknown as PendingTest;
     banc.setState({ pendingTest: pt });
     banc.getState().jetValider('test');
-    const issues = banc.getState().journal.filter((l) => l.includes('Brawn réussit.'));
-    expect(issues, `journal:\n${banc.getState().journal.join('\n')}`).toHaveLength(1);
+    const issues = banc.getState().journal.filter((l) => l.texte.includes('Brawn réussit.'));
+    expect(issues, `journal:\n${banc.getState().journal.map((e) => e.texte).join('\n')}`).toHaveLength(1);
   });
 
   it('canal COMBAT (rechargement) : `apply` REND la ligne sans écrire au journal narratif (le site la tisse dans son `set`)', () => {

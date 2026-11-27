@@ -23,6 +23,7 @@ import { CLASSE_DES_ACTIONS_DU_NOYAU } from './intentionsDeSiege';
 import { portesDuMobile } from './marcheDuGroupe';
 import { emptyScene } from './monde/scene';
 import { t } from '../i18n';
+import { ligneDeTexte } from '../engine/journal';
 import { bus, EVT } from './bus';
 import { reglerUneRegleMaison, remettreUneRegleMaison } from '../hote/reglesMaison';
 import { unpackHouseRules } from './persistance/save';
@@ -167,7 +168,7 @@ describe('creerPartie — l’intention sans siège joue l’action de l’état
         const avant = horsJournal(partie);
         const appel = partie.envoyer(sansArgument(verbe));
         expect(appel.issue, verbe).toBe('appliquee');
-        expect(appel.journal, `${verbe} : le refus n’est pas la seule ligne de l’appel`).toEqual([expect.objectContaining({ de: 'journal', texte: t('coop.hoteSeul') })]);
+        expect(appel.journal, `${verbe} : le refus n’est pas la seule ligne de l’appel`).toEqual([expect.objectContaining({ de: 'journal', entree: ligneDeTexte(t('coop.hoteSeul')) })]);
         expect(horsJournal(partie), `${verbe} s’est joué dans la copie de l’invité`).toBe(avant);
       }
       expect(envoi, 'un verbe `hôte` est parti à l’hôte').not.toHaveBeenCalled();
@@ -201,7 +202,7 @@ describe('creerPartie — l’intention sans siège joue l’action de l’état
       const avant = horsJournal(attable);
       const appel = attable.envoyer({ type: 'renvoyerLeHeros', args: [BRUNA.id], siege: 1 });
       expect(appel.issue).toBe('appliquee');
-      expect(appel.journal).toEqual([expect.objectContaining({ de: 'journal', texte: t('coop.siegeHoteSeul') })]);
+      expect(appel.journal).toEqual([expect.objectContaining({ de: 'journal', entree: ligneDeTexte(t('coop.siegeHoteSeul')) })]);
       expect(horsJournal(attable), 'l’intention du siège s’est jouée dans la copie de l’invité').toBe(avant);
       expect(envoi, 'l’intention du siège est partie à l’hôte').not.toHaveBeenCalled();
     } finally {
@@ -259,7 +260,7 @@ describe('creerPartie — l’intention sans siège joue l’action de l’état
 });
 
 describe('creerPartie — le journal de l’appel, capté à ses écrivains', () => {
-  const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+  const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 
   it('une scène où l’on entre deux fois rend deux fois sa ligne d’entrée, une par appel', () => {
     const scene = { ...testScene(), startMessage: { texte: 'Vous entrez dans la salle.' } };
@@ -279,7 +280,7 @@ describe('creerPartie — le journal de l’appel, capté à ses écrivains', ()
     const [refus] = lignesDuJournal(vierge.envoyer(fouille));
     vierge.fermer();
     expect(refus, 'la fouille hors scène ne s’est pas refusée au journal').toBeTruthy();
-    const partie = creerPartie({ ...etatInitialDuJeu(), journal: Array.from({ length: 41 }, () => refus) }, ENTREES);
+    const partie = creerPartie({ ...etatInitialDuJeu(), journal: Array.from({ length: 41 }, () => ligneDeTexte(refus)) }, ENTREES);
     try {
       expect(lignesDuJournal(partie.envoyer(fouille))).toEqual([refus]);
       expect(lignesDuJournal(partie.envoyer(fouille))).toEqual([refus]);
@@ -342,7 +343,7 @@ describe('creerPartie — le `set` du propriétaire', () => {
 
 /** L'instantané que l'hôte diffuse, copié comme le réseau le porte. */
 const instantane = (hote: Partie): Record<string, unknown> => JSON.parse(JSON.stringify(instantaneDeLaCoop(hote.etat()))) as Record<string, unknown>;
-const textes = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const textes = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 const deCombat = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'combat' ? [l.evenement] : []));
 const etatsGagnesDe = ({ evenements }: ResultatDeLAppel) => evenements.filter((e) => e.type === 'etatGagne');
 

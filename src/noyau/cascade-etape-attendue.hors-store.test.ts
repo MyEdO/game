@@ -33,7 +33,7 @@ function etapeDeviation(): CascadeStep {
 }
 
 const courante = () => { const p = get().pendingCascade!; return p.participants[p.cursor]; };
-const dernierRefus = () => get().journal[get().journal.length - 1];
+const dernierRefus = () => get().journal[get().journal.length - 1].texte;
 
 describe('un verbe de cascade joué hors de son étape est refusé en nommant l’étape attendue', () => {
   beforeEach(() => {

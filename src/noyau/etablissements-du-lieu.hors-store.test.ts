@@ -31,7 +31,7 @@ const worldMap: WorldMap = {
 
 let banc: Banc;
 const g = () => banc.getState();
-const dernier = () => g().journal[g().journal.length - 1];
+const dernier = () => g().journal[g().journal.length - 1]?.texte;
 
 /** Le groupe se tient au lieu de la carte `carte`, son écran ouvert. */
 function monter(carte: WorldMap = worldMap): void {

@@ -288,13 +288,13 @@ describe('#1426 — le flux RNG de la vente terrestre ne dépend pas de l’opti
     expect(get().pendingCascade, 'le siège du monde tient la fenêtre : elle s’ouvre même sans option de pose').toBeTruthy();
     lancer(); // 1ʳᵉ tentative : le dé se LANCE (aucune pose), c'est le geste sans option
     if (get().pendingCascade) lancer(); // 2ᵉ tentative (moitié du lot) quand la 1ʳᵉ rate
-    const vente = get().journal.find((l) => l.includes('vendus'));
+    const vente = get().journal.find((l) => l.texte.includes('vendus'))?.texte;
     expect(vente, 'la vente a bien eu lieu').toBeTruthy();
     // Valeur MESURÉE sur la graine 3 : elle ne vaut que par sa STABILITÉ — inverser deux tirages
     // (marchand avant acheteur, ou un dé consommé en trop) la déplace.
     // Graine 3 : le 1ᵉʳ dé d'acheteur RATE, le 2ᵉ passe sur la moitié du lot — donc la BRANCHE de
     // reprise est jouée, puis le marchand et le Marchandage tirent DERRIÈRE, dans cet ordre.
-    expect(get().journal.some((l) => l.includes('la moitié (20 Enc) trouve preneur'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('la moitié (20 Enc) trouve preneur'))).toBe(true);
     expect(vente).toBe('20 Enc de Vin/Eau-de-vie vendus (mise à prix 105 % du base — Artur — Marchandage (77 vs 49) : +10 %.) : 231 CO.');
   });
 });
@@ -320,7 +320,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
     marcheAvecLot();
     vendreALaHalle(get, set, lot.uid);
     poser(1); // ≤ 70 → acheteur trouvé
-    const j = get().journal.join('\n');
+    const j = get().journal.map((e) => e.texte).join('\n');
     expect(j).not.toContain('la moitié');
     expect(j).toContain('40 Enc de Vin/Eau-de-vie vendus'); // le lot ENTIER part
   });
@@ -343,8 +343,8 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
     poser(99);
     poser(1);
     const j = get().journal;
-    const demi = j.findIndex((l) => l.includes('la moitié (20 Enc) trouve preneur'));
-    const vente = j.findIndex((l) => l.includes('20 Enc de Vin/Eau-de-vie vendus'));
+    const demi = j.findIndex((l) => l.texte.includes('la moitié (20 Enc) trouve preneur'));
+    const vente = j.findIndex((l) => l.texte.includes('20 Enc de Vin/Eau-de-vie vendus'));
     expect(demi, 'le message de moitié est journalisé').toBeGreaterThanOrEqual(0);
     expect(vente).toBeGreaterThan(demi); // ordre de la résolution synchrone d'origine, préservé
   });
@@ -354,7 +354,7 @@ describe('#1426 — « Trouver un acheteur » terrestre passe par la porte (MSRC
     vendreALaHalle(get, set, lot.uid);
     poser(99);
     poser(99);
-    expect(get().journal.join('\n')).toContain('aucun acheteur intéressé à Altdorf (Demande 70)');
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain('aucun acheteur intéressé à Altdorf (Demande 70)');
     expect(get().pendingCascade).toBeNull();
   });
 });
@@ -396,7 +396,7 @@ describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (p
     expect(get().travelPlan!.interrupted).toBe(true);
     // Et RIEN n'est mis de côté pour plus tard : un reste préservé rejouerait ses dés au retour.
     expect(get().suspendedCascades).toEqual([]);
-    const j = get().journal.join('\n');
+    const j = get().journal.map((e) => e.texte).join('\n');
     expect(j).toContain('Péripétie : P0');
     expect(j).not.toContain('P1');
     expect(j).not.toContain('P2');
@@ -436,9 +436,9 @@ describe('#1426 Q1 — `stopSequence` TRONQUE la séquence au goulot partagé (p
     set({ journal: [] });
     seedBattleRng(5);
     runCascadeImmediate(get, set, [...buildAuthorPerilSteps(route, 'B', 'voyage-mer')]);
-    const evites = get().journal.filter((l) => l.includes('Péripétie évitée'));
+    const evites = get().journal.filter((l) => l.texte.includes('Péripétie évitée'));
     expect(evites).toHaveLength(3);
-    expect(get().journal.some((l) => l.includes('Péripétie : '))).toBe(false);
+    expect(get().journal.some((l) => l.texte.includes('Péripétie : '))).toBe(false);
   });
 });
 
@@ -489,7 +489,7 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
       expect(st.evaluation, 'un pourcentage RAW n’est pas un Test').toBe('seuil');
       expect(st.result!.sl, 'et un seuil n’a aucun Degré de Réussite').toBe(0);
     }
-    for (const l of get().journal) expect(l).not.toMatch(/\bDR\b/);
+    for (const l of get().journal) expect(l.texte).not.toMatch(/\bDR\b/);
   });
 
   it('la TRACE d’un seuil résolu sans fenêtre dit le VERDICT de l’étape, jamais « réussi/échec » (#2389)', () => {
@@ -498,7 +498,7 @@ describe('#1426 Q2 — le pourcentage d’auteur se lit « dé ≤ nombre visé 
     const verdict = { reussite: t('seuil.sousLeSeuil'), echec: t('seuil.auDessus') };
     const st = worldStep({ id: 'w', kind: cleDeFixture('sonde-seuil-trace'), label: fixtureText('Désertion'), rollLabel: 'Désertion', cible: 50, verdict });
     const [joue] = runCascadeImmediate(get, set, [st])!;
-    const ligne = get().journal.find((x) => x.includes('Désertion'));
+    const ligne = get().journal.find((x) => x.texte.includes('Désertion'))?.texte;
     expect(ligne, 'le dé sans fenêtre a sa trace').toBeTruthy();
     expect(ligne).toContain(String(joue!.result!.success ? verdict.reussite : verdict.echec));
     expect(ligne).not.toContain(t(joue!.result!.success ? 'casc.autoRowHit' : 'casc.autoRowMiss'));
@@ -957,7 +957,7 @@ describe('#1426 LOT 1 — table sous le curseur : la fenêtre la joue quand un s
     expect(canFixDie(get(), undefined), 'option OFF : le siège qui possède le monde n’a rien à poser').toBe(false);
     expect(meteo.table!.result, 'le socle l’a tirée sans arrêt').toBeTruthy();
     expect(etapeCourante()!.kind, 'la journée s’arrête au premier vrai choix, après elle').not.toBe('etape-meteo');
-    expect(get().journal.some((l) => l.includes('Météo')), 'la Météo d’Étape est au journal').toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('Météo')), 'la Météo d’Étape est au journal').toBe(true);
     expect(draineJour(false), 'aucune autre table ne retient la journée').toBeUndefined();
     expect(get().pendingRest, 'la journée va jusqu’à la halte de nuit').toBeTruthy();
   });

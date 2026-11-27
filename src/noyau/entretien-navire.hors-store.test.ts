@@ -307,7 +307,7 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
     expect.soft(get().pendingCascade).toBe(cascade);
     expect.soft(get().pendingSeaActivities).toBe(pending);
     const journal = get().journal;
-    expect.soft(journal[journal.length - 1] ?? '').toMatch(/L’action est engagée/);
+    expect.soft(journal[journal.length - 1]?.texte ?? '').toMatch(/L’action est engagée/);
 
     get().fenetreChoisir('activitesEnMer', 'activite', null, pid);
     expect(get().pendingSeaActivities?.picks[pid]).toEqual({ activityId: ACTIVITE });
@@ -339,7 +339,7 @@ describe('Entretien du navire (MDG 15 l.302-306)', () => {
     try {
       setDataset('activities', original.map((a) => String(a.id) === ACTIVITE ? { ...a, tests: undefined } : a));
       choisir(get, 'usure');
-      expect(get().journal).toContainEqual(expect.stringContaining('L’entretien du navire n’est plus ouvert'));
+      expect(get().journal.map((e) => e.texte)).toContainEqual(expect.stringContaining('L’entretien du navire n’est plus ouvert'));
       expect(courant(get).kind).toBe('merEntretienChoix');
       expect(courant(get).options?.find((o) => o.key === 'usure')?.refus).toBeDefined();
       expect(stock(get, PIECES)).toBe(35);

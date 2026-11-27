@@ -98,7 +98,7 @@ describe('Mort par Hémorragique en combat (LDB 16 l.105) — hook bleed-death +
     seedBattleRng(1); // 1ᵉʳ d100 > 30, non-double → survie
     saigneInconscient(E, 3);
     endRound();
-    expect(banc.getState().battle!.log.some((l) => /survit à l'hémorragie/.test(l.text))).toBe(true);
+    expect(banc.getState().battle!.log.some((l) => /survit à l'hémorragie/.test(l.entree.texte))).toBe(true);
   });
 
   it('coagulation : un DOUBLE retire 1 pion d’Hémorragique (pas de mort)', () => {

@@ -20,7 +20,7 @@ import { touchActors } from './combatOrParty';
 import { fenetreDeDefense } from './fenetreDeDefense';
 import { actorIn, combattantsDeLaSerie, porteurParId } from './monde/combatants';
 import { sansCorps } from './slotsDeJet';
-import { markFixedDie } from './fixedDieMark';
+import { ligneDeTexte } from '../engine/journal';
 import { testScene } from '../scenes/test-fixture';
 import { entreeEnRencontre } from '../engine/persistence';
 import { stacks } from '../engine/conditions';
@@ -179,7 +179,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const s = banc.getState();
     expect(res.hit && !!res.woundsLost).toBe(true);
     expect(s.party[0].wounds.current).toBe(avant - res.woundsLost!);
-    expect(s.journal).toContain(ligneDuCoup(res));
+    expect(s.journal.map((e) => e.texte)).toContain(ligneDuCoup(res));
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 6 });
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
   });
@@ -191,7 +191,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const s = banc.getState();
     expect(res.hit).toBe(false);
     expect(s.party[0].wounds.current).toBe(avant);
-    expect(s.journal).toContain(ligneDuCoup(res));
+    expect(s.journal.map((e) => e.texte)).toContain(ligneDuCoup(res));
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 6 });
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
   });
@@ -239,7 +239,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     expect(etape.deviation, 'le pli pose le Critique hors bataille').toBeTruthy();
     expect(s.party[0].criticalWounds).toBe(1);
     expect(s.party[0].wounds.current).toBe(H.wounds.current - coup.woundsLost! - 1);
-    expect(s.journal.some((l) => l.includes(etape.table!.result!.lines[0]))).toBe(true);
+    expect(s.journal.some((l) => l.texte.includes(etape.table!.result!.lines[0]))).toBe(true);
     expect(s.serieSubie).toMatchObject({ restantes: 1 });
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
     expect(defendre(banc, 5).hit).toBe(false);
@@ -253,7 +253,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const coup = defendre(banc, 97);
     trancherLeCritique(banc, 1, 'devier');
     const s = banc.getState();
-    expect(s.journal).toContain(markFixedDie(t('cf.critiqueDevieSurLArmure', { name: nomDe(H) })));
+    expect(s.journal).toContainEqual({ ...ligneDeTexte(t('cf.critiqueDevieSurLArmure', { name: nomDe(H) })), deFixe: true });
     expect(s.party[0].criticalWounds ?? 0).toBe(0);
     expect(s.serieSubie).toBeNull();
     expect(s.party[0].wounds.current).toBe(H.wounds.current - coup.woundsLost! - 3);
@@ -407,7 +407,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
 
     expect(stacks(g().party[0], 'sonne')).toBe(0);
     const retrait = t('op.etatRetire', { name: nomDe(H), what: t('op.etatsCertains', { n: 2 }), cond: 'Sonné' });
-    expect(g().journal.filter((ligne) => ligne === retrait)).toEqual([retrait]);
+    expect(g().journal.map((e) => e.texte).filter((ligne) => ligne === retrait)).toEqual([retrait]);
     expect(g().serieSubie).toMatchObject({ restantes: 1 });
     expect(g().pendingDefense).toMatchObject({ defenderId: H.id });
     expect(defendre(banc, 5).hit).toBe(false);
@@ -544,7 +544,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
   it('Piège-lame en Parade, « Coup Critique » : le Critique placé sur l’assaillant se dit, la série se poursuit : LDB 62 l.278, LDB 14 l.3', () => {
     const { banc, H } = piegeALameDansLaSerie('critique');
     const s = banc.getState();
-    expect(s.journal).toContain(t('cf.critiqueEnDefense', { name: nomDe(H) }));
+    expect(s.journal.map((e) => e.texte)).toContain(t('cf.critiqueEnDefense', { name: nomDe(H) }));
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
   });
@@ -636,7 +636,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const s = banc.getState();
     expect(s.serieSubie).toMatchObject({ restantes: 1 });
     expect(s.serieSubie!.assaillant.loseNextAction).toBe(false);
-    expect(s.journal).toContain(t('cf.perdLAction', { name: nomDe(s.serieSubie!.assaillant) }));
+    expect(s.journal.map((e) => e.texte)).toContain(t('cf.perdLAction', { name: nomDe(s.serieSubie!.assaillant) }));
     expect(s.pendingDefense).not.toBeNull();
     defendre(banc, 5);
     expect(banc.getState().serieSubie).toBeNull();
@@ -650,8 +650,8 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     defendre(banc, 5);
     const s = banc.getState();
     const nom = nomDe(s.serieSubie!.assaillant);
-    expect(s.journal.some(ligneDOups(nom, 'Vous ne tenez pas votre arme')), s.journal.join(' | ')).toBe(true);
-    expect(s.journal).toContain(t('cf.perdLAction', { name: nom }));
+    expect(s.journal.map((e) => e.texte).some(ligneDOups(nom, 'Vous ne tenez pas votre arme')), s.journal.map((e) => e.texte).join(' | ')).toBe(true);
+    expect(s.journal.map((e) => e.texte)).toContain(t('cf.perdLAction', { name: nom }));
     expect(s.serieSubie).toMatchObject({ restantes: 1 });
     expect(s.serieSubie!.assaillant.loseNextAction).toBe(false);
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id });
@@ -661,7 +661,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc } = serieOuverte([66, 23, 95], 3);
     defendre(banc, 5);
     const s = banc.getState();
-    expect(s.journal).toContain(t('cf.maladresseSeSonne'));
+    expect(s.journal.map((e) => e.texte)).toContain(t('cf.maladresseSeSonne'));
     expect(s.serieSubie!.assaillant.conditions).toContainEqual({ id: 'sonne', value: 1 });
     expect(s.serieSubie).toMatchObject({ restantes: 2 });
   });
@@ -679,7 +679,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const { banc, H } = serieOuverte([20, 23, 75], 3);
     maladresseDuHeros(banc);
     const s = banc.getState();
-    expect(s.journal.some(ligneDOups(H.label, 'Vous ne tenez pas votre arme')), s.journal.join(' | ')).toBe(true);
+    expect(s.journal.map((e) => e.texte).some(ligneDOups(H.label, 'Vous ne tenez pas votre arme')), s.journal.map((e) => e.texte).join(' | ')).toBe(true);
     expect(s.party[0].loseNextAction).toBe(true);
     expect(s.serieSubie).toMatchObject({ restantes: 2 });
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
@@ -701,7 +701,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     banc.getState().jetImposerLeResultat('cascadeTirage', 3, casse.id);
     banc.getState().jetValider('cascade');
     const s = banc.getState();
-    expect(s.journal).toContain(markFixedDie(t('store.toolBroken', { tool: arme.label, name: nomDe(H) })));
+    expect(s.journal).toContainEqual({ ...ligneDeTexte(t('store.toolBroken', { tool: arme.label, name: nomDe(H) })), deFixe: true });
     expect(s.serieSubie).toMatchObject({ restantes: 2 });
     expect(s.pendingDefense).toMatchObject({ attackerId: s.serieSubie!.assaillant.id, defenderId: H.id });
   });
@@ -735,7 +735,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const assaillant = s.serieSubie!.assaillant;
     expect(s.pendingDefense).toBeNull();
     expect(s.party[0].wounds.current).toBe(0);
-    expect(s.journal.join(' ')).toContain(t('cf.achevementSansDefense', { name: nomDe(assaillant), foe: nomDe(H) }));
+    expect(s.journal.map((e) => e.texte).join(' ')).toContain(t('cf.achevementSansDefense', { name: nomDe(assaillant), foe: nomDe(H) }));
     expect(s.pendingFateSave).toMatchObject({ heroId: H.id, foeId: assaillant.id });
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 7 });
   });
@@ -778,8 +778,8 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();
     expect(s.party).toEqual([H]);
-    expect(s.journal.join('\n')).toContain(t('eff.membreDuBordAttaque', { assaillant: 'Rats géants', role: 'Timonier' }));
-    expect(s.journal.join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
+    expect(s.journal.map((e) => e.texte).join('\n')).toContain(t('eff.membreDuBordAttaque', { assaillant: 'Rats géants', role: 'Timonier' }));
+    expect(s.journal.map((e) => e.texte).join('\n')).not.toContain(t('eff.membreAuHasardMarin'));
   });
 
   it('chaque âme présente pèse une part égale du tirage, un héros comme un membre de l’effectif ; parmi l’effectif, un rôle pèse son compte parmi les postes, que les inscrits soient moins ou plus nombreux que l’effectif présent (MDG 15 l.161, l.176 ; MDG 14 l.15)', () => {
@@ -847,7 +847,7 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     const s = banc.getState();
     expect(s.vessel).toMatchObject({ crew: [{ roleId: 'timonier', count: 15 }] });
     expect(s.vessel!.crewLost).toBeUndefined();
-    expect(s.journal.join('\n')).toContain(t('eff.membreDuBordRevient', { role: 'Timonier' }));
+    expect(s.journal.map((e) => e.texte).join('\n')).toContain(t('eff.membreDuBordRevient', { role: 'Timonier' }));
   });
 
   // Navigateur : profil « Officier » sans Armure, MDG 14 l.342-353 ; LDB 63 l.30.
@@ -861,7 +861,7 @@ describe('série d’attaques subies sur un membre de l’équipage tiré au has
     const s = banc.getState();
     expect(s.serieSubie).toBeNull();
     expect(s.vessel).toMatchObject({ crewLost: 1, crew: [{ roleId: 'navigateur', count: 14 }] });
-    expect(s.journal.join('\n')).toContain(t('eff.membreDuBordMort', { role: 'Navigateur' }));
+    expect(s.journal.map((e) => e.texte).join('\n')).toContain(t('eff.membreDuBordMort', { role: 'Navigateur' }));
   });
 
   it('un recueilli sans solde tiré meurt : l’effectif perd un membre, son rôle aux recueillis aussi (LDB 18 l.34 ; MDG 15 l.258)', () => {

@@ -51,7 +51,7 @@ describe('cliquerLaCase — intentions d’exploration jouées', () => {
     banc.setState({ pendingInteract: { id: 'autre', at: { x: 0, y: 0 } } } as never);
     banc.getState().cliquerLaCase(figurant.pos, figurant.id);
     const who = nomDe(ficheDEntite(figurant, presetDuNarratif(banc.getState().campaignNarratif)));
-    expect(banc.getState().journal[banc.getState().journal.length - 1]).toBe(t('exploration.figurantMuet', { who }));
+    expect(banc.getState().journal[banc.getState().journal.length - 1].texte).toBe(t('exploration.figurantMuet', { who }));
     expect(banc.getState().pendingInteract).toBeNull();
   });
 

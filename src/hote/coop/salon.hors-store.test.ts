@@ -109,7 +109,7 @@ describe('salon — l’hôte', () => {
     ws.receive(JSON.stringify({ evt: 'resume', seat: 1, name: 'Anna' }));
     expect(banc.getState().net.presence[1]).toBe('present');
     vi.advanceTimersByTime(GRACE_MS);
-    expect(banc.getState().journal).not.toContain(t('coop.seatClosed'));
+    expect(banc.getState().journal.map((e) => e.texte)).not.toContain(t('coop.seatClosed'));
   });
 
   it('grâce écoulée : le siège ferme, ses héros reviennent à l’hôte', async () => {
@@ -117,7 +117,7 @@ describe('salon — l’hôte', () => {
     banc.setState({ net: { ...banc.getState().net, ownership: { h: 1 } } });
     ws.receive(JSON.stringify({ evt: 'gone', seat: 1 }));
     vi.advanceTimersByTime(GRACE_MS);
-    expect(banc.getState().journal).toContain(t('coop.seatClosed'));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(t('coop.seatClosed'));
     expect(banc.getState().net.ownership.h).toBe(0);
     expect(banc.getState().net.seatNames[1]).toBeUndefined();
   });
@@ -268,7 +268,7 @@ describe('salon — l’invité', () => {
   it('fatal du relay une fois assis : la raison au journal, la session finie', async () => {
     const ws = await inviteAssis();
     ws.dropFromServer(4404, 'room inconnue');
-    expect(banc.getState().journal).toContain(t('coop.reason', { reason: 'room inconnue' }));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(t('coop.reason', { reason: 'room inconnue' }));
     finie();
   });
 

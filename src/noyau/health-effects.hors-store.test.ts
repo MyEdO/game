@@ -51,7 +51,7 @@ describe('Effet inflictHunger (LDB 18 l.337-343)', () => {
     const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party });
     applyEffects(banc.getState, banc.setState, [{ type: 'inflictHunger', days: 1, target: 'heros', heroId: party[0].id }]);
-    expect(banc.getState().journal.some((l) => /affam/i.test(l))).toBe(true);
+    expect(banc.getState().journal.map((e) => e.texte).some((l) => /affam/i.test(l))).toBe(true);
   });
 });
 
@@ -97,7 +97,7 @@ describe('Effet exposureNight (LDB 18 l.326-334) — BANDE influençable par VAG
     commitRows([{ roll: 99, target: row.target, sl: -5, success: false }]);
     const h = banc.getState().party[0];
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(true);
-    expect(banc.getState().journal.some((l) => /chaleur|suffoque|accablé/i.test(l))).toBe(true);
+    expect(banc.getState().journal.map((e) => e.texte).some((l) => /chaleur|suffoque|accablé/i.test(l))).toBe(true);
   });
 });
 
@@ -165,7 +165,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     banc.setState({ journal: [] });
     commitRows([{ roll: 88, target: wave1.participants![0].target, sl: -4, success: false }]);
     // Ce 2ᵉ Test GENUINE est donc le 1ᵉʳ échec RÉEL (l.330 : −10 Int/FM + Exténué), PAS le 2ᵉ.
-    const journal = banc.getState().journal.join(' | ');
+    const journal = banc.getState().journal.map((e) => e.texte).join(' | ');
     expect(journal).toMatch(/suffoque/);
     expect(journal).not.toMatch(/accablé/);
   });
@@ -197,7 +197,7 @@ describe('Effet inflictThirst (LDB 18 l.340, miroir de la Faim)', () => {
     const party = tousLesHerosDeScenario(idsDeTest).slice(0, 1);
     banc.setState({ party });
     applyEffects(banc.getState, banc.setState, [{ type: 'inflictThirst', days: 1, target: 'heros', heroId: party[0].id }]);
-    expect(banc.getState().journal.some((l) => /sèche|déshydrat/i.test(l))).toBe(true);
+    expect(banc.getState().journal.map((e) => e.texte).some((l) => /sèche|déshydrat/i.test(l))).toBe(true);
   });
 });
 
@@ -235,7 +235,7 @@ describe('Effet setVessel (navire de campagne, MDG 13-15)', () => {
     expect(v?.vehicleId).toBe('cogue');
     expect(v?.morale.score).toBe(75); // moraleBase() (nouvel équipage)
     expect(v?.wounds).toBeUndefined(); // coque intacte (aucun hullMax authoré)
-    expect(banc.getState().journal.some((l) => /navire|cogue/i.test(l))).toBe(true);
+    expect(banc.getState().journal.map((e) => e.texte).some((l) => /navire|cogue/i.test(l))).toBe(true);
   });
 
   it('Moral et coque INITIAUX authorés sont appliqués', () => {
@@ -269,14 +269,14 @@ describe('Effet setVessel (navire de campagne, MDG 13-15)', () => {
     banc.setState({ journal: [] });
     applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' }, label: 'Le Cormoran' }]);
     expect(banc.getState().vessel?.label).toBe('Le Cormoran');
-    expect(banc.getState().journal.some((l) => l.includes('Le Cormoran'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('Le Cormoran'))).toBe(true);
   });
 
   it('#230 — sans nom d\'instance : name absent, le journal porte le label du TYPE', () => {
     banc.setState({ journal: [] });
     applyEffects(banc.getState, banc.setState, [{ type: 'setVessel', navire: { id: 'cogue' } }]);
     expect(banc.getState().vessel?.label).toBeUndefined();
-    expect(banc.getState().journal.some((l) => l.includes(findVehicleById('cogue')!.label))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes(findVehicleById('cogue')!.label))).toBe(true);
   });
 });
 
@@ -286,7 +286,7 @@ describe('Effet adjustVessel (#233 — patch PARTIEL du navire de campagne, ≠ 
   it('sans navire de campagne → no-op journalisé', () => {
     applyEffects(banc.getState, banc.setState, [{ type: 'adjustVessel', morale: 40 }]);
     expect(banc.getState().vessel).toBeUndefined();
-    expect(banc.getState().journal.some((l) => /navire/i.test(l))).toBe(true);
+    expect(banc.getState().journal.map((e) => e.texte).some((l) => /navire/i.test(l))).toBe(true);
   });
 
   it('aucun champ fourni → no-op journalisé, navire intact', () => {
@@ -355,7 +355,7 @@ describe('Op `manann` sur la cible `navire` (#213, #1652 — MDG 15 l.83-125)', 
     banc.setState({ vessel: undefined, journal: [] });
     applyEffects(banc.getState, banc.setState, [manann({ op: 'manann', facteur: { id: 'petit-sacrifice' } })]);
     expect(banc.getState().vessel).toBeUndefined();
-    expect(banc.getState().journal.some((l) => /sans effet/i.test(l))).toBe(true);
+    expect(banc.getState().journal.map((e) => e.texte).some((l) => /sans effet/i.test(l))).toBe(true);
   });
 
   it('facteur du tableau (petit sacrifice) applique son delta, une seule fois par navire (l.85)', () => {

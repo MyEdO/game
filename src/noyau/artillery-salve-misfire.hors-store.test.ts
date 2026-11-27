@@ -62,7 +62,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
     expect(etapeCourante()?.table?.tableId).toBe('artillerie-salve-incident');
     expect(poserLesDes(2), 'une seule étape : la table (l’arme n’est pas Solide)').toEqual(['casseDArme']);
     expect(chef.wounds.current).toBeLessThan(20);
-    const log = get().battle!.log.map((l) => l.text ?? l).join(' | ');
+    const log = get().battle!.log.map((l) => l.entree.texte).join(' | ');
     expect(log).toContain('Salve');
     expect(log, 'la ligne tirée est celle du dé POSÉ (1-4 : Bras principal)').toContain('Bras principal');
   });
@@ -91,7 +91,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
   // UNE sauvegarde Solide par Maladresse : #1508 (commentaire du 2026-09-26), #1764 (commentaire du 2026-09-27) ; `LDB 60 l.30`, `l.50`, `LDB 14 l.34`, `AA 10 l.264`.
   it('pièce à Salve AUSSI Bâclée et Solide : UN dé Solide pour l’Incident, lu par Bâclé, l’Incident et la table', () => {
     const piece = { ...salveGun, chambered: 5, qualities: [...salveGun.qualities, { id: 'bacle' }, { id: 'solide', value: 1 }] } as unknown as Weapon;
-    const lignes = (): string[] => banc.getState().battle!.log.map((l) => l.text ?? l);
+    const lignes = (): string[] => banc.getState().battle!.log.map((l) => l.entree.texte);
     for (const [de, brisee] of [[9, false], [2, true]] as const) {
       const chef = mkHero('chef', { weapons: [piece] });
       const { get, set } = setup(chef);
@@ -113,7 +113,7 @@ describe('Incident de Tir d’Artillerie par Salve (AA 10 l.270-277) — branche
       faits: [{ genre: 'objet', cible: 'chef', camp: 'groupe', objet: { arme: 'arbalete' }, valeur: -1, issue: 'brisee' }],
     });
     expect(banc.getState().pendingCascade, 'aucune étape ouverte').toBeNull();
-    const log = get().battle!.log.map((l) => l.text ?? l).join(' | ');
+    const log = get().battle!.log.map((l) => l.entree.texte).join(' | ');
     expect(log).not.toContain('Salve');
   });
 });

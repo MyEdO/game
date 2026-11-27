@@ -49,7 +49,7 @@ describe('Moral du navire de campagne — recalcul hebdomadaire dans l’entreti
     const v = banc.getState().vessel!;
     expect(v.morale.lastMoraleWeek).toBe(1);
     expect(v.morale.score).toBeLessThan(75); // « Pas de paie » fait toujours chuter le Moral
-    expect(banc.getState().journal.join('\n')).toMatch(/Moral de l'équipage/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Moral de l'équipage/);
   });
 
   it('#1652 — le facteur « nourriture-biscuits-de-mer » tire −1d10 au recalcul hebdomadaire (MDG 14 l.143, l.166)', () => {
@@ -84,7 +84,7 @@ describe('#4058 — « La maladie fait rage au sein de l’équipage » (MDG 14 
     const v = banc.getState().vessel!;
     expect(v.morale.lastMoraleWeek).toBe(1);
     expect(v.morale.score).toBeLessThan(75);
-    expect(banc.getState().journal.join('\n')).toContain(`${MALADIE} : -`);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toContain(`${MALADIE} : -`);
     expect(v.morale.factors).toEqual([]);
   });
 
@@ -93,14 +93,14 @@ describe('#4058 — « La maladie fait rage au sein de l’équipage » (MDG 14 
     expect(banc.getState().party[0].diseases).toHaveLength(1);
     expect(contagiousDiseases(banc.getState().party[0])).toEqual([]);
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
-    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toContain(MALADIE);
   });
 
   it('maladie contagieuse encore en incubation → aucun facteur de maladie', () => {
     uneSemaineMalade('verole-urticante', 20);
     expect(banc.getState().party[0].diseases?.[0]?.phase).toBe('incubation');
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
-    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toContain(MALADIE);
   });
 
   it('règle désactivée → aucun facteur de maladie', () => {
@@ -108,7 +108,7 @@ describe('#4058 — « La maladie fait rage au sein de l’équipage » (MDG 14 
     uneSemaineMalade('verole-urticante', 0);
     expect(contagiousDiseases(banc.getState().party[0]).length).toBe(1);
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
-    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toContain(MALADIE);
   });
 });
 
@@ -133,7 +133,7 @@ describe('#4243 — l’équipage PNJ, porteur collectif : « La maladie fait ra
     const v = banc.getState().vessel!;
     expect(v.porteurDeLEquipage?.diseases?.map((d) => `${d.id}/${d.phase}`)).toEqual(['scorbut/active']);
     expect(v.morale.lastMoraleWeek).toBe(1);
-    expect(banc.getState().journal.join('\n')).toContain(`${MALADIE} : -`);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toContain(`${MALADIE} : -`);
     expect(v.morale.factors).toEqual([]);
   });
 
@@ -141,7 +141,7 @@ describe('#4243 — l’équipage PNJ, porteur collectif : « La maladie fait ra
     equipageMalade('verole-urticante', 30);
     expect(banc.getState().vessel!.porteurDeLEquipage?.diseases?.[0]?.phase).toBe('incubation');
     expect(banc.getState().vessel!.morale.lastMoraleWeek).toBe(1);
-    expect(banc.getState().journal.join('\n')).not.toContain(MALADIE);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).not.toContain(MALADIE);
   });
 
   it('effectif PNJ à 0 → le collectif est vidé et n’est plus énuméré', () => {
@@ -171,7 +171,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     const mesure = () => ({
       bourse: toBrass(partyMoneyTotal(banc.getState)),
       moral: banc.getState().vessel!.morale,
-      paies: banc.getState().journal.filter((l) => l === t('crew.paid', { money: formatMoney(fromBrass(288)) })).length,
+      paies: banc.getState().journal.map((e) => e.texte).filter((l) => l === t('crew.paid', { money: formatMoney(fromBrass(288)) })).length,
     });
     banc.getState().avancerLeTemps(7 * MINUTES_PER_DAY);
     expect(mesure()).toEqual({ bourse: bourseInitiale, moral: { score: 75, lastMoraleWeek: 0, factors: [] }, paies: 0 });
@@ -199,7 +199,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     expect(v.morale.score).toBeLessThan(75); // « Pas de paie »
     expect(v.wagesOwed).toBe(288); // solve due cumulée en sous de cuivre
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(120); // rien n'est prélevé
-    expect(banc.getState().journal.join('\n')).toMatch(/Bourse insuffisante pour la solde/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Bourse insuffisante pour la solde/);
   });
 
   it('sans équipage salarié → aucun prélèvement, Moral inchangé (non-régression)', () => {
@@ -227,7 +227,7 @@ describe('Paie hebdomadaire de l’équipage salarié (MDG 14, #216) — couture
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 10, silver: 0, brass: 0 });
     banc.getState().offrirLeRepos({ lieu: { nom: fixtureText('Ici') }, places: { camp: true } });
     banc.getState().fenetreValider('repos');
-    const wageLines = banc.getState().journal.filter((l) => l.includes('Solde hebdomadaire'));
+    const wageLines = banc.getState().journal.filter((l) => l.texte.includes('Solde hebdomadaire'));
     expect(wageLines).toHaveLength(1);
   });
 });
@@ -288,7 +288,7 @@ describe('Conseil de bord (#229) — cadence MANUELLE : la paie remonte en modal
 describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque semaine franchie se règle', () => {
   // Un saut de N semaines règle N semaines, comme N sauts d'une semaine : même solde, mêmes recalculs.
   const soldeMousse = fromBrass(288);
-  const recalcs = () => banc.getState().journal.filter((l) => l.startsWith("Moral de l'équipage recalculé")).length;
+  const recalcs = () => banc.getState().journal.filter((l) => l.texte.startsWith("Moral de l'équipage recalculé")).length;
   const sauter = (pas: number[], conseil?: string) => {
     banc.setState({ gameTime: 0, lastUpkeepDay: 0, journal: [], pendingCouncil: null, pendingCascade: null, suspendedCascades: [], vessel: { vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] }, crew: [{ roleId: 'mousse', count: 1 }] } });
     creditBourse(banc.getState, banc.setState, banc.getState().party[0].id, { gold: 5000, silver: 0, brass: 0 });
@@ -305,7 +305,7 @@ describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque sema
     return {
       paye: avant - toBrass(partyMoneyTotal(banc.getState)),
       semaine: s.vessel!.morale.lastMoraleWeek,
-      soldes: s.journal.filter((l) => l === t('crew.paid', { money: formatMoney(soldeMousse) })),
+      soldes: s.journal.map((e) => e.texte).filter((l) => l === t('crew.paid', { money: formatMoney(soldeMousse) })),
       recalcs: recalcs(),
       jetsAuConseil,
     };
@@ -338,7 +338,7 @@ describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque sema
     expect(recalcs()).toBe(3);
     expect(banc.getState().pendingCouncil?.semaines).toBe(3);
     expect(toBrass({ gold: 5000, silver: 0, brass: 0 }) - toBrass(partyMoneyTotal(banc.getState))).toBe(3 * 288);
-    expect(banc.getState().journal.filter((l) => l === t('crew.paid', { money: formatMoney(soldeMousse) }))).toHaveLength(3);
+    expect(banc.getState().journal.map((e) => e.texte).filter((l) => l === t('crew.paid', { money: formatMoney(soldeMousse) }))).toHaveLength(3);
   });
 
   it('cadence auto : la solvabilité se juge semaine par semaine (trois soldes payées, la quatrième due)', () => {
@@ -349,7 +349,7 @@ describe('Saut d’horloge long (MDG 14 l.143, l.293-302, #1652) — chaque sema
     const s = banc.getState();
     const paye = t('crew.paid', { money: formatMoney(soldeMousse) });
     const impaye = t('crew.cannotPay', { money: formatMoney(soldeMousse) });
-    const suite = s.journal.flatMap((l) => (l === paye ? ['paid'] : l === impaye ? ['cannotPay'] : l.startsWith("Moral de l'équipage recalculé") ? ['recalc'] : []));
+    const suite = s.journal.map((e) => e.texte).flatMap((l) => (l === paye ? ['paid'] : l === impaye ? ['cannotPay'] : l.startsWith("Moral de l'équipage recalculé") ? ['recalc'] : []));
     expect(toBrass(partyMoneyTotal(banc.getState))).toBe(0);
     expect(s.vessel!.wagesOwed).toBe(288);
     expect(suite).toEqual(['paid', 'recalc', 'paid', 'recalc', 'paid', 'recalc', 'cannotPay', 'recalc']);

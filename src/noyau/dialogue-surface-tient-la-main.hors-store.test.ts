@@ -88,7 +88,7 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
     temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
     banc.getState().fenetreChoisir('dialogue', 'reponse', 'oui');
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('barre.mainTenue'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('barre.mainTenue'));
   });
 
   it('file de journal ou commande d’interlude en souffrance : aucune surface, elle répond', () => {

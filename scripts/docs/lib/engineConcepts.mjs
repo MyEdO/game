@@ -99,6 +99,7 @@ export const FILE_CONCEPTS = new Map([
   ['src/engine/healing.ts', 'Soin, guérison'],
   ['src/engine/inanimate.ts', 'Entités inanimées (véhicules, structures)'],
   ['src/engine/items.ts', 'Objets, possessions'],
+  ['src/engine/journal.ts', 'Journal du noyau : ses entrées, que chaque hôte rédige'],
   ['src/engine/landCargo.ts', 'Cargaison terrestre'],
   ['src/engine/localisations.ts', "Localisations d'impact : la table des six Localisations"],
   ['src/engine/magic.ts', 'Magie : incantation, sorts'],

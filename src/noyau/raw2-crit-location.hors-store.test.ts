@@ -109,7 +109,7 @@ describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! »
       banc.getState().jetRegler('attaque', 'localisationDuCritique', 'jambeG');
       expect(res.critLocation, 'aucun d100 de Localisation à choisir').toBeUndefined();
       banc.getState().jetValider('attaque');
-      const critiques = (banc.getState().battle?.log ?? []).map((l) => l.text).filter((t) => t.startsWith('Blessure critique'));
+      const critiques = (banc.getState().battle?.log ?? []).map((l) => l.entree.texte).filter((t) => t.startsWith('Blessure critique'));
       return { res, cible: E, critiques };
     };
     const nu = coup(0);

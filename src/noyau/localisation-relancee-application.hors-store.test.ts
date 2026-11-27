@@ -37,7 +37,7 @@ function arene() {
 }
 
 const critiqueA = (loc: HitLocation) =>
-  banc.getState().battle!.log.some((l) => l.text.startsWith('Blessure critique') && l.text.includes(`(${locationLabel(loc, 'humanoide')})`));
+  banc.getState().battle!.log.some((l) => l.entree.texte.startsWith('Blessure critique') && l.entree.texte.includes(`(${locationLabel(loc, 'humanoide')})`));
 
 describe('T7 — le d100 de la Localisation est consommé au JET, pas à l’application', () => {
 

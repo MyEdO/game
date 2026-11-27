@@ -186,7 +186,7 @@ describe('ancrage des zones persistantes (LDB 47 l.28 ; LDB 48 l.252, l.389, l.7
 
     expect(jeu().pendingCast).toBeNull();
     expect(jeu().battle).toBeNull();
-    expect(jeu().journal).toContain(t('cf.zonePersiste', { spell: point.label }));
+    expect(jeu().journal.map((e) => e.texte)).toContain(t('cf.zonePersiste', { spell: point.label }));
   });
 
   it('un jet d’Incantation raté clôt le lancement sans rendre de pose', () => {

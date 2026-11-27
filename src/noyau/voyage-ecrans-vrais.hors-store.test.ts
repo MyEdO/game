@@ -260,7 +260,7 @@ describe('#2533 — reprise d’un jour interrompu : le jour interrompu est FINI
     interromptPuisVainc();
     const nJournal = get().journal.length;
     get().reprendreLeVoyage();
-    const roulesHorsPorte = get().journal.slice(nJournal).filter((l) => /attelage/i.test(l));
+    const roulesHorsPorte = get().journal.slice(nJournal).filter((l) => /attelage/i.test(l.texte));
     expect(roulesHorsPorte).toEqual([]);
     expect(get().pendingCascade?.participants[0].kind, 'la journée neuve rouvre le jet du conducteur').toBe(premierPas);
     expect(get().travelPlan!.log).toHaveLength(1);
@@ -355,6 +355,6 @@ describe('#2533 (5) — péripéties : le dé de seuil passe par la porte des je
     get().jetImposerLeResultat('cascadeTirage', narratif.roll, table.id);
     expect(get().pendingCascade!.participants.find((s) => s.id === table.id)!.table!.result!.id).toBe(narratif.id);
     draineCascade(get);
-    expect(get().journal.join('\n')).toContain(narratif.label);
+    expect(get().journal.map((e) => e.texte).join('\n')).toContain(narratif.label);
   });
 });

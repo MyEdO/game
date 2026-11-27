@@ -21,7 +21,7 @@ describe('clues — câblage noyau (#670)', () => {
     banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-a')], entryId: 'scene-a', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'revealClue', indiceId: 'ind-lettre' }]);
     expect(banc.getState().clues['ind-lettre'].stadeCourant).toBe('s1');
-    expect(banc.getState().journal.some((l) => l.includes('nouvel indice au carnet'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('nouvel indice au carnet'))).toBe(true);
   });
 
   it('applyEffects « discreditClue » passe l’indice réfuté et journalise', () => {
@@ -29,7 +29,7 @@ describe('clues — câblage noyau (#670)', () => {
     banc.getState().chargerLeProjet({ scenes: [fixtureScene('scene-b')], entryId: 'scene-b', narratif, projet: null });
     applyEffects(banc.getState, banc.setState, [{ type: 'discreditClue', indiceId: 'ind-lettre' }]);
     expect(banc.getState().clues['ind-lettre'].statut).toBe('refute');
-    expect(banc.getState().journal.some((l) => l.includes('fausse piste écartée'))).toBe(true);
+    expect(banc.getState().journal.some((l) => l.texte.includes('fausse piste écartée'))).toBe(true);
   });
 
   it('state.clues SURVIT à une transition de scène (campagne-scopé, pas de reset scène)', () => {
@@ -96,7 +96,7 @@ describe('clues — câblage noyau (#670)', () => {
     expect(banc.getState().clues['ind-lettre'].épinglé).toBe(false);
     banc.getState().epinglerLIndice('ind-mono', true);
     expect(banc.getState().clues['ind-mono']).toBeUndefined();
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('carnet.refus.indiceInconnu', { id: 'ind-mono' }));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('carnet.refus.indiceInconnu', { id: 'ind-mono' }));
   });
 
   describe('save/load RÉEL (chargerLaSave, #670)', () => {

@@ -57,7 +57,7 @@ describe('acheterLeTalent — arcaneDomainGate câblé (VDM 02 l.190-192)', () =
     const after = banc.getState().party[0];
     expect(after.talents.some((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'cieux')).toBe(false);
     expect(after.xp).toBe(500); // PX non débités
-    expect(banc.getState().journal.join('\n')).toMatch(/Domaine précédent/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Domaine précédent/);
   });
 
   it('ACCEPTE le 2e Domaine une fois le verrou franchi (20 Améliorations Focalisation + 8 Sorts)', () => {
@@ -90,6 +90,6 @@ describe('acheterLeTalent — Maxi de Magie des Arcanes compté par Domaine (LDB
     const after = banc.getState().party[0];
     expect(after.talents.find((t) => t.talentId === 'magie-des-arcanes' && t.spec === 'feu')?.times).toBe(1);
     expect(after.xp).toBe(500);
-    expect(banc.getState().journal.join('\n')).toMatch(/Maxi atteint/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Maxi atteint/);
   });
 });

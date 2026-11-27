@@ -47,7 +47,7 @@ import { poserLaDetermination } from '../engine/talentEffects';
 
 const ENTREES: EntreesDeLaPartie = { graine: 7, reglesMaison: {}, cadence: 'manuel', desFixes: true, persisterLeHeros: () => {} };
 
-const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.texte] : []));
+const lignesDuJournal = ({ journal }: ResultatDeLAppel) => journal.flatMap((l) => (l.de === 'journal' ? [l.entree.texte] : []));
 
 /** Une partie ouverte sur le groupe `party`, fermée après `jouer`. */
 function avecGroupe(party: Combatant[], jouer: (partie: Partie) => void): void {

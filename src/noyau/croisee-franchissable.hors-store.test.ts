@@ -68,7 +68,7 @@ function explorer(scene: Scene, pos: { x: number; y: number; z?: number }) {
 /** Le refus dit au joueur (`refuserGeste`) : la bannière en combat, le journal hors combat. */
 const refusDit = (): string | undefined => {
   const s = banc.getState();
-  return s.battle ? s.refus?.texte : s.journal.slice(-1)[0];
+  return s.battle ? s.refus?.texte : s.journal.map((e) => e.texte).slice(-1)[0];
 };
 
 describe('donnée : `WallSeg.allege`, portée par CHAQUE croisée franchissable (#700 issuecomment-5984719806)', () => {

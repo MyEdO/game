@@ -431,7 +431,7 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
  *  journalise après l'applier (cascade.ts:1339). */
 function suiteDEtape(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, label: string, oc?: ExecCtx['opsCtx']): string[] {
   playAfter(get, set, c, after, label, oc);
-  return drainPendingLog(get, set).map((e) => e.text);
+  return drainPendingLog(get, set).map((e) => e.entree.texte);
 }
 
 /** Le reste d'une pile de combat, en clôture (#2689) : sa cible en id, le contexte de la pile porté. */
@@ -974,7 +974,7 @@ export const TABLES = {
       const ctx: ExecCtx = { get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', opsCtx: oc, ...(freeAttack ? { freeAttack } : {}) };
       const branche = can ? (yesFlow ?? EMPTY_FLOW) : (noFlow ?? EMPTY_FLOW);
       runCombatFlow(ctx, { kind: 'sequence', etapes: [branche, step.meta?.after ?? EMPTY_FLOW] });
-      return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.text)) };
+      return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.entree.texte)) };
     },
     /**
      * Étape `personneChoisie` (VDM 10 l.327, « nommer ou désigner la personne ») : le décideur a désigné la
@@ -998,7 +998,7 @@ export const TABLES = {
       const ctx: ExecCtx = { get, set, target: cible, caster: oc.caster ?? hero, label: nomDeSource(oc), opsCtx: oc };
       enfilerAuJournal(get, set, [ligneDeDesignation(cible, personne, oc)], cible.id);
       runCombatFlow(ctx, { kind: 'sequence', etapes: [fluxDEnvers(feuille.effet, personne, !!personne && sontAmis(cible, personne)), step.meta?.after ?? EMPTY_FLOW] });
-      return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.text)) };
+      return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.entree.texte)) };
     },
     /**
      * Étape `cibleAcquise` (ADE II 09 l.9, l.15 ; #3045) : le porteur a choisi (`chosen`), parmi les options de

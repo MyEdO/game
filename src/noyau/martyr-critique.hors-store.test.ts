@@ -47,7 +47,7 @@ function touche({ sl, critical, martyr = true, fenetre = false, arme = epee, end
   applyAttackResult(banc.getState, banc.setState, H, cible, arme, res, fenetre ? {} : { sousAttaque: true });
   draineCascade(banc.getState);
   const apres = banc.getState().battle!.combatants;
-  return { res, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)!, journal: banc.getState().battle!.log.map((l) => l.text) };
+  return { res, cible: apres.find((c) => c.id === cible.id)!, pretre: apres.find((c) => c.id === pretre.id)!, journal: banc.getState().battle!.log.map((l) => l.entree.texte) };
 }
 
 describe('Martyr : les Dégâts au prêtre, le Critique à la cible', () => {

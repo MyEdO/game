@@ -84,7 +84,7 @@ describe('porte secrète — découverte à l’approche', () => {
     banc.setState({ pendingTest: { ...banc.getState().pendingTest!, roll: 1, success: true, sl: 3 } });
     banc.getState().jetValider('test');
     expect(porteEnJeu(banc.getState().scene!, seg())).toBe(true);
-    expect(banc.getState().journal).toContain(t('eff.porteSecreteTrouvee'));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(t('eff.porteSecreteTrouvee'));
   });
 
   it('échec → porte masquée ; ressortir et revenir ne relance rien (une tentative par porte)', () => {

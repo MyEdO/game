@@ -59,7 +59,7 @@ const vider = (): void => {
   banc.getState().fenetreFermer('cascade');
 };
 const enJeu = (id: string): Combatant | undefined => banc.getState().battle?.combatants.find((c) => c.id === id);
-const journal = (): string => (banc.getState().battle?.log ?? []).map((e) => (typeof e === 'string' ? e : (e as { text?: string }).text ?? '')).join('\n')
+const journal = (): string => (banc.getState().battle?.log ?? []).map((e) => e.entree.texte).join('\n')
   + '\n' + JSON.stringify(banc.getState().pendingCascade ?? null);
 
 describe('coup sur une coque à 0 Blessure', () => {

@@ -55,7 +55,7 @@ describe('lectures marchandes des possessions de campagne (#2967)', () => {
     expect(item('dague')?.label).toBe(findTrappingById('dague')!.label);
     expect(get().merchant!.stock).toEqual([{ id: 'dague', qty: 2 }]);
     expect(bourse()).toBe(avant);
-    expect(get().journal.slice(-1)[0]).toContain(bien.label);
+    expect(get().journal.map((e) => e.texte).slice(-1)[0]).toContain(bien.label);
   });
 
   it('l’évaluation d’une possession locale annonce le prix et la disponibilité de sa fiche', () => {
@@ -89,7 +89,7 @@ it('une prothèse du narratif acquiert ses paliers et annonce son entraînement 
   const { uid } = item(prothese.id);
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(300);
-  expect(get().journal.slice(-1)[0]).toBe(t('pf.prosthesisNotTrainable', { name: nomDe(hero) }));
+  expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('pf.prosthesisNotTrainable', { name: nomDe(hero) }));
   get().equiperLObjet(uid, true);
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(200);
@@ -99,5 +99,5 @@ it('une prothèse du narratif acquiert ses paliers et annonce son entraînement 
   expect(item(prothese.id).prosthesisTrained).toBe(true);
   get().entrainerLaProthese(uid);
   expect(get().party[0].xp).toBe(0);
-  expect(get().journal.slice(-1)[0]).toBe(t('pf.prosthesisTrained', { name: nomDe(hero), item: prothese.label }));
+  expect(get().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('pf.prosthesisTrained', { name: nomDe(hero), item: prothese.label }));
 });

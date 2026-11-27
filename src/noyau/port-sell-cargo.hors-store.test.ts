@@ -77,7 +77,7 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
     setup({ taille: 4, richesse: 4, production: ['bois-mer'] }, []);
     get().fenetreChoisir('port', 'vendre', 'lot-1');
     expect(get().pendingCascade).toBeNull();
-    expect(get().journal.some((l) => /ne trouve pas de camelot/.test(l))).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /ne trouve pas de camelot/.test(l))).toBe(true);
     expect(get().vessel!.cargo).toHaveLength(1); // rien vendu
   });
 
@@ -88,7 +88,7 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
     get().fenetreChoisir('port', 'vendre', 'lot-1');
     await drain();
     expect(get().pendingCascade).toBeNull();
-    const j = get().journal.join('\n');
+    const j = get().journal.map((e) => e.texte).join('\n');
     const gossipOutcome = /Ragot.*échoue|acheteur potentiel est approché/.test(j);
     expect(gossipOutcome).toBe(true);
   });
@@ -104,8 +104,8 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(0); // lot ENTIER vendu
-    expect(get().journal.some((l) => /vendus.*: (?!0 sc)\S/.test(l))).toBe(true); // revenu conclu (> 0)
-    expect(get().journal.some((l) => /Aucun marchandeur — prix d’offre pris tel quel/.test(l))).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /vendus.*: (?!0 sc)\S/.test(l))).toBe(true); // revenu conclu (> 0)
+    expect(get().journal.map((e) => e.texte).some((l) => /Aucun marchandeur — prix d’offre pris tel quel/.test(l))).toBe(true);
   });
 
   it('port SANS relation au bien, cible d’acheteur NULLE (Taille 0) → aucun marchand intéressé, cargaison intacte', async () => {
@@ -115,7 +115,7 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
     await drain();
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(1);
-    expect(get().journal.some((l) => /aucun marchand intéressé/.test(l))).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /aucun marchand intéressé/.test(l))).toBe(true);
   });
 
   it('1ʳᵉ recherche d’acheteur ratée (d100 > nombre visé), la 2ᵉ sur la moitié du lot au MÊME nombre visé trouve preneur (MDG 15 l.362)', async () => {
@@ -125,7 +125,7 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
     get().fenetreChoisir('port', 'vendre', 'lot-1');
     await drain();
     expect(get().pendingCascade).toBeNull();
-    expect(get().journal.some((l) => /la moitié \(20 Enc\) trouve preneur/.test(l))).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /la moitié \(20 Enc\) trouve preneur/.test(l))).toBe(true);
     expect(get().vessel!.cargo).toEqual([{ uid: 'lot-1', cargoId: 'bois-mer', enc: 20, basePriceGold: 10 }]); // moitié vendue
   });
 
@@ -139,7 +139,7 @@ describe('la vente de cargaison au port — cascade Ragot → acheteur → March
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(0);
     expect(partyMoneyTotal(get).gold).toBeGreaterThan(before);
-    expect(get().journal.some((l) => /Marchandage \(/.test(l))).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /Marchandage \(/.test(l))).toBe(true);
   });
 
   it('déterminisme seedé conservé : rejouer la MÊME graine + même parti produit le MÊME gain (byte-identique)', async () => {
@@ -189,7 +189,7 @@ describe('l’achat de cargaison au port — Marchandage d’achat SURFACÉ par 
     acheterAuMarche(get, 'port', 'vessel', 'bois-mer', 10);
     expect(get().pendingCascade).toBeNull(); // aucun Test de Marchandage ouvert
     expect(get().vessel!.cargo).toHaveLength(0);
-    expect(get().journal).toContain(t('cargo.bourseSousPlancher', { plancher: '100 CO' }));
+    expect(get().journal.map((e) => e.texte)).toContain(t('cargo.bourseSousPlancher', { plancher: '100 CO' }));
   });
 
   it('marchandeur présent → le Marchandage OUVRE une cascade (jet SURFACÉ, jamais silencieux)', () => {
@@ -212,7 +212,7 @@ describe('l’achat de cargaison au port — Marchandage d’achat SURFACÉ par 
     expect(get().pendingCascade).toBeNull();
     expect(get().vessel!.cargo).toHaveLength(1);
     expect(partyMoneyTotal(get).gold).toBeLessThan(before);
-    expect(get().journal.some((l) => /Marchandage \(/.test(l))).toBe(true);
+    expect(get().journal.map((e) => e.texte).some((l) => /Marchandage \(/.test(l))).toBe(true);
   });
 
   it('déterminisme seedé : rejouer la MÊME graine + même parti produit le MÊME coût', async () => {

@@ -76,7 +76,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.setState({ interlude: { ...itl } });
     pratiquer(banc.getState, hero().id, 'revenus');
     expect(banc.getState().pendingActivity).toBeNull();
-    expect(banc.getState().journal.join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/ne peut pas entreprendre Revenus/);
   });
 
   it('Artisanat : engager paie ¼ du prix (LDB 23 l.76) ; le Test étendu cumule ; l’achèvement crée l’objet qualifié', () => {
@@ -171,7 +171,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().jetValider('activite');
     expect(hero().ritual).toBeUndefined();
     expect(st().left).toBe(1);
-    expect(banc.getState().journal.join('\n')).toMatch(/achève le Rituel/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/achève le Rituel/);
   });
 
   it('Rituel au NI FORMULE (`cn: null`, #879 volet 2) : `openRitualFocus` refuse, non engageable en Activité', () => {
@@ -182,7 +182,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.setState({ interlude: { ...itl } });
     const r = openRitualFocus(banc.getState, banc.setState, h, 'les-faux-croisees');
     expect(r).toBeUndefined();
-    expect(banc.getState().journal.join('\n')).toMatch(/Incantation indéterminé/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Incantation indéterminé/);
     expect(st().left).toBe(3); // refus AVANT le jet — aucun créneau consommé
     expect(hero().ritual).toBeUndefined();
   });
@@ -208,7 +208,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     hero().careerLevel = 1;
     banc.getState().deposerALaBanque(hero().id, 'investir', 120);
     expect(banc.getState().bank).toHaveLength(0);
-    expect(banc.getState().journal.join('\n')).toMatch(/investir en banque exige le Statut Argent ou Or/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/investir en banque exige le Statut Argent ou Or/);
     const before = toBrass(partyMoneyTotal(banc.getState));
     banc.getState().deposerALaBanque(hero().id, 'planque', 120);
     expect(banc.getState().bank).toHaveLength(1);
@@ -231,9 +231,9 @@ describe('Activités d’interlude (LDB 23)', () => {
     const [, , tire, retire] = indices();
     expect([tire >= 1 && tire <= 10, retire]).toEqual([true, tire]);
     banc.getState().deposerALaBanque(hero().id, 'planque', 120, 3);
-    expect([indices().length, banc.getState().journal.slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsPlacement')]);
+    expect([indices().length, banc.getState().journal.map((e) => e.texte).slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsPlacement')]);
     banc.getState().deposerALaBanque(hero().id, 'investir', 120, 11 as never);
-    expect([indices().length, banc.getState().journal.slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsBornes', { indice: 11 })]);
+    expect([indices().length, banc.getState().journal.map((e) => e.texte).slice(-1)[0]]).toEqual([4, t('if.bankIndiceHorsBornes', { indice: 11 })]);
     expect(st().left).toBe(2);
   });
 
@@ -311,7 +311,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     creditBourse(banc.getState, banc.setState, h.id, fromBrass(999999));
     banc.getState().commanderLObjet(h.id, 'dague'); // Commune → refus
     expect(banc.getState().pendingOrders).toHaveLength(0);
-    expect(banc.getState().journal.join('\n')).toMatch(/s’achète chez un marchand|s'achète chez un marchand/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/s’achète chez un marchand|s'achète chez un marchand/);
     const exotic = findTrappingById('long-fusil-d-hochland'); // l'exemple du LDB (Exotique)
     if (!exotic || exotic.availability !== 'exotique') return; // garde : données absentes → couvert par le refus ci-dessus
     banc.getState().commanderLObjet(h.id, exotic.id);
@@ -354,7 +354,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     banc.getState().retirerDeLaBanque('depot-1');
     expect(banc.getState().bank).toHaveLength(0);
     const after = toBrass(partyMoneyTotal(banc.getState));
-    const journal = banc.getState().journal.join('\n');
+    const journal = banc.getState().journal.map((e) => e.texte).join('\n');
     if (after > before) expect(journal).toMatch(/récupère/);
     else expect(journal).toMatch(/découverte|perdus/);
   });
@@ -379,7 +379,7 @@ describe('Activités d’interlude (LDB 23)', () => {
     armArtefact(false);
     pratiquer(banc.getState, hero().id, 'identify', { itemUid: 'art1' });
     expect(banc.getState().pendingActivity).toBeNull();
-    expect(banc.getState().journal.join('\n')).toMatch(/Savoir \(Magie\)/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/Savoir \(Magie\)/);
   });
 
   it('Identifier : Test de Savoir (Magie) Intermédiaire (+0), Activité consommée (ADE II 4 l.41)', () => {
@@ -562,13 +562,13 @@ describe('Activités d’interlude (LDB 23)', () => {
     seedBattleRng(seed);
     banc.setState({ pendingActivity: { ...basePending, sl: 0 } });
     banc.getState().jetValider('activite');
-    expect(banc.getState().journal.join('\n')).toContain(rowNoSL.label);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toContain(rowNoSL.label);
 
     setupHero();
     seedBattleRng(seed);
     banc.setState({ pendingActivity: { ...basePending, sl: -3 } });
     banc.getState().jetValider('activite');
-    expect(banc.getState().journal.join('\n')).toContain(rowWithSL.label);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toContain(rowWithSL.label);
   });
 });
 

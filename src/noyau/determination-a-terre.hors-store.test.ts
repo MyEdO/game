@@ -55,7 +55,7 @@ describe('Détermination — « Retirez un État » relève d’À Terre à 0 Bl
     expect(hasCondition(apres, 'a-terre'), 'l’État n’a pas été retiré (LDB 17 l.61)').toBe(false);
     expect(apres.wounds.current, 'la Blessure de la mise debout n’a pas été rendue').toBe(1);
     expect(apres.resolve).toBe(0);
-    expect(banc.getState().battle!.log.map((e) => e.text).join('\n')).toContain(t('cs.fragGettingUp'));
+    expect(banc.getState().battle!.log.map((e) => e.entree.texte).join('\n')).toContain(t('cs.fragGettingUp'));
   });
 
   it('0 PB + 1 Détermination → `depenserLaDetermination` (par id) : même verdict', () => {

@@ -50,7 +50,7 @@ describe('utiliserLObjet — consommables de la fiche', () => {
     banc.setState({ party: [h] });
     banc.getState().utiliserLObjet('b1');
     const p = banc.getState().party.find((c) => c.id === 'h1')!;
-    expect(banc.getState().journal[banc.getState().journal.length - 1]).toBe('Blessé n’attend aucune Aide Médicale. Bandages ne lui apporterait rien : l’objet est gardé.');
+    expect(banc.getState().journal[banc.getState().journal.length - 1].texte).toBe('Blessé n’attend aucune Aide Médicale. Bandages ne lui apporterait rien : l’objet est gardé.');
     expect(p.items!.map((i) => i.uid)).toEqual(['b1']);
   });
 

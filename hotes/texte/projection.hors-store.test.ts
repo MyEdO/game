@@ -11,7 +11,16 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { activeCombatant, distanceDeCombat, mouvementDuTour, porteesDuTour, CLIC_DU_CHAMP, cleDuGeste, type GesteDuJeu } from '../../src/noyau/index';
+import {
+  activeCombatant,
+  distanceDeCombat,
+  mouvementDuTour,
+  porteesDuTour,
+  CLIC_DU_CHAMP,
+  cleDuGeste,
+  ligneDeTexte,
+  type GesteDuJeu,
+} from '../../src/noyau/index';
 import { lireLeFichier, rejouer, type LigneNumerotee, type PartieRejouee } from './partieTexte';
 import { nouvelEntete, ouvrirLaPartie } from '../../src/hote/partieDeTest';
 import type { Geste } from '../../src/hote/geste';
@@ -156,16 +165,16 @@ describe('le champ et l’exploration se lisent', () => {
 describe('le journal', () => {
   it('la défaite ne recopie pas le journal du combat (`defaite-dome.jsonl`)', { timeout: 240_000 }, () => {
     aLaFixture('defaite-dome.jsonl', (r) => {
-      const textes = r.journal.flatMap((l) => (l.ligne.de === 'combat' ? [l.ligne.evenement.text] : []));
+      const textes = r.journal.flatMap((l) => (l.ligne.de === 'combat' ? [l.ligne.evenement.entree.texte] : []));
       expect(r.partie.etat().battle?.over, 'témoin : la partie va jusqu’à la défaite').toBe('defaite');
       expect(textes.filter((t) => t.startsWith('Le combat commence')), 'le journal du combat est recopié après la défaite').toHaveLength(1);
       const log = r.partie.etat().battle!.log;
-      expect(log.some((e) => / — Résistance : /.test(e.text)), 'la défaite efface du journal du combat les Tests de fin de combat').toBe(true);
+      expect(log.some((e) => / — Résistance : /.test(e.entree.texte)), 'la défaite efface du journal du combat les Tests de fin de combat').toBe(true);
       expect(log, 'le journal du combat et ses lignes captées divergent').toHaveLength(textes.length);
     });
   });
   it('une entrée plus haute que la page se lit seule, par ses lignes (`ligne`), jusqu’à la dernière', () => {
-    const entree = (n: number, texte: string): LigneNumerotee => ({ n, pas: 1, ligne: { de: 'journal', texte, heure: 0 }, differee: false });
+    const entree = (n: number, texte: string): LigneNumerotee => ({ n, pas: 1, ligne: { de: 'journal', entree: ligneDeTexte(texte), heure: 0 }, differee: false });
     const haute = Array.from({ length: 20 }, (_, i) => `l${i}`).join('\n');
     const journal = [entree(0, 'A'), entree(1, haute), entree(2, 'C')];
     expect(rendreLeJournal(journal, 0)).toEqual(['0 [pas 1] A', '+2 : `lire {"quoi":"journal","depuis":1}`']);

@@ -144,6 +144,7 @@ import {
   entreesDesFiches,
   refusDuRenommage,
   paquetDisqueDuJeu,
+  ligneDeTexte,
 } from '../../../src/noyau/index';
 import {
   ErreurDeGeste,
@@ -607,8 +608,10 @@ export interface Suite {
    */
   programmes: Programme[];
   /**
-   * les lignes que la partie a écrites, `{ de: 'journal', texte, heure }` ou `{ de: 'combat', evenement, heure }`
-   * (`LigneDuJournal`, `src/noyau/partie.ts`, `heure` le temps de jeu où elle s'écrit).
+   * les lignes que la partie a écrites, `{ de: 'journal', entree, heure }` ou `{ de: 'combat', evenement, heure }`
+   * (`LigneDuJournal`, `src/noyau/partie.ts`, `heure` le temps de jeu où elle s'écrit). Une entrée (`EntreeDuJournal`,
+   * `src/engine/journal.ts`, l'`entree` d'un `evenement` comprise) est une donnée, que le pont rédige pour la zone
+   * (`redigerLEntree`, `src/hote/journal.ts`).
    */
   journal: LigneDuJournal[];
   /**
@@ -1426,7 +1429,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
       reposerLesReglages();
       const entrees = entreesDuJeu(graineDUnePartieDuJeu(e), regles);
       const o = (ouverte = tenir(ouvrirAuGroupe(entrees, persisterLeHeros, premierJeton, etat), entrees.graine));
-      if (retraits) o.file.push({ issue: 'appliquee', evenements: [], journal: [{ de: 'journal', texte: t('saveload.elague', { liste: nommerLesRetraits(retraits) }), heure: etat.gameTime }] });
+      if (retraits) o.file.push({ issue: 'appliquee', evenements: [], journal: [{ de: 'journal', entree: ligneDeTexte(t('saveload.elague', { liste: nommerLesRetraits(retraits) })), heure: etat.gameTime }] });
       return suite(o);
     },
     /**

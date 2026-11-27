@@ -57,7 +57,7 @@ async function drain(opts: { des?: number[]; choix?: string } = {}): Promise<{ t
   let journal: string[] = [];
   const des = [...(opts.des ?? [])];
   for (let i = 0; i < 400; i++) {
-    journal = fusionne(journal, get().journal);
+    journal = fusionne(journal, get().journal.map((e) => e.texte));
     const p = get().pendingCascade;
     if (p) {
       const cur = p.participants[p.cursor];
@@ -71,10 +71,10 @@ async function drain(opts: { des?: number[]; choix?: string } = {}): Promise<{ t
       avanceEtapeCascade(get, (st) => (st.table && !st.table.result ? des.shift() : undefined), () => opts.choix);
     }
     await tick();
-    journal = fusionne(journal, get().journal);
+    journal = fusionne(journal, get().journal.map((e) => e.texte));
     if (!get().pendingCascade && !get().sequence) break;
   }
-  return { trace, journal: fusionne(journal, get().journal) };
+  return { trace, journal: fusionne(journal, get().journal.map((e) => e.texte)) };
 }
 
 function heros(): Combatant {
@@ -225,7 +225,7 @@ describe('Al-zahr — la partie au store', () => {
       if (st.actorId === b.id && st.table && !st.table.result && !fenetreDeB) { fenetreDeB = true; fermeEntreDeuxManches('fenêtre de B'); }
       avanceEtapeCascade(get);
     }
-    expect(get().journal).toContain(`${a.label} abandonne la manche.`);
+    expect(get().journal.map((e) => e.texte)).toContain(`${a.label} abandonne la manche.`);
     expect(fenetreDeB, 'B garde ses fenêtres après le pli').toBe(true);
     expect(fenetres.filter((f) => f !== 'B'), 'ni le plié, ni un habitué n’ont de fenêtre').toEqual([]);
     expect((get().sequence?.chargeUtile as { manche?: number } | undefined)?.manche, 'la manche suivante s’ouvre').toBe(2);
@@ -241,7 +241,7 @@ describe('Al-zahr — la partie au store', () => {
     get().jetRegler('cascade', 'abandon', true);
     expect(get().sequence).toBeNull();
     expect(toBrass(bourseOf(get().party[0])) - avant, 'aucune mise prise').toBe(0);
-    expect(get().journal.some((l) => l.startsWith('Manche 1 : chacun mise')), 'la manche n’est pas ouverte').toBe(false);
+    expect(get().journal.some((l) => l.texte.startsWith('Manche 1 : chacun mise')), 'la manche n’est pas ouverte').toBe(false);
     const res = get().tavernGames!.result!;
     expect(res.winner, 'abandonner, c’est perdre').toBe('adversaire');
     expect(res.rounds, 'aucune manche jouée').toBe(0);
@@ -281,7 +281,7 @@ describe('Al-zahr — la partie au store', () => {
     expect(payload().net?.[a.id], 'le héros a engagé sa mise').toBe(-100);
     expect(Object.values(payload().mises ?? {}).reduce((x, y) => x + y, 0), 'Σ mises = pot').toBe(300);
     expect(payload().target).toBe(9);
-    const journal = get().journal.map(String);
+    const journal = get().journal.map((e) => e.texte);
     const mise = journal.findIndex((l) => l.startsWith('Manche 1 : chacun mise'));
     expect(mise, 'la mise est journalisée').toBeGreaterThanOrEqual(0);
     expect(journal.findIndex((l) => l === `${a.label} annonce le nombre cible : 9.`), 'puis la cible').toBeGreaterThan(mise);
@@ -303,7 +303,7 @@ describe('Al-zahr — la partie au store', () => {
       avanceEtapeCascade(get, (st) => (st.table && !st.table.result ? 17 : undefined), (st) => (st.kind === 'tavernePotCible' ? '15' : undefined));
     }
     expect(sousSaMise, 'le héros a repris plus qu’il n’avait mis').toBe(true);
-    expect(get().journal.some((l) => l.startsWith('Partie interrompue')), 'la partie est interrompue manche en vol').toBe(true);
+    expect(get().journal.some((l) => l.texte.startsWith('Partie interrompue')), 'la partie est interrompue manche en vol').toBe(true);
     expect(toBrass(bourseOf(get().party[0])) - avant, 'la manche annulée : la bourse revient à son état d’avant').toBe(0);
   });
 
@@ -319,7 +319,7 @@ describe('Al-zahr — la partie au store', () => {
     get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'profil', id: 'humain' }, stakeBrass: 100 });
     expect(get().sequence).toBeNull();
     expect(get().pendingCascade).toBeNull();
-    expect(get().journal.some((l) => l.includes('aucune partie'))).toBe(true);
+    expect(get().journal.some((l) => l.texte.includes('aucune partie'))).toBe(true);
   });
 
   it('ÉLIMINÉ (2) : le joueur ne relance plus de la manche — les autres, si', async () => {
@@ -416,7 +416,7 @@ describe('Al-zahr — la partie au store', () => {
     expect(pose.table!.result!.lines[0], 'la rafle est annoncée à l’écran du jet').toBe('la manche est remportée, le pot est raflé');
     // 3) même vérité que le journal : la ligne de récit dit la même issue.
     get().jetValider('cascade');
-    expect(get().journal.concat(get().pendingCascade?.participants.flatMap((s) => s.outcome?.map((o) => o.text) ?? []) ?? [])
+    expect(get().journal.map((e) => e.texte).concat(get().pendingCascade?.participants.flatMap((s) => s.outcome?.map((o) => o.text) ?? []) ?? [])
       .some((l) => typeof l === 'string' && l.includes('la manche est remportée, le pot est raflé'))).toBe(true);
   });
 

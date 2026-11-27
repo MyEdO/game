@@ -75,7 +75,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
     const parcouru = banc.getState().battle!.movementUsed ?? 0;
     banc.getState().jetValider('course');
     const b = banc.getState().battle!;
-    const lignes = b.log.slice(avant).map((e) => e.text);
+    const lignes = b.log.slice(avant).map((e) => e.entree.texte);
     const arrivee = b.combatants.find((c) => c.id === H.id)!.pos!;
     const court = arrivee.x !== 16 || arrivee.y !== 10;
     expect(lignes).toEqual([t('cs.run', { name: nomDe(H), cost: (b.movementUsed ?? 0) - parcouru, short: court ? t('cs.fragRunShort') : '' })]);

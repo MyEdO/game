@@ -53,7 +53,7 @@ describe('Scénario « Effets scriptés » : moteurs orphelins câblés à un d�
     seedBattleRng(1);
     runFlow(banc.getState, banc.setState, autel.usable!.actions![0].flow);
     expect(banc.getState().party.find((h) => h.id === p.id)!.xp).toBe(20); // reward authoré (giveXp)
-    expect(banc.getState().journal.join('\n')).toMatch(/entend/);
+    expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/entend/);
   });
 
   it('ambitionLost : le dialogue du messager anéantit une Ambition → Trauma choisi (Calme Accessible échoué)', () => {

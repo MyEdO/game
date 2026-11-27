@@ -42,7 +42,7 @@ const saignant = (p: Partial<Combatant> = {}) => hero({ id: 'p', label: 'Patient
 function poser(party: Combatant[], medic: Partial<{ npc: MedicNpc; surgery: unknown }> = {}): void {
   banc.setState({ mode: 'exploration', battle: null, party, pendingHeal: null, pendingSurgery: null, medic: { patientId: 'p', ...medic } as never, journal: [] });
 }
-const dernierRefus = () => banc.getState().journal[banc.getState().journal.length - 1];
+const dernierRefus = () => banc.getState().journal[banc.getState().journal.length - 1]?.texte;
 
 describe('l’acte de l’infirmerie : `jetRegler(soins, mode)` sur le brouillon, joué par `jetLancer(soins)`', () => {
   it('Hémorragie verrouillée par Chirurgie, chirurgien présent : « Opérer » arme l’opération au lancer', () => {

@@ -129,9 +129,9 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     const before = grimm.wounds.current;
     runEnemyAI(banc.getState, banc.setState, 'cogue-duel');
     // Issue du Test d'équipage des Artilleurs : la ligne de journal de `applyBatteryVolley` (combatSlice.ts).
-    const deLaCogue = banc.getState().journal.filter((l) => l.includes(`${cogue.label} sur ${grimm.label}`));
-    const reussies = deLaCogue.filter((l) => gabarit('cs.bordee').test(l));
-    const manquees = deLaCogue.filter((l) => gabarit('cs.bordeeManque').test(l));
+    const deLaCogue = banc.getState().journal.filter((l) => l.texte.includes(`${cogue.label} sur ${grimm.label}`));
+    const reussies = deLaCogue.filter((l) => gabarit('cs.bordee').test(l.texte));
+    const manquees = deLaCogue.filter((l) => gabarit('cs.bordeeManque').test(l.texte));
     expect(reussies.length + manquees.length, 'une et une seule bordée décidée et résolue').toBe(1);
     expect(ship('grimm-duel').wounds.current < before).toBe(reussies.length === 1);
   });
@@ -147,7 +147,7 @@ describe('Duel naval (échelle Mer) — modèle DEUX-ÉCHELLES jouable (MDG 13-1
     const cap = banc.getState().facing['cogue-duel'];
     const avant = { ...ship('cogue-duel').pos! };
     runEnemyAI(banc.getState, banc.setState, 'cogue-duel');
-    expect(banc.getState().journal).toContain(refusPersonneNePeutTenter({ skill: shipManeuverParams(ship('cogue-duel'), 'maritime').competence }));
+    expect(banc.getState().journal.map((e) => e.texte)).toContain(refusPersonneNePeutTenter({ skill: shipManeuverParams(ship('cogue-duel'), 'maritime').competence }));
     expect(banc.getState().facing['cogue-duel'], 'échec : le cap tient').toBe(cap);
     const { baseM, manoeuvre } = shipManeuverParams(ship('cogue-duel'), 'maritime');
     expect(manoeuvre).toBeGreaterThan(0);
@@ -170,7 +170,7 @@ describe('Bordée IA : le marin tenu dévie, la bordée et le tour du navire ne 
     cogue.postes = [...cogue.postes!, structuredClone({ ...tribord, item: { ...tribord.item, uid: `${tribord.item.uid}-2` } })];
     banc.setState({ facing: { ...banc.getState().facing, 'cogue-duel': 'E' }, battle: { ...b, turn: b.order.indexOf('cogue-duel') } });
     const bordees = vi.spyOn(banc.getState(), 'tirerLaBordee');
-    const tirs = () => banc.getState().battle!.log.filter((l) => l.text.includes(`touche ${grimm.label}`)).length;
+    const tirs = () => banc.getState().battle!.log.filter((l) => l.entree.texte.includes(`touche ${grimm.label}`)).length;
     const paAvant = ship(marin).armour.corps;
 
     runEnemyAI(banc.getState, banc.setState, 'cogue-duel');

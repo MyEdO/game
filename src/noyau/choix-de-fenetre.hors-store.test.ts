@@ -40,13 +40,13 @@ describe('fenetreChoisir', () => {
   it('un choix que la fenêtre ne déclare pas, une fenêtre fermée, une valeur que l’état n’ouvre pas : refusés et dits', () => {
     const banc = ouvrirLeBanc();
     banc.getState().fenetreChoisir(...(['cascade', 'abandon', true] as unknown as ArgumentsDuChoix));
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.inconnu'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('choix.refus.inconnu'));
     banc.getState().fenetreChoisir('renier', 'renier', true);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.fermee'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('choix.refus.fermee'));
     const { a } = hoteEtUnInvite(banc);
     banc.setState({ pendingFateSave: { heroId: a, source: 'slow' } as never });
     banc.getState().fenetreChoisir('destin', 'issue', 'eviter');
-    expect(banc.getState().journal.slice(-1)[0], 'une mort lente ne s’évite pas (LDB 17 l.31)').toBe(t('choix.refus.valeur'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'une mort lente ne s’évite pas (LDB 17 l.31)').toBe(t('choix.refus.valeur'));
     expect(banc.getState().pendingFateSave, 'la fenêtre reste ouverte').not.toBeNull();
     expect(intentAllowedFor(banc.getState(), 0, 'fenetreChoisir', ['destin', 'inconnu', 'eviter']), 'axe inconnu : aucun siège').toBe(false);
   });
@@ -57,7 +57,7 @@ describe('fenetreChoisir', () => {
     banc.setState({ ...ouverte, net: { ...banc.getState().net, mode: 'invite' } } as never);
     const avant = banc.getState();
     banc.getState().fenetreChoisir(...args);
-    expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.hoteSeul'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('choix.refus.hoteSeul'));
     for (const cle of Object.keys(ouverte)) expect((banc.getState() as unknown as Record<string, unknown>)[cle], 'la fenêtre reste ouverte').toBe((avant as unknown as Record<string, unknown>)[cle]);
 
     banc.setState({ net: { ...banc.getState().net, mode: 'hote' } });
@@ -112,7 +112,7 @@ describe('fenetreChoisir', () => {
     hoteEtUnInvite(banc);
     banc.setState({ pendingDesignationHeros: { etat: 'sosie', suite: [] } } as never);
     banc.getState().fenetreFermer('designationHeros');
-    expect(banc.getState().journal.slice(-1)[0]).toBe(libelleDeLaFermeture('herosADesigner'));
+    expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(libelleDeLaFermeture('herosADesigner'));
     expect(banc.getState().pendingDesignationHeros, 'la désignation reste ouverte').not.toBeNull();
   });
 
@@ -135,9 +135,9 @@ describe('fenetreChoisir', () => {
       expect([0, 1].filter((x) => intentAllowedFor(s, x, 'fenetreChoisir', ['activitesEnMer', 'activite', 'cartographie', a])), 'le héros de l’hôte').toEqual([0]);
       expect([0, 1].filter((x) => intentAllowedFor(s, x, 'fenetreChoisir', ['activitesEnMer', 'activite', null, b])), 'le héros de l’invité').toEqual([1]);
       banc.getState().fenetreChoisir('activitesEnMer', 'activite', null, b);
-      expect(banc.getState().journal.slice(-1)[0], 'l’hôte ne choisit pas pour le héros de l’invité').toBe(t('choix.refus.autreSiege'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'l’hôte ne choisit pas pour le héros de l’invité').toBe(t('choix.refus.autreSiege'));
       banc.getState().fenetreChoisir('activitesEnMer', 'activite', 'cartographie');
-      expect(banc.getState().journal.slice(-1)[0], 'un choix de rangée sans héros').toBe(t('choix.refus.rangee'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'un choix de rangée sans héros').toBe(t('choix.refus.rangee'));
       banc.getState().fenetreChoisir('activitesEnMer', 'activite', 'cartographie', a);
       expect(banc.getState().pendingSeaActivities?.picks[a]).toEqual({ activityId: 'cartographie' });
     });
@@ -146,16 +146,16 @@ describe('fenetreChoisir', () => {
       const banc = ouvrirLeBanc();
       const { a } = semaine(banc);
       banc.getState().fenetreChoisir('activitesEnMer', 'cacher', 1, a);
-      expect(banc.getState().journal.slice(-1)[0], 'aucune planque sans Cartographie').toBe(t('choix.refus.valeur'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'aucune planque sans Cartographie').toBe(t('choix.refus.valeur'));
       banc.getState().fenetreChoisir('activitesEnMer', 'activite', 'cartographie', a);
       banc.getState().fenetreChoisir('activitesEnMer', 'cacher', 6, a);
-      expect(banc.getState().journal.slice(-1)[0], 'la planque passe la bourse du cartographe (5 CO)').toBe(t('choix.refus.bornes'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'la planque passe la bourse du cartographe (5 CO)').toBe(t('choix.refus.bornes'));
       banc.getState().fenetreChoisir('activitesEnMer', 'cacher', 5, a);
       expect(banc.getState().pendingSeaActivities?.picks[a]).toEqual({ activityId: 'cartographie', stashGold: 5 });
       banc.getState().fenetreChoisir('activitesEnMer', 'activite', 'commerce-opportunite', a);
       expect(banc.getState().pendingSeaActivities?.picks[a], 'une autre Activité efface la planque').toEqual({ activityId: 'commerce-opportunite' });
       banc.getState().fenetreChoisir('activitesEnMer', 'investir', 11, a);
-      expect(banc.getState().journal.slice(-1)[0], 'la mise passe la bourse du groupe (2 × 5 CO)').toBe(t('choix.refus.bornes'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'la mise passe la bourse du groupe (2 × 5 CO)').toBe(t('choix.refus.bornes'));
       banc.getState().fenetreChoisir('activitesEnMer', 'investir', 10, a);
       expect(banc.getState().pendingSeaActivities?.picks[a]).toEqual({ activityId: 'commerce-opportunite', investGold: 10 });
     });
@@ -168,10 +168,10 @@ describe('fenetreChoisir', () => {
       banc.getState().fenetreChoisir('activitesEnMer', 'cacher', 4, a);
       banc.getState().fenetreChoisir('activitesEnMer', 'activite', 'commerce-opportunite', b);
       banc.getState().fenetreChoisir('activitesEnMer', 'investir', 7, b);
-      expect(banc.getState().journal.slice(-1)[0], 'la mise passe ce que la planque laisse des 2 × 5 CO').toBe(t('choix.refus.bornes'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'la mise passe ce que la planque laisse des 2 × 5 CO').toBe(t('choix.refus.bornes'));
       banc.getState().fenetreChoisir('activitesEnMer', 'investir', 6, b);
       banc.getState().fenetreChoisir('activitesEnMer', 'cacher', 5, a);
-      expect(banc.getState().journal.slice(-1)[0], 'la planque passe ce que la mise laisse').toBe(t('choix.refus.bornes'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'la planque passe ce que la mise laisse').toBe(t('choix.refus.bornes'));
       expect(banc.getState().pendingSeaActivities?.picks).toEqual({ [a]: { activityId: 'cartographie', stashGold: 4 }, [b]: { activityId: 'commerce-opportunite', investGold: 6 } });
     });
 
@@ -180,7 +180,7 @@ describe('fenetreChoisir', () => {
       const { a } = semaine(banc);
       const ferme = () => {
         banc.getState().fenetreValider('activitesEnMer');
-        expect(banc.getState().journal.slice(-1)[0]).toBe(libelleDeLaFermeture('choixAReprendre'));
+        expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(libelleDeLaFermeture('choixAReprendre'));
         expect(banc.getState().pendingSeaActivities?.opportunityQueue, 'rien ne se résout').toBeUndefined();
       };
       const heros = () => banc.getState().party.find((h) => h.id === a)!;
@@ -206,7 +206,7 @@ describe('fenetreChoisir', () => {
       expect([0, 1].filter((x) => intentAllowedFor(banc.getState(), x, 'fenetreValider', ['activitesEnMer']))).toEqual([0]);
       banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
       banc.getState().fenetreValider('activitesEnMer');
-      expect(banc.getState().journal.slice(-1)[0]).toBe(t('validation.refus.hoteSeul'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('validation.refus.hoteSeul'));
       expect(banc.getState().pendingSeaActivities, 'la semaine reste ouverte').not.toBeNull();
     });
   });
@@ -235,7 +235,7 @@ describe('fenetreChoisir', () => {
       expect(admis(banc, ['victoire', 'ligne', 'L0', a]), 'le héros de l’hôte').toEqual([0]);
       expect(admis(banc, ['victoire', 'ligne', 'L0', b]), 'le héros de l’invité').toEqual([1]);
       banc.getState().fenetreChoisir('victoire', 'ligne', 'L0', b);
-      expect(banc.getState().journal.slice(-1)[0]).toBe(t('choix.refus.autreSiege'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('choix.refus.autreSiege'));
       banc.getState().fenetreChoisir('victoire', 'ligne', 'L0', a);
       expect(banc.getState().pendingVictory?.gear, 'la ligne a quitté la fenêtre').toEqual([]);
     });
@@ -255,7 +255,7 @@ describe('fenetreChoisir', () => {
       banc.setState({ net: { ...banc.getState().net, mode: 'invite' } });
       for (const args of deLHote) {
         banc.getState().fenetreChoisir(...args);
-        expect(banc.getState().journal.slice(-1)[0], `${args[0]}.${args[1]}`).toBe(t('choix.refus.hoteSeul'));
+        expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], `${args[0]}.${args[1]}`).toBe(t('choix.refus.hoteSeul'));
       }
     });
 
@@ -263,10 +263,10 @@ describe('fenetreChoisir', () => {
       const banc = ouvrirLeBanc();
       const { a } = tout(banc);
       banc.getState().fenetreChoisir('marchand', 'retirerDuPanier', 'Corde');
-      expect(banc.getState().journal.slice(-1)[0], 'le libellé de l’article').toBe(t('choix.refus.valeur'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'le libellé de l’article').toBe(t('choix.refus.valeur'));
       expect(banc.getState().merchant?.cart).toEqual([{ id: 'corde', qty: 1 }]);
       banc.getState().fenetreChoisir(...(['butin', 'ligne', 0, a] as unknown as ArgumentsDuChoix));
-      expect(banc.getState().journal.slice(-1)[0], 'le rang de la ligne').toBe(t('choix.refus.valeur'));
+      expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0], 'le rang de la ligne').toBe(t('choix.refus.valeur'));
       expect(banc.getState().pendingLoot?.gear).toHaveLength(1);
     });
 

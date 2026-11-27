@@ -143,7 +143,7 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
     const after = banc.getState();
     expect(dayPhase(after.gameTime).id).toBe('aube'); // réveil à l’aube
     expect(hasCondition(after.party[0], 'extenue')).toBe(false);
-    expect(after.journal.some((l) => /dort jusqu|aube/i.test(l))).toBe(true);
+    expect(after.journal.map((e) => e.texte).some((l) => /dort jusqu|aube/i.test(l))).toBe(true);
   });
 
   it.each(['Anne', 'Anne-Marie'])('attribue la pitance au héros « %s » par son id', (label) => {
@@ -160,7 +160,7 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
 
     expect(bilan.filter((ligne) => ligne.text === text)).toMatchObject([{ actorId: 'b' }]);
     expect(bilan.filter((ligne) => ligne.text === `${label} : Pensez à vos actes se dissipe.`)).toMatchObject([{ actorId: 'b' }]);
-    expect(banc.getState().journal.filter((ligne) => ligne === text)).toHaveLength(1);
+    expect(banc.getState().journal.map((e) => e.texte).filter((ligne) => ligne === text)).toHaveLength(1);
   });
 
   it('la consommation collective ne désigne aucun héros, même si le texte commence par son nom', () => {
@@ -181,7 +181,7 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
       const bilan = sleepParty(banc.getState, banc.setState, 1, { fedDaily: true });
       const note = 'se réveille reposé (Exténué dissipé).';
       expect(bilan.filter((ligne) => ligne.text === note)).toMatchObject([{ actorId: 'a' }]);
-      expect(banc.getState().journal).toContain(`Autre ${note}`);
+      expect(banc.getState().journal.map((e) => e.texte)).toContain(`Autre ${note}`);
     } finally {
       poserLeNommeur(ancien);
     }
@@ -204,7 +204,7 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
     const after = banc.getState();
     expect(after.gameTime - t0).toBeGreaterThanOrEqual(2 * 24 * 60); // au moins 2 jours pleins + la 1re nuit
     expect(after.party[0].wounds.current).toBeGreaterThan(2 + 4); // bien plus qu’un seul +BE
-    expect(after.journal.some((l) => /se repose 3 jours/i.test(l))).toBe(true);
+    expect(after.journal.map((e) => e.texte).some((l) => /se repose 3 jours/i.test(l))).toBe(true);
   });
 
   it('le repos fait avancer la convalescence des traumas (cascade #T3 — via l’entretien quotidien)', () => {

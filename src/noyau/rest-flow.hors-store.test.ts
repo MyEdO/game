@@ -217,7 +217,7 @@ describe('ouvrirLeRepos / choix par héros', () => {
     banc.getState().fenetreValider('repos');
     const cas = banc.getState().pendingCascade!;
     expect(cas.participants.some((s) => s.kind === 'exposition-nocturne')).toBe(false); // tente → 0 Test difficile
-    expect(cas.log.some((l) => /tente/i.test(l))).toBe(true); // « La tente est montée… »
+    expect(banc.getState().journal.filter((e) => /tente/i.test(e.texte)), 'la note de campement, une fois au journal').toHaveLength(1);
   });
 });
 

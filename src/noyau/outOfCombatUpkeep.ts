@@ -50,7 +50,7 @@ function faitPasserUnRound(c: Combatant): boolean {
 }
 
 function direLEntretien(get: Get, set: Set, c: Combatant, lignes: string[]): void {
-  journaliser(get, set, [...lignes, ...drainPendingLog(get, set).map((event) => event.text)], 'etat', { actorId: c.id });
+  journaliser(get, set, [...lignes, ...drainPendingLog(get, set).map((event) => event.entree.texte)], 'etat', { actorId: c.id });
 }
 
 /** LDB 16 l.105 ; LDB 18 l.15 */

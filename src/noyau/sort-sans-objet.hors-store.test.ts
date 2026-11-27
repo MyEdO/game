@@ -37,7 +37,7 @@ function benir(banc: Banc, pretreId: string, cibleId: string): string[] {
   }
   expect(banc.getState().pendingCast!.result!.cast, 'témoin : la Bénédiction réussit').toBe(true);
   banc.getState().jetValider('incantation');
-  return banc.getState().journal.slice(avant);
+  return banc.getState().journal.map((e) => e.texte).slice(avant);
 }
 
 describe('Sort réussi sans objet sur sa cible', () => {

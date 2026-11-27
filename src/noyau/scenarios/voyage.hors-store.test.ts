@@ -73,10 +73,10 @@ describe('16-voyage — intégration Voyage par Étapes', () => {
     // lignes de postes/Exposition arrivent au journal (comme la halte de nuit du fluvial).
     draineCascade(banc.getState);
     const j = banc.getState().journal;
-    expect(j.some((l) => l.includes('Météo'))).toBe(true);
+    expect(j.some((l) => l.texte.includes('Météo'))).toBe(true);
     // Postes résolus : leurs conséquences arrivent au journal en lignes STRUCTURÉES (batch #328 + #295) —
     // Exténué DÉRIVÉ de l'op, carte d'itinéraire (Test étendu cumulé), ou ration fourragée à l'agrégation.
-    expect(j.some((l) => l.includes('Exténué') || l.includes('itinéraire') || l.includes('ration'))).toBe(true);
+    expect(j.some((l) => l.texte.includes('Exténué') || l.texte.includes('itinéraire') || l.texte.includes('ration'))).toBe(true);
   });
 });
 

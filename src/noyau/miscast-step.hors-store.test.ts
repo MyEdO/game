@@ -230,7 +230,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     suivant();
     const revelation = steps().find((s) => s.kind === 'incantationImparfaite')!;
     expect(revelation, 'le lanceur héros voit la révélation').toBeDefined();
-    const journal = banc.getState().journal;
+    const journal = banc.getState().journal.map((e) => e.texte);
     const enFlammes = journal.filter((l) => /En flammes/.test(l));
     expect(enFlammes, 'l’État posé par la rangée est au journal, une fois').toHaveLength(1);
     expect(journal.filter((l) => l.includes(revelation.reveal!.lines[0])), 'la ligne de table du dénouement, une fois').toHaveLength(1);
@@ -389,7 +389,7 @@ describe('Imparfaite/Colère — le tirage en étape à table (#942 L6)', () => 
     const jets = joueEnRetenant().des.length;
     expect(jets, 'la relance n’a pas reçu SON étape').toBeGreaterThan(1);
     expect(inline.corruption, 'un Point par JET (LDB 49 l.5)').toBe(jets);
-    const rendus = banc.getState().journal.filter((t) => /Points? de Corruption/.test(t));
+    const rendus = banc.getState().journal.map((e) => e.texte).filter((t) => /Points? de Corruption/.test(t));
     for (const g of rendus) expect(g, 'un gain groupé « +2 » au lieu de gains « +1 »').toMatch(/\+1 Point de Corruption/);
 
     // (b) JUSTE sous le seuil : c'est le gain QUI FRANCHIT qui ouvre le Test `corrompu` — donc dès

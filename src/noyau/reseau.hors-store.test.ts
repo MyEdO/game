@@ -294,7 +294,7 @@ describe('les sièges de la coop : une attribution refusée laisse `net` inchang
     banc.getState().affecterLeHerosAuSiege('absent', 1);
     banc.getState().affecterLeSiegeMJ(7);
     expect(banc.getState().net).toBe(avant);
-    expect(banc.getState().journal.slice(journal)).toEqual([
+    expect(banc.getState().journal.map((e) => e.texte).slice(journal)).toEqual([
       t('coop.assign.slotTaken'), t('coop.assign.seatUnknown'), t('coop.assign.seatUnknown'), t('coop.assign.heroAbsent'), t('coop.assign.seatUnknown'),
     ]);
   });
