@@ -430,16 +430,16 @@ export function hasFoeInLoS(get: Get, actor: Combatant): boolean {
 }
 
 /** Les déclencheurs où le dispatcher pose le relevé d'arène du Round (`releveDeRound`) : `onRoundStart` (Condition
- *  `allieAuContact`, LDB 85 l.335) et `onRoundEnd` (géométrie du Brisé, LDB 16 l.54-58). */
+ *  `allieAuContact`, LDB 85 l.335) et `onRoundEnd` (géométrie du Brisé, LDB 16 l.54-56). */
 const DECLENCHEURS_DU_RELEVE_DE_ROUND: readonly EffectTrigger[] = ['onRoundStart', 'onRoundEnd'];
 
 /** GÉOMÉTRIE DE RÉCUPÉRATION du Brisé pour `actor`, lue par les Conditions `hiddenFromFoes`, `engaged` et `nearestFoe`
- *  (auto-retrait caché, gate du Test, difficulté par proximité ; LDB 16 l.54-58), partagée par le dispatcher et le
+ *  (auto-retrait caché, gate du Test, difficulté par proximité ; LDB 16 l.54-56), partagée par le dispatcher et le
  *  collecteur des Tests de fin de Round (`collectRoundEndTestSteps`) :
  *  - `hiddenFromFoes` : aucun adversaire vivant ne voit l'acteur (sens foe→acteur, `tileSeenByFoe`), faux sans
  *    adversaire. LDB 16 l.56
- *  - `engaged` : l'acteur est Engagé. LDB 16 l.57
- *  - `nearestFoeDist` : distance (cases) à l'adversaire vivant le plus proche. LDB 16 l.58
+ *  - `engaged` : l'acteur est Engagé. LDB 16 l.54
+ *  - `nearestFoeDist` : distance (cases) à l'adversaire vivant le plus proche. LDB 16 l.54
  *  RNG-free → identique côté inline (ennemi/auto) et côté cascade (héros). Hors combat / sans position = neutre. */
 export function geometrieDuBrise(get: Get, actor: Combatant): { hiddenFromFoes: boolean; engaged: boolean; nearestFoeDist: number } {
   const { battle, scene } = get();
@@ -530,7 +530,7 @@ export function applyTriggeredEffects(
   const lead = ctx.engagedAdvantageLead ?? engagedAdvantageLead(get, actor);
   const foeInLoS = ctx.foeInLoS ?? hasFoeInLoS(get, actor);
   // Relevé d'arène du Round (Brisé caché/Engagé/proximité, alliés au contact) — battle-aware, calculé UNE fois pour le
-  // porteur, et SEULEMENT aux déclencheurs de Round, les seuls qui le consomment (LDB 16 l.54-58 ; LDB 85 l.335 : la
+  // porteur, et SEULEMENT aux déclencheurs de Round, les seuls qui le consomment (LDB 16 l.54-56 ; LDB 85 l.335 : la
   // grammaire y borne `allieAuContact`), pour ne pas peser sur les déclencheurs d'attaque.
   const geom = DECLENCHEURS_DU_RELEVE_DE_ROUND.includes(trigger) ? releveDeRound(get, actor) : undefined;
   // Verdict de l'instance sur sa Cible en vue (Condition `cibleEnVue`), mesuré au premier effet qui joue.
