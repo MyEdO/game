@@ -92,6 +92,11 @@ export function auContactParmi(scene: Scene | null, combattants: readonly Combat
   return combattants.filter((c) => c.kind === kind && !c.riderId && compteDansLeCombat(c) && c.pos && distanceDeContact(scene, c, cible) <= 1);
 }
 
+/** Les alliés (même `kind`) posés au contact de `c`, lui exclu. */
+export function alliesAuContactParmi(scene: Scene | null, combattants: readonly Combatant[], c: Combatant): Combatant[] {
+  return auContactParmi(scene, combattants, c, c.kind).filter((a) => a.id !== c.id);
+}
+
 /** Le décompte d'`auContactParmi`. */
 export function effectifAuContactParmi(scene: Scene | null, combattants: readonly Combatant[], cible: Combatant, kind: Combatant['kind']): number {
   return auContactParmi(scene, combattants, cible, kind).length;
@@ -102,7 +107,7 @@ export function effectifAuContactParmi(scene: Scene | null, combattants: readonl
  *  `undefined` hors binôme. */
 export function bouclierDuBinome(scene: Scene | null, combattants: readonly Combatant[], c: Combatant): Weapon | undefined {
   if (isOutOfAction(c) || isInanimate(c) || !c.pos) return undefined;
-  const allies = auContactParmi(scene, combattants, c, c.kind).filter((a) => a.id !== c.id);
+  const allies = alliesAuContactParmi(scene, combattants, c);
   for (const arme of c.weapons) {
     const id = arme.bouclierDEquipe?.id;
     const tenu = id && allies.flatMap((a) => a.weapons).find((w) => w.trappingId === id);

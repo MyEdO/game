@@ -7,7 +7,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { heroDuDuel, ouvrirLeCombat } from './combatDeTest.testkit';
-import { draineCascade } from './cascade.testkit';
 import { desDeCombat, franchirLeRound, lancerLeRoundDu } from './ouvertureDuTour.testkit';
 import { advanceTurn } from './combatFlow';
 import { mountMovement } from './mount';
@@ -154,7 +153,9 @@ describe('Stupide au Round 1 par l’entrée de production (`ouvrirLeCombat`) : 
     g().lancerLaScene(testScene());
     desDeCombat('echec');
     ouvrirLeCombat(banc, testScene(), [h], 'enc-mutants');
-    draineCascade(g);
+    // Le Test d'ouverture tient la main : la validation de la pause par `ouvrirLeCombat` n'a ouvert aucun tour.
+    expect(g().battle!.turn).toBe(-1);
+    lancerLeRoundDu(banc);
     banc.abandonner();
     expect(g().battle!.round).toBe(1);
     expect(budgetDe(h.id)).toEqual(attendu(h.id, true));

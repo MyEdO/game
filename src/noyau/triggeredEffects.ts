@@ -71,7 +71,7 @@ import { sourcesEnVue, sourcesPsyEnVue } from './monde/porteurs';
 import { RNG } from '../engine/dice';
 import { effectiveTalents } from '../engine/talentEffects';
 import { campAdvantageHooks } from './combat/advantagePool';
-import { auContactParmi } from './combat/surnombre';
+import { alliesAuContactParmi } from './combat/surnombre';
 import { buildActorView } from '../engine/actorView';
 import { crochetsDeCorruption } from './corruptionFlow';
 import { routeTriggeredTest, runCombatFlow, sujetDeTrace } from './combat/triggeredTest';
@@ -445,11 +445,12 @@ export function recoveryGeometry(get: Get, actor: Combatant): { hiddenFromFoes: 
   return { hiddenFromFoes, engaged: isEngaged(actor, battle.combatants), nearestFoeDist };
 }
 
-/** Les alliés (même `kind`) au contact de `actor` dans la bataille, en vues d'acteur (Condition `allieAuContact`). LDB 85 l.335 */
+/** Les alliés au contact de `actor` dans la bataille (`alliesAuContactParmi`), en vues d'acteur : le relevé de la
+ *  Condition `allieAuContact`. */
 function alliesAuContactDe(get: Get, actor: Combatant): ActorView[] {
   const { battle, scene } = get();
   if (!battle || !actor.pos) return [];
-  return auContactParmi(scene, battle.combatants, actor, actor.kind).filter((a) => a.id !== actor.id).flatMap((a) => buildActorView(a) ?? []);
+  return alliesAuContactParmi(scene, battle.combatants, actor).flatMap((a) => buildActorView(a) ?? []);
 }
 
 /** Verdict `cibleEnVue` de l'instance `affliction` de `actor` parmi les sources en vue (combattants en Ligne

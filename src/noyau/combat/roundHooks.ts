@@ -58,9 +58,8 @@ const PERCEPTION: TestDesigne = { skill: { id: 'perception' } };
 const RESISTANCE: TestDesigne = { skill: { id: 'resistance' } };
 
 // ============================================================================================
-// Séquence RAW de franchissement de Round, migrée ISO-COMPORTEMENT depuis advanceTurn (corps copiés
-// tel quel, `ctx.sink` remplaçant la `tickLine` locale, `ctx.get` le `get`). Les `order` reflètent la
-// position d'origine → ordre + RNG préservés (golden byte-pour-byte).
+// Séquence de franchissement de Round : crochets `onRoundEnd` ordonnés par `order`, que le golden
+// `roundBoundary.golden.hors-store.test.ts` fige (ordre et tirages).
 // ============================================================================================
 
 /** Effets « début de Round » authorés (`onRoundStart` : Régénération, Stupide…) de chaque combattant en action —
@@ -71,7 +70,7 @@ export function fireRoundStartTriggers(get: Get, set: SetFn, combatants: readonl
   for (const c of combatants) {
     if (isOutOfAction(c)) continue;
     for (const line of fireTriggers(get, c, 'onRoundStart', { rng: battleRng(), set })) sink(line, c);
-    for (const e of drainPendingLog(get, set)) sink(e.text, combatants.find((x) => x.id === e.actorId) ?? c);
+    for (const e of drainPendingLog(get, set)) sink(e.entree.texte, combatants.find((x) => x.id === e.actorId) ?? c);
   }
 }
 
@@ -320,11 +319,6 @@ export const TABLES = {
       order: 25,
       run: ({ get, set, battle, sink }) => fireRoundStartTriggers(get, set, battle.combatants, sink),
     },
-    // Instable (LDB 85 l.199) MIGRÉ en DONNÉES : trait `instable` effects onRoundEnd — `if engagedAdvantageGap
-    // > 0` → wounds {engagedAdvantageGap} (perd la différence d'Avantage) puis `if woundsCurrent<=0` → banish
-    // {narration:'unravel'} (« se délite »). La valeur relationnelle est calculée par le dispatcher, sans hook dédié.
-    // Bestial (LDB 85 l.59) « peur du feu → gagne Brisé » MIGRÉ en données : trait `bestial` effects
-    // onRoundEnd (if En Flammes ∧ pas déjà Brisé → condition Brisé), dispatché par le dispatcher unique.
     {
       // Auras de combat — machinerie GÉOMÉTRIQUE GÉNÉRIQUE : projette les `passive` de toute `TraitData.aura`
       // (Perturbant : −20 aux Tests à BE mètres, LDB 85 l.260-262) sur les combattants à portée, accumulés dans

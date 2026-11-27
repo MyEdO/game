@@ -3882,24 +3882,30 @@ function reprendreLesTirsRapides(get: Get, set: SetFn): boolean {
 }
 
 /**
- * OUVRE LE TOUR de `actif`, point UNIQUE des deux ouvertures (`ouvrirLeRound`, `advanceTurn`) : les postures du tour
- * passé expirent (Sur la défensive, LDB 13 l.110 ; Maniement de deux armes, LDB 10 l.767-773), ses dus (`loseNext*` :
- * Oups! 61-80, Tir rapide LDB 11 l.97-103, `loseTurn`) et ses effets de début de tour (`fireTurnStartTriggers`), puis
- * son gate d'action (`resolveActGates`, LDB 71 l.35) se replient dans le budget du tour rendu.
+ * OUVRE LE TOUR de rang `turn`, point UNIQUE des deux ouvertures (`ouvrirLeRound`, `advanceTurn`) : les postures du tour
+ * passé de l'actif expirent (Sur la défensive, LDB 13 l.110 ; Maniement de deux armes, LDB 10 l.767-773), ses dus
+ * (`loseNext*` : Oups! 61-80, Tir rapide LDB 11 l.97-103, `loseTurn`) et ses effets de début de tour
+ * (`fireTurnStartTriggers`), puis son gate d'action (`resolveActGates`, LDB 71 l.35) se replient dans le budget du tour
+ * posé. Rend `false` quand le combat s'achève à l'ouverture.
  */
-function ouvrirLeTour(get: Get, set: SetFn, battle: BattleState, actif: Combatant | undefined): { movementUsed: number; acted: boolean } {
-  if (!actif) return { movementUsed: 0, acted: false };
+function ouvrirLeTour(get: Get, set: SetFn, battle: BattleState, turn: number): boolean {
+  const actif = inBattleId(battle, battle.order[turn]);
   let movementUsed = 0;
   let acted = false;
-  actif.defensiveStance = false;
-  actif.dualStrikeDefensePenalty = undefined;
-  if (actif.loseNextMovement) { movementUsed = mountMovement(battle, actif); actif.loseNextMovement = false; battle.log.push(ev('detail', tr('cf.perdLeMouvement', { name: nomDe(actif) }), actif.id)); }
-  if (actif.loseNextAction) { acted = true; actif.loseNextAction = false; battle.log.push(ev('detail', tr('cf.perdLAction', { name: nomDe(actif) }), actif.id)); }
-  fireTurnStartTriggers(get, set, actif);
-  const gate = resolveActGates(get, set, actif);
-  for (const line of gate.lines) battle.log.push(ev('detail', line, actif.id));
-  if (gate.loseMovement && movementUsed === 0) movementUsed = mountMovement(battle, actif);
-  return { movementUsed, acted };
+  if (actif) {
+    actif.defensiveStance = false;
+    actif.dualStrikeDefensePenalty = undefined;
+    if (actif.loseNextMovement) { movementUsed = mountMovement(battle, actif); actif.loseNextMovement = false; battle.log.push(ev('detail', tr('cf.perdLeMouvement', { name: nomDe(actif) }), actif.id)); }
+    if (actif.loseNextAction) { acted = true; actif.loseNextAction = false; battle.log.push(ev('detail', tr('cf.perdLAction', { name: nomDe(actif) }), actif.id)); }
+    fireTurnStartTriggers(get, set, actif);
+    const gate = resolveActGates(get, set, actif);
+    for (const line of gate.lines) battle.log.push(ev('detail', line, actif.id));
+    if (gate.loseMovement && movementUsed === 0) movementUsed = mountMovement(battle, actif);
+  }
+  set({ battle: { ...battle, ...etatDeTourNeuf(), turn, movementUsed, acted } });
+  if (checkBattleOver(get, set)) return false;
+  bus.emit(EVT.SCENE_DIRTY);
+  return true;
 }
 
 /**
@@ -3918,10 +3924,7 @@ function ouvrirLeRound(get: Get, set: SetFn): void {
       break;
     }
   }
-  const budget = ouvrirLeTour(get, set, battle, inBattleId(battle, battle.order[turn]));
-  set({ battle: { ...battle, ...etatDeTourNeuf(), turn, ...budget } });
-  if (checkBattleOver(get, set)) return;
-  bus.emit(EVT.SCENE_DIRTY);
+  if (!ouvrirLeTour(get, set, battle, turn)) return;
   openRoundStartPsych(get, set);
   if (get().pendingCascade) return; // la cascade tient la main ; sa fermeture reprendra l'IA
   maybeRunEnemyTurn(get, set);
@@ -7799,7 +7802,7 @@ function ouvrirLaFinDeRencontre(get: Get, set: SetFn, combattants: readonly Comb
 
 /** La BORNE de dénouement porte sur la séquence RÉELLEMENT ouverte, quels que soient son `purpose` et le site
  *  qui l'a ouverte (`startCascade` renonce sur `steps` vide, une révélation a pu l'ouvrir seule). */
-function bornerLaSequenceOuverte(get: Get, set: SetFn, borne: 'combatEndBoundary' | 'roundBoundary'): void {
+export function bornerLaSequenceOuverte(get: Get, set: SetFn, borne: 'combatEndBoundary' | 'roundBoundary'): void {
   const ouverte = get().pendingCascade;
   if (ouverte && !ouverte[borne]) set({ pendingCascade: { ...ouverte, [borne]: true } });
 }
@@ -8418,15 +8421,8 @@ export function advanceTurn(get: Get, set: SetFn) {
         battle.log.push(ev('etat', line, c?.id));
         if (c?.kind === 'heros') heroRoundLines.push(line);
       };
-      // TOUTE la séquence de franchissement de Round est déléguée aux hooks `roundBoundary`
-      // (noyau/combat/roundHooks), ordonnés par `order` : end-of-round 10 → poison-resist 15 →
-      // triggers 25 → Instable 30 → Bestial 40 → Perturbant 50 → Surnombre 55 →
-      // Détermination 70/72 → broken-recovery 74 → tail 76-79.5 → règles optionnelles (se-fatiguer 80).
-      // advanceTurn orchestre seulement le CADRE (Round, ordre, révélation) ; le CONTENU vit en hooks.
-      // (Frénésie : l'Arme libre est un grant de DONNÉE plafonné par freeAttacksThisTurn, remis à zéro au tour.)
-      // Unique porte (#316) : le site MÉTIER émet via le bus ; les boucles internes `fireTriggers`
-      // (roundHooks, bus-owned) restent la machinerie du bus. Sans `audience`/`self` → diffusion data
-      // vide ici : STRICTEMENT équivalent à l'ancien `runCombatHooks('onRoundEnd', …)`.
+      // Le CONTENU du franchissement vit dans les crochets `onRoundEnd` (`roundHooks`, ordonnés par `order`), émis par
+      // le bus (#316) ; advanceTurn n'en orchestre que le CADRE (Round, ordre, révélation).
       const debout = new Set(battle.combatants.filter((c) => !isOutOfAction(c)).map((c) => c.id));
       emitCombatEvent('onRoundEnd', { triggerCtx: { rng: battleRng() }, get, set, battle, sink: tickLine });
       // Tombé pendant l'entretien (saignement à 0 PB, LDB 16 l.105) : même ligne que sur le chemin du coup.
@@ -8440,11 +8436,7 @@ export function advanceTurn(get: Get, set: SetFn) {
     if (next && !isOutOfAction(next)) break;
   }
   // Tour suivant dans le MÊME Round.
-  const budget = ouvrirLeTour(get, set, battle, inBattleId(battle, battle.order[turn]));
-  set({ battle: { ...battle, ...etatDeTourNeuf(), turn, ...budget } });
-  if (checkBattleOver(get, set)) return;
-  bus.emit(EVT.SCENE_DIRTY);
-  // Psychologie de combat : passes de Round (openRoundStartPsych/openRoundEndCascade). LDB 21 l.9, l.25
+  if (!ouvrirLeTour(get, set, battle, turn)) return;
   maybeRunEnemyTurn(get, set);
 }
 
@@ -8515,32 +8507,27 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   //     décomptes UNE-FOIS-PAR-ROUND ci-dessus (Avantage/Nuée/Engagement/zones — DÉJÀ appliqués), on
   //     ouvre UNE cascade (une BANDE par entrée de règle, applier 'psychologieDeCombat') qui SUSPEND la suite jusqu'à
   //     résolution. À sa fermeture (`roundBoundary`), le store enchaîne DIRECTEMENT sur `enterRoundStartPause`
-  //     — surtout PAS `resolveRoundBoundary` (qui re-jouerait ces décomptes). Sinon (aucune Peur), on
+  //     — surtout PAS `resolveRoundBoundary` (qui re-jouerait ces décomptes). Sinon (aucune séquence due), on
   //     enchaîne ici même.
   openRoundEndCascade(get, set);
   if (get().pendingCascade) return;
   enterRoundStartPause(get, set);
 }
 
-/** Pause de DÉBUT DE ROUND (LDB 17 l.25) : on s'arrête à CHAQUE début de Round pour montrer
- *  l'initiative (frise d'initiative (InitiativeStrip)) et permettre la pré-emption (Chance, 3e usage ;
- *  futurs Atouts/talents). L'IA reste gelée jusqu'à « Commencer le round » (`lancerLeRound`) — cf.
- *  garde de maybeRunEnemyTurn. EN COOP (arbitrage 2026-06-11) : seul le round 1 est gaté (ready-check
- *  de tous) — les rounds suivants S'ENCHAÎNENT sans pause. Point d'entrée à part de
- *  `resolveRoundBoundary` : il se rappelle après la cascade de Peur de fin de Round. */
+/** Pause de DÉBUT DE ROUND (LDB 17 l.25) : on s'arrête au début du Round pour montrer l'initiative (frise
+ *  d'initiative) et permettre la pré-emption (Chance, 3e usage). L'IA reste gelée jusqu'à « Commencer le round »
+ *  (`lancerLeRound`) — cf. garde de maybeRunEnemyTurn. EN COOP (arbitrage 2026-06-11) et en Auto-combat solo, seul le
+ *  Round 1 s'arrête. Posée une fois les Tests d'ouverture du Round joués : par `lancerLeCombat` et `resolveRoundBoundary`
+ *  quand aucune séquence n'est due, sinon à la clôture de la séquence (borne `roundBoundary`). */
 export function enterRoundStartPause(get: Get, set: SetFn): void {
   const b = get().battle;
   if (!b || b.over) return;
   for (const c of b.combatants) if (c.shotsThisTurn) c.shotsThisTurn = 0; // Salve : compteur de tirs réinitialisé à chaque Round
   const reset = { ...b, ...etatDeTourNeuf(), crewActed: {} }; // `crewActed` : par Round (`BattleState.crewActed`)
-  if (get().net.mode !== 'local' && b.round > 1 && !(b.handRaisedBy?.length)) {
-    set({ battle: reset, pendingRoundStart: null });
-    lancerLeRound(get, set);
-    return;
-  }
-  // Auto-combat SOLO : on enchaîne les Rounds sans pause (l'IA joue tout le groupe). On NE touche PAS la
-  // branche coop (ready-check du Round 1 préservé ci-dessus) ni le mode manuel/Rapide (pause conservée).
-  if (cadenceAutoCombat() && get().net.mode === 'local') {
+  // Après le Round 1, les Rounds s'enchaînent sans pause en coop (sauf main levée) et en Auto-combat SOLO (l'IA joue
+  // tout le groupe) ; le Round 1 garde sa pause (ready-check de la coop), comme le mode manuel/Rapide chaque Round.
+  const enchaine = get().net.mode === 'local' ? cadenceAutoCombat() : !(b.handRaisedBy?.length);
+  if (b.round > 1 && enchaine) {
     set({ battle: reset, pendingRoundStart: null });
     lancerLeRound(get, set);
     return;
@@ -9596,26 +9583,19 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Couche MER (navire-unité) : une coque IA agit en UNITÉ via des Tests d'équipage (manœuvre/bordée), pas comme
   // une créature (ni psychologie, ni marche de fantassin). Branche DÉDIÉE — `chooseEnemyAction` n'a aucun candidat naval.
   if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set, enemy);
-  // Cycle de tour ennemi (LDB 21/85) en hooks `turnStart` ordonnés (noyau/combat/turnHooks) : Rage 20 →
-  // tentative de Frénésie IA 30. La psychologie de combat se joue aux passes de Round (LDB 21 l.9, l.25).
-  // Ces hooks journalisent eux-mêmes (kinds `frenzy`/`fear`) ; `sink` n'est pas utilisé par eux.
-  // Unique porte (#316) : émission via le bus. `self: enemy` alimente les hooks (Rage) ; `audience: []`
-  // SUPPRIME la diffusion data ICI (l'`onTurnStart` DATA est diffusé par `fireTurnStartTriggers`, non
-  // dupliqué) → STRICTEMENT équivalent à l'ancien `runCombatHooks('onTurnStart', …)`.
+  // Crochets de début de tour de l'IA (`turnHooks` : Rage, entrée en Frénésie), par le bus (#316). `audience: []` :
+  // les effets `onTurnStart` en donnée sont déjà joués par l'ouverture du tour (`ouvrirLeTour`).
   emitCombatEvent('onTurnStart', { triggerCtx: { rng: battleRng() }, get, set, battle: get().battle!, self: enemy, audience: [], sink: (line, c) => { get().battle!.log.push(ev('detail', line, c?.id)); } });
-  // Cible = camp OPPOSÉ à l'acteur : un ennemi vise les héros (inchangé) ; un héros auto-piloté (Auto-combat)
-  // vise les ennemis. Les helpers Frénésie/psy ci-dessus s'appliquent à tout combattant piloté par l'IA
-  // (`aiDriven`) — dont un héros auto ; Rage/Stupide restent gardés par leurs traits.
+  // Cible = camp opposé à l'acteur : un ennemi vise les héros, un héros en Auto-combat les ennemis.
   const foeKind = enemy.kind === 'ennemi' ? 'heros' : 'ennemi';
   const heroes = battle.combatants.filter((c) => c.kind === foeKind && !isOutOfAction(c));
   if (heroes.length === 0) {
     if (checkBattleOver(get, set)) return;
     if (!ciblesDeStructureIA(get().battle!, enemy).length) return advanceTurn(get, set);
   }
-  // Combat monté (LDB 14) : un PNJ à pied, non Engagé, adjacent à une monture LIBRE de son camp décide
-  // de l'enfourcher (aucun jet → simple Mouvement ; il pourra ensuite ATTAQUER, mais pas se déplacer en plus).
-  // Le groupe choisit sa monture hors combat (#4804). Enfourcher prend le Mouvement entier : même budget que le verbe
-  // du joueur (`monterEnSelle`).
+  // Combat monté (LDB 14 l.175-187) : un PNJ à pied, non Engagé, adjacent à une monture libre de son camp l'enfourche,
+  // au prix de son Mouvement entier, comme le verbe du joueur (`monterEnSelle`). Le groupe choisit sa monture hors
+  // combat (#4804).
   let justMounted = false;
   if (!enemy.mountId && get().battle!.movementUsed === 0 && !isEngaged(enemy, battle.combatants) && canTakeAction(enemy) && !choisitSaMontureHorsCombat(get(), enemy)) {
     const freeMount = mountableNear(get(), battle, scene, enemy);
