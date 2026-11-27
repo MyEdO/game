@@ -9,7 +9,7 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { ouvrirLeBanc, type Banc, documentDAuteur } from './banc.testkit';
 import { resetSceneRegistry } from './monde/registreDesScenes';
 import { objetDuNarratif, presetDuNarratif } from './monde/resolveursDuNarratif';
 import { etatInitialDuJeu } from './etat';
@@ -170,7 +170,7 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
     expect(banc.getState().campaignDoc).toBeNull();
     chargerSurLeBanc(banc, save);
     expect(banc.getState().campaignDoc?.projet).toEqual({ id: 'snap-projet' });
-    expect(banc.getState().document?.documentId).toBe('snap-doc');
+    expect(documentDAuteur(banc.getState())?.documentId).toBe('snap-doc');
   });
 
   it('snapshot coop : l’invité adopte `campaignDoc.projet`, `document.documentId` et `pendingCampaign.projet`', () => {
@@ -180,7 +180,7 @@ describe('#2206 — l’identité du projet et la provenance du document remis s
     banc.setState(etatInitialDuJeu());
     banc.setState(appliquerLInstantane(data, banc.getState()).etat);
     expect(banc.getState().campaignDoc?.projet).toEqual({ id: 'snap-projet' });
-    expect(banc.getState().document?.documentId).toBe('snap-doc');
+    expect(documentDAuteur(banc.getState())?.documentId).toBe('snap-doc');
     expect(banc.getState().pendingCampaign?.projet).toEqual({ id: campagneDeTest.id });
   });
 });

@@ -2,7 +2,7 @@ import type { PlayerText } from '../i18n/playerText';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { Cadence } from '../engine/cadence';
 import type { Formula } from '../engine/ops';
-import type { SourceRef, RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
+import type { RaceKey, Sexe } from '../data/schemas/grammaire/valeurs';
 import type { BattleActionMode } from '../data/schemas/defs/actions';
 import type { ShipMoraleState } from '../engine/crewMorale';
 import type { Dir8 } from '../geometry/dir8';
@@ -726,10 +726,9 @@ export interface EtatDeJeu {
   cargoRaid: boolean;
   /** Butin HORS combat (fouille/Test/dialogue/trigger) — fenêtre « qui l'emporte ? » (même brique). */
   pendingLoot: PendingLoot | null;
-  /** `text` = Markdown (rendu par `Prose`, `src/ui/DocumentModal.tsx`) : un paragraphe par bloc séparé d'une ligne vide.
-   *  `documentId` = l'entrée de `narratif.documents` remise (Effet `document`) : le texte est une prose de paquet ;
-   *  `suite` = ce qu'on lui a confié (`confierLaSuite`, #2689), rejoué par sa sortie (`fenetreFermer('document')`). */
-  document: { title: string; text: string; source?: SourceRef; documentId?: string; suite?: Suite; remise: number } | null;
+  /** Le document remis (`DocumentRemis`) ; `suite` = ce qu'on lui a confié (`confierLaSuite`, #2689), rejoué par sa
+   *  sortie (`fenetreFermer('document')`). */
+  document: (import('./campagne').DocumentRemis & { suite?: Suite; remise: number }) | null;
   /** Compteur des remises de `document` : chaque pose l'estampille (`remise`), le masque de l'invité s'y keye. */
   remisesDeDocument: number;
   /** Scène d'où l'on vient (pour `transitionBack` : sortie d'intérieur). */

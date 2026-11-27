@@ -18,7 +18,7 @@ import type { IdDeCombattant, IdDeHeros, IdDePossession, IdDEntiteDeScene, IdDeT
 import type { OpenRestOpts } from './restFlow';
 import type { ActionsDuNoyau } from './actionsDuNoyau';
 import type { BattleClickOpts, OptionsDuClic } from './targetingModes';
-import type { EtatDeJeu, Jeu, NetState, PaquetALancer, PendingInteract } from './etat';
+import type { Jeu, NetState, PaquetALancer, PendingInteract } from './etat';
 import type { Catalogue } from '../data/schemas/catalogue/catalogue';
 
 export interface MachinerieDuNoyau {
@@ -117,7 +117,7 @@ export interface MachinerieDuNoyau {
   // ── Effets de scène ──
   ouvrirLeMarchand: (entityId: IdDEntiteDeScene) => void;
   /** Remet un document : l'estampille d'une remise neuve (`remise`). */
-  remettreLeDocument: (doc: Omit<NonNullable<EtatDeJeu['document']>, 'remise'>) => void;
+  remettreLeDocument: (doc: import('./campagne').DocumentRemis) => void;
   /** Ouvre la DÉSIGNATION d'un héros (Effet `designerHeros`, EDO 02 l.91) : `false` sans héros vivant — rien
    *  à désigner, la suite se joue sans suspension. */
   ouvrirLaDesignation: (p: PendingDesignationHeros) => boolean;

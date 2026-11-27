@@ -1597,7 +1597,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const doc = documentDuNarratif(env.get().campaignNarratif)(e.documentId);
       if (!doc) { console.warn(`document : document inconnu « ${e.documentId} ».`); return; }
-      env.get().remettreLeDocument({ title: doc.titre, text: doc.prose, documentId: doc.id, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
+      env.get().remettreLeDocument({ genre: 'auteur', title: doc.titre, text: doc.prose, documentId: doc.id, ...(doc.source ? { source: structuredClone(doc.source) } : {}) }); // #2097
     },
   },
   revealClue: {
@@ -2229,7 +2229,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   waterExposure: {
     group: 'Afflictions', label: libelleEffet('waterExposure'), icon: 'voyage/vague',
     make: () => ({ type: 'waterExposure', mode: 'ingestion', target: 'heros' }),
-    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'heros', e.heroId), e, 'expositionHydrique'),
+    apply: (e, env) => openWaterExposure(env.get, env.set, env.targets(e.target ?? 'heros', e.heroId), e),
   },
 
   // ── Temps & repos ──────────────────────────────────────────────────────
@@ -2518,13 +2518,12 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
 export const WATER_EXPOSURE_KINDS = ['expositionHydrique', 'fleuveExposition'] as const;
 export type WaterExposureKind = (typeof WATER_EXPOSURE_KINDS)[number];
 
-/** Ouvre le Test d'Exposition HYDRIQUE (MSRC 16 l.5-13) des `heroes`, sous le `kind` de la route qui le pose. */
-export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combatant[], e: { mode: WaterExposureMode; source?: string }, kind: WaterExposureKind): void {
+/** Les étapes du Test d'Exposition HYDRIQUE (MSRC 16 l.5-13) des `heroes`, sous le `kind` de la route qui le pose. PUR. */
+export function etapesDExpositionHydrique(heroes: readonly Combatant[], e: { mode: WaterExposureMode; source?: string }, kind: WaterExposureKind): BuiltCascadeStep[] {
   // MSRC 16 l.13 : une étape par héros exposé ; tableau 1 (`e.source`) et tableau 2 (`autoExposureMods`).
   // Conséquence : l'applier de `WATER_EXPOSURE_KINDS`.
-  if (!heroes.length) return;
   const src = sourceExposureMod(e.source);
-  const steps = heroes.flatMap((h) => {
+  return heroes.flatMap((h) => {
     const auto = autoExposureMods(h, e.mode); // tableau 2 (gate `appliesTo` interne : immersion seule)
     const parts = [...(src ? [src] : []), ...auto]; // tableau 1 : « à l'ingestion et à l'immersion »
     const detail = parts.map((m) => `${m.label} ${m.mod > 0 ? '+' : ''}${m.mod}`).join(' · ');
@@ -2546,6 +2545,11 @@ export function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combata
     });
     return step ? [step] : [];
   });
+}
+
+/** Ouvre le Test d'Exposition HYDRIQUE de l'Effet de scène (MSRC 16 l.5-13) des `heroes`. */
+function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combatant[], e: { mode: WaterExposureMode; source?: string }): void {
+  const steps = etapesDExpositionHydrique(heroes, e, 'expositionHydrique');
   if (steps.length) openSequence(get, set, { title: t('eff.titreDeLEau'), icon: 'voyage/vague', purpose: 'test', steps });
 }
 

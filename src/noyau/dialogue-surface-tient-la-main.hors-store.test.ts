@@ -66,7 +66,7 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
   });
 
   it('document ouvert : elle attend', () => {
-    temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
+    temoin({ document: { genre: 'auteur', title: 'Lettre', text: '…', remise: 1 } });
     expect(repond()).toBe(false);
   });
 
@@ -85,7 +85,7 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
   });
 
   it('sous une surface, la réponse choisie est refusée et le refus dit', () => {
-    temoin({ document: { title: 'Lettre', text: '…', remise: 1 } });
+    temoin({ document: { genre: 'auteur', title: 'Lettre', text: '…', remise: 1 } });
     banc.getState().fenetreChoisir('dialogue', 'reponse', 'oui');
     expect(banc.getState().dialogue?.nodeId).toBe('n1');
     expect(banc.getState().journal.map((e) => e.texte).slice(-1)[0]).toBe(t('barre.mainTenue'));
@@ -107,7 +107,7 @@ describe('coop — l’écran PAR SIÈGE de l’hôte ne refuse pas la réponse 
   };
 
   it('document PARTAGÉ ouvert : la réponse de l’invité attend', () => {
-    expect(repondreCommeInvite({ document: { title: 'Lettre', text: '…', remise: 1 } })).toBe('n1');
+    expect(repondreCommeInvite({ document: { genre: 'auteur', title: 'Lettre', text: '…', remise: 1 } })).toBe('n1');
   });
 });
 

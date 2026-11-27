@@ -18,6 +18,7 @@ import { modeEnVue, type ModeEnVue } from './carteEnVue';
 import type { RecapEvent, RecapLine } from './recapLine';
 import type { NightEntry } from './restFlow';
 import type { SeaRecapChrome } from './seaVoyageFlow';
+import type { RiverRecapChrome } from './riverVoyageFlow';
 import type { TravelRecapDay } from './travelFlow';
 import type { GesteDuNoyau } from './actionsDuNoyau';
 import { CADENCES_AU_CHOIX, cadenceAUnEffet, traverseeCommandee, type VoyageCadence } from './voyageCadence';
@@ -36,12 +37,13 @@ export function evenementEnVue(e: RecapEvent): EvenementEnVue {
 
 /** Une journée close en route : `depuis` et `jusqua`, ses bornes exactes dans l'unité du trajet ; `heures`, sa durée de
  *  route ; `meteo`, sa météo d'Étape par son id et son nom, `null` sans elle ; ses lignes, ses événements racontés, ses
- *  jets (`entrees`) ; `mer`, l'instantané d'un jour de mer, `null` hors d'elle. */
+ *  jets (`entrees`) ; `mer` et `fleuve`, l'instantané d'un jour de mer ou de fleuve, `null` hors d'eux. */
 export interface JourneeEnVue {
   depuis: number; jusqua: number; heures: number;
   meteo: { id: Weather; nom: string } | null;
   lignes: RecapLine[]; evenements: EvenementEnVue[]; entrees: NightEntry[];
   mer: SeaRecapChrome | null;
+  fleuve: RiverRecapChrome | null;
 }
 
 /** La journée close `d` en vue. PUR. */
@@ -51,6 +53,7 @@ export function journeeEnVue(d: TravelRecapDay): JourneeEnVue {
     meteo: d.weather ? { id: d.weather.id, nom: weatherCondition(d.weather.id).label } : null,
     lignes: d.lines, evenements: (d.events ?? []).map(evenementEnVue), entrees: d.entries ?? [],
     mer: d.sea ?? null,
+    fleuve: d.river ?? null,
   };
 }
 
