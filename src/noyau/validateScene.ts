@@ -248,6 +248,7 @@ export function validateScene(project: Scene[], worldMap?: WorldMap | null, narr
         const nom = hebergement.label ?? hebergement.id;
         const addScene = (message: string) => out.push({ level: 'error', sceneId: sceneDuLieu.id, scope: 'scene', refId: sceneDuLieu.id, message });
         if (sceneDuLieu.rest?.quality) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la de la scène`);
+        if (sceneDuLieu.rest?.offres) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : les offres d’auberge se règlent sur l’établissement, retire-les de la scène`);
         if ((sceneDuLieu.restZones ?? []).some((z) => z.quality)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : la qualité du repos se règle sur l’établissement, retire-la des zones de repos`);
         if (sceneAubergeOffer(sceneDuLieu)) addScene(`Scène « ${sceneDuLieu.label} » → le lieu « ${p.label} » déclare l’hébergement « ${nom} » : l’auberge est celle de l’établissement, retire-la de la scène`);
       }

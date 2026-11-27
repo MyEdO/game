@@ -8,6 +8,7 @@ import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { entreesDuContreSort } from './combatDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -111,7 +112,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     const res = banc.getState().pendingCast!.result!;
     expect(res.dispelled, 'un succès quelconque dissipe (l.156 : « Sur un succès, vous dissipez le Sort »)').toBe(true);
     expect(res.cast).toBe(false);
-    expect(res.log).toContain('DISSIPÉ');
+    expect(entreesDuContreSort(banc.getState, h1.id).map((e) => [e.actorId, e.entree.texte])).toEqual([[E2.id, 'DISSIPÉ']]);
   });
 
   it('ÉCHEC COLLECTIF : le Sort se résout au MEILLEUR DR opposé, pas au premier venu', () => {
@@ -125,8 +126,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     banc.getState().jetValider('contreSort');
     const res = banc.getState().pendingCast!.result!;
     expect(res.dispelled).toBeFalsy();
-    expect(res.log, 'le DR retenu est le plus haut des Contre-sorts ratés').toContain('MEILLEUR');
-    expect(res.log).not.toContain('FAIBLE');
+    expect(entreesDuContreSort(banc.getState, h1.id).map((e) => [e.actorId, e.entree.texte]), 'le DR retenu est le plus haut des Contre-sorts ratés').toEqual([[E2.id, 'MEILLEUR']]);
     expect(res.sl, 'DR net du lanceur = incantation − meilleur DR opposé').toBe(4);
   });
 
@@ -179,15 +179,21 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
         { id: heroes[1].id, interactive: true, declared: 'passer', result: null },
         { id: E.id, interactive: false, declared: 'solo', result: null },
       ] } } as unknown as Partial<Jeu>);
-      return E;
+      return { E, lanceur: heroes[0] };
     };
-    const E1 = openVierge();
+    /** L'issue : la rangée de l'IA témoin a-t-elle chanté (son entrée au `battle.log`), le Sort, et son essai. */
+    const issue = ({ E, lanceur }: ReturnType<typeof openVierge>) => ({
+      chanteurs: entreesDuContreSort(banc.getState, lanceur.id).map((e) => (e.actorId === E.id ? 'IA' : e.actorId)),
+      sort: banc.getState().pendingCast!.result!.log,
+      essai: !!cur(E.id).dispelledThisRound,
+    });
+    const v1 = openVierge();
     banc.getState().jetAnnuler('contreSort');
-    const parLaisser = { log: banc.getState().pendingCast!.result!.log, essai: !!cur(E1.id).dispelledThisRound };
-    const E2b = openVierge();
+    const parLaisser = issue(v1);
+    const v2 = openVierge();
     banc.getState().jetValider('contreSort');
-    const parAppliquer = { log: banc.getState().pendingCast!.result!.log, essai: !!cur(E2b.id).dispelledThisRound };
-    expect(parLaisser.log, 'l’IA chante dans les deux cas').toContain('Contre-sort de');
+    const parAppliquer = issue(v2);
+    expect(parLaisser.chanteurs, 'l’IA chante dans les deux cas').toEqual(['IA']);
     expect(parAppliquer, 'deux boutons, même état → même issue').toEqual(parLaisser);
   });
 

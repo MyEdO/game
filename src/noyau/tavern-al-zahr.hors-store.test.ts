@@ -375,6 +375,20 @@ describe('Al-zahr — la partie au store', () => {
     expect(journal.some((l) => l.includes('la partie s’arrête'))).toBe(true);
   });
 
+  it('D1 — manche impossible à ouvrir : une ligne par fauché, une d’arrêt, une de dénouement, écrites UNE fois', async () => {
+    const [a, b] = tousLesHerosDeScenario(idsDeTest) as Combatant[];
+    banc.setState({ party: [a, b] });
+    creditBourse(get, banc.setState, a.id, { gold: 0, silver: 0, brass: 5000 });
+    const fauches = 1; // le compagnon `b`, sans le sou, est le seul siège insolvable de la table à deux
+    const avant = get().lignesAuJournal;
+    get().jouerALaTaverne(a.id, { gameId: 'al-zahr', opponent: { kind: 'heros', id: b.id }, stakeBrass: 100, tablePlayers: 2 });
+    await drain();
+    expect(get().lignesAuJournal - avant, 'fauchés + arrêt de la manche + dénouement de la partie').toBe(fauches + 1 + 1);
+    expect(get().sequence, 'la séquence est close').toBeNull();
+    expect(get().pendingCascade, 'aucune étape ne reste en attente').toBeNull();
+    expect(get().tavernGames!.result, 'la partie se dénoue sans mouvement').toMatchObject({ rounds: 1, netBrass: 0, winner: 'egalite' });
+  });
+
   it('D2 — 6 joueurs, 10 graines : aucune borne, aucun pot évaporé, solde exact', async () => {
     for (let graine = 1; graine <= 10; graine++) {
       banc.setState({ battle: null, party: [], journal: [], tavernGames: null, pendingCascade: null, sequence: null });

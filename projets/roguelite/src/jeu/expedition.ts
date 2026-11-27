@@ -42,6 +42,7 @@ import {
   type IdActionAJet,
   GUERISON_DE_L_HOSPICE,
   LIEUX_DE_SEJOUR,
+  type LieuDeSejour,
   MUNITIONS,
   PRIERE_DE_SOIN,
   PX_PAR_SALLE,
@@ -62,6 +63,7 @@ import {
 import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 import { voir } from './quete';
+import { qualiteDeLaChambre } from './village';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 /** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
@@ -477,23 +479,34 @@ export function attendreUneSemaine(e: Etat): string | null {
 /** Les États qui survivent à la rencontre une fois le héros ramené au hameau ; les autres retombent avec elle, sauf verrou qui tient (LDB 18 l.15). */
 const DURABLES = new Set(['extenue', 'inconscient']);
 
-/** Où dort le héros en séjour, nourri à la table du logis (`maison`) : la chambre de l'Auberge relais, ou l'hospice,
- *  où les sœurs nourrissent leurs patients (valeur d'adaptation, MyEdO/game#5121) et où une sœur de Shallya à Guérison
- *  `GUERISON_DE_L_HOSPICE` veille les malades. LDB 09 l.265 */
-const PLACE_DU_SEJOUR: Record<keyof typeof LIEUX_DE_SEJOUR, Place> = {
-  relais: { label: LIEUX_DE_SEJOUR.relais.nom, rest: { maison: true } },
-  temple: {
+/** La source des offres de la chambre de l'Auberge relais. LDB 66 l.12-16 */
+const SOURCE_DE_LA_CHAMBRE = { book: 'livre-de-base', page: 302 };
+/** Où dort le héros en séjour `ou` : la chambre de l'Auberge relais à la qualité du palier (`qualiteDeLaChambre`), sa
+ *  chambre et son repas à prix nul, la semaine payée en or du hameau par `prendreUneChambre` (valeur d'adaptation,
+ *  MyEdO/game#5121) ; ou l'hospice, où les sœurs nourrissent leurs patients (valeur d'adaptation, MyEdO/game#5121) et
+ *  où une sœur de Shallya à Guérison `GUERISON_DE_L_HOSPICE` veille les malades. LDB 66 l.5 ; LDB 09 l.265 */
+function placeDuSejour(e: Etat, ou: LieuDeSejour): Place {
+  if (ou === 'relais') {
+    return {
+      label: LIEUX_DE_SEJOUR.relais.nom,
+      rest: {
+        auberge: true, quality: qualiteDeLaChambre(e),
+        offres: [{ id: 'chambre', prix: { brass: 0 }, source: SOURCE_DE_LA_CHAMBRE }, { id: 'repas', prix: { brass: 0 }, source: SOURCE_DE_LA_CHAMBRE }],
+      },
+    };
+  }
+  return {
     label: LIEUX_DE_SEJOUR.temple.nom, rest: { maison: true },
     entites: [{
       kind: 'personnage', id: 'soeur-de-shallya', pos: { x: 4, y: 4 }, veilleLesMalades: true,
       statblock: { type: 'statblock', label: 'Sœur de Shallya', char: {}, skills: [{ id: 'guerison', value: GUERISON_DE_L_HOSPICE }] },
     }],
-  },
-};
+  };
+}
 
 /** `jours` journées passent : chez les héros restés au hameau (hors `absents`), les États de la rencontre retombent
  *  (verrou qui tient excepté, LDB 18 l.15). Le héros en séjour dort chaque nuit du noyau qui reste à son séjour
- *  (`gesteDeDormir`) à sa place (`PLACE_DU_SEJOUR`) ; ses autres jours, il les passe au village (`JOURNEE_AU_VILLAGE`).
+ *  (`gesteDeDormir`) à sa place (`placeDuSejour`) ; ses autres jours, il les passe au village (`JOURNEE_AU_VILLAGE`).
  *  De nouveaux voyageurs arrivent. */
 function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
   e.jour += jours;
@@ -510,7 +523,7 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
       h.c = r.groupe[0];
       lignes.push(...r.journal);
     };
-    if (h.sejour) auNoyauSur(Array.from({ length: nuits }, () => gesteDeDormir), PLACE_DU_SEJOUR[h.sejour.ou]);
+    if (h.sejour) auNoyauSur(Array.from({ length: nuits }, () => gesteDeDormir), placeDuSejour(e, h.sejour.ou));
     auNoyauSur(Array.from({ length: jours - nuits }, () => JOURNEE_AU_VILLAGE).flat(), VILLAGE);
     if (lignes.length) noter(e, lignes.join(' '));
     if (h.c.dead) { noter(e, `${h.c.label} succombe.`); enterrer(e, h); continue; }

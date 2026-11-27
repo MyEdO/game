@@ -1387,7 +1387,7 @@ function potManches(game: TavernGame, p: TavernPayload): number {
 
 /** Manche IMPOSSIBLE à ouvrir (moins de deux joueurs peuvent miser) : la partie s'arrête sur une
  *  étape d'affichage, et la clôture la dénoue. */
-function potFin(p: TavernPayload, log: string[]): SequenceRound<TavernPayload> {
+function potFin(p: TavernPayload): SequenceRound<TavernPayload> {
   return {
     title: t('tavern.potTable'),
     icon: 'navigation/des',
@@ -1400,7 +1400,6 @@ function potFin(p: TavernPayload, log: string[]): SequenceRound<TavernPayload> {
     })],
     immediate: true,
     chargeUtile: { ...p, fin: true },
-    log,
   };
 }
 
@@ -1419,10 +1418,11 @@ function potOuvreManche(get: Get, seq: SequenceState<TavernPayload>, game: Taver
   const out = seats.filter((s) => !potSolvable(get, p.net ?? {}, s, ante)).map((s) => s.id);
   const log = seats.filter((s) => out.includes(s.id)).map((s) => t('tavern.potInsolvable', { who: s.label }));
   const enJeu = seats.filter((s) => !out.includes(s.id));
-  if (enJeu.length < 2) return potFin({ ...p, out, pot: 0, mises: {} }, [...log, t('tavern.potPlusDeJoueurs')]);
-  // Le socle ne journalise le `log` d'une manche que si elle est résolue d'office : une sortie de
-  // table doit rester au journal.
   for (const ligne of log) get().ecrireAuJournal(ligne);
+  if (enJeu.length < 2) {
+    get().ecrireAuJournal(t('tavern.potPlusDeJoueurs'));
+    return potFin({ ...p, out, pot: 0, mises: {} });
+  }
   // Le premier joueur d'une manche est celui du rang (chacun ouvre la sienne, l.17) ; s'il n'est pas
   // en jeu, le suivant dans l'ordre du tour ouvre à sa place.
   const depart = (manche - 1) % seats.length;

@@ -5,6 +5,7 @@ import { refusAQuai } from './portFlow';
 import { t } from '../i18n';
 import { findTrappingById } from '../data';
 import { toBrass, priceToMoney } from '../engine/money';
+import { emptyScene } from './monde/scene';
 
 /**
  * SERVICES D'UN LIEU (#343) : composition des services d'un lieu, porte d'entrée au port, et convergence des prix
@@ -33,6 +34,18 @@ describe('placeServices — composition des services d’un lieu au hub (#343)',
     const auberge = list.find((s) => s.id === 'auberge')!;
     expect(auberge.category).toBe('auberge');
     expect(auberge.rest).toEqual({ places: { auberge: true }, quality: 'grande', offres: offresDuType('auberge') });
+  });
+
+  it('l’auberge dérivée de la scène porte ses offres d’auberge (#5149)', () => {
+    const scene = emptyScene('sc-bogen', 4, 4);
+    scene.rest = { auberge: true, offres: [{ id: 'repas', prix: { brass: 0 }, source: { book: 'livre-de-base', page: 302 } }] };
+    expect(placeServices(place(), scene).find((s) => s.id === 'auberge')?.rest?.offres).toEqual(scene.rest.offres);
+  });
+
+  it('l’auberge dérivée d’une zone de repos porte la qualité de la zone (#5149)', () => {
+    const scene = emptyScene('sc-bogen', 4, 4);
+    scene.restZones = [{ rect: { x: 0, y: 0, w: 2, h: 2 }, places: { auberge: true }, quality: 'grande' }];
+    expect(placeServices(place(), scene).find((s) => s.id === 'auberge')?.rest?.quality).toBe('grande');
   });
 
   it('lieu sans service ni offre : liste vide (le hub n’a alors rien à ouvrir)', () => {

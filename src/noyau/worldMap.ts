@@ -33,7 +33,7 @@ import type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 import type { routeBilletSchema } from '../data/schemas/grammaire/route';
 import { garanti } from '../lib/garanti';
 import { tableTotale } from '../lib/tableTotale';
-import { normalizeScene } from './monde/scene';
+import { normalizeScene, reposDeLaScene } from './monde/scene';
 import { isEchangeable, type PortProfile } from '../engine/seaVoyage';
 import { findCargoEntryById } from '../engine/cargo';
 import { type LandMarketProfile } from '../engine/landCargo';
@@ -392,13 +392,13 @@ export function placeServiceMerchantId(placeId: string, serviceId: string): stri
   return `lieu:${placeId}:${serviceId}`;
 }
 
-/** Offre de couchage en AUBERGE portée par une scène (`rest.auberge`, ou une `restZone` qui l'offre) —
- *  la scène reste la SOURCE de vérité, référencée jamais copiée sur le nœud. */
-export function sceneAubergeOffer(scene?: Scene): RestPlaces | undefined {
+/** Le repos en AUBERGE porté par une scène (`rest.auberge`, ou la première `restZone` qui l'offre), résolu par
+ *  `reposDeLaScene` — la scène reste la SOURCE de vérité, référencée jamais copiée sur le nœud. */
+export function sceneAubergeOffer(scene?: Scene): ReturnType<typeof reposDeLaScene> | undefined {
   if (!scene) return undefined;
-  if (scene.rest?.auberge) return { auberge: true, maison: scene.rest.maison, camp: scene.rest.camp };
+  if (scene.rest?.auberge) return reposDeLaScene(scene);
   const zone = (scene.restZones ?? []).find((z) => z.places.auberge);
-  return zone ? { auberge: true, maison: zone.places.maison, camp: zone.places.camp } : undefined;
+  return zone && reposDeLaScene(scene, zone);
 }
 
 /** Les services de lieu que le CODE cite par id (`placeServices`), typés par l'espace
@@ -447,9 +447,9 @@ export function placeServices(place: MapPlace, scene?: Scene): ResolvedPlaceServ
   // Auberge DÉRIVÉE de la scène si le lieu ne déclare aucun service d'hébergement mais que la scène offre
   // le couchage en auberge — source unique = la scène.
   if (!out.some((sv) => sv.category === 'auberge')) {
-    const places = sceneAubergeOffer(scene);
-    if (places) {
-      const rest: ReposDeLEtablissement = { places, quality: scene?.rest?.quality ?? 'normale', offres: offresDeLAubergeDeScene() };
+    const repos = sceneAubergeOffer(scene);
+    if (repos) {
+      const rest: ReposDeLEtablissement = { ...repos, offres: repos.offres ?? offresDeLAubergeDeScene() };
       const def = garanti(findLieuServiceById(SERVICE_CITE.auberge), SERVICE_CITE.auberge, 'service de lieu');
       out.push({ id: 'auberge', kind: SERVICE_CITE.auberge, category: 'auberge', label: def.label, icon: def.icon, desc: def.desc, rest, hostLine: def.hostLine, backdrop: def.backdrop?.id });
     }

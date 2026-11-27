@@ -11,7 +11,7 @@
  * jets d'Exposition des campeurs).
  *
  * Deux pilotes du MÊME plan d'étapes (zéro duplication de la logique de conséquence) :
- *  - INTERACTIF (`advanceCascade` au fil de la modale `CascadeModal`) — nuit d'une journée, halte ;
+ *  - INTERACTIF (`advanceCascade` au fil de la fenêtre de la cascade) — nuit d'une journée, halte ;
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
@@ -1018,11 +1018,11 @@ export function poserLeDeDEtape(s: Jeu, get: Get, cur: CascadeStep, roll: number
 let fenetreInsertion: { apres: string; inseres: CascadeStep[]; seqBase: number; purpose?: PendingCascade['purpose']; dernier: string | null; bornes: BornesDuFragment | null } | null = null;
 
 /**
- * Ce qu'un fragment APPENDU apporte à la séquence OUTRE ses étapes (doctrine du slot) : ses lignes de
- * `log` et ses bornes de dénouement. SOURCE UNIQUE des règles de fusion : les bornes booléennes
+ * Ce qu'un fragment APPENDU apporte à la séquence OUTRE ses étapes (doctrine du slot) : ses bornes de
+ * dénouement. SOURCE UNIQUE des règles de fusion : les bornes booléennes
  * s'ADDITIONNENT (`||`), le `restNights` déjà en place l'emporte (`??`).
  */
-type BornesDuFragment = Pick<PendingCascade, 'log' | 'travelHalt' | 'roundBoundary' | 'combatEndBoundary' | 'restNights'>;
+type BornesDuFragment = Pick<PendingCascade, 'travelHalt' | 'roundBoundary' | 'combatEndBoundary' | 'restNights'>;
 
 function fusionnerLesBornes(cur: BornesDuFragment, f: Partial<BornesDuFragment>): BornesDuFragment {
   const travelHalt = cur.travelHalt || f.travelHalt;
@@ -1030,7 +1030,6 @@ function fusionnerLesBornes(cur: BornesDuFragment, f: Partial<BornesDuFragment>)
   const combatEndBoundary = cur.combatEndBoundary || f.combatEndBoundary;
   const restNights = cur.restNights ?? f.restNights;
   return {
-    log: [...cur.log, ...(f.log ?? [])],
     ...(travelHalt !== undefined ? { travelHalt } : {}),
     ...(roundBoundary !== undefined ? { roundBoundary } : {}),
     ...(combatEndBoundary !== undefined ? { combatEndBoundary } : {}),
@@ -1047,7 +1046,7 @@ function collecterSousFenetre(f: NonNullable<typeof fenetreInsertion>, steps: re
   assertIdsUniques(steps, f.inseres);
   f.inseres.push(...steps);
   f.dernier = steps[steps.length - 1].id;
-  if (bornes) f.bornes = fusionnerLesBornes(f.bornes ?? { log: [] }, bornes);
+  if (bornes) f.bornes = fusionnerLesBornes(f.bornes ?? {}, bornes);
 }
 
 /** Les étapes COLLECTÉES par la fenêtre en cours — la couture de continuation doit pouvoir les COMPTER
@@ -1161,7 +1160,7 @@ export function pushStep(set: Set, step: CascadeStep | ((index: number) => Casca
     // APPEND : le curseur ne bouge QUE s'il était en bilan (`cursor === participants.length`) — sinon
     // il reste posé sur l'étape en cours, et ce n'est pas une ARRIVÉE (cf. `franchirLesHotesOrphelins`).
     if (same) return { pendingCascade: poserLeCurseur(g, { ...same, participants: [...same.participants, st], seq: compteur + 1 }, same.cursor >= same.participants.length) };
-    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attaquer', purpose: p, cursor: 0, log: [], participants: [st], seq: 1 });
+    const fresh: PendingCascade = poserLeCurseur(g, { title: st.label ?? 'Conséquences', icon: st.icon ?? 'action/attaquer', purpose: p, cursor: 0, participants: [st], seq: 1 });
     // Slot occupé par un AUTRE purpose : on le SUSPEND (jamais un écrasement) — même `set` atomique
     // que `suspendActiveCascade`, dont `pushStep` n'a pas le `get`.
     return cur ? { pendingCascade: fresh, suspendedCascades: [...s.suspendedCascades, cur] } : { pendingCascade: fresh };
@@ -1261,24 +1260,24 @@ function assertIdsUniques(steps: readonly CascadeStep[], dejaLa: readonly Cascad
 export function startCascade(
   get: Get,
   set: Set,
-  opts: { title: string; icon?: IconId; purpose: PendingCascade['purpose']; steps: CascadeStep[]; log?: string[]; travelHalt?: boolean; roundBoundary?: boolean; combatEndBoundary?: boolean; restNights?: PendingCascade['restNights'] },
+  opts: { title: string; icon?: IconId; purpose: PendingCascade['purpose']; steps: CascadeStep[]; travelHalt?: boolean; roundBoundary?: boolean; combatEndBoundary?: boolean; restNights?: PendingCascade['restNights'] },
 ): void {
   if (!opts.steps.length) return;
   assertBandeDeclarePossession(opts.steps);
   const cur = get().pendingCascade;
   const same = cur && cur.purpose === opts.purpose ? cur : null;
   assertIdsUniques(opts.steps, same?.participants ?? []);
-  const { log, travelHalt, roundBoundary, combatEndBoundary, restNights } = opts;
+  const { travelHalt, roundBoundary, combatEndBoundary, restNights } = opts;
   // PENDANT une application : même fenêtre, même compteur que `pushStep` — collectées, pas écrites.
   const fenetre = fenetrePour(same, opts.purpose);
-  if (fenetre) { collecterSousFenetre(fenetre, opts.steps, { log, travelHalt, roundBoundary, combatEndBoundary, restNights }); return; }
+  if (fenetre) { collecterSousFenetre(fenetre, opts.steps, { travelHalt, roundBoundary, combatEndBoundary, restNights }); return; }
   if (same) {
     // APPEND au fragment en place : le curseur en BILAN (`cursor === participants.length`) se retrouve
     // POSÉ sur la première étape appendue — même porte que l'ouverture (`poserLeCurseur`).
     set({
       pendingCascade: poserLeCurseur(get, {
         ...same,
-        ...fusionnerLesBornes(same, { log, travelHalt, roundBoundary, combatEndBoundary, restNights }),
+        ...fusionnerLesBornes(same, { travelHalt, roundBoundary, combatEndBoundary, restNights }),
         participants: [...same.participants, ...opts.steps],
         seq: same.seq + opts.steps.length,
       }, same.cursor >= same.participants.length),
@@ -1289,7 +1288,7 @@ export function startCascade(
   set({
     pendingCascade: poserLeCurseur(get, {
       title: opts.title, icon: opts.icon, purpose: opts.purpose,
-      participants: opts.steps, seq: opts.steps.length, cursor: 0, log: opts.log ?? [], travelHalt: opts.travelHalt, roundBoundary: opts.roundBoundary, combatEndBoundary: opts.combatEndBoundary, restNights: opts.restNights,
+      participants: opts.steps, seq: opts.steps.length, cursor: 0, travelHalt: opts.travelHalt, roundBoundary: opts.roundBoundary, combatEndBoundary: opts.combatEndBoundary, restNights: opts.restNights,
     }),
   });
 }
@@ -1348,7 +1347,7 @@ interface PiloteDuCommit {
   suiteDeLHote?: () => void;
 }
 
-function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote: PiloteDuCommit): { steps: CascadeStep[]; journal: string[]; suspended: boolean; parked: boolean; rangDeParcage: number; aOuvertOuEtendu: boolean; seq: number; bornes: BornesDuFragment | null } {
+function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote: PiloteDuCommit): { steps: CascadeStep[]; suspended: boolean; parked: boolean; rangDeParcage: number; aOuvertOuEtendu: boolean; seq: number; bornes: BornesDuFragment | null } {
   const { liveMerge = false, unwitnessed = false, rowSurface } = pilote;
   const before = get().pendingCascade;
   const pileDEntree = get().suspendedCascades;
@@ -1465,7 +1464,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   const aOuvertOuEtendu = (after !== null && after !== before) || pile.length > rangDeParcage;
   // Les BORNES des fragments collectés (`startCascade` sous fenêtre) : le pilote les fusionne à SON
   // écriture du slot, comme l'append hors fenêtre les fusionne au store (`startCascade`).
-  return { steps: next, journal: [...traces, ...lines.map((l) => l.text)], suspended, parked, rangDeParcage, aOuvertOuEtendu, seq: seqBase + insereesParLApplier.length, bornes };
+  return { steps: next, suspended, parked, rangDeParcage, aOuvertOuEtendu, seq: seqBase + insereesParLApplier.length, bornes };
 }
 
 /** Le RANG qui suit la dernière entrée ANTÉRIEURE à l'applier dans la pile de sortie (`0` si aucune ne l'est) :
@@ -1719,7 +1718,7 @@ function annoncerALArrivee(get: Get, p: PendingCascade): PendingCascade {
  *
  * UNE règle, quel que soit le PORTEUR de l'étape — un héros, un ennemi, le MONDE (`worldOwner`) : une
  * table se JOUE dans la fenêtre. Sa rangée s'affiche, « Lancer » est servi au siège qui la possède
- * (`modalArbiter` entrée `cascade` → `ActiveModal`), et l'option « Dés fixés » n'y ajoute que la POSE
+ * (`modalArbiter`, entrée `cascade`), et l'option « Dés fixés » n'y ajoute que la POSE
  * du dé (`forcedDieRow.stepForcedDie`, gate `canFixDie`). Un siège possesseur DISTANT tient la
  * fenêtre : l'hôte attend, il ne tire pas à sa place.
  *
@@ -1800,8 +1799,8 @@ function avanceUnPas(get: Get, set: Set, suiteDeLHote: (() => void) | undefined)
   // l'applier a poussé, et TOUTE écriture du slot le repose — sinon la prochaine poussée re-servirait
   // un id déjà porté.
   let seq = p.seq;
-  // La conséquence d'une étape vit sur l'ÉTAPE (`outcome`, affichée dans la pile) — pas dupliquée
-  // dans `log` (réservé aux notes hors-jet : entretien). Évite le doublon « X contracte… » écran/journal.
+  // La conséquence d'une étape vit sur l'ÉTAPE (`outcome`, affichée dans la pile) et au journal, écrite une
+  // fois : par le goulot (`commitStep` → `journaliser`), ou par l'applier qui le déclare (`dejaDites`).
   // PARITÉ DE TRACE (#1479) : un dé POSÉ D'OFFICE par le curseur (`poserLeCurseur`, aucun siège ne
   // tient l'étape) n'a été montré par AUCUNE fenêtre — il reçoit donc sa ligne de journal, comme celui
   // du pilote immédiat (`runCascadeImmediate`). Le fait se RE-DÉRIVE du prédicat qui a fait poser le dé
@@ -1863,7 +1862,7 @@ function avanceUnPas(get: Get, set: Set, suiteDeLHote: (() => void) | undefined)
  */
 function piloterDepuisLeCurseur(get: Get, set: Set, p: PendingCascade, reprise: ReprisePilote): PendingCascade | null {
   const ctx = reprise.sansContexte ? undefined : { title: p.title, purpose: p.purpose, rowSurface: reprise.rowSurface, arret: reprise.arret };
-  const r = piloteImmediat(get, set, p.participants, ctx, p.cursor, p.seq, fusionnerLesBornes({ log: [] }, p));
+  const r = piloteImmediat(get, set, p.participants, ctx, p.cursor, p.seq, fusionnerLesBornes({}, p));
   if (!r) return null;
   if (!r.clos) { assertBornesPortees(r.collectees); return null; }
   return { ...p, ...fusionnerLesBornes(p, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length };
@@ -1893,7 +1892,6 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
   if (!p) return null;
   const duPilote = sequenceDuPiloteAContexteHorsCombat(get()); // lu À L'ENTRÉE : un applier peut ouvrir un combat
   let steps = p.participants;
-  let log = p.log;
   let seq = p.seq;
   let fondu: PendingCascade = p; // les bornes des fragments collectés par les appliers
   for (let i = p.cursor; i < steps.length; i++) {
@@ -1902,7 +1900,7 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
     if (interaction === 'jet' || interaction === 'table' || interaction === 'de') {
       const porteur = porteurDe(st);
       if (surfaceOf(get, porteur) && !resoutLaRangeeIci(get(), porteur)) {
-        set({ pendingCascade: curseurPose(get, { ...fondu, participants: steps, seq, log }, i) });
+        set({ pendingCascade: curseurPose(get, { ...fondu, participants: steps, seq }, i) });
         return null;
       }
     }
@@ -1932,25 +1930,24 @@ export function resolveRemainingCascade(get: Get, set: Set): PendingCascade | nu
     if (!stepReady(steps[i], get())) {
       // « Tout résoudre » ne TRANCHE pas un CHOIX du joueur (dévier/subir, piéger…) et ne joue pas une
       // FENÊTRE hôte (la défense d'un maillon, #1765) : on s'arrête dessus.
-      set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: i, log } });
+      set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: i } });
       return null;
     }
     const r = commitStep(get, set, steps, i, { seq, purpose: p.purpose, rowSurface: p.piloteImmediat?.rowSurface });
     steps = r.steps;
     seq = r.seq;
-    log = [...log, ...r.journal];
-    if (r.bornes) { const b = fusionnerLesBornes({ ...fondu, log }, r.bornes); fondu = { ...fondu, ...b }; log = b.log; }
+    if (r.bornes) fondu = { ...fondu, ...fusionnerLesBornes(fondu, r.bornes) };
     // SUSPENDUE en plein vol (l'applier a déclenché `lancerLeCombat`/`quitterLaScene`) : le slot ne nous
     // appartient plus — jamais de ressuscite/écrase du slot actif.
     if (r.suspended) {
       const selonSonPilote = duPilote && r.parked;
-      if (i + 1 >= steps.length && !selonSonPilote) { reconcileSuspended(get, set, p, null); return { ...fondu, participants: steps, seq, log }; }
-      reconcileSuspended(get, set, p, { ...fondu, participants: steps, seq, cursor: Math.min(i + 1, steps.length), log });
+      if (i + 1 >= steps.length && !selonSonPilote) { reconcileSuspended(get, set, p, null); return { ...fondu, participants: steps, seq }; }
+      reconcileSuspended(get, set, p, { ...fondu, participants: steps, seq, cursor: Math.min(i + 1, steps.length) });
       if (selonSonPilote) reprendreLaPile(get, set);
       return null;
     }
   }
-  set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: steps.length, log } });
+  set({ pendingCascade: { ...fondu, participants: steps, seq, cursor: steps.length } });
   return null;
 }
 
@@ -2014,13 +2011,13 @@ export function finalizeCascade(get: Get, set: Set): PendingCascade | null {
  * (`rollSeam.surfaceDesEtapes`, #5042), la loi qui a jugé l'ouverture, rejouée à chaque étape de la séquence.
  */
 export function runCascadeImmediate(get: Get, set: Set, steps: CascadeStep[], ctx?: ContexteDuPilote): CascadeStep[] | undefined {
-  const r = piloteImmediat(get, set, steps, ctx, 0, steps.length, { log: ctx?.log ?? [] }); // un tableau à LUI : son compteur part de sa longueur
+  const r = piloteImmediat(get, set, steps, ctx, 0, steps.length, {}); // un tableau à LUI : son compteur part de sa longueur
   if (!r) return undefined;
   assertBornesPortees(r.collectees);
   return r.clos ? r.steps : undefined;
 }
 
-type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; log?: string[]; rowSurface?: RowSurface; arret?: ReprisePilote['arret'] };
+type ContexteDuPilote = { title: string; purpose: PendingCascade['purpose']; rowSurface?: RowSurface; arret?: ReprisePilote['arret'] };
 
 /** Le contexte de lancement que la séquence parquée emporte (`ReprisePilote`). */
 function repriseDe(ctx: ContexteDuPilote | undefined): ReprisePilote {
@@ -2056,9 +2053,9 @@ function attendUnVraiChoix(get: Get, st: CascadeStep): boolean {
  */
 export function jouerLaJournee(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteDuPilote, commandee: boolean): void {
   const c: ContexteDuPilote = commandee ? ctx : { ...ctx, arret: 'vraisChoix' };
-  const r = piloteImmediat(get, set, steps, c, 0, steps.length, { log: ctx.log ?? [] });
+  const r = piloteImmediat(get, set, steps, c, 0, steps.length, {});
   if (!r?.clos) return;
-  clotureDeCascade({ title: ctx.title, purpose: ctx.purpose, ...fusionnerLesBornes({ log: ctx.log ?? [] }, r.collectees), participants: r.steps, seq: r.seq, cursor: r.steps.length, piloteImmediat: repriseDe(c) });
+  clotureDeCascade({ title: ctx.title, purpose: ctx.purpose, ...r.collectees, participants: r.steps, seq: r.seq, cursor: r.steps.length, piloteImmediat: repriseDe(c) });
 }
 
 /** Le pilote immédiat ALLÉ AU BOUT de son tableau : ses étapes, son compteur, les bornes que SES appliers
@@ -2072,7 +2069,7 @@ interface PiloteFini { steps: CascadeStep[]; seq: number; collectees: BornesDuFr
 function piloteImmediat(get: Get, set: Set, steps: CascadeStep[], ctx: ContexteDuPilote | undefined, depuis: number, seqInitial: number, bornesInitiales: BornesDuFragment): PiloteFini | undefined {
   let cur = steps;
   let seq = seqInitial;
-  let collectees: BornesDuFragment = { log: [] }; // celles des fragments collectés par les appliers
+  let collectees: BornesDuFragment = {}; // celles des fragments collectés par les appliers
   const parquee = (cursor: number, title: string): PendingCascade => ({
     title, purpose: ctx?.purpose ?? 'test', ...fusionnerLesBornes(bornesInitiales, collectees),
     participants: cur, seq, cursor, piloteImmediat: repriseDe(ctx),

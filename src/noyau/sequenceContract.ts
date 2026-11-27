@@ -139,26 +139,15 @@ export type EtatDeFamille<K extends keyof SequenceFamilies> = SequenceState<Sequ
  * et la réhydratation des saves ne changent ni de type ni de cast. Garde de parité octet de la
  * migration : `noyau/sequence-parite-catalogue.hors-store.test.ts`.
  *
- * `log` (ici et au verdict) reste `string[]` — ce N'EST PAS une position d'affichage du contrat, mais
- * l'entrée d'un TUYAU : ses lignes vont à `Jeu.log(msg: string)` (`actionsDuNoyau.ts`), et sa
- * seconde source est le journal du MOTEUR (`applyOps`, `engine/ops.ts`, `string[]`, alimenté par une
- * dizaine de familles d'aides). Marquer ce champ SEUL murerait un segment dont ni le puits ni l'autre
- * affluent ne le sont, et forcerait un blanchiment aux deux sites qui y déversent le moteur. Le
- * journal est un AXE à part (mesuré : 17 sites d'aides dans `ops.ts` au premier niveau), pas une
- * position de plus dans ce lot.
+ * `log` du verdict : des lignes de JOURNAL, pas une position d'affichage du contrat, écrites à la
+ * clôture (`closeSequenceRound`, `sequenceCore.ts`).
  *
- * LIMITE v1 — un titre minté est du FR GELÉ dans les saves : un état de séquence se snapshote en JSON
- * (cf. en-tête de ce fichier), donc ce que ce lot libère est la PRODUCTION du texte, pas sa
- * PERSISTANCE. Le critère « persisté → référence » n'est donc PAS satisfait : une save reprise après
- * un changement de locale rendrait ses titres dans la langue de la partie qui les a mintés. La vraie
- * 2ᵉ langue demande de persister une RÉFÉRENCE (clé + paramètres) rejouée À L'AFFICHAGE — chantier
- * NOMMÉ, hors de ce lot.
+ * Un titre minté est persisté tel quel (FR) dans l'état de séquence, donc dans la save : #4574.
  */
 export interface SequenceRound<P = unknown> {
   title: PlayerText;
   icon?: IconId;
   steps: readonly BuiltCascadeStep[];
-  log?: string[];
   immediate?: boolean;
   /** Charge utile MISE À JOUR par l'ouverture (le système compte ce qu'il veut dans sa manche — rang
    *  de manche, phase…). Omise : inchangée. Appliquée AVANT l'ouverture de la fenêtre. */
