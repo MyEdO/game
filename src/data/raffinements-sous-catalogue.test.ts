@@ -10,7 +10,7 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { catalogueDeTest, type LivreDeTest } from './schemas/catalogue/catalogueDeTest.testkit';
 import { idDeFixture } from './idDeFixture.testkit';
-import { CHAR_KEYS, type CharKey } from '../engine/types';
+import { CHAR_KEYS } from '../engine/types';
 import { parserSousCatalogue } from './schemas/catalogue/references';
 import { gameOpSchema, mecaniqueDe } from './schemas/grammaire/mecanique';
 import { fichiersLisantLeCatalogue, validateDataset } from './schemas/validate';
@@ -20,6 +20,7 @@ import { traitInstanceSchema } from './schemas/grammaire/reference';
 import { routePerilSchema } from './schemas/defs-scenes/worldmap';
 import { proseAdressable, refineProse } from './schemas/grammaire/prose';
 import { apparencesDObjetsSchema } from './schemas/grammaire/valeurs';
+import { tableTotale } from '../lib/tableTotale';
 
 const ID_DU_LIVRE = 'livre-extrait-de-test';
 const LIVRE = idDeFixture('book', ID_DU_LIVRE);
@@ -41,7 +42,7 @@ const GROUPE_TIRE = idDeFixture('groupe', 'groupe-tire-du-livre-de-test');
 const REGLE = 'regle-du-livre-de-test';
 
 /** Les champs d'une espèce que les jeux de races ne lisent pas. */
-const PROFIL_D_ESPECE = { family: 'Livre de test', refCareer: 'humain' as const, movement: 4, fate: { fate: 0, resilience: 0, extra: 0 }, baseChar: Object.fromEntries(CHAR_KEYS.map((c) => [c, 0])) as Record<CharKey, number>, skills: [], talents: [], grantGroups: [], source: SOURCE };
+const PROFIL_D_ESPECE = { family: 'Livre de test', refCareer: 'humain' as const, movement: 4, fate: { fate: 0, resilience: 0, extra: 0 }, baseChar: tableTotale(CHAR_KEYS, () => 0), skills: [], talents: [], grantGroups: [], source: SOURCE };
 /** Une espèce ouverte (humaine) et une espèce gnome gardée par la règle du livre de test. */
 const ESPECES: LivreDeTest['species.json'] = [
   { ...PROFIL_D_ESPECE, id: ESPECE_OUVERTE, type: 'species', label: 'Humains du livre de test', refChar: 'humain' },
