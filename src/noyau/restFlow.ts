@@ -132,8 +132,8 @@ export interface NightEntry {
   label: string;
   /** Le jet (base + mods = cible · d100 · DR). */
   d?: RollBreakdown;
-  /** Issue / note en clair (« +7 PB », « jour 4/6 »). */
-  text?: string;
+  /** Issue / note du jet (« +7 PB », « jour 4/6 »), rédigée par l'hôte, entrées jointes par une espace. */
+  issue?: EntreeDuJournal[];
   /** RUBRIQUE de la ligne : les lignes consécutives d'une MÊME rubrique (les contributeurs d'un même
    *  Test d'équipage) se lisent sous UNE rubrique, sans répéter l'en-tête. */
   group?: string;
@@ -231,7 +231,7 @@ export function sleepParty(
     for (const { actorId, entree } of entretien) {
       entries.push({
         actorId: actorId !== undefined && idsDuGroupe.has(actorId) ? actorId : undefined,
-        icon: 'temps/calendrier', label: 'Entretien quotidien', text: entree.texte, tone: 'neutre',
+        icon: 'temps/calendrier', label: 'Entretien quotidien', issue: [entree], tone: 'neutre',
       });
     }
     const steps = nightBands(deferredUpkeepSteps(get().party, deferred));
@@ -244,7 +244,7 @@ export function sleepParty(
         if (!row.outcome?.length) continue;
         entries.push({
           actorId: row.id, icon: 'medical/infection', label: garanti(step.label, step.id, 'bande de Contraction'),
-          text: row.outcome.map((l) => l.entree.texte).join(' '), tone: 'echec',
+          issue: row.outcome.map((l) => l.entree), tone: 'echec',
         });
       }
     }
@@ -269,7 +269,7 @@ export function sleepParty(
         reKind: r.kind,
       });
     });
-    for (const text of notes) entries.push({ actorId: h.id, icon: 'repos/lit', label: t('rf.nuit'), text, tone: 'neutre' });
+    for (const note of notes) entries.push({ actorId: h.id, icon: 'repos/lit', label: t('rf.nuit'), issue: [ligneDeTexte(note)], tone: 'neutre' });
     journal.push(...log.map((l) => ligneDeTexte(l)));
   }
 

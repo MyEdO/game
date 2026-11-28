@@ -11,7 +11,7 @@
  * jour de mer).
  */
 import type { IconId } from '../data/schemas/icons';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import { findCrewRoleById, refLabel, type StakeRef } from '../data';
@@ -102,7 +102,7 @@ function voyageDayEntry(opts: {
   label: string;
   icon?: IconId;
   d?: RollBreakdown;
-  text?: string;
+  issue?: EntreeDuJournal[];
   tone?: NightEntry['tone'];
   /** Rubrique commune des lignes d'une même étape (rendue en UNE bande par `MultiRollList`). */
   group?: string;
@@ -110,7 +110,7 @@ function voyageDayEntry(opts: {
    *  reconstruit : le PV dit ce que le jet mettait en jeu, sans que l'auteur du PV l'écrive. */
   stake?: StakeRef;
 }): NightEntry {
-  return { id: opts.id, actorId: opts.actorId, label: opts.label, icon: opts.icon, d: opts.d, text: opts.text, tone: opts.tone, group: opts.group, ...(opts.stake ? { stake: opts.stake } : {}) };
+  return { id: opts.id, actorId: opts.actorId, label: opts.label, icon: opts.icon, d: opts.d, issue: opts.issue, tone: opts.tone, group: opts.group, ...(opts.stake ? { stake: opts.stake } : {}) };
 }
 
 /** Les entrées d'une BANDE commise : une par contributeur résolu, rendue par `MultiRollList`. Une étape MONO n'en
@@ -135,7 +135,7 @@ function dayEntriesFromStep(get: Get, step: CascadeStep): NightEntry[] {
         label: part.teste.skill ? refLabel('skills', part.teste.skill) : (part.label ?? actor.label),
         base: part.base, modifier: res.target - part.base, target: res.target, roll: res.roll, success: res.success, sl: res.sl,
         ...(part.difficulty ? { difficulty: part.difficulty } : {}),
-      } } : { text: part.refus }),
+      } } : part.refus ? { issue: [ligneDeTexte(part.refus)] } : {}),
       tone: res.success ? 'reussite' : 'echec',
     })];
   });

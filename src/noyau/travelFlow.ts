@@ -904,7 +904,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
       const h = get().party.find((x) => x.id === id);
       if (!h) continue;
       const r = forcedMarchTest(h, battleRng());
-      if (r) { log(get, set, [ligneDeTexte(r.line)]); recapDay?.entries?.push({ actorId: id, icon: 'voyage/a-pied', label: t('step.marcheForcee'), d: r.d, text: r.gained ? t('tf.fragmentExtenue', { n: r.gained }) : t('tf.tientLAllure'), tone: r.gained ? 'echec' : 'reussite' }); }
+      if (r) { log(get, set, [ligneDeTexte(r.line)]); recapDay?.entries?.push({ actorId: id, icon: 'voyage/a-pied', label: t('step.marcheForcee'), d: r.d, issue: [ligneDeTexte(r.gained ? t('tf.fragmentExtenue', { n: r.gained }) : t('tf.tientLAllure'))], tone: r.gained ? 'echec' : 'reussite' }); }
     }
     set({ party: [...get().party] });
   };
@@ -1011,13 +1011,13 @@ function resolveMountedTravelDay(get: Get, set: Set, hoursToday: number, allure:
   for (const o of outcomes) {
     lines.push(...o.lines.map((l) => ligneDeTexte(l)));
     for (const mt of o.tests) {
-      day.entries!.push({ actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: mt.label, d: mt, text: mt.success ? t('tf.tientLAllure') : t('tf.flanche'), tone: mt.success ? 'reussite' : 'echec' });
+      day.entries!.push({ actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: mt.label, d: mt, issue: [ligneDeTexte(mt.success ? t('tf.tientLAllure') : t('tf.flanche'))], tone: mt.success ? 'reussite' : 'echec' });
     }
     for (const inc of o.incidents) {
       if (inc.riderTest) {
         day.entries!.push({
           actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: t('tf.incidentDeMonture', { incident: inc.entry.label }), d: inc.riderTest,
-          text: inc.riderTest.success ? t('tf.resteEnSelle') : t('tf.chuteDeSelle'), tone: inc.riderTest.success ? 'reussite' : 'echec',
+          issue: [ligneDeTexte(inc.riderTest.success ? t('tf.resteEnSelle') : t('tf.chuteDeSelle'))], tone: inc.riderTest.success ? 'reussite' : 'echec',
         });
       }
       // Chute de selle (2 mètres, EDOC 07 l.167/l.174) — Dégâts de Chute (LDB 15) via la brique partagée.
@@ -1126,7 +1126,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
       // dans `driver.value`) et les crans déjà avalés au pas de course.
       d: testDetail('Conduite d’attelage', driverLine.base, roll,
         [...driverLine.mods, ...(gallopMod ? [gallopMod] : [])]),
-      text: stupefiant ? t('tf.marcheForceeStupefiante') : t('tf.marcheForceeRetourAuPas'), tone: 'echec',
+      issue: [ligneDeTexte(stupefiant ? t('tf.marcheForceeStupefiante') : t('tf.marcheForceeRetourAuPas'))], tone: 'echec',
     });
     // Le jet est porté par `day.entries` du même jour (#295 Lot 5) ; la ligne ne garde que le verdict.
     out.lines.push(ligneDeTexte(t('tf.marcheForceeRatee', { name: nomDe(driver.actor), stupefiant: stupefiant ? t('tf.fragmentStupefiant') : '' })));

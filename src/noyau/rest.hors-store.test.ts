@@ -158,8 +158,8 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
     const bilan = sleepParty(banc.getState, banc.setState);
     const text = `${label} mange enfin à sa faim — les effets de la faim se dissipent.`;
 
-    expect(bilan.filter((ligne) => ligne.text === text)).toMatchObject([{ actorId: 'b' }]);
-    expect(bilan.filter((ligne) => ligne.text === `${label} : Pensez à vos actes se dissipe.`)).toMatchObject([{ actorId: 'b' }]);
+    expect(bilan.filter((ligne) => (ligne.issue ?? []).map((x) => x.texte).join(' ') === text)).toMatchObject([{ actorId: 'b' }]);
+    expect(bilan.filter((ligne) => (ligne.issue ?? []).map((x) => x.texte).join(' ') === `${label} : Pensez à vos actes se dissipe.`)).toMatchObject([{ actorId: 'b' }]);
     expect(banc.getState().journal.map((e) => e.texte).filter((ligne) => ligne === text)).toHaveLength(1);
   });
 
@@ -169,7 +169,7 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
 
     const bilan = sleepParty(banc.getState, banc.setState);
 
-    expect(bilan.filter((ligne) => ligne.text === 'Le groupe entame ses provisions (1 ration).').map((ligne) => ligne.actorId))
+    expect(bilan.filter((ligne) => (ligne.issue ?? []).map((x) => x.texte).join(' ') === 'Le groupe entame ses provisions (1 ration).').map((ligne) => ligne.actorId))
       .toEqual([undefined]);
   });
 
@@ -180,7 +180,7 @@ describe('reposerLeGroupe (store) — « Dormir jusqu’à l’aube »', () => {
     try {
       const bilan = sleepParty(banc.getState, banc.setState, 1, { fedDaily: true });
       const note = 'se réveille reposé (Exténué dissipé).';
-      expect(bilan.filter((ligne) => ligne.text === note)).toMatchObject([{ actorId: 'a' }]);
+      expect(bilan.filter((ligne) => (ligne.issue ?? []).map((x) => x.texte).join(' ') === note)).toMatchObject([{ actorId: 'a' }]);
       expect(banc.getState().journal.map((e) => e.texte)).toContain(`Autre ${note}`);
     } finally {
       poserLeNommeur(ancien);
@@ -227,7 +227,7 @@ describe('sleepParty — la ligne de nuit retire le nom que le texte compose (#4
     banc.setState({ party: [hero({ id: 'a' })], gameTime: 12 * 60, lastUpkeepDay: 0 }); // sans ration : la nuit dit la Faim
     const pose = poserLeNommeur((id) => (id === 'a' ? fixtureText('Autre') : null));
     try {
-      const lignes = sleepParty(banc.getState, banc.setState as never, 1).filter((e) => e.actorId === 'a').map((e) => e.text);
+      const lignes = sleepParty(banc.getState, banc.setState as never, 1).filter((e) => e.actorId === 'a').map((e) => (e.issue ?? []).map((x) => x.texte).join(' '));
       expect(lignes).toContain('est affamé — pas de récupération naturelle (Faim & Soif).');
     } finally {
       poserLeNommeur(pose);
