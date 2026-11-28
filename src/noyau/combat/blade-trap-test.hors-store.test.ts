@@ -112,7 +112,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     // Bris SSI Succès Stupéfiant (marge nette ≥ 6) — preuve que la conséquence lit la marge nette (LDB 62 l.280).
     // La conséquence est EMPILÉE comme étape d'affichage propre (paradigme cascade : « l'un sous l'autre »).
     const rx = o.netSL >= 6 ? /BRISÉE/ : /arrachée/;
-    expect(outcome.some((l) => rx.test(l.text))).toBe(true);
+    expect(outcome.some((l) => rx.test(l.entree.texte))).toBe(true);
   });
 
   it('Succès Stupéfiant (marge nette ≥ 6 via gros bonus defSL) : la lame est BRISÉE', () => {
@@ -134,7 +134,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const a = banc.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeUndefined(); // retirée du loadout
     expect(a.weapons.map(isUnarmed), 'BRISÉE : les Mains nues la remplacent').toEqual([true]);
-    expect(outcome.some((l) => /BRISÉE/.test(l.text))).toBe(true); // note empilée sous le jet
+    expect(outcome.some((l) => /BRISÉE/.test(l.entree.texte))).toBe(true); // note empilée sous le jet
   });
 
   it('Succès Stupéfiant sur une lame INCASSABLE : NON brisée (arrachée seulement)', () => {
@@ -150,7 +150,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
 
     const a = banc.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeUndefined(); // arrachée des mains
-    expect(outcome.some((l) => /résiste à la casse/.test(l.text))).toBe(true); // note empilée
+    expect(outcome.some((l) => /résiste à la casse/.test(l.entree.texte))).toBe(true); // note empilée
   });
 
   /**
@@ -257,6 +257,6 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     // La ligne d'opposition part dans la file différée ; la conséquence est l'étape d'affichage empilée.
     expect(banc.getState().pendingLogQueue.some((q) => /Force/.test(q.line))).toBe(true);
     const result = casc?.participants.find((s) => s.kind === 'issueDuPiegeALame');
-    expect(result?.outcome?.some((l) => /BRISÉE|arrachée/.test(l.text))).toBe(true);
+    expect(result?.outcome?.some((l) => /BRISÉE|arrachée/.test(l.entree.texte))).toBe(true);
   });
 });

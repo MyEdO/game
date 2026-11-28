@@ -21,7 +21,7 @@ export function jouerPurifierLaChair(banc: Banc, preparer: () => Combatant): Com
     avanceEtapeCascade(banc.getState);
     const casc = banc.getState().pendingCascade;
     const m = casc?.participants.find((p) => p.kind === 'incantationImparfaite');
-    if (m?.outcome?.some((l) => /Purifier la chair/.test(l.text)) && casc?.participants.some((p) => p.kind === 'testDeclenche')) graine = s;
+    if (m?.outcome?.some((l) => /Purifier la chair/.test(l.entree.texte)) && casc?.participants.some((p) => p.kind === 'testDeclenche')) graine = s;
     banc.setState({ pendingCascade: null });
   }
   expect(graine, 'aucune graine ne produit la rangée 81-87').toBeGreaterThanOrEqual(0);

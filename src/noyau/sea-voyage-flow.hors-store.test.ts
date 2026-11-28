@@ -53,12 +53,13 @@ import {
   type PoseDe,
   type ChoisitCle,
   TESTE_DE_TEST,
+  lignesDeLApplier,
 } from './cascade.testkit';
 import { crewRoleValue } from '../engine/crewMorale';
 import { savoirOceansBonus } from '../engine/seaNavigation';
 import type { SignalDuPort } from '../data/schemas/defs/naval-ports';
 import { STAKES, findCrewRoleById, findVehicleById, resolveStake, testSkillLabel, voyageStakeRef } from '../data';
-import { resultLine, buildBand } from './rollSeam';
+import { buildBand } from './rollSeam';
 import { rollLine } from './ligneDeJet';
 import { ligneDeTexte } from '../engine/journal';
 import { t } from '../i18n';
@@ -1062,7 +1063,7 @@ describe('Signal du port d’arrivée — phare (MDG 13 l.337) et clocher (MDG 1
     applierDe('equipage-phare')!(get, set, etape('equipage-phare', 1), undefined, { steps: [], index: 0 });
     const lighthouseDR = get().travelPlan!.sea!.lighthouseDR;
     const sortie = applierDe('equipage-orientation')!(get, set, etape('equipage-orientation', 0), undefined, { steps: [], index: 0 });
-    return { lighthouseDR, savoir: savoirOceansBonus(navigateur), orientation: resultLine(sortie?.consequences ?? []) };
+    return { lighthouseDR, savoir: savoirOceansBonus(navigateur), orientation: lignesDeLApplier(sortie).join(' ') };
   }
 
   it('clocher repéré : Orientation à +2 DR forfaitaires, quel que soit Savoir (Océans) (MDG 13 l.351)', () => {
@@ -1133,7 +1134,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
   it('affaler : réussite → aucun Critique, conséquence composée (#295 Lot 1)', () => {
     planWithSea();
     const out = apply('equipage-affaler', 3, true);
-    expect(resultLine(out?.consequences ?? [])).toContain('affalées à temps');
+    expect(lignesDeLApplier(out).join(' ')).toContain('affalées à temps');
     expect(get().vessel!.criticals?.length ?? 0).toBe(0);
   });
 
@@ -1201,7 +1202,7 @@ describe('table appliers — les 10 Tests d’équipage de VOYAGE (#275 Ronde 2 
   it('embuscade : succès → préparés (pas de Surprise) — conséquence composée (#295 Lot 1)', () => {
     planWithSea();
     const out = apply('equipage-embuscade', 1, true);
-    expect(resultLine(out?.consequences ?? [])).toContain('prépare');
+    expect(lignesDeLApplier(out).join(' ')).toContain('prépare');
   });
 
   it('progression : applique les milles du jour PUIS insère le reste de la journée (Décision 2, cran 3)', () => {
@@ -1485,7 +1486,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
     const auJournal = resumesDR(get().journal.map((e) => e.texte));
     expect(auJournal, 'un Test d’équipage n’a pas son résumé DR au journal').toHaveLength(new Set(jourClos.entries!.map((e) => e.group)).size);
     expect(new Set(auJournal).size, `un résumé DR est écrit deux fois au journal :\n${auJournal.join('\n')}`).toBe(auJournal.length);
-    expect(resumesDR(jourClos.lines.map((l) => l.text)).sort(), 'un Test d’équipage n’a pas son résumé DR aux lignes du jour clos, une fois').toEqual([...auJournal].sort());
+    expect(resumesDR(jourClos.lines.map((l) => l.entree.texte)).sort(), 'un Test d’équipage n’a pas son résumé DR aux lignes du jour clos, une fois').toEqual([...auJournal].sort());
     for (const e of jourClos.entries!) {
       const de = `${e.d!.roll}/${e.d!.target}`;
       expect(get().journal.filter((l) => l.texte.includes(de)), `le dé d’une bande au compte rendu est redit au journal (${e.id}, ${de})`).toEqual([]);
@@ -1544,7 +1545,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
         else if (get().pendingRest) {
           const p = get().travelPlan!;
           const recap = p.log?.slice(-1)[0];
-          const meteo = recap?.lines?.filter((l) => l.text.startsWith(prefixeMeteo)).length ?? 0;
+          const meteo = recap?.lines?.filter((l) => l.entree.texte.startsWith(prefixeMeteo)).length ?? 0;
           soirs.push({ jour: p.sea!.daysAtSea, log: p.log?.length ?? 0, meteo, cpt: get().vessel!.daysToEvent! });
           if (soirs.length < n) get().fenetreValider('repos');
         } else if (get().travelPlan!.interrupted) get().reprendreLeVoyage();
@@ -1582,7 +1583,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
       expect(soirs[2].cpt, 'l’événement de bord du jour 3 a retiré son délai (MDG 15 l.89)').toBeGreaterThan(0);
       const recaps = get().travelPlan!.log ?? [];
       expect(recaps.map((d) => d.events?.length ?? 0), 'l’événement de bord appartient au jour 3').toEqual([0, 0, 1]);
-      const manches = recaps.flatMap((d) => d.lines ?? []).filter((l) => l.text.startsWith(prefixeManche));
+      const manches = recaps.flatMap((d) => d.lines ?? []).filter((l) => l.entree.texte.startsWith(prefixeManche));
       expect(manches, 'la manche de crise jouée une fois, au procès-verbal').toHaveLength(opts.sea && 'crisis' in opts.sea ? 1 : 0);
     });
 
@@ -1665,7 +1666,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
         expect(jusquAuSoir(1).soirs).toEqual([{ jour: 1, log: 1, meteo: 1, cpt: 2 }]);
         expect(get().suspendedCascades).toEqual([]);
         const lignePanne = t('sv.steamBreakdown', { label: panne });
-        expect(get().travelPlan!.log?.[0].lines?.filter((l) => l.text === lignePanne)).toHaveLength(1);
+        expect(get().travelPlan!.log?.[0].lines?.filter((l) => l.entree.texte === lignePanne)).toHaveLength(1);
       } finally {
         resetData();
       }
@@ -2363,7 +2364,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     get().jetValider('cascade'); // → runSeaDay : sans compétence, aucun rôle n'est affecté (`crewTestContributors` vide)
     const sea = get().travelPlan?.sea;
     const journaled = (sea?.lines ?? []).some((l) => l.includes('Poursuite'))
-      || (get().travelPlan?.log ?? []).some((d) => d.lines?.some((l) => l.text.includes('Poursuite')));
+      || (get().travelPlan?.log ?? []).some((d) => d.lines?.some((l) => l.entree.texte.includes('Poursuite')));
     const played = sea?.crisis?.kind !== 'poursuite' || journaled;
     expect(played).toBe(true);
   });
@@ -2490,7 +2491,7 @@ describe('Événement de bord RACONTÉ → carte-parchemin (#371 LOT 4, non couv
     expect(portantes).toHaveLength(1);
     expect(portantes[0]).toBe(`${def.label} — ${def.desc}`); // texte VERBATIM, pas le titre nu
     expect(etape.committed, 'précondition : l’étape a bien été validée').toBe(true);
-    expect(etape.outcome?.map((l) => l.text), 'la pile garde la conséquence de l’étape').toEqual([`${def.label} — ${def.desc}`]);
+    expect(etape.outcome?.map((l) => l.entree.texte), 'la pile garde la conséquence de l’étape').toEqual([`${def.label} — ${def.desc}`]);
   });
 });
 
@@ -4487,7 +4488,7 @@ describe('Une journée de mer en vol ne se relance pas, la bande d’équipage r
       jusquAuSlotLibre(undefined, fuir);
       expect(lignesDuJournal('sv.fleeChase', { start: '§', escapeAt: '§' }), `la Poursuite ouverte une fois (${cadence})`).toBe(1);
       const prefixeManche = t('sv.chase', { label: '§', issue: '', gain: '', distance: '', escapeAt: '' }).split('§')[0];
-      expect(get().travelPlan!.log![0]!.lines!.filter((l) => l.text.startsWith(prefixeManche)), `la manche de Poursuite se compose dans le jour de la sommation (${cadence})`).toHaveLength(1);
+      expect(get().travelPlan!.log![0]!.lines!.filter((l) => l.entree.texte.startsWith(prefixeManche)), `la manche de Poursuite se compose dans le jour de la sommation (${cadence})`).toHaveLength(1);
       uneJourneeComptee(cadence);
     }
   });

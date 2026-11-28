@@ -53,7 +53,17 @@ import type { Jeu } from './etat';
 import type { IdDEntiteDeScene, IdDeHeros, IdDeJeuDeTaverne, IdDeProfilStandard } from './designations';
 import { bourseOf } from '../engine/bourse';
 import {
-  freeCons, opposedAttackerLabel, monoStep, bandStep, choiceStep, quantityStep, rollStep, composeRollLabel, surfaceOf, effectiveTarget, tableStep, displayStep,
+  opposedAttackerLabel,
+  monoStep,
+  bandStep,
+  choiceStep,
+  quantityStep,
+  rollStep,
+  composeRollLabel,
+  surfaceOf,
+  effectiveTarget,
+  tableStep,
+  displayStep,
 } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import type { CascadeSecondRead, CascadeStep, CascadeStepMeta, CascadeTableDecl } from './pendings';
@@ -120,6 +130,7 @@ import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { ligneDeTexte } from '../engine/journal';
 
 /**
  * Adversaire d'une partie — TROIS formes, chacune JOUE une fiche (`tavernGameValue`) :
@@ -844,7 +855,7 @@ function effetsDeLaSanction(
   get: Get, gameId: string, acteur: Combatant | undefined, ops: SequenceThrowerPenalty['ops'],
 ): string[] {
   if (!acteur || !ops?.length) return [];
-  return applyOps(acteur, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: gameId } }).lignes;
+  return applyOps(acteur, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: gameId } }).lignes.map((e) => e.texte);
 }
 
 /** Le Test PROPRE d'une rangée de taverne : le verdict du d100 (`evaluateTest`, LDB 12 l.25-28), jamais
@@ -2676,7 +2687,7 @@ export const TABLES = {
           return `${who} : ${dr(row.result?.sl ?? 0)}.`;
         });
         lines.push(...torchonRate(get, set, step.participants));
-        return { consequences: freeCons(lines) };
+        return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
       }
       if (!step.result) return {};
       // MANCHE MONO à jet adverse FIGÉ : le journal nomme les DEUX camps, comme la BANDE ci-dessus et
@@ -2691,7 +2702,7 @@ export const TABLES = {
         const sien = opposedAttackerLabel(opp);
         lignes.push(`${opp.attackerName}${sien ? ` — ${sien}` : ''} : ${dr(opp.aT.sl)}.`);
       }
-      return { consequences: freeCons(lignes) };
+      return { applique: { lignes: lignes.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** APPLIER du CHOIX d'option : le dernier choix committé APPEND la bande du tour à la MÊME fenêtre —
      *  les rangées ne peuvent être montées qu'une fois toutes les options connues (la Difficulté et la
@@ -2707,20 +2718,20 @@ export const TABLES = {
       const apres: TavernPayload = { ...seq.chargeUtile, choices: { ...retenu, ...(step.actorId ? { [step.actorId]: Number(step.chosen ?? 0) } : {}) } };
       setSequenceChargeUtile(get, set, apres);
       const option = step.options?.find((o) => o.key === step.chosen);
-      if (reste) return option ? { consequences: freeCons([option.label]) } : {};
+      if (reste) return option ? { applique: { lignes: [ligneDeTexte(option.label)], faits: [] } } : {};
       const monte = equipeBande(get, { ...seq, chargeUtile: apres });
       if (monte) {
         setSequenceChargeUtile(get, set, { ...apres, teams: monte.teams });
         pushStep(set, monte.band, SEQUENCE_PURPOSE);
       }
-      return option ? { consequences: freeCons([option.label]) } : {};
+      return option ? { applique: { lignes: [ligneDeTexte(option.label)], faits: [] } } : {};
     },
     [TAVERN_DRINK_KIND]: (get, set, step) => {
       if (!step.result || !step.actorId) return {};
       const seq = activeSequence<TavernPayload>(get);
-      if (seq?.chargeUtile.combined?.echeances?.length) return { consequences: freeCons(combinedBoit(get, set, seq, step)) };
+      if (seq?.chargeUtile.combined?.echeances?.length) return { applique: { lignes: combinedBoit(get, set, seq, step).map((x) => ligneDeTexte(x)), faits: [] } };
       const { camp, who } = lirePinte(step.meta);
-      return { consequences: freeCons(torchonBoit(get, set, step.actorId, camp, who, step.result.success)) };
+      return { applique: { lignes: torchonBoit(get, set, step.actorId, camp, who, step.result.success).map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** APPLIER du lancer : la ligne de récit de ce qui est tombé, et — pour un joueur tenu par un siège
      *  dont la plage OFFRE le choix — l'étape « remettre ou abandonner » appendée à la MÊME fenêtre
@@ -2756,7 +2767,7 @@ export const TABLES = {
       }
       // La fenêtre dit ce que CE lancer produit (issue rendue par la famille), pas seulement la plage où
       // il tombe : sans elle, une cible atteinte se lit comme une manche qui passe.
-      return { consequences: freeCons([potTotalLigne(seq.parametres, p, garanti(joueur, Number(step.meta?.seat ?? p.seat ?? 0), 'siège du pot'), total, cible)]) };
+      return { applique: { lignes: [ligneDeTexte(potTotalLigne(seq.parametres, p, garanti(joueur, Number(step.meta?.seat ?? p.seat ?? 0), 'siège du pot'), total, cible))], faits: [] } };
     },
     /** APPLIERS des deux CHOIX d'un jeu de mise : ils n'appliquent rien — le choix committé est LU par
      *  la clôture, seul juge de la manche (patron du réducteur unique). */
@@ -2798,7 +2809,7 @@ export const TABLES = {
         });
         if (etape) pushStep(set, etape, SEQUENCE_PURPOSE);
       }
-      return { consequences: freeCons([t('tavern.volleyJet', { who: qui, dr: lu.turn.sl })]) };
+      return { applique: { lignes: [ligneDeTexte(t('tavern.volleyJet', { who: qui, dr: lu.turn.sl }))], faits: [] } };
     },
     /** APPLIERS des CHOIX d'une volée (ligne visée, gain) et du camp mené : ils n'appliquent rien — le
      *  choix committé est LU par la clôture, seul juge (patron du réducteur unique). */

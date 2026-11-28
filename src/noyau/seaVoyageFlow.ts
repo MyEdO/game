@@ -51,7 +51,6 @@ import {
   type MapRoute,
 } from './worldMap';
 import type { TravelPlan, TravelRecapDay } from './travelFlow';
-import { toRecapLines } from './recapLine';
 import { noteEvent, rangerLesEvenements } from './evenementDuJour';
 import { WORLD_STEP_OWNER, type BatchParticipant } from './pendings';
 import {
@@ -226,7 +225,6 @@ import {
   openWorldTest,
   composeRollLabel,
   openSequence,
-  freeCons,
   rollStep,
   monoStep,
   tableStep,
@@ -236,10 +234,8 @@ import {
   choiceStep,
   openChoice,
   pousseSi,
-  type Consequence,
   type LigneNommee,
   type RollRequest,
-  type FreeConsLine,
 } from './rollSeam';
 import { designeGaranti, rollLine } from './ligneDeJet';
 import { ligneDeContraction } from './contraction';
@@ -252,7 +248,8 @@ import { creatureLabel, dataLabel, findCreatureById } from '../data';
 // Tuile de PONT d'une scène de bord : défaut de compilation (`defauts-de-compilation.json`), éditable
 // au Codex — la scène d'abordage est compilée, elle n'authore pas son sol.
 import { defautsDeCompilation } from '../data';
-import { t, t as tr } from '../i18n'; // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
+import { t, t as tr } from '../i18n';
+ // `tr` : alias pour les portées où `t` est un identifiant local (résultat de jet)
 
 import { stepPrecision, idDansLaSequence, dieStep } from './rollSeam';
 import { actorIn, coqueParId, equipageApte, inBattleId } from './monde/combatants';
@@ -263,6 +260,9 @@ import type { PlayerText } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, GenreDEtape, PartDeTable } from './tablesPosees';
 import { nomDe } from '../engine/nom';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
+import { type Applique } from '../engine/faits';
+import { recapDe } from './recapLine';
 
 /** Id du prédicat de succès des Tests d'équipage résolus PAR CASCADE (MDG 14 l.13) — le flux naval
  *  injecte `crewTestSuccess` (socle unique, règle optionnelle `equipage-zero-dr-succes` comprise) dans
@@ -396,7 +396,7 @@ function tell(get: Get, set: Set, lines: string[]): void {
 }
 
 /** Écrit SEULEMENT au recap du jour (`sea.lines`) — le JOURNAL d'un applier de cascade est écrit par
- *  `commitStep` depuis les `consequences` retournées (`freeCons`), pas par un second canal direct (#295
+ *  `commitStep` depuis l'`applique` retournée, pas par un second canal direct (#295
  *  Lot 1). `tell()` est le canal des sites HORS applier (narration d'événement de jour, entretien-survie). */
 export function noteSeaLine(get: Get, set: Set, lines: string[]): void {
   if (!lines.length) return;
@@ -1003,7 +1003,7 @@ export function appliquerLaReparationTemporaire(get: Get, set: Set, step: Cascad
     id: `${step.id}-degats`, kind: 'reparation-temporaire-degats', worldOwner: true, icon: 'voyage/reparer',
     label: t('sv.reparationTemporaireDegats'), spec: failDamage.dice, meta: { hullId: String(step.meta?.hullId) },
   });
-  return { consequences: freeCons([line]), ...(degats ? { insert: [degats] } : {}) };
+  return { applique: { lignes: [ligneDeTexte(line)], faits: [] }, ...(degats ? { insert: [degats] } : {}) };
 }
 
 /** Le Test d'Endurance de la coque `hull` tenue par une réparation temporaire, après le Test `apres` du jour ou de
@@ -1663,7 +1663,7 @@ function noteManieurs(get: Get, set: Set, step: CascadeStep): void {
 }
 
 /** Applique les MILLES du jour depuis le total du Test de Progression (±10 %/DR, ch.15 l.78). Renvoie
- *  la ligne d'annonce (le call-site décide du canal — `tell()` build-time ou `consequences` d'applier). */
+ *  la ligne d'annonce (le call-site décide du canal — `tell()` build-time ou `applique` d'applier). */
 function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
   const plan = get().travelPlan!;
   const eff = effectiveSeaM(get);
@@ -1771,8 +1771,8 @@ function joursSansFraisABord(get: Get, set: Set): Map<string, number> {
  *  étapes MONO et celles des RANGÉES de bandes — un seul dériveur pour les trois phases du jour. */
 function lignesResolues(steps: readonly CascadeStep[]): string[] {
   return steps.flatMap((s) => [
-    ...(s.outcome ?? []).map((l) => l.text),
-    ...(s.participants ?? []).flatMap((p) => (p.outcome ?? []).map((l) => l.text)),
+    ...(s.outcome ?? []).map((l) => l.entree.texte),
+    ...(s.participants ?? []).flatMap((p) => (p.outcome ?? []).map((l) => l.entree.texte)),
   ]);
 }
 
@@ -2000,7 +2000,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
 
   const worldMap = get().worldMap as WorldMap;
   const to = placeById(worldMap, plan.toPlaceId);
-  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: toRecapLines(todayLines), entries: dayEntries, sea: chrome };
+  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: recapDe(todayLines.map((x) => ligneDeTexte(x))), entries: dayEntries, sea: chrome };
   rangerLesEvenements(get, set, recapDay);
 
   if (plan.km - kmDone < 1e-9 && to) {
@@ -2032,14 +2032,14 @@ export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void
 
 /** Conséquence d'Affaler (ch.13 l.288-294) : échec → Critique au Gréement (MDG 14 l.92-96). Appelée par
  *  l'applier de la CASCADE DU JOUR (`'equipage-affaler'`, routine). */
-function affalerConsequence(get: Get, set: Set, step: CascadeStep): Consequence[] {
-  if (!step.result) return [];
+function affalerConsequence(get: Get, set: Set, step: CascadeStep): Applique | undefined {
+  if (!step.result) return undefined;
   // MDG 13 l.292
-  if (step.result.success) { const j = [t('sv.sailsStruckInTime')]; noteSeaLine(get, set, j); return freeCons(j); }
+  if (step.result.success) { const j = [t('sv.sailsStruckInTime')]; noteSeaLine(get, set, j); return { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }; }
   const rng = battleRng();
   const crit = rollShipCritical(AFFALER_RULES.failCritLocation as ShipCritKey, rng);
   applyVesselCritical(get, set, crit);
-  return [];
+  return undefined;
 }
 
 /** DR net d'une manche de crise : l'issue du Test d'équipage, ou le plancher de Manque de bras quand l'étape
@@ -2156,7 +2156,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
 
     const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' }).lignes;
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage }), ...lines]);
+    tell(get, set, [t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage }), ...lines.map((e) => e.texte)]);
   }
 
   // Moteur détruit : l'Amélioration Propulsion à vapeur saute (à ré-installer au chantier) → le navire
@@ -2211,7 +2211,7 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   if (eng && !p.success) {
     const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime }).lignes;
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.scalded', { name: nomDe(eng) }), ...lines]);
+    tell(get, set, [t('sv.scalded', { name: nomDe(eng) }), ...lines.map((e) => e.texte)]);
   } else if (eng) {
     tell(get, set, [t('sv.dodgedSteam', { name: nomDe(eng) })]);
   }
@@ -2869,15 +2869,15 @@ const acheverLaReparationFluviale: CascadeApplier = (get, set, step, _hero, { st
   const { constructeur, plafondReparation, tarifReparation } = step.meta ?? {};
   if (!chantier || tirees === undefined || heures === undefined
       || typeof plafondReparation !== 'number' || typeof tarifReparation !== 'number') {
-    return { consequences: freeCons([t('fleuve.reparationInterrompue')]) };
+    return { applique: { lignes: [ligneDeTexte(t('fleuve.reparationInterrompue'))], faits: [] } };
   }
   const voie = constructeur === undefined ? 'groupe' : 'constructeur';
   const devis = devisDeReparationFluviale(s, chantier, voie, { plafond: plafondReparation, tarif: tarifReparation });
-  if (devis.refus) return { consequences: freeCons([devis.refus]) };
+  if (devis.refus) return { applique: { lignes: [ligneDeTexte(devis.refus)], faits: [] } };
   const n = Math.max(0, Math.min(tirees, devis.plafond));
   const prix = toMoney({ gold: n * devis.tarif });
   if (prix.gold > 0 && !payFromGroup(get, set, prix)) {
-    return { consequences: freeCons([t('sv.yardTooExpensive', { cost: prix.gold })]) };
+    return { applique: { lignes: [ligneDeTexte(t('sv.yardTooExpensive', { cost: prix.gold }))], faits: [] } };
   }
   const permanente = n > 0 || plafondReparation === 0 || devis.tarif === 0;
   if (n > 0) setVesselHull(get, set, devis.current + n, devis.max);
@@ -2885,11 +2885,11 @@ const acheverLaReparationFluviale: CascadeApplier = (get, set, step, _hero, { st
   get().avancerLeTemps(heures * 60);
   const ligne = permanente ? t('fleuve.reparationAchevee', { n })
     : devis.missing > 0 ? t('sv.yardTooExpensive', { cost: devis.tarif }) : t('sv.hullIntact');
-  return { consequences: freeCons([
-    ligne,
-    ...(prix.gold > 0 ? [t('fleuve.reparationPayee', { prix: formatMoney(prix) })] : []),
-    t('sv.dureeHeures', { n: heures }),
-  ]) };
+  return { applique: { lignes: [
+ligneDeTexte(ligne),
+...(prix.gold > 0 ? [t('fleuve.reparationPayee', { prix: formatMoney(prix) })] : []).map((x) => ligneDeTexte(x)),
+ligneDeTexte(t('sv.dureeHeures', { n: heures })),
+], faits: [] } };
 };
 
 /** CARÉNAGE en cale sèche (Salissures, ch.13 l.150-159) : « pour récurer un bateau de Taille Moyenne ou
@@ -3141,7 +3141,7 @@ export const TABLES = {
       // Même patron que la Météo d'Étape (`travelFlow`, applier `etape-meteo`), qui rend
       // sa ligne en conséquence au lieu de l'écrire à côté. La ligne de la TABLE, elle, reste l'issue de la
       // RANGÉE (`table.result.lines`) et ne se re-verse pas au journal : une seule voix par étape.
-      return { consequences: freeCons([resolveBoardEvent(get, set, event, tiree)]) };
+      return { applique: { lignes: [ligneDeTexte(resolveBoardEvent(get, set, event, tiree))], faits: [] } };
     },
     /** Forcer le rythme (MDG 13 l.95-107) : pose `paceToday`, le +M du jour se lit ensuite par
      *  `effectiveSeaM`. Étape du TRONC de la cascade du jour (`buildForcePaceStep`, avant Progression) —
@@ -3155,12 +3155,12 @@ export const TABLES = {
       // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
       const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];
       noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Scorbut (MDG 14 l.230) : BANDE — le verdict se lit RANGÉE PAR RANGÉE (patron Mal de mer ci-dessous) ;
      *  chaque rangée retrouve son porteur à bord (`porteursABord`), dont le mois de soupe repart à zéro. */
     'mer-scorbut': (get, set, step) => {
-      const lignes: FreeConsLine[] = [];
+      const lignes: EntreeDuJournal[] = [];
       const aBord = porteursABord(get, set);
       for (const row of step.participants ?? []) {
         const aLui = aBord.find((p) => p.id === row.id);
@@ -3169,60 +3169,60 @@ export const TABLES = {
         if (porteur.regimeDeBord) porteur.regimeDeBord = { ...porteur.regimeDeBord, joursDeSoupe: 0 };
         // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
         if (applyContraction(porteur, 'scorbut', row.result.success, battleRng()).length) {
-          lignes.push({ text: t('sv.scurvyGot', { name: nomDuPorteurDeMaladies(porteur), soup: row.meta?.soup ? t('sv.fragSoup') : '' }), tone: 'echec' });
+          lignes.push(ligneDeTexte(t('sv.scurvyGot', { name: nomDuPorteurDeMaladies(porteur), soup: row.meta?.soup ? t('sv.fragSoup') : '' }), { ton: 'echec' }));
         }
         aLui.ecrire();
       }
-      return { consequences: freeCons(lignes) };
+      return { applique: { lignes, faits: [] } };
     },
     /** Mal de mer (MDG 14 l.217-220) : échec → contracté. `applyContraction` dédoublonne si
      *  DEUX étapes ratées le même jour pour le même héros (premier voyage ET mauvais temps cumulés,
      *  `buildSeasicknessSteps`). */
     'mer-mal-de-mer': (get, set, step) => {
-      const lignes: FreeConsLine[] = [];
+      const lignes: EntreeDuJournal[] = [];
       // BANDE : le verdict se lit RANGÉE PAR RANGÉE, dans l'ordre de la partie — le dé de contraction
       // d'un porteur qui échoue tombe au rang de SA rangée.
       for (const row of step.participants ?? []) {
         const hero = actorIn(get(), row.id);
         if (!hero || !row.result || row.result.success) continue;
-        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push({ text: t('sv.seasickGot', { name: nomDe(hero) }), tone: 'echec' });
+        if (applyContraction(hero, 'mal-de-mer', false, battleRng()).length) lignes.push(ligneDeTexte(t('sv.seasickGot', { name: nomDe(hero) }), { ton: 'echec' }));
       }
       touchParty(get, set);
-      return { consequences: freeCons(lignes) };
+      return { applique: { lignes, faits: [] } };
     },
     /** Tonneau d'eau — EXPOSITION (MDG 14 l.209) : BANDE, verdict lu rangée par rangée sur le porteur à bord
      *  (`contracterABord`) ; l'échec contracte la maladie qui a contaminé le tonneau. */
     'mer-tonneau-expose': (get, set, step) => {
       const diseaseId = String(step.meta?.diseaseId ?? '');
-      const lignes: FreeConsLine[] = [];
+      const lignes: EntreeDuJournal[] = [];
       for (const row of step.participants ?? []) {
         const verdict = contracterABord(get, set, row, diseaseId, battleRng());
-        if (verdict?.lignes.length) lignes.push({ text: t('sv.waterDiseaseGot', { name: nomDuPorteurDeMaladies(verdict.porteur), disease: diseaseLabel(diseaseId) }), tone: 'echec' });
+        if (verdict?.lignes.length) lignes.push(ligneDeTexte(t('sv.waterDiseaseGot', { name: nomDuPorteurDeMaladies(verdict.porteur), disease: diseaseLabel(diseaseId) }), { ton: 'echec' }));
       }
-      return { consequences: freeCons(lignes) };
+      return { applique: { lignes, faits: [] } };
     },
     /** Tonneau d'eau — CONTAMINATION (MDG 14 l.209) : BANDE ; la première rangée en échec contamine le tonneau de SA
      *  maladie (`meta.diseaseId` de la rangée), effet lu dès DEMAIN par `buildBarrelSteps`. */
     'mer-tonneau-contamine': (get, set, step) => {
       const echec = (step.participants ?? []).find((row) => row.result && !row.result.success);
-      if (!echec || get().travelPlan?.sea?.waterContaminated) return { consequences: freeCons([]) };
+      if (!echec || get().travelPlan?.sea?.waterContaminated) return { applique: { lignes: [], faits: [] } };
       const diseaseId = String(echec.meta?.diseaseId ?? '');
       patchSea(get, set, { waterContaminated: { diseaseId } });
-      return { consequences: freeCons([{ text: t('sv.waterContaminated', { disease: diseaseLabel(diseaseId) }), tone: 'echec' }]) };
+      return { applique: { lignes: [ligneDeTexte(t('sv.waterContaminated', { disease: diseaseLabel(diseaseId) }), { ton: 'echec' })], faits: [] } };
     },
     /** Épuisement (MDG 13 l.111) : BANDE, verdict lu rangée par rangée (patron Scorbut ci-dessus). */
     'mer-epuisement': (get, set, step) => {
-      const lignes: FreeConsLine[] = [];
+      const lignes: EntreeDuJournal[] = [];
       for (const row of step.participants ?? []) {
         const hero = actorIn(get(), row.id);
         // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
         // Succès sans effet (rien à ajouter) → aucune conséquence.
         if (!hero || !row.result || row.result.success) continue;
         addCondition(hero, 'extenue');
-        lignes.push({ text: t('sv.exhaustionGot', { name: nomDe(hero), diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), tone: 'echec' });
+        lignes.push(ligneDeTexte(t('sv.exhaustionGot', { name: nomDe(hero), diff: DIFFICULTY_LABELS[garanti(row.difficulty, row.id, 'Difficulté de la rangée d’Épuisement')] }), { ton: 'echec' }));
       }
       set({ party: [...get().party] });
-      return { consequences: freeCons(lignes) };
+      return { applique: { lignes, faits: [] } };
     },
     /** Progression du jour (MDG 14 l.61-65 ; ±10 %/DR ch.15 l.78) + PANNE DE VAPEUR (MDG 12 l.313) sur un
      *  navire à Propulsion à vapeur (Test de Métier lu sur les jets INDIVIDUELS des contributeurs). INSÈRE
@@ -3247,9 +3247,9 @@ export const TABLES = {
         }
       }
       noteSeaLine(get, set, j);
-      if (get().pendingSteamSave) return { consequences: freeCons(j) }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `continueSeaDayFromPostProgression`)
+      if (get().pendingSteamSave) return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `continueSeaDayFromPostProgression`)
       const insert = buildPostProgressionSteps(get);
-      return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: insert.length ? insert : undefined };
     },
     /** « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, #443) : Dégâts de coque (`overspeedDamage`)
      *  routés par `damageVesselHull`. */
@@ -3258,7 +3258,7 @@ export const TABLES = {
       if (step.result.success) {
         const j = [t('sv.holdsPace', { label: String(step.label) })];
         noteSeaLine(get, set, j);
-        return { consequences: freeCons(j) };
+        return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
       }
       const dmg = overspeedDamage(Number(step.meta?.overspeedDamage ?? 0), step.result.sl);
       const hull = get().travelPlan?.vehicle;
@@ -3266,7 +3266,7 @@ export const TABLES = {
       // MDG 13 l.142
       const line = [t('sv.hullTakes', { label: String(step.label), n: dmg }), ...j];
       noteSeaLine(get, set, line);
-      return { consequences: freeCons(line) };
+      return { applique: { lignes: line.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** MDG 13 l.148 */
     'mer-salissures': (get, set, step) => {
@@ -3280,7 +3280,7 @@ export const TABLES = {
         : r.gained ? t('sv.fouling', { level: r.level, desc: foulingEffects(r.level).desc })
         : t('sv.foulingMax', { level: r.level });
       noteSeaLine(get, set, [line]);
-      return { consequences: freeCons([line]) };
+      return { applique: { lignes: [ligneDeTexte(line)], faits: [] } };
     },
     /** Réparation par le groupe au chantier, navire à quai (`refusDeGesteAQuai`) : l'issue du Test ouvre ses dés, celui des
      *  Blessures si les pièces du groupe en paient (`plafondDeLaReparationDuGroupe`) ; une réussite sur une coque sans
@@ -3288,12 +3288,12 @@ export const TABLES = {
     'mer-reparation-du-groupe': (get, set, step) => {
       if (!step.result) return;
       const horsQuai = refusDeGesteAQuai(get());
-      if (horsQuai) return { consequences: freeCons([horsQuai]) };
+      if (horsQuai) return { applique: { lignes: [ligneDeTexte(horsQuai)], faits: [] } };
       const vessel = garanti(get().vessel, 'navire', 'navire réparé au chantier');
       const blessures = step.result.success && plafondDeLaReparationDuGroupe(vessel, get().party) > 0;
       if (step.result.success && blessuresDeCoqueARestaurer(vessel).missing <= 0) set({ vessel: { ...vessel, reparationTemporaire: undefined } });
       const line = t(step.result.success ? 'sv.reparationDuGroupeTient' : 'sv.reparationDuGroupeRatee');
-      return { consequences: freeCons([line]), insert: desDeReparation(
+      return { applique: { lignes: [ligneDeTexte(line)], faits: [] }, insert: desDeReparation(
         step, { kind: 'mer-reparation-du-groupe-duree', tirage: REPARATION.testHours },
         blessures ? { kind: 'mer-reparation-du-groupe-blessures', tirage: REPARATION.woundsPerTest, label: t('sv.reparationDuGroupeBlessures') } : undefined,
       ) };
@@ -3301,22 +3301,22 @@ export const TABLES = {
     'mer-reparation-du-groupe-blessures': (get, set, step) => {
       if (!step.de?.result) return;
       const horsQuai = refusDeGesteAQuai(get());
-      return { consequences: freeCons([horsQuai ?? reparerLaCoqueParLeGroupe(get, set, step.de.result.total)]) };
+      return { applique: { lignes: [ligneDeTexte(horsQuai ?? reparerLaCoqueParLeGroupe(get, set, step.de.result.total))], faits: [] } };
     },
     /** Durée d'un Test de réparation au chantier : MDG 13 l.643 pour un Test réussi ; un Test raté, valeur maison
      *  (`sea-navigation.json`, `reparation.maison`). */
     'mer-reparation-du-groupe-duree': (get, _set, step) => {
       if (!step.de?.result) return;
       const horsQuai = refusDeGesteAQuai(get());
-      if (horsQuai) return { consequences: freeCons([horsQuai]) };
+      if (horsQuai) return { applique: { lignes: [ligneDeTexte(horsQuai)], faits: [] } };
       const heures = step.de.result.total;
       get().avancerLeTemps(heures * 60);
-      return { consequences: freeCons([t('sv.dureeHeures', { n: heures })]) };
+      return { applique: { lignes: [ligneDeTexte(t('sv.dureeHeures', { n: heures }))], faits: [] } };
     },
     [TEST_DE_REPARATION_FLUVIALE]: (get, _set, step) => {
       if (!step.result) return;
-      if (!chantierDeLaReparation(get(), step)) return { consequences: freeCons([t('fleuve.reparationInterrompue')]) };
-      if (!step.result.success) return { consequences: freeCons([t('sv.reparationDuGroupeRatee')]) };
+      if (!chantierDeLaReparation(get(), step)) return { applique: { lignes: [ligneDeTexte(t('fleuve.reparationInterrompue'))], faits: [] } };
+      if (!step.result.success) return { applique: { lignes: [ligneDeTexte(t('sv.reparationDuGroupeRatee'))], faits: [] } };
       const { permanentRepairWounds, permanentRepairHours } = riverNavigation;
       return { insert: desDeReparation(
         step, { kind: DUREE_DE_REPARATION_FLUVIALE, tirage: permanentRepairHours },
@@ -3330,14 +3330,14 @@ export const TABLES = {
     'reparation-temporaire-degats': (get, set, step) => {
       if (!step.de?.result) return;
       const hull = coqueParId(get(), String(step.meta?.hullId));
-      if (!hull) return { consequences: freeCons([t('cascade.cibleDisparue', { label: t('sv.reparationTemporaireDegats') })]) };
+      if (!hull) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: t('sv.reparationTemporaireDegats') }))], faits: [] } };
       const n = Math.max(0, step.de.result.total);
       const line = [t('sv.reparationTemporaireCoque', { n }), ...(n > 0 ? damageVesselHull(get, set, hull, n) : [])];
       set(touchActors(get()));
       noteSeaLine(get, set, line);
-      return { consequences: freeCons(line) };
+      return { applique: { lignes: line.map((x) => ligneDeTexte(x)), faits: [] } };
     },
-    'equipage-affaler': (get, set, step) => ({ consequences: affalerConsequence(get, set, step) }),
+    'equipage-affaler': (get, set, step) => ({ applique: affalerConsequence(get, set, step) }),
     /** Test d'équipage d'un nœud `test` de Flow (`navireOps.ouvrirLeTestDEquipage`) : cascade AUTONOME
      *  (`purpose:'test'`), dont la branche du verdict se joue ici, sous le libellé et le DR du Flow qui l'a
      *  ouverte ; la suite du Flow est celle confiée à l'étape. MDG 14 l.13 */
@@ -3346,7 +3346,7 @@ export const TABLES = {
       moralDuTestDEquipage(get, set, step);
       const branche = (step.result.success ? step.meta?.onSuccess : step.meta?.onFail) ?? EMPTY_FLOW;
       jouerFlowEntier(runFlow(get, set, branche, step.meta?.flowLabel, step.meta?.flowSl));
-      return { consequences: freeCons([]) };
+      return { applique: { lignes: [], faits: [] } };
     },
     /** Orientation quotidienne (« un Test par jour de voyage », ch.13 l.311) → Repères / Changement de cap. */
     'equipage-orientation': (get, set, step) => {
@@ -3373,7 +3373,7 @@ export const TABLES = {
         }
       }
       noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Signal du port d'arrivée (ch.13 l.337, l.351) : réussite → bonus d'Orientation. */
     'equipage-phare': (get, set, step) => {
@@ -3388,7 +3388,7 @@ export const TABLES = {
         ? t(clocher ? 'sv.clocherHeard' : 'sv.lighthouseSeen', { dr })
         : t(clocher ? 'sv.clocherMissed' : 'sv.lighthouseMissed')];
       noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Embuscade authorée à ancrage déterministe (#212) : réussite = préparés (pas de Surprise) ; une étape
      *  sans issue (aucune vigie, `etapeDEquipageOuDuMonde`) se lit comme un échec. */
@@ -3401,7 +3401,7 @@ export const TABLES = {
         : t('sv.lookoutKo')];
       noteSeaLine(get, set, j);
       openAuthoredSeaAmbush(get, set, route, success);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Le choix de Progression (MDG 14 l.63) n'a pas d'issue propre : il INSÈRE la voie retenue. */
     'merProgressionChoix': (get, _set, step) => {
@@ -3417,12 +3417,12 @@ export const TABLES = {
       const j = applySeaProgress(get, set, step.result.sl);
       noteSeaLine(get, set, j);
       const insert = buildPostProgressionSteps(get);
-      return { consequences: freeCons(j), insert: insert.length ? insert : undefined };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: insert.length ? insert : undefined };
     },
     /** Manche de Poursuite (ch.13 l.354-370) — issue partagée avec la poursuite terrestre (`engine/pursuit`). */
-    'equipage-poursuite': (get, set, step) => ({ consequences: freeCons(resolveSeaCrisisRound(get, set, totalDeCrise(step))) }),
+    'equipage-poursuite': (get, set, step) => ({ applique: { lignes: resolveSeaCrisisRound(get, set, totalDeCrise(step)).map((x) => ligneDeTexte(x)), faits: [] } }),
     /** Manche d'Évasion du Tourbillon (ch.13 l.514-528) : chaque manche coûte des Dégâts de collision. */
-    'equipage-tourbillon': (get, set, step) => ({ consequences: freeCons(resolveSeaCrisisRound(get, set, totalDeCrise(step))) }),
+    'equipage-tourbillon': (get, set, step) => ({ applique: { lignes: resolveSeaCrisisRound(get, set, totalDeCrise(step)).map((x) => ligneDeTexte(x)), faits: [] } }),
     /** Extermination des nuisibles : MDG 14 l.98-104 ; MDG 15 l.161, l.176 */
     'equipage-extermination': (get, set, step) => {
       if (!step.result) return;
@@ -3439,7 +3439,7 @@ export const TABLES = {
         t('sv.dureeHeures', { n: heures }),
       ];
       noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Renflouage d'un ÉCHOUAGE (MDG 13 l.471-473, #444) : Test de Force UNIQUE (pas étendu — RAW muet
      *  sur une répétition formelle) ; échec → le navire reste échoué, retenté le lendemain (même construction). */
@@ -3454,7 +3454,7 @@ export const TABLES = {
         : [t('sv.stillStranded', { hazard: label })];
       if (step.result.success) patchSea(get, set, { stranded: undefined });
       noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Dégagement des Débris marins (MDG 13 l.491, #444) : Test ÉTENDU de Force (`hazard.freeTest`, total
      *  DR posé à la collision) — même cumul mutualisé que l'Extermination (`extendedTestStep`) ci-dessus. */
@@ -3473,7 +3473,7 @@ export const TABLES = {
         j = [t('sv.disentangleProgress', { label: ent.label, progress, need: ent.need })];
       }
       noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Voyage rapide (MDG 15 l.28) : le DR alimente le palier — calculé/persisté PUIS appliqué (embuscade
      *  ancrée éventuelle d'abord, jamais raconté avant — `finalizeFastVoyage` est RÉ-ENTRANT). */
@@ -3499,7 +3499,7 @@ export const TABLES = {
         j = [t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` })];
       } else j = [t('sv.juryRepairsKo', { dr: adj })];
       noteSeaLine(get, set, j);
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** CHOIX face au navire hostile (A5.3 #327). fuir → Poursuite ; combattre → abordage immédiat ;
      *  se soumettre → pillage `pirate-pillage-pct` de la cale + CHOIX du tribut (étape insérée). */
@@ -3523,12 +3523,12 @@ export const TABLES = {
             { key: 'refuser', label: t('opt.refuser'), detail: t('sv.detailRefuser') },
           ],
         });
-        return { consequences: freeCons(j), ...(tribut ? { insert: [tribut] } : {}) };
+        return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, ...(tribut ? { insert: [tribut] } : {}) };
       } else {
         startSeaPursuit(get, set, garanti(get().travelPlan?.sea?.boarding, 'merPiratesSommation', 'navire hostile en vue'));
       }
       // La reprise du jour à la fermeture de cette séquence : la pile (`reprendreLaPile`).
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** TRIBUT à Stromfels (A5.3 #327) : livrer un marin = perte réelle d'équipage (`applyVesselCrewLoss`) +
      *  déplaisir de Manann (facteur de Moral RAW −2d10, MDG 14 : sacrifier une âme à Stromfels, ennemi de
@@ -3544,7 +3544,7 @@ export const TABLES = {
         const ship = get().travelPlan?.vehicle;
         if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(l); // déplaisir de Manann (MDG 14)
       }
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Désertion (MDG 14 l.192-202) : l'étape `merDesertion` est le dé de MONDE que `trancherLaRelache` ouvre par
      *  `openWorldTest` ; l'applier tire les départs par `resolveShoreLeaveDesertion` (`shipCrew.ts`, RNG `battleRng()`).
@@ -3553,7 +3553,7 @@ export const TABLES = {
     'merDesertion': (get, set, step) => {
       if (!step.result) return;
       const journal = resolveShoreLeaveDesertion(get, set, battleRng());
-      return { consequences: freeCons(journal) };
+      return { applique: { lignes: journal.map((x) => ligneDeTexte(x)), faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   reglesDeSucces: {

@@ -85,6 +85,6 @@ describe('Voyage — poste Cartographie (Établir des cartes, test étendu)', ()
     const nextBatch = next.find((s) => s.kind === 'etapePosteEnBande');
     expect(nextBatch?.participants?.some((p) => p.id === 'h') ?? false).toBe(false);
     const done = next.find((s) => s.kind === 'etapePosteFini');
-    expect(done?.outcome?.[0]?.text).toContain(`${drTarget}/${drTarget} DR`);
+    expect(done?.outcome?.[0]?.entree.texte).toContain(`${drTarget}/${drTarget} DR`);
   });
 });

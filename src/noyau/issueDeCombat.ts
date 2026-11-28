@@ -20,7 +20,7 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
       const total = losses.reduce((n, l) => n + l.removed, 0);
       set({ ...patch, cargoRaid: false });
       if (total > 0) {
-        // Consequence structurée (#295) — issue en donnée + total, jamais un jet silencieux.
+        // Conséquence structurée (#295) — issue en donnée + total, jamais un jet silencieux.
         get().ecrireAuJournal(t('store.cargoRaid', { issue: t(outcome === 'fuite' ? 'store.cargoRaidFled' : 'store.cargoRaidBroken'), enc: total, pct, porteurs: losses.length > 1 ? t('store.fragCargoPorters', { n: losses.length }) : '' }));
       } else if (outcome !== 'victoire' && pct > 0) {
         get().ecrireAuJournal(t('store.cargoRaidNothing'));

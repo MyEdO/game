@@ -8,7 +8,7 @@ import { t } from '../i18n';
 import { battleRng } from './battleRng';
 import { journaliser } from './combatLog';
 import { touchActors } from './combatOrParty';
-import { comptePorteursDeSuite, confierLaSuite, drainPendingLog, MAIN_RENDUE, type Applique } from './combatEffects';
+import { comptePorteursDeSuite, confierLaSuite, drainPendingLog, MAIN_RENDUE, type SignalDeSuite } from './combatEffects';
 import { applyTriggeredEffects, sourcesDEtats } from './triggeredEffects';
 import { actorIn } from './monde/combatants';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
@@ -62,14 +62,14 @@ function traiterLAgonie(c: Combatant): string[] {
 }
 
 /** Les Rounds que `minutes` font passer hors combat, joués par l'entretien du groupe. */
-export function jouerLEntretienDesRoundsEcoules(get: Get, set: Set, minutes: number): Applique {
+export function jouerLEntretienDesRoundsEcoules(get: Get, set: Set, minutes: number): SignalDeSuite {
   const rounds = Math.floor(minutes / TIME_COST.combatRound);
   if (get().battle || rounds <= 0) return undefined;
   return reprendreEntretienDesRounds(get, set, { rounds, porteurs: get().party.map((c) => c.id), index: 0, roundActif: false });
 }
 
 /** Les étapes reprennent après la dernière conséquence jouée, avec le lot d'effets du porteur déjà entamé. */
-export function reprendreEntretienDesRounds(get: Get, set: Set, reprise: RepriseEntretienDesRounds): Applique {
+export function reprendreEntretienDesRounds(get: Get, set: Set, reprise: RepriseEntretienDesRounds): SignalDeSuite {
   const { porteurs } = reprise;
   let { rounds, index, roundActif, entretien } = reprise;
   while (rounds > 0) {

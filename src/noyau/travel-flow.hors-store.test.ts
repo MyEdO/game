@@ -40,7 +40,17 @@ import { DIFFICULTY_MODIFIERS, type Combatant, type ItemInstance } from '../engi
 import type { Possession } from '../engine/possession';
 import { applierDe, jouerLaJournee, rollTableStep } from './cascade';
 import { bandStep, monoStep, rollStep } from './rollSeam';
-import { inexplique, soutienDe, draineCascade, draineEtapes, avanceEtapeCascade, cascadeDeTest, type ChoisitCle, type PoseDe } from './cascade.testkit';
+import {
+  inexplique,
+  soutienDe,
+  draineCascade,
+  draineEtapes,
+  avanceEtapeCascade,
+  cascadeDeTest,
+  type ChoisitCle,
+  type PoseDe,
+  lignesDeLApplier,
+} from './cascade.testkit';
 import { skillBaseValue, testValue, soutienDetail, partyAssisted } from '../engine/skills';
 import { lignesDe } from '../engine/modLine.testkit';
 import { refDeRegle } from '../engine/reglesChiffrees';
@@ -686,7 +696,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
     // Échec SIMPLE (−1 DR) : pas de Problème de véhicule (l.253 côté conducteur), seules les bêtes jouent.
     const rate = { ...st, result: { roll: 99, target: st.target!, sl: -1, success: false } } as typeof st;
     const out = applierDe('rythmeForceATerre')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
-    return (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
+    return lignesDeLApplier(out);
   }
 
   it('l.253 — Échec Impressionnant d’une bête : l’État Exténué SUPPLÉMENTAIRE est atteignable depuis la cascade', () => {
@@ -729,7 +739,7 @@ describe('#1153 — allure forcée : km suivant et reprise de contrôle, une seu
       seedBattleRng(seed);
       const rate = { ...st, result: { roll: 99, target: st.target!, sl: -6, success: false } } as typeof st;
       const out = applierDe('rythmeForceATerre')!(get, set, rate, get().party[0], { steps: [rate], index: 0 });
-      lignes = (out?.consequences ?? []).map((c) => String((c as { vars?: { text?: string } }).vars?.text ?? ''));
+      lignes = lignesDeLApplier(out);
       insert = out?.insert ?? [];
     }
     expect(lignes.some((l) => l.includes('Incontrôlable')), 'le cas « Incontrôlable » est atteignable').toBe(true);
@@ -1361,7 +1371,7 @@ describe('#4804 — la route passe à pied en tête de la journée où un héros
     expect(get().journal.map((e) => e.texte)).not.toContain(t('tf.surcharge'));
     const log = get().travelPlan?.log ?? [];
     const jourDuLendemain = log[log.length - 1];
-    expect(jourDuLendemain?.lines.map((l) => l.text)).toContain(t('tf.pasTousMontes'));
+    expect(jourDuLendemain?.lines.map((l) => l.entree.texte)).toContain(t('tf.pasTousMontes'));
   });
 
   it('arrivée le jour du passage à pied : le récit de voyage dit « à pied »', () => {

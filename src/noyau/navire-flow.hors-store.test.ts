@@ -917,7 +917,7 @@ describe('Bourse du groupe et valeurs liées (#1652 lot 6 — MDG 15 l.245-247, 
 
   it('`money.groupe` est inerte dans `applyOps` (la bourse du groupe se résout à la feuille d’Effet)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'money', montant: { brass: 240 }, groupe: true }], { idNeuf: idsDeTest, rng: makeRNG(1) } as never).lignes).toEqual([]);
+    expect(applyOps(h, [{ op: 'money', montant: { brass: 240 }, groupe: true }], { idNeuf: idsDeTest, rng: makeRNG(1) } as never).lignes.map((e) => e.texte)).toEqual([]);
   });
 
   it('Prêtre de Manann : la donnée porte la RAW (1d10 CO + Taille en pistoles, ou Humeur −4d10)', () => {
@@ -1452,7 +1452,7 @@ describe('Combat en mer à issue (#1652 lot 8 — MDG 15 l.136-139, l.142-143, l
 
   it('`combatEnMer` est inerte dans `applyOps` (op de navire)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes).toEqual([]);
+    expect(applyOps(h, [{ op: 'combatEnMer', adversaire: { id: 'kharibde', nombre: 1 } }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes.map((e) => e.texte)).toEqual([]);
   });
 });
 
@@ -1810,7 +1810,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
 
   it('`marcheDuPort` est inerte dans `applyOps` (op du monde)', () => {
     const h = get().party[0];
-    expect(applyOps(h, [{ op: 'marcheDuPort', colonnes: 'penurie' }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes).toEqual([]);
+    expect(applyOps(h, [{ op: 'marcheDuPort', colonnes: 'penurie' }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes.map((e) => e.texte)).toEqual([]);
   });
 
   it('hors escale, les colonnes ne changent nulle part et le journal le dit', () => {

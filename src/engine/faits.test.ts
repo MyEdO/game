@@ -10,6 +10,7 @@ import { applyOps, type OpsCtx, type GameOp } from './ops';
 import { addCondition, syncDerivedConditions, COND } from './conditions';
 import { texteDuFait, type Applique, type FaitApplique, type FaitAvecLigne } from './faits';
 import { poserLeNommeur } from './nom';
+import { ligneDeTexte } from './journal';
 import { fixtureText } from '../i18n/fixtureText';
 import { desDuTest } from './dice.testkit';
 import { blessuresDeBase, blessuresSurLeProfil } from './combattantDeTest.testkit';
@@ -128,7 +129,7 @@ const CORPUS: Cas[] = [
 describe('applyOps rend ses faits et leurs lignes', () => {
   it.each(CORPUS.map((c) => [c.nom, c] as const))('%s : les lignes du journal, à l’octet, et leurs faits', (_nom, cas) => {
     const { lignes, faits } = cas.jouer();
-    expect(lignes).toEqual(cas.lignes);
+    expect(lignes).toEqual(cas.lignes.map((x) => ligneDeTexte(x)));
     expect(faits).toEqual(cas.faits);
   });
 
@@ -136,7 +137,7 @@ describe('applyOps rend ses faits et leurs lignes', () => {
     for (const cas of CORPUS) {
       const { lignes, faits } = cas.jouer();
       const lues = faits.filter(avecLigne).map((f) => texteDuFait(f, 'Cobaye', cas.source));
-      expect(lignes.filter((l) => lues.includes(l)), cas.nom).toEqual(lues);
+      expect(lignes.filter((l) => lues.includes(l.texte)).map((e) => e.texte), cas.nom).toEqual(lues);
     }
   });
 
@@ -162,7 +163,7 @@ describe('applyOps rend ses faits et leurs lignes', () => {
         'Silhouette subit 3 Blessure(s) (ignorant BE et PA).',
         'Silhouette gagne 1 Avantage.',
         'Silhouette : +1 Point de Corruption (total 1).',
-      ]);
+      ].map((x) => ligneDeTexte(x)));
     } finally {
       poserLeNommeur(avant);
     }

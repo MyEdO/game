@@ -299,7 +299,7 @@ describe('ce que l’étape de la cascade annonce (`fenetre.corps`)', () => {
       const etape = choiceStep(choixPiegeLame({ defenderId: heros.id, attackerId: ennemi.id, weapon: lame, parryWeaponUid: parade.uid!, defSL: 2, roll: 34 }, heros, ennemi, parade))!;
       const etat: Jeu = { ...partie.etat(), pendingCascade: { title: t('step.paradePiegerLame'), icon: 'objet/arme', purpose: 'combat', cursor: 0, participants: [etape], seq: 1 } };
       const corps = zonesDeLEcran(etat, projeter(etat, 0, 0, { autres: 0, offres: 0, cibles: 0, gestes: 0, entites: 0 }), fenetreADessiner(etat), null, SANS_ROSTER, [])['fenetre.corps'];
-      expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.text));
+      expect(corps.filter((e) => e.id.startsWith('issue/')).map((e) => 'texte' in e && e.texte), 'ses deux lignes, dans l’ordre du flux').toEqual(etape.outcome!.map((l) => l.entree.texte));
     } finally {
       partie.fermer();
     }
@@ -373,7 +373,7 @@ describe('le récit du voyage à l’écran (`Projection.recit`, #4574)', () => 
       : [e.id, ...(e.type === 'ligne' ? [e.texte, e.ton] : [e.type])]);
   };
   const base = { depart: 'pa', arrivee: 'pb', route: 'r1', mode: 'pied' } as const;
-  const jour = { kmFrom: 0, kmTo: 11.7, hours: 5.6, lines: [{ text: 'Une ornière casse l’allure.', tone: 'echec' as const }, { text: 'La route est calme.' }] };
+  const jour = { kmFrom: 0, kmTo: 11.7, hours: 5.6, lines: [{ entree: ligneDeTexte('Une ornière casse l’allure.', { ton: 'echec' }) }, { entree: ligneDeTexte('La route est calme.') }] };
 
   it('arrivée : le titre, la route élidée, la durée exacte du voyage, sans les journées ni la suite', () => {
     expect(recit({ ...base, status: 'arrived', km: 30, kmDone: 30, days: [jour], dureeMin: 160 })).toEqual([

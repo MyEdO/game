@@ -201,7 +201,7 @@ export function landBulkCarriers(s: Pick<CarrierStateSlice, 'party' | 'possessio
  *  solde par un combat, la cargaison des porteurs du convoi subit un % d'Enc SELON L'ISSUE — combat gagné
  *  = rien ; fuite = `vol-terrestre-fuite-pct` ; défaite = `vol-terrestre-defaite-pct` (params maison). Retire des lots
  *  RÉELS (tronc `spoilCargoByPct`) et renvoie le patch d'état (`persistCarriersCargo`) + l'Enc perdu par
- *  porteur — le call-site (store) journalise en Consequence structurée. */
+ *  porteur — le call-site (store) journalise en entrées structurées (`Applique`). */
 export function applyLandCargoRaid(
   s: Omit<CarrierStateSlice, 'lieu'>, outcome: CargoRaidOutcome,
 ): { patch: PatchDeFlux; pct: number; losses: { label: string; removed: number }[] } {

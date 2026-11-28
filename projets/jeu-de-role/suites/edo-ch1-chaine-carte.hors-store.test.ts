@@ -157,7 +157,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     poserLeGroupe(banc.getState, banc.setState, { x: 7, y: 9 });
     expect(get().flags[CLOS]).toBe(true);
     expect(get().pendingChapterRecap?.titre).toBe(paquet.narratif!.cloture!.titre);
-    expect(get().pendingChapterRecap?.chronique.map((c) => c.text))
+    expect(get().pendingChapterRecap?.chronique.map((c) => c.entree.texte))
       .toEqual(['Trouver une place à bord d’une diligence pour Altdorf.', 'Examiner les lieux de l’embuscade.', 'Se rendre à Altdorf.']);
   });
 });

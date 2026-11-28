@@ -147,7 +147,7 @@ describe('#1479 — MATRICE des Tests de mer : ordres × siège, pour CHAQUE kin
   });
 });
 
-beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'sonde-1479': () => ({ consequences: [] }) } }); });
+beforeEach(() => { avecLesTables({ appliers: { ...tablesDuJeu().appliers, 'sonde-1479': () => ({}) } }); });
 
 describe('#1479 — le mono qu’AUCUN humain ne tient ne bloque plus la cascade', () => {
   const jet = (actor: Combatant, id: string): BuiltCascadeStep => monoStep({

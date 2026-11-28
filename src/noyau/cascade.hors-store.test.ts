@@ -19,7 +19,7 @@ import {
   compteurDeSequence,
 } from './cascade';
 import { buildSeaPlan } from './seaVoyageFlow';
-import { freeCons, monoStep, displayStep, buildBand } from './rollSeam';
+import { monoStep, displayStep, buildBand } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { fermeturesDeLaFenetre, fermeturesDuFlux } from './verbesOuverts';
@@ -31,6 +31,7 @@ import { journaliser } from './combatLog';
 import { jouerLesClotures, pushReveal } from './combatEffects';
 import type { CascadeStep, BatchParticipant } from './pendings';
 import type { Combatant } from '../engine/types';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -50,7 +51,7 @@ describe('Cascade séquentielle influençable', () => {
     // Conséquence synthétique : note l'étape validée + une ligne de journal.
     appliers = {};
     avecLesTables({ appliers });
-    appliers.tally = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
+    appliers.tally = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ applique: { lignes: [ligneDeTexte(`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`)], faits: [] } }));
   });
 
   function hero() {
@@ -159,7 +160,7 @@ describe('Cascade séquentielle influençable', () => {
   it('étape « choix » : no-op sans choix, puis l’option pilote la conséquence + insertion', () => {
     const h = hero();
     appliers.pick = spyApplier(applied, (step) => ({ kind: step.kind, success: step.chosen === 'devier' }), (step) => (step.chosen === 'devier' ? { insert: [displayStep({ id: 'suite', kind: cleDeFixture('note'), actorId: h.id, label: fixtureText('Suite')})] } : {}));
-    appliers.note = spyApplier(applied, (step) => ({ kind: step.kind, success: true }), (step) => ({ consequences: freeCons([`${step.id}`]) }));
+    appliers.note = spyApplier(applied, (step) => ({ kind: step.kind, success: true }), (step) => ({ applique: { lignes: [ligneDeTexte(`${step.id}`)], faits: [] } }));
     const choix: CascadeStep = { id: 'c', kind: cleDeFixture('pick'), actorId: h.id, options: [{ key: 'devier', label: fixtureText('Dévier') }, { key: 'subir', label: fixtureText('Subir') }]};
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [choix] });
     expect(fermeturesDuFlux(banc.getState(), 'cascade').valider, 'la validation attend le choix').toBe('choixDu');
@@ -177,7 +178,7 @@ describe('Cascade séquentielle influençable', () => {
 
   it('étape « affichage » : validée sans jet ni choix', () => {
     const h = hero();
-    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }), (step) => ({ consequences: freeCons([`${step.id}`]) }));
+    appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }), (step) => ({ applique: { lignes: [ligneDeTexte(`${step.id}`)], faits: [] } }));
     const aff: CascadeStep = { id: 'd', kind: cleDeFixture('note'), actorId: h.id};
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [aff] });
     banc.getState().jetValider('cascade'); // affichage → acquitté directement, cascade finalisée
@@ -363,14 +364,14 @@ describe('Cascade séquentielle influençable', () => {
     appliers.reveal = () => {}; // applier MUET (mutation seule, aucun journal)
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
     const steps: CascadeStep[] = [
-      { id: 'r', kind: cleDeFixture('reveal'), actorId: h.id, outcome: [{ text: 'Sonné appliqué (Assommante)' }]}, // affichage
+      { id: 'r', kind: cleDeFixture('reveal'), actorId: h.id, outcome: [{ entree: ligneDeTexte('Sonné appliqué (Assommante)') }]}, // affichage
       { id: 'd', kind: cleDeFixture('note'), actorId: h.id},
     ];
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps });
     banc.getState().jetValider('cascade'); // valide l'affichage → figé, avance sur 'd'
     const committed = banc.getState().pendingCascade!.participants[0];
     expect(committed.committed).toBe(true);
-    expect(committed.outcome).toEqual([{ text: 'Sonné appliqué (Assommante)' }]); // contenu pré-posé NON effacé
+    expect(committed.outcome).toEqual([{ entree: ligneDeTexte('Sonné appliqué (Assommante)') }]); // contenu pré-posé NON effacé
   });
 
   it('étape « batch » (participants — seam de jet #275 Décision 4 cran 1) : agrège les contributeurs à la validation', () => {
@@ -378,7 +379,7 @@ describe('Cascade séquentielle influençable', () => {
     const h1 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Timonier', seed: 2 });
     const h2 = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'Vigie', seed: 3 });
     banc.setState({ party: [h1, h2] });
-    appliers['crew-batch'] = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ consequences: freeCons([`${step.label} → DR ${step.result?.sl}`]) }));
+    appliers['crew-batch'] = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success }), (step) => ({ applique: { lignes: [ligneDeTexte(`${step.label} → DR ${step.result?.sl}`)], faits: [] } }));
     const participants: BatchParticipant[] = [
       { teste: TESTE_DE_TEST, id: h1.id, label: 'Timonier', essential: true, interactive: true, base: 40, target: 40, result: null },
       { teste: TESTE_DE_TEST, id: h2.id, label: 'Vigie', essential: false, interactive: true, base: 40, target: 40, result: null },
@@ -410,7 +411,7 @@ describe('Cascade séquentielle influençable', () => {
     const h = hero();
     appliers.deja = (get, set) => {
       journaliser(get, set, ['la conclusion, dite par l’applier'], 'information', { actorId: h.id });
-      return { consequences: freeCons(['la conclusion, dite par l’applier']), dejaDites: true };
+      return { applique: { lignes: [ligneDeTexte('la conclusion, dite par l’applier')], faits: [] }, dejaDites: true };
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [{ id: 'd', kind: cleDeFixture('deja'), actorId: h.id }] });
     banc.getState().jetValider('cascade');
@@ -431,11 +432,11 @@ describe('Cascade séquentielle influençable', () => {
     // APPEND une étape au pending (via set, comme pushReveal). advanceCascade doit la préserver.
     appliers.trigger = (get, set) => {
       const pc = get().pendingCascade!;
-      set({ pendingCascade: { ...pc, participants: [...pc.participants, { id: 'appended', kind: cleDeFixture('note'), actorId: h.id, outcome: [{ text: 'conséquence ajoutée' }]}] } });
+      set({ pendingCascade: { ...pc, participants: [...pc.participants, { id: 'appended', kind: cleDeFixture('note'), actorId: h.id, outcome: [{ entree: ligneDeTexte('conséquence ajoutée') }]}] } });
       return {};
     };
     appliers.note = spyApplier(applied, () => ({ kind: 'note', success: true }));
-    const trig: CascadeStep = { id: 't', kind: cleDeFixture('trigger'), actorId: h.id, outcome: [{ text: 'déclencheur' }]};
+    const trig: CascadeStep = { id: 't', kind: cleDeFixture('trigger'), actorId: h.id, outcome: [{ entree: ligneDeTexte('déclencheur') }]};
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [trig] });
     banc.getState().jetValider('cascade'); // valide 'trigger' → APPEND 'appended' ; le pending NE se ferme PAS
     const p = banc.getState().pendingCascade;
@@ -528,7 +529,7 @@ describe('Cascade séquentielle influençable', () => {
         startCascade(get, set, { title: 'Test de scène', purpose: 'test', steps: [step('inner', h.id)] });
         return {};
       };
-      const outer: CascadeStep = { id: 'day', kind: cleDeFixture('opens'), actorId: h.id, outcome: [{ text: 'journée' }]};
+      const outer: CascadeStep = { id: 'day', kind: cleDeFixture('opens'), actorId: h.id, outcome: [{ entree: ligneDeTexte('journée') }]};
       startCascade(banc.getState, banc.setState, { title: 'Journée', purpose: 'travelDay', steps: [outer, step('later', h.id)] });
       banc.getState().jetValider('cascade'); // valide 'day' → l'applier prend le slot
       expect(banc.getState().pendingCascade!.purpose).toBe('test'); // la nouvelle séquence tient le slot

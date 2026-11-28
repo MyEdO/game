@@ -29,7 +29,7 @@ import { isOutOfAction } from '../engine/conditions';
 import { rule } from '../engine/policy';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty } from '../engine/types';
 import { startCascade } from './cascade';
-import { freeCons, rollSansPilote, rollStep } from './rollSeam';
+import { rollSansPilote, rollStep } from './rollSeam';
 import { humanControlled } from './netOwnership';
 import { possessionLabel } from '../engine/possession';
 import type { CascadeStep } from './pendings';
@@ -40,6 +40,7 @@ import { refLabel } from '../data';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
  *  la policy `mer-naufrage-natation`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade) et
@@ -277,7 +278,7 @@ export const TABLES = {
       });
       if (success) { hero.outOfRencontre = false; hero.exitReason = undefined; } else hero.dead = true;
       set({ party: [...get().party] });
-      if (ctx.index !== ctx.steps.length - 1) return { consequences: freeCons([line]) };
+      if (ctx.index !== ctx.steps.length - 1) return { applique: { lignes: [ligneDeTexte(line)], faits: [] } };
       const m = step.meta ?? {};
       const shoreId = String(m.shoreId ?? '');
       const naufrage: NaufrageEnCours = {
@@ -291,7 +292,7 @@ export const TABLES = {
         const r = garanti(s.id === step.id ? step.result : s.result, s.id, 'Test de Natation résolu');
         return { id: s.actorId!, roll: garanti(r.roll, s.id, 'dé de Natation'), target: garanti(r.target, s.id, 'cible de Natation'), sl: r.sl, success: r.success };
       });
-      return { consequences: freeCons([line, ...finishShipwreck(get, set, naufrage, nages, diff)]) };
+      return { applique: { lignes: [ligneDeTexte(line), ...finishShipwreck(get, set, naufrage, nages, diff).map((x) => ligneDeTexte(x))], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

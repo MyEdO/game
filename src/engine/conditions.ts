@@ -45,14 +45,18 @@ import { isFrenzied, isFrenzyCapable, restoreSuppressedPsych } from './psycholog
 import { hasActiveFlag } from './activeFlags';
 import { applyActiveEffect } from './effetsActifs';
 import { isVehicle } from './coque';
-import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
-import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
+import { applyOps, resolveWindowDuration } from './ops';
+ // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
+import { cappedHealAmount } from './healing';
+ // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
 // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
 import {
   isInanimate,
 } from './structures';
-import { hasTalent } from './magic'; // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
-import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
+import { hasTalent } from './magic';
+ // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
+import { aaDeathByCriticalCount } from './critical';
+ // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
 
 /** Les 12 États CANONIQUES (LDB 16) à comportement moteur, par `id` STABLE (slug d'etats.json). Le
  *  moteur (pénalités, fin de Round, récupération) les référence via ces constantes — JAMAIS de chaîne
@@ -648,6 +652,7 @@ function srcLabel(src: CodexTarget | undefined, nature: string): string {
 import { passivePartLine } from './trauma';
 import { nomDe } from './nom';
 import { determinationDe } from './talentEffects';
+import { ligneDeTexte } from './journal';
 export { passivePartLine };
 
 // `effectRef` (couture UNIQUE effet→fiche Codex) vit dans `types.ts`, à côté de la table
@@ -935,7 +940,7 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveT
     // il ne se reconstruit pas.
     applyOps(c, e.opsPerRound, {
       label: e.label, rng, idNeuf, resolveTrapping, source: e.source, sourceSpellId: e.sourceSpellId, effectId: e.effectId,
-    }).lignes.forEach((l) => log.push(l));
+    }).lignes.forEach((l) => log.push(l.texte));
   }
   // Décrément des durées (effets/États de sort/contrecoups) — SOURCE UNIQUE extraite, même emplacement
   // qu'avant (fin d'`endOfRound`, après les ops récurrentes). RNG-free.
@@ -1003,7 +1008,7 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
   }
   const porte: Applique = { lignes: [], faits: [] }; // États PORTÉS par l'effet gelé (#1695) : leur départ se dit au même journal
   const removed = removeActiveEffects(c, (x) => x === e, porte);
-  return [...removed.map((x) => t('cond.effectExpire', { name: nomDe(c), label: x.label })), ...porte.lignes];
+  return [...removed.map((x) => t('cond.effectExpire', { name: nomDe(c), label: x.label })), ...porte.lignes.map((l) => l.texte)];
 }
 
 /**
@@ -1032,15 +1037,16 @@ export function tickDurations(c: Combatant): string[] {
     const porte: Applique = { lignes: [], faits: [] }; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
     const expired = removeActiveEffects(c, (e) => e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension, porte);
     for (const e of expired) log.push(t('cond.effectExpire', { name: nomDe(c), label: e.label }));
-    log.push(...porte.lignes);
+    log.push(...porte.lignes.map((e) => e.texte));
   }
   // États à DURÉE posés par un sort (« qui dure N Rounds ») : décrément, dissipation à 0.
   if (c.conditions.some((x) => x.roundsLeft != null)) {
     for (const x of c.conditions) if (x.roundsLeft != null) x.roundsLeft -= 1;
     const echu = (x: ConditionInstance) => x.roundsLeft != null && x.roundsLeft <= 0;
     for (const x of c.conditions.filter(echu)) log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) }));
-    const sortie: Applique = { lignes: log, faits: [] };
+    const sortie: Applique = { lignes: [], faits: [] };
     purgerEtats(c, echu, sortie);
+    log.push(...sortie.lignes.map((e) => e.texte));
   }
   // Contrecoups d'incantation à durée en Rounds (tables d'Imparfaites/Colère, LDB 46/40).
   if (c.castPenalties?.some((p) => p.roundsLeft != null)) {
@@ -1052,7 +1058,7 @@ export function tickDurations(c: Combatant): string[] {
   // Un effet qui vient d'EXPIRER peut avoir porté (ou levé) un fait source d'État dérivé : la fenêtre de
   // Détermination de LDB 20 l.170 se referme ici, et l'État repart. Point d'appel de la frontière de
   // Round (`endOfRound` chaîne ici) ET de toute expiration en Rounds — jamais une copie de la logique.
-  syncDerivedConditions(c).lignes.forEach((l) => log.push(l));
+  syncDerivedConditions(c).lignes.forEach((l) => log.push(l.texte));
   return log;
 }
 
@@ -1087,9 +1093,9 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
   if (!eligible) return { died: false, log: [] };
   const r = d100(rng);
   if (isDoubleRoll(r)) {
-    const sortie: Applique = { lignes: [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })], faits: [] }; // le double prime sur la mort
+    const sortie: Applique = { lignes: [ligneDeTexte(t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r }))], faits: [] }; // le double prime sur la mort
     removeCondition(c, COND.hemorragique, 1, sortie);
-    return { died: false, log: sortie.lignes };
+    return { died: false, log: sortie.lignes.map((e) => e.texte) };
   }
   if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n })] };
   return { died: false, log: [t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n })] };

@@ -291,7 +291,7 @@ export const TABLES = {
         if (!res.hit || !isMagicallyAsleep(target) || traitCapability(attacker.traits, 'wakelessBite')) return { res };
         return {
           res: { ...res, autoKill: false, ajouts: [...(res.ajouts ?? []), t('cf.reveilDuDormeur', { name: nomDe(attacker), foe: nomDe(target) })] },
-          ecrire: () => { const sortie: Applique = { lignes: [], faits: [] }; wakeSleeper(target, sortie); return sortie.lignes; },
+          ecrire: () => { const sortie: Applique = { lignes: [], faits: [] }; wakeSleeper(target, sortie); return sortie.lignes.map((e) => e.texte); },
         };
       },
     },
@@ -347,7 +347,7 @@ export const TABLES = {
           ecrire: () => {
             const consequences: Applique = { lignes: [], faits: [] };
             loseWounds(priest, taken, consequences);
-            return consequences.lignes;
+            return consequences.lignes.map((e) => e.texte);
           },
         };
       },

@@ -1141,8 +1141,8 @@ describe('(xiii) IDENTITÉ sous RÉENTRANCE : deux compteurs vivants, aucun id e
     fab(set, 'avant');
     runCascadeImmediate(get, set, [{ id: 'INT', kind: 'x-imm', label: 'i' }] as never, { title: 'in', purpose: 'combat' });
     fab(set, 'apres');
-    return { consequences: [] };
-  }, 'x-imm': (_g, set) => { fab(set, 'imm'); return { consequences: [] }; }, 'x-note': (_g, _s, step) => { marque.push(`${step.id}/${step.label}`); return { consequences: [] }; } } }); });
+    return {};
+  }, 'x-imm': (_g, set) => { fab(set, 'imm'); return {}; }, 'x-note': (_g, _s, step) => { marque.push(`${step.id}/${step.label}`); return {}; } } }); });
 
   const monte = (): void => {
     banc.setState({ battle: null, pendingCascade: null, suspendedCascades: [], journal: [], pendingTest: null } as never);

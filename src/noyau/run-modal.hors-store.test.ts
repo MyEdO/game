@@ -65,7 +65,7 @@ describe('Course (Courir) — modale du Test `course` (LDB 15 l.41)', () => {
   });
 
   // Journal : la fenêtre de Course a MONTRÉ le dé ; le journal ne porte que la CONSÉQUENCE, la distance
-  // parcourue (Décision 1b, `noyau/rollSeam.ts` `Consequence`).
+  // parcourue (Décision 1b, `engine/faits.ts` `Applique`).
   it('jetValider@course journalise la seule conséquence : les cases parcourues', () => {
     banc.getState().ensemencerLeTirage(2);
     const { H } = setup();

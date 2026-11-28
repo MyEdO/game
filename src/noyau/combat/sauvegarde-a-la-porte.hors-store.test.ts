@@ -85,7 +85,7 @@ const sauvegardesOuvertes = (): CascadeStep[] =>
 let lues: string[] = [];
 function capter(): void {
   for (const s of banc.getState().pendingCascade?.participants ?? []) {
-    for (const l of s.outcome ?? []) if (!lues.includes(l.text)) lues.push(l.text);
+    for (const l of s.outcome ?? []) if (!lues.includes(l.entree.texte)) lues.push(l.entree.texte);
   }
 }
 

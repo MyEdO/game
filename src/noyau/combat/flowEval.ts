@@ -58,7 +58,7 @@ export function runPureFlowLines(target: Combatant, caster: Combatant | undefine
         const unit = f.effet.on === 'caster' ? caster : target;
         // Contexte de FEUILLE (`leafOpsCtx`) : untilTime/label bakés (consommable) priment sur le ctx
         // appelant. Les ops IMPURES (`delayed`…) sont routées en amont vers runCombatFlow (flowHasImpureOp).
-        if (unit) lines.push(...applyOps(unit, f.effet.ops, leafOpsCtx(ctx, f.effet)).lignes);
+        if (unit) lines.push(...applyOps(unit, f.effet.ops, leafOpsCtx(ctx, f.effet)).lignes.map((e) => e.texte));
       }
       return undefined;
     },

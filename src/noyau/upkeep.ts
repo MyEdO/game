@@ -89,15 +89,17 @@ export function purgeClockEffects(get: Get, set: Set): LigneDEntretien[] {
     const porte: Applique = { lignes: [], faits: [] }; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'clock' && e.duration.until <= now, porte);
     for (const e of fx) lignes.push(t('upkeep.fades', { name: nomDe(h), what: e.label }));
-    lignes.push(...porte.lignes);
+    lignes.push(...porte.lignes.map((e) => e.texte));
     // États à durée d'HORLOGE (op `condition.durationHours` — Belladone : sommeil « 1d10+4 heures ») :
     // dissipés à l'échéance, même canal de purge que les effets actifs (LDB 72 l.18).
     const echu = (x: ConditionInstance) => x.untilTime != null && x.untilTime <= now;
     for (const x of (h.conditions ?? []).filter(echu)) lignes.push(t('upkeep.condFades', { name: nomDe(h), cond: conditionLabel(x.id) }));
-    purgerEtats(h, echu, { lignes, faits: [] });
+    const sortie: Applique = { lignes: [], faits: [] };
+    purgerEtats(h, echu, sortie);
+    lignes.push(...sortie.lignes.map((e) => e.texte));
     // Un effet d'HORLOGE qui vient d'expirer peut avoir suspendu un fait source d'État dérivé : la fenêtre
     // de conscience de LDB 20 l.170 (Détermination) se referme ICI — l'État repart par la réconciliation.
-    lignes.push(...syncDerivedConditions(h).lignes);
+    lignes.push(...syncDerivedConditions(h).lignes.map((e) => e.texte));
     expiredLog.push(...lignesDEntretien(lignes, h.id));
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog.map(({ text }) => text)); }
@@ -166,7 +168,7 @@ export function purgeAdventureEffects(get: Get, set: Set): string[] {
     const porte: Applique = { lignes: [], faits: [] };
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'adventure', porte);
     for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: nomDe(h), what: e.label }));
-    expiredLog.push(...porte.lignes);
+    expiredLog.push(...porte.lignes.map((e) => e.texte));
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
   return expiredLog;
@@ -266,12 +268,12 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
       if (r.rationConsumed && !cale) rations++;
       const faim: Applique = { lignes: [], faits: [] };
       loseWounds(h, r.damage, faim);
-      lines.push(...lignesDEntretien([...r.log, ...faim.lignes], h.id));
+      lines.push(...lignesDEntretien([...r.log, ...faim.lignes.map((e) => e.texte)], h.id));
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
       const w = dailyWaterUpkeep(h, hasWater, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       const soif: Applique = { lignes: [], faits: [] };
       loseWounds(h, w.damage, soif);
-      lines.push(...lignesDEntretien([...w.log, ...soif.lignes], h.id));
+      lines.push(...lignesDEntretien([...w.log, ...soif.lignes.map((e) => e.texte)], h.id));
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {
@@ -298,14 +300,14 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
   }
   // Nuit forcée (maison `voyage-privation-de-sommeil`, #340) : chaque jour calendaire franchi SANS nuit jouée
   // (aucun repos depuis `lastNightDay`) inflige 1 État Exténué « privation de sommeil » par héros vivant.
-  // Jamais silencieux (Consequence via applyOps `condition`) ; retiré au prochain vrai sommeil (LDB 16).
+  // Jamais silencieux (conséquence via applyOps `condition`) ; retiré au prochain vrai sommeil (LDB 16).
   if (rule('voyage-privation-de-sommeil') === true) {
     const missed = Math.max(0, today - Math.max(last, get().lastNightDay));
     if (missed > 0) {
       for (const h of party) {
         if (h.dead) continue;
         lines.push({ text: t('upkeep.sleepDeprived', { name: nomDe(h), n: missed, s: missed > 1 ? 's' : '' }), actorId: h.id });
-        lines.push(...lignesDEntretien(applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }).lignes, h.id));
+        lines.push(...lignesDEntretien(applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }).lignes.map((e) => e.texte), h.id));
       }
     }
   }

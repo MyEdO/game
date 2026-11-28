@@ -52,7 +52,6 @@ import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import { attackKindSchema } from '../data/schemas/grammaire/valeurs';
 import { findTalentById, findPsychologyById, combatStakeRef, dataLabel, type ManeuverDef, type ManeuverMeasure } from '../data';
 import { startCascade } from './cascade';
-import { freeCons } from './rollSeam';
 import { designeGaranti, rollLine, type RollLineParts } from './ligneDeJet';
 import { defenseSurfaced } from './netOwnership';
 import { inBattleId } from './monde/combatants';
@@ -80,6 +79,7 @@ import { effectiveTalents } from '../engine/talentEffects';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
+import { ligneDeTexte } from '../engine/journal';
 
 // ---------------------------------------------------------------------------
 // Émission d'animation + énumération
@@ -125,7 +125,7 @@ export function applyManeuverEffects(
   if (wl > 0) floatDamage(tgt, wl);
   const consequences: Applique = { lignes: [], faits: [] };
   if (tgt.wounds.current <= 0) applyZeroWounds(tgt, consequences);
-  lines.push(...consequences.lignes);
+  lines.push(...consequences.lignes.map((e) => e.texte));
   const pull = tablesPosees().apresToucheDeManoeuvre(get, set, attacker, def, tgt, hadEmpetre);
   if (pull && pull.length) lines.push(...pull);
   return lines;
@@ -786,7 +786,7 @@ export const TABLES = {
       if (step.result.success) {
         floatTag(hero, def.defense === 'init' ? t('fx.resists') : t('fx.dodge'));
         syncManeuver();
-        return { consequences: freeCons([t('manv.resists', { name: nomDe(hero) })]) };
+        return { applique: { lignes: [ligneDeTexte(t('manv.resists', { name: nomDe(hero) }))], faits: [] } };
       }
       // L'attaquant l'emporte : on re-oppose le jet influencé du défenseur (reproduit `resolveOpposed` de la
       // cascade) pour la MARGE NETTE (RAW Regard : +1 DR/Avantage variable), puis on applique les effets.
@@ -794,7 +794,7 @@ export const TABLES = {
       const margin = resolveOpposed(opp.aT, drow).netSL + (def.modeDAvantage === 'variable' ? md.spent : 0);
       const journal = applyManeuverEffects(get, set, attacker, def, hero, md.indice, margin, battleRng());
       syncManeuver();
-      return { consequences: freeCons(journal) };
+      return { applique: { lignes: journal.map((x) => ligneDeTexte(x)), faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

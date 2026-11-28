@@ -124,7 +124,7 @@ function hitSecondary(
   const lines: string[] = [];
   const consequences: Applique = { lignes: [], faits: [] };
   loseWounds(victim, wl, consequences);
-  lines.push(tr(msgKey, { name: nomDe(victim), wl }), ...consequences.lignes);
+  lines.push(tr(msgKey, { name: nomDe(victim), wl }), ...consequences.lignes.map((e) => e.texte));
   // États « infligés par l'arme » via le MÊME dispatcher que le tir individuel (Empêtré, En flammes, Venin…),
   // déclenchés dès la touche, comme pour la cible PRIMAIRE (`toucheNonIgnoree`).
   // Une arme à Dégâts « Spéciaux » (Canon à flammes nain, ADE II 8 l.243) applique donc son État à 0 Blessure ;
@@ -160,7 +160,7 @@ export function resolveWeaponArea(
       const extra = woundsFromHit(weapon, target, hit.location, hit.damage + indice, 0, 0, hit.attacker.size) - woundsFromHit(weapon, target, hit.location, hit.damage, 0, 0, hit.attacker.size);
       const consequences: Applique = { lignes: [], faits: [] };
       if (!isOutOfAction(target)) loseWounds(target, extra, consequences);
-      lines.push(tr('cf.souffleABoutPortant', { name: nomDe(target), indice }), ...consequences.lignes);
+      lines.push(tr('cf.souffleABoutPortant', { name: nomDe(target), indice }), ...consequences.lignes.map((e) => e.texte));
     } else {
       // Courte-Longue : cible + Indice plus proches. Extrême : idem mais −Indice aux Dégâts.
       const dmg = band === 'Extrême' ? hit.damage - indice : hit.damage;

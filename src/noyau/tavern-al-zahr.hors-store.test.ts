@@ -430,7 +430,7 @@ describe('Al-zahr — la partie au store', () => {
     expect(pose.table!.result!.lines[0], 'la rafle est annoncée à l’écran du jet').toBe('la manche est remportée, le pot est raflé');
     // 3) même vérité que le journal : la ligne de récit dit la même issue.
     get().jetValider('cascade');
-    expect(get().journal.map((e) => e.texte).concat(get().pendingCascade?.participants.flatMap((s) => s.outcome?.map((o) => o.text) ?? []) ?? [])
+    expect(get().journal.map((e) => e.texte).concat(get().pendingCascade?.participants.flatMap((s) => s.outcome?.map((o) => o.entree.texte) ?? []) ?? [])
       .some((l) => typeof l === 'string' && l.includes('la manche est remportée, le pot est raflé'))).toBe(true);
   });
 

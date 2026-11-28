@@ -14,7 +14,7 @@
 import { nomDe } from '../engine/nom';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { lireEnSeuil, stepInteraction, stepReady, startCascade } from './cascade';
-import { dieStep, freeCons } from './rollSeam';
+import { dieStep } from './rollSeam';
 import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -22,6 +22,7 @@ import type { SeuilDeSauvegarde } from './pendings';
 import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -125,7 +126,7 @@ describe('F — le dénouement d’un dé joué EN COMBAT se montre dans le jour
     // L'applier de sauvegarde du combat vit dans `combatFlow` et RÉ-ENTRE dans le coup suspendu ; ce
     // qu'on mesure ici est le ROUTAGE d'une conséquence de cascade, avec la ligne réelle du socle.
     avecLesTables({ appliers: { seuilSpy: (_g, _s, step, porteur) =>
-      ({ consequences: freeCons([lireEnSeuil(step.de!.seuil!, step.de!.result!, nomDe(porteur!)).ligne]) }) } });
+      ({ applique: { lignes: [ligneDeTexte(lireEnSeuil(step.de!.seuil!, step.de!.result!, nomDe(porteur!)).ligne)], faits: [] } }) } });
     banc.setState({
       battle: null, party: [PORTEUR], journal: [], pendingCascade: null, suspendedCascades: [],
       net: { mode: 'local', mySeat: 0, roomCode: null, seatNames: {}, presence: {}, ownership: {} } as never,

@@ -48,8 +48,8 @@ import type { PlayerText } from '../i18n/playerText';
 import { PENDING_BY_JET, type HostJet } from './slotsDeJet';
 import { designeDuSujet, rollLine, type RollLineDecl, type RollLineSpec } from './ligneDeJet';
 import type { OupsResolved } from '../engine/oups';
-import { tonDuFait, type RecapLine, type RecapTone } from './recapLine';
-import type { Applique, FaitApplique } from '../engine/faits';
+import type { RecapLine } from './recapLine';
+import type { FaitApplique } from '../engine/faits';
 import type { ModLine } from '../engine/combat';
 import {
   startCascade,
@@ -71,7 +71,7 @@ import { WORLD_STEP_OWNER } from './pendings';
 import { cadenceAuto } from '../engine/cadence';
 import { resoluSousOrdres } from './voyageCadence';
 import { dataLabel, testSkillLabel, type StakeRef } from '../data';
-import { t, type OutKey, type OutVars } from '../i18n';
+import { t } from '../i18n';
 import { rollTest, clampTarget, cibleDuTest, ligneSansJet, refusSansJet, type CeQueTeste, type EchecSansJet } from '../engine/tests';
 import { type RNG, type DiceSpec } from '../engine/dice';
 import type { TestResult } from '../engine/tests';
@@ -232,67 +232,6 @@ export function rollTitle(get: Get, req: RollRequest): string {
   void get;
   return req.actionLabel;
 }
-
-/**
- * Conséquence d'une étape DÉJÀ appliquée (#295 Lot 0, Décision 1b) — soit un effet mécanique (ce
- * qu'`applyOps` a rendu : les FAITS appliqués et leurs lignes, #4574), soit une note narrative (`say`, clé
- * `out.*` SANS placeholder de jet — cf. garde i18n `i18n.test.ts`). AUCUN accès à roll/target/sl/won : la
- * duplication d'outcome (`${roll}/${target}`, « réussi (DR X) ») est INEXPRIMABLE par construction.
- * `tone`/`icon` (#349) habillent l'affichage de la ligne — `RecapTone` = vocabulaire UNIQUE, celui de
- * `NightEntry.tone`/`RecapLine.tone` (`noyau/recapLine.ts`), jamais un second jeu de valeurs.
- */
-export type Consequence =
-  | (Applique & { tone?: RecapTone })
-  | { say: OutKey; vars?: OutVars; tone?: RecapTone; icon?: IconId };
-
-/**
- * Rend la ou les conséquences d'une étape DÉJÀ dénouée en LIGNES STRUCTURÉES (#349) — LA forme
- * consommée par le rendu de chaque hôte : `CascadeStep.outcome`, `TravelRecapDay.
- * lines`. Une entrée VIDE (`text` vide) est filtrée — `cons` vide ⇒ `[]`.
- *
- * Le TON reste celui qui a été AUTHORÉ (#1078 LOT B2) : une conséquence `say` sans `tone` n'en reçoit
- * pas — dans le cadre d'issue d'une modale de jet, elle se rend donc à PLEINE couleur, comme les
- * lignes de `recapLineOfEvent`. L'atténuation (`tone: 'neutre'`) est une décision de site, jamais un
- * défaut technique. Une conséquence appliquée, elle, DÉRIVE son ton de son fait (`tonDuFait`).
- */
-export function resultLines(cons: Consequence[]): RecapLine[] {
-  return cons
-    .map((c): RecapLine => ('say' in c
-      ? { text: t(c.say, c.vars), ...(c.tone ? { tone: c.tone } : {}), ...(c.icon ? { icon: c.icon } : {}) }
-      : { text: c.lignes.join(' '), tone: c.tone ?? (c.faits.length ? tonDuFait(c.faits[0]) : 'neutre') }))
-    .filter((l) => l.text.length > 0);
-}
-
-/** Les faits appliqués que portent `cons` (#4574) : posés à côté de l'`outcome` que `resultLines` en lit. */
-export function faitsDesConsequences(cons: Consequence[]): FaitApplique[] {
-  return cons.flatMap((c) => ('faits' in c ? c.faits : []));
-}
-
-/**
- * Rend la ou les conséquences d'une étape DÉJÀ dénouée EN UNE CHAÎNE — repli pour les ~100 call-sites
- * NON convertis au rendu structuré (journal texte, `get().ecrireAuJournal()`) : joint `resultLines` (#349, source
- * UNIQUE — ne recalcule rien). Le verdict ✓/✗ ±DR reste porté par la rangée de jet (`RollLine`) seule.
- */
-export function resultLine(cons: Consequence[]): string {
-  return resultLines(cons).map((l) => l.text).join(' ');
-}
-
-/** Une entrée `freeCons` : un texte SIMPLE (repli neutre) ou une ligne déjà TONÉE/ICÔNÉE (#349, dette
- *  1 — le flux DÉRIVE le ton depuis ce qu'il vient de résoudre, ex. `step.result.success`, au lieu de
- *  composer une chaîne muette). */
-export type FreeConsLine = string | { text: string; tone?: RecapTone; icon?: IconId };
-
-/** Enveloppe des lignes de conséquence DÉJÀ composées (sans roll/target/sl du jet visible) en
- *  `Consequence[]` (#295 Lot 1, `out.free` passthrough) — SOURCE UNIQUE, réutilisée par tous les
- *  appliers de cascade migrés (river/travel/sea/shipwreck/pursuit/combat/rest). */
-export const freeCons = (texts: FreeConsLine[]): Consequence[] => texts
-  .map((x): { text: string; tone?: RecapTone; icon?: IconId } => (typeof x === 'string' ? { text: x } : x))
-  .filter((x) => x.text.length > 0)
-  .map(({ text, tone, icon }) => ({ say: 'out.free' as OutKey, vars: { text }, tone, icon }));
-
-/** Une application en conséquences : ses lignes DÉJÀ composées, une par entrée (`freeCons`), puis ses faits, sans
- *  ligne de plus (#4574). */
-export const consequencesDe = (a: Applique): Consequence[] => [...freeCons(a.lignes), ...(a.faits.length ? [{ lignes: [], faits: a.faits }] : [])];
 
 /** Résout le côté d'un jet MONO (`actorId` ou `partyBest`, jamais `participants`) en acteur + éventuelle valeur
  *  DÉJÀ CALCULÉE (mandat coordinateur — le call-site ne calcule plus rien) :

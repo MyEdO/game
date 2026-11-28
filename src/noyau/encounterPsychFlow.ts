@@ -46,9 +46,9 @@ import {
 import { refLabel, combatStakeRef } from '../data';
 import { applyOps } from '../engine/ops';
 import { t } from '../i18n';
-import { startCascade } from './cascade';
+import { startCascade, denouerLaRangee } from './cascade';
 import { describeEncounterPsych } from './flowOutcomes';
-import { freeCons, resultLines, makeBandFactory, rollStep, type Consequence } from './rollSeam';
+import { makeBandFactory, rollStep } from './rollSeam';
 import { actorIn } from './monde/combatants';
 import { subirLaTerreur } from './cibleAcquise';
 import { touchActors } from './combatOrParty';
@@ -57,6 +57,8 @@ import { stepDetail, stepPsych, stepSansPeur } from './rollSeam';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { battleRng } from './battleRng';
 import { nomDe } from '../engine/nom';
+import { type Applique } from '../engine/faits';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Forme d'un Test de Psychologie de rencontre résolu — conservée pour `describeEncounterPsych`
  *  (l'applier en construit une à partir de l'étape de cascade). */
@@ -215,7 +217,7 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
  * `subirLaTerreur`, sa cause lue parmi les sources de la scène (`sourcesDeLaScene`) ; elle peut ajouter son étape
  * `cibleAcquise`.
  */
-function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl, r: { success: boolean; sl: number }, immune: boolean, sansPeur: boolean): Consequence[] {
+function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl, r: { success: boolean; sl: number }, immune: boolean, sansPeur: boolean): Applique {
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE (« Demeurer immunisé à Psychologie jusqu'à la fin
   // du prochain Round »). Pour un Test de rencontre ONE-SHOT (pas de Test étendu), « immune » ≈ « inerte »
   // = même état final qu'un succès (la source ne se re-déclenche pas) : on applique les ops de la branche
@@ -224,7 +226,7 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
   // (LDB 21 l.56), sans quoi l'immunité du Round vaudrait une Peur vaincue à jamais.
   if (immune) {
     applyOps(hero, psychBranchOps(ep, { success: true, calmeDR: ep.indice, surmontee: true }), { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'psychologie', id: ep.kind } });
-    return freeCons([t('cf.immunitePsychologique', { name: nomDe(hero) })]);
+    return { lignes: [ligneDeTexte(t('cf.immunitePsychologique', { name: nomDe(hero) }))], faits: [] };
   }
   const res = psychResolution(ep.kind); // mode + conséquences en DONNÉES (psychology.json)
   const brise = r.success ? 0 : failConditionAmount(res.failAmount, ep.indice, r.sl);
@@ -237,7 +239,7 @@ function resolvePsychRow(get: Get, set: Set, hero: Combatant, ep: PsychBandDecl,
   };
   const phobie = res.mode === 'terreur' ? subirLaTerreur(get, set, hero, { etat: res.failCondition, nombre: brise }, sourcesDeLaScene(get()).find((n) => n.id === ep.sourceId)) : null;
   // Immunités croisées (LDB 21) : un effet psy dominant (Peur/Terreur) annule l'Animosité/Préjugé.
-  return freeCons([describeEncounterPsych(pe, nomDe(hero)), ...(phobie ? [phobie] : []), ...supersededLines(hero)]);
+  return { lignes: [describeEncounterPsych(pe, nomDe(hero)), ...(phobie ? [phobie] : []), ...supersededLines(hero)].map((x) => ligneDeTexte(x)), faits: [] };
 }
 
 /** Les genres d'étape que ce module déclare (table `appliers`). */
@@ -255,12 +257,10 @@ export const TABLES = {
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);
         if (!hero || !part.result) { part.outcome = []; continue; }
-        const lines = resultLines(resolvePsychRow(get, set, hero, ep, part.result, !!part.immune, !!part.meta?.sansPeur));
-        part.outcome = lines;
-        for (const l of lines) get().ecrireAuJournal(l.text);
+        for (const l of denouerLaRangee(part, resolvePsychRow(get, set, hero, ep, part.result, !!part.immune, !!part.meta?.sansPeur))) get().ecrireAuJournal(l.entree);
       }
       set(touchActors(get()));
-      return { consequences: [] };
+      return {};
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

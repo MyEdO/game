@@ -31,21 +31,10 @@ import { pionsRetirables, removeCondition, stacks } from '../engine/conditions';
 import type { Applique } from '../engine/faits';
 import { extendedTestSteps, type EchecSansJet } from '../engine/tests';
 import { appliquerIssueActivite } from './activityIssue';
-import {
-  faitsDesConsequences,
-  freeCons,
-  resultLines,
-  rollStep,
-  monoStep,
-  displayStep,
-  bandStep,
-  choiceStep,
-  pousseSi,
-  tableStep,
-  type Consequence,
-} from './rollSeam';
+import { rollStep, monoStep, displayStep, bandStep, choiceStep, pousseSi, tableStep } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
-import { toRecapLines, type RecapTone } from './recapLine';
+import { recapDe, tonnerLApplication } from './recapLine';
+import type { RecapTone } from '../engine/journal';
 import { noteEvent } from './evenementDuJour';
 import { t, type MsgKey } from '../i18n';
 import { rule } from '../engine/policy';
@@ -53,7 +42,8 @@ import {
   stageCount, forageYield, stageExposureDifficulty, weatherResistanceTest,
   isColdSeason, weatherCondition, type Weather, type Season,
 } from '../engine/travelStages';
-import { weatherTestMods } from '../engine/weatherTestMod'; // #341
+import { weatherTestMods } from '../engine/weatherTestMod';
+ // #341
 import { hasCoat, partyHasTent, applyExposureFailure, exposureFailureRank, isWeatherWarded, exposureFirstFailChars } from '../engine/exposure';
 import { rationCount } from '../engine/provisions';
 import { contractDiseaseOnce } from '../engine/disease';
@@ -68,7 +58,7 @@ import type { Possession } from '../engine/possession';
 import type { CascadeStepMeta, BatchParticipant } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
-import type { TableStepDef } from './cascade';
+import { type TableStepDef, denouerLaRangee } from './cascade';
 import { garanti } from '../lib/garanti';
 import { dataLabel } from '../data';
 import {
@@ -80,6 +70,7 @@ import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { nomDe } from '../engine/nom';
+import { ligneDeTexte } from '../engine/journal';
 
 const POSTE_ICON: Record<string, IconId> = {
   'plein-air': 'expedition/grand-air', approvisionnement: 'objet/consommable', 'recueillir-informations': 'expedition/rumeurs', 'rester-aux-aguets': 'interface/oeil',
@@ -182,7 +173,7 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
     // poste n'a plus d'objet → un pas d'AFFICHAGE « achevée », aucun jet ni accumulation (F1).
     if (spec.drTarget != null && (plan.extendedProgress ?? 0) >= spec.drTarget) {
       steps.push(displayStep({ id: `poste-${hero.id}`, kind: 'etapePosteFini', actorId: hero.id, icon: POSTE_ICON[def.id] ?? 'voyage/boussole',
-        label: dataLabel(def.label), outcome: toRecapLines([t('tp.activityDone', { label: def.label, dr: spec.drTarget })]) }));
+        label: dataLabel(def.label), outcome: recapDe([ligneDeTexte(t('tp.activityDone', { label: def.label, dr: spec.drTarget }))]) }));
       continue;
     }
     if (spec.target == null) {
@@ -235,13 +226,13 @@ export function buildStageSteps(get: Get, set: Set, weather: Weather, season: Se
 /** UN poste RÉSOLU : son issue (`appliquerIssueActivite`, source unique terre et mer) enregistrée dans le
  *  contexte d'Étape (l'agrégation `etapeBilan` la relira). Partagé par le pas d'affichage
  *  (`etapePoste`, sans Test) et le pas BATCH (`etapePosteEnBande`, avec Test). */
-function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null): Consequence[] {
+function applyPoste(get: Get, set: Set, hero: Combatant, def: ActivityDef, freeSkill: RefDesignee | undefined, roll: { roll: number; target: number; sl: number; success: boolean } | EchecSansJet | null): Applique {
   const spec = travelActivitySpec(hero, def, { freeSkill });
-  if (!spec) return [];
-  const { result, consequences } = appliquerIssueActivite(get, hero, def, spec, roll);
+  if (!spec) return { lignes: [], faits: [] };
+  const { result, applique } = appliquerIssueActivite(get, hero, def, spec, roll);
   const plan = get().travelPlan;
   if (plan?.stage) set({ travelPlan: { ...plan, stage: { ...plan.stage, results: [...plan.stage.results, result] } } });
-  return consequences;
+  return applique;
 }
 
 /** Le Test de Résistance de traversée. EDOC 8 l.86, l.127 */
@@ -416,7 +407,7 @@ export const TABLES = {
       if (!def || !hero) return;
       const cons = applyPoste(get, set, hero, def, freeSkillFromMeta(step.meta), step.result ?? null);
       set({ party: [...get().party] });
-      return { consequences: cons };
+      return { applique: cons };
     },
     /** Postes AVEC Test = UN pas BATCH (arbitrage user 2026-07-11 : jets INDÉPENDANTS, un par héros posté).
      *  Chaque rangée porte son propre jet influençable (déjà résolu ici) ; sa CONSÉQUENCE est rendue SUR SA
@@ -430,15 +421,12 @@ export const TABLES = {
         const hero = get().party.find((h) => h.id === part.id);
         const def = posting ? activityById(posting.activityId) : undefined;
         if (!hero || !def || !posting) { part.outcome = []; continue; }
-        const cons = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
-        const lines = resultLines(cons); // #349 : ligne STRUCTURÉE (tone dérivé de la Consequence)
-        part.outcome = lines; // conséquence SUR SA rangée (le portrait attribue)
-        const faits = faitsDesConsequences(cons);
-        if (faits.length) part.faits = faits;
-        for (const l of lines) get().ecrireAuJournal(l.text); // + journal/recap (une ligne par héros, pas d'agrégat)
+        const applique = applyPoste(get, set, hero, def, posting.freeSkill, part.result ?? null);
+        // Conséquence SUR SA rangée (le portrait attribue), puis au journal : une ligne par héros, pas d'agrégat.
+        for (const l of denouerLaRangee(part, applique)) get().ecrireAuJournal(l.entree);
       }
       set({ party: [...get().party] });
-      return { consequences: [] };
+      return {};
     },
     /** Test de RÉSISTANCE de traversée (l.86/127) : échec → Exténué (op `condition`, patron #338/#340), son fait
      *  et sa ligne SUR SA rangée (le portrait attribue). Succès → aucune note (la rangée ✓ ±DR porte le verdict). */
@@ -450,13 +438,10 @@ export const TABLES = {
         if (!hero || !res || res.success) { part.outcome = []; continue; }
         const op: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 }; // EDOC 8 l.86/127
         const applique = applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng() });
-        const lines = resultLines([applique]);
-        part.outcome = lines;
-        part.faits = applique.faits;
-        for (const l of lines) get().ecrireAuJournal(l.text);
+        for (const l of denouerLaRangee(part, tonnerLApplication(applique))) get().ecrireAuJournal(l.entree);
       }
       set({ party: [...get().party] });
-      return { consequences: [] };
+      return {};
     },
     /** Le BILAN de fin d'Étape (`bilanDeLEtape`), appliqué ; puis la Rencontre due, tirée à sa table, et
      *  les jets d'Exposition (option « Attraper froid », l.73), sautés si un « Plein air » a réussi (l.141). */
@@ -484,7 +469,7 @@ export const TABLES = {
       pousseSi(insert, choixDuCamp(get(), bilan.camps));
       pousseSi(insert, rencontre);
       if (!bilan.pleinAir) insert.push(...buildExposureSteps(get(), plan.stage));
-      return { consequences: freeCons(lignesDuBilan(get(), bilan)), insert };
+      return { applique: { lignes: lignesDuBilan(get(), bilan).map((x) => ligneDeTexte(x)), faits: [] }, insert };
     },
     etapePosteCamp: (get, set, step, campeur) => {
       if (!campeur || !step.chosen) return;
@@ -495,7 +480,7 @@ export const TABLES = {
       const insert: BuiltCascadeStep[] = [];
       if (step.chosen === 'renoncer') {
         pousseSi(insert, choixDuCamp(get(), camps, index + 1));
-        return { consequences: freeCons([t('tp.campForfeit', { name: nomDe(campeur), n: dr })]), insert };
+        return { applique: { lignes: [ligneDeTexte(t('tp.campForfeit', { name: nomDe(campeur), n: dr }))], faits: [] }, insert };
       }
       const separateur = step.chosen.indexOf(':');
       const usage = step.chosen.slice(0, separateur);
@@ -503,9 +488,9 @@ export const TABLES = {
       const patient = garanti(get().party.find((h) => h.id === patientId), patientId, 'patient du camp');
       let lignes: string[];
       if (usage === 'extenue') {
-        const sortie: Applique = { lignes: [t('tp.campCare', { name: nomDe(patient), n: 1 })], faits: [] };
+        const sortie: Applique = { lignes: [ligneDeTexte(t('tp.campCare', { name: nomDe(patient), n: 1 }))], faits: [] };
         removeCondition(patient, 'extenue', 1, sortie);
-        lignes = sortie.lignes;
+        lignes = sortie.lignes.map((e) => e.texte);
       } else {
         lignes = applyHealWounds(patient, soinDuCamp(campeur, patient, soignes));
       }
@@ -515,7 +500,7 @@ export const TABLES = {
         ? choixDuCamp(get(), camps, index, dr - 1, patientsSoignes)
         : choixDuCamp(get(), camps, index + 1);
       pousseSi(insert, prochainChoix);
-      return { consequences: freeCons(lignes), insert };
+      return { applique: { lignes: lignes.map((x) => ligneDeTexte(x)), faits: [] }, insert };
     },
     /** La Rencontre tirée (EDOC 8 l.182-233) : l'événement du jour (`noteEvent`), dont la ligne est la
      *  conséquence de l'étape, et le repos complet d'un voyage tranquille. */
@@ -532,12 +517,12 @@ export const TABLES = {
           const ex = stacks(h, 'extenue');
           const sortie: Applique = { lignes: [], faits: [] };
           if (ex > 0) removeCondition(h, 'extenue', ex, sortie);
-          j.push(...sortie.lignes);
+          j.push(...sortie.lignes.map((e) => e.texte));
         }
         set({ party: [...get().party] });
         j.push(t('tp.calmTravel'));
       }
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Un Test d'EXPOSITION de fin d'Étape (l.73) : échec → escalade cumulative de froid (l.415), rhume
      *  CONTRACTÉ en saison froide ou PROLONGÉ (`coldExposureChill`). Protection magique = ignorée d'office.
@@ -546,15 +531,15 @@ export const TABLES = {
     etapeExposition: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
       const weatherLabel = String(step.meta?.weatherLabel ?? '');
-      if (step.meta?.warded) return { consequences: freeCons([t('eff.meteoConjuree', { name: nomDe(hero), what: t('eff.protectionDuFroid') })]) };
+      if (step.meta?.warded) return { applique: { lignes: [ligneDeTexte(t('eff.meteoConjuree', { name: nomDe(hero), what: t('eff.protectionDuFroid') }))], faits: [] } };
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence.
-      if (step.result.success) return { consequences: freeCons([]) };
+      if (step.result.success) return { applique: { lignes: [], faits: [] } };
       const j: string[] = [t('tp.exposureLine', { name: nomDe(hero), weather: weatherLabel })];
       const prior = (hero.activeEffects ?? []).filter((e) => e.effectId === 'exposition-froid').length;
       j.push(...applyExposureFailure(hero, exposureFailureRank(prior), battleRng()).log);
       j.push(...coldExposureChill(hero, !!step.meta?.coldSeason));
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   tablesTirables: Object.fromEntries(CATEGORIES_DE_RENCONTRE.map((c) => [tableDeRencontre(c), {

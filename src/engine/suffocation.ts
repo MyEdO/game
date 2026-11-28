@@ -116,7 +116,7 @@ export function suffocationTick(c: Combatant): string[] {
     if (c.wounds.current <= 0) {
       perdreConnaissance(c, consequences);
       c.suffocationCountdown = be;
-      lines.push(...consequences.lignes, t('suff.faints', { name: nomDe(c), n: be }));
+      lines.push(...consequences.lignes.map((e) => e.texte), t('suff.faints', { name: nomDe(c), n: be }));
     }
     return lines;
   }
@@ -124,7 +124,7 @@ export function suffocationTick(c: Combatant): string[] {
   if (c.suffocationCountdown == null) {
     perdreConnaissance(c, consequences);
     c.suffocationCountdown = be;
-    lines.push(...consequences.lignes, t('suff.unconscious', { name: nomDe(c), n: be }));
+    lines.push(...consequences.lignes.map((e) => e.texte), t('suff.unconscious', { name: nomDe(c), n: be }));
     return lines;
   }
   c.suffocationCountdown -= 1;

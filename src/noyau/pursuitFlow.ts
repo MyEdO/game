@@ -40,7 +40,7 @@ import { testValue } from '../engine/skills';
 import type { LivingRef } from '../engine/possession';
 import { jetSurfaced } from './sieges';
 import { cadenceAuto } from '../engine/cadence';
-import { freeCons, bandStep, bandRowOfStep, choiceStep, makeBandFactory, rollStep } from './rollSeam';
+import { bandStep, bandRowOfStep, choiceStep, makeBandFactory, rollStep } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import {
   pursuitOutcome, pursuitMoveBonus, pursuitLaggard, npcSacrificeChoice, npcPursuerChoice,
@@ -57,6 +57,7 @@ import { dataLabel } from '../data';
 import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Spécification d'auteur d'une poursuite (posée par l'Effet `startPursuit`). */
 export interface PursuitSpec {
@@ -529,13 +530,13 @@ export const TABLES = {
         const who = nomOuAbsence(actorIn(get(), row.id), 'combattant', row.id);
         lines.push(t('pursuit.row', { who, label: row.label ?? t('step.pursuitMouvement'), dr: drSigne(dr) }));
       }
-      return { consequences: freeCons(lines) };
+      return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Applier de l'étape de DÉCISION (l.94) : la voie choisie est lue par le réducteur de clôture — ici,
      *  seule la phrase de ce qui a été décidé entre au récit. */
     [PURSUIT_CHOICE_KIND]: (_get, _set, step) => {
       const choisi = step.options?.find((o) => o.key === step.chosen);
-      return choisi ? { consequences: freeCons([choisi.label]) } : undefined;
+      return choisi ? { applique: { lignes: [ligneDeTexte(choisi.label)], faits: [] } } : undefined;
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   sequences: {

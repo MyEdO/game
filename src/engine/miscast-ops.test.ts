@@ -320,7 +320,7 @@ describe('81-87 Purifier la chair — Inconscient pour 1d10 Rounds, porté par s
     expect(n).toBeGreaterThanOrEqual(1);
     expect(n).toBeLessThanOrEqual(10);
     expect(porteur.label, 'ce que le joueur lit dans ses effets actifs').toBe('Purifier la chair');
-    expect(log).toEqual([`Cobaye gagne l’État Inconscient — Purifier la chair (${n} Round${n > 1 ? 's' : ''}).`]);
+    expect(log.map((e) => e.texte)).toEqual([`Cobaye gagne l’État Inconscient — Purifier la chair (${n} Round${n > 1 ? 's' : ''}).`]);
     expect(c.conditions.find((x) => x.id === 'inconscient')?.value).toBe(1);
     expect(c.conditions.find((x) => x.id === 'inconscient')?.derivedFrom?.src).toEqual({ category: 'colereDesDieux', id: 'colere-purifier-la-chair' });
   });

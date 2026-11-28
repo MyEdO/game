@@ -3,6 +3,7 @@ import { applyZeroWounds, loseWounds } from './conditions';
 import { setRule, resetRule } from './policy';
 import { combattantDeTest, blessuresDeBase } from './combattantDeTest.testkit';
 import type { Applique } from './faits';
+import { ligneDeTexte } from './journal';
 
 /** « Gunther », héros à 8 PB sur 10 et 3 Avantages. */
 const gunther = (pb = 8, avantage = 3) => combattantDeTest({ id: 'gunther', label: 'Gunther', kind: 'heros', wounds: blessuresDeBase(10, pb), advantage: avantage });
@@ -27,7 +28,7 @@ describe('loseWounds — les PB perdus, versés dans le puits (LDB 14 l.219 ; LD
     const a = puits();
     expect(loseWounds(c, 5, a)).toBe(3);
     expect(a).toEqual({
-      lignes: ['Gunther reçoit 1 État À Terre.'],
+      lignes: [ligneDeTexte('Gunther reçoit 1 État À Terre.')],
       faits: [
         { genre: 'avantage', cible: 'gunther', camp: 'groupe', valeur: -2, total: 0 },
         { genre: 'etat', cible: 'gunther', camp: 'groupe', id: 'a-terre', valeur: 1 },
@@ -39,7 +40,7 @@ describe('loseWounds — les PB perdus, versés dans le puits (LDB 14 l.219 ; LD
   it('porteur d’Hémorragique à 0 PB : une ligne d’À Terre et une d’Inconscient (LDB 16 l.105)', () => {
     const a = puits();
     loseWounds(ilyanwe(3), 10, a);
-    expect(a.lignes).toEqual(['Ilyanwe reçoit 1 État À Terre.', 'Ilyanwe reçoit 1 État Inconscient.']);
+    expect(a.lignes.map((e) => e.texte)).toEqual(['Ilyanwe reçoit 1 État À Terre.', 'Ilyanwe reçoit 1 État Inconscient.']);
   });
 
   it('sans Avantage : aucun fait d’Avantage', () => {
@@ -79,7 +80,7 @@ describe('applyZeroWounds — la variation des pions, versée dans le puits (LDB
     const c = combattantDeTest({ id: 'gunther', label: 'Gunther', kind: 'heros', wounds: blessuresDeBase(10, 2), conditions: [{ id: 'inconscient', value: 1 }] });
     const a = puits();
     loseWounds(c, 5, a);
-    expect(a.lignes).toEqual(['Gunther reçoit 1 État À Terre.']);
+    expect(a.lignes.map((e) => e.texte)).toEqual(['Gunther reçoit 1 État À Terre.']);
   });
 
   it('rejoué sur un porteur déjà posé : une seule ligne par État', () => {
@@ -87,6 +88,6 @@ describe('applyZeroWounds — la variation des pions, versée dans le puits (LDB
     const a = puits();
     applyZeroWounds(c, a);
     applyZeroWounds(c, a);
-    expect(a.lignes).toEqual(['Ilyanwe reçoit 1 État À Terre.', 'Ilyanwe reçoit 1 État Inconscient.']);
+    expect(a.lignes.map((e) => e.texte)).toEqual(['Ilyanwe reçoit 1 État À Terre.', 'Ilyanwe reçoit 1 État Inconscient.']);
   });
 });

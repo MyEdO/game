@@ -1,11 +1,13 @@
 /**
  * Kit de TEST pour `cascade.ts` — `spyApplier` mutualise le motif dupliqué des suites de cascade : un
  * applier de fixture (posé par `avecLesTables`) qui PUSH une entrée dérivée de l'étape validée dans un
- * tableau `applied` puis renvoie une conséquence (`journal`/`insert`/…) optionnelle. N'importer que depuis l'outillage de test,
+ * tableau `applied` puis renvoie une conséquence (`applique`/`insert`/…) optionnelle. N'importer que depuis l'outillage de test,
  * suite ou kit au sens d'`estSuiteVitest`/`estKitDeTest` (`scripts/guards/lib/fichierVitest.mjs`) —
  * module de test, pas de périmètre runtime.
  */
 import type { CascadeApplier } from './cascade';
+import type { Applique } from '../engine/faits';
+import { recapDe } from './recapLine';
 import type { Jeu } from './etat';
 import type { BatchParticipant, CascadeStep, PendingCascade } from './pendings';
 import { DIFFICULTY_MODIFIERS, type Difficulty } from '../engine/types';
@@ -187,7 +189,7 @@ export function draineEtLit(get: () => Jeu, max = 200): string[] {
     for (const s of get().pendingCascade?.participants ?? []) {
       // Une révélation porte SES lignes deux fois (charge `reveal` + conséquence rendue) : c'est UN
       // rendu, pas deux — sans quoi « combien de fois le joueur l'a-t-il lu ? » compterait faux.
-      const lignes = [...new Set([...(s.outcome ?? []).map((l) => l.text), ...(s.reveal?.lines ?? [])])];
+      const lignes = [...new Set([...(s.outcome ?? []).map((l) => l.entree.texte), ...(s.reveal?.lines ?? [])])];
       if (lignes.length) parEtape.set(s.id, lignes);
     }
   };
@@ -215,8 +217,13 @@ export function draineCascadeDifferee(get: () => Jeu, avancerTimers: () => void,
   return kinds;
 }
 
+/** Les textes des lignes que rend l'application d'un applier (`out.applique`, lue par `recapDe`), dans leur ordre (#4574). */
+export function lignesDeLApplier(out: { applique?: Applique } | void | undefined): string[] {
+  return (out?.applique ? recapDe(out.applique.lignes) : []).map((l) => l.entree.texte);
+}
+
 /** Un applier-espion : `mapper(step)` alimente `applied`, `out(step)` (défaut : rien) fournit la
- *  conséquence renvoyée à `commitStep` (`journal`/`consequences`/`insert`). Se pose par `avecLesTables`. */
+ *  conséquence renvoyée à `commitStep` (`applique`/`insert`/…). Se pose par `avecLesTables`. */
 export function spyApplier<T>(
   applied: T[],
   mapper: (step: CascadeStep) => T,

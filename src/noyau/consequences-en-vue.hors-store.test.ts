@@ -46,7 +46,7 @@ describe('une étape de cascade garde ses faits appliqués', () => {
   it('l’Exténué des rumeurs ratées : son fait et sa ligne, posés ensemble à la validation', () => {
     const etape = rumeursRatees();
     expect(etape.faits).toEqual([{ genre: 'etat', cible: 'h-artur', camp: 'groupe', id: 'extenue', valeur: 1 }]);
-    expect(etape.outcome?.map((l) => [l.text, l.tone])).toContainEqual(['Artur reçoit 1 État Exténué.', 'echec']);
+    expect(etape.outcome?.map((l) => [l.entree.texte, l.entree.ton])).toContainEqual(['Artur reçoit 1 État Exténué.', 'echec']);
   });
 
   it('la rangée du jet publie la conséquence, ton vu des héros', () => {

@@ -86,7 +86,7 @@ describe('#4911 — les États posés à 0 Blessure ont leur ligne', () => {
     g.shipStation = 'greement' as never;
     const coque = combattantDeTest({ id: 'hull', bodyShape: 'vehicule', creatureId: 'bateau-de-patrouille', upgrades: [{ id: 'nid-de-pie' }] });
     const des = new Map([[cleDeDe(0, 'hauteur'), 6], [cleDeDe(0, 'degats'), 9]]);
-    expect(applyOps(g, [{ op: 'fall', hauteur: { table: { id: 'tomberDuGreement' } } } as never], { idNeuf: idsDeTest, rng: desDuTest, hull: coque, des }).lignes)
+    expect(applyOps(g, [{ op: 'fall', hauteur: { table: { id: 'tomberDuGreement' } } } as never], { idNeuf: idsDeTest, rng: desDuTest, hull: coque, des }).lignes.map((e) => e.texte))
       .toEqual([
         'Gobelin — Tomber du gréement : chute de 6 m, 3 Blessure(s).',
         'Gobelin reçoit 1 État À Terre.',
@@ -139,6 +139,6 @@ describe('#4911 — la passe de Chirurgie dit son Hémorragique par sa prose, un
       'Patient reçoit 1 État À Terre.',
       'Patient reçoit 1 État Inconscient.',
       'Patient sombre sur la table — l\'opération est interrompue (stabilisez-le d\'abord).',
-    ].map(ligneDeTexte));
+    ].map((x) => ligneDeTexte(x)));
   });
 });

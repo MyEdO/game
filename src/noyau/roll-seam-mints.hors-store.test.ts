@@ -36,6 +36,7 @@ import { combattantDeTest } from '../engine/combattantDeTest.testkit';
 import { deDeLaTableTiree } from '../engine/tables';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { TESTE_DE_TEST } from './cascade.testkit';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -395,7 +396,7 @@ describe('#1262 — les portes d’APPEND', () => {
       table: { tableId: TABLE },
       result: { roll: 60, die: 60, id: 'haute', lines: ['ligne 60'] },
       stake: { key: { dataset: 'combat', kind: 'mutation' } },
-      outcome: [{ text: 'ligne 60' }],
+      outcome: [{ entree: ligneDeTexte('ligne 60') }],
     });
     const [st] = etapes();
     expect(st.table!.result!.id).toBe('haute');
