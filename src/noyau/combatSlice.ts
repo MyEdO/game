@@ -29,7 +29,7 @@ import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './r
 import { Combatant, CHAR_LABELS, type FireArc } from '../engine/types';
 import { hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
-import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
+import { attaqueDeCle, type AttackKind, selfManeuversOf } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
 import {
   activeCombatant,
@@ -122,6 +122,7 @@ import {
   grappleActionEligible,
   hasFreeWeaponAttack,
   resolveManeuver,
+  avantageDebite,
   availableAttacks,
   attaqueImmediate,
   startBattement,
@@ -1153,16 +1154,15 @@ export function createCombatSlice(get: Get, set: Set) {
       // wrapper roule les jets subis + checkBattleOver). Dépense TOUS les Avantages (min 2).
       applyWail(get, set, active);
     },
+    // L'entrée qui l'admet (`refusDuGeste`) a jugé sa porte et son candidat (`manoeuvreSurSoiJouable`) ; son `activation`
+    // dit si elle prend l'Action.
     manoeuvrerSurSoi: (maneuverId: string) => {
-      const battle = get().battle;
-      if (!battle || battle.over || battle.acted) return;
-      const active = activeCombatant(battle);
-      if (!active || !canTakeAction(active)) return;
-      const def = selfManeuversOf(active).find((m) => m.id === maneuverId);
-      if (!def || !selfManeuverApplicable(active, def)) return; // périmée (déjà dans/hors de la forme)
+      const battle = get().battle!;
+      const active = activeCombatant(battle)!;
+      const def = garanti(selfManeuversOf(active).find((m) => m.id === maneuverId), maneuverId, 'manœuvre sur soi admise');
       set({ battle: { ...battle, action: null } }); // referme le menu
-      resolveManeuver(get, set, active, def, 0, null, 0, active); // cible = SOI (transformation, mue…)
-      set({ battle: markActed(get, set) }); // Action consommée
+      resolveManeuver(get, set, active, def, 0, null, garanti(avantageDebite(battle, active, def), maneuverId, 'prix de la manœuvre admise'), active); // cible = SOI (transformation, mue…)
+      if (def.activation === 'action') set({ battle: markActed(get, set) });
       checkBattleOver(get, set);
     },
 

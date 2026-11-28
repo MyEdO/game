@@ -3,7 +3,7 @@ import {
   traitCharMods, traitMovementMod, wardSaves,
   traitAuras,
   immunityTypes, isUnstable,
-  bellicosePsychImmune, isMindless, isBestial, isColdBlooded, isStupid, hasRage,
+  bellicosePsychImmune, isMindless, isBestial, isColdBlooded, isStupid,
   isTerritorial, flyMeters, runMultiplier, traitSeesInDark, mutationsAtSpawn,
 } from './dispatch';
 import { contreSurDefenseGagnee } from '../combatFeatures/dispatch';
@@ -61,11 +61,10 @@ describe('dispatch — parsing et prédicats (LDB 85)', () => {
     expect(traitSpellDRMod(mk({ traits: [{ id: 'resistance-a-la-magie' }] }))).toBe(-1); // Indice absent → 1 (donnée naine)
     expect(immunityTypes([{ id: 'immunite', arg: 'poison' }])).toEqual(['poison']);
   });
-  it('psy/IA : Bestial, À sang-froid, Stupide, Rage, Territorial, Fabriqué', () => {
+  it('psy/IA : Bestial, À sang-froid, Stupide, Territorial, Fabriqué', () => {
     expect(isBestial([{ id: 'bestial' }])).toBe(true);
     expect(isColdBlooded([{ id: 'a-sang-froid' }])).toBe(true); // casse de la donnée
     expect(isStupid([{ id: 'stupide' }])).toBe(true);
-    expect(hasRage([{ id: 'rage' }])).toBe(true);
     expect(isTerritorial([{ id: 'territorial' }])).toBe(true);
     expect(isMindless([{ id: 'fabrique' }])).toBe(true);
   });

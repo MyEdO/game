@@ -143,7 +143,7 @@ const BASELINE: string[] = [
   'engine/shipCritical.ts | crit.ops | { rng, idNeuf, crew }', // ops d'un critique de navire (équipage)
   'engine/shipCritical.ts | set.shrapnelHit! | { rng, idNeuf }', // éclats d'un critique de navire (le `!` tient l'anomalie NOMMÉE juste au-dessus : un jeu sans `shrapnelHit` ne peut pas porter d'Éclats)
   'engine/shipCritical.ts | extra.ops | { rng, idNeuf }', // ops d'un critique de navire supplémentaire
-  "noyau/monde/aiSpellValue.ts | [op] | { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) }", // simulation d'IA sur un CLONE — jamais affichée au joueur
+  "noyau/monde/aiSpellValue.ts | [...ops] | { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) }", // simulation d'IA sur un CLONE — jamais affichée au joueur
   'noyau/combatEffects.ts | e.ops | { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }', // ops d'un Souffle de zone (effet de scène)
   'noyau/combatFlow.ts | ops | contexte', // ops d'une Blessure critique en combat (`appliquerLesOpsDuCritique` : application et prévision)
   'noyau/combatFlow.ts | outcome.ops | { idNeuf, rng: battleRng() }', // ops de l'issue d'une manœuvre

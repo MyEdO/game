@@ -1,8 +1,11 @@
 import { beforeAll, describe, expect, it } from 'vitest';
 import { annonceDuCoupSurUnAllie, jouerLeCombat, nouvelleRecrue, type Coup, type IssueDuCombat, poserLesReglesDuRoguelite } from './index';
-import { DESTINATIONS, estUtile, nouvellePartie, PROFILS, recrue as recrueDuHameau } from '../jeu';
+import { estUtile, PROFILS } from '../jeu';
 import { t } from '../../../../src/i18n';
 import { chebyshev } from '../../../../src/engine/grid';
+import { poserLeDataset } from '../../../../src/data/datasetDeTest.testkit';
+import { blessuresDeBase, combattantDeTest, profilDeTest } from '../../../../src/engine/combattantDeTest.testkit';
+import type { Combatant } from '../../../../src/engine/types';
 
 beforeAll(() => poserLesReglesDuRoguelite());
 
@@ -36,13 +39,30 @@ describe('le rejeu d’un coup porté sur son propre camp', () => {
 });
 
 describe('l’issue d’un combat joué par la couture de la rencontre (#4847)', () => {
+  // Fixtures déclarées au seam des datasets : une brute qui, quand elle touche, tue sa victime (op `kill`, que le Destin
+  // conjure) et tombe d'elle-même ; un héros qui ne peut ni l'esquiver ni la blesser.
+  poserLeDataset('traits', (livre) => [...livre, {
+    id: 'coup-fatal-de-test', type: 'traits', label: 'Coup fatal de test', source: { book: 'LDB', page: 0 },
+    effects: [
+      { trigger: 'onHit', on: 'victime', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'kill' }] } } },
+      { trigger: 'onHit', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'wounds', amount: 99, ignoreTB: true, ignoreAP: true }] } } },
+    ],
+  } as never]);
+  poserLeDataset('creatures', (livre) => [...livre, {
+    id: 'brute-de-test', type: 'creatures', label: 'Brute de test', title: null, folder: 'Test', source: { book: 'LDB', page: 0 },
+    char: { M: 12, 'capacite-de-combat': 95, 'capacite-de-tir': 10, force: 60, endurance: 10, initiative: 99, agilite: 1, dexterite: 10, intelligence: 10, 'force-mentale': 10, sociabilite: 10, B: 1 },
+    traits: [{ id: 'arme', value: 5 }, { id: 'coup-fatal-de-test' }], optionals: [], skills: [], talents: [], trappings: [], spells: [], desc: '',
+  } as never]);
+  const heros = (): Combatant => combattantDeTest({
+    id: 'victime', label: 'Victime', kind: 'heros', fate: 5, characteristics: profilDeTest({ 'capacite-de-combat': 5, agilite: 5, initiative: 1 }),
+    weapons: [{ label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }], wounds: blessuresDeBase(40),
+  });
+
   it('un héros que le Destin sauve n’est pas compté mort : la rencontre rend son Destin dépensé, lu après la fenêtre du Destin', () => {
-    const e = nouvellePartie(7003);
-    const groupe = [0, 1, 2, 3].map((k) => recrueDuHameau(e, PROFILS[k % PROFILS.length]).c);
-    const hardes = DESTINATIONS.find((d) => d.id === 'hardes')!;
-    const issue = jouerLeCombat(groupe, hardes.elites[1], 9001, hardes.lumiere);
+    const groupe = [heros()];
+    const issue = jouerLeCombat(groupe, ['brute-de-test'], 1);
     const sauves = Object.entries(issue.destinDepense).filter(([, n]) => n > 0).map(([id]) => id);
-    expect(sauves.length).toBeGreaterThan(0);
+    expect(sauves).toEqual(['victime']);
     for (const id of sauves) {
       expect(issue.morts).not.toContain(id);
       expect(issue.groupe.find((c) => c.id === id)!.fate).toBe(groupe.find((c) => c.id === id)!.fate! - issue.destinDepense[id]);

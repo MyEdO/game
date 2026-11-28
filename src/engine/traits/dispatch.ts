@@ -321,11 +321,6 @@ export function isStupid(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'stupid');
 }
 
-/** Rage (LDB 85 l.282). */
-export function hasRage(traits: TraitList | undefined): boolean {
-  return traitCapability(traits, 'rage');
-}
-
 /** Territorial (LDB 85 l.413) : annule la fuite de Bestial (combat jusqu'à la mort). */
 export function isTerritorial(traits: TraitList | undefined): boolean {
   return traitCapability(traits, 'territorial');
