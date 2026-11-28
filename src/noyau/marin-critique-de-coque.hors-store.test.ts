@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Combatant, Weapon } from '../engine/types';
 import { evaluateMissile, type CastResult } from '../engine/magic';
@@ -115,7 +116,7 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
     const marin = perso('marin', { important: true, wounds: blessuresDeBase(40), armour: { tete: 2, brasG: 2, brasD: 2, corps: 2, jambeG: 2, jambeD: 2 } });
     const nav = navire(marin);
     const sort = findSpellById('carreau')!;
-    const incantation: CastResult = { cast: true, roll: 21, target: 90, sl: 4, isCritical: false, isFumble: false, log: 'jet' };
+    const incantation: CastResult = { cast: true, roll: 21, target: 90, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('jet') };
     const mres = evaluateMissile(mage, nav, sort, incantation);
     const attendu = evaluateMissile(mage, structuredClone(marin), sort, mres).woundsLost ?? 0;
     expect(attendu).toBeGreaterThan(0);

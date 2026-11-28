@@ -103,7 +103,7 @@ describe('AXE `escalade` — seuil + mode déclarés par l’entrée', () => {
     const log = consolidateAmputations(c);
     expect((c.traumas ?? []).some((t) => t.traumaId === 'doigt-ampute')).toBe(false);
     expect((c.traumas ?? []).some((t) => t.traumaId === 'main-bras-ampute' && t.location === 'brasD')).toBe(true);
-    expect(log.join(' ')).toMatch(/Main\/bras amputé/);
+    expect(log.map((e) => e.texte).join(' ')).toMatch(/Main\/bras amputé/);
   });
 
   it('`remplace` : SOUS le seuil, rien n’escalade (3 doigts restent des doigts)', () => {
@@ -115,7 +115,7 @@ describe('AXE `escalade` — seuil + mode déclarés par l’entrée', () => {
 
   it('le JOURNAL nomme la séquelle atteinte ET son effet, DÉRIVÉ de ses ops déclarées', () => {
     const c = C([pose('oeil-perdu', 'tete'), pose('oeil-perdu', 'tete')]);
-    const [ligne] = consolidateAmputations(c);
+    const [{ texte: ligne }] = consolidateAmputations(c);
     expect(ligne).toContain('Cécité'); // le LABEL de la fiche cible, pas un id
     expect(ligne).toContain('−30 en'); // l'effet chiffré, lu sur les ops de la fiche
     expect(ligne).toContain('Esquive');

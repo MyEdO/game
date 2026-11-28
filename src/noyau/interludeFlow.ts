@@ -758,7 +758,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
     case 'wrathOfTheGods':
       // « réalisez un Test sur le Tableau de la Colère des Dieux […] à la place » (ACE 12 l.15) —
       // point d'entrée hors-Prière sur la table existante (engine/miscast).
-      return { lines: applyMiscast(get, set, h, 'colere') };
+      return { lines: applyMiscast(get, set, h, 'colere').map((e) => e.texte) };
     case 'masterWeapon': {
       const it = (h.items ?? []).find((i) => i.uid === pa.itemUid);
       if (!it?.trappingId) return { lines: [] };

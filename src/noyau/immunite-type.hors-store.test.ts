@@ -5,6 +5,7 @@
  * aussi par les zones persistantes (`zoneSansEffetSur`). ZI 08 l.28 ; VDM 10 l.153 ; VDM 13 l.24.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { runCombatHooks, type CombatHookCtx } from './combatHooks';
@@ -75,7 +76,7 @@ function finDeRound() {
   runCombatHooks('onRoundEnd', ctx);
 }
 
-const lance: CastResult = { cast: true, roll: 21, target: 70, sl: 2, isCritical: false, isFumble: false, log: 'lancé' };
+const lance: CastResult = { cast: true, roll: 21, target: 70, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') };
 
 /** Le Projectile `spell` par le chemin du jeu (`applyCast` en Projectile), ses étapes de dé jouées. */
 function projeter(H: Combatant, E: Combatant, spell: NonNullable<ReturnType<typeof findSpellById>>): string[] {

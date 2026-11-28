@@ -6,6 +6,7 @@
  * débranché.
  */
 import { describe, it, expect, afterEach } from 'vitest';
+import { ligneDeTexte } from './journal';
 import { setRule, resetRule } from './policy';
 import { evaluateMissile, missileDamageSL, type CastResult } from './magic';
 import type { Combatant } from './types';
@@ -29,7 +30,7 @@ function mk(p: Partial<Combatant> = {}): Combatant {
 /** Projectile SANS attribut de Domaine : seuls Dégâts du Sort, DR et BFM entrent dans le calcul. */
 const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', missile: true, damage: 4, cn: 2, range: null, target: 1, duration: null, desc: 'Il s’agit d’un Projectile magique avec Dégâts +4.' };
 
-const crit = (sl: number): CastResult => ({ cast: true, roll: 44, target: 60, sl, isCritical: true, isFumble: false, log: 'jet' });
+const crit = (sl: number): CastResult => ({ cast: true, roll: 44, target: 60, sl, isCritical: true, isFumble: false, log: ligneDeTexte('jet') });
 
 describe('missileDamageSL — axe Dégâts (`VDM 02 l.198,207-215`)', () => {
   it('CÂBLAGE : le même appel ne rend pas le même DR ajouté selon l’option', () => {

@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -51,7 +52,7 @@ describe('Incantation opposée (SpellSpec.opposed — multijet)', () => {
     banc.setState({
       pendingCast: {
         casterId: H.id, targetId: E.id, spellId, missile: false,
-        result: { cast: true, roll: 30, target: 70, sl, base: castingBaseValue(H, incantationArcane()), isCritical: false, isFumble: false, log: 'x' },
+        result: { cast: true, roll: 30, target: 70, sl, base: castingBaseValue(H, incantationArcane()), isCritical: false, isFumble: false, log: ligneDeTexte('x') },
       },
     });
   }
@@ -169,7 +170,7 @@ describe('Incantation opposée en COOP — la cible d’un autre siège tient sa
       net: { ...banc.getState().net, mode: 'hote', mySeat: 0, seatNames: { 0: 'Hôte', 1: 'Antoine', 2: 'Béa' }, ownership: { [T.id]: 1 } },
       pendingCast: {
         casterId: H.id, targetId: T.id, spellId: 'fauche-demon', missile: false,
-        result: { cast: true, roll: 30, target: 70, sl: 6, base: castingBaseValue(H, incantationArcane()), isCritical: false, isFumble: false, log: 'x' },
+        result: { cast: true, roll: 30, target: 70, sl: 6, base: castingBaseValue(H, incantationArcane()), isCritical: false, isFumble: false, log: ligneDeTexte('x') },
       },
     });
     const { openCastCascade, openCastOpposition } = await import('./combatFlow');
@@ -243,7 +244,7 @@ describe('#1028 — rangée d’opposition : possession, jamais le kind', () => 
     banc.setState({
       pendingCast: {
         casterId, targetId, spellId: 'parole-de-tzeentch', missile: false,
-        result: { cast: true, roll: 30, target: 70, sl: 4, base: castingBaseValue(caster, incantationArcane()), isCritical: false, isFumble: false, log: 'x' },
+        result: { cast: true, roll: 30, target: 70, sl: 4, base: castingBaseValue(caster, incantationArcane()), isCritical: false, isFumble: false, log: ligneDeTexte('x') },
       },
     });
   };

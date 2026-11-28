@@ -14,6 +14,7 @@
  *     sans quoi l'opposition compare une cible à la nue de l'attaquant figé.
  */
 import { fixtureText } from '../i18n/fixtureText';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant } from '../engine/types';
@@ -37,7 +38,7 @@ const mk = (id: string, kind: Combatant['kind'] = 'heros', over: Partial<Combata
 }) as unknown as Combatant);
 
 /** Incantation ENNEMIE figée : Niveau de Compétence 60, cible testée 25 (Difficile + ward), dé 13 → DR 1. */
-const ENEMY_CAST = { cast: true, roll: 13, target: 25, base: 60, sl: 1, isCritical: false, isFumble: false, log: '' };
+const ENEMY_CAST = { cast: true, roll: 13, target: 25, base: 60, sl: 1, isCritical: false, isFumble: false, log: ligneDeTexte('') };
 /** Jet raté de départ du participant — le dé posé le remplace. */
 const RATE = { roll: 88, target: 30, base: 30, sl: -6, success: false, isDouble: true };
 /** Dé posé : 23 sur cible 30 → DR 1, à ÉGALITÉ avec l'incantation figée. */
@@ -61,7 +62,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
   it('Contre-sort : la nue du chanteur est RELUE (45), pas héritée de la cible ni du Soutien — le lanceur 60 l’emporte', () => {
     banc.setState({ pendingCounterspell: { participants: [
       // `base: 30` sur le jet de départ = une valeur TESTÉE quelconque : elle ne doit pas servir au départage.
-      { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
+      { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: ligneDeTexte('') } },
     ] } } as never);
     st().jetImposerLeResultat('contreSort', POSE, 'A');
 
@@ -77,7 +78,7 @@ describe('LDB 12 l.160 — dé POSÉ sur un Test opposé d’incantation (#1150)
     const b = banc.getState().battle!;
     banc.setState({ battle: { ...b, combatants: [banc.getState().party[0], b.combatants[1]] } } as never);
     banc.setState({ pendingCounterspell: { participants: [
-      { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: '' } },
+      { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...RATE }, casterNetSL: 7, log: ligneDeTexte('') } },
     ] } } as never);
     st().jetImposerLeResultat('contreSort', POSE, 'A');
 

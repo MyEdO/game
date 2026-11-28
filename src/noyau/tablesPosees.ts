@@ -10,6 +10,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import type { Combatant } from '../engine/types';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { Possession } from '../engine/possession';
 import type { AnnonceDEtape, CascadeApplier, CascadeTableFold, ExtendedTestOutcomeApplier, TableStepDef, TableStepFamily } from './cascade';
 import type { CombatHook } from './combatHooks';
@@ -53,7 +54,7 @@ export type ClotureApplier<K extends Cloture['verbe']> = (get: Get, set: Set, c:
 export type LanceurDeSort = (get: Get, set: Set, caster: Combatant, target: Combatant, spellId: string) => void;
 
 /** Le lancer GARANTI de l'Effet `castSpell` `mode:'forcerLaReussite'` (#98) : rend ses lignes de journal. */
-export type LanceurGaranti = (get: Get, set: Set, caster: Combatant, target: Combatant, spellId: string) => string[];
+export type LanceurGaranti = (get: Get, set: Set, caster: Combatant, target: Combatant, spellId: string) => EntreeDuJournal[];
 
 /** Un départage d'égalité déclaré, et le récit de ce qu'il a lu quand il en tient un. */
 export interface Departage {

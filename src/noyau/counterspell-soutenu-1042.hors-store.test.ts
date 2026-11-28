@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -70,7 +71,7 @@ function freezeCast(caster: Combatant, target: Combatant) {
     pendingCast: {
       casterId: caster.id, targetId: target.id, spellId: 'carreau', missile: true,
       counterspellRouted: true, // le MOMENT du Contre-sort est consommé : la fenêtre ci-dessous EST la sienne
-      result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'Sort lancé' },
+      result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('Sort lancé') },
     },
   } as unknown as Partial<Jeu>);
 }

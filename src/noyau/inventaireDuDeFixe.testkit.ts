@@ -4,6 +4,7 @@
  * (`fixed-die-inventaire.hors-store.test.ts`). Un flux dont la fixture manque échoue la garde.
  */
 import { FLOW_VERBS } from './flowVerbs';
+import { ligneDeTexte } from '../engine/journal';
 import type { FlowKey } from './flowVerbs';
 import type { Combatant } from '../engine/types';
 import type { ShipManeuverParticipant } from './pendings';
@@ -29,10 +30,10 @@ const rate = { roll: 88, target: T, sl: -4, success: false }; // jet RATÉ gén�
 const rateTR = { ...rate, isDouble: true };
 const atkDetail = { label: 'Corps à corps', base: T, modifier: 0, target: T, roll: 88, success: false, sl: -4 };
 /** Incantation ENNEMIE figée (l'« attaquant » des Tests opposés Contre-sort / Opposition). */
-const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: '' };
+const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('') };
 const atkResult = {
   hit: false, attackerRoll: 88, netSL: -4, critical: false, advantageTo: null,
-  defenderDefeated: false, log: 'raté', attackerDetail: atkDetail,
+  defenderDefeated: false, log: ligneDeTexte('raté'), attackerDetail: atkDetail,
 };
 
 /** Fixture d'un flux : le pending à poser, l'id de slot visé (multi), et la lecture du jet obtenu. */
@@ -75,7 +76,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
     read: (s) => ({ roll: P<{ def: { roll: number } }>(s, 'pendingDefense').def.roll, success: P<{ def: { success: boolean } }>(s, 'pendingDefense').def.success }),
   },
   incantation: {
-    state: { pendingCast: { casterId: 'H', targetId: 'H', spellId: 'drain', missile: false, result: { cast: false, roll: 88, target: T, sl: -4, isCritical: false, isFumble: false, log: '' } } },
+    state: { pendingCast: { casterId: 'H', targetId: 'H', spellId: 'drain', missile: false, result: { cast: false, roll: 88, target: T, sl: -4, isCritical: false, isFumble: false, log: ligneDeTexte('') } } },
     read: (s) => ({ roll: P<{ result: { roll: number } }>(s, 'pendingCast').result.roll, success: P<{ result: { cast: boolean } }>(s, 'pendingCast').result.cast }),
   },
   // Contre-sort / Opposition : le jet d'incantation ENNEMI est FIGÉ dans `pendingCast` — les deux
@@ -83,7 +84,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   contreSort: {
     state: {
       pendingCast: { casterId: 'E', targetId: 'H', spellId: 'drain', missile: false, result: ENEMY_CAST },
-      pendingCounterspell: { participants: [{ id: 'H', interactive: true, declared: 'solo', result: { dispelled: false, counter: rateTR, casterNetSL: 7, log: '' } }] },
+      pendingCounterspell: { participants: [{ id: 'H', interactive: true, declared: 'solo', result: { dispelled: false, counter: rateTR, casterNetSL: 7, log: ligneDeTexte('') } }] },
     },
     pid: 'H',
     read: (s) => ({
@@ -176,7 +177,7 @@ export const FIXTURES: Partial<Record<FlowKey, Fixture>> = {
   chansonDeMarin: { state: { pendingShanty: { singerId: 'H', shantyId: 'x', result: rate } }, read: resultRead('pendingShanty') },
   battement: { state: { pendingBattement: { attackerId: 'H', targetId: 'E', result: rateTR } }, read: resultRead('pendingBattement') },
   focalisation: {
-    state: { pendingFocus: { casterId: 'H', spellId: 'drain', result: { dr: 0, isCritical: false, isFumble: false, roll: 88, target: T, sl: -4, log: '' } } },
+    state: { pendingFocus: { casterId: 'H', spellId: 'drain', result: { dr: 0, isCritical: false, isFumble: false, roll: 88, target: T, sl: -4, log: ligneDeTexte('') } } },
     read: (s) => ({ roll: P<{ result: { roll: number } }>(s, 'pendingFocus').result.roll, success: P<{ result: { dr: number } }>(s, 'pendingFocus').result.dr > 0 }),
   },
   course: {

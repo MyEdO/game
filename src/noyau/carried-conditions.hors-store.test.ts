@@ -18,6 +18,7 @@
  * `noyau/combat/roundHooks`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -66,7 +67,7 @@ function setBattle(combatants: Combatant[]): void {
   banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
 }
 
-const cr = (): CastResult => ({ cast: true, roll: 44, target: 60, sl: 0, isCritical: false, isFumble: false, log: '' });
+const cr = (): CastResult => ({ cast: true, roll: 44, target: 60, sl: 0, isCritical: false, isFumble: false, log: ligneDeTexte('') });
 
 /** La vue COURANTE d'un combattant sur le banc (applyCast recompose la liste). */
 const vue = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;

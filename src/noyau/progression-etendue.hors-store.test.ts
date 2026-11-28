@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openRoundEndCascade } from './combatFlow';
@@ -138,7 +139,7 @@ describe('Focalisation — Test étendu, un échec cumule son DR négatif (LDB 4
     const w = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 1, careerTalent: { id: 'magie-mineure' }, talentsRolled: false });
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 3 };
     banc.setState({ party: [w] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: false, sl: -2, isCritical: false, isFumble: false, roll: 87, target: 65, log: 'échec' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: false, sl: -2, isCritical: false, isFumble: false, roll: 87, target: 65, log: ligneDeTexte('échec') } } });
     banc.getState().jetValider('focalisation');
     expect(banc.getState().party.find((h) => h.id === w.id)!.focus).toEqual({ spell: 'manifestation-de-demon-mineur', dr: 1 });
   });

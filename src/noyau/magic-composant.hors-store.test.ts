@@ -4,6 +4,7 @@
  * du joueur et du PNJ ; perte de Blessures du lanceur ogre (ADE II 02 l.773).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { avanceEtapeCascade } from './cascade.testkit';
@@ -49,7 +50,7 @@ function mageInBattle(): Combatant {
   return banc.getState().battle!.combatants.find((c) => c.kind === 'heros')!;
 }
 
-const reussite: CastResult = { cast: true, roll: 20, target: 60, sl: 4, isCritical: false, isFumble: false, log: 'jet réussi' };
+const reussite: CastResult = { cast: true, roll: 20, target: 60, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('jet réussi') };
 
 describe('composant d’incantation au point d’incantation (LDB 46 l.111)', () => {
   it('Imparfaite Majeure → Mineure, le composant est consumé', () => {
@@ -60,7 +61,7 @@ describe('composant d’incantation au point d’incantation (LDB 46 l.111)', ()
     expect(used).toBe(true);
     expect(composants(hero)).toEqual([]);
     const out = applyMiscast(banc.getState, banc.setState, hero, 'majeure', { componentDowngrade: used });
-    expect(out.some((l) => /Majeure → Mineure/.test(l))).toBe(true);
+    expect(out.some((e) => /Majeure → Mineure/.test(e.texte))).toBe(true);
     expect(banc.getState().pendingCascade!.participants[0].table!.tableId).toBe('miscast-mineure');
     avanceEtapeCascade(banc.getState);
     expect(banc.getState().pendingCascade?.participants.find((s) => s.kind === 'incantationImparfaite')?.label).toBe('Imparfaite');
@@ -72,7 +73,7 @@ describe('composant d’incantation au point d’incantation (LDB 46 l.111)', ()
     banc.setState({ pendingCascade: null });
     const used = useSpellComponent(hero, SPELL, []);
     const out = applyMiscast(banc.getState, banc.setState, hero, 'mineure', { componentDowngrade: used });
-    expect(out.some((l) => /aucun effet/.test(l))).toBe(true);
+    expect(out.some((e) => /aucun effet/.test(e.texte))).toBe(true);
     expect(banc.getState().pendingCascade).toBeNull();
   });
 
@@ -92,7 +93,7 @@ describe('composant d’incantation au point d’incantation (LDB 46 l.111)', ()
     expect(used).toBe(false);
     expect(composants(hero).map((it) => it.sortLie)).toEqual(['un-autre-sort']);
     const out = applyMiscast(banc.getState, banc.setState, hero, 'mineure', { componentDowngrade: used });
-    expect(out.some((l) => /aucun effet/.test(l))).toBe(false);
+    expect(out.some((e) => /aucun effet/.test(e.texte))).toBe(false);
   });
 
   it('un composant à lier n’est jamais consumé', () => {
@@ -112,7 +113,7 @@ describe('composant d’incantation au point d’incantation (LDB 46 l.111)', ()
   it('la Colère des dieux n’est jamais dégradée', () => {
     const hero = mageInBattle();
     const out = applyMiscast(banc.getState, banc.setState, hero, 'colere', { componentDowngrade: true });
-    expect(out.some((l) => /Majeure → Mineure|aucun effet/.test(l))).toBe(false);
+    expect(out.some((e) => /Majeure → Mineure|aucun effet/.test(e.texte))).toBe(false);
   });
 });
 

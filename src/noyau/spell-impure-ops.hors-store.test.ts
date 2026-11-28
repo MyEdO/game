@@ -9,6 +9,7 @@
  *     `summon-flow.test.ts` ; on vérifie ici qu'elle vit dans le Flow.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
@@ -23,7 +24,7 @@ import type { Combatant } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
+const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
 const opOf = <O extends GameOp['op']>(id: string, op: O) =>
   spellEffectOps(findSpellById(id)!.effects).find((o): o is Extract<GameOp, { op: O }> => o.op === op);

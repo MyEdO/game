@@ -4,6 +4,7 @@
  * sort, ré-application « un par Round » via effet actif porteur.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast, overcastTargetCandidates } from './combatFlow';
@@ -21,7 +22,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const okRes = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
+const okRes = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
 function pair() {
   const [priest, ally] = groupeDeScenario(idsDeTest, 'pretre', 'soldat');

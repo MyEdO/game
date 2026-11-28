@@ -5,6 +5,7 @@
  * la scène et le combat, puis écrit le patch que rend `auContact`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { createHero } from '../engine/character';
 import type { Combatant, Weapon } from '../engine/types';
 import type { CastResult } from '../engine/magic';
@@ -83,7 +84,7 @@ export const SORT_A_DEGATS = {
 } as never;
 
 /** L'Incantation critique (LDB 46 l.30). */
-export const INCANTATION_CRITIQUE: CastResult = { cast: true, roll: 22, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' };
+export const INCANTATION_CRITIQUE: CastResult = { cast: true, roll: 22, target: 90, sl: 4, isCritical: true, isFumble: false, log: ligneDeTexte('jet') };
 
 /** Le combat `encId` du scénario `contenu` (sa scène et son groupe, que le test construit : le noyau n'importe pas les
  *  scénarios) ouvert chez `p`, réduit à un héros H, un ennemi E et, sur demande, un second héros ou un second ennemi T,

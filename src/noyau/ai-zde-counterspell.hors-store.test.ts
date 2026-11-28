@@ -13,6 +13,7 @@
  * RESTE en pose (attend le clic réel) — `jetValider('incantation')` n'auto-pose QUE pour un lanceur `aiDriven`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { spawnEnemy } from './monde/spawn';
@@ -46,7 +47,7 @@ describe('ZdE ennemie — fenêtre de Contre-sort (parité missile, chemin PARTA
 
   /** Un sort de ZdE FIGÉ dans pendingCast (zone NON posée + autoCenter) — état EXACT que `case 'castArea'`
    *  produit juste avant la fenêtre de Contre-sort (jet réussi, centre auto-choisi mémorisé). */
-  const okCast = () => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
+  const okCast = () => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
   function setupZoneAwaitingCounter() {
     const e = spawnEnemy({ ref: 'humain' }, 'caster', { x: 5, y: 5 });

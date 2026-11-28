@@ -1,4 +1,5 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/22-dome';
@@ -43,7 +44,7 @@ function startDome(): { sorciere: Combatant; protegee: Combatant; archer: Combat
   // Le Dôme est lancé par le VRAI chemin (`applyCast`) : c'est lui qui résout la ZdE de la ligne
   // « Cible » et la confie aux ops. Rien n'est recopié ici, ni zone ni Indice.
   const dome = findSpellById('dome')!;
-  const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
+  const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: ligneDeTexte('ok') };
   applyCast(banc.getState, banc.setState, sorciere, [sorciere], dome as never, ok, false);
   return { sorciere, protegee, archer: enemies[0], orc: enemies[1] };
 }

@@ -9,6 +9,7 @@
  * Fixture du juge : BFM 4 / BE 3 / Projectile Dégâts +4 / DR 3 / Résistance 2.
  */
 import { describe, it, expect, afterEach } from 'vitest';
+import { ligneDeTexte } from './journal';
 import { setRule, resetRule } from './policy';
 import {
   evaluateMissile, applyFullPower, spellDRModFor, spellSLFor, spellLandsOn, traitSpellDRMod, talentSpellDRMod,
@@ -34,7 +35,7 @@ const ap = (n: number) => ({ tete: n, brasG: n, brasD: n, corps: n, jambeG: n, j
 /** Projectile SANS attribut de Domaine : Dégâts du Sort + DR + BFM seulement. NI 1. */
 const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', missile: true, damage: 4, cn: 1, range: null, target: 1, duration: null, desc: 'Projectile magique, Dégâts +4.' };
 /** Jet réussi 44 (loc stable par dé inversé), DR 3, NI requis figé par `evaluateCasting`. */
-const cast = (sl: number, niRequired = 1): CastResult => ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, niRequired, log: 'jet' });
+const cast = (sl: number, niRequired = 1): CastResult => ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, niRequired, log: ligneDeTexte('jet') });
 
 const caster = mk({ id: 'w', label: 'Mage' }); // BFM 4
 const nu = () => mk({ id: 't', kind: 'ennemi' }); // BE 3, aucune PA, aucune résistance

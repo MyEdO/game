@@ -1,4 +1,5 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, onTestFinished } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { crewRoles, spells, type CrewRoleData, type SpellData } from '../data';
 import { setDataset } from '../data/overrides';
 import { idDeFixture } from '../data/idDeFixture.testkit';
@@ -136,19 +137,19 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   incantation: {
     make: (win) => ({
       battle: arena(),
-      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, result: { cast: win, roll: win ? 8 : 88, target: 45, sl: win ? 3 : -4, isCritical: false, isFumble: false, log: ligneDeTexte('') } },
     }),
     // DR sous le NI (`LDB 46 l.22-24`) : le TEST est réussi (8 ≤ 45), le
     // sort n'est pas lancé (`cast: false`). L'issue canonique doit rester celle du TEST.
     composite: () => ({
       battle: arena(),
-      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: 'A', targetId: 'A', spellId: sort.id, missile: false, result: { cast: false, roll: 8, target: 45, sl: 1, isCritical: false, isFumble: false, log: ligneDeTexte('') } },
     }),
   },
   // Le lanceur Focalise : il porte la Compétence (LDB 46 l.130).
   focalisation: { make: (win) => ({
     battle: { combatants: [hero({ skills: [{ id: 'focalisation', spec: 'feu', characteristic: 'force-mentale', advances: 10 }] }), foe()], log: [] },
-    pendingFocus: { casterId: 'A', spellId: sort.id, result: { dr: win ? 2 : 0, isCritical: false, isFumble: false, roll: win ? 8 : 95, target: 40, sl: win ? 2 : -5, log: '' } },
+    pendingFocus: { casterId: 'A', spellId: sort.id, result: { dr: win ? 2 : 0, isCritical: false, isFumble: false, roll: win ? 8 : 95, target: 40, sl: win ? 2 : -5, log: ligneDeTexte('') } },
   }) },
   dissipation: { make: (win) => ({ battle: arena(), pendingDispel: { casterId: 'A', value: 40, result: win ? WIN : LOSE } }) },
   // ── Opposés BINAIRES (issue = jet de l'ACTEUR, foe figé) ──
@@ -196,12 +197,12 @@ const FIXTURES: Partial<Record<FlowKey, Fix>> = {
   // ── MULTI (participant/round/étape « A ») ──
   contreSort: { pid: 'A', plancherOppose: 2, make: (win) => ({
     battle: arena(),
-    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
+    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: ligneDeTexte('') } },
     pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { counter: win ? WIN : LOSE, dispelled: win, margin: win ? 1 : -1 } }] },
   }) },
   opposition: { pid: 'A', plancherOppose: 2, make: (win) => ({
     battle: arena(),
-    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: '' } },
+    pendingCast: { casterId: 'B', targetId: 'A', spellId: sort.id, missile: false, result: { cast: true, roll: 20, target: 45, base: 45, sl: 1, isCritical: false, isFumble: false, log: ligneDeTexte('') } },
     pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: 'A', interactive: true, result: { oppose: win ? WIN : LOSE, resisted: win, margin: win ? 0 : 2 } }] },
   }) },
   cascade: { pid: 'st1', make: (win) => ({

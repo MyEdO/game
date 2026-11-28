@@ -7,6 +7,7 @@
  *    Vents de Magie 07 l.422 « hormis vous »).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone } from './combatFlow';
@@ -18,7 +19,7 @@ import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTes
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
+const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
   const h = herosDeScenario(idsDeTest, 'sorcier');

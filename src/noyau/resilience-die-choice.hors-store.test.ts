@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import type { Combatant } from '../engine/types';
@@ -112,7 +113,7 @@ describe('jetImposerLeResultat@incantation — même choix sur une INCANTATION f
       battle: { combatants: [caster, target], log: [] } as never,
       pendingCast: {
         casterId: 'A', targetId: 'A', spellId: 'drain', missile: false,
-        result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: 'raté' },
+        result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: ligneDeTexte('raté') },
       } as never,
     });
     banc.getState().jetForcerLaReussite('incantation');

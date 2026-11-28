@@ -1,4 +1,5 @@
 import { describe, it, expect, afterEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { aiOvercastPlan, overcastTargetCandidates } from './combatFlow';
 import { chooseEnemyAction, type EnemyTurnInput, type CastableSpell } from './monde/ai';
 import { opValue, spellActionValue, type SpellPlacement } from './monde/aiSpellValue';
@@ -214,7 +215,7 @@ describe('chooseEnemyAction — sorts (énumération op-driven)', () => {
 // ════════════════════════════════════════════════════════════════════════════════════════════════
 /** Jet d'incantation du Carreau tel que `evaluateCasting` le rend : son NI effectif figé (`niRequired`). */
 const jetDuCarreau = (cast: boolean, sl: number): CastResult =>
-  ({ cast, sl, niRequired: findSpellById('carreau')!.cn!, roll: 50, target: 60, isCritical: false, isFumble: false, log: '' });
+  ({ cast, sl, niRequired: findSpellById('carreau')!.cn!, roll: 50, target: 60, isCritical: false, isFumble: false, log: ligneDeTexte('') });
 
 describe('aiOvercastPlan — Surincantation automatique de l’IA (LDB 47 l.28-31)', () => {
   const eusapia = () => creatureToCombatant(findCreatureById('eusapia-balacanon')!, 'e1', { x: 0, y: 0 });
@@ -277,7 +278,7 @@ describe('aiOvercastPlan — axe Dégâts (VDM 02 l.198, option `magie-vdm-incan
 describe('aiOvercastPlan — Bénédictions, Miracles et sorts non Projectile', () => {
   afterEach(() => resetRule('priere-repetee-peche'));
   const guerison = findSpellById('benediction-de-guerison')!; // Contact, Cible 1, Instantanée
-  const jet = (sl: number): CastResult => ({ cast: true, sl, niRequired: 0, roll: 10, target: 60, isCritical: false, isFumble: false, log: '' });
+  const jet = (sl: number): CastResult => ({ cast: true, sl, niRequired: 0, roll: 10, target: 60, isCritical: false, isFumble: false, log: ligneDeTexte('') });
   const pose = (id: string, kind: 'heros' | 'ennemi', x: number, y = 0, manque = 3): Combatant => {
     const c = { ...foeAt(id, x, y), kind };
     return { ...c, wounds: { ...c.wounds, current: c.wounds.max - manque } };

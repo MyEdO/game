@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -64,7 +65,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
       pendingCounterspell: null,
       pendingCast: {
         casterId: caster.id, targetId: target.id, spellId: 'carreau', missile: true,
-        result: { cast: true, roll: 30, target: 60, sl, isCritical: false, isFumble: false, log: 'Sort lancé' },
+        result: { cast: true, roll: 30, target: 60, sl, isCritical: false, isFumble: false, log: ligneDeTexte('Sort lancé') },
       },
     } as unknown as Partial<Jeu>);
   }
@@ -202,7 +203,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
     const { heroes, E } = setup();
     const [h1] = heroes;
     enemyCast(E, h1);
-    const castLog = banc.getState().pendingCast!.result!.log;
+    const castLog = banc.getState().pendingCast!.result!.log.texte;
     openCounter([h1.id]);
     // PHASE 1 (#1042/#1059) : la porte de sortie s'ouvre une fois la composition arrêtée — ici le seul
     // candidat déclare qu'il contrera, puis renonce sans jeter.

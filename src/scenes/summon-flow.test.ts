@@ -61,7 +61,7 @@ describe('applySummon', () => {
     const order = h.state().battle.order;
     expect(new Set(order).size).toBe(order.length); // AUCUN doublon (order ≠ baseOrder dédoublés)
     expect(h.state().battle.baseOrder).not.toBe(h.state().battle.order); // dédoublés à l'insertion
-    expect(lines.join(' ')).toMatch(/invoque 6/);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/invoque 6/);
   });
 
   it('summon hostile : camp opposé au lanceur', () => {

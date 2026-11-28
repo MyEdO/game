@@ -97,7 +97,7 @@ export interface SummonOpts {
  * Invoque la/les créature(s) de `summon` près du lanceur. Mute la bataille (combatants + ordre),
  * renvoie le journal. Hors combat : journalisé (rien posé sur la grille).
  */
-export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Invocation, opts: SummonOpts): string[] {
+export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Invocation, opts: SummonOpts): EntreeDuJournal[] {
   const porteur: PorteurDeFiche = 'porteur' in summon ? summon.porteur : { ref: summon.creature.id };
   const invoque = 'porteur' in summon ? nomDe(caster) : summon.creature.id;
   const rng = opts.rng;
@@ -106,7 +106,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
   const scene = get().scene;
   const hostile = summon.allyOfCaster === false;
   if (!battle || !scene || !caster.pos) {
-    return [t('summon.horsCombat', { name: nomDe(caster), n: count, label: invoque, tag: hostile ? t('summon.fragHostileHorsCombat') : '' })];
+    return [ligneDeTexte(t('summon.horsCombat', { name: nomDe(caster), n: count, label: invoque, tag: hostile ? t('summon.fragHostileHorsCombat') : '' }))];
   }
   // Camp : allié = même `kind` que le lanceur (contrôlé/IA selon son camp) ; hostile = camp opposé.
   const kind: Combatant['kind'] = hostile ? (caster.kind === 'heros' ? 'ennemi' : 'heros') : caster.kind;
@@ -136,10 +136,10 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
     placed.push(c);
   });
   set({ battle: { ...battle } });
-  if (!placed.length) return [t('summon.noRoom', { name: nomDe(caster), ref: invoque })];
+  if (!placed.length) return [ligneDeTexte(t('summon.noRoom', { name: nomDe(caster), ref: invoque }))];
   const name = nomDe(placed[0]);
   const tag = hostile ? t('summon.fragHostile') : kind === 'heros' ? t('summon.fragAllies') : '';
-  return [t('summon.summons', { name: nomDe(caster), n: placed.length, label: name, tag })];
+  return [ligneDeTexte(t('summon.summons', { name: nomDe(caster), n: placed.length, label: name, tag }))];
 }
 
 /**

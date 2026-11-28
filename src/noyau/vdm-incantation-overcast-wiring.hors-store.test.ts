@@ -5,6 +5,7 @@
  * (réglages `incantation.effetCritique` et `incantation.surincantationDuree`) — aucun budget recalculé à la main dans le test.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -20,7 +21,7 @@ const RULE = 'magie-vdm-incantation';
 
 /** Incantation CRITIQUE (double 44 réussi) à DR 8 = le NI d'Allure démoniaque, figé au jet (`niRequired`).
  *  `LDB 47 l.17` ; `VDM 02 l.55`, `l.196`. */
-const critRes: CastResult = { cast: true, roll: 44, target: 90, sl: 8, isCritical: true, isFumble: false, niRequired: 8, log: 'critique' };
+const critRes: CastResult = { cast: true, roll: 44, target: 90, sl: 8, isCritical: true, isFumble: false, niRequired: 8, log: ligneDeTexte('critique') };
 
 function openCast() {
   const W = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'sorcier', label: 'W', seed: 3 });

@@ -54,7 +54,7 @@ import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 import { nomDe } from '../../engine/nom';
-import { ligneDeTexte } from '../../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../../engine/journal';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
  *  l'étape héros (`sortProlongeTest`) et du libellé de son choix (`opt.tenterProlonger`). */
@@ -88,10 +88,10 @@ function aaBleedUnconsciousDue(c: Combatant): boolean {
 }
 /** Conséquence du Test de Résistance AA « perte de sang » (AA 07 l.5) : échec → Inconscient ; succès → tient bon.
  *  Partagée par le hook (ENNEMIS/auto) et l'applier de cascade (HÉROS). Renvoie la ligne d'échec, ou `null`. */
-function aaBleedUnconsciousApply(c: Combatant, success: boolean): string | null {
+function aaBleedUnconsciousApply(c: Combatant, success: boolean): EntreeDuJournal | null {
   if (success) return null; // reste conscient (À Terre)
   poserInconscientDeSaignement(c);
-  return t('cond.hemorragieInconscient', { name: nomDe(c) });
+  return ligneDeTexte(t('cond.hemorragieInconscient', { name: nomDe(c) }));
 }
 /** Seuil de la règle optionnelle « Se fatiguer » (LDB 16 l.97). Inerte tant que `combat-se-fatiguer` est
  *  inactive (aucun tirage RNG consommé → franchissement de Round iso-comportement). */
@@ -100,14 +100,14 @@ function fatigueThreshold(c: Combatant): number {
 }
 /** Conséquence d'un Test de Résistance « se-fatiguer » (LDB 16 l.97) — partagée par le hook (ENNEMIS)
  *  et l'applier (HÉROS). */
-function fatigueApply(c: Combatant, success: boolean, sl: number): string | null {
+function fatigueApply(c: Combatant, success: boolean, sl: number): EntreeDuJournal | null {
   if (success) {
     c.effortRounds = Math.max(0, (c.effortRounds ?? 0) - Math.max(0, sl));
     return null;
   }
   addCondition(c, COND.extenue);
   c.effortRounds = 0;
-  return t('turn.exhausted', { name: nomDe(c) });
+  return ligneDeTexte(t('turn.exhausted', { name: nomDe(c) }));
 }
 
 // ============================================================================================
@@ -212,13 +212,13 @@ export const TABLES = {
       if (!hero || !step.result) return;
       const line = fatigueApply(hero, step.result.success, step.result.sl);
       set(touchActors(get()));
-      return { applique: { lignes: [ligneDeTexte(line ?? t('turn.effortHeld', { name: nomDe(hero) }))], faits: [] } };
+      return { applique: { lignes: [line ?? ligneDeTexte(t('turn.effortHeld', { name: nomDe(hero) }))], faits: [] } };
     },
     hemorragieInconscient: (get, set, step, hero) => {
       if (!hero || !step.result) return;
       const line = aaBleedUnconsciousApply(hero, step.result.success);
       set(touchActors(get()));
-      return { applique: { lignes: [ligneDeTexte(line ?? t('cond.aaBleedHold', { name: nomDe(hero) }))], faits: [] } };
+      return { applique: { lignes: [line ?? ligneDeTexte(t('cond.aaBleedHold', { name: nomDe(hero) }))], faits: [] } };
     },
     /** Étape de CHOIX « Durée + » (LDB 47 l.311, #543) — « vous POUVEZ effectuer un Test de Force Mentale » :
      *  sur Oui, pousse le Test dans la MÊME cascade (`sortProlongeTest`, réappendu = `liveMerge`) ; sur Renoncer
@@ -395,7 +395,7 @@ export const TABLES = {
           if (!aaBleedUnconsciousDue(c) || surfaceOf(get, c.id)) continue; // porteur surfacé → étape de cascade (MIROIR du collecteur)
           const res = rollSansPilote(get, c, RESISTANCE, testValue(c, RESISTANCE), 'intermediaire', battleRng());
           const line = aaBleedUnconsciousApply(c, res.success);
-          if (line) sink(ligneDeTexte(line), c);
+          if (line) sink(line, c);
         }
       },
     },
@@ -410,11 +410,11 @@ export const TABLES = {
       order: 77,
       run: ({ battle, sink }) => {
         // LDB 16 l.105 ; AA 07 l.7 ; #1595 c.6240485441
-        const doomed: { id: string; deathLine: string }[] = [];
+        const doomed: { id: string; annonce: EntreeDuJournal }[] = [];
         for (const c of battle.combatants) {
           const bd = bleedDeathRoll(c, battleRng());
-          if (bd.died) doomed.push({ id: c.id, deathLine: bd.log[0] }); // annonce différée (après le jet de Destin)
-          else bd.log.forEach((l) => sink(ligneDeTexte(l), c)); // survie ou coagulation (double : retrait + éventuel Exténué), visible de suite
+          if (bd.died) doomed.push({ id: c.id, annonce: bd.log[0] }); // annonce différée (après le jet de Destin)
+          else bd.log.forEach((e) => sink(e, c)); // survie ou coagulation (double : retrait + éventuel Exténué), visible de suite
         }
         battle.bleedDoomed = doomed.length ? doomed : undefined;
       },
@@ -427,7 +427,7 @@ export const TABLES = {
       id: 'finger-loss-escalation',
       phase: 'onRoundEnd',
       order: 76.7,
-      run: ({ battle, sink }) => { for (const c of battle.combatants) tickTraumaEscalation(c).forEach((l) => sink(ligneDeTexte(l), c)); },
+      run: ({ battle, sink }) => { for (const c of battle.combatants) tickTraumaEscalation(c).forEach((e) => sink(e, c)); },
     },
     {
       // Noyade et Suffocation (LDB 18 l.345-346) : MACHINERIE environnementale UNIVERSELLE — la règle de mort
@@ -480,7 +480,7 @@ export const TABLES = {
           if (surfaceOf(get, c.id)) continue;
           const t = rollSansPilote(get, c, RESISTANCE, testValue(c, RESISTANCE), 'intermediaire', battleRng());
           const line = fatigueApply(c, t.success, t.sl);
-          if (line) sink(ligneDeTexte(line), c);
+          if (line) sink(line, c);
         }
       },
     },

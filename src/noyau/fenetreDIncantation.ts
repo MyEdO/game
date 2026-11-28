@@ -295,7 +295,7 @@ function issueDeLIncantation(s: Pick<Jeu, 'pendingCast' | 'pendingCastOpposition
     (!!contre && contre.participants.some((p) => !p.result || p.result.dispelled))
     || (!!primaire && (!primaire.result || primaire.result.resisted)));
   if (annule) return '';
-  if (res.cast) return pc.missile && res.hit ? res.log : t(res.isCritical ? 'incantation.issue.lanceCritique' : 'incantation.issue.lance');
+  if (res.cast) return pc.missile && res.hit ? res.log.texte : t(res.isCritical ? 'incantation.issue.lanceCritique' : 'incantation.issue.lance');
   return res.isFumble
     ? t('incantation.issue.maladresse')
     : evaluateTest(res.roll, res.target).success ? t('incantation.issue.tropFaible', { dr: res.sl, ni: res.niRequired ?? 0 }) : t('incantation.issue.echec');

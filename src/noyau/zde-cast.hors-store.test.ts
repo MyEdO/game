@@ -4,6 +4,7 @@
  * même jet, garde-fou de portée, et cible hors de portée refusée avant le routage de zone (LDB 47 l.27).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { herosDeScenario } from '../scenes/test-scenarios/_heros';
@@ -67,7 +68,7 @@ describe('ZdE en combat — flux « jet PUIS pose » (LDB 47 l.15/28)', () => {
   }
 
   /** Jet RÉUSSI posé directement (déterminisme) — sl au choix pour piloter le budget de Surincantation. */
-  const okCast = (sl: number) => ({ cast: true, roll: 11, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
+  const okCast = (sl: number) => ({ cast: true, roll: 11, target: 70, sl, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
   it('tout clic (case ou token) OUVRE la modale sans centre ; la pose touche tous ceux du rayon FINAL', () => {
     const { w, e1, e2, e3 } = setupBattle();

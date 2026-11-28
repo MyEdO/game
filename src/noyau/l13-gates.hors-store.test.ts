@@ -7,6 +7,7 @@
  *  - Attaques en chaîne : « S'il réduit la cible à 0 Blessure, il rebondit […] max BFM fois. »
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { battleRng } from './battleRng';
@@ -160,7 +161,7 @@ describe('L13 — gates & redirections', () => {
     E2.pos = { x: 12, y: 10 }; // à 1 case d'E1 (11,10)
     const e2Before = E2.wounds.current;
     const res: CastResult & Partial<MissileResult> = {
-      cast: true, roll: 30, target: 70, sl: 2, isCritical: false, isFumble: false, log: 'lance Attaques en chaîne',
+      cast: true, roll: 30, target: 70, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('lance Attaques en chaîne'),
       hit: true, woundsLost: 5, damage: 10, location: 'corps', defenderDefeated: false,
     };
     applyCast(banc.getState, banc.setState, hero, [E1], findSpellById('attaques-en-chaine')!, res, true);
