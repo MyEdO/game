@@ -2,9 +2,10 @@
  * Les raffinements croisés de la grammaire et des defs se jugent contre le catalogue passé (#5070, `catalogueLu`) : le
  * trait octroyé (`grantTrait`) et sa Cible tirée, la Cible d'un état psy posé (`beginPsych`), le Trait posé, la Cible
  * d'individu d'une péripétie de route (`refuserLesIndividus`), la prose
- * d'un livre extrait, l'apparence d'un objet, les jeux de races (`especes-aleatoires.json`).
+ * d'un livre extrait, l'apparence d'un objet, les jeux de races (`especes-aleatoires.json`), l'enjeu d'un dataset
+ * (`catalogStakeSchema`).
  * Fixtures : des traits, des états psy, un Groupe, un livre, un objet et son apparence, un Tableau des Obsessions, des
- * espèces et une règle optionnelle DÉCLARÉS par la suite, seuls au catalogue (`catalogueDeTest`).
+ * espèces, des enjeux, une manœuvre, une Activité, une météo et une règle optionnelle DÉCLARÉS par la suite, seuls au catalogue (`catalogueDeTest`).
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
@@ -12,7 +13,7 @@ import { catalogueDeTest, type LivreDeTest } from './schemas/catalogue/catalogue
 import { idDeFixture } from './idDeFixture.testkit';
 import { CHAR_KEYS } from '../engine/types';
 import { parserSousCatalogue } from './schemas/catalogue/references';
-import { gameOpSchema, mecaniqueDe } from './schemas/grammaire/mecanique';
+import { catalogStakeSchema, gameOpSchema, mecaniqueDe } from './schemas/grammaire/mecanique';
 import { fichiersLisantLeCatalogue, validateDataset } from './schemas/validate';
 import { renvoiDeLEspaceVivant } from './overrides';
 import { refMorte } from './schemas/grammaire/ref';
@@ -174,5 +175,82 @@ describe('les jeux de races (`especes-aleatoires.json`) se lisent dans le catalo
 
   it('la même espèce, gardée par une règle du seul catalogue, est admise', () => {
     expect(validateDataset('especes-aleatoires.json', TABLEAUX_DES_RACES, CAT_AVEC_LA_REGLE)).toBeNull();
+  });
+});
+
+describe('l’enjeu d’un dataset (`catalogStakeSchema`) se lit dans le catalogue passé', () => {
+  const ENJEU = 'enjeu-du-livre-de-test';
+  const ENJEU_A_TROU = 'enjeu-a-trou-du-livre-de-test';
+  const ENJEU_DE_PSY = 'enjeu-de-psy-du-livre-de-test';
+  const PSY_A_TROU = 'psy-a-trou-du-livre-de-test';
+  const PSY_SANS_TROU = 'psy-sans-trou-du-livre-de-test';
+  const ENJEU_DE_MANOEUVRE = 'enjeu-de-manoeuvre-du-livre-de-test';
+  const MANOEUVRE = 'manoeuvre-du-livre-de-test';
+  const ACTIVITE = 'activite-du-livre-de-test';
+  const CAT_DES_ENJEUX = catalogueDeTest({
+    'stakes.json': [
+      { id: ENJEU, type: 'stakes', label: 'Enjeu du livre', cascade: 'flux', template: 'Ce qui se joue.', form: 'descripteur', source: SOURCE },
+      { id: ENJEU_A_TROU, type: 'stakes', label: 'Enjeu à trou du livre', cascade: 'flux', template: 'Perte de {pertes}.', form: 'descripteur', source: SOURCE },
+      { id: ENJEU_DE_PSY, type: 'stakes', label: 'Enjeu de psy du livre', cascade: 'flux', template: 'Ce qui se joue : {gabarit}.', form: 'descripteur', entryCategory: 'psychologies', source: SOURCE },
+      { id: ENJEU_DE_MANOEUVRE, type: 'stakes', label: 'Enjeu de manœuvre du livre', cascade: 'combat', template: 'Ce qui se joue : {gabarit}.', form: 'descripteur', entryCategory: 'maneuvers', source: SOURCE },
+    ],
+    'maneuvers.json': [
+      { id: MANOEUVRE, type: 'maneuvers', label: 'Manœuvre du livre', kind: 'arme', activation: 'action', coutEnAvantage: 0, stat: 'capacite-de-combat', defense: 'auto', ciblage: 'melee', effects: [], stake: 'Ce que la manœuvre met en jeu.', source: SOURCE },
+    ],
+    'activities.json': [
+      { id: ACTIVITE, type: 'activities', label: 'Activité du livre', icon: 'navigation/activite', contexts: ['voyage'], desc: 'Activité du livre de test.', stake: 'Ce que l’activité met en jeu.', source: SOURCE },
+    ],
+    'psychology.json': [
+      { id: PSY_A_TROU, type: 'psychology', label: 'Psy à trou', stake: 'Perte de {pertes}.', source: SOURCE },
+      { id: PSY_SANS_TROU, type: 'psychology', label: 'Psy sans trou', stake: 'Ce que la psy met en jeu.', source: SOURCE },
+    ],
+  });
+  const enjeu = (key: Record<string, string>) => messages(catalogStakeSchema, { key }, CAT_DES_ENJEUX);
+  /** Les ids de météo sont l'énumération FERMÉE `weatherIdSchema` (`defs/weather.ts`) : la même condition se déclare
+   *  avec enjeu dans un catalogue et sans enjeu dans l'autre. */
+  const METEO = 'sec';
+  const catAvecLaMeteo = (resistanceTest?: { difficulty: 'accessible'; onFail: 'extenue'; enjeu: string }) => catalogueDeTest({
+    'weather.json': {
+      id: 'weather', type: 'weather', label: 'Météo du livre', seasons: [], physicalTestChars: [],
+      conditions: [{ id: METEO, label: 'Météo du livre', ...(resistanceTest ? { resistanceTest } : {}) }],
+    },
+  });
+
+  it('une entrée de `stakes` du seul catalogue est admise', () => {
+    expect(enjeu({ dataset: 'flux', kind: ENJEU })).toEqual([]);
+  });
+
+  it('une entrée de `stakes` absente du catalogue est refusée', () => {
+    expect(messages(catalogStakeSchema, { key: { dataset: 'flux', kind: ENJEU } }, catalogueDeTest({}))).toContain(`aucune entrée d’enjeu « flux/${ENJEU} »`);
+  });
+
+  it('une entrée de `stakes` du seul catalogue dont le gabarit a un trou est refusée', () => {
+    expect(enjeu({ dataset: 'flux', kind: ENJEU_A_TROU })).toContain(`l’entrée d’enjeu « flux/${ENJEU_A_TROU} » a des trous que seul le moteur remplit (pertes) : un document ne peut pas la viser`);
+  });
+
+  it('le texte d’une psychologie du seul catalogue prime sur le gabarit : son trou est refusé', () => {
+    expect(enjeu({ dataset: 'flux', kind: ENJEU_DE_PSY, entryId: PSY_A_TROU })).toContain(`l’entrée d’enjeu « flux/${ENJEU_DE_PSY}/${PSY_A_TROU} » a des trous que seul le moteur remplit (pertes) : un document ne peut pas la viser`);
+  });
+
+  it('le texte sans trou d’une psychologie du seul catalogue est admis', () => {
+    expect(enjeu({ dataset: 'flux', kind: ENJEU_DE_PSY, entryId: PSY_SANS_TROU })).toEqual([]);
+  });
+
+  it('le texte sans trou d’une manœuvre du seul catalogue prime sur le gabarit', () => {
+    expect(enjeu({ dataset: 'combat', kind: ENJEU_DE_MANOEUVRE, entryId: MANOEUVRE })).toEqual([]);
+  });
+
+  it('l’enjeu d’une Activité du seul catalogue est admis', () => {
+    expect(enjeu({ dataset: 'activite', kind: ACTIVITE })).toEqual([]);
+  });
+
+  it('l’enjeu d’une condition météo se lit dans le catalogue passé : admis s’il l’y porte, refusé sinon', () => {
+    const cle = { key: { dataset: 'meteo', kind: METEO } };
+    expect(messages(catalogStakeSchema, cle, catAvecLaMeteo({ difficulty: 'accessible', onFail: 'extenue', enjeu: 'Ce que la météo met en jeu.' }))).toEqual([]);
+    expect(messages(catalogStakeSchema, cle, catAvecLaMeteo())).toContain(`aucune entrée d’enjeu « meteo/${METEO} »`);
+  });
+
+  it('une catégorie d’entrée sans pool est refusée', () => {
+    expect(enjeu({ dataset: 'flux', kind: ENJEU, entryCategory: 'categorie-sans-pool' })).toContain(`la catégorie d’entrée « categorie-sans-pool » de l’enjeu « flux/${ENJEU} » n’a aucun pool`);
   });
 });
