@@ -49,7 +49,7 @@ import {
   spellTargetHarm,
   opValue,
 } from './aiSpellValue';
-import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
+import { selfManeuversOf } from '../../engine/creatureAttacks';
 import { spellEffectOps } from '../../engine/flowCore';
 
 /** Aversion au TIR AMI d'une ZdE : blesser/incapaciter un allié pèse FOIS-CECI un gain ennemi équivalent
@@ -123,7 +123,7 @@ export type EnemyAction =
   | { kind: 'depenseDeRessource'; resource: 'determination'; via: 'retirerEtat'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
   | { kind: 'empoignade'; targetId: string; resolution: 'briser' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
   | { kind: 'servirLePoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — Action gratuite, LDB 13 l.106
-  | { kind: 'manoeuvreSurSoi'; maneuverId: string } // capacité SUR SOI (forme de combat lycanthrope, op transform) — coûte l'Action (2ᵉ via loseTurn)
+  | { kind: 'manoeuvreSurSoi'; maneuverId: string } // capacité SUR SOI (`ciblage: 'soi'`), jouée par le verbe `manoeuvrerSurSoi`
   | { kind: 'fin' }; // rien à faire, passe la main
 
 export interface EnemyTurnInput {
@@ -184,6 +184,9 @@ export interface EnemyTurnInput {
    *  impur (`servablePostes`, qui a la liste COMPLÈTE des combattants). Donnent un candidat `manPoste`
    *  KIND-AGNOSTIQUE. ABSENT/vide (toute fixture sans emplacement) → aucun candidat (parité golden). */
   servablePostes?: { hullId: string; posteUid: string }[];
+  /** Les manœuvres sur soi que la barre du joueur OFFRE ouvertes au porteur (`offresDeLActif`), par id, posées par
+   *  l'appelant : seules celles-là sont candidates. */
+  manoeuvresSurSoiOffertes: readonly string[];
   /** Structures destructibles encore debout (porte/mur, `isStructure`), surfacées par l'appelant impur.
    *  Une arme de SIÈGE les cible (`AA 10 l.138`) — l'Atout Siège (×2 aux structures, `woundsFromHit`) fait
    *  que la valeur d'une telle attaque est NATURELLEMENT élevée → une pièce de siège PRIORISE la porte.
@@ -1105,10 +1108,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // === FORME DE COMBAT (op `transform`) — capacité SUR SOI octroyée par un trait (Métamorphose lycanthrope,
   // Middenheim p.116). La forme alternative est un buff PERSISTANT : utilité = Σ `opValue` de ses ops (le
-  // `transform` mesure le gain de combat réel du clone transformé). Le gate d'applicabilité (déjà dans la
-  // forme) empêche le spam ; l'argmax décide vs frapper. Data-driven, aucun nom d'entité en dur.
+  // `transform` mesure le gain de combat réel du clone transformé). Seules les manœuvres que la barre du joueur
+  // offre ouvertes concourent (`manoeuvresSurSoiOffertes`) ; l'argmax décide vs frapper.
   for (const def of selfManeuversOf(enemy)) {
-    if (!selfManeuverApplicable(enemy, def)) continue;
+    if (!input.manoeuvresSurSoiOffertes.includes(def.id)) continue;
     let v = 0;
     for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON_DE_BENEFICE });
     if (v > 0) candidates.push({ action: { kind: 'manoeuvreSurSoi', maneuverId: def.id }, kind: 'manoeuvreSurSoi', utility: v, targetId: enemy.id, coord: pos });

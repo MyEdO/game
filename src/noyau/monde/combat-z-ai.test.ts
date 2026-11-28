@@ -28,7 +28,7 @@ const C = (kind: 'heros' | 'ennemi', id: string, pos: { x: number; y: number; z?
 function actionFor(heroH?: number) {
   const enemy = C('ennemi', 'e', { x: 2, y: 10 }); // sol (h = 0)
   const hero = C('heros', 'h', { x: 3, y: 10, ...(heroH ? { h: heroH } : {}) }); // 2D-adjacent
-  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set(['3,10']) }, movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set(['3,10']) }, movement: 4, manoeuvresSurSoiOffertes: [], spells: [] };
   return chooseEnemyAction(input);
 }
 
@@ -56,7 +56,7 @@ function approche(z: 0 | 1) {
   const h = z ? { z, h: 4 } : {};
   const enemy = C('ennemi', 'e', { x: 1, y: 1, ...h });
   const hero = C('heros', 'h', { x: 5, y: 1, ...h });
-  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: etage(), env: { blocked: new Set([tileKey(5, 1, z)]) }, movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: etage(), env: { blocked: new Set([tileKey(5, 1, z)]) }, movement: 4, manoeuvresSurSoiOffertes: [], spells: [] };
   return { hero, action: chooseEnemyAction(input) };
 }
 
@@ -100,7 +100,7 @@ function cibleChoisie(plat: boolean) {
   const haut = C('heros', 'haut', { x: 6, y: 2, ...sur });
   haut.wounds.current = 1;
   const bas = C('heros', 'bas', { x: 1, y: 4 });
-  const input: EnemyTurnInput = { enemy, heroes: [haut, bas], scene: estrade(plat), env: { blocked: new Set(['6,2', '1,4']) }, movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [haut, bas], scene: estrade(plat), env: { blocked: new Set(['6,2', '1,4']) }, movement: 4, manoeuvresSurSoiOffertes: [], spells: [] };
   const action = chooseEnemyAction(input);
   return { input, haut, action, ...aiApproachPlan(input, action, BUDGETS_M4) };
 }
@@ -129,7 +129,7 @@ describe('chooseEnemyAction — une case candidate se juge à SA hauteur (#2139)
 function chargeVersEstrade(plat: boolean) {
   const enemy = C('ennemi', 'e', { x: 0, y: 0 });
   const haut = C('heros', 'haut', { x: 6, y: 2, ...(plat ? {} : { h: 4 }) });
-  const input: EnemyTurnInput = { enemy, heroes: [haut], scene: estrade(plat), env: { blocked: new Set(['6,2']) }, movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [haut], scene: estrade(plat), env: { blocked: new Set(['6,2']) }, movement: 4, manoeuvresSurSoiOffertes: [], spells: [] };
   return { input, haut, ...aiApproachPlan(input, chooseEnemyAction(input), BUDGETS_M4) };
 }
 

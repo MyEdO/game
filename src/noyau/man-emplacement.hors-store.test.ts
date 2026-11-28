@@ -233,7 +233,7 @@ describe('(E) Affordance IA — un combattant IA adjacent PEUT servir', () => {
   const input = (enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput => ({
     enemy, heroes, scene: emptyScene('scene-test', 12, 12),
     env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) },
-    movement: enemy.movement, spells: [], ...extra,
+    movement: enemy.movement, manoeuvresSurSoiOffertes: [], spells: [], ...extra,
   });
 
   it('`servablePostes` voit le poste pour un ENNEMI adjacent (énumération kind-agnostique)', () => {

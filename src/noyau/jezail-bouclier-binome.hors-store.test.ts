@@ -146,7 +146,7 @@ describe.each([
       const P = porteur('partenaire', kind, { x: 2, y: 10 }, [BOUCLIER]);
       const T = tireur({ x: 2, y: 11 });
       const cible = combattantDeTest({ id: 'cible', label: 'cible', kind: adverse(kind), pos: { x: cibleX, y: 10 } });
-      const input: EnemyTurnInput = { enemy: P, heroes: [cible], scene, env: { blocked: new Set([`${cibleX},10`, '2,11']) }, movement: 4, spells: [], squad: avecTireur ? [T] : [] };
+      const input: EnemyTurnInput = { enemy: P, heroes: [cible], scene, env: { blocked: new Set([`${cibleX},10`, '2,11']) }, movement: 4, manoeuvresSurSoiOffertes: [], spells: [], squad: avecTireur ? [T] : [] };
       const action = chooseEnemyAction(input);
       // Les budgets que la porte du joueur laisse (`budgetsDAllure`), comme le tour de l'IA les passe.
       const battle = { combatants: [P, ...(avecTireur ? [T] : []), cible], acted: false, movementUsed: 0 } as unknown as BattleState;

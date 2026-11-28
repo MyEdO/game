@@ -65,7 +65,7 @@ describe('#126 — Rechargement des ennemis (parité héros, LDB 62 l.333-335)',
     // Preuve « pas de softlock tour 1 » : l'IA choisit de TIRER (pas de reload), l'arme étant chargée.
     const scene = emptyScene('scene-test', 16, 16);
     const h = heroAt(1, 1);
-    const input: EnemyTurnInput = { enemy: e, heroes: [h], scene, env: { blocked: new Set(['1,1']) }, movement: e.movement, spells: [] };
+    const input: EnemyTurnInput = { enemy: e, heroes: [h], scene, env: { blocked: new Set(['1,1']) }, movement: e.movement, manoeuvresSurSoiOffertes: [], spells: [] };
     expect(chooseEnemyAction(input).kind).toBe('tir');
   });
 
