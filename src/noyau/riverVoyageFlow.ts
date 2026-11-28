@@ -679,7 +679,7 @@ function reparationTemporaireDifficulty(): Difficulty {
  *  réparation temporaire (l.113-117), INFLUENÇABLE
  *  (#270, `fleuveReparationDeBreche`) quand le jet du réparateur se surface — sinon inline. */
 function holeBoat(get: Get, set: Set, plan: TravelPlan, tell: (l: string[]) => void, idPrefix: string): BuiltCascadeStep[] {
-  tell(spoilVesselCargoOnLeak(get, set)); // la coque prend l'eau → voie d'eau gâte 1d10 Enc (lot D #327)
+  tell(spoilVesselCargoOnLeak(get, set).map((e) => e.texte)); // la coque prend l'eau → voie d'eau gâte 1d10 Enc (lot D #327)
   const minutes = holeSinkMinutes(effectiveChar(plan.vehicle!, 'endurance')); // « coule en E minutes » (l.103)
   const repair = bestShipwright(get);
   const difficulty = reparationTemporaireDifficulty();

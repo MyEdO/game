@@ -1468,7 +1468,7 @@ describe('Embuscade maritime AUTHORÉE à ancrage déterministe — #212', () =>
       'mer-equipage-progression-0-sorcier-de-test-0', 'mer-equipage-embuscade-0-sorcier-de-test-0',
     ]);
     expect(resumesDR(get().journal.map((e) => e.texte)), 'à l’arrêt, une bande jouée n’a pas son résumé DR au journal').toHaveLength(2);
-    expect(resumesDR(get().travelPlan!.sea!.lines), 'à l’arrêt, une bande jouée n’a pas son résumé DR aux lignes du jour').toEqual(resumesDR(get().journal.map((e) => e.texte)));
+    expect(resumesDR(get().travelPlan!.sea!.lines.map((e) => e.texte)), 'à l’arrêt, une bande jouée n’a pas son résumé DR aux lignes du jour').toEqual(resumesDR(get().journal.map((e) => e.texte)));
 
     const battle = get().battle!;
     for (const c of battle.combatants) if (c.kind === 'ennemi') c.dead = true;
@@ -2363,7 +2363,7 @@ describe('Cogue pirate (#327 A5.3) — l’op `navireHostile` PRÉSENTE les 3 ch
     get().jetRegler('cascade', 'choix', 'fuir', cur.id);
     get().jetValider('cascade'); // → runSeaDay : sans compétence, aucun rôle n'est affecté (`crewTestContributors` vide)
     const sea = get().travelPlan?.sea;
-    const journaled = (sea?.lines ?? []).some((l) => l.includes('Poursuite'))
+    const journaled = (sea?.lines ?? []).some((l) => l.texte.includes('Poursuite'))
       || (get().travelPlan?.log ?? []).some((d) => d.lines?.some((l) => l.entree.texte.includes('Poursuite')));
     const played = sea?.crisis?.kind !== 'poursuite' || journaled;
     expect(played).toBe(true);
@@ -2528,7 +2528,7 @@ describe('services portuaires (#30)', () => {
     creditBourse(get, set, get().party[0].id, { gold: 20, silver: 0, brass: 0 });
     const t0 = get().gameTime;
     const lines = portRepairVessel(get, set);
-    expect(lines[0]).toContain('remis à neuf');
+    expect(lines[0].texte).toContain('remis à neuf');
     expect(get().vessel!.wounds!.current).toBe(50);
     expect(partyMoneyTotal(get).gold).toBe(10); // 10 Blessures × 1 CO
     expect(get().gameTime).toBeGreaterThan(t0);
@@ -2542,7 +2542,7 @@ describe('services portuaires (#30)', () => {
     set({ vessel: { ...get().vessel!, escale: 'A' } });
     creditBourse(get, set, get().party[0].id, { gold: 10, silver: 0, brass: 0 });
     const lines = installerLAmelioration(get, set, 'nid-de-pie');
-    expect(lines[0]).toContain('Nid-de-pie');
+    expect(lines[0].texte).toContain('Nid-de-pie');
     expect(partyMoneyTotal(get).gold).toBe(5);
     expect(get().vessel!.upgrades).toEqual([{ id: 'nid-de-pie' }]);
     // Un Trait de CONSTRUCTION ne se pose pas après coup (ch.12 l.169).
@@ -4169,7 +4169,7 @@ describe('Salissures — Test de Résistance hebdomadaire du vaisseau par la por
   }
   /** Le dé de Salissures n'a qu'UNE surface (#1291) : aucune entrée de procès-verbal ne le recopie. */
   const entreeSalissures = () => (get().travelPlan?.procesVerbal ?? []).find((e) => e.id?.startsWith('mer-salissures'));
-  const lignesDeMer = () => get().travelPlan?.sea?.lines ?? [];
+  const lignesDeMer = () => (get().travelPlan?.sea?.lines ?? []).map((e) => e.texte);
 
   it('le septième jour ne déclenche aucun Test (MDG 13 l.148)', () => {
     jourDeMer(7);

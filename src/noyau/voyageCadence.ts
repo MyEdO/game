@@ -11,6 +11,7 @@
  * jour de mer).
  */
 import type { IconId } from '../data/schemas/icons';
+import { ligneDeTexte } from '../engine/journal';
 import type { NightEntry } from './restFlow';
 import type { RollBreakdown } from '../engine/combat';
 import { findCrewRoleById, refLabel, type StakeRef } from '../data';
@@ -151,7 +152,7 @@ export function noterAuProcesVerbal(get: Get, set: Set, step: CascadeStep): void
   const entrees = dayEntriesFromStep(get, step);
   const dr = step.participants ? step.result?.sl : undefined;
   // MDG 14 l.13
-  const resume = dr === undefined ? [] : [t('sv.crewTestSummary', { label: String(step.label), dr: dr >= 0 ? `+${dr}` : dr, issue: crewTestSuccess(dr) ? t('sv.success') : t('sv.failure') })];
+  const resume = dr === undefined ? [] : [ligneDeTexte(t('sv.crewTestSummary', { label: String(step.label), dr: dr >= 0 ? `+${dr}` : dr, issue: crewTestSuccess(dr) ? t('sv.success') : t('sv.failure') }))];
   if (!entrees.length && !resume.length) return;
   if (resume.length) get().ecrireAuJournal(resume);
   set({ travelPlan: {

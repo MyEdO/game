@@ -342,7 +342,7 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
   /** `OpsCtx.onOpposingAdvantage` (Redoutable AA, `MDG 16 l.13`) — fourni par `turnHooks.fireTurnEdgeTriggers`
    *  pour `onTurnStart` ; threadé tel quel dans le `flowCtx` de CHAQUE effet (l'op `topUpAdvantage` porteuse
    *  du flag `feedOpposingPool` l'appelle). Absent ailleurs → clause inerte (cf. `engine/ops.ts`). */
-  onOpposingAdvantage?: (n: number) => string[] }
+  onOpposingAdvantage?: (n: number) => EntreeDuJournal[] }
 
 /** Flow INTERACTIF (`flowHasTest`) atteint SANS `set` (la voie cadence-aware `routeTriggeredTest` en exige un) : un `test` TOP-LEVEL se joue
  *  inline ; toute autre forme n'a pas de voie d'interaction ici — ses parties PURES jouent (l'État

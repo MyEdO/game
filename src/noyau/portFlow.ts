@@ -589,17 +589,17 @@ export function devisDAvitaillement(vessel: Jeu['vessel'], bourse: Money, refusD
 
 /** AVITAILLEMENT de la cale à quai : le groupe paie le devis (`devisDAvitaillement`), chaque vivre va à sa part des
  *  vivres de la cale, les tonneaux à son eau douce. Renvoie le journal. MDG 14 l.238-252 ; MDG 15 l.262 */
-export function avitaillerLeNavire(get: Get, set: Set, quantites: QuantitesDeVivres, tonneaux: number): string[] {
+export function avitaillerLeNavire(get: Get, set: Set, quantites: QuantitesDeVivres, tonneaux: number): EntreeDuJournal[] {
   const devis = devisDAvitaillement(get().vessel, partyMoneyTotal(get), refusDeGesteAQuai(get()), quantites, tonneaux);
   if (devis.refus) { refuserGeste(get, set, devis.refus); return []; }
   payFromGroup(get, set, devis.total, { purpose: 'avitaillement navire' });
   const achats = (Object.entries(quantites) as [Id<'trapping'>, number][]).filter(([, n]) => n > 0);
   const lines = [
-    t('port.avitaille', { rations: achats.reduce((s, [, n]) => s + n, 0), tonneaux, cost: formatMoney(devis.total) }),
+    ligneDeTexte(t('port.avitaille', { rations: achats.reduce((s, [, n]) => s + n, 0), tonneaux, cost: formatMoney(devis.total) })),
     ...achats.flatMap(([id, n]) => ajouterDesRations(get, set, n, id)),
     ...(tonneaux > 0 ? ajouterDeLEau(get, set, tonneaux) : []),
   ];
-  log(get, set, lines);
+  get().ecrireAuJournal(lines);
   return lines;
 }
 

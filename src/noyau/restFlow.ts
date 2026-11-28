@@ -228,10 +228,10 @@ export function sleepParty(
     const deferred: DeferredUpkeepTest[] = [];
     const entretien = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
     const idsDuGroupe = new Set(get().party.map((h) => h.id));
-    for (const { actorId, text } of entretien) {
+    for (const { actorId, entree } of entretien) {
       entries.push({
         actorId: actorId !== undefined && idsDuGroupe.has(actorId) ? actorId : undefined,
-        icon: 'temps/calendrier', label: 'Entretien quotidien', text, tone: 'neutre',
+        icon: 'temps/calendrier', label: 'Entretien quotidien', text: entree.texte, tone: 'neutre',
       });
     }
     const steps = nightBands(deferredUpkeepSteps(get().party, deferred));

@@ -57,7 +57,7 @@ import { dataLabel } from '../data';
 import { stepDetail, stepManche, stepPrecision, idDansLaSequence } from './rollSeam';
 import type { PlayerText } from '../i18n/playerText';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /** Spécification d'auteur d'une poursuite (posée par l'Effet `startPursuit`). */
 export interface PursuitSpec {
@@ -342,7 +342,7 @@ export const pursuitBands = makeBandFactory<BuiltCascadeStep>({
 });
 
 /** Les deux camps de la manche, DR totaux compris (Test + bonus de vitesse l.105-108). */
-function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: string[]): { fleeing: PursuitRunner[]; pursuers: PursuitRunner[] } {
+function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: EntreeDuJournal[]): { fleeing: PursuitRunner[]; pursuers: PursuitRunner[] } {
   // Les DR du groupe sont ceux des RANGÉES de la bande de manche (une par coureur).
   const partyRolls = done.participants
     .filter((s) => s.kind === PURSUIT_MOVE_KIND)
@@ -360,7 +360,7 @@ function campsOf(get: Get, p: PursuitPayload, done: MancheClose, rng: RNG, log: 
     // surface, et sa ligne se DÉRIVE (`traceLineOf`) comme toute ligne de dé. Le libellé NOMME la
     // Compétence de la manche — la MÊME que celle des rangées des coureurs. L'issue de CE jet est son DR.
     const t = rollTest({ porteur: f.id ?? null, teste: { skill: { id: p.skill } } }, f.skill, PURSUIT_DIFFICULTY, rng);
-    log.push(traceLineOf({ who: f.label, label: skillLabel, roll: t.roll, target: t.target, success: t.success, issue: drDit(t.sl) }));
+    log.push(ligneDeTexte(traceLineOf({ who: f.label, label: skillLabel, roll: t.roll, target: t.target, success: t.success, issue: drDit(t.sl) })));
     return { id: f.id ?? f.label, label: f.label, movement: f.movement, total: t.sl + pursuitMoveBonus(f.movement, slowest) };
   });
   return p.partyRole === 'fleeing' ? { fleeing: party, pursuers: foes } : { fleeing: foes, pursuers: party };
@@ -383,14 +383,14 @@ function pursuitClose(ctx: { get: Get; seq: PursuitSequence; mancheClose: Manche
   const p = seq.chargeUtile;
   if (p.phase !== 'course') return closeDecision(seq, mancheClose);
 
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   const camps = campsOf(get, p, mancheClose, rng, log);
   const delta = deltaOf(seq, camps);
   const distance = p.distance + delta;
-  log.push(t('pursuit.round', {
+  log.push(ligneDeTexte(t('pursuit.round', {
     round: p.manche, mouvement: t(delta >= 0 ? 'pursuit.roundGain' : 'pursuit.roundLoss'),
     delta: `${delta >= 0 ? '+' : ''}${delta}`, distance, evasion: p.escapeAt,
-  }));
+  })));
   const outcome = pursuitOutcome(distance, p.escapeAt);
   if (outcome === 'ongoing') return { suite: 'poursuivre', chargeUtile: { ...p, distance, phase: 'course' }, log };
   if (outcome === 'escaped') return { suite: 'fin', issue: 'escaped', chargeUtile: { ...p, distance }, log };
@@ -406,27 +406,27 @@ function pursuitClose(ctx: { get: Get; seq: PursuitSequence; mancheClose: Manche
   // Camp PNJ : sa POLITIQUE tranche (a), puis on enchaîne sur (b)/(c).
   if (npcSacrificeChoice(p.policy, laggard, camps.fleeing) === 'affronter') {
     // LDB 15 l.94
-    log.push(t('pursuit.stand', { who: laggard.label }));
+    log.push(ligneDeTexte(t('pursuit.stand', { who: laggard.label })));
     return { suite: 'fin', issue: 'caught', chargeUtile: apres, log };
   }
   // LDB 15 l.94
-  log.push(t('pursuit.sacrifice', { who: laggard.label }));
+  log.push(ligneDeTexte(t('pursuit.sacrifice', { who: laggard.label })));
   return decisionPoursuivants(seq, { ...apres, phase: 'choix-poursuivants' }, log);
 }
 
 /** Étape (b)/(c) : le camp des poursuivants décide — fenêtre de CHOIX s'il est tenu par le groupe,
  *  POLITIQUE sinon. Puis le recalcul (d). */
-function decisionPoursuivants(seq: PursuitSequence, p: PursuitPayload, log: string[]): SequenceVerdict<PursuitPayload> {
+function decisionPoursuivants(seq: PursuitSequence, p: PursuitPayload, log: EntreeDuJournal[]): SequenceVerdict<PursuitPayload> {
   const pris = p.pris!;
   if (!fuyardsSontLeGroupe(p)) return { suite: 'poursuivre', chargeUtile: p, log }; // le GROUPE poursuit : il choisit
   const choix = npcPursuerChoice(p.policy, pris.laggard, pris.pursuers);
   if (choix.go === 'ignorer') {
     // LDB 15 l.94
-    log.push(t('pursuit.ignored', { who: pris.laggard.label }));
+    log.push(ligneDeTexte(t('pursuit.ignored', { who: pris.laggard.label })));
     return recalcul(seq, p, undefined, log);
   }
   // LDB 15 l.94
-  log.push(t('pursuit.stops', { who: choix.who.label, laggard: pris.laggard.label }));
+  log.push(ligneDeTexte(t('pursuit.stops', { who: choix.who.label, laggard: pris.laggard.label })));
   return recalcul(seq, p, choix.who.id, log);
 }
 
@@ -436,27 +436,27 @@ function closeDecision(seq: PursuitSequence, done: MancheClose): SequenceVerdict
   const pris = p.pris;
   const chosen = done.participants.find((s) => s.kind === PURSUIT_CHOICE_KIND)?.chosen;
   if (!pris) return { suite: 'fin', issue: 'caught' };
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   if (p.phase === 'choix-fuyards') {
     if (chosen !== 'sacrifier') {
       // LDB 15 l.94
-      log.push(t('pursuit.partyStand'));
+      log.push(ligneDeTexte(t('pursuit.partyStand')));
       return { suite: 'fin', issue: 'caught', chargeUtile: p, log };
     }
     // LDB 15 l.94
-    log.push(t('pursuit.partySacrifice', { who: pris.laggard.label }));
+    log.push(ligneDeTexte(t('pursuit.partySacrifice', { who: pris.laggard.label })));
     return decisionPoursuivants(seq, { ...p, phase: 'choix-poursuivants' }, log);
   }
   // (b)/(c) tranchées par le groupe poursuivant.
   if (chosen === 'ignorer' || !chosen) {
     // LDB 15 l.94
-    log.push(t('pursuit.partyIgnores', { who: pris.laggard.label }));
+    log.push(ligneDeTexte(t('pursuit.partyIgnores', { who: pris.laggard.label })));
     return recalcul(seq, p, undefined, log);
   }
   const whoId = chosen.slice('arreter:'.length);
   const who = pris.pursuers.find((r) => r.id === whoId);
   // LDB 15 l.94
-  log.push(t('pursuit.heroStops', { who: who?.label ?? whoId, laggard: pris.laggard.label }));
+  log.push(ligneDeTexte(t('pursuit.heroStops', { who: who?.label ?? whoId, laggard: pris.laggard.label })));
   return recalcul(seq, p, whoId, log);
 }
 
@@ -467,15 +467,15 @@ function closeDecision(seq: PursuitSequence, done: MancheClose): SequenceVerdict
  * Sigrid dans l'exemple). Si la Distance reste ≤ 0, les poursuivis sont rejoints — le RAW n'ouvre la
  * manœuvre qu'une fois « pour ce Round ».
  */
-function recalcul(seq: PursuitSequence, p: PursuitPayload, arreteId: string | undefined, log: string[]): SequenceVerdict<PursuitPayload> {
+function recalcul(seq: PursuitSequence, p: PursuitPayload, arreteId: string | undefined, log: EntreeDuJournal[]): SequenceVerdict<PursuitPayload> {
   const pris = p.pris!;
   const fleeing = pris.fleeing.filter((r) => r.id !== pris.laggard.id);
   const delta = deltaOf(seq, { fleeing, pursuers: pris.pursuers });
   const distance = pris.distanceAvant + delta;
   // LDB 15 l.100-102
-  log.push(t('pursuit.recompute', {
+  log.push(ligneDeTexte(t('pursuit.recompute', {
     who: pris.laggard.label, delta: `${delta >= 0 ? '+' : ''}${delta}`, distance, evasion: p.escapeAt,
-  }));
+  })));
   // Sorties de course : le sacrifié, et le poursuivant qui s'est arrêté.
   const sortis = [pris.laggard, ...(arreteId ? pris.pursuers.filter((r) => r.id === arreteId) : [])];
   const retires = [...p.retires, ...sortis.filter((r) => estHeros(p, r)).map((r) => r.id)];

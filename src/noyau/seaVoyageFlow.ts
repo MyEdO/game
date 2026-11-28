@@ -302,8 +302,8 @@ export interface SeaVoyageState {
    *  CONTAGION pour quiconque y boit ENSUITE (jamais le jour même). Ne concerne QUE `vessel.waterLitres` —
    *  la petite bière (`tonneau-de-petite-biere`) y échappe (MDG 14 l.209), jamais lue ici. */
   waterContaminated?: { diseaseId: string };
-  /** Lignes du jour (recap de la halte de nuit). */
-  lines: string[];
+  /** Entrées du jour (recap de la halte de nuit). */
+  lines: EntreeDuJournal[];
   /** Milles parcourus AUJOURD'HUI le long du trajet : Progression, ou dérive SIGNÉE (MDG 13 l.294). */
   milesToday: number;
   /** Blessures de coque AU LEVER du jour — sert au DELTA du jour clos (`SeaRecapChrome.hullDelta`) :
@@ -383,12 +383,12 @@ export function activeSeaPrecipitation(get: Get): string | undefined {
   return get().travelPlan?.sea?.weather.precipitations;
 }
 
-const log = (get: Get, _set: Set, lines: string[]) => {
+const log = (get: Get, _set: Set, lines: EntreeDuJournal[]) => {
   if (lines.length) get().ecrireAuJournal(lines);
 };
 
 /** Écrit au journal ET au recap du jour (mêmes lignes — patron travelFlow). */
-function tell(get: Get, set: Set, lines: string[]): void {
+function tell(get: Get, set: Set, lines: EntreeDuJournal[]): void {
   if (!lines.length) return;
   log(get, set, lines);
   const plan = get().travelPlan;
@@ -398,7 +398,7 @@ function tell(get: Get, set: Set, lines: string[]): void {
 /** Écrit SEULEMENT au recap du jour (`sea.lines`) — le JOURNAL d'un applier de cascade est écrit par
  *  `commitStep` depuis l'`applique` retournée, pas par un second canal direct (#295
  *  Lot 1). `tell()` est le canal des sites HORS applier (narration d'événement de jour, entretien-survie). */
-export function noteSeaLine(get: Get, set: Set, lines: string[]): void {
+export function noteSeaLine(get: Get, set: Set, lines: EntreeDuJournal[]): void {
   if (!lines.length) return;
   const plan = get().travelPlan;
   if (plan?.sea) set({ travelPlan: { ...plan, sea: { ...plan.sea, lines: [...plan.sea.lines, ...lines] } } });
@@ -436,7 +436,7 @@ const SUJET_RESISTANCE = { skill: { id: 'resistance' }, characteristic: 'enduran
  * de l'équipage collectif (`noterLeRepas`). `provisions` absent : vivres non suivis, aucune consommation.
  * MDG 14 l.143, l.156, l.166, l.171, l.230-232, l.238, l.263 ; #245 ; #1652 ; #4058 ; #4243
  */
-function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
+function consumeCrewProvisions(get: Get, set: Set, days: number): EntreeDuJournal[] {
   const vessel = get().vessel;
   if (!vessel) return [];
   const crew = shipboardSouls(get()).crew;
@@ -460,9 +460,9 @@ function consumeCrewProvisions(get: Get, set: Set, days: number): string[] {
     for (const r of repas) noterLeRepas(equipage.porteur, r);
     equipage.ecrire();
   }
-  return [short
+  return [ligneDeTexte(short
     ? t('sv.crewFoodOut')
-    : t('sv.crewFoodLeft', { need, left, s: left > 1 ? 's' : '' })];
+    : t('sv.crewFoodLeft', { need, left, s: left > 1 ? 's' : '' }))];
 }
 
 /** RECHARGE les Blessures du Combattant-coque de trajet depuis `vessel.wounds` — SOURCE UNIQUE (#296).
@@ -530,7 +530,7 @@ export function setVesselHull(get: Get, set: Set, current: number, max: number):
  *  `vessel.wounds` (#296) — UNE écriture, jamais un `damageHull` orphelin de sa persistance (c'était le
  *  double chemin : certains sites persistaient au coup par coup, d'autres seulement en fin de jour, la
  *  fenêtre entre les deux pouvait écraser une valeur plus fraîche écrite ailleurs, ex. fin de combat naval). */
-export function damageVesselHull(get: Get, set: Set, hull: Combatant, amount: number): string[] {
+export function damageVesselHull(get: Get, set: Set, hull: Combatant, amount: number): EntreeDuJournal[] {
   const j = damageHull(hull, amount, get().forgerUnId);
   const plan = get().travelPlan;
   if (plan) set({ travelPlan: { ...plan } }); // bump de référence : la mutation en place de `hull` doit se voir
@@ -541,7 +541,7 @@ export function damageVesselHull(get: Get, set: Set, hull: Combatant, amount: nu
 /** Inflige `amount` Dégâts au navire de campagne hors combat : à sa coque de trajet quand un voyage la porte
  *  (`damageVesselHull`), sinon à sa coque bâtie de `vessel` (`voyageShip`), écrite par `setVesselHull`.
  *  `null` sans navire de campagne dont la donnée porte une coque. */
-export function damageCampaignVessel(get: Get, set: Set, amount: number): string[] | null {
+export function damageCampaignVessel(get: Get, set: Set, amount: number): EntreeDuJournal[] | null {
   const coque = coqueDuNavireDeCampagne(get().travelPlan, get().vessel);
   if (coque) return damageVesselHull(get, set, coque, amount);
   const ship = voyageShip(get);
@@ -553,7 +553,7 @@ export function damageCampaignVessel(get: Get, set: Set, amount: number): string
 
 /** Restaure `amount` Blessures à la coque de TRAJET et PERSISTE aussitôt sur `vessel.wounds` — pendant
  *  de `damageVesselHull` pour les soins. */
-export function healVesselHull(get: Get, set: Set, hull: Combatant, amount: number): string[] {
+export function healVesselHull(get: Get, set: Set, hull: Combatant, amount: number): EntreeDuJournal[] {
   const j = healHull(hull, amount, get().forgerUnId);
   const plan = get().travelPlan;
   if (plan) set({ travelPlan: { ...plan } });
@@ -565,7 +565,7 @@ export function healVesselHull(get: Get, set: Set, hull: Combatant, amount: numb
  *  MDG, cf. `engine/cargo.ts`). Route sur la SOURCE UNIQUE `vessel.cargo` via le tronc `spoilCargoByEnc`.
  *  Renvoie le journal (vide si rien à gâter). Câblé sur les avaries de coque EXISTANTES (collision maritime,
  *  coque percée fluviale) — jamais un mécanisme neuf. */
-export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
+export function spoilVesselCargoOnLeak(get: Get, set: Set): EntreeDuJournal[] {
   const vessel = get().vessel;
   if (!vessel?.cargo?.length) return [];
   const enc = rollDice(1, 10, battleRng());
@@ -573,7 +573,7 @@ export function spoilVesselCargoOnLeak(get: Get, set: Set): string[] {
   if (!r.removed) return [];
   set({ vessel: { ...vessel, cargo: r.lots } });
   // MSRC 7 l.101 / MDG
-  return [t('sv.leakSpoils', { enc: r.removed })];
+  return [ligneDeTexte(t('sv.leakSpoils', { enc: r.removed }))];
 }
 
 /** `propulsionDuNavire` MARITIME de la COQUE `hull` (au `mode` du jour d'un navire mixte), que le schéma
@@ -803,7 +803,7 @@ function buildForcePaceStep(get: Get, set: Set): BuiltCascadeStep | undefined {
   const diff = forcePaceDifficulty(sea.forcePace, rig);
   if (!diff) return undefined;
   const refus = forcePaceRefus(get().party, propulsion.competence);
-  if (refus) { tell(get, set, [t('sv.paceRefus', { refus })]); return undefined; }
+  if (refus) { tell(get, set, [ligneDeTexte(t('sv.paceRefus', { refus }))]); return undefined; }
   const skill = propulsion.competence;
   const best = partyAssisted(get().party, { skill })!;
   const test = { skill, label: t('sv.forcePace') };
@@ -997,13 +997,13 @@ export function etapeDeLaReparationTemporaire(
  *  coque qui a joué le Test (`reparation-temporaire-degats`). MDG 13 l.651 ; MSRC 7 l.117 */
 export function appliquerLaReparationTemporaire(get: Get, set: Set, step: CascadeStep, failDamage: Tirage): ReturnType<CascadeApplier> {
   if (!step.result) return;
-  const line = t(step.result.success ? 'sv.reparationTemporaireTient' : 'sv.reparationTemporaireCede');
+  const line = ligneDeTexte(t(step.result.success ? 'sv.reparationTemporaireTient' : 'sv.reparationTemporaireCede'));
   noteSeaLine(get, set, [line]);
   const degats = step.result.success ? undefined : dieStep({
     id: `${step.id}-degats`, kind: 'reparation-temporaire-degats', worldOwner: true, icon: 'voyage/reparer',
     label: t('sv.reparationTemporaireDegats'), spec: failDamage.dice, meta: { hullId: String(step.meta?.hullId) },
   });
-  return { applique: { lignes: [ligneDeTexte(line)], faits: [] }, ...(degats ? { insert: [degats] } : {}) };
+  return { applique: { lignes: [line], faits: [] }, ...(degats ? { insert: [degats] } : {}) };
 }
 
 /** Le Test d'Endurance de la coque `hull` tenue par une réparation temporaire, après le Test `apres` du jour ou de
@@ -1162,7 +1162,7 @@ function buildPostProgressionSteps(get: Get): BuiltCascadeStep[] {
  * qui tienne un rôle du Test de Progression → applique la progression au plancher de Manque de bras
  * (MDG 14 l.55) et bâtit quand même les étapes qui n'en dépendent pas. Elle n'ouvre rien.
  */
-function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; log: string[] } {
+function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; log: EntreeDuJournal[] } {
   const steps: BuiltCascadeStep[] = [];
   // Périls d'AUTEUR de la route (MÊME source que le terrestre) : une étape de MONDE par péril, EN TÊTE
   // du jour — leurs dés tombent donc avant tout autre dé de la journée, comme dans la boucle qu'elles
@@ -1178,7 +1178,7 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
   const strandedSea = get().travelPlan!.sea!;
   if (strandedSea.stranded) {
     // MDG 13 l.473
-    tell(get, set, [t('sv.stranded', { hazard: strandedSea.stranded.label })]);
+    tell(get, set, [ligneDeTexte(t('sv.stranded', { hazard: strandedSea.stranded.label }))]);
     patchSea(get, set, { milesToday: 0 });
     const st = buildStrandedOrEntangledStep(get, 'intermediaire', 'mer-degagement', { penalite: seaStrandingPenalty(get) });
     pousseSi(steps, st);
@@ -1202,14 +1202,14 @@ function buildSeaDayCascade(get: Get, set: Set): { steps: BuiltCascadeStep[]; lo
     const anchored = shipHasNavalTrait(hullNavalTraits(plan.vehicle!), 'ancre');
     if (!sea.sailsDown) {
       const drift = anchored ? 0 : Math.round(seaMilesPerDay(M_DU_COURANT, true));
-      tell(get, set, [t('sv.becalmedLine', { suite: anchored ? t('sv.fragAnchorDown') : t('sv.fragDrift', { drift }) })]);
+      tell(get, set, [ligneDeTexte(t('sv.becalmedLine', { suite: anchored ? t('sv.fragAnchorDown') : t('sv.fragDrift', { drift }) }))]);
       patchSea(get, set, { milesToday: 0 });
     } else {
       // MDG 13 l.294 ; l.262-270.
       const windDrift = anchored ? 0 : Math.round(seaMilesPerDay(mDeCroisiere(navireDeLaCoque(plan.vehicle!)), true) * (AFFALER_RULES.driftPctOfSpeed / 100));
       const sens = DRIFT_ALONG_ROUTE[windAspect(sea.heading, sea.windFrom)];
       const credited = Math.max(-plan.kmDone, sens * windDrift);
-      tell(get, set, [t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift: windDrift, effet: t(DRIFT_EFFECT_KEY[sens], { miles: Math.abs(credited) }) }) })]);
+      tell(get, set, [ligneDeTexte(t('sv.sailsDownLine', { suite: anchored ? t('sv.fragAnchorWait') : t('sv.fragWindPush', { drift: windDrift, effet: t(DRIFT_EFFECT_KEY[sens], { miles: Math.abs(credited) }) }) }))]);
       patchSea(get, set, { milesToday: credited });
     }
     steps.push(...buildPostProgressionSteps(get));
@@ -1320,7 +1320,7 @@ function moralDuTestDEquipage(get: Get, set: Set, step: CascadeStep): void {
   const ship = get().travelPlan?.vehicle;
   const type = typeof step.meta?.crewTestType === 'string' ? findCrewTestTypeById(step.meta.crewTestType) : undefined;
   if (!ship || !step.result || !type?.moraleOnNegativeDR) return;
-  const j = applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(step.result.sl));
+  const j = applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(step.result.sl)).map((l) => ligneDeTexte(l));
   if (j.length) noteSeaLine(get, set, j);
 }
 
@@ -1340,7 +1340,7 @@ export function startFastVoyage(
   const days = dureeDeTraversee(plan.km, mDeCroisiere(navireDeLaCoque(plan.vehicle!)));
   const weeks = semainesCompletes(days); // « par semaine passée en mer » (l.28)
   set({ travelPlan: { ...plan, sea: { ...plan.sea!, fast: { days, weeks } } }, worldMapOpen: false, travelRecap: null, ...quitterLeLieu });
-  log(get, set, [t('sv.departFast', { ship: nomDe(plan.vehicle!), to: nomDuLieu(get().worldMap, toPlaceId), days, km: plan.km })]);
+  log(get, set, [ligneDeTexte(t('sv.departFast', { ship: nomDe(plan.vehicle!), to: nomDuLieu(get().worldMap, toPlaceId), days, km: plan.km }))]);
   const st = buildVoyageCrewStep(get, TEST_DU_VOYAGE_RAPIDE, 'equipage-voyage-rapide');
   if (st) { startCascade(get, set, { title: t('sv.fastTitle'), icon: 'voyage/vague', purpose: 'test', steps: [st] }); return true; }
   computeFastPalier(get, set, 0); // aucun équipage apte au Test → DR 0
@@ -1374,7 +1374,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
   // l'abordage surgit à son ancrage et SURPREND le navire (pas de Test de Perception jour par jour).
   const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan.routeId);
   if (!plan.sea.ambushFired && route?.ambush?.scene.id && route.ambush.encounter) {
-    tell(get, set, [t('sv.fastBroken')]);
+    tell(get, set, [ligneDeTexte(t('sv.fastBroken'))]);
     openAuthoredSeaAmbush(get, set, route, false); // reprise post-combat → ce finalize s'exécute à nouveau (ambushFired le saute)
     return;
   }
@@ -1383,8 +1383,8 @@ function finalizeFastVoyage(get: Get, set: Set): void {
     const crewDR = fast.crewDR ?? 0;
     const manannTens = fast.manannTens ?? 0;
     tell(get, set, [
-      t('sv.fastResult', { die: formatDice(deDuVoyageRapide()), roll: String(fast.roll), weeks: fast.weeks, crewDR: `${crewDR >= 0 ? '+' : ''}${crewDR}`, manann: `${manannTens >= 0 ? '+' : ''}${manannTens}`, result: String(fast.result), palier: palier.label }),
-      palier.desc,
+      ligneDeTexte(t('sv.fastResult', { die: formatDice(deDuVoyageRapide()), roll: String(fast.roll), weeks: fast.weeks, crewDR: `${crewDR >= 0 ? '+' : ''}${crewDR}`, manann: `${manannTens >= 0 ? '+' : ''}${manannTens}`, result: String(fast.result), palier: palier.label })),
+      ligneDeTexte(palier.desc),
     ]);
     if (palier.consequence) jouerFlowEntier(runFlow(get, set, palier.consequence, palier.label));
   }
@@ -1407,7 +1407,7 @@ function finalizeFastVoyage(get: Get, set: Set): void {
 function accosterApresLeVoyageRapide(get: Get, set: Set, plan: TravelPlan, jours: number): void {
   const to = get().worldMap ? placeById(get().worldMap!, plan.toPlaceId) : undefined;
   set({ travelPlan: null });
-  log(get, set, [t('sv.arriveFast', { to: libelleOuAbsence(to, 'lieu', plan.toPlaceId), days: jours })]);
+  log(get, set, [ligneDeTexte(t('sv.arriveFast', { to: libelleOuAbsence(to, 'lieu', plan.toPlaceId), days: jours }))]);
   if (to) openPortAt(get, set, to);
 }
 
@@ -1626,7 +1626,7 @@ export function runSeaDay(get: Get, set: Set): void {
   // Météo du jour (ch.13 l.164) : déjà TIRÉE (à l'ouverture pour le 1ᵉʳ jour, `buildSeaPlan` — sinon à
   // la CLÔTURE du jour précédent, `continueSeaDayAfterCascade` — décision 1 #275 Ronde 2 cran 3, aligné
   // sur le fluvial `tickRiverWindDay`/`finishRiverDay`) — cette ligne l'ANNONCE seulement.
-  tell(get, set, [t('sv.weatherOfDay', { weather: seaWeatherLabel(sea.weather), from: sea.windFrom, heading: sea.heading })]);
+  tell(get, set, [ligneDeTexte(t('sv.weatherOfDay', { weather: seaWeatherLabel(sea.weather), from: sea.windFrom, heading: sea.heading }))]);
   decompterLEvenementDeBord(get, set);
   const { steps, log: lines } = buildSeaDayCascade(get, set);
   for (const l of lines) log(get, set, [l]);
@@ -1664,7 +1664,7 @@ function noteManieurs(get: Get, set: Set, step: CascadeStep): void {
 
 /** Applique les MILLES du jour depuis le total du Test de Progression (±10 %/DR, ch.15 l.78). Renvoie
  *  la ligne d'annonce (le call-site décide du canal — `tell()` build-time ou `applique` d'applier). */
-function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
+function applySeaProgress(get: Get, set: Set, progressionDR: number): EntreeDuJournal[] {
   const plan = get().travelPlan!;
   const eff = effectiveSeaM(get);
   if (eff.m == null || plan.sea!.sailsDown) { patchSea(get, set, { milesToday: 0 }); return []; }
@@ -1672,7 +1672,7 @@ function applySeaProgress(get: Get, set: Set, progressionDR: number): string[] {
   // `effMToday` PERSISTE le M effectif qui a servi à CETTE Progression, pour que le Test de survitesse (#443)
   // le lise sans le recalculer après coup.
   patchSea(get, set, { milesToday: miles, effMToday: eff.m, modeToday: eff.mode ?? undefined });
-  return [t('sv.progressOfDay', { miles, dr: `${progressionDR >= 0 ? '+' : ''}${progressionDR}` })];
+  return [ligneDeTexte(t('sv.progressOfDay', { miles, dr: `${progressionDR >= 0 ? '+' : ''}${progressionDR}` }))];
 }
 
 /** Tonneau d'eau contaminé (MDG 14 l.209) — DEUX volets INDÉPENDANTS, chacun UNE bande dont les porteurs à bord
@@ -1769,10 +1769,10 @@ function joursSansFraisABord(get: Get, set: Set): Map<string, number> {
 
 /** Lignes de conclusion d'une séquence RÉSOLUE D'OFFICE (aucune fenêtre ne les a montrées) : celles des
  *  étapes MONO et celles des RANGÉES de bandes — un seul dériveur pour les trois phases du jour. */
-function lignesResolues(steps: readonly CascadeStep[]): string[] {
+function lignesResolues(steps: readonly CascadeStep[]): EntreeDuJournal[] {
   return steps.flatMap((s) => [
-    ...(s.outcome ?? []).map((l) => l.entree.texte),
-    ...(s.participants ?? []).flatMap((p) => (p.outcome ?? []).map((l) => l.entree.texte)),
+    ...(s.outcome ?? []).map((l) => l.entree),
+    ...(s.participants ?? []).flatMap((p) => (p.outcome ?? []).map((l) => l.entree)),
   ]);
 }
 
@@ -1814,7 +1814,7 @@ export function continueSeaDayAfterCascade(get: Get, set: Set): void {
     const need = souls * dailyWaterLitres(sea.weather.temperature);
     const left = Math.max(0, vessel0.waterLitres - need);
     set({ vessel: { ...vessel0, waterLitres: left } });
-    tell(get, set, [left > 0 ? t('sv.freshWater', { need, souls, left }) : t('sv.waterDry')]);
+    tell(get, set, [ligneDeTexte(left > 0 ? t('sv.freshWater', { need, souls, left }) : t('sv.waterDry'))]);
   }
   // Vivres de l'équipage PNJ (MDG 14 l.238/250) : l'effectif nominal mange sur les vivres de la cale.
   tell(get, set, consumeCrewProvisions(get, set, 1));
@@ -1870,7 +1870,7 @@ function jouerLaTemperatureDuJour(get: Get, set: Set): void {
     for (const h of get().party) {
       if (h.dead) continue;
       if (isWeatherWarded(h)) { // protection magique : aucun Test à jouer
-        tell(get, set, [t('sv.wardedExposure', { name: nomDe(h), what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') })]);
+        tell(get, set, [ligneDeTexte(t('sv.wardedExposure', { name: nomDe(h), what: tdef.exposure === 'froid' ? t('sv.wardCold') : t('sv.wardHeat') }))]);
         continue;
       }
       const resVal = testValue(h, SUJET_RESISTANCE);
@@ -2000,7 +2000,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
 
   const worldMap = get().worldMap as WorldMap;
   const to = placeById(worldMap, plan.toPlaceId);
-  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: recapDe(todayLines.map((x) => ligneDeTexte(x))), entries: dayEntries, sea: chrome };
+  const recapDay: TravelRecapDay = { kmFrom: plan.kmDone, kmTo: kmDone, hours: 24, lines: recapDe(todayLines), entries: dayEntries, sea: chrome };
   rangerLesEvenements(get, set, recapDay);
 
   if (plan.km - kmDone < 1e-9 && to) {
@@ -2008,7 +2008,7 @@ export function continueSeaDayAfterExhaustion(get: Get, set: Set, doneSteps?: Ca
     // « plus de 100 milles », l.366). Le CHOIX « relâche à terre » (MDG 15 l.245) se tranche AVANT
     // le tirage de l'événement de port (`trancherLaRelache` enchaîne `resolvePortArrival`).
     set({ travelPlan: null, ...(get().vessel ? { vessel: { ...get().vessel!, lastVoyageMilles: plan.km } } : {}) });
-    log(get, set, [t('sv.arrive', { to: to.label })]);
+    log(get, set, [ligneDeTexte(t('sv.arrive', { to: to.label }))]);
     openPortAt(get, set, to);
     return;
   }
@@ -2035,7 +2035,7 @@ export function openSeaHalt(get: Get, set: Set, travelDay: TravelRecapDay): void
 function affalerConsequence(get: Get, set: Set, step: CascadeStep): Applique | undefined {
   if (!step.result) return undefined;
   // MDG 13 l.292
-  if (step.result.success) { const j = [t('sv.sailsStruckInTime')]; noteSeaLine(get, set, j); return { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }; }
+  if (step.result.success) { const j = [ligneDeTexte(t('sv.sailsStruckInTime'))]; noteSeaLine(get, set, j); return { lignes: j, faits: [] }; }
   const rng = battleRng();
   const crit = rollShipCritical(AFFALER_RULES.failCritLocation as ShipCritKey, rng);
   applyVesselCritical(get, set, crit);
@@ -2054,7 +2054,7 @@ function totalDeCrise(step: CascadeStep): number {
  * `totalDeCrise` de l'étape. Peut ouvrir l'abordage (Poursuite « caught », `startChaseBoarding` →
  * `interrupted`) : appelée par les seuls appliers `poursuite`/`tourbillon`, sous le pilote du jour.
  */
-function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
+function resolveSeaCrisisRound(get: Get, set: Set, total: number): EntreeDuJournal[] {
   const plan = get().travelPlan;
   const sea = plan?.sea;
   if (!sea?.crisis) return [];
@@ -2066,16 +2066,16 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
     const foe = rollTest({ porteur: null, teste: VOILE_DU_POURSUIVANT }, c.foeSkill, 'intermediaire', rng);
     const gain = pursuitDistanceGain(myM, total + pursuitLowMPenalty(myM)) - pursuitDistanceGain(c.foeM, foe.sl + pursuitLowMPenalty(c.foeM));
     const distance = c.distance + gain;
-    const j = [t('sv.chase', { label: c.label, issue: gain >= 0 ? t('sv.chaseGain') : t('sv.chaseLoss'), gain: `${gain >= 0 ? '+' : ''}${gain}`, distance, escapeAt: c.escapeAt })];
+    const j = [ligneDeTexte(t('sv.chase', { label: c.label, issue: gain >= 0 ? t('sv.chaseGain') : t('sv.chaseLoss'), gain: `${gain >= 0 ? '+' : ''}${gain}`, distance, escapeAt: c.escapeAt }))];
     const outcome = pursuitOutcome(distance, c.escapeAt);
     if (outcome === 'escaped') {
       patchSea(get, set, { crisis: undefined, boarding: undefined });
       // MDG 13 l.362
-      j.push(t('sv.chaseEscaped'));
+      j.push(ligneDeTexte(t('sv.chaseEscaped')));
     } else if (outcome === 'caught') {
       patchSea(get, set, { crisis: undefined });
       // MDG 13 l.420
-      j.push(t('sv.chaseCaught'));
+      j.push(ligneDeTexte(t('sv.chaseCaught')));
       startChaseBoarding(get, set);
     } else {
       patchSea(get, set, { crisis: { ...c, distance } });
@@ -2089,11 +2089,11 @@ function resolveSeaCrisisRound(get: Get, set: Set, total: number): string[] {
   const hull = plan!.vehicle!;
   const dmg = Math.max(0, w.ic - Math.floor(effectiveChar(hull, 'endurance') / 10));
   damageVesselHull(get, set, hull, dmg);
-  const j = [t('sv.whirlpoolGrind', { label: w.label, dmg, progress, need: c.need })];
+  const j = [ligneDeTexte(t('sv.whirlpoolGrind', { label: w.label, dmg, progress, need: c.need }))];
   if (progress >= c.need) {
     patchSea(get, set, { crisis: undefined });
     // MDG 13 l.528
-    j.push(t('sv.whirlpoolEscaped'));
+    j.push(ligneDeTexte(t('sv.whirlpoolEscaped')));
   } else patchSea(get, set, { crisis: { ...c, progress } });
   noteSeaLine(get, set, j);
   return j;
@@ -2123,13 +2123,13 @@ function runRestart(get: Get, set: Set, eng: Combatant, restart: NonNullable<Ste
     if (step.drCible != null) {
       let etape = { total: 0, done: step.drCible <= 0 };
       for (let i = 0; !etape.done && i < 20; i++) etape = extendedTestStep(etape.total, rollTest(jet, value, difficulty, rng), step.drCible);
-      tell(get, set, [t('sv.engineStep', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') })]);
+      tell(get, set, [ligneDeTexte(t('sv.engineStep', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], need: step.drCible, issue: etape.done ? t('sv.engineCleared') : t('sv.engineStruggling') }))]);
     } else {
       let t = rollTest(jet, value, difficulty, rng);
       for (let i = 0; !t.success && i < 20; i++) t = rollTest(jet, value, difficulty, rng);
       lastDR = Math.max(0, t.sl);
       // Aucune rangée nulle part (équipage abstrait, hors modale) — le journal PORTE le jet (#295 Lot 5, gardé nominativement).
-      tell(get, set, [tr('sv.engineRestart', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR })]);
+      tell(get, set, [ligneDeTexte(tr('sv.engineRestart', { name: nomDe(eng), label, diff: DIFFICULTY_LABELS[difficulty], roll: t.roll, target: t.target, dr: lastDR }))]);
     }
   }
   return lastDR;
@@ -2156,7 +2156,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
 
     const lines = applyOps(eng, [{ op: 'wounds', amount: b.compartmentDamage, weaponHit: true }], { idNeuf: get().forgerUnId, rng, weapon: boiler, location: 'corps' }).lignes;
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage }), ...lines.map((e) => e.texte)]);
+    tell(get, set, [ligneDeTexte(t('sv.blastWave', { name: nomDe(eng), dmg: b.compartmentDamage })), ...lines]);
   }
 
   // Moteur détruit : l'Amélioration Propulsion à vapeur saute (à ré-installer au chantier) → le navire
@@ -2179,7 +2179,7 @@ export function applySteamBreakdown(get: Get, set: Set, b: SteamBreakdownEntry, 
     const miles = Math.max(0, Math.round(miles0 - miles0 * Math.min(1, windowMin / MINUTES_PER_DAY) * (1 - speedFactor)));
     if (miles !== miles0) {
       patchSea(get, set, { milesToday: miles });
-      tell(get, set, [t('sv.engineDown', { min: Math.round(windowMin), miles: miles0 - miles })]);
+      tell(get, set, [ligneDeTexte(t('sv.engineDown', { min: Math.round(windowMin), miles: miles0 - miles }))]);
     }
   }
 }
@@ -2211,9 +2211,9 @@ export function resolveSteamSave(get: Get, set: Set, p: PendingSteamSave): void 
   if (eng && !p.success) {
     const lines = applyOps(eng, p.scaldOps, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime }).lignes;
     set({ party: [...get().party] });
-    tell(get, set, [t('sv.scalded', { name: nomDe(eng) }), ...lines.map((e) => e.texte)]);
+    tell(get, set, [ligneDeTexte(t('sv.scalded', { name: nomDe(eng) })), ...lines]);
   } else if (eng) {
-    tell(get, set, [t('sv.dodgedSteam', { name: nomDe(eng) })]);
+    tell(get, set, [ligneDeTexte(t('sv.dodgedSteam', { name: nomDe(eng) }))]);
   }
   if (get().travelPlan?.sea) continueSeaDayFromPostProgression(get, set);
 }
@@ -2356,9 +2356,9 @@ function openGenericBoarding(get: Get, set: Set, b: SeaBoarding, noSurprise = tr
  *  campagne (`combattreSurLePont`) ; chacune est repoussée à `repousseAPct` % de ses Blessures de départ ou
  *  moins (objectif `woundsThreshold` sans cible), `victoire` se joue sur la victoire. Rend les lignes.
  *  MDG 15 l.136-139, l.142-143, l.165-168 */
-export function combattreEnMer(get: Get, set: Set, o: Extract<GameOp, { op: 'combatEnMer' }>, label: string): string[] {
+export function combattreEnMer(get: Get, set: Set, o: Extract<GameOp, { op: 'combatEnMer' }>, label: string): EntreeDuJournal[] {
   const coque = coqueDuPont(get);
-  if (!coque) return [t('sv.combatEnMerSansPont', { label })];
+  if (!coque) return [ligneDeTexte(t('sv.combatEnMerSansPont', { label }))];
   const { id, nombre, optionals } = o.adversaire;
   const ennemis: AuthoredEnemy[] = Array.from({ length: nombre }, (_, i) => ({
     creature: { id }, pos: { x: 12 - 2 * Math.floor(i / 3), y: 2 + 4 * (i % 3) }, ...(optionals ? { optionals: structuredClone(optionals) } : {}), // #2097
@@ -2383,7 +2383,7 @@ function startChaseBoarding(get: Get, set: Set): void {
   if (openAuthoredSeaAmbush(get, set, route)) return;
   const boarding = plan?.sea?.boarding;
   if (boarding && openGenericBoarding(get, set, boarding)) return;
-  tell(get, set, [t('sv.noBoardingData')]);
+  tell(get, set, [ligneDeTexte(t('sv.noBoardingData'))]);
 }
 
 /** Ce que teste le navire hostile d'une course-poursuite. MDG 13 l.376 */
@@ -2406,7 +2406,7 @@ function startSeaPursuit(get: Get, set: Set, b: SeaBoarding): void {
     crisis: { kind: 'poursuite', label: b.label, distance: Math.floor(escapeAt / 2), escapeAt, foeM, foeSkill: voileDuPoursuivant(b) },
   });
   // MDG 13 l.362-370
-  tell(get, set, [t('sv.fleeChase', { start: Math.floor(escapeAt / 2), escapeAt })]);
+  tell(get, set, [ligneDeTexte(t('sv.fleeChase', { start: Math.floor(escapeAt / 2), escapeAt }))]);
 }
 
 /** PORTEUR d'une décision de BORD (interpellation pirate, tribut) : celui qui mènerait la manœuvre —
@@ -2421,10 +2421,10 @@ function seaDecider(get: Get): string {
 /** NAVIRE HOSTILE en vue (op `navireHostile`) : il n'approche que s'il juge le navire de campagne vulnérable —
  *  son effectif atteint `cible-vulnerable-pct` % des âmes à bord, ou il aligne plus de grands canons (valeur
  *  maison) ; sinon il passe son chemin. Rend les lignes. MDG 15 l.150-151, l.171-173 */
-export function navireHostileEnVue(get: Get, set: Set, coque: Combatant, o: Extract<GameOp, { op: 'navireHostile' }>, label: string): string[] {
+export function navireHostileEnVue(get: Get, set: Set, coque: Combatant, o: Extract<GameOp, { op: 'navireHostile' }>, label: string): EntreeDuJournal[] {
   const ames = shipboardSouls(get()).total;
   const vulnerable = o.equipage.nombre * 100 >= ames * Number(rule('cible-vulnerable-pct')) || (o.grandsCanons ?? 0) > (coque.postes?.length ?? 0);
-  if (!vulnerable) return [t('sv.hostilePasse', { label })];
+  if (!vulnerable) return [ligneDeTexte(t('sv.hostilePasse', { label }))];
   openPirateHail(get, set, { shipRef: o.navire.id, crewRef: o.equipage.id, ...(o.chef ? { chefRef: o.chef.id } : {}), nombre: o.equipage.nombre, label }, o.exigence === 'fouille');
   return [];
 }
@@ -2460,7 +2460,7 @@ function openPirateHail(get: Get, set: Set, b: SeaBoarding, fouille: boolean): v
 export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolved, equipageEpargne?: true): void {
   const vessel = get().vessel;
   if (vessel) set({ vessel: { ...vessel, criticals: [...(vessel.criticals ?? []), crit.note] } });
-  tell(get, set, [`${crit.log}`, `→ ${crit.note}`]);
+  tell(get, set, [ligneDeTexte(`${crit.log}`), ligneDeTexte(`→ ${crit.note}`)]);
   if (!crit.crewHit || equipageEpargne) return;
   const coque = get().travelPlan?.vehicle;
   if (!coque) return;
@@ -2468,7 +2468,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   const coup = applyCrewHit(coque, equipage, crit.crewHit, battleRng(), get().forgerUnId);
   if (coup.hits.length) {
     set({ party: [...get().party] });
-    tell(get, set, [t('shipCrit.crewTakes', { n: coup.hits.length, label: crit.label })]);
+    tell(get, set, [ligneDeTexte(t('shipCrit.crewTakes', { n: coup.hits.length, label: crit.label }))]);
   }
   if (!coup.testFlow) return;
   const victimes = coup.victims.map((id) => equipage.find((c) => c.id === id)).filter(Boolean) as Combatant[];
@@ -2477,7 +2477,7 @@ export function applyVesselCritical(get: Get, set: Set, crit: ShipCriticalResolv
   ), revealPurpose('travelDay', false));
   // Voie INLINE (personne à bord sans siège) : ses lignes partent dans la file différée — la mer n'a
   // pas de `battle.log`, on les déverse dans le journal du voyage (source unique `drainPendingLog`).
-  const lignes = drainPendingLog(get, set).map((e) => e.entree.texte);
+  const lignes = drainPendingLog(get, set).map((e) => e.entree);
   if (lignes.length) { set({ party: [...get().party] }); tell(get, set, lignes); }
 }
 
@@ -2518,16 +2518,16 @@ function resolveBoardEvent(get: Get, set: Set, event: SeaEventDef, tiree: Cascad
  *  navire − BE de coque, voie d'eau, puis empêtrement ou Échouage selon la donnée du péril ; un modificateur
  *  du navire qui l'évite (`navireMod.evite`) l'écarte. Rend les lignes. MDG 13 l.446, l.471-499 ;
  *  MDG 15 l.181-183, l.229 */
-export function heurterLePeril(get: Get, set: Set, coque: Combatant, hazardId: string, rng: RNG): string[] {
+export function heurterLePeril(get: Get, set: Set, coque: Combatant, hazardId: string, rng: RNG): EntreeDuJournal[] {
   const hazard = garanti(findSeaHazard(hazardId), hazardId, 'péril en mer');
   const evite = evitementDuPeril(get().vessel?.modificateurs, get().gameTime, hazard.id);
-  if (evite) return [t('sv.perilEvite', { hazard: hazard.label, label: evite.label })];
+  if (evite) return [ligneDeTexte(t('sv.perilEvite', { hazard: hazard.label, label: evite.label }))];
   garanti(get().travelPlan?.sea, hazardId, 'navire en mer');
   const eff = effectiveSeaM(get);
   const dmg = Math.max(0, hazard.ic + (eff.m ?? 1) - Math.floor(effectiveChar(coque, 'endurance') / 10));
   damageVesselHull(get, set, coque, dmg);
   // MDG 13 l.446/475-499
-  const j = [t('sv.collision', { dmg, hazard: hazard.label, ic: hazard.ic }), ...spoilVesselCargoOnLeak(get, set)];
+  const j = [ligneDeTexte(t('sv.collision', { dmg, hazard: hazard.label, ic: hazard.ic })), ...spoilVesselCargoOnLeak(get, set)];
   // La DONNÉE du péril ouvre l'issue, jamais son id : `entangleChancePct` (l.485) côté empêtrement,
   // `strandChancePct` (l.497/499) côté Échouage — et le garde passe AVANT le dé, symétriquement,
   // pour qu'un péril sans chance n'en consomme aucun.
@@ -2552,25 +2552,25 @@ export function heurterLePeril(get: Get, set: Set, coque: Combatant, hazardId: s
           difficulty: hazard.freeTest?.test.difficulty ?? 'accessible',
         },
       });
-      j.push(t('sv.entangledOn', { hazard: hazard.label }));
+      j.push(ligneDeTexte(t('sv.entangledOn', { hazard: hazard.label })));
     }
   } else if (hazard.strandChancePct != null && strandingOccurs(hazard, deMonde(rng))) {
     // Échouage (l.471-473/497/499) : la pénalité se dérive au jet (`seaStrandingPenalty`).
     patchSea(get, set, { stranded: { hazardId: hazard.id, label: hazard.label } });
     // MDG 13 l.473
-    j.push(t('sv.strandedOn', { hazard: hazard.label }));
+    j.push(ligneDeTexte(t('sv.strandedOn', { hazard: hazard.label })));
   }
   return j;
 }
 
 /** Un TOURBILLON aspire le navire à la périphérie de sa zone (op `perilDeMer`) : la crise d'évasion s'ouvre,
  *  nommée `label`. Rend les lignes. MDG 13 l.514-537 ; MDG 15 l.140-141, l.146 */
-export function entrerDansLeTourbillon(get: Get, set: Set, whirlpoolId: string, label: string): string[] {
+export function entrerDansLeTourbillon(get: Get, set: Set, whirlpoolId: string, label: string): EntreeDuJournal[] {
   const w = garanti(findWhirlpool(whirlpoolId), whirlpoolId, 'tourbillon');
   garanti(get().travelPlan?.sea, whirlpoolId, 'navire en mer');
   patchSea(get, set, { crisis: { kind: 'tourbillon', label, whirlpoolId: w.id, need: w.evasion.drCible, progress: 0 } });
   // MDG 13 l.528
-  return [t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.drCible })];
+  return [ligneDeTexte(t('sv.whirlpoolEvasion', { label: w.label, dr: w.evasion.drCible }))];
 }
 
 // ── Services PORTUAIRES (#30 — réparation, carénage, Améliorations, construction) ────────────────
@@ -2624,7 +2624,7 @@ const METIER_DU_CONSTRUCTEUR_DE_NAVIRES: TestDesigne = { skill: { id: 'metier', 
  *  l'escale (`vessel.constructeurDEscale`), jusqu'à la coque pleine ; le prix suit les Blessures restaurées, le temps
  *  les heures des Tests, ou la durée du constructeur de l'escale. Purge les Critiques notés en voyage. Refus si la
  *  bourse ne couvre pas le devis. MDG 13 l.641-643 ; MDG 12 l.295 ; MDG 15 l.255 */
-export function portRepairVessel(get: Get, set: Set): string[] {
+export function portRepairVessel(get: Get, set: Set): EntreeDuJournal[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v?.hull) { refuserGeste(get, set, t('sv.noVesselToRepair')); return []; }
@@ -2647,7 +2647,7 @@ export function portRepairVessel(get: Get, set: Set): string[] {
   const jours = constructeur ? joursDuChantier(get, set, constructeur.duree, rng) : null;
   const duree = jours !== null ? t('sv.dureeJours', { n: jours }) : t('sv.dureeHeures', { n: Math.max(1, heures) });
   get().avancerLeTemps(jours !== null ? jours * MINUTES_PER_DAY : Math.max(1, heures) * 60);
-  return [t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed', { pct: REPARATION.lissageRepairSurcoutPct }) : '', duree, competence, reussis, tests })];
+  return [ligneDeTexte(t('sv.hullRefit', { ship: v.label, missing, cost, lissage: lissage ? t('sv.fragSmoothed', { pct: REPARATION.lissageRepairSurcoutPct }) : '', duree, competence, reussis, tests }))];
 }
 
 /** Le lot de cale `l` est-il des pièces détachées de navire : sa marchandise déclare `shipParts`.
@@ -2887,7 +2887,7 @@ const acheverLaReparationFluviale: CascadeApplier = (get, set, step, _hero, { st
     : devis.missing > 0 ? t('sv.yardTooExpensive', { cost: devis.tarif }) : t('sv.hullIntact');
   return { applique: { lignes: [
 ligneDeTexte(ligne),
-...(prix.gold > 0 ? [t('fleuve.reparationPayee', { prix: formatMoney(prix) })] : []).map((x) => ligneDeTexte(x)),
+...(prix.gold > 0 ? [ligneDeTexte(t('fleuve.reparationPayee', { prix: formatMoney(prix) }))] : []),
 ligneDeTexte(t('sv.dureeHeures', { n: heures })),
 ], faits: [] } };
 };
@@ -2895,7 +2895,7 @@ ligneDeTexte(t('sv.dureeHeures', { n: heures })),
 /** CARÉNAGE en cale sèche (Salissures, ch.13 l.150-159) : « pour récurer un bateau de Taille Moyenne ou
  *  plus, il doit être emmené dans une cale sèche » — coût = % du coût de base par NIVEAU (colonne
  *  Réparation du tableau). Lève aussi les modificateurs « jusqu'au carénage » (`modificateursAuCarenage`). */
-export function portCareenVessel(get: Get, set: Set): string[] {
+export function portCareenVessel(get: Get, set: Set): EntreeDuJournal[] {
   const vessel = get().vessel;
   const v = vessel ? findVehicleById(vessel.vehicleId) : undefined;
   if (!vessel || !v) { refuserGeste(get, set, t('sv.noVesselToCareen')); return []; }
@@ -2905,7 +2905,7 @@ export function portCareenVessel(get: Get, set: Set): string[] {
   const costMoney = toMoney({ gold: cost });
   if (cost > 0) payFromGroup(get, set, costMoney, { purpose: 'carénage navire' });
   set({ vessel: { ...vessel, fouling: { ...vessel.fouling, level: 0 }, modificateurs: (vessel.modificateurs ?? []).filter((m) => m.jusqua !== 'carenage') } }); // MDG 15 l.185
-  return [t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' })];
+  return [ligneDeTexte(t('sv.careened', { cost: cost ? t('sv.fragCareenCost', { cost, pct }) : '' }))];
 }
 
 /** Devis de POSE d'une Amélioration navale (MDG 12 l.195-364 ; MSRC 12 l.21-25, l.54-135) : coût et poids
@@ -2946,7 +2946,7 @@ export function ameliorationsAuChantier(vessel: CampaignVessel, bourse: Money, r
 /** POSE d'une Amélioration navale : le refus de `devisDAmelioration` tombe avant tout débit ; la réf rejoint
  *  `vessel.upgrades` (recopiée sur la coque à chaque départ), et les jours de la pose passent. `units` = cabines
  *  multiples, etc. MDG 12 l.230 ; MDG 12 l.293 ; MDG 15 l.255 */
-export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): string[] {
+export function installerLAmelioration(get: Get, set: Set, traitId: string, units = 1): EntreeDuJournal[] {
   const s = get();
   const { vessel } = s;
   const port = lieuDuGroupe(s)?.port;
@@ -2959,7 +2959,7 @@ export function installerLAmelioration(get: Get, set: Set, traitId: string, unit
   payFromGroup(get, set, toMoney({ gold }), { purpose: 'amélioration navire' });
   set({ vessel: { ...navire, upgrades: [...(navire.upgrades ?? []), { id: traitId, ...(units > 1 ? { value: units } : {}) }] } });
   get().avancerLeTemps(jours * MINUTES_PER_DAY);
-  return [t('sv.upgradeInstalled', { label, gold, enc: enc ? t('sv.fragUpgradeEnc', { enc }) : '', duree: t('sv.dureeJours', { n: jours }) })];
+  return [ligneDeTexte(t('sv.upgradeInstalled', { label, gold, enc: enc ? t('sv.fragUpgradeEnc', { enc }) : '', duree: t('sv.dureeJours', { n: jours }) }))];
 }
 
 // ── Événements de PORT (ch.15 l.127-129 + l.239-263) ─────────────────────────────────────────────
@@ -2997,10 +2997,10 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
   const vessel = get().vessel;
   const mood = vesselManann(vessel);
   const { roll, hours, event } = rollPortEvent(mood.score, rng);
-  log(get, set, [t('sv.portEvent', { die: formatDice(deDesEvenementsDePort()), roll, label: event.label, hours }), event.desc]);
-  if (event.relache && !shoreLeave) { log(get, set, [t('sv.relacheRefusee', { label: event.label })]); return; }
+  log(get, set, [ligneDeTexte(t('sv.portEvent', { die: formatDice(deDesEvenementsDePort()), roll, label: event.label, hours })), ligneDeTexte(event.desc)]);
+  if (event.relache && !shoreLeave) { log(get, set, [ligneDeTexte(t('sv.relacheRefusee', { label: event.label }))]); return; }
   // MDG 15 l.249
-  if (event.taillePortMax !== undefined && (port?.taille ?? Infinity) > event.taillePortMax) { log(get, set, [t('sv.portTropGrand', { label: event.label, taille: event.taillePortMax })]); return; }
+  if (event.taillePortMax !== undefined && (port?.taille ?? Infinity) > event.taillePortMax) { log(get, set, [ligneDeTexte(t('sv.portTropGrand', { label: event.label, taille: event.taillePortMax }))]); return; }
   const liaison = event.liaisonEquipage;
   const suite = liaison ? lierLeRetourDesMarins(get, set, event.consequence ?? EMPTY_FLOW, liaison, battleRng()) : event.consequence;
   if (suite) jouerFlowEntier(runFlow(get, set, suite, event.label));
@@ -3013,9 +3013,9 @@ export function resolvePortArrival(get: Get, set: Set, port: PortProfile | undef
 function trancherLaRelache(get: Get, set: Set, allow: boolean): void {
   const p = garanti(get().pendingShoreLeave, String(allow), 'relâche à terre');
   set({ pendingShoreLeave: null });
-  log(get, set, [allow
+  log(get, set, [ligneDeTexte(allow
     ? t('sv.shoreLeaveGranted')
-    : t('sv.shoreLeaveDenied')]);
+    : t('sv.shoreLeaveDenied'))]);
   // Désertion à la relâche ACCORDÉE (MDG 14 l.192-202) : dé de MONDE par `openWorldTest`, cible = le
   // seuil de la bande de Moral. Il ne décide pas des départs : l'applier `merDesertion` les tire, un
   // d100 par marin (#1508). Son verdict ne dit donc que la comparaison du dé au seuil.
@@ -3053,7 +3053,7 @@ export function finalizePortArrivalTo(get: Get, set: Set, to: MapPlace, allow: b
 
 /** À l'ACCOSTAGE au lieu `placeId` : le navire y est à quai (`escale`), les recueillis sans solde rejoignent
  *  l'équipage pour une paie normale, la perte au déchargement est levée. MDG 15 l.129, l.213-218, l.250 */
-function accosterLeNavire(get: Get, set: Set, placeId: string): string[] {
+function accosterLeNavire(get: Get, set: Set, placeId: string): EntreeDuJournal[] {
   const vessel = get().vessel;
   if (!vessel) return [];
   const recueillis = vessel.recueillisSansSolde ?? [];
@@ -3066,8 +3066,8 @@ function accosterLeNavire(get: Get, set: Set, placeId: string): string[] {
   const port = nomDuLieu(get().worldMap, placeId);
   for (const c of livrees) mouvementDeLaBourseDuGroupe(get, set, c.brass);
   return [
-    ...(n ? [t('eff.recueillisEngages', { n })] : []),
-    ...livrees.map((c) => t('eff.commissionLivree', { label: c.label, port, montant: formatMoney(fromBrass(c.brass)) })),
+    ...(n ? [ligneDeTexte(t('eff.recueillisEngages', { n }))] : []),
+    ...livrees.map((c) => ligneDeTexte(t('eff.commissionLivree', { label: c.label, port, montant: formatMoney(fromBrass(c.brass)) }))),
   ];
 }
 
@@ -3153,9 +3153,9 @@ export const TABLES = {
       patchSea(get, set, { paceToday: won ? 'reussite' : 'echec' });
       noteManieurs(get, set, step);
       // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5).
-      const j = [t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') })];
+      const j = [ligneDeTexte(t('sv.stepIssue', { label: String(step.label), issue: won ? t('sv.paceWon', { m: forcePace }) : t('sv.paceLost') }))];
       noteSeaLine(get, set, j);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Scorbut (MDG 14 l.230) : BANDE — le verdict se lit RANGÉE PAR RANGÉE (patron Mal de mer ci-dessous) ;
      *  chaque rangée retrouve son porteur à bord (`porteursABord`), dont le mois de soupe repart à zéro. */
@@ -3242,31 +3242,31 @@ export const TABLES = {
           // Tirage POST-POSE de la table de panne : l'étape `equipage-progression` est déjà posée, ce dé en est la
           // conséquence — au dé de sa table, même position RNG qu'inline (MDG 12 l.313).
           const b = rollSteamBreakdown(rng);
-          j.push(t('sv.steamBreakdown', { label: b.label }), b.desc);
+          j.push(ligneDeTexte(t('sv.steamBreakdown', { label: b.label })), ligneDeTexte(b.desc));
           applySteamBreakdown(get, set, b, rng); // « Fuite de vapeur » → `pendingSteamSave` (sauvegarde d'Initiative) suspend AVANT le reste du jour
         }
       }
       noteSeaLine(get, set, j);
-      if (get().pendingSteamSave) return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `continueSeaDayFromPostProgression`)
+      if (get().pendingSteamSave) return { applique: { lignes: j, faits: [] } }; // le reste de la journée reprendra APRÈS la sauvegarde (`resolveSteamSave` → `continueSeaDayFromPostProgression`)
       const insert = buildPostProgressionSteps(get);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: insert.length ? insert : undefined };
+      return { applique: { lignes: j, faits: [] }, insert: insert.length ? insert : undefined };
     },
     /** « Ça va lâcher, capitaine ! » (MDG 13 l.121-142, #443) : Dégâts de coque (`overspeedDamage`)
      *  routés par `damageVesselHull`. */
     'mer-survitesse': (get, set, step) => {
       if (!step.result) return;
       if (step.result.success) {
-        const j = [t('sv.holdsPace', { label: String(step.label) })];
+        const j = [ligneDeTexte(t('sv.holdsPace', { label: String(step.label) }))];
         noteSeaLine(get, set, j);
-        return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+        return { applique: { lignes: j, faits: [] } };
       }
       const dmg = overspeedDamage(Number(step.meta?.overspeedDamage ?? 0), step.result.sl);
       const hull = get().travelPlan?.vehicle;
       const j = hull ? damageVesselHull(get, set, hull, dmg) : [];
       // MDG 13 l.142
-      const line = [t('sv.hullTakes', { label: String(step.label), n: dmg }), ...j];
+      const line = [ligneDeTexte(t('sv.hullTakes', { label: String(step.label), n: dmg })), ...j];
       noteSeaLine(get, set, line);
-      return { applique: { lignes: line.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: line, faits: [] } };
     },
     /** MDG 13 l.148 */
     'mer-salissures': (get, set, step) => {
@@ -3276,11 +3276,11 @@ export const TABLES = {
       const r = weeklyFoulingLevel(before, step.result.success);
       const lastTestDay = garanti(step.meta?.foulingDay, step.id, 'jour du Test de Salissures');
       set({ vessel: { ...vessel, fouling: { level: r.level, lastTestDay } } });
-      const line = step.result.success ? t('sv.foulingHolds')
+      const line = ligneDeTexte(step.result.success ? t('sv.foulingHolds')
         : r.gained ? t('sv.fouling', { level: r.level, desc: foulingEffects(r.level).desc })
-        : t('sv.foulingMax', { level: r.level });
+        : t('sv.foulingMax', { level: r.level }));
       noteSeaLine(get, set, [line]);
-      return { applique: { lignes: [ligneDeTexte(line)], faits: [] } };
+      return { applique: { lignes: [line], faits: [] } };
     },
     /** Réparation par le groupe au chantier, navire à quai (`refusDeGesteAQuai`) : l'issue du Test ouvre ses dés, celui des
      *  Blessures si les pièces du groupe en paient (`plafondDeLaReparationDuGroupe`) ; une réussite sur une coque sans
@@ -3332,10 +3332,10 @@ export const TABLES = {
       const hull = coqueParId(get(), String(step.meta?.hullId));
       if (!hull) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: t('sv.reparationTemporaireDegats') }))], faits: [] } };
       const n = Math.max(0, step.de.result.total);
-      const line = [t('sv.reparationTemporaireCoque', { n }), ...(n > 0 ? damageVesselHull(get, set, hull, n) : [])];
+      const line = [ligneDeTexte(t('sv.reparationTemporaireCoque', { n })), ...(n > 0 ? damageVesselHull(get, set, hull, n) : [])];
       set(touchActors(get()));
       noteSeaLine(get, set, line);
-      return { applique: { lignes: line.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: line, faits: [] } };
     },
     'equipage-affaler': (get, set, step) => ({ applique: affalerConsequence(get, set, step) }),
     /** Test d'équipage d'un nœud `test` de Flow (`navireOps.ouvrirLeTestDEquipage`) : cascade AUTONOME
@@ -3358,11 +3358,11 @@ export const TABLES = {
       const dr = total + (sea.lighthouseDR ?? 0);
       const out = orientationOutcome(dr, !!sea.minorDrift);
       const signal = signalDuPortDArrivee(get);
-      const j = [`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR && signal ? `, ${libelleDeValeur(signalDuPortSchema, signal)} +${sea.lighthouseDR}` : ''}) : ${out.desc}`];
+      const j = [ligneDeTexte(`Orientation (DR ${dr >= 0 ? '+' : ''}${dr}${sea.lighthouseDR && signal ? `, ${libelleDeValeur(signalDuPortSchema, signal)} +${sea.lighthouseDR}` : ''}) : ${out.desc}`)];
       if (out.outcome === 'derive-mineure') patchSea(get, set, { minorDrift: true });
       if (out.rollCourseChange) {
         const cc = rollCourseChange(rng, out.courseChangeBonus);
-        j.push(t('sv.courseChange', { die: formatDice(deDuChangementDeCap()), roll: cc.roll, side: t(cc.side === 'tribord' ? 'sv.sideTribord' : 'sv.sideBabord'), desc: cc.desc }));
+        j.push(ligneDeTexte(t('sv.courseChange', { die: formatDice(deDuChangementDeCap()), roll: cc.roll, side: t(cc.side === 'tribord' ? 'sv.sideTribord' : 'sv.sideBabord'), desc: cc.desc })));
         const plan2 = get().travelPlan!;
         const remaining = plan2.km - plan2.kmDone;
         if (cc.outcome === 'retard') set({ travelPlan: { ...plan2, km: plan2.km + remaining * (cc.delayPct / 100) } });
@@ -3373,7 +3373,7 @@ export const TABLES = {
         }
       }
       noteSeaLine(get, set, j);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Signal du port d'arrivée (ch.13 l.337, l.351) : réussite → bonus d'Orientation. */
     'equipage-phare': (get, set, step) => {
@@ -3384,11 +3384,11 @@ export const TABLES = {
       const dr = success && best ? lighthouseOrientationDR(best.actor, clocher) : 0;
       patchSea(get, set, { lighthouseDR: dr });
       // MDG 13 l.335, l.351
-      const j = [success
+      const j = [ligneDeTexte(success
         ? t(clocher ? 'sv.clocherHeard' : 'sv.lighthouseSeen', { dr })
-        : t(clocher ? 'sv.clocherMissed' : 'sv.lighthouseMissed')];
+        : t(clocher ? 'sv.clocherMissed' : 'sv.lighthouseMissed'))];
       noteSeaLine(get, set, j);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Embuscade authorée à ancrage déterministe (#212) : réussite = préparés (pas de Surprise) ; une étape
      *  sans issue (aucune vigie, `etapeDEquipageOuDuMonde`) se lit comme un échec. */
@@ -3396,12 +3396,12 @@ export const TABLES = {
       const plan = get().travelPlan;
       const route = (get().worldMap as WorldMap | undefined)?.routes.find((r) => r.id === plan?.routeId);
       const success = step.result?.success ?? false;
-      const j = [success
+      const j = [ligneDeTexte(success
         ? t('sv.lookoutOk')
-        : t('sv.lookoutKo')];
+        : t('sv.lookoutKo'))];
       noteSeaLine(get, set, j);
       openAuthoredSeaAmbush(get, set, route, success);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Le choix de Progression (MDG 14 l.63) n'a pas d'issue propre : il INSÈRE la voie retenue. */
     'merProgressionChoix': (get, _set, step) => {
@@ -3417,12 +3417,12 @@ export const TABLES = {
       const j = applySeaProgress(get, set, step.result.sl);
       noteSeaLine(get, set, j);
       const insert = buildPostProgressionSteps(get);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: insert.length ? insert : undefined };
+      return { applique: { lignes: j, faits: [] }, insert: insert.length ? insert : undefined };
     },
     /** Manche de Poursuite (ch.13 l.354-370) — issue partagée avec la poursuite terrestre (`engine/pursuit`). */
-    'equipage-poursuite': (get, set, step) => ({ applique: { lignes: resolveSeaCrisisRound(get, set, totalDeCrise(step)).map((x) => ligneDeTexte(x)), faits: [] } }),
+    'equipage-poursuite': (get, set, step) => ({ applique: { lignes: resolveSeaCrisisRound(get, set, totalDeCrise(step)), faits: [] } }),
     /** Manche d'Évasion du Tourbillon (ch.13 l.514-528) : chaque manche coûte des Dégâts de collision. */
-    'equipage-tourbillon': (get, set, step) => ({ applique: { lignes: resolveSeaCrisisRound(get, set, totalDeCrise(step)).map((x) => ligneDeTexte(x)), faits: [] } }),
+    'equipage-tourbillon': (get, set, step) => ({ applique: { lignes: resolveSeaCrisisRound(get, set, totalDeCrise(step)), faits: [] } }),
     /** Extermination des nuisibles : MDG 14 l.98-104 ; MDG 15 l.161, l.176 */
     'equipage-extermination': (get, set, step) => {
       if (!step.result) return;
@@ -3435,11 +3435,11 @@ export const TABLES = {
       const { infestation: _exterminee, ...sansInfestation } = vessel;
       set({ vessel: done ? sansInfestation : { ...vessel, infestation: { ...inf, progres, ...(sl < 0 ? { assaillie: true as const } : {}) } } });
       const j = [
-        t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible }),
-        t('sv.dureeHeures', { n: heures }),
+        ligneDeTexte(t(done ? 'sv.verminCleared' : 'sv.verminProgress', { label: inf.label, progress: progres, need: inf.drCible })),
+        ligneDeTexte(t('sv.dureeHeures', { n: heures })),
       ];
       noteSeaLine(get, set, j);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Renflouage d'un ÉCHOUAGE (MDG 13 l.471-473, #444) : Test de Force UNIQUE (pas étendu — RAW muet
      *  sur une répétition formelle) ; échec → le navire reste échoué, retenté le lendemain (même construction). */
@@ -3450,11 +3450,11 @@ export const TABLES = {
       const label = sea.stranded.label;
       // MDG 13 l.473
       const j = step.result.success
-        ? [t('sv.freedFromStrand', { hazard: label })]
-        : [t('sv.stillStranded', { hazard: label })];
+        ? [ligneDeTexte(t('sv.freedFromStrand', { hazard: label }))]
+        : [ligneDeTexte(t('sv.stillStranded', { hazard: label }))];
       if (step.result.success) patchSea(get, set, { stranded: undefined });
       noteSeaLine(get, set, j);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Dégagement des Débris marins (MDG 13 l.491, #444) : Test ÉTENDU de Force (`hazard.freeTest`, total
      *  DR posé à la collision) — même cumul mutualisé que l'Extermination (`extendedTestStep`) ci-dessus. */
@@ -3464,16 +3464,16 @@ export const TABLES = {
       if (!sea?.entangled) return;
       const ent = sea.entangled;
       const { total: progress, done } = extendedTestStep(ent.progress, step.result, ent.need);
-      let j: string[];
+      let j: EntreeDuJournal[];
       if (done) {
         patchSea(get, set, { entangled: undefined });
-        j = [t('sv.disentangled', { label: ent.label, progress, need: ent.need })];
+        j = [ligneDeTexte(t('sv.disentangled', { label: ent.label, progress, need: ent.need }))];
       } else {
         patchSea(get, set, { entangled: { ...ent, progress } });
-        j = [t('sv.disentangleProgress', { label: ent.label, progress, need: ent.need })];
+        j = [ligneDeTexte(t('sv.disentangleProgress', { label: ent.label, progress, need: ent.need }))];
       }
       noteSeaLine(get, set, j);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Voyage rapide (MDG 15 l.28) : le DR alimente le palier — calculé/persisté PUIS appliqué (embuscade
      *  ancrée éventuelle d'abord, jamais raconté avant — `finalizeFastVoyage` est RÉ-ENTRANT). */
@@ -3489,22 +3489,22 @@ export const TABLES = {
       const total = step.result.sl;
       const rng = battleRng();
       const adj = total + REPARATION.entretienCrewTestDR;
-      let j: string[];
+      let j: EntreeDuJournal[];
       if (adj >= 1) {
         const hull = get().travelPlan!.vehicle!;
         const healed = Math.min(hull.wounds.max - hull.wounds.current, tirer(REPARATION.temporaire.woundsPerRepair, rng));
         healVesselHull(get, set, hull, healed);
         poserLaReparationTemporaire(get, set); // MDG 13 l.651
         // MDG 14 l.122
-        j = [t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` })];
-      } else j = [t('sv.juryRepairsKo', { dr: adj })];
+        j = [ligneDeTexte(t('sv.juryRepairs', { n: healed, dr: `${adj >= 0 ? '+' : ''}${adj}` }))];
+      } else j = [ligneDeTexte(t('sv.juryRepairsKo', { dr: adj }))];
       noteSeaLine(get, set, j);
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** CHOIX face au navire hostile (A5.3 #327). fuir → Poursuite ; combattre → abordage immédiat ;
      *  se soumettre → pillage `pirate-pillage-pct` de la cale + CHOIX du tribut (étape insérée). */
     'merPiratesSommation': (get, set, step) => {
-      const j: string[] = [];
+      const j: EntreeDuJournal[] = [];
       if (step.chosen === 'combattre') {
         startChaseBoarding(get, set); // abordage immédiat (rencontre AUTHORÉE de la route)
       } else if (step.chosen === 'soumettre') {
@@ -3513,8 +3513,8 @@ export const TABLES = {
         if (vessel?.cargo?.length) {
           const r = spoilCargoByPct(vessel.cargo, pct);
           if (r.removed) set({ vessel: { ...get().vessel!, cargo: r.lots } });
-          j.push(t('sv.pillaged', { enc: r.removed, pct }));
-        } else j.push(t('sv.pillagedEmpty'));
+          j.push(ligneDeTexte(t('sv.pillaged', { enc: r.removed, pct })));
+        } else j.push(ligneDeTexte(t('sv.pillagedEmpty')));
         const tribut = choiceStep({
           id: 'merPiratesTribut', kind: 'merPiratesTribut', icon: 'nautique/vent', actorId: seaDecider(get),
           label: t('step.seaTribut'), defaultChoice: 'livrer',
@@ -3523,28 +3523,28 @@ export const TABLES = {
             { key: 'refuser', label: t('opt.refuser'), detail: t('sv.detailRefuser') },
           ],
         });
-        return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, ...(tribut ? { insert: [tribut] } : {}) };
+        return { applique: { lignes: j, faits: [] }, ...(tribut ? { insert: [tribut] } : {}) };
       } else {
         startSeaPursuit(get, set, garanti(get().travelPlan?.sea?.boarding, 'merPiratesSommation', 'navire hostile en vue'));
       }
       // La reprise du jour à la fermeture de cette séquence : la pile (`reprendreLaPile`).
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** TRIBUT à Stromfels (A5.3 #327) : livrer un marin = perte réelle d'équipage (`applyVesselCrewLoss`) +
      *  déplaisir de Manann (facteur de Moral RAW −2d10, MDG 14 : sacrifier une âme à Stromfels, ennemi de
      *  Manann) ; refuser = abordage immédiat. AUCUNE perte silencieuse (tout dénoué au journal/à l'écran). */
     'merPiratesTribut': (get, set, step) => {
-      const j: string[] = [];
+      const j: EntreeDuJournal[] = [];
       if (step.chosen === 'refuser') {
-        j.push(t('sv.tributeRefused'));
+        j.push(ligneDeTexte(t('sv.tributeRefused')));
         startChaseBoarding(get, set);
       } else {
-        j.push(...applyVesselCrewLoss(get, set, 1, (postes) => indiceDeMembreDuBord(battleRng(), postes)).lignes);
-        j.push(t('sv.sailorGiven'));
+        j.push(...applyVesselCrewLoss(get, set, 1, (postes) => indiceDeMembreDuBord(battleRng(), postes)).lignes.map((l) => ligneDeTexte(l)));
+        j.push(ligneDeTexte(t('sv.sailorGiven')));
         const ship = get().travelPlan?.vehicle;
-        if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(l); // déplaisir de Manann (MDG 14)
+        if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(ligneDeTexte(l)); // déplaisir de Manann (MDG 14)
       }
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Désertion (MDG 14 l.192-202) : l'étape `merDesertion` est le dé de MONDE que `trancherLaRelache` ouvre par
      *  `openWorldTest` ; l'applier tire les départs par `resolveShoreLeaveDesertion` (`shipCrew.ts`, RNG `battleRng()`).

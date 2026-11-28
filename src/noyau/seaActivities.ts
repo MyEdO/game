@@ -153,7 +153,7 @@ export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: Ac
   if (spec.target == null) {
     const { applique } = appliquerIssueActivite(get, hero, def, spec, null);
     set({ party: [...get().party] });
-    noteSeaLine(get, set, recapDe(applique.lignes).map((l) => l.entree.texte));
+    noteSeaLine(get, set, recapDe(applique.lignes).map((l) => l.entree));
     return undefined;
   }
   const difficulty = spec.difficulty;
@@ -195,7 +195,7 @@ function validerLaSemaine(get: Get, set: Set): void {
 function openNextOpportunityTrade(get: Get, set: Set, hero: Combatant, pick: SeaActivityPick, def: ActivityDef): void {
   const invest = pick.investGold ?? 0;
   if (invest <= 0) {
-    noteSeaLine(get, set, [t('sact.tradeNoStake', { name: nomDe(hero) })]);
+    noteSeaLine(get, set, [ligneDeTexte(t('sact.tradeNoStake', { name: nomDe(hero) }))]);
     continueSeaActivitiesAfterCascade(get, set);
     return;
   }
@@ -230,7 +230,7 @@ export function continueSeaActivitiesAfterCascade(get: Get, set: Set): void {
   if (!pending.day) return;
   const plan = get().travelPlan;
   const activityLines = plan?.sea?.lines ?? [];
-  const day: TravelRecapDay = { ...pending.day, lines: [...pending.day.lines, ...recapDe(activityLines.map((x) => ligneDeTexte(x)))] };
+  const day: TravelRecapDay = { ...pending.day, lines: [...pending.day.lines, ...recapDe(activityLines)] };
   if (plan?.sea) patchSea(get, set, { lines: [] });
   openSeaHalt(get, set, day);
 }
@@ -631,10 +631,10 @@ export const TABLES = {
       const pct = opportunityTradePct(total);
       const back = Math.floor((investBrass * pct) / 100);
       distributeCredit(get, set, fromBrass(back));
-      const line = t('sact.tradeDone', { name: nomDe(hero), stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
+      const line = ligneDeTexte(t('sact.tradeDone', { name: nomDe(hero), stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct }));
       noteSeaLine(get, set, [line]);
       continueSeaActivitiesAfterCascade(get, set);
-      return { applique: { lignes: [ligneDeTexte(line)], faits: [] } };
+      return { applique: { lignes: [line], faits: [] } };
     },
   } satisfies PartDeTable<'issuesDeTestEtendu', typeof ISSUES_DE_TEST_ETENDU>,
 } satisfies FragmentDeTables;

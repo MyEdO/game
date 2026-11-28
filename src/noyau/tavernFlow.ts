@@ -130,7 +130,7 @@ import type { PlayerText, SansMarqueNonAffichable } from '../i18n/playerText';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /**
  * Adversaire d'une partie — TROIS formes, chacune JOUE une fiche (`tavernGameValue`) :
@@ -1147,7 +1147,7 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
   const jet = band.participants.find((r) => r.id === lanceur.id);
   const danseur = band.participants.find((r) => r.id.startsWith('danseur-'));
   const cumuls = { ...seq.cumuls };
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   if (jet && danseur && estJete(jet.result) && estJete(danseur.result)) {
     const opp = resolveOpposed(asTest(jet.result, jet.base), asTest(danseur.result, danseur.base));
     if (opp.attackerWins) {
@@ -1155,9 +1155,9 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
       const touche = garanti(ligne, opp.netSL, 'ligne de touche');
       const gain = touche.points;
       cumuls[lanceur.camp] = (cumuls[lanceur.camp] ?? 0) + gain;
-      log.push(t('tavern.torchonTouche', { who: lanceur.label, ou: touche.label, points: gain, s: pluriel(gain), dr: opp.netSL }));
+      log.push(ligneDeTexte(t('tavern.torchonTouche', { who: lanceur.label, ou: touche.label, points: gain, s: pluriel(gain), dr: opp.netSL })));
     } else if (seq.parametres.throwerPenalty?.lines?.manque) {
-      log.push(interpolate(seq.parametres.throwerPenalty.lines.manque, { who: lanceur.label }));
+      log.push(ligneDeTexte(interpolate(seq.parametres.throwerPenalty.lines.manque, { who: lanceur.label })));
     }
   }
   // La perte du pot non vidé (l.111) est comptée par l'applier de la sanction, qui la pose dans
@@ -1182,10 +1182,10 @@ function torchonClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tav
     cumuls[CAMP_OPPONENT] = (cumuls[CAMP_OPPONENT] ?? 0) - sobres[CAMP_OPPONENT] * prix;
     const dit = seq.parametres.throwerPenalty?.lines?.balayage;
     if (dit) {
-      log.push(interpolate(dit, {
+      log.push(ligneDeTexte(interpolate(dit, {
         mien: sobres[CAMP_PLAYER], sien: sobres[CAMP_OPPONENT],
         perteMien: sobres[CAMP_PLAYER] * prix, perteSien: sobres[CAMP_OPPONENT] * prix,
-      }));
+      })));
     }
   }
   const mien = cumuls[CAMP_PLAYER] ?? 0;
@@ -1239,9 +1239,9 @@ function tavernTeamClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame)
     tous: herosDuCamp,
   };
   const tour = { jeu: game.label, n: seq.manche, mien: tp, sien: to };
-  const log = [but
+  const log = [ligneDeTexte(but
     ? t('tavern.equipeTourBut', { ...tour, qui: gagnant === 'joueur' ? t('tavern.equipeQui') : p.opponentName })
-    : t('tavern.equipeTour', tour)];
+    : t('tavern.equipeTour', tour))];
   const chargeUtile: TavernPayload = { ...campsSansFiche(ctx, gagnant), last: { dr: { joueur: tp, adversaire: to } } };
   if (!ph.last) return { suite: 'poursuivre', cumuls: buts, chargeUtile, log, porteurs };
   const bp = buts[CAMP_PLAYER] ?? 0;
@@ -1543,14 +1543,14 @@ function potTotalLigne(params: SequenceParams, p: TavernPayload, joueur: TavernS
 
 /** FIN DE MANCHE (`NADJ 16 l.17`) : le gagnant, ou le seul joueur encore en jeu, empoche le pot ; un pot
  *  vide sans gagnant clôt la manche. */
-function potFinDeManche(seats: readonly TavernSeat[], m: MancheEnVol, log: string[]): MancheEnVol {
+function potFinDeManche(seats: readonly TavernSeat[], m: MancheEnVol, log: EntreeDuJournal[]): MancheEnVol {
   const enJeu = seats.filter((s) => !m.out.includes(s.id));
   const gagnant = m.gagnant ?? (enJeu.length === 1 ? enJeu[0] : undefined);
   if (gagnant && m.pot > 0) {
-    log.push(t('tavern.potRafle', { who: gagnant.label, montant: formatMoney(fromBrass(m.pot)) }));
+    log.push(ligneDeTexte(t('tavern.potRafle', { who: gagnant.label, montant: formatMoney(fromBrass(m.pot)) })));
     return { ...m, gagnant, net: potMouvement(m.net, gagnant, m.pot), pot: 0 };
   }
-  if (!gagnant && m.pot <= 0) log.push(t('tavern.potVide'));
+  if (!gagnant && m.pot <= 0) log.push(ligneDeTexte(t('tavern.potVide')));
   return { ...m, gagnant };
 }
 
@@ -1559,7 +1559,7 @@ function potFinDeManche(seats: readonly TavernSeat[], m: MancheEnVol, log: strin
  *  des joueurs qu'aucun siège ne tient). */
 function potJoueTour(
   get: Get, params: SequenceParams, p: TavernPayload, seats: readonly TavernSeat[], m: MancheEnVol,
-  joueur: TavernSeat, total: number, choix: string | undefined, log: string[],
+  joueur: TavernSeat, total: number, choix: string | undefined, log: EntreeDuJournal[],
 ): MancheEnVol {
   let { pot, net, cible } = m;
   const mises = { ...m.mises };
@@ -1570,15 +1570,15 @@ function potJoueTour(
     pot -= outcome.takes;
     mises[joueur.id] = (mises[joueur.id] ?? 0) - outcome.takes;
     net = potMouvement(net, joueur, outcome.takes);
-    log.push(t('tavern.potReprend', { who: joueur.label, montant: formatMoney(fromBrass(outcome.takes)) }));
+    log.push(ligneDeTexte(t('tavern.potReprend', { who: joueur.label, montant: formatMoney(fromBrass(outcome.takes)) })));
   }
   if (outcome.target != null) {
     cible = outcome.target;
-    log.push(t('tavern.potNouvelleCible', { who: joueur.label, cible }));
+    log.push(ligneDeTexte(t('tavern.potNouvelleCible', { who: joueur.label, cible })));
   }
   if (outcome.out) {
     out.push(joueur.id);
-    log.push(t('tavern.potQuitte', { who: joueur.label }));
+    log.push(ligneDeTexte(t('tavern.potQuitte', { who: joueur.label })));
   }
   if (outcome.choose) {
     // Ce que coûte le maintien dans la manche est PARAMÉTRÉ par la plage (`owes`), jamais supposé.
@@ -1588,10 +1588,10 @@ function potJoueTour(
       pot += du;
       mises[joueur.id] = (mises[joueur.id] ?? 0) + du;
       net = potMouvement(net, joueur, -du);
-      log.push(t('tavern.potRemise', { who: joueur.label, montant: formatMoney(fromBrass(du)) }));
+      log.push(ligneDeTexte(t('tavern.potRemise', { who: joueur.label, montant: formatMoney(fromBrass(du)) })));
     } else {
       out.push(joueur.id);
-      log.push(t('tavern.potAbandon', { who: joueur.label }));
+      log.push(ligneDeTexte(t('tavern.potAbandon', { who: joueur.label })));
     }
   }
   return potFinDeManche(seats, { pot, net, mises, out, cible, ...(gagnant ? { gagnant } : {}) }, log);
@@ -1631,8 +1631,8 @@ function potClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<TavernP
       suite: 'poursuivre',
       chargeUtile: { ...p, net, pot, mises, target: cible },
       log: [
-        t('tavern.potManche', { n: p.manche ?? 1, mise: formatMoney(fromBrass(ante)), pot: formatMoney(fromBrass(pot)) }),
-        t('tavern.potCible', { who: garanti(joueur, p.seat ?? 0, 'siège du pot').label, cible }),
+        ligneDeTexte(t('tavern.potManche', { n: p.manche ?? 1, mise: formatMoney(fromBrass(ante)), pot: formatMoney(fromBrass(pot)) })),
+        ligneDeTexte(t('tavern.potCible', { who: garanti(joueur, p.seat ?? 0, 'siège du pot').label, cible })),
       ],
     };
   }
@@ -1642,7 +1642,7 @@ function potClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<TavernP
   const joueur = seats[p.seat ?? 0];
   if (total == null || !joueur) return { suite: 'fin', issue: potIssue(p) };
 
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   const choix = mancheClose.participants.find((s) => s.kind === TAVERN_FOLD_KIND)?.chosen;
   const { pot, net, mises, out, cible, gagnant } = potJoueTour(get, seq.parametres, p, seats, potMancheEnVol(p, regles.targetRange?.min ?? 0), joueur, total, choix, log);
   const gains = gagnant
@@ -2224,7 +2224,7 @@ function volleyClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
     return {
       suite: 'poursuivre',
       chargeUtile: { ...p, volley: { ...st, row: i } },
-      log: ligne ? [t('tavern.volleyVise', { who: qui, cible: ligne.label })] : [],
+      log: ligne ? [ligneDeTexte(t('tavern.volleyVise', { who: qui, cible: ligne.label }))] : [],
     };
   }
 
@@ -2244,8 +2244,8 @@ function volleyClose(ctx: SequenceCloseCtx<TavernPayload>): SequenceVerdict<Tave
       : (lu.outcome.gain ?? 0);
   const fin = sequenceThrowGain(v, lu.turn, brut);
   const gain = fin.gain ?? 0;
-  const log = [t('tavern.volleyGain', { who: qui, gain })];
-  if (fin.ends) log.push(t('tavern.volleyDepasse', { who: qui, exact: v.exact ?? 0 }));
+  const log = [ligneDeTexte(t('tavern.volleyGain', { who: qui, gain }))];
+  if (fin.ends) log.push(ligneDeTexte(t('tavern.volleyDepasse', { who: qui, exact: v.exact ?? 0 })));
 
   const gains = { ...st.gains, [lu.camp]: [...(st.gains[lu.camp] ?? []), gain] };
   const reserve = st.reserve != null ? Math.max(0, st.reserve - gain) : undefined;
@@ -2345,7 +2345,7 @@ function sidesClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): Seq
     return {
       suite: 'poursuivre',
       chargeUtile: { ...p, side: elu.id },
-      log: [t('tavern.side', { who: nomDe(garanti(actorIn(ctx.get(), p.challengerId), p.challengerId, 'choix de camp')), camp: elu.label })],
+      log: [ligneDeTexte(t('tavern.side', { who: nomDe(garanti(actorIn(ctx.get(), p.challengerId), p.challengerId, 'choix de camp')), camp: elu.label }))],
     };
   }
   const jets = tavernSides(ctx);
@@ -2368,11 +2368,11 @@ function sidesClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): Seq
   const gagneMien = critMien || cumuls[CAMP_PLAYER] > sien.pieces / 2;
   const gagneSien = critSien || cumuls[CAMP_OPPONENT] > mien.pieces / 2;
   const chargeUtile: TavernPayload = { ...p, last: { dr: { joueur: cumuls[CAMP_PLAYER], adversaire: cumuls[CAMP_OPPONENT] } } };
-  const log = [t('tavern.sidePrises', {
+  const log = [ligneDeTexte(t('tavern.sidePrises', {
     mien: mien.label, prisesMien: cumuls[CAMP_PLAYER], sien: sien.label, prisesSien: cumuls[CAMP_OPPONENT],
     unite: uniteDeScore(game, cumuls[CAMP_PLAYER]),
-  })];
-  if (critMien || critSien) log.push(t('tavern.sideCritique', { camp: critMien ? mien.label : sien.label }));
+  }))];
+  if (critMien || critSien) log.push(ligneDeTexte(t('tavern.sideCritique', { camp: critMien ? mien.label : sien.label })));
   if (!gagneMien && !gagneSien) return { suite: 'poursuivre', cumuls, chargeUtile, log };
   return {
     suite: 'fin',
@@ -2521,7 +2521,7 @@ function combinedVerdict(
   regles: SequenceCombinedRules,
   etat: TavernCombinedState,
   cumuls: Record<string, number>,
-  log: string[],
+  log: EntreeDuJournal[],
 ): SequenceVerdict<TavernPayload> {
   const chargeUtile = { ...p, combined: etat };
   if (etat.echeances?.length) return { suite: 'poursuivre', cumuls, chargeUtile, log };
@@ -2532,7 +2532,7 @@ function combinedVerdict(
     return !!porteur && hasCondition(porteur, arret);
   });
   if (!sousLaTable && etat.tour <= nombreDeToursCombines(regles)) return { suite: 'poursuivre', cumuls, chargeUtile, log };
-  if (sousLaTable) log.push(t('tavern.cerevisSousLaTable'));
+  if (sousLaTable) log.push(ligneDeTexte(t('tavern.cerevisSousLaTable')));
   const mien = cumuls[CAMP_PLAYER] ?? 0;
   const sien = cumuls[CAMP_OPPONENT] ?? 0;
   const issue = mien < sien ? CAMP_PLAYER : sien < mien ? CAMP_OPPONENT : 'egalite';
@@ -2550,14 +2550,14 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
     return combinedVerdict(get, p, regles, { ...etat, echeances: etat.echeances.slice(1) }, seq.cumuls, []);
   }
 
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   const marques = { ...seq.cumuls };
   const echeances: CampDeTaverne[] = [];
   const sanction = regleDEcheance(seq, game);
   const noterEcheance = (camp: CampDeTaverne, acteur: Combatant, nombre: number, intervalle: number | undefined): void => {
     if (!sanction || !combinedEcheance(nombre, intervalle)) return;
     echeances.push(camp);
-    log.push(t('tavern.cerevisAlcool', { who: nomDe(acteur) }));
+    log.push(ligneDeTexte(t('tavern.cerevisAlcool', { who: nomDe(acteur) })));
   };
 
   const effacementsJoues = mancheClose.participants.filter((s) => s.kind === TAVERN_ERASE_KIND);
@@ -2568,7 +2568,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
       if (!acteur || !effacementsJoues.some((s) => s.actorId === acteur.id && s.chosen === 'efface')) continue;
       marques[camp] = Math.max(0, (marques[camp] ?? 0) - 1);
       effacements[camp] += 1;
-      log.push(t('tavern.cerevisEffacee', { who: nomDe(acteur) }));
+      log.push(ligneDeTexte(t('tavern.cerevisEffacee', { who: nomDe(acteur) })));
       noterEcheance(camp, acteur, effacements[camp], regles.effacementsParEcheance);
     }
     return combinedVerdict(get, p, regles, { ...etat, effacements, efface: true, echeances }, marques, log);
@@ -2583,7 +2583,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
   if (perdant) {
     marques[perdant] = (marques[perdant] ?? 0) + 1;
     const qui = perdant === CAMP_PLAYER ? nomDe(garanti(sides.acteurDuJoueur, p.challengerId, 'cérévis')) : p.opponentName;
-    log.push(t('tavern.cerevisChouette', { who: qui, dr: perdant === CAMP_PLAYER ? drMien : drSien }));
+    log.push(ligneDeTexte(t('tavern.cerevisChouette', { who: qui, dr: perdant === CAMP_PLAYER ? drMien : drSien })));
   }
 
   for (const camp of CAMPS_DE_TAVERNE) {
@@ -2595,7 +2595,7 @@ function combinedClose(ctx: SequenceCloseCtx<TavernPayload>, game: TavernGame): 
     const cible2 = combinedSecondTarget(regles, acteur, difficulty, p.opponentValue);
     if (evaluateCombinedTest(jet.roll, jet.target, cible2).b.success) continue;
     echecs[camp] += 1;
-    log.push(t('tavern.cerevisGorgee', { who: acteur ? nomDe(acteur) : p.opponentName }));
+    log.push(ligneDeTexte(t('tavern.cerevisGorgee', { who: acteur ? nomDe(acteur) : p.opponentName })));
     if (acteur) noterEcheance(camp, acteur, echecs[camp], regles.echecsParEcheance);
   }
 

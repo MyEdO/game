@@ -5171,7 +5171,7 @@ export function applyAreaAttack(get: Get, set: SetFn, attacker: Combatant, a: Cr
  *  `applyManeuverEffects` (table `apresToucheDeManoeuvre`) : sur une TOUCHE (un pion *Empêtré* posé ce tour) d'une
  *  proie plus PETITE, elle est tirée vers la créature (pathing impur : `pullToward` + traversées de zone).
  *  Joué à l'IDENTIQUE pour la voie silencieuse (non-héros/Surpris) ET la voie cascade (héros influençable). */
-function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number): string[] {
+function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number): EntreeDuJournal[] {
   if (def.kind !== 'langue' || !tgt.pos || !attacker.pos) return [];
   if (!(stacks(tgt, COND.empetre) > hadEmpetre && sizeGap(attacker.size, tgt.size) > 0)) return [];
   const b = get().battle;
@@ -5182,7 +5182,7 @@ function jouerLApresToucheDeManoeuvre(get: Get, set: SetFn, attacker: Combatant,
   if (!placeCombatant(tgt, get().scene, r.dest)) return [];
   bus.emit(EVT.ANIM_MOVE, { id: tgt.id, path: [{ ...r.dest }] });
   applyZoneCrossings(get, set, tgt, [...tilesBetween(from, r.dest), { ...r.dest }]); // une traction TRAVERSE (Mur de feu, L11)
-  return [tr('cs.tonguePull', { name: nomDe(attacker), foe: nomDe(tgt) })];
+  return [ligneDeTexte(tr('cs.tonguePull', { name: nomDe(attacker), foe: nomDe(tgt) }))];
 }
 
 /** Hurlement fantomatique, geste `lancerLAttaqueDeZone` : PAS de jet d'attaquant ; dépense TOUS les Avantages
@@ -5514,10 +5514,10 @@ function sorceryCorruption(get: Get, set: SetFn, caster: Combatant, ctx: Pending
  *  (`emitMiscastTriggered`) — une Multiplication d'infortune dénoue DEUX fois. */
 function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, m: MiscastResult): { applique: Applique; affichee: boolean } {
   const { severity } = ctx;
-  const lines: EntreeDuJournal[] = [ligneDeTexte(m.log)];
+  const lines: EntreeDuJournal[] = [m.log];
   const faits: FaitApplique[] = [];
   // La révélation porte les faits, et seules les lignes qui n'en lisent aucun (`lignesHorsDesFaits`).
-  const revealLines = [m.log];
+  const revealLines = [m.log.texte];
   const absorber = (a: Applique): void => {
     lines.push(...a.lignes);
     faits.push(...a.faits);
@@ -7457,10 +7457,10 @@ export function crochetDeZone(get: Get): Required<Pick<OpsCtx, 'onZone'>> {
     onZone: (op, rounds, cible, ctx) => {
       const lines: EntreeDuJournal[] = [];
       const centre = ctx.centreDeZone ?? cible.pos;
-      if (!centre) return [tr('cf.zonePersiste', { spell: nomDeSource(ctx) })];
+      if (!centre) return [ligneDeTexte(tr('cf.zonePersiste', { spell: nomDeSource(ctx) }))];
       if (op.shape === 'disc' && op.radiusMeters === undefined) throw new Error(`op « zone » de ${nomDeSource(ctx)} : disque sans « radiusMeters » — hors sort, aucune Zone d'Effet ne le donne.`);
       placeZoneFromOp(get, ctx.caster ?? cible, { centre }, op, nomDeSource(ctx), rounds, ctx.sl ?? 0, lines, ctx.source);
-      return lines.map((e) => e.texte);
+      return lines;
     },
   };
 }

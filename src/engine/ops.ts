@@ -669,7 +669,7 @@ export interface OpsCtx {
   /** Branché par la couche state (`noyau/combatFlow.crochetDeZone`) : POSE la zone d'une op `zone` qui porte sa durée
    *  (`durationRounds`, déjà tirée en `rounds`) sur `cible`, ou au point `centreDeZone`. Sans crochet (moteur pur), l'op
    *  reste inerte. */
-  onZone?: (op: Extract<GameOp, { op: 'zone' }>, rounds: number, cible: Combatant, ctx: OpsCtx) => string[];
+  onZone?: (op: Extract<GameOp, { op: 'zone' }>, rounds: number, cible: Combatant, ctx: OpsCtx) => EntreeDuJournal[];
   /** Point où se pose la zone d'une op `zone` quand ce n'est pas la case de sa cible : le point d'arrivée d'une arme
    *  lancée qui manque (LDB 14 l.142 ; #4202). */
   centreDeZone?: { x: number; y: number; z?: number };
@@ -677,7 +677,7 @@ export interface OpsCtx {
    *  (`noyau/combat/advantagePool.ts` `creditOpposingAdvantage`, fourni par `turnHooks.fireTurnEdgeTriggers`
    *  pour `onTurnStart`) sur l'op `topUpAdvantage{feedOpposingPool:true}` — crédite `n` (l'Indice PLEIN) à la
    *  réserve du camp OPPOSÉ. Sans contexte (moteur pur/tests, hors mode groupe), la clause est inerte. */
-  onOpposingAdvantage?: (n: number) => string[];
+  onOpposingAdvantage?: (n: number) => EntreeDuJournal[];
   /** ARME du coup courant — quand un `op:'wounds' { weaponHit:true }` résout les Blessures comme un coup
    *  d'arme (`woundsFromHit` : qualités + armure à `location` + BE). Posé par le routeur d'attaque (S4) et
    *  par les effets d'AIRE d'une arme (munitions). Absent → l'op reste en mode Formula. */
@@ -1142,7 +1142,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         // inconscient/surpris, dans le nœud `if` englobant) est déjà franchi — l'Indice PLEIN part EN
         // PLUS pour la réserve adverse, indépendamment de si `target.advantage` avait déjà atteint `want`.
         // Garde HÉRITÉE par le feed de groupe : arbitrage user 2026-07-16 (#536).
-        if (o.feedOpposingPool) lines.push(...(ctx.onOpposingAdvantage?.(want) ?? []).map((x) => ligneDeTexte(x)));
+        if (o.feedOpposingPool) lines.push(...(ctx.onOpposingAdvantage?.(want) ?? []));
         break;
       }
       case 'condition': {
@@ -2041,7 +2041,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         if (o.durationRounds === undefined || !ctx.onZone) break;
         const declares = desDeclaresDe(o, target, ctx);
         const rounds = declares.length ? lecteurDe(iOp, declares)('duree') : formuleDuCtx(o.durationRounds, ref, ctx);
-        lines.push(...ctx.onZone(o, rounds, target, ctx).map((x) => ligneDeTexte(x)));
+        lines.push(...ctx.onZone(o, rounds, target, ctx));
         break;
       }
       case 'summon':

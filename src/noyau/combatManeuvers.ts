@@ -79,7 +79,7 @@ import { effectiveTalents } from '../engine/talentEffects';
 import { bus, EVT } from './bus';
 import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type PartDeTable } from './tablesPosees';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 // ---------------------------------------------------------------------------
 // Émission d'animation + énumération
@@ -104,7 +104,7 @@ function floatTag(tgt: Combatant, text: string): void {
  *  l'entraînement de la Langue préhensile (LDB 85 l.213 ; pathing impur qui vit dans combatFlow). Appelée
  *  par `applyManeuverEffects` avec le nombre de pions *Empêtré* AVANT l'application des effets, pour que la
  *  voie SILENCIEUSE (non-héros/Surpris) ET la voie CASCADE (héros influençable) tirent à l'identique. */
-export type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number) => string[] | void;
+export type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, hadEmpetre: number) => EntreeDuJournal[] | void;
 
 /**
  * Application des EFFETS d'une manœuvre à UNE cible qui a PERDU l'opposition (ou n'en avait pas) — la
@@ -116,16 +116,16 @@ export type ManeuverPostHitHook = (get: Get, set: SetFn, attacker: Combatant, de
  */
 export function applyManeuverEffects(
   get: Get, set: SetFn, attacker: Combatant, def: ManeuverDef, tgt: Combatant, indice: number, margin: number | undefined, rng: RNG,
-): string[] {
-  const lines: string[] = [];
+): EntreeDuJournal[] {
+  const lines: EntreeDuJournal[] = [];
   const hadEmpetre = stacks(tgt, COND.empetre);
   const before = tgt.wounds.current;
-  lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: tgt, margin, indice, rng, set }).map((e) => e.texte));
+  lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: tgt, margin, indice, rng, set }));
   const wl = before - tgt.wounds.current;
   if (wl > 0) floatDamage(tgt, wl);
   const consequences: Applique = { lignes: [], faits: [] };
   if (tgt.wounds.current <= 0) applyZeroWounds(tgt, consequences);
-  lines.push(...consequences.lignes.map((e) => e.texte));
+  lines.push(...consequences.lignes);
   const pull = tablesPosees().apresToucheDeManoeuvre(get, set, attacker, def, tgt, hadEmpetre);
   if (pull && pull.length) lines.push(...pull);
   return lines;
@@ -477,7 +477,7 @@ export function resolveManeuver(
   if (!battle || battle.over || !attacker.pos) return false;
   campSpend(get, attacker, spent); // dépense l'Avantage : réserve du camp (mode groupe AA 11 l.30-38) / le combattant (LDB)
   const rng = battleRng();
-  const lines: string[] = [t('manv.trigger', { name: nomDe(attacker), label: def.label })];
+  const lines: EntreeDuJournal[] = [ligneDeTexte(t('manv.trigger', { name: nomDe(attacker), label: def.label }))];
   // Orientation du geste : l'attaquant vise le centre RÉELLEMENT résolu plus bas (la cible cliquée peut
   // être écartée — morte, hors portée — et le souffle recentré sur le plus proche). UNE écriture par
   // manœuvre ; cible = SOI (transformation) ou case identique ⇒ delta nul, facing inchangé ; population
@@ -503,7 +503,7 @@ export function resolveManeuver(
     let margin: number | undefined;
     if (drow) {
       const opp = resolveOpposed(atk ?? drow, drow);
-      if (!opp.attackerWins) { lines.push(t('manv.resists', { name: nomDe(tgt) })); floatTag(tgt, def.defense === 'init' ? t('fx.resists') : t('fx.dodge')); return; }
+      if (!opp.attackerWins) { lines.push(ligneDeTexte(t('manv.resists', { name: nomDe(tgt) }))); floatTag(tgt, def.defense === 'init' ? t('fx.resists') : t('fx.dodge')); return; }
       // Marge = DR net du vainqueur (+Avantage dépensé pour les manœuvres à Avantage VARIABLE, LDB 85 l.290).
       margin = opp.netSL + (def.modeDAvantage === 'variable' ? spent : 0);
     }
@@ -512,7 +512,7 @@ export function resolveManeuver(
 
   // SUR SOI (transformation, mue, auto-buff) : aucune cible adverse ni opposition — jamais de cascade.
   if (def.ciblage === 'soi') {
-    lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: attacker, indice, rng, set }).map((e) => e.texte));
+    lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: attacker, indice, rng, set }));
     flushLog();
     return false;
   }
@@ -533,7 +533,7 @@ export function resolveManeuver(
       const cz = center.pos!.z;
       const tiles = cz ? rawTiles.map((tl) => ({ ...tl, z: cz })) : rawTiles;
       const zones = [...(get().battle!.zones ?? []), { label: t('manv.smokeZone'), tiles, rounds: dur, blocksLoS: true, ...(def.rendu ? { rendu: { id: def.rendu.id } } : {}) }];
-      lines.push(t('manv.smoke', { dur }));
+      lines.push(ligneDeTexte(t('manv.smoke', { dur })));
       set({ battle: { ...get().battle!, zones } });
     }
   } else if (def.ciblage === 'adversairesAutour' || def.ciblage === 'toutAutour') {
@@ -794,7 +794,7 @@ export const TABLES = {
       const margin = resolveOpposed(opp.aT, drow).netSL + (def.modeDAvantage === 'variable' ? md.spent : 0);
       const journal = applyManeuverEffects(get, set, attacker, def, hero, md.indice, margin, battleRng());
       syncManeuver();
-      return { applique: { lignes: journal.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: journal, faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

@@ -60,14 +60,15 @@ import { bus, EVT } from './bus';
 
 import type { Get, Set } from './flowTypes';
 import type { Applique } from '../engine/faits';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 interface LigneDEntretien {
-  text: string;
+  entree: EntreeDuJournal;
   actorId?: string;
 }
 
-function lignesDEntretien(textes: readonly string[], actorId?: string): LigneDEntretien[] {
-  return textes.map((text) => ({ text, actorId }));
+function lignesDEntretien(entrees: readonly EntreeDuJournal[], actorId?: string): LigneDEntretien[] {
+  return entrees.map((entree) => ({ entree, actorId }));
 }
 
 /** Purge les effets à durée d'HORLOGE arrivés à échéance (`untilTime` ≤ maintenant) : contrecoups
@@ -80,29 +81,29 @@ export function purgeClockEffects(get: Get, set: Set): LigneDEntretien[] {
   const expiredLog: LigneDEntretien[] = [];
   const pool = [...get().party, ...(get().battle?.combatants ?? [])];
   for (const h of pool) {
-    const lignes: string[] = [];
+    const lignes: EntreeDuJournal[] = [];
     const exp = (h.castPenalties ?? []).filter((p) => p.untilTime != null && p.untilTime <= now);
     if (exp.length) {
-      for (const p of exp) lignes.push(t('upkeep.fades', { name: nomDe(h), what: p.label }));
+      for (const p of exp) lignes.push(ligneDeTexte(t('upkeep.fades', { name: nomDe(h), what: p.label })));
       h.castPenalties = h.castPenalties!.filter((p) => !(p.untilTime != null && p.untilTime <= now));
     }
     const porte: Applique = { lignes: [], faits: [] }; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'clock' && e.duration.until <= now, porte);
-    for (const e of fx) lignes.push(t('upkeep.fades', { name: nomDe(h), what: e.label }));
-    lignes.push(...porte.lignes.map((e) => e.texte));
+    for (const e of fx) lignes.push(ligneDeTexte(t('upkeep.fades', { name: nomDe(h), what: e.label })));
+    lignes.push(...porte.lignes);
     // États à durée d'HORLOGE (op `condition.durationHours` — Belladone : sommeil « 1d10+4 heures ») :
     // dissipés à l'échéance, même canal de purge que les effets actifs (LDB 72 l.18).
     const echu = (x: ConditionInstance) => x.untilTime != null && x.untilTime <= now;
-    for (const x of (h.conditions ?? []).filter(echu)) lignes.push(t('upkeep.condFades', { name: nomDe(h), cond: conditionLabel(x.id) }));
+    for (const x of (h.conditions ?? []).filter(echu)) lignes.push(ligneDeTexte(t('upkeep.condFades', { name: nomDe(h), cond: conditionLabel(x.id) })));
     const sortie: Applique = { lignes: [], faits: [] };
     purgerEtats(h, echu, sortie);
-    lignes.push(...sortie.lignes.map((e) => e.texte));
+    lignes.push(...sortie.lignes);
     // Un effet d'HORLOGE qui vient d'expirer peut avoir suspendu un fait source d'État dérivé : la fenêtre
     // de conscience de LDB 20 l.170 (Détermination) se referme ICI — l'État repart par la réconciliation.
-    lignes.push(...syncDerivedConditions(h).lignes.map((e) => e.texte));
+    lignes.push(...syncDerivedConditions(h).lignes);
     expiredLog.push(...lignesDEntretien(lignes, h.id));
   }
-  if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog.map(({ text }) => text)); }
+  if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog.map(({ entree }) => entree)); }
   return expiredLog;
 }
 
@@ -127,7 +128,7 @@ export function purgeSurAvanceDHorloge(get: Get, set: Set, minutes: number): voi
 /** Les maladies de l'équipage collectif (`porteursABord`) avancent de `minutes`, sans cycle de fiche, au port comme
  *  en mer. Navire maritime à quai, chaque journée franchie compte un repas frais, noté avant le pas. RENVOIE les
  *  lignes (déjà au journal). MDG 14 l.39, l.208, l.232 ; #4243 */
-function avancerLEquipage(get: Get, set: Set, minutes: number): string[] {
+function avancerLEquipage(get: Get, set: Set, minutes: number): EntreeDuJournal[] {
   const equipage = porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER);
   if (!equipage) return [];
   const now = get().gameTime;
@@ -135,7 +136,7 @@ function avancerLEquipage(get: Get, set: Set, minutes: number): string[] {
   if (vessel?.escale !== undefined && !estBateauFluvial(vessel)) {
     for (let jours = dayIndex(now) - dayIndex(now - minutes); jours > 0; jours--) noterLeRepas(equipage.porteur, 'repas');
   }
-  const lignes = avancerLesMaladies(equipage.porteur, minutes, battleRng());
+  const lignes = avancerLesMaladies(equipage.porteur, minutes, battleRng()).map((l) => ligneDeTexte(l));
   equipage.ecrire();
   if (lignes.length) get().ecrireAuJournal(lignes);
   return lignes;
@@ -143,7 +144,7 @@ function avancerLEquipage(get: Get, set: Set, minutes: number): string[] {
 
 /** Jette de la cale du navire de campagne les lots de vivres pourris (`lotPerime`) à l'heure de jeu, au port
  *  comme en mer. RENVOIE les lignes, une par vivre (déjà au journal). MDG 14 l.238 ; LDB 47 l.93-97 ; #4058 */
-function jeterLesVivresPourris(get: Get, set: Set): string[] {
+function jeterLesVivresPourris(get: Get, set: Set): EntreeDuJournal[] {
   const vessel = get().vessel;
   if (!vessel?.provisions) return [];
   const now = get().gameTime;
@@ -151,9 +152,9 @@ function jeterLesVivresPourris(get: Get, set: Set): string[] {
   if (!pourris.length) return [];
   const provisions = vessel.provisions.filter((l) => !lotPerime(l, now));
   set({ vessel: { ...vessel, provisions } });
-  const lignes = [...new Set(pourris.map((l) => l.vivre))].map((vivre) => t('eff.provisionsPourries', {
+  const lignes = [...new Set(pourris.map((l) => l.vivre))].map((vivre) => ligneDeTexte(t('eff.provisionsPourries', {
     perdues: rationsDeCale(pourris.filter((l) => l.vivre === vivre)), vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions),
-  }));
+  })));
   get().ecrireAuJournal(lignes);
   return lignes;
 }
@@ -162,13 +163,13 @@ function jeterLesVivresPourris(get: Get, set: Set): string[] {
  *  LDB 23 l.209/218/234 : Entraînement au Combat, Observer une cible, Réputation) : la borne « fin
  *  d'aventure » n'a pas d'échéance chiffrable à la pose — elle est la PROCHAINE ouverture d'interlude
  *  (`ouvrirLInterlude`, seul appelant). RENVOIE les dissipations (journalisées par l'appelant). */
-export function purgeAdventureEffects(get: Get, set: Set): string[] {
-  const expiredLog: string[] = [];
+export function purgeAdventureEffects(get: Get, set: Set): EntreeDuJournal[] {
+  const expiredLog: EntreeDuJournal[] = [];
   for (const h of get().party) {
     const porte: Applique = { lignes: [], faits: [] };
     const fx = removeActiveEffects(h, (e) => e.duration.scale === 'adventure', porte);
-    for (const e of fx) expiredLog.push(t('upkeep.fadesAdventure', { name: nomDe(h), what: e.label }));
-    expiredLog.push(...porte.lignes.map((e) => e.texte));
+    for (const e of fx) expiredLog.push(ligneDeTexte(t('upkeep.fadesAdventure', { name: nomDe(h), what: e.label })));
+    expiredLog.push(...porte.lignes);
   }
   if (expiredLog.length) { set({ party: [...get().party] }); get().ecrireAuJournal(expiredLog); }
   return expiredLog;
@@ -268,12 +269,12 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
       if (r.rationConsumed && !cale) rations++;
       const faim: Applique = { lignes: [], faits: [] };
       loseWounds(h, r.damage, faim);
-      lines.push(...lignesDEntretien([...r.log, ...faim.lignes.map((e) => e.texte)], h.id));
+      lines.push(...lignesDEntretien([...r.log.map((l) => ligneDeTexte(l)), ...faim.lignes], h.id));
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
       const w = dailyWaterUpkeep(h, hasWater, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       const soif: Applique = { lignes: [], faits: [] };
       loseWounds(h, w.damage, soif);
-      lines.push(...lignesDEntretien([...w.log, ...soif.lignes.map((e) => e.texte)], h.id));
+      lines.push(...lignesDEntretien([...w.log.map((l) => ligneDeTexte(l)), ...soif.lignes], h.id));
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {
@@ -286,10 +287,10 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
       // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (maladie-mode off).
       if (rule('maladie-mode') !== 'off') {
         const peutDeclarer = incubation && ((maladieId: string) => incubation(h.id, maladieId));
-        lines.push(...lignesDEntretien(dailyDiseaseUpkeep(h, battleRng(), defer, soigne(h, d), peutDeclarer), h.id));
+        lines.push(...lignesDEntretien(dailyDiseaseUpkeep(h, battleRng(), defer, soigne(h, d), peutDeclarer).map((l) => ligneDeTexte(l)), h.id));
       }
       // 3. Convalescence des Blessures critiques (LDB 18 — jours calendaires, #T3).
-      lines.push(...lignesDEntretien(tickTraumaRecovery(h, 1, defer), h.id));
+      lines.push(...lignesDEntretien(tickTraumaRecovery(h, 1, defer).map((l) => ligneDeTexte(l)), h.id));
     }
     // 4. Effets déclenchés d'HORLOGE portés par la DONNÉE (Trait, Mutation, État… — `clockHooks`,
     //    bus-owned). `onDayStart` : une émission par jour franchi (le rattrapage en doit autant que
@@ -306,24 +307,24 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
     if (missed > 0) {
       for (const h of party) {
         if (h.dead) continue;
-        lines.push({ text: t('upkeep.sleepDeprived', { name: nomDe(h), n: missed, s: missed > 1 ? 's' : '' }), actorId: h.id });
-        lines.push(...lignesDEntretien(applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }).lignes.map((e) => e.texte), h.id));
+        lines.push({ entree: ligneDeTexte(t('upkeep.sleepDeprived', { name: nomDe(h), n: missed, s: missed > 1 ? 's' : '' })), actorId: h.id });
+        lines.push(...lignesDEntretien(applyOps(h, [{ op: 'condition', id: { id: 'extenue' }, value: missed }], { idNeuf: get().forgerUnId, rng: battleRng() }).lignes, h.id));
       }
     }
   }
-  if (rations > 0) lines.unshift({ text: t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' }) });
+  if (rations > 0) lines.unshift({ entree: ligneDeTexte(t('upkeep.rationsUsed', { n: rations, s: rations > 1 ? 's' : '' })) });
   const vessel = get().vessel;
   const prises = cale ? rationsDeCale(provisions) - rationsDeCale(cale.lots) : 0;
   if (cale && vessel && prises > 0) {
     set({ vessel: { ...vessel, provisions: cale.lots } });
     const left = rationsDeCale(cale.lots);
-    lines.unshift({ text: t('upkeep.holdUsed', { n: prises, left, s: left > 1 ? 's' : '' }) });
+    lines.unshift({ entree: ligneDeTexte(t('upkeep.holdUsed', { n: prises, left, s: left > 1 ? 's' : '' })) });
   }
   // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, pour
   // CHAQUE semaine franchie depuis `lastMoraleWeek` (`tickCampaignVesselWeek`). #216, #1652.
   set({ lastUpkeepDay: today, party: [...party] }); // persiste faim/eau/maladies/convalescence AVANT le débit des gages
-  lines.push(...lignesDEntretien(tickCampaignVesselWeek(get, set, today, battleRng()))); // débite les bourses PAR-DESSUS (lit get().party à jour)
-  get().ecrireAuJournal(lines.map(({ text }) => text));
+  lines.push(...lignesDEntretien(tickCampaignVesselWeek(get, set, today, battleRng()).map((l) => ligneDeTexte(l)))); // débite les bourses PAR-DESSUS (lit get().party à jour)
+  get().ecrireAuJournal(lines.map(({ entree }) => entree));
   if (lines.length) bus.emit(EVT.SCENE_DIRTY);
   return [...purged, ...lines]; // les dissipations du jour font partie du bilan affiché
 }
