@@ -4,6 +4,8 @@
  */
 import { collectionDuCatalogue, entreeDe, type Catalogue, type EntreeDuDataset } from './catalogue';
 import { CLES_CODEX, DATASET_DE_LA_CATEGORIE, type CleCodex } from '../_cles-de-dataset.generated';
+import type { z } from 'zod';
+import type { authoredStakeSchema } from '../grammaire/mecanique';
 import type * as criticalsDef from '../defs/criticals';
 import type * as miscastDef from '../defs/miscast';
 import type * as structureCriticalsDef from '../defs/structure-criticals';
@@ -135,4 +137,10 @@ export const TROU_D_ENJEU = /\{(\w+)\}/g;
 export function trousDeLEnjeu(key: CleDEnjeuSaisie, cat: Catalogue): string[] | undefined {
   const lu = texteDeLEnjeu(key, cat);
   return lu && [...(lu.texte ?? '').matchAll(TROU_D_ENJEU)].map((m) => m[1]);
+}
+
+/** L'enjeu authoré ou de catalogue parle-t-il ? Critère de `stakeSpeaks` (`src/data/index.ts`) hors enjeu dérivé. #1117 */
+export function enjeuParle(stake: z.output<typeof authoredStakeSchema> | { readonly key: StakeKey } | undefined): boolean {
+  if (!stake) return false;
+  return 'authored' in stake ? !!stake.authored.trim() : true;
 }
