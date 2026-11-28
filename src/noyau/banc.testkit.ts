@@ -70,7 +70,7 @@ export function ouvrirLeBanc(entrees: EntreesDuBanc = {}): Banc {
 export function capterLeJournal(banc: Pick<Banc, 'getState' | 'setState'>): string[] {
   const textes: string[] = [];
   const puits = banc.getState().ecrireAuJournal;
-  banc.setState({ ecrireAuJournal: (msg) => { for (const x of Array.isArray(msg) ? msg : [msg]) textes.push(typeof x === 'string' ? x : x.texte); puits(msg); } });
+  banc.setState({ ecrireAuJournal: (msg) => { textes.push(...[msg].flat().map((e) => e.texte)); puits(msg); } });
   return textes;
 }
 

@@ -10,7 +10,7 @@ import { idsDeLaSousListe, type Id, type RefDesignee } from '../data/schemas/gra
 import { CIBLE_D_APPARTENANCE } from '../data/schemas/grammaire/sousListes';
 import { t } from '../i18n';
 import { RNG } from './dice';
-import { rollTest, extendedTestStep, jetPose, type JetDeTest, type JetPose } from './tests';
+import { rollTest, extendedTestStep, jetPose, type JetPose } from './tests';
 import { rule } from './policy';
 import { bonus, effectiveChar } from './characteristics';
 import { testValue, type TestDesigne } from './skills';
@@ -514,11 +514,6 @@ export function isFrenzied(c: Combatant): boolean {
 /** LDB 21 l.31 */
 export function difficulteDEntreeEnFrenesie(): Difficulty {
   return rule('frenesie-difficulte');
-}
-
-/** LDB 21 l.31 */
-export function resolveFrenzyEntry(jet: JetDeTest, fm: number, rng: RNG): JetPose {
-  return jetPose(rollTest(jet, fm, difficulteDEntreeEnFrenesie(), rng));
 }
 
 const CALME: TestDesigne = { skill: { id: 'calme' } };

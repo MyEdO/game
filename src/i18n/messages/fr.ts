@@ -1763,7 +1763,6 @@ export const fr = {
   // Surnombre (LDB 14 l.110, Maîtrise du combat LDB 10) — `noyau/combat/roundHooks.ts`.
   'turn.outnumbered': '{name} est surpassé en nombre ({foes} c.{allies}) : −1 Avantage.',
   'turn.frenzyEnd': '{name} sort de Frénésie (Exténué).',
-  'turn.frenzyEnter': '{name} entre en Frénésie !',
   'turn.fearVanquished': '{name} ignore la peur de {foe} ({talent}).',
   'turn.fear': '{name} a peur de {foe}.',
   'turn.psychSuperseded': '{name} : {psych} cède devant un effet psychologique plus fort.',

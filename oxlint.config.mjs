@@ -4,7 +4,7 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { collectLabelEntityResolvers } from './scripts/guards/lib/labelLogic.mjs';
-import { RACINES_DES_ZONES, SURFACE_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
+import { RACINES_DES_ZONES, SURFACES_DU_NOYAU, ZONES_SANS_REEXPORTATION, dossierDe } from './scripts/guards/lib/couches.mjs';
 import { DOSSIERS_DE_CODE_DE_MOD } from './scripts/guards/lib/horsDesZones.mjs';
 
 const MARQUES = '/^(Built(CascadeStep|RollRow)|PlayerText|AdresseDeCreation|CiblePsy|MaximumDesBlessures|DeDeTable)$/';
@@ -686,7 +686,7 @@ export const BLOCS_LINT = [
   {
     // #2817 D2
     files: ZONES_SANS_REEXPORTATION.map((z) => `${dossierDe(z)}/**`),
-    excludeFiles: [SURFACE_DU_NOYAU, '**/*.test.*', '**/*.bench.*', '**/*.testkit.*', '**/*.d.ts'],
+    excludeFiles: [...SURFACES_DU_NOYAU, '**/*.test.*', '**/*.bench.*', '**/*.testkit.*', '**/*.d.ts'],
     rules: { 'murs/reexportation': 'error' },
   },
   {

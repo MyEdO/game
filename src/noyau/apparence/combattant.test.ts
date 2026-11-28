@@ -22,7 +22,6 @@ import {
   findSpeciesById,
   findTenueDeCarriere,
   findTrappingById,
-  piecesCouvrant,
   piecesDeLObjet,
   raceAppearance,
   weaponGroups,
@@ -133,7 +132,7 @@ describe('porteeDuCombattant', () => {
   it('une armure équipée revêt les pièces qui couvrent ses localisations, à la teinte de son Groupe d’armure', () => {
     const veste = findTrappingById('veste-de-cuir')!;
     teindreLesGroupes({ [veste.subType!.id]: 'shyish' });
-    const attendues = piecesCouvrant(localisationsDeLoc(veste.loc));
+    const attendues = piecesDeLObjet(undefined, localisationsDeLoc(veste.loc));
     expect(attendues.length).toBeGreaterThan(1);
     expect(pieces(herosVetu(equipe('veste-de-cuir')))).toEqual(attendues.map((piece) => ({ piece, par: 'veste-de-cuir', teinte: 'shyish' })));
   });
@@ -167,7 +166,7 @@ describe('porteeDuCombattant', () => {
     expect(locs.length).toBeGreaterThan(0);
     const palier = findTierEntry(weaponGroups.filter((g): g is GroupeDArmure & { seuil: number } => g.kind === 'armour' && g.seuil !== undefined), sourceDuTraitA(c, 'corps')!.pa)!;
     teindreLesGroupes({ [palier.id]: 'ardente-de-rhuin' });
-    expect(pieces(c)).toEqual(piecesCouvrant(locs).map((piece) => ({ piece, par: undefined, teinte: 'ardente-de-rhuin' })));
+    expect(pieces(c)).toEqual(piecesDeLObjet(undefined, locs).map((piece) => ({ piece, par: undefined, teinte: 'ardente-de-rhuin' })));
   });
 
   it('sans `armurePortee`, ni PA ni armure ne revêtent de pièce ; une armure équipée passe avant celle du statbloc', () => {

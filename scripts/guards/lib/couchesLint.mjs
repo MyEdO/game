@@ -3,8 +3,8 @@
 //    zones (`horsDesZones.mjs`, #4903 L3) ; créer `src/foo/`, `hotes/foo/` ou `projets/foo/` demande sa ligne.
 //  - `murs/purete-imports` : un arc d'import (`arcsDImport.mjs`, toutes ses formes, motifs
 //    d'`import.meta.glob` compris) d'une zone vers une autre n'existe que si la table l'ouvre ; un arc
-//    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare une porte
-//    (`portes`), l'arc ne vise que ce module, en valeur comme en type (`porteManquee`). Une zone qui survit à
+//    de type seul passe là où la table n'ouvre que le type ; vers une zone dont la ligne déclare des portes
+//    (`portes`), l'arc ne vise que l'un de ces modules, en valeur comme en type (`porteManquee`). Une zone qui survit à
 //    la bascule (`survit`) ne charge aucun paquet de l'hôte web (`paquetFerme`), même pour un type, hors des paquets que sa
 //    ligne ouvre à un outillage (`paquetsDOutillage`) ; aucun module de la zone hors de cet outillage ne l'importe, en
 //    valeur comme en type (`outillageAtteint`). Un motif de glob dont un joker peut atteindre une zone que la table ferme au fichier est
@@ -39,7 +39,7 @@ import { cibleLexicale, posix } from './interneLint.mjs';
 import { nomDe, visiteurDArcs } from './arcsDImport.mjs';
 import {
   COUCHES,
-  SURFACE_DU_NOYAU,
+  SURFACES_DU_NOYAU,
   ZONES_SANS_REEXPORTATION,
   dossierDe,
   estZone,
@@ -167,7 +167,7 @@ const purete = {
       const ferme = fermeture(de, vers, typeSeul);
       const porte = ferme === null ? porteManquee(de, vers, cibleRel) : null;
       if (porte !== null) {
-        context.report({ node, message: `Porte de couche (#2882, #2898) : ${nommer(de)} ne lit de ${nommer(vers)} que sa porte \`${porte}\`, en valeur comme en type — ${TABLE} la déclare (\`portes\`) : importer le nom de la porte, ou l’y exporter.` });
+        context.report({ node, message: `Porte de couche (#2882, #2898) : ${nommer(de)} ne lit de ${nommer(vers)} que ses portes ${porte.map((p) => `\`${p}\``).join(', ')}, en valeur comme en type — ${TABLE} les déclare (\`portes\`) : importer le nom d’une porte, ou l’y exporter.` });
         return;
       }
       if (ferme === null) return;
@@ -213,7 +213,7 @@ const testsSurvivants = {
   },
 };
 
-const MSG_REEXPORTATION = `Réexportation (#2882, #2817 D2) : un module de ${ZONES_SANS_REEXPORTATION.map((z) => `\`${dossierDe(z)}/\``).join(' ou ')} ne réexporte rien, hors de la surface du noyau (\`${SURFACE_DU_NOYAU}\`) — repointer chaque importeur vers le module qui déclare.`;
+const MSG_REEXPORTATION = `Réexportation (#2882, #2817 D2) : un module de ${ZONES_SANS_REEXPORTATION.map((z) => `\`${dossierDe(z)}/\``).join(' ou ')} ne réexporte rien, hors des surfaces du noyau (${SURFACES_DU_NOYAU.map((s) => `\`${s}\``).join(', ')}) — repointer chaque importeur vers le module qui déclare.`;
 
 const reexportation = {
   meta: { type: 'problem' },

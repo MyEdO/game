@@ -5,8 +5,8 @@ export interface Couche {
   readonly dossier?: string;
   readonly importe: readonly string[] | '*';
   readonly types?: readonly string[];
-  /** Pour une zone importée, le seul module qu'elle en lit (chemin relatif à la racine). */
-  readonly portes?: Readonly<Record<string, string>>;
+  /** Pour une zone importée, les seuls modules qu'elle en lit (chemins relatifs à la racine). */
+  readonly portes?: Readonly<Record<string, readonly string[]>>;
   /** La zone survit à la bascule : aucun paquet de l'hôte web (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, aucun JSX,
    *  aucun module hors des zones. */
   readonly survit?: true;
@@ -39,10 +39,10 @@ export function estProjet(z: unknown): boolean;
 /** La zone `vers` est-elle fermée à la zone `de` parce qu'elle est un projet, et `de` une autre zone ? */
 export function fermeParLeProjet(de: string, vers: string | null): boolean;
 
-/** La surface du noyau : porte de `noyau`, seul module de `src/state/`, `src/noyau/` et `src/scenes/` qui réexporte. */
-export const SURFACE_DU_NOYAU: "src/noyau/index.ts";
+/** Les surfaces du noyau : portes de `noyau`, seuls modules de `src/noyau/` et `src/scenes/` qui réexportent. */
+export const SURFACES_DU_NOYAU: readonly ["src/noyau/index.ts", "src/noyau/vocabulaireDesModeles.ts"];
 
-/** Les zones dont la production ne réexporte rien hors de la surface du noyau. */
+/** Les zones dont la production ne réexporte rien hors des surfaces du noyau. */
 export const ZONES_SANS_REEXPORTATION: readonly string[];
 
 /** Les paquets de l'hôte web : aucune zone qui survit à la bascule ne les charge. */
@@ -95,5 +95,5 @@ export function estZone(z: unknown): z is string;
 /** Les zones que `de` importe librement, et celles qu'elle ne lit qu'en type ; un projet n'en est jamais. */
 export function ouvertes(de: string): { libres: string[]; enType: string[] };
 
-/** La porte que la zone `de` impose vers `vers` et que l'arc vers `cibleRel` manque, `null` sinon. */
-export function porteManquee(de: string, vers: string, cibleRel: string): string | null;
+/** Les portes que la zone `de` impose vers `vers` et que l'arc vers `cibleRel` manque, `null` sinon. */
+export function porteManquee(de: string, vers: string, cibleRel: string): readonly string[] | null;

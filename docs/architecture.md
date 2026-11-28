@@ -198,14 +198,14 @@ dossier listé (`listerEntrees`) entrent dans la clôture jusqu'au point fixe ; 
 un chargeur que la lecture ne suit pas (renommé, déstructuré, atteint par un espace, ou qui fuit) sont rouges. Ces murs lisent le
 code. La configuration unique de Vitest prépare le noyau par `src/test-setup-noyau.ts`.
 `murs/suite-jouee` refuse une suite absente de cette configuration (`racinesDeLaSuite.mjs`).
-`murs/reexportation` refuse, en production de `src/noyau/` et `src/scenes/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors de la surface
-du noyau ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc vers une cible de ses `cibles`
+`murs/reexportation` refuse, en production de `src/noyau/` et `src/scenes/` (`ZONES_SANS_REEXPORTATION`), toute réexportation hors des surfaces
+du noyau (`SURFACES_DU_NOYAU`) ; `murs/quarantaine` refuse, aux fichiers que la config nomme, tout arc vers une cible de ses `cibles`
 (le batch générique de cascade et le domaine naval, #328). Banc : `src/eslint-ordre-total-et-purete.test.ts`. Les outils qui lisent le code des zones en dérivent :
 les murs d'oxlint, le périmètre des gardes et les lectures des gates (`RACINES_PRESENTES`, les racines que l'arbre
 porte) ; `tsconfig.json` et `knip.json`, du JSON, ont pour témoin `src/racines-des-zones-json-guard.test.ts`.
 
 Hôtes du noyau (#2898, #2928, #4903 H3) : une zone bâtie sur les droits d'un hôte ou d'un projet, dont la ligne
-importe chaque zone des droits d'un projet (`HOTES_DU_NOYAU`) ; un hôte lit le noyau par sa porte `src/noyau/index.ts`. Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
+importe chaque zone des droits d'un projet (`HOTES_DU_NOYAU`) ; un hôte lit le noyau par ses portes (`SURFACES_DU_NOYAU`) : `src/noyau/index.ts`, et le vocabulaire des modèles 3D `src/noyau/vocabulaireDesModeles.ts` qu'elle réexporte (#5187). Le module commun `hote` (`src/hote/`) importe la porte du noyau, `scenes` et les
 feuilles ; un affichage (`texte`, `godot`) a ces mêmes droits plus `hote`, lus d'une seule constante de
 `COUCHES` (`DROITS_DES_HOTES`). Les affichages vivent sous `hotes/` (#4903), un dossier et une zone chacun :
 leur règle est leur ligne de la table, rien d'autre, et aucun n'importe un autre affichage. Un projet (un jeu ou un
@@ -457,7 +457,7 @@ src/noyau/                  ORCHESTRATION du jeu, sans hôte : la fermeture d'im
                             rend `{ issue, evenements, journal }` (`recevoir` y joint `neuve` et `autreScene`),
                             et `abonner` suit chaque écriture. `lancementDeScenario.ts` (#2898) : le lancement d'un
                             scénario de test et sa séquence unique, jouée par la partie.
-                            `index.ts` : la SURFACE du noyau pour un hôte et sa seule réexportation admise
+                            `index.ts` : la SURFACE du noyau pour un hôte ; elle et `vocabulaireDesModeles.ts` sont ses seules réexportations admises
                             (`murs/reexportation`). Ailleurs, chaque importeur nomme le module qui déclare.
                             `npm test` joue les suites du noyau, des scénarios et des hôtes. Les imports
                             des suites et bancs suivent les murs décrits dans la section Couches.
@@ -665,7 +665,7 @@ src/hote/                   COMMUN AUX HÔTES du noyau (#2928) : ce qu'un hôte 
                             servi ou bâti par
                             Vite : `scripts/entree-d-hote.mjs`.
 hotes/texte/                HÔTE TEXTE du noyau (#2898, zone `texte`) : une partie pilotable par un serveur MCP, sans store
-                            ni écran (`docs/hote-texte.md`). N'importe du noyau que sa porte `src/noyau/index.ts`
+                            ni écran (`docs/hote-texte.md`). N'importe du noyau que ses portes (`SURFACES_DU_NOYAU`)
                             (`portes` de `COUCHES`), plus `scenes`, le module commun `src/hote/` et les feuilles.
                             `partieTexte.ts` (fichier de partie, rejeu, reprise des jetons sur une horloge
                             virtuelle), `vue.ts` (projection à ses bornes et rendus bornés), `outils.ts` (les trois

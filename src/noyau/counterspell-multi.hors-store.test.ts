@@ -75,7 +75,7 @@ describe('Contre-sort à plusieurs candidats — N tenteurs (flux multi)', () =>
   /** Rangée au résultat POSÉ (aucun aléa : le sujet est l'agrégation). */
   const row = (id: string, dispelled: boolean, counterSL: number, casterNetSL: number, log: string) => ({
     id, interactive: true, declared: 'solo' as const,
-    result: { dispelled, counter: { roll: 5, target: 40, sl: counterSL, success: dispelled, isDouble: false }, casterNetSL, log },
+    result: { dispelled, counter: { roll: 5, target: 40, sl: counterSL, success: dispelled, isDouble: false }, casterNetSL, log: ligneDeTexte(log) },
   });
   const cur = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 

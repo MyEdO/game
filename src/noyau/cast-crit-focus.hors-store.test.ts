@@ -283,8 +283,9 @@ describe('Interruption de Focalisation (l.142-144) — cadence-aware', () => {
   it('sans Focalisation en cours : no-op', () => {
     const w = wiz();
     inCombat(w);
-    expect(checkFocusInterruption(banc.getState, banc.setState, w)).toEqual([]);
+    checkFocusInterruption(banc.getState, banc.setState, w);
     expect(banc.getState().pendingCascade).toBeNull();
+    expect(banc.getState().pendingLogQueue).toEqual([]);
   });
 });
 
