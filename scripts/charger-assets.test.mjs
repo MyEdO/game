@@ -5,7 +5,7 @@ import { chargerEvaluateur } from '../hotes/godot/asset/charger.mjs'
 
 test("l'évaluateur refuse les sélecteurs inconnus avant de charger Vite", async (t) => {
   const resolus = []
-  const viteFactice = 'data:text/javascript,' + encodeURIComponent('export const runnerImport = () => ({ module: {} })')
+  const viteFactice = 'data:text/javascript,'
   const hooks = registerHooks({
     resolve(spec, contexte, suite) {
       if (spec !== 'vite') return suite(spec, contexte)
