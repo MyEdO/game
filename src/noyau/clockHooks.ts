@@ -16,6 +16,7 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { EffectTrigger } from '../engine/flowCore';
 import type { RNG } from '../engine/dice';
 import type { Get, Set as SetFn } from './flowTypes';
+import type { EntreeDuJournal } from '../engine/journal';
 
 /** Déclencheurs portés par l'HORLOGE de campagne (≠ cycle de combat). */
 export type ClockTrigger = Extract<EffectTrigger, 'onDayStart' | 'onWake'>;
@@ -26,14 +27,14 @@ export type ClockTrigger = Extract<EffectTrigger, 'onDayStart' | 'onWake'>;
  * déclencheur (coût nul pour la quasi-totalité des héros — patron `fireOwnTestFailed`).
  * Renvoie les lignes produites, que l'appelant range dans le bilan du jour.
  */
-export function fireClockTriggers(get: Get, trigger: ClockTrigger, ctx: { rng: RNG; set?: SetFn }): { text: string; actorId: string }[] {
-  const lines: { text: string; actorId: string }[] = [];
+export function fireClockTriggers(get: Get, trigger: ClockTrigger, ctx: { rng: RNG; set?: SetFn }): { entree: EntreeDuJournal; actorId: string }[] {
+  const lines: { entree: EntreeDuJournal; actorId: string }[] = [];
   const { party, campaignNarratif } = get();
   const resolveTrapping = objetDuNarratif(campaignNarratif);
   for (const h of party) {
     if (h.dead) continue;
     if (!effectSourcesOf(h, resolveTrapping).some((s) => s.effects.some((e) => e.trigger === trigger))) continue;
-    lines.push(...fireTriggers(get, h, trigger, ctx).map((e) => ({ text: e.texte, actorId: h.id })));
+    lines.push(...fireTriggers(get, h, trigger, ctx).map((entree) => ({ entree, actorId: h.id })));
   }
   return lines;
 }

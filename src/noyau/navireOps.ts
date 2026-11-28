@@ -5,6 +5,7 @@
  * Blessures sont persistées sur `vessel.wounds`. MDG 15 l.83-125, l.132-263
  */
 import { t } from '../i18n';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { garanti } from '../lib/garanti';
 import { tirerSigne, type RNG } from '../engine/dice';
 import { MINUTES_PER_DAY } from '../engine/clock';
@@ -89,11 +90,11 @@ const referentDeLaCoque = (get: Get, coque: Combatant): Referent => ({
 const joursTires = (f: Parameters<typeof resolveFormula>[0], ref: Referent, ctx: OpsCtx): number => Math.max(0, Math.round(resolveFormula(f, ref, ctx.rng)));
 
 /** Résout UNE op de navire sur `coque` ; rend ses lignes. `ctx.label` = la source de l'état posé. */
-function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire, ctx: OpsCtx): string[] {
+function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire, ctx: OpsCtx): EntreeDuJournal[] {
   const ref = referentDeLaCoque(get, coque);
   switch (o.op) {
     case 'shipMorale':
-      return applyShipMoraleDelta(get, set, coque, tirerSigne(o.delta, ctx.rng));
+      return applyShipMoraleDelta(get, set, coque, tirerSigne(o.delta, ctx.rng)).map((l) => ligneDeTexte(l));
     case 'manann': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const mood = vesselManann(vessel);
@@ -101,13 +102,13 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
         const facteur = o.facteur.id;
         const deja = mood.applied.includes(facteur);
         const { mood: next, delta, label } = applyManannFactor(mood, facteur, ctx.rng);
-        if (deja) return [t('eff.manannDejaApplique', { factor: label ?? facteur })];
+        if (deja) return [ligneDeTexte(t('eff.manannDejaApplique', { factor: label ?? facteur }))];
         set({ vessel: { ...vessel, manann: next } });
-        return [t('eff.facteurDeManann', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? facteur })];
+        return [ligneDeTexte(t('eff.facteurDeManann', { delta: `${delta >= 0 ? '+' : ''}${delta}`, factor: label ?? facteur }))];
       }
       const delta = tirerSigne(o.delta, ctx.rng);
       set({ vessel: { ...vessel, manann: addManann(mood, delta) } });
-      return [t('sv.manannMood', { delta: `${delta >= 0 ? '+' : ''}${delta}`, score: vesselManann(get().vessel).score })];
+      return [ligneDeTexte(t('sv.manannMood', { delta: `${delta >= 0 ? '+' : ''}${delta}`, score: vesselManann(get().vessel).score }))];
     }
     case 'shipCritical': {
       const n = Math.max(0, Math.round(resolveFormula(o.count, ref, ctx.rng)));
@@ -131,7 +132,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
         ...(o.evite ? [t('eff.modificateurDuNavireEvite', { perils: o.evite.map(libelleDuPeril).join(', ') })] : []),
       ];
       const duree = typeof jusqua === 'number' ? t('eff.pendantNJours', { n: (jusqua - now) / MINUTES_PER_DAY }) : jusqua === 'carenage' ? t('eff.jusquAuCarenage') : t('eff.jusquAuProchainEvenement');
-      return [t('eff.modificateurDuNavire', { label, axes: axes.join(', '), duree })];
+      return [ligneDeTexte(t('eff.modificateurDuNavire', { label, axes: axes.join(', '), duree }))];
     }
     case 'meteoImposee': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
@@ -145,30 +146,30 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
         ...(o.aggravation ? { aggravation: structuredClone(o.aggravation) } : {}), // #2097
       };
       set({ vessel: { ...vessel, meteosImposees: [...meteosActives(vessel.meteosImposees, now), meteo] } });
-      return [t('eff.meteoImposee', { label, n: jours })];
+      return [ligneDeTexte(t('eff.meteoImposee', { label, n: jours }))];
     }
     case 'cargaison': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       if (o.perduePct !== undefined) {
         const { lots, removed } = spoilCargoByPct(vessel.cargo ?? [], o.perduePct);
         set({ vessel: { ...vessel, cargo: lots } });
-        return [t('eff.cargaisonPerdue', { pct: o.perduePct, enc: removed })];
+        return [ligneDeTexte(t('eff.cargaisonPerdue', { pct: o.perduePct, enc: removed }))];
       }
       if (o.perteAuDechargement !== undefined) {
         const perte = Math.max(0, Math.round(resolveFormula(o.perteAuDechargement, ref, ctx.rng)));
         set({ vessel: { ...vessel, perteAuDechargement: perte } });
-        return [t('eff.perteAuDechargement', { enc: perte })];
+        return [ligneDeTexte(t('eff.perteAuDechargement', { enc: perte }))];
       }
       if (o.perdueEnc !== undefined) {
         const { lots, removed } = spoilCargoByEnc(vessel.cargo ?? [], resolveFormula(o.perdueEnc, ref, ctx.rng));
         set({ vessel: { ...vessel, cargo: lots } });
-        return [t('eff.cargaisonPerdueEnc', { enc: removed })];
+        return [ligneDeTexte(t('eff.cargaisonPerdueEnc', { enc: removed }))];
       }
       const enc = Math.max(0, Math.round(resolveFormula(o.enc, ref, ctx.rng)));
       const season = currentSeason(get().gameTime);
       const cargo = rollRandomCargo(season, ctx.rng);
       set({ vessel: { ...vessel, cargo: [...(vessel.cargo ?? []), { uid: get().forgerUnId('it'), cargoId: cargo.id, enc, basePriceGold: cargoBasePrice(cargo, season, ctx.rng) }] } });
-      return [t('eff.cargaison', { enc, cargo: cargo.label })];
+      return [ligneDeTexte(t('eff.cargaison', { enc, cargo: cargo.label }))];
     }
     case 'provisions':
       if (o.gateesPct !== undefined) return gaterLesProvisions(get, set, o.gateesPct);
@@ -189,27 +190,27 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);
       const port = autrePortAuHasard(get, ctx.rng);
-      if (!port) return [t('eff.commissionSansPort', { label })];
+      if (!port) return [ligneDeTexte(t('eff.commissionSansPort', { label }))];
       const brass = Math.max(0, Math.round(resolveFormula(o.montant.brass, ref, ctx.rng)));
       set({ vessel: { ...vessel, commissions: [...(vessel.commissions ?? []), { label, placeId: port.id, brass }] } });
-      return [t('eff.commission', { label, port: port.label, montant: formatMoney(fromBrass(brass)) })];
+      return [ligneDeTexte(t('eff.commission', { label, port: port.label, montant: formatMoney(fromBrass(brass)) }))];
     }
     case 'constructeurDEscale': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       set({ vessel: { ...vessel, constructeurDEscale: { competence: o.competence, duree: o.duree } } });
-      return [t('eff.constructeurDEscale', { label: nomDeSource(ctx), competence: o.competence, duree: humanizeFormula(o.duree) })];
+      return [ligneDeTexte(t('eff.constructeurDEscale', { label: nomDeSource(ctx), competence: o.competence, duree: humanizeFormula(o.duree) }))];
     }
     case 'rationsDEscale': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const brass = Math.max(0, Math.round(resolveFormula(o.montant.brass, ref, ctx.rng)));
       set({ vessel: { ...vessel, rationsDEscale: brass } });
-      return [t('eff.rationsDEscale', { label: nomDeSource(ctx), prix: formatMoney(fromBrass(brass)) })];
+      return [ligneDeTexte(t('eff.rationsDEscale', { label: nomDeSource(ctx), prix: formatMoney(fromBrass(brass)) }))];
     }
     case 'infestation': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const label = nomDeSource(ctx);
       set({ vessel: { ...vessel, infestation: { label, crewTestType: o.test.crewTestType, difficulty: o.test.difficulty, drCible: o.drCible, progres: 0, chaqueNuit: o.chaqueNuit, ...(o.surDRNegatif ? { surDRNegatif: o.surDRNegatif } : {}) } } });
-      return [t('eff.infestation', { label, dr: o.drCible })];
+      return [ligneDeTexte(t('eff.infestation', { label, dr: o.drCible }))];
     }
   }
 }
@@ -220,13 +221,14 @@ const libelleDuPeril = (id: string): string => garanti(findSeaHazard(id), id, 'p
 /** Change l'effectif de `delta` marins (`applyVesselCrewLoss`, borné à l'effectif nominal) ; un recueilli au
  *  rôle `roleId` entre au roster `crew`, ou à `recueillisSansSolde` jusqu'au prochain port. MDG 15 l.202-204,
  *  l.213-218, l.258 ; MDG 14 l.293-302 */
-function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | undefined, sansSolde: 'jusquAuPort' | undefined, rng: RNG): string[] {
+function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | undefined, sansSolde: 'jusquAuPort' | undefined, rng: RNG): EntreeDuJournal[] {
   const { lignes, variation } = applyVesselCrewLoss(get, set, -delta, delta <= 0 || roleId === undefined ? (postes) => indiceDeMembreDuBord(rng, postes) : {
     roleId, registre: sansSolde ? 'recueillisSansSolde' : 'crew',
   });
-  if (delta > 0 && variation === 0) return [t('eff.equipageComplet')];
-  if (variation >= 0 || roleId === undefined) return lignes;
-  return [...lignes, t('eff.equipageRole', { n: -variation, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' })];
+  if (delta > 0 && variation === 0) return [ligneDeTexte(t('eff.equipageComplet'))];
+  const dites = lignes.map((l) => ligneDeTexte(l));
+  if (variation >= 0 || roleId === undefined) return dites;
+  return [...dites, ligneDeTexte(t('eff.equipageRole', { n: -variation, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' }))];
 }
 
 const idDeRoleABord = idDe('crewRole');
@@ -300,7 +302,7 @@ export function opsDeRetourDEquipage(avant: CampaignVessel | null, apres: Campai
 
 /** Gâte `pct` % des provisions à bord : chaque vivre de la cale (`vessel.provisions`, du lot le plus vieux au plus
  *  jeune) et les rations de chaque héros, arrondi à l'entier inférieur par vivre et par héros. MDG 15 l.169-170 */
-function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
+function gaterLesProvisions(get: Get, set: Set, pct: number): EntreeDuJournal[] {
   let jetees = 0;
   const party = get().party.map((h) => {
     let n = Math.floor((h.items ?? []).filter(isRation).length * pct / 100);
@@ -309,7 +311,7 @@ function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
     return { ...h, items: h.items!.filter((it) => !(isRation(it) && n-- > 0)) };
   });
   set({ party });
-  const lignes = [t('sv.rationsSpoiled', { n: jetees })];
+  const lignes = [ligneDeTexte(t('sv.rationsSpoiled', { n: jetees }))];
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
   if (vessel.provisions == null) return lignes;
   let provisions = vessel.provisions;
@@ -320,37 +322,37 @@ function gaterLesProvisions(get: Get, set: Set, pct: number): string[] {
     provisions = retirerDuVivre(provisions, id, gatees);
   }
   set({ vessel: { ...vessel, provisions } });
-  return [...lignes, t('eff.provisionsGatees', { perdues, total: rationsDeCale(provisions) })];
+  return [...lignes, ligneDeTexte(t('eff.provisionsGatees', { perdues, total: rationsDeCale(provisions) }))];
 }
 
 /** Ajoute `jours` jours de vivres de l'équipage (une ration par marin et par jour) de `vivre` à la cale.
  *  MDG 15 l.223, l.235-236 ; MDG 14 l.238 */
-function ajouterDesVivres(get: Get, set: Set, jours: number, vivre: Id<'trapping'>): string[] {
+function ajouterDesVivres(get: Get, set: Set, jours: number, vivre: Id<'trapping'>): EntreeDuJournal[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
-  if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
+  if (vessel.provisions == null) return [ligneDeTexte(t('eff.provisionsSansSuivi'))];
   const equipage = shipboardSouls(get()).crew;
   const rations = jours * equipage;
   const provisions = embarquerDesVivres(vessel.provisions, vivre, rations, get().gameTime);
   set({ vessel: { ...vessel, provisions } });
-  return [t('eff.provisionsJours', { n: jours, equipage, rations, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) })];
+  return [ligneDeTexte(t('eff.provisionsJours', { n: jours, equipage, rations, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) }))];
 }
 
 /** Ajoute `n` rations (jours-homme) de `vivre` à la cale. MDG 15 l.194 ; MDG 14 l.238, l.245-252 */
-export function ajouterDesRations(get: Get, set: Set, n: number, vivre: Id<'trapping'>): string[] {
+export function ajouterDesRations(get: Get, set: Set, n: number, vivre: Id<'trapping'>): EntreeDuJournal[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
-  if (vessel.provisions == null) return [t('eff.provisionsSansSuivi')];
+  if (vessel.provisions == null) return [ligneDeTexte(t('eff.provisionsSansSuivi'))];
   const provisions = embarquerDesVivres(vessel.provisions, vivre, n, get().gameTime);
   set({ vessel: { ...vessel, provisions } });
-  return [t('eff.provisionsRations', { n, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) })];
+  return [ligneDeTexte(t('eff.provisionsRations', { n, vivre: refLabel('trappings', { id: vivre }), total: rationsDeCale(provisions) }))];
 }
 
 /** Embarque `n` tonneaux d'eau douce. MDG 15 l.194 ; MDG 14 l.242 */
-export function ajouterDeLEau(get: Get, set: Set, n: number): string[] {
+export function ajouterDeLEau(get: Get, set: Set, n: number): EntreeDuJournal[] {
   const vessel = garanti(get().vessel, 'provisions', 'navire de campagne de la coque visée');
-  if (vessel.waterLitres == null) return [t('eff.eauSansSuivi')];
+  if (vessel.waterLitres == null) return [ligneDeTexte(t('eff.eauSansSuivi'))];
   const litres = n * LITRES_PAR_TONNEAU;
   set({ vessel: { ...vessel, waterLitres: vessel.waterLitres + litres } });
-  return [t('eff.eauTonneaux', { n, litres, total: vessel.waterLitres + litres })];
+  return [ligneDeTexte(t('eff.eauTonneaux', { n, litres, total: vessel.waterLitres + litres }))];
 }
 
 const signe = (n: number): string => `${n >= 0 ? '+' : '−'}${Math.abs(n)}`;
@@ -383,18 +385,18 @@ const estTableDuNavire = (o: GameOp): o is Extract<GameOp, { op: 'rollTable' }> 
 
 /** Applique la feuille `e` (`on: 'navire'`) au navire de campagne, ops dans l'ordre authoré ; rend les
  *  lignes du journal (aussi posées au recap du jour en mer). */
-export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx): string[] {
+export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx): EntreeDuJournal[] {
   const visee = coqueVisee(get, set);
-  if (!visee) return [t('eff.navireAbsent')];
+  if (!visee) return [ligneDeTexte(t('eff.navireAbsent'))];
   const { coque, persister } = visee;
   const ctx: OpsCtx = { ...base, hull: coque };
-  const lignes: string[] = [];
+  const lignes: EntreeDuJournal[] = [];
   let pures: GameOp[] = [];
   const viderLesPures = (): void => {
     if (!pures.length) return;
     const issue = applyLeafOps(get, set, coque, { ...e, ops: pures }, ctx);
     if (issue === MAIN_RENDUE) throw new Error(`#1652 — une op à dé ouvert à la porte vise le navire (${pures.map((o) => o.op).join(', ')}) : son applier ne retrouverait pas la coque.`);
-    lignes.push(...issue.map((e) => e.texte));
+    lignes.push(...issue);
     pures = [];
     persister();
   };

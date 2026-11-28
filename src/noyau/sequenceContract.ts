@@ -21,6 +21,7 @@
  * s'accordent.
  */
 import type { IconId } from '../data/schemas/icons';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { Get, Set } from './flowTypes';
 import type { PendingCascade } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -157,8 +158,8 @@ export interface SequenceRound<P = unknown> {
 /** VERDICT du réducteur de clôture : la séquence continue (avec son état à jour) ou s'achève sur une
  *  issue NOMMÉE par le système (`issue`, lue par son `denouer`). `cumuls`/`chargeUtile` omis = inchangés. */
 export type SequenceVerdict<P> =
-  | { suite: 'poursuivre'; cumuls?: Record<string, number>; chargeUtile?: P; log?: string[]; porteurs?: SequenceRoundActors }
-  | { suite: 'fin'; issue: string; cumuls?: Record<string, number>; chargeUtile?: P; log?: string[]; porteurs?: SequenceRoundActors };
+  | { suite: 'poursuivre'; cumuls?: Record<string, number>; chargeUtile?: P; log?: EntreeDuJournal[]; porteurs?: SequenceRoundActors }
+  | { suite: 'fin'; issue: string; cumuls?: Record<string, number>; chargeUtile?: P; log?: EntreeDuJournal[]; porteurs?: SequenceRoundActors };
 
 /** PORTEURS de la manche close, NOMMÉS PAR ID (un verdict se snapshote : aucune référence d'objet n'y
  *  entre). C'est sur eux que l'implémentation DÉCLENCHE les effets de manche DÉCLARÉS

@@ -34,7 +34,7 @@ export function creerActionsDAvanceeDHorloge(get: Get, set: SetDesClesReservees)
 export function preparerLEntretienQuotidien(get: Get, set: Set, minutes: number) {
   if (!get().battle && minutes >= TIME_COST.combatRound) releaseSeatsOfDowned(get, set);
   const deferred: DeferredUpkeepTest[] = [];
-  const log = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) }).map(({ text }) => text);
+  const log = runDailyUpkeep(get, set, { onDeferTest: (t) => deferred.push(t) }).map(({ entree }) => entree);
   return { steps: nightBands(restFlow.deferredUpkeepSteps(get().party, deferred)), log };
 }
 
@@ -46,11 +46,11 @@ function reprendreEntretienDeLHorloge(get: Get, set: Set, minutes: number, apres
   const { steps, log } = preparerLEntretienQuotidien(get, set, minutes);
   if (get().battle) {
     // #253
-    if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log });
+    if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log.map((e) => e.texte) });
     if (steps.length) set({ deferredUpkeepQueue: [...get().deferredUpkeepQueue, ...steps] });
   } else {
     if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'temps/nuit', purpose: 'upkeep', steps });
-    else if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log }, { purpose: 'upkeep' });
+    else if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log.map((e) => e.texte) }, { purpose: 'upkeep' });
   }
   checkPartyWiped(get, set);
 }

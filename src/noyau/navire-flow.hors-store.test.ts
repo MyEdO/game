@@ -1550,7 +1550,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     creditBourse(get, set, get().party[0].id, { gold: 100, silver: 0, brass: 0 });
     const avant = { bourse: toBrass(partyMoneyTotal(get)), temps: get().gameTime };
     seedBattleRng(graine);
-    const lignes = portRepairVessel(get, set);
+    const lignes = portRepairVessel(get, set).map((e) => e.texte);
     return { lignes, paye: avant.bourse - toBrass(partyMoneyTotal(get)), duree: get().gameTime - avant.temps };
   };
   /** La ligne de journal d'une réparation de 40 Blessures non lissée, faite des `passes` à `competence` en `duree`. */
@@ -1593,7 +1593,7 @@ describe('Événements laissés au MJ et marché du port (#1652 lot 9 — MDG 15
     const poser = (traitId: string, d100: number) => {
       imposerLesD100(d100);
       const avant = get().gameTime;
-      const lignes = installerLAmelioration(get, set, traitId);
+      const lignes = installerLAmelioration(get, set, traitId).map((e) => e.texte);
       vi.restoreAllMocks();
       return { lignes, jours: (get().gameTime - avant) / MINUTES_PER_DAY };
     };

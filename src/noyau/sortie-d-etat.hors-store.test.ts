@@ -133,7 +133,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.conditions = [{ id: 'inconscient', value: 1, untilTime: 10 }];
     banc.setState({ party: [hero], gameTime: 20 });
-    const lignes = purgeClockEffects(banc.getState, banc.setState).map((l) => l.text);
+    const lignes = purgeClockEffects(banc.getState, banc.setState).map((l) => l.entree.texte);
     const h = banc.getState().party[0];
     expect(portes(h)).toEqual({ 'a-terre': 1, extenue: 1 });
     expect(lignes).toEqual(expect.arrayContaining([ligneDePose(h, 'a-terre'), ligneDePose(h, 'extenue')]));
