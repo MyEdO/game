@@ -45,7 +45,7 @@ const mkEnemyHero = (id: string, x: number, y: number): Combatant =>
 const input = (enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput => ({
   enemy, heroes, scene: emptyScene('scene-test', 20, 20),
   env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) },
-  movement: enemy.movement as number, spells: [], ...extra,
+  movement: enemy.movement as number, manoeuvresSurSoiOffertes: [], spells: [], ...extra,
 });
 
 describe('#196 — crewPosteOf (source unique, pas de flag miroir)', () => {

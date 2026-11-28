@@ -39,7 +39,7 @@ import type {
   RevealEntry,
 } from './pendings';
 import { FLOWS, ligneDeFrenesie } from './rollFlowSpecs';
-import { actionGate } from './actionRegistry';
+import { actionGate, offresDeLActif } from './actionRegistry';
 import {
   Combatant,
   HitLocation,
@@ -406,8 +406,6 @@ import {
   creatureAttacks,
   attaquesNaturelles,
   attaqueNaturelle,
-  selfManeuversOf,
-  selfManeuverApplicable,
   souffleDuType,
   type AttackKind,
   type CreatureAttack,
@@ -6483,6 +6481,9 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     // « Servir cette pièce » (MDG 12) : postes de siège NON servis adjacents — KIND-AGNOSTIQUE (l'appelant
     // impur a la liste complète des combattants). Vide en scène sans emplacement → aucun candidat (parité golden).
     servablePostes: servablePostes(get().scene, enemy, battle.combatants).map(({ hull, poste }) => ({ hullId: hull.id, posteUid: poste.item.uid })),
+    // Les manœuvres sur soi que la barre du joueur lui offre ouvertes, désignées par leur argument `maneuverId` (#5042).
+    manoeuvresSurSoiOffertes: offresDeLActif({ active: enemy, battle, scene, netMode: get().net.mode, gameTime: get().gameTime, state: get() })
+      .flatMap((o) => (o.gate.ok && o.args.maneuverId ? [o.args.maneuverId] : [])),
     structures: enemy.kind === 'ennemi' && siegeActif(battle) ? cibles : undefined,
     ...(cibles.length ? {
       meleeDeStructure: {
@@ -9786,14 +9787,11 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       return;
     }
     case 'manoeuvreSurSoi': {
-      // Capacité SUR SOI (forme de combat lycanthrope, op transform) : résolution IMMÉDIATE sur le porteur
-      // (aucune cible adverse ni jet d'attaquant). Coûte l'Action ; la 2ᵉ vient du `loseTurn` de ses effets.
-      if (!canAct) return advanceTurn(get, set);
-      const def = selfManeuversOf(enemy).find((m) => m.id === action.maneuverId);
-      if (!def || !selfManeuverApplicable(enemy, def)) return advanceTurn(get, set);
-      resolveManeuver(get, set, enemy, def, 0, null, 0, enemy); // cible = soi
-      set({ battle: markActed(get, set) });
-      checkBattleOver(get, set);
+      // La manœuvre sur soi par le geste du joueur (#5042) ; refusée, son tour finit.
+      const { maneuverId } = action; // capture AVANT la closure (narrowing perdu sur un `let` réassigné)
+      const avant = etatDuGeste(get, enemy);
+      jouerSousLePiloteIA(get, enemy, () => get().manoeuvrerSurSoi(maneuverId));
+      if (rienNaBouge(get, enemy, avant)) return advanceTurn(get, set);
       armerLaSuite(get, set, enemy, { kind: 'avancer' }, beatHold(get, 'enemyAdvance'));
       return;
     }

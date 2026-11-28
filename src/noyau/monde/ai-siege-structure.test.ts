@@ -51,7 +51,7 @@ const mkGunner = (): Combatant => {
 
 const input = (enemy: Combatant, structures: Combatant[]): EnemyTurnInput =>
   ({ enemy, heroes: [mkActor('hero', 'heros', { x: 14, y: 42 })], scene: siegeScene(),
-    env: { blocked: new Set() }, movement: 0, spells: [], structures });
+    env: { blocked: new Set() }, movement: 0, manoeuvresSurSoiOffertes: [], spells: [], structures });
 
 describe('SIÈGE-B — armes de siège ciblent les structures', () => {
   it('canon de siège ennemi → BRÈCHE la porte (le héros derrière le mur est hors LdV)', () => {
