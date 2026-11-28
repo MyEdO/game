@@ -33,6 +33,6 @@ describe('weatherWard — immunité à l’Exposition météo', () => {
     expect(r.rolls).toHaveLength(0);
     expect(r.failures).toBe(0);
     expect(r.wounds).toBe(0);
-    expect(r.log.join(' ')).toMatch(/intempéries|protection magique/);
+    expect(r.log.map((e) => e.texte).join(' ')).toMatch(/intempéries|protection magique/);
   });
 });

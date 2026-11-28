@@ -47,7 +47,7 @@ describe('sealskin — +1 DR aux Tests de Résistance contre le froid (MDG 14 l.
     });
     const r = exposureNight(skin, 4, 20, makeRNG(7), { kind: 'froid' });
     // Au moins un « échec de justesse tenu » OU strictement moins d'échecs — le +1 DR agit.
-    const held = r.log.some((l) => /peau de phoque retient/.test(l));
+    const held = r.log.some((l) => /peau de phoque retient/.test(l.texte));
     const bare = exposureNight(dummy({}), 4, 20, makeRNG(7), { kind: 'froid' });
     expect(held || r.failures <= bare.failures).toBe(true);
   });

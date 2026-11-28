@@ -83,7 +83,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const log = applique(c, specs[0], { success: true }, desDuTest); // issue INJECTÉE : réussite
     expect(c.diseases).toHaveLength(0); // guérie en moins d’une journée — plus de durée « ≈ 1 jour » parasite
     expect(c.diseaseImmunities).toContain('mal-de-mer');
-    expect(log.some((l) => /guérit/.test(l))).toBe(true);
+    expect(log.some((l) => /guérit/.test(l.texte))).toBe(true);
   });
 
   it('incubation → active : les symptômes se déclarent, puis comptent', () => {
@@ -109,7 +109,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     tickDisease(c, MINUTES_PER_DAY, seq([]), defer);
     const log = specs.flatMap((s) => applique(c, s, { success: true }, desDuTest));
     expect(c.diseases!.length).toBe(0);
-    expect(log.some((l) => /guérit/.test(l))).toBe(true);
+    expect(log.some((l) => /guérit/.test(l.texte))).toBe(true);
   });
 
   it('blessé raté → développe une Blessure Purulente (l.110)', () => {
@@ -161,7 +161,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     applique(c, specs.find((s) => s.kind === 'maladie-test-quotidien')!, { success: true }, desDuTest);
     const log = applique(c, specs.find((s) => s.kind === 'maladie-persistance')!, { success: false, sl: -10 }, seq([5]));
     expect(c.diseases!.map((d) => d.id)).toContain('infection-du-sang');
-    expect(log.some((l) => /stupéfiant/.test(l))).toBe(true);
+    expect(log.some((l) => /stupéfiant/.test(l.texte))).toBe(true);
   });
 
   it('grantPsychTrait des symptômes actifs (Rage meurtrière) : Haine + Frénésie EFFECTIFS tant que la maladie est active, retirés à la guérison', () => {
@@ -253,7 +253,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
       const { c, tick } = toxine({ fate: 0 });
       const log = applique(c, tick, { success: false }, desDuTest);
       expect(c.dead).toBe(true);
-      expect(log.some((l) => /succombe/.test(l))).toBe(true);
+      expect(log.some((l) => /succombe/.test(l.texte))).toBe(true);
     });
 
     it('Test raté MAIS 1 Point de Destin (LDB 17 l.29-37) → sauvé in extremis, pas mort', () => {
@@ -261,7 +261,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
       const log = applique(c, tick, { success: false }, desDuTest);
       expect(c.dead).toBeFalsy();
       expect(c.fate).toBe(0);
-      expect(log.some((l) => /sauvé/.test(l))).toBe(true);
+      expect(log.some((l) => /sauvé/.test(l.texte))).toBe(true);
     });
 
     it('Test RÉUSSI → aucune conséquence, la maladie continue', () => {

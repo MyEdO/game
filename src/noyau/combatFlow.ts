@@ -2570,7 +2570,7 @@ export function applyHullCriticalToTarget(
   const tables = optsDeCritiqueDeCoque(target, etat.travelPlan);
   const outcome = applyHullCritical(target, crew, rig, battleRng(), etat.forgerUnId, forcedLocRoll, forcedCritRoll, tables);
   if (!outcome.marinId) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // MDG 13 l.584
-  const lignesDuCritique = outcome.lines.map((l) => ligneDeTexte(l));
+  const lignesDuCritique = outcome.lines;
   log.push(...lignesDuCritique);
   const heroConcerned = target.kind === 'heros' || ctx?.attackerKind === 'heros'
     || crew.some((c) => c.kind === 'heros');

@@ -72,7 +72,7 @@ describe('restRecovery — repos d’une nuit (LDB 16 l.92 / 18 l.380 / 21 l.95)
   it('un héros Hémorragique ne trouve pas le repos (LDB 16 l.105) — pas de récup, pas de mort', () => {
     const c = hero({ conditions: [{ id: 'hemorragique', value: 1 }, { id: 'extenue', value: 1 }], fate: 0 });
     const log = restRecovery(c, deFixe(1));
-    expect(log.join(' ')).toMatch(/ne trouve pas le repos/);
+    expect(log.map((e) => e.texte).join(' ')).toMatch(/ne trouve pas le repos/);
     expect(hasCondition(c, 'extenue')).toBe(true); // pas dissipé (repos refusé)
     expect(c.dead).not.toBe(true); // restRecovery ne tue pas
   });

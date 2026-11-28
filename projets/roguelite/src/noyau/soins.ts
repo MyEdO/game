@@ -28,6 +28,7 @@ import {
 } from '../../../../src/noyau';
 import { rollTest } from '../../../../src/engine/tests';
 import { applyHealWounds } from '../../../../src/engine/healing';
+import type { EntreeDuJournal } from '../../../../src/engine/journal';
 import { cureCriticalWounds, hasTreatableTrauma, treatTrauma, removeSurgicalTrauma } from '../../../../src/engine/trauma';
 import { chancesDeReussite, type Visee } from './epreuve';
 import { lignesDuJournal, ouvrirEnAuto } from './partie';
@@ -49,7 +50,7 @@ export const souillure = (c: Combatant): { points: number; seuil: number; mutati
   ({ points: c.corruption ?? 0, seuil: corruptionThreshold(c), mutations: (c.mutations ?? []).map((m) => m.label) });
 
 /** `pv` Points de Blessure regagnés par un soin (`applyHealWounds`) : un Inconscient guéri revient à lui. */
-export const soigner = (c: Combatant, pv: number): string[] => applyHealWounds(c, pv);
+export const soigner = (c: Combatant, pv: number): EntreeDuJournal[] => applyHealWounds(c, pv);
 /** Les Points de Blessure qu'un soin complet (`soigner(c, c.wounds.max)`) rend effectivement (`cappedHealAmount`). */
 export const blessuresARendre = (c: Combatant): number => cappedHealAmount(c, c.wounds.max);
 

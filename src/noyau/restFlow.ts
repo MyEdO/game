@@ -270,7 +270,7 @@ export function sleepParty(
       });
     });
     for (const note of notes) entries.push({ actorId: h.id, icon: 'repos/lit', label: t('rf.nuit'), issue: [ligneDeTexte(note)], tone: 'neutre' });
-    journal.push(...log.map((l) => ligneDeTexte(l)));
+    journal.push(...log);
   }
 
   const title = n > 1 ? t('rf.titleDays', { n }) : t('rf.titleNight');
@@ -360,7 +360,7 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
       insert: [drop],
     };
   }
-  return { applique: { lignes: applyExposureFailure(hero, priorFails + 1, battleRng(), kind).log.map((x) => ligneDeTexte(x)), faits: [] } };
+  return { applique: { lignes: applyExposureFailure(hero, priorFails + 1, battleRng(), kind).log, faits: [] } };
 }, (get, _set, band, ctx, drops) => {
   // Les délestages restent MONO (un CHOIX ne se joue pas en rangée) et la vague SUIVANTE ne se
   // construit qu'APRÈS eux — c'est le dernier délestage qui la déclenche (`meta.nextWaveOf`).
@@ -958,13 +958,13 @@ export const TABLES = {
       const before = hero.wounds.current;
       const sortie: Applique = { lignes: [], faits: [] };
       const { wokeUp } = applyRecoveryDay(hero, { sl: row.result!.sl, success: row.result!.success }, sortie);
-      const j: string[] = [];
+      const j: EntreeDuJournal[] = [];
       const healed = hero.wounds.current - before;
-      if (healed > 0) j.push(t('rf.recovered', { name: nomDe(hero), n: healed }));
-      else j.push(t('rf.noRecovery', { name: nomDe(hero) }));
-      if (wokeUp) j.push(t('heal.awake', { name: nomDe(hero) }));
-      j.push(...sortie.lignes.map((e) => e.texte));
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      if (healed > 0) j.push(ligneDeTexte(t('rf.recovered', { name: nomDe(hero), n: healed })));
+      else j.push(ligneDeTexte(t('rf.noRecovery', { name: nomDe(hero) })));
+      if (wokeUp) j.push(ligneDeTexte(t('heal.awake', { name: nomDe(hero) })));
+      j.push(...sortie.lignes);
+      return { applique: { lignes: j, faits: [] } };
     }),
     cauchemar: bandeDeNuit((_get, _set, _band, row, hero) => {
       if (row.result!.success) return { applique: { lignes: [ligneDeTexte(t('rf.dreamless', { name: nomDe(hero) }))], faits: [] } };
@@ -990,7 +990,7 @@ export const TABLES = {
         // LDB 18 l.332
         return { applique: { lignes: [ligneDeTexte(t('rf.dropped', { name: nomDe(hero), what: name ?? t('rf.fragHeaviest') }))], faits: [] }, insert };
       }
-      return { applique: { lignes: applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log.map((x) => ligneDeTexte(x)), faits: [] }, insert };
+      return { applique: { lignes: applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log, faits: [] }, insert };
     },
     'marche-forcee': bandeDeNuit((_get, _set, _band, row, hero) => {
       return { applique: { lignes: [ligneDeTexte(applyForcedMarch(hero, row.result!.success).line)], faits: [] } }; // LDB 51 l.195 : échec → +Exténué
@@ -1045,12 +1045,12 @@ export const TABLES = {
       return { applique: { lignes: applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source }).lignes, faits: [] } };
     }),
     'maladie-gangrene': bandeDeNuit((_get, _set, _band, row, hero) => {
-      return { applique: { lignes: applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0)).map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0)), faits: [] } };
     }),
     'maladie-persistance': bandeDeNuit((_get, _set, _band, row, hero) => {
       // Fin de Durée : résolution ET réconciliation des États portés par un passif (LDB 20 l.188) en UN geste —
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
-      return { applique: { lignes: applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng()).map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng()), faits: [] } };
     }),
     contagion: appliquerContagion,
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,

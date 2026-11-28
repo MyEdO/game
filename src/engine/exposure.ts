@@ -24,6 +24,7 @@
  * `exposureTestCount`/`exposureShelterFromTent`. La météo de scène donne la sévérité : pluie/neige
  * = difficile, tempête = extrême (froid). Pur : mute `c`, renvoie jets + journal.
  */
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 import { CHAR_LABELS, DIFFICULTE_PAR_DEFAUT, type Combatant, type CharKey, type Difficulty, type ItemInstance } from './types';
 import type { RNG } from './dice';
 import { rollTest, type JetDeTest } from './tests';
@@ -168,8 +169,8 @@ export function dropHeaviestPossession(c: Combatant): string | undefined {
  * le journal + les Blessures infligées. Partagé par `exposureNight` (eager), l'applicateur de
  * cascade « exposition-nocturne » et la Température en mer (MDG 13 l.203-225).
  */
-export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, kind: ExposureKind = 'froid'): { log: string[]; wounds: number } {
-  const log: string[] = [];
+export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, kind: ExposureKind = 'froid'): { log: EntreeDuJournal[]; wounds: number } {
+  const log: EntreeDuJournal[] = [];
   const label = kind === 'froid' ? t('exp.labelFroid') : t('exp.labelChaleur');
   const effectId = kind === 'froid' ? 'exposition-froid' : 'exposition-chaleur';
   if (failures <= 2) {
@@ -177,19 +178,19 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
       applyActiveEffect(c, { label, effectId, characteristic: k, bonus: -10, duration: { scale: 'permanent' }, expiresOnRespite: true });
     }
     if (kind === 'chaleur') addCondition(c, 'extenue'); // « vous gagnez un État Exténué » (1ᵉʳ ET 2ᵉ échec, l.330)
-    log.push(kind === 'froid'
+    log.push(ligneDeTexte(kind === 'froid'
       ? (failures === 1 ? t('exp.shivers', { name: nomDe(c) }) : t('exp.frozen', { name: nomDe(c) }))
-      : (failures === 1 ? t('exp.heatstruck', { name: nomDe(c) }) : t('exp.overwhelmed', { name: nomDe(c) })));
+      : (failures === 1 ? t('exp.heatstruck', { name: nomDe(c) }) : t('exp.overwhelmed', { name: nomDe(c) }))));
     return { log, wounds: 0 };
   }
   const dmg = Math.max(1, rng.int(1, 10));
   const consequences: Applique = { lignes: [], faits: [] };
   loseWounds(c, dmg, consequences);
-  log.push(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }), ...consequences.lignes.map((e) => e.texte));
+  log.push(ligneDeTexte(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg })), ...consequences.lignes);
   if (kind === 'froid' && c.wounds.current <= 0) {
     const deja = hasCondition(c, 'inconscient');
     addCondition(c, 'inconscient');
-    if (!deja) log.push(t('exp.sinksFrozen', { name: nomDe(c) }));
+    if (!deja) log.push(ligneDeTexte(t('exp.sinksFrozen', { name: nomDe(c) })));
   }
   return { log, wounds: dmg };
 }
@@ -204,13 +205,13 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
 export function exposureNight(
   c: Combatant, count: number, resVal: number, rng: RNG,
   opts: { kind?: ExposureKind; difficulty?: Difficulty } = {},
-): { rolls: ExposureRoll[]; log: string[]; failures: number; wounds: number } {
+): { rolls: ExposureRoll[]; log: EntreeDuJournal[]; failures: number; wounds: number } {
   const kind = opts.kind ?? 'froid';
   if (isWeatherWarded(c)) {
-    return { rolls: [], log: [t('eff.meteoConjuree', { name: nomDe(c), what: kind === 'froid' ? t('eff.protectionDuFroid') : t('eff.protectionDeLaChaleur') })], failures: 0, wounds: 0 };
+    return { rolls: [], log: [ligneDeTexte(t('eff.meteoConjuree', { name: nomDe(c), what: kind === 'froid' ? t('eff.protectionDuFroid') : t('eff.protectionDeLaChaleur') }))], failures: 0, wounds: 0 };
   }
   const rolls: ExposureRoll[] = [];
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   let failures = 0;
   let wounds = 0;
   const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
@@ -223,13 +224,13 @@ export function exposureNight(
     const held = !res.success && skin > 0 && res.sl + skin >= 1;
     rolls.push({ base: target, target: res.target, roll: res.roll, sl: res.sl + (res.success ? 0 : skin), success: res.success || held });
     if (res.success) continue;
-    if (held) { log.push(t('exp.sealskinHeld', { name: nomDe(c) })); continue; }
+    if (held) { log.push(ligneDeTexte(t('exp.sealskinHeld', { name: nomDe(c) }))); continue; }
     failures++;
     const f = applyExposureFailure(c, failures, rng, kind);
     log.push(...f.log);
     wounds += f.wounds;
   }
-  if (kind === 'froid' && !hasCoat(c) && count > 0) log.push(t('exp.noCoat', { name: nomDe(c), pen: Number(rule('exposition-sans-manteau')) }));
+  if (kind === 'froid' && !hasCoat(c) && count > 0) log.push(ligneDeTexte(t('exp.noCoat', { name: nomDe(c), pen: Number(rule('exposition-sans-manteau')) })));
   return { rolls, log, failures, wounds };
 }
 

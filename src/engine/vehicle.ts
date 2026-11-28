@@ -13,6 +13,8 @@
  * qu'`applyVehicleProblem` rend en plus des `lines`. Ces `lines` sont le rendu d'`applyOps` : une
  * couture d'AFFICHAGE qui traverse le moteur, jamais un second canal de résolution.
  */
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
+import { t } from '../i18n';
 import type { FabriqueDId } from './fabriqueDId';
 import { Combatant, DIFFICULTE_PAR_DEFAUT, VehicleData, type Difficulty, type ModLine } from './types';
 import { ligneDeRegle } from './reglesChiffrees';
@@ -47,15 +49,15 @@ export function vehicleCombatant(v: VehicleData, id = `vehicle-${v.id}`, milieuN
 
 export interface VehicleProblemResult {
   entry: TravelTableEntry;
-  lines: string[];
+  lines: EntreeDuJournal[];
 }
 
 /** Tire un Problème de véhicule (d100) et APPLIQUE ses Dégâts à la coque (`applyOps`), si la cellule en
  *  porte (`vehicleWounds`). EDOC 07 l.259-264. */
 export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG, idNeuf: FabriqueDId): VehicleProblemResult {
   const entry = rollVehicleProblem(roll);
-  const lines = [`Problème de véhicule — ${entry.label}.`];
-  if (entry.vehicleWounds) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: entry.vehicleWounds, ignoreTB: false, ignoreAP: true, min: 1 }], { rng, idNeuf }).lignes.map((e) => e.texte));
+  const lines = [ligneDeTexte(t('tf.ennuiDeVehicule', { label: entry.label }))];
+  if (entry.vehicleWounds) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: entry.vehicleWounds, ignoreTB: false, ignoreAP: true, min: 1 }], { rng, idNeuf }).lignes);
   return { entry, lines };
 }
 

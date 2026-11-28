@@ -118,7 +118,7 @@ describe('gangrène — progression journalière (l.135+)', () => {
     expect(gangrenes[0].test, 'la porte sait ce qui est testé').toEqual({ skill: { id: 'resistance' } });
     expect(gangrenes[0].difficulty).toBe('accessible');
     const log = gangrenes.flatMap((s) => applique(c, s, { success: false }, desDuTest));
-    expect(log.some((l) => /Gangrène a gagné/.test(l))).toBe(true);
+    expect(log.some((l) => /Gangrène a gagné/.test(l.texte))).toBe(true);
     expect(c.diseases![0].gangreneLost).toBe(true);
   });
 });

@@ -10,6 +10,7 @@
  * réconciliation des États portés par un passif). Le kit ne peut donc pas dériver de l'applier réel : il n'y a
  * qu'un exemplaire de chaque geste, et `maladie-porte-valeur.hors-store.test.ts` le mesure (cure kit === nuit).
  */
+import type { EntreeDuJournal } from './journal';
 import { idsDeTest } from './idsDeTest.testkit';
 import type { Combatant, UpkeepDeferTest } from './types';
 import type { RNG } from './dice';
@@ -32,7 +33,7 @@ export function applique(
   spec: SpecEntretien,
   res: { success: boolean; sl?: number },
   rng: RNG,
-): string[] {
+): EntreeDuJournal[] {
   const sl = res.sl ?? 0;
   const meta = spec.meta ?? {};
   if (spec.kind === 'maladie-persistance') return applyDiseaseEnd(c, String(meta.diseaseName ?? ''), res.success, sl, rng);
@@ -40,5 +41,5 @@ export function applique(
   if (res.success) return []; // `maladie-test-quotidien` : la réussite n'applique RIEN (branche `success` vide au schéma)
   // MÊME ancrage que l'applier de nuit : la maladie est l'entité SOURCE de ce que son échec inflige.
   const source = { kind: 'maladie' as const, id: String(meta.diseaseName ?? '') };
-  return applyOps(c, (meta.opsEchec ?? []) as GameOp[], { idNeuf: idsDeTest, rng, sl, source }).lignes.map((e) => e.texte);
+  return applyOps(c, (meta.opsEchec ?? []) as GameOp[], { idNeuf: idsDeTest, rng, sl, source }).lignes;
 }

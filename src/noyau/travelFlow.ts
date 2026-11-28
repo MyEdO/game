@@ -1192,7 +1192,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false };
   const r = applyVehicleProblem(vehicle, entry.min, battleRng(), get().forgerUnId);
-  lines.push(...r.lines.map((l) => ligneDeTexte(l)));
+  lines.push(...r.lines);
   // Dégâts aux occupants (Cassé : 1 Blessure ignorant BE et PA ; Accident : 2d10 − BE − PA, min 1) —
   // langue unique GameOp, portée par la table (`occupantOps`).
   if (r.entry.occupantOps?.length) {
@@ -1418,8 +1418,8 @@ export const TABLES = {
             // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
             j.push(...applyHealWounds(h, h.wounds.max - h.wounds.current, {
               wake: false,
-              log: () => [h.wounds.current >= h.wounds.max ? t('tf.soinComplet', { name: nomDe(h) }) : t('tf.soinPartiel', { name: nomDe(h) })],
-            }).map((l) => ligneDeTexte(l)));
+              log: () => [ligneDeTexte(h.wounds.current >= h.wounds.max ? t('tf.soinComplet', { name: nomDe(h) }) : t('tf.soinPartiel', { name: nomDe(h) }))],
+            }));
           }
           const n = stacks(h, 'extenue');
           if (n > 0) {

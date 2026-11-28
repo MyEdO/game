@@ -108,8 +108,8 @@ describe('coup à l’équipage — la STATION est ÉPINGLÉE, jamais déduite (
     const hull = coque('cogue');
     const out = applyHullCritical(hull, [], 'voile', makeRNG(7), idsDeTest, 1, 1);
     expect(out.location, 'le coup se perdait en silence (`shipCrit.crewNoneExposed` + abandon)').toBe('coque');
-    expect(out.lines[0], 'le repli n’est pas DIT au joueur').toContain('aucun marin exposé');
-    expect(out.lines[1], 'aucune rangée de coque n’a été résolue derrière le repli').toContain('Critique navire');
+    expect(out.lines[0].texte, 'le repli n’est pas DIT au joueur').toContain('aucun marin exposé');
+    expect(out.lines[1].texte, 'aucune rangée de coque n’a été résolue derrière le repli').toContain('Critique navire');
   });
 
   it('5. coque SANS `creatureId` : aucune station gatée n’est ouverte, et elle est NOMMÉE (jamais un silence)', () => {

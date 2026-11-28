@@ -167,7 +167,7 @@ describe('engine/healing — Empaleuse : munition logée bloque la Guérison (LD
     const t = hero({ id: 't', wounds: blessuresDeBase(12, 11), conditions: [{ id: 'munition-logee', value: 1 }] });
     const log = applyHealWounds(t, 5);
     expect(t.wounds.current).toBe(11); // ne dépasse pas 12 − 1
-    expect(log[0]).toMatch(/munition logée bloque le soin/);
+    expect(log[0].texte).toMatch(/munition logée bloque le soin/);
   });
 
   it('resolveExtractLodgedAmmo : succès retire 1 munition (Test de Guérison Intermédiaire, LDB 62 l.250)', () => {
@@ -181,6 +181,6 @@ describe('engine/healing — Empaleuse : munition logée bloque la Guérison (LD
     resolveExtractLodgedAmmo(t, false);
     expect(lodgedAmmoCount(t)).toBe(1);
     const t2 = hero({ id: 't2', conditions: [] });
-    expect(resolveExtractLodgedAmmo(t2, true)[0]).toMatch(/aucune munition/);
+    expect(resolveExtractLodgedAmmo(t2, true)[0].texte).toMatch(/aucune munition/);
   });
 });

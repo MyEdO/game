@@ -536,12 +536,9 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefD
     // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + Chance et Détermination.
     applyTalentAcquisition(clone, talentId, spec);
     reporterLaHausseDesMaxima(clone, maximaAvant);
-    msg = ligneDeTexte(t('pf.talentBought', { name: nomDe(clone), label: talentLabel, cost: r.cost }));
     // Magie mineure (LDB 10 l.714) : BFM sorts inclus au Talent — à choisir (0 PX, Avancement).
-    if (castingKindOf(talentId) === 'mineure') {
-      const q = bonus(effectiveChar(clone, 'force-mentale'));
-      if (q > 0) msg = { ...msg, texte: `${msg.texte}${t('pf.minorMagicIncluded', { n: q })}` };
-    }
+    const q = castingKindOf(talentId) === 'mineure' ? bonus(effectiveChar(clone, 'force-mentale')) : 0;
+    msg = ligneDeTexte(`${t('pf.talentBought', { name: nomDe(clone), label: talentLabel, cost: r.cost })}${q > 0 ? t('pf.minorMagicIncluded', { n: q }) : ''}`);
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);

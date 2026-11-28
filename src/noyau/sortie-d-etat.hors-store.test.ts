@@ -100,7 +100,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const c = porteur([{ id: 'inconscient', value: 1 }], 0);
     const lignes = applyHealWounds(c, 3);
     expect(portes(c)).toEqual({ 'a-terre': 1, extenue: 1 });
-    expect(lignes).toEqual(expect.arrayContaining([ligneDePose(c, 'a-terre'), ligneDePose(c, 'extenue')]));
+    expect(lignes.map((e) => e.texte)).toEqual(expect.arrayContaining([ligneDePose(c, 'a-terre'), ligneDePose(c, 'extenue')]));
   });
 
   it('expiration en Rounds : l’État échu pose sa sortie', () => {

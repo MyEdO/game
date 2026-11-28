@@ -198,7 +198,7 @@ describe('Faim & repos (LDB 18 l.338) : pas de récupération naturelle sans pro
     const log = restRecovery(c, makeRNG(1));
     expect(c.wounds.current).toBe(5);
     expect(stacks(c, 'extenue')).toBe(2);
-    expect(log.join(' ')).toContain('affamé');
+    expect(log.map((e) => e.texte).join(' ')).toContain('affamé');
   });
 
   it('nourri : le repos fonctionne normalement', () => {

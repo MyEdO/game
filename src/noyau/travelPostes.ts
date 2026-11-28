@@ -34,7 +34,7 @@ import { appliquerIssueActivite } from './activityIssue';
 import { rollStep, monoStep, displayStep, bandStep, choiceStep, pousseSi, tableStep } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { recapDe, tonnerLApplication } from './recapLine';
-import type { RecapTone } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal, type RecapTone } from '../engine/journal';
 import { noteEvent } from './evenementDuJour';
 import { t, type MsgKey } from '../i18n';
 import { rule } from '../engine/policy';
@@ -70,7 +70,6 @@ import { ecrireActeur } from './monde/combatants';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { nomDe } from '../engine/nom';
-import { ligneDeTexte } from '../engine/journal';
 
 const POSTE_ICON: Record<string, IconId> = {
   'plein-air': 'expedition/grand-air', approvisionnement: 'objet/consommable', 'recueillir-informations': 'expedition/rumeurs', 'rester-aux-aguets': 'interface/oeil',
@@ -486,11 +485,11 @@ export const TABLES = {
       const usage = step.chosen.slice(0, separateur);
       const patientId = step.chosen.slice(separateur + 1);
       const patient = garanti(get().party.find((h) => h.id === patientId), patientId, 'patient du camp');
-      let lignes: string[];
+      let lignes: EntreeDuJournal[];
       if (usage === 'extenue') {
         const sortie: Applique = { lignes: [ligneDeTexte(t('tp.campCare', { name: nomDe(patient), n: 1 }))], faits: [] };
         removeCondition(patient, 'extenue', 1, sortie);
-        lignes = sortie.lignes.map((e) => e.texte);
+        lignes = sortie.lignes;
       } else {
         lignes = applyHealWounds(patient, soinDuCamp(campeur, patient, soignes));
       }
@@ -500,7 +499,7 @@ export const TABLES = {
         ? choixDuCamp(get(), camps, index, dr - 1, patientsSoignes)
         : choixDuCamp(get(), camps, index + 1);
       pousseSi(insert, prochainChoix);
-      return { applique: { lignes: lignes.map((x) => ligneDeTexte(x)), faits: [] }, insert };
+      return { applique: { lignes, faits: [] }, insert };
     },
     /** La Rencontre tirée (EDOC 8 l.182-233) : l'événement du jour (`noteEvent`), dont la ligne est la
      *  conséquence de l'étape, et le repos complet d'un voyage tranquille. */
@@ -509,7 +508,7 @@ export const TABLES = {
       const categorie = CATEGORIES_DE_RENCONTRE.find((c) => tableDeRencontre(c) === step.table?.tableId);
       const entree = tiree && categorie && encounterTable(categorie).find((e) => e.id === tiree.id);
       if (!tiree || !categorie || !entree) return;
-      const j = [noteEvent(get, set, { source: { table: tableDeRencontre(categorie), id: entree.id }, title: entree.label, text: entree.desc, jet: { naturel: tiree.roll, effectif: tiree.die }, tone: TON_DE_RENCONTRE[categorie] })];
+      const j: EntreeDuJournal[] = [ligneDeTexte(noteEvent(get, set, { source: { table: tableDeRencontre(categorie), id: entree.id }, title: entree.label, text: entree.desc, jet: { naturel: tiree.roll, effectif: tiree.die }, tone: TON_DE_RENCONTRE[categorie] }))];
       if (entree.stageOutcome === 'fullRecovery') {
         for (const h of get().party.filter((x) => !x.dead)) {
           // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
@@ -517,12 +516,12 @@ export const TABLES = {
           const ex = stacks(h, 'extenue');
           const sortie: Applique = { lignes: [], faits: [] };
           if (ex > 0) removeCondition(h, 'extenue', ex, sortie);
-          j.push(...sortie.lignes.map((e) => e.texte));
+          j.push(...sortie.lignes);
         }
         set({ party: [...get().party] });
-        j.push(t('tp.calmTravel'));
+        j.push(ligneDeTexte(t('tp.calmTravel')));
       }
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: j, faits: [] } };
     },
     /** Un Test d'EXPOSITION de fin d'Étape (l.73) : échec → escalade cumulative de froid (l.415), rhume
      *  CONTRACTÉ en saison froide ou PROLONGÉ (`coldExposureChill`). Protection magique = ignorée d'office.
@@ -535,11 +534,11 @@ export const TABLES = {
       // Le jet est DÉJÀ affiché par la rangée de l'étape (CascadeModal) — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence.
       if (step.result.success) return { applique: { lignes: [], faits: [] } };
-      const j: string[] = [t('tp.exposureLine', { name: nomDe(hero), weather: weatherLabel })];
+      const j: EntreeDuJournal[] = [ligneDeTexte(t('tp.exposureLine', { name: nomDe(hero), weather: weatherLabel }))];
       const prior = (hero.activeEffects ?? []).filter((e) => e.effectId === 'exposition-froid').length;
       j.push(...applyExposureFailure(hero, exposureFailureRank(prior), battleRng()).log);
-      j.push(...coldExposureChill(hero, !!step.meta?.coldSeason));
-      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
+      j.push(...coldExposureChill(hero, !!step.meta?.coldSeason).map((l) => ligneDeTexte(l)));
+      return { applique: { lignes: j, faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   tablesTirables: Object.fromEntries(CATEGORIES_DE_RENCONTRE.map((c) => [tableDeRencontre(c), {

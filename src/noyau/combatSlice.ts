@@ -3361,12 +3361,12 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const params = { test: ph.test, bandages: panse };
       if (ph.mode === 'blessures') {
         const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), params);
-        log.push(...r.log.map((l) => ligneDeTexte(l)));
+        log.push(...r.log);
         if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'soin' });
       } else if (ph.mode === 'hemorragie') {
-        log.push(...resolveBleedHeal(target, ph.sl, ph.success, params).map((l) => ligneDeTexte(l)));
+        log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
       } else if (ph.mode === 'munition') {
-        log.push(...resolveExtractLodgedAmmo(target, ph.success).map((l) => ligneDeTexte(l))); // LDB 62 l.250 — Test de Guérison Intermédiaire
+        log.push(...resolveExtractLodgedAmmo(target, ph.success)); // LDB 62 l.250 — Test de Guérison Intermédiaire
       } else {
         log.push(...treatTrauma(target, ph.sl, ph.success).map((l) => ligneDeTexte(l))); // mode 'traumatisme' — l'échec consomme aussi le jet (LDB 18 l.222)
       }
