@@ -1,9 +1,8 @@
 // L'ENTRÉE D'UN HÔTE DU NOYAU (#2928) : un module virtuel qui
 // charge le gel du catalogue (`src/data/overrides.ts`) PUIS les modules de l'hôte (ordre d'évaluation des imports), et
 // les greffons de Vite qui le servent, `proseSource()` compris : la même porte que la suite du noyau (`vitest.config.ts`).
-// Le lanceur de l'hôte texte (`scripts/hote-texte.mjs`) la charge par le module runner de Vite ; le bundle du pont de
-// Godot (`hotes/godot/construire.mjs`) et les assets de Godot (`hotes/godot/asset/charger.mjs`) la bâtissent par
-// `batirLEntree`, qui la nomme par `entree`.
+// Le lanceur de l'hôte texte (`scripts/hote-texte.mjs`) la charge par le module runner de Vite, le bundle du pont de
+// Godot (`hotes/godot/construire.mjs`) la bâtit par `vite build`, qui la nomme par `entree`.
 import { fileURLToPath } from 'node:url'
 import { proseSource } from './source/prose-source-plugin.mjs'
 import { analyserTexte } from './guards/lib/dialecte.mjs'
@@ -41,22 +40,4 @@ export function entreeDHote(nom, lignes) {
       load: (cible) => (cible === id ? code : null),
     }],
   }
-}
-
-/** Le morceau d'entrée (`code`, `moduleIds`) que bâtit `vite build` de `entree` (un module virtuel d'`entreeDHote`, ou
- *  un chemin) servie par `greffons`, à la racine du dépôt, sans fichier de configuration ni `public/` ; `config` s'y
- *  fusionne (`mergeConfig`). Vite se charge à l'appel. */
-export async function batirLEntree({ entree, greffons }, config) {
-  const { build, mergeConfig } = await import('vite')
-  const resultat = await build(mergeConfig({
-    root: RACINE,
-    configFile: false,
-    publicDir: false,
-    plugins: greffons,
-    build: { rolldownOptions: { input: entree }, emptyOutDir: false, copyPublicDir: false, reportCompressedSize: false },
-  }, config))
-  const [sortie] = Array.isArray(resultat) ? resultat : [resultat]
-  const morceau = sortie.output.find((o) => o.type === 'chunk' && o.isEntry)
-  if (!morceau) throw new Error(`[${entree}] morceau d'entrée absent de la sortie de vite build`)
-  return morceau
 }

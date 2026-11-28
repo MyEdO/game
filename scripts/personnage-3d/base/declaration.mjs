@@ -1,6 +1,6 @@
 // LA DÉCLARATION DU CORPS D'UNE BASE (#2972, #3106), `<declaration.json>` : `base`, `porteur`, ses bornes articulaires
 // (`bornesArticulaires`, #2992), la table rôle → clip (`clips`, dont `marche`, la marche plantée et mesurée), celle des rôles tenus à deux mains (`clipsDeuxMains`, #3319), les prises que le geste de chaque clip occupe (`prisesOccupees`, #3806) et les surfaces du corps (`surfaces`, jugées avec le manifeste, `hotes/godot/asset/surfaces.ts`), validée contre la donnée,
-// lue par le paquet que bâtit `vite build` (`chargerAssets`, `charger.mjs`).
+// lue par le module runner de Vite (`chargerAssets`, `charger.mjs`).
 import { readFileSync } from 'node:fs'
 import { chargerAssets } from '../../../hotes/godot/asset/charger.mjs'
 

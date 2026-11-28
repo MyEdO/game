@@ -4,7 +4,7 @@
 // cycle d'import qui lit une liaison non évaluée y casse son chargement.
 //
 // Chargeur : le module runner de Vite (`runnerImport`), celui de chaque hôte réel — hôte texte
-// (`scripts/hote-texte.mjs:14`), Vitest, app web.
+// (`scripts/hote-texte.mjs:14`), assets de Godot (`hotes/godot/asset/charger.mjs:2`), Vitest, app web.
 // Limite : sous Vite, une CONSTANTE lue avant son évaluation se lit `undefined` (un calcul sur elle rend `NaN`), sans
 // erreur ; cette classe ne lève que sous l'ESM de Node, et cette garde ne l'attrape pas.
 //

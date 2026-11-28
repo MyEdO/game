@@ -63,7 +63,8 @@ import { stripVTControlCharacters } from 'node:util'
 import { constants, createContext } from 'node:vm'
 import { gzipSync, inflateRawSync } from 'node:zlib'
 import { Linter } from 'eslint'
-import { batirLEntree, entreeDHote } from '../../scripts/entree-d-hote.mjs'
+import { build } from 'vite'
+import { entreeDHote } from '../../scripts/entree-d-hote.mjs'
 import { ecrireTexteAtomique } from '../../scripts/guards/lib/ecritureJsonAtomique.mjs'
 import { enFileBornee } from '../../scripts/guards/lib/fileBornee.mjs'
 import { listerArbre, listerDossier } from '../../scripts/guards/lib/lister.mjs'
@@ -140,21 +141,38 @@ export async function empaqueter(sortie, mode) {
   const avant = process.env.NODE_ENV
   process.env.NODE_ENV = mode
   try {
-    const { code, moduleIds } = await batirLEntree(entree, {
+    const resultat = await build({
+      root: RACINE,
+      configFile: false,
+      publicDir: false,
       logLevel: 'warn',
       mode,
+      plugins: entree.greffons,
       build: {
-        // `lib.entry` se résout en chemin sous la racine ; le module virtuel entre par l'`input` de `batirLEntree`, tel quel.
+        // `lib.entry` se résout en chemin sous la racine ; le module virtuel entre par `input`, tel quel.
         lib: { entry: entree.entree, formats: ['iife'], name: 'wfrpPont', fileName: () => PONT },
+        rolldownOptions: { input: entree.entree },
         write: sortie !== null,
         ...(sortie ? { outDir: sortie } : {}),
+        emptyOutDir: false,
+        copyPublicDir: false,
+        reportCompressedSize: false,
       },
     })
+    const { code, moduleIds } = morceauDe(resultat, PONT)
     return { code, modules: moduleIds }
   } finally {
     if (avant === undefined) delete process.env.NODE_ENV
     else process.env.NODE_ENV = avant
   }
+}
+
+/** Le morceau `fichier` de `resultat`, la sortie de `vite build`. */
+function morceauDe(resultat, fichier) {
+  const [sortieDeRollup] = Array.isArray(resultat) ? resultat : [resultat]
+  const morceau = sortieDeRollup.output.find((o) => o.type === 'chunk' && o.fileName === fichier)
+  if (!morceau) throw new Error(`[pont] ${fichier} absent de la sortie de vite build`)
+  return morceau
 }
 
 /** Le point d'entrée embarqué du processus du pont (`embarque.mjs`), et le fichier où il s'empaquette à côté du bundle. */
@@ -164,12 +182,21 @@ const PROCESSUS = 'vivant.mjs'
 /** Le point d'entrée embarqué empaqueté en un seul fichier, `PROCESSUS`, dans `sortie` : il n'importe que Node. Rend
  *  son chemin et les ids des modules qu'il porte (`avisDesPaquets`). */
 export async function empaqueterLeProcessus(sortie) {
-  const { moduleIds } = await batirLEntree({ entree: EMBARQUE, greffons: [] }, {
+  const resultat = await build({
+    root: RACINE,
+    configFile: false,
+    publicDir: false,
     logLevel: 'warn',
     ssr: { noExternal: true },
-    build: { ssr: true, outDir: sortie, rolldownOptions: { output: { entryFileNames: PROCESSUS } } },
+    build: {
+      ssr: EMBARQUE,
+      outDir: sortie,
+      emptyOutDir: false,
+      copyPublicDir: false,
+      rolldownOptions: { output: { entryFileNames: PROCESSUS } },
+    },
   })
-  return { chemin: join(sortie, PROCESSUS), modules: moduleIds }
+  return { chemin: join(sortie, PROCESSUS), modules: morceauDe(resultat, PROCESSUS).moduleIds }
 }
 
 /** Le scénario que l'exécution démarre : le combat des tests du pont (`hotes/godot/pont/tour.hors-store.test.ts`). */
