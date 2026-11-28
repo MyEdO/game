@@ -15,8 +15,8 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * GOLDEN du CYCLE DE TOUR ENNEMI : fige la portion synchrone du tour de `runEnemyAI` de deux ennemis, et la position du
  * RNG après eux.
  *
- * - Ennemi RAGE (Rage + Avantage 3, non Engagé) : sa Rage est une manœuvre sur soi gratuite que sa décision joue ou
- *   non (#5042), sans RNG. Fixture déclarée au seam des datasets : le trait `rage-de-test` et sa manœuvre de Frénésie.
+ * - Ennemi RAGE (Rage + Avantage 3, non Engagé) : sa décision joue sa Frénésie, manœuvre sur soi gratuite, sans RNG
+ *   (#5042). Fixture déclarée au seam des datasets : le trait `rage-de-test` et sa manœuvre de Frénésie.
  * - Ennemi PEUR (source de Peur en Ligne de Vue) : rien au début de SON tour, la psychologie de combat se joue aux
  *   passes de Round (LDB 21 l.9, l.25).
  */
@@ -77,7 +77,10 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI)', () => {
     expect({ rageLines, fearLines, rngProbe }).toMatchInlineSnapshot(`
       {
         "fearLines": [],
-        "rageLines": [],
+        "rageLines": [
+          "attaque:Dider Rudlos déclenche Frénésie de test !",
+          "attaque:Dider Rudlos tombe sous Frénésie.",
+        ],
         "rngProbe": 13,
       }
     `);

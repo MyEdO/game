@@ -35,7 +35,7 @@ import {
   faitsDesPoses,
   COND,
 } from './conditions';
-import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
+import { conditionLabel, diseaseLabel, findPsychologyById, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
 import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
@@ -900,6 +900,11 @@ function poseSansEffet(c: Combatant, o: OpPose): boolean {
   return !!entree && (!estCibleType(entree.type) || entree.active === true);
 }
 
+/** L'état psychologique que porte `c` et qui l'immunise contre les autres (`psychImmune`), quand on lui pose `type`.
+ *  LDB 21 l.33 */
+const etatImmunisant = (c: Combatant, type: string): PsychAffliction | undefined =>
+  (c.psychState ?? []).find((p) => p.type !== type && findPsychologyById(p.type)?.psychImmune);
+
 /** `c` porte-t-il la forme `tag` (effet actif de même `effectId`) ? */
 const dansLaForme = (c: Combatant, tag: string): boolean => (c.activeEffects ?? []).some((e) => e.effectId === tag);
 
@@ -950,7 +955,11 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
       const type = typeDeFin(o, ctx);
       return type ? t('op.sansPsychologieAFinir', { name: nomDe(c), psych: psychologyLabel(type) }) : t('op.sansInstanceDePsychologie', { name: nomDe(c) });
     }
-    case 'beginPsych': return poseSansEffet(c, o) ? t('op.sansPsychologieAPoser', { name: nomDe(c), psych: psychologyLabel(o.type.id) }) : null;
+    case 'beginPsych': {
+      const immunisant = o.active === false ? undefined : etatImmunisant(c, o.type.id);
+      if (immunisant) return t('op.psychologieImmunisee', { name: nomDe(c), psych: psychologyLabel(o.type.id), etat: psychologyLabel(immunisant.type) });
+      return poseSansEffet(c, o) ? t('op.sansPsychologieAPoser', { name: nomDe(c), psych: psychologyLabel(o.type.id) }) : null;
+    }
     case 'transform': return dansLaForme(c, o.tag) ? t('op.dejaDansLaForme', { name: nomDe(c), tag: o.tag }) : null;
     case 'endTransform': return dansLaForme(c, o.tag) ? null : t('op.horsDeLaForme', { name: nomDe(c), tag: o.tag });
     case 'removePsychTrait': return rangDuTraitARetirer(c, o) < 0 ? t('op.sansPsychologieARetirer', { name: nomDe(c) }) : null;
@@ -1286,7 +1295,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ...(o.calmeDR != null ? { calmeDR: Math.max(0, formuleDuCtx(o.calmeDR, ref, ctx)) } : {}),
           ...(o.surmontee != null ? { surmontee: o.surmontee } : {}),
           ...(active != null ? { active } : {}),
-          // Une affliction ciblée qui ENTRE en vigueur au Round N n'est pas re-testée à sa fin. LDB 21 l.39
+          // LDB 21 l.39
           ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : cible !== undefined && precedente.active !== true && ctx.round != null ? { lastTestRound: ctx.round } : {}),
           ...(o.fromTest != null ? { fromTest: o.fromTest } : {}),
         };

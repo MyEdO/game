@@ -1,8 +1,8 @@
 /**
  * HOOKS DE CYCLE DE VIE de combat — couture d'extension calquée sur les appliers de cascade. MODULE
  * FEUILLE : n'importe RIEN de combatFlow → pas de cycle. La machinerie (règles optionnelles, traits,
- * sorts…) se DÉCLARE dans les tables du jeu (`TablesDuJeu.crochetsDeCombat`, modules `combat/roundHooks`
- * et `combat/turnHooks`) au lieu d'éditer le monolithe combatFlow ; le cœur ne connaît pas les features,
+ * sorts…) se DÉCLARE dans les tables du jeu (`TablesDuJeu.crochetsDeCombat`, module `combat/roundHooks`) au lieu
+ * d'éditer le monolithe combatFlow ; le cœur ne connaît pas les features,
  * il DISPATCHE via `runCombatHooks`. L'activation passe par le registre de règles optionnelles
  * (`policy.rule(enabledIf)`).
  *

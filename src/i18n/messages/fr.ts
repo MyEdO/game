@@ -1618,6 +1618,7 @@ export const fr = {
   'op.sansTraitARetirer': '{name} ne porte pas le Trait {trait}.',
   'op.sansPsychologieAFinir': '{name} n’est pas sous l’effet de {psych}.',
   'op.sansPsychologieAPoser': '{name} est déjà sous l’effet de {psych}.',
+  'op.psychologieImmunisee': '{name} est immunisé à {psych} ({etat}).',
   'op.pa': '{name} : +{n} PA ({src}{durTxt}).',
   'op.perteDePa': '{name} : −{n} PA ({src}{durTxt}).',
   'op.paSansLocalisation': '{name} : aucune Localisation touchée — les Points d’Armure sont inchangés.',

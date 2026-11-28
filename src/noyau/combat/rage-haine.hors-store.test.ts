@@ -10,7 +10,7 @@ import { poserLeDataset } from '../../data/datasetDeTest.testkit';
 import { buildAiInput, collectRoundEndPsych } from '../combatFlow';
 import { chooseEnemyAction, degatsDeLaFrappe } from '../monde/ai';
 import { heroFaceAUnEnnemi, reluDans } from '../combatDeTest.testkit';
-import { jouerLeTourDeLIA } from '../ouvertureDuTour.testkit';
+import { deDeCombat, jouerLeTourDeLIA } from '../ouvertureDuTour.testkit';
 import { projeter } from '../../hote/projection';
 import { testScene } from '../../scenes/test-fixture';
 import { isFrenzied } from '../../engine/psychology';
@@ -20,6 +20,7 @@ import { ciblePsy } from '../../engine/psych/ciblage';
 import { setRule, resetRule } from '../../engine/policy';
 import { mirrorPools } from '../../engine/advantagePool';
 import type { Combatant } from '../../engine/types';
+import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 const GROUPE = 'engages-de-test';
 const pose = (type: string, cible?: string) => [{ trigger: 'onHit', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [
@@ -136,6 +137,13 @@ describe('Rage : la Frénésie (LDB 85 l.282, au moins 3 Avantages, sans Test)',
     expect(g().pendingFrenzy, 'aucun Test de Force Mentale').toBeFalsy();
   });
 
+  it('en Frénésie, la Haine n’est pas offerte : la Frénésie immunise contre les autres Traits Psychologiques (LDB 21 l.33)', () => {
+    const { H } = duel('H', 3);
+    H.psychState = [{ type: 'frenesie' }];
+    banc.setState({ battle: { ...g().battle! } });
+    expect(gratuitesOffertes()).not.toContain('Haine de test');
+  });
+
   it('F5 — déjà en Frénésie, elle n’est plus offerte', () => {
     const { H } = duel('H', 3);
     H.psychState = [{ type: 'frenesie' }];
@@ -169,6 +177,25 @@ describe('Rage : l’IA (#5042)', () => {
     expect(haines(e)).toHaveLength(1);
     expect(e.advantage).toBe(0);
     expect(g().pendingDefense?.attackerId, 'sa frappe attend la défense du héros').toBe(E.id);
+  });
+
+  it('« Rage : Frénésie » garde l’Action : l’IA la joue et porte l’Action plus l’attaque gratuite de Frénésie (LDB 21 l.33)', () => {
+    const { H, E } = duel('E', 3);
+    H.aiControlled = true;
+    H.wounds = blessuresDeBase(200, 200, H);
+    E.psychState = [{ type: 'haine', cible: ciblePsy.groupe(GROUPE), active: true, lastTestRound: 1 }];
+    banc.setState({ battle: { ...g().battle! } });
+    expect(buildAiInput(E, g).manoeuvresSurSoiOffertes).toEqual([FRENESIE]);
+    const verbe = g().manoeuvrerSurSoi;
+    const appels: string[] = [];
+    banc.setState({ manoeuvrerSurSoi: (id) => { appels.push(id); verbe(id); } });
+    deDeCombat(5);
+    const avant = g().battle!.log.length;
+    jouerLeTourDeLIA(banc, H.id, E.id);
+    expect(appels).toEqual([FRENESIE]);
+    expect(isFrenzied(reluDans(g, E))).toBe(true);
+    const frappes = g().battle!.log.slice(avant).filter((e) => e.kind === 'attaque' && e.actorId === E.id && e.targetId === H.id);
+    expect(frappes, 'deux attaques d’Arme portées sur H').toHaveLength(2);
   });
 
   it('l’espérance de frappe lit le +1 DR de la Haine (`degatsDeLaFrappe`)', () => {

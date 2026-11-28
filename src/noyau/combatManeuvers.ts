@@ -253,11 +253,16 @@ export const hasFreeWeaponAttack = (c: Combatant): boolean => {
   return plafondsDesGratuitesDArme(c).some((cap) => used < cap);
 };
 
-/** L'attaque d'Arme de `c` est-elle jouable : l'Action du Tour disponible et utilisable (`refusDuTour.ts`), ou une
- *  attaque d'Arme gratuite qui reste. Prédicat de l'offre `arme` et du budget de la frappe de l'IA. LDB 13 l.14 ;
- *  LDB 21 l.33 */
+/** Les attaques d'Arme que le tour donne encore à `c` : celle de l'Action du Tour si elle est disponible et utilisable
+ *  (`refusDuTour.ts`), plus une attaque d'Arme gratuite qui reste. LDB 13 l.14 ; LDB 21 l.33 */
+export function frappesDArmeDuTour(battle: BattleState, c: Combatant): number {
+  return Number(!(refusActionDepensee(battle) ?? refusHorsDEtatDAgir(c))) + Number(hasFreeWeaponAttack(c));
+}
+
+/** L'attaque d'Arme de `c` est-elle jouable (`frappesDArmeDuTour`) ? Prédicat de l'offre `arme` et du budget de la
+ *  frappe de l'IA. */
 export function frappeDArmeJouable(battle: BattleState, c: Combatant): boolean {
-  return !(refusActionDepensee(battle) ?? refusHorsDEtatDAgir(c)) || hasFreeWeaponAttack(c);
+  return frappesDArmeDuTour(battle, c) > 0;
 }
 
 /** Adversaire de mêlée VALIDE pour l'action « Au Contact » d'un héros (LDB 62 l.176, Option « Longueur

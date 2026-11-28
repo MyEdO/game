@@ -680,6 +680,7 @@ import {
   bestDefenseMode,
   hasFreeWeaponAttack,
   frappeDArmeJouable,
+  frappesDArmeDuTour,
   freeAttackCost,
   freeAttackTargetOk,
   gratuitesRestantes,
@@ -9682,16 +9683,16 @@ function frappeDeLAction(scene: Scene | null, battle: BattleState, input: EnemyT
   return frappeEsperee(input, { kind: 'melee', targetId: approche.plan.thenTargetId }, approche.plan.to);
 }
 
-/** Les Blessures espérées de la frappe de `frenetique`, entré en Frénésie, son Action prise ou gardée (`actionPrise`),
+/** Les Blessures espérées des frappes de `frenetique`, entré en Frénésie, son Action prise ou gardée (`actionPrise`),
  *  sur la `cible` que la Frénésie lui impose (`frenzyTarget`) : déjà au contact, sinon au bout de son Mouvement seul
- *  (`frappeDeLAction`). LDB 21 l.33 */
+ *  (`frappeDeLAction`), autant de fois que le tour lui donne d'attaques d'Arme (`frappesDArmeDuTour`). LDB 21 l.33 */
 function frappeDuFrenetique(get: Get, frenetique: Combatant, cible: Combatant, input: EnemyTurnInput, actionPrise: boolean): number {
   const battle: BattleState = { ...get().battle!, acted: actionPrise };
   const apres: EnemyTurnInput = { ...input, enemy: frenetique, cibleDeFrenesie: cible, actionPrise, memoDesApproches: new Map() };
-  if (distanceDeContact(get().scene, frenetique, cible) <= meleeReachTiles(frenetique.weapons, sceneMetresPerTile(get().scene))) {
-    return frappeEsperee(apres, { kind: 'melee', targetId: cible.id });
-  }
-  return frappeDeLAction(get().scene, battle, apres, chooseEnemyAction(apres));
+  const frappe = distanceDeContact(get().scene, frenetique, cible) <= meleeReachTiles(frenetique.weapons, sceneMetresPerTile(get().scene))
+    ? frappeEsperee(apres, { kind: 'melee', targetId: cible.id })
+    : frappeDeLAction(get().scene, battle, apres, chooseEnemyAction(apres));
+  return frappesDArmeDuTour(battle, frenetique) * frappe;
 }
 
 /** La DÉCISION du tour de l'IA (`chooseEnemyAction`), puis le jeu de l'action décidée — une entrée d'`AI_TURN_LOG` par
