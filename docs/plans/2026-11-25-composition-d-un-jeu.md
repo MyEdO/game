@@ -164,7 +164,7 @@ fichiers de test, la liste des 7 datasets hors du seam et les 63 captures devien
 migrés : une capture à l'import ne compile plus.
 
 Les corrections du juge qui survivent, à reprendre au design neuf :
-- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1790`).
+- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1784`).
 - Un dataset se déclare par la route de son def, puis `npm run gen` (`CLES_DE_DATASET`, `RACINES_VIVANTES`,
   `src/data/racines-vivantes.test.ts:29`).
 - Une lecture de champ est un accesseur, et le mémo sert un vrai calcul.
@@ -224,7 +224,7 @@ hôte compose un catalogue, et il le remet à sa partie.
     et les règles. Son type `Catalogue` est généré des defs.
   - Les variantes sont résolues par `effectiveEntry` sous les règles de la composition.
   - `gatedByRule` ne retire aucune entrée. Il filtre une offre, par `ouvertParSaRegle(entree, cat)`
-    (`src/data/index.ts:1129`), qui reçoit `cat`. Un objet possédé et une carrière tenue restent résolus quand leur
+    (`src/data/index.ts:1132`), qui reçoit `cat`. Un objet possédé et une carrière tenue restent résolus quand leur
     règle se coupe en cours de partie.
   - Recomposer donne une valeur neuve, dont l'identité tient lieu de version.
   - Le coût se mesure au socle. La borne est la remise actuelle, d'environ 50 ms.
@@ -361,7 +361,7 @@ hôte compose un catalogue, et il le remet à sa partie.
     `catalogueLu('trait', 'psychology', 'groupe')` (`reference.ts:209`) ; sa Cible se décode par `cibleDeLArg`
     (`src/engine/psych/ciblage.ts:72`), qui lit le Trait et le Groupe sous le `cat` de son dernier paramètre, au
     défaut du fossile 2 pour les appelants du moteur ; `refuserLesIndividus` reçoit le `cat` du raffinement de la
-    péripétie de route (`catalogueLu('trait', 'groupe')`, `worldmap.ts:185`) et le passe à `individusNommes`
+    péripétie de route (`catalogueLu('trait', 'groupe')`, `worldmap.ts:180`) et le passe à `individusNommes`
     (`ciblage.ts:83`) ;
   - `grammaire/mecanique.ts`, sans lecture de la base : l'enjeu authoré se juge sous `cat` (`trousDeLEnjeu(key, cat)`,
     `src/data/schemas/catalogue/enjeux.ts:135`), sous `catalogueLu('stakes.json', 'weather.json', 'activity',
@@ -678,7 +678,7 @@ incompilable et L1 rend le second testable par banc. Les chiffres ci-dessous son
   - `src/noyau/actionRegistry.ts:832` et `:893` ;
   - `src/noyau/monde/aretes.ts:95` ;
   - `src/noyau/marchandEnVue.ts:73` ;
-  - `src/data/index.ts:1343` ;
+  - `src/data/index.ts:1346` ;
   - `src/engine/seaNavigation.ts:57` ;
   - `src/noyau/restFlow.ts:543` ;
   - `projets/roguelite/src/jeu/boutiques.ts:57`.
