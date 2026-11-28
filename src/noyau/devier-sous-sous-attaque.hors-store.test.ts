@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { degatsSubis } from '../engine/repair';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -228,7 +229,7 @@ function critiqueDEquipageAuProjectile(marin: Combatant): { lieuDeTouche: HitLoc
   nav.crewIds = [marin.id];
   poser([mage, nav, marin]);
   const sort = findSpellById('carreau')!;
-  const mres = evaluateMissile(mage, nav, sort, { cast: true, roll: 21, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' });
+  const mres = evaluateMissile(mage, nav, sort, { cast: true, roll: 21, target: 90, sl: 4, isCritical: true, isFumble: false, log: ligneDeTexte('jet') });
   seedBattleRng(SEED_JAMBE_DROITE);
   const coup: CoupDeTouche = { mode: 'projectile', touche: { casterId: mage.id, de: mage.id, targetId: nav.id, spell: sort, mres, zoneTalentMod: 0, critWound: true, overcastDamageSteps: 0, overcastDurationSteps: 0 } };
   applyHullCriticalToTarget(nav, 'voile', [], banc.setState, {

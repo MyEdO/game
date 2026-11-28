@@ -93,7 +93,7 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
     const lignes = applyOps(h, [{ op: 'money', montant: { brass: 37 } }], { idNeuf: idsDeTest, rng: makeRNG(1), label: 'Mendier' }).lignes;
     expect(bourseBrass(h)).toBe(37);
     expect(h.items!.some((i) => i.trappingId === 'bourse')).toBe(true);
-    expect(lignes.join(' ')).toContain('Mendiant');
+    expect(lignes.map((e) => e.texte).join(' ')).toContain('Mendiant');
   });
 
   it('débit BORNÉ à 0 : la bourse tombe à zéro ET la ligne dit ce qui a RÉELLEMENT été perdu', () => {
@@ -103,8 +103,8 @@ describe('op `money` — la bourse PERSONNELLE de la cible (bourse = trapping, L
     const lignes = applyOps(h, [{ op: 'money', montant: { brass: -50 } }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes;
     expect(bourseBrass(h)).toBe(0);
     // Le solde ne descend pas sous 0 : la ligne annonce les 10 sous réellement retirés, pas les 50 demandés.
-    expect(lignes.join(' ')).toContain('10 sc');
-    expect(lignes.join(' ')).not.toContain('50 sc');
+    expect(lignes.map((e) => e.texte).join(' ')).toContain('10 sc');
+    expect(lignes.map((e) => e.texte).join(' ')).not.toContain('50 sc');
   });
 
   it('le montant est une `Formula` : `{sl}` y entre par `ctx.sl`', () => {

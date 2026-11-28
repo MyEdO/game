@@ -11,7 +11,9 @@ export function creerActionsDuJournal(get: Get, set: SetDesClesReservees) {
     // valeur laisse sa provenance (arbitrage #939 : marqué PARTOUT, rangée ET journal).
     ecrireAuJournal: (msg) => {
       const deFixe = fixedJetOpen(get());
-      const entrees = (Array.isArray(msg) ? msg : [msg]).map((texte) => (deFixe ? { ...ligneDeTexte(texte), deFixe } : ligneDeTexte(texte)));
+      const entrees = (Array.isArray(msg) ? msg : [msg])
+        .map((x) => (typeof x === 'string' ? ligneDeTexte(x) : x))
+        .map((entree) => (deFixe ? { ...entree, deFixe } : entree));
       set((s) => ({ journal: [...s.journal.slice(-40), ...entrees], lignesAuJournal: s.lignesAuJournal + entrees.length }));
       for (const entree of entrees) bus.emit(EVT.LIGNE_AU_JOURNAL, { entree });
     },

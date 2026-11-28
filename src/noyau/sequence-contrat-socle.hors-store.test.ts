@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
 import { openSequence, displayStep, monoStep, pushDisplay, choiceStep } from './rollSeam';
-import { toRecapLines } from './recapLine';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import {
   startCascade,
@@ -39,6 +38,7 @@ import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { CritChoice, CastResult } from '../engine/magic';
 import { objetDeTest } from '../engine/objetsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -824,8 +824,8 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
       pendingCast: {
         casterId: lanceur.id, targetId: cible.id, spellId: 'flechette', missile: true,
         result: maladresse
-          ? { cast: false, roll: 99, target: 40, sl: -3, isCritical: false, isFumble: true, log: 'Maladresse !' }
-          : { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' },
+          ? { cast: false, roll: 99, target: 40, sl: -3, isCritical: false, isFumble: true, log: ligneDeTexte('Maladresse !') }
+          : { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') },
       },
     });
     openCastCascade(banc.getState, banc.setState, lanceur);
@@ -837,7 +837,7 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
     banc.setState({
       pendingCast: {
         casterId: lanceur.id, targetId: cible.id, spellId: 'explosion', missile: true, counterspellRouted: true, critChoice,
-        result: { cast: true, roll: 22, target: 60, sl: 2, isCritical: true, isFumble: false, log: 'critique' },
+        result: { cast: true, roll: 22, target: 60, sl: 2, isCritical: true, isFumble: false, log: ligneDeTexte('critique') },
         zone: { center: null, radius: 1, r0m: 2, ...(ia ? { autoCenter: { x: 10, y: 10 } } : {}) },
       },
     });
@@ -922,12 +922,12 @@ describe('#4248 — l’hôte d’incantation se clôt par la sortie d’hôte',
       pendingCast: {
         casterId: lanceur.id, targetId: zone ? lanceur.id : cible.id, spellId, missile: true,
         counterspellRouted: true, critChoice: 'puissance',
-        result: { cast: true, roll: 22, target: 60, sl: 4, isCritical: true, isFumble: false, log: 'critique' },
+        result: { cast: true, roll: 22, target: 60, sl: 4, isCritical: true, isFumble: false, log: ligneDeTexte('critique') },
         ...(zone ? { zone: { center: null, radius: 1, r0m: 2 } } : {}),
       },
       pendingCounterspell: { participants: [{
         id: cible.id, interactive: true, declared: 'solo',
-        result: { dispelled: true, counter: { roll: 5, target: 60, sl: 6, success: true, isDouble: false }, casterNetSL: -2, log: 'Dissipé' },
+        result: { dispelled: true, counter: { roll: 5, target: 60, sl: 6, success: true, isDouble: false }, casterNetSL: -2, log: ligneDeTexte('Dissipé') },
       }] },
     });
     openCastCascade(banc.getState, banc.setState, lanceur);
@@ -970,7 +970,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
 
   /** Une étape déjà appendue DERRIÈRE l'hôte de la séquence, avant sa clôture. */
   function suiteDejaAppendue(heros: Combatant): void {
-    pushDisplay(banc.setState, { id: 'suite-appendue', kind: 'issueDuPiegeALame', actorId: heros.id, icon: 'objet/arme', label: fixtureText('suite'), outcome: toRecapLines(['suite']) });
+    pushDisplay(banc.setState, { id: 'suite-appendue', kind: 'issueDuPiegeALame', actorId: heros.id, icon: 'objet/arme', label: fixtureText('suite'), outcome: [{ entree: ligneDeTexte('suite') }] });
   }
 
   /** L'Explosion (ZdE) au jet figé, l'hôte ouvert comme `castZoneSpell`. */
@@ -988,7 +988,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
 
   it('ZdE qui n’aboutit pas : l’hôte d’incantation est validé, l’étape qui le suit reste au curseur', () => {
     const { heros } = duel();
-    incanteZone(heros, { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: 'raté' });
+    incanteZone(heros, { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: ligneDeTexte('raté') });
     suiteDejaAppendue(heros);
     banc.getState().jetValider('incantation');
     expect(banc.getState().pendingCast).toBeNull();
@@ -999,7 +999,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
 
   it('ZdE posée dans le vide : l’hôte d’incantation est validé, l’étape qui le suit reste au curseur', () => {
     const { heros } = duel();
-    incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' });
+    incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') });
     banc.getState().jetValider('incantation');
     suiteDejaAppendue(heros);
     commitPlacedZone(banc.getState, banc.setState, { x: 10, y: 14 });
@@ -1038,7 +1038,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
   }
 
   describe('#4255 lot 2 — toute tentative de ZdE se résout par `applyCast`', () => {
-    const rate: CastResult = { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: 'raté' };
+    const rate: CastResult = { cast: false, roll: 77, target: 40, sl: -3, isCritical: false, isFumble: false, log: ligneDeTexte('raté') };
 
     it('ZdE non posée ratée, focalisée : l’Action et le focus sont consommés, l’Imparfaite Mineure suit l’hôte (LDB 46 l.132)', () => {
       const { heros } = duel();
@@ -1053,7 +1053,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
 
     it('ZdE non posée en Maladresse : l’hôte validé, le Tableau d’Imparfaite suit dans la cascade (LDB 46 l.85)', () => {
       const { heros } = duel();
-      incanteZone(heros, { ...rate, roll: 99, isFumble: true, log: 'Maladresse !' });
+      incanteZone(heros, { ...rate, roll: 99, isFumble: true, log: ligneDeTexte('Maladresse !') });
       banc.getState().jetValider('incantation');
       expect(genres()).toEqual(['incantation[C]', 'tableDIncantationImparfaite']);
       expect(banc.getState().pendingCascade!.cursor).toBe(1);
@@ -1063,7 +1063,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
     it('ZdE DISSIPÉE : aucun effet, l’Action est consommée', () => {
       const { heros, ennemi } = duel();
       const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
-      incanteZone(heros, { cast: false, dispelled: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'dissipé' });
+      incanteZone(heros, { cast: false, dispelled: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('dissipé') });
       banc.getState().jetValider('incantation');
       expect(banc.getState().pendingCast).toBeNull();
       expect(banc.getState().battle!.acted).toBe(true);
@@ -1074,7 +1074,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
       const { heros, ennemi } = duel();
       heros.items = [...(heros.items ?? []), objetDeTest('composant-d-incantation', { uid: 'comp-explosion', sortLie: 'explosion' })];
       const avant = { h: heros.wounds.current, e: ennemi.wounds.current };
-      incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' });
+      incanteZone(heros, { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') });
       banc.getState().jetValider('incantation');
       commitPlacedZone(banc.getState, banc.setState, { x: 10, y: 14 });
       expect(banc.getState().battle!.acted).toBe(true);
@@ -1084,8 +1084,8 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
 
     for (const [nom, res] of [
       ['ratée', rate],
-      ['en Maladresse', { ...rate, roll: 99, isFumble: true, log: 'Maladresse !' }],
-      ['dissipée', { ...rate, dispelled: true, log: 'dissipé' }],
+      ['en Maladresse', { ...rate, roll: 99, isFumble: true, log: ligneDeTexte('Maladresse !') }],
+      ['dissipée', { ...rate, dispelled: true, log: ligneDeTexte('dissipé') }],
     ] as const) {
       it(`ZdE non posée ${nom} d’un lanceur IA : la fenêtre se ferme, aucun coup n’est porté`, () => {
         const { ennemi } = duel();

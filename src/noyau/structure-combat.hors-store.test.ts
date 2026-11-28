@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import {
@@ -419,7 +420,7 @@ describe('Structures de siège — retrait à UNE couture, filet compris (AA 10 
 });
 
 describe('Structures de siège — Projectile magique (AA 10 l.114 ; LDB 18 l.17 ; AA 07 l.36)', () => {
-  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: false, isFumble: false, log: '' };
+  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('') };
   const critiquesAuJournal = (): number =>
     (banc.getState().battle?.log ?? []).filter((e) => e.entree.texte.includes('Critique de Structure')).length;
   const lancer = (H: Combatant, S: Combatant, lost: number): void => {

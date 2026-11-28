@@ -18,6 +18,7 @@
  * `noyau/combat/roundHooks`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -66,7 +67,7 @@ function setBattle(combatants: Combatant[]): void {
   banc.setState({ battle, mode: 'battle', scene: emptyScene('scene-test'), gameTime: 720, party: [], journal: [], pendingCascade: null, pendingFateSave: null, pendingLogQueue: [] });
 }
 
-const cr = (): CastResult => ({ cast: true, roll: 44, target: 60, sl: 0, isCritical: false, isFumble: false, log: '' });
+const cr = (): CastResult => ({ cast: true, roll: 44, target: 60, sl: 0, isCritical: false, isFumble: false, log: ligneDeTexte('') });
 
 /** La vue COURANTE d'un combattant sur le banc (applyCast recompose la liste). */
 const vue = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
@@ -89,7 +90,7 @@ function lancerChamon(caster: Combatant, cible: Combatant, steps = 0): void {
  *  que les hooks poussent à leur `sink` (c'est LUI que la boucle de combat déverse). */
 function finDeRound(): string[] {
   const lignes: string[] = [];
-  runCombatHooks('onRoundEnd', { get: banc.getState, set: banc.setState, battle: banc.getState().battle!, sink: (l: string) => lignes.push(l) } as never);
+  runCombatHooks('onRoundEnd', { get: banc.getState, set: banc.setState, battle: banc.getState().battle!, sink: (e) => lignes.push(e.texte) });
   return lignes;
 }
 
@@ -160,7 +161,7 @@ describe('Transmutation de Chamon — 3 États PORTÉS par l’effet actif du So
     expect(dissipateSpell([vue(cible.id)], CHAMON, mage.id, recueil)).toBe(1);
     const c = vue(cible.id);
     for (const id of ETATS) expect(stacks(c, id), `l’État ${id} a survécu à la Dissipation`).toBe(0);
-    expect(recueil.lignes.join(' | ')).toContain('perd l’État Assourdi');
+    expect(recueil.lignes.map((e) => e.texte).join(' | ')).toContain('perd l’État Assourdi');
     expect(recueil.lignes, 'la Dissipation retire trois États en silence').toHaveLength(4);
     expect(recueil.faits.map((f) => (f.genre === 'etat' ? `${f.id}:${f.valeur}` : f.genre)).sort()).toEqual(['assourdi:-1', 'aveugle:-1', 'extenue:1', 'sonne:-1']);
   });
@@ -333,7 +334,7 @@ describe('op `condition { carried }` — refus NOMINATIFS (#1695)', () => {
     const lines = applyOps(c, [{ op: 'condition', id: { id: 'sonne' }, carried: true }], { idNeuf: idsDeTest, rng: deFixe(1) }).lignes;
     expect(stacks(c, 'sonne'), 'un État PORTÉ a été posé sans source à durée — il serait permanent').toBe(0);
     expect(c.activeEffects ?? [], 'un effet porteur PERMANENT a été posé').toHaveLength(0);
-    expect(lines.join(' | ')).toContain('« carried » exige une DURÉE');
+    expect(lines.map((e) => e.texte).join(' | ')).toContain('« carried » exige une DURÉE');
   });
 
   it('un Sort à Durée INSTANTANÉE portant un `carried` est refusé au parse du document', () => {
@@ -354,6 +355,6 @@ describe('pose d’un État porté : la durée dite au journal (#4948)', () => {
     const c = mk('heros', 'deux');
     for (const n of [2, 7]) applyOps(c, [{ op: 'condition', id: { id: 'inconscient' }, value: 1, carried: true, durationRounds: n }], { idNeuf: idsDeTest, rng: deFixe(1), label: 'Purifier la chair' });
     c.conditions = c.conditions.filter((x) => x.id !== 'inconscient');
-    expect(syncDerivedConditions(c).lignes.join(' | ')).toContain('(7 Rounds)');
+    expect(syncDerivedConditions(c).lignes.map((e) => e.texte).join(' | ')).toContain('(7 Rounds)');
   });
 });

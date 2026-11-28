@@ -107,8 +107,8 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
     expect(eff[0].duration).toEqual({ scale: 'rounds', left: 5 });
     expect(eff[0].grantedMutation!.id).toBe((c.mutations ?? [])[0].id);
     // Le journal ne ment JAMAIS sur la temporalité : un octroi TEMPORISÉ n'affirme pas « permanente ».
-    expect(lines.some((l) => /pour la durée/.test(l))).toBe(true);
-    expect(lines.some((l) => /permanente/.test(l))).toBe(false);
+    expect(lines.some((l) => /pour la durée/.test(l.texte))).toBe(true);
+    expect(lines.some((l) => /permanente/.test(l.texte))).toBe(false);
   });
 
   it('ctx SANS durée → mutation PERMANENTE (aucun ActiveEffect porteur) — parité chemin Corruption', () => {
@@ -116,7 +116,7 @@ describe('op rollMutation — durée du Sort par défaut, permanent en option (E
     const lines = applyOps(c, [{ op: 'rollMutation', table: { id: 'edoc-phys-nurgle' } }], { idNeuf: idsDeTest, rng: fixed(1) }).lignes;
     expect((c.mutations ?? []).length).toBe(1);
     expect((c.activeEffects ?? []).some((e) => e.grantedMutation)).toBe(false);
-    expect(lines.some((l) => /mutation permanente/.test(l))).toBe(true);
+    expect(lines.some((l) => /mutation permanente/.test(l.texte))).toBe(true);
   });
 
   it('`duration:"permanent"` force le permanent MÊME avec un ctx à durée', () => {

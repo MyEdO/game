@@ -63,6 +63,7 @@ import { effectiveEntry } from './variants';
 import { ritualReduction, canCastFromGrimoire, GRIMOIRE_NI_MODS, type RitualReduced } from './grimoire';
 import { traceLineOf } from './traceLine';
 import { spellOps, type Flow } from './flowCore';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 
 /** Sous-ensemble des champs de sort nécessaires au moteur (cf. src/data/spells.json). */
 export interface SpellLike {
@@ -653,7 +654,7 @@ export interface CastResult {
    *  lancement (`LDB 10 l.1026`) — posé par le site qui connaît la zone (state), lu par
    *  `spellDRModFor`/`evaluateMissile`. Absent = la cible est sa propre zone. */
   zoneSpellDRMod?: number;
-  log: string;
+  log: EntreeDuJournal;
 }
 
 /**
@@ -822,7 +823,7 @@ export function resolveCasting(
       sl: 0,
       isCritical: false,
       isFumble: false,
-      log: t('incantation.nonMaitrisee', { name: nomDe(caster), competence: skill, sort: spell.label }),
+      log: ligneDeTexte(t('incantation.nonMaitrisee', { name: nomDe(caster), competence: skill, sort: spell.label })),
     };
   }
   const value = castingValue(caster, info) + extraMod;
@@ -909,14 +910,11 @@ export function evaluateCasting(
   const widenEnv = environmentWidensCrit(env) && jet.roll % 10 === 0;
   const isCritical = (jet.isDouble || widenSea || widenEnv) && jet.success;
   const isFumble = (jet.isDouble || widenSea) && !jet.success;
-  let log: string;
-  if (!jet.success) {
-    log = t('incantation.echec', { name: nomDe(caster), sort: spell.label });
-  } else if (!cast) {
-    log = t('incantation.sousLeNi', { name: nomDe(caster), sort: spell.label, dr: jet.sl, ni });
-  } else {
-    log = t('incantation.lance', { name: nomDe(caster), sort: spell.label, dr: jet.sl });
-  }
+  const log = ligneDeTexte(!jet.success
+    ? t('incantation.echec', { name: nomDe(caster), sort: spell.label })
+    : !cast
+      ? t('incantation.sousLeNi', { name: nomDe(caster), sort: spell.label, dr: jet.sl, ni })
+      : t('incantation.lance', { name: nomDe(caster), sort: spell.label, dr: jet.sl }));
   // `base` : le Niveau de Compétence du lanceur, RELU à sa source canonique — jamais `t.base`, que le
   // seam de jet a chargé de la valeur TESTÉE (Avantage, contrecoup, ward, Soutien fondus). LDB 12 l.160.
   return { cast, roll: jet.roll, target: jet.target, sl: jet.sl, base: castingBaseValue(caster, info), isCritical, isFumble, log, ...(info.requireNI ? { niRequired: ni } : {}) };
@@ -984,7 +982,7 @@ export interface CounterspellOutcome {
   counter: TestResult;
   /** « le Sort utilise le DR du Test opposé » : DR NET (signé) du lanceur si non dissipé. */
   casterNetSL: number;
-  log: string;
+  log: EntreeDuJournal;
 }
 
 /** L'exclusion des Prières (Bénédictions/Miracles) est une INFÉRENCE maison du mot « Sort » de
@@ -1028,11 +1026,11 @@ export function counterspellOutcomeFrom(counter: Combatant, counterT: TestResult
     counter: nue,
     casterNetSL: net,
     // Le jet du contre-lanceur n'a AUCUNE rangée : sa ligne se DÉRIVE (`traceLineOf`), au patron unique.
-    log: traceLineOf({
+    log: ligneDeTexte(traceLineOf({
       label: t('contreSort.trace', { name: nomDe(counter) }),
       roll: counterT.roll, target: counterT.target, sl: counterT.sl, success: dispelled,
       issue: dispelled ? t('contreSort.dissipe') : t('contreSort.insuffisant', { dr: net }),
-    }),
+    })),
   };
 }
 
@@ -1222,7 +1220,7 @@ export function evaluateMissile(
     woundsLost,
     defenderDefeated: defeated,
     touche,
-    log: phraseDeTouche(touche, { location: loc, damage, woundsLost }, !!cr.isCritical, false),
+    log: ligneDeTexte(phraseDeTouche(touche, { location: loc, damage, woundsLost }, !!cr.isCritical, false)),
   };
 }
 
@@ -1269,7 +1267,7 @@ export interface FocusResult {
    *  absent/0 si aucun doublement (aucun objet, ou réserve épuisée). Écriture de la réserve
    *  (`consumeMalepierre`) déférée au site de résolution (state layer). */
   malepierreConsumed?: number;
-  log: string;
+  log: EntreeDuJournal;
 }
 
 /** DR qu'un jet de Focalisation DÉJÀ obtenu ajoute à la Focalisation de `caster` : source unique de
@@ -1320,7 +1318,7 @@ export function resolveFocus(
     const wind = focusWindLabel(spell);
     return {
       dr: 0, success: false, isCritical: false, isFumble: false, roll: 0,
-      log: wind ? t('focalisation.nonMaitriseeVent', { name: nomDe(caster), vent: wind }) : t('focalisation.nonMaitrisee', { name: nomDe(caster) }),
+      log: ligneDeTexte(wind ? t('focalisation.nonMaitriseeVent', { name: nomDe(caster), vent: wind }) : t('focalisation.nonMaitrisee', { name: nomDe(caster) })),
     };
   }
   const value = focalisationValue(caster, skill) + extraMod;
@@ -1331,9 +1329,9 @@ export function resolveFocus(
   // Maladresse ÉLARGIE en Focalisation (l.190-191) : tout double OU tout résultat
   // terminant par un 0 au-delà de la Compétence (00, 99, 90, 88…) → Imparfaite MAJEURE.
   const isFumble = !jet.success && (jet.isDouble || jet.roll % 10 === 0);
-  const log = jet.success
+  const log = ligneDeTexte(jet.success
     ? t('focalisation.reussie', { name: nomDe(caster), sort: spell.label, dr })
-    : t('focalisation.echec', { name: nomDe(caster), sort: spell.label });
+    : t('focalisation.echec', { name: nomDe(caster), sort: spell.label }));
   return { dr, success: jet.success, isCritical, isFumble, roll: jet.roll, target: jet.target, sl: jet.sl, log, ...(malepierreConsumed ? { malepierreConsumed } : {}) };
 }
 

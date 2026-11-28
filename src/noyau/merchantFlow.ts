@@ -5,7 +5,6 @@
  */
 import { nomDe } from '../engine/nom';
 import type { Jeu } from './etat';
-import { toRecapLines } from './recapLine';
 import { Combatant, ItemInstance, type TestIds } from '../engine/types';
 import {
   recomputeLoadout, contexteDeNaissanceDObjet, itemFromTrappingById, avecObjet, ficheDObjetPorte, objetDuTrapping, type TrappingResolver,
@@ -42,7 +41,8 @@ import {
 import { difficultySchema, settlementSchema, type Settlement } from '../data/schemas/grammaire/valeurs';
 import { libelleDeValeur } from '../data/schemas/grammaire/meta';
 import type { Availability } from '../engine/types';
-import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
+import { t, t as msg } from '../i18n';
+ // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans ce flux
 import { priceToMoney, add as moneyAdd, canAfford, fromBrass, toBrass, formatMoney, statusBudgetBrass, type Money } from '../engine/money';
 import { payWithAllocation, payFromGroup, soloPayer, creditBourse, totalDesBourses, refusDeBourse, refusDeGesteSurLeGroupe } from './bourseFlow';
 import { actorStatus } from '../engine/social';
@@ -63,7 +63,7 @@ import type { MerchantArchetypeDef } from '../data/schemas/merchants.types';
 import type { UniteAchetable } from '../data/schemas/merchants.types';
 import { FLOWS, type CloturesDuJet } from './rollFlowSpecs';
 import { startCascade } from './cascade';
-import { choiceStep, dieStep, freeCons, monoStep, openPartyTest, stepDetail, worldStep } from './rollSeam';
+import { choiceStep, dieStep, monoStep, openPartyTest, stepDetail, worldStep } from './rollSeam';
 import { tenuParUnHumain } from './sieges';
 import { rollLine } from './ligneDeJet';
 import { actorIn, ecrireActeur } from './monde/combatants';
@@ -88,6 +88,8 @@ import type { IdDArticle, IdDArticleAAcheter, IdDeHeros, IdDeLigneDeButin, IdDeL
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { refusDInventaire, refuseSi } from './verrousDeFiche';
 import { porteurDeLObjet, refusDuHerosPorteur } from './monde/carrier';
+import { ligneDeTexte } from '../engine/journal';
+import { recapDe } from './recapLine';
 
 type LigneDeStock = { id: string; qty: number };
 
@@ -408,7 +410,7 @@ function stockApresRecours(set: Set, recours: NonNullable<ReturnType<typeof lire
     merchant: { ...m, stock: lignes },
     merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...stock, stock: lignes } },
   }));
-  return { consequences: freeCons([t('mf.quantiteDisponible', { qty })]) };
+  return { applique: { lignes: [ligneDeTexte(t('mf.quantiteDisponible', { qty }))], faits: [] } };
 }
 
 /** Carrières « cohérentes » pour la recherche de Disponibilité (LDB 59 l.50) — ids STABLES, pas des
@@ -516,7 +518,7 @@ function openStockRevealCascade(
     id: `${MERCHANT_STOCK_KIND}:${entityId}:${now}`,
     kind: MERCHANT_STOCK_KIND,
     label: stepDetail(t('step.reassort'), dataLabel(arch?.label, archetype)),
-    ...(outcome?.length ? { outcome: toRecapLines(outcome) } : {}),
+    ...(outcome?.length ? { outcome: recapDe(outcome.map((x) => ligneDeTexte(x))) } : {}),
     meta: { entityId, archetype, settlement, now, restockPeriod, gossipDay, resaleRate, buyMarkup, ...(backdrop != null ? { backdrop } : {}) },
   };
   startCascade(get, set, { title: t('mf.titreDeReassort'), purpose: 'test', steps: [step] });
@@ -1340,7 +1342,7 @@ export const TABLES = {
         return { merchant: { entityId, archetype, settlement, resaleRate, buyMarkup, backdrop, stock, cart: [], bargainLocked: persisted?.bargainLocked ?? false } };
       });
       return {
-        consequences: freeCons(tested.map(stockTraceLine)),
+        applique: { lignes: tested.map(stockTraceLine).map((x) => ligneDeTexte(x)), faits: [] },
       };
     },
     [MERCHANT_GUILD_CHOICE]: (get, _set, step) => {
@@ -1362,7 +1364,7 @@ export const TABLES = {
     [MERCHANT_GUILD_GOSSIP]: (get, _set, step) => {
       const recours = lireLeRecoursDeGuilde(get(), step.meta);
       if (!recours || !step.result) return {};
-      if (!step.result.success) return { consequences: freeCons([t('mf.guildeSansPiste')]) };
+      if (!step.result.success) return { applique: { lignes: [ligneDeTexte(t('mf.guildeSansPiste'))], faits: [] } };
       const relance = worldStep({
         id: `${step.id}:${MERCHANT_GUILD_AVAILABILITY}`,
         kind: MERCHANT_GUILD_AVAILABILITY,
@@ -1371,7 +1373,7 @@ export const TABLES = {
         verdict: { reussite: t('mf.guildeArticleTrouve'), echec: t('mf.guildeArticleAbsent') },
         meta: recours.meta,
       });
-      return { insert: [relance], consequences: freeCons([t('mf.guildePiste')]) };
+      return { insert: [relance], applique: { lignes: [ligneDeTexte(t('mf.guildePiste'))], faits: [] } };
     },
     [MERCHANT_GUILD_AVAILABILITY]: (get, set, step) => {
       const recours = lireLeRecoursDeGuilde(get(), step.meta);
@@ -1403,11 +1405,11 @@ export const TABLES = {
       const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
       finalizeSearchAvailability(get, set, entityId, Number(meta.restockPeriod ?? MINUTES_PER_DAY), gossipDay);
       return {
-        consequences: freeCons([stepDetail(
+        applique: { lignes: [ligneDeTexte(stepDetail(
           actor ? nomDe(actor) : t('eff.groupe'),
           // LDB 59 l.50
           estJete(step.result) ? t(gossipDay ? 'mf.rechercheReussie' : 'mf.rechercheRatee') : t('mf.rechercheSansJet'),
-        )]),
+        ))], faits: [] },
       };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,

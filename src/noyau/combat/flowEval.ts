@@ -11,6 +11,7 @@
 import { type Combatant } from '../../engine/types';
 import { buildActorView } from '../../engine/actorView';
 import { applyOps, type OpsCtx } from '../../engine/ops';
+import type { EntreeDuJournal } from '../../engine/journal';
 import { executerFlow, flowHasOpADe, leafOpsCtx, type ConditionCtx } from '../../engine/flowCore';
 import type { Effect, Flow } from '../../data/schemas/defs-scenes/effets';
 
@@ -35,7 +36,7 @@ export function combatConditionCtx(c: Combatant | undefined, ctx: Omit<OpsCtx, '
  * Hôte PUR (`executerFlow`) d'un Flow d'EFFET DÉCLENCHÉ (traits/talents/atouts/États/psychologie/manœuvres/Attributs de
  * Domaine — JAMAIS les sorts, qui passent par `runCastFlow`→`runCombatFlow`) : exécute `sequence`/`effet`/`si`
  * contre une CIBLE (et le lanceur/porteur pour les feuilles `on:'caster'`), accumulant son journal dans
- * un `string[]` RENDU, sans `get`/`set`. Couvre la Condition `compare` lue sur `target`/`caster` +
+ * des entrées RENDUES, sans `get`/`set`. Couvre la Condition `compare` lue sur `target`/`caster` +
  * `sl`/`location`/`woundsDealt`/`attackKind` du contexte d'incantation.
  *
  * GARDE-FOU anti-jet-silencieux (calque `flattenFlow:280`) : un nœud `test` LÈVE — un Test EN COMBAT est
@@ -46,10 +47,10 @@ export function combatConditionCtx(c: Combatant | undefined, ctx: Omit<OpsCtx, '
  * détectable au lieu de redevenir un jet silencieux. MÊME doctrine pour une op qui DEMANDE UN DÉ
  * (#1508) : sa magnitude s'ouvre à la porte (`applyLeafOps`/`ouvrirChute`), et `applyOps` la tirerait
  * ici en silence — un `fall` authoré sur un passif/trait y perdait ses deux dés. */
-export function runPureFlowLines(target: Combatant, caster: Combatant | undefined, flow: Flow, ctx: OpsCtx): string[] {
+export function runPureFlowLines(target: Combatant, caster: Combatant | undefined, flow: Flow, ctx: OpsCtx): EntreeDuJournal[] {
   if (flowHasOpADe(flow)) throw new Error('runPureFlowLines: une op à DÉ ouvre sa magnitude à la porte — utiliser applyLeafOps/runCombatFlow.');
-  const lines: string[] = [];
-  return executerFlow<Effect, string[]>(flow, {
+  const lines: EntreeDuJournal[] = [];
+  return executerFlow<Effect, EntreeDuJournal[]>(flow, {
     // Condition `compare` : `target` = la cible du sous-Flow, `caster` = le lanceur/porteur.
     // `location`/`woundsDealt` : contexte de la touche courante (Assommante Tête, Venin sur PB).
     conditions: () => combatConditionCtx(target, { ...ctx, caster }),

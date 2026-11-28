@@ -4,6 +4,7 @@
  * vaut 8 déclenche une Incantation Imparfaite Mineure, même si le Sort réussit par ailleurs.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit } from './cascade.testkit';
@@ -16,7 +17,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 function castFrozen(casterId: string, spellId: string, roll: number, corruption: boolean) {
   const spell = findSpellById(spellId)!;
-  const result: CastResult = { cast: true, roll, target: 60, sl: 2, isCritical: false, isFumble: false, log: `${spell.label} lancé.` };
+  const result: CastResult = { cast: true, roll, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte(`${spell.label} lancé.`) };
   banc.setState({
     ...(corruption ? { flags: { corruption: true } } : { flags: {} }),
     pendingCast: { casterId, targetId: casterId, spellId: spell.id, missile: !!spell.missile, result },

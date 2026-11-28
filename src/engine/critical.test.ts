@@ -239,7 +239,7 @@ describe('Livre de base (LDB 18 « Traumatisme ») — lignes nommées', () => {
     const c = cible(30);
     const { lignes } = applyOps(c, [{ op: 'amputer', sequels: ['main-bras-ampute'], loc: 'brasD' }], { idNeuf: idsDeTest, rng: desDuTest });
     expect(c.traumas!.map((t) => t.label)).toEqual(['Amputation', 'Main/bras amputé']);
-    expect(lignes).toEqual(['Cible : Amputation et Main/bras amputé (Bras droit).']);
+    expect(lignes.map((e) => e.texte)).toEqual(['Cible : Amputation et Main/bras amputé (Bras droit).']);
   });
 
   it('« Bouche explosée » : le 1d10 de la LIGNE (`unites`) pilote le comptage de bout en bout', () => {

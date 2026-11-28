@@ -57,7 +57,7 @@ describe('removeCondition : la sortie suit le DERNIER pion', () => {
     expect(portes(c)).toEqual({ hemorragique: 1 });
     removeCondition(c, 'hemorragique', 1, a);
     expect(portes(c)).toEqual({ surpris: 1 });
-    expect(a.lignes).toEqual([ligneDePose(c, 'surpris')]);
+    expect(a.lignes.map((e) => e.texte)).toEqual([ligneDePose(c, 'surpris')]);
     expect(a.faits).toEqual([{ genre: 'etat', cible: 'h', camp: 'groupe', id: 'surpris', valeur: 1 }]);
   });
 
@@ -66,7 +66,7 @@ describe('removeCondition : la sortie suit le DERNIER pion', () => {
     const a = vide();
     removeCondition(c, 'inconscient', 1, a);
     expect(portes(c)).toEqual({ 'a-terre': 1, extenue: 1 });
-    expect(a.lignes).toEqual([ligneDePose(c, 'a-terre'), ligneDePose(c, 'extenue')]);
+    expect(a.lignes.map((e) => e.texte)).toEqual([ligneDePose(c, 'a-terre'), ligneDePose(c, 'extenue')]);
   });
 
   it('l’`unlessCondition` : la pose si le porteur n’a pas l’État, rien s’il l’a', () => {
@@ -77,14 +77,14 @@ describe('removeCondition : la sortie suit le DERNIER pion', () => {
     const a = vide();
     removeCondition(avec, 'sonne', 1, a);
     expect(portes(avec)).toEqual({ extenue: 1 });
-    expect(a.lignes).toEqual([]);
+    expect(a.lignes.map((e) => e.texte)).toEqual([]);
   });
 
   it('l’op `removeCondition` (flux d’un État) : le retrait, puis la sortie', () => {
     const c = porteur([{ id: 'empoisonne', value: 1 }]);
     const { lignes } = applyOps(c, [{ op: 'removeCondition', id: { id: 'empoisonne' }, value: 1 }], { idNeuf: idsDeTest, rng: deFixe(1) });
     expect(portes(c)).toEqual({ assourdi: 1 });
-    expect(lignes[lignes.length - 1]).toBe(ligneDePose(c, 'assourdi'));
+    expect(lignes[lignes.length - 1].texte).toBe(ligneDePose(c, 'assourdi'));
   });
 });
 
@@ -93,7 +93,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const c = porteur([{ id: 'hemorragique', value: 1, unlockBy: 'medicalAid' }]);
     const { lignes } = releaseConditionLocks(c, 'medicalAid');
     expect(portes(c)).toEqual({ surpris: 1 });
-    expect(lignes).toContain(ligneDePose(c, 'surpris'));
+    expect(lignes.map((e) => e.texte)).toContain(ligneDePose(c, 'surpris'));
   });
 
   it('réveil par les Blessures : l’Inconscient part, À Terre et Exténué se posent, au journal du soin', () => {
@@ -107,7 +107,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const c = porteur([{ id: 'sonne', value: 1, roundsLeft: 1 }]);
     const lignes = tickDurations(c);
     expect(portes(c)).toEqual({ extenue: 1 });
-    expect(lignes).toContain(ligneDePose(c, 'extenue'));
+    expect(lignes.map((e) => e.texte)).toContain(ligneDePose(c, 'extenue'));
   });
 
   it('pion porté qui tombe : l’État que portait l’effet retiré pose sa sortie', () => {
@@ -117,7 +117,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const a = vide();
     removeActiveEffects(c, () => true, a);
     expect(portes(c)).toEqual({ assourdi: 1 });
-    expect(a.lignes).toContain(ligneDePose(c, 'assourdi'));
+    expect(a.lignes.map((e) => e.texte)).toContain(ligneDePose(c, 'assourdi'));
   });
 
   it('report de fin de combat : l’État de rencontre part, sa conséquence persistante reste, la transitoire tombe', () => {
@@ -125,7 +125,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const a = vide();
     const sorti = carryOverState(c, a);
     expect(portes(sorti as Combatant)).toEqual({ extenue: 1 });
-    expect(a.lignes).toEqual([ligneDePose(c, 'extenue')]);
+    expect(a.lignes.map((e) => e.texte)).toEqual([ligneDePose(c, 'extenue')]);
     expect(portes(c), 'le combattant de la rencontre n’est pas touché').toEqual({ inconscient: 1 });
   });
 
@@ -133,7 +133,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     hero.conditions = [{ id: 'inconscient', value: 1, untilTime: 10 }];
     banc.setState({ party: [hero], gameTime: 20 });
-    const lignes = purgeClockEffects(banc.getState, banc.setState).map((l) => l.text);
+    const lignes = purgeClockEffects(banc.getState, banc.setState).map((l) => l.entree.texte);
     const h = banc.getState().party[0];
     expect(portes(h)).toEqual({ 'a-terre': 1, extenue: 1 });
     expect(lignes).toEqual(expect.arrayContaining([ligneDePose(h, 'a-terre'), ligneDePose(h, 'extenue')]));

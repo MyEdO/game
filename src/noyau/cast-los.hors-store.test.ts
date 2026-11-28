@@ -8,6 +8,7 @@
  *  • ciblesHorsDeVue : le grisage que lit le survol, tir ou sort selon le mode armé.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castSpell, overcastTargetCandidates, castOutOfSightTargetIds } from './combatFlow';
@@ -110,7 +111,7 @@ describe('ZdE « jet puis pose » — LdV vers la case centre À LA POSE', () =>
     banc.getState().cliquerLaCase({ x: 3, y: 0 }); // tout clic ouvre la modale (centre null)
     const pc = banc.getState().pendingCast!;
     expect(pc.zone).toMatchObject({ center: null });
-    banc.setState({ pendingCast: { ...pc, result: { cast: true, roll: 11, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'lancé' } as never } });
+    banc.setState({ pendingCast: { ...pc, result: { cast: true, roll: 11, target: 70, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') } as never } });
     banc.getState().jetRegler('incantation', 'carte', 'zone');
     banc.getState().cliquerLaCase({ x: 16, y: 4 }); // centre masqué par le mur
     expect(banc.getState().journal.map((e) => e.texte).join('\n')).toMatch(/pas de ligne de vue/i);

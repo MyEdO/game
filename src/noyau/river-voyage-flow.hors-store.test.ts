@@ -1183,7 +1183,7 @@ describe('chronique fluviale (#4574) : chaque jour clos pousse son `TravelRecapD
       journees.forEach(({ jour, clos }, k) => {
         expect(clos.map((c) => c.purpose), `jour ${k + 1}`).toEqual(expect.arrayContaining(['travelDay', 'riverExposure']));
         expect(aDesConsequences(clos, 'fleuveExposition'), `jour ${k + 1} : l’Exposition a des conséquences`).toBe(true);
-        expect(jour.lines.map(({ text, tone }) => ({ text, tone })), `jour ${k + 1}`).toEqual(clos.flatMap(lignesDeLaCascade).map(({ text, tone }) => ({ text, tone })));
+        expect(jour.lines.map(({ entree }) => entree), `jour ${k + 1}`).toEqual(clos.flatMap(lignesDeLaCascade).map(({ entree }) => entree));
         expect(jour.river, `jour ${k + 1}`).toEqual(vents[k]);
       });
       expect(aDesConsequences(journees[0].clos, 'contagion'), 'la contagion du premier soir').toBe(true);

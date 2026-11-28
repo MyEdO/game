@@ -2,6 +2,7 @@
  * Câblage noyau de la réserve de Focalisation : VDM 02 l.131-135, l.178 ; LDB 46 l.132 ; LDB 47 l.21.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -32,7 +33,7 @@ describe('réserve de Focalisation — focaliser puis lancer un autre sort du m�
   it('2 DR focalisés sur Cautériser : Cœurs ardents (NI 8) se lance au NI 6', () => {
     const w = sorciere();
     banc.setState({ party: [w] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 2, success: true, isCritical: false, isFumble: false, roll: 33, log: 'focalisation' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 2, success: true, isCritical: false, isFumble: false, roll: 33, log: ligneDeTexte('focalisation') } } });
     banc.getState().jetValider('focalisation');
     expect(banc.getState().party.find((h) => h.id === w.id)!.focus).toEqual({ spell: 'cauteriser', dr: 2 });
 
@@ -94,7 +95,7 @@ function auCombat(focus: { spellId: string; dr: number }, dissipateur = false) {
   w.skills = [...w.skills.filter((s) => s.id !== 'langue'), { id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 30 }];
   w.pos = { x: 5, y: 5 };
   banc.setState({ party: [w] });
-  banc.setState({ pendingFocus: { casterId: w.id, spellId: focus.spellId, result: { dr: focus.dr, success: true, isCritical: false, isFumble: false, roll: 33, log: 'focalisation' } } });
+  banc.setState({ pendingFocus: { casterId: w.id, spellId: focus.spellId, result: { dr: focus.dr, success: true, isCritical: false, isFumble: false, roll: 33, log: ligneDeTexte('focalisation') } } });
   banc.getState().jetValider('focalisation');
   const lanceur = banc.getState().party.find((h) => h.id === w.id)!;
   const e = spawnEnemy({ ref: 'humain' }, 'e', { x: 7, y: 5 });
@@ -158,7 +159,7 @@ describe('Focalisation d’un Sort lu au grimoire (LDB 46 l.132 ; LDB 47 l.21)',
   }
   function focaliserPuisLire(w: Combatant, spellId: string, dr: number): Combatant {
     banc.setState({ party: [w] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId, result: { dr, success: true, isCritical: false, isFumble: false, roll: 33, log: 'focalisation' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId, result: { dr, success: true, isCritical: false, isFumble: false, roll: 33, log: ligneDeTexte('focalisation') } } });
     banc.getState().jetValider('focalisation');
     return banc.getState().party.find((h) => h.id === w.id)!;
   }

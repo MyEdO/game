@@ -19,6 +19,7 @@
  *    est parqué sur SON étape, par IDENTITÉ, et rendu à la reprise.
  */
 import { tableTotale } from '../../lib/tableTotale';
+import { ligneDeTexte } from '../../engine/journal';
 import { t as tr } from '../../i18n';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
@@ -85,7 +86,7 @@ const sauvegardesOuvertes = (): CascadeStep[] =>
 let lues: string[] = [];
 function capter(): void {
   for (const s of banc.getState().pendingCascade?.participants ?? []) {
-    for (const l of s.outcome ?? []) if (!lues.includes(l.text)) lues.push(l.text);
+    for (const l of s.outcome ?? []) if (!lues.includes(l.entree.texte)) lues.push(l.entree.texte);
   }
 }
 
@@ -271,7 +272,7 @@ describe('Projectile magique — une étape PAR CIBLE, rien roulé en silence', 
     const mage = mk('ennemi', 'mage', { pos: { x: 20, y: 5 } });
     setBattle([gardien, cible, mage]);
     const spell = missileSpell();
-    const cast: CastResult = { cast: true, roll: 44, target: 60, sl: 4, isCritical: false, isFumble: false, log: '' };
+    const cast: CastResult = { cast: true, roll: 44, target: 60, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('') };
     applyCast(banc.getState, banc.setState, mage, [cible], spell, evaluateMissile(mage, cible, spell, cast), true, undefined, undefined);
     const st = etapeCourante()!;
     expect(st.kind, 'la touche magique EST un coup reçu (LDB 85 l.98)').toBe('sauvegarde');

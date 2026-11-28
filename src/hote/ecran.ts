@@ -728,7 +728,7 @@ function recitDuVoyage(p: Projection): Element[] {
     ...(r.issue === 'arrivee' ? [] : r.journees.map((j, i): Entite => ({
       type: 'entite', id: `recit/jour/${i}`, ton: 'neutre',
       nom: t('trm.jour', { n: i + 1, distance: libelleDeDistance({ valeur: j.jusqua - j.depuis, unite: r.distance.unite }), heures: Math.round(j.heures) }),
-      elements: j.lignes.map((l, k) => ligne(String(k), l.text, l.tone ?? 'neutre')),
+      elements: j.lignes.map((l, k) => ligne(String(k), redigerLEntree(l.entree), l.entree.ton ?? 'neutre')),
     }))),
     ...(suite ? [ligne('recit/suite', t(suite))] : []),
   ];
@@ -1023,7 +1023,7 @@ function issueDeLEtape(etat: Jeu): Element[] {
   const pc = etat.pendingCascade;
   const etape = pc?.participants[pc.cursor];
   if (!etape || etape.reveal) return [];
-  return (etape.outcome ?? []).map((l, i) => ligne(`issue/${i}`, l.text, l.tone ?? 'neutre'));
+  return (etape.outcome ?? []).map((l, i) => ligne(`issue/${i}`, redigerLEntree(l.entree), l.entree.ton ?? 'neutre'));
 }
 
 /** Une jauge de `courant` sur `max`. */

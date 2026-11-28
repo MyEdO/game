@@ -9,7 +9,7 @@ import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
 
 /**
  * Garde-fou « composeur du journal » (#319). `….journal.slice(-40)` réinvente l'action canonique
- * `ecrireAuJournal` (`src/noyau/journal.ts`, action `ecrireAuJournal: (msg: string | string[]) => void`, source UNIQUE qui
+ * `ecrireAuJournal` (`src/noyau/journal.ts`, action `ecrireAuJournal(msg)` : un texte, une entrée ou leur liste, source UNIQUE qui
  * pousse et plafonne à 40 lignes). Migration soldée (#319) : 18 sites → `get().ecrireAuJournal(...)`, BASELINE
  * ZÉRO partout — toute réapparition du motif hors `journal.ts` (son foyer) est une régression.
  *

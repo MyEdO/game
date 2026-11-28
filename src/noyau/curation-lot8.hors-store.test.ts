@@ -5,6 +5,7 @@
  * en double, inventaire d'implémentation.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
@@ -19,7 +20,7 @@ import type { Combatant, Weapon } from '../engine/types';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: 'lancé' });
+const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
 beforeEach(() => {
   banc.getState().ensemencerLeTirage(51);

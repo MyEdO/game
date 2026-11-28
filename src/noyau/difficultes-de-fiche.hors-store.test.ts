@@ -262,7 +262,7 @@ describe('Tests nommés — compétence et Difficulté de la fiche, posées par 
       g().ensemencerLeTirage(graine);
       const lignes = gainCorruption(g, banc.setState, E, 1).lignes;
       expect(g().pendingCorruption).toBeNull();
-      expect(lignes.some((l) => String(l).includes(t('cor.contained', { name: nomDe(E) }))), `graine ${graine}`).toBe(reussit(graine, skill, d));
+      expect(lignes.some((l) => l.texte.includes(t('cor.contained', { name: nomDe(E) }))), `graine ${graine}`).toBe(reussit(graine, skill, d));
       if (reussit(graine, jeuSkill, d) !== reussit(graine, skill, d)) ecarts.competence++;
       if (reussit(graine, skill, jeuDiff) !== reussit(graine, skill, d)) ecarts.difficulte++;
     }

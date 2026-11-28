@@ -8,6 +8,7 @@
 import { conditionLabel, refLabel } from '../data';
 import { t, pluriel } from '../i18n';
 import type { SensDuPrix } from './bargain';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 import { formatMoney, fromBrass } from './money';
 import { nomDe } from './nom';
 import { campOf, type Camp } from './relations';
@@ -146,8 +147,8 @@ export function nomDeSource(ctx: { label?: string } | undefined, nature: NatureD
   return ctx?.label ?? t(`op.nature.${nature}`);
 }
 
-/** Le résultat d'une application : les lignes du journal et les faits dont elles sont la lecture. */
-export interface Applique { lignes: string[]; faits: FaitApplique[] }
+/** Le résultat d'une application : les entrées du journal et les faits dont elles sont la lecture. */
+export interface Applique { lignes: EntreeDuJournal[]; faits: FaitApplique[] }
 
 /** Le fragment d'une durée bornée, en Rounds ou à l'horloge. */
 function texteDeDuree(d: Exclude<DureeDEtat, { parRound: number }>): string {
@@ -205,7 +206,7 @@ export function texteDuFait(f: FaitAvecLigne, name: string, source?: string): st
 /** Pousse `f` et sa ligne dans `a` : LA seule émission d'un fait avec sa ligne. */
 export function emettreDans(a: Applique, cible: Pick<Combatant, 'id' | 'label'>, f: FaitAvecLigne, source?: string): void {
   a.faits.push(f);
-  a.lignes.push(texteDuFait(f, nomDe(cible), source));
+  a.lignes.push(ligneDeTexte(texteDuFait(f, nomDe(cible), source)));
 }
 
 /** Verse dans `a` les lignes et les faits de `b`, dans leur ordre. */
@@ -222,11 +223,12 @@ export function constaterDans(a: Applique, f: FaitApplique): void {
 
 /** Les lignes de `a` qui ne lisent aucun de ses faits (`texteDuFait`), dans leur ordre : ce qu'une révélation dit en
  *  lignes à côté des faits qu'elle porte. `nom` : le nom d'une cible par son id ; `source` : le libellé du lot. */
-export function lignesHorsDesFaits(a: Applique, nom: (id: string) => string, source?: string): string[] {
+export function lignesHorsDesFaits(a: Applique, nom: (id: string) => string, source?: string): EntreeDuJournal[] {
   const restantes = [...a.lignes];
   for (const f of a.faits) {
     if (!aUneLigne(f)) continue;
-    const i = restantes.indexOf(texteDuFait(f, nom(f.cible), source));
+    const texte = texteDuFait(f, nom(f.cible), source);
+    const i = restantes.findIndex((e) => e.texte === texte);
     if (i >= 0) restantes.splice(i, 1);
   }
   return restantes;

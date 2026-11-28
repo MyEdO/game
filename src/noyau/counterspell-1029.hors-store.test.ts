@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -31,7 +32,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  *    `jetAnnuler('incantation')`, `combatSlice.ts`) — aucun Contre-sort orphelin.
  */
 
-const CRIT = { roll: 11, target: 60, sl: 1, isCritical: true, isFumble: false, log: 'x' };
+const CRIT = { roll: 11, target: 60, sl: 1, isCritical: true, isFumble: false, log: ligneDeTexte('x') };
 
 function setup() {
   const mk = (label: string, seed: number) => {
@@ -85,7 +86,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     freeze(E, heroes[0], { ...CRIT, cast: true }, { missile: false, critChoice: 'ineluctable' });
     expect(routeCounterspell(banc.getState, banc.setState)).toBe(false);
     expect(banc.getState().pendingCounterspell).toBeNull();
-    expect(banc.getState().pendingCast!.result!.log, 'aucun Contre-sort inline non plus').toBe('x');
+    expect(banc.getState().pendingCast!.result!.log.texte, 'aucun Contre-sort inline non plus').toBe('x');
     expect(heroes[0].dispelledThisRound).toBeFalsy();
     // Le MÊME choix sans le DR (« si vous obtenez suffisamment de DR ») ne verrouille rien.
     const SORT: SpellLike = { label: 'Carreau', ecole: 'Sort', family: 'arcane', cn: 4, duration: null };
@@ -113,7 +114,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     expect(routeCounterspell(banc.getState, banc.setState), 'la Dissipation attend le choix').toBe(false);
     expect(banc.getState().pendingCounterspell).toBeNull();
     expect(banc.getState().pendingCast!.counterspellRouted, 'le moment n’est pas consommé').toBeFalsy();
-    expect(banc.getState().pendingCast!.result!.log, 'aucune Dissipation avant le choix').toBe('x');
+    expect(banc.getState().pendingCast!.result!.log.texte, 'aucune Dissipation avant le choix').toBe('x');
     expect(E.dispelledThisRound).toBeFalsy();
     // AUCUN clic : « Appliquer » n'applique RIEN (LDB 46 l.28 — sans choix, l'effet retenu n'est aucun
     // des trois) ; la situation reste ouverte au lieu d'avancer sur un défaut lu en douce.
@@ -168,9 +169,9 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     const [h1] = heroes;
     // Lanceur SURFACÉ (héros) : sa modale tient encore l'incantation après la fenêtre — l'issue de la
     // Dissipation y revient, mesurable telle quelle.
-    freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 5, isCritical: false, isFumble: false, log: 'x' });
-    const rate = { dispelled: false, counter: { roll: 90, target: 40, sl: -3, success: false, isDouble: false }, casterNetSL: 8, log: 'raté' };
-    const gagne = { dispelled: true, counter: { roll: 5, target: 40, sl: 4, success: true, isDouble: false }, casterNetSL: 1, log: 'DISSIPÉ' };
+    freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 5, isCritical: false, isFumble: false, log: ligneDeTexte('x') });
+    const rate = { dispelled: false, counter: { roll: 90, target: 40, sl: -3, success: false, isDouble: false }, casterNetSL: 8, log: ligneDeTexte('raté') };
+    const gagne = { dispelled: true, counter: { roll: 5, target: 40, sl: 4, success: true, isDouble: false }, casterNetSL: 1, log: ligneDeTexte('DISSIPÉ') };
     banc.setState({ pendingCounterspell: { participants: [
       { id: E.id, interactive: true, declared: 'solo', result: rate },
       { id: E2.id, interactive: true, declared: 'solo', result: gagne },
@@ -184,8 +185,8 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
   it('« Laisser passer » APRÈS un chant GAGNANT est INERTE : le Sort dissipé ne se résout pas quand même', () => {
     const { heroes, E } = setup();
     const [h1] = heroes;
-    freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 5, isCritical: false, isFumble: false, log: 'x' });
-    const gagne = { dispelled: true, counter: { roll: 5, target: 40, sl: 4, success: true, isDouble: false }, casterNetSL: 1, log: 'Contre-sort : le Sort est DISSIPÉ.' };
+    freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 5, isCritical: false, isFumble: false, log: ligneDeTexte('x') });
+    const gagne = { dispelled: true, counter: { roll: 5, target: 40, sl: 4, success: true, isDouble: false }, casterNetSL: 1, log: ligneDeTexte('Contre-sort : le Sort est DISSIPÉ.') };
     banc.setState({ pendingCounterspell: { participants: [{ id: E.id, interactive: true, declared: 'solo', result: gagne }] } } as unknown as Partial<Jeu>);
     banc.getState().jetAnnuler('contreSort'); // clic tardif : décliner n'existe plus, un chant a eu lieu
     expect(banc.getState().pendingCounterspell, 'la fenêtre reste — l’issue chantée doit s’appliquer').toBeTruthy();
@@ -273,7 +274,7 @@ describe('#1029/#1040 — le Contre-sort au RAW : moment, verrous, hostilité, N
     banc.getState().ensemencerLeTirage(5);
     const { heroes, E } = setup();
     const [h1] = heroes;
-    freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'Sort lancé' });
+    freeze(h1, E, { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('Sort lancé') });
     banc.setState({ pendingCounterspell: { participants: [
       { id: heroes[1].id, interactive: true, declared: 'solo', result: null },
       { id: E.id, interactive: false, declared: 'solo', result: null },
@@ -290,7 +291,7 @@ describe('#1031 — renoncer à une incantation LANCÉE est refusé (plus de Con
   it('POST-JET (chemin d’un intent réseau) : jetAnnuler@incantation est inerte, le journal le dit, la fenêtre reste liée', () => {
     const { heroes, E } = setup();
     const [H] = heroes;
-    freeze(H, E, { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'Sort lancé' });
+    freeze(H, E, { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('Sort lancé') });
     banc.setState({ pendingCounterspell: { participants: [{ id: E.id, interactive: true, result: null }] } } as unknown as Partial<Jeu>);
     banc.getState().jetAnnuler('incantation');
     expect(banc.getState().pendingCast, 'l’incantation lancée reste en place').toBeTruthy();

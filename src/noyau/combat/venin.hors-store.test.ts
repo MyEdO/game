@@ -53,7 +53,7 @@ describe('Venin — la touche qui blesse pose Empoisonné à la Difficulté du V
     touche(serpent, H, 4);
     expect(banc.getState().pendingCascade).toBeNull();
     expect(empoisonne(H)).toMatchObject({ value: 1, difficulte: 'difficile' });
-    expect(banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.line))).toBe(false);
+    expect(banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.entree.texte))).toBe(false);
   });
 
   it('Venin sans Difficulté : Empoisonné sans Difficulté propre, son Test de retrait reste Intermédiaire', () => {

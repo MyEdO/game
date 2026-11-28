@@ -6,6 +6,7 @@
  * rend le même verdict que lui. Cibles bornées 1..99 : 97 contre 99 est un échec, 03 contre 1 une réussite.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -64,7 +65,7 @@ describe('Chance et +1 DR : l’issue canonique du seam est celle d’`evaluateT
     const [h] = tousLesHerosDeScenario(idsDeTest) as Combatant[];
     banc.setState({
       party: [h], battle: { combatants: [h], log: [] } as never,
-      pendingCast: { casterId: h.id, targetId: h.id, spellId: 'drain', missile: false, result: { cast: false, roll: 97, target: 99, sl: -1, isCritical: false, isFumble: false, log: '' } },
+      pendingCast: { casterId: h.id, targetId: h.id, spellId: 'drain', missile: false, result: { cast: false, roll: 97, target: 99, sl: -1, isCritical: false, isFumble: false, log: ligneDeTexte('') } },
     } as never);
     expect(FLOWS.incantation.outcomeOf(get)?.won).toBe(false);
   });
@@ -82,7 +83,7 @@ describe('`jetsEnVue` annonce le verdict du résolveur', () => {
     const [h] = tousLesHerosDeScenario(idsDeTest) as Combatant[];
     banc.setState({
       party: [h], battle: { combatants: [h], log: [] } as never,
-      pendingFocus: { casterId: h.id, spellId: 'drain', result: { dr: 0, success: true, isCritical: false, isFumble: false, roll: 40, target: 45, sl: 0, log: '' } },
+      pendingFocus: { casterId: h.id, spellId: 'drain', result: { dr: 0, success: true, isCritical: false, isFumble: false, roll: 40, target: 45, sl: 0, log: ligneDeTexte('') } },
     } as never);
     expect(reussiDe(jetsEnVue(get()).find((j) => j.flux === 'focalisation')?.lignes[0])).toBe(true);
   });

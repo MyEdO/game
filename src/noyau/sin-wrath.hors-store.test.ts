@@ -2,6 +2,7 @@
  * Points de Péché & Colère des dieux — câblage du noyau. LDB 40 l.36, l.46 ; LDB 41 l.17 ; #5056
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
@@ -29,7 +30,7 @@ function priestParty(sin: number) {
 function confirmPrayerWithRoll(casterId: string, targetId: string, roll: number, ok = true) {
   const result: CastResult = {
     cast: ok, roll, target: 60, sl: ok ? 1 : -1, isCritical: false, isFumble: false,
-    log: ok ? 'Prière exaucée.' : 'Prière échouée.',
+    log: ligneDeTexte(ok ? 'Prière exaucée.' : 'Prière échouée.'),
   };
   banc.setState({
     pendingCast: { casterId, targetId, spellId: 'benediction-de-guerison', missile: false, result },
@@ -77,7 +78,7 @@ describe('Péché et Colère Divine (LDB 40)', () => {
   it('Maladresse de Prière : UNE seule Colère (pas de double déclenchement unités+Maladresse), Péché −1', () => {
     const { priest, ally, party } = priestParty(2);
     banc.setState({ party });
-    const result: CastResult = { cast: false, roll: 22, target: 20, sl: -1, isCritical: false, isFumble: true, log: 'Maladresse !' };
+    const result: CastResult = { cast: false, roll: 22, target: 20, sl: -1, isCritical: false, isFumble: true, log: ligneDeTexte('Maladresse !') };
     banc.setState({
       pendingCast: { casterId: priest.id, targetId: ally.id, spellId: 'benediction-de-guerison', missile: false, result },
     });

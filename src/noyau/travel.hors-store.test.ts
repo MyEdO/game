@@ -323,7 +323,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     expect([r.depart, r.arrivee, r.route]).toEqual(['pa', 'pb', 'r1']);
     expect(r.kmDone).toBeCloseTo(12);
     expect(r.days.length).toBe(1); // 12 km à M4 = 3 h
-    expect(r.days[0].lines.some((l) => l.text.includes('colporteur'))).toBe(true);
+    expect(r.days[0].lines.some((l) => l.entree.texte.includes('colporteur'))).toBe(true);
     expect(recitEnVue(banc.getState()), 'le récit en données : les lieux par id et par nom, le mode, la distance, la durée, chaque journée').toEqual({
       issue: 'arrivee', depart: 'pa', arrivee: 'pb', route: 'r1', de: 'Village A', vers: 'Bourg B', mode: { id: 'pied', nom: 'À pied' },
       distance: { valeur: 12, unite: 'km' }, reste: null, dureeMin: 180,
@@ -345,7 +345,7 @@ describe('récapitulatif de voyage (audit M4) — modale à l’arrivée/interru
     let r = banc.getState().travelRecap!;
     expect(r.status).toBe('interrupted');
     expect(r.kmDone).toBeLessThan(30);
-    expect(r.days[0].lines.some((l) => l.text.includes('Brigands'))).toBe(true);
+    expect(r.days[0].lines.some((l) => l.entree.texte.includes('Brigands'))).toBe(true);
     // « Faire face » : la transition différée part à l'acquittement du recap.
     banc.getState().fenetreFermer('recitDeVoyage');
     expect(banc.getState().scene?.id).toBe('lieu-b-scene');

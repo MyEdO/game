@@ -6,6 +6,7 @@ import type { RecapEvent, RecapLine } from './recapLine';
 import { encounterTable } from '../engine/travelTables';
 import { weatherCondition } from '../engine/travelStages';
 import { scenario } from '../scenes/test-scenarios/15-commerce-fluvial';
+import { ligneDeTexte } from '../engine/journal';
 
 describe('la voie d’un trajet en vue', () => {
   it('un passage payé suit le milieu de son véhicule : la barge descend le fleuve, le marcheur de la même carte tient la route', () => {
@@ -41,7 +42,7 @@ describe('les journées closes d’un trajet en vue (#4574)', () => {
     const evenement: RecapEvent = {
       source: { table: 'rencontres-dangereuses', id: rencontre.id }, title: rencontre.label, text: rencontre.desc, jet: { naturel: 40, effectif: 40 }, tone: 'echec',
     };
-    const ligne: RecapLine = { text: 'Le groupe force l’allure.', tone: 'echec', phase: 'route' };
+    const ligne: RecapLine = { entree: ligneDeTexte('Le groupe force l’allure.', { ton: 'echec' }), phase: 'route' };
     banc.setState({ worldMap: carte, travelPlan: {
       routeId: route.id, fromPlaceId: route.a.id, toPlaceId: route.b.id, mode: 'pied', departAt: 0, hoursPerDay: 6, km: 30, kmDone: 24.5, interrupted: false,
       log: [{ kmFrom: 0, kmTo: 12.5, hours: 6.5, lines: [ligne], weather: { id: 'pluie', roll: 77 }, events: [evenement] }],

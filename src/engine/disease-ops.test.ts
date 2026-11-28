@@ -54,7 +54,7 @@ describe('reduceDiseaseDays — Bénédiction de Convalescence (LDB 41) + extens
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
     const log = applyOps(c, [{ op: 'reduceDiseaseDays', days: 1, oncePerDisease: true }], { idNeuf: idsDeTest, rng: desDuTest }).lignes; // 2e tentative : sans objet
     expect(c.diseases![0].minutesLeft).toBe(4 * MINUTES_PER_DAY);
-    expect(log, 'une op sans objet ne produit rien').toEqual([]);
+    expect(log.map((e) => e.texte), 'une op sans objet ne produit rien').toEqual([]);
   });
   it('sans verrou (herbes « 1 dose/jour ») : reprise possible ; `disease` SCOPE la maladie ciblée', () => {
     const c = dummy({ diseases: [sick('infection-mineure', 5), sick('verole-du-tanneur', 9)] });
@@ -108,7 +108,7 @@ describe('preventInfection — Cautériser (LDB 47) & cureCriticalWound — Larm
     const c = dummy({ traumas: [{ uid: 't2', label: 'Main/bras amputé (brasD)', location: 'brasD' }] });
     expect(opSansObjet(c, { op: 'cureCriticalWound' })).toMatch(/amputations sont hors d'atteinte/);
     const log = applyOps(c, [{ op: 'cureCriticalWound' }], { idNeuf: idsDeTest, rng: desDuTest }).lignes;
-    expect(log).toEqual([]);
+    expect(log.map((e) => e.texte)).toEqual([]);
     expect(c.traumas).toHaveLength(1);
   });
 });

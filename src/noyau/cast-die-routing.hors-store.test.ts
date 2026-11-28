@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Combatant } from '../engine/types';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
@@ -27,7 +28,7 @@ const mk = (id: string, kind: Combatant['kind'] = 'heros'): Combatant => (blessu
 const T = 45;
 const rateTR = { roll: 88, target: T, sl: -4, success: false, isDouble: true };
 /** Incantation ENNEMIE figée = l'« attaquant » des deux Tests opposés. */
-const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: '' };
+const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('') };
 const CHOISI = 11; // ≤ cible (45) : le dé de l'exemple Salundra (LDB 17 l.70)
 
 const st = () => banc.getState() as unknown as Record<string, (...a: unknown[]) => void>;
@@ -48,8 +49,8 @@ describe('dé choisi d’un flux MULTI d’incantation — routage par pid + pla
     banc.setState({
       pendingCast: { casterId: 'E', targetId: 'A', spellId: 'drain', missile: false, result: ENEMY_CAST },
       pendingCounterspell: { participants: [
-        { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: '' } },
-        { id: 'B', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: '' } },
+        { id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: ligneDeTexte('') } },
+        { id: 'B', interactive: true, declared: 'solo', result: { dispelled: false, counter: { ...rateTR }, casterNetSL: 7, log: ligneDeTexte('') } },
       ] },
     } as never);
     st().jetForcerLaReussite('contreSort', 'B');

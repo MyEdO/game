@@ -25,11 +25,11 @@ import { bourseOf } from '../engine/bourse';
 import { testScene } from '../scenes/test-fixture';
 import { setDesFixes, resetDesFixes, desFixes } from '../engine/fixedDie';
 import { canFixDie } from './netOwnership';
-import { draineCascade } from './cascade.testkit';
+import { draineCascade, lignesDeLApplier } from './cascade.testkit';
 import type { Combatant } from '../engine/types';
 import { pratiquer } from './interlude.testkit';
 import { faitsDeLEtape } from './jetsEnVue';
-import { faitsDesConsequences, resultLines } from './rollSeam';
+
 
 /** Dés d'événements CHOISIS dans la donnée (fourchettes de `interludeEvents.json`). */
 const PREVOT = 22; // « Le Prévôt arrive » — moneyPct −30
@@ -296,7 +296,7 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     banc.getState().jetValider('cascade');
     const bourses = banc.getState().pendingCascade!.participants[2];
     expect(bourses.kind).toBe('bourseDInterlude');
-    const annonce = (bourses.outcome ?? []).map((l) => l.text);
+    const annonce = (bourses.outcome ?? []).map((l) => l.entree.texte);
     expect(annonce, 'le Prévôt frappe chaque bourse, dit avant d’appliquer').toEqual([expect.stringContaining('La bourse de A perd 30 %'), expect.stringContaining('La bourse de B perd 30 %')]);
     const prevus = faitsDeLEtape(banc.getState(), bourses);
     expect(bourses.faits, 'aucun fait stocké avant l’application').toBeUndefined();
@@ -304,8 +304,8 @@ describe('Événement d’interlude — un tirage par héros en étape à table 
     const avant = toBrass(partyMoneyTotal(banc.getState));
     banc.setState({ journal: [] });
     const applique = applierDe('bourseDInterlude')!(banc.getState, banc.setState, bourses, undefined, { steps: steps(), index: 2 });
-    expect(faitsDesConsequences(applique?.consequences ?? []), 'les faits appliqués sont les faits annoncés').toEqual(prevus);
-    expect(resultLines(applique?.consequences ?? []).map((l) => l.text), 'ce que « Continuer » applique est ce que la fenêtre annonçait').toEqual(annonce);
+    expect(applique?.applique?.faits ?? [], 'les faits appliqués sont les faits annoncés').toEqual(prevus);
+    expect(lignesDeLApplier(applique), 'ce que « Continuer » applique est ce que la fenêtre annonçait').toEqual(annonce);
     expect(toBrass(partyMoneyTotal(banc.getState)) - avant, 'et les bourses paient leur somme').toBe(prevus.reduce((n, f) => n + (f.valeur as number), 0));
   });
 

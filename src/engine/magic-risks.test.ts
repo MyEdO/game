@@ -42,7 +42,7 @@ describe('Focalisation — spécialisation par Vent (LDB 46)', () => {
     expect(focusSkillFor(c, SORT_OMBRES)).toBeUndefined();
     const r = resolveFocus(c, SORT_OMBRES, makeRNG(1));
     expect(r.roll).toBe(0);
-    expect(r.log).toContain('Focalisation (Ulgu)'); // AFFICHAGE par Vent (Ombres = Ulgu, LDB 48)
+    expect(r.log.texte).toContain('Focalisation (Ulgu)'); // AFFICHAGE par Vent (Ombres = Ulgu, LDB 48)
   });
   it('un sort d\'Arcane commun accepte n\'importe quel Vent ; une compétence sans spec accepte tout', () => {
     expect(focusSkillFor(wiz(), SORT_COMMUN)).toBeTruthy();

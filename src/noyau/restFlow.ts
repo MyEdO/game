@@ -26,7 +26,7 @@ import type { restPlacesSchema } from '../data/schemas/defs-scenes/scene';
 import type { Combatant } from '../engine/types';
 import { nomDe } from '../engine/nom';
 import type { RollBreakdown } from '../engine/combat';
-import type { RecapTone } from './recapLine';
+import { ligneDeTexte, type RecapTone } from '../engine/journal';
 import { battleRng } from './battleRng';
 import { betesHorsRencontre } from './monde/combatants';
 import { touchActors } from './combatOrParty';
@@ -58,7 +58,7 @@ import { applyForcedMarch } from '../engine/travel';
 import { startCascade, runCascadeImmediate } from './cascade';
 import { nightBands, bandeDeNuit, nightRowId, genuineExposureFail, nextExposureWave, exposureWaveBand } from './nightBands';
 import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
-import { freeCons, monoStep, choiceStep, pousseSi } from './rollSeam';
+import { monoStep, choiceStep, pousseSi } from './rollSeam';
 import { porteursABord, type PorteurABord } from './shipCrew';
 import { appliquerContagion, bandesDeContagion, type ContagionSpec } from './contagion';
 import { calculerLesTestsDExposition, incubationPendantLeVoyage } from './expositionAMaladie';
@@ -137,7 +137,7 @@ export interface NightEntry {
   /** RUBRIQUE de la ligne : les lignes consécutives d'une MÊME rubrique (les contributeurs d'un même
    *  Test d'équipage) se lisent sous UNE rubrique, sans répéter l'en-tête. */
   group?: string;
-  /** Vocabulaire PARTAGÉ (#349) — `RecapTone`, `noyau/recapLine.ts` (même trio que `RecapLine.tone`). */
+  /** Vocabulaire PARTAGÉ (#349) — `RecapTone`, `engine/journal.ts` (même trio que le ton d'une entrée). */
   tone?: RecapTone;
   /** Type de jet HÉROS de `sleepParty` (chemin EAGER — cheat `reposerLeGroupe`, clôture d'interlude) —
    *  décoratif hors de ces deux chemins. */
@@ -228,10 +228,10 @@ export function sleepParty(
     const deferred: DeferredUpkeepTest[] = [];
     const entretien = runDailyUpkeep(get, set, { fedDaily: opts.fedDaily, onDeferTest: (d) => deferred.push(d) });
     const idsDuGroupe = new Set(get().party.map((h) => h.id));
-    for (const { actorId, text } of entretien) {
+    for (const { actorId, entree } of entretien) {
       entries.push({
         actorId: actorId !== undefined && idsDuGroupe.has(actorId) ? actorId : undefined,
-        icon: 'temps/calendrier', label: 'Entretien quotidien', text, tone: 'neutre',
+        icon: 'temps/calendrier', label: 'Entretien quotidien', text: entree.texte, tone: 'neutre',
       });
     }
     const steps = nightBands(deferredUpkeepSteps(get().party, deferred));
@@ -244,7 +244,7 @@ export function sleepParty(
         if (!row.outcome?.length) continue;
         entries.push({
           actorId: row.id, icon: 'medical/infection', label: garanti(step.label, step.id, 'bande de Contraction'),
-          text: row.outcome.map((l) => l.text).join(' '), tone: 'echec',
+          text: row.outcome.map((l) => l.entree.texte).join(' '), tone: 'echec',
         });
       }
     }
@@ -334,9 +334,9 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
   const kind = (band.meta?.kind as ExposureKind) ?? 'froid';
   if (!genuineExposureFail(hero, kind, row.result)) {
     const held = !row.result!.success; // échec de justesse tenu par la peau de phoque
-    return { consequences: freeCons([held
+    return { applique: { lignes: [ligneDeTexte(held
       ? t('rf.sealskinHeld', { name: nomDe(hero) })
-      : t('rf.exposureEndured', { name: nomDe(hero), what: kind === 'froid' ? t('rf.cold') : t('rf.heat') })]) };
+      : t('rf.exposureEndured', { name: nomDe(hero), what: kind === 'froid' ? t('rf.cold') : t('rf.heat') }))], faits: [] } };
   }
   // Escalade CUMULATIVE (l.330/334) : le rang de l'échec est une DONNÉE DE LA RANGÉE, dotée à la
   // construction de la vague (`nextExposureWave`) — donc APRÈS les délestages de la vague précédente.
@@ -356,11 +356,11 @@ const appliquerLExposition = bandeDeNuit((_get, _set, band, row, hero) => {
   }) : undefined;
   if (heavy && drop) {
     return {
-      consequences: freeCons([t('rf.heatFailDrop', { name: nomDe(hero), item: heavy.label })]),
+      applique: { lignes: [ligneDeTexte(t('rf.heatFailDrop', { name: nomDe(hero), item: heavy.label }))], faits: [] },
       insert: [drop],
     };
   }
-  return { consequences: freeCons(applyExposureFailure(hero, priorFails + 1, battleRng(), kind).log) };
+  return { applique: { lignes: applyExposureFailure(hero, priorFails + 1, battleRng(), kind).log.map((x) => ligneDeTexte(x)), faits: [] } };
 }, (get, _set, band, ctx, drops) => {
   // Les délestages restent MONO (un CHOIX ne se joue pas en rangée) et la vague SUIVANTE ne se
   // construit qu'APRÈS eux — c'est le dernier délestage qui la déclenche (`meta.nextWaveOf`).
@@ -494,7 +494,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       const { wokeUp } = applyRecoveryDay(h, null, sortie);
       if (h.wounds.current - before > 0) log.push(t('rf.recovered', { name: nomDe(h), n: h.wounds.current - before }));
       if (wokeUp) log.push(t('heal.awake', { name: nomDe(h) }));
-      log.push(...sortie.lignes);
+      log.push(...sortie.lignes.map((e) => e.texte));
       if (sans) log.push(t(sans.cle, { ...sans.params, name: nomDe(h) }));
     }
     if (h.nightmares) {
@@ -963,13 +963,13 @@ export const TABLES = {
       if (healed > 0) j.push(t('rf.recovered', { name: nomDe(hero), n: healed }));
       else j.push(t('rf.noRecovery', { name: nomDe(hero) }));
       if (wokeUp) j.push(t('heal.awake', { name: nomDe(hero) }));
-      j.push(...sortie.lignes);
-      return { consequences: freeCons(j) };
+      j.push(...sortie.lignes.map((e) => e.texte));
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     }),
     cauchemar: bandeDeNuit((_get, _set, _band, row, hero) => {
-      if (row.result!.success) return { consequences: freeCons([t('rf.dreamless', { name: nomDe(hero) })]) };
+      if (row.result!.success) return { applique: { lignes: [ligneDeTexte(t('rf.dreamless', { name: nomDe(hero) }))], faits: [] } };
       addCondition(hero, 'extenue'); // LDB 21 l.95 : Calme +40 raté → Exténué
-      return { consequences: freeCons([t('rf.nightmareFail', { name: nomDe(hero) })]) };
+      return { applique: { lignes: [ligneDeTexte(t('rf.nightmareFail', { name: nomDe(hero) }))], faits: [] } };
     }),
     'abri-de-fortune': bandeDeNuit((get, _set, _band, row, hero) => {
       const sheltered = row.result!.success; // Survie en extérieur réussie → abri qui tient (ch.09 l.559)
@@ -977,7 +977,7 @@ export const TABLES = {
       const camperIds = String(row.meta?.campers ?? '').split(',').filter(Boolean);
       const count = exposureTestCount(severity, sheltered);
       return {
-        consequences: freeCons([sheltered ? t('rf.shelterOk', { name: nomDe(hero) }) : t('rf.shelterKo')]),
+        applique: { lignes: [ligneDeTexte(sheltered ? t('rf.shelterOk', { name: nomDe(hero) }) : t('rf.shelterKo'))], faits: [] },
         insert: count > 0 ? buildExposureBand(get().party, camperIds, count) : [],
       };
     }),
@@ -988,24 +988,24 @@ export const TABLES = {
       if (step.chosen === 'jeter') {
         const name = dropHeaviestPossession(hero);
         // LDB 18 l.332
-        return { consequences: freeCons([t('rf.dropped', { name: nomDe(hero), what: name ?? t('rf.fragHeaviest') })]), insert };
+        return { applique: { lignes: [ligneDeTexte(t('rf.dropped', { name: nomDe(hero), what: name ?? t('rf.fragHeaviest') }))], faits: [] }, insert };
       }
-      return { consequences: freeCons(applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log), insert };
+      return { applique: { lignes: applyExposureFailure(hero, Number(step.meta?.failNumber ?? 1), battleRng(), 'chaleur').log.map((x) => ligneDeTexte(x)), faits: [] }, insert };
     },
     'marche-forcee': bandeDeNuit((_get, _set, _band, row, hero) => {
-      return { consequences: freeCons([applyForcedMarch(hero, row.result!.success).line]) }; // LDB 51 l.195 : échec → +Exténué
+      return { applique: { lignes: [ligneDeTexte(applyForcedMarch(hero, row.result!.success).line)], faits: [] } }; // LDB 51 l.195 : échec → +Exténué
     }),
     faim: bandeDeNuit((_get, _set, _band, row, hero) => {
       const r = applyFaimTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
       const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(hero, r.damage, consequences); // LDB 18 l.342
-      return { consequences: freeCons([...r.log, ...consequences.lignes]) };
+      return { applique: { lignes: [...r.log.map((x) => ligneDeTexte(x)), ...consequences.lignes], faits: [] } };
     }),
     soif: bandeDeNuit((_get, _set, _band, row, hero) => {
       const r = applySoifTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
       const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(hero, r.damage, consequences); // LDB 18 l.340
-      return { consequences: freeCons([...r.log, ...consequences.lignes]) };
+      return { applique: { lignes: [...r.log.map((x) => ligneDeTexte(x)), ...consequences.lignes], faits: [] } };
     }),
     dessoulage: bandeDeNuit((_get, _set, band, row, hero) => {
       // Dessoûlage (LDB 09 l.485) : le 1ᵉʳ Test INFLUENÇABLE fixe la dissipation (10−DR h). Le 2ᵉ Test — « Une
@@ -1021,36 +1021,36 @@ export const TABLES = {
         ligne: { test: alcool },
         ...(band.meta?.day !== undefined ? { meta: { day: band.meta.day } } : {}),
       });
-      return { consequences: freeCons(d.log), insert: hangover ? [hangover] : [] };
+      return { applique: { lignes: d.log.map((x) => ligneDeTexte(x)), faits: [] }, insert: hangover ? [hangover] : [] };
     }),
     'dessoulage-gueule-de-bois': bandeDeNuit((get, _set, _band, row, hero) => {
       // 2ᵉ Test du dessoûlage (l.485), désormais influençable : le DR fixe la durée de la gueule de bois.
-      return { consequences: freeCons(soberUpHangover(hero, get().gameTime, row.result!.sl).log) };
+      return { applique: { lignes: soberUpHangover(hero, get().gameTime, row.result!.sl).log.map((x) => ligneDeTexte(x)), faits: [] } };
     }),
     'convalescence-fracture': bandeDeNuit((_get, _set, _band, row, hero) => {
-      return { consequences: freeCons(applyFractureEnd(hero, row.result!.success, String(row.meta?.severity ?? 'mineur'), String(row.meta?.location ?? ''), String(row.meta?.traumaLabel ?? t('rf.fractureFallback')))) };
+      return { applique: { lignes: applyFractureEnd(hero, row.result!.success, String(row.meta?.severity ?? 'mineur'), String(row.meta?.location ?? ''), String(row.meta?.traumaLabel ?? t('rf.fractureFallback'))).map((x) => ligneDeTexte(x)), faits: [] } };
     }),
     'maladie-test-quotidien': bandeDeNuit((get, _set, _band, row, hero) => {
       // Échec d'un Test de cycle quotidien → applique ses ops d'échec (`meta.opsEchec`), via applyOps. Couvre
       // les DEUX porteurs de ce canal : le Test d'un SYMPTÔME (`onTick` — Blessé → contractDisease
       // 'blessure-purulente', Toxine, Vers) ET le Test porté par la MALADIE (`DiseaseDef.dailyTest` —
       // pneumonie, EDOC 08 l.104-108). Donnée-driven : aucun id n'est nommé ici.
-      if (row.result!.success) return { consequences: [] };
+      if (row.result!.success) return {};
       const opsEchec = row.meta?.opsEchec ?? [];
       // `sl` (DR négatif de l'échec) → alimente `rollTable{addNegativeSL}` (Vers de carie : « ajoutez le
       // nombre de DR négatifs », MSRC 16 l.90) et les échelles `perSL` de ces ops.
       // La MALADIE est l'entité SOURCE de ce qu'elle inflige : tout effet actif posé par ces ops (Trait
       // octroyé, État durable) porte son ancrage de règle, donc sa fiche à l'écran.
       const source = { kind: 'maladie' as const, id: String(row.meta?.diseaseName ?? '') };
-      return { consequences: freeCons(applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source }).lignes) };
+      return { applique: { lignes: applyOps(hero, opsEchec, { idNeuf: get().forgerUnId, rng: battleRng(), sl: row.result!.sl, source }).lignes, faits: [] } };
     }),
     'maladie-gangrene': bandeDeNuit((_get, _set, _band, row, hero) => {
-      return { consequences: freeCons(applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0))) };
+      return { applique: { lignes: applyDiseaseGangrene(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, Number(row.meta?.be ?? 0)).map((x) => ligneDeTexte(x)), faits: [] } };
     }),
     'maladie-persistance': bandeDeNuit((_get, _set, _band, row, hero) => {
       // Fin de Durée : résolution ET réconciliation des États portés par un passif (LDB 20 l.188) en UN geste —
       // `applyDiseaseEnd` (engine/rest) est le foyer unique, ici comme dans toute autre voie.
-      return { consequences: freeCons(applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng())) };
+      return { applique: { lignes: applyDiseaseEnd(hero, String(row.meta?.diseaseName ?? ''), row.result!.success, row.result!.sl, battleRng()).map((x) => ligneDeTexte(x)), faits: [] } };
     }),
     contagion: appliquerContagion,
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,

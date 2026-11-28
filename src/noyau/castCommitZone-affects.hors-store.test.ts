@@ -7,6 +7,7 @@
  * Cumul avec `excludesCaster` : les deux filtres s'appliquent.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone } from './combatFlow';
@@ -23,7 +24,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
 
 const SPELL = 'regiment-monstrueux-de-merciw';
 
-const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
+const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
 function caster(x: number, y: number, spellId: string, id = 'caster'): Combatant {
   const h = herosDeScenario(idsDeTest, 'sorcier');

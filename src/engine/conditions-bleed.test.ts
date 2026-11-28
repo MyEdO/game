@@ -35,7 +35,7 @@ describe('bleedDeathRoll — mort par Hémorragique (LDB 16 l.105)', () => {
   it('jet non-double > 10×pions → survit, et le jet se lit au journal', () => {
     const r = bleedDeathRoll(mk(3), fixed(50)); // 50 > 30
     expect(r.died).toBe(false);
-    expect(r.log).toEqual(["X survit à l'hémorragie (50 > 30)."]);
+    expect(r.log.map((e) => e.texte)).toEqual(["X survit à l'hémorragie (50 > 30)."]);
     expect(bleedDeathRoll(mk(1), fixed(45)).died).toBe(false); // 45 > 10
   });
 
@@ -93,12 +93,12 @@ describe('Hémorragique à 0 Blessure (LDB 16 l.105)', () => {
 
   it('journal de l\'op `wounds` : les Blessures réellement perdues, puis les États posés ; rien de plus à 0 PB', () => {
     const c = ilyanweSaignee(1);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual([
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes.map((e) => e.texte)).toEqual([
       'Ilyanwe subit 1 Blessure(s) (ignorant BE et PA).',
       'Ilyanwe reçoit 1 État À Terre.',
       'Ilyanwe reçoit 1 État Inconscient.',
     ]);
-    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual([]);
+    expect(applyOps(c, [{ op: 'wounds', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes.map((e) => e.texte)).toEqual([]);
   });
 });
 

@@ -22,14 +22,11 @@ import { activityStakeRef, refLabel, dataLabel, findNavalPortById, findVehicleBy
 import { t } from '../i18n';
 import type { Combatant } from '../engine/types';
 import type { TravelRecapDay } from './travelFlow';
-import { toRecapLines } from './recapLine';
 import type { Get, Set } from './flowTypes';
 import type { CampaignVessel, Jeu } from './etat';
 import type { CascadeStep } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
-import {
-  choiceStep, composeRollLabel, effectiveTarget, freeCons, idDansLaSequence, monoStep, openSequence, pousseSi, quantityStep, resultLines, type RollRequest,
-} from './rollSeam';
+import { choiceStep, composeRollLabel, effectiveTarget, idDansLaSequence, monoStep, openSequence, pousseSi, quantityStep, type RollRequest } from './rollSeam';
 import {
   blessuresDeCoqueARestaurer, coqueDuNavireDeCampagne, debiterPiecesDetachees, encDePiecesDetachees,
   noteSeaLine, openSeaHalt, patchSea, poserLesActivitesDuNavire, setVesselHull,
@@ -40,6 +37,8 @@ import type { CorpsDesChoix } from './choixDesFenetres';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { nomDe } from '../engine/nom';
+import { ligneDeTexte } from '../engine/journal';
+import { recapDe } from './recapLine';
 
 /** Choix d'un héros pour la semaine : une Activité du catalogue 'mer' (+ mise du Commerce d'opportunité). */
 export interface SeaActivityPick {
@@ -152,9 +151,9 @@ function buildSeaChartStep(hero: Combatant, def: ActivityDef, pick: SeaActivityP
 export function buildSeaGenericStep(get: Get, set: Set, hero: Combatant, def: ActivityDef): BuiltCascadeStep | undefined {
   const spec = travelActivitySpec(hero, def)!;
   if (spec.target == null) {
-    const { consequences } = appliquerIssueActivite(get, hero, def, spec, null);
+    const { applique } = appliquerIssueActivite(get, hero, def, spec, null);
     set({ party: [...get().party] });
-    noteSeaLine(get, set, resultLines(consequences).map((l) => l.text));
+    noteSeaLine(get, set, recapDe(applique.lignes).map((l) => l.entree));
     return undefined;
   }
   const difficulty = spec.difficulty;
@@ -196,7 +195,7 @@ function validerLaSemaine(get: Get, set: Set): void {
 function openNextOpportunityTrade(get: Get, set: Set, hero: Combatant, pick: SeaActivityPick, def: ActivityDef): void {
   const invest = pick.investGold ?? 0;
   if (invest <= 0) {
-    noteSeaLine(get, set, [t('sact.tradeNoStake', { name: nomDe(hero) })]);
+    noteSeaLine(get, set, [ligneDeTexte(t('sact.tradeNoStake', { name: nomDe(hero) }))]);
     continueSeaActivitiesAfterCascade(get, set);
     return;
   }
@@ -231,7 +230,7 @@ export function continueSeaActivitiesAfterCascade(get: Get, set: Set): void {
   if (!pending.day) return;
   const plan = get().travelPlan;
   const activityLines = plan?.sea?.lines ?? [];
-  const day: TravelRecapDay = { ...pending.day, lines: [...pending.day.lines, ...toRecapLines(activityLines)] };
+  const day: TravelRecapDay = { ...pending.day, lines: [...pending.day.lines, ...recapDe(activityLines)] };
   if (plan?.sea) patchSea(get, set, { lines: [] });
   openSeaHalt(get, set, day);
 }
@@ -413,7 +412,7 @@ function repriseDEntretien(get: Get, set: Set, hero: Combatant, def: ActivityDef
   const choix = choixDEntretien(get, hero, def, suite);
   const raison = message ?? (typeof choix === 'string' ? choix : undefined);
   if (choix && typeof choix !== 'string') pushStep(set, () => choix, 'seaActivities');
-  return raison ? { consequences: freeCons([raison]) } : undefined;
+  return raison ? { applique: { lignes: [ligneDeTexte(raison)], faits: [] } } : undefined;
 }
 
 function testDEntretien(
@@ -445,7 +444,7 @@ function preparerTravaux(get: Get, set: Set, step: CascadeStep, hero: Combatant,
   const choix = step.chosen;
   if (!choix || choix === 'terminer') return;
   const etat = etatDEntretien(get);
-  if (typeof etat === 'string') return { consequences: freeCons([etat]) };
+  if (typeof etat === 'string') return { applique: { lignes: [ligneDeTexte(etat)], faits: [] } };
   const refusMetier = refusDesTestsDEntretien(hero, def);
   let suivant: BuiltCascadeStep | undefined;
   let refus: string | undefined;
@@ -533,10 +532,10 @@ function appliquerEntretien(get: Get, set: Set, step: CascadeStep, hero: Combata
   const suite = suiteDEntretien(step);
   const def = suite && activityById(suite.activityId);
   if (!hero || hero.dead || hero.outOfRencontre || !suite) return;
-  if (def?.resolver !== 'shipMaintenance') return { consequences: freeCons([t('sact.entretienIndisponible')]) };
+  if (def?.resolver !== 'shipMaintenance') return { applique: { lignes: [ligneDeTexte(t('sact.entretienIndisponible'))], faits: [] } };
   if (step.kind === 'merEntretienChoix') return preparerTravaux(get, set, step, hero, def, suite);
   const etat = etatDEntretien(get);
-  if (typeof etat === 'string') return { consequences: freeCons([etat]) };
+  if (typeof etat === 'string') return { applique: { lignes: [ligneDeTexte(etat)], faits: [] } };
 
   if (step.kind === 'merEntretienBlessures') {
     return repriseDEntretien(get, set, hero, def, suite, soinDesBlessures(get, set, etat, step.amount ?? 0));
@@ -606,7 +605,7 @@ export const TABLES = {
         j.push(t('sact.chartKo', { name: nomDe(hero) }));
       }
       set({ party: [...get().party] });
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Chemin GÉNÉRIQUE data-driven (`merActiviteGenerique`) : recompose `travelActivitySpec` (déterministe,
      *  pas de RNG) depuis `meta.activityId` et applique l'issue de l'Activité au jet DÉJÀ résolu
@@ -616,9 +615,9 @@ export const TABLES = {
       const def = typeof step.meta?.activityId === 'string' ? activityById(step.meta.activityId) : undefined;
       const spec = def ? travelActivitySpec(hero, def) : null;
       if (!def || !spec) return;
-      const { consequences } = appliquerIssueActivite(get, hero, def, spec, step.result);
+      const { applique } = appliquerIssueActivite(get, hero, def, spec, step.result);
       set({ party: [...get().party] });
-      return { consequences };
+      return { applique };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   issuesDeTestEtendu: {
@@ -632,10 +631,10 @@ export const TABLES = {
       const pct = opportunityTradePct(total);
       const back = Math.floor((investBrass * pct) / 100);
       distributeCredit(get, set, fromBrass(back));
-      const line = t('sact.tradeDone', { name: nomDe(hero), stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct });
+      const line = ligneDeTexte(t('sact.tradeDone', { name: nomDe(hero), stake: formatMoney(fromBrass(investBrass)), back: formatMoney(fromBrass(back)), pct }));
       noteSeaLine(get, set, [line]);
       continueSeaActivitiesAfterCascade(get, set);
-      return { consequences: freeCons([line]) };
+      return { applique: { lignes: [line], faits: [] } };
     },
   } satisfies PartDeTable<'issuesDeTestEtendu', typeof ISSUES_DE_TEST_ETENDU>,
 } satisfies FragmentDeTables;

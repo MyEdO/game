@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -36,15 +37,15 @@ describe('Contre-sort — le refus de la rangée vaut pour tous ses verbes', () 
       battle: { ...b },
       pendingCast: {
         casterId: E.id, targetId: A.id, spellId: 'carreau', missile: true, counterspellRouted: true,
-        result: { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: '' },
+        result: { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('') },
       },
     } as unknown as Partial<Jeu>);
     return { A, B };
   }
-  const DISSIPE = { dispelled: true, counter: { roll: 5, target: 60, sl: 4, success: true, isDouble: false }, casterNetSL: -1, log: 'dissipé' };
+  const DISSIPE = { dispelled: true, counter: { roll: 5, target: 60, sl: 4, success: true, isDouble: false }, casterNetSL: -1, log: ligneDeTexte('dissipé') };
   /** Réussite à DR égal à l'incantation : non dissipé, +1 DR le ferait basculer. */
-  const PRESQUE = { dispelled: false, counter: { roll: 30, target: 60, sl: 3, success: true, isDouble: false }, casterNetSL: 0, log: 'presque' };
-  const RATE = { dispelled: false, counter: { roll: 95, target: 60, sl: -4, success: false, isDouble: false }, casterNetSL: 7, log: 'raté' };
+  const PRESQUE = { dispelled: false, counter: { roll: 30, target: 60, sl: 3, success: true, isDouble: false }, casterNetSL: 0, log: ligneDeTexte('presque') };
+  const RATE = { dispelled: false, counter: { roll: 95, target: 60, sl: -4, success: false, isDouble: false }, casterNetSL: 7, log: ligneDeTexte('raté') };
   const poser = (parts: unknown[]) => banc.setState({ pendingCounterspell: { participants: parts } } as unknown as Partial<Jeu>);
   const cur = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
   const part = (id: string) => banc.getState().pendingCounterspell!.participants.find((p) => p.id === id)!;

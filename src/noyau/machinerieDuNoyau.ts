@@ -6,6 +6,7 @@
 import type { DocumentRemis } from './campagne';
 import type { Combatant, CharKey } from '../engine/types';
 import type { FabriqueDId } from '../engine/fabriqueDId';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { SupportDetail } from '../engine/skills';
 import type { StakeRef } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
@@ -140,9 +141,9 @@ export interface MachinerieDuNoyau {
   /** Réensemence le RNG de combat (déterminisme des tests + future coop réseau). */
   ensemencerLeTirage: (seed: number) => void;
   // ── Journal ──
-  /** Action canonique UNIQUE composant `journal` (pousse `msg`, ou toutes les `msg[]` dans l'ordre,
-   *  et plafonne à 40 lignes) — ticket #319 : tout site de `journal: [...journal.slice(-40), …]` route ICI. */
-  ecrireAuJournal: (msg: string | string[]) => void;
+  /** Action canonique UNIQUE composant `journal` (pousse `msg`, ou toutes les `msg[]` dans l'ordre, un texte en
+   *  entrée `ligne`, et plafonne à 40 lignes) — ticket #319 : tout site de `journal: [...journal.slice(-40), …]` route ICI. */
+  ecrireAuJournal: (msg: string | EntreeDuJournal | (string | EntreeDuJournal)[]) => void;
   // ── Réseau (`reseau.ts`) ──
   /** Pose la session coop `net` ; rien si c'est déjà elle. */
   poserLeReseau: (net: NetState) => void;

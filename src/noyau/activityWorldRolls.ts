@@ -17,10 +17,11 @@ import { activityById, activityConditionCtx, type ActivityDef } from '../engine/
 import { evalCondition } from '../engine/flowCore';
 import { applyOps, formulaExpectation } from '../engine/ops';
 import { battleRng } from './battleRng';
-import { worldStep, freeCons } from './rollSeam';
+import { worldStep } from './rollSeam';
 import { dataLabel } from '../data';
 import { t } from '../i18n';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { ligneDeTexte } from '../engine/journal';
 
 export const ACTIVITY_WORLD_ROLL_KIND = 'jetDuMondeDActivite';
 
@@ -60,12 +61,12 @@ export const TABLES = {
       const h = get().party.find((x) => x.id === String(step.meta?.heroId ?? ''));
       if (!def || !wr || !h) return {};
       // ÉVITÉ : le dé garde sa ligne et la conséquence DIT l'issue (patron `authorPerils`).
-      if (!step.result.success) return { consequences: freeCons([{ text: t('out.rienNAdvient', { label: wr.label }), tone: 'neutre' }]) };
+      if (!step.result.success) return { applique: { lignes: [ligneDeTexte(t('out.rienNAdvient', { label: wr.label }), { ton: 'neutre' })], faits: [] } };
       const lignes = applyOps(h, wr.ops, { idNeuf: get().forgerUnId,
         rng: battleRng(), label: wr.label, now: get().gameTime, source: { kind: 'activite', id: def.id },
       }).lignes;
       set({ party: [...get().party] });
-      return { consequences: freeCons([{ text: wr.label, tone: 'echec' }, ...lignes.map((text) => ({ text, tone: 'echec' as const }))]) };
+      return { applique: { lignes: [ligneDeTexte(wr.label, { ton: 'echec' }), ...lignes.map((e) => ({ ...e, ton: 'echec' as const }))], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

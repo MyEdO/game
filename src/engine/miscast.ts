@@ -37,6 +37,7 @@ import { datasetDe, type EntreeDe } from '../data/schemas/datasets';
 import type * as miscastDef from '../data/schemas/defs/miscast';
 import { DATASET_DE_LA_CATEGORIE, type CleDeDataset } from '../data/schemas/_cles-de-dataset.generated';
 import { memoParVersion } from '../data/versionDataset';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 
 export type MiscastSeverity = 'mineure' | 'majeure' | 'colere';
 
@@ -55,8 +56,8 @@ export interface MiscastResult {
   /** Nœud de Flow `test` imbriqué de l'entrée (« Résistance Accessible ou Sonné »), résolu CADENCE-AWARE
    *  par `applyMiscast`→`runCombatFlow` APRÈS les `ops` immédiats. Absent si l'entrée n'a pas de Test. */
   testFlow?: Flow;
-  /** Ligne de journal prête à l'affichage. */
-  log: string;
+  /** Entrée de journal du tirage. */
+  log: EntreeDuJournal;
   /** RELANCE prescrite par la ligne tirée — posée UNIQUEMENT quand `forcedRoll` fige le dé : le tirage
    *  s'ARRÊTE alors avant de relancer (`ops` vide, rien d'appliqué), et l'appelant pilote la relance
    *  niveau par niveau. `'majeure'` : « Chaos en cascade : effectuez un nouveau lancer sur le Tableau
@@ -357,7 +358,7 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
   // Cascade : 96-00 Mineure → relance sur la table Majeure. Même relance quand la rangée réclame une
   // table que la tradition du lanceur ne déclare pas (`VDM 02 l.238`).
   if (row.reroll === 'majeure' || domainRowTable(row, domainId) === null) {
-    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], targetOps: [], reroll: 'majeure', rowId: row.id, tableRolls: 1, log: `${label(severity)} (${roll}) : ${row.label}` };
+    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], targetOps: [], reroll: 'majeure', rowId: row.id, tableRolls: 1, log: ligneDeTexte(`${label(severity)} (${roll}) : ${row.label}`) };
     const sub = rollMiscast('majeure', rng, 0, domainId);
     return {
       severity,
@@ -368,12 +369,12 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
       ...(sub.testFlow ? { testFlow: sub.testFlow } : {}),
       rowId: row.id,
       tableRolls: 1 + sub.tableRolls,
-      log: `${label(severity)} (${roll}) : ${row.label} → ${sub.log}`,
+      log: ligneDeTexte(`${label(severity)} (${roll}) : ${row.label} → ${sub.log.texte}`),
     };
   }
   // Multiplication : 91-95 Mineure → deux lancers (en relançant les 91-00).
   if (row.reroll === 'mineure-x2') {
-    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], targetOps: [], reroll: 'mineure-x2', rowId: row.id, tableRolls: 1, log: `${label(severity)} (${roll}) : ${row.label}` };
+    if (forcedRoll != null) return { severity, rolls: [roll], label: row.label, ops: [], targetOps: [], reroll: 'mineure-x2', rowId: row.id, tableRolls: 1, log: ligneDeTexte(`${label(severity)} (${roll}) : ${row.label}`) };
     const ops: GameOp[] = [];
     const targetOps: GameOp[] = [];
     const tests: Flow[] = [];
@@ -414,7 +415,7 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
       ...(tests.length ? { testFlow: tests.length === 1 ? tests[0] : { kind: 'sequence', etapes: tests } } : {}),
       rowId: row.id,
       tableRolls,
-      log: `${label(severity)} (${roll}) : ${row.label} → ${labels.join(' + ')}`,
+      log: ligneDeTexte(`${label(severity)} (${roll}) : ${row.label} → ${labels.join(' + ')}`),
     };
   }
 
@@ -431,6 +432,6 @@ export function rollMiscast(severity: MiscastSeverity, rng: RNG, sinPoints = 0, 
     ...(testFlow ? { testFlow } : {}),
     rowId: row.id,
     tableRolls: 1,
-    log: `${label(severity)} (${roll}) : ${row.label}${applied}`,
+    log: ligneDeTexte(`${label(severity)} (${roll}) : ${row.label}${applied}`),
   };
 }

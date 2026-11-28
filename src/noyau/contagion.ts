@@ -3,11 +3,12 @@ import { contractionDue } from '../engine/disease';
 import type { Difficulty } from '../engine/types';
 import { t } from '../i18n';
 import { battleRng } from './battleRng';
-import type { CascadeApplier } from './cascade';
+import { type CascadeApplier, denouerLaRangee } from './cascade';
 import type { Get, Set } from './flowTypes';
-import { buildBand, freeCons, resultLines, stepPrecision } from './rollSeam';
+import { buildBand, stepPrecision } from './rollSeam';
 import { contracterABord, porteursABord, type PorteurABord } from './shipCrew';
 import type { BuiltCascadeStep } from './stepBrand';
+import { ligneDeTexte } from '../engine/journal';
 
 export interface ContagionSpec {
   porteurId: string;
@@ -72,15 +73,14 @@ export const appliquerContagion: CascadeApplier = (get, set, step) => {
   const dues: ContagionSpec[] = [];
   for (const row of step.participants) {
     const verdict = contracterABord(get, set, row, diseaseName, battleRng());
-    row.outcome = verdict ? resultLines(freeCons(verdict.lignes)) : [];
-    for (const l of row.outcome) get().ecrireAuJournal(l.text);
+    for (const l of denouerLaRangee(row, { lignes: (verdict?.lignes ?? []).map((x) => ligneDeTexte(x)), faits: [] })) get().ecrireAuJournal(l.entree);
     const nombre = row.meta?.contagionRestante;
     if (typeof nombre === 'number' && nombre > 0 && row.difficulty) {
       dues.push({ porteurId: row.id, diseaseName, difficulty: row.difficulty, nombre });
     }
   }
-  if (!dues.length) return { consequences: [] };
+  if (!dues.length) return {};
   const vague = Number(step.meta?.vagueContagion ?? 0) + 1;
   const suivante = bandeDeContagion(get, porteursABord(get, set), String(step.id).split('#w')[0], diseaseName, vague, dues);
-  return { consequences: [], insert: suivante ? [suivante] : [] };
+  return { insert: suivante ? [suivante] : [] };
 };

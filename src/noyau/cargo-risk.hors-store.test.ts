@@ -125,7 +125,7 @@ describe('Voie d’eau — la coque percée/heurtée gâte 1d10 Enc (#327 D)', (
     const removed = 100 - cargoTotalEnc(get().vessel!.cargo!);
     expect(removed).toBeGreaterThanOrEqual(1);
     expect(removed).toBeLessThanOrEqual(10);
-    expect(lines.join(' ')).toContain('voie d\'eau');
+    expect(lines.map((e) => e.texte).join(' ')).toContain('voie d\'eau');
   });
 
   it('cale vide : rien à gâter, aucune ligne', () => {

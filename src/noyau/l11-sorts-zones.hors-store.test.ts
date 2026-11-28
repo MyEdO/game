@@ -4,6 +4,7 @@
  * (« le feu continue de brûler dans la ZdE pour la durée du Sort »).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast, castCommitZone, castZoneSpell, zoneRadiusTilesAt } from './combatFlow';
@@ -40,7 +41,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
 
   it('Mur de feu : mur perpendiculaire centré sur la cible, durée (BFM) Rounds, onCross armé', () => {
     const { caster, T } = setup();
-    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'ok' };
+    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: ligneDeTexte('ok') };
     applyCast(banc.getState, banc.setState, caster, [T], findSpellById('mur-de-feu')!, ok, false);
     const wall = (banc.getState().battle!.zones ?? []).find((z) => z.label === 'Mur de feu')!;
     expect(wall).toBeTruthy();
@@ -68,7 +69,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
 
   it('Bouclier anti-flèches / Dôme : auras posées par le cast ; géométrie intérieur/extérieur', () => {
     const { caster, T } = setup();
-    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
+    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: ligneDeTexte('ok') };
     applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('bouclier-anti-fleches')!, ok, false);
     applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('dome')!, ok, false);
     const effects = caster.activeEffects ?? [];
@@ -117,7 +118,7 @@ describe('L11 — zones persistantes posées par les sorts', () => {
   it('Grands feux d’U’Zhul : disque (BFM m) autour de la cible touchée, perRound armé', () => {
     const { caster, T } = setup();
     const ok: CastResult & Partial<MissileResult> = {
-      cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok',
+      cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: ligneDeTexte('ok'),
       hit: true, woundsLost: 0, defenderDefeated: false, location: 'corps',
     };
     applyCast(banc.getState, banc.setState, caster, [T], findSpellById('grands-feux-d-u-zhul')!, ok, true);

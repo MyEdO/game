@@ -247,9 +247,9 @@ export interface BattleState {
   advantagePools?: import('../engine/advantagePool').AdvantagePools;
   /** Mort par Hémorragique (LDB 16 l.105) — combattants pour qui le jet de fin de Round (10 %/pion) a
    *  donné la MORT ce Round : marqués par le hook `bleed-death` (jet RNG, une fois), FINALISÉS par
-   *  `resolveRoundBoundary` (qui peut SUSPENDRE pour un héros à Destin). `deathLine` = la ligne de
-   *  journal pré-formée, annoncée APRÈS la décision de Destin. Purgé une fois tous finalisés. */
-  bleedDoomed?: { id: string; deathLine: string }[];
+   *  `resolveRoundBoundary` (qui peut SUSPENDRE pour un héros à Destin). `annonce` = l'entrée de
+   *  journal de la mort, annoncée APRÈS la décision de Destin. Purgé une fois tous finalisés. */
+  bleedDoomed?: { id: string; annonce: EntreeDuJournal }[];
   /** Instantané positionnel pris au PREMIER segment de Mouvement du Tour (R6) : permet
    *  d'ANNULER tout le déplacement tant qu'aucune Action n'a été prise (`annulerLeDeplacement`). Restaure
    *  positions de TOUS les combattants (un grand a pu en déplacer d'autres), orientation et
@@ -672,11 +672,11 @@ export interface EtatDeJeu {
   pendingCleave: PendingCleave | null;
   /** Maniement de deux armes : sélection de la 2ᵉ cible (après une 1ʳᵉ frappe réussie). */
   pendingDualStrike: PendingDualStrike | null;
-  /** File de LIGNES de journal de combat différées (hors `battle.log`) : un hook profond (ex.
+  /** File d'ENTRÉES de journal de combat différées (hors `battle.log`) : un hook profond (ex.
    *  `onGainCondition` ennemi/auto, déclenché AVANT le `set` final qui remplace `battle.log`) y pousse
-   *  ses lignes ; `drainPendingLog` les déverse dans le MÊME `set` atomique qui réécrit `battle.log`
+   *  ses entrées ; `drainPendingLog` les déverse dans le MÊME `set` atomique qui réécrit `battle.log`
    *  (bon ordre, zéro clobber). `cid` = combattant concerné (couleur/portrait du feed). */
-  pendingLogQueue: { line: string; cid?: string }[];
+  pendingLogQueue: { entree: EntreeDuJournal; cid?: string }[];
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `avancerLeTemps`. */
   scheduledEffects: ScheduledEffect[];

@@ -37,9 +37,9 @@ export interface ActorAim {
   kind: ActorAimKind;
 }
 
-/** Construit un événement. */
-export function ev(kind: CombatEventKind, text: string, actorId?: string, targetId?: string): CombatEvent {
-  return { kind, entree: ligneDeTexte(text), actorId, targetId };
+/** Construit un événement d'un texte ou d'une entrée du journal. */
+export function ev(kind: CombatEventKind, ligne: string | EntreeDuJournal, actorId?: string, targetId?: string): CombatEvent {
+  return { kind, entree: typeof ligne === 'string' ? ligneDeTexte(ligne) : ligne, actorId, targetId };
 }
 
 /** L'évènement `condition` de la ligne `text`, qui nomme l'État `etat`. */
@@ -48,21 +48,19 @@ export function evDEtat(etat: string, text: string, actorId?: string): CombatEve
 }
 
 /**
- * Enveloppe une liste de lignes (souvent renvoyées par le moteur en `string[]`) en événements.
+ * Enveloppe une liste de lignes (textes ou entrées du journal) en événements.
  * Les sous-lignes indentées « ↳ … » deviennent des `detail` ; les autres prennent `mainKind`.
  */
 export function evLines(
-  lines: string[],
+  lines: (string | EntreeDuJournal)[],
   mainKind: CombatEventKind,
   actorId?: string,
   targetId?: string,
 ): CombatEvent[] {
-  return lines.map((t) => ({
-    kind: /^\s*↳/.test(t) ? 'detail' : mainKind,
-    entree: ligneDeTexte(t),
-    actorId,
-    targetId,
-  }));
+  return lines.map((l) => {
+    const entree = typeof l === 'string' ? ligneDeTexte(l) : l;
+    return { kind: /^\s*↳/.test(entree.texte) ? 'detail' : mainKind, entree, actorId, targetId };
+  });
 }
 
 /**
@@ -85,7 +83,7 @@ export function evLines(
 export function journaliser(
   get: Get,
   set: SetFn,
-  lines: string[],
+  lines: (string | EntreeDuJournal)[],
   kind: CombatEventKind = 'information',
   opts?: { actorId?: string; targetId?: string; extra?: CombatEvent[] },
 ): void {
@@ -93,7 +91,7 @@ export function journaliser(
   if (!evenements.length) return;
   const b = get().battle;
   if (!b) {
-    get().ecrireAuJournal(evenements.map((e) => e.entree.texte));
+    get().ecrireAuJournal(evenements.map((e) => e.entree));
     return;
   }
   const dits = fixedJetOpen(get()) ? evenements.map((e) => ({ ...e, entree: { ...e.entree, deFixe: true as const } })) : evenements;

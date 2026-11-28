@@ -16,6 +16,7 @@ import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { type OpsCtx, type GameOp } from '../engine/ops';
 import { nomDeSource } from '../engine/faits';
 import { traceLineOf, testTraceLabel } from '../engine/traceLine';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import {
   ARG_TEMPLATE,
@@ -327,7 +328,7 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
    *  onWoundLoss/onKill/onStartled/onRoundStart/Domaine + manœuvres) ; INERTE tant qu'aucune donnée de
    *  trigger ne porte un nœud Flow `test` au 1ᵉʳ niveau (seul Mâchoires d'acier en a un, `onGainCondition`,
    *  câblé via le hook du store). Absent → pas de routage (les flows non-`test` passent par
-   *  `runPureFlowLines`, qui rend le `string[]` tissé inline par l'appelant). */
+   *  `runPureFlowLines`, qui rend les entrées tissées inline par l'appelant). */
   set?: SetFn;
   /** Compte des effets EXERCÉS (passés par l'enveloppe `ciblesDeLEffet`), tenu par l'émetteur qui le fournit
    *  (`emitCombatEvent`). */
@@ -341,13 +342,13 @@ export interface TriggerCtx { victim?: Combatant; weapon?: Weapon; rng: RNG; mar
   /** `OpsCtx.onOpposingAdvantage` (Redoutable AA, `MDG 16 l.13`) — fourni par `turnHooks.fireTurnEdgeTriggers`
    *  pour `onTurnStart` ; threadé tel quel dans le `flowCtx` de CHAQUE effet (l'op `topUpAdvantage` porteuse
    *  du flag `feedOpposingPool` l'appelle). Absent ailleurs → clause inerte (cf. `engine/ops.ts`). */
-  onOpposingAdvantage?: (n: number) => string[] }
+  onOpposingAdvantage?: (n: number) => EntreeDuJournal[] }
 
 /** Flow INTERACTIF (`flowHasTest`) atteint SANS `set` (la voie cadence-aware `routeTriggeredTest` en exige un) : un `test` TOP-LEVEL se joue
  *  inline ; toute autre forme n'a pas de voie d'interaction ici — ses parties PURES jouent (l'État
  *  automatique d'un Critique de Taillade), le nœud `choix` n'est PAS offert. Un `test` ENFOUI lève
  *  toujours (`resolveInlineFlowTest`) : une branche de jet muette n'est jamais acceptable. */
-function resoudreSansRouteur(t: Combatant, actor: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
+function resoudreSansRouteur(t: Combatant, actor: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): EntreeDuJournal[] {
   if (flow.kind === 'test' || !flowHasChoiceSeulement(flow)) return resolveInlineFlowTest(t, actor, flow, ctx, get);
   return runPureFlowLines(t, actor, flow, ctx);
 }
@@ -372,7 +373,7 @@ function flowHasChoiceSeulement(flow: Flow): boolean {
  *  ENFOUI (hors top-level) LÈVE — un tel cas exige la voie cadence-aware (jamais de branche succès muette).
  *  `c` SUBIT le Test (son jet) ; `porteur` est le `caster` de la branche — même paire que la voie routée
  *  (`routeTriggeredTest(get, set, t, actor, …)`). */
-function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): string[] {
+function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx: OpsCtx, get?: Get): EntreeDuJournal[] {
   if (flow.kind !== 'test') throw new Error('resolveInlineFlowTest: nœud non-`test` (un test enfoui exige un routeur cadence-aware).');
   const ft = flow.test;
   // GATE (op-level groupes + Condition générique `gate`) + difficulté DYNAMIQUE (`difficultyBy`) :
@@ -389,7 +390,7 @@ function resolveInlineFlowTest(c: Combatant, porteur: Combatant, flow: Flow, ctx
   const rng = ctx.rng;
   const res = rollTest({ porteur: c.id, teste: designeGaranti(ft, skillLabel) }, base, difficulty, rng, combatTestPenalty(c, { skill: ft.skill?.id }));
   const branch = res.success ? flow.reussite : flow.echec;
-  const lines = [traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel, stepPrecision), difficulty), ...res }), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
+  const lines = [ligneDeTexte(traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel, stepPrecision), difficulty), ...res })), ...runPureFlowLines(c, porteur, branch, { ...ctx, rng, caster: porteur, sl: res.sl })];
   // SEAM `onOwnTestFailed` (voie inline) : un Test déclenché RATÉ par le porteur émet le trigger (Crampes
   // abdominales, MSRC 16 l.152). La garde de RÉ-ENTRANCE de `fireOwnTestFailed` empêche un sous-Test résolu
   // ICI pendant le traitement (FM de palier 2) de ré-émettre. `get` absent (appelant sans store) ⇒ inerte.
@@ -520,8 +521,8 @@ export function flowOffert(eff: TriggeredEffect): Flow {
  *  est `resolveFreeAttacks` (combatFlow), qui tient le tiers visé (LDB 10 l.500). */
 export function applyTriggeredEffects(
   get: Get, actor: Combatant, effects: TriggeredEffect[], trigger: EffectTrigger, ctx: TriggerCtx,
-): string[] {
-  const lines: string[] = [];
+): EntreeDuJournal[] {
+  const lines: EntreeDuJournal[] = [];
   const rng = ctx.rng;
   const resolveTrapping = objetDuNarratif(get().campaignNarratif);
   // Valeur RELATIONNELLE de combat calculée UNE fois pour le porteur (battle-aware) : écart d'Avantage
@@ -595,7 +596,7 @@ export function applyTriggeredEffects(
  * l'AJOUTER ICI, jamais un nouveau chemin de dispatch. (Effets propres à une MANŒUVRE = scoped à son
  * profil via `maneuverEffectsOf`.)
  */
-export function fireTriggers(get: Get, actor: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
+export function fireTriggers(get: Get, actor: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): EntreeDuJournal[] {
   const lines = applyTriggeredEffects(get, actor, effectsOf(actor, objetDuNarratif(get().campaignNarratif), ctx.weapon), trigger, ctx);
   lines.push(...fireConditionEffects(get, actor, trigger, ctx)); // États dispatchés EXACTEMENT comme Traits
   lines.push(...firePsychEffects(get, actor, trigger, ctx)); // états PSY (Frénésie…) — MÊME folding générique
@@ -623,7 +624,7 @@ export function resetOwnTestFailedGuard(): void { firingOwnTestFailed = false; }
  * PNJ → inline) ; `set` absent (hors combat, inline) ⇒ sous-Test inline. La ré-entrance tient dans les deux
  * cadences (drapeau module pour l'inline synchrone + tampon `noOwnTestFailed` sur l'étape de cascade).
  */
-export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { sl: number; rng: RNG; set?: SetFn }): string[] {
+export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { sl: number; rng: RNG; set?: SetFn }): EntreeDuJournal[] {
   if (firingOwnTestFailed) return []; // ré-entrance SYNCHRONE (sous-Test inline du palier 2) → jamais de ré-émission
   const a = typeof actor === 'string' ? porteurParId(get(), actor) : actor;
   if (!a) return [];
@@ -644,8 +645,8 @@ export function fireOwnTestFailed(get: Get, actor: Combatant | string, opts: { s
 function fireStatusEffects(
   get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx,
   statuses: { effects?: TriggeredEffect[]; stacks: number; affliction?: PsychAffliction }[],
-): string[] {
-  const lines: string[] = [];
+): EntreeDuJournal[] {
+  const lines: EntreeDuJournal[] = [];
   for (const s of statuses) {
     if (!s.effects?.length) continue;
     lines.push(...applyTriggeredEffects(get, c, s.effects, trigger, { ...ctx, stacks: s.stacks, ...(s.affliction ? { affliction: s.affliction } : {}) }));
@@ -662,7 +663,7 @@ export function sourcesDEtats(c: Combatant, resolveTrapping: TrappingResolver): 
   return effectSourcesOf(c, resolveTrapping).filter((s) => s.key.startsWith('cond:'));
 }
 
-export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
+export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): EntreeDuJournal[] {
   return fireStatusEffects(get, c, trigger, ctx, sourcesDEtats(c, objetDuNarratif(get().campaignNarratif)).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1 })));
 }
 
@@ -671,7 +672,7 @@ export function fireConditionEffects(get: Get, c: Combatant, trigger: EffectTrig
  * l.39, l.48), une instance ciblée avec son `affliction`. MÊME cœur que les États (`fireStatusEffects`) ; la donnée
  * vit dans `psychology.json`. Inerte tant que `psychState` ne porte aucun type doté d'`effects`.
  */
-export function firePsychEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): string[] {
+export function firePsychEffects(get: Get, c: Combatant, trigger: EffectTrigger, ctx: TriggerCtx): EntreeDuJournal[] {
   return fireStatusEffects(get, c, trigger, ctx, effectSourcesOf(c, objetDuNarratif(get().campaignNarratif)).filter((s) => s.key.startsWith('psy:')).map((s) => ({ effects: s.effects, stacks: s.stacks ?? 1, affliction: s.affliction })));
 }
 

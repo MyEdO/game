@@ -1,4 +1,5 @@
 import { describe, it, beforeEach, expect } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { applyCoupCritiqueSec, instantaneAvantLeCoup } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -42,7 +43,7 @@ const caster = (): Combatant =>
 const missile = (): SpellData =>
   ({ id: idDeFixture('spell', 'dard'), type: 'spells', label: 'Dard', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, missile: true, damage: 8 });
 
-const critCast: CastResult = { cast: true, roll: 50, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
+const critCast: CastResult = { cast: true, roll: 50, target: 60, sl: 2, isCritical: true, isFumble: false, log: ligneDeTexte('') };
 
 describe('#80 Projectile magique — Dégâts recalculés à la Localisation fournie (evaluateMissile locOverride)', () => {
   it('locOverride → Localisation = override, Dégâts RÉ-ÉVALUÉS à cette loc (PA portés à cette loc)', () => {

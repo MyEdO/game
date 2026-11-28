@@ -1,6 +1,7 @@
 import { expect, it, vi } from 'vitest';
 import { resetData, setDataset } from '../data/overrides';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { nomDe } from '../engine/nom';
 import { t } from '../i18n';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { ouvrirLeBanc } from './banc.testkit';
@@ -107,7 +108,7 @@ it.each([
   const interrompu = get().travelPlan!;
   expect(interrompu.log ?? []).toEqual([]);
   expect(get().vessel?.daysToEvent).toBe(compteur - 1);
-  const lignesAuCombat = interrompu.sea!.lines;
+  const lignesAuCombat = interrompu.sea!.lines.map((e) => e.texte);
   const pvAuCombat = interrompu.procesVerbal ?? [];
   expect(lignesAuCombat.filter((l) => l === t('sv.lookoutKo'))).toHaveLength(1);
   expect(lignesAuCombat.filter((l) => l === lignePanne)).toHaveLength(vapeur ? 1 : 0);
@@ -138,9 +139,9 @@ it.each([
   expect(entreesDuPremierJour.slice(0, pvAuCombat.length)).toEqual(pvAuCombat);
   expect(premierSoir.procesVerbal ?? []).toEqual([]);
   for (const ligne of new Set(lignesAuCombat)) {
-    expect(premierJour.lines.filter((l) => l.text === ligne)).toHaveLength(lignesAuCombat.filter((l) => l === ligne).length);
+    expect(premierJour.lines.filter((l) => l.entree.texte === ligne)).toHaveLength(lignesAuCombat.filter((l) => l === ligne).length);
   }
-  expect(premierJour.lines.filter((l) => l.text.startsWith(prefixeMeteo))).toHaveLength(1);
+  expect(premierJour.lines.filter((l) => l.entree.texte.startsWith(prefixeMeteo))).toHaveLength(1);
 
   get().fenetreValider('repos');
   banc.reprendreTout();
@@ -150,7 +151,47 @@ it.each([
   expect([deuxiemeSoir.sea!.daysAtSea, get().vessel?.daysToEvent, deuxiemeSoir.log?.length]).toEqual([2, compteur - 2, 2]);
   const [jourConserve, lendemain] = deuxiemeSoir.log!;
   expect(jourConserve).toEqual(premierJour);
-  expect(lendemain.lines.filter((l) => l.text.startsWith(prefixeMeteo))).toHaveLength(1);
-  expect(lendemain.lines.filter((l) => l.text === t('sv.lookoutKo') || l.text === lignePanne)).toEqual([]);
+  expect(lendemain.lines.filter((l) => l.entree.texte.startsWith(prefixeMeteo))).toHaveLength(1);
+  expect(lendemain.lines.filter((l) => l.entree.texte === t('sv.lookoutKo') || l.entree.texte === lignePanne)).toEqual([]);
   for (const entree of entreesDuPremierJour) expect(lendemain.entries).not.toContainEqual(entree);
+});
+
+it('#4574 — au recap du jour de mer, la contraction du mal de mer garde le ton que son issue authore', () => {
+  const banc = ouvrirLeBanc();
+  const get = banc.getState;
+  const set = banc.setState;
+  const traversee: WorldMap = { ...carte, routes: [{ ...carte.routes[0], ambush: undefined }] };
+  const [heros] = tousLesHerosDeScenario(idsDeTest);
+  set({ party: [heros] });
+  get().chargerLeProjet({
+    scenes: [emptyScene('port-a', 2, 2), emptyScene('port-b', 2, 2)],
+    entryId: 'port-a', worldMap: traversee, projet: null,
+  });
+  set({
+    party: [{ ...heros, shipRole: 'repos' }],
+    vessel: { uid: 'navire-test', vehicleId: 'cogue', morale: { score: 75, lastMoraleWeek: 0, factors: [] } },
+    gameTime: 8 * 60, lastUpkeepDay: 0,
+  });
+  seedBattleRng(7);
+  set({ travelPlan: buildSeaPlan(get, 'r1', 'A', 'B', traversee.routes[0], { cadence: 'commande' })! });
+  const rng = battleRng();
+  const tirer = rng.int;
+  vi.spyOn(rng, 'int').mockImplementation((min, max) => (min === 1 && max === 100 ? 96 : tirer(min, max)));
+  try {
+    runSeaDay(get, set);
+    banc.reprendreTout();
+    for (let i = 0; i < 30 && !get().pendingRest; i++) {
+      if (get().pendingCascade) avanceEtapeCascade(get);
+      else if (get().travelPlan?.interrupted) get().reprendreLeVoyage();
+      else break;
+      banc.reprendreTout();
+    }
+  } finally {
+    vi.restoreAllMocks();
+  }
+  expect(get().pendingRest, 'la journée ouvre sa halte').toBeTruthy();
+  const [jour] = get().travelPlan!.log!;
+  const texte = t('sv.seasickGot', { name: nomDe(heros) });
+  const contraction = jour.lines.filter((l) => l.entree.texte === texte);
+  expect(contraction.map((l) => l.entree), 'une contraction, au ton de son issue').toEqual([{ sorte: 'ligne', texte, ton: 'echec' }]);
 });

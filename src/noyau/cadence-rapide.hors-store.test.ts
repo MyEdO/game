@@ -4,7 +4,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { startCascade } from './cascade';
-import { freeCons } from './rollSeam';
 import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
 import { tickCombatAuto } from './combatAuto';
 
@@ -12,6 +11,7 @@ import type { CascadeStep } from './pendings';
 import { setCadence } from '../engine/cadence';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
 import { tablesDuJeu } from './tablesDuJeu';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -25,7 +25,7 @@ describe('Cadence Rapide — auto-résolution des cascades par le driver', () =>
   const applied: string[] = [];
   beforeEach(() => {
     applied.length = 0;
-    avecLesTables({ appliers: { ...tablesDuJeu().appliers, tally: spyApplier(applied, (step) => step.id, (step) => ({ consequences: freeCons([step.id]) })) } });
+    avecLesTables({ appliers: { ...tablesDuJeu().appliers, tally: spyApplier(applied, (step) => step.id, (step) => ({ applique: { lignes: [ligneDeTexte(step.id)], faits: [] } })) } });
   });
 
   function hero() {

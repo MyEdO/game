@@ -32,7 +32,7 @@ import { d10, d100, type RNG } from '../engine/dice';
 import { petitePriereAnswered } from '../engine/prayer';
 import { applyOps, resolveFormula, demandesDeDes, gelerOpsCtx, D10_CHUTE, estOpDuNavire, estOpDAttaquesSubies, estOpDeLaBourseDuGroupe, estOpDuMarche, tirerLaTable,
   type OpsCtx, type DemandeDe, type Formula, type GameOp } from '../engine/ops';
-import { nomDeSource, type Applique as LignesEtFaits, type FaitApplique } from '../engine/faits';
+import { nomDeSource, type Applique, type FaitApplique } from '../engine/faits';
 import { rule } from '../engine/policy';
 import { resoudreLeChoixDuTrait } from '../engine/traitOctroye';
 import { corruptionTarget, poseCorruptionPending, expositionPending, crochetsDeCorruption } from './corruptionFlow';
@@ -158,7 +158,7 @@ import {
   annoterEtapeDeLaFenetre,
 } from './cascade';
 import { exposureWaveBand } from './nightBands';
-import { choiceStep, freeCons, rollStep, hostStep, idDansLaSequence, monoStep, openBand, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
+import { choiceStep, rollStep, hostStep, idDansLaSequence, monoStep, openBand, openChoice, openSequence, pousseSi, pushDie } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { refusDeLaPoursuite, startGroundPursuit } from './pursuitFlow';
 import { sourceExposureMod, autoExposureMods, drawWaterDisease, isWounded } from '../engine/waterExposure';
@@ -194,6 +194,7 @@ import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantageP
 import { poserLeGroupe } from './marcheDuGroupe';
 import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
 import { nomDe } from '../engine/nom';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -239,7 +240,7 @@ export function pushReveal(
     (s) => (sequenceDuPiloteAContexteHorsCombat(s) ? site : revealPurpose(site, !!opts?.own)(s)));
 }
 
-/** Vide la file de lignes de journal différées (`pendingLogQueue`) → événements de combat. SOURCE
+/** Vide la file d'entrées de journal différées (`pendingLogQueue`) → événements de combat. SOURCE
  *  UNIQUE : appelée JUSTE AVANT chaque couture qui réécrit `battle.log` (le `set` y replace `log` →
  *  les lignes poussées par un hook profond — `onGainCondition` ennemi/auto — seraient sinon clobberées).
  *  Clôt la file (set) et RENVOIE les événements pour que l'appelant les FOLDE dans le MÊME `log` réécrit
@@ -248,13 +249,13 @@ export function drainPendingLog(get: Get, set: SetFn): CombatEvent[] {
   const q = get().pendingLogQueue;
   if (!q.length) return [];
   set({ pendingLogQueue: [] });
-  return q.map((e) => ev('detail', e.line, e.cid));
+  return q.map((e) => ev('detail', e.entree, e.cid));
 }
 
-/** Pousse les lignes d'un émetteur profond dans la file différée : SEUL écrivain de `pendingLogQueue`, que
+/** Pousse les entrées d'un émetteur profond dans la file différée : SEUL écrivain de `pendingLogQueue`, que
  *  `drainPendingLog` vide. */
-export function enfilerAuJournal(get: Get, set: SetFn, lines: string[], cid: string): void {
-  if (lines.length) set({ pendingLogQueue: [...get().pendingLogQueue, ...lines.map((line) => ({ line, cid }))] });
+export function enfilerAuJournal(get: Get, set: SetFn, entrees: readonly EntreeDuJournal[], cid: string): void {
+  if (entrees.length) set({ pendingLogQueue: [...get().pendingLogQueue, ...entrees.map((entree) => ({ entree, cid }))] });
 }
 
 /** Pousse une ÉTAPE de séquence de combat déjà MINTÉE (`BuiltCascadeStep` — un constructeur de la
@@ -368,7 +369,7 @@ export function gearFromEffects(effects: Effect[], objetDe: TrappingResolver, id
  *  s'applique à la bourse ET s'affiche ; les textes `journal` du lot deviennent le texte
  *  d'ambiance de la fenêtre. Sans butin (ou en combat : Ramasser/victoire ont leurs flux),
  *  strictement équivalent à applyEffects. Fenêtre déjà ouverte → le butin s'y AJOUTE. */
-export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title: string, sl?: number): Applique {
+export function applyEffectsLoot(get: Get, set: SetFn, effects: Effect[], title: string, sl?: number): SignalDeSuite {
   if (get().battle) return applyEffects(get, set, effects, sl);
   const { gear, rest } = gearFromEffects(structuredClone(effects), objetDuNarratif(get().campaignNarratif), get().forgerUnId); // #2097
   // #2689
@@ -551,7 +552,7 @@ export const MAIN_RENDUE = Symbol('#2689 main rendue : un porteur tient la suite
  * tombe par terre n'est ni l'un ni l'autre, et le scan de forme le refuse
  * (`roll-seam-exclusivity-guard.test.ts`).
  */
-export type Applique = typeof MAIN_RENDUE | undefined;
+export type SignalDeSuite = typeof MAIN_RENDUE | undefined;
 
 /**
  * CONSOMME le signal là où RIEN NE SUIT (#1508) : l'instruction suivante du site est son `return` ou
@@ -570,7 +571,7 @@ export type Applique = typeof MAIN_RENDUE | undefined;
  *
  * Le type et le lint acceptent un appel de fonction dont la valeur rendue est jetée.
  */
-export function jouerFlowEntier(_applique: Applique): void {
+export function jouerFlowEntier(_applique: SignalDeSuite): void {
   // Rien : la valeur est CONSOMMÉE par le seul fait d'être nommée ici (cf. contrat ci-dessus).
 }
 
@@ -583,7 +584,7 @@ export function jouerFlowEntier(_applique: Applique): void {
  * nommément, au lieu d'inverser l'ordre en silence. Un site qui « ne devrait pas » différer et le
  * ferait est un fait à connaître, pas une perte à découvrir au journal.
  */
-export function nePeutPasDifferer(applique: Applique, site: string): void {
+export function nePeutPasDifferer(applique: SignalDeSuite, site: string): void {
   if (applique === MAIN_RENDUE) {
     throw new Error(`#1508 — « ${site} » a ouvert un dé à la porte alors que sa donnée n'en porte pas : `
       + 'ce qui suit ce site jouerait devant le dé. Lui confier une continuation (`confierLaSuite`).');
@@ -601,7 +602,7 @@ export function nePeutPasDifferer(applique: Applique, site: string): void {
  *  inconnue, coque absente au contexte) AVANT qu'aucune op de la feuille ne s'applique — une feuille
  *  qu'on ne sait pas annoncer entièrement ne s'applique pas à moitié. Même politique que le `case`
  *  correspondant du moteur, qui levait déjà au même endroit. */
-export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof MAIN_RENDUE {
+export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): EntreeDuJournal[] | typeof MAIN_RENDUE {
   const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
   const ctx = leafOpsCtx({
@@ -623,7 +624,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   }
   const avant = comptePorteursDeSuite(get());
   const lignes = applyOps(c, rest, ctx).lignes;
-  if (!get().battle) lignes.push(...drainPendingLog(get, set).map((e) => e.entree.texte));
+  if (!get().battle) lignes.push(...drainPendingLog(get, set).map((e) => e.entree));
   if (comptePorteursDeSuite(get()) <= avant) return lignes;
   set(touchActors(get()));
   journaliser(get, set, lignes, 'etat', { actorId: c.id });
@@ -701,7 +702,7 @@ function opsDeLEtape(step: CascadeStep): GameOp[] | null {
 function appliquerLesOpsReprises(get: Get, set: SetFn, cible: Combatant, ops: GameOp[], ctx: OpsCtx) {
   const journal = applyOps(cible, ops, ctx).lignes;
   set(touchActors(get()));
-  return { consequences: freeCons(journal) };
+  return { applique: { lignes: journal, faits: [] } };
 }
 
 /** IDENTITÉ de la grappe de dés d'une étape : celle qu'elle DÉCLARE, sinon la SIENNE (elle l'ouvre). */
@@ -925,7 +926,7 @@ export function jouerLesClotures(get: Get, set: SetFn, suite: Suite): void {
  * Le site n'a donc aucune question à se poser (« y a-t-il un dé en vol ? ») : il DIT ce qu'il allait
  * faire ensuite, et la porte décide quand.
  */
-export function cloturer(get: Get, set: SetFn, applique: Applique, suite: Suite): void {
+export function cloturer(get: Get, set: SetFn, applique: SignalDeSuite, suite: Suite): void {
   if (applique === MAIN_RENDUE) { confierLaSuite(set, suite); return; }
   jouerLesClotures(get, set, suite);
 }
@@ -1328,25 +1329,25 @@ export function ouvrirEtConfier(get: Get, set: SetFn, ouvre: () => void, reste: 
  * reste à consommer et repart en tête de la continuation (il branchera quand le porteur sera clos, sur
  * l'état que sa conséquence aura produit).
  */
-export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.titreDeFlux'), sl?: number): Applique {
+export function runFlow(get: Get, set: SetFn, flow: Flow, label: string = t('eff.titreDeFlux'), sl?: number): SignalDeSuite {
   const batch: Effect[] = [];
-  const flush = (): Applique => {
+  const flush = (): SignalDeSuite => {
     return batch.length ? applyEffectsLoot(get, set, batch.splice(0), label, sl) : undefined;
   };
-  const confier = (flow: Flow): ArretDeFlow<Applique> => {
+  const confier = (flow: Flow): ArretDeFlow<SignalDeSuite> => {
     confierLaSuite(set, [{ verbe: 'reprendreFlow', flow, label, ...(sl !== undefined ? { sl } : {}) }]);
     return { arret: MAIN_RENDUE };
   };
   /** Le lot vient de rendre la main : `node` (non consommé) et le reste de la pile deviennent la suite du porteur. */
-  const vidange = (node: Flow, reste: ResteDuFlow<Effect>): ArretDeFlow<Applique> | undefined =>
+  const vidange = (node: Flow, reste: ResteDuFlow<Effect>): ArretDeFlow<SignalDeSuite> | undefined =>
     (flush() ? confier({ kind: 'sequence', etapes: [node, ...reste().etapes] }) : undefined);
   /** `sinon` : la pile quand la décision n'a pas été ouverte (rien à décider), `after` quand elle s'est résolue aussitôt. */
-  const ouvrir = (ouvre: () => boolean, after: Flow, sinon: Flow): ArretDeFlow<Applique> | Flow => {
+  const ouvrir = (ouvre: () => boolean, after: Flow, sinon: Flow): ArretDeFlow<SignalDeSuite> | Flow => {
     let ouverte = false;
     if (ouvrirEtConfier(get, set, () => { ouverte = ouvre(); }, after, label, sl)) return { arret: MAIN_RENDUE };
     return ouverte ? after : sinon;
   };
-  return executerFlow<Effect, Applique>(lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng()))), { // #2097
+  return executerFlow<Effect, SignalDeSuite>(lierLesTirages(structuredClone(flow), (de) => Math.round(resolveFormula(de, referentDeScene(get, set), battleRng()))), { // #2097
     // Le DR du Test dont ce Flow est la branche se lit aux Conditions (`slThreshold`).
     conditions: () => ({ ...condCtx(get), ...(sl !== undefined ? { sl } : {}) }),
     avantDecision: vidange,
@@ -1459,7 +1460,7 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
 export interface EffectEnv {
   get: Get;
   set: SetFn;
-  log(line: string): void;
+  log(ligne: string | EntreeDuJournal): void;
   pushReveal(entry: RevealEntry): void;
   /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetValider('test')`/`pt.sl`, symétrique de
    *  `opsCtx.sl` en combat, `testDeclenche.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
@@ -1493,7 +1494,7 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): Effec
     set,
     sl,
     label,
-    log: (line) => get().ecrireAuJournal(line),
+    log: (ligne) => get().ecrireAuJournal(ligne),
     pushReveal: (entry) => pushReveal(set, entry),
     targets: (on, heroId) => effectTargets(get(), on, heroId),
     hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
@@ -2086,7 +2087,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const feuille = e.pendantJours == null ? e : avecDureeTiree(env, e, e.pendantJours, targets[0], base.rng);
       // Une cible dont la feuille part à la PORTE (#1508) n'a pas de ligne ICI : sa conséquence se dit
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
-      const lines: string[] = [];
+      const lines: EntreeDuJournal[] = [];
       for (const c of targets) {
         const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
         if (issue !== MAIN_RENDUE) lines.push(...issue);
@@ -2117,7 +2118,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // La géométrie se lit sur le pool ci-dessus ; les Effets s'appliquent à l'acteur en jeu par id (`actorIn`, #4860).
       const lines = targets.flatMap((c) => {
         const real = actorIn(env.get(), c.id) ?? c;
-        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }).lignes;
+        return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }).lignes.map((l) => l.texte);
       });
       env.set(touchActors(env.get()));
       env.log(t('eff.souffleDeZone', { lines: lines.join(' · ') }));
@@ -2210,9 +2211,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           lines.push(...r.log);
           damage += r.damage;
         }
-        const consequences: LignesEtFaits = { lignes: [], faits: [] };
+        const consequences: Applique = { lignes: [], faits: [] };
         loseWounds(c, damage, consequences);
-        lines.push(...consequences.lignes);
+        lines.push(...consequences.lignes.map((e) => e.texte));
       }
       if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
     },
@@ -2235,9 +2236,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           lines.push(...r.log);
           damage += r.damage;
         }
-        const consequences: LignesEtFaits = { lignes: [], faits: [] };
+        const consequences: Applique = { lignes: [], faits: [] };
         loseWounds(c, damage, consequences);
-        lines.push(...consequences.lignes);
+        lines.push(...consequences.lignes.map((e) => e.texte));
       }
       if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
     },
@@ -2731,15 +2732,15 @@ function openWaterExposure(get: Get, set: SetFn, heroes: readonly Combatant[], e
  *  n'est pas blessé » honoré par `drawWaterDisease`. Déjà porteur → rien de neuf (dédoublonnée). */
 const appliquerLExpositionHydrique: CascadeApplier = (_get, _set, step, hero) => {
   if (!hero || !step.result) return;
-  if (step.result.success) return { consequences: freeCons([t('eff.eauSansContagion', { name: nomDe(hero) })]) };
+  if (step.result.success) return { applique: { lignes: [ligneDeTexte(t('eff.eauSansContagion', { name: nomDe(hero) }))], faits: [] } };
   const draw = drawWaterDisease(Math.max(0, -step.result.sl), isWounded(hero), battleRng());
   const lines = applyContraction(hero, draw.disease, false, battleRng());
   const rollTxt = draw.modified !== draw.roll ? `${draw.roll} (+${draw.modified - draw.roll} → ${draw.modified})` : String(draw.roll);
   return {
-    consequences: freeCons([
-      t('eff.tirageDeLEau', { roll: rollTxt, disease: diseaseLabel(draw.disease) }),
-      ...(lines.length ? lines : [t('eff.eauDejaPorteur', { name: nomDe(hero) })]),
-    ]),
+    applique: { lignes: [
+ligneDeTexte(t('eff.tirageDeLEau', { roll: rollTxt, disease: diseaseLabel(draw.disease) })),
+...(lines.length ? lines : [t('eff.eauDejaPorteur', { name: nomDe(hero) })]).map((x) => ligneDeTexte(x)),
+], faits: [] },
   };
 };
 
@@ -2748,10 +2749,10 @@ const appliquerLExpositionHydrique: CascadeApplier = (_get, _set, step, hero) =>
  * porteur de suite (dé à la porte, geste joueur) lui laisse le RESTE du lot : la boucle s'arrête là, aucun Effet
  * ne se perd ni ne passe devant.
  */
-export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number, label?: string): Applique {
+export function applyEffects(get: Get, set: SetFn, effects: Effect[], sl?: number, label?: string): SignalDeSuite {
   const env = makeEffectEnv(get, set, sl, label);
   const file = structuredClone(effects); // #2097
-  let differe: Applique;
+  let differe: SignalDeSuite;
   while (file.length) {
     const e = file.shift()!;
     const handler = EFFECT_HANDLERS[e.type] as EffectHandler;
@@ -2809,9 +2810,9 @@ export const TABLES = {
       const ops = opsDeLEtape(step);
       if (!ops || !step.de?.result) return;
       // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
-      if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!hero) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
-      if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      if (!ctx) return { applique: { lignes: [ligneDeTexte(t('cascade.coqueDisparue', { label: step.label ?? '' }))], faits: [] } };
       const groupe = groupeDe(step);
       const des = new Map<string, number>();
       for (const s of sctx.steps.slice(0, sctx.index + 1)) {
@@ -2829,9 +2830,9 @@ export const TABLES = {
       const op = opsDeLEtape(step)?.[0];
       const choix = step.options?.find(({ key }) => key === step.chosen);
       if (op?.op !== 'grantTrait' || !choix) return;
-      if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!cible || cible.dead) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const ctx = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
-      if (!ctx) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      if (!ctx) return { applique: { lignes: [ligneDeTexte(t('cascade.coqueDisparue', { label: step.label ?? '' }))], faits: [] } };
       return appliquerLesOpsReprises(get, set, cible, [resoudreLeChoixDuTrait(op, choix.key)], ctx);
     },
     /** Décision d'un nœud `choix` de `runFlow` (`ouvrirLeChoixDuFlow`) : la branche choisie, sous le libellé et le DR
@@ -2840,14 +2841,14 @@ export const TABLES = {
       if (step.chosen !== 'oui' && step.chosen !== 'non') return;
       const branche = (step.chosen === 'oui' ? step.meta?.choiceYes : step.meta?.choiceNo) ?? EMPTY_FLOW;
       jouerFlowEntier(runFlow(get, set, branche, step.meta?.flowLabel, step.meta?.flowSl));
-      return { consequences: freeCons([]) };
+      return { applique: { lignes: [], faits: [] } };
     },
     /** Réponse d'un héros à la question des VOLONTAIRES (`demanderLesVolontaires`) : la dernière étape de la
      *  série joue la feuille sur chaque héros qui a dit oui ; la continuation est la suite confiée à l'étape. MDG 15 l.196 */
     volontaireDeFlux: (get, set, step, _hero, sctx) => {
       if (step.chosen !== 'oui' && step.chosen !== 'non') return;
       const feuille = step.meta?.choiceYes;
-      if (!feuille || feuille.kind !== 'effet' || feuille.effet.type !== 'ops') return { consequences: freeCons([]) };
+      if (!feuille || feuille.kind !== 'effet' || feuille.effet.type !== 'ops') return { applique: { lignes: [], faits: [] } };
       const e = feuille.effet;
       const oui = sctx.steps.slice(0, sctx.index + 1)
         .filter((x) => x.kind === 'volontaireDeFlux' && x.id.startsWith(`volontaireDeFlux-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'oui' && x.actorId)
@@ -2855,27 +2856,27 @@ export const TABLES = {
       if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
       const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'effet', effet: { ...e, on: 'heros', heroId } }));
       jouerFlowEntier(runFlow(get, set, { kind: 'sequence', etapes: feuilles }, step.meta?.flowLabel, step.meta?.flowSl));
-      return { consequences: freeCons([]) };
+      return { applique: { lignes: [], faits: [] } };
     },
     /** Contraction de l'équipage collectif (`appliquerALEquipage`) : le verdict de sa rangée. LDB 20 l.25 ; MDG 15 l.161 */
     [MALADIE_DE_L_EQUIPAGE]: (get, set, step) => ({
-      consequences: freeCons((step.participants ?? []).flatMap((row) =>
-        contracterABord(get, set, row, String(step.meta?.disease ?? ''), battleRng(), { instant: !!step.meta?.instant })?.lignes ?? [])),
+      applique: { lignes: (step.participants ?? []).flatMap((row) =>
+        contracterABord(get, set, row, String(step.meta?.disease ?? ''), battleRng(), { instant: !!step.meta?.instant })?.lignes ?? []).map((x) => ligneDeTexte(x)), faits: [] },
     }),
     chuteDe: (get, set, step, hero) => {
       const metres = step.meta?.chuteMetres;
       // Le dé n'a pas encore de résultat : l'étape est ouverte, rien à appliquer — le goulot repassera.
       if (typeof metres !== 'number' || !step.de?.result) return;
       // Cible introuvable = conséquence PERDUE : elle se DIT, comme la coque disparue (`ctxRepris`).
-      if (!hero) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!hero) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const avant = hero.wounds.current;
-      const chute: LignesEtFaits = { lignes: [], faits: [] };
+      const chute: Applique = { lignes: [], faits: [] };
       applyFall(hero, metres, step.de.result.total, chute);
       // Ce que LA CHUTE a coûté, lu IMMÉDIATEMENT après elle : la ligne dit sa propre conséquence, pas le
       // solde de tout ce qui suivra (la suite confiée à l'étape est rejouée par le goulot, plus tard).
       const perte = avant - hero.wounds.current;
       set(touchActors(get()));
-      return { consequences: freeCons([t('eff.chuteDeLaCible', { name: nomDe(hero), m: metres, lost: perte }), ...chute.lignes]) };
+      return { applique: { lignes: [ligneDeTexte(t('eff.chuteDeLaCible', { name: nomDe(hero), m: metres, lost: perte })), ...chute.lignes], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   clotures: {

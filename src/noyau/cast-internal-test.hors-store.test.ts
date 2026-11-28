@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { openCastCascade } from './combatFlow'; // effet de bord : installe l'applier `testDeclenche` + le routeur de Test
@@ -49,7 +50,7 @@ describe('Lot 4b — Sort à Test interne (Chute) cadence-aware en contexte d’
     banc.setState({
       pendingCast: {
         casterId: W.id, targetId: target.id, spellId: 'chute', missile: false,
-        result: { cast: true, roll: 22, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' },
+        result: { cast: true, roll: 22, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') },
       },
     });
     openCastCascade(banc.getState, banc.setState, W);

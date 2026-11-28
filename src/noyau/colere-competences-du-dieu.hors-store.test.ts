@@ -97,7 +97,7 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
     const effets = structuredClone(soldat.activeEffects ?? []);
     const { lignes } = subirLaColere(soldat, 1, 16, aucunDe);
     expect(soldat.activeEffects ?? []).toEqual(effets);
-    expect(lignes.join('\n')).toMatch(/aucune Compétence associée à sa divinité/);
+    expect(lignes.map((e) => e.texte).join('\n')).toMatch(/aucune Compétence associée à sa divinité/);
   });
 
   it('dieu sans liste : la rangée est sans effet, aucun dé tiré, et le journal le dit', () => {
@@ -109,7 +109,7 @@ describe('Colère des dieux — malus aux Compétences associées à la divinit�
       const effets = structuredClone(p.activeEffects ?? []);
       const { lignes } = subirLaColere(p, 3, 26, aucunDe);
       expect(p.activeEffects ?? []).toEqual(effets);
-      expect(lignes.join('\n')).toMatch(/aucune Compétence associée à sa divinité/);
+      expect(lignes.map((e) => e.texte).join('\n')).toMatch(/aucune Compétence associée à sa divinité/);
     } finally {
       setDataset('gods', initiaux);
     }

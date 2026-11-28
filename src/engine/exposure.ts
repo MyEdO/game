@@ -185,7 +185,7 @@ export function applyExposureFailure(c: Combatant, failures: number, rng: RNG, k
   const dmg = Math.max(1, rng.int(1, 10));
   const consequences: Applique = { lignes: [], faits: [] };
   loseWounds(c, dmg, consequences);
-  log.push(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }), ...consequences.lignes);
+  log.push(t('exp.wounds', { name: nomDe(c), what: kind === 'froid' ? t('exp.fromCold') : t('exp.fromHeat'), dmg }), ...consequences.lignes.map((e) => e.texte));
   if (kind === 'froid' && c.wounds.current <= 0) {
     const deja = hasCondition(c, 'inconscient');
     addCondition(c, 'inconscient');

@@ -13,6 +13,7 @@
  *  - Résistance (Menace) d'une étape de cascade (`jetResister('cascade')`).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
 import { initialFields } from './stateFields';
@@ -77,7 +78,7 @@ function ouvreOpposition() {
     pendingCascade: cascadeDeTest([{ id: 's0', kind: cleDeFixture('castJet'), jet: 'incantation', groupOwner: true }]),
     pendingCast: {
       casterId: 'e1', targetId: 'h2', spellId: 'fauche-demon', missile: false,
-      result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
+      result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: ligneDeTexte('x') },
     } as never,
     pendingCastOpposition: { participants: [{ id: 'h2', interactive: true, result: null }], test: { characteristic: 'force-mentale' }, menace: 'magie' } as never,
   });

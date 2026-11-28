@@ -73,11 +73,11 @@ import { stageAssignmentFromRoles, type StagePosting } from '../engine/activitie
 import { buildStageSteps, buildWeatherResistanceSteps, groupeAuxAguets, type StageContext } from './travelPostes';
 import { rangerLesEvenements } from './evenementDuJour';
 import { jouerLaJournee, type TableStepDef, type TableStepRow } from './cascade';
-import { freeCons, rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
+import { rollSansPilote, monoStep, surfaceOf, tableStep, pousseSi } from './rollSeam';
 import { t } from '../i18n';
 import { WORLD_STEP_OWNER, type CascadeStep, type PendingCascade } from './pendings';
-import type { RecapLine } from './recapLine';
-import { toRecapLines, phaseOfKind } from './recapLine';
+import { type RecapLine, recapDe } from './recapLine';
+import { phaseOfKind } from './recapLine';
 import { buildSeaPlan, refusDuDepartEnMer, runSeaDay, startFastVoyage, syncHullWoundsFromVessel, coqueDuNavireDeCampagne } from './seaVoyageFlow';
 import { buildRiverPlan, coqueDeDescente, runRiverDays, vitesseDeDescente } from './riverVoyageFlow';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -92,6 +92,7 @@ import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { nomDe } from '../engine/nom';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Une journée du récapitulatif de voyage (audit M4) : progression + ce qui s'y est passé. */
 export interface TravelRecapDay {
@@ -675,7 +676,7 @@ function runTravelDays(get: Get, set: Set): void {
     set({ travelPlan: { ...get().travelPlan!, kmDone } });
     const recapDay: TravelRecapDay = {
       kmFrom: plan.kmDone, kmTo: kmDone, hours: hoursToday,
-      lines: toRecapLines([...(aPied ? [t('tf.pasTousMontes')] : []), ...(forced?.lines ?? [])]),
+      lines: recapDe([...(aPied ? [t('tf.pasTousMontes')] : []), ...(forced?.lines ?? [])].map((x) => ligneDeTexte(x))),
       entries: [...(forced?.entries ?? [])],
     };
     recap?.days.push(recapDay);
@@ -687,7 +688,7 @@ function runTravelDays(get: Get, set: Set): void {
       if (forced.vehicleOut) {
         set({ travelPlan: { ...get().travelPlan!, mode: 'pied', allure: undefined } });
         log(get, set, [t('tf.vehiculeHorsDUsage')]);
-        recapDay.lines.push({ text: t('tf.vehiculeHorsDUsage'), tone: 'echec' });
+        recapDay.lines.push({ entree: ligneDeTexte(t('tf.vehiculeHorsDUsage'), { ton: 'echec' }) });
       }
     }
 
@@ -707,7 +708,7 @@ function runTravelDays(get: Get, set: Set): void {
       const overBudget = totalFoot > base + 1e-9 && !prior.marched;
       for (const h of party) {
         if (h.dead || h.outOfRencontre) continue;
-        if (crossedFatigue) { const fatigue = applyTravelFatigue(h); dayLines.push(...fatigue); recapDay.lines.push(...toRecapLines(fatigue)); }
+        if (crossedFatigue) { const fatigue = applyTravelFatigue(h); dayLines.push(...fatigue); recapDay.lines.push(...recapDe(fatigue.map((x) => ligneDeTexte(x)))); }
         if (overBudget) marchHeroes.push(h.id);
       }
       if (overBudget && marchHeroes.length) markMarchedToday(get, set, today0);
@@ -883,7 +884,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
     if (fp.vehicleOut) {
       set({ travelPlan: { ...get().travelPlan!, mode: 'pied', allure: undefined } });
       log(get, set, [t('tf.vehiculeHorsDUsage')]);
-      recapDay?.lines.push({ text: t('tf.vehiculeHorsDUsage'), tone: 'echec' });
+      recapDay?.lines.push({ entree: ligneDeTexte(t('tf.vehiculeHorsDUsage'), { ton: 'echec' }) });
     }
     if (recapDay) { recapDay.kmTo = get().travelPlan?.kmDone ?? recapDay.kmTo; recapDay.hours = fp.hours; }
   }
@@ -924,7 +925,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
     const atStart = get().travelPlan?.diseasesAtStart ?? [];
     set({ travelPlan: null });
     const care = [...travelArrivalCare(get, set), ...declareArrivalDiseases(get, set, atStart)];
-    if (recapDay) recapDay.lines.push(...toRecapLines(care));
+    if (recapDay) recapDay.lines.push(...recapDe(care.map((x) => ligneDeTexte(x))));
     log(get, set, [t('tf.arrivee', { to: ctx.toLabel }), ...care]);
     finishRecap(get, set, recap, 'arrived', undefined, dureeMin);
     arriverAuLieu(set, garanti(placeById(get().worldMap!, plan.toPlaceId), plan.toPlaceId, 'lieu d’arrivée'));
@@ -1044,7 +1045,7 @@ function resolveMountedTravelDay(get: Get, set: Set, hoursToday: number, allure:
     });
   }
   log(get, set, lines);
-  day.lines.push(...toRecapLines(lines));
+  day.lines.push(...recapDe(lines.map((x) => ligneDeTexte(x))));
   for (const c of chutes) ouvrirChute(set, c.hero, c.metres);
 }
 
@@ -1198,7 +1199,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
     const opLines: string[] = [];
     for (const h of get().party) {
       if (h.dead || h.outOfRencontre) continue;
-      opLines.push(...applyOps(h, r.entry.occupantOps, { idNeuf: get().forgerUnId, rng: battleRng() }).lignes);
+      opLines.push(...applyOps(h, r.entry.occupantOps, { idNeuf: get().forgerUnId, rng: battleRng() }).lignes.map((e) => e.texte));
     }
     set({ party: [...get().party] });
     lines.push(...opLines);
@@ -1248,10 +1249,10 @@ function avancerLeTrajetTerrestre(get: Get, set: Set, minutes: number): BuiltCas
 
 function finalizeForcedPace(get: Get, set: Set, result: NonNullable<LandDayContext['forcedPaceResult']>, lines: string[]) {
   const land = get().travelPlan?.land;
-  const consequences = freeCons(lines);
-  if (!land) return { consequences };
+  const applique: Applique = { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] };
+  if (!land) return { applique };
   set({ travelPlan: { ...get().travelPlan!, land: { ...land, forcedPaceResult: result } } });
-  return { consequences, insert: avancerLeTrajetTerrestre(get, set, Math.round(result.hours * 60)) };
+  return { applique, insert: avancerLeTrajetTerrestre(get, set, Math.round(result.hours * 60)) };
 }
 
 /** Clés `<idHéros>|<idMaladie>` des maladies portées par le groupe — empreinte de départ d'un trajet. */
@@ -1315,7 +1316,7 @@ function applyEreintant(get: Get, set: Set, avant: string[] = []) {
   // couvre tous les jours écoulés depuis `lastUpkeepDay` — donc ce détour aussi (non nourri : pas de repas ce jour-là).
   lines.push(t('tf.jourDeDetour'));
   log(get, set, lines);
-  return { consequences: freeCons([...avant, ...lines]), insert };
+  return { applique: { lignes: [...avant.map((x) => ligneDeTexte(x)), ...lines.map((x) => ligneDeTexte(x))], faits: [] }, insert };
 }
 
 /** Pourquoi la carte du monde ne s'ouvre pas : en combat, ou sans carte ; `null` sinon. Verdict de `ouvrirLaCarte` et de
@@ -1386,27 +1387,27 @@ export const TABLES = {
       const recapDay = jours.length ? jours[jours.length - 1] : undefined;
       if (recapDay) {
         recapDay.weather = { id: w, roll: tiree.roll };
-        recapDay.lines.push({ text: t('out.stageWeather', { weather: weatherCondition(w).label }) });
+        recapDay.lines.push({ entree: ligneDeTexte(t('out.stageWeather', { weather: weatherCondition(w).label })) });
       }
       // Les étapes qui DÉPENDENT du temps qu'il fait : elles n'existaient pas avant que le dé tombe.
       // La ligne de météo vient de la TABLE (source unique de son libellé) et rejoint le journal comme
       // toute conséquence — le dé, lui, reste sur la rangée : la prose ne le répète pas.
       return {
-        consequences: freeCons(tiree.lines),
+        applique: { lignes: tiree.lines.map((x) => ligneDeTexte(x)), faits: [] },
         insert: [...buildWeatherResistanceSteps(get, w), ...buildStageSteps(get, set, w, season)],
       };
     },
     perilATerre: (_get, _set, step) => {
       const tiree = step.table?.result;
       if (!tiree) return {};
-      if (tiree.roll !== step.meta?.seuil) return { consequences: freeCons(tiree.lines) };
+      if (tiree.roll !== step.meta?.seuil) return { applique: { lignes: tiree.lines.map((x) => ligneDeTexte(x)), faits: [] } };
       const table = tableStep({
         id: 'route-peripetie-table', kind: 'perilATerreTable', worldOwner: true, icon: 'interface/attention', label: t('step.perilATerreTable'),
         table: { tableId: PERIL_TABLE_ID },
         stake: voyageStakeRef('route-peripetie-table'),
         meta: { destLabel: String(step.meta?.destLabel ?? '') },
       });
-      return { consequences: freeCons(tiree.lines), insert: table ? [table] : [] };
+      return { applique: { lignes: tiree.lines.map((x) => ligneDeTexte(x)), faits: [] }, insert: table ? [table] : [] };
     },
     perilATerreTable: (get, set, step) => {
       const tiree = step.table?.result;
@@ -1428,9 +1429,9 @@ export const TABLES = {
           }
           const n = stacks(h, 'extenue');
           if (n > 0) {
-            const sortie: Applique = { lignes: [t('tf.plusExtenue', { name: nomDe(h) })], faits: [] };
+            const sortie: Applique = { lignes: [ligneDeTexte(t('tf.plusExtenue', { name: nomDe(h) }))], faits: [] };
             removeCondition(h, 'extenue', n, sortie);
-            j.push(...sortie.lignes);
+            j.push(...sortie.lignes.map((e) => e.texte));
           }
         }
         set({ party: [...party] });
@@ -1443,7 +1444,7 @@ export const TABLES = {
           stake: voyageStakeRef('route-peripetie-survie'),
           ligne: { test: { skill: { id: 'survie-en-exterieur' } }, valeur: best.value, soutien: best.support },
         });
-        if (st) return { consequences: freeCons(j), insert: [st] };
+        if (st) return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: [st] };
         return applyEreintant(get, set, j); // personne pour tester : retard direct
       } else if (entry.kind === 'attaque') {
         // Perception Accessible (+20) INFLUENÇABLE → étape-jet insérée ; son applier pose l'embuscade
@@ -1457,12 +1458,12 @@ export const TABLES = {
           ligne: { test: { skill: { id: 'perception' } }, valeur: best.value, soutien: best.support },
           meta: { destLabel, configured, ambushScene: route.ambush?.scene.id ?? '', ambushEntry: route.ambush?.entry ?? '', ambushEnc: route.ambush?.encounter ?? '' },
         });
-        if (st) return { consequences: freeCons(j), insert: [st] };
-        if (configured) { j.push(...markLandInterrupt(get, set, { kind: 'ambush', scene: route.ambush!.scene.id, entry: route.ambush!.entry, encounter: route.ambush!.encounter, noSurprise: false }, destLabel)); return { consequences: freeCons(j) }; }
+        if (st) return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: [st] };
+        if (configured) { j.push(...markLandInterrupt(get, set, { kind: 'ambush', scene: route.ambush!.scene.id, entry: route.ambush!.entry, encounter: route.ambush!.encounter, noSurprise: false }, destLabel)); return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } }; }
         j.push(t('tf.sansEmbuscade'));
       }
       // narratif (default) : le texte au journal suffit.
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** « Voyage éreintant » (LDB 51 l.215) : Survie en extérieur (+20) INFLUENÇABLE ; échec → +1 jour de retard et
      *  +1 Exténué chacun (`applyEreintant`). */
@@ -1470,7 +1471,7 @@ export const TABLES = {
       if (!step.result) return;
       // Le jet est DÉJÀ affiché par la rangée de l'étape — pas de re-print (#295 Lot 5) ;
       // succès sans effet (rien à ajouter) → aucune conséquence, l'échec parle par son effet (`applyEreintant`).
-      if (step.result.success) return { consequences: freeCons([t('tf.survieReussie', { who: nomDe(garanti(hero, step.actorId, 'survivant du péril')) })]) };
+      if (step.result.success) return { applique: { lignes: [ligneDeTexte(t('tf.survieReussie', { who: nomDe(garanti(hero, step.actorId, 'survivant du péril')) }))], faits: [] } };
       return applyEreintant(get, set);
     },
     /** « Attaqués ! » (LDB 51 l.221) : Perception (+20) INFLUENÇABLE ; réussie → le groupe les voit venir (sans
@@ -1488,7 +1489,7 @@ export const TABLES = {
         kind: 'ambush', scene: String(step.meta?.ambushScene ?? ''), entry: String(step.meta?.ambushEntry ?? '') || undefined,
         encounter: String(step.meta?.ambushEnc ?? ''), noSurprise: step.result.success,
       }, destLabel));
-      return { consequences: freeCons(j) };
+      return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** ÉTAPE-JET de Conduite d'attelage au km (#270) : succès → chaîne le km SUIVANT (`insert`, tant que le
      *  budget du jour reste) ; échec → les bêtes repassent au pas (résistance des bêtes de l'attelage, sans
@@ -1516,7 +1517,7 @@ export const TABLES = {
         const j = [t('tf.marcheForceeReussie', { name })];
         if (hours < plan.hoursPerDay - 1e-9 && km < kmLeft - 1e-9 && step.actorId && hero && driver) {
           const suivant = buildForcedPaceStep(driver, kmLeft, galloped + 1, km, hours);
-          if (suivant) return { consequences: freeCons(j), insert: [suivant] };
+          if (suivant) return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: [suivant] };
         }
         return finalizeForcedPace(get, set, { km: Math.min(km, kmLeft), hours, vehicleOut: false, vehicleLame: false }, j);
       }
@@ -1552,7 +1553,7 @@ export const TABLES = {
             ligne: { test: CONDUITE_D_ATTELAGE, valeur: driver.value, soutien: driver.support },
             meta: { finalKm, finalHours },
           });
-          if (st) return { consequences: freeCons(j), insert: [st] };
+          if (st) return { applique: { lignes: j.map((x) => ligneDeTexte(x)), faits: [] }, insert: [st] };
         }
         // Repli SANS acteur joueur (pas d'étape insérée ci-dessus) : aucune rangée nulle part pour ce jet
         // — le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`). MÊME valeur que la

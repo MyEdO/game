@@ -8,7 +8,7 @@ import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { buildStageSteps } from './travelPostes';
 import { seaActivityRefus } from './seaActivities';
 import { applierDe, startCascade } from './cascade';
-import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
+import { spyApplier, TESTE_DE_TEST, lignesDeLApplier } from './cascade.testkit';
 import { ECHEC_SANS_JET } from '../engine/tests';
 import { activityById, applyTravelActivityResult, travelActivitySpec } from '../engine/activities';
 import { activiteMer, avecActivite } from '../engine/activiteMer.testkit';
@@ -19,7 +19,7 @@ import { hasCondition } from '../engine/conditions';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import { type CombatStakeId, combatStakeRef, symptoms } from '../data';
 import { t } from '../i18n';
-import { bandStep, monoStep, resultLine, rollStep } from './rollSeam';
+import { bandStep, monoStep, rollStep } from './rollSeam';
 import type { PortProfile } from '../engine/seaVoyage';
 import type { Combatant } from '../engine/types';
 import type { CascadeStep } from './pendings';
@@ -46,7 +46,7 @@ const INCONSCIENT = { conditions: [{ id: 'inconscient', value: 1 }] } as Partial
 
 const appliquer = (step: CascadeStep, hero?: Combatant) =>
   applierDe(step.kind)!(banc.getState, banc.setState, step, hero, { steps: [step], index: 0 });
-const ligneDe = (out: ReturnType<typeof appliquer>): string => resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
+const ligneDe = (out: ReturnType<typeof appliquer>): string => lignesDeLApplier(out).join(' ');
 const refusRagot = (h: Combatant) => refusNePeutTenter(h, { skill: { id: 'ragot' } });
 
 /** Étape MONO de Ragot non tentable, montée par `monoStep` avec le refus de son porteur. */
@@ -184,13 +184,13 @@ describe('Psychologie non tentable : la source garde son emprise (LDB 21)', () =
   it('psychologieDeRencontre : la rangée sans jet porte l’échec de la Peur', () => {
     const step = bande('psychologieDeRencontre');
     appliquer(step);
-    expect(step.participants![0].outcome?.map((l) => l.text)).toContain(t('out.fear', { name: 'Hilda', foe: 'la Goule' }));
+    expect(step.participants![0].outcome?.map((l) => l.entree.texte)).toContain(t('out.fear', { name: 'Hilda', foe: 'la Goule' }));
   });
 
   it('psychologieDeCombat : la rangée sans jet reste sous l’emprise, aucun DR de Calme cumulé', () => {
     const step = bande('psychologieDeCombat');
     appliquer(step);
-    expect(step.participants![0].outcome?.map((l) => l.text)).toContain("Hilda reste sous l'emprise de la Peur (0/1 DR).");
+    expect(step.participants![0].outcome?.map((l) => l.entree.texte)).toContain("Hilda reste sous l'emprise de la Peur (0/1 DR).");
   });
 });
 

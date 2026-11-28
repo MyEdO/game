@@ -19,6 +19,7 @@ import { findSpellById } from '../data';
 import { deFixe, desDuTest, desEnSuite } from './dice.testkit';
 import { opPsy } from './psych/opsPsy';
 import { ciblePsy } from './psych/ciblage';
+import { ligneDeTexte } from './journal';
 
 function hero(p: Partial<Combatant> = {}): Combatant {
   return blessuresSurLeProfil({
@@ -189,7 +190,7 @@ describe('applyOps — opérations unitaires', () => {
     expect(c.wounds.current).toBe(0);
     expect(c.advantage).toBe(0);
     expect(c.conditions.some((x) => x.id === 'a-terre')).toBe(true);
-    expect(lines[0], 'le journal compte les Blessures réellement perdues (#2915)').toMatch(/subit 3 Blessure/);
+    expect(lines[0].texte, 'le journal compte les Blessures réellement perdues (#2915)').toMatch(/subit 3 Blessure/);
   });
 
   it('wounds extraAP : PA situationnels du coup déduits AVEC les PA de Localisation (poupe/Bélier de collision)', () => {
@@ -232,7 +233,7 @@ describe('applyOps — opérations unitaires', () => {
     const c = hero({ wounds: blessuresDeBase(12, 8), conditions: [{ id: 'munition-logee', value: 1 }] });
     const lines = applyOps(c, [{ op: 'heal', amount: 5 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes;
     expect(c.wounds.current).toBe(11); // 12 − 1 munition logée, pas 13→12
-    expect(lines.join(' ')).toMatch(/regagne 3 Blessure/); // libellé porte le montant EFFECTIF (post-plafond), pas les 5 demandés
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/regagne 3 Blessure/); // libellé porte le montant EFFECTIF (post-plafond), pas les 5 demandés
   });
 
   it('healCaster : munition Empaleuse logée sur le LANCEUR bloque son propre soin', () => {
@@ -248,7 +249,7 @@ describe('applyOps — opérations unitaires', () => {
     const victim = hero({ id: 'v' });
     const lines = applyOps(victim, [{ op: 'lifeSteal', num: 1, den: 1 }], { idNeuf: idsDeTest, rng: desDuTest, caster: drainer, woundsDealt: 6 }).lignes;
     expect(drainer.wounds.current).toBe(11); // 8+6=14 → plafonné à 12−1=11
-    expect(lines.join(' ')).toMatch(/draine 3 Blessure/); // 11−8 = 3 réellement rendues, pas les 6 « dealt »
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/draine 3 Blessure/); // 11−8 = 3 réellement rendues, pas les 6 « dealt »
   });
 
   it('lifeSteal : sans munition logée, le montant rendu reste inchangé (non-régression)', () => {
@@ -302,9 +303,9 @@ describe('applyOps — opérations unitaires', () => {
     const c = hero({ conditions: [{ id: 'extenue', value: 2 }] });
     const lines = applyOps(c, [{ op: 'removeCondition' }], { idNeuf: idsDeTest, rng: desDuTest }).lignes;
     expect(c.conditions.find((x) => x.id === 'extenue')?.value).toBe(1);
-    expect(lines[0]).toMatch(/retire 1 État Exténué/);
+    expect(lines[0].texte).toMatch(/retire 1 État Exténué/);
     const sain = hero();
-    expect(applyOps(sain, [{ op: 'removeCondition' }], { idNeuf: idsDeTest, rng: desDuTest }).lignes).toEqual([]);
+    expect(applyOps(sain, [{ op: 'removeCondition' }], { idNeuf: idsDeTest, rng: desDuTest }).lignes.map((e) => e.texte)).toEqual([]);
   });
 
   it('charMod : durée du contexte (sort), agrégé en UNE ligne de journal', () => {
@@ -320,7 +321,7 @@ describe('applyOps — opérations unitaires', () => {
     expect(c.activeEffects).toHaveLength(2);
     expect(c.activeEffects![0]).toMatchObject({ label: 'Écorce', characteristic: 'agilite', bonus: -10, duration: { scale: 'rounds', left: 6 } });
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toBe('Cobaye : Écorce (-10 Agilité, -10 Dextérité, 6 rounds).');
+    expect(lines[0].texte).toBe('Cobaye : Écorce (-10 Agilité, -10 Dextérité, 6 rounds).');
   });
 
   it('sourceSpell : marque les ActiveEffect POSÉS du sort (NI/identité), pas les pré-existants (Dissipation LDB 46)', () => {
@@ -337,7 +338,7 @@ describe('applyOps — opérations unitaires', () => {
     const c = hero();
     const lines = applyOps(c, [{ op: 'charMod', characteristic: 'endurance', mod: 20 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Armure' }).lignes;
     expect(c.activeEffects![0].duration).toEqual({ scale: "permanent" });
-    expect(lines[0]).toMatch(/durée hors combat/);
+    expect(lines[0].texte).toMatch(/durée hors combat/);
   });
 
   // #125 — Aux Armes « main/bras inutilisable Nd10[-BE] Rounds » (l.2557/2562/2588) : effet TEMPORAIRE,
@@ -450,7 +451,7 @@ describe('applyOps — opérations unitaires', () => {
       const c = withWeapon();
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' }).lignes;
       expect(c.loadouts![0].main).toBeUndefined();
-      expect(lines[0]).toMatch(/Épée/);
+      expect(lines[0].texte).toMatch(/Épée/);
     });
 
     it("ctx.location='brasG' → cible la main SECONDAIRE (off), la MAIN n'est pas touchée", () => {
@@ -462,7 +463,7 @@ describe('applyOps — opérations unitaires', () => {
     it('aucun objet tenu dans cette main → inerte, journalisé (ne plante pas)', () => {
       const c = hero();
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' }).lignes;
-      expect(lines[0]).toMatch(/ne tenait rien/);
+      expect(lines[0].texte).toMatch(/ne tenait rien/);
     });
 
     it("localisation 'corps' (« au hasard l'un de vos deux bras ») → tirage aléatoire via ctx.rng", () => {
@@ -480,7 +481,7 @@ describe('applyOps — opérations unitaires', () => {
       recomputeLoadout(c);
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' }).lignes;
       expect(c.loadouts![0].main).toBe('w1'); // toujours tenu
-      expect(lines[0]).toMatch(/impossible de le désarmer/);
+      expect(lines[0].texte).toMatch(/impossible de le désarmer/);
     });
 
     // L'op `disarm` est l'entrée DONNÉE de `items.lacherLArme` : l'arme TENUE se lit dans `c.weapons`.
@@ -488,7 +489,7 @@ describe('applyOps — opérations unitaires', () => {
       const c = hero({ kind: 'ennemi', items: [], weapons: [{ uid: 'sb-epee', label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] } as Weapon] });
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' }).lignes;
       expect(c.weapons.map(isUnarmed)).toEqual([true]);
-      expect(lines[0]).toMatch(/lâche Épée/);
+      expect(lines[0].texte).toMatch(/lâche Épée/);
     });
 
     it('héros à DEUX sets tenant la même lame : aucun set ne la référence plus, elle reste lâchée après recomputeLoadout', () => {
@@ -509,7 +510,7 @@ describe('applyOps — opérations unitaires', () => {
       recomputeLoadout(c);
       expect(c.weapons.some((w) => w.label === 'Crochet')).toBe(true);
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' }).lignes;
-      expect(lines.some((l) => /lâche Crochet/.test(l)), lines.join(' | ')).toBe(false);
+      expect(lines.some((l) => /lâche Crochet/.test(l.texte)), lines.map((e) => e.texte).join(' | ')).toBe(false);
       recomputeLoadout(c);
       expect(c.weapons.some((w) => w.label === 'Crochet')).toBe(true);
     });
@@ -522,7 +523,7 @@ describe('applyOps — opérations unitaires', () => {
       recomputeLoadout(c);
       expect(c.weapons.find((w) => w.uid === 'h1')?.hands).toBe(2);
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasG' }).lignes;
-      expect(lines[0]).toMatch(/lâche Hallebarde/);
+      expect(lines[0].texte).toMatch(/lâche Hallebarde/);
       expect(c.weapons.some((w) => w.uid === 'h1')).toBe(false);
     });
 
@@ -530,7 +531,7 @@ describe('applyOps — opérations unitaires', () => {
       const c = withWeapon();
       const lines = applyOps(c, [{ op: 'disarm' }], { idNeuf: idsDeTest, rng: desDuTest, location: 'brasD' }).lignes;
       expect(c.loadouts![0].main).toBeUndefined();
-      expect(lines[0]).toMatch(/lâche/);
+      expect(lines[0].texte).toMatch(/lâche/);
     });
   });
 
@@ -662,7 +663,7 @@ describe("op:'sinMod' — Points de Péché ± (LDB 40 l.36 ; ACE Annexe I « P�
     expect(c.sinPoints).toBe(0);
     const lines = applyOps(c, [{ op: 'sinMod', amount: -1 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes; // à 0 : sans objet
     expect(c.sinPoints).toBe(0);
-    expect(lines).toEqual([]);
+    expect(lines.map((e) => e.texte)).toEqual([]);
   });
 });
 
@@ -674,12 +675,12 @@ describe("op:'corruptionExposure' — Test d'Exposition (LDB 19 l.29)", () => {
       onCorruptionExposure: (cible, level, nature) => { seen.push([cible, level, nature]); return ['ouvert']; },
     }).lignes;
     expect(seen).toEqual([[c, 'mineure', 'physique']]);
-    expect(lines).toEqual(['ouvert']);
+    expect(lines).toEqual(['ouvert'].map((x) => ligneDeTexte(x)));
   });
   it('sans contexte (moteur pur) : journalisée inerte, niveau libellé, aucune Corruption ajoutée', () => {
     const c = hero();
     const lines = applyOps(c, [{ op: 'corruptionExposure', level: 'moderee' }], { idNeuf: idsDeTest, rng: desDuTest }).lignes;
-    expect(lines).toEqual(["Cobaye doit réaliser un Test d'Exposition Modérée à la Corruption."]);
+    expect(lines).toEqual(["Cobaye doit réaliser un Test d'Exposition Modérée à la Corruption."].map((x) => ligneDeTexte(x)));
     expect(c.corruption ?? 0).toBe(0);
   });
 });
@@ -689,25 +690,25 @@ describe("op:'corruption' amount négatif — Absolution (LDB 19 l.167-182, #97 
     const c = hero({ corruption: 3 });
     let onCorruptionCalls = 0;
     const lines = applyOps(c, [{ op: 'corruption', amount: -2 }], { idNeuf: idsDeTest, rng: desDuTest,
-      onCorruption: () => { onCorruptionCalls++; return { lignes: ['ne devrait jamais apparaître'], faits: [] }; },
+      onCorruption: () => { onCorruptionCalls++; return { lignes: [ligneDeTexte('ne devrait jamais apparaître')], faits: [] }; },
     }).lignes;
     expect(c.corruption).toBe(1);
     expect(onCorruptionCalls).toBe(0);
-    expect(lines).toEqual(['Cobaye : -2 Point(s) de Corruption (total 1).']);
+    expect(lines).toEqual(['Cobaye : -2 Point(s) de Corruption (total 1).'].map((x) => ligneDeTexte(x)));
   });
 
   it('plancher 0 : jamais négatif même si amount dépasse le total courant', () => {
     const c = hero({ corruption: 1 });
     const lines = applyOps(c, [{ op: 'corruption', amount: -5 }], { idNeuf: idsDeTest, rng: desDuTest }).lignes;
     expect(c.corruption).toBe(0);
-    expect(lines).toEqual(['Cobaye : -1 Point(s) de Corruption (total 0).']);
+    expect(lines).toEqual(['Cobaye : -1 Point(s) de Corruption (total 0).'].map((x) => ligneDeTexte(x)));
   });
 
   it('amount positif : passe par ctx.onCorruption, qui reçoit la CIBLE de l’op', () => {
     const c = hero();
     const seen: unknown[] = [];
     applyOps(c, [{ op: 'corruption', amount: 2 }], { idNeuf: idsDeTest, rng: desDuTest,
-      onCorruption: (cible, n) => { seen.push([cible, n]); return { lignes: ['gain'], faits: [] }; },
+      onCorruption: (cible, n) => { seen.push([cible, n]); return { lignes: [ligneDeTexte('gain')], faits: [] }; },
     });
     expect(seen).toEqual([[c, 2]]);
     expect(c.corruption ?? 0).toBe(0); // le hook gère le total lui-même (store) — non simulé ici
@@ -806,14 +807,14 @@ describe('op `gainResource` — un `amount` NÉGATIF retire (Dague voleuse de ch
   it('le retrait est JOURNALISÉ avec le nombre RETIRÉ (jamais un no-op silencieux)', () => {
     const c = hero({ fortune: 2 });
     const lines = applyOps(c, [{ op: 'gainResource', resource: 'fortune', amount: -1 }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes;
-    expect(lines.join(' ')).toContain('−1 Point de Chance');
-    expect(lines.join(' ')).toContain('(total 1)');
+    expect(lines.map((e) => e.texte).join(' ')).toContain('−1 Point de Chance');
+    expect(lines.map((e) => e.texte).join(' ')).toContain('(total 1)');
   });
   it('le PLANCHER est celui du compteur, pas de l’argument : 0 − 1 → 0, et RIEN n’est journalisé', () => {
     const c = hero({ fortune: 0 });
     const lines = applyOps(c, [{ op: 'gainResource', resource: 'fortune', amount: -1 }], { idNeuf: idsDeTest, rng: makeRNG(1) }).lignes;
     expect(c.fortune).toBe(0);
-    expect(lines).toEqual([]);
+    expect(lines.map((e) => e.texte)).toEqual([]);
   });
   it('Destin suit la même règle', () => {
     const c = hero({ fate: 3 });
@@ -841,7 +842,7 @@ describe('augmentWeapon — l’arme tenue est celle du set actif résolu', () =
     loadoutSetSlot(c, lo.id, 'secondaire', 'dague');
     recomputeLoadout(c);
     const lignes = applyOps(c, [{ op: 'augmentWeapon', addQualities: ['magique'], requiresWeapon: ['dague'] }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Sonde', defaultDurationRounds: 2 }).lignes;
-    expect(lignes).toEqual(['Cobaye : aucune arme en main à enchanter (Sonde).']);
+    expect(lignes).toEqual(['Cobaye : aucune arme en main à enchanter (Sonde).'].map((x) => ligneDeTexte(x)));
     expect(c.items!.find((i) => i.uid === 'dague')!.enchants).toBeUndefined();
   });
 });

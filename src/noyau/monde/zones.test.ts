@@ -107,7 +107,7 @@ describe('zonesRoundTick — « Quiconque se trouve dans la ZdE au début d’un
     expect(inZone.wounds.current).toBe(4);
     expect(inZone.conditions.some((c) => c.id === 'en-flammes')).toBe(true);
     expect(outZone.wounds.current).toBe(12);
-    expect(ticks.map((t) => t.line).join(' ')).toMatch(/PA ignorés/);
+    expect(ticks.map((t) => t.entree.texte).join(' ')).toMatch(/PA ignorés/);
     expect(ticks.every((t) => t.combatant.id === 'a')).toBe(true); // chaque ligne porte son combattant
   });
 });

@@ -1870,9 +1870,6 @@ export const fr = {
   'out.travelEncounter': '{label} : {text}',
   // Météo d'Étape (EDOC 8 l.50) : libellé seul — le d100 est un tirage de MONDE, jamais montré au joueur.
   'out.stageWeather': 'Météo : {weather}.',
-  // Passthrough narratif générique (#295 Lot 1) : `text` est COMPOSÉ par l'applier (jamais un gabarit avec
-  // {roll}/{target}/{sl} — la ligne de jet visible au-dessus porte déjà le verdict).
-  'out.free': '{text}',
 
   'out.corruptHold': '{name} contient sa Corruption — pour cette fois.',
   'out.corruptThreatens': '{name} échoue — une mutation menace de se développer…',

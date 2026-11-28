@@ -10,6 +10,7 @@
  *    porteur du Talent figure parmi les cibles du lancement (clause de zone).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import { applyCast } from './combatFlow';
@@ -62,7 +63,7 @@ function setBattle(combatants: Combatant[]): void {
 }
 
 const cr = (sl: number, niRequired?: number): CastResult =>
-  ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, log: '', ...(niRequired != null ? { niRequired } : {}) });
+  ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, log: ligneDeTexte(''), ...(niRequired != null ? { niRequired } : {}) });
 
 /** Feed de combat concaténé — les lignes `cf.resistanceALaMagie*` du lancement. */
 const feed = (): string => banc.getState().battle!.log.map((e) => e.entree.texte).join('\n');

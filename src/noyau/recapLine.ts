@@ -1,16 +1,11 @@
 import type { Equipe } from '../engine/relations';
-import type { IconId } from '../data/schemas/icons';
-import type { FaitApplique } from '../engine/faits';
+import type { Applique, FaitApplique } from '../engine/faits';
+import type { EntreeDuJournal, RecapTone } from '../engine/journal';
 /**
  * VOCABULAIRE PARTAGÉ d'une ligne de récap structurée (#349) — remplace le `string` brut des
  * chroniques (récap de voyage, note de cascade). Module LEAF (aucune dépendance de valeur) pour éviter tout
- * cycle : `pendings.ts` et `rollSeam.ts` l'importent tous deux.
- *
- * `RecapTone` reprend EXACTEMENT `NightEntry.tone` (noyau/restFlow.ts, PV de nuit/jour de mer) —
- * pas un second vocabulaire : même trio 'reussite'/'echec'/'neutre', et les tons d'un hôte (`Ton`,
- * src/hote/elements.ts).
+ * cycle : `pendings.ts` et `rollSeam.ts` l'importent tous deux. Le ton est `RecapTone` (`engine/journal.ts`).
  */
-export type RecapTone = 'reussite' | 'echec' | 'neutre';
 
 /** Le sens du fait pour sa cible : gain (Blessures et Avantage regagnés, État retiré, Corruption retirée ou
  *  écartée, argent reçu, prix d'achat baissé ou de vente monté), perte (dont la Localisation qu'une Blessure critique
@@ -26,7 +21,7 @@ function sensPourLaCible(f: FaitApplique): 'gain' | 'perte' | null {
 
 /** LE ton d'un fait appliqué, d'après le camp de sa cible (#4574) : un gain du groupe ou une perte d'un hostile est
  *  une `reussite`, l'inverse un `echec` ; un fait sans variation ou sur un neutre est `neutre`. Seule dérivation,
- *  lue par `resultLines` et par la projection des conséquences. */
+ *  lue par `tonnerLApplication` et par la projection des conséquences. */
 export function tonDuFait(f: FaitApplique): RecapTone {
   const sens = sensPourLaCible(f);
   if (sens == null || f.camp === 'neutre') return 'neutre';
@@ -41,10 +36,9 @@ export interface RecapSegment {
 }
 
 export interface RecapLine {
-  text: string;
-  icon?: IconId;
-  tone?: RecapTone;
-  /** Découpe TONÉE du même contenu que `text` (concaténation des `segment.text` = `text`) : porte la
+  /** Ce que dit la ligne, ton et icône compris : l'hôte la rédige (`redigerLEntree`). */
+  entree: EntreeDuJournal;
+  /** Découpe TONÉE du même contenu que l'entrée (concaténation des `segment.text` = son texte) : porte la
    *  coloration par camp des noms. Absente → la ligne se rend en texte plat. */
   segments?: RecapSegment[];
   /** Phase du jour (clé de `DAY_PHASE_CATALOG`) — posée quand la ligne provient d'une étape de
@@ -54,11 +48,17 @@ export interface RecapLine {
   paquet?: true;
 }
 
-/** Enveloppe des textes SIMPLES en `RecapLine[]` — repli neutre (ni icône ni ton), pour les
- *  accumulateurs narratifs sans structure fine (fatigue, marche forcée,
- *  soins d'arrivée…). Filtre les entrées vides. */
-export function toRecapLines(texts: string[]): RecapLine[] {
-  return texts.filter((s) => s.length > 0).map((text) => ({ text }));
+/** Une conséquence APPLIQUÉE (#349, #4574), tonée à sa naissance, avant d'être versée parmi des lignes authorées : chaque
+ *  entrée sans ton prend celui du premier fait de CETTE application (`tonDuFait`), `neutre` sans fait. */
+export function tonnerLApplication(a: Applique): Applique {
+  const ton = a.faits.length ? tonDuFait(a.faits[0]) : 'neutre';
+  return { ...a, lignes: a.lignes.map((e) => (e.ton ? e : { ...e, ton })) };
+}
+
+/** Les lignes de récap des entrées `entrees` (#349, #4574) : une par entrée, l'entrée `ligne` vide écartée ; le ton est
+ *  celui que l'entrée porte, rien ne s'y déduit. */
+export function recapDe(entrees: readonly EntreeDuJournal[]): RecapLine[] {
+  return entrees.filter((e) => e.texte.length > 0).map((entree) => ({ entree }));
 }
 
 /** Un ÉVÉNEMENT RACONTÉ du jour (#371, #4574) : un récit (titre et texte verbatim de l'entrée tirée, règle 5

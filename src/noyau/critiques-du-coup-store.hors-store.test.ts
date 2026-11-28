@@ -526,7 +526,7 @@ function carreauEnCombat(): { mage: Combatant; cible: Combatant } {
   cible.items = (cible.items ?? []).filter((i) => i.kind !== 'armor');
   return { mage, cible };
 }
-const incantationCritique: CastResult = { cast: true, roll: 20, target: 90, sl: 4, isCritical: true, isFumble: false, log: 'jet' };
+const incantationCritique: CastResult = { cast: true, roll: 20, target: 90, sl: 4, isCritical: true, isFumble: false, log: ligneDeTexte('jet') };
 
 describe("Mort subite : l'Incantation critique d'un Projectile magique (LDB 18 l.44)", () => {
 

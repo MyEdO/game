@@ -5,6 +5,7 @@
  * (`castCommitZone`, teint de son Domaine) et la zone persistante d'un sort (`applyCast`, Mur de feu).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { bus, EVT, type ChargeDeZone } from './bus';
@@ -84,7 +85,7 @@ describe('les zones d’effet de l’appel (#3783)', () => {
   it('un sort de zone posé : son Domaine teint la zone, son trait vole jusqu’au centre, même posé dans le vide', () => {
     const c = mk('lanceur', 'heros', 5, 5);
     monterLeCombat([c, mk('loin', 'ennemi', 30, 30)]);
-    const lance: CastResult = { cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' };
+    const lance: CastResult = { cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') };
     banc.setState({ pendingCast: { casterId: 'lanceur', targetId: 'lanceur', spellId: 'comete-de-cassandora', missile: true, result: lance, zone: { center: null, radius: 1, r0m: 1, placing: true } } as never });
     castCommitZone(banc.getState, banc.setState, { x: 9, y: 5 });
     expect(zones[0]).toMatchObject({ de: 'lanceur', centre: { x: 9, y: 5 }, sort: 'comete-de-cassandora' });
@@ -108,7 +109,7 @@ describe('les zones d’effet de l’appel (#3783)', () => {
     const T = b.combatants.filter((c) => c.kind === 'ennemi')[0];
     T.pos = { x: 10, y: 10 };
     zones = [];
-    applyCast(banc.getState, banc.setState, lanceur, [T], findSpellById('mur-de-feu')!, { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'ok' }, false);
+    applyCast(banc.getState, banc.setState, lanceur, [T], findSpellById('mur-de-feu')!, { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: ligneDeTexte('ok') }, false);
     expect(zones[0]).toMatchObject({ de: lanceur.id, centre: { x: 10, y: 10 }, sort: 'mur-de-feu' });
     expect(laZone()).toMatchObject({ couleur: '#ff5a2a', nappe: { visuel: 'nappe-de-flammes', son: { id: 'sort-feu' } } });
   });

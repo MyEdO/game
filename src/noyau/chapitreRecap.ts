@@ -19,6 +19,7 @@ import type { ValidationsDeFenetre } from './validationDeFenetre';
 import { ouvrirLaFinDeSeance, terminerLaSeance } from './partyFlow';
 import { nomDe } from '../engine/nom';
 import type { PlayerText } from '../i18n/playerText';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Borne d'ouverture du chapitre courant (#717) — instantané pris quand le joueur prend la route :
  *  le récap DÉRIVE de la différence, il n'écrit aucun événement au fil du jeu. */
@@ -66,8 +67,8 @@ export function deriveChapterRecap(args: {
     .filter((h) => h.dead && (depuis == null || depuis.vivants.includes(h.id)))
     .map((h) => ({ id: h.id, label: nomDe(h) }));
   const chronique: RecapLine[] = [
-    ...objectifsSoldes.map((o): RecapLine => ({ text: o.text, icon: 'outil-de-carte/depart', tone: 'reussite', paquet: true })),
-    ...tombes.map((t): RecapLine => ({ text: t.label, icon: 'interface/fermer', tone: 'echec' })),
+    ...objectifsSoldes.map((o): RecapLine => ({ entree: ligneDeTexte(o.text, { ton: 'reussite', icone: 'outil-de-carte/depart' }), paquet: true })),
+    ...tombes.map((t): RecapLine => ({ entree: ligneDeTexte(t.label, { ton: 'echec', icone: 'interface/fermer' }) })),
   ];
   return { titre: cloture.titre, sousTitre: cloture.sousTitre?.texte, px, chronique, tombes, lieux };
 }
