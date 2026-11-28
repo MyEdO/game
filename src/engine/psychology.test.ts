@@ -1,5 +1,4 @@
 import { idsDeTest } from './idsDeTest.testkit';
-import { JET_DE_TEST } from './tests.testkit';
 import { describe, it, expect, afterEach } from 'vitest';
 import {
   parsePsychTraits,
@@ -7,7 +6,6 @@ import {
   pasDePeur,
   psychBranchOps,
   isFrenzyCapable,
-  resolveFrenzyEntry,
   targetedTrigger,
   calmeDAcquisition,
   ciblesDeTrauma,
@@ -71,15 +69,6 @@ describe('Psychologie (pur)', () => {
     expect(isFrenzyCapable({ traits: [{ id: 'frenesie' }], talents: [] } as unknown as Combatant)).toBe(true);
     expect(isFrenzyCapable({ traits: [], talents: [{ talentId: 'frenesie', times: 1 }] } as unknown as Combatant)).toBe(true);
     expect(isFrenzyCapable({ traits: [{ id: 'arme', value: 7 }], talents: [] } as unknown as Combatant)).toBe(false);
-  });
-  it('resolveFrenzyEntry : le même jet réussit au réglage par défaut et échoue en Difficile', () => {
-    expect(resolveFrenzyEntry(JET_DE_TEST, 60, deFixe(50))).toMatchObject({ roll: 50, target: 60, success: true });
-    setRule('frenesie-difficulte', 'difficile');
-    try {
-      expect(resolveFrenzyEntry(JET_DE_TEST, 60, deFixe(50))).toMatchObject({ roll: 50, target: 40, success: false });
-    } finally {
-      resetRule('frenesie-difficulte');
-    }
   });
   it('targetedTrigger : Animosité (elfe) se déclenche sur un ENNEMI du groupe elfe visible', () => {
     const self = { id: 's', kind: 'ennemi', psychTraits: [{ type: 'animosite', cible: ciblePsy.groupe('elfe') }], psychState: [] } as unknown as Combatant;

@@ -13,7 +13,7 @@ import {
   DROITS_D_UN_PROJET,
   PAQUETS_DE_L_HOTE_WEB,
   RACINES_DES_ZONES,
-  SURFACE_DU_NOYAU,
+  SURFACES_DU_NOYAU,
   dossierDe,
   estProjet,
   estZone,
@@ -286,19 +286,21 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     ];
     expect(oracle.map(([de, vers, t]) => fermeture(de, vers, t))).toEqual(oracle.map(([, , , v]) => v));
     expect(['constructor', '__proto__', 'toString', 'hasOwnProperty'].filter(estZone)).toEqual([]);
-    const portes: [de: string, vers: string, cible: string, verdict: string | null][] = [
+    const portes: [de: string, vers: string, cible: string, verdict: readonly string[] | null][] = [
       ['texte', 'noyau', 'src/noyau/index.ts', null],
       ['texte', 'noyau', 'src/noyau/index', null],
       ['texte', 'noyau', 'src/noyau', null],
-      ['texte', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
-      ['texte', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
+      ['texte', 'noyau', 'src/noyau/vocabulaireDesModeles.ts', null],
+      ['texte', 'noyau', 'src/noyau/combatFlow.ts', SURFACES_DU_NOYAU],
+      ['texte', 'noyau', 'src/noyau/monde/index.ts', SURFACES_DU_NOYAU],
       ['texte', 'scenes', 'src/scenes/x.ts', null], // aucune porte vers `scenes`
       ['godot', 'noyau', 'src/noyau/index.ts', null],
-      ['godot', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'],
-      ['hote', 'noyau', 'src/noyau/monde/index.ts', 'src/noyau/index.ts'],
+      ['godot', 'noyau', 'src/noyau/vocabulaireDesModeles', null],
+      ['godot', 'noyau', 'src/noyau/combatFlow.ts', SURFACES_DU_NOYAU],
+      ['hote', 'noyau', 'src/noyau/monde/index.ts', SURFACES_DU_NOYAU],
       ['godot', 'hote', 'src/hote/projection.ts', null], // aucune porte vers `hote`
       ['scenes', 'noyau', 'src/noyau/combatFlow.ts', null], // aucune porte pour `scenes`
-      ['roguelite', 'noyau', 'src/noyau/combatFlow.ts', 'src/noyau/index.ts'], // un projet lit le noyau par sa porte (#4931)
+      ['roguelite', 'noyau', 'src/noyau/combatFlow.ts', SURFACES_DU_NOYAU], // un projet lit le noyau par ses portes (#4931)
       ['constructor', 'noyau', 'src/noyau/x.ts', null],
     ];
     expect(portes.map(([de, vers, cible]) => porteManquee(de, vers, cible))).toEqual(portes.map(([, , , v]) => v));
@@ -330,7 +332,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       expect(regles(`src/lib/zz-dialecte${ext}`), ext).toEqual(expect.arrayContaining([REGLE, 'murs/zone', SUITE_JOUEE]));
     }
     const [noyau] = sondes('noyau');
-    const horsReexportation = [SURFACE_DU_NOYAU, voisin(noyau, 0).replace(/\.ts$/, '.test.ts'), voisin(noyau, 1).replace(/\.ts$/, '.testkit.ts'), 'src/noyau/zz.d.ts'];
+    const horsReexportation = [...SURFACES_DU_NOYAU, voisin(noyau, 0).replace(/\.ts$/, '.test.ts'), voisin(noyau, 1).replace(/\.ts$/, '.testkit.ts'), 'src/noyau/zz.d.ts'];
     expect(horsReexportation.filter((rel) => regles(rel).includes(REEX))).toEqual([]);
   });
 
@@ -373,16 +375,19 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
     expect(Object.fromEntries(cas.map((c, i) => [c.cle, obtenus[i]]))).toEqual(Object.fromEntries(cas.map((c) => [c.cle, c.attendu])));
   });
 
-  it('PORTES : une zone à porte ne lit la zone importée que par sa porte, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 120_000 }, () => {
+  it('PORTES : une zone à porte ne lit la zone importée que par ses portes, sous chaque forme, en relatif, en alias et en chemin `/src/…`', { timeout: 120_000 }, () => {
     const cas: { cle: string; attendu: string; fixture: { filePath: string; code: string } }[] = [];
-    const aPortes = (Object.entries(COUCHES) as [string, { portes?: Record<string, string> }][]).filter(([, c]) => c.portes);
+    const aPortes = (Object.entries(COUCHES) as [string, { portes?: Record<string, readonly string[]> }][]).filter(([, c]) => c.portes);
     for (const [de, { portes = {} }] of aPortes) {
       for (const rel of sondes(de)) {
-        for (const [vers, porte] of Object.entries(portes)) {
-          const module = porte.replace(/\.ts$/, '');
+        for (const [vers, portesVers] of Object.entries(portes)) {
           const dossier = dossierDe(vers);
           const specs: [string | null, string][] = [
-            [relatif(rel, module), 'passe'], [relatif(rel, dossier), 'passe'], [alias(porte), 'passe'], [`/${module}`, 'passe'],
+            ...portesVers.flatMap((porte): [string | null, string][] => {
+              const module = porte.replace(/\.ts$/, '');
+              return [[relatif(rel, module), 'passe'], [alias(porte), 'passe'], [`/${module}`, 'passe']];
+            }),
+            [relatif(rel, dossier), 'passe'],
             [relatif(rel, `${dossier}/combatFlow`), REGLE], [alias(`${dossier}/monde/index`), REGLE], [`/${dossier}/etat.ts`, REGLE],
           ];
           for (const [p, attendu] of specs.filter((s): s is [string, string] => s[0] !== null)) {
@@ -544,7 +549,7 @@ describe('murs de couche — la table `COUCHES`, mesurée sur la config RÉSOLUE
       ['src/scenes/zz-reex-15.ts', "export { creerHeros } from '../engine/character';\n", REEX],
       ['src/noyau/zz-reex-9.ts', 'const locale = 1;\nexport { locale };\n', 'passe'],
       ['src/noyau/zz-reex-10.ts', "import { a } from './a';\nexport const valeur = a;\n", 'passe'],
-      [SURFACE_DU_NOYAU, "export { a } from './a';\n", 'passe'],
+      ...SURFACES_DU_NOYAU.map((surface): [string, string, string] => [surface, "export { a } from './a';\n", 'passe']),
       ['src/data/zz-reex-12.ts', "export { a } from './a';\n", 'passe'],
       ['src/noyau/zz-reex-13.test.ts', "export { a } from './a';\n", 'passe'],
       ['src/scenes/zz-reex-14.testkit.ts', "export { a } from './a';\n", 'passe'],

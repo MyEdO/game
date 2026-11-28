@@ -14,6 +14,12 @@ import { catalogEntry, MISSING_ID, MISSING_LABEL, MISSING_TONE, MISSING_TONE_DAR
 import { facadeStructureAppearance, wallPartColor } from './structures';
 import type { WallPart } from '../../../data/schemas/structureAppearance.types';
 
+/** Le nom d'une matière dans le volume : son domaine et son id. */
+export const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`;
+
+/** Les noms des matières de décor du monde (domaine `prop` de `materials.json`), dont un modèle 3D habille ses surfaces. */
+export const matieresDeDecor = (): string[] => matieresDe('prop').map(({ id }) => nomDeMatiere({ domain: 'prop', id }));
+
 /** Entrée de REPLI VISIBLE (#877) : un terrain au ton d'alarme, jamais l'apparence d'un autre terrain.
  *  `stops` VIDE : le repli ne porte aucun dégradé, son ton d'alarme suffit. Infranchissable et de priorité nulle : le
  *  repli ne déborde sur aucun voisin et n'ouvre aucun passage que la donnée n'a pas authorisé. */

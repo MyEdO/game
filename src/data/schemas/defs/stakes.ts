@@ -6,7 +6,7 @@
  * des ids de sa cascade.
  *
  * Le discriminant `cascade` dit QUELLE famille de jets l'entrée sert (ses valeurs sont celles de
- * `StakeKey.dataset`) ; l'`id` est la seule identité de l'enjeu (#2968 L19).
+ * `StakeKey.dataset`, `schemas/catalogue/enjeux.ts`) ; l'`id` est la seule identité de l'enjeu (#2968 L19).
  *
  * `template` est le texte, gabarit dont les trous `{nom}` reçoivent les valeurs CALCULÉES par le
  * producteur ; `form` dit sa nature : `verbatim` = chaque bloc est contigu au chapitre cité par
@@ -21,7 +21,7 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { enumNomme, foyerDeRegleSchema, stakeFormSchema } from '../grammaire/valeurs';
-import type { StakeCascade } from '../../index';
+import { categorieAPool, type StakeCascade } from '../catalogue/enjeux';
 
 export const file = 'stakes.json';
 export const famille = 'entite';
@@ -114,6 +114,9 @@ const doc = document(
         }
         if (PORTE_PAR_CASCADE[e.cascade] && !e.rule && !e.entryCategory && !e.entryFromSource) {
           ctx.addIssue({ code: 'custom', path: ['rule'], message: `${e.id} : ni foyer (rule) ni catégorie d’entrée` });
+        }
+        if (e.entryCategory !== undefined && !categorieAPool(e.entryCategory)) {
+          ctx.addIssue({ code: 'custom', path: ['entryCategory'], message: `${e.id} : la catégorie d’entrée « ${e.entryCategory} » n’a aucun pool` });
         }
       }),
   },

@@ -5,6 +5,7 @@
 import type { Banc } from './banc.testkit';
 import type { JeuDuNoyau } from './machinerieDuNoyau';
 import { advanceTurn } from './combatFlow';
+import { combatAdvanceBlocked } from './combatGate';
 import { battleRng } from './battleRng';
 import { draineCascade } from './cascade.testkit';
 
@@ -22,6 +23,30 @@ export function ouvrirLeTourSuivant(banc: Banc, actifId: string, suivantId: stri
   const order = [actifId, suivantId, ...reste];
   banc.setState({ battle: { ...b, order, baseOrder: order, turn: 0 } });
   advanceTurn(banc.getState, banc.setState);
+}
+
+/** Ouvre le tour de `iaId`, que l'IA conduit, après celui d'`actifId` (`ouvrirLeTourSuivant`), et le joue jusqu'à ce
+ *  qu'une fenêtre tienne la main (`combatAdvanceBlocked`) ou que le tour passe. */
+export function jouerLeTourDeLIA(banc: Banc, actifId: string, iaId: string): void {
+  ouvrirLeTourSuivant(banc, actifId, iaId);
+  banc.jusquA((s) => combatAdvanceBlocked(s) || s.battle!.order[s.battle!.turn] !== iaId);
+}
+
+/** L'Action du tour à la clôture du Test d'entrée en Frénésie que `jouer` ouvre (`jetValider('frenesie')`, qui l'écrit
+ *  avec sa ligne au journal) ; `undefined` sans Test ouvert. */
+export function actionALaClotureDeLaFrenesie(banc: Banc, jouer: () => void): boolean | undefined {
+  let action: boolean | undefined;
+  let ouvert = false;
+  const fin = banc.subscribe((etat, prev) => {
+    if (etat.pendingFrenzy) ouvert = true;
+    else if (ouvert && action === undefined && etat.battle!.log.length > prev.battle!.log.length) action = etat.battle!.acted;
+  });
+  try {
+    jouer();
+  } finally {
+    fin();
+  }
+  return action;
 }
 
 /** Franchit le Round depuis le dernier de l'ordre : l'ordre du Round suivant est `ordre` (puis les autres), le

@@ -54,6 +54,7 @@ function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnIn
     scene,
     env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) },
     movement: enemy.movement,
+    manoeuvresSurSoiOffertes: [],
     spells: [],
     ...extra,
   };

@@ -39,7 +39,7 @@ import {
   type FireArc,
   saisonSchema,
   type Season,
-} from '../../../src/noyau/index.ts';
+} from '../../../src/noyau/vocabulaireDesModeles.ts';
 import { ecartsAuGlb, ecartsAuxMatieres, ecartsDesMatieresAuxUv, lireSurfaces, type CodeDEcartDeSurface, type Surface } from './surfaces.ts';
 import { estListeDeChaines, estRepere, estTriplet, rangDeCase, TOLERANCE_DES_POIDS, type EmplacementOffert, type Repere } from './attache.ts';
 import { EMPREINTE, sha256 } from './empreinte.ts';

@@ -43,7 +43,7 @@ function budgetsDuJoueur(enemy: Combatant, hero: Combatant, budgets: { charge: n
 function planFor(heroX: number, over: Partial<Combatant> = {}) {
   const enemy = C('ennemi', 'e', 2, over);
   const hero = C('heros', 'h', heroX);
-  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set([`${heroX},10`]) }, movement: 4, spells: [] };
+  const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set([`${heroX},10`]) }, movement: 4, manoeuvresSurSoiOffertes: [], spells: [] };
   const action = chooseEnemyAction(input);
   return { enemy, hero, ...aiApproachPlan(input, action, budgetsDuJoueur(enemy, hero, BUDGETS_M4)), action };
 }
@@ -53,7 +53,7 @@ describe('aiApproachPlan — Charge à portée de Course / Course au-delà', () 
     const enemy = C('ennemi', 'e', 2);
     addCondition(enemy, 'a-terre');
     const hero = C('heros', 'h', 25);
-    const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set(['25,10']) }, movement: 2, spells: [] };
+    const input: EnemyTurnInput = { enemy, heroes: [hero], scene: scene(), env: { blocked: new Set(['25,10']) }, movement: 2, manoeuvresSurSoiOffertes: [], spells: [] };
     const action = chooseEnemyAction(input);
     const { plan, allure } = aiApproachPlan(input, action, budgetsDuJoueur(enemy, hero, { charge: 4, course: 6 }));
     expect(allure).toBe('marche');

@@ -22,14 +22,14 @@ function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number },
     skills: [], talents: [], movement: 4, weapons: [MELEE], ...opts,
   }) as Combatant;
 }
-const input = (enemy: Combatant, heroes: Combatant[]): EnemyTurnInput =>
-  ({ enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [] });
+const input = (enemy: Combatant, heroes: Combatant[], manoeuvresSurSoiOffertes: readonly string[]): EnemyTurnInput =>
+  ({ enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, manoeuvresSurSoiOffertes, spells: [] });
 
 describe('chooseEnemyAction — auto-transformation (forme de combat lycanthrope)', () => {
   it('Enfant d’Ulric NON transformé, foe au contact → adopte sa forme hybride (self-buff prioritaire)', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 }, { traits: [{ id: 'metamorphose' }] });
     const h = mk('h', 'heros', { x: 6, y: 5 }); // adjacent
-    expect(chooseEnemyAction(input(e, [h]))).toEqual({ kind: 'manoeuvreSurSoi', maneuverId: 'forme-hybride-ulric' });
+    expect(chooseEnemyAction(input(e, [h], ['forme-hybride-ulric']))).toEqual({ kind: 'manoeuvreSurSoi', maneuverId: 'forme-hybride-ulric' });
   });
 
   it('DÉJÀ dans la forme (activeEffect « ulric-hybride ») → gate : ne re-transforme pas, il frappe', () => {
@@ -38,7 +38,7 @@ describe('chooseEnemyAction — auto-transformation (forme de combat lycanthrope
       activeEffects: [{ label: 'ulric-hybride', effectId: 'ulric-hybride', bonus: 0, duration: { scale: 'permanent' } }] as never,
     });
     const h = mk('h', 'heros', { x: 6, y: 5 });
-    const a = chooseEnemyAction(input(e, [h]));
+    const a = chooseEnemyAction(input(e, [h], ['forme-humaine-ulric']));
     expect(a.kind).not.toBe('manoeuvreSurSoi'); // reprendre la forme humaine ne vaut rien (opValue 0) → jamais choisi
     expect(a.kind).toBe('melee'); // foe adjacent → il attaque
   });
@@ -46,6 +46,6 @@ describe('chooseEnemyAction — auto-transformation (forme de combat lycanthrope
   it('sans le trait Métamorphose, aucune option de transformation', () => {
     const e = mk('e', 'ennemi', { x: 5, y: 5 });
     const h = mk('h', 'heros', { x: 6, y: 5 });
-    expect(chooseEnemyAction(input(e, [h])).kind).not.toBe('manoeuvreSurSoi');
+    expect(chooseEnemyAction(input(e, [h], [])).kind).not.toBe('manoeuvreSurSoi');
   });
 });
