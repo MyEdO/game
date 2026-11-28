@@ -1109,9 +1109,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // === FORME DE COMBAT (op `transform`) — capacité SUR SOI octroyée par un trait (Métamorphose lycanthrope,
   // Middenheim p.116). La forme alternative est un buff PERSISTANT : utilité = Σ `opValue` de ses ops (le
   // `transform` mesure le gain de combat réel du clone transformé). Seules les manœuvres que la barre du joueur
-  // offre ouvertes concourent (`manoeuvresSurSoiOffertes`) ; l'argmax décide vs frapper.
+  // offre ouvertes et qui prennent l'Action concourent (`manoeuvresSurSoiOffertes`) ; l'argmax décide vs frapper. Une
+  // gratuite ne remplace aucune Action : la boucle de dépense de `deciderLeTour` la joue.
   for (const def of selfManeuversOf(enemy)) {
-    if (!input.manoeuvresSurSoiOffertes.includes(def.id)) continue;
+    if (def.activation !== 'action' || !input.manoeuvresSurSoiOffertes.includes(def.id)) continue;
     let v = 0;
     for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON_DE_BENEFICE });
     if (v > 0) candidates.push({ action: { kind: 'manoeuvreSurSoi', maneuverId: def.id }, kind: 'manoeuvreSurSoi', utility: v, targetId: enemy.id, coord: pos });

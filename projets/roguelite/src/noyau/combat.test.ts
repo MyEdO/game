@@ -40,7 +40,7 @@ describe('l’issue d’un combat joué par la couture de la rencontre (#4847)',
     const e = nouvellePartie(7003);
     const groupe = [0, 1, 2, 3].map((k) => recrueDuHameau(e, PROFILS[k % PROFILS.length]).c);
     const hardes = DESTINATIONS.find((d) => d.id === 'hardes')!;
-    const issue = jouerLeCombat(groupe, hardes.elites[1], 9001, hardes.lumiere);
+    const issue = jouerLeCombat(groupe, hardes.elites[1], 9003, hardes.lumiere);
     const sauves = Object.entries(issue.destinDepense).filter(([, n]) => n > 0).map(([id]) => id);
     expect(sauves.length).toBeGreaterThan(0);
     for (const id of sauves) {

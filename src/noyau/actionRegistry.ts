@@ -40,8 +40,10 @@ import { canPushback } from '../engine/qualities/dispatch';
 import { hasBattement, hasDistraire } from '../engine/combatFeatures/dispatch';
 import { actorHasSkill } from '../engine/skills';
 import { isConsumable } from '../engine/consumables';
-import { hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, attaqueImmediate, type AttackOption } from './combatManeuvers';
-import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
+import {
+  hasFreeWeaponAttack, battementFoes, distraireFoes, availableAttacks, attaqueImmediate, manoeuvreSurSoiJouable, type AttackOption,
+} from './combatManeuvers';
+import { selfManeuversOf } from '../engine/creatureAttacks';
 import { healableTargets, modesDOuverture } from '../engine/healing';
 import { campAuContact } from './monde/combatGeometry';
 import { hasWaterContainer, waterSprayCandidates } from '../engine/suffocation';
@@ -389,6 +391,10 @@ function sortsDissipables({ active, battle }: ActionSelectorCtx): DispellableSpe
   return actorHasSkill(active, { id: 'langue', spec: 'magick' }) ? dispellableSpellsOn(battle.combatants) : [];
 }
 
+/** Les manœuvres sur soi d'`activation` que `active` peut jouer dans `battle` (`manoeuvreSurSoiJouable`). */
+const manoeuvresSurSoiJouables = (battle: BattleState, active: Combatant, activation: ManeuverDef['activation']): ManeuverDef[] =>
+  selfManeuversOf(active).filter((m) => m.activation === activation && manoeuvreSurSoiJouable(battle, active, m));
+
 /** Les SÉLECTEURS de candidats, par id (`candidates` de `actions.json`) — enveloppes nommées des
  *  fonctions déjà écrites (la liste manuscrite de l'IA n'a plus lieu d'être). */
 export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx) => unknown[]> = {
@@ -442,7 +448,10 @@ export const ACTION_CANDIDATES: Record<SelecteurDAction, (ctx: ActionSelectorCtx
     const visee = active.weapons.find((x) => x.uid === weaponUid);
     return (visee ? [visee] : armesADistance(active)).flatMap((arme) => compatibleAmmo(resolveTrapping, active, arme).map((munition) => ({ arme, munition })));
   },
-  'manoeuvres-sur-soi': ({ active }) => selfManeuversOf(active).filter((m) => selfManeuverApplicable(active, m)),
+  /** Les manœuvres sur soi jouables (`manoeuvreSurSoiJouable`), celles qui prennent l'Action, puis les gratuites : leur
+   *  `activation` fixe la part du tour qu'elles prennent. */
+  'manoeuvres-sur-soi': ({ active, battle }) => manoeuvresSurSoiJouables(battle, active, 'action'),
+  'manoeuvres-sur-soi-gratuites': ({ active, battle }) => manoeuvresSurSoiJouables(battle, active, 'free'),
   /** Les sets d'armes du porteur, chacun nommé par son contenu (`loadoutLabel`). */
   'sets-d-armes': ({ active }) => (active.loadouts ?? []).map((set) => ({ set, label: loadoutLabel(set, active) })),
   'objets-au-sol': ({ active, state }) => {
@@ -493,6 +502,12 @@ const porteurDArme = declarerPorteur(['weaponUid'], (c) => {
  *  DEVINETTE d'identité (`o?.id ?? o?.uid`) : le registre la DÉCLARE, les deux surfaces qui offrent
  *  des candidats (pastilles du champ, gestes secondaires de la console) la LISENT. Toute action dont
  *  la surface offre par candidat doit avoir la sienne — garde `action-atteignabilite`. */
+/** Le porteur d'une manœuvre sur soi : elle-même, désignée par son id. */
+const porteurDeManoeuvreSurSoi = declarerPorteur(['maneuverId'], (c) => {
+  const m = c as ManeuverDef;
+  return { porteurId: m.id, args: { maneuverId: m.id }, label: m.label };
+});
+
 export const ACTION_PORTEURS: Partial<Record<SelecteurDAction, PorteurDeclare>> = {
   'montures-adjacentes': declarerPorteur(['targetId'], (c) => {
     const m = c as Combatant;
@@ -540,10 +555,8 @@ export const ACTION_PORTEURS: Partial<Record<SelecteurDAction, PorteurDeclare>> 
     return { porteurId: skillId, args: { skillId }, label: byId('skill', skillId)?.label };
   }),
   /** Une manœuvre sur soi (`manoeuvrerSurSoi`). */
-  'manoeuvres-sur-soi': declarerPorteur(['maneuverId'], (c) => {
-    const m = c as ManeuverDef;
-    return { porteurId: m.id, args: { maneuverId: m.id }, label: m.label };
-  }),
+  'manoeuvres-sur-soi': porteurDeManoeuvreSurSoi,
+  'manoeuvres-sur-soi-gratuites': porteurDeManoeuvreSurSoi,
   /** Un Sort à dissiper, par son lanceur (`dissiperLeSort`). */
   'sorts-a-dissiper': declarerPorteur(['spellId', 'casterId'], (c) => {
     const d = c as DispellableSpell;

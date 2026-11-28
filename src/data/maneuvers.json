@@ -917,6 +917,85 @@
     "stakeForm": "descripteur"
   },
   {
+    "id": "rage-haine",
+    "type": "maneuvers",
+    "label": "Rage : Haine",
+    "kind": "hurlement",
+    "activation": "free",
+    "coutEnAvantage": 1,
+    "ciblage": "soi",
+    "modeDAvantage": "tout",
+    "effects": [
+      {
+        "trigger": "onHit",
+        "on": "soi",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "beginPsych",
+                "type": {
+                  "id": "haine"
+                },
+                "cible": {
+                  "id": "adversaires-engages"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "livre-de-base",
+      "page": 341,
+      "note": "LDB 85 l.282"
+    },
+    "stake": "Sur soi : tous les Avantages (au moins 1) dépensés, la créature tombe sous la Haine envers ses adversaires Engagés.",
+    "stakeForm": "descripteur"
+  },
+  {
+    "id": "rage-frenesie",
+    "type": "maneuvers",
+    "label": "Rage : Frénésie",
+    "kind": "hurlement",
+    "activation": "free",
+    "coutEnAvantage": 3,
+    "ciblage": "soi",
+    "modeDAvantage": "tout",
+    "effects": [
+      {
+        "trigger": "onHit",
+        "on": "soi",
+        "flow": {
+          "kind": "effet",
+          "effet": {
+            "type": "ops",
+            "on": "target",
+            "ops": [
+              {
+                "op": "beginPsych",
+                "type": {
+                  "id": "frenesie"
+                }
+              }
+            ]
+          }
+        }
+      }
+    ],
+    "source": {
+      "book": "livre-de-base",
+      "page": 341,
+      "note": "LDB 85 l.282"
+    },
+    "stake": "Sur soi : tous les Avantages (au moins 3) dépensés, la créature entre en Frénésie, sans Test.",
+    "stakeForm": "descripteur"
+  },
+  {
     "id": "pietinement",
     "type": "maneuvers",
     "label": "Piétinement",

@@ -56,7 +56,7 @@ export const SELECTEURS_D_ACTION = [
   'montures-adjacentes', 'pieces-servables', 'piece-poussable', 'cibles-soin', 'cibles-aspersion', 'sorts-dissipables',
   'sorts-a-dissiper', 'competences-avantage', 'attaques-de-trait', 'attaques-de-zone', 'sorts-du-heros', 'etats-retirables',
   'consommables', 'objets-portes', 'armes-a-distance', 'armes-a-recharge', 'munitions-compatibles', 'manoeuvres-sur-soi',
-  'sets-d-armes', 'objets-au-sol',
+  'manoeuvres-sur-soi-gratuites', 'sets-d-armes', 'objets-au-sol',
 ] as const;
 export type SelecteurDAction = (typeof SELECTEURS_D_ACTION)[number];
 

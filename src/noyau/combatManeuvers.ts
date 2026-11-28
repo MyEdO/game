@@ -38,7 +38,7 @@ import { testValue, skillBaseValue, type TestDesigne } from '../engine/skills';
 import { isOutOfAction, applyZeroWounds, stacks, COND, cannotDefend } from '../engine/conditions';
 import type { Applique } from '../engine/faits';
 import { isBestial, traitCapability, maneuverPaidByMovement } from '../engine/traits/dispatch';
-import { isFrenzied } from '../engine/psychology';
+import { isFrenzied, sourceCombattant, vise } from '../engine/psychology';
 import {
   armeDesTentacules,
   attaqueDeCle,
@@ -73,7 +73,10 @@ import { refusActionDepensee, refusCoque, refusHorsDEtatDAgir } from './refusDuT
 import { isEngagedWith, longerThanShort, markAttacked } from '../engine/engagement';
 import { areGrappling } from '../engine/grapple';
 import { rule } from '../engine/policy';
-import { campSpend } from './combat/advantagePool';
+import { campSpend, spendableAdvantage } from './combat/advantagePool';
+import { opSansObjet } from '../engine/ops';
+import { spellEffectOps } from '../engine/flowCore';
+import { cibleDeRef } from '../engine/psych/ciblage';
 import { groupAdvantage } from '../engine/advantagePool';
 import { effectiveTalents } from '../engine/talentEffects';
 import { bus, EVT } from './bus';
@@ -150,6 +153,24 @@ export function cibleDEcartDeTaille(scene: Scene | null, battle: BattleState, c:
  *  débitée au commit) et par l'IA (`aiCreatureFreeAttacks`). LDB 85 l.387 ; LDB 85 l.314 */
 export function freeAttackCost(battle: BattleState, c: Combatant, def: ManeuverDef): { advantage: number; movement: boolean } {
   return maneuverPaidByMovement(c.traits, def.id) && battle.movementUsed === 0 ? { advantage: 0, movement: true } : { advantage: def.coutEnAvantage, movement: false };
+}
+
+/** L'Avantage que débite `def` jouée par `c` dans `battle` : tout l'Avantage dépensable en mode `tout`, son prix sinon ;
+ *  `null` sous son prix (`coutEnAvantage`, le minimum du mode `tout`). Lecteur UNIQUE du débit d'une manœuvre sur soi
+ *  et du Hurlement. AA 11 l.30-38 ; LDB 85 l.170, l.282 */
+export function avantageDebite(battle: BattleState, c: Combatant, def: ManeuverDef): number | null {
+  const dispo = spendableAdvantage(battle, c);
+  if (dispo < def.coutEnAvantage) return null;
+  return def.modeDAvantage === 'tout' ? dispo : def.coutEnAvantage;
+}
+
+/** `c` peut-il jouer la manœuvre sur soi `def` dans `battle` ? Son Avantage en paie le prix (`avantageDebite`), aucune
+ *  de ses ops n'est sans objet (`opSansObjet`), et la Cible de chacune de ses poses psychologiques a un membre en
+ *  action. Prédicat UNIQUE de l'offre, du verbe et, par l'offre, de l'IA. LDB 21 l.39 ; LDB 85 l.282 */
+export function manoeuvreSurSoiJouable(battle: BattleState, c: Combatant, def: ManeuverDef): boolean {
+  if (avantageDebite(battle, c, def) == null) return false;
+  return maneuverEffects(def).flatMap((e) => spellEffectOps(e.flow)).every((o) => !opSansObjet(c, o)
+    && (o.op !== 'beginPsych' || o.cible === undefined || battle.combatants.some((f) => !isOutOfAction(f) && vise(cibleDeRef(o.cible!), sourceCombattant(f), 'appartenance', c))));
 }
 
 /** PLAFOND par tour d'une attaque gratuite de créature, DÉRIVÉ de la donnée : `count` pour une attaque

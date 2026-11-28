@@ -1,11 +1,7 @@
 /**
- * DÉBUT ET FIN DE TOUR : les effets de bord de tour authorés (`fireTurnStartTriggers`, `fireTurnEndTriggers`), le gate
- * d'action par Round (`resolveActGates`) et les crochets `onTurnStart` de la table `crochetsDeCombat` (`TABLES`, lue par
- * `combatHooks`), ordonnés par `order` : Rage (20). La psychologie de combat se joue aux passes de Round
- * (`openRoundStartPsych`, `openRoundEndCascade`, LDB 21 l.9, l.25).
- *
- * Les crochets tournent pour tout combattant que l'IA conduit (`runEnemyAI`, `aiDriven` : héros en Auto-combat
- * compris) ; chacun porte ses gardes de capacité (`hasRage`).
+ * DÉBUT ET FIN DE TOUR : les effets de bord de tour authorés (`fireTurnStartTriggers`, `fireTurnEndTriggers`) et le gate
+ * d'action par Round (`resolveActGates`). La psychologie de combat se joue aux passes de Round (`openRoundStartPsych`,
+ * `openRoundEndCascade`, LDB 21 l.9, l.25).
  */
 import { nomDe } from '../../engine/nom';
 import { rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
@@ -16,23 +12,17 @@ import { rawCombatTestBase } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
-import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './advantagePool';
+import { reconcileAdvantageToPool, creditOpposingAdvantage } from './advantagePool';
 import { mountMovement } from '../mount';
 import { materialiserLaBarre } from '../dispositionConsole';
 import { objetDuNarratif } from '../monde/resolveursDuNarratif';
-import { isFrenzied, PSY, sourceCombattant, vise } from '../../engine/psychology';
-import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
-import { hasRage } from '../../engine/traits/dispatch';
 import { fireTriggers } from '../triggeredEffects';
 import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 import { ligneDeTexte } from '../../engine/journal';
-
-/** La Cible de la Haine de Rage : le Groupe relatif des adversaires Engagés. LDB 85 l.282 ; Q12 B, #3045 */
-const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
 
 /** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`), joués par l'ouverture de tour
  *  unique (`ouvrirLeTour`, combatFlow). Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
@@ -150,31 +140,4 @@ export const TABLES = {
       return { applique: { lignes: [ligneDeTexte(t('op.mouvementPerdu', { name: nomDe(hero) }))], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
-  crochetsDeCombat: [
-    {
-      // Rage : LDB 85 l.282 ; Q12 B, #3045.
-      id: 'rage',
-      phase: 'onTurnStart',
-      order: 20,
-      run: ({ get, set, battle, self }) => {
-        const enemy = self;
-        if (!enemy || !hasRage(enemy.traits) || isFrenzied(enemy)) return;
-        const adv = enemy.advantage ?? 0;
-        if (adv >= 3) {
-          campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
-          (enemy.psychState ??= []).push({ type: PSY.frenesie });
-          battle.log.push(ev('frenesie', t('turn.rageEnter', { name: nomDe(enemy) }), enemy.id));
-          set({ battle: { ...battle } });
-          return;
-        }
-        if (adv < 1) return;
-        if ((enemy.psychState ?? []).some((p) => p.type === PSY.haine && p.active === true && p.cible === HAINE_DE_RAGE)) return;
-        if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
-        campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
-        (enemy.psychState ??= []).push({ type: PSY.haine, cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
-        battle.log.push(ev('peur', t('turn.rageHate', { name: nomDe(enemy), groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
-        set({ battle: { ...battle } });
-      },
-    },
-  ],
 } satisfies FragmentDeTables;
