@@ -37,7 +37,7 @@ const RESTANT: Record<string, number> = {
   'src/noyau/combat/triggeredTest.ts': 13,
   'src/noyau/combat/turnHooks.ts': 8,
   'src/noyau/combatArea.ts': 2,
-  'src/noyau/combatEffects.ts': 52,
+  'src/noyau/combatEffects.ts': 50,
   'src/noyau/combatFlow.ts': 130,
   'src/noyau/combatLog.ts': 1,
   'src/noyau/combatManeuvers.ts': 8,
