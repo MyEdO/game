@@ -457,6 +457,21 @@ describe('références de campagne dans la scène, les dotations et les objets e
     expect(projetSchema.safeParse(documentPorteur({ ...racine, test: testNomme })).success).toBe(true);
   });
 
+  it('le Test d’un Flow porté par un effet du consumable nomme aussi son enjeu', () => {
+    const vide = { kind: 'sequence', etapes: [] };
+    const porteur = (test: Jouet) => projet({
+      narratif: {
+        ...emptyNarratif(),
+        objets: [{ ...arme, consumable: feuille(ops({ op: 'augmentWeapon', onHitEffects: [{ trigger: 'onHit', on: 'victime', flow: { kind: 'test', test, reussite: vide, echec: vide } }] })) }],
+      },
+    });
+    const r = projetSchema.safeParse(porteur({ characteristic: 'endurance' }));
+    expect(r.success ? [] : r.error.issues.map((issue) => [issue.path.join('.'), issue.message])).toEqual([
+      ['narratif.objets.0.consumable.effet.ops.0.onHitEffects.0.flow.test.stake', 'Le Test d’un objet de campagne doit déclarer son enjeu.'],
+    ]);
+    expect(projetSchema.safeParse(porteur({ characteristic: 'endurance', stake: { authored: 'Frapper juste.' } })).success).toBe(true);
+  });
+
   it('un Test imbriqué reste hors portée pour un effet d’objet en fin de Round', () => {
     const test = {
       kind: 'test', test: { characteristic: 'endurance', stake: { authored: 'Obtenir l’arme promise.' } },

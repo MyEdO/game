@@ -41,7 +41,7 @@ import { isStructure } from '../engine/structures';
 import { inanimateCombatant } from '../engine/inanimate';
 import { applyOps } from '../engine/ops';
 import { bonus, effectiveChar, blessuresPosees } from '../engine/characteristics';
-import { dataLabel, massBattleHazardsDie, testSkillLabel } from '../data';
+import { massBattleHazardsDie, testSkillLabel } from '../data';
 import { jeterLeDe } from '../engine/tests';
 import { rollLine, type RollLineParts } from './ligneDeJet';
 import {
@@ -202,8 +202,6 @@ export interface MassBattleState {
   /** État PERSISTANT par Scène entre Rounds (générique) — ex. Point de rupture d'une « Tenez votre
    *  position » (`HoldState`, l.161). Clé = id de Scène. */
   sceneState: Record<string, HoldState>;
-  /** Journal de bataille (une ligne par événement marquant). */
-  log: string[];
 }
 
 // ── Catalogues data-driven des Activités/Scènes de bataille (`activities.json`) ────────────────────
@@ -315,10 +313,6 @@ export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): voi
     sceneDeltas: [],
     sceneEncounters: spec.sceneEncounters,
     sceneState: {},
-    log: [t('mbf.opened', {
-      ally: spec.nomDesAllies ? dataLabel(spec.nomDesAllies) : t('mbf.allyShortDefault'), allyMight,
-      enemy: spec.nomDesEnnemis ? dataLabel(spec.nomDesEnnemis) : t('mbf.enemyShortDefault'), enemyMight,
-    })],
   };
   set({ massBattle: mb });
   // « Interlude c'est interlude » : la PRÉPARATION (Activités 'bataille') se joue DANS le menu d'interlude,
@@ -338,7 +332,7 @@ export function engagerLaBataille(get: Get, set: Set): void {
   if (!mb || mb.phase !== 'prep') return;
   const { situation, activeThreats, imposed } = composeSituation(mb, battleRng());
   const threatLine = describeThreats(activeThreats);
-  set({ massBattle: { ...mb, phase: 'round', situation, activeThreats, imposed, log: threatLine ? [...mb.log, threatLine] : mb.log } });
+  set({ massBattle: { ...mb, phase: 'round', situation, activeThreats, imposed } });
   if (threatLine) get().ecrireAuJournal(ligneDeTexte(threatLine));
 }
 
@@ -882,7 +876,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
     lines.push(...applied.lines);
   }
 
-  set({ massBattle: { ...next, log: [...next.log, ...lines.map((e) => e.texte)] } });
+  set({ massBattle: next });
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
@@ -934,7 +928,7 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
     lines.push(ligneDeTexte(t(outcome === 'victoire' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills })));
     lines.push(...applied.lines);
   }
-  set({ massBattle: { ...next, log: [...next.log, ...lines.map((e) => e.texte)] }, screen: 'massBattle' });
+  set({ massBattle: next, screen: 'massBattle' });
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
@@ -951,7 +945,7 @@ export function refusDAlea(s: Pick<Jeu, 'massBattle'>): string | null {
 /** Pose le facteur environnemental `h` du Round, que `refusDAlea` admet. */
 function poserLAlea(get: Get, set: Set, h: HazardRow): void {
   const mb = get().massBattle!;
-  set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc }, log: [...mb.log, t('mbf.hazardLog', { label: h.label })] } });
+  set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc } } });
   get().ecrireAuJournal(ligneDeTexte(t('mbf.hazard', { label: h.label })));
 }
 
@@ -1003,7 +997,7 @@ function jouerLeTestSpectaculaire(get: Get, set: Set): void {
   } else {
     next = { ...next, awaitingNext: true };
   }
-  set({ massBattle: { ...next, log: [...next.log, ...lines.map((e) => e.texte)] } });
+  set({ massBattle: next });
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
@@ -1028,7 +1022,7 @@ function passerAuRoundSuivant(get: Get, set: Set): void {
     resolvedScenes: [], actedHeroes: [], assignment: {}, ralliedHeroes: [], sceneDeltas: [],
     hazard: undefined, awaitingNext: false,
   };
-  set({ massBattle: { ...next, log: threatLine ? [...next.log, threatLine] : next.log } });
+  set({ massBattle: next });
   if (threatLine) get().ecrireAuJournal(ligneDeTexte(threatLine));
 }
 

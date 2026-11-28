@@ -19,8 +19,10 @@ import { ref } from '../grammaire/ref';
 import { champAdapteDe, proseNommee, META_ADAPTE_DE } from '../grammaire/prose';
 import { entreePartielle as creatureEntreePartielle } from '../defs/creatures';
 import { entreeEmbarquee as trappingEntree } from '../defs/trappings';
-import { findCreatureById, findStructureById, findTrappingById, findVehicleById, stakeSpeaks } from '../../index';
-import { carriedFlows, walkFlow, type Flow } from '../../../engine/flowCore';
+import { findCreatureById, findStructureById, findTrappingById, findVehicleById } from '../../index';
+import { flowSchema } from '../grammaire/mecanique';
+import { enjeuParle } from '../catalogue/enjeux';
+import { carriedFlows, walkFlow } from '../../../engine/flowCore';
 import type { CreatureData } from '../../index';
 import { REGISTRES_NARRATIFS } from './registres-narratifs';
 import { exclusiviteAdapteDe, refuserSansProvenance } from '../grammaire/document';
@@ -174,13 +176,13 @@ function raffineNarratif(nb: z.infer<typeof formeNarratif>, ctx: z.RefinementCtx
     }
   });
 
-  const verifierEnjeux = (flow: Flow, chemin: (string | number)[]): void => {
+  const verifierEnjeux = (flow: z.output<typeof flowSchema>, chemin: (string | number)[]): void => {
     walkFlow(flow, (noeud, relatif) => {
-      if (noeud.kind === 'test' && !stakeSpeaks(noeud.test.stake))
+      if (noeud.kind === 'test' && !enjeuParle(noeud.test.stake))
         faute([...chemin, ...relatif, 'test', 'stake'], 'Le Test d’un objet de campagne doit déclarer son enjeu.');
       if (noeud.kind === 'effet') {
         for (const porte of carriedFlows(noeud.effet))
-          verifierEnjeux(porte.flow, [...chemin, ...relatif, 'effet', ...porte.chemin]);
+          verifierEnjeux(porte.flow as z.output<typeof flowSchema>, [...chemin, ...relatif, 'effet', ...porte.chemin]); // mecanique.ts:1215, mecanique.ts:1240
       }
     });
   };

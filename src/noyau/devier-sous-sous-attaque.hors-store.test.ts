@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { degatsSubis } from '../engine/repair';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
@@ -159,7 +159,7 @@ function critiqueDEquipage(marin: Combatant): { att: Combatant; nav: Combatant }
   poser([att, nav, marin]);
   seedBattleRng(1);
   const coup: CoupDeTouche = { mode: 'melee', weapon: hache, res: toucheAuJetPose(att, nav, hache, jet, 2, { rng: makeRNG(1595) }, false) };
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   applyHullCriticalToTarget(nav, 'voile', log, banc.setState, {
     get: banc.getState, forcedLocRoll: 5, suppressReveal: true,
     ctx: { attackerId: att.id, attackerKind: att.kind, weapon: hache.label, coup },

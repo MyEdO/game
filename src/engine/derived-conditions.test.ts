@@ -54,7 +54,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
 function jourDePneumonie(c: Combatant, success: boolean): string[] {
   const { specs, defer } = porteEntretien();
   const log = dailyDiseaseUpkeep(c, seq([]), defer).map((e) => e.texte);
-  for (const s of specs) log.push(...applique(c, s, { success }, desDuTest));
+  for (const s of specs) log.push(...applique(c, s, { success }, desDuTest).map((e) => e.texte));
   return log;
 }
 

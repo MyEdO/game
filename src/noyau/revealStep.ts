@@ -8,7 +8,6 @@ import type { CascadeTableDone, RevealEntry } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
 import type { IconIdGenerated as IconId } from '../data/schemas/icones.generated';
 import type { FaitApplique } from '../engine/faits';
-import { ligneDeTexte } from '../engine/journal';
 import { recapDe } from './recapLine';
 
 /** Icône d'une étape de révélation, PAR kind — exhaustif (ajouter un kind force son icône). */
@@ -49,7 +48,7 @@ export function revealToStep(
     actorId: entry.subjectId,
     icon: opts?.icon ?? REVEAL_ICON[entry.kind],
     label: opts?.label ?? entry.title,
-    outcome: recapDe(entry.lines.map((x) => ligneDeTexte(x))),
+    outcome: recapDe(entry.lines),
     reveal: entry,
     table: opts?.table,
     ...(opts?.faits?.length ? { faits: opts.faits } : {}),

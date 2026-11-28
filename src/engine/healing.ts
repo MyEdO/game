@@ -27,7 +27,7 @@ import { objetDuTrapping } from './items';
 import { nomDe } from './nom';
 import { groupMatch, groupesDe } from './groups';
 import type { Applique } from './faits';
-import { ligneDeTexte } from './journal';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 
 /** Id STABLE de la Compétence des actes de soin — source unique des sites qui la testent ou la lisent. */
 export const HEAL_SKILL = 'guerison';
@@ -226,7 +226,7 @@ export interface HealWoundsOptions {
   /** Libellé de journal spécifique au chemin (reçoit le nombre de PB EFFECTIVEMENT rendus, déjà
    *  plafonné, et la sortie de l'Inconscient au réveil, `undefined` sans réveil) — sinon le libellé par
    *  défaut du chemin Guérison, réveil compris. */
-  log?: (healed: number, reveil: Applique | undefined) => string[];
+  log?: (healed: number, reveil: Applique | undefined) => EntreeDuJournal[];
 }
 
 /** Montant de PB effectivement rendus par un `delta` positif (plafond munitions Empaleuses logées,
@@ -245,14 +245,14 @@ export function cappedHealAmount(target: Combatant, delta: number): number {
  *  Plafonné par les munitions Empaleuses logées, sans exception de chemin : « Chaque flèche ou
  *  balle non retirée vous empêche de guérir 1 de vos Blessures » (LDB 62 l.250 — formulation
  *  générale, aucune restriction au Test de Guérison). Renvoie un journal. */
-export function applyHealWounds(target: Combatant, delta: number, opts: HealWoundsOptions = {}): string[] {
+export function applyHealWounds(target: Combatant, delta: number, opts: HealWoundsOptions = {}): EntreeDuJournal[] {
   const { wake = true, log: customLog } = opts;
   if (delta < 0) {
     const consequences: Applique = { lignes: [], faits: [] };
     const lost = loseWounds(target, -delta, consequences);
-    return [t('heal.backfire', { name: nomDe(target), lost }), ...consequences.lignes.map((e) => e.texte)];
+    return [ligneDeTexte(t('heal.backfire', { name: nomDe(target), lost })), ...consequences.lignes];
   }
-  if (delta === 0) return customLog ? customLog(0, undefined) : [t('heal.nothing', { name: nomDe(target) })];
+  if (delta === 0) return customLog ? customLog(0, undefined) : [ligneDeTexte(t('heal.nothing', { name: nomDe(target) }))];
   const before = target.wounds.current;
   target.wounds.current = before + cappedHealAmount(target, delta);
   const healed = target.wounds.current - before;
@@ -260,12 +260,12 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
   const reveil = wake && target.wounds.current > 0 && reprendreConnaissance(target, sortie) ? sortie : undefined;
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
   const log = customLog ? customLog(healed, reveil) : [
-    healed > 0 ? t('heal.gain', { name: nomDe(target), n: healed, cur: target.wounds.current, max: target.wounds.max }) : t('heal.lodgedBlocks', { name: nomDe(target) }),
-    ...(reveil ? [t('heal.awake', { name: nomDe(target) }), ...reveil.lignes.map((l) => l.texte)] : []),
+    ligneDeTexte(healed > 0 ? t('heal.gain', { name: nomDe(target), n: healed, cur: target.wounds.current, max: target.wounds.max }) : t('heal.lodgedBlocks', { name: nomDe(target) })),
+    ...(reveil ? [ligneDeTexte(t('heal.awake', { name: nomDe(target) })), ...reveil.lignes] : []),
   ];
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
-  log.push(...syncDerivedConditions(target).lignes.map((l) => l.texte));
+  log.push(...syncDerivedConditions(target).lignes);
   return log;
 }
 
@@ -276,12 +276,12 @@ export function arretDHemorragie(target: Combatant, dr: number, success: boolean
 }
 
 /** Applique l'arrêt d'Hémorragie (mutation). `dr` = DR du Test réussi. */
-export function applyStopBleed(target: Combatant, dr: number, p: ParametresDeSoin): string[] {
+export function applyStopBleed(target: Combatant, dr: number, p: ParametresDeSoin): EntreeDuJournal[] {
   const sortie: Applique = { lignes: [], faits: [] };
   const [fait] = faitsDesPoses(target, ['hemorragique'], () => removeCondition(target, 'hemorragique', arretDHemorragie(target, dr, true, p), sortie));
   const retires = -(fait?.valeur ?? 0);
-  if (retires <= 0) return [t('heal.bleedResists', { name: nomDe(target) })];
-  return [t('heal.bleedStopped', { name: nomDe(target), n: retires }), ...sortie.lignes.map((e) => e.texte)];
+  if (retires <= 0) return [ligneDeTexte(t('heal.bleedResists', { name: nomDe(target) }))];
+  return [ligneDeTexte(t('heal.bleedStopped', { name: nomDe(target), n: retires })), ...sortie.lignes];
 }
 
 /** `c` porte-t-il une Blessure Critique de la rencontre qu'aucun pansement ne couvre encore ? LDB 09 l.260, LDB 72 l.20 */
@@ -293,7 +293,7 @@ export function plaieAPanser(c: Pick<Combatant, 'tookCriticalThisFight' | 'wound
  *  Guérison (LDB 09 l.260-262) : l'échec peut blesser, Infection Mineure sur Échec Stupéfiant, réussi sous Bandages la
  *  Blessure Critique de la rencontre est pansée (`plaieAPanser`). Soin aux animaux (LDB 09 l.527) : le succès seul.
  *  Renvoie le journal + le nombre de PB rendus. */
-export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: number, success: boolean, rng: RNG, p: ParametresDeSoin): { log: string[]; healed: number } {
+export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: number, success: boolean, rng: RNG, p: ParametresDeSoin): { log: EntreeDuJournal[]; healed: number } {
   // « Un patient ne peut bénéficier que d'UN JET de Guérison après chaque rencontre » (LDB 09
   // l.260) : le jet est consommé même raté — sans MJ, on relancerait gratuitement jusqu'au succès.
   target.soinRencontreUtilise = true;
@@ -305,25 +305,25 @@ export function resolveWoundsHeal(target: Combatant, intBonus: number, sl: numbe
     const dz = contractDisease('infection-mineure', rng);
     if (dz && !(target.diseases ?? []).some((d) => d.id === dz.id)) {
       target.diseases = [...(target.diseases ?? []), dz];
-      log.push(t('heal.astoundingFail', { name: nomDe(target) }));
+      log.push(ligneDeTexte(t('heal.astoundingFail', { name: nomDe(target) })));
     }
   }
   return { log, healed };
 }
 
 /** SOURCE UNIQUE de l'arrêt d'Hémorragie (Guérison, Soin aux animaux LDB 09 l.528, Dextérité) : applique si réussi, message d'échec sinon. */
-export function resolveBleedHeal(target: Combatant, sl: number, success: boolean, p: ParametresDeSoin): string[] {
-  return success ? applyStopBleed(target, sl, p) : [t('heal.bleedResists', { name: nomDe(target) })];
+export function resolveBleedHeal(target: Combatant, sl: number, success: boolean, p: ParametresDeSoin): EntreeDuJournal[] {
+  return success ? applyStopBleed(target, sl, p) : [ligneDeTexte(t('heal.bleedResists', { name: nomDe(target) }))];
 }
 
 /** Retrait d'une munition Empaleuse logée (LDB 62 l.250 : « Les flèches et les carreaux nécessitent
  *  un Test de Guérison Intermédiaire pour être retirés »). Un succès retire 1 munition (`munition-logee`,
  *  la plus ancienne pion) ; un échec ne retire rien. */
-export function resolveExtractLodgedAmmo(target: Combatant, success: boolean): string[] {
+export function resolveExtractLodgedAmmo(target: Combatant, success: boolean): EntreeDuJournal[] {
   const before = lodgedAmmoCount(target);
-  if (before <= 0) return [t('heal.noLodged', { name: nomDe(target) })];
-  if (!success) return [t('heal.lodgedResists', { name: nomDe(target) })];
+  if (before <= 0) return [ligneDeTexte(t('heal.noLodged', { name: nomDe(target) }))];
+  if (!success) return [ligneDeTexte(t('heal.lodgedResists', { name: nomDe(target) }))];
   const sortie: Applique = { lignes: [ligneDeTexte(t('heal.lodgedRemoved', { name: nomDe(target), left: before - 1 }))], faits: [] };
   removeCondition(target, 'munition-logee', 1, sortie);
-  return sortie.lignes.map((e) => e.texte);
+  return sortie.lignes;
 }

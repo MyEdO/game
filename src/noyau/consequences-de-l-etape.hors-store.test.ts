@@ -183,7 +183,7 @@ describe('la révélation d’une Incantation Imparfaite porte ses faits, sans r
     const faits = revelation.faits ?? [];
     expect(faits.map((f) => [f.genre, f.genre === 'etat' ? f.id : f.valeur])).toEqual([['corruption', 1], ['etat', 'a-terre'], ['etat', 'extenue'], ['corruption', 1]]);
     const lignesDesFaits = faits.filter(avecLigne).map((f) => texteDuFait(f, nomDe(g().party[0]), revelation.reveal!.title));
-    expect(revelation.reveal!.lines.filter((l) => lignesDesFaits.includes(l)), 'aucune ligne d’un fait dans la révélation').toEqual([]);
+    expect(revelation.reveal!.lines.map((l) => l.texte).filter((l) => lignesDesFaits.includes(l)), 'aucune ligne d’un fait dans la révélation').toEqual([]);
   });
 });
 

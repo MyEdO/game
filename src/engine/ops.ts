@@ -1065,7 +1065,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       emettre(qui, { genre: 'etat', ...sur(qui), id: COND.inconscient, valeur: -1 });
       absorber(reveil);
     }
-    lines.push(...suite.map((x) => ligneDeTexte(x)));
+    lines.push(...suite);
   };
   // DISSIPATION (LDB 46) : on retient les ActiveEffect PRÉ-EXISTANTS (par référence) pour ne marquer,
   // en fin d'op, QUE ceux posés par CE sort source (robuste au dédoublonnage en place de `applyActiveEffect`).
@@ -1564,7 +1564,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       }
       case 'cureDisease': {
         const n = Math.max(0, (o.count ?? 1) + slBonus(ctx.sl, o.countPerSL));
-        lines.push(...cureDiseases(target, n).map((x) => ligneDeTexte(x)));
+        lines.push(...cureDiseases(target, n));
         break;
       }
       case 'reduceDiseaseDays': {

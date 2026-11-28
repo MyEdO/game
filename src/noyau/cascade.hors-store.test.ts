@@ -231,7 +231,7 @@ describe('Cascade séquentielle influençable', () => {
       return [annonce, JSON.stringify(banc.getState().pendingCascade) !== JSON.stringify(avant.pendingCascade)];
     };
     startCascade(banc.getState, banc.setState, { title: 'T', purpose: 'test', steps: [step('s1', h.id), choix] });
-    pushReveal(banc.setState, { kind: 'effet', title: 'Révélation', lines: ['Une conséquence'] });
+    pushReveal(banc.setState, { kind: 'effet', title: 'Révélation', lines: [ligneDeTexte('Une conséquence')] });
     expect(annonceEtEffet(), 'une étape-jet : ouvert, joué').toEqual([null, true]);
     expect(banc.getState().pendingCascade?.cursor, 'arrêté sur le choix').toBe(1);
     expect(annonceEtEffet(), 'un choix non tranché : fermé, refusé').toEqual(['choixDu', false]);

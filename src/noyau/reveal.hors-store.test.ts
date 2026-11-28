@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { chargerSurLeBanc, sauverLeBanc } from './persistance/save.testkit';
@@ -31,7 +32,7 @@ describe('révélation → étape d’affichage de cascade', () => {
   beforeEach(() => banc.setState({ pendingCascade: null, suspendedCascades: [], battle: null }));
 
   it('hors combat sans séquence en vol : la révélation OUVRE une séquence d’affichage, titrée par elle', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'Entretien quotidien', lines: ['x'] });
+    pushReveal(banc.setState, { kind: 'round', title: 'Entretien quotidien', lines: [ligneDeTexte('x')] });
     const c = banc.getState().pendingCascade!;
     expect(c.purpose).toBe('affichage');
     expect(c.title).toBe('Entretien quotidien');
@@ -39,13 +40,13 @@ describe('révélation → étape d’affichage de cascade', () => {
     expect(c.participants).toHaveLength(1);
     const step = c.participants[0];
     expect(step.kind).toBe('round');
-    expect(step.reveal?.lines).toEqual(['x']); // charge riche portée PAR l'étape (rendue par RevealBody)
+    expect(step.reveal?.lines).toEqual([ligneDeTexte('x')]); // charge riche portée PAR l'étape (rendue par RevealBody)
     expect(step.outcome?.length).toBe(1); // …et ses lignes restent lisibles dans la pile une fois validée
   });
 
   it('les révélations s’EMPILENT dans l’ordre d’arrivée (le mono est le cas N=1 d’une séquence)', () => {
-    pushReveal(banc.setState, { kind: 'round', title: 'A', lines: ['a'] });
-    pushReveal(banc.setState, { kind: 'effet', title: 'B', lines: ['b'] });
+    pushReveal(banc.setState, { kind: 'round', title: 'A', lines: [ligneDeTexte('a')] });
+    pushReveal(banc.setState, { kind: 'effet', title: 'B', lines: [ligneDeTexte('b')] });
     const c = banc.getState().pendingCascade!;
     expect(c.participants.map((s) => s.reveal?.title)).toEqual(['A', 'B']);
     expect(c.participants.map((s) => s.id)).toEqual(['cons-round-0', 'cons-effet-1']); // ids uniques dans la séquence
@@ -61,7 +62,7 @@ describe('révélation → étape d’affichage de cascade', () => {
   });
 
   it('une étape d’affichage EN VOL traverse la sauvegarde, et la séquence restaurée se dénoue', () => {
-    const reveal = { kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: ['a', 'b'], subjectId: 'h1' } satisfies RevealEntry;
+    const reveal = { kind: 'mutation', title: 'Mutation — Écailles', dice: 42, lines: [ligneDeTexte('a'), ligneDeTexte('b')], subjectId: 'h1' } satisfies RevealEntry;
     pushReveal(banc.setState, reveal);
     const texte = sauverLeBanc(banc);
     banc.setState({ pendingCascade: null });
@@ -105,7 +106,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     });
     banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
     banc.getState().lancerLaScene(scene);
-    expect(banc.getState().pendingCascade!.participants[0].reveal?.lines).toEqual([texte]);
+    expect(banc.getState().pendingCascade!.participants[0].reveal?.lines).toEqual([ligneDeTexte(texte)]);
   });
 
   const CRYPTE: Scene = {
@@ -167,7 +168,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
     registerScene(suite);
     banc.setState({ party: [createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 })], pendingCascade: null, suspendedCascades: [], battle: null });
     banc.getState().lancerLaScene(crypteCombat);
-    pushReveal(banc.setState, { kind: 'effet', title: 'Conséquence B', lines: ['b'] }); // rejoint la séquence d'affichage EN VOL, derrière la carte
+    pushReveal(banc.setState, { kind: 'effet', title: 'Conséquence B', lines: [ligneDeTexte('b')] }); // rejoint la séquence d'affichage EN VOL, derrière la carte
     expect(banc.getState().pendingCascade!.participants).toHaveLength(2);
     banc.getState().jetValider('cascade'); // la carte est acquittée : le curseur pointe « Conséquence B »
     expect(banc.getState().pendingCascade!.cursor).toBe(1);
@@ -206,7 +207,7 @@ describe('carte d’entrée de zone — préséance et durée de vie', () => {
  * `'table'` — un tirage à faire, sans enjeu, qu'aucune porte n'a montée. Ce couple test + directive en est la mesure.
  */
 describe('#1262 V2 L6 — `revealToStep` ne produit jamais un tirage À FAIRE', () => {
-  const ENTRY: RevealEntry = { kind: 'incantationImparfaite', title: 'Colère des dieux', lines: ['ligne 77'], subjectId: 'H1' };
+  const ENTRY: RevealEntry = { kind: 'incantationImparfaite', title: 'Colère des dieux', lines: [ligneDeTexte('ligne 77')], subjectId: 'H1' };
 
   it('table RÉSOLUE : l’étape reste un AFFICHAGE, dé et ligne portés par la rangée', () => {
     const step = revealToStep(ENTRY, 0, {

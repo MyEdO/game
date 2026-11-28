@@ -46,11 +46,11 @@ function reprendreEntretienDeLHorloge(get: Get, set: Set, minutes: number, apres
   const { steps, log } = preparerLEntretienQuotidien(get, set, minutes);
   if (get().battle) {
     // #253
-    if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log.map((e) => e.texte) });
+    if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log });
     if (steps.length) set({ deferredUpkeepQueue: [...get().deferredUpkeepQueue, ...steps] });
   } else {
     if (steps.length) openSequence(get, set, { title: 'Entretien quotidien', icon: 'temps/nuit', purpose: 'upkeep', steps });
-    else if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log.map((e) => e.texte) }, { purpose: 'upkeep' });
+    else if (log.length) pushReveal(set, { kind: 'round', title: 'Entretien quotidien', lines: log }, { purpose: 'upkeep' });
   }
   checkPartyWiped(get, set);
 }

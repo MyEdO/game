@@ -33,7 +33,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
     expect(r.shrapnel).toEqual([]);
     expect(crew[1].wounds.current).toBe(13);
     expect(crew[1].conditions).toEqual([]);
-    expect(r.lines.join(' ')).toMatch(/Équipage touché : Marin encaisse le coup/);
+    expect(r.lines.map((e) => e.texte).join(' ')).toMatch(/Équipage touché : Marin encaisse le coup/);
   });
 
   it('hors Équipage : aucun marin désigné', () => {
@@ -69,7 +69,7 @@ describe('applyHullCritical — l’équipage encaisse réellement (pas qu’un 
     expect(exposedCrew(dead)).toHaveLength(0);
     const r = applyHullCritical(ship, dead, 'voile', makeRNG(2), idsDeTest, 5);
     expect(r.marinId).toBeUndefined();
-    expect(r.lines.join(' ')).toMatch(/aucun marin exposé/);
+    expect(r.lines.map((e) => e.texte).join(' ')).toMatch(/aucun marin exposé/);
   });
 });
 

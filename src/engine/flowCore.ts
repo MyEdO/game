@@ -860,9 +860,9 @@ export function lierLesTirages<E>(flow: Flow<E>, valeurDe: (de: Formula) => numb
  *  `visit` reçoit aussi le CHEMIN du nœud depuis `flow`, pour qui doit nommer un nœud fautif.
  *  Le visiteur peut ignorer les enfants, arrêter tout le parcours, ou retenir une branche d'un `si`.
  *  Le résultat dit si le parcours est allé au bout. */
-export function walkFlow<E = EffectOp>(
-  flow: Flow<E>,
-  visit: (node: Flow<E>, chemin: CheminDeFlow) => void | 'ignorer' | 'stop' | 'alors' | 'sinon',
+export function walkFlow<E = EffectOp, T = FlowTest, C = number | IndiceTemplate, D = Condition>(
+  flow: ArbreDeFlow<E, T, C, D>,
+  visit: (node: ArbreDeFlow<E, T, C, D>, chemin: CheminDeFlow) => void | 'ignorer' | 'stop' | 'alors' | 'sinon',
   chemin: CheminDeFlow = [],
 ): boolean {
   const suite = visit(flow, chemin);

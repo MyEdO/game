@@ -1,5 +1,5 @@
 import { describe, it, beforeEach, expect } from 'vitest';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { evaluateMissile, type CastResult } from '../engine/magic';
 import { applyCoupCritiqueSec, instantaneAvantLeCoup } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -67,11 +67,11 @@ describe('#80 Critique de défense opposée — Localisation = 1d100 frais, déc
     const set = (() => {}) as never;
     seedBattleRng(7);
     const v1 = mkTarget();
-    const log1: string[] = [];
+    const log1: EntreeDuJournal[] = [];
     applyCoupCritiqueSec(get, set, v1, 11, 'double', {}, log1, undefined, instantaneAvantLeCoup(v1));
     seedBattleRng(7);
     const v2 = mkTarget();
-    const log2: string[] = [];
+    const log2: EntreeDuJournal[] = [];
     applyCoupCritiqueSec(get, set, v2, 99, 'double', {}, log2, undefined, instantaneAvantLeCoup(v2));
     expect(v1.criticalWounds).toBe(1); // un Critique a bien été appliqué
     expect(v1.traumas).toEqual(v2.traumas); // jet 11 ≠ 99 → Critique IDENTIQUE : la loc ne dérive plus de l’inversion

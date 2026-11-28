@@ -75,7 +75,7 @@ describe('Fièvre Cérébrale Pourpre — EDO App.2 p.145', () => {
     tickDisease(c, MINUTES_PER_DAY, deFixe(1), defer);
     const log = specs.flatMap((s) => applique(c, s, { success: true }, desDuTest));
     expect(c.diseases).toHaveLength(0);
-    expect(log.some((l) => /guérit/.test(l))).toBe(true);
+    expect(log.some((l) => /guérit/.test(l.texte))).toBe(true);
   });
 
   it("findDiseaseById résout la maladie", () => {

@@ -13,6 +13,7 @@
  * Les Éclats (Indice → équipage) et les Critiques de Coque supplémentaires sont RENDUS (l'équipage et la
  * récursion de Coque relèvent de la boucle de combat naval, qui connaît l'équipage du navire).
  */
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 import type { FabriqueDId } from './fabriqueDId';
 import { d100, rollDice, tirer, type RNG } from './dice';
 import { findTableEntry } from './tables';
@@ -181,7 +182,7 @@ export interface HullCriticalOutcome {
   /** Coup à l'ÉQUIPAGE de la rangée : conséquence certaine DÉJÀ appliquée, épreuve RENDUE. L'appelant
    *  (`noyau`) ouvre `testFlow` par la porte canonique sur les `victims`. */
   crewHit?: CrewHitOutcome & { label: string };
-  lines: string[];
+  lines: EntreeDuJournal[];
 }
 
 /** Équipage EXPOSÉ d'un poste tiré au sort (MDG « Canon détaché »). PUR. `[]` si la coque n'a aucun poste. */
@@ -285,7 +286,7 @@ export function applyHullCritical(
 ): HullCriticalOutcome {
   const set = shipCritSet(opts?.criticalTable);
   let hit = resolveShipCriticalHit(rig, rng, forcedLocRoll, forcedCritRoll, opts);
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   const exposed = exposedCrew(crew);
 
   // Aucun marin exposé : le coup NE SE PERD PAS — il retombe sur la Localisation que le jeu de tables
@@ -293,21 +294,21 @@ export function applyHullCritical(
   // pas de MJ (AGENTS.md règle 7) : l'arbitrage vit en donnée, éditable.
   if (hit.crewHit && !exposed.length) {
     const cible = set.replisSansExpose.cible;
-    lines.push(t('shipCrit.crewNoneExposed', { loc: shipLocationLabel(cible) }));
+    lines.push(ligneDeTexte(t('shipCrit.crewNoneExposed', { loc: shipLocationLabel(cible) })));
     hit = { location: cible, crewHit: false, crit: rollShipCritical(cible, rng, forcedCritRoll, set) };
   }
 
   if (hit.crewHit) {
     const marin = exposed[0]!;
-    lines.push(t('shipCrit.crewExpose', { name: nomDe(marin) })); // MDG 13 l.584
+    lines.push(ligneDeTexte(t('shipCrit.crewExpose', { name: nomDe(marin) }))); // MDG 13 l.584
     return { location: 'equipage', hullOps: [], shrapnel: [], extraHullCrits: [], marinId: marin.id, lines };
   }
 
   const crit = hit.crit!;
-  lines.push(crit.log);
+  lines.push(ligneDeTexte(crit.log));
   // Effets de coque en `GameOp` : États navals (Voie d'eau / En flammes) ET « Canon perdu » (op
   // `removeShipPoste`, qui démancipe le chef via `crew`). On capte leurs lignes de journal.
-  lines.push(...applyOps(hull, crit.ops, { rng, idNeuf, crew }).lignes.map((e) => e.texte));
+  lines.push(...applyOps(hull, crit.ops, { rng, idNeuf, crew }).lignes);
 
   // Coup à l'équipage consécutif au Critique (`crewHit` data-driven) : l'équipage d'un poste tiré au
   // sort (MDG 13 l.763), les PRÉSENCES nommées (MDG 13 l.680/l.714/l.730/l.751, MSRC 07 l.78/l.82/
@@ -318,25 +319,25 @@ export function applyHullCritical(
   if (crit.crewHit) {
     const out = applyCrewHit(hull, crew, crit.crewHit, rng, idNeuf);
     crewHitOut = { ...out, label: crit.label };
-    for (const id of out.stationsFermees) lines.push(t('shipCrit.stationFermee', { loc: findShipStation(id)?.label ?? id }));
-    if (out.hits.length) lines.push(t('shipCrit.crewTakes', { n: out.hits.length, label: crit.label }));
+    for (const id of out.stationsFermees) lines.push(ligneDeTexte(t('shipCrit.stationFermee', { loc: findShipStation(id)?.label ?? id })));
+    if (out.hits.length) lines.push(ligneDeTexte(t('shipCrit.crewTakes', { n: out.hits.length, label: crit.label })));
   }
 
   // Éclats → effet data `set.shrapnelHit` (op `wounds` : 9 Dégâts en mer MDG / +5 en fleuve MSRC) à autant de
   // marins exposés que l'Indice (plafonné au nombre de marins). L'op JOURNALISE elle-même le Dégât réel
   // (mitigé BE/PA) → on capte ses lignes (comme les ops de coque ci-dessus), aucun littéral ni réintrospection.
   const shrapnel: { crewId: string }[] = [];
-  const shrapnelLines: string[] = [];
+  const shrapnelLines: EntreeDuJournal[] = [];
   if (crit.shrapnel > 0 && !set.shrapnelHit) {
     throw new Error(`applyHullCritical : la rangée « ${crit.label} » porte Éclats ${crit.shrapnel} mais le jeu « ${set.id} » n'authore aucun effet d'Éclats (shrapnelHit).`);
   }
   for (let i = 0; i < crit.shrapnel && i < exposed.length; i++) {
     const sailor = exposed[i];
-    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng, idNeuf }).lignes.map((e) => e.texte));
+    shrapnelLines.push(...applyOps(sailor, set.shrapnelHit!, { rng, idNeuf }).lignes);
     shrapnel.push({ crewId: sailor.id });
   }
   if (shrapnel.length) {
-    lines.push(t('shipCrit.shrapnelHits', { indice: crit.shrapnel, n: shrapnel.length }));
+    lines.push(ligneDeTexte(t('shipCrit.shrapnelHits', { indice: crit.shrapnel, n: shrapnel.length })));
     lines.push(...shrapnelLines);
   }
 
@@ -347,7 +348,7 @@ export function applyHullCritical(
     applyOps(hull, extra.ops, { rng, idNeuf });
     extraHullCrits.push(extra);
   }
-  if (extraHullCrits.length) lines.push(t('shipCrit.extraHull', { n: extraHullCrits.length }));
+  if (extraHullCrits.length) lines.push(ligneDeTexte(t('shipCrit.extraHull', { n: extraHullCrits.length })));
 
   return { location: crit.location, hullOps: crit.ops, shrapnel, extraHullCrits, ...(crewHitOut ? { crewHit: crewHitOut } : {}), lines };
 }

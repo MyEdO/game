@@ -312,24 +312,24 @@ export function applyMutation(get: Get, set: Set, hero: Combatant, _test?: { rol
  *  déjà débités par `applyMutation` (l.76, « D'abord… »). */
 function finishMutation(
   get: Get, set: Set, hero: Combatant, m: Mutation, kind: 'physique' | 'mentale', kindRoll: number,
-): string[] {
+): EntreeDuJournal[] {
   const rng = battleRng();
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   attachMutation(hero, m, rng);
   // Effet dérivé immédiat : PA naturels (loadout).
   if (hero.items?.length) recomputeLoadout(hero);
   // Le dé de table (`m.roll`) est DÉJÀ affiché par la rangée `TableRollLine` (dice: m.roll, révélation
   // ci-dessous) — pas de re-print (#295 Lot 4). Le jet du Test `corrompu` est lui aussi
   // déjà affiché par SA propre rangée (Corruption/Renounce) en amont — jamais réimprimé ici (#295 Lot 5).
-  lines.push(t('cor.mutates', { name: nomDe(hero), label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }));
-  if (m.note) lines.push(t('cor.mutationNote', { label: m.label, note: m.note }));
+  lines.push(ligneDeTexte(t('cor.mutates', { name: nomDe(hero), label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') })));
+  if (m.note) lines.push(ligneDeTexte(t('cor.mutationNote', { label: m.label, note: m.note })));
 
   // Limites de Corruption (l.87) : plus de mutations physiques que BE ou mentales que
   // BFM → l'âme appartient aux Dieux Sombres. Hors-jeu définitif (traité comme mort).
   if (mutationLimitExceeded(hero)) {
     hero.damned = true;
     hero.dead = true;
-    lines.push(t('cor.damned', { name: nomDe(hero) }));
+    lines.push(ligneDeTexte(t('cor.damned', { name: nomDe(hero) })));
   }
   if (tenuParUnHumain(get(), hero.id))
     pushReveal(set, { kind: 'mutation', title: t('cor.revealTitle', { label: m.label }), dice: m.roll, lines: [...lines], subjectId: hero.id });
@@ -349,7 +349,7 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   if (renounce) {
     perdreUnPointDeResilience(hero);
     lines.push(ligneDeTexte(t('cor.renounced', { name: nomDe(hero) })));
-    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: lines.map((e) => e.texte), subjectId: hero.id });
+    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id });
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
   }
@@ -467,7 +467,7 @@ export const TABLES = {
       }
       const lines = finishMutation(get, set, hero, m, ctx.kind ?? 'physique', ctx.natureRoll ?? 0);
       set({ ...touchActors(get()) });
-      return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: lines, faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   famillesTirables: [

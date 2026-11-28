@@ -97,7 +97,7 @@ describe('#1262 — monoStep : un porteur, un jet, une cible', () => {
     const step = monoStep({
       id: 'h', kind: cleDeFixture('k'), label: fixtureText('L'), actor: hero('H1'), difficulty: 'intermediaire', stake: ENJEU,
       ligne: { test: { characteristic: 'force-mentale' } },
-      reveal: { kind: 'effet', title: 'Ce qui vient d’arriver', lines: ['a'] },
+      reveal: { kind: 'effet', title: 'Ce qui vient d’arriver', lines: [ligneDeTexte('a')] },
     })!;
     expect(step.reveal!.title).toBe('Ce qui vient d’arriver');
   });

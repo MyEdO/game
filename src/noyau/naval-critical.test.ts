@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { type EntreeDuJournal } from '../engine/journal';
 import { applyCriticalToTarget } from './combatFlow';
 import { seedBattleRng } from './battleRng';
 import { vehicleCombatant } from '../engine/vehicle';
@@ -32,14 +33,14 @@ describe('applyCriticalToTarget — coque/navire (MDG 13) au lieu de Trauma huma
 
   it('un véhicule ne subit JAMAIS de Trauma humain ; le Critique compte et est journalisé', () => {
     const s = ship();
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(s, 'corps', 0, log, setStub, { get: getHorsBataille });
     expect(s.traumas ?? []).toHaveLength(0); // aucune amputation/fracture humaine sur une coque
     expect(s.criticalWounds).toBe(1);
     expect(log.length).toBeGreaterThan(0);
     // Issue TOUJOURS navale : un Critique de navire (Coque/Gréement/Avirons…) ou un coup à l'Équipage —
     // jamais un Trauma de personnage. (Un coup au Gréement peut être purement narratif, sans État posé.)
-    expect(log.join('\n')).toMatch(/Critique navire|Équipage/);
+    expect(log.map((l) => l.texte).join('\n')).toMatch(/Critique navire|Équipage/);
   });
 
   it('seed atteignant la Coque → pose un État NAVAL via la langue GameOp (pas de mécanique parallèle)', () => {

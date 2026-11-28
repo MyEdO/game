@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { type EntreeDuJournal } from '../engine/journal';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { emitCombatEvent } from './combatEvents';
 import { applyCoupCritiqueSec, instantaneAvantLeCoup } from './combatFlow';
@@ -106,7 +107,7 @@ describe('7bis — applyCoupCritiqueSec émet onCrit (Taillade sur Critique oppo
     E.weapons = [taillade()];
     banc.setState({ battle: { ...b } });
 
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCoupCritiqueSec(banc.getState, banc.setState, H, 40, 'double', { attackerId: E.id, weapon: 'Hache de Taillade', weaponObj: taillade() }, log, E, instantaneAvantLeCoup(H));
 
     const h = banc.getState().battle!.combatants.find((c) => c.id === H.id)!;

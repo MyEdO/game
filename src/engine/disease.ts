@@ -501,16 +501,16 @@ export function prolongDisease(c: PorteurDeMaladies, name: string, days: number)
 }
 
 /** Conséquence d'un Test de Gangrène DIFFÉRÉ (l.135+) : échec → +1 échec ; au-delà du BE → Localisation perdue. */
-export function applyDiseaseGangrene(c: Combatant, diseaseName: string, success: boolean, be: number): string[] {
+export function applyDiseaseGangrene(c: Combatant, diseaseName: string, success: boolean, be: number): EntreeDuJournal[] {
   if (success) return [];
   const dz = (c.diseases ?? []).find((d) => d.id === diseaseName && maladieDeclaree(d));
   if (!dz) return [];
   dz.gangreneFails = (dz.gangreneFails ?? 0) + 1;
   if (dz.gangreneFails > be) {
     dz.gangreneLost = true;
-    return [t('dz.gangreneLost', { name: nomDe(c) })];
+    return [ligneDeTexte(t('dz.gangreneLost', { name: nomDe(c) }))];
   }
-  return [t('dz.gangreneProgress', { name: nomDe(c), fails: dz.gangreneFails })];
+  return [ligneDeTexte(t('dz.gangreneProgress', { name: nomDe(c), fails: dz.gangreneFails }))];
 }
 
 /** LDB 20 l.127-129 */
@@ -524,17 +524,17 @@ function guerison(p: PorteurDeMaladies, dz: Disease): string {
 /** Conséquence du Test « persistant » de fin de durée DIFFÉRÉ (l.162) : réussite → guérison ;
  *  DR ≤ −6 → Infection du Sang ; ≤ −2 → Blessure Purulente ; sinon → +1d10 jours. La maladie en
  *  attente (`endTestPending`) est retirée (ou prolongée). Mute `c.diseases`. */
-export function applyDiseasePersist(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): string[] {
+export function applyDiseasePersist(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): EntreeDuJournal[] {
   const dz = (c.diseases ?? []).find((d) => d.id === diseaseName && d.endTestPending);
   if (!dz) return [];
   dz.endTestPending = undefined;
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   const remove = () => { c.diseases = (c.diseases ?? []).filter((d) => d !== dz); };
-  const cure = () => { remove(); log.push(guerison(c, dz)); };
+  const cure = () => { remove(); log.push(ligneDeTexte(guerison(c, dz))); };
   if (success) cure();
-  else if (sl <= -6) { remove(); log.push(t('dz.degenerate', { name: nomDe(c), disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'infection-du-sang', rng)); }
-  else if (sl <= -2) { remove(); log.push(t('dz.infects', { name: nomDe(c), disease: diseaseLabel(dz.id) })); log.push(...contractDiseaseOnce(c, 'blessure-purulente', rng)); }
-  else { const extra = roll(1, 10, rng); dz.minutesLeft = extra * MINUTES_PER_DAY; log.push(t('dz.persists', { name: nomDe(c), disease: diseaseLabel(dz.id), days: extra })); }
+  else if (sl <= -6) { remove(); log.push(ligneDeTexte(t('dz.degenerate', { name: nomDe(c), disease: diseaseLabel(dz.id) }))); log.push(...contractDiseaseOnce(c, 'infection-du-sang', rng).map((l) => ligneDeTexte(l))); }
+  else if (sl <= -2) { remove(); log.push(ligneDeTexte(t('dz.infects', { name: nomDe(c), disease: diseaseLabel(dz.id) }))); log.push(...contractDiseaseOnce(c, 'blessure-purulente', rng).map((l) => ligneDeTexte(l))); }
+  else { const extra = roll(1, 10, rng); dz.minutesLeft = extra * MINUTES_PER_DAY; log.push(ligneDeTexte(t('dz.persists', { name: nomDe(c), disease: diseaseLabel(dz.id), days: extra }))); }
   return log;
 }
 

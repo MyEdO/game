@@ -89,7 +89,7 @@ import { elision, estUneCle, pluriel, t } from '../i18n';
 import { garanti } from '../lib/garanti';
 import { ordreEnVue, type Projection } from './projection';
 import { CHOIX_EN_BOUTONS, type FenetreADessiner } from './gestes';
-import { redigerLEntree } from './journal';
+import { redigerLEntree, redigerSansRattache } from './journal';
 import { redigerLeDocument } from './document';
 import { zonesDeLaCreation, type ZonesDeLaCreation } from './creation';
 import type { ContenuDUnJeu } from './contenu';
@@ -1012,7 +1012,7 @@ function revelationDeLEtape(etat: Jeu): Element[] {
   if (!etape || !r) return [];
   return [
     ...faitsDeLEtape(etat, etape).map((f, i) => puceDuFait(etat, r.kind, f, i)),
-    ...(r.kind === 'critique' ? [] : r.lines.map((l, i) => ligne(`revelation/${i}`, l))),
+    ...(r.kind === 'critique' ? [] : r.lines.map((l, i) => ligne(`revelation/${i}`, redigerLEntree(l), l.ton ?? 'neutre'))),
     ...(r.details ?? []).map((d, i) => ligne(`${r.kind}/effet/${i}`, d.text, 'neutre', d.note ?? null)),
   ];
 }
@@ -1511,11 +1511,12 @@ const tonDeLEvenement = (etat: Jeu, e: CombatEvent): Ton => {
 export function lignesDuJournal(etat: Jeu, avant: number, journal: readonly LigneDuJournal[], veille: number | null): { lignes: Ligne[]; jour: number | null } {
   let jour = veille;
   const lignes = journal.reduce<Ligne[]>((lignes, l, i) => {
-    const texte = redigerLEntree(l.de === 'journal' ? l.entree : l.evenement.entree);
+    const entree = l.de === 'journal' ? l.entree : l.evenement.entree;
+    const texte = redigerLEntree(entree);
     if (!texte) return lignes;
     const precedente = lignes[lignes.length - 1] as Ligne | undefined;
     if (l.de === 'combat' && l.evenement.kind === 'detail' && precedente) {
-      const sous = texte.replace(/^\s*↳\s*/, '');
+      const sous = redigerSansRattache(entree);
       return [...lignes.slice(0, -1), { ...precedente, detail: precedente.detail === null ? sous : `${precedente.detail}\n${sous}` }];
     }
     const ce = dayIndex(l.heure);

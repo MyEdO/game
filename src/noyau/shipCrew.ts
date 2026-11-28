@@ -655,7 +655,7 @@ function factorLedger(rolls: MoraleRoll[]): NightEntry[] {
     id: `council-factor-${i}`,
     icon: 'scenario/naval',
     label: f.label,
-    text: t('crew.factorMorale', { delta: `${f.rolled >= 0 ? '+' : ''}${f.rolled}` }),
+    issue: [ligneDeTexte(t('crew.factorMorale', { delta: `${f.rolled >= 0 ? '+' : ''}${f.rolled}` }))],
     tone: f.rolled > 0 ? 'reussite' : f.rolled < 0 ? 'echec' : 'neutre',
   }));
 }
