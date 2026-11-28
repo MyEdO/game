@@ -3512,19 +3512,19 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // (`focusCriticalDR`) : un DR bonus égal au Bonus de Force Mentale s'ajoute, sans compléter.
       if (res.isCritical) {
         caster.focus = { spell: pf.spellId, dr: focusCriticalDR(caster, caster.focus.dr, ni) };
-        logLines.push(t('cs.focusCrit', { name: nomDe(caster), spell: spell.label }));
+        logLines.push(ligneDeTexte(t('cs.focusCrit', { name: nomDe(caster), spell: spell.label })));
         // Vie/Ghyran en mer (MDG 02 l.186) : une Focalisation Critique donne une Imparfaite MAJEURE
         // au lieu de Mineure ; le porteur d'Harmonisation aethyrique n'échappe plus au contrecoup —
         // il lance quand même sur le tableau des Imparfaites MINEURES (au lieu d'y échapper).
         const seaMajeure = domainSeaFocusCritMiscastMajeure(spell, seaMagicContext(get()).atSea);
         if (hasFocusHarmony(caster)) {
           if (seaMajeure) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
-          else logLines.push(t('cs.focusHarmonized'));
+          else logLines.push(ligneDeTexte(t('cs.focusHarmonized')));
         } else {
           logLines.push(...applyMiscast(get, set, caster, seaMajeure ? 'majeure' : 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
         }
       }
-      logLines.push(caster.focus.dr >= ni ? t('cs.focusEnough', { name: nomDe(caster), spell: spell.label }) : t('cs.focusProgress', { dr: caster.focus.dr, ni }));
+      logLines.push(ligneDeTexte(caster.focus.dr >= ni ? t('cs.focusEnough', { name: nomDe(caster), spell: spell.label }) : t('cs.focusProgress', { dr: caster.focus.dr, ni })));
       // Maladresse en Focalisation → Incantation Imparfaite Majeure (LDB 46 l.140).
       if (res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'majeure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
       finishPlayerAction(get, set, logLines, 'focalisation'); // sortie commune combat / hors combat (pose `acted:true`)

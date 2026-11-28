@@ -5,6 +5,7 @@
  * (`FermetureDuJet`). Le duel est celui de `combatDeTest.testkit.ts`, ses pendings posés comme `jetsEnVue`.
  */
 import { describe, it, expect } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import {
   VERBE_DE_REGLAGE,
   creerPartie,
@@ -81,7 +82,7 @@ const test = (jete: boolean, cancellable = true): PendingTest => ({
 });
 const incantation = (jete: boolean, isCritical = false): PendingCast => ({
   casterId: H.id, targetId: E.id, spellId: 'alerte', missile: false,
-  result: jete ? { cast: true, roll: isCritical ? 22 : 21, target: 45, sl: 2, isCritical, isFumble: false, log: '' } : null,
+  result: jete ? { cast: true, roll: isCritical ? 22 : 21, target: 45, sl: 2, isCritical, isFumble: false, log: ligneDeTexte('') } : null,
 });
 /** Le héros du duel, sa Résilience à `n`. */
 const resilienceA = (n: number): Partial<Jeu> => reserves({ resilience: n });

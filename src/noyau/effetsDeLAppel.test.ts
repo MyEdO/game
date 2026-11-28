@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { effetsDeLAppel, SONS_DE_LA_PARTIE, TEINTE_DU_CRITIQUE, TEINTE_DU_FLOTTANT, type Effet } from './effetsDeLAppel';
 import { sonDEffet } from '../data/schemas/sons/registre';
 import type { ChargeDAttaque } from './bus';
@@ -10,7 +11,7 @@ import type { Jeu } from './etat';
 
 const arme = (w: Partial<Weapon>): Weapon => ({ label: 'arme', type: 'melee', damage: { flat: 0 }, qualities: [], ...w }) as Weapon;
 const coup = (r: Partial<AttackResult>): AttackResult => ({ hit: true, critical: false, ...r }) as AttackResult;
-const incantation = (r: Partial<MissileResult>): CastResult & Partial<MissileResult> => ({ cast: true, roll: 10, target: 50, sl: 4, isCritical: false, isFumble: false, log: '', ...r }) as CastResult & Partial<MissileResult>;
+const incantation = (r: Partial<MissileResult>): CastResult & Partial<MissileResult> => ({ cast: true, roll: 10, target: 50, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte(''), ...r }) as CastResult & Partial<MissileResult>;
 const emis = (payload: ChargeDAttaque): Evenement => ({ type: 'emis', evt: 'anim_attack', payload });
 /** Un combat du groupe, chacun en vue (`campOf`, `src/noyau/visionDuGroupe.ts`) : `a` à 5 cases de `b` (10 m sur une
  *  scène de 2 m par case), `loin` à 500 cases, `hors` hors du plateau ; sa scène de 3 × 1 cases, au sol à 0 m sur la

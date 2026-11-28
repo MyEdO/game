@@ -57,9 +57,9 @@ function direLEntretien(get: Get, set: Set, c: Combatant, lignes: readonly Entre
 /** LDB 16 l.105 ; LDB 18 l.15 */
 function traiterLAgonie(c: Combatant): EntreeDuJournal[] {
   const { died, log } = bleedDeathRoll(c, battleRng());
-  if (!died) return [...log.map((l) => ligneDeTexte(l)), ...tickDeath(c)];
+  if (!died) return [...log, ...tickDeath(c)];
   const nom = fateSaveOrDie(c) ? 'upkeep.fateSaved' : 'upkeep.succumb';
-  return [...log, t(nom, { name: nomDe(c) })].map((l) => ligneDeTexte(l));
+  return [...log, ligneDeTexte(t(nom, { name: nomDe(c) }))];
 }
 
 /** Les Rounds que `minutes` font passer hors combat, joués par l'entretien du groupe. */

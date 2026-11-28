@@ -196,7 +196,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     // `jetLancer('incantation')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
     // est donc celui d'un jet DÉJÀ lancé, pas celui d'une cascade fraîche.
     const pc0 = banc.getState().pendingCast!;
-    banc.setState({ pendingCast: { ...pc0, result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' } } } as never);
+    banc.setState({ pendingCast: { ...pc0, result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') } } } as never);
     const avant = { ...etape('incantation')! };
     expect(openCastOpposition(banc.getState, banc.setState, banc.getState().pendingCast!, [cible])).toBe(true);
     const apres = etape('incantation')!;

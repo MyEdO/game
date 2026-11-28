@@ -41,6 +41,7 @@ import { findDomainById } from '../data';
 import type { IdsParEspace } from '../data/schemas/_ids.generated';
 import { arcaneDomainOf } from './combatFeatures/dispatch';
 import { applyOps } from './ops';
+import type { EntreeDuJournal } from './journal';
 
 /** Forme MINIMALE d'un sort pour la résolution de son Domaine : le RUNTIME lit le seul `domainId` ;
  *  absent = Sort sans Domaine (Magie Mineure, Prière…). */
@@ -108,10 +109,10 @@ export function isSorceryDomain(spell: SpellDomainRef): boolean {
 /** Ops post-incantation appliquées AU LANCEUR après un Sort de Domaine réussi — PARAMÈTRE en données
  *  (`DomainData.casterOps` : `GameOp[]`). Ex. Bête (Ghur) : `grantTrait` Peur 1 pendant 1d10 Rounds.
  *  Exécutées via `applyOps` — source unique, pas de réimplémentation de grantTrait ici. */
-export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG, idNeuf: FabriqueDId): string[] {
+export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG, idNeuf: FabriqueDId): EntreeDuJournal[] {
   const ops = findDomainById(spell.domainId?.id)?.casterOps;
   if (!ops?.length) return [];
-  return applyOps(caster, ops, { rng, idNeuf, label: 'Attribut de domaine' }).lignes.map((e) => e.texte);
+  return applyOps(caster, ops, { rng, idNeuf, label: 'Attribut de domaine' }).lignes;
 }
 
 /**

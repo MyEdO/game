@@ -54,6 +54,7 @@ import { indexParId, memoParVersion } from '../data/versionDataset';
 import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (la séquelle courante)
 import { isHeld } from './weaponLoad';
 import { nomDe } from './nom';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 
 export type TraumaKind = NonNullable<TraumaFiche['kind']>;
 export type TraumaSeverity = NonNullable<TraumaFiche['severity']>;
@@ -444,8 +445,8 @@ function sequelleEffet(f: TraumaFiche): string {
  * principale = brasD). La pénalité −5/doigt (et −20/main) reste CONTEXTUELLE À L'ARME
  * (`amputationCombatPenalty`), jamais un charMod posé ici.
  */
-export function consolidateAmputations(c: Combatant): string[] {
-  const log: string[] = [];
+export function consolidateAmputations(c: Combatant): EntreeDuJournal[] {
+  const log: EntreeDuJournal[] = [];
   const traumas = c.traumas ?? [];
   if (!traumas.some(IS_CUMUL)) return log;
   const kept = traumas.filter((t) => !IS_CUMUL(t));
@@ -468,7 +469,7 @@ export function consolidateAmputations(c: Combatant): string[] {
       if (cumul.portee === 'localisation') posee.label = tr('tra.locSuffix', { label: cible.label, loc: locationLabel(loc, c.bodyShape) });
       kept.push(posee);
       const effet = sequelleEffet(cible);
-      log.push(tr(effet ? 'tra.cumulEscalated' : 'tra.cumulEscalatedPlain', { name: nomDe(c), count: total, source: f.label, label: posee.label, effet }));
+      log.push(ligneDeTexte(tr(effet ? 'tra.cumulEscalated' : 'tra.cumulEscalatedPlain', { name: nomDe(c), count: total, source: f.label, label: posee.label, effet })));
     }
   }
   c.traumas = kept;
@@ -497,15 +498,15 @@ export function receiveMedicalAid(c: Combatant): string[] {
  * applique ensuite la règle de cumul de cette séquelle (LDB 18 l.251). Mute `c`, renvoie le journal.
  * Appelé par le hook de franchissement de Round (`roundHooks`, machinerie universelle — ne nomme aucune entité).
  */
-export function tickTraumaEscalation(c: Combatant): string[] {
+export function tickTraumaEscalation(c: Combatant): EntreeDuJournal[] {
   const gated = (c.traumas ?? []).filter((t) => t.perRound && t.awaitingMedicalAid);
   if (!gated.length) return [];
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   for (const t of gated) {
     const fiche = traumaFicheById(t.perRound!.versTraumaId);
     const ajout = setTraumaCount(traumaById(fiche.id, undefined, t.location), fiche, t.perRound!.unites ?? 1);
     c.traumas = avecSequelles(c.traumas, [ajout]);
-    log.push(tr('tra.escalationTick', { name: nomDe(c), label: fiche.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
+    log.push(ligneDeTexte(tr('tra.escalationTick', { name: nomDe(c), label: fiche.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })));
   }
   const cons = consolidateAmputations(c);
   // Seuil d'escalade de la séquelle FRANCHI (« Si vous perdez tous vos doigts, vous perdez votre main ») :

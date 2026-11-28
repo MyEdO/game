@@ -239,6 +239,7 @@ import { findSpellById, byId, findCrewRoleById } from '../data/index';
 import { crewRoleValue } from '../engine/crewMorale';
 import { armeDuJetDeRecharge } from './progresEtendu';
 import { nomDe, nomOuAbsence } from '../engine/nom';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Re-dérive une attaque FIGÉE avec un jet d'attaquant modifié (Chance +1 DR / Résilience / dé
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
@@ -1300,7 +1301,7 @@ export const FLOWS = paresseux({
         // Malepierre se compte sur le DR du dé choisi, comme au jet. LDB 46 l.173
         const malepierreConsumed = p.result ? undefined : malepierreDR(Math.max(0, dr), malepierreReserveOf(actor));
         const force = forcedTR({ porteur: actor.id, teste: { skill: castInfo(spell).skill } }, cDie, tgt, dr + (malepierreConsumed ?? 0));
-        const cur = p.result ?? { cast: false, roll: force.roll, target: tgt, sl: force.sl, isCritical: false, isFumble: false, log: '', malepierreConsumed };
+        const cur = p.result ?? { cast: false, roll: force.roll, target: tgt, sl: force.sl, isCritical: false, isFumble: false, log: ligneDeTexte(''), malepierreConsumed };
         // `Math.max(0, …)` : le DR du MEILLEUR dé suffit — un +1 fantôme au-dessus du maximum
         // nourrirait la Surincantation (LDB 47) sans rien dans la source pour le justifier.
         return castRelance(s, p, rederiveCastSL(actor, target, spell, { ...cur, roll: force.roll, target: tgt, sl: force.sl }, p.missile, Math.max(0, ni - force.sl)));
@@ -2223,13 +2224,13 @@ export const FLOWS = paresseux({
             : Math.max(base?.sl ?? 1, 1);
         // `base?.malepierreConsumed` (déjà figé au Round précédent) est REPORTÉ : forcer le résultat
         // ne consomme ni ne restitue une seconde fois la réserve de malepierre.
-        return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: t('focalisation.forcee', { name: nomDe(actor) }), ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
+        return { result: { dr: Math.max(base?.dr ?? 0, sl), success: true, isCritical: base?.isCritical ?? false, isFumble: false, roll: die, target: base?.target, sl, log: ligneDeTexte(t('focalisation.forcee', { name: nomDe(actor) })), ...(base?.malepierreConsumed ? { malepierreConsumed: base.malepierreConsumed } : {}) } };
       }
       return { result: resolveFocus(actor, spell, battleRng(), 'intermediaire', seaMagicContext(s).atSea, windsMagicModOf(s.battle)) };
     },
     outcome: (p) => sealOutcome((p.result?.dr ?? -1) > 0, p.result?.dr ?? 0, p.result?.roll ?? 0, p.result?.target ?? 0), // DR nul = raté (aucun DR gagné → rejouable)
     bonus: {
-      derive: (_s, p) => ({ result: { ...p.result!, dr: p.result!.dr + 1, log: `${p.result!.log} (+1 DR)` } }),
+      derive: (_s, p) => ({ result: { ...p.result!, dr: p.result!.dr + 1, log: { ...p.result!.log, texte: `${p.result!.log.texte} (+1 DR)` } } }),
     },
   }),
 

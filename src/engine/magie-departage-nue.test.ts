@@ -13,6 +13,7 @@
  * des `base` posés à la main.
  */
 import { describe, it, expect } from 'vitest';
+import { ligneDeTexte } from './journal';
 import { makeRNG } from './dice';
 import { evaluateTest, resolveOpposed } from './tests';
 import {
@@ -98,7 +99,7 @@ describe('LDB 12 l.160 — le chemin MAGIE départage sur le NIVEAU DE COMPÉTEN
   });
 
   it('Compat : une incantation RÉHYDRATÉE sans nue fait retomber les DEUX camps sur leurs cibles', () => {
-    const legacy: CastResult = { cast: true, roll: 13, target: 25, sl: 1, isCritical: false, isFumble: false, log: '' };
+    const legacy: CastResult = { cast: true, roll: 13, target: 25, sl: 1, isCritical: false, isFumble: false, log: ligneDeTexte('') };
     const counterT = evaluateTest(23, 30, 30);
     const opp = resolveOpposed(castTestOf(legacy), counterT);
     expect(opp.decidedBy).toBe('valeur');

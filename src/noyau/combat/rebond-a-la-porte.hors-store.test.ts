@@ -12,6 +12,7 @@
  * jumeaux de `sauvegardes-projectile-magique.hors-store.test.ts` dont ils reprennent les fixtures.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../../engine/journal';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import type { BattleState } from '../etat';
 import { applyCast } from '../combatFlow';
@@ -48,7 +49,7 @@ function setBattle(combatants: Combatant[]): void {
 }
 
 const cr = (sl: number): CastResult =>
-  ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, log: '' });
+  ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, log: ligneDeTexte('') });
 
 /** Le Sort du catalogue (op `chain` authorée) lancé par le VRAI chemin, sur `cible`. */
 function lancerLaChaine(caster: Combatant, cible: Combatant, sl = 4): void {

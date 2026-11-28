@@ -4,6 +4,7 @@
  * « Puissance totale » d'une Incantation Critique (`VDM 02 l.55`, folio 20). Option OFF = LDB.
  */
 import { describe, it, expect, afterEach } from 'vitest';
+import { ligneDeTexte } from './journal';
 import { setRule, resetRule, ruleDef } from './policy';
 import { evaluateMissile, applyFullPower, overcastSL, castAfterCrit, defaultCritChoice, type CastResult } from './magic';
 import { hasInstinctiveDiction } from './combatFeatures/dispatch';
@@ -29,7 +30,7 @@ function mk(p: Partial<Combatant> = {}): Combatant {
 const projectile = { label: 'Trait d’essai', type: 'Magie des Arcanes', missile: true, damage: 4, cn: 2, range: null, target: 1, duration: null, desc: 'Il s’agit d’un Projectile magique avec Dégâts +4.' };
 
 /** Jet critique (double 44 réussi), DR 3. Jet inversé 44 → localisation stable. */
-const crit = (cast: boolean, sl: number): CastResult => ({ cast, roll: 44, target: 60, sl, isCritical: true, isFumble: false, log: 'jet' });
+const crit = (cast: boolean, sl: number): CastResult => ({ cast, roll: 44, target: 60, sl, isCritical: true, isFumble: false, log: ligneDeTexte('jet') });
 
 afterEach(() => resetRule(RULE));
 

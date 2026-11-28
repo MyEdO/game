@@ -1087,7 +1087,7 @@ export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { ba
  * jet, vos blessures coagulent un peu et vous perdez 1 État Hémorragique » — le double prime (pas de mort,
  * mais coagulation). Pur ; renvoie `died` (la finalisation — sauvetage par Destin — revient à l'appelant).
  */
-export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: string[] } {
+export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: EntreeDuJournal[] } {
   const n = stacks(c, COND.hemorragique);
   const eligible = !c.dead && !c.outOfRencontre && n > 0 && hasCondition(c, COND.inconscient); // AA 07 l.7 ; LDB 16 l.105 ; #2915
   if (!eligible) return { died: false, log: [] };
@@ -1095,10 +1095,10 @@ export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: st
   if (isDoubleRoll(r)) {
     const sortie: Applique = { lignes: [ligneDeTexte(t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r }))], faits: [] }; // le double prime sur la mort
     removeCondition(c, COND.hemorragique, 1, sortie);
-    return { died: false, log: sortie.lignes.map((e) => e.texte) };
+    return { died: false, log: sortie.lignes };
   }
-  if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n })] };
-  return { died: false, log: [t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n })] };
+  if (r <= 10 * n) return { died: true, log: [ligneDeTexte(t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n }))] };
+  return { died: false, log: [ligneDeTexte(t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n }))] };
 }
 
 /** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).

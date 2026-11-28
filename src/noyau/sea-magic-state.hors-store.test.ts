@@ -6,6 +6,7 @@
  * Harmonisation aethyrique de Vie (`combatSlice.jetValider('focalisation')`).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, beforeEach, expect } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit } from './cascade.testkit';
@@ -126,7 +127,7 @@ describe('#337 — Magie des mers, filage state (seaMagicContext)', () => {
       w.spells = [spellId];
       banc.setState({
         party: [w],
-        pendingFocus: { casterId: w.id, spellId, result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } },
+        pendingFocus: { casterId: w.id, spellId, result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: ligneDeTexte('Focalisation critique !') } },
       });
       banc.getState().jetValider('focalisation');
       // Le contrecoup est une ÉTAPE à table : elle se joue, et ce qu'elle rend au joueur vit sur elle

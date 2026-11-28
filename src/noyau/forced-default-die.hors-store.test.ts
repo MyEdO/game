@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { bestForcedRoll, evaluateTest } from '../engine/tests';
@@ -106,7 +107,7 @@ describe('incantation — le dé par défaut ne gonfle pas le DR (sonde `cast` p
       battle: { combatants: [C({ id: 'A', label: 'Mage', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } })], log: [] } as never,
       pendingCast: {
         casterId: 'A', targetId: 'A', spellId: 'drain', missile: false,
-        result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: 'raté' },
+        result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: ligneDeTexte('raté') },
       } as never,
     });
   }
@@ -132,7 +133,7 @@ describe('plancher de NI — la Résilience fait PARTIR le sort (sonde S3 promue
       battle: { combatants: [C({ id: 'A', label: 'Mage', resilience: 2 }), C({ id: 'B', label: 'Cible', kind: 'ennemi', pos: { x: 1, y: 0 } })], log: [] } as never,
       pendingCast: {
         casterId: 'A', targetId: 'A', spellId, missile: false,
-        result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: 'raté' },
+        result: { cast: false, roll: 88, target: 45, sl: -4, isCritical: false, isFumble: false, log: ligneDeTexte('raté') },
       } as never,
     });
   }

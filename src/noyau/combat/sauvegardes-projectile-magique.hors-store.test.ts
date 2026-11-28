@@ -8,6 +8,7 @@
  * un Indice de 1 sauve TOUJOURS (1d10 ≥ 1), un Indice de 11 ne sauve JAMAIS.
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../../engine/journal';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import type { BattleState } from '../etat';
 import { applyCast } from '../combatFlow';
@@ -47,7 +48,7 @@ function setBattle(combatants: Combatant[]): void {
 }
 
 const cr = (sl: number): CastResult =>
-  ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, log: '' });
+  ({ cast: true, roll: 44, target: 60, sl, isCritical: false, isFumble: false, log: ligneDeTexte('') });
 
 /** Lance le Projectile par le VRAI chemin (`applyCast`) PUIS JOUE LA PORTE : depuis #1508 la sauvegarde
  *  naît en ÉTAPE de dé NON RÉSOLUE (une par cible, poussée avant toute mutation) et c'est la fenêtre qui

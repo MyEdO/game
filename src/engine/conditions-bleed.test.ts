@@ -35,7 +35,7 @@ describe('bleedDeathRoll — mort par Hémorragique (LDB 16 l.105)', () => {
   it('jet non-double > 10×pions → survit, et le jet se lit au journal', () => {
     const r = bleedDeathRoll(mk(3), fixed(50)); // 50 > 30
     expect(r.died).toBe(false);
-    expect(r.log).toEqual(["X survit à l'hémorragie (50 > 30)."]);
+    expect(r.log.map((e) => e.texte)).toEqual(["X survit à l'hémorragie (50 > 30)."]);
     expect(bleedDeathRoll(mk(1), fixed(45)).died).toBe(false); // 45 > 10
   });
 

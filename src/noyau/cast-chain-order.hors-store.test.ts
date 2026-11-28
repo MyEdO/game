@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
 import { findSpellById, spells, type SpellData } from '../data';
 import type { EntreeVivante } from '../data/schemas/datasets';
@@ -49,7 +50,7 @@ describe('Chaîne d’incantation — le Contre-sort se règle avant l’opposit
     banc.setState({
       pendingCast: {
         casterId: H.id, targetId: E.id, spellId: 'fauche-demon', missile: false,
-        result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: 'x' },
+        result: { cast: true, roll: 30, target: 70, sl: 6, isCritical: false, isFumble: false, log: ligneDeTexte('x') },
       },
     });
   }

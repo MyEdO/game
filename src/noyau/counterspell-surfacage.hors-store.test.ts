@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -54,7 +55,7 @@ function freezeHeroCast(H: Combatant, E: Combatant) {
     pendingCounterspell: null,
     pendingCast: {
       casterId: H.id, targetId: E.id, spellId: 'flechette', missile: true,
-      result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'Sort lancé' },
+      result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('Sort lancé') },
     },
   } as unknown as Partial<Jeu>);
   E.dispelledThisRound = undefined;
@@ -75,7 +76,7 @@ describe('#1028 — Contre-sort : la POSSESSION décide du surfaçage, jamais le
     expect(pcs!.participants.map((p) => p.id)).toEqual([E.id]);
     expect(pcs!.participants[0].interactive, 'rangée du MJ : choix, influences, dé fixé').toBe(true);
     expect(pcs!.participants[0].result, 'rien n’est roulé avant que le MJ ne le décide').toBeNull();
-    expect(banc.getState().pendingCast!.result!.log, 'aucun Contre-sort en fait accompli').not.toContain('Contre-sort');
+    expect(banc.getState().pendingCast!.result!.log.texte, 'aucun Contre-sort en fait accompli').not.toContain('Contre-sort');
     expect(E.dispelledThisRound, 'l’essai du Round n’est pas consommé sans jet').toBeFalsy();
     // Fenêtre PARTAGÉE : l'étape `cast` bascule en groupe (le MJ voit la modale du lanceur héros).
     const step = banc.getState().pendingCascade?.participants.find((s) => s.jet === 'incantation');

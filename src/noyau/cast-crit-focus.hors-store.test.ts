@@ -5,6 +5,7 @@
  * convergence de Domaine (+1 Avantage).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtLit, avanceEtapeCascade } from './cascade.testkit';
@@ -31,7 +32,7 @@ function wiz() {
 }
 
 const critRes = (cast: boolean, sl: number): CastResult => ({
-  cast, roll: 44, target: 60, sl, isCritical: true, isFumble: false, log: 'jet critique',
+  cast, roll: 44, target: 60, sl, isCritical: true, isFumble: false, log: ligneDeTexte('jet critique'),
 });
 
 beforeEach(() => {
@@ -88,7 +89,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     banc.setState({
       pendingCast: {
         casterId: w.id, targetId: w.id, spellId: 'armure-aethyrique', missile: false,
-        result: { cast: false, roll: 99, target: 40, sl: -3, isCritical: false, isFumble: true, log: 'Maladresse !' },
+        result: { cast: false, roll: 99, target: 40, sl: -3, isCritical: false, isFumble: true, log: ligneDeTexte('Maladresse !') },
       },
     });
     // Situation d'incantation HÔTÉE par la cascade (comme l'aurait ouverte castSpell → openCastCascade).
@@ -113,7 +114,7 @@ describe('Incantation CRITIQUE (LDB 46 l.26-32)', () => {
     banc.setState({
       pendingCast: {
         casterId: w.id, targetId: w.id, spellId: 'armure-aethyrique', missile: false,
-        result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' },
+        result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') },
       },
     });
     openCastCascade(banc.getState, banc.setState, w);
@@ -129,7 +130,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.spells = ['armure-aethyrique', ...(w.spells ?? [])];
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     banc.setState({ party: [w] as Combatant[] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'Focalisation critique !' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: ligneDeTexte('Focalisation critique !') } } });
     banc.getState().jetValider('focalisation');
     const rendu = draineEtLit(banc.getState).join('\n');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
@@ -148,7 +149,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.characteristics['force-mentale'] = 35; // BFM 3
     w.focus = { spell: 'manifestation-de-demon-mineur', dr: 1 };
     banc.setState({ party: [w] as Combatant[] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'manifestation-de-demon-mineur', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: ligneDeTexte('crit') } } });
     banc.getState().jetValider('focalisation');
     const after = banc.getState().party.find((h) => h.id === w.id)!;
     const ni = findSpellById('manifestation-de-demon-mineur')!.cn ?? 0;
@@ -163,7 +164,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     w.talents.push({ talentId: 'harmonisation-aethyrique', times: 1 });
     banc.setState({ party: [w] as Combatant[] });
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'armure-aethyrique', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: ligneDeTexte('crit') } } });
     banc.getState().jetValider('focalisation');
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Harmonisation aethyrique/);
@@ -180,7 +181,7 @@ describe('Focalisation CRITIQUE (l.185-186)', () => {
     w.skills.push({ id: 'focalisation', characteristic: 'force-mentale', advances: 8 } as never);
     banc.setState({ party: [w] as Combatant[] });
     seedBattleRng(143);
-    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: 'crit' } } });
+    banc.setState({ pendingFocus: { casterId: w.id, spellId: 'cauteriser', result: { dr: 0, success: true, isCritical: true, isFumble: false, roll: 33, log: ligneDeTexte('crit') } } });
     banc.getState().jetValider('focalisation');
     const j = draineEtLit(banc.getState).join('\n');
     expect(j).toMatch(/Marqué par la Magie/);
@@ -299,7 +300,7 @@ describe('Convergence de Domaine (+1 Avantage, l.176)', () => {
     } as never;
     banc.setState({ battle, party: [] });
     const feu = { label: 'Trait de feu', type: 'Magie des Arcanes', subType: 'Feu', domainId: { id: 'feu' }, cn: 0, desc: 'buff', target: 1 } as never;
-    const ok: CastResult = { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' };
+    const ok: CastResult = { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') };
     applyCast(banc.getState, banc.setState, w, [target], feu, ok, false);
     expect(w.advantage).toBe(0); // premier sort : pas de convergence
     applyCast(banc.getState, banc.setState, w2, [target], feu, ok, false);

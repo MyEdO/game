@@ -1582,7 +1582,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         target.traumas = avecSequelles(target.traumas, poses);
         if (poses.length) lines.push(ligneDeTexte(t('op.amputer', { name: nomDe(target), label: listeEt(poses.map((p) => p.label)), loc: locationLabel(loc, target.bodyShape) })));
         // Cumuls (LDB 18 l.247/251/273/277/281) : agrégation + escalade au seuil, au MÊME point que la pose.
-        lines.push(...consolidateAmputations(target).map((x) => ligneDeTexte(x)));
+        lines.push(...consolidateAmputations(target));
         break;
       }
       case 'grantTalent': {
