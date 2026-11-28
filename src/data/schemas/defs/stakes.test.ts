@@ -55,4 +55,10 @@ describe('stakes.json — une collection, quatre cascades, leurs invariants gard
     uneDe(cle, 'voyage').cle = 'fleuveNavigation';
     expect(refus(cle)).toMatch(/Clé non reconnue : "cle"/);
   });
+
+  it('une catégorie d’entrée sans pool est refusée', () => {
+    const doc = clone();
+    uneDe(doc, 'flux').entryCategory = 'categorie-sans-pool';
+    expect(refus(doc)).toMatch(/ : la catégorie d’entrée « categorie-sans-pool » n’a aucun pool/);
+  });
 });

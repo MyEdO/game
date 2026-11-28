@@ -1155,7 +1155,7 @@ export function createCombatSlice(get: Get, set: Set) {
     },
     manoeuvrerSurSoi: (maneuverId: string) => {
       const battle = get().battle;
-      if (!battle || battle.over || battle.acted) return; // coûte l'Action du tour (2ᵉ via loseTurn des effets)
+      if (!battle || battle.over || battle.acted) return;
       const active = activeCombatant(battle);
       if (!active || !canTakeAction(active)) return;
       const def = selfManeuversOf(active).find((m) => m.id === maneuverId);

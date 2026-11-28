@@ -14,7 +14,7 @@ import { declarerEnfants, defDe } from './descente';
 import { controlerSousPortee, ouvrirPortees, restreindreSousPortee } from './collection-cle';
 import { listeSansCle } from './liste-sans-cle';
 import { marquerProduit } from './interne/produits';
-import { categorieDEntreeAPool, trousDeLEnjeu } from '../../index';
+import { categorieAPool, trousDeLEnjeu } from '../catalogue/enjeux';
 import { collectionDuCatalogue, entreeDe, type Catalogue } from '../catalogue/catalogue';
 import { messageRecurrenceHorloge, SELF_REF, type Formula } from '../../../engine/ops';
 import { NARRATIVE_MARKERS } from '../../../engine/conditions';
@@ -1573,21 +1573,24 @@ export const conditionSchema: z.ZodType<ConditionDans<never>> = conditionDe({});
  *  clé de la donnée seule. Un Flow authoré peut DIRE ce qu'il met en jeu sans qu'aucun texte n'entre au
  *  document (le résolveur reste la seule porte du texte). Les `values` des trous sont CALCULÉES par le
  *  flux (porte `stakeRef`), jamais saisies : elles restent au type runtime, hors du document, qui ne vise
- *  donc qu'une entrée existante et sans trou (`trousDeLEnjeu`). */
-export const catalogStakeSchema = nommerChamps(z.strictObject({
+ *  donc qu'une entrée existante et sans trou sous le catalogue jugé (`trousDeLEnjeu`). */
+export const catalogStakeSchema = nommerChamps(affinerAvecCatalogues(z.strictObject({
   key: nommerChamps(z.strictObject({
     dataset: z.enum(['nuit', 'voyage', 'meteo', 'flux', 'activite', 'combat']),
     kind: z.string(),
     entryId: z.string().optional(),
     entryCategory: z.string().optional(),
   }), { dataset: { label: "registre"  }, kind: { label: "type" , texte: { regime: "technique"} }, entryId: { label: "entrée" , texte: { regime: "technique"} }, entryCategory: { label: "catégorie d’entrée" , texte: { regime: "technique"} } }),
-}).superRefine(({ key }, ctx) => {
-  const trous = trousDeLEnjeu(key);
-  const cle = `${key.dataset}/${key.kind}${key.entryId ? `/${key.entryId}` : ''}`;
-  if (key.entryCategory !== undefined && !categorieDEntreeAPool(key.entryCategory))
-    ctx.addIssue({ code: 'custom', path: ['key', 'entryCategory'], message: `la catégorie d’entrée « ${key.entryCategory} » de l’enjeu « ${cle} » n’a aucun pool` });
-  if (!trous) ctx.addIssue({ code: 'custom', path: ['key'], message: `aucune entrée d’enjeu « ${cle} »` });
-  else if (trous.length) ctx.addIssue({ code: 'custom', path: ['key'], message: `l’entrée d’enjeu « ${cle} » a des trous que seul le moteur remplit (${trous.join(', ')}) : un document ne peut pas la viser` });
+}), (lire) => {
+  const cat = lire.catalogueLu('stakes.json', 'weather.json', 'activity', 'psychology', 'maneuver');
+  return ({ key }, ctx) => {
+    const trous = trousDeLEnjeu(key, cat());
+    const cle = `${key.dataset}/${key.kind}${key.entryId ? `/${key.entryId}` : ''}`;
+    if (key.entryCategory !== undefined && !categorieAPool(key.entryCategory))
+      ctx.addIssue({ code: 'custom', path: ['key', 'entryCategory'], message: `la catégorie d’entrée « ${key.entryCategory} » de l’enjeu « ${cle} » n’a aucun pool` });
+    if (!trous) ctx.addIssue({ code: 'custom', path: ['key'], message: `aucune entrée d’enjeu « ${cle} »` });
+    else if (trous.length) ctx.addIssue({ code: 'custom', path: ['key'], message: `l’entrée d’enjeu « ${cle} » a des trous que seul le moteur remplit (${trous.join(', ')}) : un document ne peut pas la viser` });
+  };
 }), { key: { label: "clé" } });
 
 /** `AuthoredStake` (`src/data/index.ts`) — la phrase qu'un DOCUMENT de campagne écrit lui-même

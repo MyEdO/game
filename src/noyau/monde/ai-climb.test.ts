@@ -33,7 +33,7 @@ function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number; h
 }
 
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
-  return { enemy, heroes, scene: cliffScene(), env: { blocked: new Set() }, movement: enemy.movement, spells: [], ...extra };
+  return { enemy, heroes, scene: cliffScene(), env: { blocked: new Set() }, movement: enemy.movement, manoeuvresSurSoiOffertes: [], spells: [], ...extra };
 }
 
 describe("IA — Grimpant exploite les cases atteignables par-delà la falaise", () => {

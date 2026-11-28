@@ -37,10 +37,8 @@ import {
 import { VOCABULAIRES, type NomDeVocabulaire } from './schemas/grammaire/vocabulaires';
 import {
   CATEGORIE_CODEX_DU_FICHIER,
-  CLES_CODEX,
   DATASET_DE_LA_CATEGORIE,
   DATASET_DE_L_ESPACE,
-  type CleCodex,
   type CleDeDataset,
   type DatasetDeCategorie,
 } from './schemas/_cles-de-dataset.generated';
@@ -68,7 +66,7 @@ import type { TriggeredEffect } from '../engine/flowCore';
 import { slugId } from './schemas/slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { estObjet } from '../lib/objet.mjs';
-import { emplacementsDesPieces, localisationsDeLoc } from '../engine/classementDeTrait';
+import { emplacementsDesPieces } from '../engine/classementDeTrait';
 import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
 import { garanti } from '../lib/garanti';
@@ -90,12 +88,26 @@ import traitsJson from './traits.json';
 import qualitiesJson from './qualities.json';
 import mutationsJson from './mutations.json';
 import mutationTablesJson from './mutationTables.json';
-import { SHIP_CRIT_SET, RIVER_CRIT_SET } from './shipCriticals';
 import structureCriticalsJson from './structure-criticals.json';
 import { deDeTirageDe, rangeesDe, type RangeeDe } from './schemas/rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import { ouvertParSaRegle as ouvertSousLeCatalogue } from './schemas/catalogue/catalogue';
 import { catalogueDuProcessus } from './catalogueDuProcessus';
+import {
+  ensembleDe,
+  piecesDeLObjet as piecesDeLObjetSousLeCatalogue,
+  varianteDePiece,
+} from './schemas/catalogue/garde-robe';
+import {
+  CATEGORIES_A_POOL_DES_TABLES_TIREES,
+  categorieDeLEntreeDeLEnjeu,
+  estCategorieNommeeAPool,
+  texteDeLEnjeu,
+  TROU_D_ENJEU,
+  type CategorieNommeeAPool,
+  type StakeDataset,
+  type StakeKey,
+} from './schemas/catalogue/enjeux';
 import type * as stakesDef from './schemas/defs/stakes';
 import type * as careersDef from './schemas/defs/careers';
 import type * as careerLevelsDef from './schemas/defs/careerLevels';
@@ -161,10 +173,6 @@ import { datasetDe, type DatasetDe, type EntreeDe } from './schemas/datasets';
 import type * as pregensDef from './schemas/defs/pregens';
 import type * as trappingsDef from './schemas/defs/trappings';
 import type { MerchantArchetypeDef } from './schemas/merchants.types';
-import type * as criticalsDef from './schemas/defs/criticals';
-import type * as miscastDef from './schemas/defs/miscast';
-import type * as structureCriticalsDef from './schemas/defs/structure-criticals';
-import type * as artilleryMisfireDef from './schemas/defs/artillery-misfire';
 import type * as crewTestTypesDef from './schemas/defs/crew-test-types';
 import type * as signesAstrologiques from './schemas/defs/stars';
 import type * as couleurDesYeux from './schemas/defs/eyes';
@@ -240,7 +248,7 @@ import gabaritsJson from './gabarits.json';
 import planDeBestiaireJson from './planDeBestiaire.json';
 import type * as gabaritsDef from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
-import { cleDHabille, type EmplacementId, type HabilleDEnsemble, type PieceId } from './schemas/defs/garde-robe';
+import { type EmplacementId, type HabilleDEnsemble, type PieceId } from './schemas/defs/garde-robe';
 import type * as gardeRobeDef from './schemas/defs/garde-robe';
 import presetsDePersonnageJson from './presets-de-personnage.json';
 import type * as presetsDePersonnageDef from './schemas/defs/presets-de-personnage';
@@ -313,13 +321,7 @@ export type WaterExposureModifier = WaterExposureData['modifiers'][number];
 export type WaterExposureMode = WaterExposureModifier['appliesTo'][number];
 export const WATER_EXPOSURE = datasetDe<typeof waterExposureDef>(waterExposureJson);
 
-/** CASCADE d'un enjeu de `stakes.json` : la famille de jets qu'il sert — ses valeurs sont celles de
- *  `StakeKey.dataset` (`schemas/defs/stakes.ts`). */
-export type StakeCascade = 'nuit' | 'voyage' | 'flux' | 'combat';
-
-/** ENJEU d'un jet de cascade (#1117, collection #1681) — cf. `schemas/defs/stakes.ts`. Lu à la clé
- *  `{ dataset: cascade, kind: id }` par `resolveStake`. */
-export type StakeEntry = EntreeDe<typeof stakesDef>;
+/** ENJEUX des jets de cascade (#1117, collection #1681) — cf. `schemas/defs/stakes.ts`. */
 export const STAKES = datasetDe<typeof stakesDef>(stakesJson);
 /** Ids des enjeux d'une cascade : l'union GÉNÉRÉE des ids de l'espace de la cascade (`scripts/gen-espaces.mts`),
  *  l'argument de sa porte typée. */
@@ -343,29 +345,6 @@ export const ACTIONS = datasetDe<typeof actionsDef>(actionsJson);
 export type ActionId = IdsParEspace['actions.json'];
 /** Action par id STABLE (jamais par libellé). */
 export const findActionById = (id: string): ActionDef | undefined => ACTIONS.find((a) => a.id === id);
-
-/** DATASET d'enjeux servant une famille de jets (#1117). Union FERMÉE : une cascade de plus est une
- *  valeur de `StakeCascade` et ses entrées dans `stakes.json` ; les trois autres familles portent leur
- *  enjeu sur l'ENTITÉ (météo, Activité, État) et ont chacune leur branche dans `stakeEntry`. */
-export type StakeDataset = StakeCascade | 'meteo' | 'activite' | 'etat';
-
-/** CLÉ d'enjeu — la coordonnée de la DONNÉE, jamais son texte. `entryId` fait DESCENDRE la résolution
- *  à l'ENTRÉE jouée quand elle existe (le symptôme d'une étape de maladie, la psychologie affrontée,
- *  demain le péril d'une table régionale) ; sans lui, la résolution reste au `kind`. C'est la clé
- *  `{dataset, kind, entryId?}` du design #1117 — le repli sur `kind` est déclaré, jamais silencieux.
- *
- *  `entryCategory` couvre le cas UN KIND → N CATÉGORIES, que la déclaration statique du dataset ne
- *  peut pas trancher : une Blessure critique se joue sur la table de SA localisation
- *  (`criticalsTete`/`Bras`/`Corps`/`Jambe`), connue seulement au tirage. Le producteur la fournit
- *  alors avec l'`entryId` ; le catalogue déclaratif reste la SOURCE par défaut (le dynamique ne
- *  s'applique qu'aux kinds qui n'en déclarent aucune). */
-export interface StakeKey {
-  dataset: StakeDataset;
-  /** L'id de l'entrée dans son dataset : l'enjeu d'une cascade, la météo, l'Activité, l'État. */
-  kind: string;
-  entryId?: string;
-  entryCategory?: string;
-}
 
 /** RÉFÉRENCE d'enjeu vers un DATASET, forme du MOTEUR : la clé de la donnée + les valeurs CALCULÉES par le flux
  *  pour ses trous. Un document n'en écrit que la clé (`catalogStakeSchema`, `grammaire/mecanique.ts`). Seule
@@ -422,51 +401,19 @@ export function cibleCodex(r: RefTypee): { category: string; id: string } {
   return { category, id: r.id };
 }
 
-/** Fichiers à TABLES TIRÉES dont CHAQUE catégorie Codex (`DATASET_DE_LA_CATEGORIE`) est un pool
- *  d'entrées : le nom est lié par le type au `file` de son def (#3923). */
-const FICHIERS_DES_TABLES_TIREES: readonly string[] = [
-  'criticals.json' satisfies typeof criticalsDef.file,
-  'miscast.json' satisfies typeof miscastDef.file,
-  'structure-criticals.json' satisfies typeof structureCriticalsDef.file,
-  'artillery-misfire.json' satisfies typeof artilleryMisfireDef.file,
-  'crew-test-types.json' satisfies typeof crewTestTypesDef.file,
-  'interludeEvents.json' satisfies typeof tableauDesEvenements.file,
-  SHIP_CRIT_SET.fichier,
-  RIVER_CRIT_SET.fichier,
-];
-
-/** Catégories à pool d'un fichier dont les autres catégories n'en sont pas (`sea-events.json` :
- *  `seaFastVoyage`, `seaManannFactors`), liées par le type aux clés Codex (#3923). */
-const CATEGORIES_DES_TABLES_TIREES: readonly string[] = [
-  'seaBoardEvents' satisfies CleCodex,
-  'seaPortEvents' satisfies CleCodex,
-];
-
 /** Le prédicat d'appartenance d'un id au pool d'une catégorie. */
 type PoolDEntrees = (id: string) => boolean;
 
-/** POOLS des tables tirées, une entrée par catégorie de leurs fichiers, lue sur la racine VIVANTE
- *  (`entreeDeCategorie`) : une édition au Codex y entre. */
-function poolsDesTablesTirees(): Partial<Record<CleCodex, PoolDEntrees>> {
-  return tableTotale(CLES_CODEX
-    .filter((c) => (c in DATASET_DE_LA_CATEGORIE && FICHIERS_DES_TABLES_TIREES.includes(DATASET_DE_LA_CATEGORIE[c].fichier)) || CATEGORIES_DES_TABLES_TIREES.includes(c)),
-  (c) => (id: string) => entreeDeCategorie(c, id) !== undefined);
-}
-
-/** POOLS d'ids par catégorie Codex, pour les familles dont le foyer DESCEND à l'entrée jouée. Une
- *  catégorie de plus = une ligne ICI (le dataset la NOMME, il ne code pas sa résolution), sauf celles
- *  des tables tirées (`FICHIERS_DES_TABLES_TIREES`, `CATEGORIES_DES_TABLES_TIREES`), qui entrent seules. */
-const STAKE_ENTRY_POOLS: Partial<Record<CleCodex, PoolDEntrees>> = {
+/** POOLS d'ids des catégories d'entrée NOMMÉES (`CATEGORIES_NOMMEES_A_POOL`), pour les familles dont le foyer
+ *  DESCEND à l'entrée jouée. Les catégories des tables tirées (`CATEGORIES_A_POOL_DES_TABLES_TIREES`) entrent seules,
+ *  lues sur la racine VIVANTE (`entreeDeCategorie`) : une édition au Codex y entre. */
+const STAKE_ENTRY_POOLS = {
   symptoms: (id) => symptoms.some((s) => s.id === id),
   seaShanties: (id) => !!findSeaShantyById(id),
   maladies: (id) => !!findDiseaseById(id),
   psychologies: (id) => !!findPsychologyById(id),
   maneuvers: (id) => !!findManeuverById(id),
   spells: (id) => !!findSpellById(id),
-  // Familles à TABLE (#1117 L2 vague 4b) : la LIGNE tirée est déjà une entrée Codex éditable — son
-  // foyer est SA fiche, jamais une fiche de règle doublon (amendement A). La catégorie voyage avec
-  // l'id, versée par la re-pose post-tirage (`stakeAtTableRow`, `noyau/cascade.ts`).
-  ...poolsDesTablesTirees(),
   mutations: (id) => mutations.some((m) => m.id === id),
   mutationTables: (id) => mutationTables.some((t) => t.id === id),
   // Un jeu de taverne PORTE sa règle (sa fiche Codex la recopie verbatim) : c'est le foyer des effets
@@ -486,54 +433,19 @@ const STAKE_ENTRY_POOLS: Partial<Record<CleCodex, PoolDEntrees>> = {
   // La COMPÉTENCE testée est le foyer quand le jet n'existe que par elle (cumuler l'Avantage :
   // Intuition/Savoir/Survie/Prière portent chacune SA phrase de combat, LDB 09).
   skills: (id) => !!byId('skill', id),
-};
+} satisfies Record<CategorieNommeeAPool, PoolDEntrees>;
 
-/** Le pool de la catégorie `categorie`, `undefined` quand elle n'en a pas. */
+/** Le pool de la catégorie `categorie`, `undefined` quand elle n'en a pas (`categorieAPool`). */
 function poolDeLaCategorie(categorie: string): PoolDEntrees | undefined {
-  return Object.prototype.hasOwnProperty.call(STAKE_ENTRY_POOLS, categorie) ? STAKE_ENTRY_POOLS[categorie as CleCodex] : undefined;
+  if (estCategorieNommeeAPool(categorie)) return STAKE_ENTRY_POOLS[categorie];
+  return CATEGORIES_A_POOL_DES_TABLES_TIREES.has(categorie) ? (id) => entreeDeCategorie(categorie, id) !== undefined : undefined;
 }
 
-/** La catégorie d'entrée `categorie` a-t-elle un pool ? Lu par le parse d'une clé d'enjeu AUTHORÉE (`catalogStakeSchema`). */
-export const categorieDEntreeAPool = (categorie: string): boolean => poolDeLaCategorie(categorie) !== undefined;
-
-/** Le pool de la catégorie d'entrée que l'enjeu `e` déclare. LÈVE, en nommant l'enjeu et la catégorie, quand elle n'en a pas. */
-function poolDeLEnjeu(e: StakeEntry): PoolDEntrees {
-  const pool = poolDeLaCategorie(e.entryCategory!);
-  if (!pool) throw new Error(`stakes.json › ${e.id} : la catégorie d'entrée « ${e.entryCategory} » n'a aucun pool (\`STAKE_ENTRY_POOLS\`).`);
-  return pool;
-}
-
-/** CATALOGUE d'ENTRÉES d'un `kind` : où vit la fiche de l'entrée JOUÉE, quand la clé en nomme une.
- *  Déclaratif — ajouter une famille à entrées (tables régionales de Lustrie, périls…) = une ligne ICI,
- *  jamais un `if` par kind au rendu. La famille MALADIE l'énumère (les trois étapes de maladie jouent
- *  un SYMPTÔME nommé) ; les jets de modale mono la DÉRIVENT de leur donnée (`entryCategory`). */
-const stakeEntryCatalog = memoParVersion(['stakes'], (): Record<string, { category: string; has: PoolDEntrees }> => ({
-  'maladie-test-quotidien': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
-  'maladie-gangrene': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
-  'maladie-persistance': { category: 'symptoms', has: (id) => symptoms.some((s) => s.id === id) },
-  ...Object.fromEntries(
-    STAKES
-      .filter((e) => e.entryCategory)
-      .map((e) => [e.id, { category: e.entryCategory!, has: poolDeLEnjeu(e) }]),
-  ),
-}));
-
-/** ENJEU porté par l'ENTRÉE elle-même, par catégorie Codex — patron `ActivityDef.stake` (l'entité
- *  qui PORTE la règle porte aussi ce que son jet met en jeu). Une catégorie de plus = une ligne ICI.
- *  Quand elle rend un texte, il PRIME sur le gabarit du `kind` : c'est la seule façon d'échapper au
- *  descripteur tautologique quand les conséquences sont AUTHORÉES par entrée (les psychologies :
- *  `resolution`/`failCondition`/`failAmount`/`becomes` diffèrent d'une entrée à l'autre). */
-const STAKE_ENTRY_TEXTS: Record<string, (id: string) => string | undefined> = {
-  psychologies: (id) => findPsychologyById(id)?.stake,
-  maneuvers: (id) => findManeuverById(id)?.stake,
-};
-
-/** Catégorie de l'ENTRÉE d'un `kind` — TABLE DES PORTES vers le foyer de la règle. Toute porte est
- *  NOMMÉE ici ; une porte qu'on n'écrit pas s'invente ailleurs.
- *  (a) DÉCLARATIVE : le `kind` figure au catalogue `stakeEntryCatalog` (dataset ou énumération),
- *      sa catégorie est la même à chaque tirage — porte par défaut, elle PRIME sur les suivantes.
- *  (b) DYNAMIQUE BORNÉE : le producteur fournit `key.entryCategory`, valide seulement si le nom
- *      figure dans `STAKE_ENTRY_POOLS` — pour un `kind` jouant sur N catégories connues au tirage
+/** Catégorie de l'ENTRÉE d'un `kind` — TABLE DES PORTES vers le foyer de la règle (`categorieDeLEntreeDeLEnjeu`).
+ *  (a) DÉCLARATIVE : l'enjeu `kind` de `stakes.json` déclare `entryCategory`, ou le `kind` est de la famille
+ *      maladie ; sa catégorie est la même à chaque tirage — porte par défaut, elle PRIME sur les suivantes.
+ *  (b) DYNAMIQUE BORNÉE : le producteur fournit `key.entryCategory`, valide seulement si la catégorie
+ *      a un pool (`categorieAPool`) — pour un `kind` jouant sur N catégories connues au tirage
  *      (les Critiques par localisation).
  *  (c) PAR LA SOURCE : le dataset pose `entryFromSource: true` (schéma `defs/stakes.ts`),
  *      qui déclare que la catégorie ne se connaît qu'au RUNTIME — le producteur la tire de
@@ -541,13 +453,12 @@ const STAKE_ENTRY_TEXTS: Record<string, (id: string) => string | undefined> = {
  *      `agir-malgre-effet` en vit (un même gate est exigé par un objet, un Talent, une maladie…).
  *      CRITÈRE : `entryFromSource` ne se déclare que si la catégorie est irréductiblement dynamique
  *      (le même `kind` sert N natures de source) — si une déclaration statique peut la dire, c'est
- *      (a) ou (b). */
-function entryCategoryOf(key: StakeKey): { category: string; has: (id: string) => boolean } | undefined {
-  const declared = stakeEntryCatalog()[key.kind];
-  if (declared) return declared;
-  const dyn = key.entryCategory;
-  const has = dyn === undefined ? undefined : poolDeLaCategorie(dyn);
-  return dyn && has ? { category: dyn, has } : undefined;
+ *      (a) ou (b).
+ *  Une catégorie déclarée sans pool est refusée au parse de `stakes.json` (`schemas/defs/stakes.ts`). */
+function entryCategoryOf(key: StakeKey): { category: string; has: PoolDEntrees } | undefined {
+  const category = categorieDeLEntreeDeLEnjeu(key, catalogueDuProcessus());
+  const has = category === undefined ? undefined : poolDeLaCategorie(category);
+  return category !== undefined && has ? { category, has } : undefined;
 }
 
 /** Fiche de l'ENTRÉE jouée — `undefined` si la clé n'en nomme pas, si le `kind` n'a pas de catégorie
@@ -557,55 +468,26 @@ function entryRule(key: StakeKey): { category: string; id: string } | undefined 
   return cat && cat.has(key.entryId!) ? { category: cat.category, id: key.entryId! } : undefined;
 }
 
-/** Texte porté par l'ENTRÉE jouée, s'il existe (sinon le gabarit du `kind` fait foi). */
-function entryText(key: StakeKey): string | undefined {
-  const rule = entryRule(key);
-  return rule ? STAKE_ENTRY_TEXTS[rule.category]?.(rule.id) : undefined;
-}
-
+/** L'entrée d'enjeu de la clé : son texte (`texteDeLEnjeu`) et le foyer de sa règle. */
 function stakeEntry(key: StakeKey): { text?: string; rule?: { category: string; id: string } } | undefined {
-  if (key.dataset === 'meteo') {
-    // MÉTÉO : l'enjeu de la traversée vit sur la CONDITION (`weather.json`, `resistanceTest.enjeu`) —
-    // key.kind = l'id de météo. Même porte, même fail-closed : pas d'entrée → pas d'enjeu.
-    const rt = weatherData.conditions.find((c) => c.id === key.kind)?.resistanceTest;
-    return rt?.enjeu ? { text: rt.enjeu } : undefined;
-  }
-  if (key.dataset === 'etat') {
-    // RÉCUPÉRATION d'un État : l'enjeu vit sur l'État (`etats.json`, `recover.enjeu`) — key.kind = l'id
-    // de l'État, qui est aussi le foyer de la règle.
-    const r = etats.find((x) => x.id === key.kind)?.recover;
-    return r ? { text: r.enjeu, rule: { category: 'etats', id: key.kind } } : undefined;
-  }
+  const lu = texteDeLEnjeu(key, catalogueDuProcessus());
+  if (!lu) return undefined;
+  const text = lu.texte !== undefined ? { text: lu.texte } : {};
+  // MÉTÉO : la condition ne nomme aucun foyer.
+  if (key.dataset === 'meteo') return text;
+  // RÉCUPÉRATION d'un État : l'État `key.kind` est le foyer de la règle.
+  if (key.dataset === 'etat') return { ...text, rule: { category: 'etats', id: key.kind } };
   if (key.dataset === 'activite') {
-    // ACTIVITÉS : `key.kind` = l'id de l'`ActivityDef`. Le FOYER par DÉFAUT est l'Activité ELLE-MÊME
-    // (catégorie Codex `activities`, où vit sa `desc` verbatim) — une fiche `regles.json` doublon
-    // serait le péché de l'amendement A. Une entrée peut NOMMER un autre foyer (`rule`) quand la
-    // règle vit ailleurs (Augure → la table des Symboles).
-    const e = ACTIVITIES.find((x) => x.id === key.kind);
-    if (!e?.stake) return undefined;
-    return { text: e.stake, rule: e.rule ? cibleCodex(e.rule) : { category: 'activities', id: e.id } };
+    // ACTIVITÉS : le FOYER par DÉFAUT est l'Activité ELLE-MÊME (catégorie Codex `activities`, où vit sa `desc`
+    // verbatim) — une fiche `regles.json` doublon serait le péché de l'amendement A. Une entrée peut NOMMER un autre
+    // foyer (`rule`) quand la règle vit ailleurs (Augure → la table des Symboles).
+    return { ...text, rule: lu.foyer ? cibleCodex(lu.foyer) : { category: 'activities', id: key.kind } };
   }
-  // CASCADES (`stakes.json`) : `key.dataset` est la cascade, `key.kind` l'id de l'enjeu.
-  const cascade: StakeCascade = key.dataset;
-  const e = STAKES.find((x) => x.cascade === cascade && x.id === key.kind);
-  if (!e) return undefined;
-  // La fiche de l'ENTRÉE jouée PRIME sur celle du `kind` (une étape « Blessé » renvoie au symptôme
-  // Blessé, pas à l'intro du chapitre des maladies ; la maladie contractée, la manœuvre subie, la
-  // chanson chantée) ; à défaut, le foyer que l'entrée déclare.
-  const rule = entryRule(key) ?? (e.rule ? cibleCodex(e.rule) : undefined);
-  // Entrée SANS gabarit : le foyer voyage seul (aucune phrase à rendre — l'issue se lit en chips).
-  const text = entryText(key) ?? e.template;
-  return { ...(text ? { text } : {}), ...(rule ? { rule } : {}) };
-}
-
-/** Un TROU du gabarit d'enjeu : `{nom}`, rempli par la valeur que le flux calcule (`CatalogStake.values`). */
-const TROU_D_ENJEU = /\{(\w+)\}/g;
-
-/** Les TROUS du texte que `resolveStake` rendrait pour cette clé — `undefined` si la clé ne nomme aucune
- *  entrée d'enjeu. Lu par le parse de la forme AUTHORÉE (`catalogStakeSchema`), qui n'a pas de `values`. */
-export function trousDeLEnjeu(key: StakeKey): string[] | undefined {
-  const entry = stakeEntry(key);
-  return entry && [...(entry.text ?? '').matchAll(TROU_D_ENJEU)].map((m) => m[1]);
+  // CASCADES (`stakes.json`) : la fiche de l'ENTRÉE jouée PRIME sur celle du `kind` (une étape « Blessé » renvoie au
+  // symptôme Blessé, pas à l'intro du chapitre des maladies ; la maladie contractée, la manœuvre subie, la chanson
+  // chantée) ; à défaut, le foyer que l'entrée déclare. Entrée SANS gabarit : le foyer voyage seul.
+  const rule = entryRule(key) ?? (lu.foyer ? cibleCodex(lu.foyer) : undefined);
+  return { ...text, ...(rule ? { rule } : {}) };
 }
 
 /** RÉFÉRENCE d'enjeu — l'UNIQUE constructeur : la clé se valide À LA CONSTRUCTION (fail-closed au plus
@@ -1675,22 +1557,13 @@ export const findPieceById = parNature('piece');
 export const findEmblemeById = parNature('embleme');
 export const findTeteById = parNature('tete');
 export const findCoiffureById = parNature('coiffure');
-export const findVarianteById = parNature('variante');
-const ensembleParHabille = indexParChamp<LigneDeGardeRobe, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'ensemble' ? cleDHabille(e.habille) : undefined));
-/** L'ensemble qui habille `habille` (égalité de `{ id, type }`), `undefined` si la garde-robe n'en déclare pas. */
-export const findEnsembleParHabille = (habille: HabilleDEnsemble): LigneDeGardeRobe<'ensemble'> | undefined => {
-  const ensemble = ensembleParHabille(cleDHabille(habille));
-  return ensemble?.kind === 'ensemble' ? ensemble : undefined;
-};
-/** Les pièces d'armure qui couvrent une des localisations `locs` (`localisations`, #3456), dans l'ordre de la garde-robe. */
-export const piecesCouvrant = (locs: readonly HitLocation[]): PieceId[] =>
-  gardeRobe.flatMap((e) => (e.kind === 'piece' && e.localisations?.some((l) => locs.includes(l)) ? [e.id] : []));
-/** Les pièces que revêt un objet porté : celles de l'ensemble qui habille son trapping `trappingId`, à défaut celles qui
- *  couvrent ses localisations, `locs`, à défaut celles de son trapping (`localisationsDeLoc`). #3456 */
-export function piecesDeLObjet(trappingId: string | undefined, locs?: readonly HitLocation[]): readonly PieceId[] {
-  const ensemble = trappingId === undefined ? undefined : findEnsembleParHabille({ type: 'trapping', id: trappingId });
-  return ensemble?.pieces ?? piecesCouvrant(locs ?? localisationsDeLoc(findTrappingById(trappingId)?.loc));
-}
+/** `varianteDePiece` du catalogue sur `catalogueDuProcessus()` (#5070, fossile 3). */
+export const findVarianteById = (id: string | null | undefined): LigneDeGardeRobe<'variante'> | undefined => varianteDePiece(id, catalogueDuProcessus());
+/** `ensembleDe` du catalogue sur `catalogueDuProcessus()` (#5070, fossile 3). */
+export const findEnsembleParHabille = (habille: HabilleDEnsemble): LigneDeGardeRobe<'ensemble'> | undefined => ensembleDe(habille, catalogueDuProcessus());
+/** `piecesDeLObjet` du catalogue sur `catalogueDuProcessus()` (#5070, fossile 3). */
+export const piecesDeLObjet = (trappingId: string | undefined, locs?: readonly HitLocation[]): readonly PieceId[] =>
+  piecesDeLObjetSousLeCatalogue(trappingId, locs, catalogueDuProcessus());
 /** La tenue de la garde-robe dont `carriere` est une des `carrieres` (#3456), `undefined` sinon. */
 export const findTenueDeCarriere = (carriere: string | null | undefined): LigneDeGardeRobe<'tenue'> | undefined =>
   gardeRobe.find((e): e is LigneDeGardeRobe<'tenue'> => e.kind === 'tenue' && carriere != null && (e.carrieres ?? []).some((c) => c === carriere));
