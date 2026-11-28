@@ -32,6 +32,7 @@ function ouvrir(tenirComptes: boolean, objets: ItemInstance[] = [], mode: 'local
   const entrees: EntreesDeLaPartie = { graine: 4, reglesMaison: { 'marche-tenir-comptes': tenirComptes }, cadence: 'manuel', desFixes: false, persisterLeHeros: () => {} };
   const partie = creerPartie({
     ...etatInitialDuJeu(),
+    screen: 'campaign',
     party: tousLesHerosDeScenario(idsDeTest).slice(0, 1).map((h) => withBourseMoney({ ...h, career, careerLevel, items: [...(h.items ?? []), ...objets] }, { gold: 50, silver: 0, brass: 0 }, idsDeTest)),
     scene,
   }, entrees);

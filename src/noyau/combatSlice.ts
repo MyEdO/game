@@ -879,6 +879,14 @@ function frapperDeLaSeconde(get: Get, set: Set, targetId: string, testPasse: boo
   poserLaFrappeSuivante(get, set, { attackerId: attacker.id, targetId, location: res.location ?? null, result: res, victimId: victim?.id, dualSecond: true, weaponUid: off.uid });
 }
 
+/** La rencontre `encounterId` de la scène courante. */
+const rencontreDeLaScene = (s: Pick<Jeu, 'scene'>, encounterId: string) => s.scene?.encounters.find((e) => e.id === encounterId);
+
+/** Pourquoi le combat de la rencontre `encounterId` ne se lance pas : la scène n'a pas cette rencontre ; `null` sinon.
+ *  Verdict de `lancerLeCombat` et de l'effet `startCombat`. PUR. */
+export const refusDeLancerLeCombat = (s: Pick<Jeu, 'scene'>, encounterId: string): string | null =>
+  (rencontreDeLaScene(s, encounterId) ? null : t('combat.refus.rencontreInconnue', { id: encounterId }));
+
 export function createCombatSlice(get: Get, set: Set) {
   /** Dissout l'INTENTION LOCALE armée et dit s'il y en avait une (spec zone 4) : le clic du champ qui
    *  la consomme reste, lui, le geste par défaut. */
@@ -1702,9 +1710,8 @@ export function createCombatSlice(get: Get, set: Set) {
 
     lancerLeCombat: (encounterId: string, onVictory?: Flow, opts?: Parameters<MachinerieDuNoyau['lancerLeCombat']>[2]) => {
       const { scene, party, partyPos } = get();
-      if (!scene) return;
-      const rencontre = scene.encounters.find((e) => e.id === encounterId);
-      if (!rencontre) return;
+      if (!scene || refusDeLancerLeCombat(get(), encounterId)) return;
+      const rencontre = garanti(rencontreDeLaScene(get(), encounterId), encounterId, 'rencontre de la scène');
       const { enc, victoire } = structuredClone({ enc: rencontre, victoire: onVictory }); // #2097
       // Couture UNIVERSELLE de suspension (noyau/cascade.ts) : un combat qui s'ouvre PENDANT une
       // cascade active (ex. un abordage déclenché par l'applier d'une étape de voyage) la PARQUE au

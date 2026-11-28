@@ -30,7 +30,7 @@ function partieALEtabli(qualite: 'pratique' | 'peu-fiable' | 'bacle' | null, req
   const [h] = tousLesHerosDeScenario(idsDeTest);
   const marteaux = qualite ? [{ ...itemFromTrappingById('marteau', idsDeTest)!, qualities: [{ id: qualite }] }] : [];
   const hero = { ...h, pos: { x: 0, y: 0 }, items: [...(h.items ?? []), ...marteaux] };
-  const partie = creerPartie({ ...etatInitialDuJeu(), party: [hero], scene, flags: {} }, entrees);
+  const partie = creerPartie({ ...etatInitialDuJeu(), screen: 'campaign', party: [hero], scene, flags: {} }, entrees);
   partie.envoyer({ type: 'jouerAction', args: ['etabli', 'ouvrager'] });
   if (lancer) partie.envoyer({ type: 'jetLancer', args: ['test'] });
   return partie;

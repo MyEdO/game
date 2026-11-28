@@ -208,7 +208,7 @@ function settleFall(get: Get, set: Set, p: PendingFall): void {
  *  (`effectTargets('party')`), l'initiateur en tête. */
 function tombantsDe(get: Get, battle: BattleState | null, initiateur: Combatant): Combatant[] {
   if (battle) return [initiateur];
-  const groupe = effectTargets(get, 'groupe');
+  const groupe = effectTargets(get(), 'groupe');
   return [initiateur, ...groupe.filter((c) => c.id !== initiateur.id)];
 }
 

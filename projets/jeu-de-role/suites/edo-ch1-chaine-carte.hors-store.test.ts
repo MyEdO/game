@@ -121,6 +121,7 @@ describe(`ch.1 — la clôture se lit sur \`${CLOS}\`, posé à l'entrée d'Altd
     expect(get().flags[DEPART]).toBe(true);
     expect(get().worldMapOpen).toBe(true);
     expect(objectifs()).toEqual(['edo-ch1-route']);
+    banc.getState().fenetreFermer('carteDuMonde');
 
     const drapeauxAvantVirage = { ...get().flags };
     banc.getState().quitterLaScene('route-principale-virage');

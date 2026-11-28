@@ -734,7 +734,7 @@ export function reposDuLieu(get: Get, hebergementId?: string): OpenRestOpts | nu
 
 /** Le repos ne s'ouvre ni en combat ni sur une nuit qui attend encore son règlement : la garde de toute ouverture
  *  (`ouvrirLeRepos`), et le premier motif du refus du verbe (`refusDuRepos`). PUR. */
-const motifDuReposClos = (s: Pick<Jeu, 'battle' | 'pendingRest'>): MsgKey | null =>
+export const motifDuReposClos = (s: Pick<Jeu, 'battle' | 'pendingRest'>): MsgKey | null =>
   (s.battle ? 'repos.refus.enCombat' : s.pendingRest ? 'repos.refus.nuitARegler' : null);
 
 /** Refus du verbe `ouvrirLeRepos` : le repos clos (`motifDuReposClos`), l'hébergement `hebergementId` fermé

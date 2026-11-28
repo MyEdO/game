@@ -182,6 +182,9 @@ export function openEncounterPsych(get: Get, set: Set): void {
   startCascade(get, set, { title: 'Sang-froid', icon: 'drapeau/peur', purpose: 'test', steps });
 }
 
+/** Les héros que Peur ou Terreur peut atteindre : vivants, non immunisés (`isPsychImmune`). */
+export const exposesALaPsychologie = (heroes: readonly Combatant[]): Combatant[] => heroes.filter((h) => !h.dead && !isPsychImmune(h));
+
 /** Ouvre la bande des Tests de Calme pour une source de PEUR/TERREUR SCÉNIQUE (Effet d'auteur
  *  `inflictPsychology` — apparition, présage, vision d'horreur), sur la MÊME machinerie que
  *  `openEncounterPsych` (applier `'psychologieDeRencontre'` partagé) — `sceneFearSources`/`psychologieDeRencontre` restent
@@ -194,8 +197,7 @@ export function openScriptedPsych(get: Get, set: Set, kind: 'peur' | 'terreur', 
   const sourceId = `scripted:${label}`;
   const decl: PsychBandDecl = { kind, sourceId, sourceName: dataLabel(label), indice };
   const dues: PsychDue[] = [];
-  for (const hero of heroes) {
-    if (hero.dead || isPsychImmune(hero)) continue;
+  for (const hero of exposesALaPsychologie(heroes)) {
     dues.push({
       hero, decl,
       icon: kind === PSY.terreur ? 'creature/hurlement' : 'drapeau/peur',

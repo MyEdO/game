@@ -63,7 +63,7 @@ import { addCondition, removeCondition, stacks } from '../engine/conditions';
 import type { Applique } from '../engine/faits';
 import { canAfford, formatMoney, type Money } from '../engine/money';
 import { condCtx, payFromGroup, totalDesBourses } from './bourseFlow';
-import { refuseSi } from './verrousDeFiche';
+import { refusEnCombat, refuseSi } from './verrousDeFiche';
 import { rollDice } from '../engine/dice';
 import { facesDuDe } from '../engine/tables';
 import { rule } from '../engine/policy';
@@ -1319,9 +1319,15 @@ function applyEreintant(get: Get, set: Set, avant: EntreeDuJournal[] = []) {
   return { applique: { lignes: [...avant, ...lines], faits: [] }, insert };
 }
 
+/** Pourquoi la carte du monde ne s'ouvre pas : en combat, ou sans carte ; `null` sinon. Verdict de `ouvrirLaCarte` et de
+ *  l'effet `openWorldMap`. PUR. */
+export function refusDOuvrirLaCarte(s: Pick<Jeu, 'battle' | 'worldMap'>): string | null {
+  return refusEnCombat('carte.refus.enCombat')(s) ?? (s.worldMap ? null : t('carte.refus.sansCarte'));
+}
+
 export function creerActionsDuVoyage(get: Get, set: Set) {
   return {
-    ouvrirLaCarte: () => { if (!get().battle && get().worldMap) set({ worldMapOpen: true }); },
+    ouvrirLaCarte: () => { if (!refusDOuvrirLaCarte(get())) set({ worldMapOpen: true }); },
     partirEnVoyage: (routeId, modeDeVoyage, opts) => partirEnVoyage(get, set, routeId, modeDeVoyage, opts),
     reprendreLeVoyage: () => reprendreLeVoyage(get, set),
     fixerLaCadence: (cadence) => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p, orders: { ...(p.orders ?? DEFAULT_VOYAGE_ORDERS), cadence } } }); },

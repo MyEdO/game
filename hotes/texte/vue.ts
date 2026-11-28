@@ -229,7 +229,8 @@ const ligneDApercu = (a: Apercu): string =>
   `aperçu : ${a.genre} → ${versEcrit(a)}${a.cout === null ? '' : ` · coût ${a.cout}`} (le même clic confirme)`;
 
 /** Un geste d'exploration : son libellé et l'appel qui le joue. */
-export const ligneDeGeste = (g: GesteDExploration): string[] => replier(`${g.libelle} : ${appelEcrit('jouer', { gestes: g.gestes })}`);
+export const ligneDeGeste = (g: GesteDExploration): string[] =>
+  replier(g.refus === undefined ? `${g.libelle} : ${appelEcrit('jouer', { gestes: g.gestes })}` : `${g.libelle} (fermé : ${g.refus})`);
 
 const libelleDOffre = (o: OffreEnVue): string => `${o.id}${o.n > 1 ? `×${o.n}` : ''}→${o.cout ?? '—'}${o.refus === null ? '' : ` (fermée : ${o.refus})`}`;
 

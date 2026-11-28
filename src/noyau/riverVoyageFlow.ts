@@ -916,7 +916,7 @@ const APPLIERS = {
     if (!step.result.success) return { applique: { lignes: [ligneDeTexte(t('fleuve.sansExposition'), { ton: 'neutre' })], faits: [] } };
     const mode = step.meta?.exposureMode as import('../data').WaterExposureMode;
     const source = step.meta?.exposureSource as string | undefined;
-    return { insert: etapesDExpositionHydrique(effectTargets(get, 'groupe'), { mode, source }, 'fleuveExposition') };
+    return { insert: etapesDExpositionHydrique(effectTargets(get(), 'groupe'), { mode, source }, 'fleuveExposition') };
   },
   /** Réparation du gréement/avirons (l.78-82 / note 5) : Test de Métier réussi → rend le contrôle. */
   fleuveReparationDeCommande: (get, set, step, hero) => {

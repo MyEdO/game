@@ -1678,6 +1678,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
   it('SANS `unique`, l’action reste offerte : le geste est REJOUABLE (capacité neuve du lot)', () => {
     poser([{ id: 'tirer-le-levier', flow: don(1) }]);
     banc.getState().jouerAction('coffre', 'tirer-le-levier');
+    banc.getState().fenetreFermer('butin');
     banc.getState().jouerAction('coffre', 'tirer-le-levier');
     expect(or()).toBe(2);
   });
@@ -1709,6 +1710,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
     banc.getState().jouerAction('coffre', 'ouvrir');
     expect(banc.getState().gameTime, '`minutes: 5` — pas les 10 de la fouille').toBe(campaignStart() + 5);
 
+    banc.getState().fenetreFermer('butin');
     banc.setState({ gameTime: campaignStart() });
     banc.getState().jouerAction('coffre', 'fouiller');
     expect(banc.getState().gameTime, 'sans `minutes` : le défaut').toBe(campaignStart() + TIME_COST.search);
@@ -1734,7 +1736,7 @@ describe('jouerAction — l’exécuteur unique des gestes authorés', () => {
     banc.setState({ scene: { ...scene, entities: scene.entities.map((e) => (e.id === 'coffre' ? { ...e, z: 1 } : e)) }, journal: [] });
     banc.getState().jouerAction('coffre', 'fouiller');
     expect(or(), 'aucun butin : le geste n’a pas été joué').toBe(0);
-    expect(banc.getState().journal, 'ni ligne de journal').toEqual([]);
+    expect(banc.getState().journal.map((e) => e.texte), 'le refus est dit, et lui seul').toEqual([t('jouerAction.refus.horsDePortee', { action: 'Fouiller' })]);
     expect(banc.getState().flags[cleActionJouee('coffre', 'fouiller')], 'ni drapeau d’épuisement').toBeUndefined();
 
     // TÉMOIN — le MÊME ordre, le décor ramené de plain-pied : rien d'autre n'a changé.

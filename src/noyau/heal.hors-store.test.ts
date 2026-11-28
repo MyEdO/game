@@ -370,6 +370,23 @@ describe('Guérison — infirmerie (hors combat)', () => {
     expect(banc.getState().pendingSurgery).toBeNull(); // la passe est fermée à la réussite
   });
 
+  it('Chirurgie : la passe qui atteint le DR cible réussit, même si elle met le patient à 0 PB (LDB 10 l.184)', () => {
+    setRule('chirurgie-dr-cible', 5);
+    const surgeon = hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
+    const patient = hero({ id: 'p', label: 'Patient', skills: [], wounds: blessuresDeBase(12, 1), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });
+    banc.setState({ mode: 'exploration', battle: null, party: [surgeon, patient], pendingHeal: null, pendingSurgery: null, medic: null, pendingCascade: null, journal: [] });
+    banc.getState().ouvrirLeMedecin('p');
+    banc.getState().jetRegler('soins', 'mode', 'chirurgie');
+    banc.getState().jetLancer('soins');
+    banc.getState().jetLancer('chirurgie');
+    banc.getState().jetImposerLeResultat('chirurgie', 1); // Guérison 70 : 01 → DR +7, la cible d'une seule passe
+    banc.getState().jetValider('chirurgie');
+    const p = banc.getState().party.find((c) => c.id === 'p')!;
+    expect(p.wounds.current, '1d10 Blessures sur 1 PB').toBe(0);
+    expect(p.traumas ?? [], 'la Blessure Critique est réparée').toEqual([]);
+    expect(banc.getState().pendingCascade?.participants.some((x) => x.kind === 'maladieDeFinDeCombat' && x.actorId === 'p'), 'le Test d’infection suit la Chirurgie').toBe(true);
+  });
+
   it('Chirurgie : le réglage fixe le DR cumulé à atteindre à l’armement, y compris après reprise', () => {
     const surgeon = hero({ id: 'doc', talents: [{ talentId: 'chirurgie', times: 1 }] });
     const patient = hero({ id: 'p', wounds: blessuresDeBase(40), traumas: avecSequelles([], [tk('fracture', 'majeur', 'jambeG', { be: 4, d10: 5 })]) });

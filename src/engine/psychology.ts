@@ -765,10 +765,13 @@ export function ciblesDePhobieDuNoir(c: Combatant, terreurs: readonly TerreurSub
   return recente[0] === undefined ? ciblesDeGroupes(frequentes) : ciblesOrdonnees([...recente, ...frequentes], recente[0]);
 }
 
+/** La règle optionnelle de l'acquisition psychologique est-elle active ? ADE II 09 */
+export const acquisitionPsychoActive = (): boolean => !!rule('psycho-acquisition-optionnelle');
+
 /** Le Test de Calme seedé, à la difficulté `difficulte`, d'une acquisition de Trait psy ; `null` règle éteinte.
  *  PUR. ADE II 09 l.15, l.21 */
 export function calmeDAcquisition(c: Combatant, difficulte: Difficulty, rng: RNG): JetPose | null {
-  return rule('psycho-acquisition-optionnelle') ? jetPose(rollTest({ porteur: c.id, teste: CALME }, calmeValue(c), difficulte, rng)) : null;
+  return acquisitionPsychoActive() ? jetPose(rollTest({ porteur: c.id, teste: CALME }, calmeValue(c), difficulte, rng)) : null;
 }
 
 /** Les Traits psy qu'une acquisition pose. ADE II 09 l.9, l.15 ; LDB 21 l.93 */

@@ -74,8 +74,7 @@ import { type Combatant, type Difficulty, type QualityInstance } from '../engine
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
 import { modeleDe } from '../engine/modeleDeProgression';
-import { t, t as msg } from '../i18n';
- // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
+import { t, t as msg, type MsgKey } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
 
 import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
@@ -198,16 +197,27 @@ function purseStep(): CascadeStep {
   };
 }
 
-/** Ouvre l'interlude : événements tirés et appliqués, commandes livrées, écran dédié. */
+/** Pourquoi l'interlude ne s'ouvre pas : option éteinte (LDB 21 l.108), en combat, déjà ouvert, ou aucun héros vivant ;
+ *  `null` s'il s'ouvre. PUR. */
+const motifDeLInterludeClos = (s: Pick<Jeu, 'battle' | 'interlude' | 'party'>): MsgKey | null => {
+  if (!rule('interlude-actif')) return 'if.optionEteinte';
+  if (s.battle) return 'if.inCombat';
+  if (s.interlude) return 'if.dejaOuvert';
+  return s.party.some((h) => !h.dead) ? null : 'if.sansHeros';
+};
+
+/** Le refus d'ouvrir l'interlude (`motifDeLInterludeClos`), dit : le verdict de l'effet `interlude`. PUR. */
+export function refusDeLInterlude(s: Pick<Jeu, 'battle' | 'interlude' | 'party'>): string | null {
+  const motif = motifDeLInterludeClos(s);
+  return motif && msg(motif);
+}
+
+/** Ouvre l'interlude : événements tirés et appliqués, commandes livrées, écran dédié ; refusé (`motifDeLInterludeClos`),
+ *  il ne dit au journal que le combat. */
 export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
-  if (!rule('interlude-actif')) return; // LDB 21 l.108
-  if (get().battle) {
-    get().ecrireAuJournal(ligneDeTexte(msg('if.inCombat')));
-    return;
-  }
-  if (get().interlude) return; // déjà ouvert
+  const motif = motifDeLInterludeClos(get());
+  if (motif) return void (motif === 'if.inCombat' && get().ecrireAuJournal(ligneDeTexte(msg(motif))));
   const party = get().party.filter((h) => !h.dead);
-  if (!party.length) return;
   const w = Math.max(1, Math.floor(weeks));
   const lines: EntreeDuJournal[] = [ligneDeTexte(msg('if.openBanner', { n: w, s: w > 1 ? 's' : '' }))];
   // L'aventure qui vient de s'achever purge ses effets « pour la prochaine aventure » (LDB 23 l.209/

@@ -58,7 +58,7 @@ import {
 import { t } from '../i18n';
 import { rule } from '../engine/policy';
 import { refusDActivite, type EtatDInterlude } from './verdictsDInterlude';
-import { refuseSi } from './verrousDeFiche';
+import { refusEnCombat, refuseSi } from './verrousDeFiche';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
@@ -281,9 +281,14 @@ export function nomDArmee(spec: MassBattleSpec, camp: 'allie' | 'ennemi'): strin
   return camp === 'allie' ? spec.nomDesAllies || t('mbf.allyDefault') : spec.nomDesEnnemis || t('mbf.enemyDefault');
 }
 
+/** Pourquoi la bataille de masse ne s'amorce pas : en plein combat tactique ; `null` sinon. Verdict
+ *  d'`amorcerLaBataille` et de l'effet `startMassBattle`. PUR. */
+export const refusDAmorcerLaBataille = (s: Pick<Jeu, 'battle'>): string | null => refusEnCombat('mbf.inCombat')(s);
+
 /** Ouvre une bataille de masse et bascule sur sa vue. */
 export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): void {
-  if (get().battle) { get().ecrireAuJournal(ligneDeTexte(t('mbf.inCombat'))); return; }
+  const refus = refusDAmorcerLaBataille(get());
+  if (refus) return void get().ecrireAuJournal(ligneDeTexte(refus));
   const allyMight = clampMight(spec.puissanceAlliee);
   const enemyMight = clampMight(spec.puissanceEnnemie);
   // Le Rassemblement (sceneKind 'rally', l.122) n'est PAS une Scène cinématique de la pioche : il s'ouvre

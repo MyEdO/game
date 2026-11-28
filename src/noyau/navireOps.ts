@@ -36,7 +36,7 @@ import { resoudreFlowTest } from '../engine/decisionDuTest';
 import { dataLabel, findCrewRoleById, findCrewTestTypeById, refLabel } from '../data';
 import type { Flow } from '../data/schemas/defs-scenes/effets';
 import { applyShipMoraleDelta, applyVesselCrewLoss, shipboardSouls } from './shipCrew';
-import { REGISTRES_DU_BORD, type CampaignVessel } from './etat';
+import { REGISTRES_DU_BORD, type CampaignVessel, type Jeu } from './etat';
 import {
   applyVesselCritical,
   combattreEnMer,
@@ -61,15 +61,23 @@ import { autrePortAuHasard } from './portFlow';
 import { formatMoney, fromBrass } from '../engine/money';
 import type { Get, Set } from './flowTypes';
 
+/** La coque que visent les ops du navire : celle du voyage en cours, sinon celle du navire de campagne bâtie
+ *  (`voyageShip`) ; `null` sans navire. PUR. */
+export function navireVise(s: Jeu): { enVoyage: Combatant } | { bati: NonNullable<ReturnType<typeof voyageShip>> } | null {
+  const enVoyage = coqueDuNavireDeCampagne(s.travelPlan, s.vessel);
+  if (s.travelPlan && enVoyage) return { enVoyage };
+  const bati = voyageShip(() => s);
+  return bati ? { bati } : null;
+}
+
 /** La coque visée par `navire`, et l'écriture qui la persiste ; `null` sans navire de campagne à coque. */
 function coqueVisee(get: Get, set: Set): { coque: Combatant; persister: () => void } | null {
-  const plan = get().travelPlan;
-  const enVoyage = coqueDuNavireDeCampagne(plan, get().vessel);
-  if (plan && enVoyage) {
-    return { coque: enVoyage, persister: () => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p } }); persistHullWounds(get, set); } };
+  const visee = navireVise(get());
+  if (!visee) return null;
+  if ('enVoyage' in visee) {
+    return { coque: visee.enVoyage, persister: () => { const p = get().travelPlan; if (p) set({ travelPlan: { ...p } }); persistHullWounds(get, set); } };
   }
-  const bati = voyageShip(get);
-  if (!bati) return null;
+  const { bati } = visee;
   return { coque: bati.hull, persister: () => setVesselHull(get, set, bati.hull.wounds.current, bati.hull.wounds.max) };
 }
 
