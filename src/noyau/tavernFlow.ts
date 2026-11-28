@@ -1429,9 +1429,9 @@ function potOuvreManche(get: Get, seq: SequenceState<TavernPayload>, game: Taver
   const out = seats.filter((s) => !potSolvable(get, p.net ?? {}, s, ante)).map((s) => s.id);
   const log = seats.filter((s) => out.includes(s.id)).map((s) => t('tavern.potInsolvable', { who: s.label }));
   const enJeu = seats.filter((s) => !out.includes(s.id));
-  for (const ligne of log) get().ecrireAuJournal(ligne);
+  for (const ligne of log) get().ecrireAuJournal(ligneDeTexte(ligne));
   if (enJeu.length < 2) {
-    get().ecrireAuJournal(t('tavern.potPlusDeJoueurs'));
+    get().ecrireAuJournal(ligneDeTexte(t('tavern.potPlusDeJoueurs')));
     return potFin({ ...p, out, pot: 0, mises: {} });
   }
   // Le premier joueur d'une manche est celui du rang (chacun ouvre la sienne, l.17) ; s'il n'est pas
@@ -1667,7 +1667,7 @@ type FinDePot = 'issue' | 'abandon' | 'interruption';
 function potRendLesMises(get: Get, p: TavernPayload): Record<string, number> {
   let rendu = { ...(p.net ?? {}) };
   for (const seat of p.seats ?? []) rendu = potMouvement(rendu, seat, p.mises?.[seat.id] ?? 0);
-  if ((p.pot ?? 0) > 0) get().ecrireAuJournal(t('tavern.potRendu', { montant: formatMoney(fromBrass(p.pot ?? 0)) }));
+  if ((p.pot ?? 0) > 0) get().ecrireAuJournal(ligneDeTexte(t('tavern.potRendu', { montant: formatMoney(fromBrass(p.pot ?? 0)) })));
   return rendu;
 }
 
@@ -2647,7 +2647,7 @@ function finalizeTavernGame(
   set({ tavernGames: { result } });
   const enjeu = netBrass > 0 ? t('tavern.enjeuGain', { montant: formatMoney(fromBrass(netBrass)) }) : netBrass < 0 ? t('tavern.enjeuPerte', { montant: formatMoney(fromBrass(-netBrass)) }) : '';
   const issue = t(winner === 'joueur' ? 'tavern.issueWon' : winner === 'adversaire' ? 'tavern.issueLost' : 'tavern.issueTie');
-  get().ecrireAuJournal(t('tavern.finDePartie', { jeu: game.label, who: nomDe(challenger), adversaire: opponentName, issue, texte, enjeu }));
+  get().ecrireAuJournal(ligneDeTexte(t('tavern.finDePartie', { jeu: game.label, who: nomDe(challenger), adversaire: opponentName, issue, texte, enjeu })));
 }
 
 export function creerActionsDeTaverne(get: Get, set: Set) {

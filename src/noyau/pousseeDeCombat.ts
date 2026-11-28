@@ -1,3 +1,4 @@
+import { ligneDeTexte } from '../engine/journal';
 import type { Combatant } from '../engine/types';
 import { chebyshev } from '../engine/grid';
 import { mannedPosteWeapon } from '../engine/items';
@@ -44,7 +45,7 @@ export function executerPoussee(get: Get, set: Set, active: Combatant, to: Pt): 
     if (servant) servant.loseNextMovement = true;
   }
   const dist = chebyshev(delta, { x: 0, y: 0 });
-  const log = [...battle.log, ev('deplacement', t('cs.pushEngine', { name: nomDe(active), weapon: nomDe(plan.hull), n: dist, s: dist > 1 ? 's' : '' }), active.id)];
+  const log = [...battle.log, ev('deplacement', ligneDeTexte(t('cs.pushEngine', { name: nomDe(active), weapon: nomDe(plan.hull), n: dist, s: dist > 1 ? 's' : '' })), active.id)];
   set({
     battle: {
       ...get().battle!,

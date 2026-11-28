@@ -22,7 +22,7 @@ import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
-import { ligneDeTexte } from '../../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../../engine/journal';
 
 /** Effets « début de tour » authorés du combattant qui DEVIENT actif (`onTurnStart`), joués par l'ouverture de tour
  *  unique (`ouvrirLeTour`, combatFlow). Inerte tant qu'aucune donnée ne porte un effet `onTurnStart`.
@@ -66,7 +66,7 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
 //    replié par `ouvrirLeTour` dans le budget du tour.
 // ============================================================================================
 
-export interface ActGateOutcome { loseMovement: boolean; lines: string[] }
+export interface ActGateOutcome { loseMovement: boolean; lines: EntreeDuJournal[] }
 
 /** Résout les gates d'action du combattant qui DEVIENT actif. UN Test par Caractéristique gatée et par
  *  Round (LDB 71). */
@@ -96,8 +96,8 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
     }
     const teste = { characteristic: char } as const;
     const res = rollSansPilote(get, c, teste, rawCombatTestBase(c, teste), 'intermediaire', battleRng(), combatTestPenalty(c));
-    out.lines.push(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
-    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: nomDe(c) })); }
+    out.lines.push(ligneDeTexte(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res })));
+    if (!res.success) { out.loseMovement = true; out.lines.push(ligneDeTexte(t('turn.testDAgirGardeLAction', { name: nomDe(c) }))); }
   }
   return out;
 }

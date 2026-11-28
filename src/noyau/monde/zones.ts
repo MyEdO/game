@@ -24,7 +24,7 @@ import { immuneToSpellDomain } from '../../engine/traits/dispatch';
 import { findSpellById } from '../../data';
 import { t } from '../../i18n';
 import { nomDe } from '../../engine/nom';
-import type { EntreeDuJournal } from '../../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../../engine/journal';
 
 export interface BattleZone {
   /** id STABLE de la zone authoree (`SceneEffectZone.id`), propage par `sceneZonesToBattle` — identite
@@ -207,15 +207,15 @@ export function crossZones(
   rng: RNG,
   idNeuf: FabriqueDId,
   resolveTrapping?: TrappingResolver,
-): string[] {
-  const lines: string[] = [];
+): EntreeDuJournal[] {
+  const lines: EntreeDuJournal[] = [];
   if (mover.dead || isOutOfAction(mover)) return lines;
   for (const z of zones ?? []) {
     if (!z.onCross?.length || z.crossTest) continue;
     if (!path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { lines.push(t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label })); continue; }
-    lines.push(t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label }));
-    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label, resolveTrapping }).lignes.map((e) => e.texte));
+    if (zoneSansEffetSur(z, mover)) { lines.push(ligneDeTexte(t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label }))); continue; }
+    lines.push(ligneDeTexte(t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label })));
+    lines.push(...applyOps(mover, z.onCross, { idNeuf, caster: resolveCaster(z.casterId), rng, label: z.label, resolveTrapping }).lignes);
   }
   return lines;
 }

@@ -384,7 +384,7 @@ describe('Désertion à la relâche à terre ACCORDÉE (MDG 14 l.192-202) — se
     const lines = resolveShoreLeaveDesertion(banc.getState, banc.setState, makeRNG(1));
     const deserters = banc.getState().vessel!.crewLost ?? 0;
     expect(deserters).toBeGreaterThan(0); // 15 marins présents × d100 ≤ 16
-    expect(lines.join('\n')).toMatch(/ne sont pas revenus à bord/);
+    expect(lines.map((x) => x.texte).join('\n')).toMatch(/ne sont pas revenus à bord/);
     // même graine → même compte (déterminisme)
     lowVessel();
     resolveShoreLeaveDesertion(banc.getState, banc.setState, makeRNG(1));

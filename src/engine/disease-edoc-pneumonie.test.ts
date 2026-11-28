@@ -44,7 +44,7 @@ describe('Rhume commun → Pneumonie : la mue à 14 jours (EDOC 08 l.122)', () =
     // 15ᵉ jour : la durée de la PNEUMONIE contractée est 3d10 → 4+4+4 = 12 jours.
     const log = tickDisease(c, MINUTES_PER_DAY, seq([4, 4, 4]), ignore);
     expect(c.diseases!.map((d) => d.id)).toEqual(['pneumonie']);
-    expect(log.some((l) => /se transforme en/.test(l))).toBe(true);
+    expect(log.some((l) => /se transforme en/.test(l.texte))).toBe(true);
   });
 
   it('la pneumonie née de la mue démarre ACTIVE avec ses symptômes RAW (l.100-102)', () => {
@@ -202,8 +202,8 @@ describe('MUE vers une maladie DÉJÀ portée : le journal ne ment pas (#674 R2)
     // Aucun jet n'est roulé par le moteur (ils partent à la porte) : seule la MUE du 15ᵉ jour bouge la liste.
     const log = tickDisease(c, 15 * MINUTES_PER_DAY, seq([]), ignore);
     expect(c.diseases!.map((d) => d.id), 'le rhume disparaît (la mue a bien eu lieu)').toEqual(['pneumonie']);
-    expect(log.some((l) => /se transforme en/.test(l)), 'aucune 2ᵉ pneumonie n’a été contractée').toBe(false);
-    expect(log.some((l) => /cède la place/.test(l)), 'la mue est journalisée pour ce qu’elle est').toBe(true);
+    expect(log.some((l) => /se transforme en/.test(l.texte)), 'aucune 2ᵉ pneumonie n’a été contractée').toBe(false);
+    expect(log.some((l) => /cède la place/.test(l.texte)), 'la mue est journalisée pour ce qu’elle est').toBe(true);
   });
 });
 

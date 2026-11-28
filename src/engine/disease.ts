@@ -54,7 +54,7 @@ import { diseasePassiveOps, maladieDeclaree, severiteEffective, srcSymptome, sym
 import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
 import type { SujetContextualise } from './skills';
 import { nomDe } from './nom';
-import { ligneDeTexte } from './journal';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 
 export {
   attenuationEchelons,
@@ -480,12 +480,12 @@ export function contractDiseaseOnce(
  *  d'incubation et la Localisation de lésion (MSRC 16 l.140) est tirée si un symptôme la gate.
  *  SOURCE UNIQUE de cette bascule — `tickDisease` (incubation épuisée) et la Phase d'arrivée d'un
  *  voyage (EDOC 09 l.21) passent par ici. No-op sur une maladie déjà active. */
-export function declareDisease(c: PorteurDeMaladies, dz: Disease, rng: RNG): string[] {
+export function declareDisease(c: PorteurDeMaladies, dz: Disease, rng: RNG): EntreeDuJournal[] {
   if (dz.phase !== 'incubation') return [];
   dz.phase = 'active';
   dz.minutesLeft = dz.durationMinutes;
   if (dz.symptoms.some((s) => findSymptomById(s.symptomId)?.visiblePassive?.length)) dz.blisterLocation = rollBlisterLocation(rng);
-  return [t('dz.symptomsOnset', { name: nomDuPorteurDeMaladies(c), disease: diseaseLabel(dz.id) })];
+  return [ligneDeTexte(t('dz.symptomsOnset', { name: nomDuPorteurDeMaladies(c), disease: diseaseLabel(dz.id) }))];
 }
 
 /** Prolonge la DURÉE d'une maladie EN COURS de `days` jours. La durée active porte l'allonge ; si la
@@ -544,7 +544,7 @@ export interface CycleDeFiche {
   peutDeclarer?(maladieId: string): boolean;
   /** Journée pleine de phase active, après l'incrément de `activeDaysElapsed` : Tests de cycle de la fiche.
    *  `contractOnce` contracte une maladie à la fin du pas (incubation instantanée, LDB 20 l.27). */
-  journeeActive(dz: Disease, contractOnce: (name: string) => boolean, log: string[]): void;
+  journeeActive(dz: Disease, contractOnce: (name: string) => boolean, log: EntreeDuJournal[]): void;
   /** Fin de Durée : `true` = la maladie reste portée (Test de fin différé) ; sinon elle guérit. */
   finDeDuree(dz: Disease): boolean;
 }
@@ -570,9 +570,9 @@ function decompterLeFrais(p: PorteurDeMaladies, pas: number): number {
  * jour »). Une maladie à `dureeAuFrais` ne décompte de sa Durée que les minutes de vivre frais que le pas consomme
  * au régime de bord (`decompterLeFrais`), MDG 14 l.232.
  */
-export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: RNG, fiche?: CycleDeFiche): string[] {
+export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: RNG, fiche?: CycleDeFiche): EntreeDuJournal[] {
   if (minutes <= 0 || !p.diseases?.length) return [];
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   // Les maladies contractées en cours de pas (mue, Blessure Purulente…) n'évoluent qu'aux pas suivants.
   const contracted: Disease[] = [];
   const contractOnce = (name: string) => {
@@ -580,7 +580,7 @@ export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: R
     const dz = contractDisease(name, rng, { incubation: 0 }); // LDB 20 l.27
     if (dz) {
       contracted.push(dz);
-      log.push(t('dz.develop', { name: nomDuPorteurDeMaladies(p), disease: diseaseLabel(name) }));
+      log.push(ligneDeTexte(t('dz.develop', { name: nomDuPorteurDeMaladies(p), disease: diseaseLabel(name) })));
     }
     return true;
   };
@@ -614,9 +614,9 @@ export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: R
         // EDOC 08 l.122 : la maladie muée quitte la liste, que `into` soit neuve ou déjà portée.
         const mut = diseaseDefs()[dz.id]?.mutation;
         if (mut && dz.activeDaysElapsed > mut.afterDays) {
-          log.push(contractOnce(mut.into)
+          log.push(ligneDeTexte(contractOnce(mut.into)
             ? t('dz.mutates', { name: nomDuPorteurDeMaladies(p), from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) })
-            : t('dz.mutatesAbsorbed', { name: nomDuPorteurDeMaladies(p), from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) }));
+            : t('dz.mutatesAbsorbed', { name: nomDuPorteurDeMaladies(p), from: diseaseLabel(dz.id), to: diseaseLabel(mut.into) })));
           continue;
         }
       }
@@ -640,7 +640,7 @@ export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: R
         survivors.push(dz);
         continue;
       }
-      log.push(guerison(p, dz));
+      log.push(ligneDeTexte(guerison(p, dz)));
     }
     p.diseases = survivors;
   }
@@ -672,7 +672,7 @@ export function avancerLesMaladies(p: PorteurDeMaladies, minutes: number, rng: R
 export function tickDisease(
   c: Combatant, minutes: number, rng: RNG, defer: UpkeepDeferTest, beForGangrene = 0,
   peutDeclarer?: CycleDeFiche['peutDeclarer'],
-): string[] {
+): EntreeDuJournal[] {
   if (minutes <= 0) return [];
   // Décroissance du RÉSIDU post-infection : −1 par jour plein (MSRC 16 l.138), indépendante de toute maladie en cours.
   const fullDaysAll = Math.floor(minutes / MINUTES_PER_DAY);
@@ -697,7 +697,7 @@ export function tickDisease(
           // Conséquence INCONDITIONNELLE (pas de jet, MSRC 16 l.142) : appliquée DIRECTEMENT ici, via l'interprète inline restreint.
           const sortie: Applique = { lignes: [], faits: [] };
           applyOnFailInline(c, tick.onFail, contractOnce, sortie);
-          log.push(...sortie.lignes.map((e) => e.texte));
+          log.push(...sortie.lignes);
         } else {
           defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
         }

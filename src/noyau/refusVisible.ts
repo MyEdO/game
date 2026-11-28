@@ -21,6 +21,7 @@
  */
 import type { Get, Set } from './flowTypes';
 import { refuserAuSiegeAgissant } from './netOwnership';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Le refus AFFICHÉ (un seul à la fois : le dernier geste refusé). */
 export interface RefusIHM {
@@ -38,7 +39,7 @@ export function refuserGeste(get: Get, set: Set, texte: string): boolean {
   const etat = get();
   if (refuserAuSiegeAgissant(etat, texte)) return true;
   if (!etat.battle) {
-    etat.ecrireAuJournal(texte);
+    etat.ecrireAuJournal(ligneDeTexte(texte));
     return true;
   }
   set({ refus: { texte, nonce: (etat.refus?.nonce ?? 0) + 1 } });

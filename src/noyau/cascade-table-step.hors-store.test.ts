@@ -272,7 +272,7 @@ describe('MODE TABLE — poser le dé d’une étape à table (option « Dés fi
     expect(curStep().table!.result).toMatchObject({ roll: 48, die: 58, id: 'haute' });
     expect(curStep().fixed, 'la provenance « dé fixé » vit sur l’étape (rangée + journal)').toBe(true);
     // JOURNAL : l’entrée écrite tant que le slot est ouvert porte `deFixe`.
-    banc.getState().ecrireAuJournal('Conséquence du tirage');
+    banc.getState().ecrireAuJournal(ligneDeTexte('Conséquence du tirage'));
     const journal = banc.getState().journal;
     expect(journal[journal.length - 1]).toEqual({ ...ligneDeTexte('Conséquence du tirage'), deFixe: true });
   });

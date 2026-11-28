@@ -74,7 +74,7 @@ describe('Scorbut (MDG 14 l.232) — la Durée ne décroît qu’aux jours de vi
     noterLeRepas(c, FRAIS);
     const log = tickDisease(c, MINUTES_PER_DAY, seq([]), () => {});
     expect(c.diseases).toEqual([]);
-    expect(log.some((l) => l.includes('Scorbut'))).toBe(true);
+    expect(log.some((l) => l.texte.includes('Scorbut'))).toBe(true);
   });
 
   it('une maladie sans `dureeAuFrais` décroît sans vivre frais', () => {

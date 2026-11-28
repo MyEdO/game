@@ -4,7 +4,7 @@
  * (`MANIEMENTS`, #3319). Son contrôle lit le vocabulaire du
  * noyau : il vit dans le graphe de l'hôte (`modeles.ts`), hors de celui de l'évaluateur (`charger.mjs`).
  */
-import { MANIEMENTS, ROLES_D_ANIMATION, type Maniement, type RoleDAnimation } from '../../../src/noyau/index.ts';
+import { MANIEMENTS, ROLES_D_ANIMATION, type Maniement, type RoleDAnimation } from '../../../src/noyau/vocabulaireDesModeles.ts';
 
 export type TableDeClips = Readonly<Partial<Record<RoleDAnimation, string>>>;
 /** Par maniement, la table des rôles que le corps joue en tenant des deux mains un objet de ce maniement. */

@@ -6,6 +6,7 @@ import { fromBrass, toBrass } from '../engine/money';
 import { partyMoneyTotal } from './bourseFlow';
 import { ensureBourse, bourseInstanceOf } from '../engine/bourse';
 import type { Combatant } from '../engine/types';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { CampaignVessel } from './etat';
 import type { Get, Set } from './flowTypes';
 import { initialNet } from './etat';
@@ -19,9 +20,9 @@ function mkStore(vessel: CampaignVessel | null) {
   const hero = ensureBourse({ id: 'h1', label: 'h1', items: [] } as unknown as Combatant, idsDeTest);
   bourseInstanceOf(hero)!.money = fromBrass(100000);
   const worldMap = { id: 'm', label: 'Mer', places: [{ id: 'A', label: 'Port', pos: { x: 0, y: 0 } }], routes: [] };
-  let state = { vessel, party: [hero], journal: [] as string[], net: initialNet(), lieu: 'A', worldMap };
-  const log = (msg: string | string[]) => {
-    state = { ...state, journal: [...state.journal.slice(-40), ...(Array.isArray(msg) ? msg : [msg])] };
+  let state = { vessel, party: [hero], journal: [] as EntreeDuJournal[], net: initialNet(), lieu: 'A', worldMap };
+  const log = (msg: EntreeDuJournal | EntreeDuJournal[]) => {
+    state = { ...state, journal: [...state.journal.slice(-40), ...[msg].flat()] };
   };
   const get = (() => ({ ...state, ecrireAuJournal: log })) as unknown as Get;
   const set = ((patch: Partial<typeof state>) => { state = { ...state, ...patch }; }) as unknown as Set;

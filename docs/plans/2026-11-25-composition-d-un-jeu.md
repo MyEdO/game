@@ -164,7 +164,7 @@ fichiers de test, la liste des 7 datasets hors du seam et les 63 captures devien
 migrés : une capture à l'import ne compile plus.
 
 Les corrections du juge qui survivent, à reprendre au design neuf :
-- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1790`).
+- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1784`).
 - Un dataset se déclare par la route de son def, puis `npm run gen` (`CLES_DE_DATASET`, `RACINES_VIVANTES`,
   `src/data/racines-vivantes.test.ts:29`).
 - Une lecture de champ est un accesseur, et le mémo sert un vrai calcul.
@@ -224,7 +224,7 @@ hôte compose un catalogue, et il le remet à sa partie.
     et les règles. Son type `Catalogue` est généré des defs.
   - Les variantes sont résolues par `effectiveEntry` sous les règles de la composition.
   - `gatedByRule` ne retire aucune entrée. Il filtre une offre, par `ouvertParSaRegle(entree, cat)`
-    (`src/data/index.ts:1129`), qui reçoit `cat`. Un objet possédé et une carrière tenue restent résolus quand leur
+    (`src/data/index.ts:1132`), qui reçoit `cat`. Un objet possédé et une carrière tenue restent résolus quand leur
     règle se coupe en cours de partie.
   - Recomposer donne une valeur neuve, dont l'identité tient lieu de version.
   - Le coût se mesure au socle. La borne est la remise actuelle, d'environ 50 ms.
@@ -353,13 +353,15 @@ hôte compose un catalogue, et il le remet à sa partie.
 - **Le sort des 10 fichiers de `schemas` qui lisent la base.** Ils deviennent des fautes, ou des lectures
   `(…, cat)` de `schemas/catalogue` :
   - `defs-scenes/scene.ts`, sans lecture de la base : la carrière lit la créature sous `cat` (`scene.ts:229`) ;
-  - `narratif.ts:22` et `worldmap.ts:24` ;
+  - `narratif.ts:22` ;
+  - `defs-scenes/worldmap.ts`, sans lecture de la base : le billet d'une route lit son véhicule sous `cat`
+    (`entreeDe('vehicles', …)`, `worldmap.ts:193`), sous `catalogueLu('vehicle')` (`mapRouteSchema`, `worldmap.ts:252`) ;
   - `grammaire/reference.ts`, sans lecture de la base : le Trait posé lit le trait et le libellé de son type psy sous
     `cat` (`entreeDe('traits', …)`, `entreeDe('psychologies', …)`, `reference.ts:159,163,220`), sous
     `catalogueLu('trait', 'psychology', 'groupe')` (`reference.ts:209`) ; sa Cible se décode par `cibleDeLArg`
     (`src/engine/psych/ciblage.ts:72`), qui lit le Trait et le Groupe sous le `cat` de son dernier paramètre, au
     défaut du fossile 2 pour les appelants du moteur ; `refuserLesIndividus` reçoit le `cat` du raffinement de la
-    péripétie de route (`catalogueLu('trait', 'groupe')`, `worldmap.ts:185`) et le passe à `individusNommes`
+    péripétie de route (`catalogueLu('trait', 'groupe')`, `worldmap.ts:180`) et le passe à `individusNommes`
     (`ciblage.ts:83`) ;
   - `grammaire/mecanique.ts`, sans lecture de la base : l'enjeu authoré se juge sous `cat` (`trousDeLEnjeu(key, cat)`,
     `src/data/schemas/catalogue/enjeux.ts:135`), sous `catalogueLu('stakes.json', 'weather.json', 'activity',
@@ -370,7 +372,10 @@ hôte compose un catalogue, et il le remet à sa partie.
     de `grantTrait` lit les rangées de sa table dans `cat` (`GROUPES_TIRABLES`, `collectionDuCatalogue`,
     `mecanique.ts:213,855`), sous `catalogueLu('trait', 'obsessions.json')` (`mecanique.ts:843`) : `catalogueLu`
     déclare un document du `Catalogue` qu'aucun type d'entité ne désigne par sa clé de fichier (`ref.ts:414`) ;
-  - `defs/presets-de-personnage.ts:36` ;
+  - `defs/presets-de-personnage.ts`, sans lecture de la base : ses règles lisent la garde-robe et les objets sous `cat`
+    (`varianteDePiece`, `ensembleDe`, `piecesDeLObjet`, `src/data/schemas/catalogue/garde-robe.ts:15,24,38`),
+    sous `catalogueLu('gardeRobe', 'trapping')` (`presets-de-personnage.ts:142`), sur l'entrée comme sur la composition ;
+    `src/data/index.ts` garde ses lecteurs sous `catalogueDuProcessus()`, sans copie ;
   - `defs-scenes/effets.ts:56`, dont le libellé passe au message de la faute ;
   - `grammaire/valeurs.ts:16,18,60` : l'apparence d'un objet lit l'objet sous `cat` (`objetsDuCatalogue`,
     `catalogueLu('trapping')`, `valeurs.ts:1185`). Restent trois lectures de la base :
@@ -673,7 +678,7 @@ incompilable et L1 rend le second testable par banc. Les chiffres ci-dessous son
   - `src/noyau/actionRegistry.ts:832` et `:893` ;
   - `src/noyau/monde/aretes.ts:95` ;
   - `src/noyau/marchandEnVue.ts:73` ;
-  - `src/data/index.ts:1343` ;
+  - `src/data/index.ts:1346` ;
   - `src/engine/seaNavigation.ts:57` ;
   - `src/noyau/restFlow.ts:543` ;
   - `projets/roguelite/src/jeu/boutiques.ts:57`.

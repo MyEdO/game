@@ -98,7 +98,7 @@ export interface PortState {
   achat?: import('./cargaison').BrouillonDAchat;
 }
 
-const log = (get: Get, _set: Set, lines: string[]) => {
+const log = (get: Get, _set: Set, lines: EntreeDuJournal[]) => {
   if (lines.length) get().ecrireAuJournal(lines);
 };
 
@@ -325,7 +325,7 @@ export function acheterAuPort(get: Get, set: Set, porteurId: IdDePorteurDeCargai
   // Toujours tiré (même sans marchandeur) — parité RNG avec la vente (la porte du seam ne touche pas le rng).
   const merchant = rollMerchantSkill(!!st.port.cosmopolite, battleRng());
   if (!best) {
-    log(get, set, finalizePortBuy(get, set, cargoId, want, offer.basePrice, 0, t('port.noBargainerBuy'), null).lignes.map((e) => e.texte));
+    log(get, set, finalizePortBuy(get, set, cargoId, want, offer.basePrice, 0, t('port.noBargainerBuy'), null).lignes);
     return;
   }
   // DR de camp du vendeur NPC (MDG 15 l.339-341 — écart de camp ouvert en #1140).
@@ -386,7 +386,7 @@ function openPortSellBargainStep(get: Get, set: Set, lotId: IdDeCargaison, sellE
   // synchrone (déterminisme seedé conservé, la porte du seam ne touche pas le rng).
   const merchant = rollMerchantSkill(!!st.port.cosmopolite, battleRng());
   if (!best) {
-    log(get, set, finalizePortSale(get, set, lotId, sellEnc, offerPct, 0, t('port.noBargainerSell'), null).lignes.map((e) => e.texte));
+    log(get, set, finalizePortSale(get, set, lotId, sellEnc, offerPct, 0, t('port.noBargainerSell'), null).lignes);
     return;
   }
   const sellerDR = sellChance(st.port, lot.cargoId, vessel.lastVoyageMilles ?? 0).drDuVendeur;
@@ -439,7 +439,7 @@ export function vendreAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   if (chance.ragot) {
     const best = partyAssisted(get().party, { skill: { id: 'ragot' } });
     if (!best) {
-      log(get, set, [t('port.noCamelot', { label, relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') })]);
+      log(get, set, [ligneDeTexte(t('port.noCamelot', { label, relation: sellRelation(st.port, lot.cargoId) === 'surplus' ? t('port.hasSurplus') : t('port.produces') }))]);
       return;
     }
     openPartyTest(get, set, {
@@ -462,7 +462,7 @@ function decharger(get: Get, set: Set, lotId: IdDeCargaison): boolean {
 
 /** Au DÉCHARGEMENT du lot `uid` dans le port de l'escale : la perte en attente (`perteAuDechargement`) le
  *  frappe, puis est levée ; rend le journal. MDG 15 l.250 */
-function dechargerLeLot(get: Get, set: Set, uid: string): string[] {
+function dechargerLeLot(get: Get, set: Set, uid: string): EntreeDuJournal[] {
   const vessel = get().vessel;
   const perte = vessel?.perteAuDechargement;
   if (!vessel || perte === undefined) return [];
@@ -471,7 +471,7 @@ function dechargerLeLot(get: Get, set: Set, uid: string): string[] {
   const cargo = (vessel.cargo ?? []).flatMap((l) => (l.uid !== uid ? [l] : l.enc > perdus ? [{ ...l, enc: l.enc - perdus }] : []));
   const { perteAuDechargement: _p, ...reste } = vessel;
   set({ vessel: { ...reste, cargo } });
-  return [t('eff.perteDechargee', { enc: perdus, cargo: findCargoById(lot.cargoId)?.label ?? lot.cargoId })];
+  return [ligneDeTexte(t('eff.perteDechargee', { enc: perdus, cargo: findCargoById(lot.cargoId)?.label ?? lot.cargoId }))];
 }
 
 /** Refus de brader le lot `cargoId` au port ouvert : `refusDeGesteSurLeGroupe`, puis port qui ne rachète pas ce
@@ -496,7 +496,7 @@ export function jeterAuPort(get: Get, set: Set, lotId: IdDeCargaison): void {
   const nextCargo = (vessel.cargo ?? []).filter((l) => l.uid !== lotId);
   distributeCredit(get, set, fromBrass(gross * PA_PER_CO));
   set({ vessel: { ...vessel, cargo: nextCargo } });
-  log(get, set, [t('port.dumped', { enc: lot.enc, label, pct, money: formatMoney(fromBrass(gross * PA_PER_CO)) })]);
+  log(get, set, [ligneDeTexte(t('port.dumped', { enc: lot.enc, label, pct, money: formatMoney(fromBrass(gross * PA_PER_CO)) }))]);
 }
 
 /** Rôles recrutables à quai : ceux dont le profil porte un barème d'embauche (`soldeDuRole`, MDG 14 l.293-302). */
@@ -522,7 +522,7 @@ export function refusDeDebarquement(vessel: Jeu['vessel'], roleId: string, refus
  *  MDG 14 l.293-302) est prélevée à l'entretien (`resolveVesselWeek`) : le moteur ne débite JAMAIS à
  *  l'embauche (aucune avance dans le modèle), la bourse ne bouge pas ici. Un rôle sans barème n'est
  *  pas recrutable. Renvoie le journal (ligne de solde totale recalculée). */
-export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
+export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1): EntreeDuJournal[] {
   const refus = refusDEmbauche(roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire de l’embauche');
@@ -532,14 +532,14 @@ export function recruterLEquipage(get: Get, set: Set, roleId: string, count = 1)
   const recrute = inscrireLesRecrues(vessel, roleId, count);
   if (!recrute.admis) { refuserGeste(get, set, t('eff.equipageComplet')); return []; }
   set({ vessel: recrute.vessel });
-  const lines = [t('port.hired', { count: recrute.admis, role: role.label, wage: formatMoney(priceToMoney(solde.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(recrute.vessel.crew))) })];
+  const lines = [ligneDeTexte(t('port.hired', { count: recrute.admis, role: role.label, wage: formatMoney(priceToMoney(solde.weekly)), total: formatMoney(fromBrass(weeklyCrewWageBrass(recrute.vessel.crew))) }))];
   log(get, set, lines);
   return lines;
 }
 
 /** DÉBARQUEMENT d'un membre salarié à quai (#228) : retire `count` PNJ du rôle `roleId` (poste supprimé
  *  s'il tombe à 0). Aucune indemnité modélisée (le moteur ne débite qu'à la paie). Renvoie le journal. */
-export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1): string[] {
+export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1): EntreeDuJournal[] {
   const refus = refusDeDebarquement(get().vessel, roleId, refusDeGesteAQuai(get()));
   if (refus) { refuserGeste(get, set, refus); return []; }
   const vessel = garanti(get().vessel, 'vessel', 'navire du débarquement');
@@ -548,7 +548,7 @@ export function renvoyerLEquipage(get: Get, set: Set, roleId: string, count = 1)
   const { variation } = applyVesselCrewLoss(get, set, demandes, { roleId, registre: 'crew' });
   if (!variation) return [];
   const role = findCrewRoleById(roleId);
-  const lines = [t('port.dismissed', { count: variation, role: role?.label ?? roleId, total: formatMoney(fromBrass(weeklyCrewWageBrass(get().vessel?.crew))) })];
+  const lines = [ligneDeTexte(t('port.dismissed', { count: variation, role: role?.label ?? roleId, total: formatMoney(fromBrass(weeklyCrewWageBrass(get().vessel?.crew))) }))];
   log(get, set, lines);
   return lines;
 }

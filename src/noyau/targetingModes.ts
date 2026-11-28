@@ -12,6 +12,7 @@
  * que seuls des appels de fonction traversent, jamais une valeur lue au chargement. Consommé par
  * targeting.ts, combatSlice.ts, combatCursor.ts, combatOrParty.ts.
  */
+import { ligneDeTexte } from '../engine/journal';
 import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { IdDeModeDeCiblage } from '../data/schemas/defs/actions';
 import type { Get, Set } from './flowTypes';
@@ -753,7 +754,7 @@ function teleportCommitTile(get: Get, set: Set, active: Combatant, pt: Pt): void
   get().orienterSelonLeChemin(active.id, [from, pt]);
   bus.emit(EVT.ANIM_MOVE, { id: active.id, path: [{ ...pt }] });
   if (mount) bus.emit(EVT.ANIM_MOVE, { id: mount.id, path: [{ ...pt }] });
-  set({ battle: { ...battle, action: null, reachable: new Map(), preview: null, log: [...battle.log, ev('deplacement', t('cs.teleport', { name: nomDe(active) }), active.id)] } });
+  set({ battle: { ...battle, action: null, reachable: new Map(), preview: null, log: [...battle.log, ev('deplacement', ligneDeTexte(t('cs.teleport', { name: nomDe(active) })), active.id)] } });
   bus.emit(EVT.SCENE_DIRTY);
 }
 

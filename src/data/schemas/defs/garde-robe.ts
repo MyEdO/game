@@ -124,7 +124,7 @@ function refusDeSvg(svg: string): string | null {
 /** Ce qu'un ensemble habille : un objet, ou une tenue de la sous-liste `tenue` de cette garde-robe (#3116, #3456). */
 const habilleSchema = refTypee(enumNomme({ trapping: 'Objet', tenue: 'Tenue' }), { tenue: { type: 'gardeRobe', sousListe: 'tenue' } });
 
-/** Clé d'unicité d'un `habille` : le couple `{ type, id }` (garde de doublon, index `findEnsembleParHabille` de `src/data/index.ts`). */
+/** Clé d'unicité d'un `habille` : le couple `{ type, id }` (garde de doublon, index `ensembleDe` de `schemas/catalogue/garde-robe.ts`). */
 export function cleDHabille(h: HabilleDEnsemble): string {
   return JSON.stringify([h.type, h.id]);
 }

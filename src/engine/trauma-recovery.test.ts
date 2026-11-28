@@ -65,7 +65,7 @@ describe('Convalescence des Blessures critiques (LDB 18)', () => {
     const log = tickTraumaRecovery(c, 1, () => {});
     expect(c.traumas!.length).toBe(0);
     expect(c.criticalWounds).toBe(0);
-    expect(log.join(' ')).toMatch(/guérit/);
+    expect(log.map((x) => x.texte).join(' ')).toMatch(/guérit/);
   });
 
   it('déchirure MAJEURE de jambe : rémission partielle (−20 → −10) à la mi-durée (l.326)', () => {
@@ -207,7 +207,7 @@ describe('#1318 V8c₃ — aucune ligne de séquelle ne rend un ID de Localisati
   it('tickTraumaRecovery : la rémission d’une déchirure majeure de jambe nomme « Jambe gauche »', () => {
     const t = tk('dechirure', 'majeur', 'jambeG', { be: 4 });
     const c = C({ traumas: avecSequelles([], [{ ...t, recoveryDays: (t.recoveryTotal ?? 52) / 2 + 1 }]) });
-    const log = tickTraumaRecovery(c, 2, () => {}).join(' ');
+    const log = tickTraumaRecovery(c, 2, () => {}).map((x) => x.texte).join(' ');
     expect(log, 'la ligne de rémission est bien émise').toMatch(/rémission partielle/);
     expect(log).toContain('Jambe gauche');
     expect(IDS.test(log), `id de Localisation à l'écran : « ${log} »`).toBe(false);
@@ -216,7 +216,7 @@ describe('#1318 V8c₃ — aucune ligne de séquelle ne rend un ID de Localisati
   it('tickTraumaRecovery : la guérison d’une déchirure nomme la Localisation en français', () => {
     const t = tk('dechirure', 'mineur', 'brasD', { be: 4 });
     const c = C({ traumas: avecSequelles([], [{ ...t, recoveryDays: 1 }]), criticalWounds: 1 });
-    const log = tickTraumaRecovery(c, 5, () => {}).join(' ');
+    const log = tickTraumaRecovery(c, 5, () => {}).map((x) => x.texte).join(' ');
     expect(log).toContain('Bras droit');
     expect(IDS.test(log), `id de Localisation à l'écran : « ${log} »`).toBe(false);
   });

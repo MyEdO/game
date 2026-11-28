@@ -1,4 +1,5 @@
 /** Conversation : choix d'une réponse et clôture du dialogue. */
+import { ligneDeTexte } from '../engine/journal';
 import type { DialogueTransition } from './pendings';
 import { TIME_COST } from '../engine/timeCost';
 import { runFlow, cloturer } from './combatEffects';
@@ -42,7 +43,7 @@ function repondre(get: Get, set: Set, choix: string): void {
   // unique) débitée AVANT les effets ; refus si le total du groupe ne couvre pas.
   if (choice.cost) {
     const cost = toMoney(choice.cost);
-    if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().ecrireAuJournal(t('store.dialogueNoMoney')); return; }
+    if (!payFromGroup(get, set, cost, { purpose: 'Dialogue' })) { get().ecrireAuJournal(ligneDeTexte(t('store.dialogueNoMoney'))); return; }
   }
   const transition: DialogueTransition = choice.next
     ? { ...etat, nodeId: choice.next.id } // même conversation : `session` et interlocuteur voyagent avec

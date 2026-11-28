@@ -19,6 +19,7 @@
  * générés ici — câblés dans le store sous des noms `*Roll`/`*Reroll`/… que le test statique
  * `roll-modal-invariant.hors-store.test.ts` continue de vérifier.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import type { Jeu } from './etat';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import { libelleDeLaFermeture } from './libelles';
@@ -492,7 +493,7 @@ export interface RollFlowHandlers {
    * le pending du store. `ctx` : les données que seule l'application connaît (`spec.issue`).
    * Renvoie TOUJOURS les lignes (le canal `'battle'` laisse le site les tisser dans son `set`).
    */
-  apply(get: Get, opts?: { p?: PendingBase; ctx?: unknown }): string[];
+  apply(get: Get, opts?: { p?: PendingBase; ctx?: unknown }): EntreeDuJournal[];
   annuler: (get: Get, set: Set) => void;
   /** Sombre Pacte (LDB 19 l.17) : +1 Point de Corruption pour RELANCER un Test déjà jeté, répétable
    *  (chaque usage corrompt). Héros only. */
@@ -558,7 +559,7 @@ export function opReroll<P extends PendingBase>(
   if (!patch) return;
   if (free) {
     const label = consumeActiveFlag(actor, 'freeReroll');
-    get().ecrireAuJournal(t('roll.freeReroll', { name: nomDe(actor), src: label ?? t('roll.blessingFallback') }));
+    get().ecrireAuJournal(ligneDeTexte(t('roll.freeReroll', { name: nomDe(actor), src: label ?? t('roll.blessingFallback') })));
   } else {
     actor.fortune = (actor.fortune ?? 0) - 1;
   }
@@ -898,7 +899,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       const p = (opts?.p as P | undefined) ?? pendingOf(s);
       if (!p || !spec.issue) return [];
       const out = spec.issue(p, s, opts?.ctx as Ctx);
-      const lines = (Array.isArray(out) ? out : [out]).filter((l): l is string => !!l);
+      const lines = (Array.isArray(out) ? out : [out]).filter((l): l is string => !!l).map((l) => ligneDeTexte(l));
       if (spec.issueChannel !== 'battle') for (const l of lines) s.ecrireAuJournal(l);
       return lines;
     },
@@ -991,7 +992,7 @@ export function makeRollFlow<P extends PendingBase, Slot extends PendingBase = P
       // vit le dé — jamais la valeur saisie (le résolveur peut en appliquer une autre).
       const fresh = handlers.slotOf(get, pid);
       const applied = fresh ? handlers.picker?.(fresh, actor)?.roll : undefined;
-      if (applied != null) journaliser(get, set, [actor ? t('roll.dieFixedBy', { name: nomDe(actor), n: applied }) : t('roll.dieFixed', { n: applied })], 'information', { actorId: actor?.id });
+      if (applied != null) journaliser(get, set, [ligneDeTexte(actor ? t('roll.dieFixedBy', { name: nomDe(actor), n: applied }) : t('roll.dieFixed', { n: applied }))], 'information', { actorId: actor?.id });
     },
     resister(get, set, pid) {
       if (!spec.caps?.resister) return;

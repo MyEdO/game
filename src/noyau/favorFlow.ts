@@ -6,6 +6,7 @@
  * l.149) ou jamais par Activité (Importante, l.151 — « jouées comme des aventures complètes »),
  * et rompable au prix d'un Niveau de Carrière (l.141, canal existant `fenetreValider('interlude')`).
  */
+import { ligneDeTexte } from '../engine/journal';
 import type { Get, Set } from './flowTypes';
 import { rule } from '../engine/policy';
 import { favorRequiredActivities, type Favor, type FavorLevel } from '../engine/favor';
@@ -21,7 +22,7 @@ export function grantFavor(get: Get, set: Set, heroId: string, level: FavorLevel
   const favor: Favor = { id: get().forgerUnId('favor'), heroId, level, owedTo, desc, progress: 0 };
   set({ favors: [...(get().favors ?? []), favor] });
   const h = get().party.find((x) => x.id === heroId);
-  get().ecrireAuJournal(t('favor.granted', { name: nomOuAbsence(h, 'heros', heroId), level, owedTo }));
+  get().ecrireAuJournal(ligneDeTexte(t('favor.granted', { name: nomOuAbsence(h, 'heros', heroId), level, owedTo })));
   return favor;
 }
 
@@ -44,9 +45,9 @@ export function settleFavorActivity(get: Get, set: Set, heroId: string, favorId:
   });
   itl.perHero[heroId] = { ...st, left: st.left - 1, favorProgress: [...(st.favorProgress ?? []), favorId] };
   set({ interlude: { ...itl } });
-  get().ecrireAuJournal(done
+  get().ecrireAuJournal(ligneDeTexte(done
     ? t('favor.settled', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo })
-    : t('favor.progressed', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo, progress, required }));
+    : t('favor.progressed', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo, progress, required })));
 }
 
 /** Remet à 0 la progression des Faveurs qui n'ont PAS reçu d'Activité cet interlude — appelé par
@@ -86,9 +87,9 @@ export function breakFavor(get: Get, set: Set, heroId: string, favorId: string):
   if (rule('faveur-rumeur-se-repand')) {
     h.careerLevel = Math.max(0, (h.careerLevel ?? 1) - 1);
     set({ party: [...get().party] });
-    get().ecrireAuJournal(t('favor.brokenRumor', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel }));
+    get().ecrireAuJournal(ligneDeTexte(t('favor.brokenRumor', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo, lvl: h.careerLevel })));
   } else {
-    get().ecrireAuJournal(t('favor.brokenSilent', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo }));
+    get().ecrireAuJournal(ligneDeTexte(t('favor.brokenSilent', { name: nomDe(h), level: favor.level, owedTo: favor.owedTo })));
   }
 }
 

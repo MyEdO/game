@@ -18,6 +18,7 @@
  * spectaculaire NON opposé est un jet d'ARMÉE (sans Chance/Résilience personnelles) résolu directement.
  * Une Scène `combat`/`threat` réutilise le combat tactique existant (`lancerLeCombat`).
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import type { FabriqueDId } from '../engine/fabriqueDId';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
@@ -282,7 +283,7 @@ export function nomDArmee(spec: MassBattleSpec, camp: 'allie' | 'ennemi'): strin
 
 /** Ouvre une bataille de masse et bascule sur sa vue. */
 export function amorcerLaBataille(get: Get, set: Set, spec: MassBattleSpec): void {
-  if (get().battle) { get().ecrireAuJournal(t('mbf.inCombat')); return; }
+  if (get().battle) { get().ecrireAuJournal(ligneDeTexte(t('mbf.inCombat'))); return; }
   const allyMight = clampMight(spec.puissanceAlliee);
   const enemyMight = clampMight(spec.puissanceEnnemie);
   // Le Rassemblement (sceneKind 'rally', l.122) n'est PAS une Scène cinématique de la pioche : il s'ouvre
@@ -338,7 +339,7 @@ export function engagerLaBataille(get: Get, set: Set): void {
   const { situation, activeThreats, imposed } = composeSituation(mb, battleRng());
   const threatLine = describeThreats(activeThreats);
   set({ massBattle: { ...mb, phase: 'round', situation, activeThreats, imposed, log: threatLine ? [...mb.log, threatLine] : mb.log } });
-  if (threatLine) get().ecrireAuJournal(threatLine);
+  if (threatLine) get().ecrireAuJournal(ligneDeTexte(threatLine));
 }
 
 function describeThreats(threats: string[]): string | null {
@@ -547,7 +548,7 @@ function resolveAssistedTeam(
   const solo = bestForTests(party, tests)?.actor;
   const team = crew.length ? crew : (solo ? [solo] : []);
   const picked = bestAssistedOption(team, tests);
-  if (!picked) { get().ecrireAuJournal(refusTenterAction(crew, def)); return null; }
+  if (!picked) { get().ecrireAuJournal(ligneDeTexte(refusTenterAction(crew, def))); return null; }
   return { team, picked, difficulty: difficulteDeLOption(def, tests, picked.test) };
 }
 
@@ -739,7 +740,7 @@ function testResolution(success: boolean, sl: number, def?: Pick<ActivityDef, 'g
  *  met à jour situation/menaces/agissants pour une Scène. */
 function applyBattleBands(
   mb: MassBattleState, def: ActivityDef, res: BattleResolution, heroes: string[], isScene: boolean, idNeuf: FabriqueDId,
-): { mb: MassBattleState; lines: string[] } {
+): { mb: MassBattleState; lines: EntreeDuJournal[] } {
   let next = mb;
   const bands = matchBattleOutcomes(def, res);
   const shown: SceneDelta[] = [];
@@ -756,13 +757,13 @@ function applyBattleBands(
     }
     chains.push(...(b.chains ?? []));
   }
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   const noun = isScene ? t('mbf.nounScene') : t('mbf.nounActivity');
-  if (deltaLabels.length) lines.push(t('mbf.resolved', { noun, label: def.label, deltas: deltaLabels.join(' ; ') }));
-  else if (res.success) lines.push(t('mbf.succeededNoEffect', { noun, label: def.label }));
-  else lines.push(t('mbf.failedNoEffect', { noun, label: def.label }));
+  if (deltaLabels.length) lines.push(ligneDeTexte(t('mbf.resolved', { noun, label: def.label, deltas: deltaLabels.join(' ; ') })));
+  else if (res.success) lines.push(ligneDeTexte(t('mbf.succeededNoEffect', { noun, label: def.label })));
+  else lines.push(ligneDeTexte(t('mbf.failedNoEffect', { noun, label: def.label })));
   for (const cid of uniq(chains)) {
-    lines.push(t('mbf.chain', { scene: battleSceneById(cid)?.label ?? cid }));
+    lines.push(ligneDeTexte(t('mbf.chain', { scene: battleSceneById(cid)?.label ?? cid })));
   }
   next = {
     ...next,
@@ -795,11 +796,11 @@ function outcomeLabel(o: BattleOutcomeDelta, amount: number): string {
  *  ennemie) et RÉIMPOSE la Scène au Round suivant. Rupture → déroute. */
 function applyHoldResolution(
   mb: MassBattleState, scene: ActivityDef, pa: PendingActivity, heroes: string[], idNeuf: FabriqueDId,
-): { mb: MassBattleState; lines: string[] } {
+): { mb: MassBattleState; lines: EntreeDuJournal[] } {
   const hold = scene.hold as BattleHold;
   const prev = mb.sceneState[scene.id] ?? initHoldState();
   const r = resolveHoldRound(prev, hold, pa.enemySL ?? 0);
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   let next: MassBattleState = { ...mb, sceneState: { ...mb.sceneState, [scene.id]: r.next } };
   const shown: SceneDelta[] = [];
   if (r.held) {
@@ -813,13 +814,13 @@ function applyHoldResolution(
         if (ap.shown) shown.push(ap.shown);
       }
     }
-    lines.push(t('mbf.holdHeld', { bp: r.next.breakpoint, max: hold.breakpoint, bonus: holdEnemyBonus(hold, r.next.held) }));
+    lines.push(ligneDeTexte(t('mbf.holdHeld', { bp: r.next.breakpoint, max: hold.breakpoint, bonus: holdEnemyBonus(hold, r.next.held) })));
   }
   if (r.next.broken) {
-    lines.push(t('mbf.holdBreak', { bp: r.next.breakpoint, max: hold.breakpoint }));
+    lines.push(ligneDeTexte(t('mbf.holdBreak', { bp: r.next.breakpoint, max: hold.breakpoint })));
   } else {
     next = { ...next, imposed: uniq([...next.imposed, scene.id]) };
-    if (!r.held) lines.push(t('mbf.holdLose', { bp: r.next.breakpoint, max: hold.breakpoint }));
+    if (!r.held) lines.push(ligneDeTexte(t('mbf.holdLose', { bp: r.next.breakpoint, max: hold.breakpoint })));
   }
   next = {
     ...next,
@@ -836,7 +837,7 @@ function applyHoldResolution(
 export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): void {
   const mb = get().massBattle;
   if (!mb || pa.roll == null || !pa.activityId) return;
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   let next = mb;
 
   const prepDef = pa.battle === 'prep' ? battleActivityById(pa.activityId) : undefined;
@@ -862,9 +863,9 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
         const healed = { ...hero, wounds: { ...hero.wounds } };
         applyOps(healed, [{ op: 'heal', amount: heal }], { idNeuf: get().forgerUnId, rng: battleRng() });
         set((s) => ecrireActeur(s, hero.id, (h) => ({ ...h, wounds: { ...healed.wounds } })));
-        lines.push(t('mbf.rallyHeal', { name: nomDe(hero), heal, dr: pa.sl, be }));
+        lines.push(ligneDeTexte(t('mbf.rallyHeal', { name: nomDe(hero), heal, dr: pa.sl, be })));
       } else {
-        lines.push(t('mbf.rallyFail', { name: nomDe(hero) }));
+        lines.push(ligneDeTexte(t('mbf.rallyFail', { name: nomDe(hero) })));
       }
       next = { ...next, ralliedHeroes: uniq([...next.ralliedHeroes, hero.id]) };
     }
@@ -881,7 +882,7 @@ export function confirmBattleActivity(get: Get, set: Set, pa: PendingActivity): 
     lines.push(...applied.lines);
   }
 
-  set({ massBattle: { ...next, log: [...next.log, ...lines] } });
+  set({ massBattle: { ...next, log: [...next.log, ...lines.map((e) => e.texte)] } });
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
@@ -896,11 +897,11 @@ function startBattleCombat(get: Get, set: Set, scene: ActivityDef): void {
   const encId = rencontres[scene.id]?.id;
   const enc = encId && get().scene?.encounters.find((e) => e.id === encId);
   if (!enc) {
-    get().ecrireAuJournal(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' }));
+    get().ecrireAuJournal(ligneDeTexte(t('mbf.noEncounter', { scene: scene.label, enc: encId ?? '?' })));
     return;
   }
   set({ massBattle: { ...mb, combatScene: { sceneId: scene.id, hits: 0, hitters: [] } }, screen: 'campaign' });
-  get().ecrireAuJournal(t('mbf.engage', { scene: scene.label }));
+  get().ecrireAuJournal(ligneDeTexte(t('mbf.engage', { scene: scene.label })));
   get().lancerLeCombat(encId);
 }
 
@@ -922,7 +923,7 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
   const scene = battleSceneById(mb.combatScene.sceneId);
   const cs = mb.combatScene;
   let next: MassBattleState = { ...mb, combatScene: undefined };
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   if (scene) {
     const res: BattleResolution = outcome === 'victoire'
       // Victoire : le général (la rencontre) est neutralisé ; intervention si > 1 frappeur (Duel l.225).
@@ -930,10 +931,10 @@ export function massBattleResumeCombat(get: Get, set: Set, kills: number, outcom
       : { success: false, sl: 0, hits: cs.hits, kills: 0, generalDown: false, intervention: cs.hitters.length > 1, combat: true };
     const applied = applyBattleBands(next, scene, res, cs.hitters, true, get().forgerUnId);
     next = applied.mb;
-    lines.push(t(outcome === 'victoire' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills }));
+    lines.push(ligneDeTexte(t(outcome === 'victoire' ? 'mbf.combatWon' : 'mbf.combatLost', { scene: scene.label, hits: cs.hits, kills })));
     lines.push(...applied.lines);
   }
-  set({ massBattle: { ...next, log: [...next.log, ...lines] }, screen: 'massBattle' });
+  set({ massBattle: { ...next, log: [...next.log, ...lines.map((e) => e.texte)] }, screen: 'massBattle' });
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
@@ -951,7 +952,7 @@ export function refusDAlea(s: Pick<Jeu, 'massBattle'>): string | null {
 function poserLAlea(get: Get, set: Set, h: HazardRow): void {
   const mb = get().massBattle!;
   set({ massBattle: { ...mb, hazard: { label: h.label, text: h.desc }, log: [...mb.log, t('mbf.hazardLog', { label: h.label })] } });
-  get().ecrireAuJournal(t('mbf.hazard', { label: h.label }));
+  get().ecrireAuJournal(ligneDeTexte(t('mbf.hazard', { label: h.label })));
 }
 
 /** Tire le facteur environnemental du Round au RNG de la partie (ADE II 08 l.309-311). */
@@ -989,20 +990,20 @@ function jouerLeTestSpectaculaire(get: Get, set: Set): void {
   const clash = resolveClash({ allie: mb.allie.combatant.id, ennemi: mb.ennemi.combatant.id }, armyMight(mb.allie), armyMight(mb.ennemi), { modificateurAllie: allyMod, modificateurEnnemi: 0, rng: battleRng() });
   const ally = armyWithMightDelta(mb.allie, -clash.allyLoss, get().forgerUnId);
   const enemy = armyWithMightDelta(mb.ennemi, -clash.enemyLoss, get().forgerUnId);
-  const lines: string[] = [
-    t('mbf.clash', { n: mb.round, total: mb.plannedRounds, enemyLoss: clash.enemyLoss, allyLoss: clash.allyLoss }),
-    t('mbf.mightLine', { ally: ally.label, allyMight: armyMight(ally), enemy: enemy.label, enemyMight: armyMight(enemy) }),
+  const lines: EntreeDuJournal[] = [
+    ligneDeTexte(t('mbf.clash', { n: mb.round, total: mb.plannedRounds, enemyLoss: clash.enemyLoss, allyLoss: clash.allyLoss })),
+    ligneDeTexte(t('mbf.mightLine', { ally: ally.label, allyMight: armyMight(ally), enemy: enemy.label, enemyMight: armyMight(enemy) })),
   ];
   let next: MassBattleState = { ...mb, allie: ally, ennemi: enemy, lastClash: clash };
   const destroyed = isDestroyed(armyMight(ally)) || isDestroyed(armyMight(enemy));
   if (destroyed || mb.round >= mb.plannedRounds) {
     const outcome = battleOutcome(armyMight(ally), armyMight(enemy));
     next = { ...next, phase: 'over', outcome };
-    lines.push(outcomeLine(next, outcome, destroyed));
+    lines.push(ligneDeTexte(outcomeLine(next, outcome, destroyed)));
   } else {
     next = { ...next, awaitingNext: true };
   }
-  set({ massBattle: { ...next, log: [...next.log, ...lines] } });
+  set({ massBattle: { ...next, log: [...next.log, ...lines.map((e) => e.texte)] } });
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
@@ -1028,7 +1029,7 @@ function passerAuRoundSuivant(get: Get, set: Set): void {
     hazard: undefined, awaitingNext: false,
   };
   set({ massBattle: { ...next, log: threatLine ? [...next.log, threatLine] : next.log } });
-  if (threatLine) get().ecrireAuJournal(threatLine);
+  if (threatLine) get().ecrireAuJournal(ligneDeTexte(threatLine));
 }
 
 /** La validation de la bataille : le Round suivant (`fermetureDuRoundSuivant`). ADE II 08 l.124 */
@@ -1047,7 +1048,7 @@ function outcomeLine(mb: MassBattleState, outcome: BattleOutcome, destroyed: boo
  *  la bataille jusqu'à son issue (`confirmBattleActivity`) : la clôture est alors REFUSÉE, jamais purgée. */
 function cloreLaBataille(get: Get, set: Set): void {
   const enCours = get().pendingActivity;
-  if (enCours?.battle) { get().ecrireAuJournal(t('mbf.endTestEnCours', { test: enCours.label })); return; }
+  if (enCours?.battle) { get().ecrireAuJournal(ligneDeTexte(t('mbf.endTestEnCours', { test: enCours.label }))); return; }
   set({ massBattle: null, screen: get().scene ? 'campaign' : 'menu' });
 }
 

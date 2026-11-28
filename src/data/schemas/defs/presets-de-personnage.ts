@@ -30,10 +30,11 @@
 import { z } from 'zod';
 import { document } from '../grammaire/document';
 import { nommerChamps } from '../grammaire/meta';
-import { recordDIds, ref, refs } from '../grammaire/ref';
+import { affinerAvecCatalogues, recordDIds, ref, refs, type LecturesDuRaffinement } from '../grammaire/ref';
 import { INSTANCIABLE_PAR_ID } from '../grammaire/sousListes';
 import { apparencesDObjetsSchema, couleursSchema, emblemeSchema, formesDeTeteSchema, mainSchema, sexeSchema } from '../grammaire/valeurs';
-import { findEnsembleParHabille, findVarianteById, piecesDeLObjet } from '../../index';
+import { ensembleDe, piecesDeLObjet, varianteDePiece } from '../catalogue/garde-robe';
+import type { Catalogue } from '../catalogue/catalogue';
 import type { HabilleDEnsemble } from './garde-robe';
 
 export const file = 'presets-de-personnage.json';
@@ -84,8 +85,9 @@ type ChampsDuPreset = z.infer<z.ZodObject<typeof champs>>;
 
 /** Aucune chose portée deux fois : aucun objet tenu sur `prises` puis `objets`, un objet porté pouvant revenir dans
  *  `objets` en autant d'exemplaires ; aucune pièce sur l'ensemble de la tenue, les `pieces` puis les pièces de chaque
- *  exemplaire d'objet (`piecesDeLObjet`). L'issue va à l'élément qui la porte la seconde fois. Rend les pièces portées. */
-function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet<string> {
+ *  exemplaire d'objet (`piecesDeLObjet`), lus sous `cat`. L'issue va à l'élément qui la porte la seconde fois. Rend les
+ *  pièces portées. */
+function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx, cat: Catalogue): ReadonlySet<string> {
   const e = v as Pick<ChampsDuPreset, 'tenue' | 'pieces' | 'objets' | 'prises'>;
   const pieces = new Map<string, string>();
   const tenus = new Map<string, string>();
@@ -97,7 +99,7 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet
       else deuxFois(path, id, deja);
     }
   };
-  const ensemble = (habille: HabilleDEnsemble) => findEnsembleParHabille(habille)?.pieces ?? [];
+  const ensemble = (habille: HabilleDEnsemble) => ensembleDe(habille, cat)?.pieces ?? [];
   if (e.tenue) porter(ensemble({ id: e.tenue.id, type: 'tenue' }), ['tenue'], `l’ensemble de la tenue « ${e.tenue.id} »`);
   (e.pieces ?? []).forEach((id, i) => porter([id], ['pieces', i], `pieces[${i}]`));
   const portes: [Chemin, string, string | undefined][] = [
@@ -111,7 +113,7 @@ function refuserLesPortesDeuxFois(v: unknown, ctx: z.RefinementCtx): ReadonlySet
       continue;
     }
     if (prise !== undefined) tenus.set(id, prise);
-    porter(piecesDeLObjet(id), path, `l’objet « ${id} »`);
+    porter(piecesDeLObjet(id, undefined, cat), path, `l’objet « ${id} »`);
   }
   return new Set(pieces.keys());
 }
@@ -124,24 +126,28 @@ function rangerSesObjets(v: unknown, ctx: z.RefinementCtx): void {
     if (!portes.has(id)) ctx.addIssue({ code: 'custom', path: ['rangementsObjets', id], message: `« ${id} » se range sans être un des objets portés.` });
 }
 
-/** Chaque clé de `variantesPieces` est une des pièces `portees`, et sa valeur une variante de cette pièce. */
-function varierSesPieces(v: unknown, portees: ReadonlySet<string>, ctx: z.RefinementCtx): void {
+/** Chaque clé de `variantesPieces` est une des pièces `portees`, et sa valeur une variante de cette pièce sous `cat`. */
+function varierSesPieces(v: unknown, portees: ReadonlySet<string>, ctx: z.RefinementCtx, cat: Catalogue): void {
   const e = v as Pick<ChampsDuPreset, 'variantesPieces'>;
   for (const [piece, variante] of Object.entries(e.variantesPieces ?? {})) {
     const path = ['variantesPieces', piece];
     if (!portees.has(piece)) ctx.addIssue({ code: 'custom', path, message: `« ${piece} » prend une variante sans être une des pièces portées.` });
-    const de = findVarianteById(variante.id)?.piece.id;
+    const de = varianteDePiece(variante.id, cat)?.piece.id;
     if (de !== undefined && de !== piece) ctx.addIssue({ code: 'custom', path, message: `« ${variante.id} » est une variante de « ${de} », pas de « ${piece} ».` });
   }
 }
 
-const affiner = (v: unknown, ctx: z.RefinementCtx): void => {
-  varierSesPieces(v, refuserLesPortesDeuxFois(v, ctx), ctx);
-  rangerSesObjets(v, ctx);
+/** Les règles d'un preset, sous le catalogue de la fenêtre de parse (`catalogueLu`). */
+const affiner = (lire: LecturesDuRaffinement) => {
+  const cat = lire.catalogueLu('gardeRobe', 'trapping');
+  return (v: unknown, ctx: z.RefinementCtx): void => {
+    varierSesPieces(v, refuserLesPortesDeuxFois(v, ctx, cat()), ctx, cat());
+    rangerSesObjets(v, ctx);
+  };
 };
 
 /** L'entrée sans son enveloppe (`CLES_ENVELOPPE`), règles comprises. */
-export const compositionSchema = nommerChamps(z.strictObject(champs), metaDesChampsDuPreset).superRefine(affiner);
+export const compositionSchema = affinerAvecCatalogues(nommerChamps(z.strictObject(champs), metaDesChampsDuPreset), affiner);
 export const surchargesDEmblemesSchema = z.record(z.string(), emblemeSchema.nullable());
 
 const doc = document(
@@ -161,7 +167,7 @@ const doc = document(
   },
   {
     exiges: ['source'],
-    affinerEntree: (entree) => entree.superRefine(affiner),
+    affinerEntree: (entree) => affinerAvecCatalogues(entree, affiner),
   },
 );
 

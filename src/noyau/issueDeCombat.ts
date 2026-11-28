@@ -1,4 +1,5 @@
 /** Issue d'un combat : victoire, défaite, butin, vol de cargaison (#327). */
+import { ligneDeTexte } from '../engine/journal';
 import { applyEffects, confierLaSuite, cloturer, jouerFlowEntier, attribuerLaLigne, harvestVictoryCreature } from './combatEffects';
 import * as massBattleFlow from './massBattleFlow';
 import { resumeSuspendedCascade } from './cascade';
@@ -21,9 +22,9 @@ export function creerActionsDIssueDeCombat(get: Get, set: Set) {
       set({ ...patch, cargoRaid: false });
       if (total > 0) {
         // Conséquence structurée (#295) — issue en donnée + total, jamais un jet silencieux.
-        get().ecrireAuJournal(t('store.cargoRaid', { issue: t(outcome === 'fuite' ? 'store.cargoRaidFled' : 'store.cargoRaidBroken'), enc: total, pct, porteurs: losses.length > 1 ? t('store.fragCargoPorters', { n: losses.length }) : '' }));
+        get().ecrireAuJournal(ligneDeTexte(t('store.cargoRaid', { issue: t(outcome === 'fuite' ? 'store.cargoRaidFled' : 'store.cargoRaidBroken'), enc: total, pct, porteurs: losses.length > 1 ? t('store.fragCargoPorters', { n: losses.length }) : '' })));
       } else if (outcome !== 'victoire' && pct > 0) {
-        get().ecrireAuJournal(t('store.cargoRaidNothing'));
+        get().ecrireAuJournal(ligneDeTexte(t('store.cargoRaidNothing')));
       }
     },
   } satisfies FabriqueDuNoyau;

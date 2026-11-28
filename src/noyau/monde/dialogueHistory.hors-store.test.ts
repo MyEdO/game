@@ -144,7 +144,7 @@ describe('dialogueHistory / journal — survie cross-scène (quitterLaScene)', (
     banc.setState({ screen: 'campaign', battle: null, mode: 'exploration', flags: {}, dialogue: null, pendingTest: null });
     banc.getState().lancerLaScene(testScene());
     banc.setState({ party: [hero()] });
-    banc.getState().ecrireAuJournal('événement récent');
+    banc.getState().ecrireAuJournal(ligneDeTexte('événement récent'));
     banc.setState({ dialogueHistory: [{ nodeText: 'n', choiceText: 'c', at: 0, dialogueId: 'd', session: 1 }] });
     banc.getState().quitterLaScene(testScene().id);
     expect(banc.getState().dialogueHistory.length).toBe(1);

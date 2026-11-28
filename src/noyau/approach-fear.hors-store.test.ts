@@ -7,6 +7,7 @@
  * sur la branche `fail`.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { approachFearTrigger, advanceTurn, finishPlayerAction } from './combatFlow';
@@ -315,7 +316,7 @@ describe('Approche du HÉROS vers un ennemi qui le craint (LDB 21 l.27)', () => 
   it('scellement par une Action à journal COMPOSÉ → le Test et son issue sont JOURNALISÉS', () => {
     const { E } = field();
     banc.getState().cliquerLaCase({ x: 8, y: 10 }, undefined, { confirm: true });
-    finishPlayerAction(banc.getState, banc.setState, ['LIGNE-ACTION']);
+    finishPlayerAction(banc.getState, banc.setState, [ligneDeTexte('LIGNE-ACTION')]);
     expect(brise(E.id)).toBe(1);
     const txt = banc.getState().battle!.log.map((l) => l.entree.texte).join('\n');
     expect(txt).toMatch(/LIGNE-ACTION/);

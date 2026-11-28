@@ -32,7 +32,7 @@ import { dataLabel } from '../data';
 import { applyEffects, applyEffectsLoot, jouerFlowEntier } from './combatEffects';
 import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type InterruptionDePeril, type PartDeTable } from './tablesPosees';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 export const AUTHOR_PERIL_KIND = 'perilDeScene';
 
@@ -47,7 +47,7 @@ function perilInterrupts(effects: Effect[] | undefined): boolean {
  */
 export interface PerilInterruptHandler {
   /** Renvoie les lignes de journal propres au flux (ex. « le voyage est interrompu à destination X »). */
-  (get: Get, set: Set, effects: Effect[], label: string): string[];
+  (get: Get, set: Set, effects: Effect[], label: string): EntreeDuJournal[];
 }
 
 
@@ -69,7 +69,7 @@ export function buildAuthorPerilSteps(route: MapRoute, destLabel: string, interr
 }
 
 /** Applique les effets d'un péril SUR-LE-CHAMP (protocole maritime : `reprendreLeVoyage` rejoue la traversée). */
-export function applyPerilEffectsNow(get: Get, set: Set, effects: Effect[]): string[] {
+export function applyPerilEffectsNow(get: Get, set: Set, effects: Effect[]): EntreeDuJournal[] {
   jouerFlowEntier(applyEffects(get, set, effects));
   return [];
 }
@@ -89,17 +89,17 @@ export const TABLES = {
       // et la conséquence DIT l'issue. Un péril qui ne survient pas se LIT — le verrou est au test
       // (`de-monde-surface.hors-store.test.ts`, delta de journal nominatif), pas dans ce commentaire.
       if (!step.result.success) return { applique: { lignes: [ligneDeTexte(t('tf.perilEvite', { label: peril.label }), { ton: 'neutre' })], faits: [] } };
-      const lignes: string[] = [t('tf.perilDAuteur', { label: peril.label })];
+      const lignes: EntreeDuJournal[] = [ligneDeTexte(t('tf.perilDAuteur', { label: peril.label }))];
       if (perilInterrupts(peril.effects)) {
         set({ travelPlan: { ...get().travelPlan!, interrupted: true } });
         const suite = tablesPosees().interruptionsDePeril[String(step.meta?.interruptId ?? '')]?.(get, set, peril.effects, String(step.meta?.destLabel ?? '')) ?? [];
         lignes.push(...suite);
         // Les périls RESTANTS n'ont plus lieu d'être : le trajet s'arrête ici. La troncature — et non
         // l'ouverture du combat — est ce qui garantit que leurs dés ne se tirent pas (parité du `break`).
-        return { applique: { lignes: lignes.map((x) => ligneDeTexte(x)), faits: [] }, stopSequence: true };
+        return { applique: { lignes, faits: [] }, stopSequence: true };
       }
       jouerFlowEntier(applyEffectsLoot(get, set, peril.effects, peril.label)); // trouvaille d'auteur → fenêtre d'attribution
-      return { applique: { lignes: lignes.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes, faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

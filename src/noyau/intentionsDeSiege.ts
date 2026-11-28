@@ -30,6 +30,7 @@ import type { Get } from './flowTypes';
 import type { Jeu } from './etat';
 import { intentAllowedFor, withActingSeat } from './netOwnership';
 import { t } from '../i18n';
+import { ligneDeTexte } from '../engine/journal';
 
 export type ClasseCoop = 'invité' | 'hôte' | 'local';
 
@@ -256,7 +257,7 @@ export function appliquerLIntentionDUnSiege(
   const etat = get();
   if (!intentAllowedFor(etat, siege, action, [...args])) {
     const texte = t('coop.intentRefused');
-    if (siege === etat.net.mySeat) etat.ecrireAuJournal(texte);
+    if (siege === etat.net.mySeat) etat.ecrireAuJournal(ligneDeTexte(texte));
     else rendreLeRefus?.(texte);
     return 'refusee';
   }

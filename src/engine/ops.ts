@@ -559,7 +559,7 @@ export interface OpsCtx {
   conjureForm?: ConjureForm;
   /** EXPOSITION corruptrice (op `corruptionExposure`) de `cible`, au niveau déjà atténué — fourni par
    *  `noyau/corruptionFlow.crochetsDeCorruption`. Sans hook (moteur pur/tests), l'op est journalisée inerte. */
-  onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence, difficulty?: Difficulty) => string[];
+  onCorruptionExposure?: (cible: Combatant, level: ExposureLevel, nature?: NatureDInfluence, difficulty?: Difficulty) => EntreeDuJournal[];
   /** Libellé de la source (sort/table) — ActiveEffect.label + journal ; se LIT par `nomDeSource`. */
   label?: string;
   /** ENTITÉ SOURCE des ops en cours (sort, talent, trait, objet, maladie, mutation…) — marquée sur TOUT
@@ -1399,7 +1399,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           lines.push(ligneDeTexte(t('op.corruptionConjuree', { name: nomDe(target) })));
           break;
         }
-        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(target, level, o.nature, o.difficulty).map((x) => ligneDeTexte(x)));
+        if (ctx.onCorruptionExposure) lines.push(...ctx.onCorruptionExposure(target, level, o.nature, o.difficulty));
         else lines.push(ligneDeTexte(ligneDExposition(target, level)));
         break;
       }

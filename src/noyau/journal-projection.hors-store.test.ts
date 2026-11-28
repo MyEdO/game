@@ -151,8 +151,8 @@ describe('le verbe terminal `apply` — l’issue se journalise UNE fois, au gou
     } as PendingReload;
     const lines = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: 2, weapon: 'Arquebuse' } });
     expect(lines).toHaveLength(1);
-    expect(lines[0]).toContain('Arquebuse');
-    expect(lines[0]).toContain('Brawn');
+    expect(lines[0].texte).toContain('Arquebuse');
+    expect(lines[0].texte).toContain('Brawn');
     expect(banc.getState().journal, 'canal COMBAT : rien dans le journal narratif').toEqual([]);
   });
 

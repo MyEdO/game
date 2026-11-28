@@ -3,6 +3,7 @@ import { applyEffects } from './combatEffects';
 import { hasCondition } from '../engine/conditions';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { Combatant } from '../engine/types';
+import type { EntreeDuJournal } from '../engine/journal';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
 const hero = (id: string, current: number): Combatant =>
@@ -11,8 +12,8 @@ const hero = (id: string, current: number): Combatant =>
     armour: { tete: 0, brasG: 0, brasD: 0, corps: 0, jambeG: 0, jambeD: 0 } }) as unknown as Combatant);
 
 function fakeStore(party: Combatant[], partyPos: { x: number; y: number }) {
-  const ecrit: string[][] = [];
-  let s: any = { battle: undefined, suspendedCascades: [], possessions: [], party, partyPos, flags: {}, journal: [], ecrireAuJournal: (lignes: string[]) => { ecrit.push(lignes); } };
+  const ecrit: EntreeDuJournal[] = [];
+  let s: any = { battle: undefined, suspendedCascades: [], possessions: [], party, partyPos, flags: {}, journal: [], ecrireAuJournal: (m: EntreeDuJournal | EntreeDuJournal[]) => { ecrit.push(...[m].flat()); } };
   const get = () => s;
   const set = (patch: any) => { s = { ...s, ...(typeof patch === 'function' ? patch(s) : patch) }; };
   return { get, set, state: () => s, ecrit };
@@ -24,7 +25,7 @@ describe('zoneBlast — souffle de zone (hors combat : le groupe à partyPos)', 
     applyEffects(f.get, f.set, [{ type: 'zoneBlast', center: { x: 6, y: 5 }, radius: 2, ops: [{ op: 'wounds', amount: 15 }, { op: 'condition', id: { id: 'en-flammes' } }] } as Effect]);
     expect(f.state().party[0].wounds.current).toBe(15);
     expect(hasCondition(f.state().party[0], 'en-flammes')).toBe(true);
-    expect(f.ecrit.flat()).toEqual(['Souffle de zone : A subit 15 Blessure(s) (ignorant BE et PA). · A reçoit 1 État En flammes..']);
+    expect(f.ecrit.map((e) => e.texte)).toEqual(['Souffle de zone : A subit 15 Blessure(s) (ignorant BE et PA). · A reçoit 1 État En flammes..']);
   });
 
   it('groupe HORS du rayon → intact', () => {

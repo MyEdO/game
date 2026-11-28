@@ -13,6 +13,7 @@
  * Le M (Mouvement) et le Man du navire vivent dans `vehicles.json` (facette `ship`), PAS sur le Combattant-coque
  * (`vehicleCombatant` met `movement:0`) → on les relit via `creatureId` (`shipManeuverParams`).
  */
+import { ligneDeTexte } from '../engine/journal';
 import { battleRng } from './battleRng';
 import { rollTest, evaluateTest, forcedTR, easeDifficulty, bestForcedRoll, ECHEC_SANS_JET, ligneSansJet, type EchecSansJet } from '../engine/tests';
 import { rollLine, type RollLineParts } from './ligneDeJet';
@@ -247,8 +248,8 @@ export function applyShipManeuver(get: Get, set: Set, shipId: string, result: Ma
   const ship = garanti(inBattleId(get().battle, shipId), shipId, 'applyShipManeuver');
   if (result.success) get().virerLeNavire(shipId, turnSteps); // vire + re-mappe les arcs + logue le nouveau cap
   else {
-    if (result.refus != null) get().ecrireAuJournal(result.refus);
-    get().ecrireAuJournal(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: nomDe(ship), dr: result.dr }));
+    if (result.refus != null) get().ecrireAuJournal(ligneDeTexte(result.refus));
+    get().ecrireAuJournal(ligneDeTexte(t('shipManv.failLine', { helmsman: result.helmsman ?? t('shipManv.crewFallback'), ship: nomDe(ship), dr: result.dr })));
   }
   const advanced = get().avancerLeNavire(shipId, result.movement);
   reparationTemporaireApresLaManoeuvre(get, set, ship);
@@ -279,7 +280,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
       set({ facing: { ...facing, [shipId]: next } });
       // Re-mappe TOUS les arcs de bordée d'un coup : firedAttackBlock / targeting relisent son cap (`capEnCombat`).
       const ship = garanti(inBattleId(battle, shipId), shipId, 'navire viré');
-      get().ecrireAuJournal(t('store.shipTack', { ship: nomDe(ship), dir: next }));
+      get().ecrireAuJournal(ligneDeTexte(t('store.shipTack', { ship: nomDe(ship), dir: next })));
       bus.emit(EVT.SCENE_DIRTY);
     },
     avancerLeNavire: (shipId, cases) => {
@@ -318,7 +319,7 @@ export function creerActionsDeManoeuvre(get: Get, set: Set) {
         victim = undefined;
       }
       for (const { mobile, depart } of deplaces ?? []) bus.emit(EVT.ANIM_MOVE, { id: mobile.id, path: [depart, { ...mobile.pos! }] });
-      if (moved > 0) get().ecrireAuJournal(t('store.avancerLeNavire', { ship: nomDe(hull), n: moved, s: moved > 1 ? 's' : '', dir }));
+      if (moved > 0) get().ecrireAuJournal(ligneDeTexte(t('store.avancerLeNavire', { ship: nomDe(hull), n: moved, s: moved > 1 ? 's' : '', dir })));
       else if (voulu > 0) refuserGeste(get, set, t('cs.refusFormationBloquee'));
       // Éperonnage (MDG 13) : on percute de la PROUE (avance vers l'avant) ; FRONTAL si la victime tient un cap
       // ~opposé (octant opposé ±1). Dégâts sur les DEUX coques par la langue unique (`applyShipCollision`→`applyOps`).
