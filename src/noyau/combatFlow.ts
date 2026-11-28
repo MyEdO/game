@@ -1129,7 +1129,7 @@ export function startleOnStormAtCombatStart(get: Get, set: SetFn): void {
   const dayW = activeDayWeather(get);
   if (!dayW || !weatherLightningNervous(dayW)) return;
   for (const c of battle.combatants) {
-    if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => battle.log.push(ev('etat', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
+    if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (entree) => battle.log.push(ev('etat', entree, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
   }
 }
 
@@ -2239,7 +2239,7 @@ export function notifySlain(get: Get, set: SetFn, c: Combatant): string[] {
   c.slainNotified = true;
   releaseSeatsOfDowned(get, set); // un corps mis hors d'action ne tient plus sa chaise
   const lines: string[] = [];
-  emitCombatEvent('onSlain', { get, set, battle: get().battle, self: c, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
+  emitCombatEvent('onSlain', { get, set, battle: get().battle, self: c, sink: (entree) => lines.push(entree.texte), triggerCtx: { rng: battleRng() } });
   // Ops IMPURES « à la mort » (Gardien éternel : reconstitution ; toute zone laissée en mourant) — inertes dans
   // applyOps, résolues ici (grille/initiative) comme au lancement d'un sort d'invocation/zone.
   lines.push(...resolveTriggerImpureOps(get, set, c, 'onSlain'));
@@ -2938,7 +2938,7 @@ function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine
     const battle = get().battle;
     if (!battle) return;
     emitCombatEvent('onCrit', {
-      get, set, battle, self: auteur, sink: (line) => log.push(line),
+      get, set, battle, self: auteur, sink: (entree) => log.push(entree.texte),
       triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, sansBlessureCritique: issue === 'aucune', rng: battleRng() },
     });
   };
@@ -3511,14 +3511,14 @@ function appliquerLaTouche(
   // d'attaque (`weapon.type`) voyage dans le contexte ; un effet peut s'y restreindre (`attackType`).
   // Dispatcher générique (noyau/triggeredEffects) : l'effet est authoré en donnée sur l'entité.
   if (res.hit && res.woundsLost) {
-    emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
+    emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (entree) => critLog.push(entree.texte), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
     // Chanson de marin (MDG 09 l.38) : « Si le Personnage subit des Dégâts …, sa Chanson de marin prend fin. »
     if (target.singingShanty) critLog.push(...endShanty(get, target));
   }
   // Effet déclenché « à la mise hors de combat d'un adversaire » authoré (Affamé : Test de FM ou
   // festoie — perd Action + Mouvement) — dispatcher générique (noyau/triggeredEffects).
   if (res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
-    emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (line) => critLog.push(line), triggerCtx: { rng: battleRng() } });
+    emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (entree) => critLog.push(entree.texte), triggerCtx: { rng: battleRng() } });
   }
   // Effet « à la mort » du SLAIN lui-même (Démoniaque banni…) — pour TOUT chemin de mort de cette
   // résolution : la CIBLE (touche, Critique létal, 0 PB) ET l'ATTAQUANT (Critique défensif opposé qui le
@@ -3586,14 +3586,14 @@ function appliquerLaTouche(
     for (const c of battle.combatants) {
       // Nerveux (effet déclenché onStartled : +3 Brisé) — fired par le dispatcher générique (no-op si absent).
       // Cause 'noise' (bruits forts) → exemption Dressé (Guerre) lue par la Condition Flow `startleCause`.
-      if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (line) => log.push(ev('etat', line, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
+      if (!isOutOfAction(c)) emitCombatEvent('onStartled', { get, set, battle, self: c, sink: (entree) => log.push(ev('etat', entree, c.id)), triggerCtx: { rng: battleRng(), startleCause: 'noise' } });
     }
   }
   // Effets DÉCLENCHÉS « à la touche » authorés (donnée éditable) : Traits de l'attaquant (Toile, Venin…),
   // Atouts de l'arme (Assommante, Immobilisante…) et Enchantements actifs — agrégés et appliqués par UN
   // dispatcher générique (noyau/triggeredEffects). `location` (Assommante Tête) et `woundsDealt` (Venin
   // sur PB) alimentent les Conditions Flow de gating. LDB 85 l.98, l.278 ; LDB 14 l.159
-  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  if (toucheNonIgnoree(res)) emitCombatEvent('onHit', { get, set, battle, self: attacker, sink: (entree) => log.push(ev('etat', entree, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // Combat de masse (ADE II 08 l.139/145) : une Scène de COMBAT compte les touches des PJ sur l'ennemi
   // (−1/touche) ; no-op hors bataille de masse. Réduction PUIS résolue à la victoire (massBattleResumeCombat).
   if (res.hit) massBattleTrackHit(get, set, attacker, target);
@@ -3614,7 +3614,7 @@ function appliquerLaTouche(
   const salvoContinues = attacker.kind === 'heros' && weapon.type === 'distance' && hasQuality(weapon, 'salve') && (loadRegister(attacker, weapon).chambered ?? 0) > 0;
   // Effet déclenché « après résolution de l'attaque » (touche OU raté) — dispatcher générique via le bus.
   // Point d'émission = fin de résolution d'attaque (LDB 14, Test de combat résolu). Inerte sans donnée.
-  emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (line) => log.push(ev('etat', line, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
+  emitCombatEvent('onAttackResolved', { get, set, battle, self: attacker, sink: (entree) => log.push(ev('etat', entree, target.id)), triggerCtx: { victim: target, weapon, woundsDealt: res.woundsLost, margin: res.netSL, location: res.location, attackKind: creatureAttackKind(weapon), attackType: weapon.type, rng: battleRng() } });
   // SEAM `onOwnTestFailed` (MSRC 16 — Crampes) : le PORTEUR qui ÉCHOUE son PROPRE Test réagit. Une passe
   // d'armes porte DEUX Tests du porteur : (a) l'ATTAQUANT rate son jet d'attaque CC/CT (`attackerDetail`) ;
   // (b) le DÉFENSEUR rate sa Parade/Esquive (`defenderDetail`, Test opposé). PAS la défense adverse d'un
@@ -3782,7 +3782,7 @@ export function applyFocusInterruption(get: Get, set: SetFn, focuser: Combatant)
   focuser.focus = undefined;
   const compUsed = useSpellComponent(focuser, focusedSpellId, lines); // un composant couvre aussi la Focalisation (incantation en cours)
   lines.push(...applyMiscast(get, set, focuser, 'mineure', { componentDowngrade: compUsed, domainId: findSpellById(focusedSpellId)?.domainId?.id }));
-  enfilerAuJournal(get, set, lines, focuser.id);
+  enfilerAuJournal(get, set, lines.map((l) => ligneDeTexte(l)), focuser.id);
 }
 
 /** Une Maladresse de l'attaquant dans un résultat d'attaque ? (jet propre raté + double, LDB 14 l.19 ;
@@ -5134,7 +5134,7 @@ export function applyFreeAttackEffects(get: Get, attacker: Combatant, target: Co
   //  — atteint aussi les attaques gratuites.)
   // SCOPED à cette manœuvre (≠ l'onHit générique des traits/atouts), via le MÊME exécuteur de Flow.
   const mEffects = maneuverEffectsOf(attacker, kind);
-  if (mEffects.length) applyTriggeredEffects(get, attacker, mEffects, 'onHit', { victim: target, woundsDealt: res.woundsLost, attackKind: kind, rng: battleRng() }).forEach((l) => get().ecrireAuJournal(l));
+  if (mEffects.length) applyTriggeredEffects(get, attacker, mEffects, 'onHit', { victim: target, woundsDealt: res.woundsLost, attackKind: kind, rng: battleRng() }).forEach((e) => get().ecrireAuJournal(e));
   // (Vampirique = `effects` onHit du trait `vampirique`, gaté par la Condition Flow `attackKind: 'morsure'` →
   //  Vol de vie ; appliqué par le `fireTriggers('onHit')` d'`applyAttackResult` — atteint aussi les attaques gratuites.)
   // (Venin = `effects` du trait `Venin`, appliqué par le `fireTriggers('onHit')` d'`applyAttackResult`.)
@@ -5609,7 +5609,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
  */
 function emitMiscastTriggered(get: Get, set: SetFn, caster: Combatant): string[] {
   const lines: string[] = [];
-  emitCombatEvent('onMiscast', { get, set, battle: get().battle!, self: caster, sink: (line) => lines.push(line), triggerCtx: { rng: battleRng() } });
+  emitCombatEvent('onMiscast', { get, set, battle: get().battle!, self: caster, sink: (entree) => lines.push(entree.texte), triggerCtx: { rng: battleRng() } });
   return lines;
 }
 
@@ -7183,7 +7183,7 @@ export function applyCast(
     // Nerveux (effet déclenché onStartled : magie → +3 Brisé) — dispatcher générique (noyau/triggeredEffects).
     // Cause 'magic' (présence de magie) → exemption Dressé (Magie) lue par la Condition Flow `startleCause`.
     for (const t of targets) {
-      if (res.cast && !isOutOfAction(t)) emitCombatEvent('onStartled', { get, set, battle: get().battle!, self: t, sink: (line) => logLines.push(line), triggerCtx: { rng: battleRng(), startleCause: 'magic' } });
+      if (res.cast && !isOutOfAction(t)) emitCombatEvent('onStartled', { get, set, battle: get().battle!, self: t, sink: (entree) => logLines.push(entree.texte), triggerCtx: { rng: battleRng(), startleCause: 'magic' } });
     }
     // Surincantation « Cible » (LDB 47 l.28-31) : le MÊME jet frappe les cibles supplémentaires.
     for (const t2 of autres) {
@@ -7332,7 +7332,7 @@ export function applyCast(
       if (immuneToSpellDomain(t.traits, spell.domainId?.id)) continue;
       // Riders « à la touche » du Domaine = DONNÉE (`domains.json`), dispatchés comme les autres onHit ;
       // le gating « cible adverse / vivante / résiste par Talent » vit dans les Conditions Flow.
-      logLines.push(...applyTriggeredEffects(get, caster, domainOnHitEffects(spell), 'onHit', { victim: t, rng: battleRng(), set }));
+      logLines.push(...applyTriggeredEffects(get, caster, domainOnHitEffects(spell), 'onHit', { victim: t, rng: battleRng(), set }).map((e) => e.texte));
     }
     // (L'arc de zone des Cieux/Azyr est un `effects` AUTHORÉ du domaine — ciblage `on:{near:'victime'}` +
     //  op `wounds bypassArmour:'metal'` — dispatché par le `domainOnHitEffects` ci-dessus, plus de code dédié.)
@@ -7379,7 +7379,7 @@ export function applyCast(
   // Effet déclenché « après incantation résolue » (réussie ou non) — dispatcher générique via le bus.
   // Point d'émission = incantation résolue (LDB 46, post-runCastFlow). Inerte sans donnée. Hors combat :
   // battle absent, runCombatHooks('onCastResolved') est un no-op (aucune machinerie abonnée).
-  emitCombatEvent('onCastResolved', { get, set, battle: battle!, self: caster, sink: (line) => logLines.push(line), triggerCtx: { ...(ancre ? { victim: ancre } : {}), rng: battleRng() } });
+  emitCombatEvent('onCastResolved', { get, set, battle: battle!, self: caster, sink: (entree) => logLines.push(entree.texte), triggerCtx: { ...(ancre ? { victim: ancre } : {}), rng: battleRng() } });
   finishPlayerAction(get, set, logLines, 'sort'); // sortie commune combat (log+conso Action) / hors combat (journal)
   // Téléportation (Jalon 2.6) : le choix de case suit la clôture du cast (qui remet action: null).
   if (teleportReach && get().battle) {
@@ -7931,9 +7931,9 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   if (!battle) return;
   // Effets « fin de combat » authorés de chaque combattant survivant (inerte tant qu'aucune donnée ne
   // porte un effet `onCombatEnd`) → collectés dans le journal de fin de combat.
-  const endLines: string[] = [];
+  const endLines: EntreeDuJournal[] = [];
   emitCombatEvent('onCombatEnd', {
-    get, set, battle, sink: (line) => endLines.push(line),
+    get, set, battle, sink: (entree) => endLines.push(entree),
     audience: battle.combatants.filter((c) => !isOutOfAction(c)),
     triggerCtx: { rng: battleRng() },
   });
@@ -7945,7 +7945,7 @@ export function finalizeBattle(get: Get, set: SetFn): void {
     return c ? sortieDeRencontre(h, c, sortieDuReport) : h;
   });
   set({ party: newParty });
-  endLines.push(...sortieDuReport.lignes.map((e) => e.texte));
+  endLines.push(...sortieDuReport.lignes);
   if (endLines.length) get().ecrireAuJournal(endLines);
   // #30/#296 — Blessures de COQUE persistantes : si une coque du combat EST le navire de campagne
   // son état de fin de combat est écrit sur `CampaignVessel.wounds` (SOURCE
@@ -8414,16 +8414,16 @@ export function advanceTurn(get: Get, set: SetFn) {
       // Entretien de Round PARTITIONNÉ (spec coop §4bis) : TOUT va au journal de combat (bandeau) ;
       // seules les lignes CONCERNANT UN HÉROS alimentent la révélation (les ennemis : journal seul).
       const heroRoundLines: string[] = [];
-      const tickLine = (line: string, c?: Combatant) => {
-        battle.log.push(ev('etat', line, c?.id));
-        if (c?.kind === 'heros') heroRoundLines.push(line);
+      const tickLine = (entree: EntreeDuJournal, c?: Combatant) => {
+        battle.log.push(ev('etat', entree, c?.id));
+        if (c?.kind === 'heros') heroRoundLines.push(entree.texte);
       };
       // Le CONTENU du franchissement vit dans les crochets `onRoundEnd` (`roundHooks`, ordonnés par `order`), émis par
       // le bus (#316) ; advanceTurn n'en orchestre que le CADRE (Round, ordre, révélation).
       const debout = new Set(battle.combatants.filter((c) => !isOutOfAction(c)).map((c) => c.id));
       emitCombatEvent('onRoundEnd', { triggerCtx: { rng: battleRng() }, get, set, battle, sink: tickLine });
       // Tombé pendant l'entretien (saignement à 0 PB, LDB 16 l.105) : même ligne que sur le chemin du coup.
-      for (const c of battle.combatants) if (debout.has(c.id) && !c.dead && isOutOfAction(c)) tickLine(tr('cf.horsDeCombat', { name: nomDe(c) }), c);
+      for (const c of battle.combatants) if (debout.has(c.id) && !c.dead && isOutOfAction(c)) tickLine(ligneDeTexte(tr('cf.horsDeCombat', { name: nomDe(c) })), c);
       if (heroRoundLines.length) pushReveal(set, { kind: 'round', title: tr('cf.titreDeFinDeRound', { n: round - 1 }), lines: heroRoundLines }); // (entretien HÉROS)
       set({ battle: { ...battle, turn: 0, round } });
       resolveRoundBoundary(get, set);
@@ -8976,8 +8976,8 @@ export function declarerLaCharge(get: Get, set: SetFn, chargeur: Combatant, cibl
  *  pour ses effets, `resolveFreeAttacks` pour ses attaques gratuites, AVANT l'attaque du chargeur (LDB 10 l.500).
  *  Rend `true` si au moins un effet ou une attaque gratuite a été exercé. */
 export function subirLaCharge(get: Get, set: SetFn, charge: Combatant, chargeur: Combatant): boolean {
-  const lignes: string[] = [];
-  const effets = emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (line) => lignes.push(line), triggerCtx: { victim: chargeur, rng: battleRng() } });
+  const lignes: EntreeDuJournal[] = [];
+  const effets = emitCombatEvent('onCharged', { get, set, battle: get().battle!, self: charge, sink: (entree) => lignes.push(entree), triggerCtx: { victim: chargeur, rng: battleRng() } });
   if (lignes.length) set({ battle: { ...get().battle!, log: [...get().battle!.log, ...evLines(lignes, 'etat', charge.id)] } });
   return effets + resolveFreeAttacks(get, set, charge, 'onCharged', chargeur) > 0;
 }
@@ -9582,7 +9582,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set, enemy);
   // Crochets de début de tour de l'IA (`turnHooks` : Rage, entrée en Frénésie), par le bus (#316). `audience: []` :
   // les effets `onTurnStart` en donnée sont déjà joués par l'ouverture du tour (`ouvrirLeTour`).
-  emitCombatEvent('onTurnStart', { triggerCtx: { rng: battleRng() }, get, set, battle: get().battle!, self: enemy, audience: [], sink: (line, c) => { get().battle!.log.push(ev('detail', line, c?.id)); } });
+  emitCombatEvent('onTurnStart', { triggerCtx: { rng: battleRng() }, get, set, battle: get().battle!, self: enemy, audience: [], sink: (entree, c) => { get().battle!.log.push(ev('detail', entree, c?.id)); } });
   // Cible = camp opposé à l'acteur : un ennemi vise les héros, un héros en Auto-combat les ennemis.
   const foeKind = enemy.kind === 'ennemi' ? 'heros' : 'ennemi';
   const heroes = battle.combatants.filter((c) => c.kind === foeKind && !isOutOfAction(c));

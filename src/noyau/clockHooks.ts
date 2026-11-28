@@ -33,7 +33,7 @@ export function fireClockTriggers(get: Get, trigger: ClockTrigger, ctx: { rng: R
   for (const h of party) {
     if (h.dead) continue;
     if (!effectSourcesOf(h, resolveTrapping).some((s) => s.effects.some((e) => e.trigger === trigger))) continue;
-    lines.push(...fireTriggers(get, h, trigger, ctx).map((text) => ({ text, actorId: h.id })));
+    lines.push(...fireTriggers(get, h, trigger, ctx).map((e) => ({ text: e.texte, actorId: h.id })));
   }
   return lines;
 }

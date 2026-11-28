@@ -33,7 +33,7 @@ import { blessuresSurLeProfil, blessuresDeBase } from './combattantDeTest.testki
  *  les vues d'acteur du lanceur/cible). `caster` adverse = camp ≠ (hero vs enemy). `domainId` = id STABLE. */
 const applyDomain = (caster: Combatant, target: Combatant, domainId: string, rng: RNG = seq([])): string[] => {
   const lines: string[] = [];
-  for (const eff of domainOnHitEffects({ domainId: { id: domainId } })) lines.push(...runPureFlowLines(target, caster, eff.flow, { idNeuf: idsDeTest, rng, caster }));
+  for (const eff of domainOnHitEffects({ domainId: { id: domainId } })) lines.push(...runPureFlowLines(target, caster, eff.flow, { idNeuf: idsDeTest, rng, caster }).map((e) => e.texte));
   return lines;
 };
 

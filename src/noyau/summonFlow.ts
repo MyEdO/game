@@ -31,6 +31,7 @@ import { t } from '../i18n';
 import { chebyshev } from '../engine/grid';
 import { mirrorPools } from '../engine/advantagePool';
 import { nomDe } from '../engine/nom';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /** Descripteur d'invocation = la charge utile de l'op `summon` du Flow (donnée éditable du sort) ;
  *  le discriminant `op` est superflu pour cette fonction dédiée → l'op complète s'assigne quand même. */
@@ -146,7 +147,7 @@ export function applySummon(get: Get, set: SetFn, caster: Combatant, summon: Inv
  * `expiresAtRound`) OU lanceur hors de combat (`despawnIfSummonerDown`). Mute la bataille (retire
  * des combattants ET de l'ordre), renvoie le journal de dissipation.
  */
-export function purgeExpiredSummons(battle: BattleState, round: number): string[] {
+export function purgeExpiredSummons(battle: BattleState, round: number): EntreeDuJournal[] {
   const gone = battle.combatants.filter((c) => {
     if (!c.summon) return false;
     if (c.summon.expiresAtRound != null && round >= c.summon.expiresAtRound) return true;
@@ -161,5 +162,5 @@ export function purgeExpiredSummons(battle: BattleState, round: number): string[
   battle.combatants = battle.combatants.filter((c) => !goneIds.has(c.id));
   battle.order = battle.order.filter((id) => !goneIds.has(id));
   if (battle.baseOrder) battle.baseOrder = battle.baseOrder.filter((id) => !goneIds.has(id));
-  return gone.map((c) => t('summon.dispels', { name: nomDe(c), label: nomDeSource(c.summon) }));
+  return gone.map((c) => ligneDeTexte(t('summon.dispels', { name: nomDe(c), label: nomDeSource(c.summon) })));
 }

@@ -37,9 +37,9 @@ export interface ActorAim {
   kind: ActorAimKind;
 }
 
-/** Construit un événement. */
-export function ev(kind: CombatEventKind, text: string, actorId?: string, targetId?: string): CombatEvent {
-  return { kind, entree: ligneDeTexte(text), actorId, targetId };
+/** Construit un événement d'un texte ou d'une entrée du journal. */
+export function ev(kind: CombatEventKind, ligne: string | EntreeDuJournal, actorId?: string, targetId?: string): CombatEvent {
+  return { kind, entree: typeof ligne === 'string' ? ligneDeTexte(ligne) : ligne, actorId, targetId };
 }
 
 /** L'évènement `condition` de la ligne `text`, qui nomme l'État `etat`. */

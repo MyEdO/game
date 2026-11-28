@@ -24,6 +24,7 @@ import { immuneToSpellDomain } from '../../engine/traits/dispatch';
 import { findSpellById } from '../../data';
 import { t } from '../../i18n';
 import { nomDe } from '../../engine/nom';
+import type { EntreeDuJournal } from '../../engine/journal';
 
 export interface BattleZone {
   /** id STABLE de la zone authoree (`SceneEffectZone.id`), propage par `sceneZonesToBattle` — identite
@@ -220,7 +221,7 @@ export function crossZones(
 }
 
 /** Franchissement de Round : applique le `perRound` de chaque zone à chaque combattant DANS la
- *  zone (« Quiconque se trouve dans la Zone d'Effet au début d'un Round »). Chaque ligne porte
+ *  zone (« Quiconque se trouve dans la Zone d'Effet au début d'un Round »). Chaque entrée porte
  *  son COMBATTANT — l'entretien de Round partitionne héros (modale) / ennemis (journal seul). */
 export function zonesRoundTick(
   zones: BattleZone[] | undefined,
@@ -228,15 +229,15 @@ export function zonesRoundTick(
   rng: RNG,
   idNeuf: FabriqueDId,
   resolveTrapping?: TrappingResolver,
-): { line: string; combatant: Combatant }[] {
-  const out: { line: string; combatant: Combatant }[] = [];
+): { entree: EntreeDuJournal; combatant: Combatant }[] {
+  const out: { entree: EntreeDuJournal; combatant: Combatant }[] = [];
   for (const z of zones ?? []) {
     if (!z.perRound?.length) continue;
     const caster = z.casterId ? combatants.find((c) => c.id === z.casterId) : undefined;
     for (const c of combatants) {
       if (!c.pos || c.dead || isOutOfAction(c)) continue;
       if (!zoneCovers(z, c.pos) || !zoneTargets(z, c) || zoneSansEffetSur(z, c)) continue; // `gate:'profane'` → seuls les profanes subissent
-      for (const line of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label, resolveTrapping }).lignes) out.push({ line: line.texte, combatant: c });
+      for (const entree of applyOps(c, z.perRound, { idNeuf, caster, rng, label: z.label, resolveTrapping }).lignes) out.push({ entree, combatant: c });
     }
   }
   return out;

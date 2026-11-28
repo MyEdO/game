@@ -8,7 +8,6 @@ import { ev } from '../combatLog';
 import { addCondition, stacks, COND } from '../../engine/conditions';
 import { setRule } from '../../engine/policy';
 import { testScene } from '../../scenes/test-fixture';
-import type { Combatant } from '../../engine/types';
 import { blessuresDeBase } from '../../engine/combattantDeTest.testkit';
 
 let banc: Banc;
@@ -42,7 +41,7 @@ describe('#38 (d) — gate AA du jet de mort par Hémorragique (AA 07 l.7)', () 
 
   function roundEndHooksOnly() {
     const battle = banc.getState().battle!;
-    const sink = (line: string, c?: Combatant) => battle.log.push(ev('etat', line, c?.id));
+    const sink: CombatHookCtx['sink'] = (entree, c) => battle.log.push(ev('etat', entree, c?.id));
     const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink };
     runCombatHooks('onRoundEnd', ctx);
     return battle;

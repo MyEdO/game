@@ -3,6 +3,7 @@ import { ouvrirLeBanc } from './banc.testkit';
 import { emitCombatEvent } from './combatEvents';
 import { avecLesTables } from './noyau.testkit';
 import type { Combatant } from '../engine/types';
+import { ligneDeTexte } from '../engine/journal';
 import { desDuTest } from '../engine/dice.testkit';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 
@@ -18,10 +19,10 @@ beforeEach(() => { ouvrirLeBanc(); });
 describe('emitCombatEvent — bus unique (machinerie PUIS données)', () => {
   it('joue les hooks MACHINERIE de l’événement via le bus', () => {
     const log: string[] = [];
-    avecLesTables({ crochetsDeCombat: [{ id: 'evt-test-hook', phase: 'onMiscast', run: ({ sink }) => sink('machinerie') }] });
+    avecLesTables({ crochetsDeCombat: [{ id: 'evt-test-hook', phase: 'onMiscast', run: ({ sink }) => sink(ligneDeTexte('machinerie')) }] });
     emitCombatEvent('onMiscast', { triggerCtx: { rng: desDuTest },
       get: (() => ({ battle: undefined })) as never, set: (() => {}) as never,
-      battle: {} as never, sink: (l) => log.push(l),
+      battle: {} as never, sink: (e) => log.push(e.texte),
     });
     expect(log).toEqual(['machinerie']);
   });
@@ -31,7 +32,7 @@ describe('emitCombatEvent — bus unique (machinerie PUIS données)', () => {
     const c = bare();
     emitCombatEvent('onCombatStart', { triggerCtx: { rng: desDuTest },
       get: (() => ({ battle: { combatants: [c] } })) as never, set: (() => {}) as never,
-      battle: { combatants: [c] } as never, sink: (l) => log.push(l), audience: [c],
+      battle: { combatants: [c] } as never, sink: (e) => log.push(e.texte), audience: [c],
     });
     expect(log).toEqual([]); // pas de hook onCombatStart déclaré + pas d'effet de données → no-op
   });

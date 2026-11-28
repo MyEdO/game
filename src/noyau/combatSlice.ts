@@ -349,7 +349,7 @@ import { actionsAuthorees } from './monde/usable';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { testDuCavalier } from '../engine/movement';
 import { determinationDe, poserLaDetermination } from '../engine/talentEffects';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { recapDe } from './recapLine';
 
 /** Un flux DIFFÉRÉ tient la main (modale de jet/révélation, ciblage par carte : Frappe Mortelle,
@@ -1897,7 +1897,7 @@ export function createCombatSlice(get: Get, set: Set) {
       get().marquerUnCombatOuvert();
       set({ ...resetFields('combatStart'), battle, mode: 'battle', scene: deboutScene });
       // Les lignes des effets d'ouverture partent au journal de combat.
-      const auJournal = (line: string, c?: Combatant) => { battle.log.push(ev('detail', line, c?.id)); };
+      const auJournal = (entree: EntreeDuJournal, c?: Combatant) => { battle.log.push(ev('detail', entree, c?.id)); };
       // Effets « début de combat » authorés de chaque combattant (inerte tant qu'aucune donnée ne porte
       // un effet `onCombatStart`) — APRÈS la pose du `battle`.
       emitCombatEvent('onCombatStart', {

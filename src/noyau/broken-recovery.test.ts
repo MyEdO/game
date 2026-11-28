@@ -31,7 +31,7 @@ describe('Récupération du Brisé en fin de Round (LDB 16 l.54-58) — data-dri
     const battle = { combatants: [h, foe({})] };
     const lines = fireConditionEffects(getFn(battle, scene()), h, 'onRoundEnd', { rng: battleRng() });
     expect(stacks(h, 'brise')).toBeLessThan(2); // FM 90 (2 pions de Brisé : −20 → 70) → Test de Calme réussi au seed 1
-    expect(lines.join(' ')).toMatch(/Brisé/);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/Brisé/);
   });
 
   it('Engagé avec un ennemi → AUCUN Test de récupération (gate fermée, LDB 16 l.54)', () => {

@@ -120,7 +120,7 @@ export function applyManeuverEffects(
   const lines: string[] = [];
   const hadEmpetre = stacks(tgt, COND.empetre);
   const before = tgt.wounds.current;
-  lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: tgt, margin, indice, rng, set }));
+  lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: tgt, margin, indice, rng, set }).map((e) => e.texte));
   const wl = before - tgt.wounds.current;
   if (wl > 0) floatDamage(tgt, wl);
   const consequences: Applique = { lignes: [], faits: [] };
@@ -512,7 +512,7 @@ export function resolveManeuver(
 
   // SUR SOI (transformation, mue, auto-buff) : aucune cible adverse ni opposition — jamais de cascade.
   if (def.ciblage === 'soi') {
-    lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: attacker, indice, rng, set }));
+    lines.push(...applyTriggeredEffects(get, attacker, maneuverEffects(def), 'onHit', { victim: attacker, indice, rng, set }).map((e) => e.texte));
     flushLog();
     return false;
   }

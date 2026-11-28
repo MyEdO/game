@@ -255,7 +255,7 @@ describe('Piège-lame — Test opposé de Force CADENCE-AWARE (op breakBlade, d�
     const a = banc.getState().battle!.combatants.find((x) => x.id === A.id)!;
     expect(a.weapons.find((w) => w.uid === 'atk-blade')).toBeUndefined(); // désarmé inline
     // La ligne d'opposition part dans la file différée ; la conséquence est l'étape d'affichage empilée.
-    expect(banc.getState().pendingLogQueue.some((q) => /Force/.test(q.line))).toBe(true);
+    expect(banc.getState().pendingLogQueue.some((q) => /Force/.test(q.entree.texte))).toBe(true);
     const result = casc?.participants.find((s) => s.kind === 'issueDuPiegeALame');
     expect(result?.outcome?.some((l) => /BRISÉE|arrachée/.test(l.entree.texte))).toBe(true);
   });

@@ -89,7 +89,7 @@ function lancerChamon(caster: Combatant, cible: Combatant, steps = 0): void {
  *  que les hooks poussent à leur `sink` (c'est LUI que la boucle de combat déverse). */
 function finDeRound(): string[] {
   const lignes: string[] = [];
-  runCombatHooks('onRoundEnd', { get: banc.getState, set: banc.setState, battle: banc.getState().battle!, sink: (l: string) => lignes.push(l) } as never);
+  runCombatHooks('onRoundEnd', { get: banc.getState, set: banc.setState, battle: banc.getState().battle!, sink: (e) => lignes.push(e.texte) });
   return lignes;
 }
 
