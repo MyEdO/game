@@ -16,7 +16,7 @@ import { tableTotale } from '../../lib/tableTotale';
 import { Combatant, Weapon, ArmourPoints, CHAR_KEYS } from '../../engine/types';
 import { bonus, effectiveChar, blessuresPosees, forceDuPorteur } from '../../engine/characteristics';
 import { armourPhysiqueAt } from '../../engine/armourBypass';
-import { combatValue, attackModifiers, combineMods, woundsFromHit, type AttackModOpts } from '../../engine/combat';
+import { combatValue, attackModifiers, combineMods, psychDRAdjust, woundsFromHit, type AttackModOpts } from '../../engine/combat';
 import { effectiveWeaponDamage } from '../../engine/weaponDamage';
 import { missileDamage } from '../../engine/magic';
 import { formulaExpectation, applyOps, type GameOp } from '../../engine/ops';
@@ -34,7 +34,7 @@ import { RefIrresoluble, spawnEnemy } from './spawn';
 const AVG_DR = 1;
 /** DR MÉDIAN supposé pour l'échelle « +N DR » d'une op de sort scorée hors jet (PerSL). */
 const MED_DR = 2;
-/** Graine du RNG d'`applyOpClone`, semé à neuf à chaque clone : le score d'un buff ne dépend ni de
+/** Graine du RNG de `cloneSousLesOps`, semé à neuf à chaque clone : le score d'un buff ne dépend ni de
  *  l'ordre des évaluations, ni des dés de la partie. */
 const GRAINE_DU_CLONE = 1;
 
@@ -57,14 +57,15 @@ export function hitProbability(attacker: Combatant, target: Combatant, weapon: W
 
 /**
  * Espérance de Blessures d'une attaque d'arme `attacker → target` (PUR, sans dé) : probabilité de
- * toucher × Blessures d'un coup MOYEN. Les Blessures réelles passent par `woundsFromHit` (BE + PA à
- * la localisation « corps », qualités d'arme) — MÊME résolveur que le combat.
+ * toucher × Blessures d'un coup MOYEN, au DR moyen ajusté de la psychologie de l'attaquant envers la cible
+ * (`psychDRAdjust`, comme le DR du Test d'attaque). Les Blessures réelles passent par `woundsFromHit` (BE + PA à
+ * la localisation « corps », qualités d'arme) — MÊME résolveur que le combat. LDB 21 l.27, l.41
  */
 export function expectedDamage(attacker: Combatant, target: Combatant, weapon: Weapon, opts: AttackModOpts): number {
   const p = hitProbability(attacker, target, weapon, opts);
   if (!Number.isFinite(p)) return NaN;
   const { bf, passif } = forceDuPorteur(attacker);
-  const totalDamage = finite(effectiveWeaponDamage(weapon, { bf: Number.isFinite(bf) ? bf : 0, passif }) + AVG_DR, NaN);
+  const totalDamage = finite(effectiveWeaponDamage(weapon, { bf: Number.isFinite(bf) ? bf : 0, passif }) + AVG_DR + psychDRAdjust(attacker, target), NaN);
   if (!Number.isFinite(totalDamage)) return NaN;
   return p * safeWounds(weapon, target, totalDamage, attacker.size);
 }
@@ -183,11 +184,12 @@ function bestAttackEV(c: Combatant, foe: Combatant | null): number {
   return best;
 }
 
-/** Clone PROFOND de `c` avec `op` appliquée (charMod/augment/octroi…) — déterministe (RNG semé à neuf,
- *  `GRAINE_DU_CLONE`). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque). */
-function applyOpClone(c: Combatant, op: GameOp): Combatant {
+/** Clone PROFOND de `c` avec `ops` appliquées (charMod/augment/octroi/pose…) — déterministe (RNG semé à neuf,
+ *  `GRAINE_DU_CLONE`). Sert au BÉNÉFICE MARGINAL d'un buff (delta réel de l'EV d'attaque) et à la frappe espérée
+ *  après une manœuvre sur soi gratuite. */
+export function cloneSousLesOps(c: Combatant, ops: readonly GameOp[]): Combatant {
   const clone = structuredClone(c);
-  applyOps(clone, [op], { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
+  applyOps(clone, [...ops], { idNeuf: fabriqueLocale('simulation'), caster: c, rng: makeRNG(GRAINE_DU_CLONE) });
   return clone;
 }
 
@@ -195,7 +197,7 @@ function applyOpClone(c: Combatant, op: GameOp): Combatant {
  *  Δ(meilleure EV d'attaque AVEC l'op − SANS)`. Un buff qui n'améliore pas le combat → ≈0 → non lancé. */
 function marginalBuff(_caster: Combatant, subject: Combatant, op: GameOp, ctx: OpEvalCtx): number {
   const before = bestAttackEV(subject, ctx.refEnemy);
-  const after = bestAttackEV(applyOpClone(subject, op), ctx.refEnemy);
+  const after = bestAttackEV(cloneSousLesOps(subject, [op]), ctx.refEnemy);
   return ctx.horizon * Math.max(0, after - before);
 }
 

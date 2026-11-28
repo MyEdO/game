@@ -92,7 +92,7 @@ function assembler() {
     tablesTirables: disjointes('tablesTirables', travelPostes.tablesTirables, combatFlow.tablesTirables, interludeFlow.tablesTirables),
     famillesTirables: [...travelFlow.famillesTirables, ...seaVoyageFlow.famillesTirables, ...tavernFlow.famillesTirables,
       ...corruptionFlow.famillesTirables, ...combatFlow.famillesTirables],
-    crochetsDeCombat: uniques('crochetsDeCombat', [...roundHooks.crochetsDeCombat, ...turnHooks.crochetsDeCombat]),
+    crochetsDeCombat: uniques('crochetsDeCombat', roundHooks.crochetsDeCombat),
     modificateursDeTouche: uniques('modificateursDeTouche', hitModifiers.modificateursDeTouche),
     clotures,
     lancerLeSort: combatFlow.lancerLeSort,

@@ -492,6 +492,20 @@
     "maison": "la Métamorphose consomme DEUX Actions (celle-ci puis le tour perdu) — plafond maison, aucun verbatim de coût cité."
   },
   {
+    "id": "manoeuvre-sur-soi-gratuite",
+    "type": "actions",
+    "label": "Manœuvre gratuite sur soi",
+    "icon": "drapeau/frenesie",
+    "surface": "grille",
+    "gate": [
+      "hors-verrou-d-etat",
+      "peut-agir"
+    ],
+    "run": "manoeuvrerSurSoi",
+    "candidates": "manoeuvres-sur-soi-gratuites",
+    "coutAction": "gratuit"
+  },
+  {
     "id": "attaque-trait",
     "type": "actions",
     "label": "Choisir l’attaque",

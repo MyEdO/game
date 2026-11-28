@@ -1542,13 +1542,19 @@
     "id": "rage",
     "type": "traits",
     "label": "Rage",
-    "desc": "La créature peut entrer dans une rage dévorante. Elle peut dépenser tous ses Avantages (minimum 1) pour que celui devienne Haine envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses Avantages (minimum 3) pour entrer en Frénésie. Voir page 190.",
+    "desc": "La créature peut entrer dans une rage dévorante. Elle peut dépenser tous ses Avantages (minimum 1) pour que celui devienne *Haine* envers ses adversaires en combat rapproché. Elle peut aussi dépenser tous ses Avantages (minimum 3) pour entrer en *Frénésie*. Voir page 190.",
+    "grantsManeuvers": [
+      {
+        "id": "rage-haine"
+      },
+      {
+        "id": "rage-frenesie"
+      }
+    ],
     "source": {
       "book": "livre-de-base",
-      "page": 341
-    },
-    "capabilities": {
-      "rage": true
+      "page": 341,
+      "note": "LDB 85 l.282"
     }
   },
   {

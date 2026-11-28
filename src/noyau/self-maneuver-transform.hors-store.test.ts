@@ -1,95 +1,98 @@
 /**
- * Activation JOUEUR d'une capacité SUR SOI (ciblage:'soi') — Métamorphose de l'Enfant d'Ulric
- * (Middenheim p.116) : la hotbar propose la manœuvre APPLICABLE (prendre/reprendre la forme) ; l'action
- * `manoeuvrerSurSoi` résout la transformation sur le porteur, applique le delta RAW + Traits + apparence,
- * consomme l'Action du tour ET la prochaine (loseTurn) = prix de DEUX actions, et se toggle proprement.
- * (L'IA sait spawn un Enfant d'Ulric hybride prêt ; s'auto-transformer côté IA reste à câbler — cf. note.)
+ * Activation JOUEUR d'une capacité SUR SOI qui prend l'Action (`ciblage:'soi'`, `activation:'action'`), sur le patron de
+ * la Métamorphose (Middenheim p.116) : la barre n'offre que la manœuvre jouable (`manoeuvreSurSoiJouable` : aucune op
+ * sans objet), le verbe `manoeuvrerSurSoi` la résout sur son porteur, prend l'Action, et la forme se quitte proprement.
+ * Fixtures déclarées au seam des datasets : le trait `forme-de-test` et ses deux manœuvres.
  */
-import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
-import { createHero } from '../engine/character';
+import { poserLeDataset } from '../data/datasetDeTest.testkit';
+import { heroFaceAUnEnnemi, reluDans } from './combatDeTest.testkit';
+import { ACTION_CANDIDATES } from './actionRegistry';
 import { testScene } from '../scenes/test-fixture';
-import { effectiveArmourAt, effectiveChar } from '../engine/characteristics';
-import { recomputeLoadout } from '../engine/items';
-import { liveMorphRef } from '../engine/polymorph';
-import { hasTraitKey } from '../engine/traits/dispatch';
+import { effectiveChar } from '../engine/characteristics';
+import type { Combatant } from '../engine/types';
+import type { ManeuverDef } from '../data';
+
+const TAG = 'forme-de-test';
+const surSoi = (id: string, ops: unknown[]) => ({
+  id, type: 'maneuvers', label: id, kind: 'hurlement', activation: 'action', coutEnAvantage: 0, ciblage: 'soi',
+  effects: [{ trigger: 'onHit', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops } } }],
+  source: { book: 'LDB', page: 0 },
+}) as never;
+const PRENDRE = 'prendre-la-forme-de-test';
+const QUITTER = 'quitter-la-forme-de-test';
+
+poserLeDataset('maneuvers', (livre) => [...livre,
+  surSoi(PRENDRE, [{ op: 'transform', tag: TAG, ops: [{ op: 'charMod', characteristic: 'capacite-de-combat', mod: 10 }, { op: 'charMod', characteristic: 'dexterite', mod: -10 }] }, { op: 'loseTurn', what: 'action' }]),
+  surSoi(QUITTER, [{ op: 'endTransform', tag: TAG }, { op: 'loseTurn', what: 'action' }]),
+]);
+poserLeDataset('traits', (livre) => [...livre,
+  { id: 'trait-de-forme-de-test', type: 'traits', label: 'Forme de test', grantsManeuvers: [{ id: PRENDRE }, { id: QUITTER }], source: { book: 'LDB', page: 0 } } as never,
+]);
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
+const g = () => banc.getState();
 
-const applicableIds = (c: Parameters<typeof selfManeuversOf>[0]) =>
-  selfManeuversOf(c).filter((m) => selfManeuverApplicable(c, m)).map((m) => m.id);
+/** Le héros au tour, porteur du trait de forme. */
+function porteur(): Combatant {
+  const { H } = heroFaceAUnEnnemi(banc, testScene());
+  H.traits = [{ id: 'trait-de-forme-de-test' }];
+  banc.setState({ battle: { ...g().battle! } });
+  return H;
+}
 
-describe('manoeuvrerSurSoi — Métamorphose (activation joueur)', () => {
-  function setup() {
-    const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
-    banc.setState({ party: [hero] });
-    banc.getState().lancerLaScene(testScene());
-    banc.getState().lancerLeCombat('enc-mutants');
-    banc.getState().fenetreValider('debutDuRound');
-    banc.abandonner();
-    const b = banc.getState().battle!;
-    const H = b.combatants.find((c) => c.kind === 'heros')!;
-    H.traits = [{ id: 'metamorphose' }]; // Enfant d'Ulric (lycanthrope jouable)
-    const turn = b.order.indexOf(H.id);
-    banc.setState({ battle: { ...b, turn, movementUsed: 0, acted: false } });
-    return { H };
-  }
-  const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id === id)!;
+/** Les manœuvres sur soi à l'Action que la barre offre au héros actif. */
+const offertes = (): string[] => {
+  const s = g();
+  const b = s.battle!;
+  const active = b.combatants.find((c) => c.id === b.order[b.turn])!;
+  return (ACTION_CANDIDATES['manoeuvres-sur-soi']({ active, battle: b, scene: s.scene, netMode: s.net.mode, gameTime: s.gameTime, state: s }) as ManeuverDef[]).map((m) => m.id);
+};
 
-  it('la hotbar ne propose que la manœuvre APPLICABLE selon la forme', () => {
-    const { H } = setup();
-    expect(applicableIds(H)).toEqual(['forme-hybride-ulric']); // hors de la forme → prendre l'hybride
+describe('manoeuvrerSurSoi — une forme prise et quittée (activation joueur)', () => {
+  it('F6 — la barre n’offre que la manœuvre dont aucune op n’est sans objet : quitter la forme hors d’elle ne l’est pas', () => {
+    porteur();
+    expect(offertes()).toEqual([PRENDRE]);
   });
 
-  it('transforme : delta RAW appliqué, Traits + apparence, Action + prochaine consommées (2 actions)', () => {
-    const { H } = setup();
-    const cc0 = effectiveChar(H, 'capacite-de-combat'), dex0 = effectiveChar(H, 'dexterite'), soc0 = effectiveChar(H, 'sociabilite');
-    banc.getState().manoeuvrerSurSoi('forme-hybride-ulric');
-    const h = live(H.id);
-    expect(effectiveChar(h, 'capacite-de-combat')).toBe(cc0 + 10); // delta du tableau (Middenheim p.116)
-    expect(effectiveChar(h, 'dexterite')).toBe(dex0 - 10);
-    expect(effectiveChar(h, 'sociabilite')).toBe(soc0 - 20);
-    expect(hasTraitKey(h.traits, 'peur')).toBe(true);
-    expect(liveMorphRef(h)).toBe('enfant-d-ulric'); // apparence hybride
-    expect(banc.getState().battle!.acted).toBe(true); // Action de CE tour consommée
-    expect(h.loseNextAction).toBe(true); // 2ᵉ action (prochain tour) — prix de deux actions
-    expect(applicableIds(h)).toEqual(['forme-humaine-ulric']); // seul le retour est proposé
-  });
-
-  it('toggle : reprendre la forme humaine restaure le profil de base', () => {
-    const { H } = setup();
+  it('prendre la forme : son delta, l’Action prise et la suivante perdue ; seul le retour reste offert', () => {
+    const H = porteur();
     const cc0 = effectiveChar(H, 'capacite-de-combat'), dex0 = effectiveChar(H, 'dexterite');
-    const pa0 = effectiveArmourAt(H, 'corps');
-    banc.getState().manoeuvrerSurSoi('forme-hybride-ulric');
-    expect(effectiveArmourAt(live(H.id), 'corps')).toBe(pa0 + 2);
-    recomputeLoadout(live(H.id));
-    expect(effectiveArmourAt(live(H.id), 'corps')).toBe(pa0 + 2);
-    banc.setState({ battle: { ...banc.getState().battle!, acted: false } }); // tour suivant
-    banc.getState().manoeuvrerSurSoi('forme-humaine-ulric');
-    const h = live(H.id);
-    expect(effectiveChar(h, 'capacite-de-combat')).toBe(cc0);
-    expect(effectiveChar(h, 'dexterite')).toBe(dex0);
-    expect(effectiveArmourAt(h, 'corps')).toBe(pa0);
-    expect(hasTraitKey(h.traits, 'peur')).toBe(false);
-    expect(liveMorphRef(h)).toBeUndefined();
-    expect(applicableIds(h)).toEqual(['forme-hybride-ulric']); // de retour hors de la forme
+    g().manoeuvrerSurSoi(PRENDRE);
+    const h = reluDans(g, H);
+    expect(effectiveChar(h, 'capacite-de-combat')).toBe(cc0 + 10);
+    expect(effectiveChar(h, 'dexterite')).toBe(dex0 - 10);
+    expect(g().battle!.acted).toBe(true);
+    expect(h.loseNextAction).toBe(true);
+    banc.setState({ battle: { ...g().battle!, acted: false } });
+    expect(offertes()).toEqual([QUITTER]);
   });
 
-  it('une manœuvre non applicable est refusée (garde d’état de forme)', () => {
-    const { H } = setup();
+  it('quitter la forme restaure le profil de base', () => {
+    const H = porteur();
     const cc0 = effectiveChar(H, 'capacite-de-combat');
-    banc.getState().manoeuvrerSurSoi('forme-humaine-ulric'); // pas transformé → no-op
-    expect(effectiveChar(live(H.id), 'capacite-de-combat')).toBe(cc0);
-    expect(banc.getState().battle!.acted).toBe(false); // aucune Action gaspillée
+    g().manoeuvrerSurSoi(PRENDRE);
+    banc.setState({ battle: { ...g().battle!, acted: false } });
+    g().manoeuvrerSurSoi(QUITTER);
+    const h = reluDans(g, H);
+    expect(effectiveChar(h, 'capacite-de-combat')).toBe(cc0);
+    expect(offertes()).toEqual([PRENDRE]);
   });
 
-  it('orientation : une transformation (cible = SOI) laisse le cap intact', () => {
-    const { H } = setup();
+  it('une manœuvre que la barre n’offre pas est refusée, et ne prend pas l’Action', () => {
+    const H = porteur();
+    const cc0 = effectiveChar(H, 'capacite-de-combat');
+    g().manoeuvrerSurSoi(QUITTER);
+    expect(effectiveChar(reluDans(g, H), 'capacite-de-combat')).toBe(cc0);
+    expect(g().battle!.acted).toBe(false);
+  });
+
+  it('orientation : une manœuvre sur soi laisse le cap intact', () => {
+    const H = porteur();
     banc.setState({ facing: { [H.id]: 'NO' } });
-    banc.getState().manoeuvrerSurSoi('forme-hybride-ulric');
-    expect(banc.getState().facing[H.id]).toBe('NO');
+    g().manoeuvrerSurSoi(PRENDRE);
+    expect(g().facing[H.id]).toBe('NO');
   });
 });

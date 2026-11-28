@@ -11,7 +11,7 @@
 import { traitLisible } from './traits/dispatch';
 import { findTraitById, findManeuverById, findBreathTypeById, findConditionById, maneuvers, type BreathTypeData, type ManeuverDef } from '../data';
 import { t } from '../i18n';
-import { reecrireFlow, spellEffectOps } from './flowCore';
+import { reecrireFlow } from './flowCore';
 import type { TraitInstance, TraitList } from './statEntry';
 import { DIFFICULTY_LABELS, type Combatant, type Difficulty, type Weapon } from './types';
 
@@ -238,23 +238,4 @@ export function selfManeuversOf(c: Combatant): ManeuverDef[] {
       if (def?.ciblage === 'soi') out.push(def);
     }
   return out;
-}
-
-/** `tag` du 1ᵉʳ op `transform`/`endTransform` des effets d'une manœuvre self (gate d'applicabilité GÉNÉRIQUE
- *  dérivé de la DONNÉE — aucun nom d'entité en dur). */
-function formTagOf(def: ManeuverDef, opName: 'transform' | 'endTransform'): string | undefined {
-  for (const e of def.effects ?? [])
-    for (const o of spellEffectOps(e.flow)) if ((o.op === 'transform' || o.op === 'endTransform') && o.op === opName) return o.tag;
-  return undefined;
-}
-
-/** Une manœuvre self est-elle APPLICABLE à `c` maintenant ? `transform` → hors de la forme (tag absent) ;
- *  `endTransform` → dans la forme (un `activeEffect` porte ce label). Autre self-buff → toujours. PUR. */
-export function selfManeuverApplicable(c: Combatant, def: ManeuverDef): boolean {
-  const inForm = (tag: string) => (c.activeEffects ?? []).some((e) => e.effectId === tag);
-  const tIn = formTagOf(def, 'transform');
-  if (tIn) return !inForm(tIn); // « prendre la forme » : seulement hors de la forme
-  const tOut = formTagOf(def, 'endTransform');
-  if (tOut) return inForm(tOut); // « reprendre la forme de base » : seulement dans la forme
-  return true;
 }

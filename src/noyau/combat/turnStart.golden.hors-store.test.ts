@@ -6,22 +6,29 @@ import { createHero } from '../../engine/character';
 import { seedBattleRng, battleRng } from '../battleRng';
 import { testScene } from '../../scenes/test-fixture';
 import type { Combatant } from '../../engine/types';
+import { poserLeDataset } from '../../data/datasetDeTest.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
 /**
- * GOLDEN du CYCLE DE TOUR ENNEMI (phase `turnStart`) : fige byte-pour-byte la séquence de début de
- * tour de `runEnemyAI` (Rage → tentative de Frénésie IA), AVANT l'action IA.
- * Ces hooks `turnStart` ordonnés DOIVENT garder ce snapshot identique (ordre + tirages RNG préservés).
+ * GOLDEN du CYCLE DE TOUR ENNEMI : fige la portion synchrone du tour de `runEnemyAI` de deux ennemis, et la position du
+ * RNG après eux.
  *
- * - Ennemi RAGE (Rage + Avantage ≥ 3) → entre en Frénésie SANS RNG (journal).
- * - Ennemi PEUR (source de Peur en Ligne de Vue) → rien au début de SON tour : la psychologie de combat
- *   se joue aux passes de Round (LDB 21 l.9, l.25).
- * Pour chaque ennemi, on capture les lignes de journal produites par la portion synchrone de début
- * de tour + la position du RNG (`battleRng().int(1,100)`) juste après.
+ * - Ennemi RAGE (Rage + Avantage 3, non Engagé) : sa décision joue sa Frénésie, manœuvre sur soi gratuite, sans RNG
+ *   (#5042). Fixture déclarée au seam des datasets : le trait `rage-de-test` et sa manœuvre de Frénésie.
+ * - Ennemi PEUR (source de Peur en Ligne de Vue) : rien au début de SON tour, la psychologie de combat se joue aux
+ *   passes de Round (LDB 21 l.9, l.25).
  */
-describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
+const FRENESIE = {
+  id: 'frenesie-de-test', type: 'maneuvers', label: 'Frénésie de test', kind: 'hurlement', activation: 'free', coutEnAvantage: 3, ciblage: 'soi', modeDAvantage: 'tout',
+  effects: [{ trigger: 'onHit', on: 'soi', flow: { kind: 'effet', effet: { type: 'ops', on: 'target', ops: [{ op: 'beginPsych', type: { id: 'frenesie' } }] } } }],
+  source: { book: 'LDB', page: 0 },
+} as never;
+poserLeDataset('maneuvers', (livre) => [...livre, FRENESIE]);
+poserLeDataset('traits', (livre) => [...livre, { id: 'rage-de-test', type: 'traits', label: 'Rage de test', grantsManeuvers: [{ id: 'frenesie-de-test' }], source: { book: 'LDB', page: 0 } } as never]);
+
+describe('GOLDEN — cycle de tour ennemi (runEnemyAI)', () => {
   function setup() {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 1 });
     banc.setState({ party: [hero] });
@@ -36,14 +43,14 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
     return { b, H, enemies };
   }
 
-  it('séquence de début de tour + position RNG inchangées', () => {
+  it('portion synchrone des deux tours + position RNG', () => {
     const { b, H, enemies } = setup();
     const [rageE, fearE, spare] = enemies;
     (spare as Combatant).dead = true; // un seul Round, deux acteurs testés
     H.pos = { x: 10, y: 10 };
     // Ennemi RAGE : Rage + Avantage 3, adjacent au héros (Ligne de Vue dégagée).
     rageE.pos = { x: 11, y: 10 };
-    rageE.traits = [{ id: 'rage' }];
+    rageE.traits = [{ id: 'rage-de-test' }];
     rageE.advantage = 3;
     // Ennemi PEUR : le héros lui inspire de la Peur (Indice 2), adjacent, pas de Frénésie.
     fearE.pos = { x: 9, y: 10 };
@@ -71,7 +78,8 @@ describe('GOLDEN — cycle de tour ennemi (runEnemyAI turnStart)', () => {
       {
         "fearLines": [],
         "rageLines": [
-          "frenesie:Dider Rudlos entre dans une rage dévorante (Frénésie) !",
+          "attaque:Dider Rudlos déclenche Frénésie de test !",
+          "attaque:Dider Rudlos tombe sous Frénésie.",
         ],
         "rngProbe": 13,
       }

@@ -35,7 +35,7 @@ import {
   faitsDesPoses,
   COND,
 } from './conditions';
-import { conditionLabel, diseaseLabel, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
+import { conditionLabel, diseaseLabel, findPsychologyById, psychologyLabel, qualityRefLabel, findTraitById, findTrappingById, refLabel } from '../data';
 import { MINUTES_PER_DAY, joursParSemaine, minutesParSemaine } from './clock';
 import { contractDiseaseOnce, exposerALaMaladie, aggravateDiseaseSymptom, attenuateDiseaseSymptom, grantDiseaseSymptom, suspendSymptom } from './disease';
 import { groupMatch, groupesDe } from './groups';
@@ -579,6 +579,8 @@ export interface OpsCtx {
   blessuresAuTotal?: true;
   /** Durée (en Rounds) des `charMod` sans durée propre — celle du sort. */
   defaultDurationRounds?: number;
+  /** N° du Round de combat où l'op s'applique ; absent hors combat. */
+  round?: number;
   /** Échéance d'HORLOGE (minutes `gameTime`) des effets actifs d'un sort à durée en
    *  minutes/heures/jours (LDB 47) : devient une durée `{scale:'clock'}` (cf. `durationFromCtx`),
    *  purgée par l'horloge (`purgeClockEffects`). Exclusif de `defaultDurationRounds`. */
@@ -821,7 +823,7 @@ function zoneDeGarde(ctx: OpsCtx, cible: Combatant, op: string): { rayonM: numbe
 /** GELÉS : primitifs/données pures, portés VERBATIM par le `meta` de l'étape (sérialisables, coop). */
 export const OPS_CTX_GELES = [
   'sourceSpell', 'sourceSpellId', 'conjureForm', 'label', 'source', 'effectId', 'blessuresAuTotal',
-  'defaultDurationRounds', 'defaultUntilTime', 'now', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
+  'defaultDurationRounds', 'defaultUntilTime', 'now', 'round', 'sl', 'overcastDurationSteps', 'chosenTableRolls',
   'noReentryOwnTestFailed', 'woundsDealt', 'rolled', 'indice', 'stacks', 'engagedAdvantageGap',
   'engagedAdvantageLead', 'location', 'attackKind', 'startleCause', 'foeInLoS', 'affliction', 'cibleEnVue',
   'hiddenFromFoes', 'engaged', 'nearestFoeDist', 'alliesAuContact', 'weapon', 'centreDeZone',
@@ -878,6 +880,34 @@ function rangDuTraitARetirer(c: Combatant, o: Extract<GameOp, { op: 'removePsych
   return traits.findIndex((p) => identiteDeCiblage(p.type, p.cible) === visee);
 }
 
+type OpPose = Extract<GameOp, { op: 'beginPsych' }>;
+
+/** Rang dans `list` de l'entrée que la pose `o` met à jour : même identité de ciblage pour un Trait CIBLÉ, même
+ *  `type` et `sourceId` sinon ; −1 si elle en crée une. */
+function rangDeLaPose(list: readonly PsychAffliction[], o: OpPose): number {
+  const cible = o.cible === undefined ? undefined : cibleDeRef(o.cible);
+  if (cible === undefined) return list.findIndex((p) => p.type === o.type.id && p.sourceId === o.sourceId);
+  const identite = identiteDeCiblage(o.type.id, cible);
+  return list.findIndex((p) => identiteDeCiblage(p.type, p.cible) === identite);
+}
+
+/** La pose `o` est-elle NUE (aucun champ de résolution : Indice, Calme, Round du Test, issue) sur un état déjà subi
+ *  par `c` (actif pour un Trait ciblé) ? Elle ne lui changerait rien. LDB 21 */
+function poseSansEffet(c: Combatant, o: OpPose): boolean {
+  if (o.indice != null || o.calmeDR != null || o.surmontee != null || o.lastTestRound != null || o.fromTest != null || o.active === false) return false;
+  const list = c.psychState ?? [];
+  const entree = list[rangDeLaPose(list, o)];
+  return !!entree && (!estCibleType(entree.type) || entree.active === true);
+}
+
+/** L'état psychologique que porte `c` et qui l'immunise contre les autres (`psychImmune`), quand on lui pose `type`.
+ *  LDB 21 l.33 */
+const etatImmunisant = (c: Combatant, type: string): PsychAffliction | undefined =>
+  (c.psychState ?? []).find((p) => p.type !== type && findPsychologyById(p.type)?.psychImmune);
+
+/** `c` porte-t-il la forme `tag` (effet actif de même `effectId`) ? */
+const dansLaForme = (c: Combatant, tag: string): boolean => (c.activeEffects ?? []).some((e) => e.effectId === tag);
+
 /** Le contexte où se juge une op de retrait : DR et source de l'application ; `avantLeJet` juge l'op avant le
  *  Test qui l'échelonne, un compte qui croît avec le DR restant alors possible. */
 export type ContexteDeRetrait = Pick<OpsCtx, 'sl' | 'source' | 'affliction' | 'sourceSpellId'> & { avantLeJet?: boolean };
@@ -907,8 +937,9 @@ function aideOperante(c: Combatant, act: 'medicalAid' | 'magic'): boolean {
 }
 
 /** La raison pour laquelle l'op de RETRAIT ou de SOIN `o` n'a rien à ôter ni à rendre à `c` sous `ctx` (État, Trait
- *  accordé, état ou Trait psychologique, maladie, Blessure critique, Péché, Blessures, Aide Médicale, pansement), ou
- *  `null` : l'op changerait la fiche. Prédicat
+ *  accordé, état ou Trait psychologique, maladie, Blessure critique, Péché, Blessures, Aide Médicale, pansement), ni
+ *  l'op de POSE rien à poser (état psychologique déjà subi, forme déjà prise ou déjà quittée), ou `null` : l'op
+ *  changerait la fiche. Prédicat
  *  UNIQUE : `applyOps` saute sans un mot l'op sans objet, les verdicts des gestes délibérés disent sa raison. */
 export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}): string | null {
   switch (o.op) {
@@ -924,6 +955,13 @@ export function opSansObjet(c: Combatant, o: GameOp, ctx: ContexteDeRetrait = {}
       const type = typeDeFin(o, ctx);
       return type ? t('op.sansPsychologieAFinir', { name: nomDe(c), psych: psychologyLabel(type) }) : t('op.sansInstanceDePsychologie', { name: nomDe(c) });
     }
+    case 'beginPsych': {
+      const immunisant = o.active === false ? undefined : etatImmunisant(c, o.type.id);
+      if (immunisant) return t('op.psychologieImmunisee', { name: nomDe(c), psych: psychologyLabel(o.type.id), etat: psychologyLabel(immunisant.type) });
+      return poseSansEffet(c, o) ? t('op.sansPsychologieAPoser', { name: nomDe(c), psych: psychologyLabel(o.type.id) }) : null;
+    }
+    case 'transform': return dansLaForme(c, o.tag) ? t('op.dejaDansLaForme', { name: nomDe(c), tag: o.tag }) : null;
+    case 'endTransform': return dansLaForme(c, o.tag) ? null : t('op.horsDeLaForme', { name: nomDe(c), tag: o.tag });
     case 'removePsychTrait': return rangDuTraitARetirer(c, o) < 0 ? t('op.sansPsychologieARetirer', { name: nomDe(c) }) : null;
     case 'sinMod': return o.amount === 0 || (o.amount < 0 && !(c.sinPoints ?? 0)) ? t('op.sansPecheARetirer', { name: nomDe(c) }) : null;
     case 'cureDisease':
@@ -1244,8 +1282,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
         const list = [...(target.psychState ?? [])];
         const type = o.type.id;
         const cible = o.cible === undefined ? undefined : cibleDeRef(o.cible);
-        const identite = identiteDeCiblage(type, cible);
-        const at = list.findIndex((p) => (cible !== undefined ? identiteDeCiblage(p.type, p.cible) === identite : p.type === type && p.sourceId === o.sourceId));
+        const at = rangDeLaPose(list, o);
         const precedente: Partial<(typeof list)[number]> = at >= 0 ? list[at] : {};
         const { calmeDR: _calmeDR, surmontee: _surmontee, fromTest: _fromTest, ...gardee } = precedente;
         const active = o.active ?? (estCibleType(type) ? true : undefined);
@@ -1258,7 +1295,8 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
           ...(o.calmeDR != null ? { calmeDR: Math.max(0, formuleDuCtx(o.calmeDR, ref, ctx)) } : {}),
           ...(o.surmontee != null ? { surmontee: o.surmontee } : {}),
           ...(active != null ? { active } : {}),
-          ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : {}),
+          // LDB 21 l.39
+          ...(o.lastTestRound != null ? { lastTestRound: o.lastTestRound } : cible !== undefined && precedente.active !== true && ctx.round != null ? { lastTestRound: ctx.round } : {}),
           ...(o.fromTest != null ? { fromTest: o.fromTest } : {}),
         };
         if (at >= 0) list[at] = next; else list.push(next);
@@ -2098,7 +2136,7 @@ export function applyOps(target: Combatant, opsRecues: GameOp[], ctx: OpsCtx): A
       }
       case 'endTransform': {
         const portes: Applique = { lignes: [], faits: [] };
-        if (!removeActiveEffects(target, (e) => e.effectId === o.tag, portes).length) break; // pas dans cette forme → no-op
+        removeActiveEffects(target, (e) => e.effectId === o.tag, portes);
         lines.push(ligneDeTexte(t('op.finDeMetamorphose', { name: nomDe(target), tag: o.tag })));
         absorber(portes);
         break;

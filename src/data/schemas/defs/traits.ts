@@ -67,7 +67,6 @@ export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   bestial: z.boolean().optional(),
   coldBlooded: z.boolean().optional(),
   stupid: z.boolean().optional(),
-  rage: z.boolean().optional(),
   territorial: z.boolean().optional(),
   /** LDB 14 l.182 */
   skittishMount: z.boolean().optional(),
@@ -129,7 +128,6 @@ export const traitCapabilitiesSchema = nommerChamps(z.strictObject({
   bestial: { label: 'Bestial' },
   coldBlooded: { label: 'À sang-froid' },
   stupid: { label: 'Stupide' },
-  rage: { label: 'Rage' },
   territorial: { label: 'Territorial' },
   skittishMount: { label: 'Monture craintive' },
   monture: { label: 'Accepte un cavalier' },

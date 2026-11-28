@@ -1,12 +1,11 @@
 import { idsDeTest } from './idsDeTest.testkit';
 import { describe, it, expect } from 'vitest';
-import { applyOps, type GameOp } from './ops';
+import { applyOps, opSansObjet, type GameOp } from './ops';
 import { effectiveChar } from './characteristics';
 import { effectiveMovement } from './encumbrance';
 import { endOfRound } from './conditions';
 import { liveMorphRef } from './polymorph';
 import { hasTraitKey } from './traits/dispatch';
-import { selfManeuverApplicable } from './creatureAttacks';
 import { findManeuverById } from '../data';
 import type { Combatant } from './types';
 import { combattantDeTest } from './combattantDeTest.testkit';
@@ -113,20 +112,20 @@ describe('transform / endTransform — Métamorphose Enfant d’Ulric (delta RAW
     expect(effectiveChar(c, 'force')).toBe(30); // bien retourné à la forme de base
   });
 
-  it('selfManeuverApplicable : gate DANS/HORS forme piloté par effectId (pas le libellé)', () => {
-    const enter = findManeuverById('forme-hybride-ulric')!;
-    const exit = findManeuverById('forme-humaine-ulric')!;
+  it('`opSansObjet` : prendre la forme est sans objet dans la forme, la quitter hors d’elle, par l’effectId (pas le libellé)', () => {
+    const prendre: GameOp = { op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, creature: { id: 'enfant-d-ulric' } };
+    const quitter: GameOp = { op: 'endTransform', tag: TAG };
     const c = human();
-    expect(selfManeuverApplicable(c, enter)).toBe(true); // hors forme → peut entrer
-    expect(selfManeuverApplicable(c, exit)).toBe(false); // hors forme → ne peut PAS (déjà) en sortir
+    expect(opSansObjet(c, prendre)).toBeNull();
+    expect(opSansObjet(c, quitter)).not.toBeNull();
 
-    applyOps(c, [{ op: 'transform', tag: TAG, ops: HYBRIDE_ULRIC, creature: { id: 'enfant-d-ulric' } }], { idNeuf: idsDeTest, rng: desDuTest });
-    expect(selfManeuverApplicable(c, enter)).toBe(false); // dans la forme → ne peut plus (re)entrer
-    expect(selfManeuverApplicable(c, exit)).toBe(true); // dans la forme → peut en sortir
+    applyOps(c, [prendre], { idNeuf: idsDeTest, rng: desDuTest });
+    expect(opSansObjet(c, prendre)).not.toBeNull();
+    expect(opSansObjet(c, quitter)).toBeNull();
 
-    // DÉCOY : un activeEffect au LIBELLÉ collisionnant avec le tag mais SANS effectId ne doit PAS suffire au gate.
+    // DÉCOY : un activeEffect au LIBELLÉ collisionnant avec le tag mais SANS effectId n'est pas la forme.
     const d = human();
     d.activeEffects = [{ label: TAG, bonus: 0, duration: { scale: 'permanent' } }] as never;
-    expect(selfManeuverApplicable(d, exit)).toBe(false);
+    expect(opSansObjet(d, quitter)).not.toBeNull();
   });
 });
