@@ -100,6 +100,7 @@ import {
 } from './schemas/catalogue/garde-robe';
 import {
   CATEGORIES_A_POOL_DES_TABLES_TIREES,
+  enjeuParle,
   categorieDeLEntreeDeLEnjeu,
   estCategorieNommeeAPool,
   texteDeLEnjeu,
@@ -592,9 +593,8 @@ export function derivedStake(from: EffectSource | undefined): DerivedStake | und
  *  Une réf de dataset parle par construction (ses portes sont fail-closed à la construction) ; un
  *  enjeu DÉRIVÉ parle si son entité porteuse a toujours sa fiche. PUR. */
 export function stakeSpeaks(stake: StakeRef | undefined): boolean {
-  if (!stake) return false;
-  if ('from' in stake) return !!derivedEntry(stake.from);
-  return 'authored' in stake ? !!stake.authored.trim() : true;
+  if (stake && 'from' in stake) return !!derivedEntry(stake.from);
+  return enjeuParle(stake);
 }
 
 /** RÉSOLVEUR UNIQUE d'enjeu (#1117) — la seule porte qui transforme une `StakeRef` en texte affichable.
