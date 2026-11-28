@@ -36,11 +36,10 @@ import { decorEnVolume, facesDuDecor } from './propVolumes';
 import type { Dir4, Dir8 } from '../../../geometry/dir8';
 import { ancreDuDecor } from '../footprint';
 import { piedDuDecor } from '../poseDuDecor';
-import { matieresDe } from '../../../data';
 import { hash32, hash32AuMillieme } from '../../../lib/hash';
 import { jsonCanonique } from '../../../lib/jsonCanonique.mjs';
 import { enBase64 } from '../../../lib/base64';
-import { couleurDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
+import { couleurDeMatiere, nomDeMatiere, recetteDeMatiere, tintVarFactor } from './matieres';
 import { faceDepthM } from './profondeur';
 import { crownFaces, cretesDePerimetre } from './creneaux';
 import { edgeAppearance } from './structures';
@@ -55,7 +54,6 @@ import { memoByRef, memoByRefDeps } from '../sceneMemo';
 import { memoByDeps } from '../../../lib/memoParIdentite';
 import { mapLights } from '../vision';
 import type { Face } from './types';
-import type { MaterialRef } from '../../../data/schemas/materials.types';
 
 /**
  * @contrat Monde
@@ -244,12 +242,6 @@ export interface NappeDuMonde extends GeometrieDuMonde {
   /** L'empreinte de son contenu (`hash32` de ses surfaces, poursuivi par `hash32AuMillieme` sur ses tableaux, en base 36). */
   empreinte: string;
 }
-
-/** Le nom d'une matière dans le volume : son domaine et son id. */
-export const nomDeMatiere = ({ domain, id }: MaterialRef): string => `${domain}--${id}`;
-
-/** Les noms des matières de décor du monde (domaine `prop` de `materials.json`), dont un modèle 3D habille ses surfaces. */
-export const matieresDeDecor = (): string[] => matieresDe('prop').map(({ id }) => nomDeMatiere({ domain: 'prop', id }));
 
 /** Trois décimales : le millimètre, et le millième d'un canal de couleur. */
 const arrondi = (v: number): number => Math.round(v * 1000) / 1000 + 0;

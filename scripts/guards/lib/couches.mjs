@@ -10,7 +10,7 @@
 // `importe: '*'` compris (`fermeParLeProjet`). Par zone :
 //  - `importe` : les zones qu'elle importe librement (`'*'` : toutes) ;
 //  - `types` : les zones qu'elle ne lit que par un arc effacé à la compilation (`import type`…) ;
-//  - `portes` : pour une zone importée, le SEUL module qu'elle en lit (sa surface), en valeur comme en type ;
+//  - `portes` : pour une zone importée, les SEULS modules qu'elle en lit (ses surfaces), en valeur comme en type ;
 //  - `survit` : la zone survit à la bascule vers Godot (#2794) — elle ne charge aucun paquet de l'hôte web
 //    (`PAQUETS_DE_L_HOTE_WEB`), même pour un type, n'écrit aucun JSX, et ne lit aucun module hors des zones ; ses
 //    suites et bancs n'atteignent aucune zone qui ne survit pas, même pour un type (`fermeParLaSurvie`, #3058), et la
@@ -23,10 +23,12 @@
 // Toute autre zone lui est fermée, même pour un type.
 import { posix as cheminPosix } from 'node:path';
 
-/** La surface du noyau (#2817 D9) : la porte de `noyau` pour un hôte, le seul module de `src/noyau/` et `src/scenes/` qui réexporte (`murs/reexportation`, `couchesLint.mjs`). */
-export const SURFACE_DU_NOYAU = 'src/noyau/index.ts';
+/** Les surfaces du noyau (#2817 D9, #5187) : les portes de `noyau` pour un hôte, la surface entière puis le vocabulaire des
+ *  modèles 3D qu'elle réexporte, seuls modules de `src/noyau/` et `src/scenes/` qui réexportent (`murs/reexportation`,
+ *  `couchesLint.mjs`). */
+export const SURFACES_DU_NOYAU = Object.freeze(['src/noyau/index.ts', 'src/noyau/vocabulaireDesModeles.ts']);
 
-/** Les zones dont la production ne réexporte rien hors de `SURFACE_DU_NOYAU` (#2817 D2, `murs/reexportation`). */
+/** Les zones dont la production ne réexporte rien hors de `SURFACES_DU_NOYAU` (#2817 D2, `murs/reexportation`). */
 export const ZONES_SANS_REEXPORTATION = Object.freeze(['noyau', 'scenes']);
 
 /** Les paquets de l'hôte web (#2817 D9) : aucune zone qui survit à la bascule (`survit`) ne les charge. */
@@ -34,8 +36,8 @@ export const PAQUETS_DE_L_HOTE_WEB = Object.freeze(['react', 'react-dom', 'zusta
 
 const FEUILLES = Object.freeze(['lib', 'geometry', 'i18n']);
 
-/** Les droits d'un hôte du noyau (#2898, #2928) : la porte du noyau, les scénarios et les feuilles. */
-const DROITS_D_HOTE = Object.freeze({ importe: Object.freeze(['noyau', 'scenes', ...FEUILLES]), portes: Object.freeze({ noyau: SURFACE_DU_NOYAU }), survit: true });
+/** Les droits d'un hôte du noyau (#2898, #2928) : les portes du noyau, les scénarios et les feuilles. */
+const DROITS_D_HOTE = Object.freeze({ importe: Object.freeze(['noyau', 'scenes', ...FEUILLES]), portes: Object.freeze({ noyau: SURFACES_DU_NOYAU }), survit: true });
 
 /** Les droits d'un hôte qui lit le module commun des hôtes (`hote`) : ceux d'un hôte, plus `hote`. */
 const DROITS_DES_HOTES = Object.freeze({ ...DROITS_D_HOTE, importe: Object.freeze([...DROITS_D_HOTE.importe, 'hote']) });
@@ -235,10 +237,10 @@ export const paquetFerme = (de, paquet, importeurRel) => estZone(de) && COUCHES[
  *  `src/noyau/index` et `src/noyau` désignent le même module. PURE. */
 const moduleDe = (rel) => rel.replace(/\.(?:[cm]?[jt]sx?)$/, '').replace(/\/index$/, '');
 
-/** La porte que la zone `de` impose vers la zone `vers` quand l'arc vise `cibleRel` (chemin relatif à la racine) :
- *  `null` si `de` n'en déclare aucune vers `vers` ou si l'arc la passe, sinon le module de la porte. */
+/** Les portes que la zone `de` impose vers la zone `vers` quand l'arc vise `cibleRel` (chemin relatif à la racine) :
+ *  `null` si `de` n'en déclare aucune vers `vers` ou si l'arc passe l'une d'elles, sinon les modules des portes. */
 export function porteManquee(de, vers, cibleRel) {
-  const porte = estZone(de) && COUCHES[de].portes ? COUCHES[de].portes[vers] : undefined;
-  if (porte === undefined || moduleDe(cibleRel) === moduleDe(porte)) return null;
-  return porte;
+  const portes = estZone(de) && COUCHES[de].portes ? COUCHES[de].portes[vers] : undefined;
+  if (portes === undefined || portes.some((porte) => moduleDe(cibleRel) === moduleDe(porte))) return null;
+  return portes;
 }
