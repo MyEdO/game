@@ -1,21 +1,30 @@
+/**
+ * La Frénésie de l'IA (LDB 21 l.31-33 ; #5042, design jugé du 2026-11-27) : l'IA entre par le geste du joueur
+ * (`entrerEnFrenesie`), son Test de Force Mentale prend l'Action, puis le tour continue — les gratuites d'abord, puis
+ * le Mouvement seul, Charge comprise, dont la frappe est l'attaque gratuite (LDB 15 l.35). Elle entre quand P·S_A ≥
+ * S_B. Fixtures sur le vrai `enc-mutants` : le héros du duel en (4,8), le Mutant frénétique à `distance` cases.
+ */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach } from 'vitest';
-import { chooseEnemyAction, EnemyTurnInput, type CastableSpell } from './monde/ai';
+import { chooseEnemyAction, EnemyTurnInput } from './monde/ai';
 import { emptyScene } from './monde/scene';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
-import { aiAvailableFreeAttack, aiJetteraitUnSort } from './combatFlow';
-import { aiMaybeFrenzy } from './combat/turnHooks';
+import { aiAvailableFreeAttack, buildAiInput } from './combatFlow';
 import { isFrenzied } from '../engine/psychology';
 import { createHero } from '../engine/character';
 import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
-import type { SpellData } from '../data';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
-import { actorIn } from './monde/combatants';
-import { idDeFixture } from '../data/idDeFixture.testkit';
+import { heroFaceAUnEnnemi, reluDans } from './combatDeTest.testkit';
+import { actionALaClotureDeLaFrenesie, deDeCombat, franchirLeRound, jouerLeTourDeLIA, lancerLeRoundDu } from './ouvertureDuTour.testkit';
+import { combatAdvanceBlocked } from './combatGate';
+import { hasCondition } from '../engine/conditions';
+import type { Scene } from './monde/scene';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
+const g = () => banc.getState();
 
 const MELEE: Weapon = { label: 'Épée', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] };
 
@@ -31,15 +40,9 @@ function mk(id: string, kind: 'heros' | 'ennemi', pos: { x: number; y: number },
   }) as Combatant;
 }
 
-/** Invocation alliée RÉSOLUE (shape 'self', op summon sur 'caster'). */
-function summonSpell(): CastableSpell {
-  const data: SpellData = { id: idDeFixture('spell', 'invoc'), type: 'spells', label: 'Invocation', ecole: 'sort', subType: null, family: 'arcane', cn: 0, range: null, target: null, duration: null, desc: '', source: { book: 'LDB', page: 0 }, effects: { kind: 'effet', effet: { type: 'ops', on: 'caster', ops: [{ op: 'summon', creature: { id: 'loup' }, count: 1, allyOfCaster: true }] } } };
-  return { id: 'invoc', data, cn: 0, range: 0, shape: 'self', landProb: 1, focusState: 'none', active: false };
-}
-
 const scene = emptyScene('scene-test', 12, 12);
 function input(enemy: Combatant, heroes: Combatant[], extra: Partial<EnemyTurnInput> = {}): EnemyTurnInput {
-  return { enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, spells: [], ...extra };
+  return { enemy, heroes, scene, env: { blocked: new Set(heroes.map((h) => `${h.pos!.x},${h.pos!.y}`)) }, movement: enemy.movement, manoeuvresSurSoiOffertes: [], spells: [], ...extra };
 }
 
 describe('Frénésie IA — la cible imposée par la porte du joueur (chooseEnemyAction, pur, LDB 21 l.33)', () => {
@@ -62,24 +65,147 @@ describe('Frénésie IA — la cible imposée par la porte du joueur (chooseEnem
   });
 });
 
-describe('Frénésie IA — ORDRE (report tant qu’un sort prime, Couche 3)', () => {
-  // PRÉDICAT du report (aiJetteraitUnSort = action ∈ {cast,castArea,focus}) au niveau PUR : pas encore
-  // frénétique (le peek tourne AVANT l'entrée), une invocation jouable + héros loin → l'IA PRÉPARE le sort
-  // (cast), donc la Frénésie est différée. Sans sort → mêlée/approche (pas de report).
-  it('un sort jouable (invocation, héros loin) → la meilleure action est `cast` (→ report de Frénésie)', () => {
-    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [] }); // état non frénétique à ce stade
-    const h = mk('h', 'heros', { x: 5, y: 11 }); // loin → ni mêlée ni bonne approche
-    expect(chooseEnemyAction(input(e, [h], { spells: [summonSpell()] })).kind).toBe('incantation');
+/** Le mur plein de la colonne `x` de `scene` : aucune Ligne de Vue ne la traverse. */
+function murPlein(scene: Scene, x: number): Scene {
+  for (let y = 0; y < scene.dimensions.h; y++) (scene.layers[0].tiles as string[])[y * scene.dimensions.w + x] = 'mur';
+  return scene;
+}
+
+/** Le duel du vrai `enc-mutants` : le héros en (4,8), le Mutant capable de Frénésie (trait `frenesie`) à Force
+ *  Mentale `fm`, `distance` cases à l'est, sur `scene`, portant l'État `etat` ; tous les dés de combat posés sur `de` ;
+ *  le tour de l'IA joué. */
+function tourDuFrenetique(distance: number, fm: number, de: number, { scene = testScene(), etat }: { scene?: Scene; etat?: string } = {}) {
+  const { H, E } = heroFaceAUnEnnemi(banc, scene);
+  H.pos = { x: 4, y: 8 };
+  E.pos = { x: 4 + distance, y: 8 };
+  E.traits = [...(E.traits ?? []), { id: 'frenesie' }];
+  E.characteristics = { ...E.characteristics, 'force-mentale': fm };
+  if (etat) E.conditions = [...E.conditions, { id: etat, value: 1 }];
+  banc.setState({ battle: { ...g().battle! } });
+  deDeCombat(de);
+  const actionALaCloture = actionALaClotureDeLaFrenesie(banc, () => jouerLeTourDeLIA(banc, H.id, E.id));
+  const e = reluDans(g, E);
+  const log = g().battle!.log.filter((l) => l.actorId === E.id);
+  return {
+    H,
+    e,
+    log,
+    actionALaCloture,
+    frenetique: isFrenzied(e),
+    charge: log.some((l) => l.kind === 'charge'),
+    frappe: g().pendingDefense?.attackerId === E.id,
+    gratuite: g().pendingDefense?.attackerId === E.id && actionALaCloture === true,
+    tourDeLIA: g().battle!.order[g().battle!.turn] === E.id,
+  };
+}
+
+describe('Frénésie IA — entrée par le geste du joueur, puis le tour continue (LDB 21 l.31-33 ; LDB 15 l.35)', () => {
+  it('(i) à 11 cases : entre en Frénésie, l’Action prise, puis Marche sans frappe', () => {
+    const t = tourDuFrenetique(11, 99, 1);
+    expect(t.actionALaCloture, 'le Test d’entrée a pris l’Action').toBe(true);
+    expect(t.frenetique).toBe(true);
+    expect(t.e.pos!.x, 'il a marché vers le héros').toBeLessThan(15);
+    expect(t.charge, 'hors de portée de Charge').toBe(false);
+    expect(t.frappe).toBe(false);
   });
 
-  it('sans sort jouable → la meilleure action n’est PAS un sort (pas de report)', () => {
-    const e = mk('e', 'ennemi', { x: 5, y: 5 }, { weapons: [MELEE] });
-    const h = mk('h', 'heros', { x: 5, y: 11 });
-    expect(['incantation', 'incantationDeZone', 'focalisation']).not.toContain(chooseEnemyAction(input(e, [h])).kind);
+  it('(ii) au contact, FM 99 : entre en Frénésie puis porte sa frappe gratuite', () => {
+    const t = tourDuFrenetique(1, 99, 1);
+    expect(t.frenetique).toBe(true);
+    expect(t.gratuite, 'la frappe part après le Test, l’Action prise').toBe(true);
+  });
+
+  it('(ii) au contact, FM 25 : P·S_A < S_B, il frappe d’une attaque simple sans entrer', () => {
+    const t = tourDuFrenetique(1, 25, 1);
+    expect(t.actionALaCloture, 'aucun Test d’entrée').toBeUndefined();
+    expect(t.frenetique).toBe(false);
+    expect(t.frappe).toBe(true);
+  });
+
+  it.each([7, 4])('(iii, iv) à %i cases : entre en Frénésie puis Charge, la frappe gratuite', (distance) => {
+    const t = tourDuFrenetique(distance, 99, 1);
+    expect(t.frenetique).toBe(true);
+    expect(t.charge, 'la Charge est déclarée').toBe(true);
+    expect(t.gratuite, 'la frappe de Charge est l’attaque gratuite').toBe(true);
+    expect(t.e.pos!.x, 'au contact').toBe(5);
+  });
+
+  it('(v) Test raté à 4 cases : l’Action prise, la Marche s’approche quand même, sans frappe', () => {
+    const t = tourDuFrenetique(4, 99, 100);
+    expect(t.actionALaCloture, 'le Test d’entrée a pris l’Action').toBe(true);
+    expect(t.frenetique).toBe(false);
+    expect(t.charge).toBe(false);
+    expect(t.frappe).toBe(false);
+    expect(t.e.pos!.x, 'il a marché vers le héros').toBeLessThan(8);
+  });
+
+  it('aucun adversaire en Ligne de Vue (mur plein) : pas de Test, et pas d’Exténué au tour suivant (LDB 21 l.33-35)', () => {
+    const t = tourDuFrenetique(8, 99, 1, { scene: murPlein(testScene(), 8) });
+    expect(t.actionALaCloture, 'aucun Test d’entrée').toBeUndefined();
+    expect(t.frenetique).toBe(false);
+    if (g().pendingDefense) { g().jetLancer('defense'); g().jetValider('defense'); }
+    banc.jusquA((s) => combatAdvanceBlocked(s) || s.battle!.order[s.battle!.turn] !== t.e.id);
+    franchirLeRound(banc, [t.e.id, t.H.id]);
+    lancerLeRoundDu(banc);
+    expect(g().battle!.order[g().battle!.turn], 'son tour suivant s’ouvre').toBe(t.e.id);
+    expect(hasCondition(reluDans(g, t.e), 'extenue'), 'Exténué au tour suivant').toBe(false);
+  });
+
+  it('la Haine d’un allié hors d’atteinte, aucun adversaire en Ligne de Vue : pas de Test (LDB 21 l.33)', () => {
+    const { H, E } = heroFaceAUnEnnemi(banc, murPlein(testScene(), 8));
+    const allie = g().battle!.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
+    allie.dead = false;
+    H.pos = { x: 4, y: 8 };
+    E.pos = { x: 9, y: 8 };
+    allie.pos = { x: 21, y: 8 };
+    E.traits = [...(E.traits ?? []), { id: 'frenesie' }];
+    E.characteristics = { ...E.characteristics, 'force-mentale': 99 };
+    E.psychState = [{ type: 'haine', cible: ciblePsy.individu(allie.id), active: true }];
+    banc.setState({ battle: { ...g().battle!, turn: g().battle!.order.indexOf(E.id) } });
+    const b = chooseEnemyAction(buildAiInput(reluDans(g, E), g));
+    expect(b.kind === 'deplacement' && b.thenTargetId, 'il approche sa cible de Haine').toBe(allie.id);
+    banc.setState({ battle: { ...g().battle!, turn: g().battle!.order.indexOf(H.id) } });
+    deDeCombat(1);
+    expect(actionALaClotureDeLaFrenesie(banc, () => jouerLeTourDeLIA(banc, H.id, E.id)), 'aucun Test d’entrée').toBeUndefined();
+    expect(isFrenzied(reluDans(g, E))).toBe(false);
+  });
+
+  it('En flammes à 4 cases : pas de Test, il se roule au sol (LDB 16 l.84)', () => {
+    const t = tourDuFrenetique(4, 99, 1, { etat: 'en-flammes' });
+    expect(t.actionALaCloture, 'aucun Test d’entrée').toBeUndefined();
+    expect(t.frenetique).toBe(false);
+    expect(t.log.some((l) => l.kind === 'etat' && l.etat === 'en-flammes'), 'la libération est jouée').toBe(true);
+  });
+
+  it('un sort décidé prime : le lanceur capable de Frénésie lance son sort sans entrer', () => {
+    const { H, E } = heroFaceAUnEnnemi(banc, testScene());
+    H.pos = { x: 4, y: 8 };
+    E.pos = { x: 4, y: 5 };
+    E.traits = [...(E.traits ?? []), { id: 'frenesie' }];
+    E.characteristics = { ...E.characteristics, 'force-mentale': 99, intelligence: 60 };
+    E.skills = [{ id: 'langue', spec: 'magick', advances: 40, characteristic: 'intelligence' } as never];
+    E.spells = ['flechette'];
+    E.weapons = [];
+    banc.setState({ battle: { ...g().battle! } });
+    expect(chooseEnemyAction(buildAiInput(reluDans(g, E), g)).kind, 'sa décision est un sort').toBe('incantation');
+    deDeCombat(1);
+    jouerLeTourDeLIA(banc, H.id, E.id);
+    expect(isFrenzied(reluDans(g, E))).toBe(false);
+    expect(g().pendingCast?.casterId, 'il lance son sort').toBe(E.id);
   });
 });
 
-describe('Frénésie IA — entrée auto & attaque libre', () => {
+describe('IA — la porte de Mouvement du joueur (`canMove`, LDB 13 l.14)', () => {
+  it('l’Action prise après un Mouvement entamé : plus de Mouvement à décider', () => {
+    const { E } = heroFaceAUnEnnemi(banc, testScene());
+    E.pos = { x: 16, y: 10 };
+    const b = g().battle!;
+    banc.setState({ battle: { ...b, turn: b.order.indexOf(E.id), acted: true, movedPreAction: true, movementUsed: 1 } });
+    expect(buildAiInput(reluDans(g, E), g).movement).toBe(0);
+  });
+});
+
+describe('Frénésie IA — attaque libre', () => {
   beforeEach(() => {
     banc.setState({ battle: null });
   });
@@ -100,61 +226,6 @@ describe('Frénésie IA — entrée auto & attaque libre', () => {
     banc.setState({ battle: { ...b } });
     return { H, E };
   }
-
-  it('aiMaybeFrenzy : ennemi capable + adversaire en LdV → entre en Frénésie (Test de FM réussi)', () => {
-    banc.getState().ensemencerLeTirage(5);
-    const { E } = setupBattle();
-    E.traits = [{ id: 'frenesie' }];
-    E.characteristics['force-mentale'] = 99; // réussite quasi certaine
-    aiMaybeFrenzy(banc.getState, banc.setState, E);
-    expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(true);
-  });
-
-  it('aiMaybeFrenzy : aucun adversaire vivant en LdV → pas de Frénésie', () => {
-    const { H, E } = setupBattle();
-    E.traits = [{ id: 'frenesie' }];
-    E.characteristics['force-mentale'] = 99;
-    (H as Combatant).dead = true;
-    aiMaybeFrenzy(banc.getState, banc.setState, E);
-    expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(false);
-  });
-
-  it('aiMaybeFrenzy : ennemi NON capable → pas de Frénésie', () => {
-    const { E } = setupBattle();
-    E.characteristics['force-mentale'] = 99; // mais aucun trait/talent « Frénésie »
-    aiMaybeFrenzy(banc.getState, banc.setState, E);
-    expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(false);
-  });
-
-  // ORDRE (Couche 3) : le report passe par le noyau (`aiJetteraitUnSort`). Un ennemi frénésie-CAPABLE dont la
-  // meilleure action est un SORT (ici un Projectile sur le héros, seule action d'un lanceur DÉSARMÉ) ne
-  // frénésie PAS — il lance son sort d'abord (l'Unicité retirera les sorts un à un avant de charger).
-  it('aiMaybeFrenzy : un sort jouable prime (aiJetteraitUnSort vrai) → REPORTE la Frénésie', () => {
-    banc.getState().ensemencerLeTirage(5);
-    const { H, E } = setupBattle();
-    E.traits = [{ id: 'frenesie' }];
-    E.characteristics['force-mentale'] = 99; E.characteristics.intelligence = 60; // FM → entrerait sinon en Frénésie ; Int → incantation fiable
-    E.skills = [{ id: 'langue', spec: 'magick', advances: 40, characteristic: 'intelligence' } as never];
-    E.spells = ['flechette']; // Projectile magique (NI 0 → fiable), offensif
-    E.weapons = []; // DÉSARMÉ → aucune mêlée concurrente ; le sort est la seule action
-    E.pos = { x: 10, y: 7 }; H.pos = { x: 10, y: 10 }; // héros en LdV, à 3 cases (en portée du sort, hors mêlée)
-    banc.setState({ battle: { ...banc.getState().battle! } });
-    expect(aiJetteraitUnSort(banc.getState, E.id)).toBe(true); // sa meilleure action est un sort
-    aiMaybeFrenzy(banc.getState, banc.setState, actorIn(banc.getState(), E.id)!); // FM 99 : maximum des Blessures déplacé, l'acteur se relit
-    expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(false); // reporté
-  });
-
-  it('aiMaybeFrenzy : AUCUN sort jouable (aiJetteraitUnSort faux) → entre bien en Frénésie', () => {
-    banc.getState().ensemencerLeTirage(5);
-    const { E } = setupBattle();
-    E.traits = [{ id: 'frenesie' }];
-    E.characteristics['force-mentale'] = 99;
-    E.spells = []; // rien à préparer
-    banc.setState({ battle: { ...banc.getState().battle! } });
-    expect(aiJetteraitUnSort(banc.getState, E.id)).toBe(false);
-    aiMaybeFrenzy(banc.getState, banc.setState, actorIn(banc.getState(), E.id)!); // FM 99 : maximum des Blessures déplacé, l'acteur se relit
-    expect(isFrenzied(banc.getState().battle!.combatants.find((c) => c.id === E.id)!)).toBe(true);
-  });
 
   it('aiAvailableFreeAttack : l’Action prise, la frappe LIBRE par le geste du joueur → la défense du héros s’ouvre, puis la gratuite est comptée', () => {
     banc.getState().ensemencerLeTirage(4);

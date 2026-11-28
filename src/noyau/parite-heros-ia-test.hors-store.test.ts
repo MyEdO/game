@@ -1,15 +1,14 @@
 /**
- * Un même Test, deux conducteurs : le héros (flux de jet, modale) et l'IA (jet inline) jettent la même
- * valeur de Test (`testValue`, LDB 16 l.125) et affrontent la même cible. Héros et ennemi à
+ * Un même Test, deux conducteurs : le héros (flux de jet, modale) et l'IA (jet inline, ou la fenêtre de son geste
+ * jouée d'office) jettent la même valeur de Test (`testValue`, LDB 16 l.125) et affrontent la même cible. Héros et ennemi à
  * caractéristiques égales, Sonné ×3 l'un et l'autre. Le dé de l'IA est posé sur la cible du héros
  * (réussite), puis juste au-dessus (échec).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { aiHandGate, attackWardGate, openAttackCascade } from './combatFlow';
-import { deDeCombat, franchirLeRound, lancerLeRoundDu } from './ouvertureDuTour.testkit';
-import { aiMaybeFrenzy } from './combat/turnHooks';
-import { heroFaceAUnEnnemi } from './combatDeTest.testkit';
+import { actionALaClotureDeLaFrenesie, deDeCombat, franchirLeRound, jouerLeTourDeLIA, lancerLeRoundDu } from './ouvertureDuTour.testkit';
+import { heroFaceAUnEnnemi, reluDans } from './combatDeTest.testkit';
 import { testScene } from '../scenes/test-fixture';
 import { isFrenzied } from '../engine/psychology';
 import { tavernGameValue } from './tavernFlow';
@@ -34,6 +33,19 @@ function jumeauxSonnes(): { H: Combatant; E: Combatant } {
   return { H, E };
 }
 
+/** Le tour de l'IA jumelle du héros, capable de Frénésie, Sonnée ×3 ou non, à 11 cases du héros (aucune frappe ce
+ *  tour, avec ou sans Frénésie), aux dés de combat `de` : l'Action à la clôture de son Test, et sa Frénésie. */
+function tourDeLIA(de: number, sonne: boolean): { actionALaCloture: boolean | undefined; frenetique: boolean } {
+  const { H, E } = jumeauxSonnes();
+  if (!sonne) E.conditions = [];
+  E.traits = [{ id: 'frenesie' }];
+  E.pos = { x: H.pos!.x + 11, y: H.pos!.y };
+  banc.setState({ battle: { ...g().battle! } });
+  deDeCombat(de);
+  const actionALaCloture = actionALaClotureDeLaFrenesie(banc, () => jouerLeTourDeLIA(banc, H.id, E.id));
+  return { actionALaCloture, frenetique: isFrenzied(reluDans(g, E)) };
+}
+
 /** La cible du héros porte les −30 de Sonné ×3 ; l'IA réussit au dé égal à cette cible et échoue juste au-dessus. */
 function memeCible(cibleHeros: number, attendue: number, ia: (de: number) => boolean): void {
   expect(cibleHeros, 'cible du héros : 60 −30 Sonné, plus la Difficulté').toBe(attendue);
@@ -45,28 +57,26 @@ beforeEach(() => { banc.setState({ battle: null, pendingFrenzy: null, pendingWar
 
 describe('même Test, héros et IA Sonnés ×3 : même cible (LDB 16 l.125)', () => {
   it('entrée en Frénésie : un Test de Force Mentale, donc l’Action, que le Sonné n’a pas — ni le héros ni l’IA n’entrent (LDB 21 l.31 ; LDB 13 l.106 ; LDB 16 l.125)', () => {
-    const { H, E } = jumeauxSonnes();
-    H.traits = [{ id: 'frenesie' }]; E.traits = [{ id: 'frenesie' }];
+    const { H } = jumeauxSonnes();
+    H.traits = [{ id: 'frenesie' }];
     g().entrerEnFrenesie();
     expect(g().pendingFrenzy, 'le héros Sonné a ouvert le Test d’entrée en Frénésie').toBeNull();
-    E.psychState = [];
-    deDeCombat(1);
-    aiMaybeFrenzy(g, banc.setState, E);
-    expect(isFrenzied(E), 'l’IA Sonnée est entrée en Frénésie').toBe(false);
+    expect(tourDeLIA(1, true).actionALaCloture, 'l’IA Sonnée a ouvert le Test d’entrée en Frénésie').toBeUndefined();
   });
 
-  it('entrée en Frénésie hors Sonné : héros et IA jettent la même cible (LDB 21 l.31)', () => {
-    const { H, E } = jumeauxSonnes();
-    H.conditions = []; E.conditions = [];
-    H.traits = [{ id: 'frenesie' }]; E.traits = [{ id: 'frenesie' }];
+  it('entrée en Frénésie hors Sonné : héros et IA jettent la même cible, et le Test prend l’Action de l’un et de l’autre (LDB 21 l.31 ; LDB 13 l.106)', () => {
+    const { H } = jumeauxSonnes();
+    H.conditions = [];
+    H.traits = [{ id: 'frenesie' }];
     g().entrerEnFrenesie();
     g().jetLancer('frenesie');
     const cible = g().pendingFrenzy!.result!.target!;
+    g().jetValider('frenesie');
+    expect(g().battle!.acted, 'le Test du héros a pris son Action').toBe(true);
     memeCible(cible, 60, (de) => {
-      E.psychState = [];
-      deDeCombat(de);
-      aiMaybeFrenzy(g, banc.setState, E);
-      return isFrenzied(E);
+      const tour = tourDeLIA(de, false);
+      expect(tour.actionALaCloture, `dé ${de} : le Test de l’IA a pris son Action`).toBe(true);
+      return tour.frenetique;
     });
   });
 

@@ -414,7 +414,6 @@ const ZEROS: Readonly<Record<string, readonly string[]>> = {
   SeaWeatherData: ['encalmine'],
   SecondaryRef: ['quote'],
   SkillData: ['specsOpen'],
-  StakeEntry: ['entryFromSource', 'form'],
   StarData: ['apparence', 'classique'],
   StructureData: ['enc', 'encLimit'],
   TalentData: ['codexOnly', 'grantSpecGroups', 'specsOpen'],

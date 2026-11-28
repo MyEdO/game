@@ -33,7 +33,7 @@ import { attackGeomOfList, combatGeomOfList, meleeWeaponInRangeList } from '../m
 import { bouclierDuBinome, surnombreDeLAttaque } from '../combat/surnombre';
 import { couvertDuTir, makeLosMemo, type LosMemo } from './lineOfSight';
 import { COVER_ORDER } from '../../engine/cover';
-import { rangeBandModifier, canFireWhileEngaged } from '../../engine/combat';
+import { rangeBandModifier, canFireWhileEngaged, type AttackModOpts } from '../../engine/combat';
 import { porteeDeTir, type TrappingResolver } from '../../engine/items';
 import { weaponLoaded } from '../../engine/weaponLoad';
 import { structureImmune, structureAimCell } from '../../engine/structures';
@@ -49,7 +49,7 @@ import {
   spellTargetHarm,
   opValue,
 } from './aiSpellValue';
-import { selfManeuversOf, selfManeuverApplicable } from '../../engine/creatureAttacks';
+import { selfManeuversOf } from '../../engine/creatureAttacks';
 import { spellEffectOps } from '../../engine/flowCore';
 
 /** Aversion au TIR AMI d'une ZdE : blesser/incapaciter un allié pèse FOIS-CECI un gain ennemi équivalent
@@ -123,7 +123,7 @@ export type EnemyAction =
   | { kind: 'depenseDeRessource'; resource: 'determination'; via: 'retirerEtat'; id: string } // dépense PROACTIVE de Détermination pour retirer un État verrouillant (Brisé) et se ressaisir (LDB 17 l.57-61)
   | { kind: 'empoignade'; targetId: string; resolution: 'briser' | 'test' } // Empoigné à son tour (LDB 14 l.161) : son Action EST le Test opposé de Force, OU « Briser » (Avantage supérieur) pour regagner sa liberté d'action puis re-décider
   | { kind: 'servirLePoste'; hullId: string; posteUid: string } // « Servir cette pièce » (MDG 12) : devenir chef d'un poste de siège NON servi adjacent (l'arme de siège est octroyée) — Action gratuite, LDB 13 l.106
-  | { kind: 'manoeuvreSurSoi'; maneuverId: string } // capacité SUR SOI (forme de combat lycanthrope, op transform) — coûte l'Action (2ᵉ via loseTurn)
+  | { kind: 'manoeuvreSurSoi'; maneuverId: string } // capacité SUR SOI (`ciblage: 'soi'`), jouée par le verbe `manoeuvrerSurSoi`
   | { kind: 'fin' }; // rien à faire, passe la main
 
 export interface EnemyTurnInput {
@@ -184,6 +184,9 @@ export interface EnemyTurnInput {
    *  impur (`servablePostes`, qui a la liste COMPLÈTE des combattants). Donnent un candidat `manPoste`
    *  KIND-AGNOSTIQUE. ABSENT/vide (toute fixture sans emplacement) → aucun candidat (parité golden). */
   servablePostes?: { hullId: string; posteUid: string }[];
+  /** Les manœuvres sur soi que la barre du joueur OFFRE ouvertes au porteur (`offresDeLActif`), par id, posées par
+   *  l'appelant : seules celles-là sont candidates. */
+  manoeuvresSurSoiOffertes: readonly string[];
   /** Structures destructibles encore debout (porte/mur, `isStructure`), surfacées par l'appelant impur.
    *  Une arme de SIÈGE les cible (`AA 10 l.138`) — l'Atout Siège (×2 aux structures, `woundsFromHit`) fait
    *  que la valeur d'une telle attaque est NATURELLEMENT élevée → une pièce de siège PRIORISE la porte.
@@ -559,6 +562,48 @@ export function adversairesDe(input: Pick<EnemyTurnInput, 'heroes' | 'ciblesDePu
   return [...input.heroes, ...(input.ciblesDePulsion ?? []).filter((c) => c.pos && !input.heroes.some((h) => h.id === c.id))];
 }
 
+/** Les combattants que lit le Surnombre d'une décision (LDB 14 l.110) : ceux de la bataille, à défaut l'escouade et
+ *  les adversaires. */
+function combattantsDeLaDecision(input: EnemyTurnInput): readonly Combatant[] {
+  return input.combatants ?? [...(input.squad ?? []), ...adversairesDe(input).filter((c) => c.kind !== input.enemy.kind)];
+}
+
+/** Ce que lit l'estimation d'une frappe : les combattants du Surnombre, l'échelle de la scène, la résolution des objets. */
+export interface ContexteDeLaFrappe {
+  combattants: readonly Combatant[];
+  mpt: number;
+  resolveTrapping: TrappingResolver;
+}
+
+/** Les modificateurs que lit l'estimation de la frappe de `attaquant` sur `cible` : au tir à `tir.dist` cases, sinon
+ *  en mêlée, Surnombre compris (LDB 14 l.110). */
+export function optionsDeLaFrappe(ctx: ContexteDeLaFrappe, attaquant: Combatant, cible: Combatant, tir?: { dist: number }): AttackModOpts {
+  if (tir) return { kind: 'distance', distanceTiles: tir.dist, metresPerTile: ctx.mpt, resolveTrapping: ctx.resolveTrapping };
+  const mod = surnombreDeLAttaque(ctx.combattants, attaquant, cible);
+  return { kind: 'melee', env: mod ? [mod] : undefined };
+}
+
+/** Les Blessures espérées de la frappe d'`arme` de `attaquant` sur `cible` (`expectedDamage`, `optionsDeLaFrappe`).
+ *  L'estimation de la frappe que porte l'IA, à sa décision, à sa Frénésie et à la 2ᵉ frappe que joue la machine. */
+export function degatsDeLaFrappe(ctx: ContexteDeLaFrappe, attaquant: Combatant, cible: Combatant, arme: Weapon, tir?: { dist: number }): number {
+  return finite(expectedDamage(attaquant, cible, arme, optionsDeLaFrappe(ctx, attaquant, cible, tir)), 0);
+}
+
+/** Les Blessures espérées de la frappe que porte `action` (mêlée, tir), l'attaquant posé en `depuis` (sa case à
+ *  défaut), à l'arme de la décision (`weaponUid`, sinon la première de mêlée ou de tir) ; 0 pour une action sans
+ *  frappe. */
+export function frappeEsperee(input: EnemyTurnInput, action: EnemyAction, depuis?: Pt): number {
+  if (action.kind !== 'melee' && action.kind !== 'tir') return 0;
+  const attaquant = depuis ? { ...input.enemy, pos: depuis } : input.enemy;
+  const cible = [...adversairesDe(input), ...(input.meleeDeStructure?.cibles ?? input.structures ?? [])].find((c) => c.id === action.targetId);
+  const type = action.kind === 'tir' ? 'distance' : 'melee';
+  const arme = attaquant.weapons.find((w) => (action.weaponUid ? w.uid === action.weaponUid : w.type === type)) ?? (type === 'melee' ? attaquant.weapons[0] : undefined);
+  if (!cible?.pos || !attaquant.pos || !arme) return 0;
+  const ctx = { combattants: combattantsDeLaDecision(input), mpt: sceneMetresPerTile(input.scene), resolveTrapping: input.resolveTrapping ?? findTrappingById };
+  const tir = type === 'distance' ? { dist: footprintChebyshev(attaquant.pos, footprintN(attaquant), cible.pos, footprintN(cible)) } : undefined;
+  return degatsDeLaFrappe(ctx, attaquant, cible, arme, tir);
+}
+
 /** Le candidat reste-t-il permis quand l'Action est due à une Prière (`prayerForActionBy`) ? L'incantation
  *  d'une Prière (`castInfoIsPrayer`), le Mouvement (l'attaque d'après est gardée à l'exécution) et la
  *  Détermination, qui ne sont pas l'Action. LDB 40 l.74 */
@@ -607,7 +652,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   // Vision réciproque : l'ennemi ne cible/poursuit que les héros qu'il PERÇOIT (LoS + lumière, comme le
   // groupe). `perceived` absent = aucun gate (comportement historique / tests purs).
   const adversaires = adversairesDe(input);
-  const combattants = input.combatants ?? [...squad, ...adversaires.filter((c) => c.kind !== enemy.kind)];
+  const combattants = combattantsDeLaDecision(input);
   // Géométrie de combat : la monture d'un cavalier porte portée, contact et empreinte. LDB 14 l.179
   const corps = attackGeomOfList([...combattants], enemy, null);
   const heroes = input.perceived
@@ -902,10 +947,6 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   const frenzyPick = (): Combatant | null => (frenzied ? heroes.find((h) => h.id === input.cibleDeFrenesie?.id) ?? null : null);
 
   // --- HEURISTIQUES de SCORE (Lot 3 + escouade Lot 4) -----------------------
-  const outnumberEnvMelee = (target: Combatant) => {
-    const mod = surnombreDeLAttaque(combattants, enemy, target);
-    return mod ? [mod] : undefined;
-  };
 
   /** Utilité tactique d'une ATTAQUE (mêlée/tir/sort) sur `target` : valeur de l'effet + menace de la cible
    *  + killSecure − overkill. Pour un SORT, la valeur EST `spellActionValue` (déjà = dégâts + contrôle ×
@@ -918,9 +959,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
   ): number => {
     const dmg = src.kind === 'spell'
       ? src.value
-      : src.kind === 'distance'
-        ? finite(expectedDamage(enemy, target, src.weapon, { kind: 'distance', distanceTiles: src.dist, metresPerTile: mpt, resolveTrapping }), 0)
-        : finite(expectedDamage(enemy, target, src.weapon, { kind: 'melee', env: outnumberEnvMelee(target) }), 0);
+      : degatsDeLaFrappe({ combattants, mpt, resolveTrapping }, enemy, target, src.weapon, src.kind === 'distance' ? { dist: src.dist } : undefined);
     const threat = threatOf(target);
     const securesKill = dmg >= target.wounds.current && target.wounds.current > 0 ? Weff.killSecure : 0;
     const overkill = isNeutralized(target) ? Weff.overkill : 0;
@@ -1069,10 +1108,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
 
   // === FORME DE COMBAT (op `transform`) — capacité SUR SOI octroyée par un trait (Métamorphose lycanthrope,
   // Middenheim p.116). La forme alternative est un buff PERSISTANT : utilité = Σ `opValue` de ses ops (le
-  // `transform` mesure le gain de combat réel du clone transformé). Le gate d'applicabilité (déjà dans la
-  // forme) empêche le spam ; l'argmax décide vs frapper. Data-driven, aucun nom d'entité en dur.
+  // `transform` mesure le gain de combat réel du clone transformé). Seules les manœuvres que la barre du joueur
+  // offre ouvertes concourent (`manoeuvresSurSoiOffertes`) ; l'argmax décide vs frapper.
   for (const def of selfManeuversOf(enemy)) {
-    if (!selfManeuverApplicable(enemy, def)) continue;
+    if (!input.manoeuvresSurSoiOffertes.includes(def.id)) continue;
     let v = 0;
     for (const e of def.effects ?? []) for (const o of spellEffectOps(e.flow)) v += opValue(o, enemy, enemy, { refEnemy, horizon: HORIZON_DE_BENEFICE });
     if (v > 0) candidates.push({ action: { kind: 'manoeuvreSurSoi', maneuverId: def.id }, kind: 'manoeuvreSurSoi', utility: v, targetId: enemy.id, coord: pos });
@@ -1242,11 +1281,10 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
     const ciblesSecondaire = secondaire.type === 'distance'
       ? shootPool.filter((t) => aPorteeDe(secondaire, t))
       : heroes.filter(inMelee);
-    const optsDe = (w: Weapon, t: Combatant) => (w.type === 'distance'
-      ? { kind: 'distance' as const, distanceTiles: fpDist(t), metresPerTile: mpt, resolveTrapping }
-      : { kind: 'melee' as const, env: outnumberEnvMelee(t) });
+    const ctx = { combattants, mpt, resolveTrapping };
+    const tirDe = (w: Weapon, t: Combatant) => (w.type === 'distance' ? { dist: fpDist(t) } : undefined);
     const seconde = ciblesSecondaire.length
-      ? Math.max(...ciblesSecondaire.map((t) => Weff.damageDealt * finite(expectedDamage(enemy, t, secondaire, optsDe(secondaire, t)), 0)))
+      ? Math.max(...ciblesSecondaire.map((t) => Weff.damageDealt * degatsDeLaFrappe(ctx, enemy, t, secondaire, tirDe(secondaire, t))))
       : null;
     const coutDefensif = dangerAt(pos) * 0.1;
     if (seconde != null) {
@@ -1255,7 +1293,7 @@ export function chooseEnemyAction(input: EnemyTurnInput): EnemyAction {
         if ((c.action.weaponUid ?? (c.action.kind === 'melee' ? meleeWeapon?.uid : undefined)) !== principale.uid || !principale.uid) continue;
         const cible = [...heroes, ...structuresDeMelee].find((t) => t.id === c.targetId);
         if (!cible) continue;
-        const touche = finite(hitProbability(enemy, cible, principale, optsDe(principale, cible)), 0);
+        const touche = finite(hitProbability(enemy, cible, principale, optionsDeLaFrappe(ctx, enemy, cible, tirDe(principale, cible))), 0);
         candidates.push({ ...c, action: { ...c.action, deuxArmes: true }, utility: c.utility + touche * seconde - coutDefensif });
       }
     }
