@@ -4,6 +4,7 @@
  * ennemi↔ennemi reste au journal/bandeau.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { type EntreeDuJournal } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCriticalToTarget, advanceTurn } from './combatFlow';
@@ -28,7 +29,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
   beforeEach(() => { seedBattleRng(7); });
 
   it('Critique ennemi↔ennemi → AUCUNE modale (journal seul)', () => {
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'e2', attackerKind: 'ennemi' }, get: banc.getState });
     expect(banc.getState().pendingCascade).toBeNull();
@@ -36,7 +37,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
   });
 
   it('un HÉROS inflige le Critique à un ennemi → séquence inline', () => {
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(mkEnemy('e1'), 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'h1', attackerKind: 'heros' }, get: banc.getState });
     const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critique');
@@ -45,7 +46,7 @@ describe('routage des révélations (spec coop §4bis)', () => {
 
   it('un HÉROS subit le Critique → séquence inline', () => {
     const hero = createHero({ idNeuf: idsDeTest, speciesId: 'humains-reiklander', careerId: 'soldat', label: 'H', seed: 3 });
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(hero, 'corps', 0, log, banc.setState,
       { ctx: { attackerId: 'e1', attackerKind: 'ennemi' }, get: banc.getState });
     const crit = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'critique');
@@ -94,7 +95,7 @@ describe('entretien de fin de Round — partition héros/ennemis (spec coop §4b
     crossRound();
     const reveal = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'round')?.reveal;
     expect(reveal).toBeTruthy();
-    expect(reveal!.lines.some((l) => l.includes(H.label))).toBe(true);
-    expect(reveal!.lines.every((l) => l.includes(H.label) || !/Mutant/i.test(l))).toBe(true);
+    expect(reveal!.lines.some((l) => l.texte.includes(H.label))).toBe(true);
+    expect(reveal!.lines.every((l) => l.texte.includes(H.label) || !/Mutant/i.test(l.texte))).toBe(true);
   });
 });

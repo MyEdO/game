@@ -1,4 +1,5 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { scenario } from '../../scenes/test-scenarios/22-dome';
@@ -79,7 +80,7 @@ describe('Ouverture du Round après une révélation d’entretien (#2916)', () 
     banc.setState({ battle: { ...b, turn: 0, round: 2 } });
     startCascade(banc.getState, banc.setState, {
       title: 'Hors combat', purpose: 'test',
-      steps: [revealToStep({ kind: 'round', title: 'Fixture', lines: ['ligne'] }, 0)],
+      steps: [revealToStep({ kind: 'round', title: 'Fixture', lines: [ligneDeTexte('ligne')] }, 0)],
     });
     resolveRoundBoundary(banc.getState, banc.setState);
     expect(banc.getState().pendingRoundStart).toBeNull();

@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { type EntreeDuJournal } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -26,28 +27,28 @@ const mk = (): Combatant =>
 describe('applyCriticalToTarget — la Localisation fournie est utilisée verbatim (résolue en amont)', () => {
   it('localisation fournie → le Critique est résolu à cette localisation', () => {
     seedBattleRng(1);
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(mk(), 'tete', 0, log, () => {}, { get: banc.getState });
-    expect(log.some((l) => l.includes('(Tête)'))).toBe(true); // localisation affichée en FR via locationLabel(loc, shape)
+    expect(log.some((l) => l.texte.includes('(Tête)'))).toBe(true); // localisation affichée en FR via locationLabel(loc, shape)
   });
 
   it('un Critique est bien appliqué à la localisation donnée', () => {
     seedBattleRng(1);
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(mk(), 'corps', 0, log, () => {}, { get: banc.getState });
-    expect(log.some((l) => l.includes('Blessure critique'))).toBe(true);
+    expect(log.some((l) => l.texte.includes('Blessure critique'))).toBe(true);
   });
 });
 
 describe('applyCriticalToTarget — libellé de localisation adapté à la forme du corps (créatures)', () => {
   it('critique sur quadrupède → localisation « (Membre antérieur droit) », jamais « (Bras droit) » humanoïde', () => {
     seedBattleRng(1);
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     const t = mk();
     t.bodyShape = 'quadrupede';
     applyCriticalToTarget(t, 'brasD', 0, log, () => {}, { get: banc.getState }); // localisation fournie pour le déterminisme
-    expect(log.some((l) => l.includes('(Membre antérieur droit)'))).toBe(true);
-    expect(log.some((l) => l.includes('(Bras droit)'))).toBe(false);
+    expect(log.some((l) => l.texte.includes('(Membre antérieur droit)'))).toBe(true);
+    expect(log.some((l) => l.texte.includes('(Bras droit)'))).toBe(false);
   });
 });
 describe("réglage attack.localisationDuCritique — « Je ne faillirai pas ! » sous (B) (LDB 17 l.68 ; #1595 c.6226467544, c.6228496170 R1)", () => {
