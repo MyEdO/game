@@ -35,11 +35,20 @@ Les trois formes d'Augmentation partagent le même principe : chaque Augmentatio
 
 ## Gain de PX — attribution par le MJ
 
-Le LDB ne fixe pas de montant absolu de PX par session : c'est une prérogative du MJ. Les scénarios officiels donnent des barèmes indicatifs (cf. section T3 ci-dessous). En pratique, les fourchettes typiques citées dans le LDB pour les tests de Carrière (Gagner de l'argent, etc.) suggèrent des sessions qui rapportent quelques dizaines à quelques centaines de PX.
+Le MJ attribue les PX à la fin de chaque séance, selon la performance du groupe ; un bonus de 25 à 50 PX récompense l'interprétation ou le travail d'équipe, et une aventure officielle indique ses propres récompenses par séance (`LDB 51 l.232-234`). Valeurs de la table « Récompense en points d'expérience » (`LDB 51 l.242-249`) :
 
-Les tomes de la campagne **L'Ennemi dans l'Ombre** et **Mort sur le Reik** donnent des listes d'objectifs narratifs en fin de chapitre sans barème générique — chaque chapitre propose ses propres récompenses. Le **Pouvoir derrière le Trône** donne le barème le plus détaillé (voir section T3 ci-dessous).
+> « À la fin de chaque séance de jeu, vous devriez attribuer des PX à vos Joueurs. »
+> — LDB 51 l.232
 
-**Sources RAW** : barème T3 = `PDT 13 l.3-59` (seul barème chiffré complet disponible dans les sources autorisées).
+| Performance | Session normale | Fin d'aventure | Fin de campagne |
+|---|---|---|---|
+| Insuffisante | 75 | 100 | 150 |
+| Bonne | 100 | 150 | 200 |
+| Exceptionnelle | 125 | 200 | 250 |
+
+Les tomes de la campagne **L'Ennemi dans l'Ombre** et **Mort sur le Reik** donnent des listes d'objectifs narratifs en fin de chapitre, sans barème générique : chaque chapitre propose ses propres récompenses. Le **Pouvoir derrière le Trône** donne le barème d'aventure le plus détaillé (voir section T3 ci-dessous).
+
+**Sources RAW** : barème générique = `LDB 51 l.242-249` ; barème T3 = `PDT 13 l.3-59`.
 
 ---
 
