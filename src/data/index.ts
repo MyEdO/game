@@ -316,9 +316,7 @@ export type WaterExposureModifier = WaterExposureData['modifiers'][number];
 export type WaterExposureMode = WaterExposureModifier['appliesTo'][number];
 export const WATER_EXPOSURE = datasetDe<typeof waterExposureDef>(waterExposureJson);
 
-/** ENJEU d'un jet de cascade (#1117, collection #1681) — cf. `schemas/defs/stakes.ts`. Lu à la clé
- *  `{ dataset: cascade, kind: id }` par `resolveStake`. */
-export type StakeEntry = EntreeDe<typeof stakesDef>;
+/** ENJEUX des jets de cascade (#1117, collection #1681) — cf. `schemas/defs/stakes.ts`. */
 export const STAKES = datasetDe<typeof stakesDef>(stakesJson);
 /** Ids des enjeux d'une cascade : l'union GÉNÉRÉE des ids de l'espace de la cascade (`scripts/gen-espaces.mts`),
  *  l'argument de sa porte typée. */
