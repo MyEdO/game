@@ -40,7 +40,7 @@ import { refLabel } from '../data';
 import { t } from '../i18n';
 import type { PlayerText } from '../i18n/playerText';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /** Libellé du Test de survie : la Compétence vient de `skills.json` (jamais bakée), sa difficulté de
  *  la policy `mer-naufrage-natation`. UN foyer pour les DEUX chemins (inline sans pilote / applier de cascade) et
@@ -129,7 +129,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   const isAboard = (h: Combatant) => (aboardSet ? aboardSet.has(h.id) : !h.dead);
 
   // MDG 13 l.674
-  const opening: string[] = [t('wreck.sinks', { ship: navire.nom })];
+  const opening: EntreeDuJournal[] = [ligneDeTexte(t('wreck.sinks', { ship: navire.nom }))];
   let cargaison: DocumentDeNaufrage['cargaison'] = null;
   // Cascade Possession (#618 SOCLE POSSESSIONS) : `CampaignVessel` et `Possession{nature:'navire'}`
   // n'ont pas de `uid` partagé — la clé de jointure est `vehicleId` (`NavalPossessionState` miroite déjà
@@ -148,7 +148,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
         }),
       });
       cargaison = { nom: possessionLabel(sunk) };
-      opening.push(t('wreck.cargoSinks', { label: cargaison.nom }));
+      opening.push(ligneDeTexte(t('wreck.cargoSinks', { label: cargaison.nom })));
     }
   }
   const swimmerIds: string[] = [];
@@ -161,7 +161,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
     // `outOfRencontre` seul (l'éjection du COMBAT que ce naufrage vient de résoudre) n'incapacite pas,
     // donc écarté du prédicat ; dead/inconscient/Mort Subite restent des voies RÉELLES d'incapacité.
     if (isOutOfAction({ ...h, outOfRencontre: false })) {
-      opening.push(t('wreck.unconscious', { name: nomDe(h) }));
+      opening.push(ligneDeTexte(t('wreck.unconscious', { name: nomDe(h) })));
       inconscients.push(h.id);
       return { ...h, dead: true };
     }
@@ -171,7 +171,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // Navire + cargaison sombrent avec la coque (#244, règle 7) : purgé IMMÉDIATEMENT, indépendant de
   // l'issue des jets de Natation (le navire est perdu dès qu'il coule, pas seulement s'il y a des noyés).
   set({ party, vessel: null, travelPlan: null, travelRecap: null, worldMapOpen: false });
-  get().ecrireAuJournal([t('wreck.banner'), ...opening]);
+  get().ecrireAuJournal([ligneDeTexte(t('wreck.banner')), ...opening]);
 
   const naufrage: NaufrageEnCours = { navire, cargaison, inconscients, rivage: shore };
   if (!swimmerIds.length) { emitShipwreckLines(get, finishShipwreck(get, set, naufrage, [], diff)); return; }
@@ -182,18 +182,18 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
   // Repli AUCUN pilote humain à bord (IA/rafale/cadence auto) : résolution inline VISIBLE (patron
   // `corruptionFlow` — un pilote humain remonte en modale, sinon on résout et on journalise).
   if (!swimmers.some((h) => humanControlled(get(), h))) {
-    const lines: string[] = [];
+    const lines: EntreeDuJournal[] = [];
     const nages: Nage[] = [];
     for (const h of swimmers) {
       // Aucune rangée nulle part sur ce chemin (repli sans pilote humain, aucune cascade démarrée) —
       // le journal est la SEULE surface, et sa ligne se DÉRIVE (`traceLineOf`) comme toute ligne de dé.
       const value = testValue(h, SUJET_NATATION);
       const tr = rollSansPilote(get, h, NATATION, value, diff, rng);
-      lines.push(traceLineOf({
+      lines.push(ligneDeTexte(traceLineOf({
         who: nomDe(h), label: swimTestLabel(diff), roll: tr.roll, target: tr.target, success: tr.success,
         // LDB 18 l.344
         issue: tr.success ? t('wreck.issueSwims') : t('wreck.issueDrowns'),
-      }));
+      })));
       nages.push({ id: h.id, roll: tr.roll, target: tr.target, sl: tr.sl, success: tr.success });
       if (tr.success) { h.outOfRencontre = false; h.exitReason = undefined; } else h.dead = true;
     }
@@ -228,7 +228,7 @@ export function beginShipwreck(get: Get, set: Set, opts: { aboardIds?: string[] 
 /** Journalise (réellement, `get().ecrireAuJournal`) une liste de lignes accumulées AVANT qu'elles n'existent dans
  *  le journal (chemin inline/sans-nageur — le pilote CASCADE les fait vivre via le retour d'applier,
  *  poussées par `commitStep`). Petite brique pour ne pas dupliquer la boucle aux deux sites inline. */
-function emitShipwreckLines(get: Get, lines: string[]): void {
+function emitShipwreckLines(get: Get, lines: EntreeDuJournal[]): void {
   for (const l of lines) get().ecrireAuJournal(l);
 }
 
@@ -236,7 +236,7 @@ function emitShipwreckLines(get: Get, lines: string[]): void {
  *  rivage le plus proche (`arriverAuLieu`), document du naufrage (`DocumentDeNaufrage`, l'issue de chaque héros dans
  *  l'ordre du groupe), puis `checkPartyWiped`. Renvoie les lignes à journaliser par l'appelant (dans le BON ordre —
  *  cascade : via le retour d'applier ; inline : via `emitShipwreckLines`). */
-function finishShipwreck(get: Get, set: Set, naufrage: NaufrageEnCours, nages: Nage[], difficulty: Difficulty): string[] {
+function finishShipwreck(get: Get, set: Set, naufrage: NaufrageEnCours, nages: Nage[], difficulty: Difficulty): EntreeDuJournal[] {
   const shore = naufrage.rivage;
   const heros = get().party.flatMap((h): DocumentDeNaufrage['heros'] => {
     const nage = nages.find((n) => n.id === h.id);
@@ -244,10 +244,10 @@ function finishShipwreck(get: Get, set: Set, naufrage: NaufrageEnCours, nages: N
     return naufrage.inconscients.includes(h.id) ? [{ id: h.id, nom: nomDe(h), issue: 'inconscient' }] : [];
   });
   const survivors = heros.filter((h) => h.issue === 'nage').map((h) => h.nom);
-  const lines: string[] = [];
-  if (shore) lines.push(survivors.length
+  const lines: EntreeDuJournal[] = [];
+  if (shore) lines.push(ligneDeTexte(survivors.length
     ? t('wreck.survivors', { names: survivors.join(', '), place: shore.label })
-    : t('wreck.noSurvivor'));
+    : t('wreck.noSurvivor')));
   // #686
   if (survivors.length && shore) arriverAuLieu(set, shore);
   get().remettreLeDocument({
@@ -292,7 +292,7 @@ export const TABLES = {
         const r = garanti(s.id === step.id ? step.result : s.result, s.id, 'Test de Natation résolu');
         return { id: s.actorId!, roll: garanti(r.roll, s.id, 'dé de Natation'), target: garanti(r.target, s.id, 'cible de Natation'), sl: r.sl, success: r.success };
       });
-      return { applique: { lignes: [ligneDeTexte(line), ...finishShipwreck(get, set, naufrage, nages, diff).map((x) => ligneDeTexte(x))], faits: [] } };
+      return { applique: { lignes: [ligneDeTexte(line), ...finishShipwreck(get, set, naufrage, nages, diff)], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

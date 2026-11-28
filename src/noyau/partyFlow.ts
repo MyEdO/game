@@ -3,6 +3,7 @@
  * `(get, set)` que combatFlow : équipement (équiper/transférer), avancement PX
  * (caractéristiques/compétences/talents/carrière, prothèses), consommables de fiche, butin.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { Combatant, CharKey, CHAR_LABELS, ItemInstance, MAINS, type Main } from '../engine/types';
 import {
   avecObjet,
@@ -148,15 +149,15 @@ function isCompleted(hero: Combatant): boolean {
 /** Pose `equipped` à `porte` sur un item d'un porteur (héros OU possession, #620) en place : le porter retire d'abord
  *  les conflits de port (armure de même couche, autre cape — LDB 63, échange façon jeu vidéo, journalisé).
  *  `items` est muté EN PLACE (référence du porteur clone) — le retour n'est que le message. */
-function applyEquip(porteur: { items: ItemInstance[] } & Partial<Pick<Combatant, 'loadouts'>>, uid: string, porte: boolean, label: SansMarqueNonAffichable): string {
-  let msg = '';
+function applyEquip(porteur: { items: ItemInstance[] } & Partial<Pick<Combatant, 'loadouts'>>, uid: string, porte: boolean, label: SansMarqueNonAffichable): EntreeDuJournal | null {
+  let msg: EntreeDuJournal | null = null;
   const it = porteur.items.find((i) => i.uid === uid);
   if (!it || it.equipped === porte) return msg;
   if (porte) {
     it.inside = undefined; // on ne porte pas un objet rangé dans un sac : il en sort d'abord
     const out = equipConflicts(porteur, it);
     for (const o of out) o.equipped = false;
-    if (out.length) msg = t('pf.swapLayer', { name: label, out: out.map((o) => o.label).join(' + '), item: it.label });
+    if (out.length) msg = ligneDeTexte(t('pf.swapLayer', { name: label, out: out.map((o) => o.label).join(' + '), item: it.label }));
   }
   it.equipped = porte;
   return msg;
@@ -190,7 +191,7 @@ export function equiperLObjet(get: Get, set: Set, uid: string, porte: boolean): 
   if (!carrierId) return;
   const porteur = resolveCarrier(get(), carrierId);
   if (porte && porteur?.kind === 'heros' && refuseSi(get, set, () => refusDePorter(porteur.hero, uid))) return;
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
@@ -217,22 +218,22 @@ export function equiperLObjet(get: Get, set: Set, uid: string, porte: boolean): 
 /** Range (`containerUid` non-null) ou sort (null) un objet d'un PORTEUR d'un contenant (LDB 64). Ranger
  *  vérifie la capacité (`canStow`) et met l'objet à l'état « rangé » (ni porté ni tenu) ; sortir le remet
  *  en vrac. Renvoie le message (échec de capacité inclus) ; `items` muté EN PLACE. */
-function applyStow(items: ItemInstance[], uid: string, containerUid: string | null, label: SansMarqueNonAffichable): { msg: string; moved: boolean } {
+function applyStow(items: ItemInstance[], uid: string, containerUid: string | null, label: SansMarqueNonAffichable): { msg: EntreeDuJournal | null; moved: boolean } {
   const it = items.find((i) => i.uid === uid);
-  if (!it) return { msg: '', moved: false };
+  if (!it) return { msg: null, moved: false };
   if (containerUid) {
     if (!canStow({ items }, it, containerUid)) {
-      const msg = t('pf.stowTooBig', { name: label, item: it.label });
+      const msg = ligneDeTexte(t('pf.stowTooBig', { name: label, item: it.label }));
       return { msg, moved: false };
     }
     const bag = items.find((i) => i.uid === containerUid);
     it.inside = containerUid; // rangé : ni porté ni tenu
     it.equipped = false;
-    const msg = t('pf.stow', { name: label, item: it.label, bag: bag ? t('pf.fragInBag', { bag: bag.label }) : '' });
+    const msg = ligneDeTexte(t('pf.stow', { name: label, item: it.label, bag: bag ? t('pf.fragInBag', { bag: bag.label }) : '' }));
     return { msg, moved: true };
   }
   it.inside = undefined; // sorti du sac (remis en vrac)
-  const msg = t('pf.unstow', { name: label, item: it.label });
+  const msg = ligneDeTexte(t('pf.unstow', { name: label, item: it.label }));
   return { msg, moved: true };
 }
 
@@ -241,7 +242,7 @@ export function rangerLObjet(get: Get, set: Set, uid: string, containerUid: stri
   if (refuseSi(get, set, refusDInventaire)) return;
   const carrierId = porteurDuGroupe(get, set, uid);
   if (!carrierId) return;
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   set((s) => {
     const carrier = resolveCarrier(s, carrierId);
     if (!carrier) return {};
@@ -361,7 +362,7 @@ export function transmettreLObjet(get: Get, set: Set, uid: string, toCarrierId: 
     [fromCarrierId]: (items) => sansLeLot(items, lot),
     [toCarrierId]: (items) => avecLeLot(items, lot, to.kind === 'heros'),
   }));
-  get().ecrireAuJournal(t('pf.give', { from: fromLabel, item: item.label, to: toLabel }));
+  get().ecrireAuJournal(ligneDeTexte(t('pf.give', { from: fromLabel, item: item.label, to: toLabel })));
 }
 
 /** #2967 */
@@ -394,7 +395,7 @@ export function accorderLesPx(get: Get, set: Set, heroId: string, amount: number
     clone.xp = (clone.xp ?? 0) + amount;
     return clone;
   }));
-  if (name) get().ecrireAuJournal(`${name} : ${amount >= 0 ? '+' : ''}${amount} PX.`);
+  if (name) get().ecrireAuJournal(ligneDeTexte(`${name} : ${amount >= 0 ? '+' : ''}${amount} PX.`));
 }
 
 /** SEULE couture de dépense de PX : le refus (`refusDepensePx`) tombe ici, sinon `depense` s'écrit par
@@ -407,21 +408,21 @@ export function depenserPx(get: Get, set: Set, heroId: string, depense: (h: Comb
 }
 
 export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, char: CharKey): void {
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const inC = inCareerChar(careerCtx(clone).careerChars, char);
     const refus = refusDAugmentation(get(), clone, { kind: 'caracteristique', char }, inC, CHAR_LABELS[char]);
     if (refus) {
-      msg = refus;
+      msg = ligneDeTexte(refus);
       return h;
     }
     const r = engineBuyCharAdvance(clone, char, inC);
     if (!r.ok) {
-      msg = t('pf.refused', { name: nomDe(clone), what: CHAR_LABELS[char], reason: r.reason ?? '' });
+      msg = ligneDeTexte(t('pf.refused', { name: nomDe(clone), what: CHAR_LABELS[char], reason: r.reason ?? '' }));
       return h;
     }
-    msg = t('pf.advanceBought', { name: nomDe(clone), what: CHAR_LABELS[char], cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
+    msg = ligneDeTexte(t('pf.advanceBought', { name: nomDe(clone), what: CHAR_LABELS[char], cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') }));
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);
@@ -433,7 +434,7 @@ export function acheterLaCaracteristique(get: Get, set: Set, heroId: string, cha
  *  dans la carrière (LDB 10 Maître artisan…). */
 export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: RefDesignee): void {
   const { id: skillId, spec } = skill;
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const ctx = careerCtx(clone);
@@ -442,19 +443,19 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
     const { statut: status, remise: discount } = competenceEnCarriere(clone, ctx.sSlots, ctx.designations, skillId, spec);
     const inC = status != null;
     if (!known && !inC) {
-      msg = t('pf.skillNotAcquirable', { name: nomDe(clone), what: what });
+      msg = ligneDeTexte(t('pf.skillNotAcquirable', { name: nomDe(clone), what: what }));
       return h;
     }
     const refus = refusDAugmentation(get(), clone, { kind: 'competence', competence: skill }, inC, what, discount);
     if (refus) {
-      msg = refus;
+      msg = ligneDeTexte(refus);
       return h;
     }
     // Acquérir la Compétence de carrière à advances 0, puis l'augmenter (l'Augmentation est payée).
     if (!known) clone.skills.push({ id: skillId, spec, characteristic: skillCharacteristicById(skillId), advances: 0 });
     const r = engineBuySkillAdvance(clone, skill, inC, discount);
     if (!r.ok) {
-      msg = t('pf.refused', { name: nomDe(clone), what: what, reason: r.reason ?? '' });
+      msg = ligneDeTexte(t('pf.refused', { name: nomDe(clone), what: what, reason: r.reason ?? '' }));
       return h;
     }
     // Première allocation via un slot joker libre → désignation automatique (LDB 09 l.38).
@@ -462,7 +463,7 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
       const slot = freeSlotFor(ctx.sSlots, ctx.designations, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
       if (slot) designateSlot(clone, ctx.career, slot, skillId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     }
-    msg = t('pf.advanceBought', { name: nomDe(clone), what: what, cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') });
+    msg = ligneDeTexte(t('pf.advanceBought', { name: nomDe(clone), what: what, cost: r.cost, hors: inC ? '' : t('pf.fragOutOfCareer') }));
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);
@@ -473,23 +474,23 @@ export function acheterLaCompetence(get: Get, set: Set, heroId: string, skill: R
  *  PX. Arbitrage RAW : specs distinctes par carrière, désignations par carrière. */
 export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: string, option: RefDesignee): void {
   const { id: optionId, spec } = option;
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   set((s) => ecrireActeur(s, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const ctx = careerCtx(clone);
     const all = [...ctx.sSlots, ...ctx.tSlots];
     const slot = all.find((sl) => sl.key === slotKey);
     if (!slot) {
-      msg = t('pf.unknownSlot', { name: nomDe(clone) });
+      msg = ligneDeTexte(t('pf.unknownSlot', { name: nomDe(clone) }));
       return h;
     }
     const r = designateSlot(clone, ctx.career, slot, optionId, spec, all);
     if (!r.ok) {
-      msg = t('pf.designateRefused', { name: nomDe(clone), reason: r.reason ?? '' });
+      msg = ligneDeTexte(t('pf.designateRefused', { name: nomDe(clone), reason: r.reason ?? '' }));
       return h;
     }
     const label = refLabel(slot.kind === 'skill' ? 'skills' : 'talents', option); // AFFICHAGE seul
-    msg = t('pf.designated', { name: nomDe(clone), label });
+    msg = ligneDeTexte(t('pf.designated', { name: nomDe(clone), label }));
     return clone;
   }));
   if (msg) get().ecrireAuJournal(msg);
@@ -501,30 +502,30 @@ export function designerLeCreneau(get: Get, set: Set, heroId: string, slotKey: s
  *  d'acquisition et recale Blessures/Chance/Détermination. LDB 07 l.93, l.103 ; LDB 10 ; CRB 045 l.58-62 */
 export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefDesignee): void {
   const { id: talentId, spec } = talent;
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const ctx = careerCtx(clone);
     const talentLabel = refLabel('talents', talent); // AFFICHAGE + conversion pour le moteur
     const status = talentEnCarriere(clone, ctx.tSlots, ctx.designations, talentId, spec, [...ctx.sSlots, ...ctx.tSlots]);
     if (!status) {
-      msg = t('pf.talentOutOfCareer', { name: nomDe(clone), label: talentLabel });
+      msg = ligneDeTexte(t('pf.talentOutOfCareer', { name: nomDe(clone), label: talentLabel }));
       return h;
     }
     const refusPropre = refusDAcquerirLeTalent(clone, talentId, spec);
     if (refusPropre) {
-      msg = refusPropre;
+      msg = ligneDeTexte(refusPropre);
       return h;
     }
     const manque = refusDePx(clone, coutDuTalent(clone, talentId, spec));
     if (manque) {
-      msg = manque;
+      msg = ligneDeTexte(manque);
       return h;
     }
     const maximaAvant = maximaDesReserves(clone);
     const r = engineBuyTalent(clone, talentId, spec); // spec = identité PERSISTÉE (id si migré), jamais re-dérivée du libellé
     if (!r.ok) {
-      msg = t('pf.refused', { name: nomDe(clone), what: talentLabel, reason: r.reason ?? '' });
+      msg = ligneDeTexte(t('pf.refused', { name: nomDe(clone), what: talentLabel, reason: r.reason ?? '' }));
       return h;
     }
     if (status === 'free') {
@@ -535,11 +536,11 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefD
     // Effets d'acquisition (+5 Caractéristique de départ, Véloce) + Chance et Détermination.
     applyTalentAcquisition(clone, talentId, spec);
     reporterLaHausseDesMaxima(clone, maximaAvant);
-    msg = t('pf.talentBought', { name: nomDe(clone), label: talentLabel, cost: r.cost });
+    msg = ligneDeTexte(t('pf.talentBought', { name: nomDe(clone), label: talentLabel, cost: r.cost }));
     // Magie mineure (LDB 10 l.714) : BFM sorts inclus au Talent — à choisir (0 PX, Avancement).
     if (castingKindOf(talentId) === 'mineure') {
       const q = bonus(effectiveChar(clone, 'force-mentale'));
-      if (q > 0) msg += t('pf.minorMagicIncluded', { n: q });
+      if (q > 0) msg = { ...msg, texte: `${msg.texte}${t('pf.minorMagicIncluded', { n: q })}` };
     }
     return clone;
   })) return;
@@ -551,12 +552,12 @@ export function acheterLeTalent(get: Get, set: Set, heroId: string, talent: RefD
  *  Talent, bornée par son Maxi (`acquerirTalent`, LDB 10 l.704-708), et tout sort de Magie du Chaos
  *  inflige AUSSI +1 Point de Corruption, appliqué par l'appelant store (seuil → mutation). */
 export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: string, opts: { discountXp?: number } = {}): { ok: boolean; chaos?: boolean } {
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   let result: { ok: boolean; chaos?: boolean } = { ok: false };
   if (!depenserPx(get, set, heroId, (h) => {
     const refus = refusDAchatDuSort(h, spellId, opts);
     if (refus) {
-      msg = refus;
+      msg = ligneDeTexte(refus);
       return h;
     }
     const sp = findSpellById(spellId)!; // accès UNIQUE par id stable (prod et tests)
@@ -567,9 +568,9 @@ export function acheterLeSort(get: Get, set: Set, heroId: string, spellId: strin
     if (chaos && full > 0) acquerirTalent(clone, { id: talent.talentId, spec: talent.spec });
     clone.xp = (clone.xp ?? 0) - cost;
     clone.spells = [...(clone.spells ?? []), sp.id]; // runtime = id de sort (pas le libellé)
-    msg = cost > 0
+    msg = ligneDeTexte(cost > 0
       ? t('pf.spellLearned', { name: nomDe(clone), spell: sp.label, cost, remise: cost < full ? t('pf.fragSpellDiscount', { n: full - cost }) : '' })
-      : t('pf.spellGranted', { name: nomDe(clone), spell: sp.label });
+      : t('pf.spellGranted', { name: nomDe(clone), spell: sp.label }));
     result = { ok: true, chaos };
     return clone;
   })) return { ok: false };
@@ -595,7 +596,7 @@ export function acheterLaComposante(get: Get, set: Set, heroId: string, spellId:
   const objet = garanti(itemFromTrappingById(COMPOSANT_D_INCANTATION, get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero!)), COMPOSANT_D_INCANTATION, 'composant d’incantation');
   payWithAllocation(get, set, { debits: soloPayer(heroId, cost), recipient: heroId, purpose: 'Composant d’incantation' });
   set((s) => ecrireActeur(s, heroId, (h) => avecObjet(h, { ...objet, sortLie: spellId })));
-  get().ecrireAuJournal(t('pf.componentBought', { name: nomDe(hero!), spell: sp.label, money: formatMoney(cost) }));
+  get().ecrireAuJournal(ligneDeTexte(t('pf.componentBought', { name: nomDe(hero!), spell: sp.label, money: formatMoney(cost) })));
 }
 
 /** L'entrée de catalogue que crée l'achat d'un composant. LDB 46 l.113 */
@@ -651,7 +652,7 @@ export function designerLeComposant(get: Get, set: Set, uid: string, spellId: st
   mutLoadout(set, heroId, (c) => {
     c.items!.find((i) => i.uid === uid)!.sortLie = spellId;
   });
-  get().ecrireAuJournal(t('pf.componentBound', { name: nomDe(hero), spell: findSpellById(spellId)!.label }));
+  get().ecrireAuJournal(ligneDeTexte(t('pf.componentBound', { name: nomDe(hero), spell: findSpellById(spellId)!.label })));
 }
 
 /** Édite la bio MUTABLE d'un héros (hors combat) : Motivation + Ambitions court/long terme (LDB 05).
@@ -703,18 +704,18 @@ export function refusDeFinDeSeance(s: Pick<Jeu, 'mode' | 'net'>): string | null 
 export function terminerLaSeance(get: Get, set: Set): void {
   const { heros, groupe } = garanti(get().finDeSeance, 'finDeSeance', 'fin de séance ouverte');
   const group = { short: groupe.ambitionCourte, long: groupe.ambitionLongue };
-  const lines = new Map<string, string[]>();
+  const lines = new Map<string, EntreeDuJournal[]>();
   set((s) => ecrireActeur(s, herosDeLaSeance(s).map((h) => h.id), (h) => {
     const f = heros[h.id] ?? {};
     const xp = heroSessionXp({ short: f.ambitionPersonnelleCourte, long: f.ambitionPersonnelleLongue }, group);
     if (!xp && !f.motivation) return h;
     const clone: Combatant = structuredClone(h);
-    const siennes: string[] = [];
-    if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(t('pf.ambitionXp', { name: nomDe(clone), xp })); }
+    const siennes: EntreeDuJournal[] = [];
+    if (xp) { clone.xp = (clone.xp ?? 0) + xp; siennes.push(ligneDeTexte(t('pf.ambitionXp', { name: nomDe(clone), xp }))); }
     if (f.motivation) {
       const before = determinationDe(clone);
       poserLaDetermination(clone, regainDetermination(clone, 1));
-      if (determinationDe(clone) > before) siennes.push(t('pf.motivationResolve', { name: nomDe(clone) }));
+      if (determinationDe(clone) > before) siennes.push(ligneDeTexte(t('pf.motivationResolve', { name: nomDe(clone) })));
     }
     lines.set(h.id, siennes);
     return clone;
@@ -730,45 +731,45 @@ export function terminerLaSeance(get: Get, set: Set): void {
 export function entrainerLaProthese(get: Get, set: Set, uid: string): void {
   const heroId = herosPorteur(get, set, uid);
   if (!heroId) return;
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     const it = (clone.items ?? []).find((i) => i.uid === uid);
-    if (!it) { msg = t('pf.prosthesisNotTrainable', { name: nomDe(clone) }); return h; }
+    if (!it) { msg = ligneDeTexte(t('pf.prosthesisNotTrainable', { name: nomDe(clone) })); return h; }
     const tier = nextProsthesisTier(it);
     if (!tier) {
       // Prothèse non entraînable (aucun palier déclaré / non portée) vs. déjà entièrement maîtrisée.
       const done = it.equipped && (it.prosthesisTraining?.length ?? 0) > 0;
-      msg = done ? t('pf.prosthesisTrained', { name: nomDe(clone), item: it.label }) : t('pf.prosthesisNotTrainable', { name: nomDe(clone) });
+      msg = ligneDeTexte(done ? t('pf.prosthesisTrained', { name: nomDe(clone), item: it.label }) : t('pf.prosthesisNotTrainable', { name: nomDe(clone) }));
       return h;
     }
     const manque = refusDePx(clone, tier.px);
-    if (manque) { msg = manque; return h; }
+    if (manque) { msg = ligneDeTexte(manque); return h; }
     clone.xp = (clone.xp ?? 0) - tier.px;
     grantProsthesisTier(it, tier);
-    msg = t('pf.prosthesisTierBought', { name: nomDe(clone), item: it.label, tier: tier.label, cost: tier.px });
+    msg = ligneDeTexte(t('pf.prosthesisTierBought', { name: nomDe(clone), item: it.label, tier: tier.label, cost: tier.px }));
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);
 }
 
 export function changerDeCarriere(get: Get, set: Set, heroId: string, newCareer: string, newLevel: number): void {
-  let msg = '';
+  let msg: EntreeDuJournal | null = null;
   if (!depenserPx(get, set, heroId, (h) => {
     const clone: Combatant = structuredClone(h);
     // Validation LDB 07 l.137 + LDB 07 l.144-148 : complétion, niveau cible, surcoût de Classe.
     const completed = isCompleted(clone);
     const refus = refusDeChangerDeCarriere(get(), clone, newCareer, newLevel, completed);
     if (refus) {
-      msg = refus;
+      msg = ligneDeTexte(refus);
       return h;
     }
     const r = engineChangeCareer(clone, newCareer, newLevel, contexteDeChangement(clone, newCareer, newLevel, completed));
     if (!r.ok) {
-      msg = t('pf.careerRefused', { name: nomDe(clone), reason: r.reason ?? '' });
+      msg = ligneDeTexte(t('pf.careerRefused', { name: nomDe(clone), reason: r.reason ?? '' }));
       return h;
     }
-    msg = t('pf.careerChanged', { name: nomDe(clone), career: careerLabelFor({ career: newCareer, appearance: clone.appearance }), level: newLevel, cost: r.cost });
+    msg = ligneDeTexte(t('pf.careerChanged', { name: nomDe(clone), career: careerLabelFor({ career: newCareer, appearance: clone.appearance }), level: newLevel, cost: r.cost }));
     return clone;
   })) return;
   if (msg) get().ecrireAuJournal(msg);
@@ -854,7 +855,7 @@ export function recruterLeHeros(get: Get, set: Set, heros: HerosEngage): void {
     net: { ...s.net, ownership: { ...s.net.ownership, [copy.id]: seat }, rangs },
   });
   creditBourse(get, set, copy.id, wealth);
-  get().ecrireAuJournal(t('pf.startingWealth', { name: nomDe(copy), money: formatMoney(wealth) }));
+  get().ecrireAuJournal(ligneDeTexte(t('pf.startingWealth', { name: nomDe(copy), money: formatMoney(wealth) })));
 }
 
 /**

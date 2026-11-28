@@ -15,6 +15,7 @@
  * joue par `jetLancer('soins')`. Acte PAYANT (PNJ `medicalAid`, LDB 75 : l'aide médicale se paie à l'acte, 4-6
  * pistoles) : débit au lancer ; arrêter une opération jamais commencée rembourse.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { locationLabel } from '../engine/types';
 import type { IdDePlaieDeLOperation } from './designations';
 import { garanti } from '../lib/garanti';
@@ -119,9 +120,9 @@ function appliquerLaPasse(get: Get, set: Set): void {
     loseWounds(patient, harm, consequences);
     for (const f of faitsDesPoses(patient, ['hemorragique'], () => addCondition(patient, 'hemorragique'))) constaterDans(consequences, f);
   }
-  const log: string[] = [t('medic.pass', { healer: sg.healerName, verb, patient: nomDe(patient), dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) }), ...consequences.lignes.map((e) => e.texte)];
+  const log: EntreeDuJournal[] = [ligneDeTexte(t('medic.pass', { healer: sg.healerName, verb, patient: nomDe(patient), dr: `${ps.sl >= 0 ? '+' : ''}${ps.sl}`, cum, target: sg.drCible, suite: recovery ? t('medic.fragPassEnd') : t('medic.fragPassHarm', { harm }) })), ...consequences.lignes];
   if (!recovery && patient.wounds.current <= 0) { // « de fortes chances de tuer » (LDB 10) : on interrompt
-    log.push(t('medic.patientSinks', { patient: nomDe(patient) }));
+    log.push(ligneDeTexte(t('medic.patientSinks', { patient: nomDe(patient) })));
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
     finishPlayerAction(get, set, log, 'soin');
     return;
@@ -129,19 +130,19 @@ function appliquerLaPasse(get: Get, set: Set): void {
   if (cum >= sg.drCible) { // cible atteinte
     if (recovery) {
       const { penalty, log: recLog } = recoverDisabledLimb(patient, sg.traumaUid);
-      log.push(...recLog);
+      log.push(...recLog.map((l) => ligneDeTexte(l)));
       // Pénalité 1d10 jours (LDB 18 l.120/179) : durée d'horloge PARTAGÉE (charMod −10 ET Mouvement ÷2 de la jambe
       // expirent ENSEMBLE) — `defaultUntilTime` fournit la même échéance à toutes les ops sans durée propre.
       if (penalty.length) {
         const now = get().gameTime;
-        log.push(...applyOps(patient, penalty, { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }).lignes.map((e) => e.texte));
+        log.push(...applyOps(patient, penalty, { idNeuf: get().forgerUnId, rng: battleRng(), now, defaultUntilTime: now + d10(battleRng()) * 24 * 60 }).lignes);
       }
       set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
       finishPlayerAction(get, set, log, 'soin');
       return;
     }
-    if (sg.traumaUid) log.push(...removeSurgicalTrauma(patient, sg.traumaUid)); // Chirurgie : Blessure Critique réparée (s'il y en a une à opérer)
-    log.push(...releaseConditionLocks(patient, 'surgery').lignes.map((e) => e.texte)); // verrous d'État « ne peut être retiré que par Chirurgie » (Hémorragie interne, LDB 18)
+    if (sg.traumaUid) log.push(...removeSurgicalTrauma(patient, sg.traumaUid).map((l) => ligneDeTexte(l))); // Chirurgie : Blessure Critique réparée (s'il y en a une à opérer)
+    log.push(...releaseConditionLocks(patient, 'surgery').lignes); // verrous d'État « ne peut être retiré que par Chirurgie » (Hémorragie interne, LDB 18)
     set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
     finishPlayerAction(get, set, log, 'soin');
     // Test d'infection du PATIENT (LDB 10 l.184) : Résistance Accessible (+20) — plus un jet SILENCIEUX
@@ -166,7 +167,7 @@ function abandonnerLOperation(get: Get, set: Set): void {
   if (!m || !sg) { set({ pendingSurgery: null }); return; }
   if (!sg.last && sg.paidCost && m.patientId) distributeCredit(get, set, toMoney(sg.paidCost)); // remboursé au groupe (payeur), symétrique du débit `payFromGroup`
   set({ pendingSurgery: null, medic: { ...m, surgery: undefined } });
-  if (sg.last) get().ecrireAuJournal(t('medic.interrupted', { healer: sg.healerName }));
+  if (sg.last) get().ecrireAuJournal(ligneDeTexte(t('medic.interrupted', { healer: sg.healerName })));
 }
 
 /** L'opération que le brouillon `p` arme, son prix `paidCost` débité. */

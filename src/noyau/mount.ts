@@ -4,6 +4,7 @@
  * la position et l'empreinte de la MONTURE (souvent Grande → 2×2). Module-feuille pur (aucun import de
  * combatFlow) : mute les combattants, l'appelant (store) re-set la bataille + émet SCENE_DIRTY.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import type { Combatant, Weapon } from '../engine/types';
 import { isOutOfAction } from '../engine/conditions';
 import { effectiveMovement, mouvementDeVol } from '../engine/encumbrance';
@@ -265,12 +266,12 @@ export function handleMountDeath(battle: BattleState, scene: Scene, mount: Comba
 /** Balayage post-résolution : toute monture mise hors de combat désarçonne son cavalier (à pied, strict
  *  RAW). Retourne les lignes de journal des désarçonnements (vide si rien). Appelé depuis checkBattleOver,
  *  donc déclenché quelle que soit la cause de mise hors de combat (touche, sort de zone, mort lente, Nuée). */
-export function sweepDismountDeaths(battle: BattleState, scene: Scene): string[] {
-  const lines: string[] = [];
+export function sweepDismountDeaths(battle: BattleState, scene: Scene): EntreeDuJournal[] {
+  const lines: EntreeDuJournal[] = [];
   for (const mount of battle.combatants) {
     if (!mount.riderId || !isOutOfAction(mount)) continue;
     const rider = handleMountDeath(battle, scene, mount);
-    if (rider) lines.push(t('mount.unhorsed', { rider: nomDe(rider), mount: nomDe(mount) }));
+    if (rider) lines.push(ligneDeTexte(t('mount.unhorsed', { rider: nomDe(rider), mount: nomDe(mount) })));
   }
   return lines;
 }

@@ -1320,7 +1320,7 @@ function moralDuTestDEquipage(get: Get, set: Set, step: CascadeStep): void {
   const ship = get().travelPlan?.vehicle;
   const type = typeof step.meta?.crewTestType === 'string' ? findCrewTestTypeById(step.meta.crewTestType) : undefined;
   if (!ship || !step.result || !type?.moraleOnNegativeDR) return;
-  const j = applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(step.result.sl)).map((l) => ligneDeTexte(l));
+  const j = applyShipMoraleDelta(get, set, ship, rudeEpreuveMoraleDelta(step.result.sl));
   if (j.length) noteSeaLine(get, set, j);
 }
 
@@ -3539,10 +3539,10 @@ export const TABLES = {
         j.push(ligneDeTexte(t('sv.tributeRefused')));
         startChaseBoarding(get, set);
       } else {
-        j.push(...applyVesselCrewLoss(get, set, 1, (postes) => indiceDeMembreDuBord(battleRng(), postes)).lignes.map((l) => ligneDeTexte(l)));
+        j.push(...applyVesselCrewLoss(get, set, 1, (postes) => indiceDeMembreDuBord(battleRng(), postes)).lignes);
         j.push(ligneDeTexte(t('sv.sailorGiven')));
         const ship = get().travelPlan?.vehicle;
-        if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(ligneDeTexte(l)); // déplaisir de Manann (MDG 14)
+        if (ship) for (const l of applyShipMoraleDelta(get, set, ship, -rollDice(2, 10, battleRng()))) j.push(l); // déplaisir de Manann (MDG 14)
       }
       return { applique: { lignes: j, faits: [] } };
     },
@@ -3553,7 +3553,7 @@ export const TABLES = {
     'merDesertion': (get, set, step) => {
       if (!step.result) return;
       const journal = resolveShoreLeaveDesertion(get, set, battleRng());
-      return { applique: { lignes: journal.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: journal, faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   reglesDeSucces: {

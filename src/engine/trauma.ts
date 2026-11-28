@@ -284,9 +284,9 @@ export function applyFractureEnd(c: Combatant, success: boolean, severity: strin
  * valeur (`testValue` de Résistance, `LDB 18 l.202`) et l'ouvre — #1657 B3-3.
  * Pur ; mute `c`, renvoie le journal.
  */
-export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDeferTest): string[] {
+export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDeferTest): EntreeDuJournal[] {
   if (!c.traumas?.length || days <= 0) return [];
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   const remaining: Trauma[] = [];
   const fractureTests: { severity: string; location: string; label: string }[] = [];
   for (const t of c.traumas) {
@@ -300,7 +300,7 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
       // reste chirurgicale (le moignon exige toujours une opération), débarrassée de son décompte d'escalade.
       remaining.push({ ...t, amputateAfterDays: undefined, amputateSequel: undefined });
       if (t.amputateSequel) remaining.push(...avecSequelles([...c.traumas, ...remaining], [traumaById(t.amputateSequel, undefined, t.location)]).slice(-1));
-      log.push(tr('tra.limbLostNoSurgery', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
+      log.push(ligneDeTexte(tr('tra.limbLostNoSurgery', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })));
       continue;
     }
     if (t.recoveryDays == null) { remaining.push(t); continue; }
@@ -308,14 +308,14 @@ export function tickTraumaRecovery(c: Combatant, days: number, defer: UpkeepDefe
     if (left > 0) {
       const next = { ...t, recoveryDays: left };
       const msg = downgradeTornMuscle(next, left, c.bodyShape);
-      if (msg) log.push(tr('tra.tornRemissionLine', { name: nomDe(c), msg }));
+      if (msg) log.push(ligneDeTexte(tr('tra.tornRemissionLine', { name: nomDe(c), msg })));
       remaining.push(next);
       continue;
     }
     // Résolu : la fracture/déchirure est retirée, la Blessure critique décomptée (l.222).
     if (c.criticalWounds) c.criticalWounds = Math.max(0, c.criticalWounds - 1);
     if (t.kind === 'fracture' && !t.fractureSet) fractureTests.push({ severity: t.severity ?? 'mineur', location: t.location ?? '', label: t.label });
-    else log.push(tr('tra.recovered', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) }));
+    else log.push(ligneDeTexte(tr('tra.recovered', { name: nomDe(c), label: t.label, loc: locationLabel(t.location ?? 'corps', c.bodyShape) })));
   }
   c.traumas = remaining;
   // Test de fin de fracture (l.202/212) : le producteur NOMME ce qui est testé (« Test de Résistance »)

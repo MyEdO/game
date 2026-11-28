@@ -67,7 +67,7 @@ import type { CorpsDesReglages } from './reglagesDuJet';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { perdreUnPointDeResilience, resilienceDe } from '../engine/talentEffects';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29), à la Difficulté
  *  `difficulty` quand la source en imprime une (ZI 13 l.197). SEULE construction du Test, pour tout producteur
@@ -117,12 +117,12 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
       if (!recoitLaCorruption(cible)) return [];
       if (tenuParUnHumain(get(), cible.id)) {
         poseCorruptionPending(get, set, expositionPending(cible.id, level, nature, undefined, difficulty));
-        return [ligneDExposition(cible, level)];
+        return [ligneDeTexte(ligneDExposition(cible, level))];
       }
       const { test } = testDExposition(nature ?? NATURES_D_INFLUENCE[0], difficulty);
       const tst = rollSansPilote(get, cible, { skill: test.skill }, testValue(cible, test), test.difficulty, battleRng());
       return [
-        traceLineOf({ who: nomDe(cible), label: testTraceLabel(refLabel('skills', test.skill), test.difficulty), ...tst }),
+        ligneDeTexte(traceLineOf({ who: nomDe(cible), label: testTraceLabel(refLabel('skills', test.skill), test.difficulty), ...tst })),
         ...denouementDExposition(get, set, cible, corruptionGain(level, tst.success, tst.sl)),
       ];
     },
@@ -132,9 +132,9 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
 /** DÉNOUEMENT d'un Test d'Exposition joué : les `gain` Points dus (`corruptionGain`), puis le seuil
  *  (`gainCorruption`). Partagé par la modale (`resolveCorruptionPending`) et le Test sans siège. LDB 19 l.35 ;
  *  LDB 19 l.48 ; LDB 19 l.58 */
-function denouementDExposition(get: Get, set: Set, hero: Combatant, gain: number, align?: ChaosAlign): string[] {
-  if (gain <= 0) return [t('cor.repelled', { name: nomDe(hero) })];
-  return gainCorruption(get, set, hero, gain, align).lignes.map((e) => e.texte);
+function denouementDExposition(get: Get, set: Set, hero: Combatant, gain: number, align?: ChaosAlign): EntreeDuJournal[] {
+  if (gain <= 0) return [ligneDeTexte(t('cor.repelled', { name: nomDe(hero) }))];
+  return gainCorruption(get, set, hero, gain, align).lignes;
 }
 
 /** Les Points que doit le Test d'Exposition jeté de la fenêtre `pc` (`corruptionGain`) ; 0 pour un Test de seuil. LDB 19
@@ -197,7 +197,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
     lines.push(ligneDeTexte(t('cor.contained', { name: nomDe(hero) })));
     return sortie;
   }
-  lines.push(...applyMutation(get, set, hero, { roll: tst.roll, target: tst.target }, align).map((x) => ligneDeTexte(x)));
+  lines.push(...applyMutation(get, set, hero, { roll: tst.roll, target: tst.target }, align));
   return sortie;
 }
 
@@ -288,7 +288,7 @@ function mutationTableStep(hero: Combatant, tableId: string, ctx: PendingMutatio
 
 /** Applique la MUTATION (l.82-91) : −BFM Points, d100 corps/esprit par espèce, tirage sur le
  *  Tableau de Corruption physique/mentale, effets dérivés, puis LIMITES (l.87) → damné. */
-export function applyMutation(get: Get, set: Set, hero: Combatant, _test?: { roll: number; target: number }, align?: ChaosAlign): string[] {
+export function applyMutation(get: Get, set: Set, hero: Combatant, _test?: { roll: number; target: number }, align?: ChaosAlign): EntreeDuJournal[] {
   if (!recoitLaCorruption(hero)) return [];
   const table = natureDeMutationDe(hero.species);
   // LDB 19 l.76, dans CET ordre : « D'abord, vous perdez autant de Points de Corruption que la valeur
@@ -345,11 +345,11 @@ export function resolveRenounce(get: Get, set: Set, renounce: boolean): void {
   set({ pendingRenounce: null });
   const hero = corruptionTarget(get(), pr.heroId);
   if (!hero) { releaseCorruptionSlot(get, set); return; }
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   if (renounce) {
     perdreUnPointDeResilience(hero);
-    lines.push(t('cor.renounced', { name: nomDe(hero) }));
-    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: [...lines], subjectId: hero.id });
+    lines.push(ligneDeTexte(t('cor.renounced', { name: nomDe(hero) })));
+    pushReveal(set, { kind: 'mutation', title: t('cor.renounceTitle'), lines: lines.map((e) => e.texte), subjectId: hero.id });
   } else {
     lines.push(...applyMutation(get, set, hero, { roll: pr.testRoll, target: pr.testTarget }, pr.align));
   }
@@ -393,9 +393,9 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     // Le jet (roll/target) est DÉJÀ affiché par la rangée de la modale de Corruption — pas de
     // re-print au journal (#295 Lot 4).
     if (pc.success) {
-      get().ecrireAuJournal(t('cor.contained', { name: nomDe(hero) }));
+      get().ecrireAuJournal(ligneDeTexte(t('cor.contained', { name: nomDe(hero) })));
     } else if (resilienceDe(hero) > 0) {
-      get().ecrireAuJournal(t('cor.thresholdFail', { name: nomDe(hero) }));
+      get().ecrireAuJournal(ligneDeTexte(t('cor.thresholdFail', { name: nomDe(hero) })));
       set({ pendingRenounce: { heroId: hero.id, testRoll: pc.roll, testTarget: pc.target ?? 0, align: pc.align } });
     } else {
       for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().ecrireAuJournal(l);

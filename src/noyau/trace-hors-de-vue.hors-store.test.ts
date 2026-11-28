@@ -57,7 +57,7 @@ function siege() {
 /** La ligne du Test d'agir (`resolveActGates`) que `c` jette sous un effet qui l'exige. */
 function ligneDuTestDAgir(banc: ReturnType<typeof siege>['banc'], c: Combatant): string {
   c.activeEffects = [{ label: 'Racine de mandragore', bonus: 0, duration: { scale: 'clock', until: 99999 }, testDAgir: { characteristic: 'force-mentale' } }];
-  return resolveActGates(banc.getState, banc.setState, c).lines[0];
+  return resolveActGates(banc.getState, banc.setState, c).lines[0].texte;
 }
 
 describe('TraceRow.who — la ligne d’un Test jeté sans fenêtre', () => {

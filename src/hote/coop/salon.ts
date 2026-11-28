@@ -16,7 +16,7 @@
  * Le refus rendu par `appliquer` est livré au rappel `refuserLIntention` de l'invité auteur.
  * Une ouverture à la fois (`heberger` avant sa session posée, `rejoindre` avant `seated`), que `quitter` achève.
  */
-import { buildDeLaCoop, fermerLeSiege, GUEST_INTENTS, initialNet, instantaneDeLaCoop, withActingSeat, type Get } from '../../noyau/index';
+import { buildDeLaCoop, fermerLeSiege, GUEST_INTENTS, initialNet, instantaneDeLaCoop, ligneDeTexte, withActingSeat, type Get } from '../../noyau/index';
 import { t } from '../../i18n';
 import { gesteDuVerbe, SANS_PISTE, type Geste } from '../geste';
 import { ErreurDeGeste } from '../partie';
@@ -62,7 +62,7 @@ export interface PortsDuSalon extends PortsDuRelais {
 /** HÔTE : siège FERMÉ (départ définitif, fin de grâce) — `fermerLeSiege` (spec §6). */
 function siegeFerme(get: Get, seat: number): void {
   get().poserLeReseau(fermerLeSiege(get().net, seat));
-  get().ecrireAuJournal(t('coop.seatClosed'));
+  get().ecrireAuJournal(ligneDeTexte(t('coop.seatClosed')));
 }
 
 /** L'intention d'un invité, chez l'hôte : `action(...args)` au nom de `siege`, dont le refus éventuel lui revient. */
@@ -215,7 +215,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
       onSeatClosed: (seat) => siegeFerme(get, seat),
     });
     rh.onFatal = () => {
-      get().ecrireAuJournal(t('coop.hote.lienPerdu'));
+      get().ecrireAuJournal(ligneDeTexte(t('coop.hote.lienPerdu')));
       quitter(get);
     };
     rh.onJoin = (seat, gname) => {
@@ -261,7 +261,7 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           echouer(get, o, reason);
           return;
         }
-        get().ecrireAuJournal(t('coop.reason', { reason }));
+        get().ecrireAuJournal(ligneDeTexte(t('coop.reason', { reason })));
         quitter(get);
       };
       rg.onHostAway = (away) => {
@@ -281,8 +281,8 @@ export function creerLeSalon(ports: PortsDuSalon): Salon {
           onIntentRefused: refuserLIntention,
           // Motif typé de l'hôte (mismatch de protocole) : canal du journal réseau, distinct du onClose générique
           // qui suit juste après (silencieux, cf. session.ts).
-          onProtocolMismatch: (expected, got) => get().ecrireAuJournal(t('coop.protocolMismatch', { got, expected })),
-          onFormatMismatch: () => get().ecrireAuJournal(t('coop.formatMismatch')),
+          onProtocolMismatch: (expected, got) => get().ecrireAuJournal(ligneDeTexte(t('coop.protocolMismatch', { got, expected }))),
+          onFormatMismatch: () => get().ecrireAuJournal(ligneDeTexte(t('coop.formatMismatch'))),
           onClosed: () => quitter(get),
         });
         get().poserLeReseau({ ...initialNet(), mode: 'invite', mySeat: seat, roomCode: code, seatNames: { [seat]: name } });

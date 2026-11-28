@@ -51,7 +51,7 @@ import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /** Une offre d'achat générée à l'étape (l.36-42) — Enc disponible + prix de base NOTÉ en CO par point d'Enc
  *  (`landCargoBasePrice` ; le Vin fige sa qualité secrète / son prix ICI, l.93-104). `wine` : cargaison à
@@ -86,7 +86,7 @@ export interface LandMarketState {
   achat?: import('./cargaison').BrouillonDAchat;
 }
 
-const log = (get: Get, _set: Set, lines: string[]) => {
+const log = (get: Get, _set: Set, lines: EntreeDuJournal[]) => {
   if (lines.length) get().ecrireAuJournal(lines);
 };
 
@@ -179,7 +179,7 @@ export function generateTradeRumour(get: Get, set: Set, currentPlaceId: string, 
   };
   set({ tradeRumours: [...board, rumour] });
   const biensTxt = rumour.biens.map((id) => findCargoById(id)?.label ?? id).join(', ');
-  log(get, set, [t('lm.rumeur', { biens: biensTxt, lieu: target.label })]); // MSRC 13 l.180
+  log(get, set, [ligneDeTexte(t('lm.rumeur', { biens: biensTxt, lieu: target.label }))]); // MSRC 13 l.180
 }
 
 /** Refus d'évaluer le lot `cargoId` (MSRC 13 l.95) : `refusDeGesteSurLeGroupe`, hors de la halle, offre absente, lot
@@ -225,7 +225,7 @@ export function deplacerLaCargaison(get: Get, set: Set, lotId: IdDeCargaison, to
   const res = transferCargo(from, to, lotId, plan.enc, get().forgerUnId);
   set(persistCarriersCargo(get(), [{ carrierId: from.id, cargo: res.from.cargo }, { carrierId: to.id, cargo: res.to.cargo }]));
   const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
-  log(get, set, [t('lm.transfert', { enc: res.moved, label, de: from.label, vers: to.label })]);
+  log(get, set, [ligneDeTexte(t('lm.transfert', { enc: res.moved, label, de: from.label, vers: to.label }))]);
 }
 
 /** Ce que teste chaque camp du Marchandage, le marchand sans fiche compris. MSRC 13 l.127 */
@@ -333,7 +333,7 @@ export function acheterALaHalle(get: Get, set: Set, porteurId: IdDePorteurDeCarg
     ...persistCarriersCargo(get(), [{ carrierId: carrier.id, cargo: loaded.cargo }]),
     landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, enc: o.enc - want } : o).filter((o) => o.enc > 0) },
   });
-  log(get, set, [t('lm.charge', { enc: want, label: offer.label, porteur: carrier.label, marchandage: bargainLine, partiel: partial ? t('lm.fragPartiel') : '', prix: formatMoney(cost) })]); // MSRC 13 l.131
+  log(get, set, [ligneDeTexte(t('lm.charge', { enc: want, label: offer.label, porteur: carrier.label, marchandage: bargainLine, partiel: partial ? t('lm.fragPartiel') : '', prix: formatMoney(cost) }))]); // MSRC 13 l.131
 }
 
 /**
@@ -372,7 +372,7 @@ const LAND_SELL_BUYER_KIND = 'acheteurATerre';
  *  lot (ou la fraction vendue) du porteur et crédite la bourse. `avant` = les lignes déjà dues au
  *  moment de la vente (« la moitié trouve preneur »), journalisées AVANT la ligne de vente comme dans
  *  la résolution synchrone d'origine. */
-function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number, avant: string[]): void {
+function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: number, avant: EntreeDuJournal[]): void {
   const st = get().landMarket;
   const tenu = lotDeCargaison(get(), lotId);
   if (!st || !tenu) return;
@@ -400,7 +400,7 @@ function finishLandSale(get: Get, set: Set, lotId: IdDeCargaison, sellEnc: numbe
   // Recette de cargaison de GROUPE (l.133-160) → crédit réparti par tête sur les bourses.
   distributeCredit(get, set, fromBrass(gross));
   set(persistCarriersCargo(get(), [{ carrierId: porteur.id, cargo: newCargo }]));
-  log(get, set, [t('lm.vendu', { enc: sellEnc, label, pct: offerPct, marchandage: bargainLine, rumeur: rumourHit ? t('lm.fragRumeur') : '', prix: formatMoney(fromBrass(gross)) })]); // MSRC 13 l.180
+  log(get, set, [ligneDeTexte(t('lm.vendu', { enc: sellEnc, label, pct: offerPct, marchandage: bargainLine, rumeur: rumourHit ? t('lm.fragRumeur') : '', prix: formatMoney(fromBrass(gross)) }))]); // MSRC 13 l.180
 }
 
 /** Refus de brader le lot `cargoId` à la halle ouverte : `refusDeGesteSurLeGroupe`, puis lieu sans Commerce en
@@ -425,7 +425,7 @@ export function jeterALaHalle(get: Get, set: Set, lotId: IdDeCargaison): void {
   // Bradage de cargaison de GROUPE (l.160) → crédit réparti par tête sur les bourses.
   distributeCredit(get, set, fromBrass(gross));
   set(persistCarriersCargo(get(), [{ carrierId: porteur.id, cargo: porteur.cargo.filter((l) => l.uid !== lotId) }]));
-  log(get, set, [t('lm.brade', { enc: lot.enc, label, pct, prix: formatMoney(fromBrass(gross)) })]);
+  log(get, set, [ligneDeTexte(t('lm.brade', { enc: lot.enc, label, pct, prix: formatMoney(fromBrass(gross)) }))]);
 }
 
 export function sortiesDuMarcheTerrestre(_get: Get, set: Set) {
@@ -475,7 +475,7 @@ export const TABLES = {
       if (!st || !lot) return {};
       const label = findCargoById(lot.cargoId)?.label ?? lot.cargoId;
       if (step.result.success) {
-        const demi = attempt === 2 ? [`${label} : pas d’acheteur pour tout le lot — la moitié (${sellEnc} Enc) trouve preneur.`] : [];
+        const demi = attempt === 2 ? [ligneDeTexte(t('lm.moitieTrouvePreneur', { label, enc: sellEnc }))] : [];
         chainStep(get, () => finishLandSale(get, set, lotId, sellEnc, demi));
         return {};
       }
@@ -483,7 +483,7 @@ export const TABLES = {
         chainStep(get, () => openLandSellBuyerStep(get, set, lotId, Math.max(1, Math.floor(lot.enc / 2)), false, 2));
         return {};
       }
-      return { applique: { lignes: [ligneDeTexte(`${label} : aucun acheteur intéressé à ${st.label} (Demande ${step.result.target}).`)], faits: [] } };
+      return { applique: { lignes: [ligneDeTexte(t('lm.aucunAcheteur', { label, lieu: st.label, demande: garanti(step.result.target, step.id, 'Demande du marché') }))], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   generateursDEtal: {

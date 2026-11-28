@@ -96,7 +96,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const log = tickDisease(c, 2 * MINUTES_PER_DAY, seq([]), ignore);
     expect(c.diseases![0].phase).toBe('active');
     expect(c.diseases![0].minutesLeft).toBe(5 * MINUTES_PER_DAY);
-    expect(log.some((l) => /se déclarent/.test(l))).toBe(true);
+    expect(log.some((l) => /se déclarent/.test(l.texte))).toBe(true);
     expect(extenuePorte(c)).toBe(1);
     expect(diseaseBlesseCount(c)).toBe(1);
   });
@@ -133,7 +133,7 @@ describe('disease — cycle de vie (LDB 20, sourcé)', () => {
     const log = tickDisease(c, MINUTES_PER_DAY, seq([]), (spec) => kinds.push(spec.kind));
     expect(kinds.sort()).toEqual(['maladie-persistance', 'maladie-test-quotidien']); // Blessé → étape générique 'maladie-test-quotidien'
     expect(c.diseases![0].endTestPending).toBe(true); // la maladie attend la validation de son étape
-    expect(log.some((l) => /guérit|persiste|Purulente|Gangrène/.test(l))).toBe(false); // RIEN pré-résolu
+    expect(log.some((l) => /guérit|persiste|Purulente|Gangrène/.test(l.texte))).toBe(false); // RIEN pré-résolu
     // Résolution à la validation des étapes : le Test de cycle réussi serait un no-op (onFail non appliqué
     // par l'applier `maladie-test-quotidien` côté state) ; persistant réussi → guérison.
     applyDiseasePersist(c, 'infection-mineure', true, 2, seq([]));

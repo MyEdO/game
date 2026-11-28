@@ -373,7 +373,7 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
   it('R1 : pose l’état de l’hôte, l’invité garde son identité réseau, et ses verbes partent encore à l’hôte', () => {
     const [premier, second] = chezLHote(etatAttable(), (hote, diffuser) => {
       diffuser();
-      hote.etat().ecrireAuJournal('Une ligne de l’hôte.');
+      hote.etat().ecrireAuJournal(ligneDeTexte('Une ligne de l’hôte.'));
       diffuser();
     });
     invite((partie) => {
@@ -392,8 +392,8 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
   it('R2 : le journal arrive une fois ; deux lignes écrites entre deux instantanés arrivent dans l’ordre', () => {
     const [zero, deux] = chezLHote(etatInitialDuJeu(), (hote, diffuser) => {
       diffuser();
-      hote.etat().ecrireAuJournal('Première.');
-      hote.etat().ecrireAuJournal('Seconde.');
+      hote.etat().ecrireAuJournal(ligneDeTexte('Première.'));
+      hote.etat().ecrireAuJournal(ligneDeTexte('Seconde.'));
       diffuser();
     });
     invite((partie) => {
@@ -406,7 +406,7 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
   it('R3 : une ligne que l’invité écrit chez lui ne décale pas le compte de l’hôte', () => {
     const [zero, deux] = chezLHote(etatAttable(), (hote, diffuser) => {
       diffuser();
-      hote.etat().ecrireAuJournal(['Une.', 'Deux.']);
+      hote.etat().ecrireAuJournal([ligneDeTexte('Une.'), ligneDeTexte('Deux.')]);
       diffuser();
     });
     const verbeDHote = Object.entries(CLASSE_DES_ACTIONS_DU_NOYAU).find(([, classe]) => classe === 'hôte')![0];
@@ -424,9 +424,9 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
     const lignes = Array.from({ length: 45 }, (_, i) => `Ligne ${i + 1}.`);
     const [zero, uneAUne, enUnAppel] = chezLHote(etatInitialDuJeu(), (hote, diffuser) => {
       diffuser();
-      for (const ligne of lignes) hote.etat().ecrireAuJournal(ligne);
+      for (const ligne of lignes) hote.etat().ecrireAuJournal(ligneDeTexte(ligne));
       diffuser();
-      hote.etat().ecrireAuJournal(lignes);
+      hote.etat().ecrireAuJournal(lignes.map((l) => ligneDeTexte(l)));
       diffuser();
     });
     invite((partie) => {
@@ -551,11 +551,11 @@ describe('Partie.recevoir — l’instantané de l’hôte entre par un appel (#
     invite((partie) => {
       const vu = vi.fn();
       const desabonner = partie.abonner(vu);
-      partie.etat().ecrireAuJournal('Hors appel.');
+      partie.etat().ecrireAuJournal(ligneDeTexte('Hors appel.'));
       bus.emit(EVT.SCENE_DIRTY);
       expect(vu).toHaveBeenCalledTimes(1);
       desabonner();
-      partie.etat().ecrireAuJournal('Hors appel, encore.');
+      partie.etat().ecrireAuJournal(ligneDeTexte('Hors appel, encore.'));
       expect(vu, 'appelée après le désabonnement').toHaveBeenCalledTimes(1);
       // L'abonné d'un hôte qui lève sur une écriture qui suit l'arrivée en scène : l'appel a déjà écrit et émis.
       let arrivee = false;

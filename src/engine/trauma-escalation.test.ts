@@ -104,7 +104,7 @@ describe('#167 — « Pied écrasé » : perte du pied si pas de Chirurgie sous 
     tickTraumaRecovery(c, 1, () => {});
     expect(c.traumas!.find((t) => t.label === 'Amputation')?.amputateAfterDays).toBe(2);
     const log = tickTraumaRecovery(c, 2, () => {}); // échéance atteinte
-    expect(log.join(' ')).toMatch(/membre est perdu/);
+    expect(log.map((x) => x.texte).join(' ')).toMatch(/membre est perdu/);
     const seqT = c.traumas!.find((t) => t.traumaId === 'membre-inferieur-ampute');
     expect(seqT).toBeTruthy();
     expect(seqT!.ops?.some((o) => o.op === 'moveScale')).toBe(true);
@@ -115,7 +115,7 @@ describe('#167 — « Pied écrasé » : perte du pied si pas de Chirurgie sous 
     const c = C({ traumas: [plaie('jambeD', { amputateAfterDays: 3, amputateSequel: 'membre-inferieur-ampute' })] });
     c.traumas = []; // simule removeSurgicalTrauma (l’opération a retiré la plaie chirurgicale)
     const log = tickTraumaRecovery(c, 5, () => {});
-    expect(log.join(' ')).not.toMatch(/membre est perdu/);
+    expect(log.map((x) => x.texte).join(' ')).not.toMatch(/membre est perdu/);
     expect(c.traumas!.some((t) => t.traumaId === 'membre-inferieur-ampute')).toBe(false);
   });
 });

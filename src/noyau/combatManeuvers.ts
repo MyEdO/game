@@ -652,13 +652,13 @@ export function battementRemoval(dr: number): number {
  * LDB, la réserve du camp adverse en mode groupe) selon `battementRemoval(DR)`. Renvoie la ligne de journal.
  * MUTE `foe` (et la réserve). Ne consomme PAS l'Action (l'appelant pose `acted`). Ne touche pas `checkBattleOver`.
  */
-export function resolveBattement(get: Get, attacker: Combatant, foe: Combatant, atk: TestResult): string {
-  if (!atk.success) return t('manv.battementFail', { name: nomDe(attacker), foe: nomDe(foe) });
+export function resolveBattement(get: Get, attacker: Combatant, foe: Combatant, atk: TestResult): EntreeDuJournal {
+  if (!atk.success) return ligneDeTexte(t('manv.battementFail', { name: nomDe(attacker), foe: nomDe(foe) }));
   const removed = battementRemoval(atk.sl);
   const before = groupAdvantage() ? undefined : foe.advantage;
   campSpend(get, foe, removed); // retire de la réserve du camp adverse (mode groupe) / de l'Avantage du foe (LDB)
   const n = before != null ? before - foe.advantage : removed;
-  return t('manv.battement', { name: nomDe(attacker), foe: nomDe(foe), n });
+  return ligneDeTexte(t('manv.battement', { name: nomDe(attacker), foe: nomDe(foe), n }));
 }
 
 /** Distraire (`LDB 10 l.364` · `AA 13 l.51`) est-il déclarable par `attacker` contre `foe` ? Conditions
@@ -673,11 +673,11 @@ export function distraireEligible(attacker: Combatant, foe: Combatant): boolean 
  * de l'attaquant, `foe` est DISTRAIT (`distractedRounds = 2`) → il ne génère aucun Avantage jusqu'à la fin
  * du prochain Round (`campGain` le refuse). Renvoie la ligne de journal. MUTE `foe`. Ne touche pas `battle`.
  */
-export function resolveDistraire(attacker: Combatant, foe: Combatant, atk: TestResult, defRoll: TestResult): string {
+export function resolveDistraire(attacker: Combatant, foe: Combatant, atk: TestResult, defRoll: TestResult): EntreeDuJournal {
   const opp = resolveOpposed(atk, defRoll);
-  if (!opp.attackerWins) return t('manv.distraireFail', { name: nomDe(attacker), foe: nomDe(foe) });
+  if (!opp.attackerWins) return ligneDeTexte(t('manv.distraireFail', { name: nomDe(attacker), foe: nomDe(foe) }));
   foe.distractedRounds = 2; // jusqu'à la fin du PROCHAIN Round (2 franchissements de Round)
-  return t('manv.distraire', { name: nomDe(attacker), foe: nomDe(foe) });
+  return ligneDeTexte(t('manv.distraire', { name: nomDe(attacker), foe: nomDe(foe) }));
 }
 
 /** Ce que teste chaque camp du Test opposé du Distraire : Athlétisme du meneur, Calme du distrait. LDB 10 l.364 */

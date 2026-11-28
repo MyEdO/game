@@ -290,14 +290,14 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
     banc.getState().jetImposerLeResultat('attaque', 33); // double ≤ cible → touche + Critique
     banc.setState({ journal: [] });
     // Le pending est ENCORE ouvert pendant que l'applicateur compose : c'est la fenêtre du marquage.
-    banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
+    banc.getState().ecrireAuJournal(ligneDeTexte('Att touche Cible à la tête · CRITIQUE !'));
     expect(banc.getState().journal).toEqual([{ ...ligneDeTexte('Att touche Cible à la tête · CRITIQUE !'), deFixe: true }]);
   });
 
   it('un jet NATUREL ne marque rien', () => {
     setupAttack(); // aucun dé saisi
     banc.setState({ journal: [] });
-    banc.getState().ecrireAuJournal('Att touche Cible à la tête · CRITIQUE !');
+    banc.getState().ecrireAuJournal(ligneDeTexte('Att touche Cible à la tête · CRITIQUE !'));
     expect(banc.getState().journal).toEqual([ligneDeTexte('Att touche Cible à la tête · CRITIQUE !')]);
   });
 
@@ -306,7 +306,7 @@ describe('journal — la mention « dé fixé » suit le jet jusqu’à sa ligne
     setDesFixes(true);
     banc.getState().jetImposerLeResultat('attaque', 33);
     banc.setState({ pendingAttack: null, journal: [] });
-    banc.getState().ecrireAuJournal('Le Gobelin se relève.');
+    banc.getState().ecrireAuJournal(ligneDeTexte('Le Gobelin se relève.'));
     expect(banc.getState().journal).toEqual([ligneDeTexte('Le Gobelin se relève.')]);
   });
 });
@@ -367,14 +367,14 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
         ],
       } as never,
     });
-    banc.getState().ecrireAuJournal('La porte cède.');
+    banc.getState().ecrireAuJournal(ligneDeTexte('La porte cède.'));
     expect(banc.getState().journal).toEqual([ligneDeTexte('La porte cède.')]);
     // Le MONO reste le cas N=1 : seul participant, dé saisi → la ligne porte la mention.
     banc.setState({
       journal: [],
       pendingForceDoor: { participants: [{ id: 'A', interactive: true, fixed: true, result: { roll: 33, target: 45, sl: 1, success: true } }] } as never,
     });
-    banc.getState().ecrireAuJournal('La porte cède.');
+    banc.getState().ecrireAuJournal(ligneDeTexte('La porte cède.'));
     expect(banc.getState().journal).toEqual([{ ...ligneDeTexte('La porte cède.'), deFixe: true }]);
     banc.setState({ pendingForceDoor: null });
   });

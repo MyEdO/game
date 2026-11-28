@@ -239,7 +239,7 @@ import { findSpellById, byId, findCrewRoleById } from '../data/index';
 import { crewRoleValue } from '../engine/crewMorale';
 import { armeDuJetDeRecharge } from './progresEtendu';
 import { nomDe, nomOuAbsence } from '../engine/nom';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /** Re-dérive une attaque FIGÉE avec un jet d'attaquant modifié (Chance +1 DR / Résilience / dé
  *  choisi) : Test opposé si un défenseur a joué, attaque passive sinon — partagé attaque/force.
@@ -2808,7 +2808,7 @@ export function bandeCourante(s: Jeu) {
 /** Ce que l'immunité de `porteur` écarte de son jet de Psychologie ouvert : le malus du Test de scène, que
  *  `openSkillTest` a porté à sa valeur et à sa cible, avec la ligne qui le dit ; sa rangée de la bande, réglée sans dé
  *  (le DR 0 ne sert qu'à faire avancer la bande). `null` : aucun jet à frapper. */
-export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<Jeu, 'pendingTest' | 'pendingCascade'>>; ligne: string | null } | null {
+export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<Jeu, 'pendingTest' | 'pendingCascade'>>; ligne: EntreeDuJournal | null } | null {
   const test = s.pendingTest;
   if (test?.actorId === porteur.id && test.psychMod && test.roll == null) {
     const { target, clamped } = clampTarget(cibleBrute(test) - test.psychMod);
@@ -2820,7 +2820,7 @@ export function jetImmunise(s: Jeu, porteur: Combatant): { patch: Partial<Pick<J
       : candidat);
     return {
       patch: { pendingTest: { ...test, skillValue: value, ...immunite, candidates } },
-      ligne: t('psy.determinationSocial', { name: nomDe(porteur) }),
+      ligne: ligneDeTexte(t('psy.determinationSocial', { name: nomDe(porteur) })),
     };
   }
   const pc = s.pendingCascade;

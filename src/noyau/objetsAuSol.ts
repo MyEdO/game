@@ -5,6 +5,7 @@
  * et retire le décor par le funnel des retraits (`removeEntity`), qui retire l'entrée. Le décor survit au départ de la
  * scène comme toute entité changée en jeu (`SceneMutation.entitesChangees`) ; il s'offre à ramasser par `actionsDe`.
  */
+import { ligneDeTexte } from '../engine/journal';
 import type { Combatant, ItemInstance } from '../engine/types';
 import type { OpsCtx } from '../engine/ops';
 import { itemLabel, laisserTomber } from '../engine/items';
@@ -88,7 +89,7 @@ export function poserLObjet(get: Get, set: Set, uid: string): void {
   const lot: ItemInstance[] = [libre(objet), ...contenu.map((i) => ({ ...i, equipped: false }))];
   set((e) => ecrireLesPorteurs(e, { [porteurId]: (items) => sansLeLot(items, lot) }));
   deposerAuSol(get, set, lot, actif?.pos ?? s.partyPos);
-  journaliser(get, set, [t('pf.poser', { from: nomDuPorteur(porteur), item: itemLabel(objet) })], 'objet', { actorId: porteurId });
+  journaliser(get, set, [ligneDeTexte(t('pf.poser', { from: nomDuPorteur(porteur), item: itemLabel(objet) }))], 'objet', { actorId: porteurId });
 }
 
 /** Dépose seul à la case `pos`, libre, l'objet `objet` qui a déjà quitté son porteur (`laisserTomber`). */
@@ -110,7 +111,7 @@ export function lacherLeBouclierDuBinome(get: Get, set: Set, c: Combatant): void
   if (!bouclier || !c.weapons.includes(bouclier)) return;
   const tombe = laisserTomber(c, bouclier, get().forgerUnId);
   if (tombe) crochetDuSol(get, set).onLacher(c, tombe);
-  get().battle!.log.push(ev('fuite', t('cf.bouclierLacheEnFuyant', { name: nomDe(c), weapon: bouclier.label }), c.id));
+  get().battle!.log.push(ev('fuite', ligneDeTexte(t('cf.bouclierLacheEnFuyant', { name: nomDe(c), weapon: bouclier.label })), c.id));
 }
 
 /** Remet le lot du décor `entityId` au combattant `receveurId` (`avecLeLot` : une Bourse rejoint la sienne) et retire le
@@ -139,5 +140,5 @@ export function ramasserHorsCombat(get: Get, set: Set, entityId: string, key: st
   const refus = refusDeRamasserHorsCombat(get(), entityId, key, receveurId);
   if (refus) return void refuserGeste(get, set, refus);
   const label = ramasserDuSol(get, set, entityId, receveurId!);
-  get().ecrireAuJournal(t('cs.pickup', { name: nomDe(get().party.find((h) => h.id === receveurId)!), label }));
+  get().ecrireAuJournal(ligneDeTexte(t('cs.pickup', { name: nomDe(get().party.find((h) => h.id === receveurId)!), label })));
 }

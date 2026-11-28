@@ -57,10 +57,10 @@ describe('L13 — gates & redirections', () => {
     E.characteristics['force-mentale'] = 30; // cible Accessible 50
     const refused = attackWardGate(E, hero, seq([99]));
     expect(refused.allowed).toBe(false);
-    expect(refused.lines.join(' ')).toMatch(/ne peut se résoudre|Bénédiction de Protection/);
+    expect(refused.lines.map((e) => e.texte).join(' ')).toMatch(/ne peut se résoudre|Bénédiction de Protection/);
     const allowed = attackWardGate(E, hero, seq([5]));
     expect(allowed.allowed).toBe(true);
-    expect(allowed.lines.join(' ')).toMatch(/surmonte/);
+    expect(allowed.lines.map((e) => e.texte).join(' ')).toMatch(/surmonte/);
     const noWard = attackWardGate(E, foes[1] ?? hero, seq([99]));
     if (foes[1]) expect(noWard).toEqual({ allowed: true, lines: [] }); // sans bénédiction : aucun Test
   });

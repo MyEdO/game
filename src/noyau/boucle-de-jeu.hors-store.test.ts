@@ -2681,7 +2681,7 @@ describe('Munitions & rechargement (héros, LDB Armes/Tests)', () => {
     // Voie IA : même pending, même DR réalisé, même nom d'arme → ligne IDENTIQUE (aucun 2ᵉ rédacteur).
     const progress = Math.max(0, pr.progressBefore + pr.sl);
     const ia = FLOWS.rechargement.apply(banc.getState, { p: pr, ctx: { after: progress, weapon: 'Arbalète' } });
-    expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].entree.texte]);
+    expect(ia, 'parité joueur ⇄ IA : une seule déclaration d’issue').toEqual([evs[0].entree]);
   });
 
   it('jetValider@rechargement : un DR insuffisant (Recharge 2) laisse l’arme déchargée et garde le progrès', () => {
