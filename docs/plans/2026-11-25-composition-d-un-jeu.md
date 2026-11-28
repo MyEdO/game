@@ -164,7 +164,7 @@ fichiers de test, la liste des 7 datasets hors du seam et les 63 captures devien
 migrés : une capture à l'import ne compile plus.
 
 Les corrections du juge qui survivent, à reprendre au design neuf :
-- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1911`).
+- `DEFAULT_RACE_ID` est un scalaire de `speciesRace` (`src/data/index.ts:1790`).
 - Un dataset se déclare par la route de son def, puis `npm run gen` (`CLES_DE_DATASET`, `RACINES_VIVANTES`,
   `src/data/racines-vivantes.test.ts:29`).
 - Une lecture de champ est un accesseur, et le mémo sert un vrai calcul.
@@ -224,7 +224,7 @@ hôte compose un catalogue, et il le remet à sa partie.
     et les règles. Son type `Catalogue` est généré des defs.
   - Les variantes sont résolues par `effectiveEntry` sous les règles de la composition.
   - `gatedByRule` ne retire aucune entrée. Il filtre une offre, par `ouvertParSaRegle(entree, cat)`
-    (`src/data/index.ts:1250`), qui reçoit `cat`. Un objet possédé et une carrière tenue restent résolus quand leur
+    (`src/data/index.ts:1129`), qui reçoit `cat`. Un objet possédé et une carrière tenue restent résolus quand leur
     règle se coupe en cours de partie.
   - Recomposer donne une valeur neuve, dont l'identité tient lieu de version.
   - Le coût se mesure au socle. La borne est la remise actuelle, d'environ 50 ms.
@@ -301,9 +301,10 @@ hôte compose un catalogue, et il le remet à sa partie.
     (`catalogueLu('vehicle', 'engin', 'trapping', 'creature')`, `scene.ts:358`). Aucune racine vivante n'atteint
     `sceneEntitySchema` : la déclaration n'ajoute aucun lecteur à `fichiersLisantLeCatalogue('creatures.json')`
     (`src/data/schemas/validate.ts:176`) ;
-  - une lecture non déclarée reste exprimable : `catalogueLu(...)()` rend le `Catalogue` entier. La fermeture par
-    structure revient au lot des pools d'enjeu (#5079), son deuxième cas réel : `catalogueLu` y rend un `Pick` du
-    `Catalogue` sur les seuls fichiers déclarés ;
+  - une lecture non déclarée reste exprimable : `catalogueLu(...)()` rend le `Catalogue` entier. Sa fermeture par
+    structure est le lot qui suit celui des enjeux, dans #5070 (Catalogue en valeur, grammaire) : `catalogueLu` y rend un `Pick` du `Catalogue` sur les
+    seuls fichiers déclarés, et chaque lecture de la chaîne type son `cat` par les fichiers qu'elle lit. La sonde du
+    2026-11-28 rend 16 erreurs aux seuls consommateurs directs ;
   - l'éditeur appelle la même fonction hors parse, sous le catalogue de sa session, par exemple `sceneAvecLEntite`
     (`src/noyau/sceneEdit.ts:1275`), `refusDePoseDesPonts` dans `editer` (`src/noyau/edition/session.ts:1468,1471`) et
     l'inspecteur de l'hôte par `capsDeLaPose` (`src/noyau/sceneEditLecture.ts:494`). Le parse et l'éditeur suivent un
@@ -360,7 +361,12 @@ hôte compose un catalogue, et il le remet à sa partie.
     défaut du fossile 2 pour les appelants du moteur ; `refuserLesIndividus` reçoit le `cat` du raffinement de la
     péripétie de route (`catalogueLu('trait', 'groupe')`, `worldmap.ts:185`) et le passe à `individusNommes`
     (`ciblage.ts:83`) ;
-  - `grammaire/mecanique.ts:17` (`categorieDEntreeAPool`, `trousDeLEnjeu`, les pools du Codex, #5079) ; la Cible tirée
+  - `grammaire/mecanique.ts`, sans lecture de la base : l'enjeu authoré se juge sous `cat` (`trousDeLEnjeu(key, cat)`,
+    `src/data/schemas/catalogue/enjeux.ts:135`), sous `catalogueLu('stakes.json', 'weather.json', 'activity',
+    'psychology', 'maneuver')` (`mecanique.ts:1585`) ; la clé saisie exclut `etat` par son type (`CleDEnjeuSaisie`,
+    `enjeux.ts:44`), et `stakes.json` refuse une catégorie d'entrée sans pool (`categorieAPool`,
+    `defs/stakes.ts:118`). Les pools d'entrées et le foyer de règle restent lus sur la base dans `src/data/index.ts`
+    (famille du Codex, #5079) ; la Cible tirée
     de `grantTrait` lit les rangées de sa table dans `cat` (`GROUPES_TIRABLES`, `collectionDuCatalogue`,
     `mecanique.ts:213,855`), sous `catalogueLu('trait', 'obsessions.json')` (`mecanique.ts:843`) : `catalogueLu`
     déclare un document du `Catalogue` qu'aucun type d'entité ne désigne par sa clé de fichier (`ref.ts:414`) ;
@@ -667,7 +673,7 @@ incompilable et L1 rend le second testable par banc. Les chiffres ci-dessous son
   - `src/noyau/actionRegistry.ts:832` et `:893` ;
   - `src/noyau/monde/aretes.ts:95` ;
   - `src/noyau/marchandEnVue.ts:73` ;
-  - `src/data/index.ts:1464` ;
+  - `src/data/index.ts:1343` ;
   - `src/engine/seaNavigation.ts:57` ;
   - `src/noyau/restFlow.ts:543` ;
   - `projets/roguelite/src/jeu/boutiques.ts:57`.
