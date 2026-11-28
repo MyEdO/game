@@ -22,6 +22,7 @@ import { missileDamage } from '../../engine/magic';
 import { formulaExpectation, applyOps, type GameOp } from '../../engine/ops';
 import { slBonus } from '../../engine/formule';
 import { makeRNG } from '../../engine/dice';
+import { probabiliteDeReussite } from '../../engine/tests';
 import type { SizeCategory } from '../../engine/size';
 import { groupMatch, groupesDe } from '../../engine/groups';
 import { spellOps } from '../../engine/flowCore';
@@ -43,14 +44,15 @@ export const finite = (n: number, fallback = 0): number => (Number.isFinite(n) ?
 
 /**
  * Probabilité de TOUCHER (0..1) d'une attaque, dérivée de la valeur cible RAW (base + modificateurs
- * plafonnés par `combineMods`, comme la résolution) : `P = clamp(target, 5, 95) / 100`. PUR, sans dé.
+ * plafonnés par `combineMods`, comme la résolution) : la réussite du Test à cette cible (`probabiliteDeReussite`).
+ * PUR, sans dé.
  */
 export function hitProbability(attacker: Combatant, target: Combatant, weapon: Weapon, opts: AttackModOpts): number {
   const val = combatValue(attacker, opts.kind, weapon);
   const mods = combineMods(attackModifiers(attacker, target, weapon, opts));
   const targetVal = finite(val + mods, NaN);
   if (!Number.isFinite(targetVal)) return NaN;
-  return Math.max(5, Math.min(95, targetVal)) / 100;
+  return probabiliteDeReussite(targetVal);
 }
 
 /**

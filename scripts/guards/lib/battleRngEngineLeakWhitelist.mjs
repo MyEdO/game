@@ -24,8 +24,7 @@
 // `travelFlow.ts` 1.
 //
 // Entrées PROPRES à ce garde (au-delà de la whitelist sœur), portant leur dette #370 en propre :
-//  - `combatSlice.ts` (cf. ci-dessus) ;
-//  - `shipwreck.ts`, sorti du stock #918 (phase 2a), ne produit AUCUN offender ici (mesuré) — pas d'entrée.
+//  - `combatSlice.ts` (cf. ci-dessus).
 
 import { RACINE_DU_SEAM, ROLL_SEAM_FILE_WHITELIST } from './rollSeamWhitelist.mjs';
 

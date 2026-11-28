@@ -592,13 +592,14 @@ import {
   adversairesDe,
   chooseEnemyAction,
   consumeAiRanking,
+  degatsDeLaFrappe,
   frappeEsperee,
   type EnemyAction,
   type EnemyTurnInput,
   type CastableSpell,
   type AiCandTrace,
 } from './monde/ai';
-import { expectedDamage, finite, HORIZON_DE_BENEFICE, spellActionValue, spellIsOffensive } from './monde/aiSpellValue';
+import { HORIZON_DE_BENEFICE, spellActionValue, spellIsOffensive } from './monde/aiSpellValue';
 import { chargeReach, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
@@ -4908,9 +4909,8 @@ function frapperDeLaSecondeParLaMachine(get: Get, set: SetFn, attacker: Combatan
   const s = get();
   const resolveTrapping = objetDuNarratif(s.campaignNarratif);
   const mpt = sceneMetresPerTile(s.scene);
-  const esperance = (t: Combatant): number => finite(expectedDamage(attacker, t, off, off.type === 'distance'
-    ? { kind: 'distance', distanceTiles: distanceDeLAttaque(s, attacker, t, off), metresPerTile: mpt, resolveTrapping }
-    : { kind: 'melee' }), 0);
+  const ctx = { combattants: s.battle?.combatants ?? [], mpt, resolveTrapping };
+  const esperance = (t: Combatant): number => degatsDeLaFrappe(ctx, attacker, t, off, off.type === 'distance' ? { dist: distanceDeLAttaque(s, attacker, t, off) } : undefined);
   const cible = cibles.reduce((m, t) => (esperance(t) > esperance(m) ? t : m));
   const { res, weapon, victim } = resolveDualSecond(get, attacker, cible, off, jet);
   // Le reste de l'après-coup de la 1ʳᵉ frappe (restitution, gratuites « à la touche ») suit la 2ᵉ.
@@ -9614,17 +9614,24 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   deciderLeTour(get, set, enemy, justMounted);
 }
 
-/** L'IA entre-t-elle en Frénésie à la place de l'Action décidée `b` (#5042, design jugé du 2026-11-27) ? La porte du
- *  joueur l'ouvre (offre `frenesie`), `b` n'est pas un sort, et P·S_A ≥ S_B : P, la réussite du Test de Force Mentale
- *  (`ligneDeFrenesie`) ; S_B, les Blessures espérées de la frappe que l'Action de `b` donne ce tour ; S_A, celles du
- *  combattant frénétique au contact, ou au bout de son meilleur Mouvement seul, Charge comprise (`aiApproachPlan`).
- *  LDB 21 l.31-33 ; LDB 15 l.35 */
+/** Les décisions dont l'Action se remplace par l'entrée en Frénésie : la frappe et l'approche, hors fuite. Amendement du
+ *  design jugé de #5042 (2026-11-27). */
+const DECISIONS_REMPLACABLES_PAR_LA_FRENESIE: ReadonlySet<EnemyAction['kind']> = new Set(['melee', 'tir', 'deplacement']);
+
+/** L'IA entre-t-elle en Frénésie à la place de l'Action décidée `b` (#5042, design jugé du 2026-11-27, amendé) ? La
+ *  porte du joueur l'ouvre (offre `frenesie`), `b` est une frappe ou une approche hors fuite, la Frénésie a une cible
+ *  (`frenzyTarget`), et P·S_A ≥ S_B : P, la réussite du Test de Force Mentale (`ligneDeFrenesie`) ; S_B, les Blessures
+ *  espérées de la frappe que l'Action de `b` donne ce tour ; S_A, celles du combattant frénétique au contact, ou au bout
+ *  de son meilleur Mouvement seul, Charge comprise (`aiApproachPlan`). LDB 21 l.31-35 ; LDB 15 l.35 */
 function entreraitEnFrenesie(get: Get, enemy: Combatant, input: EnemyTurnInput, b: EnemyAction): boolean {
   const s = get();
   const battle = s.battle!;
   if (!actionGate('frenesie', { active: enemy, battle, scene: s.scene, netMode: s.net.mode, gameTime: s.gameTime }).ok) return false;
-  if (b.kind === 'incantation' || b.kind === 'incantationDeZone' || b.kind === 'focalisation') return false;
-  return probabiliteDeReussite(cibleBrute(ligneDeFrenesie(enemy))) * frappeDuFrenetique(get, enemy, input) >= frappeDeLAction(s.scene, battle, input, b);
+  if (!DECISIONS_REMPLACABLES_PAR_LA_FRENESIE.has(b.kind) || (b.kind === 'deplacement' && b.fuite)) return false;
+  const frenetique: Combatant = { ...enemy, psychState: [...(enemy.psychState ?? []), { type: PSY.frenesie }] };
+  const cible = frenzyTarget(get, frenetique);
+  if (!cible) return false;
+  return probabiliteDeReussite(cibleBrute(ligneDeFrenesie(enemy))) * frappeDuFrenetique(get, frenetique, cible, input) >= frappeDeLAction(s.scene, battle, input, b);
 }
 
 /** Les Blessures espérées de la frappe que l'Action de `b` donne ce tour : la frappe décidée, ou celle qui suit
@@ -9638,14 +9645,13 @@ function frappeDeLAction(scene: Scene | null, battle: BattleState, input: EnemyT
   return frappeEsperee(input, { kind: 'melee', targetId: approche.plan.thenTargetId }, approche.plan.to);
 }
 
-/** Les Blessures espérées de la frappe de `enemy` entré en Frénésie, son Action prise : sur la cible que la Frénésie
- *  impose (`frenzyTarget`) déjà au contact, sinon au bout de son Mouvement seul (`frappeDeLAction`). LDB 21 l.33 */
-function frappeDuFrenetique(get: Get, enemy: Combatant, input: EnemyTurnInput): number {
-  const frenetique: Combatant = { ...enemy, psychState: [...(enemy.psychState ?? []), { type: PSY.frenesie }] };
+/** Les Blessures espérées de la frappe de `frenetique`, entré en Frénésie, son Action prise, sur la `cible` que la
+ *  Frénésie lui impose (`frenzyTarget`) : déjà au contact, sinon au bout de son Mouvement seul (`frappeDeLAction`).
+ *  LDB 21 l.33 */
+function frappeDuFrenetique(get: Get, frenetique: Combatant, cible: Combatant, input: EnemyTurnInput): number {
   const battle: BattleState = { ...get().battle!, acted: true };
-  const cible = frenzyTarget(get, frenetique);
   const apres: EnemyTurnInput = { ...input, enemy: frenetique, cibleDeFrenesie: cible, actionPrise: true, memoDesApproches: new Map() };
-  if (cible && distanceDeContact(get().scene, frenetique, cible) <= meleeReachTiles(frenetique.weapons, sceneMetresPerTile(get().scene))) {
+  if (distanceDeContact(get().scene, frenetique, cible) <= meleeReachTiles(frenetique.weapons, sceneMetresPerTile(get().scene))) {
     return frappeEsperee(apres, { kind: 'melee', targetId: cible.id });
   }
   return frappeDeLAction(get().scene, battle, apres, chooseEnemyAction(apres));
@@ -9664,6 +9670,12 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
   // Le classement de la décision jouée (`consumeAiRanking`), relevé à chaque décision : les estimations qui suivent la
   // rejouent (`entreraitEnFrenesie`, `aiApproachPlan`).
   let classement: AiCandTrace[] = [];
+  // La bataille et l'acteur vivants, relus après chaque geste de la boucle : une écriture remplace l'objet du combattant
+  // dont le maximum des Blessures bouge (`transitionDuJeu.ts`), la Frénésie par son Bonus de Force (LDB 21 l.33).
+  const relire = (): void => {
+    battle = get().battle!;
+    enemy = inBattleId(battle, enemy.id) ?? enemy;
+  };
   const choisir = (entree: EnemyTurnInput): EnemyAction => {
     const choisie = chooseEnemyAction(entree);
     classement = consumeAiRanking();
@@ -9726,12 +9738,12 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       if (rienNaBouge(get, enemy, avant)) break;
       if (drainerLesGratuites(get, set, enemy)) return;
     } else break;
+    relire();
     input = buildAiInput(enemy, get);
     if (justMounted) input.movement = 0;
     action = choisir(input);
   }
-  // Le jeu de l'action décidée lit la bataille que la boucle a laissée.
-  battle = get().battle!;
+  relire();
   // TRACE IA (DEV) : SEUL site d'enregistrement, le classement de la décision jouée (`classement`). `top` vide si flag off.
   AI_TURN_LOG.push({ round: battle.round, id: enemy.id, label: enemy.label, action: describeAiAction(action.kind === 'fin' ? pousseeJouee ?? action : action), top: classement });
   if (AI_TURN_LOG.length > 400) AI_TURN_LOG.shift();

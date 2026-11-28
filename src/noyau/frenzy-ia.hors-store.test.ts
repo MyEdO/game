@@ -16,7 +16,11 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import { blessuresDeBase, blessuresSurLeProfil } from '../engine/combattantDeTest.testkit';
 import { heroFaceAUnEnnemi, reluDans } from './combatDeTest.testkit';
-import { actionALaClotureDeLaFrenesie, deDeCombat, jouerLeTourDeLIA } from './ouvertureDuTour.testkit';
+import { actionALaClotureDeLaFrenesie, deDeCombat, franchirLeRound, jouerLeTourDeLIA, lancerLeRoundDu } from './ouvertureDuTour.testkit';
+import { combatAdvanceBlocked } from './combatGate';
+import { hasCondition } from '../engine/conditions';
+import type { Scene } from './monde/scene';
+import { ciblePsy } from '../engine/psych/ciblage';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -61,21 +65,31 @@ describe('Frénésie IA — la cible imposée par la porte du joueur (chooseEnem
   });
 });
 
+/** Le mur plein de la colonne `x` de `scene` : aucune Ligne de Vue ne la traverse. */
+function murPlein(scene: Scene, x: number): Scene {
+  for (let y = 0; y < scene.dimensions.h; y++) (scene.layers[0].tiles as string[])[y * scene.dimensions.w + x] = 'mur';
+  return scene;
+}
+
 /** Le duel du vrai `enc-mutants` : le héros en (4,8), le Mutant capable de Frénésie (trait `frenesie`) à Force
- *  Mentale `fm`, `distance` cases à l'est ; tous les dés de combat posés sur `de` ; le tour de l'IA joué. */
-function tourDuFrenetique(distance: number, fm: number, de: number) {
-  const { H, E } = heroFaceAUnEnnemi(banc, testScene());
+ *  Mentale `fm`, `distance` cases à l'est, sur `scene`, portant l'État `etat` ; tous les dés de combat posés sur `de` ;
+ *  le tour de l'IA joué. */
+function tourDuFrenetique(distance: number, fm: number, de: number, { scene = testScene(), etat }: { scene?: Scene; etat?: string } = {}) {
+  const { H, E } = heroFaceAUnEnnemi(banc, scene);
   H.pos = { x: 4, y: 8 };
   E.pos = { x: 4 + distance, y: 8 };
   E.traits = [...(E.traits ?? []), { id: 'frenesie' }];
   E.characteristics = { ...E.characteristics, 'force-mentale': fm };
+  if (etat) E.conditions = [...E.conditions, { id: etat, value: 1 }];
   banc.setState({ battle: { ...g().battle! } });
   deDeCombat(de);
   const actionALaCloture = actionALaClotureDeLaFrenesie(banc, () => jouerLeTourDeLIA(banc, H.id, E.id));
   const e = reluDans(g, E);
   const log = g().battle!.log.filter((l) => l.actorId === E.id);
   return {
+    H,
     e,
+    log,
     actionALaCloture,
     frenetique: isFrenzied(e),
     charge: log.some((l) => l.kind === 'charge'),
@@ -123,6 +137,44 @@ describe('Frénésie IA — entrée par le geste du joueur, puis le tour continu
     expect(t.charge).toBe(false);
     expect(t.frappe).toBe(false);
     expect(t.e.pos!.x, 'il a marché vers le héros').toBeLessThan(8);
+  });
+
+  it('aucun adversaire en Ligne de Vue (mur plein) : pas de Test, et pas d’Exténué au tour suivant (LDB 21 l.33-35)', () => {
+    const t = tourDuFrenetique(8, 99, 1, { scene: murPlein(testScene(), 8) });
+    expect(t.actionALaCloture, 'aucun Test d’entrée').toBeUndefined();
+    expect(t.frenetique).toBe(false);
+    if (g().pendingDefense) { g().jetLancer('defense'); g().jetValider('defense'); }
+    banc.jusquA((s) => combatAdvanceBlocked(s) || s.battle!.order[s.battle!.turn] !== t.e.id);
+    franchirLeRound(banc, [t.e.id, t.H.id]);
+    lancerLeRoundDu(banc);
+    expect(g().battle!.order[g().battle!.turn], 'son tour suivant s’ouvre').toBe(t.e.id);
+    expect(hasCondition(reluDans(g, t.e), 'extenue'), 'Exténué au tour suivant').toBe(false);
+  });
+
+  it('la Haine d’un allié hors d’atteinte, aucun adversaire en Ligne de Vue : pas de Test (LDB 21 l.33)', () => {
+    const { H, E } = heroFaceAUnEnnemi(banc, murPlein(testScene(), 8));
+    const allie = g().battle!.combatants.find((c) => c.kind === 'ennemi' && c.id !== E.id)!;
+    allie.dead = false;
+    H.pos = { x: 4, y: 8 };
+    E.pos = { x: 9, y: 8 };
+    allie.pos = { x: 21, y: 8 };
+    E.traits = [...(E.traits ?? []), { id: 'frenesie' }];
+    E.characteristics = { ...E.characteristics, 'force-mentale': 99 };
+    E.psychState = [{ type: 'haine', cible: ciblePsy.individu(allie.id), active: true }];
+    banc.setState({ battle: { ...g().battle!, turn: g().battle!.order.indexOf(E.id) } });
+    const b = chooseEnemyAction(buildAiInput(reluDans(g, E), g));
+    expect(b.kind === 'deplacement' && b.thenTargetId, 'il approche sa cible de Haine').toBe(allie.id);
+    banc.setState({ battle: { ...g().battle!, turn: g().battle!.order.indexOf(H.id) } });
+    deDeCombat(1);
+    expect(actionALaClotureDeLaFrenesie(banc, () => jouerLeTourDeLIA(banc, H.id, E.id)), 'aucun Test d’entrée').toBeUndefined();
+    expect(isFrenzied(reluDans(g, E))).toBe(false);
+  });
+
+  it('En flammes à 4 cases : pas de Test, il se roule au sol (LDB 16 l.84)', () => {
+    const t = tourDuFrenetique(4, 99, 1, { etat: 'en-flammes' });
+    expect(t.actionALaCloture, 'aucun Test d’entrée').toBeUndefined();
+    expect(t.frenetique).toBe(false);
+    expect(t.log.some((l) => l.kind === 'etat' && l.etat === 'en-flammes'), 'la libération est jouée').toBe(true);
   });
 
   it('un sort décidé prime : le lanceur capable de Frénésie lance son sort sans entrer', () => {
