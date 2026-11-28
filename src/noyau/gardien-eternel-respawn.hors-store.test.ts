@@ -5,6 +5,7 @@ import { fireScheduledEffects } from './combatEffects';
 import { seedBattleRng } from './battleRng';
 import { MINUTES_PER_DAY } from '../engine/clock';
 import type { Combatant } from '../engine/types';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { Scene } from './monde/scene';
 import { spawnEnemy } from './monde/spawn';
 import { mergeCreatureProfile } from './monde/resolveursDuNarratif';
@@ -36,7 +37,7 @@ const scene = (): Scene => ({ id: 's', name: 's', dimensions: { w: 16, h: 16 }, 
 const battle = (cs: Combatant[]): any => ({ combatants: cs, order: cs.map((c) => c.id), baseOrder: cs.map((c) => c.id), turn: 0, round: 1, log: [], zones: [], over: false });
 
 function harness(over: Record<string, unknown> = {}) {
-  let s: any = { battle: undefined, scene: scene(), flags: {}, scheduledEffects: [], gameTime: 0, journal: [], ecrireAuJournal: (l: string) => { s.journal.push(l); }, ...over };
+  let s: any = { battle: undefined, scene: scene(), flags: {}, scheduledEffects: [], gameTime: 0, journal: [], ecrireAuJournal: (m: EntreeDuJournal | EntreeDuJournal[]) => { s.journal.push(...[m].flat()); }, ...over };
   return { get: () => s, set: (p: any) => { s = { ...s, ...(typeof p === 'function' ? p(s) : p) }; }, state: () => s };
 }
 

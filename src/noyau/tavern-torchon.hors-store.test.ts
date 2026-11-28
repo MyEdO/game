@@ -45,7 +45,7 @@ const recit: string[] = [];
 function capterLeRecit(): void {
   recit.length = 0;
   banc.setState({
-    ecrireAuJournal: (msg: Parameters<JeuDuNoyau['ecrireAuJournal']>[0]) => { for (const x of Array.isArray(msg) ? msg : [msg]) recit.push(typeof x === 'string' ? x : x.texte); PUITS(msg); },
+    ecrireAuJournal: (msg: Parameters<JeuDuNoyau['ecrireAuJournal']>[0]) => { recit.push(...[msg].flat().map((e) => e.texte)); PUITS(msg); },
   } as never);
 }
 
