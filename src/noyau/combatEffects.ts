@@ -185,7 +185,7 @@ import { campAdvantageHooks, creditOpposingAdvantage } from './combat/advantageP
 import { poserLeGroupe } from './marcheDuGroupe';
 import { emporterLesObjets, normaliserLesAppuis } from './monde/poseDuDecor';
 import { nomDe } from '../engine/nom';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 /**
  * Effets de scène/campagne (`Effect[]`) appliqués par le store : le grand `applyEffects`
@@ -231,7 +231,7 @@ export function pushReveal(
     (s) => (sequenceDuPiloteAContexteHorsCombat(s) ? site : revealPurpose(site, !!opts?.own)(s)));
 }
 
-/** Vide la file de lignes de journal différées (`pendingLogQueue`) → événements de combat. SOURCE
+/** Vide la file d'entrées de journal différées (`pendingLogQueue`) → événements de combat. SOURCE
  *  UNIQUE : appelée JUSTE AVANT chaque couture qui réécrit `battle.log` (le `set` y replace `log` →
  *  les lignes poussées par un hook profond — `onGainCondition` ennemi/auto — seraient sinon clobberées).
  *  Clôt la file (set) et RENVOIE les événements pour que l'appelant les FOLDE dans le MÊME `log` réécrit
@@ -240,13 +240,13 @@ export function drainPendingLog(get: Get, set: SetFn): CombatEvent[] {
   const q = get().pendingLogQueue;
   if (!q.length) return [];
   set({ pendingLogQueue: [] });
-  return q.map((e) => ev('detail', e.line, e.cid));
+  return q.map((e) => ev('detail', e.entree, e.cid));
 }
 
-/** Pousse les lignes d'un émetteur profond dans la file différée : SEUL écrivain de `pendingLogQueue`, que
+/** Pousse les entrées d'un émetteur profond dans la file différée : SEUL écrivain de `pendingLogQueue`, que
  *  `drainPendingLog` vide. */
-export function enfilerAuJournal(get: Get, set: SetFn, lines: string[], cid: string): void {
-  if (lines.length) set({ pendingLogQueue: [...get().pendingLogQueue, ...lines.map((line) => ({ line, cid }))] });
+export function enfilerAuJournal(get: Get, set: SetFn, entrees: readonly EntreeDuJournal[], cid: string): void {
+  if (entrees.length) set({ pendingLogQueue: [...get().pendingLogQueue, ...entrees.map((entree) => ({ entree, cid }))] });
 }
 
 /** Pousse une ÉTAPE de séquence de combat déjà MINTÉE (`BuiltCascadeStep` — un constructeur de la
@@ -593,7 +593,7 @@ export function nePeutPasDifferer(applique: SignalDeSuite, site: string): void {
  *  inconnue, coque absente au contexte) AVANT qu'aucune op de la feuille ne s'applique — une feuille
  *  qu'on ne sait pas annoncer entièrement ne s'applique pas à moitié. Même politique que le `case`
  *  correspondant du moteur, qui levait déjà au même endroit. */
-export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): string[] | typeof MAIN_RENDUE {
+export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: EffectOp, base: OpsCtx): EntreeDuJournal[] | typeof MAIN_RENDUE {
   const e = structuredClone(feuille); // #2097
   const now = base.now ?? get().gameTime;
   const ctx = leafOpsCtx({
@@ -616,7 +616,7 @@ export function applyLeafOps(get: Get, set: SetFn, c: Combatant, feuille: Effect
   const avant = comptePorteursDeSuite(get());
   const lignes = applyOps(c, rest, ctx).lignes;
   if (!get().battle) lignes.push(...drainPendingLog(get, set).map((e) => e.entree));
-  if (comptePorteursDeSuite(get()) <= avant) return lignes.map((e) => e.texte);
+  if (comptePorteursDeSuite(get()) <= avant) return lignes;
   set(touchActors(get()));
   journaliser(get, set, lignes, 'etat', { actorId: c.id });
   return MAIN_RENDUE;
@@ -1451,7 +1451,7 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
 export interface EffectEnv {
   get: Get;
   set: SetFn;
-  log(line: string): void;
+  log(ligne: string | EntreeDuJournal): void;
   pushReveal(entry: RevealEntry): void;
   /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetValider('test')`/`pt.sl`, symétrique de
    *  `opsCtx.sl` en combat, `testDeclenche.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
@@ -1485,7 +1485,7 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): Effec
     set,
     sl,
     label,
-    log: (line) => get().ecrireAuJournal(line),
+    log: (ligne) => get().ecrireAuJournal(ligne),
     pushReveal: (entry) => pushReveal(set, entry),
     targets: (on, heroId) => effectTargets(get, on, heroId),
     hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
@@ -1933,7 +1933,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const feuille = e.pendantJours == null ? e : avecDureeTiree(env, e, e.pendantJours, targets[0], base.rng);
       // Une cible dont la feuille part à la PORTE (#1508) n'a pas de ligne ICI : sa conséquence se dit
       // à la résolution de son dé. Les autres s'appliquent normalement, dans l'ordre des cibles.
-      const lines: string[] = [];
+      const lines: EntreeDuJournal[] = [];
       for (const c of targets) {
         const issue = applyLeafOps(env.get, env.set, c, feuille, { idNeuf: env.get().forgerUnId, ...base, ...campAdvantageHooks(env.get), ...crochetDuSol(env.get, env.set) });
         if (issue !== MAIN_RENDUE) lines.push(...issue);
@@ -2224,7 +2224,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const apres = { ...cible };
       const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf: env.get().forgerUnId, rng: battleRng() }).lignes;
       env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
-      for (const l of lines) env.log(l.texte);
+      for (const l of lines) env.log(l);
     },
   },
   waterExposure: {

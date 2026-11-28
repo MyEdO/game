@@ -38,8 +38,8 @@ export function emitCombatEvent(event: EffectTrigger, ctx: CombatEventCtx): numb
   const audience = ctx.audience ?? (ctx.self ? [ctx.self] : []);
   const exercices = { n: 0 };
   for (const actor of audience) {
-    for (const line of fireTriggers(ctx.get, actor, event, { ...ctx.triggerCtx, set: ctx.set, exercices })) {
-      ctx.sink(line, actor);
+    for (const entree of fireTriggers(ctx.get, actor, event, { ...ctx.triggerCtx, set: ctx.set, exercices })) {
+      ctx.sink(entree, actor);
     }
   }
   return exercices.n;

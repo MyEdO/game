@@ -98,7 +98,7 @@ describe('#4911 — les États posés à 0 Blessure ont leur ligne', () => {
     const h = hardi();
     h.wounds.current = 1;
     h.activeEffects = [{ label: 'Ombres étrangleuses', bonus: 0, duration: { scale: 'rounds', left: 8 }, suffocates: true }];
-    expect(suffocationTick(h)).toEqual([
+    expect(suffocationTick(h).map((e) => e.texte)).toEqual([
       'Hardi suffoque (−1 PB).',
       'Hardi reçoit 1 État À Terre.',
       'Hardi reçoit 1 État Inconscient.',
@@ -110,7 +110,7 @@ describe('#4911 — les États posés à 0 Blessure ont leur ligne', () => {
     const h = hardi();
     h.wounds.current = 0;
     h.activeEffects = [{ label: 'Ombres étrangleuses', bonus: 0, duration: { scale: 'rounds', left: 8 }, suffocates: true }];
-    expect(suffocationTick(h)).toEqual(['Hardi reçoit 1 État Inconscient.', 'Hardi suffoque — mort dans 4 Round(s).']);
+    expect(suffocationTick(h).map((e) => e.texte)).toEqual(['Hardi reçoit 1 État Inconscient.', 'Hardi suffoque — mort dans 4 Round(s).']);
   });
 
   it('Oups ! « se blesse » : la Blessure perdue emporte l’Avantage (LDB 14 l.219)', () => {

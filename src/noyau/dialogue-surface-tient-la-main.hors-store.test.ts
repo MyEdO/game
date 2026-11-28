@@ -9,6 +9,7 @@
  * répond.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -92,7 +93,7 @@ describe('conversationRepond — une surface qui tient la main suspend la conver
   });
 
   it('file de journal ou commande d’interlude en souffrance : aucune surface, elle répond', () => {
-    temoin({ pendingLogQueue: [{ line: 'x' }], pendingOrders: [{ heroId: 'h', trappingId: 't' }] });
+    temoin({ pendingLogQueue: [{ entree: ligneDeTexte('x') }], pendingOrders: [{ heroId: 'h', trappingId: 't' }] });
     expect(repond()).toBe(true);
   });
 });

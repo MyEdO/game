@@ -32,6 +32,7 @@ import { purgeExpiredSummons } from '../summonFlow';
 import { fireTriggers } from '../triggeredEffects';
 import { drainPendingLog } from '../combatEffects';
 import { emitCombatEvent } from '../combatEvents';
+import type { CombatHookCtx } from '../combatHooks';
 import { inBattleId } from '../monde/combatants';
 import { collectRoundEndTestSteps } from './triggeredTest';
 import { touchActors } from '../combatOrParty';
@@ -67,14 +68,14 @@ const RESISTANCE: TestDesigne = { skill: { id: 'resistance' } };
 // ============================================================================================
 
 /** DÉBUT DE ROUND, chemin UNIQUE du Round 1 (`lancerLeCombat`) et du franchissement (crochet `fire-round-start-triggers`) :
- *  pour chaque combattant en action, `onRoundStart` émis par le bus (#316) pour lui seul, puis les lignes que ses Flows ont
+ *  pour chaque combattant en action, `onRoundStart` émis par le bus (#316) pour lui seul, puis les entrées que ses Flows ont
  *  mises en file différée (`enfilerAuJournal`) — le journal suit l'ordre des porteurs. Un hors-combat n'y réagit pas : le
  *  dispatcher autorise `on:'soi'` sur un hors-combat. */
-export function fireRoundStartTriggers(get: Get, set: SetFn, battle: BattleState, sink: (line: string, c?: Combatant) => void): void {
+export function fireRoundStartTriggers(get: Get, set: SetFn, battle: BattleState, sink: CombatHookCtx['sink']): void {
   for (const c of battle.combatants) {
     if (isOutOfAction(c)) continue;
     emitCombatEvent('onRoundStart', { get, set, battle, audience: [c], sink, triggerCtx: { rng: battleRng() } });
-    for (const e of drainPendingLog(get, set)) sink(e.entree.texte, inBattleId(battle, e.actorId ?? '') ?? c);
+    for (const e of drainPendingLog(get, set)) sink(e.entree, inBattleId(battle, e.actorId ?? '') ?? c);
   }
 }
 
@@ -244,7 +245,7 @@ export const TABLES = {
       }
       const lines = resolvePlusExtension(hero, effect, false);
       set(touchActors(get()));
-      return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: lines, faits: [] } };
     },
     /** Étape-JET « Durée + » (LDB 47 l.311, #543) — Test de Force Mentale poussé par `sortProlongeChoix` sur
      *  « Oui » : succès → +1 Round (dégelé) ; échec → expiration NORMALE. Fonction PARTAGÉE avec la
@@ -255,7 +256,7 @@ export const TABLES = {
       if (!effect) return;
       const lines = resolvePlusExtension(hero, effect, step.result.success);
       set(touchActors(get()));
-      return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: lines, faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   crochetsDeCombat: [
@@ -271,7 +272,7 @@ export const TABLES = {
         const { forgerUnId, campaignNarratif } = get();
         const resolveTrapping = objetDuNarratif(campaignNarratif);
         for (const c of battle.combatants) {
-          endOfRound(c, battleRng(), forgerUnId, resolveTrapping).forEach((l) => sink(l, c)); // machinerie : ops récurrentes + décrément des durées
+          endOfRound(c, battleRng(), forgerUnId, resolveTrapping).forEach((e) => sink(e, c)); // machinerie : ops récurrentes + décrément des durées
           // Dispatch UNIQUE des effets `onRoundEnd` (États : dégâts/dissipation ; Traits/Talents : réactions) —
           // fireTriggers réunit toutes les sources, aucun chemin par-kind. Inerte sans donnée. Pas de réaction
           // de fin de Round pour un combattant HORS COMBAT (un cadavre ne brûle/saigne plus — le dispatcher
@@ -282,7 +283,7 @@ export const TABLES = {
           // pour un porteur SURFACÉ (`surfaceOf` : un siège humain QUELCONQUE le tient, cadence manuelle) n'est
           // PAS poussé ici (la cascade de fin de Round n'est pas encore ouverte) — il est COLLECTÉ par
           // `collectHeroRoundEndUpkeep`. Ce que personne ne tient (IA, cadence auto) : résolu inline par le dispatcher.
-          if (!isOutOfAction(c)) fireTriggers(get, c, 'onRoundEnd', { rng: battleRng(), set, deferInteractiveTest: true }).forEach((l) => sink(l, c));
+          if (!isOutOfAction(c)) fireTriggers(get, c, 'onRoundEnd', { rng: battleRng(), set, deferInteractiveTest: true }).forEach((e) => sink(e, c));
           // Durée « + » (LDB 47 l.311) : effets GELÉS par `tickDurations` (spell source marqué). PNJ/auto —
           // arbitrage d'implémentation : l'IA prolonge SYSTÉMATIQUEMENT ses propres buffs (elle tente le Test
           // de Force Mentale à chaque offre) — résolu INLINE ici. Porteur SURFACÉ (`surfaceOf` : un siège humain
@@ -312,7 +313,7 @@ export const TABLES = {
         for (const c of battle.combatants) {
           if (c.kind !== 'heros' || isOutOfAction(c) || !hasSecondeVue(c)) continue;
           const res = rollTest({ porteur: c.id, teste: PERCEPTION }, testValue(c, PERCEPTION), 'facile', battleRng());
-          if (res.success) { revealed = true; sink(t('cs.windsOfMagicSeen', { name: nomDe(c) }), c); }
+          if (res.success) { revealed = true; sink(ligneDeTexte(t('cs.windsOfMagicSeen', { name: nomDe(c) })), c); }
         }
         battle.windsOfMagic = { roll, mod, revealed };
       },
@@ -367,7 +368,7 @@ export const TABLES = {
           const surnombre = surnombreSubi(battle.combatants, c);
           if (!surnombre) continue;
           c.advantage = avantageApresPerte(c.advantage, 1);
-          sink(t('turn.outnumbered', { name: nomDe(c), foes: surnombre.attaquants, allies: surnombre.defenseurs }), c);
+          sink(ligneDeTexte(t('turn.outnumbered', { name: nomDe(c), foes: surnombre.attaquants, allies: surnombre.defenseurs })), c);
         }
       },
     },
@@ -377,7 +378,7 @@ export const TABLES = {
       id: 'tick-death', // LDB 18 l.15, dans les deux modes : #1595 c.6219559935
       phase: 'onRoundEnd',
       order: 76,
-      run: ({ battle, sink }) => { for (const c of battle.combatants) tickDeath(c).forEach((l) => sink(l, c)); },
+      run: ({ battle, sink }) => { for (const c of battle.combatants) tickDeath(c).forEach((e) => sink(e, c)); },
     },
     {
       // AA 07 l.5, en plus du décompte de `tick-death` (LDB 18 l.15 ; #1595 c.6219559935), qui passe avant (76).
@@ -394,7 +395,7 @@ export const TABLES = {
           if (!aaBleedUnconsciousDue(c) || surfaceOf(get, c.id)) continue; // porteur surfacé → étape de cascade (MIROIR du collecteur)
           const res = rollSansPilote(get, c, RESISTANCE, testValue(c, RESISTANCE), 'intermediaire', battleRng());
           const line = aaBleedUnconsciousApply(c, res.success);
-          if (line) sink(line, c);
+          if (line) sink(ligneDeTexte(line), c);
         }
       },
     },
@@ -413,7 +414,7 @@ export const TABLES = {
         for (const c of battle.combatants) {
           const bd = bleedDeathRoll(c, battleRng());
           if (bd.died) doomed.push({ id: c.id, deathLine: bd.log[0] }); // annonce différée (après le jet de Destin)
-          else bd.log.forEach((l) => sink(l, c)); // survie ou coagulation (double : retrait + éventuel Exténué), visible de suite
+          else bd.log.forEach((l) => sink(ligneDeTexte(l), c)); // survie ou coagulation (double : retrait + éventuel Exténué), visible de suite
         }
         battle.bleedDoomed = doomed.length ? doomed : undefined;
       },
@@ -426,7 +427,7 @@ export const TABLES = {
       id: 'finger-loss-escalation',
       phase: 'onRoundEnd',
       order: 76.7,
-      run: ({ battle, sink }) => { for (const c of battle.combatants) tickTraumaEscalation(c).forEach((l) => sink(l, c)); },
+      run: ({ battle, sink }) => { for (const c of battle.combatants) tickTraumaEscalation(c).forEach((l) => sink(ligneDeTexte(l), c)); },
     },
     {
       // Noyade et Suffocation (LDB 18 l.345-346) : MACHINERIE environnementale UNIVERSELLE — la règle de mort
@@ -436,7 +437,7 @@ export const TABLES = {
       id: 'suffocation-tick',
       phase: 'onRoundEnd',
       order: 78,
-      run: ({ battle, sink }) => { for (const c of battle.combatants) suffocationTick(c).forEach((l) => sink(l, c)); },
+      run: ({ battle, sink }) => { for (const c of battle.combatants) suffocationTick(c).forEach((e) => sink(e, c)); },
     },
     {
       id: 'zones-round-tick', // zones perRound (Grands feux d'U'Zhul, LDB 47 : « au début d'un Round »)
@@ -445,7 +446,7 @@ export const TABLES = {
       run: ({ get, battle, sink }) => {
         const { forgerUnId, campaignNarratif } = get();
         zonesRoundTick(battle.zones, battle.combatants, battleRng(), forgerUnId, objetDuNarratif(campaignNarratif))
-          .forEach((t) => sink(t.line, t.combatant));
+          .forEach((t) => sink(t.entree, t.combatant));
       },
     },
     {
@@ -461,7 +462,7 @@ export const TABLES = {
       id: 'purge-expired-summons', // invocations à durée écoulée OU lanceur tombé ; round = battle.round+1 (set après le dispatch)
       phase: 'onRoundEnd',
       order: 79.5,
-      run: ({ battle, sink }) => { purgeExpiredSummons(battle, battle.round + 1).forEach((l) => sink(l)); },
+      run: ({ battle, sink }) => { purgeExpiredSummons(battle, battle.round + 1).forEach((e) => sink(e)); },
     },
     {
       id: 'se-fatiguer',
@@ -479,7 +480,7 @@ export const TABLES = {
           if (surfaceOf(get, c.id)) continue;
           const t = rollSansPilote(get, c, RESISTANCE, testValue(c, RESISTANCE), 'intermediaire', battleRng());
           const line = fatigueApply(c, t.success, t.sl);
-          if (line) sink(line, c);
+          if (line) sink(ligneDeTexte(line), c);
         }
       },
     },

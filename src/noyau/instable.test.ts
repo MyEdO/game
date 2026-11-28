@@ -45,7 +45,7 @@ describe('Instable — perte de PB = écart d’Avantage avec l’adversaire Eng
     const lines = roundEnd(battle([z, h]) as never, z);
     expect(z.wounds.current).toBeLessThanOrEqual(0);
     expect(z.dead).toBe(true);
-    expect(lines.join(' ')).toMatch(/délite/i);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/délite/i);
   });
   it('créature SANS Instable → inerte (pas de perte relationnelle)', () => {
     const z = mk({ traits: [{ id: 'bestial' }] as never, advantage: 0, engagedWith: ['h'] as never });

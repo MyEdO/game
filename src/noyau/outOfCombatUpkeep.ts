@@ -15,6 +15,7 @@ import { objetDuNarratif } from './monde/resolveursDuNarratif';
 import type { Get, Set } from './flowTypes';
 import { nomDe } from '../engine/nom';
 import { TIME_COST } from '../engine/timeCost';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 interface EffetDEtatEnFinDeRound {
   effet: TriggeredEffect;
@@ -49,16 +50,16 @@ function faitPasserUnRound(c: Combatant): boolean {
     || (c.castPenalties ?? []).some((p) => p.roundsLeft != null);
 }
 
-function direLEntretien(get: Get, set: Set, c: Combatant, lignes: string[]): void {
-  journaliser(get, set, [...lignes, ...drainPendingLog(get, set).map((event) => event.entree.texte)], 'etat', { actorId: c.id });
+function direLEntretien(get: Get, set: Set, c: Combatant, lignes: readonly EntreeDuJournal[]): void {
+  journaliser(get, set, [...lignes, ...drainPendingLog(get, set).map((event) => event.entree)], 'etat', { actorId: c.id });
 }
 
 /** LDB 16 l.105 ; LDB 18 l.15 */
-function traiterLAgonie(c: Combatant): string[] {
+function traiterLAgonie(c: Combatant): EntreeDuJournal[] {
   const { died, log } = bleedDeathRoll(c, battleRng());
-  if (!died) return [...log, ...tickDeath(c)];
+  if (!died) return [...log.map((l) => ligneDeTexte(l)), ...tickDeath(c)];
   const nom = fateSaveOrDie(c) ? 'upkeep.fateSaved' : 'upkeep.succumb';
-  return [...log, t(nom, { name: nomDe(c) })];
+  return [...log, t(nom, { name: nomDe(c) })].map((l) => ligneDeTexte(l));
 }
 
 /** Les Rounds que `minutes` font passer hors combat, joués par l'entretien du groupe. */

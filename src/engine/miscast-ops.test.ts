@@ -47,7 +47,7 @@ describe('castPenalty — pénalités/blocages temporisés', () => {
     expect(castingValue(c, incantationArcane())).toBe(base - 10); // round 1 restant
     const log = endOfRound(c, makeRNG(1), idsDeTest);
     expect(castingValue(c, incantationArcane())).toBe(base); // expiré
-    expect(log.join('\n')).toMatch(/Langue maladroite se dissipe/);
+    expect(log.map((e) => e.texte).join('\n')).toMatch(/Langue maladroite se dissipe/);
   });
 
   it('blocage : « Vous abusez de ma patience » interdit les Tests de Prière', () => {

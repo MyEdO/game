@@ -325,7 +325,7 @@ describe('Affamé — Test de trigger onKill routé (cadence-aware)', () => {
     const live = banc.getState().battle!.combatants.find((c) => c.id === hungry.id)!;
     expect(live.loseNextAction).toBe(true);   // échec FM → festoie (op loseTurn)
     expect(live.loseNextMovement).toBe(true);
-    expect(banc.getState().pendingLogQueue.some((q) => /Force Mentale/.test(q.line))).toBe(true);
+    expect(banc.getState().pendingLogQueue.some((q) => /Force Mentale/.test(q.entree.texte))).toBe(true);
   });
 });
 

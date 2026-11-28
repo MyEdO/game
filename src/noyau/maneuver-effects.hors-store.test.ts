@@ -129,7 +129,7 @@ describe('Hurlement fantomatique — Test de trigger enfoui routé (cadence-awar
     expect(step.actorId).toBe(H.id);
     expect(step.result).toBeFalsy();        // pas encore lancé → influençable
     expect(step.meta?.after).toBeTruthy();  // la continuation (3 Assourdi) voyage dans le meta (sérialisable)
-    expect(banc.getState().pendingLogQueue.some((q) => /Blessure/.test(q.line))).toBe(true); // 1d10 déjà subi
+    expect(banc.getState().pendingLogQueue.some((q) => /Blessure/.test(q.entree.texte))).toBe(true); // 1d10 déjà subi
 
     banc.getState().jetLancer('cascade', step.id);
     banc.getState().jetValider('cascade');

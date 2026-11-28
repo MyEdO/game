@@ -30,7 +30,7 @@ describe('Démoniaque — banni à la mort (op `banish` en DONNÉE, déclenché 
     const demon = mk({ traits: [{ id: 'demoniaque', value: 8 }] as never, wounds: blessuresDeBase(12, 6), dead: true as never });
     const lines = slain(demon);
     expect(demon.dead).toBe(true);
-    expect(lines.join(' ')).toMatch(/banni/i); // narration de bannissement émise même PB > 0
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/banni/i); // narration de bannissement émise même PB > 0
   });
   it('réduit à 0 PB → banni (dead)', () => {
     const demon = mk({ traits: [{ id: 'demoniaque', value: 8 }] as never });
@@ -39,7 +39,7 @@ describe('Démoniaque — banni à la mort (op `banish` en DONNÉE, déclenché 
   });
   it('créature SANS Démoniaque mise hors de combat → inerte (pas de bannissement)', () => {
     const mortal = mk({ traits: [{ id: 'bestial' }] as never, dead: true as never });
-    expect(slain(mortal).join(' ')).not.toMatch(/banni/i);
+    expect(slain(mortal).map((e) => e.texte).join(' ')).not.toMatch(/banni/i);
   });
 });
 

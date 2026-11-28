@@ -1090,7 +1090,7 @@ function appliquerLActivite(get: Get, set: Set): void {
   // (`routeTriggeredTest` hors combat), jamais inline (« un jet = une modale » vaut hors combat) ; la modale
   // ouverte ici SURVIT à l'écriture interlude/party finale (clés disjointes). PNJ/auto → inline (early-out sinon).
   if (!pa.success) {
-    lines.push(...fireOwnTestFailed(get, pa.heroId, { sl: pa.sl, rng: battleRng(), set }));
+    lines.push(...fireOwnTestFailed(get, pa.heroId, { sl: pa.sl, rng: battleRng(), set }).map((e) => e.texte));
     lines.push(...drainPendingLog(get, set).map((e) => e.entree.texte));
   }
   // Écriture UNIQUE : consomme l'Activité + fusionne closeOps différés + patch des résolveurs.

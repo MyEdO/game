@@ -672,11 +672,11 @@ export interface EtatDeJeu {
   pendingCleave: PendingCleave | null;
   /** Maniement de deux armes : sélection de la 2ᵉ cible (après une 1ʳᵉ frappe réussie). */
   pendingDualStrike: PendingDualStrike | null;
-  /** File de LIGNES de journal de combat différées (hors `battle.log`) : un hook profond (ex.
+  /** File d'ENTRÉES de journal de combat différées (hors `battle.log`) : un hook profond (ex.
    *  `onGainCondition` ennemi/auto, déclenché AVANT le `set` final qui remplace `battle.log`) y pousse
-   *  ses lignes ; `drainPendingLog` les déverse dans le MÊME `set` atomique qui réécrit `battle.log`
+   *  ses entrées ; `drainPendingLog` les déverse dans le MÊME `set` atomique qui réécrit `battle.log`
    *  (bon ordre, zéro clobber). `cid` = combattant concerné (couleur/portrait du feed). */
-  pendingLogQueue: { line: string; cid?: string }[];
+  pendingLogQueue: { entree: EntreeDuJournal; cid?: string }[];
   /** File d'effets PROGRAMMÉS (minuteries `delayedEffect`) — déclenchés au franchissement de
    *  leur échéance dans `avancerLeTemps`. */
   scheduledEffects: ScheduledEffect[];

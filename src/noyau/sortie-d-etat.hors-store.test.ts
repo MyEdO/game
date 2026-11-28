@@ -107,7 +107,7 @@ describe('chaque voie de retrait traverse la même sortie', () => {
     const c = porteur([{ id: 'sonne', value: 1, roundsLeft: 1 }]);
     const lignes = tickDurations(c);
     expect(portes(c)).toEqual({ extenue: 1 });
-    expect(lignes).toContain(ligneDePose(c, 'extenue'));
+    expect(lignes.map((e) => e.texte)).toContain(ligneDePose(c, 'extenue'));
   });
 
   it('pion porté qui tombe : l’État que portait l’effet retiré pose sa sortie', () => {

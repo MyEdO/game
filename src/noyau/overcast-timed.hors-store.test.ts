@@ -41,7 +41,7 @@ describe('États à durée (ConditionInstance.roundsLeft)', () => {
     expect(hasCondition(c, 'sonne')).toBe(true);
     const log = endOfRound(c, makeRNG(1), idsDeTest);
     expect(hasCondition(c, 'sonne')).toBe(false);
-    expect(log.join('\n')).toMatch(/Sonné \(sort\) se dissipe/);
+    expect(log.map((e) => e.texte).join('\n')).toMatch(/Sonné \(sort\) se dissipe/);
   });
 
   it('un ajout NON temporisé efface la durée (on n\'écourte jamais un État normal)', () => {

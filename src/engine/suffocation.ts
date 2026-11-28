@@ -42,6 +42,7 @@ import { offTerrainSuffocates } from './ops';
 import { itemCapability } from './capabilities';
 import { t } from '../i18n';
 import { nomDe } from './nom';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 
 /** Une main porte-t-elle un contenant d'eau (Outre à eau, LDB 64 l.35 / Seau, LDB 67 l.59) ? Capacité par-OBJET
  *  `waterContainer`, NON gatée sur le port — on le sort du sac pour asperger, comme `isRation`
@@ -86,7 +87,7 @@ function perdreConnaissance(c: Combatant, a: Applique): void {
 }
 
 /** Tick de fin de Round d'un combattant qui suffoque. Mute `c`, retourne le journal. */
-export function suffocationTick(c: Combatant): string[] {
+export function suffocationTick(c: Combatant): EntreeDuJournal[] {
   if (c.dead || c.outOfRencontre) return [];
   // Contre-mesure MAISON « aspergée d'eau » (MDG 16 l.19) : immunise CE Round, puis se consomme —
   // à reposer chaque Round pour rester immunisé (« régulièrement »).
@@ -103,20 +104,20 @@ export function suffocationTick(c: Combatant): string[] {
   // Rétention de souffle (l.346) : tant que le crédit dure, aucune Blessure perdue — on l'entame.
   if ((c.breathHoldSeconds ?? 0) > 0) {
     c.breathHoldSeconds = Math.max(0, c.breathHoldSeconds! - secondsPerRound());
-    return [c.breathHoldSeconds > 0
+    return [ligneDeTexte(c.breathHoldSeconds > 0
       ? t('suff.holding', { name: nomDe(c), s: c.breathHoldSeconds })
-      : t('suff.noAir', { name: nomDe(c) })];
+      : t('suff.noAir', { name: nomDe(c) }))];
   }
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   const be = bonus(effectiveChar(c, 'endurance'));
   const consequences: Applique = { lignes: [], faits: [] };
   if (c.wounds.current > 0) {
     loseWounds(c, 1, consequences);
-    lines.push(t('suff.lose', { name: nomDe(c) }));
+    lines.push(ligneDeTexte(t('suff.lose', { name: nomDe(c) })));
     if (c.wounds.current <= 0) {
       perdreConnaissance(c, consequences);
       c.suffocationCountdown = be;
-      lines.push(...consequences.lignes.map((e) => e.texte), t('suff.faints', { name: nomDe(c), n: be }));
+      lines.push(...consequences.lignes, ligneDeTexte(t('suff.faints', { name: nomDe(c), n: be })));
     }
     return lines;
   }
@@ -124,12 +125,12 @@ export function suffocationTick(c: Combatant): string[] {
   if (c.suffocationCountdown == null) {
     perdreConnaissance(c, consequences);
     c.suffocationCountdown = be;
-    lines.push(...consequences.lignes.map((e) => e.texte), t('suff.unconscious', { name: nomDe(c), n: be }));
+    lines.push(...consequences.lignes, ligneDeTexte(t('suff.unconscious', { name: nomDe(c), n: be })));
     return lines;
   }
   c.suffocationCountdown -= 1;
-  lines.push(c.suffocationCountdown <= 0
+  lines.push(ligneDeTexte(c.suffocationCountdown <= 0
     ? t('suff.dies', { name: nomDe(c) })
-    : t('suff.countdown', { name: nomDe(c), n: c.suffocationCountdown }));
+    : t('suff.countdown', { name: nomDe(c), n: c.suffocationCountdown })));
   return lines;
 }

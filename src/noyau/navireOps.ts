@@ -394,7 +394,7 @@ export function appliquerAuNavire(get: Get, set: Set, e: EffectOp, base: OpsCtx)
     if (!pures.length) return;
     const issue = applyLeafOps(get, set, coque, { ...e, ops: pures }, ctx);
     if (issue === MAIN_RENDUE) throw new Error(`#1652 — une op à dé ouvert à la porte vise le navire (${pures.map((o) => o.op).join(', ')}) : son applier ne retrouverait pas la coque.`);
-    lignes.push(...issue);
+    lignes.push(...issue.map((e) => e.texte));
     pures = [];
     persister();
   };
