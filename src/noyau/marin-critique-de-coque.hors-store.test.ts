@@ -1,5 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import type { Combatant, Weapon } from '../engine/types';
 import { evaluateMissile, type CastResult } from '../engine/magic';
@@ -54,10 +54,10 @@ const SEED_LETAL = 37;
 const enJeu = (id: string): Combatant => banc.getState().battle!.combatants.find((c) => c.id === id)!;
 
 /** Le Critique de coque à l'Équipage (d100 de Localisation imposé à 5, MDG 13), porté par `coup`. */
-const critiqueDEquipage = (seed: number, attaquant: Combatant, nav: Combatant, marin: Combatant, coup: CoupDeTouche): string[] => {
+const critiqueDEquipage = (seed: number, attaquant: Combatant, nav: Combatant, marin: Combatant, coup: CoupDeTouche): EntreeDuJournal[] => {
   poser([attaquant, nav, marin]);
   seedBattleRng(seed);
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   applyHullCriticalToTarget(nav, 'voile', log, banc.setState, {
     get: banc.getState, forcedLocRoll: 5, suppressReveal: true,
     ctx: { attackerId: attaquant.id, attackerKind: attaquant.kind, weapon: 'Hache', coup },
@@ -86,8 +86,8 @@ describe("Critique de coque à l'Équipage : le marin encaisse le coup, calculé
     expect(enJeu('marin').wounds.current).toBe(13 - attendu);
     expect(enJeu('marin').criticalWounds ?? 0).toBe(0);
     expect(enJeu('nav').criticalWounds ?? 0, "la coque ne prend pas le Critique d'Équipage").toBe(avantCoque);
-    expect(log.join('\n')).toContain('marin subit 8 Blessure(s).');
-    expect(log.join('\n')).not.toMatch(/perd 0 Blessure/);
+    expect(log.map((l) => l.texte).join('\n')).toContain('marin subit 8 Blessure(s).');
+    expect(log.map((l) => l.texte).join('\n')).not.toMatch(/perd 0 Blessure/);
   });
 
   it('attaquant plus grand que le marin : le multiplicateur de Taille joue contre le marin (LDB 85 l.360-361)', () => {

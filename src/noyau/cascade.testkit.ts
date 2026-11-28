@@ -189,7 +189,7 @@ export function draineEtLit(get: () => Jeu, max = 200): string[] {
     for (const s of get().pendingCascade?.participants ?? []) {
       // Une révélation porte SES lignes deux fois (charge `reveal` + conséquence rendue) : c'est UN
       // rendu, pas deux — sans quoi « combien de fois le joueur l'a-t-il lu ? » compterait faux.
-      const lignes = [...new Set([...(s.outcome ?? []).map((l) => l.entree.texte), ...(s.reveal?.lines ?? [])])];
+      const lignes = [...new Set([...(s.outcome ?? []).map((l) => l.entree.texte), ...(s.reveal?.lines ?? []).map((l) => l.texte)])];
       if (lignes.length) parEtape.set(s.id, lignes);
     }
   };

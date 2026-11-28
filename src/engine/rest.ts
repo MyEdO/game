@@ -50,7 +50,7 @@ import { diseaseLabel } from '../data';
 import { t, type MsgKey } from '../i18n';
 import { nomDe } from './nom';
 import { garanti } from '../lib/garanti';
-import type { EntreeDuJournal } from './journal';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 
 const RESISTANCE_DE_RECUPERATION: TestDesigne = { skill: { id: 'resistance' } }; // LDB 18 l.296
 
@@ -122,9 +122,9 @@ export function dailyDiseaseUpkeep(
  * Le foyer est CE module et non `disease.ts` : la réconciliation lit `conditions`, que `disease.ts` ne
  * peut pas importer (cycle mesuré `conditions` → `trauma` → `disease`).
  */
-export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): string[] {
+export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): EntreeDuJournal[] {
   const log = applyDiseasePersist(c, diseaseName, success, sl, rng);
-  log.push(...syncDerivedConditions(c).lignes.map((e) => e.texte));
+  log.push(...syncDerivedConditions(c).lignes);
   return log;
 }
 
@@ -134,17 +134,17 @@ export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: bool
  * maladies (actives d'abord), avec immunité post-guérison (Vérole Urticante) et réconciliation
  * des États PORTÉS par les passifs de leurs symptômes. Mute `c`, renvoie le journal.
  */
-export function cureDiseases(c: Combatant, n: number): string[] {
+export function cureDiseases(c: Combatant, n: number): EntreeDuJournal[] {
   if (!c.diseases?.length || n <= 0) return [];
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   const order = [...c.diseases].sort((a, b) => (maladieDeclaree(a) ? 0 : 1) - (maladieDeclaree(b) ? 0 : 1));
   const removed = new Set(order.slice(0, n));
   c.diseases = c.diseases.filter((d) => !removed.has(d));
   for (const d of removed) {
-    log.push(t('rest.cured', { name: nomDe(c), disease: diseaseLabel(d.id) }));
+    log.push(ligneDeTexte(t('rest.cured', { name: nomDe(c), disease: diseaseLabel(d.id) })));
     if (diseaseDefs()[d.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), d.id];
   }
-  log.push(...syncDerivedConditions(c).lignes.map((e) => e.texte));
+  log.push(...syncDerivedConditions(c).lignes);
   return log;
 }
 
@@ -248,11 +248,11 @@ export function applyRecoveryDay(c: Combatant, recoveryRoll: { sl: number; succe
   return { wokeUp };
 }
 
-export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: RestRoll[]; notes: string[] }): string[] {
+export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: RestRoll[]; notes: string[] }): EntreeDuJournal[] {
   if (c.dead || c.outOfRencontre) return []; // un mort / éjecté ne se repose pas
-  const journal: string[] = [];
+  const journal: EntreeDuJournal[] = [];
   const ajouter = (cle: MsgKey, params?: Parameters<typeof t>[1]) => {
-    journal.push(t(cle, { ...params, name: nomDe(c) }));
+    journal.push(ligneDeTexte(t(cle, { ...params, name: nomDe(c) })));
     if (bilan) bilan.notes.push(t(cle, { ...params, name: '' }).trimStart());
   };
   // LDB 16 l.105 : un dormeur à stabiliser ne se repose pas du tout (ni Exténué, ni cauchemars).
@@ -279,7 +279,7 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: R
     // Conséquence du jour (dissipation + soin volets a/b + plafond blessé + réveil) — logique PARTAGÉE.
     const sortie: Applique = { lignes: [], faits: [] };
     if (applyRecoveryDay(c, roll, sortie).wokeUp) wokeUp = true;
-    journal.push(...sortie.lignes.map((e) => e.texte));
+    journal.push(...sortie.lignes);
     // Cauchemars (LDB 21 l.95) : une nuit marquée peut regagner un Exténué.
     if (c.nightmares) {
       const before = stacks(c, 'extenue');

@@ -2436,7 +2436,7 @@ export function applyCriticalToTarget(
   target: Combatant,
   location: HitLocation,
   overkill: number,
-  log: string[],
+  log: EntreeDuJournal[],
   set: SetFn,
   opts: {
     ctx?: DeviationCtx; // qui inflige le coup + l'arme (→ modale enrichie) ; critTwice = B. de Sauvagerie de l'attaquant
@@ -2459,7 +2459,7 @@ export function applyCriticalToTarget(
     return 'subie'; // AA 10 l.127
   }
   if (porteur === 'vehicule-routier') {
-    log.push(tr('cf.coqueSansCritique', { name: nomDe(target) })); // EDOC 07 l.334
+    log.push(ligneDeTexte(tr('cf.coqueSansCritique', { name: nomDe(target) }))); // EDOC 07 l.334
     return 'aucune';
   }
   if (porteur === 'navire') {
@@ -2484,8 +2484,9 @@ export function applyCriticalToTarget(
   // Historique d'occurrence PAR ID D'ENTRÉE (LDB 18 l.71) : appendé après résolution — persiste à vie (jamais
   // réinitialisé au combat). `resolveCritique` l'a LU avant (`onRepeat` sur une 2e occurrence).
   target.critEntriesSuffered = [...(target.critEntriesSuffered ?? []), crit.entryId];
-  log.push(crit.log);
-  const revealLines = [crit.log];
+  const ligneDuCritique = ligneDeTexte(crit.log);
+  log.push(ligneDuCritique);
+  const revealLines: EntreeDuJournal[] = [ligneDuCritique];
   // Effets DÉTAILLÉS pour la modale enrichie : chaque trauma (Amputation, Fracture…) AVEC son explication
   // RAW (note) — « à quoi ça correspond » (#critique). Localisation FR, et pas de « (Jambe droite) (jambeD) ».
   const details: { text: string; note?: string }[] = [];
@@ -2494,15 +2495,17 @@ export function applyCriticalToTarget(
     target.traumas = avecSequelles(target.traumas, crit.traumas);
     for (const t of crit.traumas) {
       const text = `${t.label} (${locationLabel(t.location, target.bodyShape)})`;
-      log.push(`  ↳ ${text}.`);
-      revealLines.push(`  ↳ ${text}.`);
+      const ligneDuTrauma = ligneDeTexte(`${text}.`, { rattache: true });
+      log.push(ligneDuTrauma);
+      revealLines.push(ligneDuTrauma);
       details.push({ text, note: t.desc });
     }
     // Cumuls par comptage (LDB 18) : chaque séquelle applique SA règle déclarée (`TraumaFiche['cumul']`) —
     // agrégation par bras/porteur, effet par palier, et escalade au seuil (main tranchée, Cécité, Surdité).
     for (const { texte } of consolidateAmputations(target)) {
-      log.push(`  ↳ ${texte}`);
-      revealLines.push(`  ↳ ${texte}`);
+      const ligneDuCumul = ligneDeTexte(texte, { rattache: true });
+      log.push(ligneDuCumul);
+      revealLines.push(ligneDuCumul);
       details.push({ text: texte });
     }
   }
@@ -2516,15 +2519,16 @@ export function applyCriticalToTarget(
     const avant = [...(target.activeEffects ?? [])];
     const applique = appliquerLesOpsDuCritique(target, crit.ops, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, ...crochetDuSol(get, set) });
     lierLaRetenue(target, avant, { sequelles: (target.traumas ?? []).slice(portees).map((t) => t.uid) });
-    for (const l of applique.lignes) log.push(`  ↳ ${l.texte}`);
+    for (const l of applique.lignes) log.push({ ...l, rattache: true });
     for (const l of lignesHorsDesFaits(applique, (id) => nomDe(id === target.id ? target : garanti(porteurParId(get(), id), id, "cible d'un fait de Blessure critique")))) {
-      revealLines.push(`  ↳ ${l.texte}`);
+      revealLines.push({ ...l, rattache: true });
       details.push({ text: l.texte });
     }
     faits.push(...applique.faits);
     if (crit.desc) {
-      log.push(`  ↳ ${crit.desc}`); // effet long terme journalisé, non simulé
-      revealLines.push(`  ↳ ${crit.desc}`);
+      const ligneDeLEffet = ligneDeTexte(crit.desc, { rattache: true });
+      log.push(ligneDeLEffet); // effet long terme journalisé, non simulé
+      revealLines.push(ligneDeLEffet);
       details.push({ text: crit.desc });
     }
   }
@@ -2564,7 +2568,7 @@ export function applyCriticalToTarget(
 export function applyHullCriticalToTarget(
   target: Combatant,
   rig: ShipRig,
-  log: string[],
+  log: EntreeDuJournal[],
   set: SetFn,
   opts: { ctx?: DeviationCtx; suppressReveal?: boolean; get: Get; forcedLocRoll?: number; forcedCritRoll?: number },
 ): IssueDuCritique {
@@ -2576,12 +2580,13 @@ export function applyHullCriticalToTarget(
   const tables = optsDeCritiqueDeCoque(target, etat.travelPlan);
   const outcome = applyHullCritical(target, crew, rig, battleRng(), etat.forgerUnId, forcedLocRoll, forcedCritRoll, tables);
   if (!outcome.marinId) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // MDG 13 l.584
-  for (const l of outcome.lines) log.push(l);
+  const lignesDuCritique = outcome.lines;
+  log.push(...lignesDuCritique);
   const heroConcerned = target.kind === 'heros' || ctx?.attackerKind === 'heros'
     || crew.some((c) => c.kind === 'heros');
   if (!suppressReveal && heroConcerned) {
     pushReveal(set, {
-      kind: 'critique', title: tr('step.critiqueNavire'), dice: 0, lines: outcome.lines,
+      kind: 'critique', title: tr('step.critiqueNavire'), dice: 0, lines: lignesDuCritique,
       subjectId: target.id, actorId: ctx?.attackerId, weapon: ctx?.weapon, details: [],
     });
   }
@@ -2628,7 +2633,7 @@ export function applyStructureCriticalToTarget(
   set: SetFn,
   target: Combatant,
   ctx: { attackerId?: string; attackerKind?: Combatant['kind']; weapon?: string },
-  log: string[],
+  log: EntreeDuJournal[],
   opts: Pick<OptionsCritique, 'overkill' | 'forcedRoll'> = {},
 ): StructureCriticalResolved {
   const { overkill = 0, forcedRoll } = opts;
@@ -2648,13 +2653,14 @@ export function applyStructureCriticalToTarget(
   if (!outcome.entry.trivial) target.criticalWounds = (target.criticalWounds ?? 0) + 1; // AA 07 l.79
   if (outcome.destroyed) target.effondree = true; // AA 10 l.127
   applyOps(target, outcome.ops, { idNeuf, rng: battleRng() }); // Blessures supplémentaires (GameOp `wounds`, ignore BE+PA)
-  for (const l of outcome.log) log.push(l);
-  if (outcome.note) log.push(`  ↳ ${outcome.note}`); // effets verbatim sur les personnes (débris/Tests), non simulés
+  log.push(...outcome.log.map((l) => ligneDeTexte(l)));
+  if (outcome.note) log.push(ligneDeTexte(outcome.note, { rattache: true })); // effets verbatim sur les personnes (débris/Tests), non simulés
   if (target.kind === 'heros' || ctx.attackerKind === 'heros') {
     // Étape à TABLE de la séquence : `table` DÉCLARE le tirage (id de ligne stable, dé naturel/effectif),
     // `reveal` porte le rendu détaillé partagé (qui inflige → arme → victime).
+    const lignesDeLaTable = rolled.lines.map((l) => ligneDeTexte(l));
     const entry: RevealEntry = {
-      kind: 'critique', title: tr('step.critiqueStructure'), dice: rolled.roll, lines: rolled.lines,
+      kind: 'critique', title: tr('step.critiqueStructure'), dice: rolled.roll, lines: lignesDeLaTable,
       subjectId: target.id, actorId: ctx.attackerId, weapon: ctx.weapon, details: [],
     };
     // Étape poussée DÉJÀ tirée : le mint fait descendre l'enjeu à la ligne atteinte (`stakeAtTableRow`
@@ -2662,7 +2668,7 @@ export function applyStructureCriticalToTarget(
     pushTableDone(set, {
       id: `cons-critique-de-structure-${target.id}-${target.criticalWounds ?? 0}-${rolled.roll}`,
       kind: 'critique', actorId: target.id, icon: 'journal/critique', label: dataLabel(entry.title),
-      table, result: rolled, reveal: entry, outcome: recapDe(rolled.lines.map((x) => ligneDeTexte(x))),
+      table, result: rolled, reveal: entry, outcome: recapDe(lignesDeLaTable),
       stake: combatStakeRef('structure-critique'),
     });
   }
@@ -2721,15 +2727,15 @@ export function collapseStructure(get: Get, set: SetFn, target: Combatant): void
  *  consolidation des amputations multiples, calculée seulement à l'application). Ses faits se prévoient à la
  *  lecture (`faitsPrevusDuCritique`). */
 export function previewCritEntry(target: Combatant, crit: CriticalResolved, origine: OrigineCritique, ctx?: { attackerId?: string; weapon?: string }): RevealEntry {
-  const lines = [crit.log];
+  const lines = [ligneDeTexte(crit.log)];
   const details: { text: string; note?: string }[] = [];
   for (const t of crit.traumas) {
     const text = `${t.label} (${locationLabel(t.location, target.bodyShape)})`;
-    lines.push(`  ↳ ${text}.`);
+    lines.push(ligneDeTexte(`${text}.`, { rattache: true }));
     details.push({ text, note: t.desc });
   }
   if (!crit.lethal && crit.desc) {
-    lines.push(`  ↳ ${crit.desc}`);
+    lines.push(ligneDeTexte(crit.desc, { rattache: true }));
     details.push({ text: crit.desc });
   }
   return {
@@ -2741,14 +2747,14 @@ export function previewCritEntry(target: Combatant, crit: CriticalResolved, orig
 /** Dévier 1 PA pour IGNORER le Critique (LDB 63 l.30) : sacrifie 1 PA à `location`. RETOURNE false si
  *  aucune PA sacrifiable → la Déviation n'a pas lieu. Les Blessures du coup à PA−1 sont celles de son compte
  *  (`planifierLesCritiques`). */
-function deflectCrit(target: Combatant, location: HitLocation, log: string[]): FaitDObjet | null {
+function deflectCrit(target: Combatant, location: HitLocation, log: EntreeDuJournal[]): FaitDObjet | null {
   const fait = damageArmour(target, location);
-  if (fait) log.push(tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) }));
+  if (fait) log.push(ligneDeTexte(tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) })));
   return fait;
 }
 
 /** « Dévier » tranché à une fenêtre (`deflectCrit`) : le fait d'objet de l'armure va à l'étape que la reprise valide. */
-function devierALaReprise(target: Combatant, location: HitLocation, log: string[]): boolean {
+function devierALaReprise(target: Combatant, location: HitLocation, log: EntreeDuJournal[]): boolean {
   const fait = deflectCrit(target, location, log);
   if (fait) versLaReprise([fait]);
   return !!fait;
@@ -2759,7 +2765,7 @@ function devierALaReprise(target: Combatant, location: HitLocation, log: string[
  *  l'appelant → restauration Destin correcte au Subir). */
 function applyCritAndFinalize(
   get: Get, set: SetFn, target: Combatant, location: HitLocation, overkill: number, origine: OrigineCritique,
-  log: string[], ctx: DeviationCtx, auteur: Combatant | undefined, avantLeCoup: Combatant, crit?: CriticalResolved, suppressReveal?: boolean,
+  log: EntreeDuJournal[], ctx: DeviationCtx, auteur: Combatant | undefined, avantLeCoup: Combatant, crit?: CriticalResolved, suppressReveal?: boolean,
   surLeCritique?: (crit: CriticalResolved) => void,
 ): IssueDuCritique {
   const issue = applyCriticalToTarget(target, location, overkill, log, set, { ctx, prerolled: crit, suppressReveal, get, origine, surLeCritique });
@@ -2779,7 +2785,7 @@ function applyCritAndFinalize(
  */
 function autoDeviate(
   set: SetFn, target: Combatant, location: HitLocation,
-  ctx: { attackerId?: string; weapon?: string }, roll: number, log: string[], heroConcerned: boolean,
+  ctx: { attackerId?: string; weapon?: string }, roll: number, log: EntreeDuJournal[], heroConcerned: boolean,
 ): boolean {
   if (!rule('combat-deviation-critique')) return false;
   if (!deviatableArmourAt(target, location)) return false;
@@ -2788,7 +2794,7 @@ function autoDeviate(
   if (heroConcerned)
     pushReveal(set, {
       kind: 'critique', title: tr('cf.titreDuCritiqueDevie'), dice: roll,
-      lines: [tr('cf.revelationDuCritiqueDevie', { loc: locationLabel(location, target.bodyShape) }), tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) })],
+      lines: [ligneDeTexte(tr('cf.revelationDuCritiqueDevie', { loc: locationLabel(location, target.bodyShape) })), ligneDeTexte(tr('cf.critiqueDevieSurLArmure', { name: nomDe(target) }))],
       subjectId: target.id, actorId: ctx.attackerId, weapon: ctx.weapon,
     }, { faits: [{ genre: 'localisation', cible: target.id, camp: campOf(target), valeur: location }, armure] });
   return true;
@@ -2858,8 +2864,8 @@ function reprendreLeCritiqueSuspendu(get: Get, set: SetFn, etapeId: string): Com
 }
 
 /** LDB 60 l.50. */
-function breakBacleArmour(target: Combatant, loc: HitLocation, log: string[]): void {
-  if (casserLaPieceBaclee(target, loc)) log.push(tr('cf.bacleeSeBrise', { name: nomDe(target), loc: locationLabel(loc, target.bodyShape) }));
+function breakBacleArmour(target: Combatant, loc: HitLocation, log: EntreeDuJournal[]): void {
+  if (casserLaPieceBaclee(target, loc)) log.push(ligneDeTexte(tr('cf.bacleeSeBrise', { name: nomDe(target), loc: locationLabel(loc, target.bodyShape) })));
 }
 
 /** « Arme possédant une lame » (Piège-lame, LDB 62 l.278) — flag maison éditable (le RAW ne liste
@@ -2882,7 +2888,7 @@ export function applyCoupCritiqueSec(
   roll: number,
   cause: CauseCoupCritique,
   ctx: { attackerId?: string; weapon?: string; weaponObj?: Weapon },
-  log: string[],
+  log: EntreeDuJournal[],
   auteur: Combatant | undefined,
   avantLeCoup: Combatant,
 ): void {
@@ -2894,7 +2900,7 @@ export function applyCoupCritiqueSec(
   const loc = critWoundLocation(battleRng(), victim.bodyShape); // LDB 18 l.53 : Coup Critique → 1d100 frais (pas l'inversion de touche)
   // LDB 60 l.50 ; LDB 63 l.78 ; #1595 c.6228496170 Q4a.
   if (!sansLeCoupCritiqueIgnore({ ...compte, critiques: [entree] }, roll, victim, loc).critiques.length) {
-    log.push(tr('cf.critiqueImpenetrable', { name: nomDe(victim), loc: locationLabel(loc, victim.bodyShape) }));
+    log.push(ligneDeTexte(tr('cf.critiqueImpenetrable', { name: nomDe(victim), loc: locationLabel(loc, victim.bodyShape) })));
     breakBacleArmour(victim, loc, log);
     return;
   }
@@ -2927,7 +2933,7 @@ interface ApresLeCritique {
   auteur: Combatant | undefined;
   cible: Combatant;
   lieu: HitLocation;
-  log: string[];
+  log: EntreeDuJournal[];
   arme?: Weapon;
   woundsDealt?: number;
 }
@@ -2943,12 +2949,12 @@ function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine
     if (issue === 'subie') {
       const consequences: Applique = { lignes: [], faits: [] };
       const fb = loseWounds(cible, talentCritExtraWounds(auteur), consequences);
-      if (fb > 0) log.push(tr('cf.coupBlessant', { name: nomDe(cible), n: fb }), ...consequences.lignes.map((e) => e.texte));
+      if (fb > 0) log.push(ligneDeTexte(tr('cf.coupBlessant', { name: nomDe(cible), n: fb })), ...consequences.lignes);
     }
     const battle = get().battle;
     if (!battle) return;
     emitCombatEvent('onCrit', {
-      get, set, battle, self: auteur, sink: (entree) => log.push(entree.texte),
+      get, set, battle, self: auteur, sink: (entree) => log.push(entree),
       triggerCtx: { victim: cible, weapon: a.arme, location: a.lieu, woundsDealt: a.woundsDealt, attackType: a.arme?.type, origine, sansBlessureCritique: issue === 'aucune', rng: battleRng() },
     });
   };
@@ -2997,7 +3003,7 @@ function pousserSauvegarde(set: SetFn, porteurId: string, seuils: SeuilDeSauvega
 /** RÉ-ENTRE dans le site que la sauvegarde avait suspendu, avec son issue. La décision voyage sur la
  *  TOUCHE elle-même (`AttackResult.sauvegarde`, jumeau des `critiques: DecisionDeCritique[]` de la ré-entrée) : elle survit ainsi à la
  *  fenêtre SUIVANTE (Déviation Critique), qui repasse par le registre sans rejouer de dé. */
-function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, sauve: boolean): string[] {
+function reprendreApresSauvegarde(get: Get, set: SetFn, suite: SauvegardeSuite, sauve: boolean): EntreeDuJournal[] {
   if (suite.mode === 'projectile') {
     const appliquee = appliquerToucheDeProjectile(get, set, suite.touche, { sauve });
     // La reprise JOUE ce que l'appelant avait DÉCLARÉ : le rebond relit les PB FRAIS de la cible — un
@@ -3156,7 +3162,7 @@ interface ApplicationDesCritiques {
   target: Combatant;
   compte: CompteDuCoup;
   plan: readonly DecisionDeCritique[];
-  log: string[];
+  log: EntreeDuJournal[];
   ctx: DeviationCtx;
   auteur: Combatant | undefined;
   /** Le porteur AVANT les Blessures du coup (restauration Destin, LDB 17 l.32). */
@@ -3214,7 +3220,7 @@ interface EncaissementDuCoup {
   cible: Combatant;
   compte: CompteDuCoup;
   plan: readonly DecisionDeCritique[];
-  log: string[];
+  log: EntreeDuJournal[];
   ctx: DeviationCtx;
   /** Le jet de toucher (révélation d'une Déviation de l'automate). */
   roll: number;
@@ -3230,7 +3236,7 @@ function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; inf
   const { lieu, compte: { blessures } } = e.compte;
   const currentBefore = cible.wounds.current;
   const reinj = preEncaisser(cible, lieu, blessures);
-  if (reinj > 0) log.push(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: reinj, loc: locationLabel(lieu, cible.bodyShape) }));
+  if (reinj > 0) log.push(ligneDeTexte(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: reinj, loc: locationLabel(lieu, cible.bodyShape) })));
   const applique = appliquerLesCritiques({
     get, set, target: cible, compte: e.compte, plan: e.plan, log, ctx: e.ctx, auteur: e.auteur, avantLeCoup, roll: e.roll,
     apres: apresLeCritiqueDe({ get, set, auteur: e.auteur, cible, lieu, log, arme: e.arme, woundsDealt: blessures }),
@@ -3241,11 +3247,11 @@ function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; inf
 
 /** Coup finalisé : Premier sang (#471), 0 PB → À Terre (LDB 18 l.15), puis levée des liens d'une cible hors
  *  de combat (LDB 13). */
-function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: string[]): void {
+function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: EntreeDuJournal[]): void {
   resolveFirstBlood(cible, get().battle?.victoryCondition, currentBefore - cible.wounds.current, log);
   const consequences: Applique = { lignes: [], faits: [] };
   if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible, consequences);
-  log.push(...consequences.lignes.map((e) => e.texte));
+  log.push(...consequences.lignes);
   delierLeHorsDeCombat(get, cible);
 }
 
@@ -3287,19 +3293,19 @@ function naissanceDuCoupDuMarin(coup: CoupDeTouche, attaquant: Combatant, marin:
  *  Critiques du coup : compte, plan, application. Ré-entrant : `coup` est une donnée sérialisable, `decides`
  *  les Blessures critiques déjà tranchées. Rend les lignes du journal, ou `null` quand une fenêtre de Blessure
  *  critique du marin a SUSPENDU le coup (`CoupSuspendu` `marin`, LDB 63 l.30). */
-function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides: readonly DecisionDeCritique[]): string[] | null {
+function encaisserLeCoupDuMarin(get: Get, set: SetFn, coup: CoupDuMarin, decides: readonly DecisionDeCritique[]): EntreeDuJournal[] | null {
   const battle = get().battle;
   const attaquant = garanti(inBattleId(battle, coup.attackerId), coup.attackerId, "auteur du coup qui porte le Critique d'Équipage");
   const marin = garanti(inBattleId(battle, coup.marinId), coup.marinId, "marin d'un Critique d'Équipage (MDG 13 l.584)");
   const touche = coup.mode === 'melee'
     ? { hit: coup.res.hit, roll: coup.res.attackerRoll, arme: coup.weapon as Weapon | undefined, libelle: coup.weapon.label }
     : { hit: !!coup.touche.mres.hit, roll: coup.touche.mres.roll ?? 0, arme: undefined, libelle: coup.touche.spell.label };
-  const lignes: string[] = [];
+  const lignes: EntreeDuJournal[] = [];
   if (!touche.hit) return lignes;
   const twice = critRollTwiceFor(attaquant);
   const planifie = planifierLesCritiques(get, set, { attacker: attaquant, target: marin, coup: { mode: 'marin', coupDuMarin: coup }, decides, sousAttaque: true, twice });
   if (!planifie) return null;
-  if (planifie.compte.compte.blessures > 0) lignes.push(tr('op.blessures', { name: nomDe(marin), n: planifie.compte.compte.blessures, mitig: '' }));
+  if (planifie.compte.compte.blessures > 0) lignes.push(ligneDeTexte(tr('op.blessures', { name: nomDe(marin), n: planifie.compte.compte.blessures, mitig: '' })));
   encaisserLeCoup({
     get, set, auteur: attaquant, cible: marin, compte: planifie.compte, plan: planifie.plan, log: lignes, roll: touche.roll, arme: touche.arme, avantLeCoup: instantaneAvantLeCoup(marin),
     ctx: { attackerId: attaquant.id, attackerKind: attaquant.kind, weapon: touche.libelle, ...(touche.arme ? { weaponObj: touche.arme } : {}), critTwice: twice },
@@ -3387,7 +3393,7 @@ function appliquerLaTouche(
   // ci-dessous. Les saves posent leur ligne dans `res.ajouts` (journalisé par `ligneDuCoup`
   // en fin de coup) → `sink` no-op ici. `encaisse` : ce qu'un TIERS a pris (Martyr) — l'interruption de
   // Focalisation du prêtre vit ici, le registre n'important rien de ce module.
-  const tiersLog: string[] = sortieDuSurpris.lignes.map((e) => e.texte);
+  const tiersLog: EntreeDuJournal[] = sortieDuSurpris.lignes;
   // La SAUVEGARDE « 1d10 ≥ Indice » (LDB 85 l.98 / l.278, LDB 47 l.410) ne se roule plus ici : le registre
   // la DÉCLARE, la porte la joue, et la résolution du coup est SUSPENDUE jusque-là — AUCUNE mutation de la
   // cible avant (ni Empoignade, ni mort-auto, ni Critique), exactement comme la fenêtre de Déviation
@@ -3453,19 +3459,19 @@ function appliquerLaTouche(
   if (weapon.type === 'melee' && !isInanimate(target)) engage(attacker, target); // Engagé symétrique sur toute attaque de mêlée (LDB 13 l.169-171) — jamais avec un objet INANIMÉ
   if (!isInanimate(target)) markAttacked(attacker, target); // trace orientée du Round (LDB 85 l.383, `agressifEnvers`) — tir compris
   const avantLeCoup = instantaneAvantLeCoup(target); // LDB 17 l.32 — avant Renversement, Empoignade et Blessures
-  const critLog: string[] = [...tiersLog];
+  const critLog: EntreeDuJournal[] = [...tiersLog];
   // Avantage de l'attaquant (LDB 13 l.123, étape « 1 : Lancer pour Toucher ») — crédité AVANT le bloc
   // Critique (LDB 13 l.177, après les étapes 2 et 3) : un déclencheur `onCrit` lit ainsi la MÊME réserve
   // que `onHit`, et l'offre à X Avantages qu'il pose (Taillade, AA 08 l.87) est abordable comme le store
   // l'entend à l'application (`spendableAdvantage` reste l'unique source des deux verdicts).
   const touche = avantageDuCoup('touche', res, weapon, attacker, target, etatDAvantage(get().battle, attacker, target), !!deferAttackerAdvantage);
   appliquerLAvantage(get, touche.faits, [attacker, target]);
-  if (touche.renversement) critLog.push(tr('cf.renversement', { name: nomDe(attacker) }));
+  if (touche.renversement) critLog.push(ligneDeTexte(tr('cf.renversement', { name: nomDe(attacker) })));
   if (touche.aGagne) attacker.gainedAdvThisRound = true;
   // LDB 14 l.159 — pose APRÈS `engage`.
   if (res.sansPrise === 'empoignade') {
     applyOps(target, GRAPPLE.init, { idNeuf: get().forgerUnId, rng: battleRng(), caster: attacker, source: GRAPPLE_SOURCE });
-    critLog.push(tr('cf.debutDEmpoignade', { name: nomDe(attacker), foe: nomDe(target) }));
+    critLog.push(ligneDeTexte(tr('cf.debutDEmpoignade', { name: nomDe(attacker), foe: nomDe(target) })));
   }
   const ctxCrit: DeviationCtx = {
     attackerId: attacker.id, attackerKind: attacker.kind, weapon: weapon?.label, critTwice: twice, coup: suspendu,
@@ -3490,7 +3496,7 @@ function appliquerLaTouche(
     const dd = res.defenderDetail;
     // (a) Attaquant : Critique au jet mais échange PERDU (pas de touche) → le défenseur subit un Critique sec.
     if (ad && ad.success && isDoubleRoll(ad.roll) && !res.hit && !isOutOfAction(target)) {
-      critLog.push(tr('cf.critiqueMalgreLaDefaite', { name: nomDe(attacker) }));
+      critLog.push(ligneDeTexte(tr('cf.critiqueMalgreLaDefaite', { name: nomDe(attacker) })));
       applyCoupCritiqueSec(get, set, target, ad.roll, 'double', { attackerId: attacker.id, weapon: weapon?.label, weaponObj: weapon }, critLog, attacker, avantLeCoup);
     }
     // (b) Défenseur : LDB 13 l.183 ; LDB 62 l.278. `res.parryWeapon` n'est posé qu'en Parade (finishMelee).
@@ -3501,7 +3507,7 @@ function appliquerLaTouche(
         const pbt: PendingBladeTrap = { defenderId: target.id, attackerId: attacker.id, weapon, parryWeaponUid: res.parryWeapon.uid!, defSL: dd.sl, roll: dd.roll };
         proposerLePiegeALame(set, pbt, target, attacker, res.parryWeapon);
       } else {
-        critLog.push(tr('cf.critiqueEnDefense', { name: nomDe(target) }));
+        critLog.push(ligneDeTexte(tr('cf.critiqueEnDefense', { name: nomDe(target) })));
         applyCoupCritiqueSec(get, set, attacker, dd.roll, 'double', { attackerId: target.id, weapon: res.parryWeapon?.label, weaponObj: res.parryWeapon }, critLog, target, instantaneAvantLeCoup(attacker));
       }
     }
@@ -3514,26 +3520,26 @@ function appliquerLaTouche(
   if (res.defenderDetail?.mode === 'esquive' && !res.defenderDetail.success
       && hasActiveCapability(target, 'nausea') && !hasCondition(target, COND.sonne)) {
     addCondition(target, COND.sonne);
-    critLog.push(tr('cf.vomissementSonne', { name: nomDe(target) }));
+    critLog.push(ligneDeTexte(tr('cf.vomissementSonne', { name: nomDe(target) })));
   }
   // Effet DÉCLENCHÉ « à la perte de PB » authoré (Sang corrosif : 1d10 aux Engagés, BE+PA, min 1, sur
   // TOUTE Blessure subie — LDB 85 l.310 ; Démoniaque : banni à 0 PB — `if woundsCurrent<=0`). Le TYPE
   // d'attaque (`weapon.type`) voyage dans le contexte ; un effet peut s'y restreindre (`attackType`).
   // Dispatcher générique (noyau/triggeredEffects) : l'effet est authoré en donnée sur l'entité.
   if (res.hit && res.woundsLost) {
-    emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (entree) => critLog.push(entree.texte), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
+    emitCombatEvent('onWoundLoss', { get, set, battle, self: target, sink: (entree) => critLog.push(entree), triggerCtx: { rng: battleRng(), attackType: weapon.type, woundsDealt: res.woundsLost } });
     // Chanson de marin (MDG 09 l.38) : « Si le Personnage subit des Dégâts …, sa Chanson de marin prend fin. »
-    if (target.singingShanty) critLog.push(...endShanty(get, target).map((e) => e.texte));
+    if (target.singingShanty) critLog.push(...endShanty(get, target));
   }
   // Effet déclenché « à la mise hors de combat d'un adversaire » authoré (Affamé : Test de FM ou
   // festoie — perd Action + Mouvement) — dispatcher générique (noyau/triggeredEffects).
   if (res.hit && isOutOfAction(target) && !isOutOfAction(attacker)) {
-    emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (entree) => critLog.push(entree.texte), triggerCtx: { rng: battleRng() } });
+    emitCombatEvent('onKill', { get, set, battle, self: attacker, sink: (entree) => critLog.push(entree), triggerCtx: { rng: battleRng() } });
   }
   // Effet « à la mort » du SLAIN lui-même (Démoniaque banni…) — pour TOUT chemin de mort de cette
   // résolution : la CIBLE (touche, Critique létal, 0 PB) ET l'ATTAQUANT (Critique défensif opposé qui le
   // tue PENDANT sa charge). Émis une fois (garde `slainNotified`).
-  for (const c of [target, attacker]) critLog.push(...notifySlain(get, set, c).map((e) => e.texte));
+  for (const c of [target, attacker]) critLog.push(...notifySlain(get, set, c));
   // LDB 62 l.307.
   if (entameLArmure(res, weapon)) damageArmour(target, lieu);
   // Munition du coup : CELLE QUI ÉTAIT DANS L'ARME (`loadedAmmo`), lue AVANT que le tir ne décharge.
@@ -3564,7 +3570,7 @@ function appliquerLaTouche(
   }
   const apres = avantageDuCoup('apresCoup', res, weapon, attacker, target, etatDAvantage(get().battle, attacker, target), !!deferAttackerAdvantage);
   appliquerLAvantage(get, apres.faits, [attacker, target]);
-  if (apres.renversement) critLog.push(tr('cf.renversement', { name: nomDe(target) }));
+  if (apres.renversement) critLog.push(ligneDeTexte(tr('cf.renversement', { name: nomDe(target) })));
   if (apres.aGagne) target.gainedAdvThisRound = true;
   const kind = weapon.type === 'distance' ? 'distance' : 'melee';
   const defense = weapon.type === 'distance' ? 'aucune' : bestDefenseMode(target);
@@ -3590,7 +3596,7 @@ function appliquerLaTouche(
     if (lancee && !itemCapability(lancee, 'detruitAuLancer')) lacherAuSol(get, set, lancee, land);
   }
   // Les lignes des flux que le coup a déclenchés (Test d'un Critique, ses États) suivent la ligne qui les porte (#4911).
-  log.push(...evLines(critLog.map((l) => ligneDeTexte(l)), 'critique', attacker.id, target.id), ...drainPendingLog(get, set));
+  log.push(...evLines(critLog, 'critique', attacker.id, target.id), ...drainPendingLog(get, set));
   // Nerveux, bruits forts : LDB 85 l.249 ; #4345
   if (battle && weapon.type === 'distance' && armeAPoudre(weapon)) {
     for (const c of battle.combatants) {
@@ -4084,7 +4090,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       c.criticalWounds = (c.criticalWounds ?? 0) + 1; // « compte comme une Blessure critique » (l.41)
       const leg: HitLocation = battleRng().int(0, 1) === 0 ? 'jambeG' : 'jambeD'; // « se tord la cheville »
       c.traumas = avecSequelles(c.traumas, [traumaById(dechirureFractureFicheId('dechirure', 'mineur', leg), { be: bonus(effectiveChar(c, 'endurance')) }, leg)]);
-      log.push(ligneDeTexte(tr('cf.maladresseDechirure', { leg: leg === 'jambeG' ? tr('cf.jambeGauche') : tr('cf.jambeDroite') })));
+      log.push(ligneDeTexte(tr('cf.maladresseDechirure', { leg: leg === 'jambeG' ? tr('cf.jambeGauche') : tr('cf.jambeDroite') }), { rattache: true }));
       break;
     }
     case 'hitAlly': {
@@ -4095,10 +4101,10 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1 (l.165)
         const consequences: Applique = { lignes: [], faits: [] };
         loseWounds(ally, lost, consequences);
-        log.push(ligneDeTexte(tr('cf.maladresseToucheUnAllie', { name: nomDe(ally), loc: locationLabel(loc, ally.bodyShape), lost })), ...consequences.lignes);
+        log.push(ligneDeTexte(tr('cf.maladresseToucheUnAllie', { name: nomDe(ally), loc: locationLabel(loc, ally.bodyShape), lost }), { rattache: true }), ...consequences.lignes);
       } else {
         addCondition(c, COND.sonne); // « Si personne n'est à distance, vous vous frappez tout seul → Sonné » (l.45-46)
-        log.push(ligneDeTexte(tr('cf.maladresseSeSonne')));
+        log.push(ligneDeTexte(tr('cf.maladresseSeSonne'), { rattache: true }));
       }
       break;
     }
@@ -4106,7 +4112,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1
       const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(c, lost, consequences);
-      log.push(ligneDeTexte(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.maladresseRateLeTirDetruite' : 'cf.maladresseRateLeTir', { lost })), ...consequences.lignes);
+      log.push(ligneDeTexte(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.maladresseRateLeTirDetruite' : 'cf.maladresseRateLeTir', { lost }), { rattache: true }), ...consequences.lignes);
       // Arme d'équipe (MDG 12 l.464) : « Si une arme dotée du Défaut Arme d'équipe subit un Incident de
       // tir, tous les membres de son équipage sont affectés. » → CHAQUE servant APTE du poste (hors le
       // tireur, déjà frappé ci-dessus) subit le même coup (Dégâts au Bras principal, mitigés à SA fiche).
@@ -4119,7 +4125,7 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
           const deLEquipage: Applique = { lignes: [], faits: [] };
           loseWounds(s, sLost, deLEquipage);
-          log.push(ligneDeTexte(tr('cf.maladresseRateLeTirEquipage', { name: nomDe(s), lost: sLost })), ...deLEquipage.lignes);
+          log.push(ligneDeTexte(tr('cf.maladresseRateLeTirEquipage', { name: nomDe(s), lost: sLost }), { rattache: true }), ...deLEquipage.lignes);
         }
       }
       // Table AA « Incidents de Tir d'Artillerie par Salve » (AA 10 l.270-277) : une arme à Atout
@@ -4129,10 +4135,10 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
       // d'équipe (MDG 12 l.464) déjà résolu ci-dessus.
       if (hasQuality(weapon, 'salve')) {
         const salve = lireSalveMisfire(des.get('salve-table')!, loadRegister(c, weapon).chambered ?? 0);
-        log.push(ligneDeTexte(tr('cf.salveDArtillerieIncident', { entry: salve.label })));
+        log.push(ligneDeTexte(tr('cf.salveDArtillerieIncident', { entry: salve.label }), { rattache: true }));
         // « La pièce d'artillerie est détruite » (AA 10 l.274-276) : la Sauvegarde Solide de la Maladresse
         // qui a tenu la couvre (#1508, 2026-09-26 ; #1764, 2026-09-27).
-        if (salve.destroyed && (casse === 'sauvee' || casse === 'imperdable')) log.push(ligneDeTexte(tr('cf.salveDArtillerieCouverte', { weapon: weapon.label })));
+        if (salve.destroyed && (casse === 'sauvee' || casse === 'imperdable')) log.push(ligneDeTexte(tr('cf.salveDArtillerieCouverte', { weapon: weapon.label }), { rattache: true }));
         const salveCrew = [c, ...(hasQuality(weapon, 'arme-d-equipe') && c.mannedPoste
           ? exposedCrew((c.mannedPoste.crewIds ?? [])
               .filter((id) => id !== c.id)
@@ -4145,10 +4151,10 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
             const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, force) + battleRng().int(0, 9), 0, 1, c.size);
             const deLaSalve: Applique = { lignes: [], faits: [] };
             loseWounds(s, sLost, deLaSalve);
-            log.push(ligneDeTexte(tr('cf.salveDArtillerieTouche', { name: nomDe(s), lost: sLost, loc: locationLabel(loc, s.bodyShape) })), ...deLaSalve.lignes);
+            log.push(ligneDeTexte(tr('cf.salveDArtillerieTouche', { name: nomDe(s), lost: sLost, loc: locationLabel(loc, s.bodyShape) }), { rattache: true }), ...deLaSalve.lignes);
           }
         }
-        if (salve.entry.strayFire) log.push(ligneDeTexte(tr('cf.salveDArtilleriePerdue', { note: salve.note })));
+        if (salve.entry.strayFire) log.push(ligneDeTexte(tr('cf.salveDArtilleriePerdue', { note: salve.note }), { rattache: true }));
       }
       break;
     }
@@ -5244,7 +5250,7 @@ export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: Pen
     journaliser(get, set, [ligneDeTexte(tr('cascade.cibleDisparue', { label: tr('step.critDevier') }))], 'information');
     return;
   }
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   if (deviate) devierALaReprise(target, dev.location, log); // −1 PA, Critique ignoré
   else {
     const auteur = dev.ctx.attackerId ? porteurParId(get(), dev.ctx.attackerId) : undefined;
@@ -5254,19 +5260,19 @@ export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: Pen
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
   const consequences: Applique = { lignes: [], faits: [] };
   if (target.wounds.current <= 0 && !target.dead) applyZeroWounds(target, consequences); // LDB 18 l.15
-  log.push(...consequences.lignes.map((e) => e.texte));
+  log.push(...consequences.lignes);
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
 
 /** Fin d'une reprise auto-contenue (Test opposé, Projectile) : cible neutralisée → on lève engagement +
  *  effets psy (parité avec la mêlée), le journal de la reprise, la fin de combat. */
-function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: string[], attackerId: string): void {
+function cloreLaReprise(get: Get, set: SetFn, target: Combatant, log: EntreeDuJournal[], attackerId: string): void {
   if (isOutOfAction(target)) {
     clearEngagementOf(get().battle?.combatants ?? [], target.id);
     clearPsychOf(get().battle?.combatants ?? [], target.id);
     refreshAllDefendedPsych(get().battle?.combatants ?? []); // l’Amour ne se clôt pas à la chute d’UN aimé (l.75) : verdict re-mesuré
   }
-  journaliser(get, set, log.map((l) => ligneDeTexte(l)), 'critique', { actorId: attackerId, targetId: target.id }); // acteur = attaquant, sujet = cible (parité mode melee)
+  journaliser(get, set, log, 'critique', { actorId: attackerId, targetId: target.id }); // acteur = attaquant, sujet = cible (parité mode melee)
   checkBattleOver(get, set);
 }
 
@@ -5525,11 +5531,11 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   const lines: EntreeDuJournal[] = [m.log];
   const faits: FaitApplique[] = [];
   // La révélation porte les faits, et seules les lignes qui n'en lisent aucun (`lignesHorsDesFaits`).
-  const revealLines = [m.log.texte];
+  const revealLines = [m.log];
   const absorber = (a: Applique): void => {
     lines.push(...a.lignes);
     faits.push(...a.faits);
-    revealLines.push(...lignesHorsDesFaits(a, (id) => nomDe(id === caster.id ? caster : garanti(porteurParId(get(), id), id, "cible d'un fait d'Imparfaite")), m.label).map((e) => e.texte));
+    revealLines.push(...lignesHorsDesFaits(a, (id) => nomDe(id === caster.id ? caster : garanti(porteurParId(get(), id), id, "cible d'un fait d'Imparfaite")), m.label));
   };
   // « Après le lancer et avoir appliqué le résultat, réduisez vos Points de Péché
   // de 1, jusqu'à un minimum de 0 » (LDB 40 l.46). Le total DÉCROÎT depuis sa valeur VIVANTE : un
@@ -5537,7 +5543,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   if (severity === 'colere' && (caster.sinPoints ?? 0) > 0) {
     caster.sinPoints = Math.max(0, (caster.sinPoints ?? 0) - 1);
     lines.push(ligneDeTexte(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints })));
-    revealLines.push(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints }));
+    revealLines.push(ligneDeTexte(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints })));
   }
   // Ops IMMÉDIATS de la rangée (États, Blessures et leur mitigation DÉCLARÉE, Corruption,
   // pénalités/blocages d'incantation, réduction à 0) — applicateur unique, AVANT le Test imbriqué
@@ -5559,7 +5565,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
     const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
     if (!cibles.length) {
       lines.push(ligneDeTexte(tr('cf.incantationImparfaiteSansCible', { label: m.label })));
-      revealLines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
+      revealLines.push(ligneDeTexte(tr('cf.incantationImparfaiteSansCible', { label: m.label })));
     }
     for (const c of cibles) {
       const cibleCtx: OpsCtx = { ...opsCtx, caster };
@@ -6790,11 +6796,11 @@ type IssueDeTouche = 'appliquee' | 'suspendue-sauvegarde' | 'suspendue-deviation
 /** Ce que rend l'application d'une touche : ses lignes de journal ET son état de fenêtre. */
 interface ToucheAppliquee {
   issue: IssueDeTouche;
-  lignes: string[];
+  lignes: EntreeDuJournal[];
 }
 
 /** LA CLÔTURE d'une touche de Projectile, seul émetteur de son `ANIM_ATTACK`. LDB 46 l.30 ; LDB 18 l.17. */
-function clore(get: Get, touche: ToucheDeProjectile, lignes: string[], resultat: CastResult & Partial<MissileResult>, critiques: number): ToucheAppliquee {
+function clore(get: Get, touche: ToucheDeProjectile, lignes: EntreeDuJournal[], resultat: CastResult & Partial<MissileResult>, critiques: number): ToucheAppliquee {
   const result = { ...resultat, critiques };
   if (get().battle) bus.emit(EVT.ANIM_ATTACK, { from: touche.de, to: touche.targetId, result, kind: 'spell', projectile: true, spell: touche.spell.id, defense: 'aucune' });
   return { issue: 'appliquee', lignes };
@@ -6821,13 +6827,13 @@ const causeDuProjectile = (t: Pick<ToucheDeProjectile, 'critWound'>): CauseCoupC
  * décisions (`ch.critiques`), sur la touche déjà passée par les sauvegardes.
  */
 function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectile, sauvegarde?: { sauve: boolean }): ToucheAppliquee {
-  const lignes: string[] = [];
+  const lignes: EntreeDuJournal[] = [];
   // `actorIn` (combat OU groupe) et non `inBattleId` : un Projectile se lance aussi HORS COMBAT
   // (couture D d'`applyCast`, `battle == null`) — les protagonistes y vivent dans le groupe.
   const caster = actorIn(get(), ch.casterId);
   const cible = actorIn(get(), ch.targetId);
   // Protagoniste disparu entre l'ouverture du dé et sa reprise : la conséquence se DIT (patron `operationsDe`).
-  if (!caster || !cible) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: ch.spell.label })] };
+  if (!caster || !cible) return { issue: 'cible-absente', lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: ch.spell.label }))] };
   const spell = ch.spell;
   let mres = ch.mres;
   // La touche dans le vocabulaire partagé des touches (`AttackResult`) : l'attaque est MAGIQUE, elle n'a pas d'arme.
@@ -6856,7 +6862,10 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     mres = { ...mres, woundsLost: coup.woundsLost, damage: coup.damage, touche: coup.touche, ajouts: coup.ajouts };
   }
   // LDB 18 l.53 ; LDB 63 l.32.
-  const avecLaLigne = (applique: AttackResult): string[] => [ligneDuCoup(applique), ...lignes].filter(Boolean);
+  const avecLaLigne = (applique: AttackResult): EntreeDuJournal[] => {
+    const ligne = ligneDuCoup(applique);
+    return [...(ligne ? [ligneDeTexte(ligne)] : []), ...lignes];
+  };
   if (!toucheAvecPrise(coup) || !mres.woundsLost) return clore(get, ch, avecLaLigne(coup), mres, 0);
   const avantLeCoup = instantaneAvantLeCoup(cible);
   const currentBefore = cible.wounds.current;
@@ -6870,7 +6879,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   const { plan, compte } = planifie;
   const loc = compte.lieu;
   const mReinj = preEncaisser(cible, loc, compte.compte.blessures);
-  if (mReinj > 0) lignes.push(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: mReinj, loc: locationLabel(loc, cible.bodyShape) }));
+  if (mReinj > 0) lignes.push(ligneDeTexte(tr('cf.rechuteHemorragie', { name: nomDe(cible), n: mReinj, loc: locationLabel(loc, cible.bodyShape) })));
   const { infligees } = appliquerLesCritiques({
     get, set, target: cible, compte, plan, log: lignes, auteur: caster, avantLeCoup, roll: mres.roll ?? 0,
     ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
@@ -6878,7 +6887,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   });
   const consequences: Applique = { lignes: [], faits: [] };
   if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible, consequences); // LDB 18 l.15
-  lignes.push(...consequences.lignes.map((e) => e.texte));
+  lignes.push(...consequences.lignes);
   // Effets ADDITIONNELS d'un Projectile sur la cible (« Grands feux d'U'Zhul » : +2 En flammes, À
   // Terre ; « Drain » : soigne le lanceur) — lus depuis `spell.effects` (Flow éditable, feuilles
   // `on:'target'`).
@@ -6892,7 +6901,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
       sl: spellSLFor(mres.sl, cible, ch.zoneTalentMod), duree: dureeDuLancer(get, caster, spell, ocMult, ocBonus),
       overcastDurationSteps: ch.overcastDurationSteps, chosenTableRolls: ch.chosenTableRolls,
       sourceSpell: ch.sourceSpell, conjureForm: ch.conjureForm,
-    })).map((e) => e.texte));
+    })));
   }
   // Vol de vie (LDB 48 — Mort : Caresse de Laniph, Vol de vie) : op `lifeSteal` du Flow (on:'caster')
   // — le lanceur récupère une fraction des Blessures RÉELLEMENT infligées (`ctx.woundsDealt`, jamais
@@ -6901,11 +6910,11 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   {
     const dealt = Math.min(compte.compte.blessures, currentBefore);
     const lifeStealOps = spellOps(spell.effects, 'caster').filter((o) => o.op === 'lifeSteal');
-    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'sort', id: spell.id } }).lignes.map((e) => e.texte));
+    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'sort', id: spell.id } }).lignes);
   }
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   checkFocusInterruption(get, set, cible);
-  if (isOutOfAction(cible)) lignes.push(tr('cf.horsDeCombat', { name: nomDe(cible) }));
+  if (isOutOfAction(cible)) lignes.push(ligneDeTexte(tr('cf.horsDeCombat', { name: nomDe(cible) })));
   return clore(get, ch, avecLaLigne({ ...coup, location: loc, woundsLost: compte.compte.blessures, critiques: infligees }), { ...mres, location: loc, woundsLost: compte.compte.blessures }, infligees);
 }
 
@@ -6925,12 +6934,12 @@ function localisationRelanceeDuProjectile(touche: ToucheDeProjectile, cible: Com
  */
 function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche: ToucheDeProjectile): ToucheAppliquee {
   const caster = actorIn(get(), touche.casterId);
-  if (!caster) return { issue: 'cible-absente', lignes: [tr('cascade.cibleDisparue', { label: touche.spell.label })] };
+  if (!caster) return { issue: 'cible-absente', lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: touche.spell.label }))] };
   const spell = touche.spell;
   // Immunité de Domaine (`domainesImmunises` : Manifestation de Ghur, #18 ; VDM 13 l.24, l.61 ; ZI 08 l.28) :
   // ses Dégâts ET ses effets sont sautés sur cette cible.
-  if (immuneToSpellDomain(cible.traits, spell.domainId?.id)) return clore(get, touche, [tr('cf.immuniteAuDomaine', { name: nomDe(cible), spell: spell.label })], { ...touche.mres, woundsLost: 0 }, 0);
-  const lignes: string[] = [];
+  if (immuneToSpellDomain(cible.traits, spell.domainId?.id)) return clore(get, touche, [ligneDeTexte(tr('cf.immuniteAuDomaine', { name: nomDe(cible), spell: spell.label }))], { ...touche.mres, woundsLost: 0 }, 0);
+  const lignes: EntreeDuJournal[] = [];
   let mres = touche.mres;
   // LDB 18 l.53, l.55.
   const critLocation = localisationRelanceeDuProjectile(touche, cible);
@@ -6939,9 +6948,9 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
   // RAW (LDB 13 l.155-163). Le jet figé (roll/Surincantation) n'est pas rejoué : seul le DR change.
   const drMod = spellDRModFor(cible, touche.zoneTalentMod);
   if (drMod !== 0) {
-    lignes.push(tr('cf.resistanceALaMagie', { name: nomDe(cible), mr: -drMod }));
+    lignes.push(ligneDeTexte(tr('cf.resistanceALaMagie', { name: nomDe(cible), mr: -drMod })));
     if (!spellLandsOn(mres, cible, touche.zoneTalentMod)) {
-      lignes.push(tr('cf.resistanceALaMagieNI', { name: nomDe(cible), spell: spell.label, dr: spellSLFor(mres.sl, cible, touche.zoneTalentMod), ni: mres.niRequired ?? 0 }));
+      lignes.push(ligneDeTexte(tr('cf.resistanceALaMagieNI', { name: nomDe(cible), spell: spell.label, dr: spellSLFor(mres.sl, cible, touche.zoneTalentMod), ni: mres.niRequired ?? 0 })));
       return clore(get, touche, lignes, { ...mres, woundsLost: 0 }, 0);
     }
     mres = evaluateMissile(caster, cible, spell, { ...mres, zoneSpellDRMod: touche.zoneTalentMod }, mres.location, touche.overcastDamageSteps);
@@ -6957,11 +6966,11 @@ function appliquerTouchePourCible(get: Get, set: SetFn, cible: Combatant, touche
  * Un maillon qui SUSPEND rend la main — sa charge porte le rebond RESTANT (`bounce`/`hitIds` avancés),
  * et c'est la reprise de CETTE fenêtre qui rappellera cette fonction : jamais deux fois le même maillon.
  */
-function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string[] {
+function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): EntreeDuJournal[] {
   const rebond = touche.rebond;
   if (!rebond) return [];
   const spell = touche.spell;
-  const lignes: string[] = [];
+  const lignes: EntreeDuJournal[] = [];
   let prevId = touche.targetId;
   let hitIds = rebond.hitIds;
   for (let bounce = rebond.bounce; bounce < rebond.maxBounces; bounce++) {
@@ -6982,7 +6991,7 @@ function jouerLeRebond(get: Get, set: SetFn, touche: ToucheDeProjectile): string
     // cible — le résultat déjà atténué de la précédente (Résistance à la Magie, loc de Critique) la
     // contaminerait. La cible d'un rebond est HORS de la zone du lancement : elle est SA propre zone.
     const r2 = evaluateMissile(caster, next, spell, rebond.res, undefined, touche.overcastDamageSteps);
-    lignes.push(tr('cf.sortRebondit', { spell: spell.label, name: nomDe(next) }));
+    lignes.push(ligneDeTexte(tr('cf.sortRebondit', { spell: spell.label, name: nomDe(next) })));
     hitIds = [...hitIds, next.id];
     const maillon = appliquerTouchePourCible(get, set, next, {
       ...touche, de: prev.id, targetId: next.id, mres: r2, zoneTalentMod: talentSpellDRMod(next),
@@ -7177,7 +7186,7 @@ export function applyCast(
     }
     const toucheInitiale = ancre ? toucheDe(ancre, res, rebond) : undefined;
     const initiale = ancre && toucheInitiale ? appliquerTouchePourCible(get, set, ancre, toucheInitiale) : undefined;
-    if (initiale) logLines.push(...initiale.lignes.map((l) => ligneDeTexte(l)));
+    if (initiale) logLines.push(...initiale.lignes);
     // Nerveux (effet déclenché onStartled : magie → +3 Brisé) — dispatcher générique (noyau/triggeredEffects).
     // Cause 'magic' (présence de magie) → exemption Dressé (Magie) lue par la Condition Flow `startleCause`.
     for (const t of targets) {
@@ -7188,11 +7197,11 @@ export function applyCast(
       if (!res.cast) break;
       const r2 = evaluateMissile(caster, t2, spell, res, undefined, overcastDamageSteps);
       const touche2 = appliquerTouchePourCible(get, set, t2, toucheDe(t2, r2));
-      logLines.push(...touche2.lignes.map((l) => ligneDeTexte(l)));
+      logLines.push(...touche2.lignes);
     }
     // Le rebond DÉCLARÉ plus haut ne se joue ICI que si la touche initiale est CLOSE : suspendue
     // (sauvegarde, Déviation Critique), c'est SA reprise qui le jouera, sur des PB frais.
-    if (rebond && toucheInitiale && initiale?.issue === 'appliquee') logLines.push(...jouerLeRebond(get, set, toucheInitiale).map((l) => ligneDeTexte(l)));
+    if (rebond && toucheInitiale && initiale?.issue === 'appliquee') logLines.push(...jouerLeRebond(get, set, toucheInitiale));
     poserLaZone();
     // LDB 46 l.85 ; LDB 46 l.132
     if (res.isFumble && !malevolentHandled) logLines.push(...contrecoup('mineure', optsDuSort));
@@ -7239,9 +7248,9 @@ export function applyCast(
         );
         // LDB 46 l.30 ; LDB 18 l.21
         if (avantLeCoup && t.wounds.current < avantLeCoup.wounds.current) {
-          const critLog: string[] = [];
+          const critLog: EntreeDuJournal[] = [];
           applyCoupCritiqueSec(get, set, t, res.roll, 'incantation-critique', { attackerId: caster.id, weapon: spell.label }, critLog, caster, avantLeCoup);
-          logLines.push(...critLog.map((l) => ligneDeTexte(l)));
+          logLines.push(...critLog);
         }
         // Métamorphose (Forme bestiale, LDB 48) : op `polymorph` du Flow (on:'target') — appliquée
         // ci-dessus par runCastFlow → applyOps (expansion charMod différentiel + grantTrait via
@@ -8057,13 +8066,13 @@ function resolveSurrenderThreshold(battle: BattleState, vc: VictoryCondition | u
  *  `applyAttackResult` connaît les Blessures du coup. La cible TOUCHÉE est la partie vaincue : sortie
  *  par le MÊME mécanisme que la reddition (`outOfRencontre`/`exitReason`, #215), lue « hors-combat »
  *  (endState). No-op si la cible est déjà sortie/morte, ou hors `firstBlood`. */
-function resolveFirstBlood(target: Combatant, vc: VictoryCondition | undefined, lostThisHit: number, sink: string[]): void {
+function resolveFirstBlood(target: Combatant, vc: VictoryCondition | undefined, lostThisHit: number, sink: EntreeDuJournal[]): void {
   if (vc?.type !== 'firstBlood' || target.outOfRencontre || target.dead) return;
   const threshold = vc.threshold ?? 3;
   if (lostThisHit <= threshold) return;
   target.outOfRencontre = true;
   target.exitReason = 'firstBlood';
-  sink.push(tr('cf.premierSang', { name: nomDe(target) }));
+  sink.push(ligneDeTexte(tr('cf.premierSang', { name: nomDe(target) })));
 }
 
 export function checkBattleOver(get: Get, set: SetFn): boolean {
@@ -8413,10 +8422,10 @@ export function advanceTurn(get: Get, set: SetFn) {
       for (const c of battle.combatants) if (c.actLastNextRound) { c.actLastNextRound = false; battle.log.push(ev('detail', ligneDeTexte(tr('cf.agitEnDernier', { name: nomDe(c) })), c.id)); }
       // Entretien de Round PARTITIONNÉ (spec coop §4bis) : TOUT va au journal de combat (bandeau) ;
       // seules les lignes CONCERNANT UN HÉROS alimentent la révélation (les ennemis : journal seul).
-      const heroRoundLines: string[] = [];
+      const heroRoundLines: EntreeDuJournal[] = [];
       const tickLine = (entree: EntreeDuJournal, c?: Combatant) => {
         battle.log.push(ev('etat', entree, c?.id));
-        if (c?.kind === 'heros') heroRoundLines.push(entree.texte);
+        if (c?.kind === 'heros') heroRoundLines.push(entree);
       };
       // Le CONTENU du franchissement vit dans les crochets `onRoundEnd` (`roundHooks`, ordonnés par `order`), émis par
       // le bus (#316) ; advanceTurn n'en orchestre que le CADRE (Round, ordre, révélation).
@@ -9967,7 +9976,7 @@ export const TABLES = {
         pousserSauvegarde(set, porteur.id, reste, ws.suite);
         return { applique: { lignes: [ligneDeTexte(ligne)], faits: [] } };
       }
-      return { applique: { lignes: [ligneDeTexte(ligne), ...reprendreApresSauvegarde(get, set, ws.suite, sauve).map((x) => ligneDeTexte(x))], faits: [] } };
+      return { applique: { lignes: [ligneDeTexte(ligne), ...reprendreApresSauvegarde(get, set, ws.suite, sauve)], faits: [] } };
     },
     /**
      * APPLIER d'une étape de la grappe de CASSE D'ARME (#1508 T3b-4) : le dé est tombé (lancé ou POSÉ),
@@ -10143,9 +10152,9 @@ export const TABLES = {
         // Coup Critique normal sur la défense (le défenseur place le Critique sur l'attaquant).
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
         const parryWeaponName = parryWeaponObj?.label ?? 'arme';
-        const lines = [tr('cf.critiqueEnDefense', { name: nomDe(defender) })];
+        const lines = [ligneDeTexte(tr('cf.critiqueEnDefense', { name: nomDe(defender) }))];
         applyCoupCritiqueSec(get, set, attacker, pbt.roll, 'double', { attackerId: defender.id, weapon: parryWeaponName, weaponObj: parryWeaponObj }, lines, defender, avantLeCoup);
-        journaliser(get, set, lines.map((l) => ligneDeTexte(l)), 'information', { actorId: defender.id, targetId: attacker.id });
+        journaliser(get, set, lines, 'information', { actorId: defender.id, targetId: attacker.id });
         set(touchActors(get()));
         bus.emit(EVT.SCENE_DIRTY);
         checkBattleOver(get, set);

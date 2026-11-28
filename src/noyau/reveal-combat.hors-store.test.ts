@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { avanceEtapeCascade, cascadeDeTest } from './cascade.testkit';
@@ -55,7 +56,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.setState({
       battle: { ...b, turn, acted: true },
       pendingCascade: cascadeDeTest(
-        [{ id: 'cons-critique-0', kind: 'critique', reveal: { kind: 'critique', title: 'Coup Critique', dice: 50, lines: ['x'] } }],
+        [{ id: 'cons-critique-0', kind: 'critique', reveal: { kind: 'critique', title: 'Coup Critique', dice: 50, lines: [ligneDeTexte('x')] } }],
         { title: 'Coup Critique', purpose: 'combat' },
       ),
     });
@@ -83,7 +84,7 @@ describe('Conséquences d’attaque en révélation (store)', () => {
     banc.setState({
       battle: { ...b, turn, acted: true },
       pendingCascade: cascadeDeTest(
-        [{ id: 'cons-effet-0', kind: 'effet', reveal: { kind: 'effet', title: 'Conséquence', lines: ['x'] } }],
+        [{ id: 'cons-effet-0', kind: 'effet', reveal: { kind: 'effet', title: 'Conséquence', lines: [ligneDeTexte('x')] } }],
         { title: 'Test' },
       ),
     });

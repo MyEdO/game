@@ -853,9 +853,9 @@ function sanctionDeTaverneStep(
 
 function effetsDeLaSanction(
   get: Get, gameId: string, acteur: Combatant | undefined, ops: SequenceThrowerPenalty['ops'],
-): string[] {
+): EntreeDuJournal[] {
   if (!acteur || !ops?.length) return [];
-  return applyOps(acteur, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: gameId } }).lignes.map((e) => e.texte);
+  return applyOps(acteur, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'jeuDeTaverne', id: gameId } }).lignes;
 }
 
 /** Le Test PROPRE d'une rangée de taverne : le verdict du d100 (`evaluateTest`, LDB 12 l.25-28), jamais
@@ -873,7 +873,7 @@ function asTest(r: { roll: number; target: number; sl: number }, base?: number):
  * (figurant, héros sans siège) le passe d'office, sans fenêtre. Aucune sanction déclarée : le raté ne
  * coûte rien. Rendu : les lignes de récit du chemin d'office (vide sinon).
  */
-function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): string[] {
+function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): EntreeDuJournal[] {
   const seq = activeSequence<TavernPayload>(get);
   const p = seq?.chargeUtile;
   const game = p ? findTavernGameById(p.gameId) : undefined;
@@ -912,15 +912,15 @@ function torchonRate(get: Get, set: Set, rows: readonly BatchParticipant[]): str
 /** CE QUE COÛTE le Test raté de la sanction : ses `ops` au lanceur, ses `points` à son camp — retirés
  *  de l'ACCUMULATEUR du socle EN COURS DE MANCHE (`setSequenceCumuls`), la clôture les relit là. Le RÉCIT
  *  est celui que la sanction DÉCLARE (`lines`) : aucune phrase n'est écrite ici. */
-function torchonBoit(get: Get, set: Set, lanceurId: string, camp: CampDeTaverne, label: string, success: boolean): string[] {
+function torchonBoit(get: Get, set: Set, lanceurId: string, camp: CampDeTaverne, label: string, success: boolean): EntreeDuJournal[] {
   const seq = activeSequence<TavernPayload>(get);
   const regles = seq?.parametres.throwerPenalty;
   if (!seq || !regles) return [];
-  if (success) return regles.lines?.reussite ? [interpolate(regles.lines.reussite, { who: label })] : [];
+  if (success) return regles.lines?.reussite ? [ligneDeTexte(interpolate(regles.lines.reussite, { who: label }))] : [];
   const perte = regles.points ?? 0;
   const acteur = actorIn(get(), lanceurId);
-  const lignes: string[] = regles.lines?.echec
-    ? [interpolate(regles.lines.echec, { who: label, points: perte, s: pluriel(perte) })]
+  const lignes: EntreeDuJournal[] = regles.lines?.echec
+    ? [ligneDeTexte(interpolate(regles.lines.echec, { who: label, points: perte, s: pluriel(perte) }))]
     : [];
   lignes.push(...effetsDeLaSanction(get, seq.chargeUtile.gameId, acteur, regles.ops));
   if (perte) setSequenceCumuls(get, set, { ...seq.cumuls, [camp]: (seq.cumuls[camp] ?? 0) - perte });
@@ -2455,7 +2455,7 @@ function combinedPenaltyRound(get: Get, seq: SequenceState<TavernPayload>, game:
   };
 }
 
-function combinedBoit(get: Get, set: Set, seq: SequenceState<TavernPayload>, step: CascadeStep): string[] {
+function combinedBoit(get: Get, set: Set, seq: SequenceState<TavernPayload>, step: CascadeStep): EntreeDuJournal[] {
   const p = seq.chargeUtile;
   const camp = p.combined?.echeances?.[0];
   const game = findTavernGameById(p.gameId);
@@ -2684,10 +2684,10 @@ export const TABLES = {
           // attribue le score au mauvais camp.
           const acteur = tavernActor(get, row.id);
           const who = acteur ? nomDe(acteur) : row.label ?? row.id;
-          return `${who} : ${dr(row.result?.sl ?? 0)}.`;
+          return ligneDeTexte(`${who} : ${dr(row.result?.sl ?? 0)}.`);
         });
         lines.push(...torchonRate(get, set, step.participants));
-        return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
+        return { applique: { lignes: lines, faits: [] } };
       }
       if (!step.result) return {};
       // MANCHE MONO à jet adverse FIGÉ : le journal nomme les DEUX camps, comme la BANDE ci-dessus et
@@ -2729,9 +2729,9 @@ export const TABLES = {
     [TAVERN_DRINK_KIND]: (get, set, step) => {
       if (!step.result || !step.actorId) return {};
       const seq = activeSequence<TavernPayload>(get);
-      if (seq?.chargeUtile.combined?.echeances?.length) return { applique: { lignes: combinedBoit(get, set, seq, step).map((x) => ligneDeTexte(x)), faits: [] } };
+      if (seq?.chargeUtile.combined?.echeances?.length) return { applique: { lignes: combinedBoit(get, set, seq, step), faits: [] } };
       const { camp, who } = lirePinte(step.meta);
-      return { applique: { lignes: torchonBoit(get, set, step.actorId, camp, who, step.result.success).map((x) => ligneDeTexte(x)), faits: [] } };
+      return { applique: { lignes: torchonBoit(get, set, step.actorId, camp, who, step.result.success), faits: [] } };
     },
     /** APPLIER du lancer : la ligne de récit de ce qui est tombé, et — pour un joueur tenu par un siège
      *  dont la plage OFFRE le choix — l'étape « remettre ou abandonner » appendée à la MÊME fenêtre

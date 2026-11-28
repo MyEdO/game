@@ -2,6 +2,7 @@
  * Une coque routière n'est pas un navire (EDOC 07 l.334, MDG 13 l.656).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import type { Combatant } from '../engine/types';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { spawnEnemy } from './monde/spawn';
@@ -45,11 +46,11 @@ describe('coque routière (EDOC 07 l.334) : ni Critique, ni collision, ni IA de 
     const dil = diligence();
     poser([dil]);
     const avant = { conditions: [...dil.conditions], criticalWounds: dil.criticalWounds };
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     expect(applyCriticalToTarget(dil, 'corps', 0, log, banc.setState, { get: banc.getState })).toBe('aucune');
     expect(dil.criticalWounds).toBe(avant.criticalWounds);
     expect(dil.conditions).toEqual(avant.conditions);
-    expect(log).toEqual([t('cf.coqueSansCritique', { name: nomDe(dil) })]);
+    expect(log).toEqual([ligneDeTexte(t('cf.coqueSansCritique', { name: nomDe(dil) }))]);
   });
 
   it("un navire qui avance sur une diligence ne résout aucune collision : aucune des deux coques n'encaisse", () => {

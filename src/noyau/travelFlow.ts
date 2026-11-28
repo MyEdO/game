@@ -904,7 +904,7 @@ export function continueTravelDayAfterCascade(get: Get, set: Set, done?: Pending
       const h = get().party.find((x) => x.id === id);
       if (!h) continue;
       const r = forcedMarchTest(h, battleRng());
-      if (r) { log(get, set, [ligneDeTexte(r.line)]); recapDay?.entries?.push({ actorId: id, icon: 'voyage/a-pied', label: t('step.marcheForcee'), d: r.d, text: r.gained ? t('tf.fragmentExtenue', { n: r.gained }) : t('tf.tientLAllure'), tone: r.gained ? 'echec' : 'reussite' }); }
+      if (r) { log(get, set, [ligneDeTexte(r.line)]); recapDay?.entries?.push({ actorId: id, icon: 'voyage/a-pied', label: t('step.marcheForcee'), d: r.d, issue: [ligneDeTexte(r.gained ? t('tf.fragmentExtenue', { n: r.gained }) : t('tf.tientLAllure'))], tone: r.gained ? 'echec' : 'reussite' }); }
     }
     set({ party: [...get().party] });
   };
@@ -1011,13 +1011,13 @@ function resolveMountedTravelDay(get: Get, set: Set, hoursToday: number, allure:
   for (const o of outcomes) {
     lines.push(...o.lines.map((l) => ligneDeTexte(l)));
     for (const mt of o.tests) {
-      day.entries!.push({ actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: mt.label, d: mt, text: mt.success ? t('tf.tientLAllure') : t('tf.flanche'), tone: mt.success ? 'reussite' : 'echec' });
+      day.entries!.push({ actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: mt.label, d: mt, issue: [ligneDeTexte(mt.success ? t('tf.tientLAllure') : t('tf.flanche'))], tone: mt.success ? 'reussite' : 'echec' });
     }
     for (const inc of o.incidents) {
       if (inc.riderTest) {
         day.entries!.push({
           actorId: o.mount.hero.id, icon: 'voyage/en-selle', label: t('tf.incidentDeMonture', { incident: inc.entry.label }), d: inc.riderTest,
-          text: inc.riderTest.success ? t('tf.resteEnSelle') : t('tf.chuteDeSelle'), tone: inc.riderTest.success ? 'reussite' : 'echec',
+          issue: [ligneDeTexte(inc.riderTest.success ? t('tf.resteEnSelle') : t('tf.chuteDeSelle'))], tone: inc.riderTest.success ? 'reussite' : 'echec',
         });
       }
       // Chute de selle (2 mètres, EDOC 07 l.167/l.174) — Dégâts de Chute (LDB 15) via la brique partagée.
@@ -1126,7 +1126,7 @@ function forcedPaceDay(get: Get, set: Set, kmLeft: number, driver: NonNullable<R
       // dans `driver.value`) et les crans déjà avalés au pas de course.
       d: testDetail('Conduite d’attelage', driverLine.base, roll,
         [...driverLine.mods, ...(gallopMod ? [gallopMod] : [])]),
-      text: stupefiant ? t('tf.marcheForceeStupefiante') : t('tf.marcheForceeRetourAuPas'), tone: 'echec',
+      issue: [ligneDeTexte(stupefiant ? t('tf.marcheForceeStupefiante') : t('tf.marcheForceeRetourAuPas'))], tone: 'echec',
     });
     // Le jet est porté par `day.entries` du même jour (#295 Lot 5) ; la ligne ne garde que le verdict.
     out.lines.push(ligneDeTexte(t('tf.marcheForceeRatee', { name: nomDe(driver.actor), stupefiant: stupefiant ? t('tf.fragmentStupefiant') : '' })));
@@ -1192,7 +1192,7 @@ function applyVehicleProblemEffects(get: Get, set: Set, entry: ReturnType<typeof
   const vehicle = get().travelPlan?.vehicle;
   if (!vehicle) return { vehicleOut: false, vehicleLame: false };
   const r = applyVehicleProblem(vehicle, entry.min, battleRng(), get().forgerUnId);
-  lines.push(...r.lines.map((l) => ligneDeTexte(l)));
+  lines.push(...r.lines);
   // Dégâts aux occupants (Cassé : 1 Blessure ignorant BE et PA ; Accident : 2d10 − BE − PA, min 1) —
   // langue unique GameOp, portée par la table (`occupantOps`).
   if (r.entry.occupantOps?.length) {
@@ -1418,8 +1418,8 @@ export const TABLES = {
             // SOURCE UNIQUE `applyHealWounds` — plafond munition logée (LDB 62 l.250) même chemin que Guérison/repos.
             j.push(...applyHealWounds(h, h.wounds.max - h.wounds.current, {
               wake: false,
-              log: () => [h.wounds.current >= h.wounds.max ? t('tf.soinComplet', { name: nomDe(h) }) : t('tf.soinPartiel', { name: nomDe(h) })],
-            }).map((l) => ligneDeTexte(l)));
+              log: () => [ligneDeTexte(h.wounds.current >= h.wounds.max ? t('tf.soinComplet', { name: nomDe(h) }) : t('tf.soinPartiel', { name: nomDe(h) }))],
+            }));
           }
           const n = stacks(h, 'extenue');
           if (n > 0) {

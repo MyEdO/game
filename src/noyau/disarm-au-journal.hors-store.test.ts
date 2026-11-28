@@ -1,5 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { applyCriticalToTarget, aiHandGate } from './combatFlow';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -27,9 +27,9 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     const gobelin = mk({ id: 'g', label: 'Gobelin', weapons: [{ uid: 's1', label: 'Hachoir', type: 'melee', damage: { plusBF: true, flat: 4 }, qualities: [] }] as never });
     const crit = resolveCritique('ldb', gobelin, 'brasD', seq(5), { overkill: 0 });
     expect(crit.entryId).toBe('choc-au-bras');
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(gobelin, 'brasD', 0, log, banc.setState, { prerolled: crit, get: banc.getState });
-    expect(log).toContain('  ↳ Gobelin lâche Hachoir.');
+    expect(log.filter((l) => l.rattache).map((l) => l.texte)).toContain('Gobelin lâche Hachoir.');
     expect(gobelin.weapons.some((w) => w.uid === 's1')).toBe(false);
   });
 
@@ -39,7 +39,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
     banc.setState({ scene: emptyScene('scene-test') });
     recomputeLoadout(heros);
     const crit = resolveCritique('ldb', heros, 'brasD', seq(5), { overkill: 0 });
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCriticalToTarget(heros, 'brasD', 0, log, banc.setState, { prerolled: crit, get: banc.getState });
     const c = banc.getState().pendingCascade!;
     const etape = c.participants[c.participants.length - 1];
@@ -48,7 +48,7 @@ describe('op disarm d’un Critique : ses lignes vont au journal (applyCriticalT
       { genre: 'blessures', cible: 'h', camp: 'groupe', valeur: -1, mitigation: 'sans' },
     ]);
     expect(etape.reveal!.details?.map((d) => d.text)).toEqual(['Héros lâche Arme simple.', crit.desc]);
-    expect(log.filter((l) => l.startsWith('  ↳ '))).toEqual(['  ↳ Héros subit 1 Blessure(s) (ignorant BE et PA).', '  ↳ Héros lâche Arme simple.', `  ↳ ${crit.desc}`]);
+    expect(log.filter((l) => l.rattache).map((l) => l.texte)).toEqual(['Héros subit 1 Blessure(s) (ignorant BE et PA).', 'Héros lâche Arme simple.', crit.desc]);
   });
 
   // LDB 18 l.74

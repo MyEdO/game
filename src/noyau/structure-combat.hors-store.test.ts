@@ -1,5 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import {
@@ -220,7 +220,7 @@ describe('Structures de siège — à 0 Blessure, la Structure reste debout (AA 
 describe('Structures de siège — Critique de Structure (AA 10 l.112-127)', () => {
   it("Effondrement (forcedRoll 98) → `destroyed`, Blessures restantes CONSERVÉES (AA 10 l.127), puis BRÈCHE", () => {
     const { S, H } = start('mur-en-pierre');
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     const before = S!.wounds.current;
     expect(applyStructureCriticalToTarget(idsDeTest, banc.setState, S!, { attackerId: H.id, attackerKind: 'heros' }, log, { forcedRoll: 98 }).destroyed).toBe(true);
     expect(S!.wounds.current).toBe(before);

@@ -49,7 +49,7 @@ export function evDEtat(etat: string, text: string, actorId?: string): CombatEve
 
 /**
  * Enveloppe une liste d'entrées du journal en événements.
- * Les sous-lignes indentées « ↳ … » deviennent des `detail` ; les autres prennent `mainKind`.
+ * Une entrée rattachée à la précédente (`rattache`) devient un `detail` ; les autres prennent `mainKind`.
  */
 export function evLines(
   lines: EntreeDuJournal[],
@@ -57,7 +57,7 @@ export function evLines(
   actorId?: string,
   targetId?: string,
 ): CombatEvent[] {
-  return lines.map((entree) => ({ kind: /^\s*↳/.test(entree.texte) ? 'detail' : mainKind, entree, actorId, targetId }));
+  return lines.map((entree) => ({ kind: entree.rattache ? 'detail' : mainKind, entree, actorId, targetId }));
 }
 
 /**

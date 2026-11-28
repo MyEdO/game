@@ -19,7 +19,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -299,7 +299,7 @@ describe('#1262 lot 5a — AFFICHAGES adossés aux situations de combat', () => 
     const { hero } = setup({ x: 1, y: 0 }, [sword]);
     seedBattleRng(11);
     const structure = mk('s', 'ennemi', { x: 2, y: 0 }, []);
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyStructureCriticalToTarget(idsDeTest, banc.setState, structure, { attackerId: hero.id, attackerKind: 'heros', weapon: 'Épée' }, log, { forcedRoll: 42 });
     const st = banc.getState().pendingCascade!.participants.find((s) => s.kind === 'critique')!;
     expect(st.actorId).toBe(structure.id);

@@ -6,6 +6,7 @@
 import type { IconId } from '../data/schemas/icons';
 import type { Availability, CharKey, Difficulty, HitLocation, Weapon, FireArc, Combatant, EffectSource, ContexteDeTest, Main } from '../engine/types';
 import type { DiceSpec } from '../engine/dice';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { PorteurDeFiche } from '../engine/statblock';
 import type { ConjureForm } from '../engine/conjuredWeapons';
 import type { Pt } from './monde/path';
@@ -770,7 +771,7 @@ export interface RevealEntry {
   kind: 'incantationImparfaite' | 'critique' | 'round' | 'mutation' | 'effet' | 'entreeEnScene';
   title: string;
   dice?: number; // d100/d10 à afficher (le jet), si pertinent
-  lines: string[]; // détail (résultat, effets)
+  lines: EntreeDuJournal[]; // détail (résultat, effets)
   /** Entrée de zone : la scène dont `lines` porte le `startMessage` (#2206). */
   sceneId?: string;
   /** Combattant CONCERNÉ par la révélation (victime du critique, lanceur de la Colère…) → portrait

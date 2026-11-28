@@ -23,7 +23,7 @@ import { t as tr } from '../i18n';
 import { locationLabel, type Combatant, type ItemInstance, type Weapon } from '../engine/types';
 import { LOCALISATIONS_DE_COUP } from '../engine/types';
 import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
-import { ligneDeTexte } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { talentCritExtraWounds } from '../engine/combatFeatures/dispatch';
 import { nomDe } from '../engine/nom';
 
@@ -172,7 +172,7 @@ describe('le store joue le compte des Blessures critiques du coup', () => {
 
   it("Mort subite : le Critique d'un Test opposé ne frappe pas le figurant (LDB 14 l.3 ; LDB 18 l.44)", () => {
     const { H, cible } = coupQuiDepasse(false, { pa: 1, endurance: 10 });
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCoupCritiqueSec(banc.getState, banc.setState, cible, 44, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     expect(cible.criticalWounds ?? 0).toBe(0);
     expect(totalPA(cible)).toBe(6);
@@ -439,7 +439,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
   function oppose(roll: number) {
     setRule('combat-deviation-critique', false);
     const { H, cible } = coup({ roll: 45, double: false, current: 20, pieces: [bacle, impenetrable()] });
-    const log: string[] = [];
+    const log: EntreeDuJournal[] = [];
     applyCoupCritiqueSec(banc.getState, banc.setState, cible, roll, 'double', { attackerId: H.id, weapon: epee.label, weaponObj: epee }, log, H, instantaneAvantLeCoup(cible));
     return { cible, log };
   }
@@ -447,7 +447,7 @@ describe("Impénétrable et Bâclée au Projectile et au Critique opposé (LDB 6
   it('Critique opposé, double 33 et Impénétrable : aucune Blessure critique, une ligne, la Bâclée casse', () => {
     const { cible, log } = oppose(33);
     expect(cible.criticalWounds ?? 0).toBe(0);
-    expect(log.filter((l) => l.startsWith(`L'armure Impénétrable de ${cible.label}`))).toHaveLength(1);
+    expect(log.filter((l) => l.texte.startsWith(`L'armure Impénétrable de ${cible.label}`))).toHaveLength(1);
     expect(casse(cible, 'p1')).toBe(true);
   });
 

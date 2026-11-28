@@ -2034,8 +2034,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const whoId = cible.id;
       const who = env.mutateHero(whoId, (h) => (porte(h) ? h : { ...h, diseases: [...(h.diseases ?? []), { ...dz }] }));
       if (who) {
-        const line = t('eff.maladieContractee', { name: nomDe(who), disease: e.disease });
-        env.get().ecrireAuJournal(ligneDeTexte(line));
+        const line = ligneDeTexte(t('eff.maladieContractee', { name: nomDe(who), disease: e.disease }));
+        env.get().ecrireAuJournal(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
         env.pushReveal({ kind: 'effet', title: t('eff.titreDeMaladie', { disease: e.disease }), lines: [line], subjectId: whoId });
       }
@@ -2148,10 +2148,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const labels = traumas.map((tr) => tr.label);
       const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: avecSequelles(h.traumas, structuredClone(traumas)), criticalWounds: (h.criticalWounds ?? 0) + 1 }));
       if (who) {
-        const line = t('eff.critiqueSubi', { name: nomDe(who), kind: e.kind, location: e.location });
-        env.get().ecrireAuJournal(ligneDeTexte(line));
+        const line = ligneDeTexte(t('eff.critiqueSubi', { name: nomDe(who), kind: e.kind, location: e.location }));
+        env.get().ecrireAuJournal(line);
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
-        env.pushReveal({ kind: 'effet', title: t('eff.titreDeCritique', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId });
+        env.pushReveal({ kind: 'effet', title: t('eff.titreDeCritique', { kind: e.kind }), lines: [line, ...labels.map((l) => ligneDeTexte(l))], subjectId: whoId });
       }
     },
   },
@@ -2173,8 +2173,8 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (!cible) return;
       const calme = calmeDAcquisition(cible, 'accessible', battleRng());
       if (!calme) return;
-      const line = t(calme.success ? 'eff.ambitionEncaissee' : 'eff.ambitionTraumatisme', { name: nomDe(cible), roll: calme.roll, target: calme.target });
-      env.get().ecrireAuJournal(ligneDeTexte(line));
+      const line = ligneDeTexte(t(calme.success ? 'eff.ambitionEncaissee' : 'eff.ambitionTraumatisme', { name: nomDe(cible), roll: calme.roll, target: calme.target }));
+      env.get().ecrireAuJournal(line);
       if (calme.success) return;
       env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: cible.id });
       ouvrirLeTrauma(env.set, cible);

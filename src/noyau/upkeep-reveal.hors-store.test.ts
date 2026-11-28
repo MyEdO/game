@@ -45,6 +45,6 @@ describe('Entretien de Round en révélation (store)', () => {
     const step = banc.getState().pendingCascade?.participants.find((s) => s.kind === 'round');
     const round = step?.reveal;
     expect(round).toBeTruthy();
-    expect(round!.lines.some((l) => /Hémorragique|Blessure/i.test(l))).toBe(true);
+    expect(round!.lines.some((l) => /Hémorragique|Blessure/i.test(l.texte))).toBe(true);
   });
 });

@@ -180,10 +180,10 @@ function empileSurPionExistant(existing: ConditionInstance, value: number): void
 }
 
 /** Mort subite (LDB 18 l.44, l.46) : l'issue du coup qui dépasse les Blessures d'un figurant (#2654). */
-export function appliquerMortSubite(target: Combatant, log: string[]): void {
+export function appliquerMortSubite(target: Combatant, log: EntreeDuJournal[]): void {
   target.wounds.current = 0;
   if (!target.conditions.some((c) => c.id === COND.inconscient)) addCondition(target, COND.inconscient);
-  log.push(t('cf.effondrement', { name: nomDe(target) }));
+  log.push(ligneDeTexte(t('cf.effondrement', { name: nomDe(target) })));
 }
 
 /** La Difficulté du Test qui retire l'État `id` quand sa pose n'en dicte aucune : le défaut de son Test

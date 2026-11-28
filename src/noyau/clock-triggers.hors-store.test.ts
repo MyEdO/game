@@ -201,9 +201,9 @@ describe('n nuits DORMÍES = n réveils (`sleepParty`)', () => {
     const entries = sleepParty(get, set, 3);
 
     // La récupération de la nuit retire l'État (LDB 16) : ce qui se compte est l'ÉMISSION, ligne à ligne.
-    const matins = entries.filter((e) => e.actorId === victime.id && (e.text ?? '').includes('Exténué'));
+    const matins = entries.filter((e) => e.actorId === victime.id && (e.issue ?? []).map((x) => x.texte).join(' ').includes('Exténué'));
     expect(matins, 'trois nuits dormies n’ont pas produit trois réveils.').toHaveLength(3);
-    expect(entries.filter((e) => e.actorId === get().party[1].id && (e.text ?? '').includes('Exténué'))).toHaveLength(0);
+    expect(entries.filter((e) => e.actorId === get().party[1].id && (e.issue ?? []).map((x) => x.texte).join(' ').includes('Exténué'))).toHaveLength(0);
   });
 });
 
