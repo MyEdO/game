@@ -13,6 +13,7 @@
  * d'inventé (cf. parity.test.ts + commentaire de la capability).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
 import { immuneToSpellDomain, domainesImmunises } from '../engine/traits/dispatch';
@@ -52,7 +53,7 @@ const spell = (domainId: string) =>
     family: 'arcane',
   }) as unknown as Parameters<typeof applyCast>[4];
 
-const ok: CastResult = { cast: true, roll: 21, target: 70, sl: 2, isCritical: false, isFumble: false, log: 'lancé' };
+const ok: CastResult = { cast: true, roll: 21, target: 70, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') };
 
 describe('Manifestation de Ghur — immunité aux Sorts du Domaine de la Bête (#18)', () => {
   it('capability lue PAR ID : domainesImmunises → ["bete"] ; immuneToSpellDomain gate par Domaine', () => {

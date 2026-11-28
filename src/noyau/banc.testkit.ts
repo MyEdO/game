@@ -65,6 +65,15 @@ export function ouvrirLeBanc(entrees: EntreesDuBanc = {}): Banc {
   return pose.banc;
 }
 
+/** Les textes que la partie de `banc` écrit à son puits (`ecrireAuJournal`) à partir de l'appel, dans l'ordre : le journal
+ *  du store est plafonné, la capture ne l'est pas. Le puits réel écrit toujours. */
+export function capterLeJournal(banc: Pick<Banc, 'getState' | 'setState'>): string[] {
+  const textes: string[] = [];
+  const puits = banc.getState().ecrireAuJournal;
+  banc.setState({ ecrireAuJournal: (msg) => { for (const x of Array.isArray(msg) ? msg : [msg]) textes.push(typeof x === 'string' ? x : x.texte); puits(msg); } });
+  return textes;
+}
+
 /** Joue `corps` sur un banc ouvert HORS d'un test (à la collecte d'un `describe`), fermé à son retour, levée comprise. */
 export function surUnBancHorsTest<T>(corps: (banc: Banc) => T): T {
   const pose = poserLeBanc({});

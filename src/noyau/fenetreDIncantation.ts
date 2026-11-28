@@ -17,7 +17,6 @@ import { aiDriven, influencesLocally } from './netOwnership';
 import { fermeturesDuFlux } from './verbesOuverts';
 import { fermetureDuReglage } from './rollFlowSpecs';
 import { ancreDeLaZdE, castOvercastAxes, effectiveSpellOf, overcastTargetCandidates, previewCast } from './combatFlow';
-import { resultLine, freeCons } from './rollSeam';
 import { libelleDeLaFermeture, libelleDuReglage } from './libelles';
 import { gesteDuReglage, type ChoixNomme } from './reglages';
 import { libelleDIncantation } from './jetsEnVue';
@@ -296,10 +295,8 @@ function issueDeLIncantation(s: Pick<Jeu, 'pendingCast' | 'pendingCastOpposition
     (!!contre && contre.participants.some((p) => !p.result || p.result.dispelled))
     || (!!primaire && (!primaire.result || primaire.result.resisted)));
   if (annule) return '';
-  if (res.cast) return pc.missile && res.hit ? res.log : resultLine(freeCons([t(res.isCritical ? 'incantation.issue.lanceCritique' : 'incantation.issue.lance')]));
-  return resultLine(freeCons([
-    res.isFumble
-      ? t('incantation.issue.maladresse')
-      : evaluateTest(res.roll, res.target).success ? t('incantation.issue.tropFaible', { dr: res.sl, ni: res.niRequired ?? 0 }) : t('incantation.issue.echec'),
-  ]));
+  if (res.cast) return pc.missile && res.hit ? res.log.texte : t(res.isCritical ? 'incantation.issue.lanceCritique' : 'incantation.issue.lance');
+  return res.isFumble
+    ? t('incantation.issue.maladresse')
+    : evaluateTest(res.roll, res.target).success ? t('incantation.issue.tropFaible', { dr: res.sl, ni: res.niRequired ?? 0 }) : t('incantation.issue.echec');
 }

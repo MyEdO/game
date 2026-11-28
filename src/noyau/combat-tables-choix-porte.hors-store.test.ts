@@ -268,7 +268,7 @@ describe('#1262 lot 5b — AFFICHAGES : une conséquence sans dé ne se rend pas
     expect(st.fuite!.moverId).toBe(fuyard.id);
     expect(st.fuite!.foeId).toBe(frappeur.id);
     expect(st.fuite!.broken, 'Test `fuite` raté DR −1 → 1 + 1 États Brisés (LDB 15 l.66)').toBe(2);
-    expect(st.outcome?.map((l) => l.text), 'l’étape DIT la fuite qu’elle complète, jamais une fenêtre vide').toEqual([
+    expect(st.outcome?.map((l) => l.entree.texte), 'l’étape DIT la fuite qu’elle complète, jamais une fenêtre vide').toEqual([
       t('cs.fuiteReprise', { name: nomDe(fuyard), foe: nomDe(frappeur) }),
       t('cs.panic', { name: nomDe(fuyard), broken: 2 }),
     ]);

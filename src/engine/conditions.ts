@@ -45,14 +45,18 @@ import { isFrenzied, isFrenzyCapable, restoreSuppressedPsych } from './psycholog
 import { hasActiveFlag } from './activeFlags';
 import { applyActiveEffect } from './effetsActifs';
 import { isVehicle } from './coque';
-import { applyOps, resolveWindowDuration } from './ops'; // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
-import { cappedHealAmount } from './healing'; // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
+import { applyOps, resolveWindowDuration } from './ops';
+ // cycle runtime (ops→conditions) : appelés au tick/à la dépense, jamais à l'init du module
+import { cappedHealAmount } from './healing';
+ // cycle runtime (healing→conditions) : appelé à la dépense, jamais à l'init
 // cycle runtime (structures→capabilities→disease→conditions) : appelés à la lecture d'un combattant, jamais à l'init
 import {
   isInanimate,
 } from './structures';
-import { hasTalent } from './magic'; // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
-import { aaDeathByCriticalCount } from './critical'; // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
+import { hasTalent } from './magic';
+ // cycle runtime (magic→combat→conditions) : appelé à la lecture de la Mort subite, jamais à l'init
+import { aaDeathByCriticalCount } from './critical';
+ // cycle runtime (critical→combat→conditions) : appelé seulement dans inDeathCondition, jamais à l'init
 
 /** Les 12 États CANONIQUES (LDB 16) à comportement moteur, par `id` STABLE (slug d'etats.json). Le
  *  moteur (pénalités, fin de Round, récupération) les référence via ces constantes — JAMAIS de chaîne
@@ -648,6 +652,7 @@ function srcLabel(src: CodexTarget | undefined, nature: string): string {
 import { passivePartLine } from './trauma';
 import { nomDe } from './nom';
 import { determinationDe } from './talentEffects';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 export { passivePartLine };
 
 // `effectRef` (couture UNIQUE effet→fiche Codex) vit dans `types.ts`, à côté de la table
@@ -909,8 +914,8 @@ export function isActionLocked(c: Combatant): boolean {
  * de cascade influençable (cf. `collectHeroRoundEndUpkeep`). Les DÉGÂTS restent ici pour tous ; seul
  * le Test est différé. ENNEMIS : `opts` absent → comportement (et ORDRE RNG) inchangé.
  */
-export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveTrapping?: TrappingResolver): string[] {
-  const log: string[] = [];
+export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveTrapping?: TrappingResolver): EntreeDuJournal[] {
+  const log: EntreeDuJournal[] = [];
   // Hémorragique : dégâts par-round (« 1 Blessure par pion, en ignorant les modificateurs », l.104) MIGRÉS
   // en données — etats.json hemorragique `effects: onRoundEnd → wounds {stacks:'self'}` (défaut : ignore
   // BE+PA), avec `stacksReducedBy:'bleedIgnore'` pour l'Endurci (LDB 10), joué par fireConditionEffects.
@@ -939,7 +944,7 @@ export function endOfRound(c: Combatant, rng: RNG, idNeuf: FabriqueDId, resolveT
   }
   // Décrément des durées (effets/États de sort/contrecoups) — SOURCE UNIQUE extraite, même emplacement
   // qu'avant (fin d'`endOfRound`, après les ops récurrentes). RNG-free.
-  tickDurations(c).forEach((l) => log.push(l));
+  log.push(...tickDurations(c));
   return log;
 }
 
@@ -995,15 +1000,15 @@ export function pendingPlusExtensions(c: Combatant): ActiveEffect[] {
  *  Force Mentale réussi) → +1 Round, effet dégelé ; refus/échec → expiration NORMALE (mêmes réversions
  *  que `removeActiveEffects` — traits/armes/ressources accordés repris). Fonction PARTAGÉE par la
  *  résolution PNJ (inline, hook `end-of-round`) et l'applier de cascade héros (`sortProlongeTest`). */
-export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: boolean): string[] {
+export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: boolean): EntreeDuJournal[] {
   if (extended) {
     e.awaitingExtension = undefined;
     e.duration = { scale: 'rounds', left: 1 };
-    return [t('cond.effectExtended', { name: nomDe(c), label: e.label })];
+    return [ligneDeTexte(t('cond.effectExtended', { name: nomDe(c), label: e.label }))];
   }
   const porte: Applique = { lignes: [], faits: [] }; // États PORTÉS par l'effet gelé (#1695) : leur départ se dit au même journal
   const removed = removeActiveEffects(c, (x) => x === e, porte);
-  return [...removed.map((x) => t('cond.effectExpire', { name: nomDe(c), label: x.label })), ...porte.lignes];
+  return [...removed.map((x) => ligneDeTexte(t('cond.effectExpire', { name: nomDe(c), label: x.label }))), ...porte.lignes];
 }
 
 /**
@@ -1013,8 +1018,8 @@ export function resolvePlusExtension(c: Combatant, e: ActiveEffect, extended: bo
  * RNG-FREE (décrément + filtre + retraits) → n'altère pas le flux déterministe.
  * Rejoué hors combat par `outOfCombatUpkeep` (les durées en Rounds tickent aussi à l'horloge).
  */
-export function tickDurations(c: Combatant): string[] {
-  const log: string[] = [];
+export function tickDurations(c: Combatant): EntreeDuJournal[] {
+  const log: EntreeDuJournal[] = [];
   // Effets magiques temporisés (Bénédictions, Sorts de bonus) : décrément des durées en Rounds.
   // `tickRound` n'agit que sur l'échelle `rounds` ; les durées d'horloge/permanentes sont inertes ici
   // (les premières sont purgées par l'horloge `purgeClockEffects`).
@@ -1031,28 +1036,29 @@ export function tickDurations(c: Combatant): string[] {
     }
     const porte: Applique = { lignes: [], faits: [] }; // l'effet se dissipe D'ABORD au journal, les États qu'il portait partent ENSUITE (#1695)
     const expired = removeActiveEffects(c, (e) => e.duration.scale === 'rounds' && e.duration.left <= 0 && !e.awaitingExtension, porte);
-    for (const e of expired) log.push(t('cond.effectExpire', { name: nomDe(c), label: e.label }));
+    for (const e of expired) log.push(ligneDeTexte(t('cond.effectExpire', { name: nomDe(c), label: e.label })));
     log.push(...porte.lignes);
   }
   // États à DURÉE posés par un sort (« qui dure N Rounds ») : décrément, dissipation à 0.
   if (c.conditions.some((x) => x.roundsLeft != null)) {
     for (const x of c.conditions) if (x.roundsLeft != null) x.roundsLeft -= 1;
     const echu = (x: ConditionInstance) => x.roundsLeft != null && x.roundsLeft <= 0;
-    for (const x of c.conditions.filter(echu)) log.push(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) }));
-    const sortie: Applique = { lignes: log, faits: [] };
+    for (const x of c.conditions.filter(echu)) log.push(ligneDeTexte(t('cond.spellCondExpire', { name: nomDe(c), cond: conditionLabel(x.id) })));
+    const sortie: Applique = { lignes: [], faits: [] };
     purgerEtats(c, echu, sortie);
+    log.push(...sortie.lignes);
   }
   // Contrecoups d'incantation à durée en Rounds (tables d'Imparfaites/Colère, LDB 46/40).
   if (c.castPenalties?.some((p) => p.roundsLeft != null)) {
     for (const p of c.castPenalties) if (p.roundsLeft != null) p.roundsLeft -= 1;
     const done = c.castPenalties.filter((p) => p.roundsLeft != null && p.roundsLeft <= 0);
-    for (const p of done) log.push(t('cond.effectExpire', { name: nomDe(c), label: p.label }));
+    for (const p of done) log.push(ligneDeTexte(t('cond.effectExpire', { name: nomDe(c), label: p.label })));
     c.castPenalties = c.castPenalties.filter((p) => !(p.roundsLeft != null && p.roundsLeft <= 0));
   }
   // Un effet qui vient d'EXPIRER peut avoir porté (ou levé) un fait source d'État dérivé : la fenêtre de
   // Détermination de LDB 20 l.170 se referme ici, et l'État repart. Point d'appel de la frontière de
   // Round (`endOfRound` chaîne ici) ET de toute expiration en Rounds — jamais une copie de la logique.
-  syncDerivedConditions(c).lignes.forEach((l) => log.push(l));
+  log.push(...syncDerivedConditions(c).lignes);
   return log;
 }
 
@@ -1081,18 +1087,18 @@ export function nightmareCheck(c: Combatant, calme: number, rng: RNG, out?: { ba
  * jet, vos blessures coagulent un peu et vous perdez 1 État Hémorragique » — le double prime (pas de mort,
  * mais coagulation). Pur ; renvoie `died` (la finalisation — sauvetage par Destin — revient à l'appelant).
  */
-export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: string[] } {
+export function bleedDeathRoll(c: Combatant, rng: RNG): { died: boolean; log: EntreeDuJournal[] } {
   const n = stacks(c, COND.hemorragique);
   const eligible = !c.dead && !c.outOfRencontre && n > 0 && hasCondition(c, COND.inconscient); // AA 07 l.7 ; LDB 16 l.105 ; #2915
   if (!eligible) return { died: false, log: [] };
   const r = d100(rng);
   if (isDoubleRoll(r)) {
-    const sortie: Applique = { lignes: [t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r })], faits: [] }; // le double prime sur la mort
+    const sortie: Applique = { lignes: [ligneDeTexte(t('cond.coagulate', { name: nomDe(c), roll: r === 100 ? '00' : r }))], faits: [] }; // le double prime sur la mort
     removeCondition(c, COND.hemorragique, 1, sortie);
     return { died: false, log: sortie.lignes };
   }
-  if (r <= 10 * n) return { died: true, log: [t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n })] };
-  return { died: false, log: [t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n })] };
+  if (r <= 10 * n) return { died: true, log: [ligneDeTexte(t('cond.bleedDeath', { name: nomDe(c), roll: r, threshold: 10 * n }))] };
+  return { died: false, log: [ligneDeTexte(t('cond.bleedSurvive', { name: nomDe(c), roll: r, threshold: 10 * n }))] };
 }
 
 /** Mort Subite : LDB 18 l.42-46 ; variante `combat-aa-blessures: 'aa'` : AA 07 l.65-67 (AA 06 l.556).
@@ -1223,8 +1229,8 @@ export function loseWounds(c: Combatant, amount: number, a: Applique): number {
 }
 
 /** Upkeep de mort en fin de Round : LDB 18 l.15 ; MDG 13 l.656, l.674. Retourne le journal. */
-export function tickDeath(c: Combatant): string[] {
-  const log: string[] = [];
+export function tickDeath(c: Combatant): EntreeDuJournal[] {
+  const log: EntreeDuJournal[] = [];
   if (c.dead || c.outOfRencontre || isInanimate(c)) return log; // #1595 c.6219992594 (S1) ; MDG 13 l.656, l.674
   if (c.wounds.current > 0) {
     c.roundsAtZero = 0;
@@ -1234,7 +1240,7 @@ export function tickDeath(c: Combatant): string[] {
   if (c.roundsAtZero > bonus(effectiveChar(c, 'endurance'))) {
     const avant = stacks(c, COND.inconscient);
     addCondition(c, COND.inconscient); // sans durée : la cause dure au-delà de la rencontre
-    if (!avant) log.push(t('cond.unconscious', { name: nomDe(c), rounds: c.roundsAtZero }));
+    if (!avant) log.push(ligneDeTexte(t('cond.unconscious', { name: nomDe(c), rounds: c.roundsAtZero })));
   }
   return log; // la mort (dead) est finalisée par le store (avec sauvetage par Destin)
 }

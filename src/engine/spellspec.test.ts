@@ -28,7 +28,7 @@ function hero(p: Partial<Combatant> = {}): Combatant {
  *  résolue contre le lanceur). La durée et les effets vivent désormais sur SpellData (données JSON). */
 function castVia(spell: SpellData, caster: Combatant, target: Combatant): string[] {
   const rounds = spell.duration?.kind === 'rounds' ? resolveFormula(spell.duration.value, caster, desDuTest) : null;
-  return applyOps(target, spellOps(spell.effects, 'target'), { idNeuf: idsDeTest, rng: desDuTest, caster, label: spell.label, ...(rounds != null ? { defaultDurationRounds: rounds } : {}) }).lignes;
+  return applyOps(target, spellOps(spell.effects, 'target'), { idNeuf: idsDeTest, rng: desDuTest, caster, label: spell.label, ...(rounds != null ? { defaultDurationRounds: rounds } : {}) }).lignes.map((e) => e.texte);
 }
 
 describe('specs curées — résolution', () => {

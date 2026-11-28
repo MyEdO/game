@@ -9,6 +9,7 @@
  * nombre de jets sans jamais raccourcir la prolongation de durée (couplage ASYMÉTRIQUE).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -47,7 +48,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     // Résultat de Test FIGÉ (préconditions du scénario, PAS le câblage sous test) : DR 12 → budget
     // de Surincantation = floor((12 − NI 8) / 2) = 2 pas, alloués ci-dessous via la VRAIE action de
     // modale `jetRegler('incantation', 'surincantationDuree', …)` (jamais `pendingCast.result`/`extras` composé pour l'occasion).
-    banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 12, isCritical: false, isFumble: false, log: 'ok' } as CastResult } }));
+    banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 12, isCritical: false, isFumble: false, log: ligneDeTexte('ok') } as CastResult } }));
     banc.getState().jetRegler('incantation', 'surincantationDuree', 2);
     expect(banc.getState().pendingCast!.overcast).toEqual({ range: 0, zone: 0, duration: 2, targets: 0, damage: 0 });
     banc.getState().jetValider('incantation'); // « Appliquer » — VRAI applyCast → runCastFlow (site sous test)
@@ -75,7 +76,7 @@ describe('Câblage — pas de Surincantation Durée → rollTable.extraRollsPerS
     const turn = b.order.indexOf(heroC.id);
     banc.setState({ battle: { ...b, turn, action: 'incantation', selectedSpellId: 'allure-demoniaque', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id);
-    banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 12, isCritical: false, isFumble: false, log: 'ok' } as CastResult } }));
+    banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 12, isCritical: false, isFumble: false, log: ligneDeTexte('ok') } as CastResult } }));
     banc.getState().jetRegler('incantation', 'surincantationDuree', 2);
     return heroC.id;
   };

@@ -118,7 +118,7 @@ describe('#4257 — références d’objet de campagne jouées par les GameOps',
     const journal: string[] = [];
     expect(emitCombatEvent('onHit', {
       get: banc.getState, set: banc.setState, battle: banc.getState().battle,
-      self: porteur, sink: (line) => journal.push(line), triggerCtx: { weapon: porteur.weapons[0], rng: desDuTest },
+      self: porteur, sink: (e) => journal.push(e.texte), triggerCtx: { weapon: porteur.weapons[0], rng: desDuTest },
     })).toBe(1);
     attendreLame();
     expect(journal.join(' ')).toContain('Lame maudite');

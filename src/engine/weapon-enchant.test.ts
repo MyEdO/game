@@ -79,7 +79,7 @@ describe('augmentWeapon — enchantement porté par l’arme, replié dans c.wea
       idNeuf: idsDeTest, rng: desDuTest, label: miracle, defaultDurationRounds: 4,
     }).lignes;
     expect(item.enchants?.map((e) => e.addQualities) ?? []).toEqual(admis ? [enchantement.addQualities] : []);
-    if (!admis) expect(lignes).toContain(t('op.sansArmeAEnchanter', { name: nomDe(c), src: miracle }));
+    if (!admis) expect(lignes.map((e) => e.texte)).toContain(t('op.sansArmeAEnchanter', { name: nomDe(c), src: miracle }));
     expect(c.weapons[0]?.qualities.map((q) => q.id)).toEqual([
       'empaleuse', 'taillade', ...(admis ? enchantement.addQualities : []),
     ]);

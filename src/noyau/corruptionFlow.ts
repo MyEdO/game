@@ -57,7 +57,7 @@ import { pushReveal } from './combatEffects';
 import { checkPartyWiped } from './partyWipe';
 import { journaliser } from './combatLog';
 import { tenuParUnHumain } from './sieges';
-import { resultLine, freeCons, tableStep, rollSansPilote } from './rollSeam';
+import { tableStep, rollSansPilote } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { t, deElide } from '../i18n';
 import { stepDetail } from './rollSeam';
@@ -67,6 +67,7 @@ import type { CorpsDesReglages } from './reglagesDuJet';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { perdreUnPointDeResilience, resilienceDe } from '../engine/talentEffects';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Le Test d'EXPOSITION de nature `nature` : la fiche `influences-corruptrices` (LDB 19 l.29), à la Difficulté
  *  `difficulty` quand la source en imprime une (ZI 13 l.197). SEULE construction du Test, pour tout producteur
@@ -132,8 +133,8 @@ export function crochetsDeCorruption(get: Get, set: Set): Required<Pick<OpsCtx, 
  *  (`gainCorruption`). Partagé par la modale (`resolveCorruptionPending`) et le Test sans siège. LDB 19 l.35 ;
  *  LDB 19 l.48 ; LDB 19 l.58 */
 function denouementDExposition(get: Get, set: Set, hero: Combatant, gain: number, align?: ChaosAlign): string[] {
-  if (gain <= 0) return [resultLine(freeCons([t('cor.repelled', { name: nomDe(hero) })]))];
-  return gainCorruption(get, set, hero, gain, align).lignes;
+  if (gain <= 0) return [t('cor.repelled', { name: nomDe(hero) })];
+  return gainCorruption(get, set, hero, gain, align).lignes.map((e) => e.texte);
 }
 
 /** Les Points que doit le Test d'Exposition jeté de la fenêtre `pc` (`corruptionGain`) ; 0 pour un Test de seuil. LDB 19
@@ -181,7 +182,7 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // résolu dans `resolveCorruptionPending` (succès = contenu ; échec = « Je te renie ! »/mutation —
   // les DEUX fenêtres partent de là).
   if (tenuParUnHumain(get(), hero.id)) {
-    lines.push(t('cor.threshold', { name: nomDe(hero), de: deElide(refLabel('skills', test.skill)) }));
+    lines.push(ligneDeTexte(t('cor.threshold', { name: nomDe(hero), de: deElide(refLabel('skills', test.skill)) })));
     // `menace: 'mutation'` : l'échec du Test de seuil fait MUTER (LDB 19 l.70) → c'est le Test qui « résiste
     // à la Mutation » du talent Résistance (Menace), LDB 10 l.1016-1020.
     const seuil: PendingCorruption = { heroId: hero.id, kind: 'seuil', test, align, menace: 'mutation' };
@@ -193,10 +194,10 @@ export function gainCorruption(get: Get, set: Set, hero: Combatant, n: number, a
   // renoncement. Le Test est donc jeté ici et la mutation appliquée d'office.
   const tst = rollSansPilote(get, hero, { skill: test.skill }, testValue(hero, test), test.difficulty, rng);
   if (tst.success) {
-    lines.push(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
+    lines.push(ligneDeTexte(t('cor.contained', { name: nomDe(hero) })));
     return sortie;
   }
-  lines.push(...applyMutation(get, set, hero, { roll: tst.roll, target: tst.target }, align));
+  lines.push(...applyMutation(get, set, hero, { roll: tst.roll, target: tst.target }, align).map((x) => ligneDeTexte(x)));
   return sortie;
 }
 
@@ -320,9 +321,7 @@ function finishMutation(
   // Le dé de table (`m.roll`) est DÉJÀ affiché par la rangée `TableRollLine` (dice: m.roll, révélation
   // ci-dessous) — pas de re-print (#295 Lot 4). Le jet du Test `corrompu` est lui aussi
   // déjà affiché par SA propre rangée (Corruption/Renounce) en amont — jamais réimprimé ici (#295 Lot 5).
-  lines.push(resultLine(freeCons([
-    t('cor.mutates', { name: nomDe(hero), label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }),
-  ])));
+  lines.push(t('cor.mutates', { name: nomDe(hero), label: m.label, kind: kind === 'physique' ? t('cor.kindPhysique') : t('cor.kindMentale'), roll: kindRoll, what: kind === 'physique' ? t('cor.body') : t('cor.mind') }));
   if (m.note) lines.push(t('cor.mutationNote', { label: m.label, note: m.note }));
 
   // Limites de Corruption (l.87) : plus de mutations physiques que BE ou mentales que
@@ -394,9 +393,9 @@ export function resolveCorruptionPending(get: Get, set: Set, pc: PendingCorrupti
     // Le jet (roll/target) est DÉJÀ affiché par la rangée de la modale de Corruption — pas de
     // re-print au journal (#295 Lot 4).
     if (pc.success) {
-      get().ecrireAuJournal(resultLine(freeCons([t('cor.contained', { name: nomDe(hero) })])));
+      get().ecrireAuJournal(t('cor.contained', { name: nomDe(hero) }));
     } else if (resilienceDe(hero) > 0) {
-      get().ecrireAuJournal(resultLine(freeCons([t('cor.thresholdFail', { name: nomDe(hero) })])));
+      get().ecrireAuJournal(t('cor.thresholdFail', { name: nomDe(hero) }));
       set({ pendingRenounce: { heroId: hero.id, testRoll: pc.roll, testTarget: pc.target ?? 0, align: pc.align } });
     } else {
       for (const l of applyMutation(get, set, hero, { roll: pc.roll, target: pc.target ?? 0 }, pc.align)) get().ecrireAuJournal(l);
@@ -468,7 +467,7 @@ export const TABLES = {
       }
       const lines = finishMutation(get, set, hero, m, ctx.kind ?? 'physique', ctx.natureRoll ?? 0);
       set({ ...touchActors(get()) });
-      return { consequences: freeCons(lines) };
+      return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   famillesTirables: [

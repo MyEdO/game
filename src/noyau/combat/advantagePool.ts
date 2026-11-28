@@ -24,6 +24,7 @@ import { advantageTransferWeight, hasStealAdvantage, shieldAdvantageLevel, steal
 import { t } from '../../i18n';
 import type { EncounterDef } from '../monde/scene';
 import { nomDe } from '../../engine/nom';
+import { ligneDeTexte, type EntreeDuJournal } from '../../engine/journal';
 
 /** Réserve courante de la bataille (créée à la volée si absente). */
 function poolsOf(battle: { advantagePools?: AdvantagePools }): AdvantagePools {
@@ -279,7 +280,7 @@ export function reconcileAdvantageToPool(get: Get, c: Combatant): void {
  * on reconcilie donc la réserve du camp de `c` AVANT de créditer la réserve adverse (même logique que
  * `reconcileAdvantageToPool`, inlinée pour ne pas dépendre de l'ordre d'appel de l'appelant).
  */
-export function creditOpposingAdvantage(get: Get, c: Combatant, n: number): string[] {
+export function creditOpposingAdvantage(get: Get, c: Combatant, n: number): EntreeDuJournal[] {
   if (n <= 0) return [];
   const battle = get().battle;
   if (!groupAdvantage() || !battle) return [];
@@ -289,7 +290,7 @@ export function creditOpposingAdvantage(get: Get, c: Combatant, n: number): stri
   const opposing: AdvantageCamp = own === 'allies' ? 'adversaires' : 'allies';
   addToPool(pools, opposing, n);
   mirrorPools(pools, battle.combatants);
-  return [t('turn.redoutableOpposingFeed', { name: nomDe(c), n })];
+  return [ligneDeTexte(t('turn.redoutableOpposingFeed', { name: nomDe(c), n }))];
 }
 
 /**

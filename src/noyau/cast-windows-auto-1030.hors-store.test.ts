@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { Jeu } from './etat';
@@ -217,7 +218,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
       pendingCast: {
         casterId: H.id, targetId: target.id, spellId: 'parole-de-tzeentch', missile: false,
         counterspellRouted: true, // le moment de la Dissipation est passé (aucun candidat)
-        result: { cast: true, roll: 30, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'x' },
+        result: { cast: true, roll: 30, target: 70, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('x') },
       },
     } as unknown as Partial<Jeu>);
     openCastCascade(banc.getState, banc.setState, H);
@@ -337,7 +338,7 @@ describe('#1030 — opposition de cible : même politique d’auto-résolution',
     banc.setState({
       pendingCast: {
         casterId: H2.id, targetId: E2.id, spellId: 'flechette', missile: true, counterspellRouted: true,
-        result: { cast: true, roll: 30, target: 70, sl: 4, isCritical: false, isFumble: false, log: 'x' },
+        result: { cast: true, roll: 30, target: 70, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('x') },
       },
     } as unknown as Partial<Jeu>);
     banc.getState().jetValider('incantation');

@@ -53,14 +53,13 @@ import { t, type MsgKey } from '../i18n';
 import { refuserGeste } from './refusVisible';
 import { libelleDeLaFermeture } from './libelles';
 import type { StakeRef } from '../data';
-import type { Consequence } from './rollSeam';
 import type { BuiltCascadeStep } from './stepBrand';
-import { faitsDesConsequences, resultLines, surfaceDesEtapes, surfaceOf } from './rollSeam';
+import { surfaceDesEtapes, surfaceOf } from './rollSeam';
 import { aiDriven, canFixDie, decidingSeat, influencesLocally, intentAllowedFor } from './netOwnership';
 import { WORLD_STEP_OWNER } from './pendings';
 import { hoteOrphelin, hoteEnAttente, PENDING_BY_JET } from './slotsDeJet';
 import { modaleActive } from './modalArbiter';
-import { toRecapLines, type RecapLine } from './recapLine';
+import { recapDe, type RecapLine } from './recapLine';
 import { actorIn, porteurParId } from './monde/combatants';
 import {
   rollTest,
@@ -87,16 +86,17 @@ import { SEQUENCE_HARD_MAX_ROUNDS } from './sequenceContract';
 import { noterAuProcesVerbal } from './voyageCadence';
 
 /**
- * Conséquence d'une étape, appliquée à la VALIDATION. Mute le héros (via get/set), renvoie les
- * conséquences (rendues par `resultLine`, #295 Lot 0) et d'éventuelles étapes à INSÉRER juste après
+ * Conséquence d'une étape, appliquée à la VALIDATION. Mute le héros (via get/set), renvoie ce qu'il a
+ * appliqué (`applique`, #295 Lot 0, #4574) et d'éventuelles étapes à INSÉRER juste après
  * l'étape courante (dépendance). Vit dans les tables du jeu — pas dans le pending (coop). `step.result` est
  * garanti non-null si `step.target != null`. `ctx` donne les étapes DÉJÀ jouées
  * (`ctx.steps[0..index-1]` committées) : une escalade cumulative (Exposition au froid : 1ᵉʳ échec →
  * −10 CT/Ag/Dex, 2ᵉ → reste, 3ᵉ → Blessures) lit le nombre d'échecs précédents de CE héros — c'est
  * cette dépendance qui rend la séquence séquentielle.
  *
- * `consequences` (`Consequence[]`, rendu par `resultLine`) est la SEULE voie de dénouement — aucun
- * canal de chaîne libre n'existe dans ce type, le compilateur interdit toute réapparition.
+ * `applique` (`Applique` : ses entrées de journal et ses faits, sans accès au jet) est la SEULE voie de dénouement,
+ * écrite par le seul goulot `commitStep` — aucun canal de chaîne libre n'existe dans ce type, le compilateur interdit
+ * toute réapparition.
  *
  * `insert` est MURÉ (#1262 V2) : une étape insérée porte la marque `BuiltCascadeStep`, donc elle sort
  * d'un constructeur de la porte (`rollSeam`/`revealStep`) — un littéral d'étape monté à la main dans
@@ -113,7 +113,7 @@ import { noterAuProcesVerbal } from './voyageCadence';
  * (au retour du combat pour le pilote interactif, immédiatement pour les deux autres), là où la
  * boucle d'origine sortait sans les tirer.
  *
- * `dejaDites` : l'applier DÉCLARE avoir déjà écrit ses `consequences` au journal, par la voie unique
+ * `dejaDites` : l'applier DÉCLARE avoir déjà écrit les entrées de son `applique` au journal, par la voie unique
  * (`journaliser`), et le goulot ne les ré-écrit pas — elles restent AFFICHÉES sur l'étape (`outcome`).
  * Il compense la dette #1881 (les écritures NUES de `battle.log` que des appliers font encore) ; il
  * EXIGE des lignes à désigner (`assertDejaDitesPorteSesLignes`).
@@ -137,7 +137,7 @@ export type CascadeApplier = (
   hero: Combatant | undefined,
   ctx: { steps: CascadeStep[]; index: number },
 ) => {
-  consequences?: Consequence[]; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true; suiteGardee?: true;
+  applique?: Applique; dejaDites?: true; insert?: readonly BuiltCascadeStep[]; stopSequence?: true; suiteGardee?: true;
   faitsDesEtapesValidees?: Readonly<Record<string, FaitApplique[]>>;
 } | void;
 
@@ -153,9 +153,8 @@ export function faitsAnnonces(s: Jeu, step: CascadeStep): FaitApplique[] {
 }
 
 /** La conséquence d'un `kind`, lue aux tables posées (`TablesDuJeu.appliers`). L'affichage de
- *  l'issue de modale a pour source UNIQUE `resultLine`/`Consequence[]` (#295 Lot 2 : `cons` vide ⇒
- *  `''`, la rangée ✓/✗ ±DR porte alors seule le verdict), sans repli de secours. Ajouter un kind ne
- *  touche JAMAIS l'UI. */
+ *  l'issue de modale a pour source UNIQUE l'`Applique` de l'applier (#295 Lot 2 : sans entrée, la rangée ✓/✗ ±DR
+ *  porte alors seule le verdict), sans repli de secours. Ajouter un kind ne touche JAMAIS l'UI. */
 export function applierDe(kind: string): CascadeApplier | undefined {
   return tablesPosees().appliers[kind];
 }
@@ -190,7 +189,7 @@ function clotureDeCascade(done: PendingCascade): void {
 
 /**
  * Conséquence d'une ISSUE de TEST ÉTENDU (`PendingExtendedTest.outcome`, #273 Étape 1) — calque exact
- * de `CascadeApplier` ci-dessus (mute get/set, renvoie des `Consequence[]`), appliquée à la CLÔTURE du
+ * de `CascadeApplier` ci-dessus (mute get/set, renvoie son `Applique`), appliquée à la CLÔTURE du
  * Test étendu (`jetValider('testEtendu')`, noyau/testsDeScene.ts) qu'il ait atteint sa cible OU buté sur `tentativesMax`.
  * `reached` = `total ≥ drCible` ; `false` = borne d'essais épuisée sans réussir (Commerce d'opportunité,
  * MDG 15 : « 10 DR en ≤ 3 tentatives » — l'échec de la borne EST une issue, jamais une boucle infinie).
@@ -204,7 +203,7 @@ export type ExtendedTestOutcomeApplier = (
   p: import('./pendings').PendingExtendedTest,
   total: number,
   reached: boolean,
-) => { consequences?: Consequence[] } | void;
+) => { applique?: Applique } | void;
 
 /**
  * TABLES tirables par une étape (`CascadeStep.table.tableId`, `TablesDuJeu.tablesTirables` et
@@ -1214,7 +1213,7 @@ function assertDejaDitesPorteSesLignes(step: CascadeStep, lines: readonly RecapL
   if (lines.length) return;
   const msg = `[cascade] étape « ${step.id} » (${step.kind}) : « dejaDites » sans conclusion à désigner — `
     + 'le drapeau COUPE le journal du goulot, il ne remplace pas une conclusion absente '
-    + '(applier qui a déjà écrit ses lignes : il les rend en `consequences`).';
+    + '(applier qui a déjà écrit ses lignes : il les rend en `applique`).';
   console.error(msg);
   if (import.meta.env?.DEV) throw new Error(msg);
 }
@@ -1321,6 +1320,15 @@ function echecsDeLEtape(step: CascadeStep): Cloture[] {
  *  `unwitnessed` : le pilote DÉCLARE qu'aucune fenêtre n'a montré le jet de cette étape (pilote
  *  immédiat) — le goulot en dérive alors la ligne de dé (`unwitnessedTraceLines`). `rowSurface` : le
  *  même pilote DÉCLARE où ses RANGÉES de bande se montrent, quand ce n'est pas le journal (#1291). */
+/** LA conséquence d'une RANGÉE de bande, posée sur elle (`outcome`, `faits`) : le pendant, rangée par rangée, de ce
+ *  que `commitStep` pose sur l'étape. Rend les lignes posées, que l'appelant journalise. */
+export function denouerLaRangee(row: BatchParticipant, a: Applique): RecapLine[] {
+  const lignes = recapDe(a.lignes);
+  row.outcome = lignes;
+  if (a.faits.length) row.faits = a.faits;
+  return lignes;
+}
+
 /**
  * CE QUE LE PILOTE DIT AU GOULOT (#1508) — `commitStep` ne devine plus rien de la séquence qu'il
  * valide : le pilote la tient, il la nomme.
@@ -1377,19 +1385,19 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   const seqBase = Math.max(pilote.seq, dansLeSlot ? enSlot.seq : 0);
   fenetreInsertion = { apres: step.id, inseres: [], seqBase, purpose: pilote.purpose, dernier: null, bornes: null };
   let out: ReturnType<CascadeApplier>;
-  let lines: ReturnType<typeof resultLines>;
+  let lines: RecapLine[];
   let insereesParLApplier: CascadeStep[];
   let bornes: BornesDuFragment | null;
   try {
     const differesAvant = comptePorteursDeSuite(get());
     out = applierDe(step.kind)?.(get, set, step, hero, { steps, index: i });
     pilote.suiteDeLHote?.();
-    // `consequences` (#295 Lot 0) : rendu en LIGNES STRUCTURÉES (#349, `resultLines`) — seule voie de
-    // dénouement. Le journal texte reste alimenté depuis le même texte (`l.text`), par le routage
-    // UNIQUE `journaliser` : combat ouvert → `battle.log`, sinon `journal`.
-    lines = out?.consequences ? resultLines(out.consequences) : [];
+    // `applique` (#295 Lot 0, #4574) : rendu en LIGNES STRUCTURÉES (#349, `recapDe`) — seule voie de
+    // dénouement. Le journal reçoit les mêmes entrées (`l.entree`), par le routage UNIQUE `journaliser` : combat
+    // ouvert → `battle.log`, sinon `journal`.
+    lines = out?.applique ? recapDe(out.applique.lignes) : [];
     if (out?.dejaDites) assertDejaDitesPorteSesLignes(step, lines);
-    else journaliser(get, set, lines.map((l) => l.text), 'information', { actorId: step.actorId });
+    else journaliser(get, set, lines.map((l) => l.entree), 'information', { actorId: step.actorId });
     const differe = comptePorteursDeSuite(get()) > differesAvant ? MAIN_RENDUE : undefined;
     // La CONSÉQUENCE est dite ; la CONTINUATION que l'étape porte (#1508 — le reste du lot/de la pile que
     // son dé a fait attendre) se joue MAINTENANT, jamais avant : c'est ce qui garde l'ordre de l'auteur
@@ -1409,7 +1417,7 @@ function commitStep(get: Get, set: Set, steps: CascadeStep[], i: number, pilote:
   // étape d'AFFICHAGE porte son contenu d'avance (`outcome` pré-rempli) avec un applier muet → on le
   // PRÉSERVE (sinon le journal vide l'effacerait à la validation).
   const shown = lines.length ? lines : (step.outcome ?? []);
-  const faits = faitsDesConsequences(out?.consequences ?? []);
+  const faits = out?.applique?.faits ?? [];
   // Pilote INTERACTIF (`liveMerge`) : l'applier d'une conséquence de combat FOLDÉE (déviation) re-déclenche
   // le reste de l'attaque, qui APPEND des étapes au pending (via pushReveal). On repart alors des
   // participants COURANTS (post-applier) pour préserver ces appends — le pending est EN PHASE ici
@@ -1706,9 +1714,9 @@ function franchirLesHotesOrphelins(get: Get, p: PendingCascade): PendingCascade 
 function annoncerALArrivee(get: Get, p: PendingCascade): PendingCascade {
   const st = p.participants[p.cursor];
   const annonce = st && !st.outcome?.length && stepInteraction(st) === 'affichage' ? tablesPosees().annonces[st.kind] : undefined;
-  const lignes = annonce?.(get(), st).lignes ?? [];
-  if (!lignes.length) return p;
-  return { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? { ...x, outcome: toRecapLines([...lignes]) } : x)) };
+  const outcome = annonce ? recapDe(annonce(get(), st).lignes) : [];
+  if (!outcome.length) return p;
+  return { ...p, participants: p.participants.map((x, k) => (k === p.cursor ? { ...x, outcome } : x)) };
 }
 
 /**

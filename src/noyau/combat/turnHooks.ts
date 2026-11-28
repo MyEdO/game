@@ -8,7 +8,7 @@
  * compris) ; chacun porte ses gardes de capacité (`hasRage`).
  */
 import { nomDe } from '../../engine/nom';
-import { freeCons, rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
+import { rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { ev } from '../combatLog';
 import { isOutOfAction, combatTestPenalty } from '../../engine/conditions';
@@ -29,6 +29,7 @@ import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
+import { ligneDeTexte } from '../../engine/journal';
 
 /** La Cible de la Haine de Rage : le Groupe relatif des adversaires Engagés. LDB 85 l.282 ; Q12 B, #3045 */
 const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
@@ -63,7 +64,7 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
   const battle = get().battle;
   if (!battle) return;
   const onOpposingAdvantage = trigger === 'onTurnStart' ? (n: number) => creditOpposingAdvantage(get, c, n) : undefined;
-  for (const line of fireTriggers(get, c, trigger, { rng: battleRng(), set, onOpposingAdvantage })) battle.log.push(ev('detail', line, c.id));
+  for (const entree of fireTriggers(get, c, trigger, { rng: battleRng(), set, onOpposingAdvantage })) battle.log.push(ev('detail', entree, c.id));
 }
 
 // ============================================================================================
@@ -120,7 +121,7 @@ export const TABLES = {
     // Étape `testDAgir` (porteur surfacé) : succès → rien à restreindre ; échec → étape de CHOIX insérée.
     testDAgir: (_get, _set, step, hero) => {
       if (!hero || !step.result) return;
-      if (step.result.success) return { consequences: freeCons([t('turn.testDAgirReussi', { name: nomDe(hero) })]) };
+      if (step.result.success) return { applique: { lignes: [ligneDeTexte(t('turn.testDAgirReussi', { name: nomDe(hero) }))], faits: [] } };
       const choix = choiceStep({
         id: `choixDAgir-${hero.id}`, kind: 'choixDAgir', actorId: hero.id, icon: 'objet/consommable',
         label: t('turn.choixDAgir'),
@@ -132,7 +133,7 @@ export const TABLES = {
       });
       return {
         // LDB 71
-        consequences: freeCons([t('turn.testDAgirRate', { name: nomDe(hero) })]),
+        applique: { lignes: [ligneDeTexte(t('turn.testDAgirRate', { name: nomDe(hero) }))], faits: [] },
         ...(choix ? { insert: [choix] } : {}),
       };
     },
@@ -143,10 +144,10 @@ export const TABLES = {
       if (!battle || battle.order[battle.turn] !== hero.id) return; // plus son tour → sans objet
       if (step.chosen === 'mouvement') {
         set({ battle: { ...battle, acted: true } });
-        return { consequences: freeCons([t('op.actionPerdue', { name: nomDe(hero) })]) };
+        return { applique: { lignes: [ligneDeTexte(t('op.actionPerdue', { name: nomDe(hero) }))], faits: [] } };
       }
       set({ battle: { ...battle, movementUsed: mountMovement(battle, hero) } });
-      return { consequences: freeCons([t('op.mouvementPerdu', { name: nomDe(hero) })]) };
+      return { applique: { lignes: [ligneDeTexte(t('op.mouvementPerdu', { name: nomDe(hero) }))], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   crochetsDeCombat: [

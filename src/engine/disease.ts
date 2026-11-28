@@ -54,6 +54,7 @@ import { diseasePassiveOps, maladieDeclaree, severiteEffective, srcSymptome, sym
 import type { DiseaseSymptom, DiseaseTime } from '../data/schemas/defs/maladies';
 import type { SujetContextualise } from './skills';
 import { nomDe } from './nom';
+import { ligneDeTexte } from './journal';
 
 export {
   attenuationEchelons,
@@ -311,11 +312,11 @@ function applyOnFailInline(c: Combatant, onFail: GameOp[], contractOnce: (name: 
   for (const op of onFail) {
     if (op.op === 'aggravateSymptom') {
       const r = aggravateDiseaseSymptom(c, op.disease.id, op.symptom.id, op.severity);
-      log.push(...r.log);
+      log.push(...r.log.map((x) => ligneDeTexte(x)));
       if (r.etat === 'deja' && op.otherwise?.length) applyOnFailInline(c, op.otherwise, contractOnce, sortie);
-    } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease.id, op.symptom.id, op.severity));
+    } else if (op.op === 'grantSymptom') log.push(...grantDiseaseSymptom(c, op.disease.id, op.symptom.id, op.severity).map((x) => ligneDeTexte(x)));
     else if (op.op === 'contractDisease') contractOnce(op.disease.id);
-    else if (op.op === 'kill') log.push(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: nomDe(c) }) : t('op.mort', { name: nomDe(c) }));
+    else if (op.op === 'kill') log.push(ligneDeTexte(fateSaveOrDie(c) ? t('op.mort.sauveParLeDestin', { name: nomDe(c) }) : t('op.mort', { name: nomDe(c) })));
     else if (op.op === 'wounds') {
       const n = typeof op.amount === 'number' ? op.amount : 0; // burst = 1 Blessure directe (littéral) ; formules → voie différée
       if (n > 0) { c.wounds.current = Math.max(0, c.wounds.current - n); emettreDans(sortie, c, { genre: 'blessures', cible: c.id, camp: campOf(c), valeur: -n }); }
@@ -694,7 +695,9 @@ export function tickDisease(
         if (tick.once && activeDay !== tick.afterDays) continue;
         if (tick.difficulty == null) {
           // Conséquence INCONDITIONNELLE (pas de jet, MSRC 16 l.142) : appliquée DIRECTEMENT ici, via l'interprète inline restreint.
-          applyOnFailInline(c, tick.onFail, contractOnce, { lignes: log, faits: [] });
+          const sortie: Applique = { lignes: [], faits: [] };
+          applyOnFailInline(c, tick.onFail, contractOnce, sortie);
+          log.push(...sortie.lignes.map((e) => e.texte));
         } else {
           defer({ kind: 'maladie-test-quotidien', label: t('step.sujetPrecision', { sujet: symptomLabel(inst.symptomId), precision: diseaseLabel(dz.id) }), test: tick.test, difficulty: tick.difficulty, ...(mods.length ? { mods } : {}), meta: { diseaseName: dz.id, symptomId: inst.symptomId, opsEchec: tick.onFail } });
         }

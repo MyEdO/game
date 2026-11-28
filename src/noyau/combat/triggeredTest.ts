@@ -50,24 +50,13 @@ import type { Get, Set as SetFn } from '../flowTypes';
 import type { FreeAttackFreeze, BladeTrapFreeze, BatchParticipant, OpposedFreeze, PendingTest, Cloture } from '../pendings';
 import { battleRng } from '../battleRng';
 import { openSkillTest, applyLeafOps, drainPendingLog, enfilerAuJournal,
-  confierLaSuite, porterOpsCtx, ctxRepris, comptePorteursDeSuite, MAIN_RENDUE, type Applique } from '../combatEffects';
+  confierLaSuite, porterOpsCtx, ctxRepris, comptePorteursDeSuite, MAIN_RENDUE, type SignalDeSuite } from '../combatEffects';
 import { journaliser } from '../combatLog';
 import { ancreDeLaCascade, pushStep } from '../cascade';
 import type { Jeu } from '../etat';
 
-import {
-  freeCons,
-  rollStep,
-  surfaceOf,
-  bandStep,
-  monoStep,
-  choiceStep,
-  pushChoice,
-  pousseSi,
-  opposedAttackerLabel,
-  stepDetail,
-  stepPrecision,
-} from '../rollSeam';
+
+import { rollStep, surfaceOf, bandStep, monoStep, choiceStep, pushChoice, pousseSi, opposedAttackerLabel, stepDetail, stepPrecision } from '../rollSeam';
 import { designeGaranti, rollLine } from '../ligneDeJet';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { geometrieDuBrise, effectSourcesOf, fireOwnTestFailed } from '../triggeredEffects';
@@ -94,6 +83,7 @@ import { campSpend, spendableAdvantage } from './advantagePool';
 import { t } from '../../i18n';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 import { accorderLAttaqueGratuite, applyFocusInterruption, applyBladeTrap } from '../combatFlow';
+import { ligneDeTexte, type EntreeDuJournal } from '../../engine/journal';
 
 const ancreDuDeclencheur = (s: Jeu) => ancreDeLaCascade(s) ?? (rencontreEngagee(s) ? 'combat' : 'sequence');
 
@@ -155,7 +145,7 @@ const conditionsDuFlow = (ctx: ExecCtx): ConditionCtx => combatConditionCtx(ctx.
 export function applyTriggeredTestBranch(
   c: Combatant, t: Pick<TestResult, 'success' | 'sl'>, branches: { onSuccess: Flow; onFail: Flow },
   exec: { get: Get; set: SetFn; opsCtx?: ExecCtx['opsCtx']; freeAttack?: ExecCtx['freeAttack']; piegeALame?: ExecCtx['piegeALame'] },
-): string[] {
+): EntreeDuJournal[] {
   const branch = t.success ? branches.onSuccess : branches.onFail;
   // Référent des Formules (« votre Force Mentale » — Forêt d'épines LDB 48 l.749) : le LANCEUR d'origine
   // (`exec.opsCtx.caster`) quand il est connu (zone de Sort posée par un tiers), sinon `c` lui-même
@@ -427,11 +417,11 @@ function playAfter(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, 
 }
 
 /** `playAfter` d'un applier de cascade, puis le drain de la file différée (`drainPendingLog`,
- *  combatEffects.ts:123) : les lignes rendues rejoignent les `consequences` de l'étape, que `commitStep`
+ *  combatEffects.ts:123) : les entrées rendues rejoignent l'`applique` de l'étape, que `commitStep`
  *  journalise après l'applier (cascade.ts:1339). */
-function suiteDEtape(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, label: string, oc?: ExecCtx['opsCtx']): string[] {
+function suiteDEtape(get: Get, set: SetFn, c: Combatant, after: Flow | undefined, label: string, oc?: ExecCtx['opsCtx']): EntreeDuJournal[] {
   playAfter(get, set, c, after, label, oc);
-  return drainPendingLog(get, set).map((e) => e.entree.texte);
+  return drainPendingLog(get, set).map((e) => e.entree);
 }
 
 /** Le reste d'une pile de combat, en clôture (#2689) : sa cible en id, le contexte de la pile porté. */
@@ -608,11 +598,11 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     // côté attaquant y est nommé par la MÊME source que la fenêtre (`opposedAttackerFreeze`) et dans
     // le MÊME ordre : le libellé AUTHORÉ d'abord, la STRUCTURE au catalogue ensuite.
     const gel = opposedAttackerFreeze(opp);
-    enfilerAuJournal(ctx.get, ctx.set, [traceLineOf({
+    enfilerAuJournal(ctx.get, ctx.set, [ligneDeTexte(traceLineOf({
       attacker: { who: nomDe(attacker), label: opposedAttackerLabel(gel) ?? '', roll: aT.roll, target: aT.target, sl: aT.sl },
       defender: { who: nomDe(c), label: sujetDeTrace(ft, skillLabel, stepDetail), roll: t.roll, target: t.target, sl: t.sl, ...(bonusSL ? { slBonus: bonusSL } : {}) },
       winner: o.winner,
-    })], c.id);
+    }))], c.id);
     const lines = applyTriggeredTestBranch(c, { success: branchSuccess, sl: t.sl }, { onSuccess: node.reussite, onFail: node.echec }, exec);
     // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test OPPOSÉ PERDU par le porteur). Une
     // égalité parfaite n'est pas un échec (statu quo) : le trigger ne part que si l'attaquant l'emporte.
@@ -622,7 +612,7 @@ export function resolveFlowTest(ctx: ExecCtx, node: Extract<Flow, { kind: 'test'
     playAfter(ctx.get, ctx.set, c, after, ctx.label, oc);
     return;
   }
-  enfilerAuJournal(ctx.get, ctx.set, [traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel, stepPrecision), difficulty), ...t })], c.id);
+  enfilerAuJournal(ctx.get, ctx.set, [ligneDeTexte(traceLineOf({ who: nomDe(c), label: testTraceLabel(sujetDeTrace(ft, skillLabel, stepPrecision), difficulty), ...t }))], c.id);
   const lines = applyTriggeredTestBranch(c, t, { onSuccess: node.reussite, onFail: node.echec }, exec);
   // SEAM `onOwnTestFailed` (combat, jet inline ennemi/auto — Test SIMPLE raté par le porteur).
   if (!t.success && !oc.noReentryOwnTestFailed) lines.push(...fireOwnTestFailed(ctx.get, c, { rng: battleRng(), sl: t.sl }));
@@ -735,11 +725,11 @@ function designerLaPersonne(ctx: ExecCtx, cible: Combatant, effet: EffectOp, oc:
   return fluxDEnvers(effet, auto, !!auto && sontAmis(cible, auto));
 }
 
-/** La ligne de journal qui dit la personne désignée pour `cible`, ou qu'il n'y en a aucune. */
-function ligneDeDesignation(cible: Combatant, personne: Personne | undefined, oc: Pick<OpsCtx, 'label'>): string {
-  return personne
+/** L'entrée de journal qui dit la personne désignée pour `cible`, ou qu'il n'y en a aucune. */
+function ligneDeDesignation(cible: Combatant, personne: Personne | undefined, oc: Pick<OpsCtx, 'label'>): EntreeDuJournal {
+  return ligneDeTexte(personne
     ? t('op.personneDesignee', { src: nomDeSource(oc), name: nomDe(cible), personne: personne.label })
-    : t('op.personneAbsente', { src: nomDeSource(oc), name: nomDe(cible) });
+    : t('op.personneAbsente', { src: nomDeSource(oc), name: nomDe(cible) }));
 }
 
 /**
@@ -787,7 +777,7 @@ export function routeTriggeredTest(
  * (`cascade.cibleDisparue`, comme l'applier `operationsDe`). Lanceur irrésoluble : on retombe sur le sujet,
  * parité avec le combat (`applyTriggeredTestBranch` : `exec?.caster ?? c`).
  */
-export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success: boolean): Applique {
+export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success: boolean): SignalDeSuite {
   const { casterId, ...gele } = pt.subi ?? {};
   const label = nomDeSource(gele);
   const sujet = actorIn(get(), pt.actorId);
@@ -861,9 +851,9 @@ export function handleConditionGained(get: Get, set: SetFn, c: Combatant, name: 
   enCours.add(name);
   etatsEnNotification.set(c, enCours);
   try {
-    const lines: string[] = [];
+    const lines: EntreeDuJournal[] = [];
     const battle = inBattleId(s.battle, c.id) ? s.battle : null;
-    emitCombatEvent('onGainCondition', { get, set, battle, self: c, sink: (line) => lines.push(line), triggerCtx: { conditionName: name, rng: battleRng() } });
+    emitCombatEvent('onGainCondition', { get, set, battle, self: c, sink: (entree) => lines.push(entree), triggerCtx: { conditionName: name, rng: battleRng() } });
     enfilerAuJournal(get, set, lines, c.id);
   } finally {
     enCours.delete(name);
@@ -897,8 +887,8 @@ export const TABLES = {
       // plus là, la file de combat non plus. La branche d'échec ne peut pas être calculée (la hauteur de
       // chute se lit sur la Taille du bateau) : le refus est JOURNALISÉ et NOMMÉ, jamais joué à moitié —
       // même régime que les gardes d'entrée ci-dessus (l'applier ne lève pas en pleine résolution).
-      if (hullId && !hull) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
-      const journal: string[] = [];
+      if (hullId && !hull) return { applique: { lignes: [ligneDeTexte(t('cascade.coqueDisparue', { label: step.label ?? '' }))], faits: [] } };
+      const journal: EntreeDuJournal[] = [];
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);
         if (!hero || !part.result) continue;
@@ -907,7 +897,7 @@ export const TABLES = {
         set(touchActors(get()));
         journal.push(...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step), oc));
       }
-      return { consequences: freeCons(journal) };
+      return { applique: { lignes: journal, faits: [] } };
     },
     /**
      * Étape de cascade GÉNÉRIQUE `testDeclenche` — UN applier pour TOUTE mécanique (zéro applier par
@@ -931,7 +921,7 @@ export const TABLES = {
       // d'épines LDB 48 l.749 : « qui utilise VOTRE Force Mentale »), retrouvé combat OU groupe
       // (`actorIn`), l'entité porteuse (#1262 V2 L6d), l'horloge et les durées du Flow d'origine.
       const repris = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
-      if (!repris) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      if (!repris) return { applique: { lignes: [ligneDeTexte(t('cascade.coqueDisparue', { label: step.label ?? '' }))], faits: [] } };
       const { rng: _rng, ...oc } = repris;
       const exec = {
         get, set, opsCtx: oc,
@@ -944,7 +934,7 @@ export const TABLES = {
       set(touchActors(get())); // refléter la mutation du héros (États) dans party/battle
       // Continuation `after` (le reste du `sequence` qui suivait le `test`) — peut ré-appender une étape
       // `testDeclenche` à la MÊME cascade (commitStep `liveMerge` repart des participants courants).
-      return { consequences: freeCons([...journal, ...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step), oc)]) };
+      return { applique: { lignes: [...journal, ...suiteDEtape(get, set, hero, step.meta?.after, nomDeSource(step), oc)], faits: [] } };
     },
     /**
      * Étape de cascade GÉNÉRIQUE `choixDeclenche` — UN applier pour TOUTE décision opt-in (zéro applier par
@@ -970,11 +960,11 @@ export const TABLES = {
       const tid = typeof step.meta?.choiceTargetId === 'string' ? step.meta.choiceTargetId : undefined;
       const branchTarget = (tid ? porteurParId(get(), tid) : undefined) ?? hero;
       const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
-      if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      if (!oc) return { applique: { lignes: [ligneDeTexte(t('cascade.coqueDisparue', { label: step.label ?? '' }))], faits: [] } };
       const ctx: ExecCtx = { get, set, target: branchTarget, caster: hero, label: step.label ?? 'Réaction', opsCtx: oc, ...(freeAttack ? { freeAttack } : {}) };
       const branche = can ? (yesFlow ?? EMPTY_FLOW) : (noFlow ?? EMPTY_FLOW);
       runCombatFlow(ctx, { kind: 'sequence', etapes: [branche, step.meta?.after ?? EMPTY_FLOW] });
-      return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.entree.texte)) };
+      return { applique: { lignes: drainPendingLog(get, set).map((e) => e.entree), faits: [] } };
     },
     /**
      * Étape `personneChoisie` (VDM 10 l.327, « nommer ou désigner la personne ») : le décideur a désigné la
@@ -987,9 +977,9 @@ export const TABLES = {
       const tid = step.meta?.choiceTargetId;
       if (!hero || feuille?.kind !== 'effet' || feuille.effet.type !== 'ops' || typeof tid !== 'string') return;
       const cible = actorIn(get(), tid);
-      if (!cible || cible.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!cible || cible.dead) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const oc = ctxRepris(get, set, step.meta?.opsDeCtx ?? { gele: {} });
-      if (!oc) return { consequences: freeCons([t('cascade.coqueDisparue', { label: step.label ?? '' })]) };
+      if (!oc) return { applique: { lignes: [ligneDeTexte(t('cascade.coqueDisparue', { label: step.label ?? '' }))], faits: [] } };
       const etat = get();
       const options = step.meta?.personnesEnOption;
       const rang = step.options?.findIndex((option) => option.key === step.chosen) ?? -1;
@@ -998,7 +988,7 @@ export const TABLES = {
       const ctx: ExecCtx = { get, set, target: cible, caster: oc.caster ?? hero, label: nomDeSource(oc), opsCtx: oc };
       enfilerAuJournal(get, set, [ligneDeDesignation(cible, personne, oc)], cible.id);
       runCombatFlow(ctx, { kind: 'sequence', etapes: [fluxDEnvers(feuille.effet, personne, !!personne && sontAmis(cible, personne)), step.meta?.after ?? EMPTY_FLOW] });
-      return { consequences: freeCons(drainPendingLog(get, set).map((e) => e.entree.texte)) };
+      return { applique: { lignes: drainPendingLog(get, set).map((e) => e.entree), faits: [] } };
     },
     /**
      * Étape `cibleAcquise` (ADE II 09 l.9, l.15 ; #3045) : le porteur a choisi (`chosen`), parmi les options de
@@ -1009,12 +999,12 @@ export const TABLES = {
     cibleAcquise: (get, set, step, hero) => {
       const type = step.meta?.psychAcquis;
       if (!type) return;
-      if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!hero || hero.dead) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const choisie = step.options?.find((o) => o.key === step.chosen)?.key;
       const cible = choisie === undefined ? undefined : ciblePsyLue(choisie);
       const ligne = cible ? poserLeTraitAcquis(get, hero, type, cible) : t('op.cibleAcquiseAbsente', { name: nomDe(hero) });
       set(touchActors(get()));
-      return { consequences: freeCons([ligne]) };
+      return { applique: { lignes: [ligneDeTexte(ligne)], faits: [] } };
     },
     /**
      * Étape `traitDeTraumatisme` (ADE II 09 l.21 ; LDB 21 l.93 ; #4056) : le porteur a choisi (`chosen`) le Trait de son
@@ -1023,9 +1013,9 @@ export const TABLES = {
      * hors des options laisse le Trauma sans effet, et le journal le dit.
      */
     traitDeTraumatisme: (get, set, step, hero) => {
-      if (!hero || hero.dead) return { consequences: freeCons([t('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!hero || hero.dead) return { applique: { lignes: [ligneDeTexte(t('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const type = TRAITS_DE_TRAUMA.find((p) => p === step.chosen);
-      if (!type) return { consequences: freeCons([t('op.traumatismeSansTrait', { name: nomDe(hero) })]) };
+      if (!type) return { applique: { lignes: [ligneDeTexte(t('op.traumatismeSansTrait', { name: nomDe(hero) }))], faits: [] } };
       acquerirLeTrait(get, set, hero, type, ciblesDeTrauma());
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,

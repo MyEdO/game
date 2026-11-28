@@ -36,6 +36,7 @@ import { porteeDeTir } from '../engine/items';
 import { resolveQualities } from '../engine/qualities/dispatch';
 import { loseWounds, isOutOfAction } from '../engine/conditions';
 import type { Applique } from '../engine/faits';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { exposedCrew } from '../engine/shipCritical';
 import { combatantsWithinRadius } from './monde/combatGeometry';
 import { emitCombatEvent } from './combatEvents';
@@ -116,33 +117,33 @@ export function areaTargets(combatants: Combatant[], metresPerTile: number, crew
 }
 
 /** Applique DR+Dégâts à une cible SECONDAIRE et propage les États « infligés par l'arme » (chemin générique
- *  `onHit`). Renvoie la ligne de journal de la touche + celles des effets déclenchés. */
+ *  `onHit`). Renvoie l'entrée de journal de la touche + celles des effets déclenchés. */
 function hitSecondary(
   get: Get, set: SetFn, hit: AreaHit, victim: Combatant, damage: number, msgKey: MsgKey, rng: RNG,
-): string[] {
+): EntreeDuJournal[] {
   const wl = woundsFromHit(hit.weapon, victim, hit.location, damage, 0, 0, hit.attacker.size); // plancher 0 (navire/ricochet)
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   const consequences: Applique = { lignes: [], faits: [] };
   loseWounds(victim, wl, consequences);
-  lines.push(tr(msgKey, { name: nomDe(victim), wl }), ...consequences.lignes);
+  lines.push(ligneDeTexte(tr(msgKey, { name: nomDe(victim), wl })), ...consequences.lignes);
   // États « infligés par l'arme » via le MÊME dispatcher que le tir individuel (Empêtré, En flammes, Venin…),
   // déclenchés dès la touche, comme pour la cible PRIMAIRE (`toucheNonIgnoree`).
   // Une arme à Dégâts « Spéciaux » (Canon à flammes nain, ADE II 8 l.243) applique donc son État à 0 Blessure ;
   // les effets qui EXIGENT une Blessure se gardent EUX-MÊMES (Condition Flow `woundsDealt > 0` : Venin/Empoisonnement).
   if (!isOutOfAction(victim))
-    emitCombatEvent('onHit', { get, set, battle: get().battle, self: hit.attacker, sink: (line) => lines.push(line), triggerCtx: { victim, weapon: hit.weapon, woundsDealt: wl, margin: hit.margin, location: hit.location, attackType: hit.weapon.type, rng } });
+    emitCombatEvent('onHit', { get, set, battle: get().battle, self: hit.attacker, sink: (entree) => lines.push(entree), triggerCtx: { victim, weapon: hit.weapon, woundsDealt: wl, margin: hit.margin, location: hit.location, attackType: hit.weapon.type, rng } });
   return lines;
 }
 
 /**
  * Résout TOUS les effets d'aire d'une touche (Tir de zone ET Explosion cumulables), mutant les cibles et
- * renvoyant les lignes de journal. `targetsFor(indice)` = STRATÉGIE de cibles secondaires (terrestre/naval).
+ * renvoyant les entrées de journal. `targetsFor(indice)` = STRATÉGIE de cibles secondaires (terrestre/naval).
  * NE re-jette AUCUN jet de toucher (RAW : un nuage de projectiles / un souffle ne re-teste pas).
  */
 export function resolveWeaponArea(
   get: Get, set: SetFn, hit: AreaHit, targetsFor: (indice: number) => AreaTargets, rng: RNG,
-): { lines: string[] } {
-  const lines: string[] = [];
+): { lines: EntreeDuJournal[] } {
+  const lines: EntreeDuJournal[] = [];
   const { primaryTarget: target, weapon } = hit;
   const quals = resolveQualities(weapon);
 
@@ -160,7 +161,7 @@ export function resolveWeaponArea(
       const extra = woundsFromHit(weapon, target, hit.location, hit.damage + indice, 0, 0, hit.attacker.size) - woundsFromHit(weapon, target, hit.location, hit.damage, 0, 0, hit.attacker.size);
       const consequences: Applique = { lignes: [], faits: [] };
       if (!isOutOfAction(target)) loseWounds(target, extra, consequences);
-      lines.push(tr('cf.souffleABoutPortant', { name: nomDe(target), indice }), ...consequences.lignes);
+      lines.push(ligneDeTexte(tr('cf.souffleABoutPortant', { name: nomDe(target), indice })), ...consequences.lignes);
     } else {
       // Courte-Longue : cible + Indice plus proches. Extrême : idem mais −Indice aux Dégâts.
       const dmg = band === 'Extrême' ? hit.damage - indice : hit.damage;

@@ -53,7 +53,7 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
       const casc = banc.getState().pendingCascade;
       const hasTestStep = !!casc?.participants.some((p) => p.kind === 'testDeclenche');
       // Héros : une étape influençable (suspendue) ; Ennemi : ligne « Résistance » dans la file différée.
-      const inlineTest = banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.line));
+      const inlineTest = banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.entree.texte));
       if (who === 'heros' ? hasTestStep : inlineTest) return s;
     }
     throw new Error('aucune graine ne produit une entrée de Colère à Test');
@@ -99,6 +99,6 @@ describe('Maladresse — Test imbriqué routé cadence-aware (Lot 4d)', () => {
     avanceEtapeCascade(banc.getState);
     expect(banc.getState().pendingCascade?.participants.some((p) => p.kind === 'testDeclenche') ?? false).toBe(false);
     // La ligne de parité du Test (traceLineOf) part dans la file différée.
-    expect(banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.line))).toBe(true);
+    expect(banc.getState().pendingLogQueue.some((q) => /Résistance/.test(q.entree.texte))).toBe(true);
   });
 });

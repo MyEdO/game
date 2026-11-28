@@ -7,6 +7,7 @@
  * lit sur la pièce, comme en mêlée (LDB 63 l.13 ; #1595 c.6232294713).
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import type { BattleState } from './etat';
 import type { CombatEventCtx } from './combatEvents';
@@ -71,7 +72,7 @@ const live = (id: string) => banc.getState().battle!.combatants.find((c) => c.id
 
 // Applique un Projectile magique déjà résolu (incantation figée) via le vrai chemin `applyCast`.
 function castMissile(caster: Combatant, target: Combatant, spell: never, opts: { critical: boolean; sl?: number; extraTargets?: Combatant[] }): void {
-  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: opts.sl ?? 2, isCritical: opts.critical, isFumble: false, log: '' };
+  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: opts.sl ?? 2, isCritical: opts.critical, isFumble: false, log: ligneDeTexte('') };
   const mres = evaluateMissile(caster, target, spell, cr);
   applyCast(banc.getState, banc.setState, caster, [target, ...(opts.extraTargets ?? [])], spell, mres, true, opts.critical ? 'critique' : undefined);
 }
@@ -80,7 +81,7 @@ function castMissile(caster: Combatant, target: Combatant, spell: never, opts: {
 // LDB 63 l.13, l.30, l.32 ; LDB 48 l.399 ; #1595 c.6232294713.
 describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30, l.32 ; #1595 c.6232294713)', () => {
   beforeEach(() => seedBattleRng(99));
-  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
+  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: true, isFumble: false, log: ligneDeTexte('') };
   const mailles = (): Partial<Combatant> => ({
     armour: uniformArmour(4),
     items: [{ uid: 'mail', name: 'Cotte de mailles', kind: 'armor', equipped: true, pa: 4, locs: [...LOCALISATIONS_DE_COUP], subType: 'mailles', qualities: [] } as never],
@@ -164,7 +165,7 @@ describe('Projectile magique — Déviation lue sur la pièce (LDB 63 l.13, l.30
 // ── Recompte à PA−n : les pas de Dégâts ne changent pas l'écart ────────────────
 describe('Projectile magique — recompte à PA−n (LDB 63 l.32 ; VDM 02 l.198)', () => {
   const caster = mage('ennemi', 'C');
-  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: true, isFumble: false, log: '' };
+  const cr: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: true, isFumble: false, log: ligneDeTexte('') };
 
   // Les Blessures d'une touche Déviée se relisent à PA−n avec les MÊMES pas de Dégâts (`VDM 02 l.198`) :
   // l'écart PA−1 ne dépend pas des pas alloués.
@@ -421,7 +422,7 @@ describe('Mêlée — Déviation sur dépassement (overkill, LDB 18 l.53 + 63 l.
 // LDB 18 l.53, l.55 ; LDB 46 l.30 ; AA 07 l.36 ; #1595 c.6226467544.
 describe("Projectile — relance de la Localisation par le Coup Critique (LDB 18 l.53, l.55 ; #1595 c.6226467544)", () => {
   const GRAINE = 5;
-  const jet: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: false, isFumble: false, log: '' };
+  const jet: CastResult = { cast: true, roll: 44, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('') };
   beforeEach(() => { setRule('combat-aa-blessures', 'aa'); seedBattleRng(GRAINE); });
 
   /** Le Projectile sur une cible hors Mort subite (AA 07 l.67), un témoin garde le combat ouvert. */

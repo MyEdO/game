@@ -17,7 +17,7 @@ import { activityStakeRef } from '../data';
 import { activityById } from '../engine/activities';
 import { DIFFICULTE_PAR_DEFAUT } from '../engine/types';
 import { applyOps, type GameOp } from '../engine/ops';
-import { openPartyTest, freeCons } from './rollSeam';
+import { openPartyTest } from './rollSeam';
 import { generateTradeRumour } from './landMarketFlow';
 import { rule } from '../engine/policy';
 import { lieuDuGroupe } from './worldMap';
@@ -27,6 +27,9 @@ import { t } from '../i18n';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { type Applique, absorberDans } from '../engine/faits';
+import { ligneDeTexte } from '../engine/journal';
+import { tonnerLApplication } from './recapLine';
 
 const ACTIVITY_ID = 'recueillir-informations';
 const INN_GOSSIP_KIND = 'rumeurDAuberge';
@@ -76,13 +79,13 @@ export const TABLES = {
       }
       const def = activityById(ACTIVITY_ID);
       // EDOC 8 l.153 : aucune rumeur récoltée — branche d'ÉCHEC (#349, dette 1 : ton dérivé, pas une chaîne muette).
-      const cons = freeCons([{ text: 'Personne ne semble savoir grand-chose ce soir-là.', tone: 'echec' }]);
+      const applique: Applique = { lignes: [ligneDeTexte('Personne ne semble savoir grand-chose ce soir-là.', { ton: 'echec' })], faits: [] };
       if (def?.failExtenue && hero) {
         const op: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 }; // EDOC 8 l.133
-        cons.push(applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'activite', id: ACTIVITY_ID } }));
+        absorberDans(applique, tonnerLApplication(applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'activite', id: ACTIVITY_ID } })));
         set({ party: [...get().party] });
       }
-      return { consequences: cons };
+      return { applique };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

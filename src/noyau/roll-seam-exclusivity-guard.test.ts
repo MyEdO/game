@@ -1254,9 +1254,9 @@ describe('garde SŒUR « dés hors porte » (#1508) — un dé qui tombe hors de
 // ---------------------------------------------------------------------------------------------
 
 /** Les points d'application d'un COUP (#1765) : `applyAttackResult` et ses enveloppes, qui rendent
- *  `Applique` — leur suspension porte la suite du coup (`SuiteDeCoup`, `pendings.ts`). */
+ *  `SignalDeSuite` — leur suspension porte la suite du coup (`SuiteDeCoup`, `pendings.ts`). */
 const POINTS_DU_COUP = ['applyAttackResult', 'doAttack', 'applyTalentFreeAttack'];
-/** Les fonctions qui appliquent des Effets/des ops et rendent `Applique` (`noyau/combatEffects` ; et
+/** Les fonctions qui appliquent des Effets/des ops et rendent `SignalDeSuite` (`noyau/combatEffects` ; et
  *  les deux points d'application de COMBAT dont la grappe de dés part à la porte — `noyau/combatFlow`
  *  `applyOups`/`applyBladeTrap`, #1508 T3b-4), plus les points d'application d'un coup. */
 const POINTS_DAPPLICATION = ['applyEffects', 'applyEffectsLoot', 'applyLeafOps', 'runFlow', 'applyOups', 'applyBladeTrap', ...POINTS_DU_COUP];
@@ -1491,17 +1491,17 @@ describe('#1508 — tout point d’application consomme son retour, ou le passe 
     expect(sonde('(applyAttackResult(g, s, a, d, w, r));'), 'parenthèse').toHaveLength(1);
     expect(sonde('applyAttackResult(g, s, a, d, w, r)!;'), 'non-nul').toHaveLength(1);
     expect(sonde('!runFlow(g, s, f);'), 'négation').toHaveLength(1);
-    expect(sonde('runFlow(g, s, f) as Applique;'), 'as').toHaveLength(1);
-    expect(sonde('runFlow(g, s, f) satisfies Applique;'), 'satisfies').toHaveLength(1);
+    expect(sonde('runFlow(g, s, f) as SignalDeSuite;'), 'as').toHaveLength(1);
+    expect(sonde('runFlow(g, s, f) satisfies SignalDeSuite;'), 'satisfies').toHaveLength(1);
     expect(sonde('void applyAttackResult(g, s, a, d, w, r);'), 'void').toHaveLength(1);
     expect(sonde('x = 1, runFlow(g, s, f);'), 'droite de virgule').toHaveLength(1);
     expect(sonde('await runFlow(g, s, f);'), 'await').toHaveLength(1);
-    expect(sonde('<Applique>runFlow(g, s, f);'), 'assertion <T>').toHaveLength(1);
+    expect(sonde('<SignalDeSuite>runFlow(g, s, f);'), 'assertion <T>').toHaveLength(1);
     expect(sonde('return (x(), runFlow(g, s, f));'), 'retour propagé sous droite de virgule').toEqual([]);
     expect(sonde('if (!(await applyTalentFreeAttack(g, s, a, op, fa))) return;'), 'await lu').toEqual([]);
-    expect(sonde('const r = <Applique>runFlow(g, s, f);'), 'capturé sous <T>, jamais relu').toHaveLength(1);
+    expect(sonde('const r = <SignalDeSuite>runFlow(g, s, f);'), 'capturé sous <T>, jamais relu').toHaveLength(1);
     expect(sonde('x = (c ? runFlow(g, s, f) : undefined, 1);'), 'ternaire sous virgule').toHaveLength(1);
-    expect(sonde('const r = (runFlow(g, s, f) as Applique);'), 'capturé sous as, jamais relu').toHaveLength(1);
+    expect(sonde('const r = (runFlow(g, s, f) as SignalDeSuite);'), 'capturé sous as, jamais relu').toHaveLength(1);
     expect(sonde('list.forEach((f) => (runFlow(g, s, f)));'), 'flèche sous parenthèse').toHaveLength(1);
     expect(sonde('console.log(c ? runFlow(g, s, f) : undefined);'), 'argument étranger sous ternaire').toHaveLength(1);
     expect(sonde('jouerFlowEntier((runFlow(g, s, f)));'), 'consommateur nommé sous parenthèse').toEqual([]);

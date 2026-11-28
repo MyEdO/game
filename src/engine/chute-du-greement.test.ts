@@ -132,7 +132,7 @@ describe('« Mât brisé » (l.718) : les deux présences tombent, chacune de SA
         applyOps(gabier, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes[0],
         applyOps(vigie, ops, { idNeuf: idsDeTest, rng: makeRNG(seed), hull: MOYENNE }).lignes[0],
       ];
-      const metres = lignes.map((l) => Number(/chute de (\d+) m/.exec(l)![1]));
+      const metres = lignes.map((l) => Number(/chute de (\d+) m/.exec(l.texte)![1]));
       expect(metres[0], `seed ${seed} : gréement = 2d10 m`).toBeGreaterThanOrEqual(2);
       expect(metres[0], `seed ${seed} : gréement = 2d10 m`).toBeLessThanOrEqual(20);
       expect(metres[1], 'nid-de-pie : 25 m, hauteur FIXE du livre').toBe(25);

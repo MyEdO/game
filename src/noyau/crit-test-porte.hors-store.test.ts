@@ -157,7 +157,7 @@ describe('#1657 B3-1 — le Test d’une Blessure critique naît comme une ÉTAP
     subirCritique(enemy, 'tete', 66);
 
     expect(etapeTest(), 'un porteur sans siège ne reçoit pas de fenêtre : la voie inline tranche').toBeFalsy();
-    expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
+    expect(banc.getState().pendingLogQueue.map((l) => l.entree.texte)).toEqual([
       'e — Test de Résistance Intermédiaire (+0) : 63/35, échec (DR -3).', // valeur NUE de la porte, pas un calcul maison
       'e reçoit 1 État Sonné.', // LDB 18 l.72 — la branche `echec`, appliquée sur l'issue de la porte
     ]);
@@ -260,7 +260,7 @@ describe('#1675 — le Flow de la rangée passe par la porte et reprend en ordre
     const enemy = mk('e', 'ennemi');
     combat(mk('h', 'heros'), enemy);
     subirCritique(enemy, 'brasG', 95);
-    expect(banc.getState().pendingLogQueue.map((l) => l.line)).toEqual([
+    expect(banc.getState().pendingLogQueue.map((l) => l.entree.texte)).toEqual([
       'e — Test de Résistance Difficile (−20) : 63/15, échec (DR -5).',
       'e reçoit 1 État Sonné.',
       'e reçoit 1 État À Terre.',

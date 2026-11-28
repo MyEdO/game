@@ -51,7 +51,7 @@ const journal = (): string[] => banc.getState().battle!.log.map((e) => e.entree.
 function finDeRound(): string[] {
   const lignes: string[] = [];
   const battle = banc.getState().battle!;
-  const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink: (l: string, _c?: Combatant) => lignes.push(l) };
+  const ctx: CombatHookCtx = { get: banc.getState, set: banc.setState, battle, sink: (e) => lignes.push(e.texte) };
   runCombatHooks('onRoundEnd', ctx);
   return lignes;
 }

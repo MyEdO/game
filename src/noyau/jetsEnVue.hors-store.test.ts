@@ -6,6 +6,7 @@
  * `combatDeTest.testkit.ts` ; les deux témoins du dôme passent par la surface de la partie.
  */
 import { nomDe } from '../engine/nom';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { creerPartie, etatInitialDuJeu, jetsEnVue, type EntreesDeLaPartie, type EtatDeJeu, type Jeu, type JetEnVue, type LigneDeJet } from './index';
 import { auContact, heroDuDuel } from './combatDeTest.testkit';
@@ -74,7 +75,7 @@ const FENETRES_A_JET: Partial<Record<ModalKey, Fixture>> = {
   manoeuvreDuNavire: { patch: { pendingShipManeuver: { shipId: 'nef', turnSteps: 0, moraleScore: 0, participants: [{ id: H.id, roleId: 'timonier', essential: true, navigation: { id: 'navigation' }, result: jet(40, 45) }] } }, flux: ['manoeuvreDuNavire'] },
   tirDeBatterie: { patch: { pendingShipBattery: { shipId: 'nef', targetId: 'autre', side: 'babord', moraleScore: 0, participants: [{ id: H.id, roleId: 'capitaine', essential: false, navigation: { id: 'navigation' }, result: jet(40, 45) }] } }, flux: ['tirDeBatterie'] },
   chansonDeMarin: { patch: { pendingShanty: { shipId: 'nef', singerId: H.id, shantyId: 'x', result: jet(40, 45) } }, flux: ['chansonDeMarin'] },
-  focalisation: { patch: { pendingFocus: { casterId: H.id, spellId: 'x', result: { dr: 2, success: true, isCritical: false, isFumble: false, roll: 21, target: 45, sl: 2, log: '' } } }, flux: ['focalisation'] },
+  focalisation: { patch: { pendingFocus: { casterId: H.id, spellId: 'x', result: { dr: 2, success: true, isCritical: false, isFumble: false, roll: 21, target: 45, sl: 2, log: ligneDeTexte('') } } }, flux: ['focalisation'] },
   dissipation: { patch: { pendingDispel: { casterId: H.id, spellId: 'x', spellCasterId: E.id, label: 'Sort', ni: 4, value: 45, ligne: { base: 45, mods: [], target: 45, difficulty: 'intermediaire' }, result: jet(21, 45) } }, flux: ['dissipation'] },
   infirmerie: {
     patch: {
@@ -143,8 +144,8 @@ const ETAPES_HOTES: Record<HostJet, Fixture> = {
   incantation: {
     patch: {
       pendingCascade: cascade(etapeHote('incantation')),
-      pendingCast: { casterId: E.id, targetId: H.id, spellId: 'alerte', missile: false, result: { cast: true, roll: 21, target: 45, sl: 2, isCritical: false, isFumble: false, log: '' } },
-      pendingCounterspell: { participants: [{ id: H.id, result: { dispelled: true, counter: tr(10, 50), casterNetSL: 0, log: '' } }] },
+      pendingCast: { casterId: E.id, targetId: H.id, spellId: 'alerte', missile: false, result: { cast: true, roll: 21, target: 45, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('') } },
+      pendingCounterspell: { participants: [{ id: H.id, result: { dispelled: true, counter: tr(10, 50), casterNetSL: 0, log: ligneDeTexte('') } }] },
       pendingCastOpposition: { test: { characteristic: 'force-mentale' }, participants: [{ id: H.id, ligne: { base: 40, mods: [], target: 40, difficulty: 'intermediaire' }, result: { oppose: tr(30, 40), resisted: true, margin: 1 } }] },
     },
     flux: ['incantation', 'contreSort', 'opposition'],

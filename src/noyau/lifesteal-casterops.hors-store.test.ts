@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast } from './combatFlow';
@@ -18,7 +19,7 @@ beforeEach(() => { banc = ouvrirLeBanc(); });
  * Blessures infligées), `casterOps` (effets sur le LANCEUR — Vol de vie retire son Exténué) et la
  * zone de soin récurrente (`op:'heal'` appliqué par `applyOps` — Sang de la Terre).
  */
-const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: '' });
+const ok = (sl: number): CastResult => ({ cast: true, roll: 21, target: 70, sl, isCritical: false, isFumble: false, log: ligneDeTexte('') });
 
 beforeEach(() => {
   banc.getState().ensemencerLeTirage(7);
@@ -58,6 +59,6 @@ describe('zone de soin (op:heal) — Sang de la Terre', () => {
     const bfm = Math.floor(caster.characteristics['force-mentale'] / 10);
     const log = applyOps(victim, [{ op: 'heal', amount: { bonusOf: 'force-mentale' } }], { idNeuf: idsDeTest, rng: desDuTest, caster, label: 'Sang de la Terre' }).lignes;
     expect(victim.wounds.current).toBe(5 + bfm);
-    expect(log.join(' ')).toContain('regagne');
+    expect(log.map((e) => e.texte).join(' ')).toContain('regagne');
   });
 });

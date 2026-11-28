@@ -16,6 +16,7 @@
 import type { Get, Set as SetFn } from './flowTypes';
 import type { BattleState } from './etat';
 import type { Combatant, Weapon } from '../engine/types';
+import type { EntreeDuJournal } from '../engine/journal';
 import type { AttackResult } from '../engine/combat';
 import { rule, type RegleOptionnelleId } from '../engine/policy';
 import type { EffectTrigger } from '../engine/flowCore';
@@ -25,7 +26,7 @@ import { tablesPosees } from './tablesPosees';
  *  DONNÉES — plus de `CombatPhase` séparé). Les hooks portés ici sont le rôle MACHINERIE de l'arène
  *  sur ce vocabulaire (tick de durées, zones, mort…) ; le contenu d'entité = `TriggeredEffect` data. */
 
-/** Contexte d'un hook : l'état (get/set) + les protagonistes du moment + un `sink(line, c?)` pour
+/** Contexte d'un hook : l'état (get/set) + les protagonistes du moment + un `sink(entree, c?)` pour
  *  journaliser (remplace les `tickLine` locales des séquences extraites de combatFlow). */
 export interface CombatHookCtx {
   get: Get;
@@ -36,8 +37,8 @@ export interface CombatHookCtx {
   target?: Combatant;
   weapon?: Weapon;
   res?: AttackResult;
-  /** Journalise une ligne (option : attribuée à un combattant). */
-  sink: (line: string, c?: Combatant) => void;
+  /** Journalise une entrée (option : attribuée à un combattant). */
+  sink: (entree: EntreeDuJournal, c?: Combatant) => void;
 }
 
 /** Un hook = une conséquence NOMMÉE d'une phase. `order` fixe sa position dans la séquence (les

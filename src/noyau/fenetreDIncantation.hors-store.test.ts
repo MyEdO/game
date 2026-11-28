@@ -6,6 +6,7 @@
  * LDB 47 l.15, l.28. Lanceur au siège MJ : réponse Q3 du design jugé (#3059).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { fenetreDIncantation, refusDuChoixCritique, refusDeLaForme, refusDuPasDeSurincantation, refusDeLaPose, refusDuReglage } from './fenetreDIncantation';
@@ -301,7 +302,7 @@ describe('la valeur du Contre-sort se lit à un seul site, `counterspellValue` (
     H.resilience = 1;
     banc.setState({
       pendingCast: { casterId: E.id, targetId: H.id, spellId: FIXTURES.sansDegats.id, missile: false,
-        result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: 'x', niRequired: 0 } },
+        result: { cast: true, roll: 30, target: 60, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('x'), niRequired: 0 } },
       pendingCounterspell: { participants: [{ id: H.id, interactive: true, declared: 'solo', result: null }] },
     } as unknown as Partial<Jeu>);
     banc.getState().jetForcerLaReussite('contreSort', H.id);

@@ -55,7 +55,7 @@ export interface VehicleProblemResult {
 export function applyVehicleProblem(vehicle: Combatant, roll: number, rng: RNG, idNeuf: FabriqueDId): VehicleProblemResult {
   const entry = rollVehicleProblem(roll);
   const lines = [`Problème de véhicule — ${entry.label}.`];
-  if (entry.vehicleWounds) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: entry.vehicleWounds, ignoreTB: false, ignoreAP: true, min: 1 }], { rng, idNeuf }).lignes);
+  if (entry.vehicleWounds) lines.push(...applyOps(vehicle, [{ op: 'wounds', amount: entry.vehicleWounds, ignoreTB: false, ignoreAP: true, min: 1 }], { rng, idNeuf }).lignes.map((e) => e.texte));
   return { entry, lines };
 }
 

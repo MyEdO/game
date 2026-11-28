@@ -18,13 +18,6 @@ interface ParamsDeLibelle {
 }
 type Params = Record<string, SansMarqueNonAffichable | number> & ParamsDeLibelle;
 
-/** Sous-ensemble `out.*` du catalogue — clés de CONSÉQUENCE (`resultLine`, `rollSeam.ts`, #295 Lot 0).
- *  `OutVars` reste un `Record` non typé PAR clé (comme `Params` ci-dessus, `t()` n'a pas de typage
- *  par clé) ; le paramètre générique est gardé pour la signature de `Consequence` (#295), extensible
- *  sans casser l'appelant si `t()` se type un jour par clé. */
-export type OutKey = Extract<MsgKey, `out.${string}`>;
-export type OutVars<_K extends OutKey = OutKey> = Params;
-
 const CATALOGS = { fr } as const;
 export type Locale = keyof typeof CATALOGS;
 

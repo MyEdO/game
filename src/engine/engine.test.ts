@@ -777,7 +777,7 @@ describe('Magie — compétences Avancées (gating)', () => {
     const c = caster({ intelligence: 95 }); // aucune compétence Langue
     const res = resolveCasting(c, FLECHETTE, makeRNG(1));
     expect(res.cast).toBe(false);
-    expect(res.log).toContain('ne maîtrise pas');
+    expect(res.log.texte).toContain('ne maîtrise pas');
   });
   it('Talents liés au Test (LDB 10 l.19) : +1 DR par acquisition sur Test d’incantation RÉUSSI (Diction instinctive)', () => {
     const skills = [{ id: 'langue', spec: 'magick', characteristic: 'intelligence' as const, advances: 10 }];
@@ -848,7 +848,7 @@ describe('Magie — compétences Avancées (gating)', () => {
     c.traits = [{ id: 'lanceur-de-sorts', arg: 'Sorcellerie' }];
     expect(knowsCastingSkill(c, { id: 'langue', spec: 'magick' })).toBe(true);
     const res = resolveCasting(c, FLECHETTE, makeRNG(1));
-    expect(res.log).not.toContain('ne maîtrise pas'); // le Test se fait sur Int seule
+    expect(res.log.texte).not.toContain('ne maîtrise pas'); // le Test se fait sur Int seule
   });
 });
 
@@ -858,7 +858,7 @@ describe('Magie — Incantations Imparfaites & Colère des dieux', () => {
       for (let seed = 0; seed < 30; seed++) {
         const r = rollMiscast(sev, makeRNG(seed));
         expect(r.label.length).toBeGreaterThan(0);
-        expect(r.log).toContain(sev === 'colere' ? 'Colère des dieux' : 'Incantation Imparfaite');
+        expect(r.log.texte).toContain(sev === 'colere' ? 'Colère des dieux' : 'Incantation Imparfaite');
       }
     }
   });

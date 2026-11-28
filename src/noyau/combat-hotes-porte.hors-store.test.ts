@@ -19,6 +19,7 @@ import { testScene } from '../scenes/test-fixture';
 import type { Combatant, Weapon } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import { blessuresSurLeProfil, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -195,7 +196,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     // `jetLancer('incantation')` pose le résultat DANS `pendingCast` (jamais sur l'étape hôte) : l'état d'avant-bascule
     // est donc celui d'un jet DÉJÀ lancé, pas celui d'une cascade fraîche.
     const pc0 = banc.getState().pendingCast!;
-    banc.setState({ pendingCast: { ...pc0, result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: 'ok' } } } as never);
+    banc.setState({ pendingCast: { ...pc0, result: { cast: true, roll: 21, target: 60, sl: 2, isCritical: false, isFumble: false, log: ligneDeTexte('ok') } } } as never);
     const avant = { ...etape('incantation')! };
     expect(openCastOpposition(banc.getState, banc.setState, banc.getState().pendingCast!, [cible])).toBe(true);
     const apres = etape('incantation')!;
@@ -213,7 +214,7 @@ describe('#1262 lot 5a — INCANTATION : `groupOwner` ne se pose QUE par le mint
     // dans `pendingCast`). Le remint les DÉTRUIT : c'est le contrat, pas un accident.
     const p = banc.getState().pendingCascade!;
     banc.setState({ pendingCascade: { ...p, participants: p.participants.map((s, i) => (i === 0
-      ? { ...s, result: { roll: 12, target: 60, sl: 4, success: true }, outcome: [{ text: 'déjà affiché' }], fixed: true } : s)) } } as never);
+      ? { ...s, result: { roll: 12, target: 60, sl: 4, success: true }, outcome: [{ entree: ligneDeTexte('déjà affiché') }], fixed: true } : s)) } } as never);
     shareCastStep(banc.getState, banc.setState, [wiz.id, cible.id], wiz.id);
     const apres = etape('incantation')! as unknown as Record<string, unknown>;
     expect(apres.groupOwner).toBe(true);

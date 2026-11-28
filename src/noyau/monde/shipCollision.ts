@@ -36,7 +36,7 @@ export function applyShipCollision(
   const res = resolveCollision(toCollisionShip(causer, milieu), toCollisionShip(victim, milieu), opts);
   const lines: string[] = [t(opts.frontal ? 'cf.percuteNavireDePleinFouet' : 'cf.percuteNavire', { name: nomDe(causer), cible: nomDe(victim) })];
   // Dégâts sur la Coque (l.464), mitigés DANS l'op : BE + PA de coque + extraAP (armorBonus situationnel).
-  lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { idNeuf, rng }).lignes);
-  lines.push(...applyOps(causer, [{ op: 'wounds', amount: res.causer.damage, ignoreTB: false, ignoreAP: false, extraAP: res.causer.armorBonus }], { idNeuf, rng }).lignes);
+  lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { idNeuf, rng }).lignes.map((e) => e.texte));
+  lines.push(...applyOps(causer, [{ op: 'wounds', amount: res.causer.damage, ignoreTB: false, ignoreAP: false, extraAP: res.causer.armorBonus }], { idNeuf, rng }).lignes.map((e) => e.texte));
   return { lines, causer: res.causer, victim: res.victim };
 }

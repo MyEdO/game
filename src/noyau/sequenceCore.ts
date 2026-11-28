@@ -290,7 +290,7 @@ export function sequenceRoundOps<P>(
     if (!ops?.length) return;
     for (const id of ids ?? []) {
       const c = porteur(id);
-      if (c) lines.push(...applyOps(c, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...campAdvantageHooks(get) }).lignes);
+      if (c) lines.push(...applyOps(c, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...campAdvantageHooks(get) }).lignes.map((e) => e.texte));
     }
   };
   appliquer(decl.winner, targets.vainqueurs);
@@ -302,7 +302,7 @@ export function sequenceRoundOps<P>(
     for (const id of targets.tous ?? []) {
       const c = porteur(id);
       const every = c ? sequenceAttritionEvery(seq.parametres, c) : 0;
-      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c }).lignes);
+      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c }).lignes.map((e) => e.texte));
     }
   }
   return lines;

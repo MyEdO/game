@@ -21,7 +21,7 @@
  * écarts que les tests ci-dessous mesurent sont donc mesurés, jamais recopiés (#1685).
  */
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { ouvrirLeBanc, type Banc } from './banc.testkit';
+import { capterLeJournal, ouvrirLeBanc, type Banc } from './banc.testkit';
 import { emptyScene } from './monde/scene';
 import { battleRng } from './battleRng';
 import { contractDisease, tickDisease } from '../engine/disease';
@@ -147,9 +147,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     // Hans reste valide si la Fièvre met Hilda à terre (`checkPartyWiped`).
     banc.setState((s) => ({ party: [...s.party, hero({ id: 'h2', label: 'Hans', diseaseImmunities: ['pneumonie'] })] }));
     rendMalade('h1', 'pneumonie', 0);
-    const journal: string[] = [];
-    const vraiLog = banc.getState().ecrireAuJournal;
-    banc.setState({ ecrireAuJournal: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+    const journal = capterLeJournal(banc);
 
     banc.getState().reposerLeGroupe(3); // clôture d'interlude / triche de recette : 3 nuits d'affilée
 
@@ -210,9 +208,7 @@ describe('#1685 — le Test de cycle d’une maladie porte la valeur de la PORTE
     const vivant = banc.getState().pendingCascade;
     expect(vivant, 'une fenêtre de nuit est ouverte AVANT le sommeil multi-jours').toBeTruthy();
 
-    const journal: string[] = [];
-    const vraiLog = banc.getState().ecrireAuJournal;
-    banc.setState({ ecrireAuJournal: (l: string | string[]) => { journal.push(...(Array.isArray(l) ? l : [l])); vraiLog(l); } } as never);
+    const journal = capterLeJournal(banc);
 
     banc.getState().reposerLeGroupe(2);
 

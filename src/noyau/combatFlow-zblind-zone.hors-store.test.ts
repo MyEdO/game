@@ -9,6 +9,7 @@
  * Ce module verrouille les deux — même patron que `zoneAreaTiles` (`z` propagé, #782/#799).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { castCommitZone, applyCast } from './combatFlow';
@@ -27,7 +28,7 @@ import { testScene } from '../scenes/test-fixture';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: 'lancé' });
+const okCast = (): CastResult => ({ cast: true, roll: 11, target: 80, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('lancé') });
 
 function caster(x: number, y: number, z: number, id = 'caster'): Combatant {
   const h = herosDeScenario(idsDeTest, 'sorcier');

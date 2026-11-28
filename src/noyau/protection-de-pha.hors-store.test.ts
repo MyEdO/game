@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { barrierTilesFor, zonesRoundTick, type BattleZone } from './monde/zones';
 import { isProfane } from '../engine/corruption';
@@ -95,7 +96,7 @@ describe('Protection de Phâ — incantation pose la Zone (intégration applyCas
     caster.skills.push({ id: 'langue', spec: 'magick', characteristic: 'intelligence', advances: 10 });
     caster.characteristics['force-mentale'] = 40; // BFM 4
     caster.pos = { x: 7, y: 7 };
-    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: 'ok' };
+    const ok: CastResult = { cast: true, roll: 30, target: 70, sl: 0, isCritical: false, isFumble: false, log: ligneDeTexte('ok') };
     applyCast(banc.getState, banc.setState, caster, [caster], findSpellById('protection-de-pha')!, ok, false);
 
     const z = (banc.getState().battle!.zones ?? []).find((x) => x.label === 'Protection de Phâ')!;

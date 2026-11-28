@@ -59,7 +59,7 @@ function ecouterLesTestsDInitiative(): { vus: string[]; fin: () => void } {
   const vus: string[] = [];
   const noter = (l: string) => { if (/Initiative/.test(l) && !vus.includes(l)) vus.push(l); };
   const fin = banc.subscribe((s) => {
-    for (const x of s.pendingLogQueue ?? []) noter(x.line);
+    for (const x of s.pendingLogQueue ?? []) noter(x.entree.texte);
     for (const e of s.battle?.log ?? []) noter(e.entree.texte);
   });
   return { vus, fin };
@@ -236,7 +236,7 @@ describe('#3159 — classe : le bus ne joue aucun Flow à attaque gratuite, reso
       const attackType = eff.attackType ?? 'melee';
       const avant = { adv: vif(porteur.id).advantage, log: banc.getState().battle!.log.length, file: banc.getState().pendingLogQueue?.length ?? 0 };
       const sink: string[] = [];
-      emitCombatEvent(eff.trigger, { get: banc.getState, set: banc.setState, battle: banc.getState().battle!, self: porteur, sink: (l) => sink.push(l), triggerCtx: { victim: tiers, weapon, attackType, rng: battleRng() } });
+      emitCombatEvent(eff.trigger, { get: banc.getState, set: banc.setState, battle: banc.getState().battle!, self: porteur, sink: (e) => sink.push(e.texte), triggerCtx: { victim: tiers, weapon, attackType, rng: battleRng() } });
       expect(banc.getState().pendingCascade).toBeNull();
       expect(sink).toEqual([]);
       expect(banc.getState().battle!.log.length).toBe(avant.log);

@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { seedBattleRng } from './battleRng';
 import { resolveCasting, resolveCounterspell, resolveFocus, castingValue, castTestOf, castTestDRMods, incantationArcane } from '../engine/magic';
@@ -38,7 +39,7 @@ const TALENT = 1;
 const DE = 1;
 /** Incantation ENNEMIE figée — DR 0 : le plancher du Test opposé (`castT.sl + 1` = 1) ne masque pas
  *  le DR mesuré. */
-const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 0, isCritical: false, isFumble: false, log: '' };
+const ENEMY_CAST = { cast: true, roll: 20, target: 50, sl: 0, isCritical: false, isFumble: false, log: ligneDeTexte('') };
 /** Sort du lanceur : NI 0 (`flechette`) — le plancher « le Sort PART » de la Résilience ne masque pas
  *  le DR mesuré non plus. */
 const SPELL_ID = 'flechette';
@@ -79,7 +80,7 @@ const openCast = (roll: number, target: number) => banc.setState({
   pendingCounterspell: null,
   pendingCast: {
     casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false,
-    result: { cast: false, roll, target, sl: evaluateTest(roll, target).sl, isCritical: false, isFumble: false, log: '' },
+    result: { cast: false, roll, target, sl: evaluateTest(roll, target).sl, isCritical: false, isFumble: false, log: ligneDeTexte('') },
   },
 } as never);
 
@@ -125,7 +126,7 @@ describe('modificateurs d’un Test d’incantation — une source, trois voies 
   });
 
   it('contre-sort — voie 2 : le dé SAISI passe par la source', () => {
-    openCounterspell({ dispelled: false, counter: { roll: 88, target: VALEUR, sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' });
+    openCounterspell({ dispelled: false, counter: { roll: 88, target: VALEUR, sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: ligneDeTexte('') });
     st().jetImposerLeResultat('contreSort', DE, 'A');
     const c = counterOf();
     expect(c.roll).toBe(DE);
@@ -270,7 +271,7 @@ const poser = (hero: Combatant, extra: Record<string, unknown> = {}) => banc.set
 
 const focusOf = () => P<{ result: { roll: number; dr: number } }>('pendingFocus').result;
 const openFocus = () => banc.setState({
-  pendingFocus: { casterId: 'A', spellId: FOCUS_SPELL, result: { dr: 0, isCritical: false, isFumble: false, roll: 88, target: FOCUS_TARGET, sl: -4, log: '' } },
+  pendingFocus: { casterId: 'A', spellId: FOCUS_SPELL, result: { dr: 0, isCritical: false, isFumble: false, roll: 88, target: FOCUS_TARGET, sl: -4, log: ligneDeTexte('') } },
 } as never);
 
 describe('Focalisation — trois voies, même DR à dé égal (#948)', () => {
@@ -319,7 +320,7 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
     const naturel = resolveCounterspell(hero, castT, RNG_DE).counter.sl;
     // Voie 2 — dé saisi.
     poser(hero, { pendingCast: { casterId: 'E', targetId: 'A', spellId: SPELL_ID, missile: false, result: ENEMY_CAST },
-      pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, incantationArcane()), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: '' } }] } });
+      pendingCounterspell: { participants: [{ id: 'A', interactive: true, declared: 'solo', result: { dispelled: false, counter: { roll: 88, target: castingValue(hero, incantationArcane()), sl: -4, success: false, isDouble: true }, casterNetSL: 4, log: ligneDeTexte('') } }] } });
     setDesFixes(true);
     st().jetImposerLeResultat('contreSort', DE, 'A');
     const saisi = counterOf().sl;
@@ -336,7 +337,7 @@ describe('portée de l’armure — trois voies × PA 0/2 (#948)', () => {
     const cible = castingValue(hero, incantationArcane());
     const naturel = resolveCasting(hero, findSpellById(SPELL_ID)!, RNG_DE).sl;
     const pending = { casterId: 'A', targetId: 'E', spellId: SPELL_ID, missile: false,
-      result: { cast: false, roll: 88, target: cible, sl: evaluateTest(88, cible).sl, isCritical: false, isFumble: false, log: '' } };
+      result: { cast: false, roll: 88, target: cible, sl: evaluateTest(88, cible).sl, isCritical: false, isFumble: false, log: ligneDeTexte('') } };
     poser(hero, { pendingCast: pending });
     setDesFixes(true);
     st().jetImposerLeResultat('incantation', DE);

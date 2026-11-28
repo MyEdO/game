@@ -8,7 +8,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects } from './combatEffects';
 import { applierDe } from './cascade';
-import { resultLine } from './rollSeam';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
 import { findVehicleById } from '../data';
 import { setRule } from '../engine/policy';
@@ -16,6 +15,7 @@ import { effectiveChar } from '../engine/characteristics';
 import type { WorldMap } from './worldMap';
 import type { GameOp } from '../engine/ops';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
+import { lignesDeLApplier } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -131,7 +131,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     const out = applierDe('exposition-delestage')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(0); // délestée
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(false); // Test ANNULÉ, pas subi
-    expect(/annulé/i.test(resultLine(out?.consequences ?? []))).toBe(true);
+    expect(/annulé/i.test(lignesDeLApplier(out).join(' '))).toBe(true);
   });
 
   it('« garder » : conserve l’objet, la conséquence de l’échec s’applique normalement', () => {
@@ -143,7 +143,7 @@ describe('Exposition CHALEUR — annulation par délestage d’une Possession lo
     const out = applierDe('exposition-delestage')!(banc.getState, banc.setState, choice, h, { steps: [choice], index: 0 });
     expect(h.items).toHaveLength(1); // conservé
     expect((h.conditions ?? []).some((c) => c.id === 'extenue')).toBe(true); // 1ᵉʳ échec chaleur (l.330)
-    expect(/chaleur|suffoque|accablé/i.test(resultLine(out?.consequences ?? []))).toBe(true);
+    expect(/chaleur|suffoque|accablé/i.test(lignesDeLApplier(out).join(' '))).toBe(true);
   });
 
   it('escalade : la vague SUIVANTE se construit APRÈS le délestage — l’échec annulé ne compte pas dans son rang', () => {

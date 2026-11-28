@@ -4,6 +4,7 @@
  * `siege-enceinte` pose le groupe dans la cour, face au tunnel de la herse.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { lancerLeScenario } from './lancementDeScenario';
@@ -144,7 +145,7 @@ const epee = { label: 'épée', type: 'melee', subType: 'base', damage: { flat: 
 const touche = { hit: true, critical: false } as AttackResult;
 const attaque = (from: string, to: string): Evenement => ({ type: 'emis', evt: 'anim_attack', payload: { kind: 'melee', from, to, defense: 'aucune', result: touche, weapon: epee } });
 const sort = (from: string, to: string): Evenement =>
-  ({ type: 'emis', evt: 'anim_attack', payload: { kind: 'spell', projectile: false, from, to, defense: 'aucune', result: { cast: true, roll: 10, target: 50, sl: 4, isCritical: false, isFumble: false, log: '' }, spell: 'drain' } }) as Evenement;
+  ({ type: 'emis', evt: 'anim_attack', payload: { kind: 'spell', projectile: false, from, to, defense: 'aucune', result: { cast: true, roll: 10, target: 50, sl: 4, isCritical: false, isFumble: false, log: ligneDeTexte('') }, spell: 'drain' } }) as Evenement;
 const effets = (...e: Evenement[]): Effet[] => effetsDeLAppel(etat(), e);
 
 describe('effetsDeLAppel — ce que le groupe voit, lu sur l’état d’après l’appel', () => {

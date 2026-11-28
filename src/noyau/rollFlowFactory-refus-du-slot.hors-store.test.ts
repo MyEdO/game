@@ -4,6 +4,7 @@
  * sans `pid`. Témoin : le Contre-sort (LDB 46 l.156), dont la rangée se refuse une fois le sort dissipé par un autre.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { FLOWS } from './rollFlowSpecs';
@@ -38,15 +39,15 @@ describe('refusDuSlot — le refus de la rangée, lu par la poignée du flux', (
       battle: { ...b },
       pendingCast: {
         casterId: E.id, targetId: A.id, spellId: 'carreau', missile: true, counterspellRouted: true,
-        result: { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: '' },
+        result: { cast: true, roll: 20, target: 50, sl: 3, isCritical: false, isFumble: false, log: ligneDeTexte('') },
       },
     } as unknown as Partial<Jeu>);
     return { A, B };
   }
-  const DISSIPE = { dispelled: true, counter: { roll: 5, target: 60, sl: 4, success: true, isDouble: false }, casterNetSL: -1, log: 'dissipé' };
+  const DISSIPE = { dispelled: true, counter: { roll: 5, target: 60, sl: 4, success: true, isDouble: false }, casterNetSL: -1, log: ligneDeTexte('dissipé') };
   /** Réussite à DR égal à l'incantation : non dissipé, +1 DR le ferait basculer. */
-  const PRESQUE = { dispelled: false, counter: { roll: 30, target: 60, sl: 3, success: true, isDouble: false }, casterNetSL: 0, log: 'presque' };
-  const RATE = { dispelled: false, counter: { roll: 95, target: 60, sl: -4, success: false, isDouble: false }, casterNetSL: 7, log: 'raté' };
+  const PRESQUE = { dispelled: false, counter: { roll: 30, target: 60, sl: 3, success: true, isDouble: false }, casterNetSL: 0, log: ligneDeTexte('presque') };
+  const RATE = { dispelled: false, counter: { roll: 95, target: 60, sl: -4, success: false, isDouble: false }, casterNetSL: 7, log: ligneDeTexte('raté') };
   const poser = (parts: unknown[]) => banc.setState({ pendingCounterspell: { participants: parts } } as unknown as Partial<Jeu>);
 
   it('la rangée encore à jouer après la dissipation par un AUTRE porte son refus ; celle qui a dissipé n’en porte aucun', () => {

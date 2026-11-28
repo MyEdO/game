@@ -129,11 +129,11 @@ describe('ActiveEffect.passive — les ops d’un effet portent leur source', ()
   it('journal d’un `charMod` : fragment de durée en minutes seulement si l’op porte SON horloge', () => {
     const herite = hero();
     const ligneHeritee = applyOps(herite, [{ op: 'charMod', characteristic: 'agilite', mod: -10 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Écorce', defaultUntilTime: 600 }).lignes;
-    expect(ligneHeritee[0]).toMatch(/durée hors combat/); // échéance du CONTEXTE : une date, pas un décompte
+    expect(ligneHeritee[0].texte).toMatch(/durée hors combat/); // échéance du CONTEXTE : une date, pas un décompte
 
     const propre = hero();
     const lignePropre = applyOps(propre, [{ op: 'charMod', characteristic: 'agilite', mod: -10, durationHours: 1 }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Écorce', now: 0 }).lignes;
-    expect(lignePropre[0]).toMatch(/1 heure/);
+    expect(lignePropre[0].texte).toMatch(/1 heure/);
   });
 
   it('effets RETIRÉS (Dissipation, expiration, purge) → plus un seul passif du sort', () => {

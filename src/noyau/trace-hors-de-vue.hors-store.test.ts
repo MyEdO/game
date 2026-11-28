@@ -80,7 +80,7 @@ describe('TraceSide.who — la ligne d’un Test opposé jeté sans fenêtre', (
     const { banc, cache, vu } = siege();
     const noeud = { kind: 'test', test: { characteristic: 'force', opposed: { attacker: 'force' } }, reussite: EMPTY_FLOW, echec: EMPTY_FLOW } as Extract<Flow, { kind: 'test' }>;
     resolveFlowTest({ get: banc.getState, set: banc.setState, target: vu, caster: cache, label: 'Test opposé' }, noeud, EMPTY_FLOW);
-    const lignes = banc.getState().pendingLogQueue.map((l) => l.line);
+    const lignes = banc.getState().pendingLogQueue.map((l) => l.entree.texte);
     const ligne = lignes.find((l) => l.includes(vu.label));
     expect(ligne, lignes.join('\n')).toBeDefined();
     expect(ligne!.startsWith(`${INCONNU} `), ligne).toBe(true);
@@ -397,7 +397,7 @@ describe('designerLaPersonne — le décideur surfacé sans personne connue ne d
     runCombatFlow({ get: banc.getState, set: banc.setState, target: cache, caster: heros, label: 'Colérique' }, PREJUGE_ENVERS);
     expect(banc.getState().pendingCascade?.participants.find((e) => e.kind === 'personneChoisie')).toBeUndefined();
     expect(enversDe(banc, cache.id)).toEqual([]);
-    expect(banc.getState().pendingLogQueue.map((q) => q.line)).toEqual([t('op.personneAbsente', { src: t('op.nature.effet'), name: INCONNU })]);
+    expect(banc.getState().pendingLogQueue.map((q) => q.entree.texte)).toEqual([t('op.personneAbsente', { src: t('op.nature.effet'), name: INCONNU })]);
   });
 });
 

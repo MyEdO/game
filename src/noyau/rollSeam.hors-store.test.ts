@@ -2,19 +2,11 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { type CascadeApplier } from './cascade';
 import { spyApplier, TESTE_DE_TEST } from './cascade.testkit';
-import {
-  openRoll,
-  openSequence,
-  monoStep,
-  rollTitle,
-  composeRollLabel,
-  resultLine,
-  resultLines,
-  freeCons,
-  type RollRequest,
-  type Consequence,
-} from './rollSeam';
+import { openRoll, openSequence, monoStep, rollTitle, composeRollLabel, type RollRequest } from './rollSeam';
 import { applyOps } from '../engine/ops';
+import type { Applique } from '../engine/faits';
+import { ligneDeTexte } from '../engine/journal';
+import { recapDe, tonnerLApplication } from './recapLine';
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { desDuTest } from '../engine/dice.testkit';
 import { fixtureText } from '../i18n/fixtureText';
@@ -51,7 +43,7 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
     banc.setState({ battle: null, party: [], pendingCascade: null, journal: [], travelPlan: null } as never);
     poserLeMJ(null);
     const sonde = spyApplier(applied, (step) => ({ kind: step.kind, success: !!step.result?.success, sl: step.result?.sl ?? 0 }),
-      (step) => ({ consequences: freeCons([`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`]) }));
+      (step) => ({ applique: { lignes: [ligneDeTexte(`${step.label} → ${step.result?.success ? 'réussi' : 'raté'}`)], faits: [] } }));
     avecLesTables({ appliers: {
       ...tablesDuJeu().appliers,
       ...tableTotale(['seam-hero', 'seam-enemy', 'seam-subi', 'seam-batch'], () => sonde),
@@ -239,44 +231,45 @@ describe('rollSeam — openRoll (#275 Ronde 0)', () => {
   });
 });
 
-describe('resultLine — dénouement sans roll/target/sl/won (#295 Lot 0, Décision 1b)', () => {
-  it('cons vide ⇒ chaîne vide (le verdict reste porté par la rangée de jet)', () => {
-    expect(resultLine([])).toBe('');
+describe('le ton d’une conséquence appliquée (`tonnerLApplication`) et ses lignes (`recapDe`) — #295 Lot 0, Décision 1b ; #4574', () => {
+  it('aucune entrée ⇒ aucune ligne (le verdict reste porté par la rangée de jet)', () => {
+    expect(recapDe([])).toEqual([]);
   });
 
   it('une conséquence appliquée rend la ligne de son fait, au ton du camp de sa cible (#4574)', () => {
-    const blesser = (c: Combatant): Consequence => applyOps(c, [{ op: 'wounds', amount: 3 }], { idNeuf: idsDeTest, rng: desDuTest });
-    expect(resultLines([blesser(combattantDeTest({ id: 'h', label: fixtureText('Hilda'), kind: 'heros', wounds: blessuresDeBase(10) }))]))
-      .toEqual([{ text: 'Hilda subit 3 Blessure(s) (ignorant BE et PA).', tone: 'echec' }]);
-    expect(resultLines([blesser(combattantDeTest({ id: 'e', label: fixtureText('Orque'), kind: 'ennemi', wounds: blessuresDeBase(10) }))]))
-      .toEqual([{ text: 'Orque subit 3 Blessure(s) (ignorant BE et PA).', tone: 'reussite' }]);
-    expect(resultLines([blesser(combattantDeTest({ id: 'p', label: fixtureText('Passant'), kind: 'pnj', wounds: blessuresDeBase(10) }))]))
-      .toEqual([{ text: 'Passant subit 3 Blessure(s) (ignorant BE et PA).', tone: 'neutre' }]);
+    const blesser = (c: Combatant): Applique => tonnerLApplication(applyOps(c, [{ op: 'wounds', amount: 3 }], { idNeuf: idsDeTest, rng: desDuTest }));
+    expect(blesser(combattantDeTest({ id: 'h', label: fixtureText('Hilda'), kind: 'heros', wounds: blessuresDeBase(10) })).lignes)
+      .toEqual([{ sorte: 'ligne', texte: 'Hilda subit 3 Blessure(s) (ignorant BE et PA).', ton: 'echec' }]);
+    expect(blesser(combattantDeTest({ id: 'e', label: fixtureText('Orque'), kind: 'ennemi', wounds: blessuresDeBase(10) })).lignes)
+      .toEqual([{ sorte: 'ligne', texte: 'Orque subit 3 Blessure(s) (ignorant BE et PA).', ton: 'reussite' }]);
+    expect(blesser(combattantDeTest({ id: 'p', label: fixtureText('Passant'), kind: 'pnj', wounds: blessuresDeBase(10) })).lignes)
+      .toEqual([{ sorte: 'ligne', texte: 'Passant subit 3 Blessure(s) (ignorant BE et PA).', ton: 'neutre' }]);
   });
 
-  it('une conséquence sans variation est neutre, une Corruption écartée reste un gain (#4574)', () => {
+  it('une conséquence sans fait ou sans variation est neutre, une Corruption écartée reste un gain (#4574)', () => {
     const hilda = () => combattantDeTest({ id: 'h', label: fixtureText('Hilda'), kind: 'heros', wounds: blessuresDeBase(10, 6) });
     const soinNul = applyOps(hilda(), [{ op: 'heal', amount: 0 }], { idNeuf: idsDeTest, rng: desDuTest });
-    const ecartee: Consequence = { lignes: ['Hilda : protection.'], faits: [{ genre: 'corruption', cible: 'h', camp: 'groupe', valeur: 0, contre: 'protection' }] };
-    expect(resultLines([soinNul, ecartee]).map((l) => l.tone)).toEqual(['neutre', 'reussite']);
+    const ecartee: Applique = { lignes: [ligneDeTexte('Hilda : protection.')], faits: [{ genre: 'corruption', cible: 'h', camp: 'groupe', valeur: 0, contre: 'protection' }] };
+    const sansFait: Applique = { lignes: [ligneDeTexte('Rien ne bouge.')], faits: [] };
+    expect([soinNul, ecartee, sansFait].flatMap((a) => tonnerLApplication(a).lignes.map((e) => e.ton))).toEqual(['neutre', 'reussite', 'neutre']);
   });
 
-  it('{say} résout la clé i18n out.* (sans placeholder de jet)', () => {
-    const cons: Consequence[] = [{ say: 'out.activityDone', vars: { name: 'Hilda', activity: 'Chasse' } }];
-    expect(resultLine(cons)).toBe('Hilda — Chasse (effectué).');
+  it('le ton AUTHORÉ d’une entrée voyage avec elle ; une entrée vide ne fait pas de ligne', () => {
+    const gain: Applique = { lignes: [ligneDeTexte('Hilda — Chasse (effectué).', { ton: 'echec', icone: 'voyage/a-pied' }), ligneDeTexte('')], faits: [{ genre: 'corruption', cible: 'h', camp: 'groupe', valeur: 0, contre: 'protection' }] };
+    expect(recapDe(tonnerLApplication(gain).lignes)).toEqual([{ entree: { sorte: 'ligne', texte: 'Hilda — Chasse (effectué).', ton: 'echec', icone: 'voyage/a-pied' } }]);
   });
 
-  it('type : resultLine ne prend PAS roll/target/sl/won — la duplication d\'outcome est INEXPRIMABLE', () => {
-    // @ts-expect-error — Consequence ne porte ni roll ni target ni sl ni won (Décision 1b).
-    const bad: Consequence = { roll: 12, target: 40, sl: 2, won: true };
+  it('type : une Applique ne prend PAS roll/target/sl/won — la duplication d\'outcome est INEXPRIMABLE', () => {
+    // @ts-expect-error — Applique ne porte ni roll ni target ni sl ni won (Décision 1b).
+    const bad: Applique = { lignes: [], faits: [], roll: 12, target: 40, sl: 2, won: true };
     void bad;
   });
 
-  it('type : un applier migré ne peut plus renvoyer un string[] libre en `consequences`', () => {
-    // @ts-expect-error — `consequences` est `Consequence[]`, pas `string[]` (le canal typé est le seul canal).
+  it('type : un applier ne peut pas renvoyer un string[] libre en `applique`', () => {
+    // @ts-expect-error — `applique` est une `Applique`, pas un `string[]` (le canal typé est le seul canal).
     const applier: CascadeApplier = (_get, _set, step) => {
       void step;
-      return { consequences: ['réussi !'] };
+      return { applique: ['réussi !'] };
     };
     void applier;
   });

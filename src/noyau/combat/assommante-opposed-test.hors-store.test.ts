@@ -157,8 +157,8 @@ describe('Assommante — nœud Flow test OPPOSÉ (Force figée vs Résistance, r
     expect(hasCondition(live, 'sonne')).toBe(true); // l’attaquant l’emporte → Sonné posé inline
     // La ligne d’opposition (Force vs Résistance) part dans la file différée — DÉRIVÉE au patron unique
     // (`traceLineOf`, forme OPPOSÉE #1294) : les deux porteurs, les deux dés, les deux DR SIGNÉS, l’issue.
-    const opposee = banc.getState().pendingLogQueue.map((q) => q.line).find((l) => / vs /.test(l));
-    expect(opposee, `file différée :\n${banc.getState().pendingLogQueue.map((q) => q.line).join('\n')}`)
+    const opposee = banc.getState().pendingLogQueue.map((q) => q.entree.texte).find((l) => / vs /.test(l));
+    expect(opposee, `file différée :\n${banc.getState().pendingLogQueue.map((q) => q.entree.texte).join('\n')}`)
       .toMatch(/^.+ \(Force\) \d+\/\d+ \(DR [+-]\d+\) vs .+ \(Résistance\) \d+\/\d+ \(DR [+-]\d+\) — (résiste|l’emporte)\.$/);
   });
 

@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineCascade } from './cascade.testkit';
@@ -88,7 +89,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
     expect(autres).toEqual([]);
     expect(entree).toMatchObject({ kind: 'sort', actorId: E.id, targetId: H.id });
     expect(journal.filter((e) => e.entree.texte.includes(entree.entree.texte)), 'aucune autre entrée ne la recopie').toHaveLength(1);
-    expect(journal.filter((e) => e.entree.texte.includes(ligneDuSort)), 'le Sort se dit une fois, sauf dissipé').toHaveLength(dissipe ? 0 : 1);
+    expect(journal.filter((e) => e.entree.texte.includes(ligneDuSort.texte)), 'le Sort se dit une fois, sauf dissipé').toHaveLength(dissipe ? 0 : 1);
   });
 
   it('routage : c’est le JET qui ouvre le Contre-sort, pas l’aboutissement du Sort (LDB 46 l.156)', () => {
@@ -97,7 +98,7 @@ describe('Contre-sort (Dissipation, LDB 46 l.156)', () => {
       banc.setState({
         pendingCounterspell: null,
         pendingCast: { casterId: E.id, targetId: H.id, spellId: 'carreau', missile: true,
-          result: { cast, roll: 20, target: 145, sl: 12, isCritical: false, isFumble: false, log: 'x' } },
+          result: { cast, roll: 20, target: 145, sl: 12, isCritical: false, isFumble: false, log: ligneDeTexte('x') } },
       });
       routeCounterspell(banc.getState, banc.setState); // déterministe (jet figé contrôlé)
       return banc.getState().pendingCounterspell;

@@ -108,7 +108,7 @@ export function dailyDiseaseUpkeep(
       if (dz.minutesLeft < (duree.get(dz) ?? 0) && dz.minutesLeft > MINUTES_PER_DAY) dz.minutesLeft -= MINUTES_PER_DAY;
     }
   }
-  log.push(...syncDerivedConditions(c).lignes);
+  log.push(...syncDerivedConditions(c).lignes.map((e) => e.texte));
   return log;
 }
 
@@ -123,7 +123,7 @@ export function dailyDiseaseUpkeep(
  */
 export function applyDiseaseEnd(c: Combatant, diseaseName: string, success: boolean, sl: number, rng: RNG): string[] {
   const log = applyDiseasePersist(c, diseaseName, success, sl, rng);
-  log.push(...syncDerivedConditions(c).lignes);
+  log.push(...syncDerivedConditions(c).lignes.map((e) => e.texte));
   return log;
 }
 
@@ -143,7 +143,7 @@ export function cureDiseases(c: Combatant, n: number): string[] {
     log.push(t('rest.cured', { name: nomDe(c), disease: diseaseLabel(d.id) }));
     if (diseaseDefs()[d.id]?.immuneAfterCure) c.diseaseImmunities = [...(c.diseaseImmunities ?? []), d.id];
   }
-  log.push(...syncDerivedConditions(c).lignes);
+  log.push(...syncDerivedConditions(c).lignes.map((e) => e.texte));
   return log;
 }
 
@@ -278,7 +278,7 @@ export function restRecovery(c: Combatant, rng: RNG, days = 1, bilan?: { jets: R
     // Conséquence du jour (dissipation + soin volets a/b + plafond blessé + réveil) — logique PARTAGÉE.
     const sortie: Applique = { lignes: [], faits: [] };
     if (applyRecoveryDay(c, roll, sortie).wokeUp) wokeUp = true;
-    journal.push(...sortie.lignes);
+    journal.push(...sortie.lignes.map((e) => e.texte));
     // Cauchemars (LDB 21 l.95) : une nuit marquée peut regagner un Exténué.
     if (c.nightmares) {
       const before = stacks(c, 'extenue');

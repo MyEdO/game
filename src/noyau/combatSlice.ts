@@ -29,7 +29,6 @@ import { continueRiverDayAfterCascade, continueRiverDayAfterExposure } from './r
 import { Combatant, CHAR_LABELS, type FireArc } from '../engine/types';
 import { hostStep, pushDisplay, temoinSiSansJet } from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
-import { toRecapLines } from './recapLine';
 import { attaqueDeCle, type AttackKind, selfManeuversOf, selfManeuverApplicable } from '../engine/creatureAttacks';
 import { battleRng } from './battleRng';
 import {
@@ -350,6 +349,8 @@ import { actionsAuthorees } from './monde/usable';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import { testDuCavalier } from '../engine/movement';
 import { determinationDe, poserLaDetermination } from '../engine/talentEffects';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
+import { recapDe } from './recapLine';
 
 /** Un flux DIFFÉRÉ tient la main (modale de jet/révélation, ciblage par carte : Frappe Mortelle,
  *  2ᵉ frappe, Surincantation +Cible, pose de zone) :
@@ -750,7 +751,7 @@ function depenseDeDetermination(c: Combatant, option: OptionDeDetermination, eta
       const { retire, soigne } = retireEtatParDetermination(c, garanti(etat, c.id, 'État retiré par Détermination'), now, sortie);
       if (!retire) return null;
       poserLaDetermination(c, determinationDe(c) - 1);
-      return [t('cs.determinationRemove', { name: nomDe(c), cond: conditionLabel(etat!), extra: soigne > 0 ? t('cs.fragGettingUp') : '' }), ...sortie.lignes];
+      return [t('cs.determinationRemove', { name: nomDe(c), cond: conditionLabel(etat!), extra: soigne > 0 ? t('cs.fragGettingUp') : '' }), ...sortie.lignes.map((e) => e.texte)];
     }
     default: return option satisfies never;
   }
@@ -1896,7 +1897,7 @@ export function createCombatSlice(get: Get, set: Set) {
       get().marquerUnCombatOuvert();
       set({ ...resetFields('combatStart'), battle, mode: 'battle', scene: deboutScene });
       // Les lignes des effets d'ouverture partent au journal de combat.
-      const auJournal = (line: string, c?: Combatant) => { battle.log.push(ev('detail', line, c?.id)); };
+      const auJournal = (entree: EntreeDuJournal, c?: Combatant) => { battle.log.push(ev('detail', entree, c?.id)); };
       // Effets « début de combat » authorés de chaque combattant (inerte tant qu'aucune donnée ne porte
       // un effet `onCombatStart`) — APRÈS la pose du `battle`.
       emitCombatEvent('onCombatStart', {
@@ -2843,9 +2844,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
           // attend SA résolution, dans la même fenêtre, via l'étape de reprise `mouvementDeFuite` (LDB 15 l.68 :
           // « une fois que ce coup gratuit est résolu… »).
           pushDisplay(set, { id: `flee-move-${mover.id}`, kind: 'mouvementDeFuite', actorId: mover.id, icon: 'melee/fuir', label: t('step.fuite'),
-            outcome: toRecapLines([
-              t('cs.fuiteReprise', { name: nomDe(mover), foe: nomDe(foe) }),
-              ...(broken > 0 ? [t('cs.panic', { name: nomDe(mover), broken })] : []),
+            outcome: recapDe([
+              ligneDeTexte(t('cs.fuiteReprise', { name: nomDe(mover), foe: nomDe(foe) })),
+              ...(broken > 0 ? [ligneDeTexte(t('cs.panic', { name: nomDe(mover), broken }))] : []),
             ]),
             fuite: { moverId: mover.id, foeId: foe.id, broken } });
           return;
@@ -3370,7 +3371,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         log.push(...treatTrauma(target, ph.sl, ph.success)); // mode 'traumatisme' — l'échec consomme aussi le jet (LDB 18 l.222)
       }
       // Aide Médicale (LDB 18 l.308-311) : le soin réussi, ou le bandage appliqué, réussi ou non.
-      if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid').lignes);
+      if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid').lignes.map((e) => e.texte));
       finishPlayerAction(get, set, log, 'soin'); // sortie commune combat / hors combat
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `cast`) — Résilience (forceSuccess/setForcedRoll) plus bas.
@@ -3511,19 +3512,19 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // (`focusCriticalDR`) : un DR bonus égal au Bonus de Force Mentale s'ajoute, sans compléter.
       if (res.isCritical) {
         caster.focus = { spell: pf.spellId, dr: focusCriticalDR(caster, caster.focus.dr, ni) };
-        logLines.push(t('cs.focusCrit', { name: nomDe(caster), spell: spell.label }));
+        logLines.push(ligneDeTexte(t('cs.focusCrit', { name: nomDe(caster), spell: spell.label })));
         // Vie/Ghyran en mer (MDG 02 l.186) : une Focalisation Critique donne une Imparfaite MAJEURE
         // au lieu de Mineure ; le porteur d'Harmonisation aethyrique n'échappe plus au contrecoup —
         // il lance quand même sur le tableau des Imparfaites MINEURES (au lieu d'y échapper).
         const seaMajeure = domainSeaFocusCritMiscastMajeure(spell, seaMagicContext(get()).atSea);
         if (hasFocusHarmony(caster)) {
           if (seaMajeure) logLines.push(...applyMiscast(get, set, caster, 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
-          else logLines.push(t('cs.focusHarmonized'));
+          else logLines.push(ligneDeTexte(t('cs.focusHarmonized')));
         } else {
           logLines.push(...applyMiscast(get, set, caster, seaMajeure ? 'majeure' : 'mineure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
         }
       }
-      logLines.push(caster.focus.dr >= ni ? t('cs.focusEnough', { name: nomDe(caster), spell: spell.label }) : t('cs.focusProgress', { dr: caster.focus.dr, ni }));
+      logLines.push(ligneDeTexte(caster.focus.dr >= ni ? t('cs.focusEnough', { name: nomDe(caster), spell: spell.label }) : t('cs.focusProgress', { dr: caster.focus.dr, ni })));
       // Maladresse en Focalisation → Incantation Imparfaite Majeure (LDB 46 l.140).
       if (res.isFumble) logLines.push(...applyMiscast(get, set, caster, 'majeure', { componentDowngrade: compUsed, domainId: spell.domainId?.id }));
       finishPlayerAction(get, set, logLines, 'focalisation'); // sortie commune combat / hors combat (pose `acted:true`)
@@ -3554,7 +3555,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // l'Action (`finishPlayerAction` ci-dessous).
         const portes: Applique = { lignes: [], faits: [] };
         const n = dissipateSpell(b ? b.combatants : get().party, pd.spellId, pd.spellCasterId, portes);
-        logLines.push(...portes.lignes);
+        logLines.push(...portes.lignes.map((e) => e.texte));
         set(touchActors(get()));
         logLines.push(t('cs.dispelDone', { spell: pd.label, extra: n > 1 ? t('cs.fragTargetsFreed', { n }) : '' }));
       } else {

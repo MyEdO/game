@@ -12,6 +12,7 @@
  * Sort, IA), le Mouvement reste libre, et la contrainte tombe après N Rounds.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { draineEtapes, poseSurDeNonTombe } from './cascade.testkit';
@@ -55,7 +56,7 @@ function pretreEtAllie(peche: number) {
 /** Pose une Bénédiction de Guérison au résultat FIGÉ (`roll`), puis « Appliquer » ; la cascade se draine, tout dé
  *  de table non tombé posé à `deDeTable` (dé NATUREL de la Colère). */
 function benir(casterId: string, targetId: string, roll: number, deDeTable = 50) {
-  const result: CastResult = { cast: true, roll, target: 60, sl: 1, isCritical: false, isFumble: false, log: 'Prière exaucée.' };
+  const result: CastResult = { cast: true, roll, target: 60, sl: 1, isCritical: false, isFumble: false, log: ligneDeTexte('Prière exaucée.') };
   banc.setState({ pendingCast: { casterId, targetId, spellId: GUERISON, missile: false, result } });
   banc.getState().jetValider('incantation');
   draineEtapes(banc.getState, 50, poseSurDeNonTombe(deDeTable));

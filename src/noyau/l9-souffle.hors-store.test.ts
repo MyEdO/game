@@ -6,6 +6,7 @@
  * — délégué à l'attaque de ZONE du trait (applyAreaAttack), centrée sur la cible du sort.
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyCast, castSpell } from './combatFlow';
@@ -17,7 +18,7 @@ import type { CastResult } from '../engine/magic';
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
 
-const okRes = (sl: number): CastResult => ({ cast: true, roll: 30, target: 70, sl, isCritical: false, isFumble: false, log: 'lance Souffle' });
+const okRes = (sl: number): CastResult => ({ cast: true, roll: 30, target: 70, sl, isCritical: false, isFumble: false, log: ligneDeTexte('lance Souffle') });
 
 describe('Souffle — délégation à l’attaque de zone du Trait (LDB 47 l.509)', () => {
   function setup() {

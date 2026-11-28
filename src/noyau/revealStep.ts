@@ -6,9 +6,10 @@
  */
 import type { CascadeTableDone, RevealEntry } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
-import { toRecapLines } from './recapLine';
 import type { IconIdGenerated as IconId } from '../data/schemas/icones.generated';
 import type { FaitApplique } from '../engine/faits';
+import { ligneDeTexte } from '../engine/journal';
+import { recapDe } from './recapLine';
 
 /** Icône d'une étape de révélation, PAR kind — exhaustif (ajouter un kind force son icône). */
 const REVEAL_ICON: Record<RevealEntry['kind'], IconId> = {
@@ -48,7 +49,7 @@ export function revealToStep(
     actorId: entry.subjectId,
     icon: opts?.icon ?? REVEAL_ICON[entry.kind],
     label: opts?.label ?? entry.title,
-    outcome: toRecapLines(entry.lines),
+    outcome: recapDe(entry.lines.map((x) => ligneDeTexte(x))),
     reveal: entry,
     table: opts?.table,
     ...(opts?.faits?.length ? { faits: opts.faits } : {}),

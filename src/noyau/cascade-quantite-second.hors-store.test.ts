@@ -17,11 +17,12 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
 import { startCascade, stepInteraction, stepReady, clampStepAmount, secondReadOf, runCascadeImmediate } from './cascade';
-import { quantityStep, monoStep, freeCons } from './rollSeam';
+import { quantityStep, monoStep } from './rollSeam';
 import { combatStakeRef } from '../data';
 import { evaluateCombinedTest } from '../engine/tests';
 import type { CascadeStep } from './pendings';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -43,7 +44,7 @@ beforeEach(() => {
   avecLesTables({ appliers: {
     'mesure-quantite': (_g, _s, step) => {
       retenus.push(step.amount ?? -1);
-      return { consequences: freeCons([`retenu ${step.amount}`]) };
+      return { applique: { lignes: [ligneDeTexte(`retenu ${step.amount}`)], faits: [] } };
     },
   } });
 });

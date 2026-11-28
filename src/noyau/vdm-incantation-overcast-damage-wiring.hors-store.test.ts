@@ -10,6 +10,7 @@
  * MÊME delta de Blessures).
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { createHero } from '../engine/character';
@@ -47,7 +48,7 @@ function setup() {
   cliquerSurLeCombattant(banc.getState, enemy.id);
   // Jet FIGÉ (DR 10 pour NI 4 → surplus 6, budget VDM = 6 pas) — exactement ce que produit
   // `resolveMagicMissile` au ROLL, AVANT que l'allocation de Surincantation n'existe (0 pas).
-  const frozen: CastResult = { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: 'jet' };
+  const frozen: CastResult = { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: ligneDeTexte('jet') };
   const res = evaluateMissile(heroC, enemy, findSpellById('carreau')!, frozen);
   banc.setState((s) => ({ pendingCast: { ...s.pendingCast!, result: res } }));
   return { heroC, enemy };
@@ -87,7 +88,7 @@ describe('Câblage — axe Dégâts de la Surincantation VDM, Carreau, chemin de
     banc.setState({ battle: { ...b, turn: b.order.indexOf(heroC.id), action: 'incantation', selectedSpellId: 'armure-aethyrique', acted: false } });
     cliquerSurLeCombattant(banc.getState, heroC.id);
     banc.setState((s) => ({
-      pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: 'jet' } },
+      pendingCast: { ...s.pendingCast!, result: { cast: true, roll: 20, target: 90, sl: 10, isCritical: false, isFumble: false, log: ligneDeTexte('jet') } },
     }));
     banc.getState().jetRegler('incantation', 'surincantationDegats', 1);
     expect(banc.getState().pendingCast!.overcast).toBeUndefined();

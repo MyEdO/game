@@ -51,7 +51,7 @@ describe('tickDurations/endOfRound — gel à l’expiration au lieu du retrait 
     const c = dummy({ activeEffects: [noPlusEffect(1)] });
     const log = endOfRound(c, desDuTest, idsDeTest);
     expect(c.activeEffects ?? []).toHaveLength(0);
-    expect(log.join('\n')).toMatch(/se dissipe/);
+    expect(log.map((e) => e.texte).join('\n')).toMatch(/se dissipe/);
     expect(pendingPlusExtensions(c)).toHaveLength(0);
   });
 });
@@ -65,7 +65,7 @@ describe('resolvePlusExtension — Test de Force Mentale (#543)', () => {
     expect(c.activeEffects).toHaveLength(1);
     expect(eff.awaitingExtension).toBeUndefined();
     expect(eff.duration).toEqual({ scale: 'rounds', left: 1 });
-    expect(log.join('\n')).toMatch(/prolongé/);
+    expect(log.map((e) => e.texte).join('\n')).toMatch(/prolongé/);
   });
 
   it('échec/refus → expiration NORMALE (retrait effectif)', () => {
@@ -74,7 +74,7 @@ describe('resolvePlusExtension — Test de Force Mentale (#543)', () => {
     const eff = pendingPlusExtensions(c)[0];
     const log = resolvePlusExtension(c, eff, false);
     expect(c.activeEffects ?? []).toHaveLength(0);
-    expect(log.join('\n')).toMatch(/se dissipe/);
+    expect(log.map((e) => e.texte).join('\n')).toMatch(/se dissipe/);
   });
 
   it('RÉPÉTABLE : une prolongation réussie ré-offre à l’expiration SUIVANTE (pas de compteur dédié)', () => {
