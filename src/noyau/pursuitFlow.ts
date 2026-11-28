@@ -225,7 +225,7 @@ export const refusDeLaPoursuite = (s: Pick<Jeu, 'party'>, foes: readonly unknown
 /** Démarre une poursuite terrestre (Effet `startPursuit`) : instancie le socle puis ouvre la 1ʳᵉ manche. */
 export function startGroundPursuit(get: Get, set: Set, spec: PursuitSpec): void {
   const refus = refusDeLaPoursuite(get(), spec.foes);
-  if (refus) return void get().ecrireAuJournal(refus);
+  if (refus) return void get().ecrireAuJournal(ligneDeTexte(refus));
   const escapeAt = spec.escapeAt ?? PURSUIT_ESCAPE_DISTANCE;
   // Distance de départ bornée dans la course (1 .. escapeAt−1) — hors bornes = déjà rattrapé/semé.
   const distance = Math.max(1, Math.min(escapeAt - 1, Math.round(spec.distance)));
@@ -237,10 +237,10 @@ export function startGroundPursuit(get: Get, set: Set, spec: PursuitSpec): void 
     policy: { ...PURSUIT_POLICY_DEFAUT, ...(spec.policy ?? {}) },
     manche: 0, phase: 'course', retires: [],
   };
-  get().ecrireAuJournal(t('pursuit.open', {
+  get().ecrireAuJournal(ligneDeTexte(t('pursuit.open', {
     camp: t(partyRole === 'fleeing' ? 'pursuit.openFleeing' : 'pursuit.openPursuing'),
     distance, evasion: escapeAt,
-  }));
+  })));
   startSequence(get, set, {
     definition: PURSUIT_SEQUENCE,
     // FORMULES DE SCORE EN DONNÉE (l.93) : les poursuivis comptent leur DR le plus BAS, les
@@ -501,20 +501,20 @@ function pursuitSettle(get: Get, _set: Set, seq: PursuitSequence, outcome: strin
   const p = seq.chargeUtile;
   if (outcome === 'escaped') {
     // LDB 15 l.94
-    get().ecrireAuJournal(t(p.partyRole === 'fleeing' ? 'pursuit.escaped' : 'pursuit.preyEscaped'));
+    get().ecrireAuJournal(ligneDeTexte(t(p.partyRole === 'fleeing' ? 'pursuit.escaped' : 'pursuit.preyEscaped')));
     return;
   }
-  if (outcome === SEQUENCE_BORNE) { get().ecrireAuJournal(t('pursuit.exhausted')); return; }
+  if (outcome === SEQUENCE_BORNE) { get().ecrireAuJournal(ligneDeTexte(t('pursuit.exhausted'))); return; }
   if (outcome === 'abandon') {
-    if (p.partyRole === 'pursuing') { get().ecrireAuJournal(t('pursuit.giveUpChase')); return; }
+    if (p.partyRole === 'pursuing') { get().ecrireAuJournal(ligneDeTexte(t('pursuit.giveUpChase'))); return; }
     // Fuite abandonnée : combat si une rencontre est fournie.
-    get().ecrireAuJournal(t('pursuit.giveUpFlight'));
+    get().ecrireAuJournal(ligneDeTexte(t('pursuit.giveUpFlight')));
     if (p.encounter) get().lancerLeCombat(p.encounter);
     return;
   }
   // 'caught' (Distance ≤ 0, l.94) : rattrapage → combat si une rencontre est fournie, sinon récit.
   // LDB 15 l.94
-  get().ecrireAuJournal(t(p.partyRole === 'fleeing' ? 'pursuit.caught' : 'pursuit.caughtPrey'));
+  get().ecrireAuJournal(ligneDeTexte(t(p.partyRole === 'fleeing' ? 'pursuit.caught' : 'pursuit.caughtPrey')));
   if (p.encounter) get().lancerLeCombat(p.encounter);
 }
 

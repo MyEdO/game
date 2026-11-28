@@ -160,7 +160,7 @@ describe('Empoignade opposée (LDB 14 l.161) — le +1 du vainqueur crédite la 
       const foe = mk('e', 'ennemi', { characteristics: { ...CHARS, force: 90 }, grapplingWith: ['h'] });
       const { get, battle } = makeGet([actor, foe], { allies: 0, adversaires: 0 });
       const line = resolveGrappleOpposed(get, actor, foe);
-      if (line.includes(foe.label) && battle.advantagePools!.adversaires === 1) {
+      if (line.texte.includes(foe.label) && battle.advantagePools!.adversaires === 1) {
         sawDefeat = true;
         expect(battle.advantagePools).toEqual({ allies: 0, adversaires: 1 }); // crédit de RÉSERVE
         expect(foe.advantage).toBe(1); // projeté depuis la réserve (mirror), pas un +1 direct

@@ -546,12 +546,12 @@ function applyBatteryVolley(get: Get, set: Set, ship: Combatant, target: Combata
     const poste = ship.postes?.find((pp) => pp.item.uid === s.posteUid);
     if (poste) unloadWeapon(undefined, undefined, poste);
   }
-  get().ecrireAuJournal(bordeeGunnersLine(get, ship, side)); // MDG 14 l.39
+  get().ecrireAuJournal(ligneDeTexte(bordeeGunnersLine(get, ship, side))); // MDG 14 l.39
   const n = shots.length;
   const drTxt = dr >= 0 ? `+${dr}` : `${dr}`;
-  get().ecrireAuJournal(success
+  get().ecrireAuJournal(ligneDeTexte(success
     ? t('cs.bordee', { side, ship: nomDe(ship), target: nomDe(target), dr: drTxt, n })
-    : t('cs.bordeeManque', { side, ship: nomDe(ship), target: nomDe(target), dr: drTxt, n }));
+    : t('cs.bordeeManque', { side, ship: nomDe(ship), target: nomDe(target), dr: drTxt, n })));
   return jouerLesTirsDeBordee(get, set, { targetId: target.id, actedAvant: get().battle!.acted, tirs: shots.map((s) => ({ tireurId: s.tireur.id, weapon: s.weapon, jet: s.jet })) });
 }
 
@@ -583,7 +583,7 @@ function applyNavalSurprisePosition(get: Get, set: Set, surprisedSide: 'groupe' 
     // Bord le plus armé DÉJÀ aligné en batterie sur la victime (l'assaillant a choisi son bord d'attaque).
     const primary = mostArmedSide(amb);
     if (primary) facing[amb.id] = headingToBear(primary, facingToward(amb.pos!, victim.pos!));
-    battle.log.push(ev('detail', t('cs.navalSurprise', { ship: nomDe(amb), target: nomDe(victim) }), amb.id));
+    battle.log.push(ev('detail', ligneDeTexte(t('cs.navalSurprise', { ship: nomDe(amb), target: nomDe(victim) })), amb.id));
   }
   set({ facing, battle: { ...battle } });
 }
@@ -645,8 +645,8 @@ function tracerLaFuite(get: Get, set: Set, mover: Combatant, foe: Combatant, jet
   const slot = jets.touche ? fleeTouche(pd) : undefined;
   const jet = slot?.jet;
   journaliser(get, set, [
-    ...(d ? [traceLineOf({ who: nomDe(foe), label: libelleDeTest('dans-le-dos'), roll: d.roll, target: d.target, sl: d.sl, success: d.success })] : []),
-    ...(slot && jet?.target != null ? [traceLineOf({ who: nomDe(mover), label: testTraceLabel(libelleDuTestNomme(slot.test), slot.test.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success })] : []),
+    ...(d ? [ligneDeTexte(traceLineOf({ who: nomDe(foe), label: libelleDeTest('dans-le-dos'), roll: d.roll, target: d.target, sl: d.sl, success: d.success }))] : []),
+    ...(slot && jet?.target != null ? [ligneDeTexte(traceLineOf({ who: nomDe(mover), label: testTraceLabel(libelleDuTestNomme(slot.test), slot.test.difficulty), roll: jet.roll, target: jet.target, sl: jet.sl, success: jet.success }))] : []),
   ], 'information', { actorId: mover.id });
 }
 
@@ -658,7 +658,7 @@ function applyAuContact(get: Get, set: Set, mover: Combatant, foe: Combatant, ch
   else if (choice === 'normal') clearContact(mover, foe);
   const key = choice === 'contact' ? 'cs.auContactClose' : choice === 'normal' ? 'cs.auContactNormal' : 'cs.auContactTie';
   const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
-  const log = [...b.log, ev('attaque', t(key, { name: nomDe(mover), foe: nomDe(foe) }), mover.id, foe.id)];
+  const log = [...b.log, ev('attaque', ligneDeTexte(t(key, { name: nomDe(mover), foe: nomDe(foe) })), mover.id, foe.id)];
   set({ pendingAuContact: null, battle: { ...b, action: null, log } });
   bus.emit(EVT.SCENE_DIRTY);
 }
@@ -736,22 +736,22 @@ export type OptionDeDetermination = 'immuniserALaPsychologie' | 'ignorerLesCriti
 
 /** Dépense d'un Point de Détermination de `c` pour `option`, l'État `etat` pour le retrait : les lignes du journal, ou
  *  `null` quand rien n'est levé et que le point n'est pas débité. Le verdict (`refusDeDetermination`) précède. */
-function depenseDeDetermination(c: Combatant, option: OptionDeDetermination, etat: string | undefined, now: number): string[] | null {
+function depenseDeDetermination(c: Combatant, option: OptionDeDetermination, etat: string | undefined, now: number): EntreeDuJournal[] | null {
   switch (option) {
     case 'immuniserALaPsychologie': {
       const ligne = spendResolveForPsychImmunity(c);
-      return ligne ? [ligne] : null;
+      return ligne ? [ligneDeTexte(ligne)] : null;
     }
     case 'ignorerLesCritiques':
       poserLaDetermination(c, determinationDe(c) - 1);
       poseDeterminationCanceller(c, { scale: 'rounds', left: 1 }, 'Détermination (Critique)');
-      return [t('cs.determinationCrit', { name: nomDe(c) })];
+      return [ligneDeTexte(t('cs.determinationCrit', { name: nomDe(c) }))];
     case 'retirerUnEtat': {
       const sortie: Applique = { lignes: [], faits: [] };
       const { retire, soigne } = retireEtatParDetermination(c, garanti(etat, c.id, 'État retiré par Détermination'), now, sortie);
       if (!retire) return null;
       poserLaDetermination(c, determinationDe(c) - 1);
-      return [t('cs.determinationRemove', { name: nomDe(c), cond: conditionLabel(etat!), extra: soigne > 0 ? t('cs.fragGettingUp') : '' }), ...sortie.lignes.map((e) => e.texte)];
+      return [ligneDeTexte(t('cs.determinationRemove', { name: nomDe(c), cond: conditionLabel(etat!), extra: soigne > 0 ? t('cs.fragGettingUp') : '' })), ...sortie.lignes];
     }
     default: return option satisfies never;
   }
@@ -923,7 +923,7 @@ export function createCombatSlice(get: Get, set: Set) {
         orderPatch.baseOrder = (battle.baseOrder ?? battle.order).filter((id) => id !== mount.id);
         if (mIdx >= 0 && mIdx < battle.turn) orderPatch.turn = battle.turn - 1;
       }
-      set({ battle: { ...battle, ...orderPatch, movementUsed: mountMovement(battle, active), action: null, reachable: new Map(), log: [...battle.log, ev('deplacement', t('cs.mount', { name: nomDe(active), mount: nomDe(mount) }), active.id)] } });
+      set({ battle: { ...battle, ...orderPatch, movementUsed: mountMovement(battle, active), action: null, reachable: new Map(), log: [...battle.log, ev('deplacement', ligneDeTexte(t('cs.mount', { name: nomDe(active), mount: nomDe(mount) })), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     mettrePiedATerre: () => {
@@ -942,7 +942,7 @@ export function createCombatSlice(get: Get, set: Set) {
         orderPatch.baseOrder = insertByInitiative(battle.baseOrder ?? battle.order, battle.combatants, mount.id);
         orderPatch.turn = orderPatch.order.indexOf(active.id); // garder le pointeur sur le cavalier qui descend
       }
-      set({ battle: { ...battle, ...orderPatch, movementUsed: mountMovement(battle, active), action: null, reachable: new Map(), log: [...battle.log, ev('deplacement', t('cs.dismount', { name: nomDe(active), mount: mountName }), active.id)] } });
+      set({ battle: { ...battle, ...orderPatch, movementUsed: mountMovement(battle, active), action: null, reachable: new Map(), log: [...battle.log, ev('deplacement', ligneDeTexte(t('cs.dismount', { name: nomDe(active), mount: mountName })), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1332,7 +1332,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!inst || isConditionLocked(inst, active)) return;
       const sortie: Applique = { lignes: [], faits: [] };
       removeCondition(active, COND.aTerre, 1, sortie);
-      set({ battle: { ...battle, movementUsed: mountMovement(battle, active), action: null, log: [...battle.log, ev('deplacement', t('cs.standUp', { name: nomDe(active) }), active.id), ...evLines(sortie.lignes, 'etat', active.id)] } });
+      set({ battle: { ...battle, movementUsed: mountMovement(battle, active), action: null, log: [...battle.log, ev('deplacement', ligneDeTexte(t('cs.standUp', { name: nomDe(active) })), active.id), ...evLines(sortie.lignes, 'etat', active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1353,7 +1353,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const joining = isPosteManned(chosen.poste, battle.combatants); // pièce déjà servie → on REJOINT en renfort
       serveAtPoste(active, chosen.poste, battle.combatants);
       recomputeLoadout(active);
-      set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t(joining ? 'cs.joinPoste' : 'cs.manPoste', { name: nomDe(active), weapon: chosen.poste.item.label }), active.id)] } });
+      set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', ligneDeTexte(t(joining ? 'cs.joinPoste' : 'cs.manPoste', { name: nomDe(active), weapon: chosen.poste.item.label })), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     // « Quitter la pièce » (release) : le héros actif lâche le poste qu'il sert → il redevient servable par un autre.
@@ -1369,7 +1369,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const weapon = poste.item.label;
       leaveChef(active, poste, battle.combatants);
       recomputeLoadout(active);
-      set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', t('cs.leavePoste', { name: nomDe(active), weapon }), active.id)] } });
+      set({ battle: { ...battle, action: null, log: [...battle.log, ev('detail', ligneDeTexte(t('cs.leavePoste', { name: nomDe(active), weapon })), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     // ADE II 08 l.233, l.258 ; LDB 13 l.79, l.106.
@@ -1470,7 +1470,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const deja = b.handRaisedBy ?? [];
       if (deja.includes(seat) === levee) return;
       const handRaisedBy = levee ? [...deja, seat] : deja.filter((s) => s !== seat);
-      set({ battle: { ...b, handRaisedBy, log: [...b.log, ev('information', t(levee ? 'store.handRaised' : 'store.handLowered'))] } });
+      set({ battle: { ...b, handRaisedBy, log: [...b.log, ev('information', ligneDeTexte(t(levee ? 'store.handRaised' : 'store.handLowered')))] } });
     },
 
     /** Reprise après un CHANGEMENT DE CADENCE en plein combat. Le passage en Auto/Rapide ne traverse NI la boucle de tours NI la
@@ -1493,7 +1493,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!canTakeAction(active)) return; // Sonné : pas d'Action (LDB 16 l.125)
       active.defensiveStance = true;
       active.aiming = false; // une autre action que le tir gâche la visée
-      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('defensive', t('cs.defensive', { name: nomDe(active) }), active.id)] } });
+      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('defensive', ligneDeTexte(t('cs.defensive', { name: nomDe(active) })), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1511,7 +1511,7 @@ export function createCombatSlice(get: Get, set: Set) {
       recomputeLoadout(hero); // re-dérive les armes actives
       set(touchActors(get()));
       const b = get().battle;
-      if (b) set({ battle: { ...b, loadoutSwapped: true, log: [...b.log, ev('detail', t('cs.draw', { name: nomDe(hero), weapon: loadoutLabel(lo, hero) }), hero.id)] } });
+      if (b) set({ battle: { ...b, loadoutSwapped: true, log: [...b.log, ev('detail', ligneDeTexte(t('cs.draw', { name: nomDe(hero), weapon: loadoutLabel(lo, hero) })), hero.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
 
@@ -1523,7 +1523,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!active || !canTakeAction(active)) return;
       if (!active.weapons.some((w) => w.type === 'distance')) return; // viser = pour le tir
       active.aiming = true;
-      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('visee', t('cs.aim', { name: nomDe(active) }), active.id)] } });
+      set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('visee', ligneDeTexte(t('cs.aim', { name: nomDe(active) })), active.id)] } });
       bus.emit(EVT.SCENE_DIRTY);
     },
     // Perturbante (LDB 62 l.272-274) : arme le mode « Repousser » — la prochaine attaque réussie
@@ -1644,7 +1644,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!active.pos || !aPorteeDe(active.pos, ent)) return void refuserGesteDuSiege(get, set, t('pf.ramasserHorsDePortee', { item: pickable.label }));
       if (s.objetsAuSol[entityId]) {
         const label = ramasserDuSol(get, set, entityId, active.id);
-        set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('objet', t('cs.pickup', { name: nomDe(active), label }), active.id)] } });
+        set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('objet', ligneDeTexte(t('cs.pickup', { name: nomDe(active), label })), active.id)] } });
         bus.emit(EVT.SCENE_DIRTY);
         return;
       }
@@ -1667,9 +1667,9 @@ export function createCombatSlice(get: Get, set: Set) {
       // — journal/document — restent fouillables en exploration ; pas de sens à les grappiller en combat).
       if (entityPickables(ent, get().flags, objetDuNarratif(get().campaignNarratif), get().objetsAuSol).length === 0 && action.consume) {
         removeEntity(get, set, entityId);
-        set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('objet', t('cs.pickup', { name: nomDe(active), label }), active.id)] } });
+        set({ battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('objet', ligneDeTexte(t('cs.pickup', { name: nomDe(active), label })), active.id)] } });
       } else {
-        set({ scene: { ...scene }, battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('objet', t('cs.pickup', { name: nomDe(active), label }), active.id)] } });
+        set({ scene: { ...scene }, battle: { ...markActed(get, set), action: null, log: [...get().battle!.log, ev('objet', ligneDeTexte(t('cs.pickup', { name: nomDe(active), label })), active.id)] } });
       }
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -1693,7 +1693,7 @@ export function createCombatSlice(get: Get, set: Set) {
       if (!aim) {
         const etat = get();
         const refus = t('cf.siegeSansCible', { name: nomDe(gunner) });
-        if (!refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(refus);
+        if (!refuserAuSiegeAgissant(etat, refus)) etat.ecrireAuJournal(ligneDeTexte(refus));
         return;
       }
       // Pilonnage : la pièce est SERVIE (hors loadout main/secondaire) → `openAttackCascade` ne gate jamais un
@@ -1881,7 +1881,7 @@ export function createCombatSlice(get: Get, set: Set) {
         movementUsed: 0,
         movedPreAction: false,
         acted: false,
-        log: [ev('round', t('cs.combatStart')), ...evLines(sortieALEntree.lignes, 'etat')],
+        log: [ev('round', ligneDeTexte(t('cs.combatStart'))), ...evLines(sortieALEntree.lignes, 'etat')],
         over: null,
         onVictory: victoire ?? enc.onVictory,
         victoryCondition: enc.victoryCondition,
@@ -2014,7 +2014,7 @@ export function createCombatSlice(get: Get, set: Set) {
       const target = cibleId ? candidates.find((c) => c.id === cibleId) : candidates[0];
       if (!target) return;
       target.wateredThisRound = true;
-      finishPlayerAction(get, set, [t('cs.waterSpray', { name: nomDe(active), target: nomDe(target) })], 'detail');
+      finishPlayerAction(get, set, [ligneDeTexte(t('cs.waterSpray', { name: nomDe(active), target: nomDe(target) }))], 'detail');
     },
 
     /** Incante le sort `spellId` de `lanceurId` (LDB 46). En combat, la cible se désigne au clic : le sort ARME le mode
@@ -2065,7 +2065,7 @@ export function createCombatSlice(get: Get, set: Set) {
       consignerLaDose(get(), porteur, it);
       porteur.aiming = false; // une autre action que le tir gâche la visée
       set(touchActors(get()));
-      journaliser(get, set, [t('cs.useConsumable', { name: nomDe(porteur), item: it.label })], 'objet', { actorId: porteur.id });
+      journaliser(get, set, [ligneDeTexte(t('cs.useConsumable', { name: nomDe(porteur), item: it.label }))], 'objet', { actorId: porteur.id });
       runConsumable(get, set, porteur, it, flow);
       const b = get().battle;
       // Les lignes du Flow (inline) rejoignent le journal du combat.
@@ -2222,8 +2222,8 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       }
       hero.fate = (hero.fate ?? 0) - 1;
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
-      journaliser(get, set, [t('cs.fateDodge', { name: nomDe(hero) })], 'information', { actorId: hero.id });
-      if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
+      journaliser(get, set, [ligneDeTexte(t('cs.fateDodge', { name: nomDe(hero) }))], 'information', { actorId: hero.id });
+      if (anim) journaliser(get, set, [ligneDeTexte(anim)], 'peur', { actorId: hero.id });
       if (get().battle) reprendreApresLeDestin(get, set, p.source);
       else reprendreHorsBatailleApresLeDestin(get, set);
     },
@@ -2240,8 +2240,8 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       }
       if (!hero.conditions.some((c) => c.id === COND.inconscient)) addCondition(hero, COND.inconscient);
       const anim = acquireAnimositeOnFate(get, set, hero, p.foeId); // ADE II 09 l.15
-      journaliser(get, set, [t('cs.fateFlee', { name: nomDe(hero) })], 'information', { actorId: hero.id });
-      if (anim) journaliser(get, set, [anim], 'peur', { actorId: hero.id });
+      journaliser(get, set, [ligneDeTexte(t('cs.fateFlee', { name: nomDe(hero) }))], 'information', { actorId: hero.id });
+      if (anim) journaliser(get, set, [ligneDeTexte(anim)], 'peur', { actorId: hero.id });
       if (get().battle) reprendreApresLeDestin(get, set, p.source);
       else reprendreHorsBatailleApresLeDestin(get, set);
     },
@@ -2252,7 +2252,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
       set({ pendingFateSave: null });
       if (hero) {
         hero.dead = true;
-        journaliser(get, set, [t('cs.succumb', { name: nomDe(hero) })], 'mort', { actorId: hero.id });
+        journaliser(get, set, [ligneDeTexte(t('cs.succumb', { name: nomDe(hero) }))], 'mort', { actorId: hero.id });
       }
       if (get().battle) reprendreApresLeDestin(get, set, p.source);
       else reprendreHorsBatailleApresLeDestin(get, set);
@@ -2277,7 +2277,7 @@ export function choixDuCombat(get: Get, set: Set): Pick<CorpsDesChoix, 'destin' 
         const free = freeActFirst(hero);
         if (!free) hero.fortune = (hero.fortune ?? 0) - 1;
         const order = [heroId, ...battle.order.filter((id) => id !== heroId)];
-        set({ battle: { ...battle, order, log: [...battle.log, ev('information', t('cs.actFirst', { name: nomDe(hero), reason: free ? t('cs.reasonFast') : t('cs.reasonLuck') }), hero.id)] } });
+        set({ battle: { ...battle, order, log: [...battle.log, ev('information', ligneDeTexte(t('cs.actFirst', { name: nomDe(hero), reason: free ? t('cs.reasonFast') : t('cs.reasonLuck') })), hero.id)] } });
         bus.emit(EVT.SCENE_DIRTY);
       },
       // LDB 11 l.97-103 : le tir part au clic du combattant visé (`declencherLeTirPreventif`).
@@ -2560,7 +2560,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
               ...b,
               action: null, // LDB 15 l.47
               reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(b, mover)),
-              log: [...b.log, ev('fuite', t('cs.disengageSacrifice', { name: nomDe(mover) }), mover.id)],
+              log: [...b.log, ev('fuite', ligneDeTexte(t('cs.disengageSacrifice', { name: nomDe(mover) })), mover.id)],
             },
           });
           bus.emit(EVT.SCENE_DIRTY);
@@ -2658,7 +2658,7 @@ export function reglagesDuCombat(get: Get, set: Set): Pick<CorpsDesReglages, 'at
         clearGrapple(actor, foe);
         const sortie: Applique = { lignes: [], faits: [] };
         removeCondition(actor, COND.empetre, stacks(actor, COND.empetre), sortie); // l'acteur se libère de l'*Empêtré* de l'Empoignade
-        const log = [...battle.log, ev('esquive', t('cs.grappleBreak', { name: nomDe(actor), foe: nomDe(foe) }), actor.id, foe.id), ...evLines(sortie.lignes, 'etat', actor.id)];
+        const log = [...battle.log, ev('esquive', ligneDeTexte(t('cs.grappleBreak', { name: nomDe(actor), foe: nomDe(foe) })), actor.id, foe.id), ...evLines(sortie.lignes, 'etat', actor.id)];
         set({ pendingGrapple: null, battle: { ...battle, log } }); // gratuit : pas d'`acted`
         bus.emit(EVT.SCENE_DIRTY);
       },
@@ -2761,7 +2761,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // La queue du coup dont cette Maladresse est un temps d'après-coup (#1508 T3b-4) : elle reprend
       // une fois la Maladresse appliquée — ou voyage avec le dé de casse qui la diffère.
       const coup = step.maladresse.coup;
-      if (!c) journaliser(get, set, [t('cascade.cibleDisparue', { label: step.maladresse.weapon.label })], 'information');
+      if (!c) journaliser(get, set, [ligneDeTexte(t('cascade.cibleDisparue', { label: step.maladresse.weapon.label }))], 'information');
       // Une casse d'arme peut partir à la porte (#1508 T3b-4) : la Maladresse n'est alors PAS appliquée,
       // son dé l'appliquera. L'étape de casse s'APPEND DERRIÈRE cette étape (`cascade.pushStep`), donc
       // le curseur y ARRIVE — la suite de ce verbe est le curseur, jamais une application.
@@ -2796,18 +2796,18 @@ export function cloturesDuCombat(get: Get, set: Set) {
             .map((id) => inBattleId(b, id))
             .filter((c): c is Combatant => !!c);
           for (const f of foes) disengageFrom(mover, f);
-          log.push(ev('fuite', t('cs.disengageDodge', { name: nomDe(mover) }), mover.id, foe.id));
+          log.push(ev('fuite', ligneDeTexte(t('cs.disengageDodge', { name: nomDe(mover) })), mover.id, foe.id));
           set({
             battle: { ...b, action: null, reachable: moveReachFor(mover, scene, mover.pos!, effectiveMovement(mover), moveEnv(b, mover)), log },
           });
         } else if (pd.result === 'egalite') {
           // LDB 12 l.160 ; LDB 15 l.49
-          log.push(ev('fuite', t('cs.disengageNeutral', { name: nomDe(mover) }), mover.id, foe.id));
+          log.push(ev('fuite', ligneDeTexte(t('cs.disengageNeutral', { name: nomDe(mover) })), mover.id, foe.id));
           set({ battle: { ...b, action: null, reachable: new Map(), log } });
         } else {
           campGain(get, foe); // LDB 15 l.49
           foe.gainedAdvThisRound = true;
-          log.push(ev('fuite', t('cs.disengageFail', { name: nomDe(mover), foe: nomDe(foe) }), mover.id, foe.id));
+          log.push(ev('fuite', ligneDeTexte(t('cs.disengageFail', { name: nomDe(mover), foe: nomDe(foe) })), mover.id, foe.id));
           set({ battle: { ...b, action: null, reachable: new Map(), log } });
         }
         bus.emit(EVT.SCENE_DIRTY);
@@ -2836,7 +2836,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // est sa suite (une conséquence peut ouvrir la sienne).
       sortirDuDesengagement(get, set, () => {
         const b = get().battle!;
-        set({ battle: { ...b, log: [...b.log, ev('fuite', t('cs.fleeBackstab', { name: nomDe(mover), foe: nomDe(foe) }), mover.id, foe.id)] } });
+        set({ battle: { ...b, log: [...b.log, ev('fuite', ligneDeTexte(t('cs.fleeBackstab', { name: nomDe(mover), foe: nomDe(foe) })), mover.id, foe.id)] } });
         // Attaque GRATUITE (elle ne consomme pas l'Action du fuyard, dont c'est le tour) : l'Action rendue
         // est la SUITE du coup, jouée par son après-coup — à la reprise quand le coup est suspendu.
         // Enchaînement déclaré par le conducteur du frappeur, partition de `aiDriven` (`applyTalentFreeAttack`).
@@ -2892,7 +2892,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (pd.result === 'echec') campGain(get, foe, 1); // l'adversaire l'emporte → +1 Avantage
       const key = pd.result === 'echec' ? 'cs.grappleLose' : 'cs.grappleTie';
       const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
-      const log = [...b.log, ev('attaque', t(key, { name: nomDe(actor), foe: nomDe(foe) }), actor.id, foe.id)];
+      const log = [...b.log, ev('attaque', ligneDeTexte(t(key, { name: nomDe(actor), foe: nomDe(foe) })), actor.id, foe.id)];
       set({ pendingGrapple: null, battle: { ...b, action: null, log } });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -2979,7 +2979,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!stop || (stop.x === c.pos!.x && stop.y === c.pos!.y)) {
         // Jet désastreux : aucun pas possible — l'Action est tout de même consommée (le Test a eu lieu).
         const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
-        const log = [...b.log, ev('deplacement', t('cs.runStumble', { name: nomDe(c) }), c.id)];
+        const log = [...b.log, ev('deplacement', ligneDeTexte(t('cs.runStumble', { name: nomDe(c) })), c.id)];
         set({ battle: { ...b, action: null, runBudget, reachable: new Map(), preview: null, log } });
         bus.emit(EVT.SCENE_DIRTY);
         return;
@@ -2999,7 +2999,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       // Budget du Tour = Marche + Course + DR (LDB 15 l.41), lu par `movementRemaining` ; le reliquat ne se
       // dépense en segments que si `canMove` l'admet (aucune Marche avant l'Action).
       const b = markActed(get, set); // scellé AVANT la copie du journal (le déclencheur y pousse ses lignes)
-      const log = [...b.log, ev('deplacement', t('cs.run', { name: nomDe(c), cost, short: short ? t('cs.fragRunShort') : '' }), c.id)];
+      const log = [...b.log, ev('deplacement', ligneDeTexte(t('cs.run', { name: nomDe(c), cost, short: short ? t('cs.fragRunShort') : '' })), c.id)];
       set({ battle: { ...b, action: null, runBudget, movementUsed: (battle.movementUsed ?? 0) + cost, reachable: new Map(), preview: null, log } });
       bus.emit(EVT.SCENE_DIRTY);
     },
@@ -3042,7 +3042,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         for (const l of applyShantyToCrew(get, ship, singer, p.shantyId, lance.sl)) get().ecrireAuJournal(l);
       } else {
         ship.lastShantyQuart = quartIndex(get().gameTime); // la chanson a été chantée (30 s) — le quart est consommé, sans effet
-        get().ecrireAuJournal(t('cs.shantyFail', { name: nomDe(singer) }));
+        get().ecrireAuJournal(ligneDeTexte(t('cs.shantyFail', { name: nomDe(singer) })));
       }
       set({ battle: { ...get().battle! } });
       bus.emit(EVT.SCENE_DIRTY);
@@ -3060,9 +3060,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
       if (!c) return;
       const ok = lance.success;
       const nomDeLaSource = src.genre === 'objet' ? src.nom : garanti(nomEnVue(get(), pa.sourceId), pa.sourceId, 'source de l’Approche');
-      const log = [...battle.log, ev('peur', ok
+      const log = [...battle.log, ev('peur', ligneDeTexte(ok
         ? t('cs.courageYes', { name: nomDe(c), src: nomDeLaSource })
-        : t('cs.courageNo', { name: nomDe(c), src: nomDeLaSource }), c.id, src.genre === 'combattant' ? src.ancre?.id : undefined)];
+        : t('cs.courageNo', { name: nomDe(c), src: nomDeLaSource })), c.id, src.genre === 'combattant' ? src.ancre?.id : undefined)];
       set({ battle: { ...get().battle!, fearGate: ok ? 'passed' : 'failed', log } });
       if (ok) {
         // Relance le geste différé (le gate est 'passed') AVEC l'intention de son clic d'origine, que ce clic a dissoute.
@@ -3083,9 +3083,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
       set({ pendingWard: null });
       if (!attacker || !target) return;
       const ok = lance.success;
-      const log = [...battle.log, ev('information', ok
+      const log = [...battle.log, ev('information', ligneDeTexte(ok
         ? t('cs.shameOvercome', { name: nomDe(attacker), roll: lance.roll, target: String(lance.target ?? '?'), foe: nomDe(target) })
-        : t('cs.shameBlocked', { name: nomDe(attacker), foe: nomDe(target) }), attacker.id, target.id)];
+        : t('cs.shameBlocked', { name: nomDe(attacker), foe: nomDe(target) })), attacker.id, target.id)];
       set({ battle: { ...get().battle!, log } });
       // Succès : relance la déclaration d'attaque (le gate est franchi pour CE clic via `wardCleared`).
       if (ok) get().cliquerLeCombattant(pw.targetId, { confirm: true, wardCleared: true, intentionId: pw.intentionId });
@@ -3210,10 +3210,10 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // plus proche de l'impact) n'a servi qu'à la BANDE DE PORTÉE/au DR. Réutilise le résolveur d'aire UNIQUE.
         if (pa.siege && pa.center) {
           const lines = lance.hit && lance.damage != null
-            ? [t('cf.impactDeSiege', { name: nomDe(attacker) }), ...resolveWeaponArea(get, set,
+            ? [ligneDeTexte(t('cf.impactDeSiege', { name: nomDe(attacker) })), ...resolveWeaponArea(get, set,
                 { attacker, weapon, damage: lance.damage, location: lance.location ?? 'corps', distanceTiles: distanceDeCombat(get().scene, attacker, target), center: pa.center },
                 battleAreaTargets(get), battleRng()).lines]
-            : [t('cf.siegeRate', { name: nomDe(attacker) })];
+            : [ligneDeTexte(t('cf.siegeRate', { name: nomDe(attacker) }))];
           set({ battle: { ...markActed(get, set), action: null, preview: null, log: [...get().battle!.log, ...evLines(lines, 'tir', attacker.id)] } });
           bus.emit(EVT.SCENE_DIRTY);
           checkBattleOver(get, set);
@@ -3249,7 +3249,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
         }
         if (frenesie) {
           attacker.freeAttacksThisTurn = { ...attacker.freeAttacksThisTurn, arme: (attacker.freeAttacksThisTurn?.['arme'] ?? 0) + 1 };
-          set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('cs.freeAttack', { name: nomDe(attacker) }), attacker.id)] } });
+          set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', ligneDeTexte(t('cs.freeAttack', { name: nomDe(attacker) })), attacker.id)] } });
         }
         // Tir IMMOBILE (LDB 14 l.70) : le héros a renoncé à bouger pour annuler le −10 → on consomme son
         // Mouvement du Tour. Seule CETTE posture tombe : elle a un PRIX (le Mouvement). « Dans le tas » ne
@@ -3360,25 +3360,25 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const st = get();
       const target = actorIn(st, ph.targetId);
       if (!target) return;
-      const log: string[] = [];
+      const log: EntreeDuJournal[] = [];
       // Bandages engagés : une unité s'use réussite ou échec (décision de l'orchestrateur, 2026-11-03, #3059, maison).
       const porteur = ph.bandagesDe ? actorIn(st, ph.bandagesDe) : undefined;
       const panse = !!porteur && retirerUnBandage(porteur);
-      if (panse && porteur) log.push(t('heal.bandageUtilise', { name: nomDe(porteur) }));
+      if (panse && porteur) log.push(ligneDeTexte(t('heal.bandageUtilise', { name: nomDe(porteur) })));
       const params = { test: ph.test, bandages: panse };
       if (ph.mode === 'blessures') {
         const r = resolveWoundsHeal(target, ph.intBonus, ph.sl, ph.success, battleRng(), params);
-        log.push(...r.log);
+        log.push(...r.log.map((l) => ligneDeTexte(l)));
         if (r.healed > 0) bus.emit(EVT.ANIM_FLOAT, { to: target.id, text: t('fx.soin', { n: r.healed }), kind: 'soin' });
       } else if (ph.mode === 'hemorragie') {
-        log.push(...resolveBleedHeal(target, ph.sl, ph.success, params));
+        log.push(...resolveBleedHeal(target, ph.sl, ph.success, params).map((l) => ligneDeTexte(l)));
       } else if (ph.mode === 'munition') {
-        log.push(...resolveExtractLodgedAmmo(target, ph.success)); // LDB 62 l.250 — Test de Guérison Intermédiaire
+        log.push(...resolveExtractLodgedAmmo(target, ph.success).map((l) => ligneDeTexte(l))); // LDB 62 l.250 — Test de Guérison Intermédiaire
       } else {
-        log.push(...treatTrauma(target, ph.sl, ph.success)); // mode 'traumatisme' — l'échec consomme aussi le jet (LDB 18 l.222)
+        log.push(...treatTrauma(target, ph.sl, ph.success).map((l) => ligneDeTexte(l))); // mode 'traumatisme' — l'échec consomme aussi le jet (LDB 18 l.222)
       }
       // Aide Médicale (LDB 18 l.308-311) : le soin réussi, ou le bandage appliqué, réussi ou non.
-      if (ph.success || panse) log.push(...receiveMedicalAid(target), ...releaseConditionLocks(target, 'medicalAid').lignes.map((e) => e.texte));
+      if (ph.success || panse) log.push(...receiveMedicalAid(target).map((l) => ligneDeTexte(l)), ...releaseConditionLocks(target, 'medicalAid').lignes);
       finishPlayerAction(get, set, log, 'soin'); // sortie commune combat / hors combat
     },
     // Cycle Chance/Pacte UNIFIÉ (spec `cast`) — Résilience (forceSuccess/setForcedRoll) plus bas.
@@ -3551,7 +3551,7 @@ export function cloturesDuCombat(get: Get, set: Set) {
       const res = garanti(pd.result, pd.casterId, 'jet de Dissipation');
       const { sl: ownSl, step } = progresDeDissipation(pd, caster);
       const { total, done } = garanti(step, pd.spellId, 'jet de Dissipation');
-      const logLines: string[] = [t('cs.dispelRoll', { name: nomDe(caster), spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni })];
+      const logLines: EntreeDuJournal[] = [ligneDeTexte(t('cs.dispelRoll', { name: nomDe(caster), spell: pd.label, roll: res.roll, target: res.target, sl: `${ownSl >= 0 ? '+' : ''}${ownSl}`, total, ni: pd.ni }))];
       if (done) {
         // Réussite (DR cumulé ≥ NI, LDB 46 l.160) : retire les effets du sort de tous ses porteurs.
         // Dissipation COMMUNE combat/hors-combat (couture D, #461) : le porteur du sort peut être
@@ -3562,9 +3562,9 @@ export function cloturesDuCombat(get: Get, set: Set) {
         // l'Action (`finishPlayerAction` ci-dessous).
         const portes: Applique = { lignes: [], faits: [] };
         const n = dissipateSpell(b ? b.combatants : get().party, pd.spellId, pd.spellCasterId, portes);
-        logLines.push(...portes.lignes.map((e) => e.texte));
+        logLines.push(...portes.lignes);
         set(touchActors(get()));
-        logLines.push(t('cs.dispelDone', { spell: pd.label, extra: n > 1 ? t('cs.fragTargetsFreed', { n }) : '' }));
+        logLines.push(ligneDeTexte(t('cs.dispelDone', { spell: pd.label, extra: n > 1 ? t('cs.fragTargetsFreed', { n }) : '' })));
       } else {
         caster.dispel = { spellId: pd.spellId, spellCasterId: pd.spellCasterId, total };
       }

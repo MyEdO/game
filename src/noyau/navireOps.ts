@@ -102,7 +102,7 @@ function appliquerOpDuNavire(get: Get, set: Set, coque: Combatant, o: OpDuNavire
   const ref = referentDeLaCoque(get, coque);
   switch (o.op) {
     case 'shipMorale':
-      return applyShipMoraleDelta(get, set, coque, tirerSigne(o.delta, ctx.rng)).map((l) => ligneDeTexte(l));
+      return applyShipMoraleDelta(get, set, coque, tirerSigne(o.delta, ctx.rng));
     case 'manann': {
       const vessel = garanti(get().vessel, o.op, 'navire de campagne de la coque visée');
       const mood = vesselManann(vessel);
@@ -234,9 +234,8 @@ function changerLEquipage(get: Get, set: Set, delta: number, roleId: string | un
     roleId, registre: sansSolde ? 'recueillisSansSolde' : 'crew',
   });
   if (delta > 0 && variation === 0) return [ligneDeTexte(t('eff.equipageComplet'))];
-  const dites = lignes.map((l) => ligneDeTexte(l));
-  if (variation >= 0 || roleId === undefined) return dites;
-  return [...dites, ligneDeTexte(t('eff.equipageRole', { n: -variation, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' }))];
+  if (variation >= 0 || roleId === undefined) return lignes;
+  return [...lignes, ligneDeTexte(t('eff.equipageRole', { n: -variation, role: dataLabel(garanti(findCrewRoleById(roleId), roleId, 'rôle d’équipage').label), sansSolde: sansSolde ? t('eff.equipageSansSolde') : '' }))];
 }
 
 const idDeRoleABord = idDe('crewRole');

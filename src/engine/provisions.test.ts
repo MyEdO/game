@@ -92,7 +92,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     expect(d1.log).toEqual([]); // jour 1 : pas encore de Test
     expect(isStarving(c)).toBe(true);
     const d2 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
-    expect(d2.log.join(' ')).toContain('Test de Résistance');
+    expect(d2.log.map((x) => x.texte).join(' ')).toContain('Test de Résistance');
   });
 
   it('1ᵉʳ échec → −10 F et E (effectiveChar) ; 2ᵉ échec → dégâts ignorant les PA (min 1) + −10 ailleurs', () => {
@@ -115,11 +115,11 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     const c = hero({ rations: 0 });
     dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
     const d2 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // 1ᵉʳ Test : cible 30
-    expect(d2.log[0]).toContain('30');
+    expect(d2.log[0].texte).toContain('30');
     dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95));
     const d4 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // 2ᵉ Test : cible 30 − 10 = 20
-    expect(d4.log[0]).toContain('(−10)');
-    expect(d4.log[0]).toContain('20');
+    expect(d4.log[0].texte).toContain('(−10)');
+    expect(d4.log[0].texte).toContain('20');
   });
 
   it('manger à nouveau efface compteurs et malus (choix documenté)', () => {
@@ -130,7 +130,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     c.items!.push(ration('r9'));
     const r = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, makeRNG(1));
     expect(r.ate).toBe(true);
-    expect(r.log.join(' ')).toContain('mange enfin à sa faim');
+    expect(r.log.map((x) => x.texte).join(' ')).toContain('mange enfin à sa faim');
     expect(isStarving(c)).toBe(false);
     expect(effectiveChar(c, 'force')).toBe(30);
   });
@@ -147,7 +147,7 @@ describe('dailyFoodUpkeep — rations (LDB 66 l.20) et faim (LDB 18 l.342)', () 
     const j2 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // jeûne j2 : pas de Test
     expect(j2.log).toEqual([]);
     const j3 = dailyFoodUpkeep(c, rationsDuSac(c), 30, 3, fixed(95)); // jeûne j3 : Test
-    expect(j3.log.join(' ')).toContain('Test de Résistance');
+    expect(j3.log.map((x) => x.texte).join(' ')).toContain('Test de Résistance');
   });
 
   it('isRation : capacité intrinsèque par-OBJET `isRations`, indépendante du libellé', () => {
@@ -218,7 +218,7 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
     const w = dailyWaterUpkeep(c, true, 30, 3, fixed(1));
     expect(w.drank).toBe(true);
     expect(isThirsty(c)).toBe(false);
-    expect(w.log.join(' ')).toContain('se désaltère');
+    expect(w.log.map((x) => x.texte).join(' ')).toContain('se désaltère');
   });
 
   it('sans eau : Test QUOTIDIEN (1ᵉʳ échec → −10 Int/FM/Soc, pas de dégâts)', () => {
@@ -246,9 +246,9 @@ describe('dailyWaterUpkeep — Soif / privation d’eau (LDB 18 l.340)', () => {
   it('Tests de plus en plus durs (−10 cumulatif, LDB 18 l.338)', () => {
     const c = hero();
     const w1 = dailyWaterUpkeep(c, false, 30, 3, fixed(1)); // j1 réussi
-    expect(w1.log.join(' ')).not.toContain('−'); // 1ᵉʳ Test : pas de malus
+    expect(w1.log.map((x) => x.texte).join(' ')).not.toContain('−'); // 1ᵉʳ Test : pas de malus
     const w2 = dailyWaterUpkeep(c, false, 30, 3, fixed(1)); // j2
-    expect(w2.log.join(' ')).toContain('(−10)'); // 2ᵉ Test : −10
+    expect(w2.log.map((x) => x.texte).join(' ')).toContain('(−10)'); // 2ᵉ Test : −10
   });
 
   it('deferTest : le Test devient une étape de cascade (rien de roulé ici)', () => {

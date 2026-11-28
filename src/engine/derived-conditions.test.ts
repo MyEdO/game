@@ -53,7 +53,7 @@ const hero = (p: Partial<Combatant> = {}): Combatant =>
 /** Un jour de Pneumonie, Test quotidien DIFFÉRÉ puis issue INJECTÉE (le moteur ne roule rien). */
 function jourDePneumonie(c: Combatant, success: boolean): string[] {
   const { specs, defer } = porteEntretien();
-  const log = dailyDiseaseUpkeep(c, seq([]), defer);
+  const log = dailyDiseaseUpkeep(c, seq([]), defer).map((e) => e.texte);
   for (const s of specs) log.push(...applique(c, s, { success }, desDuTest));
   return log;
 }
@@ -172,7 +172,7 @@ describe('Malaise → l’État Exténué est MATÉRIALISÉ et COLLANT (LDB 20 l
     expect(c.diseases![0].phase).toBe('active');
     expect(stacks(c, 'extenue')).toBe(1);
     expect(derivedStacks(c, 'extenue')).toBe(1);
-    expect(log.some((l) => l.includes('gagne l’État Exténué') && l.includes('Malaise'))).toBe(true);
+    expect(log.some((l) => l.texte.includes('gagne l’État Exténué') && l.texte.includes('Malaise'))).toBe(true);
   });
 
   it('DEUX maladies à Malaise empilent DEUX pions ; guérir l’une n’en rend qu’un', () => {

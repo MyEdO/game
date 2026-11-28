@@ -1,5 +1,6 @@
 /** Interactions d'exploration : offres d'un décor ou d'un PNJ (`actionsDe`), leur exécuteur unique,
  *  l'assise et la fouille de pièce (#1687). */
+import { ligneDeTexte } from '../engine/journal';
 import { type ActionOfferte, type CapaciteId, cleActionJouee, actionsDe, actionsAuthorees, estCapacite, estUtilisable, objetDuSol } from './monde/usable';
 import { ramasserHorsCombat } from './objetsAuSol';
 import { type SceneEntity, Scene, dialoguesDeLaScene } from './monde/scene';
@@ -191,7 +192,7 @@ function seLeverDe(get: Get, set: Set, entityId: string): boolean {
   if (!placesDe(scene, entityId).length) return false;
   if (seatPoseOf(scene, occupant)?.propId !== entityId) return false;
   set({ scene: releaseSeat(scene, occupant) });
-  get().ecrireAuJournal(t('seating.stood'));
+  get().ecrireAuJournal(ligneDeTexte(t('seating.stood')));
   bus.emit(EVT.SCENE_DIRTY);
   return true;
 }
@@ -223,7 +224,7 @@ function sasseoirA(get: Get, set: Set, entityId: string): void {
       return { scene: res.scene };
     });
     if (gagnee.pose) {
-      get().ecrireAuJournal(t('seating.sat'));
+      get().ecrireAuJournal(ligneDeTexte(t('seating.sat')));
       // POSE UNIQUE : le cap du GROUPE suit celui de la place — le corps, la vue subjective et tout
       // ce qui lit le regard d'exploration regardent la table, pas la direction d'où l'on venait.
       set((s) => ({ facing: poserCapDuGroupe(s.facing, gagnee.pose!.facing) }));
@@ -261,7 +262,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
         case 'jouer': get().poserLInteraction(null); get().jouerAction(intention.id, intention.actionId); return;
         case 'rejoindre': get().poserLInteraction(intention.pending); marcherLeChemin(get, intention.plan.path); return;
         case 'marcher': get().poserLInteraction(null); marcherLeChemin(get, intention.plan.path); return;
-        case 'dire': get().poserLInteraction(null); get().ecrireAuJournal(intention.message); return;
+        case 'dire': get().poserLInteraction(null); get().ecrireAuJournal(ligneDeTexte(intention.message)); return;
         case 'injoignable': get().poserLInteraction(null); refuserGeste(get, set, intention.message); return;
         case 'annuler': get().poserLInteraction(null); return;
         default: return intention satisfies never;
@@ -303,7 +304,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       // Actions authorées toutes ÉPUISÉES et rien d'autre à offrir : on le dit (le halo, lui, s'est
       // déjà éteint). Le décor en PORTE (l'auteur en a posé), aucune n'est plus jouable.
       if (!horsPortee && ent.usable?.actions?.length && !actionsAuthorees(ent, get().flags).length)
-        get().ecrireAuJournal(t('store.searchedAlready', { what: nomDEntite(ent, presetDuNarratif(get().campaignNarratif)) ?? t('store.searchedFallback') }));
+        get().ecrireAuJournal(ligneDeTexte(t('store.searchedAlready', { what: nomDEntite(ent, presetDuNarratif(get().campaignNarratif)) ?? t('store.searchedFallback') })));
     },
     /**
      * EXÉCUTEUR UNIQUE d'une offre d'exploration (#1687) : `actionsDe` DIT ce qui est offert, `jouerAction`
@@ -332,7 +333,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       if (offre.origine === 'objet-pose') return ramasserHorsCombat(get, set, entityId, objetDuSol(ent, get().objetsAuSol)[0].key);
       const action = garanti((ent.usable?.actions ?? []).find((a) => a.id === actionId), actionId, 'action authorée jouée');
       const nom = nomDEntite(ent, presetDuNarratif(get().campaignNarratif));
-      get().ecrireAuJournal(t('store.actionJouee', { what: nom ?? t('store.searchPlaceFallback'), action: offre.label }));
+      get().ecrireAuJournal(ligneDeTexte(t('store.actionJouee', { what: nom ?? t('store.searchPlaceFallback'), action: offre.label })));
       // Logique authorée (Flow) : butin → fenêtre d'attribution, test → geste à risque (modale).
       // CLÔTURES (#1508) : l'horloge (« tout est horodaté ») puis le sort du décor. L'horloge tire les
       // effets PROGRAMMÉS et les ticks — jouée devant un dé de chute, elle les tirerait sur des
@@ -359,7 +360,7 @@ export function creerActionsDInteraction(get: Get, set: Set) {
       const fouille = fouilleOuverte(get());
       if ('refus' in fouille) return void refuserGeste(get, set, t(fouille.refus, fouille.vars));
       // La MÊME ligne qu'il y ait des portes ou non, qu'un Test échoue ou non : seule une réussite parle.
-      get().ecrireAuJournal(t('fouille.journal'));
+      get().ecrireAuJournal(ligneDeTexte(t('fouille.journal')));
       cloturer(get, set, runFlow(get, set, fouilleDeLaPiece(fouille.scene, fouille.piece), t('eff.titreDeDecouverte')), [
         { verbe: 'avancerHorloge', minutes: rule('fouille-piece-minutes') as number },
       ]);

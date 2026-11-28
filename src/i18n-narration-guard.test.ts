@@ -112,7 +112,7 @@ function stripComments(src: string): string {
 
 /** Sites d'émission de JOURNAL : le littéral de chaîne suit DIRECTEMENT l'ouverture (pas un `t(`/`tr(`). */
 const EMIT_SHAPES: RegExp[] = [
-  /\.(?:log|ecrireAuJournal)\(\s*(['"`])/g, // get().ecrireAuJournal('…') / env.log(`…`)
+  /(?:\.(?:log|ecrireAuJournal)|\bligneDeTexte)\(\s*(['"`])/g, // ligneDeTexte('…') / tell.log(`…`)
   /\bev\('[a-z]+',\s*(['"`])/g, // ev('kind', `…`)
   /\.push\(\s*(['"`])/g, // <journalArray>.push(`…`)
   /castRefused\([^;]*?,\s*(['"`])/g, // castRefused(get, set, c, `…`)

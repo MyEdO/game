@@ -143,7 +143,7 @@ export interface MachinerieDuNoyau {
   // ── Journal ──
   /** Action canonique UNIQUE composant `journal` (pousse `msg`, ou toutes les `msg[]` dans l'ordre, un texte en
    *  entrée `ligne`, et plafonne à 40 lignes) — ticket #319 : tout site de `journal: [...journal.slice(-40), …]` route ICI. */
-  ecrireAuJournal: (msg: string | EntreeDuJournal | (string | EntreeDuJournal)[]) => void;
+  ecrireAuJournal: (msg: EntreeDuJournal | EntreeDuJournal[]) => void;
   // ── Réseau (`reseau.ts`) ──
   /** Pose la session coop `net` ; rien si c'est déjà elle. */
   poserLeReseau: (net: NetState) => void;

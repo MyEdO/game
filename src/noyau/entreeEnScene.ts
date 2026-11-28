@@ -153,7 +153,7 @@ export function creerActionsDEntreeEnScene(get: Get, set: SetDesClesReservees) {
         campaignSceneId: target.id,
         enSceneDepuis: s.travelPlan ? null : s.gameTime,
       }));
-      if (target.startMessage) get().ecrireAuJournal(target.startMessage.texte);
+      if (target.startMessage) get().ecrireAuJournal(ligneDeTexte(target.startMessage.texte));
       get().avancerLeTemps(TIME_COST.sceneTransition); // seam « tout est horodaté » : 0 en intérieur (paramétrable, #T2 extérieur/voyage)
       bus.emit(EVT.SCENE_DIRTY);
       // Point de reprise de l'hôte AVANT qu'une rencontre ne démarre le combat.

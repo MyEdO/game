@@ -1962,7 +1962,7 @@ export function creerPont(stockage: Stockage | null, reseau: ReseauDuPont | null
             ouverte = j;
             return;
           }
-          j.partie.etat().ecrireAuJournal(issue);
+          j.partie.etat().ecrireAuJournal(ligneDeTexte(issue));
           clore(j, true);
         });
         return { zones: zones() };

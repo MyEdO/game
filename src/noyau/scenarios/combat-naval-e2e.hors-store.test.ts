@@ -112,7 +112,7 @@ describe('resolveShipUnits — le navire est une UNITÉ (naufrage OU abordage)',
     const lines = resolveShipUnits([hull, a, b]);
     expect(a.outOfRencontre).toBe(true);
     expect(b.outOfRencontre).toBe(true);
-    expect(lines.join(' ')).toMatch(/sombre/);
+    expect(lines.map((x) => x.texte).join(' ')).toMatch(/sombre/);
   });
 
   it('équipage TOUT vaincu → la coque intacte est prise et quitte le combat (outOfRencontre)', () => {

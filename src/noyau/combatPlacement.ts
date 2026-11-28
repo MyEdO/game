@@ -3,6 +3,7 @@
  * Perturbante, dégagement des plus petits, retrait d'entités, traversée de zones. La géométrie
  * qu'ils lisent vit dans `combatGeometry.ts`.
  */
+import { ligneDeTexte } from '../engine/journal';
 import type { BattleState } from './etat';
 import type { Get, Set as SetFn } from './flowTypes';
 import type { Combatant } from '../engine/types';
@@ -135,8 +136,8 @@ export function applyZoneCrossings(get: Get, set: SetFn, mover: Combatant, path:
   if (mover.dead || isOutOfAction(mover)) return;
   for (const z of battle.zones) {
     if (!z.crossTest || !path.some((p) => zoneCovers(z, p))) continue;
-    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label }), mover.id)); continue; }
-    battle.log.push(ev('deplacement', t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label }), mover.id));
+    if (zoneSansEffetSur(z, mover)) { battle.log.push(ev('information', ligneDeTexte(t('cf.immuniteAuDomaine', { name: nomDe(mover), spell: z.label })), mover.id)); continue; }
+    battle.log.push(ev('deplacement', ligneDeTexte(t('cf.traverseeDeZone', { name: nomDe(mover), zone: z.label })), mover.id));
     bus.emit(EVT.SCENE_DIRTY);
     const caster = resolveCaster(z.casterId) ?? mover;
     const flow: CoreFlow<EffectOp> = {

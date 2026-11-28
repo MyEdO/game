@@ -136,7 +136,7 @@ function avancerLEquipage(get: Get, set: Set, minutes: number): EntreeDuJournal[
   if (vessel?.escale !== undefined && !estBateauFluvial(vessel)) {
     for (let jours = dayIndex(now) - dayIndex(now - minutes); jours > 0; jours--) noterLeRepas(equipage.porteur, 'repas');
   }
-  const lignes = avancerLesMaladies(equipage.porteur, minutes, battleRng()).map((l) => ligneDeTexte(l));
+  const lignes = avancerLesMaladies(equipage.porteur, minutes, battleRng());
   equipage.ecrire();
   if (lignes.length) get().ecrireAuJournal(lignes);
   return lignes;
@@ -269,12 +269,12 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
       if (r.rationConsumed && !cale) rations++;
       const faim: Applique = { lignes: [], faits: [] };
       loseWounds(h, r.damage, faim);
-      lines.push(...lignesDEntretien([...r.log.map((l) => ligneDeTexte(l)), ...faim.lignes], h.id));
+      lines.push(...lignesDEntretien([...r.log, ...faim.lignes], h.id));
       // 1bis. Eau / Soif (LDB 18 l.340) — accès à l'eau calculé plus haut (`hasWater`).
       const w = dailyWaterUpkeep(h, hasWater, testValue(h, { skill: { id: 'resistance' }, characteristic: 'endurance' }), bonus(effectiveChar(h, 'endurance')), battleRng(), defer);
       const soif: Applique = { lignes: [], faits: [] };
       loseWounds(h, w.damage, soif);
-      lines.push(...lignesDEntretien([...w.log.map((l) => ligneDeTexte(l)), ...soif.lignes], h.id));
+      lines.push(...lignesDEntretien([...w.log, ...soif.lignes], h.id));
       // 1ter. Dessoûlage (LDB 09 l.485) : une nuit sans boire dégrise. Deux Tests de Résistance à l'alcool
       //       Intermédiaires fixent la dissipation (10−DR h) et la gueule de bois (Exténué 5−DR h, horloge).
       if (h.drunk) {
@@ -287,10 +287,10 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
       // 2. Maladies (LDB 20 — jours calendaires, #T3). Règle optionnelle : désactivable (maladie-mode off).
       if (rule('maladie-mode') !== 'off') {
         const peutDeclarer = incubation && ((maladieId: string) => incubation(h.id, maladieId));
-        lines.push(...lignesDEntretien(dailyDiseaseUpkeep(h, battleRng(), defer, soigne(h, d), peutDeclarer).map((l) => ligneDeTexte(l)), h.id));
+        lines.push(...lignesDEntretien(dailyDiseaseUpkeep(h, battleRng(), defer, soigne(h, d), peutDeclarer), h.id));
       }
       // 3. Convalescence des Blessures critiques (LDB 18 — jours calendaires, #T3).
-      lines.push(...lignesDEntretien(tickTraumaRecovery(h, 1, defer).map((l) => ligneDeTexte(l)), h.id));
+      lines.push(...lignesDEntretien(tickTraumaRecovery(h, 1, defer), h.id));
     }
     // 4. Effets déclenchés d'HORLOGE portés par la DONNÉE (Trait, Mutation, État… — `clockHooks`,
     //    bus-owned). `onDayStart` : une émission par jour franchi (le rattrapage en doit autant que
@@ -323,7 +323,7 @@ export function runDailyUpkeep(get: Get, set: Set, opts: { fedDaily?: boolean; o
   // Navire de campagne (MDG 14) : PAIE hebdomadaire de l'équipage salarié puis recalcul du Moral, pour
   // CHAQUE semaine franchie depuis `lastMoraleWeek` (`tickCampaignVesselWeek`). #216, #1652.
   set({ lastUpkeepDay: today, party: [...party] }); // persiste faim/eau/maladies/convalescence AVANT le débit des gages
-  lines.push(...lignesDEntretien(tickCampaignVesselWeek(get, set, today, battleRng()).map((l) => ligneDeTexte(l)))); // débite les bourses PAR-DESSUS (lit get().party à jour)
+  lines.push(...lignesDEntretien(tickCampaignVesselWeek(get, set, today, battleRng()))); // débite les bourses PAR-DESSUS (lit get().party à jour)
   get().ecrireAuJournal(lines.map(({ entree }) => entree));
   if (lines.length) bus.emit(EVT.SCENE_DIRTY);
   return [...purged, ...lines]; // les dissipations du jour font partie du bilan affiché

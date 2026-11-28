@@ -782,7 +782,7 @@ export function reprendreTestSubi(get: Get, set: SetFn, pt: PendingTest, success
   const label = nomDeSource(gele);
   const sujet = actorIn(get(), pt.actorId);
   if (!sujet || sujet.dead) {
-    journaliser(get, set, [t('cascade.cibleDisparue', { label })]);
+    journaliser(get, set, [ligneDeTexte(t('cascade.cibleDisparue', { label }))]);
     return undefined;
   }
   const caster = (casterId ? actorIn(get(), casterId) : undefined) ?? sujet;

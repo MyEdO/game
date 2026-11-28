@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { tousLesHerosDeScenario } from '../scenes/test-scenarios/_heros';
@@ -428,7 +429,7 @@ describe('document du naufrage (#4574) : les faits du naufrage, les mêmes par c
     set({ party: [a, knockedOut(b), chemin === 'mixte' ? { ...c, aiControlled: true } : c] } as never);
     set({ travelPlan: { routeId: 'r1', fromPlaceId: 'A', toPlaceId: 'B', mode: 'mer', km: 550, kmDone: 500, hoursPerDay: 24, interrupted: false } as never });
     if (chemin === 'direct') setCadence('auto');
-    if (avant) get().ecrireAuJournal(Array.from({ length: avant }, (_, i) => `ligne antérieure ${i}`));
+    if (avant) get().ecrireAuJournal(Array.from({ length: avant }, (_, i) => ligneDeTexte(`ligne antérieure ${i}`)));
     seedBattleRng(1);
     beginShipwreck(get, set);
     expect(!!get().pendingCascade, `chemin ${chemin}`).toBe(chemin !== 'direct');

@@ -54,7 +54,7 @@ describe('le journal de l’écran (`journal.lignes`)', () => {
       const jour = dayIndex(etat.gameTime);
       const heure = etat.gameTime;
       const combat = (kind: Extract<LigneDuJournal, { de: 'combat' }>['evenement']['kind'], text: string, actorId?: string, targetId?: string, h = heure): LigneDuJournal =>
-        ({ de: 'combat', evenement: ev(kind, text, actorId, targetId), heure: h });
+        ({ de: 'combat', evenement: ev(kind, ligneDeTexte(text), actorId, targetId), heure: h });
       const { lignes, jour: dernier } = lignesDuJournal(etat, 3, [
         { de: 'journal', entree: ligneDeTexte('Vous entrez.'), heure },
         combat('round', 'Round 2'),
