@@ -27,11 +27,12 @@ import type { Get, Set } from './flowTypes';
 import type { MapRoute } from './worldMap';
 import type { Effect } from '../data/schemas/defs-scenes/effets';
 import type { BuiltCascadeStep } from './stepBrand';
-import { worldStep, freeCons } from './rollSeam';
+import { worldStep } from './rollSeam';
 import { dataLabel } from '../data';
 import { applyEffects, applyEffectsLoot, jouerFlowEntier } from './combatEffects';
 import { t } from '../i18n';
 import { tablesPosees, type FragmentDeTables, type InterruptionDePeril, type PartDeTable } from './tablesPosees';
+import { ligneDeTexte } from '../engine/journal';
 
 export const AUTHOR_PERIL_KIND = 'perilDeScene';
 
@@ -87,7 +88,7 @@ export const TABLES = {
       // ÉVITÉ : le dé garde sa ligne (rangée surfacée, ou trace de journal quand aucune fenêtre ne s'ouvre)
       // et la conséquence DIT l'issue. Un péril qui ne survient pas se LIT — le verrou est au test
       // (`de-monde-surface.hors-store.test.ts`, delta de journal nominatif), pas dans ce commentaire.
-      if (!step.result.success) return { consequences: freeCons([{ text: t('tf.perilEvite', { label: peril.label }), tone: 'neutre' }]) };
+      if (!step.result.success) return { applique: { lignes: [ligneDeTexte(t('tf.perilEvite', { label: peril.label }), { ton: 'neutre' })], faits: [] } };
       const lignes: string[] = [t('tf.perilDAuteur', { label: peril.label })];
       if (perilInterrupts(peril.effects)) {
         set({ travelPlan: { ...get().travelPlan!, interrupted: true } });
@@ -95,10 +96,10 @@ export const TABLES = {
         lignes.push(...suite);
         // Les périls RESTANTS n'ont plus lieu d'être : le trajet s'arrête ici. La troncature — et non
         // l'ouverture du combat — est ce qui garantit que leurs dés ne se tirent pas (parité du `break`).
-        return { consequences: freeCons(lignes), stopSequence: true };
+        return { applique: { lignes: lignes.map((x) => ligneDeTexte(x)), faits: [] }, stopSequence: true };
       }
       jouerFlowEntier(applyEffectsLoot(get, set, peril.effects, peril.label)); // trouvaille d'auteur → fenêtre d'attribution
-      return { consequences: freeCons(lignes) };
+      return { applique: { lignes: lignes.map((x) => ligneDeTexte(x)), faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
 } satisfies FragmentDeTables;

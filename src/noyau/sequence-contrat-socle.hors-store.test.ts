@@ -3,7 +3,6 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { initialNet, type BattleState } from './etat';
 import { openSequence, displayStep, monoStep, pushDisplay, choiceStep } from './rollSeam';
-import { toRecapLines } from './recapLine';
 import { testDeRegle } from '../engine/reglesChiffrees';
 import {
   startCascade,
@@ -39,6 +38,7 @@ import { blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import type { Combatant } from '../engine/types';
 import type { CritChoice, CastResult } from '../engine/magic';
 import { objetDeTest } from '../engine/objetsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -970,7 +970,7 @@ describe('#4255 — une clôture d’hôte hors sortie d’hôte n’efface pas 
 
   /** Une étape déjà appendue DERRIÈRE l'hôte de la séquence, avant sa clôture. */
   function suiteDejaAppendue(heros: Combatant): void {
-    pushDisplay(banc.setState, { id: 'suite-appendue', kind: 'issueDuPiegeALame', actorId: heros.id, icon: 'objet/arme', label: fixtureText('suite'), outcome: toRecapLines(['suite']) });
+    pushDisplay(banc.setState, { id: 'suite-appendue', kind: 'issueDuPiegeALame', actorId: heros.id, icon: 'objet/arme', label: fixtureText('suite'), outcome: [{ entree: ligneDeTexte('suite') }] });
   }
 
   /** L'Explosion (ZdE) au jet figé, l'hôte ouvert comme `castZoneSpell`. */

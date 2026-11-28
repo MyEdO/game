@@ -10,7 +10,7 @@ import { EMPTY_FLOW } from '../engine/flowCore';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
 import { buildRiverPlan, buildRiverDayCascade } from './riverVoyageFlow';
 import { applierDe, poserLeDeDEtape } from './cascade';
-import { membresHorsDifficulte } from './cascade.testkit';
+import { membresHorsDifficulte, lignesDeLApplier } from './cascade.testkit';
 import { seedBattleRng } from './battleRng';
 import { creditBourse } from './bourseFlow';
 import { createHero, skillCharacteristicById } from '../engine/character';
@@ -20,7 +20,6 @@ import { setRule, resetRule, rule } from '../engine/policy';
 import { emptyScene } from './monde/scene';
 import { fixtureText } from '../i18n/fixtureText';
 import { t } from '../i18n';
-import { resultLine } from './rollSeam';
 import { DIFFICULTY_LABELS, DIFFICULTY_MODIFIERS, type Combatant, type Difficulty, type SkillInstance } from '../engine/types';
 import type { CascadeStep } from './pendings';
 import type { BuiltCascadeStep } from './stepBrand';
@@ -51,11 +50,11 @@ const jouerSur = (st: CascadeStep, roll: number): CascadeStep =>
  *  « Fixer le dé » puis appliqué. Rend la ligne de conséquence des deux étapes. */
 function jouerLeTest(st: CascadeStep, roll: number, face?: number): string {
   const issue = appliquer(jouerSur(st, roll));
-  const lignes = [resultLine(issue?.consequences ?? [])];
+  const lignes = [lignesDeLApplier(issue).join(' ')];
   const de = issue?.insert?.find((x) => x.kind === 'reparation-temporaire-degats');
   if (face !== undefined) {
     const pose = poserLeDeDEtape(get(), get, de!, face)!;
-    lignes.push(resultLine(appliquer(pose)?.consequences ?? []));
+    lignes.push(lignesDeLApplier(appliquer(pose)).join(' '));
   }
   return lignes.join(' ');
 }
@@ -343,7 +342,7 @@ describe('fleuve — réparation temporaire d’une coque percée (MSRC 7 l.115-
     const breche = percer()?.insert?.find((s) => s.kind === 'fleuveReparationDeBreche');
     expect(breche?.difficulty).toBe('tresDifficile');
     set({ party: [{ ...get().party[0], aiControlled: true }] });
-    expect(resultLine(percer()?.consequences ?? [])).toContain(`(Métier ${DIFFICULTY_LABELS.tresDifficile})`);
+    expect(lignesDeLApplier(percer()).join(' ')).toContain(`(Métier ${DIFFICULTY_LABELS.tresDifficile})`);
   });
 
   it('sur le navire de campagne, le marqueur vit au navire : une nouvelle descente joue encore le Test', () => {

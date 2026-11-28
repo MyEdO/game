@@ -5,7 +5,7 @@ import { battleRng } from './battleRng';
 import { touchActors } from './combatOrParty';
 import { journaliser } from './combatLog';
 import type { BuiltCascadeStep } from './stepBrand';
-import { pousseSi, hostStep, idDansLaSequence, openSequence, resultLine } from './rollSeam';
+import { pousseSi, hostStep, idDansLaSequence, openSequence } from './rollSeam';
 import { extendedTestStep } from '../engine/tests';
 import { t } from '../i18n';
 import { dissipateSpell } from '../engine/dispel';
@@ -31,6 +31,7 @@ import type { Cloture, PendingExtendedTest } from './pendings';
 import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { CorpsDesReglages } from './reglagesDuJet';
+import { recapDe } from './recapLine';
 
 /** Issue du Round COURANT d'un Test étendu de scène, `null` avant son jet : lue par le geste
  *  (`jetValider('testEtendu')`) et par la fenêtre. LDB 12 l.170-185 */
@@ -150,8 +151,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
           if (p.outcome) {
             const applier = tablesPosees().issuesDeTestEtendu[p.outcome.kind];
             const out = applier?.(get, set, p, total, done);
-            const line = out?.consequences ? resultLine(out.consequences) : '';
-            if (line) get().ecrireAuJournal(line);
+            for (const l of out?.applique ? recapDe(out.applique.lignes) : []) get().ecrireAuJournal(l.entree);
           }
         });
         return;

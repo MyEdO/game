@@ -14,7 +14,6 @@ import { isImpressiveSuccess, isImpressiveFailure, isAstoundingSuccess, isAstoun
 import { INTERLUDE_EVENTS, interludeEventDie, interludeEventFor, type InterludeEventFx } from '../data/interludeEvents';
 import { startCascade } from './cascade';
 import { drainPendingLog } from './combatEffects';
-import { consequencesDe, freeCons } from './rollSeam';
 import { type RollLineParts } from './ligneDeJet';
 import type { CascadeStep, CascadeTableDecl } from './pendings';
 import { fromBrass, toBrass, formatMoney, priceToMoney, PA_PER_SC } from '../engine/money';
@@ -75,7 +74,8 @@ import { type Combatant, type Difficulty, type QualityInstance } from '../engine
 import { resolveQualities } from '../engine/qualities/dispatch';
 import type { PendingBase } from './rollFlowFactory';
 import { modeleDe } from '../engine/modeleDeProgression';
-import { t, t as msg } from '../i18n'; // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
+import { t, t as msg } from '../i18n';
+ // `msg` : alias local — `t` est aussi le nom d'un trapping résolu dans plusieurs flux
 
 import type { Get, Set } from './flowTypes';
 import type { EffectSource } from '../engine/types';
@@ -87,6 +87,7 @@ import type { ValidationsDeFenetre } from './validationDeFenetre';
 import type { CorpsDesChoix } from './choixDesFenetres';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
 import { nomDe, nomOuAbsence } from '../engine/nom';
+import { ligneDeTexte } from '../engine/journal';
 
 export interface InterludeHeroState {
   /** Jet d100 sur le Tableau des Événements (LDB 22). ABSENT tant que le dé n'est pas tombé (phase
@@ -306,7 +307,7 @@ function finishInterludeDraw(get: Get, set: Set): Applique {
   if (!itl) return sortie;
   const d = denouementDuTirage(get());
   const lines = sortie.lignes;
-  lines.push(...lignesDesPertes(get(), d));
+  lines.push(...lignesDesPertes(get(), d).map((x) => ligneDeTexte(x)));
   for (const f of faitsDesPertes(get(), d)) constaterDans(sortie, f);
   for (const { heroId, brass } of d.pertes) debitBourse(get, set, heroId, fromBrass(brass));
   const perHero = { ...itl.perHero };
@@ -317,7 +318,7 @@ function finishInterludeDraw(get: Get, set: Set): Applique {
   set({ interlude: { ...get().interlude!, perHero } });
   if (d.faillite) {
     for (const dep of [...(get().bank ?? [])].reverse()) {
-      if (dep.kind === 'investir') lines.push(...bankWithdrawInner(get, set, dep.uid, true));
+      if (dep.kind === 'investir') lines.push(...bankWithdrawInner(get, set, dep.uid, true).map((x) => ligneDeTexte(x)));
     }
   }
   set({ interlude: { ...get().interlude!, phase: 'activities' } });
@@ -786,7 +787,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // « Chaque +DR vous permet de mémoriser un sort pour 100PX de moins […] vous devez acheter le
       // sort immédiatement » (ACE 12 l.55) : remise = DR × 100, appliquée à CET achat seul par acheterLeSort.
       const r = partyBuySpell(get, set, h.id, pa.spellId, { discountXp: Math.max(0, pa.sl) * 100 });
-      if (r.ok && r.chaos) return { lines: gainCorruption(get, set, h, 1).lignes }; // sort du Chaos : +1 Corruption (LDB 51)
+      if (r.ok && r.chaos) return { lines: gainCorruption(get, set, h, 1).lignes.map((e) => e.texte) }; // sort du Chaos : +1 Corruption (LDB 51)
       return { lines: [] };
     }
     case 'combatTraining': {
@@ -797,7 +798,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       if (!competence) return { lines: [] };
       const skillLabel = refLabel('skills', competence);
       if (!pa.success) return { lines: [msg('if.combatTrainingKo', { name: nomDe(h), skill: skillLabel })] };
-      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: competence }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes };
+      return { lines: applyOps(h, [{ op: 'grantReverseToken', skill: competence }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes.map((e) => e.texte) };
     }
     case 'punchausen': {
       // Fabuleuse Vente du comte de Punchausen (AA 12 l.45-49) : « vous recevez 2d10 pistoles et […]
@@ -810,7 +811,7 @@ function runActivityResolver(get: Get, set: Set, resolver: ActivityResolver, pa:
       // Jeton posé AVANT le crédit : `creditBourse` clone le groupe et capte la mutation de `h`.
       const tokenLines = applyOps(h, [{ op: 'grantReverseToken', skill: competence }], { idNeuf: get().forgerUnId, rng: battleRng(), label: pa.label, source: activitySource(pa) }).lignes;
       creditBourse(get, set, h.id, gain); // revenu PERSO (vente du récit DE ce héros), pas partagé par tête
-      return { lines: [msg('if.punchausenOk', { name: nomDe(h), money: formatMoney(gain) }), ...tokenLines] };
+      return { lines: [msg('if.punchausenOk', { name: nomDe(h), money: formatMoney(gain) }), ...tokenLines.map((e) => e.texte)] };
     }
     case 'reputation': {
       // Réputation : le `statusMod` vaut « pour la prochaine aventure », il se pose à la clôture
@@ -1071,7 +1072,7 @@ function appliquerLActivite(get: Get, set: Set): void {
         lines.push(...applyOps(h, immediate, { idNeuf: get().forgerUnId,
           rng: battleRng(), label: def.label, now: get().gameTime, source, sl: pa.sl,
           ...crochetsDeCorruption(get, set),
-        }).lignes);
+        }).lignes.map((e) => e.texte));
       }
       if (band.payoutPct != null && pa.depotId) lines.push(...mecenatPayout(get, set, h, pa.depotId, band.payoutPct));
       if (band.resolver) {
@@ -1230,7 +1231,7 @@ function cloreLInterlude(get: Get, set: Set): void {
     for (const { heroId, lots } of devis.lots) {
       const h = get().party.find((x) => x.id === heroId);
       if (!h) continue;
-      for (const lot of lots) after.push(...applyOps(h, lot.ops, { idNeuf: get().forgerUnId, ...lot.ctx, rng: battleRng(), now: get().gameTime }).lignes);
+      for (const lot of lots) after.push(...applyOps(h, lot.ops, { idNeuf: get().forgerUnId, ...lot.ctx, rng: battleRng(), now: get().gameTime }).lignes.map((e) => e.texte));
     }
     set({ party: [...get().party] });
     for (const l of after) get().ecrireAuJournal(l);
@@ -1327,11 +1328,11 @@ export const TABLES = {
     evenementDInterlude: (get, set, step, hero) => {
       const rolled = step.table?.result;
       if (!rolled || !hero) return;
-      return { consequences: freeCons(finishInterludeEvent(get, set, hero, rolled.roll)) };
+      return { applique: { lignes: finishInterludeEvent(get, set, hero, rolled.roll).map((x) => ligneDeTexte(x)), faits: [] } };
     },
     bourseDInterlude: (get, set) => {
       const applique = finishInterludeDraw(get, set);
-      return { consequences: consequencesDe(applique.lignes.length ? applique : { ...applique, lignes: [msg('if.noPurseEvent')] }) };
+      return { applique: applique.lignes.length ? applique : { ...applique, lignes: [ligneDeTexte(msg('if.noPurseEvent'))] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   annonces: {
@@ -1339,7 +1340,7 @@ export const TABLES = {
     bourseDInterlude: (s) => {
       const d = denouementDuTirage(s);
       const lignes = [...lignesDesPertes(s, d), ...(d.faillite ? [msg('if.bankCrashDue')] : [])];
-      return { lignes: lignes.length ? lignes : [msg('if.noPurseEvent')], faits: faitsDesPertes(s, d) };
+      return { lignes: (lignes.length ? lignes : [msg('if.noPurseEvent')]).map((x) => ligneDeTexte(x)), faits: faitsDesPertes(s, d) };
     },
   } satisfies PartDeTable<'annonces', readonly ['bourseDInterlude']>,
   tablesTirables: {

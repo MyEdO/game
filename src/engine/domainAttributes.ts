@@ -111,7 +111,7 @@ export function isSorceryDomain(spell: SpellDomainRef): boolean {
 export function domainCasterOps(caster: Combatant, spell: SpellDomainRef, rng: RNG, idNeuf: FabriqueDId): string[] {
   const ops = findDomainById(spell.domainId?.id)?.casterOps;
   if (!ops?.length) return [];
-  return applyOps(caster, ops, { rng, idNeuf, label: 'Attribut de domaine' }).lignes;
+  return applyOps(caster, ops, { rng, idNeuf, label: 'Attribut de domaine' }).lignes.map((e) => e.texte);
 }
 
 /**

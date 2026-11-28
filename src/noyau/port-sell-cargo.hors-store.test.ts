@@ -9,10 +9,10 @@ import { setRule } from '../engine/policy';
 import { partyMoneyTotal, creditBourse } from './bourseFlow';
 import type { PortProfile } from '../engine/seaVoyage';
 import { applierDe } from './cascade';
-import { resultLine } from './rollSeam';
 import type { CascadeStep } from './pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
 import type { GenreDeCascade } from './tablesPosees';
+import { lignesDeLApplier } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -244,7 +244,7 @@ function etapeMarchandage(hero: Combatant, kind: GenreDeCascade, sl: number, suc
 }
 const ligneDe = (kind: string, step: CascadeStep, actor: Combatant): string => {
   const out = applierDe(kind)!(get, set, step, actor, { steps: [step], index: 0 });
-  return resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
+  return lignesDeLApplier(out).join(' ');
 };
 
 describe('Marchandage portuaire et Négociateur (MDG 15 l.335/385 → LDB 59 l.43, LDB 10 l.818 ; arbitrage #2547)', () => {

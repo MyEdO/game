@@ -11,7 +11,7 @@ import { porteeDeGarde } from '../../scripts/guards/lib/couches.mjs';
  * disparu DU TYPE (`cascade.ts CascadeApplier`, mort du canal) : le compilateur interdit déjà toute
  * chaîne LIBRE re-décrivant le jet (`${step.result.roll}/${step.result.target}`, « réussi »/« raté »)
  * que la rangée `RollLine` affiche déjà (✓/✗ ±DR). Cette garde reste en CEINTURE (grep, pas seulement
- * type) ; le CONTENU des conséquences (`freeCons(...)`) est verrouillé par le describe « CONTENU »
+ * type) ; le CONTENU des conséquences (entrées de l'`applique`) est verrouillé par le describe « CONTENU »
  * ci-dessous — doctrine #295 : une ligne de conséquence narre l'effet DÉJÀ appliqué, jamais le jet.
  *
  * ABSOLUE (#295 migration soldée) : aucun fichier du scope ne porte le canal.
@@ -53,7 +53,7 @@ describe('composeur — canal journal: déprécié des CascadeApplier (#295, ver
       const n = dupCounts(readFileSync(join(ROOT, rel), 'utf8'));
       if (n.journalArrays || n.jetDup || n.verdict) over.push(`${rel} : journalArrays=${n.journalArrays} jetDup=${n.jetDup} verdict=${n.verdict}`);
     }
-    expect(over, `Régression canal journal: déprécié — migrer vers consequences: freeCons(...) :\n${over.join('\n')}`).toEqual([]);
+    expect(over, `Régression canal journal: déprécié — migrer vers applique: { lignes: [ligneDeTexte(...)], faits } :\n${over.join('\n')}`).toEqual([]);
   });
 
   it('fail-closed : le compteur détecte une duplication SYNTHÉTIQUE de jet dans un littéral journal:', () => {
@@ -76,7 +76,7 @@ describe('composeur — canal journal: déprécié des CascadeApplier (#295, ver
  * Garde du composeur d'affichage (#295, Lot 5 — CONTENU) : le canal `journal:` a disparu (verrou
  * ci-dessus), mais la migration Lot 1 n'avait touché que le TYPE — pas le TEXTE. Cette seconde garde
  * scanne, PAR FICHIER, le motif `${…roll}/${…target}` sur TOUT le fichier (pas seulement les
- * littéraux `journal:`, morts) : un re-print du jet dans un texte de conséquence (`freeCons(...)`,
+ * littéraux `journal:`, morts) : un re-print du jet dans un texte de conséquence (`ligneDeTexte(...)`,
  * `tell(...)`, `log(...)`…) juste au-dessus d'une rangée qui l'affiche déjà (CascadeModal, SteamSaveModal,
  * RenounceModal…) est le symptôme exact du mandat user (« le pire c'est les résultats qui remettent le
  * résultat du jet visible juste au-dessus »).
@@ -180,7 +180,7 @@ describe('composeur — CONTENU des conséquences : re-print roll/target hors ra
   });
 
   it('fail-closed : le compteur détecte un re-print roll/target SYNTHÉTIQUE hors littéral journal:', () => {
-    const regressed = "  return { consequences: freeCons([`${hero.name} : ${step.result.roll}/${step.result.target} → réussi.`]) };";
+    const regressed = "  return { applique: { lignes: [ligneDeTexte(`${hero.name} : ${step.result.roll}/${step.result.target} → réussi.`)], faits: [] } };";
     expect(jetEchoCount(regressed)).toBe(1);
   });
 });
@@ -195,7 +195,7 @@ describe('composeur — CONTENU des conséquences : re-print roll/target hors ra
  *
  * Deux goulots exemptés, nommés, et RIEN d'autre : la DÉCLARATION d'issue d'un flux à fenêtre
  * (`rollFlowSpecs.ts`, `spec.issue`, rendue par le verbe `apply`) et la conséquence d'étape de
- * cascade (`encounterPsychFlow.ts` → `freeCons` → `commitStep`).
+ * cascade (`encounterPsychFlow.ts` → `applique` → `commitStep`).
  *
  * CE QUE CETTE POLICE NE VOIT PAS, mesuré (cf. les deux derniers tests, qui l'attestent au lieu de
  * l'affirmer) : l'import DYNAMIQUE (`await import('./flowOutcomes')`), le `require()`, et surtout
@@ -206,7 +206,7 @@ describe('composeur — CONTENU des conséquences : re-print roll/target hors ra
  */
 const ISSUE_GOULOTS = [
   'src/noyau/rollFlowSpecs.ts', // DÉCLARATION `spec.issue` des flux à fenêtre → verbe `apply`
-  'src/noyau/encounterPsychFlow.ts', // conséquence d'étape (freeCons → commitStep)
+  'src/noyau/encounterPsychFlow.ts', // conséquence d'étape (applique → commitStep)
 ];
 
 /** Fichier de sonde SOUS le périmètre de la règle (aucun goulot, hors test). */

@@ -4,6 +4,7 @@
  */
 import { idsDeTest } from '../engine/idsDeTest.testkit';
 import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
+import { ligneDeTexte } from '../engine/journal';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
 import { applyEffects, ctxRepris, porterOpsCtx } from './combatEffects';
 import { gainCorruption, corruptionTarget, releaseCorruptionSlot } from './corruptionFlow';
@@ -145,7 +146,7 @@ describe('gainCorruption rend son fait de Corruption (#4574)', () => {
     const { a, party } = party2();
     banc.setState({ party });
     expect(gainCorruption(banc.getState, banc.setState, a, 1))
-      .toEqual({ lignes: ['Sigmund : +1 Point de Corruption (total 1).'], faits: [{ genre: 'corruption', cible: a.id, camp: 'groupe', valeur: 1, total: 1 }] });
+      .toEqual({ lignes: [ligneDeTexte('Sigmund : +1 Point de Corruption (total 1).')], faits: [{ genre: 'corruption', cible: a.id, camp: 'groupe', valeur: 1, total: 1 }] });
   });
 
   // LDB 48 l.393
@@ -154,7 +155,7 @@ describe('gainCorruption rend son fait de Corruption (#4574)', () => {
     a.pos = { x: 5, y: 5 };
     banc.setState({ party, battle: { combatants: party, zones: [{ label: 'Protection de Phâ', tiles: [{ x: 5, y: 5 }], rounds: 3, noCorruption: true }] } as unknown as Jeu['battle'] });
     expect(gainCorruption(banc.getState, banc.setState, a, 2)).toEqual({
-      lignes: ['Sigmund : la lumière sacrée de Phâ écarte la Corruption (aucun gain).'],
+      lignes: [ligneDeTexte('Sigmund : la lumière sacrée de Phâ écarte la Corruption (aucun gain).')],
       faits: [{ genre: 'corruption', cible: a.id, camp: 'groupe', valeur: 0, contre: 'protection' }],
     });
     expect(a.corruption ?? 0).toBe(0);
@@ -168,7 +169,7 @@ describe('gainCorruption : seuil → mutation → limites (l.80-95)', () => {
     const lines = gainCorruption(banc.getState, banc.setState, a, 1).lignes;
     expect(a.corruption).toBe(1);
     expect(a.mutations ?? []).toHaveLength(0);
-    expect(lines[0]).toMatch(/\+1 Point de Corruption/);
+    expect(lines[0].texte).toMatch(/\+1 Point de Corruption/);
   });
 
   it('au-delà du seuil → MODALE de Test de Résistance (kind seuil) ; échec acquitté → mutation + révélation 🧬', () => {
@@ -455,8 +456,8 @@ describe('Corruption personnelle au combat (#4096)', () => {
     expect(followsCharacterRules(membre)).toBe(true);
     expect(membre.traits?.map((t) => t.id)).toContain('corruption');
     applyEffects(banc.getState, banc.setState, [{ type: 'corruptionExposure', level: 'mineure', heroId: membre.id }]);
-    expect(reprendreLaCorruption(membre)).toEqual([]);
-    expect(applyOps(membre, [{ op: 'corruption', amount: 1 }], { idNeuf: idsDeTest, rng: battleRng() }).lignes).toEqual([]);
+    expect(reprendreLaCorruption(membre).map((e) => e.texte)).toEqual([]);
+    expect(applyOps(membre, [{ op: 'corruption', amount: 1 }], { idNeuf: idsDeTest, rng: battleRng() }).lignes.map((e) => e.texte)).toEqual([]);
     expect(banc.getState().pendingCorruption).toBeNull();
     expect(banc.getState().corruptionQueue).toEqual([]);
     expect(banc.getState().pendingCascade?.participants.some((p) => p.kind === 'mutationNature') ?? false).toBe(false);
@@ -477,7 +478,7 @@ describe('Corruption personnelle au combat (#4096)', () => {
       appearance: { species: 'cheval' }, pos: { x: 7, y: 11 }, side: 'allie',
     });
     expect(membre).toMatchObject({ kind: 'heros', species: 'cheval' });
-    expect(reprendreLaCorruption(membre)).toEqual([]);
+    expect(reprendreLaCorruption(membre).map((e) => e.texte)).toEqual([]);
     expect(banc.getState().pendingCorruption).toBeNull();
     expect(membre.corruption ?? 0).toBe(0);
   });

@@ -65,7 +65,7 @@ describe("op 'removeCondition' → fait `etat` négatif, mesuré au retrait effe
     const c = hero();
     addCondition(c, COND.empoisonne, 1);
     const { lignes, faits } = appliquer(c, [{ op: 'removeCondition', id: { id: COND.empoisonne }, value: 2 }]);
-    expect(lignes).toEqual(['Cobaye retire 1 État Empoisonné.', 'Cobaye reçoit 1 État Exténué.']);
+    expect(lignes.map((e) => e.texte)).toEqual(['Cobaye retire 1 État Empoisonné.', 'Cobaye reçoit 1 État Exténué.']);
     expect(faits).toEqual([
       { genre: 'etat', cible: 'h', camp: 'groupe', id: COND.empoisonne, valeur: -1 },
       { genre: 'etat', cible: 'h', camp: 'groupe', id: COND.extenue, valeur: 1 },

@@ -138,9 +138,9 @@ it.each([
   expect(entreesDuPremierJour.slice(0, pvAuCombat.length)).toEqual(pvAuCombat);
   expect(premierSoir.procesVerbal ?? []).toEqual([]);
   for (const ligne of new Set(lignesAuCombat)) {
-    expect(premierJour.lines.filter((l) => l.text === ligne)).toHaveLength(lignesAuCombat.filter((l) => l === ligne).length);
+    expect(premierJour.lines.filter((l) => l.entree.texte === ligne)).toHaveLength(lignesAuCombat.filter((l) => l === ligne).length);
   }
-  expect(premierJour.lines.filter((l) => l.text.startsWith(prefixeMeteo))).toHaveLength(1);
+  expect(premierJour.lines.filter((l) => l.entree.texte.startsWith(prefixeMeteo))).toHaveLength(1);
 
   get().fenetreValider('repos');
   banc.reprendreTout();
@@ -150,7 +150,7 @@ it.each([
   expect([deuxiemeSoir.sea!.daysAtSea, get().vessel?.daysToEvent, deuxiemeSoir.log?.length]).toEqual([2, compteur - 2, 2]);
   const [jourConserve, lendemain] = deuxiemeSoir.log!;
   expect(jourConserve).toEqual(premierJour);
-  expect(lendemain.lines.filter((l) => l.text.startsWith(prefixeMeteo))).toHaveLength(1);
-  expect(lendemain.lines.filter((l) => l.text === t('sv.lookoutKo') || l.text === lignePanne)).toEqual([]);
+  expect(lendemain.lines.filter((l) => l.entree.texte.startsWith(prefixeMeteo))).toHaveLength(1);
+  expect(lendemain.lines.filter((l) => l.entree.texte === t('sv.lookoutKo') || l.entree.texte === lignePanne)).toEqual([]);
   for (const entree of entreesDuPremierJour) expect(lendemain.entries).not.toContainEqual(entree);
 });

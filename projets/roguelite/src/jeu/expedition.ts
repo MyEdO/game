@@ -64,6 +64,7 @@ import { Etat, Heros, Salle, renouvelerLesCandidats } from './etat';
 import { auNoyau, choisir, heros, noter, tirer } from './outils';
 import { voir } from './quete';
 import { qualiteDeLaChambre } from './village';
+import { redigerLEntree } from '../../../../src/hote/journal';
 
 export const destinationsOuvertes = (e: Etat) => DESTINATIONS.filter((d) => d.palier <= e.batiments.cartographe);
 /** Le héros porte-t-il un À Terre verrouillé ? LDB 18 l.15 */
@@ -458,8 +459,9 @@ export function rentrer(e: Etat, reussie: boolean): string[] {
   const lignes = [`Retour à Grisefosse${jours ? ` après ${jours} jour${jours > 1 ? 's' : ''}` : ', sans avoir franchi une salle'} : ${x.or} CO${x.trophees ? `, ${x.trophees} trophée${x.trophees > 1 ? 's' : ''}` : ''}${x.px ? ` ; ${x.px} PX chacun` : ''}.`];
   noter(e, `${d.nom} : ${reussie ? 'expédition réussie' : x.or ? 'retour prudent' : 'déroute'}. ${lignes[0]}`);
   const partis = new Set(x.groupe);
-  const sortie: Applique = { lignes, faits: [] };
+  const sortie: Applique = { lignes: [], faits: [] };
   for (const h of herosDuGroupe(e)) purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
+  lignes.push(...sortie.lignes.map((l) => redigerLEntree(l)));
   e.expedition = null;
   if (jours) passerDesJours(e, jours, partis);
   voir(e, 'retour');
@@ -514,7 +516,7 @@ function passerDesJours(e: Etat, jours: number, absents: Set<string>): void {
     if (absents.has(h.c.id)) continue;
     const sortie: Applique = { lignes: [], faits: [] };
     purgerEtats(h.c, (c) => !DURABLES.has(c.id) && !isConditionLocked(c, h.c), sortie);
-    if (sortie.lignes.length) noter(e, sortie.lignes.join(' '));
+    if (sortie.lignes.length) noter(e, sortie.lignes.map((l) => redigerLEntree(l)).join(' '));
     const nuits = Math.min(jours, h.sejour?.reste ?? 0);
     const lignes: string[] = [];
     const auNoyauSur = (gestes: Geste[], place: Place) => {

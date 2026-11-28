@@ -23,7 +23,7 @@ import { type RNG } from '../engine/dice';
 import { ouvrirEtal } from './etalLotFlow';
 import { hasBargainBonus } from '../engine/combatFeatures/dispatch';
 import { chainStep } from './enchainerEtape';
-import { openPartyTest, openWorldTest, freeCons } from './rollSeam';
+import { openPartyTest, openWorldTest } from './rollSeam';
 import { t } from '../i18n';
 import { nomDe } from '../engine/nom';
 import { actorIn } from './monde/combatants';
@@ -51,6 +51,7 @@ import type { Get, Set } from './flowTypes';
 import type { FabriqueDuNoyau } from './machinerieDuNoyau';
 import type { SortiesDeFenetre } from './sortieDeFenetre';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { ligneDeTexte } from '../engine/journal';
 
 /** Une offre d'achat générée à l'étape (l.36-42) — Enc disponible + prix de base NOTÉ en CO par point d'Enc
  *  (`landCargoBasePrice` ; le Vin fige sa qualité secrète / son prix ICI, l.93-104). `wine` : cargaison à
@@ -461,7 +462,7 @@ export const TABLES = {
       const rang = wineEvalReveal(qualite, success, sl);
       set({ landMarket: { ...st, offers: st.offers.map((o) => o.cargoId === cargoId ? { ...o, vinEvalue: { rang, fiable: success } } : o) } });
       const actor = step.actorId ? actorIn(get(), step.actorId) : undefined;
-      return { consequences: freeCons([t(success ? 'lm.evaluationDuVin' : 'lm.evaluationDuVinIncertaine', { name: nomDe(garanti(actor, step.actorId, 'évaluation du vin')), offre: offer.label, roll: garanti(roll, step.id, 'dé de l’évaluation du vin'), qualite: qualite.libelles[rang] })]) };
+      return { applique: { lignes: [ligneDeTexte(t(success ? 'lm.evaluationDuVin' : 'lm.evaluationDuVinIncertaine', { name: nomDe(garanti(actor, step.actorId, 'évaluation du vin')), offre: offer.label, roll: garanti(roll, step.id, 'dé de l’évaluation du vin'), qualite: qualite.libelles[rang] }))], faits: [] } };
     },
     [LAND_SELL_BUYER_KIND]: (get, set, step) => {
       if (!step.result) return {};
@@ -482,7 +483,7 @@ export const TABLES = {
         chainStep(get, () => openLandSellBuyerStep(get, set, lotId, Math.max(1, Math.floor(lot.enc / 2)), false, 2));
         return {};
       }
-      return { consequences: freeCons([`${label} : aucun acheteur intéressé à ${st.label} (Demande ${step.result.target}).`]) };
+      return { applique: { lignes: [ligneDeTexte(`${label} : aucun acheteur intéressé à ${st.label} (Demande ${step.result.target}).`)], faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   generateursDEtal: {

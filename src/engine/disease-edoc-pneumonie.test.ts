@@ -159,7 +159,7 @@ describe('`aggravateSymptom` : TROIS issues distinctes, jamais un booléen (EDOC
     syncDerivedConditions(c);
     const log = applyOps(c, onFail(), { idNeuf: idsDeTest, rng: seq([]) }).lignes;
     expect(symptomIds(c), 'sans Fièvre, la chaîne ne descend pas jusqu’à Toxine').not.toContain('toxine');
-    expect(log, 'rien à journaliser non plus').toEqual([]);
+    expect(log.map((e) => e.texte), 'rien à journaliser non plus').toEqual([]);
   });
 
   it('maladie non portée → `absent` (même verdict, même silence)', () => {

@@ -5,7 +5,7 @@
  * dans les closures `run()` (au RUNTIME, quand `runCombatHooks` se déclenche) → pas de souci de cycle à
  * l'import. Le golden `roundBoundary.golden.hors-store.test.ts` fige l'ordre + les tirages RNG byte-pour-byte.
  */
-import { freeCons, rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type RollRequest } from '../rollSeam';
+import { rollSansPilote, surfaceOf, monoStep, choiceStep, pushMono, pousseSi, type RollRequest } from '../rollSeam';
 import { type BuiltCascadeStep } from '../stepBrand';
 import { battleRng } from '../battleRng';
 import { rollTest } from '../../engine/tests';
@@ -53,6 +53,7 @@ import { dataLabel, testSkillLabel } from '../../data';
 import { stepProlonger } from '../rollSeam';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
 import { nomDe } from '../../engine/nom';
+import { ligneDeTexte } from '../../engine/journal';
 
 /** Test de prolongation d'un effet à Durée « + » (LDB 47 l.311) : SOURCE UNIQUE du jet PNJ inline, de
  *  l'étape héros (`sortProlongeTest`) et du libellé de son choix (`opt.tenterProlonger`). */
@@ -210,13 +211,13 @@ export const TABLES = {
       if (!hero || !step.result) return;
       const line = fatigueApply(hero, step.result.success, step.result.sl);
       set(touchActors(get()));
-      return { consequences: freeCons([line ?? t('turn.effortHeld', { name: nomDe(hero) })]) };
+      return { applique: { lignes: [ligneDeTexte(line ?? t('turn.effortHeld', { name: nomDe(hero) }))], faits: [] } };
     },
     hemorragieInconscient: (get, set, step, hero) => {
       if (!hero || !step.result) return;
       const line = aaBleedUnconsciousApply(hero, step.result.success);
       set(touchActors(get()));
-      return { consequences: freeCons([line ?? t('cond.aaBleedHold', { name: nomDe(hero) })]) };
+      return { applique: { lignes: [ligneDeTexte(line ?? t('cond.aaBleedHold', { name: nomDe(hero) }))], faits: [] } };
     },
     /** Étape de CHOIX « Durée + » (LDB 47 l.311, #543) — « vous POUVEZ effectuer un Test de Force Mentale » :
      *  sur Oui, pousse le Test dans la MÊME cascade (`sortProlongeTest`, réappendu = `liveMerge`) ; sur Renoncer
@@ -243,7 +244,7 @@ export const TABLES = {
       }
       const lines = resolvePlusExtension(hero, effect, false);
       set(touchActors(get()));
-      return { consequences: freeCons(lines) };
+      return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
     },
     /** Étape-JET « Durée + » (LDB 47 l.311, #543) — Test de Force Mentale poussé par `sortProlongeChoix` sur
      *  « Oui » : succès → +1 Round (dégelé) ; échec → expiration NORMALE. Fonction PARTAGÉE avec la
@@ -254,7 +255,7 @@ export const TABLES = {
       if (!effect) return;
       const lines = resolvePlusExtension(hero, effect, step.result.success);
       set(touchActors(get()));
-      return { consequences: freeCons(lines) };
+      return { applique: { lignes: lines.map((x) => ligneDeTexte(x)), faits: [] } };
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   crochetsDeCombat: [

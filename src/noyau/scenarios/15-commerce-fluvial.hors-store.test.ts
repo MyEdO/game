@@ -1,7 +1,7 @@
 import { idsDeTest } from '../../engine/idsDeTest.testkit';
 import { acheterAuMarche } from '../cargaison.testkit';
 import { describe, it, expect, beforeEach, onTestFinished } from 'vitest';
-import { ouvrirLeBanc, type Banc } from '../banc.testkit';
+import { capterLeJournal, ouvrirLeBanc, type Banc } from '../banc.testkit';
 import { lancerLeScenario } from '../lancementDeScenario';
 import { lancementDuScenario } from '../../scenes/test-scenarios/_shared';
 import { testScenarios } from '../../scenes/test-scenarios/index';
@@ -411,9 +411,8 @@ describe('Scénario Commerce fluvial — descente commandée sans fenêtre (#254
     seedBattleRng(5);
     barragePose();
     // Le journal du store est plafonné : chaque ligne se capte à son puits (`ecrireAuJournal`), le temps de la descente.
-    const journal: string[] = [];
     const puits = get().ecrireAuJournal;
-    banc.setState({ ecrireAuJournal: (msg) => { journal.push(...(Array.isArray(msg) ? msg : [msg])); puits(msg); } });
+    const journal = capterLeJournal(banc);
     const decisions: string[] = [];
     try {
       expect(descendre('commande', decisions), 'aucune fenêtre de jet sur la descente').toEqual([]);

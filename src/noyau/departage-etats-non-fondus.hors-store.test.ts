@@ -7,7 +7,6 @@ import { seedBattleRng, battleRng } from './battleRng';
 import { setRule } from '../engine/policy';
 import { creditBourse } from './bourseFlow';
 import { applierDe } from './cascade';
-import { resultLine } from './rollSeam';
 import { rollMerchantSkill, rollMerchantOpposition, type PortProfile } from '../engine/seaVoyage';
 import { rollMerchantSkill as rollLandMerchantSkill } from '../engine/landCargo';
 import { acheterALaHalle } from './landMarketFlow';
@@ -18,6 +17,7 @@ import { addCondition, COND } from '../engine/conditions';
 import type { Possession } from '../engine/possession';
 import type { CascadeStep } from './pendings';
 import type { Combatant, SkillInstance } from '../engine/types';
+import { lignesDeLApplier } from './cascade.testkit';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -121,7 +121,7 @@ describe('#1153 L2 — PORT : l’État ne se fond plus dans la grandeur du dép
     expect(opened.meta?.merchantValue).toBe(merchant);
     const step = { ...opened, result: { roll: die, target: opened.target!, sl, success: true } } as CascadeStep;
     const out = applierDe('port-achat-marchandage')!(get, set, step, leader, { steps: [step], index: 0 });
-    const line = resultLine((out && 'consequences' in out ? out.consequences : undefined) ?? []);
+    const line = lignesDeLApplier(out).join(' ');
     expect(line).toMatch(/remise de \d+ %/);
     expect(line).not.toMatch(/surcoût/);
   });

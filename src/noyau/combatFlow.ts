@@ -39,7 +39,6 @@ import type {
   RevealEntry,
 } from './pendings';
 import { FLOWS } from './rollFlowSpecs';
-import { toRecapLines } from './recapLine';
 import {
   Combatant,
   HitLocation,
@@ -55,7 +54,8 @@ import { rule } from '../engine/policy';
 import { battleRng } from './battleRng';
 import { ev, evDEtat, evLines, journaliser, type CombatEvent, type CombatEventKind } from './combatLog';
 import { discreetPrayerDifficulty } from '../engine/prayer';
-import { t as tr } from '../i18n'; // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
+import { t as tr } from '../i18n';
+ // alias : `t` est un identifiant local très fréquent ici (cibles/jets)
 import { TEMPO } from './monde/tempo';
 import { beatHold } from './combatDirector';
 import { programmer } from './plateforme';
@@ -282,7 +282,7 @@ import {
   faitDObjet,
   lignesHorsDesFaits,
   nomDeSource,
-  type Applique as LignesEtFaits,
+  type Applique,
   type FaitApplique,
   type FaitDEtat,
   type FaitDObjet,
@@ -500,7 +500,8 @@ import {
 } from './monde/scene';
 import { STEP_MAX_M } from './monde/relief';
 import { placeCombatant, positionPosee, spawnEnemy } from './monde/spawn';
-import { rollInitiative, combatOrder } from './combatSetup'; // relance d'Initiative par Round (LDB 13 l.43)
+import { rollInitiative, combatOrder } from './combatSetup';
+ // relance d'Initiative par Round (LDB 13 l.43)
 import {
   sweepDismountDeaths,
   mountedAttackMods,
@@ -634,7 +635,7 @@ import {
   jouerLesClotures,
   rendreALEquipage,
   MAIN_RENDUE,
-  type Applique,
+  type SignalDeSuite,
 } from './combatEffects';
 import { teamCommandMod } from './monde/commandTeam';
 import { collectHeroRoundEndUpkeep } from './combat/roundHooks';
@@ -692,6 +693,7 @@ import {
   type TableStepDef,
   type CascadeApplier,
   jouerLesFenetresDuPiloteIA,
+  denouerLaRangee,
 } from './cascade';
 import { inversionDeTalent } from '../engine/reverseToken';
 import { effectiveTalents } from '../engine/talentEffects';
@@ -715,9 +717,6 @@ import type {
 import { APRES_COUP, type IssueOpposee, type PendingApproach } from './pendings';
 import { refuserGeste, refuserGesteDuSiege } from './refusVisible';
 import {
-  freeCons,
-  consequencesDe,
-  resultLines,
   rollStep,
   rollSansPilote,
   surfaceOf,
@@ -741,7 +740,6 @@ import {
   stepPsych,
   stepSansPeur,
   type ChoiceSpec,
-  type Consequence,
   type TableSpec,
 } from './rollSeam';
 import { rollLine, type RollLineParts } from './ligneDeJet';
@@ -752,6 +750,8 @@ import type { BuiltCascadeStep } from './stepBrand';
 import { dataLabel, psychologyLabel, structureCriticalsLabel } from '../data';
 import { coupFerme, zoneEnPose, type ZoneEnPose } from './targetingHolder';
 import type { FragmentDeTables, PartDeTable } from './tablesPosees';
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
+import { recapDe } from './recapLine';
 
 /** L'État du défenseur accorde-t-il un Avantage à l'assaillant en mêlée ? Lu en DONNÉES
  *  (`incomingMeleeAdvantage` → `passive` `incomingAdvantage`, kind `etat`). Sonné : « +1 Avantage avant
@@ -2349,7 +2349,7 @@ function versLaReprise(faits: readonly FaitApplique[]): void {
  *  `now` : horloge de jeu des effets d'horloge (#153). */
 function appliquerLesOpsDuCritique(
   cible: Combatant, ops: GameOp[], contexte: Pick<OpsCtx, 'location' | 'now' | 'rng' | 'idNeuf'> & Partial<Pick<OpsCtx, 'onLacher'>>,
-): LignesEtFaits {
+): Applique {
   return applyOps(cible, ops, contexte);
 }
 
@@ -2506,10 +2506,10 @@ export function applyCriticalToTarget(
     const avant = [...(target.activeEffects ?? [])];
     const applique = appliquerLesOpsDuCritique(target, crit.ops, { idNeuf: get().forgerUnId, rng: battleRng(), now: get().gameTime, location: loc, ...crochetDuSol(get, set) });
     lierLaRetenue(target, avant, { sequelles: (target.traumas ?? []).slice(portees).map((t) => t.uid) });
-    for (const l of applique.lignes) log.push(`  ↳ ${l}`);
+    for (const l of applique.lignes) log.push(`  ↳ ${l.texte}`);
     for (const l of lignesHorsDesFaits(applique, (id) => nomDe(id === target.id ? target : garanti(porteurParId(get(), id), id, "cible d'un fait de Blessure critique")))) {
-      revealLines.push(`  ↳ ${l}`);
-      details.push({ text: l });
+      revealLines.push(`  ↳ ${l.texte}`);
+      details.push({ text: l.texte });
     }
     faits.push(...applique.faits);
     if (crit.desc) {
@@ -2652,7 +2652,7 @@ export function applyStructureCriticalToTarget(
     pushTableDone(set, {
       id: `cons-critique-de-structure-${target.id}-${target.criticalWounds ?? 0}-${rolled.roll}`,
       kind: 'critique', actorId: target.id, icon: 'journal/critique', label: dataLabel(entry.title),
-      table, result: rolled, reveal: entry, outcome: toRecapLines(rolled.lines),
+      table, result: rolled, reveal: entry, outcome: recapDe(rolled.lines.map((x) => ligneDeTexte(x))),
       stake: combatStakeRef('structure-critique'),
     });
   }
@@ -2931,9 +2931,9 @@ function apresLeCritiqueDe(a: ApresLeCritique): (issue: IssueDuCritique, origine
     const { get, set, auteur, cible, log } = a;
     if (!auteur || issue === 'letale' || issue === 'reportee') return;
     if (issue === 'subie') {
-      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      const consequences: Applique = { lignes: [], faits: [] };
       const fb = loseWounds(cible, talentCritExtraWounds(auteur), consequences);
-      if (fb > 0) log.push(tr('cf.coupBlessant', { name: nomDe(cible), n: fb }), ...consequences.lignes);
+      if (fb > 0) log.push(tr('cf.coupBlessant', { name: nomDe(cible), n: fb }), ...consequences.lignes.map((e) => e.texte));
     }
     const battle = get().battle;
     if (!battle) return;
@@ -3233,9 +3233,9 @@ function encaisserLeCoup(e: EncaissementDuCoup): { lancerDuTableau?: number; inf
  *  de combat (LDB 13). */
 function cloreLeCoup(get: Get, cible: Combatant, currentBefore: number, log: string[]): void {
   resolveFirstBlood(cible, get().battle?.victoryCondition, currentBefore - cible.wounds.current, log);
-  const consequences: LignesEtFaits = { lignes: [], faits: [] };
+  const consequences: Applique = { lignes: [], faits: [] };
   if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible, consequences);
-  log.push(...consequences.lignes);
+  log.push(...consequences.lignes.map((e) => e.texte));
   delierLeHorsDeCombat(get, cible);
 }
 
@@ -3331,7 +3331,7 @@ export function applyAttackResult(
   weapon: Weapon,
   res: AttackResult,
   coup: ApplicationDuCoup = {},
-): Applique {
+): SignalDeSuite {
   const avant = comptePorteursDeSuite(get());
   const finale = appliquerLaTouche(get, set, attacker, target, weapon, res, coup);
   if (!finale) return MAIN_RENDUE;
@@ -3366,7 +3366,7 @@ function appliquerLaTouche(
   // d'intention de l'attaquant n'a donc plus lieu d'être ici, quel que soit le chemin qui a mené à l'application.
   clearActorAim(get, set, attacker.id);
   // LDB 16 l.139 ; LDB 85 l.43. Une reprise de fenêtre de Blessure critique (`decides`) rejoue la même tentative.
-  const sortieDuSurpris: LignesEtFaits = { lignes: [], faits: [] };
+  const sortieDuSurpris: Applique = { lignes: [], faits: [] };
   if (decides.length === 0 && hasCondition(target, COND.surpris)) removeCondition(target, COND.surpris, 1, sortieDuSurpris);
   // Sauvegardes SYNCHRONES « après la touche » en registre ordonné (noyau/combat/hitModifiers) :
   // 5 réveil d'un dormeur → 8 Bouclier anti-flèches → 10 sauvegarde « 1d10 ≥ Indice », UNIQUE (traits
@@ -3377,7 +3377,7 @@ function appliquerLaTouche(
   // ci-dessous. Les saves posent leur ligne dans `res.ajouts` (journalisé par `ligneDuCoup`
   // en fin de coup) → `sink` no-op ici. `encaisse` : ce qu'un TIERS a pris (Martyr) — l'interruption de
   // Focalisation du prêtre vit ici, le registre n'important rien de ce module.
-  const tiersLog: string[] = [...sortieDuSurpris.lignes];
+  const tiersLog: string[] = sortieDuSurpris.lignes.map((e) => e.texte);
   // La SAUVEGARDE « 1d10 ≥ Indice » (LDB 85 l.98 / l.278, LDB 47 l.410) ne se roule plus ici : le registre
   // la DÉCLARE, la porte la joue, et la résolution du coup est SUSPENDUE jusque-là — AUCUNE mutation de la
   // cible avant (ni Empoignade, ni mort-auto, ni Critique), exactement comme la fenêtre de Déviation
@@ -4054,9 +4054,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
   const units = r.roll % 10;
   switch (r.kind) {
     case 'selfWound': {
-      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(c, 1, consequences); // ignore BE+PA (l.18)
-      log.push(...consequences.lignes);
+      log.push(...consequences.lignes.map((e) => e.texte));
       break;
     }
     case 'weaponDamageActLast':
@@ -4084,9 +4084,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
         const ally = allies[battleRng().int(0, allies.length - 1)];
         const loc = hitLocationByShape(reverseRoll(r.roll), ally.bodyShape);
         const lost = woundsFromHit(weapon, ally, loc, effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1 (l.165)
-        const consequences: LignesEtFaits = { lignes: [], faits: [] };
+        const consequences: Applique = { lignes: [], faits: [] };
         loseWounds(ally, lost, consequences);
-        log.push(tr('cf.maladresseToucheUnAllie', { name: nomDe(ally), loc: locationLabel(loc, ally.bodyShape), lost }), ...consequences.lignes);
+        log.push(tr('cf.maladresseToucheUnAllie', { name: nomDe(ally), loc: locationLabel(loc, ally.bodyShape), lost }), ...consequences.lignes.map((e) => e.texte));
       } else {
         addCondition(c, COND.sonne); // « Si personne n'est à distance, vous vous frappez tout seul → Sonné » (l.45-46)
         log.push(tr('cf.maladresseSeSonne'));
@@ -4095,9 +4095,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
     }
     case 'misfire': {
       const lost = woundsFromHit(weapon, c, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size); // plancher 1
-      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(c, lost, consequences);
-      log.push(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.maladresseRateLeTirDetruite' : 'cf.maladresseRateLeTir', { lost }), ...consequences.lignes);
+      log.push(tr(casse === 'brisee' && !hasQuality(weapon, 'bacle') ? 'cf.maladresseRateLeTirDetruite' : 'cf.maladresseRateLeTir', { lost }), ...consequences.lignes.map((e) => e.texte));
       // Arme d'équipe (MDG 12 l.464) : « Si une arme dotée du Défaut Arme d'équipe subit un Incident de
       // tir, tous les membres de son équipage sont affectés. » → CHAQUE servant APTE du poste (hors le
       // tireur, déjà frappé ci-dessus) subit le même coup (Dégâts au Bras principal, mitigés à SA fiche).
@@ -4108,9 +4108,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           .filter((x): x is Combatant => !!x));
         for (const s of servants) {
           const sLost = woundsFromHit(weapon, s, 'brasD', effectiveWeaponDamage(weapon, force) + units, 0, 1, c.size);
-          const deLEquipage: LignesEtFaits = { lignes: [], faits: [] };
+          const deLEquipage: Applique = { lignes: [], faits: [] };
           loseWounds(s, sLost, deLEquipage);
-          log.push(tr('cf.maladresseRateLeTirEquipage', { name: nomDe(s), lost: sLost }), ...deLEquipage.lignes);
+          log.push(tr('cf.maladresseRateLeTirEquipage', { name: nomDe(s), lost: sLost }), ...deLEquipage.lignes.map((e) => e.texte));
         }
       }
       // Table AA « Incidents de Tir d'Artillerie par Salve » (AA 10 l.270-277) : une arme à Atout
@@ -4134,9 +4134,9 @@ export function applyOups(get: Get, set: SetFn, c: Combatant, weapon: Weapon, r:
           for (const s of salveCrew) {
             const loc: HitLocation = salve.entry.location === 'brasPrincipal' ? 'brasD' : hitLocationByShape(reverseRoll(battleRng().int(1, 100)), s.bodyShape);
             const sLost = woundsFromHit(weapon, s, loc, effectiveWeaponDamage(weapon, force) + battleRng().int(0, 9), 0, 1, c.size);
-            const deLaSalve: LignesEtFaits = { lignes: [], faits: [] };
+            const deLaSalve: Applique = { lignes: [], faits: [] };
             loseWounds(s, sLost, deLaSalve);
-            log.push(tr('cf.salveDArtillerieTouche', { name: nomDe(s), lost: sLost, loc: locationLabel(loc, s.bodyShape) }), ...deLaSalve.lignes);
+            log.push(tr('cf.salveDArtillerieTouche', { name: nomDe(s), lost: sLost, loc: locationLabel(loc, s.bodyShape) }), ...deLaSalve.lignes.map((e) => e.texte));
           }
         }
         if (salve.entry.strayFire) log.push(tr('cf.salveDArtilleriePerdue', { note: salve.note }));
@@ -4227,9 +4227,9 @@ export function choixPiegeLame(pbt: PendingBladeTrap, defenseur: Combatant, atta
     label: tr('step.paradePiegerLame'),
     options: [{ key: 'piege', label: tr('opt.piegerLame') }, { key: 'critique', label: tr('opt.coupCritique') }],
     defaultChoice: 'critique', piegeLame: pbt, meta: { differeLaSuite: true },
-    outcome: toRecapLines([
-      tr('cf.piegeLamePortee', { name: nomDe(defenseur), parade: parade.label, foe: nomDe(attaquant), weapon: pbt.weapon.label }),
-      tr('cf.piegeLameIssue', { dr: pbt.defSL, foe: nomDe(attaquant) }),
+    outcome: recapDe([
+      ligneDeTexte(tr('cf.piegeLamePortee', { name: nomDe(defenseur), parade: parade.label, foe: nomDe(attaquant), weapon: pbt.weapon.label })),
+      ligneDeTexte(tr('cf.piegeLameIssue', { dr: pbt.defSL, foe: nomDe(attaquant) })),
     ]),
   };
 }
@@ -4560,7 +4560,7 @@ export function glisseDeLaMain(get: Get, set: SetFn, attacker: Combatant, hand: 
   const avant = [...(attacker.activeEffects ?? [])];
   const { lignes } = applyOps(attacker, [{ op: 'disarm' }], { idNeuf: get().forgerUnId, rng: battleRng(), location: hand === 'secondaire' ? 'brasG' : 'brasD', ...crochetDuSol(get, set) });
   lierLaRetenue(attacker, avant, { mainGatee: hand });
-  return { lignes, tient: tenues.every((uid) => isWeaponActive(attacker, uid)) };
+  return { lignes: lignes.map((e) => e.texte), tient: tenues.every((uid) => isWeaponActive(attacker, uid)) };
 }
 
 /** Main ensanglantée (AA 07 l.117) — Test de Dextérité (+20) JOUÉ INLINE pour un attaquant PILOTÉ PAR L'IA
@@ -4587,7 +4587,7 @@ export function aiHandGate(get: Get, set: SetFn, attacker: Combatant, weaponUid?
 /** L'attaque instantanée de `attacker` sur `target`. `deuxArmes` : la décision de l'IA d'attaquer des deux armes ;
  *  sans paire valide (`paireDesDeuxArmes`) dont l'arme du coup est la principale, l'attaque est simple.
  *  LDB 10 l.767-773 ; ADE II 08 l.233 ; AA 07 l.117 */
-export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, enchainement?: EnchainementDuCoup, weaponUid?: string, deuxArmes?: true): Applique {
+export function doAttack(get: Get, set: SetFn, attacker: Combatant, target: Combatant, enchainement?: EnchainementDuCoup, weaponUid?: string, deuxArmes?: true): SignalDeSuite {
   // ADE II 08 l.233.
   const armeDesignee = weaponUid ? attacker.weapons.find((w) => w.uid === weaponUid) : undefined;
   if (weaponUid && isStructure(target) && !armeDesignee) return undefined;
@@ -4656,9 +4656,9 @@ export function ouvrirLeNombreDAttaquesSubies(set: SetFn, op: Extract<GameOp, { 
  *  à la porte, `apresSuite` la suite que ce dé faisait attendre (#1508), gardée par la série jusqu'à sa fermeture ;
  *  puis la première attaque part par `doAttack`, sa suite déclarée `subie` (`poursuivreLaSerie`).
  *  MDG 15 l.161-164, l.176-178 */
-export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): Applique {
+export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, op: Extract<GameOp, { op: 'attaquesSubies' }>, restantes: number, apresSuite: Suite | undefined): SignalDeSuite {
   const assaillant = spawnEnemy({ statblock: op.assaillant.statblock }, get().forgerUnId('assaillant'), undefined);
-  const sortieALEntree: LignesEtFaits = { lignes: [], faits: [] };
+  const sortieALEntree: Applique = { lignes: [], faits: [] };
   const enJeu = 'poste' in cible ? membreDuBord(cible.poste, get().forgerUnId('membre-du-bord')) : entreeEnRencontre(cible.heros, sortieALEntree);
   const hote = 'poste' in cible ? { membre: { combattant: enJeu, poste: cible.poste } } : { avant: cible.heros };
   set((s: Jeu) => ({
@@ -4675,10 +4675,10 @@ export function ouvrirLaSerieSubie(get: Get, set: SetFn, cible: CibleDeLaSerie, 
  *  ouvert (`pendingFateSave`), le coup n'est pas achevé : la série attend. La dernière attaque achevée ou la cible hors
  *  d'action, la série se ferme (`fermerLaSerieSubie`) ; sinon l'assaillant qui perd son Action (`loseNextAction`) la
  *  voit décomptée sans être jouée (LDB 14 l.28), et l'attaque suivante part par `doAttack`. Une attaque à laquelle
- *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend un `Applique` : `MAIN_RENDUE` quand une
+ *  l'assaillant renonce (`doAttack` sans après-coup) est achevée de même. Rend un `SignalDeSuite` : `MAIN_RENDUE` quand une
  *  fenêtre ou le Destin tient la main, `undefined` quand la série s'est fermée.
  *  MDG 15 l.163-164, l.177-178 */
-export function poursuivreLaSerie(get: Get, set: SetFn): Applique {
+export function poursuivreLaSerie(get: Get, set: SetFn): SignalDeSuite {
   if (get().pendingFateSave) return MAIN_RENDUE;
   const serie = garanti(get().serieSubie, 'serieSubie', 'série d’attaques subies');
   const restantes = serie.restantes - 1;
@@ -4713,7 +4713,7 @@ export function fermerLaSerieSubie(get: Get, set: SetFn): void {
   const cible = garanti(porteurParId(get(), serie.cibleId), serie.cibleId, 'cible de la série d’attaques subies');
   const { avant, membre } = serie;
   ouvrirLaFinDeRencontre(get, set, avant ? [cible, serie.assaillant] : [serie.assaillant]);
-  const sortieDuReport: LignesEtFaits = { lignes: [], faits: [] };
+  const sortieDuReport: Applique = { lignes: [], faits: [] };
   set((s: Jeu) => ({ ...(avant ? { party: s.party.map((h) => (h.id === serie.cibleId ? sortieDeRencontre(avant, h, sortieDuReport) : h)) } : {}), serieSubie: null }));
   if (sortieDuReport.lignes.length) get().ecrireAuJournal(sortieDuReport.lignes);
   if (membre) rendreALEquipage(get, set, cible, membre.poste);
@@ -5042,7 +5042,7 @@ export function drainerLesGratuites(get: Get, set: SetFn, actor: Combatant): boo
  *  que désigne `op.weapon` (contexte d'arme comme `resolveDualSecond`), Action préservée. Le plafond borne aussi la récursion (un onHit qui touche → +1 attaque, recomptée
  *  → s'arrête au niveau). Appelée par `accorderLAttaqueGratuite` quand `runCombatFlow` exécute le `effet`/`grantFreeAttack`
  *  (le Test préalable a déjà réussi en amont, c'est un nœud Flow). */
-function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
+function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): SignalDeSuite {
   const target = inBattleId(get().battle, fa.targetId);
   if (!target || isOutOfAction(actor) || isOutOfAction(target) || !actor.pos || !target.pos) return undefined;
   const main = op.weapon === 'mainHand' ? armeDeMainPrincipale(actor) : null; // LDB 10 l.500
@@ -5076,7 +5076,7 @@ function applyTalentFreeAttack(get: Get, set: SetFn, actor: Combatant, op: Extra
 /** Pont exécuteur de Flow → vraie frappe, appelé par `runCombatFlow` (`combat/triggeredTest`) sur un
  *  `effet`/`grantFreeAttack`. REND la
  *  suspension de la frappe (#1852) — le dispatcher d'ops s'arrête à la première fenêtre ouverte. */
-export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): Applique {
+export function accorderLAttaqueGratuite(get: Get, set: SetFn, actor: Combatant, op: Extract<GameOp, { op: 'grantFreeAttack' }>, fa: FreeAttackFreeze): SignalDeSuite {
   return applyTalentFreeAttack(get, set, actor, op, fa);
 }
 
@@ -5244,9 +5244,9 @@ export function resolveDeviation(get: Get, set: SetFn, etapeId: string, dev: Pen
     apresLeCritiqueDe({ get, set, auteur, cible: target, lieu: dev.location, log, arme: dev.ctx.weaponObj })(issue, dev.origine); // #316
   }
   if (estUnCoupCritique(dev.origine)) breakBacleArmour(target, dev.location, log); // LDB 60 l.50
-  const consequences: LignesEtFaits = { lignes: [], faits: [] };
+  const consequences: Applique = { lignes: [], faits: [] };
   if (target.wounds.current <= 0 && !target.dead) applyZeroWounds(target, consequences); // LDB 18 l.15
-  log.push(...consequences.lignes);
+  log.push(...consequences.lignes.map((e) => e.texte));
   cloreLaReprise(get, set, target, log, dev.attackerId);
 }
 
@@ -5398,7 +5398,7 @@ function faimALIncantation(get: Get, caster: Combatant, spell: NonNullable<Retur
   if (componentUsed || !prendUnComposant(spell) || !traitCapability(caster.traits, 'castingHunger')) return;
   if ((caster.items ?? []).some(isRation)) return;
   const n = spell.cn ?? 0;
-  lines.push(tr('cf.faimALIncantation', { name: nomDe(caster), spell: spell.label, n }), ...applyOps(caster, [{ op: 'wounds', amount: n }], { idNeuf: get().forgerUnId, rng: battleRng(), caster }).lignes);
+  lines.push(tr('cf.faimALIncantation', { name: nomDe(caster), spell: spell.label, n }), ...applyOps(caster, [{ op: 'wounds', amount: n }], { idNeuf: get().forgerUnId, rng: battleRng(), caster }).lignes.map((e) => e.texte));
 }
 
 // ---------------------------------------------------------------------------
@@ -5497,8 +5497,8 @@ export function applyMiscast(get: Get, set: SetFn, caster: Combatant, severity: 
  * modes (dé tiré inline : tous les jets de la cascade ; dé posé : le jet de CETTE étape).
  * LDB 51 ; #4096.
  */
-function sorceryCorruption(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, jets: number): LignesEtFaits {
-  const sortie: LignesEtFaits = { lignes: [], faits: [] };
+function sorceryCorruption(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, jets: number): Applique {
+  const sortie: Applique = { lignes: [], faits: [] };
   if (!ctx.sorceryCorruption || !recoitLaCorruption(caster)) return sortie;
   for (let i = 0; i < jets; i++) {
     const gain = gainCorruption(get, set, caster, 1);
@@ -5512,23 +5512,23 @@ function sorceryCorruption(get: Get, set: SetFn, caster: Combatant, ctx: Pending
  *  immédiats, Corruption de Sorcellerie, étape de révélation, Test imbriqué. Le déclencheur
  *  `onMiscast` n'est PAS ici : il vaut par ÉVÉNEMENT d'Imparfaite, donc au site d'`applyMiscast`
  *  (`emitMiscastTriggered`) — une Multiplication d'infortune dénoue DEUX fois. */
-function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, m: MiscastResult): { applique: LignesEtFaits; affichee: boolean } {
+function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMiscastStep, m: MiscastResult): { applique: Applique; affichee: boolean } {
   const { severity } = ctx;
-  const lines = [m.log];
+  const lines: EntreeDuJournal[] = [ligneDeTexte(m.log)];
   const faits: FaitApplique[] = [];
   // La révélation porte les faits, et seules les lignes qui n'en lisent aucun (`lignesHorsDesFaits`).
   const revealLines = [m.log];
-  const absorber = (a: LignesEtFaits): void => {
+  const absorber = (a: Applique): void => {
     lines.push(...a.lignes);
     faits.push(...a.faits);
-    revealLines.push(...lignesHorsDesFaits(a, (id) => nomDe(id === caster.id ? caster : garanti(porteurParId(get(), id), id, "cible d'un fait d'Imparfaite")), m.label));
+    revealLines.push(...lignesHorsDesFaits(a, (id) => nomDe(id === caster.id ? caster : garanti(porteurParId(get(), id), id, "cible d'un fait d'Imparfaite")), m.label).map((e) => e.texte));
   };
   // « Après le lancer et avoir appliqué le résultat, réduisez vos Points de Péché
   // de 1, jusqu'à un minimum de 0 » (LDB 40 l.46). Le total DÉCROÎT depuis sa valeur VIVANTE : un
   // Péché gagné pendant la fenêtre de pose serait effacé par une réécriture depuis un instantané.
   if (severity === 'colere' && (caster.sinPoints ?? 0) > 0) {
     caster.sinPoints = Math.max(0, (caster.sinPoints ?? 0) - 1);
-    lines.push(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints }));
+    lines.push(ligneDeTexte(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints })));
     revealLines.push(tr('cf.pecheExpie', { name: nomDe(caster), n: caster.sinPoints }));
   }
   // Ops IMMÉDIATS de la rangée (États, Blessures et leur mitigation DÉCLARÉE, Corruption,
@@ -5550,7 +5550,7 @@ function finishMiscast(get: Get, set: SetFn, caster: Combatant, ctx: PendingMisc
   if (m.targetOps.length) {
     const cibles = (ctx.targetIds ?? []).map((id) => actorIn(get(), id)).filter((c): c is Combatant => !!c);
     if (!cibles.length) {
-      lines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
+      lines.push(ligneDeTexte(tr('cf.incantationImparfaiteSansCible', { label: m.label })));
       revealLines.push(tr('cf.incantationImparfaiteSansCible', { label: m.label }));
     }
     for (const c of cibles) {
@@ -5620,7 +5620,7 @@ function emitMiscastTriggered(get: Get, set: SetFn, caster: Combatant): string[]
  * fournit la RÉSOLUTION des acteurs (`actorIn`/`touchActors`), ce helper la finalisation.
  * `selectedSpellId:null` est neutre pour une action non-incantation (déjà null).
  */
-export function finishPlayerAction(get: Get, set: SetFn, lines: string[], kind: CombatEventKind = 'information'): void {
+export function finishPlayerAction(get: Get, set: SetFn, lines: (string | EntreeDuJournal)[], kind: CombatEventKind = 'information'): void {
   const battle = get().battle;
   if (battle) {
     // Filet de sécurité (cf. applyAttackResult) : un hook profond (ex. `onGainCondition` d'un ennemi
@@ -6878,9 +6878,9 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
     ctx: { attackerId: caster.id, attackerKind: caster.kind, weapon: spell.label, critTwice: twice, coup: suspendu },
     apres: apresLeCritiqueDe({ get, set, auteur: caster, cible, lieu: loc, log: lignes, woundsDealt: compte.compte.blessures }),
   });
-  const consequences: LignesEtFaits = { lignes: [], faits: [] };
+  const consequences: Applique = { lignes: [], faits: [] };
   if (cible.wounds.current <= 0 && !cible.dead) applyZeroWounds(cible, consequences); // LDB 18 l.15
-  lignes.push(...consequences.lignes);
+  lignes.push(...consequences.lignes.map((e) => e.texte));
   // Effets ADDITIONNELS d'un Projectile sur la cible (« Grands feux d'U'Zhul » : +2 En flammes, À
   // Terre ; « Drain » : soigne le lanceur) — lus depuis `spell.effects` (Flow éditable, feuilles
   // `on:'target'`).
@@ -6903,7 +6903,7 @@ function appliquerToucheDeProjectile(get: Get, set: SetFn, ch: ToucheDeProjectil
   {
     const dealt = Math.min(compte.compte.blessures, currentBefore);
     const lifeStealOps = spellOps(spell.effects, 'caster').filter((o) => o.op === 'lifeSteal');
-    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'sort', id: spell.id } }).lignes);
+    if (lifeStealOps.length) lignes.push(...applyOps(caster, lifeStealOps, { idNeuf: get().forgerUnId, rng: battleRng(), caster, label: spell.label, woundsDealt: dealt, source: { kind: 'sort', id: spell.id } }).lignes.map((e) => e.texte));
   }
   // Interruption de Focalisation : un Projectile magique blesse aussi un focaliseur (LDB 46 l.144).
   lignes.push(...checkFocusInterruption(get, set, cible));
@@ -7371,7 +7371,7 @@ export function applyCast(
     const peche = rule('priere-repetee-peche');
     const repetees = ciblesDejaPriees(caster, spell.id, cibleIds);
     if (peche > 0 && repetees.length) {
-      logLines.push(...applyOps(caster, repetees.map(() => ({ op: 'sinMod', amount: peche })), { idNeuf: get().forgerUnId, rng: battleRng(), sourceSpellId: spell.id }).lignes);
+      logLines.push(...applyOps(caster, repetees.map(() => ({ op: 'sinMod', amount: peche })), { idNeuf: get().forgerUnId, rng: battleRng(), sourceSpellId: spell.id }).lignes.map((e) => e.texte));
     }
     consignerLaPriere(caster, spell.id, cibleIds);
   }
@@ -7813,24 +7813,21 @@ export function bornerLaSequenceOuverte(get: Get, set: SetFn, borne: 'combatEndB
  * calque de `bandeDeNuit`. Une étape sans rangées RENONCE (fail-closed) : plus
  * aucun jet de bilan de combat ne s'applique en MONO depuis L4.
  *
- * `consequences: []` : les lignes partent au journal PAR RANGÉE (`row.outcome` les rend dans la
- * fenêtre), jamais en bloc d'étape — deux porteurs ne partagent pas une issue.
+ * Aucune `applique` d'étape : les lignes partent au journal PAR RANGÉE (`denouerLaRangee`, `row.outcome` les rend
+ * dans la fenêtre), jamais en bloc d'étape — deux porteurs ne partagent pas une issue.
  */
 function bandeDeFinDeCombat(
-  rowFn: (get: Get, set: SetFn, band: CascadeStep, row: BatchParticipant, hero: Combatant, meta: CascadeStepMeta) => LignesEtFaits,
+  rowFn: (get: Get, set: SetFn, band: CascadeStep, row: BatchParticipant, hero: Combatant, meta: CascadeStepMeta) => Applique,
 ): CascadeApplier {
   return (get, set, step) => {
     if (!step.participants) return;
     for (const row of step.participants) {
       const hero = actorIn(get(), row.id);
       if (!hero || !row.result) { row.outcome = []; continue; }
-      const { lignes, faits } = rowFn(get, set as SetFn, step, row, hero, combatEndRowMeta(step, row));
-      row.outcome = resultLines(freeCons(lignes));
-      if (faits.length) row.faits = faits;
-      for (const l of lignes) get().ecrireAuJournal(l);
+      for (const l of denouerLaRangee(row, rowFn(get, set as SetFn, step, row, hero, combatEndRowMeta(step, row)))) get().ecrireAuJournal(l.entree);
     }
     set(touchActors(get()));
-    return { consequences: [] };
+    return {};
   };
 }
 
@@ -7942,13 +7939,13 @@ export function finalizeBattle(get: Get, set: SetFn): void {
   });
   // Couture de RETOUR complète (`REPORT_DE_COMBATTANT`, #2312) : ce qui est propre à la rencontre
   // (`outOfRencontre`, LDB 17 l.31) n'en sort pas.
-  const sortieDuReport: LignesEtFaits = { lignes: [], faits: [] };
+  const sortieDuReport: Applique = { lignes: [], faits: [] };
   const newParty = party.map((h) => {
     const c = battle.combatants.find((x) => x.id === h.id && x.kind === 'heros');
     return c ? sortieDeRencontre(h, c, sortieDuReport) : h;
   });
   set({ party: newParty });
-  endLines.push(...sortieDuReport.lignes);
+  endLines.push(...sortieDuReport.lignes.map((e) => e.texte));
   if (endLines.length) get().ecrireAuJournal(endLines);
   // #30/#296 — Blessures de COQUE persistantes : si une coque du combat EST le navire de campagne
   // son état de fin de combat est écrit sur `CampaignVessel.wounds` (SOURCE
@@ -8242,7 +8239,7 @@ export function finishCombatEnd(get: Get, set: SetFn): void {
  * `issueDuPiegeALame`, applier muet) — MÊME paradigme que le Coup Critique (une étape visible « l'un sous
  * l'autre », acquittée par « Continuer/Terminer ») plutôt qu'une ligne noyée. `defenderSL` = le DR PROPRE du
  * jet résolu (la marge nette se recompose avec `bt`). */
-export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number, des: Map<string, number> = new Map()): Applique {
+export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: BladeTrapFreeze, defenderSL: number, des: Map<string, number> = new Map()): SignalDeSuite {
   const attacker = porteurParId(get(), bt.attackerId);
   if (!attacker || isOutOfAction(attacker)) return undefined;
   const drop = attacker.weapons.find((w) => w.uid === bt.weaponUid);
@@ -8274,7 +8271,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   const brisee = usee?.issue === 'brisee';
   const retenue = brisee ? undefined : ganteletRetient(attacker, drop);
   if (retenue) {
-    pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, tr('op.ganteletRetient', { name: nomDe(attacker), item: drop.label, mod: retenue.testMod })]),
+    pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'action/se-defendre', label: tr('cf.libelleDuPiegeALame'), outcome: recapDe([...usure, tr('op.ganteletRetient', { name: nomDe(attacker), item: drop.label, mod: retenue.testMod })].map((x) => ligneDeTexte(x))),
       ...(usee ? { faits: [usee] } : {}) });
     set(touchActors(get()));
     bus.emit(EVT.SCENE_DIRTY);
@@ -8285,7 +8282,7 @@ export function applyBladeTrap(get: Get, set: SetFn, defender: Combatant, bt: Bl
   if (tombe) crochetDuSol(get, set).onLacher(attacker, tombe);
   // Étape d'AFFICHAGE empilée (comme un Coup Critique) : visible « l'un sous l'autre », acquittée par le
   // joueur. `actorId` = le défenseur piégeur (propriétaire de la modale en coop). Applier muet (préserve `outcome`).
-  pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'objet/arme', label: tr('cf.libelleDuPiegeALame'), outcome: toRecapLines([...usure, line]),
+  pushDisplay(set, { id: idDansLaSequence(get, `cons-issue-du-piege-a-lame-${defender.id}`, 'combat'), kind: 'issueDuPiegeALame', actorId: defender.id, icon: 'objet/arme', label: tr('cf.libelleDuPiegeALame'), outcome: recapDe([...usure, line].map((x) => ligneDeTexte(x))),
     faits: [brisee && usee ? usee : faitDObjet(attacker, { arme: weaponIdentity(drop) }, 'lachee')] });
   set(touchActors(get()));
   bus.emit(EVT.SCENE_DIRTY);
@@ -8486,10 +8483,10 @@ export function resolveRoundBoundary(get: Get, set: SetFn): void {
   if (swarms.length)
     for (const c of battle.combatants) {
       if (c.swarm || isOutOfAction(c) || !swarms.some((s) => isEngagedWith(c, s))) continue;
-      const consequences: LignesEtFaits = { lignes: [], faits: [] };
+      const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(c, 1, consequences);
       // Les faits d'État de `consequences` sont ceux qui portent une ligne (`emettreDans`), au même rang.
-      consequences.faits.filter((f): f is FaitDEtat => f.genre === 'etat').forEach((f, i) => battle.log.push(evDEtat(f.id, consequences.lignes[i], c.id)));
+      consequences.faits.filter((f): f is FaitDEtat => f.genre === 'etat').forEach((f, i) => battle.log.push(evDEtat(f.id, consequences.lignes[i].texte, c.id)));
     }
   decayEngagement(battle.combatants);
   // Zones persistantes (L11) : un Round de moins ; les zones épuisées se dissipent (fumée, Mur de feu…).
@@ -9222,7 +9219,7 @@ function enregistrerLesPeursNeuves(get: Get, c: Combatant): string[] {
 }
 
 /** Verse les lignes de Psychologie de `c` au journal de combat. */
-function journaliserPsy(get: Get, set: SetFn, c: Combatant, lines: string[]): void {
+function journaliserPsy(get: Get, set: SetFn, c: Combatant, lines: (string | EntreeDuJournal)[]): void {
   if (!lines.length) return;
   const b = garanti(touchActors(get()).battle, 'battle', 'journaliserPsy');
   set({ battle: { ...b, log: [...b.log, ...evLines(lines, 'peur', c.id)] } });
@@ -9337,7 +9334,7 @@ function resoudreEnLigne(get: Get, set: SetFn, c: Combatant, decl: CombatPsychDe
       (tr) => evaluerRangeeBatch(row, hydrateTR({ ...tr, target: row.target, base: row.base })))
     : null;
   const r = inv ? { ...jet, ...inv } : jet;
-  journaliserPsy(get, set, c, resultLines(resolveCombatPsychRow(get, set, c, decl, psychRowMeta(row), r, false)).map((l) => l.text));
+  journaliserPsy(get, set, c, recapDe(resolveCombatPsychRow(get, set, c, decl, psychRowMeta(row), r, false).lignes).map((l) => l.entree));
 }
 
 /** Passe de Psychologie de DÉBUT de Round (LDB 21 l.9, l.25) : les Peurs neuves s'enregistrent, puis les
@@ -9398,13 +9395,13 @@ export function openRoundEndCascade(get: Get, set: SetFn): void {
  * l'Indice (vainc à ≥ Indice). SOURCE UNIQUE de la résolution par héros — l'applier de bande l'appelle
  * pour CHACUNE de ses rangées.
  */
-function resolveCombatPsychRow(get: Get, set: SetFn, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: { success: boolean; sl: number }, immune: boolean): Consequence[] {
+function resolveCombatPsychRow(get: Get, set: SetFn, hero: Combatant, cp: CombatPsychDecl, rm: CombatPsychRowMeta, r: { success: boolean; sl: number }, immune: boolean): Applique {
   const battle = get().battle;
   // DÉTERMINATION (LDB 17 l.59) : immunité TEMPORAIRE — la Peur/Terreur/Trait est IGNORÉE ce Round,
   // PAS vaincue. On NE cumule PAS le DR, on NE pose PAS de Brisé, on N'active PAS le trait ciblé : le
   // `psychState` (et le `calmeDR` d'une Peur déjà entamée) reste INCHANGÉ. Le collecteur de Round saute
   // ce héros tant que `psychImmuneRoundsLeft > 0` ; à l'expiration, la source reprend.
-  if (immune) return freeCons([tr('cf.immunitePsychologique', { name: nomDe(hero) })]);
+  if (immune) return { lignes: [ligneDeTexte(tr('cf.immunitePsychologique', { name: nomDe(hero) }))], faits: [] };
   let line: string;
   let phobieLine: string | null = null;
   const res = psychResolution(cp.kind);
@@ -9436,7 +9433,7 @@ function resolveCombatPsychRow(get: Get, set: SetFn, hero: Combatant, cp: Combat
     } else line = tr('out.fearOvercome', { name: nomDe(hero), foe: cp.sourceName });
   }
   // Immunités croisées (LDB 21) : Animosité/Préjugé cèdent dès qu'on tombe sous un effet psy dominant.
-  return freeCons([line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero)]);
+  return { lignes: [line, ...(phobieLine ? [phobieLine] : []), ...supersededLines(hero)].map((x) => ligneDeTexte(x)), faits: [] };
 }
 
 // === TRACE DE DÉCISION IA (DEV uniquement) ==================================================
@@ -9649,7 +9646,7 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       const foe = inBattleId(battle, targetId);
       if (!foe) break;
       clearGrapple(enemy, foe);
-      const sortie: LignesEtFaits = { lignes: [], faits: [] };
+      const sortie: Applique = { lignes: [], faits: [] };
       removeCondition(enemy, COND.empetre, stacks(enemy, COND.empetre), sortie); // se défait de l'*Empêtré* lié (LDB 14 l.161)
       battle.log.push(ev('esquive', tr('cs.grappleBreak', { name: nomDe(enemy), foe: nomDe(foe) }), enemy.id, foe.id), ...evLines(sortie.lignes, 'etat', enemy.id));
       set({ battle: { ...battle } });
@@ -9804,10 +9801,10 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       }
       // Filets barbelés (Zoo Impérial p.29) : Dégâts ignorant l'armure à CHAQUE tentative, réussie ou ratée.
       const struggleLines: string[] = rt.struggleDamage != null
-        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: enemy }).lignes
+        ? applyOps(enemy, [{ op: 'wounds', amount: rt.struggleDamage, ignoreTB: false }], { idNeuf: get().forgerUnId, rng: battleRng(), caster: enemy }).lignes.map((e) => e.texte)
         : [];
       const removed = recoveredStacks(netSL, stacks(enemy, action.state), success);
-      const sortie: LignesEtFaits = { lignes: [], faits: [] };
+      const sortie: Applique = { lignes: [], faits: [] };
       if (removed > 0) removeCondition(enemy, action.state, removed, sortie);
       // Filets (Zoo Impérial p.29) : un échec de libération AGGRAVE l'Empêtré (≠ Immobilisante générique).
       if (!success && rt.entangleOnFail) addCondition(enemy, action.state, 1);
@@ -9884,7 +9881,7 @@ export const TABLES = {
     mouvementDeFuite: (get, set, step) => {
       const f = step.fuite;
       const brise = f && completeFlee(get, set, f.moverId, f.foeId, f.broken);
-      return brise ? { consequences: [{ lignes: [], faits: [brise] }] } : undefined;
+      return brise ? { applique: { lignes: [], faits: [brise] } } : undefined;
     },
     /**
      * APPLIER de l'étape de SAUVEGARDE (#1508) : le dé est tombé (lancé ou POSÉ). La lecture est celle du
@@ -9897,14 +9894,14 @@ export const TABLES = {
       const ws = step.wardSave;
       if (!ws || !step.de?.result) return;
       // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `operationsDe`/`chuteDe`).
-      if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!porteur) return { applique: { lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const { sauve, ligne } = lireEnSeuil(ws.seuils[0], step.de.result, nomDe(porteur));
       const reste = ws.seuils.slice(1);
       if (!sauve && reste.length) {
         pousserSauvegarde(set, porteur.id, reste, ws.suite);
-        return { consequences: freeCons([ligne]) };
+        return { applique: { lignes: [ligneDeTexte(ligne)], faits: [] } };
       }
-      return { consequences: freeCons([ligne, ...reprendreApresSauvegarde(get, set, ws.suite, sauve)]) };
+      return { applique: { lignes: [ligneDeTexte(ligne), ...reprendreApresSauvegarde(get, set, ws.suite, sauve).map((x) => ligneDeTexte(x))], faits: [] } };
     },
     /**
      * APPLIER d'une étape de la grappe de CASSE D'ARME (#1508 T3b-4) : le dé est tombé (lancé ou POSÉ),
@@ -9922,9 +9919,9 @@ export const TABLES = {
       const tirage = de?.total ?? step.table?.result?.die;
       if (tirage == null) return; // aucun résultat sur l'étape : elle est ouverte, le goulot repassera
       // Porteur introuvable = conséquence PERDUE : elle se DIT (patron `sauvegarde`/`operationsDe`).
-      if (!porteur) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!porteur) return { applique: { lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const arme = armeDeLaCasse(get, casse);
-      if (!arme) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!arme) return { applique: { lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       const des = new Map(casse.des);
       const lignes: string[] = [];
       const seuil = step.de?.seuil;
@@ -9933,13 +9930,12 @@ export const TABLES = {
       // `applyBladeTrap`) journalise ses propres lignes PENDANT cet applier, donc le goulot — qui écrit
       // après lui — les placerait derrière. `dejaDites` dit au goulot que c'est fait (l'étape les affiche).
       journaliser(get, set, lignes, 'information', { actorId: step.actorId });
-      const dit = (extra: string[] = [], faits: FaitApplique[] = []): { consequences?: Consequence[]; dejaDites?: true } => {
+      const dit = (extra: string[] = [], faits: FaitApplique[] = []): { applique?: Applique; dejaDites?: true } => {
         journaliser(get, set, extra, 'information', { actorId: step.actorId });
-        const dites = freeCons([...lignes, ...extra]);
-        const consequences = faits.length ? [...dites, { lignes: [], faits }] : dites;
+        const applique: Applique = { lignes: [...lignes, ...extra].map((x) => ligneDeTexte(x)), faits };
         // RIEN à désigner — l'étape à TABLE n'a pas de ligne de seuil, sa conclusion est la LIGNE TIRÉE,
         // écrite par l'application. Le drapeau ne protège alors aucune écriture : il ne se pose pas.
-        return dites.length ? { consequences, dejaDites: true } : consequences.length ? { consequences } : {};
+        return recapDe(applique.lignes).length ? { applique, dejaDites: true } : faits.length ? { applique } : {};
       };
       const demande = demandesDeLaCasse(get, casse).filter((d) => !des.has(d.cle))[0];
       if (!demande) return dit(); // la grappe a changé sous le dé : rien n'est appliqué au hasard
@@ -9976,14 +9972,14 @@ export const TABLES = {
       if (!op || !step.de?.result) return;
       const poste = posteDeLEtape(step.meta);
       const cible: CibleDeLaSerie | undefined = poste ? { poste } : heros && { heros };
-      if (!cible) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!cible) return { applique: { lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       jouerFlowEntier(ouvrirLaSerieSubie(get, set, cible, op, step.de.result.total, step.meta?.apresSuite));
-      return { consequences: freeCons([]), suiteGardee: true };
+      return { applique: { lignes: [], faits: [] }, suiteGardee: true };
     },
     deviation: (get, set, step) => {
       const dev = step.deviation;
       // Le pli n'a pas posé le Critique : sa cible est introuvable, la conséquence se DIT (patron `sauvegarde`).
-      if (!dev) return step.critSeverity ? { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) } : undefined;
+      if (!dev) return step.critSeverity ? { applique: { lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } } : undefined;
       // Les faits de la Blessure critique de rang k vont à l'étape de la fenêtre k, que sa prévision annonçait
       // (`faitsPrevusDuCritique`) : celle-ci, ou une fenêtre d'avant, validée sans rien appliquer.
       const parRang = recueillirLaReprise(() => {
@@ -9995,7 +9991,7 @@ export const TABLES = {
       const avant = dev.mode === 'self' ? [] : dev.decides.flatMap((d, k) => (d.etape && parRang[k]?.length ? [[d.etape, parRang[k]] as const] : []));
       if (!faits.length && !avant.length) return undefined;
       return {
-        ...(faits.length ? { consequences: [{ lignes: [], faits }] } : {}),
+        ...(faits.length ? { applique: { lignes: [], faits } } : {}),
         ...(avant.length ? { faitsDesEtapesValidees: Object.fromEntries(avant) } : {}),
       };
     },
@@ -10028,14 +10024,14 @@ export const TABLES = {
         // Un mint qui REFUSE n'insère rien (politique de la porte : DEV throw, PROD dégradé) — le canal
         // `insert` ne porte donc que les étapes réellement montées.
         const sortie = (insert: readonly (BuiltCascadeStep | undefined)[]) =>
-          ({ insert: insert.filter((s): s is BuiltCascadeStep => !!s), ...(corruption.lignes.length ? { consequences: consequencesDe(corruption) } : {}) });
+          ({ insert: insert.filter((s): s is BuiltCascadeStep => !!s), ...(corruption.lignes.length ? { applique: corruption } : {}) });
         if (ctx.rerollHigh && rolled.die >= 91) return sortie([relance({}, 'relance')]);
         if (m.reroll === 'mineure-x2') return sortie([relance({ rerollHigh: true }, 'x2-0'), relance({ rerollHigh: true }, 'x2-1')]);
         return sortie([relance({ severity: 'majeure', rerollHigh: false }, 'majeure')]);
       }
       const fin = finishMiscast(get, set, caster, ctx, m);
       // Le dénouement est au journal (`finishMiscast`) ; l'étape de révélation le montre quand elle est poussée.
-      return fin.affichee ? undefined : { consequences: consequencesDe(fin.applique), dejaDites: true };
+      return fin.affichee ? undefined : { applique: fin.applique, dejaDites: true };
     },
     /** Conséquence d'une RANGÉE de bande `maladieDeFinDeCombat` (LDB 18/20) : Test de Contraction RÉSOLU →
      *  échec = contracte la maladie (`applyContraction`). La maladie et l'incubation « Instantanée »
@@ -10044,7 +10040,7 @@ export const TABLES = {
       const disease = typeof meta.disease === 'string' ? meta.disease : undefined;
       if (!disease) return { lignes: [], faits: [] };
       const lines = applyContraction(hero, disease, row.result!.success, battleRng(), meta.instant === true ? { instant: true } : undefined);
-      return { lignes: lines.length ? lines : [tr('cf.resisteALInfection', { name: nomDe(hero) })], faits: [] };
+      return { lignes: (lines.length ? lines : [tr('cf.resisteALInfection', { name: nomDe(hero) })]).map((x) => ligneDeTexte(x)), faits: [] };
     }),
     /** Conséquence d'une RANGÉE de bande `corruptionDeFinDeCombat` (LDB 19) : Test `influences-corruptrices` RÉSOLU →
      *  `corruptionGain` selon le Degré et le DR, puis `gainCorruption` (seuil/mutation via sa propre
@@ -10057,9 +10053,9 @@ export const TABLES = {
       // re-décrit QUE ce qui a été appliqué (#295 Lot 1, Décision 1b) : le gain RÉEL, ou une résistance nue.
       // Le DEGRÉ affronté est nommé des DEUX côtés (#1281, critère 2) : il l'était sur la seule réussite,
       // et l'échec ne laissait qu'un « +N Point(s) de Corruption » qui ne disait pas à quoi le porteur avait cédé.
-      if (gain <= 0) return { lignes: [tr('out.corruptExposureResist', { name: nomDe(hero), label })], faits: [] };
+      if (gain <= 0) return { lignes: [ligneDeTexte(tr('out.corruptExposureResist', { name: nomDe(hero), label }))], faits: [] };
       const applique = gainCorruption(get, set, hero, gain);
-      return { lignes: [tr('out.corruptExposureFail', { name: nomDe(hero), label }), ...applique.lignes], faits: applique.faits };
+      return { lignes: [ligneDeTexte(tr('out.corruptExposureFail', { name: nomDe(hero), label })), ...applique.lignes], faits: applique.faits };
     }),
     /** Applier MUET de l'étape d'AFFICHAGE de la conséquence Piège-lame : l'`outcome` (« lame brisée/arrachée »)
      *  est pré-posé sur l'étape (la mutation a déjà eu lieu dans `applyBladeTrap`) → rien à appliquer ici, seul
@@ -10076,7 +10072,7 @@ export const TABLES = {
       const avantLeCoup = reprendreLeCritiqueSuspendu(get, set, step.id);
       const defender = porteurParId(get(), pbt.defenderId);
       const attacker = porteurParId(get(), pbt.attackerId);
-      if (!defender || !attacker) return { consequences: freeCons([tr('cascade.cibleDisparue', { label: step.label ?? '' })]) };
+      if (!defender || !attacker) return { applique: { lignes: [ligneDeTexte(tr('cascade.cibleDisparue', { label: step.label ?? '' }))], faits: [] } };
       if (step.chosen !== 'piege') {
         // Coup Critique normal sur la défense (le défenseur place le Critique sur l'attaquant).
         const parryWeaponObj = defender.weapons.find((w) => w.uid === pbt.parryWeaponUid);
@@ -10114,12 +10110,10 @@ export const TABLES = {
       for (const part of step.participants) {
         const hero = actorIn(get(), part.id);
         if (!hero || !part.result) { part.outcome = []; continue; }
-        const lines = resultLines(resolveCombatPsychRow(get, set, hero, cp, psychRowMeta(part), part.result, !!part.immune));
-        part.outcome = lines;
-        for (const l of lines) get().ecrireAuJournal(l.text);
+        for (const l of denouerLaRangee(part, resolveCombatPsychRow(get, set, hero, cp, psychRowMeta(part), part.result, !!part.immune))) get().ecrireAuJournal(l.entree);
       }
       set(touchActors(get()));
-      return { consequences: [] };
+      return {};
     },
   } satisfies PartDeTable<'appliers', typeof GENRES_D_ETAPE>,
   plis: {

@@ -18,6 +18,7 @@ import type { Combatant } from '../engine/types';
 import { emptyNarratif } from './monde/campaignNarratif';
 import type { NarratifBlock } from '../data/schemas/defs-scenes/narratif';
 import { combattantDeTest, blessuresDeBase } from '../engine/combattantDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -91,8 +92,8 @@ describe('deriveChapterRecap — le récap est une DIFFÉRENCE, pas un journal (
       objectifsSoldes: [{ id: 'o', text: 'Atteindre Altdorf' }],
       party: [hero('h1', 0)], lieux: ['Altdorf'],
     });
-    expect(r.chronique.map((l) => l.text)).toEqual(['Atteindre Altdorf']);
-    expect(r.chronique[0].tone).toBe('reussite');
+    expect(r.chronique.map((l) => l.entree.texte)).toEqual(['Atteindre Altdorf']);
+    expect(r.chronique[0].entree.ton).toBe('reussite');
     expect(r.lieux).toEqual(['Altdorf']);
   });
 });
@@ -159,7 +160,7 @@ describe('la clôture se CONSOMME : « Terminer la séance » ferme le chapitre 
     applyEffects(get, set, [{ type: 'clearObjective', id: 'obj-1' }]);
     applyEffects(get, set, [{ type: 'setFlag', flag: 'chapitre-clos', value: true }]);
     expect(get().pendingChapterRecap?.chronique).toEqual([
-      { text: 'Atteindre Altdorf', icon: 'outil-de-carte/depart', tone: 'reussite', paquet: true },
+      { entree: ligneDeTexte('Atteindre Altdorf', { ton: 'reussite', icone: 'outil-de-carte/depart' }), paquet: true },
     ]);
     expect(get().finDeSeance, 'le récap ouvre sa fin de séance, aucune case cochée').toEqual({ heros: {}, groupe: {} });
 

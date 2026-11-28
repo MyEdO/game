@@ -558,7 +558,7 @@ describe('série d’attaques subies hors bataille (#3892)', () => {
     const s = g();
     const assaillant = s.serieSubie!.assaillant;
     const issue = s.pendingCascade!.participants.find((x) => x.kind === 'issueDuPiegeALame')!;
-    expect(issue.outcome).toContainEqual(expect.objectContaining({ text: t('cf.armeLachee', { name: nomDe(assaillant), weapon: 'Dague' }) }));
+    expect(issue.outcome).toContainEqual({ entree: ligneDeTexte(t('cf.armeLachee', { name: nomDe(assaillant), weapon: 'Dague' })) });
     expect(assaillant.weapons.some((w) => w.label === 'Dague')).toBe(false);
     expect(s.serieSubie).toMatchObject({ cibleId: H.id, restantes: 1 });
     expect(s.pendingDefense).toMatchObject({ attackerId: assaillant.id, defenderId: H.id });

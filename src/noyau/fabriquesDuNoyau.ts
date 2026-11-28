@@ -95,7 +95,7 @@ import type { ZoneEnPose } from './targetingHolder';
 import type { VerdictApprentissage } from '../engine/grimoire';
 import type { OrientationOutcome } from '../engine/seaNavigation';
 import type { VainqueurOppose } from '../engine/tests';
-import type { RecapTone } from './recapLine';
+import type { RecapTone } from '../engine/journal';
 import type { VainqueurDeTaverne } from '../engine/tavernGame';
 import type { SellRelation } from '../engine/seaVoyage';
 import type { VoyageCadence } from './voyageCadence';

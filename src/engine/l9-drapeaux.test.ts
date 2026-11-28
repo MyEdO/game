@@ -81,7 +81,7 @@ describe("Endurance de l'anachorète — « ne subit aucune pénalité causée p
     const c = mk();
     const lines = applyOps(c, [{ op: 'ignoreStatePenalties' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Endurance de l’anachorète', defaultDurationRounds: 3 }).lignes;
     expect(c.activeEffects?.[0]).toMatchObject({ label: 'Endurance de l’anachorète', ignoreStatePenalties: true, duration: { scale: 'rounds', left: 3 } });
-    expect(lines.join(' ')).toMatch(/pénalité d'État|pénalités d'État/i);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/pénalité d'État|pénalités d'État/i);
   });
   it('effets curés : Endurance de l’anachorète porte l’op (plus de narrative seul)', () => {
     expect(opsOf('endurance-de-l-anachorete').some((o) => o.op === 'ignoreStatePenalties')).toBe(true);
@@ -148,7 +148,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
     const eff = c.activeEffects?.find((e) => e.suppressedPsych);
     expect(eff?.suppressedPsych).toHaveLength(2);
     expect(eff?.duration).toEqual({ scale: "clock", until: 120 });
-    expect(lines.join(' ')).toMatch(/Traits? psychologiques?/i);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/Traits? psychologiques?/i);
   });
   it('expiration en fin de Round : les Traits psy suspendus sont restitués', () => {
     const c = mk({ psychTraits: [{ type: 'haine', cible: ciblePsy.groupe('skaven') }] });
@@ -162,7 +162,7 @@ describe('Baume pour un esprit blessé — « Tous les Traits Psychologiques son
     const c = mk();
     const lines = applyOps(c, [{ op: 'suppressPsych' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Baume', defaultDurationRounds: 3 }).lignes;
     expect(c.activeEffects?.some((e) => e.suppressedPsych) ?? false).toBe(false);
-    expect(lines.join(' ')).toMatch(/aucun Trait/i);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/aucun Trait/i);
   });
   it('Traits psy DÉRIVÉS (Talent, maladie) : l’effet se pose, même vide, et les masque', () => {
     const dz = contractDisease('verole-cerebrale-a-taches-vertes', deFixe(1), { incubation: 0, duration: 1 })!;
@@ -222,11 +222,11 @@ describe('Putréfaction — « le cuir se racornit (perdant 1 PA à 1 Localisati
     const c = mk({ items: [leather()] });
     const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' }).lignes;
     expect(c.items![0].usure).toEqual({ corps: 1 });
-    expect(lines.join(' ')).toMatch(/racornit|pourrit/i);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/racornit|pourrit/i);
   });
   it('sans cuir porté : rien d’endommagé, journal honnête', () => {
     const c = mk();
     const lines = applyOps(c, [{ op: 'damageArmour', material: 'cuir' }], { idNeuf: idsDeTest, rng: desDuTest, label: 'Putréfaction' }).lignes;
-    expect(lines.join(' ')).toMatch(/pas de cuir|aucun cuir/i);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/pas de cuir|aucun cuir/i);
   });
 });

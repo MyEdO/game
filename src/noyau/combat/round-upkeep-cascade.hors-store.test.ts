@@ -14,6 +14,7 @@ import { setCadence } from '../../engine/cadence';
 import { runCombatHooks } from '../combatHooks';
 import { cleDeFixture } from '../noyau.testkit';
 import { deFixe } from '../../engine/dice.testkit';
+import { ligneDeTexte } from '../../engine/journal';
 
 let banc: Banc;
 beforeEach(() => { banc = ouvrirLeBanc(); });
@@ -209,12 +210,12 @@ describe('Upkeep de fin de Round — héros en cascade, ennemis en silence', () 
     // Fragment 1 : la séquence de fin de Round, telle que l'ouvre `openRoundEndCascade` (combatFlow).
     startCascade(banc.getState, banc.setState, {
       title: 'Fin de Round', icon: 'temps/heure', purpose: 'combat', roundBoundary: true,
-      steps: [{ id: 'fear', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ text: 'Peur de fin de Round' }]}],
+      steps: [{ id: 'fear', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ entree: ligneDeTexte('Peur de fin de Round') }]}],
     });
     // Fragment 2 : la défense de manœuvre de zone de la créature, appendue à la séquence en vol.
     startCascade(banc.getState, banc.setState, {
       title: 'Manœuvre', purpose: 'combat',
-      steps: [{ id: 'zone-def', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ text: 'Défense de zone' }]}],
+      steps: [{ id: 'zone-def', kind: cleDeFixture('note'), actorId: H.id, outcome: [{ entree: ligneDeTexte('Défense de zone') }]}],
     });
     const merged = banc.getState().pendingCascade!;
     expect(merged.participants.map((s) => s.id)).toEqual(['fear', 'zone-def']); // fusion, aucun fragment perdu

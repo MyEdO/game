@@ -19,12 +19,12 @@ import { battleRng } from '../battleRng';
  *  place ; renvoie le journal `applyOps`. */
 export function damageHull(hull: Combatant, amount: number, idNeuf: FabriqueDId): string[] {
   if (amount <= 0) return [];
-  return applyOps(hull, [{ op: 'wounds', amount, ignoreTB: true, ignoreAP: true }], { idNeuf, rng: battleRng() }).lignes;
+  return applyOps(hull, [{ op: 'wounds', amount, ignoreTB: true, ignoreAP: true }], { idNeuf, rng: battleRng() }).lignes.map((e) => e.texte);
 }
 
 /** Restaure `amount` Blessures de coque (plafonné au max) au Combattant-coque. Mute `hull` en place ;
  *  renvoie le journal `applyOps`. */
 export function healHull(hull: Combatant, amount: number, idNeuf: FabriqueDId): string[] {
   if (amount <= 0) return [];
-  return applyOps(hull, [{ op: 'heal', amount }], { idNeuf, rng: battleRng() }).lignes;
+  return applyOps(hull, [{ op: 'heal', amount }], { idNeuf, rng: battleRng() }).lignes.map((e) => e.texte);
 }

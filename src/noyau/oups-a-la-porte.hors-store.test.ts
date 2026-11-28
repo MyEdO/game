@@ -88,7 +88,7 @@ function poser(valeur: number): string {
 
 /** Ce que le joueur a lu — conséquences des étapes + journal de combat. */
 const lignesLues = (): string[] => [
-  ...(banc.getState().pendingCascade?.participants ?? []).flatMap((s) => (s.outcome ?? []).map((l) => l.text)),
+  ...(banc.getState().pendingCascade?.participants ?? []).flatMap((s) => (s.outcome ?? []).map((l) => l.entree.texte)),
   ...(banc.getState().battle?.log ?? []).map((l) => l.entree.texte),
 ];
 

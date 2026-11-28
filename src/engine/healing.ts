@@ -27,6 +27,7 @@ import { objetDuTrapping } from './items';
 import { nomDe } from './nom';
 import { groupMatch, groupesDe } from './groups';
 import type { Applique } from './faits';
+import { ligneDeTexte } from './journal';
 
 /** Id STABLE de la Compétence des actes de soin — source unique des sites qui la testent ou la lisent. */
 export const HEAL_SKILL = 'guerison';
@@ -249,7 +250,7 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
   if (delta < 0) {
     const consequences: Applique = { lignes: [], faits: [] };
     const lost = loseWounds(target, -delta, consequences);
-    return [t('heal.backfire', { name: nomDe(target), lost }), ...consequences.lignes];
+    return [t('heal.backfire', { name: nomDe(target), lost }), ...consequences.lignes.map((e) => e.texte)];
   }
   if (delta === 0) return customLog ? customLog(0, undefined) : [t('heal.nothing', { name: nomDe(target) })];
   const before = target.wounds.current;
@@ -260,11 +261,11 @@ export function applyHealWounds(target: Combatant, delta: number, opts: HealWoun
   if (wake && target.wounds.current > 0) target.roundsAtZero = 0;
   const log = customLog ? customLog(healed, reveil) : [
     healed > 0 ? t('heal.gain', { name: nomDe(target), n: healed, cur: target.wounds.current, max: target.wounds.max }) : t('heal.lodgedBlocks', { name: nomDe(target) }),
-    ...(reveil ? [t('heal.awake', { name: nomDe(target) }), ...reveil.lignes] : []),
+    ...(reveil ? [t('heal.awake', { name: nomDe(target) }), ...reveil.lignes.map((l) => l.texte)] : []),
   ];
   // Le réveil ci-dessus retire TOUT l'Inconscient : celui qu'un fait toujours vivant PORTE (Fièvre
   // (Grave), LDB 20 l.170) revient par la réconciliation — un soin ne guérit pas la fièvre.
-  log.push(...syncDerivedConditions(target).lignes);
+  log.push(...syncDerivedConditions(target).lignes.map((l) => l.texte));
   return log;
 }
 
@@ -280,7 +281,7 @@ export function applyStopBleed(target: Combatant, dr: number, p: ParametresDeSoi
   const [fait] = faitsDesPoses(target, ['hemorragique'], () => removeCondition(target, 'hemorragique', arretDHemorragie(target, dr, true, p), sortie));
   const retires = -(fait?.valeur ?? 0);
   if (retires <= 0) return [t('heal.bleedResists', { name: nomDe(target) })];
-  return [t('heal.bleedStopped', { name: nomDe(target), n: retires }), ...sortie.lignes];
+  return [t('heal.bleedStopped', { name: nomDe(target), n: retires }), ...sortie.lignes.map((e) => e.texte)];
 }
 
 /** `c` porte-t-il une Blessure Critique de la rencontre qu'aucun pansement ne couvre encore ? LDB 09 l.260, LDB 72 l.20 */
@@ -322,7 +323,7 @@ export function resolveExtractLodgedAmmo(target: Combatant, success: boolean): s
   const before = lodgedAmmoCount(target);
   if (before <= 0) return [t('heal.noLodged', { name: nomDe(target) })];
   if (!success) return [t('heal.lodgedResists', { name: nomDe(target) })];
-  const sortie: Applique = { lignes: [t('heal.lodgedRemoved', { name: nomDe(target), left: before - 1 })], faits: [] };
+  const sortie: Applique = { lignes: [ligneDeTexte(t('heal.lodgedRemoved', { name: nomDe(target), left: before - 1 }))], faits: [] };
   removeCondition(target, 'munition-logee', 1, sortie);
-  return sortie.lignes;
+  return sortie.lignes.map((e) => e.texte);
 }

@@ -231,7 +231,7 @@ describe('Psychologie de combat héros — cascade de Round (Peur/Terreur)', () 
     const rangee = row(H.id); // l'applier écrit SON verdict sur cette rangée (la cascade se ferme après)
     banc.getState().jetValider('cascade');
     expect((heroOf(H.id).psychState ?? []).find((p) => p.type === 'peur' && p.sourceId === E.id)?.surmontee).toBe(true);
-    const journal = rangee.outcome!.map((l) => l.text);
+    const journal = rangee.outcome!.map((l) => l.entree.texte);
     expect(journal).toContain(t('out.fearOvercome', { name: nomDe(H), foe: nomDe(E) }));
     expect(journal).not.toContain(t('turn.fearVanquished', { name: nomDe(H), foe: nomDe(E), talent: sansPeurLabel() }));
   });

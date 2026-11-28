@@ -16,7 +16,6 @@ import { setDesFixes, resetDesFixes, FIXED_ROLL_MAX, clampFixedRoll } from '../e
 import { bestForcedRoll, evaluateTest } from '../engine/tests';
 import { startCascade } from './cascade';
 import { spyApplier } from './cascade.testkit';
-import { freeCons } from './rollSeam';
 import type { CascadeStep } from './pendings';
 import type { Combatant } from '../engine/types';
 import { avecLesTables, cleDeFixture } from './noyau.testkit';
@@ -334,7 +333,7 @@ describe('journal — la marque appartient à l’ÉTAPE qui émet, pas au slot 
       die: deDeLaTableTiree({ die: { n: 1, sides: 100 } }),
       rows: [{ min: 1, max: 50, id: 'basse', label: 'Ligne basse' }, { min: 51, max: 100, id: 'haute', label: 'Ligne haute' }],
       lines: (die) => [`ligne (dé ${die})`],
-    } }, appliers: { ...tablesDuJeu().appliers, markSpy: spyApplier(applied, (s) => `conséquence de ${s.id} (dé ${s.table!.result!.roll})`, (s) => ({ consequences: freeCons([`conséquence de ${s.id} (dé ${s.table!.result!.roll})`]) })) } });
+    } }, appliers: { ...tablesDuJeu().appliers, markSpy: spyApplier(applied, (s) => `conséquence de ${s.id} (dé ${s.table!.result!.roll})`, (s) => ({ applique: { lignes: [ligneDeTexte(`conséquence de ${s.id} (dé ${s.table!.result!.roll})`)], faits: [] } })) } });
   });
 
   it('E1 dé POSÉ + E2 dé NATUREL : seule la ligne d’E1 porte la mention', () => {

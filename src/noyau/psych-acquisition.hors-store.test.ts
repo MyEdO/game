@@ -13,8 +13,8 @@ import { groupesPercus } from '../engine/groups';
 import { carryOverState } from '../engine/persistence';
 import { finalizeHeroDeath, instantaneAvantLeCoup } from './combatFlow';
 import { applierDe } from './cascade';
-import { draineEtapes, draineEtLit } from './cascade.testkit';
-import { bandStep, resultLines } from './rollSeam';
+import { draineEtapes, draineEtLit, lignesDeLApplier } from './cascade.testkit';
+import { bandStep } from './rollSeam';
 import { groupLabel, psychologyLabel } from '../data';
 import { ciblesDeTrauma, TRAITS_DE_TRAUMA } from '../engine/psychology';
 import { t } from '../i18n';
@@ -158,7 +158,7 @@ describe('ADE II 09 l.15 — les Cibles qu’offre le tueur (finalizeHeroDeath �
     return banc.getState().pendingCascade!.participants.find((e) => e.kind === 'cibleAcquise')!;
   };
   const appliquer = (step: CascadeStep, porteur: Combatant | undefined) =>
-    resultLines(applierDe('cibleAcquise')!(banc.getState, banc.setState, step, porteur, { steps: [step], index: 0 })?.consequences ?? []).map((l) => l.text);
+    lignesDeLApplier(applierDe('cibleAcquise')!(banc.getState, banc.setState, step, porteur, { steps: [step], index: 0 }));
 
   it('une Cible hors des options : aucun Trait, la ligne le dit', () => {
     const step = etapeEnAttente();
@@ -225,7 +225,7 @@ describe('ADE II 09 l.9-11 — Phobie du noir en combat (bande `psychologieDeCom
   const terreurRatee = (foe: Combatant, avant: TerreurSubie[]) => {
     setBattle([hero({ label: 'Hardi', terreursSubies: avant }), foe], null);
     const step = bandeRatee(foe, ['h1']);
-    return { h: porteur('h1'), lignes: step.participants![0].outcome?.map((l) => l.text) ?? [] };
+    return { h: porteur('h1'), lignes: step.participants![0].outcome?.map((l) => l.entree.texte) ?? [] };
   };
   const source = (groups: string[]) => hero({ id: 'e1', label: 'Spectre', kind: 'ennemi', fate: 0, groups } as Partial<Combatant>);
 

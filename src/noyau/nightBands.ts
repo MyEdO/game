@@ -24,23 +24,14 @@ import type { EchecSansJet } from '../engine/tests';
 import type { Combatant } from '../engine/types';
 import type { Get, Set } from './flowTypes';
 import { isNightTestKind } from '../engine/types';
-import type { CascadeApplier } from './cascade';
+import { denouerLaRangee, type CascadeApplier } from './cascade';
 import { actorIn, porteurParId } from './monde/combatants';
 import { touchActors } from './combatOrParty';
-import {
-  faitsDesConsequences,
-  resultLines,
-  bandStep,
-  bandRowOfStep,
-  bandCommonMeta,
-  makeBandFactory,
-  refusePorte,
-  type Consequence,
-  type BandSpec,
-} from './rollSeam';
+import { bandStep, bandRowOfStep, bandCommonMeta, makeBandFactory, refusePorte, type BandSpec } from './rollSeam';
 import { type BuiltCascadeStep } from './stepBrand';
 import { EXPOSURE_BAND_KINDS } from './bandesDExposition';
 import { sealskinDR, type ExposureKind } from '../engine/exposure';
+import { type Applique } from '../engine/faits';
 
 /** Discriminant d'ENTRÉE DE RÈGLE d'une étape de nuit, lu dans son `meta` : la maladie et son symptôme
  *  (`maladie-test-quotidien`/`maladie-gangrene`/`maladie-persistance`/`contagion` sont des entrées DIFFÉRENTES), le volet
@@ -115,7 +106,7 @@ export type NightRowApplier = (
   row: BatchParticipant,
   hero: Combatant,
   ctx: { steps: CascadeStep[]; index: number },
-) => { consequences?: Consequence[]; insert?: readonly BuiltCascadeStep[] } | void;
+) => { applique?: Applique; insert?: readonly BuiltCascadeStep[] } | void;
 
 /** DÉNOUEMENT de BANDE : décide de la liste FINALE d'étapes insérées, à partir de ce que les rangées
  *  ont demandé. Un `kind` qui n'en fournit pas fait passer les insertions par la fabrique (défaut).
@@ -144,15 +135,12 @@ export function bandeDeNuit(rowFn: NightRowApplier, bandFn?: NightBandApplier): 
       const hero = porteurParId(get(), row.id);
       if (!hero || !row.result) { row.outcome = []; continue; }
       const out = rowFn(get, set, step, row, hero, ctx);
-      const lines = out?.consequences ? resultLines(out.consequences) : [];
-      row.outcome = lines;
-      const faits = faitsDesConsequences(out?.consequences ?? []);
-      if (faits.length) row.faits = faits;
-      for (const l of lines) get().ecrireAuJournal(l.text);
+      const lines = denouerLaRangee(row, out?.applique ?? { lignes: [], faits: [] });
+      for (const l of lines) get().ecrireAuJournal(l.entree);
       if (out?.insert?.length) insert.push(...out.insert);
     }
     set(touchActors(get()));
-    return { consequences: [], insert: bandFn ? bandFn(get, set, step, ctx, insert) : nightBands(insert) };
+    return { insert: bandFn ? bandFn(get, set, step, ctx, insert) : nightBands(insert) };
   };
 }
 
