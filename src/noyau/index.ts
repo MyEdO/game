@@ -2,9 +2,11 @@
  * LA SURFACE DU NOYAU (#2817 D9) pour un hôte qui n'est pas le web : la partie et les événements de ses appels, les types de l'état et de
  * l'intention, et les lecteurs de sa vue (#2898) : le tour, les offres du registre, la fenêtre ouverte, ses jets,
  * la fenêtre d'attaque en données, la fiche d'un porteur, l'exploration, le plateau de la scène, la création d'un héros, les rôles d'animation, les gestes hors combat (#4938). Chaque nom a un lecteur parmi les hôtes, leur module commun ou
- * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare ; c'est le SEUL
- * module de `src/noyau` qui réexporte (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
+ * un test de la surface, que knip mesure (`knip.json`). Chaque nom vient du module qui le déclare, ou du vocabulaire
+ * des modèles 3D (`./vocabulaireDesModeles`) qu'elle réexporte en entier ; elles deux sont les seuls modules de `src/noyau` qui réexportent
+ * (`murs/reexportation`, `scripts/guards/lib/couchesLint.mjs`).
  */
+export * from './vocabulaireDesModeles';
 export { creerPartie, type Partie, type Intention, type EntreesDeLaPartie, type ResultatDeLAppel, type Evenement, type LigneDuJournal } from './partie';
 export { EVT, type ChargeDAttaque, type TestJete } from './bus';
 export { lancementDuProjet, type LancementDeScenario } from './lancementDeScenario';
@@ -21,11 +23,9 @@ export {
   CHAR_KEYS,
   DIFFICULTE_PAR_DEFAUT,
   DIFFICULTY_LABELS,
-  FIRE_ARCS,
   LOCALISATIONS_DE_COUP,
   locationLabel,
   type Difficulty,
-  type FireArc,
 } from '../engine/types';
 export { formatMoney, fromBrass, libelleDuStatut, PA_PER_CO, toBrass, type Money } from '../engine/money';
 export type { Applique, FaitApplique } from '../engine/faits';
@@ -79,8 +79,6 @@ export { maladieDeclaree } from '../engine/passifsDeMaladie';
 export { corruptionThreshold } from '../engine/corruption';
 export { cappedHealAmount, HEAL_SKILL, type HealMode } from '../engine/healing';
 export { surgeryTraumas } from '../engine/trauma';
-export type { Season } from '../engine/travelStages';
-export { saisonSchema } from '../data/schemas/grammaire/valeurs';
 export type { QualiteDeRepos } from '../data/schemas/grammaire/valeurs';
 export { memeSpecialisation, refCouvre, type RefDesignee } from '../data/schemas/grammaire/ref';
 export type { FlowDeScene } from '../data/schemas/defs-scenes/effets';
@@ -183,8 +181,8 @@ export { entreesDesFiches } from '../data/schemas/dossiers';
 export type { FicheLue } from '../data/schemas/source/dossier';
 export { findCouleurById, findTeinteById, gardeRobe } from '../data/index';
 export type { LigneDeGardeRobe } from '../data/index';
-export { ecartsDeCleDElement, libelleDeCleDElement, type CodeDEcartDeCle } from './apparence/cleDElement';
-export { emplacementDePiece, estEmplacement, pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
+export { libelleDeCleDElement } from './apparence/cleDElement';
+export { pieceRacine, emblemeDuPorteur, type EmblemeResolu } from './apparence/gardeRobe';
 export type { GabaritResolu } from './apparence/gabarit';
 export {
   cataloguesDeComposition,
@@ -210,7 +208,6 @@ export {
   seMontreParLeMonde,
   stationsDuNavire,
   TYPES_DE_NAVIRE,
-  type EmprisesDesCases,
   type CoqueDeLaScene,
   type StationDeNavire,
 } from './planDeNavire';
@@ -262,8 +259,6 @@ export type { RectDeCases } from '../data/schemas/grammaire/valeurs';
 export { planDeLaCouche, type OeilDuPlan } from './monde/sceneToAscii';
 export {
   couronnesDuMonde,
-  matieresDeDecor,
-  nomDeMatiere,
   posesDesDecors,
   retraitDuMonde,
   toitsDuMonde,
@@ -274,6 +269,7 @@ export {
   type RetraitDuMonde,
   type VolumeDuMonde,
 } from './monde/volume/volume';
+export { nomDeMatiere } from './monde/volume/matieres';
 export { echantillonDessine, famillesDEchantillons, sceneDEchantillon, type EchantillonDessine, type FamilleDEchantillons } from './monde/echantillons';
 export { PLAN_DEFECT_FAMILIES } from './planDefects';
 export {
@@ -475,9 +471,8 @@ export { declarationDuReglageNomme, REGLAGE_DE_L_AXE, VERBE_DE_REGLAGE } from '.
 export { VERBE_DE_CHOIX, declarationDuChoixNomme, type AxeDuChoix, type FenetreAChoix } from './choixDesFenetres';
 export { reglagesDesChoix, type CoutDeLaValeur } from './choixDeFenetre';
 export { avecSigne } from '../engine/types';
-export { MANIEMENTS, ROLES_D_ANIMATION, maniementDeLaForme, type RoleDAnimation } from './animation';
+export { maniementDeLaForme } from './animation';
 export type { VerrouDesMots } from './fabriquesDuNoyau';
-export type { Maniement } from '../data/schemas/grammaire/valeurs';
 export {
   lireLeRoster,
   ecrireLeRoster,
