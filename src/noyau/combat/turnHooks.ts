@@ -29,7 +29,7 @@ import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
 import type { FragmentDeTables, PartDeTable } from '../tablesPosees';
-import { ligneDeTexte } from '../../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal } from '../../engine/journal';
 
 /** La Cible de la Haine de Rage : le Groupe relatif des adversaires Engagés. LDB 85 l.282 ; Q12 B, #3045 */
 const HAINE_DE_RAGE = ciblePsy.groupe('adversaires-engages');
@@ -76,7 +76,7 @@ function fireTurnEdgeTriggers(get: Get, set: SetFn, c: Combatant | undefined, tr
 //    replié par `ouvrirLeTour` dans le budget du tour.
 // ============================================================================================
 
-export interface ActGateOutcome { loseMovement: boolean; lines: string[] }
+export interface ActGateOutcome { loseMovement: boolean; lines: EntreeDuJournal[] }
 
 /** Résout les gates d'action du combattant qui DEVIENT actif. UN Test par Caractéristique gatée et par
  *  Round (LDB 71). */
@@ -106,8 +106,8 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
     }
     const teste = { characteristic: char } as const;
     const res = rollSansPilote(get, c, teste, rawCombatTestBase(c, teste), 'intermediaire', battleRng(), combatTestPenalty(c));
-    out.lines.push(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res }));
-    if (!res.success) { out.loseMovement = true; out.lines.push(t('turn.testDAgirGardeLAction', { name: nomDe(c) })); }
+    out.lines.push(ligneDeTexte(traceLineOf({ who: nomDe(c), label: testTraceLabel(`${CHAR_LABELS[char]} (${label})`, 'intermediaire'), ...res })));
+    if (!res.success) { out.loseMovement = true; out.lines.push(ligneDeTexte(t('turn.testDAgirGardeLAction', { name: nomDe(c) }))); }
   }
   return out;
 }
@@ -163,7 +163,7 @@ export const TABLES = {
         if (adv >= 3) {
           campSpend(get, enemy, adv); // dépense TOUS ses Avantages (LDB 85 l.282) — réserve du camp en mode groupe (AA 11 l.30-38)
           (enemy.psychState ??= []).push({ type: PSY.frenesie });
-          battle.log.push(ev('frenesie', t('turn.rageEnter', { name: nomDe(enemy) }), enemy.id));
+          battle.log.push(ev('frenesie', ligneDeTexte(t('turn.rageEnter', { name: nomDe(enemy) })), enemy.id));
           set({ battle: { ...battle } });
           return;
         }
@@ -172,7 +172,7 @@ export const TABLES = {
         if (!battle.combatants.some((f) => !isOutOfAction(f) && vise(HAINE_DE_RAGE, sourceCombattant(f), 'appartenance', enemy))) return;
         campSpend(get, enemy, adv); // LDB 85 l.282 ; AA 11 l.30-38
         (enemy.psychState ??= []).push({ type: PSY.haine, cible: HAINE_DE_RAGE, active: true, lastTestRound: battle.round });
-        battle.log.push(ev('peur', t('turn.rageHate', { name: nomDe(enemy), groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
+        battle.log.push(ev('peur', ligneDeTexte(t('turn.rageHate', { name: nomDe(enemy), groupe: libelleDeCible(HAINE_DE_RAGE) })), enemy.id));
         set({ battle: { ...battle } });
       },
     },

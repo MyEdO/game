@@ -202,14 +202,14 @@ function purseStep(): CascadeStep {
 export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
   if (!rule('interlude-actif')) return; // LDB 21 l.108
   if (get().battle) {
-    get().ecrireAuJournal(msg('if.inCombat'));
+    get().ecrireAuJournal(ligneDeTexte(msg('if.inCombat')));
     return;
   }
   if (get().interlude) return; // déjà ouvert
   const party = get().party.filter((h) => !h.dead);
   if (!party.length) return;
   const w = Math.max(1, Math.floor(weeks));
-  const lines: string[] = [msg('if.openBanner', { n: w, s: w > 1 ? 's' : '' })];
+  const lines: EntreeDuJournal[] = [ligneDeTexte(msg('if.openBanner', { n: w, s: w > 1 ? 's' : '' }))];
   // L'aventure qui vient de s'achever purge ses effets « pour la prochaine aventure » (LDB 23 l.209/
   // 218/234 — statusMod de Réputation, jetons d'inversion) : cet interlude EST la borne de fin.
   // (Journalise ses propres lignes — pas de double comptage dans `lines`.)
@@ -221,7 +221,7 @@ export function ouvrirLInterlude(get: Get, set: Set, weeks = 1): void {
     const it = hero ? itemFromTrappingById(o.trappingId, get().forgerUnId, undefined, contexteDeNaissanceDObjet(hero)) : null;
     if (hero && it) {
       recevoirLObjet(hero, it);
-      lines.push(msg('if.orderDelivered', { name: nomDe(hero), label: trappingLabelOf(o.trappingId) }));
+      lines.push(ligneDeTexte(msg('if.orderDelivered', { name: nomDe(hero), label: trappingLabelOf(o.trappingId) })));
     }
   }
   const baseLeft = Math.min(3, w); // « 1/semaine, max 3 » (LDB 23 l.5)
@@ -318,7 +318,7 @@ function finishInterludeDraw(get: Get, set: Set): Applique {
   set({ interlude: { ...get().interlude!, perHero } });
   if (d.faillite) {
     for (const dep of [...(get().bank ?? [])].reverse()) {
-      if (dep.kind === 'investir') lines.push(...bankWithdrawInner(get, set, dep.uid, true).map((x) => ligneDeTexte(x)));
+      if (dep.kind === 'investir') lines.push(...bankWithdrawInner(get, set, dep.uid, true));
     }
   }
   set({ interlude: { ...get().interlude!, phase: 'activities' } });
@@ -463,9 +463,9 @@ function craftStart(get: Get, set: Set, heroId: string, trappingId: string, atou
   const h2 = get().party.find((x) => x.id === heroId)!;
   h2.craft = { trappingId: id, tier, avail, atouts, defauts, drDone: 0, drTarget: target.dr, difficulty: target.difficulty };
   set({ party: [...get().party] });
-  get().ecrireAuJournal(msg('if.craftStart', {
+  get().ecrireAuJournal(ligneDeTexte(msg('if.craftStart', {
     name: nomDe(h), cost: formatMoney(fromBrass(materials)), label: t.label, dr: target.dr, skill: skillInstanceLabel(metier),
-  }));
+  })));
 }
 
 // ── Catalogue d'Activités data-driven (`activities.json`, contexte 'interlude') ────────────────
@@ -495,10 +495,10 @@ export function openRitualFocus(
 ): (Partial<PendingActivityFields> & { label: string }) | undefined {
   const id = spellId ?? h.ritual?.spellId;
   const sp = id ? findSpellById(id) : undefined;
-  if (!sp?.isRitual || !(h.spells ?? []).includes(sp.id)) { get().ecrireAuJournal(id ? t('if.rituelUnknown', { id }) : t('if.rituelNoSelection', { name: nomDe(h) })); return undefined; }
-  if (sp.cn == null) { get().ecrireAuJournal(t('if.rituelNoFormula', { label: sp.label, cnFrom: sp.ritual?.cnFrom ?? '?' })); return undefined; }
-  if (h.ritual && h.ritual.spellId !== sp.id) { get().ecrireAuJournal(t('if.rituelAlreadyStarted', { name: nomDe(h), label: findSpellById(h.ritual.spellId)?.label ?? h.ritual.spellId })); return undefined; }
-  if (!focusSkillFor(h, sp)) { get().ecrireAuJournal(t('if.rituelNoFocusSkill', { name: nomDe(h), label: sp.label })); return undefined; }
+  if (!sp?.isRitual || !(h.spells ?? []).includes(sp.id)) { get().ecrireAuJournal(ligneDeTexte(id ? t('if.rituelUnknown', { id }) : t('if.rituelNoSelection', { name: nomDe(h) }))); return undefined; }
+  if (sp.cn == null) { get().ecrireAuJournal(ligneDeTexte(t('if.rituelNoFormula', { label: sp.label, cnFrom: sp.ritual?.cnFrom ?? '?' }))); return undefined; }
+  if (h.ritual && h.ritual.spellId !== sp.id) { get().ecrireAuJournal(ligneDeTexte(t('if.rituelAlreadyStarted', { name: nomDe(h), label: findSpellById(h.ritual.spellId)?.label ?? h.ritual.spellId }))); return undefined; }
+  if (!focusSkillFor(h, sp)) { get().ecrireAuJournal(ligneDeTexte(t('if.rituelNoFocusSkill', { name: nomDe(h), label: sp.label }))); return undefined; }
   if (!h.ritual) {
     const ni = ritualReduction(h, sp)?.cn ?? sp.cn;
     const drTarget = Math.ceil(ni / 2); // NI réduit de moitié en Activité (desc `accomplir-un-rituel`)
@@ -914,7 +914,7 @@ export function orderItem(get: Get, set: Set, heroId: string, trappingId: string
   const itl = get().interlude!;
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
   set({ interlude: { ...itl } });
-  get().ecrireAuJournal(msg('if.orderPlaced', { name: nomDe(h), label: t.label, cost: formatMoney(fromBrass(price)) }));
+  get().ecrireAuJournal(ligneDeTexte(msg('if.orderPlaced', { name: nomDe(h), label: t.label, cost: formatMoney(fromBrass(price)) })));
 }
 /** Prix tiré du tuteur d'Apprentissage de `h` pour un Talent à `xpCost` PX (`apprenticeshipTutorCost`), en sous de
  *  cuivre, ou `null` quand la bourse ne le couvre pas (refus dit). LDB 23 l.72 ; CRB 048 l.226 */
@@ -991,7 +991,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
   });
   if (!accepte) return;
   if (!r.ok) {
-    get().ecrireAuJournal(t('if.entrainementRefused', { name: nomDe(h), label: opt.label, reason: r.reason ?? '' }));
+    get().ecrireAuJournal(ligneDeTexte(t('if.entrainementRefused', { name: nomDe(h), label: opt.label, reason: r.reason ?? '' })));
     return;
   }
   // Tuteur débité APRÈS les Augmentations : la Bourse se lit sur l'acteur écrit (`actorIn`).
@@ -999,7 +999,7 @@ function entrainementStart(get: Get, set: Set, heroId: string, cle: string): voi
   const itl = get().interlude!;
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
   set({ interlude: { ...itl } });
-  get().ecrireAuJournal(t('if.entrainementDone', { name: nomDe(h), label: opt.label, cost: r.cost, tutor: formatMoney(fromBrass(tutor)) }));
+  get().ecrireAuJournal(ligneDeTexte(t('if.entrainementDone', { name: nomDe(h), label: opt.label, cost: r.cost, tutor: formatMoney(fromBrass(tutor)) })));
 }
 
 /** Applique le jet d'Activité confirmé (consomme l'Activité). CHEMIN UNIQUE data-driven :
@@ -1126,8 +1126,8 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: GenreDeDep
   if (refuseSi(get, set, () => refusDIndice(kind, indice))) return;
   if (!st || !h) return;
   const { debite: amount, depose: deposited } = devisDeDepot(get(), heroId, kind, amountBrass);
-  const lines: string[] = [];
-  for (const { label, fx } of effetsDeLaPeriode(get(), heroId)) if (fx.bankPct) lines.push(msg('if.eventBankPct', { pct: fx.bankPct, event: label }));
+  const lines: EntreeDuJournal[] = [];
+  for (const { label, fx } of effetsDeLaPeriode(get(), heroId)) if (fx.bankPct) lines.push(ligneDeTexte(msg('if.eventBankPct', { pct: fx.bankPct, event: label })));
   const r = kind === 'investir' ? indice ?? d10(battleRng()) : 0;
   payWithAllocation(get, set, { debits: soloPayer(heroId, fromBrass(amount)), recipient: heroId, purpose: 'dépôt-banque' });
   const uid = get().forgerUnId('it');
@@ -1135,10 +1135,10 @@ export function bankDeposit(get: Get, set: Set, heroId: string, kind: GenreDeDep
   const itl = get().interlude!;
   itl.perHero[heroId] = { ...st, left: st.left - 1 };
   set({ interlude: { ...itl } });
-  lines.push(msg(
+  lines.push(ligneDeTexte(msg(
     kind === 'investir' ? 'if.bankInvest' : kind === 'mecenat' ? 'if.bankMecenat' : 'if.bankStash',
     { name: nomDe(h), money: formatMoney(fromBrass(deposited)), rate: r },
-  ));
+  )));
   // Un dépôt en banque réputée vérifie la faillite sous la période qui l'exige. LDB 22 l.111
   if (kind === 'investir' && verificationDeFaillite(get(), heroId)) {
     lines.push(...bankWithdrawInner(get, set, uid, true));
@@ -1169,7 +1169,7 @@ export function bankWithdraw(get: Get, set: Set, depotId: IdDeDepot): void {
   for (const l of bankWithdrawInner(get, set, depotId, false)) get().ecrireAuJournal(l);
 }
 
-function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnly: boolean): string[] {
+function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnly: boolean): EntreeDuJournal[] {
   const dep = (get().bank ?? []).find((d) => d.uid === depotId);
   if (!dep || dep.kind === 'mecenat') return []; // Mécénat : soldé par le Test d'Évaluation (bande payoutPct)
   const h = get().party.find((x) => x.id === dep.heroId);
@@ -1183,20 +1183,20 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
   if (outcome === 'perdu') {
     set({ bank: rest });
     const threshold = seuilDePerteBancaire(dep.kind, dep.rate);
-    return [msg('if.bankLost', {
+    return [ligneDeTexte(msg('if.bankLost', {
       name: nomOuAbsence(h, 'heros', dep.heroId), roll, threshold,
       what: msg(dep.kind === 'investir' ? 'if.bankFailBank' : 'if.bankFailStash'),
       money: formatMoney(fromBrass(dep.brass)),
-    })];
+    }))];
   }
-  if (crashCheckOnly) return [msg('if.bankCrashOk', { roll, rate: dep.rate })];
+  if (crashCheckOnly) return [ligneDeTexte(msg('if.bankCrashOk', { roll, rate: dep.rate }))];
   const payout = bankPayout(dep.kind, dep.brass, dep.rate);
   set({ bank: rest });
   creditBourse(get, set, dep.heroId, fromBrass(payout)); // retrait PERSONNEL : recrédité au déposant
-  return [msg('if.bankWithdraw', {
+  return [ligneDeTexte(msg('if.bankWithdraw', {
     name: nomOuAbsence(h, 'heros', dep.heroId), money: formatMoney(fromBrass(payout)), roll,
     extra: dep.kind === 'investir' ? msg('if.bankInterest', { rate: dep.rate }) : '',
-  })];
+  }))];
 }
 
 /** Clôture : applique le devis (`devisDeCloture`) que le récap affiche, puis le temps passe (repos
@@ -1205,16 +1205,16 @@ function bankWithdrawInner(get: Get, set: Set, depotId: IdDeDepot, crashCheckOnl
 function cloreLInterlude(get: Get, set: Set): void {
   const devis = devisDeCloture(get());
   if (!devis) return;
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   for (const { heroId, niveau } of devis.retrogradations) {
     const h = get().party.find((x) => x.id === heroId)!;
     h.careerLevel = niveau;
-    lines.push(msg('if.careerDemotion', { name: nomDe(h), level: niveau }));
+    lines.push(ligneDeTexte(msg('if.careerDemotion', { name: nomDe(h), level: niveau })));
   }
-  if (devis.gaspille > 0) lines.push(msg('if.moneyWasted', { money: formatMoney(fromBrass(devis.gaspille)) }));
+  if (devis.gaspille > 0) lines.push(ligneDeTexte(msg('if.moneyWasted', { money: formatMoney(fromBrass(devis.gaspille)) })));
   for (const g of devis.gaspillages) debitBourse(get, set, g.heroId, fromBrass(g.brass));
   for (const r of devis.revenus) creditBourse(get, set, r.heroId, fromBrass(r.brass));
-  if (devis.revenu > 0) lines.push(msg('if.revenueAvailable', { money: formatMoney(fromBrass(devis.revenu)) }));
+  if (devis.revenu > 0) lines.push(ligneDeTexte(msg('if.revenueAvailable', { money: formatMoney(fromBrass(devis.revenu)) })));
   // Faveurs (LDB 23 l.149, #509) : la « consécutivité » se mesure à l'interlude — granularité posée
   // par `Favor.progress` (`favorFlow.ts`), reset AVANT de refermer l'interlude, pendant qu'il est
   // encore lisible.
@@ -1227,11 +1227,11 @@ function cloreLInterlude(get: Get, set: Set): void {
   // Issues DIFFÉRÉES à la clôture (ACE 12 l.15) : posées APRÈS le repos de clôture — un État posé avant
   // serait dissipé par la récupération. Le héros se relit par son id : les bourses ont été réécrites.
   if (devis.lots.length) {
-    const after: string[] = [];
+    const after: EntreeDuJournal[] = [];
     for (const { heroId, lots } of devis.lots) {
       const h = get().party.find((x) => x.id === heroId);
       if (!h) continue;
-      for (const lot of lots) after.push(...applyOps(h, lot.ops, { idNeuf: get().forgerUnId, ...lot.ctx, rng: battleRng(), now: get().gameTime }).lignes.map((e) => e.texte));
+      for (const lot of lots) after.push(...applyOps(h, lot.ops, { idNeuf: get().forgerUnId, ...lot.ctx, rng: battleRng(), now: get().gameTime }).lignes);
     }
     set({ party: [...get().party] });
     for (const l of after) get().ecrireAuJournal(l);

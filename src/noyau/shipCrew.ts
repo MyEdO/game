@@ -4,6 +4,7 @@
  * `CrewAssignment[]` que `resolveBattery`/la manœuvre attendent. Partagé par TOUS les Tests d'équipage (manœuvre,
  * batterie, perception…) — un seul endroit assigne les marins aux postes.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import type { Combatant } from '../engine/types';
 import { refCouvre } from '../data/schemas/grammaire/ref';
 import {
@@ -363,7 +364,7 @@ export function dureeDeChanson(sl: number): number {
   return 3 + Math.max(0, sl);
 }
 
-export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, shantyId: string, sl: number): string[] {
+export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, shantyId: string, sl: number): EntreeDuJournal[] {
   const shanty = findSeaShantyById(shantyId);
   if (!shanty) return [];
   const label = SHANTY_LABEL(shanty.label);
@@ -371,13 +372,13 @@ export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, 
   const until = get().gameTime + minutes;
   const combatants = get().battle?.combatants ?? get().party;
   const crew = exposedCrew((ship.crewIds ?? []).map((id) => combatants.find((c) => c.id === id)).filter((c): c is Combatant => !!c));
-  const lines: string[] = [t('crew.shantyStart', { name: nomDe(singer), shanty: shanty.label, min: minutes })];
-  for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }).lignes.map((e) => e.texte));
+  const lines: EntreeDuJournal[] = [ligneDeTexte(t('crew.shantyStart', { name: nomDe(singer), shanty: shanty.label, min: minutes }))];
+  for (const c of crew) if (shanty.crewOps?.length) lines.push(...applyOps(c, shanty.crewOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }).lignes);
   if (shanty.captainOps?.length) {
     const roles = shipDefaultRoles(crew, 'manoeuvre', navigationDuNavire(get, ship));
     const captain = crew.find((c) => roles.get(c.id) === 'capitaine');
-    if (captain) lines.push(...applyOps(captain, shanty.captainOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }).lignes.map((e) => e.texte));
-    else lines.push(t('crew.noCaptain'));
+    if (captain) lines.push(...applyOps(captain, shanty.captainOps, { idNeuf: get().forgerUnId, label, effectId: shantyId, rng: battleRng(), defaultUntilTime: until }).lignes);
+    else lines.push(ligneDeTexte(t('crew.noCaptain')));
   }
   singer.singingShanty = { shantyId, label };
   ship.lastShantyQuart = quartIndex(get().gameTime);
@@ -388,14 +389,14 @@ export function applyShantyToCrew(get: Get, ship: Combatant, singer: Combatant, 
  *  marin prend fin ») : retire l'effet de la chanson de TOUS les combattants (retrait par IDENTITÉ
  *  d'`effectId` = `shantyId` stable, ≠ libellé FR ; même chemin que l'expiration — `removeActiveEffects`).
  *  Renvoie une ligne de journal, ou []. */
-export function endShanty(get: Get, singer: Combatant): string[] {
+export function endShanty(get: Get, singer: Combatant): EntreeDuJournal[] {
   const song = singer.singingShanty;
   if (!song) return [];
   delete singer.singingShanty;
   const combatants = get().battle?.combatants ?? get().party;
   const porte: Applique = { lignes: [], faits: [] }; // États PORTÉS par la chanson (#1695) : ils partent avec elle, et ça se dit
   for (const c of combatants) removeActiveEffects(c, (e) => e.effectId === song.shantyId, porte);
-  return [t('crew.shantyEnd', { name: nomDe(singer) }), ...porte.lignes.map((e) => e.texte)];
+  return [ligneDeTexte(t('crew.shantyEnd', { name: nomDe(singer) })), ...porte.lignes];
 }
 
 /**
@@ -417,8 +418,8 @@ export function endShanty(get: Get, singer: Combatant): string[] {
  * (sinon elle serait « prise » d'emblée, l'ensemble vide étant vacuément vaincu). Mute EN PLACE, renvoie le
  * journal ; idempotent (une unité déjà résolue reste `outOfRencontre`). Appelé par `checkBattleOver`.
  */
-export function resolveShipUnits(combatants: Combatant[]): string[] {
-  const lines: string[] = [];
+export function resolveShipUnits(combatants: Combatant[]): EntreeDuJournal[] {
+  const lines: EntreeDuJournal[] = [];
   for (const hull of combatants) {
     if (!estNavire(hull) || !hull.crewIds?.length || !hull.wounds) continue;
     const crew = hull.crewIds
@@ -429,13 +430,13 @@ export function resolveShipUnits(combatants: Combatant[]): string[] {
       const aboard = exposedCrew(crew).filter((c) => !isOutOfAction(c));
       if (aboard.length) {
         for (const c of aboard) { c.outOfRencontre = true; c.exitReason = 'naufrage'; } // #237 : éjecté vivant, lu « hors-combat »
-        lines.push(t('crew.sinks', { ship: nomDe(hull), crew: aboard.map(nomDe).join(', ') }));
+        lines.push(ligneDeTexte(t('crew.sinks', { ship: nomDe(hull), crew: aboard.map(nomDe).join(', ') })));
       }
     } else if (crew.length && crew.every((c) => isOutOfAction(c))) {
       // Plus personne à bord : la coque, sans équipage pour la défendre ni la manœuvrer, quitte le combat.
       hull.outOfRencontre = true;
       hull.exitReason = 'prise'; // #237 : coque amenée, lue « rendu » (pavillon baissé) au token de coque
-      lines.push(t('crew.taken', { ship: nomDe(hull) }));
+      lines.push(ligneDeTexte(t('crew.taken', { ship: nomDe(hull) })));
     }
   }
   return lines;
@@ -447,8 +448,8 @@ export function resolveShipUnits(combatants: Combatant[]): string[] {
  * l'initiative après elle et rattachée à son équipage. Passe AVANT `resolveShipUnits`, qui sinon déclarerait
  * la coque prise. Mute EN PLACE, renvoie le journal. Appelé par `checkBattleOver`. MDG 15 l.150, l.171
  */
-export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
-  const lines: string[] = [];
+export function monterLesVagues(battle: BattleState, scene: Scene): EntreeDuJournal[] {
+  const lines: EntreeDuJournal[] = [];
   for (const hull of [...battle.combatants]) {
     const r = hull.reserveDAbordage;
     if (!r?.restant || !hull.pos || !hull.crewIds?.length || isOutOfAction(hull)) continue;
@@ -469,7 +470,7 @@ export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
     for (const c of montes) inscrireEnBataille(battle, c, hull.id);
     hull.crewIds = [...hull.crewIds, ...montes.map((c) => c.id)];
     hull.reserveDAbordage = { ...r, restant: r.restant - montes.length };
-    lines.push(t('crew.vagueDAbordage', { ship: nomDe(hull), n: montes.length, restant: r.restant - montes.length }));
+    lines.push(ligneDeTexte(t('crew.vagueDAbordage', { ship: nomDe(hull), n: montes.length, restant: r.restant - montes.length })));
   }
   return lines;
 }
@@ -480,15 +481,15 @@ export function monterLesVagues(battle: BattleState, scene: Scene): string[] {
  * navire de campagne (sinon no-op : une coque adverse/transitoire ne suit pas de Moral). Renvoie les lignes
  * de journal (delta + changement de bande éventuel — « Des canailles que je ne parviens pas à mater »).
  */
-export function applyShipMoraleDelta(get: Get, set: SetFn, ship: Combatant, delta: number): string[] {
+export function applyShipMoraleDelta(get: Get, set: SetFn, ship: Combatant, delta: number): EntreeDuJournal[] {
   const vessel = get().vessel;
   if (!delta || !vessel || !estLeNavireDeCampagne(ship, vessel)) return [];
   const before = vessel.morale.score;
   const after = before + delta;
   set({ vessel: { ...vessel, morale: { ...vessel.morale, score: after } } });
-  const lines = [t('crew.moraleDelta', { delta: `${delta > 0 ? '+' : ''}${delta}`, before, after })];
+  const lines = [ligneDeTexte(t('crew.moraleDelta', { delta: `${delta > 0 ? '+' : ''}${delta}`, before, after }))];
   const bandAfter = moraleBand(after);
-  if (bandAfter.id !== moraleBand(before).id) lines.push(t('crew.moraleBand', { titre: bandAfter.label }));
+  if (bandAfter.id !== moraleBand(before).id) lines.push(ligneDeTexte(t('crew.moraleBand', { titre: bandAfter.label })));
   return lines;
 }
 
@@ -526,7 +527,7 @@ export interface VesselWeekOutcome {
   before: number;
   after: number;
   /** Journal complet (paie + Moral recalculé + un jet par facteur). */
-  lines: string[];
+  lines: EntreeDuJournal[];
 }
 type MoraleRoll = { id: string; label: string; rolled: number };
 
@@ -544,7 +545,7 @@ type MoraleRoll = { id: string; label: string; rolled: number };
  */
 export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision: string | null, week: number, maladie: boolean, rng: RNG): VesselWeekOutcome {
   const wageBrass = weeklyCrewWageBrass(vessel.crew);
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   let paidFactor: string | null = null;
   let paidLine: string | null = null;
   let costBrass = 0;
@@ -569,7 +570,7 @@ export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision
         paidLine = t('crew.cannotPay', { money: formatMoney(cost) });
       }
     }
-    lines.push(paidLine);
+    lines.push(ligneDeTexte(paidLine));
   }
   const injectes = [...(paidFactor ? [paidFactor] : []), ...(maladie ? facteursDeMaladieFaitRage() : [])];
   const factorsThisWeek = [...vessel.morale.factors, ...injectes.filter((f) => !vessel.morale.factors.includes(f))];
@@ -580,7 +581,7 @@ export function resolveVesselWeek(vessel: CampaignVessel, purse: Money, decision
     morale: { ...vessel.morale, score: r.score, lastMoraleWeek: week },
     ...(wagesOwed ? { wagesOwed } : {}),
   };
-  lines.push(t('crew.moraleRecalc', { score: r.score, band: moraleBand(r.score).label }), ...r.lines);
+  lines.push(ligneDeTexte(t('crew.moraleRecalc', { score: r.score, band: moraleBand(r.score).label })), ...r.lines.map((l) => ligneDeTexte(l)));
   return { vessel: newVessel, paidLine, costBrass, factorRolls: r.rolls, delta: r.delta, before, after: r.score, lines };
 }
 
@@ -603,7 +604,7 @@ function defaultPayDecision(wageBrass: number): string | null {
  * qui passent pendant qu'il siège (bloc étendu en phase `choix`, reprises au prochain entretien en phase `bilan`).
  * Renvoie le journal (vide si aucune semaine franchie / conseil convoqué / pas de navire). RNG injecté.
  */
-export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng: RNG): string[] {
+export function tickCampaignVesselWeek(get: Get, set: SetFn, today: number, rng: RNG): EntreeDuJournal[] {
   const vessel = get().vessel;
   if (!vessel) return [];
   const week = semainesCompletes(today);
@@ -633,7 +634,7 @@ export function semainesDuConseil(s: Jeu): number {
 function reglerLesSemaines(get: Get, set: SetFn, decision: string | null, week: number, rng: RNG): Pick<VesselWeekOutcome, 'factorRolls' | 'delta' | 'before' | 'after' | 'lines'> {
   let vessel = garanti(get().vessel, week, 'navire de campagne');
   const maladie = maladieFaitRage(get().party, porteursABord(get, set).find((p) => p.id === WORLD_STEP_OWNER)?.porteur);
-  const bloc = { factorRolls: [] as MoraleRoll[], delta: 0, before: vessel.morale.score, after: vessel.morale.score, lines: [] as string[] };
+  const bloc = { factorRolls: [] as MoraleRoll[], delta: 0, before: vessel.morale.score, after: vessel.morale.score, lines: [] as EntreeDuJournal[] };
   for (let w = vessel.morale.lastMoraleWeek + 1; w <= week; w++) {
     const out = resolveVesselWeek(vessel, partyMoneyTotal(get), decision, w, maladie, rng);
     if (out.costBrass > 0) payFromGroup(get, set, fromBrass(out.costBrass), { purpose: 'gages équipage' });
@@ -777,7 +778,7 @@ export function applyVesselCrewLoss(
   set: SetFn,
   delta: number,
   selection: ((postes: number) => number) | PosteDuBord | { postes: readonly PosteDuBord[] },
-): { lignes: string[]; variation: number } {
+): { lignes: EntreeDuJournal[]; variation: number } {
   const vessel = get().vessel;
   if (!delta || !vessel) return { lignes: [], variation: 0 };
   const nominal = effectifNominal(vessel);
@@ -799,7 +800,7 @@ export function applyVesselCrewLoss(
   }
   if (variation > 0) suivant = bornerLesRegistresDuBord(suivant);
   set({ vessel: after < nominal ? suivant : avecLEquipage(suivant, undefined) });
-  const lignes = [t('crew.crewDelta', { delta: `${variation > 0 ? '−' : '+'}${Math.abs(variation)}`, left: nominal - after, nominal })];
+  const lignes = [ligneDeTexte(t('crew.crewDelta', { delta: `${variation > 0 ? '−' : '+'}${Math.abs(variation)}`, left: nominal - after, nominal }))];
   return { lignes, variation };
 }
 
@@ -812,7 +813,7 @@ export function membreDuBord(poste: PosteDuBord, id: string): Combatant {
 
 /** Un membre de l'équipage au `poste` meurt : l'effectif perd une personne (`applyVesselCrewLoss`), et son registre une
  *  personne à son rôle. Rend le journal. LDB 18 l.34 ; MDG 14 l.293-302 */
-export function perdreUnMembreDuBord(get: Get, set: SetFn, poste: PosteDuBord): string[] {
+export function perdreUnMembreDuBord(get: Get, set: SetFn, poste: PosteDuBord): EntreeDuJournal[] {
   return applyVesselCrewLoss(get, set, 1, poste).lignes;
 }
 
@@ -827,7 +828,7 @@ export function perdreUnMembreDuBord(get: Get, set: SetFn, poste: PosteDuBord): 
  * `merDesertion` ouverte par `seaVoyageFlow` (`openWorldTest`) ; ce corps en est le rejeu POST-POSE, d'où
  * la porte SILENCIEUSE du canal (`deMonde`) — un dé par membre présent. RNG injecté. Renvoie le journal.
  */
-export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): string[] {
+export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): EntreeDuJournal[] {
   const vessel = get().vessel;
   if (!vessel) return [];
   const threshold = moraleBand(vessel.morale.score).desertionRoll;
@@ -836,7 +837,7 @@ export function resolveShoreLeaveDesertion(get: Get, set: SetFn, rng: RNG): stri
   const postes: PosteDuBord[] = [];
   for (let i = 0; i < present; i++) if (deMonde(rng) <= threshold) postes.push(posteDuMembre({ vessel }, i));
   if (!postes.length) return [];
-  return [t('crew.desertion', { n: postes.length }), ...applyVesselCrewLoss(get, set, postes.length, { postes }).lignes];
+  return [ligneDeTexte(t('crew.desertion', { n: postes.length })), ...applyVesselCrewLoss(get, set, postes.length, { postes }).lignes];
 }
 
 /** Le choix du Conseil de bord (`CorpsDesChoix`) : la paie de la semaine. #229 */

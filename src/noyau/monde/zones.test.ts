@@ -75,7 +75,7 @@ describe('crossZones — « Quiconque traverse le mur de feu » (LDB 47)', () =>
     const lines = crossZones([wall], m, [{ x: 3, y: 5 }, { x: 4, y: 5 }, { x: 5, y: 5 }], () => caster, rng, idsDeTest);
     expect(m.wounds.current).toBe(11);
     expect(m.conditions.some((c) => c.id === 'en-flammes')).toBe(true);
-    expect(lines.join(' ')).toMatch(/traverse Mur de feu/);
+    expect(lines.map((e) => e.texte).join(' ')).toMatch(/traverse Mur de feu/);
   });
   // LDB 48 l.286 ; #1595 c.6240485441 Q2.
   it('BE + PA ≥ BFM : la traversée ne coûte aucune Blessure, En flammes reste', () => {

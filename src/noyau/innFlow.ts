@@ -79,7 +79,7 @@ export const TABLES = {
       }
       const def = activityById(ACTIVITY_ID);
       // EDOC 8 l.153 : aucune rumeur récoltée — branche d'ÉCHEC (#349, dette 1 : ton dérivé, pas une chaîne muette).
-      const applique: Applique = { lignes: [ligneDeTexte('Personne ne semble savoir grand-chose ce soir-là.', { ton: 'echec' })], faits: [] };
+      const applique: Applique = { lignes: [ligneDeTexte(t('auberge.rumeurAucune'), { ton: 'echec' })], faits: [] };
       if (def?.failExtenue && hero) {
         const op: GameOp = { op: 'condition', id: { id: 'extenue' }, value: 1 }; // EDOC 8 l.133
         absorberDans(applique, tonnerLApplication(applyOps(hero, [op], { idNeuf: get().forgerUnId, rng: battleRng(), source: { kind: 'activite', id: ACTIVITY_ID } })));

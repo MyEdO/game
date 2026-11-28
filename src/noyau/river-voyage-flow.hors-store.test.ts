@@ -1,4 +1,5 @@
 import { idsDeTest } from '../engine/idsDeTest.testkit';
+import { ligneDeTexte } from '../engine/journal';
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { fixtureText } from '../i18n/fixtureText';
 import { ouvrirLeBanc, type Banc } from './banc.testkit';
@@ -425,7 +426,7 @@ describe('renflouage à l\'échouage (l.99) — l\'Enc de la CARGAISON entre dan
     set({ possessions, travelPlan: plan, journal: [] });
     seedBattleRng(7);
     const lines: string[] = [];
-    applyEchouage(get, set, (l) => lines.push(...l));
+    applyEchouage(get, set, (l) => lines.push(...l.map((e) => e.texte)));
     return lines.join('\n');
   }
 
@@ -1142,7 +1143,7 @@ describe('chronique fluviale (#4574) : chaque jour clos pousse son `TravelRecapD
   function descendre(km: number, cadence: 'commande' | 'jourParJour', contagieux: boolean, trace: Partial<MapRouteTrace>) {
     launch(false, km, trace);
     if (contagieux) set({ party: get().party.map((h, k) => (k === 0 ? { ...h, diseases: [contractDisease('verole-urticante', deFixe(1) as never, { incubation: 0, duration: 5 })!] } : h)) });
-    get().ecrireAuJournal(Array.from({ length: 45 }, (_, i) => `ligne antérieure ${i}`));
+    get().ecrireAuJournal(Array.from({ length: 45 }, (_, i) => ligneDeTexte(`ligne antérieure ${i}`)));
     const clos: PendingCascade[] = [];
     const vents: { vent: { force: string; direction: string }; pourcentageDuVent: number; derive: boolean }[] = [];
     const avantLaFin = (done: PendingCascade | null | undefined) => {

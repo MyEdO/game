@@ -482,7 +482,7 @@ function rollFreshStock(
   entityId: string, ent: SceneEntity | undefined, arch: MerchantArchetypeDef, settlement: Settlement, now: number, restockPeriod: number, gossipDay: boolean,
 ): LigneDeStock[] {
   const { stock, tested, echecs } = computeFreshStockLines(get, ent, arch, entityId, settlement, now, restockPeriod, gossipDay);
-  if (tested.length) get().ecrireAuJournal(t('mf.tirageDuMarche', { settlement: libelleDeValeur(settlementSchema, settlement), lignes: tested.map((l) => t('mf.ligneDeStock', { label: l.label, qty: l.qty })).join(', ') }));
+  if (tested.length) get().ecrireAuJournal(ligneDeTexte(t('mf.tirageDuMarche', { settlement: libelleDeValeur(settlementSchema, settlement), lignes: tested.map((l) => t('mf.ligneDeStock', { label: l.label, qty: l.qty })).join(', ') })));
   persistStock(set, entityId, now, stock, echecs);
   return stock;
 }
@@ -531,7 +531,7 @@ function openStockRevealCascade(
  *  par les deux entrées — aucune n'est un fork de l'autre. */
 function openMerchantByArchetype(get: Get, set: Set, entityId: string, archetype: string, lieu: MapPlace | undefined, ent?: SceneEntity, backdrop?: string): void {
   const arch = findMerchantArchetypeById(archetype);
-  if (!arch) { get().ecrireAuJournal(t('mf.archetypeInconnu', { archetype })); return; }
+  if (!arch) { get().ecrireAuJournal(ligneDeTexte(t('mf.archetypeInconnu', { archetype }))); return; }
   const settlement = garanti(colonneDeDisponibiliteDuMarchand(ent?.merchant?.settlement, lieu), entityId, 'colonne de Disponibilité du marchand');
   const resaleRate = ent?.merchant?.resaleRate ?? arch.resaleRate;
   const buyMarkup = ent?.merchant?.buyMarkup ?? arch.buyMarkup ?? 1; // majoration d’achat (1 = prix listé ; >1 = vend plus cher)
@@ -612,7 +612,7 @@ function chercherLaDisponibilite(get: Get, set: Set): void {
   // Test de Ragot du groupe (Soutien LDB 12) — Intermédiaire (+0), le RAW ne chiffre pas la difficulté.
   const best = partyAssisted(get().party, { skill: { id: 'ragot' }, characteristic: 'sociabilite' });
   if (!best) {
-    get().ecrireAuJournal(t('mf.sansRagot'));
+    get().ecrireAuJournal(ligneDeTexte(t('mf.sansRagot')));
     finalizeSearchAvailability(get, set, m.entityId, restockPeriod, false);
     return;
   }
@@ -638,7 +638,7 @@ function quitterLeMarchand(get: Get, set: Set): void {
   const renege = !!m && ((m.bargainBuy != null && !m.bargainPaid) || (m.bargainSell != null && !m.bargainSellUsed));
   if (m && renege) {
     set((s) => ({ merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } } }));
-    get().ecrireAuJournal(t('mf.marcheRenie'));
+    get().ecrireAuJournal(ligneDeTexte(t('mf.marcheRenie')));
   }
   repartirLesAchats(get, set); // ne pas perdre les objets payés non répartis
   set({ merchant: null });
@@ -665,7 +665,7 @@ function refuserLeMarche(get: Get, set: Set, mode: ModeDeMarche): void {
     merchant: { ...s.merchant!, ...patch, bargainLocked: true },
     merchantStocks: { ...s.merchantStocks, [m.entityId]: { ...s.merchantStocks[m.entityId], bargainLocked: true } },
   }));
-  get().ecrireAuJournal(t('mf.marcheRefuse'));
+  get().ecrireAuJournal(ligneDeTexte(t('mf.marcheRefuse')));
 }
 
 function payerLesAchats(get: Get, set: Set): void {
@@ -700,7 +700,7 @@ function payerLesAchats(get: Get, set: Set): void {
       merchantStocks: { ...s.merchantStocks, [eid]: { ...persisted, stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime } },
     };
   });
-  get().ecrireAuJournal(t('mf.paye', { total: formatMoney(total), count, s: count > 1 ? 's' : '' }));
+  get().ecrireAuJournal(ligneDeTexte(t('mf.paye', { total: formatMoney(total), count, s: count > 1 ? 's' : '' })));
 }
 
 /** Range chaque achat payé chez le héros que lui donne la répartition (`marchand.repartition`) : corps de la validation
@@ -879,11 +879,11 @@ function troquerLesObjets(get: Get, set: Set): void {
       merchantStocks: { ...s.merchantStocks, [eid]: { stock: newStock, rolledAt: persisted?.rolledAt ?? s.gameTime, echecs: persisted?.echecs } },
     };
   });
-  get().ecrireAuJournal(t('mf.trocConclu', {
+  get().ecrireAuJournal(ligneDeTexte(t('mf.trocConclu', {
     giveCount: quote.giveCount, giveLabel: donne,
     getCount, getLabel: recu,
     giveAv: quote.giveAv, ratio: `${quote.ratio.give}:${quote.ratio.get}`, getAv: quote.getAv,
-  }));
+  })));
 }
 
 /** Retire de leurs porteurs (clone + recompute) les instances `entries` (uid+heroId) : patch `ecrireActeur`. */
@@ -920,7 +920,7 @@ export function devisDeVente(m: MerchantState, party: Combatant[], resolveTrappi
 function vendreLeLot(get: Get, set: Set): void {
   const m = garanti(get().merchant, 'marchand', 'échoppe ouverte');
   const devis = devisDeVente(m, get().party, objetDuNarratif(get().campaignNarratif));
-  for (const l of devis.lignes) if (l.refus) get().ecrireAuJournal(t('trade.sellRefused', { reason: l.refus }));
+  for (const l of devis.lignes) if (l.refus) get().ecrireAuJournal(ligneDeTexte(t('trade.sellRefused', { reason: l.refus })));
   const vendues = devis.lignes.filter((l) => !l.refus);
   const gainByHero: Record<string, Money> = {}; // crédit PERSONNEL : chaque gain revient au PORTEUR de l'objet vendu (#531 §8)
   for (const l of vendues) gainByHero[l.hero.id] = moneyAdd(gainByHero[l.hero.id] ?? fromBrass(0), l.gain);
@@ -932,7 +932,7 @@ function vendreLeLot(get: Get, set: Set): void {
     ...removeSold(s, sold),
   }));
   for (const [heroId, g] of Object.entries(gainByHero)) creditBourse(get, set, heroId, g);
-  get().ecrireAuJournal(`Vente : ${names.join(', ')} (+${formatMoney(total)}).`);
+  get().ecrireAuJournal(ligneDeTexte(`Vente : ${names.join(', ')} (+${formatMoney(total)}).`));
 }
 
 /** Coût de réparation d'un objet endommagé (LDB 63 l.64 ; LDB 62 l.135) — SOURCE UNIQUE lue par
@@ -970,7 +970,7 @@ function reparerLObjet(get: Get, set: Set, uid: string): void {
     recomputeLoadout(clone);
     return clone;
   }));
-  get().ecrireAuJournal(msg('mf.reparationFaite', { label: item.label }));
+  get().ecrireAuJournal(ligneDeTexte(msg('mf.reparationFaite', { label: item.label })));
 }
 
 /** Ouvre le Marchandage du meilleur négociateur du groupe (Soutien, LDB 12) contre `opposant`, pour
@@ -1204,33 +1204,33 @@ function acquitterLEvaluation(get: Get, set: Set): void {
     const actor = garanti(nomEnVue(get(), pa.actorId), pa.actorId, 'détecteur de la Détection');
     if (!pa.success) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionVaine', { actor, item: pa.itemName }));
+      get().ecrireAuJournal(ligneDeTexte(t('mf.detectionVaine', { actor, item: pa.itemName })));
       return;
     }
     if (!isMagic) {
       patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId });
-      get().ecrireAuJournal(t('mf.detectionSansAura', { actor, item: pa.itemName }));
+      get().ecrireAuJournal(ligneDeTexte(t('mf.detectionSansAura', { actor, item: pa.itemName })));
       return;
     }
     // Succès : aura sentie ; chaque DR apprend une règle → tout révélé quand DR couvre les règles.
     const allKnown = pa.sl >= Math.max(1, rules);
     patchAppraiseTarget(get, set, pa, { detecteur: pa.actorId, magicKnown: true, ...(allKnown ? { identified: true } : {}) });
-    get().ecrireAuJournal(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor, item: pa.itemName, dr: pa.sl }));
+    get().ecrireAuJournal(ligneDeTexte(t(allKnown ? 'mf.detectionComplete' : 'mf.detectionPartielle', { actor, item: pa.itemName, dr: pa.sl })));
     return;
   }
   if (!pa.success) {
     // LDB 12 l.94
     if (pa.sl < 0) patchAppraiseTarget(get, set, pa, { appraiseTriedDay: dayIndex(get().gameTime) });
-    get().ecrireAuJournal(t('mf.evaluationRatee', { item: pa.itemName }));
+    get().ecrireAuJournal(ligneDeTexte(t('mf.evaluationRatee', { item: pa.itemName })));
     return;
   }
   patchAppraiseTarget(get, set, pa, { identified: true });
-  if (pa.truePriceBrass <= 0) { get().ecrireAuJournal(t('mf.evaluationPieceUnique', { item: pa.itemName })); return; }
+  if (pa.truePriceBrass <= 0) { get().ecrireAuJournal(ligneDeTexte(t('mf.evaluationPieceUnique', { item: pa.itemName }))); return; }
   const est = appraiseEstimate(pa.availability as Parameters<typeof appraiseEstimate>[0], pa.truePriceBrass);
   const range = est.min === est.max
     ? formatMoney(fromBrass(est.min))
     : t('mf.fourchetteDEstimation', { min: formatMoney(fromBrass(est.min)), max: formatMoney(fromBrass(est.max)) });
-  get().ecrireAuJournal(t('mf.evaluationValeur', { item: pa.itemName, range }));
+  get().ecrireAuJournal(ligneDeTexte(t('mf.evaluationValeur', { item: pa.itemName, range })));
 }
 
 export function creerActionsDuMarchand(get: Get, set: Set) {

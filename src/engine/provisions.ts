@@ -49,6 +49,7 @@ import type { Id } from '../data/schemas/grammaire/ref';
 import type { ModFamille } from './types';
 import type { PorteurDeMaladies } from './disease';
 import { t } from '../i18n';
+import { ligneDeTexte, type EntreeDuJournal } from './journal';
 import { effectiveTalents } from './talentEffects';
 
 export { hungerCharPenalties, thirstCharPenalties } from './passifsDePrivation';
@@ -140,7 +141,7 @@ export interface FoodUpkeepResult {
   /** Dégâts NETS à appliquer par l'appelant (ignorant les PA — via `loseWounds`). */
   damage: number;
   /** Journal (Tests de faim, malus — la consommation silencieuse est agrégée par l'appelant). */
-  log: string[];
+  log: EntreeDuJournal[];
 }
 
 /**
@@ -149,17 +150,17 @@ export interface FoodUpkeepResult {
  * + 1d10 Dégâts réduits du BE, min 1). Mute `c.hunger` ; renvoie le journal + les Dégâts à appliquer
  * (via `loseWounds` par l'appelant). Partagé avec `dailyFoodUpkeep` (roll eager) — zéro duplication.
  */
-export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: string[]; damage: number } {
+export function applyFaimTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: EntreeDuJournal[]; damage: number } {
   const h: HungerState = c.hunger ?? { days: 0, tests: 0, failures: 0 };
   h.tests += 1;
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   let damage = 0;
   if (!success) {
     h.failures += 1;
-    if (h.failures === 1) log.push(t('prov.starving', { name: nomDe(c) }));
+    if (h.failures === 1) log.push(ligneDeTexte(t('prov.starving', { name: nomDe(c) })));
     else {
       damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.342)
-      log.push(t('prov.wasting', { name: nomDe(c), dmg: damage }));
+      log.push(ligneDeTexte(t('prov.wasting', { name: nomDe(c), dmg: damage })));
     }
   } // réussite : aucune conséquence (le jet a déjà été montré dans l'étape — pas de bruit de journal)
   c.hunger = h;
@@ -221,7 +222,7 @@ export function dailyFoodUpkeep(c: Combatant, gardeManger: GardeManger, resVal: 
   noterLeRepas(c, repas);
 
   if (res.ate) {
-    if (h.days > 0 || h.failures > 0) res.log.push(t('prov.fedAgain', { name: nomDe(c) }));
+    if (h.days > 0 || h.failures > 0) res.log.push(ligneDeTexte(t('prov.fedAgain', { name: nomDe(c) })));
     // Brouet : demi-ration → le jour suivant est couvert (LDB 10 l.139). Sinon, plus d'état de faim.
     c.hunger = brouet && res.rationConsumed ? { days: 0, tests: 0, failures: 0, coveredDay: { repas } } : undefined;
     return res;
@@ -242,17 +243,17 @@ export function dailyFoodUpkeep(c: Combatant, gardeManger: GardeManger, resVal: 
     const t2 = rollTest({ porteur: c.id, teste: { skill: RESISTANCE_TEST.skill } }, resVal, 'intermediaire', rng, penalty);
     h.tests += 1;
     // Test résolu SANS fenêtre (entretien du jour) : sa ligne se DÉRIVE (`traceLineOf`).
-    res.log.push(traceLineOf({
+    res.log.push(ligneDeTexte(traceLineOf({
       who: nomDe(c), label: t('prov.testLabel', { kind: t('prov.faim'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: h.tests > 1 ? t('prov.fragTestMalus', { n: (h.tests - 1) * 10 }) : '' }),
       roll: t2.roll, target: t2.target, sl: t2.sl, success: t2.success, issue: t2.success ? t('prov.holdsOn') : t('prov.fail'),
-    }));
+    })));
     if (!t2.success) {
       h.failures += 1;
       if (h.failures === 1) {
-        res.log.push(t('prov.starving', { name: nomDe(c) }));
+        res.log.push(ligneDeTexte(t('prov.starving', { name: nomDe(c) })));
       } else {
         res.damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.342)
-        res.log.push(t('prov.wasting', { name: nomDe(c), dmg: res.damage }));
+        res.log.push(ligneDeTexte(t('prov.wasting', { name: nomDe(c), dmg: res.damage })));
       }
     }
   }
@@ -265,7 +266,7 @@ export interface WaterUpkeepResult {
   drank: boolean;
   /** Dégâts NETS à appliquer par l'appelant (ignorant les PA — via `loseWounds`). */
   damage: number;
-  log: string[];
+  log: EntreeDuJournal[];
 }
 
 /**
@@ -273,17 +274,17 @@ export interface WaterUpkeepResult {
  * échec applique les pénalités (LDB 18 l.340 : 1ᵉʳ → −10 Int/FM/Soc ; 2ᵉ+ → −10 le reste + 1d10 Dégâts réduits
  * du BE, min 1). Mute `c.thirst` ; renvoie le journal + les Dégâts. Miroir de `applyFaimTest`.
  */
-export function applySoifTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: string[]; damage: number } {
+export function applySoifTest(c: Combatant, success: boolean, be: number, rng: RNG): { log: EntreeDuJournal[]; damage: number } {
   const s: ThirstState = c.thirst ?? { days: 0, tests: 0, failures: 0 };
   s.tests += 1;
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   let damage = 0;
   if (!success) {
     s.failures += 1;
-    if (s.failures === 1) log.push(t('prov.parched', { name: nomDe(c) }));
+    if (s.failures === 1) log.push(ligneDeTexte(t('prov.parched', { name: nomDe(c) })));
     else {
       damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.340)
-      log.push(t('prov.dehydrating', { name: nomDe(c), dmg: damage }));
+      log.push(ligneDeTexte(t('prov.dehydrating', { name: nomDe(c), dmg: damage })));
     }
   }
   c.thirst = s;
@@ -304,7 +305,7 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   // la Soif est suspendue au même titre que la Faim (drapeau `noHunger`), compteurs purgés.
   if (hasWater || hasActiveFlag(c, 'noHunger')) {
     res.drank = true;
-    if (c.thirst && (c.thirst.days > 0 || c.thirst.failures > 0)) res.log.push(t('prov.quenched', { name: nomDe(c) }));
+    if (c.thirst && (c.thirst.days > 0 || c.thirst.failures > 0)) res.log.push(ligneDeTexte(t('prov.quenched', { name: nomDe(c) })));
     c.thirst = undefined;
     return res;
   }
@@ -318,16 +319,16 @@ export function dailyWaterUpkeep(c: Combatant, hasWater: boolean, resVal: number
   }
   const t2 = rollTest({ porteur: c.id, teste: { skill: RESISTANCE_TEST.skill } }, resVal, 'intermediaire', rng, penalty);
   s.tests += 1;
-  res.log.push(traceLineOf({
+  res.log.push(ligneDeTexte(traceLineOf({
     who: nomDe(c), label: t('prov.testLabel', { kind: t('prov.soif'), skill: refLabel('skills', RESISTANCE_TEST.skill), malus: s.tests > 1 ? t('prov.fragTestMalus', { n: (s.tests - 1) * 10 }) : '' }),
     roll: t2.roll, target: t2.target, sl: t2.sl, success: t2.success, issue: t2.success ? t('prov.holdsOn') : t('prov.fail'),
-  }));
+  })));
   if (!t2.success) {
     s.failures += 1;
-    if (s.failures === 1) res.log.push(t('prov.parched', { name: nomDe(c) }));
+    if (s.failures === 1) res.log.push(ligneDeTexte(t('prov.parched', { name: nomDe(c) })));
     else {
       res.damage = Math.max(1, d10(rng) - be); // 1d10 Dégâts, ignore les PA, min 1 (LDB 18 l.340)
-      res.log.push(t('prov.dehydrating', { name: nomDe(c), dmg: res.damage }));
+      res.log.push(ligneDeTexte(t('prov.dehydrating', { name: nomDe(c), dmg: res.damage })));
     }
   }
   c.thirst = s;

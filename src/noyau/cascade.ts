@@ -15,6 +15,7 @@
  *  - IMMÉDIAT (`runCascadeImmediate`) — repos de plusieurs jours, reprise auto, triche de recette :
  *    on lance chaque étape (RNG, sans influence) et on applique sa conséquence, sans modale.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import { nomDe } from '../engine/nom';
 import type { PlayerText } from '../i18n/playerText';
 import type { IconId } from '../data/schemas/icons';
@@ -774,42 +775,42 @@ function libelleDeTraceMono(step: CascadeStep): string | undefined {
  * réserve (cf. `cascade-consequence-guard.test.ts`). Règle de CADENCE : une cadence qui réduit les
  * interruptions ne réduit jamais les TRACES.
  */
-function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean, rowSurface?: RowSurface): string[] {
-  const out: string[] = [];
+function unwitnessedTraceLines(get: Get, step: CascadeStep, unwitnessed: boolean, rowSurface?: RowSurface): EntreeDuJournal[] {
+  const out: EntreeDuJournal[] = [];
   for (const row of rowSurface ? [] : step.participants ?? []) {
     if (!row.meta?.autoResolved || !row.result) continue;
     const refus = refusSansJet(row);
-    if (refus != null) { out.push(refus); continue; }
+    if (refus != null) { out.push(ligneDeTexte(refus)); continue; }
     if (!estJete(row.result)) continue;
     const porteur = actorIn(get(), row.id);
-    out.push(traceLineOf({
+    out.push(ligneDeTexte(traceLineOf({
       ...(porteur ? { who: nomDe(porteur) } : {}),
       label: row.label ?? step.rollLabel ?? undefined,
       ...row.result,
       ...lectureDeTrace(step, row.result),
-    }));
+    })));
   }
   const refusMono = refusSansJet(step);
   const acteurDuPas = step.actorId ? actorIn(get(), step.actorId) : undefined;
   const whoDuPas = acteurDuPas ? { who: nomDe(acteurDuPas) } : {};
-  if (unwitnessed && !step.participants && refusMono != null) out.push(refusMono);
+  if (unwitnessed && !step.participants && refusMono != null) out.push(ligneDeTexte(refusMono));
   if (unwitnessed && !step.participants && estJete(step.result) && stepInteraction(step) === 'jet') {
-    out.push(traceLineOf({
+    out.push(ligneDeTexte(traceLineOf({
       ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.result,
       ...lectureDeTrace(step, step.result),
-    }));
+    })));
   }
   // DÉ NU (#1508) : même règle, même déclaration du pilote — le dé qu'aucune fenêtre n'a montré a le
   // journal pour SEULE surface. Le total (et son unité) y figure : c'est lui qui fait la conséquence.
   if (unwitnessed && !step.participants && step.de?.result) {
-    out.push(traceDieLineOf({
+    out.push(ligneDeTexte(traceDieLineOf({
       ...whoDuPas,
       label: libelleDeTraceMono(step),
       ...step.de.result,
       ...(step.de.unite ? { unite: step.de.unite } : {}),
-    }));
+    })));
   }
   return out;
 }

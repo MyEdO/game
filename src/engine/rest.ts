@@ -50,6 +50,7 @@ import { diseaseLabel } from '../data';
 import { t, type MsgKey } from '../i18n';
 import { nomDe } from './nom';
 import { garanti } from '../lib/garanti';
+import type { EntreeDuJournal } from './journal';
 
 const RESISTANCE_DE_RECUPERATION: TestDesigne = { skill: { id: 'resistance' } }; // LDB 18 l.296
 
@@ -98,7 +99,7 @@ export function constatSansRecuperation(c: Combatant): { cle: MsgKey; params?: R
  */
 export function dailyDiseaseUpkeep(
   c: Combatant, rng: RNG, defer: UpkeepDeferTest, caredFor = false, peutDeclarer?: CycleDeFiche['peutDeclarer'],
-): string[] {
+): EntreeDuJournal[] {
   if (c.dead || !c.diseases?.length) return [];
   const duree = new Map(c.diseases.filter(maladieDeclaree).map((dz) => [dz, dz.minutesLeft]));
   const log = tickDisease(c, MINUTES_PER_DAY, rng, defer, bonus(effectiveChar(c, 'endurance')), peutDeclarer);
@@ -108,7 +109,7 @@ export function dailyDiseaseUpkeep(
       if (dz.minutesLeft < (duree.get(dz) ?? 0) && dz.minutesLeft > MINUTES_PER_DAY) dz.minutesLeft -= MINUTES_PER_DAY;
     }
   }
-  log.push(...syncDerivedConditions(c).lignes.map((e) => e.texte));
+  log.push(...syncDerivedConditions(c).lignes);
   return log;
 }
 

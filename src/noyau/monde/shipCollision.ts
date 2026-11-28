@@ -5,6 +5,7 @@
  * (3) APPLIQUER les Dégâts à chaque coque via la langue UNIQUE `applyOps` (op `wounds` : la mitigation BE +
  * PA de coque + `extraAP` situationnel reste DANS l'op, jamais pré-calculée ici). Aucune règle recodée.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../../engine/journal';
 import type { FabriqueDId } from '../../engine/fabriqueDId';
 import type { Combatant } from '../../engine/types';
 import { collisionIndex, resolveCollision, type CollisionShip, type CollisionDamage } from '../../engine/collision';
@@ -32,11 +33,11 @@ function toCollisionShip(hull: Combatant, milieu: MilieuDeNavigation): Collision
  */
 export function applyShipCollision(
   causer: Combatant, victim: Combatant, milieu: MilieuDeNavigation, opts: { frontal?: boolean; ramProue?: boolean }, rng: RNG, idNeuf: FabriqueDId,
-): { lines: string[]; causer: CollisionDamage; victim: CollisionDamage } {
+): { lines: EntreeDuJournal[]; causer: CollisionDamage; victim: CollisionDamage } {
   const res = resolveCollision(toCollisionShip(causer, milieu), toCollisionShip(victim, milieu), opts);
-  const lines: string[] = [t(opts.frontal ? 'cf.percuteNavireDePleinFouet' : 'cf.percuteNavire', { name: nomDe(causer), cible: nomDe(victim) })];
+  const lines: EntreeDuJournal[] = [ligneDeTexte(t(opts.frontal ? 'cf.percuteNavireDePleinFouet' : 'cf.percuteNavire', { name: nomDe(causer), cible: nomDe(victim) }))];
   // Dégâts sur la Coque (l.464), mitigés DANS l'op : BE + PA de coque + extraAP (armorBonus situationnel).
-  lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { idNeuf, rng }).lignes.map((e) => e.texte));
-  lines.push(...applyOps(causer, [{ op: 'wounds', amount: res.causer.damage, ignoreTB: false, ignoreAP: false, extraAP: res.causer.armorBonus }], { idNeuf, rng }).lignes.map((e) => e.texte));
+  lines.push(...applyOps(victim, [{ op: 'wounds', amount: res.victim.damage, ignoreTB: false, ignoreAP: false, extraAP: res.victim.armorBonus }], { idNeuf, rng }).lignes);
+  lines.push(...applyOps(causer, [{ op: 'wounds', amount: res.causer.damage, ignoreTB: false, ignoreAP: false, extraAP: res.causer.armorBonus }], { idNeuf, rng }).lignes);
   return { lines, causer: res.causer, victim: res.victim };
 }

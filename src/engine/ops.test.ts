@@ -672,10 +672,10 @@ describe("op:'corruptionExposure' — Test d'Exposition (LDB 19 l.29)", () => {
     const c = hero();
     const seen: unknown[] = [];
     const lines = applyOps(c, [{ op: 'corruptionExposure', level: 'mineure', nature: 'physique' }], { idNeuf: idsDeTest, rng: desDuTest,
-      onCorruptionExposure: (cible, level, nature) => { seen.push([cible, level, nature]); return ['ouvert']; },
+      onCorruptionExposure: (cible, level, nature) => { seen.push([cible, level, nature]); return [ligneDeTexte('ouvert')]; },
     }).lignes;
     expect(seen).toEqual([[c, 'mineure', 'physique']]);
-    expect(lines).toEqual(['ouvert'].map((x) => ligneDeTexte(x)));
+    expect(lines).toEqual([ligneDeTexte('ouvert')]);
   });
   it('sans contexte (moteur pur) : journalisée inerte, niveau libellé, aucune Corruption ajoutée', () => {
     const c = hero();

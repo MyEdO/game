@@ -1008,14 +1008,14 @@ function resoudreLesOpsDuMonde(env: EffectEnv, e: EffectOp, rng: RNG): EffectOp 
   for (const o of meneurDuMonde(env.get()) ? e.ops.filter(estOpDuMonde) : []) {
     if (estOpDuMarche(o)) {
       const ref = referentDeScene(env.get, env.set);
-      alterLeMarche(env.get, env.set, o, nomDeSource({ label: e.label ?? env.label }), (f) => Math.max(0, Math.round(resolveFormula(f, ref, rng))), rng).forEach((l) => env.log(l));
+      alterLeMarche(env.get, env.set, o, nomDeSource({ label: e.label ?? env.label }), (f) => Math.max(0, Math.round(resolveFormula(f, ref, rng))), rng).forEach((l) => env.get().ecrireAuJournal(ligneDeTexte(l)));
       continue;
     }
     if (!estOpDeLaBourseDuGroupe(o)) continue;
     const avant = toBrass(partyMoneyTotal(env.get));
     mouvementDeLaBourseDuGroupe(env.get, env.set, Math.round(resolveFormula(o.montant.brass, referentDeScene(env.get, env.set), rng)));
     const delta = toBrass(partyMoneyTotal(env.get)) - avant;
-    if (delta) env.log(t('eff.bourseDuGroupe', { sens: delta > 0 ? '+' : '−', montant: formatMoney(fromBrass(Math.abs(delta))) }));
+    if (delta) env.get().ecrireAuJournal(ligneDeTexte(t('eff.bourseDuGroupe', { sens: delta > 0 ? '+' : '−', montant: formatMoney(fromBrass(Math.abs(delta))) })));
   }
   const reste = e.ops.filter((o) => !estOpDuMonde(o));
   return reste.length ? { ...e, ops: reste } : null;
@@ -1027,7 +1027,7 @@ function avecDureeTiree(env: EffectEnv, e: EffectOp, pendantJours: Formula, suje
   const { pendantJours: _tiree, ...reste } = e;
   const jours = Math.max(0, Math.round(resolveFormula(pendantJours, sujet, rng)));
   const label = e.label ?? env.label;
-  env.log(t('eff.pendantJours', { label: label ?? t('eff.titreDeFlux'), n: jours }));
+  env.get().ecrireAuJournal(ligneDeTexte(t('eff.pendantJours', { label: label ?? t('eff.titreDeFlux'), n: jours })));
   return { ...reste, untilTime: env.get().gameTime + jours * MINUTES_PER_DAY, ...(label ? { label } : {}) };
 }
 
@@ -1064,10 +1064,10 @@ function appliquerALEquipage(env: EffectEnv, equipage: PorteurABord, e: EffectOp
     if (o.op !== 'exposeDisease' && o.op !== 'contractDisease') { ecartees++; continue; }
     if (env.get().battle) throw new Error(t('eff.maladieDeLEquipageEnCombat'));
     if (o.op === 'exposeDisease') { expositions = exposerALaMaladie(expositions, o); continue; }
-    contractDiseaseOnce(equipage.porteur, o.disease.id, ctx.rng).forEach((l) => env.log(l));
+    contractDiseaseOnce(equipage.porteur, o.disease.id, ctx.rng).forEach((l) => env.get().ecrireAuJournal(ligneDeTexte(l)));
     equipage.ecrire();
   }
-  if (ecartees) env.log(t('eff.membreAuHasardMarin'));
+  if (ecartees) env.get().ecrireAuJournal(ligneDeTexte(t('eff.membreAuHasardMarin')));
   exposerLEquipage(env.get, env.set, equipage, expositions);
 }
 
@@ -1091,10 +1091,10 @@ function exposerLEquipage(get: Get, set: SetFn, equipage: PorteurABord, expositi
 export function rendreALEquipage(get: Get, set: SetFn, membre: Combatant, poste: PosteDuBord): void {
   const role = refLabel('crewRoles', { id: poste.roleId });
   if (membre.dead || inDeathCondition(membre)) {
-    [t('eff.membreDuBordMort', { role }), ...perdreUnMembreDuBord(get, set, poste)].forEach((l) => get().ecrireAuJournal(l));
+    [ligneDeTexte(t('eff.membreDuBordMort', { role })), ...perdreUnMembreDuBord(get, set, poste)].forEach((l) => get().ecrireAuJournal(l));
     return;
   }
-  get().ecrireAuJournal(t('eff.membreDuBordRevient', { role }));
+  get().ecrireAuJournal(ligneDeTexte(t('eff.membreDuBordRevient', { role })));
   exposerLEquipage(get, set, equipageABord(get, set), membre.diseaseExposure ?? []);
 }
 
@@ -1429,7 +1429,7 @@ function ccDuTesteur(cc: ConditionCtx, h: Combatant): ConditionCtx {
  */
 function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: string, label: string, sl?: number): boolean {
   const heros = effectTargets(get, 'groupe');
-  if (!heros.length) { get().ecrireAuJournal(t('eff.volontairesAucun', { question })); return false; }
+  if (!heros.length) { get().ecrireAuJournal(ligneDeTexte(t('eff.volontairesAucun', { question }))); return false; }
   const meta = { differeLaSuite: true as const, choiceYes: { kind: 'effet' as const, effet: e }, flowLabel: label, ...(sl !== undefined ? { flowSl: sl } : {}) };
   const etapes = heros.map((h, i) => choiceStep({
     id: `volontaireDeFlux-${question}-${h.id}`, kind: 'volontaireDeFlux', actorId: h.id, icon: 'interface/reflexion',
@@ -1451,7 +1451,6 @@ function demanderLesVolontaires(get: Get, set: SetFn, e: EffectOp, question: str
 export interface EffectEnv {
   get: Get;
   set: SetFn;
-  log(ligne: string | EntreeDuJournal): void;
   pushReveal(entry: RevealEntry): void;
   /** DR (SL) du Test résolu qui a produit ce lot d'Effets (`jetValider('test')`/`pt.sl`, symétrique de
    *  `opsCtx.sl` en combat, `testDeclenche.ts:159`) — absent hors Test (déclencheur de scène, etc.). */
@@ -1485,7 +1484,6 @@ function makeEffectEnv(get: Get, set: SetFn, sl?: number, label?: string): Effec
     set,
     sl,
     label,
-    log: (ligne) => get().ecrireAuJournal(ligne),
     pushReveal: (entry) => pushReveal(set, entry),
     targets: (on, heroId) => effectTargets(get, on, heroId),
     hero: (heroId, pick) => choisirHeros(get(), heroId, pick),
@@ -1589,7 +1587,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
   journal: {
     group: 'Narration', label: libelleEffet('journal'), icon: 'journal/detail',
     make: () => ({ type: 'journal', desc: undefined, descRef: undefined, adapteDe: undefined }),
-    apply: (e, env) => { if (e.desc) env.log(e.desc); },
+    apply: (e, env) => { if (e.desc) env.get().ecrireAuJournal(ligneDeTexte(e.desc)); },
   },
   document: {
     group: 'Narration', label: libelleEffet('document'), icon: 'fichier/document',
@@ -1612,7 +1610,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (clues === env.get().clues) return;
       env.set({ clues });
       const key = before?.statut === 'refute' ? 'eff.indiceReactive' : before ? 'eff.indicePrecise' : 'eff.indiceRevele';
-      env.log(t(key, { titre: ind.titre }));
+      env.get().ecrireAuJournal(ligneDeTexte(t(key, { titre: ind.titre })));
     },
   },
   discreditClue: {
@@ -1624,7 +1622,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const clues = discreditClue(env.get().clues, ind, env.get().gameTime);
       if (clues === env.get().clues) return;
       env.set({ clues });
-      env.log(t('eff.indiceEcarte', { titre: ind.titre }));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.indiceEcarte', { titre: ind.titre })));
     },
   },
   startDialogue: {
@@ -1676,7 +1674,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         const rest = s.objectives.filter((o) => o.id !== e.id);
         return { objectives: [...rest, { id: e.id, text: texte, deadline }] };
       });
-      env.log(t('eff.objectifPose', { text: texte }));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.objectifPose', { text: texte })));
     },
   },
   clearObjective: {
@@ -1696,7 +1694,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           objectifsSoldes: [...s.objectifsSoldes, ...soldes.filter((o) => !dejaLa.has(o.id))],
         };
       });
-      env.log(done ? t('eff.objectifAccompli', { text: done.text }) : t('eff.objectifsEffaces'));
+      env.get().ecrireAuJournal(ligneDeTexte(done ? t('eff.objectifAccompli', { text: done.text }) : t('eff.objectifsEffaces')));
     },
   },
   setLight: {
@@ -1754,7 +1752,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.appraiseTriedDay != null) it.appraiseTriedDay = e.appraiseTriedDay;
       if (e.price) it.price = { gold: e.price.gold ?? 0, silver: e.price.silver ?? 0, brass: e.price.brass ?? 0 };
       const who = env.mutateHero(e.heroId, (h) => avecObjet(h, it)); // arrive NON équipé
-      env.log(who ? t('eff.recuperation', { name: nomDe(who), item: it.label }) : t('eff.recuperationSansHeros', { item: it.label }));
+      env.get().ecrireAuJournal(ligneDeTexte(who ? t('eff.recuperation', { name: nomDe(who), item: it.label }) : t('eff.recuperationSansHeros', { item: it.label })));
     },
   },
   givePossession: {
@@ -1777,7 +1775,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         }
       })();
       const uid = ajouterLaPossession(env.get, env.set, input);
-      env.log(t('eff.recuperation', { name: nomDe(owner), item: possessionLabel({ ...input, uid } as Possession) }));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.recuperation', { name: nomDe(owner), item: possessionLabel({ ...input, uid } as Possession) })));
     },
     // La bête ou le serviteur donné est une RÉFÉRENCE : sa fiche (monture de combat, `spawnEnemy`) s'y lit (#1882).
     refs: (e) => {
@@ -1800,7 +1798,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const m = e.montant;
       mouvementDeLaBourseDuGroupe(env.get, env.set, toBrass(toMoney(m)));
       const parts = [m.gold && t('eff.piece.or', { n: m.gold }), m.silver && t('eff.piece.argent', { n: m.silver }), m.brass && t('eff.piece.cuivre', { n: m.brass })].filter(Boolean); // noms canon FR (couronne/pistole/sou)
-      if (parts.length) env.log(t('eff.bourse', { sign: (m.gold ?? 0) < 0 || (m.silver ?? 0) < 0 ? '' : '+', parts: parts.join(' ') }));
+      if (parts.length) env.get().ecrireAuJournal(ligneDeTexte(t('eff.bourse', { sign: (m.gold ?? 0) < 0 || (m.silver ?? 0) < 0 ? '' : '+', parts: parts.join(' ') })));
     },
   },
   giveXp: {
@@ -1808,7 +1806,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'giveXp', amount: 50 }),
     apply: (e, env) => {
       env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => ({ ...h, xp: (h.xp ?? 0) + e.amount })));
-      env.log(t('eff.px', { amount: e.amount }));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.px', { amount: e.amount })));
     },
   },
   learnSpell: {
@@ -1824,9 +1822,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         (h) => (learnable(h) ? { ...h, spells: [...(h.spells ?? []), sp.id] } : h),
         (heros) => heros.findIndex(learnable),
       );
-      if (!who) { env.log(e.heroId ? t('eff.herosInconnu', { id: e.heroId }) : t('eff.sortSansApprenti', { spell: sp.label })); return; }
+      if (!who) { env.get().ecrireAuJournal(ligneDeTexte(e.heroId ? t('eff.herosInconnu', { id: e.heroId }) : t('eff.sortSansApprenti', { spell: sp.label }))); return; }
       const verdict = verdictApprentissage(who, sp);
-      env.log(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.sortAppris', { name: nomDe(who), spell: sp.label }));
+      env.get().ecrireAuJournal(ligneDeTexte(t(verdict === 'dejaConnu' ? 'pf.spellAlreadyKnown' : verdict === 'nonEligible' ? 'pf.spellCannotLearn' : 'eff.sortAppris', { name: nomDe(who), spell: sp.label })));
     },
   },
   petitePriere: {
@@ -1845,7 +1843,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // Un Bienheureux prie NORMALEMENT (Miracle/Bénédiction) — les Petites Prières sont la voie des
       // non-Bénis (LDB 25 l.24).
       if (isBeni(target)) {
-        env.log(t('eff.petitePriereBeni', { name: nomDe(target) }));
+        env.get().ecrireAuJournal(ligneDeTexte(t('eff.petitePriereBeni', { name: nomDe(target) })));
         return;
       }
       // Seuil : « exaucé sur 01 » ; LDB 25 l.22-24 — silence, valeur maison (règle
@@ -1854,10 +1852,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const threshold = 1 + Math.max(0, priereAdv) * Number(rule('priere-petites-bonus-par-avance'));
       const roll = d100(battleRng());
       if (petitePriereAnswered(roll, threshold)) {
-        env.log(t('eff.petitePriereExaucee', { name: nomDe(target), roll, threshold }));
+        env.get().ecrireAuJournal(ligneDeTexte(t('eff.petitePriereExaucee', { name: nomDe(target), roll, threshold })));
         jouerFlowEntier(runFlow(env.get, env.set, e.reward, t('eff.recompenseDePetitePriere'))); // récompense authorée (bonus/don/flag)
       } else {
-        env.log(t('eff.petitePriereSansReponse', { name: nomDe(target), roll }));
+        env.get().ecrireAuJournal(ligneDeTexte(t('eff.petitePriereSansReponse', { name: nomDe(target), roll })));
       }
     },
   },
@@ -1877,7 +1875,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (_e, env) => {
       // Début de session (LDB 17 l.41) : Chance regagnée jusqu'au maximum = Destin actuel.
       env.set((s: Jeu) => ecrireActeur(s, idsDuGroupe(s), (h) => restoreFortune([h])[0]));
-      env.log(t('eff.fortuneRestauree'));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.fortuneRestauree')));
     },
   },
   grantFavor: {
@@ -1909,7 +1907,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const base = { rng: battleRng(), sl: env.sl };
       const e = resoudreLesOpsDuMonde(env, feuilleAuthoree, base.rng);
       if (!e) return;
-      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.log(l)); return; }
+      if (on === 'navire') { appliquerAuNavire(env.get, env.set, e, { idNeuf: env.get().forgerUnId, ...base, label: e.label ?? env.label }).forEach((l) => env.get().ecrireAuJournal(l)); return; }
       if (typeof on === 'object' && 'volontaires' in on) throw new Error(t('eff.volontairesHorsFlow', { question: on.volontaires }));
       if (on === 'testeur') throw new Error(t('eff.testeurHorsDuTest'));
       let targets: Combatant[];
@@ -1925,7 +1923,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         targets = [tire.heros];
       } else targets = typeof on === 'object' ? marinsDuRole(env.targets('groupe'), on.role.id) : env.targets(on, e.heroId);
       if (!targets.length) {
-        if (typeof on === 'object') env.log(t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) }));
+        if (typeof on === 'object') env.get().ecrireAuJournal(ligneDeTexte(t('eff.roleSansTitulaire', { role: refLabel('crewRoles', on.role) })));
         return;
       }
       // Durée TIRÉE une fois pour la feuille (MDG 15 l.212 « Pendant les 1d10 prochains jours ») puis
@@ -1939,7 +1937,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         if (issue !== MAIN_RENDUE) lines.push(...issue);
       }
       env.set(touchActors(env.get()));
-      lines.forEach((l) => env.log(l));
+      lines.forEach((l) => env.get().ecrireAuJournal(l));
       if (!env.get().battle) ouvrirLesContagions(env.get, env.set, targets.map((c) => c.id));
       const serie = feuille.ops.find(estOpDAttaquesSubies);
       if (serie) ouvrirLeNombreDAttaquesSubies(env.set, serie, { heros: targets[0] });
@@ -1981,7 +1979,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         return applyOps(real, e.ops, { idNeuf: env.get().forgerUnId, rng: battleRng(), resolveTrapping }).lignes.map((l) => l.texte);
       });
       env.set(touchActors(env.get()));
-      env.log(t('eff.souffleDeZone', { lines: lines.join(' · ') }));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.souffleDeZone', { lines: lines.join(' · ') })));
     },
     refs: (e, ctx) => {
       const out: EffectRefIssue[] = [];
@@ -2011,7 +2009,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       if (e.to && !surLaFile) poserLeGroupe(env.get, env.set, e.to);
       if (targets.length) {
         env.set(touchActors(env.get()));
-        env.log(t('eff.chuteOuverte', { m, noms: targets.map(nomDe).join(', ') }));
+        env.get().ecrireAuJournal(ligneDeTexte(t('eff.chuteOuverte', { m, noms: targets.map(nomDe).join(', ') })));
         for (const c of targets) ouvrirChute(env.set, c, m);
       }
     },
@@ -2037,7 +2035,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const who = env.mutateHero(whoId, (h) => (porte(h) ? h : { ...h, diseases: [...(h.diseases ?? []), { ...dz }] }));
       if (who) {
         const line = t('eff.maladieContractee', { name: nomDe(who), disease: e.disease });
-        env.log(line);
+        env.get().ecrireAuJournal(ligneDeTexte(line));
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
         env.pushReveal({ kind: 'effet', title: t('eff.titreDeMaladie', { disease: e.disease }), lines: [line], subjectId: whoId });
       }
@@ -2052,7 +2050,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // 2ᵉ+ → −10 autres + 1d10 Dégâts ignorant les PA, min 1). Réutilise le moteur des provisions.
       const heroes = env.targets(e.target ?? 'groupe', e.heroId);
       const n = Math.max(1, e.days ?? 1);
-      const lines: string[] = [];
+      const lines: EntreeDuJournal[] = [];
       for (const c of heroes) {
         c.hunger = c.hunger ?? { days: 0, tests: 0, failures: 0 };
         c.hunger.days += n;
@@ -2065,9 +2063,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         }
         const consequences: Applique = { lignes: [], faits: [] };
         loseWounds(c, damage, consequences);
-        lines.push(...consequences.lignes.map((e) => e.texte));
+        lines.push(...consequences.lignes);
       }
-      if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
+      if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.get().ecrireAuJournal(l)); }
     },
   },
   inflictThirst: {
@@ -2078,7 +2076,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       // `applySoifTest` (1ᵉʳ → −10 Int/FM/Soc ; 2ᵉ+ → −10 autres + 1d10 Dégâts ignorant les PA, min 1).
       const heroes = env.targets(e.target ?? 'groupe', e.heroId);
       const n = Math.max(1, e.days ?? 1);
-      const lines: string[] = [];
+      const lines: EntreeDuJournal[] = [];
       for (const c of heroes) {
         const be = Math.floor(effectiveChar(c, 'endurance') / 10);
         let damage = 0;
@@ -2089,9 +2087,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         }
         const consequences: Applique = { lignes: [], faits: [] };
         loseWounds(c, damage, consequences);
-        lines.push(...consequences.lignes.map((e) => e.texte));
+        lines.push(...consequences.lignes);
       }
-      if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
+      if (heroes.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.get().ecrireAuJournal(l)); }
     },
   },
   exposureNight: {
@@ -2107,9 +2105,9 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const count = Math.max(1, e.count ?? 2);
       const kind: ExposureKind = e.kind ?? 'froid';
       const steps: BuiltCascadeStep[] = [];
-      const lines: string[] = [];
+      const lines: EntreeDuJournal[] = [];
       for (const c of heroes) {
-        if (isWeatherWarded(c)) { lines.push(t('eff.meteoConjuree', { name: nomDe(c), what: t(kind === 'froid' ? 'eff.protectionDuFroid' : 'eff.protectionDeLaChaleur') })); continue; }
+        if (isWeatherWarded(c)) { lines.push(ligneDeTexte(t('eff.meteoConjuree', { name: nomDe(c), what: t(kind === 'froid' ? 'eff.protectionDuFroid' : 'eff.protectionDeLaChaleur') }))); continue; }
         const resVal = testValue(c, SUJET_RESISTANCE);
         const target = kind === 'froid' ? exposureTarget(c, resVal) : Math.max(0, resVal);
         // Ligne montée ICI : au FROID la cible vient d'`exposureTarget` (le manteau manquant y est fondu,
@@ -2123,7 +2121,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         });
         pousseSi(steps, st);
       }
-      if (lines.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.log(l)); }
+      if (lines.length) { env.set(touchActors(env.get())); lines.forEach((l) => env.get().ecrireAuJournal(l)); }
       // BANDE d'Exposition (#1117 L3) : une fenêtre par VAGUE, les héros exposés en rangées — les
       // vagues suivantes se déroulent APRÈS les délestages de la précédente (`nextExposureWave`).
       const band = exposureWaveBand(steps, kind, count);
@@ -2151,7 +2149,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const who = env.mutateHero(whoId, (h) => ({ ...h, traumas: avecSequelles(h.traumas, structuredClone(traumas)), criticalWounds: (h.criticalWounds ?? 0) + 1 }));
       if (who) {
         const line = t('eff.critiqueSubi', { name: nomDe(who), kind: e.kind, location: e.location });
-        env.log(line);
+        env.get().ecrireAuJournal(ligneDeTexte(line));
         // VISIBLE (le journal seul ne suffit pas) : effet d'AUTEUR → révélation témoin.
         env.pushReveal({ kind: 'effet', title: t('eff.titreDeCritique', { kind: e.kind }), lines: [line, ...labels], subjectId: whoId });
       }
@@ -2163,7 +2161,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       // Trauma « Cauchemars » (LDB 21 l.95) posé sur un héros (défaut : le premier).
       const who = env.mutateHero(e.heroId, (h) => ({ ...h, nightmares: true }));
-      if (who) env.log(t('eff.cauchemars', { name: nomDe(who) }));
+      if (who) env.get().ecrireAuJournal(ligneDeTexte(t('eff.cauchemars', { name: nomDe(who) })));
     },
   },
   ambitionLost: {
@@ -2176,7 +2174,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const calme = calmeDAcquisition(cible, 'accessible', battleRng());
       if (!calme) return;
       const line = t(calme.success ? 'eff.ambitionEncaissee' : 'eff.ambitionTraumatisme', { name: nomDe(cible), roll: calme.roll, target: calme.target });
-      env.log(line);
+      env.get().ecrireAuJournal(ligneDeTexte(line));
       if (calme.success) return;
       env.pushReveal({ kind: 'effet', title: t('eff.titreDAmbition'), lines: [line], subjectId: cible.id });
       ouvrirLeTrauma(env.set, cible);
@@ -2224,7 +2222,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const apres = { ...cible };
       const lines = applyOps(apres, [{ op: 'sinMod', amount }], { idNeuf: env.get().forgerUnId, rng: battleRng() }).lignes;
       env.mutateHero(cible.id, (h) => ({ ...h, sinPoints: apres.sinPoints }));
-      for (const l of lines) env.log(l);
+      for (const l of lines) env.get().ecrireAuJournal(l);
     },
   },
   waterExposure: {
@@ -2256,7 +2254,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
         feedFromMeal(nourri);
         return nourri;
       }));
-      env.log(t('eff.repas'));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.repas')));
     },
   },
   interlude: {
@@ -2343,7 +2341,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
           ...quaiDuGroupe(env.get(), { vehicleId: e.navire.id }),
         },
       });
-      env.log(t('eff.navirePossede', { name: e.label?.trim() || v.label }));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.navirePossede', { name: e.label?.trim() || v.label })));
     },
   },
   adjustVessel: {
@@ -2351,7 +2349,7 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     make: () => ({ type: 'adjustVessel' }),
     apply: (e, env) => {
       const vessel = env.get().vessel;
-      if (!vessel) { env.log(t('eff.sansNavire')); return; }
+      if (!vessel) { env.get().ecrireAuJournal(ligneDeTexte(t('eff.sansNavire'))); return; }
       const parts: string[] = [];
       const next: typeof vessel = { ...vessel };
       if (e.label?.trim()) { next.label = e.label.trim(); parts.push(t('eff.navireNom', { label: e.label.trim() })); }
@@ -2372,10 +2370,10 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
       const hasHullWrite = hullMax != null && (e.hullMax != null || e.hullCurrent != null);
       const hullCurrent = hasHullWrite ? (e.hullCurrent ?? hullMax) : undefined;
       if (hasHullWrite) parts.push(t('eff.navireCoque', { cur: Math.max(0, Math.min(hullCurrent!, hullMax!)), max: hullMax! }));
-      if (!parts.length) { env.log(t('eff.navireSansChamp')); return; }
+      if (!parts.length) { env.get().ecrireAuJournal(ligneDeTexte(t('eff.navireSansChamp'))); return; }
       env.set({ vessel: next });
       if (hasHullWrite) setVesselHull(env.get, env.set, hullCurrent!, hullMax!);
-      env.log(t('eff.navireModifie', { parts: parts.join(', ') }));
+      env.get().ecrireAuJournal(ligneDeTexte(t('eff.navireModifie', { parts: parts.join(', ') })));
     },
   },
 
@@ -2459,14 +2457,14 @@ export const EFFECT_HANDLERS: EffectHandlerMap = {
     apply: (e, env) => {
       const { get, set } = env;
       const caster = actorIn(get(), e.casterId);
-      if (!caster) { env.log(t('eff.lanceurAbsent', { id: e.casterId })); return; }
+      if (!caster) { env.get().ecrireAuJournal(ligneDeTexte(t('eff.lanceurAbsent', { id: e.casterId }))); return; }
       const spell = findSpellById(e.sort.id);
-      if (!spell) { env.log(t('eff.sortAbsent', { id: e.sort.id })); return; }
+      if (!spell) { env.get().ecrireAuJournal(ligneDeTexte(t('eff.sortAbsent', { id: e.sort.id }))); return; }
       const target = (e.targetId ? actorIn(get(), e.targetId) : undefined) ?? caster;
       if (e.mode === 'forcerLaReussite') {
         // Exécuteur déclaré par `combatFlow` (table `lancerLeSortGaranti`). #98
-        for (const line of tablesPosees().lancerLeSortGaranti(get, set, caster, target, spell.id)) env.log(line);
-        env.log(t('eff.rituelGaranti', { name: nomDe(caster), sort: spell.label }));
+        for (const line of tablesPosees().lancerLeSortGaranti(get, set, caster, target, spell.id)) env.get().ecrireAuJournal(line);
+        env.get().ecrireAuJournal(ligneDeTexte(t('eff.rituelGaranti', { name: nomDe(caster), sort: spell.label })));
         return;
       }
       if (!get().battle && isMagicMissile(spell)) {
@@ -2617,8 +2615,8 @@ function openMedicalAidEffect(get: Get, set: SetFn, e: Extract<Effect, { type: '
   // Avancée Guérison sur cette fiche (LDB 09 l.30), aucune infirmerie ne s'ouvre — et le refus se DIT.
   const { scene, campaignNarratif } = get();
   const npc = sceneNpc(scene, e.entityId.id, presetDuNarratif(campaignNarratif), objetDuNarratif(campaignNarratif));
-  if (!npc) { get().ecrireAuJournal(t('eff.medecinSansPnj', { id: e.entityId.id || '(aucun)' })); return; }
-  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(t('eff.medecinSansCompetenceDeSoin', { name: nomDe(npc) })); return; }
+  if (!npc) { get().ecrireAuJournal(ligneDeTexte(t('eff.medecinSansPnj', { id: e.entityId.id || '(aucun)' }))); return; }
+  if (!possesses(npc, { id: HEAL_SKILL })) { get().ecrireAuJournal(ligneDeTexte(t('eff.medecinSansCompetenceDeSoin', { name: nomDe(npc) }))); return; }
   ouvrirLeMedecin(get, set, undefined, {
     id: e.entityId.id,
     label: nomDe(npc),
@@ -2694,7 +2692,7 @@ export const TABLES = {
       const oui = sctx.steps.slice(0, sctx.index + 1)
         .filter((x) => x.kind === 'volontaireDeFlux' && x.id.startsWith(`volontaireDeFlux-${(e.on as CibleDeVolontaires).volontaires}-`) && x.chosen === 'oui' && x.actorId)
         .map((x) => x.actorId!);
-      if (!oui.length) get().ecrireAuJournal(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires }));
+      if (!oui.length) get().ecrireAuJournal(ligneDeTexte(t('eff.volontairesAucun', { question: (e.on as CibleDeVolontaires).volontaires })));
       const feuilles: Flow[] = oui.map((heroId) => ({ kind: 'effet', effet: { ...e, on: 'heros', heroId } }));
       jouerFlowEntier(runFlow(get, set, { kind: 'sequence', etapes: feuilles }, step.meta?.flowLabel, step.meta?.flowSl));
       return { applique: { lignes: [], faits: [] } };

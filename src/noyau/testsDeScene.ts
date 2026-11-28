@@ -1,4 +1,5 @@
 /** Tests de scène hors combat : Test simple, Test étendu (LDB 12), enfoncer une porte (EDO Appendice 2). */
+import { ligneDeTexte } from '../engine/journal';
 import { runFlow, cloturer, comptePorteursDeSuite, drainPendingLog, MAIN_RENDUE } from './combatEffects';
 import { fireOwnTestFailed } from './triggeredEffects';
 import { battleRng } from './battleRng';
@@ -138,13 +139,13 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const exhausted = !done && p.tentativesMax != null && p.rounds.length >= p.tentativesMax;
       if (done || exhausted) {
         sortirDeLHote(get, set, { pendingExtendedTest: null }, () => { // ferme la cascade-hôte aussi
-          get().ecrireAuJournal(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.drCible }));
+          get().ecrireAuJournal(ligneDeTexte(t('store.extendedDone', { label: p.label, issue: t(done ? 'store.extendedOk' : 'store.extendedKo'), total, target: p.drCible })));
           if (done && p.dispel) {
             // DISSIPATION réussie (LDB 46 l.160) : retire tous les effets du Sort de tous ses porteurs.
             const b = get().battle;
             const n = b ? dissipateSpell(b.combatants, p.dispel.spellId, p.dispel.casterId) : 0;
             set(touchActors(get()));
-            get().ecrireAuJournal(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' }));
+            get().ecrireAuJournal(ligneDeTexte(t('cs.dispelDone', { spell: p.dispel.label, extra: n > 1 ? t('cs.fragDispelFreed', { n }) : '' })));
           }
           if (done && p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // gate la suite (porte/serrure d'éditeur)
           // Issue de DOMAINE en donnée (kind-agnostique) : appliée qu'elle ait réussi ou buté sur `tentativesMax`.
@@ -165,13 +166,13 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
       const { degats: dmg, reste: doorB, cede } = bilanDuRound(p);
       if (cede) {
         sortirDeLHote(get, set, { pendingForceDoor: null }, () => { // la porte cède → ferme la situation (data + cascade hôte)
-          get().ecrireAuJournal(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' }));
+          get().ecrireAuJournal(ligneDeTexte(t('store.doorYields', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '' })));
           if (p.flag) set({ flags: { ...get().flags, [p.flag]: true } }); // ouverture en jeu (porte d'éditeur)
         });
       } else {
         // La porte tient : un nouveau Round s'ouvre (chacun re-frappe — jets remis à zéro).
         set({ pendingForceDoor: { ...p, doorB, participants: p.participants.map((x) => ({ ...x, result: null, rerolled: false, forcee: false })) } });
-        get().ecrireAuJournal(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' }));
+        get().ecrireAuJournal(ligneDeTexte(t('store.doorHolds', { label: p.label, n: dmg, s: dmg > 1 ? 's' : '', left: doorB, sB: doorB > 1 ? 's' : '' })));
       }
     },
     /** Acquitte un test de compétence : applique la branche réussite/échec. */
@@ -191,7 +192,7 @@ export function cloturesDesTestsDeScene(get: Get, set: Set) {
         if (tool && pt.isDouble && !pt.success && hasQuality(tool, 'bacle') && !isUnbreakable(tool)) {
           tool.destroyed = true;
           set({ party: [...get().party] }); // persiste la casse + re-render
-          get().ecrireAuJournal(t('store.toolBroken', { tool: tool.label, name: garanti(nomEnVue(get(), pt.actorId), pt.actorId, 'testeur') }));
+          get().ecrireAuJournal(ligneDeTexte(t('store.toolBroken', { tool: tool.label, name: garanti(nomEnVue(get(), pt.actorId), pt.actorId, 'testeur') })));
         }
         // Action de combat « cumuler l'Avantage » (LDB 09 l.305-308) : sur réussite, +1 Avantage plafonné au
         // `cap` de la Compétence (via `gainAdvantage`, qui respecte aussi le plafond général) ; l'Action est

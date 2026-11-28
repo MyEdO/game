@@ -157,7 +157,7 @@ export const EXCLUDE_RX = /^\s*import/;
  *  - coutures de contrôle/capacité : hasActiveCapability / pilotedByHuman ;
  *  - transition d'État par la machinerie : removeCondition ;
  *  - instrumentation : capture d'un compte d'États dans un local (`const/let X = stacks(`) pour un delta ;
- *  - journal seul : la lecture ne nourrit qu'une ligne de log (log.push( / .log( / `return tr(`) ;
+ *  - journal seul : la lecture ne nourrit qu'une ligne de log (log.push( / .log( / `return tr(` / `return ligneDeTexte(tr(`) ;
  *  - SÉLECTEURS d'ouverture de combat / doctrine IA (l'État Surpris lu comme SIGNAL d'initiative) :
  *    `return 'ambush'|'assault'|'combat'|'embuscade'`.
  * Toute NOUVELLE lecture par-État qui n'est aucune de ces machineries = réaction par-nom → signalée.
@@ -171,7 +171,7 @@ export const MACHINERY_RX = new RegExp([
   'criticalWounds', 'roundsAtZero', 'outOfRencontre', '\\.dead\\b', 'wounds\\.current\\s*<=\\s*0',
   'canTakeAction', 'isEngaged', 'controlsCombatant', 'movementUsed',
   'sizeGap', '\\breturn reach\\b', 'hasActiveCapability', 'pilotedByHuman', 'removeCondition',
-  '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.(?:log|ecrireAuJournal)\\(', '\\breturn tr\\(',
+  '\\b(?:const|let)\\s+\\w+\\s*=\\s*stacks\\([^)]*\\);?\\s*$', 'log\\.push\\(', '\\.(?:log|ecrireAuJournal)\\(', '\\breturn (?:ligneDeTexte\\()?tr\\(',
   "return '(?:ambush|assault|combat|embuscade)'",
 ].join('|'));
 

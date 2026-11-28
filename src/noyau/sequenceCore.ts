@@ -23,6 +23,7 @@
  * (`findTableEntry`, `engine/tables.ts`) et les effets par manche (`applyOps`, `engine/ops.ts`). Elles
  * s'ajoutent à `SequenceParams` avec le système qui les exerce — le socle ne porte que du vocabulaire vivant.
  */
+import { ligneDeTexte, type EntreeDuJournal } from '../engine/journal';
 import type { Get, Set } from './flowTypes';
 import type { Jeu } from './etat';
 import { openSequence } from './rollSeam';
@@ -282,15 +283,15 @@ export function sequenceRoundOps<P>(
   round: number,
   targets: SequenceRoundActors,
   conclut = false,
-): string[] {
+): EntreeDuJournal[] {
   const decl = seq.parametres.rounds ?? {};
   const porteur = (id: string): Combatant | undefined => actorIn(get(), id);
-  const lines: string[] = [];
+  const lines: EntreeDuJournal[] = [];
   const appliquer = (ops: readonly GameOp[] | undefined, ids: readonly string[] | undefined): void => {
     if (!ops?.length) return;
     for (const id of ids ?? []) {
       const c = porteur(id);
-      if (c) lines.push(...applyOps(c, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...campAdvantageHooks(get) }).lignes.map((e) => e.texte));
+      if (c) lines.push(...applyOps(c, [...ops], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c, ...campAdvantageHooks(get) }).lignes);
     }
   };
   appliquer(decl.winner, targets.vainqueurs);
@@ -302,7 +303,7 @@ export function sequenceRoundOps<P>(
     for (const id of targets.tous ?? []) {
       const c = porteur(id);
       const every = c ? sequenceAttritionEvery(seq.parametres, c) : 0;
-      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c }).lignes.map((e) => e.texte));
+      if (c && every > 0 && round % every === 0) lines.push(...applyOps(c, [...decl.attrition], { idNeuf: get().forgerUnId, rng: battleRng(), caster: c }).lignes);
     }
   }
   return lines;
@@ -471,7 +472,7 @@ export function closeSequenceRound(get: Get, set: Set, mancheClose: MancheClose)
     openSequenceRound(get, set);
     return;
   }
-  if (outcome === SEQUENCE_BORNE) get().ecrireAuJournal(t('seq.borne', { max: borneOf(apres.parametres) }));
+  if (outcome === SEQUENCE_BORNE) get().ecrireAuJournal(ligneDeTexte(t('seq.borne', { max: borneOf(apres.parametres) })));
   clearSequence(set);
   def.denouer?.(get, set, apres, outcome);
 }

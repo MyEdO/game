@@ -37,9 +37,9 @@ export interface ActorAim {
   kind: ActorAimKind;
 }
 
-/** Construit un événement d'un texte ou d'une entrée du journal. */
-export function ev(kind: CombatEventKind, ligne: string | EntreeDuJournal, actorId?: string, targetId?: string): CombatEvent {
-  return { kind, entree: typeof ligne === 'string' ? ligneDeTexte(ligne) : ligne, actorId, targetId };
+/** Construit un événement d'une entrée du journal. */
+export function ev(kind: CombatEventKind, entree: EntreeDuJournal, actorId?: string, targetId?: string): CombatEvent {
+  return { kind, entree, actorId, targetId };
 }
 
 /** L'évènement `condition` de la ligne `text`, qui nomme l'État `etat`. */
@@ -48,19 +48,16 @@ export function evDEtat(etat: string, text: string, actorId?: string): CombatEve
 }
 
 /**
- * Enveloppe une liste de lignes (textes ou entrées du journal) en événements.
+ * Enveloppe une liste d'entrées du journal en événements.
  * Les sous-lignes indentées « ↳ … » deviennent des `detail` ; les autres prennent `mainKind`.
  */
 export function evLines(
-  lines: (string | EntreeDuJournal)[],
+  lines: EntreeDuJournal[],
   mainKind: CombatEventKind,
   actorId?: string,
   targetId?: string,
 ): CombatEvent[] {
-  return lines.map((l) => {
-    const entree = typeof l === 'string' ? ligneDeTexte(l) : l;
-    return { kind: /^\s*↳/.test(entree.texte) ? 'detail' : mainKind, entree, actorId, targetId };
-  });
+  return lines.map((entree) => ({ kind: /^\s*↳/.test(entree.texte) ? 'detail' : mainKind, entree, actorId, targetId }));
 }
 
 /**
@@ -83,7 +80,7 @@ export function evLines(
 export function journaliser(
   get: Get,
   set: SetFn,
-  lines: (string | EntreeDuJournal)[],
+  lines: EntreeDuJournal[],
   kind: CombatEventKind = 'information',
   opts?: { actorId?: string; targetId?: string; extra?: CombatEvent[] },
 ): void {

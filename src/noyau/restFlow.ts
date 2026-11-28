@@ -26,7 +26,7 @@ import type { restPlacesSchema } from '../data/schemas/defs-scenes/scene';
 import type { Combatant } from '../engine/types';
 import { nomDe } from '../engine/nom';
 import type { RollBreakdown } from '../engine/combat';
-import { ligneDeTexte, type RecapTone } from '../engine/journal';
+import { ligneDeTexte, type EntreeDuJournal, type RecapTone } from '../engine/journal';
 import { battleRng } from './battleRng';
 import { betesHorsRencontre } from './monde/combatants';
 import { touchActors } from './combatOrParty';
@@ -208,7 +208,7 @@ export function sleepParty(
   const n = Math.max(1, Math.floor(days));
   const rng = battleRng();
   const entries: NightEntry[] = [];
-  const journal: string[] = [];
+  const journal: EntreeDuJournal[] = [];
 
   // La nuit passe — chaque journée de repos se termine à l'AUBE, UNE NUIT À LA FOIS : n nuits dormies
   // sont n RÉVEILS (`lastNightDay` posé à chaque aube atteinte, avant l'entretien de cette journée-là),
@@ -270,12 +270,12 @@ export function sleepParty(
       });
     });
     for (const text of notes) entries.push({ actorId: h.id, icon: 'repos/lit', label: t('rf.nuit'), text, tone: 'neutre' });
-    journal.push(...log);
+    journal.push(...log.map((l) => ligneDeTexte(l)));
   }
 
   const title = n > 1 ? t('rf.titleDays', { n }) : t('rf.titleNight');
   set(touchActors(get()));
-  get().ecrireAuJournal([title, ...journal]);
+  get().ecrireAuJournal([ligneDeTexte(title), ...journal]);
   bus.emit(EVT.SCENE_DIRTY);
   return entries;
 }
@@ -412,7 +412,7 @@ export function deferredUpkeepSteps(party: Combatant[], deferred: DeferredUpkeep
  * après le repos.
  */
 export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fedDaily?: boolean; extraContagion?: ContagionSpec[] } = {}): { steps: BuiltCascadeStep[]; slept: { from: number; to: number } } {
-  const log: string[] = [];
+  const log: EntreeDuJournal[] = [];
   const from = get().gameTime;
   // La nuit passe — une journée de repos se termine à l'AUBE.
   const minutes = aubeApresNuits(from, 1) - from;
@@ -454,7 +454,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   if (campers.length && severity !== 'clement') {
     const camperIds = campers.map((h) => h.id);
     if (exposureShelterFromTent(party)) {
-      log.push(t('rf.tentUp'));
+      log.push(ligneDeTexte(t('rf.tentUp')));
       const count = exposureTestCount(severity, true); // tente : extrême → rythme difficile, difficile → 0
       if (count > 0) steps.push(...buildExposureBand(party, camperIds, count));
     } else {
@@ -492,10 +492,10 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
       const sans = constatSansRecuperation(h);
       const sortie: Applique = { lignes: [], faits: [] };
       const { wokeUp } = applyRecoveryDay(h, null, sortie);
-      if (h.wounds.current - before > 0) log.push(t('rf.recovered', { name: nomDe(h), n: h.wounds.current - before }));
-      if (wokeUp) log.push(t('heal.awake', { name: nomDe(h) }));
-      log.push(...sortie.lignes.map((e) => e.texte));
-      if (sans) log.push(t(sans.cle, { ...sans.params, name: nomDe(h) }));
+      if (h.wounds.current - before > 0) log.push(ligneDeTexte(t('rf.recovered', { name: nomDe(h), n: h.wounds.current - before })));
+      if (wokeUp) log.push(ligneDeTexte(t('heal.awake', { name: nomDe(h) })));
+      log.push(...sortie.lignes);
+      if (sans) log.push(ligneDeTexte(t(sans.cle, { ...sans.params, name: nomDe(h) })));
     }
     if (h.nightmares) {
       const st = monoStep({ id: `nm-${h.id}`, kind: 'cauchemar', actor: h, label: t('step.cauchemars'), icon: 'creature/hurlement',
@@ -514,7 +514,7 @@ export function buildNightCascade(get: Get, set: Set, p: PendingRest, opts: { fe
   // Journal : le titre de nuit + tout ce qui s'est ajouté APRÈS l'entretien (tente, récupération sans
   // jet…) — l'entretien lui-même est déjà dans le journal (`runDailyUpkeep`, écriture unique, #216).
   set({ party: [...get().party] });
-  get().ecrireAuJournal([t('rf.titleNight'), ...log]);
+  get().ecrireAuJournal([ligneDeTexte(t('rf.titleNight')), ...log]);
   bus.emit(EVT.SCENE_DIRTY);
   return { steps: banded, slept: { from, to: get().gameTime } };
 }
@@ -999,13 +999,13 @@ export const TABLES = {
       const r = applyFaimTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
       const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(hero, r.damage, consequences); // LDB 18 l.342
-      return { applique: { lignes: [...r.log.map((x) => ligneDeTexte(x)), ...consequences.lignes], faits: [] } };
+      return { applique: { lignes: [...r.log, ...consequences.lignes], faits: [] } };
     }),
     soif: bandeDeNuit((_get, _set, _band, row, hero) => {
       const r = applySoifTest(hero, row.result!.success, bonus(effectiveChar(hero, 'endurance')), battleRng());
       const consequences: Applique = { lignes: [], faits: [] };
       loseWounds(hero, r.damage, consequences); // LDB 18 l.340
-      return { applique: { lignes: [...r.log.map((x) => ligneDeTexte(x)), ...consequences.lignes], faits: [] } };
+      return { applique: { lignes: [...r.log, ...consequences.lignes], faits: [] } };
     }),
     dessoulage: bandeDeNuit((_get, _set, band, row, hero) => {
       // Dessoûlage (LDB 09 l.485) : le 1ᵉʳ Test INFLUENÇABLE fixe la dissipation (10−DR h). Le 2ᵉ Test — « Une
