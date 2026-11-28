@@ -3,13 +3,15 @@
  * trait octroyé (`grantTrait`) et sa Cible tirée, la Cible d'un état psy posé (`beginPsych`), le Trait posé, la Cible
  * d'individu d'une péripétie de route (`refuserLesIndividus`), la prose
  * d'un livre extrait, l'apparence d'un objet, les jeux de races (`especes-aleatoires.json`), l'enjeu d'un dataset
- * (`catalogStakeSchema`).
+ * (`catalogStakeSchema`), le billet d'une route (`mapRouteSchema`) et les règles d'un preset de personnage
+ * (`compositionSchema`).
  * Fixtures : des traits, des états psy, un Groupe, un livre, un objet et son apparence, un Tableau des Obsessions, des
- * espèces, des enjeux, une manœuvre, une Activité, une météo et une règle optionnelle DÉCLARÉS par la suite, seuls au catalogue (`catalogueDeTest`).
+ * espèces, des enjeux, une manœuvre, une Activité, une météo, des véhicules, une garde-robe et une règle optionnelle DÉCLARÉS par la suite, seuls au catalogue (`catalogueDeTest`).
  */
 import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { catalogueDeTest, type LivreDeTest } from './schemas/catalogue/catalogueDeTest.testkit';
+import type { Catalogue } from './schemas/catalogue/catalogue';
 import { idDeFixture } from './idDeFixture.testkit';
 import { CHAR_KEYS } from '../engine/types';
 import { parserSousCatalogue } from './schemas/catalogue/references';
@@ -18,7 +20,8 @@ import { fichiersLisantLeCatalogue, validateDataset } from './schemas/validate';
 import { renvoiDeLEspaceVivant } from './overrides';
 import { refMorte } from './schemas/grammaire/ref';
 import { traitInstanceSchema } from './schemas/grammaire/reference';
-import { routePerilSchema } from './schemas/defs-scenes/worldmap';
+import { mapRouteSchema, routePerilSchema } from './schemas/defs-scenes/worldmap';
+import { compositionSchema } from './schemas/defs/presets-de-personnage';
 import { proseAdressable, refineProse } from './schemas/grammaire/prose';
 import { apparencesDObjetsSchema } from './schemas/grammaire/valeurs';
 import { tableTotale } from '../lib/tableTotale';
@@ -252,5 +255,78 @@ describe('l’enjeu d’un dataset (`catalogStakeSchema`) se lit dans le catalog
 
   it('une catégorie d’entrée sans pool est refusée', () => {
     expect(enjeu({ dataset: 'flux', kind: ENJEU, entryCategory: 'categorie-sans-pool' })).toContain(`la catégorie d’entrée « categorie-sans-pool » de l’enjeu « flux/${ENJEU} » n’a aucun pool`);
+  });
+});
+
+describe('le billet d’une route (`mapRouteSchema`) se lit dans les véhicules du catalogue passé', () => {
+  const VEHICULE = 'coche-du-livre-de-test';
+  const VEHICULE_DU_LIVRE = { id: VEHICULE, type: 'vehicles', label: 'Coche du livre de test', source: SOURCE } as const;
+  const AVEC_PASSAGE = catalogueDeTest({
+    'vehicles.json': [{ ...VEHICULE_DU_LIVRE, travel: { movement: 6, classes: [{ id: 'banquette', label: 'Banquette', brassPerKm: 1 }] } }],
+  });
+  const SANS_PASSAGE = catalogueDeTest({ 'vehicles.json': [VEHICULE_DU_LIVRE] });
+  const route = (prix: Record<string, number>) => ({
+    id: 'route', a: { id: 'A' }, b: { id: 'B' }, from: { id: 'A' }, km: 10, modes: [VEHICULE],
+    billets: { [VEHICULE]: { prix, maison: 'Billet du livre de test' } },
+  });
+  /** Les fautes que le billet porte, à `billets.<véhicule>`. */
+  const fautesDuBillet = (prix: Record<string, number>, cat: Catalogue) =>
+    parserSousCatalogue(mapRouteSchema, route(prix), cat).error?.issues.filter((i) => i.path.join('.') === `billets.${VEHICULE}`).map((i) => i.message) ?? [];
+
+  it('le billet d’un véhicule à passage du seul catalogue, sur une de ses classes, est admis', () => {
+    expect(fautesDuBillet({ banquette: 3 }, AVEC_PASSAGE)).toEqual([]);
+  });
+
+  it('une classe inconnue du véhicule du seul catalogue est refusée', () => {
+    expect(fautesDuBillet({ impériale: 3 }, AVEC_PASSAGE)).toEqual([`classe « impériale » inconnue du véhicule « ${VEHICULE} » (classes : banquette).`]);
+  });
+
+  it('le même véhicule, sans passage au catalogue, refuse le billet', () => {
+    expect(fautesDuBillet({ banquette: 3 }, AVEC_PASSAGE)).toEqual([]);
+    expect(fautesDuBillet({ banquette: 3 }, SANS_PASSAGE)).toEqual([`« ${VEHICULE} » n'est pas un véhicule à passage payant (\`vehicles.json\` sans \`travel\`).`]);
+  });
+});
+
+describe('les règles d’un preset (`compositionSchema`) se lisent dans la garde-robe et les objets du catalogue passé', () => {
+  const PIECE = 'piece-du-livre-de-test';
+  const AUTRE_PIECE = 'autre-piece-du-livre-de-test';
+  const PIECE_DE_TETE = 'piece-de-tete-du-livre-de-test';
+  const VARIANTE = 'variante-du-livre-de-test';
+  const OBJET_HABILLE = 'objet-habille-du-livre-de-test';
+  const OBJET_DE_TETE = 'objet-de-tete-du-livre-de-test';
+  const TENUE = 'tenue-du-livre-de-test';
+  const objet = (id: string, loc?: string): NonNullable<LivreDeTest['trappings.json']>[number] => ({ id, type: 'trappings', label: id, categorie: 'trapping', subType: null, availability: null, qualities: [], price: null, ...(loc ? { loc } : {}), source: SOURCE });
+  const CAT_DE_LA_GARDE_ROBE = catalogueDeTest({
+    'garde-robe.json': [
+      { id: 'tete-du-livre-de-test', type: 'garde-robe', label: 'Tête', kind: 'tete' },
+      { id: PIECE, type: 'garde-robe', label: 'Pièce', kind: 'piece', categorie: 'vetement' },
+      { id: AUTRE_PIECE, type: 'garde-robe', label: 'Autre pièce', kind: 'piece', categorie: 'vetement' },
+      { id: PIECE_DE_TETE, type: 'garde-robe', label: 'Pièce de tête', kind: 'piece', categorie: 'armure', localisations: ['tete'] },
+      { id: VARIANTE, type: 'garde-robe', label: 'Variante', kind: 'variante', piece: { id: idDeFixture('gardeRobe', AUTRE_PIECE, 'piece') } },
+      { id: TENUE, type: 'garde-robe', label: 'Tenue', kind: 'tenue' },
+      { id: 'ensemble-de-la-tenue-du-livre-de-test', type: 'garde-robe', label: 'Ensemble de la tenue', kind: 'ensemble', habille: { id: TENUE, type: 'tenue' }, pieces: [idDeFixture('gardeRobe', PIECE, 'piece')] },
+      { id: 'ensemble-du-livre-de-test', type: 'garde-robe', label: 'Ensemble', kind: 'ensemble', habille: { id: OBJET_HABILLE, type: 'trapping' }, pieces: [idDeFixture('gardeRobe', PIECE, 'piece')] },
+    ],
+    'trappings.json': [objet(OBJET_HABILLE), objet(OBJET_DE_TETE, 'Tête')],
+    'raceAppearance.json': [{ id: 'race-du-livre-de-test', type: 'raceAppearance', label: 'Race', gabarit: { id: idDeFixture('gabarit', 'gabarit-du-livre-de-test') } }],
+  });
+  const preset = (champs: Record<string, unknown>) => ({ race: { id: 'race-du-livre-de-test' }, sex: 'M', tete: { id: 'tete-du-livre-de-test' }, ...champs });
+  const fautes = (champs: Record<string, unknown>) =>
+    parserSousCatalogue(compositionSchema, preset(champs), CAT_DE_LA_GARDE_ROBE).error?.issues.map((i) => `${i.path.join('.')} : ${i.message}`) ?? [];
+
+  it('une pièce de l’ensemble du seul catalogue qui habille un objet porté est refusée portée deux fois', () => {
+    expect(fautes({ pieces: [PIECE], objets: [OBJET_HABILLE] })).toEqual([`objets.0 : « ${PIECE} » est porté deux fois : déjà par pieces[0].`]);
+  });
+
+  it('une pièce de l’ensemble du seul catalogue qui habille la tenue est refusée portée deux fois', () => {
+    expect(fautes({ tenue: { id: TENUE }, pieces: [PIECE] })).toEqual([`pieces.0 : « ${PIECE} » est porté deux fois : déjà par l’ensemble de la tenue « ${TENUE} ».`]);
+  });
+
+  it('une variante du seul catalogue d’une autre pièce est refusée', () => {
+    expect(fautes({ pieces: [PIECE], variantesPieces: { [PIECE]: { id: VARIANTE } } })).toEqual([`variantesPieces.${PIECE} : « ${VARIANTE} » est une variante de « ${AUTRE_PIECE} », pas de « ${PIECE} ».`]);
+  });
+
+  it('un objet du seul catalogue sans ensemble revêt les pièces qui couvrent ses localisations (`piecesCouvrant`)', () => {
+    expect(fautes({ pieces: [PIECE_DE_TETE], objets: [OBJET_DE_TETE] })).toEqual([`objets.0 : « ${PIECE_DE_TETE} » est porté deux fois : déjà par pieces[0].`]);
   });
 });

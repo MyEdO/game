@@ -66,7 +66,7 @@ import type { TriggeredEffect } from '../engine/flowCore';
 import { slugId } from './schemas/slug';
 import { parLibelle } from '../lib/ordre.mjs';
 import { estObjet } from '../lib/objet.mjs';
-import { emplacementsDesPieces, localisationsDeLoc } from '../engine/classementDeTrait';
+import { emplacementsDesPieces } from '../engine/classementDeTrait';
 import { norm } from '../lib/normalize';
 import { tableTotale } from '../lib/tableTotale';
 import { garanti } from '../lib/garanti';
@@ -93,6 +93,11 @@ import { deDeTirageDe, rangeesDe, type RangeeDe } from './schemas/rangees';
 import { deDeLaTableTiree, type DeDeTable } from '../engine/tables';
 import { ouvertParSaRegle as ouvertSousLeCatalogue } from './schemas/catalogue/catalogue';
 import { catalogueDuProcessus } from './catalogueDuProcessus';
+import {
+  ensembleDe,
+  piecesDeLObjet as piecesDeLObjetSousLeCatalogue,
+  varianteDePiece,
+} from './schemas/catalogue/garde-robe';
 import {
   CATEGORIES_A_POOL_DES_TABLES_TIREES,
   categorieDeLEntreeDeLEnjeu,
@@ -243,7 +248,7 @@ import gabaritsJson from './gabarits.json';
 import planDeBestiaireJson from './planDeBestiaire.json';
 import type * as gabaritsDef from './schemas/defs/gabarits';
 import gardeRobeJson from './garde-robe.json';
-import { cleDHabille, type EmplacementId, type HabilleDEnsemble, type PieceId } from './schemas/defs/garde-robe';
+import { type EmplacementId, type HabilleDEnsemble, type PieceId } from './schemas/defs/garde-robe';
 import type * as gardeRobeDef from './schemas/defs/garde-robe';
 import presetsDePersonnageJson from './presets-de-personnage.json';
 import type * as presetsDePersonnageDef from './schemas/defs/presets-de-personnage';
@@ -1554,22 +1559,13 @@ export const findPieceById = parNature('piece');
 export const findEmblemeById = parNature('embleme');
 export const findTeteById = parNature('tete');
 export const findCoiffureById = parNature('coiffure');
-export const findVarianteById = parNature('variante');
-const ensembleParHabille = indexParChamp<LigneDeGardeRobe, string>('gardeRobe', gardeRobe, (e) => (e.kind === 'ensemble' ? cleDHabille(e.habille) : undefined));
-/** L'ensemble qui habille `habille` (égalité de `{ id, type }`), `undefined` si la garde-robe n'en déclare pas. */
-export const findEnsembleParHabille = (habille: HabilleDEnsemble): LigneDeGardeRobe<'ensemble'> | undefined => {
-  const ensemble = ensembleParHabille(cleDHabille(habille));
-  return ensemble?.kind === 'ensemble' ? ensemble : undefined;
-};
-/** Les pièces d'armure qui couvrent une des localisations `locs` (`localisations`, #3456), dans l'ordre de la garde-robe. */
-export const piecesCouvrant = (locs: readonly HitLocation[]): PieceId[] =>
-  gardeRobe.flatMap((e) => (e.kind === 'piece' && e.localisations?.some((l) => locs.includes(l)) ? [e.id] : []));
-/** Les pièces que revêt un objet porté : celles de l'ensemble qui habille son trapping `trappingId`, à défaut celles qui
- *  couvrent ses localisations, `locs`, à défaut celles de son trapping (`localisationsDeLoc`). #3456 */
-export function piecesDeLObjet(trappingId: string | undefined, locs?: readonly HitLocation[]): readonly PieceId[] {
-  const ensemble = trappingId === undefined ? undefined : findEnsembleParHabille({ type: 'trapping', id: trappingId });
-  return ensemble?.pieces ?? piecesCouvrant(locs ?? localisationsDeLoc(findTrappingById(trappingId)?.loc));
-}
+/** `varianteDePiece` du catalogue sur `catalogueDuProcessus()` (#5070, fossile 3). */
+export const findVarianteById = (id: string | null | undefined): LigneDeGardeRobe<'variante'> | undefined => varianteDePiece(id, catalogueDuProcessus());
+/** `ensembleDe` du catalogue sur `catalogueDuProcessus()` (#5070, fossile 3). */
+export const findEnsembleParHabille = (habille: HabilleDEnsemble): LigneDeGardeRobe<'ensemble'> | undefined => ensembleDe(habille, catalogueDuProcessus());
+/** `piecesDeLObjet` du catalogue sur `catalogueDuProcessus()` (#5070, fossile 3). */
+export const piecesDeLObjet = (trappingId: string | undefined, locs?: readonly HitLocation[]): readonly PieceId[] =>
+  piecesDeLObjetSousLeCatalogue(trappingId, locs, catalogueDuProcessus());
 /** La tenue de la garde-robe dont `carriere` est une des `carrieres` (#3456), `undefined` sinon. */
 export const findTenueDeCarriere = (carriere: string | null | undefined): LigneDeGardeRobe<'tenue'> | undefined =>
   gardeRobe.find((e): e is LigneDeGardeRobe<'tenue'> => e.kind === 'tenue' && carriere != null && (e.carrieres ?? []).some((c) => c === carriere));

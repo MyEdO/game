@@ -21,7 +21,7 @@ import { refuserLesIndividus } from '../grammaire/reference';
 import { listeCle, marquerCollection, marqueDeRecord, ouvrirPortees } from '../grammaire/collection-cle';
 import { listeSansCle } from '../grammaire/liste-sans-cle';
 import { couvreSchema, PORTEES_DE_LA_SCENE, SCENES_DU_PROJET } from './communs';
-import { findVehicleById } from '../../index';
+import { entreeDe, type Catalogue } from '../catalogue/catalogue';
 import { signalDuPortSchema } from '../defs/naval-ports';
 
 /** `WindDirection` (`engine/seaWeather.ts`) — cap dominant d'une route maritime (`MDG 13 l.262-270`). */
@@ -187,10 +187,10 @@ export const routePerilSchema = nommerChamps(ouvrirPortees(affinerAvecCatalogues
 /** Une référence à un lieu de la carte (`ref(LIEUX_DE_LA_CARTE)`). */
 type RefDeLieu = { id: string };
 
-/** Fautes d'un billet contre SA route : véhicule à classes de passage offert sur la route, classes connues,
+/** Fautes d'un billet contre SA route : véhicule de `cat` à classes de passage offert sur la route, classes connues,
  *  `depuis` exigé sur une route à double sens et désignant une de ses extrémités. */
-function fautesDuBillet(route: { a: RefDeLieu; b: RefDeLieu; from?: RefDeLieu; modes: string[] }, mode: string, billet: z.infer<typeof routeBilletSchema>): string[] {
-  const travel = findVehicleById(mode)?.travel;
+function fautesDuBillet(route: { a: RefDeLieu; b: RefDeLieu; from?: RefDeLieu; modes: string[] }, mode: string, billet: z.infer<typeof routeBilletSchema>, cat: Catalogue): string[] {
+  const travel = entreeDe('vehicles', mode, cat)?.travel;
   if (!travel) return [`« ${mode} » n'est pas un véhicule à passage payant (\`vehicles.json\` sans \`travel\`).`];
   const fautes: string[] = [];
   if (!route.modes.includes(mode)) fautes.push(`le billet « ${mode} » est posé sur une route qui n'offre pas ce mode.`);
@@ -208,7 +208,7 @@ function fautesDuBillet(route: { a: RefDeLieu; b: RefDeLieu; from?: RefDeLieu; m
 const PROVENANCE_EXIGEE = { perilDie: 'du dé de péril', speed: 'de la vitesse' } as const;
 
 /** `MapRoute` — route entre deux lieux, bidirectionnelle sauf `from` (sens unique d'initiation). */
-export const mapRouteSchema = nommerChamps(z.strictObject({
+export const mapRouteSchema = nommerChamps(affinerAvecCatalogues(z.strictObject({
   id: z.string(),
   a: ref(LIEUX_DE_LA_CARTE),
   b: ref(LIEUX_DE_LA_CARTE),
@@ -248,8 +248,9 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
     .optional(),
   couvre: couvreSchema.optional(),
   provenances: provenancesDeRouteSchema.optional(),
-})
-  .superRefine((route, ctx) => {
+}), (lire) => {
+  const cat = lire.catalogueLu('vehicle');
+  return (route, ctx) => {
     const posees = { perilDie: route.perilDie !== undefined, speed: Object.keys(route.speed ?? {}).length > 0 };
     for (const cle of Object.keys(PROVENANCE_EXIGEE) as (keyof typeof PROVENANCE_EXIGEE)[]) {
       if (posees[cle] && !route.provenances?.[cle]) {
@@ -258,8 +259,9 @@ export const mapRouteSchema = nommerChamps(z.strictObject({
     }
     refuserLAccesMuet(route, ctx, 'un trajet');
     for (const [mode, billet] of Object.entries(route.billets ?? {}))
-      for (const message of fautesDuBillet(route, mode, billet)) ctx.addIssue({ code: 'custom', path: ['billets', mode], message });
-  }), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, ...META_DE_L_ACCES, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, provenances: { label: "provenances" } });
+      for (const message of fautesDuBillet(route, mode, billet, cat())) ctx.addIssue({ code: 'custom', path: ['billets', mode], message });
+  };
+}), { id: { label: "identifiant" , texte: { regime: "technique"} }, a: { label: "extrémité de départ" , texte: { regime: "technique"} }, b: { label: "extrémité d’arrivée" , texte: { regime: "technique"} }, from: { label: "provenance" , texte: { regime: "technique"} }, km: { label: "kilomètres" }, modes: { label: "modes" , texte: { regime: "technique"} }, billets: { label: "billets" , texte: { regime: "technique"} }, speed: { label: "vitesse" , texte: { regime: "technique"} }, perilDie: { label: "dé de péril" }, perils: { label: "périls" }, ambush: { label: "embuscade" }, inns: { label: "auberges" }, sea: { label: "mer" }, seaHeading: { label: "cap en mer"  }, river: { label: "fleuve" }, riverPerils: { label: "périls fluviaux" }, ...META_DE_L_ACCES, riverExposure: { label: "exposition fluviale" }, couvre: { label: "entrées couvertes" , texte: { regime: "technique"} }, provenances: { label: "provenances" } });
 
 /** `WorldMapParams` — réglages RAW de voyage au niveau CARTE, tous paramétrables. */
 export const worldMapParamsSchema = nommerChamps(z.strictObject({

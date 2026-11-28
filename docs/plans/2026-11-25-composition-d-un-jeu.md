@@ -353,7 +353,9 @@ hôte compose un catalogue, et il le remet à sa partie.
 - **Le sort des 10 fichiers de `schemas` qui lisent la base.** Ils deviennent des fautes, ou des lectures
   `(…, cat)` de `schemas/catalogue` :
   - `defs-scenes/scene.ts`, sans lecture de la base : la carrière lit la créature sous `cat` (`scene.ts:229`) ;
-  - `narratif.ts:22` et `worldmap.ts:24` ;
+  - `narratif.ts:22` ;
+  - `defs-scenes/worldmap.ts`, sans lecture de la base : le billet d'une route lit son véhicule sous `cat`
+    (`entreeDe('vehicles', …)`, `worldmap.ts:193`), sous `catalogueLu('vehicle')` (`mapRouteSchema`, `worldmap.ts:252`) ;
   - `grammaire/reference.ts`, sans lecture de la base : le Trait posé lit le trait et le libellé de son type psy sous
     `cat` (`entreeDe('traits', …)`, `entreeDe('psychologies', …)`, `reference.ts:159,163,220`), sous
     `catalogueLu('trait', 'psychology', 'groupe')` (`reference.ts:209`) ; sa Cible se décode par `cibleDeLArg`
@@ -370,7 +372,10 @@ hôte compose un catalogue, et il le remet à sa partie.
     de `grantTrait` lit les rangées de sa table dans `cat` (`GROUPES_TIRABLES`, `collectionDuCatalogue`,
     `mecanique.ts:213,855`), sous `catalogueLu('trait', 'obsessions.json')` (`mecanique.ts:843`) : `catalogueLu`
     déclare un document du `Catalogue` qu'aucun type d'entité ne désigne par sa clé de fichier (`ref.ts:414`) ;
-  - `defs/presets-de-personnage.ts:36` ;
+  - `defs/presets-de-personnage.ts`, sans lecture de la base : ses règles lisent la garde-robe et les objets sous `cat`
+    (`varianteDePiece`, `ensembleDe`, `piecesDeLObjet`, `src/data/schemas/catalogue/garde-robe.ts:15,24,38`),
+    sous `catalogueLu('gardeRobe', 'trapping')` (`presets-de-personnage.ts:142`), sur l'entrée comme sur la composition ;
+    `src/data/index.ts` garde ses lecteurs sous `catalogueDuProcessus()`, sans copie ;
   - `defs-scenes/effets.ts:56`, dont le libellé passe au message de la faute ;
   - `grammaire/valeurs.ts:16,18,60` : l'apparence d'un objet lit l'objet sous `cat` (`objetsDuCatalogue`,
     `catalogueLu('trapping')`, `valeurs.ts:1185`). Restent trois lectures de la base :
