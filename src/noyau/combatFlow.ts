@@ -38,7 +38,8 @@ import type {
   ReactionDeBouclier,
   RevealEntry,
 } from './pendings';
-import { FLOWS } from './rollFlowSpecs';
+import { FLOWS, ligneDeFrenesie } from './rollFlowSpecs';
+import { actionGate } from './actionRegistry';
 import {
   Combatant,
   HitLocation,
@@ -313,6 +314,7 @@ import {
   hydrateTR,
   cibleBrute,
   cibleMesuree,
+  probabiliteDeReussite,
   estJete,
   reverseRoll,
   SL_ASTOUNDING,
@@ -342,7 +344,6 @@ import { structureCriticalsDie } from '../data/structureCriticals';
 import { actorIn, auContactDeLaSerie, choisitSaMontureHorsCombat, ecrireActeur, inBattleId, porteurParId, possessionEnJeu } from './monde/combatants';
 import { ecrireLesBlessuresDeLaBete } from '../engine/possession';
 import { checkPartyWiped } from './partyWipe';
-import type { IdDeCombattant } from './designations';
 import { choixDeCiblesDuSort, filtreDeCiblesDuSort } from './reglagesDIncantation';
 import { nomDIndividu } from './monde/sceneNpc';
 import { garanti } from '../lib/garanti';
@@ -588,8 +589,18 @@ import type { TravelRecapDay } from './travelFlow';
 import { groupeAPoudre, isThrownWeapon, maniementRetenu, weaponGroup } from '../engine/weaponGroup';
 import { moveReachFor, flyReachable, fleeReachable, pushAway, pullToward, pathTo, tileKey, tileFromKey, Pt } from './monde/path';
 import { casesDansLaPortee, chebyshev } from '../engine/grid';
-import { adversairesDe, chooseEnemyAction, consumeAiRanking, type EnemyAction, type EnemyTurnInput, type CastableSpell, type AiCandTrace } from './monde/ai';
-import { expectedDamage, finite, HORIZON_DE_BENEFICE, spellActionValue, spellIsOffensive } from './monde/aiSpellValue';
+import {
+  adversairesDe,
+  chooseEnemyAction,
+  consumeAiRanking,
+  degatsDeLaFrappe,
+  frappeEsperee,
+  type EnemyAction,
+  type EnemyTurnInput,
+  type CastableSpell,
+  type AiCandTrace,
+} from './monde/ai';
+import { HORIZON_DE_BENEFICE, spellActionValue, spellIsOffensive } from './monde/aiSpellValue';
 import { chargeReach, distanceDeCourse } from '../engine/movement';
 import type { RNG } from '../engine/dice';
 import { bus, EVT } from './bus';
@@ -667,6 +678,7 @@ import {
 import {
   bestDefenseMode,
   hasFreeWeaponAttack,
+  frappeDArmeJouable,
   freeAttackCost,
   freeAttackTargetOk,
   gratuitesRestantes,
@@ -4897,9 +4909,8 @@ function frapperDeLaSecondeParLaMachine(get: Get, set: SetFn, attacker: Combatan
   const s = get();
   const resolveTrapping = objetDuNarratif(s.campaignNarratif);
   const mpt = sceneMetresPerTile(s.scene);
-  const esperance = (t: Combatant): number => finite(expectedDamage(attacker, t, off, off.type === 'distance'
-    ? { kind: 'distance', distanceTiles: distanceDeLAttaque(s, attacker, t, off), metresPerTile: mpt, resolveTrapping }
-    : { kind: 'melee' }), 0);
+  const ctx = { combattants: s.battle?.combatants ?? [], mpt, resolveTrapping };
+  const esperance = (t: Combatant): number => degatsDeLaFrappe(ctx, attacker, t, off, off.type === 'distance' ? { dist: distanceDeLAttaque(s, attacker, t, off) } : undefined);
   const cible = cibles.reduce((m, t) => (esperance(t) > esperance(m) ? t : m));
   const { res, weapon, victim } = resolveDualSecond(get, attacker, cible, off, jet);
   // Le reste de l'après-coup de la 1ʳᵉ frappe (restitution, gratuites « à la touche ») suit la 2ᵉ.
@@ -6409,7 +6420,7 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
   const cloue = auContact && !departLibre(ctxDuContact) && !peutSacrifierLAvantage(ctxDuContact)
     && !(isActionLocked(enemy) && (!refusDEsquiveDeDesengagement(ctxDuContact) || peutFuir(ctxDuContact)));
   // Le budget et la géométrie du geste du joueur (`mountMovement`, `moveEnv`) : Marche ou Vol sous les États, monture.
-  const movement = cloue ? 0 : movementRemaining(battle, enemy);
+  const movement = cloue || !canMove(battle, enemy) ? 0 : movementRemaining(battle, enemy);
   const tour = tourEnCoursDe(battle, enemy.id);
   const refuses = new Set(tour?.casesRefusees ?? []);
   const ciblesRefusees = new Set(tour?.ciblesRefusees ?? []);
@@ -6489,19 +6500,6 @@ export function buildAiInput(enemy: Combatant, get: Get): EnemyTurnInput & { res
     // aucune 2ᵉ source : `banRangedActive` reste l'unique point de vérité.
     banRanged: banRangedActive(battle),
   };
-}
-
-/** La meilleure action IA du combattant `id` est-elle de PRÉPARER un sort (cast/castArea/focus) plutôt que d'agir
- *  au contact ? Sélecteur DÉTERMINISTE lu par le hook de Frénésie (`aiMaybeFrenzy`) pour DIFFÉRER l'entrée en
- *  Frénésie tant qu'un sort (buff/invocation/dégâts) prime sur charger — RAW : l'entrée en Frénésie est un
- *  CHOIX (psychologie.md l.170). L'Unicité retire ces sorts un à un ; quand il ne reste que charger, la
- *  Frénésie passe au tour suivant. N'utilise AUCUN `battleRng` et ne mute rien (`buildAiInput`/
- *  `chooseEnemyAction` déterministes et purs) → planning de coop sans désync. */
-export function aiJetteraitUnSort(get: Get, id: IdDeCombattant): boolean {
-  const enemy = inBattleId(get().battle, id);
-  if (!enemy) return false;
-  const a = chooseEnemyAction(buildAiInput(enemy, get));
-  return a.kind === 'incantation' || a.kind === 'incantationDeZone' || a.kind === 'focalisation';
 }
 
 /** Axes de Surincantation OUVERTS au lancement `pc` : ceux de CE sort (`overcastAxesFor`), tant que
@@ -8586,20 +8584,22 @@ function servirLaFrappePilotee(get: Get, set: SetFn, battle: BattleState, acteur
 /** Chaque genre de geste différé : `tenue` de sa reprise parquée ; `decideParLIA` — un geste que l'IA a décidé, qui ne
  *  part que si elle tient toujours le siège ; `consomme` — le budget du tour qu'il dépense, caduc si ce budget a été
  *  dépensé depuis la décision (« avancer » à la place, `budgetCaduc`). */
-const GENRES_DE_GESTE: Record<GesteDeSuite['kind'], { tenue: keyof typeof TEMPO; decideParLIA: boolean; consomme?: 'action' | 'mouvement' }> = {
+const GENRES_DE_GESTE: Record<GesteDeSuite['kind'], { tenue: keyof typeof TEMPO; decideParLIA: boolean; consomme?: 'action' | 'frappe' | 'mouvement' }> = {
   frappePilotee: { tenue: 'preAttack', decideParLIA: false },
-  frappe: { tenue: 'preAttack', decideParLIA: true, consomme: 'action' },
+  frappe: { tenue: 'preAttack', decideParLIA: true, consomme: 'frappe' },
   sort: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
   zone: { tenue: 'aimTelegraph', decideParLIA: true, consomme: 'action' },
   deplacer: { tenue: 'moveTelegraph', decideParLIA: true, consomme: 'mouvement' },
   avancer: { tenue: 'enemyAdvance', decideParLIA: false },
 };
 
-/** Le budget que dépense `geste` l'est-il déjà ? L'Action : prise, ou que l'acteur ne peut prendre ; le Mouvement :
- *  parcouru depuis la décision. LDB 13 l.14 */
+/** Le budget que dépense `geste` l'est-il déjà ? L'Action : prise, ou que l'acteur ne peut prendre ; la frappe : ni
+ *  l'Action ni une attaque d'Arme gratuite (`frappeDArmeJouable`) ; le Mouvement : parcouru depuis la décision.
+ *  LDB 13 l.14 ; LDB 21 l.33 */
 function budgetCaduc(battle: BattleState, acteur: Combatant, geste: GesteDeSuite): boolean {
   switch (GENRES_DE_GESTE[geste.kind].consomme) {
     case 'action': return battle.acted || !canTakeAction(acteur);
+    case 'frappe': return !frappeDArmeJouable(battle, acteur);
     case 'mouvement': return geste.kind === 'deplacer' && (battle.movementUsed ?? 0) > geste.mouvementAvant;
     default: return false;
   }
@@ -8687,7 +8687,7 @@ function jouerLaSuite(get: Get, set: SetFn, acteurId: string, cle: string, n: nu
           tour.parquee = true;
         }
         const cible = inBattleId(battle, geste.pa.targetId);
-        if (isOutOfAction(acteur) || !cible || cible.dead || (battle.acted && !geste.pa.freeKind && !hasFreeWeaponAttack(acteur))) {
+        if (isOutOfAction(acteur) || !cible || cible.dead || (!geste.pa.freeKind && !frappeDArmeJouable(battle, acteur))) {
           maybeRunEnemyTurn(get, set); // celui du joueur reste le sien
           return;
         } // LDB 21 l.33
@@ -8946,12 +8946,13 @@ function redeciderLeTour(get: Get, set: SetFn, enemy: Combatant, refus?: { case:
   deciderLeTour(get, set, enemy, false);
 }
 
-/** La suite d'un déplacement de l'IA : la frappe s'il arrive au contact sans avoir Couru ; sinon la fin de son tour. */
+/** La suite d'un déplacement de l'IA : la frappe s'il arrive au contact sans avoir Couru, la frappe encore jouable
+ *  (`frappeDArmeJouable`) ; sinon la fin de son tour. */
 function armerLaFrappeOuAvancer(get: Get, set: SetFn, enemy: Combatant, mv: Extract<GesteDeSuite, { kind: 'deplacer' }>, apresDeplacement: readonly string[] | undefined): void {
   const tgt = inBattleId(get().battle!, mv.thenTargetId);
   // La Course a consommé l'Action (LDB 15 l.41) → pas d'attaque en arrivant ; ni quand l'Action est due
   // à une Prière (LDB 40 l.74).
-  if (!tgt || mv.allure === 'course' || !canTakeAction(enemy) || refusPriereImposee(enemy) || distanceDeContact(get().scene, enemy, tgt) > meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene))) {
+  if (!tgt || mv.allure === 'course' || !frappeDArmeJouable(get().battle!, enemy) || refusPriereImposee(enemy) || distanceDeContact(get().scene, enemy, tgt) > meleeReachTiles(enemy.weapons, sceneMetresPerTile(get().scene))) {
     armerLaSuite(get, set, enemy, { kind: 'avancer' }, 0, apresDeplacement);
     return;
   }
@@ -9582,7 +9583,7 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   // Couche MER (navire-unité) : une coque IA agit en UNITÉ via des Tests d'équipage (manœuvre/bordée), pas comme
   // une créature (ni psychologie, ni marche de fantassin). Branche DÉDIÉE — `chooseEnemyAction` n'a aucun candidat naval.
   if (isVehicle(enemy)) return estNavire(enemy) ? runShipAI(get, set, enemy) : endShipTurn(get, set, enemy);
-  // Crochets de début de tour de l'IA (`turnHooks` : Rage, entrée en Frénésie), par le bus (#316). `audience: []` :
+  // Crochets de début de tour de l'IA (`turnHooks` : Rage), par le bus (#316). `audience: []` :
   // les effets `onTurnStart` en donnée sont déjà joués par l'ouverture du tour (`ouvrirLeTour`).
   emitCombatEvent('onTurnStart', { triggerCtx: { rng: battleRng() }, get, set, battle: get().battle!, self: enemy, audience: [], sink: (entree, c) => { get().battle!.log.push(ev('detail', entree, c?.id)); } });
   // Cible = camp opposé à l'acteur : un ennemi vise les héros, un héros en Auto-combat les ennemis.
@@ -9612,21 +9613,78 @@ export function runEnemyAI(get: Get, set: SetFn, enemyId: string) {
   deciderLeTour(get, set, enemy, justMounted);
 }
 
+/** Les décisions dont l'Action se remplace par l'entrée en Frénésie : la frappe et l'approche, hors fuite. Amendement du
+ *  design jugé de #5042 (2026-11-27). */
+const DECISIONS_REMPLACABLES_PAR_LA_FRENESIE: ReadonlySet<EnemyAction['kind']> = new Set(['melee', 'tir', 'deplacement']);
+
+/** L'IA entre-t-elle en Frénésie à la place de l'Action décidée `b` (#5042, design jugé du 2026-11-27, amendé) ? La
+ *  porte du joueur l'ouvre (offre `frenesie`), `b` est une frappe ou une approche hors fuite, la Frénésie a une cible
+ *  (`frenzyTarget`), et P·S_A ≥ S_B : P, la réussite du Test de Force Mentale (`ligneDeFrenesie`) ; S_B, les Blessures
+ *  espérées de la frappe que l'Action de `b` donne ce tour ; S_A, celles du combattant frénétique au contact, ou au bout
+ *  de son meilleur Mouvement seul, Charge comprise (`aiApproachPlan`). LDB 21 l.31-35 ; LDB 15 l.35 */
+function entreraitEnFrenesie(get: Get, enemy: Combatant, input: EnemyTurnInput, b: EnemyAction): boolean {
+  const s = get();
+  const battle = s.battle!;
+  if (!actionGate('frenesie', { active: enemy, battle, scene: s.scene, netMode: s.net.mode, gameTime: s.gameTime }).ok) return false;
+  if (!DECISIONS_REMPLACABLES_PAR_LA_FRENESIE.has(b.kind) || (b.kind === 'deplacement' && b.fuite)) return false;
+  const frenetique: Combatant = { ...enemy, psychState: [...(enemy.psychState ?? []), { type: PSY.frenesie }] };
+  const cible = frenzyTarget(get, frenetique);
+  if (!cible) return false;
+  return probabiliteDeReussite(cibleBrute(ligneDeFrenesie(enemy))) * frappeDuFrenetique(get, frenetique, cible, input) >= frappeDeLAction(s.scene, battle, input, b);
+}
+
+/** Les Blessures espérées de la frappe que l'Action de `b` donne ce tour : la frappe décidée, ou celle qui suit
+ *  l'approche au contact sans Course (`aiApproachPlan`, budgets de la porte du joueur) ; 0 sinon. LDB 15 l.35-41 */
+function frappeDeLAction(scene: Scene | null, battle: BattleState, input: EnemyTurnInput, b: EnemyAction): number {
+  if (b.kind !== 'deplacement') return frappeEsperee(input, b);
+  if (b.fuite) return 0;
+  const enemy = input.enemy;
+  const approche = aiApproachPlan(input, b, budgetsDAllure(scene, battle, enemy, { charge: budgetDeCharge(battle, enemy), course: budgetDeCourse(battle, enemy) }));
+  if (!approche.auContact || approche.allure === 'course' || approche.plan.kind !== 'deplacement') return 0;
+  return frappeEsperee(input, { kind: 'melee', targetId: approche.plan.thenTargetId }, approche.plan.to);
+}
+
+/** Les Blessures espérées de la frappe de `frenetique`, entré en Frénésie, son Action prise, sur la `cible` que la
+ *  Frénésie lui impose (`frenzyTarget`) : déjà au contact, sinon au bout de son Mouvement seul (`frappeDeLAction`).
+ *  LDB 21 l.33 */
+function frappeDuFrenetique(get: Get, frenetique: Combatant, cible: Combatant, input: EnemyTurnInput): number {
+  const battle: BattleState = { ...get().battle!, acted: true };
+  const apres: EnemyTurnInput = { ...input, enemy: frenetique, cibleDeFrenesie: cible, actionPrise: true, memoDesApproches: new Map() };
+  if (distanceDeContact(get().scene, frenetique, cible) <= meleeReachTiles(frenetique.weapons, sceneMetresPerTile(get().scene))) {
+    return frappeEsperee(apres, { kind: 'melee', targetId: cible.id });
+  }
+  return frappeDeLAction(get().scene, battle, apres, chooseEnemyAction(apres));
+}
+
 /** La DÉCISION du tour de l'IA (`chooseEnemyAction`), puis le jeu de l'action décidée — une entrée d'`AI_TURN_LOG` par
  *  décision. Rejouée, sans les crochets de début de tour, quand le geste de déplacement est refusé (`redeciderLeTour`).
  *  `justMounted` : il vient d'enfourcher, son Mouvement est consommé (LDB 14). */
 function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: boolean): void {
   if (!tourEnJeu) return enJeu(() => deciderLeTour(get, set, enemy, justMounted));
-  const battle = get().battle!;
+  let battle = get().battle!;
   const scene = get().scene!;
   // Combat monté (LDB 14 l.179) : géométrie porteuse (monture) pour le déplacement réel — empreinte +
   // chemin ; le couple est solidaire (positions synchronisées à l'exécution du « move »).
   const geom = mountOf(battle, enemy) ?? enemy;
+  // Le classement de la décision jouée (`consumeAiRanking`), relevé à chaque décision : les estimations qui suivent la
+  // rejouent (`entreraitEnFrenesie`, `aiApproachPlan`).
+  let classement: AiCandTrace[] = [];
+  // La bataille et l'acteur vivants, relus après chaque geste de la boucle : une écriture remplace l'objet du combattant
+  // dont le maximum des Blessures bouge (`transitionDuJeu.ts`), la Frénésie par son Bonus de Force (LDB 21 l.33).
+  const relire = (): void => {
+    battle = get().battle!;
+    enemy = inBattleId(battle, enemy.id) ?? enemy;
+  };
+  const choisir = (entree: EnemyTurnInput): EnemyAction => {
+    const choisie = chooseEnemyAction(entree);
+    classement = consumeAiRanking();
+    return choisie;
+  };
   // Entrée de l'IA MUTUALISÉE (sorts résolus + escouade/orientation/perception/mouvement/vol/blocage).
   // « Vient d'enfourcher » → Mouvement consommé ce tour (l'IA a seulement son Action).
   let input = buildAiInput(enemy, get);
   if (justMounted) input.movement = 0;
-  let action = chooseEnemyAction(input);
+  let action = choisir(input);
   // Dépense PROACTIVE de Détermination (LDB 17 l.57-61) : si l'IA décide de se DÉVERROUILLER (action
   // `spendResource`, ex. Brisé), on dépense la Détermination via l'action store `depenserLaDetermination`
   // (coop-safe, hôte-autoritaire, ne consomme PAS l'Action — retire 1 pion/dépense) PUIS on RE-CHOISIT
@@ -9657,7 +9715,7 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       if (pousseeJouee) break;
       if (executerPoussee(get, set, enemy, action.to)) pousseeJouee = action;
       else {
-        action = chooseEnemyAction({ ...input, movement: 0 });
+        action = choisir({ ...input, movement: 0 });
         break;
       }
     } else if (action.kind === 'servirLePoste') {
@@ -9671,14 +9729,22 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       batailleCourante.log.push(ev('detail', tr('cs.manPoste', { name: nomDe(enemy), weapon: poste.item.label }), enemy.id));
       set({ battle: { ...batailleCourante } });
       bus.emit(EVT.SCENE_DIRTY);
+    } else if (entreraitEnFrenesie(get, enemy, input, action)) {
+      // Entrer en Frénésie (LDB 21 l.31), par le geste du joueur : son Test prend l'Action ; les gratuites partent, puis
+      // l'IA re-décide sur le budget qui reste (LDB 21 l.33). Une fenêtre ouverte reprend le tour à sa fermeture.
+      const avant = etatDuGeste(get, enemy);
+      jouerSousLePiloteIA(get, enemy, () => get().entrerEnFrenesie());
+      if (rienNaBouge(get, enemy, avant)) break;
+      if (drainerLesGratuites(get, set, enemy)) return;
     } else break;
+    relire();
     input = buildAiInput(enemy, get);
     if (justMounted) input.movement = 0;
-    action = chooseEnemyAction(input);
+    action = choisir(input);
   }
-  // TRACE IA (DEV) : SEUL site d'enregistrement → `consumeAiRanking` vide le classement de l'appel qui
-  // précède immédiatement (pas de pollution par aiApproachPlan/peek de Frénésie). `top` vide si flag off.
-  AI_TURN_LOG.push({ round: battle.round, id: enemy.id, label: enemy.label, action: describeAiAction(action.kind === 'fin' ? pousseeJouee ?? action : action), top: consumeAiRanking() });
+  relire();
+  // TRACE IA (DEV) : SEUL site d'enregistrement, le classement de la décision jouée (`classement`). `top` vide si flag off.
+  AI_TURN_LOG.push({ round: battle.round, id: enemy.id, label: enemy.label, action: describeAiAction(action.kind === 'fin' ? pousseeJouee ?? action : action), top: classement });
   if (AI_TURN_LOG.length > 400) AI_TURN_LOG.shift();
   const targetOf = (id: string) => inBattleId(battle, id)!;
   const canAct = canTakeAction(enemy); // Sonné : pas d'Action — déplacement seul (LDB 16 l.125)
@@ -9840,11 +9906,12 @@ function deciderLeTour(get: Get, set: SetFn, enemy: Combatant, justMounted: bool
       // Les verdicts du joueur bornent l'allure (`budgetsDAllure`). LDB 15 l.35-41
       const approche = aiApproachPlan(input, action, budgetsDAllure(scene, battle, enemy, { charge: budgetDeCharge(battle, enemy), course: budgetDeCourse(battle, enemy) }));
       const mv = approche.plan.kind === 'deplacement' ? approche.plan : action;
-      // Au contact au bout de l'approche, la Charge ouverte : le geste d'attaque du joueur, Charge armée, sur la cible
-      // (LDB 15 l.35-37) — son chemin, sa Peur (`retenuParLaPeur`) et son Vol sont ceux du joueur.
+      // Au contact au bout de l'approche, la Charge ouverte et la frappe jouable (`frappeDArmeJouable`) : le geste
+      // d'attaque du joueur, Charge armée, sur la cible (LDB 15 l.35-37) — son chemin, sa Peur (`retenuParLaPeur`) et son
+      // Vol sont ceux du joueur.
       const cible = inBattleId(battle, mv.thenTargetId);
       const refusees = tourEnCoursDe(battle, enemy.id)?.ciblesRefusees ?? [];
-      if (approche.allure !== 'course' && approche.auContact && !action.fuite && cible && !refusees.includes(cible.id) && !refusDeCharge(battle, enemy)) {
+      if (approche.allure !== 'course' && approche.auContact && !action.fuite && cible && !refusees.includes(cible.id) && !refusDeCharge(battle, enemy) && frappeDArmeJouable(battle, enemy)) {
         armerLaSuite(get, set, enemy, { kind: 'frappe', cibleId: cible.id, charge: true }, TEMPO.aimTelegraph);
         return;
       }

@@ -217,6 +217,14 @@ export function evaluateTest(r: number, cible: number, base?: number, policy: Te
   return { roll: r, target, success, sl, isDouble: isDoubleRoll(r), ...(base != null ? { base } : {}), ...(clamped ? { clamped } : {}) };
 }
 
+/** La probabilité de réussir un Test de cible `cible` (avant bornage) : la part des cent jets que `evaluateTest`
+ *  réussit, bandes automatiques comprises (LDB 12 l.28). */
+export function probabiliteDeReussite(cible: number, policy: TestPolicy = getTestPolicy()): number {
+  let reussis = 0;
+  for (let r = 1; r <= 100; r++) if (evaluateTest(r, cible, undefined, policy).success) reussis++;
+  return reussis / 100;
+}
+
 /** Cible d'un jet posé AVANT bornage — l'inverse de la mesure des constructeurs (`evaluateTest`,
  *  `forcedTR`) : un dé réévalué sur le MÊME jet repart de là, et le constructeur re-mesure son écrêtage. */
 export function cibleBrute(t: { target: number; clamped?: number }): number {

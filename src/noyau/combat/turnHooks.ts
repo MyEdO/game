@@ -1,20 +1,18 @@
 /**
  * DÉBUT ET FIN DE TOUR : les effets de bord de tour authorés (`fireTurnStartTriggers`, `fireTurnEndTriggers`), le gate
  * d'action par Round (`resolveActGates`) et les crochets `onTurnStart` de la table `crochetsDeCombat` (`TABLES`, lue par
- * `combatHooks`), ordonnés par `order` : Rage (20), entrée en Frénésie de l'IA (30). Le golden
- * `turnStart.golden.hors-store.test.ts` fige l'ordre et les tirages des crochets. La psychologie de combat se joue aux
- * passes de Round (`openRoundStartPsych`, `openRoundEndCascade`, LDB 21 l.9, l.25).
+ * `combatHooks`), ordonnés par `order` : Rage (20). La psychologie de combat se joue aux passes de Round
+ * (`openRoundStartPsych`, `openRoundEndCascade`, LDB 21 l.9, l.25).
  *
  * Les crochets tournent pour tout combattant que l'IA conduit (`runEnemyAI`, `aiDriven` : héros en Auto-combat
- * compris) ; chacun porte ses gardes de capacité (`hasRage`, `aiMaybeFrenzy`). `aiJetteraitUnSort` vient de combatFlow,
- * lu à l'appel seulement.
+ * compris) ; chacun porte ses gardes de capacité (`hasRage`).
  */
 import { nomDe } from '../../engine/nom';
 import { rollSansPilote, surfaceOf, choiceStep, pushMono } from '../rollSeam';
 import { battleRng } from '../battleRng';
 import { ev } from '../combatLog';
-import { isOutOfAction, combatTestPenalty, peutEntrerEnFrenesie } from '../../engine/conditions';
-import { rawCombatTestBase, testValue, type TestDesigne } from '../../engine/skills';
+import { isOutOfAction, combatTestPenalty } from '../../engine/conditions';
+import { rawCombatTestBase } from '../../engine/skills';
 import { traceLineOf, testTraceLabel } from '../../engine/traceLine';
 import { CHAR_LABELS, CATEGORY_BY_SOURCE_KIND } from '../../engine/types';
 import { garanti } from '../../lib/garanti';
@@ -22,13 +20,11 @@ import { reconcileAdvantageToPool, creditOpposingAdvantage, campSpend } from './
 import { mountMovement } from '../mount';
 import { materialiserLaBarre } from '../dispositionConsole';
 import { objetDuNarratif } from '../monde/resolveursDuNarratif';
-import { isFrenzied, PSY, resolveFrenzyEntry, sourceCombattant, vise } from '../../engine/psychology';
+import { isFrenzied, PSY, sourceCombattant, vise } from '../../engine/psychology';
 import { ciblePsy, libelleDeCible } from '../../engine/psych/ciblage';
 import { combatStakeRef } from '../../data';
 import { hasRage } from '../../engine/traits/dispatch';
-import { fireTriggers, hasFoeInLoS } from '../triggeredEffects';
-import { aiDriven } from '../netOwnership';
-import { aiJetteraitUnSort } from '../combatFlow';
+import { fireTriggers } from '../triggeredEffects';
 import { t } from '../../i18n';
 import type { Combatant } from '../../engine/types';
 import type { Get, Set as SetFn } from '../flowTypes';
@@ -116,27 +112,6 @@ export function resolveActGates(get: Get, set: SetFn, c: Combatant): ActGateOutc
   return out;
 }
 
-// ============================================================================================
-// Crochets de début de tour de l'IA. Ils journalisent eux-mêmes (`ev`), sans le `sink` du ctx.
-// ============================================================================================
-
-const FORCE_MENTALE: TestDesigne = { characteristic: 'force-mentale' };
-
-/** L'IA tente d'entrer en Frénésie au début de son tour : combattant capable (`peutEntrerEnFrenesie`), sans immunité
- *  psychologique, un adversaire vivant en Ligne de Vue. La sortie est un effet `onTurnStart` en donnée
- *  (`psychology.json`). LDB 21 l.31, l.35 */
-export function aiMaybeFrenzy(get: Get, set: SetFn, enemy: Combatant): void {
-  if (!aiDriven(get(), enemy) || enemy.psychImmune || isOutOfAction(enemy) || !peutEntrerEnFrenesie(enemy)) return;
-  if (!hasFoeInLoS(get, enemy)) return;
-  // L'IA diffère ce choix tant que sa meilleure action est de préparer un sort (`aiJetteraitUnSort`, sans RNG).
-  // LDB 21 l.31
-  if (aiJetteraitUnSort(get, enemy.id)) return;
-  if (resolveFrenzyEntry({ porteur: enemy.id, teste: FORCE_MENTALE }, testValue(enemy, FORCE_MENTALE), battleRng()).success) {
-    (enemy.psychState ??= []).push({ type: PSY.frenesie });
-    set({ battle: { ...get().battle!, log: [...get().battle!.log, ev('frenesie', t('turn.frenzyEnter', { name: nomDe(enemy) }), enemy.id)] } });
-  }
-}
-
 /** Les genres d'étape que ce module déclare (table `appliers`). */
 export const GENRES_D_ETAPE = ['testDAgir', 'choixDAgir'] as const;
 
@@ -200,12 +175,6 @@ export const TABLES = {
         battle.log.push(ev('peur', t('turn.rageHate', { name: nomDe(enemy), groupe: libelleDeCible(HAINE_DE_RAGE) }), enemy.id));
         set({ battle: { ...battle } });
       },
-    },
-    {
-      id: 'ai-maybe-frenzy', // LDB 21 l.31
-      phase: 'onTurnStart',
-      order: 30,
-      run: ({ get, set, self }) => { if (self) aiMaybeFrenzy(get, set, self); },
     },
   ],
 } satisfies FragmentDeTables;
